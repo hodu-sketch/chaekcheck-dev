@@ -1,0 +1,233 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2rem;
+}
+
+/* segmented control */
+.filter {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--paper-deep);
+}
+
+.filterItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 1.05rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.filterItem:hover {
+  color: var(--ink);
+}
+
+.filterItem[data-state='on'] {
+  background: var(--card);
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.filterCount {
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgb(122 92 242 / 0.12);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.groupTitle::before {
+  content: '';
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.group[data-group='reserve'] .groupTitle::before {
+  background: var(--reserve);
+}
+
+.group[data-group='pending'] .groupTitle {
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+}
+
+.group[data-group='pending'] .groupTitle::before {
+  background: var(--ink-faint);
+}
+
+/* one batch of results */
+.batch {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* "더 찾은 결과 · 도서관 N곳" between batches */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+/* list bottom: "더 보기 (남은 도서관 N곳)" */
+.bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0 1.4rem;
+}
+
+.moreButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 18rem;
+  justify-content: center;
+  padding: 0.85rem 1.6rem;
+  border: 1.5px solid var(--brand);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--brand-strong);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.moreButton:hover {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.moreCount {
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.loadingMore,
+.finished {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.moreFailed {
+  color: var(--fail);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--rule-strong);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.groupCount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.empty {
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+}
+
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+@media (width <= 640px) {
+  .filter {
+    align-self: stretch;
+  }
+
+  .filterItem {
+    flex: 1;
+    justify-content: center;
+    padding-inline: 0.5rem;
+    font-size: 0.84rem;
+    white-space: nowrap;
+  }
+
+  .groupTitle {
+    font-size: 1.2rem;
+  }
+
+  .moreButton {
+    align-self: stretch;
+    min-width: 0;
+  }
+}

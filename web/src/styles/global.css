@@ -1,0 +1,115 @@
+/*
+ * Visual direction: bright and current. White page, violet as the brand color, light lavender surfaces,
+ * NanumSquare throughout with weight contrast (800 headings, 400 body). Rounded, flat cards: solid colors and
+ * borders only, no gradients or shadows (user preference 2026-09-27).
+ * Color carries meaning: violet = can borrow now, amber = reserve and wait, red = failed.
+ * Desktop styles are the default; narrower screens override them (tablet <= 1024px, mobile <= 640px).
+ */
+:root {
+  /* surfaces */
+  --paper: #ffffff;
+  --paper-deep: #f5f3fb;
+  --card: #ffffff;
+  --ink: #1b1a24;
+  --ink-soft: #5b5870;
+  --ink-faint: #9793aa;
+  --rule: #ebe8f4;
+  --rule-strong: #d6d0ea;
+
+  /* brand */
+  --brand: #7a5cf2;
+  --brand-strong: #5e3fe0;
+  --brand-soft: #f0ebff;
+
+  /* meaning */
+  --borrow: var(--brand-strong);
+  --borrow-soft: var(--brand-soft);
+  --reserve: #b76a0a;
+  --reserve-soft: #fff3e0;
+  --fail: #d33d55;
+  --fail-soft: #ffeef1;
+  --focus: #5e3fe0;
+
+  --font-body: 'NanumSquare', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-title: var(--font-body);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  --page-width: 90rem;
+  --gutter: 2.5rem;
+
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (width <= 1024px) {
+  :root {
+    --gutter: 1.75rem;
+  }
+}
+
+@media (width <= 640px) {
+  :root {
+    --gutter: 1rem;
+    font-size: 15px;
+  }
+}

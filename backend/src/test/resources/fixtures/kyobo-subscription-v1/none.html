@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="title" content="세종시립도서관(구독)">
+<meta name="keywords" content="세종시립도서관(구독)">
+<meta name="description" content="세종시립도서관(구독)" />
+<title>세종시립도서관(구독)</title>
+<meta name="viewport" content="width=1200">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/lib/jquery/themes01/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/reset.css?v=1790604360635" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/contents.css?v=1790604360635" />
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N5SJCGX5"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<div id="skip_menu"> 
+    <ul> 
+        <li><a href="#gnb">주메뉴 바로가기</a></li> 
+        <li><a href="#container">본문 바로가기</a></li> 
+    </ul> 
+</div>
+<div id="wrap">
+<header class="top_wrap">
+  <div id="top">
+    <h1 id="headLogo"></h1>
+  </div>
+  <div class="top_util">
+    <ul>
+      <li><a href="/member/memberLogin.ink" title="로그인 | 회원 | 세종시립도서관(구독)" onclick="fnLogin(); event.preventDefault();">로그인</a></li>
+      <li class="notifi"><a href="#" onclick="javascript:fnLoginCheck('inform'); event.preventDefault();">알림<span id="noti"></span></a></li>
+    </ul>
+  </div>
+  <div class="top_area">
+    <fieldset>
+    <legend>통합검색영역</legend>
+    <div class="sch_area">
+      <div style="border-color:#0a325c;">
+        <form id="searchFormTop" name="searchFormTop" method="get" onsubmit="return fnSearch('top');">
+          <select name="schClst" title="통합검색 분류 선택">
+            <option value="all">통합검색</option>
+            <option value="ctts">제목</option>
+            <option value="autr">저자</option>
+            <option value="pbcm">출판사</option>
+          </select>
+          <label for="schTxtTop">검색어 입력하기</label>
+          <input type="hidden" name="schDvsn" value="000" id="schDvsn" />
+          <input type="hidden" name="orderByKey" value="" id="orderByKey" />
+          <input type="text" name="schTxt" value="" id="schTxtTop" autocomplete="off" maxlength="100"/>
+          <input type="submit" value="검색">
+        </form>
+      </div>
+    </div>
+    </fieldset>
+    <ul class="hope_book">
+      <li><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();">내서재</a></li>
+    </ul>
+  </div>
+  <nav class="gnb_area" style="border-color:#0a325c;">
+  <h2 class="hidden_obj">주메뉴</h2>
+  <div id="gnb" class="gnb" tabindex="0"></div>
+  <div class="all_menu">
+    <p><input type="button" value="전체메뉴" /></p>
+  </div>
+  <div class="all_menu_area">
+    <ul id="allMenuArea">
+    </ul>
+    <ul id="allBooks">
+      <li>
+      <a
+        href="/content/contentBestList.ink?listType=B&cttsDvsnCode=all&bestCttsDvsnCode=2"
+         onclick="gFnGoReferer($(this).attr('href')); event.preventDefault();">도서자료</a>
+        <ul id="partName">
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+  <div class="top_sticky" style="border-color:#0a325c;" tabindex="-1">
+<div>
+  <div class="gnb"></div>
+  <div class="top_sch">
+    <fieldset>
+      <legend>통합검색영역</legend>
+      <div class="sch_area">
+          <div style="border-color:#0a325c;">
+          <form id="searchFormSlide" name="searchFormSlide" method="get"  onsubmit="return fnSearch('slide');">
+            <select name="schClst" title="통합검색 분류 선택" tabindex="-1">
+              <option value="all">통합검색</option>
+              <option value="ctts">제목</option>
+              <option value="autr">저자</option>
+              <option value="pbcm">출판사</option>
+            </select>
+            <label for="schTxtSlide">검색어 입력하기</label>
+            <input type="hidden" name="schDvsn" value="000" />
+            <input type="hidden" name="orderByKey" value="" />
+            <input type="text" name="schTxt" value="" id="schTxtSlide"  tabindex="-1" autocomplete="off" />
+            <input type="submit" value="검색"  tabindex="-1" />
+            </form>
+          </div>
+      </div>
+    </fieldset>
+    <p class="hope_book"><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();" tabindex="-1">내서재</a></p>
+  </div>
+</div>
+</div>
+</header>
+    <div id="contentMainDiv">
+      <div class="con_wrap">
+        <ul class="path">
+          <li><a href="/main.ink">HOME</a></li>
+          <li><a href="#">검색</a></li>
+        </ul>
+        <div class="con_area">
+          <form id="searchListForm" class="daContentForm" method="post">
+            <input type="hidden" name="brcd" id="brcd" value=""/>
+            <input type="hidden" name="sntnAuthCode" id="sntnAuthCode" value=""/>
+            <input type="hidden" name="contentAll" id="contentAll" value=""/>
+            <input type="hidden" id="custom_pageIndex" value="1"/>
+            <input type="hidden" name="cttsDvsnCode" id="cttsDvsnCode" value=""/>
+            <input type="hidden" name="orderByKey" value=""/>
+            <input type="hidden" name="schClst" id="schClst" value="ctts"/>
+            <input type="hidden" name="schDvsn" id="schDvsnList" value="000"/>
+            <input type="hidden" name="reSch" id="reSch" value=""/>
+            <input type="hidden" name="ctgrId" id="ctgrId" value=""/>
+            <aside class="aside">
+              <h2>검색필터 </h2>
+              <div class="sch_lnb">
+                <p>세부항목</p>
+                <ul>
+                  <li><input type="checkbox" name="allClstCheck" id="allClstCheck"  /><label for="all">전체</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="cttsClstCheck" onclick="fnClstCheck();" value="ctts" checked="checked" /><label for="cttsClstCheck">제목</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="autrClstCheck" onclick="fnClstCheck();" value="autr"  /><label for="autrClstCheck">저자</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="pbcmClstCheck" onclick="fnClstCheck();" value="pbcm"  /><label for="pbcmClstCheck">출판사</label></li>
+                </ul>
+                <p>상품군</p>
+                <ul>
+                  <li><input type="checkbox" name="allDvsnCheck" id="allDvsnCheck" value="000" checked="checked" /><label for="allDvsnCheck">전체목록</label></li>
+                      <li><input type="checkbox" name="dvsnCheck" id="001DvsnCheck" onclick="fnDvsnCheck();" value="001" checked="checked" /><label for="001DvsnCheck">전자책</label></li>
+                </ul>
+              </div>
+            </aside>
+            <section class="sub_con" id="container">
+              <div class="contents">
+                <div class="h3_area">
+                  <h3>검색결과</h3>
+                </div>
+                <div class="sch_con">
+                  <fieldset>
+                  <legend>검색조건 선택하기</legend>
+                  <table>
+                    <caption>검색조건</caption>
+                    <colgroup>
+                      <col style="width:100px;">
+                      <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        <td colspan="2">
+                          <input type="text" name="schTxt" id="schTxtList" value="없는책제목없음" style="width:500px;" title="검색어 쓰기" autocomplete="off" maxlength="100">
+                          <span class="tbl_infotxt"><input type="checkbox" name="reSchChk" id="reSchChk"  /> <label for="reSchChk">결과내 재검색</label></span>
+                        </td>
+                      </tr>
+                      <tr id="reSchArea" style="display:none;">
+                        <th scope="row"><label for="reSchTxt">결과내 재검색</label></th>
+                        <td><input type="text" name="reSchTxt" id="reSchTxt" value="" style="width:400px;" autocomplete="off"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </fieldset>
+                  <p class="btn_posi">
+                    <input type="button" value="검색" onclick="fnSearchList();" class="btn btn_s btn_gray">
+                  </p>
+                </div>
+                    <div class="book_resultTxt">
+                      <p><strong>"없는책제목없음"</strong> 에 대한 검색 결과가 없습니다.</p>
+                    </div>
+              </div>
+            </section>
+          </form>
+        </div>
+      </div>
+    </div>
+<aside class="quick">
+	<ul>
+		<li class="item01"><a href="#" title="대출현황 | 세종시립도서관(구독)" onClick="fnLoginCheck('loanStatus'); event.preventDefault();">대출현황</a></li>
+		<li class="item05"><a href="#" title="찜목록 | 세종시립도서관(구독)" onClick="fnLoginCheck('wishStatus'); event.preventDefault();">찜목록</a></li>
+		<li class="use_info item03"><a href="#" title="이용안내 | 세종시립도서관(구독)">이용안내</a>
+			<ul>
+				<li class="in_item01"><a href="/helpDesk/libraryGuide.ink">디지털도서관 안내</a></li>
+				<li class="in_item02"><a href="/helpDesk/pcGuide.ink">PC 이용안내</a></li>
+				<li class="in_item03"><a href="/helpDesk/mobileGuide.ink">모바일 이용안내</a></li>
+			</ul>
+		</li>
+	</ul>
+	<div class="arr_btn">
+		<p><a href="#top" class="tab_scroll">맨 위로 올라가기</a></p>
+		<p><a href="#footer" class="tab_scroll">맨 아래로가기</a></p>
+	</div>
+</aside>
+<footer>
+<div class="foot_etc" id="footer">
+  <h2 class="hidden_obj">하단메뉴</h2>
+  <div>
+    <ul class="etc">
+      <li id="mobileViewBtn" style="display:none;"><a href="/mobileView.ink">모바일버전</a></li>
+      <li><a href="/member/memberPrivacy.ink">이용약관</a></li>
+      <li><a href="/member/memberPromis.ink" style="font-weight:bold;text-decoration:underline;">개인정보처리방침</a></li>
+      <li><a href="/member/memberYouthPolicy.ink">청소년보호정책</a></li>
+      <li><a href="/siteMap/siteMap.ink">사이트맵</a></li>
+    </ul>
+    <div class="family">
+      <h3><a href="#">FAMILY SITE</a></h3>
+      <ul><li id="familySite"></li></ul>
+    </div>
+  </div>
+</div>
+<div class="foot_add">
+  <h2 class="hidden_obj">주소</h2>
+  <div>
+    <address class="address">
+      <p>도서관명 : 세종시립도서관(구독) </p>
+      <p>Copyright ⓒ KYOBO BOOK CENTRE. All rights reserved.</p>
+    </address>
+    <div class="ban_area">
+    </div>
+  </div>
+</div>
+</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Nationwide SIDO / SIGUNGU (general gu excluded), from the MOIS legal-dong code file jscode20260701.
+# IDs are permanent: SIDO = first two digits of the legal-dong code, SIGUNGU = SIDO id + 01, 02, ... in legal-dong code order.
+# Never renumber. Later changes go in new changesets (ABOLISHED + region_replacement), see ADR-0003.
+databaseChangeLog:
+  - changeSet:
+      id: region-002-seed-20260701
+      author: chaekcheck
+      changes:
+        - loadData:
+            schemaName: region
+            tableName: region
+            file: 002-region-seed.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: id, type: NUMERIC }
+              - column: { name: parent_id, type: NUMERIC }
+              - column: { name: level, type: STRING }
+              - column: { name: name, type: STRING }
+              - column: { name: short_name, type: STRING }
+              - column: { name: legal_dong_code, type: STRING }
+              - column: { name: status, type: STRING }

@@ -1,0 +1,330 @@
+<!-- fixture: fetched 2026-09-27, descriptions/covers/scripts removed -->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="title" content="고흥군립도서관">
+<meta name="keywords" content="고흥군립도서관">
+<meta name="description" content="고흥군립도서관" />
+<title>고흥군립도서관</title>
+<!--header START -->
+<meta name="viewport" content="width=1200">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<!-- <meta http-equiv="Content-Security-Policy" content="script-src https://www.googletagmanager.com 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' 'unsafe-inline' http://*:* https://*:* http://dcontent.dkyobobook.co.kr/ www.googletagmanager.com;"> -->
+<link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/lib/jquery/themes01/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/front/web/reset.css?v=1790514125814" />
+<link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/front/web/contents.css?v=1790514125814" />
+<!-- link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/front/web/flexslider.css" / -->
+<!--  -->
+<!-- script type="text/javascript" src="/elibrary-front/resources/common/js/front/web/roll.js"></script -->
+<!--header END -->
+</head>
+<body>
+<!--skipMenu START -->
+<div id="skip_menu"> 
+    <ul> 
+        <li><a href="#gnb">주메뉴 바로가기</a></li> 
+        <li><a href="#container">본문 바로가기</a></li> 
+    </ul> 
+</div>
+<!--skipMenu END -->
+<!--wrapper Start-->
+<div id="wrap">
+    <!--header START -->
+<header class="top_wrap">
+  <div id="top">
+    <h1 id="headLogo"></h1>
+  </div>
+  <div class="top_util">
+    <ul>
+      <li><a href="/elibrary-front/member/memberLogin.ink" title="로그인 | 회원 | 고흥군립도서관" onclick="fnLogin(); event.preventDefault();">로그인</a></li>
+      <li class="notifi"><a href="#" onclick="javascript:fnLoginCheck('inform'); event.preventDefault();">알림<span id="noti"></span></a></li>
+    </ul>
+  </div>
+  <div class="top_area">
+    <fieldset>
+    <legend>통합검색영역</legend>
+    <div class="sch_area">
+      <div style="border-color:#0a325c;"><!-- 관리자 제어 border color -->
+        <form id="searchFormTop" name="searchFormTop" method="get" onsubmit="return fnSearch('top');">
+          <select name="schClst" title="통합검색 분류 선택">
+            <option value="all">통합검색</option>
+            <option value="ctts">제목</option>
+            <option value="autr">저자</option>
+            <option value="pbcm">출판사</option>
+            <!-- <option value="intc_cntt">책소개</option> -->
+          </select>
+          <label for="schTxtTop">검색어 입력하기</label>
+          <input type="hidden" name="schDvsn" value="000" id="schDvsn" />
+          <input type="hidden" name="orderByKey" value="" id="orderByKey" />
+          <input type="text" name="schTxt" value="" id="schTxtTop" autocomplete="off" maxlength="100"/>
+          <input type="submit" value="검색">
+        </form>
+      </div>
+    </div>
+    </fieldset>
+    <ul class="hope_book">
+      <li class="hope">
+        <form id="hopeKb" name="hopeKb" method="post" >
+          <a href="#" onclick="fnLoginCheck('hope'); event.preventDefault();">희망도서<span class="hidden_obj">신청</span></a>
+          <input type="hidden" id="hopeMmbrId" name="mmbrId" value="" />
+          <input type="hidden" id="hopeMmbrGrpId" name="mmbrGrpId" value="" />
+          <input type="hidden" id="hopeGrpCodeName" name="grpCodeName" value="" />
+          <input type="hidden" id="serverName" name="serverName" value="" />
+          <input type="hidden" id="hopeFlag" name="hopeFlag" value="" />
+        </form>
+      </li>
+      <li><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();">내서재</a></li>
+    </ul>
+  </div>
+<!-- GNB -->
+  <nav class="gnb_area" style="border-color:#0a325c;"><!-- 관리자 제어 border color -->
+  <h2 class="hidden_obj">주메뉴</h2>
+  <div id="gnb" class="gnb" tabindex="0"></div>
+  <div class="all_menu">
+    <p><input type="button" value="전체메뉴" /></p>
+  </div>
+  <div class="all_menu_area">
+    <ul id="allMenuArea">
+    </ul>
+    <ul id="allBooks">
+      <li>
+      <a
+        href="/elibrary-front/content/contentBestList.ink?listType=B&cttsDvsnCode=all&bestCttsDvsnCode=2"
+         onclick="gFnGoReferer($(this).attr('href')); event.preventDefault();">도서자료</a>
+        <ul id="partName">
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+<!-- sticky -->
+  <div class="top_sticky" style="border-color:#0a325c;" tabindex="-1"><!-- 관리자 제어 -->
+<div>
+  <div class="gnb"></div>
+  <div class="top_sch">
+    <fieldset>
+      <legend>통합검색영역</legend>
+      <div class="sch_area">
+          <div style="border-color:#0a325c;"><!-- 관리자 제어 -->
+          <form id="searchFormSlide" name="searchFormSlide" method="get"  onsubmit="return fnSearch('slide');">
+            <select name="schClst" title="통합검색 분류 선택" tabindex="-1">
+              <option value="all">통합검색</option>
+              <option value="ctts">제목</option>
+              <option value="autr">저자</option>
+              <option value="pbcm">출판사</option>
+              <!-- <option value="intc_cntt">책소개</option> -->
+            </select>
+            <label for="schTxtSlide">검색어 입력하기</label>
+            <input type="hidden" name="schDvsn" value="000" />
+            <input type="hidden" name="orderByKey" value="" />
+            <input type="text" name="schTxt" value="" id="schTxtSlide"  tabindex="-1" autocomplete="off" />
+            <input type="submit" value="검색"  tabindex="-1" />
+            </form>
+          </div>
+      </div>
+    </fieldset>
+    <p class="hope_book"><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();" tabindex="-1">내서재</a></p>
+  </div>
+</div>
+</div>
+<!--// sticky -->
+</header>
+    <!--header END -->
+    <!--content START-->
+    <div id="contentMainDiv">
+      <div class="con_wrap">
+        <ul class="path">
+          <li><a href="/elibrary-front/main.ink">HOME</a></li>
+          <li><a href="#">검색</a></li>
+        </ul>
+        <div class="con_area">
+          <form id="searchListForm" class="daContentForm" method="post">
+            <input type="hidden" name="brcd" id="brcd" value=""/>
+            <input type="hidden" name="sntnAuthCode" id="sntnAuthCode" value=""/>
+            <input type="hidden" name="contentAll" id="contentAll" value=""/>
+            <input type="hidden" id="custom_pageIndex" value="1"/>
+            <input type="hidden" name="cttsDvsnCode" id="cttsDvsnCode" value=""/>
+            <input type="hidden" name="orderByKey" value=""/>
+            <input type="hidden" name="schClst" id="schClst" value="all"/>
+            <input type="hidden" name="schDvsn" id="schDvsnList" value="000"/>
+            <input type="hidden" name="reSch" id="reSch" value=""/>
+            <input type="hidden" name="ctgrId" id="ctgrId" value=""/>
+            <aside class="aside"><!-- 검색일 경우 lnb 따로 생성 -->
+              <h2>검색필터 </h2>
+              <div class="sch_lnb">
+                <p>세부항목</p>
+                <ul>
+                  <li><input type="checkbox" name="allClstCheck" id="allClstCheck" checked="checked" /><label for="all">전체</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="cttsClstCheck" onclick="fnClstCheck();" value="ctts" checked="checked" /><label for="cttsClstCheck">제목</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="autrClstCheck" onclick="fnClstCheck();" value="autr" checked="checked" /><label for="autrClstCheck">저자</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="pbcmClstCheck" onclick="fnClstCheck();" value="pbcm" checked="checked" /><label for="pbcmClstCheck">출판사</label></li>
+                </ul>
+                <p>상품군</p>
+                <ul>
+                  <li><input type="checkbox" name="allDvsnCheck" id="allDvsnCheck" value="000" checked="checked" /><label for="allDvsnCheck">전체목록</label></li>
+                      <li><input type="checkbox" name="dvsnCheck" id="001DvsnCheck" onclick="fnDvsnCheck();" value="001" checked="checked" /><label for="001DvsnCheck">전자책</label></li>
+                </ul>
+              </div>
+            </aside>
+            <section class="sub_con" id="container">
+              <div class="contents">
+                <!-- 내용시작  -->
+                <div class="h3_area">
+                  <h3>검색결과</h3>
+                </div>
+                <div class="sch_con">
+                  <fieldset>
+                  <legend>검색조건 선택하기</legend>
+                  <table>
+                    <caption>검색조건</caption>
+                    <colgroup>
+                      <col style="width:100px;">
+                      <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        <td colspan="2">
+                          <input type="text" name="schTxt" id="schTxtList" value="채식주의자" style="width:500px;" title="검색어 쓰기" autocomplete="off" maxlength="100">
+                          <span class="tbl_infotxt"><input type="checkbox" name="reSchChk" id="reSchChk"  /> <label for="reSchChk">결과내 재검색</label></span>
+                        </td>
+                      </tr>
+                      <tr id="reSchArea" style="display:none;">
+                        <th scope="row"><label for="reSchTxt">결과내 재검색</label></th>
+                        <td><input type="text" name="reSchTxt" id="reSchTxt" value="" style="width:400px;" autocomplete="off"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </fieldset>
+                  <p class="btn_posi">
+                    <input type="button" value="검색" onclick="fnSearchList();" class="btn btn_s btn_gray">
+                  </p>
+                </div>
+                    <div class="book_sort">
+                      <ul>
+                        <li class="on"><a href="/elibrary-front/search/searchList.ink" title="최신순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'publDate'); event.preventDefault();">최신순</a></li> <!-- 선택시 class="on" -->
+                        <li><a href="/elibrary-front/search/searchList.ink" title="인기순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'loanNmvl'); event.preventDefault();">인기순</a></li>
+                        <li><a href="/elibrary-front/search/searchList.ink" title="제목순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'cttsHnglName'); event.preventDefault();">제목순</a></li>
+                        <li><a href="/elibrary-front/search/searchList.ink" title="저자순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'sntnAuthName'); event.preventDefault();">저자순</a></li>
+                      </ul>
+                    </div>
+                    <div class="book_resultTxt">
+                      <p><strong>"채식주의자"</strong> 검색결과 <strong>총 1개</strong>의 자료가 있습니다.</p>
+                      <div>
+                        <span>
+                          <input type="text" id="nowPage" title="현재페이지" class="daOnlyNum" /> / <span id="totalPage" ></span>
+                          <input type="button"id="goPage" value="이동하기" class="btn btn_s btn_line"/>
+                          <a href="#"></a><a href="#"></a>
+                        </span>
+                        <select id="selViewCnt" title="갯수 선택하기" name="selViewCnt" onChange="javascript:searchList.fnContentPageList(1);">
+                          <option value="20" selected>20개씩</option>
+                          <option value="40" >40개씩</option>
+                          <option value="60" >60개씩</option>
+                          <option value="80" >80개씩</option>
+                        </select><input type="button" name="viewBtn"  value="보기" class="btn btn_s btn_line"/>
+                      </div>
+                    </div>
+                    <!-- 책 리스트 -->
+                    <ul class="book_resultList">
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="왜 채식주의자인가.The Book of Why I Am a Vegetarian, by J. Howard Moore | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480D200235740', '2313', '', 'N','1'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '2313', '480D200235740','1'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="왜 채식주의자인가.The Book of Why I Am a Vegetarian, by J. Howard Moore | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', '480D200235740', '2313', '', 'N', '1'); event.preventDefault();">왜 채식주의자인가.The Book of Why I Am a Vegetarian, by J. Howard Moore</a></li>
+                                  <li class="writer">J. Howard Moore<span>뉴가출판사</span>2020-02-28</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/1</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', '480D200235740', '001', '왜 채식주의자인가.The Book of Why I Am a Vegetarian, by J. Howard Moore','1', 'KB','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480D200235740','N');"/></span>
+                          </div>
+                        </li>
+                    </ul>
+                    <!-- paging -->
+                    <div id="searchList_pageNavi" class="pageNavi"></div>
+                <!-- // 내용 끝  -->
+              </div>
+            </section>
+          <!-- //sub_con -->
+          </form>
+        </div>
+      </div>
+      <!-- //con_wrap -->
+    </div>
+    <!--content END -->
+    <!--quick START -->
+<!-- quick 2020-07-08 -->
+<aside class="quick">
+	<ul>
+		<li class="item01"><a href="#" title="대출현황 | 고흥군립도서관" onClick="fnLoginCheck('loanStatus'); event.preventDefault();">대출현황</a></li>
+		<li class="item02"><a href="#" title="예약현황 | 고흥군립도서관" onClick="fnLoginCheck('prenStatus'); event.preventDefault();">예약현황</a></li>
+		<li class="item05"><a href="#" title="찜목록 | 고흥군립도서관" onClick="fnLoginCheck('wishStatus'); event.preventDefault();">찜목록</a></li>
+		<li class="use_info item03"><a href="#" title="이용안내 | 고흥군립도서관">이용안내</a>
+			<ul>
+				<li class="in_item01"><a href="/elibrary-front/helpDesk/libraryGuide.ink">전자도서관 안내</a></li>
+				<li class="in_item02"><a href="/elibrary-front/helpDesk/pcGuide.ink">PC 이용안내</a></li>
+				<li class="in_item03"><a href="/elibrary-front/helpDesk/mobileGuide.ink">모바일 이용안내</a></li>
+			</ul>
+		</li>
+		<li class="item04"><a href="/elibrary-front/content/contentBestList.ink?listType=A&cttsDvsnCode=all" title="부록서비스 | 고흥군립도서관">부록서비스</a></li>
+	</ul>
+	<div class="arr_btn">
+		<p><a href="#top" class="tab_scroll">맨 위로 올라가기</a></p>
+		<p><a href="#footer" class="tab_scroll">맨 아래로가기</a></p>
+	</div>
+</aside>
+    <!--quick END -->
+    <!--footer START -->
+<!-- foot -->
+<footer>
+<div class="foot_etc" id="footer">
+  <h2 class="hidden_obj">하단메뉴</h2>
+  <div>
+    <ul class="etc">
+      <li id="mobileViewBtn" style="display:none;"><a href="/elibrary-front/mobileView.ink">모바일버전</a></li>
+      <li><a href="/elibrary-front/member/memberPrivacy.ink">이용약관</a></li>
+      <li><a href="/elibrary-front/member/memberPromis.ink" style="font-weight:bold;text-decoration:underline;">개인정보처리방침</a></li>
+      <li><a href="/elibrary-front/member/memberYouthPolicy.ink">청소년보호정책</a></li>
+      <li><a href="/elibrary-front/siteMap/siteMap.ink">사이트맵</a></li>
+    </ul>
+    <div class="family">
+      <h3><a href="#">FAMILY SITE</a></h3>
+      <ul><li id="familySite"></li></ul>
+    </div>
+  </div>
+</div>
+<!-- footer_address -->
+<div class="foot_add">
+  <h2 class="hidden_obj">주소</h2>
+  <div>
+    <address class="address">
+      <p>도서관명 : 고흥군립도서관 | 주소 : 전남광주통합특별시 고흥군 고흥읍 고흥로 1793 (남계리 684-7)</p>
+        <p>대표전화 : 061-830-6953 | 팩스 : 061-830-5930</p>
+      <p>Copyright ⓒ KYOBO BOOK CENTRE. All rights reserved.</p>
+    </address>
+    <div class="ban_area">
+      <div class="foot_banner" id="footBnnr"></div>
+	  <!-- 고객지원센터 -->
+    </div>
+  </div>
+</div>
+</footer>
+    <!--footer END -->
+</div>
+<!-- //wrap -->
+</body>
+</html>

@@ -1,0 +1,7 @@
+.env
+.claude/settings.local.json
+CLAUDE.local.md
+.playwright-mcp/
+
+# Local data files (collected SQLite, national bibliography TTL/zip, import dumps). Never committed.
+data/

@@ -1,0 +1,32 @@
+# Master changelog: includes only. Each module adds its own files under db/changelog/<module>/.
+databaseChangeLog:
+  - include:
+      file: region/001-region-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: region/002-region-seed.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: region/900-region-test-abolished.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/001-library-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/002-library-seed.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/003-library-seed-cycle02.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/004-library-seed-kyobo.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/005-library-seed-yes24.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/006-library-seed-moved.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: catalog/001-catalog-schema.yaml
+      relativeToChangelogFile: true

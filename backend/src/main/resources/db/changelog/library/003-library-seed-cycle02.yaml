@@ -1,0 +1,52 @@
+# Cycle 02 seed, first part: one or more checked sites per screen kind (step 11 continues in later changesets).
+# Every site answered a real search on 2026-09-28 (our User-Agent, 1s per host); base_url is the final address after
+# redirects. Rules only where the original eligibility text was read (eligibility-by-library.md "확인됨"/"다름");
+# libraries without rules are "eligibility not verified" (ADR-0013).
+# deferred: Gyeongbuk and Jeonbuk portals leave the list verdict blank [확정]. Incheon: asked the user.
+# join_url: the join/eligibility page read for the rules (eligibility-by-library.md); NULL when not known.
+# holdings_count: not measured yet (NULL sorts last in its group).
+# Region ids: 11 Seoul, 26 Busan, 36 Sejong, 1123 Seoul Gangnam-gu (region/002-region-seed.csv).
+databaseChangeLog:
+  - changeSet:
+      id: library-003-seed-cycle02-part1
+      author: chaekcheck
+      changes:
+        - loadData:
+            schemaName: library
+            tableName: library
+            file: 003-library-cycle02.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: id, type: NUMERIC }
+              - column: { name: name, type: STRING }
+              - column: { name: platform_type, type: STRING }
+              - column: { name: base_url, type: STRING }
+              - column: { name: eligibility_summary, type: STRING }
+              - column: { name: extra_condition_text, type: STRING }
+              - column: { name: visit_required, type: BOOLEAN }
+              - column: { name: join_method, type: STRING }
+              - column: { name: join_url, type: STRING }
+              - column: { name: join_caution, type: STRING }
+              - column: { name: join_notice, type: STRING }
+              - column: { name: homepage_url, type: STRING }
+              - column: { name: holdings_count, type: NUMERIC }
+              - column: { name: holdings_counted_on, type: DATE }
+              - column: { name: deferred, type: BOOLEAN }
+        - loadData:
+            schemaName: library
+            tableName: eligibility_rule
+            file: 003-eligibility-rule-cycle02.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: library_id, type: NUMERIC }
+              - column: { name: basis, type: STRING }
+              - column: { name: scope_type, type: STRING }
+              - column: { name: scope_region_id, type: NUMERIC }
+        - sql:
+            sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH 16

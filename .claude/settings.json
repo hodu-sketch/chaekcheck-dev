@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.mjs\""
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "spring-tools@spring-tools-marketplace": true,
+    "jdtls-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "playwright"
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__context7",
+      "mcp__playwright"
+    ]
+  }
+}

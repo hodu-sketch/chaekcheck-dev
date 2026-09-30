@@ -1,0 +1,78 @@
+
+<script type="text/javascript">
+$(function() {
+// 	$('div.search-info').html("검색결과 '<b class=\"og\"><i>김달</i></b>'에 대한 <b>1</b>/1페이지, 총 <b>3</b>건");
+	$('#book_search_text').text('김달');
+	$('#book_viewPage').text('1');
+	$('#book_totalPageCount').text('1');
+	$('#book_totalDataCount').text('3');
+	$('a.goDetail').on('click', function(e) {
+		e.preventDefault();
+		$('#detail_book_idx').val($(this).data('book_idx'))
+		$('#detail_type').val($(this).data('type'))
+		$('form#detailForm').submit();
+	});
+});
+</script>
+<form id="searchTableForm" action="/elib/module/elib/search/table.do?menu_idx=10&amp;type=&amp;search_type=&amp;author_name=%EA%B9%80%EB%8B%AC&amp;book_pubname=&amp;book_year=&amp;device=&amp;search_text=%EA%B9%80%EB%8B%AC&amp;rowCount=10&amp;viewPage=1" method="GET">
+	<div class="row">
+		<div class="thumb">
+					<a href="#" data-book_idx="19505" data-type="ADO" class="goDetail">
+					</a>
+		</div>
+		<div class="box">
+			<div class="item">
+				<div class="bif">
+					<a href="#" data-book_idx="19505" data-type="ADO" class="name goDetail">[오디오북] 사랑에 관한 거의 모든 기술</a>
+					<p><span style='color:#ffa651'>김달</span></p>
+					<p>빅피시, 2024-05-29</p>
+					<p>부산광역시 전자도서관</p>
+					<br/>
+					<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+				</div>
+				<div class="bci" style="display: none;">
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="thumb">
+					<a href="#" data-book_idx="19745" data-type="EBK" class="goDetail">
+					</a>
+		</div>
+		<div class="box">
+			<div class="item">
+				<div class="bif">
+					<a href="#" data-book_idx="19745" data-type="EBK" class="name goDetail">사랑하기 전에 알았더라면 좋았을 것들</a>
+					<p><span style='color:#ffa651'>김달</span></p>
+					<p>빅피시, 2025-04-01</p>
+					<p>부산광역시 전자도서관</p>
+					<br/>
+					<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+				</div>
+				<div class="bci" style="display: none;">
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="thumb">
+					<a href="#" data-book_idx="22734" data-type="ADO" class="goDetail">
+					</a>
+		</div>
+		<div class="box">
+			<div class="item">
+				<div class="bif">
+					<a href="#" data-book_idx="22734" data-type="ADO" class="name goDetail">[오디오북] 사랑하기 전에 알았더라면 좋았을 것들</a>
+					<p><span style='color:#ffa651'>김달</span></p>
+					<p>빅피시, 2026-05-22</p>
+					<p>부산광역시 전자도서관</p>
+					<br/>
+					<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 1<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+				</div>
+				<div class="bci" style="display: none;">
+				</div>
+			</div>
+		</div>
+	</div>
+</form>

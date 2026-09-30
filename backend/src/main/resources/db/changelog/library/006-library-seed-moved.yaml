@@ -1,0 +1,50 @@
+# Libraries found again at a new address after their old one stopped working (docs/library-site-issues.md 6-7절),
+# checked 2026-09-29 with scripts/library/CheckKyoboSites.java / CheckYes24Sites.java; eligibility researched in the
+# same pass (docs/library-research/moved-classification-2026-09-29.tsv, scripts/library/join_overrides.tsv).
+# - 강원특별자치도교육청: portal screen whose menu id is 2; the id is part of base_url ("?menu_idx=2"), read by
+#   ElibPortalV1Adapter for search and detail pages (user decision 2026-09-29).
+# - 전북특별자치도 인재개발원 and 연제만화도서관(YES24): added by user decision 2026-09-29.
+databaseChangeLog:
+  - changeSet:
+      id: library-006-seed-moved
+      author: chaekcheck
+      changes:
+        - loadData:
+            schemaName: library
+            tableName: library
+            file: 006-library-moved.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: id, type: NUMERIC }
+              - column: { name: name, type: STRING }
+              - column: { name: platform_type, type: STRING }
+              - column: { name: base_url, type: STRING }
+              - column: { name: eligibility_summary, type: STRING }
+              - column: { name: extra_condition_text, type: STRING }
+              - column: { name: visit_required, type: BOOLEAN }
+              - column: { name: join_method, type: STRING }
+              - column: { name: join_url, type: STRING }
+              - column: { name: join_caution, type: STRING }
+              - column: { name: join_notice, type: STRING }
+              - column: { name: homepage_url, type: STRING }
+              - column: { name: holdings_count, type: NUMERIC }
+              - column: { name: holdings_counted_on, type: DATE }
+              - column: { name: deferred, type: BOOLEAN }
+        - loadData:
+            schemaName: library
+            tableName: eligibility_rule
+            file: 006-eligibility-rule-moved.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: library_id, type: NUMERIC }
+              - column: { name: basis, type: STRING }
+              - column: { name: scope_type, type: STRING }
+              - column: { name: scope_region_id, type: NUMERIC }
+        - sql:
+            sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH 281

@@ -1,0 +1,481 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="title" content="세종시립도서관(구독)">
+<meta name="keywords" content="세종시립도서관(구독)">
+<meta name="description" content="세종시립도서관(구독)" />
+<title>세종시립도서관(구독)</title>
+<meta name="viewport" content="width=1200">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/lib/jquery/themes01/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/reset.css?v=1790603824589" />
+<link rel="stylesheet" type="text/css" href="/resources/common/css/front/web/contents.css?v=1790603824589" />
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N5SJCGX5"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<div id="skip_menu"> 
+    <ul> 
+        <li><a href="#gnb">주메뉴 바로가기</a></li> 
+        <li><a href="#container">본문 바로가기</a></li> 
+    </ul> 
+</div>
+<div id="wrap">
+<header class="top_wrap">
+  <div id="top">
+    <h1 id="headLogo"></h1>
+  </div>
+  <div class="top_util">
+    <ul>
+      <li><a href="/member/memberLogin.ink" title="로그인 | 회원 | 세종시립도서관(구독)" onclick="fnLogin(); event.preventDefault();">로그인</a></li>
+      <li class="notifi"><a href="#" onclick="javascript:fnLoginCheck('inform'); event.preventDefault();">알림<span id="noti"></span></a></li>
+    </ul>
+  </div>
+  <div class="top_area">
+    <fieldset>
+    <legend>통합검색영역</legend>
+    <div class="sch_area">
+      <div style="border-color:#0a325c;">
+        <form id="searchFormTop" name="searchFormTop" method="get" onsubmit="return fnSearch('top');">
+          <select name="schClst" title="통합검색 분류 선택">
+            <option value="all">통합검색</option>
+            <option value="ctts">제목</option>
+            <option value="autr">저자</option>
+            <option value="pbcm">출판사</option>
+          </select>
+          <label for="schTxtTop">검색어 입력하기</label>
+          <input type="hidden" name="schDvsn" value="000" id="schDvsn" />
+          <input type="hidden" name="orderByKey" value="" id="orderByKey" />
+          <input type="text" name="schTxt" value="" id="schTxtTop" autocomplete="off" maxlength="100"/>
+          <input type="submit" value="검색">
+        </form>
+      </div>
+    </div>
+    </fieldset>
+    <ul class="hope_book">
+      <li><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();">내서재</a></li>
+    </ul>
+  </div>
+  <nav class="gnb_area" style="border-color:#0a325c;">
+  <h2 class="hidden_obj">주메뉴</h2>
+  <div id="gnb" class="gnb" tabindex="0"></div>
+  <div class="all_menu">
+    <p><input type="button" value="전체메뉴" /></p>
+  </div>
+  <div class="all_menu_area">
+    <ul id="allMenuArea">
+    </ul>
+    <ul id="allBooks">
+      <li>
+      <a
+        href="/content/contentBestList.ink?listType=B&cttsDvsnCode=all&bestCttsDvsnCode=2"
+         onclick="gFnGoReferer($(this).attr('href')); event.preventDefault();">도서자료</a>
+        <ul id="partName">
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+  <div class="top_sticky" style="border-color:#0a325c;" tabindex="-1">
+<div>
+  <div class="gnb"></div>
+  <div class="top_sch">
+    <fieldset>
+      <legend>통합검색영역</legend>
+      <div class="sch_area">
+          <div style="border-color:#0a325c;">
+          <form id="searchFormSlide" name="searchFormSlide" method="get"  onsubmit="return fnSearch('slide');">
+            <select name="schClst" title="통합검색 분류 선택" tabindex="-1">
+              <option value="all">통합검색</option>
+              <option value="ctts">제목</option>
+              <option value="autr">저자</option>
+              <option value="pbcm">출판사</option>
+            </select>
+            <label for="schTxtSlide">검색어 입력하기</label>
+            <input type="hidden" name="schDvsn" value="000" />
+            <input type="hidden" name="orderByKey" value="" />
+            <input type="text" name="schTxt" value="" id="schTxtSlide"  tabindex="-1" autocomplete="off" />
+            <input type="submit" value="검색"  tabindex="-1" />
+            </form>
+          </div>
+      </div>
+    </fieldset>
+    <p class="hope_book"><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();" tabindex="-1">내서재</a></p>
+  </div>
+</div>
+</div>
+</header>
+    <div id="contentMainDiv">
+      <div class="con_wrap">
+        <ul class="path">
+          <li><a href="/main.ink">HOME</a></li>
+          <li><a href="#">검색</a></li>
+        </ul>
+        <div class="con_area">
+          <form id="searchListForm" class="daContentForm" method="post">
+            <input type="hidden" name="brcd" id="brcd" value=""/>
+            <input type="hidden" name="sntnAuthCode" id="sntnAuthCode" value=""/>
+            <input type="hidden" name="contentAll" id="contentAll" value=""/>
+            <input type="hidden" id="custom_pageIndex" value="1"/>
+            <input type="hidden" name="cttsDvsnCode" id="cttsDvsnCode" value=""/>
+            <input type="hidden" name="orderByKey" value=""/>
+            <input type="hidden" name="schClst" id="schClst" value="ctts"/>
+            <input type="hidden" name="schDvsn" id="schDvsnList" value="000"/>
+            <input type="hidden" name="reSch" id="reSch" value=""/>
+            <input type="hidden" name="ctgrId" id="ctgrId" value=""/>
+            <aside class="aside">
+              <h2>검색필터 </h2>
+              <div class="sch_lnb">
+                <p>세부항목</p>
+                <ul>
+                  <li><input type="checkbox" name="allClstCheck" id="allClstCheck"  /><label for="all">전체</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="cttsClstCheck" onclick="fnClstCheck();" value="ctts" checked="checked" /><label for="cttsClstCheck">제목</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="autrClstCheck" onclick="fnClstCheck();" value="autr"  /><label for="autrClstCheck">저자</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="pbcmClstCheck" onclick="fnClstCheck();" value="pbcm"  /><label for="pbcmClstCheck">출판사</label></li>
+                </ul>
+                <p>상품군</p>
+                <ul>
+                  <li><input type="checkbox" name="allDvsnCheck" id="allDvsnCheck" value="000" checked="checked" /><label for="allDvsnCheck">전체목록</label></li>
+                      <li><input type="checkbox" name="dvsnCheck" id="001DvsnCheck" onclick="fnDvsnCheck();" value="001" checked="checked" /><label for="001DvsnCheck">전자책</label></li>
+                </ul>
+              </div>
+            </aside>
+            <section class="sub_con" id="container">
+              <div class="contents">
+                <div class="h3_area">
+                  <h3>검색결과</h3>
+                </div>
+                <div class="sch_con">
+                  <fieldset>
+                  <legend>검색조건 선택하기</legend>
+                  <table>
+                    <caption>검색조건</caption>
+                    <colgroup>
+                      <col style="width:100px;">
+                      <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        <td colspan="2">
+                          <input type="text" name="schTxt" id="schTxtList" value="사랑" style="width:500px;" title="검색어 쓰기" autocomplete="off" maxlength="100">
+                          <span class="tbl_infotxt"><input type="checkbox" name="reSchChk" id="reSchChk"  /> <label for="reSchChk">결과내 재검색</label></span>
+                        </td>
+                      </tr>
+                      <tr id="reSchArea" style="display:none;">
+                        <th scope="row"><label for="reSchTxt">결과내 재검색</label></th>
+                        <td><input type="text" name="reSchTxt" id="reSchTxt" value="" style="width:400px;" autocomplete="off"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </fieldset>
+                  <p class="btn_posi">
+                    <input type="button" value="검색" onclick="fnSearchList();" class="btn btn_s btn_gray">
+                  </p>
+                </div>
+                    <div class="book_sort">
+                      <ul>
+                        <li class="on"><a href="/search/searchList.ink" title="최신순 | 세종시립도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'publDate'); event.preventDefault();">최신순</a></li> 
+                        <li><a href="/search/searchList.ink" title="인기순 | 세종시립도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'loanNmvl'); event.preventDefault();">인기순</a></li>
+                        <li><a href="/search/searchList.ink" title="제목순 | 세종시립도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'cttsHnglName'); event.preventDefault();">제목순</a></li>
+                        <li><a href="/search/searchList.ink" title="저자순 | 세종시립도서관(구독)" onClick="javascript:searchList.fnOrderByClick(this, 'sntnAuthName'); event.preventDefault();">저자순</a></li>
+                      </ul>
+                    </div>
+                    <div class="book_resultTxt">
+                      <p><strong>"사랑"</strong> 검색결과 <strong>총 2,294개</strong>의 자료가 있습니다.</p>
+                      <div>
+                        <span>
+                          <input type="text" id="nowPage" title="현재페이지" class="daOnlyNum" /> / <span id="totalPage" ></span>
+                          <input type="button"id="goPage" value="이동하기" class="btn btn_s btn_line"/>
+                          <a href="#"></a><a href="#"></a>
+                        </span>
+                        <select id="selViewCnt" title="갯수 선택하기" name="selViewCnt" onChange="javascript:searchList.fnContentPageList(1);">
+                          <option value="20" selected>20개씩</option>
+                          <option value="40" >40개씩</option>
+                          <option value="60" >60개씩</option>
+                          <option value="80" >80개씩</option>
+                        </select><input type="button" name="viewBtn"  value="보기" class="btn btn_s btn_line"/>
+                      </div>
+                    </div>
+                    <ul class="book_resultList">
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="오르페우스의 사랑 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480D250589450', '330509', '', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '330509', '480D250589450','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="오르페우스의 사랑 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480D250589450', '330509', '', 'N', '5'); event.preventDefault();">오르페우스의 사랑</a></li>
+                                  <li class="writer">이루미연구소<span>이루미에듀테크</span>2202-02-07</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480D250589450', '001', '오르페우스의 사랑','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480D250589450','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="모두에게 사랑받으려 애쓰지 않기 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480N260943920', '030101', '', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '030101', '480N260943920','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="모두에게 사랑받으려 애쓰지 않기 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480N260943920', '030101', '', 'N', '5'); event.preventDefault();">모두에게 사랑받으려 애쓰지 않기</a></li>
+                                  <li class="writer">아르투어 쇼펜하우어 저, 안유진 역<span>본투비</span>2026-10-10</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480N260943920', '001', '모두에게 사랑받으려 애쓰지 않기','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480N260943920','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="오늘부터 나를 사랑하는 엄마가 되기로 했다 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4801193842844', '2515', '', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '2515', '4801193842844','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="오늘부터 나를 사랑하는 엄마가 되기로 했다 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4801193842844', '2515', '', 'N', '5'); event.preventDefault();">오늘부터 나를 사랑하는 엄마가 되기로 했다</a></li>
+                                  <li class="writer">케다맘<span>청림라이프</span>2026-10-07</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '4801193842844', '001', '오늘부터 나를 사랑하는 엄마가 되기로 했다','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4801193842844','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="사랑과 불안 사이 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480N260902420', '110101', '', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '110101', '480N260902420','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="사랑과 불안 사이 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480N260902420', '110101', '', 'N', '5'); event.preventDefault();">사랑과 불안 사이</a></li>
+                                  <li class="writer">문학팀 엮음<span>수아르</span>2026-10-05</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480N260902420', '001', '사랑과 불안 사이','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480N260902420','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="영원을 건너온 사랑 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480D260944320', '110307', '', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '110307', '480D260944320','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="영원을 건너온 사랑 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480D260944320', '110307', '', 'N', '5'); event.preventDefault();">영원을 건너온 사랑</a></li>
+                                  <li class="writer">존 러셀 펀<span>위즈덤커넥트</span>2026-10-02</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480D260944320', '001', '영원을 건너온 사랑','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480D260944320','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="사랑도 스펙이다 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4808963222530', '030101', '1121640901', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '030101', '4808963222530','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="사랑도 스펙이다 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '4808963222530', '030101', '1121640901', 'N', '5'); event.preventDefault();">사랑도 스펙이다</a></li>
+                                  <li class="writer">조동춘<span>비전코리아</span>2026-09-30</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '4808963222530', '001', '사랑도 스펙이다','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4808963222530','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="할아버지, 나라사랑이 뭐예요? | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480N260912750', '030101', '', 'N','1'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '030101', '480N260912750','1'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="할아버지, 나라사랑이 뭐예요? | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480N260912750', '030101', '', 'N', '1'); event.preventDefault();">할아버지, 나라사랑이 뭐예요?</a></li>
+                                  <li class="writer">이상복<span>유페이퍼</span>2026-09-29</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480N260912750', '001', '할아버지, 나라사랑이 뭐예요?','1', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480N260912750','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="시니어 운명을 사랑 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480D260936500', '3501', '', 'N','1'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '3501', '480D260936500','1'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="시니어 운명을 사랑 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480D260936500', '3501', '', 'N', '1'); event.preventDefault();">시니어 운명을 사랑</a></li>
+                                  <li class="writer">강일구<span>유페이퍼</span>2026-09-28</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480D260936500', '001', '시니어 운명을 사랑','1', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480D260936500','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="계약은 1년, 사랑은 평생 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480D260967570', '110101', '', 'N','5'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '110101', '480D260967570','5'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="계약은 1년, 사랑은 평생 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480D260967570', '110101', '', 'N', '5'); event.preventDefault();">계약은 1년, 사랑은 평생</a></li>
+                                  <li class="writer">백지원<span>유페이퍼</span>2026-09-27</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480D260967570', '001', '계약은 1년, 사랑은 평생','5', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480D260967570','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/content/contentView.ink" title="사랑과 결혼에 감추인 보화 | 세종시립도서관(구독)" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '480N260911690', '090701', '', 'N','1'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '090701', '480N260911690','1'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/content/contentView.ink" title="사랑과 결혼에 감추인 보화 | 세종시립도서관(구독)" onClick="javascript:searchList.fnContentClick(this, '001', '480N260911690', '090701', '', 'N', '1'); event.preventDefault();">사랑과 결혼에 감추인 보화</a></li>
+                                  <li class="writer">김석숭목사<span>유페이퍼</span>2026-09-25</li>
+                                  <li class="txt"></li>
+                                </ul>
+                          </div>
+                          <div class="btn_area">
+                                            <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '24891', '', '480N260911690', '001', '사랑과 결혼에 감추인 보화','1', 'KB','1', '', event);"/></span>
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '480N260911690','N');"/></span>
+                          </div>
+                        </li>
+                    </ul>
+                    <div id="searchList_pageNavi" class="pageNavi"></div>
+              </div>
+            </section>
+          </form>
+        </div>
+      </div>
+    </div>
+<aside class="quick">
+	<ul>
+		<li class="item01"><a href="#" title="대출현황 | 세종시립도서관(구독)" onClick="fnLoginCheck('loanStatus'); event.preventDefault();">대출현황</a></li>
+		<li class="item05"><a href="#" title="찜목록 | 세종시립도서관(구독)" onClick="fnLoginCheck('wishStatus'); event.preventDefault();">찜목록</a></li>
+		<li class="use_info item03"><a href="#" title="이용안내 | 세종시립도서관(구독)">이용안내</a>
+			<ul>
+				<li class="in_item01"><a href="/helpDesk/libraryGuide.ink">디지털도서관 안내</a></li>
+				<li class="in_item02"><a href="/helpDesk/pcGuide.ink">PC 이용안내</a></li>
+				<li class="in_item03"><a href="/helpDesk/mobileGuide.ink">모바일 이용안내</a></li>
+			</ul>
+		</li>
+	</ul>
+	<div class="arr_btn">
+		<p><a href="#top" class="tab_scroll">맨 위로 올라가기</a></p>
+		<p><a href="#footer" class="tab_scroll">맨 아래로가기</a></p>
+	</div>
+</aside>
+<footer>
+<div class="foot_etc" id="footer">
+  <h2 class="hidden_obj">하단메뉴</h2>
+  <div>
+    <ul class="etc">
+      <li id="mobileViewBtn" style="display:none;"><a href="/mobileView.ink">모바일버전</a></li>
+      <li><a href="/member/memberPrivacy.ink">이용약관</a></li>
+      <li><a href="/member/memberPromis.ink" style="font-weight:bold;text-decoration:underline;">개인정보처리방침</a></li>
+      <li><a href="/member/memberYouthPolicy.ink">청소년보호정책</a></li>
+      <li><a href="/siteMap/siteMap.ink">사이트맵</a></li>
+    </ul>
+    <div class="family">
+      <h3><a href="#">FAMILY SITE</a></h3>
+      <ul><li id="familySite"></li></ul>
+    </div>
+  </div>
+</div>
+<div class="foot_add">
+  <h2 class="hidden_obj">주소</h2>
+  <div>
+    <address class="address">
+      <p>도서관명 : 세종시립도서관(구독) </p>
+      <p>Copyright ⓒ KYOBO BOOK CENTRE. All rights reserved.</p>
+    </address>
+    <div class="ban_area">
+    </div>
+  </div>
+</div>
+</footer>
+</div>
+</body>
+</html>

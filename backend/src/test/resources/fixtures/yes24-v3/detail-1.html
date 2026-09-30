@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=euc-kr">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, target-densitydpi=medium-dpi" />
+<title>경주시립도서관 전자책도서관</title>
+<link rel="shortcut icon" href="/img/favicon.ico">
+<link rel="stylesheet" href="/include/css/all.css">
+<link rel="stylesheet" media="screen" href="/include/css/animate.css">
+<link rel="stylesheet" type="text/css" href="/include/css/content.css">
+<link rel="stylesheet" type="text/css" href="/include/css/jquery.mmenu.all.css">
+</head>
+<body class="bbg">
+<div id="wrap">
+<header id="header">
+	<div id="headerImg">
+	</div>
+    <div class="top-wrap d_width">
+		<a href="#menu">
+			<span id="mo-menu"></span>
+		</a>
+        <div id="logo"><a href="/" title="홈으로 이동"></a></div>
+		<form id = "Search" name="SearchForm" method="get" action="/search" onsubmit="return verifySearch(this);">
+       <div class="search-wrap form-inline">
+            <select name="srch_order" class="form-control">
+                <option value="total" selected>통합검색</option>
+				<option value="title"  >서명</option>
+				<option value="author" >저자</option>
+				<option value="publisher"  >출판사</option>
+            </select>
+            <input id="src_key" class="form-control" name="src_key" type="text" value="" placeholder=""><label hidden="" for="">검색</label>
+            <a href="#" onclick="verifySearch_btn(SearchForm);" title="검색 버튼" class="search-btn"><i class="fa fa-search"></i></a>
+        </div>
+		</form>
+	        <div class="topmn wow fadeInRight delay5">
+            <ul class="clearfix">
+                <li class="login"><a href="/member/?mode=login">로그인</a></li>
+            </ul>
+        </div>
+    </div>
+    <div id="gnbmn">
+        <nav id="menu" class="d_width">
+			<div class="mm-panels">
+				<div class="mm-header top-link">
+					<a href="/member/?mode=login">로그인</a>
+				</div>
+				<ul class="depth1 clearfix">
+					<li><a href="#" onclick="return false;" class="btn-depth2">전자책</a>
+						<div class="depth2">
+							<ul>
+								<li><a href="/ebook/?mode=new"><span>신간도서</span></a></li>
+								<li><a href="/ebook/?mode=best"><span>인기도서</span></a></li>
+								<li><a href="/ebook/?mode=recommend"><span>추천도서</span></a></li>
+								<li><a href="/ebook/?mode=total"><span>전체도서</span></a></li>
+							</ul>
+						</div>
+					</li>
+					<li><a href="/mylibrary/?mode=1">내서재</a></li>
+					<li><a href="/chyes_article/">명사칼럼</a></li>
+					<li><a href="#" onclick="return false;" class="btn-depth2">이용안내</a>
+						<div class="depth2">
+							<ul>
+								<li><a href="/info/?mode=1"><span>이용방법</span></a></li>
+								<li><a href="/info/?mode=2"><span>자료대출안내</span></a></li>
+								<li><a href="/info/?mode=3"><span>어플안내</span></a></li>
+								<li><a href="/info/?mode=4"><span>PC뷰어안내</span></a></li>
+							</ul>
+						</div>
+					</li>
+					<li><a href="javascript:popup_hope();"  title="희망도서신청 페이지로 이동합니다.">희망도서신청</a></li>
+					<li class="gnb-category"><a href="#" onclick="return false;" class="btn-depth2">카테고리</a>
+						<div class="depth2 category-depth2">
+							<ul>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=001" title="인문/사회 카테고리 페이지로 이동합니다.">
+										<span>인문/사회</span> <em>(1531)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=002" title="비즈니스와경제 카테고리 페이지로 이동합니다.">
+										<span>비즈니스와경제</span> <em>(1259)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=003" title="문학 카테고리 페이지로 이동합니다.">
+										<span>문학</span> <em>(2227)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=004" title="가정과생활 카테고리 페이지로 이동합니다.">
+										<span>가정과생활</span> <em>(719)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=005" title="장르문학 카테고리 페이지로 이동합니다.">
+										<span>장르문학</span> <em>(155)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=009" title="국어와외국어 카테고리 페이지로 이동합니다.">
+										<span>국어와외국어</span> <em>(165)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=010" title="대학교재 카테고리 페이지로 이동합니다.">
+										<span>대학교재</span> <em>(22)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=011" title="수험서/자격증 카테고리 페이지로 이동합니다.">
+										<span>수험서/자격증</span> <em>(17)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=012" title="청소년 카테고리 페이지로 이동합니다.">
+										<span>청소년</span> <em>(1649)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=013" title="예술/대중문화 카테고리 페이지로 이동합니다.">
+										<span>예술/대중문화</span> <em>(110)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=014" title="자기관리 카테고리 페이지로 이동합니다.">
+										<span>자기관리</span> <em>(1169)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=015" title="자연과과학 카테고리 페이지로 이동합니다.">
+										<span>자연과과학</span> <em>(251)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=023" title="컴퓨터와인터넷 카테고리 페이지로 이동합니다.">
+										<span>컴퓨터와인터넷</span> <em>(103)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=028" title="만화 카테고리 페이지로 이동합니다.">
+										<span>만화</span> <em>(23)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</div>
+        </nav>
+    </div>
+</header>
+	<div class="sub-container d_width">
+	<div class="body-title">상세정보</div>
+	<div class="ebook-wrap ebook-view">
+		<div class="top">
+			<div>
+				<div class="inner clearfix">
+					<div class="thumb thumb-v1">
+					</div>
+					<a href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=51247&dm=yes24.com');" onfocus="this.blur();" class="btn-preview">미리보기</a> 
+					<div class="info">
+						<p class="tit">FBI행동의 심리학</p>
+						<dl class="detail detail-noline clearfix">
+							<dt>저자</dt>
+							<dd>조 내버로,마빈 칼린스 저/박정길 역 </dd>
+							<dt>출판사</dt>
+							<dd>리더스북</dd>
+							<dt>출판일</dt>
+							<dd>2012-02-10</dd>
+							<dt>등록일</dt>
+							<dd>2024-10-30</dd>
+						</dl>
+						<dl class="detail clearfix">
+							<dt>파일포맷</dt>
+							<dd>EPUB</dd>
+							<dt>파일크기</dt>
+							<dd>3MB</dd>
+							<dt>공급사</dt>
+							<dd>YES24</dd>
+							<dt>지원기기</dt>
+							<dd>
+								<span class="tag">PC</span>
+								<span class="tag">PHONE</span>
+								<span class="tag">TABLET</span>
+								<span class="tag">웹뷰어</span>
+									<span class="tag tag-btn"><a href="https://yes24viewer.yes24library.com/activex_new/YES24ElibrarySetup.exe">프로그램 수동설치</a></span>
+									<span class="tag tag-btn tag-q"><a href="/info/?mode=4&comcode=YES24">뷰어프로그램 설치 안내</a></span>
+							</dd>
+						</dl>
+					</div>
+				</div>
+			</div>
+			<div class="stat clearfix">
+				<span class="tit">현황</span>
+				<ul class="clearfix">
+					<li>보유 <strong>2</strong></li>
+					<li>대출 <strong>0</strong></li>
+					<li>예약 <strong>0</strong></li>
+				</ul>
+				<div class="btn-wrap">
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span class="ico4">대출가능</span></a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tab-list mtp20">
+		<ul class="clearfix">
+			<li><a href="javascript:void(0);" onclick="onchange_all_list('t_l_ck_1')" id="t_l_ck_1" class="t_l_ck on">책소개</a></li>
+			<li><a href="javascript:void(0);" onclick="onchange_all_list('t_l_ck_2')" id="t_l_ck_2" class="t_l_ck">저자소개</a></li>
+			<li><a href="javascript:void(0);" onclick="onchange_all_list('t_l_ck_3')" id="t_l_ck_3" class="t_l_ck">목차</a></li>
+		</ul>
+	</div>
+	<div class="ebook-detail cont1 cont t_l_ck_area" id="t_l_ck_1_area">
+		<h2>책소개</h2>
+		<p class="txt"><b>미국 최고의 비언어 행동전문가가 공개하는<br>행동의 메커니즘과 인간심리를 간파하는 법!</b><br><br>(생략)<br><br>(생략)</p>
+	</div>
+	<div class="ebook-detail cont2 cont t_l_ck_area" id="t_l_ck_2_area" style="display:none;">
+		<h2>저자소개</h2>
+		<p class="txt">(생략)<br><br>(생략)</p>
+	</div>
+	<div class="ebook-detail cont3 cont t_l_ck_area" id="t_l_ck_3_area" style="display:none;">
+		<h2>목차</h2>
+		<p class="txt">옮긴이의&nbsp;글&nbsp;&nbsp;설득과&nbsp;소통의&nbsp;시대에&nbsp;경쟁력을&nbsp;갖추는&nbsp;법<br>프롤로그&nbsp;&nbsp;‘인간&nbsp;거짓말탐지기’&nbsp;조&nbsp;내버로가&nbsp;밝히는&nbsp;커뮤니케이션의&nbsp;비밀<br><br><b>1.&nbsp;당신이&nbsp;행동으로&nbsp;누설하는&nbsp;진실&nbsp;</b><br>푸에르토리코&nbsp;호텔&nbsp;방화사건의&nbsp;범인은&nbsp;누구인가<br>행동은&nbsp;말보다&nbsp;더&nbsp;크게&nbsp;말한다<br>의사가&nbsp;환자의&nbsp;말보다&nbsp;행동에&nbsp;주목해야&nbsp;하는&nbsp;이유<br>몸짓으로&nbsp;사람의&nbsp;마음을&nbsp;읽기&nbsp;위한&nbsp;7계명<br>1.&nbsp;보지&nbsp;말고&nbsp;관찰하라<br>2.&nbsp;본능이&nbsp;드러나는&nbsp;불변의&nbsp;보디랭귀지를&nbsp;기억하라<br>3.&nbsp;특별한&nbsp;상황에서만&nbsp;나타나는&nbsp;행동을&nbsp;파악하라<br>4.&nbsp;평상시&nbsp;모습을&nbsp;기억하라&nbsp;<br>5.&nbsp;갑작스런&nbsp;행동의&nbsp;변화에&nbsp;주목하라<br>6.&nbsp;편안한&nbsp;상태와&nbsp;불편한&nbsp;상태를&nbsp;구별하라<br>7.&nbsp;당신이&nbsp;관찰하는&nbsp;것을&nbsp;상대가&nbsp;모르게&nbsp;하라<br>행동만으로도&nbsp;사람의&nbsp;심리는&nbsp;노출된다<br><br><b>2.&nbsp;뇌,&nbsp;행동통제센터&nbsp;</b><br>행동의&nbsp;비밀은&nbsp;변연계에&nbsp;숨어&nbsp;있다<br>인간을&nbsp;지키는&nbsp;3단계&nbsp;생존&nbsp;메커니즘&nbsp;<br>정지반응:&nbsp;위험하면&nbsp;멈춰라<br>도망반응:&nbsp;멈춰서&nbsp;해결되지&nbsp;않을&nbsp;때&nbsp;도망쳐라<br>투쟁반응:&nbsp;도망칠&nbsp;수&nbsp;없다면&nbsp;싸워라<br>왜&nbsp;아픈&nbsp;상처는&nbsp;잊히지&nbsp;않을까?<br>거짓말이&nbsp;의심된다면&nbsp;상대의&nbsp;목을&nbsp;보라&nbsp;<br>초조할&nbsp;때&nbsp;나타나는&nbsp;대표적인&nbsp;행동&nbsp;<br>남자와&nbsp;여자는&nbsp;스트레스&nbsp;해소&nbsp;방법이&nbsp;다르다<br>스트레스로&nbsp;인한&nbsp;몸의&nbsp;변화를&nbsp;읽어라&nbsp;&nbsp;<br>면접을&nbsp;볼&nbsp;때&nbsp;피해야&nbsp;할&nbsp;행동<br>스트레스&nbsp;정보를&nbsp;파악하는&nbsp;8가지&nbsp;지침<br><br><b>3.&nbsp;얼굴,&nbsp;감정의&nbsp;리트머스&nbsp;시험지&nbsp;</b><br>얼굴에&nbsp;스치는&nbsp;속마음을&nbsp;잡아라<br>생각과&nbsp;의도는&nbsp;얼굴&nbsp;주름에&nbsp;나타난다&nbsp;<br>아주&nbsp;작은&nbsp;동공은&nbsp;진실을&nbsp;말하고&nbsp;있다<br>눈썹과&nbsp;실눈의&nbsp;이중플레이&nbsp;<br>눈을&nbsp;가리는&nbsp;행동의&nbsp;비밀<br>사랑을&nbsp;할&nbsp;때&nbsp;우리의&nbsp;눈은&nbsp;어떻게&nbsp;변할까?<br>권력을&nbsp;가진&nbsp;사람의&nbsp;시선&nbsp;두기&nbsp;<br>휴&nbsp;그랜트&nbsp;연기력의&nbsp;비밀은&nbsp;눈에&nbsp;있다?&nbsp;&nbsp;<br>가식적인&nbsp;미소는&nbsp;진짜&nbsp;미소와&nbsp;어떻게&nbsp;다를까?&nbsp;<br>입술을&nbsp;앙다물수록&nbsp;자신감도&nbsp;사라진다&nbsp;<br>내가&nbsp;얘기할&nbsp;때&nbsp;그&nbsp;사람은&nbsp;왜&nbsp;입술을&nbsp;오므렸을까?<br>비웃음은&nbsp;결별을&nbsp;예고하는&nbsp;강력한&nbsp;신호&nbsp;<br>혀로&nbsp;표현하는&nbsp;감정<br>다양한&nbsp;얼굴&nbsp;변화가&nbsp;말하는&nbsp;것&nbsp;<br>혐오하는&nbsp;감정은&nbsp;가장&nbsp;먼저&nbsp;얼굴에&nbsp;드러난다&nbsp;<br>자긍심이&nbsp;높아질수록&nbsp;코와&nbsp;턱은&nbsp;함께&nbsp;올라간다&nbsp;<br>말과&nbsp;행동이&nbsp;다를&nbsp;때&nbsp;우리는&nbsp;무엇을&nbsp;믿을까?&nbsp;<br><br><b>4.&nbsp;팔,&nbsp;생존을&nbsp;높이는&nbsp;도구&nbsp;</b><br>기쁨과&nbsp;좌절이&nbsp;나타나는&nbsp;팔&nbsp;<br>학대받는&nbsp;아이들의&nbsp;팔에&nbsp;남은&nbsp;흔적&nbsp;읽기&nbsp;<br>떳떳하지&nbsp;못할&nbsp;때&nbsp;팔은&nbsp;뻣뻣해진다&nbsp;<br>사람들이&nbsp;아기&nbsp;똥기저귀를&nbsp;집는&nbsp;방법&nbsp;<br>개인의&nbsp;영역은&nbsp;곧&nbsp;권력이다&nbsp;<br>회의실에서&nbsp;나타나는&nbsp;영역표현<br>연애는&nbsp;주도권&nbsp;싸움이다<br>어른들은&nbsp;문신을&nbsp;어떻게&nbsp;생각할까?&nbsp;<br>친밀함을&nbsp;나타내는&nbsp;법&nbsp;<br>감정을&nbsp;표현하는&nbsp;팔의&nbsp;움직임<br><br><b>5.&nbsp;손,&nbsp;성공을&nbsp;움켜잡는&nbsp;기술</b><br>테이블&nbsp;밑에&nbsp;손을&nbsp;숨기지&nbsp;마라<br>악수할&nbsp;때&nbsp;힘쓰지&nbsp;마세요&nbsp;<br>해외여행을&nbsp;갈&nbsp;때&nbsp;인사하는&nbsp;법부터&nbsp;익혀라&nbsp;<br>손가락질보다&nbsp;손바닥을&nbsp;펴고&nbsp;가리켜라&nbsp;<br>타인&nbsp;앞에서&nbsp;외모를&nbsp;다듬지&nbsp;마라<br>손에&nbsp;땀이&nbsp;난다고&nbsp;다&nbsp;거짓말을&nbsp;하고&nbsp;있는&nbsp;것일까?&nbsp;<br>손이&nbsp;말하는&nbsp;스트레스&nbsp;강도&nbsp;<br>변호사의&nbsp;자신감은&nbsp;손으로&nbsp;나타난다<br>경찰관의&nbsp;카리스마&nbsp;있는&nbsp;모습은&nbsp;어떻게&nbsp;만들어질까?<br>남성적&nbsp;우월함의&nbsp;강력한&nbsp;표현<br>자신감이&nbsp;없어질&nbsp;때&nbsp;나타나는&nbsp;행동&nbsp;<br>의심이&nbsp;갈&nbsp;때는&nbsp;손을&nbsp;보라&nbsp;<br>가운데손가락은&nbsp;가능한&nbsp;한&nbsp;펴지&nbsp;마라&nbsp;<br>손이&nbsp;멈추는&nbsp;때를&nbsp;주목하라&nbsp;<br>감정은&nbsp;손으로&nbsp;전달된다<br><br><b>6.&nbsp;다리,&nbsp;진실과&nbsp;거짓이&nbsp;밝혀지는&nbsp;곳&nbsp;</b><br>얼굴보다&nbsp;더&nbsp;정직한&nbsp;다리<br>갬블러의&nbsp;완벽한&nbsp;포커페이스,&nbsp;그러나&nbsp;다리는&nbsp;말하고&nbsp;있다<br>상대방이&nbsp;불편해하는&nbsp;것을&nbsp;어떻게&nbsp;알아챌까?<br>기쁠&nbsp;때&nbsp;다리도&nbsp;함께&nbsp;들뜬다&nbsp;<br>교도관이&nbsp;서&nbsp;있는&nbsp;모습만으로&nbsp;권위를&nbsp;보이는&nbsp;방법&nbsp;<br>왜&nbsp;인간은&nbsp;더&nbsp;넓은&nbsp;공간을&nbsp;원하는가&nbsp;<br>편안함을&nbsp;느낄&nbsp;때&nbsp;다리는&nbsp;X자&nbsp;모양이&nbsp;된다&nbsp;<br>사랑에&nbsp;빠졌을&nbsp;때&nbsp;다리는&nbsp;어떻게&nbsp;달라질까?<br>상대방이&nbsp;호감을&nbsp;보이는지&nbsp;판단하려면&nbsp;악수하고&nbsp;기다려라<br>범죄자의&nbsp;걸음걸이는&nbsp;다르다&nbsp;<br>공항&nbsp;세관&nbsp;검사관이&nbsp;사람을&nbsp;읽는&nbsp;방법<br>킴&nbsp;베이싱어의&nbsp;초조한&nbsp;인터뷰<br>스트레스를&nbsp;받을&nbsp;때&nbsp;다리는&nbsp;의자를&nbsp;찾는다&nbsp;<br><br><b>7.&nbsp;몸통,&nbsp;생존의&nbsp;최전선&nbsp;</b><br>위험한&nbsp;상황에서&nbsp;인간은&nbsp;등을&nbsp;돌린다&nbsp;&nbsp;<br>왜&nbsp;여자들은&nbsp;쿠션을&nbsp;끌어안을까?<br>팔짱의&nbsp;다중적인&nbsp;의미&nbsp;해석하는&nbsp;법<br>왜&nbsp;불편한&nbsp;상황에서는&nbsp;소화가&nbsp;안&nbsp;될까?&nbsp;<br>맥아더에게&nbsp;몸을&nbsp;굽힌&nbsp;아이젠하워<br>옷차림은&nbsp;전략&nbsp;그&nbsp;이상&nbsp;<br>몸단장은&nbsp;또&nbsp;하나의&nbsp;메시지다<br>의자에&nbsp;앉아&nbsp;늘어져&nbsp;있지&nbsp;마라&nbsp;&nbsp;<br>싸울&nbsp;때&nbsp;가슴이&nbsp;왜&nbsp;헐떡일까?&nbsp;<br>어깨를&nbsp;으쓱하는&nbsp;두&nbsp;가지&nbsp;의미&nbsp;<br><br><b>8.&nbsp;FBI&nbsp;요원의&nbsp;속임수&nbsp;간파하기&nbsp;</b><br>진실과&nbsp;거짓말의&nbsp;미묘한&nbsp;차이&nbsp;<br>FBI에서&nbsp;속임수에&nbsp;접근하는&nbsp;4가지&nbsp;모델<br>편안함을&nbsp;느낄&nbsp;때&nbsp;우리&nbsp;몸은&nbsp;상대를&nbsp;향해&nbsp;기운다&nbsp;&nbsp;<br>미소의&nbsp;진심을&nbsp;알고&nbsp;싶다면&nbsp;머리&nbsp;움직임을&nbsp;주목하라&nbsp;<br>내가&nbsp;수사에&nbsp;임할&nbsp;때&nbsp;명심하는&nbsp;12계명<br>동시성에&nbsp;집중하라&nbsp;<br>거짓말하는&nbsp;사람은&nbsp;두&nbsp;번&nbsp;강조하지&nbsp;못한다&nbsp;<br>거짓진술에는&nbsp;수동적인&nbsp;행동이&nbsp;뒤따른다<br>속이는&nbsp;사람과&nbsp;속는&nbsp;사람<br>최상의&nbsp;관계를&nbsp;위한&nbsp;언어는&nbsp;정직이다&nbsp;<br><br>에필로그&nbsp;&nbsp;더&nbsp;좋은&nbsp;대인관계를&nbsp;위하여<br>참고문헌</p>
+	</div>
+	</div>
+<section id="mbooks2">
+	<div id="mnotice2" class="d_width">
+		<div class="tit-wrap wow delay2 fadeInDown">
+			<span>연관도서</span>
+			<span>연관도서를 소개해드립니다!</span>
+		</div>		
+		<div class="tab-off" id="notice02"><a href="#notice02" onkeypress="" onclick="onNoticeShow($(this).parent(), 'notice02');return false;" class="dpb" title="출판사동일 탭 보기"><span>출판사동일</span></a>
+			<div class="tabcontent" id="notice02_menu" style="display:none;">
+				<ul>
+					<li>
+						<a href="/ebook/detail/?goods_id=144105626" class="thumb thumb-v1"></a>
+						<a href="/ebook/detail/?goods_id=144105626" class="subject">단 3개의 미국 ETF로 은퇴하라</a>
+					</li>
+					<li>
+						<a href="/ebook/detail/?goods_id=91880126" class="thumb thumb-v1"></a>
+						<a href="/ebook/detail/?goods_id=91880126" class="subject">짧고 굵게 일합니다</a>
+					</li>
+					<li>
+						<a href="/ebook/detail/?goods_id=95317670" class="thumb thumb-v1"></a>
+						<a href="/ebook/detail/?goods_id=95317670" class="subject">언카피어블</a>
+					</li>
+					<li>
+						<a href="/ebook/detail/?goods_id=18677130" class="thumb thumb-v1"></a>
+						<a href="/ebook/detail/?goods_id=18677130" class="subject">나를 지켜내는 업무기술</a>
+					</li>
+					<li>
+						<a href="/ebook/detail/?goods_id=110543308" class="thumb thumb-v1"></a>
+						<a href="/ebook/detail/?goods_id=110543308" class="subject">말은 딱 깔끔하고 센스 있게</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="tab-on" id="notice01"><a href="#notice01" onkeypress="" onclick="onNoticeShow($(this).parent(), 'notice01');return false;" class="dpb" title="저자동일 탭 보기"><span>저자동일</span></a>
+			<div class="tabcontent" id="notice01_menu">
+				<ul class="clearfix wow delay3 fadeInUp">
+						<div class="info">
+							<p>조 내버로,마빈 칼린스 저자가 집필한 등록된 컨텐츠가 없습니다.</p>
+						</div>
+				</ul>
+			</div>
+		</div>
+	</div>
+</section>
+<form name="action_form" method="post" action="/action/">
+	<input type="hidden" name="goods_id" >
+	<input type="hidden" name="action_mode" >
+	<input type="hidden" name="content_sort" value="017" >
+	<input type="hidden" name="return_url" value="/ebook/detail/?goods_id=6304288">
+</form>
+</div>
+<div id="maside">
+	<p class="tit"><span>QUICK</span>SERVICE</p>
+	<ul>
+		<li><a class="ico ico1" href="/mylibrary?mode=1" title="대출현황 페이지로 이동합니다.">대출현황</a></li>
+		<li><a class="ico ico2" href="/mylibrary?mode=2" title="예약현황 페이지로 이동합니다.">예약현황</a></li>
+		<li><a class="ico ico3" href="/info/?mode=3" title="이용안내 페이지로 이동합니다.">모바일</br>이용안내</a></li>
+	</ul>
+	<a href="#header" class="top-btn">TOP</a>
+</div>
+<div id="maside-open" class=""> 
+	<a href="javascript:void(0);" onclick="mobile_aside();" title="메뉴 오픈"></a>
+</div>
+<footer>
+	<div class="fmn">
+		<div class="d_width">
+			<ul class="clearfix">
+				<li><a href="/pages/?mode=privacy" title="개인정보처리방침 페이지로 이동합니다.">개인정보처리방침</a></li>
+				<li><a href="/pages/?mode=email" title="이메일무단수집거부 페이지로 이동합니다.">이메일무단수집거부</a></li>
+			</ul>
+		</div>
+	</div>
+	<div id="address"  class="d_width">
+		<p>(780854) 경상북도 경주시 원화로&nbsp;431-12&nbsp;경주시립도서관 <span class="mlp20">TEL. 054-779-8913</span><span class="mlp20">FAX. 054-760-7435</span><span class="mlp20"></p>
+		<p>COPYRIGHT ⓒ 홍지씨앤에스. ALL RIGHTS RESERVED.</p>
+	</div>
+	</div>
+<iframe title="process" frameborder=0 marginheight=0 marginwidth=0 leftmargin=0 topmargin=0 name="process"  height=0 width=0></iframe>
+</footer>
+</body>
+</html>

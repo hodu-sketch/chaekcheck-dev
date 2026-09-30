@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: chaekcheck-fetch
+  mvc:
+    problemdetails:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+
+server:
+  port: ${PORT:8091}
+  # finish in-flight fetches on shutdown; new requests get 503
+  shutdown: graceful
+
+fetch:
+  # TODO(확인 필요): header name and how the shared token is stored (same values as the main service)
+  token-header: X-Fetch-Token
+  token: ${FETCH_SERVICE_TOKEN:}
+  # TODO: same value as the main service user-agent; service URL and contact are not decided yet
+  user-agent: ${FETCH_USER_AGENT:chaekcheck/0.0.1}
+  # library call timeouts: same as the main service direct mode (connect 5s since 2026-09-29, read 5s)
+  connect-timeout: 5s
+  read-timeout: 5s
+  # [안] requests handled at once; more get 503 so the main service tries the next fetch server
+  max-concurrent: 32
+  allow-loopback: false

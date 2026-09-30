@@ -1,0 +1,60 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.headerBar {
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.header {
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 0.95rem var(--gutter);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  text-decoration: none;
+}
+
+.wordmark {
+  font-weight: 800;
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--brand-strong);
+}
+
+.tagline {
+  padding-left: 0.8rem;
+  border-left: 1px solid var(--rule-strong);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 0 var(--gutter) 4rem;
+}
+
+@media (width <= 640px) {
+  .header {
+    padding-block: 0.8rem;
+  }
+
+  .tagline {
+    display: none;
+  }
+}

@@ -1,0 +1,398 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="ko">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=euc-kr">
+<meta property="og:title" content="200% 실패할 걸 알면서도 왜 나는 똑같은 행동을 반복하는가"/>
+<meta property="og:site_name" content="전자도서관"/>
+<meta property="og:description" content="내 안에 내가 너무도 많다? ‘진화심리학으로 입증되다!’고구마 100개를 먹은 것처럼 답답한인간의 행동에 대한‘사이다 같은 명쾌한 해답!’몇 번이나 밑줄 그어 가며 탐독했는지 모른다!- 로버트 치알디니, 『설득의 심리학』 저자인간의 행동심리에 대한 통찰이 가득하다!- 조나 버거, 『컨테이저스 전략적 입소문』 저자매혹적이고, 설득적이며, 유쾌한 책이다!- 제프리 밀러, 『스펜트 Spent』 저자심리학 교수 더글러스 켄릭과 경영학 교수 블라다스 그리스케비시우스는 우리의 정신세계 내부를 구석구석 여행하면서, 정신이 어떻게 의사결정을 내리는지에 대해 기존 이론과는 완전히 다른 모델을 제시한다. 두 저자는 우리가 돈을 투자할 때, 직장을 알아볼 때, 차를 살 때, 데이트 상대를 선택할 때, 서로 대치되는 진화적 욕구에 이끌린다는 사실을 보여준다. 우리 머릿속에 하나의 ‘자아’만이 존재한다고 생각하기 쉽다. 그러나 실제로 우리 안에는 여러 개의 부분자아가 존재하고, 어떤 부분자아가 그 순간 운전대를 잡는지에 따라 우리의 선택과 결정도 완전히 달라진다. 어떤 상황일 때 어느 부부자아가 주도권을 잡는지 설명하면서 두 저자는 어리석어 보이는 우리 판단의 이면에는 실제로 대단히 현명하고 정교한 의사결정 시스템이 작용하고 있음을 밝혀낸다."/>
+<meta property="og:image" content="http://vodbook.snlib.go.kr:8081/images/bookimg/L_1886163.jpg" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge"> 
+<title>전자도서관</title>
+<link rel="stylesheet" type="text/css" href="/include/css/common.css">
+<link rel="stylesheet" type="text/css" href="/include/css/content.css">
+</head>
+<body>
+<div id="wrap" class="mbg">
+	<div id="headerwrap">
+	<div id="header">
+		<div id="topwrap">
+			<h1 id="logo"><a href="/" title="홈으로 이동" ></a></h1>
+			<div id="topmn">
+			<ul>
+			</ul>
+			</div>
+			<div class="clear"></div>
+		</div>
+		<div id="topcontainer">
+		<div id="topsearch">
+			<h3></h3>
+			<form id = "Search" name="SearchForm" method="get" action="/search" onsubmit="return verifySearch(this);">
+			<fieldset>
+			<legend>통합검색영역</legend>
+			 <select name="srch_order" class="search_key">
+				  <option value="total" selected >전체</option>
+			   <option value="title"  >서명</option>
+			   <option value="author" >저자명</option>
+			   <option value="publisher"  >출판사명</option>
+			 </select>
+			<input type="text" name="src_key" id="src_key" class="searchbox" value="">
+			<div class="btn"><input type="image" src="/images/btn/btn_topsearch.png" title="검색" alt="검색" class="searchbtn" /></div>
+			</fieldset>
+			</form>
+			<div class="clear"></div>
+			<div class="popular">
+				<span class="tit"></span>
+				<span>문학, 비즈니스, 판타지, 소설, 한국문학</span>
+			</div>
+		</div>
+		</div>
+		<div id="gnb"><a name="gnb"></a>
+			<ul class='m5'>				
+				<li class=""><a href="/ebook"  title="전자책 페이지로 이동합니다.">전자책</a></li>				
+				<li class=""><a href="#" onclick="window.open('http://ch.yes24.com/Famous/List?callGb=lib', '_blank', 'left=500,top=50,width=1000, height=800,scrollbars=yes,resizable=yes'); return false;">명사의 서재</a></li>
+				<li class=""><a href="#" onclick="window.open('http://ch.yes24.com/Article/List/2162?Ccode=000_004_003&callGb=lib', '_blank', 'left=500,top=50, width=1000, height=800,scrollbars=yes,resizable=yes'); return false;">칼럼</a></li>
+				<li class=""><a href="/board"  title="게시판 페이지로 이동합니다.">게시판</a></li>
+				<li class=""><a href="/mylibrary"  title="내서재 페이지로 이동합니다.">내서재</a></li>				
+			</ul>
+			<div class="clear"></div>
+		</div>
+	</div>	
+</div>
+<div class="clear"></div>
+	<div id="container" class="cbg">
+		<a name="container"></a>
+		<div id="snb"><a name="snb"></a>
+		<div id="mycontent">
+	<div id="mlogin">
+		<form name="left_Login_Frm" method="post" action="/action/login/login_action.asp">
+		<fieldset>
+			<legend>로그인정보 입력 영역</legend>
+			<input type="hidden" name="login" value="1">
+			<input type="hidden" name="site_code" value="djcl">
+			<input type="hidden" name="return_url" value="/ebook/detail/?goods_id=128574807">
+			<dl>
+				<dt class="dpn"><label for="userid" style="display:none;">아이디</label></dt>
+				<dd><input type="text" name="user_id" id="userid" class="text"></dd>
+			</dl>
+			<dl>
+				<dt class="dpn"><label for="passwd" style="display:none;">비밀번호</label></dt>
+				<dd><input type="password" name="user_pw" id="passwd" class="text"></dd>
+			</dl>
+			<div class="btn"><input type="image" src="/images/btn/btn_login.png" title="로그인" alt="로그인" class="image" /></div>
+		</fieldset>
+		</form>
+	</div>
+	<div id="mnotice">
+	<h3></h3>
+	<ul>
+		<li>등록된 게시글이 없습니다.</li>
+	</ul>
+	<div class="more"><a href="/board/?code=1" title="공지사항 더보기"></a></div>
+</div>
+	<div id="mlibrary">
+		<h3></h3>
+		<div class="more">
+			<a href="#" onclick="alert('로그인 후 이용 가능합니다.');" title="내서재 더보기(비 로그인시 로그인페이지로 이동합니다.)">
+			</a>
+		</div>
+		<div class="clear"></div>
+	</div>
+</div>
+<div id="category">
+	<h3></h3>
+	<div class="cont">
+		<ul>
+			<li>
+				<a href="/ebook/?code=category&cate_id=001" title="인문／사회 카테고리 페이지로 이동합니다.">
+					인문／사회 (1,826)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=002" title="경제／경영 카테고리 페이지로 이동합니다.">
+					경제／경영 (1,436)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=003" title="문학 카테고리 페이지로 이동합니다.">
+					문학 (2,197)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=004" title="가정과생활 카테고리 페이지로 이동합니다.">
+					가정과생활 (828)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=005" title="장르문학 카테고리 페이지로 이동합니다.">
+					장르문학 (54)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=007" title="잡지 카테고리 페이지로 이동합니다.">
+					잡지 (1)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=009" title="국어와외국어 카테고리 페이지로 이동합니다.">
+					국어와외국어 (127)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=010" title="대학교재 카테고리 페이지로 이동합니다.">
+					대학교재 (10)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=011" title="수험서／자격증 카테고리 페이지로 이동합니다.">
+					수험서／자격증 (2)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=012" title="어린이/청소년 카테고리 페이지로 이동합니다.">
+					어린이/청소년 (559)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=013" title="예술／대중문화 카테고리 페이지로 이동합니다.">
+					예술／대중문화 (179)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=014" title="자기관리 카테고리 페이지로 이동합니다.">
+					자기관리 (1,199)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=015" title="자연과과학 카테고리 페이지로 이동합니다.">
+					자연과과학 (321)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=023" title="컴퓨터와인터넷 카테고리 페이지로 이동합니다.">
+					컴퓨터와인터넷 (142)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=028" title="만화 카테고리 페이지로 이동합니다.">
+					만화 (2)
+				</a>
+			</li>
+			<div class="clear"></div>
+			<li>
+				<a href="/ebook/?code=category&cate_id=032" title="해외원서 카테고리 페이지로 이동합니다.">
+					해외원서 (30,000)
+				</a>
+			</li>
+			<div class="clear"></div>
+		</ul>	
+	</div>	
+</div>
+<div id="sbnr">
+	<ul>
+		<li><a href="/help/?code=1" title="이용안내 페이지로 이동합니다."></a></li>
+		<li><a href="/help/?code=2" title="자료대출안내 페이지로 이동합니다."></a></li>
+		<li><a href="/help/?code=5" title="뷰어사용안내 페이지로 이동합니다."></a></li>
+		<li><a href="/help/?code=6" title="모바일이용안내 페이지로 이동합니다."></a></li>
+	</ul>
+	<div class="clear"></div>
+</div><div id="snblist">
+			<h3></h3>
+			<ul class="list">
+				<li class="line">
+					<div class="cover thumb1">
+						<a href="/ebook/detail/?goods_id=193155016" title="당신은 아직 되어가는 중입니다 : 실패와 흔들림을 성장으로 바꾸는 법">
+							<span class="bg"></span>
+						</a>
+					</div>
+					<div class="info">
+						<p class="book_tit"><a href="/ebook/detail?goods_id=193155016" title="당신은 아직 되어가는 중입니다 : 실패와 흔들림을 성장으로 바꾸는 법">당신은 아직 되어가는 중입니다 : 실패와 흔들림을 성장으로 바꾸는 법</a></p>
+						<ul class="book_txt">
+							<li>고현숙 저</li>
+							<li>쌤앤파커스</li>
+						</ul>
+					</div>
+				</li>
+				<li class="line">
+					<div class="cover thumb1">
+						<a href="/ebook/detail/?goods_id=193990877" title="6억으로 시작한 세미파이어 : 당으로 생활하고 좋아하는 일로 버는 퇴사 1년 차 투자 시스템">
+							<span class="bg"></span>
+						</a>
+					</div>
+					<div class="info">
+						<p class="book_tit"><a href="/ebook/detail?goods_id=193990877" title="6억으로 시작한 세미파이어 : 당으로 생활하고 좋아하는 일로 버는 퇴사 1년 차 투자 시스템">6억으로 시작한 세미파이어 : 당으로 생활하고 좋아하는 일로 버는 퇴사 1년 차 투자 시스템</a></p>
+						<ul class="book_txt">
+							<li>조윤진 저</li>
+							<li>어깨위망원경</li>
+						</ul>
+					</div>
+				</li>
+				<li class="line">
+					<div class="cover thumb1">
+						<a href="/ebook/detail/?goods_id=193368426" title="단둥프로젝트 : 21세기 하이브리드 전쟁 보고">
+							<span class="bg"></span>
+						</a>
+					</div>
+					<div class="info">
+						<p class="book_tit"><a href="/ebook/detail?goods_id=193368426" title="단둥프로젝트 : 21세기 하이브리드 전쟁 보고">단둥프로젝트 : 21세기 하이브리드 전쟁 보고</a></p>
+						<ul class="book_txt">
+							<li>김미영,로이킴 저</li>
+							<li>세이지</li>
+						</ul>
+					</div>
+				</li>
+				<div class="clear"></div>
+			</ul>
+			<div class="more">
+				<a href="/ebook/default.asp?code=new" title="새로나온 책 더보기">
+				</a>
+			</div>
+		</div>	
+		</div>
+		<div id="content">
+			<div id="body_head">
+<h1>컨텐츠상세보기</h1>
+				<div id="location">
+					<ul>
+						<li class="home"><a href="/" title="홈으로 이동">홈</a></li>
+						<li class="end"><a href='/ebook/default.asp' title='전자책 페이지로 이동'>전자책</a></li>
+					</ul>
+				</div>
+				<div class="clear"></div>
+			</div>
+			<div id="body_content">
+				<div id="bookview">
+<div class="cover thumb4">
+	<span class="bg"></span>
+</div>
+<div class="cont">
+	<div class="tit">200% 실패할 걸 알면서도 왜 나는 똑같은 행동을 반복하는가</div>
+		<ul>
+			<li><span class="tt">저자</span>더글러스 켄릭,블라다스 그리스케비시우스 저/조성숙 역</li>
+			<li><span class="tt">출판사</span>스마트비즈니스</li>
+			<li><span class="tt">출판일</span>2024-07-11</li>
+			<li><span class="tt">등록일</span>2024-09-24</li>
+		</ul>
+		<ul class="dotline">
+			<li><span class="tt">SNS공유</span>
+				<a href="#" onClick="facebook_click()">
+				</a>
+				<a href="#" onClick="twitter_click('200% 실패할 걸 알면서도 왜 나는 똑같은 행동을 반복하는가')">
+                 </a>					
+			</li>
+			<li><span class="tt">파일포맷</span>EPUB<span class="uu"></span></li>
+			<li><span class="tt">파일크기</span>53MB</li>
+			<li><span class="tt">공급사</span>YES24</li>
+			<li>
+				<span class="tt">지원기기</span>
+				<span class="ico_bg support1" title="PC">PC</span>
+				<span class="ico_bg support2" title="PHONE">PHONE</span>
+				<span class="ico_bg support3" title="TABLET">TABLET</span>
+				<a href="/activex/YES24ViewerSetup.exe" title="수동설치 프로그램을 다운로드 합니다.">
+				<span class="ico_bg support_down">프로그램 수동설치</span>
+				</a>
+				<a href="/help/?code=4&comcode=yes24">
+				<span class="ico_bg support_info" title="전자책 프로그램 수동설치 안내">전자책 프로그램 수동설치 안내</span>
+				</a>
+				<p>(생략)</p>
+			</li>
+		</ul>
+	</div>
+	<div class="clear"></div>
+	<div class="btnarea">
+		<div class="left rentinfo">
+			보유 <em>1</em>, 대출 <em>0</em>,
+			예약 <em>0</em>, 누적대출 <em>31</em>, 누적예약 <em>23</em>
+		</div>
+		<div class="right">
+					<span class="btn_bg_new blue_v1_new">
+						<a href="#" onclick="alert('로그인 후 이용 가능합니다.'); return false;" class="txt_blue_v12" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a>
+					</span>
+			</div>	
+			<div class="clear"></div>
+		</div>
+	</div>
+						<div id="bookinfo">
+							<h2 class="fst">책소개</h2>
+								<b>내 안에 내가 너무도 많다? ‘진화심리학으로 입증되다!’</br></br>고구마 100개를 먹은 것처럼 답답한</br>인간의 행동에 대한</br>‘사이다 같은 명쾌한 해답!’</br></b></br>몇 번이나 밑줄 그어 가며 탐독했는지 모른다!</br>- 로버트 치알디니, 『설득의 심리학』 저자</br></br>인간의 행동심리에 대한 통찰이 가득하다!</br>- 조나 버거, 『컨테이저스 전략적 입소문』 저자</br></br>매혹적이고, 설득적이며, 유쾌한 책이다!</br>- 제프리 밀러, 『스펜트 Spent』 저자</br></br>(생략)</br></br>(생략)<h2>저자소개</h2>(생략)<뉴스위크>&nbsp;<뉴욕&nbsp;타임스>&nbsp;<사이콜로지투데이>(생략)<h2>목차</h2>
+								프롤로그∥인간의&nbsp;무모한&nbsp;선택에&nbsp;대한&nbsp;‘진화심리학의&nbsp;놀라운&nbsp;진실!’</br></br><b>(생략)</b></br></br>(생략)</br></br><b>Chapter&nbsp;2∥왜&nbsp;스노보더와&nbsp;월가의&nbsp;은행가는&nbsp;스스로&nbsp;위험에&nbsp;빠지는가?</b></br></br>(생략)</br></br><b>Chapter&nbsp;3∥왜&nbsp;디즈니&nbsp;형제는&nbsp;다투면서도&nbsp;서로를&nbsp;위해&nbsp;양보하는가?</b></br></br>(생략)</br></br><b>(생략)</b></br></br>(생략)</br></br><b>(생략)</b></br></br>(생략)</br></br><b>Chapter&nbsp;6∥왜&nbsp;벼락부자들은&nbsp;결국&nbsp;파산&nbsp;법정에&nbsp;서고야&nbsp;마는가?</b></br></br>(생략)</br></br><b>Chapter&nbsp;7∥친환경&nbsp;하이브리드카를&nbsp;구입하는&nbsp;진짜&nbsp;이유는&nbsp;무엇인가?</b></br></br>(생략)</br></br><b>Chapter&nbsp;8∥왜&nbsp;다이아몬드&nbsp;반지와&nbsp;신부의&nbsp;지참금은&nbsp;다른가?</b></br></br>(생략)</br></br><b>Chapter&nbsp;9∥왜&nbsp;우리는&nbsp;가짜&nbsp;약장수에게&nbsp;쉽게&nbsp;속는가?</b></br></br>(생략)</br></br>에필로그∥인간의&nbsp;선택에는&nbsp;어떤&nbsp;동기가&nbsp;숨어&nbsp;있는가?
+							<h2>한줄 서평</h2>
+							<div id="review">
+								<form  name="review_frm" method="get" action="/action/online_action.asp">
+									<input type="hidden" id="idx" name="idx" value="" />
+									<input type="hidden" id="mode" name="mode" value="" />
+									<input type="hidden" id="goods_id" name="goods_id" value="128574807" />
+									<input type="hidden" id="hidIsLogin" name="hidIsLogin" value="N" />
+									<ul class="score">
+										<li>
+											<input type="radio" value="5" name="star_point" id="score1" class="none" checked title="별점5개">
+											<label for="score1"><span class="ico_bg s5">별점5개</span></label>
+										</li>
+										<li>
+											<input type="radio" value="4" name="star_point" id="score2" class="none"  title="별점4개">
+											<label for="score2"><span class="ico_bg s4">별점4개</span></label>
+										</li>
+										<li>
+											<input type="radio" value="3" name="star_point" id="score3" class="none"  title="별점3개">
+											<label for="score3"><span class="ico_bg s3">별점3개</span></label>
+										</li>
+										<li>
+											<input type="radio" value="2" name="star_point" id="score4" class="none"  title="별점2개">
+											<label for="score4"><span class="ico_bg s2">별점2개</span></label>
+										</li>
+										<li>
+											<input type="radio" value="1" name="star_point" id="score5" class="none"   title="별점1개">
+											<label for="score5"><span class="ico_bg s1">별점1개</span></label>
+										</li>
+									</ul>
+									<div class="write">
+										<label for="review_content" style="display:none;">리뷰쓰기(한글 40자이내)</label>
+										<textarea name="content" id="review_content" onfocus="focus_clear();" title="리뷰 내용 입력창(한글 40자이내)">한글 40자이내</textarea>
+										<div class="btn">
+											<span class="btn_bg gray_v2">
+												<input class="txt_gray_v2" type="submit" onkeypress="" onclick="review_write();return false;" title="리뷰를 등록합니다" name="리뷰쓰기" value="리뷰쓰기" /></span>
+										</div>
+									</div>
+								</form>
+									</ul>
+							</div>
+						</div>
+					</div>
+			</div>
+			<div class="clear"></div>
+<form name="action_form" method="post" action="/action/" target="process">
+	<input type="hidden" name="goods_id" >
+	<input type="hidden" name="action_mode" >
+	<input type="hidden" name="device_mode" value="W" >
+	<input type="hidden" name="return_url" value="/ebook/detail/?goods_id=128574807">
+</form>
+	</div>
+<div id="footer">
+	<div class="cont">
+		<div id="flogo"></div>
+		<div class="fcopy">
+			<div id="copyright"> 
+				성남시 전자도서관&nbsp;&nbsp;&nbsp;<Br>
+				Tel: 031-729-4500 &nbsp;&nbsp; <br>
+			</div>
+		</div>
+		<div class="clear"></div>
+	</div>
+</div>	
+<iframe id ="process" title="process" frameborder=0 marginheight=0 marginwidth=0 leftmargin=0 topmargin=0 name="process"  height=1 width=1></iframe>
+</div>
+</body>
+</html>

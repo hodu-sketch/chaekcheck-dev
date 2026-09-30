@@ -1,0 +1,212 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.searchArea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-top: 2rem;
+}
+
+/* before a search: a larger, centered first screen */
+.page[data-state='start'] .searchArea {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding-top: 16vh;
+  gap: 1.4rem;
+  align-items: center;
+  text-align: center;
+}
+
+.page[data-state='start'] .searchArea > p {
+  justify-content: center;
+}
+
+/* scope toggle and "방문 없이 가입" on one line; they wrap on narrow screens */
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page[data-state='start'] .toggles {
+  justify-content: center;
+}
+
+.headline {
+  text-wrap: balance;
+  font-size: clamp(1.9rem, 1.2rem + 2.3vw, 3rem);
+  font-weight: 800;
+  line-height: 1.28;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+}
+
+.headline em {
+  font-style: normal;
+  white-space: nowrap;
+  color: var(--brand-strong);
+}
+
+.notices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notice {
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--reserve-soft);
+  color: #7a4506;
+  font-size: 0.93rem;
+  font-weight: 700;
+}
+
+.notice[data-kind='replaced'] {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.notice[data-kind='error'] {
+  background: var(--fail-soft);
+  color: var(--fail);
+}
+
+.noticeAction {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.searching {
+  padding: 2.5rem 0;
+  text-align: center;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.allEmpty {
+  padding: 2.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--paper-deep);
+  text-align: center;
+}
+
+.allEmptyTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.allEmptyLibraries {
+  margin-top: 0.4rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+/* "9월 30일 기준 수집 목록 · 책 N권" on the left, the sort on the right (flow.md S1) */
+.resultsHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--paper-deep);
+}
+
+.collected {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.sort select {
+  appearance: none;
+  padding: 0.45rem 2rem 0.45rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--card)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235e3fe0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 0.75rem center;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sort select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sort select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.resultsHeader[data-direct] {
+  justify-content: flex-end;
+  border-bottom: none;
+}
+
+.dimReason {
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.directButton {
+  margin-top: 1rem;
+  padding: 0.8rem 1.6rem;
+  border: 1.5px solid var(--brand);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--brand-strong);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.directButton:hover {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.directButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* the expanded conditions keep their left alignment on the centered start screen */
+.page[data-state='start'] .searchArea form {
+  text-align: left;
+}
+
+@media (width <= 640px) {
+  .searchArea {
+    padding-top: 1.25rem;
+  }
+
+  .page[data-state='start'] .searchArea {
+    padding-top: 6vh;
+  }
+}

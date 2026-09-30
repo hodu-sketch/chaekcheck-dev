@@ -1,0 +1,674 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta property="og:type" content="website">
+<meta property="og:title" content="부산광역시 전자도서관">
+<meta property="og:description" content="부산광역시 전자도서관">
+<meta property="og:url" content="https://library.busan.go.kr/elib/index.do">
+<link rel="canonical" href="https://library.busan.go.kr/elib/index.do">
+<title>부산광역시 전자도서관 > 전자잡지</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=0,maximum-scale=10">
+<link rel="apple-touch-icon" sizes="57x57" href="/resources/homepage/elib/favicon/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/resources/homepage/elib/favicon/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/resources/homepage/elib/favicon/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/resources/homepage/elib/favicon/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/resources/homepage/elib/favicon/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/resources/homepage/elib/favicon/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/resources/homepage/elib/favicon/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/resources/homepage/elib/favicon/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/resources/homepage/elib/favicon/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="192x192"  href="/resources/homepage/elib/favicon/android-icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/resources/homepage/elib/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/resources/homepage/elib/favicon/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/resources/homepage/elib/favicon/favicon-16x16.png">
+<link rel="manifest" href="/resources/homepage/elib/favicon/manifest.json">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="/resources/homepage/elib/favicon/ms-icon-144x144.png">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/fontawesome.min.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/font-style.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/select2.min.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/jquery.mmenu.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/new_elib_default.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/login.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/guide.css">
+<link rel="stylesheet" type="text/css" href="/resources/board/css/default.css">
+<link rel="stylesheet" type="text/css" href="/resources/homepage/elib/css/default.css">
+<link rel="stylesheet" type="text/css" href="/resources/homepage/elib/css/main.css">
+<link rel="stylesheet" type="text/css" href="/resources/book/css/common.css">
+</head>
+<body>
+<a href="#wrap" class="skip-to">본문 바로가기</a>
+<link rel="stylesheet" type="text/css" href="/resources/common/css/default_sub_lnb_new.css">
+<div id="wrap">
+	<div class="mask"></div>
+	<div id="mobile_library_card">
+		<div class="library_card_header">
+			<h2 class="library_card_title">모바일회원증</h2>
+		</div>
+		<div class="ticker1">
+			<div class="ticker-wrap">
+				<span>부산시 공공도서관에 오신 것을 환영합니다.&nbsp;&nbsp;&nbsp;</span>
+				<span>부산시 공공도서관에 오신 것을 환영합니다.&nbsp;&nbsp;&nbsp;</span>
+				<span>부산시 공공도서관에 오신 것을 환영합니다.&nbsp;&nbsp;&nbsp;</span>
+				<span>부산시 공공도서관에 오신 것을 환영합니다.&nbsp;&nbsp;&nbsp;</span>
+			</div>
+		</div>
+		<div class="library_card_wrap">
+			<div class="mobile_loan_card"></div>
+			<div class="library_card_info">
+					정회원만 이용가능한 메뉴 입니다. <br>도서관에 방문하여 대출번호를 부여받으세요.
+				<div class="barcode">
+					<p class="date">2026-09-28 23:01:43</p>
+					<div id="barcodeTarget" class="barcodeTarget"></div>
+					<canvas id="canvasTarget"></canvas>
+					<p class="no"><span></span></p>
+					<div class='mcard-ment'>본 회원증은 본인만 사용할 수 있습니다.</div>
+				</div>
+				<div class="library_card_rule">
+					<div class='rule-box'>
+						<div><span class="title">대출기간</span> <span class="conte">14일</span></div>
+						<div><span class="title">대출정지기간</span> <span class="conte">연체일수<br/>(다권 연체 시 최장 일수 적용)</span></div>
+					</div>
+				</div>
+				<div class="user_info">
+					<a href="javascript:void(0);" class="btn_close">닫기</a>
+				</div>
+			</div>
+		</div>
+		<div class="wave-container">
+			<svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 30 150 28" preserveAspectRatio="none" shape-rendering="auto">
+				<defs>
+				<path id="gentle-wave" d="M-160 44c30 0 58-12 88-12s 58 12 88 12 58-12 88-12 58 12 88 12 v44h-352z" />
+				</defs>
+				<g class="parallax">
+				<use xlink:href="#gentle-wave" x="48" y="0" />
+				<use xlink:href="#gentle-wave" x="48" y="3" />
+				<use xlink:href="#gentle-wave" x="48" y="5" />
+				<use xlink:href="#gentle-wave" x="48" y="7" />
+				</g>
+			</svg>
+		</div>
+	</div>
+	<div id="header">
+<div id="header">
+<nav id="menu"></nav>
+<div class="tnb">
+	<div class="section">
+		<div class="left-util">
+			<ul>
+				<li><a href="/busanlibrary/index.do" class="bslib-link" target="_blank" rel="noopener noreferrer">부산도서관</a></li>
+				<li><a href="/portal/index.do" class="bsportal-link" target="_blank" rel="noopener noreferrer">도서관포털</a></li>
+				<li><a href="/archive/index.do" class="bsarchive-link" target="_blank" rel="noopener noreferrer">부산의 기억</a></li>
+			</ul>
+		</div>
+<h1 class="mid-util web_logo"><a href="/elib/index.do" title="로고"><span class="blind">로고</span></a></h1>
+		<div class="right-util">
+			<input type="hidden" name="_csrf" value="880357db-c21b-4883-aab3-ebaa3529d006" />
+			<ul>
+				<li>
+					<a href="/elib/intro/login/index.do?menu_idx=43">로그인</a>
+				</li>
+				<li>
+					<a href="/elib/intro/join/index.do?menu_idx=42">회원가입</a>
+				</li>
+				<li>
+					<a href="/elib/module/elib/lending/index.do?menu_idx=4&menu=LENDING" class="mylib">내서재</a>
+				</li>
+				<li>
+					<a href="/elib/html.do?menu_idx=58">뷰어 설치 안내 <span class="blind">뷰어 설치 안내</span></a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</div>
+<div class="mobile-tnb">
+	<div class="section">
+		<div class="util">
+			<ul>
+				<li class="mobile-version"><a href="javascript:alert('로그인후 이용가능합니다.'); location.href='/elib/intro/login/index.do?menu_idx=43';" class="red-box"><span class="ico_01"></span>모바일회원증</a></li>
+				<li><a href="/elib/html.do?menu_idx=97" class="purple-box"><span class="ico_02"></span>모바일바로가기안내</a></li>
+				<li><a href="/busanlibrary/index.do" class="bslib-link" target="_blank" rel="noopener noreferrer">부산도서관</a></li>
+				<li><a href="/portal/index.do" class="bsportal-link" target="_blank" rel="noopener noreferrer">도서관포털</a></li>
+				<li><a href="/archive/index.do" class="bsarchive-link" target="_blank" rel="noopener noreferrer">부산학아카이브</a></li>
+			</ul>
+		</div>
+	</div>
+</div>
+	<div class="Gnb">
+		<h2 class="blind">주메뉴</h2>
+		<div class="section">
+		<h1 class="side-util"><a href="/elib/index.do"><span class="blind">메인</span></a></h1>
+			<div class="mmode m-menu">
+				<a href="#menu"><i class="fa fa-navicon"></i><span class="blind">메뉴</span></a>
+			</div>
+			<div class="g-menu">
+				<ul class="gnb-menu">
+<li class="List 1Depth menu1 menu_7"><a href="/elib/html.do?menu_idx=7" ><span>소장형전자책</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_14"><a href="/elib/module/elib/book/index.do?menu_idx=14&menu=NEW&type=EBK" ><span>새로 들어온 책</span></a></li>
+<li class="2Depth menu_15"><a href="/elib/module/elib/book/index.do?menu_idx=15&menu=BEST&type=EBK&sortField=lend_total&sortType=DESC&parent_id=0" ><span>대출이 많은 책</span></a></li>
+<li class="2Depth menu_17"><a href="/elib/module/elib/book/index.do?menu_idx=17&menu=CATEGORY&type=EBK" ><span>주제별</span></a></li>
+<li class="2Depth menu_18"><a href="/elib/module/elib/book/index.do?menu_idx=18&menu=PROVIDER&type=EBK" ><span>유통사별</span></a></li></ul></li>
+<li class="List 1Depth menu2 menu_114"><a href="/elib/html.do?menu_idx=114" ><span>구독형전자책</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_115"><a href="/elib/module/elib/asp/search/gudok.do?menu_idx=115" ><span>구독형 전자책</span></a></li>
+<li class="2Depth menu_136"><a href="/elib/module/elib/search/subsIndex.do?menu_idx=136" ><span>구독형 자료검색</span></a></li></ul></li>
+<li class="List 1Depth menu3 menu_9"><a href="/elib/html.do?menu_idx=9" ><span>오디오북</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_19"><a href="/elib/module/elib/book/index.do?menu_idx=19&menu=NEW&type=ADO" ><span>새로 들어온 책</span></a></li>
+<li class="2Depth menu_20"><a href="/elib/module/elib/book/index.do?menu_idx=20&&menu=BEST&type=ADO&sortField=lend_total&sortType=DESC&parent_id=0" ><span>대출이 많은 책</span></a></li>
+<li class="2Depth menu_22"><a href="/elib/module/elib/book/index.do?menu_idx=22&menu=CATEGORY&type=ADO" ><span>주제별</span></a></li>
+<li class="2Depth menu_23"><a href="/elib/module/elib/book/index.do?menu_idx=23&menu=PROVIDER&type=ADO" ><span>유통사별</span></a></li></ul></li>
+<li class="List 1Depth menu4 menu_13"><a href="/elib/html.do?menu_idx=13" ><span>온라인콘텐츠</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_75"><a href="/elib/html.do?menu_idx=75" ><span>독서</span></a>
+<ul>
+<li class="3Depth menu_80"><a href="/elib/module/elib/asp/webdb/poem.do?menu_idx=80" ><span>시요일</span></a></li>
+<li class="3Depth menu_129"><a href="https://library.busan.go.kr/elib/module/elib/asp/webdb/efuture.do?menu_idx=129" ><span>이퓨처 라이브러리</span></a></li></ul></li>
+<li class="2Depth menu_110"><a href="/elib/html.do?menu_idx=110" ><span>인문·예술</span></a>
+<ul>
+<li class="3Depth menu_117"><a href="/elib/module/elib/asp/electronic/seriandu.do?menu_idx=117" ><span>SERI&U 지식도서관</span></a></li>
+<li class="3Depth menu_81"><a href="/elib/module/elib/asp/webdb/medictv.do?menu_idx=81" ><span>Medici.tv</span></a></li>
+<li class="3Depth menu_104"><a href="/elib/module/elib/asp/webdb/Music.do?menu_idx=104" ><span>Music and Dance Online</span></a></li>
+<li class="3Depth menu_105"><a href="/elib/module/elib/asp/webdb/classical.do?menu_idx=105" ><span>Classical Scores Library</span></a></li>
+<li class="3Depth menu_113"><a href="/elib/module/elib/asp/search/naxos.do?menu_idx=113" ><span>Naxos Music Library</span></a></li>
+<li class="3Depth menu_130"><a href="/elib/module/elib/asp/webdb/PublicOnline.do?menu_idx=130" ><span>Public Library Video Online</span></a></li></ul></li>
+<li class="2Depth menu_111"><a href="/elib/html.do?menu_idx=111" ><span>학술DB</span></a>
+<ul>
+<li class="3Depth menu_123"><a href="/elib/module/elib/asp/search/wonmunsearchnew.do?menu_idx=123" ><span>원문검색</span></a></li>
+<li class="3Depth menu_100"><a href="/elib/module/elib/asp/webdb/dbpia.do?menu_idx=100" ><span>DBpia</span></a></li>
+<li class="3Depth menu_122"><a href="/elib/module/elib/asp/webdb/koreaa2z.do?menu_idx=122" ><span>KoreaA2Z</span></a></li>
+<li class="3Depth menu_103"><a href="/elib/module/elib/asp/webdb/Ebook.do?menu_idx=103" ><span>ProQuest Ebook Central</span></a></li>
+<li class="3Depth menu_102"><a href="/elib/module/elib/asp/webdb/ProQuest.do?menu_idx=102" ><span>ProQuest Central</span></a></li></ul></li>
+<li class="2Depth menu_73"><a href="/elib/html.do?menu_idx=73" ><span>이러닝</span></a>
+<ul>
+<li class="3Depth menu_76"><a href="/elib/module/elib/asp/elarning/darakwon.do?menu_idx=76" ><span>다락원 사이버 어학원</span></a></li>
+<li class="3Depth menu_77"><a href="/elib/module/elib/asp/elarning/itgo.do?menu_idx=77" ><span>아이티고 IT강좌</span></a></li>
+<li class="3Depth menu_133"><a href="/elib/module/elib/asp/elarning/ezpen.do?menu_idx=133" ><span>이지펜</span></a></li></ul></li>
+<li class="2Depth menu_74"><a href="/elib/html.do?menu_idx=74" ><span>전자잡지·신문</span></a>
+<ul>
+<li class="3Depth menu_79"><a href="/elib/module/elib/asp/electronic/moazine.do?menu_idx=79" ><span>모아진</span></a></li>
+<li class="3Depth menu_106"><a href="/elib/module/elib/asp/electronic/vogue.do?menu_idx=106" ><span>Vogue</span></a></li>
+<li class="3Depth menu_108"><a href="/elib/module/elib/asp/webdb/pressreader.do?menu_idx=108" ><span>Pressreader</span></a></li></ul></li>
+<li class="2Depth menu_131"><a href="/elib/html.do?menu_idx=131" ><span>추천도서 요약 및 알림서비스</span></a>
+<ul>
+<li class="3Depth menu_132"><a href="/elib/module/elib/asp/search/recommendbook.do?menu_idx=132" ><span>추천도서 요약 및 알림서비스</span></a></li></ul></li>
+<li class="2Depth menu_93"><a href="/elib/module/elib/asp/search/metasearch.do?menu_idx=93" ><span>무료DB</span></a></li>
+<li style="display:none" class="2Depth menu_124"><a href="/elib/html.do?menu_idx=124" ><span>원문복사서비스</span></a></li></ul></li>
+<li class="List 1Depth menu5 menu_68"><a href="/elib/html.do?menu_idx=70" ><span>부산자료</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_69"><a href="/elib/html.do?menu_idx=69" ><span>부산시 발간물</span></a></li>
+<li class="2Depth menu_70"><a href="/elib/html.do?menu_idx=70" ><span>부산시 보고서</span></a></li>
+<li class="2Depth menu_87"><a href="/elib/html.do?menu_idx=87" ><span>부산관련 웹사이트</span></a></li></ul></li>
+<li class="List 1Depth menu6 menu_8"><a href="/elib/html.do?menu_idx=8" ><span>이용안내</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_35"><a href="/elib/html.do?menu_idx=35" ><span>이용안내</span></a>
+<ul>
+<li class="3Depth menu_53"><a href="/elib/html.do?menu_idx=53" ><span>회원가입</span></a></li>
+<li class="3Depth menu_54"><a href="/elib/html.do?menu_idx=54" ><span>전자책/오디오북 이용안내</span></a></li>
+<li class="3Depth menu_121"><a href="/elib/html.do?menu_idx=121" ><span>온라인콘텐츠 이용안내</span></a></li>
+<li class="3Depth menu_58"><a href="/elib/html.do?menu_idx=58" ><span>뷰어 설치 안내</span></a></li>
+<li class="3Depth menu_116"><a href="/elib/board/index.do?menu_idx=116&manage_idx=609" ><span>추천하는책</span></a></li></ul></li>
+<li class="2Depth menu_31"><a href="/elib/board/index.do?menu_idx=31&manage_idx=1" ><span>도서관소식</span></a></li>
+<li class="2Depth menu_32"><a href="/elib/board/index.do?menu_idx=32&manage_idx=600" ><span>자주하는 질문</span></a></li>
+<li class="2Depth menu_92"><a href="/elib/module/survey/index.do?menu_idx=92" ><span>희망자료 설문조사</span></a></li>
+<li class="2Depth menu_85"><a href="/elib/html.do?menu_idx=85" ><span>부산지역 전자도서관</span></a></li>
+<li class="2Depth menu_47"><a href="/elib/sitemap/index.do?menu_idx=47" ><span>사이트맵</span></a></li>
+<li class="2Depth menu_119"><a href="/elib/libinfo.do?menu_idx=119" ><span>키보드보안설치안내</span></a></li></ul></li>
+<li class="List 1Depth menu7 menu_3"><a href="/elib/module/elib/lending/index.do?menu_idx=3&menu=LENDING" ><span>내서재</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_59"><a href="/elib/module/elib/lending/index.do?menu_idx=59&menu=LENDING" ><span>자료대출내역</span></a>
+<ul>
+<li class="3Depth menu_4"><a href="/elib/module/elib/lending/index.do?menu_idx=4&menu=LENDING" ><span>대출중 도서</span></a></li>
+<li class="3Depth menu_5"><a href="/elib/module/elib/lending/index.do?menu_idx=5&menu=RESERVE" ><span>예약중인 도서</span></a></li>
+<li class="3Depth menu_6"><a href="/elib/module/elib/lending/index.do?menu_idx=6&menu=HISTORY" ><span>지난대출 도서</span></a></li></ul></li>
+<li class="2Depth menu_125"><a href="/elib/html.do?menu_idx=125" ><span>구독형 전자책 대출이력</span></a>
+<ul>
+<li class="3Depth menu_126"><a href="/elib/intro/search/gudok/KYOB/loanHistory.do?menu_idx=126" ><span>교보문고</span></a></li>
+<li class="3Depth menu_127"><a href="/elib/intro/search/gudok/ALADIN/loanHistory.do?menu_idx=127" ><span>알라딘(부커스)</span></a></li>
+<li class="3Depth menu_128"><a href="/elib/intro/search/gudok/BOOKCUBE/loanHistory.do?menu_idx=128" ><span>북큐브</span></a></li></ul></li>
+<li class="2Depth menu_96"><a href="/elib/module/elib/lending/index.do?menu_idx=96&menu=MYSTUDY" ><span>나의 관심도서</span></a></li>
+<li class="2Depth menu_48"><a href="/elib/intro/join/modifyCheck.do?menu_idx=48" ><span>회원정보수정</span></a></li>
+<li class="2Depth menu_107"><a href="/elib/intro/join/reAgree.do?menu_idx=107" ><span>개인정보 재동의</span></a></li>
+<li class="2Depth menu_135"><a href="/elib/intro/join/untactForm.do?menu_idx=135" ><span>부산시민인증</span></a></li></ul></li></ul>
+				<div class="mmode">
+					<input type="hidden" name="_csrf" value="880357db-c21b-4883-aab3-ebaa3529d006">
+							<a href="/elib/intro/login/index.do?menu_idx=43" class="btn1">
+								<i class="fa fa-lock"></i>
+								<span>로그인</span>
+							</a>
+							<a href="/elib/intro/join/index.do?menu_idx=42" class="btn2">
+								<i class="fa fa-user-plus"></i>
+								<span>회원가입</span>
+							</a>
+							<a href="/elib/intro/join/integration.do?menu_idx=94" class="btn2">
+								<i class="fa fa-user-plus"></i>
+								<span>부산시 통합회원 인증</span>
+							</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	</div>
+	<div id="container" class="subpage subpage_elib">
+		<div class="sub-visual">
+			<div class="doc-head">
+				<div class="section search-wrap">
+					 <div class="search_elib">
+	<div class="elib_inner">
+		<h4 class="elib_tit tit_wh">자료검색</h4>
+		<div class="search_box">
+		 <fieldset>
+				<label for="search_type" class="search_type">
+					<select id="search_type" name="search_type" class="dropdown default_option">
+					    <option value="AUTHOR" selected="">소장자료</option>
+						<option value="TITLE" >구독자료</option>
+						<option value="PUBLER">학술원문</option>
+					</select>
+				</label>
+				<div class="search_field">
+					<input type="hidden" name="_csrf" value="880357db-c21b-4883-aab3-ebaa3529d006" />
+						<form id="mainSearchForm02" class="mainSearchForm02 mainSearchOutForm" method="POST" action="/elib/module/elib/search/index.do?menu_idx=2">
+						<input type="hidden" name="_csrf" value="880357db-c21b-4883-aab3-ebaa3529d006" />
+						<input type="hidden" name="menu_idx" value="2">
+						<fieldset>
+							<legend class="blind">통합검색</legend>
+							<div class="box search_field">
+									<input type="text" class="text" name="search_text" id="search_text" placeholder="찾으시는 도서정보를 입력해주세요!" title="소장자료검색" />
+									<button id="main-search-btn" class="fas fa-search"></button>
+							</div>
+						</fieldset>
+					</form>
+					<form id="mainSearchForm01" class="mainSearchForm01 mainSearchOutForm" action="/elib/module/elib/search/subsIndex.do" method="get" target="_blank"  style="display:none">
+						<input type="hidden" name="menu_idx" value="136">
+			            <fieldset>
+			                <legend class="blind">통합검색</legend>
+			                <div class="box search_field">
+									<input type="text" class="text" name="search_text" id="search_text" placeholder="구독형 전자자료를 검색할 수 있습니다." title="구독자료검색" />
+									<button id="main-kyobo-search-btn" class="fas fa-search"></button>
+							</div>
+			            </fieldset>
+			        </form>
+					<form id="mainSearchForm03" class="mainSearchForm03 mainSearchOutForm" action="https://library.busan.go.kr/libbs_webdb/" method="post" rel="noopener noreferrer" style="display:none">
+						<input type="hidden" name="_csrf" value="880357db-c21b-4883-aab3-ebaa3529d006" />
+						<input type="hidden" name="m" value="direct">
+						<input type="hidden" name="skey" value="1109">
+						<input type="hidden" name="charset" value="utf-8">
+						<input type="hidden" name="userid" value="">
+						<input type="hidden" name="dbGroup" value="0">
+						<fieldset>
+							<legend class="blind">통합검색</legend>
+							<div class="box search_field">
+									<input type="text" class="text" name="text1" id="text1" placeholder="다양한 온라인 자료를 검색할 수 있습니다." title="무료DB검색" />
+									<button id="main-meta-search-btn" class="fas fa-search"></button>
+							</div>
+						</fieldset>
+					</form>
+				</div>
+			</fieldset>
+		</div>
+	</div>
+</div>
+				</div>
+				<div class="doc-info-bg">
+					<div class="doc-info">
+						<div class="section">
+							<ol>
+								<li class="first">
+									<a href="/elib/index.do">
+									</a>
+								</li>
+							</ol>
+<ul>
+	<li class="print"><a href="#" class="noBox" title="새창열림"  onclick="contentPrint(); return false;"></a></li>
+	<li style="position:relative" class="sns"><a href="" class="noBox shareBtn snsBtn"></a>
+		<div id="shareBtnArea">
+			<div class="inbox" id="share_layer" style="display:none;">
+				<div class="shareAllBtns" >
+					<ul class="shareBox">
+						<li><a href="#" class="sub-facebook shareIconArea" title="새창열림"  data-keyValue1="h30" data-keyValue2="10" data-keyValue3="전자잡지" data-keyValue4="부산광역시 전자도서관"></a></li>
+						<li><a href="#" class="sub-twitter shareIconArea"  title="새창열림"  data-keyValue1="h30" data-keyValue2="10" data-keyValue3="전자잡지" data-keyValue4="부산광역시 전자도서관"></a></li>
+						<li><a href="#" id="closeshareBox" class="close shareIconArea" title="닫기" ></a></li>   
+					</ul>
+				</div>
+			</div>
+		</div>
+	</li>
+</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="section">
+				<div class="lnb">
+					<h2><b></b></h2>
+				<ul></ul>
+		</div>
+		<div class="content">
+			<div class="doc">
+				<div class="doc-head">
+					<div class="doc-title">
+						<h3>전자잡지</h3>
+					</div>
+				</div>
+				<div class="doc-body con10" id="contentArea">
+					<div class="body">
+<link rel="stylesheet" type="text/css" href="/resources/book/search/css/default_elib.css"/>
+<link rel="stylesheet" type="text/css" href="/resources/book/search/css/default.css"/>
+<link rel="stylesheet" type="text/css" href="/resources/common/css/intro/allsearch.css"/>
+<link rel="stylesheet" type="text/css" href="/resources/book/search/css/newSearch.css">
+<input type="hidden" name="_csrf" value="880357db-c21b-4883-aab3-ebaa3529d006" />
+<form id="detailForm" action="../book/view.do" method="GET">
+<input id="detail_menu_idx" name="menu_idx" value="10" type="hidden" value="10"/>
+<input id="detail_book_idx" name="book_idx" type="hidden" value="0"/>
+<input id="detail_viewPage" name="viewPage" value="1" type="hidden" value="1"/>
+<input id="detail_search_text" name="search_text" value="없는책제목없음" type="hidden" value="없는책제목없음"/>
+<input id="detail_search_type" name="search_type" type="hidden" value=""/>
+<input id="detail_type" name="type" type="hidden" value=""/>
+<input id="detail_author_name" name="author_name" type="hidden" value=""/>
+<input id="detail_book_pubname" name="book_pubname" type="hidden" value=""/>
+<input id="detail_book_year" name="book_year" type="hidden" value=""/>
+<input id="detail_rowCount" name="rowCount" value="10" type="hidden" value="10"/>
+<input type="hidden" name="from_search" value="Y">
+</form>
+<form id="book" action="index.do" method="GET">
+	<input id="menu_idx" name="menu_idx" type="hidden" value="10"/>
+	<input id="type" name="type" type="hidden" value=""/>
+	<input id="search_type" name="search_type" type="hidden" value=""/>
+	<input id="author_name" name="author_name" type="hidden" value=""/>
+	<input id="book_pubname" name="book_pubname" type="hidden" value=""/>
+	<input id="book_year" name="book_year" type="hidden" value=""/>
+	<input id="device" name="device" type="hidden" value=""/>
+	<input id="viewPage" name="viewPage" type="hidden" value="1"/>
+	<div class="search-wrap">
+		<div class="search-form-wrapper">
+			<div class="search-form">
+				<div class="box2">
+					<div class="b1">
+						<input id="search_text2" name="search_text" style="ime-mode:active;" placeholder="검색어를 입력하세요." type="text" class="text" onfocus="PopupVirtualKeyboard.attachInput(this)" value="없는책제목없음"/>
+						<a href="#globalLangguage" id="vk-popup" class="multilang-btn"><span class="ico multilang-btn-icon"></span> 다국어입력기</a>
+					</div>
+				</div>
+<link rel="stylesheet" type="text/css" href="/resources/common/css/virtualkeyboard/virtualKeyboard.css" />
+<div id="vKeyboard" class="vKeyboard">
+	<div class="vKeyboard-header">
+		<h2 class="title">다국어 입력기</h2>
+	</div>
+	<div class="vKeyboard-body">
+		<ul class="language-wrap">
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode3" class="active" name="language" value="marrCode3"><label for="marrCode3" class="input-label">한글고어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode1" class="" name="language" value="marrCode1"><label for="marrCode1" class="input-label">일본어(히라가나)</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode2" class="" name="language" value="marrCode2"><label for="marrCode2" class="input-label">일본어(가타카나)</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode4" class="" name="language" value="marrCode4"><label for="marrCode4" class="input-label">그리스문자</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode6" class="" name="language" value="marrCode6"><label for="marrCode6" class="input-label">러시아문자</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode5" class="" name="language" value="marrCode5"><label for="marrCode5" class="input-label">라틴문자</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode35" class="" name="language" value="marrCode35"><label for="marrCode35" class="input-label">몽골어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode29" class="" name="language" value="marrCode29"><label for="marrCode29" class="input-label">베트남어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode30" class="" name="language" value="marrCode30"><label for="marrCode30" class="input-label">신할라어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode31" class="" name="language" value="marrCode31"><label for="marrCode31" class="input-label">크메르어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode32" class="" name="language" value="marrCode32"><label for="marrCode32" class="input-label">태국어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode10" class="" name="language" value="marrCode10"><label for="marrCode10" class="input-label">독일어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode8" class="" name="language" value="marrCode8"><label for="marrCode8" class="input-label">프랑스어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode9" class="" name="language" value="marrCode9"><label for="marrCode9" class="input-label">스페인어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode33" class="" name="language" value="marrCode33"><label for="marrCode33" class="input-label">라오스어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode28" class="" name="language" value="marrCode28"><label for="marrCode28" class="input-label">아랍어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode34" class="" name="language" value="marrCode34"><label for="marrCode34" class="input-label">티벳어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode45" class="" name="language" value="marrCode45"><label for="marrCode45" class="input-label">인도어</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode17" class="" name="language" value="marrCode17"><label for="marrCode17" class="input-label">일반기호</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode16" class="" name="language" value="marrCode16"><label for="marrCode16" class="input-label">단위기호</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode13" class="" name="language" value="marrCode13"><label for="marrCode13" class="input-label">괄호기호</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode20" class="" name="language" value="marrCode20"><label for="marrCode20" class="input-label">화폐기호</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode18" class="" name="language" value="marrCode18"><label for="marrCode18" class="input-label">첨자기호</label>
+				</div>
+			</li>
+			<li>
+				<div class="input-radio">
+					<input type="radio" id="marrCode7" class="" name="language" value="marrCode7"><label for="marrCode7" class="input-label">로마자</label>
+				</div>
+			</li>
+		</ul>
+		<div class="vKey-wrap-top">
+			<div class="vKey-inner"></div>
+		</div>
+		<div class="vKey-wrap-bottom">
+			<button type="button" class="vBtn btn-spacebar"><span>Space</span></button>
+			<button type="button" class="vBtn btn-backspace"><span>⌫</span></button>
+		</div>
+	</div>
+	<div class="vKeyboard-footer">
+		<button type="button" class="vBtn vk-close"><span class="hidden-txt">닫기</span></button>
+	</div>
+</div>
+			</div>
+			<div class="sr-btn-box center">
+				<a href="index.do?menu_idx=2" id="reset-btn" class="do-reset-btn"><span class="ico reset-btn-icon"></span> 초기화</a>
+				<button id="search-btn" class="do-search-btn"><span class="ico search-btn-icon"></span> 검색</button>
+			</div>
+		</div>
+		<br/>
+		<div class="search-info" >
+			<div class="ws-filter-top">
+		</div>
+		<p style="text-align: center;">
+			<b>찾으시는 자료가 없습니다. </b>
+		</p>
+	</div>
+</form>
+<div id="vk"></div>
+<form id="printForm" name="printForm" hidden="hidden">
+	<input id="print_cmd_page" name="print_cmd_page" type="hidden" value="INDEX">
+</form>
+						<div id="menuRatingDiv"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="footer" class="section">
+<div class="footer">
+		<div class="top">
+			<div class="info">
+				<div class="sec01">
+					<div class="left-link">
+						<ul>
+							<li><a href="http://www.busan.go.kr/vprivacy1" target="_blank" rel="noopener noreferrer"><b>개인정보처리방침</b></a></li>
+							<li><a href="http://www.busan.go.kr/cright" target="_blank" rel="noopener noreferrer">저작권보호정책</a></li>
+							<li><a href="/elib/libinfo.do?menu_idx=119">키보드보안설치안내</a></li>
+							<li><a href="/elib/sitemap/index.do?menu_idx=47">사이트맵</a></li>
+						</ul>
+					</div>
+					<div class="right-location">
+						<select id="recommendSite1" class="recommendSite1" title="부산지역도서관" onchange="if(this.value) location.href=(this.value);">
+						<option value="">부산지역 도서관</option>
+						<option value="" style="font-weight:bold;color:#e1ce00;">대학도서관</option>
+						<option value="http://lib.kit.ac.kr/Cheetah/KIT/Index/">&nbsp;&nbsp;&nbsp;경남정보대학교</option>
+						<option value="https://library.ks.ac.kr/">&nbsp;&nbsp;&nbsp;경성대학교 중앙도서관</option>
+						<option value="http://library.kosin.ac.kr/kosinlib/SlimaPlus.csp">&nbsp;&nbsp;&nbsp;고신대학교 도서관</option>
+						<option value="http://lib.daedong.ac.kr/">&nbsp;&nbsp;&nbsp;대동대학교 도서관</option>
+						<option value="http://lib.tu.ac.kr/">&nbsp;&nbsp;&nbsp;동명대학교 중앙도서관</option>
+						<option value="http://lib.dpc.ac.kr/">&nbsp;&nbsp;&nbsp;동부산대학교 도서관</option>
+						<option value="http://dalis.donga.ac.kr/lib/">&nbsp;&nbsp;&nbsp;동아대학교 도서관</option>
+						<option value="http://library.dit.ac.kr/">&nbsp;&nbsp;&nbsp;동의과학대학교 도서관</option>
+						<option value="https://lib.deu.ac.kr/main_main.mir">&nbsp;&nbsp;&nbsp;동의대학교 중앙도서관</option>
+						<option value="http://library.dongju.ac.kr/">&nbsp;&nbsp;&nbsp;동주대학교도서관</option>
+						<option value="https://libweb.pknu.ac.kr/">&nbsp;&nbsp;&nbsp;부경대학교도서관</option>
+						<option value="http://lib.bist.ac.kr/">&nbsp;&nbsp;&nbsp;부산과학기술대학교도서관</option>
+						<option value="http://library.bnue.ac.kr/PNUE/SlimaPlus.csp?CSPCHD=0000000200001i8VE5zy0000005CcxWRYE$H7MGc5BMv7PKQ--">&nbsp;&nbsp;&nbsp;부산교육대학교 학술정보관</option>
+						<option value="https://lib.pusan.ac.kr/">&nbsp;&nbsp;&nbsp;부산대학교 도서관</option>
+						<option value="https://library.bufs.ac.kr/#/">&nbsp;&nbsp;&nbsp;부산외국어대학교 중앙도서관</option>
+						<option value="http://library.silla.ac.kr/">&nbsp;&nbsp;&nbsp;신라대학교 도서관</option>
+						<option value="http://lib.ysu.ac.kr/yblib/index.ax">&nbsp;&nbsp;&nbsp;영산대학교 연봉도서관</option>
+						<option value="http://medline.inje.ac.kr/">&nbsp;&nbsp;&nbsp;인제대학교 의학도서관</option>
+						<option value="http://www.kopo.ac.kr/busan/index.do">&nbsp;&nbsp;&nbsp;한국폴리텍Ⅶ대학 부산캠퍼스 도서관</option>
+						<option value="" style="font-weight:bold;color:#009ae1;">전문도서관</option>
+						<option value="https://library.humanrights.go.kr/">&nbsp;&nbsp;&nbsp;국가인권위원회 인권도서관 부산분관</option>
+						<option value="http://www.nifs.go.kr/hermes/">&nbsp;&nbsp;&nbsp;국립수산과학원도서실</option>
+						<option value="https://www.knmm.or.kr/Main/Main.aspx">&nbsp;&nbsp;&nbsp;국립해양박물관 해양도서관</option>
+						<option value="https://www.kibo.or.kr:444/">&nbsp;&nbsp;&nbsp;기술보증기금 도서실</option>
+						<option value="http://www.maryknoll.co.kr/">&nbsp;&nbsp;&nbsp;메리놀병원 의학도서실</option>
+						<option value="https://www.busan.go.kr/depart/pblreference">&nbsp;&nbsp;&nbsp;부산광역시 시정정보자료실</option>
+						<option value="http://www.busanedu.net/portal/">&nbsp;&nbsp;&nbsp;부산광역시교육연구정보원 문헌정보자료실</option>
+						<option value="https://library.moe.go.kr/#/">&nbsp;&nbsp;&nbsp;부산광역시교육청 작은도서관 (행정자료실)</option>
+						<option value="http://council.busan.go.kr/council/udataintro">&nbsp;&nbsp;&nbsp;부산광역시의회 의정자료실</option>
+						<option value="http://www.bdi.re.kr/main/">&nbsp;&nbsp;&nbsp;부산발전연구원 정보자료센터</option>
+						<option value="http://busan.bohun.or.kr/000main/index.php">&nbsp;&nbsp;&nbsp;부산보훈병원 도서실</option>
+						<option value="https://www.bsm.or.kr/index.asp">&nbsp;&nbsp;&nbsp;부산성모병원 의학도서관</option>
+						<option value="http://art.busan.go.kr/">&nbsp;&nbsp;&nbsp;부산시립미술관 미술도서자료실</option>
+						<option value="http://www.bwf.re.kr/">&nbsp;&nbsp;&nbsp;부산여성가족개발원 정보자료실</option>
+						<option value="https://www.symcb.co.kr/">&nbsp;&nbsp;&nbsp;부산위생병원 의학도서관</option>
+						<option value="http://www.dureraum.org/bcc/main/main.do?rbsIdx=1">&nbsp;&nbsp;&nbsp;영화의전당 영화전문자료실</option>
+						<option value="https://www.hf.go.kr/hf/index.do">&nbsp;&nbsp;&nbsp;한국주택금융공사 도서관</option>
+						<option value="http://www.hanjinsc.com/main/">&nbsp;&nbsp;&nbsp;한진중공업기술연구소 자료실</option>
+						</select>
+						<select id="recommendSite2" class="recommendSite2" title="타지역도서관" onchange="if(this.value) location.href=(this.value);">
+							<option value="">타지역 도서관</option>
+							<option value="" style="font-weight:bold;color:#e1ce00;">국립도서관</option>
+							<option value="https://www.nanet.go.kr">&nbsp;&nbsp;&nbsp;국회도서관</option>
+							<option value="https://www.nl.go.kr/">&nbsp;&nbsp;&nbsp;국립중앙도서관</option>
+							<option value="http://sejong.nl.go.kr/">&nbsp;&nbsp;&nbsp;국립세종도서관</option>
+							<option value="https://www.nlcy.go.kr/NLCY/main/index.do">&nbsp;&nbsp;&nbsp;국립어린이청소년도서관</option>
+							<option value="https://www.nld.go.kr/ableFront/index.jsp">&nbsp;&nbsp;&nbsp;국립장애인도서관</option>
+							<option value="" style="font-weight:bold;color:#009ae1;">지역대표도서관</option>
+							<option value="https://library.chuncheon.go.kr/home.do">&nbsp;&nbsp;&nbsp;강원 대표도서관</option>
+							<option value="http://lib.gen.go.kr/main/main.do">&nbsp;&nbsp;&nbsp;광주광역시교육청 통합도서관 </option>
+							<option value="http://gnelib.gne.go.kr/">&nbsp;&nbsp;&nbsp;경상남도교육청 통합공공도서관</option>
+							<option value="http://www.gbelib.kr/gbelib/index.do">&nbsp;&nbsp;&nbsp;경상북도교육청 통합도서관</option>
+							<option value="https://lib.gb.go.kr/main.tc">&nbsp;&nbsp;&nbsp;경상북도 도서관</option>
+							<option value="https://library.daegu.go.kr/dgportal/index.do">&nbsp;&nbsp;&nbsp;대구광역시 대표도서관</option>
+							<option value="https://www.daejeon.go.kr/hanbatlibrary/index.do">&nbsp;&nbsp;&nbsp;대전광역시 대표도서관</option>
+							<option value="https://home.pen.go.kr/siminlib/main.do">&nbsp;&nbsp;&nbsp;부산광역시립 시민도서관</option>
+							<option value="http://lib.seoul.go.kr">&nbsp;&nbsp;&nbsp;서울시립도서관</option>
+							<option value="http://lib.sen.go.kr">&nbsp;&nbsp;&nbsp;서울시교육청 대표도서관</option>
+							<option value="http://lib.ice.go.kr/ice/index.do">&nbsp;&nbsp;&nbsp;인천광역시교육청 대표도서관</option>
+							<option value="https://lib.jbe.go.kr/jbe/index.do">&nbsp;&nbsp;&nbsp;전라북도교육청 통합도서관</option>
+							<option value="https://jnelib.jne.go.kr/index.es?sid=a1">&nbsp;&nbsp;&nbsp;전라남도교육청 통합도서관</option>
+							<option value="https://lib.jeonnam.go.kr/">&nbsp;&nbsp;&nbsp;전라남도 도립도서관</option>
+							<option value="https://library.chungnam.go.kr/html/1511/K/detail.do">&nbsp;&nbsp;&nbsp;충청남도 대표도서관</option>
+						</select>
+					</div>
+				</div>
+			</div>
+		</div>
+<div class="bottom">
+		<div class="sec01 address" style="position:relative;">
+			<div class="site_logo">
+			</div>
+			<div class="site_address">
+				<address>
+					<p>
+						<em>(46949) 부산광역시 사상구 사상로310번길 33 (덕포동)</em><Br/>
+						<em><b>☎</b> 전자책, 오디오북, 회원문의 051-310-5465 / 구독형 전자책, 온라인 콘텐츠 문의 051-310-5431</em><Br class="mobile-br" />
+					</p>
+					<span>Copyright &copy; 2020 Busan Metropolitan City Library. All rights reserved.</span>
+				</address>
+			</div>
+			<div style="clear:both"></div>
+		</div>
+    </div>
+		<div class="home-up web_top">
+		 <a href="#firstPage" onclick="window.scrollTo(0,0);">
+			</a>
+		</div>
+		<div class="home-up mo_top">
+		<a href="#firstPage" class="mo_top_a" onclick="window.scrollTo(0,0);">
+			</a>
+		</div>
+</div>
+</div>
+</div>
+</div>

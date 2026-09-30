@@ -1,0 +1,131 @@
+# region module: schema and tables (ADR-0002, ADR-0003).
+# CHECK constraints and partial indexes are not available in Liquibase OSS YAML, so they use sql changes.
+databaseChangeLog:
+  - changeSet:
+      id: region-001-schema
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: CREATE SCHEMA region
+
+  - changeSet:
+      id: region-001-region
+      author: chaekcheck
+      changes:
+        - createTable:
+            schemaName: region
+            tableName: region
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: region_pkey
+              - column:
+                  name: parent_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+                    foreignKeyName: region_parent_id_fkey
+                    referencedTableSchemaName: region
+                    referencedTableName: region
+                    referencedColumnNames: id
+              - column:
+                  name: level
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: short_name
+                  type: text
+              - column:
+                  name: legal_dong_code
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: abolished_on
+                  type: date
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >-
+              ALTER TABLE region.region
+                ADD CONSTRAINT region_level_check CHECK (level IN ('SIDO', 'SIGUNGU')),
+                ADD CONSTRAINT region_status_check CHECK (status IN ('ACTIVE', 'ABOLISHED')),
+                ADD CONSTRAINT region_legal_dong_code_check CHECK (legal_dong_code ~ '^[0-9]{10}$'),
+                ADD CONSTRAINT region_parent_by_level_check CHECK ((level = 'SIDO') = (parent_id IS NULL)),
+                ADD CONSTRAINT region_abolished_on_check CHECK ((status = 'ABOLISHED') = (abolished_on IS NOT NULL))
+        - sql:
+            sql: CREATE UNIQUE INDEX region_active_legal_dong_code_key ON region.region (legal_dong_code) WHERE status = 'ACTIVE'
+        - sql:
+            sql: CREATE INDEX region_active_parent_id_idx ON region.region (parent_id) WHERE status = 'ACTIVE'
+
+  - changeSet:
+      id: region-001-region-replacement
+      author: chaekcheck
+      changes:
+        - createTable:
+            schemaName: region
+            tableName: region_replacement
+            columns:
+              - column:
+                  name: region_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: region_replacement_region_id_fkey
+                    referencedTableSchemaName: region
+                    referencedTableName: region
+                    referencedColumnNames: id
+              - column:
+                  name: replaced_by_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: region_replacement_replaced_by_id_fkey
+                    referencedTableSchemaName: region
+                    referencedTableName: region
+                    referencedColumnNames: id
+              - column:
+                  name: effective_on
+                  type: date
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            schemaName: region
+            tableName: region_replacement
+            columnNames: region_id, replaced_by_id
+            constraintName: region_replacement_pkey
+        - sql:
+            sql: >-
+              ALTER TABLE region.region_replacement
+                ADD CONSTRAINT region_replacement_not_self_check CHECK (region_id <> replaced_by_id)
+        - createIndex:
+            schemaName: region
+            tableName: region_replacement
+            indexName: region_replacement_replaced_by_id_idx
+            columns:
+              - column:
+                  name: replaced_by_id

@@ -1,0 +1,1360 @@
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <!-- <meta id="_csrf" name="_csrf" th:content=""/> -->
+    <!-- <meta id="_csrf_header" name="_csrf_header" th:content=""/> -->
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="강원특별자치도교육청 전자도서관"/>
+    <meta property="og:description" content="강원특별자치도교육청 전자도서관"/>
+    <meta property="og:url" content="http://ebook.gwe.go.kr/elib/index.do"/>
+    <link rel="canonical" href="http://ebook.gwe.go.kr/elib/index.do">
+    <title>강원특별자치도교육청 전자도서관 > 자료검색 > 소장자료 검색</title>
+    <!--[if IE]>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=0,maximum-scale=10"/>
+
+    <link rel="apple-touch-icon" sizes="57x57" href="/resources/homepage/elib/favicon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/resources/homepage/elib/favicon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/resources/homepage/elib/favicon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/resources/homepage/elib/favicon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/resources/homepage/elib/favicon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/resources/homepage/elib/favicon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/resources/homepage/elib/favicon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/resources/homepage/elib/favicon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/resources/homepage/elib/favicon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="/resources/homepage/elib/favicon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/resources/homepage/elib/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/resources/homepage/elib/favicon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/resources/homepage/elib/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/resources/homepage/elib/favicon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/resources/homepage/elib/favicon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/fontawesome.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/select2.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/jquery.mmenu.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/new_elib_default.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/login.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/guide.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/board/css/default.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/homepage/elib/css/default.css"/>
+    <link rel="stylesheet" type="text/css" href="/resources/book/css/common.css"/>
+    <!--[if lte IE 7]>
+    <link rel="stylesheet" type="text/css" href="/resources/common/css/fontawesome-ie7.min.css"/>
+    <![endif]-->
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" type="text/css" href="/resources/homepage/elib/css/ie.css"/>
+    <![endif]-->
+    <script type="text/javascript" src="/resources/common/js/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="/resources/common/js/jquery-ui-1.12.0.min.js"></script>
+    <script type="text/javascript" src="/resources/common/js/jquery-ui-1.12.0-datepicker.js"></script>
+    <script type="text/javascript" src="/resources/common/js/jquery.bxslider.min.js"></script>
+    <script type="text/javascript" src="/resources/common/js/jquery.mmenu.min.js"></script>
+    <script type="text/javascript" src="/resources/common/js/combobo.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/resources/common/js/default_elib.js"></script>
+    <script type="text/javascript" src="/resources/common/js/common.js"></script>
+    <script type="text/javascript" src="/resources/homepage/elib/js/common.js"></script>
+    <script type="text/javascript" src="/resources/common/js/kakao.min.js"></script>
+</head>
+<body>
+
+<a href="#container" class="skip-to">본문 바로가기</a>
+
+
+	
+	
+	
+
+<script type="text/javascript">
+	$(function() {
+		$('li#menu_1').addClass('active');
+		$('li#menu_2').addClass('active');
+		var halbaeNode = $('li#menu_1').parent().parent()[0];
+		if ( halbaeNode != null && halbaeNode.nodeName == 'LI' ) {
+			$(halbaeNode).addClass('active');
+		}
+
+		if('N' == 'Y'){
+			$('div#menuRatingDiv').load('/elib/module/menuSatisfaction/index.do?menu_idx=2');
+		}
+
+		$('a.elib-left-menu').on('click', function(e) {
+			e.preventDefault();
+			var url = '/elib/module/elib/book/index.do';
+			var formData = 'menu_idx=' + $(this).data('menu_idx') + '&menu=' + $(this).data('menu') + '&type=&' + $(this).data('key');
+			doGetLoad(url, formData);
+		});
+
+		$('.site-menu-link-title').on('click', function(){
+
+			var boxText = $(this).next('dd');
+			var toggleState = $(boxText).is(':hidden');
+			if (toggleState)
+			{
+				$(boxText).slideToggle();
+			} else {
+				$(boxText).slideToggle();
+			}
+		});
+
+		$('#homeup').click(function () {
+			$('body,html').animate({
+				scrollTop: 0
+			}, 800);
+			return false;
+		});
+	});
+	
+</script>
+
+<div id="wrap">
+
+	<div id="header">
+		
+
+<script type="text/javascript">
+	$(function() {
+		$('#main-search-btn').on('click', function(e) {
+			e.preventDefault();
+			if( $('input#search_text').val() == '' ) {
+				alert('검색어를 입력하세요.');
+				$('input#search_text').focus();
+				return false;
+			} else {
+				$('#mainSearchForm01').submit();
+			}
+		});
+	});
+</script>
+
+
+<nav id="menu"></nav>
+
+<div class="tnb">
+	<div class="section">
+		<div class="left-util">
+		</div>
+
+		<div class="right-util">
+			<input type="hidden" name="_csrf" value="d840f38b-1466-4dff-83a8-5144ced02c61" />
+			<ul>
+				
+					
+					
+					
+						<li>
+							<a href="/elib/intro/login/index.do?menu_idx=43">로그인</a>
+							<span class="txt-bar"></span>
+						</li>
+						<li>
+							<a href="https://lib.gwe.go.kr/portal/menu/608/user/join/step1" target="_blank">회원가입</a>
+							<span class="txt-bar"></span>
+						</li>
+					
+				
+				<li>
+					<a href="/elib/module/elib/lending/index.do?menu_idx=4&menu=LENDING" class="mylib">내 서재</a>
+					
+				</li>
+				<!-- 
+				<li>
+					<a href="/elib/html.do?menu_idx=58">뷰어 설치 안내 <img src="/resources/homepage/elib/img/ico_view1.gif" alt="뷰어 다운로드"></a>
+				</li>
+				-->
+			</ul>
+		</div>
+	</div>
+</div>
+
+<div class="mobile-tnb">
+	<div class="section">
+		<div class="util">
+			<ul>
+				
+					
+					
+						<li class="mobile-version"><a href="javascript:alert('로그인후 이용가능합니다.'); location.href='/elib/intro/login/index.do?menu_idx=43';">모바일회원증</a></li>
+					
+				
+				
+				<!-- <li><a href="/elib/html.do?menu_idx=58">뷰어프로그램</a></li> -->
+			</ul>
+		</div>
+	</div>
+</div>
+
+		
+
+
+<div class="Gnb">
+	<h2 class="blind">주메뉴</h2>
+	<div class="section">
+		<h1>
+			<a href="/elib/index.do">
+			<img src="/resources/homepage/elib/img/elib_logo.png" alt="강원도교육청전자도서관"/>
+			</a>
+		</h1>
+		<div class="mmode m-menu">
+			<a href="#menu"><img src="/resources/homepage/elib/img/sitemap_icon_new.png" alt="모바일메뉴"><span class="blind">메뉴</span></a>
+		</div>
+		<div class="g-menu">
+			<!-- menu S -->
+			<ul class="gnb-menu">
+<li class="List 1Depth menu1 menu_124"><a href="/elib/html.do?menu_idx=124" ><span>전자책</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_126"><a href="/elib/module/elib/book/index.do?menu_idx=126&menu=NEW&type=EBK" ><span>새로 들어온 책</span></a></li>
+<li class="2Depth menu_127"><a href="/elib/module/elib/book/index.do?menu_idx=127&menu=BEST&type=EBK&sortField=lend_total&sortType=DESC&parent_id=0" ><span>대출이 많은 책</span></a></li>
+<li class="2Depth menu_128"><a href="/elib/module/elib/book/index.do?menu_idx=128&menu=PROVIDER&type=EBK" ><span>공급사별 도서</span></a></li>
+<li class="2Depth menu_132"><a href="/elib/module/elib/book/index.do?menu_idx=132&menu=CATEGORY&type=EBK" ><span>주제별 도서</span></a></li></ul></li>
+<li class="List 1Depth menu2 menu_125"><a href="/elib/html.do?menu_idx=125" ><span>오디오북</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_129"><a href="/elib/module/elib/book/index.do?menu_idx=129&menu=NEW&type=ADO" ><span>새로 들어온 책</span></a></li>
+<li class="2Depth menu_130"><a href="/elib/module/elib/book/index.do?menu_idx=130&&menu=BEST&type=ADO&sortField=lend_total&sortType=DESC&parent_id=0" ><span>대출이 많은 책</span></a></li>
+<li class="2Depth menu_131"><a href="/elib/module/elib/book/index.do?menu_idx=131&menu=PROVIDER&type=ADO" ><span>공급사별 도서</span></a></li>
+<li class="2Depth menu_133"><a href="/elib/module/elib/book/index.do?menu_idx=133&menu=CATEGORY&type=ADO" ><span>주제별 도서</span></a></li></ul></li>
+<li class="List 1Depth menu3 menu_136"><a href="/elib/html.do?menu_idx=136" ><span>구독형서비스</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_142"><a href="/elib/html.do?menu_idx=142" ><span>밀리의 서재</span></a></li>
+<li class="2Depth menu_138"><a href="/elib/html.do?menu_idx=138" ><span>윌라</span></a></li>
+<li class="2Depth menu_141"><a href="/elib/bookers.do?menu_idx=141" ><span>부커스</span></a></li>
+<li class="2Depth menu_140"><a href="https://lib.gwe.go.kr/portal/menu/1505/lecture-event/list/all?categoryCode=S" target="_blank" rel="noopener noreferrer"><span>이용권 신청</span></a></li></ul></li>
+<li class="List 1Depth menu4 menu_13"><a href="/elib/html.do?menu_idx=13" ><span>온라인콘텐츠</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_79"><a href="/elib/module/elib/asp/electronic/moazine.do?menu_idx=79" ><span>전자잡지</span></a></li>
+<li class="2Depth menu_86"><a href="/elib/module/elib/asp/elarning/insight.do?menu_idx=86" ><span>지식INSIGHT</span></a></li>
+<li class="2Depth menu_134"><a href="/elib/module/elib/asp/search/gudok.do?menu_idx=134" ><span>학술논문</span></a></li></ul></li>
+<li class="List 1Depth menu5 menu_8"><a href="/elib/html.do?menu_idx=8" ><span>이용안내</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_35"><a href="/elib/html.do?menu_idx=35" ><span>이용안내</span></a>
+<ul>
+<li class="3Depth menu_135"><a href="/elib/html.do?menu_idx=135" ><span>이용안내</span></a></li>
+<li class="3Depth menu_56"><a href="/elib/module/elib/asp/search/viewer.do?menu_idx=56" ><span>뷰어 설치 안내</span></a></li></ul></li>
+<li class="2Depth menu_31"><a href="/elib/board/index.do?menu_idx=31&manage_idx=1" ><span>공지사항</span></a></li>
+<li class="2Depth menu_32"><a href="/elib/board/index.do?menu_idx=32&manage_idx=2" ><span>자주 하는 질문</span></a></li></ul></li>
+<li class="List 1Depth menu6 menu_3"><a href="/elib/module/elib/lending/index.do?menu_idx=3&menu=LENDING" ><span>내 서재</span></a>
+<ul class="SubMenu">
+<li class="2Depth menu_4"><a href="/elib/module/elib/lending/index.do?menu_idx=4&menu=LENDING" ><span>대출중인 도서</span></a></li>
+<li class="2Depth menu_5"><a href="/elib/module/elib/lending/index.do?menu_idx=5&menu=RESERVE" ><span>예약중인 도서</span></a></li>
+<li class="2Depth menu_96"><a href="/elib/module/elib/lending/index.do?menu_idx=96&menu=MYSTUDY" ><span>나의 관심도서</span></a></li>
+<li class="2Depth menu_6"><a href="/elib/module/elib/lending/index.do?menu_idx=6&menu=HISTORY" ><span>대출이력</span></a></li></ul></li></ul>
+
+			<a href="/elib/sitemap/index.do?menu_idx=47" class="sitemap-section">
+				<img src="/resources/homepage/elib/img/sitemap_icon_new.png" alt="사이트맵" /></a>
+
+			<!-- menu E -->
+			<div class="mmode">
+				<input type="hidden" name="_csrf" value="d840f38b-1466-4dff-83a8-5144ced02c61" />
+				
+					
+					
+					
+						<a href="/elib/intro/login/index.do?menu_idx=43" class="btn1">
+							<i class="fa fa-lock"></i>
+							<span>로그인</span>
+						</a>
+						<a href="https://lib.gwe.go.kr/portal/menu/608/user/join/step1" class="btn2" target="_blank">
+							<i class="fa fa-user-plus"></i>
+							<span>회원가입</span>
+						</a>
+						<!-- <a href="/elib/intro/join/integration.do?menu_idx=94" class="btn2">
+							<i class="fa fa-user-plus"></i>
+							<span>강원도교육청전자도서관 통합회원 인증</span>
+						</a> -->
+					
+				
+			</div>
+		</div>
+		
+	</div>
+	<div class="mask">&nbsp;</div>
+</div>
+
+<script>
+	$(document).ready(function() {
+		//$('ul.gnb-menu li.menu_3').hide();
+	})
+</script>
+
+	</div>
+
+	<div id="sub-container" class="sub-container" style="background:#fff;">
+
+		<div class="sub-visual">
+			<div class="doc-info-bg">
+
+				<div class="section search-wrap">
+					<div class="section-box">
+					<!-- 	<div class="searchBox tabT">
+							<ul class="tabMenuT">
+								<li class="on"><a href="#tab1">소장자료</a></li>
+							</ul>
+						</div> -->
+						<div class="search-box">
+							<form id="mainSearchForm01" class="mainSearchForm01" method="POST" action="/elib/module/elib/search/index.do?menu_idx=2">
+								<input type="hidden" name="menu_idx" value="2">
+								<fieldset>
+									<legend class="blind">통합검색</legend>
+									<div class="box">
+										<div class="b1">
+											<input type="text" class="text" name="search_text" id="search_text" placeholder="전자책, 오디오북등 전자자료를 검색할 수 있습니다."/>
+										</div>
+										<div class="b2">
+											<button id="main-search-btn"><img src="/resources/homepage/elib/img/search-btn-new.png" alt="검색"></button>
+										</div>
+									</div>
+								</fieldset>
+							</form>
+						</div>
+					</div>
+				</div>
+
+				<div class="doc-info">
+					<div class="section">
+						<ol>
+							<li class="first">
+								<a href="/elib/index.do">
+									<img src="/resources/homepage/elib/img/sub_home.png" alt="HOME">
+								</a>
+							</li>
+							<li><a href="/elib/module/elib/search/index.do?menu_idx=2">자료검색</a></li>
+<li><a href="/elib/module/elib/search/index.do?menu_idx=2">소장자료 검색</a></li>
+
+						</ol>
+
+						
+
+
+
+
+
+<script>
+$(document).ready(function() {
+	$('a.shareBtn').on('click', function(e) {
+		if($('div#share_layer').css('display') == 'none') {
+			$('div#share_layer').show();
+			$('div.shareAllBtn').show();
+			e.preventDefault();
+		} else {
+			$('div#share_layer').hide();
+			$('div.shareAllBtn').hide();
+			e.preventDefault();
+		}
+	});
+
+	$('a#closeshareBox').on('click', function(e) {
+		$('a.shareBtn').focus();
+		$('div#share_layer').hide();
+	});
+
+	$(window).scroll(function(){
+		if($(this).scrollTop() > 0 ) {
+			$('div#share_layer').hide();
+		}
+	});
+});
+</script>
+
+
+<ul>
+	
+	<li class="print"><a href="#" class="noBox" title="새창열림"  onclick="contentPrint(); return false;"><img src="/resources/homepage/elib/img/sub_doc_print.png" alt="페이지 내용 인쇄" ></a></li>
+	<!-- 
+	<li style="position:relative" class="sns"><a href="" class="noBox shareBtn snsBtn"><img src="/resources/homepage/elib/img/sub_snsR_icon_new.png" alt="SNS 공유 목록" class="shareBtn"/></a>
+		<div id="shareBtnArea">
+			<div class="inbox" id="share_layer" style="display:none;">
+				<div class="shareAllBtns" >
+					<ul class="shareBox">
+						<li><a href="#" class="sub-kakao shareIconArea"    title="새창열림"  keyValue1="h1" keyValue2="2" keyValue3="소장자료 검색" keyValue4="강원특별자치도교육청 전자도서관"><img src="/resources/homepage/elib/img/sns_kakaostory_btn.png"  alt="카카오스토리 공유" class="shareIcon"/></a></li>     
+						<li><a href="#" class="sub-facebook shareIconArea" title="새창열림"  keyValue1="h1" keyValue2="2" keyValue3="소장자료 검색" keyValue4="강원특별자치도교육청 전자도서관"><img src="/resources/homepage/elib/img/sns_facebook_btn.png" alt="페이스북 공유" class="shareIcon"/></a></li>
+						<li><a href="#" class="sub-twitter shareIconArea"  title="새창열림"  keyValue1="h1" keyValue2="2" keyValue3="소장자료 검색" keyValue4="강원특별자치도교육청 전자도서관"><img src="/resources/homepage/elib/img/sns_twitter_btn.png" alt="트위터 공유" class="shareIcon"/></a></li>
+						<li><a href="#" id="closeshareBox" class="close shareIconArea" title="닫기" ><img src="/resources/homepage/elib/img/sns-close.png" alt="sns-close" class="shareIcon"/></a></li>   
+					</ul>
+				</div>
+			</div>
+		</div>
+	</li>
+	-->
+</ul>
+
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="section">
+			
+				<div class="lnb">
+					<h2><b>자료검색</b></h2>
+					<div class="sidebar">
+					
+						
+						
+							<ul class="SubMenu">
+<li id="menu_2"><a href="/elib/module/elib/search/index.do?menu_idx=2" ><span>소장자료 검색</span></a></li></ul>
+
+						
+					
+					</div>
+				</div>
+			
+
+			<div class="content">
+
+				<div class="doc">
+
+					
+						
+						
+						
+							
+						
+					
+
+					<div class="doc-head">
+						<div class="doc-title">
+							<h3>소장자료 검색</h3>
+						</div>
+					</div>
+					<div class="doc-body con2" id="contentArea">
+						<div class="body">
+							
+
+
+
+
+<link rel="stylesheet" type="text/css" href="/resources/book/search/css/default_elib.css"/>
+<script src="/resources/cms/js/vk/vk_popup.js?vk_skin=flat_gray&vk_layout=ZW Shona"></script>
+<script type="text/javascript">
+var authorViewPage = 1;
+var authorTotalCnt = '200';
+var publisherViewPage = 1;
+var publisherTotalCnt = '166';
+var yearViewPage = 1;
+var yearTotalCnt = '1';
+var deviceViewPage = 1;
+var deviceTotalCnt = '1';
+
+$(function() {
+	$('#do-search').on('click', function(e) {
+		if ($('input#search_text2').val() == '') {
+			alert('검색어를 입력해주세요');
+			$('input#search_text2').focus();
+			return false;
+		}
+		$('#book').submit();
+		//doGetLoad('search.do', serializeCustom($('#book')));
+	});
+	
+	addOnClickListeners();
+
+	
+	$('a.moreAuthor').on('click', function(e) {
+		e.preventDefault();
+		$.ajax({
+			url:'table/author.do',
+			data:'search_text=\uC0AC\uB791' + '&rowCount=5&viewPage=' + (authorViewPage+1),
+			type:'get',
+			success:function(html) {
+				$('a.moreAuthor').parent('p').prev('ul').append(html);
+				authorViewPage++;
+				if ((authorViewPage*5) > authorTotalCnt) {
+					$('a.moreAuthor').hide();
+				}
+				addOnClickListeners();
+			}
+		});
+	});
+
+	
+	$('a.morePublisher').on('click', function(e) {
+		e.preventDefault();
+		$.ajax({
+			url:'table/publisher.do',
+			data:'search_text=\uC0AC\uB791' + '&rowCount=5&viewPage=' + (publisherViewPage+1),
+			type:'get',
+			success:function(html) {
+				$('a.morePublisher').parent('p').prev('ul').append(html);
+				publisherViewPage++;
+				if ((publisherViewPage*5) > publisherTotalCnt) {
+					$('a.morePublisher').hide();
+				}
+				addOnClickListeners();
+			}
+		});
+	});
+
+	
+	$('a.moreYear').on('click', function(e) {
+		e.preventDefault();
+		$.ajax({
+			url:'table/year.do',
+			data:'search_text=\uC0AC\uB791' + '&rowCount=5&viewPage=' + (yearViewPage+1),
+			type:'get',
+			success:function(html) {
+				$('a.moreYear').parent('p').prev('ul').append(html);
+				yearViewPage++;
+				if ((yearViewPage*5) > yearTotalCnt) {
+					$('a.moreYear').hide();
+				}
+				addOnClickListeners();
+			}
+		});
+	});
+	
+	
+	$('a.moreDevice').on('click', function(e) {
+		e.preventDefault();
+		$.ajax({
+			url:'table/device.do',
+			data:'search_text=\uC0AC\uB791' + '&rowCount=5&viewPage=' + (yearViewPage+1),
+			type:'get',
+			success:function(html) {
+				$('a.moreDevice').parent('p').prev('ul').append(html);
+				deviceViewPage++;
+				if ((deviceViewPage*5) > deviceTotalCnt) {
+					$('a.moreDevice').hide();
+				}
+				addOnClickListeners();
+			}
+		});
+	});
+	
+	$('#vk-popup').on('click', function(e) {
+		PopupVirtualKeyboard.toggle('search_text','vk');
+	});
+	
+	$('#checkAll').change(function(e) {
+		$('div#libraryList input:checkbox').prop('checked', $(this).prop('checked'));
+	});
+	
+	$('#checkAllBook').change(function(e) {
+		$('input.checkBook').prop('checked', $(this).prop('checked'));
+	});
+	
+	$('li.li-group a.bi').on('click', function() {
+		$(this).parent('li').toggleClass('active');
+	});
+	
+	$('a#addMyLib').on('click', function(e) {
+		e.preventDefault();
+		var len = $('input.checkBook:checked').length;
+		if (len < 1) {
+			alert('선택된 책이 없습니다.');
+			return false;
+		}
+		//TODO
+		alert('준비중입니다');
+		//내 보관함 이동.
+	});
+	
+	$('select#rowCount').on('change', function() {
+		$('#do-search').click();
+	});
+	
+	$('a.goDetail').on('click', function(e) {
+		e.preventDefault();
+		$('#detail_book_idx').val($(this).data('book_idx'))
+		$('#detail_type').val($(this).data('type'))
+		$('form#detailForm').submit();
+	});
+	
+	if ($('input#viewPage').val() != '1') {
+		jQuery.ajaxSettings.traditional = true;
+		var param = serializeObject($('#book'));
+		var param2 = serializeObject($('#searchTableForm'));
+		loadIndex('table');
+	}
+});
+
+function loadIndex() {
+	jQuery.ajaxSettings.traditional = true;
+	$('input#viewPage').val('1');
+	var param = serializeObject($('#book'));
+	var param2 = serializeObject($('#searchTableForm'));
+	$('div#search-results').load('table.do', $.extend(true, param, param2));
+	$('body').scrollTop(0);
+}
+
+function addOnClickListeners() {
+	$('a.doSearchType').on('click', function(e) {
+		$('#viewPage').val(1);
+		$('#type').val($(this).data('type'));
+		$('#author_name').val('');
+		$('#book_pubname').val('');
+		$('#book_year').val('');
+		$('#device').val('');
+		loadIndex();
+		e.preventDefault();
+	});
+	
+	$('a.doSearchWriter').on('click', function(e) {
+		$('#viewPage').val(1);
+		$('#type').val('');
+		$('#author_name').val($(this).data('author_name'));
+		$('#book_pubname').val('');
+		$('#book_year').val('');
+		$('#device').val('');
+		loadIndex();
+		e.preventDefault();
+	});
+	
+	$('a.doSearchPublisher').on('click', function(e) {
+		$('#viewPage').val(1);
+		$('#type').val('');
+		$('#author_name').val('');
+		$('#book_pubname').val($(this).data('book_pubname'));
+		$('#book_year').val('');
+		$('#device').val('');
+		loadIndex();
+		e.preventDefault();
+	});
+	
+	$('a.doSearchYear').on('click', function(e) {
+		$('#viewPage').val(1);
+		$('#type').val('');
+		$('#author_name').val('');
+		$('#book_pubname').val('');
+		$('#book_year').val($(this).data('book_year'));
+		$('#device').val('');
+		loadIndex();
+		e.preventDefault();
+	});
+	
+	$('a.doSearchDevice').on('click', function(e) {
+		$('#viewPage').val(1);
+		$('#type').val('');
+		$('#author_name').val('');
+		$('#book_pubname').val('');
+		$('#book_year').val('');
+		$('#device').val($(this).data('device'));
+		loadIndex();
+		e.preventDefault();
+	});
+}
+</script>
+<input type="hidden" name="_csrf" value="d840f38b-1466-4dff-83a8-5144ced02c61" />
+<form id="detailForm" action="../book/view.do" method="GET">
+<input id="detail_menu_idx" name="menu_idx" value="2" type="hidden" value="2"/>
+<input id="detail_book_idx" name="book_idx" type="hidden" value="0"/>
+<input id="detail_viewPage" name="viewPage" value="1" type="hidden" value="1"/>
+<input id="detail_search_text" name="search_text" value="사랑" type="hidden" value="사랑"/>
+<input id="detail_search_type" name="search_type" type="hidden" value=""/>
+<input id="detail_type" name="type" type="hidden" value=""/>
+<input id="detail_author_name" name="author_name" type="hidden" value=""/>
+<input id="detail_book_pubname" name="book_pubname" type="hidden" value=""/>
+<input id="detail_book_year" name="book_year" type="hidden" value=""/>
+<input id="detail_rowCount" name="rowCount" value="10" type="hidden" value="10"/>
+<input type="hidden" name="from_search" value="Y">
+</form>
+
+<form id="book" action="index.do" method="GET">
+	<input id="menu_idx" name="menu_idx" type="hidden" value="2"/>
+	<input id="type" name="type" type="hidden" value=""/>
+	<input id="search_type" name="search_type" type="hidden" value=""/>
+	<input id="author_name" name="author_name" type="hidden" value=""/>
+	<input id="book_pubname" name="book_pubname" type="hidden" value=""/>
+	<input id="book_year" name="book_year" type="hidden" value=""/>
+	<input id="device" name="device" type="hidden" value=""/>
+	<input id="viewPage" name="viewPage" type="hidden" value="1"/>
+	<div class="search-wrap">
+		<div class="search-form">
+			<div class="box">
+				<div class="b1">
+					<input id="search_text2" name="search_text" style="ime-mode:active;" placeholder="검색어를 입력하세요." type="text" class="text" onfocus="PopupVirtualKeyboard.attachInput(this)" value="사랑"/>
+				</div>
+				<div class="b2">
+					<button id="do-search"><i class="fa fa-search"></i><span class="blind">검색</span></button>
+				</div>
+			</div>
+			<br/>
+			<div id="autoFill">
+			</div>
+			<p style="height:auto">
+			  <a id="vk-popup" class="btn" style="line-height:140%">
+			    <i class="fa fa-keyboard-o" style="font-size:19px;color:#777"></i><span>외국어입력기</span>
+			  </a>
+			</p>
+		</div>
+		<br/>
+		<div class="search-info" >
+			<div class="ws-filter-top">
+				
+				<h4><a href="" class="bi" onclick="return false;">검색결과 제한</a></h4>
+				<ul>
+					<li class="li-group"><a href="" class="bi" onclick="return false;">유형별</a>
+						<ul>
+							
+								
+								<li><a href="#" class="doSearchType" data-type="EBK"><span>전자책</span><em>(181)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchType" data-type="ADO"><span>오디오북</span><em>(41)</em></a></li>
+							
+						</ul>
+					</li>
+					<li class="li-group"><a href="" class="bi" onclick="return false;">저자별</a>
+						<ul>
+							
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="편집부"><span>편집부</span><em>(3)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="하이네 외"><span>하이네 외</span><em>(3)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="김달 저"><span>김달 저</span><em>(3)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="오채환"><span>오채환</span><em>(2)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="하명희 저"><span>하명희 저</span><em>(2)</em></a></li>
+							
+						</ul>
+						
+							<p><a href="#" class="moreAuthor">더보기 +</a></p>
+						
+					</li>
+					<li class="li-group"><a href="" class="bi" onclick="return false;">출판사</a>
+						<ul>
+							
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="그림책"><span>그림책</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="자음과모음"><span>자음과모음</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="가람어린이"><span>가람어린이</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="루니스"><span>루니스</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="청어"><span>청어</span><em>(4)</em></a></li>
+							
+						</ul>
+						
+							<p><a href="#" class="morePublisher">더보기 +</a></p>
+						
+					</li>
+					<li class="li-group"><a href="" class="bi" onclick="return false;">연도별</a>
+						<ul>
+							
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2012"><span>2012</span><em>(33)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2011"><span>2011</span><em>(29)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2010"><span>2010</span><em>(17)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2015"><span>2015</span><em>(16)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2023"><span>2023</span><em>(15)</em></a></li>
+							
+						</ul>
+						
+							<p><a href="#" class="moreYear">더보기 +</a></p>
+						
+					</li>
+					<li class="li-group"><a href="" class="bi" onclick="return false;">기기별</a>
+						<ul>
+							
+							
+								
+								<li><a href="#" class="doSearchDevice" data-device="3"><span>PC, 태블릿, 스마트폰</span><em>(222)</em></a></li>
+							
+						</ul>
+						
+					</li>
+				</ul>
+			</div>
+			<br/>
+			검색결과 '<b class="og"><i id="book_search_text">사랑</i></b>'에 대한 <b id="book_viewPage">1</b>/<span id="book_totalPageCount">23</span>페이지, 총 <b id="book_totalDataCount">222</b>건
+			
+		</div>
+		
+		
+		<div class="smain">
+			<div class="box">
+				<div class="ws-toolbar">
+
+					<div class="control">
+<!-- 						<a href="#" id="addMyLib" class="btn"><span>내보관함</span><i class="fa fa-plus"></i></a> -->
+<!-- 						<select class="selectmenu" style="width:90px"> -->
+<!-- 							<option>항목선택</option> -->
+<!-- 							<option>항목선택</option> -->
+<!-- 						</select> -->
+<!-- 						<select class="selectmenu" style="width:90px"> -->
+<!-- 							<option>오름차순</option> -->
+<!-- 							<option>내림차순</option> -->
+<!-- 						</select> -->
+						<select id="rowCount" name="rowCount" class="selectmenu" style="width:70px;">
+							<option value="10" selected="selected">10건</option>
+							<option value="20">20건</option>
+							<option value="30">30건</option>
+							<option value="40">40건</option>
+							<option value="50">50건</option>
+						</select>
+					</div>
+				</div>
+				<div id="search-results" class="search-results">
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="5693" data-type="EBK" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1510/151003423.jpg" alt="[철학자41] 에리히 프롬이 들려주는 사랑 이야기" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="5693" data-type="EBK" class="name goDetail">[철학자41] 에리히 프롬이 들려주는 <span style='color:#ffa651'>사랑</span> 이야기</a>
+										<p>오채환</p><span class="txt-bar">&nbsp;</span>
+										<p>자음과모음</p><span class="txt-bar">&nbsp;</span>
+										<p>2015-10-23</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 1<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="5551" data-type="EBK" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1206/120600058.jpg" alt="사랑하는 롤란트" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="5551" data-type="EBK" class="name goDetail"><span style='color:#ffa651'>사랑</span>하는 롤란트</a>
+										<p>그림형제</p><span class="txt-bar">&nbsp;</span>
+										<p>올리버북스</p><span class="txt-bar">&nbsp;</span>
+										<p>2012-06-18</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="5635" data-type="EBK" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1103/110300117.jpg" alt="아이사랑 표현사전" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="5635" data-type="EBK" class="name goDetail">아이<span style='color:#ffa651'>사랑</span> 표현사전</a>
+										<p>이재준</p><span class="txt-bar">&nbsp;</span>
+										<p>리더북스</p><span class="txt-bar">&nbsp;</span>
+										<p>2011-03-23</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="5248" data-type="EBK" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1010/101000619.jpg" alt="아직도 우리에게 이런 사랑 있을까요?" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="5248" data-type="EBK" class="name goDetail">아직도 우리에게 이런 <span style='color:#ffa651'>사랑</span> 있을까요?</a>
+										<p>김영수</p><span class="txt-bar">&nbsp;</span>
+										<p>김앤정</p><span class="txt-bar">&nbsp;</span>
+										<p>2010-11-09</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="6762" data-type="ADO" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1504/150401046.jpg" alt="[오디오북] 한국대표중단편문학 - 첫사랑_소년록" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="6762" data-type="ADO" class="name goDetail">[오디오북] 한국대표중단편문학 - 첫<span style='color:#ffa651'>사랑</span>_소년록</a>
+										<p>현경준</p><span class="txt-bar">&nbsp;</span>
+										<p>북큐브네트웍스</p><span class="txt-bar">&nbsp;</span>
+										<p>2015-04-21</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 오디오북</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="6778" data-type="EBK" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1103/110300073.jpg" alt="숨은 사랑" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="6778" data-type="EBK" class="name goDetail">숨은 <span style='color:#ffa651'>사랑</span></a>
+										<p>정종명 외</p><span class="txt-bar">&nbsp;</span>
+										<p>청어</p><span class="txt-bar">&nbsp;</span>
+										<p>2011-03-15</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="7045" data-type="EBK" class="goDetail">
+											<img src="https://image.yes24.com/Goods/13562784" alt="모두에게 사랑받을 필요는 없다" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="7045" data-type="EBK" class="name goDetail">모두에게 <span style='color:#ffa651'>사랑</span>받을 필요는 없다</a>
+										<p>재키 마슨 저/정영은 역</p><span class="txt-bar">&nbsp;</span>
+										<p>윌컴퍼니(WILLCOMPANY)</p><span class="txt-bar">&nbsp;</span>
+										<p>2014-06-23</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="6905" data-type="EBK" class="goDetail">
+											<img src="https://image.yes24.com/Goods/16854036" alt="사랑해요 순자 언니" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="6905" data-type="EBK" class="name goDetail"><span style='color:#ffa651'>사랑</span>해요 순자 언니</a>
+										<p>김문주 글/주성희 그림 저</p><span class="txt-bar">&nbsp;</span>
+										<p>예림당</p><span class="txt-bar">&nbsp;</span>
+										<p>2015-02-23</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="6851" data-type="ADO" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1506/150601850.jpg" alt="[오디오북] 문학을 사랑하는 젊은이들에게" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="6851" data-type="ADO" class="name goDetail">[오디오북] 문학을 <span style='color:#ffa651'>사랑</span>하는 젊은이들에게</a>
+										<p>박경리</p><span class="txt-bar">&nbsp;</span>
+										<p>와미디어</p><span class="txt-bar">&nbsp;</span>
+										<p>2015-06-11</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 오디오북</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+						<div class="row">
+							<div class="thumb">
+								
+									
+									
+										<a href="#" data-book_idx="6586" data-type="EBK" class="goDetail">
+											<img src="https://bookimg.bookcube.com/480/1105/110500562.jpg" alt="다시 사랑한다 말할까" onError="this.src='/resources/common/img/noimg4.gif'"/>
+										</a>
+									
+								
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										
+										<a href="#" data-book_idx="6586" data-type="EBK" class="name goDetail">다시 <span style='color:#ffa651'>사랑</span>한다 말할까</a>
+										<p>신세진</p><span class="txt-bar">&nbsp;</span>
+										<p>영상노트</p><span class="txt-bar">&nbsp;</span>
+										<p>2011-06-09</p><br/>
+										<p>소속도서관 : 강원특별자치도교육청 전자도서관</p><span class="txt-bar">&nbsp;</span><p>자료형태 : 전자책</p><br/>
+										<p>대출 가능 여부: 대출 가능<span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+					
+
+
+
+<div id="cms_paging" class="dataTables_paginate">
+
+	
+	<span>
+
+
+	
+	<a id="1" href="" class="paginate_button current" data-keyValue="1">1</a>
+
+
+
+
+
+
+
+	<a id="2" href="" class="paginate_button" data-keyValue="2">2</a>
+
+
+
+
+
+
+	<a id="3" href="" class="paginate_button" data-keyValue="3">3</a>
+
+
+
+
+
+
+	<a id="4" href="" class="paginate_button" data-keyValue="4">4</a>
+
+
+
+
+
+
+	<a id="5" href="" class="paginate_button" data-keyValue="5">5</a>
+
+
+
+
+
+
+	<a id="6" href="" class="paginate_button" data-keyValue="6">6</a>
+
+
+
+
+
+
+	<a id="7" href="" class="paginate_button" data-keyValue="7">7</a>
+
+
+
+
+
+
+	<a id="8" href="" class="paginate_button" data-keyValue="8">8</a>
+
+
+
+
+
+
+	<a id="9" href="" class="paginate_button" data-keyValue="9">9</a>
+
+
+
+
+
+
+	<a id="10" href="" class="paginate_button" data-keyValue="10">10</a>
+
+
+
+
+	<a href="" class="paginate_button next" data-keyValue="11">다음</a>
+
+
+	<a href="" class="paginate_button next" data-keyValue="23">맨끝</a>
+
+	</span>
+</div>
+
+
+<script type="text/javascript">
+$(document).ready(function() {
+	jQuery.ajaxSettings.traditional = true;
+	
+	$('div#cms_paging a').on('click', function(e) {
+// 		location.hash = '#'+$(this).attr('data-keyValue');
+		$('#viewPage').attr('value', parseInt($(this).attr('data-keyValue')));
+		var param = serializeObject($('#book'));
+		var param2 = serializeObject($('#searchTableForm'));
+		$('div#search-results').load('table.do', $.extend(true, param, param2), function() {
+			$('div#search-results').scrollTop(0);
+			location.href ="#";
+		});
+		e.preventDefault();
+	});
+	$('body').scrollTop(0);
+	
+});
+</script>
+				</div>
+			</div>
+			
+			<div class="ws-filter">
+				<h4>검색결과 제한</h4>
+				<ul>
+				
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">유형별</a>
+						<ul>
+							
+								
+								<li><a href="#" class="doSearchType" data-type="EBK"><span>전자책</span><em>(181)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchType" data-type="ADO"><span>오디오북</span><em>(41)</em></a></li>
+							
+						</ul>
+					</li>
+					
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">저자별</a>
+						<ul>
+							
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="편집부"><span>편집부</span><em>(3)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="하이네 외"><span>하이네 외</span><em>(3)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="김달 저"><span>김달 저</span><em>(3)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="오채환"><span>오채환</span><em>(2)</em></a></li>
+							
+									
+								<li><a href="#" class="doSearchWriter" data-author_name="하명희 저"><span>하명희 저</span><em>(2)</em></a></li>
+							
+						</ul>
+						
+							<p><a href="#" class="moreAuthor">더보기 +</a></p>
+						
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">출판사</a>
+						<ul>
+							
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="그림책"><span>그림책</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="자음과모음"><span>자음과모음</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="가람어린이"><span>가람어린이</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="루니스"><span>루니스</span><em>(4)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="청어"><span>청어</span><em>(4)</em></a></li>
+							
+						</ul>
+						
+							<p><a href="#" class="morePublisher">더보기 +</a></p>
+						
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">연도별</a>
+						<ul>
+							
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2012"><span>2012</span><em>(33)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2011"><span>2011</span><em>(29)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2010"><span>2010</span><em>(17)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2015"><span>2015</span><em>(16)</em></a></li>
+							
+								
+								<li><a href="#" class="doSearchYear" data-book_year="2023"><span>2023</span><em>(15)</em></a></li>
+							
+						</ul>
+						
+							<p><a href="#" class="moreYear">더보기 +</a></p>
+						
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">기기별</a>
+						<ul>
+							
+							
+								
+								<li><a href="#" class="doSearchDevice" data-device="3"><span>PC, 태블릿, 스마트폰</span><em>(222)</em></a></li>
+							
+						</ul>
+						
+					</li>
+				</ul>
+			</div>
+		</div>
+		
+	</div>
+</form>
+<div id="vk"></div>
+<form id="printForm" name="printForm" hidden="hidden">
+	<input id="print_cmd_page" name="print_cmd_page" type="hidden" value="INDEX">
+</form>
+							<div id="menuRatingDiv"></div>
+						</div>
+					</div>
+					
+						
+					
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+
+	<div id="footer">
+		
+
+
+<div class="footer_top">
+	<div class="info">
+		<div class="section">
+			<div class="left-link">
+				<ul>
+					<li><a href="https://www.gwedu.go.kr/portal/user/centerGuide/policy/privatePolicy/personalInformation/personalInformation" target="_blank">개인정보처리방침</a></li>
+					<li><a href="/elib/sitemap/index.do?menu_idx=47">사이트맵</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="section address">
+	<div class="site_logo">
+		
+	</div>
+	<div class="site_address">
+		<address>
+			<p>
+				<em>강원특별자치도교육청교육과학정보원</em><Br/>
+				<em>26455 강원특별자치도 원주시 운곡로 220 (행구동 426번지)</em><Br/>
+				<em></em><Br/>
+<!-- 				<em><b>Tel.</b> 033-769-1044</em> -->
+			</p>
+			<p>
+				<em>강원특별자치도교육청 통합전자도서관</em><Br/>
+				<em><b>Tel.</b> 033-769-1044 (평일 오전 9시~오후 6시/점심시간: 12시~13시 제외)</em>
+			</p>
+			<span>Copyright &copy; 2024 강원특별자치도교육청 전자도서관. All rights reserved.</span>
+		</address>
+	</div>
+
+	<div style="clear:both"></div>
+</div>
+
+<div class="home-up">
+	<img src="/resources/homepage/elib/img/m-top-btn.png" alt="위로" id="homeup">
+</div>
+
+
+	</div>
+
+</div>

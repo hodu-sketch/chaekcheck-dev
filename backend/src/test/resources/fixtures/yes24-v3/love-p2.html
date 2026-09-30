@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+<meta http-equiv="content-type" content="text/html; charset=euc-kr">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, target-densitydpi=medium-dpi" />
+<title>김천시립도서관 전자책도서관</title>
+<link rel="shortcut icon" href="/img/favicon.ico">
+<link rel="stylesheet" href="/include/css/all.css">
+<link rel="stylesheet" media="screen" href="/include/css/animate.css">
+<link rel="stylesheet" type="text/css" href="/include/css/content.css">
+<link rel="stylesheet" type="text/css" href="/include/css/jquery.mmenu.all.css">
+<script src="/include/js/wow.min.js"></script>
+<script src="/include/js/jquery-3.1.1.min.js"></script>
+<script src="/include/js/jquery-ui-1.12.1.js"></script>
+<script type="text/javascript" src="/include/js/jquery.mmenu.min.all.js"></script>
+<script src="/include/js/jquery.bxslider.min.js"></script>
+<script src="/include/js/common.js"></script>
+
+<script>
+	new WOW().init();
+</script>
+<script>
+$(function() {
+$('.top-btn').click(function(e) {
+e.preventDefault();
+$('body,html').animate({
+    "scrollTop": 0
+    }, 200);
+});
+var window_t = $('body,html').scrollTop();
+    console.log(window_t);
+    $(window).scroll(function() {
+    window_t = $('body,html').scrollTop();
+    });
+});
+
+
+	document.documentElement.style.setProperty('--main-color', '#1abbd1');
+
+	document.documentElement.style.setProperty('--sub-color', '#5fcde3');
+
+	document.documentElement.style.setProperty('--light-color', '#e1fef5');
+
+	document.documentElement.style.setProperty('--button-color', '#0caeb0');
+
+	document.documentElement.style.setProperty('--strong-color', '#ffcc00');
+
+	document.documentElement.style.setProperty('--customer-color', '#74a2d2');
+
+	document.documentElement.style.setProperty('--category-color', '#23706f');
+
+	document.documentElement.style.setProperty('--basic-color', '#3d6471');
+
+	document.documentElement.style.setProperty('--basic-bg-color', '#243942');
+
+	document.documentElement.style.setProperty('--bg-color', '#ecf5fd');
+
+	document.documentElement.style.setProperty('--button-bg-color', '#0abd9f');
+
+	document.documentElement.style.setProperty('--headerImg-image', 'url("/images/header/summer.png")');
+
+</script>
+</head>
+
+<body class="bbg">
+<div id="wrap">
+<script type="text/javascript">
+
+var mobile = 0;
+var pc = 0;
+var pc_menu = "";
+var mobile_menu = "";
+
+
+$(document).ready(function(){
+
+	pc_menu = jQuery("#gnbmn").html();
+	mobile_menu = pc_menu.replace(/id=\"top1/gi,'id=\"m1top1').replace(/id=\"top2/gi,'id=\"m1top2');
+	mobile_menu = mobile_menu.replace(/<div class=\"clear\"><\/div>/gi,'');
+	mobile_menu = mobile_menu.replace(/ class=\"left\"/gi,'');
+	mobile_menu = mobile_menu.replace(/depth2/gi,'');
+
+	jQuery("#gnbmn").html("");
+	jQuery("#gnbmn").html(mobile_menu);
+	//jQuery("#gnbmn .title").hide();
+
+	jQuery('#menu').mmenu({
+		"slidingSubmenus": false,
+		extensions: ["pageshadow"],
+		offCanvas: {
+			position: "left"
+		}
+	});
+
+	jQuery("#gnbmn").html("");
+	jQuery("#gnbmn").html(pc_menu);
+
+	//initTopMenu(0,0);
+});
+
+</script>
+
+<header id="header">
+	<div id="headerImg">
+	</div>
+    <!-- 상단 검색영역 -->
+    <div class="top-wrap d_width">
+		<a href="#menu">
+			<span id="mo-menu"></span>
+		</a>
+        <div id="logo"><a href="/" title="홈으로 이동"><img src="/images/logo/TOP-1457541099.gif" alt="김천시립도서관"></a></div>
+		<form id = "Search" name="SearchForm" method="get" action="/search" onsubmit="return verifySearch(this);">
+       <div class="search-wrap form-inline">
+            <select name="srch_order" class="form-control">
+                <option value="total" >통합검색</option>
+				<option value="title" selected >서명</option>
+				<option value="author" >저자</option>
+				<option value="publisher"  >출판사</option>
+            </select>
+            <input id="src_key" class="form-control" name="src_key" type="text" value="" placeholder=""><label hidden="" for="">검색</label>
+            <a href="#" onclick="verifySearch_btn(SearchForm);" title="검색 버튼" class="search-btn"><i class="fa fa-search"></i></a>
+        </div>
+		</form>
+	        <div class="topmn wow fadeInRight delay5">
+            <ul class="clearfix">
+    
+                <li class="login"><a href="/member/?mode=login">로그인</a></li>
+	
+	<!--
+				<li class="join"><a href="/member/?mode=join">회원가입</a></li>
+                <li class="notify"><a href="">알림</a></li>
+                <li class="edit"><a href="/member/?mode=modify">정보수정</a></li>
+	-->
+            </ul>
+        </div>
+
+    </div>
+    <!-- //상단 검색영역 -->
+
+    <!-- 메뉴영역 -->
+	<script>
+		//카테고리 하위메뉴 스크립트
+		$(document).ready(function(){
+			$(".btn-depth2").click(function(){
+				var submenu = $(this).next(".depth2");
+				if( submenu.is(":visible") ){
+					submenu.slideUp(300);
+				}else{
+					submenu.slideDown(300);
+				}
+			});
+		});
+	</script>
+    <div id="gnbmn">
+        <nav id="menu" class="d_width">
+			<div class="mm-panels">
+				<div class="mm-header top-link">
+    
+					<a href="/member/?mode=login">로그인</a>
+	
+<!--				<a href="/member/?mode=join">회원가입</a> 
+					<a href="">알림</a>
+					<a href="/member/?mode=modify">정보수정</a> -->
+				</div>
+<script type="text/javascript">
+<!--
+	function popup_hope() {
+		window.open('https://hope.yes24library.com/TYPE_HJ/main.asp?library_id=B2B_GCL&user_id=','popup_hope','top=0,left=0,toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=1100,height=900');
+	}
+	function popup_article(){
+		window.open('http://ch.yes24.com/Article/List/2162?Ccode=000_004_003&callGb=lib#?Ccode=000_004_002','뷰어','top=0,left=0,toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=1100,height=900');
+	}
+	function popup_ready(){
+		window.open('https://hope.yes24library.com/TYPE_HJ/PKNU/ebook_ready.asp?library_id=B2B_GCL','구매예정','top=0,left=0,toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,width=1100,height=900');
+	}
+//-->
+</script>
+				<ul class="depth1 clearfix">
+<!--					<li><a href="/ebook/?mode=new" class="on">신간도서</a></li> -->
+					<li><a href="#" onclick="return false;" class="btn-depth2">전자책</a>
+						<div class="depth2">
+							<ul>
+								<li><a href="/ebook/?mode=new"><span>신간도서</span></a></li>
+								<li><a href="/ebook/?mode=best"><span>인기도서</span></a></li>
+								<li><a href="/ebook/?mode=recommend"><span>추천도서</span></a></li>
+								<li><a href="/ebook/?mode=total"><span>전체도서</span></a></li>
+							</ul>
+						</div>
+					</li>
+<!--					<li><a href="/booklearning/">북러닝</a></li>
+					<li><a href="/audiobook/">오디오북</a></li>  -->
+					<li><a href="/mylibrary/?mode=1">내서재</a></li>
+					
+					<li><a href="/chyes_article/">명사칼럼</a></li>
+					
+					<li><a href="#" onclick="return false;" class="btn-depth2">이용안내</a>
+						<div class="depth2">
+							<ul>
+								<li><a href="/info/?mode=1"><span>이용방법</span></a></li>
+								<li><a href="/info/?mode=2"><span>자료대출안내</span></a></li>
+								<li><a href="/info/?mode=3"><span>어플안내</span></a></li>
+								<li><a href="/info/?mode=4"><span>PC뷰어안내</span></a></li>
+							</ul>
+						</div>
+					</li>
+					<li class="gnb-category"><a href="#" onclick="return false;" class="btn-depth2">카테고리</a>
+						<div class="depth2 category-depth2">
+							<ul>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=001" title="인문/사회 카테고리 페이지로 이동합니다.">
+										<span>인문/사회</span> <em>(1048)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=002" title="비즈니스와경제 카테고리 페이지로 이동합니다.">
+										<span>비즈니스와경제</span> <em>(701)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=003" title="문학 카테고리 페이지로 이동합니다.">
+										<span>문학</span> <em>(2811)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=004" title="가정과생활 카테고리 페이지로 이동합니다.">
+										<span>가정과생활</span> <em>(645)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=005" title="장르문학 카테고리 페이지로 이동합니다.">
+										<span>장르문학</span> <em>(89)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=009" title="국어와외국어 카테고리 페이지로 이동합니다.">
+										<span>국어와외국어</span> <em>(163)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=011" title="수험서/자격증 카테고리 페이지로 이동합니다.">
+										<span>수험서/자격증</span> <em>(7)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=012" title="어린이/청소년 카테고리 페이지로 이동합니다.">
+										<span>어린이/청소년</span> <em>(1258)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=013" title="예술/대중문화 카테고리 페이지로 이동합니다.">
+										<span>예술/대중문화</span> <em>(61)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=014" title="자기관리 카테고리 페이지로 이동합니다.">
+										<span>자기관리</span> <em>(926)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=015" title="자연과과학 카테고리 페이지로 이동합니다.">
+										<span>자연과과학</span> <em>(129)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=023" title="컴퓨터와인터넷 카테고리 페이지로 이동합니다.">
+										<span>컴퓨터와인터넷</span> <em>(59)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+									
+								<li>
+									<a href="/ebook/?mode=category&cate_id=028" title="만화 카테고리 페이지로 이동합니다.">
+										<span>만화</span> <em>(24)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+							
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</div>
+        </nav>
+    </div>
+    <!-- //메뉴영역 -->
+</header>
+
+	<div class="sub-container d_width">
+	<!-- 신간도서 콘텐츠 -->
+	<div class="body-title">검색결과</div>
+	<!-- 상단 슬라이드 박스 -->
+	<div class="ebook-wrap">
+		<div class="top">
+		
+			<div class="tab">
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=001&mode=&view=10" title=" 카테고리 바로가기">인문/사회(14)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=002&mode=&view=10" title=" 카테고리 바로가기">비즈니스와경제(1)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=003&mode=&view=10" title=" 카테고리 바로가기">문학(81)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=004&mode=&view=10" title=" 카테고리 바로가기">가정과생활(3)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=009&mode=&view=10" title=" 카테고리 바로가기">국어와외국어(2)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=012&mode=&view=10" title=" 카테고리 바로가기">어린이/청소년(9)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=013&mode=&view=10" title=" 카테고리 바로가기">예술/대중문화(1)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=014&mode=&view=10" title=" 카테고리 바로가기">자기관리(5)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=015&mode=&view=10" title=" 카테고리 바로가기">자연과과학(2)</a>
+
+				<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&cate_id=023&mode=&view=10" title=" 카테고리 바로가기">컴퓨터와인터넷(1)</a>
+		
+			</div>
+	
+		</div>
+	</div>
+	<!-- //상단 슬라이드 박스 -->
+
+<Script Language="JavaScript">
+function content_check(){
+	alert('모바일에서만 이용하실 수 있습니다.');
+}
+function content_check2(){
+	alert('모바일에서는 지원되지 않는 도서입니다.');
+}
+
+function opms_ios(book_id,user_id,device_type,url) {  
+    var IpadUrl = "https://itunes.apple.com/app/id1281509812?l=ko&ls=1&mt=8";  
+	var IphoneUrl = "https://itunes.apple.com/app/id1281509812?l=ko&ls=1&mt=8";    
+	if (window.confirm("웅진OPMS App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+//		location.href = "mekia://download?host="+url+"&book_id="+book_id+"&lib_seq="+lib_seq+"&user_id="+user_id+"&user_pass=&type=B2B&type2="+device_type; 
+		location.href = "wjopms://app?script=download&host="+url+"&book_id="+book_id+"&user_id="+user_id+"&subview=V_MYBOOKS" ; 
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     
+}
+
+
+function yes24_ios(lib_id,user_id,goods_id,ebook_id,device_type,user_pw) {  
+    var IpadUrl = "https://apps.apple.com/kr/app/id1584897771";  
+	var IphoneUrl = "https://apps.apple.com/kr/app/id1584897771"; 
+	if (window.confirm("예스24전자도서관 App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+		location.href = "yes24lib://read?lib_id="+lib_id+"&user_id="+user_id+"&password="+user_pw+"&goods_id="+goods_id+"&epub_id="+ebook_id+"&encrypt=0"; 
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     
+}
+
+function woori_ios(lib_id,user_id,device_type) {  
+    var IpadUrl = "https://itunes.apple.com/kr/app/id430536911";  
+	var IphoneUrl = "https://itunes.apple.com/pe/app/id347246821";   
+	if (window.confirm("에피루스 App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+		if (device_type == "IPad" ){
+			location.href = "epyrusmylibipad://main?id="+user_id+"&pw=&guid="+lib_id; 
+		}
+		else if (device_type == "iphone"){
+			location.href = "epyrusmylib://main?id="+user_id+"&pw=&guid="+lib_id;  
+		}
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     	
+}
+
+
+function kyobo_ios(kb_url) {  
+    var IpadUrl = "https://apps.apple.com/kr/app/id1449446747";  
+	var IphoneUrl = "https://apps.apple.com/kr/app/id1449446747"; 
+	if (window.confirm("교보문고전자도서관 App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+		location.href = kb_url; 
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     	
+}
+
+
+function BC_ios(device_type,bc_URL) {  
+	//북큐브 내서재
+// var IpadUrl = "https://itunes.apple.com/us/app/bugkyubeu-naeseojae/id576288015?mt=8";  
+// var IphoneUrl = "https://itunes.apple.com/us/app/bugkyubeu-naeseojae/id576288015?mt=8";    
+ //북큐브전자도서관//
+ var IpadUrl = "https://itunes.apple.com/us/app/bugkyubeujeonjadoseogwan/id1007007455?l=ko&ls=1&mt=8";  
+ var IphoneUrl = "https://itunes.apple.com/us/app/bugkyubeujeonjadoseogwan/id1007007455?l=ko&ls=1&mt=8";    
+
+	if (window.confirm("북큐브전자도서관 App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+		location.href = bc_URL; 
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     
+}
+
+function aladin_ios(device_type,Y2_URL) {  
+	var IpadUrl = "https://itunes.apple.com/kr/app/alladin-jeonjadoseogwan/id897344878?mt=8";  
+	var IphoneUrl = "https://itunes.apple.com/kr/app/alladin-jeonjadoseogwan/id897344878?mt=8";    
+	if (window.confirm("알라딘전자도서관 App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+		location.href = Y2_URL; 
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     
+}
+
+function nuri_ios(device_type,nuri_URL) {  
+	var IpadUrl = "https://itunes.apple.com/kr/app/bookrailviewer/id729245180?mt=8";  
+	var IphoneUrl = "https://itunes.apple.com/kr/app/bookrailviewer/id729245180?mt=8";    
+	if (window.confirm("누리미디어전자도서관 App이 설치되어 있으면 확인(승인)을 클릭 하시고.   \n설치되어 있지 않다면 취소를 클릭하세요(앱스토어로 이동)")) {        
+		location.href = nuri_URL; 
+	} else {
+		if (device_type == "IPad"){
+			location.href = IpadUrl; 
+		}
+		else if (device_type == "iphone"){
+			location.href = IphoneUrl; 
+		}
+	}     
+}
+
+</Script>	
+
+	<div class="sub-container d_width">
+	<!-- 신간도서 콘텐츠 -->
+	<div class="body-title2">검색어 "<b>사랑</b>"(으)로 검색한 결과입니다.</div>
+	<div class="total">전체 <em>119</em>건 ( 2 / 12 )</div>
+	<div class="tab-list">
+		<ul class="clearfix">
+			<li><a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&mode=&sort=title&cate_id=&page_num=1#list_tab" class="on">제목순</a></li>
+			<li><a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&mode=&sort=pubdt&cate_id=&page_num=1#list_tab" >출판일순</a></li>
+			<li><a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&mode=&sort=now&cate_id=&page_num=1#list_tab" >대출가능도서</a></li>
+		</ul>
+	</div>
+	<!-- 도서리스트 -->
+	<div class="ebook-list">
+
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=45107523" title="나를 사랑하지 못하는 나에게" class="thumb"><img src="/images/bookimg/YES24/M_723949.jpg" alt="나를 사랑하지 못하는 나에게"></a>
+
+			<a href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=723949&dm=yes24.com');" onfocus="this.blur();" class="btn-preview">미리보기</a> <!-- 도서미리보기 버튼 -->
+
+			<div class="info">
+				<p class="tit"><strong>[인문/사회]</strong> <a href="/ebook/detail?goods_id=45107523">나를 사랑하지 못하는 나에게</a></p>
+				<p class="writer">안드레아스 크누프 저/박병화 역</p>
+				<p class="detail">
+					<span>걷는나무</span>
+					<span>2017-08-23</span>
+					<span>예스이십사</span>
+				</p>
+				<p class="txt">“우리는 매일 스스로를 아프게 한다”끊임없이 남들과 비교하고, 더 잘해야 한다고 다그치고,자신의 부족한 모습을 견디지...</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=38895222" title="나이 든 부모를 사랑할 수 있습니까" class="thumb"><img src="/images/bookimg/YES24/M_633434.jpg" alt="나이 든 부모를 사랑할 수 있습니까"></a>
+
+			<a href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=633434&dm=yes24.com');" onfocus="this.blur();" class="btn-preview">미리보기</a> <!-- 도서미리보기 버튼 -->
+
+			<div class="info">
+				<p class="tit"><strong>[인문/사회]</strong> <a href="/ebook/detail?goods_id=38895222">나이 든 부모를 사랑할 수 있습니까</a></p>
+				<p class="writer">기시미 이치로 저/박진희 역</p>
+				<p class="detail">
+					<span>인플루엔셜</span>
+					<span>2017-04-20</span>
+					<span>예스이십사</span>
+				</p>
+				<p class="txt">아들러 심리학의 1인자가 지금 우리에게 던지는 도발적인 질문!당신은 부모님이 나이가 들고 병이 들어도 사랑할 수 있습...</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=140228694" title="내가 사랑한 유럽 TOP10" class="thumb"><img src="https://ebook.gcl.go.kr:8082/FxLibrary/repository/ebk0/bookimg/150/1402/140228694.jpg" alt="내가 사랑한 유럽 TOP10"></a>
+
+			<div class="info">
+				<p class="tit"><strong>[가정과생활]</strong> <a href="/ebook/detail?goods_id=140228694">내가 사랑한 유럽 TOP10</a></p>
+				<p class="writer">정여울</p>
+				<p class="detail">
+					<span>홍익출판사</span>
+					<span>2014-02-22</span>
+					<span>북큐브</span>
+				</p>
+				<p class="txt">도서 소개가 없습니다.</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=230302340" title="내게 남은 사랑을 드릴게요" class="thumb"><img src="https://ebook.gcl.go.kr:8082/FxLibrary/repository/ebk0/bookimg/150/2303/230302340.jpg" alt="내게 남은 사랑을 드릴게요"></a>
+
+			<div class="info">
+				<p class="tit"><strong>[문학]</strong> <a href="/ebook/detail?goods_id=230302340">내게 남은 사랑을 드릴게요</a></p>
+				<p class="writer">이유리, 김서해, 김초엽, 설재인, 천선란</p>
+				<p class="detail">
+					<span>자이언트북스</span>
+					<span>2023-03-10</span>
+					<span>북큐브</span>
+				</p>
+				<p class="txt">자이언트북스의 앤솔러지 시리즈, ‘자이언트 픽’이 시작된다. 소설들 사이에 그어진 경계를 가볍게 뛰어넘으며 매력적인 ...</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=138332997" title="너를 미워할 시간에 나를 사랑하기로 했다" class="thumb"><img src="/images/bookimg/YES24/488207102.jpg" alt="너를 미워할 시간에 나를 사랑하기로 했다"></a>
+
+			<a href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=1956883&dm=yes24.com');" onfocus="this.blur();" class="btn-preview">미리보기</a> <!-- 도서미리보기 버튼 -->
+
+			<div class="info">
+				<p class="tit"><strong>[자기관리]</strong> <a href="/ebook/detail?goods_id=138332997">너를 미워할 시간에 나를 사랑하기로 했다</a></p>
+				<p class="writer">윤서진 저</p>
+				<p class="detail">
+					<span>스몰빅라이프</span>
+					<span>2024-11-11</span>
+					<span>예스이십사</span>
+				</p>
+				<p class="txt">삼성, LG, 현대, SK 등에서 강의한서울대 심리학 전공 관계 전문가의‘내 마음’부터 챙기는 똑똑한 인간관계 수업“...</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=124930478" title="너에게 이뤄질 수 없는 사랑을 하고 있어" class="thumb"><img src="/images/bookimg/YES24/L_1794851.jpg" alt="너에게 이뤄질 수 없는 사랑을 하고 있어"></a>
+
+			<a href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=1794851&dm=yes24.com');" onfocus="this.blur();" class="btn-preview">미리보기</a> <!-- 도서미리보기 버튼 -->
+
+			<div class="info">
+				<p class="tit"><strong>[문학]</strong> <a href="/ebook/detail?goods_id=124930478">너에게 이뤄질 수 없는 사랑을 하고 있어</a></p>
+				<p class="writer">도구 코지 저/김진아 역</p>
+				<p class="detail">
+					<span>제우미디어</span>
+					<span>2023-02-07</span>
+					<span>예스이십사</span>
+				</p>
+				<p class="txt">“8년 전 크리스마스, 네가 죽었다.”『One Tone』이라는 바를 운영하던 주인공 ‘이부키’.손님으로 온 ‘아카리’...</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=121100264" title="더 사랑받지 않아도 괜찮아" class="thumb"><img src="https://ebook.gcl.go.kr:8082/FxLibrary/repository/ebk0/bookimg/150/1211/121100264.jpg" alt="더 사랑받지 않아도 괜찮아"></a>
+
+			<div class="info">
+				<p class="tit"><strong>[인문/사회]</strong> <a href="/ebook/detail?goods_id=121100264">더 사랑받지 않아도 괜찮아</a></p>
+				<p class="writer">파멜라 버틀러</p>
+				<p class="detail">
+					<span>소울메이트</span>
+					<span>2012-11-09</span>
+					<span>북큐브</span>
+				</p>
+				<p class="txt">도서 소개가 없습니다.</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=7190018" title="더 오래 더 예쁘게 사랑하는 팁" class="thumb"><img src="/images/bookimg/YES24/18300078.jpg" alt="더 오래 더 예쁘게 사랑하는 팁"></a>
+
+			<div class="info">
+				<p class="tit"><strong>[자기관리]</strong> <a href="/ebook/detail?goods_id=7190018">더 오래 더 예쁘게 사랑하는 팁</a></p>
+				<p class="writer">황은경 저</p>
+				<p class="detail">
+					<span>조선e북</span>
+					<span>2012-06-11</span>
+					<span>예스이십사</span>
+				</p>
+				<p class="txt">“나는 왜 사람을 오래 사귀지 못할까?”여전히 사랑이 서툰 당신을 위한 35가지 이야기‘네이트판’ 최고의 연애 카운슬...</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>2</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=A02040182" title="독일인의 사랑" class="thumb"><img src="https://ebook.gcl.go.kr:8082/FxLibrary/repository/ebk1/bookimg/detail/0204/02040182.gif" alt="독일인의 사랑"></a>
+
+			<div class="info">
+				<p class="tit"><strong>[문학]</strong> <a href="/ebook/detail?goods_id=A02040182">독일인의 사랑</a></p>
+				<p class="writer">막스 뮐러</p>
+				<p class="detail">
+					<span>소담출판사</span>
+					<span>2003-10-01</span>
+					<span>북큐브</span>
+				</p>
+				<p class="txt">도서 소개가 없습니다.</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>5</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+		<div class="bx clearfix"> <!-- 도서리스트 -->
+			<a href="/ebook/detail?goods_id=A05020108" title="독일인의 사랑" class="thumb"><img src="https://ebook.gcl.go.kr:8082/FxLibrary/repository/ebk1/bookimg/detail/0502/05020108.gif" alt="독일인의 사랑"></a>
+
+			<div class="info">
+				<p class="tit"><strong>[문학]</strong> <a href="/ebook/detail?goods_id=A05020108">독일인의 사랑</a></p>
+				<p class="writer">F. 막스 뮐러(Friedrich Max Muller)</p>
+				<p class="detail">
+					<span>문예출판사</span>
+					<span>2005-02-05</span>
+					<span>북큐브</span>
+				</p>
+				<p class="txt">도서 소개가 없습니다.</p>
+				<div class="stat">
+					<ul class="clearfix">
+						<li>보유 <strong>5</strong></li>
+						<li>대출 <strong>0</strong></li>
+						<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+					</ul>
+				</div>
+			</div>
+			<div class="btn-wrap">
+				
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/member/?mode=login'; return false;" class="btn-d btn-main"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+				
+			</div>
+		</div>
+			
+	</div>
+	<!-- //도서리스트 -->
+
+	<div class="board-paging">
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=1#list_tab" title="1 페이지">1</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=2#list_tab" class="on">2</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=3#list_tab" title="3 페이지">3</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=4#list_tab" title="4 페이지">4</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=5#list_tab" title="5 페이지">5</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=6#list_tab" title="6 페이지">6</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=7#list_tab" title="7 페이지">7</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=8#list_tab" title="8 페이지">8</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=9#list_tab" title="9 페이지">9</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=10#list_tab" title="10 페이지">10</a>
+
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=12#list_tab" class="next" title="다음 페이지"></a>
+		<a href="/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&cate_id=&page_num=12#list_tab" class="last" title="다음 10페이지"></a>
+
+	</div>
+	
+
+	<!-- //신간도서 콘텐츠 -->
+	</div>
+<form name="action_form" method="post" action="/action/">
+	<input type="hidden" name="goods_id" >
+	<input type="hidden" name="action_mode" >
+	<input type="hidden" name="content_sort" value="017" >
+	<input type="hidden" name="return_url" value="/search/?src_key=%BB%E7%B6%FB&srch_order=title&page_num=2&sort=title">
+</form>
+				
+
+</div>
+<div id="maside">
+	<p class="tit"><span>QUICK</span>SERVICE</p>
+	<ul>
+		<li><a class="ico ico1" href="/mylibrary?mode=1" title="대출현황 페이지로 이동합니다.">대출현황</a></li>
+		<li><a class="ico ico2" href="/mylibrary?mode=2" title="예약현황 페이지로 이동합니다.">예약현황</a></li>
+		<li><a class="ico ico3" href="/info/?mode=3" title="이용안내 페이지로 이동합니다.">모바일</br>이용안내</a></li>
+	</ul>
+	<a href="#header" class="top-btn">TOP</a>
+</div>
+<div id="maside-open" class=""> 
+	<a href="javascript:void(0);" onclick="mobile_aside();" title="메뉴 오픈"></a>
+</div>
+
+
+<script>
+function mobile_aside() {
+		if($("#maside-open").hasClass("on")) {
+			$("#maside-open").removeClass("on");
+			$("#maside").css({
+				"display" : "none",
+			});
+		} else {
+			$("#maside-open").addClass("on");
+			$("#maside").css({
+				"display" : "block",
+
+			});
+		}
+	}
+window.onresize = function() {
+		var browser_width = jQuery(window).width();
+		if(browser_width > 1670) {
+			$("#maside").css({
+				"display" : "block",
+
+			});
+		} else {
+			$("#maside").css({
+				"display" : "none",
+
+			});
+		}
+	}
+</script>
+<footer>
+	<div class="fmn">
+		<div class="d_width">
+			<ul class="clearfix">
+				<li><a href="/pages/?mode=privacy" title="개인정보처리방침 페이지로 이동합니다.">개인정보처리방침</a></li>
+				<li><a href="/pages/?mode=email" title="이메일무단수집거부 페이지로 이동합니다.">이메일무단수집거부</a></li>
+			</ul>
+		</div>
+	</div>
+	<div id="address"  class="d_width">
+		<p>(39623) 경북 김천시 평화순환길 111&nbsp;(평화동 374-1)&nbsp;김천시립도서관 <span class="mlp20">TEL. 054-437-7801</span><span class="mlp20">FAX. 054-437-7803</span><span class="mlp20"></p>
+		<p>COPYRIGHT ⓒ 홍지씨앤에스. ALL RIGHTS RESERVED.</p>
+	</div>
+	</div>
+<iframe title="process" frameborder=0 marginheight=0 marginwidth=0 leftmargin=0 topmargin=0 name="process"  height=0 width=0></iframe>
+</footer>
+
+</body>
+</html>

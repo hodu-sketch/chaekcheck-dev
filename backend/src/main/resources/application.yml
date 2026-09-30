@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: chaekcheck
+  config:
+    # DB values live in the repository root .env (see ../.env.example). Real environment variables win.
+    import: "optional:file:../.env[.properties]"
+  datasource:
+    url: jdbc:postgresql://localhost:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  liquibase:
+    # test-data = fake abolished regions for local development and tests (AC-20).
+    # TODO: a production profile must set contexts without test-data. With no contexts set, Liquibase runs every changeset.
+    contexts: test-data
+  mvc:
+    problemdetails:
+      # RFC 9457 error responses (ADR-0008). Default is false in Spring Boot 4.1.
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Schema changes go through Liquibase only
+      ddl-auto: validate
+
+chaekcheck:
+  availability:
+    cache-ttl: 3m
+    cache-max-size: 1000
+    host-max-concurrency: 1
+    host-min-interval: 1s
+    # 5s: some sites take 1-3s to connect (Gyeonggi education office, 2026-09-29); cycle 01 value was 3s (user decision 2026-09-29)
+    connect-timeout: 5s
+    read-timeout: 5s
+    # one page outside a batch (the per-library "more" API), throttle wait included
+    request-deadline: 8s
+    batch:
+      # no new request once more than 20 rows are counted; requests already started are still received [확정]
+      row-limit: 20
+      # [안] libraries fetched at once; to be tuned with real batch timings
+      parallelism: 5
+      # search pages must answer within 8s of the batch start, else upstream_timeout [확정]
+      deadline: 8s
+      # [안] no new request when less than this is left
+      launch-cutoff: 3s
+      # [안] candidates per "next batch" request
+      max-candidates: 50
+    detail:
+      # portal rows with a blank list verdict: detail pages are read until 30s after the batch start [확정 30s]
+      deadline: 30s
+    kyobo:
+      # 10 per page, same as YES24 (user decision 2026-09-27; design value was 50). The site accepts 10.
+      record-count: 10
+    yes24:
+      # "now" is a filter on the site (only books available now), so title order is used (user decision 2026-09-27)
+      sort: title
+    # TODO: format "chaekcheck/<version> (+<service URL>; <contact>)"; service URL and contact are not decided yet
+    # The fetch service uses the same value (FETCH_USER_AGENT in fetch-service).
+    user-agent: "chaekcheck/0.0.1"
+    fetch:
+      # direct = this server calls the libraries; fetch-service = through the fetch servers below (ADR-0015).
+      # No automatic switch: if every fetch server is down, lookups fail until this is changed.
+      mode: ${FETCH_MODE:direct}
+      # TODO(확인 필요): number of fetch servers, where they run, fixed IPs. Priority order.
+      servers:
+        - id: fetch-1
+          url: ${FETCH_SERVER_1_URL:http://localhost:8091}
+        - id: fetch-2
+          url: ${FETCH_SERVER_2_URL:http://localhost:8092}
+      # TODO(확인 필요): header name and how the shared token is stored. Token comes from the environment.
+      token-header: X-Fetch-Token
+      token: ${FETCH_SERVICE_TOKEN:}
+      # TODO(확인 필요): main server -> fetch server timeouts (fetch server -> library is connect 5s, read 5s)
+      connect-timeout: 1s
+      read-timeout: 7s
+      # TODO(확인 필요): how long a fetch server that refused a connection or answered 503 is skipped
+      rest-duration: 30s

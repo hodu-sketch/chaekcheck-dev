@@ -1,0 +1,1408 @@
+<!-- fixture: fetched 2026-09-27, descriptions/covers/scripts removed -->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="title" content="고흥군립도서관">
+<meta name="keywords" content="고흥군립도서관">
+<meta name="description" content="고흥군립도서관" />
+<title>고흥군립도서관</title>
+<!--header START -->
+<meta name="viewport" content="width=1200">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<!-- <meta http-equiv="Content-Security-Policy" content="script-src https://www.googletagmanager.com 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' 'unsafe-inline' http://*:* https://*:* http://dcontent.dkyobobook.co.kr/ www.googletagmanager.com;"> -->
+<link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/lib/jquery/themes01/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/front/web/reset.css?v=1790514131567" />
+<link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/front/web/contents.css?v=1790514131567" />
+<!-- link rel="stylesheet" type="text/css" href="/elibrary-front/resources/common/css/front/web/flexslider.css" / -->
+<!--  -->
+<!-- script type="text/javascript" src="/elibrary-front/resources/common/js/front/web/roll.js"></script -->
+<!--header END -->
+</head>
+<body>
+<!--skipMenu START -->
+<div id="skip_menu"> 
+    <ul> 
+        <li><a href="#gnb">주메뉴 바로가기</a></li> 
+        <li><a href="#container">본문 바로가기</a></li> 
+    </ul> 
+</div>
+<!--skipMenu END -->
+<!--wrapper Start-->
+<div id="wrap">
+    <!--header START -->
+<header class="top_wrap">
+  <div id="top">
+    <h1 id="headLogo"></h1>
+  </div>
+  <div class="top_util">
+    <ul>
+      <li><a href="/elibrary-front/member/memberLogin.ink" title="로그인 | 회원 | 고흥군립도서관" onclick="fnLogin(); event.preventDefault();">로그인</a></li>
+      <li class="notifi"><a href="#" onclick="javascript:fnLoginCheck('inform'); event.preventDefault();">알림<span id="noti"></span></a></li>
+    </ul>
+  </div>
+  <div class="top_area">
+    <fieldset>
+    <legend>통합검색영역</legend>
+    <div class="sch_area">
+      <div style="border-color:#0a325c;"><!-- 관리자 제어 border color -->
+        <form id="searchFormTop" name="searchFormTop" method="get" onsubmit="return fnSearch('top');">
+          <select name="schClst" title="통합검색 분류 선택">
+            <option value="all">통합검색</option>
+            <option value="ctts">제목</option>
+            <option value="autr">저자</option>
+            <option value="pbcm">출판사</option>
+            <!-- <option value="intc_cntt">책소개</option> -->
+          </select>
+          <label for="schTxtTop">검색어 입력하기</label>
+          <input type="hidden" name="schDvsn" value="000" id="schDvsn" />
+          <input type="hidden" name="orderByKey" value="" id="orderByKey" />
+          <input type="text" name="schTxt" value="" id="schTxtTop" autocomplete="off" maxlength="100"/>
+          <input type="submit" value="검색">
+        </form>
+      </div>
+    </div>
+    </fieldset>
+    <ul class="hope_book">
+      <li class="hope">
+        <form id="hopeKb" name="hopeKb" method="post" >
+          <a href="#" onclick="fnLoginCheck('hope'); event.preventDefault();">희망도서<span class="hidden_obj">신청</span></a>
+          <input type="hidden" id="hopeMmbrId" name="mmbrId" value="" />
+          <input type="hidden" id="hopeMmbrGrpId" name="mmbrGrpId" value="" />
+          <input type="hidden" id="hopeGrpCodeName" name="grpCodeName" value="" />
+          <input type="hidden" id="serverName" name="serverName" value="" />
+          <input type="hidden" id="hopeFlag" name="hopeFlag" value="" />
+        </form>
+      </li>
+      <li><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();">내서재</a></li>
+    </ul>
+  </div>
+<!-- GNB -->
+  <nav class="gnb_area" style="border-color:#0a325c;"><!-- 관리자 제어 border color -->
+  <h2 class="hidden_obj">주메뉴</h2>
+  <div id="gnb" class="gnb" tabindex="0"></div>
+  <div class="all_menu">
+    <p><input type="button" value="전체메뉴" /></p>
+  </div>
+  <div class="all_menu_area">
+    <ul id="allMenuArea">
+    </ul>
+    <ul id="allBooks">
+      <li>
+      <a
+        href="/elibrary-front/content/contentBestList.ink?listType=B&cttsDvsnCode=all&bestCttsDvsnCode=2"
+         onclick="gFnGoReferer($(this).attr('href')); event.preventDefault();">도서자료</a>
+        <ul id="partName">
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+<!-- sticky -->
+  <div class="top_sticky" style="border-color:#0a325c;" tabindex="-1"><!-- 관리자 제어 -->
+<div>
+  <div class="gnb"></div>
+  <div class="top_sch">
+    <fieldset>
+      <legend>통합검색영역</legend>
+      <div class="sch_area">
+          <div style="border-color:#0a325c;"><!-- 관리자 제어 -->
+          <form id="searchFormSlide" name="searchFormSlide" method="get"  onsubmit="return fnSearch('slide');">
+            <select name="schClst" title="통합검색 분류 선택" tabindex="-1">
+              <option value="all">통합검색</option>
+              <option value="ctts">제목</option>
+              <option value="autr">저자</option>
+              <option value="pbcm">출판사</option>
+              <!-- <option value="intc_cntt">책소개</option> -->
+            </select>
+            <label for="schTxtSlide">검색어 입력하기</label>
+            <input type="hidden" name="schDvsn" value="000" />
+            <input type="hidden" name="orderByKey" value="" />
+            <input type="text" name="schTxt" value="" id="schTxtSlide"  tabindex="-1" autocomplete="off" />
+            <input type="submit" value="검색"  tabindex="-1" />
+            </form>
+          </div>
+      </div>
+    </fieldset>
+    <p class="hope_book"><a href="#" onclick="fnLoginCheck('myLib'); event.preventDefault();" tabindex="-1">내서재</a></p>
+  </div>
+</div>
+</div>
+<!--// sticky -->
+</header>
+    <!--header END -->
+    <!--content START-->
+    <div id="contentMainDiv">
+      <div class="con_wrap">
+        <ul class="path">
+          <li><a href="/elibrary-front/main.ink">HOME</a></li>
+          <li><a href="#">검색</a></li>
+        </ul>
+        <div class="con_area">
+          <form id="searchListForm" class="daContentForm" method="post">
+            <input type="hidden" name="brcd" id="brcd" value=""/>
+            <input type="hidden" name="sntnAuthCode" id="sntnAuthCode" value=""/>
+            <input type="hidden" name="contentAll" id="contentAll" value=""/>
+            <input type="hidden" id="custom_pageIndex" value="2"/>
+            <input type="hidden" name="cttsDvsnCode" id="cttsDvsnCode" value=""/>
+            <input type="hidden" name="orderByKey" value=""/>
+            <input type="hidden" name="schClst" id="schClst" value="all"/>
+            <input type="hidden" name="schDvsn" id="schDvsnList" value="000"/>
+            <input type="hidden" name="reSch" id="reSch" value=""/>
+            <input type="hidden" name="ctgrId" id="ctgrId" value=""/>
+            <aside class="aside"><!-- 검색일 경우 lnb 따로 생성 -->
+              <h2>검색필터 </h2>
+              <div class="sch_lnb">
+                <p>세부항목</p>
+                <ul>
+                  <li><input type="checkbox" name="allClstCheck" id="allClstCheck" checked="checked" /><label for="all">전체</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="cttsClstCheck" onclick="fnClstCheck();" value="ctts" checked="checked" /><label for="cttsClstCheck">제목</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="autrClstCheck" onclick="fnClstCheck();" value="autr" checked="checked" /><label for="autrClstCheck">저자</label></li>
+                  <li><input type="checkbox" name="clstCheck" id="pbcmClstCheck" onclick="fnClstCheck();" value="pbcm" checked="checked" /><label for="pbcmClstCheck">출판사</label></li>
+                </ul>
+                <p>상품군</p>
+                <ul>
+                  <li><input type="checkbox" name="allDvsnCheck" id="allDvsnCheck" value="000" checked="checked" /><label for="allDvsnCheck">전체목록</label></li>
+                      <li><input type="checkbox" name="dvsnCheck" id="001DvsnCheck" onclick="fnDvsnCheck();" value="001" checked="checked" /><label for="001DvsnCheck">전자책</label></li>
+                </ul>
+              </div>
+            </aside>
+            <section class="sub_con" id="container">
+              <div class="contents">
+                <!-- 내용시작  -->
+                <div class="h3_area">
+                  <h3>검색결과</h3>
+                </div>
+                <div class="sch_con">
+                  <fieldset>
+                  <legend>검색조건 선택하기</legend>
+                  <table>
+                    <caption>검색조건</caption>
+                    <colgroup>
+                      <col style="width:100px;">
+                      <col style="width:auto;">
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        <td colspan="2">
+                          <input type="text" name="schTxt" id="schTxtList" value="사랑" style="width:500px;" title="검색어 쓰기" autocomplete="off" maxlength="100">
+                          <span class="tbl_infotxt"><input type="checkbox" name="reSchChk" id="reSchChk"  /> <label for="reSchChk">결과내 재검색</label></span>
+                        </td>
+                      </tr>
+                      <tr id="reSchArea" style="display:none;">
+                        <th scope="row"><label for="reSchTxt">결과내 재검색</label></th>
+                        <td><input type="text" name="reSchTxt" id="reSchTxt" value="" style="width:400px;" autocomplete="off"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  </fieldset>
+                  <p class="btn_posi">
+                    <input type="button" value="검색" onclick="fnSearchList();" class="btn btn_s btn_gray">
+                  </p>
+                </div>
+                    <div class="book_sort">
+                      <ul>
+                        <li class="on"><a href="/elibrary-front/search/searchList.ink" title="최신순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'publDate'); event.preventDefault();">최신순</a></li> <!-- 선택시 class="on" -->
+                        <li><a href="/elibrary-front/search/searchList.ink" title="인기순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'loanNmvl'); event.preventDefault();">인기순</a></li>
+                        <li><a href="/elibrary-front/search/searchList.ink" title="제목순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'cttsHnglName'); event.preventDefault();">제목순</a></li>
+                        <li><a href="/elibrary-front/search/searchList.ink" title="저자순 | 고흥군립도서관" onClick="javascript:searchList.fnOrderByClick(this, 'sntnAuthName'); event.preventDefault();">저자순</a></li>
+                      </ul>
+                    </div>
+                    <div class="book_resultTxt">
+                      <p><strong>"사랑"</strong> 검색결과 <strong>총 103개</strong>의 자료가 있습니다.</p>
+                      <div>
+                        <span>
+                          <input type="text" id="nowPage" title="현재페이지" class="daOnlyNum" /> / <span id="totalPage" ></span>
+                          <input type="button"id="goPage" value="이동하기" class="btn btn_s btn_line"/>
+                          <a href="#"></a><a href="#"></a>
+                        </span>
+                        <select id="selViewCnt" title="갯수 선택하기" name="selViewCnt" onChange="javascript:searchList.fnContentPageList(1);">
+                          <option value="20" selected>20개씩</option>
+                          <option value="40" >40개씩</option>
+                          <option value="60" >60개씩</option>
+                          <option value="80" >80개씩</option>
+                        </select><input type="button" name="viewBtn"  value="보기" class="btn btn_s btn_line"/>
+                      </div>
+                    </div>
+                    <!-- 책 리스트 -->
+                    <ul class="book_resultList">
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[사랑, 소멸에 관한 잔혹하고 슬픈이야기] 사랑, 소멸에 관한 잔혹하고 슬픈이야기 1 : 유정룡 장편소설 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1109014', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[사랑, 소멸에 관한 잔혹하고 슬픈이야기] 사랑, 소멸에 관한 잔혹하고 슬픈이야기 1 : 유정룡 장편소설 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1109014', '1101', '', 'N', ''); event.preventDefault();">[사랑, 소멸에 관한 잔혹하고 슬픈이야기] 사랑, 소멸에 관한 잔혹하고 슬픈이야기 1 : 유정룡 장편소설</a></li>
+                                  <li class="writer">유정룡<span>비전코리아</span>2011-10-14</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1109014', '001', '[사랑, 소멸에 관한 잔혹하고 슬픈이야기] 사랑, 소멸에 관한 잔혹하고 슬픈이야기 1 : 유정룡 장편소설','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1109014','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[시작시인선 0126] 사랑, 그 백년에 대하여 : 김왕노 시집 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1104216', '0501', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[시작시인선 0126] 사랑, 그 백년에 대하여 : 김왕노 시집 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1104216', '0501', '', 'N', ''); event.preventDefault();">[시작시인선 0126] 사랑, 그 백년에 대하여 : 김왕노 시집</a></li>
+                                  <li class="writer">김왕노<span>천년의시작</span>2011-06-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/2</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1104216', '001', '[시작시인선 0126] 사랑, 그 백년에 대하여 : 김왕노 시집','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1104216','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="한국인이 가장 사랑하는 명시 100선 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', '4809050085762', '050101', '', 'N','15'); event.preventDefault();">
+                            </a>
+                            <p><a href="#" class="btn btn_s btn_line" onClick="javascript:searchList.fnContentPreview('N','001', '050101', '4809050085762','15'); event.preventDefault();" target="_blank" title="새 창으로 열림">미리보기</a></p>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">교보문고</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="한국인이 가장 사랑하는 명시 100선 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', '4809050085762', '050101', '', 'N', '15'); event.preventDefault();">한국인이 가장 사랑하는 명시 100선</a></li>
+                                  <li class="writer">편집부<span>루니스</span>2011-02-28</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/1</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', '4809050085762', '001', '한국인이 가장 사랑하는 명시 100선','15', 'KB','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, '4809050085762','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 1] 에로스와 프쉬케의 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1012057', '3305', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 1] 에로스와 프쉬케의 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1012057', '3305', '', 'N', ''); event.preventDefault();">[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 1] 에로스와 프쉬케의 사랑</a></li>
+                                  <li class="writer">Thomas Bulfinch 외<span>Happy House</span>2010-12-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/2</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1012057', '001', '[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 1] 에로스와 프쉬케의 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1012057','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 2] 아폴론과 다프네, 오르페우스와 에우리디케의 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1012058', '3305', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 2] 아폴론과 다프네, 오르페우스와 에우리디케의 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1012058', '3305', '', 'N', ''); event.preventDefault();">[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 2] 아폴론과 다프네, 오르페우스와 에우리디케의 사랑</a></li>
+                                  <li class="writer">Thomas Bulfinch 외<span>Happy House</span>2010-12-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/2</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1012058', '001', '[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 2] 아폴론과 다프네, 오르페우스와 에우리디케의 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1012058','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 6] 나르키소스와 에코, 아프로디테와 아도니스의 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1012062', '3305', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 6] 나르키소스와 에코, 아프로디테와 아도니스의 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1012062', '3305', '', 'N', ''); event.preventDefault();">[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 6] 나르키소스와 에코, 아프로디테와 아도니스의 사랑</a></li>
+                                  <li class="writer">Thomas Bulfinch 외<span>Happy House</span>2010-12-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/2</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1012062', '001', '[영어로 읽는 그리스 로마 신화 신화 즐기기 1000단어 6] 나르키소스와 에코, 아프로디테와 아도니스의 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1012062','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="잘있나요? 내 첫사랑들 : 외로움도 안나푸르나에서는 사랑이다 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0912080', '2703', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="잘있나요? 내 첫사랑들 : 외로움도 안나푸르나에서는 사랑이다 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0912080', '2703', '', 'N', ''); event.preventDefault();">잘있나요? 내 첫사랑들 : 외로움도 안나푸르나에서는 사랑이다</a></li>
+                                  <li class="writer">이종국<span>두리미디어</span>2010-04-01</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0912080', '001', '잘있나요? 내 첫사랑들 : 외로움도 안나푸르나에서는 사랑이다','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0912080','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[삼나무에 내리는 눈] 삼나무에 내리는 눈 1 : 첫사랑은 영원히 가슴에 머문다 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1002017', '1103', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[삼나무에 내리는 눈] 삼나무에 내리는 눈 1 : 첫사랑은 영원히 가슴에 머문다 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1002017', '1103', '', 'N', ''); event.preventDefault();">[삼나무에 내리는 눈] 삼나무에 내리는 눈 1 : 첫사랑은 영원히 가슴에 머문다</a></li>
+                                  <li class="writer">데이빗 구터슨 외<span>문예마당</span>2010-03-25</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1002017', '001', '[삼나무에 내리는 눈] 삼나무에 내리는 눈 1 : 첫사랑은 영원히 가슴에 머문다','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1002017','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[삼나무에 내리는 눈] 삼나무에 내리는 눈 2 : 첫사랑은 영원히 가슴에 머문다 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1002018', '1103', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[삼나무에 내리는 눈] 삼나무에 내리는 눈 2 : 첫사랑은 영원히 가슴에 머문다 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1002018', '1103', '', 'N', ''); event.preventDefault();">[삼나무에 내리는 눈] 삼나무에 내리는 눈 2 : 첫사랑은 영원히 가슴에 머문다</a></li>
+                                  <li class="writer">데이빗 구터슨 외<span>문예마당</span>2010-03-25</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1002018', '001', '[삼나무에 내리는 눈] 삼나무에 내리는 눈 2 : 첫사랑은 영원히 가슴에 머문다','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1002018','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="딩동, 사랑이 도착했습니다 : 매일 아침 200만 독자의 가슴을 적신 사랑밭 새벽편지 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1001009', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="딩동, 사랑이 도착했습니다 : 매일 아침 200만 독자의 가슴을 적신 사랑밭 새벽편지 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N1001009', '0503', '', 'N', ''); event.preventDefault();">딩동, 사랑이 도착했습니다 : 매일 아침 200만 독자의 가슴을 적신 사랑밭 새벽편지</a></li>
+                                  <li class="writer">권태일<span>샘터사</span>2010-03-15</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N1001009', '001', '딩동, 사랑이 도착했습니다 : 매일 아침 200만 독자의 가슴을 적신 사랑밭 새벽편지','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N1001009','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[이야기 보따리 명작동화] 오렌지 세 개의 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0910027', '3399', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[이야기 보따리 명작동화] 오렌지 세 개의 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0910027', '3399', '', 'N', ''); event.preventDefault();">[이야기 보따리 명작동화] 오렌지 세 개의 사랑</a></li>
+                                  <li class="writer">문이재 독서논술연구소 외<span>태동출판사</span>2009-11-24</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0910027', '001', '[이야기 보따리 명작동화] 오렌지 세 개의 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0910027','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[디지털 월드북스] 사랑의 학교 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_F0803383', '330315', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[디지털 월드북스] 사랑의 학교 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_F0803383', '330315', '', 'N', ''); event.preventDefault();">[디지털 월드북스] 사랑의 학교</a></li>
+                                  <li class="writer">아미치스<span>이북코리아</span>2009-11-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_F0803383', '001', '[디지털 월드북스] 사랑의 학교','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_F0803383','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑이 서툰 엄마 사랑이 고픈 아이 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0811034', '2515', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑이 서툰 엄마 사랑이 고픈 아이 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0811034', '2515', '', 'N', ''); event.preventDefault();">사랑이 서툰 엄마 사랑이 고픈 아이</a></li>
+                                  <li class="writer">이보연<span>아울북</span>2009-10-26</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0811034', '001', '사랑이 서툰 엄마 사랑이 고픈 아이','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0811034','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="(이기담 역사소설) 선덕여왕 : 사랑과 권력을 모두 쟁취한 우리나라 최초의 여왕 이야기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0907106', '1701', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="(이기담 역사소설) 선덕여왕 : 사랑과 권력을 모두 쟁취한 우리나라 최초의 여왕 이야기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0907106', '1701', '', 'N', ''); event.preventDefault();">(이기담 역사소설) 선덕여왕 : 사랑과 권력을 모두 쟁취한 우리나라 최초의 여왕 이야기</a></li>
+                                  <li class="writer">이기담<span>예담</span>2009-09-28</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0907106', '001', '(이기담 역사소설) 선덕여왕 : 사랑과 권력을 모두 쟁취한 우리나라 최초의 여왕 이야기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0907106','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[직업동화 내꿈은] 사랑의 웨딩플래너 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0907047', '3305', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[직업동화 내꿈은] 사랑의 웨딩플래너 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0907047', '3305', '', 'N', ''); event.preventDefault();">[직업동화 내꿈은] 사랑의 웨딩플래너</a></li>
+                                  <li class="writer">곽민수 외<span>태동출판사</span>2009-09-09</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0907047', '001', '[직업동화 내꿈은] 사랑의 웨딩플래너','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0907047','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="영화처럼 사랑을 요리하다 : 식탁위에 차려진 맛있는 영화 이야기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0811118', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="영화처럼 사랑을 요리하다 : 식탁위에 차려진 맛있는 영화 이야기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0811118', '0503', '', 'N', ''); event.preventDefault();">영화처럼 사랑을 요리하다 : 식탁위에 차려진 맛있는 영화 이야기</a></li>
+                                  <li class="writer">송정림<span>예담</span>2009-07-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0811118', '001', '영화처럼 사랑을 요리하다 : 식탁위에 차려진 맛있는 영화 이야기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0811118','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="성공도 사랑도 다 가져라 I Marketing | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0811128', '030103', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="성공도 사랑도 다 가져라 I Marketing | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0811128', '030103', '', 'N', ''); event.preventDefault();">성공도 사랑도 다 가져라 I Marketing</a></li>
+                                  <li class="writer">추성엽<span>위즈덤하우스</span>2009-07-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0811128', '001', '성공도 사랑도 다 가져라 I Marketing','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0811128','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑은 안개보다 깊다 : 박인성 소설집 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0903155', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑은 안개보다 깊다 : 박인성 소설집 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0903155', '1101', '', 'N', ''); event.preventDefault();">사랑은 안개보다 깊다 : 박인성 소설집</a></li>
+                                  <li class="writer">박인성<span>삼우반</span>2009-07-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0903155', '001', '사랑은 안개보다 깊다 : 박인성 소설집','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0903155','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="독일인의 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0902087', '3509', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="독일인의 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0902087', '3509', '', 'N', ''); event.preventDefault();">독일인의 사랑</a></li>
+                                  <li class="writer">막스 뮐러 외<span>꿈꾸는아이들</span>2009-07-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0902087', '001', '독일인의 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0902087','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="콩깍지 사랑 : 다운천사와 울보엄마의 시골이야기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0902287', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="콩깍지 사랑 : 다운천사와 울보엄마의 시골이야기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0902287', '0503', '', 'N', ''); event.preventDefault();">콩깍지 사랑 : 다운천사와 울보엄마의 시골이야기</a></li>
+                                  <li class="writer">추둘란<span>소나무</span>2009-05-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0902287', '001', '콩깍지 사랑 : 다운천사와 울보엄마의 시골이야기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0902287','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑, 그 짓궂은 이야기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0902218', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑, 그 짓궂은 이야기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0902218', '0503', '', 'N', ''); event.preventDefault();">사랑, 그 짓궂은 이야기</a></li>
+                                  <li class="writer">박용수<span>소나무</span>2009-05-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0902218', '001', '사랑, 그 짓궂은 이야기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0902218','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="나는 왜 사랑을 못 하나 : 정신과 전문의 양창순 박사의 사랑 치유 에세이 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0808010', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="나는 왜 사랑을 못 하나 : 정신과 전문의 양창순 박사의 사랑 치유 에세이 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0808010', '0503', '', 'N', ''); event.preventDefault();">나는 왜 사랑을 못 하나 : 정신과 전문의 양창순 박사의 사랑 치유 에세이</a></li>
+                                  <li class="writer">양창순<span>예담</span>2009-04-23</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0808010', '001', '나는 왜 사랑을 못 하나 : 정신과 전문의 양창순 박사의 사랑 치유 에세이','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0808010','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="(김영희 에세이) 아이를 잘 만드는 여자 : 닥종이 인형 작가 김영희의 불꽃같은 삶·사랑·예술 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0809088', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="(김영희 에세이) 아이를 잘 만드는 여자 : 닥종이 인형 작가 김영희의 불꽃같은 삶·사랑·예술 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0809088', '0503', '', 'N', ''); event.preventDefault();">(김영희 에세이) 아이를 잘 만드는 여자 : 닥종이 인형 작가 김영희의 불꽃같은 삶·사랑·예술</a></li>
+                                  <li class="writer">김영희<span>예담</span>2009-04-02</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0809088', '001', '(김영희 에세이) 아이를 잘 만드는 여자 : 닥종이 인형 작가 김영희의 불꽃같은 삶·사랑·예술','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0809088','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[디지털 구연동화 별자리 동화] 오르페우스의 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_F0712188', '330315', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[디지털 구연동화 별자리 동화] 오르페우스의 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_F0712188', '330315', '', 'N', ''); event.preventDefault();">[디지털 구연동화 별자리 동화] 오르페우스의 사랑</a></li>
+                                  <li class="writer">푸시킨<span>이북코리아</span>2008-03-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_F0712188', '001', '[디지털 구연동화 별자리 동화] 오르페우스의 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_F0712188','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[디지털 구연동화 꽃의 동화] 물망초 사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_F0712163', '330315', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[디지털 구연동화 꽃의 동화] 물망초 사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_F0712163', '330315', '', 'N', ''); event.preventDefault();">[디지털 구연동화 꽃의 동화] 물망초 사랑</a></li>
+                                  <li class="writer">이북코리아 편집부<span>이북코리아</span>2008-03-13</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_F0712163', '001', '[디지털 구연동화 꽃의 동화] 물망초 사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_F0712163','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[리틀미다스] 열세 살 전 특별한 경험이 미래를 결정한다 : 사랑하는 내 아들, 딸에게 전하는 초등 경험 백서 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0711028', '3307', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[리틀미다스] 열세 살 전 특별한 경험이 미래를 결정한다 : 사랑하는 내 아들, 딸에게 전하는 초등 경험 백서 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0711028', '3307', '', 'N', ''); event.preventDefault();">[리틀미다스] 열세 살 전 특별한 경험이 미래를 결정한다 : 사랑하는 내 아들, 딸에게 전하는 초등 경험 백서</a></li>
+                                  <li class="writer">김현태 외<span>미다스북스</span>2008-02-28</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/3</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0711028', '001', '[리틀미다스] 열세 살 전 특별한 경험이 미래를 결정한다 : 사랑하는 내 아들, 딸에게 전하는 초등 경험 백서','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0711028','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑과 음식 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0609177', '2301', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑과 음식 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0609177', '2301', '', 'N', ''); event.preventDefault();">사랑과 음식</a></li>
+                                  <li class="writer">김정희<span>열매출판사</span>2007-03-27</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0609177', '001', '사랑과 음식','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0609177','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[지두 크리슈나무르티 테마 에세이] 사랑과 외로움에 대하여 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608203', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[지두 크리슈나무르티 테마 에세이] 사랑과 외로움에 대하여 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608203', '0503', '', 'N', ''); event.preventDefault();">[지두 크리슈나무르티 테마 에세이] 사랑과 외로움에 대하여</a></li>
+                                  <li class="writer">지두 크리슈나무르티 외<span>고요아침</span>2007-03-20</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0608203', '001', '[지두 크리슈나무르티 테마 에세이] 사랑과 외로움에 대하여','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0608203','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="경제기사랑 친해지기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0609350', '0101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="경제기사랑 친해지기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0609350', '0101', '', 'N', ''); event.preventDefault();">경제기사랑 친해지기</a></li>
+                                  <li class="writer">류대현 외<span>새로운제안</span>2007-01-12</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0609350', '001', '경제기사랑 친해지기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0609350','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="LOVE BOOK : 가장 당신다운 사랑을 만나기 위한 여성에게 보내는 사랑의 잠언서 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607036', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="LOVE BOOK : 가장 당신다운 사랑을 만나기 위한 여성에게 보내는 사랑의 잠언서 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607036', '0503', '', 'N', ''); event.preventDefault();">LOVE BOOK : 가장 당신다운 사랑을 만나기 위한 여성에게 보내는 사랑의 잠언서</a></li>
+                                  <li class="writer">HIROSE YUKO 외<span>데미안</span>2006-11-22</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607036', '001', 'LOVE BOOK : 가장 당신다운 사랑을 만나기 위한 여성에게 보내는 사랑의 잠언서','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607036','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑을 만나러 길을 나서다 : 서른 청춘들에게 부치는 여행 편지 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607086', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑을 만나러 길을 나서다 : 서른 청춘들에게 부치는 여행 편지 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607086', '0503', '', 'N', ''); event.preventDefault();">사랑을 만나러 길을 나서다 : 서른 청춘들에게 부치는 여행 편지</a></li>
+                                  <li class="writer">조병준<span>예담</span>2006-11-02</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607086', '001', '사랑을 만나러 길을 나서다 : 서른 청춘들에게 부치는 여행 편지','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607086','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="받는 사랑 주는 사랑 : 세상일에 지쳐 외롭고 힘들 때 읽는 책… | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607041', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="받는 사랑 주는 사랑 : 세상일에 지쳐 외롭고 힘들 때 읽는 책… | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607041', '0503', '', 'N', ''); event.preventDefault();">받는 사랑 주는 사랑 : 세상일에 지쳐 외롭고 힘들 때 읽는 책…</a></li>
+                                  <li class="writer">유동범<span>데미안</span>2006-11-02</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607041', '001', '받는 사랑 주는 사랑 : 세상일에 지쳐 외롭고 힘들 때 읽는 책…','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607041','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[戀人] (김상옥 장편소설) 연인 2 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607026', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[戀人] (김상옥 장편소설) 연인 2 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607026', '1101', '', 'N', ''); event.preventDefault();">[戀人] (김상옥 장편소설) 연인 2 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑</a></li>
+                                  <li class="writer">김상옥<span>데미안</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607026', '001', '[戀人] (김상옥 장편소설) 연인 2 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607026','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[워싱턴 한의대 김남형 박사의 자연건강 교실 1] 발사랑 몸사랑 가족사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607185', '2325', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[워싱턴 한의대 김남형 박사의 자연건강 교실 1] 발사랑 몸사랑 가족사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607185', '2325', '', 'N', ''); event.preventDefault();">[워싱턴 한의대 김남형 박사의 자연건강 교실 1] 발사랑 몸사랑 가족사랑</a></li>
+                                  <li class="writer">김남형<span>돋을새김</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607185', '001', '[워싱턴 한의대 김남형 박사의 자연건강 교실 1] 발사랑 몸사랑 가족사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607185','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="결혼 전에 꼭 가봐야 할 낭만적인 여행지 : 나를 찾아 사랑을 찾아 휴식을 찾아 떠나자! | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607114', '2701', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="결혼 전에 꼭 가봐야 할 낭만적인 여행지 : 나를 찾아 사랑을 찾아 휴식을 찾아 떠나자! | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607114', '2701', '', 'N', ''); event.preventDefault();">결혼 전에 꼭 가봐야 할 낭만적인 여행지 : 나를 찾아 사랑을 찾아 휴식을 찾아 떠나자!</a></li>
+                                  <li class="writer">이혜숙<span>열번째행성</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607114', '001', '결혼 전에 꼭 가봐야 할 낭만적인 여행지 : 나를 찾아 사랑을 찾아 휴식을 찾아 떠나자!','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607114','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="하얀사랑의 연가 : 김상옥 실화소설 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607039', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="하얀사랑의 연가 : 김상옥 실화소설 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607039', '1101', '', 'N', ''); event.preventDefault();">하얀사랑의 연가 : 김상옥 실화소설</a></li>
+                                  <li class="writer">김상옥<span>데미안</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607039', '001', '하얀사랑의 연가 : 김상옥 실화소설','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607039','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[내 안의 너] (김상옥 장편실화소설) 내 안의 너 1 : 사랑의 항해 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607027', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[내 안의 너] (김상옥 장편실화소설) 내 안의 너 1 : 사랑의 항해 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607027', '1101', '', 'N', ''); event.preventDefault();">[내 안의 너] (김상옥 장편실화소설) 내 안의 너 1 : 사랑의 항해</a></li>
+                                  <li class="writer">김상옥<span>데미안</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607027', '001', '[내 안의 너] (김상옥 장편실화소설) 내 안의 너 1 : 사랑의 항해','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607027','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[올챙이문고 저학년 동화 1] 저학년을 위한 아주 소중한 사랑 이야기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607232', '3305', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[올챙이문고 저학년 동화 1] 저학년을 위한 아주 소중한 사랑 이야기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607232', '3305', '', 'N', ''); event.preventDefault();">[올챙이문고 저학년 동화 1] 저학년을 위한 아주 소중한 사랑 이야기</a></li>
+                                  <li class="writer">소중애 외<span>청개구리</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607232', '001', '[올챙이문고 저학년 동화 1] 저학년을 위한 아주 소중한 사랑 이야기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607232','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[戀人] (김상옥 장편소설) 연인 1 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607025', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[戀人] (김상옥 장편소설) 연인 1 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607025', '1101', '', 'N', ''); event.preventDefault();">[戀人] (김상옥 장편소설) 연인 1 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑</a></li>
+                                  <li class="writer">김상옥<span>데미안</span>2006-10-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607025', '001', '[戀人] (김상옥 장편소설) 연인 1 : 가슴 깊이 묻어둔 시리도록 아름다운 첫사랑','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607025','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="애정사전 : 사랑이라는 감성의 안내자 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0604255', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="애정사전 : 사랑이라는 감성의 안내자 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0604255', '0503', '', 'N', ''); event.preventDefault();">애정사전 : 사랑이라는 감성의 안내자</a></li>
+                                  <li class="writer">이종환<span>돋을새김</span>2006-10-24</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0604255', '001', '애정사전 : 사랑이라는 감성의 안내자','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0604255','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑의 몸시학 : 시로 읽는 에로스의 미학 30scene | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0604035', '0723', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑의 몸시학 : 시로 읽는 에로스의 미학 30scene | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0604035', '0723', '', 'N', ''); event.preventDefault();">사랑의 몸시학 : 시로 읽는 에로스의 미학 30scene</a></li>
+                                  <li class="writer">송수권<span>문학과경계·마음과경계</span>2006-10-24</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0604035', '001', '사랑의 몸시학 : 시로 읽는 에로스의 미학 30scene','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0604035','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="사랑이 사랑에게 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607091', '0503', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="사랑이 사랑에게 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0607091', '0503', '', 'N', ''); event.preventDefault();">사랑이 사랑에게</a></li>
+                                  <li class="writer">최숙희<span>예담</span>2006-10-24</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0607091', '001', '사랑이 사랑에게','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0607091','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 130] 나는 상처를 사랑했네 : 나동영 시집 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608108', '0501', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 130] 나는 상처를 사랑했네 : 나동영 시집 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608108', '0501', '', 'N', ''); event.preventDefault();">[실천문학의 시집 130] 나는 상처를 사랑했네 : 나동영 시집</a></li>
+                                  <li class="writer">나종영<span>실천문학사</span>2006-08-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0608108', '001', '[실천문학의 시집 130] 나는 상처를 사랑했네 : 나동영 시집','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0608108','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 41] 사랑이여 : 박재삼 시집 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608077', '0501', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 41] 사랑이여 : 박재삼 시집 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608077', '0501', '', 'N', ''); event.preventDefault();">[실천문학의 시집 41] 사랑이여 : 박재삼 시집</a></li>
+                                  <li class="writer">박재삼<span>실천문학사</span>2006-08-25</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0608077', '001', '[실천문학의 시집 41] 사랑이여 : 박재삼 시집','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0608077','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 128] 누워서 부르는 사랑노래 : 김해화 시집 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608104', '0501', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 128] 누워서 부르는 사랑노래 : 김해화 시집 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608104', '0501', '', 'N', ''); event.preventDefault();">[실천문학의 시집 128] 누워서 부르는 사랑노래 : 김해화 시집</a></li>
+                                  <li class="writer">김해화<span>실천문학사</span>2006-08-25</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0608104', '001', '[실천문학의 시집 128] 누워서 부르는 사랑노래 : 김해화 시집','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0608104','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 50] 가난한 사랑노래 : 신경림 시집 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608078', '0501', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[실천문학의 시집 50] 가난한 사랑노래 : 신경림 시집 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0608078', '0501', '', 'N', ''); event.preventDefault();">[실천문학의 시집 50] 가난한 사랑노래 : 신경림 시집</a></li>
+                                  <li class="writer">신경림<span>실천문학사</span>2006-08-21</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0608078', '001', '[실천문학의 시집 50] 가난한 사랑노래 : 신경림 시집','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0608078','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="(김희보 에세이 로망) 子夜(자야) : 사랑했으므로 행복하였네라 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0605067', '1101', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="(김희보 에세이 로망) 子夜(자야) : 사랑했으므로 행복하였네라 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0605067', '1101', '', 'N', ''); event.preventDefault();">(김희보 에세이 로망) 子夜(자야) : 사랑했으므로 행복하였네라</a></li>
+                                  <li class="writer">김희보<span>가람기획</span>2006-08-04</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0605067', '001', '(김희보 에세이 로망) 子夜(자야) : 사랑했으므로 행복하였네라','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0605067','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[생각하는 세계사] 생각하는 세계사 서양 고대편 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0603023', '3307', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[생각하는 세계사] 생각하는 세계사 서양 고대편 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0603023', '3307', '', 'N', ''); event.preventDefault();">[생각하는 세계사] 생각하는 세계사 서양 고대편</a></li>
+                                  <li class="writer">역사사랑<span>을파소</span>2006-07-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0603023', '001', '[생각하는 세계사] 생각하는 세계사 서양 고대편','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0603023','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[생각하는 세계사] 생각하는 세계사 서양 중세편 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0603024', '3399', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[생각하는 세계사] 생각하는 세계사 서양 중세편 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0603024', '3399', '', 'N', ''); event.preventDefault();">[생각하는 세계사] 생각하는 세계사 서양 중세편</a></li>
+                                  <li class="writer">역사사랑<span>을파소</span>2006-07-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0603024', '001', '[생각하는 세계사] 생각하는 세계사 서양 중세편','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0603024','N');"/></span>
+                          </div>
+                        </li>
+                        <li>
+                          <div class="img">
+                            <a href="/elibrary-front/content/contentView.ink" title="[학습 도우미 11] 아름답고 슬픈 사랑의 별 이야기 | 고흥군립도서관" class="scale" onclick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0606193', '3399', '', 'N',''); event.preventDefault();">
+                            </a>
+                          </div>
+                          <div>
+                            <p>
+                                <span class="small ebook">전자책</span>
+                                  <span class="store">누리미디어</span>
+                            </p>
+                                <ul>
+                                  <li class="tit"><a href="/elibrary-front/content/contentView.ink" title="[학습 도우미 11] 아름답고 슬픈 사랑의 별 이야기 | 고흥군립도서관" onClick="javascript:searchList.fnContentClick(this, '001', 'NURI_N0606193', '3399', '', 'N', ''); event.preventDefault();">[학습 도우미 11] 아름답고 슬픈 사랑의 별 이야기</a></li>
+                                  <li class="writer">아동교육문화연구회<span>상서각</span>2006-07-31</li>
+                                </ul>
+                                    <p class="use"><span>[ 대출 : <strong>0/5</strong></span> 예약 :  <strong>0</strong> ]</p>
+                          </div>
+                          <div class="btn_area">
+                                                  <span><input type="button" name="brwBtn" value="대출" class="btn btn_mL btn_blue2" onClick="javascript:searchList.fnContentBorrow('N', '', '21900', '', 'NURI_N0606193', '001', '[학습 도우미 11] 아름답고 슬픈 사랑의 별 이야기','', 'NR','1', '', event);"/></span>
+                            <!-- 찜하기 -->
+                                        <span><input type="button" name="dibsBtn" value="찜" class="btn btn_mL btn_sel" onClick="javascript:searchList.fnDibs(this, 'NURI_N0606193','N');"/></span>
+                          </div>
+                        </li>
+                    </ul>
+                    <!-- paging -->
+                    <div id="searchList_pageNavi" class="pageNavi"></div>
+                <!-- // 내용 끝  -->
+              </div>
+            </section>
+          <!-- //sub_con -->
+          </form>
+        </div>
+      </div>
+      <!-- //con_wrap -->
+    </div>
+    <!--content END -->
+    <!--quick START -->
+<!-- quick 2020-07-08 -->
+<aside class="quick">
+	<ul>
+		<li class="item01"><a href="#" title="대출현황 | 고흥군립도서관" onClick="fnLoginCheck('loanStatus'); event.preventDefault();">대출현황</a></li>
+		<li class="item02"><a href="#" title="예약현황 | 고흥군립도서관" onClick="fnLoginCheck('prenStatus'); event.preventDefault();">예약현황</a></li>
+		<li class="item05"><a href="#" title="찜목록 | 고흥군립도서관" onClick="fnLoginCheck('wishStatus'); event.preventDefault();">찜목록</a></li>
+		<li class="use_info item03"><a href="#" title="이용안내 | 고흥군립도서관">이용안내</a>
+			<ul>
+				<li class="in_item01"><a href="/elibrary-front/helpDesk/libraryGuide.ink">전자도서관 안내</a></li>
+				<li class="in_item02"><a href="/elibrary-front/helpDesk/pcGuide.ink">PC 이용안내</a></li>
+				<li class="in_item03"><a href="/elibrary-front/helpDesk/mobileGuide.ink">모바일 이용안내</a></li>
+			</ul>
+		</li>
+		<li class="item04"><a href="/elibrary-front/content/contentBestList.ink?listType=A&cttsDvsnCode=all" title="부록서비스 | 고흥군립도서관">부록서비스</a></li>
+	</ul>
+	<div class="arr_btn">
+		<p><a href="#top" class="tab_scroll">맨 위로 올라가기</a></p>
+		<p><a href="#footer" class="tab_scroll">맨 아래로가기</a></p>
+	</div>
+</aside>
+    <!--quick END -->
+    <!--footer START -->
+<!-- foot -->
+<footer>
+<div class="foot_etc" id="footer">
+  <h2 class="hidden_obj">하단메뉴</h2>
+  <div>
+    <ul class="etc">
+      <li id="mobileViewBtn" style="display:none;"><a href="/elibrary-front/mobileView.ink">모바일버전</a></li>
+      <li><a href="/elibrary-front/member/memberPrivacy.ink">이용약관</a></li>
+      <li><a href="/elibrary-front/member/memberPromis.ink" style="font-weight:bold;text-decoration:underline;">개인정보처리방침</a></li>
+      <li><a href="/elibrary-front/member/memberYouthPolicy.ink">청소년보호정책</a></li>
+      <li><a href="/elibrary-front/siteMap/siteMap.ink">사이트맵</a></li>
+    </ul>
+    <div class="family">
+      <h3><a href="#">FAMILY SITE</a></h3>
+      <ul><li id="familySite"></li></ul>
+    </div>
+  </div>
+</div>
+<!-- footer_address -->
+<div class="foot_add">
+  <h2 class="hidden_obj">주소</h2>
+  <div>
+    <address class="address">
+      <p>도서관명 : 고흥군립도서관 | 주소 : 전남광주통합특별시 고흥군 고흥읍 고흥로 1793 (남계리 684-7)</p>
+        <p>대표전화 : 061-830-6953 | 팩스 : 061-830-5930</p>
+      <p>Copyright ⓒ KYOBO BOOK CENTRE. All rights reserved.</p>
+    </address>
+    <div class="ban_area">
+      <div class="foot_banner" id="footBnnr"></div>
+	  <!-- 고객지원센터 -->
+    </div>
+  </div>
+</div>
+</footer>
+    <!--footer END -->
+</div>
+<!-- //wrap -->
+</body>
+</html>

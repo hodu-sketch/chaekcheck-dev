@@ -1,0 +1,69 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.1'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.chaekcheck'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	// Spring Modulith 2.1.x is built against Spring Boot 4.1.x
+	set('springModulithVersion', '2.1.1')
+	set('jsoupVersion', '1.23.2')
+	// Catalog importer only (Maven Central latest 2026-09-30, Apache License 2.0)
+	set('sqliteJdbcVersion', '3.53.4.0')
+}
+
+configurations {
+	// The catalog importer reads the collected SQLite file through plain JDBC (ADR-0031). The driver is on the
+	// bootRun and test classpaths only, never in bootJar (user decision 2026-09-30).
+	catalogImport
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-liquibase'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.modulith:spring-modulith-starter-core'
+	// Version managed by Spring Boot
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+	implementation "org.jsoup:jsoup:${jsoupVersion}"
+	// implementation: the catalog importer writes with the driver's CopyManager (PostgreSQL COPY)
+	implementation 'org.postgresql:postgresql'
+	catalogImport "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
+	testRuntimeOnly "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-liquibase-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
+	}
+}
+
+tasks.named('bootRun') {
+	classpath += configurations.catalogImport
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	// Tests use the db-test service from ../compose.yaml (see application-test.yml)
+	systemProperty 'spring.profiles.active', 'test'
+}

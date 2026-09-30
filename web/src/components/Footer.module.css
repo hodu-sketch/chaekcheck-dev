@@ -1,0 +1,28 @@
+.footer {
+  border-top: 1px solid var(--rule);
+  background: var(--paper-deep);
+  margin-top: 2rem;
+}
+
+.inner {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 1.4rem var(--gutter) 1.8rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.contact {
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+@media (width <= 640px) {
+  .inner {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}

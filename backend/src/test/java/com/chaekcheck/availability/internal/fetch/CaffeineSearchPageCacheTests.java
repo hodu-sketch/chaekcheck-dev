@@ -1,0 +1,119 @@
+package com.chaekcheck.availability.internal.fetch;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
+import com.chaekcheck.availability.internal.SearchField;
+import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.adapter.ParsedPage;
+import com.github.benmanes.caffeine.cache.Ticker;
+
+/** AC-16: 3 minutes after write, with a fake ticker. */
+class CaffeineSearchPageCacheTests {
+
+	static final PageKey KEY = new PageKey(2, SearchField.TITLE, "사랑", 1);
+
+	AtomicLong nanos = new AtomicLong();
+
+	Ticker ticker = nanos::get;
+
+	ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+	CaffeineSearchPageCache cache = new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, ticker);
+
+	AtomicInteger loads = new AtomicInteger();
+
+	@AfterEach
+	void close() {
+		executor.close();
+	}
+
+	@Test
+	void sameKeyWithinThreeMinutesLoadsOnce() {
+		assertThat(cache.get(KEY, loader()).join().hit()).isFalse();
+		advance(Duration.ofMinutes(2).plusSeconds(59));
+		assertThat(cache.get(KEY, loader()).join().hit()).isTrue();
+
+		assertThat(loads).hasValue(1);
+	}
+
+	@Test
+	void loadsAgainAfterThreeMinutes() {
+		cache.get(KEY, loader()).join();
+		advance(Duration.ofMinutes(3).plusSeconds(1));
+
+		assertThat(cache.get(KEY, loader()).join().hit()).isFalse();
+		assertThat(loads).hasValue(2);
+	}
+
+	@Test
+	void differentPagesAreDifferentKeys() {
+		cache.get(KEY, loader()).join();
+		cache.get(new PageKey(2, SearchField.TITLE, "사랑", 2), loader()).join();
+		cache.get(new PageKey(2, SearchField.AUTHOR, "사랑", 1), loader()).join();
+
+		assertThat(loads).hasValue(3);
+	}
+
+	@Test
+	void failuresAreNotCached() {
+		assertThatThrownBy(() -> cache.get(KEY, () -> {
+			loads.incrementAndGet();
+			throw UpstreamException.error("boom");
+		}).join()).hasCauseInstanceOf(UpstreamException.class);
+
+		assertThat(cache.get(KEY, loader()).join().hit()).isFalse();
+		assertThat(loads).hasValue(2);
+	}
+
+	@Test
+	void concurrentRequestsForTheSameKeyShareOneLoad() throws Exception {
+		CountDownLatch release = new CountDownLatch(1);
+		Supplier<FetchedPage> slow = () -> {
+			await(release);
+			return loader().get();
+		};
+		List<CompletableFuture<SearchPageCache.Lookup>> lookups = List.of(cache.get(KEY, slow), cache.get(KEY, slow),
+				cache.get(KEY, slow));
+		release.countDown();
+
+		assertThat(lookups).allSatisfy(f -> assertThat(f.join().page()).isNotNull());
+		assertThat(loads).hasValue(1);
+	}
+
+	private Supplier<FetchedPage> loader() {
+		return () -> {
+			loads.incrementAndGet();
+			return new FetchedPage(new ParsedPage(0, List.of()), URI.create("https://example.test"), Instant.now());
+		};
+	}
+
+	private void advance(Duration duration) {
+		nanos.addAndGet(duration.toNanos());
+	}
+
+	private static void await(CountDownLatch latch) {
+		try {
+			latch.await();
+		}
+		catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+		}
+	}
+
+}

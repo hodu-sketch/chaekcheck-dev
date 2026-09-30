@@ -1,0 +1,593 @@
+
+          <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta id="_csrf" name="_csrf" th:content=""/>
+				<meta id="_csrf_header" name="_csrf_header" th:content=""/>
+				<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+                <title>인천광역시교육청통합전자도서관</title>
+				<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0">
+				<link rel="stylesheet" type="text/css" href="/resources/common/css/fontawesome.min.css"/>
+				<link rel="stylesheet" href="/resources/homepage/elib/css/defualt.css">
+                <link rel="stylesheet" type="text/css" href="/resources/common/css/jquery.mmenu.css"/>
+                <link rel="stylesheet" type="text/css" href="/resources/common/css/navi.css"/>
+            </head>
+            <body>
+<link rel="stylesheet" href="/resources/common/css/default.css">
+<link rel="stylesheet" href="/resources/board/css/default.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/default_sub_lnb_elib.css">
+<link rel="stylesheet" type="text/css" href="/resources/common/css/default_sub_body.css">
+<link rel="stylesheet" type="text/css" href="/resources/homepage/elib/css/sub.css">
+			<div id="wrap">
+				<div class="new_quick_menu">
+					<div class="new_quick_menu_wrapper">
+						<a href="https://lib.ice.go.kr/elib/" class="new_quick_menu_list" style="background: #fce156; color: #144293">• 통합전자도서관</a>
+						<a href="https://lib.ice.go.kr/ice/index.do" class="new_quick_menu_list" style="background: #fce156; color: #144293">• 통합홈페이지</a>
+						<a href="https://www.youtube.com/channel/UC1sugBj_RlVnmk8GoRQk-4Q" class="new_quick_menu_list" style="background: #fce156; color: #144293">• 통합유튜브</a>
+						<a href="https://lib.ice.go.kr/shintree/index.do" class="new_quick_menu_list">• 신트리도서관</a>
+						<a href="https://lib.ice.go.kr/jungang/" class="new_quick_menu_list">• 중앙도서관</a>
+						<a href="https://lib.ice.go.kr/bupyeong/" class="new_quick_menu_list">• 부평도서관</a>
+						<a href="https://lib.ice.go.kr/juan/" class="new_quick_menu_list">• 주안도서관</a>
+						<a href="https://lib.ice.go.kr/hwadojin/" class="new_quick_menu_list">• 화도진도서관</a>
+						<a href="https://lib.ice.go.kr/seogu/" class="new_quick_menu_list">• 서구도서관</a>
+						<a href="https://lib.ice.go.kr/gyeyang/" class="new_quick_menu_list">• 계양도서관</a>
+						<a href="https://lib.ice.go.kr/yeonsu/" class="new_quick_menu_list">• 연수도서관</a>
+						<a href="https://www.ilec.go.kr/main/web/index" class="new_quick_menu_list">• 평생학습관</a>
+					</div>
+				  </div>
+				<nav id="menu"></nav>
+				<div id="header">
+<div id="tnbWrap">
+    <div class="section over-initial" style="position:relative;">
+<h1 class="logo">
+    <a href="/elib/index.do"></a>
+    <p style="color: #fff; font-size: 11px; margin: 5px 0 0 20px;">(신트리도서관 운영)</p>
+</h1>
+<div class="searchBox">
+    <form id="mainSearchForm" method="POST" action="/elib/module/elib/search/index.do">
+        <input type="hidden" name="menu_idx" value="49">
+        <input type="hidden" name="viewPage" value="1">
+        <label for="search-text">통합검색서비스</label>
+        <input name="search_text" id="search-text" type="text" class="text" placeholder="통합전자도서관 로그인 전에는 통합용 전자책만 검색됩니다">
+        <button class="btn-search">검색하기</button>
+    </form>
+</div>
+<div class="util">
+    <ul>
+                <li><a href="/elib/intro/login/index.do?menu_idx=43" >로그인</a></li>
+                <li><a href="/elib/html.do?menu_idx=44" >회원가입</a></li>
+        <li><a href="http://lib.ice.go.kr/ice/index.do" target="_blank" class="iNone" rel="noopener noreferrer">통합공공도서관</a></li>
+        <li class="menu_sitemap"><a href="/elib/sitemap/index.do?menu_idx=38">메뉴</a></li>
+        <li class="menu"><a href="#;">메뉴</a></li>
+    </ul>
+</div>
+    </div>
+</div>
+<div id="gnbWrap">
+	<div class="Gnb">
+    <div class="section">
+		<div class="mmode m-menu">
+			<a href="#menu"><i class="fa fa-navicon"></i><span class="blind">메뉴</span></a>
+		</div>
+		<div class="mmode2 m-menu2">
+			<a href="#menu2"><i class="fa fa-user"></i></a>
+			<div class="mylibrary" style="display: none; ">
+				<div class="libraryBox" style="right: -100%; transition: 0.3s;">
+					<div class="mylibrary-mmode">
+								<a href="/elib/intro/login/index.do?menu_idx=149" class="btn1">
+									<i class="fa fa-lock"></i>
+									<span>로그인</span>
+								</a>
+								<a href="/elib/html.do?menu_idx=44" class="btn2">
+									<i class="fa fa-user-plus"></i>
+									<span>회원가입</span>
+								</a>
+						<a href="#" alt="닫기" class="close"><i class="fa fa-times-circle-o alert-cancle"></i></a>
+					</div>
+					<div class="mylibrary_menu">
+						<ul class="gnbMenu">
+<li class="List 1Depth menu1 menu_53"><a href="/elib/html/html5.do?menu_idx=53" ><span>구독형 전자책/오디오북</span></a></li>
+<li class="List 1Depth menu2 menu_1"><a href="/elib/html.do?menu_idx=1" ><span>소장형 전자책</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_11"><a href="/elib/module/elib/book/index.do?menu_idx=11&menu=NEW&type=EBK" ><span>신간</span></a></li>
+<li class="2Depth menu_12"><a href="/elib/module/elib/book/index.do?menu_idx=12&menu=BEST&type=EBK" ><span>대출 베스트</span></a></li>
+<li class="2Depth menu_13"><a href="/elib/module/elib/book/index.do?menu_idx=13&menu=RECOMMEND&type=EBK" ><span>좋아요(이용자 추천)</span></a></li>
+<li class="2Depth menu_39"><a href="/elib/module/elib/book/index.do?menu_idx=39&menu=LIBRARY&type=EBK" ><span>도서관별</span></a></li>
+<li class="2Depth menu_15"><a href="/elib/module/elib/book/index.do?menu_idx=15&menu=PROVIDER&type=EBK" ><span>공급사별</span></a></li>
+<li class="2Depth menu_14"><a href="/elib/module/elib/book/index.do?menu_idx=14&menu=CATEGORY&type=EBK" ><span>분야별</span></a></li></ul></div></li>
+<li class="List 1Depth menu3 menu_2"><a href="/elib/html.do?menu_idx=2" ><span>소장형 오디오북</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_23"><a href="/elib/module/elib/book/index.do?menu_idx=23&menu=NEW&type=ADO" ><span>신간</span></a></li>
+<li class="2Depth menu_24"><a href="/elib/module/elib/book/index.do?menu_idx=24&menu=BEST&type=ADO" ><span>대출 베스트</span></a></li>
+<li class="2Depth menu_25"><a href="/elib/module/elib/book/index.do?menu_idx=25&menu=RECOMMEND&type=ADO" ><span>좋아요(이용자 추천)</span></a></li>
+<li class="2Depth menu_40"><a href="/elib/module/elib/book/index.do?menu_idx=40&menu=LIBRARY&type=ADO" ><span>도서관별</span></a></li>
+<li class="2Depth menu_27"><a href="/elib/module/elib/book/index.do?menu_idx=27&menu=PROVIDER&type=ADO" ><span>공급사별</span></a></li>
+<li class="2Depth menu_26"><a href="/elib/module/elib/book/index.do?menu_idx=26&menu=CATEGORY&type=ADO" ><span>분야별</span></a></li></ul></div></li>
+<li class="List 1Depth menu4 menu_5"><a href="/elib/html.do?menu_idx=5" ><span>학술DB</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_35"><a href="/elib/module/elib/e_article.do?menu_idx=35" ><span>DBpia</span></a></li></ul></div></li>
+<li class="List 1Depth menu5 menu_6"><a href="/elib/html.do?menu_idx=6" ><span>전자잡지</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_62"><a href="/elib/module/elib/pressreader.do?menu_idx=62" ><span>프레스리더(전자신문·잡지)</span></a></li>
+<li class="2Depth menu_37"><a href="/elib/module/elib/moazine.do?menu_idx=37" ><span>모아진</span></a></li></ul></div></li>
+<li class="List 1Depth menu6 menu_17"><a href="/elib/html.do?menu_idx=17" ><span>나의 도서관</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_18"><a href="/module/elib/lending/index.do?menu_idx=19&menu=LENDING" ><span>도서대출내역</span></a>
+<ul>
+<li class="3Depth menu_19"><a href="/elib/module/elib/lending/index.do?menu_idx=19&menu=LENDING" ><span>대출조회</span></a></li>
+<li class="3Depth menu_20"><a href="/elib/module/elib/lending/index.do?menu_idx=20&menu=RESERVE" ><span>예약도서</span></a></li>
+<li class="3Depth menu_21"><a href="/elib/module/elib/lending/index.do?menu_idx=21&menu=HISTORY" ><span>대출이력</span></a></li></ul></li>
+<li class="2Depth menu_22"><a href="/elib/module/elib/lending/index.do?menu_idx=22&menu=MYSTUDY" ><span>보관함</span></a></li>
+<li class="2Depth menu_54"><a href="/elib/html/mcard.do?menu_idx=54" ><span>모바일회원증</span></a></li>
+<li class="2Depth menu_56"><a href="/elib/intro/join/untactForm.do?menu_idx=56" ><span>인천시민인증</span></a></li>
+<li class="2Depth menu_58"><a href="/elib/intro/join/modifyForm.do?menu_idx=58" ><span>회원정보수정</span></a></li>
+<li class="2Depth menu_59"><a href="/elib/intro/join/changePwForm.do?menu_idx=59" ><span>비밀번호변경</span></a></li>
+<li class="2Depth menu_60"><a href="/elib/module/elib/lending/hopebook.do?menu_idx=60" ><span>희망 전자책/오디오북 신청</span></a></li></ul></div></li>
+<li class="List 1Depth menu7 menu_7"><a href="/elib/html.do?menu_idx=7" ><span>통합전자도서관 안내</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_61"><a href="/elib/html.do?menu_idx=61" ><span>회원가입안내</span></a></li>
+<li class="2Depth menu_34"><a href="/elib/html.do?menu_idx=34" ><span>이용안내</span></a></li>
+<li class="2Depth menu_8"><a href="/elib/board/index.do?menu_idx=8&manage_idx=216" ><span>공지사항</span></a></li>
+<li class="2Depth menu_9"><a href="/elib/board/index.do?menu_idx=9&manage_idx=217" ><span>자주하는 질문</span></a></li>
+<li class="2Depth menu_38"><a href="/elib/sitemap/index.do?menu_idx=38" ><span>사이트맵</span></a></li></ul></div></li>
+<li style="display:none" class="List 1Depth menu8 menu_42"><a href="/elib/intro/login/index.do?menu_idx=42" ><span>로그인</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_43"><a href="/elib/intro/login/index.do?menu_idx=43" ><span>로그인</span></a></li>
+<li class="2Depth menu_44"><a href="/elib/html.do?menu_idx=44" ><span>회원가입</span></a></li>
+<li class="2Depth menu_55"><a href="/elib/intro/join/changeover.do?menu_idx=55" ><span>비대면자격확인인증안내</span></a></li></ul></div></li></ul>
+					</div>
+				</div>
+				<div class="emptyArea">
+				</div>
+			</div>
+		</div>
+		<div class="g-menu">
+       		<ul class="gnbMenu">
+<li class="List 1Depth menu1 menu_53"><a href="/elib/html/html5.do?menu_idx=53" ><span>구독형 전자책/오디오북</span></a></li>
+<li class="List 1Depth menu2 menu_1"><a href="/elib/html.do?menu_idx=1" ><span>소장형 전자책</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_11"><a href="/elib/module/elib/book/index.do?menu_idx=11&menu=NEW&type=EBK" ><span>신간</span></a></li>
+<li class="2Depth menu_12"><a href="/elib/module/elib/book/index.do?menu_idx=12&menu=BEST&type=EBK" ><span>대출 베스트</span></a></li>
+<li class="2Depth menu_13"><a href="/elib/module/elib/book/index.do?menu_idx=13&menu=RECOMMEND&type=EBK" ><span>좋아요(이용자 추천)</span></a></li>
+<li class="2Depth menu_39"><a href="/elib/module/elib/book/index.do?menu_idx=39&menu=LIBRARY&type=EBK" ><span>도서관별</span></a></li>
+<li class="2Depth menu_15"><a href="/elib/module/elib/book/index.do?menu_idx=15&menu=PROVIDER&type=EBK" ><span>공급사별</span></a></li>
+<li class="2Depth menu_14"><a href="/elib/module/elib/book/index.do?menu_idx=14&menu=CATEGORY&type=EBK" ><span>분야별</span></a></li></ul></div></li>
+<li class="List 1Depth menu3 menu_2"><a href="/elib/html.do?menu_idx=2" ><span>소장형 오디오북</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_23"><a href="/elib/module/elib/book/index.do?menu_idx=23&menu=NEW&type=ADO" ><span>신간</span></a></li>
+<li class="2Depth menu_24"><a href="/elib/module/elib/book/index.do?menu_idx=24&menu=BEST&type=ADO" ><span>대출 베스트</span></a></li>
+<li class="2Depth menu_25"><a href="/elib/module/elib/book/index.do?menu_idx=25&menu=RECOMMEND&type=ADO" ><span>좋아요(이용자 추천)</span></a></li>
+<li class="2Depth menu_40"><a href="/elib/module/elib/book/index.do?menu_idx=40&menu=LIBRARY&type=ADO" ><span>도서관별</span></a></li>
+<li class="2Depth menu_27"><a href="/elib/module/elib/book/index.do?menu_idx=27&menu=PROVIDER&type=ADO" ><span>공급사별</span></a></li>
+<li class="2Depth menu_26"><a href="/elib/module/elib/book/index.do?menu_idx=26&menu=CATEGORY&type=ADO" ><span>분야별</span></a></li></ul></div></li>
+<li class="List 1Depth menu4 menu_5"><a href="/elib/html.do?menu_idx=5" ><span>학술DB</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_35"><a href="/elib/module/elib/e_article.do?menu_idx=35" ><span>DBpia</span></a></li></ul></div></li>
+<li class="List 1Depth menu5 menu_6"><a href="/elib/html.do?menu_idx=6" ><span>전자잡지</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_62"><a href="/elib/module/elib/pressreader.do?menu_idx=62" ><span>프레스리더(전자신문·잡지)</span></a></li>
+<li class="2Depth menu_37"><a href="/elib/module/elib/moazine.do?menu_idx=37" ><span>모아진</span></a></li></ul></div></li>
+<li class="List 1Depth menu6 menu_17"><a href="/elib/html.do?menu_idx=17" ><span>나의 도서관</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_18"><a href="/module/elib/lending/index.do?menu_idx=19&menu=LENDING" ><span>도서대출내역</span></a>
+<ul>
+<li class="3Depth menu_19"><a href="/elib/module/elib/lending/index.do?menu_idx=19&menu=LENDING" ><span>대출조회</span></a></li>
+<li class="3Depth menu_20"><a href="/elib/module/elib/lending/index.do?menu_idx=20&menu=RESERVE" ><span>예약도서</span></a></li>
+<li class="3Depth menu_21"><a href="/elib/module/elib/lending/index.do?menu_idx=21&menu=HISTORY" ><span>대출이력</span></a></li></ul></li>
+<li class="2Depth menu_22"><a href="/elib/module/elib/lending/index.do?menu_idx=22&menu=MYSTUDY" ><span>보관함</span></a></li>
+<li class="2Depth menu_54"><a href="/elib/html/mcard.do?menu_idx=54" ><span>모바일회원증</span></a></li>
+<li class="2Depth menu_56"><a href="/elib/intro/join/untactForm.do?menu_idx=56" ><span>인천시민인증</span></a></li>
+<li class="2Depth menu_58"><a href="/elib/intro/join/modifyForm.do?menu_idx=58" ><span>회원정보수정</span></a></li>
+<li class="2Depth menu_59"><a href="/elib/intro/join/changePwForm.do?menu_idx=59" ><span>비밀번호변경</span></a></li>
+<li class="2Depth menu_60"><a href="/elib/module/elib/lending/hopebook.do?menu_idx=60" ><span>희망 전자책/오디오북 신청</span></a></li></ul></div></li>
+<li class="List 1Depth menu7 menu_7"><a href="/elib/html.do?menu_idx=7" ><span>통합전자도서관 안내</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_61"><a href="/elib/html.do?menu_idx=61" ><span>회원가입안내</span></a></li>
+<li class="2Depth menu_34"><a href="/elib/html.do?menu_idx=34" ><span>이용안내</span></a></li>
+<li class="2Depth menu_8"><a href="/elib/board/index.do?menu_idx=8&manage_idx=216" ><span>공지사항</span></a></li>
+<li class="2Depth menu_9"><a href="/elib/board/index.do?menu_idx=9&manage_idx=217" ><span>자주하는 질문</span></a></li>
+<li class="2Depth menu_38"><a href="/elib/sitemap/index.do?menu_idx=38" ><span>사이트맵</span></a></li></ul></div></li>
+<li style="display:none" class="List 1Depth menu8 menu_42"><a href="/elib/intro/login/index.do?menu_idx=42" ><span>로그인</span></a>
+<div class="subMenu">
+<ul>
+<li class="2Depth menu_43"><a href="/elib/intro/login/index.do?menu_idx=43" ><span>로그인</span></a></li>
+<li class="2Depth menu_44"><a href="/elib/html.do?menu_idx=44" ><span>회원가입</span></a></li>
+<li class="2Depth menu_55"><a href="/elib/intro/join/changeover.do?menu_idx=55" ><span>비대면자격확인인증안내</span></a></li></ul></div></li></ul>
+	       	<div class="mmode" style="display:none;">
+						<a href="/elib/intro/login/index.do?menu_idx=43" title="로그인 페이지 새창으로 엽니다." class="btn1">
+							<i class="fa fa-lock"></i>
+							<span>로그인</span>
+						</a>
+						<a href="/elib/html.do?menu_idx=44" title="회원가입 페이지 새창으로 엽니다." class="btn2">
+							<i class="fa fa-user-plus"></i>
+							<span>회원가입</span>
+						</a>
+			</div>
+		</div>
+    </div>
+    	<div class="mask">&nbsp;</div>
+   </div>
+</div>
+				</div>
+				<div class="subContainer">
+					<div class="section">
+						<div class="content">
+							<div class="doc">
+								<div class="doc-head">
+									<div class="doc-title">
+										<h3></h3>
+									</div>
+								</div>
+								<div class="doc-body" id="contentArea">
+									<div class="body">
+<link rel="stylesheet" type="text/css" href="/resources/book/search/css/default.css"/>
+<form id="detailForm" action="../book/view.do" method="GET">
+<input id="detail_menu_idx" name="menu_idx" value="10" type="hidden" value="10"/>
+<input id="detail_book_idx" name="book_idx" type="hidden" value="0"/>
+<input id="detail_viewPage" name="viewPage" value="1" type="hidden" value="1"/>
+<input id="detail_search_text" name="search_text" value="사랑" type="hidden" value="사랑"/>
+<input id="detail_search_type" name="search_type" type="hidden" value=""/>
+<input id="detail_type" name="type" type="hidden" value=""/>
+<input id="detail_author_name" name="author_name" type="hidden" value=""/>
+<input id="detail_book_pubname" name="book_pubname" type="hidden" value=""/>
+<input id="detail_book_year" name="book_year" type="hidden" value=""/>
+<input id="detail_rowCount" name="rowCount" value="10" type="hidden" value="10"/>
+<input type="hidden" name="from_search" value="Y">
+</form>
+<form id="book" action="index.do" method="GET">
+	<input id="menu_idx" name="menu_idx" type="hidden" value="10"/>
+	<input id="type" name="type" type="hidden" value=""/>
+	<input id="search_type" name="search_type" type="hidden" value=""/>
+	<input id="author_name" name="author_name" type="hidden" value=""/>
+	<input id="book_pubname" name="book_pubname" type="hidden" value=""/>
+	<input id="book_year" name="book_year" type="hidden" value=""/>
+	<input id="device" name="device" type="hidden" value=""/>
+	<input id="viewPage" name="viewPage" type="hidden" value="1"/>
+	<div class="search-wrap">
+		<div class="search-form">
+			<div class="box">
+				<div class="b1">
+					<input id="search_text" name="search_text" style="ime-mode:active;" placeholder="검색어를 입력하세요." type="text" class="text" onfocus="PopupVirtualKeyboard.attachInput(this)" value="사랑"/>
+				</div>
+				<div class="b2">
+					<button id="do-search"><i class="fa fa-search"></i><span class="blind">검색</span></button>
+				</div>
+			</div>
+			<br/>
+			<div id="autoFill">
+			</div>
+			<p style="height:auto">
+			  <a id="vk-popup" class="btn" style="line-height:140%">
+			    <i class="fa fa-keyboard-o" style="font-size:19px;color:#777"></i><span>외국어입력기</span>
+			  </a>
+			</p>
+		</div>
+		<br/>
+		<div class="search-info" >
+				검색결과 '<b class="og"><i>사랑</i></b>'에 대한 <b>1</b>/16페이지, 총 <b>154</b>건
+		</div>
+		<div class="smain">
+			<div class="box">
+				<div class="ws-toolbar">
+					<div class="control">
+						<select id="rowCount" name="rowCount" class="selectmenu" style="width:70px;">
+							<option value="10" selected="selected">10건</option>
+							<option value="20">20건</option>
+							<option value="30">30건</option>
+							<option value="40">40건</option>
+							<option value="50">50건</option>
+						</select>
+					</div>
+				</div>
+				<div id="search-results" class="search-results">
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="5203" data-type="EBK" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="5203" data-type="EBK" class="name goDetail">내가 <span style='color:#ffa651'>사랑</span>한 유럽 TOP10</a>
+										<p>정여울</p>
+										<p>홍익출판사, 2014-01-15</p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="5224" data-type="EBK" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="5224" data-type="EBK" class="name goDetail">나를 <span style='color:#ffa651'>사랑</span>할 용기</a>
+										<p>기시미 이치로</p>
+										<p>한국경제신문사, 2016-12-16</p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 1<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="5236" data-type="EBK" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="5236" data-type="EBK" class="name goDetail">나이 든 부모를 <span style='color:#ffa651'>사랑</span>할 수 있습니까</a>
+										<p>기시미 이치로</p>
+										<p>인플루엔셜, 2017-03-15</p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="5255" data-type="EBK" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="5255" data-type="EBK" class="name goDetail">모두에게 <span style='color:#ffa651'>사랑</span>받을 필요는 없다</a>
+										<p>재키 마슨</p>
+										<p>윌컴퍼니, 2014-04-02</p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="8395" data-type="ADO" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="8395" data-type="ADO" class="name goDetail">살고, <span style='color:#ffa651'>사랑</span>하고, 웃으라</a>
+										<p>이솝</p>
+										<p>원앤원스타일, </p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="8398" data-type="ADO" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="8398" data-type="ADO" class="name goDetail">한국인이 가장 좋아하는 <span style='color:#ffa651'>사랑</span>시 연시</a>
+										<p>정시언</p>
+										<p>미래와감성, </p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="8434" data-type="ADO" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="8434" data-type="ADO" class="name goDetail">[요약] 스완의 <span style='color:#ffa651'>사랑</span></a>
+										<p>작자미상</p>
+										<p>북코스모스, </p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="8576" data-type="ADO" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="8576" data-type="ADO" class="name goDetail">첫<span style='color:#ffa651'>사랑</span></a>
+										<p>김희진</p>
+										<p>신영미디어, </p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="8577" data-type="ADO" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="8577" data-type="ADO" class="name goDetail"><span style='color:#ffa651'>사랑</span>한다, 더 많이 <span style='color:#ffa651'>사랑</span>한다</a>
+										<p>최종길</p>
+										<p>밝은세상, </p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="row">
+							<div class="thumb">
+										<a href="#" data-book_idx="8586" data-type="ADO" class="goDetail">
+										</a>
+							</div>
+							<div class="box">
+								<div class="item">
+									<div class="bif">
+										<a href="#" data-book_idx="8586" data-type="ADO" class="name goDetail">어느 전투 조종사의 <span style='color:#ffa651'>사랑</span></a>
+										<p>장소영</p>
+										<p>발해커뮤니케이션, </p>
+										<p>인천광역시교육청통합공공도서관</p>
+										<p>대출 가능 여부: <span class="txt-bar">&nbsp;</span>대출 : 0<span class="txt-bar">&nbsp;</span>예약 : 0</p>
+									</div>
+								</div>
+							</div>
+						</div>
+<div id="cms_paging" class="dataTables_paginate">
+	<span>
+	<a id="1" href="" class="paginate_button current" keyValue="1">1</a>
+	<a id="2" href="" class="paginate_button" keyValue="2">2</a>
+	<a id="3" href="" class="paginate_button" keyValue="3">3</a>
+	<a id="4" href="" class="paginate_button" keyValue="4">4</a>
+	<a id="5" href="" class="paginate_button" keyValue="5">5</a>
+	<a id="6" href="" class="paginate_button" keyValue="6">6</a>
+	<a id="7" href="" class="paginate_button" keyValue="7">7</a>
+	<a id="8" href="" class="paginate_button" keyValue="8">8</a>
+	<a id="9" href="" class="paginate_button" keyValue="9">9</a>
+	<a id="10" href="" class="paginate_button" keyValue="10">10</a>
+	<a href="" class="paginate_button next" keyValue="11">다음</a>
+	<a href="" class="paginate_button next" keyValue="16">맨끝</a>
+	</span>
+</div>
+				</div>
+			</div>
+			<div class="ws-filter">
+				<h4>검색결과 제한</h4>
+				<ul>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">유형별</a>
+						<ul>
+								<li><a href="#" class="doSearchType" data-type="EBK"><span>이북</span><em>(119)</em></a></li>
+								<li><a href="#" class="doSearchType" data-type="ADO"><span>오디오북</span><em>(35)</em></a></li>
+						</ul>
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">저자별</a>
+						<ul>
+								<li><a href="#" class="doSearchWriter" data-author_name="김재식"><span>김재식</span><em>(3)</em></a></li>
+								<li><a href="#" class="doSearchWriter" data-author_name="김탁환 저자"><span>김탁환 저자</span><em>(3)</em></a></li>
+								<li><a href="#" class="doSearchWriter" data-author_name="찰스 가비스"><span>찰스 가비스</span><em>(2)</em></a></li>
+								<li><a href="#" class="doSearchWriter" data-author_name="이기주"><span>이기주</span><em>(2)</em></a></li>
+								<li><a href="#" class="doSearchWriter" data-author_name="기시미 이치로"><span>기시미 이치로</span><em>(2)</em></a></li>
+						</ul>
+							<p><a href="#" class="moreAuthor">더보기 +</a></p>
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">출판사</a>
+						<ul>
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="북로그컴퍼니"><span>북로그컴퍼니</span><em>(4)</em></a></li>
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="쌤앤파커스"><span>쌤앤파커스</span><em>(4)</em></a></li>
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="애플북스"><span>애플북스</span><em>(4)</em></a></li>
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="좋은땅"><span>좋은땅</span><em>(3)</em></a></li>
+								<li><a href="#" class="doSearchPublisher" data-book_pubname="반니"><span>반니</span><em>(3)</em></a></li>
+						</ul>
+							<p><a href="#" class="morePublisher">더보기 +</a></p>
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">연도별</a>
+						<ul>
+								<li><a href="#" class="doSearchYear" data-book_year="2022"><span>2022</span><em>(23)</em></a></li>
+								<li><a href="#" class="doSearchYear" data-book_year="2018"><span>2018</span><em>(21)</em></a></li>
+								<li><a href="#" class="doSearchYear" data-book_year="2019"><span>2019</span><em>(16)</em></a></li>
+								<li><a href="#" class="doSearchYear" data-book_year="2020"><span>2020</span><em>(15)</em></a></li>
+								<li><a href="#" class="doSearchYear" data-book_year="2016"><span>2016</span><em>(13)</em></a></li>
+						</ul>
+							<p><a href="#" class="moreYear">더보기 +</a></p>
+					</li>
+					<li class="li-group active"><a href="" class="bi" onclick="return false;">기기별</a>
+						<ul>
+								<li><a href="#" class="doSearchDevice" data-device="3"><span>PC, 태블릿, 스마트폰</span><em>(154)</em></a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</form>
+<div id="vk"></div>
+<form id="printForm" name="printForm" hidden="hidden">
+	<input id="print_cmd_page" name="print_cmd_page" type="hidden" value="INDEX">
+</form>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div id="footer">
+    <div id="footWrap">
+        <div class="footer">
+            <div class="section">
+                <div class="footerLink">
+                    <a href="https://lib.ice.go.kr/shintree/html.do?menu_idx=125" target="_blank" rel="noopener noreferrer" class="privacyPolicy">개인정보처리방침</a>
+                    <a href="http://lib.ice.go.kr/ice/index.do" target="_blank" rel="noopener noreferrer">통합공공도서관</a>
+                    <div class="selectBox">
+                        <select id="site-select-box" title="관련 사이트 이동" style="float: left; width: 73%;">
+							<option value="" title="관련 사이트 이동">도서관 선택</option>
+									<option value="http://lib.ice.go.kr/gyeyang/index.do" title="인천광역시교육청계양도서관"> 인천광역시교육청계양도서관</option>
+									<option value="http://lib.ice.go.kr/bupyeong/index.do" title="인천광역시교육청부평도서관"> 인천광역시교육청부평도서관</option>
+									<option value="http://lib.ice.go.kr/seogu/index.do" title="인천광역시교육청서구도서관"> 인천광역시교육청서구도서관</option>
+									<option value="http://lib.ice.go.kr/shintree/index.do" title="인천광역시교육청신트리도서관"> 인천광역시교육청신트리도서관</option>
+									<option value="http://lib.ice.go.kr/yeonsu/index.do" title="인천광역시교육청연수도서관"> 인천광역시교육청연수도서관</option>
+									<option value="https://lib.ice.go.kr/juan/index.do" title="인천광역시교육청주안도서관"> 인천광역시교육청주안도서관</option>
+									<option value="http://lib.ice.go.kr/jungang/index.do" title="인천광역시교육청중앙도서관"> 인천광역시교육청중앙도서관</option>
+									<option value="http://lib.ice.go.kr/ice/index.do" title="인천광역시교육청통합공공도서관"> 인천광역시교육청통합공공도서관</option>
+									<option value="https://www.ilec.go.kr/main/web/index" title="인천광역시교육청평생학습관도서관"> 인천광역시교육청평생학습관도서관</option>
+									<option value="http://lib.ice.go.kr/hwadojin/index.do" title="인천광역시교육청화도진도서관"> 인천광역시교육청화도진도서관</option>
+						</select><a href="" id="goto-btn" title="이동" class="movebtn" style="padding-left: 10px; width: 54px; background: none; border-left: 0; border-right: 0;">이동</a>
+                    </div>
+                    <a href="https://www.nl.go.kr/" target="_blank" rel="noopener noreferrer">국립중앙도서관</a>
+                    <a href="https://www.nanet.go.kr/main.do" target="_blank" rel="noopener noreferrer">국회도서관</a>
+                    <a href="https://www.dlibrary.go.kr/" target="_blank" rel="noopener noreferrer">국가전자도서관</a>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="address">
+                <dl>
+                    <dt>주소</dt>
+                    <dd>(우)21354 인천 부평구 신트리로 21 (부평동, 신트리도서관)</dd>
+                </dl>
+                <dl>
+                    <dt>전화</dt>
+                    <dd>032-363-5000~1</dd>
+                </dl>
+                <dl>
+                    <dt>팩스</dt>
+                    <dd>032-363-5060</dd>
+                </dl>
+                <span>Copyright ⓒ by Incheon Metropolitan City of Education Public Library, All rights reserved.</span>
+            </div>
+        </div>
+    </div>
+				</div>
+			</div>
+	</body>
+</html>

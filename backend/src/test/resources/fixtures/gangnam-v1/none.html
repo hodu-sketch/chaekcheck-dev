@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=euc-kr" />
+<meta property="og:image" content="https://library.gangnam.go.kr/include/image/common/og-image.png">
+<meta property="og:image" content="/include/image/common/og-image.png"> 
+<link rel="icon" type="image/png" href="/common/favicon.png" />
+<link rel="shortcut icon" type="image/x-icon"  href="https://library.gangnam.go.kr/include/image/common/og-image.png">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>강남구 전자도서관</title>
+  <link rel="stylesheet" type="text/css" href="/common/css/style.css">
+</head>
+<body>
+<div id="wrap">
+	<div id="skip_nav"> <a href="#container">본문 바로가기</a> <a href="#gnb">대메뉴 바로가기</a> </div>
+	<div id="header">
+		<div class="top_menu"><a href='/'>홈</a><a href='/elibmem/mem_login.asp'>로그인</a><a href='/elibmreg/mem_policy.asp'>회원가입</a><a href='/elibmylib/mylib_info.asp' class='my_library'>내서재</a> </div>
+		<div class="gnb_wrap">
+			<h1 class="logo"><a href="/"><span></span><span></span></a></h1>
+			<div id="gnb" class="gnb">
+				<ul>
+                     <li class="mon"><a href="/elibbook/book_list.asp">소장전자책</a></li> 
+                     <li class=""><a href="/elibcs/notice.asp">고객만족센터</a></li> 
+                     <li class=""><a href="/gnnews/gn_recomd.asp">강남구 소식</a></li> 
+                     <li class=""><a href="/elibinfo/lib_intro.asp">전자도서관 안내</a></li> 
+				</ul>
+			</div>
+			<div class="btn_wrap">
+				<button type="button" class="btn_icn icn_menu"  onClick="allM()">전체메뉴</button>
+				<button type="button" class="btn_icn icn_search" onclick="Search_show()">검색</button>
+			</div>
+			<div style="display: none"> 전체메뉴</div>
+			<div style="display: none"> 검색</div>
+		</div> 
+		<div class="snb menu03">
+			<ul>
+<li class="off"><a href='/elibbook/book_list.asp' class="off">새로들어온 전자책</a></li>
+<li class="off"><a href='/elibbook/book_best.asp' class="off">대출베스트</a></li>
+<li class="off"><a href='/elibbook/book_recom.asp' class="off">회원추천도서</a></li>
+<li class="off"><a href='/elibbook/book_category.asp' class="off">주제분류별 정보</a></li>
+<li class="off"><a href='/elibbook/book_search.asp' class="off">상세검색</a></li>
+			</ul>
+		</div>
+  <div class="header_search_wrap" id="search" style="display:none"><FORM NAME="simpleSearch" method="get" action="/elibbook/book_info.asp" onsubmit="return simpleCheck(this)">
+    <div class="header_search">
+      <label for="" class="hidden">검색어입력</label>
+      <select id="" name="search">
+        <option value="title">도서명</option>
+        <option value="author">저자</option>
+        <option value="publisher">출판사</option>
+      </select>
+      <label for="strSearch" class="hidden">검색어입력</label>
+      <input type="text" id="strSearch" name="strSearch" value="" class="search_keyword" placeholder="검색어를 입력하세요" >
+      <div class="btn_group">
+        <button type="submit" class="btn btn_icn icn_unity_search" title="검색">검색</button>
+        <button type="button" class="btn btn_icn icn_unity_filter" title="상세검색" onclick="window.open('/elibbook/book_search.asp','_self')">검색상세</button>
+      </div>
+      <button type="button" class="btn btn_icn icn_close" title="닫기" onclick="$('#search').hide()">닫기</button>
+    </div></form>
+  </div>
+  <div class="all_menu" id="all_menu" style="display:none"> 
+    <div class="all_menu_warp">
+	<div class="menu on">
+        <ul>
+          <li><a href="/elibbook/book_list.asp">새로들어온 전자책</a></li>
+          <li><a href="/elibbook/book_best.asp">대출베스트</a></li>
+          <li><a href="/elibbook/book_recom.asp">회원추천도서</a></li>
+          <li><a href="/elibbook/book_category.asp">주제분류별 정보</a></li>
+          <li><a href="/elibbook/book_search.asp">상세검색</a></li>
+        </ul>
+      </div> 
+	<div class="menu ">
+        <ul>
+          <li><a href="/elibcs/notice.asp">공지사항</a></li>
+          <li><a href="/elibcs/faq.asp">자주하는 질문</a></li>
+          <li><a href="/elibcs/qna.asp">1:1 문의</a></li>
+          <li><a href="/elibcs/book_req_rules.asp">희망전자책 신청</a></li>
+        </ul>
+      </div> 
+	<div class="menu ">
+        <ul>
+          <li><a href="/gnnews/gn_recomd.asp">강남구립도서관 추천도서</a></li>
+          <li><a href="/gnnews/gn_event.asp">강남구립도서관 문화행사</a></li>
+          <li><a href="/gnnews/gn_life.asp">강남아카이브</a></li>
+        </ul>
+      </div> 
+	<div class="menu ">
+        <ul>
+          <li><a href="/elibinfo/lib_intro.asp">인사말</a></li>
+          <li><a href="/elibinfo/lib_history.asp">연혁</a></li>
+          <li><a href="/elibinfo/inf_use.asp">이용안내</a></li>
+          <li><a href="/elibinfo/inf_book_statistic.asp">소장전자책 현황</a></li>
+        </ul>
+      </div>  
+    </div>
+  </div>
+	</div>
+	<div id="container">
+		<div class="wrapper">
+			<div class="contents_header">
+				<h2 class="title">도서 검색정보</h2> 
+				<div class="location">				
+				<a class="home" href="/">home</span></a> 
+				<a href="/elibbook/book_list.asp">소장전자책</a><a>검색결과</a>
+				</div>
+            </div>
+        <div class="contents book">
+ 			<div class="contents book">
+				<div class="book_filter">
+					<div class="filter_col"> 
+						<div><button type="button" class="btn_filter on" onclick="goBr('')">전체 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('A1')">소설&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('B1')">시/에세이&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('C1')">인문&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('D1')">사회/정치&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('E1')">경제/경영&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('F1')">역사/문화&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('G1')">자연과학/공학&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('H1')">예술/대중문화&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('I1')">가정생활&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('J1')">건강/취미/여행&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('K1')">자기계발&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('L1')">종교&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('M1')">국어/외국어&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('N1')">IT/모바일&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('O1')">청소년&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('P1')">어린이&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('Q1')">유아&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('R1')">다문화자료&nbsp;&nbsp;&nbsp; 0 </button>
+						</div>
+					</div>
+         <div class="book_list">
+          <div class="list_header">
+            <div>
+			  <div><span style="margin-right:10px;font-size:16px;font-weight:700">도서명 : 없는책제목없음</span>  &nbsp;&nbsp; <strong>0</strong>종 </div>	
+            </div>
+            <div>
+               <label for="required" class="stitle">대출가능한 책</label>
+              <div class="toggle"> 
+				<input type="checkbox" id="required" class="hidden"  onclick="goAvail('')" value="on">
+				<label for="required" class="label"> <span class="attr"></span> </label>
+              </div>
+              <label for="search_item03" class="hidden">정렬</label>
+							<select id="search_item03" Onchange="ch_Sort()">
+								<option value="p" >최신출판일순</option>
+								<option value="t" >도서명순</option>
+								<option value="l_r" >대출많은순</option>								
+							</select>
+            </div>
+          </div> 
+ 					<div class="book_list_body catalog" > 
+						<div class="book">
+						   도서 검색 결과가 없습니다.
+						</div> 
+					</div>
+					         <div class="bbs_foot">
+  	     <div class="paginate">
+			<span class="btn"><a href="javascript:gopage(1)" class="first">First page</a></span>
+			<span class="btn"><a href="javascript:gopage(1)" class="prev">Back page</a></span>
+          </div>
+  	     </div>
+ </div>
+</div>
+			<form name="pfrm" method="get" action="book_info.asp">
+			 	 <input type="hidden" name="mode" value="">
+				 <input type="hidden" name="page_num" value="1">
+				 <input type="hidden" name="strSort" value="">
+				 <input type="hidden" name="ordertype" value="">
+				 <input type="hidden" name="ldav" value="">
+				 <input type="hidden" name="list_num" value="20">
+				 <input type="hidden" name="branch" value="">
+				 <input type="hidden" name="search" value="title">
+				 <input type="hidden" name="strSearch" value="없는책제목없음">
+			</form>	
+			<form name="book" method="post">
+			     <input type="hidden" name="book_num" value=""> 
+			     <input type="hidden" name="mode" value=""> 
+		    </form>
+				</div><div class="shadow" id="shadow"></div>				
+			</div>
+			<div class="goto_top"><a class="btn_icn gotop"  title="상단으로이동" href="" ><span class="icn icn_top"></span></a></div>
+		</div>
+    <div id="footer">
+      <div class="wrapper">
+        <div class="foot_menu">
+          <ul>
+		    <li><a href="/elibinfo/lib_toc.asp">이용약관</a></li>
+            <li><a href="/elibinfo/lib_privacy_policy.asp">개인정보보호정책</a></li>   
+          </ul>
+          <div class="btn_wrap">
+			<button type="button" onclick="window.open('/gnnews/gn_life.asp','_self')">강남라이프</button>
+            <button type="button" class="link active" id="fms_btn"> FAMILY SITE 
+			<div class="dropdown" style="display:none" id="fms">
+            <a href="http://library.gangnam.go.kr" target="_new">강남구통합도서관</a> 
+			<a href="http://www.onsori.or.kr" target="_new">온소리</a> 
+			<a href="javascript:goAudio()">오디오북</a> </div></button>
+          </div>
+        </div>
+        <ul class="foot_cont">
+          <li class="info">
+            <div class="logo"></div>
+            <address>
+            서울특별시 강남구 학동로 426 강남구청
+            </address>
+            <div>COPYRIGHT ⓒ  GANG NAM GU eBOOK LIBRARY All right reserved.</div>
+          </li>
+          <li class="foot_menu">
+            <ul>
+              <li class="menu">
+                <div class="title">서비스</div>
+                <ul>
+                  <li><a href="/elibcs/faq.asp">자주하는 질문</li>
+                  <li><a href="/elibcs/qna.asp">1:1 문의</a></li>
+                  <li><a href="/elibinfo/inf_viewer.asp">PC뷰어수동설치</a></li>
+                  <li><a href="/elibcs/book_req_rules.asp">희망전자책 신청</a></li>
+                </ul>
+              </li>
+              <li class="menu">
+                <div class="title">이용안내</div>
+                <ul>
+                  <li><a href="/elibcs/notice.asp">공지사항</a></li>
+                  <li><a href="/elibmreg/mem_policy.asp">회원 가입 안내</a></li>
+                  <li><a href="/elibinfo/inf_use.asp">회원대출 안내</a></li>
+                  <li><a href="/elibinfo/inf_mobile.asp">어플리케이션 이용법</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="customer">
+            <div class="title">강남구전자도서관   고객센터</div>
+            <div class="call">1688-5991</div>
+            <div class="time">평일<strong>09:00~18:00</strong>휴일<strong>09:00~12:00</strong></div>
+            <button type="button"class="remote" onclick="window.open('http://helppc.net/elibcs','_new')"><span class="icn icn_monitor"></span>원격기술지원 요청</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+ 

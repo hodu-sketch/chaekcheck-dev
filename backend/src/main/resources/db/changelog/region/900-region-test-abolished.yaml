@@ -1,0 +1,27 @@
+# Fake abolished regions for local development and tests only (AC-20). Context: test-data.
+# Reserved range: SIDO 90, SIGUNGU 9001-9099. Everything here is ABOLISHED, so it never shows in the region list.
+#   9001 -> 1116 (Seoul Gangseo-gu)            REPLACED
+#   9002 -> 1114 (Mapo-gu), 1116               SPLIT
+#   9003 -> 9004 -> 1101 (Jongno-gu)           REPLACED through a chain
+databaseChangeLog:
+  - changeSet:
+      id: region-900-test-abolished
+      author: chaekcheck
+      context: test-data
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO region.region (id, parent_id, level, name, short_name, legal_dong_code, status, abolished_on) VALUES
+                (90,   NULL, 'SIDO',    '테스트특별시', '테스트', '9000000000', 'ABOLISHED', DATE '2026-01-01'),
+                (9001, 90,   'SIGUNGU', '대체구',       NULL,     '9001000000', 'ABOLISHED', DATE '2026-01-01'),
+                (9002, 90,   'SIGUNGU', '분할군',       NULL,     '9002000000', 'ABOLISHED', DATE '2026-01-01'),
+                (9003, 90,   'SIGUNGU', '연쇄구',       NULL,     '9003000000', 'ABOLISHED', DATE '2026-01-01'),
+                (9004, 90,   'SIGUNGU', '연쇄중간구',   NULL,     '9004000000', 'ABOLISHED', DATE '2026-03-01')
+        - sql:
+            sql: >-
+              INSERT INTO region.region_replacement (region_id, replaced_by_id, effective_on) VALUES
+                (9001, 1116, DATE '2026-01-01'),
+                (9002, 1114, DATE '2026-01-01'),
+                (9002, 1116, DATE '2026-01-01'),
+                (9003, 9004, DATE '2026-01-01'),
+                (9004, 1101, DATE '2026-03-01')

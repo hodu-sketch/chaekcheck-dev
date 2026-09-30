@@ -1,0 +1,251 @@
+.wrap {
+  min-width: 0;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cell,
+.popoverRow {
+  /* keeps the absolutely positioned screen-reader text (.visually-hidden) inside the chip, so on narrow screens it
+     stays within the sideways-scrolling bar instead of widening the page */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.6rem 0.55rem 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+
+.cell[data-status='loaded'] .name::before,
+.popoverRow[data-status='loaded'] .name::before {
+  background: var(--brand);
+}
+
+.cell[data-status='failed'],
+.popoverRow[data-status='failed'] {
+  border-color: rgb(211 61 85 / 0.25);
+  background: var(--fail-soft);
+}
+
+.cell[data-status='failed'] .name::before,
+.popoverRow[data-status='failed'] .name::before {
+  background: var(--fail);
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.name::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--rule-strong);
+}
+
+.overflow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 100%;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.overflow:hover,
+.overflow[data-state='open'] {
+  border-style: solid;
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--card);
+}
+
+.popover {
+  position: relative;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(28rem, 70vh);
+  overflow-y: auto;
+  padding: 1rem 1rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-lg);
+  z-index: 10;
+  animation: pop 140ms ease-out;
+}
+
+.popoverTitle {
+  margin-bottom: 0.7rem;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.popoverList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.popoverRow {
+  justify-content: space-between;
+  border-radius: var(--radius-md);
+}
+
+.popoverRow .name {
+  flex: 1;
+}
+
+.popoverClose {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.6rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.popoverClose:hover {
+  background: var(--paper-deep);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.name {
+  font-weight: 800;
+}
+
+/* the library name opens the e-library's front page */
+.nameLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.2em;
+}
+
+.nameLink:hover {
+  color: var(--brand-strong);
+  text-decoration-color: currentColor;
+}
+
+.nameLink:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.cell[data-status='failed'] .status {
+  color: var(--fail);
+  font-weight: 700;
+}
+
+.age {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  font-size: 0.78rem;
+}
+
+.moreFailed {
+  color: var(--fail);
+  font-size: 0.8rem;
+}
+
+.spinner {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--rule);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+.more {
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.more:hover:not(:disabled) {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.more:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* tablet and mobile: one row of chips that scrolls sideways [안] */
+@media (width <= 1024px) {
+  .bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.4rem;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cell {
+    flex: none;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+}

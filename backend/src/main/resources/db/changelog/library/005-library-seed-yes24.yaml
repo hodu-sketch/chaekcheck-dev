@@ -1,0 +1,53 @@
+# YES24 public e-libraries (docs/library-maintenance.md 4-2, 5절), checked 2026-09-29 with
+# scripts/library/CheckYes24Sites.java (service JDK, our User-Agent, one search each, 1.1s apart); only readable sites.
+# - YES24_V1: previous screen (EUC-KR), YES24_V2: current screen (UTF-8), YES24_V3: current layout in EUC-KR.
+# - A library that already has another site in the seed (KYOBO, portal, subscription) gets "(YES24)" in its name
+#   (user decision 2026-09-29); vendors differ, so the books differ.
+# - holdings_count: blank search total on 2026-09-29 (춘천, 경산, 국립세종 measured with a 60 s wait: 5 s was too short).
+# - Eligibility researched in the same pass (docs/library-research/yes24-classification-2026-09-29.tsv,
+#   scripts/library/join_overrides.tsv); rules are written by scripts/library/apply_join_classification.py.
+# - Left out and why: docs/library-site-issues.md.
+databaseChangeLog:
+  - changeSet:
+      id: library-005-seed-yes24
+      author: chaekcheck
+      changes:
+        - loadData:
+            schemaName: library
+            tableName: library
+            file: 005-library-yes24.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: id, type: NUMERIC }
+              - column: { name: name, type: STRING }
+              - column: { name: platform_type, type: STRING }
+              - column: { name: base_url, type: STRING }
+              - column: { name: eligibility_summary, type: STRING }
+              - column: { name: extra_condition_text, type: STRING }
+              - column: { name: visit_required, type: BOOLEAN }
+              - column: { name: join_method, type: STRING }
+              - column: { name: join_url, type: STRING }
+              - column: { name: join_caution, type: STRING }
+              - column: { name: join_notice, type: STRING }
+              - column: { name: homepage_url, type: STRING }
+              - column: { name: holdings_count, type: NUMERIC }
+              - column: { name: holdings_counted_on, type: DATE }
+              - column: { name: deferred, type: BOOLEAN }
+        - loadData:
+            schemaName: library
+            tableName: eligibility_rule
+            file: 005-eligibility-rule-yes24.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: library_id, type: NUMERIC }
+              - column: { name: basis, type: STRING }
+              - column: { name: scope_type, type: STRING }
+              - column: { name: scope_region_id, type: NUMERIC }
+        - sql:
+            sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH 272

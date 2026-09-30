@@ -1,0 +1,94 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  padding-top: 1.6rem;
+}
+
+.back {
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.back:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* the book above, its libraries below (flow.md S3, same order on mobile) */
+.book {
+  padding: 1.4rem 1.6rem;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--paper-deep);
+}
+
+.title {
+  font-size: clamp(1.4rem, 1.1rem + 1.2vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+
+.meta {
+  margin-top: 0.35rem;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.collected {
+  margin-top: 0.8rem;
+  color: var(--brand-strong);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.loading {
+  padding: 2.5rem 0;
+  text-align: center;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.empty {
+  padding: 2.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--paper-deep);
+  text-align: center;
+}
+
+.emptyTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.link {
+  display: inline-block;
+  margin-top: 0.8rem;
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+@media (width <= 640px) {
+  .page {
+    padding-top: 1rem;
+  }
+
+  .book {
+    padding: 1.1rem 1.1rem;
+  }
+}

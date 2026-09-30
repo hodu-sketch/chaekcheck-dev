@@ -1,0 +1,36 @@
+.box {
+  max-width: 34rem;
+  margin: 12vh auto 0;
+  padding: 2rem 1.75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--paper-deep);
+  text-align: center;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.text {
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.93rem;
+  word-break: keep-all;
+}
+
+.retry {
+  margin-top: 1.25rem;
+  padding: 0.65rem 1.4rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand-strong);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: #4c30c4;
+}

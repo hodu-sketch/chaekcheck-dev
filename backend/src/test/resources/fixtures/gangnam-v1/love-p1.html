@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=euc-kr" />
+<meta property="og:image" content="https://library.gangnam.go.kr/include/image/common/og-image.png">
+<meta property="og:image" content="/include/image/common/og-image.png"> 
+<link rel="icon" type="image/png" href="/common/favicon.png" />
+<link rel="shortcut icon" type="image/x-icon"  href="https://library.gangnam.go.kr/include/image/common/og-image.png">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>강남구 전자도서관</title>
+  <link rel="stylesheet" type="text/css" href="/common/css/style.css">
+</head>
+<body>
+<div id="wrap">
+	<div id="skip_nav"> <a href="#container">본문 바로가기</a> <a href="#gnb">대메뉴 바로가기</a> </div>
+	<div id="header">
+		<div class="top_menu"><a href='/'>홈</a><a href='/elibmem/mem_login.asp'>로그인</a><a href='/elibmreg/mem_policy.asp'>회원가입</a><a href='/elibmylib/mylib_info.asp' class='my_library'>내서재</a> </div>
+		<div class="gnb_wrap">
+			<h1 class="logo"><a href="/"><span></span><span></span></a></h1>
+			<div id="gnb" class="gnb">
+				<ul>
+                     <li class="mon"><a href="/elibbook/book_list.asp">소장전자책</a></li> 
+                     <li class=""><a href="/elibcs/notice.asp">고객만족센터</a></li> 
+                     <li class=""><a href="/gnnews/gn_recomd.asp">강남구 소식</a></li> 
+                     <li class=""><a href="/elibinfo/lib_intro.asp">전자도서관 안내</a></li> 
+				</ul>
+			</div>
+			<div class="btn_wrap">
+				<button type="button" class="btn_icn icn_menu"  onClick="allM()">전체메뉴</button>
+				<button type="button" class="btn_icn icn_search" onclick="Search_show()">검색</button>
+			</div>
+			<div style="display: none"> 전체메뉴</div>
+			<div style="display: none"> 검색</div>
+		</div> 
+		<div class="snb menu03">
+			<ul>
+<li class="off"><a href='/elibbook/book_list.asp' class="off">새로들어온 전자책</a></li>
+<li class="off"><a href='/elibbook/book_best.asp' class="off">대출베스트</a></li>
+<li class="off"><a href='/elibbook/book_recom.asp' class="off">회원추천도서</a></li>
+<li class="off"><a href='/elibbook/book_category.asp' class="off">주제분류별 정보</a></li>
+<li class="off"><a href='/elibbook/book_search.asp' class="off">상세검색</a></li>
+			</ul>
+		</div>
+  <div class="header_search_wrap" id="search" style="display:none"><FORM NAME="simpleSearch" method="get" action="/elibbook/book_info.asp" onsubmit="return simpleCheck(this)">
+    <div class="header_search">
+      <label for="" class="hidden">검색어입력</label>
+      <select id="" name="search">
+        <option value="title">도서명</option>
+        <option value="author">저자</option>
+        <option value="publisher">출판사</option>
+      </select>
+      <label for="strSearch" class="hidden">검색어입력</label>
+      <input type="text" id="strSearch" name="strSearch" value="" class="search_keyword" placeholder="검색어를 입력하세요" >
+      <div class="btn_group">
+        <button type="submit" class="btn btn_icn icn_unity_search" title="검색">검색</button>
+        <button type="button" class="btn btn_icn icn_unity_filter" title="상세검색" onclick="window.open('/elibbook/book_search.asp','_self')">검색상세</button>
+      </div>
+      <button type="button" class="btn btn_icn icn_close" title="닫기" onclick="$('#search').hide()">닫기</button>
+    </div></form>
+  </div>
+  <div class="all_menu" id="all_menu" style="display:none"> 
+    <div class="all_menu_warp">
+	<div class="menu on">
+        <ul>
+          <li><a href="/elibbook/book_list.asp">새로들어온 전자책</a></li>
+          <li><a href="/elibbook/book_best.asp">대출베스트</a></li>
+          <li><a href="/elibbook/book_recom.asp">회원추천도서</a></li>
+          <li><a href="/elibbook/book_category.asp">주제분류별 정보</a></li>
+          <li><a href="/elibbook/book_search.asp">상세검색</a></li>
+        </ul>
+      </div> 
+	<div class="menu ">
+        <ul>
+          <li><a href="/elibcs/notice.asp">공지사항</a></li>
+          <li><a href="/elibcs/faq.asp">자주하는 질문</a></li>
+          <li><a href="/elibcs/qna.asp">1:1 문의</a></li>
+          <li><a href="/elibcs/book_req_rules.asp">희망전자책 신청</a></li>
+        </ul>
+      </div> 
+	<div class="menu ">
+        <ul>
+          <li><a href="/gnnews/gn_recomd.asp">강남구립도서관 추천도서</a></li>
+          <li><a href="/gnnews/gn_event.asp">강남구립도서관 문화행사</a></li>
+          <li><a href="/gnnews/gn_life.asp">강남아카이브</a></li>
+        </ul>
+      </div> 
+	<div class="menu ">
+        <ul>
+          <li><a href="/elibinfo/lib_intro.asp">인사말</a></li>
+          <li><a href="/elibinfo/lib_history.asp">연혁</a></li>
+          <li><a href="/elibinfo/inf_use.asp">이용안내</a></li>
+          <li><a href="/elibinfo/inf_book_statistic.asp">소장전자책 현황</a></li>
+        </ul>
+      </div>  
+    </div>
+  </div>
+	</div>
+	<div id="container">
+		<div class="wrapper">
+			<div class="contents_header">
+				<h2 class="title">도서 검색정보</h2> 
+				<div class="location">				
+				<a class="home" href="/">home</span></a> 
+				<a href="/elibbook/book_list.asp">소장전자책</a><a>검색결과</a>
+				</div>
+            </div>
+        <div class="contents book">
+ 			<div class="contents book">
+				<div class="book_filter">
+					<div class="filter_col"> 
+						<div><button type="button" class="btn_filter on" onclick="goBr('')">전체 424 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('A1')">소설&nbsp;&nbsp;&nbsp; 122 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('B1')">시/에세이&nbsp;&nbsp;&nbsp; 140 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('C1')">인문&nbsp;&nbsp;&nbsp; 52 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('D1')">사회/정치&nbsp;&nbsp;&nbsp; 1 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('E1')">경제/경영&nbsp;&nbsp;&nbsp; 1 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('F1')">역사/문화&nbsp;&nbsp;&nbsp; 7 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('G1')">자연과학/공학&nbsp;&nbsp;&nbsp; 5 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('H1')">예술/대중문화&nbsp;&nbsp;&nbsp; 9 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('I1')">가정생활&nbsp;&nbsp;&nbsp; 7 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('J1')">건강/취미/여행&nbsp;&nbsp;&nbsp; 16 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('K1')">자기계발&nbsp;&nbsp;&nbsp; 20 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('L1')">종교&nbsp;&nbsp;&nbsp; 20 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('M1')">국어/외국어&nbsp;&nbsp;&nbsp; 1 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('N1')">IT/모바일&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('O1')">청소년&nbsp;&nbsp;&nbsp; 1 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('P1')">어린이&nbsp;&nbsp;&nbsp; 22 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('Q1')">유아&nbsp;&nbsp;&nbsp; 0 </button>
+							<button type="button" class="btn_filter " style="width:auto !important" onclick="goBr('R1')">다문화자료&nbsp;&nbsp;&nbsp; 0 </button>
+						</div>
+					</div>
+         <div class="book_list">
+          <div class="list_header">
+            <div>
+			  <div><span style="margin-right:10px;font-size:16px;font-weight:700">도서명 : 사랑</span>  &nbsp;&nbsp; <strong>424</strong>종 </div>	
+            </div>
+            <div>
+               <label for="required" class="stitle">대출가능한 책</label>
+              <div class="toggle"> 
+				<input type="checkbox" id="required" class="hidden"  onclick="goAvail('')" value="on">
+				<label for="required" class="label"> <span class="attr"></span> </label>
+              </div>
+              <label for="search_item03" class="hidden">정렬</label>
+							<select id="search_item03" Onchange="ch_Sort()">
+								<option value="p" >최신출판일순</option>
+								<option value="t" >도서명순</option>
+								<option value="l_r" >대출많은순</option>								
+							</select>
+            </div>
+          </div> 
+ 					<div class="book_list_body catalog" >  
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB008336"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB008336">다른 사랑</a></div>
+									<div class="writer">최은미</div>
+									<div class="publish_date">문학동네 · 2026-06-10</div>
+									<div class="publish_ebook">eBook · 2026-09-04</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current close">예약정원이 마감되었습니다.</div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf0" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_waiting' onclick="alert('이미 10권의 예약이 있습니다.')">예약불가</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB008336', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB008356"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB008356">문제적 사랑</a></div>
+									<div class="writer">김지용</div>
+									<div class="publish_date">디플롯 · 2026-05-08</div>
+									<div class="publish_ebook">eBook · 2026-09-04</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>2</strong></span> <span>대출 <strong>2</strong> </span> <span>예약 <strong>3</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf1" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_reserve' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">예약</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB008356', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB008259"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB008259">사랑의 힘</a></div>
+									<div class="writer">박서련</div>
+									<div class="publish_date">문학동네 · 2026-04-01</div>
+									<div class="publish_ebook">eBook · 2026-07-08</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>5</strong></span> <span>대출 <strong>5</strong> </span> <span>예약 <strong>1</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf2" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_reserve' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">예약</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB008259', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB008250"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB008250">우리가 사랑한 도시</a></div>
+									<div class="writer">김지윤</div>
+									<div class="publish_date">북다 · 2026-03-13</div>
+									<div class="publish_ebook">eBook · 2026-06-11</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>1</strong></span> <span>대출 <strong>1</strong> </span> <span>예약 <strong>2</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf3" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_reserve' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">예약</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB008250', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=Y154342067"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=Y154342067">우리가 사랑한 단어들</a></div>
+									<div class="writer">신효원</div>
+									<div class="publish_date">생각지도 · 2025-10-09</div>
+									<div class="publish_ebook">eBook · 2025-11-27</div>
+									<div class="current"><strong>YES24</strong></div>
+									<div class="current"><span>보유 <strong>2</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf4" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('Y154342067', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB008057"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB008057">사랑으로 읽는 세계사</a></div>
+									<div class="writer">에드워드 브룩 히칭</div>
+									<div class="publish_date">현대지성 · 2025-09-23</div>
+									<div class="publish_ebook">eBook · 2025-12-05</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>1</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>2</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf5" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_reserve' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">예약</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB008057', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007871"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007871">유무죄 세계의 사랑법</a></div>
+									<div class="writer">정명원</div>
+									<div class="publish_date">한겨레출판사 · 2025-08-06</div>
+									<div class="publish_ebook">eBook · 2025-09-30</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>1</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf6" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007871', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007931"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007931">사랑할수록 나의 세계는 커져간다</a></div>
+									<div class="writer">김지원(편안한제이드)</div>
+									<div class="publish_date">알에이치코리아 · 2025-07-24</div>
+									<div class="publish_ebook">eBook · 2025-09-30</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>2</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf7" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007931', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007836"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007836">여자의 우정은 첫사랑이다</a></div>
+									<div class="writer">릴리 댄시거/송섬별 역</div>
+									<div class="publish_date">문학동네 · 2025-04-25</div>
+									<div class="publish_ebook">eBook · 2025-09-30</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>5</strong></span> <span>대출 <strong>1</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf8" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007836', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB008202"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB008202">우는 나와 우는 우는 : 장애와 사랑, 실패와 후회에 관한 끝말잇기</a></div>
+									<div class="writer">하은빈</div>
+									<div class="publish_date">동녘 · 2025-04-09</div>
+									<div class="publish_ebook">eBook · 2026-05-13</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>2</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf9" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB008202', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007917"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007917">사랑하기 전에 알았더라면 좋았을 것들</a></div>
+									<div class="writer">김달</div>
+									<div class="publish_date">빅피시 · 2025-04-01</div>
+									<div class="publish_ebook">eBook · 2025-09-30</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>1</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf10" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007917', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007647"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007647">사랑과 시간의 알레고리</a></div>
+									<div class="writer">원형준</div>
+									<div class="publish_date">비욘드날리지 · 2025-03-07</div>
+									<div class="publish_ebook">eBook · 2025-07-07</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>2</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf11" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007647', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007587"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007587">사랑은 하트 모양이 아니야</a></div>
+									<div class="writer">김효인</div>
+									<div class="publish_date">안전가옥 · 2025-02-18</div>
+									<div class="publish_ebook">eBook · 2025-07-07</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>1</strong></span> <span>대출 <strong>1</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf12" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_reserve' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">예약</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007587', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007600"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007600">사랑 없이 우리가 법을 말할 수 있을까</a></div>
+									<div class="writer">천수이</div>
+									<div class="publish_date">부키 · 2025-01-10</div>
+									<div class="publish_ebook">eBook · 2025-07-07</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>2</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf13" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007600', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007308"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007308">우리는 사랑 안에 살고 있다</a></div>
+									<div class="writer">유혜주</div>
+									<div class="publish_date">21세기북스 · 2024-12-12</div>
+									<div class="publish_ebook">eBook · 2025-04-28</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>4</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf14" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007308', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007339"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007339">다시 쓰는 수학의 역사: 당신이 수학을 사랑하게 만들 책</a></div>
+									<div class="writer">케이트 기타가와/이충호 역</div>
+									<div class="publish_date">서해문집 · 2024-11-20</div>
+									<div class="publish_ebook">eBook · 2025-04-28</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>1</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf15" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007339', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007956"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007956">사랑하고 선량하게 잦아드네</a></div>
+									<div class="writer">유수연</div>
+									<div class="publish_date">문학동네 · 2024-11-18</div>
+									<div class="publish_ebook">eBook · 2025-10-30</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>5</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf16" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007956', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007332"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007332">너를 미워할 시간에 나를 사랑하기로 했다</a></div>
+									<div class="writer">윤서진</div>
+									<div class="publish_date">스몰빅라이프 · 2024-11-11</div>
+									<div class="publish_ebook">eBook · 2025-04-28</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>3</strong></span> <span>대출 <strong>3</strong> </span> <span>예약 <strong>1</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf17" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_reserve' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">예약</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007332', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007423"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007423">여수의 사랑</a></div>
+									<div class="writer">한강</div>
+									<div class="publish_date">문학과지성사 · 2024-10-28</div>
+									<div class="publish_ebook">eBook · 2025-04-28</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>6</strong></span> <span>대출 <strong>2</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf18" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007423', 'concern')">관심도서</button>
+							</div>
+						</div>   
+						<div class="book">
+							<div class="list_info" style="width:1100px !important">
+								<div class="book_frame"><a href="book_detail.asp?book_num=KB007279"></a></div>
+								<div class="book_info">
+									<div class="book_title"><a href="book_detail.asp?book_num=KB007279">조금 망한 사랑</a></div>
+									<div class="writer">김지연</div>
+									<div class="publish_date">문학동네 · 2024-10-21</div>
+									<div class="publish_ebook">eBook · 2025-04-28</div>
+									<div class="current"><strong>교보전자책</strong></div>
+									<div class="current"><span>보유 <strong>5</strong></span> <span>대출 <strong>0</strong> </span> <span>예약 <strong>0</strong></span></div> 
+									<div class="book_intro">
+										<div class="info_text" id="bi_brf19" style="display:"></div> 
+									</div>								
+								</div>
+							</div>
+						 <div class="btn_group">
+							    <button type='button' class='list_btn list_rent' onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')">대출</button>
+								<button type="button" class="list_btn list_interest" onclick="bkProc('KB007279', 'concern')">관심도서</button>
+							</div>
+						</div>   
+					</div>
+					         <div class="bbs_foot">
+  	     <div class="paginate">
+			<span class="btn"><a href="javascript:gopage(1)" class="first">First page</a></span>
+			<span class="btn"><a href="javascript:gopage(1)" class="prev">Back page</a></span>
+           <span class="num"><a href="javascript:gopage(1)" class="on">1</a></span>
+           <span class="num"><a href="javascript:gopage(2)">2</a></span>
+           <span class="num"><a href="javascript:gopage(3)">3</a></span>
+           <span class="num"><a href="javascript:gopage(4)">4</a></span>
+           <span class="num"><a href="javascript:gopage(5)">5</a></span>
+           <span class="num"><a href="javascript:gopage(6)">6</a></span>
+           <span class="num"><a href="javascript:gopage(7)">7</a></span>
+           <span class="num"><a href="javascript:gopage(8)">8</a></span>
+           <span class="num"><a href="javascript:gopage(9)">9</a></span>
+           <span class="num"><a href="javascript:gopage(10)">10</a></span>
+          <span class="btn"><a href="javascript:gopage(11)" class="next">Next page</a></span>
+          <span class="btn"><a href="javascript:gopage(22)" class="last">Last page</a></span>
+          </div>
+  	     </div>
+ </div>
+</div>
+			<form name="pfrm" method="get" action="book_info.asp">
+			 	 <input type="hidden" name="mode" value="">
+				 <input type="hidden" name="page_num" value="1">
+				 <input type="hidden" name="strSort" value="">
+				 <input type="hidden" name="ordertype" value="">
+				 <input type="hidden" name="ldav" value="">
+				 <input type="hidden" name="list_num" value="20">
+				 <input type="hidden" name="branch" value="">
+				 <input type="hidden" name="search" value="title">
+				 <input type="hidden" name="strSearch" value="사랑">
+			</form>	
+			<form name="book" method="post">
+			     <input type="hidden" name="book_num" value=""> 
+			     <input type="hidden" name="mode" value=""> 
+		    </form>
+				</div><div class="shadow" id="shadow"></div>				
+			</div>
+			<div class="goto_top"><a class="btn_icn gotop"  title="상단으로이동" href="" ><span class="icn icn_top"></span></a></div>
+		</div>
+    <div id="footer">
+      <div class="wrapper">
+        <div class="foot_menu">
+          <ul>
+		    <li><a href="/elibinfo/lib_toc.asp">이용약관</a></li>
+            <li><a href="/elibinfo/lib_privacy_policy.asp">개인정보보호정책</a></li>   
+          </ul>
+          <div class="btn_wrap">
+			<button type="button" onclick="window.open('/gnnews/gn_life.asp','_self')">강남라이프</button>
+            <button type="button" class="link active" id="fms_btn"> FAMILY SITE 
+			<div class="dropdown" style="display:none" id="fms">
+            <a href="http://library.gangnam.go.kr" target="_new">강남구통합도서관</a> 
+			<a href="http://www.onsori.or.kr" target="_new">온소리</a> 
+			<a href="javascript:goAudio()">오디오북</a> </div></button>
+          </div>
+        </div>
+        <ul class="foot_cont">
+          <li class="info">
+            <div class="logo"></div>
+            <address>
+            서울특별시 강남구 학동로 426 강남구청
+            </address>
+            <div>COPYRIGHT ⓒ  GANG NAM GU eBOOK LIBRARY All right reserved.</div>
+          </li>
+          <li class="foot_menu">
+            <ul>
+              <li class="menu">
+                <div class="title">서비스</div>
+                <ul>
+                  <li><a href="/elibcs/faq.asp">자주하는 질문</li>
+                  <li><a href="/elibcs/qna.asp">1:1 문의</a></li>
+                  <li><a href="/elibinfo/inf_viewer.asp">PC뷰어수동설치</a></li>
+                  <li><a href="/elibcs/book_req_rules.asp">희망전자책 신청</a></li>
+                </ul>
+              </li>
+              <li class="menu">
+                <div class="title">이용안내</div>
+                <ul>
+                  <li><a href="/elibcs/notice.asp">공지사항</a></li>
+                  <li><a href="/elibmreg/mem_policy.asp">회원 가입 안내</a></li>
+                  <li><a href="/elibinfo/inf_use.asp">회원대출 안내</a></li>
+                  <li><a href="/elibinfo/inf_mobile.asp">어플리케이션 이용법</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li class="customer">
+            <div class="title">강남구전자도서관   고객센터</div>
+            <div class="call">1688-5991</div>
+            <div class="time">평일<strong>09:00~18:00</strong>휴일<strong>09:00~12:00</strong></div>
+            <button type="button"class="remote" onclick="window.open('http://helppc.net/elibcs','_new')"><span class="icn icn_monitor"></span>원격기술지원 요청</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+ 

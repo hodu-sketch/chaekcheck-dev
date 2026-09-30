@@ -1,0 +1,51 @@
+# Local infrastructure for chaekcheck development and tests.
+# Docker runs inside WSL (Ubuntu); WSL2 forwards the published ports to Windows localhost.
+# Build:  wsl -d Ubuntu -- docker compose build        (PostgreSQL 18 + pg_bigm image, docker/postgres-bigm)
+# Start:  wsl -d Ubuntu -- docker compose up -d      (run from this directory)
+# Stop:   wsl -d Ubuntu -- docker compose down
+# Values come from .env (copy .env.example to .env and fill it in).
+# WSL shuts down a few seconds after its last process ends, which stops these containers.
+# restart: unless-stopped brings them back when WSL (and its Docker service) starts again.
+
+name: chaekcheck
+
+services:
+  db:
+    build: docker/postgres-bigm
+    image: chaekcheck/postgres-bigm:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Throwaway database for ./gradlew test. Data lives in memory and is gone after `down`.
+  db-test:
+    build: docker/postgres-bigm
+    image: chaekcheck/postgres-bigm:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TEST_DB_NAME:?set TEST_DB_NAME in .env}
+      POSTGRES_USER: ${TEST_DB_USERNAME:?set TEST_DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:?set TEST_DB_PASSWORD in .env}
+    ports:
+      - "${TEST_DB_PORT:-5433}:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

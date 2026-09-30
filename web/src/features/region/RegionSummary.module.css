@@ -1,0 +1,38 @@
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1rem;
+  font-size: 0.93rem;
+  color: var(--ink-soft);
+}
+
+.label {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.kind {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--brand-strong);
+}
+
+.edit {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.edit:hover {
+  text-decoration-thickness: 2px;
+}

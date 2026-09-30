@@ -1,0 +1,30 @@
+# Pilot e-libraries (cycle 01 spec chapter 3). Rules and the eligibility summary text change together.
+# Library ids are set explicitly (1, 2) so every environment matches; the identity then restarts after them.
+# Region ids: 11 = Seoul (see region/002-region-seed.csv).
+# No rules means "eligibility not verified" (ADR-0013), so an open library needs a NATIONWIDE rule.
+# 고흥: e-books for "고흥군립도서관 회원" by homepage login; the 고흥-only rule is for paper-book loan cards -> open,
+# no caution (user decision 2026-09-29).
+databaseChangeLog:
+  - changeSet:
+      id: library-002-seed-pilot
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO library.library (id, name, platform_type, base_url, eligibility_summary, join_method, homepage_url,
+                  join_url, join_caution) VALUES
+                (1, '서울 강서구 전자도서관', 'YES24_V2', 'https://ebook.gangseo.seoul.kr',
+                    '서울 거주·재직·재학', '도서관 방문 회원증 발급 또는 서울시민카드 간편가입', 'https://ebook.gangseo.seoul.kr/',
+                    NULL, NULL),
+                (2, '고흥군립도서관 전자도서관', 'KYOBO_V1', 'https://www.ghlib.go.kr:446',
+                    NULL, '도서관 홈페이지 가입 후 로그인', 'https://www.ghlib.go.kr:446/elibrary-front/main.ink',
+                    'https://www.ghlib.go.kr/EBook', NULL)
+        - sql:
+            sql: >-
+              INSERT INTO library.eligibility_rule (library_id, basis, scope_type, scope_region_id) VALUES
+                (1, 'RESIDENCE',  'REGION',     11),
+                (1, 'WORK',       'REGION',     11),
+                (1, 'SCHOOL',     'REGION',     11),
+                (2, 'RESIDENCE',  'NATIONWIDE', NULL)
+        - sql:
+            sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH 3

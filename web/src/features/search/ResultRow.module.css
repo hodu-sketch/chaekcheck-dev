@@ -1,0 +1,376 @@
+/*
+ * A flat rounded card; three columns on desktop, the status column carries the meaning color. The status column
+ * has a fixed width so the library column (and its left rule) lines up across rows with and without counts.
+ */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 17.5rem;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.2rem 1.4rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  transition: border-color 140ms;
+}
+
+.row:hover {
+  border-color: var(--rule-strong);
+}
+
+.title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.supplier {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.library {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--rule);
+  font-size: 0.9rem;
+}
+
+.libraryName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  font-weight: 800;
+}
+
+.badge {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--reserve-soft);
+  color: var(--reserve);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.condition {
+  margin-top: 0.15rem;
+  color: var(--ink-soft);
+}
+
+.visit {
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* conditions we cannot decide from regions, e.g. "책이음 회원 가입 가능" */
+.extra {
+  margin-top: 0.15rem;
+  font-size: 0.84rem;
+  color: var(--reserve);
+}
+
+/* original text that may limit use although the library counts as joinable (C2-U-11) */
+.caution {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.cautionMark {
+  margin-right: 0.3rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--reserve);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--reserve);
+}
+
+/* who the library serves (e.g. braille library); neutral, no effect on eligibility or order */
+.notice {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.noticeMark {
+  margin-right: 0.3rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* "구독형" next to the library name */
+.kind {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.join {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+}
+
+/* the library's own join page */
+.joinLink {
+  color: var(--brand-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.joinLink::after {
+  content: ' ↗';
+}
+
+/* join details: always shown on desktop/tablet; on mobile behind the "가입 정보" button (U-12) */
+.joinInfoButton {
+  display: none;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.joinInfoButton[data-state='open'] {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.joinPopover {
+  z-index: 10;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.joinPopoverBody .condition {
+  margin-top: 0;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.joinPopoverArrow {
+  fill: var(--card);
+  stroke: var(--rule-strong);
+}
+
+.stock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.state {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.row[data-group='reserve'] .state {
+  background: var(--reserve-soft);
+  color: var(--reserve);
+}
+
+.row[data-group='pending'] {
+  border-style: dashed;
+}
+
+.row[data-group='pending'] .state {
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+}
+
+.note {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.stockLine {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.counts {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.counts div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.counts dt {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+
+.counts dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--brand-strong);
+  text-decoration: none;
+  transition: background-color 140ms, border-color 140ms, color 140ms;
+}
+
+.link::after {
+  content: '↗';
+}
+
+.link:hover {
+  border-color: var(--brand-strong);
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+@media (width <= 1024px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.9rem 1.25rem;
+  }
+
+  .book {
+    grid-column: 1 / 2;
+  }
+
+  .library {
+    grid-column: 1 / 2;
+    grid-row: 2;
+    padding-left: 0;
+    border-left: none;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .stock {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+}
+
+/* mobile: everything stacks */
+@media (width <= 640px) {
+  .joinInfoButton {
+    display: inline-flex;
+  }
+
+  .joinDetails {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .stock {
+    grid-column: 1;
+    grid-row: auto;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .state {
+    align-self: flex-start;
+  }
+
+  .stockLine {
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  /* "보유 5  대출 중 0  예약 0" on one line */
+  .counts {
+    gap: 0.75rem;
+  }
+
+  .counts div {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.25rem;
+    white-space: nowrap;
+  }
+
+  .counts dd {
+    font-size: 0.95rem;
+  }
+
+  .link {
+    white-space: nowrap;
+  }
+}

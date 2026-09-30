@@ -1,0 +1,333 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, target-densitydpi=medium-dpi" />
+<title>화성시립도서관 전자책도서관</title>
+<link rel="stylesheet" href="/include/css/all.css">
+<link rel="stylesheet" media="screen" href="/include/css/animate.css">
+<link rel="stylesheet" type="text/css" href="/include/css/content.css?v=20230313">
+<link rel="stylesheet" type="text/css" href="/include/css/jquery.mmenu.all.css">
+<link rel="stylesheet" type="text/css" href="/include/css/oneline_critic.css">
+</head>
+<body class="bbg">
+<div id="wrap">
+<header id="header">
+	<div id="headerImg">
+	</div>
+    <div class="top-wrap d_width">
+		<a href="#menu">
+			<span id="mo-menu"></span>
+		</a>
+        <div id="logo"><a href="/" title="홈으로 이동"></a></div>
+		<form id = "Search" name="SearchForm" method="get" action="/search" onsubmit="return verifySearch(this);">
+		<div class="search-wrap form-inline">
+            <select name="srch_order" class="form-control">
+                <option value="total" selected>통합검색</option>
+				<option value="title"  >서명</option>
+				<option value="author" >저자</option>
+				<option value="publisher"  >출판사</option>
+            </select>
+            <input id="src_key" class="form-control" name="src_key" type="text" value="" placeholder=""><label hidden="" for="">검색</label>
+            <a href="#" onclick="verifySearch_btn(SearchForm);" title="검색 버튼" class="search-btn"><i class="fa fa-search"></i></a>
+        </div>
+		</form>
+	<div class="topmn wow fadeInRight delay5">
+        <ul class="clearfix">
+                <li class="login"><a href="https://www.hscitylib.or.kr/intro/index.do">로그인</a></li>
+        </ul>
+</div>
+    </div>
+    <div id="gnbmn">
+        <nav id="menu" class="d_width">
+			<div class="mm-panels">
+				<div class="mm-header top-link">
+					<a href="https://www.hscitylib.or.kr/intro/index.do">로그인</a>
+	</div>
+				<ul class="depth1 clearfix">
+					<li><a href="#" onclick="return false;" class="btn-depth2">전자책</a>
+						<div class="depth2">
+							<ul>
+								<li><a href="/ebook/?mode=new"><span>신간도서</span></a></li>
+								<li><a href="/ebook/?mode=best"><span>인기도서</span></a></li>
+								<li><a href="/ebook/?mode=recommend"><span>추천도서</span></a></li>
+								<li><a href="/ebook/?mode=total"><span>전체도서</span></a></li>
+							</ul>
+						</div>
+					</li>
+					<li><a href="/mylibrary/?mode=1">내서재</a></li>
+					<li><a href="/chyes_article/">명사칼럼</a></li>
+					<li><a href="#" onclick="return false;" class="btn-depth2">이용안내</a>
+						<div class="depth2">
+							<ul>
+								<li><a href="/info/?mode=1"><span>이용방법</span></a></li>
+								<li><a href="/info/?mode=2"><span>자료대출안내</span></a></li>
+								<li><a href="/info/?mode=3"><span>어플안내</span></a></li>
+								<li><a href="/info/?mode=4"><span>PC뷰어안내</span></a></li>
+							</ul>
+						</div>
+					</li>
+					<li class="gnb-category"><a href="#" onclick="return false;" class="btn-depth2">카테고리</a>
+						<div class="depth2 category-depth2">
+							<ul>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=001" title="인문／사회 카테고리 페이지로 이동합니다.">
+										<span>인문／사회</span> <em>(137)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=002" title="경제／경영 카테고리 페이지로 이동합니다.">
+										<span>경제／경영</span> <em>(96)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=003" title="문학 카테고리 페이지로 이동합니다.">
+										<span>문학</span> <em>(206)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=004" title="가정과생활 카테고리 페이지로 이동합니다.">
+										<span>가정과생활</span> <em>(21)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=005" title="장르문학 카테고리 페이지로 이동합니다.">
+										<span>장르문학</span> <em>(9)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=009" title="국어와외국어 카테고리 페이지로 이동합니다.">
+										<span>국어와외국어</span> <em>(5)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=012" title="어린이/청소년 카테고리 페이지로 이동합니다.">
+										<span>어린이/청소년</span> <em>(137)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=013" title="예술／대중문화 카테고리 페이지로 이동합니다.">
+										<span>예술／대중문화</span> <em>(7)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=014" title="자기관리 카테고리 페이지로 이동합니다.">
+										<span>자기관리</span> <em>(83)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=015" title="자연과과학 카테고리 페이지로 이동합니다.">
+										<span>자연과과학</span> <em>(19)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+								<li>
+									<a href="/ebook/?mode=category&cate_id=023" title="컴퓨터와인터넷 카테고리 페이지로 이동합니다.">
+										<span>컴퓨터와인터넷</span> <em>(1)</em>
+									</a>
+								</li>			
+								<div class="clear"></div>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</div>
+        </nav>
+    </div>
+</header>
+	<div class="sub-container d_width">
+	<div class="body-title">상세정보</div>
+	<div class="ebook-wrap ebook-view">
+		<div class="top">
+			<div>
+				<div class="inner clearfix">
+					<div class="thumb thumb-v1">
+					</div>
+					<a href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=1630914');" onfocus="this.blur();" class="btn-preview">미리보기</a> 
+					<div class="info">
+						<p class="tit">가장 사업처럼 하는 투자 주주행동주의 : 그레이엄과 버핏부터 칼 아이칸까지 주주가치 극대화 투자 전략</p>
+						<dl class="detail detail-noline clearfix">
+							<dt>저자</dt>
+							<dd>제프 그램 저/이건,오인석,서태준 역/심혜섭 감수</dd>
+							<dt>출판사</dt>
+							<dd>에프엔미디어</dd>
+							<dt>출판일</dt>
+							<dd>2023-05-11</dd>
+							<dt>등록일</dt>
+							<dd>2023-08-04</dd>
+						</dl>
+						<dl class="detail clearfix">
+							<dt>파일포맷</dt>
+							<dd>EPUB</dd>
+							<dt>파일크기</dt>
+							<dd>82MB</dd>
+							<dt>공급사</dt>
+							<dd>예스이십사</dd>
+							<dt>지원기기</dt>
+							<dd>
+								<span class="tag">PC</span>
+								<span class="tag">PHONE</span>
+								<span class="tag">TABLET</span>
+								<span class="tag">웹뷰어</span>
+									<span class="tag tag-btn"><a href="https://cdn.k-epub.com/UPGRADE/PC_B2BVIEWER/YES24ELibrary/PACKAGE/YES24ELibrarySetup.zip">프로그램 수동설치</a></span>
+									<span class="tag tag-btn tag-q"><a href="/info/?mode=4&comcode=YES24">뷰어프로그램 설치 안내</a></span>
+							</dd>
+						</dl>
+					</div>
+				</div>
+			</div>
+			<div class="stat clearfix">
+				<span class="tit">현황</span>
+				<ul class="clearfix">
+					<li>보유 <strong>3</strong></li>
+					<li>대출 <strong>0</strong></li>
+					<li>예약 <strong>0</strong></li>
+				</ul>
+				<div class="btn-wrap">
+				<a href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='https://www.hscitylib.or.kr/intro/index.do'; return false;" class="btn"  title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span class="ico4">대출가능 </span></a>
+				<a href="javascript:#" onclick="action_go('가장 사업처럼 하는 투자 주주행동주의 : 그레이엄과 버핏부터 칼 아이칸까지 주주가치 극대화 투자 전략을(를) 관심 도서로 등록하시겠습니까?','zzim','118850600');" class="btn"  title="관심도서"><span class="ico5">관심도서</span></a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tab-list mtp20">
+		<ul class="clearfix">
+			<li><a href="javascript:void(0);" onclick="onchange_all_list('t_l_ck_1')" id="t_l_ck_1" class="t_l_ck on">책소개</a></li>
+			<li><a href="javascript:void(0);" onclick="onchange_all_list('t_l_ck_2')" id="t_l_ck_2" class="t_l_ck">저자소개</a></li>
+			<li><a href="javascript:void(0);" onclick="onchange_all_list('t_l_ck_3')" id="t_l_ck_3" class="t_l_ck">목차</a></li>
+		</ul>
+	</div>
+	<div class="ebook-detail cont1 cont t_l_ck_area" id="t_l_ck_1_area">
+		<h2>책소개</h2>
+		<p class="txt"><b>“가장 사업처럼 하는 투자가 가장 현명한 투자다.” - 벤저민 그레이엄</br>‘내 사업처럼 투자하는’ 주주들의 시대</br>주주행동주의 역사와 실행 전략을 담은 제대로 된 안내서</b></br></br>(생략)</br></br>(생략)</br></br>(생략)</p>
+	</div>
+	<div class="ebook-detail cont2 cont t_l_ck_area" id="t_l_ck_2_area" style="display:none;">
+		<h2>저자소개</h2>
+		<p class="txt">(생략)</p>
+	</div>
+	<div class="ebook-detail cont3 cont t_l_ck_area" id="t_l_ck_3_area" style="display:none;">
+		<h2>목차</h2>
+		<p class="txt">추천의&nbsp;글&nbsp;주주행동주의의&nbsp;실전&nbsp;교과서&nbsp;|&nbsp;김형균(차파트너스자산운용&nbsp;본부장)</br>들어가는&nbsp;말&nbsp;벤저민&nbsp;그레이엄에서&nbsp;시작된&nbsp;주주행동주의&nbsp;100년</br></br><B>1장&nbsp;현대&nbsp;주주행동주의의&nbsp;탄생</br>:&nbsp;벤저민&nbsp;그레이엄,&nbsp;역사상&nbsp;최초로&nbsp;기업의&nbsp;잉여현금을&nbsp;돌려받다</B></br></br>이해&nbsp;상충에서&nbsp;찾아낸&nbsp;기회</br>안전마진이라는&nbsp;혁신적&nbsp;아이디어</br>방심한&nbsp;표적&nbsp;기업</br>재판관이&nbsp;자기&nbsp;사건에&nbsp;관여하다</br>자본배분&nbsp;개선에&nbsp;초점을&nbsp;두다</br>새로운&nbsp;세계&nbsp;질서</br>자료.&nbsp;벤저민&nbsp;그레이엄이&nbsp;노던파이프라인&nbsp;최대주주에게&nbsp;보낸&nbsp;서한&nbsp;</br></br><B>2장&nbsp;위임장&nbsp;전문가들의&nbsp;공격&nbsp;</br>(생략)</B></br></br>월가를&nbsp;긴장시킨&nbsp;대담한&nbsp;젊은이&nbsp;</br>완벽한&nbsp;자율권을&nbsp;찾아서&nbsp;</br>뉴욕센트럴&nbsp;이사요?&nbsp;빈말이&nbsp;아닙니다</br>다윗과&nbsp;골리앗의&nbsp;싸움이&nbsp;시작되다&nbsp;</br>개미군단을&nbsp;규합하다</br>주식&nbsp;인수자&nbsp;확보에&nbsp;주력하다&nbsp;</br>파격적인&nbsp;배당&nbsp;약속</br>이제&nbsp;곧&nbsp;무대에&nbsp;오를&nbsp;시간</br>뉴욕센트럴의&nbsp;절망적인&nbsp;재무상태</br>로버트&nbsp;영의&nbsp;승리</br>봇물&nbsp;터진&nbsp;위임장&nbsp;대결&nbsp;</br>이유&nbsp;있는&nbsp;반항</br>끝없는&nbsp;내리막길</br>자료.&nbsp;로버트&nbsp;영이&nbsp;뉴욕센트럴철도&nbsp;주주들에게&nbsp;보낸&nbsp;서한</br></br><B>3장&nbsp;저평가된&nbsp;기업을&nbsp;살린&nbsp;가치투자자의&nbsp;행동주의&nbsp;&nbsp;</br>(생략)</B></br></br>주식은&nbsp;회사&nbsp;일부의&nbsp;소유권이다&nbsp;</br>버려진&nbsp;꽁초에&nbsp;투자하다</br>사기꾼의&nbsp;최종&nbsp;대부자</br>눈뜬장님이었던&nbsp;창고관리자</br>파산으로&nbsp;아수라장이&nbsp;된&nbsp;월가&nbsp;</br>무한책임&nbsp;때문에&nbsp;발생한&nbsp;주가&nbsp;하락&nbsp;</br>태풍도&nbsp;지나가고</br>금융&nbsp;달인의&nbsp;반짝&nbsp;성공&nbsp;</br>기업&nbsp;인수&nbsp;제왕의&nbsp;몰락</br>서부&nbsp;출신&nbsp;링,&nbsp;동부&nbsp;출신&nbsp;시먼스</br>기업사냥꾼의&nbsp;시대를&nbsp;연&nbsp;스타인버그</br>자료.&nbsp;워런&nbsp;버핏이&nbsp;아메리칸익스프레스&nbsp;CEO에게&nbsp;보낸&nbsp;서한</br></br><B>4장&nbsp;현금이라는&nbsp;강력한&nbsp;무기를&nbsp;휘두른&nbsp;기업사냥꾼</br>:&nbsp;칼&nbsp;아이칸,&nbsp;자신감&nbsp;넘치는&nbsp;서한만으로&nbsp;필립스페트롤리엄을&nbsp;인수하다</B></br></br>베어허그의&nbsp;달인</br>포식자의&nbsp;무도회</br>비적자생존이&nbsp;싫었던&nbsp;피켄스</br>주주&nbsp;평등을&nbsp;천명하다</br>자본&nbsp;구조조정안의&nbsp;파장&nbsp;</br>월가를&nbsp;사랑한&nbsp;아이칸</br>차익거래로&nbsp;큰돈을&nbsp;벌다</br>자금&nbsp;조성을&nbsp;장담하는&nbsp;의견서</br>아이칸의&nbsp;공격&nbsp;개시</br>포이즌&nbsp;필을&nbsp;집어삼키다</br>싸움의&nbsp;결과는?</br>포이즌&nbsp;필은&nbsp;반짝&nbsp;유행?</br>절차를&nbsp;무시하다</br>역사는&nbsp;어떤&nbsp;판결을&nbsp;내렸나</br>막을&nbsp;내린&nbsp;기업사냥꾼의&nbsp;시대</br>수렁에서&nbsp;재기한&nbsp;아이칸&nbsp;</br>자료&nbsp;Ⅰ.&nbsp;칼&nbsp;아이칸이&nbsp;필립스페트롤리엄&nbsp;의장에게&nbsp;보낸&nbsp;서한</br>자료&nbsp;Ⅱ.&nbsp;칼&nbsp;아이칸이&nbsp;KT&G를&nbsp;공격한&nbsp;사례</br></br><B>5장&nbsp;최대주주의&nbsp;공격에&nbsp;맞서다가&nbsp;몰락한&nbsp;제너럴모터스</br>(생략)</B></br></br>페로와&nbsp;GM&nbsp;전쟁의&nbsp;전말&nbsp;</br>창립&nbsp;때부터&nbsp;파산&nbsp;위험에&nbsp;처하다</br>앨프리드&nbsp;슬론의&nbsp;승리</br>바람을&nbsp;안고&nbsp;뛰다</br>폰티악의&nbsp;수장&nbsp;들로리언</br>코끼리를&nbsp;춤추게&nbsp;하다</br>노동력은&nbsp;비용이&nbsp;아닌&nbsp;자원</br>토요타&nbsp;방식을&nbsp;접목하다</br>문제를&nbsp;돈으로&nbsp;해결하려&nbsp;들다</br>바이아웃에&nbsp;맞선&nbsp;페로와&nbsp;GM의&nbsp;싸움</br>주주들이&nbsp;움직이기&nbsp;시작하다</br>투자자들의&nbsp;감시가&nbsp;시작되다</br>GM의&nbsp;몰락은&nbsp;누구&nbsp;책임인가?&nbsp;</br>GM을&nbsp;떠난&nbsp;페로</br>자료.&nbsp;로스&nbsp;페로가&nbsp;GM&nbsp;의장&nbsp;겸&nbsp;CEO에게&nbsp;보낸&nbsp;서한</br></br><B>6장&nbsp;13D&nbsp;양식&nbsp;싸움으로&nbsp;쟁취한&nbsp;기업&nbsp;공개매각</br>(생략)</B></br></br>쉐러&nbsp;가문에서&nbsp;시작된&nbsp;전쟁&nbsp;</br>로버트&nbsp;쉐러&nbsp;성공기</br>개악이&nbsp;된&nbsp;다각화</br>뒤늦은&nbsp;깨달음</br>수적&nbsp;열세의&nbsp;싸움</br>13D&nbsp;양식의&nbsp;공개적인&nbsp;싸움</br>갈등과&nbsp;타협</br>젤라틴&nbsp;캡슐은&nbsp;늘&nbsp;필요하다</br>자료.&nbsp;칼라&nbsp;쉐러가&nbsp;쉐러주식회사&nbsp;주주들에게&nbsp;보낸&nbsp;서한&nbsp;</br></br><B>7장&nbsp;독설과&nbsp;인신공격의&nbsp;망신&nbsp;주기&nbsp;게임&nbsp;</br>(생략)</B></br>&nbsp;</br>값싸고&nbsp;효과적인&nbsp;펜이라는&nbsp;무기</br>사방으로&nbsp;퍼지는&nbsp;무기</br>바다로&nbsp;나가다</br>나는&nbsp;왜&nbsp;미스터&nbsp;핑크인가?</br>저평가된&nbsp;합병&nbsp;계획을&nbsp;공략하다</br>조롱만을&nbsp;목적으로&nbsp;한&nbsp;서한</br>보수적인&nbsp;배당주</br>사업가다운&nbsp;태도를&nbsp;다시&nbsp;묻다</br>기관&nbsp;투자가들의&nbsp;각성</br>배려하는&nbsp;기풍</br>자료.&nbsp;대니얼&nbsp;러브가&nbsp;스타가스&nbsp;의장&nbsp;겸&nbsp;CEO에게&nbsp;보낸&nbsp;서한</br></br><B>8장&nbsp;우량기업을&nbsp;무너뜨린&nbsp;잘못된&nbsp;주주행동주의</br>(생략)</B></br></br>주주가치를&nbsp;파괴하다</br>나무가&nbsp;쓰러지다</br>변화의&nbsp;시작</br>싸움도&nbsp;불사하다</br>정의감에&nbsp;투철한&nbsp;행동주의자의&nbsp;맹공</br>흰색&nbsp;용지에&nbsp;투표를!</br>껍데기만&nbsp;남다</br>상장기업에서&nbsp;발생한&nbsp;사적&nbsp;거래</br>상장기업의&nbsp;근본적인&nbsp;딜레마</br>(생략)</br>(생략)</br></br>나오는&nbsp;말_무관심한&nbsp;주주와&nbsp;부실한&nbsp;경영이&nbsp;주주행동주의의&nbsp;타깃이다</br>해제:&nbsp;주주총회로&nbsp;향하는&nbsp;기차</br>미주</br>찾아보기</p>
+	</div>
+	</div>
+<a id="OLC"></a>
+	<div class="sub-container d_width ">
+		<h2>한줄평</h2>
+		<p class="txt">
+	<div class="total">전체 <em>0</em>건(<em>0</em>/0 페이지)</div>
+	<div class="board-list board-round">
+		<table>
+			<thead>
+			<tr>
+				<th scope="col" style="width:80px">번호</th>
+				<th scope="col" style="width:140px">별점</th>
+				<th scope="col" style="min-width:240px">한줄평</th>
+				<th scope="col" style="width:180px">작성자</th>
+				<th scope="col" style="width:120px">작성일</th>
+				<th scope="col" style="width:100px">추천수</th>
+			</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td colspan="6">등록된 한줄평이 없습니다.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	</div>
+<section id="mbooks2">
+	<div id="mnotice2" class="d_width">
+		<div class="tit-wrap wow delay2 fadeInDown">
+			<span>연관도서</span>
+			<span>연관도서를 소개해드립니다!</span>
+		</div>		
+		<div class="tab-off" id="notice02"><a href="#notice02" onkeypress="" onclick="onNoticeShow($(this).parent(), 'notice02');return false;" class="dpb" title="출판사동일 탭 보기"><span>출판사동일</span></a>
+			<div class="tabcontent" id="notice02_menu" style="display:none;">
+				<ul>
+					<li>
+						<a href="/ebook/detail/?goods_id=71050619" class="thumb thumb-v1">
+						</a>
+						<a href="/ebook/detail/?goods_id=71050619" class="subject">워런 버핏 라이브</a>
+					</li>
+					<li>
+						<a href="/ebook/detail/?goods_id=109322729" class="thumb thumb-v1">
+						</a>
+						<a href="/ebook/detail/?goods_id=109322729" class="subject">브라질에 비가 내리면 스타벅스 주식을 사라 : 경제의 큰 흐름에서 기회를 잡는 매크로 투자 가이드</a>
+					</li>
+					<li>
+						<a href="/ebook/detail/?goods_id=85644354" class="thumb thumb-v1">
+						</a>
+						<a href="/ebook/detail/?goods_id=85644354" class="subject">대한민국 부동산 사용설명서</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="tab-off" id="notice01"><a href="#notice01" onkeypress="" onclick="onNoticeShow($(this).parent(), 'notice01');return false;" class="dpb" title="저자동일 탭 보기"><span>저자동일</span></a>
+			<div class="tabcontent" id="notice01_menu" style="display:none;">
+				<ul class="clearfix wow delay3 fadeInUp">
+						<div class="info">
+							<p>제프 그램 저자가 집필한 등록된 컨텐츠가 없습니다.</p>
+						</div>
+				</ul>
+			</div>
+		</div>
+		<div class="tab-on" id="notice03"><a href="#notice03" onkeypress="" onclick="onNoticeShow($(this).parent(), 'notice03');return false;" class="dpb" title="함께 대출한 도서 탭 보기"><span>함께 대출한 도서</span></a>
+			<div class="tabcontent" id="notice03_menu">
+				<ul class="clearfix wow delay3 fadeInUp">
+						<div class="info">
+							<p>이 책을 대출한 회원이 함께 대출한 컨텐츠가 없습니다.</p>
+						</div>
+				</ul>
+			</div>
+		</div>
+	</div>
+</section>
+<form name="action_form" method="post" action="/action/" target="process">
+	<input type="hidden" name="goods_id" >
+	<input type="hidden" name="action_mode" >
+	<input type="hidden" name="content_sort" value="017" >
+	<input type="hidden" name="return_url" value="/ebook/detail/?goods_id=118850600">
+</form>
+</div>
+<div id="maside">
+	<p class="tit"><span>QUICK</span>SERVICE</p>
+	<ul>
+		<li><a class="ico ico1" href="/mylibrary?mode=1" title="대출현황 페이지로 이동합니다.">대출현황</a></li>
+		<li><a class="ico ico2" href="/mylibrary?mode=2" title="예약현황 페이지로 이동합니다.">예약현황</a></li>
+		<li><a class="ico ico3" href="/info/?mode=3" title="이용안내 페이지로 이동합니다.">모바일</br>이용안내</a></li>
+	</ul>
+	<a href="#header" class="top-btn">TOP</a>
+</div>
+<div id="maside-open" class=""> 
+	<a href="javascript:void(0);" onclick="mobile_aside();" title="메뉴 오픈"></a>
+</div>
+<footer>
+	<div class="fmn">
+		<div class="d_width">
+			<ul class="clearfix">
+			</ul>
+		</div>
+	</div>
+	<div id="address"  class="d_width">
+		<p>(18262) 경기도 화성시 납양읍 역골중앙로&nbsp;143 &nbsp;화성시립도서관 
+		<span class="mlp20">TEL. 1577-4200</span>
+		<span class="mlp20"></span>
+		</p>
+		<p>COPYRIGHT ⓒ YES24. ALL RIGHTS RESERVED.</p>
+	</div>
+	</div>
+<iframe title="process" frameborder=0 marginheight=0 marginwidth=0 leftmargin=0 topmargin=0 name="process"  height=0 width=0></iframe>
+</footer>
+</body>
+</html>
