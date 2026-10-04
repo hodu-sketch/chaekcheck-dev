@@ -839,3 +839,32 @@
 - **발견**: `spring.modulith.events.jdbc.schema-initialization.enabled` 기본값이 문서(main 브랜치 appendix 표: `true`)와 2.1.1 jar 메타데이터(`false`)에서 다름. 명시적으로 `false`.
 - 확인: `./gradlew build` 통과(테스트 318개, `AuthDisabledTests`·`AuthPropertiesTests`·`AuthToggleEnvironmentPostProcessorTests` 포함, 모듈 문서에 `module-auth.puml`). `bootRun`(꺼짐) + 웹: "작별하지 않는다" 검색 3권, 대출 조회 정상. `/api/v1/me` 404 `not_found`, 검색 응답에 `X-Frame-Options`·`Cache-Control` 없음, 서버 기록에 Security 관련 줄과 자동 생성 비밀번호 없음.
 - 참고: 첫 빌드에서 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`가 한 번 실패했고, 따로 5번과 전체 빌드에서 다시 돌렸을 때는 모두 통과함. 이번 변경과 무관한 가짜 시계 테스트로, 가끔 실패하는 것으로 보임.
+
+# 사이클 밖: ADR-0047 옮기기
+
+## A. 문서 (2026-10-04)
+
+사용자 요청(붙여 넣은 메시지): plan의 ADR-0047에 따라 정기 유지보수 절차를 dev docs/maintenance/ 한 곳에 모으려고 해. 요청서를 읽고 "A. 문서"만 해 줘. — plan 문서는 읽기만 했습니다.
+
+| 새 파일 | 내용 | 가져온 원문 |
+|---|---|---|
+| `docs/maintenance/README.md` | ①~④ 단계, 주기 [안], 실행 도구, 단계별 볼 곳, 한 바퀴 체크리스트(새로 씀) | plan `periodic-tasks.md` 0~4절 |
+| `docs/maintenance/1-libraries.md` | 입구 문서. 하려는 일별로 `library-maintenance.md`의 절을 가리키는 표 | (새로 씀) |
+| `docs/maintenance/2-crawl.md` | 수집 실행, 이어 받기, 명령, 병렬·IP 줄, 받지 않는 도서관, 문제별 대처, 새 사이트 붙이기, 상세 URL, 오디오북 표시 | plan `crawl-runbook.md` 0·2·2-1·3·4·5·5-1·6·7·9·10절 (스크립트로 그대로 옮기고 경로만 고침) |
+| `docs/maintenance/platforms.md` | 플랫폼별 검색·전체 목록 방법 | plan `platforms.md` 전체 (머리말만 고침) |
+| `docs/maintenance/3-import.md` | 실행 조건, 준비, dry run, 실제 실행, 지난 숫자, 빠지는 줄 기준, 책 번호 문제 | dev `# 사이클 04` "가져오기 실행 방법"·"실제 가져오기 결과", plan `periodic-tasks.md` 3절, 코드 |
+
+요청서 [안]과 다르게 한 것과 이유:
+- `1-libraries.md`: `library-maintenance.md`를 옮기지 않고 링크로 둠(요청서가 dev에 맡긴 선택). 이유: `CLAUDE.md` "Library Research Record" 규칙, `library-site-issues.md`, 지난 조사 보고서, plan 문서들이 그 경로와 절 번호를 가리켜서, 옮기면 참조가 모두 끊김. `library-maintenance.md` 머리말에 `maintenance/README.md` 링크 한 줄을 더함.
+- `2-crawl.md`: 요청서 목록에 없던 runbook 2절(받는 순서와 호출 예의)도 옮김. 2-1절과 IP 줄 세우기의 전제라서. 1절(지금 상태)과 8절(웹러브 북스 진행)은 plan에 남기고 링크만. 순위 1~4의 뜻을 한 줄로 더하고, 파일 표에 `probe_kyobo_institutions.py`·`probe_yes24.py`·`probe_aladin.py`(runbook 8-1절에 나오는 것)를 더함. 코드 경로는 아직 `chaekcheck-data\scripts\`이고 B 때 고친다고 적음.
+- `3-import.md`: 빠지는 줄 기준은 plan 요약 대신 코드(`CollectedCatalog.java`)의 이유 이름 그대로 표로 적음(`no_title`, `kind_null` 포함).
+
+**수집 중 가져오기 판단** (요청서 "함께 확인해 주세요"): 돌려도 됨.
+- 근거: 수집기는 `PRAGMA journal_mode=WAL`(`chaekcheck-data/scripts/crawl_catalog.py` 189행), 가져오기는 읽기 전용(`open_mode=1`)으로 한 트랜잭션 안에서 읽음 → 읽기 시작한 순간의 내용만 가져오고 수집기 쓰기를 막지 않음. 2026-10-03 실행이 실제 예.
+- 조건: 새로 넣은 서비스 도서관은 첫 수집이 끝난 뒤(`last_full_success_at`)에 가져옴.
+- 새로 적은 주의: 서비스 DB 쓰기의 `TRUNCATE`가 `catalog` 표를 잠가 쓰는 동안(약 2분 30초) 서비스 책 검색이 기다림(코드로 판단, 재지는 않음). 사용자가 있는 서비스라면 사용이 적은 시간에 [안].
+
+**`library-maintenance.md`의 알려진 문제**(요청서, plan `reference-index.md` 7절): 사이클 05 사전 작업에서 이미 고침(커밋 `812bc4f`, 위 `# 사이클 05` "dev 문서 정리"). 같은 종류로 깨져 있던 `GANGNAM_V1` 행도 함께 고침.
+
+plan에 남는 문서(`crawl-method.md`, `research.md`, `same-book-isbn.md`, `search-and-normalization.md`, `catalog-refresh.md`)는 옮기지 않고 경로로만 가리킴.
+B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.

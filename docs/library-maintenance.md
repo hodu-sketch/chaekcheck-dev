@@ -6,6 +6,7 @@
 - 결정이 필요한 일(아래 "사람에게 물을 것")은 스스로 정하지 말고 사용자에게 묻습니다.
 - 작업 결과는 `docs/plan-feedback.md`에 적습니다(10절).
 - 검색 대상에서 빠진 사이트(주소 없어짐·다른 화면, 연결 안 됨, 인증서 불완전, 이름에 "도서관" 없음, 이름 겹침)와 다시 볼 때 할 일은 [`library-site-issues.md`](library-site-issues.md)에 모읍니다.
+- 이 작업은 정기 유지보수의 1단계입니다. 다음 단계(책 목록 수집, 서비스 DB로 가져오기)와 순서는 [`maintenance/README.md`](maintenance/README.md)에 있습니다(plan ADR-0047, 2026-10-04).
 
 ---
 
