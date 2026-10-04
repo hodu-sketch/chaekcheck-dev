@@ -5,8 +5,7 @@
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 17.5rem;
-  /* the library name starts on the same line as the book title (user request 2026-10-05) */
-  align-items: start;
+  align-items: center;
   gap: 1.5rem;
   /* a card inside the white results panel (user request 2026-10-05) */
   padding: 1.15rem 1.35rem;
@@ -59,8 +58,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.5rem;
-  /* 20% larger, then 10% smaller again (user requests 2026-10-05): 1.2 × 0.9 */
-  font-size: 1.08rem;
+  /* a step smaller than the book title (1.12rem) (user request 2026-10-05) */
+  font-size: 1rem;
   font-weight: 800;
   word-break: keep-all;
 }
