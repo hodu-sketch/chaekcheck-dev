@@ -164,3 +164,29 @@ describe('subscription rows (user request 2026-10-05)', () => {
   })
 })
 
+
+describe('the card opens the library (user request 2026-10-05)', () => {
+  it('is one link to the book page, with no separate button', () => {
+    render(
+      <ResultRow
+        row={testRow({ libraryId: 2, rank: 1, detailUrl: 'https://www.ghlib.go.kr:446/book/1' })}
+        library={openLibrary}
+        searchUrl="https://www.ghlib.go.kr:446/search"
+      />,
+    )
+
+    const links = screen.getAllByRole('link')
+    expect(links).toHaveLength(1)
+    expect(links[0].getAttribute('href')).toBe('https://www.ghlib.go.kr:446/book/1')
+    expect(links[0].getAttribute('target')).toBe('_blank')
+    expect(links[0].textContent).toContain(`${openLibrary.name}에서 보기`)
+    // the library name still opens its join details, not the link
+    expect(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` })).toBeTruthy()
+  })
+
+  it('is not a link when the site gave no address', () => {
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1, detailUrl: null })} library={openLibrary} searchUrl={undefined} />)
+
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+})

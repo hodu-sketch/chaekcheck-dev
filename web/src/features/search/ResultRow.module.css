@@ -309,28 +309,38 @@
   font-variant-numeric: tabular-nums;
 }
 
-.link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.35rem 0.8rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  color: var(--brand-strong);
-  text-decoration: none;
-  transition: background-color 140ms, border-color 140ms, color 140ms;
+/*
+ * The whole card is the link to the library's page (user request 2026-10-05, the "도서관에서 보기" button is gone):
+ * the link covers the card, and the two buttons inside (library name, subscription state) sit above it.
+ */
+.row {
+  position: relative;
 }
 
-.link::after {
-  content: '↗';
+.cardLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
 }
 
-.link:hover {
-  border-color: var(--brand-strong);
-  background: var(--brand-strong);
-  color: #fff;
+.cardLink:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.libraryButton,
+.stateButton {
+  position: relative;
+  z-index: 1;
+}
+
+.row[data-link]:hover {
+  border-color: var(--brand);
+}
+
+.row[data-link]:active {
+  background: var(--paper-deep);
 }
 
 @media (width <= 1024px) {
@@ -368,9 +378,7 @@
     /* minmax(0, …): a long word must not push the card past the screen */
     grid-template-columns: minmax(0, 1fr);
     gap: 0.7rem;
-    padding: 0.9rem 0.75rem;
-    /* white on the grey canvas: the outer panel is gone on phones */
-    background: var(--card);
+    padding: 0.9rem 0.55rem;
   }
 
   /*
@@ -383,7 +391,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 0.35rem;
+    gap: 0.45rem 0.25rem;
     /* closer to the library name above (user request 2026-10-05): 0.7rem row gap - 0.4rem */
     margin-top: -0.4rem;
     text-align: left;
@@ -404,29 +412,20 @@
   }
 
   /*
-   * phones: the state with the counts to its right (user request 2026-10-05), then "도서관에서 보기" as a full-width
-   * button at the bottom, the same in every card (user request 2026-10-05: the bare text link looked unsteady)
+   * phones: the state with the counts to its right (user request 2026-10-05); the whole card opens the library
    */
   .counts {
     order: 2;
     margin-left: auto;
   }
 
-  .link {
-    order: 3;
-    flex-basis: 100%;
-    justify-content: center;
-    height: var(--control-height);
-    padding: 0 1rem;
-    font-size: var(--text-sm);
-  }
 
   /* "보유 5  대출 중 0  예약 0" on one line, in a grey box like the state beside it (user request 2026-10-05) */
   .counts {
     align-self: stretch;
     align-items: center;
     gap: 0.25rem;
-    padding: 0 0.35rem;
+    padding: 0 0.3rem;
     border-radius: var(--radius-tag);
     background: var(--paper-deep);
   }
@@ -442,9 +441,6 @@
     font-size: var(--text-xs);
   }
 
-  .link {
-    white-space: nowrap;
-  }
 }
 
 /* cycle 06: a library the user added by hand, in place of the eligibility badge ("직접 추가" [안 글자]) */

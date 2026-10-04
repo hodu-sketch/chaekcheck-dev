@@ -114,9 +114,7 @@
       'meta chevron'
       'count chevron';
     gap: 0.2rem 0.75rem;
-    /* a white card on the grey canvas, the outer panel is gone on phones (user request 2026-10-05) */
     padding: 0.85rem 1rem;
-    background: var(--card);
   }
 
   .chevron {

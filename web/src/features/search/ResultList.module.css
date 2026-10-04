@@ -247,18 +247,18 @@
 }
 
 @media (width <= 640px) {
-  /* phones: no outer white panel, so the cards are not boxes in a box (user request 2026-10-05, Toss app lists) */
+  /*
+   * phones: the same white panel with soft grey cards as on wider screens (user request 2026-10-05: the colors
+   * differed; the panel stays inside the page margins), with less padding so the cards keep their width
+   */
   .list {
     gap: 1.2rem;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: none;
+    padding: 0 0.45rem 0.45rem;
   }
 
   .toolbar {
-    margin: 0;
-    padding: 0;
+    margin: 0 -0.45rem;
+    padding: 0 0.75rem;
   }
 
   .filter {

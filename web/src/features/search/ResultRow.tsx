@@ -79,7 +79,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   )
 
   return (
-    <article className={styles.row} data-group={group}>
+    <article className={styles.row} data-group={group} data-link={href ? true : undefined}>
       <div className={styles.book}>
         <h3 className={styles.title}>{row.title}</h3>
         <p className={styles.meta}>
@@ -132,13 +132,20 @@ export function ResultRow({ row, library, searchUrl }: Props) {
         )}
         <div className={styles.stockLine}>
           <Counts row={row} />
-          {href && (
-            <a className={styles.link} href={href} target="_blank" rel="noopener noreferrer">
-              도서관에서 보기<span className="visually-hidden"> (새 창)</span>
-            </a>
-          )}
         </div>
       </div>
+
+      {/*
+        The whole card opens the library's page, no separate button (user request 2026-10-05). The link covers the card;
+        the library name and the subscription state stay above it and open their own notes.
+      */}
+      {href && (
+        <a className={styles.cardLink} href={href} target="_blank" rel="noopener noreferrer">
+          <span className="visually-hidden">
+            {libraryName}에서 보기 (새 창)
+          </span>
+        </a>
+      )}
     </article>
   )
 }
