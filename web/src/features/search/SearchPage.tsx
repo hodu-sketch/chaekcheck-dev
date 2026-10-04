@@ -123,9 +123,9 @@ export function SearchPage() {
       <section className={styles.searchArea}>
         {!hasSearch && (
           <h1 className={styles.headline}>
-            읽고 싶은 책,
+            <em>지금 빌릴 수 있는</em>
             <br />
-            <em>지금 빌릴 수 있는</em> 전자도서관을 찾아 드려요
+            전자도서관을 찾아 드려요
           </h1>
         )}
         <SearchForm

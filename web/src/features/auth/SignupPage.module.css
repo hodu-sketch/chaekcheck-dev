@@ -1,5 +1,6 @@
 .page {
-  width: min(36rem, 100%);
+  /* same width as S8/S9, the same white-card format (user request 2026-10-05) */
+  width: min(44rem, 100%);
   margin: 2.5rem auto 0;
   display: flex;
   flex-direction: column;
@@ -19,10 +20,14 @@
 
 .notice {
   width: 100%;
-  border-collapse: collapse;
+  /* separate, so the rounded corners show; a white card on the grey canvas (user request 2026-10-05) */
+  border-collapse: separate;
+  border-spacing: 0;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   overflow: hidden;
+  background: var(--card);
+  color: var(--ink);
   font-size: var(--text-md);
 }
 
@@ -34,10 +39,14 @@
 
 .notice th,
 .notice td {
-  padding: 0.7rem 0.9rem;
+  padding: 0.8rem 1rem;
   border-top: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
+}
+
+.notice tr:first-child > * {
+  border-top: none;
 }
 
 .notice th {
@@ -61,8 +70,10 @@
 .boxes {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
+  background: var(--card);
 }
 
 .allRow,

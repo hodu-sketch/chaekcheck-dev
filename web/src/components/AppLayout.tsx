@@ -15,7 +15,7 @@ export function AppLayout() {
         <header className={styles.header}>
           <Link to="/" className={styles.brand}>
             <span className={styles.wordmark}>책첵</span>
-            <span className={styles.tagline}>전자도서관 대출 가능 여부를 한 번에</span>
+            <span className={styles.tagline}>전자도서관 대출 가능 확인</span>
           </Link>
           {/* No login button on the terms and privacy pages (flow.md S8, S9) */}
           {!['/terms', '/privacy'].includes(location.pathname) && <AuthHeaderAction />}
