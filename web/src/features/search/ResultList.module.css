@@ -248,17 +248,20 @@
 
 @media (width <= 640px) {
   /*
-   * phones: the same white panel with soft grey cards as on wider screens (user request 2026-10-05: the colors
-   * differed; the panel stays inside the page margins), with less padding so the cards keep their width
+   * phones: no outer white panel, white cards on the grey canvas (user choice 2026-10-05: back to this after trying
+   * the panel of wider screens)
    */
   .list {
     gap: 1.2rem;
-    padding: 0 0.45rem 0.45rem;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
   }
 
   .toolbar {
-    margin: 0 -0.45rem;
-    padding: 0 0.75rem;
+    margin: 0;
+    padding: 0;
   }
 
   .filter {

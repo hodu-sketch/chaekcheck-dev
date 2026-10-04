@@ -391,7 +391,9 @@
     /* minmax(0, …): a long word must not push the card past the screen */
     grid-template-columns: minmax(0, 1fr);
     gap: 0.7rem;
-    padding: 0.9rem 0.55rem;
+    padding: 0.9rem 0.75rem;
+    /* white on the grey canvas: no outer panel on phones */
+    background: var(--card);
   }
 
   /*

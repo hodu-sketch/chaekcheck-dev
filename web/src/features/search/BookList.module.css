@@ -115,6 +115,8 @@
       'count chevron';
     gap: 0.2rem 0.75rem;
     padding: 0.85rem 1rem;
+    /* white on the grey canvas: no outer panel on phones */
+    background: var(--card);
   }
 
   .chevron {
