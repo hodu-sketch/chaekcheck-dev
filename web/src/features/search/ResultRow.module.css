@@ -8,7 +8,8 @@
   align-items: center;
   gap: 1.5rem;
   /* a card inside the white results panel (user request 2026-10-05) */
-  padding: 1.15rem 1.35rem;
+  /* 30% less than 1.15rem 1.35rem (user request 2026-10-05) */
+  padding: 0.8rem 0.95rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   background: var(--card-soft);
@@ -20,7 +21,8 @@
 }
 
 .title {
-  font-size: 1.12rem;
+  /* about 10% smaller (user request 2026-10-05) */
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1.4;
   letter-spacing: -0.01em;
@@ -34,7 +36,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 0.6rem;
-  font-size: 0.9rem;
+  /* about 10% smaller (user request 2026-10-05) */
+  font-size: 0.82rem;
   color: var(--ink-soft);
 }
 
@@ -59,13 +62,13 @@
 
 /*
  * The rule between the book and the library covers 80% of the card's height (user request 2026-10-05). The column
- * is the card's height minus its padding p (1.15rem), so the line reaches past it by 0.8p - 10% at each end (a negative inset).
+ * is the card's height minus its padding p (0.8rem), so the line reaches past it by 0.8p - 10% at each end (a negative inset).
  */
 .library::before {
   content: '';
   position: absolute;
-  top: calc(10% - 0.8 * 1.15rem);
-  bottom: calc(10% - 0.8 * 1.15rem);
+  top: calc(10% - 0.8 * 0.8rem);
+  bottom: calc(10% - 0.8 * 0.8rem);
   left: 0;
   width: 1px;
   background: var(--rule-strong);
@@ -76,8 +79,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.5rem;
-  /* a step smaller than the book title (1.12rem) (user request 2026-10-05) */
-  font-size: 1rem;
+  /* a step smaller than the book title, then about 10% smaller with it (user requests 2026-10-05) */
+  font-size: 0.9rem;
   font-weight: 800;
   word-break: keep-all;
 }
@@ -373,7 +376,7 @@
   .row {
     /* minmax(0, …): a long word must not push the card past the screen */
     grid-template-columns: minmax(0, 1fr);
-    padding: 1rem;
+    padding: 0.7rem;
   }
 
   .stock {

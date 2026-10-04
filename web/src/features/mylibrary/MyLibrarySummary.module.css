@@ -1,33 +1,38 @@
-/* Same line as the cycle 05 region line (RegionSummary), with "·" between the parts */
+/*
+ * One white box under the search box (user request 2026-10-05: the line sat loose and cramped): "내 도서관", then each
+ * part as a grey chip with even gaps, and [관리] as a small button at the right end. No "·" separators.
+ */
 .summary {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.4rem;
-  font-size: 0.93rem;
+  align-items: center;
+  gap: 0.45rem 0.5rem;
+  padding: 0.55rem 0.6rem 0.55rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  font-size: 0.88rem;
   color: var(--ink-soft);
 }
 
 .label {
+  margin-right: 0.3rem;
   font-weight: 800;
   color: var(--ink);
 }
 
-.part::before,
-.summary > .action::before {
-  content: '·';
-  /* inline-block keeps the link underline off the separator */
-  display: inline-block;
-  margin-right: 0.4rem;
-  color: var(--ink-faint);
-  font-weight: 400;
+.part {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-tag);
+  background: var(--paper-deep);
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .kind {
-  display: inline-block;
-  padding: 0 0.4rem;
-  border-radius: var(--radius-tag);
-  background: var(--brand-soft);
   font-size: 0.8rem;
   font-weight: 800;
   color: var(--brand-strong);
@@ -38,19 +43,25 @@
 }
 
 .action {
-  padding: 0;
-  border: none;
-  background: none;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-inner);
+  background: var(--card);
   font: inherit;
   color: var(--brand-strong);
   font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+/* [관리] at the right end of the box */
+.summary > .action:last-child {
+  margin-left: auto;
 }
 
 .action:hover {
-  text-decoration-thickness: 2px;
+  border-color: var(--brand);
 }
 
 .action:focus-visible {

@@ -16,7 +16,8 @@
     'meta count chevron';
   align-items: center;
   gap: 0.15rem 1rem;
-  padding: 0.95rem 1.2rem;
+  /* 30% less than 0.95rem 1.2rem (user request 2026-10-05) */
+  padding: 0.65rem 0.85rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   background: var(--card-soft);
@@ -36,7 +37,8 @@
 
 .title {
   grid-area: title;
-  font-size: 1.05rem;
+  /* about 10% smaller (user request 2026-10-05) */
+  font-size: 0.95rem;
   font-weight: 800;
   word-break: keep-all;
 }
@@ -44,7 +46,8 @@
 .meta {
   grid-area: meta;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  /* about 10% smaller (user request 2026-10-05) */
+  font-size: 0.82rem;
 }
 
 .count {
@@ -105,12 +108,13 @@
 
 @media (width <= 640px) {
   .book {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'title chevron'
       'meta chevron'
       'count chevron';
-    padding: 0.85rem 0.3rem;
+    /* a card now, so it needs side room too */
+    padding: 0.6rem 0.7rem;
   }
 
   .more {
