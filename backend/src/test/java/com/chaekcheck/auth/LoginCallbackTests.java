@@ -37,7 +37,7 @@ import com.chaekcheck.auth.internal.login.PendingSignup;
  * read timeout is 1 second here so the timeout case runs fast; the real value is 5 seconds (C20).
  */
 @SpringBootTest(properties = { "chaekcheck.auth.enabled=true",
-		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.naver.client-id=test-naver-id",
+		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.kakao.app-id=123456", "chaekcheck.auth.naver.client-id=test-naver-id",
 		"chaekcheck.auth.naver.client-secret=test-naver-secret", "chaekcheck.auth.kakao.client-id=test-kakao-id",
 		"chaekcheck.auth.kakao.client-secret=test-kakao-secret", "chaekcheck.auth.provider-calls.read-timeout=1s" })
 @AutoConfigureMockMvc

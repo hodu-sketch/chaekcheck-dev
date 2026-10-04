@@ -34,8 +34,8 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 
 	public AuthProperties {
 		jwt = jwt != null ? jwt : new Jwt(null);
-		naver = naver != null ? naver : new Provider(null, null, null, null, null, null, null);
-		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null, null, null);
+		naver = naver != null ? naver : new Provider(null, null, null, null, null, null, null, null);
+		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null, null, null, null);
 		tokens = tokens != null ? tokens : new Tokens(null, null, null, null);
 		providerCalls = providerCalls != null ? providerCalls : new ProviderCalls(null, null);
 		documents = documents != null ? documents : new Documents(null, null);
@@ -66,6 +66,13 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		return !enabled(LoginProvider.KAKAO) || present(kakao.adminKey());
 	}
 
+	/** The unlink webhook carries the app number; a request for another app is refused (step 9). */
+	@AssertTrue(message = "chaekcheck.auth.kakao.app-id is required while kakao is in chaekcheck.auth.providers "
+			+ "(environment variable KAKAO_APP_ID)")
+	public boolean isKakaoAppIdSet() {
+		return !enabled(LoginProvider.KAKAO) || present(kakao.appId());
+	}
+
 	private static boolean present(String value) {
 		return value != null && !value.isBlank();
 	}
@@ -80,9 +87,10 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 	 *
 	 * @param unlinkUri Naver: token revoke; Kakao: unlink with the admin key
 	 * @param adminKey Kakao's admin key; not used for Naver
+	 * @param appId Kakao's app number, checked on the unlink webhook; not used for Naver
 	 */
 	public record Provider(String clientId, String clientSecret, @NotBlank String authorizationUri, @NotBlank String tokenUri, @NotBlank String userInfoUri,
-			@NotBlank String unlinkUri, String adminKey) {
+			@NotBlank String unlinkUri, String adminKey, String appId) {
 
 		/** Keeps the secrets out of logs and error messages. */
 		@Override

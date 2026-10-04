@@ -78,8 +78,11 @@ chaekcheck:
       user-info-uri: https://kapi.kakao.com/v2/user/me
       # Unlink with the admin key: Authorization: KakaoAK <key>, target_id_type=user_id, target_id=<id>
       unlink-uri: https://kapi.kakao.com/v1/user/unlink
-      # Kakao's "service app admin key" (secret)
+      # Kakao's "service app admin key" (secret). The unlink webhook's "primary admin key" is the same key (console,
+      # 2026-10-04): it arrives as Authorization: KakaoAK <key>.
       admin-key: ${KAKAO_ADMIN_KEY:}
+      # Kakao app number (not secret); the unlink webhook's app_id must match it
+      app-id: ${KAKAO_APP_ID:}
     documents:
       # Effective dates of the documents agreed to at sign-up, YYYY-MM-DD (C27). The web's terms and privacy pages
       # must show the same versions.

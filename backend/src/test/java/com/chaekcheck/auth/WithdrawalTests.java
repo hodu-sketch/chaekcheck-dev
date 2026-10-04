@@ -37,7 +37,7 @@ import com.chaekcheck.auth.internal.token.TokenService.LoginCookies;
 
 /** Step 8: withdrawal re-authentication and {@code DELETE /api/v1/me}, with fake Naver and Kakao endpoints. */
 @SpringBootTest(properties = { "chaekcheck.auth.enabled=true",
-		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key",
+		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.kakao.app-id=123456",
 		"chaekcheck.auth.naver.client-id=test-naver-id", "chaekcheck.auth.naver.client-secret=test-naver-secret",
 		"chaekcheck.auth.kakao.client-id=test-kakao-id", "chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 @AutoConfigureMockMvc

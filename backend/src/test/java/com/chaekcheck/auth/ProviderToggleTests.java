@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -28,7 +29,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * login address (start, callback, re-authentication) is 404, and Kakao login works as before.
  */
 @SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.providers=kakao",
-		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key",
+		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.kakao.app-id=123456",
 		"chaekcheck.auth.kakao.client-id=test-kakao-id", "chaekcheck.auth.kakao.client-secret=test-kakao-secret",
 		"chaekcheck.auth.naver.client-id=", "chaekcheck.auth.naver.client-secret=" })
 @AutoConfigureMockMvc
@@ -67,6 +68,14 @@ class ProviderToggleTests {
 				.extractingPath("$.code")
 				.isEqualTo("not_found");
 		}
+	}
+
+	@Test
+	void naverWebhookIsNotFound() {
+		assertThat(mvc.post()
+			.uri("/api/v1/auth/webhooks/naver-unlink")
+			.contentType(MediaType.APPLICATION_FORM_URLENCODED)
+			.content("clientId=x")).hasStatus(HttpStatus.NOT_FOUND).bodyJson().extractingPath("$.code").isEqualTo("not_found");
 	}
 
 	@Test

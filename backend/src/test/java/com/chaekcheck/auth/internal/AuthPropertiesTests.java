@@ -32,7 +32,7 @@ class AuthPropertiesTests {
 				String message = rootMessage(context.getStartupFailure());
 				assertThat(message).contains("chaekcheck.auth.jwt.secret", "AUTH_JWT_SECRET", "NAVER_CLIENT_SECRET",
 						"KAKAO_REST_API_KEY", "KAKAO_CLIENT_SECRET", "chaekcheck.auth.publicBaseUrl",
-						"AUTH_PUBLIC_BASE_URL", "KAKAO_ADMIN_KEY");
+						"AUTH_PUBLIC_BASE_URL", "KAKAO_ADMIN_KEY", "KAKAO_APP_ID");
 			});
 	}
 
@@ -41,7 +41,7 @@ class AuthPropertiesTests {
 		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.jwt.secret=test-secret",
 				"chaekcheck.auth.naver.client-id=n-id", "chaekcheck.auth.naver.client-secret=n-secret",
 				"chaekcheck.auth.kakao.client-id=k-id", "chaekcheck.auth.kakao.client-secret=k-secret",
-				"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=k-admin",
+				"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=k-admin", "chaekcheck.auth.kakao.app-id=123",
 				"chaekcheck.auth.documents.terms-of-service-version=2026-10-04",
 				"chaekcheck.auth.documents.privacy-collection-version=2026-10-04")
 			.withPropertyValues(endpoints("naver"))
@@ -56,7 +56,7 @@ class AuthPropertiesTests {
 	void anOffProviderNeedsNoKeys() {
 		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.providers=kakao",
 				"chaekcheck.auth.jwt.secret=test-secret", "chaekcheck.auth.kakao.client-id=k-id",
-				"chaekcheck.auth.kakao.client-secret=k-secret", "chaekcheck.auth.kakao.admin-key=k-admin",
+				"chaekcheck.auth.kakao.client-secret=k-secret", "chaekcheck.auth.kakao.admin-key=k-admin", "chaekcheck.auth.kakao.app-id=123",
 				"chaekcheck.auth.public-base-url=http://localhost:5173",
 				"chaekcheck.auth.documents.terms-of-service-version=2026-10-04",
 				"chaekcheck.auth.documents.privacy-collection-version=2026-10-04")

@@ -31,7 +31,7 @@ import com.nimbusds.jwt.SignedJWT;
  * both sign in to it (C26). No test transaction: each sign-up runs in its own. Rows are deleted afterwards.
  */
 @SpringBootTest(properties = { "chaekcheck.auth.enabled=true",
-		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key",
+		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.kakao.app-id=123456",
 		"chaekcheck.auth.naver.client-id=test-naver-id", "chaekcheck.auth.naver.client-secret=test-naver-secret",
 		"chaekcheck.auth.kakao.client-id=test-kakao-id", "chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 class SignupConcurrencyTests {

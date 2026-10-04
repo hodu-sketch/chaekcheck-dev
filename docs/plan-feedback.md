@@ -954,6 +954,19 @@
 - 추가 사항 2·3절 확인: 콘솔에 등록된 돌아올 주소 네 줄이 dev가 만든 주소와 **같음**(고칠 것 없음). 카카오 client secret은 토큰 요청에 넣음(5단계부터). 어드민 키 하나 → 환경 변수 `KAKAO_ADMIN_KEY` 하나. 동의 항목 없음 → 받는 것은 회원번호뿐(코드도 그렇게 함).
 - 확인: `./gradlew build` 통과(테스트 408개, 꺼짐) + 켜짐으로 전체 테스트 408개 통과.
 
+## 9단계 결과: 카카오 연결 해제 웹훅, 네이버 연결끊기 Callback (2026-10-04)
+
+- 공식 문서 확인(2026-10-04): 카카오 https://developers.kakao.com/docs/ko/kakaologin/callback "연결 끊기 알림" — 메서드 `GET/POST`(GET은 쿼리, POST는 form), 헤더 `Authorization: KakaoAK ${PRIMARY_ADMIN_KEY}`, `app_id`·`user_id`·`referrer_type`(필수), "HTTP 상태 코드 200 OK (3초 내)". **카카오가 GET만 보낸다는 것은 아님**(콘솔에서 고를 수 있어 보임) → 설계대로 POST만 받음, GET 예외는 만들지 않음. 콘솔에서 POST를 고를 수 있는지는 웹훅 URL 등록 때 확인 [확인 필요, 인계서 표 그대로].
+- 네이버: plan research.md 3절의 원문 그대로 구현(키 = MD5(client secret) 앞 16바이트, 서명 = HmacSHA256(`clientId=…&encryptUniqueId=…&timestamp=…`) URL-safe Base64, 식별자 = Base64(IV 16바이트 + AES-128/CBC/PKCS5)). 들어온 서명·식별자는 표준/URL-safe Base64와 패딩 유무를 모두 받음(가이드 예제는 URL-safe).
+- `POST /api/v1/auth/webhooks/kakao-unlink`: 키(`KakaoAK ` + `KAKAO_ADMIN_KEY`)와 `app_id`를 `MessageDigest.isEqual`로 비교 → 다르면 401 `unauthorized`, 삭제 없음. 맞으면 `login_method(KAKAO, user_id)`의 계정을 7단계 `AccountDeletion`으로 삭제(+`AccountDeleted`) 후 200. 없는 사용자도 200.
+- `POST /api/v1/auth/webhooks/naver-unlink`: `clientId` 다름·서명 틀림·`timestamp`가 지금과 5분 넘게 차이(앞뒤 모두) → 401, 삭제 없음. 맞으면 같은 삭제 후 204(본문 없음). 없는 사용자도 204.
+- 새 설정(dev가 정함): `chaekcheck.auth.kakao.app-id: ${KAKAO_APP_ID:}`(카카오가 켜져 있으면 필수, 비밀 아님). **사용자가 `.env`에 카카오 앱 ID를 넣어 주세요.**
+- 제공자를 끄면 그 웹훅도 404 `not_found`(AC-22의 "주소가 동작하지 않음"에 맞춤, 인계서에 명시는 없음).
+- 이번 사이클은 계정당 수단이 하나라 늘 계정 삭제(인계서). 서버 기록에는 계정 번호만(제공자 번호는 남기지 않음).
+- 테스트(`UnlinkWebhookTests` 8개, 테스트 안에서 네이버 가이드 방식으로 만든 요청, 테스트 전용 secret): 네이버 정상 204 + 삭제, 같은 요청 두 번·모르는 사용자 204, 서명 틀림·다른 secret 401, 다른 `clientId` 401, 5분 넘게 과거·미래 401(4분 전은 통과), 칸 빠짐 401. 카카오 정상 200 + 삭제(처리 시간 3초 미만 확인), 모르는 사용자 200, 키 틀림·키 없음·`app_id` 다름 401. 모두 CSRF 토큰 없이 보냄. `ProviderToggleTests`에 꺼진 네이버 웹훅 404.
+- 인계서 확인 항목 중 못 한 것: "`bootRun` 뒤 `curl`로 직접 보냄"은 하지 않음(로그인 켜짐 서버에는 사용자의 키가 든 `.env`가 필요). 같은 요청을 MockMvc로 보내 확인함. 실제 제공자 전송은 공개 주소가 생긴 뒤(인계서대로).
+- 확인: `./gradlew build` 통과(테스트 417개, 꺼짐) + 켜짐으로 전체 테스트 417개 통과.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)
