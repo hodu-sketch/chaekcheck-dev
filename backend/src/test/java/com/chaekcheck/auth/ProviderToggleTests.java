@@ -70,6 +70,11 @@ class ProviderToggleTests {
 	}
 
 	@Test
+	void theWebSeesOnlyKakao() {
+		assertThat(mvc.get().uri("/api/v1/auth/providers")).hasStatusOk().bodyJson().isStrictlyEqualTo("[\"KAKAO\"]");
+	}
+
+	@Test
 	void kakaoLoginStillWorks() {
 		fake.kakaoUser = "{\"id\":31337}";
 		MockHttpSession session = new MockHttpSession();

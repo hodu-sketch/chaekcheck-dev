@@ -38,6 +38,10 @@ class AuthDisabledTests {
 			.bodyJson()
 			.extractingPath("$.code")
 			.isEqualTo("not_found");
+		assertThat(mvc.get().uri("/api/v1/auth/providers")).hasStatus(HttpStatus.NOT_FOUND)
+			.bodyJson()
+			.extractingPath("$.code")
+			.isEqualTo("not_found");
 		assertThat(mvc.get().uri("/api/v1/auth/csrf-token")).hasStatus(HttpStatus.NOT_FOUND)
 			.bodyJson()
 			.extractingPath("$.code")

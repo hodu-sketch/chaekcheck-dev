@@ -69,6 +69,13 @@ class AuthEnabledSecurityTests {
 	}
 
 	@Test
+	void bothProvidersAreOfferedByDefault() {
+		assertThat(mvc.get().uri("/api/v1/auth/providers")).hasStatusOk()
+			.bodyJson()
+			.isStrictlyEqualTo("[\"NAVER\",\"KAKAO\"]");
+	}
+
+	@Test
 	void meReturnsTheAccount() {
 		long account = newAccount();
 		jdbc.sql("INSERT INTO auth.login_method (account_id, method, subject) VALUES (?, 'KAKAO', '1234567890')")
