@@ -32,7 +32,8 @@
 
 .wordmark {
   font-weight: 800;
-  font-size: calc(1.55 * var(--base-unscaled));
+  /* 15% larger than before (user request 2026-10-05) */
+  font-size: calc(1.55 * 1.15 * var(--base-unscaled));
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--brand-strong);
