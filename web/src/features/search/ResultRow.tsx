@@ -160,7 +160,8 @@ function stateText(row: Row): string {
   switch (row.availability) {
     case 'AVAILABLE':
       if (row.availabilityBasis === 'SUBSCRIPTION') return '구독형 · 바로 대출'
-      return row.available !== null ? `지금 대출 가능 ${row.available}권` : '지금 대출 가능'
+      // no "N권": the counts beside it already say it (user request 2026-10-05)
+      return '지금 대출 가능'
     case 'RESERVABLE':
       if (row.holdings === null) return '대출 중 · 예약'
       return `예약 대기 ${row.reservations ?? 0}명`
