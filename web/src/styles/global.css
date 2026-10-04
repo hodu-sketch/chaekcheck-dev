@@ -27,6 +27,8 @@
   --brand: #7a5cf2;
   --brand-strong: #5e3fe0;
   --brand-soft: #f0ebff;
+  /* a greyed violet, much less saturated than --brand-soft: the 내 도서관 box (user request 2026-10-05) */
+  --brand-mist: #ecebf2;
 
   /* meaning */
   --borrow: var(--brand-strong);

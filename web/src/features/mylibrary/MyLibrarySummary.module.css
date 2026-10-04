@@ -1,5 +1,5 @@
 /*
- * One light violet box under the search box (user request 2026-10-05: the line sat loose and cramped): "내 도서관", then each
+ * One grey-violet box under the search box (user request 2026-10-05: the line sat loose and cramped): "내 도서관", then each
  * part as a white chip with even gaps, and [관리] as a small button at the right end. No "·" separators.
  */
 .summary {
@@ -9,8 +9,8 @@
   gap: 0.45rem 0.5rem;
   padding: 0.55rem 0.6rem 0.55rem 1rem;
   border-radius: var(--radius-control);
-  /* light violet, not white: the search box above is white (user request 2026-10-05) */
-  background: var(--brand-soft);
+  /* not white (the search box above is white) and low in saturation (user requests 2026-10-05) */
+  background: var(--brand-mist);
   font-size: var(--text-sm);
   color: var(--ink-soft);
 }
