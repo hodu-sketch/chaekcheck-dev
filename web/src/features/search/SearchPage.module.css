@@ -36,12 +36,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  /* the three controls in one white box of their own, like the results panel (user request 2026-10-05) */
+  /*
+   * the three controls in a box of their own, a very light grey so it does not read as a second search box (user
+   * requests 2026-10-05)
+   */
   align-self: flex-start;
   padding: 0.5rem;
-  border: 1px solid var(--rule);
   border-radius: var(--radius-md);
-  background: var(--card);
+  background: var(--tray);
 }
 
 .page[data-state='start'] .toggles {

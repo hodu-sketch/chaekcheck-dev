@@ -38,6 +38,8 @@
   --reserve: #b76a0a;
   --reserve-soft: #fff3e0;
   --reserve-faint: #fff9ef;
+  /* a very light grey, a step darker than the canvas: the scope control box (user request 2026-10-05) */
+  --tray: #eceff3;
   --fail: #d33d55;
   --fail-soft: #ffeef1;
   --focus: #5e3fe0;

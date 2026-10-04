@@ -5,8 +5,10 @@
   /* the same height as "방문 없이 가입" and the summary button (user request 2026-10-05) */
   height: var(--control-height);
   padding: 0.2rem;
+  /* white with a thin line, so it stands out from the light grey box around it (user request 2026-10-05) */
+  border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
-  background: var(--track);
+  background: var(--card);
 }
 
 .item {
@@ -73,7 +75,7 @@
 }
 
 .item[data-state='on'] {
-  background: var(--paper);
+  background: var(--brand-soft);
   color: var(--brand-strong);
   font-weight: 800;
 }
