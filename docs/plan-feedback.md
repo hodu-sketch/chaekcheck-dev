@@ -1509,7 +1509,7 @@ plan에 넘기는 것 (원문의 빈틈·불일치. runbook을 고칠 때 참고
 - 화면 768: 첫 화면, 바로 보기 결과, 책 먼저 고르기, 책 화면(S3), 처리방침, 로그인 뒤 결과("내 도서관" 상자), S10. 모두 가로 넘침 0. 1280·375는 디자인 항목마다 확인함. 로그인 화면은 로컬 시험 계정 17번(확인 뒤 `mylibrary` 행부터 지움).
 - 웹: `npm test` 211개, `npm run build`, `npm run lint`(경고 12개, 모두 이 일 전부터 있던 것) 통과.
 - 문서 버전 값: `documentVersions.json` 마지막 변경은 사이클 05(96e55e3), `application.yml` 문서 버전 줄 변경 없음.
-- 백엔드: 14단계 뒤 `backend/` 변경 없음. `./gradlew build` 결과는 아래 줄.
+- 백엔드: 14단계 뒤 `backend/` 변경 없음. `./gradlew build` 다시 돌려 통과(2026-10-05, `ModularityTests`·`DocumentationTests`·켜짐/꺼짐·동시성·재시작 다시 처리 포함).
 
 ## plan에 넘길 요약: 이전 결정을 바꾼 것
 
