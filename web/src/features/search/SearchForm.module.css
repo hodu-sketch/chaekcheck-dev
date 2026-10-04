@@ -235,6 +235,11 @@
     flex-basis: 100%;
   }
 
+  /* the sort at the right end of this line (user request 2026-10-05) */
+  .lineEnd {
+    margin-left: auto;
+  }
+
   /* as wide as its words (user request 2026-10-05) */
   .moreButton {
     flex: none;

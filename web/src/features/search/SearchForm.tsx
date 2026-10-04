@@ -32,6 +32,8 @@ type Props = {
   /** Phones: the "찾을 도서관" section for the settings panel, and whether it differs from the default. */
   settingsScope?: ReactNode
   settingsMarked?: boolean
+  /** Phones: the sort, at the right end of the "여러 조건 · 설정" line (user request 2026-10-05). */
+  lineEnd?: ReactNode
 }
 
 /**
@@ -40,7 +42,16 @@ type Props = {
  * is needed; each filled field must be 2 to 50 characters (cycle 01 rule). With "도서관에서 직접 찾기" on, what the
  * site search cannot use is dimmed with a short reason, and only the first filled field is searched.
  */
-export function SearchForm({ initial, settings, hasResults, onSearch, onSettingsChange, settingsScope, settingsMarked }: Props) {
+export function SearchForm({
+  initial,
+  settings,
+  hasResults,
+  onSearch,
+  onSettingsChange,
+  settingsScope,
+  settingsMarked,
+  lineEnd,
+}: Props) {
   const id = useId()
   const [input, setInput] = useState<BookSearchInput>(initial)
   const [expanded, setExpanded] = useState(
@@ -142,6 +153,7 @@ export function SearchForm({ initial, settings, hasResults, onSearch, onSettings
           </span>
         </button>
         <SettingsPanel settings={settings} onChange={onSettingsChange} scopeSection={settingsScope} marked={settingsMarked} />
+        {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>
       {problems.none && (
         <p id={errorId('none')} className={styles.error} role="alert">

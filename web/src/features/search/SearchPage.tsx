@@ -24,6 +24,7 @@ import {
   writeSettings,
   type SearchSettings,
 } from './searchSettings'
+import { SortSelect } from './SortSelect'
 import { VisitToggle } from './VisitToggle'
 import scopeStyles from './ScopeSummary.module.css'
 import styles from './SearchPage.module.css'
@@ -168,6 +169,7 @@ export function SearchPage() {
             ) : undefined
           }
           settingsMarked={phone && scopeChanged}
+          lineEnd={phone && bookQuery ? <SortSelect value={bookQuery.sort} onChange={changeSort} /> : undefined}
         />
         {/* one line: what to search, then what "내 도서관"/"내 지역" holds behind a button (user request 2026-10-05) */}
         {!phone && (

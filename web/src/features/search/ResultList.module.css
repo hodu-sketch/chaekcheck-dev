@@ -269,11 +269,13 @@
   }
 
   /* phones: the sort on its own line above the tabs, so the tabs stay on the panel's line */
+  /* phones: the sort sits on the search line above (user request 2026-10-05); a toolbar left empty is not drawn */
   .toolbarEnd {
-    order: -1;
-    flex-basis: 100%;
-    justify-content: flex-end;
-    padding: 0.6rem 0 0;
+    display: none;
+  }
+
+  .toolbar:has(> .toolbarEnd:only-child) {
+    display: none;
   }
 
   .filterItem {
