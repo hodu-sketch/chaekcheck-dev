@@ -1,15 +1,26 @@
+/*
+ * The results as one white panel on the grey canvas, like 토스증권's panels (user request 2026-10-05): the filter tabs
+ * and the sort make its head line, a hairline under it, then the results separated by hairlines.
+ */
 .list {
   display: flex;
   flex-direction: column;
-  gap: 2.2rem;
+  gap: 1.8rem;
+  padding: 0 1.5rem 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
-/* the filter, and the sort at the right end of the same line */
+/* the filter tabs, and the sort at the right end of the same line */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem 1rem;
+  align-items: flex-end;
+  gap: 0 1rem;
+  margin: 0 -1.5rem;
+  padding: 0.4rem 1.5rem 0;
+  border-bottom: 1px solid var(--rule);
 }
 
 .toolbarEnd {
@@ -17,6 +28,7 @@
   align-items: center;
   gap: 0.6rem;
   margin-left: auto;
+  padding: 0.55rem 0;
 }
 
 .dimReason {
@@ -24,38 +36,41 @@
   color: var(--ink-faint);
 }
 
-/* segmented control */
+/* text tabs: only the chosen one is dark and underlined (토스증권 tabs), unlike the switches above the results */
 .filter {
   display: inline-flex;
-  align-self: flex-start;
-  padding: 0.25rem;
-  border-radius: var(--radius-control);
-  background: var(--track);
+  gap: 1.4rem;
 }
 
 .filterItem {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.45rem 1.05rem;
+  margin-bottom: -1px;
+  padding: 0.85rem 0.1rem 0.75rem;
   border: none;
-  border-radius: var(--radius-inner);
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: background-color 140ms, color 140ms;
+  transition: color 140ms, border-color 140ms;
 }
 
 .filterItem:hover {
-  color: var(--ink);
+  color: var(--ink-soft);
 }
 
 .filterItem[data-state='on'] {
-  background: var(--card);
-  color: var(--brand-strong);
+  border-bottom-color: var(--ink);
+  color: var(--ink);
   font-weight: 800;
+}
+
+.filterItem:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
 .filterCount {
@@ -205,7 +220,7 @@
 .rows {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -230,20 +245,29 @@
 }
 
 @media (width <= 640px) {
-  .filter {
-    align-self: stretch;
+  .list {
+    padding: 0 1rem 0.4rem;
   }
 
-  /* phones: the filter keeps its full width; the sort goes to the next line, at the right */
-  .toolbar .filter {
-    flex: 1 1 100%;
+  .toolbar {
+    margin: 0 -1rem;
+    padding: 0.2rem 1rem 0;
+  }
+
+  .filter {
+    gap: 1rem;
+  }
+
+  /* phones: the sort on its own line above the tabs, so the tabs stay on the panel's line */
+  .toolbarEnd {
+    order: -1;
+    flex-basis: 100%;
+    justify-content: flex-end;
+    padding: 0.6rem 0 0;
   }
 
   .filterItem {
-    flex: 1;
-    justify-content: center;
-    padding-inline: 0.5rem;
-    font-size: 0.84rem;
+    font-size: 0.88rem;
     white-space: nowrap;
   }
 

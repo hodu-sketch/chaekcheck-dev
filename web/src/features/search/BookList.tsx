@@ -87,7 +87,7 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
   }
 
   return (
-    <>
+    <section className={listStyles.list}>
       <div className={listStyles.toolbar}>
         <div className={listStyles.toolbarEnd}>
           <SortSelect value={query.sort} onChange={onSortChange} />
@@ -124,6 +124,6 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
           <p className={styles.finished}>찾은 책을 모두 보여 드렸어요</p>
         )}
       </div>
-    </>
+    </section>
   )
 }

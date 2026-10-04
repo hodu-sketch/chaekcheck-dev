@@ -7,15 +7,9 @@
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 17.5rem;
   align-items: center;
   gap: 1.5rem;
-  padding: 1.2rem 1.4rem;
-  background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  transition: border-color 140ms;
-}
-
-.row:hover {
-  border-color: var(--rule-strong);
+  /* a line inside the results panel, separated by hairlines (user request 2026-10-05; cards before) */
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--rule);
 }
 
 .title {
@@ -350,7 +344,7 @@
 @media (width <= 640px) {
   .row {
     grid-template-columns: 1fr;
-    padding: 1rem;
+    padding: 1rem 0;
   }
 
   .stock {

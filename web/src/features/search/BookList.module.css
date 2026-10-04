@@ -4,7 +4,8 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--paper-deep);
+  /* inside the results panel: the toolbar line above, hairlines between books */
+  margin-top: -1.8rem;
 }
 
 .book {
