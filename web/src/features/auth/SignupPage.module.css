@@ -1,10 +1,14 @@
 .page {
-  /* same width as S8/S9, the same white-card format (user request 2026-10-05) */
+  /* same width as S8/S9: the whole page is one white card (user requests 2026-10-05) */
   width: min(44rem, 100%);
   margin: 2.5rem auto 0;
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
+  padding: 2rem 2.25rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
 .title {
@@ -20,7 +24,7 @@
 
 .notice {
   width: 100%;
-  /* separate, so the rounded corners show; a white card on the grey canvas (user request 2026-10-05) */
+  /* separate, so the rounded corners show */
   border-collapse: separate;
   border-spacing: 0;
   border: 1px solid var(--rule);
@@ -110,6 +114,7 @@
 
 .allRow input,
 .boxLabel input {
+  flex-shrink: 0;
   width: 1.15rem;
   height: 1.15rem;
   accent-color: var(--brand-strong);
@@ -204,10 +209,45 @@
 @media (width <= 640px) {
   .page {
     margin-top: 1.5rem;
+    padding: 1.4rem 1.1rem;
+  }
+
+  /* phones: each label above its text, so the label column does not squeeze the text */
+  .notice,
+  .notice tbody,
+  .notice tr,
+  .notice th,
+  .notice td {
+    display: block;
+    width: auto;
+  }
+
+  /* the border moves to the rows' box, so the caption stays a plain line above it */
+  .notice {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    background: none;
+  }
+
+  .notice tbody {
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-md);
+  }
+
+  .caption {
+    display: block;
   }
 
   .notice th {
-    width: auto;
+    white-space: normal;
+    padding-bottom: 0.4rem;
+  }
+
+  .notice td {
+    border-top: none;
+    padding-top: 0.5rem;
   }
 
   .actions {
