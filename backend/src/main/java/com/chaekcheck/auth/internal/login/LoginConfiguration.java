@@ -2,7 +2,13 @@ package com.chaekcheck.auth.internal.login;
 
 import java.net.http.HttpClient;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -29,6 +35,8 @@ import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.account.AccountStore;
 import com.chaekcheck.auth.internal.token.TokenService;
 
+import tools.jackson.databind.json.JsonMapper;
+
 /**
  * Naver and Kakao login with Spring Security's {@code oauth2Login} (handoff step 5).
  * <ul>
@@ -48,15 +56,48 @@ class LoginConfiguration {
 
 	static final String AUTHORIZATION_BASE = "/api/v1/auth/oauth2/authorization";
 
+	/**
+	 * The registrations of the providers in {@code chaekcheck.auth.providers}: login, and withdrawal
+	 * re-authentication (step 8: same app, own redirect URI, extra parameters added by the resolver).
+	 */
 	@Bean
 	ClientRegistrationRepository clientRegistrationRepository(AuthProperties properties) {
 		String base = properties.publicBaseUrl();
-		return new InMemoryClientRegistrationRepository(
-				registration(LoginProvider.NAVER.registrationId(), properties.naver(), "response", base),
-				registration(LoginProvider.KAKAO.registrationId(), properties.kakao(), "id", base),
-				// Withdrawal re-authentication (step 8): same app, own redirect URI, extra parameters added by the resolver
-				registration(LoginProvider.NAVER.reauthRegistrationId(), properties.naver(), "response", base),
-				registration(LoginProvider.KAKAO.reauthRegistrationId(), properties.kakao(), "id", base));
+		List<ClientRegistration> registrations = new ArrayList<>();
+		for (LoginProvider provider : LoginProvider.values()) {
+			if (properties.enabled(provider)) {
+				AuthProperties.Provider settings = provider == LoginProvider.NAVER ? properties.naver() : properties.kakao();
+				String userName = provider == LoginProvider.NAVER ? "response" : "id";
+				registrations.add(registration(provider.registrationId(), settings, userName, base));
+				registrations.add(registration(provider.reauthRegistrationId(), settings, userName, base));
+			}
+		}
+		return new InMemoryClientRegistrationRepository(registrations);
+	}
+
+	/** Registration ids that can be started and called back (AC-22). */
+	static Set<String> offered(AuthProperties properties) {
+		Set<String> offered = new HashSet<>();
+		for (LoginProvider provider : LoginProvider.values()) {
+			if (properties.enabled(provider)) {
+				offered.add(provider.registrationId());
+				offered.add(provider.reauthRegistrationId());
+			}
+		}
+		return offered;
+	}
+
+	/**
+	 * 404 for login addresses of providers that are off or do not exist, before Spring Security's chain (whose
+	 * OAuth2 filters would answer them otherwise). Registered in the servlet container directly.
+	 */
+	@Bean
+	FilterRegistrationBean<ProviderPathFilter> providerPathFilter(AuthProperties properties, JsonMapper json) {
+		FilterRegistrationBean<ProviderPathFilter> registration = new FilterRegistrationBean<>(
+				new ProviderPathFilter(offered(properties), json));
+		registration.addUrlPatterns(AUTHORIZATION_BASE + "/*", LoginFailureHandler.CALLBACK_BASE + "*");
+		registration.setOrder(SecurityFilterProperties.DEFAULT_FILTER_ORDER - 1);
+		return registration;
 	}
 
 	@Bean
@@ -68,7 +109,7 @@ class LoginConfiguration {
 			.loginPage("/")
 			.authorizationEndpoint(endpoint -> endpoint.baseUri(AUTHORIZATION_BASE)
 				.authorizationRequestRepository(new LoginAuthorizationRequestRepository())
-				.authorizationRequestResolver(new LoginAuthorizationRequestResolver(registrations)))
+				.authorizationRequestResolver(new LoginAuthorizationRequestResolver(registrations, offered(properties))))
 			.redirectionEndpoint(endpoint -> endpoint.baseUri(LoginFailureHandler.CALLBACK_BASE + "*"))
 			.tokenEndpoint(endpoint -> endpoint.accessTokenResponseClient(tokenClient(providerCalls)))
 			.userInfoEndpoint(endpoint -> endpoint.userService(new ProviderUserService(userInfoClient(providerCalls))))

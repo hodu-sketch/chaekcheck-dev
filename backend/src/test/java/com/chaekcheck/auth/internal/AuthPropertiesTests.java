@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAut
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 
+import com.chaekcheck.auth.internal.login.LoginProvider;
+
 /** Login on needs every key and stops at start with the missing property's name (ADR-0046). */
 class AuthPropertiesTests {
 
@@ -28,11 +30,9 @@ class AuthPropertiesTests {
 			.run(context -> {
 				assertThat(context).hasFailed();
 				String message = rootMessage(context.getStartupFailure());
-				assertThat(message).contains("chaekcheck.auth.jwt.secret", "AUTH_JWT_SECRET",
-						"chaekcheck.auth.naver.clientSecret", "chaekcheck.auth.kakao.clientId",
-						"chaekcheck.auth.kakao.clientSecret", "chaekcheck.auth.publicBaseUrl", "AUTH_PUBLIC_BASE_URL",
-						"KAKAO_ADMIN_KEY");
-				assertThat(message).doesNotContain("chaekcheck.auth.naver.clientId");
+				assertThat(message).contains("chaekcheck.auth.jwt.secret", "AUTH_JWT_SECRET", "NAVER_CLIENT_SECRET",
+						"KAKAO_REST_API_KEY", "KAKAO_CLIENT_SECRET", "chaekcheck.auth.publicBaseUrl",
+						"AUTH_PUBLIC_BASE_URL", "KAKAO_ADMIN_KEY");
 			});
 	}
 
@@ -50,6 +50,31 @@ class AuthPropertiesTests {
 				assertThat(context).hasNotFailed();
 				assertThat(context.getBean(AuthProperties.class).kakao().clientId()).isEqualTo("k-id");
 			});
+	}
+
+	@Test
+	void anOffProviderNeedsNoKeys() {
+		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.providers=kakao",
+				"chaekcheck.auth.jwt.secret=test-secret", "chaekcheck.auth.kakao.client-id=k-id",
+				"chaekcheck.auth.kakao.client-secret=k-secret", "chaekcheck.auth.kakao.admin-key=k-admin",
+				"chaekcheck.auth.public-base-url=http://localhost:5173",
+				"chaekcheck.auth.documents.terms-of-service-version=2026-10-04",
+				"chaekcheck.auth.documents.privacy-collection-version=2026-10-04")
+			.withPropertyValues(endpoints("naver"))
+			.withPropertyValues(endpoints("kakao"))
+			.run(context -> {
+				assertThat(context).hasNotFailed();
+				AuthProperties properties = context.getBean(AuthProperties.class);
+				assertThat(properties.enabled(LoginProvider.NAVER)).isFalse();
+				assertThat(properties.enabled(LoginProvider.KAKAO)).isTrue();
+			});
+	}
+
+	@Test
+	void anOnProviderNeedsItsKeys() {
+		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.providers=naver")
+			.run(context -> assertThat(rootMessage(context.getStartupFailure())).contains("NAVER_CLIENT_ID")
+				.doesNotContain("KAKAO_ADMIN_KEY", "KAKAO_REST_API_KEY"));
 	}
 
 	@Test

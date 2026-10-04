@@ -1,15 +1,19 @@
 package com.chaekcheck.auth.internal;
 
 import java.time.Duration;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+
+import com.chaekcheck.auth.internal.login.LoginProvider;
 
 /**
  * Login settings. Bound and checked only when {@code chaekcheck.auth.enabled=true}: a missing key stops the start
@@ -25,7 +29,8 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		@NotBlank(message = "is required when login is on (environment variable AUTH_PUBLIC_BASE_URL)")
 		@Pattern(regexp = "https?://[^/\\s]+",
 				message = "must be scheme, host and optional port only, e.g. http://localhost:5173 (AUTH_PUBLIC_BASE_URL)") String publicBaseUrl,
-		ProviderCalls providerCalls, @Valid Documents documents) {
+		ProviderCalls providerCalls, @Valid Documents documents,
+		@NotEmpty(message = "must name at least one of naver, kakao (environment variable AUTH_PROVIDERS)") Set<LoginProvider> providers) {
 
 	public AuthProperties {
 		jwt = jwt != null ? jwt : new Jwt(null);
@@ -34,12 +39,35 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		tokens = tokens != null ? tokens : new Tokens(null, null, null, null);
 		providerCalls = providerCalls != null ? providerCalls : new ProviderCalls(null, null);
 		documents = documents != null ? documents : new Documents(null, null);
+		providers = providers != null ? Set.copyOf(providers) : Set.of(LoginProvider.values());
+	}
+
+	/** Whether this provider's login is offered (AC-22). An off provider needs no keys. */
+	public boolean enabled(LoginProvider provider) {
+		return providers.contains(provider);
+	}
+
+	@AssertTrue(message = "chaekcheck.auth.naver.client-id and client-secret are required while naver is in "
+			+ "chaekcheck.auth.providers (environment variables NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)")
+	public boolean isNaverKeysSet() {
+		return !enabled(LoginProvider.NAVER) || (present(naver.clientId()) && present(naver.clientSecret()));
+	}
+
+	@AssertTrue(message = "chaekcheck.auth.kakao.client-id and client-secret are required while kakao is in "
+			+ "chaekcheck.auth.providers (environment variables KAKAO_REST_API_KEY, KAKAO_CLIENT_SECRET)")
+	public boolean isKakaoKeysSet() {
+		return !enabled(LoginProvider.KAKAO) || (present(kakao.clientId()) && present(kakao.clientSecret()));
 	}
 
 	/** Kakao is unlinked with the admin key (abandoned sign-up, withdrawal, link check); Naver needs none. */
-	@AssertTrue(message = "chaekcheck.auth.kakao.admin-key is required when login is on (environment variable KAKAO_ADMIN_KEY)")
+	@AssertTrue(message = "chaekcheck.auth.kakao.admin-key is required while kakao is in chaekcheck.auth.providers "
+			+ "(environment variable KAKAO_ADMIN_KEY)")
 	public boolean isKakaoAdminKeySet() {
-		return kakao.adminKey() != null && !kakao.adminKey().isBlank();
+		return !enabled(LoginProvider.KAKAO) || present(kakao.adminKey());
+	}
+
+	private static boolean present(String value) {
+		return value != null && !value.isBlank();
 	}
 
 	/** HS256 signing key, base64 of at least 32 random bytes (design-delta). */
@@ -47,15 +75,13 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 	}
 
 	/**
-	 * One provider: its keys (environment variables) and its public endpoints (in {@code application.yml}).
+	 * One provider: its keys (environment variables, required only while it is in {@code providers}) and its public
+	 * endpoints (in {@code application.yml}).
 	 *
 	 * @param unlinkUri Naver: token revoke; Kakao: unlink with the admin key
 	 * @param adminKey Kakao's admin key; not used for Naver
 	 */
-	public record Provider(
-			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientId,
-			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientSecret,
-			@NotBlank String authorizationUri, @NotBlank String tokenUri, @NotBlank String userInfoUri,
+	public record Provider(String clientId, String clientSecret, @NotBlank String authorizationUri, @NotBlank String tokenUri, @NotBlank String userInfoUri,
 			@NotBlank String unlinkUri, String adminKey) {
 
 		/** Keeps the secrets out of logs and error messages. */

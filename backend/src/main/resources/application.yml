@@ -51,6 +51,9 @@ chaekcheck:
     # Secrets: environment variables only (names in ../.env.example). Required when enabled is true.
     jwt:
       secret: ${AUTH_JWT_SECRET:}
+    # Providers offered on the login screen (AC-22, constraint 38). An off provider's login, callback and -reauth
+    # addresses are 404 and its keys are not needed. Example: kakao only until Naver's review is done.
+    providers: ${AUTH_PROVIDERS:naver,kakao}
     # Address users open the site with; redirect URIs are built from it (C18). Development: the Vite dev server.
     public-base-url: ${AUTH_PUBLIC_BASE_URL:}
     # Endpoints checked against the official guides on 2026-10-04 (client_id and client_secret go as form parameters):

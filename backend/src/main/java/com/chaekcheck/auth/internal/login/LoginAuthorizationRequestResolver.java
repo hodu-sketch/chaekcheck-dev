@@ -12,20 +12,19 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 
 /**
- * Starts a login only for the four registrations. Any other name under the start path is left alone, so it ends as
+ * Starts a login only for the registrations of the providers that are on ({@code chaekcheck.auth.providers}). Any other name under the start path is left alone, so it ends as
  * the usual 404 {@code not_found} instead of Spring's 500 with an error log for an unknown registration (security
  * review 2026-10-04). The withdrawal re-authentication registrations ask the provider to sign in again
  * (ADR-0043): Naver {@code auth_type=reauthenticate}, Kakao {@code prompt=login}.
  */
 final class LoginAuthorizationRequestResolver implements OAuth2AuthorizationRequestResolver {
 
-	private static final Set<String> STARTABLE = Set.of(LoginProvider.NAVER.registrationId(),
-			LoginProvider.KAKAO.registrationId(), LoginProvider.NAVER.reauthRegistrationId(),
-			LoginProvider.KAKAO.reauthRegistrationId());
+	private final Set<String> startable;
 
 	private final DefaultOAuth2AuthorizationRequestResolver delegate;
 
-	LoginAuthorizationRequestResolver(ClientRegistrationRepository registrations) {
+	LoginAuthorizationRequestResolver(ClientRegistrationRepository registrations, Set<String> startable) {
+		this.startable = Set.copyOf(startable);
 		this.delegate = new DefaultOAuth2AuthorizationRequestResolver(registrations,
 				LoginConfiguration.AUTHORIZATION_BASE);
 	}
@@ -34,7 +33,7 @@ final class LoginAuthorizationRequestResolver implements OAuth2AuthorizationRequ
 	public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
 		String path = request.getRequestURI().substring(request.getContextPath().length());
 		String prefix = LoginConfiguration.AUTHORIZATION_BASE + "/";
-		if (path.startsWith(prefix) && !STARTABLE.contains(path.substring(prefix.length()))) {
+		if (path.startsWith(prefix) && !startable.contains(path.substring(prefix.length()))) {
 			return null;
 		}
 		return withReauthParameters(delegate.resolve(request));
@@ -42,7 +41,7 @@ final class LoginAuthorizationRequestResolver implements OAuth2AuthorizationRequ
 
 	@Override
 	public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
-		return STARTABLE.contains(clientRegistrationId)
+		return startable.contains(clientRegistrationId)
 				? withReauthParameters(delegate.resolve(request, clientRegistrationId)) : null;
 	}
 
