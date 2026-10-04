@@ -840,6 +840,13 @@
 - 확인: `./gradlew build` 통과(테스트 318개, `AuthDisabledTests`·`AuthPropertiesTests`·`AuthToggleEnvironmentPostProcessorTests` 포함, 모듈 문서에 `module-auth.puml`). `bootRun`(꺼짐) + 웹: "작별하지 않는다" 검색 3권, 대출 조회 정상. `/api/v1/me` 404 `not_found`, 검색 응답에 `X-Frame-Options`·`Cache-Control` 없음, 서버 기록에 Security 관련 줄과 자동 생성 비밀번호 없음.
 - 참고: 첫 빌드에서 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`가 한 번 실패했고, 따로 5번과 전체 빌드에서 다시 돌렸을 때는 모두 통과함. 이번 변경과 무관한 가짜 시계 테스트로, 가끔 실패하는 것으로 보임.
 
+## 2단계 결과: Liquibase 스키마 (2026-10-04)
+
+- 새 파일: `db/changelog/auth/001-auth-schema.yaml`(표 넷, 제약·인덱스는 design-delta "데이터" 그대로, CHECK·IDENTITY·`NULLS NOT DISTINCT`는 `sql` changeset), `db/changelog/modulith/001-event-publication.yaml`(Spring Modulith 2.1.1 jar의 `schemas/v2/schema-postgresql.sql` 그대로, 표와 인덱스만 `modulith` 스키마에). master에 include 두 줄. 제약 이름은 PostgreSQL 기본 이름 규칙(`<표>_<칼럼>_key/check/fkey`)으로 명시.
+- 1단계에서 빠뜨린 설정 `spring.modulith.events.completion-mode: delete`(design-delta [확정])를 이 단계에서 더함.
+- 데이터 접근 방식(dev가 정함): `JdbcClient`. 이유: 표가 작고, 삭제는 DB cascade(`account` 한 줄 삭제)에 맡기며, 리프레시 토큰 교체는 조건부 UPDATE 한 문장이 맞음. `catalog` 모듈과 같은 방식. 엔티티가 없으므로 `ddl-auto: validate` 대상도 없음.
+- 확인: `./gradlew build` 통과. `AuthSchemaTests`(db-test, 6개): 표 다섯 존재, `account` 삭제 시 하위 셋 cascade, `(method, subject)` UNIQUE(같은 번호라도 제공자가 다르면 허용), `AGE_OVER_14`가 아닌데 버전 NULL이면 거절, `AGE_OVER_14` 두 번째 줄은 NULLS NOT DISTINCT로 거절, `PASSWORD`는 아직 거절. 개발 DB에 `bootRun`으로 적용 후 `psql` `\d`로 확인. 1단계의 종료 시 WARN(표 없음)은 사라짐.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)

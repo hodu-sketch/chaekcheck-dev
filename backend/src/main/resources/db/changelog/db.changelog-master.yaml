@@ -30,3 +30,9 @@ databaseChangeLog:
   - include:
       file: catalog/001-catalog-schema.yaml
       relativeToChangelogFile: true
+  - include:
+      file: auth/001-auth-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: modulith/001-event-publication.yaml
+      relativeToChangelogFile: true

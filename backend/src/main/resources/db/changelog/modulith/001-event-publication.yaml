@@ -1,0 +1,38 @@
+# Spring Modulith event publication registry (ADR-0041). Owned by no module; no module code reads it (tests only).
+# DDL = Spring Modulith 2.1.1 org/springframework/modulith/events/jdbc/schemas/v2/schema-postgresql.sql, with the
+# table and indexes put in the modulith schema (spring.modulith.events.jdbc.schema=modulith). Spring Modulith's own
+# schema initialization is off; this file is the only source.
+databaseChangeLog:
+  - changeSet:
+      id: modulith-001-schema
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: CREATE SCHEMA modulith
+
+  - changeSet:
+      id: modulith-001-event-publication
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE modulith.event_publication (
+                id                     UUID NOT NULL,
+                listener_id            TEXT NOT NULL,
+                event_type             TEXT NOT NULL,
+                serialized_event       TEXT NOT NULL,
+                publication_date       TIMESTAMP WITH TIME ZONE NOT NULL,
+                completion_date        TIMESTAMP WITH TIME ZONE,
+                status                 TEXT,
+                completion_attempts    INT,
+                last_resubmission_date TIMESTAMP WITH TIME ZONE,
+                PRIMARY KEY (id)
+              )
+        - sql:
+            sql: >-
+              CREATE INDEX event_publication_serialized_event_hash_idx
+                ON modulith.event_publication USING hash(serialized_event)
+        - sql:
+            sql: >-
+              CREATE INDEX event_publication_by_completion_date_idx
+                ON modulith.event_publication (completion_date)

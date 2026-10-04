@@ -23,6 +23,8 @@ spring:
         schema-initialization:
           enabled: false
         schema: modulith
+      # Completed publications are deleted, not kept (ADR-0041)
+      completion-mode: delete
   jpa:
     open-in-view: false
     hibernate:
