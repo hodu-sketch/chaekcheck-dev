@@ -20,9 +20,9 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
  * <li>any other provider error, token exchange or profile failure (including timeouts) →
  * {@code login_provider_error&provider=naver|kakao}, the provider taken from the callback path</li>
  * </ul>
- * On a withdrawal re-authentication callback ({@code -reauth}) cancel and provider errors are
- * {@code withdraw_cancelled} and {@code withdraw_provider_error}. A missing or mismatched {@code state} keeps the
- * login codes: the result code table has no withdrawal codes for them.
+ * On a withdrawal re-authentication callback ({@code -reauth}) the codes are the withdrawal ones:
+ * {@code withdraw_cancelled}, {@code withdraw_request_expired}, {@code withdraw_state_mismatch} and
+ * {@code withdraw_provider_error} (cycle 06, user approved 2026-10-04). The account is left as it is.
  */
 final class LoginFailureHandler implements AuthenticationFailureHandler {
 
@@ -46,11 +46,11 @@ final class LoginFailureHandler implements AuthenticationFailureHandler {
 		}
 		Object missing = request.getAttribute(LoginAuthorizationRequestRepository.MISSING_ATTRIBUTE);
 		if (missing == LoginAuthorizationRequestRepository.Missing.EXPIRED) {
-			LoginRedirects.complete(response, "login_expired");
+			LoginRedirects.complete(response, withdrawal ? "withdraw_request_expired" : "login_expired");
 			return;
 		}
 		if (missing == LoginAuthorizationRequestRepository.Missing.STATE_MISMATCH) {
-			LoginRedirects.complete(response, "login_state_mismatch");
+			LoginRedirects.complete(response, withdrawal ? "withdraw_state_mismatch" : "login_state_mismatch");
 			return;
 		}
 		LoginProvider provider = LoginProvider.fromRegistrationId(registrationId).orElse(null);

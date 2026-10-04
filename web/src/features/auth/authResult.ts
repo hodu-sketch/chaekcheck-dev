@@ -36,12 +36,23 @@ export function readAuthResult(result: string | null, provider: string | null): 
       return { kind: 'notice', message: '탈퇴를 취소했어요' }
     case 'withdraw_provider_error':
       return { kind: 'notice', message: `${side} 문제로 본인 확인을 하지 못했어요. 잠시 뒤 다시 해 주세요` }
+    case 'withdraw_request_expired':
+      return { kind: 'notice', message: '본인 확인 시간이 지났어요. 탈퇴를 다시 눌러 주세요' }
+    case 'withdraw_state_mismatch':
+      return { kind: 'notice', message: '안전하지 않은 요청이라 멈췄어요. 탈퇴를 다시 눌러 주세요' }
     case 'withdraw_login_expired':
       return { kind: 'notice', message: '로그인이 풀렸어요. 다시 로그인한 뒤 탈퇴해 주세요' }
     default:
       return { kind: 'ignore' }
   }
 }
+
+/**
+ * `signup_success` (cycle 06, AC-17): shown once on S1 right after the first sign-up. Sign-up ends with the web's own
+ * `POST /api/v1/auth/signup`, not with a server redirect, so this is web state, not a server result code (user
+ * decision 2026-10-04). Signing in again (`login_success`) shows nothing.
+ */
+export const SIGNUP_SUCCESS_MESSAGE = '가입했어요'
 
 const RETURN_KEY = 'chaekcheck.auth.returnTo'
 

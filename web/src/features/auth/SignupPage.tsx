@@ -4,7 +4,7 @@ import { cancelSignup, getSignup, postSignup } from '../../api/auth'
 import { ApiError } from '../../api/client'
 import type { ConsentInput, SignupInfo } from '../../api/types'
 import { useAuth } from './AuthContext'
-import { takeReturnPath } from './authResult'
+import { SIGNUP_SUCCESS_MESSAGE, takeReturnPath } from './authResult'
 import {
   COLLECTION_NOTICE,
   NOT_REVIEWED,
@@ -76,6 +76,7 @@ export function SignupPage() {
     try {
       await postSignup(consents)
       await reload()
+      showNotice(SIGNUP_SUCCESS_MESSAGE)
       navigate(takeReturnPath(), { replace: true })
     } catch (error) {
       const code = error instanceof ApiError ? error.problem.code : null

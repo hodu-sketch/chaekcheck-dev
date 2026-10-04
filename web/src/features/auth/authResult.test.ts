@@ -14,6 +14,8 @@ describe('result codes (design-delta "결과 코드")', () => {
     ['withdraw_cancelled', null, '탈퇴를 취소했어요'],
     ['withdraw_provider_error', 'kakao', '카카오 쪽 문제로 본인 확인을 하지 못했어요. 잠시 뒤 다시 해 주세요'],
     ['withdraw_login_expired', null, '로그인이 풀렸어요. 다시 로그인한 뒤 탈퇴해 주세요'],
+    ['withdraw_request_expired', null, '본인 확인 시간이 지났어요. 탈퇴를 다시 눌러 주세요'],
+    ['withdraw_state_mismatch', null, '안전하지 않은 요청이라 멈췄어요. 탈퇴를 다시 눌러 주세요'],
   ])('%s (%s) shows its fixed wording', (result, provider, message) => {
     expect(readAuthResult(result, provider)).toEqual({ kind: 'notice', message })
   })

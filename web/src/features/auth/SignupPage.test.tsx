@@ -124,6 +124,8 @@ describe('S6 sign-up', () => {
     await user.click(submitButton())
 
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/books/3'))
+    // AC-17: the first sign-up says so once
+    expect(screen.getByRole('status').textContent).toContain('가입했어요')
     const post = fetchMock.mock.calls.find(([url, init]) => url === '/api/v1/auth/signup' && init?.method === 'POST')!
     expect(JSON.parse(post[1]!.body as string)).toEqual({
       consents: [

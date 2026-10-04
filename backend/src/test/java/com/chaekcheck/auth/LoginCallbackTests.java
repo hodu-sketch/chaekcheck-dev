@@ -208,6 +208,35 @@ class LoginCallbackTests {
 	}
 
 	@Test
+	void reauthCallbackWithoutASavedRequestIsWithdrawRequestExpiredAndKeepsTheAccount() { // cycle 06 AC-18
+		long account = jdbc.sql("INSERT INTO auth.account (last_login_at) VALUES (now()) RETURNING id")
+			.query(Long.class)
+			.single();
+
+		MvcTestResult callback = mvc.get()
+			.uri("/api/v1/auth/login/oauth2/code/kakao-reauth?code=test-code&state=anything")
+			.session(new MockHttpSession())
+			.exchange();
+
+		assertThat(callback).hasHeader(HttpHeaders.LOCATION, "/auth/complete?result=withdraw_request_expired");
+		assertThat(jdbc.sql("SELECT count(*) FROM auth.account WHERE id = ?").param(account).query(Long.class).single())
+			.isEqualTo(1);
+	}
+
+	@Test
+	void reauthCallbackWithAnotherStateIsWithdrawStateMismatch() { // cycle 06 AC-18
+		MockHttpSession session = new MockHttpSession();
+		start("naver-reauth", session);
+
+		MvcTestResult callback = mvc.get()
+			.uri("/api/v1/auth/login/oauth2/code/naver-reauth?code=test-code&state=not-the-saved-state")
+			.session(session)
+			.exchange();
+
+		assertThat(callback).hasHeader(HttpHeaders.LOCATION, "/auth/complete?result=withdraw_state_mismatch");
+	}
+
+	@Test
 	void tokenExchangeFailureIsProviderErrorWithTheProvider() {
 		fake.tokenStatus = 500;
 
