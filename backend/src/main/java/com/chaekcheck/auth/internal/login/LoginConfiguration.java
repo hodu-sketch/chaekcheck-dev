@@ -93,7 +93,7 @@ class LoginConfiguration {
 	}
 
 	/** Connect 3 s, read 5 s (C20). Only these provider calls use it; library fetching keeps its own settings. */
-	private static JdkClientHttpRequestFactory providerCalls(AuthProperties.ProviderCalls settings) {
+	static JdkClientHttpRequestFactory providerCalls(AuthProperties.ProviderCalls settings) {
 		JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
 				HttpClient.newBuilder().connectTimeout(settings.connectTimeout()).build());
 		factory.setReadTimeout(settings.readTimeout());

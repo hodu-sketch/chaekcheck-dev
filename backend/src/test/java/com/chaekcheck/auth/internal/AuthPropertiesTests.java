@@ -30,7 +30,8 @@ class AuthPropertiesTests {
 				String message = rootMessage(context.getStartupFailure());
 				assertThat(message).contains("chaekcheck.auth.jwt.secret", "AUTH_JWT_SECRET",
 						"chaekcheck.auth.naver.clientSecret", "chaekcheck.auth.kakao.clientId",
-						"chaekcheck.auth.kakao.clientSecret", "chaekcheck.auth.publicBaseUrl", "AUTH_PUBLIC_BASE_URL");
+						"chaekcheck.auth.kakao.clientSecret", "chaekcheck.auth.publicBaseUrl", "AUTH_PUBLIC_BASE_URL",
+						"KAKAO_ADMIN_KEY");
 				assertThat(message).doesNotContain("chaekcheck.auth.naver.clientId");
 			});
 	}
@@ -40,7 +41,9 @@ class AuthPropertiesTests {
 		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.jwt.secret=test-secret",
 				"chaekcheck.auth.naver.client-id=n-id", "chaekcheck.auth.naver.client-secret=n-secret",
 				"chaekcheck.auth.kakao.client-id=k-id", "chaekcheck.auth.kakao.client-secret=k-secret",
-				"chaekcheck.auth.public-base-url=http://localhost:5173")
+				"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=k-admin",
+				"chaekcheck.auth.documents.terms-of-service-version=2026-10-04",
+				"chaekcheck.auth.documents.privacy-collection-version=2026-10-04")
 			.withPropertyValues(endpoints("naver"))
 			.withPropertyValues(endpoints("kakao"))
 			.run(context -> {
@@ -60,7 +63,8 @@ class AuthPropertiesTests {
 	private static String[] endpoints(String provider) {
 		String prefix = "chaekcheck.auth." + provider + ".";
 		return new String[] { prefix + "authorization-uri=https://example.test/authorize",
-				prefix + "token-uri=https://example.test/token", prefix + "user-info-uri=https://example.test/me" };
+				prefix + "token-uri=https://example.test/token", prefix + "user-info-uri=https://example.test/me",
+				prefix + "unlink-uri=https://example.test/unlink" };
 	}
 
 	private static String rootMessage(Throwable failure) {

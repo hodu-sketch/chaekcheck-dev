@@ -900,12 +900,27 @@
 - 대기 시간(C20): 토큰·프로필 호출에만 연결 3초·응답 5초(`chaekcheck.auth.provider-calls.*`). 전역 `spring.http.clients.*`는 쓰지 않아 `availability` 호출에 영향 없음.
 - 처음 온 계정: 세션에 `PendingSignup(method, subject, createdAt, 네이버면 접근 토큰)`만 두고 `/signup`. DB 쓰기 없음. 이미 가입한 계정(R3): `last_login_at` 갱신 + 4단계 `TokenService.signIn` 쿠키 + `/auth/complete?result=login_success`. 성공 뒤 세션에 SecurityContext 없음(요청 속성 저장소), Spring이 세션 id는 바꿈.
 - Spring 기본 로그인 화면(`/login`)이 생기지 않게 `loginPage("/")`를 둠(쓰이지 않는 값, `/login` 404를 테스트).
-- 테스트(`LoginCallbackTests`, 13개): JDK 내장 `HttpServer`로 가짜 네이버·카카오 토큰·프로필 서버를 띄움(새 의존성 없음). 시작 주소(redirect_uri·state, scope·PKCE 없음), 처음 온 카카오·네이버 → 가입 대기(행 0, 네이버 토큰은 대기 안에만), 다시 로그인 → `last_login_at` 갱신·쿠키, 취소 → `login_cancelled`, 저장 요청 없음 → `login_expired`, state 다름 → `login_state_mismatch`, 토큰 교환 500 → `login_provider_error&provider=kakao`, 프로필 응답 지연(테스트에서 응답 대기 1초) → `login_provider_error&provider=naver`, 제공자 토큰·client secret이 서버 기록에 없음, `/login` 404, 등록에 없는 이름 404.
+- 테스트(`LoginCallbackTests`, 12개): JDK 내장 `HttpServer`로 가짜 네이버·카카오 토큰·프로필 서버를 띄움(새 의존성 없음). 시작 주소(redirect_uri·state, scope·PKCE 없음), 처음 온 카카오·네이버 → 가입 대기(행 0, 네이버 토큰은 대기 안에만), 다시 로그인 → `last_login_at` 갱신·쿠키, 취소 → `login_cancelled`, 저장 요청 없음 → `login_expired`, state 다름 → `login_state_mismatch`, 토큰 교환 500 → `login_provider_error&provider=kakao`, 프로필 응답 지연(테스트에서 응답 대기 1초) → `login_provider_error&provider=naver`, 제공자 토큰·client secret이 서버 기록에 없음, `/login` 404, 등록에 없는 이름 404.
 - 테스트 설정: Spring이 테스트 설정마다 컨텍스트를 하나씩 띄워 두는데, 켜짐·꺼짐 설정이 늘어 db-test의 연결 100개를 넘음(`too many clients already`) → `application-test.yml`에서 연결 풀을 4로 줄임.
 - 보안 리뷰(security-reviewer 서브에이전트) 반영: 등록에 없는 이름(`/api/v1/auth/oauth2/authorization/google`, `naver-reauth` 등)으로 시작하면 Spring 기본 동작은 500 + 오류 기록이었음(테스트로 확인) → 시작 가능한 이름을 `naver`·`kakao`로 묶어 그 밖은 404 `not_found`. 서버 기록에는 짧은 소문자 오류 코드만 그대로 쓰고 그 밖은 "unrecognized error"(줄바꿈으로 기록 위조 방지). `public-base-url`은 "scheme://host[:port]" 모양만 받음(시작 단계에서 검사).
 - **plan에서 정해 주세요**: (1) 로그인 성공 뒤 우리 쪽 오류(DB 등)가 나면 지금은 콜백 주소에서 500. 결과 코드 표에 로그인용 "우리 서버 오류" 코드가 없어 만들지 않음(`login_provider_error`는 문구가 제공자 탓이라 쓰지 않음). (2) 응답 대기 5초는 응답 머리까지 기준이며, 본문을 아주 느리게 보내는 경우까지 막는지는 확인 못 함. (3) 로그인 시작 주소마다 10분짜리 세션이 생김: 반복 요청 제한은 운영 웹 서버 단계에서 정할 일.
 - 확인: `./gradlew build` 통과(테스트 368개, 꺼짐) + 켜짐으로 전체 테스트 368개 통과.
 - 사용자가 할 것(앱 등록 때): 네이버·카카오 콘솔에 돌아올 주소 `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/naver`, `…/kakao`(재인증용 `naver-reauth`·`kakao-reauth`는 8단계). 그 뒤 실제 로그인으로 PKCE·취소 값·토큰 요청의 `state`를 확인.
+
+## 6단계 결과: 동의와 가입, 가입 취소, 버려진 가입 대기 (2026-10-04, 가짜 제공자 응답으로만)
+
+- 사용자 지시(2026-10-04): "각 단계 끝나고 나한테 물어볼 거 없으면 알아서 진행해 줘" → 이후 단계는 묻지 않고 이어 감(결정이 필요한 것만 물음).
+- 문서 버전(dev가 정함, C27): 키 `chaekcheck.auth.documents.terms-of-service-version`, `…privacy-collection-version`(`YYYY-MM-DD`만 받음). 값은 자리 값 `"2026-10-04"`에 `TODO(확인 필요)` — **사용자가 문구 검토 뒤 시행 날짜를 정해 주세요**(배포 전). 15단계 화면의 버전·시행일과 같은지 테스트로 묶을 예정.
+- `GET /api/v1/auth/signup` 200 `{"provider","documents":[{"type","version"}×2]}`, `POST` 201 + 쿠키 둘(`Location` 없음), `DELETE` 204. 가입 대기가 없으면 셋 다 404 `signup_not_found`.
+- 확인란 누락: 400 `validation_error`, 빠진 것마다 `errors[]` 한 줄 `{"field":"consents","code":"required","message":"AGE_OVER_14 is required"}`(기존 모듈의 `errors[]` 모양). 버전이 지금 값과 다르거나 빠짐 → 409 `document_version_mismatch`. 모르는 `type`은 무시.
+- 가입(AC-2): 한 트랜잭션에서 `account`, `login_method`, `account_consent` 3줄(`AGE_OVER_14`는 버전 NULL), `refresh_token`. 성공하면 세션에서 가입 대기를 지움.
+- 같은 제공자 번호로 두 번(C26): 트랜잭션 안에서 먼저 `(method, subject)`를 찾고 있으면 그 계정으로 로그인(`last_login_at` 갱신 + 쿠키). 동시에 온 두 요청이 둘 다 못 찾은 경우는 UNIQUE 충돌(`DuplicateKeyException`)을 잡아 먼저 만들어진 계정으로 로그인. 둘 다 201·같은 계정임을 동시 테스트(5회)로 확인.
+- 가입 취소(AC-3): 가입 대기를 지운 뒤 한 번 요청 — 카카오 `POST /v1/user/unlink`(`Authorization: KakaoAK <어드민 키>`, `target_id_type=user_id`, `target_id`), 네이버 `POST /oauth2.0/revoke`(`client_id`, `client_secret`, `token`, `token_type_hint=access_token`, 2026-10-04 공식 문서 재확인). 실패해도 204, 기록에는 제공자와 예외 종류만(토큰·키·응답 본문 없음). `auth.internal.login.ProviderUnlinker`(8·10단계도 씀), 대기 시간은 로그인과 같은 3초·5초.
+- 버려진 가입 대기(C17): `HttpSessionListener`(`AbandonedSignupListener`)가 세션이 사라질 때 가입 대기가 남아 있으면 같은 연결 끊기를 함. 가입·취소가 먼저 지우므로 두 번 하지 않음. 컨테이너의 세션 만료 스레드에서 바로 실행(최대 대기 약 8초).
+- 새 비밀 값: `KAKAO_ADMIN_KEY`(켜짐이면 필수, 시작 단계에서 검사). 끊기 주소는 `application.yml`(`chaekcheck.auth.{naver,kakao}.unlink-uri`).
+- 테스트: `SignupTests` 11개(정보 조회, 대기 없음 404 셋, 가입 행 수, 누락 400, 버전 409, 두 번 가입, CSRF 403, 취소 카카오·네이버 요청 내용, 제공자 실패에도 204, 세션 만료 때 있음/없음), `SignupConcurrencyTests` 5회, `LoginCallbackTests`에 AC-11(계정이 지워진 뒤 같은 번호로 오면 다시 가입 대기) 추가. 가짜 제공자는 `FakeProvider`(테스트용, JDK `HttpServer`)로 분리해 함께 씀.
+- 확인: `./gradlew build` 통과(테스트 385개, 꺼짐) + 켜짐으로 전체 테스트 385개 통과.
+- 5단계 기록 정정: `LoginCallbackTests`는 그때 12개였음(13개로 잘못 적음).
 
 # 사이클 밖: ADR-0047 옮기기
 

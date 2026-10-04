@@ -45,6 +45,33 @@ public class AccountStore {
 			.update();
 	}
 
+	/**
+	 * Creates an account with its login method and consents (sign-up, AC-2). Runs in the caller's transaction; a
+	 * second sign-up with the same {@code (method, subject)} fails on the UNIQUE constraint
+	 * ({@code DuplicateKeyException}).
+	 */
+	public long create(String method, String subject, List<NewConsent> consents, Instant now) {
+		long accountId = jdbc.sql("INSERT INTO auth.account (created_at, last_login_at) VALUES (?, ?) RETURNING id")
+			.params(Timestamp.from(now), Timestamp.from(now))
+			.query(Long.class)
+			.single();
+		jdbc.sql("INSERT INTO auth.login_method (account_id, method, subject, created_at) VALUES (?, ?, ?, ?)")
+			.params(accountId, method, subject, Timestamp.from(now))
+			.update();
+		for (NewConsent consent : consents) {
+			jdbc.sql("""
+					INSERT INTO auth.account_consent (account_id, consent_type, document_version, agreed_at)
+					VALUES (?, ?, ?, ?)""")
+				.params(accountId, consent.type(), consent.version(), Timestamp.from(now))
+				.update();
+		}
+		return accountId;
+	}
+
+	/** A consent to record at sign-up; {@code version} is {@code null} for AGE_OVER_14. */
+	public record NewConsent(String type, String version) {
+	}
+
 	/** The account as {@code GET /api/v1/me} shows it, or empty when it has been deleted. */
 	@Transactional(readOnly = true)
 	public Optional<AccountView> find(long accountId) {

@@ -22,7 +22,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * SameSite, so this runs on a random port.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
-		properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.naver.client-id=test-naver-id",
+		properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.naver.client-id=test-naver-id",
 				"chaekcheck.auth.naver.client-secret=test-naver-secret", "chaekcheck.auth.kakao.client-id=test-kakao-id",
 				"chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 class AuthCookieHeaderTests {
