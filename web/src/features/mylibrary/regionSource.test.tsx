@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from '../auth/AuthContext'
 import { NoticeBar, NoticeProvider } from '../auth/NoticeContext'
@@ -99,9 +100,12 @@ function renderApp() {
         <NoticeProvider>
           <MyLibraryProvider>
             <RegionProvider>
-              <NoticeBar />
-              <Probe />
-              <RegionImportDialog />
+              {/* the notice bar follows the page, as in AppLayout */}
+              <MemoryRouter>
+                <NoticeBar />
+                <Probe />
+                <RegionImportDialog />
+              </MemoryRouter>
             </RegionProvider>
           </MyLibraryProvider>
         </NoticeProvider>

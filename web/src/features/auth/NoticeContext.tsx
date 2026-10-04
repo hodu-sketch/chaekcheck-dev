@@ -1,7 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router'
 import styles from './NoticeBar.module.css'
 
-/** The one-line notice under the header (S1): shown once, closable (flow.md). */
+/**
+ * The one-line notice under the header (S1): shown once, closable (flow.md). It also goes away when the reader moves
+ * to another page (user request 2026-10-05, after "가입했어요" stayed on every page).
+ */
 interface NoticeContextValue {
   notice: string | null
   showNotice: (message: string) => void
@@ -29,8 +33,29 @@ export function useOptionalNotice(): NoticeContextValue | null {
   return useContext(NoticeContext)
 }
 
+/** Pages a notice only passes through on its way to the page it is meant for. */
+const PASSING_THROUGH = new Set(['/auth/complete', '/signup'])
+
 export function NoticeBar() {
   const { notice, clearNotice } = useNotice()
+  const { pathname } = useLocation()
+  // the page the current notice landed on
+  const landed = useRef<{ notice: string; pathname: string } | null>(null)
+
+  useEffect(() => {
+    if (notice === null) {
+      landed.current = null
+      return
+    }
+    if (PASSING_THROUGH.has(pathname)) return
+    if (landed.current === null || landed.current.notice !== notice) {
+      landed.current = { notice, pathname }
+    } else if (landed.current.pathname !== pathname) {
+      landed.current = null
+      clearNotice()
+    }
+  }, [notice, pathname, clearNotice])
+
   if (notice === null) return null
   return (
     <div className={styles.bar} role="status">
