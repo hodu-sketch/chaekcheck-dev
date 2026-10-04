@@ -64,7 +64,7 @@
   border-radius: var(--radius-md);
   background: var(--reserve-soft);
   color: #7a4506;
-  font-size: 0.93rem;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 
@@ -110,14 +110,14 @@
 }
 
 .allEmptyTitle {
-  font-size: 1.15rem;
+  font-size: var(--text-xl);
   font-weight: 800;
 }
 
 .allEmptyLibraries {
   margin-top: 0.4rem;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 /* "9월 30일 기준 수집 목록 · 책 N권" on the left, the sort on the right (flow.md S1) */
@@ -133,7 +133,7 @@
 
 .collected {
   color: var(--ink-soft);
-  font-size: 0.92rem;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 
@@ -147,7 +147,7 @@
     no-repeat right 0.75rem center;
   color: var(--ink);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   font-weight: 700;
   cursor: pointer;
 }
@@ -169,7 +169,7 @@
 
 .dimReason {
   color: var(--ink-faint);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 

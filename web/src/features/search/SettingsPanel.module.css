@@ -54,7 +54,7 @@
   margin-bottom: 0.45rem;
   color: var(--ink);
   font-weight: 800;
-  font-size: 0.92rem;
+  font-size: var(--text-md);
 }
 
 .options {
@@ -108,13 +108,13 @@
   display: block;
   color: var(--ink);
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: var(--text-md);
 }
 
 .hint {
   display: block;
   color: var(--ink-soft);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 .accountRow {
@@ -134,7 +134,7 @@
   border-radius: var(--radius-control);
   background: var(--paper);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   color: var(--fail);
   cursor: pointer;
 }

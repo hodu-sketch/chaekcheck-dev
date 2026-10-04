@@ -22,13 +22,13 @@
 }
 
 .title {
-  font-size: 1.35rem;
+  font-size: var(--text-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .description {
-  font-size: 0.92rem;
+  font-size: var(--text-md);
   color: var(--ink-soft);
 }
 
@@ -89,13 +89,13 @@
 }
 
 .kakaoLabel {
-  font-size: 1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: rgb(0 0 0 / 0.85);
 }
 
 .error {
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: var(--fail);
 }
 
@@ -106,7 +106,7 @@
   border-radius: var(--radius-control);
   background: var(--paper);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   color: var(--ink-soft);
   cursor: pointer;
 }

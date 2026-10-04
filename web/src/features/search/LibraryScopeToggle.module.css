@@ -13,7 +13,7 @@
   background: transparent;
   color: var(--ink-soft);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   word-break: keep-all;
   transition: background-color 140ms, color 140ms;
@@ -34,7 +34,7 @@
   color: var(--ink-soft);
   font: inherit;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   word-break: keep-all;
   transition: background-color 140ms, color 140ms;

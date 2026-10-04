@@ -38,7 +38,7 @@
 .title {
   grid-area: title;
   /* about 10% smaller (user request 2026-10-05) */
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   font-weight: 800;
   word-break: keep-all;
 }
@@ -47,13 +47,13 @@
   grid-area: meta;
   color: var(--ink-soft);
   /* about 10% smaller (user request 2026-10-05) */
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
 }
 
 .count {
   grid-area: count;
   color: var(--brand-strong);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -97,7 +97,7 @@
 
 .failed {
   color: var(--fail);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 

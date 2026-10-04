@@ -23,7 +23,7 @@
   background: var(--card);
   border: 1px solid var(--rule);
   border-radius: var(--radius-tag);
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
 .cell[data-status='loaded'] .name::before,
@@ -68,7 +68,7 @@
   background: transparent;
   color: var(--ink-soft);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -97,7 +97,7 @@
 .popoverTitle {
   margin-bottom: 0.7rem;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
 }
 
 .popoverList {
@@ -183,12 +183,12 @@
   padding: 0.05rem 0.45rem;
   border-radius: var(--radius-tag);
   background: var(--paper-deep);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 .moreFailed {
   color: var(--fail);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 .spinner {
@@ -207,7 +207,7 @@
   background: var(--brand-soft);
   color: var(--brand-strong);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 

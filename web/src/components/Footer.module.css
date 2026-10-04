@@ -11,7 +11,7 @@
   display: flex;
   justify-content: space-between;
   gap: 1.5rem;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
 }
 
@@ -36,7 +36,7 @@
 
 .link {
   color: var(--ink-soft);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
