@@ -27,6 +27,7 @@ class DocumentationTests {
 		assertThat(docs.resolve("components.puml")).exists();
 		assertThat(Files.exists(docs.resolve("module-library.puml"))).isTrue();
 		assertThat(Files.exists(docs.resolve("module-availability.adoc"))).isTrue();
+		assertThat(Files.exists(docs.resolve("module-auth.puml"))).isTrue();
 	}
 
 }

@@ -344,6 +344,7 @@
 - 사용자: "도서관 목록들을 찾고, 도서관 삭제/추가/수정 이런거를 관리하는 것을 나중에 batch성 작업으로 ai시켜서 할건데 이거 다 기록해 놔야해 … 현재 db구조, 프로세스 이런 것들을 기반으로 … md로 따로 기록해줘", "전자도서관 전체 목록을 찾는 방법부터 시작해서 그 문서에 넣어줘"
 - 결과: `docs/library-maintenance.md`(데이터 구조, 호출 예절, 목록 찾기(plan `collection-method.md` 내용을 현재 규칙으로 옮김), 추가·수정·끄기·삭제, Liquibase, 확인, 사람에게 물을 것, 결과 기록, 사이트 특이점)와 도구 `scripts/library/`(`CheckKyoboSites.java`, `eligibility_rules.py`, `build_seed.py`). `004` seed를 이 문서 절차대로 만들어 검증했습니다.
 - 영향: plan의 `collection-method.md`와 내용이 겹칩니다. plan 쪽에서 둘의 관계(원본은 어디인지)를 정해 주세요.
+- 사용자 답 [확정] (2026-10-01, 사이클 05 인계서로 전달): "절차 원본 = dev `library-maintenance.md`, 조사 기록 = plan".
 
 ### C2-U-8. 느리거나 실패하는 도서관을 서버가 기억하기 (2026-09-29, 사용자: 나중에 할 일)
 
@@ -808,3 +809,33 @@
 쓰기 전에 세기만 하려면 끝에 `--chaekcheck.catalog.import.dry-run=true`를 더합니다. 수집 세션이 쉴 때 `backend/`에서:
 
     ./gradlew bootRun --args='--spring.profiles.active=catalog-import --chaekcheck.catalog.import.sqlite-path=../../chaekcheck-data/ebook-catalog.sqlite --chaekcheck.catalog.import.ttl-path=../data/nlk/ttl'
+
+# 사이클 05: 개발 후 plan 쪽에 알려줄 것
+
+## 개발 시작 전 사용자 결정 (2026-10-04)
+
+인계서 "사용자에게 물어 정할 것 세 가지"를 dev가 안으로 만들어 물었고, 사용자가 모두 추천안을 골랐습니다(쉬운 설명 페이지 + 선택지).
+
+1. 웹이 켜짐·꺼짐을 아는 방법: `GET /api/v1/me`의 응답으로 판단합니다. 404 = 꺼짐, 401 = 켜짐·로그인 전, 200 = 로그인함. 새 API와 빌드 값은 두지 않습니다. 알려 둔 단점: 프록시·주소 연결이 잘못돼 404가 나도 "꺼짐"으로 보입니다.
+2. 꺼짐일 때 표: `auth`·`modulith` 표를 항상 만듭니다(Liquibase 조건 없음). 이유(dev 설명): 엔티티를 두면 `ddl-auto: validate`가 스위치와 상관없이 표를 검사하므로, 표를 안 만들면 꺼짐일 때 서버가 시작하지 못함.
+3. `spring-modulith-starter-jdbc`: 항상 classpath에 둡니다. `spring.modulith.events.jdbc.schema-initialization.enabled=false`를 명시(main 브랜치 문서 표는 기본값 `true`, 2.1.1 jar의 `spring-configuration-metadata.json`은 `false`로 서로 다름. 어느 쪽이든 Liquibase 밖에서 표를 만들지 않게 명시), `spring.modulith.events.jdbc.schema=modulith`. 꺼짐이면 이벤트를 발행하는 코드가 돌지 않습니다.
+
+## dev 문서 정리 (인계서 "dev 문서 수정 요청", 사용자 승인 2026-10-04)
+
+- `docs/library-maintenance.md`: 1-1 표 `homepage_url` 행에 끼어 있던 `CheckYes24Sites.java` 행을 3절 도구 표로 되돌리고, `homepage_url`의 "누가 채우나"(`find_front_pages.py`)를 되살림. 1-3 표 아래로 밀려나 있던 `GANGNAM_V1` 행도 표 안으로 되돌림(같은 종류의 깨짐이라 함께 고침). 4-10 표 YES24 행에 `YES24_V3` 추가. 4-9를 4-10 앞으로, 13절을 14절 앞으로 옮김. 글 내용은 바꾸지 않음.
+- `plan-feedback.md` C2-U-7에 사용자 답을 적음.
+- `CLAUDE.md` "Group ID and base package: not decided yet" → `com.chaekcheck`.
+
+## 1단계 결과: 의존성과 켜고 끄는 설정 (2026-10-04)
+
+- 의존성 이름 확인 [확정]: Spring Boot 소스의 starter 정의(`starter/spring-boot-starter-security-oauth2-client`, `…-oauth2-resource-server`의 `build.gradle`)로 확인. 옛 이름 `spring-boot-starter-oauth2-client`는 "deprecated in favor of spring-boot-starter-security-oauth2-client". 넷 모두 4.1.1(Modulith는 BOM 2.1.1)로 받아짐.
+- 꺼짐 방법(dev가 고름): `auth.internal.AuthToggleEnvironmentPostProcessor`(`META-INF/spring.factories`, Boot 4.1의 `org.springframework.boot.EnvironmentPostProcessor`). 설정 파일을 읽은 뒤 `chaekcheck.auth.enabled`가 true가 아니면 Security 자동 설정 8개(servlet용: `SecurityAutoConfiguration`, `UserDetailsServiceAutoConfiguration`, `SecurityFilterAutoConfiguration`, `ServletWebSecurityAutoConfiguration`, OAuth2 client 2개, resource server 2개)를 `spring.autoconfigure.exclude`에 더함. 이미 적힌 제외는 유지. 이름은 4.1.1 jar의 `AutoConfiguration.imports`에서 확인.
+  - 이유: 스위치 하나로 정해야 해서 `application.yml`의 exclude 목록만으로는 안 됨. 조건부 빈만으로는 Boot 자동 설정(필터, 기본 사용자, 보안 헤더)이 남음.
+  - `@WebMvcTest` 조각 테스트도 이 제외를 따름(기존 컨트롤러 테스트 모두 통과).
+- 켜짐일 때 키 검사: `auth.internal.AuthProperties`(`@Validated` record, `chaekcheck.auth.*`)가 `AuthConfiguration`(`@ConditionalOnBooleanProperty`) 아래에서만 만들어짐. 빠진 키는 시작 단계에서 속성 이름과 환경 변수 이름이 든 메시지로 실패.
+- 스위치와 환경 변수 이름(dev가 정함): `chaekcheck.auth.enabled: ${CHAEKCHECK_AUTH_ENABLED:false}`. `.env`는 properties 파일로 읽혀 대문자 이름이 자동으로 묶이지 않으므로 자리표시자로 둠. 비밀 값: `AUTH_JWT_SECRET`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `KAKAO_REST_API_KEY`(카카오 REST API 키 = OAuth client id), `KAKAO_CLIENT_SECRET`. 어드민 키와 돌아올 주소 변수는 쓰는 단계(5·9단계)에서 더함. `.env.example`에는 이름만.
+- 모듈 뼈대: `com.chaekcheck.auth.AccountId`(record, 양수 검사), `com.chaekcheck.auth.AccountDeleted(AccountId accountId)`. 하위 패키지는 지금 `internal` 하나, 단계가 진행되며 나눔.
+- **발견 (질문 3의 [확인 필요])**: 꺼짐이고 `modulith.event_publication` 표가 없어도 서버는 정상으로 시작함. 다만 종료할 때 Modulith의 `eventPublicationRegistry`가 끝나지 않은 발행을 읽으려고 `modulith.EVENT_PUBLICATION`을 조회하고, 표가 없으면 WARN(`BadSqlGrammarException`)을 남김. 질문 2를 "항상 만듦"으로 정했으므로 2단계 뒤에는 생기지 않음.
+- **발견**: `spring.modulith.events.jdbc.schema-initialization.enabled` 기본값이 문서(main 브랜치 appendix 표: `true`)와 2.1.1 jar 메타데이터(`false`)에서 다름. 명시적으로 `false`.
+- 확인: `./gradlew build` 통과(테스트 318개, `AuthDisabledTests`·`AuthPropertiesTests`·`AuthToggleEnvironmentPostProcessorTests` 포함, 모듈 문서에 `module-auth.puml`). `bootRun`(꺼짐) + 웹: "작별하지 않는다" 검색 3권, 대출 조회 정상. `/api/v1/me` 404 `not_found`, 검색 응답에 `X-Frame-Options`·`Cache-Control` 없음, 서버 기록에 Security 관련 줄과 자동 생성 비밀번호 없음.
+- 참고: 첫 빌드에서 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`가 한 번 실패했고, 따로 5번과 전체 빌드에서 다시 돌렸을 때는 모두 통과함. 이번 변경과 무관한 가짜 시계 테스트로, 가끔 실패하는 것으로 보임.

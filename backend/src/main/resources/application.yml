@@ -16,6 +16,13 @@ spring:
     problemdetails:
       # RFC 9457 error responses (ADR-0008). Default is false in Spring Boot 4.1.
       enabled: true
+  modulith:
+    events:
+      jdbc:
+        # The event publication table comes from Liquibase (db/changelog/modulith), never from Spring Modulith
+        schema-initialization:
+          enabled: false
+        schema: modulith
   jpa:
     open-in-view: false
     hibernate:
@@ -23,6 +30,20 @@ spring:
       ddl-auto: validate
 
 chaekcheck:
+  auth:
+    # Login on/off (ADR-0046). false = no login, the application behaves as in cycle 04 and needs none of the keys
+    # below. Set CHAEKCHECK_AUTH_ENABLED in ../.env or the environment, or change the default here.
+    enabled: ${CHAEKCHECK_AUTH_ENABLED:false}
+    # Secrets: environment variables only (names in ../.env.example). Required when enabled is true.
+    jwt:
+      secret: ${AUTH_JWT_SECRET:}
+    naver:
+      client-id: ${NAVER_CLIENT_ID:}
+      client-secret: ${NAVER_CLIENT_SECRET:}
+    kakao:
+      # Kakao's "REST API key" is the OAuth client id
+      client-id: ${KAKAO_REST_API_KEY:}
+      client-secret: ${KAKAO_CLIENT_SECRET:}
   availability:
     cache-ttl: 3m
     cache-max-size: 1000
