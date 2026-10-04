@@ -25,6 +25,10 @@ spring:
         schema: modulith
       # Completed publications are deleted, not kept (ADR-0041)
       completion-mode: delete
+      # On start, publications a listener has not completed (also FAILED ones: Spring Modulith 2.1.1 selects
+      # "completion_date IS NULL OR status != 'COMPLETED'") go to their listeners again, so a deleted account's
+      # "내 도서관" rows are removed after a failure at the latest at the next restart (ADR-0051)
+      republish-outstanding-events-on-restart: true
   jpa:
     open-in-view: false
     hibernate:

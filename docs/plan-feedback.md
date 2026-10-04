@@ -1191,3 +1191,19 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
   - 그 밖의 경로는 로그인을 아예 쓰지 않음.
   - 그래서 지운 계정의 토큰이 15분 동안 통하는 경로는 없음. retro 문장은 "다른 경로는 토큰을 읽지 않는다"로 고치는 것을 제안함.
 - 확인: `./gradlew build` 통과.
+
+## 6단계 결과: 재시작 때 남은 이벤트 다시 처리 (2026-10-04)
+
+- `application.yml`: `spring.modulith.events.republish-outstanding-events-on-restart: true`(주석에 ADR-0051). 사이클 05 C28의 세 값은 그대로.
+- **`FAILED` 기록 재처리 [확인 필요 → 처리함]**
+  - 공식 문서(events.adoc)는 이 속성이 "outstanding" 기록을 다시 보낸다고만 적고, 상태별 동작은 적지 않음.
+  - 그래서 2.1.1 jar를 직접 확인함. `PersistentApplicationEventMulticaster.afterSingletonsInstantiated()`가 속성이 `true`이면 `resubmitIncompletePublications(모두)`를 부르고, `JdbcEventPublicationRepositoryV2`가 미완료를 `WHERE COMPLETION_DATE IS NULL OR STATUS != 'COMPLETED'`로 고름. `FAILED`가 포함됨.
+  - 실제 시험으로도 확인함(아래).
+- 시험 `mylibrary/AccountDeletedRepublishTests`. 앱을 손으로 두 번 띄움(`SpringApplicationBuilder`, 명령줄 인자).
+  1. 첫 앱: 연결마다 `lock_timeout = 1s`(`spring.datasource.hikari.connection-init-sql`). 테스트가 `mylibrary.account_library`에 `ACCESS EXCLUSIVE` 표 잠금을 쥔 채 계정을 지움. listener의 DELETE가 잠금 시간 초과(SQL state 55P03)로 실패하고, 기록이 `status = 'FAILED'`로 남음. listener 트랜잭션 전체가 롤백되어 두 표에 행이 남음.
+  2. 잠금을 풀고 첫 앱을 닫은 뒤, 설정 없이 새 앱을 띄움.
+  3. 두 표의 행과 그 이벤트의 발행 기록이 0이 됨(AC-11).
+  - **listener를 실패시킨 방법**: 운영 코드에 시험용 훅을 넣지 않고, 실제 DB 실패(잠금 시간 초과)로 만듦.
+- **다른 테스트에 준 영향**: db-test를 함께 쓰므로, 이제 테스트 컨텍스트가 새로 뜰 때마다 db-test의 미완료 기록이 다시 처리됨. 전체 빌드에서 문제는 없었고, 빌드 뒤 `modulith.event_publication`은 0줄이었음. 기존 `AccountDeletedFailedListenerTests`는 `@AfterEach`에서 자기 기록을 지우므로 다음 컨텍스트에 남지 않음. 새 시험도 끝에 자기 행과 기록을 지움.
+- 참고: `SpringApplicationBuilder.properties()`는 기본값(가장 낮은 우선순위)이라서 1단계에서 고정한 `application-test.yml`의 `chaekcheck.auth.enabled: false`에 밀림. 그래서 명령줄 인자로 넘김.
+- 확인: `./gradlew build` 통과.
