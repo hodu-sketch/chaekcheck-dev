@@ -13,19 +13,19 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties("chaekcheck.auth")
-record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provider kakao) {
+public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provider kakao) {
 
-	AuthProperties {
+	public AuthProperties {
 		jwt = jwt != null ? jwt : new Jwt(null);
 		naver = naver != null ? naver : new Provider(null, null);
 		kakao = kakao != null ? kakao : new Provider(null, null);
 	}
 
 	/** HS256 signing key, base64 of at least 32 random bytes (design-delta). */
-	record Jwt(@NotBlank(message = "is required when login is on (environment variable AUTH_JWT_SECRET)") String secret) {
+	public record Jwt(@NotBlank(message = "is required when login is on (environment variable AUTH_JWT_SECRET)") String secret) {
 	}
 
-	record Provider(
+	public record Provider(
 			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientId,
 			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientSecret) {
 	}

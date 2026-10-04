@@ -847,6 +847,20 @@
 - 데이터 접근 방식(dev가 정함): `JdbcClient`. 이유: 표가 작고, 삭제는 DB cascade(`account` 한 줄 삭제)에 맡기며, 리프레시 토큰 교체는 조건부 UPDATE 한 문장이 맞음. `catalog` 모듈과 같은 방식. 엔티티가 없으므로 `ddl-auto: validate` 대상도 없음.
 - 확인: `./gradlew build` 통과. `AuthSchemaTests`(db-test, 6개): 표 다섯 존재, `account` 삭제 시 하위 셋 cascade, `(method, subject)` UNIQUE(같은 번호라도 제공자가 다르면 허용), `AGE_OVER_14`가 아닌데 버전 NULL이면 거절, `AGE_OVER_14` 두 번째 줄은 NULLS NOT DISTINCT로 거절, `PASSWORD`는 아직 거절. 개발 DB에 `bootRun`으로 적용 후 `psql` `\d`로 확인. 1단계의 종료 시 WARN(표 없음)은 사라짐.
 
+## 3단계 결과: 보안 필터 체인, JWT 검증, `GET /api/v1/me` (2026-10-04)
+
+- 구성(dev가 정함): `auth.internal.security.SecurityConfiguration`(필터 체인, CSRF 저장소, HS256 디코더, 키 검사), `AccessTokenCookieResolver`, `AccountJwtAuthenticationConverter`, `ProblemResponses`(401·403·필터 단계 500), `auth.internal.account.AccountStore`(`JdbcClient`), `auth.internal.web.MeController`·`CsrfTokenController`. 로그인 기능의 모든 빈에 `@ConditionalOnAuthEnabled`(component scan이 하위 패키지를 모두 찾으므로 빈마다 조건을 붙임).
+- **설계와 다르게 한 것 (인계서 "`oauth2ResourceServer().jwt()` + 직접 만든 `BearerTokenResolver`")**: `oauth2ResourceServer()`를 쓰지 않고 `BearerTokenAuthenticationFilter`를 직접 등록함. 이유: 그 configurer가 "토큰 해석기가 토큰을 찾은 요청"을 CSRF 검사에서 자동으로 빼는데(`registerDefaultCsrfOverride`), 우리 토큰은 브라우저가 알아서 붙이는 쿠키라 `/api/v1/me/**`의 변경 요청이 CSRF 없이 통과함. 리뷰(java-reviewer·security-reviewer 서브에이전트)가 찾았고, 테스트로 확인함(쿠키만 단 `POST /api/v1/me`가 403이 아니라 405로 MVC까지 감). 직접 등록한 필터는 같은 디코더·같은 계정 확인·같은 쿠키 해석기를 쓰므로 동작은 설계와 같음. C4 "변경 메서드는 모두 CSRF"를 지키기 위한 변경.
+- [확인 필요] 해소: `XSRF-TOKEN` 쿠키 `Path` = `/`(`setCookiePath("/")`), 화면 경로의 스크립트가 읽을 수 있음. 실제 Tomcat 응답 `Set-Cookie: XSRF-TOKEN=…; Path=/; Secure; SameSite=Lax`, `HttpOnly`·`Domain` 없음(`AuthCookieHeaderTests`, 임의 포트 서버). MockMvc 응답은 `SameSite`를 빼고 보여 주므로 이 확인만 실제 서버로 함.
+- [확인 필요] 해소: `GET /api/v1/auth/csrf-token`. `csrf.spa()`는 토큰이 처음 필요할 때만 쿠키를 씀 → 이 주소는 `CsrfTokenRepository`로 새 토큰을 만들어 저장하고 204. 받은 값을 `X-XSRF-TOKEN`에 넣으면 CSRF를 통과함(테스트).
+- 보호 경로 판정: 인가 규칙과 쿠키 해석기가 같은 `PathPatternRequestMatcher`(`/api/v1/me`, `/api/v1/me/**`)를 씀. 공개 경로에서는 토큰을 읽지 않으므로 깨진 쿠키·`Authorization` 헤더가 있어도 그대로 응답(AC-17). `Authorization` 헤더는 어디서도 읽지 않음.
+- 새로 정한 응답(설계 표에 없음): 토큰 확인 중 DB 오류는 401이 아니라 500 `internal_error`(401이면 웹이 로그인을 버림). CSRF가 아닌 403은 `forbidden`(지금은 권한을 쓰지 않아 나올 일이 없음). 결과 코드 표에 넣을지 plan에서 정해 주세요.
+- `/api/v1/me` 응답: `{"id","loginMethods","consents":[{"type","version","agreedAt"}]}`. `AGE_OVER_14`는 문서가 없어 `version`을 뺌(`null`을 보내지 않음). 정렬은 동의 시각순.
+- 세션 쿠키(C12): `server.servlet.session`(timeout 10m, Path `/api/v1`, Secure, HttpOnly, SameSite Lax). SecurityContext는 요청 속성에만 두고, `SessionCreationPolicy.NEVER`.
+- 켜짐에서 기존 테스트: 환경 변수로 켜고(`CHAEKCHECK_AUTH_ENABLED=true`, 테스트용 임의 키) 전체 테스트를 돌려 모두 통과. Boot 4에서 `@WebMvcTest` 조각 테스트는 `spring-boot-security-test`가 classpath에 있을 때만 Security를 넣으므로, 조각 테스트는 켜짐·꺼짐과 관계없이 Security 없이 돎. 켜짐 동작은 전체 컨텍스트 테스트(`AuthEnabledSecurityTests`)로 확인. 보안 테스트 의존성은 더하지 않음.
+- 확인: `./gradlew build` 통과(테스트 341개, 꺼짐) + 켜짐으로 전체 테스트 통과. 직접 서명한 토큰으로 200, 만료 401, 다른 키 401, HS512·서명 없음 401, 계정 삭제 후 401, 숫자 아닌 `sub` 401, 쿠키 없음·헤더만 401, CSRF 없는 POST 403 `csrf_invalid`, 로그인 쿠키만 단 `POST`·`DELETE`·`PUT /api/v1/me…` 403 `csrf_invalid`, 웹훅 경로는 CSRF 없이 403 아님, 기존 공개 API·SSE는 깨진 토큰을 붙여도 200, 자동 생성 사용자 없음, 필터 체인 하나.
+- 리뷰에서 함께 고친 것: `AccountStore.find`를 읽기 전용 트랜잭션 하나로. 남긴 것: `XSRF-TOKEN`의 `Secure`는 Safari가 `http://localhost`에서 받지 않음(개발 환경만의 문제, Chrome·Firefox는 받음).
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)

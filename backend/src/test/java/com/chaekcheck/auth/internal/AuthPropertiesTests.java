@@ -18,7 +18,8 @@ class AuthPropertiesTests {
 
 	@Test
 	void notCreatedWhenLoginIsOff() {
-		runner.run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(AuthProperties.class));
+		runner.withPropertyValues("chaekcheck.auth.enabled=false")
+			.run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(AuthProperties.class));
 	}
 
 	@Test

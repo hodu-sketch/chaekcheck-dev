@@ -31,6 +31,18 @@ spring:
       # Schema changes go through Liquibase only
       ddl-auto: validate
 
+server:
+  servlet:
+    session:
+      # Only the login feature uses the session: values kept during a login (pending sign-up, re-authentication),
+      # never the login itself (handoff C12, ADR-0040). Nothing creates a session while login is off.
+      timeout: 10m
+      cookie:
+        path: /api/v1
+        secure: true
+        http-only: true
+        same-site: lax
+
 chaekcheck:
   auth:
     # Login on/off (ADR-0046). false = no login, the application behaves as in cycle 04 and needs none of the keys
