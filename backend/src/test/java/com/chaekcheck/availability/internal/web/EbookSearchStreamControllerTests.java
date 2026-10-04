@@ -134,6 +134,54 @@ class EbookSearchStreamControllerTests {
 			.isLenientlyEqualTo("{\"code\":\"validation_error\",\"errors\":[{\"field\":\"visit\"}]}");
 	}
 
+	@Test
+	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side
+		SearchTarget chosen = withChosen(TestTargets.target(12, PlatformType.KYOBO_V1, "https://chosen.example"));
+		given(batchRunner.plan(eq(Set.of()), eq(Set.of()), any())).willReturn(List.of(chosen, TestTargets.GOHEUNG));
+
+		MvcTestResult result = get(URL + "?title=사랑&libraryIds=12,207,12");
+
+		verify(batchRunner).plan(Set.of(), Set.of(),
+				new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.ANY, Set.of(12L, 207L)));
+		assertThat(new String(result.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8))
+			.contains("\"libraries\":[{\"id\":12,")
+			.contains("\"homepageUrl\":null,\"chosen\":true},{\"id\":2,")
+			.contains("\"chosen\":false}]");
+	}
+
+	@Test
+	void withoutLibraryIdsThePlanHasNone() { // AC-14
+		given(batchRunner.plan(any(), any(), any())).willReturn(List.of());
+
+		get(URL + "?title=사랑&scope=joinable");
+
+		verify(batchRunner).plan(Set.of(), Set.of(), new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.ANY));
+	}
+
+	@Test
+	void badLibraryIdsAre400AfterVisitAndBeforeRegions() {
+		assertThat(get(URL + "?title=사랑&libraryIds=1,x")).hasStatus(HttpStatus.BAD_REQUEST)
+			.bodyJson()
+			.isLenientlyEqualTo(
+					"{\"code\":\"validation_error\",\"errors\":[{\"field\":\"libraryIds\",\"code\":\"invalid_format\"}]}");
+		String many = String.join(",", LongStream.rangeClosed(1, 21).mapToObj(Long::toString).toList());
+		assertThat(get(URL + "?title=사랑&libraryIds=" + many)).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\",\"code\":\"too_many\"}]}");
+		// 21 ids with a repeat are 20 after merging
+		assertThat(get(URL + "?title=사랑&libraryIds=" + many.replace(",21", ",1")).getResponse().getStatus())
+			.isNotEqualTo(400);
+		assertThat(get(URL + "?title=사랑&visit=x&libraryIds=x")).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"visit\"}]}");
+		assertThat(get(URL + "?title=사랑&libraryIds=x&residenceRegionIds=x")).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\"}]}");
+	}
+
+	private static SearchTarget withChosen(SearchTarget t) {
+		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
+				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
+				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), true);
+	}
+
 	/** The real catalog applies scope and visit (PlanOptions); the stub does the same on the given plan. */
 	private void givenPlan(Set<Long> residence, Set<Long> work, List<SearchTarget> plan) {
 		given(batchRunner.plan(eq(residence), eq(work), any()))

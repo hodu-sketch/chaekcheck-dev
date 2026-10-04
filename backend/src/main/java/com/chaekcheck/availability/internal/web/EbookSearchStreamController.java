@@ -44,15 +44,17 @@ class EbookSearchStreamController {
 	ResponseEntity<SseEmitter> stream(@RequestParam MultiValueMap<String, String> params,
 			@RequestParam(required = false) String residenceRegionIds,
 			@RequestParam(required = false) String workRegionIds, @RequestParam(required = false) String filter,
-			@RequestParam(required = false) String scope, @RequestParam(required = false) String visit) {
+			@RequestParam(required = false) String scope, @RequestParam(required = false) String visit,
+			@RequestParam(required = false) String libraryIds) {
 		SearchQuery query = SearchConditionParam.parse(params);
 		ResultFilter resultFilter = parseFilter(filter);
 		LibraryScope libraryScope = parseScope(scope);
 		VisitFilter visitFilter = parseVisit(visit);
+		Set<Long> chosen = LibraryIdsParam.parse(libraryIds);
 		Set<Long> residence = RegionIdsParam.parse("residenceRegionIds", residenceRegionIds);
 		Set<Long> work = RegionIdsParam.parse("workRegionIds", workRegionIds);
 		List<SearchTarget> plan = batchRunner.plan(residence, work,
-				new PlanOptions(libraryScope.option(), visitFilter.option()));
+				new PlanOptions(libraryScope.option(), visitFilter.option(), chosen));
 
 		SseEmitter emitter = newEmitter(batchRunner);
 		StreamEvents.Targets targets = StreamEvents.Targets.of(query, resultFilter.value(), libraryScope.value(),

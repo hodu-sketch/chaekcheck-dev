@@ -28,7 +28,7 @@ import com.chaekcheck.library.SearchTarget;
 /**
  * First holding batch for books found with {@code /books} (ADR-0030, design-delta API): the plan libraries holding
  * the books as {@code targets}, then batch 1 over their detail pages. Everything is validated before the stream opens,
- * in the order bookIds, filter, scope, visit, regions [안]: 400 validation_error, 422 invalid_region.
+ * in the order bookIds, filter, scope, visit, libraryIds, regions [안]: 400 validation_error, 422 invalid_region.
  */
 @RestController
 class BookAvailabilityStreamController {
@@ -49,15 +49,17 @@ class BookAvailabilityStreamController {
 	ResponseEntity<SseEmitter> stream(@RequestParam(required = false) String bookIds,
 			@RequestParam(required = false) String residenceRegionIds,
 			@RequestParam(required = false) String workRegionIds, @RequestParam(required = false) String filter,
-			@RequestParam(required = false) String scope, @RequestParam(required = false) String visit) {
+			@RequestParam(required = false) String scope, @RequestParam(required = false) String visit,
+			@RequestParam(required = false) String libraryIds) {
 		List<Long> books = IdListParam.parse("bookIds", bookIds, MAX_BOOK_IDS);
 		ResultFilter resultFilter = EbookSearchStreamController.parseFilter(filter);
 		LibraryScope libraryScope = EbookSearchStreamController.parseScope(scope);
 		VisitFilter visitFilter = EbookSearchStreamController.parseVisit(visit);
+		Set<Long> chosen = LibraryIdsParam.parse(libraryIds);
 		Set<Long> residence = RegionIdsParam.parse("residenceRegionIds", residenceRegionIds);
 		Set<Long> work = RegionIdsParam.parse("workRegionIds", workRegionIds);
 		List<SearchTarget> plan = batchRunner.plan(residence, work,
-				new PlanOptions(libraryScope.option(), visitFilter.option()));
+				new PlanOptions(libraryScope.option(), visitFilter.option(), chosen));
 
 		List<HoldingTask> tasks = tasks(books, plan, catalogHoldings.holdingsOf(books));
 		Map<Long, SearchTarget> used = new LinkedHashMap<>();

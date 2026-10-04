@@ -16,7 +16,7 @@ import com.chaekcheck.library.PlanOptions;
 
 /**
  * Reads the {@code /books} parameters (design-delta API, spec 2장) in the order conditions, {@code exact}·{@code roles}
- * ·{@code sort}, {@code scope}·{@code visit}, {@code page}·{@code pageSize}, regions [안]. Every single-valued name may
+ * ·{@code sort}, {@code scope}·{@code visit}·{@code libraryIds}, {@code page}·{@code pageSize}, regions [안]. Every single-valued name may
  * appear once ({@code duplicate}). Read from all query values: Spring would join repeats with commas.
  * <p>
  * {@code exact} for an empty field and {@code roles} without an author are ignored (dev decision, reported).
@@ -31,9 +31,12 @@ final class BookParams {
 
 	static final int MAX_REGION_IDS = 20;
 
+	/** Libraries added by hand: at most 20 per account (cycle 06 spec R3). */
+	static final int MAX_LIBRARY_IDS = 20;
+
 	private static final Pattern POSITIVE = Pattern.compile("[1-9][0-9]{0,8}");
 
-	private static final Pattern REGION_ID = Pattern.compile("[1-9][0-9]{0,17}");
+	private static final Pattern ID = Pattern.compile("[1-9][0-9]{0,17}");
 
 	private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
@@ -76,7 +79,10 @@ final class BookParams {
 				exact.contains("publisher"), Set.copyOf(roles), sort, page, pageSize);
 	}
 
-	/** Missing scope means all, missing visit means any (same values as the site search). */
+	/**
+	 * Missing scope means all, missing visit means any (same values as the site search). {@code libraryIds} are the
+	 * libraries the user added by hand (cycle 06); unknown or disabled ones are ignored by the plan.
+	 */
 	PlanOptions planOptions() {
 		String scope = single("scope");
 		PlanOptions.Scope s = switch (scope == null ? "all" : scope.toLowerCase(Locale.ROOT)) {
@@ -90,11 +96,16 @@ final class BookParams {
 			case "none" -> PlanOptions.Visit.NONE;
 			default -> throw new InvalidBookParamException("visit", "invalid_format", "visit must be any or none");
 		};
-		return new PlanOptions(s, v);
+		return new PlanOptions(s, v, ids("libraryIds", MAX_LIBRARY_IDS));
 	}
 
 	/** Same rule as the site search: comma-separated positive integers, at most 20 per field. */
 	Set<Long> regionIds(String name) {
+		return ids(name, MAX_REGION_IDS);
+	}
+
+	/** Comma-separated positive integers, duplicates merged, at most {@code max} after merging. */
+	private Set<Long> ids(String name, int max) {
 		String raw = single(name);
 		if (raw == null) {
 			return Set.of();
@@ -102,14 +113,14 @@ final class BookParams {
 		Set<Long> ids = new LinkedHashSet<>();
 		for (String part : raw.split(",", -1)) {
 			String trimmed = part.strip();
-			if (!REGION_ID.matcher(trimmed).matches()) {
+			if (!ID.matcher(trimmed).matches()) {
 				throw new InvalidBookParamException(name, "invalid_format",
 						name + " must be comma-separated positive integers");
 			}
 			ids.add(Long.parseLong(trimmed));
 		}
-		if (ids.size() > MAX_REGION_IDS) {
-			throw new InvalidBookParamException(name, "too_many", "At most " + MAX_REGION_IDS + " ids are allowed");
+		if (ids.size() > max) {
+			throw new InvalidBookParamException(name, "too_many", "At most " + max + " ids are allowed");
 		}
 		return ids;
 	}

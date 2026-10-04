@@ -67,17 +67,20 @@ public final class StreamEvents {
 
 	}
 
-	/** One plan entry, in plan order (design-delta event example). */
+	/**
+	 * One plan entry, in plan order (design-delta event example). {@code chosen}: the user added it by hand (cycle
+	 * 06); the next-batch APIs do not send it again, so the web keeps it from these first {@code targets}.
+	 */
 	public record Library(long id, String name, LibraryType libraryType, PlatformType platformType,
 			PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 			String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl,
-			String joinCaution, String joinNotice, String homepageUrl) {
+			String joinCaution, String joinNotice, String homepageUrl, boolean chosen) {
 
 		public static Library from(SearchTarget target) {
 			return new Library(target.id(), target.name(), target.libraryType(), target.platformType(),
 					target.priorityGroup(), target.deferred(), target.eligibility(), target.eligibilitySummary(),
 					target.extraConditionText(), target.visitRequired(), target.joinMethod(), target.joinUrl(),
-					target.joinCaution(), target.joinNotice(), target.homepageUrl());
+					target.joinCaution(), target.joinNotice(), target.homepageUrl(), target.chosen());
 		}
 
 	}

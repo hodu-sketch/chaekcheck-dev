@@ -32,10 +32,13 @@ import com.chaekcheck.availability.internal.search.HoldingTask;
 import com.chaekcheck.availability.internal.search.StreamEvents;
 import com.chaekcheck.catalog.CatalogHoldings;
 import com.chaekcheck.catalog.HoldingRef;
+import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
 import com.chaekcheck.library.InvalidRegionException.InvalidRegion;
+import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.PlatformType;
+import com.chaekcheck.library.PriorityGroup;
 import com.chaekcheck.library.SearchTarget;
 
 /** Holding streams (cycle 04). Errors come back as Problem Details before any stream opens. */
@@ -161,6 +164,38 @@ class BookAvailabilityStreamControllerTests {
 			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"candidates\",\"code\":\"too_many\"}]}");
 		assertThat(mvc.get().uri(BATCH_URL + "?batchNo=2&candidates=1,1").header("Accept", ACCEPT)).bodyJson()
 			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"candidates\",\"code\":\"duplicate\"}]}");
+	}
+
+	@Test
+	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side
+		SearchTarget chosen = new SearchTarget(12, "lib12", LibraryType.EBOOK, PlatformType.KYOBO_V1,
+				"https://chosen.test", PriorityGroup.QUALIFIED, false, Eligibility.UNKNOWN, null, null, false, "join",
+				null, null, null, null, true);
+		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(chosen, TestTargets.GOHEUNG));
+		given(catalogHoldings.holdingsOf(List.of(10L))).willReturn(List.of(holding(1, 10, 2), holding(2, 10, 12)));
+
+		MvcTestResult result = mvc.get()
+			.uri(URL + "?bookIds=10&libraryIds=12&scope=joinable")
+			.header("Accept", ACCEPT)
+			.exchange();
+
+		verify(batchRunner).plan(Set.of(), Set.of(),
+				new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.ANY, Set.of(12L)));
+		assertThat(body(result)).contains("\"libraries\":[{\"id\":12,")
+			.contains("\"chosen\":true},{\"id\":2,")
+			.contains("\"holdings\":[{\"holdingId\":2,\"bookId\":10,\"libraryId\":12}");
+	}
+
+	@Test
+	void badLibraryIdsAre400AfterVisitAndBeforeRegions() {
+		assertThat(mvc.get().uri(URL + "?bookIds=1&libraryIds=0").header("Accept", ACCEPT)).hasStatus(400)
+			.bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\",\"code\":\"invalid_format\"}]}");
+		assertThat(mvc.get().uri(URL + "?bookIds=1&visit=x&libraryIds=0").header("Accept", ACCEPT)).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"visit\"}]}");
+		assertThat(mvc.get().uri(URL + "?bookIds=1&libraryIds=0&workRegionIds=x").header("Accept", ACCEPT))
+			.bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\"}]}");
 	}
 
 	private static HoldingRef holding(long id, long bookId, long libraryId) {

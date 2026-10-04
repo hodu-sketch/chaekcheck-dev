@@ -216,6 +216,40 @@ class BookSearchTests {
 	}
 
 	@Test
+	void chosenLibraryBooksComeFirstInBothScopes() throws Exception { // cycle 06 ADR-0050
+		long needsCheck = book("사랑 A", "가", "가", "2025-01-01", unverified);
+		long openBook = book("사랑", "가", "가", "1990-01-01", open);
+		String chosen = "&libraryIds=" + unverified;
+
+		assertThat(ids("title=사랑")).containsExactly(openBook, needsCheck);
+		assertThat(ids("title=사랑" + chosen)).containsExactly(needsCheck, openBook);
+		assertThat(ids("title=사랑&scope=joinable" + chosen)).containsExactly(needsCheck, openBook);
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&residenceRegionIds=" + MAPO + chosen)).bodyJson()
+			.extractingPath("$.items[*].joinTier")
+			.asArray()
+			.containsExactly("CHOSEN", "OPEN");
+		assertThat(mvc.get().uri("/api/v1/books/" + needsCheck + "?scope=joinable" + chosen)).bodyJson()
+			.extractingPath("$.holdingLibraryCount")
+			.isEqualTo(1);
+	}
+
+	@Test
+	void libraryIdsValidation() throws Exception {
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&libraryIds=1,x")).hasStatus(400)
+			.bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\",\"code\":\"invalid_format\"}]}");
+		String many = String.join(",", java.util.stream.LongStream.rangeClosed(1, 21).mapToObj(Long::toString).toList());
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&libraryIds=" + many)).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\",\"code\":\"too_many\"}]}");
+		// order: visit, then libraryIds, then regions; unknown ids are no error (AC-10)
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&visit=x&libraryIds=x")).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"visit\"}]}");
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&libraryIds=x&residenceRegionIds=x")).bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\"}]}");
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&libraryIds=999999999")).hasStatusOk();
+	}
+
+	@Test
 	void likeWildcardsInWordsAreLiteral() throws Exception {
 		book("100% 사랑", "가", "가", "2020-01-01", open);
 		book("1000 사랑", "가", "가", "2020-01-01", open);

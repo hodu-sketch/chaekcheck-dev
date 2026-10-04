@@ -1134,3 +1134,13 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - **응답 크기 [확인 필요 → 측정]**: 켜진 도서관 278곳(db-test 시드). 지역 없음: 48,123바이트, gzip 4,208바이트. 거주 마포구 + 직장 중구: 48,591바이트, gzip 4,292바이트. 참고: `deploy/nginx` 예시에는 지금 gzip 설정이 없음. 배포 때 `/api`에 gzip을 켜면 약 4KB.
 - 테스트 (`LibraryListTests` 5개): 지역 없이 OPEN의 `matchedBy`가 빈 배열이고 꺼진 도서관이 없음(전체 모양 비교) / 직장 중구 → 서울 도서관 `["WORK"]`(AC-4 서버 쪽) / 거주 마포 + 직장 중구 → `["RESIDENCE","WORK"]` / 9001은 422 / 형식 오류·21개는 400.
 - 확인: `./gradlew build` 통과.
+
+## 4단계 결과: `catalog`·`availability`가 `libraryIds`를 받음 (2026-10-04)
+
+- `JoinTier.CHOSEN`을 첫 값으로 더하고, `of()`는 `chosen`이면 `CHOSEN`. `PgBigmBookSearch`는 `ordinal()`과 `values()[tier]`만 쓰고 SQL에 숫자를 직접 쓴 곳이 없어서, 순서 값이 밀려도 영향 없음(확인함).
+- `/api/v1/books`, `/books/{bookId}`: `BookParams.planOptions()`가 `scope`·`visit` 다음에 `libraryIds`를 읽음(지역 ID와 같은 파서를 `ids(name, max)`로 합침). 그래서 오류 순서는 조건 → exact·roles·sort → scope → visit → `libraryIds` → page·pageSize → 지역. 인계서 순서에서 `filter`는 `/books`에 없고, page·pageSize는 사이클 04부터 visit과 지역 사이에 있었음.
+- 스트림 두 곳: 새 파서 `availability/internal/web/LibraryIdsParam`(`InvalidParamException`, 필드 `libraryIds`). `visit` 뒤, 지역 앞에서 검사함. `StreamEvents.Library`에 `chosen`(마지막 칸).
+- 다음 묶음 두 API와 `LibraryEbookController`는 바꾸지 않음(C16). 이 API들은 `findEnabledTarget`으로 대상을 다시 만들어서 `chosen=false`가 되므로, 웹은 첫 `targets`의 값을 유지해야 함.
+- 중복은 합친 뒤 20개를 셈. 예를 들어 21개를 보냈는데 하나가 중복이면 통과함.
+- 테스트: 스트림 두 곳에서 `PlanOptions`에 `libraryIds`가 들어가고 `targets.libraries[].chosen`이 나옴(AC-6 서버 쪽), 400(`invalid_format`, `too_many`)과 오류 순서(visit 먼저, 지역 나중), `libraryIds`가 없으면 빈 집합(AC-14) / `/books`에서 `CHOSEN`이 두 scope 모두 맨 앞이고 `joinTier: "CHOSEN"`, `/books/{id}`의 `joinable`에서 `chosen`이 남음, 없는 번호는 오류가 아님.
+- 확인: `./gradlew build` 통과.
