@@ -27,6 +27,7 @@ const QUERY: BookQuery = {
   visit: 'any',
   residenceRegionIds: [],
   workRegionIds: [],
+  libraryIds: [],
   page: 1,
 }
 

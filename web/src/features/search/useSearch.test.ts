@@ -20,6 +20,7 @@ function target(id: number): TargetLibrary {
     joinCaution: null,
     joinNotice: null,
     homepageUrl: null,
+    chosen: false,
   }
 }
 

@@ -27,6 +27,7 @@ function library(id: number, overrides: Partial<TargetLibrary> = {}): TargetLibr
     joinCaution: null,
     joinNotice: null,
     homepageUrl: null,
+    chosen: false,
     ...overrides,
   }
 }

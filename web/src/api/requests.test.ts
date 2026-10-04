@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchLibraryPage } from './client'
-import { batchStream, searchStream } from './searchStream'
+import { bookSearchParams, fetchBook, fetchLibraries, fetchLibraryPage } from './client'
+import { batchStream, holdingStream, searchStream } from './searchStream'
 
 function requestedUrl(fetchMock: ReturnType<typeof vi.fn>): URL {
   return new URL(fetchMock.mock.calls[0][0] as string, 'http://localhost')
@@ -23,7 +23,7 @@ describe('requests carry the condition as its own parameter, never q (ADR-0025)'
   it('first batch', async () => {
     const fetchMock = mockFetch()
     await searchStream(
-      { field: 'author', query: '김달', filter: 'all', scope: 'joinable', visit: 'none', residenceRegionIds: [1116], workRegionIds: [] },
+      { field: 'author', query: '김달', filter: 'all', scope: 'joinable', visit: 'none', residenceRegionIds: [1116], workRegionIds: [], libraryIds: [] },
       () => {},
       new AbortController().signal,
     ).catch(() => {})
@@ -61,3 +61,52 @@ describe('requests carry the condition as its own parameter, never q (ADR-0025)'
     expect(url.search).toBe('?author=%EA%B9%80%EB%8B%AC&page=2')
   })
 })
+
+describe('libraryIds (cycle 06): sent only when not empty', () => {
+  const plan = { scope: 'joinable' as const, visit: 'any' as const, residenceRegionIds: [], workRegionIds: [] }
+
+  it('first batch and holding stream', async () => {
+    const fetchMock = mockFetch()
+    const base = { field: 'title' as const, query: '사랑', filter: 'all' as const, ...plan }
+    await searchStream({ ...base, libraryIds: [12, 207] }, () => {}, new AbortController().signal).catch(() => {})
+    await searchStream({ ...base, libraryIds: [] }, () => {}, new AbortController().signal).catch(() => {})
+    await holdingStream({ bookIds: [1], filter: 'all', ...plan, libraryIds: [12] }, () => {}, new AbortController().signal).catch(
+      () => {},
+    )
+
+    const urls = fetchMock.mock.calls.map(([url]) => new URL(url as string, 'http://localhost'))
+    expect(urls[0].searchParams.get('libraryIds')).toBe('12,207')
+    expect(urls[1].searchParams.has('libraryIds')).toBe(false)
+    expect(urls[2].searchParams.get('libraryIds')).toBe('12')
+  })
+
+  it('book search and one book', async () => {
+    const query = {
+      title: '사랑', author: null, publisher: null, exact: [], roles: [], sort: 'default' as const, page: 1, ...plan,
+    }
+    expect(bookSearchParams({ ...query, libraryIds: [12] }).get('libraryIds')).toBe('12')
+    expect(bookSearchParams({ ...query, libraryIds: [] }).has('libraryIds')).toBe(false)
+
+    const fetchMock = mockFetch()
+    await fetchBook('3', { ...plan, libraryIds: [12, 207] }).catch(() => {})
+    expect(requestedUrl(fetchMock).searchParams.get('libraryIds')).toBe('12,207')
+  })
+})
+
+describe('GET /api/v1/libraries', () => {
+  it('sends only the filled region fields and returns the rows', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string) =>
+        new Response(JSON.stringify({ libraries: [{ id: 2, name: '고흥', matchedBy: [] }] }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const rows = await fetchLibraries([], [1102])
+
+    expect(requestedUrl(fetchMock).search).toBe('?workRegionIds=1102')
+    expect(rows).toEqual([{ id: 2, name: '고흥', matchedBy: [] }])
+    await fetchLibraries([], [])
+    expect(new URL(fetchMock.mock.calls[1][0] as string, 'http://localhost').search).toBe('')
+  })
+})
+

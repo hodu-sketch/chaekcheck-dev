@@ -17,6 +17,8 @@ export interface SearchStreamParams {
   visit: VisitFilter
   residenceRegionIds: number[]
   workRegionIds: number[]
+  /** Libraries added by hand (cycle 06); sent only when not empty. */
+  libraryIds: number[]
 }
 
 export interface BatchStreamParams {
@@ -50,6 +52,7 @@ export function searchStream(
     scope: params.scope,
     visit: params.visit,
   })
+  if (params.libraryIds.length) search.set('libraryIds', params.libraryIds.join(','))
   if (params.residenceRegionIds.length) search.set('residenceRegionIds', params.residenceRegionIds.join(','))
   if (params.workRegionIds.length) search.set('workRegionIds', params.workRegionIds.join(','))
   return readStream(`/api/v1/ebook-searches/stream?${search}`, EVENT_NAMES, onEvent, signal)
@@ -118,6 +121,8 @@ export interface HoldingStreamParams {
   visit: VisitFilter
   residenceRegionIds: number[]
   workRegionIds: number[]
+  /** Libraries added by hand (cycle 06); sent only when not empty. */
+  libraryIds: number[]
 }
 
 export interface HoldingBatchParams {
@@ -139,6 +144,7 @@ export function holdingStream(
     scope: params.scope,
     visit: params.visit,
   })
+  if (params.libraryIds.length) search.set('libraryIds', params.libraryIds.join(','))
   if (params.residenceRegionIds.length) search.set('residenceRegionIds', params.residenceRegionIds.join(','))
   if (params.workRegionIds.length) search.set('workRegionIds', params.workRegionIds.join(','))
   return readStream(`/api/v1/book-availabilities/stream?${search}`, HOLDING_EVENT_NAMES, onEvent, signal)

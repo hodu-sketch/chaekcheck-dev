@@ -68,6 +68,11 @@ export interface TargetLibrary {
   joinNotice: string | null
   /** Front page of this row: the e-library's main page for EBOOK (a physical library's website later). */
   homepageUrl: string | null
+  /**
+   * The user added this library by hand (cycle 06, ADR-0050): first in the plan, kept by scope and visit, shown with
+   * "직접 추가" instead of the eligibility badge. Only the first stream's `targets` carry it (C16).
+   */
+  chosen: boolean
 }
 
 /** Which book field the search text is matched against; also the name of the one condition parameter (ADR-0025). */
@@ -184,7 +189,7 @@ export type StreamEvent =
 // ---- cycle 04: collected catalog search and holding streams (design-delta API) ----
 
 /** First key of the book order (spec 3.5): the easiest plan library that holds the book. */
-export type JoinTier = 'MY_SIGUNGU' | 'MY_SIDO' | 'OPEN' | 'VISIT_ONLY' | 'NEEDS_CHECK'
+export type JoinTier = 'CHOSEN' | 'MY_SIGUNGU' | 'MY_SIDO' | 'OPEN' | 'VISIT_ONLY' | 'NEEDS_CHECK'
 
 export type BookSort = 'default' | 'newest' | 'oldest'
 
@@ -293,4 +298,36 @@ export interface SignupInfo {
 export interface ConsentInput {
   type: ConsentType
   version?: string
+}
+
+// ---- cycle 06: 내 도서관 (design-delta API, ADR-0049) ----
+
+/** Which of the user's regions made a library ELIGIBLE. */
+export type RegionBasis = 'RESIDENCE' | 'WORK'
+
+/**
+ * One row of `GET /api/v1/libraries`: every enabled library with the eligibility for the regions sent. Unlike the
+ * search APIs, a library whose region rules do not match is here as UNKNOWN instead of being left out.
+ */
+export interface LibraryEligibilityRow {
+  id: number
+  name: string
+  eligibility: Eligibility
+  matchedBy: RegionBasis[]
+  visitRequired: boolean
+  /** The library has a join caution. */
+  cautioned: boolean
+  eligibilitySummary: string | null
+}
+
+/** `GET`/`PUT /api/v1/me/regions`: saved ids in the chosen order (abolished ids come back as they are). */
+export interface MyRegions {
+  residenceRegionIds: number[]
+  workRegionIds: number[]
+}
+
+/** `GET /api/v1/me/libraries`: added libraries, disabled ones included, oldest first. */
+export interface MyLibraries {
+  libraryIds: number[]
+  max: number
 }

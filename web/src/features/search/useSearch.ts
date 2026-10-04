@@ -240,6 +240,8 @@ export function useSearch({
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
+      // libraries added by hand: wired in cycle 06 step 10
+      libraryIds: [] as number[],
     }
     searchStream(params, (event) => dispatch({ type: 'event', batchNo: 1, event }), controller.signal).catch(
       async (error) => {

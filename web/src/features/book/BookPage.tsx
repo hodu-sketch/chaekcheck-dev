@@ -45,6 +45,8 @@ function BookView({ bookId }: { bookId: string }) {
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
+      // libraries added by hand: wired in cycle 06 step 10
+      libraryIds: [] as number[],
     }
     fetchBook(bookId, plan, controller.signal)
       .then((found) => {

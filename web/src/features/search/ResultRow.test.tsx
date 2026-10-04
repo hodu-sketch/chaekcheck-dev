@@ -31,6 +31,7 @@ const openLibrary: TargetLibrary = {
   joinCaution: null,
   joinNotice: null,
   homepageUrl: null,
+  chosen: false,
 }
 
 describe('ResultRow join caution (C2-U-11)', () => {

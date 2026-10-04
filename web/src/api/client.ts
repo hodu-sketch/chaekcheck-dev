@@ -3,6 +3,7 @@ import type {
   BookPage,
   BookRole,
   BookSort,
+  LibraryEligibilityRow,
   LibraryPage,
   LibraryScope,
   Problem,
@@ -84,16 +85,25 @@ export interface BookQuery {
   visit: VisitFilter
   residenceRegionIds: number[]
   workRegionIds: number[]
+  /** Libraries added by hand (cycle 06); sent only when not empty, never put in the screen address (C17). */
+  libraryIds: number[]
   page: number
 }
 
+/** The plan part of a request: scope, visit, the regions and the libraries added by hand. */
+export interface PlanParams {
+  scope: LibraryScope
+  visit: VisitFilter
+  residenceRegionIds: number[]
+  workRegionIds: number[]
+  libraryIds: number[]
+}
+
 /** The plan part shared by the book APIs and the holding streams. */
-function planParams(
-  search: URLSearchParams,
-  plan: { scope: LibraryScope; visit: VisitFilter; residenceRegionIds: number[]; workRegionIds: number[] },
-) {
+function planParams(search: URLSearchParams, plan: PlanParams) {
   if (plan.scope !== 'all') search.set('scope', plan.scope)
   if (plan.visit !== 'any') search.set('visit', plan.visit)
+  if (plan.libraryIds.length) search.set('libraryIds', plan.libraryIds.join(','))
   if (plan.residenceRegionIds.length) search.set('residenceRegionIds', plan.residenceRegionIds.join(','))
   if (plan.workRegionIds.length) search.set('workRegionIds', plan.workRegionIds.join(','))
 }
@@ -117,13 +127,27 @@ export function fetchBooks(query: BookQuery, signal?: AbortSignal): Promise<Book
   return getJson(`/api/v1/books?${bookSearchParams(query)}`, signal)
 }
 
-export function fetchBook(
-  bookId: string,
-  plan: { scope: LibraryScope; visit: VisitFilter; residenceRegionIds: number[]; workRegionIds: number[] },
-  signal?: AbortSignal,
-): Promise<BookDetail> {
+export function fetchBook(bookId: string, plan: PlanParams, signal?: AbortSignal): Promise<BookDetail> {
   const search = new URLSearchParams()
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
   return getJson(`/api/v1/books/${encodeURIComponent(bookId)}${suffix}`, signal)
+}
+
+/**
+ * `GET /api/v1/libraries` (cycle 06, ADR-0049): every enabled library in id order with the eligibility for the
+ * regions sent. Public, no login. The 내 도서관 screen sends the resolved region ids.
+ */
+export function fetchLibraries(
+  residenceRegionIds: number[],
+  workRegionIds: number[],
+  signal?: AbortSignal,
+): Promise<LibraryEligibilityRow[]> {
+  const search = new URLSearchParams()
+  if (residenceRegionIds.length) search.set('residenceRegionIds', residenceRegionIds.join(','))
+  if (workRegionIds.length) search.set('workRegionIds', workRegionIds.join(','))
+  const suffix = search.size ? `?${search}` : ''
+  return getJson<{ libraries: LibraryEligibilityRow[] }>(`/api/v1/libraries${suffix}`, signal).then(
+    (body) => body.libraries,
+  )
 }

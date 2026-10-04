@@ -39,6 +39,7 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
       visit: query.visit,
       residenceRegionIds: query.residenceRegionIds,
       workRegionIds: query.workRegionIds,
+      libraryIds: query.libraryIds,
     }),
     [filter, query],
   )

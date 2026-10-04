@@ -15,6 +15,7 @@ export interface HoldingPlanOptions {
   visit: VisitFilter
   residenceRegionIds: number[]
   workRegionIds: number[]
+  libraryIds: number[]
 }
 
 /**
@@ -48,10 +49,10 @@ export function useHoldings() {
     for (const book of items) books.current.set(book.id, book)
     const batchNo = ++batchCounter.current
     dispatch({ type: 'batch-start', batchNo })
-    const { filter, scope, visit, residenceRegionIds, workRegionIds } = options
+    const { filter, scope, visit, residenceRegionIds, workRegionIds, libraryIds } = options
     filterRef.current = filter
     holdingStream(
-      { bookIds: items.map((b) => b.id), filter, scope, visit, residenceRegionIds, workRegionIds },
+      { bookIds: items.map((b) => b.id), filter, scope, visit, residenceRegionIds, workRegionIds, libraryIds },
       (event) => dispatch({ type: 'event', batchNo, event, books: books.current }),
       next.signal,
     ).catch(() => {

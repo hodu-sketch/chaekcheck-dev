@@ -64,6 +64,8 @@ export function SearchPage() {
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
+      // libraries added by hand: wired in cycle 06 step 10
+      libraryIds: [] as number[],
       page: 1,
     }
     // the key string stands for the input object, which is new on every render

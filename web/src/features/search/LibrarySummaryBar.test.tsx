@@ -32,6 +32,7 @@ const library = (id: number): TargetLibrary => ({
   joinCaution: null,
   joinNotice: null,
   homepageUrl: null,
+  chosen: false,
 })
 
 const loading: LibraryResult = { status: 'loading', pages: [], loanRate: null, more: 'idle' }
