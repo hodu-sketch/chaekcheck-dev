@@ -7,7 +7,9 @@ import './styles/global.css'
 import { AppLayout } from './components/AppLayout'
 import { AuthProvider } from './features/auth/AuthContext'
 import { AuthCompletePage } from './features/auth/AuthCompletePage'
+import { LoginOnly } from './features/auth/LoginOnly'
 import { NoticeProvider } from './features/auth/NoticeContext'
+import { SignupPage } from './features/auth/SignupPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ErrorFallback } from './components/ErrorFallback'
 import { BookPage } from './features/book/BookPage'
@@ -31,6 +33,14 @@ function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
+                <Route
+                  path="/signup"
+                  element={
+                    <LoginOnly>
+                      <SignupPage />
+                    </LoginOnly>
+                  }
+                />
               </Route>
             </Routes>
           </BrowserRouter>
