@@ -1,38 +1,62 @@
+/* The same box as the "내 도서관" line after login (MyLibrarySummary.module.css, user request 2026-10-05) */
 .summary {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 1rem;
-  font-size: var(--text-md);
+  align-items: center;
+  gap: 0.45rem 0.5rem;
+  padding: 0.55rem 0.6rem 0.55rem 1rem;
+  border-radius: var(--radius-control);
+  background: var(--brand-mist);
+  font-size: var(--text-sm);
   color: var(--ink-soft);
 }
 
 .label {
+  margin-right: 0.3rem;
   font-weight: 800;
   color: var(--ink);
 }
 
-.kind {
-  display: inline-block;
-  padding: 0 0.4rem;
+.hint {
+  color: var(--ink-soft);
+}
+
+.part {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
   border-radius: var(--radius-tag);
-  background: var(--brand-soft);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.kind {
   font-size: var(--text-xs);
   font-weight: 800;
   color: var(--brand-strong);
 }
 
+/* [설정]/[변경] at the right end of the box, like [관리] */
 .edit {
-  padding: 0;
-  border: none;
-  background: none;
+  margin-left: auto;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  background: var(--card);
+  font: inherit;
   color: var(--brand-strong);
   font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 3px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .edit:hover {
-  text-decoration-thickness: 2px;
+  border-color: var(--brand);
+}
+
+.edit:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
