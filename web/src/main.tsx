@@ -5,6 +5,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import './styles/fonts.css'
 import './styles/global.css'
 import { AppLayout } from './components/AppLayout'
+import { AuthProvider } from './features/auth/AuthContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ErrorFallback } from './components/ErrorFallback'
 import { BookPage } from './features/book/BookPage'
@@ -18,17 +19,19 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RegionProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<SearchPage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/books/:bookId" element={<BookPage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </RegionProvider>
+      <AuthProvider>
+        <RegionProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<SearchPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/books/:bookId" element={<BookPage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </RegionProvider>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

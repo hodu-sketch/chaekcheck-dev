@@ -269,3 +269,28 @@ export type HoldingStreamEvent =
   | { name: 'holding-failed'; data: HoldingFailedEvent }
   | { name: 'batch-done'; data: BatchDoneEvent }
   | { name: 'done'; data: DoneEvent }
+
+/** A login provider (cycle 05). */
+export type LoginProvider = 'NAVER' | 'KAKAO'
+
+/** The documents agreed to at sign-up; AGE_OVER_14 has no document version. */
+export type ConsentType = 'TERMS_OF_SERVICE' | 'PRIVACY_COLLECTION' | 'AGE_OVER_14'
+
+/** `GET /api/v1/me`. `loginMethods` is never shown on screen (C23). */
+export interface Me {
+  id: number
+  loginMethods: LoginProvider[]
+  consents: Array<{ type: ConsentType; version?: string; agreedAt: string }>
+}
+
+/** `GET /api/v1/auth/signup`: the provider and the document versions the consent screen shows. */
+export interface SignupInfo {
+  provider: LoginProvider
+  documents: Array<{ type: Exclude<ConsentType, 'AGE_OVER_14'>; version: string }>
+}
+
+/** One checked box sent with `POST /api/v1/auth/signup`. */
+export interface ConsentInput {
+  type: ConsentType
+  version?: string
+}

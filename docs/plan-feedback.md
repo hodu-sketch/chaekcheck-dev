@@ -978,6 +978,16 @@
 - 확인: `./gradlew build` 통과(테스트 424개, 꺼짐) + 켜짐으로 전체 테스트 424개 통과.
 - 백엔드 단계(1~10)가 여기까지로 끝남. 다음은 웹(11~15단계).
 
+## 11단계 결과: 웹 API 층과 로그인 상태 (2026-10-04)
+
+- 파일(dev가 정함): `web/src/api/auth.ts`(`fetchMe`, `fetchProviders`, `fetchCsrfToken`, `refresh`, `logout`, `getSignup`, `postSignup`, `cancelSignup`, `deleteMe`, `loginStartUrl`, `meRequest`), `web/src/api/types.ts`에 `Me`·`SignupInfo`·`ConsentInput`·`LoginProvider`, `web/src/features/auth/AuthContext.tsx`(`AuthProvider`, `useAuth`), `main.tsx`에서 앱 전체를 감쌈.
+- CSRF: 변경 요청마다 `XSRF-TOKEN` 쿠키 값을 `X-XSRF-TOKEN`에. 쿠키가 없으면 `GET /api/v1/auth/csrf-token` 먼저. 403 `csrf_invalid`면 새 토큰을 받아 한 번만 다시. 읽는 쿠키는 `XSRF-TOKEN` 하나(C13).
+- 갱신: `/api/v1/me` 계열(`meRequest`)만 401이면 `navigator.locks.request('auth-refresh')` → 원래 요청 먼저 다시 → 또 401이면 `POST /api/v1/auth/refresh` → 204면 원래 요청 다시, 401이면 로그인 전(안내 없음). Web Locks가 없는 브라우저는 같은 탭 안에서만 줄을 세움.
+- 로그인 상태: 화면이 열릴 때 `GET /api/v1/me` 한 번 → `checking` / `off`(404, 로그인 요소 없음) / `signed-out` / `signed-in`. 서버·네트워크 오류는 "로그인 전"으로 보지 않고, 첫 확인이면 로그인 요소를 그리지 않음(dev가 정함).
+- [확인 필요] 해소: `http://localhost` 개발 환경(Chromium 내장 브라우저, 2026-10-04): `isSecureContext` true, `Secure` 쿠키가 저장되고 `navigator.locks` 동작. Safari는 localhost에서 `Secure` 쿠키를 받지 않음(3단계 리뷰 기록) — 개발 때만의 차이.
+- 테스트(`web/src/api/auth.test.ts` 9개, `navigator.locks`는 실제로 줄을 세우는 목): 두 탭이 동시에 401 → 갱신 한 번, 차례를 받은 쪽이 원래 요청 먼저, 갱신 실패 → 로그인 전 알림, Web Locks 없이도 동작, 404 → 꺼짐, CSRF 헤더, 쿠키 없을 때 토큰 먼저, `csrf_invalid` 403 → 한 번만 재시도, `XSRF-TOKEN`만 읽음.
+- 확인: `npm test`(95개) · `npm run build` · `npm run lint` 통과. lint 경고 둘이 새로 생김(`only-export-components` — 기존 `RegionContext`와 같은 형태, `set-state-in-effect` — 효과 안에서 비동기 `reload` 호출). 오류는 없음.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)
