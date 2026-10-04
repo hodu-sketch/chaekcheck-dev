@@ -27,7 +27,12 @@ export function SettingsPanel({ settings, onChange }: Props) {
     <>
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger className={styles.trigger} aria-label="검색 설정">
-        <span aria-hidden="true">⚙</span>
+        {/* two sliders with rounded-square knobs, to match the rounded-rectangle look (user request 2026-10-05) */}
+        <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path d="M3 6.5h14M3 13.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <rect x="11" y="3.75" width="4.5" height="5.5" rx="1.3" fill="currentColor" />
+          <rect x="4.5" y="10.75" width="4.5" height="5.5" rx="1.3" fill="currentColor" />
+        </svg>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content className={styles.content} side="bottom" align="end" sideOffset={8} collisionPadding={12}>
