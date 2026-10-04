@@ -374,8 +374,8 @@
   }
 
   /*
-   * phones: one short bottom line, state on the left and the link on the right, the counts under them; no second
-   * hairline (user request 2026-10-05: the stacked rows made each card too long)
+   * phones: the state, the counts and the link stacked under the library; no second hairline (user request
+   * 2026-10-05)
    */
   .stock {
     grid-column: 1;
@@ -395,19 +395,22 @@
     order: 1;
   }
 
-  /* a plain text link on phones, so it fits beside the state */
-  .link {
+  /*
+   * phones: the state, the counts, then "도서관에서 보기" as a full-width button at the bottom, the same in every card
+   * (user request 2026-10-05: the bare text link looked unsteady, and beside a long state it wrapped)
+   */
+  .counts {
     order: 2;
-    margin-left: auto;
-    padding: 0.2rem 0;
-    border: none;
-    background: none;
-    font-size: var(--text-sm);
+    flex-basis: 100%;
   }
 
-  .counts {
+  .link {
     order: 3;
     flex-basis: 100%;
+    justify-content: center;
+    height: var(--control-height);
+    padding: 0 1rem;
+    font-size: var(--text-sm);
   }
 
   /* "보유 5  대출 중 0  예약 0" on one line */

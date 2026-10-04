@@ -28,8 +28,8 @@
 
 /*
  * Scope switch, "방문 없이 가입" and the "내 도서관 관리"/"내 지역" button on one line, all --control-height tall (user
- * request 2026-10-05). On phones: the switch and that button on the first row, "방문 없이 가입" under them, so no
- * control is hidden past the edge.
+ * request 2026-10-05). On phones a fixed two-row grid, both rows filling the width: the switch and that button,
+ * then "방문 없이 가입" (user request 2026-10-05: the free wrap looked like a broken line).
  */
 .toggles {
   display: flex;
@@ -216,11 +216,35 @@
 }
 
 @media (width <= 640px) {
-  .toggles {
+  .toggles,
+  .page[data-state='start'] .toggles {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-self: stretch;
   }
 
+  /* the scope switch fills the first row beside the summary button; its two halves share it evenly */
+  .toggles > :first-child {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+  }
+
+  .toggles > :first-child > * {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .toggles > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* "방문 없이 가입" fills the second row */
   .toggles > :nth-child(2) {
-    order: 3;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-content: center;
   }
 }
