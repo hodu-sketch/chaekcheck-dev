@@ -1,0 +1,34 @@
+.button {
+  padding: 0.5rem 1.05rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--paper);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Keeps the header height while the first check runs */
+.placeholder {
+  display: inline-block;
+  width: 5rem;
+  height: 2.2rem;
+}

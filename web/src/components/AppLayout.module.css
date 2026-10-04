@@ -17,6 +17,10 @@
   max-width: var(--page-width);
   margin: 0 auto;
   padding: 0.95rem var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .brand {

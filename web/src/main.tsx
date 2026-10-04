@@ -6,6 +6,8 @@ import './styles/fonts.css'
 import './styles/global.css'
 import { AppLayout } from './components/AppLayout'
 import { AuthProvider } from './features/auth/AuthContext'
+import { AuthCompletePage } from './features/auth/AuthCompletePage'
+import { NoticeProvider } from './features/auth/NoticeContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ErrorFallback } from './components/ErrorFallback'
 import { BookPage } from './features/book/BookPage'
@@ -20,6 +22,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NoticeProvider>
         <RegionProvider>
           <BrowserRouter>
             <Routes>
@@ -27,10 +30,12 @@ function App() {
                 <Route path="/" element={<SearchPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
+                <Route path="/auth/complete" element={<AuthCompletePage />} />
               </Route>
             </Routes>
           </BrowserRouter>
         </RegionProvider>
+        </NoticeProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

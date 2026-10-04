@@ -1,4 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router'
+import { AuthHeaderAction } from '../features/auth/AuthHeaderAction'
+import { NoticeBar } from '../features/auth/NoticeContext'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
@@ -14,9 +16,12 @@ export function AppLayout() {
             <span className={styles.wordmark}>책첵</span>
             <span className={styles.tagline}>전자도서관 대출 가능 여부를 한 번에</span>
           </Link>
+          {/* No login button on the terms and privacy pages (flow.md S8, S9) */}
+          {!['/terms', '/privacy'].includes(location.pathname) && <AuthHeaderAction />}
         </header>
       </div>
       <main className={styles.main}>
+        <NoticeBar />
         {/* after an error, a new address (new search, back) renders the screen again */}
         <ErrorBoundary
           resetKey={location.pathname + location.search}

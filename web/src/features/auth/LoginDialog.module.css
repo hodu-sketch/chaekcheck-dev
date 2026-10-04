@@ -1,0 +1,125 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(27 26 36 / 0.45);
+}
+
+.content {
+  position: fixed;
+  z-index: 21;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(24rem, calc(100vw - 3rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.6rem 1.6rem 1.2rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+}
+
+.title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+/* Both buttons: full width, the height of Naver's official image (1472 x 224) at that width */
+.naver,
+.kakao {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1472 / 224;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.naver:disabled,
+.kakao:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.naver:focus-visible,
+.kakao:focus-visible,
+.close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.naverImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Kakao design guide: #FEE500, symbol #000000, label #000000 at 85%, corners 12px */
+.kakao {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee500;
+}
+
+.kakaoSymbol {
+  position: absolute;
+  left: 5.4%;
+  top: 50%;
+  translate: 0 -50%;
+  height: 40%;
+}
+
+.kakaoLabel {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgb(0 0 0 / 0.85);
+}
+
+.error {
+  font-size: 0.9rem;
+  color: var(--fail);
+}
+
+.close {
+  align-self: center;
+  padding: 0.45rem 1.2rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--paper);
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+/* Mobile: a sheet rising from the bottom (flow.md S5) */
+@media (width <= 640px) {
+  .content {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    translate: none;
+    width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  }
+}
