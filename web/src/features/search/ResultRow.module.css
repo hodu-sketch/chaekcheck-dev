@@ -57,7 +57,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.5rem;
+  /* 20% larger, then 10% smaller again (user requests 2026-10-05): 1.2 × 0.9 */
+  font-size: 1.08rem;
   font-weight: 800;
+  word-break: keep-all;
 }
 
 .badge {
@@ -160,22 +163,37 @@
 }
 
 /* join details: always shown on desktop/tablet; on mobile behind the "가입 정보" button (U-12) */
-.joinInfoButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.1rem 0.55rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--card);
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 700;
+.libraryButton {
+  /* inline, so a wrapped name ends with the caret right after its last word */
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
   cursor: pointer;
 }
 
-.joinInfoButton[data-state='open'] {
-  border-color: var(--brand);
+.libraryButton:hover,
+.libraryButton[data-state='open'] {
+  color: var(--brand-strong);
+}
+
+.libraryButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.libraryCaret {
+  margin-left: 0.3em;
+  font-size: 0.75em;
+  color: var(--ink-faint);
+}
+
+.libraryButton[data-state='open'] .libraryCaret {
   color: var(--brand-strong);
 }
 

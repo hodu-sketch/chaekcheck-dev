@@ -83,14 +83,13 @@ export function ResultRow({ row, library, searchUrl }: Props) {
 
       <div className={styles.library}>
         <p className={styles.libraryName}>
-          {libraryName}
-          {subscription && <span className={styles.kind}>구독형</span>}
-          {joinCheck && <span className={styles.badge}>가입 자격 확인 필요</span>}
-          {chosen && <span className={styles.chosen}>직접 추가</span>}
-          {/* join details open on tap on every width (user request 2026-10-05; phones only before, U-12) */}
+          {/* the library name opens the join details on every width (user requests 2026-10-05; U-12 before) */}
           <Popover.Root>
-            <Popover.Trigger className={styles.joinInfoButton} aria-label={`${libraryName} 가입 정보`}>
-              <span aria-hidden="true">ⓘ</span> 가입 정보
+            <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>
+              {libraryName}
+              <span className={styles.libraryCaret} aria-hidden="true">
+                ▾
+              </span>
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content className={styles.joinPopover} side="bottom" align="start" sideOffset={6} collisionPadding={12}>
@@ -99,6 +98,9 @@ export function ResultRow({ row, library, searchUrl }: Props) {
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
+          {subscription && <span className={styles.kind}>구독형</span>}
+          {joinCheck && <span className={styles.badge}>가입 자격 확인 필요</span>}
+          {chosen && <span className={styles.chosen}>직접 추가</span>}
         </p>
       </div>
 
