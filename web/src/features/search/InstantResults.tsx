@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
-import type { BookItem, BookPage, ResultFilter } from '../../api/types'
+import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
 import { collectedRange, holdingBatchViews } from './holdingView'
 import { ResultList } from './ResultList'
+import { SortSelect } from './SortSelect'
 import { useHoldings } from './useHoldings'
 import styles from './SearchPage.module.css'
 
@@ -11,6 +12,7 @@ type Props = {
   query: BookQuery
   filter: ResultFilter
   onFilterChange: (filter: ResultFilter) => void
+  onSortChange: (sort: BookSort) => void
   /** "도서관에서 직접 찾기" of the empty result (spec 3.7). */
   onDirect: () => void
   /** `invalid_region`: the stored regions are checked again; true when they changed (a new search follows). */
@@ -22,7 +24,7 @@ type Props = {
  * them, asked on their detail pages in batches (ADR-0030). "더 보기" asks the holdings not asked yet; when the books
  * of this page are done, the next book page is fetched and its holdings are asked [안].
  */
-export function InstantResults({ query, filter, onFilterChange, onDirect, onInvalidRegion }: Props) {
+export function InstantResults({ query, filter, onFilterChange, onSortChange, onDirect, onInvalidRegion }: Props) {
   const holdings = useHoldings()
   const { open } = holdings
   const [books, setBooks] = useState<{ items: BookItem[]; last: BookPage } | null>(null)
@@ -121,6 +123,7 @@ export function InstantResults({ query, filter, onFilterChange, onDirect, onInva
           batches={views}
           filter={filter}
           onFilterChange={onFilterChange}
+          toolbarEnd={<SortSelect value={query.sort} onChange={onSortChange} />}
           libraries={holdings.state.libraries}
           searchUrls={new Map()}
           remaining={remaining}

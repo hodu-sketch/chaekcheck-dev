@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ToggleGroup } from 'radix-ui'
 import type { ResultFilter, TargetLibrary } from '../../api/types'
 import { BatchSection } from './BatchSection'
@@ -33,6 +34,8 @@ interface Props {
   finishedText?: string
   /** Hides the result filter (a page that sets it elsewhere). */
   hideFilter?: boolean
+  /** Shown at the right end of the filter line: the sort (user request 2026-10-05). */
+  toolbarEnd?: ReactNode
 }
 
 /**
@@ -54,11 +57,13 @@ export function ResultList({
   loadingText,
   finishedText,
   hideFilter,
+  toolbarEnd,
 }: Props) {
   const libraryById = new Map(libraries.map((l) => [l.id, l]))
 
   return (
     <section className={styles.list}>
+      <div className={styles.toolbar}>
       {!hideFilter && (
         <ToggleGroup.Root
           type="single"
@@ -75,6 +80,8 @@ export function ResultList({
           </ToggleGroup.Item>
         </ToggleGroup.Root>
       )}
+        {toolbarEnd && <div className={styles.toolbarEnd}>{toolbarEnd}</div>}
+      </div>
 
       {batches.map((view, index) => (
         <BatchSection

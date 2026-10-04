@@ -61,6 +61,7 @@ function renderList(onDirect = vi.fn()) {
       <BookList
         query={QUERY}
         bookLinkSearch="scope=joinable"
+        onSortChange={vi.fn()}
         onDirect={onDirect}
         onInvalidRegion={() => Promise.resolve(false)}
       />

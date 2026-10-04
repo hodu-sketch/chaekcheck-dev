@@ -4,6 +4,26 @@
   gap: 2.2rem;
 }
 
+/* the filter, and the sort at the right end of the same line */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.toolbarEnd {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
+.dimReason {
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+}
+
 /* segmented control */
 .filter {
   display: inline-flex;
@@ -212,6 +232,11 @@
 @media (width <= 640px) {
   .filter {
     align-self: stretch;
+  }
+
+  /* phones: the filter keeps its full width; the sort goes to the next line, at the right */
+  .toolbar .filter {
+    flex: 1 1 100%;
   }
 
   .filterItem {

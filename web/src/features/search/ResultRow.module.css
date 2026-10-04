@@ -187,16 +187,6 @@
   border-radius: 4px;
 }
 
-.libraryCaret {
-  margin-left: 0.3em;
-  font-size: 0.75em;
-  color: var(--ink-faint);
-}
-
-.libraryButton[data-state='open'] .libraryCaret {
-  color: var(--brand-strong);
-}
-
 .joinPopover {
   z-index: 10;
   max-width: min(18rem, calc(100vw - 2rem));

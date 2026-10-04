@@ -3,6 +3,9 @@ import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrar
 import { useRegions } from '../region/RegionContext'
 import { LibrarySummaryBar } from './LibrarySummaryBar'
 import { ResultList, type BatchView } from './ResultList'
+import listStyles from './ResultList.module.css'
+import { DIRECT_REASON } from './searchSettings'
+import { SortSelect } from './SortSelect'
 import { remainingLibraries } from './searchPlan'
 import { applyFilter, sortBatch } from './sortBatch'
 import { useSearch } from './useSearch'
@@ -121,6 +124,15 @@ export function DirectResults({ field, query, filter, scope, visit, onFilterChan
                 batches={view.batches}
                 filter={filter}
                 onFilterChange={onFilterChange}
+                toolbarEnd={
+                  <>
+                    {/* dimmed with its reason [확정] (user: "흐리게 이것만") */}
+                    <span id="direct-sort-reason" className={listStyles.dimReason}>
+                      {DIRECT_REASON}
+                    </span>
+                    <SortSelect value="default" disabled describedBy="direct-sort-reason" />
+                  </>
+                }
                 libraries={targets}
                 searchUrls={view.searchUrls}
                 remaining={remaining}

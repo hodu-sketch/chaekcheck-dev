@@ -95,9 +95,6 @@ export function ResultRow({ row, library, searchUrl }: Props) {
           <Popover.Root>
             <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>
               {libraryName}
-              <span className={styles.libraryCaret} aria-hidden="true">
-                ▸
-              </span>
             </Popover.Trigger>
             <Popover.Portal>
               {/* to the right of the name (user request 2026-10-05); below it on phones, where there is no room */}
