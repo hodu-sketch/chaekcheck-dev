@@ -16,8 +16,11 @@
 .part::before,
 .summary > .action::before {
   content: '·';
+  /* inline-block keeps the link underline off the separator */
+  display: inline-block;
   margin-right: 0.4rem;
   color: var(--ink-faint);
+  font-weight: 400;
 }
 
 .kind {
