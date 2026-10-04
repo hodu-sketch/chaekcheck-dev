@@ -1,0 +1,42 @@
+# mylibrary module: a signed-in account's residence and work regions and the libraries it added by hand (cycle 06;
+# ADR-0048, ADR-0049). account_id is an auth.account id, region_id a region id and library_id a library id, all
+# without foreign keys (module boundaries): an account's rows are deleted by the AccountDeleted listener, and ids
+# that are later abolished or disabled stay until the user changes them. No other index: every query is
+# "WHERE account_id = ?", which the primary keys cover. 20 per kind and 20 libraries are checked by the application.
+# CHECK constraints are not available in Liquibase OSS YAML, so the tables use sql changes.
+databaseChangeLog:
+  - changeSet:
+      id: mylibrary-001-schema
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: CREATE SCHEMA mylibrary
+
+  - changeSet:
+      id: mylibrary-001-account-region
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE mylibrary.account_region (
+                account_id bigint NOT NULL,
+                kind text NOT NULL CONSTRAINT account_region_kind_check CHECK (kind IN ('RESIDENCE', 'WORK')),
+                region_id bigint NOT NULL CONSTRAINT account_region_region_id_check CHECK (region_id > 0),
+                position smallint NOT NULL
+                  CONSTRAINT account_region_position_check CHECK (position BETWEEN 0 AND 19),
+                created_at timestamp with time zone NOT NULL DEFAULT now(),
+                CONSTRAINT account_region_pkey PRIMARY KEY (account_id, kind, region_id)
+              )
+
+  - changeSet:
+      id: mylibrary-001-account-library
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE mylibrary.account_library (
+                account_id bigint NOT NULL,
+                library_id bigint NOT NULL CONSTRAINT account_library_library_id_check CHECK (library_id > 0),
+                added_at timestamp with time zone NOT NULL DEFAULT now(),
+                CONSTRAINT account_library_pkey PRIMARY KEY (account_id, library_id)
+              )

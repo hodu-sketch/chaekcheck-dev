@@ -1144,3 +1144,50 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - 중복은 합친 뒤 20개를 셈. 예를 들어 21개를 보냈는데 하나가 중복이면 통과함.
 - 테스트: 스트림 두 곳에서 `PlanOptions`에 `libraryIds`가 들어가고 `targets.libraries[].chosen`이 나옴(AC-6 서버 쪽), 400(`invalid_format`, `too_many`)과 오류 순서(visit 먼저, 지역 나중), `libraryIds`가 없으면 빈 집합(AC-14) / `/books`에서 `CHOSEN`이 두 scope 모두 맨 앞이고 `joinTier: "CHOSEN"`, `/books/{id}`의 `joinable`에서 `chosen`이 남음, 없는 번호는 오류가 아님.
 - 확인: `./gradlew build` 통과.
+
+## 5단계 결과: `mylibrary` 모듈 (2026-10-04)
+
+- Liquibase `mylibrary/001-mylibrary-schema.yaml`(master에서 `modulith/001` 뒤). 표·칼럼·CHECK·PK는 design-delta 그대로. CHECK 때문에 표는 `sql` change(auth와 같은 방식). FK·다른 인덱스 없음. 기존 changeset은 고치지 않아서 DB 초기화는 필요 없었음. `\d mylibrary.*`로 확인함.
+- `package-info.java`: `@ApplicationModule(allowedDependencies = { "auth", "library", "region" })`. 루트에 공개 타입은 없음.
+- 배치(웹 파일 이름 외 "정한 이름"):
+  - `mylibrary/internal/MyLibraryStore`(JdbcClient)
+  - `mylibrary/internal/MyLibraryService`(`@Transactional` 메서드마다 처음에 `lockIfExists`. 예외는 `AccountGoneException` → 401, `LibraryNotFoundException` → 404, `LibraryLimitException` → 409, `InvalidRegionsException` → 422)
+  - `mylibrary/internal/AccountDeletedCleanup`(`@ApplicationModuleListener`)
+  - `mylibrary/internal/web/MyLibraryController`, `MyLibraryErrors`
+  - 모든 빈에 `@ConditionalOnAuthEnabled`
+- **dev가 정한 것: `DELETE /api/v1/me/libraries/{id}`에도 잠금을 걺** (ADR-0051 원문 "모든 저장의 처음"을 그대로 따름). 계정이 없으면 DELETE도 401.
+- **dev가 정한 것: 숫자가 아닌 경로(`abc`, `0`, `-1`)는 PUT·DELETE 모두 404 `library_not_found`**. 설계는 PUT만 "숫자 아님 → 404"라고 적었고, DELETE는 같은 규칙을 따름.
+- `PUT /api/v1/me/regions`의 본문은 `JsonNode`로 읽어 직접 검사함. 그래서 `"a"`·`1.5`·`0`·배열이 아닌 값도 `errors[].field`가 있는 400 `invalid_format`이 됨. 두 칸의 오류를 함께 돌려줌. 중복은 처음 위치를 남기고 합친 뒤 20개를 셈. 422 모양은 다른 API와 같은 `errors[].value`. 본문이 JSON이 아니면 루트 핸들러의 400 `bad_request`.
+- 테스트 (`MyLibraryApiTests` 14개, `MyLibraryDisabledTests` 2개, `ModularityTests.dependencyDirections`)
+  - 스키마 CHECK 넷
+  - AC-1(PUT 뒤 GET이 같은 값·순서·중복 합침)
+  - 본문 오류(`required`, `invalid_format`, `too_many`, 422 셋)
+  - 추가·빼기(이미 있으면 204, 없어도 204)
+  - 404 경로
+  - AC-8(20번째 204, 21번째 409, 찬 상태에서 이미 있는 것 204)
+  - AC-10(꺼진 도서관 PUT 404, 저장된 꺼진 도서관은 GET에 나오고 20곳에 셈)
+  - AC-13(비우면 행 0)
+  - CSRF 없는 PUT·DELETE 403 `csrf_invalid`, 토큰 없으면 401
+  - AC-12(지운 계정 토큰 401, 서비스를 직접 불러도 `AccountGoneException`, 행 0)
+  - 동시성 1(19곳에서 둘을 동시에 추가 ×5회: 한 번은 추가, 한 번은 409, 최종 20)
+  - 동시성 2(a)(저장 트랜잭션이 잠금을 쥔 동안 삭제가 DB 잠금에서 기다리는지 `pg_stat_activity`의 `wait_event_type='Lock'`으로 확인하고, 풀린 뒤 listener가 두 표와 발행 기록을 비움)
+  - 동시성 2(b)(삭제가 먼저 커밋되면 저장 거절)
+  - AC-11(탈퇴 뒤 두 표 0, 발행 기록 0, 같은 이벤트를 다시 발행해도 오류 없이 완료)
+  - 꺼짐 컨텍스트에서 다섯 경로 404, 공개 목록은 200
+  - `ModularityTests`: `mylibrary` 의존이 정확히 auth·library·region이고, auth는 의존이 없고, 검색 모듈은 auth·mylibrary에 의존하지 않음
+  - `DocumentationTests`: `module-mylibrary.puml`
+- 멈추는 방법(동시성 2): `TransactionTemplate` 안에서 서비스를 부르고, latch로 커밋을 미룸(테스트 전용 훅은 만들지 않음).
+- **잠금 대기 시간 측정값**: 시간으로 재지 않고, 삭제 세션이 DB 잠금을 기다리는 상태인지를 직접 확인하는 방식으로 바꿈(아래 리뷰). 1단계 `AccountPresenceTests`도 같은 방식.
+- 리뷰(java-reviewer, 1~5단계): 치명·높음 없음.
+  - 반영한 것:
+    - 동시성 테스트가 공용 ForkJoinPool을 써서 CPU가 적은 환경에서는 실제로 동시에 돌지 않을 수 있었음 → 전용 스레드 2개.
+    - `sleep` 뒤 "아직 안 끝남" 확인 → `pg_stat_activity` 확인.
+    - 탈퇴 테스트의 정리 전에 listener 완료를 기다림.
+    - 지역 배열은 21번째에서 바로 `too_many`.
+  - 알고 받아들인 것: 로그인 기능을 끈 동안 미완료 `AccountDeleted` 기록이 있으면, 다시 켤 때까지 처리되지 않음(listener도 꺼져 있어서). 기록은 사라지지 않고, 켜고 재시작하면 6단계 설정으로 다시 처리됨.
+- **retro 문장 확인**: "15분 동안 다른 모듈 API에서 통과"는 지금 코드와 맞지 않음.
+  - 액세스 쿠키는 `Path=/api/v1/me`이고, 서버도 `/api/v1/me/**`에서만 토큰을 읽음(`AccessTokenCookieResolver(PROTECTED)`).
+  - `/api/v1/me/**`는 요청마다 계정이 있는지 확인함(`AccountJwtAuthenticationConverter`).
+  - 그 밖의 경로는 로그인을 아예 쓰지 않음.
+  - 그래서 지운 계정의 토큰이 15분 동안 통하는 경로는 없음. retro 문장은 "다른 경로는 토큰을 읽지 않는다"로 고치는 것을 제안함.
+- 확인: `./gradlew build` 통과.

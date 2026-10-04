@@ -8,8 +8,11 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +36,8 @@ import com.chaekcheck.auth.internal.account.AccountDeletion;
 		"chaekcheck.auth.kakao.client-id=test-kakao-id", "chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 class AccountPresenceTests {
 
-	/** Long enough that a deletion which did not wait would have finished. */
-	private static final Duration HOLD = Duration.ofMillis(700);
+	/** Own threads: the common pool may have a single worker on a small machine, which would run them one by one. */
+	private final ExecutorService threads = Executors.newFixedThreadPool(2);
 
 	@DynamicPropertySource
 	static void jwtKey(DynamicPropertyRegistry registry) {
@@ -59,6 +62,7 @@ class AccountPresenceTests {
 
 	@AfterEach
 	void cleanUp() {
+		threads.shutdownNow();
 		if (account != null) {
 			jdbc.sql("DELETE FROM auth.account WHERE id = ?").param(account).update();
 			jdbc.sql("DELETE FROM modulith.event_publication WHERE serialized_event LIKE ?")
@@ -94,19 +98,28 @@ class AccountPresenceTests {
 			locked.countDown();
 			await(release);
 			return exists;
-		}));
+		}), threads);
 		assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
 
-		long start = System.nanoTime();
-		CompletableFuture<Boolean> deleting = CompletableFuture.supplyAsync(() -> deletion.delete(account));
-		Thread.sleep(HOLD);
+		CompletableFuture<Boolean> deleting = CompletableFuture.supplyAsync(() -> deletion.delete(account), threads);
+		awaitDeletionBlockedOnALock();
 		assertThat(deleting).as("deletion must wait for the lock").isNotDone();
 
 		release.countDown();
 		assertThat(saving.get(10, TimeUnit.SECONDS)).isTrue();
 		assertThat(deleting.get(10, TimeUnit.SECONDS)).isTrue();
-		assertThat(Duration.ofNanos(System.nanoTime() - start)).isGreaterThanOrEqualTo(HOLD);
 		assertThat(lockInNewTransaction(account)).isFalse();
+	}
+
+	/** Another session runs the account DELETE and waits for a lock (pg_stat_activity), so it is not merely slow. */
+	private void awaitDeletionBlockedOnALock() {
+		Awaitility.await()
+			.atMost(Duration.ofSeconds(10))
+			.untilAsserted(() -> assertThat(jdbc.sql("""
+					SELECT count(*) FROM pg_stat_activity
+					WHERE wait_event_type = 'Lock' AND query LIKE 'DELETE FROM auth.account%'""")
+				.query(Long.class)
+				.single()).isPositive());
 	}
 
 	private boolean lockInNewTransaction(long accountId) {

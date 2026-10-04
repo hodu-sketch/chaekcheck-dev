@@ -36,3 +36,6 @@ databaseChangeLog:
   - include:
       file: modulith/001-event-publication.yaml
       relativeToChangelogFile: true
+  - include:
+      file: mylibrary/001-mylibrary-schema.yaml
+      relativeToChangelogFile: true
