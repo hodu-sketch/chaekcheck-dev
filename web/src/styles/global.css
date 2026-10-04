@@ -1,6 +1,6 @@
 /*
  * Visual direction: bright and current, in the manner of 토스증권 (user request 2026-10-05): a light grey canvas with
- * white rounded cards on it, a cool grey text scale, violet kept as the brand color. NanumSquare throughout with
+ * white rounded cards on it, a cool grey text scale, violet kept as the brand color. NanumBarunGothic throughout with
  * weight contrast (800 headings, 400 body). Flat cards: solid colors and hairline borders only, no gradients or
  * shadows (user preference 2026-09-27). Text is larger than before (user requests 2026-10-05: base 17px and 16px on
  * phones, then 15% more except the header bar and the start headline; nothing under 0.8rem).
@@ -37,7 +37,7 @@
   --fail-soft: #ffeef1;
   --focus: #5e3fe0;
 
-  --font-body: 'NanumSquare', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-body: 'NanumBarunGothic', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-title: var(--font-body);
 
   --radius-sm: 8px;

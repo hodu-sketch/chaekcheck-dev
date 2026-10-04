@@ -1,31 +1,22 @@
 /*
- * NanumSquare (OFL-1.1), self-hosted from @kfonts/nanum-square. Written here instead of the package CSS because
- * that CSS maps every weight to the same local() font, so an installed NanumSquare would draw bold as regular.
- * Only the weights in use: 400 body, 700 emphasis, 800 headings.
+ * NanumBarunGothic (OFL-1.1), self-hosted from @kfonts/nanum-barun-gothic (user request 2026-10-05; NanumSquare before).
+ * Written here instead of the package CSS so each weight is its own file and an installed copy cannot draw bold as
+ * regular. The font has no extra bold, so 700 and 800 (emphasis and headings) both use Bold.
  */
 @font-face {
-  font-family: 'NanumSquare';
+  font-family: 'NanumBarunGothic';
   src:
-    url('@kfonts/nanum-square/NanumSquareR.woff2') format('woff2'),
-    url('@kfonts/nanum-square/NanumSquareR.woff') format('woff');
+    url('@kfonts/nanum-barun-gothic/NanumBarunGothic.woff2') format('woff2'),
+    url('@kfonts/nanum-barun-gothic/NanumBarunGothic.woff') format('woff');
   font-weight: 400;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'NanumSquare';
+  font-family: 'NanumBarunGothic';
   src:
-    url('@kfonts/nanum-square/NanumSquareB.woff2') format('woff2'),
-    url('@kfonts/nanum-square/NanumSquareB.woff') format('woff');
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'NanumSquare';
-  src:
-    url('@kfonts/nanum-square/NanumSquareEB.woff2') format('woff2'),
-    url('@kfonts/nanum-square/NanumSquareEB.woff') format('woff');
-  font-weight: 800;
+    url('@kfonts/nanum-barun-gothic/NanumBarunGothicBold.woff2') format('woff2'),
+    url('@kfonts/nanum-barun-gothic/NanumBarunGothicBold.woff') format('woff');
+  font-weight: 700 800;
   font-display: swap;
 }
