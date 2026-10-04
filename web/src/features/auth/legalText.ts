@@ -11,14 +11,16 @@ export const NOT_REVIEWED = '검토 전 문구'
 export const COLLECTION_NOTICE: ReadonlyArray<{ label: string; text: string; reviewed: boolean }> = [
   {
     label: '목적',
-    // TODO(확인 필요): wording to be reviewed by the user
-    text: '회원 식별과 로그인 유지',
+    // TODO(확인 필요): wording to be reviewed by the user. Cycle 06 adds the 내 도서관 purposes [확정 내용]
+    // (사용자 승인, 2026-10-04); the document version stays (C23)
+    text:
+      '회원 식별과 로그인 유지, 내 지역에서 가입할 수 있는 도서관을 찾아 검색에 쓰기(거주·직장 지역), 직접 고른 도서관을 검색 결과에서 먼저 보여 주기(직접 추가한 도서관)',
     reviewed: false,
   },
   {
     label: '항목',
     // TODO(확인 필요): Naver sends only the user identifier when no item is chosen (console, 2026-10-04); Kakao consent items are off
-    text: '네이버 또는 카카오의 회원 식별 번호',
+    text: '네이버 또는 카카오의 회원 식별 번호, 거주지 지역(시군구), 직장 지역(시군구), 직접 추가한 도서관(고른 경우)',
     reviewed: false,
   },
   {
@@ -53,11 +55,24 @@ export const PRIVACY_COLLECTION_BODY: ReadonlyArray<string> = [
  * protection officer (the operator) is not decided yet.
  */
 export const PRIVACY_POLICY_SECTIONS: ReadonlyArray<{ heading: string; paragraphs: ReadonlyArray<string> }> = [
-  { heading: '처리하는 개인정보와 목적', paragraphs: ['네이버 또는 카카오의 회원 식별 번호를 회원 식별과 로그인 유지에 씁니다.'] },
+  {
+    heading: '처리하는 개인정보와 목적',
+    paragraphs: [
+      '네이버 또는 카카오의 회원 식별 번호를 회원 식별과 로그인 유지에 씁니다.',
+      '거주지 지역(시군구)과 직장 지역(시군구)을 내 지역에서 가입할 수 있는 도서관을 찾아 검색에 쓰는 데 씁니다.',
+      '직접 추가한 도서관(고른 경우)을 직접 고른 도서관을 검색 결과에서 먼저 보여 주는 데 씁니다.',
+    ],
+  },
   { heading: '보유·이용 기간', paragraphs: ['탈퇴할 때까지, 또는 마지막 로그인 뒤 1년까지 보유합니다.'] },
   { heading: '파기 절차와 방법', paragraphs: ['보유 기간이 끝나거나 탈퇴하면 지체 없이 데이터베이스에서 지웁니다.'] },
   { heading: '제3자 제공과 처리 위탁', paragraphs: ['검토 전입니다. 제공·위탁이 있으면 대상과 목적을 적습니다.'] },
-  { heading: '정보주체의 권리와 행사 방법', paragraphs: ['설정의 "탈퇴"로 언제든 계정과 동의 기록을 지울 수 있습니다.'] },
+  {
+    heading: '정보주체의 권리와 행사 방법',
+    paragraphs: [
+      '설정의 "탈퇴"로 언제든 계정과 동의 기록을 지울 수 있습니다.',
+      '저장한 지역과 직접 추가한 도서관은 "내 도서관" 화면에서 언제든 비우거나 지울 수 있습니다.',
+    ],
+  },
   { heading: '안전성 확보 조치', paragraphs: ['검토 전입니다. 접근 통제, 전송 구간 암호화 등을 적습니다.'] },
   { heading: '개인정보 보호책임자', paragraphs: ['운영자 본인이 보호책임자입니다. 연락처: 준비 중'] },
   { heading: '처리방침의 변경', paragraphs: ['바뀌면 시행일과 함께 이 화면에 알립니다.'] },

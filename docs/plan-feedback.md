@@ -1332,3 +1332,12 @@ plan에 넘기는 것 (원문의 빈틈·불일치. runbook을 고칠 때 참고
 - **기존 테스트 고침**: `Withdraw.test.tsx` "204: signed out…"이 전체 실행에서 가끔 실패했음. 원인은 테스트의 시간 문제였음. "탈퇴했습니다" 안내가 이동보다 먼저 그려지는데, 테스트가 이동한 화면을 동기로 찾았음. `findByTestId`로 기다리게 함(11단계 기록의 원인).
 - 테스트 `MyLibrariesPage.test.tsx` 13개: 해석한 지역으로 목록 호출, 구역 분류(OPEN, `matchedBy`, 두 목록 모두), 자동 목록에 버튼 없음, 꺼진 도서관 줄, 이름을 글자로만, 이름 검색(공백·NFD·없음), 자동·누구나 가입도 추가 가능·이미 있음 흐림, 추가·빼기 즉시 저장, 409·404·500 되돌림, 빼기 실패 되돌림, 20곳(AC-8), 로그인 전 → S1, 확인 중 "불러오는 중".
 - 확인: `npm test`(202개, 다섯 번), `npm run build`, `npm run lint`(오류 없음) 통과. 화면은 14단계에서 1280/768/375로 확인함.
+
+## 13단계 결과: 동의·처리방침·탈퇴 안내 문구 (2026-10-04)
+
+- `legalText.ts` S6 고지 표: 항목에 "거주지 지역(시군구), 직장 지역(시군구), 직접 추가한 도서관(고른 경우)", 목적에 "내 지역에서 가입할 수 있는 도서관을 찾아 검색에 쓰기(거주·직장 지역)", "직접 고른 도서관을 검색 결과에서 먼저 보여 주기(직접 추가한 도서관)". `reviewed: false` 그대로. 보유 기간 그대로. `PRIVACY_COLLECTION_BODY`는 "위 표와 같습니다"라서 고치지 않음.
+- S9 `PRIVACY_POLICY_SECTIONS`: "처리하는 개인정보와 목적"에 같은 항목·목적 두 줄, "정보주체의 권리와 행사 방법"에 "저장한 지역과 직접 추가한 도서관은 "내 도서관" 화면에서 언제든 비우거나 지울 수 있습니다"(spec R7).
+- S7 `WithdrawDialog`: 지워지는 것에 "저장한 지역과 내 도서관".
+- 문서 버전은 그대로(C23). `application.yml`의 `chaekcheck.auth.documents.*`, `documentVersions.json`은 사이클 06 동안 바뀌지 않았음(`git diff` 확인). `DocumentVersionsMatchWebTests` 통과.
+- 테스트: `SignupPage.test.tsx`(고지 표의 새 항목·목적, AC-15), `LegalPage.test.tsx`(처리방침의 새 줄 셋, AC-15), `Withdraw.test.tsx`(새 줄).
+- 확인: `npm test`(204개), `npm run build`, `npm run lint`, `./gradlew test --tests '*DocumentVersionsMatchWebTests'` 통과.

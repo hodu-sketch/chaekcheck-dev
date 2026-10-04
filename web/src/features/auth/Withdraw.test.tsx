@@ -85,6 +85,8 @@ describe('S4 account section', () => {
     await user.click(screen.getByRole('button', { name: '탈퇴' }))
 
     expect(await screen.findByText('되돌릴 수 없어요.')).toBeTruthy()
+    // cycle 06: the saved regions and libraries go too
+    expect(screen.getByText('저장한 지역과 내 도서관')).toBeTruthy()
     expect(screen.getAllByText(/네이버/)).toHaveLength(1)
     expect(screen.getByText('네이버와 chaekcheck의 연결도 끊어요.')).toBeTruthy()
   })

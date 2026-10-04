@@ -223,4 +223,13 @@ describe('S6 sign-up', () => {
 
     expect(await screen.findByText('탈퇴할 때까지, 또는 마지막 로그인 뒤 1년')).toBeTruthy()
   })
+
+  it('the notice table names the 내 도서관 items and purposes (cycle 06, AC-15)', async () => {
+    server({ 'GET /api/v1/auth/signup': () => json(200, INFO) })
+    renderSignup()
+
+    expect(await screen.findByText(/거주지 지역\(시군구\), 직장 지역\(시군구\), 직접 추가한 도서관\(고른 경우\)/)).toBeTruthy()
+    expect(screen.getByText(/내 지역에서 가입할 수 있는 도서관을 찾아 검색에 쓰기/)).toBeTruthy()
+    expect(screen.getByText(/직접 고른 도서관을 검색 결과에서 먼저 보여 주기/)).toBeTruthy()
+  })
 })

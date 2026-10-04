@@ -42,6 +42,7 @@ export function WithdrawDialog({ open, onOpenChange, provider, navigate = (url) 
               <ul className={styles.list}>
                 <li>계정</li>
                 <li>가입 때 동의한 기록</li>
+                <li>저장한 지역과 내 도서관</li>
               </ul>
               <p className={styles.warn}>되돌릴 수 없어요.</p>
               <p>{providerName(provider)}와 chaekcheck의 연결도 끊어요.</p>

@@ -52,6 +52,14 @@ describe('S8 terms and S9 privacy', () => {
     expect(screen.getByText(/탈퇴할 때까지, 또는 마지막 로그인 뒤 1년/)).toBeTruthy()
   })
 
+  it('names the 내 도서관 items, their purposes and how to remove them (cycle 06, AC-15)', async () => {
+    renderWithLogin(401, <LegalPage document="privacy" />)
+
+    expect(screen.getByText(/거주지 지역\(시군구\)과 직장 지역\(시군구\)을 내 지역에서 가입할 수 있는 도서관을 찾아/)).toBeTruthy()
+    expect(screen.getByText(/직접 추가한 도서관\(고른 경우\)을 직접 고른 도서관을 검색 결과에서 먼저 보여 주는/)).toBeTruthy()
+    expect(screen.getByText(/"내 도서관" 화면에서 언제든 비우거나 지울 수 있습니다/)).toBeTruthy()
+  })
+
   it('are not drawn while login is off', async () => {
     const fetchMock = vi.fn(async () => json(404, { code: 'not_found' }))
     vi.stubGlobal('fetch', fetchMock)
