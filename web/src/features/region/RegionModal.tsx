@@ -19,10 +19,19 @@ interface Props {
   onSave: (regions: StoredRegions) => Promise<void>
   /** Where 저장 keeps them: this browser, or the signed-in account (cycle 06). */
   savedTo?: 'browser' | 'account'
+  /** The field open first (S10 [변경] opens its own field, cycle 06 [안]). */
+  initialField?: Field
 }
 
 /** S2: choose residence and work regions. Changes apply only on 저장 (flow.md). */
-export function RegionModal({ open, onOpenChange, regions, onSave, savedTo = 'browser' }: Props) {
+export function RegionModal({
+  open,
+  onOpenChange,
+  regions,
+  onSave,
+  savedTo = 'browser',
+  initialField = 'residence',
+}: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -30,7 +39,13 @@ export function RegionModal({ open, onOpenChange, regions, onSave, savedTo = 'br
         <Dialog.Content className={styles.content}>
           {/* remount the draft every time the modal opens, so 취소 discards changes */}
           {open && (
-            <RegionEditor initial={regions} savedTo={savedTo} onCancel={() => onOpenChange(false)} onSave={onSave} />
+            <RegionEditor
+              initial={regions}
+              initialField={initialField}
+              savedTo={savedTo}
+              onCancel={() => onOpenChange(false)}
+              onSave={onSave}
+            />
           )}
         </Dialog.Content>
       </Dialog.Portal>
@@ -44,11 +59,13 @@ const SIGNED_OUT = '로그인이 풀렸어요. 저장을 다시 누르면 이 �
 
 function RegionEditor({
   initial,
+  initialField,
   savedTo,
   onCancel,
   onSave,
 }: {
   initial: StoredRegions
+  initialField: Field
   savedTo: 'browser' | 'account'
   onCancel: () => void
   onSave: (regions: StoredRegions) => Promise<void>
@@ -82,7 +99,7 @@ function RegionEditor({
       setSaving(false)
     }
   }
-  const [field, setField] = useState<Field>('residence')
+  const [field, setField] = useState<Field>(initialField)
   const [sidoId, setSidoId] = useState<number | null>(null)
 
   const chosen = draft[field]

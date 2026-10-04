@@ -162,7 +162,7 @@ describe('the switch after login', () => {
     renderSearch()
 
     await waitFor(() => expect(switchItem('내 도서관').getAttribute('aria-checked')).toBe('true'))
-    expect(lastBooks().searchParams.get('scope')).toBe('joinable')
+    await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
   })
 
   it('sends the added libraries with both values (AC-6)', async () => {

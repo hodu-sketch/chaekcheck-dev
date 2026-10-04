@@ -46,6 +46,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
 
   const [regions, setRegionsState] = useState<StoredRegions>(EMPTY_REGIONS)
   const [ready, setReady] = useState(false)
+  /** The source and server value the state was last loaded from; until it matches, the regions are not ready. */
+  const [appliedKey, setAppliedKey] = useState<string | null>(null)
   const [notices, setNotices] = useState<RegionNotice[]>([])
   const regionsRef = useRef(regions)
   useEffect(() => {
@@ -59,6 +61,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   const loadKey = `${source}:${serverKey ?? ''}`
   useEffect(() => {
     if (source !== 'account') savedKey.current = null
+    setAppliedKey(loadKey)
     if (source === 'waiting') {
       setRegionsState(EMPTY_REGIONS)
       setNotices([])
@@ -135,9 +138,11 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     () => (source === 'account' && myLibrary?.status === 'ready' ? myLibrary.libraryIds : []),
     [source, myLibrary?.status, myLibrary?.libraryIds],
   )
+  // between a new source or server value and the effect that loads it, the old regions must not be searched with
+  const current = ready && appliedKey === loadKey
   const value = useMemo(
-    () => ({ regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions }),
-    [regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions],
+    () => ({ regions, libraryIds, source, ready: current, notices, setRegions, resolveStoredRegions }),
+    [regions, libraryIds, source, current, notices, setRegions, resolveStoredRegions],
   )
   return <RegionContext value={value}>{children}</RegionContext>
 }

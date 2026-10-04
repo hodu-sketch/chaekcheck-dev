@@ -114,7 +114,8 @@ describe('after re-authentication', () => {
     renderWith(<AuthCompletePage />, '/auth/complete?result=withdraw_reauthenticated')
 
     expect(await screen.findByText('탈퇴했습니다')).toBeTruthy()
-    const where = screen.getByTestId('where')
+    // the notice can show a moment before the move to the remembered address
+    const where = await screen.findByTestId('where')
     expect(where.textContent).toBe('/search?title=x')
     expect(where.dataset.auth).toBe('signed-out')
     expect(fetchMock.mock.calls.some(([url, init]) => url === '/api/v1/me' && init?.method === 'DELETE')).toBe(true)

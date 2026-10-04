@@ -14,6 +14,7 @@ import { SignupPage } from './features/auth/SignupPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ErrorFallback } from './components/ErrorFallback'
 import { BookPage } from './features/book/BookPage'
+import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
 import { RegionProvider } from './features/region/RegionContext'
 import { SearchPage } from './features/search/SearchPage'
@@ -49,6 +50,14 @@ function App() {
                   element={
                     <LoginOnly>
                       <LegalPage document="privacy" />
+                    </LoginOnly>
+                  }
+                />
+                <Route
+                  path="/my-libraries"
+                  element={
+                    <LoginOnly>
+                      <MyLibrariesPage />
                     </LoginOnly>
                   }
                 />
