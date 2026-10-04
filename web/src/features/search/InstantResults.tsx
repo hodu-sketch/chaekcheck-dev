@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
-import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
+import type { BookItem, BookPage, ResultFilter } from '../../api/types'
 import { collectedRange, holdingBatchViews } from './holdingView'
 import { ResultList } from './ResultList'
-import { SortSelect } from './SortSelect'
 import { useHoldings } from './useHoldings'
 import styles from './SearchPage.module.css'
 
@@ -12,7 +11,6 @@ type Props = {
   query: BookQuery
   filter: ResultFilter
   onFilterChange: (filter: ResultFilter) => void
-  onSortChange: (sort: BookSort) => void
   /** "도서관에서 직접 찾기" of the empty result (spec 3.7). */
   onDirect: () => void
   /** `invalid_region`: the stored regions are checked again; true when they changed (a new search follows). */
@@ -24,7 +22,7 @@ type Props = {
  * them, asked on their detail pages in batches (ADR-0030). "더 보기" asks the holdings not asked yet; when the books
  * of this page are done, the next book page is fetched and its holdings are asked [안].
  */
-export function InstantResults({ query, filter, onFilterChange, onSortChange, onDirect, onInvalidRegion }: Props) {
+export function InstantResults({ query, filter, onFilterChange, onDirect, onInvalidRegion }: Props) {
   const holdings = useHoldings()
   const { open } = holdings
   const [books, setBooks] = useState<{ items: BookItem[]; last: BookPage } | null>(null)
@@ -116,12 +114,6 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
 
   return (
     <>
-      <ResultsHeader
-        range={range}
-        total={books.last.totalCount}
-        sort={query.sort}
-        onSortChange={onSortChange}
-      />
       {noHoldings ? (
         <p className={styles.searching}>조건에 맞는 도서관이 없어요</p>
       ) : (
@@ -144,28 +136,6 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
         />
       )}
     </>
-  )
-}
-
-/** "9월 30일 기준 수집 목록 · 책 N권" and the sort on the right (flow.md S1). */
-export function ResultsHeader({
-  range,
-  total,
-  sort,
-  onSortChange,
-}: {
-  range: string | null
-  total: number
-  sort: BookSort
-  onSortChange: (sort: BookSort) => void
-}) {
-  return (
-    <div className={styles.resultsHeader}>
-      <p className={styles.collected}>
-        {range ? `${range} 수집 목록` : '수집 목록'} · 책 {total.toLocaleString('ko-KR')}권
-      </p>
-      <SortSelect value={sort} onChange={onSortChange} />
-    </div>
   )
 }
 

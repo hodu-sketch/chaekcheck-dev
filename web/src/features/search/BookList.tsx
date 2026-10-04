@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
-import type { BookItem, BookPage, BookSort } from '../../api/types'
+import type { BookItem, BookPage } from '../../api/types'
 import { collectedRange } from './holdingView'
-import { ResultsHeader } from './InstantResults'
 import styles from './BookList.module.css'
 import pageStyles from './SearchPage.module.css'
 
@@ -11,7 +10,6 @@ type Props = {
   query: BookQuery
   /** Address part the book page keeps: filter, scope, visit. */
   bookLinkSearch: string
-  onSortChange: (sort: BookSort) => void
   onDirect: () => void
   onInvalidRegion: () => Promise<boolean>
 }
@@ -20,7 +18,7 @@ type Props = {
  * 책 먼저 고르기 (spec 3.8, flow.md S1 예시 2): the book list only. No library is asked here [확정]; choosing a book
  * opens S3 (`/books/{id}`). Same order as 바로 보기 [안].
  */
-export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInvalidRegion }: Props) {
+export function BookList({ query, bookLinkSearch, onDirect, onInvalidRegion }: Props) {
   const [books, setBooks] = useState<{ items: BookItem[]; last: BookPage } | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -87,7 +85,6 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
 
   return (
     <>
-      <ResultsHeader range={range} total={books.last.totalCount} sort={query.sort} onSortChange={onSortChange} />
       <ol className={styles.list} aria-label="찾은 책">
         {books.items.map((book) => (
           <li key={book.id}>

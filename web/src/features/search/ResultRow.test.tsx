@@ -82,7 +82,7 @@ describe('ResultRow join caution (C2-U-11)', () => {
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
 
-  it("the same library without the user's region still needs a check (AC-12)", () => {
+  it("the same library without the user's region still needs a check (AC-12)", async () => {
     const library: TargetLibrary = {
       ...openLibrary,
       priorityGroup: 'NEEDS_CHECK',
@@ -91,9 +91,13 @@ describe('ResultRow join caution (C2-U-11)', () => {
       extraConditionText: '공공도서관 책이음서비스 회원인 사람도 가입 대상',
     }
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+    // not next to the name any more: it opens with the name (user request 2026-10-05)
+    expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
 
-    // the badge stays next to the name, outside the button
-    expect(screen.getAllByText('가입 자격 확인 필요').length).toBeGreaterThan(0)
+    await userEvent.setup().click(screen.getByRole('button', { name: `${library.name} 가입 정보` }))
+
+    expect(screen.getByRole('dialog').textContent).toContain('가입 자격 확인 필요')
+    expect(screen.getByRole('dialog').textContent).toContain('서산시 거주·재직·재학')
   })
 
   it('shows the "방문 가입" tag for a visit-only library', async () => {

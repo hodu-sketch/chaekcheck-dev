@@ -14,8 +14,16 @@ import { InstantResults } from './InstantResults'
 import { LibraryScopeToggle } from './LibraryScopeToggle'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
+import { SortSelect } from './SortSelect'
 import { useLibraryScope } from './useLibraryScope'
-import { loadSettings, resolveSettings, saveSettings, writeSettings, type SearchSettings } from './searchSettings'
+import {
+  DIRECT_REASON,
+  loadSettings,
+  resolveSettings,
+  saveSettings,
+  writeSettings,
+  type SearchSettings,
+} from './searchSettings'
 import { VisitToggle } from './VisitToggle'
 import styles from './SearchPage.module.css'
 
@@ -133,6 +141,22 @@ export function SearchPage() {
         <div className={styles.toggles}>
           <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
           <VisitToggle visit={visit} onChange={(next) => replaceParam('visit', next === 'none' ? 'none' : null)} />
+          {/* the sort sits on this line, at its right end (user request 2026-10-05; above the results before) */}
+          {hasSearch && (
+            <div className={styles.sortSlot}>
+              {settings.direct ? (
+                <>
+                  {/* dimmed with its reason [확정] (user: "흐리게 이것만") */}
+                  <span id="direct-sort-reason" className={styles.dimReason}>
+                    {DIRECT_REASON}
+                  </span>
+                  <SortSelect value="default" disabled describedBy="direct-sort-reason" />
+                </>
+              ) : (
+                <SortSelect value={input?.sort ?? 'default'} onChange={changeSort} />
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -173,7 +197,6 @@ export function SearchPage() {
               key={JSON.stringify(bookQuery)}
               query={bookQuery}
               bookLinkSearch={bookLinkSearch.toString()}
-              onSortChange={changeSort}
               onDirect={goDirect}
               onInvalidRegion={onInvalidRegion}
             />
@@ -183,7 +206,6 @@ export function SearchPage() {
               query={bookQuery}
               filter={filter}
               onFilterChange={changeFilter}
-              onSortChange={changeSort}
               onDirect={goDirect}
               onInvalidRegion={onInvalidRegion}
             />

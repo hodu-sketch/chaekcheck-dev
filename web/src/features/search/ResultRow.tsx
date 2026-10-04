@@ -1,6 +1,7 @@
 import { Popover } from 'radix-ui'
 import type { TargetLibrary } from '../../api/types'
 import { safeHttpUrl } from '../../lib/safeUrl'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { needsJoinCheck, type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
@@ -16,6 +17,7 @@ interface Props {
  * "구독형" label and nothing else (ADR-0019).
  */
 export function ResultRow({ row, library, searchUrl }: Props) {
+  const phone = useMediaQuery('(width <= 640px)')
   // the book's own page; the library search page only when the site gave no book link
   const href = safeHttpUrl(row.detailUrl) ?? safeHttpUrl(searchUrl)
   // an extra condition (e.g. 책이음) next to a matching region is only extra text (AC-12, user decision 2026-09-29)
@@ -34,6 +36,12 @@ export function ResultRow({ row, library, searchUrl }: Props) {
 
   const conditionLines = (
     <>
+      {/* "가입 자격 확인 필요" is in here too, not next to the name (user request 2026-10-05) */}
+      {joinCheck && joinCondition !== '가입 자격 확인 필요' && (
+        <p>
+          <span className={styles.badge}>가입 자격 확인 필요</span>
+        </p>
+      )}
       <p className={styles.condition}>
         {joinCondition}
         {library?.visitRequired && <span className={styles.visit}>방문 가입</span>}
@@ -92,14 +100,20 @@ export function ResultRow({ row, library, searchUrl }: Props) {
               </span>
             </Popover.Trigger>
             <Popover.Portal>
-              <Popover.Content className={styles.joinPopover} side="bottom" align="start" sideOffset={6} collisionPadding={12}>
+              {/* to the right of the name (user request 2026-10-05); below it on phones, where there is no room */}
+              <Popover.Content
+                className={styles.joinPopover}
+                side={phone ? 'bottom' : 'right'}
+                align="start"
+                sideOffset={phone ? 6 : 10}
+                collisionPadding={12}
+              >
                 <div className={styles.joinPopoverBody}>{conditionLines}</div>
                 <Popover.Arrow className={styles.joinPopoverArrow} width={12} height={6} />
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
           {subscription && <span className={styles.kind}>구독형</span>}
-          {joinCheck && <span className={styles.badge}>가입 자격 확인 필요</span>}
           {chosen && <span className={styles.chosen}>직접 추가</span>}
         </p>
       </div>

@@ -38,6 +38,13 @@
   justify-content: center;
 }
 
+.sortSlot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
 .headline {
   text-wrap: balance;
   font-size: clamp(calc(1.9 * var(--base-unscaled)), calc(1.2 * var(--base-unscaled)) + 2.3vw, calc(3 * var(--base-unscaled)));

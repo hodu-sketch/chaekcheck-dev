@@ -3,9 +3,7 @@ import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrar
 import { useRegions } from '../region/RegionContext'
 import { LibrarySummaryBar } from './LibrarySummaryBar'
 import { ResultList, type BatchView } from './ResultList'
-import { SortSelect } from './SortSelect'
 import { remainingLibraries } from './searchPlan'
-import { DIRECT_REASON } from './searchSettings'
 import { applyFilter, sortBatch } from './sortBatch'
 import { useSearch } from './useSearch'
 import styles from './SearchPage.module.css'
@@ -97,13 +95,6 @@ export function DirectResults({ field, query, filter, scope, visit, onFilterChan
       )}
       {state.targets && (
         <section className={styles.results}>
-          {/* dimmed with its reason; no guide line above the results [확정] (user: "흐리게 이것만") */}
-          <div className={styles.resultsHeader} data-direct>
-            <SortSelect value="default" disabled describedBy="direct-sort-reason" />
-            <span id="direct-sort-reason" className={styles.dimReason}>
-              {DIRECT_REASON}
-            </span>
-          </div>
           {requested.length > 0 && (
             <LibrarySummaryBar
               libraries={requested}

@@ -61,7 +61,6 @@ function renderList(onDirect = vi.fn()) {
       <BookList
         query={QUERY}
         bookLinkSearch="scope=joinable"
-        onSortChange={vi.fn()}
         onDirect={onDirect}
         onInvalidRegion={() => Promise.resolve(false)}
       />
@@ -81,7 +80,8 @@ describe('책 먼저 고르기 (AC-14)', () => {
     expect(link.getAttribute('href')).toBe('/books/7?scope=joinable')
     expect(link.textContent).toContain('보유 도서관 10곳')
     expect(link.textContent).toContain('2023')
-    expect(screen.getByText(/9월 28일~30일 기준 수집 목록 · 책 1,442권/)).toBeTruthy()
+    // the collected range and count line above the results is gone (user request 2026-10-05)
+    expect(screen.queryByText(/기준 수집 목록 · 책/)).toBeNull()
     expect(holdingStream).not.toHaveBeenCalled()
     expect(holdingBatchStream).not.toHaveBeenCalled()
   })
