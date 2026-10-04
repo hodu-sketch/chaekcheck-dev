@@ -46,3 +46,19 @@ export const PRIVACY_COLLECTION_BODY: ReadonlyArray<string> = [
   '이 문서는 검토 전 자리 글입니다. 배포 전에 실제 수집·이용 동의 문구로 바꿉니다.',
   '수집하는 항목, 목적, 보유 기간은 위 표와 같습니다.',
 ]
+
+/**
+ * The privacy policy (S9): the items 개인정보 보호법 제30조① and 시행령 제31조① require (plan research.md 5절), each with
+ * placeholder text. TODO(확인 필요): the user writes or reviews every section before deployment; the contact of the
+ * protection officer (the operator) is not decided yet.
+ */
+export const PRIVACY_POLICY_SECTIONS: ReadonlyArray<{ heading: string; paragraphs: ReadonlyArray<string> }> = [
+  { heading: '처리하는 개인정보와 목적', paragraphs: ['네이버 또는 카카오의 회원 식별 번호를 회원 식별과 로그인 유지에 씁니다.'] },
+  { heading: '보유·이용 기간', paragraphs: ['탈퇴할 때까지, 또는 마지막 로그인 뒤 1년까지 보유합니다.'] },
+  { heading: '파기 절차와 방법', paragraphs: ['보유 기간이 끝나거나 탈퇴하면 지체 없이 데이터베이스에서 지웁니다.'] },
+  { heading: '제3자 제공과 처리 위탁', paragraphs: ['검토 전입니다. 제공·위탁이 있으면 대상과 목적을 적습니다.'] },
+  { heading: '정보주체의 권리와 행사 방법', paragraphs: ['설정의 "탈퇴"로 언제든 계정과 동의 기록을 지울 수 있습니다.'] },
+  { heading: '안전성 확보 조치', paragraphs: ['검토 전입니다. 접근 통제, 전송 구간 암호화 등을 적습니다.'] },
+  { heading: '개인정보 보호책임자', paragraphs: ['운영자 본인이 보호책임자입니다. 연락처: 준비 중'] },
+  { heading: '처리방침의 변경', paragraphs: ['바뀌면 시행일과 함께 이 화면에 알립니다.'] },
+]

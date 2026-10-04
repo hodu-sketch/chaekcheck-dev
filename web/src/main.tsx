@@ -7,6 +7,7 @@ import './styles/global.css'
 import { AppLayout } from './components/AppLayout'
 import { AuthProvider } from './features/auth/AuthContext'
 import { AuthCompletePage } from './features/auth/AuthCompletePage'
+import { LegalPage } from './features/auth/LegalPage'
 import { LoginOnly } from './features/auth/LoginOnly'
 import { NoticeProvider } from './features/auth/NoticeContext'
 import { SignupPage } from './features/auth/SignupPage'
@@ -33,6 +34,22 @@ function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
+                <Route
+                  path="/terms"
+                  element={
+                    <LoginOnly>
+                      <LegalPage document="terms" />
+                    </LoginOnly>
+                  }
+                />
+                <Route
+                  path="/privacy"
+                  element={
+                    <LoginOnly>
+                      <LegalPage document="privacy" />
+                    </LoginOnly>
+                  }
+                />
                 <Route
                   path="/signup"
                   element={
