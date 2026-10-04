@@ -20,12 +20,6 @@
   white-space: nowrap;
 }
 
-@media (width <= 640px) {
-  .inner {
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-}
 
 .links {
   display: flex;
@@ -43,4 +37,18 @@
 .link:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+@media (width <= 640px) {
+  /* phones: one step smaller and tighter (user request 2026-10-05) */
+  .inner {
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1rem var(--gutter) 1.2rem;
+    font-size: var(--text-xs);
+  }
+
+  .link {
+    font-size: var(--text-xs);
+  }
 }
