@@ -70,6 +70,11 @@
   --control-height: 2.6rem;
 
   --page-width: 90rem;
+  /*
+   * The results column: after Google's 652px results column, scaled by our larger text (about 1.33x), centered
+   * (user choice 2026-10-05, B안). Narrower screens just use their width.
+   */
+  --content-width: 46rem;
   --gutter: 2.5rem;
 
   /*

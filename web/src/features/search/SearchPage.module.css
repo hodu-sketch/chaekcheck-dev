@@ -4,6 +4,13 @@
   gap: 1.6rem;
 }
 
+/* with results: one centered column of --content-width (user choice 2026-10-05) */
+.page[data-state='results'] {
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+
 .searchArea {
   display: flex;
   flex-direction: column;

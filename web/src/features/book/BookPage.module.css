@@ -2,6 +2,10 @@
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
+  width: 100%;
+  /* the same centered column as the search results (user choice 2026-10-05) */
+  max-width: var(--content-width);
+  margin: 0 auto;
   padding-top: 1.6rem;
 }
 
