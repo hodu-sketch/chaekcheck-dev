@@ -58,6 +58,15 @@ chaekcheck:
       # Kakao's "REST API key" is the OAuth client id
       client-id: ${KAKAO_REST_API_KEY:}
       client-secret: ${KAKAO_CLIENT_SECRET:}
+    tokens:
+      # [확정] (ADR-0038): access JWT 15 minutes; one login lasts 30 days from sign-in, refresh does not extend it
+      access-token-ttl: 15m
+      refresh-token-ttl: 30d
+    cleanup:
+      # Daily clean-up jobs (expired refresh tokens; later Kakao link check and inactive accounts), 04:00 Asia/Seoul
+      # [확정] (user approval 2026-10-04). Spring cron: second minute hour day month weekday.
+      cron: "0 0 4 * * *"
+      zone: Asia/Seoul
   availability:
     cache-ttl: 3m
     cache-max-size: 1000

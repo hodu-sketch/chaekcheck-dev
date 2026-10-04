@@ -861,6 +861,17 @@
 - 확인: `./gradlew build` 통과(테스트 341개, 꺼짐) + 켜짐으로 전체 테스트 통과. 직접 서명한 토큰으로 200, 만료 401, 다른 키 401, HS512·서명 없음 401, 계정 삭제 후 401, 숫자 아닌 `sub` 401, 쿠키 없음·헤더만 401, CSRF 없는 POST 403 `csrf_invalid`, 로그인 쿠키만 단 `POST`·`DELETE`·`PUT /api/v1/me…` 403 `csrf_invalid`, 웹훅 경로는 CSRF 없이 403 아님, 기존 공개 API·SSE는 깨진 토큰을 붙여도 200, 자동 생성 사용자 없음, 필터 체인 하나.
 - 리뷰에서 함께 고친 것: `AccountStore.find`를 읽기 전용 트랜잭션 하나로. 남긴 것: `XSRF-TOKEN`의 `Secure`는 Safari가 `http://localhost`에서 받지 않음(개발 환경만의 문제, Chrome·Firefox는 받음).
 
+## 4단계 결과: 토큰 발급, 리프레시 교체, 로그아웃, 만료 줄 정리 (2026-10-04)
+
+- 구성(dev가 정함): `auth.internal.token.TokenService`(발급·갱신·로그아웃을 한 곳에서. 가입·다시 로그인도 `signIn(accountId)`를 씀), `RefreshTokenStore`(`JdbcClient`), `TokenCookies`(설정·지우기 쿠키), `RefreshTokenCleanup`(`@Scheduled`), `auth.internal.web.AuthTokenController`(`POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`).
+- 값: 액세스 15분·리프레시 30일은 `chaekcheck.auth.tokens.*`, 정리 시각은 `chaekcheck.auth.cleanup.cron: "0 0 4 * * *"`, `zone: Asia/Seoul`(설정 값, [확정] 값 그대로). 리프레시 값은 256비트 난수의 base64url(43자), DB에는 그 문자열의 SHA-256. JWT 헤더는 HS256, 클레임은 `sub`·`exp`만(테스트로 확인).
+- 갱신(C10): `token_hash = ? OR previous_token_hash = ?` `FOR UPDATE`로 한 줄을 잠근 뒤 판단. 지금 값이고 만료 전 → 교체(`previous_token_hash`·`rotated_at` 채움, `expires_at` 그대로). 바로 앞 값 → 그 줄 삭제(서버 기록 WARN, 계정 번호만). 모르는 값·만료 → 지우지 않고 401 + 쿠키 지움(만료 줄은 하루 정리가 지움).
+- 동시 갱신: 같은 값 두 요청이 동시에 오면 둘째는 잠금을 기다렸다가 그 값을 "바로 앞 값"으로 찾아 그 로그인을 끝냄(둘 다 성공하는 일 없음). 웹은 Web Locks로 한 탭만 갱신하므로 보통은 일어나지 않음. 테스트(`RefreshConcurrencyTests`, 5회 반복)는 `FOR UPDATE`를 빼면 5번 모두 실패하는 것으로 테스트 자체를 확인함.
+- 로그아웃: 그 값을 지금 값이나 바로 앞 값으로 가진 줄을 삭제, 쿠키 둘을 발급 때와 같은 이름·`Path`·속성(`Max-Age=0`)으로 지움. 리프레시 쿠키가 없어도 204.
+- 정리 작업: `@EnableScheduling`을 `RefreshTokenCleanup`(켜짐일 때만 생기는 설정)에 둠 → 꺼짐이면 예약 작업 자체가 없음(C32).
+- 확인: `./gradlew build` 통과(테스트 355개, 꺼짐) + 켜짐으로 전체 테스트 355개 통과. `AuthTokenEndpointTests` 9개: 발급 쿠키 속성·JWT 클레임·발급 토큰으로 `/api/v1/me` 200, 교체, 재사용, 모르는 값·쿠키 없음, 만료, 로그아웃(줄 삭제·지움 쿠키 속성), 로그인 없이 로그아웃 204, CSRF 없는 갱신·로그아웃 403, 정리 작업이 만료 줄만 지움.
+- 참고(개발 환경): 2026-10-04 PC 강제 종료 뒤 WSL이 쓰는 프로세스가 없으면 곧 멈춰 DB 컨테이너도 함께 멈춤(`compose.yaml` 머리말에 적힌 동작). 테스트 동안 WSL 안에 대기 프로세스를 하나 띄워 해결. 코드와는 무관.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)
