@@ -113,7 +113,7 @@ export function SearchForm({
   )
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} role="search" noValidate>
+    <form className={styles.form} data-start={hasResults ? undefined : true} onSubmit={handleSubmit} role="search" noValidate>
       <div className={styles.topLine}>
         <div className={styles.field} data-invalid={problems.title || problems.none ? true : undefined}>
           <label htmlFor={`${id}-title`} className="visually-hidden">

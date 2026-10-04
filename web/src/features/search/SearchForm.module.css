@@ -240,6 +240,11 @@
     margin-left: auto;
   }
 
+  /* the first screen: "여러 조건" and the settings button centered under the box (user request 2026-10-05) */
+  .form[data-start] .topLine {
+    justify-content: center;
+  }
+
   /* as wide as its words (user request 2026-10-05) */
   .moreButton {
     flex: none;
