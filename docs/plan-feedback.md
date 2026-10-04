@@ -922,6 +922,14 @@
 - 확인: `./gradlew build` 통과(테스트 385개, 꺼짐) + 켜짐으로 전체 테스트 385개 통과.
 - 5단계 기록 정정: `LoginCallbackTests`는 그때 12개였음(13개로 잘못 적음).
 
+## 7단계 결과: 계정 삭제 한 곳 + `AccountDeleted` + 발행 저장소 (2026-10-04)
+
+- 삭제 한 곳(dev가 정함): `auth.internal.account.AccountDeletion.delete(accountId)`. 한 트랜잭션에서 `DELETE FROM auth.account`(하위 셋은 FK cascade) + `AccountDeleted(new AccountId(id))` 발행. 이미 없는 계정이면 `false`를 돌려주고 발행하지 않음(웹훅이 두 번 와도 이벤트 한 번).
+- listener 하나: `AccountDeletedLog`(`@ApplicationModuleListener`, 서버 기록 "Account {번호} deleted"). `@ApplicationModuleListener`는 커밋 뒤 별도 스레드에서 돌므로 `@EnableAsync`를 `AuthConfiguration`(켜짐일 때만)에 둠. 다른 모듈은 `@Async`를 쓰지 않음.
+- 설정은 C28 세 값 그대로. `republish-outstanding-events-on-restart` 등 다른 값은 바꾸지 않음(기본값: 재시작 때 다시 보내지 않음). 실패해 남은 기록을 다시 보내는 방법은 정하지 않았음 [확인 필요: 사이클 06에서 받는 쪽이 생길 때].
+- 테스트(AC-15): `AccountDeletionTests`(삭제 후 하위 행 0, listener가 끝나면 저장소 기록 0, 없는 계정은 발행 없음, 이벤트 칸은 `accountId`(→ `value`)뿐), `AccountDeletedFailedListenerTests`(테스트 전용으로 항상 실패하는 listener를 더한 컨텍스트: 그 listener의 기록만 남고 `auth`의 listener 기록은 지워짐 → listener마다 기록 한 줄, 실패하면 남음. 저장된 이벤트 본문은 `{"accountId":{"value":N}}`). 기다리기는 Awaitility(이미 있는 `spring-modulith-starter-test`에 들어 있음, 새 의존성 없음).
+- 확인: `./gradlew build` 통과(테스트 389개, 꺼짐, `ModularityTests` 포함) + 켜짐으로 전체 테스트 389개 통과.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)
