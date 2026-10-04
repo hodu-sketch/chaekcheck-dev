@@ -30,7 +30,7 @@
 
 - Build and dependencies: Gradle Wrapper only (`./gradlew`). Never use Maven or create `pom.xml`.
 - Gradle DSL: Groovy (`build.gradle`, `settings.gradle`). Never create `.gradle.kts` files.
-- Group ID and base package: not decided yet. Ask the user when it is first needed (for example, when creating the Gradle project). Never invent one.
+- Group ID and base package: `com.chaekcheck` (`backend/build.gradle`). Each module is a direct subpackage, e.g. `com.chaekcheck.catalog`.
 - Spring Boot 4 / Jackson 3: use `tools.jackson.*` packages (only `com.fasterxml.jackson.annotation` keeps the old package). Do not write Spring Boot 3 / Jackson 2 style code.
 - Commands (run in `backend/`): build `./gradlew build`, test `./gradlew test`, run `./gradlew bootRun`. Build output is `build/`.
 
