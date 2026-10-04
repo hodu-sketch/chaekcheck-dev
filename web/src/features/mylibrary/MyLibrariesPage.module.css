@@ -225,24 +225,23 @@
   outline-offset: 2px;
 }
 
-/* 지역 선택: 거주 and 직장 rows in one section (user request 2026-10-05) */
+/* 지역 선택: each field, then the libraries it brings in, in one section (user requests 2026-10-05) */
 .regionList {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  margin: 0;
+  gap: 0.35rem;
 }
 
-.regionList div {
+.regionLine {
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
-}
-
-.regionList dd {
-  margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.regionLine + .autoLine {
+  margin-bottom: 0.45rem;
 }
 
 .kind {
@@ -255,22 +254,12 @@
   color: var(--brand-strong);
 }
 
-/* 지역으로 자동: one group per field */
-.autoGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--rule);
-}
-
-.sectionHead + .autoGroup {
-  padding-top: 0;
-  border-top: none;
+.autoLine {
+  padding-left: 0.2rem;
+  font-size: 0.9rem;
 }
 
 .autoTitle {
-  font-size: 0.93rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink-soft);
 }

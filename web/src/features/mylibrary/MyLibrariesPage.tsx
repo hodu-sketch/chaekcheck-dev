@@ -85,10 +85,13 @@ function MyLibraries() {
       <OpenToAll rows={rows.filter((row) => row.eligibility === 'OPEN')} />
       {empty && <p className={styles.state}>{TEXT.empty}</p>}
 
-      <RegionSection residence={regions.residence} work={regions.work} labels={labels} onEdit={() => setEditing(true)} />
-      <AutoSection
-        residence={rows.filter((row) => row.matchedBy.includes('RESIDENCE'))}
-        work={rows.filter((row) => row.matchedBy.includes('WORK'))}
+      <RegionSection
+        residence={regions.residence}
+        work={regions.work}
+        residenceAuto={rows.filter((row) => row.matchedBy.includes('RESIDENCE'))}
+        workAuto={rows.filter((row) => row.matchedBy.includes('WORK'))}
+        labels={labels}
+        onEdit={() => setEditing(true)}
       />
       <ChosenSections rows={rows} />
 
@@ -140,17 +143,22 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
 }
 
 /**
- * "지역 선택": one [변경] for both fields; S2 has its own 거주/직장 tabs (user request 2026-10-05, in place of the
- * separate 거주·직장 sections of the design).
+ * "지역 선택": one [변경] for both fields (S2 has its own 거주/직장 tabs), and under each field the libraries it
+ * brings in, "거주 지역으로 자동 N곳 ▸" on one line and folded (user requests 2026-10-05, in place of the design's
+ * separate sections). Nothing to remove there (spec R4).
  */
 function RegionSection({
   residence,
   work,
+  residenceAuto,
+  workAuto,
   labels,
   onEdit,
 }: {
   residence: number[]
   work: number[]
+  residenceAuto: LibraryEligibilityRow[]
+  workAuto: LibraryEligibilityRow[]
   labels: Map<number, string>
   onEdit: () => void
 }) {
@@ -165,42 +173,39 @@ function RegionSection({
         </button>
       }
     >
-      <dl className={styles.regionList}>
-        <div>
-          <dt className={styles.kind}>거주</dt>
-          <dd className={styles.regions}>{names(residence)}</dd>
-        </div>
-        <div>
-          <dt className={styles.kind}>직장</dt>
-          <dd className={styles.regions}>{names(work)}</dd>
-        </div>
-      </dl>
+      <div className={styles.regionList}>
+        <p className={styles.regionLine}>
+          <span className={styles.kind}>거주</span>
+          <span className={styles.regions}>{names(residence)}</span>
+        </p>
+        <AutoLine title="거주 지역으로 자동" rows={residenceAuto} />
+        <p className={styles.regionLine}>
+          <span className={styles.kind}>직장</span>
+          <span className={styles.regions}>{names(work)}</span>
+        </p>
+        <AutoLine title="직장 지역으로 자동" rows={workAuto} />
+      </div>
     </Section>
   )
 }
 
-/** "지역으로 자동": the libraries each field brings in, folded; nothing to remove here (spec R4). */
-function AutoSection({ residence, work }: { residence: LibraryEligibilityRow[]; work: LibraryEligibilityRow[] }) {
-  return (
-    <Section title="지역으로 자동">
-      <AutoGroup title="거주 지역으로 자동" rows={residence} />
-      <AutoGroup title="직장 지역으로 자동" rows={work} />
-    </Section>
-  )
-}
-
-function AutoGroup({ title, rows }: { title: string; rows: LibraryEligibilityRow[] }) {
+/** "거주 지역으로 자동 N곳 ▸" on one line; opens to the names. */
+function AutoLine({ title, rows }: { title: string; rows: LibraryEligibilityRow[] }) {
   const id = useId()
   return (
-    <div className={styles.autoGroup} role="group" aria-labelledby={id}>
-      <h3 id={id} className={styles.autoTitle}>
-        {title}
-      </h3>
+    <div className={styles.autoLine} role="group" aria-labelledby={id}>
       {rows.length === 0 ? (
-        <p className={styles.muted}>없어요</p>
+        <p className={styles.muted}>
+          <span id={id}>{title}</span> 없어요
+        </p>
       ) : (
         <details className={styles.fold}>
-          <summary>{rows.length}곳</summary>
+          <summary>
+            <span id={id} className={styles.autoTitle}>
+              {title}
+            </span>{' '}
+            {rows.length}곳
+          </summary>
           <NameList rows={rows} />
         </details>
       )}
