@@ -8,6 +8,7 @@ function context(
   loanRates: Array<[number, number | null]> = [],
   cautioned: number[] = [],
   visitRequired: number[] = [],
+  chosen: number[] = [],
 ): SortContext {
   const eligibility = new Map<number, Eligibility>([
     [1, 'OPEN'],
@@ -21,6 +22,7 @@ function context(
     cautioned: new Set(cautioned),
     visitRequired: new Set(visitRequired),
     loanRates: new Map(loanRates),
+    chosen: new Set(chosen),
   }
 }
 
@@ -146,5 +148,19 @@ describe('sortBatch (spec 5.6)', () => {
     expect(ids(filtered.available)).toEqual(['1/3'])
     expect(ids(filtered.pending)).toEqual(['1/2'])
     expect(applyFilter(sorted, 'all')).toBe(sorted)
+  })
+
+  it('libraries added by hand come first inside a title, before joinable, cautioned, visit and check ones (ADR-0050)', () => {
+    const rows = [
+      testRow({ libraryId: 1, rank: 1, titleKey: 't', available: 9 }),
+      testRow({ libraryId: 2, rank: 1, titleKey: 't', available: 1 }),
+      testRow({ libraryId: 3, rank: 1, titleKey: 't', available: 1 }),
+      testRow({ libraryId: 4, rank: 1, titleKey: 't', available: 1 }),
+    ]
+
+    // 3 is "가입 자격 확인 필요", 4 needs a visit, 2 has a caution; 3 is added by hand
+    const sorted = sortBatch(rows, context([], [2], [4], [3]))
+
+    expect(ids(sorted.available)).toEqual(['3/1', '1/1', '2/1', '4/1'])
   })
 })

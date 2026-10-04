@@ -18,6 +18,8 @@ export interface SortContext {
   visitRequired: ReadonlySet<number>
   /** Library loan rate from its page 1 only; later pages never change it (spec 5.4). */
   loanRates: ReadonlyMap<number, number | null>
+  /** Libraries the user added by hand (cycle 06, ADR-0050): first inside a title, before every join tier. */
+  chosen: ReadonlySet<number>
 }
 
 export interface SortedBatch {
@@ -41,15 +43,16 @@ export function needsJoinCheck(eligibility: Eligibility | undefined): boolean {
  *    - borrow: more stock first; titles with only count-less rows (portal, subscription) after them [안]
  *    - reserve: fewer reservations first
  *    - ties: the title whose earliest library comes first in the plan [안]
- * 3. Inside a title: joinable libraries (OPEN, ELIGIBLE) without a join caution, then joinable ones with a caution
- *    (user request 2026-09-29), then joinable ones that need a visit (user decision 2026-09-29), then
- *    "가입 자격 확인 필요"; then
+ * 3. Inside a title: libraries the user added by hand (cycle 06, ADR-0050), then joinable libraries (OPEN, ELIGIBLE)
+ *    without a join caution, then joinable ones with a caution (user request 2026-09-29), then joinable ones that need
+ *    a visit (user decision 2026-09-29), then "가입 자격 확인 필요"; then
  *    - borrow: stock desc -> loan rate asc (unknown last) -> rank; count-less rows after, in plan order -> rank [안]
  *    - reserve: reservations asc -> holdings desc (unknown last) -> rank
  */
 export function sortBatch(rows: ResultRow[], context: SortContext): SortedBatch {
   const planIndex = (row: ResultRow) => context.planIndex.get(row.libraryId) ?? Number.MAX_SAFE_INTEGER
   const joinTier = (row: ResultRow) => {
+    if (context.chosen.has(row.libraryId)) return -1
     if (needsJoinCheck(context.eligibility.get(row.libraryId))) return 3
     if (context.visitRequired.has(row.libraryId)) return 2
     return context.cautioned.has(row.libraryId) ? 1 : 0

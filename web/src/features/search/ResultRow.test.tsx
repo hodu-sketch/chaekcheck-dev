@@ -93,3 +93,39 @@ describe('ResultRow join caution (C2-U-11)', () => {
     expect(screen.queryByText('주의')).toBeNull()
   })
 })
+
+describe('a library added by hand (cycle 06, AC-5)', () => {
+  it('shows only "직접 추가": no eligibility badge, summary, extra condition or caution', () => {
+    const library: TargetLibrary = {
+      ...openLibrary,
+      priorityGroup: 'QUALIFIED',
+      eligibility: 'UNKNOWN',
+      eligibilitySummary: '부산 거주',
+      extraConditionText: '책이음 회원 가입 가능',
+      joinCaution: '회원증 발급은 부산 시민만',
+      chosen: true,
+    }
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+
+    expect(screen.getByText('직접 추가')).toBeTruthy()
+    expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
+    expect(screen.queryByText('부산 거주')).toBeNull()
+    expect(screen.queryByText('책이음 회원 가입 가능')).toBeNull()
+    expect(screen.queryByText(/회원증 발급은 부산 시민만/)).toBeNull()
+    // how to join stays
+    expect(screen.getAllByText(/도서관 홈페이지 가입 후 로그인/).length).toBeGreaterThan(0)
+  })
+
+  it('keeps the "방문 가입" tag', () => {
+    render(
+      <ResultRow
+        row={testRow({ libraryId: 2, rank: 1 })}
+        library={{ ...openLibrary, visitRequired: true, chosen: true }}
+        searchUrl={undefined}
+      />,
+    )
+
+    expect(screen.getAllByText('방문 가입').length).toBeGreaterThan(0)
+    expect(screen.queryByText('누구나 가입')).toBeNull()
+  })
+})

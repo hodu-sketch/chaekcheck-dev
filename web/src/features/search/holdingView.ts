@@ -15,6 +15,8 @@ export function holdingBatchViews(state: HoldingsState, filter: ResultFilter): B
     cautioned: new Set(libraries.filter((l) => l.joinCaution).map((l) => l.id)),
     visitRequired: new Set(libraries.filter((l) => l.visitRequired).map((l) => l.id)),
     loanRates: new Map<number, number | null>(),
+    // from the first stream's targets: the next batches do not send them again (C16)
+    chosen: new Set(libraries.filter((l) => l.chosen).map((l) => l.id)),
   }
   const answered = new Set<number>()
   return state.batches.map((batch) => {

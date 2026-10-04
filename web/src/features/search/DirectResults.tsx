@@ -45,6 +45,8 @@ export function DirectResults({ field, query, filter, scope, visit, onFilterChan
     const eligibility = new Map<number, Eligibility>(targets.map((l) => [l.id, l.eligibility]))
     const cautioned = new Set(targets.filter((l) => l.joinCaution).map((l) => l.id))
     const visitRequired = new Set(targets.filter((l) => l.visitRequired).map((l) => l.id))
+    // the first stream's targets; the next batches keep them (C16)
+    const chosen = new Set(targets.filter((l) => l.chosen).map((l) => l.id))
     const loanRates = new Map<number, number | null>()
     const searchUrls = new Map<number, string>()
     for (const [id, library] of Object.entries(state.libraries)) {
@@ -56,7 +58,7 @@ export function DirectResults({ field, query, filter, scope, visit, onFilterChan
       for (const id of batch.requestedLibraries) answered.add(id)
       return {
         batch,
-        sorted: applyFilter(sortBatch(batch.rows, { planIndex, eligibility, cautioned, visitRequired, loanRates }), filter),
+        sorted: applyFilter(sortBatch(batch.rows, { planIndex, eligibility, cautioned, visitRequired, loanRates, chosen }), filter),
         answeredSoFar: answered.size,
       }
     })

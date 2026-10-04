@@ -19,7 +19,9 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   // the book's own page; the library search page only when the site gave no book link
   const href = safeHttpUrl(row.detailUrl) ?? safeHttpUrl(searchUrl)
   // an extra condition (e.g. 책이음) next to a matching region is only extra text (AC-12, user decision 2026-09-29)
-  const joinCheck = needsJoinCheck(library?.eligibility)
+  // added by hand (cycle 06, ADR-0050): no eligibility badge, summary, extra condition or caution, only "직접 추가"
+  const chosen = library?.chosen === true
+  const joinCheck = !chosen && needsJoinCheck(library?.eligibility)
   const joinCondition =
     library?.priorityGroup === 'OPEN' ? '누구나 가입' : (library?.eligibilitySummary ?? '가입 자격 확인 필요')
   const joinMethod = library?.joinMethod ?? '-'
@@ -32,17 +34,19 @@ export function ResultRow({ row, library, searchUrl }: Props) {
 
   const conditionLines = (
     <>
-      <p className={styles.condition}>
-        {joinCondition}
-        {library?.visitRequired && <span className={styles.visit}>방문 가입</span>}
-      </p>
-      {library?.extraConditionText && <p className={styles.extra}>{library.extraConditionText}</p>}
+      {(!chosen || library?.visitRequired) && (
+        <p className={styles.condition}>
+          {!chosen && joinCondition}
+          {library?.visitRequired && <span className={styles.visit}>방문 가입</span>}
+        </p>
+      )}
+      {!chosen && library?.extraConditionText && <p className={styles.extra}>{library.extraConditionText}</p>}
       {library?.joinNotice && (
         <p className={styles.notice}>
           <span className={styles.noticeMark}>안내</span> {library.joinNotice}
         </p>
       )}
-      {library?.joinCaution && (
+      {!chosen && library?.joinCaution && (
         <p className={styles.caution}>
           <span className={styles.cautionMark}>주의</span> {library.joinCaution}
         </p>
@@ -84,6 +88,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
           {libraryName}
           {subscription && <span className={styles.kind}>구독형</span>}
           {joinCheck && <span className={styles.badge}>가입 자격 확인 필요</span>}
+          {chosen && <span className={styles.chosen}>직접 추가</span>}
           {/* mobile only (U-12): join details open on tap instead of taking lines on every card */}
           <Popover.Root>
             <Popover.Trigger className={styles.joinInfoButton} aria-label={`${libraryName} 가입 정보`}>

@@ -374,3 +374,13 @@
     white-space: nowrap;
   }
 }
+
+/* cycle 06: a library the user added by hand, in place of the eligibility badge ("직접 추가" [안 글자]) */
+.chosen {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--brand-strong);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 800;
+}

@@ -1305,3 +1305,12 @@ plan에 넘기는 것 (원문의 빈틈·불일치. runbook을 고칠 때 참고
   - 비어 있으면 기본 "전체", "내 도서관"은 `scope=joinable`이고 `libraryIds`와 지역 없음(AC-7)
   - 로그인 전 줄·스위치·요청이 사이클 05와 같음(AC-14)
 - 확인: `npm test`(186개), `npm run build`, `npm run lint`(오류 없음) 통과.
+
+## 11단계 결과: 결과 줄의 "직접 추가"와 정렬 (2026-10-04)
+
+- `sortBatch`: `SortContext.chosen`을 더함. 제목 안 순서에서 가장 앞 단계로 둠(`chosen` → 주의 없는 가입 가능 → 주의 → 방문 → 확인 필요). `holdingView.ts`, `DirectResults.tsx`가 첫 스트림의 `targets`로 `chosen`을 만듦. 다음 묶음은 `targets`를 보내지 않고 웹은 첫 `targets`를 계속 쓰므로, 다음 묶음에서도 표시가 유지됨(C16 확인).
+- `ResultRow`: `chosen`이면 이름 옆에 "직접 추가" 표시 하나([안 글자]). 가입 자격 배지, 자격 요약(`누구나 가입`/`eligibilitySummary`), 가입 주의 문구는 숨김.
+  - **dev가 정한 것(화면 확인 때 사용자 확인)**: 자격 조건 글(`extraConditionText`, 예: 책이음 회원)도 자격에 관한 글이라 함께 숨김. "방문 가입" 표시, 가입 방법·링크, "안내"(`joinNotice`)는 남김. 자격이 아니라 가입하는 방법에 관한 정보라서.
+- 책 먼저 고르기(`BookList`)는 `joinTier` 값으로 화면을 나누지 않아서, `CHOSEN`이 와도 바뀌는 곳이 없음.
+- 테스트: `sortBatch.test.ts`(직접 추가가 가입 가능·주의·방문·확인 필요보다 앞), `ResultRow.test.tsx`(직접 추가면 배지·요약·조건·주의 없음, "직접 추가", 가입 방법 유지, 방문 가입 유지. AC-5).
+- 확인: `npm test`(189개, 세 번), `npm run build`, `npm run lint` 통과. 참고: 한 번은 전체 실행에서 기존 `Withdraw.test.tsx`의 "204: signed out…" 테스트가 실패했고, 따로 돌리면 통과, 그 뒤 세 번 연속 전체 통과. 시간에 민감한 기존 테스트로 보임(이번 변경과 무관해 보이나 원인은 확인 못 함).
