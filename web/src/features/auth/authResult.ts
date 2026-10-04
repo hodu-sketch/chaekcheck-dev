@@ -71,3 +71,20 @@ export function takeReturnPath(): string {
   }
   return safeReturnPath(path)
 }
+
+/**
+ * The notice after `DELETE /api/v1/me` did not delete (flow.md S7 "탈퇴가 멈춤", handoff step 14). 401 comes here only
+ * after the refresh failed. Both 403 codes get the same wording (C25).
+ */
+export function withdrawFailureMessage(error: unknown): string {
+  if (error instanceof TypeError) return '인터넷 연결을 확인하고 다시 해 주세요'
+  const status = typeof error === 'object' && error !== null && 'status' in error ? (error as { status: number }).status : 0
+  if (status === 401) return '로그인이 풀렸어요. 다시 로그인한 뒤 탈퇴해 주세요'
+  if (status === 403) return '본인 확인 시간이 지났어요. 탈퇴를 다시 눌러 주세요'
+  return 'chaekcheck 서버 문제로 탈퇴하지 못했어요. 잠시 뒤 다시 해 주세요'
+}
+
+/** The provider's name in the S7 line "…와 chaekcheck의 연결도 끊어요" (the only place a provider name shows, C33). */
+export function providerName(provider: 'NAVER' | 'KAKAO'): string {
+  return provider === 'NAVER' ? '네이버' : '카카오'
+}

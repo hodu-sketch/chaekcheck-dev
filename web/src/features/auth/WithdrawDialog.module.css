@@ -1,0 +1,84 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(27 26 36 / 0.45);
+}
+
+.content {
+  position: fixed;
+  z-index: 31;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(26rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.6rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+}
+
+.title {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.list {
+  padding-left: 1.2rem;
+  color: var(--ink-soft);
+}
+
+.warn {
+  font-weight: 800;
+  color: var(--fail);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+.stay,
+.go {
+  padding: 0.65rem 1.3rem;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.stay {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.go {
+  border: none;
+  background: var(--fail);
+  color: #ffffff;
+}
+
+.go:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.stay:focus-visible,
+.go:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

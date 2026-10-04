@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchMe, logout, onSignedOut } from '../../api/auth'
 import type { Me } from '../../api/types'
 
@@ -26,12 +26,17 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'checking' })
+  // Bumped by every local change (logout, withdrawal): an answer of a check started before it is stale
+  const generation = useRef(0)
 
   const reload = useCallback(async () => {
+    const started = generation.current
     try {
       const result = await fetchMe()
+      if (generation.current !== started) return
       setState(result.state === 'signed-in' ? { status: 'signed-in', me: result.me } : { status: result.state })
     } catch {
+      if (generation.current !== started) return
       // A server or network failure is not "signed out": keep the screen usable without login elements
       setState((current) => (current.status === 'checking' ? { status: 'off' } : current))
     }
@@ -46,10 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await logout()
+    generation.current++
     setState({ status: 'signed-out' })
   }, [])
 
-  const markSignedOut = useCallback(() => setState({ status: 'signed-out' }), [])
+  const markSignedOut = useCallback(() => {
+    generation.current++
+    setState({ status: 'signed-out' })
+  }, [])
 
   const value = useMemo(() => ({ state, reload, signOut, markSignedOut }), [state, reload, signOut, markSignedOut])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -59,4 +68,9 @@ export function useAuth(): AuthContextValue {
   const value = useContext(AuthContext)
   if (value === null) throw new Error('useAuth needs <AuthProvider>')
   return value
+}
+
+/** For screens also used without the provider (tests of the search screen): `null` there. */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext)
 }
