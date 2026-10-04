@@ -117,6 +117,17 @@
   font-size: 0.8rem;
 }
 
+.accountRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.accountRow .legend {
+  margin-bottom: 0;
+}
+
 .withdraw {
   padding: 0.45rem 1rem;
   border: 1px solid var(--rule-strong);

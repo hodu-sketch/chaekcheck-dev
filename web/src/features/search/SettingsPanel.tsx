@@ -66,8 +66,11 @@ export function SettingsPanel({ settings, onChange }: Props) {
             </RadioGroup.Root>
           </fieldset>
           {provider && (
-            <fieldset className={styles.group}>
-              <legend className={styles.legend}>계정</legend>
+            // "계정" and 탈퇴 on one line, the button at the right like the other controls (user request 2026-10-05)
+            <div className={`${styles.group} ${styles.accountRow}`} role="group" aria-labelledby="settings-account">
+              <span id="settings-account" className={styles.legend}>
+                계정
+              </span>
               <button
                 type="button"
                 className={styles.withdraw}
@@ -78,7 +81,7 @@ export function SettingsPanel({ settings, onChange }: Props) {
               >
                 탈퇴
               </button>
-            </fieldset>
+            </div>
           )}
           <Popover.Arrow className={styles.arrow} width={12} height={6} />
         </Popover.Content>
