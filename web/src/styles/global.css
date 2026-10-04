@@ -1,20 +1,25 @@
 /*
- * Visual direction: bright and current. White page, violet as the brand color, light lavender surfaces,
- * NanumSquare throughout with weight contrast (800 headings, 400 body). Rounded, flat cards: solid colors and
- * borders only, no gradients or shadows (user preference 2026-09-27).
+ * Visual direction: bright and current, in the manner of 토스증권 (user request 2026-10-05): a light grey canvas with
+ * white rounded cards on it, a cool grey text scale, violet kept as the brand color. NanumSquare throughout with
+ * weight contrast (800 headings, 400 body). Flat cards: solid colors and hairline borders only, no gradients or
+ * shadows (user preference 2026-09-27). Text is larger than before (user requests 2026-10-05: base 17px and 16px on
+ * phones, then 15% more except the header bar and the start headline; nothing under 0.8rem).
  * Color carries meaning: violet = can borrow now, amber = reserve and wait, red = failed.
  * Desktop styles are the default; narrower screens override them (tablet <= 1024px, mobile <= 640px).
  */
 :root {
-  /* surfaces */
+  /* surfaces: grey canvas, white cards (토스증권: #f4f5f8 page, white panels, grey scale #191f28/#4e5968/#8b95a1) */
+  --canvas: #f4f5f8;
   --paper: #ffffff;
-  --paper-deep: #f5f3fb;
+  --paper-deep: #f2f4f6;
+  /* the track of a segmented control lying on the canvas */
+  --track: #e8ebee;
   --card: #ffffff;
-  --ink: #1b1a24;
-  --ink-soft: #5b5870;
-  --ink-faint: #9793aa;
-  --rule: #ebe8f4;
-  --rule-strong: #d6d0ea;
+  --ink: #191f28;
+  --ink-soft: #4e5968;
+  --ink-faint: #8b95a1;
+  --rule: #e9ebee;
+  --rule-strong: #d1d6db;
 
   /* brand */
   --brand: #7a5cf2;
@@ -34,16 +39,28 @@
   --font-title: var(--font-body);
 
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  /* 토스증권-like rounded rectangles instead of pills (user request 2026-10-05) */
+  --radius-control: 10px;
+  --radius-inner: 8px;
+  --radius-tag: 6px;
+  /* control heights: the search line (field, 여러 조건, ⚙) and the other buttons (sort, ...) */
+  --search-height: 3.5rem;
+  --control-height: 2.6rem;
 
   --page-width: 90rem;
   --gutter: 2.5rem;
 
+  /*
+   * Text size: 15% above the earlier base (user request 2026-10-05). The header bar and the start headline keep the
+   * earlier size through --base-unscaled.
+   */
+  --base-unscaled: 17px;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--canvas);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: calc(var(--base-unscaled) * 1.15);
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -58,7 +75,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--paper);
+  background: var(--canvas);
 }
 
 h1,
@@ -110,6 +127,8 @@ a {
 @media (width <= 640px) {
   :root {
     --gutter: 1rem;
-    font-size: 15px;
+    --search-height: 3rem;
+    --base-unscaled: 16px;
+    font-size: calc(var(--base-unscaled) * 1.15);
   }
 }

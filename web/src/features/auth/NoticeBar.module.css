@@ -19,7 +19,7 @@
   flex: none;
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--paper);
   font: inherit;
   font-size: 0.85rem;

@@ -6,15 +6,16 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.45rem 0.4rem 0.45rem;
-  border: 2px solid var(--brand);
-  border-radius: 999px;
+  height: var(--search-height);
+  padding: 0 0.35rem 0 0.35rem;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--radius-md);
   background: var(--card);
   transition: border-color 140ms;
 }
 
 .field:focus-within {
-  border-color: var(--brand-strong);
+  border-color: var(--brand);
 }
 
 .field[data-invalid] {
@@ -24,7 +25,7 @@
 .input {
   flex: 1;
   min-width: 0;
-  padding: 0.75rem 0 0.75rem 1.1rem;
+  padding: 0 0 0 0.85rem;
   border: none;
   background: transparent;
   font-size: 1.25rem;
@@ -44,9 +45,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.7rem 1.35rem;
+  height: calc(var(--search-height) - 0.85rem);
+  padding: 0 1.2rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-inner);
   background: var(--brand-soft);
   color: var(--brand-strong);
   font-weight: 800;
@@ -83,10 +85,13 @@
   flex: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  padding: 0.7rem 1rem;
+  height: var(--search-height);
+  min-width: var(--search-height);
+  padding: 0 1rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card);
   color: var(--ink-soft);
   font: inherit;
@@ -113,7 +118,7 @@
 }
 
 .caret {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 /* Author and publisher lines under the title box */
@@ -212,7 +217,7 @@
   }
 
   .moreButton {
-    padding: 0.7rem 0.85rem;
+    padding: 0;
   }
 }
 
@@ -229,15 +234,15 @@
 
   .input {
     font-size: 1.05rem;
-    padding: 0.6rem 0 0.6rem 0.7rem;
+    padding: 0 0 0 0.6rem;
   }
 
   .submit {
-    padding: 0.6rem 1rem;
+    padding: 0 0.95rem;
   }
 
   .moreButton {
-    padding: 0.6rem 0.7rem;
+    padding: 0;
   }
 
   .error {

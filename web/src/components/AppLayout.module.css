@@ -16,32 +16,32 @@
   width: 100%;
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: 0.95rem var(--gutter);
+  padding: calc(0.95 * var(--base-unscaled)) var(--gutter);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: calc(1 * var(--base-unscaled));
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: calc(0.8 * var(--base-unscaled));
   text-decoration: none;
 }
 
 .wordmark {
   font-weight: 800;
-  font-size: 1.55rem;
+  font-size: calc(1.55 * var(--base-unscaled));
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--brand-strong);
 }
 
 .tagline {
-  padding-left: 0.8rem;
+  padding-left: calc(0.8 * var(--base-unscaled));
   border-left: 1px solid var(--rule-strong);
-  font-size: 0.88rem;
+  font-size: calc(0.88 * var(--base-unscaled));
   color: var(--ink-soft);
 }
 
@@ -55,7 +55,7 @@
 
 @media (width <= 640px) {
   .header {
-    padding-block: 0.8rem;
+    padding-block: calc(0.8 * var(--base-unscaled));
   }
 
   .tagline {

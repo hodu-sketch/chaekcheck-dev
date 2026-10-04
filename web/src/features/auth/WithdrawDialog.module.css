@@ -54,7 +54,7 @@
 .stay,
 .go {
   padding: 0.65rem 1.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font: inherit;
   font-weight: 800;
   cursor: pointer;

@@ -40,7 +40,7 @@
 
 .headline {
   text-wrap: balance;
-  font-size: clamp(1.9rem, 1.2rem + 2.3vw, 3rem);
+  font-size: clamp(calc(1.9 * var(--base-unscaled)), calc(1.2 * var(--base-unscaled)) + 2.3vw, calc(3 * var(--base-unscaled)));
   font-weight: 800;
   line-height: 1.28;
   letter-spacing: -0.03em;
@@ -141,7 +141,7 @@
   appearance: none;
   padding: 0.45rem 2rem 0.45rem 0.9rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235e3fe0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     no-repeat right 0.75rem center;
@@ -177,7 +177,7 @@
   margin-top: 1rem;
   padding: 0.8rem 1.6rem;
   border: 1.5px solid var(--brand);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card);
   color: var(--brand-strong);
   font: inherit;

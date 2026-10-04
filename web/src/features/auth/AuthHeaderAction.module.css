@@ -1,10 +1,10 @@
 .button {
-  padding: 0.5rem 1.05rem;
+  padding: calc(0.5 * var(--base-unscaled)) calc(1.05 * var(--base-unscaled));
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--paper);
   font: inherit;
-  font-size: 0.92rem;
+  font-size: calc(0.92 * var(--base-unscaled));
   font-weight: 700;
   color: var(--ink);
   cursor: pointer;
@@ -29,6 +29,6 @@
 /* Keeps the header height while the first check runs */
 .placeholder {
   display: inline-block;
-  width: 5rem;
-  height: 2.2rem;
+  width: calc(5 * var(--base-unscaled));
+  height: calc(2.2 * var(--base-unscaled));
 }

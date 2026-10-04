@@ -50,10 +50,10 @@
 .draft {
   margin-left: 0.5rem;
   padding: 0.05rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--reserve-soft);
   color: var(--reserve);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -112,7 +112,7 @@
 .more {
   padding: 0.25rem 0.7rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--paper);
   font: inherit;
   font-size: 0.82rem;
@@ -159,7 +159,7 @@
 .submit {
   min-width: 7rem;
   padding: 0.75rem 1.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font: inherit;
   font-weight: 800;
   cursor: pointer;

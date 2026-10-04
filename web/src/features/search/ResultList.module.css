@@ -9,8 +9,8 @@
   display: inline-flex;
   align-self: flex-start;
   padding: 0.25rem;
-  border-radius: 999px;
-  background: var(--paper-deep);
+  border-radius: var(--radius-control);
+  background: var(--track);
 }
 
 .filterItem {
@@ -19,7 +19,7 @@
   gap: 0.45rem;
   padding: 0.45rem 1.05rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-inner);
   background: transparent;
   color: var(--ink-soft);
   font-weight: 700;
@@ -41,10 +41,10 @@
 .filterCount {
   min-width: 1.5rem;
   padding: 0 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: rgb(122 92 242 / 0.12);
   font-variant-numeric: tabular-nums;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   text-align: center;
 }
 
@@ -127,7 +127,7 @@
   justify-content: center;
   padding: 0.85rem 1.6rem;
   border: 1.5px solid var(--brand);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card);
   color: var(--brand-strong);
   font-size: 1rem;

@@ -70,7 +70,7 @@
   min-width: 18rem;
   padding: 0.85rem 1.6rem;
   border: 1.5px solid var(--brand);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card);
   color: var(--brand-strong);
   font: inherit;

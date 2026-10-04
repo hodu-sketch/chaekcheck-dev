@@ -22,7 +22,7 @@
   padding: 0.55rem 0.6rem 0.55rem 0.9rem;
   background: var(--card);
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   font-size: 0.9rem;
 }
 
@@ -64,7 +64,7 @@
   min-height: 2.6rem;
   padding: 0.55rem 0.95rem;
   border: 1px dashed var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--ink-soft);
   font-weight: 700;
@@ -181,9 +181,9 @@
 
 .age {
   padding: 0.05rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--paper-deep);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
 }
 
 .moreFailed {
@@ -203,7 +203,7 @@
 .more {
   padding: 0.3rem 0.75rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--brand-soft);
   color: var(--brand-strong);
   font-weight: 700;

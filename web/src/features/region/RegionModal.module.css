@@ -46,7 +46,7 @@
   display: inline-flex;
   gap: 0.25rem;
   padding: 0.25rem;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--paper-deep);
 }
 
@@ -56,7 +56,7 @@
   gap: 0.45rem;
   padding: 0.45rem 1.1rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-inner);
   background: transparent;
   color: var(--ink-soft);
   font-weight: 700;
@@ -76,9 +76,9 @@
 .tabCount {
   min-width: 1.4rem;
   padding: 0 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: rgb(122 92 242 / 0.12);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   text-align: center;
 }
 
@@ -111,7 +111,7 @@
   align-items: center;
   gap: 0.2rem;
   padding: 0.25rem 0.35rem 0.25rem 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--borrow-soft);
   color: var(--borrow);
   font-size: 0.88rem;
@@ -196,10 +196,10 @@
 
 .sidoCount {
   min-width: 1.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--brand);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   text-align: center;
 }
 
@@ -241,7 +241,7 @@
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font-size: 0.93rem;
   cursor: pointer;
   transition: border-color 120ms, background-color 120ms;
@@ -282,7 +282,7 @@
 .secondary,
 .primary {
   padding: 0.65rem 1.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font-weight: 800;
   cursor: pointer;
 }

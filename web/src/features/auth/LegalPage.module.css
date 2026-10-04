@@ -26,10 +26,10 @@
 .draft {
   margin-left: 0.6rem;
   padding: 0.05rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--reserve-soft);
   color: var(--reserve);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 

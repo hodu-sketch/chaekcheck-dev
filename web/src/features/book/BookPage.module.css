@@ -9,7 +9,7 @@
   align-self: flex-start;
   padding: 0.45rem 0.9rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card);
   color: var(--ink-soft);
   font: inherit;

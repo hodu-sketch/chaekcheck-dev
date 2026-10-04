@@ -1,0 +1,72 @@
+/* Same height and corners as the other controls (--control-height, --radius-control) */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: var(--control-height);
+  padding: 0 0.85rem 0 1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  border-color: var(--ink-faint);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.trigger[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--brand-strong);
+}
+
+.content {
+  z-index: 15;
+  min-width: var(--radix-select-trigger-width);
+  padding: 0.35rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-inner);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.item[data-highlighted] {
+  background: var(--paper-deep);
+}
+
+.item[data-state='checked'] {
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.check {
+  font-size: 0.85rem;
+}

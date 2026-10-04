@@ -105,7 +105,7 @@
 
 .names li {
   padding: 0.15rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--paper-deep);
 }
 
@@ -194,7 +194,7 @@
 .add,
 .remove {
   padding: 0.35rem 0.9rem;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font-size: 0.85rem;
 }
 
@@ -247,9 +247,9 @@
 .kind {
   flex: none;
   padding: 0 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-tag);
   background: var(--brand-soft);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: var(--brand-strong);
 }

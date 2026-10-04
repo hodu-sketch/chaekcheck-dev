@@ -3,7 +3,7 @@ import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
 import { collectedRange, holdingBatchViews } from './holdingView'
 import { ResultList } from './ResultList'
-import { SORT_LABELS, SORTS } from './searchCondition'
+import { SortSelect } from './SortSelect'
 import { useHoldings } from './useHoldings'
 import styles from './SearchPage.module.css'
 
@@ -164,16 +164,7 @@ export function ResultsHeader({
       <p className={styles.collected}>
         {range ? `${range} 수집 목록` : '수집 목록'} · 책 {total.toLocaleString('ko-KR')}권
       </p>
-      <label className={styles.sort}>
-        <span className="visually-hidden">정렬</span>
-        <select value={sort} onChange={(event) => onSortChange(event.target.value as BookSort)}>
-          {SORTS.map((value) => (
-            <option key={value} value={value}>
-              {SORT_LABELS[value]}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SortSelect value={sort} onChange={onSortChange} />
     </div>
   )
 }

@@ -103,7 +103,7 @@
   align-self: center;
   padding: 0.45rem 1.2rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--paper);
   font: inherit;
   font-size: 0.9rem;
