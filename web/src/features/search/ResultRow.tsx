@@ -103,8 +103,22 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       </div>
 
       <div className={styles.stock}>
-        <p className={styles.state}>{row.failed ? '확인 실패' : stateText(row)}</p>
-        {row.availabilityBasis === 'SUBSCRIPTION' && <p className={styles.note}>월 예산 소진 시 이용 불가</p>}
+        {!row.failed && row.availabilityBasis === 'SUBSCRIPTION' ? (
+          // the subscription caution opens from the state instead of taking a line (user request 2026-10-05)
+          <Popover.Root>
+            <Popover.Trigger className={`${styles.state} ${styles.stateButton}`}>
+              {stateText(row)} <span aria-hidden="true">ⓘ</span>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content className={styles.joinPopover} side="bottom" align="end" sideOffset={6} collisionPadding={12}>
+                <p className={styles.note}>월 예산 소진 시 이용 불가</p>
+                <Popover.Arrow className={styles.joinPopoverArrow} width={12} height={6} />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+        ) : (
+          <p className={styles.state}>{row.failed ? '확인 실패' : stateText(row)}</p>
+        )}
         <div className={styles.stockLine}>
           <Counts row={row} />
           {href && (

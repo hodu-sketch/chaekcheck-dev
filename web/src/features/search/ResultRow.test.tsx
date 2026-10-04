@@ -142,3 +142,21 @@ describe('a library added by hand (cycle 06, AC-5)', () => {
     expect(popover.textContent).toContain('방문 가입')
   })
 })
+
+describe('subscription rows (user request 2026-10-05)', () => {
+  it('show the monthly budget caution only from the state', async () => {
+    render(
+      <ResultRow
+        row={testRow({ libraryId: 2, rank: 1, availability: 'AVAILABLE', availabilityBasis: 'SUBSCRIPTION' })}
+        library={{ ...openLibrary, platformType: 'KYOBO_SUBSCRIPTION_V1' }}
+        searchUrl={undefined}
+      />,
+    )
+    expect(screen.queryByText('월 예산 소진 시 이용 불가')).toBeNull()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /구독형 · 바로 대출/ }))
+
+    expect(screen.getByRole('dialog').textContent).toContain('월 예산 소진 시 이용 불가')
+  })
+})
+
