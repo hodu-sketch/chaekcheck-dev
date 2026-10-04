@@ -242,3 +242,36 @@ describe('before login (AC-14)', () => {
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
   })
 })
+
+describe('phones: "찾을 도서관" inside the settings panel (D안, user choice 2026-10-05)', () => {
+  function phoneScreen() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  }
+
+  it('hides the switch line and shows it in the settings panel, with 내 도서관 관리 to S10', async () => {
+    phoneScreen()
+    renderSearch()
+
+    await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
+    expect(screen.queryByRole('radio', { name: '내 도서관' })).toBeNull()
+    expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
+
+    expect(await screen.findByText('찾을 도서관')).toBeTruthy()
+    expect(switchItem('내 도서관').getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByRole('link', { name: '내 도서관 관리' }).getAttribute('href')).toBe('/my-libraries')
+  })
+
+  it('marks the settings button when the scope is not the default', async () => {
+    phoneScreen()
+    renderSearch('/search?title=사랑&view=books&visit=none')
+
+    expect(await screen.findByRole('button', { name: '검색 설정 (찾을 도서관 바꿈)' })).toBeTruthy()
+  })
+})

@@ -1,5 +1,5 @@
 import { Popover, RadioGroup } from 'radix-ui'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useOptionalAuth } from '../auth/AuthContext'
 import { WithdrawDialog } from '../auth/WithdrawDialog'
 import { DIRECT_REASON, type SearchSettings, type ViewMode } from './searchSettings'
@@ -9,6 +9,10 @@ type Props = {
   settings: SearchSettings
   /** Applied at once; with results the search runs again [안]. */
   onChange: (settings: SearchSettings) => void
+  /** Phones: "찾을 도서관" (scope, 방문 없이 가입, 내 도서관/내 지역) at the top of the panel (D안, user choice 2026-10-05). */
+  scopeSection?: ReactNode
+  /** A dot on the button: the search scope is not the default, while it is folded in here. */
+  marked?: boolean
 }
 
 /**
@@ -16,7 +20,7 @@ type Props = {
  * address [확정]. With direct search on, 책 먼저 고르기 cannot be used [안]: site results are not grouped by book.
  * Signed in, a "계정" section holds only 탈퇴 (cycle 05 [확정]); login and logout stay in the header.
  */
-export function SettingsPanel({ settings, onChange }: Props) {
+export function SettingsPanel({ settings, onChange, scopeSection, marked = false }: Props) {
   const auth = useOptionalAuth()
   const [open, setOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
@@ -26,7 +30,8 @@ export function SettingsPanel({ settings, onChange }: Props) {
   return (
     <>
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger className={styles.trigger} aria-label="검색 설정">
+      <Popover.Trigger className={styles.trigger} aria-label={marked ? '검색 설정 (찾을 도서관 바꿈)' : '검색 설정'}>
+        {marked && <span className={styles.mark} aria-hidden="true" />}
         {/* two sliders with rounded-square knobs, to match the rounded-rectangle look (user request 2026-10-05) */}
         <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
           <path d="M3 6.5h14M3 13.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -36,6 +41,14 @@ export function SettingsPanel({ settings, onChange }: Props) {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content className={styles.content} side="bottom" align="end" sideOffset={8} collisionPadding={12}>
+          {scopeSection && (
+            <div className={styles.group} role="group" aria-labelledby="settings-scope">
+              <p id="settings-scope" className={styles.legend}>
+                찾을 도서관
+              </p>
+              <div className={styles.scope}>{scopeSection}</div>
+            </div>
+          )}
           <fieldset className={styles.group}>
             <legend className={styles.legend}>보기 방식</legend>
             <RadioGroup.Root

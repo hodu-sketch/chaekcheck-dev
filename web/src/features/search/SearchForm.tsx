@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import type { BookRole, SearchField } from '../../api/types'
 import { checkQuery, normalizeQuery, QUERY_MAX_LENGTH, QUERY_MIN_LENGTH, type QueryProblem } from '../../lib/query'
 import { useMediaQuery } from '../../lib/useMediaQuery'
@@ -30,6 +30,9 @@ type Props = {
   hasResults: boolean
   onSearch: (input: BookSearchInput) => void
   onSettingsChange: (settings: SearchSettings) => void
+  /** Phones: the "찾을 도서관" section for the settings panel, and whether it differs from the default. */
+  settingsScope?: ReactNode
+  settingsMarked?: boolean
 }
 
 /**
@@ -38,7 +41,7 @@ type Props = {
  * is needed; each filled field must be 2 to 50 characters (cycle 01 rule). With "도서관에서 직접 찾기" on, what the
  * site search cannot use is dimmed with a short reason, and only the first filled field is searched.
  */
-export function SearchForm({ initial, settings, hasResults, onSearch, onSettingsChange }: Props) {
+export function SearchForm({ initial, settings, hasResults, onSearch, onSettingsChange, settingsScope, settingsMarked }: Props) {
   const id = useId()
   // phones: a short placeholder, the long one is cut off there (user request 2026-10-05)
   const phone = useMediaQuery('(width <= 640px)')
@@ -146,7 +149,7 @@ export function SearchForm({ initial, settings, hasResults, onSearch, onSettings
             {expanded ? '▴' : '▾'}
           </span>
         </button>
-        <SettingsPanel settings={settings} onChange={onSettingsChange} />
+        <SettingsPanel settings={settings} onChange={onSettingsChange} scopeSection={settingsScope} marked={settingsMarked} />
       </div>
       {problems.none && (
         <p id={errorId('none')} className={styles.error} role="alert">

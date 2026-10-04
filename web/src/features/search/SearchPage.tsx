@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
 import { hasRegions } from '../region/regionStorage'
@@ -24,6 +25,7 @@ import {
   type SearchSettings,
 } from './searchSettings'
 import { VisitToggle } from './VisitToggle'
+import scopeStyles from './ScopeSummary.module.css'
 import styles from './SearchPage.module.css'
 
 /**
@@ -44,6 +46,8 @@ export function SearchPage() {
   const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
   const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
   const [modalOpen, setModalOpen] = useState(false)
+  // phones: the scope controls fold into the settings panel (D안, user choice 2026-10-05)
+  const phone = useMediaQuery('(width <= 640px)')
 
   // direct search: the first filled field only (spec 3.7)
   const condition = readCondition(params)
@@ -118,6 +122,25 @@ export function SearchPage() {
   if (addressScope) bookLinkSearch.set('scope', addressScope)
   if (visit === 'none') bookLinkSearch.set('visit', 'none')
 
+  const changeVisit = (next: VisitFilter) => replaceParam('visit', next === 'none' ? 'none' : null)
+  const scopeSwitch = (
+    <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
+  )
+  const visitToggle = <VisitToggle visit={visit} onChange={changeVisit} />
+  // in the settings panel a plain way on: S10 after login, S2 before (the summary pop-up is for wider screens)
+  const phoneMine = mine ? (
+    <Link to="/my-libraries" className={scopeStyles.trigger}>
+      내 도서관 관리
+    </Link>
+  ) : (
+    <button type="button" className={scopeStyles.trigger} onClick={() => setModalOpen(true)}>
+      {hasRegions(regions) ? '내 지역 변경' : '내 지역 설정'}
+    </button>
+  )
+  // the dot on the settings button: not the default scope (내 도서관 when there is one after login, else 전체)
+  const defaultScope = mine && (hasRegions(regions) || libraryIds.length > 0) ? 'joinable' : 'all'
+  const scopeChanged = scope !== defaultScope || visit === 'none'
+
   return (
     <div className={styles.page} data-state={hasSearch ? 'results' : 'start'}>
       <section className={styles.searchArea}>
@@ -135,13 +158,25 @@ export function SearchPage() {
           hasResults={hasSearch}
           onSearch={search}
           onSettingsChange={changeSettings}
+          settingsScope={
+            phone ? (
+              <>
+                {scopeSwitch}
+                {visitToggle}
+                {phoneMine}
+              </>
+            ) : undefined
+          }
+          settingsMarked={phone && scopeChanged}
         />
         {/* one line: what to search, then what "내 도서관"/"내 지역" holds behind a button (user request 2026-10-05) */}
-        <div className={styles.toggles}>
-          <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
-          <VisitToggle visit={visit} onChange={(next) => replaceParam('visit', next === 'none' ? 'none' : null)} />
-          {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
-        </div>
+        {!phone && (
+          <div className={styles.toggles}>
+            {scopeSwitch}
+            {visitToggle}
+            {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
+          </div>
+        )}
       </section>
 
       {notices.length > 0 && (

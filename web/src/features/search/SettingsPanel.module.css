@@ -1,4 +1,5 @@
 .trigger {
+  position: relative;
   flex: none;
   display: inline-grid;
   place-items: center;
@@ -142,4 +143,37 @@
 .withdraw:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* the search scope is not the default while it is folded into this panel (phones, D안 2026-10-05) */
+.mark {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--brand-strong);
+}
+
+/* "찾을 도서관": the switch fills the width; the other controls stack under it */
+.scope {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.scope > :first-child {
+  width: 100%;
+}
+
+.scope > :first-child > * {
+  flex: 1;
+  justify-content: center;
+}
+
+.scope > * {
+  align-self: stretch;
+  justify-content: center;
 }
