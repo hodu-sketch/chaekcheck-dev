@@ -5,7 +5,7 @@
 - 목적: 전자도서관 사이트에서 **검색**(제목·저자·출판사)과 **전체 목록**(소장 전자책 전부)을 가져올 때 참고합니다.
 - 지금 서비스에 있는 adapter의 정확한 선택자는 `backend/src/main/java/com/chaekcheck/availability/internal/adapter/*.java` 주석이 원본입니다. adapter 설계는 사이클에서 합니다.
 - 화면 종류 값과 판별: [`docs/library-maintenance.md`](../library-maintenance.md) 1-3·4-6절, plan ADR-0016·ADR-0023. 수집 원칙(호출 간격·저장 범위·날짜 기록)은 plan `docs/research/ebook-catalog/crawl-method.md`, 조사 배경은 같은 폴더 `research.md`.
-- 실행 도구: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\scripts\crawl_catalog.py`(전체 목록 수집), `probe_other_platforms.py`(북큐브·알라딘 후보 1회 확인). 수집이 끝나면 dev `scripts/crawl/`로 옮김(ADR-0047 B). 후보 도서관 찾기 도구(`probe_*.py`)와 절차는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기"(3단계에 dev `scripts/library/`로).
+- 실행 도구: `scripts/crawl/crawl_catalog.py`(전체 목록 수집), `scripts/library/candidates/probe_other_platforms.py`(북큐브·알라딘 후보 1회 확인) (2026-10-05 옮김, ADR-0047 B·C). 후보 도서관 찾기 도구(`probe_*.py`)와 절차는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기".
 - 새 플랫폼이나 사이트 예외를 알게 되면 이 문서에 더합니다(2-crawl 7절).
 
 ## 0. 공통 규칙

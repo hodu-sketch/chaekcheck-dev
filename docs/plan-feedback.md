@@ -1127,6 +1127,42 @@ plan에 넘기는 것 (원문의 빈틈·불일치. runbook을 고칠 때 참고
 - `--per-host`와 `--host-slots`를 함께 줄 때 어느 쪽이 이기는지 runbook에 없음. dev 문서에는 적지 않음.
 - 마감 확인이 읽는 주소가 plan 문서끼리 다름: runbook 4절은 `/popup/popupMain.json`·`/main/firstBoardBlbrSrmb.json`·`/board/listBoard.json` 셋, `library-limits/research.md` 3-1절은 팝업과 `listBoard.json` 둘. dev 문서는 runbook(셋)을 따름.
 
+## B·C. 수집기 코드와 도서관 정보 도구 (2026-10-05)
+
+사용자 요청(붙여 넣은 메시지): plan ADR-0047 요청서의 "B. 책 수집기 코드"와 "C. 도서관 정보 도구"를 해 줘. 수집기는 chaekcheck-data에서 계속 돌고 있어. 코드는 복사만 하고, 옮긴 수집기로 갈아타는 건 나중에 내가 정할게. — 지킬 것: 돌고 있는 수집기와 chaekcheck-data 안의 파일은 멈추거나 고치지 않고 복사만, secrets·수집 DB·logs·실행 설정은 git 밖, 인증키는 열지 않음, 수집 DB 위치는 환경 변수나 인자(기본값 chaekcheck-data), 사이트에 요청하는 명령은 돌리지 않고 `status`만, `queue-by-ip.txt`·`host-slots.txt`는 같은 뜻으로.
+
+함께 받은 두 요청은 이미 되어 있었음(확인만): D(문서에 더할 것)는 커밋 `87f3807`·`bc5ed19`와 위 "D" 절, 책 번호 유지 정책 한 줄은 `docs/maintenance/3-import.md` 7절(커밋 `1d0d5eb`).
+
+| 옮긴 곳 (dev) | 원본 (`chaekcheck-data`, 그대로 둠) |
+|---|---|
+| `scripts/crawl/crawl_catalog.py`, `verify_detail_urls.py`, `resume.cmd` | `scripts\crawl_catalog.py`, `scripts\verify_detail_urls.py`, `resume.cmd` |
+| `scripts/crawl/README.md` (수집 DB 구조·규칙, 데이터 폴더·새 경로로 머리와 파일 표·명령을 고침) | `README.md` |
+| `scripts/crawl/requirements.txt` (`beautifulsoup4`, `lxml`; Python 3.11+) | (새로 씀) |
+| `scripts/library/candidates/probe_kyobo_institutions.py`, `probe_yes24.py`, `probe_aladin.py`, `probe_other_platforms.py` | `scripts\` 같은 이름 |
+| `scripts/library/probe_kyobo_limits.py`, `limits-daily.cmd` | `scripts\probe_kyobo_limits.py`, `limits-daily.cmd`(요청서 표에 없던 매일 확인 실행 파일. 같은 도구라 함께) |
+
+옮길 때 바꾼 것
+- 데이터 폴더: `--data-dir` 인자 > `CHAEKCHECK_DATA` 환경 변수 > 저장소 옆 `chaekcheck-data`(기본값, 저장소 위치에서 계산해 절대 경로 없음). 수집 DB, `logs\`, `other-platforms\`, `secrets\`, `queue-by-ip.txt`, `host-slots.txt`가 거기 그대로 있음.
+- `DEV_SEED`: 절대 경로 → 저장소 안 `backend/src/main/resources/db/changelog/library`.
+- `status`: 수집 DB를 읽기 전용(`mode=ro`)으로 열고 표 구조 만들기·바꾸기(`executescript(SCHEMA)`, `migrate`)를 하지 않음. 원본은 `status`도 연결할 때 표 구조를 맞춤 → 수집 중에 쓰기 잠금을 잡지 않게 바꿈. `status --skip`·`--set-count`는 쓰기가 필요해 전처럼 엶.
+- 확인 스크립트: 같은 폴더의 `crawl_catalog`를 불러 쓰던 것을 `scripts/crawl/`에서 불러 쓰게(`sys.path`만).
+- `resume.cmd`·`limits-daily.cmd`: 코드는 저장소에서 부르고, 데이터 폴더로 옮겨 가서 실행(설정 파일·로그 상대 경로가 전과 같은 뜻). 두 개 동시 실행 검사는 `crawl_catalog.py`와 ` full `이 둘 다 든 명령줄을 찾게 바꿈 → 옮긴 쪽(`--data-dir`가 끼어 있음)과 **옛 복사본 둘 다** 찾음. 지금 돌고 있는 옛 수집기 명령줄로 맞는지 확인함(`matches-new-check=True`). Windows 줄바꿈(CRLF)을 지키도록 `.gitattributes`에 `*.cmd text eol=crlf`.
+- 요청 머리글(User-Agent)과 예의 규칙(같은 서버 1건·1초, `--host-slots`, IP 줄)은 그대로. 코드에 개인 연락처·인증키 없음을 확인.
+
+git에 넣지 않는 것: `.gitignore`에 `scripts/**` 아래 `*.sqlite`, `*.sqlite-*`, `logs/`, `secrets/`, `other-platforms/`, `queue-by-ip.txt`, `host-slots.txt`, 그리고 `__pycache__/`, `*.bak-*`를 더함(데이터는 원래 저장소 밖이라 잘못 복사됐을 때를 막는 것). `secrets/`는 열지 않음.
+- `other-platforms/*.tsv`: 넣지 않음 (dev 판단). 내용은 공개된 기관 이름·주소·권수·공지 제목(개인 정보 없음), 크기는 TSV 9개 약 0.75MB + 하위 폴더 0.4MB. 그래도 실행 결과라 데이터 폴더에서 계속 바뀌고(`kyobo-limits-log.tsv`는 매일 더해짐) git 복사본은 곧 어긋남. 팝업 그림(1.7MB)은 기관이 만든 그림. 남길 사실은 `1-libraries.md`와 plan `crawl-runbook.md` 8-2절에. `1-libraries.md`의 [확인 필요]를 이 판단으로 바꿈.
+
+확인
+- 옮긴 수집기로 `python -X utf8 scripts/crawl/crawl_catalog.py status` 한 번(사이트 요청 없음, 수집 중): 최근 실행 SUCCEEDED 2,620 · RUNNING 11 · FAILED 5, 소장 줄 20,530,125, 한 번도 성공 못 한 도서관 397. 45초.
+- 확인 스크립트 6개를 불러오기만 해서(실행 안 함) 모두 `scripts/crawl/crawl_catalog.py`와 `chaekcheck-data\ebook-catalog.sqlite`를 가리키는 것을 확인.
+- `full`, `probe_*`, `verify_detail_urls`, `limits-daily`는 돌리지 않음. `chaekcheck-data` 안 파일은 읽기만 함.
+
+문서: `docs/maintenance/2-crawl.md`(코드 위치, 데이터 폴더, **갈아타기 전** 안내, 파일 표, 3절 실행 경로, 5절 명령), `1-libraries.md`(도구 위치, 표의 스크립트 경로, TSV 판단, 마감 확인 실행 인자 — 앞서 "옮길 때 적음 [확인 필요]"였던 것), `README.md`(도구 줄, 이어 받기·상태 보기 경로), `platforms.md`(실행 도구 줄).
+
+남은 것
+- **갈아타기 [확인 필요: 사용자]**: 지금 수집은 옛 복사본(`chaekcheck-data\scripts\crawl_catalog.py full`, 2026-10-04부터)이 돌고 있음. 갈아탈 때는 그 수집이 끝나거나 멈춘 뒤 `scripts\crawl\resume.cmd`를 실행(같은 수집 DB에서 이어 받음). 갈아탄 뒤 `chaekcheck-data\scripts\`의 옛 코드를 어떻게 할지(지울지)는 사용자가 정함. 그 전까지는 옛 코드를 고치면 dev 복사본에도 같은 고침이 필요함.
+- plan이 할 일(요청서 F): `crawl-runbook.md` 4절 정리, `reference-index.md`·`collection-areas.md`·`library-limits/research.md`의 도구 위치를 `scripts/crawl/`·`scripts/library/`(후보 찾기는 `scripts/library/candidates/`)로.
+
 # 사이클 06
 
 ## 1단계 결과: `auth` 공개 장치 셋 (2026-10-04)

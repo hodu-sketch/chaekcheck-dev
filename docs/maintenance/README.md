@@ -10,8 +10,8 @@
 
 | 단계 | 하는 일 | 주기 | 절차 | 실행 도구 |
 |---|---|---|---|---|
-| 1 | 등록 도서관 목록 확인 (새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계), 후보 도서관 찾기, 구독 규칙·마감 확인 | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `scripts/library/` (`CheckKyoboSites.java`, `CheckYes24Sites.java`, `check_code_spaces.py` …). 후보 도서관 찾기·마감 확인 도구(`probe_*.py`)는 아직 `chaekcheck-data\scripts\` (3단계에서 옮김) |
-| 2 | 도서관마다 전자책 목록 받기 | 주 1회 전체 + 매일 신간 [확정] (plan `crawl-method.md` 2절). **신간 수집 명령은 아직 없음** → 지금은 전체만 | [2-crawl.md](2-crawl.md), 플랫폼별 방법 [platforms.md](platforms.md) | `chaekcheck-data\resume.cmd` (`crawl_catalog.py`) |
+| 1 | 등록 도서관 목록 확인 (새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계), 후보 도서관 찾기, 구독 규칙·마감 확인 | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `scripts/library/` (`CheckKyoboSites.java`, `CheckYes24Sites.java`, `check_code_spaces.py` …). 후보 도서관 찾기 `scripts/library/candidates/probe_*.py`, 마감 확인 `scripts/library/probe_kyobo_limits.py` (2026-10-05 옮김) |
+| 2 | 도서관마다 전자책 목록 받기 | 주 1회 전체 + 매일 신간 [확정] (plan `crawl-method.md` 2절). **신간 수집 명령은 아직 없음** → 지금은 전체만 | [2-crawl.md](2-crawl.md), 플랫폼별 방법 [platforms.md](platforms.md) | `scripts\crawl\resume.cmd` (`scripts/crawl/crawl_catalog.py`). 갈아타기 전에는 `chaekcheck-data\resume.cmd` |
 | 3 | 받은 목록을 서비스 DB로 가져오기 (정리·같은 책 묶기) | [안] 2단계 전체 수집이 끝날 때마다 | [3-import.md](3-import.md) | `backend/`에서 `./gradlew bootRun` 프로필 `catalog-import` |
 | 4 | (자동) 사용자가 책을 찾으면 서비스 DB에서 찾고, 도서관 상세 페이지로 대출 상태를 실시간 조회 | 늘 | 아래 4절 | 서비스(`catalog`, `availability` 모듈) |
 
@@ -36,11 +36,11 @@
 
 절차: [2-crawl.md](2-crawl.md).
 
-1. `chaekcheck-data\resume.cmd` 실행. 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
-2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. `chaekcheck-data\queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 사용자가 정한 줄만 동시 N건: `chaekcheck-data\host-slots.txt` (지금 `103.182.126.192=4`, 2-crawl 2-1절)
-3. 상태 보기: `python -X utf8 scripts\crawl_catalog.py status`, 로그 `chaekcheck-data\logs\crawl-*.log` (2-crawl 3·5절)
+1. `scripts\crawl\resume.cmd` 실행(갈아타기 전에는 `chaekcheck-data\resume.cmd`, 2-crawl 1절). 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
+2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 사용자가 정한 줄만 동시 N건: 데이터 폴더의 `host-slots.txt` (지금 `103.182.126.192=4`, 2-crawl 2-1절)
+3. 상태 보기: `python -X utf8 scripts\crawl\crawl_catalog.py status`, 로그 데이터 폴더 `logs\crawl-*.log` (2-crawl 3·5절)
 4. 실패한 도서관: 2-crawl 6절 "문제별 대처". 막힌 사이트는 우회하지 않고 `crawl_skip`으로 표시 (2-crawl 5-1절)
-5. 끝난 뒤: 상세 주소 확인 `scripts\verify_detail_urls.py` (2-crawl 9절)
+5. 끝난 뒤: 상세 주소 확인 `scripts\crawl\verify_detail_urls.py` (2-crawl 9절)
 
 화면 종류별 목록 주소와 예외는 [platforms.md](platforms.md), 원칙은 plan `docs/research/ebook-catalog/crawl-method.md`에 있습니다. 지금 진행 상태(어디까지 받았나)는 plan `crawl-runbook.md` 1·8절에 남습니다.
 

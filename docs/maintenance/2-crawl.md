@@ -3,7 +3,7 @@
 - 정기 유지보수 2단계의 **절차 원본**입니다(plan ADR-0047, 2026-10-04). 순서 전체는 [README.md](README.md).
 - 옮겨 온 곳: plan `docs/research/ebook-catalog/crawl-runbook.md` 0·2·2-1·3·4·5·5-1·6·7·9·10절 (2026-10-04, 내용은 그대로, 경로만 고침). 2절(받는 순서와 호출 예의)은 요청서 목록에 없었지만 2-1절과 IP 줄 세우기의 전제라 함께 옮겼습니다.
 - plan에 남는 것: 지금 상태(1절), 후보 도서관(웹러브 북스 기관) 진행과 다음 할 일(8절), 원칙 `crawl-method.md`, 조사 `research.md`, 규칙 근거 `catalog-refresh.md`·`same-book-isbn.md`·`search-and-normalization.md` (모두 plan `docs/research/ebook-catalog/`).
-- 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\README.md` (수집기와 함께 옮길 예정).
+- 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명: [`scripts/crawl/README.md`](../../scripts/crawl/README.md) (2026-10-05 수집기와 함께 옮김, ADR-0047 B).
 - 요청 머리글(User-Agent)에 개인 연락처를 넣지 않습니다(plan `crawl-method.md`).
 - 도서관 목록 이름 [확정] (사용자, 2026-10-04): **등록 도서관**(서비스 DB, dev seed, 278곳) / **후보 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스에서 찾음, 2,738곳). 수집기는 둘 다 받습니다. 자세히는 [1-libraries.md](1-libraries.md).
 - 옮긴 뒤 plan 수집 세션에서 바뀐 것(2-1절 서버별 동시 요청 수, 4절 이어 받기·다른 정렬로 채우기·알려진 빈틈, 6절 알라딘·YES24 오디오북·0권)은 plan `crawl-runbook.md` 4절 "dev에 반영할 것"에서 더했습니다(2026-10-04, ADR-0047 요청서 D).
@@ -18,24 +18,28 @@
 | 1-1 | plan `crawl-runbook.md` 1·8절 | 지금 상태(어디까지 받았나), 후보 도서관(웹러브 북스 기관) 진행, 결정 기록 |
 | 2 | [platforms.md](platforms.md) | **플랫폼별 크롤링 방법**: 검색 주소, 전체 목록 주소, 한 쪽 크기, 줄 선택자, 상세 URL, 오디오북 구분, 사이트별 예외 |
 | 3 | plan `crawl-method.md` | 원칙(호출 예의, 저장 범위, 날짜 3층, 수집 항목)과 그 근거가 된 사용자 결정 |
-| 4 | `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\README.md` | 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명, 파일 목록 |
+| 4 | [`scripts/crawl/README.md`](../../scripts/crawl/README.md) | 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명, 파일 목록, 데이터 폴더 |
 | 참고 | plan `research.md` | 왜 모으는지, 법적 쟁점, 첫 조사 |
 | 참고 | plan `catalog-refresh.md` | 주기 갱신(별도 사이클) 참고. **운영에서 새로 알게 된 것은 그 문서 "변경 기록"에 더함** |
 | 참고 | plan `search-and-normalization.md`, `same-book-isbn.md` | 모은 값을 검색용으로 정리하고 같은 책을 묶는 규칙(다른 세션 작성). 수집 DB는 원문만 두고 정리는 거기서 |
 | 색인 | plan `docs/reference-index.md` 3절 | plan 전체에서 이 문서들이 어디에 있는지 |
 
-코드는 지금 `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\scripts\`에 있습니다. 두 저장소(plan, dev) 밖이고 git이 아닙니다. 전체 수집이 끝나면 dev `scripts/crawl/`로 옮깁니다(ADR-0047 B, 아직 안 함). 옮긴 뒤 이 문서의 경로를 고칩니다.
+코드는 dev `scripts/crawl/`(수집기)와 `scripts/library/`(후보 도서관 찾기, 구독 규칙·마감 확인)에 있습니다(2026-10-05 복사, ADR-0047 B·C). 수집한 데이터는 git 밖 **데이터 폴더**에 둡니다: `--data-dir` 인자 > 환경 변수 `CHAEKCHECK_DATA` > 저장소 옆 `chaekcheck-data` 폴더(기본값). 수집 DB, `queue-by-ip.txt`, `host-slots.txt`, `logs\`, `other-platforms\`, `secrets\`가 거기 있습니다.
+
+- **갈아타기 전 [확인 필요: 사용자가 정함]**: 2026-10-05 지금 돌고 있는 수집은 옮기기 전 복사본 `chaekcheck-data\scripts\crawl_catalog.py`입니다. 옮긴 수집기로 갈아타는 때는 사용자가 정합니다. 그 전까지 이어 받기는 전처럼 `chaekcheck-data\resume.cmd`로 하고, 갈아탄 뒤에는 `scripts\crawl\resume.cmd`로 합니다. 두 `resume.cmd` 모두 `crawl_catalog.py … full`이 돌고 있으면 시작하지 않으므로 두 수집기가 같은 사이트에 동시에 가지 않습니다(옮긴 쪽 검사는 `--data-dir`가 끼어도, 옛 복사본도 찾게 고침).
+- 옮길 때 바꾼 것: 데이터 폴더 위치(위), dev seed CSV를 저장소 안 상대 경로로, `status`는 수집 DB를 읽기 전용으로 열어 표 구조를 건드리지 않음(수집 중에도 안전), 확인 스크립트가 `scripts/crawl/`의 수집기를 불러 씀. 받는 방법·예의 규칙은 바꾸지 않음.
 
 | 파일 | 역할 |
 |---|---|
-| `crawl_catalog.py` | 수집기. 도서관 목록 불러오기, 전체 수집, 이어 받기, 상태, 다시 받기 표시, 받지 않기 표시 |
-| `verify_detail_urls.py` | 도서관·종류마다 상세 URL 한 건을 열어 그 책 제목이 나오는지 확인 |
-| `probe_other_platforms.py` | 북큐브·알라딘 후보 사이트를 한 번씩 호출해 열리는지·권수 확인 |
-| `probe_kyobo_institutions.py`, `probe_yes24.py`, `probe_aladin.py` | 교보 기관·YES24·알라딘 후보를 한 번씩 확인(열리는지, 화면 종류, 권수). 쓰는 순서는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기" (원문 plan `crawl-runbook.md` 8-1절) |
-| `probe_kyobo_limits.py` | 교보 구독형 사이트의 팝업·공지 제목과 날짜 확인. 절차는 [1-libraries.md](1-libraries.md) "구독 규칙·마감 확인" |
-| `..\resume.cmd` | 이어 받기 한 번 실행(두 개 동시 실행을 막음). 같은 폴더의 `queue-by-ip.txt`·`host-slots.txt`를 읽음 |
+| `scripts/crawl/crawl_catalog.py` | 수집기. 도서관 목록 불러오기, 전체 수집, 이어 받기, 상태, 다시 받기 표시, 받지 않기 표시 |
+| `scripts/crawl/verify_detail_urls.py` | 도서관·종류마다 상세 URL 한 건을 열어 그 책 제목이 나오는지 확인 |
+| `scripts/library/candidates/probe_other_platforms.py` | 북큐브·알라딘 후보 사이트를 한 번씩 호출해 열리는지·권수 확인 |
+| `scripts/library/candidates/probe_kyobo_institutions.py`, `probe_yes24.py`, `probe_aladin.py` | 교보 기관·YES24·알라딘 후보를 한 번씩 확인(열리는지, 화면 종류, 권수). 쓰는 순서는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기" (원문 plan `crawl-runbook.md` 8-1절) |
+| `scripts/library/probe_kyobo_limits.py`, `limits-daily.cmd` | 교보 구독형 사이트의 팝업·공지 제목과 날짜 확인. 절차는 [1-libraries.md](1-libraries.md) "구독 규칙·마감 확인" |
+| `scripts/crawl/resume.cmd` | 이어 받기 한 번 실행(두 개 동시 실행을 막음). 데이터 폴더의 `queue-by-ip.txt`·`host-slots.txt`를 읽고 로그를 데이터 폴더 `logs\`에 씀 |
+| `scripts/crawl/requirements.txt` | 실행 환경: Python 3.11+, `beautifulsoup4`, `lxml` |
 
-`probe_*.py`(후보 도서관 찾기, 구독 규칙·마감 확인)는 수집 일 나눔에서 ① 도서관 정보 도구라, 3단계에 `scripts/crawl/`이 아니라 dev `scripts/library/`로 갑니다 [확정] (사용자, 2026-10-04, ADR-0047 요청서 C).
+`probe_*.py`(후보 도서관 찾기, 구독 규칙·마감 확인)는 수집 일 나눔에서 ① 도서관 정보 도구라 `scripts/crawl/`이 아니라 `scripts/library/`에 둡니다 [확정] (사용자, 2026-10-04, ADR-0047 요청서 C).
 
 ## 2. 받는 순서 [확정] (사용자, 2026-09-30: "278곳 먼저가 우선인데 웹러브 북스에 있는 책은 거의 다 수집")
 
@@ -71,13 +75,13 @@
   - 방법: 수집기가 요청 전에 도메인의 IP를 조회(DNS)하고, 같은 IP로 가는 요청은 한 줄(1건, 1초 간격)로 세움. 요청 주소는 그대로 도메인. 공용 서버는 IP 수만큼 줄이 생기고(YES24 11, 북큐브 2, 알라딘 2), 같은 IP의 다른 도메인은 한 줄로 합쳐짐
   - 사용자 질문 "ip로 가면 막을 위험이 더 크지 않을까?"에 대한 설명: 위험을 키우는 것은 기준이 아니라 한 업체로 동시에 가는 요청 수. YES24 IP 11개는 같은 대역이라, 앞에 차단 장치가 하나 있다면 요청이 최대 11배로 보임 [확인 필요: 바깥에서 알 수 없음]
   - 되돌림 조건 [안]: 공용 서버의 IP 줄 하나라도 평균 응답이 12초를 넘거나(요청 30건 이상 뒤) 5번 연달아 실패하면, 그 업체의 IP 전부를 한 줄로 다시 묶음. 로그 `SPLIT OFF: <IP> (<업체>)`
-  - 설정: `chaekcheck-data\queue-by-ip.txt` 파일이 있으면 `resume.cmd`가 `--queue-by-ip`로 실행. 파일을 지우면 도메인 이름 기준(이전 방식)으로 돌아감. 응답 시간은 로그 `timing <IP> (<업체>): avg …s`(줄마다 200건마다). 시험 때 쓰던 `split-ip.txt`·`--split-ip`는 없앰
+  - 설정: 데이터 폴더의 `queue-by-ip.txt` 파일이 있으면 `resume.cmd`가 `--queue-by-ip`로 실행. 파일을 지우면 도메인 이름 기준(이전 방식)으로 돌아감. 응답 시간은 로그 `timing <IP> (<업체>): avg …s`(줄마다 200건마다). 시험 때 쓰던 `split-ip.txt`·`--split-ip`는 없앰
   - 쉬운 설명: plan `docs/research/ebook-catalog/easy/2026-10-04-crawl-method-now.html`(지금 수집 방법), `…/easy/2026-10-04-platform-servers.html`(플랫폼 타입별 서버 구조)
 - **서버(줄)별 동시 요청 수** `--host-slots KEY=N,…` (2026-10-04). 사용자가 정한 줄만 동시 N건으로 받습니다.
-  - 설정 파일: `chaekcheck-data\host-slots.txt`(`resume.cmd`가 읽어 `--host-slots`로 넘김). 그 줄은 N개 목록으로 나눠 받고 요청 **시작** 사이 1초 이상
+  - 설정 파일: 데이터 폴더의 `host-slots.txt`(`resume.cmd`가 읽어 `--host-slots`로 넘김). 그 줄은 N개 목록으로 나눠 받고 요청 **시작** 사이 1초 이상
   - 되돌림 조건 [안]: 평균 응답 14초 초과(요청 30건 이상 뒤)나 5번 연달아 실패면 1건으로 돌아감. 로그 `SLOTS OFF`
   - 첫 사용: 교보 대여·혼합형 후보 도서관 232곳. 모두 IP 103.182.126.192 한 대라 한 줄. 한 쪽(80권)에 약 8초(응답 약 7초 + 간격 1초), 약 52만 쪽이라 1건이면 약 50일 → **이 IP만 동시 4건, 요청 시작 사이 1초 이상** [확정] (사용자, 2026-10-04 canvas: "4건으로 해줘"). 설정 한 줄 `103.182.126.192=4`. 2026-10-04 17:03 시작, 예상 약 12일. 결정 페이지 plan `docs/research/ebook-catalog/easy/2026-10-04-kyobo-rental-speed-decisions.html`
-  - 3단계에서 수집기를 옮길 때 `host-slots.txt`도 같은 뜻으로 넘깁니다(ADR-0047 요청서 B). 이 파일이 없으면 모든 서버 1건으로 돌아갑니다(예의 규칙은 지켜지지만 느려짐)
+  - 수집기를 옮긴 뒤에도 같은 파일을 같은 뜻으로 읽습니다: 옮긴 `scripts/crawl/resume.cmd`는 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`·`host-slots.txt`를 그대로 읽음(2026-10-05). 이 파일이 없으면 모든 서버 1건으로 돌아갑니다(예의 규칙은 지켜지지만 느려짐)
 - 확인 스크립트(`probe_*.py`)는 아직 이 값을 받지 않습니다(서버마다 1건, 1초 고정)
 
 ## 3. 이어 받기와 상태 보기
@@ -85,11 +89,13 @@
 PC를 켠 뒤 한 번 실행합니다. 몇 번을 실행해도 안전합니다.
 
 ```
-C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\resume.cmd
+scripts\crawl\resume.cmd
 ```
 
+(갈아타기 전에는 `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\resume.cmd`. 위 1절 "갈아타기 전")
+
 - 끝난 도서관은 건너뛰고, 받다 멈춘 도서관은 저장된 마지막 쪽 다음부터 이어 받습니다.
-- 이미 수집이 돌고 있으면 두 번째는 시작하지 않습니다. 로그는 `chaekcheck-data\logs\crawl-{날짜_시각}.log`.
+- 이미 수집이 돌고 있으면 두 번째는 시작하지 않습니다. 로그는 데이터 폴더 `logs\crawl-{날짜_시각}.log`.
 - Bash에서 부를 때는 `cmd //c resume.cmd`가 파일을 못 찾으므로 PowerShell에서 `& "…\resume.cmd"`로 부릅니다.
 - **Windows 절전**이 켜져 있으면 멈춥니다. 오래 받을 때는 절전을 끄거나 다시 실행합니다.
 
@@ -128,11 +134,11 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | 받지 않는 도서관 | `library.crawl_skip`에 이유가 있으면 건너뜀(5-1절) |
 | 오디오북·상세 URL | `content_type`·`is_audiobook`·`kind_check`·`detail_url`은 SQLite 트리거가 채움(6·7절) |
 
-## 5. 명령 모음 (`chaekcheck-data` 폴더에서)
+## 5. 명령 모음 (저장소 뿌리에서. 데이터 폴더가 기본값과 다르면 `--data-dir 경로`)
 
 | 명령 | 하는 일 |
 |---|---|
-| `python -X utf8 scripts\crawl_catalog.py init` | dev seed CSV에서 도서관 목록을 다시 읽음(dev 파일은 읽기만). 이미 있는 줄은 갱신 |
+| `python -X utf8 scripts\crawl\crawl_catalog.py init` | dev seed CSV에서 도서관 목록을 다시 읽음(dev 파일은 읽기만). 이미 있는 줄은 갱신 |
 | `… import-bookcube [--probe 파일]` | `probe_other_platforms.py` 결과에서 열린 북큐브 사이트를 후보 도서관으로 넣음(id 100001부터, `source=okbari-2026-09-30`. 2026-10-03 것은 `--source okbari-2026-10-03`) |
 | `… import-probe --probe 파일 --source okbari-2026-10-03` | 교보 기관·YES24·알라딘 확인 결과에서 열린 사이트를 후보 도서관으로 넣음. 절차는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기" |
 | `… full --retry-failed --include-big-subscription --audio-pass --workers 40` | 이어 받기(`resume.cmd`가 부르는 것) |
@@ -145,9 +151,9 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | `… invalidate --platforms X,Y --reason "이유"` | 그 화면 종류 도서관을 모두 처음부터 다시 받게 표시(파서를 고친 뒤) |
 | `… status --skip {id} "{이유}"` | 그 도서관을 받지 않게 표시. 이유를 `""`로 주면 다시 받음 |
 | `… backfill-types` | 오디오북 표시·상세 URL을 모든 줄에 다시 계산(수집이 돌 때는 오래 막히므로 멈춘 뒤에) |
-| `… status` | 상태 요약 |
-| `python -X utf8 scripts\verify_detail_urls.py [결과.tsv] [화면종류,…]` | 상세 URL 확인. **수집과 같은 서버를 동시에 치지 않게** 화면 종류를 골라서 |
-| `python -X utf8 scripts\probe_other_platforms.py 입력.tsv 결과.tsv` | 후보 사이트 한 번씩 확인(입력: platform, name, url) |
+| `… status` | 상태 요약. 수집 DB를 읽기 전용으로 엶(수집 중에도 됨) |
+| `python -X utf8 scripts\crawl\verify_detail_urls.py [결과.tsv] [화면종류,…]` | 상세 URL 확인. **수집과 같은 서버를 동시에 치지 않게** 화면 종류를 골라서 |
+| `python -X utf8 scripts\library\candidates\probe_other_platforms.py 입력.tsv 결과.tsv` | 후보 사이트 한 번씩 확인(입력: platform, name, url) |
 
 ## 5-1. 받지 않는 도서관 (`library.crawl_skip`)
 

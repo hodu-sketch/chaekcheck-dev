@@ -5,3 +5,14 @@ CLAUDE.local.md
 
 # Local data files (collected SQLite, national bibliography TTL/zip, import dumps). Never committed.
 data/
+
+# Collector data and run settings stay in the data folder outside git (ADR-0047 B/C). Guards in case any is copied here.
+scripts/**/*.sqlite
+scripts/**/*.sqlite-*
+scripts/**/logs/
+scripts/**/secrets/
+scripts/**/other-platforms/
+scripts/**/queue-by-ip.txt
+scripts/**/host-slots.txt
+__pycache__/
+*.bak-*

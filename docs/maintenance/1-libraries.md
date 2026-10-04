@@ -39,21 +39,21 @@
 
 웹러브 북스 기관 목록(교보는 교보 공식 기관 목록)의 사이트를 한 번씩 열어 보고(열리는지, 화면 종류, 권수), 열린 곳을 수집 DB `library`에 후보 도서관으로 넣는 절차입니다. 원문: plan `docs/research/ebook-catalog/crawl-runbook.md` 8-1절 (2026-10-03), 같은 문서 4절 "dev에 반영할 것" (2026-10-04).
 
-- **도구 위치**: 아직 `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\scripts\`에 있습니다(git 밖). 3단계(ADR-0047 요청서 B·C, 사용자가 수집기를 멈춘 뒤)에 `probe_*.py`는 dev `scripts/library/`(예: `scripts/library/candidates/`) [안], `import-probe`·`import-bookcube`는 수집기와 함께 `scripts/crawl/` [안]로 옮깁니다. 옮긴 뒤 이 절의 경로를 고칩니다.
+- **도구 위치** (2026-10-05 복사, ADR-0047 B·C): 확인 스크립트 `probe_*.py`는 `scripts/library/candidates/`, 수집 DB에 넣는 `import-probe`·`import-bookcube`는 수집기 `scripts/crawl/crawl_catalog.py` 안. 결과·입력 TSV는 git 밖 데이터 폴더 `other-platforms\`에 둡니다(아래). 저장소 뿌리에서 `python -X utf8 scripts\library\candidates\probe_yes24.py 입력.tsv 결과.tsv`처럼 부르고, TSV 경로는 데이터 폴더 기준으로 줍니다.
 - 웹러브 북스 목록 https://ebook.okbari.net/library 는 제3자 자료(수집 기준일 2026-02-06으로 보임)라 그대로 믿지 않고 2번에서 한 번씩 확인합니다. 모으는 방법은 `library-maintenance.md` 4-4절.
 
 | 단계 | 교보 | YES24 | 북큐브 | 알라딘 |
 |---|---|---|---|---|
 | 1. 후보 목록 | plan `docs/cycles/02-library-expansion/data/kyobo-institutions.tsv` (교보 공식 목록, 2,000줄 → 사이트 1,937곳) | 웹러브 북스 기관 탭을 브라우저로 모음 → `chaekcheck-data/other-platforms/okbari-2026-10-03/part1~3.tsv`, `yes24-candidates.tsv`(시험·개발용 이름 제외 775곳) | 같은 방법 → `bookcube-candidates.tsv`(495곳) | 같은 방법 → `okbari-2026-10-03/aladin-candidates.tsv`(시험용 2곳 제외 163곳) |
-| 2. 한 번씩 확인 (열리는지, 화면 종류, 권수) | `scripts/probe_kyobo_institutions.py` → `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`. 첫 화면 `library_model`(소장·대여·혼합)도 적음 | `scripts/probe_yes24.py` → `okbari-2026-10-03/yes24-probe.tsv`. V1·V2·V3를 가림 | `scripts/probe_other_platforms.py` → `okbari-2026-10-03/bookcube-probe.tsv` | `scripts/probe_aladin.py` |
-| 3. 수집 DB 도서관 목록에 넣기 | `crawl_catalog.py import-probe --probe … --source okbari-2026-10-03` | 같음 | `crawl_catalog.py import-bookcube --probe … --source okbari-2026-10-03` | `import-probe`. 사이트마다 다른 전자책 메뉴 코드는 `base_url` 뒤 `?nav_code=…`로 저장 |
+| 2. 한 번씩 확인 (열리는지, 화면 종류, 권수) | `scripts/library/candidates/probe_kyobo_institutions.py` → `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`. 첫 화면 `library_model`(소장·대여·혼합)도 적음 | `scripts/library/candidates/probe_yes24.py` → `okbari-2026-10-03/yes24-probe.tsv`. V1·V2·V3를 가림 | `scripts/library/candidates/probe_other_platforms.py` → `okbari-2026-10-03/bookcube-probe.tsv` | `scripts/library/candidates/probe_aladin.py` |
+| 3. 수집 DB 도서관 목록에 넣기 | `scripts/crawl/crawl_catalog.py import-probe --probe … --source okbari-2026-10-03` | 같음 | `crawl_catalog.py import-bookcube --probe … --source okbari-2026-10-03` | `import-probe`. 사이트마다 다른 전자책 메뉴 코드는 `base_url` 뒤 `?nav_code=…`로 저장 |
 | 4. 받기 | [2-crawl.md](2-crawl.md): `full --retry-failed --platforms …` 또는 `resume.cmd` | 같음 | 같음 | 같음 |
 
 - 넣은 후보 도서관은 `library.source = okbari-2026-10-03`, id 100001부터. 이미 있는 주소는 3번에서 건너뜁니다. 2026-09-30에 먼저 넣은 북큐브 134곳은 `source=okbari-2026-09-30`([2-crawl.md](2-crawl.md) 5절).
 - 교보 대여·혼합형(2026-10-04 넣음, 232곳, 11곳은 이미 있음): `kyobo-institutions-probe-2026-10-03.tsv`에서 `model`이 대여·혼합인 줄만 골라 `import-probe`, `source=okbari-2026-10-03-rental`. 모두 IP 103.182.126.192 한 대라 받는 속도는 [2-crawl.md](2-crawl.md) 2-1절 "서버(줄)별 동시 요청 수".
 - 확인 스크립트는 모두 결과를 한 줄씩 바로 저장하고, 다시 돌리면 이미 확인한 곳을 건너뜁니다. 도구의 백그라운드 작업은 30분쯤에 끊기므로 긴 작업은 PowerShell `Start-Process`로 따로 띄웁니다(2026-10-03 교보 확인이 끊겨 결과를 잃은 뒤 고침).
 - 확인 스크립트는 서버마다 1건·1초 고정이고 `--workers`·`--host-slots` 값을 받지 않습니다. 수집과 같은 서버를 동시에 치지 않게 띄우기 전에 서버가 겹치는지 봅니다([2-crawl.md](2-crawl.md) 2절).
-- 결과 TSV(`chaekcheck-data\other-platforms\*.tsv`, 기관 이름·주소·권수)를 git에 넣을지는 3단계에서 dev가 크기와 내용을 보고 정합니다 [확인 필요: 크기와 내용 확인].
+- 결과 TSV(데이터 폴더 `other-platforms\*.tsv`)는 git에 넣지 않습니다 (dev 판단, 2026-10-05). 내용은 공개된 기관 이름·주소·권수·공지 제목뿐이고 크기도 작지만(TSV 9개 약 0.75MB, 하위 폴더 0.4MB), 실행 결과라 데이터 폴더에서 계속 바뀌고(`kyobo-limits-log.tsv`는 매일 더해짐) git에 복사하면 두 벌이 어긋나며, 팝업 그림(1.7MB)은 기관이 만든 그림입니다. 남길 사실(넣은 곳 수, 결정)은 이 문서와 plan `crawl-runbook.md` 8-2절에 적습니다.
 - 진행 숫자(플랫폼별 열림·오류·넣은 곳)는 plan `crawl-runbook.md` 8-2절에 남습니다.
 - 가입 자격: 후보 도서관은 찾을 때 가입 자격을 조사하지 않았습니다. 후보 도서관을 등록 도서관으로 옮기는 사이클에서, 넣을 범위를 정한 뒤 dev가 1단계 절차(`library-maintenance.md` 4-8·4-10절)로 조사합니다(plan `periodic-tasks.md` 5절 순서 [안], 6절 "1단계 절차로 조사"). 그때 `CLAUDE.md` "Library Research Record" 규칙대로 기록합니다.
 
@@ -61,10 +61,12 @@
 
 교보 구독형 사이트(대여·혼합형)가 1인 월 권수, 월·연 예산 마감, 다시 열리는 날을 공지했는지 보는 절차입니다. 원문: plan `crawl-runbook.md` 4절 "dev에 반영할 것" (2026-10-04), 조사 기록과 결과는 plan `docs/research/library-limits/research.md` 3-1절, 알리는 방법 결정은 같은 문서 4절.
 
-- **도구**: `probe_kyobo_limits.py`. 아직 `chaekcheck-data\scripts\`에 있고(git 밖), 3단계에 dev `scripts/library/`로 옮깁니다 [안]. 실행 인자는 옮길 때 적습니다 [확인 필요].
+- **도구** (2026-10-05 복사, ADR-0047 C): `scripts/library/probe_kyobo_limits.py`. 수집 DB에서 교보 구독형 중 대여·혼합형(`library_model`) 도서관을 읽기 전용으로 읽습니다.
+  - 한 번 조사: `python -X utf8 scripts\library\probe_kyobo_limits.py 결과.tsv` (다시 돌리면 결과에 있는 도서관은 건너뜀)
+  - 매일 확인: `scripts\library\limits-daily.cmd` = `probe_kyobo_limits.py --log other-platforms\kyobo-limits-log.tsv other-platforms\kyobo-limits-images`. 처음 보는 팝업·공지만 로그에 더하고(`first_seen`), 새 팝업 그림을 내려받아 둠. 그림은 사람이 나중에 읽음. 데이터 폴더에서 돌고 로그는 데이터 폴더 `logs\limits-daily-{날짜}.log`
 - 읽는 곳: 교보 구독형 사이트의 `/popup/popupMain.json`(첫 화면 팝업), `/main/firstBoardBlbrSrmb.json`, `/board/listBoard.json`(공지 게시판). **로그인 없이, 3초 간격**.
 - 팝업·공지 본문은 대개 그림이라 제목과 날짜를 읽고, 필요한 그림은 내려받아 읽습니다(예: 기장 `https://ss21.kr:442/images1/gijanglib_20261001.jpg`, 서구 `https://ss21.kr:442/images1/seogulib_20260923.jpg`).
-- 결과: `chaekcheck-data\other-platforms\kyobo-limits-2026-10-04.tsv`. 2026-10-04에 등록 도서관 교보 구독형 16곳 + 후보 도서관 교보 대여·혼합형 232곳 = 248곳을 확인했고, 마감 관련 제목이 있던 곳은 강동구립·서구 두 곳(plan `library-limits/research.md` 3-1절).
+- 결과: 데이터 폴더 `other-platforms\kyobo-limits-2026-10-04.tsv`. 2026-10-04에 등록 도서관 교보 구독형 16곳 + 후보 도서관 교보 대여·혼합형 232곳 = 248곳을 확인했고, 마감 관련 제목이 있던 곳은 강동구립·서구 두 곳(plan `library-limits/research.md` 3-1절).
 - **주의: "공지 없음"은 "이용 가능"이 아닙니다.** 월 예산 소진은 로그인하고 대출을 눌러야 보입니다("이용기관의 월간 대여 횟수가 초과되었습니다"). 그래서 이 확인은 마감 공지가 있는지만 봅니다.
 - 교보 구독형 사이트에는 매달 말 "구독형 디지털도서관 ○월 뉴스레터"가 올라옵니다. 뉴스레터가 끊긴 것(제주한라)이 마감 신호인지는 확인 못 함 [확인 필요].
 - 언제: 1단계를 할 때(도서관별 1인 월 권수와 한 해 운영 기간은 이용안내에서 읽음), 마감 공지는 정기 점검 때 사람이(나중에는 수집기가) 확인 [확정] (사용자 승인, 2026-10-04, plan `library-limits/research.md` 4절). 값을 어디에 둘지(도서관 정보 칸 / 따로 "구독 규칙")는 사이클에서 정함 [확인 필요: 사이클에서 결정].

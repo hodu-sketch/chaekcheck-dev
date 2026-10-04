@@ -1,0 +1,39 @@
+@echo off
+rem Resume the e-book catalogue crawl. Safe to run again at any time:
+rem finished libraries are skipped, unfinished ones continue from the last saved page.
+rem Only one copy may run at a time (two copies would hit the same library sites together). The check also finds a
+rem collector started from the old chaekcheck-data\scripts copy.
+rem
+rem Parallelism is chosen per run:  resume.cmd [WORKERS] [PER_HOST] [GAP]
+rem   WORKERS   servers crawled at the same time            (default 40)
+rem   PER_HOST  requests at once on one server              (default 1 = agreed politeness rule)
+rem   GAP       seconds between requests to one server      (default 1.0)
+rem   e.g.  resume.cmd 60 1 1.0
+rem
+rem The code is in the dev repository (scripts\crawl, ADR-0047 B); the data stays outside git in the data folder:
+rem CHAEKCHECK_DATA if set, else the chaekcheck-data folder next to the repository. queue-by-ip.txt, host-slots.txt
+rem and logs\ are read and written there, with the same meaning as before the move.
+set HERE=%~dp0
+if "%CHAEKCHECK_DATA%"=="" set CHAEKCHECK_DATA=%HERE%..\..\..\chaekcheck-data
+cd /d "%CHAEKCHECK_DATA%" || exit /b 1
+set WORKERS=%1
+set PER_HOST=%2
+set GAP=%3
+if "%WORKERS%"=="" set WORKERS=40
+if "%PER_HOST%"=="" set PER_HOST=1
+if "%GAP%"=="" set GAP=1.0
+rem Queues by IP (user decision 2026-10-04): while the file queue-by-ip.txt exists, every IP gets one queue
+rem (shared servers split by IP, domains on one IP share a queue). Delete the file to queue by host name again.
+set SPLITARG=
+if exist queue-by-ip.txt set SPLITARG=--queue-by-ip
+rem Requests at once for chosen queues (user decision 2026-10-04): host-slots.txt holds one line "IP=N,IP=N".
+set SLOTS=
+if exist host-slots.txt set /p SLOTS=<host-slots.txt
+if not "%SLOTS%"=="" set SPLITARG=%SPLITARG% --host-slots "%SLOTS%"
+powershell -NoProfile -Command "if (Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*crawl_catalog.py*' -and $_.CommandLine -like '* full *' }) { exit 0 } else { exit 1 }" && (
+  echo crawl_catalog.py is already running. Not starting a second copy.
+  exit /b 1
+)
+for /f %%d in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HHmm"') do set STAMP=%%d
+python -X utf8 "%HERE%crawl_catalog.py" --data-dir "%CHAEKCHECK_DATA%" full --retry-failed --include-big-subscription --audio-pass --workers %WORKERS% --per-host %PER_HOST% --gap %GAP% %SPLITARG% > logs\crawl-%STAMP%.log 2>&1
+python -X utf8 "%HERE%crawl_catalog.py" --data-dir "%CHAEKCHECK_DATA%" status >> logs\crawl-%STAMP%.log 2>&1
