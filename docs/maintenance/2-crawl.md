@@ -2,9 +2,11 @@
 
 - 정기 유지보수 2단계의 **절차 원본**입니다(plan ADR-0047, 2026-10-04). 순서 전체는 [README.md](README.md).
 - 옮겨 온 곳: plan `docs/research/ebook-catalog/crawl-runbook.md` 0·2·2-1·3·4·5·5-1·6·7·9·10절 (2026-10-04, 내용은 그대로, 경로만 고침). 2절(받는 순서와 호출 예의)은 요청서 목록에 없었지만 2-1절과 IP 줄 세우기의 전제라 함께 옮겼습니다.
-- plan에 남는 것: 지금 상태(1절), 웹러브 북스 나머지 기관 진행과 다음 할 일(8절), 원칙 `crawl-method.md`, 조사 `research.md`, 규칙 근거 `catalog-refresh.md`·`same-book-isbn.md`·`search-and-normalization.md` (모두 plan `docs/research/ebook-catalog/`).
+- plan에 남는 것: 지금 상태(1절), 후보 도서관(웹러브 북스 기관) 진행과 다음 할 일(8절), 원칙 `crawl-method.md`, 조사 `research.md`, 규칙 근거 `catalog-refresh.md`·`same-book-isbn.md`·`search-and-normalization.md` (모두 plan `docs/research/ebook-catalog/`).
 - 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\README.md` (수집기와 함께 옮길 예정).
 - 요청 머리글(User-Agent)에 개인 연락처를 넣지 않습니다(plan `crawl-method.md`).
+- 도서관 목록 이름 [확정] (사용자, 2026-10-04): **등록 도서관**(서비스 DB, dev seed, 278곳) / **후보 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스에서 찾음, 2,738곳). 수집기는 둘 다 받습니다. 자세히는 [1-libraries.md](1-libraries.md).
+- 옮긴 뒤 plan 수집 세션에서 바뀐 것(2-1절 서버별 동시 요청 수, 4절 이어 받기·다른 정렬로 채우기·알려진 빈틈, 6절 알라딘·YES24 오디오북·0권)은 plan `crawl-runbook.md` 4절 "dev에 반영할 것"에서 더했습니다(2026-10-04, ADR-0047 요청서 D).
 
 ## 0. 읽는 순서
 
@@ -13,7 +15,7 @@
 | 순서 | 문서 | 무엇을 알 수 있나 |
 |---|---|---|
 | 1 | 이 문서 | 이어 받기, 명령, 문제별 대처, 새 사이트 붙이는 순서 |
-| 1-1 | plan `crawl-runbook.md` 1·8절 | 지금 상태(어디까지 받았나), 웹러브 북스 기관 진행, 결정 기록 |
+| 1-1 | plan `crawl-runbook.md` 1·8절 | 지금 상태(어디까지 받았나), 후보 도서관(웹러브 북스 기관) 진행, 결정 기록 |
 | 2 | [platforms.md](platforms.md) | **플랫폼별 크롤링 방법**: 검색 주소, 전체 목록 주소, 한 쪽 크기, 줄 선택자, 상세 URL, 오디오북 구분, 사이트별 예외 |
 | 3 | plan `crawl-method.md` | 원칙(호출 예의, 저장 범위, 날짜 3층, 수집 항목)과 그 근거가 된 사용자 결정 |
 | 4 | `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\README.md` | 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명, 파일 목록 |
@@ -29,13 +31,16 @@
 | `crawl_catalog.py` | 수집기. 도서관 목록 불러오기, 전체 수집, 이어 받기, 상태, 다시 받기 표시, 받지 않기 표시 |
 | `verify_detail_urls.py` | 도서관·종류마다 상세 URL 한 건을 열어 그 책 제목이 나오는지 확인 |
 | `probe_other_platforms.py` | 북큐브·알라딘 후보 사이트를 한 번씩 호출해 열리는지·권수 확인 |
-| `probe_kyobo_institutions.py`, `probe_yes24.py`, `probe_aladin.py` | 교보 기관·YES24·알라딘 후보를 한 번씩 확인(열리는지, 화면 종류, 권수). 쓰는 순서는 plan `crawl-runbook.md` 8-1절 |
-| `..\resume.cmd` | 이어 받기 한 번 실행(두 개 동시 실행을 막음) |
+| `probe_kyobo_institutions.py`, `probe_yes24.py`, `probe_aladin.py` | 교보 기관·YES24·알라딘 후보를 한 번씩 확인(열리는지, 화면 종류, 권수). 쓰는 순서는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기" (원문 plan `crawl-runbook.md` 8-1절) |
+| `probe_kyobo_limits.py` | 교보 구독형 사이트의 팝업·공지 제목과 날짜 확인. 절차는 [1-libraries.md](1-libraries.md) "구독 규칙·마감 확인" |
+| `..\resume.cmd` | 이어 받기 한 번 실행(두 개 동시 실행을 막음). 같은 폴더의 `queue-by-ip.txt`·`host-slots.txt`를 읽음 |
+
+`probe_*.py`(후보 도서관 찾기, 구독 규칙·마감 확인)는 수집 일 나눔에서 ① 도서관 정보 도구라, 3단계에 `scripts/crawl/`이 아니라 dev `scripts/library/`로 갑니다 [확정] (사용자, 2026-10-04, ADR-0047 요청서 C).
 
 ## 2. 받는 순서 [확정] (사용자, 2026-09-30: "278곳 먼저가 우선인데 웹러브 북스에 있는 책은 거의 다 수집")
 
 - 순위 1 → 2 → 3 → 4. 순서는 **같은 호스트 안에서** 지키고, 호스트가 다르면 동시에 받습니다.
-  - 순위: 1 dev seed의 켜진 도서관(교보·YES24·포털·강남구·작은 구독형), 2 큰 교보 구독형 16곳, 3 북큐브(웹러브 북스 목록에서 공공으로 보이고 열린 곳), 4 웹러브 북스 나머지 기관 (plan `crawl-runbook.md` 1절 표)
+  - 순위: 1 등록 도서관 중 dev seed에서 켜진 곳(교보·YES24·포털·강남구·작은 구독형), 2 큰 교보 구독형 16곳(등록 도서관), 3 북큐브 후보 도서관(웹러브 북스 목록에서 공공으로 보이고 열린 곳), 4 나머지 후보 도서관(웹러브 북스 기관) (plan `crawl-runbook.md` 1절 표)
 - 호출 예의: 같은 호스트 한 번에 1건, 1초 이상 간격 [확정] (사이클 01 spec 5.6). 공용 호스팅 `*.dkyobobook.co.kr`, `*.bookcube.biz`, `*.dasangng.co.kr`, `*.aladinebook.co.kr`, `*.yes24library.com`, `*.libworks.co.kr`, `*.hongjicns.co.kr`은 각각 한 서버로 봅니다(`crawl_catalog.py`의 `host_key`). 포트만 다른 사이트(`ebook.jbe.go.kr:10031`, `:10111` …)도 같은 호스트입니다.
 - **사이트 종류·서버가 다르면 병렬로** [확정] (사용자, 2026-10-03): 교보 서버 작업, 북큐브 서버 작업, YES24 작업, 도서관 자체 서버 작업은 따로 동시에 돌립니다. 확인(probe)과 수집(crawl)도 서버가 겹치지 않으면 동시에 돌립니다. 같은 서버를 쓰는 두 작업을 동시에 띄우지 않습니다(띄우기 전에 서버가 겹치는지 확인).
 - 큰 교보 구독형 16곳은 모두 한 서버라 한 곳씩 차례로 받습니다(한 쪽 80권 약 4초, 한 곳 3~4시간).
@@ -68,6 +73,11 @@
   - 되돌림 조건 [안]: 공용 서버의 IP 줄 하나라도 평균 응답이 12초를 넘거나(요청 30건 이상 뒤) 5번 연달아 실패하면, 그 업체의 IP 전부를 한 줄로 다시 묶음. 로그 `SPLIT OFF: <IP> (<업체>)`
   - 설정: `chaekcheck-data\queue-by-ip.txt` 파일이 있으면 `resume.cmd`가 `--queue-by-ip`로 실행. 파일을 지우면 도메인 이름 기준(이전 방식)으로 돌아감. 응답 시간은 로그 `timing <IP> (<업체>): avg …s`(줄마다 200건마다). 시험 때 쓰던 `split-ip.txt`·`--split-ip`는 없앰
   - 쉬운 설명: plan `docs/research/ebook-catalog/easy/2026-10-04-crawl-method-now.html`(지금 수집 방법), `…/easy/2026-10-04-platform-servers.html`(플랫폼 타입별 서버 구조)
+- **서버(줄)별 동시 요청 수** `--host-slots KEY=N,…` (2026-10-04). 사용자가 정한 줄만 동시 N건으로 받습니다.
+  - 설정 파일: `chaekcheck-data\host-slots.txt`(`resume.cmd`가 읽어 `--host-slots`로 넘김). 그 줄은 N개 목록으로 나눠 받고 요청 **시작** 사이 1초 이상
+  - 되돌림 조건 [안]: 평균 응답 14초 초과(요청 30건 이상 뒤)나 5번 연달아 실패면 1건으로 돌아감. 로그 `SLOTS OFF`
+  - 첫 사용: 교보 대여·혼합형 후보 도서관 232곳. 모두 IP 103.182.126.192 한 대라 한 줄. 한 쪽(80권)에 약 8초(응답 약 7초 + 간격 1초), 약 52만 쪽이라 1건이면 약 50일 → **이 IP만 동시 4건, 요청 시작 사이 1초 이상** [확정] (사용자, 2026-10-04 canvas: "4건으로 해줘"). 설정 한 줄 `103.182.126.192=4`. 2026-10-04 17:03 시작, 예상 약 12일. 결정 페이지 plan `docs/research/ebook-catalog/easy/2026-10-04-kyobo-rental-speed-decisions.html`
+  - 3단계에서 수집기를 옮길 때 `host-slots.txt`도 같은 뜻으로 넘깁니다(ADR-0047 요청서 B). 이 파일이 없으면 모든 서버 1건으로 돌아갑니다(예의 규칙은 지켜지지만 느려짐)
 - 확인 스크립트(`probe_*.py`)는 아직 이 값을 받지 않습니다(서버마다 1건, 1초 고정)
 
 ## 3. 이어 받기와 상태 보기
@@ -104,14 +114,16 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | 상황 | 동작 |
 |---|---|
 | 목록이 하나인 사이트(교보, 교보 구독형, 강남구, 북큐브, 오디오북 메뉴 없는 YES24) | `crawl_run.last_page`까지 저장. 다음 실행 때 그 다음 쪽부터 |
-| 목록이 여럿인 사이트(포털 EBK·ADO, 오디오북 메뉴 있는 YES24) | 처음부터 다시(작아서 괜찮음) |
+| 오디오북 메뉴 있는 YES24(MAIN·AUDIO) | 읽던 목록(`crawl_run.cur_section`)과 쪽(`last_page`)부터 이어 받음. 끝난 목록의 건수는 `done_total` (2026-10-04 15:56부터. 그 전에는 다시 켤 때마다 1쪽부터 다시 받아 여주대·경운대·대림대처럼 6,000~8,000쪽인 곳이 이날 다섯 번 처음으로 돌아감) |
+| 목록이 여럿인 포털(EBK·ADO) | 처음부터 다시(작아서 괜찮음) |
 | 이어 받을 실행 고르기 | 그 도서관의 **마지막** 실행이 "받는 중"일 때만 이어 받음. 더 오래된 "받는 중"은 버림 |
 | 다시 받을 도서관 고르기 (`--retry-failed`) | 마지막 실행이 실패·불일치·받는 중이거나, **전체 목록을 한 번도 끝까지 받지 못한** 곳 (오디오북 목록만 성공한 경우 포함) |
 | 성공 판정 | 서로 다른 책 수가 사이트 총 건수와 1% 안, 또는 **읽은 줄 수**가 총 건수와 1% 안(목록 안에 같은 책이 겹치는 교보 구독형). 포털은 총 건수가 없어 빈 쪽까지 읽으면 성공 |
 | 빠진 책 | 성공한 전체 수집에서만, 이번에 못 본 줄에 `removed_at`을 찍음(지우지 않음). 받은 구역(`section`) 안에서만 |
 | 요청 실패 | 30초 간격 3번 다시. 첫 쪽이면 그 도서관 실패 |
 | 목록 대신 오류 화면 | 같은 쪽을 30초 간격 3번 다시 읽음(영천·영주에서 봄) |
-| 한 쪽이 깨짐(HTTP 5xx, 또는 다시 읽어도 오류 화면) | 그 쪽만 건너뛰고 계속. 끝난 뒤 **건너뛴 쪽만 다시 읽음**(대부분 잠깐 오류라 여기서 채워짐). 그래도 깨지는 쪽이 있고 YES24면 **출판일순으로 한 번 더** 읽어 채움(아산 131쪽, 금산 20쪽). 남은 쪽은 `crawl_run.error`에 적음 (2026-10-02: 경산이 잠깐 오류 10여 쪽 때문에 5,946쪽 전체를 다시 읽던 것을 고침) |
+| 한 쪽이 깨짐(HTTP 5xx, 또는 다시 읽어도 오류 화면) | 그 쪽만 건너뛰고 계속. 끝난 뒤 **건너뛴 쪽만 다시 읽음**(대부분 잠깐 오류라 여기서 채워짐). 그래도 깨지는 쪽이 있으면 **다른 정렬(출판일순)로 한 번 더** 읽어 채움: YES24 `sort=pubdt`(아산 131쪽, 금산 20쪽), 북큐브 `sort=2`, 알라딘 `order_list=1` (북큐브·알라딘은 2026-10-04부터. 전에는 YES24만이라 대원대·성균관대(북큐브), 아주자동차대(알라딘)가 사이트 오류 쪽 때문에 `MISMATCH`였음). 남은 쪽은 `crawl_run.error`에 적음 (2026-10-02: 경산이 잠깐 오류 10여 쪽 때문에 5,946쪽 전체를 다시 읽던 것을 고침) |
+| 알려진 빈틈: 다시 켜기 전에 건너뛴 쪽 | 수집기를 다시 켜기 전에 건너뛴 쪽(사이트 오류)은 다시 켠 뒤 기억하지 못해 다시 읽지 않음 → 그 쪽 책이 빠짐(천상중학교 1,181/1,201). 그 도서관은 "전체 성공 없음"으로 남아 다음 재시작 때 처음부터 다시 받음. 고칠 방법 [안]: 건너뛴 쪽 목록을 `crawl_run`에 저장 |
 | 책 코드 없는 줄 | 그 줄만 건너뛰고 개수를 `crawl_run.error`에 적음. 총 건수 비교에서 뺌 |
 | 받지 않는 도서관 | `library.crawl_skip`에 이유가 있으면 건너뜀(5-1절) |
 | 오디오북·상세 URL | `content_type`·`is_audiobook`·`kind_check`·`detail_url`은 SQLite 트리거가 채움(6·7절) |
@@ -121,9 +133,11 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | 명령 | 하는 일 |
 |---|---|
 | `python -X utf8 scripts\crawl_catalog.py init` | dev seed CSV에서 도서관 목록을 다시 읽음(dev 파일은 읽기만). 이미 있는 줄은 갱신 |
-| `… import-bookcube [--probe 파일]` | `probe_other_platforms.py` 결과에서 열린 북큐브 사이트를 도서관으로 넣음(id 100001부터, `source=okbari-2026-09-30`) |
+| `… import-bookcube [--probe 파일]` | `probe_other_platforms.py` 결과에서 열린 북큐브 사이트를 후보 도서관으로 넣음(id 100001부터, `source=okbari-2026-09-30`. 2026-10-03 것은 `--source okbari-2026-10-03`) |
+| `… import-probe --probe 파일 --source okbari-2026-10-03` | 교보 기관·YES24·알라딘 확인 결과에서 열린 사이트를 후보 도서관으로 넣음. 절차는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기" |
 | `… full --retry-failed --include-big-subscription --audio-pass --workers 40` | 이어 받기(`resume.cmd`가 부르는 것) |
 | `… full … --workers N --per-host N --gap S` | 병렬 정도 고르기 (2-1절) |
+| `… full … --host-slots KEY=N,…` | 정한 줄만 동시 N건 (2-1절). `resume.cmd`는 `host-slots.txt`에서 읽어 넘김 |
 | `… full --only 12,13` | 도서관 몇 곳만 |
 | `… full --platforms YES24_V1,YES24_V2` | 화면 종류 몇 개만 |
 | `… full --sections AUDIO` | YES24 오디오북 목록만(그 구역 안에서만 빠짐 표시) |
@@ -154,6 +168,7 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | `IncompleteRead` | 큰 쪽에서 응답이 끊김 | 위와 같이 한 쪽을 줄임 |
 | `IntegrityError('NOT NULL constraint failed: holding.title')` | 제목이 빈 책 | 북큐브 3곳(백석 `bu.bookcube.biz`, 안산대 `ebook.ansan.ac.kr`, 경북보건대 `lib.kcs.ac.kr:8080`)에서 났음. 안산 `F0002074`는 XML 목록과 상세 화면 모두 제목이 비어 있었음. 그 줄만 건너뛰고 셈(`skip`)하도록 고침 (2026-10-04, 사용자 "북큐브 실패 3곳도 고쳐서 받아줘") |
 | `SPLIT OFF` | 공용 서버의 한 IP가 느려지거나 계속 실패 | 그 업체 IP가 모두 한 줄로 묶여 계속 받음. 로그 `timing`으로 응답 시간을 보고, 차단이 의심되면 수집을 멈추고 사용자에게 알림 |
+| `SLOTS OFF` | `--host-slots`로 N건 보내던 줄이 평균 응답 14초 초과(요청 30건 이상 뒤)나 5번 연달아 실패 [안] | 그 줄이 1건으로 돌아가 계속 받음. 차단이 의심되면 수집을 멈추고 사용자에게 알림 (2-1절) |
 | `div.total em missing`, `book_resultTxt missing`이 첫 쪽에서 | 브라우저로 첫 화면을 봄 | 주소가 옮겼는지(군포), 화면 종류가 바뀌었는지 확인. 옮겼으면 새 주소가 이미 목록에 있는지 보고 없으면 넣고, 있으면 `--skip` |
 | 빈 쪽·연결 끊김인데 브라우저는 열림 | 머리글을 바꿔도 같은지 한두 번만 시험 | 자동 접근 차단 → `--skip`에 이유 적고 사용자에게 알림(국회·김천) |
 | 브라우저도 안 열림 | 같은 기관의 다른 주소(통합 포털 등)에 같은 책이 있는지 | 있으면 `--skip`, 없으면 다음 갱신 때 다시 |
@@ -162,6 +177,10 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | `MISMATCH`이고 받은 수가 크게 적음 | 책 번호를 잘못 읽는지(예: 숫자만 읽음) | 파서를 고치고 `invalidate`로 그 화면 종류를 다시 받음 |
 | 상세 URL이 다른 책·빈 화면 | `verify_detail_urls.py` 결과 | 목록 링크를 그대로 쓰는지, 필요한 값(`menu_idx` 등)이 빠졌는지 확인하고 고친 뒤 `invalidate` |
 | 같은 쪽이 늘 끊김(시간 초과)이고 정렬을 바꿔도 그대로 | 문제의 책이 든 쪽이 끊기는 것 | **목록을 작게 나눠 읽음**: 교보는 분야별 목록(`content/contentList.ink?cttsDvsnCode=001&contentAll=Y&ctgrId={분야 앞 두 자리}`)을 80권씩 → 끊긴 쪽만 10권씩 → 그래도 끊기면 1권씩. 칠곡(2026-10-02~03)은 1권씩 읽은 쪽이 모두 열려 9,348권 중 9,347권을 받음(분야 목록 합계 기준으로는 전부). 분야 코드 앞 두 자리는 이미 받은 줄의 `category_code`에서 얻음. YES24는 출판일순 전체 다시 읽기(경산 59,432/59,451권) |
+| 알라딘 `MISMATCH`가 거의 모든 곳에서, 서로 다른 책이 약 100권뿐 | 쪽을 넘겨도 거의 같은 목록이 오는지 | `startPage`는 쪽 번호가 아니라 0부터 세는 책 순번([platforms.md](platforms.md) 8절). 수집기를 `(쪽-1)×100`으로 고치고 `invalidate --platforms ALADIN_V1` (2026-10-04 15:50) |
+| 알라딘 `empty page N of M`, `skipped … row without goods_id` | 책 번호에 영문이 섞였는지 | 책 번호에 영문이 섞임(`BOOKRAILN0809003`, 한국해양대 `kmou.aladinebook.co.kr`). 영문·숫자로 읽게 고치고 알라딘 25곳 다시 받음 (2026-10-04 16:01) |
+| 성공인데 0권이고 웹러브 북스 숫자는 큼 | 브라우저로 목록을 다시 봄 | 그때 사이트가 빈 목록을 줌. 국립군산대(교보 `ebook.kunsan.ac.kr:88`, 18,771권): 다시 보니 정상이라 다시 받음 (2026-10-04) |
+| `AUDIO list unreadable, skipped` (`crawl_run.error`에 `AUDIO-list-unreadable`) | YES24 `AUDIO` 첫 쪽이 오류(500)나 다른 화면(`div.total em missing`)인지 | 전에는 도서관 전체가 실패하던 것 → 오디오북 목록만 건너뛰고 전자책 목록은 받음 (2026-10-04, 칠보중학교 `chilbo.yes24library.com`, 국제뇌교육종합대학원대학교 `ube.yes24library.com`) |
 | 새 종류 표시 값(`content_kind`)이 생김 | `SELECT content_kind, count(*) … GROUP BY 1` | `crawl_catalog.py`의 `TYPE_CASE`에 더하고 해당 줄만 `UPDATE`(북큐브 `book/aud` = 오디오북이 이렇게 발견됨) |
 
 ## 7. 새 사이트·새 플랫폼 붙이는 순서

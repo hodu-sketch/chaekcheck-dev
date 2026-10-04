@@ -1,7 +1,8 @@
 # 정기 유지보수: 도서관 목록 → 책 목록 → 서비스 반영
 
 - 주기적으로 하는 유지보수 작업의 **절차 원본**입니다(plan ADR-0047, 2026-10-04). 원칙: 절차의 원본은 dev, 조사 기록·근거·결정은 plan [확정] (사용자, 2026-10-01).
-- 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기)과 6절(확인 필요)은 plan에 남습니다.
+- 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기, 지금 이름으로는 후보 도서관을 등록 도서관으로 옮기기)과 6절(확인 필요)은 plan에 남습니다.
+- 도서관 목록은 둘입니다 [확정] (사용자, 2026-10-04): **등록 도서관**(서비스 DB `library`, dev seed, 278곳, 검색에 나옴) / **후보 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스에서 찾음, 2,738곳, 책은 모으지만 검색에 안 나옴). 자세히는 [1-libraries.md](1-libraries.md) "도서관 목록 두 가지".
 - plan 저장소 위치: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-plan\` (아래 "plan `…`"은 이 폴더 기준 경로). 문서 색인은 plan `docs/reference-index.md`.
 - 주기와 순서는 모두 [안]입니다. 정하는 곳은 주기 갱신 사이클입니다(별도 사이클 [확정], plan `docs/research/ebook-catalog/catalog-refresh.md` 머리말).
 
@@ -9,14 +10,14 @@
 
 | 단계 | 하는 일 | 주기 | 절차 | 실행 도구 |
 |---|---|---|---|---|
-| 1 | 서비스 전자도서관 목록 확인 (새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계) | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `scripts/library/` (`CheckKyoboSites.java`, `CheckYes24Sites.java`, `check_code_spaces.py` …) |
+| 1 | 등록 도서관 목록 확인 (새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계), 후보 도서관 찾기, 구독 규칙·마감 확인 | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `scripts/library/` (`CheckKyoboSites.java`, `CheckYes24Sites.java`, `check_code_spaces.py` …). 후보 도서관 찾기·마감 확인 도구(`probe_*.py`)는 아직 `chaekcheck-data\scripts\` (3단계에서 옮김) |
 | 2 | 도서관마다 전자책 목록 받기 | 주 1회 전체 + 매일 신간 [확정] (plan `crawl-method.md` 2절). **신간 수집 명령은 아직 없음** → 지금은 전체만 | [2-crawl.md](2-crawl.md), 플랫폼별 방법 [platforms.md](platforms.md) | `chaekcheck-data\resume.cmd` (`crawl_catalog.py`) |
 | 3 | 받은 목록을 서비스 DB로 가져오기 (정리·같은 책 묶기) | [안] 2단계 전체 수집이 끝날 때마다 | [3-import.md](3-import.md) | `backend/`에서 `./gradlew bootRun` 프로필 `catalog-import` |
 | 4 | (자동) 사용자가 책을 찾으면 서비스 DB에서 찾고, 도서관 상세 페이지로 대출 상태를 실시간 조회 | 늘 | 아래 4절 | 서비스(`catalog`, `availability` 모듈) |
 
-1 → 2 → 3 순서로 이어집니다. 1에서 서비스 도서관이 바뀌면 2에서 그 도서관을 받고, 3에서 다시 가져와야 서비스 검색에 반영됩니다. 4는 사람이 돌리지 않지만, 4에서 나는 오류(상세 페이지를 못 읽음)가 1을 할 신호가 됩니다.
+1 → 2 → 3 순서로 이어집니다. 1에서 등록 도서관이 바뀌면 2에서 그 도서관을 받고, 3에서 다시 가져와야 서비스 검색에 반영됩니다. 4는 사람이 돌리지 않지만, 4에서 나는 오류(상세 페이지를 못 읽음)가 1을 할 신호가 됩니다.
 
-## 1. 서비스 전자도서관 목록 확인
+## 1. 도서관 목록 확인 (등록 도서관·후보 도서관)
 
 절차: [1-libraries.md](1-libraries.md) → [`docs/library-maintenance.md`](../library-maintenance.md). 볼 곳과 순서 [안]:
 
@@ -26,6 +27,8 @@
 4. 책 번호 체계 점검: `check_code_spaces.py` → 기준값과 비교. 크게 바뀌거나 새 화면 종류가 생기면 사용자에게 알림 [확정] (사용자, 2026-09-30) (4-11)
 5. 날짜가 정해진 것 확인: 꺼 둔 도서관 id 59·131 재개 확인 2027-01 (6-2), 중간 인증서 만료 2027-05-21·2027-11-02 ([`docs/library-site-issues.md`](../library-site-issues.md) 3절)
 6. 남은 확인 목록: `library-maintenance.md` 14절, plan `docs/reference-index.md` 6절 "도서관 목록·분류"
+7. 후보 도서관 찾기: 웹러브 북스 기관을 한 번씩 확인하고 수집 DB에 넣음 ([1-libraries.md](1-libraries.md) "후보 도서관 찾기")
+8. 구독 규칙·마감 확인: 교보 구독형 사이트의 팝업·공지 제목과 날짜 ([1-libraries.md](1-libraries.md) "구독 규칙·마감 확인")
 
 운영 중 신호(3xx, 읽기 실패, 시간 초과)별로 할 일은 `library-maintenance.md` 4-9절에 있습니다.
 
@@ -34,7 +37,7 @@
 절차: [2-crawl.md](2-crawl.md).
 
 1. `chaekcheck-data\resume.cmd` 실행. 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
-2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. `chaekcheck-data\queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절)
+2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. `chaekcheck-data\queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 사용자가 정한 줄만 동시 N건: `chaekcheck-data\host-slots.txt` (지금 `103.182.126.192=4`, 2-crawl 2-1절)
 3. 상태 보기: `python -X utf8 scripts\crawl_catalog.py status`, 로그 `chaekcheck-data\logs\crawl-*.log` (2-crawl 3·5절)
 4. 실패한 도서관: 2-crawl 6절 "문제별 대처". 막힌 사이트는 우회하지 않고 `crawl_skip`으로 표시 (2-crawl 5-1절)
 5. 끝난 뒤: 상세 주소 확인 `scripts\verify_detail_urls.py` (2-crawl 9절)
@@ -57,7 +60,7 @@
 
 ## 체크리스트 (한 바퀴)
 
-- [ ] 1단계: `library-maintenance.md` 4절 순서대로 확인, 바뀐 도서관은 seed 추가·수정(5·6절), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김
+- [ ] 1단계: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 seed 추가·수정(5·6절), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 후보 도서관 찾기·구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] 2단계: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 3단계: dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
 - [ ] 4단계: 서비스 로그에서 상세 페이지 읽기 실패가 늘었는지

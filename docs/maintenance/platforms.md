@@ -5,14 +5,14 @@
 - 목적: 전자도서관 사이트에서 **검색**(제목·저자·출판사)과 **전체 목록**(소장 전자책 전부)을 가져올 때 참고합니다.
 - 지금 서비스에 있는 adapter의 정확한 선택자는 `backend/src/main/java/com/chaekcheck/availability/internal/adapter/*.java` 주석이 원본입니다. adapter 설계는 사이클에서 합니다.
 - 화면 종류 값과 판별: [`docs/library-maintenance.md`](../library-maintenance.md) 1-3·4-6절, plan ADR-0016·ADR-0023. 수집 원칙(호출 간격·저장 범위·날짜 기록)은 plan `docs/research/ebook-catalog/crawl-method.md`, 조사 배경은 같은 폴더 `research.md`.
-- 실행 도구: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\scripts\crawl_catalog.py`(전체 목록 수집), `probe_other_platforms.py`(북큐브·알라딘 후보 1회 확인). 수집이 끝나면 dev `scripts/crawl/`로 옮김(ADR-0047 B).
+- 실행 도구: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\scripts\crawl_catalog.py`(전체 목록 수집), `probe_other_platforms.py`(북큐브·알라딘 후보 1회 확인). 수집이 끝나면 dev `scripts/crawl/`로 옮김(ADR-0047 B). 후보 도서관 찾기 도구(`probe_*.py`)와 절차는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기"(3단계에 dev `scripts/library/`로).
 - 새 플랫폼이나 사이트 예외를 알게 되면 이 문서에 더합니다(2-crawl 7절).
 
 ## 0. 공통 규칙
 
 | 항목 | 값 | 태그 |
 |---|---|---|
-| 같은 호스트 동시 요청 | 1건, 요청 사이 1초 이상 | [확정] (사이클 01 spec 5.6) |
+| 같은 호스트 동시 요청 | 1건, 요청 사이 1초 이상. 예외: 사용자가 정한 줄만 `--host-slots`로 동시 N건, 요청 시작 사이 1초 이상(지금 교보 대여·혼합형 103.182.126.192 = 4, [2-crawl.md](2-crawl.md) 2-1절) | [확정] (사이클 01 spec 5.6), 예외 [확정] (사용자, 2026-10-04) |
 | 같은 서버를 쓰는 여러 사이트 | 공용 호스팅 `*.dkyobobook.co.kr`, `*.bookcube.biz`, `*.dasangng.co.kr`, `*.aladinebook.co.kr`, `*.yes24library.com`, `*.libworks.co.kr`, `*.hongjicns.co.kr`은 각각 한 서버로 보고 한 줄로 세움. `ebook.jne.go.kr`·`ebook.jbe.go.kr`·`elib.gyeongnam.go.kr`처럼 포트만 다른 사이트도 같은 호스트. 서버가 다르면 병렬 | [확정] (사용자, 2026-10-03) |
 | User-Agent | `Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)`. 개인 연락처는 넣지 않음. 앞의 `Mozilla/5.0 (Windows…)`가 없으면 교보 구독형이 모바일 화면(전체 건수 없음)을 보냄 | 문자열 [안], 모바일 화면 [확정] |
 | TLS | 인증서 체인이 불완전하거나 옛 RSA 키 교환만 되는 도서관이 많음(dev ADR-0022). 공개 목록 조회에 한해 검증을 끄고 `SECLEVEL=0`으로 호출 | [확정] (현상), 처리 방법 [안] |
@@ -82,6 +82,7 @@
 - **검색 목록에 다른 종류가 섞임** [확정] (마포나루, 2026-09-30): 줄의 링크가 `/ebook/detail?goods_id=`(전자책), `/booklearning/detail?goods_id=`(동영상북, 메뉴 이름 "동영상북"), `/audiobook/detail?goods_id=`(오디오북). 상세 URL과 종류는 링크 경로 그대로 써야 함
 - 제목 앞 `[…]`: 분야일 때도 있고 시리즈명(예: `[100분 고전 013]`)일 때도 있음. 떼어 분야로 쓰면 안 됨 (다른 세션 점검, 2026-09-30)
 - **오디오북**: 전자책 검색과 따로 `{base}/audiobook/?mode=total&sort=title&cate_id=&page_num={쪽}` 목록. 모양은 V2와 같고 상세는 `/audiobook/detail/?goods_id=`. 첫 화면에 `href="/audiobook/"` 링크가 있는 사이트만 있음(춘천 975건, 청주·김제·한밭 0건)
+  - 링크가 있어도 `AUDIO` 첫 쪽이 오류(500)나 다른 화면(`div.total em missing`)인 곳이 있음(칠보중학교 `chilbo.yes24library.com`, 국제뇌교육종합대학원대학교 `ube.yes24library.com`) → 수집기는 오디오북 목록만 건너뛰고 전자책 목록은 받음 (2026-10-04, [2-crawl.md](2-crawl.md) 6절)
 - 상세(V2): 파일포맷(EPUB 등), 파일크기, 등록일, 출판일. ISBN 없음
 - 줄마다 책 코드가 없는 경우가 있음(경산·광주·속초·포천·금산 등) → 그 줄만 건너뜀
 - 예외 (2026-10-01 확인):
@@ -116,6 +117,7 @@
 - 기본 경로: 주소의 `/FxLibrary`, `/FxLibrary_xx`(교육청·경남처럼 한 서버에 여러 도서관), `/BookLive`까지
 - 전체 목록: `{base}/xml/productList/?itemCount={N}&page={쪽}&sort={1|2|3}` — `application/xml; charset=UTF-8`
   - `itemCount` 100 동작(대소문자 구분: `itemcount`는 무시). `sort` 1=제목, 2=출판일, 3=구매일(기본). **구매일순으로 신간 수집 가능** [안]
+  - 끝까지 깨지는 쪽(사이트 오류)은 `sort=2`(출판일순)로 다시 읽어 채움 (2026-10-04, 대원대·성균관대, [2-crawl.md](2-crawl.md) 4절)
   - `<ProductListParam>`에 `<totalItem>`(종 수), `<totalVolume>`(권 수), `<page>`, `<itemCount>`
 - 검색: `{base}/xml/productSearch/?keyword={검색어}&keyoption2={0|1|2|3}` — 0 전체, 1 서명, 2 저자, 3 출판사(울산동부 "김" 저자 830건, "민음사" 출판사 10건 확인)
   - HTML 상세검색 폼에는 `name`(서명)·저자·출판사 칸이 따로 있음(`searchType=detail`) → 필드별 AND 후보 [확인 필요]
@@ -123,7 +125,7 @@
 - HTML 화면: `/FxLibrary/product/list/`, 상세 `/FxLibrary/product/view/?num=`
 - 오디오북: `category_type`은 모두 `book`이고, **`format`이 `aud`이면 오디오북** [확정] (2026-10-01, 134곳 수집 결과 19,417줄). 다른 형식 값: epub, pdf, xml, `pdf/epub`, flash, image, kml, xdf, zip
 - 다산(`*.dasangng.co.kr`)은 북큐브네트웍스가 운영하는 같은 프로그램. XML도 같음(주왕산숲속 100건)
-- 후보 확인 결과(2026-09-30, 웹러브 북스 목록에서 공공도서관으로 보이는 174곳): 열림·XML 확인 134곳, 오류 40곳(주소 없어짐·접속 거부). 134곳 합계 1,187,834종 [확정] (`totalItem` 합)
+- 후보 확인 결과(2026-09-30, 웹러브 북스 목록에서 공공도서관으로 보이는 174곳, 지금 이름으로는 후보 도서관): 열림·XML 확인 134곳, 오류 40곳(주소 없어짐·접속 거부). 134곳 합계 1,187,834종 [확정] (`totalItem` 합)
 
 ## 8. 알라딘 [확정·일부] (표본: 울산과학대 `https://uc.aladinebook.co.kr`, 고령 다산도서관 `ebook.goryeong.go.kr:8888`)
 
@@ -131,7 +133,8 @@
 - 전체 목록: `{root}/sub/sub.htm?nav_code={전자책 메뉴 코드}&view_level=1&list_scale={N}&startPage={몇 번째 책부터, 0부터}` — 전자책 메뉴 코드는 첫 화면의 `sub.htm?nav_code=…&view_level=1&scroll=0` 링크에서 찾음(울산과학대 `ebo1655356114`). "총 2,048 건의 도서가 있습니다". `list_scale` 100 동작
 - 검색: `sub.htm?nav_code={코드}&code=search&search_item={title|author}&search_order={검색어}&view_level=1` (제목 "사랑" 63건, 저자 "김" 579건). 출판사 값은 못 찾음 [확인 필요]
 - 목록 줄 `li.line`: 제목 `h2.book_tit a`, `span.writer`, `span.pub`, `span.volumecnt`(보유)·`uselendingcnt`(대출)·`usereservecnt`(예약), 상세 `sub.htm?mode=view&mv_data={base64}&goods_id={알라딘 상품 번호}`, 공급사 표시 `div.companyALADIN`
-- 수집기 `ALADIN_V1` (2026-10-03): 목록 `{root}/sub/sub.htm?nav_code={전자책 메뉴}&order_list=2&list_scale=100&view_level=1&startPage={(N-1)×100}` — **`startPage`는 쪽 번호가 아니라 0부터 세는 책 순번** [확정] (2026-10-04, 대구공업대 `inf.ttc.ac.kr:8888`: 0과 100으로 181권이 겹침 없이 나옴. 쪽 번호 1·2·3을 넣으면 거의 같은 목록이 되풀이됨. 쪽 번호 링크의 `mv_data`를 풀면 `startPage=0`, `startPage=100`). `order_list` 0 최다대출, 1 출판일, 2 제목, 3 최다예약, 4 대출가능. 줄 `ul.list > li.line`의 `h2.book_tit a`(`goods_id`), `span.writer`, `span.pub`, 표지 `div.book-img1` 배경 주소, 공급사 `div.com div.company…`. 상세는 짧은 주소 `{root}/sub/sub.htm?mode=view&nav_code=…&goods_id=…`도 열림(긴 `mv_data`는 필요 없음). 상세에 파일포맷(epub 등) 있음. 목록에는 출간일이 없음 [확정] (울산과학대 표본)
+- 수집기 `ALADIN_V1` (2026-10-03): 목록 `{root}/sub/sub.htm?nav_code={전자책 메뉴}&order_list=2&list_scale=100&view_level=1&startPage={(N-1)×100}` — **`startPage`는 쪽 번호가 아니라 0부터 세는 책 순번** [확정] (2026-10-04, 대구공업대 `inf.ttc.ac.kr:8888`: 0과 100으로 181권이 겹침 없이 나옴. 쪽 번호 1·2·3을 넣으면 거의 같은 목록이 되풀이됨. 쪽 번호 링크의 `mv_data`를 풀면 `startPage=0`, `startPage=100`). `order_list` 0 최다대출, 1 출판일, 2 제목, 3 최다예약, 4 대출가능. 끝까지 깨지는 쪽은 `order_list=1`(출판일순)로 다시 읽어 채움 (2026-10-04, 아주자동차대, [2-crawl.md](2-crawl.md) 4절). 줄 `ul.list > li.line`의 `h2.book_tit a`(`goods_id`), `span.writer`, `span.pub`, 표지 `div.book-img1` 배경 주소, 공급사 `div.com div.company…`. 상세는 짧은 주소 `{root}/sub/sub.htm?mode=view&nav_code=…&goods_id=…`도 열림(긴 `mv_data`는 필요 없음). 상세에 파일포맷(epub 등) 있음. 목록에는 출간일이 없음 [확정] (울산과학대 표본)
+- `goods_id`는 숫자만이 아님: 공급사에 따라 `BOOKRAILN0809003`처럼 영문+숫자 [확정] (2026-10-04, 한국해양대 `kmou.aladinebook.co.kr` 2쪽부터) → 영문·숫자로 읽어야 함. 숫자만 읽으면 `empty page N of M`, `skipped … row without goods_id`가 남 ([2-crawl.md](2-crawl.md) 6절)
 - 사이트마다 차이가 큼(2026-09-30, 공공으로 보이는 28곳): 위 방법으로 센 곳 4곳(경북도서관 오디오북 2,610, 다산도서관 4,092, 테라테크 체험 57,027, 하용조기념 137), 다른 화면 15곳, 오류 9곳. 경남·경북·경기교육청 등은 통합 포털이나 다른 화면으로 옮김
 - **오디오북**: "경북도서관 오디오북"(`www.gb.go.kr:8089`)처럼 사이트 전체가 오디오북인 곳이 있음 → 도서관(사이트) 단위로 종류를 기록해야 함
 

@@ -1101,6 +1101,30 @@ plan에 남는 문서(`crawl-method.md`, `research.md`, `same-book-isbn.md`, `se
 B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - 옮긴 뒤 plan `platforms.md` 8절(알라딘)이 고쳐짐(`startPage`는 쪽 번호가 아니라 0부터 세는 책 순번, 2026-10-04 대구공업대 확인). 같은 내용을 dev `docs/maintenance/platforms.md`에 반영함. 이제 dev 쪽이 원본이므로, plan에서 알게 된 플랫폼 사실은 dev 문서에 더하도록 plan 쪽 안내를 바꿔 주세요(요청서 D).
 
+## D. 문서에 더할 것 (2026-10-04)
+
+사용자 요청(붙여 넣은 메시지): plan ADR-0047 요청서의 "D. 문서에 더할 것"을 해 줘. 1단계 뒤에 plan 수집 세션에서 수집기를 고치고 새로 알게 된 것들이야. — 원문은 plan `dev-move-request.md` D절, `crawl-runbook.md` 4절 "dev에 반영할 것" 표(10줄), `collection-areas.md`. plan 문서는 읽기만 했고, `chaekcheck-data`의 코드·수집 DB는 건드리지 않음. 작업 중 원문이 바뀌었다는 연락이 있어 다시 읽었는데, 처음 읽은 것과 같았음.
+
+| dev 파일 | 더한 것 | 가져온 원문 |
+|---|---|---|
+| `docs/maintenance/1-libraries.md` | 제목을 "도서관 목록 확인 (등록 도서관·후보 도서관)"으로. 새 절 "도서관 목록 두 가지", "후보 도서관 찾기"(교보·YES24·북큐브·알라딘 1~4단계 표, `import-probe`·`import-bookcube`, `source`, 대여·혼합형 넣기, 도구는 3단계에 `scripts/library/`로), "구독 규칙·마감 확인"(`probe_kyobo_limits.py`, 읽는 주소 3개, 로그인 없이 3초 간격, "공지 없음 ≠ 이용 가능") | 요청서 D `1-libraries.md` 줄, runbook 4절 `1-libraries.md 새 절` 줄, runbook 8-1절, `collection-areas.md` 2절, plan `library-limits/research.md` 3-1·4절 |
+| `docs/maintenance/2-crawl.md` 2-1절 | "서버(줄)별 동시 요청 수" `--host-slots`, `host-slots.txt`, `SLOTS OFF` 조건 [안], 첫 사용 103.182.126.192 = 4 [확정] | 요청서 D 2-1절 줄, runbook 4절 `2-1절` 줄, runbook 8-2절 교보 대여·혼합 칸 |
+| `docs/maintenance/2-crawl.md` 4절 표 | "목록이 여럿인 사이트" 줄을 YES24(MAIN·AUDIO 이어 받기, `cur_section`, `done_total`) / 포털(처음부터)로 나눔. 다른 정렬로 채우기를 북큐브 `sort=2`·알라딘 `order_list=1`까지. "알려진 빈틈" 줄(천상중학교) | runbook 4절 `4절 표` 세 줄 |
+| `docs/maintenance/2-crawl.md` 6절 표 | 알라딘 `MISMATCH`(`startPage`), 알라딘 `goods_id` 영문, 성공인데 0권(국립군산대), YES24 `AUDIO list unreadable, skipped`, `SLOTS OFF` 줄 | runbook 4절 `6절 표` 네 줄 + `2-1절` 줄 |
+| `docs/maintenance/2-crawl.md` 그 밖 | 머리말에 목록 이름과 D 반영 표시, 파일 표에 `probe_kyobo_limits.py`, 5절 명령에 `import-probe`·`--host-slots`, 순위 설명을 새 이름으로 | 요청서 D, C절 |
+| `docs/maintenance/platforms.md` | 8절 알라딘 `goods_id` 영문+숫자. 0절 같은 호스트 1건 규칙에 `--host-slots` 예외 표시, 4절 YES24 오디오북 목록 못 읽는 곳, 7절 북큐브·8절 알라딘 다른 정렬로 채우기 | runbook 4절 `platforms.md 8절` 줄, `2-1절`·`4절 표`·`6절 표` 줄 |
+| `docs/maintenance/README.md` | 머리말에 목록 이름, 1단계 표·절에 후보 도서관 찾기와 구독 규칙·마감 확인, 2단계에 `host-slots.txt` | 요청서 D, `collection-areas.md` |
+| `docs/maintenance/3-import.md` | "서비스 도서관" → "등록 도서관", "웹러브 북스 기관" → "후보 도서관" (로그 이유 이름 `library_not_in_service`는 코드 이름이라 그대로) | 요청서 D 목록 이름 |
+
+- runbook 4절 표 10줄을 모두 반영함. plan은 4절 표에서 지워도 됨(요청서 F).
+- 빼거나 줄인 것: runbook 알라딘 `startPage` 줄은 `platforms.md` 8절에 A 때 이미 있어서 거기는 더하지 않고 `2-crawl.md` 6절 증상 줄만 더함. `probe_kyobo_limits.py`의 실행 인자는 원문에 없어 적지 않음([확인 필요], 3단계에 적음).
+
+원문과 dev 문서가 맞지 않거나 원문이 분명하지 않은 것:
+- **가입 자격 규칙**: `CLAUDE.md`는 도서관을 찾거나 더할 때 같은 작업에서 가입 자격을 조사하라고 함. 후보 도서관 2,738곳은 자격 조사 없이 수집 DB에 들어감. 이 규칙을 후보 도서관에 언제 적용할지(지금 / 등록 도서관으로 옮길 때) [확인 필요: 사용자 결정]. `1-libraries.md`에 같은 표시를 둠.
+- **도서관 조사 기록 위치**: `CLAUDE.md` "Library Research Record"는 새 방법·도구를 `docs/library-maintenance.md`에 적으라고 하는데, 요청서는 두 절차를 `1-libraries.md`에 넣으라고 함. 요청서대로 `1-libraries.md`에 넣고 `library-maintenance.md`는 고치지 않음(D가 요청하지 않음). `library-maintenance.md`에 가리키는 줄을 더할지 [확인 필요].
+- **같은 호스트 1건 [확정] 규칙**과 `--host-slots` 4건: 사용자 결정(2026-10-04)이라 `platforms.md` 0절에 예외로 적음. 기존 `--per-host`와 `--host-slots`가 함께 쓰일 때 어느 쪽이 이기는지는 원문에 없음 [확인 필요].
+- **마감 확인이 읽는 주소**: runbook 4절은 `/popup/popupMain.json`·`/main/firstBoardBlbrSrmb.json`·`/board/listBoard.json` 셋, plan `library-limits/research.md` 3-1절은 팝업과 `listBoard.json` 둘. runbook(셋)을 따름.
+
 # 사이클 06
 
 ## 1단계 결과: `auth` 공개 장치 셋 (2026-10-04)
