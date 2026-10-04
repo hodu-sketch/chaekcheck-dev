@@ -15,6 +15,7 @@
 - `backend/` — the main service: one Spring Boot application (Spring Modulith modular monolith, Gradle)
 - `fetch-service/` — small Spring Boot app that only GETs library pages for the main service. Separate deployment unit, not a Modulith module, no cache or host throttling (ADR-0011, ADR-0015). Own Gradle Wrapper build; commands (run in `fetch-service/`): `./gradlew build`, `./gradlew test`, `./gradlew bootRun`.
 - `docker/` — local Docker images used by `compose.yaml` (`postgres-bigm/`: PostgreSQL 18 + pg_bigm for `db` and `db-test`, ADR-0032). Build with `wsl -d Ubuntu -- docker compose build`.
+- `deploy/` — example production deployment config (`nginx/`: serves the web build, forwards `/api` to Spring, security headers and CSP). Product and location are decided at deployment.
 - `data/` — local data files (collected SQLite copies, national bibliography TTL). Git-ignored; never commit.
 - `web/` — React + Vite (desktop-first, then responsive for tablet/mobile)
 - `app/` — Expo app (not created yet; add later)
