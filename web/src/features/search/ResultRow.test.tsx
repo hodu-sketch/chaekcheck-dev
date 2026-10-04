@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
 import { ResultRow } from './ResultRow'
@@ -34,40 +35,54 @@ const openLibrary: TargetLibrary = {
   chosen: false,
 }
 
-describe('ResultRow join caution (C2-U-11)', () => {
-  it('shows the caution under "누구나 가입" without the "가입 자격 확인 필요" badge', () => {
-    const library = { ...openLibrary, joinCaution: '회원증 발급은 고흥군 거주자·직장인만' }
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+/** The join details open from "ⓘ 가입 정보" on every width (user request 2026-10-05). */
+async function renderOpen(library: TargetLibrary) {
+  render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+  await userEvent.setup().click(screen.getByRole('button', { name: `${library.name} 가입 정보` }))
+  return screen.getByRole('dialog')
+}
 
-    expect(screen.getAllByText('누구나 가입').length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/회원증 발급은 고흥군 거주자·직장인만/).length).toBeGreaterThan(0)
+describe('join details behind "가입 정보"', () => {
+  it('are not drawn until the button is pressed', () => {
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={openLibrary} searchUrl={undefined} />)
+
+    expect(screen.queryByText('누구나 가입')).toBeNull()
+    expect(screen.queryByText(/도서관 홈페이지 가입 후 로그인/)).toBeNull()
+    expect(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` })).toBeTruthy()
+  })
+})
+
+describe('ResultRow join caution (C2-U-11)', () => {
+  it('shows the caution under "누구나 가입" without the "가입 자격 확인 필요" badge', async () => {
+    const popover = await renderOpen({ ...openLibrary, joinCaution: '회원증 발급은 고흥군 거주자·직장인만' })
+
+    expect(popover.textContent).toContain('누구나 가입')
+    expect(popover.textContent).toContain('회원증 발급은 고흥군 거주자·직장인만')
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
 
-  it('shows a notice as "안내" without the caution mark', () => {
-    const library = { ...openLibrary, joinNotice: '시각장애인 이용 도서관' }
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+  it('shows a notice as "안내" without the caution mark', async () => {
+    const popover = await renderOpen({ ...openLibrary, joinNotice: '시각장애인 이용 도서관' })
 
-    expect(screen.getAllByText('안내').length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/시각장애인 이용 도서관/).length).toBeGreaterThan(0)
-    expect(screen.queryByText('주의')).toBeNull()
+    expect(popover.textContent).toContain('안내')
+    expect(popover.textContent).toContain('시각장애인 이용 도서관')
+    expect(popover.textContent).not.toContain('주의')
   })
 
-  it('a matching region with a 책이음 text is joinable; the text is only shown (AC-12)', () => {
-    const library: TargetLibrary = {
+  it('a matching region with a 책이음 text is joinable; the text is only shown (AC-12)', async () => {
+    const popover = await renderOpen({
       ...openLibrary,
       priorityGroup: 'MY_SIGUNGU',
       eligibility: 'ELIGIBLE',
       eligibilitySummary: '서산시 거주·재직·재학',
       extraConditionText: '공공도서관 책이음서비스 회원인 사람도 가입 대상',
-    }
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+    })
 
-    expect(screen.getAllByText(/책이음서비스 회원인 사람도/).length).toBeGreaterThan(0)
+    expect(popover.textContent).toContain('책이음서비스 회원인 사람도')
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
 
-  it('the same library without the user\'s region still needs a check (AC-12)', () => {
+  it("the same library without the user's region still needs a check (AC-12)", () => {
     const library: TargetLibrary = {
       ...openLibrary,
       priorityGroup: 'NEEDS_CHECK',
@@ -77,55 +92,53 @@ describe('ResultRow join caution (C2-U-11)', () => {
     }
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
 
+    // the badge stays next to the name, outside the button
     expect(screen.getAllByText('가입 자격 확인 필요').length).toBeGreaterThan(0)
   })
 
-  it('shows the "방문 가입" tag for a visit-only library', () => {
-    const library = { ...openLibrary, visitRequired: true }
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+  it('shows the "방문 가입" tag for a visit-only library', async () => {
+    const popover = await renderOpen({ ...openLibrary, visitRequired: true })
 
-    expect(screen.getAllByText('방문 가입').length).toBeGreaterThan(0)
+    expect(popover.textContent).toContain('방문 가입')
   })
 
-  it('shows no caution line when there is none', () => {
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={openLibrary} searchUrl={undefined} />)
+  it('shows no caution line when there is none', async () => {
+    const popover = await renderOpen(openLibrary)
 
-    expect(screen.queryByText('주의')).toBeNull()
+    expect(popover.textContent).not.toContain('주의')
   })
 })
 
 describe('a library added by hand (cycle 06, AC-5)', () => {
-  it('shows only "직접 추가": no eligibility badge, summary, extra condition or caution', () => {
-    const library: TargetLibrary = {
-      ...openLibrary,
-      priorityGroup: 'QUALIFIED',
-      eligibility: 'UNKNOWN',
-      eligibilitySummary: '부산 거주',
-      extraConditionText: '책이음 회원 가입 가능',
-      joinCaution: '회원증 발급은 부산 시민만',
-      chosen: true,
-    }
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+  const chosenLibrary: TargetLibrary = {
+    ...openLibrary,
+    priorityGroup: 'QUALIFIED',
+    eligibility: 'UNKNOWN',
+    eligibilitySummary: '부산 거주',
+    extraConditionText: '책이음 회원 가입 가능',
+    joinCaution: '회원증 발급은 부산 시민만',
+    chosen: true,
+  }
+
+  it('shows "직접 추가" in place of the eligibility badge', () => {
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={chosenLibrary} searchUrl={undefined} />)
 
     expect(screen.getByText('직접 추가')).toBeTruthy()
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
-    expect(screen.queryByText('부산 거주')).toBeNull()
-    expect(screen.queryByText('책이음 회원 가입 가능')).toBeNull()
-    expect(screen.queryByText(/회원증 발급은 부산 시민만/)).toBeNull()
-    // how to join stays
-    expect(screen.getAllByText(/도서관 홈페이지 가입 후 로그인/).length).toBeGreaterThan(0)
   })
 
-  it('keeps the "방문 가입" tag', () => {
-    render(
-      <ResultRow
-        row={testRow({ libraryId: 2, rank: 1 })}
-        library={{ ...openLibrary, visitRequired: true, chosen: true }}
-        searchUrl={undefined}
-      />,
-    )
+  it('shows its eligibility, extra condition, caution and how to join from the same button (user request 2026-10-05)', async () => {
+    const popover = await renderOpen(chosenLibrary)
 
-    expect(screen.getAllByText('방문 가입').length).toBeGreaterThan(0)
-    expect(screen.queryByText('누구나 가입')).toBeNull()
+    expect(popover.textContent).toContain('부산 거주')
+    expect(popover.textContent).toContain('책이음 회원 가입 가능')
+    expect(popover.textContent).toContain('회원증 발급은 부산 시민만')
+    expect(popover.textContent).toContain('도서관 홈페이지 가입 후 로그인')
+  })
+
+  it('keeps the "방문 가입" tag', async () => {
+    const popover = await renderOpen({ ...openLibrary, visitRequired: true, chosen: true })
+
+    expect(popover.textContent).toContain('방문 가입')
   })
 })

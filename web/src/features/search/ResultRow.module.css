@@ -161,7 +161,7 @@
 
 /* join details: always shown on desktop/tablet; on mobile behind the "가입 정보" button (U-12) */
 .joinInfoButton {
-  display: none;
+  display: inline-flex;
   align-items: center;
   gap: 0.2rem;
   padding: 0.1rem 0.55rem;
@@ -322,14 +322,6 @@
 
 /* mobile: everything stacks */
 @media (width <= 640px) {
-  .joinInfoButton {
-    display: inline-flex;
-  }
-
-  .joinDetails {
-    display: none;
-  }
-
   .row {
     grid-template-columns: 1fr;
     padding: 1rem;
