@@ -5,11 +5,19 @@
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 17.5rem;
-  align-items: center;
+  /* the library name starts on the same line as the book title (user request 2026-10-05) */
+  align-items: start;
   gap: 1.5rem;
-  /* a line inside the results panel, separated by hairlines (user request 2026-10-05; cards before) */
-  padding: 1.2rem 0;
-  border-top: 1px solid var(--rule);
+  /* a card inside the white results panel (user request 2026-10-05) */
+  padding: 1.15rem 1.35rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--card-soft);
+  transition: border-color 140ms;
+}
+
+.row:hover {
+  border-color: var(--rule-strong);
 }
 
 .title {
@@ -343,8 +351,9 @@
 /* mobile: everything stacks */
 @media (width <= 640px) {
   .row {
-    grid-template-columns: 1fr;
-    padding: 1rem 0;
+    /* minmax(0, …): a long word must not push the card past the screen */
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1rem;
   }
 
   .stock {
@@ -362,6 +371,7 @@
   }
 
   .stockLine {
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;

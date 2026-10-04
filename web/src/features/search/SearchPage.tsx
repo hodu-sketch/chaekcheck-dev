@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
+import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
 import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
@@ -37,7 +38,7 @@ export function SearchPage() {
   const [stored, setStored] = useState<SearchSettings>(() => loadSettings())
   const settings = resolveSettings(params, stored)
   const input = readBookSearch(params)
-  const filter: ResultFilter = params.get('filter') === 'available' ? 'available' : 'all'
+  const filter = readFilter(params)
   const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
 
   const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
@@ -86,7 +87,7 @@ export function SearchPage() {
   /** Keeps filter, scope, visit and the settings; replaces the conditions. */
   const search = (next: BookSearchInput) => {
     const address = new URLSearchParams()
-    if (filter === 'available') address.set('filter', 'available')
+    writeFilter(filter, address)
     if (addressScope) address.set('scope', addressScope)
     if (visit === 'none') address.set('visit', 'none')
     writeBookSearch(next, address)
@@ -107,13 +108,13 @@ export function SearchPage() {
     setParams(writeSettings(effective, new URLSearchParams(params)), { replace: true })
   }
   const changeSort = (sort: BookSort) => replaceParam('sort', sort === 'default' ? null : sort)
-  const changeFilter = (next: ResultFilter) => replaceParam('filter', next === 'available' ? 'available' : null)
+  const changeFilter = (next: ResultFilter) => setParams(writeFilter(next, new URLSearchParams(params)), { replace: true })
   // the empty result's button: only the address changes, the stored setting stays [안]
   const goDirect = () => replaceParam('direct', 'on')
   const onInvalidRegion = useCallback(() => resolveStoredRegions(), [resolveStoredRegions])
 
   const bookLinkSearch = new URLSearchParams()
-  if (filter === 'available') bookLinkSearch.set('filter', 'available')
+  writeFilter(filter, bookLinkSearch)
   if (addressScope) bookLinkSearch.set('scope', addressScope)
   if (visit === 'none') bookLinkSearch.set('visit', 'none')
 

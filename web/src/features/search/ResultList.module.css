@@ -92,16 +92,18 @@
 .groupTitle {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-size: 1.35rem;
+  gap: 0.5rem;
+  /* close to the tab size above it (user request 2026-10-05; 1.35rem before) */
+  /* no larger than the filter tabs above (user request 2026-10-05) */
+  font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .groupTitle::before {
   content: '';
-  width: 0.6rem;
-  height: 0.6rem;
+  width: 0.45rem;
+  height: 0.45rem;
   border-radius: 50%;
   background: var(--brand);
 }
@@ -111,7 +113,7 @@
 }
 
 .group[data-group='pending'] .groupTitle {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   color: var(--ink-soft);
 }
 
@@ -220,7 +222,7 @@
 .rows {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 0.7rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -272,7 +274,7 @@
   }
 
   .groupTitle {
-    font-size: 1.2rem;
+    font-size: 0.9rem;
   }
 
   .moreButton {

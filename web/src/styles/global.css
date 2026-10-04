@@ -12,6 +12,8 @@
   --canvas: #f4f5f8;
   --paper: #ffffff;
   --paper-deep: #f2f4f6;
+  /* a card inside a white panel (result lines) */
+  --card-soft: #fafbfc;
   /* the track of a segmented control lying on the canvas */
   --track: #e8ebee;
   --card: #ffffff;

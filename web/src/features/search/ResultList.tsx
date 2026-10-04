@@ -72,11 +72,12 @@ export function ResultList({
           className={styles.filter}
           aria-label="결과 거르기"
         >
-          <ToggleGroup.Item value="all" className={styles.filterItem}>
-            전체
-          </ToggleGroup.Item>
+          {/* the default first, on the left (user request 2026-10-05) */}
           <ToggleGroup.Item value="available" className={styles.filterItem}>
             지금 빌릴 수 있는 책만
+          </ToggleGroup.Item>
+          <ToggleGroup.Item value="all" className={styles.filterItem}>
+            전체
           </ToggleGroup.Item>
         </ToggleGroup.Root>
       )}

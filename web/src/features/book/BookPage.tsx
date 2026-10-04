@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
 import type { BookDetail, ResultFilter, VisitFilter } from '../../api/types'
+import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
 import { useLibraryScope } from '../search/useLibraryScope'
 import { collectedRange, holdingBatchViews } from '../search/holdingView'
@@ -27,7 +28,7 @@ export function BookPage() {
 function BookView({ bookId }: { bookId: string }) {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const filter: ResultFilter = params.get('filter') === 'available' ? 'available' : 'all'
+  const filter = readFilter(params)
   const { scope } = useLibraryScope(params)
   const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
   const { regions, libraryIds, ready } = useRegions()
@@ -120,10 +121,7 @@ function BookView({ bookId }: { bookId: string }) {
   const range = collectedRange(dates[0] ?? null, dates.at(-1) ?? null)
   const loadingBatch = holdings.state.batches.at(-1)
   const changeFilter = (next: ResultFilter) => {
-    const updated = new URLSearchParams(params)
-    if (next === 'available') updated.set('filter', 'available')
-    else updated.delete('filter')
-    setParams(updated, { replace: true })
+    setParams(writeFilter(next, new URLSearchParams(params)), { replace: true })
   }
 
   return (
