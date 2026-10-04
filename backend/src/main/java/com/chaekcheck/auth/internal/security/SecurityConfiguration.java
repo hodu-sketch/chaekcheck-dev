@@ -8,8 +8,10 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -57,7 +59,8 @@ class SecurityConfiguration {
 	 */
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http, CsrfTokenRepository csrfTokenRepository,
-			JwtDecoder jwtDecoder, AccountStore accounts, JsonMapper json) {
+			JwtDecoder jwtDecoder, AccountStore accounts, JsonMapper json,
+			Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer) {
 		ProblemResponses problems = new ProblemResponses(json);
 		JwtAuthenticationProvider jwtProvider = new JwtAuthenticationProvider(jwtDecoder);
 		jwtProvider.setJwtAuthenticationConverter(new AccountJwtAuthenticationConverter(accounts));
@@ -78,6 +81,8 @@ class SecurityConfiguration {
 			.securityContext(context -> context.securityContextRepository(new RequestAttributeSecurityContextRepository()))
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
 			.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(problems).accessDeniedHandler(problems))
+			// Naver and Kakao login (auth.internal.login.LoginConfiguration)
+			.oauth2Login(oauth2LoginCustomizer)
 			.addFilterBefore(tokenFilter, AnonymousAuthenticationFilter.class);
 		return http.build();
 	}

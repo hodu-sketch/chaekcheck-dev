@@ -872,6 +872,26 @@
 - 확인: `./gradlew build` 통과(테스트 355개, 꺼짐) + 켜짐으로 전체 테스트 355개 통과. `AuthTokenEndpointTests` 9개: 발급 쿠키 속성·JWT 클레임·발급 토큰으로 `/api/v1/me` 200, 교체, 재사용, 모르는 값·쿠키 없음, 만료, 로그아웃(줄 삭제·지움 쿠키 속성), 로그인 없이 로그아웃 204, CSRF 없는 갱신·로그아웃 403, 정리 작업이 만료 줄만 지움.
 - 참고(개발 환경): 2026-10-04 PC 강제 종료 뒤 WSL이 쓰는 프로세스가 없으면 곧 멈춰 DB 컨테이너도 함께 멈춤(`compose.yaml` 머리말에 적힌 동작). 테스트 동안 WSL 안에 대기 프로세스를 하나 띄워 해결. 코드와는 무관.
 
+## 5단계 결과: 네이버·카카오 로그인과 가입 대기 (2026-10-04, 가짜 제공자 응답으로만)
+
+- 사용자 지시(2026-10-04): "5단계 진행해줘 가짜 응답으로만 만들어줘". 실제 네이버·카카오 호출 확인은 앱 등록 뒤로 미룸.
+- 공식 문서 확인(2026-10-04): 네이버 https://github.com/naver/naver-openapi-guide/blob/master/ko/login/devguide/devguide.md (인가 `nid.naver.com/oauth2.0/authorize`, 토큰 `…/token`에 `client_id`·`client_secret`·`code`·`state`, 프로필 `openapi.naver.com/v1/nid/me`의 `response.id`, 취소 시 `error=access_denied`), 카카오 https://developers.kakao.com/docs/ko/kakaologin/rest-api (인가 `kauth.kakao.com/oauth/authorize`, 토큰 `…/oauth/token` POST form에 `client_secret`, 사용자 `kapi.kakao.com/v2/user/me`의 `id`, 취소 시 `error=access_denied`). 둘 다 client 인증은 form 파라미터(`client_secret_post`). 엔드포인트는 `application.yml`(공개 주소라 비밀 아님), 테스트가 가짜 서버로 바꿈.
+- 구성(dev가 정함): `auth.internal.login` 패키지. `LoginConfiguration`(등록 둘·`oauth2Login` 설정), `LoginAuthorizationRequestRepository`(세션에 인가 요청 저장, "없음/state 다름"을 구분), `NonStoringAuthorizedClientRepository`(제공자 토큰을 쌓지 않음, C15), `ProviderUserService`(제공자 번호만 꺼냄: 네이버 `response.id`, 카카오 `id`를 문자열로), `LoginSuccessHandler`, `LoginFailureHandler`, `PendingSignup`(세션 속성, 직렬화 가능, `toString`에 토큰 없음).
+- [확인 필요] 해소(Spring 소스 동작): Spring의 세션 저장소는 "저장된 요청 없음"과 "state 다름" 둘 다 `authorization_request_not_found` 하나로 냄 → 저장소를 직접 만들어 어느 쪽인지 요청 속성에 남기고 실패 처리기가 `login_expired` / `login_state_mismatch`로 나눔. state가 다를 때는 저장된 요청을 지우지 않음(진짜 콜백이 아직 올 수 있음).
+- [확인 필요] PKCE: 카카오는 문서에 없음 → 끔. 네이버 일반 흐름은 가짜 응답만으로는 확인할 수 없어 **지금은 끔**(`TODO(확인 필요)`, 실제 호출 시험 뒤 받으면 켬). 인가 요청에 `code_challenge`가 없음을 테스트로 확인.
+- [확인 필요] 네이버 취소 `error` 값: 공식 문서상 `access_denied`(원문 확인). 실제 호출로는 아직 확인 안 함.
+- 네이버 토큰 요청에 `state`도 보냄(공식 문서가 토큰 요청 파라미터로 적음. Spring 기본은 보내지 않음).
+- redirect URI(C18): 새 설정 `chaekcheck.auth.public-base-url`(환경 변수 `AUTH_PUBLIC_BASE_URL`, 켜짐이면 필수) + `/api/v1/auth/login/oauth2/code/{naver|kakao}`. 요청의 Host를 쓰지 않음. 콜백 뒤 302의 `Location`은 **상대 경로**(`/signup`, `/auth/complete?result=…`)로 함(C18이 고르라 한 것). 브라우저가 지금 주소 기준으로 풂.
+- 대기 시간(C20): 토큰·프로필 호출에만 연결 3초·응답 5초(`chaekcheck.auth.provider-calls.*`). 전역 `spring.http.clients.*`는 쓰지 않아 `availability` 호출에 영향 없음.
+- 처음 온 계정: 세션에 `PendingSignup(method, subject, createdAt, 네이버면 접근 토큰)`만 두고 `/signup`. DB 쓰기 없음. 이미 가입한 계정(R3): `last_login_at` 갱신 + 4단계 `TokenService.signIn` 쿠키 + `/auth/complete?result=login_success`. 성공 뒤 세션에 SecurityContext 없음(요청 속성 저장소), Spring이 세션 id는 바꿈.
+- Spring 기본 로그인 화면(`/login`)이 생기지 않게 `loginPage("/")`를 둠(쓰이지 않는 값, `/login` 404를 테스트).
+- 테스트(`LoginCallbackTests`, 13개): JDK 내장 `HttpServer`로 가짜 네이버·카카오 토큰·프로필 서버를 띄움(새 의존성 없음). 시작 주소(redirect_uri·state, scope·PKCE 없음), 처음 온 카카오·네이버 → 가입 대기(행 0, 네이버 토큰은 대기 안에만), 다시 로그인 → `last_login_at` 갱신·쿠키, 취소 → `login_cancelled`, 저장 요청 없음 → `login_expired`, state 다름 → `login_state_mismatch`, 토큰 교환 500 → `login_provider_error&provider=kakao`, 프로필 응답 지연(테스트에서 응답 대기 1초) → `login_provider_error&provider=naver`, 제공자 토큰·client secret이 서버 기록에 없음, `/login` 404.
+- 테스트 설정: Spring이 테스트 설정마다 컨텍스트를 하나씩 띄워 두는데, 켜짐·꺼짐 설정이 늘어 db-test의 연결 100개를 넘음(`too many clients already`) → `application-test.yml`에서 연결 풀을 4로 줄임.
+- 보안 리뷰(security-reviewer 서브에이전트) 반영: 등록에 없는 이름(`/api/v1/auth/oauth2/authorization/google`, `naver-reauth` 등)으로 시작하면 Spring 기본 동작은 500 + 오류 기록이었음(테스트로 확인) → 시작 가능한 이름을 `naver`·`kakao`로 묶어 그 밖은 404 `not_found`. 서버 기록에는 짧은 소문자 오류 코드만 그대로 쓰고 그 밖은 "unrecognized error"(줄바꿈으로 기록 위조 방지). `public-base-url`은 "scheme://host[:port]" 모양만 받음(시작 단계에서 검사).
+- **plan에서 정해 주세요**: (1) 로그인 성공 뒤 우리 쪽 오류(DB 등)가 나면 지금은 콜백 주소에서 500. 결과 코드 표에 로그인용 "우리 서버 오류" 코드가 없어 만들지 않음(`login_provider_error`는 문구가 제공자 탓이라 쓰지 않음). (2) 응답 대기 5초는 응답 머리까지 기준이며, 본문을 아주 느리게 보내는 경우까지 막는지는 확인 못 함. (3) 로그인 시작 주소마다 10분짜리 세션이 생김: 반복 요청 제한은 운영 웹 서버 단계에서 정할 일.
+- 확인: `./gradlew build` 통과(테스트 368개, 꺼짐) + 켜짐으로 전체 테스트 368개 통과.
+- 사용자가 할 것(앱 등록 때): 네이버·카카오 콘솔에 돌아올 주소 `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/naver`, `…/kakao`(재인증용 `naver-reauth`·`kakao-reauth`는 8단계). 그 뒤 실제 로그인으로 PKCE·취소 값·토큰 요청의 `state`를 확인.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)

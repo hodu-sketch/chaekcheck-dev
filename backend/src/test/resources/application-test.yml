@@ -3,3 +3,7 @@ spring:
     url: jdbc:postgresql://localhost:${TEST_DB_PORT:5433}/${TEST_DB_NAME}
     username: ${TEST_DB_USERNAME}
     password: ${TEST_DB_PASSWORD}
+    hikari:
+      # Spring keeps one context per test configuration, each with its own pool. With the default 10 connections
+      # per pool, the auth tests (several login on/off configurations) passed PostgreSQL's 100-connection limit.
+      maximum-pool-size: 4

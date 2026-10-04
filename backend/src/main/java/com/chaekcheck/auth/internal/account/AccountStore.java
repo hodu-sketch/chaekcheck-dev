@@ -1,5 +1,6 @@
 package com.chaekcheck.auth.internal.account;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -27,6 +28,21 @@ public class AccountStore {
 			.param(accountId)
 			.query(Boolean.class)
 			.single();
+	}
+
+	/** The account that signs in with this provider number, if any (R3). */
+	public Optional<Long> findByLoginMethod(String method, String subject) {
+		return jdbc.sql("SELECT account_id FROM auth.login_method WHERE method = ? AND subject = ?")
+			.params(method, subject)
+			.query(Long.class)
+			.optional();
+	}
+
+	/** Signing in again keeps the account from the one-year inactivity clean-up (C30). */
+	public void touchLastLogin(long accountId, Instant now) {
+		jdbc.sql("UPDATE auth.account SET last_login_at = ? WHERE id = ?")
+			.params(Timestamp.from(now), accountId)
+			.update();
 	}
 
 	/** The account as {@code GET /api/v1/me} shows it, or empty when it has been deleted. */

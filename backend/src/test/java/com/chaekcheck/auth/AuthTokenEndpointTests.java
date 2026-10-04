@@ -32,7 +32,7 @@ import com.chaekcheck.auth.internal.token.TokenService.LoginCookies;
 import com.nimbusds.jwt.SignedJWT;
 
 /** Step 4: issuing, refresh rotation (C10), logout and the expired-row clean-up, with login on. */
-@SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.naver.client-id=test-naver-id",
+@SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.naver.client-id=test-naver-id",
 		"chaekcheck.auth.naver.client-secret=test-naver-secret", "chaekcheck.auth.kakao.client-id=test-kakao-id",
 		"chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 @AutoConfigureMockMvc

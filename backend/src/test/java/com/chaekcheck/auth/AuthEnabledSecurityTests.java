@@ -38,7 +38,7 @@ import com.nimbusds.jwt.SignedJWT;
  * Login on (step 3): only {@code /api/v1/me} needs a login, the token is read only from its cookie and only there,
  * CSRF guards every change, and the existing APIs answer as before (AC-17). Keys are random per run (test values).
  */
-@SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.naver.client-id=test-naver-id",
+@SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.naver.client-id=test-naver-id",
 		"chaekcheck.auth.naver.client-secret=test-naver-secret", "chaekcheck.auth.kakao.client-id=test-kakao-id",
 		"chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 @AutoConfigureMockMvc

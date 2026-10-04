@@ -27,7 +27,7 @@ import com.chaekcheck.auth.internal.token.TokenService.LoginCookies;
  * Two refreshes with the same value at the same time never both succeed (C10, {@code FOR UPDATE}). No test
  * transaction here: each refresh must run in its own database transaction. Rows are deleted afterwards.
  */
-@SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.naver.client-id=test-naver-id",
+@SpringBootTest(properties = { "chaekcheck.auth.enabled=true", "chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.naver.client-id=test-naver-id",
 		"chaekcheck.auth.naver.client-secret=test-naver-secret", "chaekcheck.auth.kakao.client-id=test-kakao-id",
 		"chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 class RefreshConcurrencyTests {

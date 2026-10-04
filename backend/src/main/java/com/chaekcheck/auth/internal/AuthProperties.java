@@ -4,6 +4,7 @@ import java.time.Duration;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -12,25 +13,37 @@ import org.springframework.validation.annotation.Validated;
  * Login settings. Bound and checked only when {@code chaekcheck.auth.enabled=true}: a missing key stops the start
  * with the property name and the environment variable to set. Secret values come from environment variables only
  * (never written in {@code application.yml}, tests, commits or logs).
+ *
+ * @param publicBaseUrl the address users open the site with (scheme, host, port), e.g. {@code http://localhost:5173}
+ * in development. The providers' redirect URIs are built from it, never from the request (C18).
  */
 @Validated
 @ConfigurationProperties("chaekcheck.auth")
-public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provider kakao, Tokens tokens) {
+public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provider kakao, Tokens tokens,
+		@NotBlank(message = "is required when login is on (environment variable AUTH_PUBLIC_BASE_URL)")
+		@Pattern(regexp = "https?://[^/\\s]+",
+				message = "must be scheme, host and optional port only, e.g. http://localhost:5173 (AUTH_PUBLIC_BASE_URL)") String publicBaseUrl,
+		ProviderCalls providerCalls) {
 
 	public AuthProperties {
 		jwt = jwt != null ? jwt : new Jwt(null);
-		naver = naver != null ? naver : new Provider(null, null);
-		kakao = kakao != null ? kakao : new Provider(null, null);
+		naver = naver != null ? naver : new Provider(null, null, null, null, null);
+		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null);
 		tokens = tokens != null ? tokens : new Tokens(null, null);
+		providerCalls = providerCalls != null ? providerCalls : new ProviderCalls(null, null);
 	}
 
 	/** HS256 signing key, base64 of at least 32 random bytes (design-delta). */
 	public record Jwt(@NotBlank(message = "is required when login is on (environment variable AUTH_JWT_SECRET)") String secret) {
 	}
 
+	/**
+	 * One provider: its keys (environment variables) and its public endpoints (in {@code application.yml}).
+	 */
 	public record Provider(
 			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientId,
-			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientSecret) {
+			@NotBlank(message = "is required when login is on (see .env.example for the environment variable)") String clientSecret,
+			@NotBlank String authorizationUri, @NotBlank String tokenUri, @NotBlank String userInfoUri) {
 	}
 
 	/**
@@ -42,6 +55,16 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		public Tokens {
 			accessTokenTtl = accessTokenTtl != null ? accessTokenTtl : Duration.ofMinutes(15);
 			refreshTokenTtl = refreshTokenTtl != null ? refreshTokenTtl : Duration.ofDays(30);
+		}
+
+	}
+
+	/** Calls to Naver and Kakao: connect 3 s, read 5 s [확정] (C20). */
+	public record ProviderCalls(Duration connectTimeout, Duration readTimeout) {
+
+		public ProviderCalls {
+			connectTimeout = connectTimeout != null ? connectTimeout : Duration.ofSeconds(3);
+			readTimeout = readTimeout != null ? readTimeout : Duration.ofSeconds(5);
 		}
 
 	}
