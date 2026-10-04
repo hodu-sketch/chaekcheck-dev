@@ -988,13 +988,14 @@
 - 테스트(`web/src/api/auth.test.ts` 9개, `navigator.locks`는 실제로 줄을 세우는 목): 두 탭이 동시에 401 → 갱신 한 번, 차례를 받은 쪽이 원래 요청 먼저, 갱신 실패 → 로그인 전 알림, Web Locks 없이도 동작, 404 → 꺼짐, CSRF 헤더, 쿠키 없을 때 토큰 먼저, `csrf_invalid` 403 → 한 번만 재시도, `XSRF-TOKEN`만 읽음.
 - 확인: `npm test`(95개) · `npm run build` · `npm run lint` 통과. lint 경고 둘이 새로 생김(`only-export-components` — 기존 `RegionContext`와 같은 형태, `set-state-in-effect` — 효과 안에서 비동기 `reload` 호출). 오류는 없음.
 
-## 12단계 진행 중 (2026-10-04, 사용량 한도로 중간 저장)
+## 12단계 결과: 위쪽 로그인·로그아웃, S5, `/auth/complete`, 안내 줄 (2026-10-04)
 
 - 만든 것: 위쪽 로그인·로그아웃(`AuthHeaderAction`, 확인 중 빈 자리, 꺼짐이면 없음, `/terms`·`/privacy`에는 없음), S5 `LoginDialog`(켜진 제공자만, 모바일은 아래에서 올라옴), `/auth/complete`(`AuthCompletePage`), 안내 줄(`NoticeBar`), 결과 코드 문구·돌아갈 주소 검사(`authResult.ts`).
 - 로그인 버튼 이미지(사용자 승인 뒤 내려받음, 2026-10-04): 네이버 공식 `NAVER_login_KR.zip`(developers.naver.com BI)의 `NAVER_login_Light_KR_green_wide_H56.png`를 그대로 씀. 카카오는 공식 리소스 `login-complete-ko.svg`에서 말풍선 심볼 경로만 그대로 떼어 `#FEE500`·모서리 12px 버튼에 둠. 네이버 녹색 [확인 필요] 해소: BI 원문 "컬러 #03A94D, RGB 3/169/77".
 - dev가 정한 것: `provider`가 없거나 다른 값이면 문구의 제공자 이름 자리에 "로그인 서비스 쪽"을 씀.
-- 남은 것: 12단계 테스트(버튼 상태 셋, 로그아웃 뒤, 코드별 문구, 모르는 코드·provider, `//evil`·`https://` 거부, 제공자 이름·`loginMethods` 없음), Playwright 1280·768·375 확인, `withdraw_reauthenticated` 처리(14단계).
-- 확인: `npm run build`, `npm test`(95개, 새 테스트 아직 없음) 통과.
+- 테스트: `authResult.test.ts`(코드별 문구 9가지, 성공·탈퇴, 모르는 코드 무시, 다른 `provider` 이름 안 씀, 돌아갈 주소 `//evil`·`https://`·`/\`·`javascript:` 거부, sessionStorage 한 번만), `AuthScreens.test.tsx`(확인 중 빈 자리, 꺼짐이면 없음, 로그인 후 "로그아웃"·화면에 제공자 이름 없음, 로그아웃 뒤 "로그인"·보던 주소 그대로, S5는 켜진 제공자만·돌아올 주소 저장·버튼 비활성, `/auth/complete` 성공·밖 주소 거부·실패 안내·모르는 코드·안내 닫기). `withdraw_reauthenticated`는 14단계에서 처리.
+- 화면 확인(Playwright, `/api/v1/me`·제공자 목록은 가짜 응답): 1280·768은 가운데 작은 창, 375는 아래에서 올라오는 창. 두 버튼 같은 크기(330×50, 375에서는 325×49), 가로 넘침 없음, 위쪽 오른쪽 끝에 "로그인".
+- 확인: `npm test`(126개) · `npm run build` 통과, lint는 경고만(기존과 같은 종류).
 
 # 사이클 밖: ADR-0047 옮기기
 
