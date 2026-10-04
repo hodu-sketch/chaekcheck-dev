@@ -1115,3 +1115,12 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
   - `AccountIdArgumentResolverTests`: 이 클래스에만 등록한 테스트 컨트롤러로 `/api/v1/me/probe`가 계정 번호를 받음, 토큰 없으면 401, `/api/v1/me/**` 밖 경로는 쿠키가 있어도 401.
 - **새로 알게 된 것 (테스트 환경)**: 로컬 `../.env`의 `CHAEKCHECK_AUTH_ENABLED`, `AUTH_PROVIDERS=kakao`(사이클 05 17단계 카카오 확인용)가 테스트에도 읽혀서, auth 테스트 12개가 실패함(네이버 경로가 404). `AUTH_PROVIDERS`만 덮으면 이번엔 로그인 꺼짐을 전제로 한 `AuthSchemaTests`가 `.env`의 켜짐 값 때문에 네이버 키를 요구하며 실패함. `src/test/resources/application-test.yml`에 `chaekcheck.auth.enabled: false`, `providers: naver,kakao`를 고정해서, 테스트가 로컬 `.env`의 영향을 받지 않게 함. 실제 환경 변수는 여전히 이 값보다 우선함.
 - 확인: `./gradlew build` 통과.
+
+## 2단계 결과: `library` 계획 규칙 (`libraryIds`, `chosen`) (2026-10-04)
+
+- `PlanOptions(scope, visit, libraryIds)`: 기존 두 인자 생성자를 남겨서(빈 집합), 기존 호출부는 바뀌지 않음. `apply()`는 `joinable() || chosen`, `!visitRequired() || chosen`.
+- `SearchTarget`에 마지막 칸 `boolean chosen`. `findEnabledTarget`은 늘 `false`.
+- `LibraryService.planSearch`: `libraryIds`에 있는 켜진 도서관을 `chosen` 묶음으로 떼어 맨 앞에 두고 `IN_GROUP`으로 정렬함. 나머지는 지금 순서 계산 그대로이고, 같은 도서관이 두 번 들어가지 않음.
+- **dev가 정한 값: `chosen`인데 지역 규칙이 안 맞는 도서관의 `priorityGroup`은 `QUALIFIED`** (`eligibility=UNKNOWN`). 이유: QUALIFIED는 "지역 규칙이 있는데 맞는지 모름"이라는 뜻이고, 지역 없이 검색할 때 이미 `UNKNOWN`과 짝을 이루는 값임. 지역을 보낸 계획에 QUALIFIED가 나오는 건 이 경우뿐. `PriorityGroup`, `Eligibility` 설명에 적어 둠.
+- 테스트 (`LibraryCatalogTests$ChosenLibraries` 6개): 빠지던 도서관이 `chosen=true`, `UNKNOWN`, `QUALIFIED`로 들어옴 / `joinable`+`visit=none`에서 미확인·방문 가입 `chosen`이 남음 / 두 scope 모두 `chosen`이 맨 앞이고 원래 그룹 유지, 묶음 안은 소장 수 순서 / 꺼진 번호·없는 번호는 무시(AC-10) / `libraryIds`가 비면 계획이 같음 / `findEnabledTarget`은 `chosen=false`.
+- 확인: `./gradlew build` 통과.

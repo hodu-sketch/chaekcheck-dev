@@ -6,7 +6,10 @@ public enum Eligibility {
 	OPEN,
 	/** A RESIDENCE or WORK rule matches the user's regions. */
 	ELIGIBLE,
-	/** The library has region rules but the user sent no regions. */
+	/**
+	 * The library has region rules but the user sent no regions; or a library the user added by hand whose region
+	 * rules do not match the regions sent (cycle 06, ADR-0050).
+	 */
 	UNKNOWN,
 	/** The library has no rules we could verify (ADR-0013). It stays a target whatever the user's regions. */
 	UNVERIFIED

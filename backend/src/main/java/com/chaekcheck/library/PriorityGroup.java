@@ -11,7 +11,10 @@ public enum PriorityGroup {
 	MY_SIDO,
 	/** Anyone can join (NATIONWIDE rule). */
 	OPEN,
-	/** No regions sent and the library has region rules. */
+	/**
+	 * No regions sent and the library has region rules; with regions, a library the user added by hand whose region
+	 * rules do not match (cycle 06, ADR-0050).
+	 */
 	QUALIFIED,
 	/** Eligibility not verified, or only a condition we cannot decide (extra condition text). */
 	NEEDS_CHECK

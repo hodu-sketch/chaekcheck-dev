@@ -388,6 +388,104 @@ class LibraryCatalogTests {
 			.hasMessageContaining("library_base_url_key");
 	}
 
+	/** Cycle 06, ADR-0050: libraries the user added by hand ({@code libraryIds}). */
+	@Nested
+	class ChosenLibraries {
+
+		@Test
+		void libraryLeftOutByRegionsComesBackChosenAndUnknown() {
+			onlyTestLibraries();
+			long open = library("누구나", 10);
+			nationwide(open);
+			long busan = library("부산 규칙", 10);
+			rule(busan, "RESIDENCE", BUSAN);
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of())).extracting(SearchTarget::id).containsExactly(open);
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of(), chosen(PlanOptions.Scope.ALL, busan)))
+				.extracting(SearchTarget::id, SearchTarget::chosen, SearchTarget::eligibility,
+						SearchTarget::priorityGroup)
+				.containsExactly(tuple(busan, true, Eligibility.UNKNOWN, PriorityGroup.QUALIFIED),
+						tuple(open, false, Eligibility.OPEN, PriorityGroup.OPEN));
+		}
+
+		@Test
+		void joinableScopeAndNoVisitKeepChosenLibraries() {
+			onlyTestLibraries();
+			long open = library("누구나", 10);
+			nationwide(open);
+			long unverified = library("미확인", 10);
+			long visit = library("방문 가입", 10);
+			nationwide(visit);
+			jdbc.sql("UPDATE library.library SET visit_required = true WHERE id = ?").param(visit).update();
+			PlanOptions both = new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.NONE,
+					Set.of(unverified, visit));
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of(),
+					new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.NONE)))
+				.extracting(SearchTarget::id)
+				.containsExactly(open);
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of(), both)).extracting(SearchTarget::id, SearchTarget::chosen)
+				.containsExactly(tuple(unverified, true), tuple(visit, true), tuple(open, false));
+		}
+
+		@Test
+		void chosenComeFirstInBothScopesAndKeepTheirGroup() {
+			onlyTestLibraries();
+			long sigungu = library("마포 규칙", 10);
+			rule(sigungu, "RESIDENCE", MAPO);
+			long open = library("누구나", 10);
+			nationwide(open);
+			long unverifiedSmall = library("미확인 작은 곳", 5);
+			long unverifiedBig = library("미확인 큰 곳", 500);
+
+			for (PlanOptions.Scope scope : PlanOptions.Scope.values()) {
+				assertThat(catalog.planSearch(Set.of(MAPO), Set.of(), chosen(scope, open, unverifiedSmall)))
+					.as(scope.name())
+					.extracting(SearchTarget::id, SearchTarget::chosen, SearchTarget::priorityGroup)
+					.startsWith(tuple(open, true, PriorityGroup.OPEN),
+							tuple(unverifiedSmall, true, PriorityGroup.NEEDS_CHECK),
+							tuple(sigungu, false, PriorityGroup.MY_SIGUNGU));
+			}
+			// inside the chosen block the usual in-group order applies (holdings count descending)
+			assertThat(catalog.planSearch(Set.of(), Set.of(), chosen(PlanOptions.Scope.ALL, unverifiedSmall, unverifiedBig)))
+				.extracting(SearchTarget::id)
+				.startsWith(unverifiedBig, unverifiedSmall);
+		}
+
+		@Test
+		void disabledAndUnknownIdsAreIgnored() { // AC-10
+			onlyTestLibraries();
+			long open = library("누구나", 10);
+			nationwide(open);
+			long off = library("꺼짐", 10);
+			jdbc.sql("UPDATE library.library SET enabled = false WHERE id = ?").param(off).update();
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of(), chosen(PlanOptions.Scope.ALL, off, 999_999L)))
+				.extracting(SearchTarget::id, SearchTarget::chosen)
+				.containsExactly(tuple(open, false));
+		}
+
+		@Test
+		void withoutLibraryIdsThePlanIsUnchanged() {
+			List<SearchTarget> plain = catalog.planSearch(Set.of(MAPO), Set.of(JUNG_SEOUL));
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of(JUNG_SEOUL),
+					new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.ANY, Set.of())))
+				.isEqualTo(plain)
+				.noneMatch(SearchTarget::chosen);
+		}
+
+		@Test
+		void findEnabledTargetIsNeverChosen() {
+			assertThat(catalog.findEnabledTarget(GOHEUNG)).get().extracting(SearchTarget::chosen).isEqualTo(false);
+		}
+
+		private static PlanOptions chosen(PlanOptions.Scope scope, Long... ids) {
+			return new PlanOptions(scope, PlanOptions.Visit.ANY, Set.of(ids));
+		}
+
+	}
+
 	private void onlyTestLibraries() {
 		jdbc.sql("UPDATE library.library SET enabled = false").update();
 	}

@@ -8,11 +8,13 @@ package com.chaekcheck.library;
  * @param joinCaution original text shown as a caution that does not change the eligibility; may be null
  * @param joinNotice neutral information shown as "안내" (who the library serves); may be null
  * @param homepageUrl front page of this row: the e-library's main page for EBOOK; may be null
+ * @param chosen the user added this library by hand ({@link PlanOptions#libraryIds()}): it comes first and the
+ * scope and visit filters keep it (ADR-0050). When no region rule matched, {@code eligibility} is UNKNOWN.
  */
 public record SearchTarget(long id, String name, LibraryType libraryType, PlatformType platformType, String baseUrl,
 		PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 		String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl, String joinCaution,
-		String joinNotice, String homepageUrl) {
+		String joinNotice, String homepageUrl, boolean chosen) {
 
 	/**
 	 * The user can join for sure: anyone may join, or one of the user's regions matches. An extra condition (e.g.

@@ -23,7 +23,9 @@ public interface LibraryCatalog {
 	}
 
 	/**
-	 * The search plan in priority order, keeping only the libraries {@code options} allows (scope, visit).
+	 * The search plan in priority order, keeping only the libraries {@code options} allows (scope, visit). Enabled
+	 * libraries in {@link PlanOptions#libraryIds()} come first with {@link SearchTarget#chosen()}, even when their
+	 * region rules do not match, and both filters keep them (ADR-0050).
 	 * @throws InvalidRegionException if any id is abolished, unknown or a SIDO id
 	 */
 	List<SearchTarget> planSearch(Set<Long> residenceIds, Set<Long> workIds, PlanOptions options);

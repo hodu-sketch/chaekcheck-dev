@@ -83,19 +83,37 @@ class LibraryService implements LibraryCatalog {
 
 		Map<PriorityGroup, List<Library>> groups = new EnumMap<>(PriorityGroup.class);
 		Map<Long, Placement> placements = new HashMap<>();
+		List<Library> chosen = new ArrayList<>();
 		for (Library library : enabled) {
 			Placement placement = place(library, rulesByLibrary.getOrDefault(library.getId(), List.of()),
 					regionFilterApplied, residence, work);
-			if (placement != null) {
-				placements.put(library.getId(), placement);
+			boolean isChosen = options.libraryIds().contains(library.getId());
+			if (placement == null && isChosen) {
+				// ADR-0050: a library the user added stays even when no region rule matched. Its eligibility is not
+				// known from the regions; QUALIFIED is the group of "has region rules, not known to match".
+				placement = new Placement(PriorityGroup.QUALIFIED, Eligibility.UNKNOWN);
+			}
+			if (placement == null) {
+				continue;
+			}
+			placements.put(library.getId(), placement);
+			if (isChosen) {
+				chosen.add(library);
+			}
+			else {
 				groups.computeIfAbsent(placement.group(), g -> new ArrayList<>()).add(library);
 			}
 		}
 
+		// ADR-0050: the libraries the user added come first, in the usual in-group order, keeping their own group
+		List<SearchTarget> plan = new ArrayList<>();
+		chosen.stream()
+			.sorted(IN_GROUP)
+			.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()), true)));
+
 		// ADR-0027: over all joinable groups, libraries without a visit come first (in group order), then the visit
 		// ones in the same group order. Groups that are not joinable keep the visit ones last inside the group.
 		List<PriorityGroup> order = regionFilterApplied ? ORDER_WITH_REGIONS : ORDER_WITHOUT_REGIONS;
-		List<SearchTarget> plan = new ArrayList<>();
 		for (boolean visit : List.of(false, true)) {
 			for (PriorityGroup group : order) {
 				if (JOINABLE.contains(group)) {
@@ -103,7 +121,7 @@ class LibraryService implements LibraryCatalog {
 						.stream()
 						.filter(library -> library.isVisitRequired() == visit)
 						.sorted(IN_GROUP)
-						.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()))));
+						.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()), false)));
 				}
 			}
 		}
@@ -112,7 +130,7 @@ class LibraryService implements LibraryCatalog {
 				groups.getOrDefault(group, List.of())
 					.stream()
 					.sorted(IN_GROUP)
-					.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()))));
+					.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()), false)));
 			}
 		}
 		return options.apply(plan);
@@ -130,7 +148,7 @@ class LibraryService implements LibraryCatalog {
 	public Optional<SearchTarget> findEnabledTarget(long libraryId) {
 		return libraries.findById(libraryId).filter(Library::isEnabled).map(library -> {
 			List<EligibilityRule> libraryRules = rulesOf(List.of(library)).getOrDefault(libraryId, List.of());
-			return toTarget(library, place(library, libraryRules, false, UserRegions.NONE, UserRegions.NONE));
+			return toTarget(library, place(library, libraryRules, false, UserRegions.NONE, UserRegions.NONE), false);
 		});
 	}
 
@@ -179,12 +197,12 @@ class LibraryService implements LibraryCatalog {
 			.collect(Collectors.groupingBy(EligibilityRule::getLibraryId));
 	}
 
-	private static SearchTarget toTarget(Library library, Placement placement) {
+	private static SearchTarget toTarget(Library library, Placement placement, boolean chosen) {
 		return new SearchTarget(library.getId(), library.getName(), library.getLibraryType(),
 				library.getPlatformType(), library.getBaseUrl(), placement.group(), library.isDeferred(),
 				placement.eligibility(), library.getEligibilitySummary(), library.getExtraConditionText(),
 				library.isVisitRequired(), library.getJoinMethod(), library.getJoinUrl(), library.getJoinCaution(),
-				library.getJoinNotice(), library.getHomepageUrl());
+				library.getJoinNotice(), library.getHomepageUrl(), chosen);
 	}
 
 	/**

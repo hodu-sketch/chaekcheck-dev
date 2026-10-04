@@ -143,7 +143,7 @@ class EbookSearchStreamControllerTests {
 	private static SearchTarget withVisit(SearchTarget t) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), true, t.joinMethod(),
-				t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl());
+				t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen());
 	}
 
 	@Test
@@ -181,13 +181,13 @@ class EbookSearchStreamControllerTests {
 	private static SearchTarget withEligibility(SearchTarget t, Eligibility eligibility, String extraConditionText) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), eligibility, t.eligibilitySummary(), extraConditionText, t.visitRequired(),
-				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl());
+				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen());
 	}
 
 	private static SearchTarget withCaution(SearchTarget t, String joinCaution) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
-				t.joinMethod(), t.joinUrl(), joinCaution, t.joinNotice(), t.homepageUrl());
+				t.joinMethod(), t.joinUrl(), joinCaution, t.joinNotice(), t.homepageUrl(), t.chosen());
 	}
 
 	@Test
