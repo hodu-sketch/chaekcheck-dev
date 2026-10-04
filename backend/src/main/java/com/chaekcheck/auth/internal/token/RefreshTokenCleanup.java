@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 
 /**
  * Deletes expired refresh rows once a day (C31), at {@code chaekcheck.auth.cleanup.cron} (04:00 Asia/Seoul).

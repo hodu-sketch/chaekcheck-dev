@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chaekcheck.auth.internal.AuthProperties;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.account.AccountDeletion;
 import com.chaekcheck.auth.internal.account.AccountStore;
 import com.chaekcheck.auth.internal.login.LoginProvider;

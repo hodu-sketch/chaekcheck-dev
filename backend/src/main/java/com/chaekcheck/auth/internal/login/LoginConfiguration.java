@@ -31,7 +31,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 import com.chaekcheck.auth.internal.AuthProperties;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.account.AccountStore;
 import com.chaekcheck.auth.internal.token.TokenService;
 

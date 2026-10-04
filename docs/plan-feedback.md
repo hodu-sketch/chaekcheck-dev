@@ -1100,3 +1100,18 @@
 plan에 남는 문서(`crawl-method.md`, `research.md`, `same-book-isbn.md`, `search-and-normalization.md`, `catalog-refresh.md`)는 옮기지 않고 경로로만 가리킴.
 B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - 옮긴 뒤 plan `platforms.md` 8절(알라딘)이 고쳐짐(`startPage`는 쪽 번호가 아니라 0부터 세는 책 순번, 2026-10-04 대구공업대 확인). 같은 내용을 dev `docs/maintenance/platforms.md`에 반영함. 이제 dev 쪽이 원본이므로, plan에서 알게 된 플랫폼 사실은 dev 문서에 더하도록 plan 쪽 안내를 바꿔 주세요(요청서 D).
+
+# 사이클 06
+
+## 1단계 결과: `auth` 공개 장치 셋 (2026-10-04)
+
+- **`ConditionalOnAuthEnabled` 이동 [확인 필요 → 통과]**: `com.chaekcheck.auth`로 옮긴 뒤 `ModularityTests`, `DocumentationTests` 통과.
+  - 인계서와 다른 점: 인계서는 annotation이 계속 `auth.internal.AuthToggleEnvironmentPostProcessor.ENABLED`를 쓴다고 봤지만, 그 상수는 package-private이라 루트에서 읽을 수 없음. 그래서 속성 이름을 annotation의 상수 `ConditionalOnAuthEnabled.PROPERTY`로 옮기고, `internal`의 `ENABLED`가 그 값을 가리키게 함(의존 방향: internal → 공개 타입). 동작은 같음.
+- **`AccountPresence`**: 루트의 공개 인터페이스(`boolean lockIfExists(AccountId)`). 구현은 `auth/internal/account/AccountLock`(`@Transactional(propagation = MANDATORY)`, `SELECT 1 FROM auth.account WHERE id = ? FOR NO KEY UPDATE`, `@ConditionalOnAuthEnabled`).
+- **`AccountId` 인자 해석기**: `auth/internal/web/AccountIdArgumentResolver`. 해석기와 `WebMvcConfigurer`를 한 클래스로 두고 `@Configuration` + `@ConditionalOnAuthEnabled`로 앱 전체에 등록함. 인증이 `JwtAuthenticationToken`이면 `sub`로 채우고, 아니면 401 `unauthorized`(ProblemDetail, `MeController`와 같은 모양). 토큰 쿠키는 `/api/v1/me/**`에서만 읽으므로(C9) 그 밖의 경로에서 `AccountId`를 받으면 늘 401.
+- `auth/package-info.java` 설명 고침(C3).
+- 테스트
+  - `AccountPresenceTests`: 트랜잭션 없이 부르면 `IllegalTransactionStateException`, 있는 계정은 `true`, 없는 계정은 `false`, 잠근 동안 `AccountDeletion.delete`가 기다림(700ms 동안 끝나지 않고, 풀면 삭제됨).
+  - `AccountIdArgumentResolverTests`: 이 클래스에만 등록한 테스트 컨트롤러로 `/api/v1/me/probe`가 계정 번호를 받음, 토큰 없으면 401, `/api/v1/me/**` 밖 경로는 쿠키가 있어도 401.
+- **새로 알게 된 것 (테스트 환경)**: 로컬 `../.env`의 `CHAEKCHECK_AUTH_ENABLED`, `AUTH_PROVIDERS=kakao`(사이클 05 17단계 카카오 확인용)가 테스트에도 읽혀서, auth 테스트 12개가 실패함(네이버 경로가 404). `AUTH_PROVIDERS`만 덮으면 이번엔 로그인 꺼짐을 전제로 한 `AuthSchemaTests`가 `.env`의 켜짐 값 때문에 네이버 키를 요구하며 실패함. `src/test/resources/application-test.yml`에 `chaekcheck.auth.enabled: false`, `providers: naver,kakao`를 고정해서, 테스트가 로컬 `.env`의 영향을 받지 않게 함. 실제 환경 변수는 여전히 이 값보다 우선함.
+- 확인: `./gradlew build` 통과.

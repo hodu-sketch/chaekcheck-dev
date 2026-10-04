@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.auth.internal.AuthProperties;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.account.AccountStore;
 import com.chaekcheck.auth.internal.account.AccountStore.NewConsent;
 import com.chaekcheck.auth.internal.login.PendingSignup;

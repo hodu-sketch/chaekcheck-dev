@@ -15,7 +15,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.chaekcheck.auth.internal.AuthProperties;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**

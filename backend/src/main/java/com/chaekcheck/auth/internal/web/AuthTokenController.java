@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.security.AuthCookies;
 import com.chaekcheck.auth.internal.token.TokenCookies;
 import com.chaekcheck.auth.internal.token.TokenService;

@@ -6,7 +6,7 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 import com.chaekcheck.auth.AccountDeleted;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 
 /**
  * The one listener of {@link AccountDeleted} in this cycle: a log line with the account number and nothing personal

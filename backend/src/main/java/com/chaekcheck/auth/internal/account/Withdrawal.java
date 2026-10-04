@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.chaekcheck.auth.internal.AuthProperties;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.login.LoginProvider;
 import com.chaekcheck.auth.internal.login.ProviderUnlinker;
 import com.chaekcheck.auth.internal.login.ReauthenticationProof;

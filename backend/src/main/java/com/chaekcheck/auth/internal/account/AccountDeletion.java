@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.chaekcheck.auth.AccountDeleted;
 import com.chaekcheck.auth.AccountId;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 
 /**
  * The one place an account is deleted: withdrawal, the providers' unlink calls and the daily clean-up jobs all come

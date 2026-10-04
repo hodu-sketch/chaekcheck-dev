@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.chaekcheck.auth.internal.AuthProperties;
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.account.AccountDeletion;
 import com.chaekcheck.auth.internal.account.AccountStore;
 import com.chaekcheck.auth.internal.account.AccountStore.LoginMethodRef;

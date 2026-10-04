@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpSessionListener;
 
 import org.springframework.stereotype.Component;
 
-import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.login.PendingSignup;
 import com.chaekcheck.auth.internal.login.ProviderUnlinker;
 

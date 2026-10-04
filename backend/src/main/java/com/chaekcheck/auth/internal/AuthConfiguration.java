@@ -4,6 +4,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
+
 /**
  * Binds and checks the login settings; exists only when login is on (ADR-0046). Also switches on {@code @Async} for
  * the {@code AccountDeleted} listeners ({@code @ApplicationModuleListener} runs after the commit, on its own thread);

@@ -14,6 +14,8 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
+import com.chaekcheck.auth.ConditionalOnAuthEnabled;
+
 /**
  * When {@code chaekcheck.auth.enabled} is not {@code true}, adds the Spring Security auto-configurations to
  * {@code spring.autoconfigure.exclude}, so the application has no security filter, no generated user and no
@@ -24,7 +26,7 @@ import org.springframework.core.env.MapPropertySource;
  */
 public class AuthToggleEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
-	static final String ENABLED = "chaekcheck.auth.enabled";
+	static final String ENABLED = ConditionalOnAuthEnabled.PROPERTY;
 
 	private static final String EXCLUDE = "spring.autoconfigure.exclude";
 
