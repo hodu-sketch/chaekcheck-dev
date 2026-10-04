@@ -1124,3 +1124,13 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - **dev가 정한 값: `chosen`인데 지역 규칙이 안 맞는 도서관의 `priorityGroup`은 `QUALIFIED`** (`eligibility=UNKNOWN`). 이유: QUALIFIED는 "지역 규칙이 있는데 맞는지 모름"이라는 뜻이고, 지역 없이 검색할 때 이미 `UNKNOWN`과 짝을 이루는 값임. 지역을 보낸 계획에 QUALIFIED가 나오는 건 이 경우뿐. `PriorityGroup`, `Eligibility` 설명에 적어 둠.
 - 테스트 (`LibraryCatalogTests$ChosenLibraries` 6개): 빠지던 도서관이 `chosen=true`, `UNKNOWN`, `QUALIFIED`로 들어옴 / `joinable`+`visit=none`에서 미확인·방문 가입 `chosen`이 남음 / 두 scope 모두 `chosen`이 맨 앞이고 원래 그룹 유지, 묶음 안은 소장 수 순서 / 꺼진 번호·없는 번호는 무시(AC-10) / `libraryIds`가 비면 계획이 같음 / `findEnabledTarget`은 `chosen=false`.
 - 확인: `./gradlew build` 통과.
+
+## 3단계 결과: `GET /api/v1/libraries` (2026-10-04)
+
+- `LibraryCatalog.eligibilityFor(residenceIds, workIds)`를 **공개 API로 둠**. 컨트롤러가 `library/internal/web`에 있는데 `LibraryService`는 package-private이라서, 루트 레코드 `LibraryEligibility`(`id`, `name`, `eligibility`, `matchedBy`, `visitRequired`, `cautioned`, `eligibilitySummary`, 안쪽 enum `RegionBasis { RESIDENCE, WORK }`)로 돌려줌. 다른 모듈은 아직 쓰지 않음.
+- 판정은 계획과 같은 `place()`를 그대로 쓰고, 빠지던 줄(`null`)은 `UNKNOWN`. `matchedBy`는 `ELIGIBLE`일 때만 거주·직장을 따로 비교해서 채움(시군구 또는 그 시도). 그래서 전국 규칙과 지역 규칙이 함께 있고 지역이 맞는 도서관은 계획과 같이 `ELIGIBLE` + `matchedBy`가 됨.
+- 컨트롤러 `LibraryListController`, 오류 `LibraryErrors`(`basePackageClasses`), 지역 ID 파서 `RegionIdsParam`(availability와 같은 규칙. 모듈끼리 internal을 나눠 쓰지 않으려고 복사함). 422 모양은 지금 스트림과 같음(`errors[].value`. design-delta 예시의 `regionId`가 아님).
+- 응답 설명에 `UNKNOWN`의 뜻 차이를 적음(컨트롤러·`LibraryEligibility` Javadoc).
+- **응답 크기 [확인 필요 → 측정]**: 켜진 도서관 278곳(db-test 시드). 지역 없음: 48,123바이트, gzip 4,208바이트. 거주 마포구 + 직장 중구: 48,591바이트, gzip 4,292바이트. 참고: `deploy/nginx` 예시에는 지금 gzip 설정이 없음. 배포 때 `/api`에 gzip을 켜면 약 4KB.
+- 테스트 (`LibraryListTests` 5개): 지역 없이 OPEN의 `matchedBy`가 빈 배열이고 꺼진 도서관이 없음(전체 모양 비교) / 직장 중구 → 서울 도서관 `["WORK"]`(AC-4 서버 쪽) / 거주 마포 + 직장 중구 → `["RESIDENCE","WORK"]` / 9001은 422 / 형식 오류·21개는 400.
+- 확인: `./gradlew build` 통과.

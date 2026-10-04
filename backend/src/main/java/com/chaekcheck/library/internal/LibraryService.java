@@ -19,6 +19,8 @@ import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
 import com.chaekcheck.library.InvalidRegionException.InvalidRegion;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.library.LibraryEligibility;
+import com.chaekcheck.library.LibraryEligibility.RegionBasis;
 import com.chaekcheck.library.LibraryRef;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.PriorityGroup;
@@ -137,6 +139,38 @@ class LibraryService implements LibraryCatalog {
 	}
 
 	@Override
+	public List<LibraryEligibility> eligibilityFor(Set<Long> residenceIds, Set<Long> workIds) {
+		List<InvalidRegion> invalid = new ArrayList<>();
+		UserRegions residence = expand(RESIDENCE_FIELD, residenceIds, invalid);
+		UserRegions work = expand(WORK_FIELD, workIds, invalid);
+		if (!invalid.isEmpty()) {
+			throw new InvalidRegionException(invalid);
+		}
+		boolean regionFilterApplied = !residenceIds.isEmpty() || !workIds.isEmpty();
+
+		List<Library> enabled = libraries.findByEnabledTrueOrderById();
+		Map<Long, List<EligibilityRule>> rulesByLibrary = rulesOf(enabled);
+		List<LibraryEligibility> list = new ArrayList<>(enabled.size());
+		for (Library library : enabled) {
+			List<EligibilityRule> libraryRules = rulesByLibrary.getOrDefault(library.getId(), List.of());
+			Placement placement = place(library, libraryRules, regionFilterApplied, residence, work);
+			Eligibility eligibility = placement == null ? Eligibility.UNKNOWN : placement.eligibility();
+			List<RegionBasis> matchedBy = new ArrayList<>(2);
+			if (eligibility == Eligibility.ELIGIBLE) {
+				if (matchesBasis(libraryRules, EligibilityRule.Basis.RESIDENCE, residence)) {
+					matchedBy.add(RegionBasis.RESIDENCE);
+				}
+				if (matchesBasis(libraryRules, EligibilityRule.Basis.WORK, work)) {
+					matchedBy.add(RegionBasis.WORK);
+				}
+			}
+			list.add(new LibraryEligibility(library.getId(), library.getName(), eligibility, matchedBy,
+					library.isVisitRequired(), library.getJoinCaution() != null, library.getEligibilitySummary()));
+		}
+		return list;
+	}
+
+	@Override
 	public List<LibraryRef> enabledLibraryRefs() {
 		return libraries.findByEnabledTrueOrderById()
 			.stream()
@@ -189,6 +223,12 @@ class LibraryService implements LibraryCatalog {
 		return libraryRules.stream()
 			.anyMatch(rule -> rule.matchesRegion(EligibilityRule.Basis.RESIDENCE, residenceScope)
 					|| rule.matchesRegion(EligibilityRule.Basis.WORK, workScope));
+	}
+
+	private static boolean matchesBasis(List<EligibilityRule> libraryRules, EligibilityRule.Basis basis,
+			UserRegions regions) {
+		return libraryRules.stream()
+			.anyMatch(rule -> rule.matchesRegion(basis, regions.sigungu()) || rule.matchesRegion(basis, regions.sido()));
 	}
 
 	private Map<Long, List<EligibilityRule>> rulesOf(List<Library> libraryList) {

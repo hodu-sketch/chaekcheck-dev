@@ -30,6 +30,16 @@ public interface LibraryCatalog {
 	 */
 	List<SearchTarget> planSearch(Set<Long> residenceIds, Set<Long> workIds, PlanOptions options);
 
+	/**
+	 * Every enabled library in id order with the eligibility for the given regions and which of them matched
+	 * (cycle 06 public list, ADR-0049). Uses the plan's rules, but leaves no library out: one whose region rules do
+	 * not match is UNKNOWN.
+	 * @param residenceIds chosen SIGUNGU ids for residence, may be empty
+	 * @param workIds chosen SIGUNGU ids for work, may be empty
+	 * @throws InvalidRegionException if any id is abolished, unknown or a SIDO id
+	 */
+	List<LibraryEligibility> eligibilityFor(Set<Long> residenceIds, Set<Long> workIds);
+
 	/** Every enabled library with its site root, in id order (catalog importer comparison). */
 	List<LibraryRef> enabledLibraryRefs();
 
