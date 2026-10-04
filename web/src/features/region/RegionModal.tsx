@@ -1,6 +1,8 @@
 import { Dialog, Tabs } from 'radix-ui'
 import { useState } from 'react'
+import { ApiError } from '../../api/client'
 import type { SidoNode } from '../../api/types'
+import { resolveRegions } from './resolveRegions'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from './regionStorage'
 import { useRegionLabels, useRegionTree } from './useRegionTree'
 import styles from './RegionModal.module.css'
@@ -13,36 +15,73 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   regions: StoredRegions
-  onSave: (regions: StoredRegions) => void
+  /** Rejects when the save failed; the modal then stays open with the draft (cycle 06 step 9). */
+  onSave: (regions: StoredRegions) => Promise<void>
+  /** Where 저장 keeps them: this browser, or the signed-in account (cycle 06). */
+  savedTo?: 'browser' | 'account'
 }
 
 /** S2: choose residence and work regions. Changes apply only on 저장 (flow.md). */
-export function RegionModal({ open, onOpenChange, regions, onSave }: Props) {
+export function RegionModal({ open, onOpenChange, regions, onSave, savedTo = 'browser' }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content className={styles.content}>
           {/* remount the draft every time the modal opens, so 취소 discards changes */}
-          {open && <RegionEditor initial={regions} onCancel={() => onOpenChange(false)} onSave={onSave} />}
+          {open && (
+            <RegionEditor initial={regions} savedTo={savedTo} onCancel={() => onOpenChange(false)} onSave={onSave} />
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   )
 }
 
+/** What a failed save says (cycle 06 step 9). Wording [안] except the general failure (flow S2). */
+const SAVE_FAILED = '저장하지 못했어요. 잠시 뒤 다시 해 주세요'
+const SIGNED_OUT = '로그인이 풀렸어요. 저장을 다시 누르면 이 브라우저에 저장돼요'
+
 function RegionEditor({
   initial,
+  savedTo,
   onCancel,
   onSave,
 }: {
   initial: StoredRegions
+  savedTo: 'browser' | 'account'
   onCancel: () => void
-  onSave: (regions: StoredRegions) => void
+  onSave: (regions: StoredRegions) => Promise<void>
 }) {
   const tree = useRegionTree()
   const labels = useRegionLabels(tree.data)
   const [draft, setDraft] = useState<StoredRegions>(initial)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const save = async () => {
+    setSaving(true)
+    setMessage(null)
+    try {
+      await onSave(draft)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        // the refresh failed too: the browser is signed out now, the next 저장 keeps them here
+        setMessage(SIGNED_OUT)
+      } else if (error instanceof ApiError && error.problem.code === 'invalid_region') {
+        // changed regions since the tree was read: resolve them and let the user check again
+        const outcome = await resolveRegions(draft).catch(() => null)
+        if (outcome) setDraft(outcome.regions)
+        setMessage(
+          [...(outcome?.notices.map((notice) => notice.message) ?? []), '확인하고 다시 저장해 주세요'].join('. '),
+        )
+      } else {
+        setMessage(SAVE_FAILED)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
   const [field, setField] = useState<Field>('residence')
   const [sidoId, setSidoId] = useState<number | null>(null)
 
@@ -62,7 +101,8 @@ function RegionEditor({
       <header className={styles.head}>
         <Dialog.Title className={styles.title}>내 지역</Dialog.Title>
         <Dialog.Description className={styles.description}>
-          거주·직장 지역을 고르면 가입할 수 있는 도서관만 보여 드려요. 이 브라우저에만 저장돼요.
+          거주·직장 지역을 고르면 가입할 수 있는 도서관만 보여 드려요.{' '}
+          {savedTo === 'account' ? '계정에 저장돼요.' : '이 브라우저에만 저장돼요.'}
         </Dialog.Description>
       </header>
 
@@ -137,6 +177,11 @@ function RegionEditor({
         )}
       </div>
 
+      {message && (
+        <p className={styles.saveMessage} role="alert">
+          {message}
+        </p>
+      )}
       <footer className={styles.actions}>
         <button type="button" className={styles.clear} onClick={() => setDraft({ residence: [], work: [] })}>
           모두 지우기
@@ -145,8 +190,8 @@ function RegionEditor({
         <button type="button" className={styles.secondary} onClick={onCancel}>
           취소
         </button>
-        <button type="button" className={styles.primary} onClick={() => onSave(draft)}>
-          저장
+        <button type="button" className={styles.primary} onClick={save} disabled={saving}>
+          {saving ? '저장 중' : '저장'}
         </button>
       </footer>
     </>

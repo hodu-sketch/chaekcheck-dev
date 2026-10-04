@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import { AuthHeaderAction } from '../features/auth/AuthHeaderAction'
 import { NoticeBar } from '../features/auth/NoticeContext'
+import { RegionImportDialog } from '../features/mylibrary/RegionImportDialog'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
@@ -31,6 +32,7 @@ export function AppLayout() {
         </ErrorBoundary>
       </main>
       <Footer />
+      <RegionImportDialog />
     </div>
   )
 }

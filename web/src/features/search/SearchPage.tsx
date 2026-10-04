@@ -33,7 +33,7 @@ export function SearchPage() {
   const scope: LibraryScope = params.get('scope') === 'joinable' ? 'joinable' : 'all'
   const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
 
-  const { regions, ready, notices, setRegions, resolveStoredRegions } = useRegions()
+  const { regions, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
   const [modalOpen, setModalOpen] = useState(false)
 
   // direct search: the first filled field only (spec 3.7)
@@ -196,9 +196,10 @@ export function SearchPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         regions={regions}
-        onSave={(next) => {
-          // same conditions search again with the new regions (flow.md S2)
-          setRegions(next)
+        savedTo={source === 'account' ? 'account' : 'browser'}
+        onSave={async (next) => {
+          // same conditions search again with the new regions (flow.md S2); a failed save keeps the modal open
+          await setRegions(next)
           setModalOpen(false)
         }}
       />

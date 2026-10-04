@@ -24,6 +24,11 @@ export function useNotice(): NoticeContextValue {
   return value
 }
 
+/** For screens also used without the provider: `null` there. */
+export function useOptionalNotice(): NoticeContextValue | null {
+  return useContext(NoticeContext)
+}
+
 export function NoticeBar() {
   const { notice, clearNotice } = useNotice()
   if (notice === null) return null

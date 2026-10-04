@@ -14,6 +14,7 @@ import { SignupPage } from './features/auth/SignupPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ErrorFallback } from './components/ErrorFallback'
 import { BookPage } from './features/book/BookPage'
+import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
 import { RegionProvider } from './features/region/RegionContext'
 import { SearchPage } from './features/search/SearchPage'
 
@@ -26,6 +27,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NoticeProvider>
+        <MyLibraryProvider>
         <RegionProvider>
           <BrowserRouter>
             <Routes>
@@ -62,6 +64,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </RegionProvider>
+        </MyLibraryProvider>
         </NoticeProvider>
       </AuthProvider>
     </QueryClientProvider>

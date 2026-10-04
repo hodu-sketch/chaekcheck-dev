@@ -367,3 +367,13 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* cycle 06: a failed save, above the buttons */
+.saveMessage {
+  margin: 0 1.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm, 0.5rem);
+  background: var(--paper-deep);
+  font-size: 0.9rem;
+  color: var(--ink);
+}
