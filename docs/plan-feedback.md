@@ -820,6 +820,21 @@
 2. 꺼짐일 때 표: `auth`·`modulith` 표를 항상 만듭니다(Liquibase 조건 없음). 이유(dev 설명): 엔티티를 두면 `ddl-auto: validate`가 스위치와 상관없이 표를 검사하므로, 표를 안 만들면 꺼짐일 때 서버가 시작하지 못함.
 3. `spring-modulith-starter-jdbc`: 항상 classpath에 둡니다. `spring.modulith.events.jdbc.schema-initialization.enabled=false`를 명시(main 브랜치 문서 표는 기본값 `true`, 2.1.1 jar의 `spring-configuration-metadata.json`은 `false`로 서로 다름. 어느 쪽이든 Liquibase 밖에서 표를 만들지 않게 명시), `spring.modulith.events.jdbc.schema=modulith`. 꺼짐이면 이벤트를 발행하는 코드가 돌지 않습니다.
 
+## 사용자가 할 일: 네이버·카카오 앱 등록에 쓸 돌아올 주소 (2026-10-04, 5단계 뒤)
+
+사용자 요청(2026-10-04): "이것도 플랜이 알 수 있게 해줘". 인계서 "사용자가 할 것" 표의 앱 등록 줄에 쓸 값입니다. dev가 단계마다 이 절을 고칩니다.
+
+| 등록 | 돌아올 주소 (네이버 Callback URL, 카카오 Redirect URI) | 쓰는 단계 | 상태 |
+|---|---|---|---|
+| `naver` | `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/naver` | 5단계 로그인 | 코드 완료(가짜 응답으로 확인) |
+| `kakao` | `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/kakao` | 5단계 로그인 | 코드 완료(가짜 응답으로 확인) |
+| `naver-reauth` | 8단계에서 정해 이 표에 더함 | 8단계 탈퇴 재인증 | 아직 |
+| `kakao-reauth` | 8단계에서 정해 이 표에 더함 | 8단계 탈퇴 재인증 | 아직 |
+
+- `AUTH_PUBLIC_BASE_URL`: 사용자가 사이트를 여는 주소(scheme, host, port만, 끝에 `/` 없음). 개발 중에는 Vite 개발 서버 `http://localhost:5173`. 배포 주소는 배포 때 정함 [확인 필요].
+- 인계서가 묻는 "두 줄이 모두 받아지는지"는 재인증 주소까지 넣어 확인해야 하므로, 8단계에서 두 번째 줄이 정해진 뒤 확인하면 됩니다. 로그인 줄만 먼저 등록해도 5단계의 실제 로그인 확인은 할 수 있습니다.
+- 실제 로그인 때 함께 확인할 것(5단계 [확인 필요]): 네이버 일반 흐름의 PKCE, 네이버 취소 때 `error` 값, 네이버 토큰 요청의 `state`.
+
 ## dev 문서 정리 (인계서 "dev 문서 수정 요청", 사용자 승인 2026-10-04)
 
 - `docs/library-maintenance.md`: 1-1 표 `homepage_url` 행에 끼어 있던 `CheckYes24Sites.java` 행을 3절 도구 표로 되돌리고, `homepage_url`의 "누가 채우나"(`find_front_pages.py`)를 되살림. 1-3 표 아래로 밀려나 있던 `GANGNAM_V1` 행도 표 안으로 되돌림(같은 종류의 깨짐이라 함께 고침). 4-10 표 YES24 행에 `YES24_V3` 추가. 4-9를 4-10 앞으로, 13절을 14절 앞으로 옮김. 글 내용은 바꾸지 않음.
