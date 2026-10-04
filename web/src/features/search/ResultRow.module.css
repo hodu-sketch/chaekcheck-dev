@@ -265,29 +265,42 @@
   cursor: pointer;
 }
 
+/* "구독형 · 바로 대출 ⓘ" in the same box as the counts of the other rows (user request 2026-10-05) */
+.state.stateButton {
+  background: var(--brand-faint);
+  color: var(--brand-strong);
+  font-weight: 700;
+}
+
 .stateButton:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
-/*
- * Counts and the link share the bottom line; the line keeps the counts' height even without counts (subscription
- * rows), so rental and subscription rows are the same height (user request 2026-10-05).
- */
 .stockLine {
   display: flex;
   align-items: flex-end;
   gap: 1.25rem;
-  min-height: 2.4rem;
 }
 
+/*
+ * The counts in a colored box on every width, violet like the "지금 빌릴 수 있어요" group (orange in the reserve
+ * group); the subscription state uses the same box (user requests 2026-10-05: a box, then "not grey, a color").
+ */
 .counts {
   display: flex;
   gap: 1rem;
   margin: 0;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-tag);
+  background: var(--brand-faint);
   font-size: var(--text-sm);
   line-height: 1.25;
   color: var(--ink-soft);
+}
+
+.row[data-group='reserve'] .counts {
+  background: var(--reserve-faint);
 }
 
 .counts div {
@@ -416,18 +429,20 @@
    */
   .counts {
     order: 2;
+  }
+
+  /* to the right of a state box; on the left when there is none */
+  .state ~ .stockLine > .counts {
     margin-left: auto;
   }
 
 
   /* "보유 5  대출 중 0  예약 0" on one line, in a grey box like the state beside it (user request 2026-10-05) */
   .counts {
-    align-self: stretch;
     align-items: center;
     gap: 0.25rem;
-    padding: 0 0.3rem;
-    border-radius: var(--radius-tag);
-    background: var(--paper-deep);
+    /* the same height as a state box (0.25rem padding), so a row with only counts looks the same */
+    padding: 0.25rem 0.3rem;
   }
 
   .counts div {

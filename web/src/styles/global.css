@@ -27,6 +27,8 @@
   --brand: #7a5cf2;
   --brand-strong: #5e3fe0;
   --brand-soft: #f0ebff;
+  /* lighter still: the count and subscription boxes in result cards (user request 2026-10-05) */
+  --brand-faint: #f7f4ff;
   /* a greyed violet, much less saturated than --brand-soft: the 내 도서관 box (user request 2026-10-05) */
   --brand-mist: #ecebf2;
 
@@ -35,6 +37,7 @@
   --borrow-soft: var(--brand-soft);
   --reserve: #b76a0a;
   --reserve-soft: #fff3e0;
+  --reserve-faint: #fff9ef;
   --fail: #d33d55;
   --fail-soft: #ffeef1;
   --focus: #5e3fe0;

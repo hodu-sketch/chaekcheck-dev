@@ -31,6 +31,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   // no known join page yet: the library's e-library front page, where its sign-up guide can be found
   const siteUrl = joinUrl ? undefined : siteOrigin(searchUrl)
   const libraryName = library?.name ?? '도서관'
+  const state = row.failed ? '확인 실패' : stateText(row)
   const group = row.availability === 'AVAILABLE' ? 'borrow' : row.availability === 'PENDING' ? 'pending' : 'reserve'
 
   const conditionLines = (
@@ -118,7 +119,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
           // the subscription caution opens from the state instead of taking a line (user request 2026-10-05)
           <Popover.Root>
             <Popover.Trigger className={`${styles.state} ${styles.stateButton}`}>
-              {stateText(row)} <span aria-hidden="true">ⓘ</span>
+              {state} <span aria-hidden="true">ⓘ</span>
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content className={styles.joinPopover} side="bottom" align="end" sideOffset={6} collisionPadding={12}>
@@ -128,7 +129,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
             </Popover.Portal>
           </Popover.Root>
         ) : (
-          <p className={styles.state}>{row.failed ? '확인 실패' : stateText(row)}</p>
+          state !== null && <p className={styles.state}>{state}</p>
         )}
         <div className={styles.stockLine}>
           <Counts row={row} />
@@ -156,15 +157,18 @@ function siteOrigin(searchUrl: string | undefined): string | undefined {
   return safe ? new URL(safe).origin + '/' : undefined
 }
 
-function stateText(row: Row): string {
+/**
+ * The state box, or `null` when the group title and the counts already say it: no "지금 대출 가능" and no "예약 대기 N명"
+ * (user request 2026-10-05).
+ */
+function stateText(row: Row): string | null {
   switch (row.availability) {
     case 'AVAILABLE':
       if (row.availabilityBasis === 'SUBSCRIPTION') return '구독형 · 바로 대출'
-      // no "N권": the counts beside it already say it (user request 2026-10-05)
-      return '지금 대출 가능'
+      return null
     case 'RESERVABLE':
       if (row.holdings === null) return '대출 중 · 예약'
-      return `예약 대기 ${row.reservations ?? 0}명`
+      return null
     case 'PENDING':
       return '대출 정보 조회 중'
     case 'UNKNOWN':
