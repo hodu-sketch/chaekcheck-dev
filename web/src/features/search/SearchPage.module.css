@@ -36,9 +36,16 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  /* the three controls in one white box of their own, like the results panel (user request 2026-10-05) */
+  align-self: flex-start;
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--card);
 }
 
 .page[data-state='start'] .toggles {
+  align-self: center;
   justify-content: center;
 }
 
