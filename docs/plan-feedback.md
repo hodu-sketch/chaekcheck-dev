@@ -1231,3 +1231,21 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - **다른 테스트에 준 영향**: db-test를 함께 쓰므로, 이제 테스트 컨텍스트가 새로 뜰 때마다 db-test의 미완료 기록이 다시 처리됨. 전체 빌드에서 문제는 없었고, 빌드 뒤 `modulith.event_publication`은 0줄이었음. 기존 `AccountDeletedFailedListenerTests`는 `@AfterEach`에서 자기 기록을 지우므로 다음 컨텍스트에 남지 않음. 새 시험도 끝에 자기 행과 기록을 지움.
 - 참고: `SpringApplicationBuilder.properties()`는 기본값(가장 낮은 우선순위)이라서 1단계에서 고정한 `application-test.yml`의 `chaekcheck.auth.enabled: false`에 밀림. 그래서 명령줄 인자로 넘김.
 - 확인: `./gradlew build` 통과.
+
+## 7단계 결과: 사이클 05 보완 (2026-10-04)
+
+- `LoginFailureHandler`: 재인증 콜백(`-reauth`)의 `Missing.EXPIRED`는 `withdraw_request_expired`, `Missing.STATE_MISMATCH`는 `withdraw_state_mismatch`. 로그인 콜백은 그대로. 클래스 설명도 고침.
+- 웹 `authResult.ts`: 두 코드의 문구(`scope.md` 그대로).
+- **`signup_success` 방식: 웹 상태** (사용자 선택, 2026-10-04, dev 안 "웹 상태 (추천)"). `SignupPage`가 201 뒤에 `NoticeContext`로 "가입했어요"를 한 번 띄움. 문구는 `authResult.ts`의 `SIGNUP_SUCCESS_MESSAGE`. 서버 결과 코드는 만들지 않음. 다시 로그인할 때(`login_success`)는 이 화면을 거치지 않아서 안내가 없음(기존 `authResult.test.ts`의 "success … are not notices").
+- 테스트: `LoginCallbackTests`에 재인증 만료 → `withdraw_request_expired`이고 계정이 남음, 재인증 `state` 불일치 → `withdraw_state_mismatch`(AC-18) / `authResult.test.ts`에 두 문구 / `SignupPage.test.tsx`에서 가입 직후 안내 줄에 "가입했어요"(AC-17).
+- 확인: `./gradlew build`, `npm test`(151개), `npm run build`, `npm run lint`(오류 없음, 원래 있던 경고만) 통과.
+
+## 8단계 결과: 웹 API 층과 타입 (2026-10-04)
+
+- `types.ts`: `TargetLibrary.chosen`, `JoinTier`에 `'CHOSEN'`, `RegionBasis`, `LibraryEligibilityRow`(공개 목록 줄), `MyRegions`, `MyLibraries`.
+- `client.ts`: 계획 파라미터를 `PlanParams`(scope, visit, 두 지역, `libraryIds`)로 묶음. `libraryIds`는 비어 있지 않을 때만 붙음. 화면 주소에는 넣지 않음(C17). `fetchLibraries(residence, work)` → `GET /api/v1/libraries`.
+- `searchStream.ts`: 첫 스트림 두 곳에 `libraryIds`. 다음 묶음 두 API는 그대로(C16).
+- 새 파일 `web/src/api/myLibraries.ts`: `getMyRegions`, `putMyRegions`, `getMyLibraries`, `addMyLibrary`, `removeMyLibrary`. 모두 `meRequest`를 거침(401 갱신, 변경 요청의 CSRF 헤더와 한 번 재시도).
+- `libraryIds`는 API 함수에서 필수 칸으로 둠. 그래야 빠뜨린 호출이 타입 오류로 드러남. 지금 화면 호출부(`SearchPage`, `useSearch`, `BookPage`)는 빈 배열을 보내고, 10단계에서 실제 값을 연결함(주석 표시).
+- 테스트: `requests.test.ts`(세 요청에 `libraryIds`가 붙고 비면 없음, `/books`·`/books/{id}`, 공개 목록 주소), `myLibraries.test.ts`(읽기는 CSRF 없음, 변경은 CSRF 헤더와 본문, 401 → 갱신 한 번 → 다시 보냄, 갱신 실패 → 로그아웃 알림과 401, 409 코드).
+- 확인: `npm test`(159개), `npm run build`, `npm run lint` 통과.
