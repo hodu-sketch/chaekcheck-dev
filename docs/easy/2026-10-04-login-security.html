@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chaekcheck 로그인과 보안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of numbered cards; each card opens with its conclusion block. */
+:root {
+  --bg: #f3f5f4; --surface: #ffffff; --ink: #18232b; --muted: #55636c; --line: #d9e0de;
+  --accent: #0f766e; --accent-soft: #e2f1ef; --code-bg: #eef2f1;
+  --ok: #15803d; --ok-soft: #e4f4e8; --warn: #a16207; --warn-soft: #fbf1d9; --no: #b91c1c; --no-soft: #fbe5e5;
+  --font-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111719; --surface: #182124; --ink: #e6ecea; --muted: #9fb0ad; --line: #2b3a3d;
+  --accent: #5eead4; --accent-soft: #163633; --code-bg: #1f2b2e;
+  --ok: #4ade80; --ok-soft: #173322; --warn: #facc15; --warn-soft: #3a3115; --no: #f87171; --no-soft: #3d1b1b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111719; --surface: #182124; --ink: #e6ecea; --muted: #9fb0ad; --line: #2b3a3d;
+  --accent: #5eead4; --accent-soft: #163633; --code-bg: #1f2b2e;
+  --ok: #4ade80; --ok-soft: #173322; --warn: #facc15; --warn-soft: #3a3115; --no: #f87171; --no-soft: #3d1b1b; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 20px; line-height: 1.7;
+  word-break: keep-all; overflow-wrap: break-word; padding-inline: 16px; padding-block: 40px 64px; }
+main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1 { font-size: clamp(28px, 4.4vw, 40px); font-weight: 800; line-height: 1.35; text-wrap: balance; margin: 0; }
+.lede { font-size: 22px; font-weight: 500; margin: 0; text-wrap: pretty; }
+.lede strong { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px clamp(18px, 4vw, 32px);
+  display: flex; flex-direction: column; gap: 16px; }
+.card h2 { font-size: 25px; font-weight: 800; margin: 0; display: flex; gap: 12px; align-items: baseline; text-wrap: balance; }
+.num { font-family: var(--font-mono); font-size: 17px; color: var(--accent); font-weight: 500; flex: none; }
+.key { background: var(--accent-soft); border-radius: 10px; padding: 14px 18px; font-weight: 500; text-wrap: pretty; }
+p { margin: 0; text-wrap: pretty; }
+code { font-family: var(--font-mono); font-size: 0.82em; background: var(--code-bg); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+.items { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.items li { display: grid; grid-template-columns: 30px 1fr; gap: 14px; align-items: start; }
+.items li > div { min-width: 0; }
+.items svg { width: 30px; height: 30px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; margin-top: 4px; }
+.items b { display: block; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 18px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 16px; }
+.pill { display: inline-block; font-size: 15px; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.ok { background: var(--ok-soft); color: var(--ok); }
+.warn { background: var(--warn-soft); color: var(--warn); }
+.no { background: var(--no-soft); color: var(--no); }
+.flow { overflow-x: auto; }
+.flow svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.flow text { fill: var(--ink); font-family: var(--font-body); }
+.flow .sub { fill: var(--muted); }
+.flow .box { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.flow .boxa { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.flow .arrow { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.flow .head { fill: var(--accent); }
+.flow .boxn { fill: var(--no-soft); stroke: var(--no); stroke-width: 2; }
+.flow .lane { stroke: var(--line); stroke-width: 2; stroke-dasharray: 6 6; }
+.flow .lbl { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+.flow.seq svg { min-width: 700px; }
+a { color: var(--accent); }
+.caption { color: var(--muted); font-size: 17px; }
+.foot { color: var(--muted); font-size: 16px; text-align: center; }
+@media (max-width: 520px) { body { font-size: 19px; } .card h2 { font-size: 22px; } }
+</style>
+</head>
+<body>
+
+<main>
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <h1>chaekcheck는 사용자를<br>어떻게 알아보고 지키나</h1>
+    <p class="lede">사용자는 <strong>chaekcheck 계정 번호</strong>로 구분합니다. 카카오·네이버가 준 회원 번호는 그 계정에 붙은 "로그인 방법"으로만 저장합니다. 암호는 카카오·네이버에만 입력하고, 우리 서버는 받지 않습니다.</p>
+  </header>
+
+  <section class="card">
+    <h2><span class="num">01</span>사용자마다 무엇이 다른가</h2>
+    <div class="key">사용자마다 다른 것은 두 가지입니다. chaekcheck가 매기는 계정 번호, 그리고 카카오(또는 네이버)가 준 회원 번호입니다. 이름·이메일·사진은 받지도 저장하지도 않습니다.</div>
+    <ul class="items">
+      <li><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h7"/></svg>
+        <div><b>계정 번호 (<code>auth.account</code>)</b>가입할 때 1, 2, 3… 순서로 하나씩 생깁니다. 다른 모든 기록은 이 번호에 붙습니다. 오늘 시험에서 탈퇴한 뒤 다시 가입하자 1번이 지워지고 2번이 새로 생겼습니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/></svg>
+        <div><b>로그인 방법 (<code>auth.login_method</code>)</b>"어느 회사로 로그인하는지(<code>KAKAO</code> 또는 <code>NAVER</code>)"와 "그 회사가 준 회원 번호"를 함께 적습니다. 같은 회사의 같은 회원 번호는 DB 규칙상 두 번 들어갈 수 없습니다. 그래서 한 카카오 계정은 chaekcheck 계정 하나에만 연결됩니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <div><b>동의 기록 (<code>auth.account_consent</code>)</b>가입할 때 체크한 세 가지(이용약관, 개인정보 수집·이용, 만 14세 이상)를 날짜와 문서 버전과 함께 남깁니다.</div></li>
+    </ul>
+    <p class="caption">카카오는 동의항목을 켜지 않아도 회원 번호를 줍니다. 네이버도 제공 정보를 하나도 고르지 않으면 "이용자 식별자"만 줍니다(앱 등록 화면에서 확인).</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">02</span>카카오로 로그인하면 어떤 순서로 진행되나</h2>
+    <div class="key">사용자는 카카오 화면에서 로그인합니다. 우리 서버는 카카오에게서 회원 번호만 받아 계정을 찾습니다. 처음 온 사람이면 동의를 받기 전까지 DB에 아무것도 쓰지 않습니다.</div>
+    <div class="flow">
+      <svg viewBox="0 0 860 300" role="img" aria-label="카카오 로그인 순서">
+        <rect class="box" x="10" y="20" width="190" height="110" rx="10"/>
+        <text x="105" y="62" text-anchor="middle" font-size="19" font-weight="700">1. 로그인 버튼</text>
+        <text class="sub" x="105" y="92" text-anchor="middle" font-size="16">chaekcheck 화면</text>
+        <rect class="box" x="230" y="20" width="190" height="110" rx="10"/>
+        <text x="325" y="62" text-anchor="middle" font-size="19" font-weight="700">2. 카카오 로그인</text>
+        <text class="sub" x="325" y="92" text-anchor="middle" font-size="16">암호는 여기에만</text>
+        <rect class="boxa" x="450" y="20" width="400" height="110" rx="10"/>
+        <text x="650" y="56" text-anchor="middle" font-size="19" font-weight="700">3. 우리 서버가 카카오에 확인</text>
+        <text class="sub" x="650" y="86" text-anchor="middle" font-size="16">일회용 코드 + 클라이언트 시크릿 → 토큰</text>
+        <text class="sub" x="650" y="112" text-anchor="middle" font-size="16">토큰으로 회원 번호를 받음</text>
+        <path class="arrow" d="M200 75 H222"/><path class="head" d="M230 75 l-10 -6 v12z"/>
+        <path class="arrow" d="M420 75 H442"/><path class="head" d="M450 75 l-10 -6 v12z"/>
+        <path class="arrow" d="M650 130 V160 M650 160 H230 V196 M650 160 H650 V196"/>
+        <path class="head" d="M230 204 l-6 -10 h12z"/><path class="head" d="M650 204 l-6 -10 h12z"/>
+        <rect class="box" x="40" y="206" width="380" height="84" rx="10"/>
+        <text x="230" y="240" text-anchor="middle" font-size="18" font-weight="700">처음 온 회원 번호</text>
+        <text class="sub" x="230" y="268" text-anchor="middle" font-size="16">동의 화면으로. 10분 안에 동의해야 가입</text>
+        <rect class="box" x="460" y="206" width="380" height="84" rx="10"/>
+        <text x="650" y="240" text-anchor="middle" font-size="18" font-weight="700">이미 가입한 회원 번호</text>
+        <text class="sub" x="650" y="268" text-anchor="middle" font-size="16">로그인 쿠키 2개를 받고 보던 화면으로</text>
+      </svg>
+    </div>
+    <p class="caption">3번에서 쓰는 클라이언트 시크릿은 우리 서버의 <code>.env</code>에만 있어서, 브라우저에 일회용 코드가 노출돼도 다른 사람은 토큰으로 바꿀 수 없습니다.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">03</span>나중에 개인 아이디(아이디·암호)를 더하면 어떻게 되나</h2>
+    <div class="key">계정 번호는 그대로 두고, 로그인 방법에 "아이디·암호로 로그인" 종류를 하나 더하는 모양으로 만들어 두었습니다. 다른 표는 바꾸지 않아도 됩니다.</div>
+    <ul class="items">
+      <li><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg>
+        <div><b>지금 열어 둔 것</b>로그인 방법 칸에 <code>PASSWORD</code>를 더할 수 있게 표를 만들었습니다(인계서 결정). 계정·동의·로그인 쿠키는 어떤 방법으로 로그인했는지와 상관없이 계정 번호로만 움직입니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <div><b>그때 바꿀 것</b>지금 DB 규칙은 <code>NAVER</code>, <code>KAKAO</code>만 받고, 한 계정에 로그인 방법을 하나만 둡니다. 개인 아이디를 만들 때 이 규칙을 넓히고, 암호를 어떻게 저장할지 정합니다. 이 프로젝트 규칙은 암호를 bcrypt나 Argon2로 저장하라고 정해 두었습니다(<code>.claude/rules/java/security.md</code>).</div></li>
+      <li><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="3"/><circle cx="17" cy="12" r="3"/><path d="M10 12h4"/></svg>
+        <div><b>한 계정에 카카오와 네이버를 함께 붙이기</b>이번 사이클에서는 하지 않습니다. 표 구조만 열어 두었습니다.</div></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">04</span>로그인 상태는 어떻게 유지되나</h2>
+    <div class="key">로그인하면 브라우저가 쿠키 두 개를 받습니다. 15분짜리 <code>access_token</code>으로 "로그인한 사람"임을 보이고, 만료되면 30일짜리 <code>refresh_token</code>으로 새로 받습니다.</div>
+    <div class="tbl"><table>
+      <tr><th></th><th><code>access_token</code></th><th><code>refresh_token</code></th></tr>
+      <tr><td>유효 기간</td><td>15분</td><td>가입·로그인부터 30일</td></tr>
+      <tr><td>안에 든 것</td><td>계정 번호와 만료 시각. <code>AUTH_JWT_SECRET</code>으로 서명해서 고치면 서버가 알아챔</td><td>무작위 256비트 값. DB에는 그 값을 SHA-256으로 바꾼 것만 저장</td></tr>
+      <tr><td>보내는 곳</td><td><code>/api/v1/me</code> 요청에만</td><td><code>/api/v1/auth</code> 요청에만</td></tr>
+      <tr><td>자바스크립트가 읽기</td><td colspan="2">불가 (<code>HttpOnly</code>). 둘 다 <code>Secure</code>, <code>SameSite=Lax</code></td></tr>
+    </table></div>
+    <ul class="items">
+      <li><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg>
+        <div><b>쓸 때마다 새것으로 바꿈</b><code>refresh_token</code>을 한 번 쓰면 새 값을 받고, 옛 값은 못 씁니다. 누가 옛 값을 다시 내밀면 서버가 그 로그인 자체를 끝냅니다. 훔친 값과 진짜 값이 둘 다 쓰이는 순간 들키는 구조입니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/></svg>
+        <div><b>탭 여러 개가 동시에 갱신해도 안전</b>웹은 브라우저의 Web Locks로 한 탭만 갱신하게 하고, 서버는 DB에서 그 값을 잠가 두 요청이 같은 값으로 동시에 성공하지 못하게 합니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <div><b>검색에는 쿠키가 따라가지 않음</b>쿠키를 보내는 곳이 정해져 있어서 책 검색 요청에는 로그인 쿠키가 붙지 않습니다. 검색은 로그인 전후가 똑같이 동작합니다.</div></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">05</span>공격마다 무엇으로 막나</h2>
+    <div class="key">다섯 가지 공격을 각각 다른 장치로 막습니다. 남의 사이트가 보내는 요청, 쿠키 훔치기, 로그인 가로채기, 남의 계정 탈퇴, 가짜 연결 끊기 알림입니다.</div>
+    <ul class="items">
+      <li><svg viewBox="0 0 24 24"><path d="M3 12h7M14 12h7M10 8l4 4-4 4"/></svg>
+        <div><b>남의 사이트가 내 브라우저로 요청 보내기 (CSRF)</b>로그아웃, 가입, 탈퇴처럼 무언가를 바꾸는 요청은 <code>XSRF-TOKEN</code> 쿠키 값을 <code>X-XSRF-TOKEN</code> 헤더에도 넣어야 받습니다. 남의 사이트는 우리 쿠키 값을 읽을 수 없어 헤더를 못 채웁니다. 쿠키의 <code>SameSite=Lax</code>도 남의 사이트에서 보낸 이런 요청에는 쿠키를 붙이지 않습니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>
+        <div><b>쿠키 훔치기 (XSS)</b>로그인 쿠키는 <code>HttpOnly</code>라 페이지의 자바스크립트가 읽지 못합니다. 웹 서버 설정(<code>deploy/nginx/</code>)의 CSP는 우리 서버의 스크립트 파일만 실행하게 합니다. 화면의 글은 HTML로 넣지 않고 글자로만 그립니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h6"/><path d="M17 15l4 4M21 15l-4 4"/></svg>
+        <div><b>로그인 가로채기</b>로그인을 시작한 브라우저와 카카오에서 돌아온 브라우저가 같은지 무작위 확인값(<code>state</code>)으로 확인합니다. 돌아올 주소는 등록한 곳뿐이고, code를 토큰으로 바꾸려면 클라이언트 시크릿이 필요합니다. 순서는 <a href="#state">06번 카드</a>에 그림으로 있습니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
+        <div><b>남의 계정 탈퇴</b>탈퇴 버튼을 누르면 카카오 로그인 화면을 한 번 더 거칩니다. 가입한 카카오 계정과 같아야 하고, 그 확인은 5분만 유효합니다. 잠깐 자리를 비운 사이 누가 눌러도 카카오 암호 없이는 탈퇴되지 않습니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>
+        <div><b>가짜 연결 끊기 알림</b>사용자가 카카오·네이버 쪽에서 연결을 끊으면 그 회사가 우리 서버에 알려 줍니다. 카카오 알림은 어드민 키와 앱 ID가 맞아야 받습니다. 네이버 알림은 클라이언트 시크릿으로 만든 서명이 맞고 보낸 시각이 5분 안이어야 받습니다. 남이 이 주소로 요청을 보내 계정을 지울 수 없습니다.</div></li>
+    </ul>
+  </section>
+
+  <section class="card" id="state">
+    <h2><span class="num">06</span>로그인 가로채기는 구체적으로 어떻게 막나</h2>
+    <div class="key">서버는 로그인을 시작한 브라우저에게 무작위 확인값(<code>state</code>)을 하나 기억시킵니다. 카카오에서 돌아온 요청이 그 브라우저의 값과 같은 값을 들고 있을 때만 로그인을 이어 갑니다.</div>
+
+    <p><b>정상 로그인에서 <code>state</code>가 오가는 길</b></p>
+    <div class="flow seq">
+      <svg viewBox="0 0 860 650" role="img" aria-label="정상 로그인에서 state 값이 오가는 순서">
+        <text x="130" y="30" text-anchor="middle" font-size="18" font-weight="700">사용자 브라우저</text>
+        <text x="430" y="30" text-anchor="middle" font-size="18" font-weight="700">chaekcheck 서버</text>
+        <text x="730" y="30" text-anchor="middle" font-size="18" font-weight="700">카카오</text>
+        <path class="lane" d="M130 44 V640 M430 44 V640 M730 44 V640"/>
+
+        <path class="arrow" d="M130 90 H420"/><path class="head" d="M430 90 l-10 -6 v12z"/>
+        <text class="lbl" x="280" y="80" text-anchor="middle" font-size="16">① 로그인 버튼 누름</text>
+
+        <rect class="boxa" x="300" y="110" width="260" height="62" rx="8"/>
+        <text x="430" y="136" text-anchor="middle" font-size="16" font-weight="700">② state 만들기 (예: ABC)</text>
+        <text class="sub" x="430" y="160" text-anchor="middle" font-size="15">이 브라우저의 세션에 보관</text>
+
+        <path class="arrow" d="M430 210 H140"/><path class="head" d="M130 210 l10 -6 v12z"/>
+        <text class="lbl" x="280" y="200" text-anchor="middle" font-size="16">③ 카카오로 가라 + 세션 쿠키</text>
+
+        <path class="arrow" d="M130 260 H720"/><path class="head" d="M730 260 l-10 -6 v12z"/>
+        <text class="lbl" x="560" y="250" text-anchor="middle" font-size="16">카카오 로그인 화면 (state=ABC)</text>
+
+        <rect class="box" x="620" y="285" width="220" height="44" rx="8"/>
+        <text x="730" y="313" text-anchor="middle" font-size="16" font-weight="700">④ 카카오 암호 입력</text>
+
+        <path class="arrow" d="M730 370 H140"/><path class="head" d="M130 370 l10 -6 v12z"/>
+        <text class="lbl" x="560" y="360" text-anchor="middle" font-size="16">⑤ 등록된 돌아올 주소로</text>
+
+        <path class="arrow" d="M130 420 H420"/><path class="head" d="M430 420 l-10 -6 v12z"/>
+        <text class="lbl" x="280" y="410" text-anchor="middle" font-size="16">code + state=ABC + 세션 쿠키</text>
+
+        <rect class="boxa" x="300" y="440" width="260" height="62" rx="8"/>
+        <text x="430" y="466" text-anchor="middle" font-size="16" font-weight="700">⑥ 세션의 ABC와 비교</text>
+        <text class="sub" x="430" y="490" text-anchor="middle" font-size="15">같으면 계속, 쓴 값은 지움</text>
+
+        <path class="arrow" d="M430 545 H720"/><path class="head" d="M730 545 l-10 -6 v12z"/>
+        <text class="lbl" x="580" y="535" text-anchor="middle" font-size="16">⑦ code + 클라이언트 시크릿</text>
+
+        <path class="arrow" d="M730 600 H440"/><path class="head" d="M430 600 l10 -6 v12z"/>
+        <text class="lbl" x="580" y="590" text-anchor="middle" font-size="16">토큰 → 회원 번호</text>
+      </svg>
+    </div>
+    <p class="caption">⑤에서 카카오는 브라우저를 우리 서버로 돌려보내면서 ③에서 받은 <code>state</code>를 그대로 돌려줍니다. 그래서 ⑥에서 서버가 "이 응답은 이 브라우저가 시작한 로그인의 응답인가"를 확인할 수 있습니다.</p>
+
+    <p><b>"값이 다르다"는 것은 이런 경우입니다</b></p>
+    <div class="flow">
+      <svg viewBox="0 0 860 170" role="img" aria-label="state가 다른 링크를 받았을 때 멈추는 순서">
+        <rect class="box" x="10" y="20" width="190" height="130" rx="10"/>
+        <text x="105" y="58" text-anchor="middle" font-size="17" font-weight="700">공격자</text>
+        <text class="sub" x="105" y="88" text-anchor="middle" font-size="15">자기 카카오 계정으로</text>
+        <text class="sub" x="105" y="112" text-anchor="middle" font-size="15">로그인을 시작</text>
+        <rect class="box" x="230" y="20" width="190" height="130" rx="10"/>
+        <text x="325" y="58" text-anchor="middle" font-size="17" font-weight="700">⑤의 링크를 챙김</text>
+        <text class="sub" x="325" y="88" text-anchor="middle" font-size="15">code와 state가</text>
+        <text class="sub" x="325" y="112" text-anchor="middle" font-size="15">공격자 것(XYZ)</text>
+        <rect class="box" x="450" y="20" width="190" height="130" rx="10"/>
+        <text x="545" y="58" text-anchor="middle" font-size="17" font-weight="700">피해자가 클릭</text>
+        <text class="sub" x="545" y="88" text-anchor="middle" font-size="15">메일·게시글 속</text>
+        <text class="sub" x="545" y="112" text-anchor="middle" font-size="15">그 링크를 엶</text>
+        <rect class="boxn" x="670" y="20" width="180" height="130" rx="10"/>
+        <text x="760" y="58" text-anchor="middle" font-size="17" font-weight="700">서버가 멈춤</text>
+        <text class="sub" x="760" y="88" text-anchor="middle" font-size="15">피해자 세션에</text>
+        <text class="sub" x="760" y="112" text-anchor="middle" font-size="15">XYZ가 없음</text>
+        <path class="arrow" d="M200 85 H222"/><path class="head" d="M230 85 l-10 -6 v12z"/>
+        <path class="arrow" d="M420 85 H442"/><path class="head" d="M450 85 l-10 -6 v12z"/>
+        <path class="arrow" d="M640 85 H662"/><path class="head" d="M670 85 l-10 -6 v12z"/>
+      </svg>
+    </div>
+    <p class="caption">이 확인이 없으면 피해자의 브라우저가 <b>공격자의 카카오 계정</b>으로 chaekcheck에 로그인됩니다. 피해자는 자기 계정인 줄 알고 쓰고, 그 기록은 공격자 계정에 남습니다.</p>
+
+    <div class="tbl"><table>
+      <tr><th>⑥에서 서버가 본 것</th><th>결과</th><th>화면 문구</th></tr>
+      <tr><td>세션에 보관한 값이 없음 (10분이 지났거나, 다른 브라우저에서 시작한 로그인)</td><td><span class="pill no">멈춤</span></td><td>로그인 시간이 지났어요. 다시 해 주세요</td></tr>
+      <tr><td>보관한 값은 있는데 돌아온 값과 다름</td><td><span class="pill no">멈춤</span></td><td>안전하지 않은 로그인 요청이라 멈췄어요. 로그인 버튼을 눌러 다시 해 주세요</td></tr>
+      <tr><td>같음</td><td><span class="pill ok">계속</span></td><td>⑦로 넘어가고, 보관한 값은 지워서 다시 못 씀</td></tr>
+    </table></div>
+
+    <ul class="items">
+      <li><svg viewBox="0 0 24 24"><path d="M3 12h13M12 7l5 5-5 5"/><path d="M20 4v16"/></svg>
+        <div><b>돌아올 주소는 카카오가 정해진 곳으로만 보냄</b>⑤에서 카카오는 콘솔에 등록한 두 주소(<code>…/oauth2/code/kakao</code>, <code>…/kakao-reauth</code>)로만 돌려보냅니다. 공격자가 주소를 자기 사이트로 바꿔 code를 받아 갈 수 없습니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <div><b>code만으로는 토큰을 못 받음</b>⑦에서 code를 토큰으로 바꾸려면 클라이언트 시크릿이 필요합니다. 이 값은 우리 서버의 <code>.env</code>에만 있습니다. 누가 주소창에서 code를 봐도 혼자서는 쓸 수 없습니다.</div></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">07</span>탈퇴하거나 오래 안 쓰면 무엇이 지워지나</h2>
+    <div class="key">탈퇴하면 계정과 거기 딸린 로그인 방법·동의·로그인 기록이 한 번에 지워지고, 카카오와의 연결도 끊깁니다. 오늘 실제 카카오로 확인했습니다.</div>
+    <ul class="items">
+      <li><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+        <div><b>탈퇴 즉시</b>모든 브라우저의 <code>refresh_token</code>이 지워지고, 남은 <code>access_token</code>도 계정이 없어서 바로 거절됩니다. 오늘 두 번째 브라우저가 새로고침만으로 로그아웃된 것이 이것입니다. 서버가 카카오에 어드민 키로 연결 끊기를 요청해, 카카오 "연결된 서비스 관리"에서 chaekcheck가 사라집니다.</div></li>
+      <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+        <div><b>매일 한 번</b>마지막 로그인 뒤 1년이 지난 계정을 지웁니다. 카카오 쪽에서 연결이 끊겼는데 알림을 놓친 계정도 찾아 지웁니다.</div></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><span class="num">08</span>알고 있는 약점과 이번에 하지 않은 것</h2>
+    <div class="key">아래 항목은 설계 때 알고 받아들였거나, 확인이 남은 것입니다.</div>
+    <div class="tbl"><table>
+      <tr><th>항목</th><th>지금 상태</th><th></th></tr>
+      <tr><td>로그아웃 전에 누가 훔친 <code>access_token</code></td><td>만료까지 최대 15분(시계 오차를 더하면 약 16분) 통과합니다. 탈퇴와 달리 로그아웃은 계정이 남아 있기 때문입니다</td><td><span class="pill warn">받아들임</span></td></tr>
+      <tr><td>PKCE(로그인 가로채기 추가 방어)</td><td>꺼 둠. 카카오 문서에 없고, 네이버는 받는지 실제로 시험해 봐야 합니다</td><td><span class="pill warn">확인 필요</span></td></tr>
+      <tr><td>모든 기기에서 로그아웃, 로그인 기록 보기</td><td>이번 사이클 범위 밖</td><td><span class="pill no">없음</span></td></tr>
+      <tr><td>비밀 값 보관</td><td>개발 중에는 <code>.env</code>(git 제외). AWS 배포 때 보관 방법을 정합니다</td><td><span class="pill ok">개발용 충분</span></td></tr>
+    </table></div>
+  </section>
+
+  <p class="foot">2026-10-04 기준 chaekcheck-dev 코드와 사이클 05 인계서로 정리했습니다.</p>
+</main>
+</body>
+</html>
