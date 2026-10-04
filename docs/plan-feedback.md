@@ -1119,11 +1119,13 @@ B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
 - runbook 4절 표 10줄을 모두 반영함. plan은 4절 표에서 지워도 됨(요청서 F).
 - 빼거나 줄인 것: runbook 알라딘 `startPage` 줄은 `platforms.md` 8절에 A 때 이미 있어서 거기는 더하지 않고 `2-crawl.md` 6절 증상 줄만 더함. `probe_kyobo_limits.py`의 실행 인자는 원문에 없어 적지 않음([확인 필요], 3단계에 적음).
 
-원문과 dev 문서가 맞지 않거나 원문이 분명하지 않은 것:
-- **가입 자격 규칙**: `CLAUDE.md`는 도서관을 찾거나 더할 때 같은 작업에서 가입 자격을 조사하라고 함. 후보 도서관 2,738곳은 자격 조사 없이 수집 DB에 들어감. 이 규칙을 후보 도서관에 언제 적용할지(지금 / 등록 도서관으로 옮길 때) [확인 필요: 사용자 결정]. `1-libraries.md`에 같은 표시를 둠.
-- **도서관 조사 기록 위치**: `CLAUDE.md` "Library Research Record"는 새 방법·도구를 `docs/library-maintenance.md`에 적으라고 하는데, 요청서는 두 절차를 `1-libraries.md`에 넣으라고 함. 요청서대로 `1-libraries.md`에 넣고 `library-maintenance.md`는 고치지 않음(D가 요청하지 않음). `library-maintenance.md`에 가리키는 줄을 더할지 [확인 필요].
-- **같은 호스트 1건 [확정] 규칙**과 `--host-slots` 4건: 사용자 결정(2026-10-04)이라 `platforms.md` 0절에 예외로 적음. 기존 `--per-host`와 `--host-slots`가 함께 쓰일 때 어느 쪽이 이기는지는 원문에 없음 [확인 필요].
-- **마감 확인이 읽는 주소**: runbook 4절은 `/popup/popupMain.json`·`/main/firstBoardBlbrSrmb.json`·`/board/listBoard.json` 셋, plan `library-limits/research.md` 3-1절은 팝업과 `listBoard.json` 둘. runbook(셋)을 따름.
+- 후보 도서관의 가입 자격: dev가 1단계 절차로 조사함. 시점은 후보 도서관을 등록 도서관으로 옮기는 사이클(plan `periodic-tasks.md` 5절 [안], 6절). `1-libraries.md`에 그렇게 적음. 사용자 확인: "응 그렇게 plan에게 넘겨주고 다음 작업 이어서 해줘" (2026-10-04).
+- `1-libraries.md`의 두 절차는 요청서대로 이 파일에 둠. `library-maintenance.md`로는 `1-libraries.md`가 이미 입구로 이어져 있어 따로 줄을 더하지 않음.
+- `platforms.md` 0절의 "같은 호스트 1건 [확정]" 규칙에 `--host-slots` 4건(사용자 결정, 2026-10-04)을 예외로 적음.
+
+plan에 넘기는 것 (원문의 빈틈·불일치. runbook을 고칠 때 참고):
+- `--per-host`와 `--host-slots`를 함께 줄 때 어느 쪽이 이기는지 runbook에 없음. dev 문서에는 적지 않음.
+- 마감 확인이 읽는 주소가 plan 문서끼리 다름: runbook 4절은 `/popup/popupMain.json`·`/main/firstBoardBlbrSrmb.json`·`/board/listBoard.json` 셋, `library-limits/research.md` 3-1절은 팝업과 `listBoard.json` 둘. dev 문서는 runbook(셋)을 따름.
 
 # 사이클 06
 
