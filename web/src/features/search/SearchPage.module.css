@@ -26,7 +26,11 @@
   justify-content: center;
 }
 
-/* scope toggle and "방문 없이 가입" on one line; they wrap on narrow screens */
+/*
+ * Scope switch, "방문 없이 가입" and the "내 도서관 관리"/"내 지역" button on one line, all --control-height tall (user
+ * request 2026-10-05). On phones: the switch and that button on the first row, "방문 없이 가입" under them, so no
+ * control is hidden past the edge.
+ */
 .toggles {
   display: flex;
   flex-wrap: wrap;
@@ -208,5 +212,15 @@
 
   .page[data-state='start'] .searchArea {
     padding-top: 6vh;
+  }
+}
+
+@media (width <= 640px) {
+  .toggles {
+    align-self: stretch;
+  }
+
+  .toggles > :nth-child(2) {
+    order: 3;
   }
 }

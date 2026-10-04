@@ -136,10 +136,11 @@ export function SearchPage() {
           onSearch={search}
           onSettingsChange={changeSettings}
         />
-        {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
+        {/* one line: what to search, then what "내 도서관"/"내 지역" holds behind a button (user request 2026-10-05) */}
         <div className={styles.toggles}>
           <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
           <VisitToggle visit={visit} onChange={(next) => replaceParam('visit', next === 'none' ? 'none' : null)} />
+          {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
         </div>
       </section>
 

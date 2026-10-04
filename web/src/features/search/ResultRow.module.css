@@ -367,29 +367,47 @@
   .row {
     /* minmax(0, …): a long word must not push the card past the screen */
     grid-template-columns: minmax(0, 1fr);
-    padding: 0.7rem;
+    gap: 0.7rem;
+    padding: 0.9rem 1rem;
+    /* white on the grey canvas: the outer panel is gone on phones */
+    background: var(--card);
   }
 
+  /*
+   * phones: one short bottom line, state on the left and the link on the right, the counts under them; no second
+   * hairline (user request 2026-10-05: the stacked rows made each card too long)
+   */
   .stock {
     grid-column: 1;
     grid-row: auto;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.75rem;
     text-align: left;
-    padding-top: 0.7rem;
-    border-top: 1px solid var(--rule);
-  }
-
-  .state {
-    align-self: flex-start;
   }
 
   .stockLine {
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
-    min-height: 0;
+    display: contents;
+  }
+
+  .state {
+    order: 1;
+  }
+
+  /* a plain text link on phones, so it fits beside the state */
+  .link {
+    order: 2;
+    margin-left: auto;
+    padding: 0.2rem 0;
+    border: none;
+    background: none;
+    font-size: var(--text-sm);
+  }
+
+  .counts {
+    order: 3;
+    flex-basis: 100%;
   }
 
   /* "보유 5  대출 중 0  예약 0" on one line */

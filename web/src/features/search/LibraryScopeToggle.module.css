@@ -1,13 +1,20 @@
 .scope {
   display: inline-flex;
   align-self: flex-start;
+  box-sizing: border-box;
+  /* the same height as "방문 없이 가입" and the summary button (user request 2026-10-05) */
+  height: var(--control-height);
   padding: 0.2rem;
   border-radius: var(--radius-control);
   background: var(--track);
 }
 
 .item {
-  padding: 0.35rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.9rem;
+  white-space: nowrap;
   border: none;
   border-radius: var(--radius-inner);
   background: transparent;
@@ -29,8 +36,8 @@
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
   gap: 0.4rem;
-  padding: 0.55rem 0.9rem;
-  background: transparent;
+  padding: 0 0.9rem;
+  background: var(--card);
   color: var(--ink-soft);
   font: inherit;
   font-weight: 700;
@@ -69,4 +76,17 @@
   background: var(--paper);
   color: var(--brand-strong);
   font-weight: 800;
+}
+
+/* phones: one step smaller, like the Toss app's filter chips, so the switch and "내 도서관 관리" share a row */
+@media (width <= 640px) {
+  .item {
+    padding: 0 0.6rem;
+    font-size: var(--text-xs);
+  }
+
+  .single {
+    padding: 0 0.7rem;
+    font-size: var(--text-xs);
+  }
 }

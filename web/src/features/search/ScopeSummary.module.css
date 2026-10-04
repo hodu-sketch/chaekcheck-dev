@@ -1,0 +1,135 @@
+/*
+ * "내 도서관 관리" (after login) and "내 지역" (before login): a button on the scope switch line that opens what the
+ * search uses, instead of a box under the search field (user request 2026-10-05). Same height as the switches.
+ */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--control-height);
+  padding: 0 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms;
+}
+
+.trigger:hover,
+.trigger[data-state='open'] {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.caret {
+  display: inline-flex;
+  color: var(--brand-strong);
+}
+
+.trigger[data-state='open'] .caret {
+  transform: rotate(180deg);
+}
+
+/* the opened panel: a title, one row per part, the action at the bottom (a sheet-like list, as in the Toss app) */
+.panel {
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 1rem 1.1rem 1.05rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--ink);
+  font-size: var(--text-md);
+}
+
+.title {
+  margin-bottom: 0.4rem;
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+  word-break: keep-all;
+}
+
+.kind {
+  flex: none;
+  min-width: 3.2rem;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.value {
+  font-weight: 700;
+}
+
+.note {
+  padding: 0.4rem 0 0.2rem;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-height);
+  margin-top: 0.85rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.arrow {
+  fill: var(--card);
+}
+
+/* phones: one step smaller and no caret, so it fits beside the scope switch (user request 2026-10-05) */
+@media (width <= 640px) {
+  .trigger {
+    padding: 0 0.65rem;
+    font-size: var(--text-xs);
+  }
+
+  .caret {
+    display: none;
+  }
+}

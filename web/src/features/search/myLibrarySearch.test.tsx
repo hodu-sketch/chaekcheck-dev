@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthContext'
 import { NoticeProvider } from '../auth/NoticeContext'
 import { MyLibraryProvider } from '../mylibrary/MyLibraryContext'
@@ -88,6 +88,15 @@ function renderSearch(address = '/search?title=사랑&view=books') {
 const lastBooks = () => fake.books.at(-1)!
 const switchItem = (name: string) => screen.getByRole('radio', { name })
 
+beforeAll(() => {
+  // Radix positions popovers with ResizeObserver, which jsdom does not have
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+})
+
 beforeEach(() => {
   fake = {
     signedIn: true,
@@ -108,14 +117,21 @@ afterEach(() => {
   localStorage.clear()
 })
 
-describe('S1 "내 도서관" line', () => {
+/** Opens the "내 도서관" panel behind its button on the switch line (user request 2026-10-05). */
+async function openMyLibrary() {
+  await userEvent.setup().click(await screen.findByRole('button', { name: '내 도서관 관리' }))
+}
+
+describe('S1 "내 도서관" (behind "내 도서관 관리")', () => {
   it('names the regions and the added libraries, with 관리 to S10', async () => {
     renderSearch()
+    await openMyLibrary()
 
-    const line = (await screen.findByText('직접 추가 3곳')).parentElement!
-    await waitFor(() => expect(line.textContent).toContain('서울 마포구'))
-    expect(line.textContent).toMatch(/^내 도서관/)
-    expect(line.textContent).toContain('서울 중구')
+    const panel = await screen.findByRole('dialog')
+    await waitFor(() => expect(panel.textContent).toContain('서울 마포구'))
+    expect(panel.textContent).toContain('직접 추가3곳')
+    expect(panel.textContent).toMatch(/^내 도서관/)
+    expect(panel.textContent).toContain('서울 중구')
     expect(screen.getByRole('link', { name: '관리' }).getAttribute('href')).toBe('/my-libraries')
   })
 
@@ -123,6 +139,7 @@ describe('S1 "내 도서관" line', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
+    await openMyLibrary()
 
     expect(await screen.findByText(/내 도서관이 비어 있어요/)).toBeTruthy()
   })
@@ -130,6 +147,7 @@ describe('S1 "내 도서관" line', () => {
   it('a failed read offers 다시 시도 and searches 전체', async () => {
     fake.librariesStatus = 500
     renderSearch()
+    await openMyLibrary()
 
     expect(await screen.findByText(/내 도서관을 불러오지 못했어요/)).toBeTruthy()
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
@@ -144,6 +162,7 @@ describe('S1 "내 도서관" line', () => {
   it('shows 불러오는 중 while reading, searches 전체 meanwhile, then once more with 내 도서관 (step 10.5)', async () => {
     fake.holdLibraries = () => {}
     renderSearch()
+    await openMyLibrary()
 
     expect(await screen.findByText('불러오는 중')).toBeTruthy()
     await waitFor(() => expect(fake.books.length).toBe(1))
@@ -186,7 +205,7 @@ describe('the switch after login', () => {
 
     renderSearch()
 
-    await waitFor(() => expect(screen.getByText('직접 추가 3곳')).toBeTruthy())
+    await waitFor(() => expect(switchItem('내 도서관')).toBeTruthy())
     expect(switchItem('전체 도서관').getAttribute('aria-checked')).toBe('true')
     expect(lastBooks().searchParams.has('scope')).toBe(false)
   })
@@ -195,7 +214,9 @@ describe('the switch after login', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
+    await openMyLibrary()
     await screen.findByText(/내 도서관이 비어 있어요/)
+    await userEvent.setup().keyboard('{Escape}')
     expect(switchItem('전체 도서관').getAttribute('aria-checked')).toBe('true')
 
     await userEvent.setup().click(switchItem('내 도서관'))

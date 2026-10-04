@@ -57,6 +57,10 @@
   transition: background-color 140ms, color 140ms;
 }
 
+.submitIcon {
+  display: none;
+}
+
 .submit:hover {
   background: var(--brand-strong);
   color: #fff;
@@ -238,7 +242,17 @@
   }
 
   .submit {
-    padding: 0 0.95rem;
+    justify-content: center;
+    width: calc(var(--search-height) - 0.7rem);
+    padding: 0;
+  }
+
+  .submitText {
+    display: none;
+  }
+
+  .submitIcon {
+    display: block;
   }
 
   .moreButton {

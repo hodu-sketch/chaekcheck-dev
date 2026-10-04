@@ -1,10 +1,11 @@
+import { ScopeRow, ScopeSummary } from '../search/ScopeSummary'
+import panel from '../search/ScopeSummary.module.css'
 import { hasRegions, type StoredRegions } from './regionStorage'
 import { useRegionLabels, useRegionTree } from './useRegionTree'
-import styles from './RegionSummary.module.css'
 
 /**
- * "내 지역: 거주 서울 마포구 · 직장 서울 중구 · 변경" (flow.md S1), before login. Drawn like the "내 도서관" box after
- * login (user request 2026-10-05): one grey-violet box, each region kind as a white chip, the button at the right end.
+ * "내 지역" before login (flow.md S1), drawn like "내 도서관 관리" after login (user requests 2026-10-05): a button on
+ * the switch line. Without regions it opens S2 at once; with regions it lists them and offers [변경].
  */
 export function RegionSummary({ regions, onEdit }: { regions: StoredRegions; onEdit: () => void }) {
   const tree = useRegionTree()
@@ -12,32 +13,22 @@ export function RegionSummary({ regions, onEdit }: { regions: StoredRegions; onE
 
   if (!hasRegions(regions)) {
     return (
-      <p className={styles.summary}>
-        <span className={styles.hint}>내 지역을 고르면 빌릴 수 있는 도서관만 보여 드려요</span>
-        <button type="button" className={styles.edit} onClick={onEdit}>
-          설정
-        </button>
-      </p>
+      <button type="button" className={panel.trigger} onClick={onEdit}>
+        내 지역 설정
+      </button>
     )
   }
 
   const describe = (ids: number[]) => ids.map((id) => labels.get(id) ?? '…').join(', ')
   return (
-    <p className={styles.summary}>
-      <span className={styles.label}>내 지역</span>
-      {regions.residence.length > 0 && (
-        <span className={styles.part}>
-          <span className={styles.kind}>거주</span> {describe(regions.residence)}
-        </span>
-      )}
-      {regions.work.length > 0 && (
-        <span className={styles.part}>
-          <span className={styles.kind}>직장</span> {describe(regions.work)}
-        </span>
-      )}
-      <button type="button" className={styles.edit} onClick={onEdit}>
+    <ScopeSummary label="내 지역" title="내 지역">
+      <div className={panel.rows}>
+        {regions.residence.length > 0 && <ScopeRow kind="거주">{describe(regions.residence)}</ScopeRow>}
+        {regions.work.length > 0 && <ScopeRow kind="직장">{describe(regions.work)}</ScopeRow>}
+      </div>
+      <button type="button" className={panel.action} onClick={onEdit}>
         변경
       </button>
-    </p>
+    </ScopeSummary>
   )
 }
