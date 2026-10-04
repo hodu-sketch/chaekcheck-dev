@@ -224,3 +224,53 @@
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* 지역 선택: 거주 and 직장 rows in one section (user request 2026-10-05) */
+.regionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.regionList div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.regionList dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kind {
+  flex: none;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--brand-strong);
+}
+
+/* 지역으로 자동: one group per field */
+.autoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+}
+
+.sectionHead + .autoGroup {
+  padding-top: 0;
+  border-top: none;
+}
+
+.autoTitle {
+  font-size: 0.93rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}

@@ -112,15 +112,21 @@ describe('S10 sections', () => {
 
     expect(fake.calls[0]).toBe('GET /api/v1/libraries?residenceRegionIds=1114&workRegionIds=1102')
     expect(screen.getByText('누구나 가입하는 도서관 1곳도 늘 내 도서관에 들어 있어요')).toBeTruthy()
-    expect(within(section('거주 지역 선택')).getByText('서울 마포구')).toBeTruthy()
-    expect(within(section('직장 지역 선택')).getByText('서울 중구')).toBeTruthy()
-    // a library both regions match is in both lists
-    expect(within(section('거주 지역으로 자동')).getByText('2곳')).toBeTruthy()
-    expect(within(section('거주 지역으로 자동')).getByText('서울도서관 전자도서관')).toBeTruthy()
-    expect(within(section('직장 지역으로 자동')).getByText('1곳')).toBeTruthy()
-    expect(within(section('직장 지역으로 자동')).getByText('서울도서관 전자도서관')).toBeTruthy()
+    // 지역 선택: one section with both fields and one [변경] (user request 2026-10-05)
+    const chosenRegions = section('지역 선택')
+    expect(chosenRegions.textContent).toContain('거주서울 마포구')
+    expect(chosenRegions.textContent).toContain('직장서울 중구')
+    expect(within(chosenRegions).getAllByRole('button')).toHaveLength(1)
+    // 지역으로 자동: one section with a group per field; a library both regions match is in both
+    const auto = section('지역으로 자동')
+    const byResidence = within(auto).getByRole('group', { name: '거주 지역으로 자동' })
+    const byWork = within(auto).getByRole('group', { name: '직장 지역으로 자동' })
+    expect(within(byResidence).getByText('2곳')).toBeTruthy()
+    expect(within(byResidence).getByText('서울도서관 전자도서관')).toBeTruthy()
+    expect(within(byWork).getByText('1곳')).toBeTruthy()
+    expect(within(byWork).getByText('서울도서관 전자도서관')).toBeTruthy()
     // no 빼기 on the automatic lists
-    expect(within(section('거주 지역으로 자동')).queryByRole('button')).toBeNull()
+    expect(within(auto).queryByRole('button')).toBeNull()
     expect(within(section('직접 추가한 도서관')).getByText('1/20')).toBeTruthy()
   })
 

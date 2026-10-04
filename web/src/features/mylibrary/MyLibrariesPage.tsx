@@ -39,7 +39,7 @@ function MyLibraries() {
   const { regions, ready, setRegions } = useRegions()
   const tree = useRegionTree()
   const labels = useRegionLabels(tree.data)
-  const [editing, setEditing] = useState<'residence' | 'work' | null>(null)
+  const [editing, setEditing] = useState(false)
 
   // the public list with the resolved region ids (ADR-0049)
   const list = useQuery({
@@ -85,21 +85,21 @@ function MyLibraries() {
       <OpenToAll rows={rows.filter((row) => row.eligibility === 'OPEN')} />
       {empty && <p className={styles.state}>{TEXT.empty}</p>}
 
-      <RegionSection title="거주 지역 선택" ids={regions.residence} labels={labels} onEdit={() => setEditing('residence')} />
-      <AutoSection title="거주 지역으로 자동" rows={rows.filter((row) => row.matchedBy.includes('RESIDENCE'))} />
-      <RegionSection title="직장 지역 선택" ids={regions.work} labels={labels} onEdit={() => setEditing('work')} />
-      <AutoSection title="직장 지역으로 자동" rows={rows.filter((row) => row.matchedBy.includes('WORK'))} />
+      <RegionSection residence={regions.residence} work={regions.work} labels={labels} onEdit={() => setEditing(true)} />
+      <AutoSection
+        residence={rows.filter((row) => row.matchedBy.includes('RESIDENCE'))}
+        work={rows.filter((row) => row.matchedBy.includes('WORK'))}
+      />
       <ChosenSections rows={rows} />
 
       <RegionModal
-        open={editing !== null}
-        onOpenChange={(open) => !open && setEditing(null)}
+        open={editing}
+        onOpenChange={setEditing}
         regions={regions}
         savedTo="account"
-        initialField={editing ?? 'residence'}
         onSave={async (next) => {
           await setRegions(next)
-          setEditing(null)
+          setEditing(false)
         }}
       />
     </div>
@@ -139,36 +139,63 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
   )
 }
 
+/**
+ * "지역 선택": one [변경] for both fields; S2 has its own 거주/직장 tabs (user request 2026-10-05, in place of the
+ * separate 거주·직장 sections of the design).
+ */
 function RegionSection({
-  title,
-  ids,
+  residence,
+  work,
   labels,
   onEdit,
 }: {
-  title: string
-  ids: number[]
+  residence: number[]
+  work: number[]
   labels: Map<number, string>
   onEdit: () => void
 }) {
+  const names = (ids: number[]) =>
+    ids.length === 0 ? '고른 지역이 없어요' : ids.map((id) => labels.get(id) ?? '…').join(', ')
   return (
     <Section
-      title={title}
+      title="지역 선택"
       aside={
-        <button type="button" className={styles.link} onClick={onEdit} aria-label={`${title} 변경`}>
+        <button type="button" className={styles.link} onClick={onEdit} aria-label="지역 선택 변경">
           변경
         </button>
       }
     >
-      <p className={styles.regions}>
-        {ids.length === 0 ? '고른 지역이 없어요' : ids.map((id) => labels.get(id) ?? '…').join(', ')}
-      </p>
+      <dl className={styles.regionList}>
+        <div>
+          <dt className={styles.kind}>거주</dt>
+          <dd className={styles.regions}>{names(residence)}</dd>
+        </div>
+        <div>
+          <dt className={styles.kind}>직장</dt>
+          <dd className={styles.regions}>{names(work)}</dd>
+        </div>
+      </dl>
     </Section>
   )
 }
 
-function AutoSection({ title, rows }: { title: string; rows: LibraryEligibilityRow[] }) {
+/** "지역으로 자동": the libraries each field brings in, folded; nothing to remove here (spec R4). */
+function AutoSection({ residence, work }: { residence: LibraryEligibilityRow[]; work: LibraryEligibilityRow[] }) {
   return (
-    <Section title={title}>
+    <Section title="지역으로 자동">
+      <AutoGroup title="거주 지역으로 자동" rows={residence} />
+      <AutoGroup title="직장 지역으로 자동" rows={work} />
+    </Section>
+  )
+}
+
+function AutoGroup({ title, rows }: { title: string; rows: LibraryEligibilityRow[] }) {
+  const id = useId()
+  return (
+    <div className={styles.autoGroup} role="group" aria-labelledby={id}>
+      <h3 id={id} className={styles.autoTitle}>
+        {title}
+      </h3>
       {rows.length === 0 ? (
         <p className={styles.muted}>없어요</p>
       ) : (
@@ -177,7 +204,7 @@ function AutoSection({ title, rows }: { title: string; rows: LibraryEligibilityR
           <NameList rows={rows} />
         </details>
       )}
-    </Section>
+    </div>
   )
 }
 
@@ -191,7 +218,7 @@ function NameList({ rows }: { rows: LibraryEligibilityRow[] }) {
   )
 }
 
-/** Sections 5 and 6: name search with [추가], and the added libraries N/20 with [빼기]. Every press saves at once. */
+/** The last two sections: name search with [추가], and the added libraries N/20 with [빼기]. Every press saves at once. */
 function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
   const { libraryIds, maxLibraries, setLibraryIds } = useMyLibrary()
   const [query, setQuery] = useState('')
