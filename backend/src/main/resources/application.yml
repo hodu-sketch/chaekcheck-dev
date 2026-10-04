@@ -83,6 +83,8 @@ chaekcheck:
       admin-key: ${KAKAO_ADMIN_KEY:}
       # Kakao app number (not secret); the unlink webhook's app_id must match it
       app-id: ${KAKAO_APP_ID:}
+      # Users linked to the app (admin key, limit 1-100, from_id, 100 calls a minute): the daily link check (C29)
+      user-ids-uri: https://kapi.kakao.com/v1/user/ids
     documents:
       # Effective dates of the documents agreed to at sign-up, YYYY-MM-DD (C27). The web's terms and privacy pages
       # must show the same versions.
@@ -106,6 +108,10 @@ chaekcheck:
       # [확정] (user approval 2026-10-04). Spring cron: second minute hour day month weekday.
       cron: "0 0 4 * * *"
       zone: Asia/Seoul
+      # Accounts not signed in for this long are deleted (C30) [확정] (approved proposal, not from a document)
+      inactive-after: 1y
+      # Kakao allows 100 user-list calls a minute per app; 0.7 s apart stays below it
+      kakao-call-interval: 700ms
   availability:
     cache-ttl: 3m
     cache-max-size: 1000

@@ -46,6 +46,27 @@ public class AccountStore {
 			.optional();
 	}
 
+	/** Kakao login methods made before the moment the daily link check started reading Kakao's list (C29). */
+	public List<LoginMethodRef> kakaoLoginsCreatedBefore(Instant moment) {
+		return jdbc.sql("""
+				SELECT account_id, subject FROM auth.login_method
+				WHERE method = 'KAKAO' AND created_at < ? ORDER BY account_id""")
+			.param(Timestamp.from(moment))
+			.query((rs, row) -> new LoginMethodRef(rs.getLong(1), rs.getString(2)))
+			.list();
+	}
+
+	/** Accounts whose last login is before the cutoff (C30). */
+	public List<Long> lastLoginBefore(Instant cutoff) {
+		return jdbc.sql("SELECT id FROM auth.account WHERE last_login_at < ? ORDER BY id")
+			.param(Timestamp.from(cutoff))
+			.query(Long.class)
+			.list();
+	}
+
+	public record LoginMethodRef(long accountId, String subject) {
+	}
+
 	/** Signing in again keeps the account from the one-year inactivity clean-up (C30). */
 	public void touchLastLogin(long accountId, Instant now) {
 		jdbc.sql("UPDATE auth.account SET last_login_at = ? WHERE id = ?")

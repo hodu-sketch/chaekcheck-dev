@@ -1,6 +1,7 @@
 package com.chaekcheck.auth.internal;
 
 import java.time.Duration;
+import java.time.Period;
 import java.util.Set;
 
 import jakarta.validation.Valid;
@@ -29,17 +30,18 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		@NotBlank(message = "is required when login is on (environment variable AUTH_PUBLIC_BASE_URL)")
 		@Pattern(regexp = "https?://[^/\\s]+",
 				message = "must be scheme, host and optional port only, e.g. http://localhost:5173 (AUTH_PUBLIC_BASE_URL)") String publicBaseUrl,
-		ProviderCalls providerCalls, @Valid Documents documents,
+		ProviderCalls providerCalls, @Valid Documents documents, Cleanup cleanup,
 		@NotEmpty(message = "must name at least one of naver, kakao (environment variable AUTH_PROVIDERS)") Set<LoginProvider> providers) {
 
 	public AuthProperties {
 		jwt = jwt != null ? jwt : new Jwt(null);
-		naver = naver != null ? naver : new Provider(null, null, null, null, null, null, null, null);
-		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null, null, null, null);
+		naver = naver != null ? naver : new Provider(null, null, null, null, null, null, null, null, null);
+		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null, null, null, null, null);
 		tokens = tokens != null ? tokens : new Tokens(null, null, null, null);
 		providerCalls = providerCalls != null ? providerCalls : new ProviderCalls(null, null);
 		documents = documents != null ? documents : new Documents(null, null);
 		providers = providers != null ? Set.copyOf(providers) : Set.of(LoginProvider.values());
+		cleanup = cleanup != null ? cleanup : new Cleanup(null, null, null, null);
 	}
 
 	/** Whether this provider's login is offered (AC-22). An off provider needs no keys. */
@@ -88,9 +90,10 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 	 * @param unlinkUri Naver: token revoke; Kakao: unlink with the admin key
 	 * @param adminKey Kakao's admin key; not used for Naver
 	 * @param appId Kakao's app number, checked on the unlink webhook; not used for Naver
+	 * @param userIdsUri Kakao's list of the users linked to the app (daily link check); not used for Naver
 	 */
 	public record Provider(String clientId, String clientSecret, @NotBlank String authorizationUri, @NotBlank String tokenUri, @NotBlank String userInfoUri,
-			@NotBlank String unlinkUri, String adminKey, String appId) {
+			@NotBlank String unlinkUri, String adminKey, String appId, String userIdsUri) {
 
 		/** Keeps the secrets out of logs and error messages. */
 		@Override
@@ -125,6 +128,25 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		public ProviderCalls {
 			connectTimeout = connectTimeout != null ? connectTimeout : Duration.ofSeconds(3);
 			readTimeout = readTimeout != null ? readTimeout : Duration.ofSeconds(5);
+		}
+
+	}
+
+	/**
+	 * The daily clean-up jobs (C29-C31).
+	 *
+	 * @param cron when they run, Spring cron; 04:00 [확정]
+	 * @param zone the cron's time zone; Asia/Seoul [확정]
+	 * @param inactiveAfter accounts whose last login is older are deleted; 1 year [확정] (C30)
+	 * @param kakaoCallInterval the least time between two calls of Kakao's user list (100 calls a minute per app)
+	 */
+	public record Cleanup(String cron, String zone, Period inactiveAfter, Duration kakaoCallInterval) {
+
+		public Cleanup {
+			cron = cron != null ? cron : "0 0 4 * * *";
+			zone = zone != null ? zone : "Asia/Seoul";
+			inactiveAfter = inactiveAfter != null ? inactiveAfter : Period.ofYears(1);
+			kakaoCallInterval = kakaoCallInterval != null ? kakaoCallInterval : Duration.ofMillis(700);
 		}
 
 	}

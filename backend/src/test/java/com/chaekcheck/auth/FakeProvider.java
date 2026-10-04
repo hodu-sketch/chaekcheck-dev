@@ -16,13 +16,13 @@ import com.sun.net.httpserver.HttpServer;
  * Fake Naver and Kakao endpoints for the auth tests, on the JDK's own HTTP server (no extra test dependency): token,
  * profile, and unlink/revoke. Each test sets what they answer; {@link #reset()} goes back to the defaults.
  */
-final class FakeProvider {
+public final class FakeProvider {
 
 	static final String NAVER_ACCESS_TOKEN = "fake-naver-access-token-5b1f";
 
 	static final String KAKAO_ACCESS_TOKEN = "fake-kakao-access-token-9c2e";
 
-	final HttpServer server;
+	public final HttpServer server;
 
 	final List<String> tokenRequests = new CopyOnWriteArrayList<>();
 
@@ -34,17 +34,28 @@ final class FakeProvider {
 
 	volatile String kakaoUser;
 
-	volatile int unlinkStatus;
+	public volatile int unlinkStatus;
+
+	/** Bodies of Kakao's user list, one per call in order. */
+	public volatile List<String> kakaoIdPages;
+
+	/** 1-based call of the user list that fails with {@link #kakaoIdsFailStatus}; 0 for none. */
+	public volatile int kakaoIdsFailAt;
+
+	public volatile int kakaoIdsFailStatus;
+
+	/** Query strings of the user list calls. */
+	public final List<String> kakaoIdsRequests = new CopyOnWriteArrayList<>();
 
 	/** Unlink and revoke calls: "path|Authorization header|form body". */
-	final List<String> unlinkRequests = new CopyOnWriteArrayList<>();
+	public final List<String> unlinkRequests = new CopyOnWriteArrayList<>();
 
 	private FakeProvider(HttpServer server) {
 		this.server = server;
 		reset();
 	}
 
-	static FakeProvider start() {
+	public static FakeProvider start() {
 		try {
 			HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 			FakeProvider fake = new FakeProvider(server);
@@ -54,6 +65,7 @@ final class FakeProvider {
 			server.createContext("/kakao/me", exchange -> fake.profile(exchange, fake.kakaoUser));
 			server.createContext("/naver/unlink", fake::unlink);
 			server.createContext("/kakao/unlink", fake::unlink);
+			server.createContext("/kakao/ids", fake::kakaoIds);
 			server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 			server.start();
 			return fake;
@@ -63,7 +75,7 @@ final class FakeProvider {
 		}
 	}
 
-	void reset() {
+	public void reset() {
 		tokenStatus = 200;
 		profileDelayMillis = 0;
 		naverUser = "{\"resultcode\":\"00\",\"message\":\"success\",\"response\":{\"id\":\"naver-default\"}}";
@@ -71,9 +83,13 @@ final class FakeProvider {
 		tokenRequests.clear();
 		unlinkStatus = 200;
 		unlinkRequests.clear();
+		kakaoIdPages = List.of("{\"elements\":[],\"after_url\":null}");
+		kakaoIdsFailAt = 0;
+		kakaoIdsFailStatus = 429;
+		kakaoIdsRequests.clear();
 	}
 
-	String url(String path) {
+	public String url(String path) {
 		return "http://127.0.0.1:" + server.getAddress().getPort() + path;
 	}
 
@@ -86,6 +102,17 @@ final class FakeProvider {
 		}
 		send(exchange, 200, "{\"access_token\":\"" + accessToken
 				+ "\",\"token_type\":\"bearer\",\"expires_in\":3600,\"refresh_token\":\"fake-provider-refresh\"}");
+	}
+
+	private void kakaoIds(HttpExchange exchange) throws IOException {
+		kakaoIdsRequests.add(String.valueOf(exchange.getRequestURI().getQuery()));
+		int call = kakaoIdsRequests.size();
+		if (call == kakaoIdsFailAt) {
+			send(exchange, kakaoIdsFailStatus, "{\"msg\":\"limit\",\"code\":-10}");
+			return;
+		}
+		List<String> pages = kakaoIdPages;
+		send(exchange, 200, pages.get(Math.min(call, pages.size()) - 1));
 	}
 
 	private void unlink(HttpExchange exchange) throws IOException {

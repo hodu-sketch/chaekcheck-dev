@@ -967,6 +967,17 @@
 - 인계서 확인 항목 중 못 한 것: "`bootRun` 뒤 `curl`로 직접 보냄"은 하지 않음(로그인 켜짐 서버에는 사용자의 키가 든 `.env`가 필요). 같은 요청을 MockMvc로 보내 확인함. 실제 제공자 전송은 공개 주소가 생긴 뒤(인계서대로).
 - 확인: `./gradlew build` 통과(테스트 417개, 꺼짐) + 켜짐으로 전체 테스트 417개 통과.
 
+## 10단계 결과: 하루 한 번 작업 둘 (2026-10-04)
+
+- 공식 문서 확인(2026-10-04): 카카오 `GET https://kapi.kakao.com/v1/user/ids`(어드민 키), `limit` 1~100(기본 100), `from_id`, `order` asc/desc, 응답 `elements`(회원번호 배열)·`before_url`·`after_url`(없으면 null), "앱별로 분당 최대 100건". https://developers.kakao.com/docs/ko/kakaologin/rest-api
+- 구성(dev가 정함): `auth.internal.login.KakaoLinkedUsers`(목록 끝까지 읽기), `auth.internal.cleanup.DailyAccountCleanup`(`@Scheduled(cron = chaekcheck.auth.cleanup.cron, zone = …zone)`, 04:00 Asia/Seoul). 켜짐일 때만 빈이 생기고 예약도 그때만 켜짐(C32). 카카오가 꺼져 있으면 연결 대조는 건너뜀.
+- 카카오 연결 대조(C29): `limit=100&order=asc`, 다음 쪽은 `from_id` = 앞 쪽의 마지막 번호, `after_url`이 null이면 끝. 호출 사이 최소 0.7초(`chaekcheck.auth.cleanup.kakao-call-interval`, 분당 100건 아래). 목록을 읽기 시작한 시각 이후에 만든 `login_method`는 그 날 빼고 [확정], 목록에 없는 카카오 계정만 `AccountDeletion`으로 삭제(카카오 쪽은 이미 끊겨 있으니 unlink 안 함). 한 쪽이라도 실패(한도 초과 포함)하면, 또는 "다음이 있다"면서 새 번호가 없는 쪽이 오면 → 그 날 삭제 0.
+- **설계에 없는 안전장치(dev가 더함, 알려 드림)**: 목록을 끝까지 읽었는데 **빈 목록**이고 우리 쪽에 카카오 계정이 있으면 삭제하지 않고 경고만 남김. 어드민 키·앱이 잘못돼도 빈 목록이 올 수 있고, 그때 모든 카카오 계정을 지우면 되돌릴 수 없어서. 진짜로 모두 연결을 끊은 경우는 웹훅·1년 정리로 지워짐. 빼야 하면 알려 주세요.
+- 1년 정리(C30): `last_login_at`이 지금(UTC)에서 `chaekcheck.auth.cleanup.inactive-after: 1y`(달력 기준 1년)보다 오래된 계정. 카카오는 어드민 키로 unlink 한 번(실패는 기록만), 네이버는 건너뜀 → 삭제 + `AccountDeleted`.
+- 테스트(`DailyAccountCleanupTests` 7개, 가짜 카카오 목록, 고정 시계): 목록에 없는 계정만 삭제·이벤트 발행·두 번째 쪽 `from_id`, 가운데 쪽 실패(429)·첫 쪽 401·빈 목록 → 삭제 0, 시작 뒤 만든 수단은 제외, 1년 경계 하루 앞뒤, 카카오 unlink 실패에도 삭제·네이버는 호출 없음.
+- 확인: `./gradlew build` 통과(테스트 424개, 꺼짐) + 켜짐으로 전체 테스트 424개 통과.
+- 백엔드 단계(1~10)가 여기까지로 끝남. 다음은 웹(11~15단계).
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)
