@@ -177,3 +177,11 @@
   align-self: stretch;
   justify-content: center;
 }
+
+/* phones: on the second line beside "여러 조건", the same height (user request 2026-10-05) */
+@media (width <= 640px) {
+  .trigger {
+    width: var(--control-height);
+    height: var(--control-height);
+  }
+}

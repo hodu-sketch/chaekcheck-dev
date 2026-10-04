@@ -1,7 +1,6 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import type { BookRole, SearchField } from '../../api/types'
 import { checkQuery, normalizeQuery, QUERY_MAX_LENGTH, QUERY_MIN_LENGTH, type QueryProblem } from '../../lib/query'
-import { useMediaQuery } from '../../lib/useMediaQuery'
 import {
   BOOK_ROLES,
   EMPTY_INPUT,
@@ -43,8 +42,6 @@ type Props = {
  */
 export function SearchForm({ initial, settings, hasResults, onSearch, onSettingsChange, settingsScope, settingsMarked }: Props) {
   const id = useId()
-  // phones: a short placeholder, the long one is cut off there (user request 2026-10-05)
-  const phone = useMediaQuery('(width <= 640px)')
   const [input, setInput] = useState<BookSearchInput>(initial)
   const [expanded, setExpanded] = useState(
     () => Boolean(initial.author || initial.publisher || initial.exact.length || initial.roles.length),
@@ -118,19 +115,14 @@ export function SearchForm({ initial, settings, hasResults, onSearch, onSettings
             className={styles.input}
             value={input.title}
             maxLength={QUERY_MAX_LENGTH}
-            placeholder={phone ? '책 제목' : '책 제목을 입력하세요'}
+            placeholder="책 제목을 입력하세요"
             autoComplete="off"
             aria-invalid={problems.title ? true : undefined}
             aria-describedby={problems.title ? errorId('title') : problems.none ? errorId('none') : undefined}
             onChange={(event) => setText('title', event.target.value)}
           />
-          <button type="submit" className={styles.submit} aria-label="검색">
-            <span className={styles.submitText}>검색</span>
-            {/* phones: a magnifier instead of the word, so the field keeps its room (user request 2026-10-05) */}
-            <svg className={styles.submitIcon} width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" />
-              <path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-            </svg>
+          <button type="submit" className={styles.submit}>
+            검색
           </button>
         </div>
         <button
