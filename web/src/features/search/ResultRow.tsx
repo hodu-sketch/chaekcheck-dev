@@ -96,7 +96,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
             <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>
               {libraryName}
               <span className={styles.libraryCaret} aria-hidden="true">
-                ▾
+                ▸
               </span>
             </Popover.Trigger>
             <Popover.Portal>
