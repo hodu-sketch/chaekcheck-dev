@@ -384,6 +384,8 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.45rem 0.35rem;
+    /* closer to the library name above (user request 2026-10-05): 0.7rem row gap - 0.4rem */
+    margin-top: -0.4rem;
     text-align: left;
   }
 
