@@ -235,8 +235,9 @@
     flex-basis: 100%;
   }
 
+  /* as wide as its words (user request 2026-10-05) */
   .moreButton {
-    flex: 1;
+    flex: none;
     height: var(--control-height);
     padding: 0 1rem;
   }
