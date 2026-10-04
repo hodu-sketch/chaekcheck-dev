@@ -13,8 +13,8 @@ interface Props {
 
 /**
  * One book at one library: title / author · publisher / supplier / library + join condition / counts / state /
- * link. No description or cover. The state comes from the row's availability only; `platformType` is used for the
- * "구독형" label and nothing else (ADR-0019).
+ * link. No description or cover. The state comes from the row's availability only (ADR-0019). No "구독형" tag by the
+ * library name: the state already says "구독형 · 바로 대출" (user request 2026-10-05).
  */
 export function ResultRow({ row, library, searchUrl }: Props) {
   const phone = useMediaQuery('(width <= 640px)')
@@ -31,7 +31,6 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   // no known join page yet: the library's e-library front page, where its sign-up guide can be found
   const siteUrl = joinUrl ? undefined : siteOrigin(searchUrl)
   const libraryName = library?.name ?? '도서관'
-  const subscription = library?.platformType === 'KYOBO_SUBSCRIPTION_V1'
   const group = row.availability === 'AVAILABLE' ? 'borrow' : row.availability === 'PENDING' ? 'pending' : 'reserve'
 
   const conditionLines = (
@@ -110,7 +109,6 @@ export function ResultRow({ row, library, searchUrl }: Props) {
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          {subscription && <span className={styles.kind}>구독형</span>}
           {chosen && <span className={styles.chosen}>직접 추가</span>}
         </p>
       </div>

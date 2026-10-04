@@ -156,15 +156,6 @@
   color: var(--ink-soft);
 }
 
-/* "구독형" next to the library name */
-.kind {
-  padding: 0.1rem 0.55rem;
-  border-radius: var(--radius-tag);
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-  font-size: var(--text-xs);
-  font-weight: 800;
-}
 
 .join {
   margin-top: 0.4rem;
