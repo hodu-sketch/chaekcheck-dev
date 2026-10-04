@@ -1027,6 +1027,16 @@
 - 화면 확인(Playwright): 1280·375에서 화면 아래 링크로 `/privacy` 이동, 가로 넘침 없음, 위쪽 로그인 버튼 없음.
 - 확인: `npm test`(149개) · `npm run build` 통과, lint 오류 없음. 백엔드 `DocumentVersionsMatchWebTests` 통과.
 
+## 16단계 결과: 운영 웹 서버 설정 예시 (2026-10-04)
+
+- 위치(dev가 정함): `deploy/nginx/`. 제품은 읽기 쉬운 nginx로 예시를 씀(제품·배포 위치는 배포 때 정함). 파일: `chaekcheck.conf`(운영 예시, 80→443, TLS), `chaekcheck-locations.conf`(경로 규칙), `security-headers.conf`(헤더), `local-test.conf`(로컬 HTTP 8088), `README.md`(쓰는 법·시험 결과).
+- 경로: `/api/` → Spring(같은 출처), `/api/v1/.../stream`은 버퍼 끔, 화면 라우트 7개(`/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`) → `index.html`, `/assets/` 1년 캐시, 그 밖은 `dist` 파일만(없으면 404).
+- 화면 파일 응답 헤더: `X-Frame-Options: DENY`, `Strict-Transport-Security: max-age=31536000`(`includeSubDomains`·`preload`는 도메인과 함께 배포 때 정함, `TODO(확인 필요)`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`.
+- **시험한 CSP(인계서가 보고하라고 한 것)**: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`
+  - `style-src 'unsafe-inline'`: `style-src 'self'`로 시험하면 로그인 창을 열 때 Radix(react-remove-scroll-bar)가 넣는 `<style>`이 막혀 뒤 화면 스크롤이 잠기지 않음(콘솔에 CSP 위반). 그 글에 스크롤바 너비가 들어가 해시로는 맞출 수 없음. 스크립트는 `'self'`만.
+  - `img-src data:`: Vite가 작은 이미지(카카오 심볼)와 CSS 아이콘을 `data:`로 넣음. 글꼴은 자체 호스팅이라 `font-src 'self'`.
+- 확인(nginx 1.30.5 Docker, Chromium, 백엔드는 로그인 켜짐·네이버만·가짜 클라이언트 값): 화면 경로 200, 없는 경로 404, 다섯 헤더. `/api/v1/me` 401에 Spring Security 헤더와 `XSRF-TOKEN`. 로그인 창의 글꼴 3개·버튼 이미지·스크롤 잠김, 네이버 버튼 → `nid.naver.com` 이동(가짜 값이라 거절까지). 검색과 대출 현황 스트림이 nginx를 지나 옴. CSP 위반 0건. 실제 제공자로 끝까지 하는 확인은 17단계.
+
 # 사이클 밖: ADR-0047 옮기기
 
 ## A. 문서 (2026-10-04)

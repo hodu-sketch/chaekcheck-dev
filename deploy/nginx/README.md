@@ -1,0 +1,48 @@
+# 운영 웹 서버 설정 예시 (nginx)
+
+사이클 05 16단계. 화면 파일과 `/api`를 한 출처에서 내려 주는 설정 예시입니다. 웹 서버 제품과 위치는 배포 때 정합니다. 여기서는 읽기 쉬운 nginx로 썼습니다.
+
+| 파일 | 하는 일 |
+|---|---|
+| `chaekcheck.conf` | 운영 예시. 80 → 443 이동, TLS, `root`(빌드 결과), 백엔드 주소. `TODO(확인 필요)`는 배포 때 채움 |
+| `chaekcheck-locations.conf` | 운영과 로컬 확인이 같이 쓰는 경로 규칙 |
+| `security-headers.conf` | 화면 파일 응답의 보안 헤더(CSP 포함). 고른 까닭은 파일 주석에 |
+| `local-test.conf` | 로컬 확인용. HTTP 8088 |
+
+운영에서는 `chaekcheck.conf`를 nginx `conf.d`에, 나머지 두 파일을 `/etc/nginx/chaekcheck/`에 둡니다. 백엔드의 `AUTH_PUBLIC_BASE_URL`은 `https://<server_name>`이어야 합니다.
+
+## 경로 규칙
+
+- `/api/` → Spring 백엔드(같은 출처). API 응답 헤더는 Spring Security가 붙입니다(로그인 켜짐일 때).
+- `/api/v1/.../stream` → 같은 백엔드. 검색 스트림이 바로바로 오게 버퍼를 끕니다.
+- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy` → `index.html`
+- `/assets/` → 이름에 해시가 든 빌드 파일. 1년 캐시
+- 그 밖 → `dist`에 있는 파일만, 없으면 404
+
+## 로컬에서 확인하기
+
+1. 웹 빌드: `web/`에서 `npm run build`
+2. 백엔드를 Windows에서 띄웁니다(8080). 로그인을 켜서 볼 때는 `AUTH_PUBLIC_BASE_URL=http://localhost:8088`.
+3. WSL에서 nginx를 띄웁니다. `backend-host`는 WSL에서 본 Windows 주소입니다(`ip route`의 default via 값).
+
+```bash
+wsl -d Ubuntu -- bash -c 'R=/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev; docker run -d --name chaekcheck-nginx-check -p 8088:8088 --add-host backend-host:$(ip route | awk "/default/{print \$3}") -v $R/web/dist:/usr/share/nginx/html:ro -v $R/deploy/nginx:/etc/nginx/chaekcheck:ro -v $R/deploy/nginx/local-test.conf:/etc/nginx/conf.d/default.conf:ro nginx:stable-alpine'
+```
+
+4. 브라우저로 `http://localhost:8088/search`를 엽니다. 다 보면 지웁니다.
+
+```bash
+wsl -d Ubuntu -- docker rm -f chaekcheck-nginx-check
+```
+
+## 시험 결과 (2026-10-04, nginx 1.30.5, Chromium)
+
+로그인 켜짐(네이버만, 가짜 클라이언트 값)으로 백엔드를 띄우고 확인했습니다.
+
+- 화면 경로 7개 200, 없는 경로(`/nope`, `/books/a/b`) 404. 다섯 헤더가 모두 붙음
+- `/api/v1/me` 401과 Spring Security 헤더(`X-Frame-Options`, `X-Content-Type-Options`, `Cache-Control`), `XSRF-TOKEN` 쿠키
+- 로그인 창: 글꼴 3개(400·700·800), 네이버 버튼 이미지가 뜨고, 뒤 화면 스크롤이 잠김. 네이버 버튼 → `nid.naver.com`으로 이동(가짜 값이라 네이버가 거절하는 것까지)
+- 검색: 책 목록과 대출 현황 스트림이 nginx를 지나 옴
+- CSP 위반 0건
+
+`style-src 'self'`(엄격)로도 띄워 봤습니다. 로그인 창을 열 때 Radix가 넣는 `<style>`이 막혀 뒤 화면 스크롤이 잠기지 않았습니다. 그래서 `style-src`에만 `'unsafe-inline'`을 둡니다. `script-src`는 `'self'`만 둡니다.
