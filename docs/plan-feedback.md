@@ -875,3 +875,4 @@
 
 plan에 남는 문서(`crawl-method.md`, `research.md`, `same-book-isbn.md`, `search-and-normalization.md`, `catalog-refresh.md`)는 옮기지 않고 경로로만 가리킴.
 B(수집기 코드)는 전체 수집이 끝난 뒤 따로 함.
+- 옮긴 뒤 plan `platforms.md` 8절(알라딘)이 고쳐짐(`startPage`는 쪽 번호가 아니라 0부터 세는 책 순번, 2026-10-04 대구공업대 확인). 같은 내용을 dev `docs/maintenance/platforms.md`에 반영함. 이제 dev 쪽이 원본이므로, plan에서 알게 된 플랫폼 사실은 dev 문서에 더하도록 plan 쪽 안내를 바꿔 주세요(요청서 D).

@@ -128,10 +128,10 @@
 ## 8. 알라딘 [확정·일부] (표본: 울산과학대 `https://uc.aladinebook.co.kr`, 고령 다산도서관 `ebook.goryeong.go.kr:8888`)
 
 - 첫 화면 `/`가 `main/main.htm`로 넘어감(meta refresh). 선언은 EUC-KR인데 본문은 UTF-8인 사이트가 있음 → 검색어는 UTF-8
-- 전체 목록: `{root}/sub/sub.htm?nav_code={전자책 메뉴 코드}&view_level=1&list_scale={N}&startPage={쪽}` — 전자책 메뉴 코드는 첫 화면의 `sub.htm?nav_code=…&view_level=1&scroll=0` 링크에서 찾음(울산과학대 `ebo1655356114`). "총 2,048 건의 도서가 있습니다". `list_scale` 100 동작
+- 전체 목록: `{root}/sub/sub.htm?nav_code={전자책 메뉴 코드}&view_level=1&list_scale={N}&startPage={몇 번째 책부터, 0부터}` — 전자책 메뉴 코드는 첫 화면의 `sub.htm?nav_code=…&view_level=1&scroll=0` 링크에서 찾음(울산과학대 `ebo1655356114`). "총 2,048 건의 도서가 있습니다". `list_scale` 100 동작
 - 검색: `sub.htm?nav_code={코드}&code=search&search_item={title|author}&search_order={검색어}&view_level=1` (제목 "사랑" 63건, 저자 "김" 579건). 출판사 값은 못 찾음 [확인 필요]
 - 목록 줄 `li.line`: 제목 `h2.book_tit a`, `span.writer`, `span.pub`, `span.volumecnt`(보유)·`uselendingcnt`(대출)·`usereservecnt`(예약), 상세 `sub.htm?mode=view&mv_data={base64}&goods_id={알라딘 상품 번호}`, 공급사 표시 `div.companyALADIN`
-- 수집기 `ALADIN_V1` (2026-10-03): 목록 `{root}/sub/sub.htm?nav_code={전자책 메뉴}&order_list=2&list_scale=100&view_level=1&startPage=N` — `order_list` 0 최다대출, 1 출판일, 2 제목, 3 최다예약, 4 대출가능. 줄 `ul.list > li.line`의 `h2.book_tit a`(`goods_id`), `span.writer`, `span.pub`, 표지 `div.book-img1` 배경 주소, 공급사 `div.com div.company…`. 상세는 짧은 주소 `{root}/sub/sub.htm?mode=view&nav_code=…&goods_id=…`도 열림(긴 `mv_data`는 필요 없음). 상세에 파일포맷(epub 등) 있음. 목록에는 출간일이 없음 [확정] (울산과학대 표본)
+- 수집기 `ALADIN_V1` (2026-10-03): 목록 `{root}/sub/sub.htm?nav_code={전자책 메뉴}&order_list=2&list_scale=100&view_level=1&startPage={(N-1)×100}` — **`startPage`는 쪽 번호가 아니라 0부터 세는 책 순번** [확정] (2026-10-04, 대구공업대 `inf.ttc.ac.kr:8888`: 0과 100으로 181권이 겹침 없이 나옴. 쪽 번호 1·2·3을 넣으면 거의 같은 목록이 되풀이됨. 쪽 번호 링크의 `mv_data`를 풀면 `startPage=0`, `startPage=100`). `order_list` 0 최다대출, 1 출판일, 2 제목, 3 최다예약, 4 대출가능. 줄 `ul.list > li.line`의 `h2.book_tit a`(`goods_id`), `span.writer`, `span.pub`, 표지 `div.book-img1` 배경 주소, 공급사 `div.com div.company…`. 상세는 짧은 주소 `{root}/sub/sub.htm?mode=view&nav_code=…&goods_id=…`도 열림(긴 `mv_data`는 필요 없음). 상세에 파일포맷(epub 등) 있음. 목록에는 출간일이 없음 [확정] (울산과학대 표본)
 - 사이트마다 차이가 큼(2026-09-30, 공공으로 보이는 28곳): 위 방법으로 센 곳 4곳(경북도서관 오디오북 2,610, 다산도서관 4,092, 테라테크 체험 57,027, 하용조기념 137), 다른 화면 15곳, 오류 9곳. 경남·경북·경기교육청 등은 통합 포털이나 다른 화면으로 옮김
 - **오디오북**: "경북도서관 오디오북"(`www.gb.go.kr:8089`)처럼 사이트 전체가 오디오북인 곳이 있음 → 도서관(사이트) 단위로 종류를 기록해야 함
 
