@@ -1283,3 +1283,25 @@ plan에 넘기는 것 (원문의 빈틈·불일치. runbook을 고칠 때 참고
   - `regionSource.test.tsx`(가짜 서버 + 실제 공급자들): 로그인 전 브라우저 값과 서버 요청 없음(AC-2), 로그인 후 서버 값만 쓰고 브라우저 지역을 쓰지 않음, 불러오는 동안 막지 않음, 로그아웃 뒤 브라우저 값, 9001 → 대체 안내·9002 → 다시 고르라는 안내·PUT 없음(AC-9, C19), S11 저장(해석한 본문, 키 기록, 브라우저 값 그대로)·저장하지 않기·닫기 미기록·실패 후 재시도·조건이 안 맞으면 안 뜸(AC-3)
   - `RegionModal.test.tsx`: 저장 중, 실패, 401, 422
 - 확인: `npm test`(177개), `npm run build`, `npm run lint`(오류 없음) 통과. 화면 확인은 14단계.
+
+## 10단계 결과: S1 "내 도서관" 줄, 스위치, 검색 연결 (2026-10-04)
+
+- 웹 파일: `features/mylibrary/MyLibrarySummary.tsx`(+ `.module.css`), `features/search/useLibraryScope.ts`. `searchSettings.ts`에 `loadMyScope`/`saveMyScope`(같은 키 `chaekcheck.searchSettings.v1`의 `myScope` 칸. `saveSettings`가 이 칸을 지우지 않게 고침).
+- "내 도서관" 줄: 로그인 후 `RegionSummary` 자리. 글자 넷은 인계서 그대로("·"는 CSS로). 640px 이하에서는 칸마다 첫 지역 이름 + "외 N". [관리]는 `/my-libraries` 링크. S4는 바꾸지 않음.
+- 스위치: 로그인 후 "전체 도서관 | 내 도서관", 로그인 전은 그대로.
+- **dev가 정한 것: 저장 값과 주소 `scope`의 관계**
+  - 로그인 전: 주소만 씀(사이클 05 그대로).
+  - 로그인 후 내 도서관을 불러오는 중이나 실패: 늘 "전체".
+  - 다 불러온 뒤: 주소에 `scope`(`joinable`/`all`)가 있으면 주소가 이김(공유한 주소는 보낸 사람이 본 대로). 없으면 이 브라우저에 저장한 값, 그것도 없으면 내 도서관이 있을 때 "내 도서관", 비었으면 "전체".
+  - 로그인 후 스위치를 바꾸면 저장 값에 적고 주소의 `scope`는 지움. 새 검색과 책 링크는 주소에 있던 `scope`만 옮김.
+- 검색 연결: `RegionContext`가 `libraryIds`를 내줌(로그인 후 다 불러왔을 때만). 바로 보기·책 먼저 고르기(`/books`), 도서관에서 직접 찾기(`useSearch`), 책 화면(`BookPage`)이 지역과 함께 보냄. 스위치와 상관없이 보냄(AC-6). 책 화면도 같은 `useLibraryScope`를 씀.
+- 다 불러온 뒤 다시 검색(10.5): 지역·`libraryIds`·스위치 값이 검색 키에 들어 있음. 불러오는 동안은 "전체"·지역 없음으로 검색하고, 다 불러오면 "내 도서관" 기준으로 첫 묶음부터 한 번 다시 함.
+- 테스트 `myLibrarySearch.test.tsx`(가짜 서버 + 실제 공급자들 + `SearchPage`, 책 먼저 고르기)
+  - 줄 넷(기본, 비어 있음, 실패와 다시 시도, 불러오는 중)
+  - 불러오는 동안 "전체" → 다 불러온 뒤 `scope=joinable` + `libraryIds` + 지역으로 다시 검색
+  - 기본값 "내 도서관"
+  - 두 스위치 값 모두 `libraryIds`(AC-6)
+  - 끈 값이 다시 띄운 뒤 유지(AC-16)
+  - 비어 있으면 기본 "전체", "내 도서관"은 `scope=joinable`이고 `libraryIds`와 지역 없음(AC-7)
+  - 로그인 전 줄·스위치·요청이 사이클 05와 같음(AC-14)
+- 확인: `npm test`(186개), `npm run build`, `npm run lint`(오류 없음) 통과.

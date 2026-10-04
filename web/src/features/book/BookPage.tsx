@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
-import type { BookDetail, LibraryScope, ResultFilter, VisitFilter } from '../../api/types'
+import type { BookDetail, ResultFilter, VisitFilter } from '../../api/types'
 import { useRegions } from '../region/RegionContext'
+import { useLibraryScope } from '../search/useLibraryScope'
 import { collectedRange, holdingBatchViews } from '../search/holdingView'
 import { ResultList } from '../search/ResultList'
 import { useHoldings } from '../search/useHoldings'
@@ -16,9 +17,10 @@ import styles from './BookPage.module.css'
 export function BookPage() {
   const { bookId = '' } = useParams()
   const [params] = useSearchParams()
-  const { regions, ready } = useRegions()
-  // a new book, filter, plan or region set starts over from a fresh page state
-  const key = `${bookId}?${params}|${regions.residence.join(',')}|${regions.work.join(',')}|${ready}`
+  const { regions, libraryIds, ready } = useRegions()
+  const { scope } = useLibraryScope(params)
+  // a new book, filter, plan, region set or added libraries start over from a fresh page state
+  const key = `${bookId}?${params}|${regions.residence.join(',')}|${regions.work.join(',')}|${libraryIds.join(',')}|${scope}|${ready}`
   return <BookView key={key} bookId={bookId} />
 }
 
@@ -26,11 +28,12 @@ function BookView({ bookId }: { bookId: string }) {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const filter: ResultFilter = params.get('filter') === 'available' ? 'available' : 'all'
-  const scope: LibraryScope = params.get('scope') === 'joinable' ? 'joinable' : 'all'
+  const { scope } = useLibraryScope(params)
   const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
-  const { regions, ready } = useRegions()
+  const { regions, libraryIds, ready } = useRegions()
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
+  const libraryKey = libraryIds.join(',')
 
   const holdings = useHoldings()
   const { open } = holdings
@@ -45,8 +48,7 @@ function BookView({ bookId }: { bookId: string }) {
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
-      // libraries added by hand: wired in cycle 06 step 10
-      libraryIds: [] as number[],
+      libraryIds: libraryKey ? libraryKey.split(',').map(Number) : [],
     }
     fetchBook(bookId, plan, controller.signal)
       .then((found) => {
@@ -78,7 +80,7 @@ function BookView({ bookId }: { bookId: string }) {
         )
       })
     return () => controller.abort()
-  }, [bookId, ready, filter, scope, visit, residenceKey, workKey, open])
+  }, [bookId, ready, filter, scope, visit, residenceKey, workKey, libraryKey, open])
 
   const back = (
     <button type="button" className={styles.back} onClick={() => navigate(-1)}>

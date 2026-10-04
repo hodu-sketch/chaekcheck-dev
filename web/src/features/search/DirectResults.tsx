@@ -26,7 +26,7 @@ type Props = {
  * Batches, the summary bar, "더 보기" and the empty message are unchanged [확정].
  */
 export function DirectResults({ field, query, filter, scope, visit, onFilterChange, onEditRegions }: Props) {
-  const { regions, ready, resolveStoredRegions } = useRegions()
+  const { regions, libraryIds, ready, resolveStoredRegions } = useRegions()
   const { state, loadNextBatch, loadLibraryMore } = useSearch({
     field,
     query,
@@ -34,6 +34,7 @@ export function DirectResults({ field, query, filter, scope, visit, onFilterChan
     scope,
     visit,
     regions,
+    libraryIds,
     regionsReady: ready,
     resolveStoredRegions,
   })

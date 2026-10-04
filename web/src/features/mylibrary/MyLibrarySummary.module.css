@@ -1,0 +1,67 @@
+/* Same line as the cycle 05 region line (RegionSummary), with "·" between the parts */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.4rem;
+  font-size: 0.93rem;
+  color: var(--ink-soft);
+}
+
+.label {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.part::before,
+.summary > .action::before {
+  content: '·';
+  margin-right: 0.4rem;
+  color: var(--ink-faint);
+}
+
+.kind {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--brand-strong);
+}
+
+.short {
+  display: none;
+}
+
+.action {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--brand-strong);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.action:hover {
+  text-decoration-thickness: 2px;
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (max-width: 640px) {
+  .full {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+}

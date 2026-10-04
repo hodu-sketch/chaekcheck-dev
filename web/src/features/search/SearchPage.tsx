@@ -1,18 +1,20 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
-import type { BookSort, LibraryScope, ResultFilter, VisitFilter } from '../../api/types'
+import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { checkQuery, normalizeQuery } from '../../lib/query'
 import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
 import { hasRegions } from '../region/regionStorage'
 import { RegionSummary } from '../region/RegionSummary'
+import { MyLibrarySummary } from '../mylibrary/MyLibrarySummary'
 import { BookList } from './BookList'
 import { DirectResults } from './DirectResults'
 import { InstantResults } from './InstantResults'
 import { LibraryScopeToggle } from './LibraryScopeToggle'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
+import { useLibraryScope } from './useLibraryScope'
 import { loadSettings, resolveSettings, saveSettings, writeSettings, type SearchSettings } from './searchSettings'
 import { VisitToggle } from './VisitToggle'
 import styles from './SearchPage.module.css'
@@ -30,10 +32,10 @@ export function SearchPage() {
   const settings = resolveSettings(params, stored)
   const input = readBookSearch(params)
   const filter: ResultFilter = params.get('filter') === 'available' ? 'available' : 'all'
-  const scope: LibraryScope = params.get('scope') === 'joinable' ? 'joinable' : 'all'
   const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
 
-  const { regions, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
+  const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
+  const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
   const [modalOpen, setModalOpen] = useState(false)
 
   // direct search: the first filled field only (spec 3.7)
@@ -44,6 +46,7 @@ export function SearchPage() {
   // catalog search: every filled field, normalized; nothing is sent while one of them is invalid
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
+  const libraryKey = libraryIds.join(',')
   const bookQuery = useMemo<BookQuery | null>(() => {
     if (!input || settings.direct || !ready) return null
     const normalized = {
@@ -64,13 +67,13 @@ export function SearchPage() {
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
-      // libraries added by hand: wired in cycle 06 step 10
-      libraryIds: [] as number[],
+      // after login sent with both switch values (AC-6); empty before login
+      libraryIds: libraryKey ? libraryKey.split(',').map(Number) : [],
       page: 1,
     }
     // the key string stands for the input object, which is new on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.toString(), settings.direct, ready, scope, visit, residenceKey, workKey])
+  }, [params.toString(), settings.direct, ready, scope, visit, residenceKey, workKey, libraryKey])
 
   const hasSearch = settings.direct ? directValid : bookQuery !== null
 
@@ -78,7 +81,7 @@ export function SearchPage() {
   const search = (next: BookSearchInput) => {
     const address = new URLSearchParams()
     if (filter === 'available') address.set('filter', 'available')
-    if (scope === 'joinable') address.set('scope', 'joinable')
+    if (addressScope) address.set('scope', addressScope)
     if (visit === 'none') address.set('visit', 'none')
     writeBookSearch(next, address)
     writeSettings(settings, address)
@@ -105,7 +108,7 @@ export function SearchPage() {
 
   const bookLinkSearch = new URLSearchParams()
   if (filter === 'available') bookLinkSearch.set('filter', 'available')
-  if (scope === 'joinable') bookLinkSearch.set('scope', 'joinable')
+  if (addressScope) bookLinkSearch.set('scope', addressScope)
   if (visit === 'none') bookLinkSearch.set('visit', 'none')
 
   return (
@@ -126,13 +129,9 @@ export function SearchPage() {
           onSearch={search}
           onSettingsChange={changeSettings}
         />
-        <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />
+        {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
         <div className={styles.toggles}>
-          <LibraryScopeToggle
-            scope={scope}
-            hasRegions={hasRegions(regions)}
-            onChange={(next) => replaceParam('scope', next === 'joinable' ? 'joinable' : null)}
-          />
+          <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
           <VisitToggle visit={visit} onChange={(next) => replaceParam('visit', next === 'none' ? 'none' : null)} />
         </div>
       </section>

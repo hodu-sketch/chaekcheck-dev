@@ -187,6 +187,8 @@ function unexpected(error: unknown): ApiError {
     : new ApiError(0, { title: 'Network error', status: 0, code: 'network_error', detail: String(error) })
 }
 
+const NO_LIBRARIES: number[] = []
+
 interface Options {
   field: SearchField
   /** Normalized, valid query; null means no search. */
@@ -195,6 +197,8 @@ interface Options {
   scope: LibraryScope
   visit: VisitFilter
   regions: StoredRegions
+  /** Libraries added by hand (cycle 06); empty before login. */
+  libraryIds?: number[]
   regionsReady: boolean
   resolveStoredRegions: () => Promise<boolean>
 }
@@ -213,6 +217,7 @@ export function useSearch({
   scope,
   visit,
   regions,
+  libraryIds = NO_LIBRARIES,
   regionsReady,
   resolveStoredRegions,
 }: Options) {
@@ -221,6 +226,7 @@ export function useSearch({
   const batchController = useRef<AbortController | null>(null)
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
+  const libraryKey = libraryIds.join(',')
 
   useEffect(() => {
     batchController.current?.abort()
@@ -240,8 +246,7 @@ export function useSearch({
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
-      // libraries added by hand: wired in cycle 06 step 10
-      libraryIds: [] as number[],
+      libraryIds: libraryKey ? libraryKey.split(',').map(Number) : [],
     }
     searchStream(params, (event) => dispatch({ type: 'event', batchNo: 1, event }), controller.signal).catch(
       async (error) => {
@@ -257,7 +262,7 @@ export function useSearch({
       },
     )
     return () => controller.abort()
-  }, [field, query, filter, scope, visit, residenceKey, workKey, regionsReady, resolveStoredRegions])
+  }, [field, query, filter, scope, visit, residenceKey, workKey, libraryKey, regionsReady, resolveStoredRegions])
 
   /** 목록 맨 아래 "더 보기": the next libraries in plan order, or the next pages once every library was asked. */
   const loadNextBatch = useCallback(() => {

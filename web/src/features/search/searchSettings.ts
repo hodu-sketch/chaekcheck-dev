@@ -31,11 +31,44 @@ export function loadSettings(storage?: Storage): SearchSettings {
   }
 }
 
+/** The whole stored object; settings and the 내 도서관 switch share one key. */
+function readStored(storage: Storage): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(storage.getItem(SETTINGS_STORAGE_KEY) ?? '{}')
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
+  } catch {
+    return {}
+  }
+}
+
 export function saveSettings(settings: SearchSettings, storage?: Storage): void {
   try {
-    ;(storage ?? localStorage).setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+    const target = storage ?? localStorage
+    target.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...readStored(target), ...settings }))
   } catch {
     // private mode or full storage: the address still carries the settings
+  }
+}
+
+/**
+ * The "전체 도서관 | 내 도서관" switch after login (cycle 06, spec R5, AC-16): the value the user chose, kept in this
+ * browser across reloads; null until they choose. `joinable` = 내 도서관.
+ */
+export function loadMyScope(storage?: Storage): 'all' | 'joinable' | null {
+  try {
+    const value = readStored(storage ?? localStorage).myScope
+    return value === 'all' || value === 'joinable' ? value : null
+  } catch {
+    return null
+  }
+}
+
+export function saveMyScope(scope: 'all' | 'joinable', storage?: Storage): void {
+  try {
+    const target = storage ?? localStorage
+    target.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...readStored(target), myScope: scope }))
+  } catch {
+    // storage blocked: the switch still works for this visit
   }
 }
 
