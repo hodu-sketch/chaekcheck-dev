@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -74,6 +75,14 @@ class RefreshTokenStore {
 		jdbc.sql("DELETE FROM auth.refresh_token WHERE token_hash = ? OR previous_token_hash = ?")
 			.params(tokenHash, tokenHash)
 			.update();
+	}
+
+	/** The account of a refresh value that is current and not expired (not the previous one). */
+	Optional<Long> accountOf(byte[] tokenHash, Instant now) {
+		return jdbc.sql("SELECT account_id FROM auth.refresh_token WHERE token_hash = ? AND expires_at > ?")
+			.params(tokenHash, Timestamp.from(now))
+			.query(Long.class)
+			.optional();
 	}
 
 	int deleteExpired(Instant now) {

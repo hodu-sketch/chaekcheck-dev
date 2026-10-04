@@ -20,6 +20,9 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
  * <li>any other provider error, token exchange or profile failure (including timeouts) →
  * {@code login_provider_error&provider=naver|kakao}, the provider taken from the callback path</li>
  * </ul>
+ * On a withdrawal re-authentication callback ({@code -reauth}) cancel and provider errors are
+ * {@code withdraw_cancelled} and {@code withdraw_provider_error}. A missing or mismatched {@code state} keeps the
+ * login codes: the result code table has no withdrawal codes for them.
  */
 final class LoginFailureHandler implements AuthenticationFailureHandler {
 
@@ -35,8 +38,10 @@ final class LoginFailureHandler implements AuthenticationFailureHandler {
 			AuthenticationException exception) {
 		String errorCode = exception instanceof OAuth2AuthenticationException oauth
 				? oauth.getError().getErrorCode() : null;
+		String registrationId = registrationIdOf(request);
+		boolean withdrawal = LoginProvider.isReauth(registrationId);
 		if ("access_denied".equals(errorCode)) {
-			LoginRedirects.complete(response, "login_cancelled");
+			LoginRedirects.complete(response, withdrawal ? "withdraw_cancelled" : "login_cancelled");
 			return;
 		}
 		Object missing = request.getAttribute(LoginAuthorizationRequestRepository.MISSING_ATTRIBUTE);
@@ -48,7 +53,7 @@ final class LoginFailureHandler implements AuthenticationFailureHandler {
 			LoginRedirects.complete(response, "login_state_mismatch");
 			return;
 		}
-		LoginProvider provider = LoginProvider.fromRegistrationId(registrationIdOf(request)).orElse(null);
+		LoginProvider provider = LoginProvider.fromRegistrationId(registrationId).orElse(null);
 		// The error code only, never the provider's response body or a token
 		log.warn("Login with {} failed: {}", provider,
 				errorCode != null && ERROR_CODE.matcher(errorCode).matches() ? errorCode : "unrecognized error");
@@ -56,7 +61,7 @@ final class LoginFailureHandler implements AuthenticationFailureHandler {
 			LoginRedirects.complete(response, "login_expired");
 			return;
 		}
-		LoginRedirects.complete(response, "login_provider_error", provider);
+		LoginRedirects.complete(response, withdrawal ? "withdraw_provider_error" : "login_provider_error", provider);
 	}
 
 	private static String registrationIdOf(HttpServletRequest request) {

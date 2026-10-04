@@ -31,7 +31,7 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		jwt = jwt != null ? jwt : new Jwt(null);
 		naver = naver != null ? naver : new Provider(null, null, null, null, null, null, null);
 		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null, null, null);
-		tokens = tokens != null ? tokens : new Tokens(null, null);
+		tokens = tokens != null ? tokens : new Tokens(null, null, null, null);
 		providerCalls = providerCalls != null ? providerCalls : new ProviderCalls(null, null);
 		documents = documents != null ? documents : new Documents(null, null);
 	}
@@ -69,12 +69,18 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 	/**
 	 * @param accessTokenTtl JWT lifetime, 15 minutes [확정] (ADR-0038)
 	 * @param refreshTokenTtl one login, 30 days from sign-in, not extended by refresh [확정]
+	 * @param reauthenticationTtl how long a withdrawal re-authentication counts, 5 minutes [확정] (ADR-0043)
+	 * @param pendingSignupTtl how long a pending sign-up counts from the provider login, 10 minutes [확정] (ADR-0040);
+	 * the session's idle timeout alone would let activity keep it alive
 	 */
-	public record Tokens(Duration accessTokenTtl, Duration refreshTokenTtl) {
+	public record Tokens(Duration accessTokenTtl, Duration refreshTokenTtl, Duration reauthenticationTtl,
+			Duration pendingSignupTtl) {
 
 		public Tokens {
 			accessTokenTtl = accessTokenTtl != null ? accessTokenTtl : Duration.ofMinutes(15);
 			refreshTokenTtl = refreshTokenTtl != null ? refreshTokenTtl : Duration.ofDays(30);
+			reauthenticationTtl = reauthenticationTtl != null ? reauthenticationTtl : Duration.ofMinutes(5);
+			pendingSignupTtl = pendingSignupTtl != null ? pendingSignupTtl : Duration.ofMinutes(10);
 		}
 
 	}

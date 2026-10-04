@@ -40,7 +40,7 @@ import com.chaekcheck.auth.internal.token.TokenService;
  * <li>PKCE off for both: Kakao's guide has no PKCE parameters; for Naver's plain OAuth flow it is unconfirmed
  * (TODO(확인 필요): try a real Naver call with PKCE and turn it on if accepted, research.md 1절)</li>
  * </ul>
- * The {@code -reauth} registrations for withdrawal come in step 8.
+ * The {@code naver-reauth} and {@code kakao-reauth} registrations are for withdrawal (step 8, ADR-0043).
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnAuthEnabled
@@ -50,9 +50,13 @@ class LoginConfiguration {
 
 	@Bean
 	ClientRegistrationRepository clientRegistrationRepository(AuthProperties properties) {
+		String base = properties.publicBaseUrl();
 		return new InMemoryClientRegistrationRepository(
-				registration(LoginProvider.NAVER, properties.naver(), "response", properties.publicBaseUrl()),
-				registration(LoginProvider.KAKAO, properties.kakao(), "id", properties.publicBaseUrl()));
+				registration(LoginProvider.NAVER.registrationId(), properties.naver(), "response", base),
+				registration(LoginProvider.KAKAO.registrationId(), properties.kakao(), "id", base),
+				// Withdrawal re-authentication (step 8): same app, own redirect URI, extra parameters added by the resolver
+				registration(LoginProvider.NAVER.reauthRegistrationId(), properties.naver(), "response", base),
+				registration(LoginProvider.KAKAO.reauthRegistrationId(), properties.kakao(), "id", base));
 	}
 
 	@Bean
@@ -73,21 +77,21 @@ class LoginConfiguration {
 			.failureHandler(new LoginFailureHandler());
 	}
 
-	private static ClientRegistration registration(LoginProvider provider, AuthProperties.Provider settings,
+	private static ClientRegistration registration(String registrationId, AuthProperties.Provider settings,
 			String userNameAttribute, String publicBaseUrl) {
 		String base = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1)
 				: publicBaseUrl;
-		return ClientRegistration.withRegistrationId(provider.registrationId())
+		return ClientRegistration.withRegistrationId(registrationId)
 			.clientId(settings.clientId())
 			.clientSecret(settings.clientSecret())
 			.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
 			.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-			.redirectUri(base + LoginFailureHandler.CALLBACK_BASE + provider.registrationId())
+			.redirectUri(base + LoginFailureHandler.CALLBACK_BASE + registrationId)
 			.authorizationUri(settings.authorizationUri())
 			.tokenUri(settings.tokenUri())
 			.userInfoUri(settings.userInfoUri())
 			.userNameAttributeName(userNameAttribute)
-			.clientName(provider.name())
+			.clientName(registrationId)
 			.clientSettings(ClientRegistration.ClientSettings.builder().requireProofKey(false).build())
 			.build();
 	}

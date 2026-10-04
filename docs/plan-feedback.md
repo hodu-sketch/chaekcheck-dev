@@ -828,11 +828,11 @@
 |---|---|---|---|
 | `naver` | `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/naver` | 5단계 로그인 | 코드 완료(가짜 응답으로 확인) |
 | `kakao` | `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/kakao` | 5단계 로그인 | 코드 완료(가짜 응답으로 확인) |
-| `naver-reauth` | 8단계에서 정해 이 표에 더함 | 8단계 탈퇴 재인증 | 아직 |
-| `kakao-reauth` | 8단계에서 정해 이 표에 더함 | 8단계 탈퇴 재인증 | 아직 |
+| `naver-reauth` | `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/naver-reauth` | 8단계 탈퇴 재인증 | 코드 완료(가짜 응답으로 확인) |
+| `kakao-reauth` | `<AUTH_PUBLIC_BASE_URL>/api/v1/auth/login/oauth2/code/kakao-reauth` | 8단계 탈퇴 재인증 | 코드 완료(가짜 응답으로 확인) |
 
 - `AUTH_PUBLIC_BASE_URL`: 사용자가 사이트를 여는 주소(scheme, host, port만, 끝에 `/` 없음). 개발 중에는 Vite 개발 서버 `http://localhost:5173`. 배포 주소는 배포 때 정함 [확인 필요].
-- 인계서가 묻는 "두 줄이 모두 받아지는지"는 재인증 주소까지 넣어 확인해야 하므로, 8단계에서 두 번째 줄이 정해진 뒤 확인하면 됩니다. 로그인 줄만 먼저 등록해도 5단계의 실제 로그인 확인은 할 수 있습니다.
+- 인계서가 묻는 "두 줄이 모두 받아지는지": 제공자마다 위 두 줄(로그인 + 재인증)을 콘솔에 넣어 보면 됩니다(8단계 완료로 네 줄 모두 정해짐). 한 줄만 받으면 그 제공자는 등록 하나 + 목적 표시 방식(ADR-0043 D안)으로 바꿔야 하므로 알려 주세요.
 - 실제 로그인 때 함께 확인할 것(5단계 [확인 필요]): 네이버 일반 흐름의 PKCE, 네이버 취소 때 `error` 값, 네이버 토큰 요청의 `state`.
 
 ## dev 문서 정리 (인계서 "dev 문서 수정 요청", 사용자 승인 2026-10-04)
@@ -929,6 +929,18 @@
 - 설정은 C28 세 값 그대로. `republish-outstanding-events-on-restart` 등 다른 값은 바꾸지 않음(기본값: 재시작 때 다시 보내지 않음). 실패해 남은 기록을 다시 보내는 방법은 정하지 않았음 [확인 필요: 사이클 06에서 받는 쪽이 생길 때].
 - 테스트(AC-15): `AccountDeletionTests`(삭제 후 하위 행 0, listener가 끝나면 저장소 기록 0, 없는 계정은 발행 없음, 이벤트 칸은 `accountId`(→ `value`)뿐), `AccountDeletedFailedListenerTests`(테스트 전용으로 항상 실패하는 listener를 더한 컨텍스트: 그 listener의 기록만 남고 `auth`의 listener 기록은 지워짐 → listener마다 기록 한 줄, 실패하면 남음. 저장된 이벤트 본문은 `{"accountId":{"value":N}}`). 기다리기는 Awaitility(이미 있는 `spring-modulith-starter-test`에 들어 있음, 새 의존성 없음).
 - 확인: `./gradlew build` 통과(테스트 389개, 꺼짐, `ModularityTests` 포함) + 켜짐으로 전체 테스트 389개 통과.
+
+## 8단계 결과: 탈퇴 (재인증) (2026-10-04, 가짜 제공자 응답으로만)
+
+- 등록 넷: `naver`, `kakao`에 더해 `naver-reauth`, `kakao-reauth`(같은 앱 키, 돌아올 주소만 다름). 시작 주소의 resolver가 재인증 등록에 네이버 `auth_type=reauthenticate`, 카카오 `prompt=login`을 붙임(일반 로그인에는 붙지 않음, 테스트). 등록 방식은 인계서대로 별도 등록(B안 계열). **콘솔이 한 줄만 받는지는 아직 모름** — 위 "사용자가 할 일" 표 참고.
+- 재인증 콜백(dev가 정함): 같은 콜백 필터에서 등록 이름이 `-reauth`로 끝나면 탈퇴 처리. 리프레시 쿠키(지금 값, 만료 전)로 현재 계정 → 없으면 `withdraw_login_expired`. 돌아온 `(method, subject)`의 계정이 다르거나 없으면 `withdraw_account_mismatch`. 같으면 세션에 `ReauthenticationProof(accountId, method, verifiedAt, 네이버면 접근 토큰)` + `withdraw_reauthenticated`. 쿠키·리프레시 줄·`last_login_at`은 그대로. 취소 `withdraw_cancelled`, 제공자 오류 `withdraw_provider_error&provider=…`.
+- **설계 표에 없어 dev가 정한 것**: 재인증 콜백에서 인가 요청이 없거나 `state`가 다르면 로그인과 같은 `login_expired` / `login_state_mismatch`를 씀(결과 코드 표에 탈퇴용 코드가 없음). plan에서 따로 정할지 봐 주세요.
+- 참고: 인증이 성공한 콜백 응답에는 Spring이 CSRF 토큰을 새로 바꿔 `XSRF-TOKEN` 쿠키가 새로 옴(로그인·재인증 모두). 웹은 쿠키를 매번 읽으므로 영향 없음.
+- `DELETE /api/v1/me`(액세스 쿠키 + CSRF): 증명 없음·다른 계정의 증명 → 403 `reauthentication_required`, 5분(`chaekcheck.auth.tokens.reauthentication-ttl`) 지남 → 403 `reauthentication_expired`. 유효하면 카카오 unlink(어드민 키, `login_method`의 회원번호) 또는 네이버 revoke(증명의 토큰)를 한 번, 실패는 기록만 → 7단계 `AccountDeletion` → 204 + 쿠키 둘 만료. 우리 쪽 삭제 실패는 루트 처리기의 500 `internal_error`. 구현: `auth.internal.account.Withdrawal`.
+- 보안 리뷰(security-reviewer 서브에이전트, 남의 계정을 지우거나 가로채는 길은 없음) 반영: (1) 가입 대기의 10분을 세션 유휴 시간이 아니라 제공자 로그인 시각부터 셈(`chaekcheck.auth.tokens.pending-signup-ttl: 10m`, ADR-0040 값) — 오래 열어 둔 탭이 탈퇴한 계정을 새 제공자 로그인 없이 다시 만들 수 없게. (2) 탈퇴 요청이 증명을 받는 즉시 세션에서 지우고 같은 세션의 가입 대기도 지움 → 같은 증명으로 두 번째 요청은 403, 제공자 호출도 한 번. 남긴 것(기록만): 제공자 끊기 뒤 우리 삭제가 실패하면 계정은 남고 제공자 연결만 끊김(다시 로그인하면 됨), 로그아웃·로그인 때 세션 자체를 비우지는 않음(10분 뒤 사라짐), 액세스 토큰은 계정이 지워진 뒤에도 만료까지 다른 모듈 API에서 통과(ADR-0038의 받아들인 한계, 사이클 06 `member`가 계정 번호로 줄을 만들 때 주의).
+- 테스트: `WithdrawalTests` 12개(재인증 파라미터·돌아올 주소, 같은 계정 → 증명·쿠키/줄 없음, 다른 계정 → mismatch, 리프레시 없음·모르는 값 → login_expired, 취소·제공자 오류 코드, 증명 없음/다른 계정 403, 5분 경계(4분 50초 통과, 5분 1초 거절), 카카오 탈퇴 unlink 한 번·삭제·쿠키 `Path`·다른 브라우저의 액세스 401·리프레시 401(AC-9), 증명 한 번만·가입 대기도 지움, 네이버 revoke, 제공자 실패에도 삭제·204, CSRF 403), `SignupTests`에 10분 넘은 가입 대기 404 추가. 5분 경계는 시계 주입 대신 증명의 `verifiedAt`을 앞당겨 확인.
+- 확인: `./gradlew build` 통과(테스트 402개, 꺼짐) + 켜짐으로 전체 테스트 402개 통과.
+- 실제 제공자로 할 확인(17단계): 두 브라우저(AC-9), 다른 계정으로 재인증(AC-10), 제공자 "연결된 서비스" 화면에서 사라짐(AC-12).
 
 # 사이클 밖: ADR-0047 옮기기
 

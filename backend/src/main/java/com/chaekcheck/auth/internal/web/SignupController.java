@@ -1,5 +1,7 @@
 package com.chaekcheck.auth.internal.web;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.chaekcheck.auth.internal.AuthProperties;
 import com.chaekcheck.auth.internal.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.login.PendingSignup;
 import com.chaekcheck.auth.internal.login.ProviderUnlinker;
@@ -41,9 +44,12 @@ class SignupController {
 
 	private final ProviderUnlinker unlinker;
 
-	SignupController(SignupService signups, ProviderUnlinker unlinker) {
+	private final Duration pendingTtl;
+
+	SignupController(SignupService signups, ProviderUnlinker unlinker, AuthProperties properties) {
 		this.signups = signups;
 		this.unlinker = unlinker;
+		this.pendingTtl = properties.tokens().pendingSignupTtl();
 	}
 
 	/** Which provider and which document versions the screen shows. */
@@ -96,10 +102,17 @@ class SignupController {
 		return ResponseEntity.noContent().build();
 	}
 
-	private static PendingSignup pending(HttpServletRequest request) {
+	/**
+	 * The pending sign-up, if it is younger than 10 minutes counted from the provider login. An older one is dropped
+	 * (security review 2026-10-04: an old tab must not recreate a withdrawn account without a new provider login).
+	 */
+	private PendingSignup pending(HttpServletRequest request) {
 		HttpSession session = request.getSession(false);
 		if (session != null && session.getAttribute(PendingSignup.SESSION_ATTRIBUTE) instanceof PendingSignup pending) {
-			return pending;
+			if (Instant.now().isBefore(pending.createdAt().plus(pendingTtl))) {
+				return pending;
+			}
+			session.removeAttribute(PendingSignup.SESSION_ATTRIBUTE);
 		}
 		throw problem(HttpStatus.NOT_FOUND, "signup_not_found", "No sign-up in progress");
 	}

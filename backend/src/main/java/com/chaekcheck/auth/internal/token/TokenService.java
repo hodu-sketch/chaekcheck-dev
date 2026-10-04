@@ -100,6 +100,17 @@ public class TokenService {
 		}
 	}
 
+	/**
+	 * The account the browser is signed in as, read from its refresh value: the withdrawal re-authentication callback
+	 * compares it with the account that just signed in again (step 8). Empty when the login is over.
+	 */
+	public Optional<Long> accountOfRefresh(String presented) {
+		if (presented == null || presented.isBlank()) {
+			return Optional.empty();
+		}
+		return store.accountOf(hash(presented), clock.instant());
+	}
+
 	/** The daily clean-up (C31). */
 	int deleteExpired() {
 		return store.deleteExpired(clock.instant());

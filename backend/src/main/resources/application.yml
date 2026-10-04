@@ -91,6 +91,10 @@ chaekcheck:
       # [확정] (ADR-0038): access JWT 15 minutes; one login lasts 30 days from sign-in, refresh does not extend it
       access-token-ttl: 15m
       refresh-token-ttl: 30d
+      # A withdrawal re-authentication counts for 5 minutes [확정] (ADR-0043)
+      reauthentication-ttl: 5m
+      # A pending sign-up counts for 10 minutes from the provider login [확정] (ADR-0040)
+      pending-signup-ttl: 10m
     cleanup:
       # Daily clean-up jobs (expired refresh tokens; later Kakao link check and inactive accounts), 04:00 Asia/Seoul
       # [확정] (user approval 2026-10-04). Spring cron: second minute hour day month weekday.

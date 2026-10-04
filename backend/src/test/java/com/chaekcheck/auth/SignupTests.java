@@ -3,6 +3,7 @@ package com.chaekcheck.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -102,6 +103,21 @@ class SignupTests {
 				.extractingPath("$.code")
 				.isEqualTo("signup_not_found");
 		}
+	}
+
+	@Test
+	void pendingSignupOlderThanTenMinutesIsGone() {
+		MockHttpSession session = new MockHttpSession();
+		session.setAttribute(PendingSignup.SESSION_ATTRIBUTE,
+				new PendingSignup("KAKAO", "s-stale", Instant.now().minus(Duration.ofMinutes(10)).minusSeconds(1),
+						null));
+
+		assertThat(signUp(session, VALID)).hasStatus(HttpStatus.NOT_FOUND)
+			.bodyJson()
+			.extractingPath("$.code")
+			.isEqualTo("signup_not_found");
+		assertThat(count("auth.login_method WHERE subject = 's-stale'")).isZero();
+		assertThat(session.getAttribute(PendingSignup.SESSION_ATTRIBUTE)).isNull();
 	}
 
 	@Test

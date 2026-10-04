@@ -240,7 +240,7 @@ class LoginCallbackTests {
 
 	@Test
 	void unknownProviderIsNotFound() {
-		for (String id : List.of("google", "naver-reauth", "kakao-reauth")) {
+		for (String id : List.of("google", "google-reauth", "naver-extra")) {
 			assertThat(mvc.get().uri("/api/v1/auth/oauth2/authorization/" + id)).hasStatus(HttpStatus.NOT_FOUND)
 				.bodyJson()
 				.extractingPath("$.code")

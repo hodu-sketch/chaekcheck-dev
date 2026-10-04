@@ -10,6 +10,8 @@ public enum LoginProvider {
 
 	NAVER("naver"), KAKAO("kakao");
 
+	private static final String REAUTH_SUFFIX = "-reauth";
+
 	private final String registrationId;
 
 	LoginProvider(String registrationId) {
@@ -18,6 +20,15 @@ public enum LoginProvider {
 
 	public String registrationId() {
 		return registrationId;
+	}
+
+	/** The withdrawal re-authentication registration (step 8). */
+	public String reauthRegistrationId() {
+		return registrationId + REAUTH_SUFFIX;
+	}
+
+	public static boolean isReauth(String registrationId) {
+		return registrationId != null && registrationId.endsWith(REAUTH_SUFFIX);
 	}
 
 	public String method() {
@@ -29,8 +40,8 @@ public enum LoginProvider {
 		if (registrationId == null) {
 			return Optional.empty();
 		}
-		String name = registrationId.endsWith("-reauth")
-				? registrationId.substring(0, registrationId.length() - "-reauth".length()) : registrationId;
+		String name = isReauth(registrationId)
+				? registrationId.substring(0, registrationId.length() - REAUTH_SUFFIX.length()) : registrationId;
 		for (LoginProvider provider : values()) {
 			if (provider.registrationId.equals(name)) {
 				return Optional.of(provider);

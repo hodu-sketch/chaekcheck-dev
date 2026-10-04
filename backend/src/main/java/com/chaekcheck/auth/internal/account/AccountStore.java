@@ -38,6 +38,14 @@ public class AccountStore {
 			.optional();
 	}
 
+	/** The provider number of one of the account's login methods (Kakao unlink needs it). */
+	public Optional<String> subjectOf(long accountId, String method) {
+		return jdbc.sql("SELECT subject FROM auth.login_method WHERE account_id = ? AND method = ? ORDER BY id LIMIT 1")
+			.params(accountId, method)
+			.query(String.class)
+			.optional();
+	}
+
 	/** Signing in again keeps the account from the one-year inactivity clean-up (C30). */
 	public void touchLastLogin(long accountId, Instant now) {
 		jdbc.sql("UPDATE auth.account SET last_login_at = ? WHERE id = ?")
