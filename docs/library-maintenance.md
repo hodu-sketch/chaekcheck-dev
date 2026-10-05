@@ -97,6 +97,8 @@
 | `002-library-seed.yaml` | 시범 도서관 id 1(강서), 2(고흥). SQL INSERT |
 | `003-library-seed-cycle02.yaml` + `003-library-cycle02.csv`, `003-eligibility-rule-cycle02.csv` | 사이클 02 1차: 화면 종류별로 확인한 곳(id 3~15) |
 | `004-…` 이후 | 이 문서의 절차로 추가하는 묶음 |
+| `008-library-candidates.csv`, `008-eligibility-rule-candidates.csv` | 후보 도서관(사이클 07). `build_candidate_seed.py`가 만듦. 손으로 고치지 않음 |
+| `../collection/002-collection-link.csv` | 수집 번호 ↔ 서비스 번호 짝(등록 도서관은 같은 번호). `build_candidate_seed.py`가 만듦 |
 
 - master(`db.changelog-master.yaml`)는 include만 합니다. 새 파일은 master 맨 아래에 include를 더합니다.
 - CSV는 Liquibase `loadData`로 넣습니다. 빈 값은 `NULL` 글자로 씁니다.
@@ -128,6 +130,7 @@
 | `apply_join_classification.py` | 가입 자격 분류표를 seed CSV(도서관·규칙)에 넣음. 여러 파일을 받으면 뒤 파일이 이김. 시범 도서관(YAML)은 손으로 고칠 줄을 출력 | `python scripts/library/apply_join_classification.py <classification.tsv> scripts/library/join_overrides.tsv` |
 | `join_overrides.tsv` | 사용자가 정한 가입 자격 결과(원문·주소·결정 날짜). 다시 조사하지 않는 근거 | (데이터 파일) |
 | `find_front_pages.py` | 전자도서관 줄마다 첫 화면 주소를 화면 종류별로 만들어 열리는지 확인(`homepage_url`) | `python scripts/library/find_front_pages.py <out.tsv> [--write]` |
+| `build_candidate_seed.py` | 수집 DB 사본의 후보 도서관(수집 번호 100001 이상)을 서비스 도서관 seed CSV와 짝 CSV로 만듦. 이미 받은 번호·이름은 그대로 두고 새 후보만 다음 번호. 등록 도서관과 호스트가 같고 책 번호가 겹치는데 아직 읽지 않은 곳이 있으면 목록을 내고 종료 코드 2로 멈춤. 테스트: `python -m unittest scripts/library/test_build_candidate_seed.py` | `python scripts/library/build_candidate_seed.py <사본.sqlite> <public-join.tsv> <candidate-kinds.tsv> <kyobo-probe.tsv>` |
 | `check_code_spaces.py` | 수집 SQLite(읽기 전용)에서 화면 종류끼리 책 번호가 같은 체계인지 대조: 같은 번호의 제목이 같은 비율(4-11). 판단은 하지 않음 | `python scripts/library/check_code_spaces.py ../chaekcheck-data/ebook-catalog.sqlite` |
 
 - 모두 **저장소 루트에서** 실행합니다. Java는 서비스와 같은 JDK 25(`C:\Users\yujun\.jdks\jdk-25.0.4.1+1\bin\java.exe`)를 씁니다. 다른 JDK나 curl은 TLS 결과가 다를 수 있습니다(예: 대구는 JDK에서만 설정이 필요, curl은 됨).
@@ -548,6 +551,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 | 2026-09-30 | 책 번호 규칙 점검 절차 추가(4-11, 사용자 요청). `check_code_spaces.py` 첫 실행 결과를 기준값으로 적음 | `scripts/library/check_code_spaces.py` |
 | 2026-09-30 | 사이클 04 상세 페이지 호출 시험: 화면 종류마다 1건(교보 고흥, YES24 V1 성남, V2 화성, V3 경주, 강남구 「다른 사랑」)을 우리 User-Agent(`chaekcheck/0.0.1`)로 2초 간격으로 받아 설명문·표지·스크립트를 지우고 fixture로 저장. 포털은 사이클 02 fixture. 결과는 12절 표 | `backend/src/test/resources/fixtures/*/detail-1.html` |
 | 2026-09-30 | 전자책 기준으로 `join_method` 고침. 목포 65: 원문 "대상 : 목포시통합도서관 정회원(홈페이지 가입자)" (https://www.mokpolib.or.kr/cms/bbs/dk_content.php?ht_id=search_05, 같은 곳의 "이용자가 직접 도서관에 방문하셔야 합니다"는 회원증 발급으로 봄, 사용자 결정 "방문 없이 됨"). 익산 120(소장형): "도서관준회원(웹회원) : 5권 이내, 5일간 대출가능" (https://lib.iksan.go.kr/main/contents.do?idx=4961). 경산 265: 규정 "③ 전자도서관 등 온라인상에서 열람·대출 가능한 자료에 대한 이용은 온라인 회원 가입으로 도서대출회원증을 발급 받은 것으로 본다." (https://www.gbgs.go.kr/lib/page/1173/694.tc) | `004`, `005` csv |
+| 2026-10-05 | **후보 도서관 넣기 (사이클 07, plan 인계서 1단계).** 출처: 사본 `chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite`(`quick_check` ok, 도서관 3,016 = 등록 278 + 후보 2,738), `library-join/public-join-2026-10-05.tsv`(후보 공공도서관 120곳 가입 조사, `decision` 칸 우선), `library-join/candidate-kinds-2026-10-05.tsv`(후보 종류), `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`(`model` → `lending_model`: 소장 OWNED, 혼합 MIXED, 대여 RENTAL). 결과: 후보 **2,394곳**(서비스 번호 281~2674), 가입 규칙 250줄, 짝 2,674줄. 넣을 후보 2,412곳에서 뺀 곳: 같은 사이트 다른 포트 8, 체험용·운영 중단 4, 시험용 6(`library-site-issues.md` 8절). `join_survey`: MEMBERS_ONLY 2,252, SURVEYED 90, NOT_SURVEYED 35, NOT_FOUND 17. 이름에 라벨이 붙은 곳 225, 라벨+호스트 2(부여대왕초등학교 교보 두 곳). **이 규칙의 예외(plan 인계서 C1, ADR-0053)**: 학교·대학·회사·기관·단체(`MEMBERS_ONLY`)와 종류 모름(`NOT_SURVEYED`)은 가입 조사 없이 조사 상태 표시로 넣음(직접 추가했을 때만 검색에 나옴). 사용자 결정: 소속 전용으로 조사된 대구학생전자도서관(100049)·세종시교육청(100722, 같은 사이트라 빠짐)은 `MEMBERS_ONLY`("구성원용으로", 2026-10-05). 지역 표에 **증평군이 없어** 증평군립도서관(100111)은 규칙 없이 요약 글 "증평군 거주·재직·재학"만 둠(자격 미확인으로 보임). 면·혁신도시처럼 시·군·구보다 작은 범위는 규칙에서 뺌(증평 인접 면, 진천 충북 혁신도시) | `008-*.csv`, `collection/002-collection-link.csv`, `scripts/library/build_candidate_seed.py` |
 
 ## 14. 사용자가 직접 확인할 목록 (원문이 애매해 판단을 미룬 것)
 
