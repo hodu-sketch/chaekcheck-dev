@@ -2,9 +2,10 @@ import type { RegionResolution } from '../../api/types'
 import type { StoredRegions } from '../region/regionStorage'
 
 /**
- * S11 (cycle 06, ADR-0049): after login, offers once to save this browser's regions to the account. The accounts that
- * answered here (either answer) are kept in this browser so they are not asked again; closing without an answer keeps
- * nothing, so the next login asks again [확정].
+ * S11 (cycle 06, ADR-0049; cycle 07, ADR-0057): after login, offers once to save this browser's regions and the
+ * libraries it added to the account. The accounts that answered here (either answer) are kept in this browser so they
+ * are not asked again; closing without an answer keeps nothing, so the next login asks again [확정]. One record for
+ * both parts (cycle 07, dev decision): they are offered together in one question.
  */
 export const REGION_IMPORT_KEY = 'chaekcheck.regionImport.v1'
 
@@ -26,18 +27,46 @@ export function rememberAnswer(accountId: number, storage: Storage = localStorag
   }
 }
 
-/** All four conditions of S11 (flow S11). */
-export function shouldOfferImport(input: {
+/** What S11 offers: a part only when the account has none of it and this browser has some (cycle 07 flow S11). */
+export interface ImportParts {
+  regions: boolean
+  libraries: boolean
+}
+
+/**
+ * The conditions of S11 (cycle 07 flow S11): signed in, the account's values read, not answered yet, and (the account
+ * has no regions and this browser has some) or (the account has no added libraries and this browser has some). A part
+ * the account already has is neither moved nor shown [확정].
+ */
+export function partsToOffer(input: {
   accountId: number | null
   serverRegions: StoredRegions | null
+  serverLibraries: number[] | null
   browserRegions: StoredRegions
+  browserLibraries: number[]
   answered: number[]
-}): boolean {
-  const { accountId, serverRegions, browserRegions, answered } = input
-  if (accountId === null || serverRegions === null) return false
-  const serverEmpty = serverRegions.residence.length === 0 && serverRegions.work.length === 0
-  const browserHas = browserRegions.residence.length > 0 || browserRegions.work.length > 0
-  return serverEmpty && browserHas && !answered.includes(accountId)
+}): ImportParts | null {
+  const { accountId, serverRegions, serverLibraries, browserRegions, browserLibraries, answered } = input
+  if (accountId === null || serverRegions === null || serverLibraries === null || answered.includes(accountId)) {
+    return null
+  }
+  const regions =
+    serverRegions.residence.length === 0 &&
+    serverRegions.work.length === 0 &&
+    (browserRegions.residence.length > 0 || browserRegions.work.length > 0)
+  const libraries = serverLibraries.length === 0 && browserLibraries.length > 0
+  return regions || libraries ? { regions, libraries } : null
+}
+
+/**
+ * The note after moving the libraries, when the account got fewer than were sent [안: dev decision]: over 20 (cannot
+ * happen from this browser, which stops at 20) "20곳까지만 저장했어요" [확정]; otherwise some were switched off or
+ * removed meanwhile and were skipped.
+ */
+export function libraryImportNote(sent: number, saved: number, max: number): string | null {
+  if (saved >= sent) return null
+  if (sent > max) return '20곳까지만 저장했어요'
+  return `지금 쓸 수 없는 도서관 ${sent - saved}곳은 빼고 저장했어요`
 }
 
 export interface ImportPlan {

@@ -1,15 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useMemo, useState, type ReactNode } from 'react'
-import { Navigate } from 'react-router'
 import { ApiError, fetchLibraries } from '../../api/client'
-import { addMyLibrary, removeMyLibrary } from '../../api/myLibraries'
 import type { LibraryEligibilityRow } from '../../api/types'
-import { useAuth } from '../auth/AuthContext'
+import { LibraryLogo } from '../../components/LibraryLogo'
 import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
 import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
-import { nameKey } from './libraryNames'
+import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
+import { BrowserStorageError, LibraryLimitError } from './myLibraryErrors'
 import styles from './MyLibrariesPage.module.css'
 
 /** Wording [안 문구, 규칙 확정] (flow S10), except the two marked dev placeholders. */
@@ -20,23 +19,28 @@ const TEXT = {
   notFound: '지금은 추가할 수 없는 도서관이에요. 목록을 다시 확인해 주세요',
   disabled: '지금은 쓸 수 없는 도서관이에요',
   empty: '지역을 고르거나 도서관을 추가하세요',
-  noMatch: '이름이 맞는 도서관이 없어요',
+  // cycle 07 flow S10 [확정]
+  noMatch: '찾는 도서관이 없어요',
+  browserBlocked: '이 브라우저에 저장하지 못했어요',
 }
+
+/** Name search results shown at a time; more with "더 보기" (cycle 07 flow S10) [확정]. */
+const PAGE = 20
 
 /**
  * S10 `/my-libraries` (cycle 06 flow S10): the regions, the libraries they bring in, and the libraries added by hand.
- * Only for a signed-in browser: while the login check runs it says "불러오는 중", signed out goes to S1 [확정].
+ * Since cycle 07 also before login and with login off (spec R3-6): the same screen, saved in this browser, with no
+ * notice line on top [확정]. While the login check runs it says "불러오는 중".
  */
 export function MyLibrariesPage() {
-  const { state } = useAuth()
-  if (state.status === 'checking') return <p className={styles.page}>불러오는 중</p>
-  if (state.status !== 'signed-in') return <Navigate to="/" replace />
+  const { mode } = useMyLibrary()
+  if (mode === 'waiting') return <p className={styles.page}>불러오는 중</p>
   return <MyLibraries />
 }
 
 function MyLibraries() {
   const myLibrary = useMyLibrary()
-  const { regions, ready, setRegions } = useRegions()
+  const { regions, ready, setRegions, source } = useRegions()
   const tree = useRegionTree()
   const labels = useRegionLabels(tree.data)
   const [editing, setEditing] = useState(false)
@@ -99,7 +103,7 @@ function MyLibraries() {
         open={editing}
         onOpenChange={setEditing}
         regions={regions}
-        savedTo="account"
+        savedTo={source === 'account' ? 'account' : 'browser'}
         onSave={async (next) => {
           await setRegions(next)
           setEditing(false)
@@ -231,48 +235,62 @@ function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) 
   return (
     <ul id={id} className={styles.names}>
       {rows.map((row) => (
-        <li key={row.id}>{row.name}</li>
+        <li key={row.id} className={styles.named}>
+          <LibraryLogo name={row.name} logoUrl={row.logoUrl} homepageUrl={row.homepageUrl} size={24} />
+          {row.name}
+        </li>
       ))}
     </ul>
   )
 }
 
-/** The last two sections: name search with [추가], and the added libraries N/20 with [빼기]. Every press saves at once. */
+/** A library's name with its logo (cycle 07, ADR-0059); the name is text only. */
+function LibraryName({ row, fallback }: { row: LibraryEligibilityRow | undefined; fallback: string }) {
+  return (
+    <span className={`${styles.name} ${styles.named}`}>
+      <LibraryLogo name={row?.name ?? fallback} logoUrl={row?.logoUrl} homepageUrl={row?.homepageUrl} size={24} />
+      {row?.name ?? fallback}
+    </span>
+  )
+}
+
+/**
+ * The last two sections: name search with [추가], and the added libraries N/20 with [빼기]. Every press saves at once:
+ * in the account after login, in this browser before (cycle 07).
+ */
 function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
-  const { libraryIds, maxLibraries, setLibraryIds } = useMyLibrary()
+  const { libraryIds, maxLibraries, addLibrary, removeLibrary } = useMyLibrary()
   const [query, setQuery] = useState('')
+  const [shown, setShown] = useState(PAGE)
   const [message, setMessage] = useState<string | null>(null)
   const byId = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])
   const full = libraryIds.length >= maxLibraries
-  const key = nameKey(query)
-  const matches = key ? rows.filter((row) => nameKey(row.name).includes(key)) : []
+  const searching = [...nameKey(query)].length >= MIN_NAME_QUERY
+  const matches = useMemo(() => findByName(rows, query), [rows, query])
 
   const failure = (error: unknown) => {
+    if (error instanceof LibraryLimitError) return TEXT.limit
+    if (error instanceof BrowserStorageError) return TEXT.browserBlocked
     if (error instanceof ApiError && error.problem.code === 'library_limit_reached') return TEXT.limit
     if (error instanceof ApiError && error.problem.code === 'library_not_found') return TEXT.notFound
-    // 401 after the refresh: the browser is signed out and this screen goes to S1
+    // 401 after the refresh: the browser is signed out and this screen shows the browser's list
     return TEXT.saveFailed
   }
 
   const add = async (id: number) => {
     setMessage(null)
-    setLibraryIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
     try {
-      await addMyLibrary(id)
+      await addLibrary(id)
     } catch (error) {
-      setLibraryIds((ids) => ids.filter((x) => x !== id))
       setMessage(failure(error))
     }
   }
 
   const remove = async (id: number) => {
     setMessage(null)
-    const before = libraryIds
-    setLibraryIds((ids) => ids.filter((x) => x !== id))
     try {
-      await removeMyLibrary(id)
+      await removeLibrary(id)
     } catch (error) {
-      setLibraryIds(() => before)
       setMessage(failure(error))
     }
   }
@@ -284,32 +302,40 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
           type="search"
           className={styles.search}
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            setShown(PAGE)
+          }}
           placeholder="도서관 이름"
           aria-label="도서관 이름으로 찾기"
         />
         {full && <p className={styles.note}>{TEXT.limit}</p>}
-        {key && matches.length === 0 && <p className={styles.muted}>{TEXT.noMatch}</p>}
+        {searching && matches.length === 0 && <p className={styles.muted}>{TEXT.noMatch}</p>}
         {matches.length > 0 && (
           <ul className={styles.rows}>
-            {matches.map((row) => {
+            {matches.slice(0, shown).map((row) => {
               const added = libraryIds.includes(row.id)
               return (
                 <li key={row.id} className={styles.row} data-added={added || undefined}>
-                  <span className={styles.name}>{row.name}</span>
+                  <LibraryName row={row} fallback={row.name} />
                   <button
                     type="button"
                     className={styles.add}
                     disabled={added || full}
                     onClick={() => void add(row.id)}
-                    aria-label={added ? `${row.name} 이미 있음` : `${row.name} 추가`}
+                    aria-label={added ? `${row.name} 직접 추가함` : `${row.name} 추가`}
                   >
-                    {added ? '이미 있음' : '추가'}
+                    {added ? '직접 추가함' : '추가'}
                   </button>
                 </li>
               )
             })}
           </ul>
+        )}
+        {matches.length > shown && (
+          <button type="button" className={styles.more} onClick={() => setShown((n) => n + PAGE)}>
+            더 보기
+          </button>
         )}
       </Section>
 
@@ -332,10 +358,9 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
           <ul className={styles.rows}>
             {libraryIds.map((id) => {
               const row = byId.get(id)
-              const name = row?.name ?? TEXT.disabled
               return (
                 <li key={id} className={styles.row} data-disabled={row ? undefined : true}>
-                  <span className={styles.name}>{name}</span>
+                  <LibraryName row={row} fallback={TEXT.disabled} />
                   <button
                     type="button"
                     className={styles.remove}

@@ -331,3 +331,23 @@
     white-space: nowrap;
   }
 }
+
+/* cycle 07: a library's logo (or empty box) before its name */
+.named {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* "더 보기" under the name search (cycle 07 flow S10) */
+.more {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}

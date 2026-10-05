@@ -1,20 +1,28 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { getMyLibraries, getMyRegions, putMyRegions } from '../../api/myLibraries'
+import { addMyLibrary, getMyLibraries, getMyRegions, putMyRegions, removeMyLibrary } from '../../api/myLibraries'
 import type { MyRegions } from '../../api/types'
 import { useOptionalAuth } from '../auth/AuthContext'
+import { loadChosenLibraries, MAX_CHOSEN_LIBRARIES, saveChosenLibraries } from './chosenLibraryStorage'
+import { BrowserStorageError, LibraryLimitError } from './myLibraryErrors'
 
 /**
- * The signed-in account's saved regions and added libraries (cycle 06, handoff step 9). Both are read at once when the
- * browser becomes signed in, and forgotten when it signs out. `inactive` covers checking, signed out and login off:
- * the screen then works as in cycle 05.
+ * The libraries added by hand and, while signed in, the account's saved regions (cycle 06, handoff step 9).
+ * - `account`: signed in. Both are read at once from the server and saved there (cycle 06).
+ * - `browser`: signed out or login off (cycle 07, ADR-0057). The added libraries live in this browser only; the
+ *   regions come from the region context (also this browser). Read again whenever the browser becomes signed out.
+ * - `waiting`: the login check has not answered yet.
  */
+export type MyLibraryMode = 'waiting' | 'browser' | 'account'
+
+/** `inactive` while waiting; `ready` in the browser at once; loading, error or ready for the account. */
 export type MyLibraryStatus = 'inactive' | 'loading' | 'error' | 'ready'
 
 interface MyLibraryValue {
+  mode: MyLibraryMode
   status: MyLibraryStatus
   /** The signed-in account, when there is one. */
   accountId: number | null
-  /** Saved region ids as the server has them (abolished ones included); null until read. */
+  /** Saved region ids as the server has them (abolished ones included); null until read, and in the browser. */
   regions: MyRegions | null
   /** Added libraries, disabled ones included, oldest first. */
   libraryIds: number[]
@@ -23,7 +31,14 @@ interface MyLibraryValue {
   retry: () => void
   /** `PUT /api/v1/me/regions`; the saved value becomes the state. Throws ApiError. */
   saveRegions: (regions: MyRegions) => Promise<MyRegions>
-  /** Replaces the added libraries shown (the 내 도서관 screen saves each change itself). */
+  /**
+   * Adds one library, shown at once and undone on failure. Throws {@link LibraryLimitError} at the limit,
+   * {@link BrowserStorageError} when the browser would not store it, an ApiError from the server.
+   */
+  addLibrary: (libraryId: number) => Promise<void>
+  /** Removes one library, undone on failure (same errors). */
+  removeLibrary: (libraryId: number) => Promise<void>
+  /** Replaces the account's added libraries shown (after S11 moved the browser's to the account). */
   setLibraryIds: (update: (ids: number[]) => number[]) => void
 }
 
@@ -42,9 +57,21 @@ interface Loaded {
 
 export function MyLibraryProvider({ children }: { children: ReactNode }) {
   const auth = useOptionalAuth()
+  const authStatus = auth ? auth.state.status : 'off'
   const accountId = auth?.state.status === 'signed-in' ? auth.state.me.id : null
+  const mode: MyLibraryMode = authStatus === 'checking' ? 'waiting' : accountId !== null ? 'account' : 'browser'
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [browser, setBrowser] = useState<{ mode: MyLibraryMode; ids: number[] }>(() => ({
+    mode,
+    ids: loadChosenLibraries(),
+  }))
+  // back to the browser (signed out): its own list again, as another tab may have changed it [안]
+  if (browser.mode !== mode) {
+    setBrowser({ mode, ids: mode === 'browser' ? loadChosenLibraries() : browser.ids })
+  }
+  const browserIds = browser.ids
+  const setBrowserIds = useCallback((ids: number[]) => setBrowser((current) => ({ ...current, ids })), [])
 
   useEffect(() => {
     if (accountId === null) {
@@ -81,18 +108,70 @@ export function MyLibraryProvider({ children }: { children: ReactNode }) {
 
   // an answer for another account (signed out and in again meanwhile) is not shown
   const current = loaded !== null && loaded.accountId === accountId ? loaded : null
+  const accountIds = current?.libraryIds
+  const libraryIds = useMemo(
+    () => (mode === 'account' ? (accountIds ?? []) : mode === 'browser' ? browserIds : []),
+    [mode, accountIds, browserIds],
+  )
+  const maxLibraries = mode === 'account' ? (current?.max ?? DEFAULT_MAX) : MAX_CHOSEN_LIBRARIES
+
+  const addLibrary = useCallback(
+    async (libraryId: number) => {
+      if (libraryIds.includes(libraryId)) return
+      if (libraryIds.length >= maxLibraries) throw new LibraryLimitError()
+      if (mode === 'browser') {
+        const next = [...libraryIds, libraryId]
+        if (!saveChosenLibraries(next)) throw new BrowserStorageError()
+        setBrowserIds(next)
+        return
+      }
+      setLibraryIds((ids) => (ids.includes(libraryId) ? ids : [...ids, libraryId]))
+      try {
+        await addMyLibrary(libraryId)
+      } catch (error) {
+        setLibraryIds((ids) => ids.filter((id) => id !== libraryId))
+        throw error
+      }
+    },
+    [mode, libraryIds, maxLibraries, setLibraryIds, setBrowserIds],
+  )
+
+  const removeLibrary = useCallback(
+    async (libraryId: number) => {
+      if (mode === 'browser') {
+        const next = libraryIds.filter((id) => id !== libraryId)
+        if (!saveChosenLibraries(next)) throw new BrowserStorageError()
+        setBrowserIds(next)
+        return
+      }
+      const before = libraryIds
+      setLibraryIds((ids) => ids.filter((id) => id !== libraryId))
+      try {
+        await removeMyLibrary(libraryId)
+      } catch (error) {
+        setLibraryIds(() => before)
+        throw error
+      }
+    },
+    [mode, libraryIds, setLibraryIds, setBrowserIds],
+  )
+
+  const status: MyLibraryStatus = mode === 'account' ? (current?.status ?? 'loading') : mode === 'browser' ? 'ready' : 'inactive'
   const value = useMemo<MyLibraryValue>(
     () => ({
-      status: current?.status ?? 'inactive',
+      mode,
+      status,
       accountId,
       regions: current?.regions ?? null,
-      libraryIds: current?.libraryIds ?? [],
-      maxLibraries: current?.max ?? DEFAULT_MAX,
+      libraryIds,
+      maxLibraries,
       retry,
       saveRegions,
+      addLibrary,
+      removeLibrary,
       setLibraryIds,
     }),
-    [current, accountId, retry, saveRegions, setLibraryIds],
+    [mode, status, current, accountId, libraryIds, maxLibraries, retry, saveRegions, addLibrary, removeLibrary, setLibraryIds],
   )
   return <MyLibraryContext value={value}>{children}</MyLibraryContext>
 }

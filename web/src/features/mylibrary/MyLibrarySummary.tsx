@@ -6,15 +6,29 @@ import panel from '../search/ScopeSummary.module.css'
 import { useMyLibrary } from './MyLibraryContext'
 
 /**
- * S1 "내 도서관" after login (cycle 06 flow S1): what the "내 도서관" switch searches. It sits behind a "내 도서관 관리"
- * button on the switch line and opens as a short list (user request 2026-10-05; a line under the search field before).
- * [관리] is the only way to S10 [확정].
+ * S1 "내 도서관" (cycle 06 flow S1): what the "내 도서관" switch searches. It sits behind a "내 도서관 관리" button on the
+ * switch line and opens as a short list (user request 2026-10-05; a line under the search field before). [관리] is the
+ * only way to S10 [확정]. Since cycle 07 the same before login (this browser's regions and libraries); with neither,
+ * the button says "내 도서관 설정" and opens S10 at once [확정] (cycle 07 flow S1).
  */
 export function MyLibrarySummary() {
   const myLibrary = useMyLibrary()
   const { regions } = useRegions()
   const tree = useRegionTree()
   const labels = useRegionLabels(tree.data)
+
+  if (
+    myLibrary.mode === 'browser' &&
+    regions.residence.length === 0 &&
+    regions.work.length === 0 &&
+    myLibrary.libraryIds.length === 0
+  ) {
+    return (
+      <Link to="/my-libraries" className={panel.trigger}>
+        내 도서관 설정
+      </Link>
+    )
+  }
 
   const manage = (
     <Link to="/my-libraries" className={panel.action}>

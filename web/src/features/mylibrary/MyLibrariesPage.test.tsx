@@ -167,7 +167,7 @@ describe('S10 name search', () => {
     const box = screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' })
 
     await user.type(box, '서울 도서관')
-    expect(screen.getByRole('button', { name: '서울도서관 전자도서관 이미 있음' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '서울도서관 전자도서관 직접 추가함' })).toBeTruthy()
 
     await user.clear(box)
     await user.type(box, '마포'.normalize('NFD'))
@@ -175,17 +175,34 @@ describe('S10 name search', () => {
 
     await user.clear(box)
     await user.type(box, '없는이름')
-    expect(screen.getByText('이름이 맞는 도서관이 없어요')).toBeTruthy()
+    expect(screen.getByText('찾는 도서관이 없어요')).toBeTruthy()
   })
 
-  it('libraries from the regions and open to anyone can be added; only added ones are 이미 있음', async () => {
+  it('starts from two characters, names starting with them first, then in 가나다 order (cycle 07)', async () => {
+    await ready()
+    const user = userEvent.setup()
+    const box = screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' })
+
+    await user.type(box, '서')
+    expect(screen.queryByRole('button', { name: /추가$/ })).toBeNull()
+    expect(screen.queryByText('찾는 도서관이 없어요')).toBeNull()
+
+    await user.clear(box)
+    await user.type(box, '전자')
+    const names = within(section('직접 도서관 추가'))
+      .getAllByRole('listitem')
+      .map((item) => item.textContent!.replace(/(추가|직접 추가함)$/, ''))
+    expect(names).toEqual(['고흥군립도서관 전자도서관', '마포구립 전자도서관', '부산시립 전자도서관', '서울도서관 전자도서관'])
+  })
+
+  it('libraries from the regions and open to anyone can be added; only added ones are 직접 추가함', async () => {
     await ready()
     const user = userEvent.setup()
     const box = screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' })
 
     await user.type(box, '전자도서관')
 
-    expect((screen.getByRole('button', { name: '서울도서관 전자도서관 이미 있음' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: '서울도서관 전자도서관 직접 추가함' }) as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByRole('button', { name: '마포구립 전자도서관 추가' }) as HTMLButtonElement).disabled).toBe(false)
     expect((screen.getByRole('button', { name: '고흥군립도서관 전자도서관 추가' }) as HTMLButtonElement).disabled).toBe(false)
   })
@@ -246,14 +263,50 @@ describe('S10 saves each press at once', () => {
   })
 })
 
-describe('S10 address', () => {
-  it('before login goes to S1', async () => {
+/** Cycle 07 (ADR-0057, AC-18): before login the same screen, saved in this browser only. */
+describe('S10 before login', () => {
+  beforeEach(() => {
     fake.signedIn = false
-    renderPage()
-
-    expect(await screen.findByText('S1')).toBeTruthy()
   })
 
+  it('opens and keeps the added libraries in this browser, never on the server', async () => {
+    await ready()
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '마포')
+    await user.click(screen.getByRole('button', { name: '마포구립 전자도서관 추가' }))
+
+    expect(within(section('직접 추가한 도서관')).getByText('1/20')).toBeTruthy()
+    expect(JSON.parse(localStorage.getItem('chaekcheck.chosenLibraries.v1')!)).toEqual([15])
+    await user.click(screen.getByRole('button', { name: '마포구립 전자도서관 빼기' }))
+    expect(JSON.parse(localStorage.getItem('chaekcheck.chosenLibraries.v1')!)).toEqual([])
+    expect(fake.calls.filter((call) => call.includes('/api/v1/me/'))).toEqual([])
+  })
+
+  it('stops at 20', async () => {
+    localStorage.setItem('chaekcheck.chosenLibraries.v1', JSON.stringify([...Array(20).keys()].map((n) => 100 + n)))
+    await ready()
+    await userEvent.setup().type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '마포')
+
+    expect((screen.getByRole('button', { name: '마포구립 전자도서관 추가' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getAllByText('직접 추가는 20곳까지예요. 하나를 빼면 추가할 수 있어요').length).toBeGreaterThan(0)
+  })
+
+  it('says so when the browser will not store it', async () => {
+    await ready()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'QuotaExceededError')
+    })
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '마포')
+    await user.click(screen.getByRole('button', { name: '마포구립 전자도서관 추가' }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe('이 브라우저에 저장하지 못했어요')
+    expect(within(section('직접 추가한 도서관')).getByText('0/20')).toBeTruthy()
+    setItem.mockRestore()
+  })
+})
+
+describe('S10 address', () => {
   it('says 불러오는 중 while the login is checked', () => {
     renderPage()
 

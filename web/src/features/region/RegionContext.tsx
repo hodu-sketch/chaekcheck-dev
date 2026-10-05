@@ -14,7 +14,10 @@ export type RegionSource = 'waiting' | 'browser' | 'account'
 
 interface RegionContextValue {
   regions: StoredRegions
-  /** Libraries the signed-in account added by hand, sent with every search after login (cycle 06, AC-6). */
+  /**
+   * Libraries added by hand, sent with every search: the account's after login (cycle 06, AC-6), this browser's
+   * before (cycle 07, AC-18).
+   */
   libraryIds: number[]
   source: RegionSource
   /** False while ids are being checked (at startup, after reading the server's); searches wait so they do not hit a 422. */
@@ -134,8 +137,9 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     return outcome.changed
   }, [source])
 
+  // the account's after login, this browser's before (cycle 07, ADR-0057): sent with every search either way
   const libraryIds = useMemo(
-    () => (source === 'account' && myLibrary?.status === 'ready' ? myLibrary.libraryIds : []),
+    () => (source !== 'waiting' && myLibrary?.status === 'ready' ? myLibrary.libraryIds : []),
     [source, myLibrary?.status, myLibrary?.libraryIds],
   )
   // between a new source or server value and the effect that loads it, the old regions must not be searched with

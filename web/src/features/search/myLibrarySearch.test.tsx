@@ -227,19 +227,35 @@ describe('the switch after login', () => {
   })
 })
 
-describe('before login (AC-14)', () => {
-  it('keeps the cycle 05 line, switch and request', async () => {
+describe('before login (AC-14, cycle 07 flow S1)', () => {
+  it('keeps the switch and request; the regions sit behind "내 도서관 관리"', async () => {
     fake.signedIn = false
     localStorage.setItem('chaekcheck.regions.v1', JSON.stringify({ residence: [1114], work: [] }))
     renderSearch('/search?title=사랑&view=books&scope=joinable')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(switchItem('가입 가능한 곳').getAttribute('aria-checked')).toBe('true')
-    expect(screen.queryByText('내 도서관')).toBeNull()
-    expect(screen.getByText('내 지역')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /내 도서관 관리/ })).toBeTruthy()
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
+  })
+
+  it('sends the libraries this browser added with both switch values (AC-18)', async () => {
+    fake.signedIn = false
+    localStorage.setItem('chaekcheck.chosenLibraries.v1', JSON.stringify([281, 300]))
+    renderSearch('/search?title=사랑&view=books')
+
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    expect(lastBooks().searchParams.get('libraryIds')).toBe('281,300')
+  })
+
+  it('without regions or added libraries the button is "내 도서관 설정" and goes to S10', async () => {
+    fake.signedIn = false
+    renderSearch('/search?title=사랑&view=books')
+
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    expect(screen.getByRole('link', { name: '내 도서관 설정' }).getAttribute('href')).toBe('/my-libraries')
   })
 })
 

@@ -9,6 +9,7 @@ import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
 import { hasRegions } from '../region/regionStorage'
 import { RegionSummary } from '../region/RegionSummary'
+import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { MyLibrarySummary } from '../mylibrary/MyLibrarySummary'
 import { BookList } from './BookList'
 import { DirectResults } from './DirectResults'
@@ -46,6 +47,8 @@ export function SearchPage() {
 
   const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
   const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
+  // "내 도서관 관리" before login too (cycle 07 flow S1); only screens without the provider (tests) keep "내 지역"
+  const myLibrary = useOptionalMyLibrary()
   const [modalOpen, setModalOpen] = useState(false)
   // direct search: where the "N곳" button goes (user requests 2026-10-05): phones at the right end of the
   // "상세검색 · 설정" line, wider screens at the right end of the scope controls' row
@@ -82,7 +85,7 @@ export function SearchPage() {
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
-      // after login sent with both switch values (AC-6); empty before login
+      // sent with both switch values: the account's after login (AC-6), this browser's before (cycle 07, AC-18)
       libraryIds: libraryKey ? libraryKey.split(',').map(Number) : [],
       page: 1,
     }
@@ -132,7 +135,7 @@ export function SearchPage() {
   )
   const visitToggle = <VisitToggle visit={visit} onChange={changeVisit} />
   // in the settings panel a plain way on: S10 after login, S2 before (the summary pop-up is for wider screens)
-  const phoneMine = mine ? (
+  const phoneMine = myLibrary ? (
     <Link to="/my-libraries" className={scopeStyles.trigger}>
       내 도서관 관리
     </Link>
@@ -195,7 +198,7 @@ export function SearchPage() {
             <div className={styles.toggles}>
               {scopeSwitch}
               {visitToggle}
-              {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
+              {myLibrary ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
             </div>
             {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
           </div>

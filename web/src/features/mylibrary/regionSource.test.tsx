@@ -65,6 +65,17 @@ function fakeServer(fake: Fake) {
       return json(200, fake.serverRegions)
     }
     if (url === '/api/v1/me/libraries') return json(200, { libraryIds: [], max: 20 })
+    // cycle 07: the browser's libraries go to the account in one go; the public list gives their names
+    if (url === '/api/v1/me/library-imports' && method === 'POST') {
+      const sent = (JSON.parse(init!.body as string) as { libraryIds: number[] }).libraryIds
+      return json(200, { libraryIds: sent.filter((id) => id !== 999), max: 20 })
+    }
+    if (url === '/api/v1/libraries') {
+      return json(200, {
+        libraries: [{ id: 281, name: '강동대학교 (북큐브)', eligibility: 'UNSURVEYED', matchedBy: [], visitRequired: false,
+          cautioned: false, eligibilitySummary: null, joinSurvey: 'MEMBERS_ONLY', homepageUrl: null, logoUrl: null }],
+      })
+    }
     throw new Error(`unexpected ${method} ${url}`)
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -210,7 +221,7 @@ describe('S11 (AC-3)', () => {
     fake.signedIn = true
     browserValue(...browser)
     renderApp()
-    return screen.findByRole('dialog', { name: '이 브라우저에 고른 지역이 있어요. 계정에 저장할까요?' })
+    return screen.findByRole('dialog', { name: '이 브라우저에 저장된 것을 계정에 저장할까요?' })
   }
 
   it('계정에 저장 sends the resolved regions and remembers the answer', async () => {
@@ -231,6 +242,25 @@ describe('S11 (AC-3)', () => {
     await waitFor(() => expect(text('regions')).toBe('{"residence":[1114,1102],"work":[]}'))
     // this browser's own value is left as it was
     expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!)).toEqual({ residence: [1114, 9001], work: [9002] })
+  })
+
+  it('moves the libraries this browser added too, and says which could not be saved (cycle 07, AC-19)', async () => {
+    fake.signedIn = true
+    browserValue([], [])
+    localStorage.setItem('chaekcheck.chosenLibraries.v1', JSON.stringify([281, 999]))
+    renderApp()
+    const dialog = await screen.findByRole('dialog', { name: '이 브라우저에 저장된 것을 계정에 저장할까요?' })
+    await waitFor(() => expect(dialog.textContent).toContain('직접 넣은 도서관 2곳: 강동대학교 (북큐브), …'))
+    expect(dialog.textContent).not.toContain('거주')
+
+    await userEvent.setup().click(screen.getByRole('button', { name: '계정에 저장' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(fake.calls.find((call) => call.url === '/api/v1/me/library-imports')?.body).toEqual({ libraryIds: [281, 999] })
+    expect(fake.calls.filter((call) => call.method === 'PUT')).toEqual([])
+    expect(screen.getByRole('status').textContent).toContain('지금 쓸 수 없는 도서관 1곳은 빼고 저장했어요')
+    // this browser's own value is left as it was
+    expect(JSON.parse(localStorage.getItem('chaekcheck.chosenLibraries.v1')!)).toEqual([281, 999])
   })
 
   it('저장하지 않기 sends nothing and remembers the answer', async () => {

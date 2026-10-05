@@ -55,14 +55,8 @@ function App() {
                     </LoginOnly>
                   }
                 />
-                <Route
-                  path="/my-libraries"
-                  element={
-                    <LoginOnly>
-                      <MyLibrariesPage />
-                    </LoginOnly>
-                  }
-                />
+                {/* open before login and with login off too (cycle 07, spec R3-6): saved in this browser then */}
+                <Route path="/my-libraries" element={<MyLibrariesPage />} />
                 <Route
                   path="/signup"
                   element={

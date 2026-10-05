@@ -162,3 +162,9 @@
     animation: none;
   }
 }
+
+/* cycle 07: the libraries this browser added */
+.libraries {
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+}
