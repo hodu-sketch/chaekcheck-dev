@@ -1,12 +1,12 @@
 /*
- * A flat rounded card; three columns on desktop, the status column carries the meaning color. The book takes half
- * the card; the library and the counts share the other half (user request 2026-10-05). The status column has a fixed
+ * A flat rounded card; three columns on desktop, the status column carries the meaning color. The book takes 40% of
+ * the card; the library and the counts share the other 60% (user requests 2026-10-05). The status column has a fixed
  * width (the widest counts box, "보유 1000 대출 중 0 예약 0") so the library column (and its left rule) lines up across
  * rows with and without counts. A long title wraps inside its half.
  */
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 50%) minmax(0, 1fr) 9.25rem;
+  grid-template-columns: minmax(0, 40%) minmax(0, 1fr) 9.25rem;
   align-items: center;
   gap: 1rem;
   /* a card inside the white results panel (user request 2026-10-05) */
@@ -398,13 +398,12 @@
 }
 
 /*
- * Tablet (641 to 1024px): the book in the left half, the library and the counts under it in the right half, with
- * the rule between the halves (user request 2026-10-05: the book about half the card from 768px up). Phones keep
- * their own layout below.
+ * Tablet (641 to 1024px): the book in the left 40%, the library and the counts under it in the right 60%, with
+ * the rule between them (user requests 2026-10-05). Phones keep their own layout below.
  */
 @media (640px < width <= 1024px) {
   .row {
-    grid-template-columns: minmax(0, 50%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
     align-items: start;
     gap: 0.6rem 1rem;
   }
