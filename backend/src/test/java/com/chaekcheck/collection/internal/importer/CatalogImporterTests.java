@@ -325,6 +325,21 @@ class CatalogImporterTests {
 		assertThat(CollectedCatalog.sameSite("https://other.test", null)).isFalse();
 	}
 
+	/** Detail URLs follow the service address: listed http on one port → the redirected https on another. */
+	@Test
+	void detailUrlsMoveOntoTheServiceOrigin() {
+		String origin = CollectedCatalog.originOf("https://elib.gangdong.ac.kr:446");
+		assertThat(origin).isEqualTo("https://elib.gangdong.ac.kr:446");
+		assertThat(CollectedCatalog.onOrigin("http://elib.gangdong.ac.kr:9090/elibrary-front/content/contentView.ink?brcd=1&a=b",
+				origin)).isEqualTo("https://elib.gangdong.ac.kr:446/elibrary-front/content/contentView.ink?brcd=1&a=b");
+		assertThat(CollectedCatalog.onOrigin("http://elib.gangdong.ac.kr/FxLibrary/product/view/?num=H0001462",
+				CollectedCatalog.originOf("https://elib.gangdong.ac.kr/FxLibrary")))
+			.isEqualTo("https://elib.gangdong.ac.kr/FxLibrary/product/view/?num=H0001462");
+		// already on the origin: unchanged
+		assertThat(CollectedCatalog.onOrigin("https://kyobo.test:446/x?y=1", "https://kyobo.test:446"))
+			.isEqualTo("https://kyobo.test:446/x?y=1");
+	}
+
 	private static void kind(PreparedStatement p, long library, String key, String title, String publishedOn,
 			String publishedRaw, String contentKind, String contentType, String detailUrl, String author)
 			throws Exception {

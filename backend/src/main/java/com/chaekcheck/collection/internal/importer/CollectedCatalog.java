@@ -49,9 +49,10 @@ final class CollectedCatalog implements AutoCloseable {
 	/**
 	 * A collection library whose rows are imported under its service id.
 	 * @param host lower-case host of the base URL; detail URLs must be on it
+	 * @param origin scheme, host and port of the service base URL; detail URLs are moved onto it
 	 */
-	record Library(long serviceId, long collectionId, String platformType, String host, Instant collectedAt,
-			boolean placeholderDates) {
+	record Library(long serviceId, long collectionId, String platformType, String host, String origin,
+			Instant collectedAt, boolean placeholderDates) {
 
 		boolean candidate() {
 			return collectionId >= FIRST_CANDIDATE_ID;
@@ -137,7 +138,7 @@ final class CollectedCatalog implements AutoCloseable {
 					report.librariesWithoutFullSuccess++;
 				}
 				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),
-						instant(collected), placeholderDateLibraries.contains(collectionId));
+						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId));
 				imported.put(collectionId, library);
 				if (library.candidate()) {
 					report.candidateLibraries++;
@@ -189,7 +190,8 @@ final class CollectedCatalog implements AutoCloseable {
 							report.placeholderDatesCleared++;
 						}
 					}
-					sink.accept(new Row(library, rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(7),
+					sink.accept(new Row(library, rs.getString(2), onOrigin(rs.getString(3), library.origin()),
+							rs.getString(4), rs.getString(7),
 							rs.getString(8), share(shared, rs.getString(9)), publishedRaw, publishedOn,
 							share(shared, rs.getString(12)), rs.getString(13), instant(rs.getString(14))));
 				}
@@ -233,7 +235,6 @@ final class CollectedCatalog implements AutoCloseable {
 		return value == null ? null : shared.computeIfAbsent(value, v -> v);
 	}
 
-	/** Host name in lower case, the port left out (the host throttle works on host names, ADR-0022). */
 	/**
 	 * Whether the collected base URL is the service library's site: same host and path, any scheme and port. The
 	 * service keeps the address a site redirects to (docs/library-maintenance.md 4-7: often http to https on another
@@ -263,6 +264,38 @@ final class CollectedCatalog implements AutoCloseable {
 		return path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
 	}
 
+	/**
+	 * The detail URL on the service library's origin: the collected one may be the listed http address that the site
+	 * now redirects to https on another port (2026-10-05, 강동대학교 북큐브). The host is the same (checked before);
+	 * path and query stay. Unchanged when the URL cannot be read.
+	 */
+	static String onOrigin(String detailUrl, String origin) {
+		try {
+			URI uri = URI.create(detailUrl.strip());
+			String rest = uri.getRawPath() == null ? "" : uri.getRawPath();
+			if (uri.getRawQuery() != null) {
+				rest += "?" + uri.getRawQuery();
+			}
+			return origin == null ? detailUrl : origin + rest;
+		}
+		catch (IllegalArgumentException ex) {
+			return detailUrl;
+		}
+	}
+
+	/** {@code scheme://host[:port]} of a URL; null when it cannot be read. */
+	static String originOf(String url) {
+		try {
+			URI uri = URI.create(url);
+			return uri.getScheme() == null || uri.getRawAuthority() == null ? null
+					: uri.getScheme() + "://" + uri.getRawAuthority();
+		}
+		catch (IllegalArgumentException ex) {
+			return null;
+		}
+	}
+
+	/** Host name in lower case, the port left out (the host throttle works on host names, ADR-0022). */
 	static String hostOf(String url) {
 		try {
 			String host = URI.create(url).getHost();
