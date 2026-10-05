@@ -22,11 +22,12 @@ export function LibraryScopeToggle({ scope, hasRegions, mine = false, onChange }
       className={styles.scope}
       aria-label="조회할 도서관"
     >
-      <ToggleGroup.Item value="all" className={styles.item}>
-        전체 도서관
-      </ToggleGroup.Item>
+      {/* the joinable side first: it is the default now (user request 2026-10-05) */}
       <ToggleGroup.Item value="joinable" className={styles.item}>
         {joinableLabel(hasRegions, mine)}
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="all" className={styles.item}>
+        전체 도서관
       </ToggleGroup.Item>
     </ToggleGroup.Root>
   )

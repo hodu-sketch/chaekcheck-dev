@@ -36,6 +36,8 @@ type Props = {
   settingsMarked?: boolean
   /** Phones: the sort, at the right end of the "상세검색 · 설정" line (user request 2026-10-05). */
   lineEnd?: ReactNode
+  /** A changed 완전 일치 or author role, to keep in this browser (user request 2026-10-05). */
+  onOptionsChange?: (options: Pick<BookSearchInput, 'exact' | 'roles'>) => void
 }
 
 /**
@@ -54,11 +56,13 @@ export function SearchForm({
   settingsScopeValue,
   settingsMarked,
   lineEnd,
+  onOptionsChange,
 }: Props) {
   const id = useId()
   const [input, setInput] = useState<BookSearchInput>(initial)
-  const [expanded, setExpanded] = useState(
-    () => Boolean(initial.author || initial.publisher || initial.exact.length || initial.roles.length),
+  // before a search the checks may come from this browser's last choice: they alone do not open 상세검색
+  const [expanded, setExpanded] = useState(() =>
+    Boolean(initial.author || initial.publisher || (hasResults && (initial.exact.length || initial.roles.length))),
   )
   const [problems, setProblems] = useState<Problems>(() => addressProblems(initial))
   const direct = settings.direct
@@ -88,6 +92,7 @@ export function SearchForm({
   // with results a changed option searches again right away [안]; before a search nothing is sent [안]
   const setOption = (next: BookSearchInput) => {
     setInput(next)
+    onOptionsChange?.({ exact: next.exact, roles: next.roles })
     if (hasResults) trySearch(next)
   }
 

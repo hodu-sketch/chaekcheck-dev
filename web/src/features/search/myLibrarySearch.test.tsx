@@ -210,15 +210,18 @@ describe('the switch after login', () => {
     expect(lastBooks().searchParams.has('scope')).toBe(false)
   })
 
-  it('empty 내 도서관: starts on 전체; 내 도서관 is joinable without libraryIds (AC-7)', async () => {
+  it('empty 내 도서관: starts on 내 도서관 too; it is joinable without libraryIds (AC-7)', async () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
     await openMyLibrary()
     await screen.findByText(/내 도서관이 비어 있어요/)
     await userEvent.setup().keyboard('{Escape}')
-    expect(switchItem('전체 도서관').getAttribute('aria-checked')).toBe('true')
+    // the joinable side is the default even when 내 도서관 is empty (user request 2026-10-05; 전체 before)
+    expect(switchItem('내 도서관').getAttribute('aria-checked')).toBe('true')
 
+    await userEvent.setup().click(switchItem('전체 도서관'))
+    await waitFor(() => expect(lastBooks().searchParams.has('scope')).toBe(false))
     await userEvent.setup().click(switchItem('내 도서관'))
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
@@ -248,6 +251,50 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(lastBooks().searchParams.get('libraryIds')).toBe('281,300')
+  })
+
+  it('starts on the joinable side, drawn first, and keeps a changed switch in this browser (user request 2026-10-05)', async () => {
+    fake.signedIn = false
+    const first = renderSearch('/search?title=사랑&view=books')
+
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    const radios = screen.getAllByRole('radio')
+    expect(radios.map((radio) => radio.textContent)).toEqual(['누구나 가입', '전체 도서관'])
+    expect(switchItem('누구나 가입').getAttribute('aria-checked')).toBe('true')
+    expect(lastBooks().searchParams.get('scope')).toBe('joinable')
+
+    await userEvent.setup().click(switchItem('전체 도서관'))
+    await waitFor(() => expect(lastBooks().searchParams.has('scope')).toBe(false))
+    first.unmount()
+
+    // a new visit without scope in the address: the stored 전체
+    renderSearch('/search?title=사랑&view=books')
+    await waitFor(() => expect(switchItem('전체 도서관').getAttribute('aria-checked')).toBe('true'))
+    cleanup()
+
+    // the address wins over the stored choice
+    renderSearch('/search?title=사랑&view=books&scope=joinable')
+    await waitFor(() => expect(switchItem('누구나 가입').getAttribute('aria-checked')).toBe('true'))
+  })
+
+  it('keeps 방문 없이 가입 for the next visit; the address still wins (user request 2026-10-05)', async () => {
+    fake.signedIn = false
+    const first = renderSearch('/search?title=사랑&view=books')
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    await userEvent.setup().click(screen.getByRole('button', { name: /방문 없이 가입/ }))
+    await waitFor(() => expect(lastBooks().searchParams.get('visit')).toBe('none'))
+    first.unmount()
+
+    fake.books = []
+    renderSearch('/search?title=사랑&view=books')
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    expect(lastBooks().searchParams.get('visit')).toBe('none')
+    cleanup()
+
+    fake.books = []
+    renderSearch('/search?title=사랑&view=books&visit=any')
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    expect(lastBooks().searchParams.has('visit')).toBe(false)
   })
 
   it('without regions or added libraries the button is "내 도서관 설정" and goes to S10', async () => {

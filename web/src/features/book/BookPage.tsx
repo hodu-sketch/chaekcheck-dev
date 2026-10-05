@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
-import type { BookDetail, ResultFilter, VisitFilter } from '../../api/types'
+import type { BookDetail, ResultFilter } from '../../api/types'
 import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
 import { useLibraryScope } from '../search/useLibraryScope'
+import { loadPrefs, readVisit, savePrefs } from '../search/searchSettings'
 import { collectedRange, holdingBatchViews } from '../search/holdingView'
 import { ResultList } from '../search/ResultList'
 import { useHoldings } from '../search/useHoldings'
@@ -28,9 +29,11 @@ export function BookPage() {
 function BookView({ bookId }: { bookId: string }) {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const filter = readFilter(params)
+  // what the address leaves out comes from this browser's last choice (user request 2026-10-05)
+  const [prefs] = useState(() => loadPrefs())
+  const filter = readFilter(params, prefs.filter)
   const { scope } = useLibraryScope(params)
-  const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
+  const visit = readVisit(params, prefs.visit)
   const { regions, libraryIds, ready } = useRegions()
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
@@ -121,6 +124,7 @@ function BookView({ bookId }: { bookId: string }) {
   const range = collectedRange(dates[0] ?? null, dates.at(-1) ?? null)
   const loadingBatch = holdings.state.batches.at(-1)
   const changeFilter = (next: ResultFilter) => {
+    savePrefs({ filter: next })
     setParams(writeFilter(next, new URLSearchParams(params)), { replace: true })
   }
 

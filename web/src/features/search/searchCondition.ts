@@ -40,16 +40,17 @@ export const EMPTY_INPUT: BookSearchInput = { title: '', author: '', publisher: 
 
 /**
  * Reads every condition of the address (ADR-0033). `q` is not read (ADR-0025). Null means the start screen (no
- * field filled). Unknown values in `exact`, `roles` and `sort` are dropped.
+ * field filled). Unknown values in `exact`, `roles` and `sort` are dropped. Without `sort` the order kept in this
+ * browser is used (`fallbackSort`, user request 2026-10-05).
  */
-export function readBookSearch(params: URLSearchParams): BookSearchInput | null {
+export function readBookSearch(params: URLSearchParams, fallbackSort: BookSort = 'default'): BookSearchInput | null {
   const input: BookSearchInput = {
     title: params.get('title') ?? '',
     author: params.get('author') ?? '',
     publisher: params.get('publisher') ?? '',
     exact: listOf(params.get('exact'), SEARCH_FIELDS),
     roles: listOf(params.get('roles'), BOOK_ROLES),
-    sort: (SORTS as readonly string[]).includes(params.get('sort') ?? '') ? (params.get('sort') as BookSort) : 'default',
+    sort: (SORTS as readonly string[]).includes(params.get('sort') ?? '') ? (params.get('sort') as BookSort) : fallbackSort,
   }
   return filledFields(input).length === 0 ? null : input
 }

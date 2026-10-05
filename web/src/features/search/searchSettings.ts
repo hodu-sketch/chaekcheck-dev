@@ -1,6 +1,9 @@
+import type { BookRole, BookSort, LibraryScope, ResultFilter, SearchField, VisitFilter } from '../../api/types'
+
 /**
  * S4 settings (flow.md): how results are shown and whether to search the library sites directly. Kept in this browser
- * and in the address [확정]; these two values are the only thing stored, never the search itself [확정].
+ * and in the address [확정]. The search texts are never stored [확정]; the search preferences below are (user request
+ * 2026-10-05).
  */
 export type ViewMode = 'instant' | 'books'
 
@@ -91,5 +94,79 @@ export function writeSettings(settings: SearchSettings, into: URLSearchParams): 
   else into.delete('view')
   if (settings.direct) into.set('direct', 'on')
   else into.delete('direct')
+  return into
+}
+
+/**
+ * Search preferences kept in this browser so they need not be set again every visit (user request 2026-10-05): the
+ * scope before login, 방문 없이 가입, the result filter, the sort, and the 상세검색 checks (완전 일치 per field and the
+ * author roles). Same key as the settings. The address still wins when it has a value; these only fill what it leaves
+ * out. The search texts themselves are never stored.
+ */
+export interface SearchPrefs {
+  /** The switch before login (after login it is `myScope`). Default: the joinable side (user request 2026-10-05). */
+  guestScope: LibraryScope
+  visit: VisitFilter
+  filter: ResultFilter
+  sort: BookSort
+  /** Prefill of the 상세검색 checks on a new search; a search in the address uses its own. */
+  exact: SearchField[]
+  roles: BookRole[]
+}
+
+export const DEFAULT_PREFS: SearchPrefs = {
+  guestScope: 'joinable',
+  visit: 'any',
+  filter: 'available',
+  sort: 'default',
+  exact: [],
+  roles: [],
+}
+
+const FIELDS: readonly SearchField[] = ['title', 'author', 'publisher']
+const ROLES: readonly BookRole[] = ['translator', 'illustrator', 'editor']
+const SORT_VALUES: readonly BookSort[] = ['default', 'newest', 'oldest']
+
+/** Stored preferences; each unknown or missing value falls back to its default, and so does blocked storage. */
+export function loadPrefs(storage?: Storage): SearchPrefs {
+  try {
+    const stored = readStored(storage ?? localStorage)
+    const list = <T extends string>(value: unknown, allowed: readonly T[]): T[] =>
+      Array.isArray(value) ? allowed.filter((item) => value.includes(item)) : []
+    return {
+      guestScope: stored.guestScope === 'all' ? 'all' : 'joinable',
+      visit: stored.visit === 'none' ? 'none' : 'any',
+      filter: stored.filter === 'all' ? 'all' : 'available',
+      sort: (SORT_VALUES as readonly unknown[]).includes(stored.sort) ? (stored.sort as BookSort) : 'default',
+      exact: list(stored.exact, FIELDS),
+      roles: list(stored.roles, ROLES),
+    }
+  } catch {
+    return DEFAULT_PREFS
+  }
+}
+
+/** Keeps the given preferences, leaving the other stored values as they are. */
+export function savePrefs(prefs: Partial<SearchPrefs>, storage?: Storage): void {
+  try {
+    const target = storage ?? localStorage
+    target.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...readStored(target), ...prefs }))
+  } catch {
+    // storage blocked: the choice still works for this visit through the address
+  }
+}
+
+/** 방문 없이 가입: `visit=none` / `visit=any` in the address wins; otherwise the stored choice. */
+export function readVisit(params: URLSearchParams, fallback: VisitFilter = 'any'): VisitFilter {
+  const value = params.get('visit')
+  return value === 'none' ? 'none' : value === 'any' ? 'any' : fallback
+}
+
+/**
+ * Sets `visit=none` when on, else removes it. A change is also stored, so a missing value then reads the same choice.
+ */
+export function writeVisit(visit: VisitFilter, into: URLSearchParams): URLSearchParams {
+  if (visit === 'none') into.set('visit', 'none')
+  else into.delete('visit')
   return into
 }

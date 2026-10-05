@@ -19,8 +19,13 @@ import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSear
 import { SearchForm } from './SearchForm'
 import { joinableLabel, useLibraryScope } from './useLibraryScope'
 import {
+  loadPrefs,
   loadSettings,
+  readVisit,
   resolveSettings,
+  savePrefs,
+  writeVisit,
+  type SearchPrefs,
   saveSettings,
   writeSettings,
   type SearchSettings,
@@ -41,9 +46,15 @@ export function SearchPage() {
   const navigate = useNavigate()
   const [stored, setStored] = useState<SearchSettings>(() => loadSettings())
   const settings = resolveSettings(params, stored)
-  const input = readBookSearch(params)
-  const filter = readFilter(params)
-  const visit: VisitFilter = params.get('visit') === 'none' ? 'none' : 'any'
+  // what is kept in this browser fills only what the address leaves out (user request 2026-10-05)
+  const [prefs, setPrefs] = useState<SearchPrefs>(() => loadPrefs())
+  const input = readBookSearch(params, prefs.sort)
+  const filter = readFilter(params, prefs.filter)
+  const visit = readVisit(params, prefs.visit)
+  const keepPrefs = (next: Partial<SearchPrefs>) => {
+    savePrefs(next)
+    setPrefs((current) => ({ ...current, ...next }))
+  }
 
   const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
   const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
@@ -100,8 +111,9 @@ export function SearchPage() {
     const address = new URLSearchParams()
     writeFilter(filter, address)
     if (addressScope) address.set('scope', addressScope)
-    if (visit === 'none') address.set('visit', 'none')
+    writeVisit(visit, address)
     writeBookSearch(next, address)
+    keepPrefs({ exact: next.exact, roles: next.roles })
     writeSettings(settings, address)
     navigate(`/search?${address}`)
   }
@@ -118,8 +130,14 @@ export function SearchPage() {
     setStored(effective)
     setParams(writeSettings(effective, new URLSearchParams(params)), { replace: true })
   }
-  const changeSort = (sort: BookSort) => replaceParam('sort', sort === 'default' ? null : sort)
-  const changeFilter = (next: ResultFilter) => setParams(writeFilter(next, new URLSearchParams(params)), { replace: true })
+  const changeSort = (sort: BookSort) => {
+    keepPrefs({ sort })
+    replaceParam('sort', sort === 'default' ? null : sort)
+  }
+  const changeFilter = (next: ResultFilter) => {
+    keepPrefs({ filter: next })
+    setParams(writeFilter(next, new URLSearchParams(params)), { replace: true })
+  }
   // the empty result's button: only the address changes, the stored setting stays [안]
   const goDirect = () => replaceParam('direct', 'on')
   const onInvalidRegion = useCallback(() => resolveStoredRegions(), [resolveStoredRegions])
@@ -127,9 +145,12 @@ export function SearchPage() {
   const bookLinkSearch = new URLSearchParams()
   writeFilter(filter, bookLinkSearch)
   if (addressScope) bookLinkSearch.set('scope', addressScope)
-  if (visit === 'none') bookLinkSearch.set('visit', 'none')
+  writeVisit(visit, bookLinkSearch)
 
-  const changeVisit = (next: VisitFilter) => replaceParam('visit', next === 'none' ? 'none' : null)
+  const changeVisit = (next: VisitFilter) => {
+    keepPrefs({ visit: next })
+    replaceParam('visit', next === 'none' ? 'none' : null)
+  }
   const scopeSwitch = (
     <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
   )
@@ -144,9 +165,8 @@ export function SearchPage() {
       {hasRegions(regions) ? '내 지역 변경' : '내 지역 설정'}
     </button>
   )
-  // the dot on the settings button: not the default scope (내 도서관 when there is one after login, else 전체)
-  const defaultScope = mine && (hasRegions(regions) || libraryIds.length > 0) ? 'joinable' : 'all'
-  const scopeChanged = scope !== defaultScope || visit === 'none'
+  // the dot on the settings button: not the default scope (the joinable side, user request 2026-10-05)
+  const scopeChanged = scope !== 'joinable' || visit === 'none'
   const scopeValue = [scope === 'all' ? '전체 도서관' : joinableLabel(hasRegions(regions), mine), visit === 'none' && '방문 없이']
     .filter(Boolean)
     .join(' · ')
@@ -168,11 +188,12 @@ export function SearchPage() {
         )}
         <SearchForm
           key={params.toString()}
-          initial={input ?? EMPTY_INPUT}
+          initial={input ?? { ...EMPTY_INPUT, exact: prefs.exact, roles: prefs.roles, sort: prefs.sort }}
           settings={settings}
           hasResults={hasSearch}
           onSearch={search}
           onSettingsChange={changeSettings}
+          onOptionsChange={keepPrefs}
           settingsScope={
             phone ? (
               <>
