@@ -18,6 +18,12 @@
       "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend\\gradlew.bat",
       "runtimeArgs": ["-p", "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend", "bootRun"],
       "port": 8080
+    },
+    {
+      "name": "backend-no-login",
+      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend\\gradlew.bat",
+      "runtimeArgs": ["-p", "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend", "bootRun", "--args=--chaekcheck.auth.enabled=false"],
+      "port": 8080
     }
   ]
 }

@@ -2,6 +2,11 @@
 # One e-library site = one library row. base_url is the site root the adapter appends its path to (origin for
 # KYOBO/YES24/subscription/Gangnam sites, ".../elib" for portals), the final address after redirects.
 # platform_type names carry a generation number (user decision 2026-09-28).
+# join_survey: how far the join rules were researched (cycle 07, ADR-0053). MEMBERS_ONLY and NOT_SURVEYED libraries
+# are planned only when the user added them; their join_method may be NULL (no join research).
+# lending_model: lending kind of a KYOBO subscription-screen institution (from the KYOBO institution probe); NULL
+# keeps the platform's own rule. OWNED shows counts instead of "구독형 · 바로 대출" (ADR-0056).
+# Before the first deployment (PRE_DEPLOYMENT) the cycle 07 changeset library-007 was folded in here (step 17).
 # eligibility_rule.scope_region_id holds a region module id only: no foreign key across modules.
 # CHECK constraints and UNIQUE NULLS NOT DISTINCT are not available in Liquibase OSS YAML, so they use sql changes.
 databaseChangeLog:
@@ -26,12 +31,12 @@ databaseChangeLog:
                 platform_type text
                   CONSTRAINT library_platform_type_check CHECK (platform_type IN
                     ('KYOBO_V1', 'KYOBO_SUBSCRIPTION_V1', 'YES24_V1', 'YES24_V2', 'YES24_V3', 'ELIB_PORTAL_V1',
-                     'GANGNAM_V1')),
+                     'GANGNAM_V1', 'BOOKCUBE_FX', 'ALADIN_V1')),
                 base_url text CONSTRAINT library_base_url_key UNIQUE,
                 eligibility_summary text,
                 extra_condition_text text,
                 visit_required boolean NOT NULL DEFAULT false,
-                join_method text NOT NULL,
+                join_method text,
                 join_url text,
                 join_caution text,
                 join_notice text,
@@ -40,12 +45,19 @@ databaseChangeLog:
                 holdings_counted_on date,
                 deferred boolean NOT NULL DEFAULT false,
                 enabled boolean NOT NULL DEFAULT true,
+                join_survey text NOT NULL DEFAULT 'SURVEYED'
+                  CONSTRAINT library_join_survey_check CHECK (join_survey IN
+                    ('SURVEYED', 'NOT_FOUND', 'MEMBERS_ONLY', 'NOT_SURVEYED')),
+                lending_model text
+                  CONSTRAINT library_lending_model_check CHECK (lending_model IN
+                    ('OWNED', 'SUBSCRIPTION', 'MIXED', 'RENTAL')),
                 created_at timestamp with time zone NOT NULL DEFAULT now(),
                 updated_at timestamp with time zone NOT NULL DEFAULT now(),
                 CONSTRAINT library_ebook_site_check CHECK (
                   library_type <> 'EBOOK' OR (platform_type IS NOT NULL AND base_url IS NOT NULL)),
                 CONSTRAINT library_holdings_counted_check CHECK (
-                  (holdings_count IS NULL) = (holdings_counted_on IS NULL))
+                  (holdings_count IS NULL) = (holdings_counted_on IS NULL)),
+                CONSTRAINT library_join_method_check CHECK (join_survey <> 'SURVEYED' OR join_method IS NOT NULL)
               )
 
   - changeSet:

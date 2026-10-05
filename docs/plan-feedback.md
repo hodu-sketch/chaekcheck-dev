@@ -1788,6 +1788,29 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 사용자 요청으로 바뀐 화면(16단계 중): 결과 카드와 S10에서 로고를 도서관 이름 **위 줄**에, 로고가 없으면 **아무것도 안 그림**(handoff AC-20 "빈 상자"를 바꿈). 그래서 로고 없는 도서관은 로고로 홈페이지를 열 수 없음(카드에는 "홈페이지 (새 창)" 링크가 따로 있음).
 - 저자·출판사 줄의 "완전 일치"를 같은 열로(PC·태블릿). 1024 결과 화면에서 옮긴이/그림/엮은이가 저자 칸 아래로 내려감.
 
+## 17단계: 배포 전 Liquibase 합치기 (2026-10-05)
+
+- 대조(C8): 등록 도서관 seed(278곳, 사본에 있는 번호)와 사본 `library`의 같은 번호를 비교 → **이름·화면 종류·주소 다른 곳 0**. 옛 파일에만 있는 곳 2(59 대구학생전자도서관(대여), 131 전남광주 서구 통합도서관(구독)): 둘 다 이미 꺼져 있음, 첫 화면 한 번 열기 → 둘 다 302 → `main.ink`(열림). 그대로 둠. 새 파일에만 있는 곳 = 후보 2,394곳(넣음). 비교 도구 `data/cycle07/compare_registered.py`(git 밖), 결과 `data/cycle07/step17-compare.tsv`.
+- 사본에서 전체 수집이 안 된 등록 도서관 4곳(44 국회, 135 전북교육청, 261 군포 YES24, 269 김천): 서비스 검색은 44·261·269 됨, 135만 서버 오류.
+- `enabled = false` 제안 3곳 → **사용자 승인(2026-10-05): 셋 다 끔**. 135 전라북도교육청통합도서관, 2198 성균관대학교 (YES24), 2194 장안대학교 (YES24). `library/010-library-disabled.yaml`.
+- 합친 방법: 스키마만 바꾸는 사이클 07 changeset을 모듈의 첫 파일로 접음. `library/007` → `library/001`(join_survey, lending_model, join_method NULL 허용, 화면 종류 둘), `catalog/002`·`003` → `catalog/001`(book.library_ids와 GIN 색인, catalog_import 표·snapshot.import_id 없앰), `collection/003` → `collection/001`(책 번호 셈 칸). seed 파일(`library/002`~`006`, `008`, `009`, `collection/002`)은 그대로. 지운 파일 4개.
+- 로컬 `db`·`db-test`를 지우고 다시 적용(모듈 스키마와 Liquibase 표). 개발 DB의 로그인 계정도 같이 지워짐.
+- `PRE_DEPLOYMENT`는 남겨 둠.
+- 합친 뒤 전체 빌드(`./gradlew clean build`, db-test에 새로 적용) 통과.
+- 다시 가져오기(같은 사본, 2026-10-05 20:38~21:15, 36분 43초): 읽음 22,051,238, 뺌 1,667,356, 책 1,617,445, 사람 1,812,646, 소장 20,383,882. 등록 275 + 후보 2,391. 시간: 읽기 6분 57초, 국가서지 6분 45초, **쓰기 22분 43초**(책 번호 잇기 때문에 임시 표를 거쳐서 늘어남). 책 번호: 빈 DB라 kept 0, new 1,617,445, dropped 0(예상대로).
+- AC-12: 도서관 번호·이름·짝은 seed에서 그대로(합치기는 seed 파일을 건드리지 않음). 소장 수가 첫 가져오기(20,482,495)와 다른 까닭은 아래 둘과 끈 3곳뿐:
+  - 상세 주소를 https 최종 주소로 옮겨 써서 248곳이 정상으로 들어옴(이전에도 들어왔음, 수는 같음).
+  - **알려진 빈틈**: 도서관 411(수집 `http://ebook2.ezville.net/FxLibrary`)은 리다이렉트로 **다른 호스트** `https://gsenc.bookcube.biz/FxLibrary`로 옮겨, 가져오기의 같은 사이트 확인(호스트·경로)에 걸려 소장 64,461줄이 빠짐(`library_base_url_mismatch` 1곳). 호스트까지 바뀐 경우를 어떻게 이어 줄지(수집 쪽 주소 갱신 / 짝 표에 수집 주소 기록) plan에서 정해 주세요.
+- 책 번호 이어짐을 실데이터로 보는 2회차 가져오기는 사용자 결정으로 뺌("빼고 바로 올려"). 다음 가져오기 때 로그의 `book ids: kept/new/dropped`로 확인.
+
+## 공개 시험: 로그인 없는 모드 + Cloudflare 빠른 터널 (사용자 요청, 2026-10-05)
+
+- 구성: 백엔드 `--chaekcheck.auth.enabled=false`(`.claude/launch.json` `backend-no-login`) → nginx(Docker, `deploy/nginx/tunnel-test.conf`, 포트 8088, 요청 제한 포함, web/dist) → `cloudflared tunnel --url http://localhost:8088`(빠른 터널, 계정 없음, `*.trycloudflare.com` 임시 주소).
+- cloudflared: winget이 없어 Cloudflare 공식 GitHub 배포 `cloudflared-windows-amd64.exe` 2026.9.3을 `data/tools/`(git 밖)에 받음(사용자 승인, 서명 "Cloudflare, Inc." 유효).
+- `tunnel-test.conf`: `real_ip_header CF-Connecting-IP`, 로컬·사설 주소만 믿음. 확인: nginx 로그에 실제 접속 IP가 찍힘(모두가 한 IP로 보이지 않음). README의 `real_ip` TODO를 이 시험에서만 푼 것이고 운영 설정은 배포 때 정함.
+- 로그인 없는 모드라 화면에 로그인·약관·처리방침 링크가 없음.
+- https: 인증서는 Cloudflare 쪽(Google Trust Services, `trycloudflare.com`) 정상. 페이지는 CSP가 `self`만 허용해 http 자원이 섞이지 않음. `http://`로 들어오면 nginx가 `X-Forwarded-Proto: http`를 보고 https로 301(사용자 요청 "경고 안뜨게"). HSTS 1년도 nginx 설정에 있음.
+
 ## 16단계 중 고친 것 (2026-10-05)
 
 - 알라딘 3곳이 직접 찾기에서 늘 실패(AC-24 확인 중 발견): 서정대·대구공업대는 목록에 수가 아예 없고, 김해대는 대출·예약 수가 빔. adapter가 수를 필수로 읽어 도서관 전체가 오류였음. 이제 없는 수는 비우고 그 줄은 `UNKNOWN`("확인 필요"). "대출하기" 단추만으로 대출 가능이라 하지 않음(대출 중인 책 화면을 아직 못 봄) [확인 필요]. 25곳 모두 결과가 나옴. dev `library-maintenance.md` 12절.

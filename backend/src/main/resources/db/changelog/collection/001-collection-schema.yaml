@@ -31,6 +31,8 @@ databaseChangeLog:
       changes:
         # The columns of the old catalog.catalog_import, plus the library counts and the skipped rows by reason
         # (AC-11). skipped_by_reason: {"library_not_in_service": 123, ...}
+        # Book ids (plan catalog-refresh.md 5.2, 2026-10-05): kept from the previous import, new, and old ids no book
+        # has now. Folded in from collection-003 before the first deployment (step 17).
         - sql:
             sql: >-
               CREATE TABLE collection.catalog_import (
@@ -46,5 +48,11 @@ databaseChangeLog:
                   CONSTRAINT catalog_import_registered_library_count_check CHECK (registered_library_count >= 0),
                 candidate_library_count integer NOT NULL
                   CONSTRAINT catalog_import_candidate_library_count_check CHECK (candidate_library_count >= 0),
-                skipped_by_reason jsonb NOT NULL
+                skipped_by_reason jsonb NOT NULL,
+                kept_book_id_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT catalog_import_kept_book_id_count_check CHECK (kept_book_id_count >= 0),
+                new_book_id_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT catalog_import_new_book_id_count_check CHECK (new_book_id_count >= 0),
+                dropped_book_id_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT catalog_import_dropped_book_id_count_check CHECK (dropped_book_id_count >= 0)
               )

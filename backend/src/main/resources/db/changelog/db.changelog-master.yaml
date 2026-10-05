@@ -39,11 +39,8 @@ databaseChangeLog:
   - include:
       file: mylibrary/001-mylibrary-schema.yaml
       relativeToChangelogFile: true
-  # cycle 07 (plan handoff step 2): library/007 -> library/008 -> collection/001 -> collection/002 -> catalog/002,
-  # then catalog/003 and library/009
-  - include:
-      file: library/007-library-candidates-schema.yaml
-      relativeToChangelogFile: true
+  # cycle 07: candidate libraries and their links, logos, libraries turned off. The cycle's schema changes were folded
+  # into library/001, catalog/001 and collection/001 before the first deployment (step 17).
   - include:
       file: library/008-library-seed-candidates.yaml
       relativeToChangelogFile: true
@@ -54,15 +51,8 @@ databaseChangeLog:
       file: collection/002-collection-seed-candidates.yaml
       relativeToChangelogFile: true
   - include:
-      file: catalog/002-book-library-ids.yaml
-      relativeToChangelogFile: true
-  - include:
-      file: catalog/003-drop-catalog-import.yaml
-      relativeToChangelogFile: true
-  - include:
       file: library/009-library-logos.yaml
       relativeToChangelogFile: true
-  # book ids carry over between imports (user request 2026-10-05)
   - include:
-      file: collection/003-catalog-import-book-ids.yaml
+      file: library/010-library-disabled.yaml
       relativeToChangelogFile: true
