@@ -112,9 +112,11 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       </div>
 
       <div className={styles.library}>
-        <p className={styles.libraryName}>
-          {/* the logo before the name opens the library's main page (cycle 07, ADR-0059) */}
+        {/* the logo on its own line above the name (user request 2026-10-05); it opens the library's main page */}
+        <div className={styles.logoLine}>
           <LibraryLogo name={libraryName} logoUrl={library?.logoUrl} homepageUrl={library?.homepageUrl} size={20} />
+        </div>
+        <p className={styles.libraryName}>
           {/* the library name opens the join details on every width (user requests 2026-10-05; U-12 before) */}
           <Popover.Root>
             <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>

@@ -18,24 +18,23 @@ function ownLogo(url: string | null | undefined): string | undefined {
 }
 
 /**
- * A library's own logo before its name (cycle 07, ADR-0059). No logo, or one that fails to load, shows an empty box
- * of the same height. Clicking opens the library's main page in a new tab; on a result card it sits above the card
+ * A library's own logo above its name (cycle 07, ADR-0059). No logo, or one that fails to load, shows nothing at all
+ * (user request 2026-10-05: no empty box). Clicking opens the library's main page in a new tab; on a result card it sits above the card
  * link, so it never opens the book.
  */
 export function LibraryLogo({ name, logoUrl, homepageUrl, size }: Props) {
   const [failed, setFailed] = useState(false)
   const src = failed ? undefined : ownLogo(logoUrl)
   const href = safeHttpUrl(homepageUrl)
-  const picture = src ? (
+  if (!src) return null
+  const picture = (
     <img className={styles.logo} src={src} alt={name} height={size} style={{ height: size }} onError={() => setFailed(true)} />
-  ) : (
-    <span className={styles.empty} style={{ width: size, height: size }} aria-hidden={href ? undefined : true} />
   )
   if (!href) return <span className={styles.wrap}>{picture}</span>
   return (
     <a className={`${styles.wrap} ${styles.link}`} href={href} target="_blank" rel="noopener noreferrer">
       {picture}
-      <span className="visually-hidden">{src ? '' : name} 홈페이지 (새 창)</span>
+      <span className="visually-hidden"> 홈페이지 (새 창)</span>
     </a>
   )
 }

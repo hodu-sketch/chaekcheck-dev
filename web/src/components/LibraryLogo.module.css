@@ -1,4 +1,4 @@
-/* A library's logo or an empty box before its name (cycle 07, ADR-0059) */
+/* A library's logo above its name (cycle 07, ADR-0059); no logo shows nothing */
 .wrap {
   display: inline-flex;
   flex: none;
@@ -24,13 +24,6 @@
   /* wide logos stay readable but do not push the name away */
   max-width: 6.5rem;
   object-fit: contain;
-}
-
-.empty {
-  display: block;
-  border: 1px solid var(--rule-strong);
-  border-radius: 4px;
-  background: transparent;
 }
 
 /* phones: a wide logo would squeeze the name into five-letter lines (checked 2026-10-05 at 375px) */

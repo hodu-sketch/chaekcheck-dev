@@ -522,3 +522,14 @@
   font-weight: 700;
   color: var(--ink);
 }
+
+/* the library's logo above its name (user request 2026-10-05) */
+.logoLine {
+  display: flex;
+  margin-bottom: 0.3rem;
+}
+
+/* no logo (or it failed to load): no line, no gap */
+.logoLine:empty {
+  display: none;
+}

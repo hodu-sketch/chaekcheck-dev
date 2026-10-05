@@ -84,7 +84,7 @@ export interface TargetLibrary {
   chosen: boolean
   /** Cycle 07: how far the join rules were researched (SURVEYED for registered libraries). */
   joinSurvey: JoinSurvey
-  /** Cycle 07 (ADR-0059): the library's own logo (`/library-logos/…`), or null: show the empty box. */
+  /** Cycle 07 (ADR-0059): the library's own logo (`/library-logos/…`), or null: show no logo. */
   logoUrl: string | null
 }
 
