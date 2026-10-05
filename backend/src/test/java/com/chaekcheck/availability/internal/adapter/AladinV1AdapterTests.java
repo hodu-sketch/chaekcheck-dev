@@ -54,6 +54,26 @@ class AladinV1AdapterTests {
 			.isEqualTo("https://uc.aladinebook.co.kr/sub/sub.htm?mode=view&nav_code=ebo1655356114&goods_id=353793204");
 	}
 
+	/** Sites seen 2026-10-05 that leave counts out: the rows stay, with no counts, so they are UNKNOWN. */
+	@Test
+	void rowsWithoutCounts() {
+		// 서정대학교: only a "대출하기" button per row
+		ParsedPage none = adapter.parse(bytes("aladin-v1/search-no-counts.html"), null);
+		assertThat(none.items()).hasSize(20).allSatisfy(item -> {
+			assertThat(item.title()).isNotBlank();
+			assertThat(item.holdings()).isNull();
+			assertThat(item.loaned()).isNull();
+			assertThat(item.reservations()).isNull();
+			assertThat(item.detailPath()).isNotNull();
+		});
+		// 김해대학교: holdings shown, loan and reservation numbers empty
+		ParsedPage empty = adapter.parse(bytes("aladin-v1/search-empty-counts.html"), null);
+		assertThat(empty.items()).hasSize(9).allSatisfy(item -> {
+			assertThat(item.holdings()).isEqualTo(1);
+			assertThat(item.loaned()).isNull();
+		});
+	}
+
 	@Test
 	void detailCountsWithOrWithoutTheRunningTotal() { // AC-8
 		assertThat(adapter.parseDetail(bytes("aladin-v1/view.html"), null)).isEqualTo(ParsedDetail.counted(2, 0, 0));

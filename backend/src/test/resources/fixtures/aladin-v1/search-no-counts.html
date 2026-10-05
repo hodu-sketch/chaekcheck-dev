@@ -1,0 +1,1081 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="ko">
+<head>
+<!-- html_head -->
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>검색결과 &lt; 전자책 &lt; 서정대학교</title>
+<meta name="keywords" content="서정대학교">
+<meta name="description" content="검색결과 - 전자책 - 서정대학교">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1 user-scalable=no">
+
+<link rel="stylesheet" type="text/css" href="../data/css/common.css">
+<link rel="stylesheet" type="text/css" href="../data/css/content.php">
+
+<link rel="stylesheet" href="../assets/css/normalize.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css"/>
+<link rel="stylesheet" href="../assets/css/style.css" />
+
+<script type="text/javascript" src="../data/js/code.jquery.com_jquery-3.7.0.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+<script type="text/javascript" src="../data/js/common.js"></script>
+<script type="text/javascript" src="../data/js/main.js"></script>
+<script>
+$(document).ready(function(){	
+	let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); 
+	let isIOSMobile = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;       
+	let mobileGo = "";
+	let pcGo = "";
+	let go = "";
+	let serviceType = "S";
+	let osType = "PC";
+	let diviceType = "";
+
+	if (isMobile == true)
+	{
+		if (isIOSMobile == true ) 	//아이폰 혹은 아이패드의 모바일 보기 일 때
+		{
+			//alert("모바일 IOS");
+		} else
+		{
+			//alert("안드로이드");
+		}
+	} else
+	{
+		if (isIOSMobile == true ) 	//아이패드 사파리 기본 보기
+		{
+			//alert("아이패드");
+		} else
+		{
+			//alert("PC");
+		}
+	}
+	/*if ((isMobile == true) && (isIOSMobile == true )) 	//아이패드 일 때
+	{
+		alert("아이패드");
+	} else if ((isMobile == true) && (isIOsMobile == false))
+	{
+		alert("안드로이드");
+	} else
+	{
+		alert("PC");
+	}*/
+});
+</script>
+<!-- //html_head -->
+</head>
+<body>
+	<div id="loadingLayer" class="loading-layer on">
+		<div>
+			<span></span>
+			<span></span>
+			<span></span>
+		</div>
+	</div>
+
+	<div id="wrap" class="sbg">
+		<!-- header -->
+		<header class="header">
+	<div id="headerTop" class="header-top">
+		<div class="wrapper container2">
+					<h1 id="header_logo" class="logo"><a href="../main/main.htm" title="홈으로 이동" ><img src="../data/staticObj/logo.gif" alt="서정대학교 로고" /></a></h1>
+			<div id="headerTopCenter" class="header-top-center">
+				<form id="searchBookInput" class="book-search-box" name="SearchForm" method="get" action="../sub/sub.htm" onsubmit="return topSearch(this);">
+					<span>
+						<input type="hidden" name="nav_code" id="nav_code" value="ebo1655356114">
+						<input type="hidden" name="code" id="code" value="search">
+						<input type="hidden" name="search_item" id="search_item" value="title">
+						<input type="hidden" name="view_level" value="1">
+						
+						<input type="text" name="search_order" id="search_order" value="사랑" placeholder="검색어를 입력하세요.">
+						<input type="image" src="../assets/img/search-icon.svg" title="검색" alt="검색" class="searchbtn" />
+					</span>
+				</form>
+			</div>
+			<div id="headerTopRight" class="header-top-right">
+				<span id="headerBtnGroup" class="header-btn-group">
+
+																
+						<a href="../sub/sub.htm?nav_code=ala1397194189" class="login-btn" title="로그인 페이지로 이동합니다." onclick="setCurrentUrl(this, true); return false;">
+							<img src="../assets/img/login.svg" alt="서정대학교 로그인" />
+						</a>
+						<a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.');location.href='../sub/sub.htm?nav_code=ala1397194189'; return false;">
+							<img src="../assets/img/my-lib.svg" alt="서정대학교 내서재" />
+						</a>
+									</span>
+			</div>
+		</div>
+	</div>
+	<div id="headerBottom" class="header-bottom">
+		<div class="wrapper container2">
+			<nav>
+				<ul>
+					<li><a href="../sub/sub.htm?nav_code=ebo1655356114&view_level=1&scroll=0" title="전자책 목록 더보기">전자책</a></li>
+					<li><a href="../sub/sub.htm?nav_code=ebo1655356114&code=best&view_level=1&scroll=0" title="월간베스트 더보기">대출 베스트</a></li>
+					<li><a href="../sub/sub.htm?nav_code=ebo1655356114&code=new&view_level=1&scroll=0" title="추천도서 더보기">새로 나온 책</a></li>
+					<li><a href="../sub/sub.htm?nav_code=ebo1655356114&code=recommend&view_level=1&scroll=0" title="추천도서 더보기">추천도서</a></li>
+									</ul>
+			</nav>
+			<div id="headerBottomRight" class="header-bottom-right">
+				<span id="headerBlankSpace" class="blank-space"></span>
+				<span id="categorySpace" class="category-space">
+					<button>
+						<img id="categoryBtn" src="../assets/img/hamburger.svg" alt="서정대학교 햄버거 버튼" />
+					</button>
+					<div id="categoryList" class="category-list">
+						<h4><span>카테고리</span></h4>
+						<ul>
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																												<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A1&view_level=1" title="문학 카테고리 페이지로 이동합니다.">
+									문학(562)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A2&view_level=1" title="에세이/산문 카테고리 페이지로 이동합니다.">
+									에세이/산문(524)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A3&view_level=1" title="장르문학 카테고리 페이지로 이동합니다.">
+									장르문학(275)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A4&view_level=1" title="인문 카테고리 페이지로 이동합니다.">
+									인문(409)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A5&view_level=1" title="역사 카테고리 페이지로 이동합니다.">
+									역사(109)
+									</a>
+								</li>
+																																											<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A7&view_level=1" title="사회 카테고리 페이지로 이동합니다.">
+									사회(143)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A8&view_level=1" title="경제/비즈니스 카테고리 페이지로 이동합니다.">
+									경제/비즈니스(405)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=A9&view_level=1" title="자연/과학 카테고리 페이지로 이동합니다.">
+									자연/과학(117)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=AA&view_level=1" title="컴퓨터/인터넷 카테고리 페이지로 이동합니다.">
+									컴퓨터/인터넷(152)
+									</a>
+								</li>
+																																																									<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=AD&view_level=1" title="외국어 카테고리 페이지로 이동합니다.">
+									외국어(141)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=AE&view_level=1" title="수험서/자격증 카테고리 페이지로 이동합니다.">
+									수험서/자격증(28)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=AF&view_level=1" title="취미/여행 카테고리 페이지로 이동합니다.">
+									취미/여행(135)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=AG&view_level=1" title="문화/예술 카테고리 페이지로 이동합니다.">
+									문화/예술(106)
+									</a>
+								</li>
+																													<li class="category-item">
+									<a href="../sub/sub.htm?nav_code=ebo1655356114&code=category&view_cate=AH&view_level=1" title="가정/생활 카테고리 페이지로 이동합니다.">
+									가정/생활(114)
+									</a>
+								</li>
+																											</ul>
+					</div>
+				</span>
+			</div>
+		</div>
+	</div>
+</header>
+
+<script>
+	function setCurrentUrl(target, loginPage){
+		sessionStorage.setItem('currentUrl', location.href);
+		if(loginPage) sessionStorage.setItem('loginPage', true);
+		else removeLoginPageMark();
+		location.href = target.href;
+	}
+	
+	function removeLoginPageMark(){
+		sessionStorage.removeItem('loginPage');
+	}
+	
+	const curUrl = sessionStorage.getItem('currentUrl');
+	if(curUrl && !document.querySelector('form[name="Login_Frm"]')){
+		if(!sessionStorage.getItem('failedLogin')){
+			if(!sessionStorage.getItem('loginPage')){
+				sessionStorage.removeItem('currentUrl');
+				removeLoginPageMark();
+				location.href = curUrl;
+			}
+		}
+	}
+	
+</script>		<!-- //header -->
+		<!-- container -->
+		<div>
+			<!-- content -->
+			<div class="wrapper sub-wrapper">
+				<header class="sub-header container2">
+					<ul>
+						<li class="home"><a href="../main/main.htm" title="홈으로 이동">홈</a></li>
+						<li><a href='../sub/sub.htm?nav_code=ebo1655356114&view_level=1' title='전자책 페이지로 이동'>전자책</a></li><li class="end"><a href='../sub/sub.htm?nav_code=ebo1655356114&code=search&search_item=title&search_order=사랑' title='검색결과 페이지로 이동'>검색결과</a></li>					</ul>
+				</header>
+				<div id="body_content" class="body-content">
+
+					<script language="javascript" type="text/javascript">
+<!--
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+
+function MM_reloadPage(init) {  //reloads the window if Nav4 resized
+  if (init==true) with (navigator) {if ((appName=="Netscape")&&(parseInt(appVersion)==4)) {
+    document.MM_pgW=innerWidth; document.MM_pgH=innerHeight; onresize=MM_reloadPage; }}
+  else if (innerWidth!=document.MM_pgW || innerHeight!=document.MM_pgH) location.reload();
+}
+MM_reloadPage(true);
+
+function MM_showHideLayers() { //v6.0
+  var i,p,v,obj,args=MM_showHideLayers.arguments;
+  for (i=0; i<(args.length-2); i+=3) if ((obj=MM_findObj(args[i]))!=null) { v=args[i+2];
+    if (obj.style) { obj=obj.style; v=(v=='show')?'visible':(v=='hide')?'hidden':v; }
+    obj.visibility=v; }
+}
+
+// 정렬 방식
+function orderChange(obj){
+var d = document.itemForm;
+	d.page.value="";
+	d.orderOPT.value = obj;
+	d.submit();
+}
+
+//자동으로 다음 텍스트 박스로 포커스를 이동시킨다.
+function js_next_focus(obj,sLength,sNext)
+{
+	if (obj.value.length == sLength)
+	{
+		document.getElementsByName(sNext)[0].focus()
+	}
+}
+
+//-->
+</script>
+<SCRIPT language=javascript src="../data/embed.js"></script>
+<script language="javascript">
+<!--
+
+var statusmsg="" //상태바 메세지 안보이기
+function hidestatus(){
+window.status=statusmsg
+return true
+}
+
+//텍스트박스 리사이즈
+function textarea_resize( formname, size ) {
+	if( size=='reset' ){
+		formname.rows = 10;
+	}else{
+		var value = formname.rows + size;
+		if(value>11) formname.rows = value;
+		else return;
+	}
+}
+//-->
+</script>
+
+<script>
+function view(what) { 
+var imgwin = window.open("",'WIN','scrollbars=no,status=no,toolbar=no,resizable=1,location=no,menu=no,width=10,height=10'); 
+imgwin.focus(); 
+imgwin.document.open(); 
+imgwin.document.write("<html>\n"); 
+imgwin.document.write("<head>\n"); 
+imgwin.document.write("<sc"+"ript>\n"); 
+imgwin.document.write("function closeWin(){\n");
+imgwin.document.write("window.close();\n");
+imgwin.document.write("}\n");
+imgwin.document.write("function resize() {\n"); 
+imgwin.document.write("pic = document.il;\n"); 
+//imgwin.document.write("alert(eval(pic).height);\n"); 
+imgwin.document.write("if (eval(pic).height) { var name = navigator.appName\n"); 
+imgwin.document.write("  if (name == 'Microsoft Internet Explorer') { myHeight = eval(pic).height + 40; myWidth = eval(pic).width + 12;\n"); 
+imgwin.document.write("  } else { myHeight = eval(pic).height + 9; myWidth = eval(pic).width; }\n"); 
+imgwin.document.write("  clearTimeout();\n"); 
+imgwin.document.write("  var height = screen.height;\n"); 
+imgwin.document.write("  var width = screen.width;\n"); 
+imgwin.document.write("  var leftpos = width / 2 - myWidth / 2;\n"); 
+imgwin.document.write("  var toppos = height / 2 - myHeight / 2; \n"); 
+imgwin.document.write("  self.moveTo(leftpos, toppos);\n"); 
+imgwin.document.write("  self.resizeTo(myWidth, myHeight);\n"); 
+imgwin.document.write("}else setTimeOut(resize(), 100);}\n"); 
+imgwin.document.write("</sc"+"ript>\n"); 
+imgwin.document.write("</head>\n"); 
+imgwin.document.write('<body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">\n'); 
+imgwin.document.write("<a href='javascript:closeWin()' onfocus='this.blur()' title='이미지를 클릭하시면 창이 닫힙니다.'>\n");
+imgwin.document.write("<img border=0 src="+what+" xwidth=100 xheight=9 name=il onload='resize();'>\n"); 
+imgwin.document.write("</a>\n");
+imgwin.document.write("</body>\n"); 
+imgwin.document.close(); 
+} 
+</script>
+
+<script>
+function print(what) { 
+var imgwin = window.open("",'WIN','scrollbars=no,status=no,toolbar=no,resizable=1,location=no,menu=no,width=10,height=10'); 
+imgwin.focus(); 
+imgwin.document.open(); 
+imgwin.document.write("<html>\n"); 
+imgwin.document.write("<head>\n"); 
+imgwin.document.write("<sc"+"ript>\n"); 
+imgwin.document.write("function closeWin(){\n");
+imgwin.document.write("window.close();\n");
+imgwin.document.write("}\n");
+imgwin.document.write("function resize() {\n"); 
+imgwin.document.write("pic = document.il;\n"); 
+//imgwin.document.write("alert(eval(pic).height);\n"); 
+imgwin.document.write("if (eval(pic).height) { var name = navigator.appName\n"); 
+imgwin.document.write("  if (name == 'Microsoft Internet Explorer') { myHeight = eval(pic).height + 40; myWidth = eval(pic).width + 12;\n"); 
+imgwin.document.write("  } else { myHeight = eval(pic).height + 9; myWidth = eval(pic).width; }\n"); 
+imgwin.document.write("  clearTimeout();\n"); 
+imgwin.document.write("  var height = screen.height;\n"); 
+imgwin.document.write("  var width = screen.width;\n"); 
+imgwin.document.write("  var leftpos = width / 2 - myWidth / 2;\n"); 
+imgwin.document.write("  var toppos = height / 2 - myHeight / 2; \n"); 
+imgwin.document.write("  self.moveTo(leftpos, toppos);\n"); 
+imgwin.document.write("  self.resizeTo(myWidth, myHeight);\n"); 
+imgwin.document.write("}else setTimeOut(resize(), 100);}\n"); 
+imgwin.document.write("</sc"+"ript>\n"); 
+imgwin.document.write("</head>\n"); 
+imgwin.document.write('<body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF" onload="print();">\n'); 
+imgwin.document.write("<a href='javascript:closeWin()' onfocus='this.blur()' title='이미지를 클릭하시면 창이 닫힙니다.'>\n");
+imgwin.document.write("<img border=0 src="+what+" xwidth=100 xheight=9 name=il onload='resize();'>\n"); 
+imgwin.document.write("</a>\n");
+imgwin.document.write("</body>\n"); 
+imgwin.document.close(); 
+} 
+</script>
+				  			<div class="container2">
+			<h2 class="search-result-title">검색결과<h2>
+			<p class="search-result-txt">검색어 "<b>사랑</b>"(으)로 검색한 결과 총 <b id="searchResultCnt">0</b> 건입니다. </p>
+		</div>
+		<div class="tabbox tabbox1 container2">
+		<ul class="tab4">
+																																																																																																																																																																																																																																																																																																																																							<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=A1&listScale=&search_item=title&search_order=사랑&view_level=1" title="문학 카테고리 바로가기">
+							문학<em>(36)</em>
+						</a>
+					</li>
+																<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=A2&listScale=&search_item=title&search_order=사랑&view_level=1" title="에세이/산문 카테고리 바로가기">
+							에세이/산문<em>(23)</em>
+						</a>
+					</li>
+																<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=A3&listScale=&search_item=title&search_order=사랑&view_level=1" title="장르문학 카테고리 바로가기">
+							장르문학<em>(2)</em>
+						</a>
+					</li>
+																<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=A4&listScale=&search_item=title&search_order=사랑&view_level=1" title="인문 카테고리 바로가기">
+							인문<em>(4)</em>
+						</a>
+					</li>
+																																					<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=A8&listScale=&search_item=title&search_order=사랑&view_level=1" title="경제/비즈니스 카테고리 바로가기">
+							경제/비즈니스<em>(2)</em>
+						</a>
+					</li>
+																																																										<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=AF&listScale=&search_item=title&search_order=사랑&view_level=1" title="취미/여행 카테고리 바로가기">
+							취미/여행<em>(1)</em>
+						</a>
+					</li>
+																<li>
+						<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=AG&listScale=&search_item=title&search_order=사랑&view_level=1" title="문화/예술 카테고리 바로가기">
+							문화/예술<em>(3)</em>
+						</a>
+					</li>
+																</ul>
+		<div class="clear"></div>
+	</div>
+				  
+
+					<div class="container2">
+		<!-- list -->
+	<div id="sort_tab" class="sortview sort-view">
+		<div>총 <em class="total-list-cnt">71</em> 건의 도서가 있습니다.</div>
+		
+		<div>
+			<div id="orderSelect" class="order-select">
+				<input disabled />
+				<ul>
+					<li class="on"><a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=0&view_cate=&list_scale=20&search_item=title&search_order=사랑&view_level=1" title='최다대출순으로 목록을 정렬합니다.(현재정렬)'>최다대출순</a></li>
+					<li><a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=3&view_cate=&list_scale=20&search_item=title&search_order=사랑&view_level=1" title='최다예약순으로 목록을 정렬합니다.'>최다예약순</a></li>
+					<li><a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=2&view_cate=&list_scale=20&search_item=title&search_order=사랑&view_level=1" title='제목순으로 목록을 정렬합니다.'>제목순</a></li>
+					<li><a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=1&view_cate=&list_scale=20&search_item=title&search_order=사랑&view_level=1" title='출판일순으로 목록을 정렬합니다.'>출판일순</a></li>
+					<li><a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=4&view_cate=&list_scale=20&search_item=title&search_order=사랑&view_level=1" title='대출가능한 도서 목록을 정렬합니다.'>대출가능도서</a></li>
+				</ul>
+			</div>
+			
+			<div class="view_type view-type">
+				<a href="#" title="이미지형 보기 바로가기"><img src="../../assets/img/img-type-on.svg" alt="이미지형 보기 바로가기"></a>
+				<a href="/sub/sub.htm?nav_code=ebo1655356114&code=search&order_list=&view_cate=&search_item=title&search_order=사랑#sort_tab" title="리스트형 보기 바로가기">
+					<img src="../../assets/img/list-type-off.svg" alt="리스트형 보기 바로가기">
+				</a>
+			</div>
+		</div>
+	</div>
+	<div data-id="booklist2" class="booklist2">
+		<ul class="list">
+				<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTExMjkxNDY3NyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=112914677" title="궁극의 걷기 여행 코스 문경새재 : 첫사랑 닮은 숲길 걷기 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/112914677.jpg) no-repeat center center; background-size: cover;" title="궁극의 걷기 여행 코스 문경새재 : 첫사랑 닮은 숲길 걷기 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTExMjkxNDY3NyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=112914677" title="궁극의 걷기 여행 코스 문경새재 : 첫사랑 닮은 숲길 걷기 상세보기">궁극의 걷기 여행 코스 문경새재 : 첫사랑 닮은 숲길 걷기</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">유은영 지음</span>
+					<span class="pub"><span class="bar">|</span> 북탐</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM1MjI1MTE0NyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=352251147" title="너를 미워할 시간에 나를 사랑하기로 했다 - 관계에 휘둘리지 않고 나를 지키는 방법 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/352251147.jpg) no-repeat center center; background-size: cover;" title="너를 미워할 시간에 나를 사랑하기로 했다 - 관계에 휘둘리지 않고 나를 지키는 방법 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM1MjI1MTE0NyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=352251147" title="너를 미워할 시간에 나를 사랑하기로 했다 - 관계에 휘둘리지 않고 나를 지키는 방법 상세보기">너를 미워할 시간에 나를 사랑하기로 했다 - 관계에 휘둘리지 않고 나를 지키는 방법</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">윤서진 지음</span>
+					<span class="pub"><span class="bar">|</span> 스몰빅라이프</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM2MjM2MzUyNCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=362363524" title="당신에게 무해한 사랑을 보내요 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/362363524.jpg) no-repeat center center; background-size: cover;" title="당신에게 무해한 사랑을 보내요 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM2MjM2MzUyNCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=362363524" title="당신에게 무해한 사랑을 보내요 상세보기">당신에게 무해한 사랑을 보내요</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">주또 지음</span>
+					<span class="pub"><span class="bar">|</span> 포레스트 웨일</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+								<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM0MDAyNjA2MyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=340026063" title="미술관을 빌려드립니다 : 북유럽 - 일상의 행복을 사랑한 화가들 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/340026063.jpg) no-repeat center center; background-size: cover;" title="미술관을 빌려드립니다 : 북유럽 - 일상의 행복을 사랑한 화가들 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM0MDAyNjA2MyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=340026063" title="미술관을 빌려드립니다 : 북유럽 - 일상의 행복을 사랑한 화가들 상세보기">미술관을 빌려드립니다 : 북유럽 - 일상의 행복을 사랑한 화가들</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">손봉기 지음</span>
+					<span class="pub"><span class="bar">|</span> 더블북</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM1NTY3NDU1NSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=355674555" title="사랑에 답함 - 나태주의 인.생.사.색 산문집 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/355674555.jpg) no-repeat center center; background-size: cover;" title="사랑에 답함 - 나태주의 인.생.사.색 산문집 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM1NTY3NDU1NSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=355674555" title="사랑에 답함 - 나태주의 인.생.사.색 산문집 상세보기">사랑에 답함 - 나태주의 인.생.사.색 산문집</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">나태주 지음</span>
+					<span class="pub"><span class="bar">|</span> 위더북</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM2NjgzODgyMyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=366838823" title="어느 하루도 그대를 사랑하지 않을 수 없는 날이 없었다 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/366838823.jpg) no-repeat center center; background-size: cover;" title="어느 하루도 그대를 사랑하지 않을 수 없는 날이 없었다 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM2NjgzODgyMyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=366838823" title="어느 하루도 그대를 사랑하지 않을 수 없는 날이 없었다 상세보기">어느 하루도 그대를 사랑하지 않을 수 없는 날이 없었다</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">한승완 지음</span>
+					<span class="pub"><span class="bar">|</span> 지식과감성#</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+								<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM3MzQ4OTcyMiZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=373489722" title="2026트렌드 노트 - 제일 사랑하고 싶은 것은 ‘나’ 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/373489722.jpg) no-repeat center center; background-size: cover;" title="2026트렌드 노트 - 제일 사랑하고 싶은 것은 ‘나’ (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM3MzQ4OTcyMiZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=373489722" title="2026트렌드 노트 - 제일 사랑하고 싶은 것은 ‘나’ 상세보기">2026트렌드 노트 - 제일 사랑하고 싶은 것은 ‘나’</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">박현영 외 지음</span>
+					<span class="pub"><span class="bar">|</span> 북스톤</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxMzUzMjU5NSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=313532595" title="가슴을 열고 심장을 훔치다 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/313532595.jpg) no-repeat center center; background-size: cover;" title="가슴을 열고 심장을 훔치다 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxMzUzMjU5NSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=313532595" title="가슴을 열고 심장을 훔치다 상세보기">가슴을 열고 심장을 훔치다</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">백승운 지음</span>
+					<span class="pub"><span class="bar">|</span> 시사랑음악사랑(시음사)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxMzUzMjU5OCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=313532598" title="가을 닮아가는 당신께 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/313532598.jpg) no-repeat center center; background-size: cover;" title="가을 닮아가는 당신께 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxMzUzMjU5OCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=313532598" title="가을 닮아가는 당신께 상세보기">가을 닮아가는 당신께</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">김연식 지음</span>
+					<span class="pub"><span class="bar">|</span> 시사랑음악사랑(시음사)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+								<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMzMTA4NTIyNSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=331085225" title="계절의 마음 - 대안학교 중학생의 짝사랑 창작 시집 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/331085225.jpg) no-repeat center center; background-size: cover;" title="계절의 마음 - 대안학교 중학생의 짝사랑 창작 시집 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMzMTA4NTIyNSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=331085225" title="계절의 마음 - 대안학교 중학생의 짝사랑 창작 시집 상세보기">계절의 마음 - 대안학교 중학생의 짝사랑 창작 시집</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">김은찬</span>
+					<span class="pub"><span class="bar">|</span> 희록재</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyMDU3NjYxMCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=320576610" title="괜찮아 힘내렴 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/320576610.jpg) no-repeat center center; background-size: cover;" title="괜찮아 힘내렴 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyMDU3NjYxMCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=320576610" title="괜찮아 힘내렴 상세보기">괜찮아 힘내렴</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">박희홍 지음</span>
+					<span class="pub"><span class="bar">|</span> 시사랑음악사랑(시음사)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyMTgyMzgxNSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=321823815" title="굼벵이의 사계 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/321823815.jpg) no-repeat center center; background-size: cover;" title="굼벵이의 사계 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyMTgyMzgxNSZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=321823815" title="굼벵이의 사계 상세보기">굼벵이의 사계</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">유영서 지음</span>
+					<span class="pub"><span class="bar">|</span> 시사랑음악사랑(시음사)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+								<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyODI2ODcxNiZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=328268716" title="그 여자 쓰고 그 남자 받다 - 고상함을 빙자한 사랑의 꼬드김 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/328268716.jpg) no-repeat center center; background-size: cover;" title="그 여자 쓰고 그 남자 받다 - 고상함을 빙자한 사랑의 꼬드김 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyODI2ODcxNiZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=328268716" title="그 여자 쓰고 그 남자 받다 - 고상함을 빙자한 사랑의 꼬드김 상세보기">그 여자 쓰고 그 남자 받다 - 고상함을 빙자한 사랑의 꼬드김</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">김혜진</span>
+					<span class="pub"><span class="bar">|</span> Bud</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM0Mjk0OTY5OCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=342949698" title="나는 가장 슬픈 순간에 사랑을 생각한다 - 행복을 말하기 힘든 삶일지라도 계속 살아갈 이유가 되는 것들 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/342949698.jpg) no-repeat center center; background-size: cover;" title="나는 가장 슬픈 순간에 사랑을 생각한다 - 행복을 말하기 힘든 삶일지라도 계속 살아갈 이유가 되는 것들 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM0Mjk0OTY5OCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=342949698" title="나는 가장 슬픈 순간에 사랑을 생각한다 - 행복을 말하기 힘든 삶일지라도 계속 살아갈 이유가 되는 것들 상세보기">나는 가장 슬픈 순간에 사랑을 생각한다 - 행복을 말하기 힘든 삶일지라도 계속 살아갈 이유가 되는 것들</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">새벽부터 지음</span>
+					<span class="pub"><span class="bar">|</span> 워터베어프레스</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyMjk2MjIxNiZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=322962216" title="나는 너랑 노는 게 제일 좋아 - 아끼고 고맙고 사랑하는 당신에게 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/322962216.jpg) no-repeat center center; background-size: cover;" title="나는 너랑 노는 게 제일 좋아 - 아끼고 고맙고 사랑하는 당신에게 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMyMjk2MjIxNiZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=322962216" title="나는 너랑 노는 게 제일 좋아 - 아끼고 고맙고 사랑하는 당신에게 상세보기">나는 너랑 노는 게 제일 좋아 - 아끼고 고맙고 사랑하는 당신에게</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">하태완 지음</span>
+					<span class="pub"><span class="bar">|</span> 북로망스</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+								<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTM3MzMzNTcwMyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=373335703" title="너는 나의 새벽이었어 - 어느 의사의 마지막 사랑, 숨결처럼 아득한 사랑 이야기 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/373335703.jpg) no-repeat center center; background-size: cover;" title="너는 나의 새벽이었어 - 어느 의사의 마지막 사랑, 숨결처럼 아득한 사랑 이야기 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTM3MzMzNTcwMyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=373335703" title="너는 나의 새벽이었어 - 어느 의사의 마지막 사랑, 숨결처럼 아득한 사랑 이야기 상세보기">너는 나의 새벽이었어 - 어느 의사의 마지막 사랑, 숨결처럼 아득한 사랑 이야기</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">진성림 지음</span>
+					<span class="pub"><span class="bar">|</span> 지식과감성#</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMzMTAwMzA0NCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=331003044" title="노을빛 비치는 삶의 연가 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/331003044.jpg) no-repeat center center; background-size: cover;" title="노을빛 비치는 삶의 연가 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMzMTAwMzA0NCZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=331003044" title="노을빛 비치는 삶의 연가 상세보기">노을빛 비치는 삶의 연가</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">서석노 지음</span>
+					<span class="pub"><span class="bar">|</span> 시사랑음악사랑(시음사)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMzMTAwMzA0NyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=331003047" title="당신의 기차가 지나갑니다 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/331003047.jpg) no-repeat center center; background-size: cover;" title="당신의 기차가 지나갑니다 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMzMTAwMzA0NyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=331003047" title="당신의 기차가 지나갑니다 상세보기">당신의 기차가 지나갑니다</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">주선옥 지음</span>
+					<span class="pub"><span class="bar">|</span> 시사랑음악사랑(시음사)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+								<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxMjg4MzkyNyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=312883927" title="모든 순간이 너였다 - 반짝반짝 빛나던 우리의 밤을, 꿈을, 사랑을 이야기하다, 개정증보판 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/312883927.jpg) no-repeat center center; background-size: cover;" title="모든 순간이 너였다 - 반짝반짝 빛나던 우리의 밤을, 꿈을, 사랑을 이야기하다, 개정증보판 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxMjg4MzkyNyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=312883927" title="모든 순간이 너였다 - 반짝반짝 빛나던 우리의 밤을, 꿈을, 사랑을 이야기하다, 개정증보판 상세보기">모든 순간이 너였다 - 반짝반짝 빛나던 우리의 밤을, 꿈을, 사랑을 이야기하다, 개정증보판</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">하태완 지음</span>
+					<span class="pub"><span class="bar">|</span> 빅피시</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+						<li class="line">
+			<div class="cover thumb2 cover1">
+				<a href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxODE1MTcyMyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=318151723" title="모성 - 죽을 만큼, 죽일 만큼 서로를 사랑했던 엄마와 딸 상세보기">
+																										<div class="book-img1" style="background: #fff url(/data/bookImages/seojeong/318151723.jpg) no-repeat center center; background-size: cover;" title="모성 - 죽을 만큼, 죽일 만큼 서로를 사랑했던 엄마와 딸 (커버이미지)"></div>
+																						</a>
+				 <br><div class="com"><div class="companyALADIN"></div></div>			</div>
+			
+			<div class="info">
+				<h2 class="book_tit">
+					<a class="txt-flow2" href="/sub/sub.htm?mode=view&mv_data=aWR4PTMxODE1MTcyMyZzdGFydFBhZ2U9MCZsaXN0Tm89NzEmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZuYXZfY29kZT1lYm8xNjU1MzU2MTE0JmNvZGU9c2VhcmNoJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||&goods_id=318151723" title="모성 - 죽을 만큼, 죽일 만큼 서로를 사랑했던 엄마와 딸 상세보기">모성 - 죽을 만큼, 죽일 만큼 서로를 사랑했던 엄마와 딸</a>
+				</h2>
+				<h3 class="txt-flow">
+					<span class="writer">미나토 가나에 지음, 김진환 옮김</span>
+					<span class="pub"><span class="bar">|</span> 리드리드출판(한국능률협회)</span>
+				</h3>
+			</div>	
+			<div class="btnarea">
+												<span class="btn_bg blue_v1 btn-bg blue-v1"><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.'); setCurrentUrl(this, true); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a></span>
+							
+			</div>
+		</li>
+									<!-- 반복 빈<TD>생성 -->
+			<li class="noframe">&nbsp;</li>
+		
+				</ul>
+		<div class="clear"></div>
+	</div>
+	<!-- //list -->
+	<!-- page -->
+			<div class="paging-wrapper">
+			<div class="paging paging1">
+				
+<a href='/sub/sub.htm?mv_data=c3RhcnRQYWdlPTAmY29kZT1zZWFyY2gmbmF2X2NvZGU9ZWJvMTY1NTM1NjExNCZ0YWJsZT1jb250ZW50c19tYXN0X3Nlb2plb25nJnNlYXJjaF9pdGVtPXRpdGxlJnNlYXJjaF9vcmRlcj3sgqzrnpEmb3JkZXJfbGlzdD0mbGlzdF9zY2FsZT0mdmlld19sZXZlbD0xJnZpZXdfY2F0ZT0mdmlld19jYXRlMj0=||' title='1 페이지' class='on'>1</a>
+<a href='/sub/sub.htm?mv_data=c3RhcnRQYWdlPTIwJmNvZGU9c2VhcmNoJm5hdl9jb2RlPWVibzE2NTUzNTYxMTQmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZzZWFyY2hfaXRlbT10aXRsZSZzZWFyY2hfb3JkZXI97IKs656RJm9yZGVyX2xpc3Q9Jmxpc3Rfc2NhbGU9JnZpZXdfbGV2ZWw9MSZ2aWV3X2NhdGU9JnZpZXdfY2F0ZTI9||' title='2 페이지'>2</a>
+<a href='/sub/sub.htm?mv_data=c3RhcnRQYWdlPTQwJmNvZGU9c2VhcmNoJm5hdl9jb2RlPWVibzE2NTUzNTYxMTQmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZzZWFyY2hfaXRlbT10aXRsZSZzZWFyY2hfb3JkZXI97IKs656RJm9yZGVyX2xpc3Q9Jmxpc3Rfc2NhbGU9JnZpZXdfbGV2ZWw9MSZ2aWV3X2NhdGU9JnZpZXdfY2F0ZTI9||' title='3 페이지'>3</a>
+<a href='/sub/sub.htm?mv_data=c3RhcnRQYWdlPTYwJmNvZGU9c2VhcmNoJm5hdl9jb2RlPWVibzE2NTUzNTYxMTQmdGFibGU9Y29udGVudHNfbWFzdF9zZW9qZW9uZyZzZWFyY2hfaXRlbT10aXRsZSZzZWFyY2hfb3JkZXI97IKs656RJm9yZGVyX2xpc3Q9Jmxpc3Rfc2NhbGU9JnZpZXdfbGV2ZWw9MSZ2aWV3X2NhdGU9JnZpZXdfY2F0ZTI9||' title='4 페이지'>4</a>
+
+	
+			</div>
+		</div>
+		<!-- //page -->
+</div>
+
+
+<script>
+	const searchResultCntTag = document.querySelector('#searchResultCnt');
+	if(searchResultCntTag) searchResultCntTag.innerHTML = '71';
+	
+	const selectTag = new selectBox('#orderSelect');
+	
+	document.addEventListener('click', function(e){
+		if(!e.target.dataset.input && e.target.id !== 'orderSelect') selectTag.toggleClass(false);
+	});
+	
+	function selectBox (target){
+		const t = this;
+		t.trg = document.querySelector(target);
+		t.input = t.trg.querySelector('input[disabled]');
+		t.hiddenInput = t.trg.querySelector('input[name]');
+		t.value = t.trg.querySelector('li.on') ? t.trg.querySelector('li.on').innerText : '';
+		
+		t.trg.addEventListener('click', function(e){
+			const target = e.target;
+			if(target.id != this.id && !target.dataset.input){
+				t.input.value = target.innerText;
+				if(t.hiddenInput) t.hiddenInput.value = target.dataset.value;
+				t.trg.querySelectorAll('li').forEach(function(li){
+					li.classList.remove('on');
+				});
+				if(target.localName == 'li'){
+					target.classList.add('on');
+				}else{
+					target.closest('li').classList.add('on');
+				}
+			}
+			t.toggleClass();
+		});
+		
+		// init setting
+		t.input.dataset.input = true;
+		t.input.value = t.value;
+		
+		// function
+		t.toggleClass = function(bool){
+			if(bool !== undefined){
+				if(bool) t.trg.classList.add('focus');
+				else t.trg.classList.remove('focus');
+			}else{
+				t.trg.classList.toggle('focus');
+			}
+		}
+	}
+</script>
+
+
+
+
+
+
+					<script>
+						function loading(bool){
+							const loading = document.querySelector('#loadingLayer');
+							
+							if(bool === undefined){
+								loading.classList.toggle();
+								return;
+							}
+							
+							if(bool) loading.classList.add('on');
+							else loading.classList.remove('on');
+						};
+						
+						loading(false);
+					</script>
+					<br><p>&nbsp;
+				</div>	
+			</div>
+			<!-- //content -->
+								<article class="quick-btn-group" data-name="퀵버튼들">
+	
+	<div class="wrapper container2">
+		<ul>
+			<li>
+				<a href="../sub/sub.htm?nav_code=ebo1655356102" title="이용안내 페이지로 이동합니다.">
+					<img src="../../assets/img/quick-1.svg" alt="이용안내">
+					<h3>이용안내</h3>
+				</a>
+			</li>
+			<li>
+				<a href="../sub/sub.htm?nav_code=ala1397194190" title="뷰어 다운로드 / 안내 페이지로 이동합니다.">
+					<img src="../../assets/img/quick-2.svg" alt="뷰어 다운로드 안내">
+					<h3>뷰어<br>다운로드 안내</h3>
+				</a>
+			</li>
+			<li>
+				<a href="../sub/sub.htm?nav_code=ala1397194192" title="대출안내 페이지로 이동합니다.">
+					<img src="../../assets/img/quick-3.svg" alt="자료대출안내">
+					<h3>자료대출안내</h3>
+				</a>
+			</li>
+			<li>
+									<a href="../sub/sub.htm?nav_code=ala1397194189" onclick="alert('로그인 후 이용 가능합니다.');location.href='../sub/sub.htm?nav_code=ala1397194189'; return false;">
+									<img src="../../assets/img/quick-4.svg" alt="내 서재">
+					<h3>내서재</h3>
+				</a>
+			</li>
+					</ul>
+	</div>
+</article>			<div class="clear"></div>
+		</div>
+		<!-- //container -->
+		<!-- footer -->
+		<footer>
+	<div class="wrapper container2">
+		<div class="footer-top">
+			<div>
+				<h3>내계정</h3>
+				<ul>
+					<li><a href="../sub/sub.htm?nav_code=ala1397194189" onclick="setCurrentUrl(this, true); return false;">서정대학교 회원 로그인</a></li>
+				</ul>
+			</div>
+			<div>
+				<h3>이용안내</h3>
+				<ul>
+					<li><a href="../sub/sub.htm?nav_code=ebo1655356102" title="이용안내 페이지로 이동합니다.">이용안내</a></li>
+					<li><a href="../sub/sub.htm?nav_code=ebo1655356101" title="대출안내 페이지로 이동합니다.">대출안내</a></li>
+					<li><a href="../sub/sub.htm?nav_code=ala1397194190" title="뷰어 다운로드 / 안내 페이지로 이동합니다.">뷰어 다운로드 / 안내</a></li>
+									</ul>
+			</div>
+			<div>
+				<h3>앱 다운로드</h3>
+				<ul class="app-download-ul">
+					<li>
+						<a href="https://play.google.com/store/apps/details?id=kr.co.aladin.elibrary" target="_blank">
+							<img src="../../assets/img/icon-andr.svg" alt="androidIcon">
+						</a>
+					</li>
+					<li>
+						<a href="https://apps.apple.com/kr/app/%EC%95%8C%EB%9D%BC%EB%94%98-%EC%A0%84%EC%9E%90%EB%8F%84%EC%84%9C%EA%B4%80/id897344878" target="_blank">
+							<img src="../../assets/img/icon-appl.svg" alt="iosIcon">
+						</a>
+					</li>
+				</ul>
+			</div>
+			
+		</div>
+		<div class="footer-bottom">
+			<div><img src="../../data/staticObj/footer_logo.png" alt="서정대학교 로고"/></div>
+			<div class="fcopy">
+				<ul class="fmn">
+					<li class="fst">
+						<a href="../sub/sub.htm?nav_code=ala1397194178" title="개인정보처리방침 페이지로 이동합니다.">개인정보처리방침</a>
+					</li>
+					<li>
+						<a href="../sub/sub.htm?nav_code=ala1397194177" title="저작권보호방침 페이지로 이동합니다.">저작권보호방침</a>
+					</li>
+					<li>
+						<a href="../sub/sub.htm?nav_code=ala1397194176" title="이메일무단수집거부 페이지로 이동합니다.">이메일무단수집거부</a>
+					</li>
+				</ul>
+				<div id="copyright" class="copyright">
+					<span>
+																									<b>
+								TEL.111															</b>
+																	</span>
+									</div>
+			</div>
+		</div>
+	</div>
+</footer>
+		<!-- //footer -->
+	</div>
+
+	
+	<script src="../assets/js/script.js?ver=20230710"></script>
+	
+</body>
+</html>

@@ -543,6 +543,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 | YES24 V2·V3 상세 `…/ebook/detail/?goods_id=…` | `div.stat li` "보유 N / 대출 N / 예약 N", 누적대출은 주석 안 (V2 화성 UTF-8, V3 경주 EUC-KR, 2026-09-30, fixture `yes24-v2`·`yes24-v3/detail-1.html`) | 같은 코드로 읽음 |
 | 강남구 상세 `…/elibbook/book_detail.asp?book_num=…` | 같은 화면에 `div.current`가 3개: 본 책은 `div.book_warp` 안 첫 `div.current`("대출예정일 … 보유 5 대출 3 예약 10"), 아래 연관 도서들은 `div.book_list` 안에 각자 `div.current` (2026-09-30 「다른 사랑」, fixture `gangnam-v1/detail-1.html`) | `div.book_list` 밖의 첫 `div.current`만 읽음. `current close`(예약정원 마감)는 수량 없이 `UNKNOWN` |
 | 교보 구독형 (`KYOBO_SUBSCRIPTION_V1`) 상세 | 수량 없음 | 요청하지 않고 구독형으로 판정 [확정] |
+| 알라딘 (`ALADIN_V1`) 일부 (2026-10-05, 켜진 25곳 중 3곳) | 서정대학교 `http://lib.seojeong.ac.kr:8888`·대구공업대학교 `http://inf.ttc.ac.kr:8888`: 목록에 보유·대출·예약 수가 없고 줄마다 "대출하기" 단추만. 서정대 상세 페이지에도 수 없음("예약하기" 단추). 김해대학교 `http://gimhae.aladinebook.co.kr`: "보유 <em>1</em>, 대출 <em></em>, 예약 <em></em>"처럼 대출·예약 수가 빔. 저장: `backend/src/test/resources/fixtures/aladin-v1/search-no-counts.html`, `search-empty-counts.html` | 없는 수는 비우고 그 줄은 `UNKNOWN`("확인 필요"). 단추만으로 판정하지 않음: 대출 중인 책의 단추를 아직 못 봄 [확인 필요]. 나머지 22곳은 수가 있음 |
 | 수집 목록의 상세 주소 | `detail_url` 호스트 = 그 도서관 `base_url` 호스트: 서비스 도서관 소장 2,523,114줄 중 다른 호스트 0줄 (2026-09-30 수집 SQLite 대조) | 가져올 때와 요청 전에 계속 검사 [안] |
 
 ## 13. 지금까지의 작업 기록

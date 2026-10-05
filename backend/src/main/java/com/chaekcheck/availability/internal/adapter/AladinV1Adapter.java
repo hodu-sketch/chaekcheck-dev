@@ -126,18 +126,25 @@ public class AladinV1Adapter implements PlatformAdapter {
 			pub.select("span.bar").remove();
 		}
 		Matcher goodsId = GOODS_ID.matcher(link.attr("href"));
-		return ParsedItem.counted(title, HtmlParsing.textOrNull(line, "span.writer"),
+		// counts the site leaves out are null, and the row is UNKNOWN (CountResolver)
+		return new ParsedItem(title, HtmlParsing.textOrNull(line, "span.writer"),
 				pub == null ? null : HtmlParsing.blankToNull(pub.text()), null, count(line, "span.volumecnt em"),
 				count(line, "span.uselendingcnt em"), count(line, "span.usereservecnt em"),
-				goodsId.find() ? goodsId.group(1) : null);
+				goodsId.find() ? goodsId.group(1) : null, null);
 	}
 
-	private static int count(Element line, String cssQuery) {
-		Matcher m = NUMBER.matcher(HtmlParsing.required(line, cssQuery, SCREEN).text());
-		if (!m.find()) {
-			throw UpstreamException.error(SCREEN + ": " + cssQuery + " is not a number");
+	/**
+	 * A count, or null when the site leaves it out. Some sites show no counts at all, only a "대출하기" button
+	 * (서정대학교, 대구공업대학교), and one shows the holdings but empty loan and reservation numbers (김해대학교), all
+	 * seen 2026-10-05. The button alone is not read as a verdict: a loaned book's button has not been seen yet.
+	 */
+	private static Integer count(Element line, String cssQuery) {
+		Element element = line.selectFirst(cssQuery);
+		if (element == null) {
+			return null;
 		}
-		return HtmlParsing.number(m, 1);
+		Matcher m = NUMBER.matcher(element.text());
+		return m.find() ? HtmlParsing.number(m, 1) : null;
 	}
 
 	/** The "보유현황" line: "보유 N, 대출 N, 예약 N" and on some sites ", 누적대출 N" after it. */
