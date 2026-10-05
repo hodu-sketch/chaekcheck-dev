@@ -225,8 +225,17 @@
     padding-top: 1.25rem;
   }
 
+  /* the first screen fits the visible height with no scroll (user request 2026-10-05): less room above on short screens */
   .page[data-state='start'] .searchArea {
-    padding-top: 6vh;
+    padding-top: clamp(0.75rem, 10dvh - 1.5rem, 6vh);
+    gap: 1.1rem;
+  }
+}
+
+/* 360px and narrower (iPhone SE 1st gen): the headline in two lines, not three */
+@media (width <= 360px) {
+  .headline {
+    font-size: calc(1.5 * var(--base-unscaled));
   }
 }
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -261,9 +261,17 @@ describe('phones: "찾을 도서관" inside the settings panel (D안, user choic
     expect(screen.queryByRole('radio', { name: '내 도서관' })).toBeNull()
     expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
 
-    await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    // three rows that open on a tap (user request 2026-10-05), each saying what it is set to
+    const scopeRow = await screen.findByRole('button', { name: /^찾을 도서관/ })
+    const sheet = within(screen.getByRole('dialog'))
+    expect(scopeRow.textContent).toBe('찾을 도서관내 도서관')
+    expect(sheet.getByRole('button', { name: /^보기 방식/ }).textContent).toBe('보기 방식책 먼저 고르기')
+    expect(sheet.getByRole('button', { name: /^도서관에서 직접 찾기/ }).textContent).toBe('도서관에서 직접 찾기끔')
+    expect(screen.queryByRole('radio', { name: '내 도서관' })).toBeNull()
+    await user.click(scopeRow)
 
-    expect(await screen.findByText('찾을 도서관')).toBeTruthy()
     expect(switchItem('내 도서관').getAttribute('aria-checked')).toBe('true')
     expect(screen.getByRole('link', { name: '내 도서관 관리' }).getAttribute('href')).toBe('/my-libraries')
   })

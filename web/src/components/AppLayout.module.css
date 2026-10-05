@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  /* the visible height: with 100vh a phone's first screen scrolled by the browser bars' height */
+  min-height: 100dvh;
 }
 
 .headerBar {
@@ -55,6 +57,15 @@
 }
 
 @media (width <= 640px) {
+  /* phones: the first screen (before a search) fits the screen with no scroll (user request 2026-10-05) */
+  .shell:has([data-fits-screen]) .main {
+    padding-bottom: 1.5rem;
+  }
+
+  .shell:has([data-fits-screen]) > footer {
+    margin-top: 0;
+  }
+
   .header {
     padding-block: calc(0.8 * var(--base-unscaled));
   }

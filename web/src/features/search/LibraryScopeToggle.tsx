@@ -1,5 +1,6 @@
 import { ToggleGroup } from 'radix-ui'
 import type { LibraryScope } from '../../api/types'
+import { joinableLabel } from './useLibraryScope'
 import styles from './LibraryScopeToggle.module.css'
 
 interface Props {
@@ -13,7 +14,6 @@ interface Props {
 
 /** Which libraries to search (C2-U-10). Changing it searches again from the first batch, like a region change. */
 export function LibraryScopeToggle({ scope, hasRegions, mine = false, onChange }: Props) {
-  const joinableLabel = mine ? '내 도서관' : hasRegions ? '가입 가능한 곳' : '누구나 가입'
   return (
     <ToggleGroup.Root
       type="single"
@@ -26,7 +26,7 @@ export function LibraryScopeToggle({ scope, hasRegions, mine = false, onChange }
         전체 도서관
       </ToggleGroup.Item>
       <ToggleGroup.Item value="joinable" className={styles.item}>
-        {joinableLabel}
+        {joinableLabel(hasRegions, mine)}
       </ToggleGroup.Item>
     </ToggleGroup.Root>
   )

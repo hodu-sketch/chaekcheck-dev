@@ -358,13 +358,125 @@
     padding-right: 1rem;
   }
 
+  /*
+   * The picker on phones (user request 2026-10-05): a narrow 시·도 column (short names), and 시·군·구 as two columns of
+   * tiles one step smaller, without the checkbox drawn (the tile's color shows the choice), so a four-letter name such
+   * as "동대문구" stays on one line even at 320px. Longer names take a whole row.
+   */
+  .head {
+    padding-top: 1rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .description {
+    margin-top: 0.15rem;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+  }
+
+  .tab {
+    padding: 0.35rem 1rem;
+  }
+
+  .panel {
+    padding-top: 0.6rem;
+  }
+
   .picker {
-    margin: 0.75rem 1rem 0;
-    grid-template-columns: 6rem 1fr;
+    margin: 0.6rem 1rem 0;
+    grid-template-columns: 4.6rem 1fr;
+  }
+
+  /* touch scrolling; a drawn scrollbar would take the room of the names */
+  .sidoList {
+    padding: 0.25rem 0;
+    scrollbar-width: none;
+  }
+
+  .sido {
+    gap: 0.25rem;
+    padding: 0.55rem 0.45rem 0.55rem 0.65rem;
+    font-size: var(--text-sm);
+    line-height: 1.35;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .sidoCount {
+    flex: none;
+  }
+
+  .sigunguSet {
+    padding: 0.7rem 0.5rem 1rem;
+    scrollbar-width: thin;
+  }
+
+  .sigunguLegend {
+    gap: 0.2rem 0.6rem;
+    margin-bottom: 0.55rem;
+    padding-left: 0.15rem;
+    font-size: var(--text-md);
   }
 
   .sigunguGrid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+
+  .sigungu {
+    position: relative;
+    justify-content: center;
+    gap: 0;
+    min-height: 2.5rem;
+    padding: 0.35rem 0.3rem;
+    font-size: var(--text-sm);
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .sigungu[data-long] {
+    grid-column: 1 / -1;
+  }
+
+  /* the box stays for keyboards and screen readers; the tile shows the state */
+  .sigungu input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sigungu:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .actions {
+    padding-top: 0.8rem;
+    padding-bottom: 1rem;
+  }
+
+  .clear,
+  .secondary,
+  .primary {
+    padding-inline: 1.1rem;
+    white-space: nowrap;
+  }
+
+  .clear {
+    padding-left: 0;
+  }
+
+  .primary {
+    min-width: 4.5rem;
+  }
+
+  /* .content in front: the base rule for this message comes later in the file */
+  .content .saveMessage {
+    margin: 0 1rem;
   }
 }
 

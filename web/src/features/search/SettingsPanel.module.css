@@ -178,6 +178,100 @@
   justify-content: center;
 }
 
+/*
+ * Phones (user requests 2026-10-05): a sheet the screen's width, like the sort list, as tall as its content and at
+ * most down to the bottom of the screen; past that it scrolls inside, since the first screen itself does not scroll.
+ * Three rows, "찾을 도서관", "보기 방식" and "도서관에서 직접 찾기", each opening its controls on a tap (one at a time).
+ */
+.content[data-sheet] {
+  width: calc(100vw - 24px);
+  max-height: var(--radix-popover-content-available-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.35rem 1rem 0.6rem;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.section + .section {
+  border-top: 1px solid var(--paper-deep);
+}
+
+.sectionHeader {
+  margin: 0;
+  font: inherit;
+}
+
+.sectionTrigger {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.5rem 0.1rem;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sectionTrigger:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-inner);
+}
+
+.sectionTitle {
+  flex: none;
+  font-size: var(--text-md);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* what the section is set to now, at the right, before the chevron */
+.sectionValue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-faint);
+  transition: transform 160ms;
+}
+
+.sectionValue + .chevron {
+  margin-left: 0;
+}
+
+.sectionTrigger[data-state='open'] .chevron {
+  transform: rotate(180deg);
+  color: var(--brand-strong);
+}
+
+.sectionBody {
+  padding: 0.1rem 0.1rem 0.9rem;
+}
+
+.content[data-sheet] .accountRow {
+  margin-top: 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--paper-deep);
+}
+
 /* phones: on the second line beside "여러 조건", the same height (user request 2026-10-05) */
 @media (width <= 640px) {
   .trigger {

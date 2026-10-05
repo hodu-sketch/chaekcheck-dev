@@ -177,7 +177,13 @@ function RegionEditor({
                 {activeSido.children.map((sigungu) => {
                   const checked = chosen.includes(sigungu.id)
                   return (
-                    <label key={sigungu.id} className={styles.sigungu} data-checked={checked || undefined}>
+                    <label
+                      key={sigungu.id}
+                      className={styles.sigungu}
+                      data-checked={checked || undefined}
+                      // phones: a name over four letters takes the whole row, so none of them wraps
+                      data-long={sigungu.name.length > 4 || undefined}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}

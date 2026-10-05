@@ -31,6 +31,8 @@ type Props = {
   onSettingsChange: (settings: SearchSettings) => void
   /** Phones: the "찾을 도서관" section for the settings panel, and whether it differs from the default. */
   settingsScope?: ReactNode
+  /** Phones: what "찾을 도서관" is set to, on its row in the settings sheet. */
+  settingsScopeValue?: string
   settingsMarked?: boolean
   /** Phones: the sort, at the right end of the "여러 조건 · 설정" line (user request 2026-10-05). */
   lineEnd?: ReactNode
@@ -49,6 +51,7 @@ export function SearchForm({
   onSearch,
   onSettingsChange,
   settingsScope,
+  settingsScopeValue,
   settingsMarked,
   lineEnd,
 }: Props) {
@@ -152,7 +155,13 @@ export function SearchForm({
             {expanded ? '▴' : '▾'}
           </span>
         </button>
-        <SettingsPanel settings={settings} onChange={onSettingsChange} scopeSection={settingsScope} marked={settingsMarked} />
+        <SettingsPanel
+          settings={settings}
+          onChange={onSettingsChange}
+          scopeSection={settingsScope}
+          scopeValue={settingsScopeValue}
+          marked={settingsMarked}
+        />
         {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>
       {problems.none && (

@@ -36,25 +36,28 @@
   font-weight: 700;
 }
 
-.openToAll summary,
-.fold summary {
+.openToAll summary {
   cursor: pointer;
   list-style: none;
 }
 
-.openToAll summary::-webkit-details-marker,
-.fold summary::-webkit-details-marker {
+.openToAll summary::-webkit-details-marker {
   display: none;
 }
 
 .openToAll summary::after,
-.fold summary::after {
+.fold::after {
   content: ' ▸';
 }
 
 .openToAll[open] summary::after,
-.fold[open] summary::after {
+.fold[aria-expanded='true']::after {
   content: ' ▾';
+}
+
+/* the shorter "누구나 가입 N곳은 늘 포함돼요" is for phones only (user request 2026-10-05) */
+.narrow {
+  display: none;
 }
 
 .openToAll .names {
@@ -88,9 +91,15 @@
   font-weight: 700;
 }
 
-.fold summary {
+.fold {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  font: inherit;
   font-weight: 700;
   color: var(--brand-strong);
+  text-align: left;
+  cursor: pointer;
 }
 
 .names {
@@ -220,7 +229,7 @@
 .add:focus-visible,
 .remove:focus-visible,
 .openToAll summary:focus-visible,
-.fold summary:focus-visible {
+.fold:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -229,7 +238,23 @@
 .regionList {
   display: flex;
   flex-direction: column;
+  gap: 0.8rem;
+}
+
+.regionField,
+.regionRow {
+  display: flex;
+  flex-direction: column;
   gap: 0.35rem;
+}
+
+.regionField:last-child {
+  margin-bottom: 0.45rem;
+}
+
+.regionField > .names {
+  margin-top: 0.25rem;
+  padding-left: 0.2rem;
 }
 
 .regionLine {
@@ -238,10 +263,6 @@
   gap: 0.6rem;
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.regionLine + .autoLine {
-  margin-bottom: 0.45rem;
 }
 
 .kind {
@@ -255,11 +276,58 @@
 }
 
 .autoLine {
-  padding-left: 0.2rem;
+  padding: 0 0 0 0.2rem;
   font-size: var(--text-md);
 }
 
 .autoTitle {
   font-weight: 700;
   color: var(--ink-soft);
+}
+
+@media (width <= 640px) {
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: inline;
+  }
+
+  .openToAll {
+    padding-inline: 0.85rem;
+  }
+
+  /* "거주 서울 강서구 … 자동 23곳 ▸" on one line (user request 2026-10-05); the names still open under it */
+  .regionRow {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  /* region names break between words only ("서울 / 강서구", not "서울 강 / 서구") */
+  .regionLine {
+    flex: 1;
+    gap: 0.4rem;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+
+  .autoLine {
+    flex: none;
+    margin-left: auto;
+    padding-left: 0;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
+  /* "거주"/"직장" is already at the start of the line */
+  .autoKind {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }

@@ -16,7 +16,7 @@ import { InstantResults } from './InstantResults'
 import { LibraryScopeToggle } from './LibraryScopeToggle'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
-import { useLibraryScope } from './useLibraryScope'
+import { joinableLabel, useLibraryScope } from './useLibraryScope'
 import {
   loadSettings,
   resolveSettings,
@@ -141,9 +141,17 @@ export function SearchPage() {
   // the dot on the settings button: not the default scope (내 도서관 when there is one after login, else 전체)
   const defaultScope = mine && (hasRegions(regions) || libraryIds.length > 0) ? 'joinable' : 'all'
   const scopeChanged = scope !== defaultScope || visit === 'none'
+  const scopeValue = [scope === 'all' ? '전체 도서관' : joinableLabel(hasRegions(regions), mine), visit === 'none' && '방문 없이']
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <div className={styles.page} data-state={hasSearch ? 'results' : 'start'}>
+    <div
+      className={styles.page}
+      data-state={hasSearch ? 'results' : 'start'}
+      // phones: the app layout fits this screen into the window (no scroll, user request 2026-10-05)
+      data-fits-screen={hasSearch ? undefined : true}
+    >
       <section className={styles.searchArea}>
         {!hasSearch && (
           <h1 className={styles.headline}>
@@ -168,6 +176,7 @@ export function SearchPage() {
               </>
             ) : undefined
           }
+          settingsScopeValue={phone ? scopeValue : undefined}
           settingsMarked={phone && scopeChanged}
           lineEnd={phone && bookQuery ? <SortSelect value={bookQuery.sort} onChange={changeSort} /> : undefined}
         />

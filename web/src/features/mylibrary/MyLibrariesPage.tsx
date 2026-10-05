@@ -121,7 +121,11 @@ function Heading() {
 function OpenToAll({ rows }: { rows: LibraryEligibilityRow[] }) {
   return (
     <details className={styles.openToAll}>
-      <summary>누구나 가입하는 도서관 {rows.length}곳도 늘 내 도서관에 들어 있어요</summary>
+      <summary>
+        {/* phones: a shorter line that does not wrap at 320px (user request 2026-10-05) */}
+        <span className={styles.wide}>누구나 가입하는 도서관 {rows.length}곳도 늘 내 도서관에 들어 있어요</span>
+        <span className={styles.narrow}>누구나 가입 {rows.length}곳은 늘 포함돼요</span>
+      </summary>
       <NameList rows={rows} />
     </details>
   )
@@ -145,7 +149,8 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
 /**
  * "지역 선택": one [변경] for both fields (S2 has its own 거주/직장 tabs), and under each field the libraries it
  * brings in, "거주 지역으로 자동 N곳 ▸" on one line and folded (user requests 2026-10-05, in place of the design's
- * separate sections). Nothing to remove there (spec R4).
+ * separate sections). Phones put it on the field's line as "자동 N곳 ▸" (user request 2026-10-05). Nothing to remove
+ * there (spec R4).
  */
 function RegionSection({
   residence,
@@ -164,6 +169,7 @@ function RegionSection({
 }) {
   const names = (ids: number[]) =>
     ids.length === 0 ? '고른 지역이 없어요' : ids.map((id) => labels.get(id) ?? '…').join(', ')
+  const regionLabels = { residence: names(residence), work: names(work) }
   return (
     <Section
       title="지역 선택"
@@ -174,48 +180,56 @@ function RegionSection({
       }
     >
       <div className={styles.regionList}>
-        <p className={styles.regionLine}>
-          <span className={styles.kind}>거주</span>
-          <span className={styles.regions}>{names(residence)}</span>
-        </p>
-        <AutoLine title="거주 지역으로 자동" rows={residenceAuto} />
-        <p className={styles.regionLine}>
-          <span className={styles.kind}>직장</span>
-          <span className={styles.regions}>{names(work)}</span>
-        </p>
-        <AutoLine title="직장 지역으로 자동" rows={workAuto} />
+        <RegionField kind="거주" regions={regionLabels.residence} rows={residenceAuto} />
+        <RegionField kind="직장" regions={regionLabels.work} rows={workAuto} />
       </div>
     </Section>
   )
 }
 
-/** "거주 지역으로 자동 N곳 ▸" on one line; opens to the names. */
-function AutoLine({ title, rows }: { title: string; rows: LibraryEligibilityRow[] }) {
+/**
+ * One field: "거주 서울 강서구", then "거주 지역으로 자동 N곳 ▸" under it, which opens to the names. On phones the
+ * second part sits at the right end of the first line as "자동 N곳 ▸" (user request 2026-10-05); the names open
+ * under the line either way.
+ */
+function RegionField({ kind, regions, rows }: { kind: string; regions: string; rows: LibraryEligibilityRow[] }) {
   const id = useId()
+  const [open, setOpen] = useState(false)
+  const title = (
+    <span id={`${id}-title`} className={styles.autoTitle}>
+      {/* the space outside: a trailing space inside would be dropped from the accessible name */}
+      <span className={styles.autoKind}>{kind} 지역으로</span> 자동
+    </span>
+  )
   return (
-    <div className={styles.autoLine} role="group" aria-labelledby={id}>
-      {rows.length === 0 ? (
-        <p className={styles.muted}>
-          <span id={id}>{title}</span> 없어요
+    <div className={styles.regionField} role="group" aria-labelledby={`${id}-title`}>
+      <div className={styles.regionRow}>
+        <p className={styles.regionLine}>
+          <span className={styles.kind}>{kind}</span>
+          <span className={styles.regions}>{regions}</span>
         </p>
-      ) : (
-        <details className={styles.fold}>
-          <summary>
-            <span id={id} className={styles.autoTitle}>
-              {title}
-            </span>{' '}
-            {rows.length}곳
-          </summary>
-          <NameList rows={rows} />
-        </details>
-      )}
+        {rows.length === 0 ? (
+          <p className={`${styles.muted} ${styles.autoLine}`}>{title} 없어요</p>
+        ) : (
+          <button
+            type="button"
+            className={`${styles.autoLine} ${styles.fold}`}
+            aria-expanded={open}
+            aria-controls={`${id}-names`}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {title} {rows.length}곳
+          </button>
+        )}
+      </div>
+      {open && <NameList id={`${id}-names`} rows={rows} />}
     </div>
   )
 }
 
-function NameList({ rows }: { rows: LibraryEligibilityRow[] }) {
+function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) {
   return (
-    <ul className={styles.names}>
+    <ul id={id} className={styles.names}>
       {rows.map((row) => (
         <li key={row.id}>{row.name}</li>
       ))}

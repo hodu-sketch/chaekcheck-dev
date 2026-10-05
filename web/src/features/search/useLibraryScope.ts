@@ -52,3 +52,8 @@ export function useLibraryScope(params: URLSearchParams, setParams?: SetURLSearc
   const addressScope = address === 'joinable' || address === 'all' ? address : null
   return { scope, mine, change, addressScope }
 }
+
+/** The words on the joinable side of the switch; also what the phone settings sheet shows for "찾을 도서관". */
+export function joinableLabel(hasRegions: boolean, mine: boolean): string {
+  return mine ? '내 도서관' : hasRegions ? '가입 가능한 곳' : '누구나 가입'
+}
