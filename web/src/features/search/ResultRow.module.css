@@ -1,12 +1,14 @@
 /*
- * A flat rounded card; three columns on desktop, the status column carries the meaning color. The status column
- * has a fixed width so the library column (and its left rule) lines up across rows with and without counts.
+ * A flat rounded card; three columns on desktop, the status column carries the meaning color. The book takes half
+ * the card; the library and the counts share the other half (user request 2026-10-05). The status column has a fixed
+ * width (the widest counts box, "보유 1000 대출 중 0 예약 0") so the library column (and its left rule) lines up across
+ * rows with and without counts. A long title wraps inside its half.
  */
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 17.5rem;
+  grid-template-columns: minmax(0, 50%) minmax(0, 1fr) 9.25rem;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   /* a card inside the white results panel (user request 2026-10-05) */
   /* 30% less than 1.15rem 1.35rem (user request 2026-10-05) */
   padding: 0.8rem 0.95rem;
@@ -83,6 +85,16 @@
   font-size: var(--text-md);
   font-weight: 800;
   word-break: keep-all;
+}
+
+/*
+ * Wider than phones: a name with no space ("전남광주통합특별시교육청") breaks inside the narrower library column
+ * instead of running into the counts (user request 2026-10-05; phones keep their layout as it was)
+ */
+@media (width > 640px) {
+  .libraryName {
+    overflow-wrap: anywhere;
+  }
 }
 
 .badge {
@@ -382,6 +394,42 @@
 
   .library::before {
     display: none;
+  }
+}
+
+/*
+ * Tablet (641 to 1024px): the book in the left half, the library and the counts under it in the right half, with
+ * the rule between the halves (user request 2026-10-05: the book about half the card from 768px up). Phones keep
+ * their own layout below.
+ */
+@media (640px < width <= 1024px) {
+  .row {
+    grid-template-columns: minmax(0, 50%) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.6rem 1rem;
+  }
+
+  .book {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-right: 1rem;
+    border-right: 1px solid var(--rule-strong);
+  }
+
+  .library {
+    grid-column: 2;
+    grid-row: 1;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .stock {
+    grid-column: 2;
+    grid-row: 2;
   }
 }
 
