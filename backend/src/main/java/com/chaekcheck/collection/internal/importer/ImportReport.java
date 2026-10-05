@@ -65,6 +65,13 @@ final class ImportReport {
 
 	long holdings;
 
+	/** Book ids (plan catalog-refresh.md 5.2): kept from the previous import, new, and old ids no book has now. */
+	long keptBookIds;
+
+	long newBookIds;
+
+	long droppedBookIds;
+
 	Duration readTime = Duration.ZERO;
 
 	Duration groupTime = Duration.ZERO;
@@ -106,12 +113,14 @@ final class ImportReport {
 				  (4) same text: groups merged %d, merged books with dates 2+ years apart %d
 				  national bibliography: records with ISBN %d, ISBN attached %d, ambiguous keys %d
 				  written: books %d, contributors %d, holdings %d
+				  book ids: kept %d, new %d, dropped %d
 				  time: read %s, group %s, bibliography %s, write %s; heap used up to %d MB (max %d MB)"""
 			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, candidateLibraries,
 					librariesWithoutFullSuccess, librariesNotInService, librariesBaseUrlMismatch, placeholderDatesCleared,
 					kyoboCodes, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
 					booksAfterSameText, sameTextMerged, sameTextWideDates, nationalBibliographyRecords,
 					nationalBibliographyIsbnAttached, nationalBibliographyAmbiguous, books, contributors, holdings,
+					keptBookIds, newBookIds, droppedBookIds,
 					readTime, groupTime, bibliographyTime, writeTime, maxHeapMb, Runtime.getRuntime().maxMemory() >> 20);
 	}
 

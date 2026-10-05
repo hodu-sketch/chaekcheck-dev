@@ -19,9 +19,10 @@ final class ImportRecords {
 	void insert(String source, Instant importedAt, ImportReport report) {
 		jdbc.sql("""
 				INSERT INTO collection.catalog_import (source, imported_at, book_count, holding_count, skipped_count,
-				  registered_library_count, candidate_library_count, skipped_by_reason)
+				  registered_library_count, candidate_library_count, skipped_by_reason, kept_book_id_count,
+				  new_book_id_count, dropped_book_id_count)
 				VALUES (:source, :importedAt, :books, :holdings, :skipped, :registered, :candidates,
-				  CAST(:byReason AS jsonb))""")
+				  CAST(:byReason AS jsonb), :kept, :added, :dropped)""")
 			.param("source", source)
 			.param("importedAt", Timestamp.from(importedAt))
 			.param("books", report.books)
@@ -30,6 +31,9 @@ final class ImportRecords {
 			.param("registered", report.registeredLibraries)
 			.param("candidates", report.candidateLibraries)
 			.param("byReason", json(report.skipped))
+			.param("kept", report.keptBookIds)
+			.param("added", report.newBookIds)
+			.param("dropped", report.droppedBookIds)
 			.update();
 	}
 

@@ -124,6 +124,9 @@ class CatalogImporter {
 			report.books = result.books();
 			report.contributors = result.contributors();
 			report.holdings = result.holdings();
+			report.keptBookIds = result.keptBookIds();
+			report.newBookIds = result.newBookIds();
+			report.droppedBookIds = result.droppedBookIds();
 			report.writeTime = Duration.between(start, clock.instant());
 			report.noteHeap();
 			records.insert(source, clock.instant(), report);

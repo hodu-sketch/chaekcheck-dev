@@ -1715,6 +1715,43 @@ plan 인계서 `docs/current/handoff.md`(사이클 07 후보 도서관 넣기)�
 - 마감 확인이 읽는 주소는 이미 셋(`popupMain.json`, `firstBoardBlbrSrmb.json`, `listBoard.json`)이라 그대로.
 - `3-import.md`: 새 명령(`collection-import`), 설정 이름, 사본을 원본으로, 두 번 읽기, 새 건너뜀 이유. 결과 표는 14·15단계 값으로 채움.
 
+## handoff 밖 추가 작업 (사용자 요청, 2026-10-05)
+
+handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 해서 했습니다. 다음 사이클 문서에 반영해 주세요.
+
+### A. 후보 도서관 최종 주소 (강동대학교 북큐브가 검색되지 않음)
+
+- 원인: 후보 seed가 수집 DB 주소(대개 http)를 그대로 써서, https로 302하는 사이트는 서비스가 리다이렉트를 따라가지 않아 늘 실패. dev `library-maintenance.md` 4-7 1번(최종 주소 확인)을 후보에 하지 않은 dev 실수.
+- 고침: 새 도구 `scripts/library/CheckFinalOrigins.java`로 켜진 http 도서관 1,075곳 확인 → 후보 **248곳**을 https 최종 주소로(`scripts/library/final-origins.tsv` → `008-library-candidates.csv`). 등록 도서관은 0곳.
+- 가져오기의 주소 안전장치는 이제 호스트·경로·쿼리로만 비교(http/https, 포트 차이 허용, `CollectedCatalog.sameSite`). 수집 DB는 목록 주소를, 서비스는 최종 주소를 갖기 때문. handoff C10 "base_url이 같은지"를 바꾼 것.
+- 인증서: 중간 인증서 3개를 더함(12곳). JDK에 없는 최상위 기관 **OISTE WISeKey Global Root GB CA**를 도서관 사이트 연결에만 믿는 기관으로 더함(3곳: 세계사이버대, 서울신학대, 충북 전자도서관). 사용자 결정 "이거 신뢰해줘". 새 폴더 `tls/library-roots/`(두 앱). ADR-0022("JDK 최상위 기관만 믿음")를 바꾼 것 → plan ADR 갱신 필요.
+- 이 JDK 25에는 Sectigo R46 루트가 없음. 사이클 02 기록 "R36 ← R46(JDK에 있음)"은 틀림. USERTrust 교차 인증서로 해결.
+- 남은 2곳(성균관대 YES24 시간 초과, 장안대 YES24 응답 없음): dev `library-site-issues.md` 9절, 17단계 끄기 제안에 올림.
+- 확인: 강동대 북큐브 "사랑" 467건, 사이트와 같음.
+
+### B. 책 번호 잇기 (plan `catalog-refresh.md` 5.2)
+
+- 사용자: "이것도 같이 구현해 줘", 모듈 "catalog 해줘". 5.2절이 "회원 저장 기능보다 먼저, 다음 사이클 맨 앞"으로 둔 일을 이번에 함.
+- 모양 (5.2절이 design-delta에 미룬 것을 dev가 정함, plan 확인 필요):
+  - `catalog`의 `CatalogLoad.replaceAll` 안에서 함. `collection`은 바뀐 것 없음(`addBook`이 돌려주는 번호가 "이번 가져오기 안에서만 쓰는 번호"로 뜻만 바뀜).
+  - SQL로 함: 임시 표에 COPY → 옛 `catalog.holding`과 `(library_id, item_key)`로 맞대기 → 번호 결정 → `catalog` 표 비우고 옮김. 소장 2,000만 줄을 메모리에 올리지 않음.
+  - 규칙: 5.2절 그대로(겹침 최다, 합쳐지면 가장 작은 번호, 나뉘면 최다 겹침 쪽, 번호 재사용 없음, 안내표 없음).
+  - 기록: `collection.catalog_import`에 `kept_book_id_count`, `new_book_id_count`, `dropped_book_id_count`(새 changeset `collection/003`).
+- 테스트: `CatalogLoadBookIdTests`(그대로·합침·나뉨·새 책·번호 재사용 없음).
+- 실제 데이터 결과와 걸린 시간은 17단계 다시 가져오기에서 잼(아래 17단계 절).
+- 5.1절(표 통째로 바꿔 끼우기)은 하지 않음. 가져오는 동안 검색이 기다리는 것은 그대로.
+
+### C. 들어오는 요청 수 제한, 받아 오는 응답 크기 제한
+
+- 사용자가 준 문제: 요청 수 제한이 앱·nginx 어디에도 없음(로그인 없이 검색 → 서버가 도서관에 요청, 가상 스레드 무제한). `DirectSiteFetcher`·`LibraryClient`가 응답을 통째로 읽고, 읽기 시간 제한은 머리말까지만.
+- 넣은 것 (숫자는 모두 [안]):
+  - nginx 예시: 도서관을 부르는 API(검색·소장 스트림 4개, `/api/v1/availability/`)에 IP별 `limit_req` 30r/m, burst 20, `limit_conn` 6. 넘으면 429 `too_many_requests`. `deploy/nginx/rate-limits.conf`(http 단계).
+  - 백엔드: 동시에 도는 검색(묶음 스트림 + 도서관별 "더 보기")을 `chaekcheck.availability.max-concurrent-searches=20`으로 막고, 넘으면 줄 세우지 않고 바로 503 `server_busy`.
+  - 도서관 응답: 본문 최대 4MB(넘으면 upstream_error), 본문까지 포함한 요청 전체 시간 15초(넘으면 upstream_timeout). 직접 호출과 fetch-service 둘 다. 근거: 저장된 실제 응답 최대 322KB(북큐브 검색 XML 20건).
+- 화면: 새 코드 두 개는 지금 웹의 일반 문구 "검색하지 못했어요. 잠시 뒤 다시 시도해 주세요."로 보임.
+- plan에서 정할 것: 429 `too_many_requests`·503 `server_busy`를 API 오류표·화면 문구에 넣을지, 각 숫자 확정, 배포 때 실제 클라이언트 IP 받는 법(`real_ip`, nginx 앞에 부하 분산기가 있을 때).
+- 확인: fetch-service 테스트 전부, backend availability 테스트 251개, nginx `-t`와 429 동작(WSL Docker). `limit_conn`은 오래 열린 스트림으로는 재 보지 않음.
+
 ## 14~15단계: dry run, 실제 가져오기, 측정 (2026-10-05)
 
 - **dry run**(18:39~18:53, 14분 15초): 읽은 줄 22,051,238, 건너뜀 1,568,743(서비스에 없음 1,467,650 = 수집 도서관 344곳: `crawl_skip` 99 + 전체 수집 안 끝남 227 + 체험용 4 + 같은 사이트 8 + 시험용 6; 오디오북 93,537; 동영상북 5,400; **소리·영상 파일 1,747**; http 아닌 주소 283; 빠진 책 119; 제목 없음 7). 도서관 등록 275 + 후보 2,394. 책 7,668,819 → 7,348,253 → 6,668,680 → **1,622,023**(④가 합친 묶음 5,046,657 — 북큐브 코드는 도서관마다 따로라 ④에서 크게 합쳐짐). 명지대 날짜 지움 17,311.

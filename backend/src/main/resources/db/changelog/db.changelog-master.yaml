@@ -62,3 +62,7 @@ databaseChangeLog:
   - include:
       file: library/009-library-logos.yaml
       relativeToChangelogFile: true
+  # book ids carry over between imports (user request 2026-10-05)
+  - include:
+      file: collection/003-catalog-import-book-ids.yaml
+      relativeToChangelogFile: true
