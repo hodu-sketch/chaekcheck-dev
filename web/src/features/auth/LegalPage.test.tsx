@@ -84,9 +84,10 @@ describe('footer links', () => {
 
     expect((await screen.findByRole('link', { name: '이용약관' })).getAttribute('href')).toBe('/terms')
     expect(screen.getByRole('link', { name: '개인정보 처리방침' }).getAttribute('href')).toBe('/privacy')
+    expect(screen.getByRole('link', { name: '서비스 안내' }).getAttribute('href')).toBe('/about')
   })
 
-  it('show no link while login is off', async () => {
+  it('show only "서비스 안내" while login is off (cycle 07, AC-21)', async () => {
     const fetchMock = vi.fn(async () => json(404, { code: 'not_found' }))
     vi.stubGlobal('fetch', fetchMock)
     render(
@@ -99,6 +100,6 @@ describe('footer links', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/about'])
   })
 })

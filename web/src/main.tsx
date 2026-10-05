@@ -13,6 +13,7 @@ import { NoticeProvider } from './features/auth/NoticeContext'
 import { SignupPage } from './features/auth/SignupPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ErrorFallback } from './components/ErrorFallback'
+import { AboutPage } from './features/about/AboutPage'
 import { BookPage } from './features/book/BookPage'
 import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
+                <Route path="/about" element={<AboutPage />} />
                 <Route
                   path="/terms"
                   element={

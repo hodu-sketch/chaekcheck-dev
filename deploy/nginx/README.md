@@ -46,3 +46,16 @@ wsl -d Ubuntu -- docker rm -f chaekcheck-nginx-check
 - CSP 위반 0건
 
 `style-src 'self'`(엄격)로도 띄워 봤습니다. 로그인 창을 열 때 Radix가 넣는 `<style>`이 막혀 뒤 화면 스크롤이 잠기지 않았습니다. 그래서 `style-src`에만 `'unsafe-inline'`을 둡니다. `script-src`는 `'self'`만 둡니다.
+
+## 시험 결과 (2026-10-05, 사이클 07: 압축·로고·화면 경로)
+
+위 "로컬에서 확인하기" 3번 명령과 같은 방법으로 확인했습니다. 백엔드는 사이클 06 코드(도서관 280곳).
+
+| 확인 | 결과 |
+|---|---|
+| `/about`, `/my-libraries` 직접 열기 | 200 `text/html` (전에는 `/my-libraries`가 404) |
+| `/library-logos/1.gif` | 200, `Cache-Control: public, max-age=604800` (파일 이름에 해시가 없어 `immutable`은 쓰지 않음) |
+| `GET /api/v1/libraries` | 압축 전 48,123바이트 → `Accept-Encoding: gzip`이면 5,404바이트, `Content-Encoding: gzip`, `Vary: Accept-Encoding` |
+
+- 프록시 응답이라 `gzip_proxied any`가 있어야 압축됩니다. 스트림(`text/event-stream`)은 `gzip_types`에 없어 압축되지 않습니다.
+- 후보 도서관을 넣은 뒤의 크기는 15단계에서 다시 잽니다(`docs/plan-feedback.md` `# 사이클 07`).
