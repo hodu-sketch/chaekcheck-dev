@@ -126,6 +126,18 @@ chaekcheck:
     read-timeout: 5s
     # one page outside a batch (the per-library "more" API), throttle wait included
     request-deadline: 8s
+    # [안] direct mode: one library request in total, body included (read-timeout above stops at the headers).
+    # 15s = the longest wait before the headers today (connect 5s + read 5s) + 5s for the body, so no answer that
+    # works now is cut; a site that sends its body very slowly can no longer hold a connection without end.
+    total-timeout: 15s
+    # [안] direct mode: largest library body read; past it reading stops and the request fails (upstream_error).
+    # Largest real answers saved (2026-10-05, data/cycle07/probe): BOOKCUBE search XML 322KB (20 rows), KYOBO search
+    # page 188KB; test fixtures (scripts removed) at most 130KB. 4MB is about 12x the largest.
+    max-body-size: 4MB
+    # [안] batch streams and "more" calls running at once; more get 503 server_busy at once (not queued).
+    # 20 x parallelism 5 = at most 100 library requests in flight from batches, and the host throttle (1 per host)
+    # still applies. A personal service rarely has 20 searches in the same few seconds; tune with real traffic.
+    max-concurrent-searches: 20
     batch:
       # no new request once more than 20 rows are counted; requests already started are still received [확정]
       row-limit: 20

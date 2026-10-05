@@ -9,8 +9,6 @@ import java.util.concurrent.Executors;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.web.client.RestClient;
 
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
 import com.chaekcheck.availability.internal.fetch.CaffeineSearchPageCache;
@@ -28,6 +26,7 @@ import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
 import com.chaekcheck.availability.internal.resolve.DetailPageFetcher;
 import com.chaekcheck.availability.internal.resolve.DetailVerdictCache;
 import com.chaekcheck.availability.internal.search.BatchRunner;
+import com.chaekcheck.availability.internal.search.SearchSlots;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
 import com.chaekcheck.library.LibraryCatalog;
 import com.github.benmanes.caffeine.cache.Ticker;
@@ -38,7 +37,10 @@ import tools.jackson.databind.json.JsonMapper;
 @EnableConfigurationProperties(AvailabilityProperties.class)
 class AvailabilityConfiguration {
 
-	/** Runs page loads. Loads block on the throttle and on HTTP, so they use virtual threads. */
+	/**
+	 * Runs page loads. Loads block on the throttle and on HTTP, so they use virtual threads. The executor itself has
+	 * no limit; the work is capped before it gets here (SearchSlots, batch parallelism).
+	 */
 	@Bean(destroyMethod = "close")
 	ExecutorService availabilityExecutor() {
 		return Executors.newVirtualThreadPerTaskExecutor();
@@ -57,17 +59,15 @@ class AvailabilityConfiguration {
 					fetch.tokenHeader(), fetch.token(), fetch.connectTimeout(), fetch.readTimeout(),
 					fetch.restDuration(), jsonMapper, Clock.systemUTC());
 		}
-		// JDK HttpClient: connect timeout on the client, read timeout (time to response headers) on the factory.
-		// This is how Spring Boot's JdkClientHttpRequestFactoryBuilder applies the same two settings.
+		// JDK HttpClient: connect timeout on the client; read timeout (time to response headers), total time and
+		// body size on each request (DirectSiteFetcher).
 		HttpClient httpClient = HttpClient.newBuilder()
 			.sslContext(LibrarySiteTls.sslContext())
 			.connectTimeout(properties.connectTimeout())
 			.followRedirects(HttpClient.Redirect.NEVER)
 			.build();
-		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-		requestFactory.setReadTimeout(properties.readTimeout());
-		RestClient restClient = RestClient.builder().requestFactory(requestFactory).build();
-		return new DirectSiteFetcher(restClient, properties.userAgent(), Clock.systemUTC());
+		return new DirectSiteFetcher(httpClient, properties.readTimeout(), properties.totalTimeout(),
+				properties.maxBodySize().toBytes(), properties.userAgent(), Clock.systemUTC());
 	}
 
 	@Bean
@@ -107,12 +107,19 @@ class AvailabilityConfiguration {
 		return new AvailabilityResolvers(new DetailLookupResolver(detailPageFetcher, Clock.systemUTC()));
 	}
 
+	/** Caps the searches running at once, so the unbounded executor above never gets unbounded work. */
+	@Bean
+	SearchSlots searchSlots(AvailabilityProperties properties) {
+		return new SearchSlots(properties.maxConcurrentSearches());
+	}
+
 	@Bean
 	BatchRunner batchRunner(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher,
 			DetailPageFetcher detailPageFetcher, AvailabilityResolvers resolvers, AvailabilityProperties properties,
-			ExecutorService availabilityExecutor) {
+			ExecutorService availabilityExecutor, SearchSlots searchSlots) {
 		return new BatchRunner(libraryCatalog, fetcher, detailPageFetcher, resolvers, properties.batch(),
-				properties.detail().deadline(), properties.hostMinInterval(), availabilityExecutor, Clock.systemUTC());
+				properties.detail().deadline(), properties.hostMinInterval(), availabilityExecutor, searchSlots,
+				Clock.systemUTC());
 	}
 
 }

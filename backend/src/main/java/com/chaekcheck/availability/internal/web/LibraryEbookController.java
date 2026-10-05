@@ -15,12 +15,14 @@ import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
+import com.chaekcheck.availability.internal.search.SearchSlots;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.SearchTarget;
 
 /**
  * Per-library "more" API: one page of one library (design-delta "페이지 객체"). Rows that a stream would send as
- * PENDING are waited for (up to the detail deadline) and returned with their final values [안].
+ * PENDING are waited for (up to the detail deadline) and returned with their final values [안]. Takes a search slot
+ * like a batch stream (503 server_busy when none is free).
  */
 @RestController
 class LibraryEbookController {
@@ -33,12 +35,15 @@ class LibraryEbookController {
 
 	private final Duration detailDeadline;
 
+	private final SearchSlots slots;
+
 	LibraryEbookController(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher, AvailabilityResolvers resolvers,
-			AvailabilityProperties properties) {
+			AvailabilityProperties properties, SearchSlots slots) {
 		this.libraryCatalog = libraryCatalog;
 		this.fetcher = fetcher;
 		this.resolvers = resolvers;
 		this.detailDeadline = properties.detail().deadline();
+		this.slots = slots;
 	}
 
 	/** Path and query values are read as text so every bad value maps to this API's own error codes. */
@@ -49,10 +54,12 @@ class LibraryEbookController {
 		int pageNumber = parsePage(page);
 		SearchTarget target = parseLibraryId(libraryId).flatMap(libraryCatalog::findEnabledTarget)
 			.orElseThrow(() -> new AvailabilityErrors.LibraryNotFoundException(libraryId));
-		LibraryPage fetched = fetcher.fetch(target, query, pageNumber);
-		return resolvers.forPlatform(target.platformType())
-			.resolve(target, fetched, Instant.now().plus(detailDeadline))
-			.completedPage();
+		try (SearchSlots.Slot _ = slots.acquire()) {
+			LibraryPage fetched = fetcher.fetch(target, query, pageNumber);
+			return resolvers.forPlatform(target.platformType())
+				.resolve(target, fetched, Instant.now().plus(detailDeadline))
+				.completedPage();
+		}
 	}
 
 	/** Missing page means 1. */

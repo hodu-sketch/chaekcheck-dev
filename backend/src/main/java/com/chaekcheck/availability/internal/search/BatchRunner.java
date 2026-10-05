@@ -52,12 +52,22 @@ import com.chaekcheck.library.SearchTarget;
  * asked and sends them in the next batch.</li>
  * <li>The host throttle still guards every call, also against other searches on the same host.</li>
  * </ul>
+ * Every batch takes a {@link SearchSlots} slot first and gives it back when its stream is done (or at the latest
+ * {@link #SLOT_SAFETY_MARGIN} after the longest stream time); with no free slot it is refused with
+ * {@link SearchBusyException} before any event is sent.
+ * <p>
  * The runner knows nothing about screen kinds or detail lookups: it resolves each page with the resolver for its
  * screen kind and waits until that library's delivery is done (ADR-0019).
  */
 public class BatchRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(BatchRunner.class);
+
+	/**
+	 * A slot is given back at the latest this long after {@link #streamDuration()}, even if the session never
+	 * finished (a bug or a lost future). Not a tuning value: a safety net so a slot can never leak.
+	 */
+	static final Duration SLOT_SAFETY_MARGIN = Duration.ofSeconds(10);
 
 	private final LibraryCatalog libraryCatalog;
 
@@ -75,11 +85,13 @@ public class BatchRunner {
 
 	private final Executor executor;
 
+	private final SearchSlots slots;
+
 	private final Clock clock;
 
 	public BatchRunner(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher, DetailPageFetcher detailPages,
 			AvailabilityResolvers resolvers, AvailabilityProperties.Batch settings, Duration detailDeadline,
-			Duration hostMinInterval, Executor executor, Clock clock) {
+			Duration hostMinInterval, Executor executor, SearchSlots slots, Clock clock) {
 		this.libraryCatalog = libraryCatalog;
 		this.fetcher = fetcher;
 		this.detailPages = detailPages;
@@ -88,6 +100,7 @@ public class BatchRunner {
 		this.detailDeadline = detailDeadline;
 		this.hostMinInterval = hostMinInterval;
 		this.executor = executor;
+		this.slots = slots;
 		this.clock = clock;
 	}
 
@@ -114,12 +127,26 @@ public class BatchRunner {
 
 	/**
 	 * Starts a batch and returns at once; events go to {@code sink}.
+	 * @throws SearchBusyException when every search slot is taken; nothing was sent
 	 * @param targets the targets event (first stream only), or null
 	 * @param notFound candidates whose library is missing or disabled; each fails on its own
 	 */
 	public void start(EventSink sink, SearchQuery query, ResultFilter filter, int batchNo, List<Candidate> candidates,
 			List<MissingCandidate> notFound, StreamEvents.Targets targets) {
-		BatchSession session = new BatchSession(sink, batchNo, filter, settings.rowLimit());
+		SearchSlots.Slot slot = slots.acquire();
+		try {
+			startSearch(slot, sink, query, filter, batchNo, candidates, notFound, targets);
+		}
+		catch (RuntimeException ex) {
+			slot.close();
+			throw ex;
+		}
+	}
+
+	private void startSearch(SearchSlots.Slot slot, EventSink sink, SearchQuery query, ResultFilter filter,
+			int batchNo, List<Candidate> candidates, List<MissingCandidate> notFound, StreamEvents.Targets targets) {
+		BatchSession session = new BatchSession(sink, batchNo, filter, settings.rowLimit(), slot::close);
+		releaseLater(slot);
 		if (targets != null) {
 			session.targets(targets);
 		}
@@ -155,12 +182,26 @@ public class BatchRunner {
 	 * Starts a holding batch (cycle 04 holding stream) and returns at once; events go to {@code sink}. Same rules as
 	 * search pages: parallelism, busy-host skipping, row limit, batch deadline, launch cutoff (ADR-0029). Subscription
 	 * holdings are decided without a request [확정]; a detail URL off the library's host fails without a request [안].
+	 * @throws SearchBusyException when every search slot is taken; nothing was sent
 	 * @param targets the targets event (first stream only), or null
 	 * @param notFound holding ids that do not exist or whose library is not usable; each fails on its own
 	 */
 	public void startHoldings(EventSink sink, ResultFilter filter, int batchNo, List<HoldingTask> tasks,
 			List<Long> notFound, StreamEvents.HoldingTargets targets) {
-		HoldingSession session = new HoldingSession(sink, batchNo, filter, settings.rowLimit());
+		SearchSlots.Slot slot = slots.acquire();
+		try {
+			startHoldingBatch(slot, sink, filter, batchNo, tasks, notFound, targets);
+		}
+		catch (RuntimeException ex) {
+			slot.close();
+			throw ex;
+		}
+	}
+
+	private void startHoldingBatch(SearchSlots.Slot slot, EventSink sink, ResultFilter filter, int batchNo,
+			List<HoldingTask> tasks, List<Long> notFound, StreamEvents.HoldingTargets targets) {
+		HoldingSession session = new HoldingSession(sink, batchNo, filter, settings.rowLimit(), slot::close);
+		releaseLater(slot);
 		if (targets != null) {
 			session.targets(targets);
 		}
@@ -173,6 +214,12 @@ public class BatchRunner {
 			log.info("holding batch={} holdings={} requested={} stopReason={} startedAt={}", batchNo, tasks.size(),
 					session.requestedCount(), reason, start);
 		});
+	}
+
+	/** Safety net: gives the slot back even if the session never reports that it finished. */
+	private void releaseLater(SearchSlots.Slot slot) {
+		long delay = streamDuration().plus(SLOT_SAFETY_MARGIN).toMillis();
+		CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(slot::close);
 	}
 
 	private CompletableFuture<?> startHolding(HoldingSession session, int batchNo, HoldingTask task, Instant deadline) {

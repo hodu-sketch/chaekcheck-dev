@@ -1,6 +1,7 @@
 package com.chaekcheck.availability.internal.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -59,9 +60,38 @@ class BatchRunnerTests {
 
 	RecordingSink sink = new RecordingSink();
 
+	SearchSlots slots = new SearchSlots(4);
+
 	@AfterEach
 	void close() {
 		executor.close();
+	}
+
+	@Test
+	void batchOverTheSearchCapIsRefusedAtOnceAndSendsNothing() {
+		slots = new SearchSlots(1);
+		BatchRunner runner = runner(settings(20, 1, 8000, 3000));
+		Candidate held = new Candidate(kyobo(1), 1);
+		CompletableFuture<LibraryPage> answer = new CompletableFuture<>();
+		given(fetcher.fetchAsync(eq(held.target()), eq(QUERY), eq(held.page()), any())).willReturn(answer);
+		runner.start(sink, QUERY, ResultFilter.ALL, 1, List.of(held), List.of(), null);
+		await().until(() -> sink.count(StreamEvents.LIBRARY_REQUESTED) == 1);
+
+		RecordingSink refused = new RecordingSink();
+		assertThatThrownBy(() -> runner.start(refused, QUERY, ResultFilter.ALL, 1,
+				List.of(new Candidate(kyobo(2), 1)), List.of(), null))
+			.isInstanceOf(SearchBusyException.class);
+		assertThatThrownBy(() -> runner.startHoldings(refused, ResultFilter.ALL, 1, List.of(), List.of(), null))
+			.isInstanceOf(SearchBusyException.class);
+		assertThat(refused.events).isEmpty();
+		verify(fetcher, never()).fetchAsync(eq(kyobo(2)), any(), anyInt(), any());
+
+		// the running batch ends: its slot is free again and a new batch runs
+		answer.complete(page(held, 1, 1, 0));
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed && slots.available() == 1);
+		RecordingSink next = new RecordingSink();
+		runner.startHoldings(next, ResultFilter.ALL, 2, List.of(), List.of(), null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> next.completed && slots.available() == 1);
 	}
 
 	@Test
@@ -378,7 +408,7 @@ class BatchRunnerTests {
 
 	private BatchRunner runner(AvailabilityProperties.Batch settings) {
 		return new BatchRunner(mock(LibraryCatalog.class), fetcher, detailPages, new AvailabilityResolvers(detailLookup), settings,
-				Duration.ofSeconds(30), HOST_INTERVAL, executor, Clock.systemUTC());
+				Duration.ofSeconds(30), HOST_INTERVAL, executor, slots, Clock.systemUTC());
 	}
 
 	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,

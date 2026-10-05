@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.unit.DataSize;
 
 import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 
@@ -19,13 +20,15 @@ public final class AdapterFixtures {
 			Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
 			new AvailabilityProperties.Batch(20, 5, Duration.ofSeconds(8), Duration.ofSeconds(3), 50),
 			new AvailabilityProperties.Detail(Duration.ofSeconds(30)), new AvailabilityProperties.Kyobo(50),
-			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null);
+			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null, Duration.ofSeconds(15),
+			DataSize.ofMegabytes(4), 20);
 
 	/** Same as {@link #PROPERTIES} with KYOBO record count 10 (cycle 02 fixtures). */
 	public static final AvailabilityProperties PROPERTIES_10 = new AvailabilityProperties(Duration.ofMinutes(3), 1000,
 			1, Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
 			PROPERTIES.batch(), PROPERTIES.detail(), new AvailabilityProperties.Kyobo(10),
-			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null);
+			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null, Duration.ofSeconds(15),
+			DataSize.ofMegabytes(4), 20);
 
 	private AdapterFixtures() {
 	}

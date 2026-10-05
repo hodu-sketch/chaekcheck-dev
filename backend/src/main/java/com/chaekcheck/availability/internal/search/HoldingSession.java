@@ -44,8 +44,12 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 
 	private boolean clientGone;
 
-	HoldingSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit) {
+	/** Gives the search slot back; runs once, after the last event. */
+	private final Runnable onFinished;
+
+	HoldingSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit, Runnable onFinished) {
 		this.sink = sink;
+		this.onFinished = onFinished;
 		this.batchNo = batchNo;
 		this.filter = filter;
 		this.rowLimit = rowLimit;
@@ -125,11 +129,16 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 			return;
 		}
 		done = true;
-		send(StreamEvents.BATCH_DONE,
-				new StreamEvents.BatchDone(batchNo, requested, succeeded, failed, countedRows, 0, stopReason));
-		send(StreamEvents.DONE, new StreamEvents.Done(batchNo));
-		if (!clientGone) {
-			sink.complete();
+		try {
+			send(StreamEvents.BATCH_DONE,
+					new StreamEvents.BatchDone(batchNo, requested, succeeded, failed, countedRows, 0, stopReason));
+			send(StreamEvents.DONE, new StreamEvents.Done(batchNo));
+			if (!clientGone) {
+				sink.complete();
+			}
+		}
+		finally {
+			onFinished.run();
 		}
 	}
 

@@ -5,15 +5,24 @@ import java.time.Duration;
 import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.unit.DataSize;
 
 /**
  * Settings for calling library sites (design-delta "외부 연동", "묶음 실행 규칙"). Values live in application.yml.
+ * @param readTimeout until a library's response headers arrive (direct mode)
  * @param requestDeadline longest wait for one page outside a batch (the "more" API)
+ * @param totalTimeout one library request in direct mode, body included; past it the request is cancelled
+ * (upstream_timeout)
+ * @param maxBodySize largest library body read in direct mode; a bigger one stops being read and the request fails
+ * (upstream_error)
+ * @param maxConcurrentSearches batch streams and "more" calls running at once; more are refused with 503
+ * {@code server_busy} (SearchSlots)
  */
 @ConfigurationProperties("chaekcheck.availability")
 public record AvailabilityProperties(Duration cacheTtl, long cacheMaxSize, int hostMaxConcurrency,
 		Duration hostMinInterval, Duration connectTimeout, Duration readTimeout, Duration requestDeadline, Batch batch,
-		Detail detail, Kyobo kyobo, Yes24 yes24, String userAgent, Fetch fetch) {
+		Detail detail, Kyobo kyobo, Yes24 yes24, String userAgent, Fetch fetch, Duration totalTimeout,
+		DataSize maxBodySize, int maxConcurrentSearches) {
 
 	/**
 	 * One batch of the search stream (design-delta "묶음 실행 규칙").

@@ -21,6 +21,16 @@ fetch:
   # library call timeouts: same as the main service direct mode (connect 5s since 2026-09-29, read 5s)
   connect-timeout: 5s
   read-timeout: 5s
+  # [안] whole library request including the body (the read timeout above stops at the response headers).
+  # 15s = the longest wait before the headers today (connect 5s + read 5s) + 5s for the body, so no answer that
+  # works now is cut; a library that sends its body very slowly can no longer hold a slot without end.
+  # The main service gives up on this server after its own read timeout (7s) anyway.
+  total-timeout: 15s
+  # [안] largest library body read; past it the call stops reading and fails as ERROR (upstream_error).
+  # Largest real answers saved (2026-10-05, data/cycle07/probe): BOOKCUBE search XML 322KB (20 rows), KYOBO
+  # search page 188KB; test fixtures (scripts removed) at most 130KB. 4MB is about 12x the largest, and
+  # 32 slots x 4MB (x1.33 as base64) stays near 170MB at worst.
+  max-body-size: 4MB
   # [안] requests handled at once; more get 503 so the main service tries the next fetch server
   max-concurrent: 32
   allow-loopback: false

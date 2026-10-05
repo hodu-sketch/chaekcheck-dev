@@ -34,6 +34,7 @@ import com.chaekcheck.availability.internal.search.BatchRunner;
 import com.chaekcheck.availability.internal.search.Candidate;
 import com.chaekcheck.availability.internal.search.EventSink;
 import com.chaekcheck.availability.internal.search.ResultFilter;
+import com.chaekcheck.availability.internal.search.SearchBusyException;
 import com.chaekcheck.availability.internal.search.StreamEvents;
 import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
@@ -239,6 +240,16 @@ class EbookSearchStreamControllerTests {
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), joinCaution, t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
 				t.logoUrl());
+	}
+
+	@Test
+	void everySearchSlotTakenIs503BeforeTheStreamOpens() {
+		givenPlan(Set.of(), Set.of(), List.of(TestTargets.GOHEUNG));
+		org.mockito.BDDMockito.willThrow(new SearchBusyException(20))
+			.given(batchRunner)
+			.start(any(), any(), any(), anyInt(), any(), any(), any());
+
+		assertProblem(get(URL + "?title=사랑"), HttpStatus.SERVICE_UNAVAILABLE, "server_busy");
 	}
 
 	@Test

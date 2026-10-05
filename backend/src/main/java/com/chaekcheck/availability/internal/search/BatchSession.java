@@ -57,8 +57,12 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 
 	private boolean clientGone;
 
-	BatchSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit) {
+	/** Gives the search slot back; runs once, after the last event. */
+	private final Runnable onFinished;
+
+	BatchSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit, Runnable onFinished) {
 		this.sink = sink;
+		this.onFinished = onFinished;
 		this.batchNo = batchNo;
 		this.filter = filter;
 		this.rowLimit = rowLimit;
@@ -177,9 +181,14 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 			return;
 		}
 		finished = true;
-		send(StreamEvents.DONE, new StreamEvents.Done(batchNo));
-		if (!clientGone) {
-			sink.complete();
+		try {
+			send(StreamEvents.DONE, new StreamEvents.Done(batchNo));
+			if (!clientGone) {
+				sink.complete();
+			}
+		}
+		finally {
+			onFinished.run();
 		}
 	}
 

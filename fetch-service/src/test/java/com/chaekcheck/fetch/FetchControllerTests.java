@@ -3,6 +3,7 @@ package com.chaekcheck.fetch;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -159,6 +160,118 @@ class FetchControllerTests {
 			return "http://127.0.0.1:" + library.getAddress().getPort() + path;
 		}
 
+	}
+
+	/** Small limits so a fake library can pass them: 1KB body, 1s for the whole request. */
+	@Nested
+	@SpringBootTest(properties = { "fetch.token=" + TOKEN, "fetch.allow-loopback=true", "fetch.read-timeout=500ms",
+			"fetch.total-timeout=1s", "fetch.max-body-size=1KB" })
+	@AutoConfigureMockMvc
+	class Limits {
+
+		@Autowired
+		MockMvcTester mvc;
+
+		HttpServer library;
+
+		@BeforeEach
+		void start() throws IOException {
+			library = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+			library.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+			library.createContext("/fits", exchange -> {
+				byte[] body = new byte[1024];
+				exchange.sendResponseHeaders(200, body.length);
+				exchange.getResponseBody().write(body);
+				exchange.close();
+			});
+			// Content-Length says too big: refused before the body is read
+			library.createContext("/declared-big", exchange -> {
+				byte[] body = new byte[1025];
+				exchange.sendResponseHeaders(200, body.length);
+				writeQuietly(exchange.getResponseBody(), body);
+				exchange.close();
+			});
+			// chunked, no Content-Length: stopped once the counted bytes pass the limit
+			library.createContext("/chunked-big", exchange -> {
+				exchange.sendResponseHeaders(200, 0);
+				for (int i = 0; i < 64; i++) {
+					if (!writeQuietly(exchange.getResponseBody(), new byte[512])) {
+						break;
+					}
+				}
+				exchange.close();
+			});
+			// headers at once (inside the read timeout), then a few bytes every 200ms for 3s
+			library.createContext("/trickle", exchange -> {
+				exchange.sendResponseHeaders(200, 0);
+				for (int i = 0; i < 15; i++) {
+					try {
+						Thread.sleep(200);
+					}
+					catch (InterruptedException ex) {
+						break;
+					}
+					if (!writeQuietly(exchange.getResponseBody(), new byte[8])) {
+						break;
+					}
+				}
+				exchange.close();
+			});
+			library.start();
+		}
+
+		@AfterEach
+		void stop() {
+			library.stop(0);
+		}
+
+		@Test
+		void bodyAtTheLimitIsReturned() {
+			assertThat(post(mvc, TOKEN, url("/fits"))).hasStatus(200).bodyJson()
+				.extractingPath("$.outcome").isEqualTo("RESPONDED");
+		}
+
+		@Test
+		void bodyDeclaredOverTheLimitFails() {
+			assertThat(post(mvc, TOKEN, url("/declared-big"))).hasStatus(200).bodyJson()
+				.extractingPath("$.outcome").isEqualTo("ERROR");
+		}
+
+		@Test
+		void chunkedBodyOverTheLimitFails() {
+			MvcTestResult result = post(mvc, TOKEN, url("/chunked-big"));
+
+			assertThat(result).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("ERROR");
+			assertThat(result).bodyJson().extractingPath("$.body").isNull();
+		}
+
+		@Test
+		void slowBodyHitsTheTotalTimeLimit() {
+			long start = System.nanoTime();
+			MvcTestResult result = post(mvc, TOKEN, url("/trickle"));
+			long tookMillis = (System.nanoTime() - start) / 1_000_000;
+
+			assertThat(result).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("TIMEOUT");
+			// the body would take 3s; the 1s total limit stops it
+			assertThat(tookMillis).isBetween(900L, 2500L);
+		}
+
+		private String url(String path) {
+			return "http://127.0.0.1:" + library.getAddress().getPort() + path;
+		}
+
+	}
+
+	/** @return false once the client has gone */
+	static boolean writeQuietly(OutputStream out, byte[] bytes) {
+		try {
+			out.write(bytes);
+			out.flush();
+			return true;
+		}
+		catch (IOException ex) {
+			return false;
+		}
 	}
 
 	static MvcTestResult post(MockMvcTester mvc, String token, String url) {

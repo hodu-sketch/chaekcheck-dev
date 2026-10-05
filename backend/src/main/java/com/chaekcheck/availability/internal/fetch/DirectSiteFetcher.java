@@ -2,22 +2,30 @@ package com.chaekcheck.availability.internal.fetch;
 
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClient;
 
 import com.chaekcheck.availability.internal.UpstreamException;
 
 /**
  * Calls the library site from this server (cycle 01 {@code UpstreamClient}). Every request carries the configured
- * User-Agent and is logged with host, path, start and end time, status and User-Agent. Timeouts come from the
- * request factory (connect 3s, read 5s); redirects are not followed.
+ * User-Agent and is logged with host, path, start and end time, status and User-Agent. Redirects are not followed.
+ * Limits (application.yml {@code chaekcheck.availability.*}): the client's connect timeout, the read timeout (until
+ * the response headers), a total time limit for the whole request including the body (TIMEOUT), and a maximum body
+ * size: a bigger body stops being read and the request fails as ERROR (upstream_error).
  */
 public class DirectSiteFetcher implements SiteFetcher {
 
@@ -25,14 +33,30 @@ public class DirectSiteFetcher implements SiteFetcher {
 
 	private static final Logger log = LoggerFactory.getLogger(DirectSiteFetcher.class);
 
-	private final RestClient restClient;
+	private final HttpClient httpClient;
+
+	private final Duration readTimeout;
+
+	private final Duration totalTimeout;
+
+	private final long maxBodyBytes;
 
 	private final String userAgent;
 
 	private final Clock clock;
 
-	public DirectSiteFetcher(RestClient restClient, String userAgent, Clock clock) {
-		this.restClient = restClient;
+	/**
+	 * @param httpClient carries the connect timeout and TLS settings; must not follow redirects
+	 * @param readTimeout until the response headers arrive
+	 * @param totalTimeout the whole request, body included
+	 * @param maxBodyBytes largest body read into memory
+	 */
+	public DirectSiteFetcher(HttpClient httpClient, Duration readTimeout, Duration totalTimeout, long maxBodyBytes,
+			String userAgent, Clock clock) {
+		this.httpClient = httpClient;
+		this.readTimeout = readTimeout;
+		this.totalTimeout = totalTimeout;
+		this.maxBodyBytes = maxBodyBytes;
 		this.userAgent = userAgent;
 		this.clock = clock;
 	}
@@ -41,21 +65,43 @@ public class DirectSiteFetcher implements SiteFetcher {
 	public SiteResponse fetch(URI uri, Instant deadline) {
 		Instant start = clock.instant();
 		String status = "-";
+		CompletableFuture<HttpResponse<byte[]>> call = null;
 		try {
-			SiteResponse response = restClient.get()
-				.uri(uri)
+			HttpRequest request = HttpRequest.newBuilder(uri)
+				.timeout(readTimeout)
 				.header(HttpHeaders.USER_AGENT, userAgent)
-				.exchange((request, res) -> new SiteResponse(res.getStatusCode().value(),
-						res.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE),
-						res.getHeaders().getFirst(HttpHeaders.LOCATION), res.getBody().readAllBytes(), VIA));
-			status = Integer.toString(response.status());
-			return response;
+				.GET()
+				.build();
+			call = httpClient.sendAsync(request, BodyLimit.handler(maxBodyBytes));
+			HttpResponse<byte[]> res = call.get(totalTimeout.toMillis(), TimeUnit.MILLISECONDS);
+			status = Integer.toString(res.statusCode());
+			return new SiteResponse(res.statusCode(), res.headers().firstValue(HttpHeaders.CONTENT_TYPE).orElse(null),
+					res.headers().firstValue(HttpHeaders.LOCATION).orElse(null), res.body(), VIA);
 		}
-		catch (ResourceAccessException ex) {
-			boolean timeout = isTimeout(ex);
+		catch (TimeoutException ex) {
+			call.cancel(true);
+			status = "total-timeout";
+			throw UpstreamException.timeout("request to " + uri.getHost() + " passed the total time limit of "
+					+ totalTimeout.toMillis() + "ms");
+		}
+		catch (ExecutionException ex) {
+			Throwable cause = ex.getCause();
+			if (has(cause, BodyLimit.TooLargeException.class)) {
+				status = "body-too-large";
+				throw new UpstreamException(UpstreamException.Kind.ERROR,
+						"response from " + uri.getHost() + " is over " + maxBodyBytes + " bytes", cause);
+			}
+			boolean timeout = isTimeout(cause);
 			status = timeout ? "timeout" : "io-error";
 			throw new UpstreamException(timeout ? UpstreamException.Kind.TIMEOUT : UpstreamException.Kind.ERROR,
-					"request to " + uri.getHost() + " failed: " + ex.getMessage(), ex);
+					"request to " + uri.getHost() + " failed: " + cause, cause);
+		}
+		catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			call.cancel(true);
+			status = "interrupted";
+			throw new UpstreamException(UpstreamException.Kind.ERROR, "request to " + uri.getHost() + " interrupted",
+					ex);
 		}
 		finally {
 			log.info("upstream via={} host={} path={} start={} end={} status={} userAgent=\"{}\"", VIA,
@@ -64,8 +110,12 @@ public class DirectSiteFetcher implements SiteFetcher {
 	}
 
 	static boolean isTimeout(Throwable ex) {
+		return has(ex, HttpTimeoutException.class) || has(ex, SocketTimeoutException.class);
+	}
+
+	private static boolean has(Throwable ex, Class<? extends Throwable> type) {
 		for (Throwable t = ex; t != null; t = t.getCause()) {
-			if (t instanceof HttpTimeoutException || t instanceof SocketTimeoutException) {
+			if (type.isInstance(t)) {
 				return true;
 			}
 		}

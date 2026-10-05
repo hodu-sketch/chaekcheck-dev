@@ -39,6 +39,7 @@ import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolver;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
+import com.chaekcheck.availability.internal.search.SearchSlots;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.availability.internal.TestTargets;
@@ -58,6 +59,11 @@ class LibraryEbookControllerTests {
 		}
 
 		@Bean
+		SearchSlots searchSlots() {
+			return new SearchSlots(1);
+		}
+
+		@Bean
 		AvailabilityProperties availabilityProperties() {
 			return AdapterFixtures.PROPERTIES;
 		}
@@ -70,6 +76,9 @@ class LibraryEbookControllerTests {
 
 	@Autowired
 	MockMvcTester mvc;
+
+	@Autowired
+	SearchSlots searchSlots;
 
 	@MockitoBean
 	LibraryCatalog libraryCatalog;
@@ -204,6 +213,28 @@ class LibraryEbookControllerTests {
 
 		assertProblem(result, HttpStatus.BAD_GATEWAY, "upstream_error");
 		assertThat(result).bodyText().doesNotContain("secret");
+	}
+
+	@Test
+	void everySearchSlotTakenIs503WithoutCallingTheLibrary() {
+		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
+
+		try (SearchSlots.Slot _ = searchSlots.acquire()) { // the only slot (test configuration)
+			assertProblem(mvc.get().uri(URL + "?title=사랑", 2).exchange(), HttpStatus.SERVICE_UNAVAILABLE,
+					"server_busy");
+		}
+		verifyNoInteractions(fetcher);
+		assertThat(searchSlots.available()).isEqualTo(1);
+	}
+
+	@Test
+	void slotIsGivenBackAfterAnUpstreamError() {
+		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
+		given(fetcher.fetch(any(), any(), anyInt())).willThrow(UpstreamException.error("status 500"));
+
+		mvc.get().uri(URL + "?title=사랑", 2).exchange();
+
+		assertThat(searchSlots.available()).isEqualTo(1);
 	}
 
 	@Test

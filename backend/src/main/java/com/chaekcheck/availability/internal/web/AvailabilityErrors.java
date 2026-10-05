@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.chaekcheck.availability.internal.InvalidQueryException;
 import com.chaekcheck.availability.internal.Problems;
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.search.SearchBusyException;
 import com.chaekcheck.library.InvalidRegionException;
 
 /**
@@ -71,6 +72,14 @@ class AvailabilityErrors {
 					r.reason().name().toLowerCase(Locale.ROOT), "value", r.regionId()))
 			.toList());
 		return problem;
+	}
+
+	/** Every search slot is taken (SearchSlots): refused at once instead of queued. */
+	@ExceptionHandler
+	ProblemDetail serverBusy(SearchBusyException ex) {
+		log.warn("search refused: {}", ex.getMessage());
+		return problem(HttpStatus.SERVICE_UNAVAILABLE, "server_busy",
+				"Too many searches are running; try again shortly");
 	}
 
 	@ExceptionHandler
