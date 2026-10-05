@@ -205,6 +205,56 @@
   border-left: 1px solid var(--paper-deep);
 }
 
+/*
+ * Wider than phones: the 상세검색 rows share one set of columns (label, box, "완전 일치", roles), so the author and
+ * publisher boxes are the same width and both "완전 일치" checks start at the same left edge (user request
+ * 2026-10-05). The box is at most 22rem as before; the title row's check sits in the box column, right after "제목".
+ */
+@media (width > 640px) {
+  .more {
+    /* the roles keep one line; the box gives way first */
+    grid-template-columns: 3.2rem minmax(0, 22rem) auto max-content;
+    column-gap: 0.9rem;
+  }
+
+  .more > * {
+    grid-column: 1 / -1;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    row-gap: 0.5rem;
+  }
+
+  .row > .rowLabel + .check {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .smallInput {
+    max-width: none;
+  }
+
+  .roles {
+    justify-self: start;
+  }
+}
+
+/* tablet: the roles under the author box, as when they wrapped before (no room beside it) */
+@media (640px < width <= 1024px) {
+  .more {
+    grid-template-columns: 3.2rem minmax(0, 22rem) auto minmax(0, 1fr);
+  }
+
+  .roles {
+    grid-column: 2 / -1;
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
 /* 1024px and below: "상세검색" becomes an icon (flow.md) */
 @media (width <= 1024px) {
   .moreLabel,
