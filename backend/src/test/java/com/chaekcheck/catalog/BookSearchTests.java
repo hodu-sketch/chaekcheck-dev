@@ -169,6 +169,24 @@ class BookSearchTests {
 		assertThat(ids("title=사랑&libraryIds=" + candidate)).containsExactlyInAnyOrder(onlyCandidate, shared);
 	}
 
+	/** Cycle 07 step 15: a plan over the GIN limit filters library_ids without the index, with the same result. */
+	@Test
+	void largePlansFindTheSameBooks() throws Exception {
+		List<Long> many = new java.util.ArrayList<>();
+		for (int i = 0; i < 55; i++) {
+			long id = library("많은 도서관 " + i, false);
+			nationwide(id);
+			many.add(id);
+		}
+		long held = book("사랑 많은 곳", "가", "가", "2020-01-01", many.get(54));
+		long outside = book("사랑 밖", "가", "가", "2020-01-01");
+
+		assertThat(ids("title=사랑")).contains(held).doesNotContain(outside);
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&page=9")).bodyJson().extractingPath("$.totalCount").isEqualTo(1);
+		assertThat(com.chaekcheck.catalog.internal.search.PgBigmBookSearch.libraryFilter(51)).contains("||");
+		assertThat(com.chaekcheck.catalog.internal.search.PgBigmBookSearch.libraryFilter(50)).doesNotContain("||");
+	}
+
 	@Test
 	void pagesAndCollectionDates() throws Exception {
 		for (int i = 0; i < 25; i++) {

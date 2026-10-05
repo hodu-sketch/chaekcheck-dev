@@ -31,6 +31,14 @@ public class PgBigmBookSearch implements BookSearch {
 	/** Collection dates are shown as Korean calendar days. */
 	static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
 
+	/**
+	 * Plans with more libraries than this filter {@code library_ids} without its GIN index [안] (cycle 07 step 15,
+	 * measured 2026-10-05): with 385 libraries the index matched 803,378 of 1,622,023 books in 1.09s while the planner
+	 * expected 16,191, and the title's bigm index alone gave 21,135 rows in 4ms. A small plan (a few libraries added by
+	 * hand) is where the GIN index pays.
+	 */
+	static final int GIN_PLAN_LIMIT = 50;
+
 	private final JdbcClient jdbc;
 
 	public PgBigmBookSearch(JdbcClient jdbc) {
@@ -60,7 +68,7 @@ public class PgBigmBookSearch implements BookSearch {
 				  SELECT * FROM unnest(CAST(:libraryIds AS bigint[]), CAST(:tiers AS integer[])) AS p(library_id, tier)
 				), matched AS (
 				  SELECT b.id, b.library_ids FROM catalog.book b
-				  WHERE b.library_ids && CAST(:libraryIds AS bigint[]) AND %s
+				  WHERE %s AND %s
 				), scored AS (
 				  SELECT m.id AS book_id, min(p.tier) AS tier, count(*) AS library_count,
 				    min(sn.collected_at) AS collected_from, max(sn.collected_at) AS collected_to
@@ -76,7 +84,7 @@ public class PgBigmBookSearch implements BookSearch {
 				  min(s.collected_from) OVER () AS collected_from, max(s.collected_to) OVER () AS collected_to
 				FROM scored s JOIN catalog.book b ON b.id = s.book_id
 				ORDER BY %s
-				LIMIT :limit OFFSET :offset""".formatted(where, order);
+				LIMIT :limit OFFSET :offset""".formatted(libraryFilter(plan.size()), where, order);
 
 		long[] total = { 0 };
 		LocalDate[] range = { null, null };
@@ -92,7 +100,7 @@ public class PgBigmBookSearch implements BookSearch {
 		List<BookItem> page = hasMore ? items.subList(0, query.pageSize()) : items;
 		if (items.isEmpty() && query.page() > 1) {
 			// past the last page: the total still comes from a count
-			total[0] = count(where, params);
+			total[0] = count(libraryFilter(plan.size()) + " AND " + where, params);
 		}
 		return new BookPage(List.copyOf(page), query.page(), query.pageSize(), total[0], hasMore, range[0], range[1]);
 	}
@@ -138,11 +146,19 @@ public class PgBigmBookSearch implements BookSearch {
 
 	private long count(String where, Map<String, Object> params) {
 		return jdbc.sql("""
-				SELECT count(*) FROM catalog.book b
-				WHERE b.library_ids && CAST(:libraryIds AS bigint[]) AND %s""".formatted(where))
+				SELECT count(*) FROM catalog.book b WHERE %s""".formatted(where))
 			.params(params)
 			.query(Long.class)
 			.single();
+	}
+
+	/**
+	 * The plan's libraries against the book's {@code library_ids} (ADR-0055). For a large plan the column is wrapped in
+	 * an expression the GIN index does not match, so the planner filters the rows the text indexes found.
+	 */
+	public static String libraryFilter(int planSize) {
+		return planSize <= GIN_PLAN_LIMIT ? "b.library_ids && CAST(:libraryIds AS bigint[])"
+				: "(b.library_ids || CAST('{}' AS bigint[])) && CAST(:libraryIds AS bigint[])";
 	}
 
 	private static void planParams(List<SearchTarget> plan, Map<String, Object> params) {
