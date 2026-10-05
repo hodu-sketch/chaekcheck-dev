@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.SearchField;
 import com.chaekcheck.availability.internal.SearchQuery;
+import com.chaekcheck.availability.internal.UpstreamException;
 
 /** Fixtures: 세종시립도서관(구독) {@code https://sejonglib.dkyobobook.co.kr}, 2026-09-28. */
 class KyoboSubscriptionV1AdapterTests {
@@ -69,10 +70,24 @@ class KyoboSubscriptionV1AdapterTests {
 		assertThat(page.items()).isEmpty();
 	}
 
+	/** Cycle 07 (ADR-0056, AC-23): an institution with owned copies shows counts on the same screen. */
 	@Test
-	void subscriptionDetailPagesAreNotRead() { // never requested [확정]
+	void ownedRowsAndDetailsHaveCounts() {
+		ParsedPage page = adapter.parse(bytes("kyobo-subscription-v1/owned-love.html"), null);
+
+		assertThat(page.totalCount()).isEqualTo(24);
+		assertThat(page.items()).hasSize(2)
+			.first()
+			.extracting(ParsedItem::title, ParsedItem::holdings, ParsedItem::loaned, ParsedItem::reservations)
+			.containsExactly("이중섭. 2: 순수한 모순의 사랑", 1, 0, 0);
+		assertThat(adapter.parseDetail(bytes("kyobo-subscription-v1/owned-detail.html"), null))
+			.isEqualTo(ParsedDetail.counted(1, 0, 0));
+	}
+
+	@Test
+	void aDetailPageWithoutCountsFails() {
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> adapter.parseDetail(new byte[0], null))
-			.isInstanceOf(UnsupportedOperationException.class);
+			.isInstanceOf(UpstreamException.class);
 	}
 
 }

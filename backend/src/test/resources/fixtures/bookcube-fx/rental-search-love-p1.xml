@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- saved 2026-10-05 (cycle 07 호출 시험); descriptions, author notes and images removed -->
+<Products>
+<ProductListParam>
+<keyword><![CDATA[사랑]]></keyword>
+<keyoption></keyoption>
+<keyoption2>1</keyoption2>
+<SortList>
+<sort id="1" value="제목" /><sort id="2" value="출판일" /><sort id="3" value="구매일" /></SortList>
+<sort>3</sort>
+<page>1</page>
+<totalItem>1850</totalItem>
+<totalVolume>0</totalVolume>
+<itemCount>20</itemCount>
+<pageCount>10</pageCount>
+<CategoryList>
+</CategoryList>
+<category></category>
+<itemdv>1</itemdv>
+</ProductListParam>
+
+<Product>
+<num>261000293</num>
+<legacyCode>261000293</legacyCode>
+<name><![CDATA[사람은 아픈 곳으로 사랑을 한다]]></name>
+<publisher><![CDATA[다움BOOK]]></publisher>
+<author><![CDATA[임려원]]></author>
+<supplier><![CDATA[(주)북큐브네트웍스]]></supplier>
+<category><![CDATA[인문/인문학산책]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2026-10-01</publisherDate>
+<buyDate>2026-10-02</buyDate>
+<point>0</point><volume><![CDATA[0]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[pdf]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+<nowRentalCount><![CDATA[0]]></nowRentalCount>
+</Product>
+<Product>
+<num>260909000</num>
+<legacyCode>260909000</legacyCode>
+<name><![CDATA[쉰 살에 다시 만난 첫사랑]]></name>
+<publisher><![CDATA[유페이퍼]]></publisher>
+<author><![CDATA[정종규]]></author>
+<supplier><![CDATA[(주)북큐브네트웍스]]></supplier>
+<category><![CDATA[문학/한국소설]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2026-09-19</publisherDate>
+<buyDate>2026-10-01</buyDate>
+<point>0</point><volume><![CDATA[0]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[epub]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+<nowRentalCount><![CDATA[0]]></nowRentalCount>
+</Product>
+</Products>

@@ -53,6 +53,14 @@ public interface PlatformAdapter {
 		throw new UnsupportedOperationException(platform() + " detail pages are not read");
 	}
 
+	/**
+	 * What is actually requested for a book's page (cycle 07): by default the page itself. Must stay on the same
+	 * host, so the throttle and the cache key do not change. Bookcube reads the same book as XML.
+	 */
+	default URI detailFetchUri(URI detailUri) {
+		return detailUri;
+	}
+
 	/** The book's page on the site for a parsed detail path, relative to the search page it came from. */
 	default URI detailUri(URI searchUri, String detailPath) {
 		return searchUri.resolve(detailPath);

@@ -85,7 +85,9 @@ public class DetailPageFetcher {
 		}
 	}
 
-	private DetailPage load(PlatformAdapter adapter, URI uri, Instant deadline) {
+	private DetailPage load(PlatformAdapter adapter, URI detailUrl, Instant deadline) {
+		// same host, so the throttle key does not change (Bookcube reads the book's XML instead of its page)
+		URI uri = adapter.detailFetchUri(detailUrl);
 		SiteResponse response = throttle.run(uri, deadline, () -> siteFetcher.fetch(uri, deadline));
 		if (!response.isSuccess()) {
 			throw UpstreamException.error("detail status " + response.status() + " from " + HostThrottle.hostPort(uri));

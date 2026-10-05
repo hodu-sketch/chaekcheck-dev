@@ -35,7 +35,8 @@ public class SiteListResolver implements AvailabilityResolver {
 			LibraryPage.Item decided = switch (verdict) {
 				case AVAILABLE -> item.withAvailability(Availability.AVAILABLE, AvailabilityBasis.SITE_LIST);
 				case RESERVABLE -> item.withAvailability(Availability.RESERVABLE, AvailabilityBasis.SITE_LIST);
-				case OTHER -> item.withAvailability(Availability.UNKNOWN, AvailabilityBasis.SITE_LIST);
+				// the portal never writes a subscription verdict
+				case OTHER, SUBSCRIPTION -> item.withAvailability(Availability.UNKNOWN, AvailabilityBasis.SITE_LIST);
 				case BLANK -> {
 					if (item.loaned() != null && item.loaned() == 0) {
 						yield item.withAvailability(Availability.AVAILABLE, AvailabilityBasis.LOANED_ZERO);

@@ -12,7 +12,12 @@ public enum SiteVerdict {
 	/** The field is there but empty. */
 	BLANK,
 	/** Any other text. */
-	OTHER;
+	OTHER,
+	/**
+	 * A rental (subscription) title: any number of users at once, so its counts mean nothing (Bookcube rental sites,
+	 * ADR-0056). Decided like the KYOBO subscription screen.
+	 */
+	SUBSCRIPTION;
 
 	/** Maps the text after "대출 가능 여부:". */
 	public static SiteVerdict of(String text) {

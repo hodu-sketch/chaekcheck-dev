@@ -5,6 +5,7 @@ import java.net.URI;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.resolve.DetailPageFetcher;
 import com.chaekcheck.catalog.HoldingRef;
+import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.SearchTarget;
 
@@ -20,7 +21,9 @@ public record HoldingTask(SearchTarget target, HoldingRef holding, URI detailUri
 	}
 
 	public boolean subscription() {
-		return target.platformType() == PlatformType.KYOBO_SUBSCRIPTION_V1;
+		// an institution with owned copies shows counts on the book's page (ADR-0056)
+		return target.platformType() == PlatformType.KYOBO_SUBSCRIPTION_V1
+				&& target.lendingModel() != LendingModel.OWNED;
 	}
 
 	@Override

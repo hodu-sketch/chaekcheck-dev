@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- saved 2026-10-05 (cycle 07 호출 시험); descriptions, author notes and images removed -->
+	<Product>
+<num>A07010442</num>
+<legacyCode>A07010442</legacyCode>
+<name><![CDATA[영웅 계백 2부 1]]></name>
+<publisher><![CDATA[환상북스]]></publisher>
+<author><![CDATA[이원호]]></author>
+<supplier><![CDATA[(주)북큐브네트웍스]]></supplier>
+<category><![CDATA[장르문학/SF/밀리터리]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2011-10-27</publisherDate>
+<buyDate>2026-01-13</buyDate>
+<point>0</point><volume><![CDATA[0]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[epub]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+<nowRentalCount><![CDATA[0]]></nowRentalCount>
+<Author>
+<num>C000093647</num><legacyCode>BOOKCUBEA07010442</legacyCode><name><![CDATA[이원호]]></name></Author>
+
+</Product>
+

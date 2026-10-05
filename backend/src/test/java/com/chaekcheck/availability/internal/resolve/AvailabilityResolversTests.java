@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.TestTargets;
+import com.chaekcheck.availability.internal.adapter.ParsedDetail;
 import com.chaekcheck.availability.internal.adapter.SiteVerdict;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.Availability;
@@ -41,6 +42,33 @@ class AvailabilityResolversTests {
 		assertThat(resolvers.forPlatform(PlatformType.GANGNAM_V1)).isInstanceOf(CountResolver.class);
 		assertThat(resolvers.forPlatform(PlatformType.KYOBO_SUBSCRIPTION_V1)).isInstanceOf(SubscriptionResolver.class);
 		assertThat(resolvers.forPlatform(PlatformType.ELIB_PORTAL_V1)).isInstanceOf(SiteListResolver.class);
+		assertThat(resolvers.forPlatform(PlatformType.ALADIN_V1)).isInstanceOf(CountResolver.class);
+		assertThat(resolvers.forPlatform(PlatformType.BOOKCUBE_FX)).isInstanceOf(SubscriptionResolver.class);
+	}
+
+	/** Cycle 07 (ADR-0056): owned rows on a subscription screen by count, rental rows as subscription. */
+	@Test
+	void subscriptionScreensDecideOwnedRowsByCount() { // AC-9, AC-23
+		LibraryPage.Item rental = new LibraryPage.Item(3, "t3", null, null, null, 0, 0, 0, 0, "t3", null, null, null,
+				SiteVerdict.SUBSCRIPTION);
+
+		assertThat(resolve(PlatformType.KYOBO_SUBSCRIPTION_V1, counted(1, 1, 1), noCounts(2, null)).page().items())
+			.extracting(LibraryPage.Item::availability, LibraryPage.Item::availabilityBasis)
+			.containsExactly(tuple(Availability.RESERVABLE, AvailabilityBasis.COUNT),
+					tuple(Availability.AVAILABLE, AvailabilityBasis.SUBSCRIPTION));
+		assertThat(resolve(PlatformType.BOOKCUBE_FX, counted(1, 5, 2), rental).page().items())
+			.extracting(LibraryPage.Item::availability, LibraryPage.Item::availabilityBasis)
+			.containsExactly(tuple(Availability.AVAILABLE, AvailabilityBasis.COUNT),
+					tuple(Availability.AVAILABLE, AvailabilityBasis.SUBSCRIPTION));
+	}
+
+	@Test
+	void rentalDetailIsASubscription() {
+		assertThat(resolvers.decideDetail(PlatformType.BOOKCUBE_FX,
+				new ParsedDetail(0, 0, 0, SiteVerdict.SUBSCRIPTION)))
+			.isEqualTo(new Decision(Availability.AVAILABLE, AvailabilityBasis.SUBSCRIPTION));
+		assertThat(resolvers.decideDetail(PlatformType.ALADIN_V1, ParsedDetail.counted(1, 1, 0)))
+			.isEqualTo(new Decision(Availability.RESERVABLE, AvailabilityBasis.COUNT));
 	}
 
 	@Test

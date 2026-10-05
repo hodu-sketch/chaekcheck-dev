@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- saved 2026-10-05 (cycle 07 호출 시험); descriptions, author notes and images removed -->
+<Products>
+<ProductListParam>
+<keyword><![CDATA[사랑]]></keyword>
+<keyoption></keyoption>
+<keyoption2>1</keyoption2>
+<SortList>
+<sort id="1" value="제목" /><sort id="2" value="출판일" /><sort id="3" value="구매일" /></SortList>
+<sort>3</sort>
+<page>1</page>
+<totalItem>128</totalItem>
+<totalVolume>355</totalVolume>
+<itemCount>20</itemCount>
+<pageCount>10</pageCount>
+<CategoryList>
+</CategoryList>
+<category></category>
+<itemdv>1</itemdv>
+</ProductListParam>
+
+<Product>
+<num>F0003069</num>
+<legacyCode>4808959134991</legacyCode>
+<name><![CDATA[엄마, 오늘도 사랑해]]></name>
+<publisher><![CDATA[예담]]></publisher>
+<author><![CDATA[구작가]]></author>
+<supplier><![CDATA[교보 전자책]]></supplier>
+<category><![CDATA[에세이/산문/에세이]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2017-04-05</publisherDate>
+<buyDate>2017-10-18</buyDate>
+<point>0</point><volume><![CDATA[2]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[epub]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+</Product>
+<Product>
+<num>F0003068</num>
+<legacyCode>4808959134823</legacyCode>
+<name><![CDATA[사랑의 생애]]></name>
+<publisher><![CDATA[예담]]></publisher>
+<author><![CDATA[이승우]]></author>
+<supplier><![CDATA[교보 전자책]]></supplier>
+<category><![CDATA[문학/한국소설]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2017-03-02</publisherDate>
+<buyDate>2017-10-18</buyDate>
+<point>0</point><volume><![CDATA[2]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[epub]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+</Product>
+<Product>
+<num>F0002944</num>
+<legacyCode>4808956057767</legacyCode>
+<name><![CDATA[혼자가 더 편한 사람들의 사랑법]]></name>
+<publisher><![CDATA[북하우스]]></publisher>
+<author><![CDATA[미하엘 나스트]]></author>
+<supplier><![CDATA[교보 전자책]]></supplier>
+<category><![CDATA[에세이/산문/에세이]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>0004-26-84</publisherDate>
+<buyDate>2017-06-09</buyDate>
+<point>0</point><volume><![CDATA[2]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[epub]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+</Product>
+</Products>

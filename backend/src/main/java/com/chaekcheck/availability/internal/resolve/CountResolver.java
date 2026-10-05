@@ -16,9 +16,11 @@ public class CountResolver implements AvailabilityResolver {
 
 	@Override
 	public Resolution resolve(SearchTarget target, LibraryPage page, Instant detailDeadline) {
-		return new Resolution(page.withItems(items -> items.stream()
-			.map(item -> item.withAvailability(availability(item), AvailabilityBasis.COUNT))
-			.toList()), List.of());
+		return new Resolution(page.withItems(items -> items.stream().map(this::decide).toList()), List.of());
+	}
+
+	LibraryPage.Item decide(LibraryPage.Item item) {
+		return item.withAvailability(availability(item), AvailabilityBasis.COUNT);
 	}
 
 	private static Availability availability(LibraryPage.Item item) {

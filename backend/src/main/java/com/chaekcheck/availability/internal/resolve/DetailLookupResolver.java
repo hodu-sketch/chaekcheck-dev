@@ -69,7 +69,8 @@ public class DetailLookupResolver {
 		return switch (verdict) {
 			case AVAILABLE -> new Decision(Availability.AVAILABLE, AvailabilityBasis.SITE_DETAIL);
 			case RESERVABLE -> new Decision(Availability.RESERVABLE, AvailabilityBasis.SITE_DETAIL);
-			case BLANK, OTHER -> UNKNOWN;
+			// the portal never writes a subscription verdict
+			case BLANK, OTHER, SUBSCRIPTION -> UNKNOWN;
 		};
 	}
 

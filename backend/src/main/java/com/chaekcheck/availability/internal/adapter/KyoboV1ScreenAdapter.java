@@ -48,18 +48,19 @@ abstract class KyoboV1ScreenAdapter implements PlatformAdapter {
 	/** Path between the origin and {@code /search/searchList.ink}. */
 	abstract String pathPrefix();
 
-	/** Whether rows show "대출 : X/Y 예약 : Z". */
+	/**
+	 * Whether every row shows "대출 : X/Y 예약 : Z". When false (subscription screen) a row may still show it: an
+	 * owned title of an institution with owned copies (2026-10-05 호출 시험: 거제시청, 대구광역시교육청).
+	 */
 	abstract boolean hasCounts();
 
 	/**
 	 * Detail page ({@code contentView.ink}): one {@code span.use} "[ 대출 : X/Y 예약 : Z ]" for the book (호출 시험
-	 * 2026-09-30). Subscription detail pages are never requested [확정].
+	 * 2026-09-30; the subscription screen of an owned-copies institution too, 2026-10-05). Subscription titles'
+	 * detail pages are never requested: only libraries with {@code lendingModel = OWNED} read them (ADR-0056).
 	 */
 	@Override
 	public ParsedDetail parseDetail(byte[] body, Charset declaredCharset) {
-		if (!hasCounts()) {
-			return PlatformAdapter.super.parseDetail(body, declaredCharset);
-		}
 		Document doc = HtmlParsing.document(body, PlatformAdapter.charsetOr(declaredCharset, charset()));
 		Element use = HtmlParsing.required(doc, "span.use", platform().name());
 		Matcher m = USE.matcher(use.text());
@@ -121,10 +122,11 @@ abstract class KyoboV1ScreenAdapter implements PlatformAdapter {
 		String author = writer == null ? null : author(writer);
 		String publisher = writer == null ? null : HtmlParsing.textOrNull(writer, "span");
 		String supplier = HtmlParsing.textOrNull(li, "span.store");
-		if (!hasCounts()) {
+		Element useLine = hasCounts() ? HtmlParsing.required(li, "p.use", platform().name()) : li.selectFirst("p.use");
+		if (useLine == null) {
 			return new ParsedItem(title, author, publisher, supplier, null, null, null, detailPath(li), null);
 		}
-		Matcher use = USE.matcher(HtmlParsing.required(li, "p.use", platform().name()).text());
+		Matcher use = USE.matcher(useLine.text());
 		if (!use.find()) {
 			throw UpstreamException.error(platform() + ": unexpected p.use text for " + title);
 		}
