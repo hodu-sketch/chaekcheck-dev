@@ -22,8 +22,8 @@ type Props = {
   onFilterChange: (filter: ResultFilter) => void
   onEditRegions: () => void
   /**
-   * The place on the "상세검색 · 설정" line for the "N곳" button, which replaces the row of libraries on every width
-   * (user requests 2026-10-05); null while that place is not there yet.
+   * The place for the "N곳" button (the search page's, see `countSlot` there), which replaces the row of libraries on
+   * every width (user requests 2026-10-05); null while that place is not there yet.
    */
   countSlot: HTMLElement | null
 }

@@ -18,7 +18,8 @@ interface Props {
 
 /**
  * Direct search on every width (user requests 2026-10-05): no row of libraries, only an "N곳" button that opens the
- * same full list as "… 외 N곳". It sits on the "상세검색 · 설정" line; the list opens below it, never past the window.
+ * same full list as "… 외 N곳". It sits on the "상세검색 · 설정" line on phones and at the right end of the scope controls' row on wider
+ * screens; the list opens below it, never past the window.
  */
 export function LibraryCountButton({ libraries, results, hasMore, onMore }: Props) {
   return (

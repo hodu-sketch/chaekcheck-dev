@@ -47,7 +47,8 @@ export function SearchPage() {
   const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
   const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
   const [modalOpen, setModalOpen] = useState(false)
-  // direct search: where the "N곳" button goes, at the right end of the "상세검색 · 설정" line (every width)
+  // direct search: where the "N곳" button goes (user requests 2026-10-05): phones at the right end of the
+  // "상세검색 · 설정" line, wider screens at the right end of the scope controls' row
   const [countSlot, setCountSlot] = useState<HTMLElement | null>(null)
   // phones: the scope controls fold into the settings panel (D안, user choice 2026-10-05)
   const phone = useMediaQuery('(width <= 640px)')
@@ -183,17 +184,20 @@ export function SearchPage() {
           lineEnd={
             phone && bookQuery ? (
               <SortSelect value={bookQuery.sort} onChange={changeSort} />
-            ) : settings.direct && directValid ? (
+            ) : phone && settings.direct && directValid ? (
               <div ref={setCountSlot} className={styles.countSlot} />
             ) : undefined
           }
         />
         {/* one line: what to search, then what "내 도서관"/"내 지역" holds behind a button (user request 2026-10-05) */}
         {!phone && (
-          <div className={styles.toggles}>
-            {scopeSwitch}
-            {visitToggle}
-            {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
+          <div className={styles.scopeRow}>
+            <div className={styles.toggles}>
+              {scopeSwitch}
+              {visitToggle}
+              {mine ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
+            </div>
+            {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
           </div>
         )}
       </section>

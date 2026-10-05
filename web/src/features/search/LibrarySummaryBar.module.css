@@ -82,15 +82,15 @@
 }
 
 /*
- * The "N곳" button on the "상세검색 · 설정" line, the same height as those (user requests 2026-10-05): the search line's
- * height on wider screens, the smaller control height on phones.
+ * The "N곳" button, as tall as the controls beside it (user requests 2026-10-05): the scope controls on wider screens,
+ * "상세검색" and settings on phones.
  */
 .count {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  height: var(--search-height);
-  padding: 0 1rem;
+  height: var(--control-height);
+  padding: 0 0.85rem;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
   background: var(--card);
@@ -297,11 +297,6 @@
  * nothing is squeezed into one letter per line (user request 2026-10-05)
  */
 @media (width <= 640px) {
-  .count {
-    height: var(--control-height);
-    padding: 0 0.85rem;
-  }
-
   /* never past the bottom of the screen; it scrolls inside */
   .popover,
   .popover[data-compact] {

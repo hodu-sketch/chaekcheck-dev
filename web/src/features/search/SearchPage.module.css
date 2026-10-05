@@ -57,6 +57,18 @@
   justify-content: center;
 }
 
+/* the scope controls' box, then (direct search) the "N곳" button at the row's right end (user request 2026-10-05) */
+.scopeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.page[data-state='start'] .scopeRow {
+  justify-content: center;
+}
+
 .headline {
   text-wrap: balance;
   font-size: clamp(calc(1.9 * var(--base-unscaled)), calc(1.2 * var(--base-unscaled)) + 2.3vw, calc(3 * var(--base-unscaled)));
@@ -215,16 +227,10 @@
   outline-offset: 2px;
 }
 
-/* direct search: holds the "N곳" button on the "상세검색 · 설정" line, a little apart from the other two */
+/* direct search: holds the "N곳" button (phones: on the "상세검색 · 설정" line; wider: the scope row's right end) */
 .countSlot {
   display: flex;
-  margin-left: 0.4rem;
-}
-
-@media (width <= 640px) {
-  .countSlot {
-    margin-left: 0;
-  }
+  flex: none;
 }
 
 /* the expanded conditions keep their left alignment on the centered start screen */
