@@ -516,3 +516,9 @@
   font-size: var(--text-xs);
   font-weight: 800;
 }
+
+/* cycle 07: the join notice of a library whose join rules were not found or not researched (R6) */
+.surveyNotice {
+  font-weight: 700;
+  color: var(--ink);
+}

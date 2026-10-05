@@ -1,0 +1,34 @@
+/* A library's logo or an empty box before its name (cycle 07, ADR-0059) */
+.wrap {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  /* above a result card's whole-card link */
+  position: relative;
+  z-index: 1;
+  vertical-align: middle;
+}
+
+.link {
+  border-radius: 4px;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.logo {
+  display: block;
+  width: auto;
+  /* wide logos stay readable but do not push the name away */
+  max-width: 6.5rem;
+  object-fit: contain;
+}
+
+.empty {
+  display: block;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: transparent;
+}

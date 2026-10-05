@@ -33,6 +33,8 @@ const library = (id: number): TargetLibrary => ({
   joinNotice: null,
   homepageUrl: null,
   chosen: false,
+  joinSurvey: 'SURVEYED',
+  logoUrl: null,
 })
 
 const loading: LibraryResult = { status: 'loading', pages: [], loanRate: null, more: 'idle' }

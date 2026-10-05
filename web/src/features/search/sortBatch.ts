@@ -31,9 +31,12 @@ export interface SortedBatch {
   pending: ResultRow[]
 }
 
-/** "가입 자격 확인 필요": region rules without the user's regions (UNKNOWN), or no verified rules (UNVERIFIED). */
+/**
+ * "가입 자격 확인 필요": region rules without the user's regions (UNKNOWN), no verified rules (UNVERIFIED), or join
+ * rules not researched (UNSURVEYED, cycle 07).
+ */
 export function needsJoinCheck(eligibility: Eligibility | undefined): boolean {
-  return eligibility === 'UNKNOWN' || eligibility === 'UNVERIFIED'
+  return eligibility === 'UNKNOWN' || eligibility === 'UNVERIFIED' || eligibility === 'UNSURVEYED'
 }
 
 /**

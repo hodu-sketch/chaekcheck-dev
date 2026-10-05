@@ -43,6 +43,21 @@ export async function addMyLibrary(libraryId: number): Promise<void> {
   return noContent(await meRequest(`/api/v1/me/libraries/${libraryId}`, { method: 'PUT', headers: JSON_ACCEPT }))
 }
 
+/**
+ * Moves the libraries added in this browser before login to the account in one go (cycle 07, ADR-0057). Only an
+ * account without libraries takes them: 409 `library_import_not_empty` otherwise. 400 `validation_error` for 0 or more
+ * than 20 ids. Unknown or disabled ids are skipped. Returns every library of the account afterwards.
+ */
+export async function importMyLibraries(libraryIds: number[]): Promise<MyLibraries> {
+  return json(
+    await meRequest('/api/v1/me/library-imports', {
+      method: 'POST',
+      headers: { ...JSON_ACCEPT, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ libraryIds }),
+    }),
+  )
+}
+
 /** 204 also when it was not there. */
 export async function removeMyLibrary(libraryId: number): Promise<void> {
   return noContent(await meRequest(`/api/v1/me/libraries/${libraryId}`, { method: 'DELETE', headers: JSON_ACCEPT }))

@@ -33,6 +33,8 @@ const openLibrary: TargetLibrary = {
   joinNotice: null,
   homepageUrl: null,
   chosen: false,
+  joinSurvey: 'SURVEYED',
+  logoUrl: null,
 }
 
 /** The join details open from "ⓘ 가입 정보" on every width (user request 2026-10-05). */
@@ -188,5 +190,69 @@ describe('the card opens the library (user request 2026-10-05)', () => {
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1, detailUrl: null })} library={openLibrary} searchUrl={undefined} />)
 
     expect(screen.queryByRole('link')).toBeNull()
+  })
+})
+
+/** Cycle 07 (R6, AC-14): a candidate library's notice by its join research, then its front page. */
+describe('join notice of candidate libraries', () => {
+  const candidate: TargetLibrary = {
+    ...openLibrary,
+    id: 2,
+    name: '강동대학교 (북큐브)',
+    eligibility: 'UNSURVEYED',
+    joinMethod: null,
+    homepageUrl: 'https://gangdong.bookcube.biz/FxLibrary',
+    chosen: true,
+  }
+
+  it.each([
+    ['NOT_FOUND', '가입 조건을 찾지 못했어요. 도서관 사이트에서 확인해 주세요'],
+    ['MEMBERS_ONLY', '학교·회사 같은 기관의 구성원용으로 보여요. 이용할 수 있는지는 그 기관에 확인해 주세요'],
+    ['NOT_SURVEYED', '가입 정보를 아직 조사하지 않았어요'],
+  ] as const)('%s shows its notice and the front page link', async (joinSurvey, notice) => {
+    const popover = await renderOpen({ ...candidate, joinSurvey })
+
+    expect(popover.textContent).toContain(notice)
+    expect(popover.textContent).not.toContain('가입 자격 확인 필요')
+    const link = screen.getByRole('link', { name: /도서관 첫 화면/ })
+    expect(link.getAttribute('href')).toBe('https://gangdong.bookcube.biz/FxLibrary')
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('a surveyed candidate shows the usual join details', async () => {
+    const popover = await renderOpen({ ...candidate, joinSurvey: 'SURVEYED', eligibility: 'OPEN', chosen: false })
+
+    expect(popover.textContent).toContain('누구나 가입')
+    expect(screen.queryByRole('link', { name: /도서관 첫 화면/ })).toBeNull()
+  })
+
+  it('draws the name as text only', () => {
+    render(
+      <ResultRow
+        row={testRow({ libraryId: 2, rank: 1 })}
+        library={{ ...candidate, joinSurvey: 'NOT_SURVEYED', name: '<b>학교</b>' }}
+        searchUrl={undefined}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '<b>학교</b> 가입 정보' }).textContent).toBe('<b>학교</b>')
+  })
+})
+
+/** Cycle 07 (ADR-0059, AC-20): the logo before the name opens the library, not the book. */
+describe('library logo on the card', () => {
+  it('opens the library front page apart from the card link', () => {
+    render(
+      <ResultRow
+        row={testRow({ libraryId: 2, rank: 1, detailUrl: 'https://lib.test/book/1' })}
+        library={{ ...openLibrary, logoUrl: '/library-logos/2.png', homepageUrl: 'https://lib.test/main' }}
+        searchUrl={undefined}
+      />,
+    )
+
+    const logo = screen.getByRole('img', { name: openLibrary.name })
+    expect(logo.getAttribute('src')).toBe('/library-logos/2.png')
+    expect(logo.closest('a')?.getAttribute('href')).toBe('https://lib.test/main')
+    expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
   })
 })

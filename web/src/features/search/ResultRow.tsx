@@ -1,5 +1,6 @@
 import { Popover } from 'radix-ui'
-import type { TargetLibrary } from '../../api/types'
+import type { JoinSurvey, TargetLibrary } from '../../api/types'
+import { LibraryLogo } from '../../components/LibraryLogo'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { needsJoinCheck, type ResultRow as Row } from './sortBatch'
@@ -31,10 +32,31 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   // no known join page yet: the library's e-library front page, where its sign-up guide can be found
   const siteUrl = joinUrl ? undefined : siteOrigin(searchUrl)
   const libraryName = library?.name ?? '도서관'
+  // a candidate library whose join rules were not found or not researched (cycle 07, R6): its notice instead
+  const surveyNotice = library ? SURVEY_NOTICE[library.joinSurvey] : undefined
+  const homepageUrl = safeHttpUrl(library?.homepageUrl)
   const state = row.failed ? '확인 실패' : stateText(row)
   const group = row.availability === 'AVAILABLE' ? 'borrow' : row.availability === 'PENDING' ? 'pending' : 'reserve'
 
-  const conditionLines = (
+  const conditionLines = surveyNotice ? (
+    <>
+      <p className={styles.surveyNotice}>{surveyNotice}</p>
+      {library?.joinMethod && <p className={styles.join}>가입: {library.joinMethod}</p>}
+      {library?.joinCaution && (
+        <p className={styles.caution}>
+          <span className={styles.cautionMark}>주의</span> {library.joinCaution}
+        </p>
+      )}
+      {homepageUrl && (
+        <p className={styles.join}>
+          <a className={styles.joinLink} href={homepageUrl} target="_blank" rel="noopener noreferrer">
+            도서관 첫 화면
+            <span className="visually-hidden"> (새 창)</span>
+          </a>
+        </p>
+      )}
+    </>
+  ) : (
     <>
       {/* "가입 자격 확인 필요" is in here too, not next to the name (user request 2026-10-05) */}
       {joinCheck && joinCondition !== '가입 자격 확인 필요' && (
@@ -91,6 +113,8 @@ export function ResultRow({ row, library, searchUrl }: Props) {
 
       <div className={styles.library}>
         <p className={styles.libraryName}>
+          {/* the logo before the name opens the library's main page (cycle 07, ADR-0059) */}
+          <LibraryLogo name={libraryName} logoUrl={library?.logoUrl} homepageUrl={library?.homepageUrl} size={20} />
           {/* the library name opens the join details on every width (user requests 2026-10-05; U-12 before) */}
           <Popover.Root>
             <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>
@@ -149,6 +173,14 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       )}
     </article>
   )
+}
+
+/** The join notice of a library whose join rules were not found or not researched (cycle 07, spec R6) [확정]. */
+const SURVEY_NOTICE: Record<JoinSurvey, string | undefined> = {
+  SURVEYED: undefined,
+  NOT_FOUND: '가입 조건을 찾지 못했어요. 도서관 사이트에서 확인해 주세요',
+  MEMBERS_ONLY: '학교·회사 같은 기관의 구성원용으로 보여요. 이용할 수 있는지는 그 기관에 확인해 주세요',
+  NOT_SURVEYED: '가입 정보를 아직 조사하지 않았어요',
 }
 
 /** Scheme + host (+ port) of the library's search page, i.e. its e-library front page. */

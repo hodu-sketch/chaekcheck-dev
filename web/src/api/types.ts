@@ -1,6 +1,12 @@
 // Response types. Field names match design-delta (camelCase).
 
-export type Eligibility = 'OPEN' | 'ELIGIBLE' | 'UNKNOWN' | 'UNVERIFIED'
+/**
+ * UNSURVEYED (cycle 07, ADR-0053): join rules not researched (a school, company or other body, or a library of unknown
+ * kind). Such a library is searched only when the user added it; never joinable.
+ */
+export type Eligibility = 'OPEN' | 'ELIGIBLE' | 'UNKNOWN' | 'UNVERIFIED' | 'UNSURVEYED'
+/** How far a library's join rules were researched (cycle 07, ADR-0053); picks the join notice of a candidate library. */
+export type JoinSurvey = 'SURVEYED' | 'NOT_FOUND' | 'MEMBERS_ONLY' | 'NOT_SURVEYED'
 /** Search priority group; the plan is ordered by it (design-delta "우선순위 그룹 계산"). */
 export type PriorityGroup = 'MY_SIGUNGU' | 'MY_SIDO' | 'OPEN' | 'QUALIFIED' | 'NEEDS_CHECK'
 export type LibraryType = 'EBOOK'
@@ -12,6 +18,8 @@ export type PlatformType =
   | 'YES24_V3'
   | 'ELIB_PORTAL_V1'
   | 'GANGNAM_V1'
+  | 'BOOKCUBE_FX'
+  | 'ALADIN_V1'
 
 /** RFC 9457 Problem Details with the `code` member (ADR-0008). Branch on `code`. */
 export interface Problem {
@@ -59,7 +67,8 @@ export interface TargetLibrary {
   /** Eligibility we cannot decide from regions, shown as text (e.g. 책이음 members). */
   extraConditionText: string | null
   visitRequired: boolean
-  joinMethod: string
+  /** Null for a library whose join rules were not researched (cycle 07). */
+  joinMethod: string | null
   /** The library's join or eligibility page; null when not known. */
   joinUrl: string | null
   /** Original text shown as a caution (e.g. loan cards only for residents); does not change the eligibility. */
@@ -73,6 +82,10 @@ export interface TargetLibrary {
    * "직접 추가" instead of the eligibility badge. Only the first stream's `targets` carry it (C16).
    */
   chosen: boolean
+  /** Cycle 07: how far the join rules were researched (SURVEYED for registered libraries). */
+  joinSurvey: JoinSurvey
+  /** Cycle 07 (ADR-0059): the library's own logo (`/library-logos/…`), or null: show the empty box. */
+  logoUrl: string | null
 }
 
 /** Which book field the search text is matched against; also the name of the one condition parameter (ADR-0025). */
@@ -318,6 +331,12 @@ export interface LibraryEligibilityRow {
   /** The library has a join caution. */
   cautioned: boolean
   eligibilitySummary: string | null
+  /** Cycle 07: how far the join rules were researched. */
+  joinSurvey: JoinSurvey
+  /** The e-library's main page, opened from the logo; may be null. */
+  homepageUrl: string | null
+  /** The library's own logo, or null (ADR-0059). */
+  logoUrl: string | null
 }
 
 /** `GET`/`PUT /api/v1/me/regions`: saved ids in the chosen order (abolished ids come back as they are). */

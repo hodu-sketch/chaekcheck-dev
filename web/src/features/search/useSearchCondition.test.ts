@@ -31,6 +31,8 @@ function target(id: number): TargetLibrary {
     joinNotice: null,
     homepageUrl: null,
     chosen: false,
+    joinSurvey: 'SURVEYED',
+    logoUrl: null,
   }
 }
 

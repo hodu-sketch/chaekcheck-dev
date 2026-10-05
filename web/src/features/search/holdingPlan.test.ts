@@ -28,6 +28,8 @@ function library(id: number, overrides: Partial<TargetLibrary> = {}): TargetLibr
     joinNotice: null,
     homepageUrl: null,
     chosen: false,
+    joinSurvey: 'SURVEYED',
+    logoUrl: null,
     ...overrides,
   }
 }
