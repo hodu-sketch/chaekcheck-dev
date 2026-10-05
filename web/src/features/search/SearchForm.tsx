@@ -34,12 +34,12 @@ type Props = {
   /** Phones: what "찾을 도서관" is set to, on its row in the settings sheet. */
   settingsScopeValue?: string
   settingsMarked?: boolean
-  /** Phones: the sort, at the right end of the "여러 조건 · 설정" line (user request 2026-10-05). */
+  /** Phones: the sort, at the right end of the "상세검색 · 설정" line (user request 2026-10-05). */
   lineEnd?: ReactNode
 }
 
 /**
- * S1 search area (flow.md cycle 04): one title box with [검색], "여러 조건" for author and publisher, a "완전 일치"
+ * S1 search area (flow.md cycle 04): one title box with [검색], "상세검색" for author and publisher, a "완전 일치"
  * check per field, author roles, and ⚙ for S4. No condition dropdown [확정]. Empty fields are left out; at least one
  * is needed; each filled field must be 2 to 50 characters (cycle 01 rule). With "도서관에서 직접 찾기" on, what the
  * site search cannot use is dimmed with a short reason, and only the first filled field is searched.
@@ -144,13 +144,13 @@ export function SearchForm({
           className={styles.moreButton}
           aria-expanded={expanded}
           aria-controls={`${id}-more`}
-          aria-label="여러 조건"
+          aria-label="상세검색"
           onClick={() => setExpanded((open) => !open)}
         >
           <span className={styles.moreIcon} aria-hidden="true">
             ☰
           </span>
-          <span className={styles.moreLabel}>여러 조건</span>
+          <span className={styles.moreLabel}>상세검색</span>
           <span className={styles.caret} aria-hidden="true">
             {expanded ? '▴' : '▾'}
           </span>

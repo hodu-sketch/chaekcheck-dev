@@ -65,7 +65,7 @@
   --radius-control: 10px;
   --radius-inner: 8px;
   --radius-tag: 6px;
-  /* control heights: the search line (field, 여러 조건, ⚙) and the other buttons (sort, ...) */
+  /* control heights: the search line (field, 상세검색, ⚙) and the other buttons (sort, ...) */
   --search-height: 3.5rem;
   --control-height: 2.6rem;
 

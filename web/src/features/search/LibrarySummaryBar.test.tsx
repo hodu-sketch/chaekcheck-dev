@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
-import { cacheAge, LibrarySummaryBar } from './LibrarySummaryBar'
+import { cacheAge, LibraryCountButton, LibrarySummaryBar } from './LibrarySummaryBar'
 import type { LibraryResult } from './useSearch'
 
 afterEach(cleanup)
@@ -62,6 +62,24 @@ describe('LibrarySummaryBar (U-8)', () => {
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('조회한 도서관 7곳')).toBeTruthy()
     expect(within(dialog).getAllByText(/^도서관\d$/)).toHaveLength(7)
+  })
+})
+
+describe('LibraryCountButton (phones, user request 2026-10-05)', () => {
+  it('is one "N곳" button, no row of libraries, and opens the full list', async () => {
+    const user = userEvent.setup()
+    const libraries = [1, 2, 3].map(library)
+    render(<LibraryCountButton libraries={libraries} results={{}} hasMore={() => false} onMore={vi.fn()} />)
+
+    expect(screen.queryByRole('list', { name: '조회한 도서관' })).toBeNull()
+    const button = screen.getByRole('button', { name: '도서관 3곳 모두 보기' })
+    expect(button.textContent).toBe('3곳')
+
+    await user.click(button)
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('조회한 도서관 3곳')).toBeTruthy()
+    expect(within(dialog).getAllByText(/^도서관\d$/)).toHaveLength(3)
   })
 })
 

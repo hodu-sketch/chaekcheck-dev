@@ -16,6 +16,23 @@ interface Props {
   onMore: (libraryId: number) => void
 }
 
+/**
+ * Phones (user request 2026-10-05): no sideways row of libraries, only an "N곳" button that opens the same full list
+ * as "… 외 N곳". It sits on the "상세검색 · 설정" line.
+ */
+export function LibraryCountButton({ libraries, results, hasMore, onMore }: Props) {
+  return (
+    <AllLibraries
+      libraries={libraries}
+      hidden={libraries}
+      results={results}
+      hasMore={hasMore}
+      onMore={onMore}
+      compact
+    />
+  )
+}
+
 /** One cell per requested library: state, fetched/total, cache age, the library's own 더 보기. */
 export function LibrarySummaryBar({ libraries, results, hasMore, onMore }: Props) {
   const visible = libraries.slice(0, VISIBLE_LIBRARIES)
@@ -39,16 +56,37 @@ export function LibrarySummaryBar({ libraries, results, hasMore, onMore }: Props
   )
 }
 
-function AllLibraries({ libraries, hidden, results, hasMore, onMore }: Props & { hidden: TargetLibrary[] }) {
+function AllLibraries({
+  libraries,
+  hidden,
+  results,
+  hasMore,
+  onMore,
+  compact = false,
+}: Props & { hidden: TargetLibrary[]; compact?: boolean }) {
   const pending = hidden.filter((l) => !results[l.id] || results[l.id].status === 'loading').length
   return (
     <Popover.Root>
-      <Popover.Trigger className={styles.overflow} aria-label={`도서관 ${libraries.length}곳 모두 보기`}>
-        <span aria-hidden="true">…</span> 외 {hidden.length}곳
+      <Popover.Trigger
+        className={compact ? styles.count : styles.overflow}
+        aria-label={`도서관 ${libraries.length}곳 모두 보기`}
+      >
+        {compact ? (
+          `${libraries.length}곳`
+        ) : (
+          <>
+            <span aria-hidden="true">…</span> 외 {hidden.length}곳
+          </>
+        )}
         {pending > 0 && <span className={styles.spinner} aria-hidden="true" />}
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content className={styles.popover} align="start" sideOffset={8} collisionPadding={12}>
+        <Popover.Content
+          className={styles.popover}
+          align={compact ? 'end' : 'start'}
+          sideOffset={8}
+          collisionPadding={12}
+        >
           <p className={styles.popoverTitle}>조회한 도서관 {libraries.length}곳</p>
           <ul className={styles.popoverList}>
             {libraries.map((library) => (

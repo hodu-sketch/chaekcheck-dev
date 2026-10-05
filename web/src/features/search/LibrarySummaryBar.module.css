@@ -81,6 +81,35 @@
   background: var(--card);
 }
 
+/* phones: the "N곳" button on the "상세검색 · 설정" line, the same height as those (user request 2026-10-05) */
+.count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--control-height);
+  padding: 0 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.count:hover,
+.count[data-state='open'] {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.count:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .popover {
   position: relative;
   width: min(34rem, calc(100vw - 2rem));
@@ -246,6 +275,45 @@
   .cell {
     flex: none;
     scroll-snap-align: start;
+    white-space: nowrap;
+  }
+}
+
+/*
+ * phones: in the full list (opened from "N곳"), the name on its own line and the count, age and 더 보기 under it, so
+ * nothing is squeezed into one letter per line (user request 2026-10-05)
+ */
+@media (width <= 640px) {
+  /* never past the bottom of the screen; it scrolls inside */
+  .popover {
+    max-height: min(28rem, var(--radix-popover-content-available-height));
+    padding: 0.9rem 0.75rem 1rem;
+  }
+
+  .popoverTitle {
+    padding-right: 2rem;
+  }
+
+  .popoverRow {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .popoverRow .name {
+    flex: 1 1 100%;
+    min-width: 0;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .popoverRow .status {
+    flex-wrap: wrap;
+    white-space: nowrap;
+  }
+
+  .popoverRow .more {
+    margin-left: auto;
     white-space: nowrap;
   }
 }

@@ -69,7 +69,7 @@
   font-size: var(--text-md);
 }
 
-/* Title box, then "여러 조건" and ⚙ on the right (flow.md 배치 메모) */
+/* Title box, then "상세검색" and ⚙ on the right (flow.md 배치 메모) */
 .topLine {
   display: flex;
   align-items: center;
@@ -205,7 +205,7 @@
   border-left: 1px solid var(--paper-deep);
 }
 
-/* 1024px and below: "여러 조건" becomes an icon (flow.md) */
+/* 1024px and below: "상세검색" becomes an icon (flow.md) */
 @media (width <= 1024px) {
   .moreLabel,
   .caret {
@@ -222,7 +222,7 @@
 }
 
 /*
- * 640px and below: the title box alone on the first line, then "여러 조건" (in words) and the settings button on the
+ * 640px and below: the title box alone on the first line, then "상세검색" (in words) and the settings button on the
  * next (user request 2026-10-05); one field per line, roles under the author box (flow.md)
  */
 @media (width <= 640px) {
@@ -240,7 +240,7 @@
     margin-left: auto;
   }
 
-  /* the first screen: "여러 조건" and the settings button centered under the box (user request 2026-10-05) */
+  /* the first screen: "상세검색" and the settings button centered under the box (user request 2026-10-05) */
   .form[data-start] .topLine {
     justify-content: center;
   }
@@ -314,10 +314,7 @@
     white-space: nowrap;
   }
 
-  /* the title line has no box: its check at the right end, under the others */
-  .row > .rowLabel + .check {
-    margin-left: auto;
-  }
+  /* the title line has no box: its check right after "제목", as on wider screens (user request 2026-10-05) */
 
   /* 옮긴이·그림·엮은이 start under the author box, not under "저자" (user request 2026-10-05) */
   .roles {

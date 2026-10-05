@@ -33,12 +33,12 @@ function setup(props: Partial<Parameters<typeof SearchForm>[0]> = {}) {
 }
 
 const titleBox = () => screen.getByRole('searchbox', { name: '책 제목' })
-const moreButton = () => screen.getByRole('button', { name: '여러 조건' })
+const moreButton = () => screen.getByRole('button', { name: '상세검색' })
 const box = (name: string) => screen.getByRole('searchbox', { name }) as HTMLInputElement
 const check = (name: string | RegExp) => screen.getByRole('checkbox', { name }) as HTMLInputElement
 
 describe('SearchForm (cycle 04 AC-1)', () => {
-  it('shows one title box, "여러 조건" and settings, and no condition dropdown', () => {
+  it('shows one title box, "상세검색" and settings, and no condition dropdown', () => {
     setup()
 
     expect(titleBox().getAttribute('placeholder')).toBe('책 제목을 입력하세요')
@@ -48,7 +48,7 @@ describe('SearchForm (cycle 04 AC-1)', () => {
     expect(screen.queryByRole('searchbox', { name: '저자' })).toBeNull()
   })
 
-  it('"여러 조건" shows author and publisher; opening does not search [안]', async () => {
+  it('"상세검색" shows author and publisher; opening does not search [안]', async () => {
     const { user, onSearch } = setup()
 
     await user.click(moreButton())
