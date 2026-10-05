@@ -1632,3 +1632,60 @@ plan 인계서 `docs/current/handoff.md`(사이클 07 후보 도서관 넣기)�
 - **새로 안 것: 지역 표에 증평군(충북)이 없음.** 증평군립도서관(100111)은 규칙 없이 요약 글만 둠(화면에서 자격 미확인). 증평군 인접 면, 진천 "충북 혁신도시"처럼 시·군·구보다 작은 범위는 규칙에서 뺌. 지역 표 보충은 별도 작업으로 남김.
 - `public-join` TSV 칸은 기존 `apply_join_classification.py` 입력(verdict·rules)과 달라 새 스크립트가 직접 읽음: `eligibility` REGION·OPEN·OPEN_CAUTION → SURVEYED + 규칙(지역 이름 → 번호는 `eligibility_rules.region`, 거주·재직 범위가 다른 7곳은 원문을 주석으로 둔 `SCOPE_OVERRIDES`), UNVERIFIED → NOT_FOUND, AFFILIATION → MEMBERS_ONLY.
 - 등록 도서관 로고 표 `registered-logos-2026-10-05.tsv`의 `library_id`는 서비스 번호와 같음(등록 도서관은 수집 번호 = 서비스 번호, 짝 CSV도 같은 번호).
+
+## 1단계 뒤 고침 (2026-10-05)
+
+- **지역 표에 증평군 추가, 전남광주통합특별시 줄임말 "전남광주"**(사용자 결정 2026-10-05). 증평군은 지역 seed를 만든 법정동 파일에서 빠져 있었음(충북 시·군 11곳 중 10곳). 번호는 4311(충북의 다른 번호 뒤, 코드 순서가 아님)로 넣어 이미 있는 번호는 바뀌지 않음. `PRE_DEPLOYMENT` 동안이라 `region/002`를 고치고 로컬 `db-test`를 초기화함. 로컬 `db`는 15단계 가져오기 때 초기화함.
+- 그 결과 증평군립도서관(서비스 번호 383)이 규칙("증평군 거주·재직·재학")을 받음. 가입 규칙 줄 250 → 253. 전남광주 후보 12곳의 요약 글이 "전남광주 거주·재직·재학"이 됨. 도서관 이름·가입 방법 글은 공식 이름 그대로.
+
+## 2~6단계: Liquibase, collection 모듈, library_ids 검색, 계획 규칙 (2026-10-05)
+
+- **Liquibase**: 인계서 순서대로 `library/007` → `library/008` → `collection/001` → `collection/002` → `catalog/002` → `catalog/003` → `library/009`.
+  - `catalog/002`: `book.library_ids`는 이미 책이 있는 로컬 DB에서도 적용되게 `DEFAULT '{}'`로 넣고 바로 기본값을 지움.
+  - **C4 결정**: `catalog_library_snapshot.import_id` 칸을 지움(FK도 함께). 검색은 이 칸을 읽지 않고, 기록은 `collection.catalog_import`가 가짐. 옛 `catalog.catalog_import` 줄은 옮기지 않고 지움(배포 전).
+  - `collection.catalog_import`에 칸을 더함: `registered_library_count`, `candidate_library_count`, `skipped_by_reason`(jsonb, 이유별 건너뛴 줄). 가져올 때마다 한 줄씩 쌓임(지우지 않음).
+  - 등록 도서관 `lending_model`(C6)은 `library/008`의 두 번째 changeset UPDATE로 넣음.
+  - `library/009`: 로고 파일 이름은 임시 표(`library.logo_seed`)에 `loadData`로 넣고 UPDATE한 뒤 표를 지움(`loadData`는 INSERT만 함).
+- **collection 모듈**: `com.chaekcheck.collection`, `@ApplicationModule(allowedDependencies = {"catalog", "catalog :: normalize", "library"})`. 공개 API 없음. 가져오기 코드는 `collection.internal.importer`.
+  - **제목 다듬기 규칙 공개 방법(C2)**: 예 1. 패키지를 `com.chaekcheck.catalog.normalize`로 옮기고 `@NamedInterface("normalize")`. 규칙 코드는 한 벌. `ModularityTests` 통과.
+  - **`CatalogLoad.replaceAll(source, loader)`**: 콜백 세션(`addBook` → `addHolding` → `addLibrarySnapshot`). 책을 다 넣은 뒤 소장. 한 연결에서 COPY는 하나만 되므로 책의 사람(contributor) 줄은 임시 파일에 COPY 글로 모았다가 첫 소장 때 넣음. 한 트랜잭션, 실패하면 이전 그대로. 커밋 뒤 `VACUUM (ANALYZE)`.
+  - **나눠 읽기 방법**: 사본을 두 번 읽음(같은 SQLite 읽기 트랜잭션). 첫 읽기는 줄을 쌓지 않고 "같은 책 코드 묶음(①)"마다 값별 줄 수만 셈(제목·저자·출판사·종류·ISBN·날짜, 도서관 번호). 대표값(가장 많은 값, 같으면 작은 값)은 줄 단위로 센 것과 같음. 둘째 읽기에서 줄마다 묶음 → 책 번호를 찾아 소장을 바로 COPY. 묶음 크기 설정은 없음.
+  - **표본 확인**: 사이클 04 가져오기 테스트 표본(같은 줄·같은 TTL)에서 묶기 단계별 책 수 10 → 10 → 9 → 8, 소장 11, 건너뜀 7이 그대로 나옴(한 번에 읽던 코드와 같음). 달라진 셈 하나: 주소가 다른 등록 도서관 1곳이 `library_not_in_service` 대신 `library_base_url_mismatch`로 잡힘(짝 표로 이어지므로).
+  - **실행 프로필·설정 이름**: `collection-import`, `chaekcheck.collection.import.*`(`sqlite-path`, `ttl-path`, `dry-run`, `placeholder-date-libraries`). 프로필 파일 `application-collection-import.yml`에 `chaekcheck.auth.enabled: false`를 둠(0단계에서 찾은 문제). Gradle 설정 `catalogImport` → `collectionImport`.
+  - **8자리 날짜**: `PublishedDates.parse`가 이미 `YYYYMMDD`를 읽고 있었음(`^(\d{4})-?(\d{2})-?(\d{2})$`). 가져오기는 `published_on`이 없으면 `published_raw`를 씀. 새로 고친 것은 없고 테스트만 더함(`20240315` → 날짜, `20241399` → NULL).
+  - **새 제외 규칙**: `content_kind`가 `book/wma`·`book/vod`·`book/wmv`·`동영상`이면 `kind_sound_video`로 셈.
+  - 명지대(수집 번호 100555) 1950년 이전 날짜 → NULL(`placeholderDatesCleared`로 셈).
+  - 힙 측정: 가져오기 끝 로그에 힙 풀 최고 사용량 합(`heap used up to … MB`)을 적음.
+- **검색**: `/books` 목록과 지난 쪽 개수가 `b.library_ids && :libraryIds`와 `unnest(b.library_ids)`로 등급·도서관 수·기준일을 구함. `holding`은 읽지 않음. 책 한 권(`find`)은 그대로 `holding`.
+- **계획 규칙(6단계)**: `join_survey ∈ {MEMBERS_ONLY, NOT_SURVEYED}`이고 직접 추가가 아니면 계획에서 뺌("전체 도서관"이어도). 직접 추가면 맨 앞, `eligibility = UNSURVEYED`, 묶음 NEEDS_CHECK. `GET /libraries`는 미조사 도서관을 `UNSURVEYED`로 둠. `findEnabledTarget`도 돌려줌.
+- **API 칸 이름과 위치(C14·C15)**:
+  - 스트림 `targets.libraries[]`: `joinSurvey`, `logoUrl` 추가(`homepageUrl`은 이미 있음).
+  - `GET /api/v1/libraries` 항목: `joinSurvey`, `homepageUrl`, `logoUrl` 추가.
+  - `lendingModel`은 `SearchTarget`에만 둠(웹에 보내지 않음. 웹은 줄의 판정 근거로 칸을 고름). `LibraryRef`에는 더하지 않음.
+  - `logoUrl` = `/library-logos/{logo_file}`, `logo_file`이 있고 `logo_visible`일 때만.
+- **로고 파일**: `scripts/library/BuildLogos.java`(JDK `ImageIO`, 새 의존성 없음). 199곳 중 198곳 파일 생성(118곳은 48px로 줄임, 나머지는 원래 48px 이하라 복사), 합계 1,198,125바이트. **238번(남해도서관 쪽)의 원본 `logos/238.png`는 그림이 아니라 HTML 오류 쪽이라 뺌** → 빈 상자. svg 1곳은 그대로 복사.
+
+## 7단계: 북큐브·알라딘 adapter, 교보 구독형 화면 소장형 (2026-10-05)
+
+- **사이트 호출 시험**(같은 호스트 1건·1.2초, User-Agent `chaekcheck/0.0.1`). 결과 몸통은 `data/cycle07/probe/`(git 밖). 시험 중 스크립트를 실수로 한 번 더 돌려 같은 14건을 두 번 부름(호스트 간격은 지킴). 합계 약 40건.
+  - **교보 구독형 화면 소장형 숫자 위치 [확인 필요] → 찾음**: 거제시청(19)·대구광역시교육청(58) 검색 쪽 줄마다 교보 일반과 같은 `p.use` "[ 대출 : 0/1 예약 : 0 ]", 상세 쪽도 `span.use`. 혼합형(함양 158, 동해 63) 첫 쪽 20줄은 모두 숫자 없음(구독 줄).
+  - 그래서 **목록은 줄마다** 숫자가 있으면 숫자로, 없으면 "구독형 · 바로 대출"로 판정함(`lending_model`과 상관없이). **책 화면(보유 스트림)**은 `lending_model = OWNED`인 도서관만 상세 쪽을 읽음.
+  - **북큐브**: `keyoption2` 1 서명, **2 저자, 3 출판사** [확정](김영하 9권 모두 김영하, 문학동네 158권). **쪽 넘기기 `itemCount`·`page` 됨**(2쪽이 다른 10권). 없는 `num` → XML 머리만 있는 빈 응답(40바이트) → 확인 실패. http·포트 사이트(`http://elib.gyeongnam.go.kr:8000/FxLibrary_gj`) 정상. 대여형(부산 구독) 검색 줄은 `volume 0` + `nowRentalCount` → 구독. 소장·대여가 한 사이트에 섞이는지는 이번에도 못 봄(줄마다 판정하므로 섞여도 맞게 나옴).
+  - **알라딘**: `search_item=author`, **`publisher`도 됨**("포레스트 웨일" 5권 모두 그 출판사). 쪽 크기 `list_scale`은 무시되는 듯(20줄 고정), `startPage=10`은 시작이 바뀜 → 첫 쪽만 둠.
+- **사용자 결정(2026-10-05)**:
+  - 알라딘 출판사 검색: 인계서 C18 "그 도서관 실패" 대신 **씀**(사용자: "출판사 검색도 씀").
+  - 북큐브 직접 찾기: 인계서 "첫 쪽만" 대신 **다른 사이트처럼 "더 보기"**(쪽 크기 10).
+- **이름**: `PlatformAdapter.detailFetchUri`(인계서 이름 그대로), `SiteVerdict.SUBSCRIPTION`(그대로). 북큐브 "도서관에서 보기"는 XML이 사람용이 아니라 사이트 첫 화면으로 둠.
+- **판정**: `KYOBO_SUBSCRIPTION_V1`·`BOOKCUBE_FX`는 같은 판정기(줄에 숫자가 있고 구독 표시가 없으면 숫자, 아니면 구독). 알라딘은 숫자 판정.
+- XML은 JDK 파서, DTD·외부 엔티티·XInclude 끔. 외부 엔티티가 든 XML은 읽지 않고 실패하는 테스트가 있음.
+- fixture는 설명문·저자 소개·표지 주소를 지운 채 저장(`library-maintenance.md` 2절).
+
+## 8단계: `POST /api/v1/me/library-imports` (2026-10-05)
+
+- **오류 코드(C16) 사용자 결정**: 설계의 422 `invalid_request` 대신 **400 `validation_error`**(지역 저장과 같은 모양, `errors[]`에 `field: libraryIds`, `code: invalid_format | too_many | required`). 사용자 선택 "400 validation_error로 맞춤"(2026-10-05).
+- 409 `library_import_not_empty`, 401(계정 없음, 잠금 뒤), 꺼짐 컨텍스트 404, CSRF 없음 403. 없는·꺼진 번호는 건너뜀. `added_at`은 요청 순서대로 `now() + n ms`.
+- 동시 두 요청: 계정 줄 잠금으로 하나만 성공, 다른 하나는 409(테스트 5회 반복).
+
+## 0단계 뒤 알게 된 것
+
+- 사본 `quick_check` = ok(172초). 도서관 3,016(등록 278 + 후보 2,738).
