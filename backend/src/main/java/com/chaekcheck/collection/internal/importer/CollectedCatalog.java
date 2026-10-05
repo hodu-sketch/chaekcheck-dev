@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -95,8 +96,8 @@ final class CollectedCatalog implements AutoCloseable {
 
 	/**
 	 * Maps every collection library through the links (ADR-0052, plan handoff C10): no link or no enabled service
-	 * library → {@code library_not_in_service}; a base URL different from the service library's →
-	 * {@code library_base_url_mismatch} (a safety check). {@code collected_at} is the collected
+	 * library → {@code library_not_in_service}; a base URL on another site than the service library's →
+	 * {@code library_base_url_mismatch} (a safety check, {@link #sameSite}). {@code collected_at} is the collected
 	 * {@code last_full_success_at} [안]; a library without one uses its newest {@code last_seen_at}, and one without
 	 * rows at all is not imported.
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders
@@ -121,7 +122,7 @@ final class CollectedCatalog implements AutoCloseable {
 					report.librariesNotInService++;
 					continue;
 				}
-				if (!ref.baseUrl().equals(rs.getString(2))) {
+				if (!sameSite(ref.baseUrl(), rs.getString(2))) {
 					skipped.put(collectionId, "library_base_url_mismatch");
 					report.librariesBaseUrlMismatch++;
 					continue;
@@ -233,6 +234,35 @@ final class CollectedCatalog implements AutoCloseable {
 	}
 
 	/** Host name in lower case, the port left out (the host throttle works on host names, ADR-0022). */
+	/**
+	 * Whether the collected base URL is the service library's site: same host and path, any scheme and port. The
+	 * service keeps the address a site redirects to (docs/library-maintenance.md 4-7: often http to https on another
+	 * port), while the collection DB keeps the listed one (found 2026-10-05: 강동대학교 북큐브 http → https).
+	 */
+	static boolean sameSite(String serviceBaseUrl, String collectedBaseUrl) {
+		if (serviceBaseUrl == null || collectedBaseUrl == null) {
+			return false;
+		}
+		if (serviceBaseUrl.equals(collectedBaseUrl)) {
+			return true;
+		}
+		try {
+			URI service = URI.create(serviceBaseUrl);
+			URI collected = URI.create(collectedBaseUrl);
+			return service.getHost() != null && service.getHost().equalsIgnoreCase(collected.getHost())
+					&& pathOf(service).equals(pathOf(collected))
+					&& Objects.equals(service.getRawQuery(), collected.getRawQuery());
+		}
+		catch (IllegalArgumentException ex) {
+			return false;
+		}
+	}
+
+	private static String pathOf(URI uri) {
+		String path = uri.getRawPath() == null ? "" : uri.getRawPath();
+		return path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+	}
+
 	static String hostOf(String url) {
 		try {
 			String host = URI.create(url).getHost();

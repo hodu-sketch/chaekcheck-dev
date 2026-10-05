@@ -32,20 +32,30 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
  * downloaded from the addresses in the sites' certificates) as material for building the chain. An intermediate is
  * never a trust anchor: a chain must still end at a JDK root, and the host name is still checked by the HTTP client
  * (user decision 2026-09-29: certificate checking stays on). Revocation is not checked, as in the JDK default.
+ * <p>
+ * A few sites chain to a root the JDK does not ship. Such roots, each approved by the user, are added as trust
+ * anchors from {@code tls/library-roots/*.pem} (2026-10-05: OISTE WISeKey Global Root GB CA, for 3 sites;
+ * docs/library-site-issues.md 3절).
  */
 final class LibrarySiteTls {
 
 	static final String INTERMEDIATES = "classpath:tls/library-intermediates/*.pem";
+
+	static final String ROOTS = "classpath:tls/library-roots/*.pem";
 
 	private LibrarySiteTls() {
 	}
 
 	static SSLContext sslContext() {
 		try {
-			PKIXBuilderParameters params = new PKIXBuilderParameters(jdkRoots(), new X509CertSelector());
+			Set<TrustAnchor> anchors = jdkRoots();
+			for (X509Certificate root : certificates(ROOTS)) {
+				anchors.add(new TrustAnchor(root, null));
+			}
+			PKIXBuilderParameters params = new PKIXBuilderParameters(anchors, new X509CertSelector());
 			params.setRevocationEnabled(false);
 			params.addCertStore(CertStore.getInstance("Collection",
-					new CollectionCertStoreParameters(intermediates())));
+					new CollectionCertStoreParameters(certificates(INTERMEDIATES))));
 			TrustManagerFactory factory = TrustManagerFactory.getInstance("PKIX");
 			factory.init(new CertPathTrustManagerParameters(params));
 			SSLContext context = SSLContext.getInstance("TLS");
@@ -67,11 +77,11 @@ final class LibrarySiteTls {
 		return anchors;
 	}
 
-	static List<X509Certificate> intermediates() throws GeneralSecurityException {
+	static List<X509Certificate> certificates(String pattern) throws GeneralSecurityException {
 		CertificateFactory factory = CertificateFactory.getInstance("X.509");
 		List<X509Certificate> certificates = new ArrayList<>();
 		try {
-			for (Resource resource : new PathMatchingResourcePatternResolver().getResources(INTERMEDIATES)) {
+			for (Resource resource : new PathMatchingResourcePatternResolver().getResources(pattern)) {
 				try (InputStream in = resource.getInputStream()) {
 					certificates.add((X509Certificate) factory.generateCertificate(in));
 				}

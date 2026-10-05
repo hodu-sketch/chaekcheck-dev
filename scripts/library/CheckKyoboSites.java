@@ -133,6 +133,14 @@ public class CheckKyoboSites {
 			anchors.add(new TrustAnchor(root, null));
 		}
 		CertificateFactory factory = CertificateFactory.getInstance("X.509");
+		// roots the user approved, as in the service (tls/library-roots, 2026-10-05)
+		try (var files = Files.list(Path.of("backend/src/main/resources/tls/library-roots"))) {
+			for (Path file : files.filter(p -> p.toString().endsWith(".pem")).toList()) {
+				try (InputStream in = Files.newInputStream(file)) {
+					anchors.add(new TrustAnchor((X509Certificate) factory.generateCertificate(in), null));
+				}
+			}
+		}
 		List<X509Certificate> intermediates = new ArrayList<>();
 		try (var files = Files.list(Path.of("backend/src/main/resources/tls/library-intermediates"))) {
 			for (Path file : files.filter(p -> p.toString().endsWith(".pem")).toList()) {

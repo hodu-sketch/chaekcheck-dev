@@ -49,6 +49,9 @@ RULE_CSV = LIBRARY_DIR + '008-eligibility-rule-candidates.csv'
 LINK_CSV = CHANGELOG + 'collection/002-collection-link.csv'
 REGIONS = CHANGELOG + 'region/002-region-seed.csv'
 FIRST_CANDIDATE_ID = 100001
+# Final addresses after redirects (docs/library-maintenance.md 4-7 step 1), written by CheckFinalOrigins.java:
+# the service does not follow redirects, so base_url is the address the site sends the search to.
+FINAL_ORIGINS = 'scripts/library/final-origins.tsv'
 
 # User decision 2026-10-05 (plan easy/2026-10-05-candidate-join-decisions.html 6번): demo or closed sites
 DEMO_OR_CLOSED = {100068: '삼각산어린이도서관', 100048: '대구동구안심도서관', 100301: '순창군립도서관 북라이브',
@@ -252,6 +255,8 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
         if r['platform'] == 'KYOBO_SUBSCRIPTION_V1' and r['model'] in LENDING_MODELS:
             models[(r['base_url'] or r['url']).rstrip('/')] = LENDING_MODELS[r['model']]
 
+    finals = {r['listed_base_url']: r['base_url'] for r in read_tsv(FINAL_ORIGINS)}         if os.path.exists(FINAL_ORIGINS) else {}
+
     left_out = {'crawl_skip': [], 'no_full_success': [], 'demo_or_closed': [], 'same_site': [], 'test': []}
     candidates = []
     for row in rows:
@@ -300,8 +305,9 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
         sid = service_ids[c['id']]
         columns, library_rules = join_columns(c, kinds[c['id']], joins.get(c['id']), region_names)
         model = models.get(c['base_url'].rstrip('/')) if c['platform_type'] == 'KYOBO_SUBSCRIPTION_V1' else None
+        base_url = finals.get(c['base_url'], c['base_url'])
         libraries.append(dict(columns, id=sid, name=names[c['id']], platform_type=c['platform_type'],
-                              base_url=c['base_url'], join_notice='NULL', homepage_url=c['base_url'],
+                              base_url=base_url, join_notice='NULL', homepage_url=base_url,
                               holdings_count='NULL', holdings_counted_on='NULL', deferred='false',
                               lending_model=model or 'NULL'))
         for basis, scope in library_rules:

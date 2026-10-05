@@ -311,6 +311,20 @@ class CatalogImporterTests {
 			.orElse(null);
 	}
 
+	/** The service keeps the redirected address (http → https, another port); the site is still the same. */
+	@Test
+	void sameSiteIgnoresSchemeAndPortOnly() {
+		assertThat(CollectedCatalog.sameSite("https://elib.gangdong.ac.kr/FxLibrary", "http://elib.gangdong.ac.kr/FxLibrary"))
+			.isTrue();
+		assertThat(CollectedCatalog.sameSite("https://ebook.test:446", "http://ebook.test:81")).isTrue();
+		assertThat(CollectedCatalog.sameSite("https://ebook.test/", "https://ebook.test")).isTrue();
+		assertThat(CollectedCatalog.sameSite("https://lib.test?nav_code=a", "http://lib.test:8888?nav_code=a")).isTrue();
+		assertThat(CollectedCatalog.sameSite("https://lib.test?nav_code=a", "http://lib.test?nav_code=b")).isFalse();
+		assertThat(CollectedCatalog.sameSite("https://bookcube.test/FxLibrary", "https://bookcube.test")).isFalse();
+		assertThat(CollectedCatalog.sameSite("https://other.test", "https://different.test")).isFalse();
+		assertThat(CollectedCatalog.sameSite("https://other.test", null)).isFalse();
+	}
+
 	private static void kind(PreparedStatement p, long library, String key, String title, String publishedOn,
 			String publishedRaw, String contentKind, String contentType, String detailUrl, String author)
 			throws Exception {

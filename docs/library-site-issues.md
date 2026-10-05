@@ -53,6 +53,21 @@
 - 사이트 목록(https 최종 주소): 곡성교육문화회관 `ebook.jne.go.kr:8401`, 공주시시립도서관 `ebook.gongjulib.go.kr`, 광양공공도서관 `ebook.jne.go.kr:8402`, 광양평생교육관 `ebook.jne.go.kr:8403`, 구로구청 `ebook.guro.go.kr`, 구리시립도서관 `ebook.gurilib.go.kr:446`, 나주공공도서관 `ebook.jne.go.kr:8410`, 당진시립도서관 `lib.dangjin.go.kr:444`, 레인보우영동도서관 `ebook.rainbowlib.go.kr`, 목포공공도서관 `ebook.jne.go.kr:8409`, 안동시립도서관 `ebook.andong.go.kr`, 안양시립석수도서관 `elib.anyang.go.kr:8092`, 양평군도서관 `ebook.yplib.go.kr`, 영광공공도서관 `ebook.jne.go.kr:8411`, 장성공공도서관 `ebook.jne.go.kr:8408`, 전남광주통합특별시교육청 전남도서관 `ebook.jne.go.kr:8400`, 전라남도학생교육문화회관 `ebook.jne.go.kr:8407`, 진도공공도서관 `ebook.jne.go.kr:8406`, 진천군립도서관 `ebook.jincheon.go.kr:446`, 청도어린이도서관 `ebook.cheongdo.go.kr`, 충주시립도서관 `e-lib.chungju.go.kr`, 칠곡도서관 `ebook.chilgok.go.kr`, 해남공공도서관 `ebook.jne.go.kr:8404`, 화순도서관 `ebook.jne.go.kr:8405`. 2026-09-29에 강원도교육청 `ebook.gwe.go.kr`도 같은 오류.
 - 주의: 11곳이 전남교육청 서버 `ebook.jne.go.kr` 한 곳(포트만 다름)에 있습니다. 넣으면 같은 서버 몰림이 더 커집니다(plan-feedback "같은 호스트 병목").
 
+### 3-2. 후보 도서관 인증서 (2026-10-05, 사이클 07)
+
+- 후보 도서관을 https 최종 주소로 바꾸면서(`library-maintenance.md` 13절) 15곳이 PKIX 오류. 모두 http → https 302 뒤의 https 서버.
+- 중간 인증서 3개를 더함(받은 곳 = 인증서 AIA 주소, 발급 기관은 모두 JDK 최상위 기관):
+  - Sectigo RSA Organization Validation Secure Server CA ← USERTrust RSA (`http://crt.sectigo.com/SectigoRSAOrganizationValidationSecureServerCA.crt`, 만료 2030-12-31)
+  - GeoTrust TLS RSA CA G1 ← DigiCert Global Root G2 (`http://cacerts.geotrust.com/GeoTrustTLSRSACAG1.crt`, 만료 2027-11-02)
+  - Sectigo Public Server Authentication Root R46 ← USERTrust RSA, 교차 인증서 (`http://crt.sectigo.com/SectigoPublicServerAuthenticationRootR46_USERTrust.crt`, 만료 2038-01-18). 이 JDK 25에는 R46 최상위 인증서가 없어(`keytool -list -cacerts`), R36 두 개의 사슬이 이 교차 인증서를 거쳐 USERTrust에서 끝납니다. 위 3절 "6개의 발급 기관(모두 JDK에 있음)"의 R46 부분은 이 JDK에서는 맞지 않습니다.
+- 12곳 해결: 강동대 교보 `elib.gangdong.ac.kr:446`, 서울교대 `ebook.snue.ac.kr`, 금오공대 `ebook.kit.ac.kr:444`, 경성대 `ebook2.ks.ac.kr:444`, 계명대 `ebook.kmu.ac.kr`, 동아대 `ebook.donga.ac.kr:444`, 부산외대 `elib.bufs.ac.kr:447`, 중부대 `elib.jeiu.ac.kr:444`, 전주교대 `lib.jnue.kr:446`, 진주교대 `ebooklib.cue.ac.kr:444`, 한양대 교보 `kyobo.ebook.hanyang.ac.kr:444`, 혜전대 `ebook.hj.ac.kr`.
+- 남은 3곳은 발급 기관 TuringSign RSA Secure CA 2 ← **OISTE WISeKey Global Root GB CA**(JDK에 없음): 세계사이버대 `e-book.world.ac.kr`, 서울신학대 `ebook.sau.ac.kr:444`, 충북 전자도서관 `elib.chungbuk.go.kr`.
+  - **사용자 결정(2026-10-05): "이거 신뢰해줘"** → 이 최상위 인증서를 믿는 기관으로 더함. 새 폴더 `tls/library-roots/*.pem`(두 앱, 같은 파일). 지금 1개뿐.
+  - 받은 곳: TuringSign 인증서의 AIA `http://public.wisekey.com/crt/owgrgbca.cer`. SHA-256 지문 `6B:9C:08:E8:6E:B0:F7:67:CF:AD:65:CD:98:B6:21:49:E5:49:4A:67:F5:84:5E:7B:D1:ED:01:9F:27:B8:6B:D6`, 만료 2039-12-01. `openssl verify`로 TuringSign 중간 인증서가 이 루트에 이어짐을 확인.
+  - 이 폴더의 인증서는 **도서관 사이트 연결에만** 믿습니다(`LibrarySiteTls`). 다른 루트를 더하려면 사용자에게 먼저 묻습니다.
+- 테스트 `LibrarySiteTlsTests`(두 앱): 중간 인증서 9개·자체 서명 없음, 더한 루트는 승인된 1개, 중간 인증서마다 발급 기관이 JDK 루트나 다른 중간 인증서.
+- 확인 도구 `CheckKyoboSites.java`(그리고 그 TLS를 쓰는 `CheckFinalOrigins.java`)도 `library-roots`를 읽습니다.
+
 ## 4. 이름에 "도서관"이 없음 (23곳)
 
 처음 기록(plan-feedback "11단계 seed 결과")은 24곳이었지만 목록을 다시 세니 23곳입니다(교보 목록 216곳 = 검색 OK 177 + 실패 39). `build_seed.py`는 이름에 "도서관"이 없으면 공공도서관이 아닐 수 있어 건너뜁니다. 2026-09-29에 사이트마다 제목, 화면 아래 기관명, 로그인 안내 글을 읽어 나눴습니다.
@@ -120,6 +135,15 @@
 - **체험용·운영 중단 의심 4곳** (사용자 결정 2026-10-05, plan `easy/2026-10-05-candidate-join-decisions.html` 6번): 100068 삼각산어린이도서관(북라이브), 100048 대구동구안심도서관(북큐브), 100301 순창군립도서관 북라이브, 100083 양평군립도서관 전자도서관(북큐브).
 - **시험용 6곳** (종류 표 `TEST`, plan 설계 검토 2026-10-05): 100079 아이티컴퍼니 홍보용 전자도서관, 100217 대여형 테스트 도서관, 100310 시연 전자도서관, 100400 초중고 테스트도서관, 100412 테스트도서관, 102463 서울대학교데모버전.
 - **전체 수집이 끝나지 않은 227곳**: 사본에 `last_full_success_at`이 없어 이번에는 넣지 않음(다음 seed에서 수집이 끝나면 들어감).
+
+## 9. 최종 주소를 끝내 못 받은 곳 (2026-10-05)
+
+`CheckFinalOrigins.java`를 세 번(시간을 두고) 돌려도 실패. 지금은 켜 둔 채(목록 주소 그대로) 두고, plan 인계서 17단계의 끄기 제안 목록에 올립니다.
+
+| 서비스 번호 | 이름 | 주소 | 결과 |
+|---|---|---|---|
+| 2198 | 성균관대 (YES24) | `http://ebook.skku.edu` | 시간 초과(5초) 세 번. 같은 호스트의 북큐브(558, `:9080/FxLibrary`)는 응답 |
+| 2194 | 장안대 (YES24) | `http://e-lib.jangan.ac.kr` | 연결 뒤 응답 없음(`header parser received no bytes`) 두 번 |
 
 ## 다시 볼 때 순서
 
