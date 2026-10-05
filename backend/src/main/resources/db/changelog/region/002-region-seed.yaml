@@ -1,6 +1,9 @@
 # Nationwide SIDO / SIGUNGU (general gu excluded), from the MOIS legal-dong code file jscode20260701.
 # IDs are permanent: SIDO = first two digits of the legal-dong code, SIGUNGU = SIDO id + 01, 02, ... in legal-dong code order.
 # Never renumber. Later changes go in new changesets (ABOLISHED + region_replacement), see ADR-0003.
+# Edited before the first deployment (PRE_DEPLOYMENT, 2026-10-05): 증평군 was missing from the file read and is added
+# as 4311 (after the other 충북 ids, not in code order, so no id moves); 전남광주통합특별시 gets the short name
+# 전남광주 (user decision 2026-10-05).
 databaseChangeLog:
   - changeSet:
       id: region-002-seed-20260701

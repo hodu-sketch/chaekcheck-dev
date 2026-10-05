@@ -91,15 +91,14 @@ SCOPE_OVERRIDES = {
     '100072': scope_rules(['경기', '송파구'], ['경기', '송파구']),
     # "경기도민", "경기도민 외 수원시 소재 학교에 재학 중인 학생", "경기도민 외 수원시 소재 직장에 재직 중인 직장인"
     '100070': scope_rules(['경기'], ['수원시']),
-    # "증평군 주민등록자 증평군 소재 학교·직장에 재학·재직하는 사람 … 인접생활권 주민등록자(청주시 북이면, …)":
-    # 증평군 is not in the region seed (checked 2026-10-05), so no rules (shown as not verified) and the summary only
-    '100111': [],
+    # "증평군 주민등록자 증평군 소재 학교·직장에 재학·재직하는 사람 … 인접생활권 주민등록자(청주시 북이면, …)": 면은 뺌
+    '100111': scope_rules(['증평군'], ['증평군']),
     # "충청북도나 인접 시·군(천안시, 안성시)에 주민등록 … 진천군이나 충북 혁신도시에 소재한 직장 … 학교": 혁신도시는 뺌
     '100114': scope_rules(['충북', '천안시', '안성시'], ['진천군']),
     # "천안시에 주소를 둔 천안시민 … 천안시 소재 재직자 및 재학생 … 천안 인접지역 시민(세종, 아산, 공주, 평택, 안성, 청주, 진천)"
     '100117': scope_rules(['천안시', '세종', '아산시', '공주시', '평택시', '안성시', '청주시', '진천군'], ['천안시']),
 }
-SUMMARY_OVERRIDES = {'100111': '증평군 거주·재직·재학'}
+SUMMARY_OVERRIDES = {}
 
 
 def read_tsv(path):
@@ -125,7 +124,10 @@ def registered_libraries():
     for path in sorted(glob.glob(LIBRARY_DIR + '*-library*.csv')):
         if os.path.basename(path).startswith('008-'):
             continue
-        for row in csv.DictReader(open(path, encoding='utf-8')):
+        rows = list(csv.DictReader(open(path, encoding='utf-8')))
+        if rows and 'name' not in rows[0]:  # e.g. 009-library-logos.csv
+            continue
+        for row in rows:
             found[int(row['id'])] = row['name']
     pilot = open(LIBRARY_DIR + '002-library-seed.yaml', encoding='utf-8').read()
     for lid, name in re.findall(r"\((\d+), '([^']+)', '[A-Z0-9_]+', 'https?://", pilot):

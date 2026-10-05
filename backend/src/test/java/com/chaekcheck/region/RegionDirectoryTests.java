@@ -38,7 +38,8 @@ class RegionDirectoryTests {
 	@Test
 	void seedHasAllSidoAndSigungu() {
 		assertThat(countActive("SIDO")).isEqualTo(16);
-		assertThat(countActive("SIGUNGU")).isEqualTo(232);
+		// 233 since 증평군 was added (2026-10-05)
+		assertThat(countActive("SIGUNGU")).isEqualTo(233);
 	}
 
 	@Test
