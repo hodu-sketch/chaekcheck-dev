@@ -32,3 +32,10 @@
   border-radius: 4px;
   background: transparent;
 }
+
+/* phones: a wide logo would squeeze the name into five-letter lines (checked 2026-10-05 at 375px) */
+@media (width <= 640px) {
+  .logo {
+    max-width: 3.75rem;
+  }
+}
