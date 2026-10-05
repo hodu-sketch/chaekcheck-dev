@@ -48,6 +48,11 @@ class MyLibraryErrors {
 	}
 
 	@ExceptionHandler
+	ProblemDetail importNotEmpty(MyLibraryService.LibraryImportNotEmptyException ex) {
+		return problem(HttpStatus.CONFLICT, "library_import_not_empty", "The account already has libraries");
+	}
+
+	@ExceptionHandler
 	ProblemDetail invalidRegion(MyLibraryService.InvalidRegionsException ex) {
 		ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid_region",
 				"Some regions cannot be used");

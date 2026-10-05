@@ -19,5 +19,12 @@ public enum PlatformType {
 	/** Regional / education-office integrated portal ({@code /elib/module/elib/..}). */
 	ELIB_PORTAL_V1,
 	/** Gangnam-gu's own system, EUC-KR. */
-	GANGNAM_V1
+	GANGNAM_V1,
+	/**
+	 * Bookcube FxLibrary site ({@code .../FxLibrary}): counts read from the book's XML detail; a rental site
+	 * ({@code volume} 0 with {@code nowRentalCount}) is a subscription (ADR-0056).
+	 */
+	BOOKCUBE_FX,
+	/** Aladin e-library site ({@code ?nav_code=}): counts read from the detail page's "보유현황" (ADR-0056). */
+	ALADIN_V1
 }

@@ -3,8 +3,8 @@ package com.chaekcheck.catalog.internal.search;
 import java.util.List;
 import java.util.Set;
 
-import com.chaekcheck.catalog.internal.normalize.CatalogText;
-import com.chaekcheck.catalog.internal.normalize.Contributors.Role;
+import com.chaekcheck.catalog.normalize.CatalogText;
+import com.chaekcheck.catalog.normalize.Contributors.Role;
 
 /**
  * A book search (spec 3.2~3.5): filled fields are ANDed; inside a field every word must appear (or, with

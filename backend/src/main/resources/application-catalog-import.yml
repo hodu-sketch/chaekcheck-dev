@@ -1,5 +1,0 @@
-# Catalog import (ADR-0031): runs once and exits, no web server. Paths are given as arguments, e.g.
-#   --chaekcheck.catalog.import.sqlite-path=../data/ebook-catalog.sqlite --chaekcheck.catalog.import.ttl-path=../data/nlk/ttl
-spring:
-  main:
-    web-application-type: none

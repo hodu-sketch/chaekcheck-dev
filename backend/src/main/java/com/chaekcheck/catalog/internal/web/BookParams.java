@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.util.MultiValueMap;
 
-import com.chaekcheck.catalog.internal.normalize.Contributors.Role;
+import com.chaekcheck.catalog.normalize.Contributors.Role;
 import com.chaekcheck.catalog.internal.search.BookQuery;
 import com.chaekcheck.library.PlanOptions;
 

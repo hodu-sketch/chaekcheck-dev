@@ -36,6 +36,9 @@ class LibraryService implements LibraryCatalog {
 
 	static final String WORK_FIELD = "workRegionIds";
 
+	/** Where the web serves the logo files (web/public/library-logos, ADR-0059). */
+	static final String LOGO_PATH = "/library-logos/";
+
 	private static final List<PriorityGroup> ORDER_WITH_REGIONS = List.of(PriorityGroup.MY_SIGUNGU,
 			PriorityGroup.MY_SIDO, PriorityGroup.OPEN, PriorityGroup.NEEDS_CHECK);
 
@@ -87,9 +90,13 @@ class LibraryService implements LibraryCatalog {
 		Map<Long, Placement> placements = new HashMap<>();
 		List<Library> chosen = new ArrayList<>();
 		for (Library library : enabled) {
+			boolean isChosen = options.libraryIds().contains(library.getId());
+			if (library.getJoinSurvey().onlyWhenChosen() && !isChosen) {
+				// ADR-0053: not researched, so searched only when the user added it ("전체 도서관" too)
+				continue;
+			}
 			Placement placement = place(library, rulesByLibrary.getOrDefault(library.getId(), List.of()),
 					regionFilterApplied, residence, work);
-			boolean isChosen = options.libraryIds().contains(library.getId());
 			if (placement == null && isChosen) {
 				// ADR-0050: a library the user added stays even when no region rule matched. Its eligibility is not
 				// known from the regions; QUALIFIED is the group of "has region rules, not known to match".
@@ -164,8 +171,10 @@ class LibraryService implements LibraryCatalog {
 					matchedBy.add(RegionBasis.WORK);
 				}
 			}
+			// unresearched libraries stay in the list as UNSURVEYED: the name search of S10 finds them
 			list.add(new LibraryEligibility(library.getId(), library.getName(), eligibility, matchedBy,
-					library.isVisitRequired(), library.getJoinCaution() != null, library.getEligibilitySummary()));
+					library.isVisitRequired(), library.getJoinCaution() != null, library.getEligibilitySummary(),
+					library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library)));
 		}
 		return list;
 	}
@@ -189,10 +198,14 @@ class LibraryService implements LibraryCatalog {
 	/**
 	 * Group and eligibility of one library (design-delta table), or null when it is left out: with regions, a
 	 * library that only has region rules and none of them match. SCHOOL and AFFILIATION rules are never compared.
+	 * A library whose join rules were not researched is UNSURVEYED (ADR-0053); the plan keeps it only when chosen.
 	 * When several rules match, the earliest group wins (SIGUNGU, then SIDO, then anyone) [안].
 	 */
 	private static Placement place(Library library, List<EligibilityRule> libraryRules, boolean regionFilterApplied,
 			UserRegions residence, UserRegions work) {
+		if (library.getJoinSurvey().onlyWhenChosen()) {
+			return new Placement(PriorityGroup.NEEDS_CHECK, Eligibility.UNSURVEYED);
+		}
 		boolean nationwide = libraryRules.stream().anyMatch(EligibilityRule::isNationwide);
 		boolean otherRules = libraryRules.stream().anyMatch(rule -> !rule.isNationwide());
 		boolean extraCondition = library.getExtraConditionText() != null;
@@ -242,7 +255,13 @@ class LibraryService implements LibraryCatalog {
 				library.getPlatformType(), library.getBaseUrl(), placement.group(), library.isDeferred(),
 				placement.eligibility(), library.getEligibilitySummary(), library.getExtraConditionText(),
 				library.isVisitRequired(), library.getJoinMethod(), library.getJoinUrl(), library.getJoinCaution(),
-				library.getJoinNotice(), library.getHomepageUrl(), chosen);
+				library.getJoinNotice(), library.getHomepageUrl(), chosen, library.getJoinSurvey(),
+				library.getLendingModel(), logoUrl(library));
+	}
+
+	/** Shown only when the library has its own logo and an operator has not taken it down (ADR-0059, AC-22). */
+	private static String logoUrl(Library library) {
+		return library.getLogoFile() != null && library.isLogoVisible() ? LOGO_PATH + library.getLogoFile() : null;
 	}
 
 	/**

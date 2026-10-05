@@ -10,9 +10,13 @@ import java.util.List;
  * @param matchedBy which of the user's regions made the library ELIGIBLE: RESIDENCE, WORK or both; empty otherwise
  * @param cautioned the library has a join caution (shown on the search results, not here)
  * @param eligibilitySummary short eligibility text; may be null
+ * @param joinSurvey how far the join rules were researched (ADR-0053)
+ * @param homepageUrl the e-library's main page, opened from the logo; may be null
+ * @param logoUrl the library's own logo, or null (ADR-0059)
  */
 public record LibraryEligibility(long id, String name, Eligibility eligibility, List<RegionBasis> matchedBy,
-		boolean visitRequired, boolean cautioned, String eligibilitySummary) {
+		boolean visitRequired, boolean cautioned, String eligibilitySummary, JoinSurvey joinSurvey,
+		String homepageUrl, String logoUrl) {
 
 	public LibraryEligibility {
 		matchedBy = List.copyOf(matchedBy);

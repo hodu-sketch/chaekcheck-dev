@@ -1,6 +1,7 @@
 package com.chaekcheck.availability.internal;
 
 import com.chaekcheck.library.Eligibility;
+import com.chaekcheck.library.JoinSurvey;
 import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.PriorityGroup;
@@ -18,7 +19,8 @@ public final class TestTargets {
 
 	public static SearchTarget target(long id, PlatformType platformType, String baseUrl) {
 		return new SearchTarget(id, "lib" + id, LibraryType.EBOOK, platformType, baseUrl, PriorityGroup.OPEN, false,
-				Eligibility.OPEN, null, null, false, "join", null, null, null, null, false);
+				Eligibility.OPEN, null, null, false, "join", null, null, null, null, false, JoinSurvey.SURVEYED, null,
+				null);
 	}
 
 }

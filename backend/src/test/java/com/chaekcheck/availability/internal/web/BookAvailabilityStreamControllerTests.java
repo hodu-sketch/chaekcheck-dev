@@ -35,6 +35,7 @@ import com.chaekcheck.catalog.HoldingRef;
 import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
 import com.chaekcheck.library.InvalidRegionException.InvalidRegion;
+import com.chaekcheck.library.JoinSurvey;
 import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.PlatformType;
@@ -170,7 +171,7 @@ class BookAvailabilityStreamControllerTests {
 	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side
 		SearchTarget chosen = new SearchTarget(12, "lib12", LibraryType.EBOOK, PlatformType.KYOBO_V1,
 				"https://chosen.test", PriorityGroup.QUALIFIED, false, Eligibility.UNKNOWN, null, null, false, "join",
-				null, null, null, null, true);
+				null, null, null, null, true, JoinSurvey.SURVEYED, null, null);
 		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(chosen, TestTargets.GOHEUNG));
 		given(catalogHoldings.holdingsOf(List.of(10L))).willReturn(List.of(holding(1, 10, 2), holding(2, 10, 12)));
 
@@ -182,7 +183,7 @@ class BookAvailabilityStreamControllerTests {
 		verify(batchRunner).plan(Set.of(), Set.of(),
 				new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.ANY, Set.of(12L)));
 		assertThat(body(result)).contains("\"libraries\":[{\"id\":12,")
-			.contains("\"chosen\":true},{\"id\":2,")
+			.contains("\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null},{\"id\":2,")
 			.contains("\"holdings\":[{\"holdingId\":2,\"bookId\":10,\"libraryId\":12}");
 	}
 

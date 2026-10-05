@@ -34,6 +34,11 @@ class MyLibraryDisabledTests {
 		assertNotFound(mvc.get().uri("/api/v1/me/libraries").exchange());
 		assertNotFound(mvc.put().uri("/api/v1/me/libraries/2").exchange());
 		assertNotFound(mvc.delete().uri("/api/v1/me/libraries/2").exchange());
+		assertNotFound(mvc.post()
+			.uri("/api/v1/me/library-imports")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"libraryIds\":[2]}")
+			.exchange());
 	}
 
 	@Test

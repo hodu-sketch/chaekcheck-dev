@@ -1,0 +1,18 @@
+# Links of the registered libraries (same id) and the candidate libraries of library/008 (ADR-0052).
+# The CSV is made by scripts/library/build_candidate_seed.py together with library/008; do not edit it by hand.
+databaseChangeLog:
+  - changeSet:
+      id: collection-002-seed-candidates
+      author: chaekcheck
+      changes:
+        - loadData:
+            schemaName: collection
+            tableName: collection_link
+            file: 002-collection-link.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: collection_library_id, type: NUMERIC }
+              - column: { name: library_id, type: NUMERIC }

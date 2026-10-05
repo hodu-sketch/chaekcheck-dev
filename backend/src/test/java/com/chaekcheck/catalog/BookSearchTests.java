@@ -3,6 +3,7 @@ package com.chaekcheck.catalog;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
@@ -16,8 +17,8 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chaekcheck.catalog.internal.normalize.CatalogText;
-import com.chaekcheck.catalog.internal.normalize.Contributors;
+import com.chaekcheck.catalog.normalize.CatalogText;
+import com.chaekcheck.catalog.normalize.Contributors;
 
 /**
  * {@code /api/v1/books} against db-test with pg_bigm and a few synthetic books (spec AC-3~6, AC-12). Every test
@@ -42,8 +43,8 @@ class BookSearchTests {
 	@BeforeEach
 	void setUp() throws Exception {
 		jdbc.sql("UPDATE library.library SET enabled = false").update();
-		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot,"
-				+ " catalog.catalog_import").update();
+		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot")
+			.update();
 		open = library("누구나", false);
 		nationwide(open);
 		openVisit = library("누구나 방문", true);
@@ -52,11 +53,9 @@ class BookSearchTests {
 		jdbc.sql("INSERT INTO library.eligibility_rule (library_id, basis, scope_type, scope_region_id)"
 				+ " VALUES (?, 'RESIDENCE', 'REGION', ?)").params(seoul, SEOUL).update();
 		unverified = library("미확인", false);
-		long importId = jdbc.sql("INSERT INTO catalog.catalog_import (source, imported_at, book_count, holding_count,"
-				+ " skipped_count) VALUES ('test', now(), 0, 0, 0) RETURNING id").query(Long.class).single();
 		for (long id : List.of(open, openVisit, seoul, unverified)) {
-			jdbc.sql("INSERT INTO catalog.catalog_library_snapshot (library_id, collected_at, import_id)"
-					+ " VALUES (?, TIMESTAMPTZ '2026-09-29 12:00+09', ?)").params(id, importId).update();
+			jdbc.sql("INSERT INTO catalog.catalog_library_snapshot (library_id, collected_at)"
+					+ " VALUES (?, TIMESTAMPTZ '2026-09-29 12:00+09')").param(id).update();
 		}
 	}
 
@@ -149,6 +148,25 @@ class BookSearchTests {
 			.extractingPath("$.items[?(@.id == " + both + ")].holdingLibraryCount")
 			.asArray()
 			.containsExactly(1);
+	}
+
+	/** Cycle 07 (ADR-0055, AC-5 server side): the list reads library_ids, so libraries outside the plan never count. */
+	@Test
+	void booksOnlyOutsideThePlanAreNotShown() throws Exception {
+		long candidate = library("후보 학교", false);
+		jdbc.sql("UPDATE library.library SET join_survey = 'MEMBERS_ONLY', join_method = NULL WHERE id = ?")
+			.param(candidate)
+			.update();
+		long onlyCandidate = book("사랑 후보", "가", "가", "2020-01-01", candidate);
+		long none = book("사랑 없음", "가", "가", "2020-01-01");
+		long shared = book("사랑 함께", "가", "가", "2020-01-01", open, candidate);
+
+		assertThat(ids("title=사랑")).containsExactly(shared).doesNotContain(onlyCandidate, none);
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑")).bodyJson()
+			.extractingPath("$.items[0].holdingLibraryCount")
+			.isEqualTo(1);
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&page=2")).bodyJson().extractingPath("$.totalCount").isEqualTo(1);
+		assertThat(ids("title=사랑&libraryIds=" + candidate)).containsExactlyInAnyOrder(onlyCandidate, shared);
 	}
 
 	@Test
@@ -283,13 +301,15 @@ class BookSearchTests {
 			.update();
 	}
 
-	/** A book held by the given libraries, normalized with the importer's rules. */
+	/** A book held by the given libraries, normalized with the importer's rules; library_ids as the import gives. */
 	private long book(String title, String author, String publisher, String date, long... libraries) {
 		long id = jdbc.sql("""
 				INSERT INTO catalog.book (title, author_display, publisher, title_norm, main_title_norm, publisher_norm,
-				  published_on, content_type)
-				VALUES (:title, :author, :publisher, :titleNorm, :main, :publisherNorm, CAST(:date AS date), 'EBOOK')
+				  published_on, content_type, library_ids)
+				VALUES (:title, :author, :publisher, :titleNorm, :main, :publisherNorm, CAST(:date AS date), 'EBOOK',
+				  CAST(:libraryIds AS bigint[]))
 				RETURNING id""")
+			.param("libraryIds", Arrays.stream(libraries).sorted().distinct().boxed().toArray(Long[]::new))
 			.param("title", title)
 			.param("author", author)
 			.param("publisher", publisher)

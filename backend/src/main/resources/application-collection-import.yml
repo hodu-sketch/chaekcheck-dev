@@ -1,0 +1,17 @@
+# Collection import (ADR-0031, ADR-0060): runs once and exits, no web server (docs/maintenance/3-import.md). Paths
+# are given as arguments, e.g.
+#   --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite
+#   --chaekcheck.collection.import.ttl-path=../data/nlk/ttl
+spring:
+  main:
+    web-application-type: none
+
+chaekcheck:
+  # The login feature needs the web server's security setup; the import has no web server (found 2026-10-05: with
+  # login on in .env the import did not start).
+  auth:
+    enabled: false
+  collection:
+    import:
+      # 명지대학교 (collection id 100555) fills unknown dates with 1900~1905 (plan research 2절 7, ADR-0054)
+      placeholder-date-libraries: 100555

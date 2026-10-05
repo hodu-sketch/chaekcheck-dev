@@ -21,14 +21,14 @@ ext {
 	// Spring Modulith 2.1.x is built against Spring Boot 4.1.x
 	set('springModulithVersion', '2.1.1')
 	set('jsoupVersion', '1.23.2')
-	// Catalog importer only (Maven Central latest 2026-09-30, Apache License 2.0)
+	// Collection import only (Maven Central latest 2026-09-30, Apache License 2.0)
 	set('sqliteJdbcVersion', '3.53.4.0')
 }
 
 configurations {
-	// The catalog importer reads the collected SQLite file through plain JDBC (ADR-0031). The driver is on the
+	// The collection import reads the collection SQLite file through plain JDBC (ADR-0031). The driver is on the
 	// bootRun and test classpaths only, never in bootJar (user decision 2026-09-30).
-	catalogImport
+	collectionImport
 }
 
 dependencies {
@@ -47,9 +47,9 @@ dependencies {
 	// Version managed by Spring Boot
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation "org.jsoup:jsoup:${jsoupVersion}"
-	// implementation: the catalog importer writes with the driver's CopyManager (PostgreSQL COPY)
+	// implementation: the catalog load writes with the driver's CopyManager (PostgreSQL COPY)
 	implementation 'org.postgresql:postgresql'
-	catalogImport "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
+	collectionImport "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
 	testRuntimeOnly "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-liquibase-test'
@@ -66,7 +66,7 @@ dependencyManagement {
 }
 
 tasks.named('bootRun') {
-	classpath += configurations.catalogImport
+	classpath += configurations.collectionImport
 }
 
 tasks.named('test') {

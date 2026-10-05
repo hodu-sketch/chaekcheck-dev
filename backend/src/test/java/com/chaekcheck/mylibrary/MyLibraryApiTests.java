@@ -403,6 +403,113 @@ class MyLibraryApiTests {
 	}
 
 	/** Another session runs the account DELETE and waits for a lock (pg_stat_activity), so it is not merely slow. */
+	/** Cycle 07 (ADR-0057): the browser's libraries go to an empty account in one go, in their order. */
+	@Test
+	void importMovesTheBrowsersLibrariesInOrder() { // AC-19 server side
+		long account = newAccount();
+		disabledLibrary = jdbc.sql("""
+				INSERT INTO library.library (name, platform_type, base_url, join_method, enabled)
+				VALUES ('테스트 꺼짐', 'KYOBO_V1', 'https://disabled.mylibrary.test', 'test', false) RETURNING id""")
+			.query(Long.class)
+			.single();
+		long third = enabled.get(2), first = enabled.get(0);
+
+		assertThat(importLibraries(account, "{\"libraryIds\":[%d,999999999,%d,%d,%d]}".formatted(third,
+				disabledLibrary, first, third)))
+			.hasStatusOk()
+			.bodyJson()
+			.isStrictlyEqualTo("{\"libraryIds\":[%d,%d],\"max\":20}".formatted(third, first));
+		assertThat(signedIn(mvc.get().uri("/api/v1/me/libraries"), account)).bodyJson()
+			.isStrictlyEqualTo("{\"libraryIds\":[%d,%d],\"max\":20}".formatted(third, first));
+	}
+
+	@Test
+	void importIntoAnAccountWithLibrariesIs409AndChangesNothing() {
+		long account = newAccount();
+		insertLibrary(account, enabled.get(5));
+
+		assertThat(importLibraries(account, "{\"libraryIds\":[%d]}".formatted(enabled.get(0))))
+			.hasStatus(HttpStatus.CONFLICT)
+			.bodyJson()
+			.extractingPath("$.code")
+			.isEqualTo("library_import_not_empty");
+		assertThat(libraryRows(account)).isEqualTo(1);
+	}
+
+	@Test
+	void importBodyErrors() { // 400 validation_error like the regions (user decision 2026-10-05)
+		long account = newAccount();
+		String many = enabled.stream().map(String::valueOf).collect(Collectors.joining(","));
+
+		for (String body : List.of("{}", "{\"libraryIds\":[]}", "{\"libraryIds\":[\"a\"]}", "{\"libraryIds\":[0]}",
+				"{\"libraryIds\":5}", "{\"libraryIds\":[" + many + "]}")) {
+			assertThat(importLibraries(account, body)).as(body)
+				.hasStatus(HttpStatus.BAD_REQUEST)
+				.bodyJson()
+				.isLenientlyEqualTo("""
+						{"code":"validation_error","errors":[{"field":"libraryIds"}]}""");
+		}
+		assertThat(importLibraries(account, "not json")).hasStatus(HttpStatus.BAD_REQUEST);
+		assertThat(libraryRows(account)).isZero();
+	}
+
+	@Test
+	void importNeedsTheCsrfTokenAndTheLogin() {
+		long account = newAccount();
+		String body = "{\"libraryIds\":[%d]}".formatted(enabled.get(0));
+
+		assertThat(mvc.post()
+			.uri("/api/v1/me/library-imports")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(body)
+			.cookie(new Cookie("access_token", token(account)))).hasStatus(HttpStatus.FORBIDDEN);
+		assertThat(mvc.post()
+			.uri("/api/v1/me/library-imports")
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(body)
+			.cookie(new Cookie("XSRF-TOKEN", CSRF))
+			.header("X-XSRF-TOKEN", CSRF)).hasStatus(HttpStatus.UNAUTHORIZED);
+		deletion.delete(account);
+		assertThatThrownBy(() -> service.importLibraries(new AccountId(account), List.of(enabled.get(0))))
+			.isInstanceOf(MyLibraryService.AccountGoneException.class);
+		assertThat(libraryRows(account)).isZero();
+	}
+
+	@Test
+	void twoImportsAtOnceGiveOneSuccessAndOne409() throws Exception {
+		for (int round = 0; round < 5; round++) {
+			long account = newAccount();
+			CountDownLatch start = new CountDownLatch(1);
+			List<CompletableFuture<String>> imports = List.of(enabled.subList(0, 3), enabled.subList(3, 5))
+				.stream()
+				.map(ids -> CompletableFuture.supplyAsync(() -> {
+					awaitLatch(start);
+					try {
+						service.importLibraries(new AccountId(account), ids);
+						return "imported";
+					}
+					catch (MyLibraryService.LibraryImportNotEmptyException ex) {
+						return "not_empty";
+					}
+				}, threads))
+				.toList();
+			start.countDown();
+
+			List<String> outcomes = new ArrayList<>();
+			for (CompletableFuture<String> one : imports) {
+				outcomes.add(one.get(10, TimeUnit.SECONDS));
+			}
+			assertThat(outcomes).as("round " + round).containsExactlyInAnyOrder("imported", "not_empty");
+			assertThat(libraryRows(account)).isIn(2L, 3L);
+		}
+	}
+
+	private MvcTestResult importLibraries(long account, String body) {
+		return change(mvc.post().uri("/api/v1/me/library-imports"), account).contentType(MediaType.APPLICATION_JSON)
+			.content(body)
+			.exchange();
+	}
+
 	private void awaitDeletionBlockedOnALock() {
 		await().atMost(Duration.ofSeconds(10))
 			.untilAsserted(() -> assertThat(jdbc.sql("""

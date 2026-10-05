@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -72,6 +73,25 @@ class MyLibraryController {
 		return ResponseEntity.noContent().build();
 	}
 
+	/**
+	 * Moves the browser's libraries to the account at login (ADR-0057). {@code libraryIds}: 1~20 positive integers,
+	 * duplicates merged keeping the first, else 400 {@code validation_error} (same as the regions, user decision
+	 * 2026-10-05). Then 401 when the account is gone, 409 {@code library_import_not_empty}. 200 with every library
+	 * of the account afterwards.
+	 */
+	@PostMapping("/api/v1/me/library-imports")
+	Libraries importLibraries(AccountId account, @RequestBody JsonNode body) {
+		List<FieldError> errors = new ArrayList<>();
+		List<Long> ids = ids(body, "libraryIds", MyLibraryService.MAX_LIBRARIES, errors);
+		if (errors.isEmpty() && ids.isEmpty()) {
+			errors.add(new FieldError("libraryIds", "invalid_format", "libraryIds must have at least one id"));
+		}
+		if (!errors.isEmpty()) {
+			throw new InvalidBodyException(errors);
+		}
+		return new Libraries(service.importLibraries(account, ids), MyLibraryService.MAX_LIBRARIES);
+	}
+
 	/** 204, also when it was not there. A path that is not a library number is 404 {@code library_not_found}. */
 	@DeleteMapping("/api/v1/me/libraries/{libraryId}")
 	ResponseEntity<Void> removeLibrary(AccountId account, @PathVariable String libraryId) {
@@ -87,6 +107,10 @@ class MyLibraryController {
 	}
 
 	private static List<Long> regionIds(JsonNode body, String field, List<FieldError> errors) {
+		return ids(body, field, MyLibraryService.MAX_REGIONS, errors);
+	}
+
+	private static List<Long> ids(JsonNode body, String field, int max, List<FieldError> errors) {
 		JsonNode value = body == null ? null : body.get(field);
 		if (value == null || value.isNull()) {
 			errors.add(new FieldError(field, "required", field + " is required"));
@@ -103,9 +127,8 @@ class MyLibraryController {
 				return List.of();
 			}
 			ids.add(element.longValue());
-			if (ids.size() > MyLibraryService.MAX_REGIONS) {
-				errors.add(new FieldError(field, "too_many",
-						"At most " + MyLibraryService.MAX_REGIONS + " ids are allowed"));
+			if (ids.size() > max) {
+				errors.add(new FieldError(field, "too_many", "At most " + max + " ids are allowed"));
 				return List.of();
 			}
 		}

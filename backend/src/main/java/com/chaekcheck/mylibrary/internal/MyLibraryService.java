@@ -100,6 +100,26 @@ public class MyLibraryService {
 		store.addLibrary(account.value(), libraryId);
 	}
 
+	/**
+	 * Moves the libraries added in a browser before login to the account in one go (ADR-0057): lock, the account
+	 * must have none yet (409), then the enabled ones in the given order; unknown or disabled ids are skipped, not an
+	 * error. The list is already checked for format, duplicates and size.
+	 * @return every library of the account afterwards
+	 */
+	@Transactional
+	public List<Long> importLibraries(AccountId account, List<Long> libraryIds) {
+		lock(account);
+		if (store.countLibraries(account.value()) > 0) {
+			throw new LibraryImportNotEmptyException();
+		}
+		List<Long> enabled = libraryIds.stream()
+			.filter(id -> libraries.findEnabledTarget(id).isPresent())
+			.limit(MAX_LIBRARIES)
+			.toList();
+		store.addLibraries(account.value(), enabled);
+		return store.libraryIds(account.value());
+	}
+
 	/** Removes one library; one that is not there is a success. Locks like every write (ADR-0051). */
 	@Transactional
 	public void removeLibrary(AccountId account, long libraryId) {
@@ -158,6 +178,15 @@ public class MyLibraryService {
 
 		LibraryLimitException() {
 			super("At most " + MAX_LIBRARIES + " libraries can be added");
+		}
+
+	}
+
+	/** The account already has libraries added by hand: the browser's are not moved (409). */
+	public static final class LibraryImportNotEmptyException extends RuntimeException {
+
+		LibraryImportNotEmptyException() {
+			super("The account already has libraries");
 		}
 
 	}

@@ -16,14 +16,15 @@ import java.util.Optional;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-import com.chaekcheck.catalog.internal.normalize.CatalogText;
-import com.chaekcheck.catalog.internal.normalize.Contributors.Role;
+import com.chaekcheck.catalog.normalize.CatalogText;
+import com.chaekcheck.catalog.normalize.Contributors.Role;
 import com.chaekcheck.library.SearchTarget;
 
 /**
  * {@link BookSearch} on PostgreSQL with pg_bigm (ADR-0032). Words match the normalized columns with {@code LIKE};
  * the GIN {@code gin_bigm_ops} indexes serve them. Library filtering uses the plan ids as a parameter only (no join
- * with another module's table): {@code unnest(:libraryIds, :tiers)}.
+ * with another module's table): {@code unnest(:libraryIds, :tiers)}. The list reads each book's precomputed
+ * {@code library_ids} (ADR-0055), never {@code holding}; one book's page still reads its holdings.
  */
 public class PgBigmBookSearch implements BookSearch {
 
@@ -58,15 +59,16 @@ public class PgBigmBookSearch implements BookSearch {
 				WITH plan AS (
 				  SELECT * FROM unnest(CAST(:libraryIds AS bigint[]), CAST(:tiers AS integer[])) AS p(library_id, tier)
 				), matched AS (
-				  SELECT b.id FROM catalog.book b WHERE %s
+				  SELECT b.id, b.library_ids FROM catalog.book b
+				  WHERE b.library_ids && CAST(:libraryIds AS bigint[]) AND %s
 				), scored AS (
-				  SELECT h.book_id, min(p.tier) AS tier, count(DISTINCT h.library_id) AS library_count,
+				  SELECT m.id AS book_id, min(p.tier) AS tier, count(*) AS library_count,
 				    min(sn.collected_at) AS collected_from, max(sn.collected_at) AS collected_to
 				  FROM matched m
-				  JOIN catalog.holding h ON h.book_id = m.id
-				  JOIN plan p ON p.library_id = h.library_id
-				  LEFT JOIN catalog.catalog_library_snapshot sn ON sn.library_id = h.library_id
-				  GROUP BY h.book_id
+				  CROSS JOIN LATERAL unnest(m.library_ids) AS held(library_id)
+				  JOIN plan p ON p.library_id = held.library_id
+				  LEFT JOIN catalog.catalog_library_snapshot sn ON sn.library_id = held.library_id
+				  GROUP BY m.id
 				)
 				SELECT b.id, b.title, b.author_display, b.publisher, b.published_on, s.library_count, s.tier,
 				  (b.main_title_norm = :exactTitleNorm) AS exact_title,
@@ -136,9 +138,8 @@ public class PgBigmBookSearch implements BookSearch {
 
 	private long count(String where, Map<String, Object> params) {
 		return jdbc.sql("""
-				SELECT count(DISTINCT h.book_id) FROM catalog.book b
-				JOIN catalog.holding h ON h.book_id = b.id
-				WHERE h.library_id = ANY(CAST(:libraryIds AS bigint[])) AND %s""".formatted(where))
+				SELECT count(*) FROM catalog.book b
+				WHERE b.library_ids && CAST(:libraryIds AS bigint[]) AND %s""".formatted(where))
 			.params(params)
 			.query(Long.class)
 			.single();

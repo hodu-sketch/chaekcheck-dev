@@ -9,6 +9,7 @@ import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.Availability;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.AvailabilityBasis;
 import com.chaekcheck.library.Eligibility;
+import com.chaekcheck.library.JoinSurvey;
 import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.PriorityGroup;
@@ -70,17 +71,21 @@ public final class StreamEvents {
 	/**
 	 * One plan entry, in plan order (design-delta event example). {@code chosen}: the user added it by hand (cycle
 	 * 06); the next-batch APIs do not send it again, so the web keeps it from these first {@code targets}.
+	 * {@code joinSurvey} picks the join notice of a candidate library (ADR-0053); {@code logoUrl} is null when the
+	 * library has no logo of its own (ADR-0059).
 	 */
 	public record Library(long id, String name, LibraryType libraryType, PlatformType platformType,
 			PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 			String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl,
-			String joinCaution, String joinNotice, String homepageUrl, boolean chosen) {
+			String joinCaution, String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey,
+			String logoUrl) {
 
 		public static Library from(SearchTarget target) {
 			return new Library(target.id(), target.name(), target.libraryType(), target.platformType(),
 					target.priorityGroup(), target.deferred(), target.eligibility(), target.eligibilitySummary(),
 					target.extraConditionText(), target.visitRequired(), target.joinMethod(), target.joinUrl(),
-					target.joinCaution(), target.joinNotice(), target.homepageUrl(), target.chosen());
+					target.joinCaution(), target.joinNotice(), target.homepageUrl(), target.chosen(),
+					target.joinSurvey(), target.logoUrl());
 		}
 
 	}

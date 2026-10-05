@@ -99,7 +99,7 @@ class LibraryCatalogTests {
 			assertThat(catalog.findEnabledTarget(GANGSEO)).get()
 				.extracting(SearchTarget::priorityGroup, SearchTarget::eligibility)
 				.containsExactly(PriorityGroup.QUALIFIED, Eligibility.UNKNOWN);
-			assertThat(catalog.findEnabledTarget(999)).isEmpty();
+			assertThat(catalog.findEnabledTarget(999_999)).isEmpty();
 		}
 
 		private List<SearchTarget> pilots(List<SearchTarget> plan) {
@@ -478,6 +478,119 @@ class LibraryCatalogTests {
 		@Test
 		void findEnabledTargetIsNeverChosen() {
 			assertThat(catalog.findEnabledTarget(GOHEUNG)).get().extracting(SearchTarget::chosen).isEqualTo(false);
+		}
+
+		private static PlanOptions chosen(PlanOptions.Scope scope, Long... ids) {
+			return new PlanOptions(scope, PlanOptions.Visit.ANY, Set.of(ids));
+		}
+
+	}
+
+	/** Cycle 07 (ADR-0053, ADR-0059): libraries whose join rules were not researched, and the logo. */
+	@Nested
+	class CandidateLibraries {
+
+		@Test
+		void unsurveyedAreLeftOutWithoutLibraryIds() { // AC-4 server side
+			onlyTestLibraries();
+			long open = library("누구나", 10);
+			nationwide(open);
+			long members = surveyed(library("학교", 10), JoinSurvey.MEMBERS_ONLY);
+			long unknown = surveyed(library("종류 모름", 10), JoinSurvey.NOT_SURVEYED);
+
+			for (PlanOptions.Scope scope : PlanOptions.Scope.values()) {
+				for (Set<Long> regions : List.of(Set.<Long>of(), Set.of(MAPO))) {
+					assertThat(catalog.planSearch(regions, Set.of(), chosen(scope)))
+						.as(scope + " " + regions)
+						.extracting(SearchTarget::id)
+						.containsExactly(open)
+						.doesNotContain(members, unknown);
+				}
+			}
+		}
+
+		@Test
+		void chosenUnsurveyedComeFirstAsUnsurveyed() { // AC-3 server side
+			onlyTestLibraries();
+			long open = library("누구나", 10);
+			nationwide(open);
+			long members = surveyed(library("학교", 10), JoinSurvey.MEMBERS_ONLY);
+
+			for (PlanOptions.Scope scope : PlanOptions.Scope.values()) {
+				assertThat(catalog.planSearch(Set.of(MAPO), Set.of(), chosen(scope, members)))
+					.as(scope.name())
+					.extracting(SearchTarget::id, SearchTarget::chosen, SearchTarget::eligibility,
+							SearchTarget::joinSurvey)
+					.containsExactly(tuple(members, true, Eligibility.UNSURVEYED, JoinSurvey.MEMBERS_ONLY),
+							tuple(open, false, Eligibility.OPEN, JoinSurvey.SURVEYED));
+			}
+			assertThat(catalog.findEnabledTarget(members)).get()
+				.extracting(SearchTarget::eligibility, SearchTarget::joinable)
+				.containsExactly(Eligibility.UNSURVEYED, false);
+		}
+
+		@Test
+		void notFoundIsPlannedAsUnverifiedWithoutLibraryIds() {
+			onlyTestLibraries();
+			long notFound = surveyed(library("원문 없음", 10), JoinSurvey.NOT_FOUND);
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of()))
+				.extracting(SearchTarget::id, SearchTarget::eligibility, SearchTarget::joinSurvey)
+				.containsExactly(tuple(notFound, Eligibility.UNVERIFIED, JoinSurvey.NOT_FOUND));
+		}
+
+		@Test
+		void surveyedCandidateIsJudgedByItsRegionRules() {
+			onlyTestLibraries();
+			long seoul = library("서울 후보", 10);
+			rule(seoul, "RESIDENCE", SEOUL);
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of()))
+				.extracting(SearchTarget::id, SearchTarget::eligibility)
+				.containsExactly(tuple(seoul, Eligibility.ELIGIBLE));
+			assertThat(catalog.planSearch(Set.of(HAEUNDAE), Set.of())).isEmpty();
+		}
+
+		@Test
+		void listKeepsUnsurveyedLibraries() {
+			onlyTestLibraries();
+			long members = surveyed(library("학교", 10), JoinSurvey.NOT_SURVEYED);
+
+			assertThat(catalog.eligibilityFor(Set.of(MAPO), Set.of()))
+				.extracting(LibraryEligibility::id, LibraryEligibility::eligibility, LibraryEligibility::joinSurvey)
+				.containsExactly(tuple(members, Eligibility.UNSURVEYED, JoinSurvey.NOT_SURVEYED));
+		}
+
+		@Test
+		void logoUrlOnlyWhileVisible() { // AC-22 server side
+			onlyTestLibraries();
+			long shown = library("로고 있음", 20);
+			nationwide(shown);
+			long hidden = library("로고 내림", 10);
+			nationwide(hidden);
+			// before anything is read: the entities would otherwise stay cached in the test transaction
+			jdbc.sql("UPDATE library.library SET logo_file = id || '.png' WHERE id IN (?, ?)").params(shown, hidden).update();
+			jdbc.sql("UPDATE library.library SET logo_visible = false WHERE id = ?").param(hidden).update();
+
+			assertThat(catalog.planSearch(Set.of(), Set.of())).extracting(SearchTarget::id, SearchTarget::logoUrl)
+				.containsExactly(tuple(shown, "/library-logos/" + shown + ".png"), tuple(hidden, null));
+			assertThat(catalog.eligibilityFor(Set.of(), Set.of())).extracting(LibraryEligibility::logoUrl)
+				.containsExactly("/library-logos/" + shown + ".png", null);
+			assertThat(catalog.findEnabledTarget(hidden)).get().extracting(SearchTarget::logoUrl).isNull();
+		}
+
+		@Test
+		void seededLogosAreVisibleUnderTheirFileNames() {
+			assertThat(catalog.findEnabledTarget(GANGSEO)).get()
+				.extracting(SearchTarget::logoUrl)
+				.isEqualTo("/library-logos/1.gif");
+		}
+
+		private long surveyed(long libraryId, JoinSurvey survey) {
+			jdbc.sql("UPDATE library.library SET join_survey = ?, join_method = NULL WHERE id = ?")
+				.params(survey.name(), libraryId)
+				.update();
+			return libraryId;
 		}
 
 		private static PlanOptions chosen(PlanOptions.Scope scope, Long... ids) {

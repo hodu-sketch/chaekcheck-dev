@@ -55,13 +55,14 @@ class LibraryListTests {
 		assertThat(get("")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
 				{"libraries":[
 				  {"id":%d,"name":"테스트 누구나","eligibility":"OPEN","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":null},
+				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null},
 				  {"id":%d,"name":"테스트 서울","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":"서울 거주·재직·재학"},
+				   "cautioned":false,"eligibilitySummary":"서울 거주·재직·재학","joinSurvey":"SURVEYED","homepageUrl":null,
+				   "logoUrl":null},
 				  {"id":%d,"name":"테스트 부산","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":true,
-				   "cautioned":true,"eligibilitySummary":"부산 거주"},
+				   "cautioned":true,"eligibilitySummary":"부산 거주","joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null},
 				  {"id":%d,"name":"테스트 미확인","eligibility":"UNVERIFIED","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":null}
+				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null}
 				]}
 				""".formatted(open, seoulAll, busanResidence, unverified));
 	}

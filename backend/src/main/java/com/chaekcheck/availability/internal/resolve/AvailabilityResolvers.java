@@ -20,7 +20,7 @@ public class AvailabilityResolvers {
 		CountResolver count = new CountResolver();
 		for (PlatformType type : PlatformType.values()) {
 			byPlatform.put(type, switch (type) {
-				case KYOBO_V1, YES24_V1, YES24_V2, YES24_V3, GANGNAM_V1 -> count;
+				case KYOBO_V1, YES24_V1, YES24_V2, YES24_V3, GANGNAM_V1, BOOKCUBE_FX, ALADIN_V1 -> count;
 				case KYOBO_SUBSCRIPTION_V1 -> new SubscriptionResolver();
 				case ELIB_PORTAL_V1 -> new SiteListResolver(detailLookup);
 			});

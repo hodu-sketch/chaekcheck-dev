@@ -1,0 +1,37 @@
+# Library logos (ADR-0059): only the registered libraries with their own logo. logo_file is the file name under the
+# web's /library-logos/ (made with the CSV by scripts/library/BuildLogos.java); NULL = no logo, the screen shows an
+# empty box. logo_visible: an operator sets it false to take a logo down at once (no rebuild).
+# The file names go through a staging table because loadData only inserts.
+databaseChangeLog:
+  - changeSet:
+      id: library-009-logos
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE library.library
+                ADD COLUMN logo_file text,
+                ADD COLUMN logo_visible boolean NOT NULL DEFAULT true
+        - createTable:
+            schemaName: library
+            tableName: logo_seed
+            columns:
+              - column: { name: library_id, type: bigint }
+              - column: { name: logo_file, type: text }
+        - loadData:
+            schemaName: library
+            tableName: logo_seed
+            file: 009-library-logos.csv
+            relativeToChangelogFile: true
+            encoding: UTF-8
+            separator: ","
+            usePreparedStatements: true
+            columns:
+              - column: { name: library_id, type: NUMERIC }
+              - column: { name: logo_file, type: STRING }
+        - sql:
+            sql: >-
+              UPDATE library.library l SET logo_file = s.logo_file FROM library.logo_seed s WHERE l.id = s.library_id
+        - dropTable:
+            schemaName: library
+            tableName: logo_seed

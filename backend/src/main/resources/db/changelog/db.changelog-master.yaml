@@ -39,3 +39,26 @@ databaseChangeLog:
   - include:
       file: mylibrary/001-mylibrary-schema.yaml
       relativeToChangelogFile: true
+  # cycle 07 (plan handoff step 2): library/007 -> library/008 -> collection/001 -> collection/002 -> catalog/002,
+  # then catalog/003 and library/009
+  - include:
+      file: library/007-library-candidates-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/008-library-seed-candidates.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: collection/001-collection-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: collection/002-collection-seed-candidates.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: catalog/002-book-library-ids.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: catalog/003-drop-catalog-import.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/009-library-logos.yaml
+      relativeToChangelogFile: true

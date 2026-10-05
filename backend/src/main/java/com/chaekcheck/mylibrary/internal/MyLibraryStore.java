@@ -76,6 +76,19 @@ class MyLibraryStore {
 				ON CONFLICT DO NOTHING""").params(accountId, libraryId).update();
 	}
 
+	/**
+	 * Adds the libraries in the given order: {@code added_at} grows by 1 ms per library (one transaction has one
+	 * {@code now()}), so the list keeps the order (ADR-0057) [안].
+	 */
+	void addLibraries(long accountId, List<Long> libraryIds) {
+		for (int i = 0; i < libraryIds.size(); i++) {
+			jdbc.sql("""
+					INSERT INTO mylibrary.account_library (account_id, library_id, added_at)
+					VALUES (?, ?, now() + ? * interval '1 millisecond')
+					ON CONFLICT DO NOTHING""").params(accountId, libraryIds.get(i), i).update();
+		}
+	}
+
 	void removeLibrary(long accountId, long libraryId) {
 		jdbc.sql("DELETE FROM mylibrary.account_library WHERE account_id = ? AND library_id = ?")
 			.params(accountId, libraryId)

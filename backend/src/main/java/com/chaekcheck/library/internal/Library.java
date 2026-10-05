@@ -9,6 +9,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.chaekcheck.library.JoinSurvey;
+import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlatformType;
 
@@ -86,6 +88,23 @@ class Library {
 
 	private boolean enabled;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "join_survey", columnDefinition = "text")
+	private JoinSurvey joinSurvey;
+
+	/** KYOBO subscription-screen institutions only; null keeps the platform's rule (ADR-0056). */
+	@Enumerated(EnumType.STRING)
+	@Column(name = "lending_model", columnDefinition = "text")
+	private LendingModel lendingModel;
+
+	/** File name under the web's {@code /library-logos/}; null when the library has no logo of its own (ADR-0059). */
+	@Column(name = "logo_file", columnDefinition = "text")
+	private String logoFile;
+
+	/** An operator sets this false to take the logo down at once. */
+	@Column(name = "logo_visible")
+	private boolean logoVisible;
+
 	protected Library() {
 	}
 
@@ -151,6 +170,22 @@ class Library {
 
 	boolean isEnabled() {
 		return enabled;
+	}
+
+	JoinSurvey getJoinSurvey() {
+		return joinSurvey;
+	}
+
+	LendingModel getLendingModel() {
+		return lendingModel;
+	}
+
+	String getLogoFile() {
+		return logoFile;
+	}
+
+	boolean isLogoVisible() {
+		return logoVisible;
 	}
 
 }

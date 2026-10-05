@@ -10,11 +10,16 @@ package com.chaekcheck.library;
  * @param homepageUrl front page of this row: the e-library's main page for EBOOK; may be null
  * @param chosen the user added this library by hand ({@link PlanOptions#libraryIds()}): it comes first and the
  * scope and visit filters keep it (ADR-0050). When no region rule matched, {@code eligibility} is UNKNOWN.
+ * @param joinSurvey how far the join rules were researched; the screen picks its join notice by it (ADR-0053)
+ * @param lendingModel KYOBO subscription-screen institutions only, else null; OWNED is read as counts (ADR-0056)
+ * @param logoUrl the library's own logo ({@code /library-logos/…}), or null when it has none or it was taken down
+ * (ADR-0059)
  */
 public record SearchTarget(long id, String name, LibraryType libraryType, PlatformType platformType, String baseUrl,
 		PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 		String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl, String joinCaution,
-		String joinNotice, String homepageUrl, boolean chosen) {
+		String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey, LendingModel lendingModel,
+		String logoUrl) {
 
 	/**
 	 * The user can join for sure: anyone may join, or one of the user's regions matches. An extra condition (e.g.

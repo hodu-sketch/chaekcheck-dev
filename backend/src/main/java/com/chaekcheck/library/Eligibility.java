@@ -12,5 +12,10 @@ public enum Eligibility {
 	 */
 	UNKNOWN,
 	/** The library has no rules we could verify (ADR-0013). It stays a target whatever the user's regions. */
-	UNVERIFIED
+	UNVERIFIED,
+	/**
+	 * Join rules not researched: a library for the members of one body or of unknown kind (ADR-0053,
+	 * {@link JoinSurvey#onlyWhenChosen()}). Planned only when the user added it; never joinable.
+	 */
+	UNSURVEYED
 }
