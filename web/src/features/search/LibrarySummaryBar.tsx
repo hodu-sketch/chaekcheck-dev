@@ -17,8 +17,8 @@ interface Props {
 }
 
 /**
- * Phones (user request 2026-10-05): no sideways row of libraries, only an "N곳" button that opens the same full list
- * as "… 외 N곳". It sits on the "상세검색 · 설정" line.
+ * Direct search on every width (user requests 2026-10-05): no row of libraries, only an "N곳" button that opens the
+ * same full list as "… 외 N곳". It sits on the "상세검색 · 설정" line; the list opens below it, never past the window.
  */
 export function LibraryCountButton({ libraries, results, hasMore, onMore }: Props) {
   return (
@@ -83,6 +83,8 @@ function AllLibraries({
       <Popover.Portal>
         <Popover.Content
           className={styles.popover}
+          data-compact={compact || undefined}
+          side="bottom"
           align={compact ? 'end' : 'start'}
           sideOffset={8}
           collisionPadding={12}

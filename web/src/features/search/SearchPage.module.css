@@ -215,9 +215,16 @@
   outline-offset: 2px;
 }
 
-/* phones, direct search: holds the "N곳" button on the "상세검색 · 설정" line */
+/* direct search: holds the "N곳" button on the "상세검색 · 설정" line, a little apart from the other two */
 .countSlot {
   display: flex;
+  margin-left: 0.4rem;
+}
+
+@media (width <= 640px) {
+  .countSlot {
+    margin-left: 0;
+  }
 }
 
 /* the expanded conditions keep their left alignment on the centered start screen */

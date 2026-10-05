@@ -47,7 +47,7 @@ export function SearchPage() {
   const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
   const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
   const [modalOpen, setModalOpen] = useState(false)
-  // phones, direct search: where the "N곳" button goes, at the right end of the "상세검색 · 설정" line
+  // direct search: where the "N곳" button goes, at the right end of the "상세검색 · 설정" line (every width)
   const [countSlot, setCountSlot] = useState<HTMLElement | null>(null)
   // phones: the scope controls fold into the settings panel (D안, user choice 2026-10-05)
   const phone = useMediaQuery('(width <= 640px)')
@@ -183,7 +183,7 @@ export function SearchPage() {
           lineEnd={
             phone && bookQuery ? (
               <SortSelect value={bookQuery.sort} onChange={changeSort} />
-            ) : phone && settings.direct && directValid ? (
+            ) : settings.direct && directValid ? (
               <div ref={setCountSlot} className={styles.countSlot} />
             ) : undefined
           }
@@ -226,7 +226,7 @@ export function SearchPage() {
           visit={visit}
           onFilterChange={changeFilter}
           onEditRegions={() => setModalOpen(true)}
-          countSlot={phone ? countSlot : undefined}
+          countSlot={countSlot}
         />
       )}
       {bookQuery && (

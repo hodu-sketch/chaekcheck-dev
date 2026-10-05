@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrary, VisitFilter } from '../../api/types'
 import { useRegions } from '../region/RegionContext'
-import { LibraryCountButton, LibrarySummaryBar } from './LibrarySummaryBar'
+import { LibraryCountButton } from './LibrarySummaryBar'
 import { ResultList, type BatchView } from './ResultList'
 import listStyles from './ResultList.module.css'
 import { DIRECT_REASON } from './searchSettings'
@@ -22,10 +22,10 @@ type Props = {
   onFilterChange: (filter: ResultFilter) => void
   onEditRegions: () => void
   /**
-   * Phones: the place on the "상세검색 · 설정" line for the "N곳" button, which replaces the sideways row of libraries
-   * (user request 2026-10-05); null while that place is not there yet. Left out, the row is drawn as before.
+   * The place on the "상세검색 · 설정" line for the "N곳" button, which replaces the row of libraries on every width
+   * (user requests 2026-10-05); null while that place is not there yet.
    */
-  countSlot?: HTMLElement | null
+  countSlot: HTMLElement | null
 }
 
 /**
@@ -114,25 +114,16 @@ export function DirectResults({
       {state.targets && (
         <section className={styles.results}>
           {requested.length > 0 &&
-            (countSlot !== undefined ? (
-              countSlot &&
-              createPortal(
-                <LibraryCountButton
-                  libraries={requested}
-                  results={state.libraries}
-                  hasMore={(id) => state.plan.entries[id]?.status === 'HasMore'}
-                  onMore={loadLibraryMore}
-                />,
-                countSlot,
-              )
-            ) : (
-              <LibrarySummaryBar
+            countSlot &&
+            createPortal(
+              <LibraryCountButton
                 libraries={requested}
                 results={state.libraries}
                 hasMore={(id) => state.plan.entries[id]?.status === 'HasMore'}
                 onMore={loadLibraryMore}
-              />
-            ))}
+              />,
+              countSlot,
+            )}
           {firstBatchWaiting && <p className={styles.searching}>도서관에서 찾는 중…</p>}
           {noTargets && (
             <p className={styles.searching}>

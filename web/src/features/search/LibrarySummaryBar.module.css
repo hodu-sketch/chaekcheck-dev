@@ -81,13 +81,16 @@
   background: var(--card);
 }
 
-/* phones: the "N곳" button on the "상세검색 · 설정" line, the same height as those (user request 2026-10-05) */
+/*
+ * The "N곳" button on the "상세검색 · 설정" line, the same height as those (user requests 2026-10-05): the search line's
+ * height on wider screens, the smaller control height on phones.
+ */
 .count {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  height: var(--control-height);
-  padding: 0 0.85rem;
+  height: var(--search-height);
+  padding: 0 1rem;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
   background: var(--card);
@@ -163,6 +166,16 @@
 
 .popoverClose:hover {
   background: var(--paper-deep);
+}
+
+/*
+ * The "N곳" list (user request 2026-10-05): below the button, never past the window. Its height is at most the room
+ * under the button, so it always fits there and is never flipped above it (the 50vh is only for the first layout,
+ * before that room is measured); the width is kept inside by the popover's shift.
+ */
+.popover[data-compact] {
+  width: min(34rem, calc(100vw - 24px));
+  max-height: min(32rem, var(--radix-popover-content-available-height, 50vh));
 }
 
 @keyframes pop {
@@ -284,9 +297,15 @@
  * nothing is squeezed into one letter per line (user request 2026-10-05)
  */
 @media (width <= 640px) {
+  .count {
+    height: var(--control-height);
+    padding: 0 0.85rem;
+  }
+
   /* never past the bottom of the screen; it scrolls inside */
-  .popover {
-    max-height: min(28rem, var(--radix-popover-content-available-height));
+  .popover,
+  .popover[data-compact] {
+    max-height: min(28rem, var(--radix-popover-content-available-height, 50vh));
     padding: 0.9rem 0.75rem 1rem;
   }
 
