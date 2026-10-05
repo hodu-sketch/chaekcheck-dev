@@ -1689,3 +1689,28 @@ plan 인계서 `docs/current/handoff.md`(사이클 07 후보 도서관 넣기)�
 ## 0단계 뒤 알게 된 것
 
 - 사본 `quick_check` = ok(172초). 도서관 3,016(등록 278 + 후보 2,738).
+
+## 9~13단계: 웹과 nginx (2026-10-05)
+
+- **이름**: 브라우저 키 `chaekcheck.chosenLibraries.v1`(인계서 이름 그대로), 로고 컴포넌트 `web/src/components/LibraryLogo.tsx`, 브라우저 저장 `features/mylibrary/chosenLibraryStorage.ts`, 서비스 안내 `features/about/AboutPage.tsx`(`/about`).
+- **로그인 기능이 꺼져 있어도 S10이 열림**(C19의 dev 결정): 로그인 전과 같이 브라우저에 저장. `LoginOnly`를 뺌.
+- **S10 이름 찾기**: 두 글자부터, 친 글자로 시작하는 이름 먼저 → 가나다(`Intl.Collator('ko')`), 20곳씩 + "더 보기", 없음 "찾는 도서관이 없어요", 이미 추가한 곳 "직접 추가함"(흐리게, 누를 수 없음). 로고 약 24px.
+- **S1 로그인 전**: PC·태블릿 [내 도서관 관리 ▾](지역도 직접 추가도 없으면 "내 도서관 설정" → S10 바로). 폰 설정 창도 [내 도서관 관리] → S10. 스위치 이름(전체 도서관 / 누구나 가입·가입 가능한 곳)은 그대로.
+- **S11**: 제목 "이 브라우저에 저장된 것을 계정에 저장할까요?", 계정에 없는 쪽만 보이고 옮김. 지역은 `PUT /me/regions`, 도서관은 `POST /me/library-imports`. 브라우저 값은 지우지 않음.
+  - **답한 기록 키**: 지금 `chaekcheck.regionImport.v1` 하나를 두 묶음에 함께 씀(한 질문으로 묻기 때문, dev 결정).
+  - **응답 수가 보낸 수보다 적을 때 안내**(dev 결정): 21곳 이상을 보냈으면 "20곳까지만 저장했어요"[확정 문구], 그 밖(그 사이 꺼지거나 지워진 도서관)은 "지금 쓸 수 없는 도서관 N곳은 빼고 저장했어요"[안 문구].
+  - 409(그 사이 계정에 생김)는 계정 값을 다시 읽음.
+- **결과 카드(12단계)**: 가입 정보 창은 `joinSurvey`가 `SURVEYED`가 아니면 안내 문구 + (가입 방법·주의가 있으면 그것) + [도서관 첫 화면](`homepageUrl`). 로고는 이름 앞 약 20px, 누르면 도서관 첫 화면 새 창(카드 링크 위에 놓음). 미조사 도서관 등급 `UNSURVEYED`는 "가입 자격 확인 필요" 묶음으로 정렬.
+- **S12 문구**: "책첵은 여러 전자도서관에서 지금 빌릴 수 있는 전자책을 한 번에 찾아 주는 서비스예요. 수량은 각 도서관의 공개 검색 결과를 기준으로 보여 줘요." + 고지 문장[확정] + 로고 내림 연락처 자리 글 "로고를 내려 달라는 요청은 연락처가 정해지면 이곳에 안내할게요."(`TODO(확인 필요)`).
+- **nginx**: `gzip on; gzip_proxied any; gzip_vary on; gzip_min_length 1024; gzip_types application/json application/problem+json;`(프록시 응답이라 `gzip_proxied`가 필요, 스트림은 압축 안 함). `/library-logos/` `Cache-Control: public, max-age=604800`(7일, 파일 이름에 해시가 없어 `immutable` 안 씀; 내리기는 API가 `logoUrl`을 바로 안 보내는 것으로 됨). **`/my-libraries`가 nginx 화면 경로에 없어 직접 열면 404였던 것 확인 → 고침**(`about`과 함께 더함). 로컬 nginx 확인 결과는 `deploy/nginx/README.md`.
+- 화면 다듬기(사이클 07 동안 사용자 요청, 서브에이전트가 함): 폰 지역 고르기 창·첫 화면 스크롤 없앰·설정 창 세 줄 접기·검색 칸 한 줄·"여러 조건" → "상세검색"·직접 찾기 도서관 줄 → "N곳" 버튼·결과 카드 비율 4:6(PC·태블릿). 커밋 `16d4b62` `e4f7b1d` `791ebc3` `41bf15f` `635833b` `dc9ed0d`.
+
+## 18단계: 수집 두 갈래 정리 (2026-10-05)
+
+- `docs/maintenance/README.md` "한눈에" 표를 ① 도서관 수집 / ② 책 수집 / 가져오기 / (자동) 서비스로 다시 씀. 각 문서 머리에 plan 짝 문서 링크.
+- `1-libraries.md`: 순서(후보 찾기 → 같은 사이트 거르기 → 넣기 → 구독 규칙·마감 확인), "같은 사이트 거르기", "넣기(서비스 DB)", "로고 받기" 절을 더함. 등록 도서관 확인 자리표는 그대로.
+- `2-crawl.md`: 파일 이름 그대로 둠(다른 문서가 가리킴).
+- **`--per-host`와 `--host-slots`를 함께 줄 때 우선순위**(코드 확인, `crawl_catalog.py` `slots_for`): 줄마다 `--host-slots` 값이 먼저, 없는 줄은 `--per-host`, "SLOTS OFF"가 된 줄은 1건. 줄 열쇠는 `--queue-by-ip`면 IP, 아니면 호스트 이름. `2-crawl.md` 2-1절에 적음.
+- 같은 사이트 거르기를 수집기 `import-probe`에는 넣지 않음(dev 판단): 넣기(seed 스크립트)에서 반드시 거름.
+- 마감 확인이 읽는 주소는 이미 셋(`popupMain.json`, `firstBoardBlbrSrmb.json`, `listBoard.json`)이라 그대로.
+- `3-import.md`: 새 명령(`collection-import`), 설정 이름, 사본을 원본으로, 두 번 읽기, 새 건너뜀 이유. 결과 표는 14·15단계 값으로 채움.
