@@ -145,6 +145,46 @@
 | 2198 | 성균관대 (YES24) | `http://ebook.skku.edu` | 시간 초과(5초) 세 번. 같은 호스트의 북큐브(558, `:9080/FxLibrary`)는 응답 |
 | 2194 | 장안대 (YES24) | `http://e-lib.jangan.ac.kr` | 연결 뒤 응답 없음(`header parser received no bytes`) 두 번 |
 
+## 10. 첫 화면에 다른 이름이 나오는 곳 (2026-10-05, PC·폰 검사)
+
+도구: `scripts/library/check_front_page_names.py`(PC 기본, `--mobile` 폰). 켜진 2,669곳. 결과 파일 `data/cycle07/front-out.tsv`, `front-out-mobile.tsv`(git 밖).
+
+### 10-1. 폰에서만 문제 (YES24 모바일판 `/m/`, 13곳)
+
+YES24 사이트는 폰 브라우저를 첫 화면·목록·**검색 결과까지** 모바일판 `/m/`으로 보냅니다(`/`, `/default.asp`, `/ebook/`, `/search/?…` 모두 확인). **책 상세 `/ebook/detail/?goods_id=…`만 PC판 그대로**라 책 링크는 맞게 열립니다. 아래 사이트의 모바일판은 설정이 안 되어 있습니다.
+
+| 폰에서 보이는 것 | 도서관 (서비스 번호) |
+|---|---|
+| 제목·로고 "경동대학교" | 원주시립도서관(YES24) 224 `http://ebook.wonju.go.kr:81/m/`, 동대문구립도서관(YES24) 230 `http://e-book.l4d.or.kr:8088/m/`, 대전광역시 서구 전자도서관 260 `https://seogu.yes24library.com/m/`, 국립한밭대학교 2586 `https://hanbatu.yes24library.com/m/` |
+| "요청하신 페이지를 찾을 수 없습니다 - YES24" | 고양시도서관센터(YES24) 238, PARAMUS 2190, 현대오토에버 동반성장협약사 2277 |
+| 빈 화면("New Document" 또는 제목 없음) | 성남시도서관사업소 229, 한국체육대학교 (YES24) 2164, 명지대학교 (YES24) 2533, 세명대학교 (YES24) 2195, 목원대학교 (YES24) 2222 |
+| 빈 화면(교보, 폰에서 다른 주소로 감) | 용인대지초등학교 1824 |
+
+- 원문(동대문, 폰): `<title>경동대학교</title>`, 로고 `alt="경동대학교"`. PC판 바닥: "동대문구립도서관 서울특별시 서대문구 거북골로 34", 회원가입 링크 `https://www.gdlibrary.or.kr/intro/member/join.do`(사이트가 다른 곳 틀을 쓴 흔적).
+- 서비스·수집 데이터는 맞음: 서비스 책 화면은 계획의 도서관만 보여 줌(구성원용 경동대 같은 곳 없음). 서비스에 "경동대학교" 도서관은 없음.
+- 처리: 아직 없음(plan이 정함. plan-feedback `# 사이클 07` "plan에 넘길 요약").
+
+### 10-2. PC 첫 화면 이름 (2,669곳)
+
+- 이름을 글에서 찾음 2,098, 못 찾음 571(응답 200: 566, 그 밖 5). 못 찾은 곳 대부분은 제목이 일반적인 것("전자도서관" 146, "ebook_library" 68, "eBook Library" 30, "Insert title here" 26, "INDEX" 25 …)이라 이름이 그림·스크립트 안에 있음. 사람이 볼 일은 아님.
+- 제목에 기관 이름이 있는데 우리 이름과 겹치는 낱말이 없는 곳 67곳. 대부분 통합 포털(예: 상록도서관 → "전남광주통합특별시 서구 통합전자도서관") 또는 기관 이름이 바뀐 곳(서라벌대학교 → 신경주대학교, 포스코이앤씨 ← 포스코건설, 경상대학교 → 경상국립대학교, 국립안동대학교 → 국립경국대학교 등).
+- **다른 기관으로 보이는 곳(사람 확인 필요)**:
+
+| 서비스 번호 | 우리 이름 | 사이트 제목 | 주소 |
+|---|---|---|---|
+| 1427 | 대전신흥고등학교 | 대전신흥초등학교 전자책도서관 | `https://sinhung.dkyobobook.co.kr` |
+| 1575 | 부여대왕초등학교 (교보, jb-dongsang…) | 완주동상초등학교 | `https://jb-dongsang.dkyobobook.co.kr` |
+| 106 | 옥천군공공도서관 | 가양도서관 | `https://ebook.oc.go.kr` |
+| 980 | 경찰청 | 경찰대학 김구도서관 | `https://police.dkyobobook.co.kr` |
+| 1198 | 테라몬스자산운용 | 에스티자산운용 | `https://terramons.dkyobobook.co.kr` |
+| 1138 | 누리나래선교협회 전자도서관 | 미코커뮤니케이션 | `https://miko.dkyobobook.co.kr` |
+| 2139 | 동서IMS | APT도서관 | `https://its.dkyobobook.co.kr` |
+| 2148 | 대한고시연구원 | (주)뉴엠 전자도서관입니다. | `https://gosischool.dkyobobook.co.kr` |
+| 2611 | 강서공업고등학교 | 서울디지털콘텐츠고등학교 전자책도서관 | `http://gangseo-th.yes24library.com` |
+| 2563 | 대검 도서관 | 공소청 | `http://spo.yes24library.com` |
+
+- 이름 출처: 후보 이름은 수집 DB(교보 구축 기관 목록 등)에서 왔음(`build_candidate_seed.py`). 바뀐 이름을 쓸지, 사이트 제목을 따를지는 사용자 결정.
+
 ## 다시 볼 때 순서
 
 1. 이 문서의 표에서 "할 일"이 있는 곳을 `CheckKyoboSites.java`로 다시 확인합니다(`library-maintenance.md` 11절).
