@@ -83,6 +83,10 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
           align="end"
           sideOffset={8}
           collisionPadding={12}
+          // wider screens: never flipped above the button (it covered the headline and went past the top on short
+          // laptops, user request 2026-10-08); its height is capped instead. The phone sheet keeps the collision
+          // handling, which also keeps it inside the screen's width.
+          avoidCollisions={sheet}
         >
           {sheet ? (
             <Accordion.Root

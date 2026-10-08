@@ -145,6 +145,18 @@ a {
   }
 }
 
+/*
+ * Desktop (wider than 1024px): the base size follows the window width, so a laptop shows about the same proportions
+ * as a large monitor, a little smaller (user request 2026-10-08). 14.5px at 1280px and below, 17px (the size before)
+ * from 1920px up, in a straight line between. Everything sized in rem, and the header and headline through
+ * --base-unscaled, scale with it. Tablet and phone sizes below are unchanged.
+ */
+@media (width > 1024px) {
+  :root {
+    --base-unscaled: clamp(14.5px, calc(14.5px + (100vw - 1280px) * 0.00390625), 17px);
+  }
+}
+
 @media (width <= 1024px) {
   :root {
     --gutter: 1.75rem;

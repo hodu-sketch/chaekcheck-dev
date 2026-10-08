@@ -28,6 +28,13 @@
 .content {
   z-index: 20;
   width: min(20rem, calc(100vw - 2rem));
+  /*
+   * Always below the button and never past the window (user request 2026-10-08: on a short laptop it opened upward,
+   * cut off at the top and over the headline): at most the room under the button, scrolling inside.
+   */
+  max-height: var(--radix-popover-content-available-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0.9rem 1rem;
   border: 1px solid var(--paper-deep);
   border-radius: 16px;
