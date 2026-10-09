@@ -118,7 +118,11 @@
 }
 
 .caret {
+  /* the same width open and closed, so the line does not move when 상세검색 opens */
+  display: inline-block;
+  width: 0.8rem;
   font-size: 0.8rem;
+  text-align: center;
 }
 
 /* Author and publisher lines under the title box */
@@ -159,21 +163,27 @@
   font-size: var(--text-md);
 }
 
+/*
+ * The author and publisher boxes look like the title box (user request 2026-10-09): its height, border, corners,
+ * text size and the same left inset for the text (box padding 0.35rem + input 0.85rem).
+ */
 .smallInput {
   flex: 1 1 14rem;
   min-width: 0;
   max-width: 22rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: 10px;
+  height: var(--search-height);
+  padding: 0 1.2rem;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--radius-md);
   background: var(--card);
   font: inherit;
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
+  transition: border-color 140ms;
 }
 
 .smallInput:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--brand);
 }
 
 .smallInput[aria-invalid] {
@@ -213,7 +223,7 @@
 @media (width > 640px) {
   .more {
     /* the roles keep one line; the box gives way first */
-    grid-template-columns: 3.2rem minmax(0, 22rem) auto max-content;
+    grid-template-columns: 3.2rem minmax(0, 1fr) auto max-content;
     column-gap: 0.9rem;
   }
 
@@ -245,7 +255,7 @@
 /* tablet: the roles under the author box, as when they wrapped before (no room beside it) */
 @media (640px < width <= 1024px) {
   .more {
-    grid-template-columns: 3.2rem minmax(0, 22rem) auto minmax(0, 1fr);
+    grid-template-columns: 3.2rem minmax(0, 1fr) auto;
   }
 
   .roles {
@@ -255,14 +265,36 @@
   }
 }
 
-/* tablet and desktop: the search box at most --search-box-width (about Google's 686px), the buttons beside it */
+/*
+ * Tablet and desktop: the search box at most --search-box-width (about Google's 686px), the buttons beside it. The
+ * form is exactly as wide as that line (a grid of its three parts), so the 상세검색 panel under it lines up with the
+ * box's left edge and the settings button's right edge (user request 2026-10-09); centered on the first screen.
+ */
 @media (width > 640px) {
-  .topLine .field {
-    flex: 0 1 var(--search-box-width);
+  .form {
+    display: grid;
+    grid-template-columns: minmax(0, var(--search-box-width)) auto auto;
+    column-gap: 0.6rem;
+    width: fit-content;
+    max-width: 100%;
   }
 
-  .form[data-start] .topLine {
-    justify-content: center;
+  .topLine {
+    display: contents;
+  }
+
+  /*
+   * the panel and the error lines take the line's width and never widen it: no width of their own (0), stretched to
+   * the line by min-width
+   */
+  .form > :not(.topLine) {
+    grid-column: 1 / -1;
+    width: 0;
+    min-width: 100%;
+  }
+
+  .topLine .field {
+    min-width: 0;
   }
 
   .submit {
@@ -370,11 +402,12 @@
     white-space: nowrap;
   }
 
+  /* the title box's inset on phones (0.3rem + 0.6rem) */
   .smallInput {
     flex: 1 1 0;
     min-width: 0;
     max-width: none;
-    padding: 0.45rem 0.6rem;
+    padding: 0 0.9rem;
   }
 
   .row > .check {
