@@ -250,6 +250,32 @@
   }
 }
 
+/*
+ * Desktop (user request 2026-10-09, after Google): a smaller headline over the 50px search line, and on short windows
+ * less room above it only, so the search line sits in the upper middle (Google: 150px above its logo at 1080px high,
+ * 60px at 720px).
+ */
+@media (width > 640px) {
+  .headline {
+    font-size: calc(2.3 * var(--base-unscaled));
+  }
+}
+
+@media (width > 1024px) {
+
+  .page[data-state='start'] .searchArea {
+    padding-top: clamp(2rem, 30vh - 120px, 16vh);
+    gap: 1.25rem;
+  }
+}
+
+/* phones: a compact headline over the 46px search line (Google/Naver mobile, user request 2026-10-09) */
+@media (width <= 640px) {
+  .headline {
+    font-size: calc(1.6 * var(--base-unscaled));
+  }
+}
+
 /* 360px and narrower (iPhone SE 1st gen): the headline in two lines, not three */
 @media (width <= 360px) {
   .headline {

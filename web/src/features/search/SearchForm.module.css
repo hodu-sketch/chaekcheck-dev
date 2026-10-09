@@ -255,6 +255,26 @@
   }
 }
 
+/* tablet and desktop: the search box at most --search-box-width (about Google's 686px), the buttons beside it */
+@media (width > 640px) {
+  .topLine .field {
+    flex: 0 1 var(--search-box-width);
+  }
+
+  .form[data-start] .topLine {
+    justify-content: center;
+  }
+
+  .submit {
+    padding: 0 1.05rem;
+    font-size: var(--text-md);
+  }
+
+  .input {
+    font-size: var(--text-lg);
+  }
+}
+
 /* 1024px and below: "상세검색" becomes an icon (flow.md) */
 @media (width <= 1024px) {
   .moreLabel,

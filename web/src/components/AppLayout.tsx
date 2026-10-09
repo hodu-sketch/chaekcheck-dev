@@ -14,6 +14,8 @@ export function AppLayout() {
       <div className={styles.headerBar}>
         <header className={styles.header}>
           <Link to="/" className={styles.brand}>
+            {/* the 책 mark (user request 2026-10-09); decorative, so the link reads "책첵" once */}
+            <img className={styles.mark} src="/brand/chaekcheck-mark.svg" alt="" width={32} height={32} />
             <span className={styles.wordmark}>책첵</span>
             <span className={styles.tagline}>전자도서관 대출 가능 확인</span>
           </Link>

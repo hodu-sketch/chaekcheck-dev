@@ -32,6 +32,15 @@
   text-decoration: none;
 }
 
+.mark {
+  display: block;
+  flex: none;
+  /* about 1.15x the word mark's font size: a little taller than its capitals (user request 2026-10-09) */
+  width: calc(1.15 * 1.55 * 1.15 * var(--base-unscaled));
+  height: auto;
+  margin-right: calc(-0.35 * var(--base-unscaled));
+}
+
 .wordmark {
   font-weight: 800;
   /* 15% larger than before (user request 2026-10-05) */

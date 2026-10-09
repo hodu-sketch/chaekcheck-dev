@@ -66,8 +66,11 @@
   --radius-inner: 8px;
   --radius-tag: 6px;
   /* control heights: the search line (field, 상세검색, ⚙) and the other buttons (sort, ...) */
-  --search-height: 3.5rem;
-  --control-height: 2.6rem;
+  /* Google-like (686 x 50) on tablet and desktop, 46px on phones (user requests 2026-10-09; 3.5rem and 2.6rem before) */
+  --search-height: 50px;
+  --control-height: 40px;
+  /* the search box itself, at most (Google: 686px) */
+  --search-box-width: 690px;
 
   --page-width: 90rem;
   /*
@@ -146,14 +149,14 @@ a {
 }
 
 /*
- * Desktop (wider than 1024px): the base size follows the window width, so a laptop shows about the same proportions
- * as a large monitor, a little smaller (user request 2026-10-08). 14.5px at 1280px and below, 17px (the size before)
- * from 1920px up, in a straight line between. Everything sized in rem, and the header and headline through
- * --base-unscaled, scale with it. Tablet and phone sizes below are unchanged.
+ * After Google and Naver on every width (user requests 2026-10-09): the same sizes whatever the window (no scaling),
+ * a search line about 50px tall like Google's (686 x 50) on tablet and desktop and 46px on phones, lower chips and
+ * buttons (40px), and on desktop a fixed-width centered column for the results.
  */
 @media (width > 1024px) {
   :root {
-    --base-unscaled: clamp(14.5px, calc(14.5px + (100vw - 1280px) * 0.00390625), 17px);
+    /* the results column: the cards area, centered (Naver-like); also the book page */
+    --content-width: 1120px;
   }
 }
 
@@ -166,7 +169,7 @@ a {
 @media (width <= 640px) {
   :root {
     --gutter: 1rem;
-    --search-height: 3rem;
+    --search-height: 46px;
     --base-unscaled: 16px;
     font-size: calc(var(--base-unscaled) * 1.15);
   }
