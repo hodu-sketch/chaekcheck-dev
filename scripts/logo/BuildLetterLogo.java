@@ -24,7 +24,8 @@ import javax.imageio.ImageIO;
  * Writes two shapes, each as SVG and PNG:
  *   chaekcheck-mark.*   white 책 on a rounded square in the logo purple (app icon, tab icon)
  *   chaekcheck-letter.* the purple 책 alone on a transparent background (beside the word mark)
- * Usage (repository root): java scripts/logo/BuildLetterLogo.java <font.ttf> <out dir>
+ * Usage (repository root): java scripts/logo/BuildLetterLogo.java <font.ttf> <out dir> [<icon dir>]
+ * <icon dir> (web/public): also writes favicon.svg, favicon-32.png and apple-touch-icon.png (180) from the mark.
  */
 public class BuildLetterLogo {
 
@@ -50,6 +51,15 @@ public class BuildLetterLogo {
 		for (int size : new int[] { 512, 192, 64 }) {
 			png(out.resolve("chaekcheck-mark-" + size + ".png"), size, onTile, true);
 			png(out.resolve("chaekcheck-letter-" + size + ".png"), size, alone, false);
+		}
+		// tab and home-screen icons (user request 2026-10-09: "탭 아이콘도 새 책 로고로 바꿔줘"), when a third argument
+		// names the folder of index.html's icons (web/public)
+		if (args.length > 2) {
+			Path icons = Path.of(args[2]);
+			Files.copy(out.resolve("chaekcheck-mark.svg"), icons.resolve("favicon.svg"),
+					java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			png(icons.resolve("favicon-32.png"), 32, onTile, true);
+			png(icons.resolve("apple-touch-icon.png"), 180, onTile, true);
 		}
 	}
 
