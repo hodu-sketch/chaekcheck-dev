@@ -199,7 +199,10 @@ describe('join notice of candidate libraries', () => {
   const candidate: TargetLibrary = {
     ...openLibrary,
     id: 2,
-    name: '강동대학교 (북큐브)',
+    // cycle 09: no "(북큐브)" in the name any more; the vendor comes as its own value
+    name: '강동대학교',
+    vendor: 'BOOKCUBE',
+    lendingModel: 'OWNED',
     eligibility: 'UNSURVEYED',
     joinMethod: null,
     homepageUrl: 'https://gangdong.bookcube.biz/FxLibrary',
@@ -305,6 +308,55 @@ describe('phone site note', () => {
     const popover = screen.getByRole('dialog')
     expect(popover.textContent).toContain('도서관 첫 화면')
     expect(popover.textContent).toContain(MOBILE_SITE_NOTE)
+  })
+})
+
+/** Cycle 09 (handoff step 5-3): "교보 · 소장" on the line after the name, every width, outside the name button. */
+describe('library classification on the card', () => {
+  function renderWith(library: TargetLibrary) {
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={library} searchUrl={undefined} />)
+    return screen.getByRole('button', { name: `${library.name} 가입 정보` })
+  }
+
+  it('is the line right after the name, not inside the name button, before the phone note', () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(width <= 640px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    try {
+      const button = renderWith({ ...openLibrary, vendor: 'KYOBO', lendingModel: 'OWNED', orderNo: 1, mobileSiteDiffers: true })
+
+      expect(button.textContent).toBe(openLibrary.name)
+      const line = screen.getByText('교보 · 소장')
+      expect(line.tagName).toBe('P')
+      expect(button.contains(line)).toBe(false)
+      const nameLine = button.closest('p')!
+      expect(nameLine.nextElementSibling).toBe(line)
+      expect(line.nextElementSibling?.textContent).toBe(MOBILE_SITE_NOTE)
+    } finally {
+      delete (window as { matchMedia?: unknown }).matchMedia
+    }
+  })
+
+  it('a portal is "통합 포털"', () => {
+    renderWith({ ...openLibrary, platformType: 'ELIB_PORTAL_V1', vendor: 'PORTAL', lendingModel: null, orderNo: 1 })
+
+    expect(screen.getByText('통합 포털')).toBeTruthy()
+  })
+
+  it('a second site adds "· 2번째 사이트" (AC-9)', () => {
+    renderWith({ ...openLibrary, vendor: 'YES24', lendingModel: 'OWNED', orderNo: 2 })
+
+    expect(screen.getByText('YES24 · 소장 · 2번째 사이트')).toBeTruthy()
+  })
+
+  it('makes no line without the values (an older server)', () => {
+    const button = renderWith(openLibrary)
+
+    expect(button.closest('p')!.nextElementSibling).toBeNull()
+    expect(screen.queryByText(/소장|구독|통합 포털/)).toBeNull()
   })
 })
 

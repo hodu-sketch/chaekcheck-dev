@@ -38,13 +38,15 @@ interface Fake {
   changeStatus: number
   changeCode: string
   calls: string[]
+  /** Rows of `GET /api/v1/libraries`. */
+  libraries: object[]
 }
 
 let fake: Fake
 
 beforeEach(() => {
   document.cookie = 'XSRF-TOKEN=csrf; path=/'
-  fake = { signedIn: true, libraryIds: [12], changeStatus: 204, changeCode: '', calls: [] }
+  fake = { signedIn: true, libraryIds: [12], changeStatus: 204, changeCode: '', calls: [], libraries: LIBRARIES }
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -60,7 +62,7 @@ beforeEach(() => {
       if (url === '/api/v1/me/libraries') return json(200, { libraryIds: fake.libraryIds, max: 20 })
       if (url.startsWith('/api/v1/libraries')) {
         fake.calls.push(`GET ${url}`)
-        return json(200, { libraries: LIBRARIES })
+        return json(200, { libraries: fake.libraries })
       }
       if (url.startsWith('/api/v1/me/libraries/')) {
         fake.calls.push(`${method} ${url}`)
@@ -205,6 +207,74 @@ describe('S10 name search', () => {
     expect((screen.getByRole('button', { name: '서울도서관 전자도서관 직접 추가함' }) as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByRole('button', { name: '마포구립 전자도서관 추가' }) as HTMLButtonElement).disabled).toBe(false)
     expect((screen.getByRole('button', { name: '고흥군립도서관 전자도서관 추가' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+})
+
+/** Cycle 09 (handoff step 5-4): "이름 · 업체 · 대출 방식" in the three lists. */
+describe('S10 library classification', () => {
+  const DONGDAEMUN = [
+    { ...lib(40, '동대문구립도서관', 'ELIGIBLE', ['RESIDENCE']), vendor: 'YES24', lendingModel: 'OWNED', orderNo: 1 },
+    { ...lib(41, '동대문구립도서관', 'ELIGIBLE', ['RESIDENCE']), vendor: 'KYOBO', lendingModel: 'SUBSCRIPTION', orderNo: 1 },
+    { ...lib(42, '동대문구립도서관', 'UNKNOWN'), vendor: 'YES24', lendingModel: 'OWNED', orderNo: 2 },
+    { ...lib(43, '경기도사이버도서관', 'OPEN'), vendor: 'PORTAL', lendingModel: null, orderNo: 1 },
+  ]
+
+  beforeEach(() => {
+    fake.libraries = [...LIBRARIES, ...DONGDAEMUN]
+    fake.libraryIds = [40, 42, 999]
+  })
+
+  it('shows it in the region list, the name search and the added libraries', async () => {
+    await ready()
+    const user = userEvent.setup()
+
+    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주 지역으로 자동' })
+    await user.click(within(byResidence).getByRole('button', { name: /자동/ }))
+    const regionNames = within(byResidence).getAllByRole('listitem').map((item) => item.textContent)
+    expect(regionNames).toContain('동대문구립도서관 · YES24 · 소장')
+    expect(regionNames).toContain('동대문구립도서관 · 교보 · 구독')
+    // a library without the values keeps its name only
+    expect(regionNames).toContain('마포구립 전자도서관')
+
+    await user.click(screen.getByText(/누구나 가입하는 도서관/))
+    expect(screen.getByText('경기도사이버도서관').parentElement!.textContent).toBe('경기도사이버도서관 · 통합 포털')
+
+    await user.type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '동대문')
+    const found = within(section('직접 도서관 추가'))
+      .getAllByRole('listitem')
+      .map((item) => item.textContent!.replace(/(추가|직접 추가함)$/, ''))
+    expect(found).toEqual(['동대문구립도서관 · 교보 · 구독', '동대문구립도서관 · YES24 · 소장', '동대문구립도서관 · YES24 · 소장 · 2번째 사이트'])
+
+    const added = within(section('직접 추가한 도서관')).getAllByRole('listitem').map((item) => item.textContent!.replace(/빼기$/, ''))
+    expect(added).toEqual(['동대문구립도서관 · YES24 · 소장', '동대문구립도서관 · YES24 · 소장 · 2번째 사이트', '지금은 쓸 수 없는 도서관이에요'])
+  })
+
+  it('a library no longer in the list has no classification', async () => {
+    await ready()
+
+    const gone = within(section('직접 추가한 도서관')).getByText('지금은 쓸 수 없는 도서관이에요')
+    expect(gone.closest('li')!.textContent).toBe('지금은 쓸 수 없는 도서관이에요빼기')
+    expect(screen.getByRole('button', { name: '쓸 수 없는 도서관 빼기' })).toBeTruthy()
+  })
+
+  it('tells rows of the same name apart in the button labels (AC-9)', async () => {
+    await ready()
+    await userEvent.setup().type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '동대문')
+
+    expect(screen.getByRole('button', { name: '동대문구립도서관 YES24 소장 직접 추가함' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '동대문구립도서관 YES24 소장 2번째 사이트 직접 추가함' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '동대문구립도서관 교보 구독 추가' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '동대문구립도서관 YES24 소장 빼기' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '동대문구립도서관 YES24 소장 2번째 사이트 빼기' })).toBeTruthy()
+  })
+
+  it('finds a row by its vendor too (AC-6)', async () => {
+    await ready()
+    await userEvent.setup().type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '동대문 교보')
+
+    expect(within(section('직접 도서관 추가')).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
+      '동대문구립도서관 교보 구독 추가',
+    ])
   })
 })
 

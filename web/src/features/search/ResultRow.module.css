@@ -528,6 +528,15 @@
   display: none;
 }
 
+/* cycle 09: the vendor and lending model ("교보 · 소장") in small grey on the line after the name, every width */
+.classification {
+  margin-top: 0.15rem;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
 /* cycle 08 R3: small grey line under the library name and next to the front page link, phones only */
 .mobileNote {
   display: block;

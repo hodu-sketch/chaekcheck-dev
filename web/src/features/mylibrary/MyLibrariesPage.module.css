@@ -342,6 +342,27 @@
   min-width: 0;
 }
 
+/* cycle 09: "이름 · 교보 · 소장"; the classification in grey next to the name, on the line below on phones */
+.classification {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.row[data-added] .classification {
+  color: var(--ink-faint);
+}
+
+@media (width <= 640px) {
+  .classification {
+    display: block;
+    font-size: var(--text-xs);
+  }
+
+  .classificationDot {
+    display: none;
+  }
+}
+
 /* "더 보기" under the name search (cycle 07 flow S10) */
 .more {
   margin-top: 0.5rem;

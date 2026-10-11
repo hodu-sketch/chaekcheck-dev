@@ -72,8 +72,9 @@ function fakeServer(fake: Fake) {
     }
     if (url === '/api/v1/libraries') {
       return json(200, {
-        libraries: [{ id: 281, name: '강동대학교 (북큐브)', eligibility: 'UNSURVEYED', matchedBy: [], visitRequired: false,
-          cautioned: false, eligibilitySummary: null, joinSurvey: 'MEMBERS_ONLY', homepageUrl: null, logoUrl: null }],
+        libraries: [{ id: 281, name: '강동대학교', eligibility: 'UNSURVEYED', matchedBy: [], visitRequired: false,
+          cautioned: false, eligibilitySummary: null, joinSurvey: 'MEMBERS_ONLY', homepageUrl: null, logoUrl: null,
+          vendor: 'BOOKCUBE', lendingModel: 'OWNED', orderNo: 1 }],
       })
     }
     throw new Error(`unexpected ${method} ${url}`)
@@ -250,7 +251,9 @@ describe('S11 (AC-3)', () => {
     localStorage.setItem('chaekcheck.chosenLibraries.v1', JSON.stringify([281, 999]))
     renderApp()
     const dialog = await screen.findByRole('dialog', { name: '이 브라우저에 저장된 것을 계정에 저장할까요?' })
-    await waitFor(() => expect(dialog.textContent).toContain('직접 넣은 도서관 2곳: 강동대학교 (북큐브), …'))
+    // the name only, no classification (cycle 09 handoff step 5-3)
+    await waitFor(() => expect(dialog.textContent).toContain('직접 넣은 도서관 2곳: 강동대학교, …'))
+    expect(dialog.textContent).not.toContain('북큐브')
     expect(dialog.textContent).not.toContain('거주')
 
     await userEvent.setup().click(screen.getByRole('button', { name: '계정에 저장' }))

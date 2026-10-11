@@ -20,6 +20,10 @@ export type PlatformType =
   | 'GANGNAM_V1'
   | 'BOOKCUBE_FX'
   | 'ALADIN_V1'
+/** Cycle 09: the company that runs a library's e-book site, shown next to the name ("교보 · 소장"). */
+export type Vendor = 'KYOBO' | 'YES24' | 'BOOKCUBE' | 'ALADIN' | 'PORTAL' | 'IN_HOUSE'
+/** Cycle 09: how a site lends its books; null only for a portal. */
+export type LendingModel = 'OWNED' | 'SUBSCRIPTION' | 'MIXED' | 'RENTAL'
 
 /** RFC 9457 Problem Details with the `code` member (ADR-0008). Branch on `code`. */
 export interface Problem {
@@ -88,6 +92,11 @@ export interface TargetLibrary {
   logoUrl: string | null
   /** Cycle 08 (R3): the site's phone version shows another page; phones get a note, the links stay. */
   mobileSiteDiffers: boolean
+  /** Cycle 09: the classification shown with the name; may be missing while the server is older (deploy order). */
+  vendor?: Vendor | null
+  lendingModel?: LendingModel | null
+  /** Cycle 09: 1, or 2 and up for a second site of the same library and vendor ("· 2번째 사이트"). */
+  orderNo?: number
 }
 
 /** Which book field the search text is matched against; also the name of the one condition parameter (ADR-0025). */
@@ -341,6 +350,11 @@ export interface LibraryEligibilityRow {
   logoUrl: string | null
   /** Cycle 08 (R3): the site's phone version shows another page. */
   mobileSiteDiffers: boolean
+  /** Cycle 09: the classification shown with the name; may be missing while the server is older (deploy order). */
+  vendor?: Vendor | null
+  lendingModel?: LendingModel | null
+  /** Cycle 09: 1, or 2 and up for a second site of the same library and vendor ("· 2번째 사이트"). */
+  orderNo?: number
 }
 
 /** `GET`/`PUT /api/v1/me/regions`: saved ids in the chosen order (abolished ids come back as they are). */

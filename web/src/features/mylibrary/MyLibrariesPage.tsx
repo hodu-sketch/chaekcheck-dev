@@ -5,6 +5,7 @@ import type { LibraryEligibilityRow } from '../../api/types'
 import { BackLink } from '../../components/BackLink'
 import { InfoTip } from '../../components/InfoTip'
 import { LibraryLogo } from '../../components/LibraryLogo'
+import { classificationParts, classificationText } from '../../lib/libraryClassification'
 import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
 import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
@@ -250,21 +251,48 @@ function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) 
       {rows.map((row) => (
         <li key={row.id} className={styles.named}>
           <LibraryLogo name={row.name} logoUrl={row.logoUrl} homepageUrl={row.homepageUrl} size={24} />
-          {row.name}
+          <ClassifiedName row={row} />
         </li>
       ))}
     </ul>
   )
 }
 
-/** A library's name with its logo (cycle 07, ADR-0059); the name is text only. */
+/**
+ * A library's name with its logo (cycle 07, ADR-0059); the name is text only. A library no longer in the list shows
+ * the fallback without a classification (cycle 09).
+ */
 function LibraryName({ row, fallback }: { row: LibraryEligibilityRow | undefined; fallback: string }) {
   return (
     <span className={`${styles.name} ${styles.named}`}>
       <LibraryLogo name={row?.name ?? fallback} logoUrl={row?.logoUrl} homepageUrl={row?.homepageUrl} size={24} />
-      {row?.name ?? fallback}
+      {row ? <ClassifiedName row={row} /> : <span>{fallback}</span>}
     </span>
   )
+}
+
+/**
+ * Cycle 09 (flow "분류를 붙이는 자리") [확정]: "이름 · 업체 · 대출 방식", next to the name on desktop and tablet, on the
+ * line below on phones (CSS). Only the name when the server sent no classification.
+ */
+function ClassifiedName({ row }: { row: LibraryEligibilityRow }) {
+  const classification = classificationText(row)
+  return (
+    <span>
+      <span>{row.name}</span>
+      {classification && (
+        <span className={styles.classification}>
+          <span className={styles.classificationDot}> · </span>
+          {classification}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** The name and classification for a button label, so two rows of one name differ ("동대문구립도서관 YES24 소장"). */
+function spokenName(row: LibraryEligibilityRow): string {
+  return [row.name, ...(classificationParts(row) ?? [])].join(' ')
 }
 
 /**
@@ -336,7 +364,7 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
                     className={styles.add}
                     disabled={added || full}
                     onClick={() => void add(row.id)}
-                    aria-label={added ? `${row.name} 직접 추가함` : `${row.name} 추가`}
+                    aria-label={added ? `${spokenName(row)} 직접 추가함` : `${spokenName(row)} 추가`}
                   >
                     {added ? '직접 추가함' : '추가'}
                   </button>
@@ -378,7 +406,7 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
                     type="button"
                     className={styles.remove}
                     onClick={() => void remove(id)}
-                    aria-label={`${row?.name ?? '쓸 수 없는 도서관'} 빼기`}
+                    aria-label={`${row ? spokenName(row) : '쓸 수 없는 도서관'} 빼기`}
                   >
                     빼기
                   </button>
