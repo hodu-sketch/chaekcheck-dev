@@ -5,30 +5,32 @@
  * gradients.
  *
  * No visible heading and no bar (user 2026-10-12: "아 뭘 해도 인기도서 전체 i 이게 너무 어색해", "이거 위에 있는거
- * 불필요하니까 없애고"): only [전체 ▾] floats, at the top centre under the app header ("아래에 카테고리 선택하는 걸 위로
- * 해줘"). Every block is as tall as the screen under the app header; its top part is left free for the floating
- * button and the panel sits in the middle of the rest, so the button never covers the panel when a block is at the
- * top. --app-header is measured from the app header (PopularPage).
+ * 불필요하니까 없애고"): only [전체 ▾] floats, at the bottom centre on every width ("분류 … 폰 피씨 태블릿 모두 화면 아래에
+ * 두는걸로해줘"; it was at the top for a while). Every block is as tall as the screen under the app header; its bottom
+ * part is left free for the floating button and the panel sits in the middle of the rest, so the button never covers
+ * the panel (dots and arrows included) when a block is at the top. --app-header is measured from the app header.
  */
 .page {
   --top: var(--app-header, 4.6rem);
   /* the floating button's zone at the top of each block */
   --float-zone: 4rem;
+  /* room for the source line under the last panel (up to two lines) */
+  --source-h: 2.8rem;
   /* panel = grid + arrows, gaps and padding; panel height besides the grid (head, dots, padding, block margin) */
   --panel-extra: 11rem;
   --panel-rest: 6.6rem;
   --gw: min(
     30rem,
     100vw - 2 * var(--gutter) - var(--panel-extra),
-    (100dvh - var(--top) - var(--float-zone) - var(--panel-rest)) * 0.66
+    (100dvh - var(--top) - var(--float-zone) - var(--source-h) - var(--panel-rest)) * 0.66
   );
   width: 100%;
 }
 
-/* the floating [전체 ▾]: top centre under the app header on every width; only the pill floats */
+/* the floating [전체 ▾]: bottom centre on every width, above the phone's home bar; only the pill floats */
 .floating {
   position: fixed;
-  top: calc(var(--top) + 0.7rem);
+  bottom: calc(0.9rem + env(safe-area-inset-bottom));
   left: 50%;
   z-index: 10;
   translate: -50% 0;
@@ -134,16 +136,22 @@
 }
 
 /*
- * one category: as tall as the screen under the app header; the top part is the floating button's, the panel sits in
- * the middle of the rest
+ * one category: as tall as the screen under the app header; the bottom part is the floating button's, the panel sits
+ * in the middle of the rest. The last block is shorter by the source line and the button's zone, so at its place the
+ * last panel, the source line and the button all fit one screen.
  */
 .section {
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: calc(100dvh - var(--top));
-  padding: var(--float-zone) 0 0.75rem;
+  padding: 0.75rem 0 var(--float-zone);
   scroll-margin-top: var(--top);
+}
+
+.section:last-of-type {
+  min-height: calc(100dvh - var(--top) - var(--source-h) - var(--float-zone));
+  padding-bottom: 0;
 }
 
 .panel {
@@ -367,8 +375,11 @@
  * The page ends with it and the footer; the footer is the last scroll stop, showing the end of the last panel above.
  */
 .source {
-  margin-top: -0.25rem;
-  padding: 0 0.5rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--source-h);
+  padding: 0 0.5rem;
   color: var(--ink-faint);
   font-size: var(--text-xs);
   text-align: center;
@@ -391,8 +402,9 @@
 @media (width <= 640px) {
   .page {
     --float-zone: 3.6rem;
+    --source-h: 4rem;
     --panel-rest: 6.4rem;
-    --gw: min(100%, (100dvh - var(--top) - var(--float-zone) - var(--panel-rest)) * 0.66);
+    --gw: min(100%, (100dvh - var(--top) - var(--float-zone) - var(--source-h) - var(--panel-rest)) * 0.66);
   }
 
   .picker {
@@ -545,5 +557,17 @@
 
   :global(html):has(.page) :global(footer) {
     scroll-snap-align: end;
+  }
+}
+
+/* the app footer under this screen gets room at its bottom, so the floating button never covers its lines */
+:global(body):has(.floating) :global(footer) {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
+/* the narrowest phones: the source line wraps to four lines */
+@media (width <= 360px) {
+  .page {
+    --source-h: 5.3rem;
   }
 }

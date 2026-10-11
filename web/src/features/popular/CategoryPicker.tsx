@@ -18,8 +18,8 @@ type Props = {
 }
 
 /**
- * S13c (R5-1, R5-2, AC-5): [전체 ▾], floating at the top of the screen (user 2026-10-12), opens the 17 categories in
- * screen order, the current one bold. PC and tablet: a list opening downward from it (Escape or a click outside
+ * S13c (R5-1, R5-2, AC-5): [전체 ▾], floating at the bottom of the screen (user 2026-10-12), opens the 17 categories in
+ * screen order, the current one bold. PC and tablet: a list opening upward from it (Escape or a click outside
  * closes it); phones: the bottom sheet with ⓧ. Picking one closes the list; the page moves to that category.
  * S13i lives at the end of the list, like "정렬 기준 보기" in the sort menu (user 2026-10-12): "? 순위 기준 보기" opens
  * the explanation in place without closing the list.
@@ -120,7 +120,7 @@ export function CategoryPicker({ categories, current, onPick, phone, month, fetc
         {face}
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content className={styles.pickPopover} side="bottom" align="center" sideOffset={8} collisionPadding={12}>
+        <Popover.Content className={styles.pickPopover} side="top" align="center" sideOffset={8} collisionPadding={12}>
           {list}
         </Popover.Content>
       </Popover.Portal>

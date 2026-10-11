@@ -304,7 +304,7 @@ export function PopularPage() {
     <div ref={rootRef} className={styles.page} data-tall={tall || undefined}>
       {/*
         Design A with the user's later choices (2026-10-12): no visible heading ("이거 위에 있는거 불필요하니까 없애고"),
-        only one for screen readers; the category picker floats at the top centre and follows the category in view.
+        only one for screen readers; the category picker floats at the bottom centre and follows the category in view.
       */}
       <h1 className="visually-hidden">{month ? `인기 도서 · ${month} 판매 순위` : '인기 도서'}</h1>
       <div className={styles.blocks}>{body}</div>
