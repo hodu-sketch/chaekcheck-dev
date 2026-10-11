@@ -5,10 +5,11 @@ Usage (from the repository root; Python standard library only):
       Two dry-run folders (chaekcheck.collection.import.dry-run-output): books.tsv.gz and rows.tsv.gz compared line
       by line. The books are numbered in the order they were given, so equal files mean the same books in the same
       order and every row in the same book.
-  python scripts/catalog/compare_grouping.py ids <service> <folder>
+  python scripts/catalog/compare_grouping.py ids <service> <folder> [schema, default catalog_next]
       After an export (mode export), writes the ids of catalog_next on the compose service (db or db-ops) into
       <folder>: book-ids.tsv.gz (id and content columns, by id) and holding-ids.tsv.gz (library_id, item_key, id,
-      book_id, by library and item key). Run discard afterwards.
+      book_id, by library and item key). Run discard afterwards. With schema catalog: the swapped-in tables (an
+      apply's result, to compare with the exporting PC's catalog_next).
   python scripts/catalog/compare_grouping.py ids-compare <folder A> <folder B> [N]
       Compares two such folders.
 
@@ -25,8 +26,8 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 BOOKS_SQL = ("COPY (SELECT id, title, author_display, publisher, published_on, isbn13, content_type, library_ids"
-             " FROM catalog_next.book ORDER BY id) TO STDOUT")
-HOLDINGS_SQL = ("COPY (SELECT library_id, item_key, id, book_id FROM catalog_next.holding"
+             " FROM {schema}.book ORDER BY id) TO STDOUT")
+HOLDINGS_SQL = ("COPY (SELECT library_id, item_key, id, book_id FROM {schema}.holding"
                 " ORDER BY library_id, item_key COLLATE \"C\") TO STDOUT")
 
 
@@ -73,13 +74,14 @@ def compare(folder_a, folder_b, names, limit):
     return 1 if differ else 0
 
 
-def ids(service, folder):
+def ids(service, folder, schema='catalog_next'):
     values = env()
     user, database = values['DB_USERNAME'], values['DB_NAME']
     os.makedirs(folder, exist_ok=True)
     for name, sql in (('book-ids.tsv.gz', BOOKS_SQL), ('holding-ids.tsv.gz', HOLDINGS_SQL)):
         command = ['wsl', '-d', 'Ubuntu', '--exec', 'docker', 'compose', '-p', 'chaekcheck', 'exec', '-T', service,
-                   'psql', '-U', user, '-d', database, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-c', sql]
+                   'psql', '-U', user, '-d', database, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-c',
+                   sql.format(schema=schema)]
         with gzip.open(os.path.join(folder, name), 'wb') as out:
             process = subprocess.Popen(command, stdout=subprocess.PIPE)
             for chunk in iter(lambda: process.stdout.read(1 << 20), b''):
@@ -94,8 +96,8 @@ def main(args):
     sys.stdout.reconfigure(encoding='utf-8')
     if len(args) >= 3 and args[0] == 'dryrun':
         return compare(args[1], args[2], ['books.tsv.gz', 'rows.tsv.gz'], int(args[3]) if len(args) > 3 else 20)
-    if len(args) == 3 and args[0] == 'ids':
-        return ids(args[1], args[2])
+    if len(args) in (3, 4) and args[0] == 'ids':
+        return ids(args[1], args[2], *args[3:])
     if len(args) >= 3 and args[0] == 'ids-compare':
         return compare(args[1], args[2], ['book-ids.tsv.gz', 'holding-ids.tsv.gz'],
                        int(args[3]) if len(args) > 3 else 20)

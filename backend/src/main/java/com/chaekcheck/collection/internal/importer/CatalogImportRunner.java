@@ -126,6 +126,8 @@ class CatalogImportRunner {
 	static Supplier<BookGrouper> groupers(String grouping, DataSource dataSource) {
 		return switch (grouping) {
 			case "current" -> BookGrouping::new;
+			case "compact" -> CompactGrouping::new;
+			case "sql" -> () -> new SqlGrouping(dataSource);
 			default -> throw new IllegalStateException("grouping " + grouping + " is not built yet");
 		};
 	}
