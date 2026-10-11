@@ -20,6 +20,9 @@ export const PHONE_QUERY = '(width <= 640px)'
 /** [안] (cycle 10): how long the wheel must be still before the next wheel moves another category. */
 const WHEEL_QUIET_MS = 350
 
+/** [안] (cycle 10): how long one wheel or PageDown step glides. */
+const GLIDE_MS = 350
+
 type Loaded = { key: string; data: PopularBooks | null; failed: boolean }
 
 /**
@@ -141,7 +144,8 @@ export function PopularPage() {
 
   /*
    * One wheel step = the next or previous category (user 2026-10-12: "그냥 스크롤 한 단계 할 때마다 다음/이전 카테고리로
-   * 이동하도록 해줘"), put straight there like a category jump; from the last one down to the end of the page and back.
+   * 이동하도록 해줘"), gliding there; from the last one down to the end of the page and back. A category picked from
+   * the list still jumps instantly (user's earlier choice).
    * A burst of wheel events (fast notches, trackpad inertia) is one step: nothing more until the wheel has been still
    * for WHEEL_QUIET_MS. PageDown/PageUp/Space step the same way [안]. Left alone: the scrollbar (holding or dragging it
    * runs on, "스크롤바 누르고 위/아래로 마우스를 두면 스크롤이 쭉 가야"), touch scrolling [안], arrow keys, sideways and
@@ -162,7 +166,30 @@ export function PopularPage() {
       if (max > (places.at(-1) ?? 0) + 2) places.push(max)
       const y = window.scrollY
       const target = down ? places.find((place) => place > y + 2) : places.findLast((place) => place < y - 2)
-      if (target !== undefined) window.scrollTo({ top: target, behavior: 'instant' })
+      if (target !== undefined) glide(target)
+    }
+    // a short ease-out glide to the place ("휠로 이동할 때 통으로 좌표 바꾸지 말고 연속적으로 바뀌게 자연스럽게"); instant
+    // with reduced motion. A mouse press (the scrollbar) or a touch stops it, and the user's scrolling wins.
+    let frame = 0
+    const stop = () => {
+      cancelAnimationFrame(frame)
+      frame = 0
+    }
+    const glide = (target: number) => {
+      stop()
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        window.scrollTo({ top: target, behavior: 'instant' })
+        return
+      }
+      const from = window.scrollY
+      const start = performance.now()
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / GLIDE_MS)
+        const eased = 1 - (1 - t) ** 3
+        window.scrollTo({ top: Math.round(from + (target - from) * eased), behavior: 'instant' })
+        frame = t < 1 ? requestAnimationFrame(tick) : 0
+      }
+      frame = requestAnimationFrame(tick)
     }
     const outside = (target: EventTarget | null) =>
       !(target instanceof Element && target.closest('[role="dialog"], [data-radix-popper-content-wrapper]'))
@@ -173,7 +200,8 @@ export function PopularPage() {
       const now = event.timeStamp
       const quiet = now - lastWheel > WHEEL_QUIET_MS
       lastWheel = now
-      if (quiet) step(event.deltaY > 0)
+      // one step at a time: nothing more while a glide runs
+      if (quiet && frame === 0) step(event.deltaY > 0)
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || !outside(event.target)) return
@@ -186,13 +214,18 @@ export function PopularPage() {
         down = !event.shiftKey
       } else return
       event.preventDefault()
-      step(down)
+      if (frame === 0) step(down)
     }
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', stop, true)
+    window.addEventListener('touchstart', stop, { passive: true })
     return () => {
+      stop()
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', stop, true)
+      window.removeEventListener('touchstart', stop)
     }
   }, [codes])
 
