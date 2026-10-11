@@ -31,7 +31,7 @@ class PopularConfiguration {
 	KpipaTransport kpipaTransport(PopularProperties properties) {
 		PopularProperties.Fetch fetch = properties.fetch();
 		return new HttpKpipaTransport(fetch.baseUrl(), fetch.connectTimeout(), fetch.readTimeout(),
-				fetch.maxBodySize().toBytes(), fetch.userAgent());
+				fetch.maxBodySize().toBytes(), fetch.coverMaxBodySize().toBytes(), fetch.userAgent());
 	}
 
 	@Bean

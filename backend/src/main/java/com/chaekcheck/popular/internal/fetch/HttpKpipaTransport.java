@@ -30,14 +30,21 @@ public final class HttpKpipaTransport implements KpipaTransport {
 
 	private final long maxBodyBytes;
 
+	private final long maxCoverBytes;
+
 	private final String userAgent;
 
+	/**
+	 * @param maxBodyBytes largest page or POST answer read
+	 * @param maxCoverBytes largest cover image read
+	 */
 	public HttpKpipaTransport(URI baseUrl, Duration connectTimeout, Duration readTimeout, long maxBodyBytes,
-			String userAgent) {
+			long maxCoverBytes, String userAgent) {
 		this.baseUrl = baseUrl;
 		this.connectTimeout = connectTimeout;
 		this.readTimeout = readTimeout;
 		this.maxBodyBytes = maxBodyBytes;
+		this.maxCoverBytes = maxCoverBytes;
 		this.userAgent = userAgent;
 	}
 
@@ -69,7 +76,7 @@ public final class HttpKpipaTransport implements KpipaTransport {
 					: HttpRequest.BodyPublishers.ofString(request.form()));
 			Duration total = connectTimeout.plus(readTimeout);
 			CompletableFuture<HttpResponse<byte[]>> call = client.sendAsync(builder.build(),
-					BodyLimit.handler(maxBodyBytes));
+					BodyLimit.handler(request.cover() ? maxCoverBytes : maxBodyBytes));
 			try {
 				HttpResponse<byte[]> response = call.get(total.toMillis(), TimeUnit.MILLISECONDS);
 				return new KpipaResponse(response.statusCode(),

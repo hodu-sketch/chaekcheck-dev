@@ -27,10 +27,24 @@ public record PopularProperties(Fetch fetch, Cache cache) {
 	 * {@code connectTimeout + readTimeout}
 	 * @param baseUrl the site, without a trailing slash
 	 * @param userAgent sent with every request
-	 * @param maxBodySize largest response read (pages and covers); a bigger body fails that request [안]
+	 * @param maxBodySize largest page or POST answer read; a bigger body fails the fetch ({@code format_changed}) [안]
+	 * @param coverMaxBodySize largest cover image read, before it is made smaller; a bigger one fails that cover
+	 * (user decision 2026-10-12: 50MB)
+	 * @param cover how covers are stored
 	 */
 	public record Fetch(boolean enabled, String cron, ZoneId zone, Duration requestInterval, Duration connectTimeout,
-			Duration readTimeout, URI baseUrl, String userAgent, DataSize maxBodySize) {
+			Duration readTimeout, URI baseUrl, String userAgent, DataSize maxBodySize, DataSize coverMaxBodySize,
+			Cover cover) {
+	}
+
+	/**
+	 * Every cover is stored and served as one size (user decision 2026-10-12, "표지 크기를 하나로 맞춤").
+	 * @param width stored width in pixels; narrower images keep their width [확정 200]
+	 * @param jpegQuality JPEG quality 0 to 1 [안 0.8]
+	 * @param maxPixels largest width x height decoded; a bigger image fails that cover, so one image cannot fill the
+	 * heap (512MB) [안 16,000,000]
+	 */
+	public record Cover(int width, float jpegQuality, long maxPixels) {
 	}
 
 	/** @param refreshInterval how often the cache is read again from the database [확정 10m] */

@@ -100,7 +100,7 @@ public final class KpipaClient {
 	 */
 	public Optional<CoverImage> fetchCover(String path) throws InterruptedException {
 		try {
-			KpipaResponse response = send(KpipaRequest.get(path, Map.of()), "cover");
+			KpipaResponse response = send(KpipaRequest.cover(path), "cover");
 			if (response.status() == 200 && response.contentType() != null
 					&& response.contentType().toLowerCase(Locale.ROOT).startsWith("image/")) {
 				return Optional.of(new CoverImage(response.contentType(), response.body()));

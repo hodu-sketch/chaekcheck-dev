@@ -199,12 +199,32 @@ class KpipaClientTests {
 				: new Answer(200, "text/html", "x".repeat(70_000), Map.of());
 
 		try (KpipaTransport.Connection connection = new HttpKpipaTransport(URI.create(base), Duration.ofSeconds(5),
-				Duration.ofSeconds(5), 65_536, USER_AGENT)
+				Duration.ofSeconds(5), 65_536, 65_536, USER_AGENT)
 			.open()) {
 			KpipaClient client = new KpipaClient(connection, pacer, base);
 			assertThatThrownBy(() -> client.fetchRanking(YearMonth.of(2026, 9)))
 				.isInstanceOfSatisfying(FetchFailure.class,
 						failure -> assertThat(failure.reason()).isEqualTo(FailureReason.FORMAT_CHANGED));
+		}
+	}
+
+	/** Covers have their own limit (user decision 2026-10-12: 50MB); pages keep theirs. */
+	@Test
+	void coversUseTheCoverLimit() throws Exception {
+		answers = request -> new Answer(200, "image/png", "x".repeat(70_000), Map.of());
+
+		try (KpipaTransport.Connection connection = new HttpKpipaTransport(URI.create(base), Duration.ofSeconds(5),
+				Duration.ofSeconds(5), 65_536, 100_000, USER_AGENT)
+			.open()) {
+			KpipaClient client = new KpipaClient(connection, pacer, base);
+			assertThat(client.fetchCover("/files/onix/s_big.png")).hasValueSatisfying(
+					cover -> assertThat(cover.image()).hasSize(70_000));
+		}
+		try (KpipaTransport.Connection connection = new HttpKpipaTransport(URI.create(base), Duration.ofSeconds(5),
+				Duration.ofSeconds(5), 1_048_576, 65_536, USER_AGENT)
+			.open()) {
+			KpipaClient client = new KpipaClient(connection, pacer, base);
+			assertThat(client.fetchCover("/files/onix/s_big.png")).isEmpty();
 		}
 	}
 
@@ -223,7 +243,7 @@ class KpipaClientTests {
 	}
 
 	private HttpKpipaTransport transport(Duration timeout) {
-		return new HttpKpipaTransport(URI.create(base), timeout, timeout, 1_048_576, USER_AGENT);
+		return new HttpKpipaTransport(URI.create(base), timeout, timeout, 1_048_576, 52_428_800, USER_AGENT);
 	}
 
 	/** The site as saved on 2026-10-12: rank page with a session cookie, the "전체" list, the novel count. */

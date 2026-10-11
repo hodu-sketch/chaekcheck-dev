@@ -156,18 +156,34 @@ class PopularFetchTests {
 	void failedCoversDoNotFailTheMonth() { // AC-17
 		site.missingCover(FakeKpipaSite.coverOf("202609", "/files/isbn/2026/05/07/s_5d648b430bf7409bb219ba50aab1f49c.jpg"));
 		site.missingCover(FakeKpipaSite.coverOf("202609", "/files/old/2002/01/20/s_8937460580_3.jpg"));
+		// an answer that says image/jpeg but no image reader can read
+		site.brokenCover(FakeKpipaSite.coverOf("202609", "/files/onix/2026/01/22/s_20260122163104-1367167192961414367.jpg"));
 
 		fetchJob.fetch(SEP, FetchTrigger.SCHEDULED);
 
 		assertThat(run(SEP)).containsEntry("status", "SUCCEEDED")
-			.containsEntry("cover_fetched_count", 48)
-			.containsEntry("cover_failed_count", 2);
+			.containsEntry("cover_fetched_count", 47)
+			.containsEntry("cover_failed_count", 3);
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-09-01'"))
 			.isEqualTo(850);
-		assertThat(jdbc.sql("SELECT content_type FROM popular.cover WHERE source_path = :path")
+	}
+
+	/** User decision 2026-10-12: every cover stored as a 200px wide JPEG; byte_size is the stored size. */
+	@Test
+	void coversAreStoredAsOneSizeOfJpeg() throws Exception {
+		fetchJob.fetch(SEP, FetchTrigger.SCHEDULED);
+
+		assertThat(jdbc.sql("SELECT DISTINCT content_type FROM popular.cover").query(String.class).list())
+			.containsExactly("image/jpeg");
+		assertThat(count("SELECT count(*) FROM popular.cover WHERE byte_size <> octet_length(image)")).isZero();
+		byte[] image = jdbc.sql("SELECT image FROM popular.cover WHERE source_path = :path")
 			.param("path", FakeKpipaSite.SHARED_COVER)
-			.query(String.class)
-			.single()).isEqualTo("image/jpeg");
+			.query(byte[].class)
+			.single();
+		java.awt.image.BufferedImage stored = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(image));
+		assertThat(stored.getWidth()).isEqualTo(200);
+		assertThat(stored.getHeight()).isEqualTo(300);
+		assertThat(image.length).isLessThan(FakeKpipaSite.JPEG.length);
 	}
 
 	@Test

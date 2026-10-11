@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.chaekcheck.popular.internal.PopularProperties;
 import com.chaekcheck.popular.internal.RankingChanged;
+import com.chaekcheck.popular.internal.cover.CoverResizer;
 import com.chaekcheck.popular.internal.fetch.FetchFailure;
 import com.chaekcheck.popular.internal.fetch.KpipaClient;
 import com.chaekcheck.popular.internal.fetch.KpipaTransport;
@@ -22,8 +23,8 @@ import com.chaekcheck.popular.internal.store.PopularStore;
 /**
  * One fetch of a month (plan cycle 10 design-delta "주요 흐름 1"): the ranking and sales counts, stored with a
  * SUCCEEDED run in one transaction, or one FAILED run and {@code log.error} (AC-11); then the covers not stored yet,
- * 2 seconds apart, the covers no ranking of the latest two months uses deleted, the cover counts of the run updated
- * and the cache told. Some covers failing does not fail the month (ADR-0075). If the server stops while covers are
+ * 2 seconds apart and made one size ({@link CoverResizer}; an image it cannot read counts as failed), the covers no
+ * ranking of the latest two months uses deleted, the cover counts of the run updated and the cache told. Some covers failing does not fail the month (ADR-0075). If the server stops while covers are
  * fetched, the ranking and its SUCCEEDED run stay with cover counts 0; the next fetch gets the missing covers.
  * <p>
  * Fetches never overlap ({@link AtomicBoolean}, plan design #7); they run on the module's own single thread
@@ -47,6 +48,8 @@ public class FetchJob {
 
 	private final List<RankingChanged> listeners;
 
+	private final CoverResizer resizer;
+
 	private final AtomicBoolean running = new AtomicBoolean();
 
 	public FetchJob(FetchDecision decision, PopularStore store, KpipaTransport transport,
@@ -58,6 +61,8 @@ public class FetchJob {
 		this.ticker = ticker;
 		this.clock = clock;
 		this.listeners = List.copyOf(listeners);
+		this.resizer = new CoverResizer(settings.cover().width(), settings.cover().jpegQuality(),
+				settings.cover().maxPixels());
 	}
 
 	/**
@@ -121,9 +126,9 @@ public class FetchJob {
 		int fetched = 0;
 		int failed = 0;
 		for (String path : paths) {
-			Optional<KpipaClient.CoverImage> cover = client.fetchCover(path);
-			if (cover.isPresent()) {
-				store.saveCover(path, cover.get().contentType(), cover.get().image(), clock.instant());
+			Optional<byte[]> jpeg = client.fetchCover(path).flatMap(cover -> resizer.toJpeg(cover.image()));
+			if (jpeg.isPresent()) {
+				store.saveCover(path, CoverResizer.CONTENT_TYPE, jpeg.get(), clock.instant());
 				fetched++;
 			}
 			else {

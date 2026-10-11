@@ -1,6 +1,11 @@
 package com.chaekcheck.popular;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.imageio.ImageIO;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -44,6 +51,12 @@ public class FakeKpipaSite implements KpipaTransport {
 			Map.entry("00000000000000000876", 21_547L), Map.entry("00000000000000000408", 11_448L),
 			Map.entry("00000000000000001782", 7_908L));
 
+	/** A cover as the site sends them: 458 x 687, wider than stored. */
+	static final byte[] JPEG = image("jpeg", BufferedImage.TYPE_INT_RGB);
+
+	/** A PNG cover with transparency. */
+	static final byte[] PNG = image("png", BufferedImage.TYPE_INT_ARGB);
+
 	private static final Pattern FORM_VALUE = Pattern.compile("(?:^|&)(txtDate|txtFromDate|searchCtg)=([^&]*)");
 
 	private final List<KpipaRequest> requests = new CopyOnWriteArrayList<>();
@@ -53,6 +66,9 @@ public class FakeKpipaSite implements KpipaTransport {
 
 	/** Cover paths that answer 404. */
 	private final Set<String> missingCovers = ConcurrentHashMap.newKeySet();
+
+	/** Cover paths that answer {@code image/jpeg} bytes no image reader can read. */
+	private final Set<String> brokenCovers = ConcurrentHashMap.newKeySet();
 
 	/** Cover paths whose request is interrupted, as when the server stops. */
 	private final Set<String> interruptedCovers = ConcurrentHashMap.newKeySet();
@@ -67,6 +83,7 @@ public class FakeKpipaSite implements KpipaTransport {
 		requests.clear();
 		shortLists.clear();
 		missingCovers.clear();
+		brokenCovers.clear();
 		interruptedCovers.clear();
 	}
 
@@ -80,6 +97,10 @@ public class FakeKpipaSite implements KpipaTransport {
 
 	public void missingCover(String path) {
 		missingCovers.add(path);
+	}
+
+	public void brokenCover(String path) {
+		brokenCovers.add(path);
 	}
 
 	public void interruptAtCover(String path) {
@@ -134,9 +155,29 @@ public class FakeKpipaSite implements KpipaTransport {
 			if (missingCovers.contains(path)) {
 				return new KpipaResponse(404, "text/html", new byte[0]);
 			}
-			return new KpipaResponse(200, "image/jpeg", ("JPEG " + path).getBytes(StandardCharsets.UTF_8));
+			if (brokenCovers.contains(path)) {
+				return new KpipaResponse(200, "image/jpeg", ("JPEG " + path).getBytes(StandardCharsets.UTF_8));
+			}
+			return path.endsWith(".png") ? new KpipaResponse(200, "image/png", PNG)
+					: new KpipaResponse(200, "image/jpeg", JPEG);
 		}
 		return new KpipaResponse(404, "text/html", new byte[0]);
+	}
+
+	private static byte[] image(String format, int type) {
+		BufferedImage image = new BufferedImage(458, 687, type);
+		Graphics2D g = image.createGraphics();
+		g.setColor(Color.ORANGE);
+		g.fillRect(0, 0, 458, 300);
+		g.dispose();
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		try {
+			ImageIO.write(image, format, out);
+		}
+		catch (IOException ex) {
+			throw new UncheckedIOException(ex);
+		}
+		return out.toByteArray();
 	}
 
 	private static Map<String, String> form(String body) {

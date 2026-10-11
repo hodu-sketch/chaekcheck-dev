@@ -2543,7 +2543,7 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - `catalog`: `BookLookup`, `IsbnBook`(같은 패키지, 따로 파일), 구현 `catalog/internal/JdbcBookLookup`
 - changelog: `db/changelog/popular/001-popular-schema.yaml`(changeSet `popular-001-schema`, `-fetch-run`, `-ranking`, `-cover`), master 맨 뒤 `# cycle 10` 주석 + include
 - 제약 이름(`<표>_<칸>_<종류>`): `fetch_run_pkey`, `fetch_run_target_month_check`(1일), `fetch_run_trigger_check`, `fetch_run_status_check`, `fetch_run_failure_reason_check`, `fetch_run_failure_reason_status_check`(`(status = 'FAILED') = (failure_reason IS NOT NULL)`), 셈 칸 다섯 개 `fetch_run_<칸>_check`, 색인 `fetch_run_target_month_started_at_idx` / `ranking_month_pkey`, `ranking_month_target_month_check`, `ranking_month_fetch_run_id_fkey` / `ranking_category_pkey`, `ranking_category_target_month_fkey`, `ranking_category_category_code_check`(`ALL` 또는 20자리 숫자), `ranking_category_sales_copies_check`(`ALL`이면 NULL, 아니면 NOT NULL·`>= 0`), `ranking_category_display_order_check`, `ranking_category_target_month_display_order_key` / `ranking_entry_pkey`, `ranking_entry_target_month_category_code_fkey`, `ranking_entry_rank_check`, `ranking_entry_isbn13_check`, `ranking_entry_cover_path_check` / `cover_pkey`, `cover_source_path_key`, `cover_source_path_check`(`/`로 시작), `cover_byte_size_check`. 칸 이름 `rank`·`trigger`는 그대로 써서 문제 없었음
-- 설정: 환경 변수 `CHAEKCHECK_POPULAR_FETCH_ENABLED`, 캐시 키 `chaekcheck.popular.cache.refresh-interval: 10m`, 받기 키는 `chaekcheck.popular.fetch.*`. 더한 키 `max-body-size: 1MB`(모든 응답 본문 상한, 표지 포함. 작은 표지 약 51KB, 화면 약 65KB)
+- 설정: 환경 변수 `CHAEKCHECK_POPULAR_FETCH_ENABLED`, 캐시 키 `chaekcheck.popular.cache.refresh-interval: 10m`, 받기 키는 `chaekcheck.popular.fetch.*`. 더한 키 `max-body-size: 1MB`(화면·POST 응답 본문 상한, 화면 약 65KB). 표지는 따로 `cover-max-body-size: 50MB`와 `cover.*`(아래 "표지 줄이기와 표지 본문 상한 구현")
 - 시간 제한: 연결 5초, 읽기(응답 머리까지) 10초, 본문까지 한 요청 전체는 연결 + 읽기 = 15초
 - 간격: 앞 요청이 **끝난 때부터** 2초 이상. 요청마다 INFO 로그 `kpipa <방법> <경로> list=<분류> status=<코드> took=<ms> gap=<ms>`
 - 순위가 50권 넘으면 앞 50권. `dataX1`은 **첫 번째** `dataX1 = Number("…")`만 읽음(우리가 보내는 `bookType` 갈래. 응답 안 두 번째 `Number("")`는 `saleType` 갈래). 비었거나 숫자(0-9)만이 아니면 `format_changed`(쉼표도 거절)
@@ -2578,6 +2578,19 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 사용자: "나는 표지 크기를 일원화했으면 하는데 받는 크기가 여러개여도", "좀 작아도 괜찮아 오히려 최대한 작은게 좋아 서비스되는 표지의 크기가 그렇게 안 크자나"
 - 화면 표지 칸은 PC 약 180~200px, 폰 약 115px. 받은 586장을 줄여 본 값(JPEG 품질 80): 160px 중간 9KB / 200px 13KB / 240px 17KB / 300px 25KB, 원본 중간 52KB(586장 합계 원본 약 33MB → 200px 약 7MB)
 - 결정: **폭 200px**로 줄여(더 작은 그림은 그대로, 세로는 비율대로) JPEG로 저장·게시. JDK `javax.imageio`만 씀(새 의존성 없음). 본문 상한은 줄이기 전 원본에 대해 올림
+
+### 표지 줄이기와 표지 본문 상한 구현 (2026-10-12)
+
+- **표지 본문 상한** (사용자 결정): 첫 받기 시험에서 1MB 상한이 PNG 표지 두 장(`/files/onix/2026/07/01/s_20260701180839-4954726983385586529.png`, `/files/onix/2026/08/31/s_202608311744267525356674519893589.png`)을 거절함. 사용자: 처음 "상한 없애고 받아줘;;", 이어서 "상한 여유롭게 50MB로 하던가" → 표지 응답만 **50MB**(`chaekcheck.popular.fetch.cover-max-body-size: 50MB`, 따로 둔 키). 화면·POST 응답은 `max-body-size: 1MB` 그대로(화면 약 65KB, 넘으면 `format_changed`)
+  - 지켜 주는 폭이 넓어짐: 표지 하나에 본문 50MB까지 메모리에 읽음(힙 512MB). 한 번에 하나씩 받으므로 동시에는 한 장
+  - dev 제안 [안]: 그림 머리에서 가로 × 세로를 먼저 읽어 **1,600만 화소**(ARGB로 약 64MB)를 넘으면 풀지 않고 실패로 셈(`cover.max-pixels: 16000000`). 파일은 작아도 풀면 큰 그림이 힙을 채우는 것을 막으려고. 작은 표지는 약 50만 화소
+- **표지 크기 하나로** (위 사용자 결정): `popular/internal/cover/CoverResizer`, JDK `javax.imageio`·`java.awt`만(새 의존성 없음)
+  - 폭 200px(`cover.width: 200`), 세로는 비율대로, 더 좁은 그림은 크기 그대로 다시 JPEG로만. 늘 `image/jpeg`로 저장·게시, `byte_size`는 줄인 뒤 크기
+  - 줄이는 방법: 목표의 두 배 이상이면 반씩 줄인 뒤 마지막에 bicubic 한 번(`RenderingHints` 품질). 투명(PNG·GIF 알파)은 흰 바탕에 얹음. JPEG 품질 0.8(`cover.jpeg-quality`, [안])
+  - ImageIO가 못 읽는 바이트(그림 아님, 잘린 파일, CMYK JPEG 등)와 화소 상한을 넘는 그림은 표지 실패로 셈(`cover_failed_count`), 그 책은 제목 글자
+  - 화면 없이 돎: Spring Boot가 `java.awt.headless=true`를 기본으로 둠. 그림은 화면 밖(`BufferedImage`)에서만 그림
+- 테스트: `CoverResizerTests`(테스트 안에서 ImageIO로 만든 넓은 JPEG 600×900 → 200×300, 투명 PNG → 흰 바탕, GIF, 좁은 JPEG 150×225 그대로, 출력이 JPEG, 그림 아닌 바이트·잘린 PNG·화소 상한 → 빈 값), `KpipaClientTests.coversUseTheCoverLimit`(표지는 표지 상한, 화면은 화면 상한), `PopularFetchTests`(가짜 사이트가 458×687 그림을 보냄 → 저장은 200×300 JPEG·`byte_size` = 저장 크기, 못 읽는 그림 1장 + 404 2장 → 표지 47장·실패 3장)
+- 로컬 `db`에 원래 크기로 들어간 표지(시험 받기 806장)를 사이트를 다시 부르지 않고 줄이는 일회용 도구: `backend/src/test/java/com/chaekcheck/popular/internal/cover/LocalCoverResizeRunner.java`. 빌드에서는 돌지 않고 환경 변수가 있을 때만 `../.env`의 로컬 `db`에 돎: `CHAEKCHECK_RESIZE_LOCAL_COVERS=true ./gradlew test --tests '*LocalCoverResizeRunner' --rerun`. 이미 200px 이하 JPEG인 줄은 건너뜀(두 번 돌려도 같음), 표지 번호는 그대로
 
 ## 8단계 받기 시험 (2026-10-12 02:28~02:58, 로컬 `db`, 포트 8081)
 
