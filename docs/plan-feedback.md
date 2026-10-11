@@ -2817,3 +2817,10 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 문구: "내 도서관" → "검색하는 도서관", S15 두 줄
 - 사이클 밖으로 같은 날 함께 한 것(각자 절 있음): 폰 검색 설정·로그인 아래 창에 손잡이·ⓧ·뒤로 가기(plan 요청, 사용자 결정), 폰 상세검색 칸 넘침, 앱 전체 아이콘 정렬·누르는 크기
 - 새로 알게 된 것: 삼성 인터넷은 폰인데도 `(hover: hover)`로 답함(`pointer: coarse`는 맞음). 터치 판정은 `(pointer: coarse)` 하나로 해야 함. 폰 확인은 같은 와이파이에서 `web-lan-5174`(`.claude/launch.json`)
+
+# 사이클 밖: 인기 도서 카드 모양, 터치 판정 규칙 (plan 요청, 2026-10-12)
+
+- **인기 도서 분류 카드를 다른 카드와 같게** (사용자: "지금 '인기 도서 화면'의 것을 다른 카드들과 같이 해줘"): `web/src/features/popular/PopularPage.module.css`의 `.panel`에서 그림자를 빼고 `border: 1px solid var(--rule)`, `border-radius: var(--radius-lg)`, `background: var(--card)`(검색 결과 판 `.list`와 같은 값, 책 화면 `.book`과 모서리·바탕 같음). 폰에서 따로 주던 모서리 22px도 지움. 머리 주석의 "global.css 평평한 카드의 예외" 문장을 지움. 커밋 afd3908
+  - 그대로 둔 것: 카드 안 내용(분류 이름, "1 - 9위 / 50", 순위 칩 색, ◀ ▶, 쪽 표시 점), 한 분류씩 넘기는 스크롤, 화면 아래 떠 있는 [분류 ▾]와 그 그림자(떠 있음을 보여 주는 것이라 남김)
+  - 확인: Playwright 1280·768·375·320에서 카드 계산 값 모서리 16px·그림자 없음·흰 바탕·1px 테두리, 책 화면 카드와 모서리·그림자 같음(테두리 색은 책 화면 `--paper-deep`, 검색 결과 판·인기 도서 `--rule`). 화면 사진 `.playwright-mcp/flatcard-popular-{1280,768,375,320}.png`, `flatcard-book-{…}.png`(git 밖). `npm test` 364개, `npm run build`, `npm run lint`(새 경고 없음) 통과. 사용자 폰 확인은 아직
+- **터치 판정 규칙**: `.claude/rules/web/patterns.md`에 "Touch Detection" 한 줄(`(pointer: coarse)` 하나로, `hover`로 가르지 않음, 삼성 인터넷 이유). `web/src`에서 `hover: none`으로 터치를 가르는 곳은 없음(남은 두 곳은 쓰지 말라는 주석: `PopularPage.module.css`, `PopularPage.tsx`)

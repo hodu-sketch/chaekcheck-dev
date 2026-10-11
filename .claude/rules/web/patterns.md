@@ -85,3 +85,7 @@ Persist shareable state in the URL:
 - Fetch independent data in parallel
 - Avoid parent-child request waterfalls
 - Prefetch likely next routes or states when justified
+
+## Touch Detection
+
+- 터치 화면인지는 `(pointer: coarse)` 하나로 판정한다(CSS 미디어 쿼리와 JS 모두). `(hover: none)`·`(hover: hover)`로 가르지 않는다 — 삼성 인터넷은 폰에서도 `(hover: hover)`로 답한다(사이클 10, 2026-10-12).
