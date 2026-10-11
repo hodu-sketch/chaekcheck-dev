@@ -60,9 +60,15 @@
 - 대출 상태는 저장하지 않고 사용자가 볼 때 도서관 상세 페이지를 읽음 [확정] (plan `crawl-method.md` 2절). 같은 호스트 1건·1초, 캐시 3분
 - 유지보수에서 볼 것: 상세 페이지를 못 읽는 도서관이 늘면 화면이 바뀐 것 → 1단계(`library-maintenance.md` 4-9절, 12절 화면 종류별 상세 형식)
 
+## 5. (자동) 인기 도서 받기
+
+- 매달 지난달 판매 순위·판매 부수·표지를 출판유통통합전산망에서 받음(사이클 10). 서버가 켜질 때와 매일 05:00에 받을지 따짐. 절차와 실패 읽는 법: [4-popular.md](4-popular.md)
+- 유지보수에서 볼 것: 매달 3일 이후 `popular.fetch_run`에 그 달 `SUCCEEDED`가 있는지, 표지 실패 수, 권리자의 표지 내림 요청
+
 ## 체크리스트 (한 바퀴)
 
 - [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 seed 추가·수정(5·6절), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 후보 도서관 찾기 → 같은 사이트 거르기 → `build_candidate_seed.py`로 넣기 → 구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] ②: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 가져오기: 사본 만들기 → dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
 - [ ] 4단계: 서비스 로그에서 상세 페이지 읽기 실패가 늘었는지
+- [ ] 5단계: `popular.fetch_run`에 지난달 `SUCCEEDED`가 있는지, `FAILED`면 `failure_reason`([4-popular.md](4-popular.md) 3절)
