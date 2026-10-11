@@ -496,3 +496,29 @@
 .pickPopover:has(.pickHelpItem[aria-expanded='true']) {
   width: min(20rem, calc(100vw - 2rem));
 }
+
+/*
+ * Touch screens only (user 2026-10-12, "그렇게 해줘"): a flick stops at the next category, its panel below the
+ * floating button (the block's own top margin is the app header, its top padding the button's zone), and the page
+ * end (the footer) is a stop too. Only while this screen is shown; a mouse or trackpad keeps the wheel steps and the
+ * free scrollbar. When a block is taller than the screen (zoom, large text), `proximity` instead so nothing is
+ * trapped (PopularPage sets data-tall).
+ */
+@media (hover: none) and (pointer: coarse) {
+  :global(html):has(.page) {
+    scroll-snap-type: y mandatory;
+  }
+
+  :global(html):has(.page[data-tall]) {
+    scroll-snap-type: y proximity;
+  }
+
+  .section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  :global(html):has(.page) :global(footer) {
+    scroll-snap-align: end;
+  }
+}

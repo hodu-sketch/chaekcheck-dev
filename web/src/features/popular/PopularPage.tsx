@@ -196,6 +196,27 @@ export function PopularPage() {
     }
   }, [codes])
 
+  // a block taller than the screen (zoom, large text) would trap touch snapping: the CSS falls back to proximity
+  const [tall, setTall] = useState(false)
+  useEffect(() => {
+    if (!codes) return
+    const first = document.getElementById(sectionId(codes.split(',')[0]))
+    if (!first) return
+    const check = () => {
+      const header = document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0
+      setTall(first.offsetHeight > window.innerHeight - header + 1)
+    }
+    check()
+    window.addEventListener('resize', check)
+    if (typeof ResizeObserver === 'undefined') return () => window.removeEventListener('resize', check)
+    const observer = new ResizeObserver(check)
+    observer.observe(first)
+    return () => {
+      window.removeEventListener('resize', check)
+      observer.disconnect()
+    }
+  }, [codes])
+
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
 
   // S13c: that category's ranks 1-9, the page put straight there with no smooth scrolling (user 2026-10-11)
@@ -247,7 +268,7 @@ export function PopularPage() {
   }
 
   return (
-    <div ref={rootRef} className={styles.page}>
+    <div ref={rootRef} className={styles.page} data-tall={tall || undefined}>
       {/*
         Design A with the user's later choices (2026-10-12): no visible heading ("이거 위에 있는거 불필요하니까 없애고"),
         only one for screen readers; the category picker floats at the top centre and follows the category in view.
