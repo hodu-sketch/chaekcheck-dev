@@ -65,6 +65,8 @@ databaseChangeLog:
                 fetched_at timestamp with time zone NOT NULL
               )
         # category_code: ALL or the site's 20-digit category id (PopularCategory). sales_copies is NULL for ALL only.
+        # display_order 0..14: "전체" + 14 categories (plan cycle 10 retro, ADR-0080). Edited in place before the first
+        # deployment (PRE_DEPLOYMENT); the local db got the same constraint by hand and a NULL checksum (cycle 11 step 0).
         - sql:
             splitStatements: false
             sql: >-
@@ -77,7 +79,7 @@ databaseChangeLog:
                   WHEN category_code = 'ALL' THEN sales_copies IS NULL
                   ELSE sales_copies IS NOT NULL AND sales_copies >= 0 END),
                 display_order smallint NOT NULL
-                  CONSTRAINT ranking_category_display_order_check CHECK (display_order BETWEEN 0 AND 16),
+                  CONSTRAINT ranking_category_display_order_check CHECK (display_order BETWEEN 0 AND 14),
                 CONSTRAINT ranking_category_pkey PRIMARY KEY (target_month, category_code),
                 CONSTRAINT ranking_category_target_month_display_order_key UNIQUE (target_month, display_order)
               )

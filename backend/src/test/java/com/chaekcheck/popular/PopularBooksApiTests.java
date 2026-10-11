@@ -109,7 +109,7 @@ class PopularBooksApiTests {
 		json.extractingPath("$.categories[*].name")
 			.asArray()
 			.containsExactly("전체", "소설", "문학·인물", "사회", "철학·종교", "경제·경영", "자기계발", "예술", "컴퓨터·IT",
-					"생활·취미", "과학", "역사", "법", "참고·정보", "지리·환경");
+					"생활·취미", "과학", "역사", "법");
 		json.extractingPath("$.categories[*].code")
 			.asArray()
 			.doesNotContain("00000000000000000178", "00000000000000001991");

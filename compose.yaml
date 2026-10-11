@@ -42,6 +42,41 @@ services:
       timeout: 3s
       retries: 10
 
+  # Production-role database (cycle 11, ADR-0078): the separate import's apply runs here, under the production
+  # server's memory limit, while a service on it answers searches. Same image, settings and database as db; started
+  # as a copy of db (docs/maintenance/3-import.md 13). Start it only for that test: docker compose up -d db-ops
+  db-ops:
+    image: chaekcheck/postgres-bigm:18
+    restart: "no"
+    environment:
+      POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_bigm
+      - -c
+      - shared_buffers=${DB_SHARED_BUFFERS:-64MB}
+      - -c
+      - effective_cache_size=${DB_EFFECTIVE_CACHE_SIZE:-768MB}
+      - -c
+      - work_mem=${DB_WORK_MEM:-4MB}
+    ports:
+      - "${OPS_DB_PORT:-5434}:5432"
+    volumes:
+      - db-ops-data:/var/lib/postgresql
+    # the production server's container limit (cycle 11 R-A6 [확정]); compose: mem_limit "configures a limit on the
+    # amount of memory a container can allocate" (https://docs.docker.com/reference/compose-file/services/)
+    mem_limit: 1g
+    profiles:
+      - ops
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # Throwaway database for ./gradlew test. Data lives in memory and is gone after `down`.
   db-test:
     build: docker/postgres-bigm
@@ -63,3 +98,5 @@ services:
 
 volumes:
   db-data:
+  # cycle 11 production-role database (db-ops)
+  db-ops-data:

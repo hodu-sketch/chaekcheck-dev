@@ -6,6 +6,8 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -35,17 +37,53 @@ import com.chaekcheck.library.LibraryCatalog;
 @EnableConfigurationProperties(CatalogImportRunner.Settings.class)
 class CatalogImportRunner {
 
+	private static final Logger log = LoggerFactory.getLogger(CatalogImportRunner.class);
+
+	/** The mode values (cycle 11, ADR-0078 [확정]). */
+	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard");
+
+	/** The ways to group books (cycle 11, ADR-0079 [확정]). */
+	static final Set<String> GROUPINGS = Set.of("current", "compact", "sql");
+
 	/**
-	 * @param sqlitePath the collection DB (read-only)
+	 * @param sqlitePath the collection DB (read-only); needed by {@code in-place} and {@code export}
 	 * @param ttlPath folder with the unzipped national bibliography TTL files; empty skips the ISBN lookup
 	 * @param dryRun read and group only, log the counts, write nothing
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders (ADR-0054)
+	 * @param mode {@code in-place} (default: load and swap in this database), {@code export} (load into new tables
+	 * and write them into {@code file}), {@code apply} (load {@code file} here), {@code finish} (swap in the new tables
+	 * waiting for {@code file}) or {@code discard} (drop the new tables). docs/maintenance/3-import.md 13
+	 * @param file the export file of {@code export}, {@code apply} and {@code finish}
+	 * @param grouping how the books are grouped: {@code current} (default), {@code compact} or {@code sql} (ADR-0079)
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
-	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries) {
+	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
+			Path file, String grouping) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
+			mode = mode == null ? "in-place" : mode;
+			grouping = grouping == null ? "current" : grouping;
+		}
+
+		/** Refuses wrong values before anything runs. */
+		void check() {
+			if (!MODES.contains(mode)) {
+				throw new IllegalStateException("chaekcheck.collection.import.mode must be one of " + MODES + ": " + mode);
+			}
+			if (!GROUPINGS.contains(grouping)) {
+				throw new IllegalStateException(
+						"chaekcheck.collection.import.grouping must be one of " + GROUPINGS + ": " + grouping);
+			}
+			if ((mode.equals("in-place") || mode.equals("export")) && sqlitePath == null) {
+				throw new IllegalStateException("Set chaekcheck.collection.import.sqlite-path");
+			}
+			if ((mode.equals("export") || mode.equals("apply") || mode.equals("finish")) && file == null) {
+				throw new IllegalStateException("Set chaekcheck.collection.import.file for mode " + mode);
+			}
+			if (dryRun && !mode.equals("in-place")) {
+				throw new IllegalStateException("dry-run is a read of mode in-place; mode " + mode + " has none");
+			}
 		}
 
 	}
@@ -54,12 +92,27 @@ class CatalogImportRunner {
 	ApplicationRunner collectionImport(LibraryCatalog libraryCatalog, CatalogLoad catalogLoad, JdbcClient jdbc,
 			DataSource dataSource, Settings settings, ConfigurableApplicationContext context) {
 		return (ApplicationArguments args) -> {
-			if (settings.sqlitePath() == null) {
-				throw new IllegalStateException("Set chaekcheck.collection.import.sqlite-path");
+			settings.check();
+			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
+			ImportRecords records = new ImportRecords(jdbc);
+			CatalogImporter importer = new CatalogImporter(libraryCatalog, new JdbcCollectionLinks(jdbc), catalogLoad,
+					records, new NationalBibliographyStore(dataSource), settings.placeholderDateLibraries(),
+					Clock.systemUTC());
+			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, jdbc, records,
+					Clock.systemUTC());
+			switch (settings.mode()) {
+				case "export" -> transfer.export(settings.sqlitePath(), settings.ttlPath(), settings.file(),
+						settings.grouping());
+				case "apply" -> transfer.apply(settings.file());
+				case "finish" -> transfer.finish(settings.file());
+				case "discard" -> log.info("discarded: {}", transfer.discard());
+				default -> {
+					if (!settings.dryRun()) {
+						transfer.requireNoWaitingExport();
+					}
+					importer.run(settings.sqlitePath(), settings.ttlPath(), settings.dryRun());
+				}
 			}
-			new CatalogImporter(libraryCatalog, new JdbcCollectionLinks(jdbc), catalogLoad, new ImportRecords(jdbc),
-					new NationalBibliographyStore(dataSource), settings.placeholderDateLibraries(), Clock.systemUTC())
-				.run(settings.sqlitePath(), settings.ttlPath(), settings.dryRun());
 			System.exit(SpringApplication.exit(context, () -> 0));
 		};
 	}

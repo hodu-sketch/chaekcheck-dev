@@ -1,0 +1,24 @@
+# cycle 11 (ADR-0078): the import runs on the PC and reaches the production database as one pg_dump file.
+# export_id / exported_at: the file's id and the time it was made (catalog_next.load_manifest). Set on the production
+# row of an apply and on the PC row of the finish that follows, so the two rows are linked; NULL on in-place imports.
+# failure_reason gets the value mismatch (the two databases differ, nothing was loaded). It has no value CHECK
+# (003-import-period-and-timings.yaml), so no change is needed for it.
+databaseChangeLog:
+  - changeSet:
+      id: collection-005-import-export
+      author: chaekcheck
+      changes:
+        - addColumn:
+            schemaName: collection
+            tableName: catalog_import
+            columns:
+              - column:
+                  name: export_id
+                  type: uuid
+              - column:
+                  name: exported_at
+                  type: timestamp with time zone
+        - sql:
+            sql: >-
+              ALTER TABLE collection.catalog_import
+                ADD CONSTRAINT catalog_import_export_check CHECK ((export_id IS NULL) = (exported_at IS NULL))

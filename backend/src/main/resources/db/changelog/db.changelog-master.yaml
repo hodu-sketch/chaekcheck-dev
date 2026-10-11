@@ -82,3 +82,7 @@ databaseChangeLog:
   - include:
       file: popular/001-popular-schema.yaml
       relativeToChangelogFile: true
+  # cycle 11: separate import, export / apply (ADR-0078)
+  - include:
+      file: collection/005-import-export.yaml
+      relativeToChangelogFile: true

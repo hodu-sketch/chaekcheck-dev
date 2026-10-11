@@ -7,6 +7,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,10 +16,12 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -62,6 +65,15 @@ class JdbcCatalogLoad implements CatalogLoad {
 
 	static final String NEXT = "catalog_next";
 
+	/** The one-row table of an export (cycle 11, ADR-0078); only in {@code catalog_next}, never in Liquibase. */
+	static final String MANIFEST = NEXT + ".load_manifest";
+
+	/** The {@code load_manifest} layout; a file of another version is refused. */
+	static final int FORMAT_VERSION = 1;
+
+	static final String WAITING_MESSAGE = "New tables of an export are waiting in " + NEXT
+			+ ": first finish them (after the production apply) or discard them";
+
 	/** PostgreSQL {@code lock_not_available}: the lock timeout ran out. */
 	private static final String LOCK_NOT_AVAILABLE = "55P03";
 
@@ -69,43 +81,314 @@ class JdbcCatalogLoad implements CatalogLoad {
 
 	private final CatalogLoadSettings settings;
 
-	JdbcCatalogLoad(DataSource dataSource, CatalogLoadSettings settings) {
+	/** Null when {@code pg-command} is not set: export, apply and finish do not start then. */
+	private final PgTools tools;
+
+	JdbcCatalogLoad(DataSource dataSource, CatalogLoadSettings settings, PgTools tools) {
 		this.dataSource = dataSource;
 		this.settings = settings;
+		this.tools = tools;
 	}
 
 	@Override
 	public Result replaceAll(String source, Loader loader) {
+		refuseWhenWaiting();
 		Map<String, Duration> steps = new LinkedHashMap<>();
+		return run("load from " + source, true, connection -> {
+			Counts counts = prepare(connection, loader, steps);
+			index(connection, steps);
+			analyze(connection, steps);
+			swap(connection, steps, List.of());
+			return counts.result(steps);
+		});
+	}
+
+	@Override
+	public Result prepare(String source, Loader loader) {
+		refuseWhenWaiting();
+		Map<String, Duration> steps = new LinkedHashMap<>();
+		return run("prepare from " + source, true, connection -> prepare(connection, loader, steps).result(steps));
+	}
+
+	@Override
+	public Manifest export(Path file, String notes) {
+		Path part = file.resolveSibling(file.getFileName() + ".part");
+		if (Files.exists(file)) {
+			throw new IllegalStateException("The export file exists already: " + file);
+		}
+		return run("export " + file.getFileName(), true, connection -> {
+			if (!exists(connection, NEXT + ".book")) {
+				throw new IllegalStateException("No new tables to export: run the import with mode export");
+			}
+			if (exists(connection, MANIFEST)) {
+				throw new IllegalStateException("The new tables were exported already; finish or discard them first");
+			}
+			Manifest manifest = new Manifest(FORMAT_VERSION, UUID.randomUUID(),
+					Instant.now().truncatedTo(ChronoUnit.MICROS), Manifests.baseline(connection, "catalog"), notes);
+			Manifests.create(connection, manifest);
+			Files.deleteIfExists(part);
+			tools().dump(database(connection), part);
+			Manifest read = Manifests.parse(tools().manifestDefinition(part));
+			if (!read.exportId().equals(manifest.exportId())) {
+				throw new IllegalStateException("The dump holds export " + read.exportId() + ", not "
+						+ manifest.exportId() + ": does pg-command reach this database?");
+			}
+			Files.move(part, file, StandardCopyOption.ATOMIC_MOVE);
+			log.info("exported {} ({} bytes), export_id {}", file, Files.size(file), manifest.exportId());
+			return read;
+		});
+	}
+
+	@Override
+	public Manifest readManifest(Path file) {
+		if (!Files.isRegularFile(file)) {
+			throw new IllegalArgumentException("No export file: " + file);
+		}
+		return Manifests.parse(tools().manifestDefinition(file));
+	}
+
+	@Override
+	public Baseline baseline() {
+		try (Connection connection = dataSource.getConnection()) {
+			return Manifests.baseline(connection, "catalog");
+		}
+		catch (SQLException ex) {
+			throw new IllegalStateException("Cannot read the catalog baseline", ex);
+		}
+	}
+
+	@Override
+	public Result apply(Path file) {
+		Manifest manifest = readManifest(file);
+		Baseline here = baseline();
+		if (!here.equals(manifest.baseline())) {
+			throw new NotSwappedException("mismatch",
+					"The file was made from another catalog: this database " + here + ", file " + manifest.baseline());
+		}
+		Map<String, Duration> steps = new LinkedHashMap<>();
+		return run("apply " + file.getFileName(), true, connection -> {
+			// left by an apply that stopped
+			endLeftRestores(connection);
+			try (Statement statement = connection.createStatement()) {
+				statement.execute("DROP SCHEMA IF EXISTS " + NEXT + " CASCADE");
+			}
+			long started = System.nanoTime();
+			tools().restore(database(connection), file);
+			steps.put("restore", since(started));
+			Manifest restored = Manifests.read(connection);
+			if (!restored.exportId().equals(manifest.exportId())) {
+				throw new IllegalStateException("The restored tables hold export " + restored.exportId() + ", not "
+						+ manifest.exportId() + ": does pg-command reach this database?");
+			}
+			// the swap's DROP SCHEMA runs without CASCADE
+			try (Statement statement = connection.createStatement()) {
+				statement.execute("DROP TABLE " + MANIFEST);
+			}
+			index(connection, steps);
+			analyze(connection, steps);
+			swap(connection, steps, List.of());
+			return restoredResult(connection, steps);
+		});
+	}
+
+	@Override
+	public Result finishPrepared(Path file) {
+		Manifest manifest = readManifest(file);
+		Map<String, Duration> steps = new LinkedHashMap<>();
+		return run("finish " + file.getFileName(), false, connection -> {
+			if (!exists(connection, MANIFEST)) {
+				throw new IllegalStateException("No new tables are waiting here. If the production apply went well,"
+						+ " restore the same file here with mode apply");
+			}
+			Manifest waiting = Manifests.read(connection);
+			if (!waiting.exportId().equals(manifest.exportId()) || !waiting.baseline().equals(manifest.baseline())) {
+				throw new IllegalStateException("The waiting tables are export " + waiting.exportId() + ", not the file's "
+						+ manifest.exportId() + ". Restore the file here with mode apply, or discard");
+			}
+			dropIndexesAndConstraints(connection);
+			index(connection, steps);
+			analyze(connection, steps);
+			swap(connection, steps, List.of("DROP TABLE " + MANIFEST));
+			return restoredResult(connection, steps);
+		});
+	}
+
+	@Override
+	public Discarded discardPrepared() {
+		try (Connection connection = dataSource.getConnection()) {
+			connection.setAutoCommit(true);
+			Discarded what = !exists(connection, NEXT + ".book") && !schemaExists(connection) ? Discarded.NOTHING
+					: exists(connection, MANIFEST) ? Discarded.WAITING : Discarded.LEFT_OVER;
+			endLeftRestores(connection);
+			if (what == Discarded.WAITING) {
+				log.warn("discarding new tables waiting for the finish: do this only when the production apply failed");
+			}
+			try (Statement statement = connection.createStatement()) {
+				statement.execute("DROP SCHEMA IF EXISTS " + NEXT + " CASCADE");
+			}
+			log.info("discard: {}", what);
+			return what;
+		}
+		catch (SQLException ex) {
+			throw new IllegalStateException("Cannot drop " + NEXT, ex);
+		}
+	}
+
+	@Override
+	public boolean hasWaitingExport() {
+		try (Connection connection = dataSource.getConnection()) {
+			return exists(connection, MANIFEST);
+		}
+		catch (SQLException ex) {
+			throw new IllegalStateException("Cannot check " + NEXT, ex);
+		}
+	}
+
+	/**
+	 * Ends restores of this database a stopped apply left running (their transaction rolls back). The restore's input
+	 * comes from the Java process, so it normally ends with it (cycle 11 prototype 4); this is for the rest.
+	 */
+	private static void endLeftRestores(Connection connection) throws SQLException {
+		try (PreparedStatement statement = connection.prepareStatement("""
+				SELECT pid, pg_terminate_backend(pid, 10000) FROM pg_stat_activity
+				WHERE application_name = ? AND datname = current_database() AND pid <> pg_backend_pid()""")) {
+			statement.setString(1, PgTools.RESTORE_APPLICATION);
+			try (ResultSet rs = statement.executeQuery()) {
+				while (rs.next()) {
+					log.warn("ended a restore left running (pid {}, ended {})", rs.getInt(1), rs.getBoolean(2));
+				}
+			}
+		}
+	}
+
+	/** Waiting new tables are never dropped by a new load (cycle 11 C6). */
+	private void refuseWhenWaiting() {
+		if (hasWaitingExport()) {
+			throw new IllegalStateException(WAITING_MESSAGE);
+		}
+	}
+
+	private PgTools tools() {
+		if (tools == null) {
+			throw new IllegalStateException("Set chaekcheck.catalog.load.pg-command (see docs/maintenance/3-import.md)");
+		}
+		return tools;
+	}
+
+	/** The counts of the tables just swapped in; no ids were matched here. */
+	private static Result restoredResult(Connection connection, Map<String, Duration> steps) throws SQLException {
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery("""
+				SELECT (SELECT count(*) FROM catalog.book), (SELECT count(*) FROM catalog.book_contributor),
+				  (SELECT count(*) FROM catalog.holding), (SELECT count(*) FROM catalog.catalog_library_snapshot)""")) {
+			rs.next();
+			return new Result(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), 0, 0, 0, steps);
+		}
+	}
+
+	private static PgTools.Database database(Connection connection) throws SQLException {
+		return new PgTools.Database(connection.getCatalog(), connection.getMetaData().getUserName());
+	}
+
+	static boolean exists(Connection connection, String table) throws SQLException {
+		try (PreparedStatement statement = connection.prepareStatement("SELECT to_regclass(?) IS NOT NULL")) {
+			statement.setString(1, table);
+			try (ResultSet rs = statement.executeQuery()) {
+				rs.next();
+				return rs.getBoolean(1);
+			}
+		}
+	}
+
+	private static boolean schemaExists(Connection connection) throws SQLException {
+		try (Statement statement = connection.createStatement();
+				ResultSet rs = statement.executeQuery("SELECT to_regnamespace('" + NEXT + "') IS NOT NULL")) {
+			rs.next();
+			return rs.getBoolean(1);
+		}
+	}
+
+	/**
+	 * Before a finish runs again: the indexes and constraints (but NOT NULL) a stopped finish made on the
+	 * {@code catalog_next} tables, the manifest's table left out.
+	 */
+	private static void dropIndexesAndConstraints(Connection connection) throws SQLException {
+		List<String> statements = new ArrayList<>();
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery("""
+				SELECT t.relname, c.conname
+				FROM pg_constraint c
+				JOIN pg_class t ON t.oid = c.conrelid
+				JOIN pg_namespace n ON n.oid = t.relnamespace
+				WHERE n.nspname = 'catalog_next' AND t.relname <> 'load_manifest' AND c.contype IN ('p', 'u', 'x', 'c', 'f')
+				ORDER BY CASE c.contype WHEN 'f' THEN 0 ELSE 1 END, t.relname, c.conname""")) {
+			while (rs.next()) {
+				statements.add("ALTER TABLE " + NEXT + "." + rs.getString(1) + " DROP CONSTRAINT IF EXISTS "
+						+ rs.getString(2) + " CASCADE");
+			}
+		}
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery("""
+				SELECT x.relname
+				FROM pg_index i
+				JOIN pg_class t ON t.oid = i.indrelid
+				JOIN pg_namespace n ON n.oid = t.relnamespace
+				JOIN pg_class x ON x.oid = i.indexrelid
+				WHERE n.nspname = 'catalog_next' AND t.relname <> 'load_manifest'
+				  AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = i.indexrelid)
+				ORDER BY x.relname""")) {
+			while (rs.next()) {
+				statements.add("DROP INDEX IF EXISTS " + NEXT + "." + rs.getString(1));
+			}
+		}
+		try (Statement statement = connection.createStatement()) {
+			for (String sql : statements) {
+				statement.execute(sql);
+				log.info("finish again: {}", sql);
+			}
+		}
+	}
+
+	/** Work on one connection of the load; the connection is in auto-commit mode with the load's session settings. */
+	@FunctionalInterface
+	private interface Work<T> {
+
+		T run(Connection connection) throws Exception;
+
+	}
+
+	/**
+	 * Runs one load on its own connection.
+	 * @param dropOnFailure drop {@code catalog_next} when the work fails (ADR-0065); false keeps the new tables
+	 */
+	private <T> T run(String source, boolean dropOnFailure, Work<T> work) {
 		try (Connection connection = dataSource.getConnection()) {
 			boolean autoCommit = connection.getAutoCommit();
 			try {
-				Result result = load(connection, loader, steps);
-				log.info("catalog load from {}: {}", source, result);
+				connection.setAutoCommit(true);
+				applySessionSettings(connection);
+				T result = work.run(connection);
+				log.info("catalog {}: {}", source, result);
 				return result;
 			}
 			catch (Exception ex) {
-				cleanUp(connection);
+				cleanUp(connection, dropOnFailure);
 				if (ex instanceof RuntimeException runtime) {
 					throw runtime;
 				}
-				throw new IllegalStateException("Catalog load from " + source + " failed", ex);
+				throw new IllegalStateException("Catalog " + source + " failed", ex);
 			}
 			finally {
 				connection.setAutoCommit(autoCommit);
 			}
 		}
 		catch (SQLException ex) {
-			throw new IllegalStateException("Catalog load from " + source + " failed", ex);
+			throw new IllegalStateException("Catalog " + source + " failed", ex);
 		}
 	}
 
-	private Result load(Connection connection, Loader loader, Map<String, Duration> steps) throws Exception {
-		connection.setAutoCommit(true);
+	/** Settings of this session only: the service's settings stay as they are. */
+	private void applySessionSettings(Connection connection) throws SQLException {
 		try (Statement statement = connection.createStatement()) {
 			// the definitions read below name every schema, whatever the server's search_path is
 			statement.execute("SET search_path = pg_catalog, public");
-			// only this session: the service's settings stay as they are
 			if (settings.maintenanceWorkMem() != null) {
 				statement.execute("SET maintenance_work_mem = '" + settings.maintenanceWorkMem() + "'");
 			}
@@ -115,6 +398,15 @@ class JdbcCatalogLoad implements CatalogLoad {
 			if (settings.workMem() != null) {
 				statement.execute("SET work_mem = '" + settings.workMem() + "'");
 			}
+		}
+	}
+
+	/**
+	 * Fills {@code catalog_next} without indexes or constraints and commits: temporary tables, ids, write (steps
+	 * {@code books_copy} to {@code write}). The temporary tables are dropped afterwards.
+	 */
+	private Counts prepare(Connection connection, Loader loader, Map<String, Duration> steps) throws Exception {
+		try (Statement statement = connection.createStatement()) {
 			// left by a load that stopped (ADR-0065)
 			statement.execute("DROP SCHEMA IF EXISTS " + NEXT + " CASCADE");
 			statement.execute("CREATE SCHEMA " + NEXT);
@@ -148,25 +440,35 @@ class JdbcCatalogLoad implements CatalogLoad {
 		try (Statement statement = connection.createStatement()) {
 			statement.execute("DROP TABLE load_book_contributor, load_holding, load_book, load_book_id, load_match");
 		}
+		return counts;
+	}
 
+	/** Step {@code index}: the indexes and constraints of {@code catalog}, made on the {@code catalog_next} tables. */
+	private static void index(Connection connection, Map<String, Duration> steps) throws SQLException {
 		long started = System.nanoTime();
 		createIndexesAndConstraints(connection);
 		steps.put("index", since(started));
+	}
 
-		started = System.nanoTime();
+	/** Step {@code analyze}: {@code VACUUM (ANALYZE)} of the new tables. */
+	private static void analyze(Connection connection, Map<String, Duration> steps) throws SQLException {
+		long started = System.nanoTime();
 		try (Statement statement = connection.createStatement()) {
 			// VACUUM cannot run inside a transaction (ADR-0054)
 			statement.execute("VACUUM (ANALYZE) " + String.join(", ", TABLES.stream().map(t -> NEXT + "." + t).toList()));
 		}
 		steps.put("analyze", since(started));
+	}
 
-		started = System.nanoTime();
-		swap(connection);
+	/**
+	 * Step {@code swap}.
+	 * @param first statements run first in the swap's transaction (the finish drops {@code load_manifest} there)
+	 */
+	private void swap(Connection connection, Map<String, Duration> steps, List<String> first)
+			throws SQLException, InterruptedException {
+		long started = System.nanoTime();
+		swap(connection, first);
 		steps.put("swap", since(started));
-
-		Ids ids = counts.ids();
-		return new Result(counts.books(), counts.contributors(), counts.holdings(), counts.snapshots(), ids.kept(),
-				ids.added(), ids.dropped(), steps);
 	}
 
 	/** The four tables in {@code catalog_next}, without indexes or constraints, filled in book id order. */
@@ -276,7 +578,7 @@ class JdbcCatalogLoad implements CatalogLoad {
 	 * lock on tables the search is reading; {@code lock_timeout} keeps the wait short, and the swap is tried again
 	 * after a rest (ADR-0065).
 	 */
-	private void swap(Connection connection) throws SQLException, InterruptedException {
+	private void swap(Connection connection, List<String> first) throws SQLException, InterruptedException {
 		List<String> outside = outsideForeignKeys(connection);
 		if (!outside.isEmpty()) {
 			throw new NotSwappedException("outside_foreign_key",
@@ -287,6 +589,9 @@ class JdbcCatalogLoad implements CatalogLoad {
 			for (int attempt = 1;; attempt++) {
 				try (Statement statement = connection.createStatement()) {
 					statement.execute("SET LOCAL lock_timeout = '" + settings.lockTimeout().toMillis() + "ms'");
+					for (String sql : first) {
+						statement.execute(sql);
+					}
 					statement.execute("DROP TABLE " + String.join(", ", TABLES.stream().map(t -> "catalog." + t).toList()));
 					for (String table : TABLES) {
 						statement.execute("ALTER TABLE " + NEXT + "." + table + " SET SCHEMA catalog");
@@ -335,15 +640,20 @@ class JdbcCatalogLoad implements CatalogLoad {
 		return found;
 	}
 
-	/** After a failure: the transaction is rolled back, and the new schema and the temporary tables are dropped. */
-	private static void cleanUp(Connection connection) {
+	/**
+	 * After a failure: the transaction is rolled back and the temporary tables are dropped.
+	 * @param dropNext drop the new schema too; false keeps waiting new tables (the finish, ADR-0078)
+	 */
+	private static void cleanUp(Connection connection, boolean dropNext) {
 		try {
 			if (!connection.getAutoCommit()) {
 				connection.rollback();
 			}
 			connection.setAutoCommit(true);
 			try (Statement statement = connection.createStatement()) {
-				statement.execute("DROP SCHEMA IF EXISTS " + NEXT + " CASCADE");
+				if (dropNext) {
+					statement.execute("DROP SCHEMA IF EXISTS " + NEXT + " CASCADE");
+				}
 				statement.execute("DROP TABLE IF EXISTS load_book_contributor, load_holding, load_book, load_book_id,"
 						+ " load_match");
 			}
@@ -358,6 +668,11 @@ class JdbcCatalogLoad implements CatalogLoad {
 	}
 
 	private record Counts(long books, long contributors, long holdings, long snapshots, Ids ids) {
+
+		Result result(Map<String, Duration> steps) {
+			return new Result(books, contributors, holdings, snapshots, ids.kept(), ids.added(), ids.dropped(), steps);
+		}
+
 	}
 
 	private static final class LoadSession implements Session, AutoCloseable {

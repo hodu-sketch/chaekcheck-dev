@@ -25,15 +25,15 @@ public final class PopularTestData {
 	}
 
 	/**
-	 * September as stored before 언어 (178) and 기술·공학 (1991) were left out (2026-10-12): 17 lists in the 202609
-	 * sales order, the two at display order 4 and 14.
+	 * A month holding 언어 (178) and 기술·공학 (1991), left out on 2026-10-12, at display order 4 and 13 in the 202609
+	 * sales order. Only 15 lists, so the orders stay within the 0..14 CHECK (cycle 10 retro, ADR-0080): 참고·정보 and
+	 * 지리·환경 are missing.
 	 */
 	public void monthWithListsLeftOutLater() {
 		month(List.of("ALL", "00000000000000000303", "00000000000000000223", "00000000000000000449",
 				"00000000000000000178", "00000000000000001621", "00000000000000000721", "00000000000000002344",
 				"00000000000000000001", "00000000000000002169", "00000000000000002476", "00000000000000001443",
-				"00000000000000001381", "00000000000000001991", "00000000000000000876", "00000000000000000408",
-				"00000000000000001782"));
+				"00000000000000001381", "00000000000000001991", "00000000000000000876"));
 	}
 
 	private void month(List<String> codes) {

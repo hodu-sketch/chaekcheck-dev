@@ -70,6 +70,12 @@ tasks.named('bootRun') {
 	// Heap (cycle 08 step 9, user choice 2026-10-11): the service measured fine at 256m; 512m leaves room for many
 	// searches at once. The import needs more: ./gradlew bootRun -PbootRunXmx=6g ... (docs/maintenance/3-import.md)
 	jvmArgs "-Xmx${project.findProperty('bootRunXmx') ?: '512m'}"
+	// Cycle 11 measurement (ADR-0079): more JVM options, split at spaces, e.g.
+	// -PbootRunJvmArgs="-XX:+UseStringDeduplication -XX:+UseCompactObjectHeaders -Xlog:gc*:file=../data/cycle11/gc.log"
+	def extraJvmArgs = project.findProperty('bootRunJvmArgs')
+	if (extraJvmArgs) {
+		jvmArgs extraJvmArgs.toString().trim().split(/\s+/)
+	}
 }
 
 tasks.named('test') {

@@ -16,7 +16,8 @@ class CatalogConfiguration {
 
 	@Bean
 	JdbcCatalogLoad catalogLoad(DataSource dataSource, CatalogLoadSettings settings) {
-		return new JdbcCatalogLoad(dataSource, settings);
+		return new JdbcCatalogLoad(dataSource, settings,
+				settings.pgCommand().isEmpty() ? null : new PgTools(settings.pgCommand()));
 	}
 
 	@Bean

@@ -71,7 +71,22 @@ class CatalogImporter {
 	 * @param dryRun read and group only; nothing is written to the database
 	 */
 	ImportReport run(Path sqlite, Path ttlDirectory, boolean dryRun) throws SQLException, IOException {
+		return run(sqlite, ttlDirectory, dryRun, false);
+	}
+
+	/**
+	 * The PC half of an export (cycle 11, ADR-0078): reads, groups and fills {@code catalog_next} with
+	 * {@link CatalogLoad#prepare}, which stays for the export. No row is kept when it works; a failure is kept as
+	 * {@code FAILED} like an in-place import's.
+	 */
+	ImportReport prepare(Path sqlite, Path ttlDirectory) throws SQLException, IOException {
+		return run(sqlite, ttlDirectory, false, true);
+	}
+
+	private ImportReport run(Path sqlite, Path ttlDirectory, boolean dryRun, boolean prepareOnly)
+			throws SQLException, IOException {
 		ImportReport report = new ImportReport();
+		report.source = sqlite.getFileName().toString();
 		LocalDate today = LocalDate.now(clock.withZone(KOREA));
 		String source = sqlite.getFileName().toString();
 		try (CollectedCatalog collected = CollectedCatalog.open(sqlite)) {
@@ -117,21 +132,22 @@ class CatalogImporter {
 			start = clock.instant();
 			CatalogLoad.Result result;
 			try {
-				result = catalogLoad.replaceAll(source, session -> {
-				long[] bookOfUnit = grouping.forEachBook(book -> session.addBook(new NewBook(book.title(),
-						book.authorDisplay(), book.publisher(), book.titleNorm(), book.mainTitleNorm(),
-						book.publisherNorm(), book.publishedOn(), book.isbn13(), book.contentType(), book.libraryIds(),
-						book.contributors())));
-				report.noteHeap();
-				collected.scan(libraries, today, null, row -> session.addHolding(new NewHolding(
-						bookOfUnit[grouping.unitOf(row)], row.library().serviceId(), row.library().platformType(),
-						row.itemKey(), row.detailUrl(), row.contentType(), row.title(), row.authorRaw(), row.publisher(),
-						row.publishedRaw(), row.supplier(), row.altCode(), row.firstSeenAt())));
-				libraries.imported().values().forEach(library -> {
-					session.addLibrarySnapshot(library.serviceId(), library.collectedAt());
-					report.collected(library.collectedAt());
-				});
-				});
+				CatalogLoad.Loader loader = session -> {
+					long[] bookOfUnit = grouping.forEachBook(book -> session.addBook(new NewBook(book.title(),
+							book.authorDisplay(), book.publisher(), book.titleNorm(), book.mainTitleNorm(),
+							book.publisherNorm(), book.publishedOn(), book.isbn13(), book.contentType(), book.libraryIds(),
+							book.contributors())));
+					report.noteHeap();
+					collected.scan(libraries, today, null, row -> session.addHolding(new NewHolding(
+							bookOfUnit[grouping.unitOf(row)], row.library().serviceId(), row.library().platformType(),
+							row.itemKey(), row.detailUrl(), row.contentType(), row.title(), row.authorRaw(), row.publisher(),
+							row.publishedRaw(), row.supplier(), row.altCode(), row.firstSeenAt())));
+					libraries.imported().values().forEach(library -> {
+						session.addLibrarySnapshot(library.serviceId(), library.collectedAt());
+						report.collected(library.collectedAt());
+					});
+				};
+				result = prepareOnly ? catalogLoad.prepare(source, loader) : catalogLoad.replaceAll(source, loader);
 			}
 			catch (RuntimeException ex) {
 				// the previous catalog stays (ADR-0065); the failure is kept with the import history
@@ -150,7 +166,9 @@ class CatalogImporter {
 			report.steps.putAll(result.steps());
 			report.steps.put("load", Duration.between(start, clock.instant()));
 			report.noteHeap();
-			records.insert(source, clock.instant(), report);
+			if (!prepareOnly) {
+				records.insert(source, clock.instant(), report);
+			}
 			log.info("{}", report);
 			return report;
 		}

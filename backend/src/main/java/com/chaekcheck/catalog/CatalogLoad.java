@@ -1,5 +1,6 @@
 package com.chaekcheck.catalog;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -7,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.chaekcheck.catalog.normalize.Contributors.Contributor;
 
@@ -33,10 +35,95 @@ public interface CatalogLoad {
 	 */
 	Result replaceAll(String source, Loader loader);
 
+	/*
+	 * Separate import (cycle 11, ADR-0078): the PC fills catalog_next and exports it as one pg_dump -Fc file with a
+	 * small table catalog_next.load_manifest; the production database restores the file and swaps it in; the PC
+	 * then swaps its own catalog_next in (finish), or drops it (discard).
+	 *
+	 * Waiting new tables: catalog_next with load_manifest is a file waiting for the PC's finish. replaceAll and
+	 * prepare do not touch it and stop ("first finish or discard"); catalog_next without load_manifest was left by a
+	 * load that stopped and is dropped as before.
+	 */
+
+	/**
+	 * Fills {@code catalog_next} without indexes and keeps it, for {@link #export}. Ids carry over from this
+	 * database's {@code catalog} as in {@link #replaceAll}.
+	 * @return the counts and the steps up to {@code write}
+	 * @throws IllegalStateException when new tables are waiting (see above); nothing is dropped then
+	 */
+	Result prepare(String source, Loader loader);
+
+	/**
+	 * Writes {@code load_manifest} and dumps {@code catalog_next} into {@code file} (written as {@code file.part} and
+	 * renamed when the dump is read back). {@code catalog_next} stays, waiting for {@link #finishPrepared}. When it
+	 * fails, {@code catalog_next} is dropped.
+	 * @param notes JSON kept in the manifest for the caller; this module does not read it
+	 */
+	Manifest export(Path file, String notes);
+
+	/** The manifest of an exported file, read without restoring the file. */
+	Manifest readManifest(Path file);
+
+	/** This database's {@code catalog} values the files are checked against. */
+	Baseline baseline();
+
+	/**
+	 * Restores an exported file into {@code catalog_next}, makes the indexes of this database's {@code catalog}, and
+	 * swaps it in. The file's baseline must equal {@link #baseline()} ({@code mismatch} otherwise, nothing touched).
+	 * When restoring, indexing or the swap fails, {@code catalog_next} is dropped and the catalog stays.
+	 * @return counts of the restored tables (ids carried over: 0) and the steps {@code restore}, {@code index},
+	 * {@code analyze}, {@code swap}
+	 */
+	Result apply(Path file);
+
+	/**
+	 * Swaps in the waiting {@code catalog_next} of {@code file} after the production apply. Indexes left by a finish
+	 * that stopped are dropped first. When it fails, the new tables keep waiting, so it can run again.
+	 * @return the steps {@code index}, {@code analyze}, {@code swap}
+	 * @throws IllegalStateException when no new tables of this file are waiting (nothing is touched)
+	 */
+	Result finishPrepared(Path file);
+
+	/** Whether new tables of an export are waiting here, so an import can stop before reading anything. */
+	boolean hasWaitingExport();
+
+	/** Drops {@code catalog_next} whatever it holds; no import row. */
+	Discarded discardPrepared();
+
+	/** What {@link #discardPrepared()} dropped. */
+	enum Discarded {
+
+		/** No {@code catalog_next}. */
+		NOTHING,
+		/** {@code catalog_next} without a manifest, left by a load that stopped. */
+		LEFT_OVER,
+		/** New tables waiting for the finish. */
+		WAITING
+
+	}
+
+	/**
+	 * Values of the {@code catalog} tables two databases are compared by (ADR-0078).
+	 * @param bookSequence the highest id the book identity ever gave ({@code last_value}, less one when not called)
+	 * @param columnsHash SHA-256 (hex) of the (table, column, type) list of the four catalog tables
+	 */
+	record Baseline(long bookCount, long bookMaxId, long bookSequence, long holdingCount, long holdingMaxId,
+			long holdingSequence, String columnsHash) {
+	}
+
+	/**
+	 * The one row of {@code catalog_next.load_manifest}.
+	 * @param baseline the exporting database's {@code catalog} values when the file was made
+	 * @param notes the caller's JSON, as stored
+	 */
+	record Manifest(int formatVersion, UUID exportId, Instant exportedAt, Baseline baseline, String notes) {
+	}
+
 	/**
 	 * The new tables were not swapped in; the previous catalog stays.
-	 * @param reason {@code lock_not_acquired} (the tables stayed locked through every attempt) or
-	 * {@code outside_foreign_key} (a table of another module points at a catalog table, handoff C2)
+	 * @param reason {@code lock_not_acquired} (the tables stayed locked through every attempt),
+	 * {@code outside_foreign_key} (a table of another module points at a catalog table, handoff C2) or
+	 * {@code mismatch} (the file was made from a database whose catalog differs, ADR-0078)
 	 */
 	final class NotSwappedException extends IllegalStateException {
 

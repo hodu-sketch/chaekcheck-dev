@@ -16,6 +16,9 @@ import java.util.TreeMap;
  */
 final class ImportReport {
 
+	/** The collection DB file name (cycle 11: carried in the export file's notes to the production row). */
+	String source;
+
 	long rowsRead;
 
 	/** Skipped holding rows by reason (the keys are written as JSON, so plain lower-case words only). */
