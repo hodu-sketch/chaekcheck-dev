@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.sql.DataSource;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +52,11 @@ class CatalogImporterTests {
 	@Autowired
 	JdbcClient jdbc;
 
+	@Autowired
+	DataSource dataSource;
+
+	NationalBibliographyStore bibliography;
+
 	@TempDir
 	Path dir;
 
@@ -60,6 +67,7 @@ class CatalogImporterTests {
 
 	@BeforeEach
 	void setUp() {
+		bibliography = new NationalBibliographyStore(dataSource);
 		given(libraryCatalog.enabledLibraryRefs()).willReturn(List.of(new LibraryRef(1, KYOBO_BASE, PlatformType.KYOBO_V1),
 				new LibraryRef(2, YES24_BASE, PlatformType.YES24_V2), new LibraryRef(3, "https://other.test",
 						PlatformType.KYOBO_V1),
@@ -73,11 +81,12 @@ class CatalogImporterTests {
 		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot")
 			.update();
 		jdbc.sql("DELETE FROM collection.catalog_import WHERE source LIKE 'test-%'").update();
+		jdbc.sql("TRUNCATE collection.national_bibliography_record, collection.national_bibliography_source").update();
 	}
 
 	private CatalogImporter importer(Set<Long> placeholderDateLibraries) {
 		Clock clock = Clock.fixed(Instant.parse("2026-09-30T03:00:00Z"), ZoneOffset.UTC);
-		return new CatalogImporter(libraryCatalog, () -> links, catalogLoad, new ImportRecords(jdbc),
+		return new CatalogImporter(libraryCatalog, () -> links, catalogLoad, new ImportRecords(jdbc), bibliography,
 				placeholderDateLibraries, clock);
 	}
 
@@ -212,6 +221,17 @@ class CatalogImporterTests {
 			.containsEntry("registered_library_count", 4)
 			.containsEntry("candidate_library_count", 0)
 			.containsEntry("mismatch", "1");
+		// cycle 08 AC-7: the collected period is the oldest and newest library snapshot; every step has a time
+		assertThat(jdbc.sql("""
+				SELECT i.collected_from = s.oldest AND i.collected_to = s.newest
+				FROM collection.catalog_import i,
+				  (SELECT min(collected_at) AS oldest, max(collected_at) AS newest FROM catalog.catalog_library_snapshot) s
+				WHERE i.source = 'test-catalog.sqlite'""").query(Boolean.class).single()).isTrue();
+		assertThat(jdbc.sql("""
+				SELECT jsonb_object_keys(step_seconds) FROM collection.catalog_import
+				WHERE source = 'test-catalog.sqlite'""").query(String.class).list()).containsExactlyInAnyOrder("read",
+						"group", "nb", "normalize", "same_text", "books_copy", "holdings_read", "holdings_copy", "match", "write",
+						"index", "analyze", "swap", "load");
 		// ADR-0055: the book's libraries, sorted
 		assertThat(jdbc.sql("SELECT library_ids::text FROM catalog.book WHERE isbn13 = '9788954682152'")
 			.query(String.class)
@@ -230,6 +250,37 @@ class CatalogImporterTests {
 	 * 8-digit dates are read; the placeholder-date library's dates before 1950 are dropped (only there); the most
 	 * common values of a book are counted over its rows although the first pass keeps counts, not rows.
 	 */
+	/** Cycle 08 handoff step 4-7: a load that is not swapped in is kept in the history as FAILED with its reason. */
+	@Test
+	void failedLoadIsRecorded() throws Exception {
+		Path sqlite = dir.resolve("test-failed.sqlite");
+		try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + sqlite)) {
+			try (Statement s = c.createStatement()) {
+				s.execute("CREATE TABLE library (id INTEGER, base_url TEXT, last_full_success_at TEXT)");
+				s.execute("CREATE TABLE holding (library_id INTEGER, item_key TEXT, title TEXT, author_raw TEXT,"
+						+ " publisher TEXT, published_on TEXT, published_raw TEXT, supplier TEXT, content_kind TEXT,"
+						+ " content_type TEXT, first_seen_at TEXT, last_seen_at TEXT, removed_at TEXT, alt_code TEXT,"
+						+ " detail_url TEXT)");
+				s.execute("INSERT INTO library VALUES (1, '" + KYOBO_BASE + "', '2026-09-29T10:00:00+09:00')");
+				s.execute("INSERT INTO holding (library_id, item_key, title, content_type, detail_url, first_seen_at)"
+						+ " VALUES (1, 'K1', '책', 'EBOOK', '" + KYOBO_BASE + "/detail?id=K1', '2026-09-29T00:00:00+09:00')");
+			}
+		}
+		jdbc.sql("CREATE TABLE public.import_test_outside (book_id bigint REFERENCES catalog.book (id))").update();
+		try {
+			org.assertj.core.api.Assertions.assertThatThrownBy(() -> importer(Set.of()).run(sqlite, null, false))
+				.isInstanceOf(CatalogLoad.NotSwappedException.class);
+		}
+		finally {
+			jdbc.sql("DROP TABLE public.import_test_outside").update();
+		}
+		assertThat(jdbc.sql("""
+				SELECT status || ' ' || failure_reason FROM collection.catalog_import WHERE source = 'test-failed.sqlite'""")
+			.query(String.class)
+			.single()).isEqualTo("FAILED outside_foreign_key");
+		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isZero();
+	}
+
 	@Test
 	void importsCandidatesThroughLinksWithTheNewRules() throws Exception {
 		Path sqlite = dir.resolve("test-cycle07.sqlite");

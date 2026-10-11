@@ -31,12 +31,16 @@ class JdbcCatalogHoldings implements CatalogHoldings {
 	}
 
 	@Override
-	public List<HoldingRef> holdingsOf(Collection<Long> bookIds) {
-		if (bookIds.isEmpty()) {
+	public List<HoldingRef> holdingsOf(Collection<Long> bookIds, Collection<Long> libraryIds) {
+		if (bookIds.isEmpty() || libraryIds.isEmpty()) {
 			return List.of();
 		}
-		List<HoldingRef> found = jdbc.sql(COLUMNS + " WHERE book_id = ANY(CAST(:ids AS bigint[])) ORDER BY book_id, library_id, id")
+		// holding_book_id_library_id serves both conditions: only the plan libraries' rows are read (ADR-0066)
+		List<HoldingRef> found = jdbc.sql(COLUMNS + """
+				 WHERE book_id = ANY(CAST(:ids AS bigint[])) AND library_id = ANY(CAST(:libraries AS bigint[]))
+				ORDER BY book_id, library_id, id""")
 			.param("ids", bookIds.toArray(Long[]::new))
+			.param("libraries", libraryIds.toArray(Long[]::new))
 			.query(ROW)
 			.list();
 		Map<Long, List<HoldingRef>> byBook = new HashMap<>();

@@ -1,6 +1,7 @@
 package com.chaekcheck.library.internal;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
 import com.chaekcheck.library.InvalidRegionException.InvalidRegion;
+import com.chaekcheck.library.JoinSurvey;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryEligibility;
 import com.chaekcheck.library.LibraryEligibility.RegionBasis;
@@ -60,6 +62,11 @@ class LibraryService implements LibraryCatalog {
 		.thenComparing(Library::getHoldingsCount, Comparator.nullsLast(Comparator.reverseOrder()))
 		.thenComparing(Library::getId);
 
+	/** Research states planned without the user adding the library (ADR-0053): the rest need a choice. */
+	private static final Set<JoinSurvey> PLANNED_WITHOUT_CHOICE = Arrays.stream(JoinSurvey.values())
+		.filter(survey -> !survey.onlyWhenChosen())
+		.collect(Collectors.toUnmodifiableSet());
+
 	private final LibraryRepository libraries;
 
 	private final EligibilityRuleRepository rules;
@@ -82,8 +89,9 @@ class LibraryService implements LibraryCatalog {
 		}
 		boolean regionFilterApplied = !residenceIds.isEmpty() || !workIds.isEmpty();
 
-		// enabled is read on every request so an operator's SQL change applies at once (ADR-0004)
-		List<Library> enabled = libraries.findByEnabledTrueOrderById();
+		// enabled is read on every request so an operator's SQL change applies at once (ADR-0004). Only the
+		// libraries a plan can hold are read, with their rules (ADR-0066).
+		List<Library> enabled = libraries.findPlannable(PLANNED_WITHOUT_CHOICE, options.libraryIds());
 		Map<Long, List<EligibilityRule>> rulesByLibrary = rulesOf(enabled);
 
 		Map<PriorityGroup, List<Library>> groups = new EnumMap<>(PriorityGroup.class);
@@ -174,7 +182,7 @@ class LibraryService implements LibraryCatalog {
 			// unresearched libraries stay in the list as UNSURVEYED: the name search of S10 finds them
 			list.add(new LibraryEligibility(library.getId(), library.getName(), eligibility, matchedBy,
 					library.isVisitRequired(), library.getJoinCaution() != null, library.getEligibilitySummary(),
-					library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library)));
+					library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library), library.isMobileSiteDiffers()));
 		}
 		return list;
 	}
@@ -256,7 +264,7 @@ class LibraryService implements LibraryCatalog {
 				placement.eligibility(), library.getEligibilitySummary(), library.getExtraConditionText(),
 				library.isVisitRequired(), library.getJoinMethod(), library.getJoinUrl(), library.getJoinCaution(),
 				library.getJoinNotice(), library.getHomepageUrl(), chosen, library.getJoinSurvey(),
-				library.getLendingModel(), logoUrl(library));
+				library.getLendingModel(), logoUrl(library), library.isMobileSiteDiffers());
 	}
 
 	/** Shown only when the library has its own logo and an operator has not taken it down (ADR-0059, AC-22). */

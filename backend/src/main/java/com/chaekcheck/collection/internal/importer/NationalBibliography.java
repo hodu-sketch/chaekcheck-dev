@@ -5,12 +5,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -21,9 +25,14 @@ import com.chaekcheck.catalog.normalize.Isbn;
 
 /**
  * ISBN lookup in the national bibliography general-book dump (lod.nl.go.kr {@code book_ttl_*.zip}, CC0 1.0, research
- * same-book-isbn 4.2). The TTL files are read line by line (7.7GB, never held in memory) and only records whose key
- * is wanted are kept. Fields used: {@code bibo:isbn}, {@code dcterms:title}, {@code dc:creator},
+ * same-book-isbn 4.2). Fields used: {@code bibo:isbn}, {@code dcterms:title}, {@code dc:creator},
  * {@code dc:publisher}.
+ * <p>
+ * Since cycle 08 (plan ADR-0069) the records are kept as read in {@link NationalBibliographyStore}. While the files'
+ * fingerprint (name, size and modified time of every {@code .ttl} file) is the stored one, the records are read from
+ * the table and the TTL files are not opened; otherwise the files are read line by line (7.7GB, never held in memory)
+ * and the table is rewritten on the way. Either way the keys are made from the raw values with the current
+ * {@code catalog} normalize rules on every import, so a rule change needs no rewrite.
  * <p>
  * A key found in more than one record, or in a record with several ISBNs, is ambiguous and gets no ISBN (attach only
  * when exactly one record matches).
@@ -42,13 +51,12 @@ final class NationalBibliography {
 	private NationalBibliography() {
 	}
 
-	/** ISBN-13 for each wanted key that exactly one record with one ISBN matches. */
-	static Map<String, String> lookup(Path ttlDirectory, Set<String> wantedKeys, ImportReport report)
-			throws IOException {
-		Map<String, String> found = new HashMap<>();
-		if (wantedKeys.isEmpty()) {
-			return found;
-		}
+	/**
+	 * ISBN-13 for each wanted key that exactly one record with one ISBN matches. Sets the report's
+	 * {@code nationalBibliographyNormalize} (time spent making keys) and {@code nationalBibliographyReused}.
+	 */
+	static Map<String, String> lookup(Path ttlDirectory, Set<String> wantedKeys, NationalBibliographyStore store,
+			Clock clock, ImportReport report) throws IOException, SQLException {
 		List<Path> files;
 		try (Stream<Path> list = Files.walk(ttlDirectory)) {
 			files = list.filter(p -> p.getFileName().toString().endsWith(".ttl")).sorted().toList();
@@ -56,15 +64,45 @@ final class NationalBibliography {
 		if (files.isEmpty()) {
 			throw new IllegalArgumentException("No .ttl files under " + ttlDirectory);
 		}
-		for (Path file : files) {
-			read(file, wantedKeys, found, report);
+		Matching matching = new Matching(wantedKeys, report);
+		String fingerprint = fingerprint(ttlDirectory, files);
+		if (fingerprint.equals(store.fingerprint())) {
+			report.nationalBibliographyReused = true;
+			store.forEach(matching::add);
 		}
-		found.values().removeIf(isbn -> isbn.equals(AMBIGUOUS));
-		return found;
+		else {
+			store.rewrite(fingerprint, clock.instant(), writer -> {
+				for (Path file : files) {
+					read(file, raw -> {
+						writer.add(raw);
+						matching.add(raw);
+					});
+				}
+			});
+		}
+		report.nationalBibliographyNormalize = Duration.ofNanos(matching.normalizeNanos);
+		matching.found.values().removeIf(isbn -> isbn.equals(AMBIGUOUS));
+		return matching.found;
 	}
 
-	private static void read(Path file, Set<String> wantedKeys, Map<String, String> found, ImportReport report)
-			throws IOException {
+	/** {@code name|size|modified} of every file, in path order, joined by {@code ;} (handoff step 3 [확정 형식]). */
+	static String fingerprint(Path directory, List<Path> files) throws IOException {
+		StringBuilder text = new StringBuilder();
+		for (Path file : files) {
+			if (!text.isEmpty()) {
+				text.append(';');
+			}
+			text.append(directory.relativize(file).toString().replace('\\', '/'))
+				.append('|')
+				.append(Files.size(file))
+				.append('|')
+				.append(Files.getLastModifiedTime(file).toInstant());
+		}
+		return text.toString();
+	}
+
+	/** Records with an ISBN and a title, as read from one TTL file: one per ISBN. */
+	private static void read(Path file, Consumer<NationalBibliographyStore.Raw> records) throws IOException {
 		Record record = null;
 		String predicate = null;
 		try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
@@ -95,11 +133,51 @@ final class NationalBibliography {
 					record.add(predicate, values);
 				}
 				if (line.stripTrailing().endsWith(" .")) {
-					record.finish(wantedKeys, found, report);
+					if (record.title != null) {
+						for (String isbn : record.isbns) {
+							records.accept(new NationalBibliographyStore.Raw(isbn, record.title, record.creator,
+									record.publisher));
+						}
+					}
 					record = null;
 				}
 			}
 		}
+	}
+
+	/** Makes each record's key with the current rules and keeps the ISBNs of the wanted keys. */
+	private static final class Matching {
+
+		final Map<String, String> found = new HashMap<>();
+
+		final Set<String> wantedKeys;
+
+		final ImportReport report;
+
+		long normalizeNanos;
+
+		Matching(Set<String> wantedKeys, ImportReport report) {
+			this.wantedKeys = wantedKeys;
+			this.report = report;
+		}
+
+		void add(NationalBibliographyStore.Raw raw) {
+			report.nationalBibliographyRecords++;
+			long started = System.nanoTime();
+			String key = keyOf(raw.title(), raw.creator(), raw.publisher());
+			normalizeNanos += System.nanoTime() - started;
+			if (key == null || !wantedKeys.contains(key)) {
+				return;
+			}
+			// a record with several ISBNs comes as several rows: its key gets two ISBNs and becomes ambiguous
+			String isbn = raw.isbn13();
+			String previous = found.putIfAbsent(key, isbn);
+			if (previous != null && !previous.equals(isbn) && !previous.equals(AMBIGUOUS)) {
+				found.put(key, AMBIGUOUS);
+				report.nationalBibliographyAmbiguous++;
+			}
+		}
+
 	}
 
 	/** Key of a bibliography record, with its noise removed first [안]: a leading bracket, a trailing {@code #}. */
@@ -136,23 +214,6 @@ final class NationalBibliography {
 				case "dc:publisher" -> publisher = first(publisher, values);
 				default -> {
 				}
-			}
-		}
-
-		void finish(Set<String> wantedKeys, Map<String, String> found, ImportReport report) {
-			if (isbns.isEmpty()) {
-				return;
-			}
-			report.nationalBibliographyRecords++;
-			String key = keyOf(title, creator, publisher);
-			if (key == null || !wantedKeys.contains(key)) {
-				return;
-			}
-			String isbn = isbns.size() == 1 ? isbns.iterator().next() : AMBIGUOUS;
-			String previous = found.putIfAbsent(key, isbn);
-			if (previous != null && !previous.equals(isbn) && !previous.equals(AMBIGUOUS)) {
-				found.put(key, AMBIGUOUS);
-				report.nationalBibliographyAmbiguous++;
 			}
 		}
 

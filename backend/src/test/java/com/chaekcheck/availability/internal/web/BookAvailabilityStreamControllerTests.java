@@ -29,6 +29,7 @@ import com.chaekcheck.availability.internal.TestTargets;
 import com.chaekcheck.availability.internal.search.BatchRunner;
 import com.chaekcheck.availability.internal.search.EventSink;
 import com.chaekcheck.availability.internal.search.HoldingTask;
+import com.chaekcheck.availability.internal.search.MissingHolding;
 import com.chaekcheck.availability.internal.search.StreamEvents;
 import com.chaekcheck.catalog.CatalogHoldings;
 import com.chaekcheck.catalog.HoldingRef;
@@ -84,7 +85,7 @@ class BookAvailabilityStreamControllerTests {
 		// plan order: GOHEUNG (2), SUB (3), GANGSEO (1); library 99 is not in the plan
 		given(batchRunner.plan(eq(Set.of()), eq(Set.of()), any()))
 			.willReturn(List.of(TestTargets.GOHEUNG, SUB, TestTargets.GANGSEO));
-		given(catalogHoldings.holdingsOf(List.of(20L, 10L))).willReturn(List.of(holding(1, 10, 1), holding(2, 10, 2),
+		given(catalogHoldings.holdingsOf(eq(List.of(20L, 10L)), eq(List.of(2L, 3L, 1L)))).willReturn(List.of(holding(1, 10, 1), holding(2, 10, 2),
 				holding(3, 10, 99), holding(4, 20, 3), holding(5, 20, 2)));
 
 		MvcTestResult result = mvc.get().uri(URL + "?bookIds=20,10").header("Accept", ACCEPT).exchange();
@@ -101,7 +102,7 @@ class BookAvailabilityStreamControllerTests {
 	@Test
 	void booksWithoutHoldingsGiveAnEmptyBatch() {
 		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(TestTargets.GOHEUNG));
-		given(catalogHoldings.holdingsOf(List.of(7L))).willReturn(List.of());
+		given(catalogHoldings.holdingsOf(eq(List.of(7L)), any())).willReturn(List.of());
 
 		assertThat(body(mvc.get().uri(URL + "?bookIds=7").header("Accept", ACCEPT).exchange()))
 			.contains("\"holdings\":[]")
@@ -151,7 +152,9 @@ class BookAvailabilityStreamControllerTests {
 
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<HoldingTask>> tasks = ArgumentCaptor.forClass(List.class);
-		verify(batchRunner).startHoldings(any(), any(), eq(2), tasks.capture(), eq(List.of(6L, 7L)), eq(null));
+		// 6 is not in the catalog any more, 7's library is disabled (ADR-0070)
+		verify(batchRunner).startHoldings(any(), any(), eq(2), tasks.capture(),
+				eq(List.of(MissingHolding.holdingNotFound(6), MissingHolding.libraryNotFound(7))), eq(null));
 		assertThat(tasks.getValue()).extracting(task -> task.holding().holdingId()).containsExactly(5L);
 	}
 
@@ -171,9 +174,9 @@ class BookAvailabilityStreamControllerTests {
 	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side
 		SearchTarget chosen = new SearchTarget(12, "lib12", LibraryType.EBOOK, PlatformType.KYOBO_V1,
 				"https://chosen.test", PriorityGroup.QUALIFIED, false, Eligibility.UNKNOWN, null, null, false, "join",
-				null, null, null, null, true, JoinSurvey.SURVEYED, null, null);
+				null, null, null, null, true, JoinSurvey.SURVEYED, null, null, false);
 		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(chosen, TestTargets.GOHEUNG));
-		given(catalogHoldings.holdingsOf(List.of(10L))).willReturn(List.of(holding(1, 10, 2), holding(2, 10, 12)));
+		given(catalogHoldings.holdingsOf(eq(List.of(10L)), any())).willReturn(List.of(holding(1, 10, 2), holding(2, 10, 12)));
 
 		MvcTestResult result = mvc.get()
 			.uri(URL + "?bookIds=10&libraryIds=12&scope=joinable")
@@ -183,7 +186,7 @@ class BookAvailabilityStreamControllerTests {
 		verify(batchRunner).plan(Set.of(), Set.of(),
 				new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.ANY, Set.of(12L)));
 		assertThat(body(result)).contains("\"libraries\":[{\"id\":12,")
-			.contains("\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null},{\"id\":2,")
+			.contains("\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false},{\"id\":2,")
 			.contains("\"holdings\":[{\"holdingId\":2,\"bookId\":10,\"libraryId\":12}");
 	}
 

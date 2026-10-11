@@ -61,7 +61,8 @@ class BookAvailabilityStreamController {
 		List<SearchTarget> plan = batchRunner.plan(residence, work,
 				new PlanOptions(libraryScope.option(), visitFilter.option(), chosen));
 
-		List<HoldingTask> tasks = tasks(books, plan, catalogHoldings.holdingsOf(books));
+		List<HoldingTask> tasks = tasks(books, plan,
+				catalogHoldings.holdingsOf(books, plan.stream().map(SearchTarget::id).toList()));
 		Map<Long, SearchTarget> used = new LinkedHashMap<>();
 		tasks.forEach(task -> used.putIfAbsent(task.target().id(), task.target()));
 		List<StreamEvents.Library> libraries = plan.stream()

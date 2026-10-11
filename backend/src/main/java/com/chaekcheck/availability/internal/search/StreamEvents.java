@@ -78,14 +78,14 @@ public final class StreamEvents {
 			PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 			String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl,
 			String joinCaution, String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey,
-			String logoUrl) {
+			String logoUrl, boolean mobileSiteDiffers) {
 
 		public static Library from(SearchTarget target) {
 			return new Library(target.id(), target.name(), target.libraryType(), target.platformType(),
 					target.priorityGroup(), target.deferred(), target.eligibility(), target.eligibilitySummary(),
 					target.extraConditionText(), target.visitRequired(), target.joinMethod(), target.joinUrl(),
 					target.joinCaution(), target.joinNotice(), target.homepageUrl(), target.chosen(),
-					target.joinSurvey(), target.logoUrl());
+					target.joinSurvey(), target.logoUrl(), target.mobileSiteDiffers());
 		}
 
 	}

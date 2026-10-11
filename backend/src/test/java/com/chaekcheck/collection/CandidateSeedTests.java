@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class CandidateSeedTests {
 
-	static final int REGISTERED = 280, CANDIDATES = 2394;
+	static final int REGISTERED = 280, CANDIDATES = 2383;
 
 	@Autowired
 	JdbcClient jdbc;
@@ -29,7 +29,11 @@ class CandidateSeedTests {
 	@Test
 	void seedCountsMatchTheScript() {
 		assertThat(count("SELECT count(*) FROM library.library WHERE id <= 280")).isEqualTo(REGISTERED);
+		// cycle 08 (ADR-0067): the 11 Kyobo rental and mixed candidates 2664~2674 left the seed; their ids are not reused
 		assertThat(count("SELECT count(*) FROM library.library WHERE id > 280")).isEqualTo(CANDIDATES);
+		assertThat(count("SELECT count(*) FROM library.library WHERE id BETWEEN 2664 AND 2674")).isZero();
+		assertThat(count("SELECT count(*) FROM collection.collection_link WHERE library_id BETWEEN 2664 AND 2674"))
+			.isZero();
 		assertThat(count("SELECT count(*) FROM collection.collection_link")).isEqualTo(REGISTERED + CANDIDATES);
 		assertThat(count("SELECT count(*) FROM collection.collection_link WHERE collection_library_id = library_id"))
 			.isEqualTo(REGISTERED);
@@ -37,7 +41,7 @@ class CandidateSeedTests {
 		assertThat(jdbc.sql("""
 				SELECT join_survey, count(*) FROM library.library WHERE id > 280 GROUP BY join_survey""")
 			.query((rs, n) -> Map.entry(rs.getString(1), rs.getLong(2)))
-			.list()).containsExactlyInAnyOrder(Map.entry("MEMBERS_ONLY", 2252L), Map.entry("SURVEYED", 90L),
+			.list()).containsExactlyInAnyOrder(Map.entry("MEMBERS_ONLY", 2241L), Map.entry("SURVEYED", 90L),
 					Map.entry("NOT_SURVEYED", 35L), Map.entry("NOT_FOUND", 17L));
 	}
 

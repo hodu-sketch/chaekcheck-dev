@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
+import com.chaekcheck.availability.internal.CacheStatistics;
 import com.chaekcheck.availability.internal.fetch.CaffeineSearchPageCache;
 import com.chaekcheck.availability.internal.fetch.DirectSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.FetchServiceSiteFetcher;
@@ -78,7 +79,8 @@ class AvailabilityConfiguration {
 
 	@Bean
 	SearchPageCache searchPageCache(AvailabilityProperties properties, ExecutorService availabilityExecutor) {
-		return new CaffeineSearchPageCache(properties.cacheTtl(), properties.cacheMaxSize(), availabilityExecutor,
+		return new CaffeineSearchPageCache(properties.cacheTtl(), properties.caches().searchPageMaxSize(),
+				availabilityExecutor,
 				Ticker.systemTicker());
 	}
 
@@ -91,8 +93,15 @@ class AvailabilityConfiguration {
 
 	@Bean
 	DetailVerdictCache detailVerdictCache(AvailabilityProperties properties, ExecutorService availabilityExecutor) {
-		return new CaffeineDetailVerdictCache(properties.cacheTtl(), properties.cacheMaxSize(), availabilityExecutor,
+		return new CaffeineDetailVerdictCache(properties.cacheTtl(), properties.caches().detailVerdictMaxSize(),
+				availabilityExecutor,
 				Ticker.systemTicker());
+	}
+
+	/** Logs the caches' statistics every {@code caches.stats-log-interval} (ADR-0066). */
+	@Bean(destroyMethod = "close")
+	CacheStatsLog cacheStatsLog(List<CacheStatistics> caches, AvailabilityProperties properties) {
+		return new CacheStatsLog(caches, properties.caches().statsLogInterval());
 	}
 
 	/** The one path detail pages are loaded on: portal blank verdicts and the holding stream. */

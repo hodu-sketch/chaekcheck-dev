@@ -52,6 +52,17 @@ class CaffeineSearchPageCacheTests {
 		assertThat(loads).hasValue(1);
 	}
 
+	/** Cycle 08 (ADR-0066): statistics are recorded for the stats log. */
+	@Test
+	void recordsStatistics() {
+		cache.get(KEY, loader()).join();
+		cache.get(KEY, loader()).join();
+		assertThat(cache.stats().hitCount()).isEqualTo(1);
+		assertThat(cache.stats().missCount()).isEqualTo(1);
+		assertThat(cache.size()).isEqualTo(1);
+		assertThat(cache.cacheName()).isEqualTo("search-page");
+	}
+
 	@Test
 	void loadsAgainAfterThreeMinutes() {
 		cache.get(KEY, loader()).join();

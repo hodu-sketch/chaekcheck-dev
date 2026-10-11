@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Set;
 
+import javax.sql.DataSource;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -50,13 +52,13 @@ class CatalogImportRunner {
 
 	@Bean
 	ApplicationRunner collectionImport(LibraryCatalog libraryCatalog, CatalogLoad catalogLoad, JdbcClient jdbc,
-			Settings settings, ConfigurableApplicationContext context) {
+			DataSource dataSource, Settings settings, ConfigurableApplicationContext context) {
 		return (ApplicationArguments args) -> {
 			if (settings.sqlitePath() == null) {
 				throw new IllegalStateException("Set chaekcheck.collection.import.sqlite-path");
 			}
 			new CatalogImporter(libraryCatalog, new JdbcCollectionLinks(jdbc), catalogLoad, new ImportRecords(jdbc),
-					settings.placeholderDateLibraries(), Clock.systemUTC())
+					new NationalBibliographyStore(dataSource), settings.placeholderDateLibraries(), Clock.systemUTC())
 				.run(settings.sqlitePath(), settings.ttlPath(), settings.dryRun());
 			System.exit(SpringApplication.exit(context, () -> 0));
 		};

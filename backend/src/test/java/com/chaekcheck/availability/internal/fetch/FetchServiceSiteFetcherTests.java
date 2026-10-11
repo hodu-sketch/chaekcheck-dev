@@ -149,6 +149,8 @@ class FetchServiceSiteFetcherTests {
 
 		assertThat(response.status()).isEqualTo(301);
 		assertThat(response.location()).isEqualTo("https://lib.test/new");
+		// "" decodes to no bytes, as Base64.getDecoder() gave before the body went straight to bytes (cycle 08)
+		assertThat(response.body()).isEmpty();
 	}
 
 	private FetchServiceSiteFetcher fetcher(URI... urls) {

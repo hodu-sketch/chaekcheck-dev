@@ -14,6 +14,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.chaekcheck.availability.internal.search.BatchRunner;
 import com.chaekcheck.availability.internal.search.HoldingTask;
+import com.chaekcheck.availability.internal.search.MissingHolding;
 import com.chaekcheck.availability.internal.search.ResultFilter;
 import com.chaekcheck.catalog.CatalogHoldings;
 import com.chaekcheck.catalog.HoldingRef;
@@ -22,8 +23,8 @@ import com.chaekcheck.library.SearchTarget;
 /**
  * Next holding batch (ADR-0014, ADR-0030): the browser sends the holdings still to ask ({@code candidates}, holding
  * ids in order, at most K); the server keeps no state. Same events as the first stream without {@code targets}. A
- * holding that does not exist or whose library is missing or disabled fails on its own with
- * {@code library_not_found}.
+ * holding that is not in the catalog any more fails on its own with {@code holding_not_found} (its library's list
+ * dropped it at an import, ADR-0070); one whose library is missing or disabled with {@code library_not_found}.
  */
 @RestController
 class BookAvailabilityBatchStreamController {
@@ -48,16 +49,19 @@ class BookAvailabilityBatchStreamController {
 		catalogHoldings.holdings(ids).forEach(holding -> found.put(holding.holdingId(), holding));
 		Map<Long, Optional<SearchTarget>> libraries = new HashMap<>();
 		List<HoldingTask> tasks = new ArrayList<>();
-		List<Long> missing = new ArrayList<>();
+		List<MissingHolding> missing = new ArrayList<>();
 		for (long id : ids) {
 			HoldingRef holding = found.get(id);
-			Optional<SearchTarget> target = holding == null ? Optional.empty()
-					: libraries.computeIfAbsent(holding.libraryId(), batchRunner::target);
+			if (holding == null) {
+				missing.add(MissingHolding.holdingNotFound(id));
+				continue;
+			}
+			Optional<SearchTarget> target = libraries.computeIfAbsent(holding.libraryId(), batchRunner::target);
 			if (target.isPresent()) {
 				tasks.add(HoldingTask.of(target.get(), holding));
 			}
 			else {
-				missing.add(id);
+				missing.add(MissingHolding.libraryNotFound(id));
 			}
 		}
 

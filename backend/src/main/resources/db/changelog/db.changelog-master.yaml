@@ -56,3 +56,22 @@ databaseChangeLog:
   - include:
       file: library/010-library-disabled.yaml
       relativeToChangelogFile: true
+  # cycle 08. The updated_at triggers come before this cycle's UPDATE changesets, so those set updated_at too.
+  - include:
+      file: library/011-updated-at-trigger.sql
+      relativeToChangelogFile: true
+  - include:
+      file: region/003-updated-at-trigger.sql
+      relativeToChangelogFile: true
+  - include:
+      file: collection/003-import-period-and-timings.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/012-library-mobile-site-differs.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: collection/004-national-bibliography.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/013-library-name-overrides.yaml
+      relativeToChangelogFile: true

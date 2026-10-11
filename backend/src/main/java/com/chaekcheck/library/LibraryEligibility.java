@@ -13,10 +13,11 @@ import java.util.List;
  * @param joinSurvey how far the join rules were researched (ADR-0053)
  * @param homepageUrl the e-library's main page, opened from the logo; may be null
  * @param logoUrl the library's own logo, or null (ADR-0059)
+ * @param mobileSiteDiffers the site's phone version shows another page (cycle 08)
  */
 public record LibraryEligibility(long id, String name, Eligibility eligibility, List<RegionBasis> matchedBy,
 		boolean visitRequired, boolean cautioned, String eligibilitySummary, JoinSurvey joinSurvey,
-		String homepageUrl, String logoUrl) {
+		String homepageUrl, String logoUrl, boolean mobileSiteDiffers) {
 
 	public LibraryEligibility {
 		matchedBy = List.copyOf(matchedBy);

@@ -1,0 +1,42 @@
+# cycle 08 (handoff step 1, AC-7, AC-8b): the collected period of an import and the time of each step.
+# collected_from / collected_to: oldest and newest collected time of the imported libraries, the same values as
+# catalog.catalog_library_snapshot (skipped libraries left out). Null for imports before this change.
+# step_seconds: {"read": 412.3, "nb": 388.0, ...} in seconds; the keys are listed in docs/maintenance/3-import.md.
+databaseChangeLog:
+  - changeSet:
+      id: collection-003-import-period-and-timings
+      author: chaekcheck
+      changes:
+        - addColumn:
+            schemaName: collection
+            tableName: catalog_import
+            columns:
+              - column:
+                  name: collected_from
+                  type: timestamp with time zone
+              - column:
+                  name: collected_to
+                  type: timestamp with time zone
+              - column:
+                  name: step_seconds
+                  type: jsonb
+                  defaultValueComputed: "'{}'::jsonb"
+                  constraints:
+                    nullable: false
+
+  # cycle 08 handoff step 4-7: a load that failed before the swap is recorded too (the previous catalog stays).
+  # status SUCCEEDED | FAILED; failure_reason: lock_not_acquired, outside_foreign_key, or error (failure_detail says).
+  # The counts of a failed row are what the import had counted when it stopped.
+  - changeSet:
+      id: collection-003-import-status
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE collection.catalog_import
+                ADD COLUMN status text NOT NULL DEFAULT 'SUCCEEDED'
+                  CONSTRAINT catalog_import_status_check CHECK (status IN ('SUCCEEDED', 'FAILED')),
+                ADD COLUMN failure_reason text,
+                ADD COLUMN failure_detail text,
+                ADD CONSTRAINT catalog_import_failure_check
+                  CHECK ((status = 'FAILED') = (failure_reason IS NOT NULL))

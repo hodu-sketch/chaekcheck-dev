@@ -45,6 +45,8 @@ class CatalogImporter {
 
 	private final ImportRecords records;
 
+	private final NationalBibliographyStore bibliography;
+
 	private final Set<Long> placeholderDateLibraries;
 
 	private final Clock clock;
@@ -53,11 +55,13 @@ class CatalogImporter {
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders (ADR-0054)
 	 */
 	CatalogImporter(LibraryCatalog libraryCatalog, CollectionLinks links, CatalogLoad catalogLoad,
-			ImportRecords records, Set<Long> placeholderDateLibraries, Clock clock) {
+			ImportRecords records, NationalBibliographyStore bibliography, Set<Long> placeholderDateLibraries,
+			Clock clock) {
 		this.libraryCatalog = libraryCatalog;
 		this.links = links;
 		this.catalogLoad = catalogLoad;
 		this.records = records;
+		this.bibliography = bibliography;
 		this.placeholderDateLibraries = Set.copyOf(placeholderDateLibraries);
 		this.clock = clock;
 	}
@@ -76,27 +80,31 @@ class CatalogImporter {
 					placeholderDateLibraries, report);
 			BookGrouping grouping = new BookGrouping();
 			collected.scan(libraries, today, report, row -> grouping.add(row, report));
-			report.readTime = Duration.between(start, clock.instant());
+			report.steps.put("read", Duration.between(start, clock.instant()));
 			report.noteHeap();
 			log.info("read {} rows, skipped {}", report.rowsRead, report.skippedCount());
 
 			start = clock.instant();
 			grouping.groupByCodes(report);
-			report.groupTime = Duration.between(start, clock.instant());
+			report.steps.put("group", Duration.between(start, clock.instant()));
 			report.noteHeap();
 
 			start = clock.instant();
 			if (ttlDirectory != null) {
 				Set<String> keys = grouping.bibliographyKeys();
 				log.info("national bibliography lookup for {} keys", keys.size());
-				Map<String, String> isbns = NationalBibliography.lookup(ttlDirectory, keys, report);
+				Map<String, String> isbns = NationalBibliography.lookup(ttlDirectory, keys, bibliography, clock, report);
 				grouping.attachBibliography(isbns, report);
 			}
 			else {
 				report.booksAfterNationalBibliography = report.booksAfterKyoboIsbn;
 			}
+			// nb: reading the records (table or TTL files) and attaching; normalize: making their keys
+			report.steps.put("nb", Duration.between(start, clock.instant()).minus(report.nationalBibliographyNormalize));
+			report.steps.put("normalize", report.nationalBibliographyNormalize);
+			start = clock.instant();
 			grouping.mergeSameText(report);
-			report.bibliographyTime = Duration.between(start, clock.instant());
+			report.steps.put("same_text", Duration.between(start, clock.instant()));
 			report.noteHeap();
 
 			if (dryRun) {
@@ -107,7 +115,9 @@ class CatalogImporter {
 				return report;
 			}
 			start = clock.instant();
-			CatalogLoad.Result result = catalogLoad.replaceAll(source, session -> {
+			CatalogLoad.Result result;
+			try {
+				result = catalogLoad.replaceAll(source, session -> {
 				long[] bookOfUnit = grouping.forEachBook(book -> session.addBook(new NewBook(book.title(),
 						book.authorDisplay(), book.publisher(), book.titleNorm(), book.mainTitleNorm(),
 						book.publisherNorm(), book.publishedOn(), book.isbn13(), book.contentType(), book.libraryIds(),
@@ -117,17 +127,28 @@ class CatalogImporter {
 						bookOfUnit[grouping.unitOf(row)], row.library().serviceId(), row.library().platformType(),
 						row.itemKey(), row.detailUrl(), row.contentType(), row.title(), row.authorRaw(), row.publisher(),
 						row.publishedRaw(), row.supplier(), row.altCode(), row.firstSeenAt())));
-				libraries.imported()
-					.values()
-					.forEach(library -> session.addLibrarySnapshot(library.serviceId(), library.collectedAt()));
-			});
+				libraries.imported().values().forEach(library -> {
+					session.addLibrarySnapshot(library.serviceId(), library.collectedAt());
+					report.collected(library.collectedAt());
+				});
+				});
+			}
+			catch (RuntimeException ex) {
+				// the previous catalog stays (ADR-0065); the failure is kept with the import history
+				report.steps.put("load", Duration.between(start, clock.instant()));
+				String reason = ex instanceof CatalogLoad.NotSwappedException notSwapped ? notSwapped.reason() : "error";
+				records.insertFailed(source, clock.instant(), report, reason, ex.toString());
+				log.error("collection import failed ({}), the previous catalog stays", reason, ex);
+				throw ex;
+			}
 			report.books = result.books();
 			report.contributors = result.contributors();
 			report.holdings = result.holdings();
 			report.keptBookIds = result.keptBookIds();
 			report.newBookIds = result.newBookIds();
 			report.droppedBookIds = result.droppedBookIds();
-			report.writeTime = Duration.between(start, clock.instant());
+			report.steps.putAll(result.steps());
+			report.steps.put("load", Duration.between(start, clock.instant()));
 			report.noteHeap();
 			records.insert(source, clock.instant(), report);
 			log.info("{}", report);

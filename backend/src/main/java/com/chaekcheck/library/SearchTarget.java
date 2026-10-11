@@ -14,12 +14,13 @@ package com.chaekcheck.library;
  * @param lendingModel KYOBO subscription-screen institutions only, else null; OWNED is read as counts (ADR-0056)
  * @param logoUrl the library's own logo ({@code /library-logos/…}), or null when it has none or it was taken down
  * (ADR-0059)
+ * @param mobileSiteDiffers the site's phone version shows another page; the web notes it on narrow screens (cycle 08)
  */
 public record SearchTarget(long id, String name, LibraryType libraryType, PlatformType platformType, String baseUrl,
 		PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 		String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl, String joinCaution,
 		String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey, LendingModel lendingModel,
-		String logoUrl) {
+		String logoUrl, boolean mobileSiteDiffers) {
 
 	/**
 	 * The user can join for sure: anyone may join, or one of the user's regions matches. An extra condition (e.g.

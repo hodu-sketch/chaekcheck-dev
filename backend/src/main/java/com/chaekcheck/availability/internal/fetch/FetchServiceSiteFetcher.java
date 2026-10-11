@@ -11,7 +11,6 @@ import java.net.http.HttpTimeoutException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -147,7 +146,7 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 		FetchResult result = jsonMapper.readValue(response.body(), FetchResult.class);
 		return switch (result.outcome()) {
 			case "RESPONDED" -> new SiteResponse(result.statusOrZero(), result.contentType(), result.location(),
-					result.body() == null ? null : Base64.getDecoder().decode(result.body()), server.id());
+					result.body(), server.id());
 			case "TIMEOUT" -> throw UpstreamException.timeout(
 					"library " + HostThrottle.hostPort(uri) + " timed out on fetch server " + server.id());
 			default -> throw UpstreamException.error("library " + HostThrottle.hostPort(uri) + " failed on fetch server "
@@ -164,9 +163,10 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 
 	/**
 	 * Fetch server answer. {@code outcome}: RESPONDED (the library answered with {@code status}), TIMEOUT, or
-	 * CONNECT_FAILED / ERROR.
+	 * CONNECT_FAILED / ERROR. {@code body} is Base64 in the JSON; Jackson decodes it straight into bytes, so the body
+	 * is never held as a String as well (cycle 08 handoff step 5-5).
 	 */
-	record FetchResult(String outcome, Integer status, String contentType, String location, String body,
+	record FetchResult(String outcome, Integer status, String contentType, String location, byte[] body,
 			Instant startedAt, Instant endedAt) {
 
 		int statusOrZero() {

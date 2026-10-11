@@ -2382,14 +2382,3 @@ id,name,platform_type,base_url,eligibility_summary,extra_condition_text,visit_re
 2661,아주자동차대학교,ALADIN_V1,http://motor.aladinebook.co.kr?nav_code=ebo1655356114,NULL,NULL,false,NULL,NULL,NULL,NULL,http://motor.aladinebook.co.kr?nav_code=ebo1655356114,NULL,NULL,false,MEMBERS_ONLY,NULL
 2662,김해대학교 중앙도서관,ALADIN_V1,http://gimhae.aladinebook.co.kr?nav_code=ebo1655356114,NULL,NULL,false,NULL,NULL,NULL,NULL,http://gimhae.aladinebook.co.kr?nav_code=ebo1655356114,NULL,NULL,false,MEMBERS_ONLY,NULL
 2663,재능대학교 (알라딘),ALADIN_V1,https://jeiu.aladinebook.co.kr?nav_code=ebo1655356114,NULL,NULL,false,NULL,NULL,NULL,NULL,https://jeiu.aladinebook.co.kr?nav_code=ebo1655356114,NULL,NULL,false,MEMBERS_ONLY,NULL
-2664,코렌스,KYOBO_SUBSCRIPTION_V1,https://korens.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://korens.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2665,한국거래소,KYOBO_SUBSCRIPTION_V1,https://krx.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://krx.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2666,한국자산관리공사,KYOBO_SUBSCRIPTION_V1,https://kamco.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://kamco.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2667,SDT,KYOBO_SUBSCRIPTION_V1,https://sdt.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://sdt.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2668,고대구로병원 전자도서관,KYOBO_SUBSCRIPTION_V1,https://kumcguro.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://kumcguro.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2669,다쏘시스템코리아 전자도서관,KYOBO_SUBSCRIPTION_V1,https://3ds.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://3ds.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,RENTAL
-2670,신한카드 전자책도서관,KYOBO_SUBSCRIPTION_V1,https://slibrary.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://slibrary.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2671,조광페인트,KYOBO_SUBSCRIPTION_V1,https://ckpc.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://ckpc.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2672,팜한농 전자도서관,KYOBO_SUBSCRIPTION_V1,https://farmhannong.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://farmhannong.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,MIXED
-2673,한국엠에스씨소프트웨어 전자도서관,KYOBO_SUBSCRIPTION_V1,https://mscsoftware.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://mscsoftware.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,RENTAL
-2674,현대IHL,KYOBO_SUBSCRIPTION_V1,https://hyundaiihl.dkyobobook.co.kr,NULL,NULL,false,NULL,NULL,NULL,NULL,https://hyundaiihl.dkyobobook.co.kr,NULL,NULL,false,MEMBERS_ONLY,RENTAL

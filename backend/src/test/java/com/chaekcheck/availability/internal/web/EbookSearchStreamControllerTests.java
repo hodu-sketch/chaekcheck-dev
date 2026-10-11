@@ -146,8 +146,8 @@ class EbookSearchStreamControllerTests {
 				new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.ANY, Set.of(12L, 207L)));
 		assertThat(new String(result.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8))
 			.contains("\"libraries\":[{\"id\":12,")
-			.contains("\"homepageUrl\":null,\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null},{\"id\":2,")
-			.contains("\"chosen\":false,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null}]");
+			.contains("\"homepageUrl\":null,\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false},{\"id\":2,")
+			.contains("\"chosen\":false,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false}]");
 	}
 
 	@Test
@@ -180,7 +180,7 @@ class EbookSearchStreamControllerTests {
 	private static SearchTarget withChosen(SearchTarget t) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
-				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), true, t.joinSurvey(), t.lendingModel(), t.logoUrl());
+				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), true, t.joinSurvey(), t.lendingModel(), t.logoUrl(), t.mobileSiteDiffers());
 	}
 
 	/** The real catalog applies scope and visit (PlanOptions); the stub does the same on the given plan. */
@@ -193,7 +193,7 @@ class EbookSearchStreamControllerTests {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), true, t.joinMethod(),
 				t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
-				t.logoUrl());
+				t.logoUrl(), t.mobileSiteDiffers());
 	}
 
 	@Test
@@ -232,14 +232,14 @@ class EbookSearchStreamControllerTests {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), eligibility, t.eligibilitySummary(), extraConditionText, t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
-				t.logoUrl());
+				t.logoUrl(), t.mobileSiteDiffers());
 	}
 
 	private static SearchTarget withCaution(SearchTarget t, String joinCaution) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), joinCaution, t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
-				t.logoUrl());
+				t.logoUrl(), t.mobileSiteDiffers());
 	}
 
 	@Test
@@ -249,7 +249,9 @@ class EbookSearchStreamControllerTests {
 			.given(batchRunner)
 			.start(any(), any(), any(), anyInt(), any(), any(), any());
 
-		assertProblem(get(URL + "?title=사랑"), HttpStatus.SERVICE_UNAVAILABLE, "server_busy");
+		MvcTestResult result = get(URL + "?title=사랑");
+		assertProblem(result, HttpStatus.SERVICE_UNAVAILABLE, "server_busy");
+		assertThat(result).headers().hasValue("Retry-After", "5"); // AC-18
 	}
 
 	@Test

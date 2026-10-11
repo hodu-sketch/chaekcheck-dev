@@ -1,0 +1,24 @@
+# cycle 08 (R4, handoff step 11): names of bodies that were renamed, checked against official sources on 2026-10-11
+# (docs/library-maintenance.md 4-12) and approved by the user ("모두 바꿔줘", 2026-10-11). The list is
+# scripts/library/name_overrides.tsv; build_candidate_seed.py applies it too, so a regenerated seed keeps these names.
+# The applied seed is not edited: the names change here by id, only where the old name is still there.
+# 434, 456 get the platform label because another site of the same school already has the plain name (745, 2239).
+databaseChangeLog:
+  - changeSet:
+      id: library-013-name-overrides-2026-10-11
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              UPDATE library.library AS l SET name = v.new_name
+              FROM (VALUES
+                (434, '경상대학교', '경상국립대학교 (북큐브)'),
+                (456, '국립안동대학교', '국립경국대학교 (북큐브)'),
+                (2264, '서라벌대학교', '신경주대학교'),
+                (2563, '대검 도서관', '공소청 도서관'),
+                (2611, '강서공업고등학교', '서울디지털콘텐츠고등학교'),
+                (2161, '한국형사정책연구원', '한국형사·법무정책연구원'),
+                (1079, '농수산물유통공사', '한국농수산식품유통공사'),
+                (1016, '국가평가교육진흥원', '국가평생교육진흥원')
+              ) AS v(id, old_name, new_name)
+              WHERE l.id = v.id AND l.name = v.old_name

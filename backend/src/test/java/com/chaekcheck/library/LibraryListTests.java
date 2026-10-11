@@ -55,15 +55,25 @@ class LibraryListTests {
 		assertThat(get("")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
 				{"libraries":[
 				  {"id":%d,"name":"테스트 누구나","eligibility":"OPEN","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null},
+				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false},
 				  {"id":%d,"name":"테스트 서울","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":false,
 				   "cautioned":false,"eligibilitySummary":"서울 거주·재직·재학","joinSurvey":"SURVEYED","homepageUrl":null,
-				   "logoUrl":null},
+				   "logoUrl":null,"mobileSiteDiffers":false},
 				  {"id":%d,"name":"테스트 부산","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":true,
-				   "cautioned":true,"eligibilitySummary":"부산 거주","joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null},
+				   "cautioned":true,"eligibilitySummary":"부산 거주","joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false},
 				  {"id":%d,"name":"테스트 미확인","eligibility":"UNVERIFIED","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null}
+				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false}
 				]}
+				""".formatted(open, seoulAll, busanResidence, unverified));
+	}
+
+	/** Cycle 08 (AC-20): the phone note's flag comes with the list. */
+	@Test
+	void mobileSiteDiffersIsListed() {
+		jdbc.sql("UPDATE library.library SET mobile_site_differs = true WHERE id = ?").param(seoulAll).update();
+		assertThat(get("")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+				{"libraries":[{"id":%d,"mobileSiteDiffers":false},{"id":%d,"mobileSiteDiffers":true},
+				  {"id":%d,"mobileSiteDiffers":false},{"id":%d,"mobileSiteDiffers":false}]}
 				""".formatted(open, seoulAll, busanResidence, unverified));
 	}
 

@@ -3,7 +3,9 @@ package com.chaekcheck.collection.internal.importer;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryType;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -59,6 +61,12 @@ final class ImportReport {
 
 	long nationalBibliographyAmbiguous;
 
+	/** The records came from the stored table (same TTL fingerprint), not from the TTL files (ADR-0069). */
+	boolean nationalBibliographyReused;
+
+	/** Time spent making the records' keys, inside the national bibliography step. */
+	Duration nationalBibliographyNormalize = Duration.ZERO;
+
 	long books;
 
 	long contributors;
@@ -72,13 +80,21 @@ final class ImportReport {
 
 	long droppedBookIds;
 
-	Duration readTime = Duration.ZERO;
+	/**
+	 * Time of each step in order (cycle 08 handoff step 1), kept as {@code step_seconds}: {@code read} (first pass),
+	 * {@code group} (codes), {@code nb} (national bibliography records read), {@code normalize} (their keys),
+	 * {@code same_text}, the steps of {@link com.chaekcheck.catalog.CatalogLoad.Result#steps()}, then {@code load}
+	 * (the whole {@code replaceAll}, from the first book to the swap).
+	 */
+	final Map<String, Duration> steps = new LinkedHashMap<>();
 
-	Duration groupTime = Duration.ZERO;
+	/**
+	 * Oldest and newest collected time of the imported libraries: the same values as the library snapshots (AC-7).
+	 * Null when no library was imported.
+	 */
+	Instant collectedFrom;
 
-	Duration bibliographyTime = Duration.ZERO;
-
-	Duration writeTime = Duration.ZERO;
+	Instant collectedTo;
 
 	/** Peak heap use in MB: the sum of the heap pools' peaks, so an upper bound. */
 	long maxHeapMb;
@@ -89,6 +105,11 @@ final class ImportReport {
 
 	long skippedCount() {
 		return skipped.values().stream().mapToLong(Long::longValue).sum();
+	}
+
+	void collected(Instant collectedAt) {
+		collectedFrom = collectedFrom == null || collectedAt.isBefore(collectedFrom) ? collectedAt : collectedFrom;
+		collectedTo = collectedTo == null || collectedAt.isAfter(collectedTo) ? collectedAt : collectedTo;
 	}
 
 	void noteHeap() {
@@ -111,17 +132,19 @@ final class ImportReport {
 				  kyobo codes: %s
 				  books after (1) platform code: %d, (2) kyobo ISBN: %d, (3) national bibliography: %d, (4) same text: %d
 				  (4) same text: groups merged %d, merged books with dates 2+ years apart %d
-				  national bibliography: records with ISBN %d, ISBN attached %d, ambiguous keys %d
+				  national bibliography: rows (one per record ISBN) %d (%s), ISBN attached %d, ambiguous keys %d
 				  written: books %d, contributors %d, holdings %d
 				  book ids: kept %d, new %d, dropped %d
-				  time: read %s, group %s, bibliography %s, write %s; heap used up to %d MB (max %d MB)"""
+				  collected: %s ~ %s
+				  time: %s; heap used up to %d MB (max %d MB)"""
 			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, candidateLibraries,
 					librariesWithoutFullSuccess, librariesNotInService, librariesBaseUrlMismatch, placeholderDatesCleared,
 					kyoboCodes, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
 					booksAfterSameText, sameTextMerged, sameTextWideDates, nationalBibliographyRecords,
+					nationalBibliographyReused ? "from the stored table" : "from the TTL files",
 					nationalBibliographyIsbnAttached, nationalBibliographyAmbiguous, books, contributors, holdings,
 					keptBookIds, newBookIds, droppedBookIds,
-					readTime, groupTime, bibliographyTime, writeTime, maxHeapMb, Runtime.getRuntime().maxMemory() >> 20);
+					collectedFrom, collectedTo, steps, maxHeapMb, Runtime.getRuntime().maxMemory() >> 20);
 	}
 
 }

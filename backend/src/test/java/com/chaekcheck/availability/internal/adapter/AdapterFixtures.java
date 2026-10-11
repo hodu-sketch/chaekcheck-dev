@@ -15,8 +15,11 @@ import com.chaekcheck.availability.internal.config.AvailabilityProperties;
  */
 public final class AdapterFixtures {
 
+	static final AvailabilityProperties.Caches CACHES = new AvailabilityProperties.Caches(1000, 1000,
+			Duration.ofMinutes(5));
+
 	/** KYOBO record count 50 matches the cycle 01 fixtures (saved with recordCount=50). */
-	public static final AvailabilityProperties PROPERTIES = new AvailabilityProperties(Duration.ofMinutes(3), 1000, 1,
+	public static final AvailabilityProperties PROPERTIES = new AvailabilityProperties(Duration.ofMinutes(3), CACHES, 1,
 			Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
 			new AvailabilityProperties.Batch(20, 5, Duration.ofSeconds(8), Duration.ofSeconds(3), 50),
 			new AvailabilityProperties.Detail(Duration.ofSeconds(30)), new AvailabilityProperties.Kyobo(50),
@@ -24,7 +27,7 @@ public final class AdapterFixtures {
 			DataSize.ofMegabytes(4), 20);
 
 	/** Same as {@link #PROPERTIES} with KYOBO record count 10 (cycle 02 fixtures). */
-	public static final AvailabilityProperties PROPERTIES_10 = new AvailabilityProperties(Duration.ofMinutes(3), 1000,
+	public static final AvailabilityProperties PROPERTIES_10 = new AvailabilityProperties(Duration.ofMinutes(3), CACHES,
 			1, Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
 			PROPERTIES.batch(), PROPERTIES.detail(), new AvailabilityProperties.Kyobo(10),
 			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null, Duration.ofSeconds(15),

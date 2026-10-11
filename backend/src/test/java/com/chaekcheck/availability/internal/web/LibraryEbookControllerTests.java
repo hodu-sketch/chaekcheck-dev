@@ -220,8 +220,9 @@ class LibraryEbookControllerTests {
 		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
 
 		try (SearchSlots.Slot _ = searchSlots.acquire()) { // the only slot (test configuration)
-			assertProblem(mvc.get().uri(URL + "?title=사랑", 2).exchange(), HttpStatus.SERVICE_UNAVAILABLE,
-					"server_busy");
+			MvcTestResult result = mvc.get().uri(URL + "?title=사랑", 2).exchange();
+			assertProblem(result, HttpStatus.SERVICE_UNAVAILABLE, "server_busy");
+			assertThat(result).headers().hasValue("Retry-After", "5"); // AC-18
 		}
 		verifyNoInteractions(fetcher);
 		assertThat(searchSlots.available()).isEqualTo(1);

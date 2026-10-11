@@ -18,8 +18,16 @@ and prints the counts and the lending_model values of registered libraries (they
 Rules (plan handoff cycle 07, C5):
 - Candidates: collection id >= 100001, no crawl_skip, last_full_success_at set. Left out: the demo or closed sites
   (DEMO_OR_CLOSED, user decision 2026-10-05) and the kind TEST.
+- Kyobo rental and mixed candidates (KYOBO_SUBSCRIPTION_V1 with the probe model 대여 or 혼합) are left out as
+  kyobo_rental_mixed (plan ADR-0067, cycle 08). Only candidates: registered libraries and their lending_model stay.
+  The rule is checked before crawl_skip, so it still names them after the collection DB marks them crawl_skip.
+  Their service ids leave the link CSV and are never given again.
 - Numbers and names stay: a candidate already in the link CSV keeps its service id and name. New candidates get
   "last service id + 1" onward, in collection id order.
+- Name changes (cycle 08, R4): scripts/library/name_overrides.tsv gives the new name of a service library after the
+  body was renamed, checked against an official source (docs/library-maintenance.md 4-12). It is applied after the
+  kept names, so the seed keeps the new name; a name not in the list never changes. The list's old name must be the
+  kept name (or the new one already), else the script stops.
 - Name clash (with a registered library or another candidate): "이름 (북큐브|교보|YES24|알라딘)", still clashing:
   "이름 (라벨, 호스트)".
 - join_survey: public libraries from public-join.tsv (REGION/OPEN -> SURVEYED with rules, UNVERIFIED -> NOT_FOUND,
@@ -52,6 +60,7 @@ FIRST_CANDIDATE_ID = 100001
 # Final addresses after redirects (docs/library-maintenance.md 4-7 step 1), written by CheckFinalOrigins.java:
 # the service does not follow redirects, so base_url is the address the site sends the search to.
 FINAL_ORIGINS = 'scripts/library/final-origins.tsv'
+NAME_OVERRIDES = 'scripts/library/name_overrides.tsv'
 
 # User decision 2026-10-05 (plan easy/2026-10-05-candidate-join-decisions.html 6번): demo or closed sites
 DEMO_OR_CLOSED = {100068: '삼각산어린이도서관', 100048: '대구동구안심도서관', 100301: '순창군립도서관 북라이브',
@@ -221,6 +230,36 @@ def name_candidates(new, taken):
     return names
 
 
+def read_name_overrides():
+    """{service id: (old name, new name)} from NAME_OVERRIDES; empty when the file is missing."""
+    if not os.path.exists(NAME_OVERRIDES):
+        return {}
+    return {int(r['library_id']): (r['old_name'], r['new_name']) for r in read_tsv(NAME_OVERRIDES)}
+
+
+def apply_name_overrides(names, service_ids, registered_names):
+    """Puts the listed new names in place (names is keyed by collection id); stops on a stale entry or a clash."""
+    overrides = read_name_overrides()
+    by_service = {sid: cid for cid, sid in service_ids.items()}
+    for sid, (old, new) in overrides.items():
+        cid = by_service.get(sid)
+        if cid is None:
+            raise SystemExit(f'name override for {sid}: not a candidate in this seed')
+        if names[cid] not in (old, new):
+            raise SystemExit(f'name override for {sid}: the seed name is {names[cid]!r}, the list says {old!r}')
+        names[cid] = new
+    all_names = list(names.values()) + list(registered_names)
+    clash = {n for n in all_names if all_names.count(n) > 1}
+    if clash:
+        raise SystemExit('name clash after the overrides: ' + ', '.join(sorted(clash)))
+
+
+def kyobo_rental_mixed(row, models):
+    """A Kyobo subscription site whose probe model is rental or mixed (ADR-0067)."""
+    return (row['platform_type'] == 'KYOBO_SUBSCRIPTION_V1'
+            and models.get(row['base_url'].rstrip('/')) in ('RENTAL', 'MIXED'))
+
+
 def same_site(db, candidates, registered_rows):
     """Candidates whose host equals a registered library's host, with the item_key overlap."""
     by_host = {}
@@ -257,12 +296,15 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
 
     finals = {r['listed_base_url']: r['base_url'] for r in read_tsv(FINAL_ORIGINS)}         if os.path.exists(FINAL_ORIGINS) else {}
 
-    left_out = {'crawl_skip': [], 'no_full_success': [], 'demo_or_closed': [], 'same_site': [], 'test': []}
+    left_out = {'kyobo_rental_mixed': [], 'crawl_skip': [], 'no_full_success': [], 'demo_or_closed': [],
+                'same_site': [], 'test': []}
     candidates = []
     for row in rows:
         if row['id'] < FIRST_CANDIDATE_ID:
             continue
-        if row['crawl_skip']:
+        if kyobo_rental_mixed(row, models):
+            left_out['kyobo_rental_mixed'].append(row)
+        elif row['crawl_skip']:
             left_out['crawl_skip'].append(row)
         elif not row['last_full_success_at']:
             left_out['no_full_success'].append(row)
@@ -287,10 +329,15 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
     kept_names = {int(r['id']): r['name'] for r in read_csv(LIBRARY_CSV)}
     kept_names = {cid: kept_names[sid] for cid, sid in kept_links.items() if sid in kept_names}
     candidate_ids = {c['id'] for c in candidates}
-    dropped = sorted(set(kept_links) - candidate_ids)
+    # ADR-0067: the Kyobo rental and mixed candidates leave the service; their ids are not given again (the new ids
+    # start after the highest id ever linked, below)
+    rental_mixed = {row['id'] for row in left_out['kyobo_rental_mixed']}
+    dropped = sorted(set(kept_links) - candidate_ids - rental_mixed)
     if dropped:
         raise SystemExit(f'candidates in the link CSV are no longer candidates (ids never move): {dropped}')
     last_id = max([*registered, *kept_links.values()])
+    kept_links = {cid: sid for cid, sid in kept_links.items() if cid in candidate_ids}
+    kept_names = {cid: name for cid, name in kept_names.items() if cid in candidate_ids}
     new = [c for c in candidates if c['id'] not in kept_links]
     taken = set(registered.values()) | set(kept_names.values())
     names = dict(kept_names)
@@ -299,6 +346,7 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
     for c in new:
         last_id += 1
         service_ids[c['id']] = last_id
+    apply_name_overrides(names, service_ids, set(registered.values()))
 
     libraries, rules = [], []
     for c in sorted(candidates, key=lambda c: service_ids[c['id']]):

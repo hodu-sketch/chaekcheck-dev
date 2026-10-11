@@ -17,12 +17,22 @@ import org.springframework.util.unit.DataSize;
  * (upstream_error)
  * @param maxConcurrentSearches batch streams and "more" calls running at once; more are refused with 503
  * {@code server_busy} (SearchSlots)
+ * @param caches size limit of each cache and how often their statistics are logged (cycle 08, ADR-0066)
  */
 @ConfigurationProperties("chaekcheck.availability")
-public record AvailabilityProperties(Duration cacheTtl, long cacheMaxSize, int hostMaxConcurrency,
+public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostMaxConcurrency,
 		Duration hostMinInterval, Duration connectTimeout, Duration readTimeout, Duration requestDeadline, Batch batch,
 		Detail detail, Kyobo kyobo, Yes24 yes24, String userAgent, Fetch fetch, Duration totalTimeout,
 		DataSize maxBodySize, int maxConcurrentSearches) {
+
+	/**
+	 * The in-memory caches (ADR-0006: 3 minutes; plan ADR-0066: one limit per cache, no weight limit).
+	 * @param searchPageMaxSize search pages kept at most. TODO(확인 필요): 1,000 as before until step 9 measures it
+	 * @param detailVerdictMaxSize detail page verdicts kept at most. TODO(확인 필요): as above
+	 * @param statsLogInterval how often hits, misses, evictions and entries are logged [안 5m]
+	 */
+	public record Caches(long searchPageMaxSize, long detailVerdictMaxSize, Duration statsLogInterval) {
+	}
 
 	/**
 	 * One batch of the search stream (design-delta "묶음 실행 규칙").

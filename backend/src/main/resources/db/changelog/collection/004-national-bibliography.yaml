@@ -1,0 +1,25 @@
+# cycle 08 (plan ADR-0069, handoff step 3): the national bibliography records the import needs, kept as read from the
+# TTL files, so the next import reads this table instead of the TTL files while the files have not changed.
+# No index besides the primary key: the table is only read from start to end.
+# national_bibliography_source: one row, the fingerprint of the TTL files the records come from. It is deleted before
+# the records are rewritten and written last, so a stopped rewrite is done again from the files.
+databaseChangeLog:
+  - changeSet:
+      id: collection-004-national-bibliography
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE collection.national_bibliography_record (
+                id bigint CONSTRAINT national_bibliography_record_pkey PRIMARY KEY,
+                isbn13 text NOT NULL,
+                title_raw text NOT NULL,
+                author_raw text,
+                publisher_raw text
+              )
+        - sql:
+            sql: >-
+              CREATE TABLE collection.national_bibliography_source (
+                source_fingerprint text NOT NULL,
+                built_at timestamp with time zone NOT NULL
+              )

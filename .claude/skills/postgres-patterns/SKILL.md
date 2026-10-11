@@ -131,6 +131,26 @@ REVOKE ALL ON SCHEMA public FROM public;
 SELECT pg_reload_conf();
 ```
 
+### `updated_at` (this project, plan ADR-0068)
+
+- A table with an `updated_at` column gets a `BEFORE UPDATE ... FOR EACH ROW` trigger in the same set of changesets.
+- The trigger function lives in the module's own schema (e.g. `library.set_updated_at()`), in a Liquibase formatted
+  SQL file: `splitStatements:false`, `runOnChange:true`, `CREATE OR REPLACE FUNCTION`, and the trigger as
+  `DROP TRIGGER IF EXISTS` + `CREATE TRIGGER` so the file can be applied again.
+- Application code never writes `updated_at`; the trigger sets `NEW.updated_at := now()`.
+
+```sql
+CREATE OR REPLACE FUNCTION library.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END
+$$;
+DROP TRIGGER IF EXISTS library_set_updated_at ON library.library;
+CREATE TRIGGER library_set_updated_at BEFORE UPDATE ON library.library
+  FOR EACH ROW EXECUTE FUNCTION library.set_updated_at();
+```
+
 ## Related
 
 - Agent: `database-reviewer` - Full database review workflow

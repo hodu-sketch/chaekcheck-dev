@@ -118,7 +118,11 @@ chaekcheck:
       kakao-call-interval: 700ms
   availability:
     cache-ttl: 3m
-    cache-max-size: 1000
+    # cycle 08 (ADR-0066): one limit per cache, statistics logged. 1,000 each as before [안] until step 9 measures them.
+    caches:
+      search-page-max-size: 1000
+      detail-verdict-max-size: 1000
+      stats-log-interval: 5m
     host-max-concurrency: 1
     host-min-interval: 1s
     # 5s: some sites take 1-3s to connect (Gyeonggi education office, 2026-09-29); cycle 01 value was 3s (user decision 2026-09-29)

@@ -2,6 +2,7 @@ package com.chaekcheck.availability.internal.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -234,6 +235,19 @@ class BatchRunnerTests {
 		assertThat(failed.problem()).containsEntry("code", "library_not_found").containsEntry("status", 404);
 		assertThat(sink.batchDone()).extracting(StreamEvents.BatchDone::requested, StreamEvents.BatchDone::failed)
 			.containsExactly(1, 1);
+	}
+
+	/** ADR-0070: a holding that left the catalog and one whose library is off fail with their own codes. */
+	@Test
+	void missingHoldingsFailWithTheirOwnCodes() {
+		BatchRunner runner = runner(settings(20, 1, 8000, 3000));
+		runner.startHoldings(sink, ResultFilter.ALL, 2, List.of(),
+				List.of(MissingHolding.holdingNotFound(6), MissingHolding.libraryNotFound(7)), null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(sink.dataOf(StreamEvents.HOLDING_FAILED)).map(StreamEvents.HoldingFailed.class::cast)
+			.extracting(StreamEvents.HoldingFailed::holdingId, failed -> failed.problem().get("code"))
+			.containsExactly(tuple(6L, "holding_not_found"), tuple(7L, "library_not_found"));
 	}
 
 	@Test

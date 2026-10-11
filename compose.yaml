@@ -18,6 +18,20 @@ services:
       POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
       POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    # Memory settings (cycle 08, plan ADR-0066): values from .env, defaults below. This replaces the image's CMD, so
+    # pg_bigm must stay in shared_preload_libraries here. Defaults: measured on the local PC (WSL2, 32GB) on 2026-10-11,
+    # one step above the smallest that kept the first-page p95 (user choice "한 단계 여유"); a container limit of 1GB
+    # fits them. Measure again on the production server (docs/plan-feedback.md # 사이클 08, 9단계).
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_bigm
+      - -c
+      - shared_buffers=${DB_SHARED_BUFFERS:-64MB}
+      - -c
+      - effective_cache_size=${DB_EFFECTIVE_CACHE_SIZE:-768MB}
+      - -c
+      - work_mem=${DB_WORK_MEM:-4MB}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:

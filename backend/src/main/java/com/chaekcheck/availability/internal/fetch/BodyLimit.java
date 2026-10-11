@@ -1,9 +1,9 @@
 package com.chaekcheck.availability.internal.fetch;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -13,6 +13,11 @@ import java.util.concurrent.Flow;
  * Reads a response body into memory but stops at {@code maxBytes}: a larger body (declared by Content-Length or
  * counted while reading) fails with {@link TooLargeException} and the exchange is cancelled, so no more bytes are
  * read. Used by {@link DirectSiteFetcher}; the fetch service has the same class.
+ * <p>
+ * Cycle 08 (ADR-0066): the bytes go straight into one array. With a Content-Length within the limit the array has
+ * that size from the start and is returned as it is; without one (or when the server sends more than it declared)
+ * the array grows by doubling, never past the limit. The body is copied once at most at the end, when fewer bytes
+ * came than the array holds.
  */
 final class BodyLimit {
 
@@ -38,17 +43,21 @@ final class BodyLimit {
 
 		private final long declaredLength;
 
-		private final CompletableFuture<byte[]> result = new CompletableFuture<>();
+		private static final int FIRST_SIZE = 16 * 1024;
 
-		private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+		private final CompletableFuture<byte[]> result = new CompletableFuture<>();
 
 		private Flow.Subscription subscription;
 
-		private long received;
+		private byte[] body;
+
+		private int received;
 
 		Subscriber(long maxBytes, long declaredLength) {
 			this.maxBytes = maxBytes;
 			this.declaredLength = declaredLength;
+			this.body = new byte[(int) (declaredLength >= 0 && declaredLength <= maxBytes ? declaredLength
+					: Math.min(FIRST_SIZE, maxBytes))];
 		}
 
 		@Override
@@ -67,14 +76,17 @@ final class BodyLimit {
 				return;
 			}
 			for (ByteBuffer item : items) {
-				received += item.remaining();
-				if (received > maxBytes) {
+				int length = item.remaining();
+				if ((long) received + length > maxBytes) {
 					tooLarge();
 					return;
 				}
-				byte[] chunk = new byte[item.remaining()];
-				item.get(chunk);
-				out.writeBytes(chunk);
+				if (received + length > body.length) {
+					// no or a wrong Content-Length: grow by doubling, never past the limit
+					body = Arrays.copyOf(body, (int) Math.min(maxBytes, Math.max(received + length, 2L * body.length)));
+				}
+				item.get(body, received, length);
+				received += length;
 			}
 		}
 
@@ -85,7 +97,7 @@ final class BodyLimit {
 
 		@Override
 		public void onComplete() {
-			result.complete(out.toByteArray());
+			result.complete(received == body.length ? body : Arrays.copyOf(body, received));
 		}
 
 		@Override

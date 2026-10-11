@@ -59,12 +59,14 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 		send(StreamEvents.TARGETS, targets);
 	}
 
-	/** A candidate holding that does not exist or whose library is not usable: fails on its own. */
-	synchronized void notFound(long holdingId) {
+	/**
+	 * A candidate holding that is gone ({@code holding_not_found}) or whose library is not usable
+	 * ({@code library_not_found}): fails on its own (ADR-0070).
+	 */
+	synchronized void notFound(MissingHolding missing) {
 		failed++;
-		send(StreamEvents.HOLDING_FAILED, new StreamEvents.HoldingFailed(batchNo, holdingId, 0, 0,
-				Problems.asMap(Problems.problem(HttpStatus.NOT_FOUND, "library_not_found",
-						"The holding or its library does not exist or is disabled"))));
+		send(StreamEvents.HOLDING_FAILED, new StreamEvents.HoldingFailed(batchNo, missing.holdingId(), 0, 0,
+				Problems.asMap(Problems.problem(HttpStatus.NOT_FOUND, missing.code(), missing.detail()))));
 	}
 
 	@Override

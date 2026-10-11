@@ -1,0 +1,23 @@
+# cycle 08 (handoff step 2-3, AC-20): sites whose phone version shows another page (docs/library-site-issues.md 10-1,
+# checked 2026-10-05). The web shows a note under these on narrow screens; the links stay.
+#   YES24 /m/ shows "경동대학교": 224, 230, 260, 2586; "페이지를 찾을 수 없습니다": 238, 2190, 2277;
+#   empty page: 229, 2164, 2533, 2195, 2222; Kyobo, goes to another address on a phone: 1824
+databaseChangeLog:
+  - changeSet:
+      id: library-012-mobile-site-differs
+      author: chaekcheck
+      changes:
+        - addColumn:
+            schemaName: library
+            tableName: library
+            columns:
+              - column:
+                  name: mobile_site_differs
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >-
+              UPDATE library.library SET mobile_site_differs = true
+              WHERE id IN (224, 230, 260, 2586, 238, 2190, 2277, 229, 2164, 2533, 2195, 2222, 1824)

@@ -39,6 +39,16 @@ class LibraryCatalogTests {
 	@Autowired
 	JdbcClient jdbc;
 
+	/** Cycle 08 (AC-20, ADR-0066): the seeded phone flag reaches the plan; unresearched libraries need a choice. */
+	@Test
+	void planCarriesMobileSiteDiffersAndReadsUnresearchedOnlyWhenChosen() {
+		List<SearchTarget> plan = catalog.planSearch(Set.of(), Set.of());
+		assertThat(plan).filteredOn(SearchTarget::mobileSiteDiffers).extracting(SearchTarget::id).contains(224L, 230L);
+		assertThat(plan).extracting(SearchTarget::id).doesNotContain(284L, 282L);
+		assertThat(catalog.planSearch(Set.of(), Set.of(), new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.ANY,
+				Set.of(284L)))).extracting(SearchTarget::id).contains(284L).doesNotContain(282L);
+	}
+
 	@Nested
 	class PilotLibraries {
 

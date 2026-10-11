@@ -72,7 +72,8 @@ class BuildCandidateSeedTest(unittest.TestCase):
                         'LIBRARY_CSV': changelog + 'library/008-library-candidates.csv',
                         'RULE_CSV': changelog + 'library/008-eligibility-rule-candidates.csv',
                         'LINK_CSV': changelog + 'collection/002-collection-link.csv',
-                        'REGIONS': changelog + 'region/002-region-seed.csv'}
+                        'REGIONS': changelog + 'region/002-region-seed.csv',
+                        'NAME_OVERRIDES': os.path.join(self.dir, 'name_overrides.tsv')}
         self.saved = {k: getattr(seed, k) for k in self.patches}
         for k, v in self.patches.items():
             setattr(seed, k, v)
@@ -172,7 +173,8 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertNotIn('http://half.example.kr', bases)  # no full success
         self.assertNotIn('http://test.example.kr', bases)  # TEST kind
         self.assertNotIn('http://ssg.bookcube.biz/FxLibrary', bases)  # demo or closed
-        self.assertIn('left out: crawl_skip 1, no_full_success 1, demo_or_closed 1, same_site 0, test 1', out)
+        self.assertIn('left out: kyobo_rental_mixed 0, crawl_skip 1, no_full_success 1, demo_or_closed 1, same_site 0, '
+                      'test 1', out)
 
     def test_join_survey_and_rules(self):
         self.run_seed()
@@ -195,6 +197,60 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertEqual(by_url['https://a.dkyobobook.co.kr']['lending_model'], 'OWNED')
         self.assertEqual(by_url['https://b.dkyobobook.co.kr']['lending_model'], 'NULL')
         self.assertIn("registered lending_model (library/008 UPDATE): (2, 'RENTAL')", out)
+
+    def test_kyobo_rental_and_mixed_candidates_leave_and_their_numbers_are_not_given_again(self):
+        self.run_seed()
+        before = self.libraries()
+        rental_id = next(k for k, v in before.items() if v['base_url'] == 'https://b.dkyobobook.co.kr')
+        added = CANDIDATES + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        with open(self.probe, 'a', encoding='utf-8', newline='') as f:
+            csv.DictWriter(f, fieldnames=PROBE_HEADER, delimiter='\t', lineterminator='\n', restval='').writerow(
+                {'name': '부여초등학교', 'status': 'OK', 'platform': 'KYOBO_SUBSCRIPTION_V1',
+                 'base_url': 'https://b.dkyobobook.co.kr', 'model': '혼합'})
+        code, out = self.run_seed()
+        after = self.libraries()
+        self.assertNotIn(rental_id, after)
+        self.assertEqual({k: v['name'] for k, v in before.items() if k != rental_id},
+                         {k: after[k]['name'] for k in after if k in before})
+        self.assertEqual(after[max(after)]['name'], '새도서관')
+        self.assertEqual(max(after), max(before) + 1)  # the rental site's number is not given to the new one
+        self.assertNotIn(rental_id, {int(r['library_id']) for r in self.read('LINK_CSV')})
+        self.assertIn('left out: kyobo_rental_mixed 1,', out)
+        # registered libraries keep their lending_model
+        self.assertIn("registered lending_model (library/008 UPDATE): (2, 'RENTAL')", out)
+
+    def write_overrides(self, rows):
+        write_tsv(self.patches['NAME_OVERRIDES'],
+                  ['library_id', 'old_name', 'new_name', 'changed_on', 'source_url', 'checked_on'], rows)
+
+    def test_listed_names_change_and_keep_their_numbers(self):
+        self.run_seed()
+        before = self.libraries()
+        renamed = next(k for k, v in before.items() if v['name'] == '모름도서관')
+        self.write_overrides([{'library_id': renamed, 'old_name': '모름도서관', 'new_name': '새이름도서관',
+                               'changed_on': '2026-01-01', 'source_url': 'https://x.test', 'checked_on': '2026-10-11'}])
+        self.run_seed()
+        after = self.libraries()
+        self.assertEqual(after[renamed]['name'], '새이름도서관')
+        self.assertEqual(set(after), set(before))
+        # names not in the list stay
+        self.assertEqual({k: v['name'] for k, v in before.items() if k != renamed},
+                         {k: v['name'] for k, v in after.items() if k != renamed})
+        # running again keeps the new name (the kept name is now the new one)
+        self.run_seed()
+        self.assertEqual(self.libraries()[renamed]['name'], '새이름도서관')
+
+    def test_stale_or_clashing_override_stops(self):
+        self.run_seed()
+        lib = next(k for k, v in self.libraries().items() if v['name'] == '모름도서관')
+        self.write_overrides([{'library_id': lib, 'old_name': '다른이름', 'new_name': '새이름'}])
+        with self.assertRaises(SystemExit):
+            self.run_seed()
+        self.write_overrides([{'library_id': lib, 'old_name': '모름도서관', 'new_name': '가나도서관'}])  # registered 1
+        with self.assertRaises(SystemExit):
+            self.run_seed()
 
     def test_same_host_with_shared_keys_stops_until_read(self):
         extra = CANDIDATES + [(100013, '가나분관', 'BOOKCUBE_FX', 'http://ga.example.kr:9000/FxLibrary', 'PUBLIC',

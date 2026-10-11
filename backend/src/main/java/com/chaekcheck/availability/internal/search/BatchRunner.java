@@ -187,7 +187,7 @@ public class BatchRunner {
 	 * @param notFound holding ids that do not exist or whose library is not usable; each fails on its own
 	 */
 	public void startHoldings(EventSink sink, ResultFilter filter, int batchNo, List<HoldingTask> tasks,
-			List<Long> notFound, StreamEvents.HoldingTargets targets) {
+			List<MissingHolding> notFound, StreamEvents.HoldingTargets targets) {
 		SearchSlots.Slot slot = slots.acquire();
 		try {
 			startHoldingBatch(slot, sink, filter, batchNo, tasks, notFound, targets);
@@ -199,7 +199,7 @@ public class BatchRunner {
 	}
 
 	private void startHoldingBatch(SearchSlots.Slot slot, EventSink sink, ResultFilter filter, int batchNo,
-			List<HoldingTask> tasks, List<Long> notFound, StreamEvents.HoldingTargets targets) {
+			List<HoldingTask> tasks, List<MissingHolding> notFound, StreamEvents.HoldingTargets targets) {
 		HoldingSession session = new HoldingSession(sink, batchNo, filter, settings.rowLimit(), slot::close);
 		releaseLater(slot);
 		if (targets != null) {

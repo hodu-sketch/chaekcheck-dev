@@ -8,8 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -28,6 +30,9 @@ import com.chaekcheck.library.InvalidRegionException;
 class AvailabilityErrors {
 
 	private static final Logger log = LoggerFactory.getLogger(AvailabilityErrors.class);
+
+	/** Seconds in the 503 {@code Retry-After} header [확정] (cycle 08 handoff step 5-3). */
+	static final int BUSY_RETRY_AFTER_SECONDS = 5;
 
 	@ExceptionHandler
 	ProblemDetail invalidQuery(InvalidQueryException ex) {
@@ -74,12 +79,17 @@ class AvailabilityErrors {
 		return problem;
 	}
 
-	/** Every search slot is taken (SearchSlots): refused at once instead of queued. */
+	/**
+	 * Every search slot is taken (SearchSlots): refused at once instead of queued, with {@code Retry-After} [확정]
+	 * (cycle 08 handoff step 5-3). The batch streams and "더 보기" share this answer; nginx's 429 keeps its own.
+	 */
 	@ExceptionHandler
-	ProblemDetail serverBusy(SearchBusyException ex) {
+	ResponseEntity<ProblemDetail> serverBusy(SearchBusyException ex) {
 		log.warn("search refused: {}", ex.getMessage());
-		return problem(HttpStatus.SERVICE_UNAVAILABLE, "server_busy",
-				"Too many searches are running; try again shortly");
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+			.header(HttpHeaders.RETRY_AFTER, String.valueOf(BUSY_RETRY_AFTER_SECONDS))
+			.body(problem(HttpStatus.SERVICE_UNAVAILABLE, "server_busy",
+					"Too many searches are running; try again shortly"));
 	}
 
 	@ExceptionHandler
