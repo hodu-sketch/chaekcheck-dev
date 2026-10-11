@@ -9,16 +9,25 @@ import styles from './AppLayout.module.css'
 
 export function AppLayout() {
   const location = useLocation()
+  // No login button and no "인기 도서" on the terms and privacy pages (flow.md S8, S9; cycle 10 [확정])
+  const legal = ['/terms', '/privacy'].includes(location.pathname)
   return (
     <div className={styles.shell}>
-      <div className={styles.headerBar}>
+      {/* data-app-header: screens with their own sticky bar read its height (cycle 10 S13) */}
+      <div className={styles.headerBar} data-app-header="">
         <header className={styles.header}>
-          <Link to="/" className={styles.brand}>
-            <span className={styles.wordmark}>책첵</span>
-            <span className={styles.tagline}>전자도서관 대출 가능 확인</span>
-          </Link>
-          {/* No login button on the terms and privacy pages (flow.md S8, S9) */}
-          {!['/terms', '/privacy'].includes(location.pathname) && <AuthHeaderAction />}
+          {/* no tagline next to the logo on any width (cycle 10, user 2026-10-11) */}
+          <div className={styles.start}>
+            <Link to="/" className={styles.brand}>
+              <span className={styles.wordmark}>책첵</span>
+            </Link>
+            {!legal && (
+              <Link to="/popular" className={styles.navLink} aria-current={location.pathname === '/popular' ? 'page' : undefined}>
+                인기 도서
+              </Link>
+            )}
+          </div>
+          {!legal && <AuthHeaderAction />}
         </header>
       </div>
       <main className={styles.main}>

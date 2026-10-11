@@ -1,5 +1,6 @@
-import { Accordion, Dialog, Popover, RadioGroup } from 'radix-ui'
+import { Accordion, Popover, RadioGroup } from 'radix-ui'
 import { useState, type ReactNode } from 'react'
+import { BottomSheet } from '../../components/BottomSheet'
 import { useOptionalAuth } from '../auth/AuthContext'
 import { WithdrawDialog } from '../auth/WithdrawDialog'
 import { DIRECT_REASON, type SearchSettings, type ViewMode } from './searchSettings'
@@ -25,9 +26,6 @@ type SectionKey = 'scope' | 'view' | 'direct'
  * 하면 돌아가줘"). Wider screens always use the small window.
  */
 export const PHONE_SETTINGS_SHEET = true
-
-/** How far down the handle must be pulled to close the sheet [안]. */
-const CLOSE_DRAG_PX = 80
 
 /**
  * S4 settings (flow.md): 보기 방식 and 도서관에서 직접 찾기, in a small window under ⚙ (a bottom sheet on phones). Kept in
@@ -143,8 +141,16 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
   return (
     <>
       {sheet && PHONE_SETTINGS_SHEET ? (
-        <BottomSheet open={open} onOpenChange={setOpen} title="검색 설정" trigger={trigger} triggerLabel={triggerLabel}>
-          {body}
+        // the shared sheet (cycle 10 step 6) without a ⓧ: the search settings stay as in cycle 08 (C6)
+        <BottomSheet
+          open={open}
+          onOpenChange={setOpen}
+          title="검색 설정"
+          trigger={trigger}
+          triggerLabel={triggerLabel}
+          triggerClassName={styles.trigger}
+        >
+          <div className={styles.sheetContent}>{body}</div>
         </BottomSheet>
       ) : (
         <Popover.Root open={open} onOpenChange={setOpen}>
@@ -182,67 +188,6 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
         />
       )}
     </>
-  )
-}
-
-/**
- * Phones (cycle 08, flow.md 검토 #1): the settings in a sheet from the bottom of the screen, with a handle; a tap
- * outside or pulling the handle down closes it. Same rows in the same order as the small window it replaces.
- */
-function BottomSheet({
-  open,
-  onOpenChange,
-  title,
-  trigger,
-  triggerLabel,
-  children,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  title: string
-  trigger: ReactNode
-  triggerLabel: string
-  children: ReactNode
-}) {
-  const [drag, setDrag] = useState<{ startY: number; offset: number } | null>(null)
-
-  const endDrag = () => {
-    if (drag && drag.offset > CLOSE_DRAG_PX) onOpenChange(false)
-    setDrag(null)
-  }
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Trigger className={styles.trigger} aria-label={triggerLabel}>
-        {trigger}
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className={styles.sheetOverlay} />
-        <Dialog.Content
-          className={styles.bottomSheet}
-          aria-describedby={undefined}
-          style={drag ? { transform: `translateY(${drag.offset}px)`, transition: 'none' } : undefined}
-        >
-          <Dialog.Title className="visually-hidden">{title}</Dialog.Title>
-          <div
-            className={styles.handleArea}
-            data-testid="sheet-handle"
-            onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture?.(event.pointerId)
-              setDrag({ startY: event.clientY, offset: 0 })
-            }}
-            onPointerMove={(event) => {
-              if (drag) setDrag({ ...drag, offset: Math.max(0, event.clientY - drag.startY) })
-            }}
-            onPointerUp={endDrag}
-            onPointerCancel={() => setDrag(null)}
-          >
-            <span className={styles.handle} aria-hidden="true" />
-          </div>
-          <div className={styles.sheetBody}>{children}</div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
   )
 }
 

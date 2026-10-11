@@ -1,0 +1,99 @@
+/*
+ * Phones (cycle 08; shared in cycle 10): a sheet from the bottom with a handle. A tap on the dimmed page or pulling
+ * the handle down closes it. At most 85% of the screen's height, scrolling inside.
+ */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(25 31 40 / 0.4);
+}
+
+.bottomSheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  max-height: 85dvh;
+  border-radius: 16px 16px 0 0;
+  background: var(--card);
+  box-shadow: 0 -8px 28px rgb(0 0 0 / 0.16);
+  transition: transform 180ms ease-out;
+}
+
+.bottomSheet[data-state='open'] {
+  animation: sheet-in 200ms ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottomSheet,
+  .bottomSheet[data-state='open'] {
+    animation: none;
+    transition: none;
+  }
+}
+
+.handleArea {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 1.6rem;
+  touch-action: none;
+  cursor: grab;
+}
+
+/* with a ⓧ: a taller top row, so the button has room beside the handle (cycle 10) */
+.bottomSheet[data-close] .handleArea {
+  height: 2.75rem;
+}
+
+.handle {
+  width: 2.5rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--rule-strong);
+}
+
+.close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sheetBody {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 1rem calc(0.8rem + env(safe-area-inset-bottom));
+}
