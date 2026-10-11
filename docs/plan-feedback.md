@@ -2361,3 +2361,12 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 출력: 북큐브 구독 339·380·386·705(plan과 같음), 순번 2 이상 0, 이름 UPDATE 289줄, 대출 방식 채우기 1,458줄(OWNED 1,447, SUBSCRIPTION 11 = 교보 구독형 59·131·140·275~278 + 북큐브 4), 교보 구독형에 새 OWNED 없음(C5), 대응표와 다른 업체 0
 - 전체 업체별: KYOBO 1,642, YES24 547, BOOKCUBE 441, ALADIN 25, PORTAL 7, IN_HOUSE 1. 대출 방식별(014 뒤): OWNED 2,634, SUBSCRIPTION 11, RENTAL 9, MIXED 2, NULL 7(포털)
 - seed CSV 셋은 그대로(`--changes-only`)
+
+## 3단계
+
+- 파일: `library/014-library-classification.yaml`(인계서 [안] 이름 그대로), changeSet 하나(`library-014-classification-2026-10-11`). 순서는 design-delta 1~7. 허용 값 CHECK(`library_vendor_check`)는 칸 추가와 함께 걸고, 나머지 CHECK 셋은 `order_no` 다음 한 문장으로
+- 이름 UPDATE만 `splitStatements: false`: 1149 옛 이름 "메리츠(증권&amp;amp;캐피탈)"에 세미콜론이 있어 Liquibase가 문장을 나눔
+- 대출 방식 UPDATE는 번호 VALUES 1,458줄이 아니라 화면 종류 규칙(+ 북큐브 4곳, 교보 구독형 7곳 번호)으로 씀. 2단계 출력과 같은 결과인지 따로 띄운 DB에서 확인
+- 따로 띄운 개발 DB(`chaekcheck-db09`, 빈 DB에서 001~014 적용)에서 확인: 2,663줄, `vendor` NULL 0, `lending_model` NULL 7(포털만), `order_no` 모두 1, C5 목록 18곳이 0단계와 같음, 이름 끝 괄호 0, 괄호 남은 이름 45줄이 0단계의 남길 줄과 같은 번호·이름(1149만 이스케이프 고침)
+- 사용자 승인: 이름 바꿀 289줄 목록(`data/cycle09/rename-list-014.tsv`)을 보고 "승인, 커밋" (2026-10-11)
+- 운영 `db`에는 아직 적용하지 않음(0단계 나머지 측정 뒤)

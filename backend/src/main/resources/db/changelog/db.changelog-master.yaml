@@ -75,3 +75,6 @@ databaseChangeLog:
   - include:
       file: library/013-library-name-overrides.yaml
       relativeToChangelogFile: true
+  - include:
+      file: library/014-library-classification.yaml
+      relativeToChangelogFile: true
