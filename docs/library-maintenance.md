@@ -28,7 +28,10 @@
 | 칼럼 | 타입·제약 | 뜻 | 누가 채우나 |
 |---|---|---|---|
 | `id` | bigint, PK, IDENTITY | seed는 **직접 번호를 넣습니다**. 마지막에 IDENTITY를 최댓값+1로 다시 시작 | seed |
-| `name` | text, NOT NULL, **UNIQUE** | 화면에 보이는 이름. 같은 기관의 일반·구독형은 "(구독)" 등으로 구분 | 조사 |
+| `name` | text, NOT NULL (UNIQUE 아님) | 기관 정식 이름만. 업체·대출 방식 괄호를 붙이지 않음(사이클 09, ADR-0071). 기관 이름 속 괄호((주), (부산), 캠퍼스 등)는 그대로. 같은 기관의 사이트 여러 개는 `vendor`·`lending_model`·`order_no`로 구분 | 조사 |
+| `vendor` | text, CHECK IN (`KYOBO`, `YES24`, `BOOKCUBE`, `ALADIN`, `PORTAL`, `IN_HOUSE`), EBOOK이면 NOT NULL | 사이트 시스템 업체. 도서관 수집이 정하고 seed 생성 스크립트가 씀(지금은 `platform_type` 대응표 그대로, `build_candidate_seed.py` `VENDORS`). 화면에는 이름 다음에 "교보 · 소장"처럼 | seed 스크립트 |
+| `lending_model` | text, CHECK IN (`OWNED`, `SUBSCRIPTION`, `MIXED`, `RENTAL`), 통합 포털만 NULL | 대출 방식. 교보 구독형은 교보 probe 값(없으면 `SUBSCRIPTION`), 북큐브는 전체 권수 0 + 책 있음이면 `SUBSCRIPTION`, 나머지 `OWNED`(spec R3). 소장 판정에 쓰는 곳은 교보 구독형 화면 하나(`HoldingTask`) | seed 스크립트 |
+| `order_no` | integer, NOT NULL, 기본 1, CHECK ≥ 1 | 같은 (이름, 업체, 대출 방식) 안의 순번. 지금은 모두 1. 2가 붙으면 사이트 이름을 확인해 고치고 1로 되돌림(4-13) | seed 스크립트 |
 | `library_type` | text, NOT NULL, 기본 `EBOOK`, CHECK IN (`EBOOK`) | 전자/실물. 지금은 `EBOOK`만 | 기본값 |
 | `platform_type` | text, CHECK IN (아래 1-3) | 검색 화면 종류. adapter를 고릅니다 | 조사 |
 | `base_url` | text, **UNIQUE** | 사이트 뿌리 주소. adapter가 그 뒤에 경로를 붙입니다. **리다이렉트를 따라간 최종 주소**(보통 https, 포트 포함) | 확인 도구 |
@@ -46,7 +49,7 @@
 | `enabled` | boolean, 기본 true | 끄면 검색 대상에서 빠집니다. 요청마다 읽으므로 바로 반영 | 운영(SQL) |
 | `created_at`, `updated_at` | timestamptz | | 기본값 |
 
-제약 이름(오류 메시지에서 찾을 때): `library_name_key`, `library_base_url_key`, `library_platform_type_check`, `library_ebook_site_check`(EBOOK이면 `platform_type`·`base_url` 필수), `library_holdings_count_check`, `library_holdings_counted_check`.
+제약 이름(오류 메시지에서 찾을 때): `library_classification_key`(`UNIQUE NULLS NOT DISTINCT (name, vendor, lending_model, order_no)`, 꺼진 도서관도 셈, 사이클 09에서 `library_name_key`를 대신함), `library_vendor_check`, `library_vendor_required_check`, `library_lending_model_required_check`(`(vendor = 'PORTAL') = (lending_model IS NULL)`), `library_order_no_check`, `library_base_url_key`, `library_platform_type_check`, `library_ebook_site_check`(EBOOK이면 `platform_type`·`base_url` 필수), `library_holdings_count_check`, `library_holdings_counted_check`.
 
 ### 1-2. 테이블 `library.eligibility_rule` (가입 자격 규칙, ADR-0004·0013)
 
@@ -130,7 +133,7 @@
 | `apply_join_classification.py` | 가입 자격 분류표를 seed CSV(도서관·규칙)에 넣음. 여러 파일을 받으면 뒤 파일이 이김. 시범 도서관(YAML)은 손으로 고칠 줄을 출력 | `python scripts/library/apply_join_classification.py <classification.tsv> scripts/library/join_overrides.tsv` |
 | `join_overrides.tsv` | 사용자가 정한 가입 자격 결과(원문·주소·결정 날짜). 다시 조사하지 않는 근거 | (데이터 파일) |
 | `find_front_pages.py` | 전자도서관 줄마다 첫 화면 주소를 화면 종류별로 만들어 열리는지 확인(`homepage_url`) | `python scripts/library/find_front_pages.py <out.tsv> [--write]` |
-| `build_candidate_seed.py` | 수집 DB 사본의 후보 도서관(수집 번호 100001 이상)을 서비스 도서관 seed CSV와 짝 CSV로 만듦. 이미 받은 번호·이름은 그대로 두고 새 후보만 다음 번호. 등록 도서관과 호스트가 같고 책 번호가 겹치는데 아직 읽지 않은 곳이 있으면 목록을 내고 종료 코드 2로 멈춤. 테스트: `python -m unittest scripts/library/test_build_candidate_seed.py` | `python scripts/library/build_candidate_seed.py <사본.sqlite> <public-join.tsv> <candidate-kinds.tsv> <kyobo-probe.tsv>` |
+| `build_candidate_seed.py` | 수집 DB 사본의 후보 도서관(수집 번호 100001 이상)을 서비스 도서관 seed CSV와 짝 CSV로 만듦. 이미 받은 번호·이름은 그대로 두고 새 후보만 다음 번호. 등록 도서관과 호스트가 같고 책 번호가 겹치는데 아직 읽지 않은 곳이 있으면 목록을 내고 종료 코드 2로 멈춤. 사이클 09부터 업체·대출 방식·순번을 정하고, 순번 2 이상이면 종료 코드 3. `--changes-only`는 seed를 쓰지 않고 changeset에 넣을 목록(이름 UPDATE VALUES, 대출 방식 채우기, 수집 세션용 이름 목록)만 냄. 테스트: `python -m unittest scripts/library/test_build_candidate_seed.py` | `python scripts/library/build_candidate_seed.py [--changes-only <db-state.tsv>] <사본.sqlite> <public-join.tsv> <candidate-kinds.tsv> <kyobo-probe.tsv> <bookcube-volume.tsv>` |
 | `CheckFinalOrigins.java` | 도서관마다 adapter와 같은 검색 주소(제목 "사랑")를 서비스와 같은 JDK·TLS로 부르고 리다이렉트를 하나씩 따라가 **최종 `base_url`**을 냄(4-7 1번). 같은 호스트는 1.1초 간격 하나씩, 호스트 12곳 동시 | `java scripts/library/CheckFinalOrigins.java <in.tsv>` (in: `id<TAB>platform_type<TAB>base_url`) → `SAME` / `MOVED_TO` / `MOVED_ELSEWHERE` / `HTTP_<code>` / `ERROR` |
 | `final-origins.tsv` | 후보 도서관의 목록 주소 → 최종 주소(`MOVED_TO`만). `build_candidate_seed.py`가 `base_url`·`homepage_url`에 씀 | (데이터 파일) |
 | `check_front_page_names.py` | 켜진 도서관마다 첫 화면(`homepage_url`, 없으면 `base_url`)을 한 번 열어 그 도서관 이름이 글에 있는지, 페이지 제목이 무엇인지 적음. `--mobile`이면 폰 브라우저 User-Agent로 엶(YES24 모바일판 `/m/` 확인용). Windows curl, 같은 호스트는 1.1초 간격 하나씩, 호스트 12곳 동시. 판단은 사람이 함 | `python scripts/library/check_front_page_names.py <in.tsv> <out.tsv> [--mobile]` (in: `id<TAB>name<TAB>url`) |
@@ -201,7 +204,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 ### 4-5. 한 도서관이 사이트 여러 개를 운영함
 
 - 같은 서버에 포트만 달리해 교보·YES24·북큐브를 함께 두는 곳이 많습니다(전북교육청 `ebook.jbe.go.kr` 교보 `:10112`~`:10129`·YES24 `:10061`·북큐브 `:10031`~, 전남교육청 `ebook.jne.go.kr`, 경남 `elib.gyeongnam.go.kr`, 경북도서관 `www.gb.go.kr`).
-- **사이트 하나 = `library` 한 줄**로 넣습니다(ADR-0017). 같은 기관의 일반·구독형도 두 줄입니다. 이름은 "(구독)" 등으로 구분합니다(`name` UNIQUE).
+- **사이트 하나 = `library` 한 줄**로 넣습니다(ADR-0017). 같은 기관의 일반·구독형도 두 줄입니다. 이름은 기관 이름만 쓰고, 업체·대출 방식·순번으로 구분합니다(ADR-0071, 사이클 09).
 - 이런 곳은 호스트 이름이 같아 간격 제어로 한 줄로 묶입니다(ADR-0010). 확인 도구도 모든 요청 사이를 1.1초씩 띄웁니다.
 
 ### 4-6. 주소 모양으로 나누기
@@ -404,7 +407,8 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
   - 공식 이름·날짜: 교육부·대학알리미·법무부·서울시교육청·국가법령정보센터·기관 홈페이지를 WebFetch로 열어 원문을 짧게 옮김. 검색 요약만 본 것은 따로 표시
   - 이름 겹침: `library/*library*.csv`와 seed YAML의 이름 2,669개와 정확히 같은지 + 핵심 낱말이 들어간 이름을 모두 봄(`library.name` UNIQUE)
 - **교보 구독형 서버가 오늘 응답 없음**: `nile`·`at`·`kicj`·`poscoenc`·`andonguniv.dkyobobook.co.kr`(모두 103.182.126.192)이 https·http 모두 20초 연결 시간 초과(21:2x, 21:39 두 번). 같은 교보지만 `kpu.dkyobobook.co.kr`(112.216.251.54)은 응답. 그래서 1016·1079·2161·1203의 사이트 제목은 2026-10-05 `data/cycle07/front-out.tsv` 값을 씀. 다른 날 한 번 더 열어 볼 것 [확인 필요]
-- 이름 짓는 규칙(지금 seed와 같게): 기관 이름만 씀("전자도서관"은 붙이지 않음). 같은 기관 사이트가 여럿이면 플랫폼 라벨을 붙임(예: `원광대학교 (북큐브)`·`원광대학교 (교보)`, `강원대학교 (교보)`·`강원대학교 (YES24)`)
+- 이름 짓는 규칙(사이클 08 당시): 기관 이름만 씀("전자도서관"은 붙이지 않음). 같은 기관 사이트가 여럿이면 플랫폼 라벨을 붙임(예: `원광대학교 (북큐브)`·`원광대학교 (교보)`).
+  - **사이클 09부터 바뀜 (ADR-0071)**: 이름에 업체·대출 방식 괄호를 붙이지 않음. 같은 기관 사이트는 `vendor`·`lending_model`로 구분하고, 그래도 같으면 `order_no` 2가 붙음 → 사이트 이름을 확인해 고치고 순번을 1로. 이미 받은 이름은 그대로 둠(이름 유지 규칙). 예외는 `name_overrides.tsv`의 이름 고침뿐이고, 괄호 떼기는 `changed_on` `label-removed`. 배포 전에는 번호로 고치는 changeset(013, 014)으로 바꿈. 확인 기록은 4-13
 
 #### 4-12-1. 이름 고칠 곳 (작업 A)
 
@@ -660,6 +664,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 | 2026-10-05 | **후보 도서관 최종 주소 (4-7 1번을 빠뜨린 것 바로잡기).** 증상: 강동대학교 (북큐브) 검색이 늘 실패(사용자). 원인: 후보 seed가 수집 DB 주소를 그대로 써서, https로 302하는 사이트를 서비스가 따라가지 않음. 켜진 http 도서관 1,075곳(등록 77 포함)을 `CheckFinalOrigins.java`로 확인: 그대로 816, **https로 옮김 248**(모두 후보, 등록 0), 실패 → 아래. 인증서 실패 15곳: 중간 인증서 3개(Sectigo RSA OV Secure Server CA, GeoTrust TLS RSA CA G1, Sectigo R46 ← USERTrust 교차 인증서)로 12곳 해결, 남은 3곳(세계사이버대·서울신학대·충북 전자도서관)은 JDK에 없는 최상위 기관 OISTE WISeKey Global Root GB CA → 사용자 결정 "이거 신뢰해줘"로 `tls/library-roots/`에 더함(`library-site-issues.md` 3절). 시간 초과는 다시 해 보니 대부분 응답, 끝까지 실패 2곳은 `library-site-issues.md` 9절. 결과: `scripts/library/final-origins.tsv` 248줄 → `008-library-candidates.csv` 248곳 `base_url`·`homepage_url` 바뀜. 확인: 강동대 북큐브 "사랑" 467건(사이트와 같음) | `CheckFinalOrigins.java`, `final-origins.tsv`, `build_candidate_seed.py` |
 | 2026-10-05 | **후보 도서관 넣기 (사이클 07, plan 인계서 1단계).** 출처: 사본 `chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite`(`quick_check` ok, 도서관 3,016 = 등록 278 + 후보 2,738), `library-join/public-join-2026-10-05.tsv`(후보 공공도서관 120곳 가입 조사, `decision` 칸 우선), `library-join/candidate-kinds-2026-10-05.tsv`(후보 종류), `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`(`model` → `lending_model`: 소장 OWNED, 혼합 MIXED, 대여 RENTAL). 결과: 후보 **2,394곳**(서비스 번호 281~2674), 가입 규칙 250줄, 짝 2,674줄. 넣을 후보 2,412곳에서 뺀 곳: 같은 사이트 다른 포트 8, 체험용·운영 중단 4, 시험용 6(`library-site-issues.md` 8절). `join_survey`: MEMBERS_ONLY 2,252, SURVEYED 90, NOT_SURVEYED 35, NOT_FOUND 17. 이름에 라벨이 붙은 곳 225, 라벨+호스트 2(부여대왕초등학교 교보 두 곳). **이 규칙의 예외(plan 인계서 C1, ADR-0053)**: 학교·대학·회사·기관·단체(`MEMBERS_ONLY`)와 종류 모름(`NOT_SURVEYED`)은 가입 조사 없이 조사 상태 표시로 넣음(직접 추가했을 때만 검색에 나옴). 사용자 결정: 소속 전용으로 조사된 대구학생전자도서관(100049)·세종시교육청(100722, 같은 사이트라 빠짐)은 `MEMBERS_ONLY`("구성원용으로", 2026-10-05). 지역 표에 **증평군이 없어** 증평군립도서관(100111)은 규칙 없이 요약 글 "증평군 거주·재직·재학"만 둠(자격 미확인으로 보임). 면·혁신도시처럼 시·군·구보다 작은 범위는 규칙에서 뺌(증평 인접 면, 진천 충북 혁신도시) | `008-*.csv`, `collection/002-collection-link.csv`, `scripts/library/build_candidate_seed.py` |
 | 2026-10-11 | **기관 이름 바뀜·흡수된 학교 확인 (사이클 08 11단계, 조사만).** 이름 고칠 후보 8곳(434·456·2264·2563·2611·2161·1079·1016)의 사이트 제목·공식 새 이름·날짜·이름 겹침, 흡수된 학교 7곳(428·429·769·2257·607·895·1002) 사이트 상태. 434·456은 새 이름이 다른 사이트(745·2239)와 겹쳐 라벨이 필요. 흡수된 학교 7곳은 모두 아직 따로 돌아감(제안 "그대로"). 교보 구독형 서버(103.182.126.192)는 이날 응답 없음. 사용자 결정(같은 날): 8곳 모두 제안대로 바꿈(`scripts/library/name_overrides.tsv`, `library/013-library-name-overrides.yaml`), 흡수된 학교 7곳 그대로 | 4-12 |
+| 2026-10-11 | **이름은 기관 이름만 (사이클 09 1~3단계).** 이름 끝 업체·대출 방식 괄호 277줄 셈(남길 45, 애매 2는 따로 이름 고침), 공식 이름 10곳 다시 확인(모두 spec과 같음, 943·64 경남교육청 기관 안내로 새로 확인), `name_overrides.tsv` 295줄, `build_candidate_seed.py --changes-only`로 `library/014` 목록(이름 289줄, 대출 방식 채우기 1,458줄), 북큐브 구독 339·380·386·705, 순번 2 이상 0. 사용자 승인: 289줄 목록 "승인, 커밋" | 4-13 |
 
 ## 14. 사용자가 직접 확인할 목록 (원문이 애매해 판단을 미룬 것)
 

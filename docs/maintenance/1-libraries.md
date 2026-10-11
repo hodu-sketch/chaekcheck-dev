@@ -77,12 +77,13 @@
 수집 DB의 후보 도서관을 서비스 DB seed로 만드는 단계입니다(ADR-0052). 원본은 배포용 사본(읽기 전용)입니다.
 
 ```
-python scripts/library/build_candidate_seed.py <사본.sqlite> <public-join.tsv> <candidate-kinds.tsv> <kyobo-probe.tsv>
+python scripts/library/build_candidate_seed.py [--changes-only <db-state.tsv>] <사본.sqlite> <public-join.tsv> <candidate-kinds.tsv> <kyobo-probe.tsv> <bookcube-volume.tsv>
 ```
 
-- 저장소 뿌리에서 실행합니다. 입력 셋은 데이터 폴더 `library-join\public-join-*.tsv`(후보 공공도서관 가입 조사), `library-join\candidate-kinds-*.tsv`(종류), `other-platforms\kyobo-institutions-probe-*.tsv`(`model` → `lending_model`).
+- 저장소 뿌리에서 실행합니다. 입력 셋은 데이터 폴더 `library-join\public-join-*.tsv`(후보 공공도서관 가입 조사), `library-join\candidate-kinds-*.tsv`(종류), `other-platforms\kyobo-institutions-probe-*.tsv`(`model` → `lending_model`), 북큐브 전체 권수 `scripts/library/bookcube-volume-*.tsv`(전체 권수 0 + 책 있음 → 구독).
 - 내놓는 것: `backend/src/main/resources/db/changelog/library/008-library-candidates.csv`, `008-eligibility-rule-candidates.csv`, `collection/002-collection-link.csv`. 손으로 고치지 않습니다. 등록 도서관 `lending_model`은 출력된 값을 `library/008`의 UPDATE에 옮깁니다.
-- 규칙: 수집 번호 ≥ 100001, `crawl_skip` 없음, 전체 수집 끝남. 체험용·운영 중단·시험용·같은 사이트는 뺌. 이미 짝이 있는 후보는 번호·이름을 그대로 두고, 새 후보만 "마지막 번호 다음"을 받습니다. 이름이 겹치면 `이름 (북큐브|교보|YES24|알라딘)`, 그래도 겹치면 `이름 (라벨, 호스트)`.
+- 규칙: 수집 번호 ≥ 100001, `crawl_skip` 없음, 전체 수집 끝남. 체험용·운영 중단·시험용·같은 사이트는 뺌. 이미 짝이 있는 후보는 번호·이름을 그대로 두고, 새 후보만 "마지막 번호 다음"을 받습니다. 이름은 수집 DB 이름 그대로(괄호 라벨을 붙이지 않음, ADR-0071). 같은 기관 사이트는 업체·대출 방식으로 구분하고, 그래도 같으면 순번 2가 붙어 종료 코드 3으로 멈춥니다 → 사이트 이름을 확인해 `name_overrides.tsv`로 고침.
+- 배포 전(seed 고정 전) 이름·대출 방식 바꾸기: `--changes-only data/…/library-db.tsv`(로컬 `db`의 `id, name, platform_type, lending_model, enabled` 내보내기, 머리 줄 없음)로 seed는 그대로 두고 changeset용 목록만 받습니다(사이클 09 `library/014`).
 - 테스트: `python -m unittest scripts/library/test_build_candidate_seed.py`.
 - 넣은 뒤: Liquibase 적용(배포 전에는 `PRE_DEPLOYMENT` 규칙, `library-maintenance.md` 7절) → [3-import.md](3-import.md)로 그 도서관 책을 가져옴. 결과 셈은 `library-maintenance.md` 13절과 `docs/plan-feedback.md`에 적습니다.
 

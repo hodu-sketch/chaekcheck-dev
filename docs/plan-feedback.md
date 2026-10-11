@@ -2378,3 +2378,28 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 따로 띄운 개발 DB(`chaekcheck-db09`, 빈 DB에서 001~014 적용)에서 확인: 2,663줄, `vendor` NULL 0, `lending_model` NULL 7(포털만), `order_no` 모두 1, C5 목록 18곳이 0단계와 같음, 이름 끝 괄호 0, 괄호 남은 이름 45줄이 0단계의 남길 줄과 같은 번호·이름(1149만 이스케이프 고침)
 - 사용자 승인: 이름 바꿀 289줄 목록(`data/cycle09/rename-list-014.tsv`)을 보고 "승인, 커밋" (2026-10-11)
 - 운영 `db`에는 아직 적용하지 않음(0단계 나머지 측정 뒤)
+
+## 4·5단계
+
+- 새 테스트 클래스 `LibrarySchemaCycle09Tests`(인계서 [안] 이름 그대로). `SearchTarget`·`LibraryEligibility`·`StreamEvents.Library`의 새 칸은 레코드 끝에 붙임(JSON 칸 순서도 끝)
+- `CandidateSeedTests`의 280 이하 `OWNED` 수: 5 → **255**(교보 구독형 probe 5 + 나머지 화면 250, 014 뒤 DB에서 셈)
+- 테스트용 `TestTargets`에 화면 종류 → 업체 대응(`vendorOf`)을 둠
+- 웹: `web/src/lib/libraryClassification.ts`(인계서 [안] 경로 그대로), 폰 기준 폭 `width <= 640px`(기존과 같음)
+- **"군산시립" 순서가 인계서 예시와 다름**: 규칙("같은 이름은 업체 글자순")대로 하면 `Intl.Collator('ko')`가 한글을 라틴 글자 앞에 두어 교보 → 북큐브 → YES24. 인계서 테스트 예시는 "교보·YES24·북큐브". 규칙을 따름(plan 확인)
+- 이름 찾기 "이름 앞부분 일치"는 검색어 전체 열쇠로 판단(낱말 하나가 아님): 지금 결과 순서를 지키려고. 같은 이름·같은 업체는 마지막에 순번으로 정렬(인계서에 없는 기준)
+- 분류 열쇠에는 "N번째 사이트"를 넣지 않음(업체 + 대출 방식만, 인계서대로)
+- 확인: `./gradlew build` 통과(`ModularityTests`, `DocumentationTests` 포함), 웹 `npm test` 40파일 304개, `npm run build`, `npm run lint` 통과
+- 처음 백엔드 테스트 때 201개가 연결 거부로 실패: WSL에 붙어 있는 프로세스가 없으면 몇 초 뒤 WSL이 꺼지며 Docker 컨테이너도 멈춤(사이클 08 측정 세션이 끝나며 붙잡던 프로세스가 사라짐). `wsl -d Ubuntu -- sleep infinity`를 띄워 두고 다시 돌려 통과
+
+## 0단계 나머지 (2026-10-12, 가져오기 #3c 뒤, 014 적용 전)
+
+- 목록 응답(지역 없음): 압축 전 **737,300바이트**, gzip(`gzip -6`) **52,686바이트**. plan 기록 671,376 / 61,152와 다른 것은 사이클 08에서 칸(`mobileSiteDiffers` 등)이 늘고 잰 방법이 다르기 때문으로 봄. 비교는 이 값과 함. 서버는 gzip을 하지 않음(nginx가 함)
+- 첫 `targets`(제목 "사랑", 압축 JSON 다시 직렬화): 지역 없음 256,653 / 종로구 거주 95,869 / 가입 가능 27,948바이트 (`measure_books.py`, `data/cycle09/books-before/`)
+- 검색 결과 기준: `measure_books.py` 질의 전부(`data/cycle09/books-before/`), 검색 스트림과 대출 현황 스트림 → `data/cycle09/streams-before/`(종로구 거주 / 동래구 거주 + 직접 추가 339·943·1575, 제목 "사랑"·저자 "김영하", 책 189825·67035). 인계서 [안]의 "서울·부산"은 시·도라 422(`not_sigungu`)라 구로 바꿈
+- 내 도서관: 로그인 전 브라우저(localhost:5173)에 434·943·1575·339·769·76을 화면에서 직접 추가(`chaekcheck.chosenLibraries.v1` = `[434,943,1575,339,769,76]`). 로그인 계정 쪽은 네이버·카카오 로그인이 필요해 하지 않음. 사용자 결정: "브라우저만 + 테스트로 대신" — 014는 번호를 바꾸지 않고, `MyLibraryApiTests`가 계정 저장을 확인함
+
+## 6단계
+
+- `check_front_page_names.py`의 `LABEL` 정규식과 `keys()`의 떼기를 지움. 손으로 확인: `keys('경상남도교육청 양산도서관')` → {'경상남도교육청', '경상남도교육청 양산도서관'}
+- `library-maintenance.md` 1-1(`name`, `vendor`, `lending_model`, `order_no`, 제약 이름), 4-5, 4-12 이름 규칙, 도구 표, 13절. `1-libraries.md` 넣기 절. `build.gradle` 주석 `-PbootRunXmx=6g`
+- `eligibility_rules.py`·`build_seed.py`는 다시 돌리지 않으므로 그대로(이름 열쇠 고치지 않음)

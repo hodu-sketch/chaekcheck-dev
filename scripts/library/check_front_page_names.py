@@ -25,12 +25,12 @@ CURL = r'C:\Windows\System32\curl.exe'
 USER_AGENT = 'chaekcheck/0.0.1'
 MOBILE_USER_AGENT = ('Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) '
                      'Chrome/129.0 Mobile Safari/537.36')
-LABEL = re.compile(r'\s*\((?:교보|북큐브|YES24|알라딘|구독|대여|구독형)[^)]*\)\s*')
 
 
 def keys(name):
-    """Parts of the name that should appear on the page: the name without our platform label, and its first word."""
-    base = LABEL.sub('', name).strip()
+    """Parts of the name that should appear on the page: the name and its first word. Names carry no vendor label
+    since cycle 09 (ADR-0071)."""
+    base = name.strip()
     first = re.split(r'\s+', base)[0]
     short = re.sub(r'(전자도서관|전자책도서관|도서관|중앙도서관|학술정보원|학술정보관)$', '', first)
     return {k for k in (base, first, short) if len(k) >= 2}
