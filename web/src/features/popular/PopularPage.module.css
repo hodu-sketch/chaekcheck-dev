@@ -1,8 +1,8 @@
 /*
  * S13 popular, design A (user choice 2026-10-12): each category in a white rounded panel sized to its 3 x 3 grid,
  * a large category title with "1–9위 / 50", round rank chips, soft grey ◀ ▶ beside the grid and page dots under it.
- * A very soft shadow on the panels as in the chosen mockup (an exception to the flat-card note in global.css); no
- * gradients.
+ * The panels are the app's flat cards, like the search results and the book page: white, hairline border, no shadow
+ * (user 2026-10-12: "지금 '인기 도서 화면'의 것을 다른 카드들과 같이 해줘").
  *
  * No visible heading and no bar (user 2026-10-12: "아 뭘 해도 인기도서 전체 i 이게 너무 어색해", "이거 위에 있는거
  * 불필요하니까 없애고"): only [전체 ▾] floats, at the bottom centre on every width ("분류 … 폰 피씨 태블릿 모두 화면 아래에
@@ -158,11 +158,9 @@
   width: fit-content;
   margin: 0 auto;
   padding: 1.15rem 1.5rem 1rem;
-  border-radius: 26px;
-  background: var(--paper);
-  box-shadow:
-    0 1px 2px rgb(25 31 40 / 0.04),
-    0 8px 28px rgb(25 31 40 / 0.05);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
 .cardHead {
@@ -420,7 +418,6 @@
   .panel {
     width: auto;
     padding: 1.15rem 0.9rem 1rem;
-    border-radius: 22px;
   }
 
   .cardHead {
