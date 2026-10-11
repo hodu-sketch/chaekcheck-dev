@@ -39,6 +39,7 @@ import com.chaekcheck.availability.internal.search.StreamEvents;
 import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
 import com.chaekcheck.library.InvalidRegionException.InvalidRegion;
+import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
@@ -136,8 +137,9 @@ class EbookSearchStreamControllerTests {
 	}
 
 	@Test
-	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side
-		SearchTarget chosen = withChosen(TestTargets.target(12, PlatformType.KYOBO_V1, "https://chosen.example"));
+	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side; cycle 09 AC-9 (orderNo)
+		SearchTarget chosen = withSecondSite(
+				withChosen(TestTargets.target(12, PlatformType.KYOBO_V1, "https://chosen.example")));
 		given(batchRunner.plan(eq(Set.of()), eq(Set.of()), any())).willReturn(List.of(chosen, TestTargets.GOHEUNG));
 
 		MvcTestResult result = get(URL + "?title=사랑&libraryIds=12,207,12");
@@ -146,8 +148,10 @@ class EbookSearchStreamControllerTests {
 				new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.ANY, Set.of(12L, 207L)));
 		assertThat(new String(result.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8))
 			.contains("\"libraries\":[{\"id\":12,")
-			.contains("\"homepageUrl\":null,\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false},{\"id\":2,")
-			.contains("\"chosen\":false,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false}]");
+			.contains("\"homepageUrl\":null,\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false,"
+					+ "\"vendor\":\"KYOBO\",\"lendingModel\":\"OWNED\",\"orderNo\":2},{\"id\":2,")
+			.contains("\"chosen\":false,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false,"
+					+ "\"vendor\":\"KYOBO\",\"lendingModel\":null,\"orderNo\":1}]");
 	}
 
 	@Test
@@ -180,7 +184,15 @@ class EbookSearchStreamControllerTests {
 	private static SearchTarget withChosen(SearchTarget t) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
-				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), true, t.joinSurvey(), t.lendingModel(), t.logoUrl(), t.mobileSiteDiffers());
+				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), true, t.joinSurvey(), t.lendingModel(), t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
+				t.orderNo());
+	}
+
+	private static SearchTarget withSecondSite(SearchTarget t) {
+		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
+				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
+				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(),
+				t.joinSurvey(), LendingModel.OWNED, t.logoUrl(), t.mobileSiteDiffers(), t.vendor(), 2);
 	}
 
 	/** The real catalog applies scope and visit (PlanOptions); the stub does the same on the given plan. */
@@ -193,7 +205,8 @@ class EbookSearchStreamControllerTests {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), true, t.joinMethod(),
 				t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
-				t.logoUrl(), t.mobileSiteDiffers());
+				t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
+				t.orderNo());
 	}
 
 	@Test
@@ -232,14 +245,16 @@ class EbookSearchStreamControllerTests {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), eligibility, t.eligibilitySummary(), extraConditionText, t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
-				t.logoUrl(), t.mobileSiteDiffers());
+				t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
+				t.orderNo());
 	}
 
 	private static SearchTarget withCaution(SearchTarget t, String joinCaution) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), joinCaution, t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
-				t.logoUrl(), t.mobileSiteDiffers());
+				t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
+				t.orderNo());
 	}
 
 	@Test

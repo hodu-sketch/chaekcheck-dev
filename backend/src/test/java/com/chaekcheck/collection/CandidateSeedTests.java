@@ -52,8 +52,10 @@ class CandidateSeedTests {
 		assertThat(count("SELECT count(*) FROM library.library WHERE id <= 280 AND join_method IS NULL")).isZero();
 		assertThat(jdbc.sql("SELECT lending_model FROM library.library WHERE id = 19").query(String.class).single())
 			.isEqualTo("OWNED");
+		// library/014: 5 KYOBO subscription rows from the probe (library/008) + 250 rows of the other non-portal
+		// screens (counted on the db after 014, 2026-10-11)
 		assertThat(count("SELECT count(*) FROM library.library WHERE id <= 280 AND lending_model = 'OWNED'"))
-			.isEqualTo(5);
+			.isEqualTo(255);
 		assertThat(count("SELECT count(*) FROM library.library WHERE logo_file IS NOT NULL")).isEqualTo(198);
 	}
 
@@ -61,8 +63,8 @@ class CandidateSeedTests {
 	@Test
 	void identityContinuesAfterTheSeed() {
 		long id = jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method)
-				VALUES ('새 도서관', 'KYOBO_V1', 'https://new.test', 'test') RETURNING id""")
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method)
+				VALUES ('새 도서관', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://new.test', 'test') RETURNING id""")
 			.query(Long.class)
 			.single();
 		assertThat(id).isGreaterThan(REGISTERED + CANDIDATES);

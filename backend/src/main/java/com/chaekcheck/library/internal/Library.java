@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 
 import com.chaekcheck.library.JoinSurvey;
 import com.chaekcheck.library.LendingModel;
+import com.chaekcheck.library.Vendor;
 import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlatformType;
 
@@ -92,10 +93,22 @@ class Library {
 	@Column(name = "join_survey", columnDefinition = "text")
 	private JoinSurvey joinSurvey;
 
-	/** KYOBO subscription-screen institutions only; null keeps the platform's rule (ADR-0056). */
+	/**
+	 * Every library but the integrated portals; null for the portals (ADR-0071). On the KYOBO subscription screen a
+	 * null keeps the platform's rule (ADR-0056).
+	 */
 	@Enumerated(EnumType.STRING)
 	@Column(name = "lending_model", columnDefinition = "text")
 	private LendingModel lendingModel;
+
+	/** Written by the seed script, checked by the database (ADR-0071); Java never saves a library. */
+	@Enumerated(EnumType.STRING)
+	@Column(name = "vendor", columnDefinition = "text", insertable = false, updatable = false)
+	private Vendor vendor;
+
+	/** 1, or 2 and up within the same (name, vendor, lending_model) (ADR-0071). */
+	@Column(name = "order_no", insertable = false, updatable = false)
+	private int orderNo;
 
 	/** File name under the web's {@code /library-logos/}; null when the library has no logo of its own (ADR-0059). */
 	@Column(name = "logo_file", columnDefinition = "text")
@@ -182,6 +195,14 @@ class Library {
 
 	LendingModel getLendingModel() {
 		return lendingModel;
+	}
+
+	Vendor getVendor() {
+		return vendor;
+	}
+
+	int getOrderNo() {
+		return orderNo;
 	}
 
 	String getLogoFile() {

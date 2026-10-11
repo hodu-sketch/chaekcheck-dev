@@ -33,7 +33,8 @@ class HoldingTaskTests {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(),
-				t.joinSurvey(), model, t.logoUrl(), t.mobileSiteDiffers());
+				t.joinSurvey(), model, t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
+				t.orderNo());
 	}
 
 }

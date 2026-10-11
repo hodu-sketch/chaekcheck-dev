@@ -243,8 +243,8 @@ class MyLibraryApiTests {
 	void disabledLibraryCannotBeAddedButASavedOneStaysAndCounts() { // AC-10
 		long account = newAccount();
 		disabledLibrary = jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method, enabled)
-				VALUES ('테스트 꺼짐', 'KYOBO_V1', 'https://disabled.mylibrary.test', 'test', false) RETURNING id""")
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method, enabled)
+				VALUES ('테스트 꺼짐', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://disabled.mylibrary.test', 'test', false) RETURNING id""")
 			.query(Long.class)
 			.single();
 
@@ -408,8 +408,8 @@ class MyLibraryApiTests {
 	void importMovesTheBrowsersLibrariesInOrder() { // AC-19 server side
 		long account = newAccount();
 		disabledLibrary = jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method, enabled)
-				VALUES ('테스트 꺼짐', 'KYOBO_V1', 'https://disabled.mylibrary.test', 'test', false) RETURNING id""")
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method, enabled)
+				VALUES ('테스트 꺼짐', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://disabled.mylibrary.test', 'test', false) RETURNING id""")
 			.query(Long.class)
 			.single();
 		long third = enabled.get(2), first = enabled.get(0);

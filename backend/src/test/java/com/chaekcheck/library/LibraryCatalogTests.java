@@ -374,8 +374,8 @@ class LibraryCatalogTests {
 	@Test
 	void ebookLibraryNeedsPlatformTypeAndBaseUrl() {
 		assertThatThrownBy(() -> jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method)
-				VALUES ('no platform', NULL, 'https://no-platform.test', 'test')
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method)
+				VALUES ('no platform', NULL, 'KYOBO', 'OWNED', 'https://no-platform.test', 'test')
 				""").update())
 			.hasMessageContaining("library_ebook_site_check");
 	}
@@ -383,8 +383,8 @@ class LibraryCatalogTests {
 	@Test
 	void holdingsCountNeedsItsCountDate() {
 		assertThatThrownBy(() -> jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method, holdings_count)
-				VALUES ('no date', 'KYOBO_V1', 'https://no-date.test', 'test', 10)
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method, holdings_count)
+				VALUES ('no date', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://no-date.test', 'test', 10)
 				""").update())
 			.hasMessageContaining("library_holdings_counted_check");
 	}
@@ -392,8 +392,8 @@ class LibraryCatalogTests {
 	@Test
 	void baseUrlIsUnique() {
 		assertThatThrownBy(() -> jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method)
-				VALUES ('same url', 'KYOBO_V1', 'https://www.ghlib.go.kr:446', 'test')
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method)
+				VALUES ('same url', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://www.ghlib.go.kr:446', 'test')
 				""").update())
 			.hasMessageContaining("library_base_url_key");
 	}
@@ -619,9 +619,9 @@ class LibraryCatalogTests {
 
 	private long library(String name, Integer holdings, boolean deferred, String extraConditionText) {
 		return jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method, holdings_count,
-				  holdings_counted_on, deferred, extra_condition_text)
-				VALUES (:name, 'KYOBO_V1', :baseUrl, 'test', :holdings,
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method,
+				  holdings_count, holdings_counted_on, deferred, extra_condition_text)
+				VALUES (:name, 'KYOBO_V1', 'KYOBO', 'OWNED', :baseUrl, 'test', :holdings,
 				  CASE WHEN CAST(:holdings AS integer) IS NULL THEN NULL ELSE DATE '2026-09-28' END, :deferred, :extra)
 				RETURNING id
 				""")

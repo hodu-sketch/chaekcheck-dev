@@ -304,8 +304,8 @@ class BookSearchTests {
 
 	private long library(String name, boolean visit) {
 		return jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method, visit_required)
-				VALUES (:name, 'KYOBO_V1', :url, 'test', :visit) RETURNING id""")
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method, visit_required)
+				VALUES (:name, 'KYOBO_V1', 'KYOBO', 'OWNED', :url, 'test', :visit) RETURNING id""")
 			.param("name", "테스트 " + name)
 			.param("url", "https://" + Integer.toHexString(name.hashCode()) + ".test")
 			.param("visit", visit)

@@ -40,14 +40,14 @@ class LibrarySchemaCycle08Tests {
 					2586L);
 	}
 
-	/** AC-5: the renamed bodies (library/013), same ids, the old names gone. */
+	/** AC-5: the renamed bodies (library/013, labels removed by 014), same ids, the old names gone. */
 	@Test
 	void renamedLibrariesKeepTheirIds() {
 		assertThat(jdbc.sql("""
 				SELECT id || ' ' || name FROM library.library
 				WHERE id IN (434, 456, 2264, 2563, 2611, 2161, 1079, 1016) ORDER BY id""")
 			.query(String.class)
-			.list()).containsExactly("434 경상국립대학교 (북큐브)", "456 국립경국대학교 (북큐브)", "1016 국가평생교육진흥원",
+			.list()).containsExactly("434 경상국립대학교", "456 국립경국대학교", "1016 국가평생교육진흥원",
 					"1079 한국농수산식품유통공사", "2161 한국형사·법무정책연구원", "2264 신경주대학교", "2563 공소청 도서관",
 					"2611 서울디지털콘텐츠고등학교");
 		assertThat(jdbc.sql("""

@@ -17,6 +17,9 @@ import com.chaekcheck.library.LibraryEligibility;
  * <p>
  * A library whose region rules match none of the regions sent is {@code UNKNOWN} here, not left out. That differs
  * from the search APIs, where {@code UNKNOWN} means "no regions sent" and such a library is not in the plan.
+ * <p>
+ * Names are the body's name only. {@code vendor}, {@code lendingModel} (null for the integrated portals) and
+ * {@code orderNo} tell sites of one body apart; the web turns them into "교보 · 소장" (ADR-0071, ADR-0076).
  */
 @RestController
 class LibraryListController {

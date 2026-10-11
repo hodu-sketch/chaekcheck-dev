@@ -55,15 +55,36 @@ class LibraryListTests {
 		assertThat(get("")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
 				{"libraries":[
 				  {"id":%d,"name":"테스트 누구나","eligibility":"OPEN","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false},
+				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false,
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
 				  {"id":%d,"name":"테스트 서울","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":false,
 				   "cautioned":false,"eligibilitySummary":"서울 거주·재직·재학","joinSurvey":"SURVEYED","homepageUrl":null,
-				   "logoUrl":null,"mobileSiteDiffers":false},
+				   "logoUrl":null,"mobileSiteDiffers":false,
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
 				  {"id":%d,"name":"테스트 부산","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":true,
-				   "cautioned":true,"eligibilitySummary":"부산 거주","joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false},
+				   "cautioned":true,"eligibilitySummary":"부산 거주","joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false,
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
 				  {"id":%d,"name":"테스트 미확인","eligibility":"UNVERIFIED","matchedBy":[],"visitRequired":false,
-				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false}
+				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false,
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1}
 				]}
+				""".formatted(open, seoulAll, busanResidence, unverified));
+	}
+
+	/**
+	 * Cycle 09 (ADR-0076, AC-9 API side): vendor, lendingModel and orderNo come with the list; a portal has no
+	 * lendingModel.
+	 */
+	@Test
+	void classificationIsListed() {
+		jdbc.sql("UPDATE library.library SET order_no = 2 WHERE id = ?").param(seoulAll).update();
+		jdbc.sql("""
+				UPDATE library.library SET platform_type = 'ELIB_PORTAL_V1', vendor = 'PORTAL', lending_model = NULL
+				WHERE id = ?""").param(busanResidence).update();
+		assertThat(get("")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+				{"libraries":[{"id":%d,"vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
+				  {"id":%d,"vendor":"KYOBO","lendingModel":"OWNED","orderNo":2},
+				  {"id":%d,"vendor":"PORTAL","lendingModel":null,"orderNo":1},{"id":%d}]}
 				""".formatted(open, seoulAll, busanResidence, unverified));
 	}
 
@@ -135,9 +156,9 @@ class LibraryListTests {
 
 	private long library(String name, String summary, boolean visitRequired) {
 		return jdbc.sql("""
-				INSERT INTO library.library (name, platform_type, base_url, join_method, eligibility_summary,
-				  visit_required)
-				VALUES (?, 'KYOBO_V1', ?, 'test', ?, ?) RETURNING id
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method,
+				  eligibility_summary, visit_required)
+				VALUES (?, 'KYOBO_V1', 'KYOBO', 'OWNED', ?, 'test', ?, ?) RETURNING id
 				""")
 			.params("테스트 " + name, "https://" + Integer.toHexString(name.hashCode()) + ".list.test", summary,
 					visitRequired)

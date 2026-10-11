@@ -182,7 +182,8 @@ class LibraryService implements LibraryCatalog {
 			// unresearched libraries stay in the list as UNSURVEYED: the name search of S10 finds them
 			list.add(new LibraryEligibility(library.getId(), library.getName(), eligibility, matchedBy,
 					library.isVisitRequired(), library.getJoinCaution() != null, library.getEligibilitySummary(),
-					library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library), library.isMobileSiteDiffers()));
+					library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library), library.isMobileSiteDiffers(),
+					library.getVendor(), library.getLendingModel(), library.getOrderNo()));
 		}
 		return list;
 	}
@@ -264,7 +265,8 @@ class LibraryService implements LibraryCatalog {
 				placement.eligibility(), library.getEligibilitySummary(), library.getExtraConditionText(),
 				library.isVisitRequired(), library.getJoinMethod(), library.getJoinUrl(), library.getJoinCaution(),
 				library.getJoinNotice(), library.getHomepageUrl(), chosen, library.getJoinSurvey(),
-				library.getLendingModel(), logoUrl(library), library.isMobileSiteDiffers());
+				library.getLendingModel(), logoUrl(library), library.isMobileSiteDiffers(), library.getVendor(),
+				library.getOrderNo());
 	}
 
 	/** Shown only when the library has its own logo and an operator has not taken it down (ADR-0059, AC-22). */

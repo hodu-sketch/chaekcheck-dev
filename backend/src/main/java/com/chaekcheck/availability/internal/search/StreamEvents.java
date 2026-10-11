@@ -10,10 +10,12 @@ import com.chaekcheck.availability.internal.fetch.LibraryPage.Availability;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.AvailabilityBasis;
 import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.JoinSurvey;
+import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.PriorityGroup;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.library.Vendor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
@@ -72,20 +74,22 @@ public final class StreamEvents {
 	 * One plan entry, in plan order (design-delta event example). {@code chosen}: the user added it by hand (cycle
 	 * 06); the next-batch APIs do not send it again, so the web keeps it from these first {@code targets}.
 	 * {@code joinSurvey} picks the join notice of a candidate library (ADR-0053); {@code logoUrl} is null when the
-	 * library has no logo of its own (ADR-0059).
+	 * library has no logo of its own (ADR-0059). {@code vendor}, {@code lendingModel} and {@code orderNo} are only
+	 * carried for the web to show after the name (ADR-0071, ADR-0076); the verdicts do not read them from here.
 	 */
 	public record Library(long id, String name, LibraryType libraryType, PlatformType platformType,
 			PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 			String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl,
 			String joinCaution, String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey,
-			String logoUrl, boolean mobileSiteDiffers) {
+			String logoUrl, boolean mobileSiteDiffers, Vendor vendor, LendingModel lendingModel, int orderNo) {
 
 		public static Library from(SearchTarget target) {
 			return new Library(target.id(), target.name(), target.libraryType(), target.platformType(),
 					target.priorityGroup(), target.deferred(), target.eligibility(), target.eligibilitySummary(),
 					target.extraConditionText(), target.visitRequired(), target.joinMethod(), target.joinUrl(),
 					target.joinCaution(), target.joinNotice(), target.homepageUrl(), target.chosen(),
-					target.joinSurvey(), target.logoUrl(), target.mobileSiteDiffers());
+					target.joinSurvey(), target.logoUrl(), target.mobileSiteDiffers(), target.vendor(),
+					target.lendingModel(), target.orderNo());
 		}
 
 	}

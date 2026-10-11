@@ -14,10 +14,14 @@ import java.util.List;
  * @param homepageUrl the e-library's main page, opened from the logo; may be null
  * @param logoUrl the library's own logo, or null (ADR-0059)
  * @param mobileSiteDiffers the site's phone version shows another page (cycle 08)
+ * @param vendor company of the site's system (ADR-0071); the web shows it after the name (ADR-0076)
+ * @param lendingModel every library but the integrated portals, null for the portals (ADR-0071)
+ * @param orderNo 1, or 2 and up within the same (name, vendor, lendingModel) (ADR-0071)
  */
 public record LibraryEligibility(long id, String name, Eligibility eligibility, List<RegionBasis> matchedBy,
 		boolean visitRequired, boolean cautioned, String eligibilitySummary, JoinSurvey joinSurvey,
-		String homepageUrl, String logoUrl, boolean mobileSiteDiffers) {
+		String homepageUrl, String logoUrl, boolean mobileSiteDiffers, Vendor vendor, LendingModel lendingModel,
+		int orderNo) {
 
 	public LibraryEligibility {
 		matchedBy = List.copyOf(matchedBy);
