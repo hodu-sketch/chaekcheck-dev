@@ -51,9 +51,9 @@
   cursor: grab;
 }
 
-/* with a ⓧ: a taller top row, so the button has room beside the handle (cycle 10) */
+/* with a ⓧ: a taller top row; the handle and the button share its middle line (cycle 10) */
 .bottomSheet[data-close] .handleArea {
-  height: 2.75rem;
+  height: 64px;
 }
 
 .handle {
@@ -64,14 +64,19 @@
 }
 
 .close {
+  /*
+   * Inside the sheet, clear of the rounded corner, on the handle row's middle line; a 44px touch target with a 36px
+   * grey square drawn inside it (user 2026-10-12: "이거 폰 창인데 x가 위치가 안 맞는데")
+   */
   position: absolute;
-  top: 0.3rem;
-  right: 0.5rem;
+  top: 10px;
+  right: 12px;
   display: grid;
   place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  padding: 0;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
+  background-clip: content-box;
   border: none;
   /* a soft grey rounded square, as in the popular windows (cycle 10 design A) */
   border-radius: var(--radius-control);
@@ -90,7 +95,7 @@
 
 .close:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .sheetBody {

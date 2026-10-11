@@ -35,7 +35,9 @@ export function PopularWindow({ open, onOpenChange, title, phone, size, children
         <Dialog.Content className={styles.content} data-size={size} aria-describedby={undefined}>
           <Dialog.Title className="visually-hidden">{title}</Dialog.Title>
           <Dialog.Close className={styles.close} aria-label="닫기">
-            <span aria-hidden="true">×</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
           </Dialog.Close>
           {children}
         </Dialog.Content>

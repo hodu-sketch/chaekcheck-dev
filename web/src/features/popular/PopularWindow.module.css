@@ -29,14 +29,16 @@
 }
 
 .close {
+  /* the same 44px target with a 36px grey square as the phone sheets, inside the window's padding */
   position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
+  top: 14px;
+  right: 14px;
   display: grid;
   place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  padding: 0;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
+  background-clip: content-box;
   border: none;
   border-radius: var(--radius-control);
   background: var(--paper-deep);
@@ -53,5 +55,5 @@
 
 .close:focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
