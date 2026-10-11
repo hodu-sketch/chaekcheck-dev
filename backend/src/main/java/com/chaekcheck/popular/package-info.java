@@ -1,6 +1,6 @@
 /**
  * Popular books (cycle 10): last month's sales ranking of the publishing distribution network
- * (bnk.kpipa.or.kr, ADR-0072), "전체" and 16 categories with 50 books each (ADR-0077), shown with whether the
+ * (bnk.kpipa.or.kr, ADR-0072), "전체" and 14 categories with 50 books each (ADR-0077; 언어 and 기술·공학 also left out, user decision 2026-10-12), shown with whether the
  * user's plan libraries hold the e-book. REST only, no public Java types; no other module depends on this one.
  * <p>
  * Responsibilities: fetching the ranking pages, category sales counts and small covers once a month on its own

@@ -73,14 +73,14 @@ class PopularFetchTests {
 	}
 
 	@Test
-	void successStoresSeventeenListsOf50InSalesOrder() {
+	void successStoresFifteenListsOf50InSalesOrder() {
 		fetchJob.fetch(SEP, FetchTrigger.SCHEDULED);
 
 		Map<String, Object> run = run(SEP);
 		assertThat(run).containsEntry("status", "SUCCEEDED")
 			.containsEntry("trigger", "SCHEDULED")
-			.containsEntry("request_count", 34)
-			.containsEntry("book_count", 850)
+			.containsEntry("request_count", 30)
+			.containsEntry("book_count", 750)
 			.containsEntry("missing_isbn_count", 0)
 			.containsEntry("cover_fetched_count", 50)
 			.containsEntry("cover_failed_count", 0);
@@ -99,14 +99,14 @@ class PopularFetchTests {
 			.query(Long.class)
 			.single()).isEqualTo(883_478L);
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-09-01'"))
-			.isEqualTo(850);
+			.isEqualTo(750);
 		assertThat(jdbc.sql("""
 				SELECT isbn13 || ' ' || title FROM popular.ranking_entry
 				WHERE target_month = DATE '2026-09-01' AND category_code = 'ALL' AND rank = 1""")
 			.query(String.class)
 			.single()).isEqualTo("9791199489561 세네카, 오늘을 빼앗기고 있는 당신에게");
-		// AC-12: 34 requests for the ranking, then one per new cover
-		assertThat(site.requests()).hasSize(34 + 50);
+		// AC-12: 30 requests for the ranking, then one per new cover
+		assertThat(site.requests()).hasSize(30 + 50);
 		assertThat(count("SELECT count(*) FROM popular.cover WHERE source_path LIKE '%s_202609_%'")).isEqualTo(49);
 	}
 
@@ -120,7 +120,7 @@ class PopularFetchTests {
 
 		assertThat(count("SELECT count(*) FROM popular.ranking_month WHERE target_month = DATE '2026-09-01'")).isZero();
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-08-01'"))
-			.isEqualTo(850);
+			.isEqualTo(750);
 		Map<String, Object> run = run(SEP);
 		assertThat(run).containsEntry("status", "FAILED")
 			.containsEntry("failure_reason", "too_few_books")
@@ -146,7 +146,7 @@ class PopularFetchTests {
 				SELECT r.trigger FROM popular.ranking_month m JOIN popular.fetch_run r ON r.id = m.fetch_run_id
 				WHERE m.target_month = DATE '2026-09-01'""").query(String.class).single()).isEqualTo("SCHEDULED");
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-09-01'"))
-			.isEqualTo(850);
+			.isEqualTo(750);
 		assertThat(count("SELECT count(*) FROM popular.fetch_run WHERE target_month = DATE '2026-09-01'")).isEqualTo(2);
 		// the second fetch of September asked for no cover: all were stored
 		assertThat(run(SEP)).containsEntry("cover_fetched_count", 0).containsEntry("cover_failed_count", 0);
@@ -165,7 +165,7 @@ class PopularFetchTests {
 			.containsEntry("cover_fetched_count", 47)
 			.containsEntry("cover_failed_count", 3);
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-09-01'"))
-			.isEqualTo(850);
+			.isEqualTo(750);
 	}
 
 	/** User decision 2026-10-12: every cover stored as a 200px wide JPEG; byte_size is the stored size. */
@@ -201,7 +201,7 @@ class PopularFetchTests {
 			.isEqualTo(1);
 		// the August ranking itself stays (spec R1-5)
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-08-01'"))
-			.isEqualTo(850);
+			.isEqualTo(750);
 	}
 
 	@Test
@@ -215,7 +215,7 @@ class PopularFetchTests {
 			.containsEntry("cover_fetched_count", 0)
 			.containsEntry("cover_failed_count", 0);
 		assertThat(count("SELECT count(*) FROM popular.ranking_entry WHERE target_month = DATE '2026-09-01'"))
-			.isEqualTo(850);
+			.isEqualTo(750);
 		long stored = count("SELECT count(*) FROM popular.cover WHERE source_path LIKE '%s_202609_%'");
 		assertThat(stored).isBetween(1L, 48L);
 
@@ -223,7 +223,7 @@ class PopularFetchTests {
 		site.reset();
 		fetchJob.fetch(SEP, FetchTrigger.SCHEDULED);
 		assertThat(run(SEP)).containsEntry("cover_fetched_count", (int) (49 - stored));
-		assertThat(site.requests()).hasSize(34 + (int) (49 - stored));
+		assertThat(site.requests()).hasSize(30 + (int) (49 - stored));
 	}
 
 	private Map<String, Object> run(YearMonth month) {

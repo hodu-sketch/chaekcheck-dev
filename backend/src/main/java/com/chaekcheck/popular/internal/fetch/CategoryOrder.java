@@ -8,8 +8,8 @@ import java.util.Map;
 import com.chaekcheck.popular.internal.PopularCategory;
 
 /**
- * The order lists are shown in (spec R2-2, R2-3 [확정]): "전체" 0, then the 16 categories by sales count, largest
- * first, equal counts by site id, 1 to 16.
+ * The order lists are shown in (spec R2-2, R2-3 [확정]): "전체" 0, then the 14 categories by sales count, largest
+ * first, equal counts by site id, 1 to 14.
  */
 public final class CategoryOrder {
 

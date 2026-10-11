@@ -130,7 +130,6 @@ class PopularParserTests {
 		sales.put(PopularCategory.NOVEL, 883_478L);
 		sales.put(PopularCategory.LITERATURE, 739_250L);
 		sales.put(PopularCategory.SOCIETY, 731_208L);
-		sales.put(PopularCategory.LANGUAGE, 463_935L);
 		sales.put(PopularCategory.PHILOSOPHY, 406_420L);
 		sales.put(PopularCategory.ECONOMY, 387_669L);
 		sales.put(PopularCategory.SELF_HELP, 360_765L);
@@ -138,7 +137,6 @@ class PopularParserTests {
 		sales.put(PopularCategory.LIVING, 141_480L);
 		sales.put(PopularCategory.SCIENCE, 130_289L);
 		sales.put(PopularCategory.HISTORY, 89_508L);
-		sales.put(PopularCategory.TECHNOLOGY, 61_812L);
 		sales.put(PopularCategory.LAW, 21_547L);
 		sales.put(PopularCategory.REFERENCE, 11_448L);
 
@@ -148,8 +146,8 @@ class PopularParserTests {
 			.stream()
 			.sorted(Map.Entry.comparingByValue())
 			.map(entry -> entry.getKey().shortName())
-			.toList()).containsExactly("전체", "소설", "문학·인물", "사회", "언어", "철학·종교", "경제·경영", "자기계발", "예술",
-					"컴퓨터·IT", "생활·취미", "과학", "역사", "기술·공학", "법", "참고·정보", "지리·환경");
+			.toList()).containsExactly("전체", "소설", "문학·인물", "사회", "철학·종교", "경제·경영", "자기계발", "예술",
+					"컴퓨터·IT", "생활·취미", "과학", "역사", "법", "참고·정보", "지리·환경");
 	}
 
 	@Test
@@ -160,8 +158,8 @@ class PopularParserTests {
 		Map<PopularCategory, Integer> order = CategoryOrder.of(sales);
 
 		assertThat(order.get(PopularCategory.ARTS)).isEqualTo(1); // ...0001
-		assertThat(order.get(PopularCategory.LANGUAGE)).isEqualTo(2); // ...0178
-		assertThat(order.get(PopularCategory.LIVING)).isEqualTo(16); // ...2476
+		assertThat(order.get(PopularCategory.LITERATURE)).isEqualTo(2); // ...0223
+		assertThat(order.get(PopularCategory.LIVING)).isEqualTo(14); // ...2476
 	}
 
 	private static String cover(String src) {

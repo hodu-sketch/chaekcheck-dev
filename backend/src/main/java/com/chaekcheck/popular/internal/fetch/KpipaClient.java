@@ -21,7 +21,7 @@ import com.chaekcheck.popular.internal.PopularCategory;
 /**
  * Talks to the publishing distribution network's public statistics screens (plan research kpipa.md 2절, 2-1절) for
  * one fetch. One session GET of the rank page gives the cookie and the {@code m_sCsrf} token, which both screens
- * accept ("토큰 하나로 두 화면"), so a month is 1 + 17 + 16 = 34 requests (AC-12: 35 or fewer). No request is sent
+ * accept ("토큰 하나로 두 화면"), so a month is 1 + 15 + 14 = 30 requests (AC-12: 35 or fewer). No request is sent
  * twice in a fetch [안]; the first failure stops it (the next day tries again, R1-3). Every request waits for the
  * {@link RequestPacer} and is logged at INFO with method, path, list, status, time taken and the gap since the last
  * request (AC-12).
@@ -63,7 +63,7 @@ public final class KpipaClient {
 	}
 
 	/**
-	 * The 17 lists of {@code month} and the 16 sales counts, with the display order.
+	 * The 15 lists of {@code month} and the 14 sales counts, with the display order.
 	 * @throws FetchFailure on the first request or answer that is not as expected
 	 */
 	public MonthRanking fetchRanking(YearMonth month) throws InterruptedException {

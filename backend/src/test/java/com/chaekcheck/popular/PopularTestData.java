@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import com.chaekcheck.popular.internal.PopularCategory;
 
 /**
- * A stored month written straight into the tables (September 2026, stored 2026-10-03 05:01:32 KST), 17 lists of 50
+ * A stored month written straight into the tables (September 2026, stored 2026-10-03 05:01:32 KST), 15 lists of 50
  * books in {@link PopularCategory} order. Most books have no ISBN; "전체" ranks 1 to 5 are set by the caller's
  * {@link #book}. Inside the test transaction.
  */
@@ -20,23 +20,39 @@ public final class PopularTestData {
 	}
 
 	public void month() {
+		List<String> codes = List.of(PopularCategory.values()).stream().map(PopularCategory::code).toList();
+		month(codes);
+	}
+
+	/**
+	 * September as stored before 언어 (178) and 기술·공학 (1991) were left out (2026-10-12): 17 lists in the 202609
+	 * sales order, the two at display order 4 and 14.
+	 */
+	public void monthWithListsLeftOutLater() {
+		month(List.of("ALL", "00000000000000000303", "00000000000000000223", "00000000000000000449",
+				"00000000000000000178", "00000000000000001621", "00000000000000000721", "00000000000000002344",
+				"00000000000000000001", "00000000000000002169", "00000000000000002476", "00000000000000001443",
+				"00000000000000001381", "00000000000000001991", "00000000000000000876", "00000000000000000408",
+				"00000000000000001782"));
+	}
+
+	private void month(List<String> codes) {
 		long run = jdbc.sql("""
 				INSERT INTO popular.fetch_run (target_month, trigger, started_at, finished_at, status, request_count,
 				  book_count)
 				VALUES (DATE '2026-09-01', 'SCHEDULED', TIMESTAMPTZ '2026-10-03 05:00:00+09',
-				  TIMESTAMPTZ '2026-10-03 05:01:32+09', 'SUCCEEDED', 34, 850) RETURNING id""")
+				  TIMESTAMPTZ '2026-10-03 05:01:32+09', 'SUCCEEDED', 30, 750) RETURNING id""")
 			.query(Long.class)
 			.single();
 		jdbc.sql("""
 				INSERT INTO popular.ranking_month VALUES (DATE '2026-09-01', :run, TIMESTAMPTZ '2026-10-03 05:01:32.456+09')""")
 			.param("run", run)
 			.update();
-		List<PopularCategory> categories = List.of(PopularCategory.values());
-		for (int i = 0; i < categories.size(); i++) {
-			PopularCategory category = categories.get(i);
+		for (int i = 0; i < codes.size(); i++) {
+			String code = codes.get(i);
 			jdbc.sql("INSERT INTO popular.ranking_category VALUES (DATE '2026-09-01', :code, :sales, :order)")
-				.param("code", category.code())
-				.param("sales", category.isAll() ? null : 1_000L - i)
+				.param("code", code)
+				.param("sales", code.equals("ALL") ? null : 1_000L - i)
 				.param("order", i)
 				.update();
 		}

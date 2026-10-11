@@ -62,17 +62,17 @@ class KpipaClientTests {
 	}
 
 	@Test
-	void oneSessionThenSeventeenListsAndSixteenCounts() throws Exception {
+	void oneSessionThenFifteenListsAndFourteenCounts() throws Exception {
 		MonthRanking month;
 		try (KpipaTransport.Connection connection = transport(Duration.ofSeconds(5)).open()) {
 			KpipaClient client = new KpipaClient(connection, pacer, base);
 			month = client.fetchRanking(YearMonth.of(2026, 9));
-			assertThat(client.requestCount()).isEqualTo(34);
+			assertThat(client.requestCount()).isEqualTo(30);
 		}
 
-		assertThat(month.requestCount()).isEqualTo(34);
-		assertThat(month.categories()).hasSize(17).allSatisfy(list -> assertThat(list.books()).hasSize(50));
-		assertThat(month.bookCount()).isEqualTo(850);
+		assertThat(month.requestCount()).isEqualTo(30);
+		assertThat(month.categories()).hasSize(15).allSatisfy(list -> assertThat(list.books()).hasSize(50));
+		assertThat(month.bookCount()).isEqualTo(750);
 		assertThat(month.categories().getFirst().salesCopies()).isNull();
 		assertThat(month.categories().getFirst().displayOrder()).isZero();
 		// every count is the same in this test: the order is by site id
@@ -84,7 +84,7 @@ class KpipaClientTests {
 				assertThat(list.salesCopies()).isEqualTo(883_478L);
 			});
 
-		assertThat(seen).hasSize(34);
+		assertThat(seen).hasSize(30);
 		Seen session = seen.getFirst();
 		assertThat(session.method()).isEqualTo("GET");
 		assertThat(session.path()).isEqualTo("/home/v3/addition/adiStatsCtgSaleRank");
@@ -103,17 +103,17 @@ class KpipaClientTests {
 				+ "&strTypeArr=&searchOrder=&depth=1depth&gubun=N");
 		assertThat(seen.get(1).body()).contains("&searchCtg=&");
 
-		Seen sales = seen.get(18);
+		Seen sales = seen.get(16);
 		assertThat(sales.path()).isEqualTo("/home/v3/addition/adiStatsCtgSaleCnt/search");
 		assertThat(sales.headers()).containsEntry("Cookie", "JSESSIONID=SESSION1")
 			.containsEntry("X-csrf-token", TOKEN)
 			.containsEntry("Referer", base + "/home/v3/addition/adiStatsCtgSaleCnt");
 		assertThat(sales.body()).isEqualTo("rdoSearchType=bookType&rdoSearchPeriod=month&txtFromDate=202609"
 				+ "&txtToDate=202609&searchCtg=00000000000000000303&depth=1depth");
-		assertThat(seen).filteredOn(request -> request.path().endsWith("SaleCnt/search")).hasSize(16);
+		assertThat(seen).filteredOn(request -> request.path().endsWith("SaleCnt/search")).hasSize(14);
 
-		// AC-12: 33 gaps between 34 requests, each at least 2 seconds
-		assertThat(pacer.gaps()).hasSize(33).allSatisfy(gap -> assertThat(gap).isGreaterThanOrEqualTo(Duration.ofSeconds(2)));
+		// AC-12: 29 gaps between 30 requests, each at least 2 seconds
+		assertThat(pacer.gaps()).hasSize(29).allSatisfy(gap -> assertThat(gap).isGreaterThanOrEqualTo(Duration.ofSeconds(2)));
 	}
 
 	@Test

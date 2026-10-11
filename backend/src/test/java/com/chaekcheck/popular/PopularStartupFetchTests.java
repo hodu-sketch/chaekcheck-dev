@@ -41,14 +41,14 @@ class PopularStartupFetchTests {
 
 		assertThat(run).containsEntry("trigger", "STARTUP")
 			.containsEntry("status", "SUCCEEDED")
-			.containsEntry("request_count", 34)
-			.containsEntry("book_count", 850)
+			.containsEntry("request_count", 30)
+			.containsEntry("book_count", 750)
 			.containsEntry("cover_fetched_count", 50);
-		assertThat(site.requests()).hasSize(34 + 50);
+		assertThat(site.requests()).hasSize(30 + 50);
 		assertThat(jdbc.sql("SELECT count(*) FROM popular.ranking_entry WHERE target_month = :month")
 			.param("month", run.get("target_month"))
 			.query(Long.class)
-			.single()).isEqualTo(850);
+			.single()).isEqualTo(750);
 	}
 
 	@AfterEach

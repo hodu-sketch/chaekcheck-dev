@@ -74,7 +74,7 @@ class PopularBooksApiTests {
 	}
 
 	@Test
-	void seventeenListsInDisplayOrderWithFiftyBooks() { // AC-4
+	void fifteenListsInDisplayOrderWithFiftyBooks() { // AC-4
 		data.month();
 		cache.refresh();
 
@@ -86,14 +86,34 @@ class PopularBooksApiTests {
 			.containsExactlyElementsOf(List.of(PopularCategory.values()).stream().map(PopularCategory::code).toList());
 		json.extractingPath("$.categories[*].name")
 			.asArray()
-			.containsExactly("전체", "소설", "문학·인물", "사회", "언어", "철학·종교", "경제·경영", "자기계발", "예술", "컴퓨터·IT",
-					"생활·취미", "과학", "역사", "기술·공학", "법", "참고·정보", "지리·환경");
-		json.extractingPath("$.categories[16].books").asArray().hasSize(50);
+			.containsExactly("전체", "소설", "문학·인물", "사회", "철학·종교", "경제·경영", "자기계발", "예술", "컴퓨터·IT",
+					"생활·취미", "과학", "역사", "법", "참고·정보", "지리·환경");
+		json.extractingPath("$.categories[14].books").asArray().hasSize(50);
 		json.extractingPath("$.categories[1].books[49].rank").isEqualTo(50);
 		json.extractingPath("$.categories[1].books[49].title").isEqualTo("00000000000000000303-50");
 		json.extractingPath("$.categories[1].books[49].coverUrl").isNull();
 		json.extractingPath("$.categories[1].books[49].bookId").isNull();
 		json.extractingPath("$.categories[1].books[49].available").isEqualTo(false);
+	}
+
+	/**
+	 * A month stored before 언어 and 기술·공학 were left out (user decision 2026-10-12) shows the 15 lists still in
+	 * {@code PopularCategory}, in stored display order; the gaps do not matter.
+	 */
+	@Test
+	void listsLeftOutLaterAreNotShown() {
+		data.monthWithListsLeftOutLater();
+		cache.refresh();
+
+		var json = assertThat(mvc.get().uri(URL)).hasStatusOk().bodyJson();
+		json.extractingPath("$.categories[*].name")
+			.asArray()
+			.containsExactly("전체", "소설", "문학·인물", "사회", "철학·종교", "경제·경영", "자기계발", "예술", "컴퓨터·IT",
+					"생활·취미", "과학", "역사", "법", "참고·정보", "지리·환경");
+		json.extractingPath("$.categories[*].code")
+			.asArray()
+			.doesNotContain("00000000000000000178", "00000000000000001991");
+		json.extractingPath("$.categories[4].books[0].title").isEqualTo("00000000000000001621-1");
 	}
 
 	@Test

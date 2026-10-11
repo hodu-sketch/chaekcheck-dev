@@ -2601,6 +2601,16 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 테스트: `CoverResizerTests`(테스트 안에서 ImageIO로 만든 넓은 JPEG 600×900 → 200×300, 투명 PNG → 흰 바탕, GIF, 좁은 JPEG 150×225 그대로, 출력이 JPEG, 그림 아닌 바이트·잘린 PNG·화소 상한 → 빈 값), `KpipaClientTests.coversUseTheCoverLimit`(표지는 표지 상한, 화면은 화면 상한), `PopularFetchTests`(가짜 사이트가 458×687 그림을 보냄 → 저장은 200×300 JPEG·`byte_size` = 저장 크기, 못 읽는 그림 1장 + 404 2장 → 표지 47장·실패 3장)
 - 로컬 `db`에 원래 크기로 들어간 표지(시험 받기 806장)를 사이트를 다시 부르지 않고 줄이는 일회용 도구: `backend/src/test/java/com/chaekcheck/popular/internal/cover/LocalCoverResizeRunner.java`. 빌드에서는 돌지 않고 환경 변수가 있을 때만 `../.env`의 로컬 `db`에 돎: `CHAEKCHECK_RESIZE_LOCAL_COVERS=true ./gradlew test --tests '*LocalCoverResizeRunner' --rerun`. 이미 200px 이하 JPEG인 줄은 건너뜀(두 번 돌려도 같음), 표지 번호는 그대로
 
+### 사용자 결정: 언어·기술·공학도 뺌 (2026-10-12, ADR-0077 목록 바뀜)
+
+- 사용자: "'언어' 랑 '기술공학'도 빼주라". ADR-0077이 뺀 다섯 분류(의학·스포츠·만화·어린이·청소년·기타)에 **언어(00000000000000000178)**와 **기술·공학(00000000000000001991)**을 더함. 받지도 보이지도 않음(같은 대우). ADR은 plan이 고침
+- `PopularCategory`에서 `LANGUAGE`·`TECHNOLOGY`를 지움 → "전체" + 14분류. 한 달 받기 요청 = 세션 1 + 순위 15 + 판매량 14 = **30건**(AC-12 "35건 이하" 안), 책 **750권**, 분류 순서 `display_order`는 0~14
+- DB CHECK `ranking_category_display_order_check`(0..16)는 이미 적용된 `popular/001`이라 그대로 둠(0~14도 맞음). 0..14로 좁히려면 새 changeset이 필요하나, 지난 달(17분류로 저장된 2026-09)이 남아 있어 좁히면 그 줄이 CHECK에 걸림 → 좁히지 않는 것을 제안
+- 이미 17분류로 저장된 달(로컬 `db`의 2026-09): 공용 캐시가 `PopularCategory`에 있는 분류만 담고, 저장된 `display_order` 순서 그대로 보임(4·14번 자리가 비어도 됨). 테스트 `PopularBooksApiTests.listsLeftOutLaterAreNotShown`. 그 달의 두 분류 순위 줄은 DB에 남음(순위 표는 지우지 않음, R1-5)
+- 두 분류에만 쓰인 표지는 다음 받기들의 "최근 두 달에 안 쓰인 표지 지우기"로 사라짐(두 달 뒤, 14분류로 받은 달이 두 개가 되면). 따로 지우는 일 없음
+- 고친 곳: `PopularCategory`, 주석(`package-info`, `CategoryOrder`, `CategoryRanking`, `KpipaClient`, `MonthRanking`, `PopularStore`), `.env.example` 설명("about 30 times plus up to 750 covers"), 테스트의 17/16/34/850 → 15/14/30/750. `./gradlew build` 통과
+- 위 0~5단계 기록의 "17분류·16분류·34건·850권"은 이 결정 전 값
+
 ## 8단계 받기 시험 (2026-10-12 02:28~02:58, 로컬 `db`, 포트 8081)
 
 - 방법: 빈 `popular` 스키마에서 `CHAEKCHECK_POPULAR_FETCH_ENABLED=true SERVER_PORT=8081 ./gradlew bootRun`(힙 512MB). 8080에는 이 세션 전부터 떠 있던 bootRun이 있어 건드리지 않음. 앱이 켜진 뒤 `STARTUP` 받기가 바로 돎(AC-13)

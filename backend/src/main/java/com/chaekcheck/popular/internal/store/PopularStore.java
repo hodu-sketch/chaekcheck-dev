@@ -62,7 +62,7 @@ public class PopularStore {
 
 	/**
 	 * One transaction: the SUCCEEDED run ({@code finished_at} = the time the ranking is stored, cover counts 0), the
-	 * month's old ranking deleted (CASCADE), then the month, its 17 categories and up to 850 books.
+	 * month's old ranking deleted (CASCADE), then the month, its 15 categories and up to 750 books.
 	 * @return the run id
 	 */
 	@Transactional
