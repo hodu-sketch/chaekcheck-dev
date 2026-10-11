@@ -12,6 +12,7 @@ import type {
   VisitFilter,
 } from '../../api/types'
 import type { StoredRegions } from '../region/regionStorage'
+import { blockedBy, type Blocked } from './blocked'
 import { applyRowVerdict, rowsOf, type Batch } from './rowVerdict'
 import {
   initialPlan,
@@ -49,6 +50,8 @@ export interface SearchState {
   error: ApiError | null
   /** The last next-batch stream could not be opened or broke off. */
   batchFailed: boolean
+  /** The last next batch or library "더 보기" was refused with 429 or 503 (cycle 08 R2); the results stay. */
+  blocked: Blocked | null
 }
 
 type Action =
@@ -57,10 +60,10 @@ type Action =
   | { type: 'batch-start'; batchNo: number }
   | { type: 'event'; batchNo: number; event: StreamEvent }
   | { type: 'error'; error: ApiError }
-  | { type: 'batch-failed'; batchNo: number }
+  | { type: 'batch-failed'; batchNo: number; blocked: Blocked | null }
   | { type: 'more-start'; libraryId: number }
   | { type: 'more-done'; page: LibraryPage }
-  | { type: 'more-failed'; libraryId: number }
+  | { type: 'more-failed'; libraryId: number; blocked: Blocked | null }
 
 const EMPTY_PLAN: PlanState = { order: [], entries: {} }
 
@@ -75,6 +78,7 @@ const IDLE: SearchState = {
   batches: [],
   error: null,
   batchFailed: false,
+  blocked: null,
 }
 
 function newBatch(batchNo: number, kind: Batch['kind']): Batch {
@@ -113,7 +117,13 @@ export function reducer(state: SearchState, action: Action): SearchState {
         batches: [newBatch(1, 'round')],
       }
     case 'batch-start':
-      return { ...state, phase: 'streaming', batchFailed: false, batches: [...state.batches, newBatch(action.batchNo, 'round')] }
+      return {
+        ...state,
+        phase: 'streaming',
+        batchFailed: false,
+        blocked: null,
+        batches: [...state.batches, newBatch(action.batchNo, 'round')],
+      }
     case 'error':
       return { ...state, phase: 'error', error: action.error }
     case 'batch-failed':
@@ -121,11 +131,12 @@ export function reducer(state: SearchState, action: Action): SearchState {
         ...updateBatch(state, action.batchNo, (b) => ({ ...b, status: 'done' })),
         phase: 'done',
         batchFailed: true,
+        blocked: action.blocked,
       }
     case 'more-start':
-      return updateLibrary(state, action.libraryId, (l) => ({ ...l, more: 'loading' }))
+      return { ...updateLibrary(state, action.libraryId, (l) => ({ ...l, more: 'loading' })), blocked: null }
     case 'more-failed':
-      return updateLibrary(state, action.libraryId, (l) => ({ ...l, more: 'failed' }))
+      return { ...updateLibrary(state, action.libraryId, (l) => ({ ...l, more: 'failed' })), blocked: action.blocked }
     case 'more-done': {
       // a library's "more" page becomes a new batch at the bottom [안]; round robin continues after it
       const batch: Batch = {
@@ -277,8 +288,8 @@ export function useSearch({
       { field: state.field, query: state.query, filter: state.filter, batchNo, candidates },
       (event) => dispatch({ type: 'event', batchNo, event }),
       controller.signal,
-    ).catch(() => {
-      if (!controller.signal.aborted) dispatch({ type: 'batch-failed', batchNo })
+    ).catch((error: unknown) => {
+      if (!controller.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: blockedBy(error) })
     })
   }, [state])
 
@@ -292,8 +303,8 @@ export function useSearch({
       try {
         const page = await fetchLibraryPage(libraryId, state.field, state.query, entry.nextPage)
         dispatch({ type: 'more-done', page })
-      } catch {
-        dispatch({ type: 'more-failed', libraryId })
+      } catch (error) {
+        dispatch({ type: 'more-failed', libraryId, blocked: blockedBy(error) })
       }
     },
     [state.libraries, state.plan, state.field, state.query],

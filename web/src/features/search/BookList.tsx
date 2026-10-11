@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort } from '../../api/types'
+import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
 import { collectedRange } from './holdingView'
 import listStyles from './ResultList.module.css'
 import { SortSelect } from './SortSelect'
@@ -26,6 +27,7 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
   const [error, setError] = useState<ApiError | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [moreFailed, setMoreFailed] = useState(false)
+  const [moreBlocked, setMoreBlocked] = useState<Blocked | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -53,20 +55,23 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
     if (!books?.last.hasMore) return
     setLoadingMore(true)
     setMoreFailed(false)
+    setMoreBlocked(null)
     try {
       const page = await fetchBooks({ ...query, page: books.last.page + 1 })
       setBooks({ items: [...books.items, ...page.items], last: page })
-    } catch {
+    } catch (failure) {
       setMoreFailed(true)
+      setMoreBlocked(blockedBy(failure))
     } finally {
       setLoadingMore(false)
     }
   }
 
   if (error) {
+    const blocked = blockedBy(error)
     return (
-      <p className={pageStyles.notice} data-kind="error" role="alert">
-        검색하지 못했어요. 잠시 뒤 다시 시도해 주세요.
+      <p className={pageStyles.notice} data-kind={blocked ? 'blocked' : 'error'} role="alert">
+        {blocked ? BLOCKED_TEXT[blocked] : '검색하지 못했어요. 잠시 뒤 다시 시도해 주세요.'}
       </p>
     )
   }
@@ -88,6 +93,11 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
 
   return (
     <section className={listStyles.list}>
+      {moreBlocked && (
+        <p className={listStyles.blocked} role="alert">
+          {BLOCKED_TEXT[moreBlocked]}
+        </p>
+      )}
       <div className={listStyles.toolbar}>
         <div className={listStyles.toolbarEnd}>
           <SortSelect value={query.sort} onChange={onSortChange} />
@@ -111,7 +121,7 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
         ))}
       </ol>
       <div className={styles.bottom}>
-        {moreFailed && (
+        {moreFailed && !moreBlocked && (
           <p className={styles.failed} role="alert">
             더 찾지 못했어요. 다시 시도해 주세요.
           </p>

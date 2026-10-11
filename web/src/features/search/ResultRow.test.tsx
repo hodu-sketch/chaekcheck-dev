@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
-import { ResultRow } from './ResultRow'
+import { HOLDING_GONE, MOBILE_SITE_NOTE, ResultRow } from './ResultRow'
 import { testRow } from './testRows'
 
 afterEach(cleanup)
@@ -35,6 +35,7 @@ const openLibrary: TargetLibrary = {
   chosen: false,
   joinSurvey: 'SURVEYED',
   logoUrl: null,
+  mobileSiteDiffers: false,
 }
 
 /** The join details open from "ⓘ 가입 정보" on every width (user request 2026-10-05). */
@@ -254,5 +255,64 @@ describe('library logo on the card', () => {
     expect(logo.getAttribute('src')).toBe('/library-logos/2.png')
     expect(logo.closest('a')?.getAttribute('href')).toBe('https://lib.test/main')
     expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
+  })
+})
+
+/** Cycle 08 R3 (AC-4): the phone note of the 13 sites whose phone version shows another page. */
+describe('phone site note', () => {
+  function phoneWidth(phone: boolean) {
+    window.matchMedia = ((query: string) => ({
+      matches: phone && query === '(width <= 640px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+  }
+
+  afterEach(() => {
+    // jsdom has no matchMedia: back to "not a phone"
+    delete (window as { matchMedia?: unknown }).matchMedia
+  })
+
+  it('shows under the name on a phone only, for a flagged library only, and keeps the card link', () => {
+    phoneWidth(true)
+    const row = testRow({ libraryId: 2, rank: 1, detailUrl: 'https://lib.test/book/1' })
+    render(<ResultRow row={row} library={{ ...openLibrary, mobileSiteDiffers: true }} searchUrl={undefined} />)
+    expect(screen.getByText(MOBILE_SITE_NOTE)).toBeTruthy()
+    expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
+    cleanup()
+
+    render(<ResultRow row={row} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.queryByText(MOBILE_SITE_NOTE)).toBeNull()
+    cleanup()
+
+    phoneWidth(false)
+    render(<ResultRow row={row} library={{ ...openLibrary, mobileSiteDiffers: true }} searchUrl={undefined} />)
+    expect(screen.queryByText(MOBILE_SITE_NOTE)).toBeNull()
+  })
+
+  it('shows on a failed check too, and next to the front page link in the join details', async () => {
+    phoneWidth(true)
+    render(
+      <ResultRow
+        row={testRow({ libraryId: 2, rank: 1, failed: true })}
+        library={{ ...openLibrary, joinSurvey: 'NOT_FOUND', homepageUrl: 'https://lib.test/main', mobileSiteDiffers: true }}
+        searchUrl={undefined}
+      />,
+    )
+    expect(screen.getAllByText(MOBILE_SITE_NOTE)).toHaveLength(1)
+    await userEvent.setup().click(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` }))
+    const popover = screen.getByRole('dialog')
+    expect(popover.textContent).toContain('도서관 첫 화면')
+    expect(popover.textContent).toContain(MOBILE_SITE_NOTE)
+  })
+})
+
+/** Cycle 08 (ADR-0070, AC-8c): a holding the last import dropped. */
+describe('holding that left the list', () => {
+  it('says so in place of "확인 실패"', () => {
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1, failed: true, gone: true })} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.getByText(HOLDING_GONE)).toBeTruthy()
+    expect(screen.queryByText('확인 실패')).toBeNull()
   })
 })

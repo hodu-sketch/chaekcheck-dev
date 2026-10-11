@@ -30,6 +30,7 @@ function library(id: number, overrides: Partial<TargetLibrary> = {}): TargetLibr
     chosen: false,
     joinSurvey: 'SURVEYED',
     logoUrl: null,
+    mobileSiteDiffers: false,
     ...overrides,
   }
 }
@@ -105,9 +106,19 @@ describe('holding plan (ADR-0030)', () => {
     })
 
     const row = state.batches[0].rows[0]
-    expect(row).toMatchObject({ failed: true, title: '행동', libraryId: 1, availability: 'UNKNOWN', titleKey: 'book:10' })
+    expect(row).toMatchObject({ failed: true, gone: false, title: '행동', libraryId: 1, availability: 'UNKNOWN', titleKey: 'book:10' })
     expect(state.entries[100].status).toBe('Failed')
     expect(nextHoldingCandidates(state, 50)).toEqual([101, 102])
+  })
+
+  // cycle 08 (ADR-0070): a holding the last import dropped says so instead of "확인 실패"
+  it('marks a holding that left the catalog as gone', () => {
+    let state = holdingsReducer(EMPTY_HOLDINGS, { type: 'batch-start', batchNo: 1 })
+    state = run(state, 1, targets, {
+      name: 'holding-failed',
+      data: { batchNo: 1, holdingId: 100, bookId: 10, libraryId: 1, problem: { title: 'Not Found', status: 404, code: 'holding_not_found' } },
+    })
+    expect(state.batches[0].rows[0]).toMatchObject({ failed: true, gone: true })
   })
 
   it('a later book page adds its libraries and holdings after the earlier ones', () => {

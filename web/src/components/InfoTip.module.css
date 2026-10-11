@@ -1,0 +1,43 @@
+.trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-left: 0.3rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: var(--text-lg);
+  font-weight: 400;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.trigger:hover,
+.trigger[data-state='open'] {
+  color: var(--brand-strong);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.content {
+  z-index: 30;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.arrow {
+  fill: var(--ink);
+}

@@ -1,3 +1,4 @@
+import { BackLink } from '../../components/BackLink'
 import documentVersions from './documentVersions.json'
 import { NOT_REVIEWED, PRIVACY_POLICY_SECTIONS, TERMS_OF_SERVICE_BODY } from './legalText'
 import styles from './LegalPage.module.css'
@@ -39,6 +40,7 @@ export function LegalPage({ document }: { document: 'terms' | 'privacy' }) {
           ))}
         </div>
       )}
+      <BackLink />
     </article>
   )
 }

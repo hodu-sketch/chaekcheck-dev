@@ -192,6 +192,17 @@
   font-weight: 700;
 }
 
+/* a refused search (429, 503): amber like the other "wait" notices, above the results that stay (cycle 08 R2) */
+.blocked {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--reserve-soft);
+  color: #7a4506;
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
 .moreFailed {
   color: var(--fail);
   font-size: var(--text-md);
@@ -291,4 +302,13 @@
     align-self: stretch;
     min-width: 0;
   }
+}
+
+/* phones, direct search (cycle 08 #5): a dimmed "정렬 없음" with an ⓘ for the reason */
+.noSort {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }

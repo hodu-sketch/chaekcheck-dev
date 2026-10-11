@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
+import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
 import { collectedRange, holdingBatchViews } from './holdingView'
 import { ResultList } from './ResultList'
 import { SortSelect } from './SortSelect'
@@ -31,6 +32,7 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
   const [error, setError] = useState<ApiError | null>(null)
   const [pageLoading, setPageLoading] = useState(false)
   const [pageFailed, setPageFailed] = useState(false)
+  const [pageBlocked, setPageBlocked] = useState<Blocked | null>(null)
 
   const planOptions = useCallback(
     () => ({
@@ -70,23 +72,26 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
     if (holdings.loadNext() || !books?.last.hasMore) return
     setPageLoading(true)
     setPageFailed(false)
+    setPageBlocked(null)
     try {
       const page = await fetchBooks({ ...query, page: books.last.page + 1 })
       setBooks({ items: [...books.items, ...page.items], last: page })
       if (page.items.length > 0) open(page.items, planOptions())
-    } catch {
+    } catch (failure) {
       setPageFailed(true)
+      setPageBlocked(blockedBy(failure))
     } finally {
       setPageLoading(false)
     }
   }
 
   if (error) {
+    const blocked = blockedBy(error)
     return (
-      <p className={styles.notice} data-kind="error" role="alert">
+      <p className={styles.notice} data-kind={blocked ? 'blocked' : 'error'} role="alert">
         {error.problem.code === 'invalid_region'
           ? '저장된 내 지역을 확인하지 못했어요. 내 지역을 다시 골라 주세요'
-          : '검색하지 못했어요. 잠시 뒤 다시 시도해 주세요.'}
+          : (blocked ? BLOCKED_TEXT[blocked] : '검색하지 못했어요. 잠시 뒤 다시 시도해 주세요.')}
       </p>
     )
   }
@@ -113,6 +118,16 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
   const remaining = holdings.remaining + (moreBooks ? 1 : 0)
   const loadingBatch = holdings.state.batches.at(-1)
   const noHoldings = !streaming && holdings.state.order.length === 0
+  const blocked = pageBlocked ?? holdings.state.blocked
+
+  if (noHoldings && blocked) {
+    // the first holding stream was refused: nothing came back, so the notice takes the results' place
+    return (
+      <p className={styles.notice} data-kind="blocked" role="alert">
+        {BLOCKED_TEXT[blocked]}
+      </p>
+    )
+  }
 
   return (
     <>
@@ -131,6 +146,7 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
           loadingLibraries={loadingBatch ? new Set(loadingBatch.requestedLibraries).size : 0}
           loadingText={pageLoading ? '다음 책을 찾는 중' : undefined}
           batchFailed={holdings.state.batchFailed || pageFailed}
+          blocked={blocked}
           onMore={() => void loadMore()}
           moreText={
             holdings.remaining > 0 ? `(남은 도서관 줄 ${holdings.remaining}개)` : moreBooks ? '(다음 책)' : undefined

@@ -242,27 +242,21 @@
   text-align: right;
 }
 
+/*
+ * The state box: light violet in every group (cycle 08 #3, user approval 2026-10-06) for "대출 중 · 예약", "확인 실패",
+ * "대출 정보 조회 중" and "대출 가능 여부 확인 필요"; the counts box of the reserve group stays light amber.
+ */
 .state {
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-tag);
-  background: var(--brand-soft);
+  background: var(--brand-faint);
   color: var(--brand-strong);
   font-size: var(--text-sm);
   font-weight: 800;
 }
 
-.row[data-group='reserve'] .state {
-  background: var(--reserve-soft);
-  color: var(--reserve);
-}
-
 .row[data-group='pending'] {
   border-style: dashed;
-}
-
-.row[data-group='pending'] .state {
-  background: var(--paper-deep);
-  color: var(--ink-soft);
 }
 
 .note {
@@ -532,4 +526,14 @@
 /* no logo (or it failed to load): no line, no gap */
 .logoLine:empty {
   display: none;
+}
+
+/* cycle 08 R3: small grey line under the library name and next to the front page link, phones only */
+.mobileNote {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.45;
 }

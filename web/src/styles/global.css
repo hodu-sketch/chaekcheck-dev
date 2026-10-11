@@ -44,7 +44,8 @@
   --fail-soft: #ffeef1;
   --focus: #5e3fe0;
 
-  --font-body: 'NanumBarunGothic', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  /* the small file first; the full one only for characters it lacks (cycle 08, fonts.css) */
+  --font-body: 'Chaekcheck Barun', 'NanumBarunGothic', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-title: var(--font-body);
 
   /*

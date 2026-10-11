@@ -1,0 +1,28 @@
+.row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.back {
+  min-height: var(--control-height);
+  padding: 0 1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.back:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

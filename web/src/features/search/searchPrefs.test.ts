@@ -43,7 +43,7 @@ const blocked: Storage = {
 }
 
 describe('loadPrefs / savePrefs', () => {
-  it('defaults to the joinable side, no visit filter, 지금 빌릴 수 있는 책만, 기본 순서, no checks', () => {
+  it('defaults to the joinable side, no visit filter, 지금 빌릴 수 있는 책만', () => {
     expect(loadPrefs(memoryStorage())).toEqual(DEFAULT_PREFS)
     expect(DEFAULT_PREFS.guestScope).toBe('joinable')
   })
@@ -52,36 +52,39 @@ describe('loadPrefs / savePrefs', () => {
     const storage = memoryStorage()
     saveSettings({ view: 'books', direct: false }, storage)
     saveMyScope('all', storage)
-    savePrefs({ guestScope: 'all', visit: 'none', filter: 'all', sort: 'newest' }, storage)
-    savePrefs({ exact: ['title'], roles: ['translator'] }, storage)
+    savePrefs({ guestScope: 'all', visit: 'none' }, storage)
+    savePrefs({ filter: 'all' }, storage)
 
-    expect(loadPrefs(storage)).toEqual({
-      guestScope: 'all',
-      visit: 'none',
-      filter: 'all',
-      sort: 'newest',
-      exact: ['title'],
-      roles: ['translator'],
-    })
+    expect(loadPrefs(storage)).toEqual({ guestScope: 'all', visit: 'none', filter: 'all' })
     expect(loadMyScope(storage)).toBe('all')
     expect(JSON.parse(storage.getItem(SETTINGS_STORAGE_KEY)!).view).toBe('books')
   })
 
   it('drops unknown values one by one, and reads the defaults from broken or blocked storage', () => {
     const odd = memoryStorage({
-      [SETTINGS_STORAGE_KEY]: JSON.stringify({ guestScope: 'x', visit: 'none', sort: 'title', exact: ['isbn', 'author'], roles: 'translator' }),
+      [SETTINGS_STORAGE_KEY]: JSON.stringify({ guestScope: 'x', visit: 'none', filter: 'some' }),
     })
-    expect(loadPrefs(odd)).toEqual({ ...DEFAULT_PREFS, visit: 'none', exact: ['author'] })
+    expect(loadPrefs(odd)).toEqual({ ...DEFAULT_PREFS, visit: 'none' })
     expect(loadPrefs(memoryStorage({ [SETTINGS_STORAGE_KEY]: '{not json' }))).toEqual(DEFAULT_PREFS)
     expect(loadPrefs(blocked)).toEqual(DEFAULT_PREFS)
     expect(() => savePrefs({ visit: 'none' }, blocked)).not.toThrow()
+  })
+
+  // cycle 08 AC-2: the sort and the 상세검색 checks an earlier version kept are removed; the rest stays
+  it('removes the sort and the checks kept by earlier versions', () => {
+    const storage = memoryStorage({
+      [SETTINGS_STORAGE_KEY]: JSON.stringify({ view: 'books', myScope: 'all', filter: 'all', sort: 'newest',
+        exact: ['title'], roles: ['translator'] }),
+    })
+    expect(loadPrefs(storage)).toEqual({ ...DEFAULT_PREFS, filter: 'all' })
+    expect(JSON.parse(storage.getItem(SETTINGS_STORAGE_KEY)!)).toEqual({ view: 'books', myScope: 'all', filter: 'all' })
   })
 })
 
 describe('the address wins over the stored choice', () => {
   const params = (query: string) => new URLSearchParams(query)
 
-  it('reads the filter, 방문 없이 가입 and the sort from the address first, then the stored one', () => {
+  it('reads the filter and 방문 없이 가입 from the address first, then the stored one; the sort only from the address', () => {
     expect(readFilter(params(''), 'all')).toBe('all')
     expect(readFilter(params('filter=available'), 'all')).toBe('available')
     expect(readFilter(params('filter=all'), 'available')).toBe('all')
@@ -90,8 +93,8 @@ describe('the address wins over the stored choice', () => {
     expect(readVisit(params('visit=any'), 'none')).toBe('any')
     expect(readVisit(params('visit=none'))).toBe('none')
 
-    expect(readBookSearch(params('title=사랑'), 'newest')?.sort).toBe('newest')
-    expect(readBookSearch(params('title=사랑&sort=oldest'), 'newest')?.sort).toBe('oldest')
+    expect(readBookSearch(params('title=사랑'))?.sort).toBe('default')
+    expect(readBookSearch(params('title=사랑&sort=oldest'))?.sort).toBe('oldest')
   })
 
   it('writes 방문 없이 가입 only when on', () => {

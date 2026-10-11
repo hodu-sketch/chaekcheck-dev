@@ -1,6 +1,9 @@
-/** Name search on the 내 도서관 screen [안]: NFC, spaces removed, case ignored; a part of the name matches. */
+/**
+ * Name search on the 내 도서관 screen [안]: NFC, spaces and middle dots removed, case ignored; a part of the name
+ * matches. The dots (cycle 08 [안]): "한국형사·법무정책연구원" is found with "형사법무" too.
+ */
 export function nameKey(name: string): string {
-  return name.normalize('NFC').replace(/\s+/g, '').toLowerCase()
+  return name.normalize('NFC').replace(/[\s·・]+/g, '').toLowerCase()
 }
 
 /** Typed characters before the name search starts (cycle 07 flow S10) [확정]. */

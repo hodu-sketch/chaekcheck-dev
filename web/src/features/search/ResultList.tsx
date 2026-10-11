@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ToggleGroup } from 'radix-ui'
 import type { ResultFilter, TargetLibrary } from '../../api/types'
 import { BatchSection } from './BatchSection'
+import { BLOCKED_TEXT, type Blocked } from './blocked'
 import type { Batch } from './rowVerdict'
 import type { SortedBatch } from './sortBatch'
 import styles from './ResultList.module.css'
@@ -25,6 +26,8 @@ interface Props {
   /** Libraries being asked in the open batch. */
   loadingLibraries: number
   batchFailed: boolean
+  /** The last stream or page was refused with 429 or 503: one line above the results, which stay (cycle 08 R2). */
+  blocked?: Blocked | null
   onMore: () => void
   /** Text after "더 보기"; default "(남은 도서관 N곳)". */
   moreText?: string
@@ -52,6 +55,7 @@ export function ResultList({
   loading,
   loadingLibraries,
   batchFailed,
+  blocked,
   onMore,
   moreText,
   loadingText,
@@ -63,6 +67,11 @@ export function ResultList({
 
   return (
     <section className={styles.list}>
+      {blocked && (
+        <p className={styles.blocked} role="alert">
+          {BLOCKED_TEXT[blocked]}
+        </p>
+      )}
       <div className={styles.toolbar}>
       {!hideFilter && (
         <ToggleGroup.Root
@@ -106,7 +115,7 @@ export function ResultList({
           </p>
         ) : remaining > 0 ? (
           <>
-            {batchFailed && (
+            {batchFailed && !blocked && (
               <p className={styles.moreFailed} role="alert">
                 더 찾지 못했어요. 다시 시도해 주세요.
               </p>

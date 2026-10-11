@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
+import { BackLink } from '../../components/BackLink'
+import { InfoTip } from '../../components/InfoTip'
 import { LibraryLogo } from '../../components/LibraryLogo'
 import { useRegions } from '../region/RegionContext'
 import { RegionModal } from '../region/RegionModal'
@@ -98,6 +100,7 @@ function MyLibraries() {
         onEdit={() => setEditing(true)}
       />
       <ChosenSections rows={rows} />
+      <BackLink />
 
       <RegionModal
         open={editing}
@@ -113,10 +116,20 @@ function MyLibraries() {
   )
 }
 
+/** [안 문구] (cycle 08, flow.md 검토 #7): where a choice is kept, shown from the ⓘ next to the title. */
+const SAVED_AT_ONCE = {
+  browser: '고르는 즉시 이 브라우저에 저장돼요',
+  account: '고르는 즉시 계정에 저장돼요',
+}
+
 function Heading() {
+  const { mode } = useMyLibrary()
   return (
     <header className={styles.head}>
-      <h1 className={styles.title}>내 도서관</h1>
+      <h1 className={styles.title}>
+        내 도서관
+        <InfoTip label="저장 안내" text={mode === 'account' ? SAVED_AT_ONCE.account : SAVED_AT_ONCE.browser} />
+      </h1>
       <p className={styles.lead}>"내 도서관" 스위치를 켜면 여기 있는 도서관에서 찾아요.</p>
     </header>
   )

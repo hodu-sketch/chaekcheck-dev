@@ -1,4 +1,4 @@
-import type { BookRole, BookSort, LibraryScope, ResultFilter, SearchField, VisitFilter } from '../../api/types'
+import type { LibraryScope, ResultFilter, VisitFilter } from '../../api/types'
 
 /**
  * S4 settings (flow.md): how results are shown and whether to search the library sites directly. Kept in this browser
@@ -99,47 +99,43 @@ export function writeSettings(settings: SearchSettings, into: URLSearchParams): 
 
 /**
  * Search preferences kept in this browser so they need not be set again every visit (user request 2026-10-05): the
- * scope before login, 방문 없이 가입, the result filter, the sort, and the 상세검색 checks (완전 일치 per field and the
- * author roles). Same key as the settings. The address still wins when it has a value; these only fill what it leaves
- * out. The search texts themselves are never stored.
+ * scope before login, 방문 없이 가입 and the result filter. Same key as the settings. The address still wins when it has
+ * a value; these only fill what it leaves out. The search texts themselves are never stored. The sort and the 상세검색
+ * checks (완전 일치, author roles) are not kept any more (cycle 08 R1, AC-1): they belong to one search.
  */
 export interface SearchPrefs {
   /** The switch before login (after login it is `myScope`). Default: the joinable side (user request 2026-10-05). */
   guestScope: LibraryScope
   visit: VisitFilter
   filter: ResultFilter
-  sort: BookSort
-  /** Prefill of the 상세검색 checks on a new search; a search in the address uses its own. */
-  exact: SearchField[]
-  roles: BookRole[]
 }
 
 export const DEFAULT_PREFS: SearchPrefs = {
   guestScope: 'joinable',
   visit: 'any',
   filter: 'available',
-  sort: 'default',
-  exact: [],
-  roles: [],
 }
 
-const FIELDS: readonly SearchField[] = ['title', 'author', 'publisher']
-const ROLES: readonly BookRole[] = ['translator', 'illustrator', 'editor']
-const SORT_VALUES: readonly BookSort[] = ['default', 'newest', 'oldest']
+/** Values earlier versions kept under the same key (cycle 07); removed when read (AC-2). */
+const DROPPED_PREFS = ['sort', 'exact', 'roles'] as const
 
-/** Stored preferences; each unknown or missing value falls back to its default, and so does blocked storage. */
+/**
+ * Stored preferences; each unknown or missing value falls back to its default, and so does blocked storage. Values
+ * this version does not keep any more are removed from storage on the way.
+ */
 export function loadPrefs(storage?: Storage): SearchPrefs {
   try {
-    const stored = readStored(storage ?? localStorage)
-    const list = <T extends string>(value: unknown, allowed: readonly T[]): T[] =>
-      Array.isArray(value) ? allowed.filter((item) => value.includes(item)) : []
+    const target = storage ?? localStorage
+    const stored = readStored(target)
+    if (DROPPED_PREFS.some((key) => key in stored)) {
+      const kept = { ...stored }
+      DROPPED_PREFS.forEach((key) => delete kept[key])
+      target.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(kept))
+    }
     return {
       guestScope: stored.guestScope === 'all' ? 'all' : 'joinable',
       visit: stored.visit === 'none' ? 'none' : 'any',
       filter: stored.filter === 'all' ? 'all' : 'available',
-      sort: (SORT_VALUES as readonly unknown[]).includes(stored.sort) ? (stored.sort as BookSort) : 'default',
-      exact: list(stored.exact, FIELDS),
-      roles: list(stored.roles, ROLES),
     }
   } catch {
     return DEFAULT_PREFS

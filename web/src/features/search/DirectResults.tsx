@@ -1,7 +1,10 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import type { ApiError } from '../../api/client'
 import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrary, VisitFilter } from '../../api/types'
+import { InfoTip } from '../../components/InfoTip'
 import { useRegions } from '../region/RegionContext'
+import { BLOCKED_TEXT, blockedBy } from './blocked'
 import { LibraryCountButton } from './LibrarySummaryBar'
 import { ResultList, type BatchView } from './ResultList'
 import listStyles from './ResultList.module.css'
@@ -108,7 +111,7 @@ export function DirectResults({
               선택한 지역에서 자격이 확인된 도서관이 없습니다
             </p>
           )}
-          {state.error && <SearchError code={state.error.problem.code} onEditRegions={onEditRegions} />}
+          {state.error && <SearchError error={state.error} onEditRegions={onEditRegions} />}
         </div>
       )}
       {state.targets && (
@@ -143,6 +146,7 @@ export function DirectResults({
                 filter={filter}
                 onFilterChange={onFilterChange}
                 toolbarEnd={
+                  // wider screens; on phones this line is hidden and NoSort sits on the search line instead
                   <>
                     {/* dimmed with its reason [확정] (user: "흐리게 이것만") */}
                     <span id="direct-sort-reason" className={listStyles.dimReason}>
@@ -157,6 +161,7 @@ export function DirectResults({
                 loading={streaming}
                 loadingLibraries={loadingBatch ? new Set(loadingBatch.requestedLibraries).size : 0}
                 batchFailed={state.batchFailed}
+                blocked={state.blocked}
                 onMore={loadNextBatch}
               />
             )
@@ -175,7 +180,32 @@ function allEmptyMessage(field: SearchField, query: string, libraries: number): 
   return `${where} 이 제목의 전자책이 없습니다`
 }
 
-export function SearchError({ code, onEditRegions }: { code: string; onEditRegions: () => void }) {
+/** [확정] (cycle 08 #5): why the direct site search has no sort, behind the ⓘ on phones. */
+export const NO_SORT_REASON = '도서관 사이트 검색에서는 정렬을 쓸 수 없어요'
+
+/**
+ * Phones, direct search (cycle 08 #5 [확정]): where the sort sits on the search line, a dimmed "정렬 없음" whose ⓘ
+ * tells why.
+ */
+export function NoSort() {
+  return (
+    <span className={listStyles.noSort}>
+      정렬 없음
+      <InfoTip label="정렬 없음 안내" text={NO_SORT_REASON} />
+    </span>
+  )
+}
+
+export function SearchError({ error, onEditRegions }: { error: ApiError; onEditRegions: () => void }) {
+  const code = error.problem.code
+  const blocked = blockedBy(error)
+  if (blocked) {
+    return (
+      <p className={styles.notice} data-kind="blocked" role="alert">
+        {BLOCKED_TEXT[blocked]}
+      </p>
+    )
+  }
   if (code === 'invalid_region') {
     return (
       <p className={styles.notice} data-kind="error" role="alert">

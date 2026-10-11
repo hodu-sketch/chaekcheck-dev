@@ -6,6 +6,12 @@ import { useMediaQuery } from '../../lib/useMediaQuery'
 import { needsJoinCheck, type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
+/** [확정] (cycle 08 handoff step 7-4): a holding that left the library's list (`holding_not_found`). */
+export const HOLDING_GONE = '이 도서관 목록에서 빠졌어요'
+
+/** [안] wording (user kept the handoff text, 2026-10-11). */
+export const MOBILE_SITE_NOTE = '폰에서는 사이트가 다른 화면을 보여요. PC에서 열어 주세요'
+
 interface Props {
   row: Row
   library: TargetLibrary | undefined
@@ -35,7 +41,9 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   // a candidate library whose join rules were not found or not researched (cycle 07, R6): its notice instead
   const surveyNotice = library ? SURVEY_NOTICE[library.joinSurvey] : undefined
   const homepageUrl = safeHttpUrl(library?.homepageUrl)
-  const state = row.failed ? '확인 실패' : stateText(row)
+  // cycle 08 R3: the site shows another page on phones; a note, never a blocked link (also when the check failed)
+  const mobileNote = phone && library?.mobileSiteDiffers === true
+  const state = row.failed ? (row.gone ? HOLDING_GONE : '확인 실패') : stateText(row)
   const group = row.availability === 'AVAILABLE' ? 'borrow' : row.availability === 'PENDING' ? 'pending' : 'reserve'
 
   const conditionLines = surveyNotice ? (
@@ -53,6 +61,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
             도서관 첫 화면
             <span className="visually-hidden"> (새 창)</span>
           </a>
+          {mobileNote && <span className={styles.mobileNote}>{MOBILE_SITE_NOTE}</span>}
         </p>
       )}
     </>
@@ -96,6 +105,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
             전자도서관에서 가입 안내 보기
             <span className="visually-hidden"> (새 창)</span>
           </a>
+          {mobileNote && <span className={styles.mobileNote}>{MOBILE_SITE_NOTE}</span>}
         </p>
       )}
     </>
@@ -138,6 +148,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
           </Popover.Root>
           {chosen && <span className={styles.chosen}>직접 추가</span>}
         </p>
+        {mobileNote && <p className={styles.mobileNote}>{MOBILE_SITE_NOTE}</p>}
       </div>
 
       <div className={styles.stock}>

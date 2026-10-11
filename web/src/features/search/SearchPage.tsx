@@ -12,7 +12,7 @@ import { RegionSummary } from '../region/RegionSummary'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { MyLibrarySummary } from '../mylibrary/MyLibrarySummary'
 import { BookList } from './BookList'
-import { DirectResults } from './DirectResults'
+import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
 import { LibraryScopeToggle } from './LibraryScopeToggle'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
@@ -48,7 +48,7 @@ export function SearchPage() {
   const settings = resolveSettings(params, stored)
   // what is kept in this browser fills only what the address leaves out (user request 2026-10-05)
   const [prefs, setPrefs] = useState<SearchPrefs>(() => loadPrefs())
-  const input = readBookSearch(params, prefs.sort)
+  const input = readBookSearch(params)
   const filter = readFilter(params, prefs.filter)
   const visit = readVisit(params, prefs.visit)
   const keepPrefs = (next: Partial<SearchPrefs>) => {
@@ -113,7 +113,6 @@ export function SearchPage() {
     if (addressScope) address.set('scope', addressScope)
     writeVisit(visit, address)
     writeBookSearch(next, address)
-    keepPrefs({ exact: next.exact, roles: next.roles })
     writeSettings(settings, address)
     navigate(`/search?${address}`)
   }
@@ -131,7 +130,6 @@ export function SearchPage() {
     setParams(writeSettings(effective, new URLSearchParams(params)), { replace: true })
   }
   const changeSort = (sort: BookSort) => {
-    keepPrefs({ sort })
     replaceParam('sort', sort === 'default' ? null : sort)
   }
   const changeFilter = (next: ResultFilter) => {
@@ -188,12 +186,11 @@ export function SearchPage() {
         )}
         <SearchForm
           key={params.toString()}
-          initial={input ?? { ...EMPTY_INPUT, exact: prefs.exact, roles: prefs.roles, sort: prefs.sort }}
+          initial={input ?? EMPTY_INPUT}
           settings={settings}
           hasResults={hasSearch}
           onSearch={search}
           onSettingsChange={changeSettings}
-          onOptionsChange={keepPrefs}
           settingsScope={
             phone ? (
               <>
@@ -209,7 +206,10 @@ export function SearchPage() {
             phone && bookQuery ? (
               <SortSelect value={bookQuery.sort} onChange={changeSort} />
             ) : phone && settings.direct && directValid ? (
-              <div ref={setCountSlot} className={styles.countSlot} />
+              <div className={styles.directLineEnd}>
+                <NoSort />
+                <div ref={setCountSlot} className={styles.countSlot} />
+              </div>
             ) : undefined
           }
         />

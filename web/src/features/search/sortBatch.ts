@@ -6,6 +6,8 @@ export interface ResultRow extends LibraryItem {
   page: number
   /** The lookup of this row failed (holding stream): shown as "확인 실패". */
   failed?: boolean
+  /** The holding left the library's list at the last import (`holding_not_found`, ADR-0070): its own text. */
+  gone?: boolean
 }
 
 export interface SortContext {

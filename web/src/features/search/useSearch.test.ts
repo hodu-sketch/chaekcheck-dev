@@ -23,6 +23,7 @@ function target(id: number): TargetLibrary {
     chosen: false,
     joinSurvey: 'SURVEYED',
     logoUrl: null,
+    mobileSiteDiffers: false,
   }
 }
 

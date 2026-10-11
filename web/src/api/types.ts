@@ -86,6 +86,8 @@ export interface TargetLibrary {
   joinSurvey: JoinSurvey
   /** Cycle 07 (ADR-0059): the library's own logo (`/library-logos/…`), or null: show no logo. */
   logoUrl: string | null
+  /** Cycle 08 (R3): the site's phone version shows another page; phones get a note, the links stay. */
+  mobileSiteDiffers: boolean
 }
 
 /** Which book field the search text is matched against; also the name of the one condition parameter (ADR-0025). */
@@ -337,6 +339,8 @@ export interface LibraryEligibilityRow {
   homepageUrl: string | null
   /** The library's own logo, or null (ADR-0059). */
   logoUrl: string | null
+  /** Cycle 08 (R3): the site's phone version shows another page. */
+  mobileSiteDiffers: boolean
 }
 
 /** `GET`/`PUT /api/v1/me/regions`: saved ids in the chosen order (abolished ids come back as they are). */

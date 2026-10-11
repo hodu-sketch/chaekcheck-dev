@@ -80,6 +80,12 @@
   font-weight: 800;
 }
 
+.emptyNote {
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+}
+
 .link {
   display: inline-block;
   margin-top: 0.8rem;

@@ -109,6 +109,12 @@
   color: var(--fail);
 }
 
+/* a refused search (429, 503): the amber "wait" notice, not the red failure (cycle 08 R2) */
+.notice[data-kind='blocked'] {
+  background: var(--reserve-soft);
+  color: #7a4506;
+}
+
 .noticeAction {
   padding: 0;
   border: none;
@@ -283,3 +289,11 @@
   }
 }
 
+
+/* phones, direct search (cycle 08 #5): "정렬 없음 ⓘ" and the "N곳" button on one line at the end of the search line */
+.directLineEnd {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}

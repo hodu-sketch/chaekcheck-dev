@@ -1,4 +1,25 @@
 /*
+ * Chaekcheck Barun (cycle 08, R10-5, user approval 2026-10-11): NanumBarunGothic (OFL-1.1) cut down to the 2,350
+ * common Hangul syllables of KS X 1001, ASCII, punctuation and symbols and every character of the screens, under
+ * another family name. Made by scripts/web/subset_font.py from the package files below. It comes first in
+ * --font-body; the full NanumBarunGothic follows it, so a browser fetches the full file only for a page with a
+ * character the small one lacks (a rare syllable in a book title).
+ */
+@font-face {
+  font-family: 'Chaekcheck Barun';
+  src: url('../assets/fonts/ChaekcheckBarun-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chaekcheck Barun';
+  src: url('../assets/fonts/ChaekcheckBarun-Bold.woff2') format('woff2');
+  font-weight: 700 800;
+  font-display: swap;
+}
+
+/*
  * NanumBarunGothic (OFL-1.1), self-hosted from @kfonts/nanum-barun-gothic (user request 2026-10-05; NanumSquare before).
  * Written here instead of the package CSS so each weight is its own file and an installed copy cannot draw bold as
  * regular. The font has no extra bold, so 700 and 800 (emphasis and headings) both use Bold.
@@ -10,6 +31,9 @@
     url('@kfonts/nanum-barun-gothic/NanumBarunGothic.woff') format('woff');
   font-weight: 400;
   font-display: swap;
+  /* only the Hangul syllables the small file lacks are drawn from here; for other characters the browser does not
+     fetch this file (it has no ☰ or ▾ either) */
+  unicode-range: U+AC00-D7A3;
 }
 
 @font-face {
@@ -19,4 +43,7 @@
     url('@kfonts/nanum-barun-gothic/NanumBarunGothicBold.woff') format('woff');
   font-weight: 700 800;
   font-display: swap;
+  /* only the Hangul syllables the small file lacks are drawn from here; for other characters the browser does not
+     fetch this file (it has no ☰ or ▾ either) */
+  unicode-range: U+AC00-D7A3;
 }

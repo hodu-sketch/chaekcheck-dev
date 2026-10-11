@@ -100,6 +100,8 @@ function BookView({ bookId }: { bookId: string }) {
           {error.problem.code === 'book_not_found' ? (
             <>
               <p className={styles.emptyTitle}>책을 찾을 수 없어요</p>
+              {/* [확정] (cycle 08 R7, ADR-0070): the book may have left at an import of the libraries' lists */}
+              <p className={styles.emptyNote}>도서관 목록을 새로 받으면서 빠진 책일 수 있어요. 다시 검색해 주세요.</p>
               <Link className={styles.link} to="/">
                 처음으로
               </Link>
@@ -153,6 +155,7 @@ function BookView({ bookId }: { bookId: string }) {
           loading={holdings.state.phase === 'streaming'}
           loadingLibraries={loadingBatch ? new Set(loadingBatch.requestedLibraries).size : 0}
           batchFailed={holdings.state.batchFailed}
+          blocked={holdings.state.blocked}
           onMore={() => void holdings.loadNext()}
           moreText={`(남은 도서관 ${holdings.remaining}곳)`}
           finishedText="이 책을 가진 도서관을 모두 조회했습니다"

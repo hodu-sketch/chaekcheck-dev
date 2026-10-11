@@ -1,4 +1,4 @@
-import { Accordion, Popover, RadioGroup } from 'radix-ui'
+import { Accordion, Dialog, Popover, RadioGroup } from 'radix-ui'
 import { useState, type ReactNode } from 'react'
 import { useOptionalAuth } from '../auth/AuthContext'
 import { WithdrawDialog } from '../auth/WithdrawDialog'
@@ -20,9 +20,20 @@ type Props = {
 type SectionKey = 'scope' | 'view' | 'direct'
 
 /**
- * S4 settings (flow.md): 보기 방식 and 도서관에서 직접 찾기, in a small window under ⚙. Kept in this browser and in the
- * address [확정]. With direct search on, 책 먼저 고르기 cannot be used [안]: site results are not grouped by book.
- * Signed in, a "계정" section holds only 탈퇴 (cycle 05 [확정]); login and logout stay in the header.
+ * Phones: the settings open as a bottom sheet (cycle 08, flow.md 검토 #1). Set to false to go back to the small
+ * window under the button; the popover code stays for that (user 2026-10-06: "일단 만들고 나서 내가 이전으로돌아가라고
+ * 하면 돌아가줘"). Wider screens always use the small window.
+ */
+export const PHONE_SETTINGS_SHEET = true
+
+/** How far down the handle must be pulled to close the sheet [안]. */
+const CLOSE_DRAG_PX = 80
+
+/**
+ * S4 settings (flow.md): 보기 방식 and 도서관에서 직접 찾기, in a small window under ⚙ (a bottom sheet on phones). Kept in
+ * this browser and in the address [확정]. With direct search on, 책 먼저 고르기 cannot be used [안]: site results are
+ * not grouped by book. Signed in, a "계정" section holds only 탈퇴 (cycle 05 [확정]); login and logout stay in the
+ * header.
  */
 export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, marked = false }: Props) {
   const auth = useOptionalAuth()
@@ -30,8 +41,8 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const signedIn = auth?.state.status === 'signed-in' ? auth.state : null
   const provider = signedIn?.me.loginMethods[0]
-  // phones (the scope folded in here): one row per section that opens on a tap, in a screen-wide sheet as tall as its
-  // content, at most to the bottom of the screen (user requests 2026-10-05); all closed at first
+  // phones (the scope folded in here): one row per section that opens on a tap, all closed at first (user requests
+  // 2026-10-05)
   const sheet = scopeSection !== undefined
   const [section, setSection] = useState<SectionKey | ''>('')
 
@@ -63,99 +74,179 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
     </RadioGroup.Root>
   )
 
+  const trigger = (
+    <>
+      {marked && <span className={styles.mark} aria-hidden="true" />}
+      {/* two sliders with rounded-square knobs, to match the rounded-rectangle look (user request 2026-10-05) */}
+      <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path d="M3 6.5h14M3 13.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <rect x="11" y="3.75" width="4.5" height="5.5" rx="1.3" fill="currentColor" />
+        <rect x="4.5" y="10.75" width="4.5" height="5.5" rx="1.3" fill="currentColor" />
+      </svg>
+    </>
+  )
+  const triggerLabel = marked ? '검색 설정 (찾을 도서관 바꿈)' : '검색 설정'
+
+  const body = (
+    <>
+      {sheet ? (
+        <Accordion.Root
+          type="single"
+          collapsible
+          value={section}
+          onValueChange={(value) => setSection(value as SectionKey | '')}
+          className={styles.sections}
+        >
+          <Section value="scope" title="찾을 도서관" current={scopeValue}>
+            <div className={styles.scope}>{scopeSection}</div>
+          </Section>
+          <Section value="view" title="보기 방식" current={settings.view === 'books' ? '책 먼저 고르기' : '바로 보기'}>
+            {viewOptions}
+          </Section>
+          <Section value="direct" title="도서관에서 직접 찾기" current={settings.direct ? '켬' : '끔'}>
+            {directOptions}
+          </Section>
+        </Accordion.Root>
+      ) : (
+        <>
+          <fieldset className={styles.group}>
+            <legend className={styles.legend}>보기 방식</legend>
+            {viewOptions}
+          </fieldset>
+          <fieldset className={styles.group}>
+            <legend className={styles.legend}>도서관에서 직접 찾기</legend>
+            {directOptions}
+          </fieldset>
+        </>
+      )}
+      {provider && (
+        // "계정" and 탈퇴 on one line, the button at the right like the other controls (user request 2026-10-05)
+        <div className={`${styles.group} ${styles.accountRow}`} role="group" aria-labelledby="settings-account">
+          <span id="settings-account" className={styles.legend}>
+            계정
+          </span>
+          <button
+            type="button"
+            className={styles.withdraw}
+            onClick={() => {
+              setOpen(false)
+              setWithdrawOpen(true)
+            }}
+          >
+            탈퇴
+          </button>
+        </div>
+      )}
+    </>
+  )
+
   return (
     <>
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger className={styles.trigger} aria-label={marked ? '검색 설정 (찾을 도서관 바꿈)' : '검색 설정'}>
-        {marked && <span className={styles.mark} aria-hidden="true" />}
-        {/* two sliders with rounded-square knobs, to match the rounded-rectangle look (user request 2026-10-05) */}
-        <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-          <path d="M3 6.5h14M3 13.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <rect x="11" y="3.75" width="4.5" height="5.5" rx="1.3" fill="currentColor" />
-          <rect x="4.5" y="10.75" width="4.5" height="5.5" rx="1.3" fill="currentColor" />
-        </svg>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          className={styles.content}
-          data-sheet={sheet || undefined}
-          side="bottom"
-          align="end"
-          sideOffset={8}
-          collisionPadding={12}
-          // wider screens: never flipped above the button (it covered the headline and went past the top on short
-          // laptops, user request 2026-10-08); its height is capped instead. The phone sheet keeps the collision
-          // handling, which also keeps it inside the screen's width.
-          avoidCollisions={sheet}
-        >
-          {sheet ? (
-            <Accordion.Root
-              type="single"
-              collapsible
-              value={section}
-              onValueChange={(value) => setSection(value as SectionKey | '')}
-              className={styles.sections}
+      {sheet && PHONE_SETTINGS_SHEET ? (
+        <BottomSheet open={open} onOpenChange={setOpen} title="검색 설정" trigger={trigger} triggerLabel={triggerLabel}>
+          {body}
+        </BottomSheet>
+      ) : (
+        <Popover.Root open={open} onOpenChange={setOpen}>
+          <Popover.Trigger className={styles.trigger} aria-label={triggerLabel}>
+            {trigger}
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              className={styles.content}
+              data-sheet={sheet || undefined}
+              side="bottom"
+              align="end"
+              sideOffset={8}
+              collisionPadding={12}
+              // wider screens: never flipped above the button (it covered the headline and went past the top on short
+              // laptops, user request 2026-10-08); its height is capped instead. The phone window keeps the collision
+              // handling, which also keeps it inside the screen's width.
+              avoidCollisions={sheet}
             >
-              <Section value="scope" title="찾을 도서관" current={scopeValue}>
-                <div className={styles.scope}>{scopeSection}</div>
-              </Section>
-              <Section value="view" title="보기 방식" current={settings.view === 'books' ? '책 먼저 고르기' : '바로 보기'}>
-                {viewOptions}
-              </Section>
-              <Section value="direct" title="도서관에서 직접 찾기" current={settings.direct ? '켬' : '끔'}>
-                {directOptions}
-              </Section>
-            </Accordion.Root>
-          ) : (
-            <>
-              <fieldset className={styles.group}>
-                <legend className={styles.legend}>보기 방식</legend>
-                {viewOptions}
-              </fieldset>
-              <fieldset className={styles.group}>
-                <legend className={styles.legend}>도서관에서 직접 찾기</legend>
-                {directOptions}
-              </fieldset>
-            </>
-          )}
-          {provider && (
-            // "계정" and 탈퇴 on one line, the button at the right like the other controls (user request 2026-10-05)
-            <div className={`${styles.group} ${styles.accountRow}`} role="group" aria-labelledby="settings-account">
-              <span id="settings-account" className={styles.legend}>
-                계정
-              </span>
-              <button
-                type="button"
-                className={styles.withdraw}
-                onClick={() => {
-                  setOpen(false)
-                  setWithdrawOpen(true)
-                }}
-              >
-                탈퇴
-              </button>
-            </div>
-          )}
-          <Popover.Arrow className={styles.arrow} width={12} height={6} />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-    {provider && (
-      <WithdrawDialog
-        open={withdrawOpen}
-        onOpenChange={(next) => {
-          setWithdrawOpen(next)
-          // 그만두기 goes back to the settings (S4)
-          if (!next) setOpen(true)
-        }}
-        provider={provider}
-      />
-    )}
+              {body}
+              <Popover.Arrow className={styles.arrow} width={12} height={6} />
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+      )}
+      {provider && (
+        <WithdrawDialog
+          open={withdrawOpen}
+          onOpenChange={(next) => {
+            setWithdrawOpen(next)
+            // 그만두기 goes back to the settings (S4)
+            if (!next) setOpen(true)
+          }}
+          provider={provider}
+        />
+      )}
     </>
   )
 }
 
-/** One row of the phone sheet: the title and what it is set to now; a tap opens the controls under it. */
+/**
+ * Phones (cycle 08, flow.md 검토 #1): the settings in a sheet from the bottom of the screen, with a handle; a tap
+ * outside or pulling the handle down closes it. Same rows in the same order as the small window it replaces.
+ */
+function BottomSheet({
+  open,
+  onOpenChange,
+  title,
+  trigger,
+  triggerLabel,
+  children,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  trigger: ReactNode
+  triggerLabel: string
+  children: ReactNode
+}) {
+  const [drag, setDrag] = useState<{ startY: number; offset: number } | null>(null)
+
+  const endDrag = () => {
+    if (drag && drag.offset > CLOSE_DRAG_PX) onOpenChange(false)
+    setDrag(null)
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Trigger className={styles.trigger} aria-label={triggerLabel}>
+        {trigger}
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className={styles.sheetOverlay} />
+        <Dialog.Content
+          className={styles.bottomSheet}
+          aria-describedby={undefined}
+          style={drag ? { transform: `translateY(${drag.offset}px)`, transition: 'none' } : undefined}
+        >
+          <Dialog.Title className="visually-hidden">{title}</Dialog.Title>
+          <div
+            className={styles.handleArea}
+            data-testid="sheet-handle"
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture?.(event.pointerId)
+              setDrag({ startY: event.clientY, offset: 0 })
+            }}
+            onPointerMove={(event) => {
+              if (drag) setDrag({ ...drag, offset: Math.max(0, event.clientY - drag.startY) })
+            }}
+            onPointerUp={endDrag}
+            onPointerCancel={() => setDrag(null)}
+          >
+            <span className={styles.handle} aria-hidden="true" />
+          </div>
+          <div className={styles.sheetBody}>{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
+/** One row of the phone settings: the title and what it is set to now; a tap opens the controls under it. */
 function Section({
   value,
   title,
