@@ -210,8 +210,10 @@
 }
 
 .spinner {
-  width: 0.9rem;
-  height: 0.9rem;
+  /* the same size on every width (cycle 10 icon check) */
+  flex: none;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--rule-strong);
   border-top-color: var(--brand);
   border-radius: 50%;

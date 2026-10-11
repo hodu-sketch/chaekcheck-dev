@@ -67,17 +67,20 @@
 }
 
 .pickerMark {
+  display: inline-flex;
+  align-items: center;
   color: var(--ink-faint);
-  font-size: 0.75em;
 }
 
 .pickPopover {
   z-index: 20;
+  display: flex;
+  flex-direction: column;
   width: 13rem;
   max-height: min(26rem, var(--radix-popover-content-available-height));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 0.35rem;
+  /* the rounded corners stay whole; only the list inside scrolls */
+  overflow: hidden;
+  padding: 0.35rem 0;
   border: 1px solid var(--paper-deep);
   border-radius: var(--radius-md);
   background: var(--card);
@@ -278,11 +281,13 @@
   filter: grayscale(0.5);
 }
 
-/* round rank chips (design A) */
+/* round rank chips (design A); the digits centred by the box, not by the font's line (cycle 10 icon check) */
 .rank {
   position: absolute;
   top: 0.4rem;
   left: 0.4rem;
+  display: grid;
+  place-items: center;
   min-width: 1.45rem;
   height: 1.45rem;
   padding: 0 0.35rem;
@@ -292,8 +297,9 @@
   color: var(--ink);
   font-size: 0.74rem;
   font-weight: 800;
-  line-height: 1.45rem;
+  line-height: 1;
   text-align: center;
+  text-box: trim-both cap alphabetic;
 }
 
 /*
@@ -426,8 +432,9 @@
     position: absolute;
     top: 50%;
     z-index: 1;
-    width: 2.1rem;
-    height: 2.6rem;
+    /* at least 40px wide, white and lifted so it reads as floating over the cover (cycle 10 icon check) */
+    width: max(40px, 2.2rem);
+    height: 2.7rem;
     translate: 0 -50%;
     border-radius: 12px;
     background: rgb(255 255 255 / 0.92);
@@ -452,7 +459,6 @@
     min-width: 1.3rem;
     height: 1.3rem;
     font-size: 0.68rem;
-    line-height: 1.3rem;
   }
 }
 
@@ -485,7 +491,26 @@
   font-weight: 800;
 }
 
-.pickList + .pickSeparator + .pickHelpItem + .helpList {
+.pickPopover .pickScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* a thin scrollbar with the same room on both sides */
+  scrollbar-width: thin;
+  scrollbar-gutter: stable both-edges;
+  padding-inline: 0.2rem;
+}
+
+.pickPopover .pickSeparator,
+.pickPopover .pickHelpItem,
+.pickPopover .helpList {
+  flex: none;
+  margin-inline: 0.35rem;
+  width: auto;
+}
+
+.pickScroll + .pickSeparator + .pickHelpItem + .helpList {
   padding: 0.3rem 0.75rem 0.6rem;
   color: var(--ink-soft);
   font-size: var(--text-sm);

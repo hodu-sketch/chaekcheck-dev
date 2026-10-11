@@ -119,10 +119,10 @@
 
 .caret {
   /* the same width open and closed, so the line does not move when 상세검색 opens */
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 0.8rem;
-  font-size: 0.8rem;
-  text-align: center;
 }
 
 /* Author and publisher lines under the title box */
@@ -315,7 +315,7 @@
   }
 
   .moreIcon {
-    display: inline;
+    display: inline-flex;
   }
 
   .moreButton {
@@ -354,9 +354,12 @@
     padding: 0 1rem;
   }
 
-  .moreLabel,
-  .caret {
+  .moreLabel {
     display: inline;
+  }
+
+  .caret {
+    display: inline-flex;
   }
 
   .moreIcon {

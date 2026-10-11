@@ -10,6 +10,7 @@ import { collectedRange, holdingBatchViews } from '../search/holdingView'
 import { ResultList } from '../search/ResultList'
 import { useHoldings } from '../search/useHoldings'
 import styles from './BookPage.module.css'
+import { ChevronLeft } from '../../components/icons'
 
 /**
  * S3 book (flow.md): one book from 책 먼저 고르기 and the plan libraries holding it, asked on their detail pages
@@ -88,7 +89,7 @@ function BookView({ bookId }: { bookId: string }) {
 
   const back = (
     <button type="button" className={styles.back} onClick={() => navigate(-1)}>
-      ‹ 목록으로
+      <ChevronLeft size={7} /> 목록으로
     </button>
   )
 

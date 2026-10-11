@@ -7,6 +7,7 @@ import { CoverImage } from './CoverImage'
 import { pickLibraryRows, POPULAR_HOLDING_LIMIT } from './pickLibraryRows'
 import { PopularWindow } from './PopularWindow'
 import styles from './PopularDialogs.module.css'
+import { ChevronRight } from '../../components/icons'
 
 type Props = {
   /** The tapped book with an e-book in my libraries (`bookId` set); null keeps the window closed. */
@@ -102,7 +103,7 @@ function BookBody({
         )}
         {!error && (
           <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>
-            책 검색 &gt;&gt;
+            책 검색 <ChevronRight size={6} />
           </button>
         )}
       </div>

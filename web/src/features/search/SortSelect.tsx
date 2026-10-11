@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { BookSort } from '../../api/types'
 import { SORT_LABELS, SORTS } from './searchCondition'
 import styles from './SortSelect.module.css'
+import { CheckMark } from '../../components/icons'
 
 interface Props {
   value: BookSort
@@ -48,7 +49,7 @@ export function SortSelect({ value, onChange, disabled = false, describedBy }: P
               <DropdownMenu.RadioItem key={sort} value={sort} className={styles.item}>
                 {SORT_LABELS[sort]}
                 <DropdownMenu.ItemIndicator className={styles.check} aria-hidden="true">
-                  ✓
+                  <CheckMark />
                 </DropdownMenu.ItemIndicator>
               </DropdownMenu.RadioItem>
             ))}

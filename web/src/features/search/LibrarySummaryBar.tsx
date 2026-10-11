@@ -3,6 +3,7 @@ import type { TargetLibrary } from '../../api/types'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import type { LibraryResult } from './useSearch'
 import styles from './LibrarySummaryBar.module.css'
+import { Cross } from '../../components/icons'
 
 /** More libraries than this collapse into "… 외 N곳", which opens the full list (U-8). */
 export const VISIBLE_LIBRARIES = 5
@@ -99,7 +100,7 @@ function AllLibraries({
             ))}
           </ul>
           <Popover.Close className={styles.popoverClose} aria-label="닫기">
-            ×
+            <Cross />
           </Popover.Close>
         </Popover.Content>
       </Popover.Portal>

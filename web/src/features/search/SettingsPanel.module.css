@@ -58,6 +58,20 @@
   border-top: 1px solid var(--paper-deep);
 }
 
+/*
+ * A fieldset draws its legend inside its top border; floated, the legend is an ordinary line, so the separator above
+ * the second group is one clean line and both groups have the same spacing (cycle 10 icon check).
+ */
+legend.legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+}
+
+legend.legend + * {
+  clear: left;
+}
+
 .legend {
   margin-bottom: 0.45rem;
   color: var(--ink);

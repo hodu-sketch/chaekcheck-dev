@@ -119,8 +119,11 @@
 }
 
 .chipRemove {
+  display: inline-grid;
+  place-items: center;
   width: 1.5rem;
   height: 1.5rem;
+  padding: 0;
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -488,4 +491,21 @@
   background: var(--paper-deep);
   font-size: var(--text-md);
   color: var(--ink);
+}
+
+/* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
+@media (width <= 640px) {
+  .chipRemove {
+    position: relative;
+  }
+
+  .chipRemove::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
 }

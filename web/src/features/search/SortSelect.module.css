@@ -72,7 +72,8 @@
 }
 
 .check {
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* the line under the orders that opens the explanation in the list (user request 2026-10-05) */

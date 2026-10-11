@@ -21,10 +21,13 @@ describe('SortSelect (user request 2026-10-05: the "?" is inside the list)', () 
 
     await user.click(screen.getByRole('button', { name: '정렬: 기본 순서' }))
     expect(screen.getAllByRole('menuitemradio').map((item) => item.textContent)).toEqual([
-      '기본 순서✓',
+      '기본 순서',
       '출판일 최신순',
       '출판일 오래된순',
     ])
+    // the check is an SVG now (cycle 10 icon check): it marks the chosen order
+    expect(screen.getAllByRole('menuitemradio')[0].getAttribute('aria-checked')).toBe('true')
+    expect(screen.getAllByRole('menuitemradio')[0].querySelector('svg')).not.toBeNull()
     expect(screen.queryByText('기본 순서는 이렇게 정해요')).toBeNull()
 
     await user.click(screen.getByRole('menuitem', { name: /정렬 기준 보기/ }))

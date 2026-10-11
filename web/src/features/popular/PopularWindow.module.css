@@ -29,10 +29,10 @@
 }
 
 .close {
-  /* the same 44px target with a 36px grey square as the phone sheets, inside the window's padding */
+  /* a 44px target with a 36px grey square, 20px in from the rounded corner; the cross on the content's right edge */
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 16px;
+  right: 16px;
   display: grid;
   place-items: center;
   width: 44px;

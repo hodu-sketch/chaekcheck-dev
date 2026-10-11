@@ -157,10 +157,12 @@
   width: 1.9rem;
   height: 1.9rem;
   border: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border-radius: 50%;
   background: transparent;
-  font-size: 1.2rem;
-  line-height: 1;
+  color: var(--ink-soft);
   cursor: pointer;
 }
 
@@ -234,8 +236,10 @@
 }
 
 .spinner {
-  width: 0.8rem;
-  height: 0.8rem;
+  /* the same size on every width (cycle 10 icon check) */
+  flex: none;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--rule);
   border-top-color: var(--brand);
   border-radius: 50%;

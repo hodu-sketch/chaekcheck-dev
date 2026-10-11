@@ -6,6 +6,7 @@ import { resolveRegions } from './resolveRegions'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from './regionStorage'
 import { useRegionLabels, useRegionTree } from './useRegionTree'
 import styles from './RegionModal.module.css'
+import { Cross } from '../../components/icons'
 
 type Field = keyof StoredRegions
 
@@ -146,7 +147,7 @@ function RegionEditor({
                     onClick={() => remove(f, id)}
                     aria-label={`${labels.get(id) ?? `지역 ${id}`} 빼기`}
                   >
-                    ×
+                    <Cross size={10} />
                   </button>
                 </li>
               ))}

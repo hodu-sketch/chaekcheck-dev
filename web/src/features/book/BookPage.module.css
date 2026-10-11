@@ -11,6 +11,9 @@
 
 .back {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   padding: 0.45rem 0.9rem;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);

@@ -12,6 +12,7 @@ import {
 import { DIRECT_REASON, type SearchSettings } from './searchSettings'
 import { SettingsPanel } from './SettingsPanel'
 import styles from './SearchForm.module.css'
+import { ChevronDown, ChevronUp, MenuLines } from '../../components/icons'
 
 const MESSAGES: Record<Exclude<QueryProblem, null>, string> = {
   too_short: `${QUERY_MIN_LENGTH}글자 이상 입력하세요`,
@@ -149,11 +150,11 @@ export function SearchForm({
           onClick={() => setExpanded((open) => !open)}
         >
           <span className={styles.moreIcon} aria-hidden="true">
-            ☰
+            <MenuLines />
           </span>
           <span className={styles.moreLabel}>상세검색</span>
           <span className={styles.caret} aria-hidden="true">
-            {expanded ? '▴' : '▾'}
+            {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           </span>
         </button>
         <SettingsPanel

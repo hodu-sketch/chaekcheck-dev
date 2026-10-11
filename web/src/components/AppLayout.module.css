@@ -91,3 +91,22 @@
     padding-block: calc(0.8 * var(--base-unscaled));
   }
 }
+
+/* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
+@media (width <= 640px) {
+  .brand,
+  .navLink {
+    position: relative;
+  }
+
+  .brand::after,
+  .navLink::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}

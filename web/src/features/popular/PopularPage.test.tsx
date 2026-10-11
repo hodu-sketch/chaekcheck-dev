@@ -280,7 +280,7 @@ describe('popular books (S13)', () => {
     const dialog = screen.getByRole('dialog', { name: '전체 1 대출 정보' })
     expect(await within(dialog).findByText('우리 전자책 제목')).toBeTruthy()
     expect(within(dialog).queryByTestId('sheet-handle')).toBeNull()
-    await user.click(within(dialog).getByRole('button', { name: '책 검색 >>' }))
+    await user.click(within(dialog).getByRole('button', { name: '책 검색' }))
     expect(await screen.findByText('책 화면')).toBeTruthy()
   })
 })

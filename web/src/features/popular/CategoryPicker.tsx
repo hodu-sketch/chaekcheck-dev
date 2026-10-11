@@ -4,6 +4,7 @@ import type { PopularCategory } from '../../api/types'
 import { BottomSheet } from '../../components/BottomSheet'
 import { fetchedLabel, HELP_LINES, monthLabel, SOURCE_TEXT } from './popularText'
 import styles from './PopularPage.module.css'
+import { ChevronDown } from '../../components/icons'
 
 type Props = {
   categories: PopularCategory[]
@@ -41,20 +42,23 @@ export function CategoryPicker({ categories, current, onPick, phone, month, fetc
   const when = [monthLabel(month) && `${monthLabel(month)} 판매 순위`, fetchedLabel(fetchedAt)].filter(Boolean).join(' · ')
   const list = (
     <>
-      <ul className={styles.pickList} aria-label="분류">
-        {categories.map((category) => (
-          <li key={category.code}>
-            <button
-              type="button"
-              className={styles.pickItem}
-              aria-current={category.code === current ? 'true' : undefined}
-              onClick={() => pick(category.code)}
-            >
-              {category.name}
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* only the categories scroll; "순위 기준 보기" stays in view under them (cycle 10 icon check) */}
+      <div className={styles.pickScroll}>
+        <ul className={styles.pickList} aria-label="분류">
+          {categories.map((category) => (
+            <li key={category.code}>
+              <button
+                type="button"
+                className={styles.pickItem}
+                aria-current={category.code === current ? 'true' : undefined}
+                onClick={() => pick(category.code)}
+              >
+                {category.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       <div className={styles.pickSeparator} role="separator" />
       <button
         type="button"
@@ -86,7 +90,7 @@ export function CategoryPicker({ categories, current, onPick, phone, month, fetc
     <>
       <span className={styles.pickerName}>{currentName}</span>
       <span className={styles.pickerMark} aria-hidden="true">
-        ▾
+        <ChevronDown size={10} />
       </span>
     </>
   )

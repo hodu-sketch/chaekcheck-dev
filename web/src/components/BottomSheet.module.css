@@ -65,12 +65,13 @@
 
 .close {
   /*
-   * Inside the sheet, clear of the rounded corner, on the handle row's middle line; a 44px touch target with a 36px
-   * grey square drawn inside it (user 2026-10-12: "이거 폰 창인데 x가 위치가 안 맞는데")
+   * On the handle row's middle line, the cross lined up with the content's right edge (1rem in), a 44px touch target.
+   * No grey square at rest, so nothing crowds the rounded corner (user 2026-10-12: "이거 폰 창인데 x가 위치가 안
+   * 맞는데"); a soft one only on hover or press.
    */
   position: absolute;
   top: 10px;
-  right: 12px;
+  right: calc(1rem - 15px);
   display: grid;
   place-items: center;
   width: 44px;
@@ -78,9 +79,8 @@
   padding: 4px;
   background-clip: content-box;
   border: none;
-  /* a soft grey rounded square, as in the popular windows (cycle 10 design A) */
   border-radius: var(--radius-control);
-  background: var(--paper-deep);
+  background: none;
   color: var(--ink-soft);
   font: inherit;
   font-size: 1.4rem;
@@ -88,8 +88,9 @@
   cursor: pointer;
 }
 
-.close:hover {
-  background: var(--track);
+.close:hover,
+.close:active {
+  background: var(--paper-deep);
   color: var(--ink);
 }
 
@@ -100,6 +101,9 @@
 
 .sheetBody {
   overflow-y: auto;
+  /* a thin scrollbar that does not make the right side narrower than the left (cycle 10 icon check) */
+  scrollbar-width: thin;
+  scrollbar-gutter: stable both-edges;
   overscroll-behavior: contain;
   padding: 0 1rem calc(0.8rem + env(safe-area-inset-bottom));
 }

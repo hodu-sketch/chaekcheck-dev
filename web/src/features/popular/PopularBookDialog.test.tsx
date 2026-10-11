@@ -155,7 +155,7 @@ describe('popular book window', () => {
     const link = await screen.findByRole('link', { name: '다 도서관에서 보기 (새 창)' })
     expect(link.getAttribute('href')).toBe('https://ebook.example.org/book/1')
     expect(link.getAttribute('target')).toBe('_blank')
-    await user.click(screen.getByRole('button', { name: '책 검색 >>' }))
+    await user.click(screen.getByRole('button', { name: '책 검색' }))
     expect(onSearch).toHaveBeenCalledWith(5001)
   })
 
@@ -171,7 +171,7 @@ describe('popular book window', () => {
     vi.mocked(fetchBook).mockRejectedValue(new ApiError(404, { title: 'Not Found', status: 404, code: 'book_not_found' }))
     renderDialog()
     expect(await screen.findByText('책을 찾을 수 없어요')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '책 검색 >>' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '책 검색' })).toBeNull()
     expect(holdingStream).not.toHaveBeenCalled()
   })
 

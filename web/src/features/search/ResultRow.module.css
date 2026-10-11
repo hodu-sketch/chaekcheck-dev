@@ -546,3 +546,22 @@
   font-weight: 400;
   line-height: 1.45;
 }
+
+/* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
+@media (width <= 640px) {
+  .stateButton,
+  .libraryButton {
+    position: relative;
+  }
+
+  .stateButton::after,
+  .libraryButton::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}

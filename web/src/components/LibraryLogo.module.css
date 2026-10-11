@@ -32,3 +32,20 @@
     max-width: 3.75rem;
   }
 }
+
+/* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
+@media (width <= 640px) {
+  .link {
+    position: relative;
+  }
+
+  .link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
