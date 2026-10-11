@@ -141,7 +141,8 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
   return (
     <>
       {sheet && PHONE_SETTINGS_SHEET ? (
-        // the shared sheet (cycle 10 step 6) without a ⓧ: the search settings stay as in cycle 08 (C6)
+        // the shared sheet with ⓧ and back like the other phone sheets (plan request 2026-10-12; the user asked on
+        // 2026-10-11: "폰 아래에서 올라오는 창 공통적으로 끌어내리기랑 ⓧ 기능 해줘")
         <BottomSheet
           open={open}
           onOpenChange={setOpen}
@@ -149,6 +150,8 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
           trigger={trigger}
           triggerLabel={triggerLabel}
           triggerClassName={styles.trigger}
+          closeButton
+          closeOnBack
         >
           <div className={styles.sheetContent}>{body}</div>
         </BottomSheet>

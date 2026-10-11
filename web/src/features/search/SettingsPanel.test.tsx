@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from './searchSettings'
@@ -41,6 +41,29 @@ describe('settings on phones and wider screens', () => {
     fireEvent.pointerMove(handle, { clientY: 620, pointerId: 1 })
     fireEvent.pointerUp(handle, { clientY: 620, pointerId: 1 })
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('phones: ⓧ closes the sheet, like the other phone sheets (plan request 2026-10-12)', async () => {
+    render(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={vi.fn()} scopeSection={<p>범위</p>} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    await user.click(within(screen.getByRole('dialog', { name: '검색 설정' })).getByRole('button', { name: '닫기' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('phones: back closes only the sheet', async () => {
+    render(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={vi.fn()} scopeSection={<p>범위</p>} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
+    await waitFor(() => expect(window.history.state).toHaveProperty('chaekcheckSheet'))
+    window.history.back()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
+  })
+
+  it('wider screens: no ⓧ in the small window', async () => {
+    render(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={vi.fn()} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
+    expect(screen.queryByRole('button', { name: '닫기' })).toBeNull()
   })
 
   it('phones: Escape closes the sheet', async () => {

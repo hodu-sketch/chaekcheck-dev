@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from './AuthContext'
@@ -124,6 +124,37 @@ describe('S5 login dialog', () => {
 
     expect(await screen.findByRole('button', { name: '네이버 로그인' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '카카오 로그인' })).toBeTruthy()
+  })
+})
+
+/** Phones (2026-10-12, "로그인 창도 이 다섯 개처럼 손잡이와 ⓧ를 붙여줘"): the shared sheet with a handle and ⓧ. */
+describe('S5 login sheet on phones', () => {
+  function LoginSheet() {
+    const [open, setOpen] = useState(true)
+    return <LoginDialog open={open} onOpenChange={setOpen} navigate={vi.fn()} />
+  }
+
+  it('has a handle and ⓧ, no separate 닫기, and ⓧ or back closes only the sheet', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => (url === '/api/v1/auth/providers' ? json(200, ['KAKAO']) : json(401, {}))),
+    )
+    renderWith(<LoginSheet />)
+    const sheet = screen.getByRole('dialog', { name: '로그인' })
+    expect(within(sheet).getByTestId('sheet-handle')).toBeTruthy()
+    expect(await within(sheet).findByRole('button', { name: '카카오 로그인' })).toBeTruthy()
+    expect(within(sheet).queryByRole('button', { name: '닫기' })).toBeTruthy()
+    expect(within(sheet).queryByText('닫기')).toBeNull()
+
+    await waitFor(() => expect(window.history.state).toHaveProperty('chaekcheckSheet'))
+    window.history.back()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })
 

@@ -15,7 +15,7 @@ type Props = {
   trigger?: ReactNode
   triggerLabel?: string
   triggerClassName?: string
-  /** A ⓧ button at the top right (cycle 10, flow.md "폰 아래 창 공통"). The search settings sheet has none (C6). */
+  /** A ⓧ button at the top right (cycle 10, flow.md "폰 아래 창 공통"); every phone sheet has one now. */
   closeButton?: boolean
   /** The phone's back button closes only the sheet (cycle 10 windows, `useBackToClose`). */
   closeOnBack?: boolean

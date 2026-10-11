@@ -111,15 +111,10 @@
   cursor: pointer;
 }
 
-/* Mobile: a sheet rising from the bottom (flow.md S5) */
-@media (width <= 640px) {
-  .content {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    translate: none;
-    width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding-bottom: calc(1.2rem + env(safe-area-inset-bottom));
-  }
+/* Phones: inside the shared bottom sheet (handle, ⓧ, back closes it), the same lines as the window */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0 0.6rem 0.6rem;
 }
