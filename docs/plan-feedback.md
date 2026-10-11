@@ -2403,3 +2403,45 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - `check_front_page_names.py`의 `LABEL` 정규식과 `keys()`의 떼기를 지움. 손으로 확인: `keys('경상남도교육청 양산도서관')` → {'경상남도교육청', '경상남도교육청 양산도서관'}
 - `library-maintenance.md` 1-1(`name`, `vendor`, `lending_model`, `order_no`, 제약 이름), 4-5, 4-12 이름 규칙, 도구 표, 13절. `1-libraries.md` 넣기 절. `build.gradle` 주석 `-PbootRunXmx=6g`
 - `eligibility_rules.py`·`build_seed.py`는 다시 돌리지 않으므로 그대로(이름 열쇠 고치지 않음)
+
+## 7단계: 전체 확인 (2026-10-12)
+
+- `cycle09`를 main에 합치고(fast-forward) 서비스를 다시 띄워 운영 `db`에 014 적용(`library-014-classification-2026-10-11`). 적용 뒤: 2,663줄, `vendor` NULL 0, 포털 말고 `lending_model` NULL 0, `order_no` 모두 1, C5 목록 18곳이 0단계와 같음, 괄호 남은 45줄이 0단계 남길 줄과 같음(1149만 이스케이프 고침)
+- **응답 크기** (014 전 → 뒤)
+  - 목록 API(지역 없음): 압축 전 737,300 → **874,306바이트(+137,006, +18.6%)**, gzip 52,686 → **53,049바이트(+363, +0.7%)**. plan 추정 "압축 전 약 130KB 증가"와 맞음
+  - 첫 `targets`(제목 "사랑"): 지역 없음 256,653 → 276,312(+7.7%), 종로구 95,869 → 103,725(+8.2%), 가입 가능 27,948 → 30,044(+7.5%)
+- **AC-8**
+  - `/api/v1/books` 54쪽(질의 9 × 조건 3 × 2쪽): 책 번호 목록과 전체 수가 모두 같음
+  - 대출 현황 스트림 2묶음: 도서관별 상태·권수가 모두 같음
+  - 검색 스트림 4개 중 3개는 같음. "동래구 + 직접 추가, 저자 김영하"만 다름: 첫 묶음이 행 한도(ROW_LIMIT)에 먼저 닿아 340·80을 요청하지 않음(계획 순서는 014 전과 같음). 두 곳을 따로 다시 받음: 340은 0건으로 같고, 80은 1위 책 대출 중 2 → 1(사이트 쪽 변화). 판정이 바뀐 곳 없음
+  - 339(`upstream_error`)·1575(`upstream_timeout`, 교보 구독형 서버)는 전후 모두 실패
+- **AC-5**: 로그인 전 브라우저에 014 전에 넣은 434·943·1575·339·769·76이 모두 남아 새 이름 + 분류로 보임("경상국립대학교 · 북큐브 · 소장", "경상남도교육청 양산도서관 · 교보 · 소장", "완주동상초등학교 · 교보 · 소장", "부산광역시 전자도서관 · 북큐브 · 구독", "강원대학교 강릉캠퍼스 · 교보 · 소장", "서대문구립도서관 · 교보 · 소장"). 계정 쪽은 `MyLibraryApiTests`로 대신(사용자 결정)
+- **Playwright** 1280 / 768 / 375 / 320 (`data/cycle09/*.png`)
+  - S1 결과 카드: 이름 다음 줄에 "교보 · 소장"·"YES24 · 소장", 이름 버튼 밖, "직접 추가" 표시와 겹치지 않음. 폰에서도 이름 아래 줄
+  - S10: PC는 "이름 · 업체 · 대출 방식" 한 줄, 375·320은 이름 아래 줄. "군산시립" → 교보·북큐브·YES24 세 줄(`aria-label` 서로 다름), "동대문 yes24" → YES24 한 줄
+  - 320·768에서 가로 넘침 없음. 화면 글자에 업체·대출 방식 괄호 없음
+  - 포털 "통합 포털"은 Vitest로만 확인(이번 화면 질의에 포털 줄이 없었음)
+- 수집 세션에 넘길 목록: `data/cycle09/collection-rename-list.tsv`(289줄: 서비스 번호, 수집 번호, 최종 이름. 수집 번호가 다른 줄 237). 방법·때는 수집 세션과 정함 [확인 필요 그대로]
+
+### AC 확인표
+
+| AC | 결과 | 근거 |
+|---|---|---|
+| AC-1 업체·대출 방식 괄호가 어디에도 없음 | 통과 | `LibrarySchemaCycle09Tests.noNameEndsWithAVendorOrLendingLabel`, 운영 db SQL, Playwright 화면 글자 |
+| AC-2 기관 이름 속 괄호는 그대로 | 통과 | 0단계 남길 45줄과 014 뒤 같음, `bracketsInsideTheBodyNameStay` |
+| AC-3 모든 도서관에 업체, 포털 말고 모두 대출 방식 | 통과 | SQL NULL 0 + CHECK, Vitest, Playwright 4폭 |
+| AC-4 같은 이름 두 사이트가 분류로 구분됨 | 통과 (순서 주의) | "군산시립" 세 줄. 순서는 교보 → 북큐브 → YES24(위 4·5단계 참고) |
+| AC-5 이름이 바뀐 뒤에도 내 도서관 그대로 | 통과 (브라우저), 계정은 테스트로 대신 | 위 AC-5, `MyLibraryApiTests` |
+| AC-6 "동대문 yes24" → YES24 사이트 | 통과 | Vitest + Playwright |
+| AC-7 네 값이 같으면 DB가 거절(포털끼리 포함), 순번만 다르면 들어감 | 통과 | `LibrarySchemaCycle09Tests` |
+| AC-8 소장·대출 표시가 바뀌기 전과 같음 | 통과 | C5 목록 같음, 같은 질의 비교(위), `HoldingTaskTests` |
+| AC-9 순번 2 이상은 "· N번째 사이트" | 통과 | Vitest(ResultRow, S10, 분류), API(`LibraryListTests.classificationIsListed`, 스트림 `orderNo:2`) |
+
+### plan에 넘길 요약 (사이클 09)
+
+- 인계서 0~7단계 모두 함. 이름 289줄, 대출 방식 1,458줄을 014 한 changeSet으로 바꿈. 검색·소장 판정 변화 없음
+- 사용자 답: 공식 이름은 모두 spec과 같음(물을 것 없었음), 북큐브 구독 339·380·386·705 그대로, 순번 2 이상 없음, 이름 289줄 "승인, 커밋", AC-5 계정 쪽 "브라우저만 + 테스트로 대신". 응답 크기·화면은 사용자 확인 대기
+- 셈: 괄호 뗀 277 / 남긴 45 / 애매 2, `name_overrides.tsv` 295줄, 014 이름 VALUES 289줄, 업체별 KYOBO 1,642·YES24 547·BOOKCUBE 441·ALADIN 25·PORTAL 7·IN_HOUSE 1, 대출 방식별 OWNED 2,634·SUBSCRIPTION 11·RENTAL 9·MIXED 2·NULL 7, 280 이하 `OWNED` 255
+- 정한 이름: `library/014-library-classification.yaml`(changeSet 하나), `--changes-only <db-state.tsv>`와 다섯째 인자 `<bookcube-volume.tsv>`, `scripts/library/bookcube-volume-2026-10-11.tsv`, `web/src/lib/libraryClassification.ts`, `LibrarySchemaCycle09Tests`, 폰 기준 `width <= 640px`
+- 설계와 달라진 점: "군산시립" 순서(업체 글자순이면 교보 → 북큐브 → YES24), 이름 UPDATE만 `splitStatements: false`, 대출 방식 UPDATE는 번호 목록이 아니라 화면 종류 규칙으로, 0단계 지역은 시·도가 아니라 구(1101, 2606)
+- 새로 알게 된 것: WSL은 붙은 프로세스가 없으면 꺼져 Docker 컨테이너도 멈춤(측정·테스트 중 `wsl -d Ubuntu -- sleep infinity`로 붙잡아 둠). 사이클 08 측정과 겹치지 않게 worktree + 별도 DB(5434·5435)에서 개발함
