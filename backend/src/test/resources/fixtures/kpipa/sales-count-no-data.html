@@ -1,0 +1,899 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+$(document).ready(function() {
+
+    var searchType = "bookType";
+
+    var categories = [];
+    var dataListX1 = [];
+    var dataListX2 = [];
+    var dataListX3 = [];
+    var dataListY1 = [];
+    var dataListY2 = [];
+    var dataListY3 = [];
+
+    var cMonth         = "";
+    var namingChartDay = "";
+    var searchCtg = "";
+
+    var dataX1 = "";
+    var dataX2 = "";
+    var dataX3 = "";
+    var dataY1 = "";
+    var dataY2 = "";
+    var dataY3 = "";
+
+
+
+    cMonth         = "202609";
+    namingChartDay = "26년 09월";
+    searchCtg = "{item.searchCtg}";
+
+    if(searchType == "bookType") {
+        dataX1 = Number("");
+        dataY1 = Number("14606796479");
+
+        categories.push(namingChartDay);
+        dataListX1.push(dataX1);
+        dataListY1.push(dataY1);
+
+    }else if(searchType == "saleType") {
+
+        dataX1 = Number("");
+        dataX2 = Number("");
+        dataX3 = Number("");
+
+        dataY1 = Number("");
+        dataY2 = Number("");
+        dataY3 = Number("");
+
+        categories.push(namingChartDay);
+        dataListX1.push(dataX1);
+        dataListX2.push(dataX2);
+        dataListX3.push(dataX3);
+
+        dataListY1.push(dataY1);
+        dataListY2.push(dataY2);
+        dataListY3.push(dataY3);
+    }
+
+
+
+//     var chartColors = ['#F7941D','#7FB539','#3590C5','#36BEA6','#9460C5','#F8DB1D','#C84C19','#E37EAA','#B8D930','#4C46CC','#2B4599','#915C2A','#1C7F12'];
+    var chartColors = ['#3590C5','#9460C5','#B8D930','#3590C5','#9460C5','#B8D930','#C84C19','#E37EAA','#B8D930','#4C46CC','#2B4599','#915C2A','#1C7F12'];
+
+    var rdoSearchType = $('input[name="rdoSearchType"]:checked').val();
+    var rdoSearchTypeNm = "";
+    if(rdoSearchType == "bookType") {
+        rdoSearchTypeNm = "도서유형별";
+    }else if(rdoSearchType == "saleType") {
+        rdoSearchTypeNm = "판매채널별";
+    }
+
+    var rdoSearchPeriod = $('input[name="rdoSearchPeriod"]:checked').val();
+    var rdoSearchPeriodNm = "";
+    if(rdoSearchPeriod == "month") {
+        rdoSearchPeriodNm = "월별";
+    }else if(rdoSearchPeriod == "week") {
+        rdoSearchPeriodNm = "요일별";
+    }else if(rdoSearchPeriod == "date") {
+        rdoSearchPeriodNm = "일별";
+    }
+
+    var txtFromDate = $.trim($("#txtFromDate").val());
+    var txtToDate = $.trim($("#txtToDate").val());
+
+    var conditionStr = "조회기간: " + rdoSearchPeriodNm + "(" + txtFromDate + " ~ " + txtToDate + ")";
+    
+    var objChartOption = {
+        colors: chartColors,
+        chart: {
+            zoomType: 'xy',
+            marginTop: 45
+        },
+        title: {
+            text: ''
+        },
+        subtitle: {
+            text: ''
+        },
+        credits: {
+            enabled: false
+        },
+        legend: {
+            align: 'center',
+            verticalAlign: 'bottom'
+        },
+        xAxis: [{
+            categories: categories,
+            crosshair: true,
+            labels: {
+                style: {
+                    fontSize: '12px',
+                    color: '#141414',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            }
+        }],
+        yAxis: [{ // Primary yAxis
+            title: {
+                text: '부수',
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                },
+                rotation: 0,
+            },
+            left:100,
+            labels: {
+                formatter: function() {
+                    return cfNumberToKorean(this.value) + "부";
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            }
+        }, { // Secondary yAxis
+            opposite: true,
+            title: {
+                text: '금액',
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                },
+                rotation: 0,
+            },
+            labels: {
+                formatter: function() {
+                    return cfNumberToKorean(this.value) + "원";
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            },
+        }],
+
+
+        tooltip: {
+            shared: true
+        },
+
+        series: [{
+            name: '부수',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX1,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+
+        }, {
+            name: '금액',
+            type: 'spline',
+            yAxis: 1,
+            data: dataListY1,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }],
+
+        exporting: {
+
+            enabled: false,
+            filename: "판매량통계(" + rdoSearchTypeNm + ")",
+            type: "image/png",
+            url: "https://export.highcharts.com/",
+
+            chartOptions: {
+                chart: {
+                    marginTop: 75,
+                },
+                title: {
+                    text: "판매량통계(" + rdoSearchTypeNm + ")",
+                    style: {
+                        color: '#212529',
+                        fontWeight: 'bold',
+                        fontSize: '20px',
+                        fontFamily: "S-CoreDream, sans-serif",
+                    }
+                },
+                subtitle: {
+                    text: conditionStr,
+                    align: "right",
+                    style: {
+                        color: '#212529',
+                        fontWeight: '400',
+                        fontSize: '13px',
+                        fontFamily: "S-CoreDream, sans-serif",
+                    }
+                },
+                yAxis: [{ // Primary yAxis
+                    title: {
+                        x:-10
+                    },
+                }, { // Secondary yAxis
+                    title: {
+                        x:10
+                    },
+                }],
+            },
+            allowHTML: true,
+            scale: 1,
+            sourceWidth: 1200,
+            source: 400,
+        },
+    };
+    
+    var series = null;
+    if(searchType == "bookType") {
+        series = [{
+            name: '부수(종이책)',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX1,
+            tooltip: {
+                valueSuffix: ' 부'
+            },
+	        accessibility: {
+	            point: {
+	                valueDescriptionFormat: '{point.category} , {point.y}부.'
+	            }
+	        },
+	        
+        }, {
+            name: '금액(종이책)',
+            type: 'spline',
+            yAxis: 1,
+            data: dataListY1,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            accessibility: {
+                point: {
+                    valueDescriptionFormat: '{point.category} , {point.y}원.'
+                }
+            },
+            
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }];
+
+    }else if(searchType == "saleType") {
+
+        series = [{
+            name: '부수(오프라인(대형서점))',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX1,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+        }, {
+            name: '부수(오프라인(지역서점))',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX2,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+        }, {
+            name: '부수(온라인)',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX3,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+        }, {
+            name: '금액(오프라인(대형서점))',
+            type: 'spline',
+            yAxis: 1,
+            data: dataListY1,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }, {
+            name: '금액(오프라인(지역서점))',
+            type: 'spline',
+            yAxis: 1,
+            data: dataListY2,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }, {
+            name: '금액(온라인)',
+            type: 'spline',
+            yAxis: 1,
+            data: dataListY3,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }];
+    }
+
+    objChartOption["series"] = series;
+    var objChart =  Highcharts.chart('chartStatsSalePeriod', objChartOption);
+    var objChartPrint =  Highcharts.chart('chartStatsSalePeriodPrint', objChartOption);
+
+    //판매채널별_판매부수 탭 차트
+    var objChartOption2 = {
+        colors: chartColors,
+        chart: {
+            zoomType: 'xy',
+            marginTop: 45
+        },
+        title: {
+            text: ''
+        },
+        subtitle: {
+            text: ''
+        },
+        credits: {
+            enabled: false
+        },
+        legend: {
+            align: 'center',
+            verticalAlign: 'bottom'
+        },
+        xAxis: [{
+            categories: categories,
+            crosshair: true,
+            labels: {
+                style: {
+                    fontSize: '12px',
+                    color: '#141414',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            }
+        }],
+        yAxis: [{ // Primary yAxis
+            title: {
+                text: '부수',
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                },
+                rotation: 0,
+            },
+            left:100,
+            labels: {
+                formatter: function() {
+                    return cfNumberToKorean(this.value) + "부";
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            }
+        }],
+
+        tooltip: {
+            shared: true
+        },
+
+        series: [{
+            name: '부수',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX1,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+
+        }],
+
+        exporting: {
+
+            enabled: false,
+            filename: "판매량통계(" + rdoSearchTypeNm + ")",
+            type: "image/png",
+            url: "https://export.highcharts.com/",
+
+            chartOptions: {
+                chart: {
+                    marginTop: 75,
+                },
+                title: {
+                    text: "판매량통계(" + rdoSearchTypeNm + ")",
+                    style: {
+                        color: '#212529',
+                        fontWeight: 'bold',
+                        fontSize: '20px',
+                        fontFamily: "S-CoreDream, sans-serif",
+                    }
+                },
+                subtitle: {
+                    text: conditionStr,
+                    align: "right",
+                    style: {
+                        color: '#212529',
+                        fontWeight: '400',
+                        fontSize: '13px',
+                        fontFamily: "S-CoreDream, sans-serif",
+                    }
+                },
+                yAxis: [{ // Primary yAxis
+                    title: {
+                        x:-10
+                    },
+                }, { // Secondary yAxis
+                    title: {
+                        x:10
+                    },
+                }],
+            },
+            allowHTML: true,
+            scale: 1,
+            sourceWidth: 1200,
+            source: 400,
+        },
+    };
+
+    var series2 = null;
+        series2 = [{
+            name: '부수(오프라인(대형서점))',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX1,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+        }, {
+            name: '부수(오프라인(지역서점))',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX2,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+        }, {
+            name: '부수(온라인)',
+            type: 'column',
+            yAxis: 0,
+            data: dataListX3,
+            tooltip: {
+                valueSuffix: ' 부'
+            }
+        }];
+        objChartOption2["series"] = series2;
+        var objChart2 =  Highcharts.chart('chartStatsSalePeriodCnt', objChartOption2);
+        var objChartPrint2 =  Highcharts.chart('chartStatsSalePeriodCntPrint', objChartOption2);
+
+    //판매채널별_매출총액 탭 차트
+    var objChartOption3 = {
+        colors: chartColors,
+        chart: {
+            zoomType: 'xy',
+            marginTop: 45
+        },
+        title: {
+            text: ''
+        },
+        subtitle: {
+            text: ''
+        },
+        credits: {
+            enabled: false
+        },
+        legend: {
+            align: 'center',
+            verticalAlign: 'bottom'
+        },
+        xAxis: [{
+            categories: categories,
+            crosshair: true,
+            labels: {
+                style: {
+                    fontSize: '12px',
+                    color: '#141414',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            }
+        }],
+        yAxis: [{ // Secondary yAxis
+            title: {
+                text: '금액',
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                },
+                rotation: 0,
+            },
+            labels: {
+                formatter: function() {
+                    return cfNumberToKorean(this.value) + "원";
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: "Noto Sans KR, sans-serif"
+                }
+            },
+        }],
+
+
+        tooltip: {
+            shared: true
+        },
+
+        series: [{
+            name: '금액',
+            type: 'spline',
+            yAxis: 1,
+            data: dataListY1,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }],
+
+        exporting: {
+
+            enabled: false,
+            filename: "판매량통계(" + rdoSearchTypeNm + ")",
+            type: "image/png",
+            url: "https://export.highcharts.com/",
+
+            chartOptions: {
+                chart: {
+                    marginTop: 75,
+                },
+                title: {
+                    text: "판매량통계(" + rdoSearchTypeNm + ")",
+                    style: {
+                        color: '#212529',
+                        fontWeight: 'bold',
+                        fontSize: '20px',
+                        fontFamily: "S-CoreDream, sans-serif",
+                    }
+                },
+                subtitle: {
+                    text: conditionStr,
+                    align: "right",
+                    style: {
+                        color: '#212529',
+                        fontWeight: '400',
+                        fontSize: '13px',
+                        fontFamily: "S-CoreDream, sans-serif",
+                    }
+                },
+                yAxis: [{ // Primary yAxis
+                    title: {
+                        x:-10
+                    },
+                }, { // Secondary yAxis
+                    title: {
+                        x:10
+                    },
+                }],
+            },
+            allowHTML: true,
+            scale: 1,
+            sourceWidth: 1200,
+            source: 400,
+        },
+    };
+
+    var series3 = null;
+        series3 = [{
+            name: '금액(오프라인(대형서점))',
+            type: 'spline',
+            yAxis: 0,
+            data: dataListY1,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }, {
+            name: '금액(오프라인(지역서점))',
+            type: 'spline',
+            yAxis: 0,
+            data: dataListY2,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }, {
+            name: '금액(온라인)',
+            type: 'spline',
+            yAxis: 0,
+            data: dataListY3,
+            tooltip: {
+                valueSuffix: ' 원'
+            },
+            dataLabels: {
+                align: 'center',
+                enabled: true,
+            },
+        }];
+        objChartOption3["series"] = series3;
+        var objChart3 =  Highcharts.chart('chartStatsSalePeriodPrice', objChartOption3);
+        var objChartPrint3 =  Highcharts.chart('chartStatsSalePeriodPricePrint', objChartOption3);
+});
+
+function fnChartStatsSalePeriodPrint(chartId) {
+
+    var rdoSearchType = $('input[name="rdoSearchType"]:checked').val();
+    var rdoSearchTypeNm = "";
+    if(rdoSearchType == "bookType") {
+        rdoSearchTypeNm = "도서유형별";
+    }else if(rdoSearchType == "saleType") {
+        rdoSearchTypeNm = "판매채널별";
+    }
+
+    var rdoSearchPeriod = $('input[name="rdoSearchPeriod"]:checked').val();
+    var rdoSearchPeriodNm = "";
+    if(rdoSearchPeriod == "month") {
+        rdoSearchPeriodNm = "월별";
+    }else if(rdoSearchPeriod == "week") {
+        rdoSearchPeriodNm = "요일별";
+    }else if(rdoSearchPeriod == "date") {
+        rdoSearchPeriodNm = "일별";
+    }
+
+    var txtFromDate = $.trim($("#txtFromDate").val());
+    var txtToDate = $.trim($("#txtToDate").val());
+
+    var conditionStr = "조회기간: " + rdoSearchPeriodNm + "(" + txtFromDate + " ~ " + txtToDate + ")";
+
+    var headerHtml = '';
+    headerHtml += '<div style="width:1100px;">';
+    headerHtml += '<h1 align="center" style="margin-top:100px; font-size:25px; font-family: Noto Sans KR, sans-serif;">판매량통계(' + rdoSearchTypeNm + ')</h1>';
+    headerHtml += '<h4 align="right" style="margin-right:30px; font-size:16px; font-family: Noto Sans KR, sans-serif;">' + conditionStr + '</h4>';
+    headerHtml += '</div>';
+
+    $('#' + chartId).printThis({
+        debug: false,               // show the iframe for debugging
+        importCSS: true,            // import page CSS
+        importStyle: false,         // import style tags
+        printContainer: true,       // grab outer container as well as the contents of the selector
+        loadCSS: "/home/v3/css/common/btuiPrintThis.css?ver=1.1.1",  // path to additional css file - use an array [] for multiple
+        pageTitle: "",              // add title to print page
+        removeInline: false,        // remove all inline styles from print elements
+        printDelay: 333,            // variable print delay; depending on complexity a higher value may be necessary
+        header: headerHtml,         // prefix to html
+        footer: null,               // postfix to html
+        base: false ,               // preserve the BASE tag, or accept a string for the URL
+        formValues: true,           // preserve input/form values
+        canvas: false,              // copy canvas elements (experimental)
+        doctypeString: "",       // enter a different doctype for older markup
+        removeScripts: false,       // remove script tags from print content
+        copyTagClasses: false       // copy classes from the html & body tag
+    });
+//     $("#" + chartId).highcharts().print();
+}
+
+
+//판매채널별 차트 탭별 표시
+function fnShowChart(type){
+
+    if(type == 'cnt'){//판매부수
+        $("#chartStatsSalePeriod").attr("style", "display: none");
+        $("#chartStatsSalePeriodCnt").attr("style", "display: show");
+        $("#chartStatsSalePeriodPrice").attr("style", "display: none");
+
+        //다운로드버튼
+        $("#btnDownChart").attr("style", "display: none");
+        $("#btnDownChartCnt").attr("style", "display: show");
+        $("#btnDownChartPrice").attr("style", "display: none");
+
+        //하단 테이블
+        $("#tableAll").attr("style", "display: none");
+        $("#tableCnt").attr("style", "display: show");
+        $("#tablePrice").attr("style", "display: none");
+
+    }else if(type == 'price'){//매출총액
+        $("#chartStatsSalePeriod").attr("style", "display: none");
+        $("#chartStatsSalePeriodCnt").attr("style", "display: none");
+        $("#chartStatsSalePeriodPrice").attr("style", "display: show");
+
+        //다운로드버튼
+        $("#btnDownChart").attr("style", "display: none");
+        $("#btnDownChartCnt").attr("style", "display: none");
+        $("#btnDownChartPrice").attr("style", "display: show");
+
+        //하단 테이블
+        $("#tableAll").attr("style", "display: none");
+        $("#tableCnt").attr("style", "display: none");
+        $("#tablePrice").attr("style", "display: show");
+
+    }else{//판매부수 및 매출총액
+        $("#chartStatsSalePeriod").attr("style", "display: show");
+        $("#chartStatsSalePeriodCnt").attr("style", "display: none");
+        $("#chartStatsSalePeriodPrice").attr("style", "display: none");
+
+        //다운로드버튼
+        $("#btnDownChart").attr("style", "display: show");
+        $("#btnDownChartCnt").attr("style", "display: none");
+        $("#btnDownChartPrice").attr("style", "display: none");
+
+        //하단 테이블
+        $("#tableAll").attr("style", "display: show");
+        $("#tableCnt").attr("style", "display: none");
+        $("#tablePrice").attr("style", "display: none");
+    }
+}
+</script>
+
+<style>
+@page { size: A4 landscape; margin:0; }
+@media screen {
+    #chartStatsSalePeriodPrint {
+        display: none;
+    }
+    #chartStatsSalePeriodCntPrint {
+        display: none;
+    }
+    #chartStatsSalePeriodPricePrint {
+        display: none;
+    }
+}
+@media print {
+    #chartStatsSalePeriodPrint * {
+        visibility: visible;
+    }
+    #chartStatsSalePeriodCntPrint * {
+        visibility: visible;
+    }
+    #chartStatsSalePeriodPricePrint * {
+        visibility: visible;
+    }
+}
+</style>
+
+
+
+
+<div class="chart-wrapper px-3 px-xl-0 mb-4 mb-xl-5">
+    <div class="container">
+    
+        <div id="chartStatsSalePeriod" class="chart-content" style="min-height: 400px" aria-hidden="true"></div>
+        <!-- 판매채널별 탭별 차트 -->
+        
+
+        <div id="chartStatsSalePeriodPrint" class="chart-content" style="min-height: 400px;width: 1100px;" aria-hidden="true"></div>
+        <!-- 판매채널별 탭별 차트 -->
+        
+
+        <div class="chart-download">
+            <div class="btn-group dropup" id="btnDownChart">
+                <button type="button" class="btn btn-sm btn-secondary dropdown-toggle shadow-none rounded-pill" data-bs-toggle="dropdown" aria-expanded="false" title="그래프 다운로드">
+                    다운로드
+                    <i class="bi bi-download"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="#none" onclick="fnChartStatsSalePeriodPrint('chartStatsSalePeriodPrint');">차트 프린트</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#none" onclick="cfDownPngHighchart('chartStatsSalePeriod');">PNG 다운로드</a></li>
+                    <li><a class="dropdown-item" href="#none" onclick="cfDownJpegHighchart('chartStatsSalePeriod');">JPEG 다운로드</a></li>
+                    <li><a class="dropdown-item" href="#none" onclick="cfDownPdfHighchart('chartStatsSalePeriod');">PDF 다운로드</a></li>
+                    <li><a class="dropdown-item" href="#none" onclick="cfDownSvgHighchart('chartStatsSalePeriod');">SVG vector 다운로드</a></li>
+                </ul>
+            </div>
+            <!-- 판매채널별 탭별 차트 다운로드 버튼 -->
+            
+        </div>
+    </div>
+</div>
+
+
+<div class="data-table-wrapper px-3 px-xl-0 mb-4 mb-xl-5">
+    <div class="container">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover data-table" style="min-width: 400px;">
+                <caption class="visually-hidden">주제분류별, 도서유형별 판매량 통계</caption>
+                <thead>
+                    <tr>
+                        <th rowspan="2">판매일</th>
+                        
+                        
+                        <th colspan="2">종이책</th>
+                        
+                    </tr>
+                    <tr>
+                        <th>부수</th>
+                        
+                        <th>금액(원)</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <th>
+                            26년 09월
+                        </th>
+                        <td>883,478</td>
+                        
+                        <td>14,606,796,479</td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<div class="standard-data-wrapper px-3 px-xl-0">
+    <div class="container">
+        <section class="standard-data">
+            <!-- <h4>데이터 기준</h4> -->
+            <ul class="time list-unstyled">
+                <li>위 데이터는 교보문고, 예스이십사, 알라딘, 영풍문고, 지역서점과 연계되어 있습니다.</li>
+                <li>판매 데이터는 전산망 개통 후('21년 9월) 부터 확인 가능합니다. 다만, 전산망 개통 전('21년 1월~8월) 온라인 서점(유통사)이 제공한 일부 판매 데이터를 확인할 수 있습니다.</li>
+                <li>오후 2시 이전 확인 시 2일 전 판매 데이터까지, 오후 2시 이후 확인 시 1일 전 판매 데이터까지 확인할 수 있습니다.</li>
+                <li>
+                    서점별 데이터 반영 기준
+                    <ul class="dash list-unstyled">
+                        <li>- 교보문고 : '21년 9월~'23년 8월 데이터는 정합성 검증으로 일부 오차가 있을 수 있음. '23년 8월 3일부터 전체 데이터 반영</li>
+                        <li>- 예스이십사 : '21년 9월~'22년 6월 데이터는 정합성 검증으로 일부 오차가 있을 수 있음. '22년 7월부터 전체 데이터 반영(제휴사 등 제외)</li>
+                        <li>- 알라딘 : '21년 9월~'22년 6월 데이터는 정합성 검증으로 일부 오차가 있을 수 있음. '22년 7월부터 전체 데이터 반영</li>
+                    </ul>
+                </li>
+                <li>현재는 종이책만 판매 통계를 확인할 수 있으며, 전자책 및 오디오북은 추후 공개 예정입니다.</li>
+            </ul>
+        </section>
+    </div>
+</div>
