@@ -204,6 +204,77 @@ class BookAvailabilityStreamControllerTests {
 			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"libraryIds\"}]}");
 	}
 
+	@Test
+	void holdingLimitKeepsTheFirstPlanLibrariesOnly() { // cycle 10 AC-8 server side
+		SearchTarget fourth = TestTargets.target(4, PlatformType.KYOBO_V1, "https://four.test");
+		SearchTarget fifth = TestTargets.target(5, PlatformType.KYOBO_V1, "https://five.test");
+		// plan order: GOHEUNG (2), SUB (3), GANGSEO (1), 4, 5
+		given(batchRunner.plan(any(), any(), any()))
+			.willReturn(List.of(TestTargets.GOHEUNG, SUB, TestTargets.GANGSEO, fourth, fifth));
+		given(catalogHoldings.holdingsOf(eq(List.of(10L)), any())).willReturn(List.of(holding(1, 10, 1),
+				holding(2, 10, 2), holding(4, 10, 4), holding(5, 10, 5), holding(3, 10, 3)));
+
+		MvcTestResult result = mvc.get().uri(URL + "?bookIds=10&holdingLimit=3").header("Accept", ACCEPT).exchange();
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<List<HoldingTask>> tasks = ArgumentCaptor.forClass(List.class);
+		verify(batchRunner).startHoldings(any(), any(), eq(1), tasks.capture(), eq(List.of()), any());
+		assertThat(tasks.getValue()).extracting(task -> task.holding().libraryId()).containsExactly(2L, 3L, 1L);
+		assertThat(body(result)).contains("\"holdings\":[{\"holdingId\":2,\"bookId\":10,\"libraryId\":2},"
+				+ "{\"holdingId\":3,\"bookId\":10,\"libraryId\":3},{\"holdingId\":1,\"bookId\":10,\"libraryId\":1}]")
+			.doesNotContain("\"libraryId\":4")
+			.doesNotContain("\"id\":4,");
+	}
+
+	@Test
+	void holdingLimitOverSeveralBooksKeepsPlanOrderFirst() {
+		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(TestTargets.GOHEUNG, SUB, TestTargets.GANGSEO));
+		given(catalogHoldings.holdingsOf(eq(List.of(10L, 20L)), any())).willReturn(List.of(holding(1, 10, 1),
+				holding(2, 10, 3), holding(3, 20, 2), holding(4, 20, 1)));
+
+		mvc.get().uri(URL + "?bookIds=10,20&holdingLimit=2").header("Accept", ACCEPT).exchange();
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<List<HoldingTask>> tasks = ArgumentCaptor.forClass(List.class);
+		verify(batchRunner).startHoldings(any(), any(), eq(1), tasks.capture(), eq(List.of()), any());
+		// plan order 2, 3, 1: holding 3 (library 2) and holding 2 (library 3), in book order
+		assertThat(tasks.getValue()).extracting(task -> task.holding().holdingId()).containsExactly(2L, 3L);
+	}
+
+	@Test
+	void noHoldingLimitKeepsEveryHolding() {
+		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(TestTargets.GOHEUNG, SUB, TestTargets.GANGSEO));
+		given(catalogHoldings.holdingsOf(eq(List.of(10L)), any()))
+			.willReturn(List.of(holding(1, 10, 1), holding(2, 10, 2), holding(3, 10, 3)));
+
+		mvc.get().uri(URL + "?bookIds=10&holdingLimit=").header("Accept", ACCEPT).exchange();
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<List<HoldingTask>> tasks = ArgumentCaptor.forClass(List.class);
+		verify(batchRunner).startHoldings(any(), any(), eq(1), tasks.capture(), eq(List.of()), any());
+		assertThat(tasks.getValue()).hasSize(3);
+	}
+
+	@Test
+	void badHoldingLimitIs400AfterRegions() {
+		for (String bad : List.of("0", "21", "x", "3.0", "-1", "007")) {
+			assertThat(mvc.get().uri(URL + "?bookIds=1&holdingLimit=" + bad).header("Accept", ACCEPT)).as(bad)
+				.hasStatus(400)
+				.bodyJson()
+				.isLenientlyEqualTo("{\"code\":\"validation_error\",\"errors\":[{\"field\":\"holdingLimit\","
+						+ "\"code\":\"invalid_format\"}]}");
+		}
+		assertThat(mvc.get().uri(URL + "?bookIds=1&holdingLimit=3&holdingLimit=3").header("Accept", ACCEPT))
+			.hasStatus(400)
+			.bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"holdingLimit\",\"code\":\"duplicate\"}]}");
+		assertThat(mvc.get().uri(URL + "?bookIds=1&holdingLimit=0&workRegionIds=x").header("Accept", ACCEPT))
+			.bodyJson()
+			.isLenientlyEqualTo("{\"errors\":[{\"field\":\"workRegionIds\"}]}");
+		verify(batchRunner, never()).startHoldings(any(), any(), anyInt(), anyList(), anyList(), any());
+		verify(batchRunner, never()).plan(any(), any(), any());
+	}
+
 	private static HoldingRef holding(long id, long bookId, long libraryId) {
 		return new HoldingRef(id, bookId, libraryId, "KYOBO_V1", "https://lib.test/d?" + id, "책", "저자", "출판사");
 	}
