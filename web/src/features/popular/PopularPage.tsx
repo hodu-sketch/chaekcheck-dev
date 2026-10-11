@@ -37,7 +37,6 @@ export function PopularPage() {
   const [current, setCurrent] = useState('')
   const [selected, setSelected] = useState<PopularBook | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
-  const floatingRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!ready) return
@@ -137,65 +136,9 @@ export function PopularPage() {
     }
   }, [codes])
 
-  /*
-   * Where scrolling comes to rest (user 2026-10-12: "스크롤 내릴 때 1번 이미지처럼 안 되고 이렇게 깔끔하게 되도록 뭐 조절할
-   * 수 없을까?"): when it has stopped and no button is held, a panel under the floating button moves at once to the
-   * nearest clean place (a block at the top, as after a category jump, or the end of the page). Not CSS snapping, so
-   * holding the scrollbar or dragging its thumb scrolls on without stopping ("이 거 쭈우욱 가게 바꿔줘"). The very end
-   * of the page (source line, footer) is left as it is.
-   */
-  useEffect(() => {
-    if (!codes) return
-    const list = codes.split(',')
-    let held = false
-    let timer: number | undefined
-    const settle = () => {
-      if (held) return
-      const pill = floatingRef.current?.getBoundingClientRect()
-      if (!pill) return
-      const max = document.documentElement.scrollHeight - window.innerHeight
-      if (window.scrollY >= max - 2) return
-      const header = document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0
-      const blocked = [...document.querySelectorAll('[data-panel]')].some((panel) => {
-        const box = panel.getBoundingClientRect()
-        return box.top < pill.bottom && box.bottom > pill.top
-      })
-      if (!blocked) return
-      // the clean places: each block at the top, and the end of the page
-      const places = list
-        .map((code) => document.getElementById(sectionId(code)))
-        .filter((section): section is HTMLElement => section !== null)
-        .map((section) => window.scrollY + section.getBoundingClientRect().top - header)
-      places.push(max)
-      const target = places.reduce((best, place) =>
-        Math.abs(place - window.scrollY) < Math.abs(best - window.scrollY) ? place : best,
-      )
-      window.scrollTo({ top: Math.min(Math.max(target, 0), max), behavior: 'instant' })
-    }
-    const later = () => {
-      window.clearTimeout(timer)
-      timer = window.setTimeout(settle, 150)
-    }
-    const down = () => {
-      held = true
-    }
-    const up = () => {
-      held = false
-      later()
-    }
-    const ends = 'onscrollend' in window
-    window.addEventListener(ends ? 'scrollend' : 'scroll', ends ? settle : later, { passive: true })
-    document.addEventListener('pointerdown', down, true)
-    window.addEventListener('pointerup', up, true)
-    window.addEventListener('pointercancel', up, true)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener(ends ? 'scrollend' : 'scroll', ends ? settle : later)
-      document.removeEventListener('pointerdown', down, true)
-      window.removeEventListener('pointerup', up, true)
-      window.removeEventListener('pointercancel', up, true)
-    }
-  }, [codes])
+  // No automatic scroll correction of any kind: the page stays where the user stops (snapping and a settle step were
+  // tried and removed, user 2026-10-12: "스크롤바 아래로 내렸는데 나를 위로 보내버려"). Only the category jump and the
+  // back-restore move the page.
 
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
 
@@ -256,7 +199,7 @@ export function PopularPage() {
       <h1 className="visually-hidden">{month ? `인기 도서 · ${month} 판매 순위` : '인기 도서'}</h1>
       <div className={styles.blocks}>{body}</div>
       {categories.length > 0 && (
-        <div ref={floatingRef} className={styles.floating}>
+        <div className={styles.floating}>
           <CategoryPicker
             categories={categories}
             current={currentCode}
