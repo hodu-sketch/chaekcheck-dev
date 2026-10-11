@@ -2566,3 +2566,8 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 새 테스트: `BookLookupTests`, `PopularSchemaTests`, `PopularParserTests`, `KpipaClientTests`(JDK `HttpServer` + 진짜 `HttpKpipaTransport`: 쿠키·토큰·헤더·본문, 34건·간격 33개 모두 2초 이상, 토큰 없음·500 → `session_failed`, 302 → `request_rejected`, 시간 초과 → `network_error`, 본문 상한 → `format_changed`, 표지), `FetchDecisionTests`, `PopularFetchTests`, `PopularStartupFetchTests`, `PopularCacheTests`, `PopularBooksApiTests`, `BookAvailabilityStreamControllerTests`의 `holdingLimit` 4개, `AuthEnabledSecurityTests.popularBooksNeedNoLogin`
 - 테스트는 진짜 사이트를 부르지 않음(가짜 전송·로컬 `HttpServer`만). 테스트 뒤 db-test의 `popular` 표는 비어 있음(확인함)
 - 8단계(진짜 사이트 받기 시험, 측정)는 아직 하지 않음
+
+### 사용자 답: 표지 경로 규칙 (2026-10-12)
+
+- 인계서 C7 [안] "`/files/isbn/`으로 시작"보다 넓힌 규칙(`/files/<영문 소문자 폴더>/…/s_<이름>`, `..`·`//`·스킴·호스트·`?` 금지)을 그대로 두기로 함. 202609 "전체" 50권 중 13권이 `/files/onix/`(10)·`/files/old/`(2)·`/files/trans/`(1)에 있어, 안대로면 약 1/4이 제목 글자로 보임. 사용자가 "넓힌 규칙 그대로"를 고름
+- 로컬 `.env`에 `CHAEKCHECK_POPULAR_FETCH_ENABLED=false`를 더함(C3, git에 들어가지 않는 파일)
