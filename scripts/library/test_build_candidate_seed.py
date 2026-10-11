@@ -211,9 +211,32 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertEqual([seed.VENDORS[p] for p in ('BOOKCUBE_FX', 'ALADIN_V1', 'ELIB_PORTAL_V1', 'GANGNAM_V1')],
                          ['BOOKCUBE', 'ALADIN', 'PORTAL', 'IN_HOUSE'])
         code, out = self.run_seed(self.db_state_after_first_run())
-        # only a vendor the collection wrote may differ from the table, and there is none yet
+        # only a vendor the collection wrote may differ from the table; this copy has no vendor column
         self.assertIn('-- vendor other than the platform table: 0', out)
         self.assertIn('all libraries by vendor: KYOBO 5, BOOKCUBE 4, YES24 2, ALADIN 1', out)
+
+    def set_collection_vendor(self, collection_id, vendor):
+        db = sqlite3.connect(self.snapshot)
+        db.execute('ALTER TABLE library ADD COLUMN vendor TEXT')
+        db.execute('UPDATE library SET vendor = ? WHERE id = ?', (vendor, collection_id))
+        db.commit()
+        db.close()
+
+    def test_vendor_the_collection_wrote_wins_over_the_platform_table(self):
+        state = self.db_state_after_first_run()
+        self.set_collection_vendor(100002, 'IN_HOUSE')
+        code, out = self.run_seed(state)
+        self.assertRegex(out, r'-- vendor other than the platform table: 1\n  \d+ IN_HOUSE\n')
+        self.assertIn('all libraries by vendor: KYOBO 4, BOOKCUBE 4, YES24 2, IN_HOUSE 1, ALADIN 1', out)
+
+    def test_unknown_vendor_from_the_collection_stops(self):
+        self.set_collection_vendor(100002, 'RIDI')
+        db = sqlite3.connect(self.snapshot)
+        try:
+            with self.assertRaisesRegex(SystemExit, 'unknown vendor in the collection DB'):
+                seed.collection_vendors(db)
+        finally:
+            db.close()
 
     def test_left_out_candidates(self):
         code, out = self.run_seed()

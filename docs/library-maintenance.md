@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `id` | bigint, PK, IDENTITY | seed는 **직접 번호를 넣습니다**. 마지막에 IDENTITY를 최댓값+1로 다시 시작 | seed |
 | `name` | text, NOT NULL (UNIQUE 아님) | 기관 정식 이름만. 업체·대출 방식 괄호를 붙이지 않음(사이클 09, ADR-0071). 기관 이름 속 괄호((주), (부산), 캠퍼스 등)는 그대로. 같은 기관의 사이트 여러 개는 `vendor`·`lending_model`·`order_no`로 구분 | 조사 |
-| `vendor` | text, CHECK IN (`KYOBO`, `YES24`, `BOOKCUBE`, `ALADIN`, `PORTAL`, `IN_HOUSE`), EBOOK이면 NOT NULL | 사이트 시스템 업체. 도서관 수집이 정하고 seed 생성 스크립트가 씀(지금은 `platform_type` 대응표 그대로, `build_candidate_seed.py` `VENDORS`). 화면에는 이름 다음에 "교보 · 소장"처럼 | seed 스크립트 |
+| `vendor` | text, CHECK IN (`KYOBO`, `YES24`, `BOOKCUBE`, `ALADIN`, `PORTAL`, `IN_HOUSE`), EBOOK이면 NOT NULL | 사이트 시스템 업체. 도서관 수집이 정하고 seed 생성 스크립트가 씀(수집 DB `library.vendor` 값이 있으면 그 값, 없으면 `platform_type` 대응표 `build_candidate_seed.py` `VENDORS`. 2026-10-05 사본처럼 칸이 없으면 모두 대응표. 2026-10-12부터). 화면에는 이름 다음에 "교보 · 소장"처럼 | seed 스크립트 |
 | `lending_model` | text, CHECK IN (`OWNED`, `SUBSCRIPTION`, `MIXED`, `RENTAL`), 통합 포털만 NULL | 대출 방식. 교보 구독형은 교보 probe 값(없으면 `SUBSCRIPTION`), 북큐브는 전체 권수 0 + 책 있음이면 `SUBSCRIPTION`, 나머지 `OWNED`(spec R3). 소장 판정에 쓰는 곳은 교보 구독형 화면 하나(`HoldingTask`) | seed 스크립트 |
 | `order_no` | integer, NOT NULL, 기본 1, CHECK ≥ 1 | 같은 (이름, 업체, 대출 방식) 안의 순번. 지금은 모두 1. 2가 붙으면 사이트 이름을 확인해 고치고 1로 되돌림(4-13) | seed 스크립트 |
 | `library_type` | text, NOT NULL, 기본 `EBOOK`, CHECK IN (`EBOOK`) | 전자/실물. 지금은 `EBOOK`만 | 기본값 |

@@ -93,9 +93,6 @@ MEMBERS_ONLY_KINDS = {'SCHOOL', 'UNIV', 'COMPANY', 'GOV', 'ORG'}
 VENDORS = {'KYOBO_V1': 'KYOBO', 'KYOBO_SUBSCRIPTION_V1': 'KYOBO', 'YES24_V1': 'YES24', 'YES24_V2': 'YES24',
            'YES24_V3': 'YES24', 'BOOKCUBE_FX': 'BOOKCUBE', 'ALADIN_V1': 'ALADIN', 'ELIB_PORTAL_V1': 'PORTAL',
            'GANGNAM_V1': 'IN_HOUSE'}
-# TODO(확인 필요): where the collection writes a vendor of its own (to be decided with the collection session). Until
-# then no library has one. collection id -> vendor
-COLLECTION_VENDORS = {}
 LENDING_MODELS = {'소장': 'OWNED', '혼합': 'MIXED', '대여': 'RENTAL'}
 BASES = {'거주': 'RESIDENCE', '재직': 'WORK', '재학': 'SCHOOL'}
 JOIN_METHOD_UNKNOWN = '도서관 홈페이지의 회원가입 안내 확인'
@@ -132,6 +129,18 @@ SCOPE_OVERRIDES = {
     '100117': scope_rules(['천안시', '세종', '아산시', '공주시', '평택시', '안성시', '청주시', '진천군'], ['천안시']),
 }
 SUMMARY_OVERRIDES = {}
+
+
+def collection_vendors(db):
+    """{collection id: vendor} the collection wrote in library.vendor (collection session, 2026-10-12). Copies made
+    before that column (e.g. 2026-10-05) have none: empty. A value outside VENDORS stops the run."""
+    if 'vendor' not in {r[1] for r in db.execute('PRAGMA table_info(library)')}:
+        return {}
+    vendors = {r[0]: r[1] for r in db.execute('SELECT id, vendor FROM library WHERE vendor IS NOT NULL')}
+    unknown = sorted((lid, v) for lid, v in vendors.items() if v not in VENDORS.values())
+    if unknown:
+        raise SystemExit(f'unknown vendor in the collection DB: {unknown}')
+    return vendors
 
 
 def read_tsv(path):
@@ -309,6 +318,7 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv, volume_tsv, db_state=None)
     db.row_factory = sqlite3.Row
     rows = [dict(r) for r in db.execute('SELECT id, name, platform_type, base_url, last_full_success_at, crawl_skip '
                                         'FROM library ORDER BY id')]
+    written_vendors = collection_vendors(db)
     registered = registered_libraries()
     registered_names = {lid: name for lid, (name, _platform) in registered.items()}
     volumes = read_bookcube_volumes(volume_tsv)
@@ -395,7 +405,7 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv, volume_tsv, db_state=None)
     # classification of every library: registered and candidates, disabled ones too (ADR-0071)
     registered_models = registered_lending_models()
     classified = [{'id': lid, 'collection_id': lid, 'name': registered_names[lid], 'platform_type': platform,
-                   'vendor': COLLECTION_VENDORS.get(lid, VENDORS[platform]),
+                   'vendor': written_vendors.get(lid, VENDORS[platform]),
                    'lending_model': registered_models.get(lid) or lending_model_of(platform, None, volumes.get(lid))}
                   for lid, (_name, platform) in registered.items()]
     collection_ids = {sid: cid for cid, sid in service_ids.items()}
@@ -403,7 +413,7 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv, volume_tsv, db_state=None)
         cid = collection_ids[lib['id']]
         classified.append({'id': lib['id'], 'collection_id': cid, 'name': lib['name'],
                            'platform_type': lib['platform_type'],
-                           'vendor': COLLECTION_VENDORS.get(cid, VENDORS[lib['platform_type']]),
+                           'vendor': written_vendors.get(cid, VENDORS[lib['platform_type']]),
                            'lending_model': None if lib['lending_model'] == 'NULL' else lib['lending_model']})
     second = assign_order_no(classified)
 
