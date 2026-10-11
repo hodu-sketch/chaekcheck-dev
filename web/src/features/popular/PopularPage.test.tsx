@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BookDetail, PopularBooks } from '../../api/types'
 import { PopularPage } from './PopularPage'
-import { REQUEST_TEXT } from './popularText'
+import { REQUEST_LINES } from './popularText'
 import { CATEGORY_NAMES, testPopular } from './testPopular'
 
 const REGIONS = {
@@ -246,7 +246,7 @@ describe('popular books (S13)', () => {
     await user.click(cards('전체')[1])
     const dialog = screen.getByRole('dialog', { name: '전자책 신청 안내' })
     expect(within(dialog).getByText('전체 2')).toBeTruthy()
-    expect(within(dialog).getByText(REQUEST_TEXT)).toBeTruthy()
+    expect(within(dialog).getByText(REQUEST_LINES[0], { exact: false })).toBeTruthy()
     await user.click(within(dialog).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -288,7 +288,7 @@ describe('popular windows on phones', () => {
     await screen.findByRole('region', { name: '전체' })
     await user.click(screen.getByRole('button', { name: '인기 도서 안내' }))
     const sheet = screen.getByRole('dialog', { name: '인기 도서 안내' })
-    expect(within(sheet).getByText('흐린 책은 내 도서관에 전자책이 없어요')).toBeTruthy()
+    expect(within(sheet).getByText('흐린 책은 검색하는 도서관에 전자책이 없어요')).toBeTruthy()
     expect(within(sheet).getByText('2026년 9월 판매 순위 · 10월 3일 받음')).toBeTruthy()
     await user.click(within(sheet).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog')).toBeNull()

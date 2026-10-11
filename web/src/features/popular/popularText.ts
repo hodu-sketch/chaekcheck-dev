@@ -4,13 +4,20 @@ export const PAGE_SIZE = 9
 /** [확정] (R7-1): the source and the stores it adds up; the month and the fetch day follow it. */
 export const SOURCE_TEXT = '출처: 출판유통통합전산망 (교보문고·예스24·알라딘·영풍문고·지역서점 종이책 판매 합산)'
 
-/** [확정] (R6-9; the wording is looked at again on the screen check, step 8). */
-export const REQUEST_TEXT = '아직 내 도서관에 전자책이 없어요. 이용하는 전자도서관 사이트에서 희망도서로 신청해 보세요.'
+/**
+ * S15 in two lines (R6-9). "검색하는 도서관", not "내 도서관": before login (or with 전체 도서관) it is not "my" libraries
+ * (user screen review 2026-10-12: "'아직 내 도서관에 전자책이 없어요.' 이런 설명 다음에 '이용하는 전자도서관 사이트에서
+ * 희망도서로 신청해 보세요.' 이건 개행했으면 해").
+ */
+export const REQUEST_LINES = [
+  '아직 검색하는 도서관에 전자책이 없어요.',
+  '이용하는 전자도서관 사이트에서 희망도서로 신청해 보세요.',
+] as const
 
 /** [확정] (flow.md S13i). */
 export const HELP_LINES = [
   '종이책 순위라서 전자책이 없는 책도 있어요',
-  '흐린 책은 내 도서관에 전자책이 없어요',
+  '흐린 책은 검색하는 도서관에 전자책이 없어요',
   '있음/없음은 검색 화면에서 고른 지역·범위 기준이에요',
 ] as const
 

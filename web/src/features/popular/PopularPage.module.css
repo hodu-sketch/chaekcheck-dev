@@ -213,12 +213,14 @@
   height: 2.75rem;
 }
 
+/* rounded rectangles like the other buttons ([전체 ▾]), not circles (user screen review 2026-10-12: "테마 유지해 줘
+   둥근 네모 다른 것들처럼") */
 .arrow {
   display: grid;
   place-items: center;
   padding: 0;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--card);
   color: var(--ink-soft);
   font-size: 0.95rem;
@@ -367,9 +369,10 @@
     top: 50%;
     z-index: 1;
     width: 2rem;
-    height: 2rem;
+    height: 2.5rem;
+    border-radius: var(--radius-inner);
     translate: 0 -50%;
-    background: rgb(255 255 255 / 0.88);
+    background: rgb(255 255 255 / 0.9);
     font-size: 0.75rem;
   }
 

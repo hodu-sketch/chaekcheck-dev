@@ -1,5 +1,5 @@
 import type { PopularBook } from '../../api/types'
-import { REQUEST_TEXT } from './popularText'
+import { REQUEST_LINES } from './popularText'
 import { PopularWindow } from './PopularWindow'
 import styles from './PopularDialogs.module.css'
 
@@ -10,7 +10,7 @@ type Props = {
   phone: boolean
 }
 
-/** S15 (R6-9, AC-10): a faded book (no e-book in my libraries): its title on one line, then where to ask for it. */
+/** S15 (R6-9, AC-10): a faded book (no e-book in the searched libraries): its title, then where to ask for it. */
 export function RequestNotice({ book, onClose, phone }: Props) {
   return (
     <PopularWindow
@@ -23,7 +23,11 @@ export function RequestNotice({ book, onClose, phone }: Props) {
       {book && (
         <div className={styles.notice}>
           <p className={styles.noticeTitle}>{book.title}</p>
-          <p className={styles.noticeText}>{REQUEST_TEXT}</p>
+          <p className={styles.noticeText}>
+            {REQUEST_LINES[0]}
+            <br />
+            {REQUEST_LINES[1]}
+          </p>
         </div>
       )}
     </PopularWindow>

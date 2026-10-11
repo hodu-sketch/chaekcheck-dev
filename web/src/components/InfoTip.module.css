@@ -27,17 +27,24 @@
   outline-offset: 2px;
 }
 
+/*
+ * A light rounded box like the app's other small windows (settings, category list), not a dark tooltip (user screen
+ * review 2026-10-12: "이거 왜 박스 까매 다른 것이랑 똑같이 해", "테마 유지해 줘 둥근 네모 다른 것들처럼").
+ */
 .content {
   z-index: 30;
   max-width: min(18rem, calc(100vw - 2rem));
-  padding: 0.55rem 0.8rem;
-  border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--paper);
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--paper-deep);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+  color: var(--ink);
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 400;
+  line-height: 1.55;
 }
 
 .arrow {
-  fill: var(--ink);
+  fill: var(--card);
 }
