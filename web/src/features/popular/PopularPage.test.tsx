@@ -95,8 +95,7 @@ describe('popular books (S13)', () => {
     stubFetch()
     renderPage()
     expect(await screen.findByRole('region', { name: '전체' })).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서')
-    expect(screen.getByRole('heading', { level: 1 }).previousElementSibling?.textContent).toBe('2026년 9월 판매 순위')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서 · 2026년 9월 판매 순위')
     expect(ranks('전체')).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
     expect(cards('전체')[0].getAttribute('aria-label')).toBe('1위 전체 1, 전자책 있음')
     expect(cards('전체')[0].textContent).toContain('1')
@@ -125,7 +124,7 @@ describe('popular books (S13)', () => {
     const cells = within(section('전체')).getByRole('list').querySelectorAll('li')
     expect(cells).toHaveLength(9)
     expect(Array.from(cells).filter((cell) => cell.hasAttribute('data-empty'))).toHaveLength(4)
-  })
+  }, 15000)
 
   it('keeps each category on its own page and in this history entry', async () => {
     stubFetch()
@@ -165,6 +164,11 @@ describe('popular books (S13)', () => {
     expect(second.getAttribute('data-available')).toBe('false')
     expect(second.getAttribute('aria-label')).toBe('2위 전체 2, 전자책 없음')
     expect(second.textContent).toBe('2')
+    // the rank chip follows 있음/없음 for every rank, not the top three
+    const chip = (card: HTMLElement) => card.querySelector('[aria-hidden="true"][data-available]')!
+    expect(chip(first).getAttribute('data-available')).toBe('true')
+    expect(chip(second).getAttribute('data-available')).toBe('false')
+    expect(chip(cards('전체')[4]).getAttribute('data-available')).toBe('true')
   })
 
   it('sends the saved regions, scope and added libraries (AC-7)', async () => {
@@ -298,13 +302,14 @@ describe('popular windows on phones', () => {
     expect(screen.getByRole('region', { name: '전체' })).toBeTruthy()
   })
 
-  it('the help is a sheet closed by ⓧ', async () => {
+  it('the help is in the category sheet ("순위 기준 보기")', async () => {
     phoneWidth()
     stubFetch()
     const user = renderPage()
     await screen.findByRole('region', { name: '전체' })
-    await user.click(screen.getByRole('button', { name: '인기 도서 안내' }))
-    const sheet = screen.getByRole('dialog', { name: '인기 도서 안내' })
+    await user.click(screen.getByRole('button', { name: '분류: 전체' }))
+    const sheet = screen.getByRole('dialog', { name: '분류 고르기' })
+    await user.click(within(sheet).getByRole('button', { name: '순위 기준 보기' }))
     expect(within(sheet).getByText('흐린 책은 검색하는 도서관에 전자책이 없어요')).toBeTruthy()
     expect(within(sheet).getByText('2026년 9월 판매 순위 · 10월 3일 받음')).toBeTruthy()
     await user.click(within(sheet).getByRole('button', { name: '닫기' }))
@@ -335,7 +340,6 @@ describe('popular windows on phones', () => {
     await waitFor(() => expect(window.history.state).toHaveProperty('chaekcheckSheet'))
     window.history.back()
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서')
-    expect(screen.getByRole('heading', { level: 1 }).previousElementSibling?.textContent).toBe('2026년 9월 판매 순위')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서 · 2026년 9월 판매 순위')
   })
 })

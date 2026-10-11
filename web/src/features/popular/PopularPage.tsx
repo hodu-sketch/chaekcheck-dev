@@ -9,7 +9,6 @@ import { CategoryPicker } from './CategoryPicker'
 import { CategorySection } from './CategorySection'
 import { PAGE_SIZE, monthLabel, sectionId, sourceLine } from './popularText'
 import { PopularBookDialog } from './PopularBookDialog'
-import { PopularHelp } from './PopularHelp'
 import { readPosition, savePosition } from './popularPosition'
 import { RequestNotice } from './RequestNotice'
 import { usePopularPlan } from './usePopularPlan'
@@ -38,6 +37,7 @@ export function PopularPage() {
   const [current, setCurrent] = useState('')
   const [selected, setSelected] = useState<PopularBook | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const floatingRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!ready) return
@@ -81,7 +81,7 @@ export function PopularPage() {
     }
   }, [])
 
-  // the sticky category bar sits right under the app header, whatever its height on this width
+  // the blocks are sized under the sticky app header, whatever its height on this width
   useEffect(() => {
     const header = document.querySelector<HTMLElement>('[data-app-header]')
     const root = rootRef.current
@@ -137,6 +137,66 @@ export function PopularPage() {
     }
   }, [codes])
 
+  /*
+   * Where scrolling comes to rest (user 2026-10-12: "스크롤 내릴 때 1번 이미지처럼 안 되고 이렇게 깔끔하게 되도록 뭐 조절할
+   * 수 없을까?"): when it has stopped and no button is held, a panel under the floating button moves at once to the
+   * nearest clean place (a block at the top, as after a category jump, or the end of the page). Not CSS snapping, so
+   * holding the scrollbar or dragging its thumb scrolls on without stopping ("이 거 쭈우욱 가게 바꿔줘"). The very end
+   * of the page (source line, footer) is left as it is.
+   */
+  useEffect(() => {
+    if (!codes) return
+    const list = codes.split(',')
+    let held = false
+    let timer: number | undefined
+    const settle = () => {
+      if (held) return
+      const pill = floatingRef.current?.getBoundingClientRect()
+      if (!pill) return
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      if (window.scrollY >= max - 2) return
+      const header = document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0
+      const blocked = [...document.querySelectorAll('[data-panel]')].some((panel) => {
+        const box = panel.getBoundingClientRect()
+        return box.top < pill.bottom && box.bottom > pill.top
+      })
+      if (!blocked) return
+      // the clean places: each block at the top, and the end of the page
+      const places = list
+        .map((code) => document.getElementById(sectionId(code)))
+        .filter((section): section is HTMLElement => section !== null)
+        .map((section) => window.scrollY + section.getBoundingClientRect().top - header)
+      places.push(max)
+      const target = places.reduce((best, place) =>
+        Math.abs(place - window.scrollY) < Math.abs(best - window.scrollY) ? place : best,
+      )
+      window.scrollTo({ top: Math.min(Math.max(target, 0), max), behavior: 'instant' })
+    }
+    const later = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(settle, 150)
+    }
+    const down = () => {
+      held = true
+    }
+    const up = () => {
+      held = false
+      later()
+    }
+    const ends = 'onscrollend' in window
+    window.addEventListener(ends ? 'scrollend' : 'scroll', ends ? settle : later, { passive: true })
+    document.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointerup', up, true)
+    window.addEventListener('pointercancel', up, true)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener(ends ? 'scrollend' : 'scroll', ends ? settle : later)
+      document.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointerup', up, true)
+      window.removeEventListener('pointercancel', up, true)
+    }
+  }, [codes])
+
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
 
   // S13c: that category's ranks 1-9, the page put straight there with no smooth scrolling (user 2026-10-11)
@@ -189,24 +249,24 @@ export function PopularPage() {
 
   return (
     <div ref={rootRef} className={styles.page}>
-      {/* design A (user 2026-10-12): the title left and [전체 ▾] ⓘ right in a solid bar above the panels */}
-      <div className={styles.bar}>
-        <div className={styles.intro}>
-          {month && (
-            <p className={styles.eyebrow}>
-              <span className={styles.nowrap}>{month}</span> <span className={styles.nowrap}>판매 순위</span>
-            </p>
-          )}
-          <h1 className={styles.heading}>인기 도서</h1>
-        </div>
-        {categories.length > 0 && (
-          <div className={styles.tools}>
-            <CategoryPicker categories={categories} current={currentCode} onPick={jump} phone={phone} />
-            <PopularHelp month={data?.month ?? null} fetchedAt={data?.fetchedAt ?? null} phone={phone} />
-          </div>
-        )}
-      </div>
+      {/*
+        Design A with the user's later choices (2026-10-12): no visible heading ("이거 위에 있는거 불필요하니까 없애고"),
+        only one for screen readers; the category picker floats at the top centre and follows the category in view.
+      */}
+      <h1 className="visually-hidden">{month ? `인기 도서 · ${month} 판매 순위` : '인기 도서'}</h1>
       <div className={styles.blocks}>{body}</div>
+      {categories.length > 0 && (
+        <div ref={floatingRef} className={styles.floating}>
+          <CategoryPicker
+            categories={categories}
+            current={currentCode}
+            onPick={jump}
+            phone={phone}
+            month={data?.month ?? null}
+            fetchedAt={data?.fetchedAt ?? null}
+          />
+        </div>
+      )}
       <PopularBookDialog
         book={selected?.available && selected.bookId != null ? selected : null}
         plan={plan}

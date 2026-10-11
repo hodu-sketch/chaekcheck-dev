@@ -34,7 +34,7 @@ export function CategorySection({ category, page, onPage, onPick }: Props) {
 
   return (
     <section id={sectionId(category.code)} className={styles.section} data-code={category.code} aria-labelledby={titleId}>
-      <div className={styles.panel}>
+      <div className={styles.panel} data-panel="">
         <div className={styles.cardHead}>
           <h2 id={titleId} className={styles.sectionTitle}>
             {category.name}
