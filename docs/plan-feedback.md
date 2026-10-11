@@ -2824,3 +2824,134 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 그대로 둔 것: 카드 안 내용(분류 이름, "1 - 9위 / 50", 순위 칩 색, ◀ ▶, 쪽 표시 점), 한 분류씩 넘기는 스크롤, 화면 아래 떠 있는 [분류 ▾]와 그 그림자(떠 있음을 보여 주는 것이라 남김)
   - 확인: Playwright 1280·768·375·320에서 카드 계산 값 모서리 16px·그림자 없음·흰 바탕·1px 테두리, 책 화면 카드와 모서리·그림자 같음(테두리 색은 책 화면 `--paper-deep`, 검색 결과 판·인기 도서 `--rule`). 화면 사진 `.playwright-mcp/flatcard-popular-{1280,768,375,320}.png`, `flatcard-book-{…}.png`(git 밖). `npm test` 364개, `npm run build`, `npm run lint`(새 경고 없음) 통과. 사용자 폰 확인은 아직
 - **터치 판정 규칙**: `.claude/rules/web/patterns.md`에 "Touch Detection" 한 줄(`(pointer: coarse)` 하나로, `hover`로 가르지 않음, 삼성 인터넷 이유). `web/src`에서 `hover: none`으로 터치를 가르는 곳은 없음(남은 두 곳은 쓰지 말라는 주석: `PopularPage.module.css`, `PopularPage.tsx`)
+
+# 사이클 11
+
+가져오기 따로 하기(A) + 가져오기 힙 줄이기(B). 인계서 `docs/cycles/11-separate-import/handoff.md`. 시작 2026-10-12.
+
+## 시작 조건과 진행 방식
+
+- 시작 때 사이클 10 디자인 다듬기가 커밋되지 않은 채 다른 세션에서 진행 중이었음. 사용자: "web은 건드리지 않고하다가 나중에 사이클10 디자인이 완료되면 그 때 해". 그래서 백엔드·문서만 고치고, 커밋은 사이클 11 파일만 골라 함
+- 새 사본: 사용자 "쉬고 있음, 복사해줘" → `chaekcheck-data\snapshots\ebook-catalog-2026-10-12-0135.sqlite`(17,327,464,448 B, 원본 수정 시각 2026-10-12 01:35, 원본과 바이트 같음 확인)
+- 긴 측정(11단계): 사용자 "미리 승인"
+- 디스크: 시작 78GB 여유 → 사본 뒤 62GB → `db-ops` 복사 뒤 54GB
+
+## 0단계: 사이클 10 후속 `display_order` 0..14
+
+- `popular/001-popular-schema.yaml`의 `ranking_category_display_order_check`를 그 자리에서 `0..14`로 고침(주석에 사이클 10 회고·ADR-0080). 테스트 `PopularTestData.monthWithListsLeftOutLater`는 17줄 → 15줄(178·1991은 남기고 참고·정보·지리·환경을 뺌), 기대값도 맞춤
+- 로컬 `db`: 인계서 방법 그대로 한 트랜잭션(`data/cycle11/pop-fix.sql`): 2026-09의 178·1991 분류 지움(항목은 CASCADE) → 제약 지움 → 남은 15줄을 판매 부수 큰 순·사이트 ID 순으로 0~14 → 제약 0..14 → `popular-001-ranking` 체크섬 NULL
+  - 이 명령은 자동 권한 판단에 막혀 사용자에게 물음. 사용자: "실행해줘"
+- 확인: 로컬 앱(8089로 잠깐)이 체크섬 오류 없이 켜짐, `databasechangelog`에 새 체크섬이 써짐, `/api/v1/popular-books` 2026-09가 15개(전체 + 14분류). `./gradlew build` 통과. `db-test`는 컨테이너를 다시 띄워(tmpfs) 고친 changeset으로 새로 만듦
+
+## 1단계: 프로토타입 다섯 개 (`data/cycle11/prototype-report.md`)
+
+| # | 항목 | 결과 | 고른 것 |
+|---|---|---|---|
+| 1 | IDENTITY 시퀀스 값이 덤프·복원으로 넘어감 | 성공(`setval` 123456/true, 777/false 그대로, 다음 값 123457·777) | 복원 뒤 `setval` 다시 걸기 없음 |
+| 2 | `wsl … exec -T` 파이프로 `-Fc` 바이너리 | 성공, 양방향 SHA-256 같음(400만 줄, 덤프 190,801,244 B) | 표준 입출력으로 주고받음(bind mount·`docker cp` 안 씀) |
+| 3 | 암호 없이 로컬 소켓 | 성공(이미지 `pg_hba` `local all all trust`) | 운영 DB가 다른 이미지면 배포 때 다시 확인 |
+| 4 | Java가 죽었을 때 컨테이너 안 `pg_restore` | **입력 넘기는 방법에 따라 다름**: Java가 `getOutputStream()`으로 쓰다 죽으면 입력 끝 → 바로 롤백. `redirectInput(file)`이면 `wsl.exe`가 살아남아 끝까지 읽고 **커밋** | 복원 입력은 Java가 직접 씀. `apply`·`discard` 시작 때 남은 `chaekcheck-restore` 세션은 `pg_terminate_backend` |
+| 5 | 파이프로 쓴 `-Fc`에서 `load_manifest`만 읽기 | 됨. 다만 표 데이터가 이름 순으로 저장돼 `load_manifest` 데이터가 맨 뒤 → 표준 입력이면 파일 전체를 읽음(190MB에서 1.2~2.5초, 실데이터 수 GB면 더 김) | **`load_manifest` 한 줄을 표의 COMMENT로도 넣고**, `pg_restore -s -n catalog_next -t load_manifest -f -`로 목차만 읽음(0.7초, 데이터 안 읽음, 내가 2026-10-12 시험). 표 이름 `load_manifest`는 그대로 |
+
+- compose 프로젝트 지정: `-p chaekcheck`, `--project-directory`, `-f` 모두 됨. `exec`는 `.env` 치환이 필요 없어 `-p chaekcheck`만으로 됨 → 명령 앞부분에 PC 경로가 들어가지 않음
+- pg 도구 명령 앞부분(실제 값): `wsl -d Ubuntu --exec docker compose -p chaekcheck exec -T <db|db-ops|db-test>`. 앱이 그 뒤에 `pg_dump -Fc -n catalog_next --no-owner --no-privileges -U <연결의 사용자> -d "dbname=<연결의 DB> application_name=chaekcheck-dump"` 등을 붙임. `application_name`은 `PGAPPNAME` 대신 `-d` 연결 문자열로 줌
+- Git Bash에서는 `/mnt/c` 인자가 바뀌므로 `MSYS_NO_PATHCONV=1`(Java에는 해당 없음)
+
+## 정한 이름과 방법 ([안] 항목)
+
+- changeset `collection/005-import-export.yaml`(id `collection-005-import-export`), 제약 `catalog_import_export_check`, master 맨 끝 `# cycle 11` 주석
+- `CatalogLoad`: `prepare`, `export`, `readManifest`, `baseline`, `apply`, `finishPrepared`, `discardPrepared` + **`hasWaitingExport()` 하나 더함**(가져오기가 10분 넘게 읽은 뒤에야 멈추지 않게 처음에 확인). `discardPrepared`는 `boolean` 대신 enum `Discarded { NOTHING, LEFT_OVER, WAITING }`(무엇을 지웠는지)
+- 레코드 `Baseline(bookCount, bookMaxId, bookSequence, holdingCount, holdingMaxId, holdingSequence, columnsHash)` — **`columnsHash`는 `Baseline` 안**(비교가 `equals` 하나). `Manifest(formatVersion, exportId, exportedAt, baseline, notes)`
+- `load_manifest` 칸: `format_version`(1), `export_id`, `exported_at`, `book_count`, `book_max_id`, `book_sequence`, `holding_count`, `holding_max_id`, `holding_sequence`, `columns_hash`(**notes가 아닌 칸**: `catalog`가 `notes`를 해석하지 않게), `notes jsonb`. 같은 줄을 `row_to_json`으로 표 COMMENT에도 넣음
+- 시퀀스 값 = `CASE WHEN is_called THEN last_value ELSE last_value - 1 END`(`Ids.highest`와 같은 뜻, `max(id)`와 합치지 않음)
+- 해시
+  - 표 구조: `information_schema.columns` 네 표의 `table\tcolumn\tdata_type\tudt_name\n`을 표·칸 이름 `COLLATE "C"` 순으로 이은 SHA-256
+  - 도서관: `enabledLibraryRefs()` id 순 `id\tbaseUrl\tplatformType\n` SHA-256 + 개수
+  - 연결표: `collection_link`를 `collection_library_id, library_id` 순 `a\tb\n` SHA-256 + 개수
+- 설정: **`chaekcheck.catalog.load.pg-command` 하나**(쉼표로 나눈 명령 앞부분). 인계서의 `pg-dump-command`·`pg-restore-command` 둘 대신: 도구 이름을 앱이 붙이므로 둘이 늘 같음. `chaekcheck.collection.import.mode`·`file`·`grouping`·`dry-run-output`은 인계서 그대로
+- Gradle `-PbootRunJvmArgs` 그대로
+- 클래스: `catalog.internal.PgTools`, `Manifests`(manifest·기준값·해시), `collection…importer.ImportTransfer`, `DatabaseFingerprint`, `DryRunDump`, `BookGrouper`, `CompactGrouping`, `SqlGrouping`. `current`는 이름을 바꾸지 않고 `BookGrouping`이 구현
+- compose `db-ops`(프로필 `ops`라 평소 `up`에 안 뜸, `restart: "no"`), 볼륨 `db-ops-data`, `.env.example`에 `OPS_DB_PORT=5434`
+- 측정 스크립트: `probe_during_import.py`·`measure_round.py`가 환경 변수 `CHAEKCHECK_BASE`(기본 8080)·`CHAEKCHECK_DB_SERVICE`(기본 `db`)를 받음. 새 스크립트 `scripts/catalog/compare_grouping.py`(`dryrun`·`ids <service> <folder> [schema]`·`ids-compare`)
+- `step_seconds` 키: 내보내기(로그만) `dump`·`export`, 반영 `compare`·`restore`·`index`·`analyze`·`swap`·`apply`, 마저 `index`·`analyze`·`swap`·`finish`, `sql` 방식 `rows_copy`, dry run 결과 파일 `dump`
+
+## 설계에 정해져 있지 않아 dev가 정한 것
+
+- `finish`가 실패하면 기록 줄을 남기지 않음(로그만). 기다림이 남아 다시 돌릴 수 있음
+- 잠금 5번 실패 때 `finish`는 새 표를 **남김**(색인·통계 실패와 같게)
+- `mismatch` `failure_detail`: 다른 항목을 `; `로 이음. 예 `도서관: 이 DB 2658곳 c294dae67818 / 파일 2659곳 …`, `연결표: …`, `책 표 book 줄 수: 이 DB 1619668 / 파일 1615125`, `표 구조: …`(해시 앞 12자)
+- dry run은 기다리는 새 표가 있어도 돎(DB에 쓰지 않음). `in-place`·`export`만 처음에 멈춤
+- `export`는 같은 이름 파일이 있으면 시작하지 않음(덮어쓰지 않음). `export`가 돌려주는 manifest는 파일에서 다시 읽은 것
+- 테스트에서 **진짜 pg 도구**를 씀(`db-test` 컨테이너, `com.chaekcheck.TestPgCommand`, `TEST_PG_COMMAND`로 바꿀 수 있음)
+- `dry-run`은 `in-place`에서만(다른 모드에 주면 시작하지 않음)
+- 가져오기 실패는 종료 코드 1(`mismatch` 포함)
+
+## B: `BookGrouper` 모양
+
+- `add(Row, ImportReport)`, `groupByCodes`, `bibliographyKeys`, `attachBibliography`, `mergeSameText`, `forEachBook(ToLongFunction<Book>)`(반환값 없음), **`long bookOf(Row)`**(둘째 읽기), `close()`(기본 빈 메서드, `sql`이 임시 표를 지움)
+- `Book`에서 `units`를 뺌. 공용 규칙(`unitKey`, `key`, `firstAuthor`, `kyoboIsbn`, `SHARED_CODE_KINDS`)을 인터페이스의 static으로 옮김(세 방식이 같은 함수를 부름)
+- `compact`: 유닛별 객체 없이 유닛 번호로 찾는 칼럼(16K씩 페이지), 필드별 첫 값 + 개수, 제목·저자·출판사는 문자 풀의 int id, ISBN `long`, 날짜 epochDay, 종류 `byte`, 두 번째 값부터 유닛별 체인. 유닛 키는 두 64비트 해시(128비트, 직접 쓴 MurmurHash3식 + xxHash64식)의 열린 주소 표, 문자열은 두지 않음(1천만 키에서 겹칠 확률 약 10⁻²⁵, 없다고 봄). `forEachBook` 뒤 `bookOf`에 필요한 것만 남기고 해제(그래서 `forEachBook`은 한 번만)
+- `sql`: 가져오기와 다른 연결 하나의 `TEMPORARY` 표(`grp_*`). 줄은 원문 값만 COPY(정리값은 묶음의 대표 원문에서 만들어야 해서 묶음 단위로 Java가 계산). 잇기는 바뀐 줄이 0이 될 때까지 `label := min` + pointer jumping, **상한 1000번**(넘으면 예외). 시험에서 ② 6~14번, ③④ 1~2번, 3,000단위 사슬 12번
+- 대표값 동점: `sql`은 동점 값을 모두 Java로 보내 `String.compareTo`로 고름(C 정렬과 UTF-16 차이 없앰. U+1F600/U+FF21, U+E000/U+10000 시험)
+- 같은 글 묶음의 "출판일 2년 넘게 차이" 표본 순서: `current`가 `HashMap` 순회 순서로 뽑아서, `compact`·`sql`은 JDK 25 `HashMap.computeIfAbsent`의 순서(새 노드는 bin 앞, resize는 다음 호출)를 흉내 냄. 한 bin이 트리가 되는 드문 경우 `compact`는 진짜 `HashMap`으로 다시 계산, `sql`은 순서가 다를 수 있음(개수·책에는 영향 없음)
+
+## 지금 상태 (중간 전달, 2026-10-12 07:50)
+
+- 사용자: "이것까지만 plan에 전달하게 중간 전달용으로 좀 줘"
+- 끝남: 0~6단계, 8단계, 9단계(`compact`), 10단계(`sql`) 구현과 테스트. 7단계 실데이터는 아래 AC 중 AC-5(다음 `apply`가 끝까지)와 AC-15(`finish` 도중 멈춤)만 남음
+- 남음: 11단계(세 방식의 실데이터 결과 비교와 측정, 옛 사본 한 번, 기본값 추천). 측정은 같은 PC에서 하나씩 돌려야 해서 10~12시간 예상. 측정 뒤 기본 방식은 사용자가 정함(R-B7), 그때까지 `current`
+- 커밋: `596c40b`(0~6단계), `3e1baf7`(8단계), `5c85056`(3-import.md 13절, 측정 스크립트), `a67e107`(10단계 `sql`), `af73d53`(9단계 `compact`), `e3cfea4`(세 방식 고르기 연결). 모두 `./gradlew build` 통과(ModularityTests·DocumentationTests 포함, 모듈 의존 변화 없음)
+- 기존 테스트(`CatalogLoadSwapTests`, `CatalogLoadBookIdTests`, `CatalogImporterTests`, `NationalBibliographyTests`)는 고치지 않고 통과. 새 테스트: `CatalogImportRecordTests`, `CatalogTransferTests`(10개, 진짜 pg 도구), `CatalogImportModesTests`(6개), `BookGrouperContractTests`, `CompactGroupingTests`(10개, `current`와 무작위 대조 4000줄 × 시드 5 + 소량 × 시드 40), `SqlGroupingTests`(17개, 무작위 대조 1500줄 × 시드 8, 긴 사슬, 동점 문자, 반복 상한)
+
+## 7단계: A 실데이터 (2026-10-12)
+
+순서: `db` → `db-ops` 복사 → 내 PC `export`(새 사본, `current`, `-Xmx6g`, `maintenance_work_mem` 1GB·병렬 4) → `db-ops`에 `apply`(256MB) → 내 PC `finish`(1GB)
+
+- `db-ops` 복사: 두 컨테이너의 로컬 소켓끼리 `pg_dump -Fc | pg_restore` 파이프(암호 없음), 3분 39초, 8,562MB(13-4절). 처음에 `wsl -d Ubuntu -- … sh -c '…$POSTGRES_PASSWORD…'`로 했더니 WSL 셸이 변수를 먼저 펼쳐 실패 → `--exec`와 로컬 소켓으로 바꿈
+- **내보내기**: 약 26분 43초. 읽기 8분 32초, 묶기 6초, 국가서지 2분 14초 + 키 21초, 같은 글 1분 15초, 임시 표 COPY·둘째 읽기 9분 20초, 번호 잇기 1분 21초, `write` 2분 9초, **덤프와 되읽기 약 1분 22초**. 파일 **606,053,524 B**. 힙 최고(풀 최고 합) 8,428MB(-Xmx 6,144MB, 상한 근사치)
+  - 새 사본 숫자: 읽은 줄 26,144,897 / 건너뜀 8,366,096(서비스에 없음 8,265,035, 오디오북 93,537, 동영상북 5,368, 소리·영상 1,747, http 아님 283, 빠진 책 119, 제목 없음 7). 등록 275 + 후보 2,381. 책 7,666,094 → 7,345,534 → 6,665,999 → 1,619,668. 책 1,619,668, 사람 1,815,697, 소장 17,778,801. 책 번호 kept 1,615,124 / new 4,544 / dropped 1
+  - **도서관 411(새 주소)**: 주소 다름 0곳, `library_base_url_mismatch` 0줄 → 빠지지 않음
+- **반영(`db-ops`, 상한 1GB, 256MB)**: 비교 3.2초, `restore` 65초, `index` 2분 30초(가장 긴 것 `holding_library_item_key` 38초, `holding_pkey` 25초), `analyze` 52초, **`swap` 0.08초**, `apply` 전체 4분 35초
+  - `db-ops` 크기 최대 17.4GB(시작 9.0GB, 끝 9.0GB). 컨테이너 메모리(cgroup `memory.current`)는 상한 1GB 근처(페이지 캐시 포함), **`OOMKilled` 없음**
+  - 반영하는 동안 `db-ops` 서비스(8081, 힙 512MB) "사랑" 검색 194번: p50 404ms, p95 760ms, 최대 1,522ms(색인 만드는 중), **5xx 0**. 바꿔 끼운 순간(07:06:24) 앞뒤 요청은 0.3초대 → 기다림 1초 안
+- **마저(`finish`, 내 PC)**: 1분 28초(`index` 60초, `analyze` 25초, `swap` 0.1초)
+
+| AC | 결과 |
+|---|---|
+| AC-1 | 통과. 내보내기 전후 내 PC 검색 응답 57개 같음(`compare_books.py`) |
+| AC-2 | 통과. 반영 뒤 `db-ops`의 책 1,619,668개·소장 17,778,801개의 번호와 내용이 내 PC `catalog_next`와 모두 같음(`compare_grouping.py ids-compare`, 차이 0줄). 검색 응답도 내 PC(`finish` 뒤)와 `db-ops`가 57개 같음 |
+| AC-3 | 통과. 위 숫자 |
+| AC-4 | 통과. `db-ops`에서 하나씩 바꿔 `apply`: 도서관 1의 `base_url` → `mismatch` "도서관: 이 DB 2658곳 315e87cf5b9a / 파일 2658곳 761ce0ae2994", 연결표 한 줄 → "연결표: …", 책 표(옛 파일) → "책 표 book 줄 수: 이 DB 1619668 / 파일 1615125; …" 여섯 값. 매번 아무것도 안 바뀜, 종료 코드 1. 바꾼 것은 되돌림 |
+| AC-5 | 진행 중. 복원 도중 멈춘 뒤 검색은 그대로(아래 AC-13). 다음 `apply`가 끝까지 가는지 남음 |
+| AC-6 | 통과. `finish` 뒤 두 DB의 `book`·`holding` 줄 수·가장 큰 번호·시퀀스 값, 칸 구조, 연결표, 켜진 도서관이 모두 같음 |
+| AC-7 | 통과. `db-ops` 한 줄에 내 PC 단계(`read`…`write`, `load`) + 반영 단계(`compare`·`restore`·`index`·`analyze`·`swap`·`apply`)와 `export_id`. 내 PC `finish` 줄과 같은 `export_id` |
+| AC-11 | 통과. `db-ops` `catalog.book`에 칸 하나 더하고 `apply` → "표 구조: …" `mismatch`. 칸은 지움 |
+| AC-12 | 통과. 기다림 상태에서 `export` 다시 → 읽기 전에 멈춤("first finish them … or discard them"), 파일 안 생김 |
+| AC-13 | 통과(1회). `apply`의 복원 도중(복원 세션이 뜬 5초 뒤) Java를 강제 종료 → 1초 안에 `chaekcheck-restore` 세션 없음, `catalog_next` 없음(한 트랜잭션이 롤백), 검색 200 그대로 |
+| AC-14 | 통과. 상한 1GB `db-ops`에서 256MB로 끝까지, 색인 2분 30초, `OOMKilled` 없음 |
+| AC-15 | 남음 |
+
+## [확인 필요] 표의 결과 (지금까지)
+
+| 항목 | 결과 |
+|---|---|
+| IDENTITY 시퀀스 값 | 넘어감(프로토타입 1, AC-2·AC-6) |
+| 파이프 바이너리 | 깨지지 않음 |
+| 암호 없이 | 됨(이미지 `pg_hba` trust) |
+| Java가 죽었을 때 `pg_restore` | Java가 입력을 쓰면 롤백(AC-13) |
+| manifest만 읽는 시간 | 표 COMMENT로 목차만 읽어 1초 안 |
+| 덤프 크기·복원 시간·운영 디스크 최대·상한 1GB 색인 시간 | 606MB, 65초, 17.4GB, 2분 30초 |
+| 기준값 계산 시간 | `compare` 3.2초 |
+| 새 사본에서 도서관 411 | 빠지지 않음 |
+| `db` → `db-ops` 복사 방법 | 로컬 소켓끼리 `pg_dump \| pg_restore`(13-4절) |
+| DB 컨테이너 cgroup 경로 | `/sys/fs/cgroup/cpu.stat`(`usage_usec`), `/sys/fs/cgroup/memory.current`·`memory.peak` |
+| `sql` 사슬·시간·디스크, 43분 안 | 11단계에서 잼 |
+
+## 설계·인계서와 달라진 점 (요약)
+
+- 설정 `pg-dump-command`·`pg-restore-command` 대신 `pg-command` 하나(도구 이름은 앱이 붙임)
+- `load_manifest`를 표 COMMENT에도 넣어 목차만 읽음(프로토타입 5의 대안)
+- `CatalogLoad.hasWaitingExport()` 하나 더함, `discardPrepared()`는 enum을 돌려줌
+- `columnsHash`는 `notes`가 아닌 `load_manifest` 칸이자 `Baseline`의 칸
+- `apply`·`discard` 시작 때 남은 `chaekcheck-restore` 세션을 `pg_terminate_backend`로 끝냄(프로토타입 4)
+- 사이클 10 웹 작업이 끝나기 전에 시작함(사용자 결정, 위)
