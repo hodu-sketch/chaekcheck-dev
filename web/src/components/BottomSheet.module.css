@@ -69,21 +69,22 @@
   right: 0.5rem;
   display: grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.2rem;
+  height: 2.2rem;
   padding: 0;
   border: none;
-  border-radius: 999px;
-  background: none;
+  /* a soft grey rounded square, as in the popular windows (cycle 10 design A) */
+  border-radius: var(--radius-control);
+  background: var(--paper-deep);
   color: var(--ink-soft);
   font: inherit;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
 }
 
 .close:hover {
-  background: var(--paper-deep);
+  background: var(--track);
   color: var(--ink);
 }
 

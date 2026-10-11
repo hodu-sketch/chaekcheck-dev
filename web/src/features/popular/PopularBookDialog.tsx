@@ -93,6 +93,7 @@ function BookBody({
     <div className={styles.bookHead}>
       <CoverImage className={styles.bookCover} url={book.coverUrl} title={book.title} />
       <div className={styles.bookText}>
+        <span className={styles.bookRank}>{book.rank}위</span>
         <h2 className={styles.bookTitle}>{detail?.title ?? book.title}</h2>
         {detail && (
           <p className={styles.bookMeta}>
@@ -139,6 +140,10 @@ function BookBody({
   return (
     <div className={styles.book}>
       {head}
+      {detail !== null && detail.holdingLibraryCount > 0 && (
+        // design A: what the lines are (R6-3: the first three searched libraries in plan order)
+        <p className={styles.rowsLabel}>검색하는 도서관 중 앞의 3곳</p>
+      )}
       <div className={styles.rows}>
         {rows.map((row) => (
           <ResultRow key={`${row.libraryId}-${row.rank}`} row={row} library={libraries.get(row.libraryId)} searchUrl={undefined} />

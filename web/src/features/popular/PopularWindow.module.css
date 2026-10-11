@@ -3,8 +3,8 @@
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgb(27 26 36 / 0.4);
-  backdrop-filter: blur(4px);
+  background: rgb(25 31 40 / 0.42);
+  backdrop-filter: blur(3px);
 }
 
 .content {
@@ -14,40 +14,40 @@
   left: 50%;
   translate: -50% -50%;
   width: min(40rem, calc(100vw - 3rem));
+  /* design A: rounder window, no border */
   max-height: calc(100dvh - 3rem);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 1.6rem 1.6rem 1.4rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-lg);
+  border-radius: 20px;
   background: var(--card);
   box-shadow: 0 16px 40px rgb(0 0 0 / 0.18);
 }
 
 .content[data-size='small'] {
-  width: min(24rem, calc(100vw - 3rem));
+  width: min(26rem, calc(100vw - 3rem));
 }
 
 .close {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
+  top: 0.9rem;
+  right: 0.9rem;
   display: grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.2rem;
+  height: 2.2rem;
   padding: 0;
   border: none;
-  border-radius: 999px;
-  background: none;
+  border-radius: var(--radius-control);
+  background: var(--paper-deep);
   color: var(--ink-soft);
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
 }
 
 .close:hover {
-  background: var(--paper-deep);
+  background: var(--track);
   color: var(--ink);
 }
 

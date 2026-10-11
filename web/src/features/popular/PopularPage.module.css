@@ -1,63 +1,90 @@
 /*
- * S13 popular (cycle 10). The title bar sticks under the app header (its height is measured into --app-header); each
- * category block fills the rest of the screen, and the 3 x 3 grid is sized from that height so one grid fits the
- * screen on PC too (R4-2).
+ * S13 popular, design A (user choice 2026-10-12): each category in a white rounded panel sized to its 3 x 3 grid,
+ * a large category title with "1–9위 / 50", round rank chips, soft grey ◀ ▶ beside the grid and page dots under it.
+ * A very soft shadow on the panels as in the chosen mockup (an exception to the flat-card note in global.css); no
+ * gradients.
+ *
+ * The title and [전체 ▾] ⓘ sit in a bar on top, sticky under the app header, as wide as the panels (a side layout was
+ * tried and dropped, user 2026-10-12: "이렇게 좌우로 있게 했는데 더 어색하다;;; 그냥 위에 두되 ..."). The bar has the
+ * page's own solid background and lies above the panels, so a panel scrolling up under it (covers, edge, shadow)
+ * does not show there. Every block is as tall as the screen under the bar (--top) and the grid is sized from that
+ * height, so a block put at the top (category jump) shows all its covers below the bar. --app-header is measured
+ * from the app header (PopularPage).
  */
 .page {
-  --toolbar-height: 3.75rem;
-  --popular-top: calc(var(--app-header, 4.6rem) + var(--toolbar-height));
+  --bar: 5.4rem;
+  --top: calc(var(--app-header, 4.6rem) + var(--bar));
+  /* panel = grid + arrows, gaps and padding */
+  --panel-extra: 11rem;
+  --gw: min(30rem, 100vw - 2 * var(--gutter) - var(--panel-extra), (100dvh - var(--top) - 7.6rem) * 0.66);
   width: 100%;
-  max-width: var(--content-width);
-  margin: 0 auto;
 }
 
-.toolbar {
+.bar {
   position: sticky;
   top: var(--app-header, 4.6rem);
   z-index: 4;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  height: var(--toolbar-height);
+  gap: 0.75rem;
+  height: var(--bar);
+  max-width: calc(var(--gw) + var(--panel-extra));
+  margin: 0 auto;
+  padding: 0 0.25rem;
+  /*
+   * The page's own colour, fully opaque, across the whole width (a spread shadow clipped to the bar's height), so a
+   * panel passing under it (covers, edge, shadow) never shows in or beside it and there is no box edge (user
+   * 2026-10-12: "이거 색 달라서 너무 어색해 인기도서라고 써있는데...... 색 안 다르게 해줘"). No blur, no alpha.
+   */
   background: var(--canvas);
+  box-shadow: 0 0 0 100vmax var(--canvas);
+  clip-path: inset(0 -100vmax);
 }
 
-.heading {
+.intro {
+  flex: 1;
   min-width: 0;
   word-break: keep-all;
   overflow-wrap: anywhere;
-  font-size: var(--text-xl);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.3;
 }
 
-.headingMonth {
-  color: var(--ink-soft);
-  font-weight: 700;
+.heading {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
 }
 
 .tools {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.4rem;
 }
 
-/* [전체 ▾] (S13c) */
+/* [전체 ▾] (S13c): the app's white control, not a dark pill (user: "왜 갑자기 전체 이게 까만데 하얀 테마 유지해줘") */
 .picker {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  min-height: var(--control-height);
-  padding: 0 0.9rem;
+  gap: 0.45rem;
+  height: 2.6rem;
+  padding: 0 0.95rem 0 1.1rem;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
   background: var(--card);
   color: var(--ink);
   font-size: var(--text-md);
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -127,20 +154,26 @@
   outline-offset: -2px;
 }
 
-/* S13i on phones: the ⓘ opens a sheet */
+/* S13i: the light round "i" (a bubble on PC and tablet, a sheet on phones) */
 .helpButton {
   display: inline-grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.6rem;
+  height: 2.6rem;
   padding: 0;
   border: none;
   border-radius: 999px;
-  background: none;
+  background: var(--paper);
   color: var(--ink-faint);
-  font-size: var(--text-lg);
+  font-size: 1.05rem;
+  font-weight: 800;
   line-height: 1;
   cursor: pointer;
+}
+
+.helpButton:hover,
+.helpButton[data-state='open'] {
+  color: var(--brand-strong);
 }
 
 .helpButton:focus-visible {
@@ -150,12 +183,12 @@
 
 .helpList {
   display: grid;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
   gap: 0.35rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .helpSheet {
@@ -169,37 +202,69 @@
   gap: 0.6rem;
 }
 
-/* one category: its name, then ◀ 3 x 3 ▶, as tall as the screen under the bars */
+/* one category: as tall as the screen under the bars, its panel in the middle */
 .section {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.6rem;
-  min-height: calc(100dvh - var(--popular-top));
-  padding: 0.5rem 0 1rem;
-  scroll-margin-top: var(--popular-top);
+  min-height: calc(100dvh - var(--top));
+  padding: 0.2rem 0 1rem;
+  scroll-margin-top: var(--top);
+}
+
+.panel {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 1.15rem 1.5rem 1rem;
+  border-radius: 26px;
+  background: var(--paper);
+  box-shadow:
+    0 1px 2px rgb(25 31 40 / 0.04),
+    0 8px 28px rgb(25 31 40 / 0.05);
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .sectionTitle {
-  text-align: center;
-  font-size: var(--text-lg);
+  min-width: 0;
+  font-size: 1.55rem;
   font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+
+.range {
+  flex: none;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.range b {
+  color: var(--brand-strong);
 }
 
 .pager {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.1rem;
 }
 
 .grid {
   display: grid;
   flex: none;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.6rem;
-  /* three 2:3 covers per row: the width that lets three rows fit the block's height */
-  width: min(100% - 7rem, 40rem, (100dvh - var(--popular-top) - 5.5rem) * 0.64);
+  gap: 0.75rem;
+  width: var(--gw);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -210,31 +275,39 @@
   min-width: 0;
 }
 
+/* a blank cell on the last page: the same 2:3 space as a cover */
+.emptyCell {
+  display: block;
+  aspect-ratio: 2 / 3;
+}
+
 .arrow,
 .arrowSpace {
   flex: none;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.9rem;
+  height: 2.9rem;
 }
 
-/* rounded rectangles like the other buttons ([전체 ▾]), not circles (user screen review 2026-10-12: "테마 유지해 줘
-   둥근 네모 다른 것들처럼") */
+/* soft grey rounded squares (design A) */
 .arrow {
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--card);
+  border: none;
+  border-radius: 14px;
+  background: var(--paper-deep);
   color: var(--ink-soft);
-  font-size: 0.95rem;
   cursor: pointer;
-  transition: background-color 140ms, color 140ms;
+  transition: background-color 140ms, color 140ms, transform 140ms;
 }
 
 .arrow:hover {
   background: var(--brand-soft);
   color: var(--brand-strong);
+}
+
+.arrow:active {
+  transform: scale(0.94);
 }
 
 .arrow:focus-visible {
@@ -248,7 +321,7 @@
   width: 100%;
   padding: 0;
   border: none;
-  border-radius: var(--radius-tag);
+  border-radius: 10px;
   background: none;
   cursor: pointer;
 }
@@ -259,57 +332,84 @@
 }
 
 .cover {
-  border-radius: var(--radius-tag);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
-  transition: transform 140ms;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgb(25 31 40 / 0.06);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .card:hover .cover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
 }
 
-/* no e-book in my libraries: the cover faded, no words (R4-5) [안 degree, step 8 screen check] */
+/* no e-book in the searched libraries: the cover faded, no words (R4-5) */
 .card[data-available='false'] .cover {
-  opacity: 0.35;
-  filter: grayscale(0.4);
+  opacity: 0.32;
+  filter: grayscale(0.5);
 }
 
+/* round rank chips, violet for 1-3 (design A) */
 .rank {
   position: absolute;
-  top: 0;
-  left: 0;
-  min-width: 1.5rem;
-  padding: 0.05rem 0.4rem;
-  border-radius: var(--radius-tag) 0 var(--radius-tag) 0;
-  background: rgb(25 31 40 / 0.78);
-  color: #fff;
-  font-size: var(--text-xs);
+  top: 0.4rem;
+  left: 0.4rem;
+  min-width: 1.45rem;
+  height: 1.45rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+  color: var(--ink);
+  font-size: 0.74rem;
   font-weight: 800;
-  line-height: 1.5;
+  line-height: 1.45rem;
   text-align: center;
+}
+
+.rank[data-top='true'] {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+}
+
+.dots i {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--rule-strong);
+  transition: width 200ms, background-color 200ms;
+}
+
+.dots i[data-on='true'] {
+  width: 1.2rem;
+  background: var(--brand-strong);
 }
 
 .skeleton {
   display: block;
   aspect-ratio: 2 / 3;
-  border-radius: var(--radius-tag);
+  border-radius: 10px;
   background: var(--track);
 }
 
 /* the same look as the search screen's notice line (S1) */
 .notice {
   margin-top: 0.5rem;
-  word-break: keep-all;
   padding: 0.75rem 1.1rem;
   border-radius: var(--radius-md);
   background: var(--fail-soft);
   color: var(--fail);
   font-size: var(--text-md);
   font-weight: 700;
+  word-break: keep-all;
 }
 
 .empty {
-  word-break: keep-all;
   margin-top: 0.5rem;
   padding: 2.75rem 1.5rem;
   border-radius: var(--radius-lg);
@@ -317,10 +417,11 @@
   text-align: center;
   font-size: var(--text-lg);
   font-weight: 800;
+  word-break: keep-all;
 }
 
 .source {
-  padding: 0.5rem 0 1rem;
+  padding: 0.5rem 0.5rem 1.5rem;
   color: var(--ink-faint);
   font-size: var(--text-xs);
   text-align: center;
@@ -328,7 +429,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cover {
+  .cover,
+  .arrow,
+  .dots i {
     transition: none;
   }
 
@@ -337,23 +440,48 @@
   }
 }
 
-/* phones: the grid fills the width, ◀ ▶ small over its left and right edges (flow.md S13) */
+/* phones: the grid fills the panel, ◀ ▶ small over its edges */
 @media (width <= 640px) {
   .page {
-    --toolbar-height: 3.9rem;
+    --bar: 4.6rem;
+    --gw: min(100%, (100dvh - var(--top) - 7.4rem) * 0.66);
+  }
+
+  .bar {
+    max-width: none;
   }
 
   .heading {
-    font-size: var(--text-lg);
+    font-size: 1.5rem;
   }
 
-  .headingMonth {
-    display: block;
-    font-size: var(--text-sm);
+  .eyebrow {
+    font-size: var(--text-xs);
   }
 
-  .headingDot {
-    display: none;
+  .picker {
+    height: 2.35rem;
+    padding: 0 0.8rem 0 0.9rem;
+  }
+
+  .helpButton {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .panel {
+    width: auto;
+    padding: 1.15rem 0.9rem 1rem;
+    border-radius: 22px;
+  }
+
+  .cardHead {
+    margin-bottom: 0.8rem;
+    padding: 0 0.2rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.3rem;
   }
 
   .pager {
@@ -362,8 +490,7 @@
   }
 
   .grid {
-    width: min(100%, (100dvh - var(--popular-top) - 4.5rem) * 0.64);
-    gap: 0.45rem;
+    gap: 0.5rem;
   }
 
   .arrowSpace {
@@ -374,19 +501,63 @@
     position: absolute;
     top: 50%;
     z-index: 1;
-    width: 2rem;
-    height: 2.5rem;
-    border-radius: var(--radius-inner);
+    width: 2.1rem;
+    height: 2.6rem;
     translate: 0 -50%;
-    background: rgb(255 255 255 / 0.9);
-    font-size: 0.75rem;
+    border-radius: 12px;
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 2px 10px rgb(25 31 40 / 0.16);
+  }
+
+  .arrow:active {
+    transform: none;
   }
 
   .arrow[data-side='prev'] {
-    left: 0.15rem;
+    left: -0.35rem;
   }
 
   .arrow[data-side='next'] {
-    right: 0.15rem;
+    right: -0.35rem;
+  }
+
+  .rank {
+    top: 0.3rem;
+    left: 0.3rem;
+    min-width: 1.3rem;
+    height: 1.3rem;
+    font-size: 0.68rem;
+    line-height: 1.3rem;
+  }
+}
+
+/* "2026년 9월" and "판매 순위" each stay whole; a narrow bar breaks only between them */
+.nowrap {
+  white-space: nowrap;
+}
+
+/* the narrowest phones (320px): the title stays on one line beside a smaller [분류 ▾] and i */
+@media (width <= 360px) {
+  .bar {
+    gap: 0.4rem;
+  }
+
+  .heading {
+    font-size: 1.3rem;
+    white-space: nowrap;
+  }
+
+  .tools {
+    gap: 0.25rem;
+  }
+
+  .picker {
+    gap: 0.3rem;
+    padding: 0 0.55rem 0 0.65rem;
+  }
+
+  .helpButton {
+    width: 2.1rem;
+    height: 2.1rem;
   }
 }

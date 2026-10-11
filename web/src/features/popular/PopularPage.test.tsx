@@ -95,7 +95,8 @@ describe('popular books (S13)', () => {
     stubFetch()
     renderPage()
     expect(await screen.findByRole('region', { name: '전체' })).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서 · 2026년 9월 판매 순위')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서')
+    expect(screen.getByRole('heading', { level: 1 }).previousElementSibling?.textContent).toBe('2026년 9월 판매 순위')
     expect(ranks('전체')).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
     expect(cards('전체')[0].getAttribute('aria-label')).toBe('1위 전체 1, 전자책 있음')
     expect(cards('전체')[0].textContent).toContain('1')
@@ -119,6 +120,11 @@ describe('popular books (S13)', () => {
     for (let i = 0; i < 4; i++) await user.click(within(section('전체')).getByRole('button', { name: '전체 다음 9권' }))
     expect(ranks('전체')).toEqual([46, 47, 48, 49, 50])
     expect(within(section('전체')).queryByRole('button', { name: '전체 다음 9권' })).toBeNull()
+    expect(within(section('전체')).getByText('46–50위')).toBeTruthy()
+    // the 3 x 3 space stays: four blank cells after the five books, so the panel keeps its size
+    const cells = within(section('전체')).getByRole('list').querySelectorAll('li')
+    expect(cells).toHaveLength(9)
+    expect(Array.from(cells).filter((cell) => cell.hasAttribute('data-empty'))).toHaveLength(4)
   })
 
   it('keeps each category on its own page and in this history entry', async () => {
@@ -329,6 +335,7 @@ describe('popular windows on phones', () => {
     await waitFor(() => expect(window.history.state).toHaveProperty('chaekcheckSheet'))
     window.history.back()
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서 · 2026년 9월 판매 순위')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('인기 도서')
+    expect(screen.getByRole('heading', { level: 1 }).previousElementSibling?.textContent).toBe('2026년 9월 판매 순위')
   })
 })

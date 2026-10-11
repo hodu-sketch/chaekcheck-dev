@@ -24,7 +24,8 @@ export function CoverCard({ book, onPick }: Props) {
         onClick={() => onPick(book)}
       >
         <CoverImage className={styles.cover} url={book.coverUrl} title={book.title} />
-        <span className={styles.rank} aria-hidden="true">
+        {/* round rank chips, violet for the top three (design A) */}
+        <span className={styles.rank} data-top={book.rank <= 3} aria-hidden="true">
           {book.rank}
         </span>
       </button>

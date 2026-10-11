@@ -189,16 +189,16 @@ export function PopularPage() {
 
   return (
     <div ref={rootRef} className={styles.page}>
-      <div className={styles.toolbar}>
-        <h1 className={styles.heading}>
-          인기 도서
+      {/* design A (user 2026-10-12): the title left and [전체 ▾] ⓘ right in a solid bar above the panels */}
+      <div className={styles.bar}>
+        <div className={styles.intro}>
           {month && (
-            <span className={styles.headingMonth}>
-              <span className={styles.headingDot}> · </span>
-              {month} 판매 순위
-            </span>
+            <p className={styles.eyebrow}>
+              <span className={styles.nowrap}>{month}</span> <span className={styles.nowrap}>판매 순위</span>
+            </p>
           )}
-        </h1>
+          <h1 className={styles.heading}>인기 도서</h1>
+        </div>
         {categories.length > 0 && (
           <div className={styles.tools}>
             <CategoryPicker categories={categories} current={currentCode} onPick={jump} phone={phone} />
@@ -206,7 +206,7 @@ export function PopularPage() {
           </div>
         )}
       </div>
-      {body}
+      <div className={styles.blocks}>{body}</div>
       <PopularBookDialog
         book={selected?.available && selected.bookId != null ? selected : null}
         plan={plan}
@@ -230,16 +230,18 @@ function LoadingBlock() {
       <p className="visually-hidden" role="status">
         인기 도서를 불러오는 중
       </p>
-      <div className={styles.pager}>
-        <span className={styles.arrowSpace} data-side="prev" />
-        <ol className={styles.grid} aria-hidden="true">
-          {Array.from({ length: PAGE_SIZE }, (_, index) => (
-            <li key={index} className={styles.cell}>
-              <span className={styles.skeleton} data-testid="skeleton-card" />
-            </li>
-          ))}
-        </ol>
-        <span className={styles.arrowSpace} data-side="next" />
+      <div className={styles.panel}>
+        <div className={styles.pager}>
+          <span className={styles.arrowSpace} data-side="prev" />
+          <ol className={styles.grid} aria-hidden="true">
+            {Array.from({ length: PAGE_SIZE }, (_, index) => (
+              <li key={index} className={styles.cell}>
+                <span className={styles.skeleton} data-testid="skeleton-card" />
+              </li>
+            ))}
+          </ol>
+          <span className={styles.arrowSpace} data-side="next" />
+        </div>
       </div>
     </section>
   )

@@ -26,7 +26,7 @@ export function PopularHelp({ month, fetchedAt, phone }: Props) {
       ))}
     </ul>
   )
-  if (!phone) return <InfoTip label="인기 도서 안내" text={lines} />
+  if (!phone) return <InfoTip label="인기 도서 안내" text={lines} triggerClassName={styles.helpButton} mark="i" />
   return (
     <>
       <button
@@ -37,7 +37,7 @@ export function PopularHelp({ month, fetchedAt, phone }: Props) {
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
-        ⓘ
+        i
       </button>
       <BottomSheet open={open} onOpenChange={setOpen} title="인기 도서 안내" closeButton closeOnBack>
         <div className={styles.helpSheet}>{lines}</div>

@@ -7,13 +7,24 @@ import styles from './InfoTip.module.css'
  * touch screens (a tooltip alone would never open there). A mouse click keeps it open instead of closing what the
  * hover opened. `text` may hold several lines (cycle 10 S13i).
  */
-export function InfoTip({ label, text }: { label: string; text: ReactNode }) {
+export function InfoTip({
+  label,
+  text,
+  triggerClassName,
+  mark = 'ⓘ',
+}: {
+  label: string
+  text: ReactNode
+  /** Another look for the button (cycle 10: the popular screen's light round button). */
+  triggerClassName?: string
+  mark?: ReactNode
+}) {
   const [open, setOpen] = useState(false)
   const pointer = useRef('')
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
-        className={styles.trigger}
+        className={triggerClassName ?? styles.trigger}
         aria-label={label}
         onPointerDown={(event) => {
           pointer.current = event.pointerType
@@ -24,7 +35,7 @@ export function InfoTip({ label, text }: { label: string; text: ReactNode }) {
           if (open && pointer.current === 'mouse') event.preventDefault()
         }}
       >
-        ⓘ
+        {mark}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content className={styles.content} side="bottom" align="start" sideOffset={6} collisionPadding={12}>
