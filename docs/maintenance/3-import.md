@@ -15,7 +15,7 @@
   - 수집 중인 도서관은 그 순간까지 받은 줄로 들어갑니다. 다시 받는 중인 도서관은 지난번 줄이 아직 남아 있어(빠짐 표시는 전체 수집이 성공한 뒤에만 찍힘) 크게 달라지지 않습니다.
   - **새로 넣은 등록 도서관**은 첫 수집이 끝난 뒤에 가져옵니다. 덜 받은 채로 가져오면 그 도서관 책이 일부만 들어갑니다. 끝났는지: 수집 DB `SELECT id, name FROM library WHERE id IN (…) AND last_full_success_at IS NULL`이 비어 있어야 함.
   - 읽는 동안(2026-10-03 기준 약 1분 40초) 수집 DB의 `-wal` 파일이 평소보다 커질 수 있습니다. 끝나면 수집기가 다시 정리합니다.
-- 서비스 DB 쪽: 쓰기는 한 트랜잭션(`catalog`의 `CatalogLoad.replaceAll` = `JdbcCatalogLoad.java`: `TRUNCATE` → COPY → 커밋, 그 뒤 `VACUUM (ANALYZE)`)이라 실패하면 이전 내용이 그대로 남습니다. 다만 `TRUNCATE`가 표 전체를 잠그므로, **쓰는 동안 서비스의 책 검색은 기다립니다**(배포 전이라 받아들임 [확정], spec R7-5). 사용자가 있는 서비스라면 사용이 적은 시간에 돌립니다 [안].
+- 서비스 DB 쪽 (사이클 08부터, plan ADR-0065): 새 목록은 `catalog_next` 스키마의 새 표에 쓰고, 색인·통계까지 마친 뒤 **짧은 트랜잭션 하나로 옛 표와 바꿔 끼웁니다**(8절). 그동안 서비스의 검색은 옛 표를 그대로 읽고, 기다리는 것은 바꿔 끼우는 순간(잠금 대기 포함, `step_seconds.swap`)뿐입니다. 그래서 **서비스를 켠 채로** 돌립니다. 바꿔 끼우기 전에 실패하면 옛 표가 그대로 남습니다(9절). 사이클 07까지는 `TRUNCATE` → 옮겨 쓰기 동안(2026-10-11 측정 9분 37초) 검색이 기다렸습니다.
 
 ## 2. 준비
 
@@ -29,9 +29,11 @@
 
 `backend/`에서 명령 끝에 `--chaekcheck.collection.import.dry-run=true`를 더해 실행합니다. 읽고 묶어서 숫자만 로그에 내고, DB에는 쓰지 않습니다.
 
-    ./gradlew bootRun --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.dry-run=true'
+    ./gradlew bootRun -PbootRunXmx=6g --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.dry-run=true'
 
+- **힙**: `bootRun`의 기본 `-Xmx`는 서비스용 512MB라(사이클 08), 가져오기는 `-PbootRunXmx=6g`를 줍니다. 2026-10-11 `-Xmx4g`는 첫 읽기 중 살아 있는 데이터가 4,066MB라 전체 GC만 반복하다 멈춤(못 씀). 6GB 결과는 5절 표.
 - 프로필 `collection-import`는 웹 서버 없이 한 번 돌고 끝납니다(`application-collection-import.yml`). 로그인 기능은 이 프로필에서 늘 꺼집니다(웹 서버가 없어 켜면 시작하지 못함, 2026-10-05).
+- 바꿔 끼우기 설정 `chaekcheck.catalog.load.*`(8절): `lock-timeout`(기본 2s), `swap-attempts`(5), `swap-retry-wait`(10s), 가져오기 세션에만 `maintenance-work-mem`·`max-parallel-maintenance-workers`·`work-mem`(기본 = 서버 값. 2026-10-11 가져오기는 `1GB`·`4`로 돌림).
 - 설정 `chaekcheck.collection.import.*`: `sqlite-path`, `ttl-path`(비우면 국가서지 단계를 건너뜀), `dry-run`, `placeholder-date-libraries`(1950년 이전 날짜를 자리채움으로 보고 버릴 도서관의 **수집 번호**, 기본 `100555` 명지대).
 - 사이클 04의 프로필 `catalog-import`, 설정 `chaekcheck.catalog.import.*`는 없어졌습니다.
 - 로그 끝의 요약(읽은 줄, 이유별 건너뜀, 등록·후보 도서관 수, 묶기 단계별 책 수, 국가서지로 ISBN이 붙은 수, 시간, 힙 최고 사용량)을 5절 표의 지난 값과 비교합니다. 크게 다르면 사용자에게 알리고 멈춥니다 [안].
@@ -50,9 +52,14 @@
 | 2026-10-05 18:53 (사이클 07, 사본 `ebook-catalog-2026-10-05-0745.sqlite`, 등록 + 후보) | 22,051,238 / 1,568,743 (서비스에 없음 1,467,650, 오디오북 93,537, 동영상북 5,400, 소리·영상 파일 1,747, http가 아닌 주소 283, 빠진 책 119, 제목 없음 7) | 등록 275 + 후보 2,394 = 2,669곳 (서비스에 없는 수집 도서관 344, 주소 다름 0) | 7,668,819 → 7,348,253 → 6,668,680 → 1,622,023 (④가 합친 묶음 5,046,657, 출판일 2년 넘게 차이 53,572권) | 책 1,622,023, 사람 1,817,529, 소장 20,482,495 | 읽기 8분 46초, 묶기 5초, 국가서지 8분 52초, 쓰기 17분 51초(두 번째 읽기 포함), 합계 35분 45초. dry run은 14분 15초 |
 | 2026-10-05 21:15 (17단계 합친 뒤, 빈 DB, 같은 사본) | 22,051,238 / 1,667,356 (서비스에 없음 1,502,159, 주소 다름 64,461 = 도서관 411, 오디오북 93,213, 동영상북 5,368, 소리·영상 1,746, http 아님 283, 빠진 책 119, 제목 없음 7) | 등록 275 + 후보 2,391 (꺼짐 3: 135·2194·2198) | 7,604,518 → 7,283,952 → 6,615,840 → 1,617,445 | 책 1,617,445, 사람 1,812,646, 소장 20,383,882. 책 번호 kept 0 / new 1,617,445 / dropped 0 | 읽기 6분 57초, 국가서지 6분 45초, 쓰기 22분 43초(책 번호 잇기로 임시 표를 거침), 합계 36분 43초 |
 | 2026-10-05 22:34 (2회차, `db` 복사본 포트 5434, 같은 사본) | 같음 | 같음 | 같음 | 같음. **책 번호 kept 1,617,445 / new 0 / dropped 0**, 도서관 2,646곳의 (책 코드 → 책 번호) 지문이 1회차와 모두 같음 | 읽기 9분 9초, 국가서지 6분 28초, 쓰기 26분 55초, 합계 40분 36초 |
+| 2026-10-11 21:25 (사이클 08 #1, 지금 쓰기 방식, 교보 대여·혼합 11곳 뺀 뒤 빈 DB, 같은 사본) | 22,051,238 / 4,336,573 (서비스에 없음 4,171,376, 주소 다름 64,461, 오디오북 93,213, 동영상북 5,368, 소리·영상 1,746, http 아님 283, 빠진 책 119, 제목 없음 7) | 등록 275 + 후보 2,380 | 7,601,958 → 7,281,398 → 6,613,296 → 1,615,125 | 책 1,615,125, 사람 1,810,906, 소장 17,714,665. kept 0 / new 1,615,125 | 약 47분: 읽기 13분 6초, 국가서지 8분 15초(TTL), 같은 글 2분 1초, 쓰기 23분 30초(그중 **검색 멈춤 `move` 9분 37초**). 다른 작업과 CPU를 나눠 씀 |
+| 2026-10-11 22:11 (사이클 08 #2, **새 표에 쓰고 바꿔 끼우기**, 서비스 켠 채, 같은 사본) | 같음 | 같음 | 같음 | 같음. **kept 1,615,125 / new 0 / dropped 0**, `holding.book_id` 상관도 1.0 | 약 41분: 읽기 13분 46초, 국가서지 7분 55초(TTL 풀며 원문 표를 처음 씀) + 키 46초, 같은 글 2분 6초, `load` 16분 50초(임시 표 COPY 9분 40초, 번호 잇기 2분 19초, `write` 2분 27초, `index` 1분 39초, `analyze` 43초, **`swap` 0.33초**). 가져오는 동안 "사랑" 첫 쪽 p95 560ms, 5xx 0. 디스크 최대 19.1GiB(시작 8.5GiB). 세션 `maintenance_work_mem` 1GB, 병렬 4 |
 
 - 같은 날 국가서지: ISBN 붙음 60,901, 모호한 키 5,484. 교보 코드: ISBN 1,952,464줄, 한국 ISBN 아님 46,705, 확인 숫자 안 맞음 10,126.
 - 2026-10-05 국가서지: 찾은 키 1,355,337, ISBN 붙음 707,518, 모호한 키 11,662. 교보 코드: ISBN 5,886,961줄, 한국 ISBN 아님 415,603, 확인 숫자 안 맞음 28,306. 명지대(100555) 1950년 이전 날짜 지움 17,311건.
+- 2026-10-11 국가서지(#2): 원문 표 3,999,211줄(ISBN별), ISBN 붙음 695,892, 모호한 키 21,314(ISBN별 줄로 바뀐 뒤의 셈. 결과(붙은 수, 묶음 수)는 #1과 같음).
+- 2026-10-11 DB 크기(#2 뒤): 8,550MB. `holding` 6,714MB, `book` 1,000MB, `book_contributor` 312MB.
+- 2026-10-11 힙: `-Xmx4g`는 첫 읽기에서 멈춤(살아 있는 데이터 4,066MB, 전체 GC만 반복). 6GB 결과는 사이클 08 #3에서 덧붙임.
 - 2026-10-05 힙: JVM 기본 최대 8,096MB(PC 메모리 32GB의 1/4)로 끝남. 로그의 "heap used up to 11,200MB"는 힙 구역별 최고치의 합이라 실제보다 큼(실제 최고치는 8GB 이하). 더 작은 최대 힙으로 되는지는 재지 않음.
 - 2026-10-05 DB 크기(가져온 뒤, `VACUUM (ANALYZE)` 뒤): DB 전체 9,812MB. `holding` 8,353MB(표 6,035MB + 인덱스 `holding_library_item_key` 1,075MB, `holding_book_id_library_id` 803MB, `holding_pkey` 439MB), `book` 1,123MB(표 550MB, `book_library_ids_gin` 48MB, `book_title_norm_bigm` 110MB 등), `book_contributor` 324MB.
 - 2026-10-05 첫 검색 응답(`scripts/catalog/measure_books.py`, 9개 검색어 × 지역 없음·지역 1개·가입 가능): 첫 쪽 82~393ms. 상세와 실행 계획은 `docs/plan-feedback.md` `# 사이클 07` 15단계.
@@ -84,3 +91,53 @@
 - 기록: 로그 `book ids: kept N, new N, dropped N`, `collection.catalog_import`의 `kept_book_id_count`, `new_book_id_count`, `dropped_book_id_count`.
 - 비용: 소장을 임시 표에 한 번 더 씁니다(디스크 임시 공간이 소장 표만큼 필요). 시간은 5절 표에 적습니다.
 - 회원 데이터에는 아직 책 번호가 없어 고쳐 쓸 것이 없습니다. 책을 저장하는 기능이 생기면 3번에서 만든 옛 번호 → 새 번호 짝으로 같이 고쳐 써야 합니다(5.2절).
+
+## 8. 새 표에 쓰고 바꿔 끼우기 (2026-10-11, 사이클 08, plan ADR-0065·0070)
+
+코드: `catalog/internal/JdbcCatalogLoad.java`. 순서와 각 단계의 `step_seconds` 키:
+
+| 순서 | 하는 일 | 키 |
+|---|---|---|
+| 1 | 남은 `catalog_next`가 있으면 지우고 새로 만듦. 가져오기 세션에만 메모리 설정 | — |
+| 2 | 책·사람·소장을 임시 표(`load_*`)에 COPY (소장은 수집 DB 두 번째 읽기와 함께) | `books_copy`, `holdings_read`, `holdings_copy` |
+| 3 | 좁은 맞대기 표 `load_match` 한 번으로 책 번호(7절)와 소장 번호를 정함. 같은 (도서관, `item_key`)는 옛 소장 번호, 새 소장은 지금까지 준 가장 큰 번호 다음부터 | `match` |
+| 4 | `catalog_next`에 네 표를 색인·제약 없이 만들고(`LIKE … INCLUDING DEFAULTS IDENTITY …`) 책 번호 순으로 씀. 소장은 `book_id` 순으로 정렬해 씀(R8: 한 책의 줄이 같은 쪽에 모임) | `write` |
+| 5 | 운영 표의 제약·색인을 정의 그대로(`pg_get_constraintdef`·`pg_get_indexdef`, 같은 이름) 만듦. 로그에 문장별 시간 | `index` |
+| 6 | `VACUUM (ANALYZE)` `catalog_next` 네 표 | `analyze` |
+| 7 | 바깥 외래 키 확인 → 한 트랜잭션: `SET LOCAL lock_timeout` → 옛 네 표 `DROP` → `catalog_next` 네 표 `SET SCHEMA catalog` → `DROP SCHEMA catalog_next` → 커밋 | `swap` |
+
+- 잠금: `DROP`은 표를 읽는 검색이 끝나기를 기다립니다. 그동안 **뒤에 온 검색도 그 뒤에 줄을 섭니다**(2026-10-11 `db-test` 시험: 긴 검색이 잠금을 잡은 동안 바꿔 끼우기가 기다리면, 뒤의 짧은 검색은 바꿔 끼우기가 `lock_timeout` 2초에 포기할 때까지 기다림). 그래서 한 번에 2초까지만 기다리고, 못 얻으면 10초 쉬었다가 다시(최대 5번) 합니다. 검색이 한 번에 기다리는 시간은 최대 2초입니다.
+- 디스크: 바꿔 끼우기 직전에는 옛 표 + 임시 표 + 새 표가 함께 있어 DB가 크게 늘어납니다(10절 표의 최대값). 끝나면 임시 표와 옛 표가 지워집니다.
+- 번호: 책 번호(7절)와 **소장 번호**가 다시 가져와도 이어집니다(ADR-0070). 그래서 바꿔 끼우기 전에 연 책 화면에서 다음 묶음을 불러도 같은 소장을 가리킵니다. 목록에서 빠진 소장은 `holding_not_found`("이 도서관 목록에서 빠졌어요"), 빠진 책은 `book_not_found`("도서관 목록을 새로 받으면서 빠진 책일 수 있어요").
+
+## 9. 실패하면
+
+- 바꿔 끼우기 전 어디서 실패해도(읽기·쓰기·색인 실패, 프로세스 종료, 잠금 5번 실패) **옛 표가 그대로** 남고 `catalog_next`와 임시 표는 지워집니다. 프로세스가 죽어 못 지운 `catalog_next`는 다음 가져오기가 처음에 지웁니다.
+- 기록: `collection.catalog_import`에 `status = 'FAILED'`, `failure_reason`(`lock_not_acquired` 잠금을 끝내 못 얻음, `outside_foreign_key` 다른 모듈 표가 catalog 표를 가리킴, `error` 그 밖), `failure_detail`(예외 한 줄). 숫자 칸은 멈출 때까지 센 값.
+- 할 일: `lock_not_acquired`면 긴 요청이 없는 때 다시 돌림. `outside_foreign_key`면 그 외래 키를 만든 changeset을 확인하고 사용자에게 알림(모듈 경계 위반, handoff C2). 프로세스가 중간에 죽으면 그대로 다시 돌림.
+
+## 10. `step_seconds` 읽는 법
+
+`SELECT id, imported_at, status, step_seconds FROM collection.catalog_import ORDER BY id DESC LIMIT 3;` 값은 초입니다.
+
+- `read`: 수집 DB 첫 읽기(거르기 + 묶을 값 세기). `group`: 교보 코드·ISBN으로 묶기. `nb`: 국가서지 원문 읽기(지문이 같으면 표에서, 다르면 TTL을 풀며 표를 다시 씀). `normalize`: 원문에서 키 만들기. `same_text`: 같은 글 묶기.
+- `books_copy` … `swap`: 8절 표. `load`: 2~7 전체(첫 책부터 바꿔 끼우기 끝까지).
+- 검색이 기다린 시간은 `swap`입니다(사이클 07 방식의 기록에는 `move`).
+- 국가서지를 표에서 읽었는지는 로그 `national bibliography: rows … (from the stored table | from the TTL files)`로 봅니다.
+
+## 11. 국가서지 원문 (2026-10-11, plan ADR-0069)
+
+- 가져오기는 국가서지 TTL에서 뽑은 원문(ISBN, 제목, 저자, 출판사)을 `collection.national_bibliography_record`에 남기고, TTL 파일들의 지문(파일마다 `경로|크기|고친 시각`)을 `national_bibliography_source`에 한 줄 둡니다.
+- 다음 가져오기에서 지문이 같으면 TTL을 열지 않고 표를 읽습니다. TTL 파일을 새로 받으면(크기나 시각이 바뀜) 다시 풉니다. 순서: 지문 줄 지우고 커밋 → 원문 표 다시 쓰기 → 맨 마지막에 지문 줄. 중간에 멈추면 지문이 없어 다음에 처음부터 풉니다.
+- 키(제목·저자·출판사 다듬기)는 매번 지금 `catalog` 정리 규칙으로 원문에서 만듭니다. 규칙을 고쳐도 원문 표는 다시 쓸 필요가 없습니다.
+- 한 기록에 ISBN이 여럿이면 ISBN마다 한 줄입니다(같은 키에 ISBN이 둘이면 그 키는 애매해져 ISBN을 붙이지 않음, 전과 같은 규칙).
+
+## 12. 정리 규칙을 바꿀 때 [확정] (plan ADR-0069, 사용자 2026-10-11)
+
+| 상황 | 할 일 |
+|---|---|
+| 새 사본으로 갱신 (규칙 그대로) | 가져오기 → 바꿔 끼우기. 서비스는 그대로 |
+| 묶기·대표값·날짜 규칙을 고침 | 새 코드로 가져오기 → 바꿔 끼우기. 서비스는 그대로 |
+| 검색어 다듬기 규칙을 고침 | 옛 서비스 켜 둔 채 새 코드로 가져오기 → 바꿔 끼우자마자 서비스를 새 코드로 다시 켬 |
+
+- 세 번째 줄의 이유: 저장된 `title_norm` 같은 다듬은 값과 서비스가 검색어를 다듬는 방법이 같아야 찾힙니다. 바꿔 끼운 뒤 옛 서비스가 새 규칙의 표를 읽는 시간을 짧게 합니다.

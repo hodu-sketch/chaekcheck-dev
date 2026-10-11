@@ -1926,3 +1926,406 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 9. **책 번호**: 회원이 책을 저장하는 기능이 생기면 가져오기의 옛→새 번호 짝으로 회원 데이터를 고쳐 쓰는 일(5.2절)이 남음.
 10. **가져오기 시간**: 쓰기가 22분 43초로 늘어남(책 번호 잇기). 그동안 검색이 기다림(배포 전이라 받아들인 것, 5.1절 표 바꿔 끼우기와 함께 볼 일).
 11. **가져오기 힙**: 기본 8GB 안에서 돔. 로그의 "heap used up to 10468 MB"는 풀별 최고치를 더한 값이라 실제보다 큼.
+
+# 사이클 08
+
+인계서: `../chaekcheck-plan/docs/current/handoff.md`(사이클 08 다듬기 + 가져오기 바꿔 끼우기 + 메모리 줄이기). 측정 파일은 git 밖 `data/cycle08/`.
+
+## 0단계: 기준 재기 (코드 변경 전, 2026-10-11)
+
+- 상태: 사이클 07 2회차 가져오기 그대로(`collection.catalog_import` 1줄, 책 1,617,445, 소장 20,383,882, DB 9,903MB). 교보 11곳은 아직 있음.
+- **DB 설정**(`SHOW`): `shared_buffers` 128MB, `effective_cache_size` 4GB, `work_mem` 4MB, `maintenance_work_mem` 64MB. 모두 PostgreSQL 기본값(compose에 설정 없음). 그래서 9단계 "`shared_buffers` 단계로 낮추기"(지금 → 4GB → …)는 이미 맨 아래 근처에서 시작함. 실제 메모리는 OS 페이지 캐시 쪽이 큼.
+- `pg_buffercache`: 이미지에 들어 있음. 로컬 `db`에만 손으로 `CREATE EXTENSION`(Liquibase에는 안 넣음). 측정 때 16,384쪽(128MB)이 모두 차 있었고 `catalog.book` 103MB, `book_pkey` 18MB가 대부분.
+- 적중률(`pg_stat_database`, 측정 직전 DB가 다시 켜져 통계가 새로 시작됨): 58.75%. `catalog.book` 힙 43%, 색인 97%.
+- 컨테이너·WSL: `docker stats` db 1.82GiB(페이지 캐시 포함), WSL `free` used 936MB·buff/cache 3,350MB, `vmmemWSL` 4,304MB.
+- 주의: WSL은 마지막 프로세스가 끝나면 몇 초 뒤 꺼져 DB가 다시 켜짐. 측정 동안은 `wsl -d Ubuntu -- sleep infinity`를 띄워 둠.
+- **첫 쪽 응답**(`measure_books.py`, 데우기 1 + 3회, `scripts/catalog/summarize_times.py`, 파일 `data/cycle08/times-before.tsv`): 81개 첫 쪽 **p50 143ms, p95 406ms**. 가장 느린 것: 역사·출판일순 지역 없음 p95 510ms, 사랑 지역 없음 440ms.
+- **`holdingsOf` 버퍼**(`EXPLAIN (ANALYZE, BUFFERS)`, 차가운 상태): 책 1권 33줄 → 36쪽 7ms, 245줄 → 249쪽 52ms, 3권 1,166줄 → 1,169쪽 78ms. 줄 하나에 한 쪽을 읽음. `pg_stats` `holding.book_id` 상관도 **0.0116**(R8 목표 0.9).
+- **Java(서비스, `bootRun`)**: G1, `MaxHeapSize` 8,489,271,296(8GB, 기본 = 실메모리의 1/4), 측정 뒤 힙 committed 116MB·used 73MB. NMT 합 committed 350MB(힙 116MB, Metaspace 84MB, GC 63MB, Code 23MB, Symbol 21MB). `bootRun`은 Spring Boot 기본으로 `-XX:TieredStopAtLevel=1`(C1만)을 붙임. 9단계 Java 측정도 같은 조건으로 함.
+  - NMT를 켜려고 커밋하지 않는 Gradle init 스크립트로 `bootRun`에 `-XX:NativeMemoryTracking=summary`를 더함.
+  - 캐시 통계는 아직 켜지지 않아(5단계에서 켬) 기준이 없음. 9단계에서 켠 뒤 잼.
+- **계획 기준(AC-17)**: 새 스크립트 `scripts/catalog/save_plans.py`(저장·비교). 입력 12묶음 = 지역(없음 / 거주 종로구 1101 / 거주 1101 + 직장 남양주시 4113) × 직접 추가(없음 / 284 NOT_SURVEYED·282 MEMBERS_ONLY·1 등록) × `scope`(all / joinable). 도서관 번호·순서·묶음·자격·chosen 등을 저장(`data/cycle08/plans-before/`). 수: 384 / 41 / 386 / 44 / 153 / 68 / 155 / 70 / 181 / 97 / 183 / 99.
+  - **로그인 전·후는 따로 두지 않음**: 서버의 계획은 요청 값(지역, `libraryIds`, `scope`)만으로 정해지고, 로그인하면 웹이 계정의 값을 같은 매개변수로 보냄. 그래서 같은 입력 묶음이 둘 다를 덮음.
+
+## 사용자 답 (미리 물음, 2026-10-11)
+
+- 글꼴 줄이기 도구: **fonttools**(Python, + woff2용 brotli). 줄인 파일을 한 번 만들어 커밋하는 데만 씀.
+- 드문 글자: **원본을 보조로**. 자주 쓰는 한글(KS X 1001 2,350자 + 영문·기호)만 담은 작은 파일을 먼저 쓰고, 드문 글자가 화면에 있을 때만 원래 파일을 받음(`unicode-range`).
+- YES24 폰 안내 문구: **인계서 안 그대로** "폰에서는 사이트가 다른 화면을 보여요. PC에서 열어 주세요".
+- S10·S2 ⓘ 문구: **저장 곳까지**. 로그인 전 "고르는 즉시 이 브라우저에 저장돼요", 로그인 뒤 "고르는 즉시 계정에 저장돼요".
+
+## 1단계: 가져오기 단계별 시간과 수집 기간
+
+- changelog `collection/003-import-period-and-timings.yaml`: `collected_from`, `collected_to`, `step_seconds jsonb NOT NULL DEFAULT '{}'`. 같은 파일에 4단계용 changeset `collection-003-import-status`(아래 4단계)를 더함.
+- **`step_seconds` 키**(값은 초):
+  - 앞부분: `read`(첫 읽기), `group`(코드로 묶기), `nb`(국가서지 원문 읽기 또는 TTL 풀기), `normalize`(원문 키 만들기, 3단계부터), `same_text`(같은 글 묶기. 전에는 국가서지 시간에 들어 있었음)
+  - 쓰기: `books_copy`(책·사람 임시 표 COPY), `holdings_read`(두 번째 읽기에서 COPY를 뺀 시간), `holdings_copy`, `match`(번호 잇기)
+  - 지금 방식의 나머지: `move`(**TRUNCATE~커밋 = 검색이 멈춘 시간**), `vacuum`
+  - 새 방식의 나머지: `write`, `index`, `analyze`, `swap`
+  - 마지막 `load`: replaceAll 전체
+  - 인계서 [안]의 `write`는 새 방식에서 "catalog_next에 쓰기"로 씀.
+- `CatalogLoad.Result`에 `Map<String, Duration> steps`를 더함(순서 유지).
+- 수집 기간: 가져오기에 들어간 도서관(스냅숏에 넣는 것과 같은 목록)의 `collected_at` 최솟값·최댓값. 테스트: 표본 가져오기에서 `catalog_library_snapshot`의 최소·최대와 같음.
+
+### 가져오기 #1 (지금 쓰기 방식, 2026-10-11 20:38~21:25, 같은 사본, 교보 11곳 뺀 뒤 빈 DB)
+
+| 단계 | 시간 |
+|---|---|
+| read | 13분 6초 |
+| group | 7초 |
+| nb (TTL 풀기) | 8분 15초 |
+| same_text | 2분 1초 |
+| write 전체 | 23분 30초 |
+| ├ books_copy | 49초 |
+| ├ holdings_read (두 번째 읽기) | 11분 6초 |
+| ├ holdings_copy | 24초 |
+| ├ match (빈 DB라 맞댈 옛 줄 없음) | 43초 |
+| ├ **move (검색이 멈춘 시간)** | **9분 37초** |
+| └ vacuum | 51초 |
+| **합계** | **약 47분** |
+
+- 사이클 07 2회차(40분 36초, 쓰기 26분 55초)보다 읽기가 길었음(13분 vs 9분). 같은 시간에 백엔드 빌드·테스트를 돌려 CPU를 나눠 썼기 때문입니다.
+- 결과
+  - 책 1,615,125, 사람 1,810,906, **소장 17,714,665**
+  - 건너뜀 4,336,573: 서비스에 없음 4,171,376, 주소 다름 64,461(도서관 411)
+  - 등록 275 + 후보 2,380. kept 0 / new 1,615,125(빈 DB)
+  - 수집 기간 2026-09-29 15:27:09Z ~ 2026-10-04 22:22:55Z. DB 8,695MB
+- **교보 대여·혼합 11곳을 뺀 차이**(사이클 07 2회차 대비)
+  - 소장 −2,669,217(20,383,882 → 17,714,665)
+  - 책 −2,320(1,617,445 → 1,615,125)
+  - 후보 −11(2,391 → 2,380)
+  - 대여형 기관은 교보 대여 카탈로그 전체(곳마다 약 24만 줄)를 가져서 줄 수 차이가 큽니다. 책 수 차이가 작은 것은 그 책 대부분이 다른 도서관에도 있기 때문입니다.
+
+## 2단계: DB 변경
+
+- **교보 대여·혼합 11곳(2664~2674)**: `build_candidate_seed.py`에 규칙 `kyobo_rental_mixed`를 더함.
+  - 대상: KYOBO_SUBSCRIPTION_V1이고 probe `model`이 대여·혼합인 **후보**만.
+  - `crawl_skip`보다 먼저 검사해, 수집 DB에 표시한 뒤에도 같은 이름으로 셈.
+  - 짝 CSV에 있던 번호가 이 규칙으로 빠지는 것은 허용함. 다른 이유로 빠지면 지금처럼 멈춤.
+  - 새 번호는 지금까지 준 가장 큰 번호 다음부터라 2664~2674는 다시 쓰지 않음.
+  - **diff는 두 CSV의 22줄뿐.**
+  - 사본 기준 이 규칙에 걸리는 후보는 232곳(대부분 이미 다른 이유로 seed 밖). 수집 DB 230곳 표시는 10단계에서 따로 셈.
+- **`updated_at` 트리거**: `library/011-updated-at-trigger.sql`, `region/003-updated-at-trigger.sql`.
+  - 함수 `library.set_updated_at()`, `region.set_updated_at()`, 트리거 `library_set_updated_at`, `region_set_updated_at`(`DROP TRIGGER IF EXISTS` + `CREATE TRIGGER`, runOnChange).
+  - master에서 이번 사이클의 다른 changeset보다 앞.
+  - 다른 스키마에 `updated_at` 없음(changelog 검색), 앱 코드에서 쓰는 곳 없음.
+- `library/012-library-mobile-site-differs.yaml`: 13곳(224, 230, 260, 2586, 238, 2190, 2277, 229, 2164, 2533, 2195, 2222, 1824). 1824는 교보(YES24 아님)지만 10-1 목록에 있어 넣음.
+- `collection/004-national-bibliography.yaml`: 아래 3단계.
+- `postgres-patterns` 스킬에 `updated_at` 지침을 더함.
+- 로컬 `db`·`db-test` 초기화 후 재적용, `./gradlew build` 통과.
+
+## 3단계: 국가서지 원문
+
+- 새 클래스 `collection/internal/importer/NationalBibliographyStore`.
+- 지문 = 파일마다 `상대경로|크기|고친 시각(Instant)`을 경로 순으로 `;`로 이음(TTL 20개).
+- **달라진 점**: 한 기록에 ISBN이 여럿이면 **ISBN마다 한 줄**로 씀(설계의 `isbn13` "13자리"를 지키려고).
+  - 같은 키에 다른 ISBN이 둘 오므로 지금 규칙대로 "애매함"이 되어 결과는 같음.
+  - ISBN이나 제목이 없는 기록은 남기지 않음(키가 생기지 않으므로).
+  - 로그의 기록 수는 "ISBN별 줄 수"로 바뀜.
+- 순서: 지문 줄을 지우고 커밋 → (트랜잭션) 원문 표 TRUNCATE + COPY + 지문 줄 INSERT → 커밋. 중간에 멈추면 지문이 없어 다음에 다시 풂.
+- 테스트(`NationalBibliographyTests`)
+  - 첫 실행에 표와 지문을 채움
+  - 지문이 같으면 파일을 망가뜨려도(이름·크기·시각 그대로) 같은 결과
+  - 크기가 바뀌면 다시 풂
+  - 중간 실패 시 지문 없음
+
+## 4단계: 새 표에 쓰고 바꿔 끼우기 (코드)
+
+- `JdbcCatalogLoad`의 흐름
+  1. 임시 표(load_*)에 COPY
+  2. 좁은 맞대기 표 `load_match(load_id, load_book_id, old_book_id, holding_id)` 한 번으로 책 번호(ADR-0062)와 소장 번호(ADR-0070)를 정함
+  3. `catalog_next`에 네 표를 `LIKE … INCLUDING DEFAULTS IDENTITY GENERATED STORAGE COMPRESSION`으로 만듦(색인·제약 없음). 책 번호 순으로 INSERT. 소장은 `ORDER BY book_id, library_id, holding_id`
+  4. 운영 표의 제약(`pg_get_constraintdef`, p·u·c·f 순)과 색인(`pg_get_indexdef`)을 같은 이름으로 만듦. `REFERENCES catalog.`와 ` ON catalog.`만 바꿈
+  5. `VACUUM (ANALYZE)`
+  6. C2 외래 키 조회
+  7. `SET LOCAL lock_timeout` + 옛 네 표 DROP + SET SCHEMA + `DROP SCHEMA catalog_next` → 커밋. `55P03`이면 쉬고 다시(기본 2초, 10초, 5번)
+- 넓은 줄: 임시 표에 한 번, `catalog_next`에 정렬해서 한 번 씀(정렬이 필요해서). 1단계 시간표에서 두 번째 읽기(11분)가 가장 길고 COPY는 24초라 이번에는 읽기 방식을 바꾸지 않음. #2 시간을 보고 판단합니다.
+- 설정 `chaekcheck.catalog.load.*`(`CatalogLoadSettings`)
+  - `lock-timeout`, `swap-attempts`, `swap-retry-wait`
+  - 가져오기 세션에만 `maintenance-work-mem`, `max-parallel-maintenance-workers`, `work-mem`. 기본값 없음 = 서버 값. TODO(확인 필요): 8단계 측정
+- **실패 기록 칸**: `collection.catalog_import`에 `status`(SUCCEEDED | FAILED), `failure_reason`(`lock_not_acquired`, `outside_foreign_key`, `error`), `failure_detail`.
+  - 실패해도 그때까지 센 숫자를 남김.
+  - 공개 API에 `CatalogLoad.NotSwappedException(reason)`을 더함.
+- 테스트(`CatalogLoadSwapTests`, `db-test`)
+  - 소장 번호 잇기(빠진 번호는 다시 쓰지 않음)
+  - 두 번 바꿔 끼운 뒤 칸·색인·제약 정의가 Liquibase로 만든 것과 같음
+  - 다른 세션이 잠금을 잡으면 `lock_not_acquired`, 옛 표 그대로, `catalog_next` 없음
+  - 쓰기 중 실패
+  - 바깥 외래 키가 있으면 `outside_foreign_key`
+  - 가져오는 동안 다른 연결은 옛 줄을 봄
+  - 가져오기 실패 기록(`CatalogImporterTests.failedLoadIsRecorded`)
+
+## 5단계: availability
+
+- `holding_not_found`(소장이 목록에 없음)와 `library_not_found`(도서관 없음·꺼짐)를 나눔: `MissingHolding`.
+- `CatalogHoldings.holdingsOf(bookIds, libraryIds)`: 계획 도서관 줄만 읽음. 옛 `holdingsOf(bookIds)`는 쓰는 곳이 없어 지움.
+- 503 `server_busy`에 `Retry-After: 5`(묶음 스트림, 더 보기, 소장 스트림 모두 같은 처리기).
+- 캐시
+  - 두 캐시에 `recordStats()`.
+  - 설정 `chaekcheck.availability.caches.{search-page-max-size, detail-verdict-max-size, stats-log-interval}`(옛 `cache-max-size` 대신, 1,000·1,000·5분).
+  - 비동기 캐시 통계는 `synchronous().stats()`로 읽음 [확인함: Caffeine 위키 "Statistics", Context7, 2026-10-11].
+  - 5분마다 `cache search-page: hitRate=… hits=… misses=… evictions=… entries=…` 로그(자체 데몬 스레드, Actuator 없음).
+- 본문 복사
+  - `BodyLimit`: `Content-Length`(4MB 안)만큼 배열을 한 번 잡고 그대로 돌려줌. 없거나 틀리면 두 배씩 키움(상한 4MB).
+  - `FetchServiceSiteFetcher`: Base64 칸을 Jackson이 `byte[]`로 바로 읽음.
+  - **`fetch-service`는 바꾸지 않음.**
+  - 테스트: `Content-Length`가 맞음·없음·작게 틀림·크게 틀림에서 같은 바이트, 4MB 초과는 거절, 빈 본문 `""` → 빈 배열(전과 같음).
+
+## 6단계: library
+
+- `LibraryRepository.findPlannable`: 켜진 도서관 중 `joinSurvey IN (선택 없이 계획에 드는 상태) OR id IN (직접 추가)`. 상태 목록은 `JoinSurvey.onlyWhenChosen()`에서 만듦(규칙이 한 곳에만 있음).
+- `mobileSiteDiffers`: `SearchTarget`, `LibraryEligibility`, `StreamEvents.Library`(`targets.libraries[]`)에 더함.
+- **AC-17**: 0단계 입력 12묶음 모두 같음(도서관 번호·순서·묶음·자격·chosen·deferred·visitRequired). `python scripts/catalog/save_plans.py compare data/cycle08/plans-before data/cycle08/plans-step6`.
+
+## 7단계: 웹
+
+- 설정 기억: `SearchPrefs`는 `guestScope`·`visit`·`filter`만 남김. 옛 저장값의 `sort`·`exact`·`roles`는 읽을 때 지움(AC-2 테스트).
+- 429·503
+  - `blocked.ts`: 상태 코드만 봄(429 → too_many, 503 → busy).
+  - 결과 목록 위에 주황 안내 줄 하나. 받은 결과는 남기고 다시 버튼은 두지 않음.
+  - 첫 요청이 막히면 결과 자리에 같은 문구.
+  - 바로 보기·책 먼저 고르기·직접 찾기·책 화면 모두 같음.
+- 폰 안내
+  - 조건: 폭 640px 이하 + `mobileSiteDiffers`.
+  - 자리: 결과 카드 이름 아래(바로 보기·직접 찾기·책 화면 줄이 같은 `ResultRow`), 가입 정보 창의 "도서관 첫 화면"·"전자도서관에서 가입 안내 보기" 링크 옆.
+  - 확인 실패 줄에도 보임. 문구는 인계서 [안] 그대로(사용자 답).
+- 빠진 책·소장 문구: [확정] 그대로.
+- **바텀 시트**
+  - 폰(설정 창에 "찾을 도서관"이 들어가는 폭)에서 Radix Dialog 바텀 시트.
+  - 손잡이가 있고, 바깥을 누르거나 Esc, 손잡이를 80px 넘게 끌면 닫힘. 최대 화면 높이의 85%.
+  - **되돌리는 방법**: `web/src/features/search/SettingsPanel.tsx`의 `PHONE_SETTINGS_SHEET`를 `false`로 바꾸면 이전 작은 창(팝오버, 코드 그대로 남김)으로 돌아감.
+- 폰 직접 찾기: 흐린 "정렬 없음" + ⓘ("도서관 사이트 검색에서는 정렬을 쓸 수 없어요").
+- 상태 칸: 모든 묶음에서 `--brand-faint` 배경 + `--brand-strong` 글자. 예약 묶음의 숫자 상자(연주황)는 그대로.
+- 돌아가기와 ⓘ
+  - 돌아가기: 공통 `components/BackLink`. 앱 안 이동 기록이 없으면 `/`로 감. S8·S9·S10 맨 아래.
+  - ⓘ: 공통 `components/InfoTip`. 마우스를 올리면 열리고, 터치는 누르면 열림. S10 제목 옆 "고르는 즉시 이 브라우저에/계정에 저장돼요".
+- **S2(지역 고르기 창)는 바꾸지 않음**: 인계서와 다름.
+  - 이유: S2는 [취소]·[저장]을 눌러야 저장되는 창이라 "고르는 즉시 저장돼요"가 사실과 맞지 않음.
+  - 세 안(그대로 / 즉시 저장 / 버튼만 바꾸기)을 그림으로 보여 드렸고, 사용자 답은 "A. 그대로"(2026-10-11).
+- 글꼴
+  - 도구: `scripts/web/subset_font.py`(fonttools 4.60.1 + brotli 1.1.0, 사용자 승인 2026-10-11).
+  - 글자: KS X 1001 한글 2,350자 + 영문·기호 범위 + 화면 코드에 쓰인 글자(☰⚙✓ 추가) = 3,276자.
+  - 새 글꼴 이름 **"Chaekcheck Barun"**. 파일 `web/src/assets/fonts/ChaekcheckBarun-{Regular,Bold}.woff2`. 글꼴 안의 family·full·PostScript 이름만 바꾸고 저작권·상표 기록은 그대로.
+  - `--font-body`에서 먼저 쓰고, 원래 나눔바른고딕은 `unicode-range: U+AC00-D7A3`으로 뒤에 둠. 드문 음절이 화면에 있을 때만 원래 파일을 받음.
+  - Playwright로 확인: 첫 화면은 작은 파일 둘만 받음. "똠"을 넣으면 원래 Regular를 받음.
+  - ☰·▾는 원래 글꼴에도 없어서, 범위를 걸기 전에는 이 두 글자 때문에 원래 Bold(1.5MB)를 받고 있었음.
+  - **AC-13 파일 합**(woff2): 1,451,208 + 1,546,484 = **2,997,692 → 295,180 + 334,092 = 629,272바이트(−79%)**. 첫 화면에서 받는 글꼴이 이만큼 줄어듦.
+  - OFL 예약 이름
+    - 글꼴 파일의 name 표에는 예약 이름 문구가 없음. 저작권 "Copyright ⓒ 2013 NHN Corporation", 상표 "NanumBarunGothic is a registered trademark of NHN Corporation"만 있음.
+    - 나눔글꼴 라이선스 사본(`Nanum_Font_License.txt`, RetroDeck·OpenDev 저장소)의 예약 이름 목록에는 NanumBarunGothic이 있고, Fontsource 고지문 목록에는 없음.
+    - 네이버 공식 페이지 원문은 직접 열지 못함.
+    - 어느 쪽이든 다른 이름을 쓰므로 [확정]대로임.
+- 테스트: 웹 261개 통과, build, lint(경고만. 새로 생긴 경고 없음).
+
+## 10단계: 데이터 폴더와 dev 문서
+
+- **교보 대여·혼합 230곳 `crawl_skip`**
+  - 대상: probe TSV에서 대여·혼합은 243곳입니다. 그중 후보(≥100001)는 232곳이고, 이미 "같은 사이트"로 표시된 2곳(102575, 102576)을 빼면 **230곳으로 인계서 수와 같습니다**. 등록 도서관 11곳은 표시하지 않았습니다.
+  - 이유 문구: "교보 대여·혼합 제외 (plan ADR-0067, 2026-10-11)"
+  - 수집기 상태: 표시할 때 돌고 있지 않았습니다.
+  - 방법을 바꿨습니다. `status --skip`은 부를 때마다 전체 상태 보고를 만들어 1곳에 약 50초가 걸렸습니다. 그래서 24곳 뒤에 멈추고, 같은 UPDATE를 남은 곳에 한 트랜잭션으로 실행했습니다(2-crawl.md 5-1에 적음).
+  - 사본(`snapshots/…0745.sqlite`)은 건드리지 않았습니다.
+- **411 (수집 100142)**
+  - 수집 DB 주소를 `https://gsenc.bookcube.biz/FxLibrary`로 고쳤습니다(새 주소 200 확인).
+  - `--limit-pages 2`로 시험했고, `detail_url`이 새 호스트로 채워지는 것을 봤습니다. 그 뒤 `full --only 100142`로 다시 받는 중입니다.
+  - 서비스에는 다음 사본 때 들어옵니다.
+- `1-libraries.md`: "확인" 단계에 "리다이렉트 뒤 최종 주소(호스트)로 넣음"을 더했고, 교보 대여·혼합 제외도 적었습니다.
+- `3-import.md`: 8절 바꿔 끼우기 흐름(잠금 줄 서기 포함), 9절 실패 처리, 10절 `step_seconds` 읽는 법, 11절 국가서지 원문, 12절 정리 규칙을 바꿀 때 표([확정] 그대로). 결과 표(5절)는 8단계 값으로 채웁니다.
+- `library-site-issues.md` 8절: 교보 대여·혼합 11곳(2664~2674)을 뺀 기록을 더했습니다.
+
+## 11단계: 이름 고치기와 흡수된 학교
+
+- 다시 검증했습니다. 하위 작업으로 사이트를 한 번씩 열었고(같은 호스트 1건씩, 1.1초 간격), 공식 출처 원문을 옮겼습니다. 기록은 dev `docs/library-maintenance.md` 4-12입니다.
+- **사용자 답 (2026-10-11)**
+  - 이름 8곳: 처음에는 "이거 뭔데", "앞의 표 좀 보여달라고!"라고 하셔서 표를 다시 보여 드렸고, 답은 "모두 바꿔줘"입니다.
+  - 2563의 꼴: "공소청 도서관"
+  - 흡수된 학교 7곳: "모두 그대로"
+
+| 번호 | 옛 이름 | 새 이름 |
+|---|---|---|
+| 434 | 경상대학교 | 경상국립대학교 (북큐브) |
+| 456 | 국립안동대학교 | 국립경국대학교 (북큐브) |
+| 2264 | 서라벌대학교 | 신경주대학교 |
+| 2563 | 대검 도서관 | 공소청 도서관 |
+| 2611 | 강서공업고등학교 | 서울디지털콘텐츠고등학교 |
+| 2161 | 한국형사정책연구원 | 한국형사·법무정책연구원 |
+| 1079 | 농수산물유통공사 | 한국농수산식품유통공사 |
+| 1016 | 국가평가교육진흥원 | 국가평생교육진흥원 |
+
+- 434·456은 새 이름 그대로면 같은 학교의 다른 사이트(745 교보 "경상국립대학교", 2239 YES24 "국립경국대학교")와 겹쳐(`library.name` UNIQUE) 라벨을 붙였습니다. 745·2239(그리고 같은 학교로 보이는 977 "경국대학교")에 라벨을 붙여 맞출지는 다음 사이클에서 봅니다.
+- 목록 파일 `scripts/library/name_overrides.tsv`(칸 [확정] 그대로).
+- `build_candidate_seed.py`: 유지된 이름 뒤에 목록을 덮어씁니다. 목록의 옛 이름이 seed 이름과 다르거나 겹침이 생기면 멈춥니다.
+  - 테스트: 이름만 바뀌고 번호는 그대로, 목록 밖 이름은 그대로, 다시 돌려도 유지, 낡은 항목·겹침은 멈춤.
+  - 실제 사본으로 돌리면 008 CSV에서 정확히 8줄만 바뀌는 것을 확인했습니다. **이번에는 CSV를 되돌리고** 인계서대로 changeset `library/013-library-name-overrides.yaml`(번호 + 옛 이름 조건 UPDATE)로 바꿨습니다.
+  - 다음에 seed를 다시 만들면 008 CSV에 새 이름이 들어가고, 013은 아무 줄도 바꾸지 않게 됩니다. CSV가 바뀌면 이미 적용된 loadData의 checksum이 바뀌므로, 배포 뒤에는 seed를 다시 만드는 방식 자체를 정해야 합니다(사이클 07부터 있던 문제).
+- **달라진 점**: S10 이름 찾기가 공백과 함께 **가운뎃점(·)도 무시**합니다(`web/src/features/mylibrary/libraryNames.ts`, [안]). 그래서 "한국형사·법무정책연구원"이 "형사법무"로도 찾힙니다. 옛 이름("서라벌")으로는 찾히지 않습니다([확정] #8).
+- 흡수된 학교 7곳(428, 429, 769, 2257, 607, 895, 1002): 모두 지금도 따로 돌아가는 사이트라 제안은 "그대로"였고, 사용자도 "모두 그대로"라고 답했습니다. 이름 후보(예: "국립창원대학교 거창캠퍼스 (북큐브)", "강원대학교 강릉캠퍼스 (교보)", "한경국립대학교 (교보)", "한국공학대학교 (교보)")는 4-12에 적어 두었고 다음 사이클에서 봅니다.
+  - 895는 682와 호스트만 같고 다른 사이트입니다(682 북큐브 포트 447, 895 교보 기본 포트).
+  - 1002는 흡수가 아니라 단독 개명입니다(2022-03 한국공학대학교).
+- [확인 필요]
+  - 교보 구독형 서버(103.182.126.192)가 2026-10-11에 응답하지 않아, 1016·1079·2161·1203의 사이트 제목은 2026-10-05 값입니다.
+  - 456의 교육부 원문 날짜와 2264의 정확한 날짜는 찾지 못했습니다(대학알리미·언론 기준).
+
+## 9단계 범위 (사용자 결정, 2026-10-11)
+
+- 사용자: "메모리 측정 단계 줄여서 진행해". `shared_buffers`는 이미 기본값 128MB라 128MB → 64MB → 32MB 세 단계만, 컨테이너 상한은 없음 → 2GB → 1GB → 512MB, 서비스 `-Xmx`는 기본(8GB) → 1GB → 512MB → 256MB, 가져오기 `-Xmx`는 고른 값 하나로 한 번만 끝까지(AC-12).
+
+## 9단계: 메모리 측정과 줄이기 (줄인 단계, 2026-10-11)
+
+- 측정 도구: `scripts/catalog/measure_round.py`. 한 단계마다 데우기 1번 + `measure_books.py` 3회, 첫 쪽 81개의 p50·p95, 3회 동안의 버퍼 적중률, 표별 버퍼, `holdingsOf` 실행 계획, 컨테이너 메모리를 냄. 결과 파일은 git 밖 `data/cycle08/mem/`.
+- **측정 함정**: 컨테이너를 다시 만들면 데이터 페이지가 전 cgroup에 잡힌 채 남아, 상한을 걸어도 캐시가 빠지지 않음(상한 측정이 실제보다 좋게 나옴, 파일 캐시 43MB). 상한 단계는 WSL 페이지 캐시를 비우고(`echo 3 > /proc/sys/vm/drop_caches`, root) 잼. 같은 설정을 다시 재면 p95가 ±150ms쯤 흔들림(2GB 상한 첫 측정 474ms → 다시 284ms). 20% 기준은 이 흔들림에 가까움.
+
+| 단계 | 첫 쪽 p50 | p95 | 기준 대비 | 비고 |
+|---|---|---|---|---|
+| 0단계 (줄 붙이기 전, 128MB) | 143 | 406 | — | `holdingsOf` 3권 1,169쪽·78ms |
+| **기준 다시** (줄 붙인 뒤, 128MB, 상한 없음) | 97 | 320 | — | 3권 77쪽·1.4ms, 상관도 1.0 |
+| `shared_buffers` 64MB | 106 | 304 | −5% | |
+| `shared_buffers` 32MB | 87 | 294 | −8% | |
+| 32MB + 상한 1GB (캐시 비움) | 138 | 345 | +8% | OOM 없음 |
+| 32MB + 상한 512MB (캐시 비움) | 116 | 332 | +4% | OOM 없음, 파일 캐시 약 300MB |
+| 32MB + 상한 256MB (캐시 비움) | 170 | 868 | **+171%** | 기준 넘음 |
+| 32MB + `effective_cache_size` 384MB + 512MB | 107 | 383 | +19.7% | 규칙상 고를 값 |
+| 서비스 `-Xmx` 1GB / 512MB / 256MB (위 DB 조합) | 97 / 117 / 94 | 347 / 335 / 320 | — | 힙 사용 약 77MB, GC 멈춤 71~74번·합 68~81ms, 전체 GC 0 |
+
+- `work_mem`: 어느 단계 실행 계획에도 `external merge`·디스크 정렬이 없어 4MB 그대로.
+- **캐시**: 실제 검색(도서관 사이트 검색 2번, 책 대출 현황 1번)으로 검색 페이지 캐시 19칸(책 190줄)이 찼고, 전체 GC 뒤 힙 차이는 1MB 미만이라 잴 수 없었음. 캐시 값은 원본 본문이 아니라 파싱한 결과(줄당 몇백 바이트)라 1,000칸이 차도 10MB 안팎으로 봄. **상한은 두 캐시 모두 1,000 그대로**(ADR-0006 값 변경 없음). 통계 로그(5분마다)는 가져오기 프로필에서도 돌지만 0만 찍힘. 같은 질의를 3분 안에 반복하는 측정은 적중률이 실제보다 높게 나오므로, 적중률은 실제 이용 기록으로 봐야 함.
+- **사용자 결정 (2026-10-11)**
+  - DB: "한 단계 여유롭게 하고 운영 서버에서는 다시 재도록 남겨줘" → compose 기본값 `shared_buffers` **64MB**, `effective_cache_size` **768MB**, `work_mem` **4MB**(`.env.example` 같음). 컨테이너 상한은 권장 **1GB**로 적기만 하고 compose에는 두지 않음(`mem_limit`·`shm_size`는 커밋하지 않음 [확정]). 64MB·768MB 조합을 상한 1GB에서 따로 재지는 않음(32MB + 1GB가 +8%였고, 버퍼가 더 크면 나빠질 이유가 없음).
+  - 서비스 힙: "512MB (권장)". 측정에서는 256MB도 됐지만, 동시 검색(최대 20 × 5곳, 본문 최대 4MB)의 버퍼를 생각해 여유를 둠. `backend/build.gradle` `bootRun`의 `-Xmx${bootRunXmx ?: 512m}`. `.claude/launch.json`의 backend는 `bootRun`을 부르므로 같이 512MB.
+  - 사용자 질문 "4mb는 어느 영역이야?"에 답함: `work_mem`(질의의 정렬·해시 한 단계가 쓰는 작업 메모리).
+- 모든 값은 **로컬 PC(WSL2, 32GB) 기준**이고, 운영 서버가 정해지면 같은 도구로 다시 잽니다.
+
+## 8단계: 바꿔 끼우는 가져오기 #2와 확인 (2026-10-11 21:30~22:11)
+
+- 실행: 서비스(`bootRun`)를 켠 채 새 코드로 같은 사본을 가져옴. 세션 설정 `maintenance-work-mem=1GB`, `max-parallel-maintenance-workers=4`([확인 필요] 값으로 이것을 씀. 색인 전체 1분 39초라 더 재지 않음).
+- 단계 시간(`step_seconds`): read 826, group 12, nb 475(TTL을 풀며 원문 표를 처음 씀), normalize 46, same_text 126, books_copy 45, holdings_read 514, holdings_copy 22, match 139, **write 147, index 99, analyze 43, swap 0.33**, load 1,010.
+- **AC-8b**: 검색이 기다린 시간 **0.33초**(#1 지금 방식 9분 37초, 사이클 07 2회차의 쓰기 26분 55초 동안 대부분). 전체 약 41분(#1 약 47분, 사이클 07 2회차 40분 36초). 쓰기만 보면 23분 30초 → 16분 50초. 목표(기다림 10초 안, 전체 더 짧게) 통과.
+- **AC-8**: `scripts/catalog/probe_during_import.py`로 1초마다 "사랑" 첫 쪽과 책 화면을 부름(42분 동안 각 1,705번). 검색 p50 329 / **p95 560ms**(쓰기·색인 동안 596ms), 최대 1,770ms 한 번. 책 화면 p95 53ms. **5xx·끊김 0**, 바꿔 끼우는 순간(22:11:38) 앞뒤도 200.
+- **AC-8c**: 바꿔 끼우기 전에 책 화면 스트림에서 받은 소장 번호 3개로, 바꿔 끼운 뒤 다음 묶음을 부름 → 3개 모두 결과, `holding_not_found` 없음. 빠진 소장 화면은 `db-test` 테스트와 Vitest로 확인(5·7단계).
+- **AC-10**: kept 1,615,125 = #1 책 수, new 0, dropped 0. `pg_stats` `holding.book_id` 상관도 **1.0**. 사이클 07 2회차(1,617,445)와 차이 −2,320은 교보 대여·혼합 11곳을 뺀 것(소장 −2,669,217).
+- **AC-21** [확인 필요 → 확인함]: 바꿔 끼우기 전(21:50~21:59)에 만든 서비스 풀 연결 9개로 같은 검색을 수천 번 돌림(pgjdbc는 같은 문장 5번째부터 서버 준비 문장을 씀). 바꿔 끼운 뒤에도 같은 연결로 검색이 모두 200이고, 서비스 로그에 계획·결과 형식 오류가 없음. PostgreSQL 문서대로 다시 계획한 것으로 봄.
+- **잠금 줄 서기** [확인 필요 → 확인함, `db-test` 시험 `data/cycle08/lockq.sh`]: 긴 검색이 잠금을 잡은 동안 바꿔 끼우기가 기다리면 뒤에 온 검색도 그 뒤에 줄을 섬. 바꿔 끼우기가 `lock_timeout` 2초에 포기하자 뒤의 검색이 곧 끝남. 긴 검색이 먼저 끝나면 바꿔 끼우기(0.2초)가 끝난 직후 뒤의 검색이 이어짐. 그래서 한 번에 검색이 기다리는 시간은 최대 2초. 2초·10초·5번은 바꾸지 않음.
+- **AC-9 (첫 경우)**: 사본 경로를 틀리게 주면 시작 단계에서 실패. 검색 응답이 전과 같은 해시, `catalog_next` 없음. 기록 줄은 남지 않음(가져오기 시작 전 실패라).
+- **디스크**: `pg_database_size` 최대 **19.1GiB**(시작 8.5GiB, 22:09 색인 직전). 끝난 뒤 8,550MB(`holding` 6,714MB, `book` 1,000MB, `book_contributor` 312MB).
+- pg_bigm 색인 시간 [확인 필요 → 확인함]: `book_title_norm_bigm` 9.8초, `book_publisher_norm_bigm` 2.3초, `book_contributor_name_norm_bigm` 3.1초(병렬 4, 1GB).
+- 국가서지 원문 크기 [확인 필요 → 확인함]: 3,999,211줄(ISBN별). TTL을 풀며 쓰는 데 7분 55초.
+
+## 12단계: 전체 확인
+
+- 화면(Playwright, 1280 → 768 → 375 → 320):
+  - S1 1280·768: 정상, 폰 안내 없음.
+  - S1 375: 폰 안내는 결과 118줄 중 13곳의 하나인 동대문구립도서관(YES24) 줄에만 보임. 가로 넘침 없음.
+  - 상태 칸: "확인 실패"가 예약 묶음에서도 `#f7f4ff`/`#5e3fe0`, 예약 묶음 숫자 상자는 `#fff9ef` 그대로.
+  - 바텀 시트(375): 손잡이와 세 줄(찾을 도서관·보기 방식·직접 찾기).
+  - 직접 찾기 320: "정렬 없음 ⓘ"과 "N곳"이 검색 줄 끝, ⓘ를 누르면 이유가 나옴. **처음에는 결과 위 도구줄에 두었는데, 폰에서는 그 줄이 숨겨지는 것을 이 확인에서 찾아 검색 줄로 옮김.**
+  - S3 320: 없는 책 번호에서 빠진 책 문구와 "처음으로".
+  - S8·S9·S10 320: "← 돌아가기", S10 ⓘ. 가로 넘침 없음.
+  - 글꼴: `font-family`의 첫 이름이 "Chaekcheck Barun", 첫 화면은 작은 파일 둘만 받음.
+- 사용자 확인 남음: **바텀 시트 유지 / 되돌림**(되돌리는 방법은 7단계 절).
+
+### AC 확인표
+
+| AC | 결과 | 확인 방법 |
+|---|---|---|
+| AC-1 설정 기억(정렬·완전 일치는 안 남음) | 통과 | Vitest(`searchPrefs.test.ts`), Playwright |
+| AC-2 옛 저장값 지움 | 통과 | Vitest(옛 형식 저장값으로 시작) |
+| AC-3 429·503 문구, 결과 유지 | 통과 | Vitest(`blocked.test.tsx`). 실제 429·503 화면은 띄우지 않음 |
+| AC-4 YES24 폰 안내(375에서만, 13곳만) | 통과 | Vitest(`ResultRow.test.tsx`), Playwright 375·768 |
+| AC-5 고친 이름, 번호 유지 | 통과 | seed 테스트, `LibrarySchemaCycle08Tests`, 실제 `db`의 `GET /libraries`, 이름 찾기 Vitest |
+| AC-6 `updated_at` 트리거 | 통과 | 통합 테스트 |
+| AC-7 수집 기간 = 스냅숏 최소·최대 | 통과 | 통합 테스트. 실데이터 2026-09-29 15:27:09Z ~ 2026-10-04 22:22:55Z |
+| AC-8 가져오는 동안 p95 1초, 바꿀 때 5xx 0 | 통과 | p95 560ms, 5xx 0 |
+| AC-8b 기다림 10초 안, 전체 더 짧게 | 통과 | 0.33초, 약 41분(#1 47분, 사이클 07 40분 36초) |
+| AC-8c 옛 소장 번호 정상, 빠진 소장·책 문구 | 통과 | 실데이터 + 통합 + Vitest |
+| AC-9 실패하면 결과 그대로 | 통과. 단 DB·프로세스가 죽으면 빈 `catalog_next`가 다음 가져오기까지 남음(아래 덧붙임) | 실패 주입 테스트 4가지, 사본 경로 오류, 쓰기 중 DB 메모리 부족(#3b) |
+| AC-10 kept·new·dropped, 상관도 | 통과 | kept 1,615,125 / 0 / 0, 상관도 1.0 |
+| AC-11 메모리 측정표 | 통과 | 9단계 표 |
+| AC-12 고른 힙으로 가져오기 끝까지 | **측정 중(#3, 6GB)**. 4GB는 못 씀 | GC 로그 |
+| AC-13 화면 질문 여섯, 글꼴 파일 합 감소 | 통과(바텀 시트 유지 여부만 사용자 확인 남음) | Playwright 4폭, 파일 크기 −79% |
+| AC-14 회귀 | 통과 | `./gradlew build`, 웹 test 263·build·lint, 첫 쪽 결과 목록 비교(아래) |
+| AC-15 국가서지 원문 재사용과 순서 | 순서는 통합 통과. **재사용 시간은 측정 중(#3)** | `NationalBibliographyTests` |
+| AC-16 정리 규칙 바꿀 때 순서가 `3-import.md`에 | 통과 | `3-import.md` 12절 |
+| AC-17 계획 결과 같음 | 통과 | 12묶음 모두 같음 |
+| AC-18 503 `Retry-After: 5` | 통과 | 통합 테스트 2곳 |
+| AC-19 본문 복사 줄인 뒤 결과 같음 | 통과 | `BodyLimitTests`, `FetchServiceSiteFetcherTests` |
+| AC-20 `mobile_site_differs` 13곳만 | 통과 | 통합 테스트, 실제 API |
+| AC-21 바꿔 끼운 뒤 준비 문장 | 통과 | 실데이터(위 8단계) |
+
+- AC-14 결과 목록: 0단계 `measure-before-*`와 9단계 `mem/base-128MB/r1`의 첫 쪽 응답은 교보 11곳을 뺀 차이 말고 같은 기준으로 비교하지 않음(데이터가 바뀜). 코드 회귀는 백엔드·웹 테스트 전체로 봄.
+
+## plan에 넘길 요약 (사이클 08, 2026-10-11)
+
+위 절들을 따로 읽지 않아도 되게 모았습니다. 짧은 판은 dev `docs/cycle08-interim-for-plan.md`.
+
+### 1. 상태
+
+- 인계서 0~12단계를 모두 함. 측정 두 가지는 아래 2절처럼 진행 중이고, 결과는 이 절 아래에 덧붙임.
+- 빌드: 백엔드 `./gradlew build`(모듈 검증·문서 테스트 포함), 웹 test 263·build·lint(경고만) 통과.
+- 커밋은 아직 안 함.
+
+### 2. 진행 중인 측정 (결과 덧붙임 예정)
+
+- 가져오기 #3: `-PbootRunXmx=6g`로 끝까지(AC-12)와 국가서지를 표에서 다시 읽은 시간(AC-15). 4GB는 첫 읽기에서 멈춤(살아 있는 데이터 4,066MB).
+- 가져오기 #4는 하지 않음: #3b가 쓰기 중 DB 메모리 부족으로 실패해 AC-9 둘째 경우를 실데이터로 보여 줌(아래 덧붙임).
+- 411 다시 수집(새 주소, 수집 DB). 서비스에 들어오는 것은 다음 사본 때.
+
+### 3. 핵심 결과
+
+- 검색이 기다리는 시간 9분 37초 → 0.33초(바꿔 끼우기), 가져오는 동안 p95 560ms·5xx 0.
+- 책·소장 번호가 이어짐(kept 전부). 줄 붙이기로 상관도 1.0, 책 화면 소장 읽기 쪽 수가 약 1/15.
+- 첫 쪽 응답 p50·p95 143·406ms → 97·320ms.
+- 글꼴 −79%.
+- 메모리: DB 64MB / 768MB / 4MB(상한 권장 1GB), 서비스 힙 512MB, 가져오기 힙 6GB(측정 중). 모두 로컬 PC 기준.
+
+### 4. handoff·설계와 달라진 것 (문서 갱신 필요)
+
+1. 국가서지 원문: ISBN이 여럿인 기록은 ISBN마다 한 줄(설계의 "13자리" 유지). 결과 같음.
+2. `step_seconds` 키가 늘어남(1단계 절). 새 방식의 `write`는 "catalog_next에 쓰기".
+3. 실패 기록 칸: `status`, `failure_reason`, `failure_detail`.
+4. 넓은 줄은 두 번 씀(정렬 때문). 읽기 방식은 바꾸지 않음.
+5. **S2는 바꾸지 않음**(사용자 "A. 그대로"). S2는 저장 버튼이 있어 "즉시 저장" 안내와 맞지 않음. 돌아가기·ⓘ는 S8·S9·S10만.
+6. S10 이름 찾기가 가운뎃점도 무시 [안].
+7. 폰 직접 찾기 "정렬 없음 ⓘ"은 검색 줄에(폰에서 결과 위 도구줄은 숨겨짐).
+8. 이름 고침은 changeset 013으로. seed CSV는 다시 만들지 않음(다음 seed 때 CSV가 바뀜 → 배포 뒤 seed 갱신 방식 결정 필요).
+9. 434·456은 이름 겹침으로 "(북큐브)" 라벨.
+10. 캐시 상한 1,000 그대로(ADR-0006 값 변경 없음).
+11. 9단계는 단계를 줄여 측정(사용자 결정). `shared_buffers`는 이미 기본 128MB였음. 상한 측정은 페이지 캐시를 비워야 맞게 나옴.
+12. `bootRun` 기본 `-Xmx512m`. 가져오기는 `-PbootRunXmx=6g`(`3-import.md`).
+13. 교보 230곳 표시를 수집기 명령 대신 같은 UPDATE를 한 번에 실행(명령이 1곳에 50초).
+
+### 5. plan이 정할 것
+
+1. **바텀 시트 유지 / 되돌림**: 사용자가 폰에서 써 본 뒤 답함(되돌림: `PHONE_SETTINGS_SHEET = false`).
+2. 434·456과 같은 학교의 다른 사이트(745 "경상국립대학교", 2239 "국립경국대학교", 977 "경국대학교")에 라벨을 붙여 맞출지.
+3. 흡수된 학교 7곳의 새 이름 후보(`library-maintenance.md` 4-12-2)를 쓸지, 언제.
+4. 배포 뒤 seed CSV를 다시 만드는 방식(loadData checksum).
+5. 운영 서버에서 메모리 다시 재기(도구 `scripts/catalog/measure_round.py`. 상한 단계는 페이지 캐시를 비우고). 서비스 힙 512MB는 동시 검색이 많을 때(본문 최대 4MB × 100) 여유가 작음. 실제 이용 로그로 보거나 본문 상한(4MB)을 낮출지.
+6. 교보 구독형 서버가 응답하지 않던 날 본 이름 3곳(1016·1079·2161) 다시 확인.
+7. **가져오기 힙 6GB**: 첫 읽기가 묶음 약 760만 개(값별 줄 수 객체 6개 + 도서관 배열 + 문자열 + 키, 묶음당 약 600바이트)를 모두 들고 있어서 큼(4GB는 살아 있는 데이터 4,066MB로 멈춤). 줄이는 안:
+   - 같은 문자열 하나로 합치기: 묶음 760만 → 책 161만이라 제목·저자·출판사가 평균 4~5번 중복. 30~40% 감소 예상, 작은 일.
+   - 값별 줄 수 객체 6개를 묶음 안의 칸으로, 묶음 키를 숫자 해시로. 위와 합쳐 3GB 안팎 예상.
+   - 첫 읽기의 묶기를 SQL(임시 표 + GROUP BY)로 옮기기: 힙 몇백 MB. `BookGrouping` 규칙을 SQL로 다시 쓰고 결과가 한 권도 다르지 않은지 검증해야 하는 큰 일.
+   - 사용자 질문(2026-10-11)에 위 비교를 답함. 어느 것을 할지, 언제 할지는 plan이 정함. 가져오기 #4에서 `-XX:+UseStringDeduplication`의 효과를 GC 로그로 재서 덧붙임.
+8. **가져오기를 따로 하고 운영에 반영하기** (사용자 질문 2026-10-11 "가져오기를 이 서버에서 하고 그것을 따로 운영중인 서버에 따로 반영하도록 하는 건?"): dev 의견은 "가져오기 서버에서 가져오기 → 네 표 `pg_dump` → 운영에서 `catalog_next`에 복원 → 색인·ANALYZE → 이번 사이클의 바꿔 끼우기 트랜잭션"이 맞음(운영 서버는 6GB 힙·사본·TTL이 필요 없음, 실패해도 운영 무관, 바꿔 끼우기 코드 재사용).
+   - 조건: 가져오기 서버의 `catalog`가 운영에 마지막으로 넣은 것과 같아야 번호가 이어짐(운영에서 `catalog`를 따로 고치지 않음). 두 서버의 도서관 seed·`collection_link` 버전이 같아야 함. 운영 디스크는 바꿔 끼우는 동안 `catalog`의 두 배 가까이 필요(지금 약 8GB → 최대 약 16GB). 운영에서 색인을 만들면 1~2분 CPU.
+   - 새로 만들 것: 덤프를 받아 `catalog_next`에 넣고 바꿔 끼우는 명령, 절차 문서. 이번 사이클에서는 구현하지 않음. 배포 구조와 함께 plan이 정함.
+
+### 덧붙임: 411 다시 수집 끝 (2026-10-11 22:54)
+
+- 수집 번호 100142 전체 성공(`last_full_success_at` 2026-10-11T22:54:26+09:00). 소장 64,461줄 모두 빠짐 없이 새 호스트 `https://gsenc.bookcube.biz/…` `detail_url`. 645쪽, 새 호스트 평균 응답 약 5.4초. 서비스에는 다음 사본·가져오기 때 들어옴(이번 사본에는 옛 주소라 `library_base_url_mismatch` 64,461).
+
+### 덧붙임: 가져오기 #3 (2026-10-11 22:27~23:14)과 AC-9 둘째 경우
+
+- **#3a `-Xmx4g`**: 첫 읽기 중 살아 있는 데이터가 4,066MB라 전체 GC만 1초마다 반복(13분에 133번). 멈추고 "4GB 못 씀"으로 적음.
+- **#3b `-Xmx6g`**: 첫 읽기·국가서지는 지남. 다만 국가서지 단계에서 살아 있는 데이터가 약 5GB까지 올라 전체 GC 두 번(여유가 크지 않음). 그다음 쓰기 중에 **DB가 메모리 부족으로 죽음**.
+  - 원인은 dev 실수: 9단계 측정 때 `db` 컨테이너에 건 512MB 상한(`docker update`)을 풀지 않았는데, 가져오기 세션은 `maintenance_work_mem` 1GB를 씀 → `OOMKilled=true`.
+  - **이것이 AC-9 둘째 경우(가져오는 도중 실패)를 실데이터로 보여 줌**
+    - `catalog` 표 그대로(책 1,615,125, 소장 17,714,665)
+    - 서비스 검색 응답이 전과 같은 해시
+    - `collection.catalog_import` 3번 줄 `FAILED` / `error`
+    - 임시 표는 DB 재시작으로 사라짐
+    - **빈 `catalog_next` 스키마는 남음**: DB가 죽어 정리 코드가 돌 수 없었음. 다음 가져오기가 시작할 때 먼저 지움(설계대로)
+  - 프로세스를 강제로 멈추는 경우도 같은 결과(정리 못 함 → 다음 가져오기가 지움)라 **가져오기 #4(색인 단계에서 멈추기)는 따로 돌리지 않음**.
+- **AC-9와 다른 점(plan 확인)**: "`catalog_next`가 남지 않아야"는 정상 예외일 때만 지켜짐(통합 테스트 4가지). DB나 프로세스가 죽으면 다음 가져오기까지 남음. 서비스가 켜질 때 지우는 방식은, 가져오는 중에 서비스를 다시 켜면 진행 중인 `catalog_next`를 지워 버리므로 하지 않음.
+- **배포 때 주의(새로 알게 된 제약)**: 가져오기 세션의 `maintenance_work_mem`은 DB 컨테이너 상한보다 충분히 작아야 함. 권장 상한 1GB인 DB에서 가져오기를 돌리면 `maintenance-work-mem`을 256MB 이하로 주거나, 가져오기를 다른 곳에서 하고 결과만 옮기는 안(plan이 정할 것 8번)이 맞음.
+- `db` 컨테이너를 상한 없이 고른 설정(64MB / 768MB / 4MB)으로 다시 만들고, #3을 6GB로 다시 돌림(#3c). 결과는 아래 덧붙임.

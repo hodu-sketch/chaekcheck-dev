@@ -169,6 +169,10 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | 261 | 군포시도서관(YES24) | 주소가 교보 군포(46, 수집 끝남)로 넘어감 |
 | 269 | 김천시립도서관 (YES24) | 2026-09-30부터 스크립트 연결을 끊음(브라우저는 열림). 우회하지 않음. 같은 서버 북큐브(100035)는 막히기 전 3,481종 받음 |
 
+- **2026-10-11 교보 대여·혼합 230곳** (plan ADR-0067, 사이클 08 인계서 10-1): 이유 "교보 대여·혼합 제외 (plan ADR-0067, 2026-10-11)". 대상은 `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`에서 `model`이 대여·혼합인 243곳 중 후보(수집 번호 100001 이상) 232곳에서, 이미 "same site as registered library"로 표시된 2곳(102575, 102576)을 뺀 230곳(인계서 수와 같음). 등록 도서관 11곳은 표시하지 않음. 줄은 지우지 않음. 번호 목록은 git 밖 `data/cycle08/kyobo-skip-ids.txt`.
+  - 방법: `status --skip`은 한 번 부를 때마다 전체 상태 보고를 만들어(1곳 약 50초) 24곳 뒤에 멈추고, 같은 문장(`UPDATE library SET crawl_skip=? WHERE id=?`)을 남은 곳에 한 트랜잭션으로 실행함. 여러 곳을 한 번에 표시할 때는 이렇게 하는 것이 빠름. 수집기가 돌지 않을 때 함.
+- **2026-10-11 주소 고침: 수집 번호 100142 (서비스 411) GS건설 자이 전자책 도서관**: `http://ebook2.ezville.net/FxLibrary` → `https://gsenc.bookcube.biz/FxLibrary`(옛 주소가 리다이렉트로 넘어가는 곳, 사이클 07 `library-site-issues.md` 9절·plan-feedback). `UPDATE library SET base_url=…, host=… WHERE id=100142` → `full --only 100142 --limit-pages 2`로 두 쪽 시험(새 `detail_url`이 새 호스트로 채워짐 확인) → `full --only 100142`. 서비스에 다시 들어오는 것은 다음 사본·가져오기 때.
+
 ## 6. 문제별 대처
 
 | 증상 (로그·상태) | 먼저 볼 것 | 대처 |

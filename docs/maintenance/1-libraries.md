@@ -52,8 +52,10 @@
 | 3. 수집 DB 도서관 목록에 넣기 | `scripts/crawl/crawl_catalog.py import-probe --probe … --source okbari-2026-10-03` | 같음 | `crawl_catalog.py import-bookcube --probe … --source okbari-2026-10-03` | `import-probe`. 사이트마다 다른 전자책 메뉴 코드는 `base_url` 뒤 `?nav_code=…`로 저장 |
 | 4. 받기 | [2-crawl.md](2-crawl.md): `full --retry-failed --platforms …` 또는 `resume.cmd` | 같음 | 같음 | 같음 |
 
+- **2단계 "확인"에서 주소는 리다이렉트 뒤 최종 주소(호스트)로 넣습니다** (plan 사이클 08 인계서 10-3, 2026-10-11). 목록에 있는 주소가 다른 호스트로 넘어가면 넘어간 뒤의 주소를 수집 DB `library.base_url`에 넣습니다. 서비스는 리다이렉트를 따라가지 않고, 가져오기는 주소가 서비스 도서관과 다른 줄을 빼기 때문입니다(예: 411 GS건설 자이가 `ebook2.ezville.net` → `gsenc.bookcube.biz`로 넘어가 사이클 07 가져오기에서 소장 64,461줄이 빠짐. 2026-10-11에 수집 DB 주소를 고치고 다시 받음, [2-crawl.md](2-crawl.md) 5-1절 아래).
 - 넣은 후보 도서관은 `library.source = okbari-2026-10-03`, id 100001부터. 이미 있는 주소는 3번에서 건너뜁니다. 2026-09-30에 먼저 넣은 북큐브 134곳은 `source=okbari-2026-09-30`([2-crawl.md](2-crawl.md) 5절).
 - 교보 대여·혼합형(2026-10-04 넣음, 232곳, 11곳은 이미 있음): `kyobo-institutions-probe-2026-10-03.tsv`에서 `model`이 대여·혼합인 줄만 골라 `import-probe`, `source=okbari-2026-10-03-rental`. 모두 IP 103.182.126.192 한 대라 받는 속도는 [2-crawl.md](2-crawl.md) 2-1절 "서버(줄)별 동시 요청 수".
+- **교보 대여·혼합형은 수집도 서비스도 하지 않습니다** (plan ADR-0067, 2026-10-11). 후보 232곳 중 230곳에 `crawl_skip` "교보 대여·혼합 제외 (plan ADR-0067, 2026-10-11)"를 표시했고(나머지 2곳은 이미 "같은 사이트"로 표시됨), seed 생성은 `kyobo_rental_mixed` 규칙으로 뺍니다. 등록 도서관 11곳과 공공도서관 구독은 그대로입니다.
 - 확인 스크립트는 모두 결과를 한 줄씩 바로 저장하고, 다시 돌리면 이미 확인한 곳을 건너뜁니다. 도구의 백그라운드 작업은 30분쯤에 끊기므로 긴 작업은 PowerShell `Start-Process`로 따로 띄웁니다(2026-10-03 교보 확인이 끊겨 결과를 잃은 뒤 고침).
 - 확인 스크립트는 서버마다 1건·1초 고정이고 `--workers`·`--host-slots` 값을 받지 않습니다. 수집과 같은 서버를 동시에 치지 않게 띄우기 전에 서버가 겹치는지 봅니다([2-crawl.md](2-crawl.md) 2절).
 - 결과 TSV(데이터 폴더 `other-platforms\*.tsv`)는 git에 넣지 않습니다 (dev 판단, 2026-10-05). 내용은 공개된 기관 이름·주소·권수·공지 제목뿐이고 크기도 작지만(TSV 9개 약 0.75MB, 하위 폴더 0.4MB), 실행 결과라 데이터 폴더에서 계속 바뀌고(`kyobo-limits-log.tsv`는 매일 더해짐) git에 복사하면 두 벌이 어긋나며, 팝업 그림(1.7MB)은 기관이 만든 그림입니다. 남길 사실(넣은 곳 수, 결정)은 이 문서와 plan `crawl-runbook.md` 8-2절에 적습니다.
