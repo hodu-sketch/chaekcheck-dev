@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ import com.chaekcheck.library.LibraryCatalog;
  * One import of the collection DB (ADR-0031, ADR-0054, ADR-0060): every enabled service library through the links,
  * read in two passes so the rows never sit in memory together.
  * <ol>
- * <li>First pass: filter the rows and count their values per step-① group ({@link BookGrouping}).</li>
+ * <li>First pass: filter the rows and count their values per step-① group ({@link BookGrouper}).</li>
  * <li>Group: Kyobo ISBN, national bibliography ISBN, same text.</li>
  * <li>Write through {@link CatalogLoad}: the books (with {@code library_ids}), then a second pass that streams each
  * row as a holding of its book, then the library snapshots. {@code VACUUM (ANALYZE)} follows.</li>
@@ -66,6 +67,22 @@ class CatalogImporter {
 		this.clock = clock;
 	}
 
+	/** How the books are grouped (cycle 11, ADR-0079); {@code current} ({@link BookGrouping}) unless set. */
+	private Supplier<BookGrouper> groupers = BookGrouping::new;
+
+	/** Folder a dry run writes its books and rows into (cycle 11, {@link DryRunDump}); null writes nothing. */
+	private Path dryRunOutput;
+
+	CatalogImporter grouping(Supplier<BookGrouper> groupers) {
+		this.groupers = groupers;
+		return this;
+	}
+
+	CatalogImporter dryRunOutput(Path folder) {
+		this.dryRunOutput = folder;
+		return this;
+	}
+
 	/**
 	 * @param ttlDirectory folder with the unzipped national bibliography {@code .ttl} files; null skips step ③
 	 * @param dryRun read and group only; nothing is written to the database
@@ -89,11 +106,10 @@ class CatalogImporter {
 		report.source = sqlite.getFileName().toString();
 		LocalDate today = LocalDate.now(clock.withZone(KOREA));
 		String source = sqlite.getFileName().toString();
-		try (CollectedCatalog collected = CollectedCatalog.open(sqlite)) {
+		try (CollectedCatalog collected = CollectedCatalog.open(sqlite); BookGrouper grouping = groupers.get()) {
 			Instant start = clock.instant();
 			Libraries libraries = collected.libraries(links.all(), libraryCatalog.enabledLibraryRefs(),
 					placeholderDateLibraries, report);
-			BookGrouping grouping = new BookGrouping();
 			collected.scan(libraries, today, report, row -> grouping.add(row, report));
 			report.steps.put("read", Duration.between(start, clock.instant()));
 			report.noteHeap();
@@ -124,6 +140,12 @@ class CatalogImporter {
 
 			if (dryRun) {
 				report.books = report.booksAfterSameText;
+				if (dryRunOutput != null) {
+					start = clock.instant();
+					DryRunDump.write(dryRunOutput, grouping,
+							rows -> collected.scan(libraries, today, null, rows::accept));
+					report.steps.put("dump", Duration.between(start, clock.instant()));
+				}
 				log.info("{}", report);
 				log.info("dry run, nothing written. Merged books with dates 2+ years apart (samples):\n  {}",
 						String.join("\n  ", report.sameTextWideDateSamples));
@@ -133,13 +155,13 @@ class CatalogImporter {
 			CatalogLoad.Result result;
 			try {
 				CatalogLoad.Loader loader = session -> {
-					long[] bookOfUnit = grouping.forEachBook(book -> session.addBook(new NewBook(book.title(),
+					grouping.forEachBook(book -> session.addBook(new NewBook(book.title(),
 							book.authorDisplay(), book.publisher(), book.titleNorm(), book.mainTitleNorm(),
 							book.publisherNorm(), book.publishedOn(), book.isbn13(), book.contentType(), book.libraryIds(),
 							book.contributors())));
 					report.noteHeap();
 					collected.scan(libraries, today, null, row -> session.addHolding(new NewHolding(
-							bookOfUnit[grouping.unitOf(row)], row.library().serviceId(), row.library().platformType(),
+							grouping.bookOf(row), row.library().serviceId(), row.library().platformType(),
 							row.itemKey(), row.detailUrl(), row.contentType(), row.title(), row.authorRaw(), row.publisher(),
 							row.publishedRaw(), row.supplier(), row.altCode(), row.firstSeenAt())));
 					libraries.imported().values().forEach(library -> {

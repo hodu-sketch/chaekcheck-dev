@@ -14,9 +14,6 @@ import java.util.function.ToLongFunction;
 
 import com.chaekcheck.catalog.normalize.CatalogText;
 import com.chaekcheck.catalog.normalize.Contributors;
-import com.chaekcheck.catalog.normalize.Contributors.Contributor;
-import com.chaekcheck.catalog.normalize.Contributors.Role;
-import com.chaekcheck.catalog.normalize.Isbn;
 import com.chaekcheck.catalog.normalize.PublishedDates;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
@@ -33,28 +30,11 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * </ol>
  * To import every service library without keeping every row in memory (ADR-0054), the first pass keeps one
  * {@link Unit} per step-① group with the number of rows per value instead of the rows: the most common value of a
- * book is then the same as counted over its rows. The second pass finds a row's book with {@link #unitOf}.
+ * book is then the same as counted over its rows. The second pass finds a row's book through its unit.
+ * <p>
+ * The grouping {@code current} (cycle 11, ADR-0079), the default.
  */
-final class BookGrouping {
-
-	/**
-	 * Screen kinds whose item keys are one shared numbering. Sites may change their numbering, so this is checked
-	 * again with every library list check (docs/library-maintenance.md 4-11, scripts/library/check_code_spaces.py).
-	 */
-	private static final Set<String> SHARED_CODE_KINDS = Set.of("KYOBO_V1", "KYOBO_SUBSCRIPTION_V1", "YES24_V1",
-			"YES24_V2", "YES24_V3");
-
-	private static final char SEP = '\u0001';
-
-	/**
-	 * One book to write.
-	 * @param libraryIds service libraries holding it, sorted (ADR-0055)
-	 * @param units the step-① groups it is made of
-	 */
-	record Book(String title, String authorDisplay, String publisher, String titleNorm, String mainTitleNorm,
-			String publisherNorm, LocalDate publishedOn, String isbn13, String contentType,
-			List<Contributor> contributors, long[] libraryIds, int[] units) {
-	}
+final class BookGrouping implements BookGrouper {
 
 	/** Rows with the same code (step ①), as counts per value. */
 	private static final class Unit {
@@ -136,9 +116,13 @@ final class BookGrouping {
 	/** ISBN found for a group; kept on the group root. */
 	private final Map<Integer, String> isbnOfRoot = new HashMap<>();
 
+	/** The id the book of each step-① group got, set by {@link #forEachBook}. */
+	private long[] bookOfUnit;
+
 	/** First pass: counts one row in its step-① group. */
-	void add(Row row, ImportReport report) {
-		int index = unitByKey.computeIfAbsent(unitKey(row), key -> {
+	@Override
+	public void add(Row row, ImportReport report) {
+		int index = unitByKey.computeIfAbsent(BookGrouper.unitKey(row), key -> {
 			units.add(new Unit());
 			return units.size() - 1;
 		});
@@ -148,27 +132,27 @@ final class BookGrouping {
 		unit.publishers.add(row.publisher());
 		unit.contentTypes.add(row.contentType());
 		unit.dates.add(row.publishedOn());
-		unit.isbns.add(kyoboIsbn(row, report));
+		unit.isbns.add(BookGrouper.kyoboIsbn(row, report));
 		unit.addLibrary(row.library().serviceId());
 	}
 
 	/** Second pass: the step-① group of a row the first pass counted. */
-	int unitOf(Row row) {
-		Integer index = unitByKey.get(unitKey(row));
+	private int unitOf(Row row) {
+		Integer index = unitByKey.get(BookGrouper.unitKey(row));
 		if (index == null) {
-			throw new IllegalStateException("Row not seen in the first pass: " + unitKey(row));
+			throw new IllegalStateException("Row not seen in the first pass: " + BookGrouper.unitKey(row));
 		}
 		return index;
 	}
 
-	private static String unitKey(Row row) {
-		String space = SHARED_CODE_KINDS.contains(row.library().platformType()) ? "SHARED"
-				: "LIB" + row.library().serviceId();
-		return space + SEP + row.itemKey();
+	@Override
+	public long bookOf(Row row) {
+		return bookOfUnit[unitOf(row)];
 	}
 
 	/** Steps ① (already the units) and ②. */
-	void groupByCodes(ImportReport report) {
+	@Override
+	public void groupByCodes(ImportReport report) {
 		parent = new int[units.size()];
 		for (int i = 0; i < parent.length; i++) {
 			parent[i] = i;
@@ -194,7 +178,8 @@ final class BookGrouping {
 	 * Keys (main title, first author, publisher) of groups without an ISBN, for the national bibliography lookup.
 	 * Groups without an author or publisher have no key (not merged when unsure).
 	 */
-	Set<String> bibliographyKeys() {
+	@Override
+	public Set<String> bibliographyKeys() {
 		Map<String, Boolean> keys = new HashMap<>();
 		for (int[] members : groups()) {
 			int root = find(members[0]);
@@ -212,7 +197,8 @@ final class BookGrouping {
 	 * Step ③: a group without an ISBN whose key has one national bibliography ISBN gets it, and groups with the same
 	 * ISBN (also one found in step ②) are merged.
 	 */
-	void attachBibliography(Map<String, String> isbnByKey, ImportReport report) {
+	@Override
+	public void attachBibliography(Map<String, String> isbnByKey, ImportReport report) {
 		Map<String, Integer> rootByIsbn = new HashMap<>();
 		isbnOfRoot.forEach((root, isbn) -> rootByIsbn.putIfAbsent(isbn, root));
 		for (int[] members : groups()) {
@@ -246,7 +232,8 @@ final class BookGrouping {
 	 * Groups without an author or publisher are never merged (not merged when unsure). When merged groups had
 	 * different ISBNs, the book keeps one of them.
 	 */
-	void mergeSameText(ImportReport report) {
+	@Override
+	public void mergeSameText(ImportReport report) {
 		Map<String, Integer> firstByKey = new HashMap<>();
 		Map<String, LocalDate[]> dateRange = new HashMap<>();
 		Map<String, String> sampleOf = new HashMap<>();
@@ -254,8 +241,8 @@ final class BookGrouping {
 			String title = mostCommonOf(members, unit -> unit.titles);
 			String authorRaw = mostCommonOf(members, unit -> unit.authors);
 			String publisherRaw = mostCommonOf(members, unit -> unit.publishers);
-			String key = key(CatalogText.titleNorm(title), firstAuthor(Contributors.parse(authorRaw)),
-					CatalogText.publisherNorm(publisherRaw));
+			String key = BookGrouper.key(CatalogText.titleNorm(title),
+					BookGrouper.firstAuthor(Contributors.parse(authorRaw)), CatalogText.publisherNorm(publisherRaw));
 			if (key == null) {
 				continue;
 			}
@@ -283,19 +270,16 @@ final class BookGrouping {
 		report.booksAfterSameText = groupCount();
 	}
 
-	/**
-	 * Gives every book to {@code sink} in the order of its first row and returns, per step-① group, the id the sink
-	 * gave its book.
-	 */
-	long[] forEachBook(ToLongFunction<Book> sink) {
-		long[] bookOfUnit = new long[units.size()];
+	/** Gives every book to {@code sink} in the order of its first row and keeps, per step-① group, the id. */
+	@Override
+	public void forEachBook(ToLongFunction<Book> sink) {
+		bookOfUnit = new long[units.size()];
 		for (int[] members : groups()) {
 			long id = sink.applyAsLong(book(members));
 			for (int unit : members) {
 				bookOfUnit[unit] = id;
 			}
 		}
-		return bookOfUnit;
 	}
 
 	private Book book(int[] members) {
@@ -305,8 +289,7 @@ final class BookGrouping {
 		String isbn = isbnOfRoot.get(find(members[0]));
 		return new Book(title, authorRaw, publisher, CatalogText.titleNorm(title), CatalogText.mainTitleNorm(title),
 				CatalogText.publisherNorm(publisher), dateOf(members), isbn,
-				mostCommonOf(members, unit -> unit.contentTypes), Contributors.parse(authorRaw), libraryIds(members),
-				members);
+				mostCommonOf(members, unit -> unit.contentTypes), Contributors.parse(authorRaw), libraryIds(members));
 	}
 
 	private LocalDate dateOf(int[] members) {
@@ -335,35 +318,8 @@ final class BookGrouping {
 	private String keyOf(int[] members) {
 		String title = mostCommonOf(members, unit -> unit.titles);
 		String publisher = CatalogText.publisherNorm(mostCommonOf(members, unit -> unit.publishers));
-		String author = firstAuthor(Contributors.parse(mostCommonOf(members, unit -> unit.authors)));
-		return key(CatalogText.mainTitleNorm(title), author, publisher);
-	}
-
-	/** The comparison key; null when a part is missing. Shared with {@link NationalBibliography}. */
-	static String key(String mainTitleNorm, String authorExact, String publisherNorm) {
-		if (mainTitleNorm == null || mainTitleNorm.isEmpty() || authorExact == null || authorExact.isEmpty()
-				|| publisherNorm == null || publisherNorm.isEmpty()) {
-			return null;
-		}
-		return mainTitleNorm + SEP + authorExact + SEP + publisherNorm;
-	}
-
-	/** Exact name of the first author (AUTHOR or UNKNOWN role); null when there is none. */
-	static String firstAuthor(List<Contributor> contributors) {
-		return contributors.stream()
-			.filter(c -> c.role() == Role.AUTHOR || c.role() == Role.UNKNOWN)
-			.map(Contributor::nameExact)
-			.filter(name -> !name.isEmpty())
-			.findFirst()
-			.orElse(null);
-	}
-
-	private static String kyoboIsbn(Row row, ImportReport report) {
-		Isbn.Kyobo fromKey = Isbn.fromKyoboCode(row.itemKey());
-		Isbn.Kyobo result = fromKey.result() == Isbn.KyoboResult.NOT_KYOBO_CODE ? Isbn.fromKyoboCode(row.altCode())
-				: fromKey;
-		report.kyoboCodes.merge(result.result().name(), 1L, Long::sum);
-		return result.isbn13();
+		String author = BookGrouper.firstAuthor(Contributors.parse(mostCommonOf(members, unit -> unit.authors)));
+		return BookGrouper.key(CatalogText.mainTitleNorm(title), author, publisher);
 	}
 
 	/** Most common value over the rows of the members [안]; on a tie the smallest, so row order does not matter. */

@@ -3,6 +3,7 @@ package com.chaekcheck.collection.internal.importer;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
@@ -55,10 +56,12 @@ class CatalogImportRunner {
 	 * waiting for {@code file}) or {@code discard} (drop the new tables). docs/maintenance/3-import.md 13
 	 * @param file the export file of {@code export}, {@code apply} and {@code finish}
 	 * @param grouping how the books are grouped: {@code current} (default), {@code compact} or {@code sql} (ADR-0079)
+	 * @param dryRunOutput folder a dry run writes {@code books.tsv.gz} and {@code rows.tsv.gz} into, for
+	 * {@code scripts/catalog/compare_grouping.py}; empty writes only the counts
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
-			Path file, String grouping) {
+			Path file, String grouping, Path dryRunOutput) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
@@ -97,7 +100,9 @@ class CatalogImportRunner {
 			ImportRecords records = new ImportRecords(jdbc);
 			CatalogImporter importer = new CatalogImporter(libraryCatalog, new JdbcCollectionLinks(jdbc), catalogLoad,
 					records, new NationalBibliographyStore(dataSource), settings.placeholderDateLibraries(),
-					Clock.systemUTC());
+					Clock.systemUTC())
+				.grouping(groupers(settings.grouping(), dataSource))
+				.dryRunOutput(settings.dryRunOutput());
 			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, jdbc, records,
 					Clock.systemUTC());
 			switch (settings.mode()) {
@@ -114,6 +119,14 @@ class CatalogImportRunner {
 				}
 			}
 			System.exit(SpringApplication.exit(context, () -> 0));
+		};
+	}
+
+	/** The grouping of {@code chaekcheck.collection.import.grouping} (ADR-0079). */
+	static Supplier<BookGrouper> groupers(String grouping, DataSource dataSource) {
+		return switch (grouping) {
+			case "current" -> BookGrouping::new;
+			default -> throw new IllegalStateException("grouping " + grouping + " is not built yet");
 		};
 	}
 

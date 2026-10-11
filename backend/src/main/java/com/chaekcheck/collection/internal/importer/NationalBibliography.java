@@ -186,9 +186,9 @@ final class NationalBibliography {
 			return null;
 		}
 		String mainTitle = CatalogText.mainTitleNorm(LEADING_BRACKET.matcher(title).replaceFirst(""));
-		String author = BookGrouping.firstAuthor(Contributors.parse(creator.replace(';', '/')));
+		String author = BookGrouper.firstAuthor(Contributors.parse(creator.replace(';', '/')));
 		String publisherNorm = CatalogText.publisherNorm(publisher.replaceAll("#+\\s*$", ""));
-		return BookGrouping.key(mainTitle, author, publisherNorm);
+		return BookGrouper.key(mainTitle, author, publisherNorm);
 	}
 
 	private static final class Record {
