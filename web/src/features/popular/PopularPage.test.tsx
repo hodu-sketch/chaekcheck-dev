@@ -285,6 +285,34 @@ describe('popular books (S13)', () => {
   })
 })
 
+/** Touch mode follows `(pointer: coarse)` alone: Samsung Internet on a phone reports `hover: hover` (2026-10-12). */
+describe('touch mode', () => {
+  function media(matching: string[]) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: matching.includes(query),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    }))
+  }
+
+  it('turns on when only (pointer: coarse) matches, even with hover', async () => {
+    media(['(pointer: coarse)', '(hover: hover)'])
+    stubFetch()
+    renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    expect(document.querySelector('[data-touch]')).not.toBeNull()
+  })
+
+  it('stays off with a mouse', async () => {
+    media(['(hover: hover)', '(pointer: fine)'])
+    stubFetch()
+    renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    expect(document.querySelector('[data-touch]')).toBeNull()
+  })
+})
+
 /** AC-18: on phones the four windows are bottom sheets with a handle and ⓧ; back closes only the window. */
 describe('popular windows on phones', () => {
   it('the category list is a sheet; back closes only it', async () => {

@@ -540,12 +540,13 @@
 }
 
 /*
- * Touch screens only, on this screen only: no vertical panning by the browser; a vertical swipe moves one category
+ * Touch screens only (the main pointer is a finger: `pointer: coarse`; not `hover: none`, which Samsung Internet does
+ * not report), on this screen only: no vertical panning by the browser; a vertical swipe moves one category
  * (PopularPage), sideways swipes and pinch zoom stay (user 2026-10-12: "스크롤 바꿀때 폰 태블릿에서는 스크롤 없애고
  * 그냥 위아래 넘김 이벤트일때 알아서 딱 알맞은 위치에 이동하도록"). Zoomed in, the page scrolls normally again
  * (data-zoomed), so nothing is out of reach. Lists and sheets that scroll inside keep scrolling.
  */
-@media (hover: none) and (pointer: coarse) {
+@media (pointer: coarse) {
   :global(html):has(.page:not([data-zoomed])) {
     touch-action: pan-x pinch-zoom;
   }

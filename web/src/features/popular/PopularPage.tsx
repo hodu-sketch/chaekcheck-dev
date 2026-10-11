@@ -17,6 +17,12 @@ import styles from './PopularPage.module.css'
 /** [안] (cycle 10 step 7-6): the phone layout and bottom sheets, the same width as the other screens' phone layout. */
 export const PHONE_QUERY = '(width <= 640px)'
 
+/**
+ * Touch screens: the main pointer is a finger. Only `pointer: coarse`, not with `hover: none`: Samsung Internet on a
+ * phone reports `hover: hover` (checked on a real phone 2026-10-12), so the combination left touch mode off there.
+ */
+export const TOUCH_QUERY = '(pointer: coarse)'
+
 /** [안] (cycle 10): how long the wheel must be still before the next wheel moves another category. */
 const WHEEL_QUIET_MS = 350
 
@@ -37,6 +43,7 @@ type Loaded = { key: string; data: PopularBooks | null; failed: boolean }
 export function PopularPage() {
   const navigate = useNavigate()
   const phone = useMediaQuery(PHONE_QUERY)
+  const touchMode = useMediaQuery(TOUCH_QUERY)
   const { plan, ready, key } = usePopularPlan()
   const { resolveStoredRegions } = useRegions()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -225,7 +232,7 @@ export function PopularPage() {
     }
     // touch screens: no free vertical scrolling here (CSS touch-action); one vertical swipe = one category, whatever its
     // strength, decided by the dominant axis; taps and sideways swipes (grid pages) are left alone
-    const coarse = window.matchMedia?.('(hover: none) and (pointer: coarse)').matches ?? false
+    const coarse = touchMode
     let touch: { x: number; y: number } | null = null
     const onTouchStart = (event: TouchEvent) => {
       touch = null
@@ -260,7 +267,7 @@ export function PopularPage() {
       window.removeEventListener('touchstart', onTouchStart)
       window.removeEventListener('touchend', onTouchEnd)
     }
-  }, [codes])
+  }, [codes, touchMode])
 
   // pinch-zoomed in: the page scrolls normally again so nothing is out of reach (touch swipes step otherwise)
   const [zoomed, setZoomed] = useState(false)
@@ -323,7 +330,12 @@ export function PopularPage() {
   }
 
   return (
-    <div ref={rootRef} className={styles.page} data-zoomed={zoomed || undefined}>
+    <div
+      ref={rootRef}
+      className={styles.page}
+      data-zoomed={zoomed || undefined}
+      data-touch={touchMode || undefined}
+    >
       {/*
         Design A with the user's later choices (2026-10-12): no visible heading ("이거 위에 있는거 불필요하니까 없애고"),
         only one for screen readers; the category picker floats at the bottom centre and follows the category in view.
