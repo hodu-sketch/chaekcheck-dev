@@ -17,9 +17,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-BASE = 'http://localhost:8080'
+# cycle 11: another service and compose database (the db-ops apply test), e.g.
+#   CHAEKCHECK_BASE=http://localhost:8081 CHAEKCHECK_DB_SERVICE=db-ops python scripts/catalog/probe_during_import.py ...
+BASE = os.environ.get('CHAEKCHECK_BASE', 'http://localhost:8080')
 PSQL = ('wsl', '-d', 'Ubuntu', '--', 'bash', '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev/data/cycle08/psql.sh',
-        'db', '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev/data/cycle08/q-dbsize.sql')
+        os.environ.get('CHAEKCHECK_DB_SERVICE', 'db'),
+        '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev/data/cycle08/q-dbsize.sql')
 
 
 def call(url):

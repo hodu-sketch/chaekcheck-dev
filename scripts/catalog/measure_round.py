@@ -4,6 +4,7 @@ buffers, and the container memory.
 
 Usage (from the repository root; backend running, WSL with the compose db up, pg_buffercache created in db):
   python scripts/catalog/measure_round.py <out dir> <label>
+Cycle 11: CHAEKCHECK_BASE (service URL, default http://localhost:8080) and CHAEKCHECK_DB_SERVICE (db or db-ops).
 
 Writes <out dir>/<label>/ (the runs, db.txt, docker.txt) and prints one summary line:
   label  p50  p95  hit%  container-memory
@@ -15,6 +16,8 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 WSL_ROOT = '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev'
 ENV = dict(os.environ, MSYS_NO_PATHCONV='1', PYTHONIOENCODING='utf-8')
+# cycle 11: the compose database to read (db, or db-ops for the production-role database)
+SERVICE = os.environ.get('CHAEKCHECK_DB_SERVICE', 'db')
 
 DB_SQL = r"""
 \pset pager off
@@ -43,7 +46,7 @@ def run(args, **kw):
 def psql(sql, out):
     path = os.path.join(ROOT, 'data', 'cycle08', 'round.sql')
     open(path, 'w', encoding='utf-8').write(sql)
-    result = run(['wsl', '-d', 'Ubuntu', '--', 'bash', f'{WSL_ROOT}/data/cycle08/psql.sh', 'db',
+    result = run(['wsl', '-d', 'Ubuntu', '--', 'bash', f'{WSL_ROOT}/data/cycle08/psql.sh', SERVICE,
                   f'{WSL_ROOT}/data/cycle08/round.sql'])
     if out:
         open(out, 'w', encoding='utf-8').write(result.stdout + result.stderr)
@@ -54,17 +57,18 @@ def main(out_dir, label):
     target = os.path.join(out_dir, label)
     os.makedirs(target, exist_ok=True)
     measure = [sys.executable, 'scripts/catalog/measure_books.py']
-    run(measure + [os.path.join(target, 'warm')])
+    base = os.environ.get('CHAEKCHECK_BASE')
+    run(measure + [os.path.join(target, 'warm')] + ([base] if base else []))
     psql('SELECT pg_stat_reset();', None)
     runs = []
     for n in (1, 2, 3):
-        run(measure + [os.path.join(target, f'r{n}')])
+        run(measure + [os.path.join(target, f'r{n}')] + ([base] if base else []))
         runs.append(os.path.join(target, f'r{n}'))
     summary = run([sys.executable, 'scripts/catalog/summarize_times.py'] + runs).stdout
     open(os.path.join(target, 'times.tsv'), 'w', encoding='utf-8').write(summary)
     db = psql(DB_SQL, os.path.join(target, 'db.txt'))
     docker = run(['wsl', '-d', 'Ubuntu', '--', 'docker', 'stats', '--no-stream', '--format',
-                  '{{.Name}} {{.MemUsage}}', 'chaekcheck-db-1']).stdout.strip()
+                  '{{.Name}} {{.MemUsage}}', f'chaekcheck-{SERVICE}-1']).stdout.strip()
     open(os.path.join(target, 'docker.txt'), 'w', encoding='utf-8').write(docker + '\n')
     every = summary.strip().splitlines()[-1].split('\t')
     hit = next((line.split('|')[0].strip() for line in db.splitlines()

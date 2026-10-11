@@ -35,6 +35,9 @@
 - 프로필 `collection-import`는 웹 서버 없이 한 번 돌고 끝납니다(`application-collection-import.yml`). 로그인 기능은 이 프로필에서 늘 꺼집니다(웹 서버가 없어 켜면 시작하지 못함, 2026-10-05).
 - 바꿔 끼우기 설정 `chaekcheck.catalog.load.*`(8절): `lock-timeout`(기본 2s), `swap-attempts`(5), `swap-retry-wait`(10s), 가져오기 세션에만 `maintenance-work-mem`·`max-parallel-maintenance-workers`·`work-mem`(기본 = 서버 값. 2026-10-11 가져오기는 `1GB`·`4`로 돌림).
 - 설정 `chaekcheck.collection.import.*`: `sqlite-path`, `ttl-path`(비우면 국가서지 단계를 건너뜀), `dry-run`, `placeholder-date-libraries`(1950년 이전 날짜를 자리채움으로 보고 버릴 도서관의 **수집 번호**, 기본 `100555` 명지대).
+  - 사이클 11: `mode`(`in-place` 기본·`export`·`apply`·`finish`·`discard`, 13절), `file`(내보낸 파일, `export`·`apply`·`finish`), `grouping`(책 묶는 방식 `current` 기본·`compact`·`sql`, ADR-0079), `dry-run-output`(dry run이 `books.tsv.gz`·`rows.tsv.gz`를 쓸 폴더. `scripts/catalog/compare_grouping.py dryrun`으로 두 방식을 비교).
+  - 사이클 11: `chaekcheck.catalog.load.pg-command`(PostgreSQL 18 도구를 부르는 명령 앞부분, 쉼표로 나눔, 13-1). 커밋되는 파일에는 넣지 않고 명령 인자나 `.env`로 줍니다.
+  - 사이클 11 측정: `-PbootRunJvmArgs="…"`로 Java 옵션을 더합니다(공백으로 나눔, `-PbootRunXmx`는 그대로).
 - 사이클 04의 프로필 `catalog-import`, 설정 `chaekcheck.catalog.import.*`는 없어졌습니다.
 - 로그 끝의 요약(읽은 줄, 이유별 건너뜀, 등록·후보 도서관 수, 묶기 단계별 책 수, 국가서지로 ISBN이 붙은 수, 시간, 힙 최고 사용량)을 5절 표의 지난 값과 비교합니다. 크게 다르면 사용자에게 알리고 멈춥니다 [안].
 
@@ -114,7 +117,7 @@
 ## 9. 실패하면
 
 - 바꿔 끼우기 전 어디서 실패해도(읽기·쓰기·색인 실패, 프로세스 종료, 잠금 5번 실패) **옛 표가 그대로** 남고 `catalog_next`와 임시 표는 지워집니다. 프로세스가 죽어 못 지운 `catalog_next`는 다음 가져오기가 처음에 지웁니다.
-- 기록: `collection.catalog_import`에 `status = 'FAILED'`, `failure_reason`(`lock_not_acquired` 잠금을 끝내 못 얻음, `outside_foreign_key` 다른 모듈 표가 catalog 표를 가리킴, `error` 그 밖), `failure_detail`(예외 한 줄). 숫자 칸은 멈출 때까지 센 값.
+- 기록: `collection.catalog_import`에 `status = 'FAILED'`, `failure_reason`(`lock_not_acquired` 잠금을 끝내 못 얻음, `outside_foreign_key` 다른 모듈 표가 catalog 표를 가리킴, `mismatch` 내보낸 파일과 이 DB가 다름(사이클 11, 13절), `error` 그 밖), `failure_detail`(예외 한 줄. `mismatch`는 무엇이 다른지와 양쪽 값). 숫자 칸은 멈출 때까지 센 값.
 - 할 일: `lock_not_acquired`면 긴 요청이 없는 때 다시 돌림. `outside_foreign_key`면 그 외래 키를 만든 changeset을 확인하고 사용자에게 알림(모듈 경계 위반, handoff C2). 프로세스가 중간에 죽으면 그대로 다시 돌림.
 
 ## 10. `step_seconds` 읽는 법
@@ -124,6 +127,7 @@
 - `read`: 수집 DB 첫 읽기(거르기 + 묶을 값 세기). `group`: 교보 코드·ISBN으로 묶기. `nb`: 국가서지 원문 읽기(지문이 같으면 표에서, 다르면 TTL을 풀며 표를 다시 씀). `normalize`: 원문에서 키 만들기. `same_text`: 같은 글 묶기.
 - `books_copy` … `swap`: 8절 표. `load`: 2~7 전체(첫 책부터 바꿔 끼우기 끝까지).
 - 검색이 기다린 시간은 `swap`입니다(사이클 07 방식의 기록에는 `move`).
+- 사이클 11(13절): 운영 `apply` 줄은 내 PC 키(`read`…`write`, `load`) 뒤에 이 DB 키 `compare`(파일과 비교), `restore`(`pg_restore`), `index`, `analyze`, `swap`, `apply`(반영 전체). 내 PC `finish` 줄은 내 PC 키 뒤에 `index`, `analyze`, `swap`, `finish`. 내보내기는 줄을 남기지 않고 로그에 `dump`(덤프와 되읽기)·`export`(전체)를 냅니다. 두 줄은 `export_id`로 이어집니다. dry run에 `dry-run-output`을 주면 `dump`(결과 파일 쓰기)가 더해집니다.
 - 국가서지를 표에서 읽었는지는 로그 `national bibliography: rows … (from the stored table | from the TTL files)`로 봅니다.
 
 ## 11. 국가서지 원문 (2026-10-11, plan ADR-0069)
@@ -142,3 +146,61 @@
 | 검색어 다듬기 규칙을 고침 | 옛 서비스 켜 둔 채 새 코드로 가져오기 → 바꿔 끼우자마자 서비스를 새 코드로 다시 켬 |
 
 - 세 번째 줄의 이유: 저장된 `title_norm` 같은 다듬은 값과 서비스가 검색어를 다듬는 방법이 같아야 찾힙니다. 바꿔 끼운 뒤 옛 서비스가 새 규칙의 표를 읽는 시간을 짧게 합니다.
+
+## 13. 따로 하기: 내 PC에서 가져오고 운영 DB에는 파일로 반영 (사이클 11, plan ADR-0078)
+
+가져오기(읽기·묶기·번호 잇기·새 표 쓰기)는 내 PC에서 끝내고, 그 새 표 네 개를 `pg_dump -Fc` 파일 하나로 옮겨 운영 DB에서 바꿔 끼웁니다. 운영 DB에서는 무거운 읽기·묶기가 돌지 않습니다.
+
+**같은 앱 판으로 돌립니다 [확정] (handoff C3).** `apply`는 운영 DB에 붙어 시작하므로 그 판의 Liquibase가 먼저 적용됩니다. 운영 서비스와 같은 커밋으로 돌립니다.
+
+### 13-1. 도구 명령 (`pg-command`)
+
+- pg 도구는 DB 컨테이너 이미지 안의 PostgreSQL 18판을 씁니다(새 의존성 없음). 앱이 이 명령 앞부분 뒤에 `pg_dump`/`pg_restore`와 인자를 붙여 실행합니다. 도구는 컨테이너 안 로컬 소켓으로 서비스와 같은 DB 사용자로 붙고 암호가 필요 없습니다(이미지의 `pg_hba` `local all all trust`, 사이클 11 프로토타입 3. 운영 DB가 다르게 구성되면 배포 때 다시 확인).
+- 이 PC(Windows + WSL): `--chaekcheck.catalog.load.pg-command=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck,exec,-T,<서비스>` (`<서비스>` = `db` 또는 `db-ops`). 앱이 붙은 DB와 같은 컨테이너여야 합니다. 다르면 덤프·복원 뒤 `export_id` 확인에서 멈춥니다.
+- 파일은 표준 입출력으로 주고받습니다(컨테이너에 공유 폴더 없음). `pg_restore` 입력은 Java가 직접 씁니다. 그래서 Java가 죽으면 입력이 끊겨 복원이 롤백됩니다(파일을 자식 프로세스에 넘기면 Java가 죽은 뒤에도 끝까지 돌아 커밋됨, 프로토타입 4).
+- `load_manifest`는 표의 한 줄이면서 같은 내용이 표의 COMMENT로도 들어 있습니다. 파이프로 쓴 `-Fc` 파일은 데이터 위치가 없고 `load_manifest` 데이터가 맨 뒤라, 표만 읽으면 파일 전체를 훑어야 합니다. COMMENT는 파일 앞의 목차에 있어 `pg_restore -s -t load_manifest`가 목차만 읽고 1초 안에 끝납니다.
+
+### 13-2. 운영자 절차
+
+내 PC는 `db`(5432), 운영 역할은 같은 PC의 `db-ops`(5434, `mem_limit` 1GB) 또는 진짜 운영 DB입니다. `backend/`에서 실행합니다.
+
+1. **내 PC 내보내기** (`export`): 수집 사본으로 가져오기를 돌려 `catalog_next`를 채우고 파일 하나를 만듭니다. 내 PC 검색은 그대로입니다. `catalog_next`는 남아 "기다림"이 됩니다. 기록 줄은 남기지 않고 로그에 파일 경로·크기·`export_id`를 냅니다.
+
+        ./gradlew bootRun -PbootRunXmx=6g --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.mode=export --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/<사본>.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.file=../data/cycle11/<이름>.dump --chaekcheck.catalog.load.pg-command=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck,exec,-T,db'
+
+2. **파일을 운영 쪽으로 옮김** (손으로. 인터넷으로 보내는 기능은 없음).
+3. **운영 반영** (`apply`): 운영 DB에 붙여 돌립니다. 반영 연결의 `maintenance_work_mem`은 256MB입니다 [확정] (handoff C4. 1GB면 상한 512MB 컨테이너가 `OOMKilled`된 사례가 있음, 사이클 08).
+
+        DB_PORT=5434 ./gradlew bootRun --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.mode=apply --chaekcheck.collection.import.file=../data/cycle11/<이름>.dump --chaekcheck.catalog.load.maintenance-work-mem=256MB --chaekcheck.catalog.load.pg-command=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck,exec,-T,db-ops'
+
+   - 먼저 비교합니다: 도서관 해시(켜진 도서관의 `id`·`base_url`·`platform_type`), 연결표 해시(`collection_link`), `catalog`의 기준값 6개(`book`·`holding`의 줄 수·가장 큰 번호·시퀀스 값), 네 표 칸 구조 해시. 하나라도 다르면 아무것도 하지 않고 `FAILED mismatch` 한 줄(무엇이 다른지)을 남깁니다.
+   - 같으면: 남은 `catalog_next`(와 남은 복원 세션) 지움 → `pg_restore --single-transaction --exit-on-error` → `export_id` 확인 → `load_manifest` 지움 → 운영 `catalog` 정의로 색인·제약 → `VACUUM (ANALYZE)` → 바꿔 끼우기(8절과 같음: 2초 잠금, 10초 쉬고, 최대 5번). 검색은 바꿔 끼우는 순간만 기다립니다.
+   - 성공하면 `SUCCEEDED` 한 줄: 내 PC의 숫자·단계 + 이 DB 단계 + `export_id`.
+4. **내 PC 마저 바꿔 끼우기** (`finish`, 운영 반영이 성공한 뒤): 같은 파일로 기다리던 `catalog_next`를 내 PC `catalog`로 바꿔 끼웁니다. 그래야 두 DB의 기준값이 다시 같아져 다음 파일을 반영할 수 있습니다. 세션 메모리는 내 PC 값(1GB)입니다.
+
+        ./gradlew bootRun --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.mode=finish --chaekcheck.collection.import.file=../data/cycle11/<이름>.dump --chaekcheck.catalog.load.maintenance-work-mem=1GB --chaekcheck.catalog.load.pg-command=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck,exec,-T,db'
+
+### 13-3. 상태와 할 일
+
+| 상태 | 뜻 | 할 일 |
+|---|---|---|
+| `mismatch` | 파일을 만든 DB와 운영 DB가 다름(도서관·연결표·책 표·표 구조) | `failure_detail`을 보고 맞춤. 도서관·연결표는 두 DB의 seed·Liquibase 판을 같게, 책 표가 다르면 마지막 `finish`를 했는지 봄. 맞출 수 없으면 운영 역할 DB를 내 PC에서 다시 복사(13-4) |
+| 기다림 | 내 PC `catalog_next`에 `load_manifest`가 있음(내보냄, 아직 `finish` 전) | `in-place`·`export`는 아무것도 지우지 않고 멈춤("first finish them … or discard them"). 운영 반영이 성공했으면 `finish`, 실패해서 이 파일을 버릴 때만 `discard` |
+| 죽고 남은 표 | `load_manifest` 없는 `catalog_next`(도중에 죽음) | 다음 `in-place`·`export`·`apply`가 처음에 지움. `discard`로 지워도 됨 |
+| `finish` 실패 | 색인·통계 단계에서 멈춤, 또는 잠금 5번 실패 | 기다림이 그대로 남음. 원인을 고치고 `finish`를 다시 돌리면 만들다 만 색인·제약부터 지우고 끝까지 감. 실패한 `finish`는 기록 줄을 남기지 않음 |
+| `finish`가 "No new tables are waiting" | 내 PC에 그 파일의 기다리는 표가 없음 | 운영 반영이 성공했다면 같은 파일을 내 PC에 `apply`로 되살림(내 PC 기준값이 파일과 같아야 함) |
+
+- `discard`: `--chaekcheck.collection.import.mode=discard`. 어느 DB에서든 `catalog_next`를 지웁니다. 기록 없음. **기다리던 표는 운영 반영이 실패했을 때만 지웁니다**(지우면 그 파일은 `finish`할 수 없음).
+- 동시에 두 번 반영되지 않게 막는 장치는 없습니다(backlog). 한 번에 하나만 돌립니다.
+
+### 13-4. 운영 역할 DB `db-ops` 만들기 (이 PC의 시험용)
+
+- `compose.yaml`의 `db-ops`(프로필 `ops`, 포트 `OPS_DB_PORT` 기본 5434, 볼륨 `db-ops-data`, `mem_limit: 1g`). 평소에는 띄우지 않습니다.
+- 처음에는 `db`를 통째로 복사해 기준을 같게 시작합니다 [확정]. 방법(2026-10-12): 두 컨테이너의 로컬 소켓끼리 파이프로 잇습니다(암호 없음).
+
+        wsl -d Ubuntu -- docker compose --profile ops up -d db-ops
+        wsl -d Ubuntu --exec bash -c 'set -o pipefail; docker compose -p chaekcheck exec -T db pg_dump -U <DB_USERNAME> -Fc <DB_NAME> | docker compose -p chaekcheck exec -T db-ops pg_restore -U <DB_USERNAME> -d <DB_NAME> --exit-on-error'
+
+- 복사한 뒤 두 DB의 기준값·해시가 같은지는 첫 `apply`의 비교가 봅니다(다르면 `mismatch`).
+- `db-ops`에 서비스를 띄우려면 `DB_PORT=5434 ./gradlew bootRun --args='--server.port=8081'`. `.env`의 `CHAEKCHECK_POPULAR_FETCH_ENABLED=false`를 그대로 둡니다(켜지면 시작 받기가 진짜 사이트를 부름).
+- 측정 스크립트: `CHAEKCHECK_BASE=http://localhost:8081 CHAEKCHECK_DB_SERVICE=db-ops python scripts/catalog/probe_during_import.py <폴더>`.
