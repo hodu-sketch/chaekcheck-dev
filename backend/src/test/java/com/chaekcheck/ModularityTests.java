@@ -30,6 +30,16 @@ class ModularityTests {
 		}
 	}
 
+	/** Cycle 10 (ADR-0073): popular uses catalog and library only, and no module uses popular. */
+	@Test
+	void popularDependsOnCatalogAndLibraryOnly() {
+		assertThat(dependenciesOf("popular")).isSubsetOf("catalog", "library");
+		modules.stream()
+			.map(module -> module.getIdentifier().toString())
+			.filter(name -> !name.equals("popular"))
+			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("popular"));
+	}
+
 	private List<String> dependenciesOf(String module) {
 		ApplicationModule applicationModule = modules.getModuleByName(module).orElseThrow();
 		return applicationModule.getDirectDependencies(modules)

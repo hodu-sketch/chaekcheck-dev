@@ -11,6 +11,10 @@ chaekcheck:
   # login on in .env the import did not start).
   auth:
     enabled: false
+  # The import never fetches the popular books
+  popular:
+    fetch:
+      enabled: false
   collection:
     import:
       # 명지대학교 (collection id 100555) fills unknown dates with 1900~1905 (plan research 2절 7, ADR-0054)

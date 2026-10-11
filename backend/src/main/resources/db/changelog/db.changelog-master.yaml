@@ -78,3 +78,7 @@ databaseChangeLog:
   - include:
       file: library/014-library-classification.yaml
       relativeToChangelogFile: true
+  # cycle 10: popular books (ADR-0073)
+  - include:
+      file: popular/001-popular-schema.yaml
+      relativeToChangelogFile: true

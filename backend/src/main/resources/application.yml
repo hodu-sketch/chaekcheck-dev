@@ -183,3 +183,26 @@ chaekcheck:
       read-timeout: 7s
       # TODO(확인 필요): how long a fetch server that refused a connection or answered 503 is skipped
       rest-duration: 30s
+  popular:
+    fetch:
+      # Fetching the sales ranking (plan cycle 10, ADR-0072, ADR-0073). Default on; off in tests, in the
+      # collection-import profile and for local development (../.env: CHAEKCHECK_POPULAR_FETCH_ENABLED=false). Turn it
+      # on locally only to try a fetch: it calls the real site.
+      enabled: ${CHAEKCHECK_POPULAR_FETCH_ENABLED:true}
+      # Daily fetch decision, 05:00 Asia/Seoul [확정]. Spring cron: second minute hour day month weekday.
+      cron: "0 0 5 * * *"
+      zone: Asia/Seoul
+      # At least 2s between requests to the site, counted from the end of the previous request [확정 2s]
+      request-interval: 2s
+      # [확정] values (user approval 2026-10-11); may be tuned after the first real fetch
+      connect-timeout: 5s
+      read-timeout: 10s
+      base-url: https://bnk.kpipa.or.kr
+      # User decision 2026-10-12: "chaekcheck" is not sent (Java's HTTP client refuses a Korean header value).
+      # TODO(확인 필요): the service address is appended at deployment: "book search service (+<service URL>)"
+      user-agent: "book search service"
+      # [안] largest response read: small covers are about 51KB, pages about 65KB
+      max-body-size: 1MB
+    cache:
+      # The shared cache of the latest month is read again this often [확정 10m]
+      refresh-interval: 10m
