@@ -17,6 +17,9 @@ import styles from './PopularPage.module.css'
 /** [안] (cycle 10 step 7-6): the phone layout and bottom sheets, the same width as the other screens' phone layout. */
 export const PHONE_QUERY = '(width <= 640px)'
 
+/** [안] (cycle 10): how long the wheel must be still before the next wheel moves another category. */
+const WHEEL_QUIET_MS = 350
+
 type Loaded = { key: string; data: PopularBooks | null; failed: boolean }
 
 /**
@@ -136,9 +139,62 @@ export function PopularPage() {
     }
   }, [codes])
 
-  // No automatic scroll correction of any kind: the page stays where the user stops (snapping and a settle step were
-  // tried and removed, user 2026-10-12: "스크롤바 아래로 내렸는데 나를 위로 보내버려"). Only the category jump and the
-  // back-restore move the page.
+  /*
+   * One wheel step = the next or previous category (user 2026-10-12: "그냥 스크롤 한 단계 할 때마다 다음/이전 카테고리로
+   * 이동하도록 해줘"), put straight there like a category jump; from the last one down to the end of the page and back.
+   * A burst of wheel events (fast notches, trackpad inertia) is one step: nothing more until the wheel has been still
+   * for WHEEL_QUIET_MS. PageDown/PageUp/Space step the same way [안]. Left alone: the scrollbar (holding or dragging it
+   * runs on, "스크롤바 누르고 위/아래로 마우스를 두면 스크롤이 쭉 가야"), touch scrolling [안], arrow keys, sideways and
+   * Ctrl (zoom) wheels, and wheels inside the open list or windows. No correction after scrolling stops (a settle step
+   * and snapping were tried and removed: "스크롤바 아래로 내렸는데 나를 위로 보내버려").
+   */
+  useEffect(() => {
+    if (!codes) return
+    const list = codes.split(',')
+    let lastWheel = -Infinity
+    const step = (down: boolean) => {
+      const header = document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      const places = list
+        .map((code) => document.getElementById(sectionId(code)))
+        .filter((section): section is HTMLElement => section !== null)
+        .map((section) => Math.min(Math.round(window.scrollY + section.getBoundingClientRect().top - header), max))
+      if (max > (places.at(-1) ?? 0) + 2) places.push(max)
+      const y = window.scrollY
+      const target = down ? places.find((place) => place > y + 2) : places.findLast((place) => place < y - 2)
+      if (target !== undefined) window.scrollTo({ top: target, behavior: 'instant' })
+    }
+    const outside = (target: EventTarget | null) =>
+      !(target instanceof Element && target.closest('[role="dialog"], [data-radix-popper-content-wrapper]'))
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.deltaY === 0) return
+      if (!outside(event.target)) return
+      event.preventDefault()
+      const now = event.timeStamp
+      const quiet = now - lastWheel > WHEEL_QUIET_MS
+      lastWheel = now
+      if (quiet) step(event.deltaY > 0)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || !outside(event.target)) return
+      const typing = event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable]')
+      if (typing) return
+      let down: boolean
+      if (event.key === 'PageDown') down = true
+      else if (event.key === 'PageUp') down = false
+      else if (event.key === ' ' && (event.target === document.body || event.target === document.documentElement)) {
+        down = !event.shiftKey
+      } else return
+      event.preventDefault()
+      step(down)
+    }
+    window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [codes])
 
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
 
