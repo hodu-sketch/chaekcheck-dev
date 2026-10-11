@@ -239,6 +239,17 @@ describe('popular books (S13)', () => {
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' }))
   })
 
+  it('at the very bottom the category box shows the last category (AC-3)', async () => {
+    stubFetch()
+    renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    Object.defineProperty(document.documentElement, 'scrollHeight', { configurable: true, value: 20000 })
+    vi.stubGlobal('scrollY', 20000 - window.innerHeight)
+    fireEvent.scroll(window)
+    expect(await screen.findByRole('button', { name: '분류: 지리·환경' })).toBeTruthy()
+    Reflect.deleteProperty(document.documentElement, 'scrollHeight')
+  })
+
   it('a faded book opens the request notice with its title (AC-10)', async () => {
     stubFetch()
     const user = renderPage()

@@ -1,4 +1,10 @@
 /* S14: the cover beside the title, author · publisher and [책 검색 >>]; the library lines under them */
+.book,
+.notice {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 .book {
   display: flex;
   flex-direction: column;

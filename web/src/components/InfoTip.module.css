@@ -43,6 +43,9 @@
   font-size: var(--text-sm);
   font-weight: 400;
   line-height: 1.55;
+  /* Korean lines break between words, long words still wrap (cycle 10 step 8) */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .arrow {

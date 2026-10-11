@@ -25,6 +25,8 @@
 
 .heading {
   min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   font-size: var(--text-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -148,6 +150,8 @@
 
 .helpList {
   display: grid;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   gap: 0.35rem;
   margin: 0;
   padding: 0;
@@ -295,6 +299,7 @@
 /* the same look as the search screen's notice line (S1) */
 .notice {
   margin-top: 0.5rem;
+  word-break: keep-all;
   padding: 0.75rem 1.1rem;
   border-radius: var(--radius-md);
   background: var(--fail-soft);
@@ -304,6 +309,7 @@
 }
 
 .empty {
+  word-break: keep-all;
   margin-top: 0.5rem;
   padding: 2.75rem 1.5rem;
   border-radius: var(--radius-lg);

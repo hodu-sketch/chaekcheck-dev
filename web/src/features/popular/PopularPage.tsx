@@ -107,21 +107,34 @@ export function PopularPage() {
 
   // the category box follows the block in the middle of the screen (R4-2, AC-3) [안: IntersectionObserver]
   useEffect(() => {
-    if (!codes || typeof IntersectionObserver === 'undefined') return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const code = (entry.target as HTMLElement).dataset.code
-          if (entry.isIntersecting && code) setCurrent(code)
-        }
-      },
-      { rootMargin: '-50% 0px -50% 0px' },
-    )
-    for (const code of codes.split(',')) {
+    if (!codes) return
+    const list = codes.split(',')
+    const observer =
+      typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                const code = (entry.target as HTMLElement).dataset.code
+                if (entry.isIntersecting && code) setCurrent(code)
+              }
+            },
+            { rootMargin: '-50% 0px -50% 0px' },
+          )
+    for (const code of list) {
       const section = document.getElementById(sectionId(code))
-      if (section) observer.observe(section)
+      if (section) observer?.observe(section)
     }
-    return () => observer.disconnect()
+    // at the very bottom only the source line and the footer cross the middle: the last category then (step 8, 320px)
+    const atBottom = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      if (max > 0 && window.scrollY >= max - 2) setCurrent(list[list.length - 1])
+    }
+    window.addEventListener('scroll', atBottom, { passive: true })
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('scroll', atBottom)
+    }
   }, [codes])
 
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
