@@ -390,43 +390,57 @@
 
   /*
    * One line per field: label, box, "완전 일치", never wrapping at 320px (user request 2026-10-05). The label and the
-   * check are a step smaller so the box keeps its room.
+   * check are a step smaller so the box keeps its room. A grid shared by the rows (as on wider screens): the box
+   * column is minmax(0, 1fr), so the box gives way and nothing runs past the panel, even with a larger browser text
+   * size (phone report 2026-10-12: "완전 일치" ran out of the panel)
    */
+  .more {
+    grid-template-columns: max-content minmax(0, 1fr) auto;
+    column-gap: 0.5rem;
+  }
+
+  .more > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
   .row {
-    --phone-label: 2.7rem;
-    --phone-gap: 0.5rem;
-    flex-wrap: wrap;
-    column-gap: var(--phone-gap);
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    row-gap: 0.5rem;
   }
 
   .rowLabel {
-    width: var(--phone-label);
+    width: auto;
     font-size: var(--text-sm);
     white-space: nowrap;
   }
 
+  /* the title line has no box: its check right after "제목", as on wider screens (user request 2026-10-05) */
+  .row > .rowLabel + .check {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   /* the title box's inset on phones (0.3rem + 0.6rem) */
   .smallInput {
-    flex: 1 1 0;
+    width: 100%;
     min-width: 0;
     max-width: none;
     padding: 0 0.9rem;
   }
 
   .row > .check {
-    flex: none;
     gap: 0.25rem;
     font-size: var(--text-xs);
     white-space: nowrap;
   }
 
-  /* the title line has no box: its check right after "제목", as on wider screens (user request 2026-10-05) */
-
   /* 옮긴이·그림·엮은이 start under the author box, not under "저자" (user request 2026-10-05) */
   .roles {
-    order: 3;
-    flex-basis: 100%;
-    padding-left: calc(var(--phone-label) + var(--phone-gap));
+    grid-column: 2 / -1;
+    padding-left: 0;
     border-left: none;
   }
 
