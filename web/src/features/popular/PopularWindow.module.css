@@ -1,0 +1,57 @@
+/* S14 and S15 on PC and tablet: in the middle, the grid behind dimmed and blurred (flow.md S14) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(27 26 36 / 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.content {
+  position: fixed;
+  z-index: 21;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(40rem, calc(100vw - 3rem));
+  max-height: calc(100dvh - 3rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.6rem 1.6rem 1.4rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.18);
+}
+
+.content[data-size='small'] {
+  width: min(24rem, calc(100vw - 3rem));
+}
+
+.close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

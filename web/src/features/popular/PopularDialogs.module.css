@@ -1,0 +1,133 @@
+/* S14: the cover beside the title, author · publisher and [책 검색 >>]; the library lines under them */
+.book {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.bookHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-right: 2rem;
+}
+
+.bookCover {
+  flex: none;
+  width: 5.5rem;
+  border-radius: var(--radius-tag);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+}
+
+.bookText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.bookTitle {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.bookMeta {
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.searchButton {
+  margin-top: 0.3rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.searchButton:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+.searchButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.checking {
+  padding: 1rem 0;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-align: center;
+}
+
+.problem {
+  padding: 1.6rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--paper-deep);
+  text-align: center;
+}
+
+.problemTitle {
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.problemNote {
+  margin-top: 0.4rem;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+}
+
+/* S15: the title on one line, the notice under it */
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.2rem 2rem 0.4rem 0;
+}
+
+.noticeTitle {
+  overflow: hidden;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noticeText {
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  line-height: 1.6;
+}
+
+@media (width <= 640px) {
+  .bookHead {
+    padding-right: 0;
+  }
+
+  .bookCover {
+    width: 4.5rem;
+  }
+
+  .notice {
+    padding: 0 0 0.6rem;
+  }
+}

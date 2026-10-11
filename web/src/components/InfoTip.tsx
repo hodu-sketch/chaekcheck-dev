@@ -1,13 +1,13 @@
 import { Popover } from 'radix-ui'
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import styles from './InfoTip.module.css'
 
 /**
  * A small ⓘ next to a title (cycle 08, flow.md 검토 #7): the text shows while the mouse is on it, and on a tap on
  * touch screens (a tooltip alone would never open there). A mouse click keeps it open instead of closing what the
- * hover opened.
+ * hover opened. `text` may hold several lines (cycle 10 S13i).
  */
-export function InfoTip({ label, text }: { label: string; text: string }) {
+export function InfoTip({ label, text }: { label: string; text: ReactNode }) {
   const [open, setOpen] = useState(false)
   const pointer = useRef('')
   return (

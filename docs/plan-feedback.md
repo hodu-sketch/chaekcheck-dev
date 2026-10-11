@@ -2449,3 +2449,55 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 정리(2026-10-12, 사용자: "정리도 해줘"): worktree `../chaekcheck-dev-cycle09`와 브랜치 `cycle09` 지움(main에 합친 뒤), 별도 DB 컨테이너 `chaekcheck-db09`·`chaekcheck-db09-test`와 볼륨 지움
 - 사이클 09 마무리(2026-10-12, 사용자: "화면 괜찮아, 사이클 09 마무리해"). plan에 넘길 문서는 이 절 전체(맨 아래 "plan에 넘길 요약"과 AC 확인표)
 - 수집 세션 전달 문서: `docs/cycle09-for-collection.md` (2026-10-12, 사용자 요청). 수집 DB 이름 바꾸기 289곳, 업체 적는 자리, 북큐브 전체 권수 다시 받기
+
+# 사이클 10
+
+## 웹 (6·7단계, 백엔드 API 없이 가짜 응답으로)
+
+### 정한 이름·경로 ([안] 항목)
+
+- 아래 창 공용 부품: `web/src/components/BottomSheet.tsx`, `BottomSheet.module.css` (인계서 [안 경로] 그대로)
+  - props: `open`, `onOpenChange`, `title`(화면 읽기용, 늘 숨김), `trigger`(선택, 없으면 바깥에서 열고 닫음), `triggerLabel`, `triggerClassName`, `closeButton`(ⓧ, `aria-label="닫기"`, 기본 없음), `closeOnBack`(폰 뒤로 가기, 기본 끔), `children`
+  - 끌어내리기 기준 `CLOSE_DRAG_PX` 80, `data-testid="sheet-handle"`, 바깥 누름·Esc 닫힘은 사이클 08 그대로
+  - 검색 설정 창(`SettingsPanel`)은 ⓧ 없이, 뒤로 가기 없이 씀(C6). 모양을 그대로 두려고 본문을 감싼 `div.sheetContent` 하나만 더해 계정 줄 CSS 선택자를 옮김. 기존 `SettingsPanel.test.tsx` 고치지 않고 통과
+- 폰 뒤로 가기 처리: `web/src/lib/useBackToClose.ts` (인계서 [안 이름] 그대로)
+  - 창이 열리면 지금 `history.state`를 복사해 표시(`chaekcheckSheet`)를 붙인 칸을 `pushState`로 하나 더함(주소·라우터 상태는 그대로라 화면이 다시 그려지지 않음). 뒤로 가기(`popstate`)로 그 칸이 빠지면 창만 닫음
+  - ⓧ·바깥·끌어내리기로 닫으면 `history.back()`으로 그 칸을 지움. React 개발 모드의 effect 두 번 실행에서 칸이 둘 생기지 않게 한 박자 늦게 지움
+  - 인기 도서 창 네 개(S13c·S13i·S14·S15)의 폰 아래 창에만 켬
+  - 폰 S14에서 [책 검색 >>]을 누르면 그 창 칸을 책 화면으로 `replace`함. 그래서 책 화면에서 뒤로 가면 닫힌 창이 아니라 S13으로 옴
+- 폰 기준 폭: `(width <= 640px)` (다른 화면과 같은 값, `PopularPage.tsx`의 `PHONE_QUERY`)
+- 밀기 기준 거리: 50px (`CategorySection.tsx`의 `SWIPE_PX`). 가로 이동이 세로보다 클 때만 넘김, 마우스 끌기는 넘기지 않음, 격자에 `touch-action: pan-y`(세로 스크롤은 그대로). 밀고 난 직후의 누름은 책을 열지 않음
+- 보던 자리 저장: 그 히스토리 칸의 `history.state.chaekcheckPopular = { pages, scrollY }`를 `history.replaceState`로 씀(라우터 `navigate(…, { replace, state })`는 스크롤마다 화면을 다시 그려서 쓰지 않음). 쪽은 바뀔 때, 스크롤은 150ms 멈춘 뒤와 책을 누를 때 씀. 주소·브라우저 저장소에는 두지 않음. 돌아오면 순위를 받은 뒤 그 쪽·스크롤로 되돌림
+  - 인기 도서 화면에 있는 동안 `history.scrollRestoration = 'manual'`, 나가면 원래 값. 창을 닫으며 `history.back()` 할 때 브라우저가 스크롤을 앞 자리로 되돌려 분류 이동(S13c)을 무르는 것을 막으려고
+- 분류 칸 따라가기: `IntersectionObserver`(`rootMargin: -50% 0px -50% 0px`, 화면 가운데 줄에 걸친 묶음)
+- 분류 이동: `scrollIntoView({ block: 'start', behavior: 'instant' })`(부드러운 이동 없음), 묶음에 `scroll-margin-top`으로 머리·제목 줄 높이만큼 띄움
+- 웹 컴포넌트 (`web/src/features/popular/`)
+  - `PopularPage`(S13), `CategorySection`(분류 묶음: 이름·◀ 3×3 ▶·밀기. 인계서의 `CoverGrid`를 여기에 합침), `CoverCard`, `CoverImage`(표지 또는 제목 글자, S14와 같이 씀), `CategoryPicker`(S13c), `PopularHelp`(S13i), `PopularBookDialog`·`pickLibraryRows`(S14), `RequestNotice`(S15), `PopularWindow`(S14·S15 공통: PC 가운데 창 / 폰 아래 창), `usePopularPlan`, `popularPosition`, `popularText`(문구·달 표시·출처 줄)
+  - CSS: `PopularPage.module.css`, `PopularDialogs.module.css`, `PopularWindow.module.css`, `CoverImage.module.css`
+- API·타입: `fetchPopularBooks(plan, signal)`, `PopularBooks`·`PopularCategory`·`PopularBook` (인계서 [안] 그대로). 소장 스트림 `holdingStream`과 `useHoldings().open` 옵션에 선택 값 `holdingLimit`(있을 때만 주소에 넣음)
+- 화면 읽기용 이름: 카드 "N위 제목, 전자책 있음/없음"(인계서 [안] 그대로), 세모 "<분류> 이전 9권"·"<분류> 다음 9권", 분류 칸 "분류: <이름>", 창 이름 S14 "<제목> 대출 정보", S15 "전자책 신청 안내", S13c 폰 "분류 고르기", S13i "인기 도서 안내"
+
+### 정한 모양·동작 ([안], 8단계 화면 확인에서 다시 봄)
+
+- 머리 "인기 도서" 글자 링크는 로고 바로 오른쪽(로그인 버튼은 오른쪽 끝 그대로). `/popular`에서는 링크가 진해짐(`aria-current="page"`). `/terms`·`/privacy`에서는 로그인 버튼처럼 숨김. 설명 글은 모든 폭에서 지움
+- 제목 줄(제목·분류 칸·ⓘ)은 머리 바로 아래에 붙어 있음(sticky). 머리 높이는 `AppLayout` 머리 칸에 `data-app-header`를 달아 재서 씀. 폰은 "인기 도서" 아래 줄에 "2026년 9월 판매 순위"
+- 격자 너비는 남은 화면 높이에서 계산(세 줄이 한 화면에 들어가게), PC 최대 40rem, 표지 비율 2:3. 폰은 폭을 채우고 ◀ ▶는 격자 위 좌우 끝에 작게
+- 흐림 정도: 표지만 `opacity: 0.35` + `grayscale(0.4)`, 순위 숫자는 그대로
+- S13i PC는 기존 `InfoTip`을 씀. 여러 줄을 넣으려고 `text` 타입을 `string`에서 `ReactNode`로 넓힘(다른 쓰임은 그대로)
+- S14 도서관 줄: 결과가 오는 대로 `pickLibraryRows`로 정렬해 보이고, 스트림이 끝날 때까지 줄 아래에 "확인 중…". 대출 필터는 `all`로 보냄
+- 표지 주소는 우리 표지 주소 꼴(`/api/v1/popular-books/covers/<숫자>`)일 때만 그림으로 씀, 아니면 제목 글자(C7). `dangerouslySetInnerHTML` 없음
+- 인기 도서 요청이 `invalid_region`이면 저장된 지역을 한 번 다시 확인하고 다시 요청(S1과 같은 방식), 그래도 안 되면 오류 문구
+
+### 인계서·flow와 다른 점, 정해지지 않았던 것
+
+- S14 대출 조회 스트림 자체가 열리지 않거나 끊겼을 때의 문구가 정해져 있지 않아 "대출 정보를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요."로 둠 [안]. 도서관 하나의 실패는 S3 줄 그대로("확인 실패", 맨 뒤)
+- design-delta "첫 묶음만 쓸지 [확인 필요: dev `useHoldings`]": `holdingLimit=3`이면 첫 스트림에 그 3곳만 들어오므로 첫 묶음만 씀(`loadNext` 부르지 않음)
+- `CoverGrid`를 따로 두지 않고 `CategorySection`에 합침(이름만 다름)
+
+### 테스트 (Vitest, 가짜 응답)
+
+- `BottomSheet.test.tsx`(80px 넘게 끌면 닫힘·80px은 안 닫힘, 바깥 닫힘, ⓧ 있을 때 닫힘·없을 때 버튼 없음, 뒤로 가기는 창만 닫고 ⓧ로 닫으면 히스토리 칸을 지움), `AppLayout.test.tsx`(AC-15), `SettingsPanel.test.tsx` 그대로
+- `PopularPage.test.tsx`: AC-1, AC-2, 분류마다 쪽 따로 기억·히스토리 칸에 저장, 저장된 쪽·스크롤로 돌아옴(AC-20 일부), AC-4, AC-6, AC-7(요청 주소에 `scope`·`residenceRegionIds`·`libraryIds`), AC-14, 로딩 9칸·빈 상태·오류 문구, AC-19(밀기), AC-5(목록 → "역사"), AC-10, S14 → [책 검색 >>] → 책 화면(AC-9), 폰 폭 흉내로 네 창이 아래 창이고 ⓧ·끌어내리기·뒤로 가기로 닫힘(AC-18)
+- `CategoryPicker.test.tsx`(17줄, 지금 분류 표시, "역사" 고르면 닫히고 칸 글씨 바뀜, Esc), `pickLibraryRows.test.ts`(AC-8 순서), `PopularBookDialog.test.tsx`(`holdingLimit: 3`, 3줄 순서, "외 N곳" 없음, 도서관 줄 새 창, [책 검색 >>], 404 문구, 그 밖 오류 문구, 확인 중, 가진 곳 0), `RequestNotice.test.tsx`(AC-10), `popularText.test.ts`, `api/popularRequests.test.ts`(요청 주소, `holdingLimit`)
+- jsdom에서는 확인할 수 없는 것(AC-3 화면 가운데 분류 따라가기, 실제 스크롤 되살림, 레이아웃)은 8단계 Playwright에서 봄
+- 8단계(Playwright 1280/768/375/320, 실제 백엔드 연결)는 아직 하지 않음
