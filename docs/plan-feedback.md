@@ -2440,10 +2440,11 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 ### plan에 넘길 요약 (사이클 09)
 
 - 인계서 0~7단계 모두 함. 이름 289줄, 대출 방식 1,458줄을 014 한 changeSet으로 바꿈. 검색·소장 판정 변화 없음
-- 사용자 답: 공식 이름은 모두 spec과 같음(물을 것 없었음), 북큐브 구독 339·380·386·705 그대로, 순번 2 이상 없음, 이름 289줄 "승인, 커밋", AC-5 계정 쪽 "브라우저만 + 테스트로 대신". 응답 크기 "응답 크기 그대로 괜찮아"(2026-10-12), 화면은 사용자 확인 대기
+- 사용자 답: 공식 이름은 모두 spec과 같음(물을 것 없었음), 북큐브 구독 339·380·386·705 그대로, 순번 2 이상 없음, 이름 289줄 "승인, 커밋", AC-5 계정 쪽 "브라우저만 + 테스트로 대신". 응답 크기 "응답 크기 그대로 괜찮아"(2026-10-12), 화면 "화면 괜찮아"(2026-10-12)
 - 셈: 괄호 뗀 277 / 남긴 45 / 애매 2, `name_overrides.tsv` 295줄, 014 이름 VALUES 289줄, 업체별 KYOBO 1,642·YES24 547·BOOKCUBE 441·ALADIN 25·PORTAL 7·IN_HOUSE 1, 대출 방식별 OWNED 2,634·SUBSCRIPTION 11·RENTAL 9·MIXED 2·NULL 7, 280 이하 `OWNED` 255
 - 정한 이름: `library/014-library-classification.yaml`(changeSet 하나), `--changes-only <db-state.tsv>`와 다섯째 인자 `<bookcube-volume.tsv>`, `scripts/library/bookcube-volume-2026-10-11.tsv`, `web/src/lib/libraryClassification.ts`, `LibrarySchemaCycle09Tests`, 폰 기준 `width <= 640px`
 - 설계와 달라진 점: "군산시립" 순서(업체 글자순이면 교보 → 북큐브 → YES24), 이름 UPDATE만 `splitStatements: false`, 대출 방식 UPDATE는 번호 목록이 아니라 화면 종류 규칙으로, 0단계 지역은 시·도가 아니라 구(1101, 2606)
 - 새로 알게 된 것: WSL은 붙은 프로세스가 없으면 꺼져 Docker 컨테이너도 멈춤(측정·테스트 중 `wsl -d Ubuntu -- sleep infinity`로 붙잡아 둠). 사이클 08 측정과 겹치지 않게 worktree + 별도 DB(5434·5435)에서 개발함
 
 - 정리(2026-10-12, 사용자: "정리도 해줘"): worktree `../chaekcheck-dev-cycle09`와 브랜치 `cycle09` 지움(main에 합친 뒤), 별도 DB 컨테이너 `chaekcheck-db09`·`chaekcheck-db09-test`와 볼륨 지움
+- 사이클 09 마무리(2026-10-12, 사용자: "화면 괜찮아, 사이클 09 마무리해"). plan에 넘길 문서는 이 절 전체(맨 아래 "plan에 넘길 요약"과 AC 확인표)
