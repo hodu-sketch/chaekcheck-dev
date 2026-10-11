@@ -26,6 +26,8 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.chaekcheck.popular.PopularTestData;
+import com.chaekcheck.popular.internal.cache.PopularCache;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -62,10 +64,29 @@ class AuthEnabledSecurityTests {
 	@Autowired
 	ApplicationContext context;
 
+	@Autowired
+	PopularCache popularCache;
+
 	@Test
 	void hasOneFilterChainAndNoGeneratedUser() {
 		assertThat(context.getBeanNamesForType(SecurityFilterChain.class)).hasSize(1);
 		assertThat(context.getBeanNamesForType(UserDetailsService.class)).isEmpty();
+	}
+
+	/** Cycle 10 R7-3 (AC-16): popular books and covers need no login, and their Cache-Control stays. */
+	@Test
+	void popularBooksNeedNoLogin() {
+		PopularTestData data = new PopularTestData(jdbc);
+		data.month();
+		long cover = data.cover(1, "/files/isbn/2026/07/06/s_t1.jpg");
+		popularCache.refresh();
+
+		assertThat(mvc.get().uri("/api/v1/popular-books")).hasStatusOk()
+			.bodyJson()
+			.extractingPath("$.month")
+			.isEqualTo("2026-09");
+		assertThat(mvc.get().uri("/api/v1/popular-books/covers/" + cover)).hasStatusOk()
+			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
 	}
 
 	@Test

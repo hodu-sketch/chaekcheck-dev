@@ -2507,3 +2507,62 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 머리 "인기 도서" 링크 위치: 로고 바로 옆(구현 그대로). 질문 "로고 바로 옆 / 로그인 바로 옆"에 사용자가 "로고 바로 옆 (지금 구현)"을 고름
 - S14에서 대출 정보 확인이 통째로 실패했을 때 문구: "대출 정보를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요." 그대로. 사용자가 "이대로"를 고름
 - 8단계 진짜 사이트 받기 시험: 백엔드 1~5단계가 테스트를 통과하면 다시 묻지 않고 한 번 돌리기로 미리 승인("지금 승인")
+
+## 백엔드 (0~5단계, 5-1단계)
+
+### 0단계 픽스처 (2026-10-12 01:40 KST)
+
+- 사용자 승인 뒤 진짜 사이트를 한 번 부름: 요청 3건, 3초 간격, User-Agent "book search service". 저장: `backend/src/test/resources/fixtures/kpipa/` (인계서 [안] 경로·이름 그대로)
+  - `rank-page.html`: `GET {base}/home/v3/addition/adiStatsCtgSaleRank`, 200, 0.28초
+  - `rank-search-all.html`: 순위 POST "전체", `txtDate=202609`, 200, **7.3초**. 읽기 시간 제한 10초에 가까움 → 8단계 받기 시험에서 응답 시간을 다시 봄
+  - `sales-count-novel.html`: 판매량 POST 소설 202609, `dataX1 = 883478`(조사 문서 2-1절 값과 같음), 200, 0.76초. `Referer`는 `{base}/home/v3/addition/adiStatsCtgSaleCnt`로 보냈고 통함. 순위 화면에서 받은 쿠키·토큰으로 판매량 POST가 통함
+- 손으로 줄인 시험 파일(위 파일에서 만듦, 2026-10-12)
+  - `rank-search-49-books.html`: 마지막 책 하나를 지움 → `too_few_books`
+  - `rank-search-no-items.html`: 책 목록(`<li>` 50개)을 지움 → `format_changed`
+  - `rank-search-bad-values.html`: 3위 ISBN 비움, 5위 ISBN `979-11-123`, 7위 표지를 다른 호스트 주소로, 8위 표지 경로에 `..`, 9위 그림 없음 → ISBN NULL 2권(`missing_isbn_count` 2), 표지 NULL 3권
+  - `sales-count-no-data.html`: 첫 `dataX1 = Number("883478")`을 `Number("")`로 → `format_changed`
+- [확인 필요] "작은 표지 경로" 해결: `img`의 `src`가 바로 `/files/…/s_<id>.jpg`(작은 그림)이고 `data-originalsrc`가 큰 그림. `src`를 그대로 씀(만들지 않음)
+- 분류 링크 대조: 화면 픽스처의 `a[data-name="searchCtg"]` 22개(`id="ctg_<ID>"`)의 이름·ID가 조사 문서 2절 표와 같고, `PopularCategory` 16개 ID가 모두 맞음(예: 자기계발 = "건강, 인간관계, 개인발전" 2344, 언어 = "언어, 언어학" 178). 멈출 일 없었음
+
+### 사용자 결정, 인계서와 달라진 점
+
+- **User-Agent** (C4 [확정] 값 `chaekcheck (+<서비스 주소>)`와 다름): 사용자 "chaekcheck 빼고 '도서 검색 서비스'라고만 해주라". 자바 `HttpClient`가 한글 헤더 값을 거절함(`IllegalArgumentException: invalid header value`, 시험함) → 사용자가 영어 **"book search service"**를 고름. 설정 `chaekcheck.popular.fetch.user-agent: "book search service"`, 주석 `TODO(확인 필요)`: 배포 때 `(+<서비스 주소>)`를 붙임
+- **표지 경로 규칙 C7 [안] 넓힘**: 사이트가 작은 표지를 `/files/isbn/`만이 아니라 `/files/onix/`·`/files/old/`·`/files/trans/`에도 둠(202609 "전체" 50권: isbn 37, onix 10, old 2, trans 1). `/files/isbn/`만 받으면 13권이 제목 글자가 됨. 받는 규칙: `/files/<영문 소문자 폴더>/…/s_<이름>`, 경로 글자는 영문·숫자·`_` `.` `-`와 `/`만, `..`·`//`·스킴·호스트·`?` 없음, 파일 이름이 `s_`로 시작(작은 그림만, C10). 나머지는 `cover_path` NULL. DB CHECK는 인계서대로 "`/`로 시작"만
+- **세션 GET**: 1번(dev 결정). 한 달 받기 = 세션 1 + 순위 17 + 판매량 16 = **34건**
+- `holdingLimit` (5-1단계): 이름 그대로. 검증 순서는 기존 순서 끝(지역 형식 검사 뒤, 계획의 422 앞). 1~20 정수만(`007`·`3.0`도 `invalid_format`), 빈 값은 없음으로 봄, 두 번이면 `duplicate`. 책이 여럿이면 "계획 순서 앞 N개 소장"(같으면 책 순서·소장 번호), 남긴 것은 지금 순서 그대로 보냄. 책 하나·도서관마다 소장 하나(S14)면 "계획 순서 앞 N곳"과 같음. 다음 묶음 스트림에는 넣지 않음
+- `PopularFetchTests`는 받기를 켜지 않음: `FetchJob`을 테스트 스레드에서 직접 불러 테스트 트랜잭션 안에서 롤백됨. 받기를 켜는 클래스는 `PopularStartupFetchTests` 하나(가짜 전송, 시작 받기가 쓴 줄은 끝나고 지움)
+- AC-16(로그인 켠 설정, 쿠키 없이 200)은 새 클래스 대신 `AuthEnabledSecurityTests`에 메서드 하나(`popularBooksNeedNoLogin`)로 더함. 이유: 테스트 문맥이 늘어 db-test 연결 한도(100)를 넘어 "too many clients" 실패가 났음. 같은 이유로 `PopularFetchTests`·`PopularStartupFetchTests`는 `@DirtiesContext`(끝나면 문맥 닫음)
+- C8 "캐시 새로 고침 실패 → 앞 값 유지"는 단위 테스트 `PopularCacheTests`로 확인(스파이 빈 문맥을 하나 더 만들지 않으려고)
+
+### 정한 이름·값 ([안] 항목)
+
+- 패키지·클래스 (`com.chaekcheck.popular.internal`)
+  - 바로 아래: `PopularCategory`(enum 상수 ALL, NOVEL, LITERATURE, SOCIETY, LANGUAGE, PHILOSOPHY, ECONOMY, SELF_HELP, ARTS, COMPUTING, LIVING, SCIENCE, HISTORY, TECHNOLOGY, LAW, REFERENCE, GEOGRAPHY), `PopularProperties`, `PopularConfiguration`, `RankingChanged`(저장 뒤 캐시에 알리는 모듈 안 인터페이스)
+  - `fetch`: `KpipaTransport`(+ `HttpKpipaTransport`, 받기 한 번마다 쿠키 저장소 하나), `KpipaClient`, `RequestPacer`, `RankPageParser`, `SalesCountParser`, `CategoryOrder`, `FetchFailure`, `FailureReason`, `RankedBook`, `CategoryRanking`, `MonthRanking`, `KpipaRequest`, `KpipaResponse`, `BodyLimit`(availability 것 복사)
+  - `schedule`: `FetchDecision`, `FetchJob`, `FetchScheduler`, `FetchTrigger` / `store`: `PopularStore` / `cache`: `PopularCache` / `web`: `PopularBooksController`, `PopularPlanParams`, `PopularErrors`, `InvalidPopularParamException`, `CoverNotFoundException`
+  - `catalog`: `BookLookup`, `IsbnBook`(같은 패키지, 따로 파일), 구현 `catalog/internal/JdbcBookLookup`
+- changelog: `db/changelog/popular/001-popular-schema.yaml`(changeSet `popular-001-schema`, `-fetch-run`, `-ranking`, `-cover`), master 맨 뒤 `# cycle 10` 주석 + include
+- 제약 이름(`<표>_<칸>_<종류>`): `fetch_run_pkey`, `fetch_run_target_month_check`(1일), `fetch_run_trigger_check`, `fetch_run_status_check`, `fetch_run_failure_reason_check`, `fetch_run_failure_reason_status_check`(`(status = 'FAILED') = (failure_reason IS NOT NULL)`), 셈 칸 다섯 개 `fetch_run_<칸>_check`, 색인 `fetch_run_target_month_started_at_idx` / `ranking_month_pkey`, `ranking_month_target_month_check`, `ranking_month_fetch_run_id_fkey` / `ranking_category_pkey`, `ranking_category_target_month_fkey`, `ranking_category_category_code_check`(`ALL` 또는 20자리 숫자), `ranking_category_sales_copies_check`(`ALL`이면 NULL, 아니면 NOT NULL·`>= 0`), `ranking_category_display_order_check`, `ranking_category_target_month_display_order_key` / `ranking_entry_pkey`, `ranking_entry_target_month_category_code_fkey`, `ranking_entry_rank_check`, `ranking_entry_isbn13_check`, `ranking_entry_cover_path_check` / `cover_pkey`, `cover_source_path_key`, `cover_source_path_check`(`/`로 시작), `cover_byte_size_check`. 칸 이름 `rank`·`trigger`는 그대로 써서 문제 없었음
+- 설정: 환경 변수 `CHAEKCHECK_POPULAR_FETCH_ENABLED`, 캐시 키 `chaekcheck.popular.cache.refresh-interval: 10m`, 받기 키는 `chaekcheck.popular.fetch.*`. 더한 키 `max-body-size: 1MB`(모든 응답 본문 상한, 표지 포함. 작은 표지 약 51KB, 화면 약 65KB)
+- 시간 제한: 연결 5초, 읽기(응답 머리까지) 10초, 본문까지 한 요청 전체는 연결 + 읽기 = 15초
+- 간격: 앞 요청이 **끝난 때부터** 2초 이상. 요청마다 INFO 로그 `kpipa <방법> <경로> list=<분류> status=<코드> took=<ms> gap=<ms>`
+- 순위가 50권 넘으면 앞 50권. `dataX1`은 **첫 번째** `dataX1 = Number("…")`만 읽음(우리가 보내는 `bookType` 갈래. 응답 안 두 번째 `Number("")`는 `saleType` 갈래). 비었거나 숫자(0-9)만이 아니면 `format_changed`(쉼표도 거절)
+- 실패 구분: 세션 200 아님·토큰 없음 → `session_failed`, 순위·판매량 200 아님(302·403 등) → `request_rejected`, 목록 없음·제목 빔·`dataX1` 없음·본문 상한 넘음 → `format_changed`, 50권 미만 → `too_few_books`, 연결 실패·시간 초과 → `network_error`. 첫 실패에서 멈추고(같은 요청 다시 안 보냄) 그때까지의 요청 수를 `FAILED` 줄에 적음. `failure_detail` 예: `문학·인물: 49 books`
+- 표지: 순위 저장 뒤 그달 표지 경로 중 없는 것만, 표시 순서 → 순위 순으로 받음. 200이고 `Content-Type`이 `image/`로 시작할 때만 넣음. 다 받은 뒤 최근 두 달에 안 쓰인 표지를 지우고 그 받기 줄의 표지 수만 UPDATE
+- 예약: `@EnableScheduling`은 `PopularConfiguration`(캐시 10분 새로 고침은 받기가 꺼져도 돎). 시작 받기·05:00 받기는 `FetchScheduler`(받기를 켰을 때만 빈)가 단일 플랫폼 스레드 `popular-fetch`에 넘김, 앱이 꺼질 때 `shutdownNow`. 겹침은 `FetchJob`의 `AtomicBoolean`
+- 공용 캐시: 앱이 켜질 때 1번, 10분마다(첫 번은 켜지고 10분 뒤), 순위 저장 직후, 표지 끝난 뒤. 실패하면 앞 값 + `warn` 로그. 표지가 끝나기 전 새로 고침이면 새 책 일부가 잠시 제목 글자(인계서 [안] 그대로 받아들임)
+- API: `fetchedAt`은 Asia/Seoul `+09:00`, 초 단위(`2026-10-03T05:01:32+09:00`). 표지 번호가 숫자가 아니거나 0이면 404 `cover_not_found`. 저장된 `Content-Type`이 형식에 안 맞으면 `application/octet-stream`
+- `deploy/nginx` 확인([확인 필요] 해결): `/api/` location은 `proxy_pass`만 하고 `Cache-Control`을 덮지 않음. 로그인 켠 설정에서도 Spring Security가 표지의 `Cache-Control`을 바꾸지 않음(`AuthEnabledSecurityTests.popularBooksNeedNoLogin`)
+
+### 새로 알게 된 것, 확인할 것
+
+- **로컬 `.env`에 `CHAEKCHECK_POPULAR_FETCH_ENABLED`가 아직 없음**: 기본값이 true라 지금 `bootRun`을 하면 시작 받기가 진짜 사이트를 부름. 로컬 `.env`에 `CHAEKCHECK_POPULAR_FETCH_ENABLED=false`를 넣어야 함(`.env.example`에는 넣음. `.env`는 이 작업 범위 밖이라 고치지 않음)
+- 테스트 문맥 수가 늘면 db-test 연결 한도(100)에 걸림(문맥마다 연결 4개). 새 테스트 클래스는 기존 설정과 같은 문맥을 쓰거나 `@DirtiesContext`로 닫기
+- "전체" 순위 POST가 7.3초(다른 요청 0.3~0.8초). 8단계에서 다시 재고, 10초를 넘기면 읽기 시간 제한 조정을 보고
+
+### 확인
+
+- 단계마다 `backend/`에서 `./gradlew build` 통과(`ModularityTests`: `popular` → `catalog`·`library`만, 다른 모듈은 `popular`에 기대지 않음. `DocumentationTests`에 `module-popular.puml`)
+- 새 테스트: `BookLookupTests`, `PopularSchemaTests`, `PopularParserTests`, `KpipaClientTests`(JDK `HttpServer` + 진짜 `HttpKpipaTransport`: 쿠키·토큰·헤더·본문, 34건·간격 33개 모두 2초 이상, 토큰 없음·500 → `session_failed`, 302 → `request_rejected`, 시간 초과 → `network_error`, 본문 상한 → `format_changed`, 표지), `FetchDecisionTests`, `PopularFetchTests`, `PopularStartupFetchTests`, `PopularCacheTests`, `PopularBooksApiTests`, `BookAvailabilityStreamControllerTests`의 `holdingLimit` 4개, `AuthEnabledSecurityTests.popularBooksNeedNoLogin`
+- 테스트는 진짜 사이트를 부르지 않음(가짜 전송·로컬 `HttpServer`만). 테스트 뒤 db-test의 `popular` 표는 비어 있음(확인함)
+- 8단계(진짜 사이트 받기 시험, 측정)는 아직 하지 않음

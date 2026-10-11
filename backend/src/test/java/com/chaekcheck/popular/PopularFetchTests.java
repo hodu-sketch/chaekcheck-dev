@@ -17,6 +17,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chaekcheck.popular.internal.PopularCategory;
@@ -27,12 +28,14 @@ import com.chaekcheck.popular.internal.schedule.FetchTrigger;
 /**
  * A month fetched from the fake site and stored (plan cycle 10 step 4; AC-11, AC-12, AC-17). The fetch is called
  * directly on the test thread, so it joins the test transaction and nothing stays in db-test. Fetching stays off in
- * this context ({@code application-test.yml}): no start-up fetch, no daily fetch.
+ * this context ({@code application-test.yml}): no start-up fetch, no daily fetch. The context (with the fake site)
+ * is used by this class only and closed after it, so its connections do not count against db-test's limit.
  */
 @SpringBootTest
 @Transactional
 @Import(FakeKpipaSite.class)
 @ExtendWith(OutputCaptureExtension.class)
+@DirtiesContext
 class PopularFetchTests {
 
 	static final YearMonth AUG = YearMonth.of(2026, 8);

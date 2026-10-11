@@ -13,14 +13,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.annotation.DirtiesContext;
 
 /**
  * With fetching on and nothing stored, the application fetches at start-up on its own thread and records it (AC-13).
  * Only this class turns fetching on, with the fake site (plan cycle 10 C3). The start-up fetch commits, so the rows
- * it wrote are deleted afterwards; db-test's popular tables are empty otherwise (every other test rolls back).
+ * it wrote are deleted afterwards; db-test's popular tables are empty otherwise (every other test rolls back). The
+ * context is closed after the class: no other class uses it, and its connections count against db-test's limit.
  */
 @SpringBootTest(properties = "chaekcheck.popular.fetch.enabled=true")
 @Import(FakeKpipaSite.class)
+@DirtiesContext
 class PopularStartupFetchTests {
 
 	@Autowired
