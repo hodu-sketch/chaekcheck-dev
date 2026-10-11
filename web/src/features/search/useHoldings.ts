@@ -17,6 +17,8 @@ export interface HoldingPlanOptions {
   residenceRegionIds: number[]
   workRegionIds: number[]
   libraryIds: number[]
+  /** Cycle 10 (S14): ask only the first N plan holdings (`holdingLimit`); left out = all. */
+  holdingLimit?: number
 }
 
 /**
@@ -50,10 +52,19 @@ export function useHoldings() {
     for (const book of items) books.current.set(book.id, book)
     const batchNo = ++batchCounter.current
     dispatch({ type: 'batch-start', batchNo })
-    const { filter, scope, visit, residenceRegionIds, workRegionIds, libraryIds } = options
+    const { filter, scope, visit, residenceRegionIds, workRegionIds, libraryIds, holdingLimit } = options
     filterRef.current = filter
     holdingStream(
-      { bookIds: items.map((b) => b.id), filter, scope, visit, residenceRegionIds, workRegionIds, libraryIds },
+      {
+        bookIds: items.map((b) => b.id),
+        filter,
+        scope,
+        visit,
+        residenceRegionIds,
+        workRegionIds,
+        libraryIds,
+        ...(holdingLimit !== undefined && { holdingLimit }),
+      },
       (event) => dispatch({ type: 'event', batchNo, event, books: books.current }),
       next.signal,
     ).catch((error: unknown) => {

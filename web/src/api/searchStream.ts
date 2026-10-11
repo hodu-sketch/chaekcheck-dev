@@ -123,6 +123,8 @@ export interface HoldingStreamParams {
   workRegionIds: number[]
   /** Libraries added by hand (cycle 06); sent only when not empty. */
   libraryIds: number[]
+  /** Cycle 10 (S14): only the first N plan holdings, in plan order (1..20); left out = all, as before. */
+  holdingLimit?: number
 }
 
 export interface HoldingBatchParams {
@@ -147,6 +149,7 @@ export function holdingStream(
   if (params.libraryIds.length) search.set('libraryIds', params.libraryIds.join(','))
   if (params.residenceRegionIds.length) search.set('residenceRegionIds', params.residenceRegionIds.join(','))
   if (params.workRegionIds.length) search.set('workRegionIds', params.workRegionIds.join(','))
+  if (params.holdingLimit !== undefined) search.set('holdingLimit', String(params.holdingLimit))
   return readStream(`/api/v1/book-availabilities/stream?${search}`, HOLDING_EVENT_NAMES, onEvent, signal)
 }
 
