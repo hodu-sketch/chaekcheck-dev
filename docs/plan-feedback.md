@@ -2329,3 +2329,35 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - **AC-9와 다른 점(plan 확인)**: "`catalog_next`가 남지 않아야"는 정상 예외일 때만 지켜짐(통합 테스트 4가지). DB나 프로세스가 죽으면 다음 가져오기까지 남음. 서비스가 켜질 때 지우는 방식은, 가져오는 중에 서비스를 다시 켜면 진행 중인 `catalog_next`를 지워 버리므로 하지 않음.
 - **배포 때 주의(새로 알게 된 제약)**: 가져오기 세션의 `maintenance_work_mem`은 DB 컨테이너 상한보다 충분히 작아야 함. 권장 상한 1GB인 DB에서 가져오기를 돌리면 `maintenance-work-mem`을 256MB 이하로 주거나, 가져오기를 다른 곳에서 하고 결과만 옮기는 안(plan이 정할 것 8번)이 맞음.
 - `db` 컨테이너를 상한 없이 고른 설정(64MB / 768MB / 4MB)으로 다시 만들고, #3을 6GB로 다시 돌림(#3c). 결과는 아래 덧붙임.
+
+# 사이클 09
+
+## 시작 (2026-10-11)
+
+- 사이클 08 커밋(2502e7b) 위에서 시작. 사이클 08 가져오기 #3c 측정이 같은 저장소의 `db`·`backend/build`를 쓰는 중이라, 사이클 09는 worktree `../chaekcheck-dev-cycle09`(브랜치 `cycle09`)와 따로 띄운 DB 두 개(개발 5434 `chaekcheck-db09`, 테스트 5435 `chaekcheck-db09-test`, compose 밖 `docker run`)에서 함. 사용자: "db따로 띄워서 하면 안 되나?"
+- master 마지막 library changeset은 `library/013-library-name-overrides.yaml`(그대로 014를 씀)
+- `name_overrides.tsv`는 시작 때 8줄(434, 456, 2264, 2563, 2611, 2161, 1079, 1016)
+
+## 0단계 (일부)
+
+- 저장 위치 `data/cycle09/`(git 밖). 운영 `db`에서 SELECT만 함
+  - C5 목록(교보 구독형 && `lending_model IS DISTINCT FROM 'OWNED'`): 18곳 → `c5-before.txt`
+  - 괄호 있는 이름: 326줄 → `paren-names-before.tsv`. plan 324와 2 차이는 013이 434·456에 붙인 " (북큐브)"
+  - 2단계 입력용 DB 상태(`id, name, platform_type, lending_model, enabled`, 2,663줄) → `library-db-013.tsv`
+- 목록 응답 크기, 검색 결과 기준, 내 도서관 준비는 가져오기 #3c가 끝난 뒤에 함(가져오기 끝의 바꿔 끼우기로 책 번호가 바뀌므로 그 뒤에 재야 비교가 맞음)
+
+## 1단계
+
+- 공식 이름 10곳 모두 spec 이름과 같음(`library-maintenance.md` 4-13-2). 943 "경상남도교육청 양산도서관"은 경남교육청 기관 안내로 새로 확인
+- 괄호 셈이 plan과 같음: 뗄 줄 277, 남길 줄 45, 애매 2
+- `name_overrides.tsv` 최종 295줄(이번에 더한 287줄)
+
+## 2단계
+
+- 스크립트 새 인자: 다섯째 위치 인자 `<bookcube-volume.tsv>`(dev 경로 `scripts/library/bookcube-volume-2026-10-11.tsv`), 옵션 `--changes-only <db-state.tsv>`
+- 014 `old_name`: 로컬 `db`(013까지 적용) 내보내기를 `--changes-only`의 입력으로 받아 그 이름을 씀(인계서 [안] 그대로)
+- 등록 도서관의 화면 종류는 seed CSV·002 YAML, 대출 방식은 `library/008` UPDATE의 `(id, 'MODEL')` 쌍을 읽음(DB 상태 파일은 옛 이름과 지금 `lending_model` 비교에만 씀). 화면 종류가 DB와 다르거나 번호가 어긋나면 멈춤
+- 순번 2 이상이 나오면 종료 코드 3(사람이 사이트 이름 확인)
+- 출력: 북큐브 구독 339·380·386·705(plan과 같음), 순번 2 이상 0, 이름 UPDATE 289줄, 대출 방식 채우기 1,458줄(OWNED 1,447, SUBSCRIPTION 11 = 교보 구독형 59·131·140·275~278 + 북큐브 4), 교보 구독형에 새 OWNED 없음(C5), 대응표와 다른 업체 0
+- 전체 업체별: KYOBO 1,642, YES24 547, BOOKCUBE 441, ALADIN 25, PORTAL 7, IN_HOUSE 1. 대출 방식별(014 뒤): OWNED 2,634, SUBSCRIPTION 11, RENTAL 9, MIXED 2, NULL 7(포털)
+- seed CSV 셋은 그대로(`--changes-only`)

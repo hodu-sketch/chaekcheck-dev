@@ -1,9 +1,296 @@
 library_id	old_name	new_name	changed_on	source_url	checked_on
-434	경상대학교	경상국립대학교 (북큐브)	2021-03-01	https://www.moe.go.kr/boardCnts/view.do?boardID=294&lev=0&statusYN=W&s=moe&m=0204&opType=N&boardSeq=83640	2026-10-11
-456	국립안동대학교	국립경국대학교 (북큐브)	2025-03-01	https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do	2026-10-11
+434	경상대학교	경상국립대학교	2021-03-01	https://www.moe.go.kr/boardCnts/view.do?boardID=294&lev=0&statusYN=W&s=moe&m=0204&opType=N&boardSeq=83640	2026-10-11
+456	국립안동대학교	국립경국대학교	2025-03-01	https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do	2026-10-11
 2264	서라벌대학교	신경주대학교	2024	https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do	2026-10-11
 2563	대검 도서관	공소청 도서관	2026-10-02	https://www.moj.go.kr/bbs/moj/157/602431/artclView.do	2026-10-11
 2611	강서공업고등학교	서울디지털콘텐츠고등학교	2025-03-01	https://www.sen.go.kr/user/bbs/BD_selectBbs.do?q_bbsSn=1157&q_bbsDocNo=20080617111902389	2026-10-11
 2161	한국형사정책연구원	한국형사·법무정책연구원	2021-05-18	https://www.kicj.re.kr/menu.es?mid=a10502020000	2026-10-11
 1079	농수산물유통공사	한국농수산식품유통공사	2012-01-26	https://www.at.or.kr/contents/apko311200/view.action	2026-10-11
 1016	국가평가교육진흥원	국가평생교육진흥원	typo	https://www.nile.or.kr/	2026-10-11
+7	세종시립도서관(구독)	세종시립도서관	label-removed	ADR-0071	2026-10-11
+16	강동구립도서관(구독)	강동구립도서관	label-removed	ADR-0071	2026-10-11
+37	고창군도서관(구독)	고창군도서관	label-removed	ADR-0071	2026-10-11
+38	과천시정보과학도서관(소장)	과천시정보과학도서관	label-removed	ADR-0071	2026-10-11
+43	국립세종도서관(구독형)	국립세종도서관	label-removed	ADR-0071	2026-10-11
+59	대구학생전자도서관(대여)	대구학생전자도서관	label-removed	ADR-0071	2026-10-11
+63	동해시립도서관(구독)	동해시립도서관	label-removed	ADR-0071	2026-10-11
+64	마산도서관(교육청산하)	경상남도교육청 마산도서관	2026-10-11	https://www.gne.go.kr/www/office/insguide.jsp	2026-10-11
+76	서대문구립도서관(sam)	서대문구립도서관	label-removed	ADR-0071	2026-10-11
+89	순천시립도서관(구독)	순천시립도서관	label-removed	ADR-0071	2026-10-11
+91	안산시도서관(소장형)	안산시도서관	label-removed	ADR-0071	2026-10-11
+93	양산도서관	양산시립도서관	2026-10-11	https://lib.yangsan.go.kr/	2026-10-11
+121	익산시립전자도서관(구독)	익산시립전자도서관	label-removed	ADR-0071	2026-10-11
+122	인천광역시교육청통합도서관(구독)	인천광역시교육청통합도서관	label-removed	ADR-0071	2026-10-11
+129	장성군립도서관(구독)	장성군립도서관	label-removed	ADR-0071	2026-10-11
+131	전남광주통합특별시 서구 통합도서관(구독)	전남광주통합특별시 서구 통합도서관	label-removed	ADR-0071	2026-10-11
+134	전남광주통합특별시전남도서관(구독)	전남광주통합특별시전남도서관	label-removed	ADR-0071	2026-10-11
+163	인천광역시교육청 통합전자도서관(교보)	인천광역시교육청 통합전자도서관	label-removed	ADR-0071	2026-10-11
+207	화성시립도서관(YES24)	화성시립도서관	label-removed	ADR-0071	2026-10-11
+209	해남군립도서관(YES24)	해남군립도서관	label-removed	ADR-0071	2026-10-11
+210	한밭도서관(YES24)	한밭도서관	label-removed	ADR-0071	2026-10-11
+215	제천기적의도서관(YES24)	제천기적의도서관	label-removed	ADR-0071	2026-10-11
+222	의정부시도서관(YES24)	의정부시도서관	label-removed	ADR-0071	2026-10-11
+224	원주시립도서관(YES24)	원주시립도서관	label-removed	ADR-0071	2026-10-11
+225	연수구립도서관(YES24)	연수구립도서관	label-removed	ADR-0071	2026-10-11
+226	여의샛강도서관(YES24)	여의샛강도서관	label-removed	ADR-0071	2026-10-11
+227	여수시립도서관(YES24)	여수시립도서관	label-removed	ADR-0071	2026-10-11
+228	성동구립도서관(YES24)	성동구립도서관	label-removed	ADR-0071	2026-10-11
+230	동대문구립도서관(YES24)	동대문구립도서관	label-removed	ADR-0071	2026-10-11
+232	김제시립도서관(YES24)	김제시립도서관	label-removed	ADR-0071	2026-10-11
+234	광주광역시립도서관(YES24)	광주광역시립도서관	label-removed	ADR-0071	2026-10-11
+235	광양시립도서관(YES24)	광양시립도서관	label-removed	ADR-0071	2026-10-11
+236	광명시도서관(YES24)	광명시도서관	label-removed	ADR-0071	2026-10-11
+238	고양시도서관센터(YES24)	고양시도서관센터	label-removed	ADR-0071	2026-10-11
+239	강동구립도서관(YES24)	강동구립도서관	label-removed	ADR-0071	2026-10-11
+243	청주시립도서관(YES24)	청주시립도서관	label-removed	ADR-0071	2026-10-11
+249	울주통합도서관(YES24)	울주통합도서관	label-removed	ADR-0071	2026-10-11
+250	용인시도서관(YES24)	용인시도서관	label-removed	ADR-0071	2026-10-11
+252	영주시립도서관(YES24)	영주시립도서관	label-removed	ADR-0071	2026-10-11
+253	아산시립도서관(YES24)	아산시립도서관	label-removed	ADR-0071	2026-10-11
+256	세종시립도서관(YES24)	세종시립도서관	label-removed	ADR-0071	2026-10-11
+261	군포시도서관(YES24)	군포시도서관	label-removed	ADR-0071	2026-10-11
+262	군산시립도서관(YES24)	군산시립도서관	label-removed	ADR-0071	2026-10-11
+263	국립세종도서관(YES24)	국립세종도서관	label-removed	ADR-0071	2026-10-11
+264	광주장덕도서관(YES24)	광주장덕도서관	label-removed	ADR-0071	2026-10-11
+268	마포나루 메타버스도서관(YES24)	마포나루 메타버스도서관	label-removed	ADR-0071	2026-10-11
+273	연제만화도서관(YES24)	연제만화도서관	label-removed	ADR-0071	2026-10-11
+274	송파구전자도서관(YES24)	송파구전자도서관	label-removed	ADR-0071	2026-10-11
+275	송파구통합도서관(구독)	송파구통합도서관	label-removed	ADR-0071	2026-10-11
+276	경남통합전자도서관(구독)	경남통합전자도서관	label-removed	ADR-0071	2026-10-11
+277	전남광주통합특별시교육청 광주통합도서관(구독)	전남광주통합특별시교육청 광주통합도서관	label-removed	ADR-0071	2026-10-11
+278	기장군도서관(구독)	기장군도서관	label-removed	ADR-0071	2026-10-11
+288	경기과천교육도서관 (북큐브)	경기과천교육도서관	label-removed	ADR-0071	2026-10-11
+289	경기화성교육도서관 (북큐브)	경기화성교육도서관	label-removed	ADR-0071	2026-10-11
+293	곡성교육문화회관 (북큐브)	곡성교육문화회관	label-removed	ADR-0071	2026-10-11
+304	군산교육문화회관 (북큐브)	군산교육문화회관	label-removed	ADR-0071	2026-10-11
+306	군산시립도서관 (북큐브)	군산시립도서관	label-removed	ADR-0071	2026-10-11
+309	금천구립도서관 (북큐브)	금천구립도서관	label-removed	ADR-0071	2026-10-11
+312	김제시립도서관 (북큐브)	김제시립도서관	label-removed	ADR-0071	2026-10-11
+316	나주공공도서관 (북큐브)	나주공공도서관	label-removed	ADR-0071	2026-10-11
+320	남해화전도서관 (북큐브)	남해화전도서관	label-removed	ADR-0071	2026-10-11
+330	마한교육문화회관 (북큐브)	마한교육문화회관	label-removed	ADR-0071	2026-10-11
+332	목포공공도서관 (북큐브)	목포공공도서관	label-removed	ADR-0071	2026-10-11
+335	밀양시립도서관 (북큐브)	밀양시립도서관	label-removed	ADR-0071	2026-10-11
+338	부산광역시 전자도서관 (북큐브)	부산광역시 전자도서관	label-removed	ADR-0071	2026-10-11
+339	부산광역시 전자도서관(구독)	부산광역시 전자도서관	label-removed	ADR-0071	2026-10-11
+345	선경도서관 (북큐브)	선경도서관	label-removed	ADR-0071	2026-10-11
+348	성동구립도서관 (북큐브)	성동구립도서관	label-removed	ADR-0071	2026-10-11
+365	익산시립도서관 (북큐브)	익산시립도서관	label-removed	ADR-0071	2026-10-11
+367	임실공공도서관 (북큐브)	임실공공도서관	label-removed	ADR-0071	2026-10-11
+369	장성공공도서관 (북큐브)	장성공공도서관	label-removed	ADR-0071	2026-10-11
+373	전라남도교육청 전자도서관 (북큐브)	전라남도교육청 전자도서관	label-removed	ADR-0071	2026-10-11
+377	전주시립도서관 (북큐브)	전주시립도서관	label-removed	ADR-0071	2026-10-11
+379	정읍학생복지회관 (북큐브)	정읍학생복지회관	label-removed	ADR-0071	2026-10-11
+384	진안공공도서관 (북큐브)	진안공공도서관	label-removed	ADR-0071	2026-10-11
+386	진천군립도서관 대여형	진천군립도서관	label-removed	ADR-0071	2026-10-11
+389	천안시중앙도서관 (북큐브)	천안시중앙도서관	label-removed	ADR-0071	2026-10-11
+390	청도어린이도서관 (북큐브)	청도어린이도서관	label-removed	ADR-0071	2026-10-11
+420	감리교신학대학교 (북큐브)	감리교신학대학교	label-removed	ADR-0071	2026-10-11
+422	강동대학교 (북큐브)	강동대학교	label-removed	ADR-0071	2026-10-11
+428	경남도립거창대학교	국립창원대학교 거창캠퍼스	2026	https://www.changwon.ac.kr/kor/main.do	2026-10-11
+429	경남도립남해대학교 전자도서관	국립창원대학교 남해캠퍼스	2026	https://www.changwon.ac.kr/kor/main.do	2026-10-11
+440	계명문화대학교 (북큐브)	계명문화대학교	label-removed	ADR-0071	2026-10-11
+444	고려대학교 (북큐브)	고려대학교	label-removed	ADR-0071	2026-10-11
+447	공군사관학교 (북큐브)	공군사관학교	label-removed	ADR-0071	2026-10-11
+448	과학기술연합대학원대학교 (북큐브)	과학기술연합대학원대학교	label-removed	ADR-0071	2026-10-11
+452	구미대학교 (북큐브)	구미대학교	label-removed	ADR-0071	2026-10-11
+457	국제대학교 (북큐브)	국제대학교	label-removed	ADR-0071	2026-10-11
+460	군장대학 (북큐브)	군장대학	label-removed	ADR-0071	2026-10-11
+480	대구교육대학교 (북큐브)	대구교육대학교	label-removed	ADR-0071	2026-10-11
+485	대신대학교 (북큐브)	대신대학교	label-removed	ADR-0071	2026-10-11
+489	대전가톨릭대학교 (북큐브)	대전가톨릭대학교	label-removed	ADR-0071	2026-10-11
+499	동원대학교 (북큐브)	동원대학교	label-removed	ADR-0071	2026-10-11
+513	명지대학교 (북큐브)	명지대학교	label-removed	ADR-0071	2026-10-11
+515	목원대학교 (북큐브)	목원대학교	label-removed	ADR-0071	2026-10-11
+525	백제예술대학교 (북큐브)	백제예술대학교	label-removed	ADR-0071	2026-10-11
+532	부산보건대학교 (북큐브)	부산보건대학교	label-removed	ADR-0071	2026-10-11
+536	삼육보건대학교 (북큐브)	삼육보건대학교	label-removed	ADR-0071	2026-10-11
+539	상지대학교 (북큐브)	상지대학교	label-removed	ADR-0071	2026-10-11
+550	서울여자대학교 (북큐브)	서울여자대학교	label-removed	ADR-0071	2026-10-11
+560	세종대학교 (북큐브)	세종대학교	label-removed	ADR-0071	2026-10-11
+563	수성대학교 (북큐브)	수성대학교	label-removed	ADR-0071	2026-10-11
+580	신한대학교 (북큐브)	신한대학교	label-removed	ADR-0071	2026-10-11
+586	안동과학대학 (북큐브)	안동과학대학	label-removed	ADR-0071	2026-10-11
+587	안산대학교 (북큐브)	안산대학교	label-removed	ADR-0071	2026-10-11
+601	완주봉서초등학교 (북큐브)	완주봉서초등학교	label-removed	ADR-0071	2026-10-11
+606	원광대학교 (북큐브)	원광대학교	label-removed	ADR-0071	2026-10-11
+632	전북대학교 (북큐브)	전북대학교	label-removed	ADR-0071	2026-10-11
+638	전주고등학교 (북큐브)	전주고등학교	label-removed	ADR-0071	2026-10-11
+642	전주문학초등학교 (북큐브)	전주문학초등학교	label-removed	ADR-0071	2026-10-11
+661	청암대학교 (북큐브)	청암대학교	label-removed	ADR-0071	2026-10-11
+663	청주대학교 (북큐브)	청주대학교	label-removed	ADR-0071	2026-10-11
+665	총신대학교 (북큐브)	총신대학교	label-removed	ADR-0071	2026-10-11
+666	춘해보건대학교 (북큐브)	춘해보건대학교	label-removed	ADR-0071	2026-10-11
+668	충남대학교 (북큐브)	충남대학교	label-removed	ADR-0071	2026-10-11
+669	충북대학교 (북큐브)	충북대학교	label-removed	ADR-0071	2026-10-11
+670	충북보건과학대학교 (북큐브)	충북보건과학대학교	label-removed	ADR-0071	2026-10-11
+671	충청대학교 (북큐브)	충청대학교	label-removed	ADR-0071	2026-10-11
+672	칼빈대학교 (북큐브)	칼빈대학교	label-removed	ADR-0071	2026-10-11
+684	한국관광대학교 (북큐브)	한국관광대학교	label-removed	ADR-0071	2026-10-11
+685	한국교통대학교 (북큐브)	한국교통대학교	label-removed	ADR-0071	2026-10-11
+693	한국예술종합학교 (북큐브)	한국예술종합학교	label-removed	ADR-0071	2026-10-11
+695	한국체육대학교 (북큐브)	한국체육대학교	label-removed	ADR-0071	2026-10-11
+699	한국해양대학교 (북큐브)	한국해양대학교	label-removed	ADR-0071	2026-10-11
+700	한남대학교 (북큐브)	한남대학교	label-removed	ADR-0071	2026-10-11
+704	한신대학교 (북큐브)	한신대학교	label-removed	ADR-0071	2026-10-11
+711	해군사관학교 (북큐브)	해군사관학교	label-removed	ADR-0071	2026-10-11
+714	호남대학교 (북큐브)	호남대학교	label-removed	ADR-0071	2026-10-11
+732	강원대학교 (교보)	강원대학교	label-removed	ADR-0071	2026-10-11
+739	강동대학교 (교보)	강동대학교	label-removed	ADR-0071	2026-10-11
+742	경성대학교 (교보)	경성대학교	label-removed	ADR-0071	2026-10-11
+744	공군사관학교 (교보)	공군사관학교	label-removed	ADR-0071	2026-10-11
+747	과학기술연합대학원대학교 (교보)	과학기술연합대학원대학교	label-removed	ADR-0071	2026-10-11
+750	가톨릭관동대학교 (교보)	가톨릭관동대학교	label-removed	ADR-0071	2026-10-11
+752	광주교육대학교 (교보)	광주교육대학교	label-removed	ADR-0071	2026-10-11
+754	고려대학교 (교보)	고려대학교	label-removed	ADR-0071	2026-10-11
+756	국제뇌교육종합대학원대학교 (교보)	국제뇌교육종합대학원대학교	label-removed	ADR-0071	2026-10-11
+764	군장대학 (교보)	군장대학	label-removed	ADR-0071	2026-10-11
+766	광주대학교 (교보)	광주대학교	label-removed	ADR-0071	2026-10-11
+769	강릉원주대학교 (교보)	강원대학교 강릉캠퍼스	2026	https://www.kangwon.ac.kr/	2026-10-11
+770	남부대학교 (교보)	남부대학교	label-removed	ADR-0071	2026-10-11
+773	대구교육대학교 (교보)	대구교육대학교	label-removed	ADR-0071	2026-10-11
+775	대구가톨릭대학교 (교보)	대구가톨릭대학교	label-removed	ADR-0071	2026-10-11
+777	대전가톨릭대학교 (교보)	대전가톨릭대학교	label-removed	ADR-0071	2026-10-11
+782	동신대학교 (교보)	동신대학교	label-removed	ADR-0071	2026-10-11
+783	동아대학교 (교보)	동아대학교	label-removed	ADR-0071	2026-10-11
+793	목원대학교 (교보)	목원대학교	label-removed	ADR-0071	2026-10-11
+802	부산보건대학교 (교보)	부산보건대학교	label-removed	ADR-0071	2026-10-11
+804	삼육보건대학교 (교보)	삼육보건대학교	label-removed	ADR-0071	2026-10-11
+808	서강대학교 (교보)	서강대학교	label-removed	ADR-0071	2026-10-11
+809	부천대학교 (교보)	부천대학교	label-removed	ADR-0071	2026-10-11
+813	서울신학대학교 (교보)	서울신학대학교	label-removed	ADR-0071	2026-10-11
+818	명지대학교 (교보)	명지대학교	label-removed	ADR-0071	2026-10-11
+819	성결대학교 (교보)	성결대학교	label-removed	ADR-0071	2026-10-11
+824	서울여자대학교 (교보)	서울여자대학교	label-removed	ADR-0071	2026-10-11
+827	세명대학교 (교보)	세명대학교	label-removed	ADR-0071	2026-10-11
+828	세종대학교 (교보)	세종대학교	label-removed	ADR-0071	2026-10-11
+834	세경대학교 (교보)	세경대학교	label-removed	ADR-0071	2026-10-11
+835	순천향대학교 (교보)	순천향대학교	label-removed	ADR-0071	2026-10-11
+844	영남대학교 (교보)	영남대학교	label-removed	ADR-0071	2026-10-11
+845	안산대학교 (교보)	안산대학교	label-removed	ADR-0071	2026-10-11
+850	안동과학대학 (교보)	안동과학대학	label-removed	ADR-0071	2026-10-11
+852	해군사관학교 (교보)	해군사관학교	label-removed	ADR-0071	2026-10-11
+853	신한대학교 (교보)	신한대학교	label-removed	ADR-0071	2026-10-11
+859	원광대학교 (교보)	원광대학교	label-removed	ADR-0071	2026-10-11
+862	재능대학교 (교보)	재능대학교	label-removed	ADR-0071	2026-10-11
+869	전남대학교 (교보)	전남대학교	label-removed	ADR-0071	2026-10-11
+876	조선이공대학교 (교보)	조선이공대학교	label-removed	ADR-0071	2026-10-11
+882	조선대학교 (교보)	조선대학교	label-removed	ADR-0071	2026-10-11
+883	청주대학교 (교보)	청주대학교	label-removed	ADR-0071	2026-10-11
+884	총신대학교 (교보)	총신대학교	label-removed	ADR-0071	2026-10-11
+885	춘천교육대학교 (교보)	춘천교육대학교	label-removed	ADR-0071	2026-10-11
+887	초당대학교 (교보)	초당대학교	label-removed	ADR-0071	2026-10-11
+888	청강문화산업대학교 (교보)	청강문화산업대학교	label-removed	ADR-0071	2026-10-11
+890	청암대학교 (교보)	청암대학교	label-removed	ADR-0071	2026-10-11
+891	충북보건과학대학교 (교보)	충북보건과학대학교	label-removed	ADR-0071	2026-10-11
+892	충북대학교 (교보)	충북대학교	label-removed	ADR-0071	2026-10-11
+894	춘해보건대학교 (교보)	춘해보건대학교	label-removed	ADR-0071	2026-10-11
+895	한경대학교	한경국립대학교	2023	https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do	2026-10-11
+899	한국교원대학교 (교보)	한국교원대학교	label-removed	ADR-0071	2026-10-11
+904	한국체육대학교 (교보)	한국체육대학교	label-removed	ADR-0071	2026-10-11
+910	한국해양대학교 (교보)	한국해양대학교	label-removed	ADR-0071	2026-10-11
+912	한성대학교 (교보)	한성대학교	label-removed	ADR-0071	2026-10-11
+913	한남대학교 (교보)	한남대학교	label-removed	ADR-0071	2026-10-11
+914	한신대학교 (교보)	한신대학교	label-removed	ADR-0071	2026-10-11
+921	호남대학교 (교보)	호남대학교	label-removed	ADR-0071	2026-10-11
+933	호남신학대학교 (교보)	호남신학대학교	label-removed	ADR-0071	2026-10-11
+943	양산도서관 (교보)	경상남도교육청 양산도서관	2026-10-11	https://www.gne.go.kr/www/office/insguide.jsp	2026-10-11
+977	경국대학교	국립경국대학교	2025-03-01	https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do	2026-10-11
+979	경복대학교 (교보)	경복대학교	label-removed	ADR-0071	2026-10-11
+981	광운대학교 (교보)	광운대학교	label-removed	ADR-0071	2026-10-11
+984	대신대학교 (교보)	대신대학교	label-removed	ADR-0071	2026-10-11
+990	숙명여자대학교 (교보)	숙명여자대학교	label-removed	ADR-0071	2026-10-11
+991	안양대학교 (교보)	안양대학교	label-removed	ADR-0071	2026-10-11
+993	용인대학교 (교보)	용인대학교	label-removed	ADR-0071	2026-10-11
+998	충남대학교 (교보)	충남대학교	label-removed	ADR-0071	2026-10-11
+999	충남도립대학교 (교보)	충남도립대학교	label-removed	ADR-0071	2026-10-11
+1000	충청대학교 (교보)	충청대학교	label-removed	ADR-0071	2026-10-11
+1001	칼빈대학교 (교보)	칼빈대학교	label-removed	ADR-0071	2026-10-11
+1002	한국산업기술대학교	한국공학대학교	2022-03	https://www.tukorea.ac.kr/tukorea/7609/subview.do	2026-10-11
+1028	기후에너지환경부 (교보)	기후에너지환경부	label-removed	ADR-0071	2026-10-11
+1074	헌법재판소 (교보)	헌법재판소	label-removed	ADR-0071	2026-10-11
+1109	제주한라도서관 (교보)	제주한라도서관	label-removed	ADR-0071	2026-10-11
+1149	메리츠(증권&amp;amp;캐피탈)	메리츠(증권&캐피탈)	typo	https://meritz.dkyobobook.co.kr	2026-10-11
+1226	현대제철 (교보)	현대제철	label-removed	ADR-0071	2026-10-11
+1490	부산대남초등학교 (교보)	부산대남초등학교	label-removed	ADR-0071	2026-10-11
+1575	부여대왕초등학교 (교보, jb-dongsang.dkyobobook.co.kr)	완주동상초등학교	2026-10-11	https://jb-dongsang.dkyobobook.co.kr	2026-10-11
+1576	부여대왕초등학교 (교보, bdaewang.dkyobobook.co.kr)	부여대왕초등학교	label-removed	ADR-0071	2026-10-11
+1583	부천북초등학교 (교보)	부천북초등학교	label-removed	ADR-0071	2026-10-11
+1691	서울태릉초등학교 (교보)	서울태릉초등학교	label-removed	ADR-0071	2026-10-11
+1817	완주봉서초등학교 (교보)	완주봉서초등학교	label-removed	ADR-0071	2026-10-11
+1856	울산신천초등학교 (교보)	울산신천초등학교	label-removed	ADR-0071	2026-10-11
+1906	인천도화초등학교 (교보)	인천도화초등학교	label-removed	ADR-0071	2026-10-11
+1929	전주문학초등학교 (교보)	전주문학초등학교	label-removed	ADR-0071	2026-10-11
+2164	한국체육대학교 (YES24)	한국체육대학교	label-removed	ADR-0071	2026-10-11
+2165	한국예술종합학교 (YES24)	한국예술종합학교	label-removed	ADR-0071	2026-10-11
+2175	충북대학교 (YES24)	충북대학교	label-removed	ADR-0071	2026-10-11
+2176	한국교통대학교 (YES24)	한국교통대학교	label-removed	ADR-0071	2026-10-11
+2177	청암대학교 (YES24)	청암대학교	label-removed	ADR-0071	2026-10-11
+2180	춘천교육대학교 (YES24)	춘천교육대학교	label-removed	ADR-0071	2026-10-11
+2181	한국관광대학교 (YES24)	한국관광대학교	label-removed	ADR-0071	2026-10-11
+2182	조선이공대학교 (YES24)	조선이공대학교	label-removed	ADR-0071	2026-10-11
+2183	조선대학교 (YES24)	조선대학교	label-removed	ADR-0071	2026-10-11
+2184	전남대학교 (YES24)	전남대학교	label-removed	ADR-0071	2026-10-11
+2186	울산과학대학교 (YES24)	울산과학대학교	label-removed	ADR-0071	2026-10-11
+2188	전북대학교 (YES24)	전북대학교	label-removed	ADR-0071	2026-10-11
+2189	청강문화산업대학교 (YES24)	청강문화산업대학교	label-removed	ADR-0071	2026-10-11
+2191	용인대학교 (YES24)	용인대학교	label-removed	ADR-0071	2026-10-11
+2195	세명대학교 (YES24)	세명대학교	label-removed	ADR-0071	2026-10-11
+2196	한성대학교 (YES24)	한성대학교	label-removed	ADR-0071	2026-10-11
+2204	성결대학교 (YES24)	성결대학교	label-removed	ADR-0071	2026-10-11
+2206	서울여자대학교 (YES24)	서울여자대학교	label-removed	ADR-0071	2026-10-11
+2207	수성대학교 (YES24)	수성대학교	label-removed	ADR-0071	2026-10-11
+2209	영남대학교 (YES24)	영남대학교	label-removed	ADR-0071	2026-10-11
+2212	부산보건대학교 (YES24)	부산보건대학교	label-removed	ADR-0071	2026-10-11
+2213	부천대학교 (YES24)	부천대학교	label-removed	ADR-0071	2026-10-11
+2214	세종대학교 (YES24)	세종대학교	label-removed	ADR-0071	2026-10-11
+2222	목원대학교 (YES24)	목원대학교	label-removed	ADR-0071	2026-10-11
+2224	동아대학교 (YES24)	동아대학교	label-removed	ADR-0071	2026-10-11
+2233	기후에너지환경부 (YES24)	기후에너지환경부	label-removed	ADR-0071	2026-10-11
+2235	남부대학교 (YES24)	남부대학교	label-removed	ADR-0071	2026-10-11
+2241	대구가톨릭대학교 (YES24)	대구가톨릭대학교	label-removed	ADR-0071	2026-10-11
+2243	대구교육대학교 (YES24)	대구교육대학교	label-removed	ADR-0071	2026-10-11
+2244	계명문화대학교 (YES24)	계명문화대학교	label-removed	ADR-0071	2026-10-11
+2245	광주대학교 (YES24)	광주대학교	label-removed	ADR-0071	2026-10-11
+2246	광주교육대학교 (YES24)	광주교육대학교	label-removed	ADR-0071	2026-10-11
+2251	강원대학교 (YES24)	강원대학교	label-removed	ADR-0071	2026-10-11
+2252	구미대학교 (YES24)	구미대학교	label-removed	ADR-0071	2026-10-11
+2253	경성대학교 (YES24)	경성대학교	label-removed	ADR-0071	2026-10-11
+2254	강동대학교 (YES24)	강동대학교	label-removed	ADR-0071	2026-10-11
+2257	강릉원주대학교 (YES24)	강원대학교 강릉캠퍼스	2026	https://www.kangwon.ac.kr/	2026-10-11
+2258	상지대학교 (YES24)	상지대학교	label-removed	ADR-0071	2026-10-11
+2262	가톨릭관동대학교 (YES24)	가톨릭관동대학교	label-removed	ADR-0071	2026-10-11
+2265	호남대학교 (YES24)	호남대학교	label-removed	ADR-0071	2026-10-11
+2280	헌법재판소 (YES24)	헌법재판소	label-removed	ADR-0071	2026-10-11
+2303	한국교원대학교 (YES24)	한국교원대학교	label-removed	ADR-0071	2026-10-11
+2322	충청대학교 (YES24)	충청대학교	label-removed	ADR-0071	2026-10-11
+2325	충남도립대학교 (YES24)	충남도립대학교	label-removed	ADR-0071	2026-10-11
+2327	총신대학교 (YES24)	총신대학교	label-removed	ADR-0071	2026-10-11
+2328	초당대학교 (YES24)	초당대학교	label-removed	ADR-0071	2026-10-11
+2349	전주고등학교 (YES24)	전주고등학교	label-removed	ADR-0071	2026-10-11
+2368	인천도화초등학교 (YES24)	인천도화초등학교	label-removed	ADR-0071	2026-10-11
+2389	울산신천초등학교 (YES24)	울산신천초등학교	label-removed	ADR-0071	2026-10-11
+2422	안양대학교 (YES24)	안양대학교	label-removed	ADR-0071	2026-10-11
+2433	순천향대학교 (YES24)	순천향대학교	label-removed	ADR-0071	2026-10-11
+2434	숙명여자대학교 (YES24)	숙명여자대학교	label-removed	ADR-0071	2026-10-11
+2445	세경대학교 (YES24)	세경대학교	label-removed	ADR-0071	2026-10-11
+2448	서울태릉초등학교 (YES24)	서울태릉초등학교	label-removed	ADR-0071	2026-10-11
+2456	서울신학대학교 (YES24)	서울신학대학교	label-removed	ADR-0071	2026-10-11
+2471	서강대학교 (YES24)	서강대학교	label-removed	ADR-0071	2026-10-11
+2511	부산대남초등학교 (YES24)	부산대남초등학교	label-removed	ADR-0071	2026-10-11
+2533	명지대학교 (YES24)	명지대학교	label-removed	ADR-0071	2026-10-11
+2540	동원대학교 (YES24)	동원대학교	label-removed	ADR-0071	2026-10-11
+2583	국제대학교 (YES24)	국제대학교	label-removed	ADR-0071	2026-10-11
+2584	국제뇌교육종합대학원대학교 (YES24)	국제뇌교육종합대학원대학교	label-removed	ADR-0071	2026-10-11
+2592	광운대학교 (YES24)	광운대학교	label-removed	ADR-0071	2026-10-11
+2604	경복대학교 (YES24)	경복대학교	label-removed	ADR-0071	2026-10-11
+2624	현대제철 (YES24)	현대제철	label-removed	ADR-0071	2026-10-11
+2627	부천북초등학교 (YES24)	부천북초등학교	label-removed	ADR-0071	2026-10-11
+2645	호남신학대학교 (알라딘)	호남신학대학교	label-removed	ADR-0071	2026-10-11
+2649	울산과학대학교 (알라딘)	울산과학대학교	label-removed	ADR-0071	2026-10-11
+2650	감리교신학대학교 (알라딘)	감리교신학대학교	label-removed	ADR-0071	2026-10-11
+2652	서울신학대학교 (알라딘)	서울신학대학교	label-removed	ADR-0071	2026-10-11
+2655	동신대학교 (알라딘)	동신대학교	label-removed	ADR-0071	2026-10-11
+2656	한국해양대학교 (알라딘)	한국해양대학교	label-removed	ADR-0071	2026-10-11
+2657	백제예술대학교 (알라딘)	백제예술대학교	label-removed	ADR-0071	2026-10-11
+2663	재능대학교 (알라딘)	재능대학교	label-removed	ADR-0071	2026-10-11

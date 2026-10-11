@@ -1,19 +1,27 @@
 """Builds the candidate library seed: step "넣기" of the library collection (docs/maintenance/1-libraries.md, ADR-0052).
 
 Usage (from the repository root):
-  python scripts/library/build_candidate_seed.py <snapshot.sqlite> <public-join.tsv> <candidate-kinds.tsv> <kyobo-probe.tsv>
+  python scripts/library/build_candidate_seed.py [--changes-only <db-state.tsv>] <snapshot.sqlite> <public-join.tsv>
+      <candidate-kinds.tsv> <kyobo-probe.tsv> <bookcube-volume.tsv>
 
   snapshot.sqlite      collection DB copy, opened read-only (e.g. chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite)
   public-join.tsv      join research of the candidate public libraries (library-join/public-join-2026-10-05.tsv)
   candidate-kinds.tsv  kind of every candidate (library-join/candidate-kinds-2026-10-05.tsv)
   kyobo-probe.tsv      KYOBO institution probe; its "model" column gives lending_model
                        (other-platforms/kyobo-institutions-probe-2026-10-03.tsv)
+  bookcube-volume.tsv  BOOKCUBE totalItem/totalVolume per collection id (scripts/library/bookcube-volume-2026-10-11.tsv,
+                       plan cycle 09); totalVolume 0 with books listed -> SUBSCRIPTION
+  --changes-only       write no seed file; print what a changeset must change instead (plan cycle 09 C2: applied seed
+                       files stay as they are until the clean-up just before the first deployment). db-state.tsv is the
+                       local db's library table without a header: id, name, platform_type, lending_model ('' for NULL),
+                       enabled. Its names are the old names of the UPDATE, since earlier changesets (013) renamed some.
 
 Writes, under backend/src/main/resources/db/changelog/:
   library/008-library-candidates.csv           new service libraries (ids after the registered ones)
   library/008-eligibility-rule-candidates.csv  their join rules
   collection/002-collection-link.csv           collection id -> service id: registered libraries (same id) + candidates
 and prints the counts and the lending_model values of registered libraries (they go in library/008 by hand).
+With --changes-only it writes none of them (see above).
 
 Rules (plan handoff cycle 07, C5):
 - Candidates: collection id >= 100001, no crawl_skip, last_full_success_at set. Left out: the demo or closed sites
@@ -28,8 +36,16 @@ Rules (plan handoff cycle 07, C5):
   body was renamed, checked against an official source (docs/library-maintenance.md 4-12). It is applied after the
   kept names, so the seed keeps the new name; a name not in the list never changes. The list's old name must be the
   kept name (or the new one already), else the script stops.
-- Name clash (with a registered library or another candidate): "이름 (북큐브|교보|YES24|알라딘)", still clashing:
-  "이름 (라벨, 호스트)".
+- Names are the body's name only (ADR-0071, cycle 09): a new candidate takes the collection DB name as it is; no
+  vendor or lending label is added. The overrides apply to registered libraries too, in memory only (their seed files
+  are not written).
+- Vendor: a value the collection wrote for the library if any, else VENDORS by platform_type (ADR-0071).
+- lending_model (spec R3): KYOBO subscription -> the probe model, SUBSCRIPTION when the probe has none; BOOKCUBE ->
+  SUBSCRIPTION when totalVolume is 0 and totalItem > 0, else OWNED (no books, no answer); the portal -> NULL; every
+  other platform -> OWNED. A registered library keeps its library/008 value.
+- order_no: registered libraries and candidates together (disabled ones too) grouped by (name, vendor, lending_model),
+  numbered 1, 2, 3 by service id and counted again on every run. Numbers 2 and up are printed and the run ends with
+  exit code 3: a person checks the site names (ADR-0071).
 - join_survey: public libraries from public-join.tsv (REGION/OPEN -> SURVEYED with rules, UNVERIFIED -> NOT_FOUND,
   AFFILIATION -> MEMBERS_ONLY by user decision 2026-10-05); kinds SCHOOL/UNIV/COMPANY/GOV/ORG -> MEMBERS_ONLY;
   UNKNOWN -> NOT_SURVEYED.
@@ -73,8 +89,13 @@ SAME_SITE = {100668: 279, 100681: 2, 100701: 172, 100714: 3, 100722: 176, 100755
 SAME_HOST_KEPT = {100006, 100022, 100024, 100037, 100058, 100070, 100072, 100074, 100082, 100085, 100115, 100519,
                   100543, 100568, 100573, 100590, 100594, 100608, 100615, 100661, 100665, 100747}
 MEMBERS_ONLY_KINDS = {'SCHOOL', 'UNIV', 'COMPANY', 'GOV', 'ORG'}
-LABELS = {'BOOKCUBE_FX': '북큐브', 'KYOBO_V1': '교보', 'KYOBO_SUBSCRIPTION_V1': '교보', 'YES24_V1': 'YES24',
-          'YES24_V2': 'YES24', 'YES24_V3': 'YES24', 'ALADIN_V1': '알라딘'}
+# platform_type -> vendor (ADR-0071; the values of the backend's library.Vendor)
+VENDORS = {'KYOBO_V1': 'KYOBO', 'KYOBO_SUBSCRIPTION_V1': 'KYOBO', 'YES24_V1': 'YES24', 'YES24_V2': 'YES24',
+           'YES24_V3': 'YES24', 'BOOKCUBE_FX': 'BOOKCUBE', 'ALADIN_V1': 'ALADIN', 'ELIB_PORTAL_V1': 'PORTAL',
+           'GANGNAM_V1': 'IN_HOUSE'}
+# TODO(확인 필요): where the collection writes a vendor of its own (to be decided with the collection session). Until
+# then no library has one. collection id -> vendor
+COLLECTION_VENDORS = {}
 LENDING_MODELS = {'소장': 'OWNED', '혼합': 'MIXED', '대여': 'RENTAL'}
 BASES = {'거주': 'RESIDENCE', '재직': 'WORK', '재학': 'SCHOOL'}
 JOIN_METHOD_UNKNOWN = '도서관 홈페이지의 회원가입 안내 확인'
@@ -131,7 +152,7 @@ def write_csv(path, fields, rows):
 
 
 def registered_libraries():
-    """Registered libraries {id: name} from the seed files before 008 (CSVs and the pilot SQL in 002)."""
+    """Registered libraries {id: (name, platform_type)} from the seed files before 008 (CSVs and the pilot SQL in 002)."""
     found = {}
     for path in sorted(glob.glob(LIBRARY_DIR + '*-library*.csv')):
         if os.path.basename(path).startswith('008-'):
@@ -140,20 +161,57 @@ def registered_libraries():
         if rows and 'name' not in rows[0]:  # e.g. 009-library-logos.csv
             continue
         for row in rows:
-            found[int(row['id'])] = row['name']
+            found[int(row['id'])] = (row['name'], row['platform_type'])
     pilot = open(LIBRARY_DIR + '002-library-seed.yaml', encoding='utf-8').read()
-    for lid, name in re.findall(r"\((\d+), '([^']+)', '[A-Z0-9_]+', 'https?://", pilot):
-        found[int(lid)] = name
+    for lid, name, platform in re.findall(r"\((\d+), '([^']+)', '([A-Z0-9_]+)', 'https?://", pilot):
+        found[int(lid)] = (name, platform)
     return found
+
+
+def registered_lending_models():
+    """{id: lending_model} of registered libraries from the library/008 UPDATE (the KYOBO probe values)."""
+    path = LIBRARY_DIR + '008-library-seed-candidates.yaml'
+    if not os.path.exists(path):
+        return {}
+    text = open(path, encoding='utf-8').read()
+    return {int(lid): m for lid, m in re.findall(r"\((\d+), '(OWNED|SUBSCRIPTION|MIXED|RENTAL)'\)", text)}
+
+
+def read_bookcube_volumes(path):
+    """{collection id: (totalItem, totalVolume)}, None for a site that did not answer."""
+    volumes = {}
+    for r in read_tsv(path):
+        items, volume = r['totalItem'].strip(), r['totalVolume'].strip()
+        volumes[int(r['id'])] = (int(items), int(volume)) if items and volume else None
+    return volumes
+
+
+def lending_model_of(platform, probe_model, volume):
+    """spec R3 (cycle 09). volume is (totalItem, totalVolume) or None."""
+    if platform == 'ELIB_PORTAL_V1':
+        return None
+    if platform == 'KYOBO_SUBSCRIPTION_V1':
+        return probe_model or 'SUBSCRIPTION'
+    if platform == 'BOOKCUBE_FX':
+        return 'SUBSCRIPTION' if volume and volume[1] == 0 and volume[0] > 0 else 'OWNED'
+    return 'OWNED'
+
+
+def assign_order_no(rows):
+    """Sets row['order_no'] in each (name, vendor, lending_model) group by service id; returns [(id, n)] for n >= 2."""
+    groups = {}
+    second = []
+    for row in sorted(rows, key=lambda r: r['id']):
+        key = (row['name'], row['vendor'], row['lending_model'])
+        groups[key] = groups.get(key, 0) + 1
+        row['order_no'] = groups[key]
+        if row['order_no'] > 1:
+            second.append((row['id'], row['order_no']))
+    return second
 
 
 def host_of(url):
     return (urlsplit(url).hostname or '').lower()
-
-
-def host_port_of(url):
-    parts = urlsplit(url)
-    return parts.hostname.lower() + (f':{parts.port}' if parts.port else '')
 
 
 def rules_of(join):
@@ -197,39 +255,6 @@ def join_columns(candidate, kind, join, region_names):
             'join_url': text['source_url'], 'join_caution': text['join_caution'], 'join_survey': 'SURVEYED'}, rules
 
 
-def name_candidates(new, taken):
-    """Names for new candidates (dicts with id, name, platform_type, base_url) that clash with nothing in taken."""
-    names = {}
-    base_count = {}
-    for c in new:
-        base_count[c['name']] = base_count.get(c['name'], 0) + 1
-    labelled = {}
-    for c in new:
-        if base_count[c['name']] > 1 or c['name'] in taken:
-            labelled[c['id']] = f"{c['name']} ({LABELS[c['platform_type']]})"
-    label_count = {}
-    for name in labelled.values():
-        label_count[name] = label_count.get(name, 0) + 1
-    plain = {c['name'] for c in new if c['id'] not in labelled}
-    for c in new:
-        name = labelled.get(c['id'], c['name'])
-        if c['id'] in labelled and (label_count[name] > 1 or name in taken or name in plain):
-            name = f"{c['name']} ({LABELS[c['platform_type']]}, {host_of(c['base_url'])})"
-        names[c['id']] = name
-    # last resort: the port tells two sites on one host apart
-    counts = {}
-    for name in names.values():
-        counts[name] = counts.get(name, 0) + 1
-    for c in new:
-        if counts[names[c['id']]] > 1 or names[c['id']] in taken:
-            names[c['id']] = f"{c['name']} ({LABELS[c['platform_type']]}, {host_port_of(c['base_url'])})"
-    final = list(names.values())
-    clash = {n for n in final if final.count(n) > 1 or n in taken}
-    if clash:
-        raise SystemExit('name clash left: ' + ', '.join(sorted(clash)))
-    return names
-
-
 def read_name_overrides():
     """{service id: (old name, new name)} from NAME_OVERRIDES; empty when the file is missing."""
     if not os.path.exists(NAME_OVERRIDES):
@@ -238,20 +263,20 @@ def read_name_overrides():
 
 
 def apply_name_overrides(names, service_ids, registered_names):
-    """Puts the listed new names in place (names is keyed by collection id); stops on a stale entry or a clash."""
+    """Puts the listed new names in place: names is keyed by collection id, registered_names by service id (changed in
+    memory only). Stops on a stale entry. Equal names are told apart by vendor, lending_model and order_no (ADR-0071)."""
     overrides = read_name_overrides()
     by_service = {sid: cid for cid, sid in service_ids.items()}
     for sid, (old, new) in overrides.items():
-        cid = by_service.get(sid)
-        if cid is None:
-            raise SystemExit(f'name override for {sid}: not a candidate in this seed')
-        if names[cid] not in (old, new):
-            raise SystemExit(f'name override for {sid}: the seed name is {names[cid]!r}, the list says {old!r}')
-        names[cid] = new
-    all_names = list(names.values()) + list(registered_names)
-    clash = {n for n in all_names if all_names.count(n) > 1}
-    if clash:
-        raise SystemExit('name clash after the overrides: ' + ', '.join(sorted(clash)))
+        if sid in by_service:
+            target, key = names, by_service[sid]
+        elif sid in registered_names:
+            target, key = registered_names, sid
+        else:
+            raise SystemExit(f'name override for {sid}: not a library in this seed')
+        if target[key] not in (old, new):
+            raise SystemExit(f'name override for {sid}: the seed name is {target[key]!r}, the list says {old!r}')
+        target[key] = new
 
 
 def kyobo_rental_mixed(row, models):
@@ -279,12 +304,14 @@ def same_site(db, candidates, registered_rows):
     return found
 
 
-def main(snapshot, public_join, kinds_tsv, probe_tsv):
+def main(snapshot, public_join, kinds_tsv, probe_tsv, volume_tsv, db_state=None):
     db = sqlite3.connect(f'file:{snapshot}?mode=ro', uri=True)
     db.row_factory = sqlite3.Row
     rows = [dict(r) for r in db.execute('SELECT id, name, platform_type, base_url, last_full_success_at, crawl_skip '
                                         'FROM library ORDER BY id')]
     registered = registered_libraries()
+    registered_names = {lid: name for lid, (name, _platform) in registered.items()}
+    volumes = read_bookcube_volumes(volume_tsv)
     region_names = {int(r['id']): (r['short_name'] if r['short_name'] != 'NULL' else r['name'])
                     for r in csv.DictReader(open(REGIONS, encoding='utf-8'))}
     kinds = {int(r['id']): r['kind'] for r in read_tsv(kinds_tsv)}
@@ -339,20 +366,20 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
     kept_links = {cid: sid for cid, sid in kept_links.items() if cid in candidate_ids}
     kept_names = {cid: name for cid, name in kept_names.items() if cid in candidate_ids}
     new = [c for c in candidates if c['id'] not in kept_links]
-    taken = set(registered.values()) | set(kept_names.values())
     names = dict(kept_names)
-    names.update(name_candidates(new, taken))
+    names.update({c['id']: c['name'] for c in new})
     service_ids = dict(kept_links)
     for c in new:
         last_id += 1
         service_ids[c['id']] = last_id
-    apply_name_overrides(names, service_ids, set(registered.values()))
+    apply_name_overrides(names, service_ids, registered_names)
 
     libraries, rules = [], []
     for c in sorted(candidates, key=lambda c: service_ids[c['id']]):
         sid = service_ids[c['id']]
         columns, library_rules = join_columns(c, kinds[c['id']], joins.get(c['id']), region_names)
-        model = models.get(c['base_url'].rstrip('/')) if c['platform_type'] == 'KYOBO_SUBSCRIPTION_V1' else None
+        probe = models.get(c['base_url'].rstrip('/')) if c['platform_type'] == 'KYOBO_SUBSCRIPTION_V1' else None
+        model = lending_model_of(c['platform_type'], probe, volumes.get(c['id']))
         base_url = finals.get(c['base_url'], c['base_url'])
         libraries.append(dict(columns, id=sid, name=names[c['id']], platform_type=c['platform_type'],
                               base_url=base_url, join_notice='NULL', homepage_url=base_url,
@@ -365,9 +392,27 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
     links = [{'collection_library_id': lid, 'library_id': lid} for lid in sorted(registered)]
     links += [{'collection_library_id': cid, 'library_id': service_ids[cid]} for cid in sorted(service_ids)]
 
-    write_csv(LIBRARY_CSV, LIBRARY_FIELDS, libraries)
-    write_csv(RULE_CSV, ['library_id', 'basis', 'scope_type', 'scope_region_id'], rules)
-    write_csv(LINK_CSV, ['collection_library_id', 'library_id'], links)
+    # classification of every library: registered and candidates, disabled ones too (ADR-0071)
+    registered_models = registered_lending_models()
+    classified = [{'id': lid, 'collection_id': lid, 'name': registered_names[lid], 'platform_type': platform,
+                   'vendor': COLLECTION_VENDORS.get(lid, VENDORS[platform]),
+                   'lending_model': registered_models.get(lid) or lending_model_of(platform, None, volumes.get(lid))}
+                  for lid, (_name, platform) in registered.items()]
+    collection_ids = {sid: cid for cid, sid in service_ids.items()}
+    for lib in libraries:
+        cid = collection_ids[lib['id']]
+        classified.append({'id': lib['id'], 'collection_id': cid, 'name': lib['name'],
+                           'platform_type': lib['platform_type'],
+                           'vendor': COLLECTION_VENDORS.get(cid, VENDORS[lib['platform_type']]),
+                           'lending_model': None if lib['lending_model'] == 'NULL' else lib['lending_model']})
+    second = assign_order_no(classified)
+
+    if db_state is None:
+        write_csv(LIBRARY_CSV, LIBRARY_FIELDS, libraries)
+        write_csv(RULE_CSV, ['library_id', 'basis', 'scope_type', 'scope_region_id'], rules)
+        write_csv(LINK_CSV, ['collection_library_id', 'library_id'], links)
+    else:
+        print_changes(classified, read_db_state(db_state))
 
     def count(values):
         out = {}
@@ -385,16 +430,18 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
     print('join_survey: ' + count(lib['join_survey'] for lib in libraries))
     print('lending_model: ' + count(lib['lending_model'] for lib in libraries))
     print('platform: ' + count(lib['platform_type'] for lib in libraries))
-    labelled = [lib['name'] for lib in libraries if lib['name'] != next(c['name'] for c in candidates
-                                                                         if service_ids[c['id']] == lib['id'])]
-    print(f"names with a label: {sum(1 for n in labelled if ', ' not in n.rsplit('(', 1)[-1])}, "
-          f"with label and host: {sum(1 for n in labelled if ', ' in n.rsplit('(', 1)[-1])}")
-    registered_models = []
+    print('all libraries by vendor: ' + count(row['vendor'] for row in classified))
+    print('all libraries by lending_model: ' + count(row['lending_model'] or 'NULL' for row in classified))
+    print('BOOKCUBE SUBSCRIPTION service ids: ' + ', '.join(
+        str(row['id']) for row in sorted(classified, key=lambda r: r['id'])
+        if row['vendor'] == 'BOOKCUBE' and row['lending_model'] == 'SUBSCRIPTION'))
+    print(f'order_no 2 and up: {len(second)}' + ''.join(f'\n  ({lid}, {n})' for lid, n in second))
+    probe_registered = []
     for r in registered_rows:
         if r['platform_type'] == 'KYOBO_SUBSCRIPTION_V1' and r['base_url'].rstrip('/') in models:
-            registered_models.append((r['id'], models[r['base_url'].rstrip('/')]))
+            probe_registered.append((r['id'], models[r['base_url'].rstrip('/')]))
     print('registered lending_model (library/008 UPDATE): '
-          + ', '.join(f"({lid}, '{m}')" for lid, m in sorted(registered_models)))
+          + ', '.join(f"({lid}, '{m}')" for lid, m in sorted(probe_registered)))
     overlapping = [x for x in clashes if x[4] > 0]
     unread = [x for x in overlapping if x[0]['id'] not in SAME_HOST_KEPT]
     print(f'same host as a registered library: {len(clashes)} pairs, with shared item keys {len(overlapping)}, '
@@ -405,11 +452,54 @@ def main(snapshot, public_join, kinds_tsv, probe_tsv):
                   f"keys {keys_c} / {keys_r}, shared {shared} "
                   f"({shared / keys_c:.0%} of candidate, {shared / keys_r if keys_r else 0:.0%} of registered)")
         return 2
-    return 0
+    return 3 if second else 0
+
+
+def read_db_state(path):
+    """{id: (name, platform_type, lending_model or None)} from the db-state export (see the usage)."""
+    state = {}
+    for line in open(path, encoding='utf-8'):
+        lid, name, platform, model, _enabled = line.rstrip('\n').split('\t')
+        state[int(lid)] = (name, platform, model or None)
+    return state
+
+
+def sql_text(value):
+    return "'" + value.replace("'", "''") + "'"
+
+
+def print_changes(classified, state):
+    """What a changeset must change from the db state (plan cycle 09 step 2-6), and the list for the collection."""
+    rows = {row['id']: row for row in classified}
+    missing, extra = sorted(set(rows) - set(state)), sorted(set(state) - set(rows))
+    if missing or extra:
+        raise SystemExit(f'db state and seed differ: not in the db {missing}, not in the seed {extra}')
+    platform = sorted(lid for lid in rows if rows[lid]['platform_type'] != state[lid][1])
+    if platform:
+        raise SystemExit(f'platform_type differs from the db: {platform}')
+    renamed = [lid for lid in sorted(rows) if rows[lid]['name'] != state[lid][0]]
+    print(f'-- name UPDATE VALUES (id, old_name, new_name): {len(renamed)}')
+    print(',\n'.join(f"({lid}, {sql_text(state[lid][0])}, {sql_text(rows[lid]['name'])})" for lid in renamed))
+    fill = [lid for lid in sorted(rows) if state[lid][2] is None and rows[lid]['lending_model'] is not None]
+    print(f'-- lending_model UPDATE where NULL (id, lending_model): {len(fill)}')
+    print(',\n'.join(f"({lid}, '{rows[lid]['lending_model']}')" for lid in fill))
+    differs = [lid for lid in sorted(rows) if state[lid][2] is not None and state[lid][2] != rows[lid]['lending_model']]
+    print(f'-- lending_model in the db that the rules would set otherwise (left as it is): {len(differs)}'
+          + ''.join(f"\n  {lid} db {state[lid][2]} rules {rows[lid]['lending_model']}" for lid in differs))
+    own = [lid for lid in sorted(rows) if rows[lid]['vendor'] != VENDORS[rows[lid]['platform_type']]]
+    print(f'-- vendor other than the platform table: {len(own)}'
+          + ''.join(f"\n  {lid} {rows[lid]['vendor']}" for lid in own))
+    print(f'-- for the collection session (service id, collection id, final name): {len(renamed)}')
+    for lid in renamed:
+        print(f"{lid}\t{rows[lid]['collection_id']}\t{rows[lid]['name']}")
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
+    args = sys.argv[1:]
+    db_state = None
+    if args[:1] == ['--changes-only'] and len(args) > 1:
+        db_state, args = args[1], args[2:]
+    if len(args) != 5:
         raise SystemExit(__doc__)
     sys.stdout.reconfigure(encoding='utf-8')
-    sys.exit(main(*sys.argv[1:5]))
+    sys.exit(main(*args, db_state=db_state))

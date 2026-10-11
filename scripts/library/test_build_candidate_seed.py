@@ -20,6 +20,7 @@ KIND_HEADER = ['id', 'name', 'kind', 'sure', 'note']
 JOIN_HEADER = ['id', 'name', 'is_public', 'eligibility', 'basis', 'scope', 'visit_required', 'join_method',
                'extra_condition', 'join_caution', 'quote', 'source_url', 'checked', 'memo', 'decision']
 PROBE_HEADER = ['category', 'name', 'url', 'status', 'platform', 'base_url', 'titles', 'model', 'note', 'checked_at']
+VOLUME_HEADER = ['id', 'name', 'base_url', 'totalItem', 'totalVolume', 'error']
 
 REGISTERED = [(1, '가나도서관', 'KYOBO_V1', 'https://ga.example.kr'),
               (2, '다라도서관', 'KYOBO_SUBSCRIPTION_V1', 'https://dara.dkyobobook.co.kr')]
@@ -38,7 +39,11 @@ CANDIDATES = [
     (100010, '테스트도서관', 'KYOBO_V1', 'http://test.example.kr', 'TEST', None, True),
     (100068, '삼각산어린이도서관', 'BOOKCUBE_FX', 'http://ssg.bookcube.biz/FxLibrary', 'PUBLIC', None, True),
     (100011, '미확인도서관', 'BOOKCUBE_FX', 'http://u.bookcube.biz/FxLibrary', 'PUBLIC', None, True),
+    (100015, '구독도서관', 'BOOKCUBE_FX', 'http://s.bookcube.biz/FxLibrary', 'ORG', None, True),
+    (100016, '빈도서관', 'BOOKCUBE_FX', 'http://e.bookcube.biz/FxLibrary', 'ORG', None, True),
 ]
+# BOOKCUBE (totalItem, totalVolume); None: the site did not answer
+VOLUMES = {100001: (10, 5), 100011: None, 100015: (300, 0), 100016: (0, 0)}
 JOINS = {
     100005: dict(eligibility='REGION', basis='거주,재직,재학', scope='서울특별시', visit_required='false',
                  join_method='홈페이지 가입', source_url='https://gana.example.kr/join'),
@@ -82,6 +87,7 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.kinds = os.path.join(self.dir, 'kinds.tsv')
         self.joins = os.path.join(self.dir, 'join.tsv')
         self.probe = os.path.join(self.dir, 'probe.tsv')
+        self.volumes = os.path.join(self.dir, 'volume.tsv')
         self.write_inputs(CANDIDATES)
 
     def tearDown(self):
@@ -115,12 +121,32 @@ class BuildCandidateSeedTest(unittest.TestCase):
              'base_url': 'https://a.dkyobobook.co.kr', 'model': '소장'},
             {'name': '다라도서관', 'status': 'OK', 'platform': 'KYOBO_SUBSCRIPTION_V1',
              'base_url': 'https://dara.dkyobobook.co.kr', 'model': '대여'}])
+        write_tsv(self.volumes, VOLUME_HEADER, [
+            {'id': lid, 'totalItem': v[0] if v else '', 'totalVolume': v[1] if v else '', 'error': '' if v else 'x'}
+            for lid, v in VOLUMES.items()])
 
-    def run_seed(self):
+    def run_seed(self, db_state=None):
         out = io.StringIO()
         with redirect_stdout(out):
-            code = seed.main(self.snapshot, self.joins, self.kinds, self.probe)
+            code = seed.main(self.snapshot, self.joins, self.kinds, self.probe, self.volumes, db_state=db_state)
         return code, out.getvalue()
+
+    def seed_files(self):
+        return [open(self.patches[k], encoding='utf-8').read() for k in ('LIBRARY_CSV', 'RULE_CSV', 'LINK_CSV')]
+
+    def write_db_state(self, names=None):
+        """The db-state export of the seed written last; names replaces some current names {id: name}."""
+        rows = [(lid, name, platform) for lid, name, platform, _base in REGISTERED]
+        rows += [(int(r['id']), r['name'], r['platform_type']) for r in self.read('LIBRARY_CSV')]
+        path = os.path.join(self.dir, 'db-state.tsv')
+        with open(path, 'w', encoding='utf-8', newline='') as f:
+            for lid, name, platform in rows:
+                f.write('\t'.join([str(lid), (names or {}).get(lid, name), platform, '', 't']) + '\n')
+        return path
+
+    def db_state_after_first_run(self):
+        self.run_seed()
+        return self.write_db_state()
 
     def read(self, key):
         return list(csv.DictReader(open(self.patches[key], encoding='utf-8')))
@@ -156,15 +182,38 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertEqual(links[2], 2)
         self.assertEqual(links[100001], 3)
 
-    def test_names_get_a_label_then_a_host(self):
-        self.run_seed()
+    def test_equal_names_get_no_label_and_other_vendors_keep_order_one(self):
+        code, out = self.run_seed()
         names = {r['base_url']: r['name'] for r in self.libraries().values()}
-        self.assertEqual(names['https://kd.bookcube.biz/FxLibrary'], '강동대학교 (북큐브)')
-        self.assertEqual(names['http://kd.example.ac.kr:9090'], '강동대학교 (교보)')
-        self.assertEqual(names['https://a.dkyobobook.co.kr'], '부여초등학교 (교보, a.dkyobobook.co.kr)')
-        self.assertEqual(names['https://b.dkyobobook.co.kr'], '부여초등학교 (교보, b.dkyobobook.co.kr)')
-        self.assertEqual(names['http://gana.yes24library.com'], '가나도서관 (YES24)')  # registered 1 keeps its name
+        self.assertEqual(names['https://kd.bookcube.biz/FxLibrary'], '강동대학교')
+        self.assertEqual(names['http://kd.example.ac.kr:9090'], '강동대학교')
+        self.assertEqual(names['https://a.dkyobobook.co.kr'], '부여초등학교')  # KYOBO OWNED
+        self.assertEqual(names['https://b.dkyobobook.co.kr'], '부여초등학교')  # KYOBO SUBSCRIPTION
+        self.assertEqual(names['http://gana.yes24library.com'], '가나도서관')  # registered 1 is KYOBO
         self.assertEqual(names['http://m.yes24library.com'], '모름도서관')
+        self.assertEqual(code, 0)
+        self.assertIn('order_no 2 and up: 0', out)
+
+    def test_same_name_vendor_and_lending_model_get_order_two_and_stop(self):
+        added = CANDIDATES + [(100014, '모름도서관', 'YES24_V2', 'http://m2.yes24library.com', 'ORG', None, True)]
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        code, out = self.run_seed()
+        libraries = self.libraries()
+        second = next(k for k, v in libraries.items() if v['base_url'] == 'http://m2.yes24library.com')
+        self.assertEqual(libraries[second]['name'], '모름도서관')
+        self.assertEqual(code, 3)
+        self.assertIn(f'order_no 2 and up: 1\n  ({second}, 2)', out)
+
+    def test_vendor_from_the_platform_table(self):
+        self.assertEqual({seed.VENDORS[p] for p in ('KYOBO_V1', 'KYOBO_SUBSCRIPTION_V1')}, {'KYOBO'})
+        self.assertEqual({seed.VENDORS[p] for p in ('YES24_V1', 'YES24_V2', 'YES24_V3')}, {'YES24'})
+        self.assertEqual([seed.VENDORS[p] for p in ('BOOKCUBE_FX', 'ALADIN_V1', 'ELIB_PORTAL_V1', 'GANGNAM_V1')],
+                         ['BOOKCUBE', 'ALADIN', 'PORTAL', 'IN_HOUSE'])
+        code, out = self.run_seed(self.db_state_after_first_run())
+        # only a vendor the collection wrote may differ from the table, and there is none yet
+        self.assertIn('-- vendor other than the platform table: 0', out)
+        self.assertIn('all libraries by vendor: KYOBO 5, BOOKCUBE 4, YES24 2, ALADIN 1', out)
 
     def test_left_out_candidates(self):
         code, out = self.run_seed()
@@ -191,12 +240,31 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertEqual({(r['basis'], r['scope_region_id']) for r in rules},
                          {('RESIDENCE', '11'), ('WORK', '11'), ('SCHOOL', '11')})
 
-    def test_lending_model_from_the_probe(self):
+    def test_lending_model_rules(self):
         code, out = self.run_seed()
-        by_url = {r['base_url']: r for r in self.libraries().values()}
-        self.assertEqual(by_url['https://a.dkyobobook.co.kr']['lending_model'], 'OWNED')
-        self.assertEqual(by_url['https://b.dkyobobook.co.kr']['lending_model'], 'NULL')
+        model = {r['base_url']: r['lending_model'] for r in self.libraries().values()}
+        self.assertEqual(model['https://a.dkyobobook.co.kr'], 'OWNED')  # the probe
+        self.assertEqual(model['https://b.dkyobobook.co.kr'], 'SUBSCRIPTION')  # KYOBO subscription, not in the probe
+        self.assertEqual(model['http://kd.example.ac.kr:9090'], 'OWNED')  # KYOBO
+        self.assertEqual(model['http://gana.yes24library.com'], 'OWNED')  # YES24
+        self.assertEqual(model['http://x.aladinebook.co.kr?nav_code=e1'], 'OWNED')  # ALADIN
+        self.assertEqual(model['http://s.bookcube.biz/FxLibrary'], 'SUBSCRIPTION')  # totalVolume 0, books listed
+        self.assertEqual(model['https://kd.bookcube.biz/FxLibrary'], 'OWNED')  # volumes
+        self.assertEqual(model['http://e.bookcube.biz/FxLibrary'], 'OWNED')  # no books
+        self.assertEqual(model['http://u.bookcube.biz/FxLibrary'], 'OWNED')  # no answer
+        self.assertIsNone(seed.lending_model_of('ELIB_PORTAL_V1', None, None))
+        self.assertEqual(seed.lending_model_of('GANGNAM_V1', None, None), 'OWNED')
         self.assertIn("registered lending_model (library/008 UPDATE): (2, 'RENTAL')", out)
+
+    def test_registered_kyobo_subscription_without_a_value_becomes_subscription(self):
+        # registered 2 (KYOBO subscription) has no library/008 value here; registered 1 is KYOBO -> OWNED
+        code, out = self.run_seed(self.db_state_after_first_run())
+        self.assertIn("(1, 'OWNED'),\n(2, 'SUBSCRIPTION')", out)
+        # a library/008 value stays
+        with open(self.patches['LIBRARY_DIR'] + '008-library-seed-candidates.yaml', 'w', encoding='utf-8') as f:
+            f.write("sql: UPDATE ... FROM (VALUES (2, 'RENTAL')) AS v (id, model)\n")
+        code, out = self.run_seed(self.write_db_state())
+        self.assertIn("(2, 'RENTAL')", out.split('-- lending_model UPDATE where NULL')[1])
 
     def test_kyobo_rental_and_mixed_candidates_leave_and_their_numbers_are_not_given_again(self):
         self.run_seed()
@@ -248,9 +316,48 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.write_overrides([{'library_id': lib, 'old_name': '다른이름', 'new_name': '새이름'}])
         with self.assertRaises(SystemExit):
             self.run_seed()
-        self.write_overrides([{'library_id': lib, 'old_name': '모름도서관', 'new_name': '가나도서관'}])  # registered 1
-        with self.assertRaises(SystemExit):
-            self.run_seed()
+        # the name of registered 1 (KYOBO): another vendor, so it goes in with order 1 ...
+        self.write_overrides([{'library_id': lib, 'old_name': '모름도서관', 'new_name': '가나도서관'}])
+        code, out = self.run_seed()
+        self.assertEqual(self.libraries()[lib]['name'], '가나도서관')
+        # ... but the YES24 candidate 가나도서관 has the same vendor and lending_model: order 2, the run stops
+        self.assertEqual(code, 3)
+        self.assertIn(f'({lib}, 2)', out)
+
+    def test_registered_library_override_is_applied_in_memory_only(self):
+        registered_csv = self.patches['LIBRARY_DIR'] + '004-library.csv'
+        before = open(registered_csv, encoding='utf-8').read()
+        db_state = self.db_state_after_first_run()
+        self.write_overrides([{'library_id': 1, 'old_name': '가나도서관', 'new_name': '가나시립도서관'}])
+        code, out = self.run_seed(db_state)
+        self.assertIn("(1, '가나도서관', '가나시립도서관')", out)
+        self.assertEqual(open(registered_csv, encoding='utf-8').read(), before)
+
+    def test_changes_only_writes_no_seed_file(self):
+        db_state = self.db_state_after_first_run()
+        before = self.seed_files()
+        renamed = next(k for k, v in self.libraries().items() if v['name'] == '모름도서관')
+        self.write_overrides([{'library_id': renamed, 'old_name': '모름도서관', 'new_name': '새이름도서관'}])
+        added = CANDIDATES + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        with self.assertRaises(SystemExit):  # the new candidate is not in the db state
+            self.run_seed(db_state)
+        self.assertEqual(self.seed_files(), before)
+        self.write_snapshot(CANDIDATES)
+        self.write_inputs(CANDIDATES)
+        code, out = self.run_seed(db_state)
+        self.assertEqual(self.seed_files(), before)
+        self.assertIn(f"({renamed}, '모름도서관', '새이름도서관')", out)
+        self.assertIn('-- for the collection session (service id, collection id, final name): 1\n'
+                      f'{renamed}\t100007\t새이름도서관', out)
+
+    def test_old_name_of_the_update_is_the_db_name(self):
+        self.run_seed()
+        renamed = next(k for k, v in self.libraries().items() if v['name'] == '모름도서관')
+        db_state = self.write_db_state({renamed: "모름도서관 (YES24's)"})  # an earlier changeset renamed it in the db
+        code, out = self.run_seed(db_state)
+        self.assertIn(f"({renamed}, '모름도서관 (YES24''s)', '모름도서관')", out)
 
     def test_same_host_with_shared_keys_stops_until_read(self):
         extra = CANDIDATES + [(100013, '가나분관', 'BOOKCUBE_FX', 'http://ga.example.kr:9000/FxLibrary', 'PUBLIC',
