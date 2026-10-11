@@ -386,6 +386,11 @@
   word-break: keep-all;
 }
 
+/* the app footer under this screen gets room at its bottom, so the floating button never covers its lines */
+:global(body):has(.floating) :global(footer) {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cover,
   .arrow,
@@ -535,35 +540,34 @@
 }
 
 /*
- * Touch screens only (user 2026-10-12, "그렇게 해줘"): a flick stops at the next category, its panel below the
- * floating button (the block's own top margin is the app header, its top padding the button's zone), and the page
- * end (the footer) is a stop too. Only while this screen is shown; a mouse or trackpad keeps the wheel steps and the
- * free scrollbar. When a block is taller than the screen (zoom, large text), `proximity` instead so nothing is
- * trapped (PopularPage sets data-tall).
+ * Touch screens only, on this screen only: no vertical panning by the browser; a vertical swipe moves one category
+ * (PopularPage), sideways swipes and pinch zoom stay (user 2026-10-12: "스크롤 바꿀때 폰 태블릿에서는 스크롤 없애고
+ * 그냥 위아래 넘김 이벤트일때 알아서 딱 알맞은 위치에 이동하도록"). Zoomed in, the page scrolls normally again
+ * (data-zoomed), so nothing is out of reach. Lists and sheets that scroll inside keep scrolling.
  */
 @media (hover: none) and (pointer: coarse) {
-  :global(html):has(.page) {
-    scroll-snap-type: y mandatory;
+  :global(html):has(.page:not([data-zoomed])) {
+    touch-action: pan-x pinch-zoom;
   }
 
-  :global(html):has(.page[data-tall]) {
-    scroll-snap-type: y proximity;
+  /*
+   * Phone browsers float their own "back to top" button at the bottom centre (Samsung Internet: about 56-64px up, a
+   * 48px circle); the pill sits above it (user 2026-10-12: "아래 카테고리 아이콘이랑 윗 화살표 아이콘이랑 안 겹치게
+   * 조정좀 카테고리를 윗 화살표 아이콘보다 위로"), and the blocks leave that much room at the bottom
+   */
+  .page {
+    --float-zone: calc(76px + 2.6rem + 0.6rem);
   }
 
-  .section {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
+  .floating {
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
-  :global(html):has(.page) :global(footer) {
-    scroll-snap-align: end;
+  :global(body):has(.floating) :global(footer) {
+    padding-bottom: calc(76px + 3.4rem + env(safe-area-inset-bottom));
   }
 }
 
-/* the app footer under this screen gets room at its bottom, so the floating button never covers its lines */
-:global(body):has(.floating) :global(footer) {
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
-}
 
 /* the narrowest phones: the source line wraps to four lines */
 @media (width <= 360px) {

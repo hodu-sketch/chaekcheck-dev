@@ -23,6 +23,9 @@ const WHEEL_QUIET_MS = 350
 /** [안] (cycle 10): how long one wheel or PageDown step glides. */
 const GLIDE_MS = 350
 
+/** [안] (cycle 10): how far a finger must move up or down (more than sideways) to move one category. */
+const SWIPE_Y_PX = 30
+
 type Loaded = { key: string; data: PopularBooks | null; failed: boolean }
 
 /**
@@ -193,6 +196,10 @@ export function PopularPage() {
     }
     const outside = (target: EventTarget | null) =>
       !(target instanceof Element && target.closest('[role="dialog"], [data-radix-popper-content-wrapper]'))
+    // a mouse press (the scrollbar) stops a glide; a finger on a touch screen does not (one swipe at a time)
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch') stop()
+    }
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.deltaY === 0) return
       if (!outside(event.target)) return
@@ -216,40 +223,55 @@ export function PopularPage() {
       event.preventDefault()
       if (frame === 0) step(down)
     }
+    // touch screens: no free vertical scrolling here (CSS touch-action); one vertical swipe = one category, whatever its
+    // strength, decided by the dominant axis; taps and sideways swipes (grid pages) are left alone
+    const coarse = window.matchMedia?.('(hover: none) and (pointer: coarse)').matches ?? false
+    let touch: { x: number; y: number } | null = null
+    const onTouchStart = (event: TouchEvent) => {
+      touch = null
+      if (!coarse) {
+        stop()
+        return
+      }
+      const zoomedIn = (window.visualViewport?.scale ?? 1) > 1.01
+      if (event.touches.length !== 1 || zoomedIn || !outside(event.target)) return
+      touch = { x: event.touches[0].clientX, y: event.touches[0].clientY }
+    }
+    const onTouchEnd = (event: TouchEvent) => {
+      const start = touch
+      touch = null
+      const end = event.changedTouches[0]
+      if (!start || !end) return
+      const dx = end.clientX - start.x
+      const dy = end.clientY - start.y
+      if (Math.abs(dy) < SWIPE_Y_PX || Math.abs(dy) <= Math.abs(dx)) return
+      if (frame === 0) step(dy < 0)
+    }
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKey)
-    document.addEventListener('pointerdown', stop, true)
-    window.addEventListener('touchstart', stop, { passive: true })
+    document.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
     return () => {
       stop()
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerdown', stop, true)
-      window.removeEventListener('touchstart', stop)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchend', onTouchEnd)
     }
   }, [codes])
 
-  // a block taller than the screen (zoom, large text) would trap touch snapping: the CSS falls back to proximity
-  const [tall, setTall] = useState(false)
+  // pinch-zoomed in: the page scrolls normally again so nothing is out of reach (touch swipes step otherwise)
+  const [zoomed, setZoomed] = useState(false)
   useEffect(() => {
-    if (!codes) return
-    const first = document.getElementById(sectionId(codes.split(',')[0]))
-    if (!first) return
-    const check = () => {
-      const header = document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0
-      setTall(first.offsetHeight > window.innerHeight - header + 1)
-    }
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const check = () => setZoomed(viewport.scale > 1.01)
     check()
-    window.addEventListener('resize', check)
-    if (typeof ResizeObserver === 'undefined') return () => window.removeEventListener('resize', check)
-    const observer = new ResizeObserver(check)
-    observer.observe(first)
-    return () => {
-      window.removeEventListener('resize', check)
-      observer.disconnect()
-    }
-  }, [codes])
-
+    viewport.addEventListener('resize', check)
+    return () => viewport.removeEventListener('resize', check)
+  }, [])
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
 
   // S13c: that category's ranks 1-9, the page put straight there with no smooth scrolling (user 2026-10-11)
@@ -301,7 +323,7 @@ export function PopularPage() {
   }
 
   return (
-    <div ref={rootRef} className={styles.page} data-tall={tall || undefined}>
+    <div ref={rootRef} className={styles.page} data-zoomed={zoomed || undefined}>
       {/*
         Design A with the user's later choices (2026-10-12): no visible heading ("이거 위에 있는거 불필요하니까 없애고"),
         only one for screen readers; the category picker floats at the bottom centre and follows the category in view.
