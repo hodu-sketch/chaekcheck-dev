@@ -2898,7 +2898,7 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 ## 지금 상태 (중간 전달, 2026-10-12 07:50)
 
 - 사용자: "이것까지만 plan에 전달하게 중간 전달용으로 좀 줘"
-- 끝남: 0~6단계, 8단계, 9단계(`compact`), 10단계(`sql`) 구현과 테스트. 7단계 실데이터는 아래 AC 중 AC-5(다음 `apply`가 끝까지)와 AC-15(`finish` 도중 멈춤)만 남음
+- 끝남: 0~6단계, 8단계, 9단계(`compact`), 10단계(`sql`) 구현과 테스트. 7단계 실데이터 AC 모두(아래 표. AC-5·AC-15는 중간 전달 뒤 같은 날 끝남)
 - 남음: 11단계(세 방식의 실데이터 결과 비교와 측정, 옛 사본 한 번, 기본값 추천). 측정은 같은 PC에서 하나씩 돌려야 해서 10~12시간 예상. 측정 뒤 기본 방식은 사용자가 정함(R-B7), 그때까지 `current`
 - 커밋: `596c40b`(0~6단계), `3e1baf7`(8단계), `5c85056`(3-import.md 13절, 측정 스크립트), `a67e107`(10단계 `sql`), `af73d53`(9단계 `compact`), `e3cfea4`(세 방식 고르기 연결). 모두 `./gradlew build` 통과(ModularityTests·DocumentationTests 포함, 모듈 의존 변화 없음)
 - 기존 테스트(`CatalogLoadSwapTests`, `CatalogLoadBookIdTests`, `CatalogImporterTests`, `NationalBibliographyTests`)는 고치지 않고 통과. 새 테스트: `CatalogImportRecordTests`, `CatalogTransferTests`(10개, 진짜 pg 도구), `CatalogImportModesTests`(6개), `BookGrouperContractTests`, `CompactGroupingTests`(10개, `current`와 무작위 대조 4000줄 × 시드 5 + 소량 × 시드 40), `SqlGroupingTests`(17개, 무작위 대조 1500줄 × 시드 8, 긴 사슬, 동점 문자, 반복 상한)
@@ -2922,14 +2922,14 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 | AC-2 | 통과. 반영 뒤 `db-ops`의 책 1,619,668개·소장 17,778,801개의 번호와 내용이 내 PC `catalog_next`와 모두 같음(`compare_grouping.py ids-compare`, 차이 0줄). 검색 응답도 내 PC(`finish` 뒤)와 `db-ops`가 57개 같음 |
 | AC-3 | 통과. 위 숫자 |
 | AC-4 | 통과. `db-ops`에서 하나씩 바꿔 `apply`: 도서관 1의 `base_url` → `mismatch` "도서관: 이 DB 2658곳 315e87cf5b9a / 파일 2658곳 761ce0ae2994", 연결표 한 줄 → "연결표: …", 책 표(옛 파일) → "책 표 book 줄 수: 이 DB 1619668 / 파일 1615125; …" 여섯 값. 매번 아무것도 안 바뀜, 종료 코드 1. 바꾼 것은 되돌림 |
-| AC-5 | 진행 중. 복원 도중 멈춘 뒤 검색은 그대로(아래 AC-13). 다음 `apply`가 끝까지 가는지 남음 |
+| AC-5 | 통과. 복원 도중 Java를 한 번 더 강제 종료(검색 200 그대로, 1초 안에 복원 세션 없음) → 다음 `apply`가 끝까지(`SUCCEEDED`) |
 | AC-6 | 통과. `finish` 뒤 두 DB의 `book`·`holding` 줄 수·가장 큰 번호·시퀀스 값, 칸 구조, 연결표, 켜진 도서관이 모두 같음 |
 | AC-7 | 통과. `db-ops` 한 줄에 내 PC 단계(`read`…`write`, `load`) + 반영 단계(`compare`·`restore`·`index`·`analyze`·`swap`·`apply`)와 `export_id`. 내 PC `finish` 줄과 같은 `export_id` |
 | AC-11 | 통과. `db-ops` `catalog.book`에 칸 하나 더하고 `apply` → "표 구조: …" `mismatch`. 칸은 지움 |
 | AC-12 | 통과. 기다림 상태에서 `export` 다시 → 읽기 전에 멈춤("first finish them … or discard them"), 파일 안 생김 |
 | AC-13 | 통과(1회). `apply`의 복원 도중(복원 세션이 뜬 5초 뒤) Java를 강제 종료 → 1초 안에 `chaekcheck-restore` 세션 없음, `catalog_next` 없음(한 트랜잭션이 롤백), 검색 200 그대로 |
 | AC-14 | 통과. 상한 1GB `db-ops`에서 256MB로 끝까지, 색인 2분 30초, `OOMKilled` 없음 |
-| AC-15 | 남음 |
+| AC-15 | 통과. 내 PC `finish`를 색인 도중(`holding_pkey` 뒤) Java 강제 종료 → `catalog_next`에 색인 5개와 `load_manifest`가 남아 기다림 유지 → `export`는 읽기 전에 멈춤 → `finish` 다시: 만들다 만 제약·색인부터 지우고 끝까지. 그 뒤 두 DB 비교 값 같음 |
 
 ## [확인 필요] 표의 결과 (지금까지)
 
@@ -2955,3 +2955,14 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - `columnsHash`는 `notes`가 아닌 `load_manifest` 칸이자 `Baseline`의 칸
 - `apply`·`discard` 시작 때 남은 `chaekcheck-restore` 세션을 `pg_terminate_backend`로 끝냄(프로토타입 4)
 - 사이클 10 웹 작업이 끝나기 전에 시작함(사용자 결정, 위)
+
+## 사이클 13과 맞물리는 것 (plan 알림, 2026-10-12)
+
+- plan 알림: 사이클 13에서 새 도서관은 collection의 "도서관 넣기" 명령으로 내 PC에 넣고, 운영에는 사이클 11의 반영 파일에 도서관·가입 규칙·짝 표를 함께 실어 "도서관 → 짝 표 → 책" 순서로 넣기로 함(사전 결정 6). 사이클 11은 지금 범위대로 하되 파일 형식이 그 자리를 막지 않게
+- 지금 형식이 막지 않는 점
+  - `load_manifest.format_version`(지금 1). 도서관 부분을 실으면 2로 올리고, 옛 앱은 다른 판 파일을 반영하지 않음(지금 코드가 이미 거절)
+  - 파일은 `catalog_next` 스키마를 통째로 담으므로 작은 표(도서관·가입 규칙·짝 표)를 더 실을 수 있음. `catalog`는 `notes`를 해석하지 않으니 도서관 부분은 `collection`·`library`가 읽는 짐으로 둘 수 있음
+- 그때 지켜야 할 것(dev가 본 것)
+  - 바꿔 끼우기의 `DROP SCHEMA catalog_next`는 CASCADE 없이 돎. 더한 표는 `load_manifest`처럼 바꿔 끼우기 전에 지워야 함(아니면 바꿔 끼우기가 실패)
+  - "도서관 먼저 넣고 비교"하려면 비교 전에 그 부분을 읽어야 함. 파이프로 만든 `-Fc`는 데이터 위치가 없고 표 데이터가 이름 순이라, 표 하나만 읽어도 파일을 훑음(600MB 파일이면 수 초~수십 초). 작으면 manifest처럼 COMMENT(목차)에 싣는 방법이 있음
+  - 지금 비교의 도서관 해시는 `enabledLibraryRefs()`(켜진 도서관의 id·주소·화면 종류)뿐. 가입 규칙은 비교에 없음

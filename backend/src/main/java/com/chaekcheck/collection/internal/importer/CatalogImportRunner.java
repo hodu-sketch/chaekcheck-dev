@@ -1,5 +1,6 @@
 package com.chaekcheck.collection.internal.importer;
 
+import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.library.LibraryCatalog;
+import com.sun.management.OperatingSystemMXBean;
 
 /**
  * Runs one catalog import and exits (profile {@code collection-import} only, ADR-0031, ADR-0060). Never active in
@@ -117,6 +119,11 @@ class CatalogImportRunner {
 					}
 					importer.run(settings.sqlitePath(), settings.ttlPath(), settings.dryRun());
 				}
+			}
+			// cycle 11 measurement (ADR-0079): the Java side's CPU, next to the database container's cpu.stat
+			if (ManagementFactory.getOperatingSystemMXBean() instanceof OperatingSystemMXBean os) {
+				log.info("process cpu {} s, uptime {} s", os.getProcessCpuTime() / 1_000_000_000.0,
+						ManagementFactory.getRuntimeMXBean().getUptime() / 1000.0);
 			}
 			System.exit(SpringApplication.exit(context, () -> 0));
 		};
