@@ -160,9 +160,10 @@ class SameTextKeyTests {
 		assertThat(SameTextKey.numbers("가 - 도시농부 올빼미의 텃밭가이드 2권")).containsExactly("2");
 		assertThat(SameTextKey.numbers("가 - SciFan 제178권 시리즈의 한 권")).containsExactly("178");
 		assertThat(SameTextKey.numbers("가 - 2014 커뮤니케이션이해총서 모음")).containsExactly("2014");
-		// leading zeros do not make a part long (second dry run sample)
-		assertThat(key("더 시커 : 마나가 필요 없어 01권")).isEqualTo(key("더 시커 : 마나가 필요 없어 01"));
-		assertThat(key("미국인의 발견 - 살림지식총서 81")).isEqualTo(key("미국인의 발견 - 살림지식총서 081"));
+		// a series number of a part over the limit is description (fourth dry run sample); the price: "081" and "81"
+		// on both sides of the limit stay apart
+		assertThat(key("P세대 : 세계문학전집 090")).isEqualTo(key("P세대"));
+		assertThat(key("미국인의 발견 - 살림지식총서 81")).isNotEqualTo(key("미국인의 발견 - 살림지식총서 081"));
 		// a count or a series number at the end of a long part is description (third dry run sample)
 		assertThat(key("나는 다시 나를 설계하기로 했다 - 독일 최고의 멘탈 코치가 증명한 생각·행동·습관 설계의 핵심 52"))
 			.isEqualTo(key("나는 다시 나를 설계하기로 했다"));

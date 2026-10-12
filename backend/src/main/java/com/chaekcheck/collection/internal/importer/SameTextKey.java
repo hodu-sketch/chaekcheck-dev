@@ -61,8 +61,10 @@ final class SameTextKey {
 	private static final Pattern SUBTITLE_SEPARATOR = Pattern.compile("\\s+[:\\-]\\s+");
 
 	/**
-	 * A subtitle part this long or shorter (spaces and leading zeros not counted) gives all its numbers ("- 수학 1",
-	 * "- 상").
+	 * A subtitle part this long or shorter (spaces not counted) gives all its numbers ("- 수학 1", "- 상"). A series
+	 * number in a short part ("살림지식총서 81") also counts, so such a book stays apart from the bare title; and a
+	 * part just over the limit ("살림지식총서 081") does not (cycle 12 dry runs 2~4: not counting leading zeros or
+	 * counting a long part's last number both split thousands of same books, so the limit stays as it is).
 	 */
 	static final int SHORT_PART = 8;
 
@@ -197,9 +199,7 @@ final class SameTextKey {
 		String[] parts = SUBTITLE_SEPARATOR.split(text, -1);
 		for (int p = 0; p < parts.length; p++) {
 			String part = parts[p];
-			// counted without spaces and leading zeros, so "살림지식총서 081" is as short as "살림지식총서 81"
-			String counted = LEADING_ZEROS.matcher(WHITESPACE.matcher(part).replaceAll("")).replaceAll("");
-			boolean all = p == 0 || counted.length() <= SHORT_PART;
+			boolean all = p == 0 || WHITESPACE.matcher(part).replaceAll("").length() <= SHORT_PART;
 			TreeMap<Integer, String> found = new TreeMap<>();
 			if (all) {
 				Matcher number = NUMBER.matcher(part);
