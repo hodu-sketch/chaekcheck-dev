@@ -16,7 +16,8 @@ import com.chaekcheck.library.LibraryType;
 import com.chaekcheck.library.PlatformType;
 
 /**
- * One e-library site (ADR-0017). Rows come from Liquibase; operators change {@code enabled} with SQL.
+ * One e-library site (ADR-0017). Rows come from the Liquibase seed and from {@link com.chaekcheck.library.LibraryRegistry#add}
+ * (cycle 13, ADR-0083, {@link JdbcLibraryRegistry}); this entity is read-only. Operators change {@code enabled} with SQL.
  */
 @Entity
 @Table(schema = "library", name = "library")
@@ -101,7 +102,7 @@ class Library {
 	@Column(name = "lending_model", columnDefinition = "text")
 	private LendingModel lendingModel;
 
-	/** Written by the seed script, checked by the database (ADR-0071); Java never saves a library. */
+	/** Written by the seed and LibraryRegistry.add (ADR-0071, ADR-0083), checked by the database. */
 	@Enumerated(EnumType.STRING)
 	@Column(name = "vendor", columnDefinition = "text", insertable = false, updatable = false)
 	private Vendor vendor;
