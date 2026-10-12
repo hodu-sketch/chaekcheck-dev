@@ -4,12 +4,15 @@ Usage:
   python crawl_catalog.py init                 # (re)load the library list from chaekcheck-dev seed CSVs (read-only)
   python crawl_catalog.py full [--workers N] [--only ID,ID] [--limit-pages N]
   python crawl_catalog.py status
+  python crawl_catalog.py refill-pubdt --only ID   # read a library's list again in publish-date order (adds only)
 
 Rules (docs/research/ebook-catalog/crawl-method.md in chaekcheck-plan):
 - one request at a time per host, at least 1 s apart; identifying User-Agent
 - facts only: no blurbs, no loan/hold counts; cover image URL only
 - every row keeps first_seen_at / last_seen_at / removed_at; every run is recorded in crawl_run
 - rows are marked removed only after a successful full run
+- no request goes to the KYOBO subscription servers (*.dkyobobook.co.kr): they blocked our IP (cycle 13 spec R1-6)
+- a library whose site blocks us (HTTP 403, or time-outs after every retry) is marked not crawled (crawl_skip, R1-7)
 """
 import argparse
 import csv
@@ -52,6 +55,11 @@ PAGE_SIZE = {"KYOBO_V1": 500, "YES24_V1": 50, "YES24_V2": 10, "YES24_V3": 10, "K
 # Subscription sites whose catalogue is the ~200k shared KYOBO subscription pool (all on *.dkyobobook.co.kr):
 # skipped unless --include-big-subscription (about 2,500 pages each on one shared server).
 BIG_SUBSCRIPTION_MIN = 50000
+# Never requested (cycle 13 spec R1-6): the KYOBO subscription servers blocked our IP, and rental/mixed sites are
+# left out of the service (ADR-0067), so there is nothing to fetch there. Checked again right before every request.
+BLOCKED_HOST_SUFFIX = "dkyobobook.co.kr"
+# library.vendor values (same CHECK as the data folder's library-naming/apply_rename.py, 2026-10-12)
+VENDORS = ("KYOBO", "YES24", "BOOKCUBE", "ALADIN", "PORTAL", "IN_HOUSE")
 PAGE_SIZE_BY_HOST = {  # hosts that cut or time out on the default page size (2026-09-30)
     "ebook.jbe.go.kr": 100, "ebook.chilgok.go.kr": 100, "lib.goe.go.kr": 50}
 
@@ -77,7 +85,10 @@ CREATE TABLE IF NOT EXISTS library (
   seed_holdings_count INTEGER,
   last_full_success_at TEXT,
   last_full_run_id INTEGER,
-  source TEXT                       -- dev-seed / okbari-2026-09-30 (third-party list, checked by probe)
+  source TEXT,                      -- dev-seed / okbari-2026-09-30 (third-party list, checked by probe)
+  crawl_skip TEXT,                  -- reason this library is not crawled (NULL = crawl it)
+  -- set only when the vendor differs from the platform_type mapping; read by the library-insert command
+  vendor TEXT CHECK (vendor IS NULL OR vendor IN ('KYOBO','YES24','BOOKCUBE','ALADIN','PORTAL','IN_HOUSE'))
 );
 CREATE TABLE IF NOT EXISTS crawl_run (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,6 +181,8 @@ def migrate(con):
         con.execute("ALTER TABLE library ADD COLUMN source TEXT")
     if "crawl_skip" not in lib_cols:  # reason this library is not crawled (NULL = crawl it)
         con.execute("ALTER TABLE library ADD COLUMN crawl_skip TEXT")
+    if "vendor" not in lib_cols:  # added in the data folder on 2026-10-12 (apply_rename.py); read by library-insert
+        con.execute("ALTER TABLE library ADD COLUMN vendor TEXT CHECK (vendor IS NULL OR vendor IN %s)" % (VENDORS,))
     con.execute("CREATE INDEX IF NOT EXISTS holding_type ON holding(content_type)")
     # triggers are dropped and recreated so a changed definition always takes effect
     con.execute("DROP TRIGGER IF EXISTS holding_typed_ins")
@@ -419,7 +432,18 @@ def _fetch(url, host):
             _host_last[host] = time.monotonic()
 
 
+class BlockedHost(RuntimeError):
+    """A request to a server we never call (BLOCKED_HOST_SUFFIX)."""
+
+
+def is_blocked_host(url):
+    host = (urlsplit(url).hostname or "").lower()
+    return host == BLOCKED_HOST_SUFFIX or host.endswith("." + BLOCKED_HOST_SUFFIX)
+
+
 def fetch_retry(url, host):
+    if is_blocked_host(url):
+        raise BlockedHost(f"not requested (KYOBO subscription server, spec R1-6): {url}")
     last = None
     for attempt in range(RETRIES):
         try:
@@ -429,7 +453,31 @@ def fetch_retry(url, host):
             if isinstance(e, urllib.error.HTTPError) and e.code < 500 and e.code != 429:
                 break
             time.sleep(RETRY_WAIT)
-    raise RuntimeError(f"fetch failed: {url}: {last!r}")
+    raise RuntimeError(f"fetch failed: {url}: {last!r}") from last
+
+
+def blocked_reason(e):
+    """'HTTP 403' or 'time-out' when the site turned us away after every retry (spec R1-7), else None."""
+    while e is not None:
+        if isinstance(e, urllib.error.HTTPError) and e.code == 403:
+            return "HTTP 403"
+        if isinstance(e, (TimeoutError, socket.timeout)) or (
+                isinstance(e, urllib.error.URLError) and isinstance(e.reason, (TimeoutError, socket.timeout))):
+            return "time-out"
+        e = e.__cause__
+    return None
+
+
+def mark_blocked(con, lib, e):
+    """Marks only this library not crawled when its site blocks us (spec R1-7); other libraries go on."""
+    reason = blocked_reason(e)
+    if not reason:
+        return
+    with db_lock:
+        con.execute("UPDATE library SET crawl_skip=? WHERE id=?",
+                    (f"blocked {now()[:10]}: {reason} (clear: --skip {lib['id']} '')", lib["id"]))
+        con.commit()
+    log(f"[{lib['id']}] {lib['name']}: site blocks us ({reason}); marked not crawled")
 
 
 # ---------------------------------------------------------------- parsing
@@ -988,6 +1036,7 @@ def crawl_library(con, lib, limit_pages=None, only_sections=None):
         segs = segments(lib)
     except Exception as e:  # noqa: BLE001
         log(f"[{lib['id']}] {lib['name']}: FAILED reading the home page {e!r}")
+        mark_blocked(con, lib, e)
         segs = None
     if segs is None:
         with db_lock:
@@ -1129,6 +1178,7 @@ def crawl_library(con, lib, limit_pages=None, only_sections=None):
                         (now(), repr(e)[:1000], run_id))
             con.commit()
         log(f"[{lib['id']}] {lib['name']}: FAILED {e!r}")
+        mark_blocked(con, lib, e)
 
 
 def finish(con, lib, run_id, site_total, partial, no_total=False, sections=("MAIN",), whole=True):
@@ -1176,6 +1226,10 @@ def full(con, workers, only, limit_pages, platforms=None, retry_failed=False, bi
     libs = [lb for lb in libs if not lb.get("crawl_skip")]
     for lb in skipped_libs:
         log(f"[{lb['id']}] {lb['name']}: not crawled ({lb['crawl_skip']})")
+    blocked = [lb for lb in libs if is_blocked_host(lb["base_url"])]
+    libs = [lb for lb in libs if not is_blocked_host(lb["base_url"])]
+    if blocked:
+        log(f"not crawled: {len(blocked)} libraries on *.{BLOCKED_HOST_SUFFIX} (KYOBO subscription server, R1-6)")
     if platforms:
         libs = [lb for lb in libs if lb["platform_type"] in platforms]
     if retry_failed:
@@ -1227,6 +1281,49 @@ def full(con, workers, only, limit_pages, platforms=None, retry_failed=False, bi
     status(con)
 
 
+REFILL_PLATFORMS = ("YES24_V1", "YES24_V2", "YES24_V3", "BOOKCUBE_FX", "ALADIN_V1")  # lists with a pubdt order
+
+
+def refill_pubdt(con, ids):
+    """Reads each library's main list again in publish-date order and adds the books missing from it (replaces the
+    data folder's refill_pubdt.py). Rows go to the library's latest run; nothing is removed. Each library runs on its
+    own thread; the politeness rule is the crawler's (one request at a time per host, MIN_GAP apart)."""
+    con.row_factory = sqlite3.Row
+    libs = {r["id"]: dict(r) for r in con.execute(
+        f"SELECT * FROM library WHERE id IN ({','.join('?' * len(ids))})", sorted(ids))}
+    con.row_factory = None
+
+    def run(lid):
+        lib = libs.get(lid)
+        if not lib:
+            log(f"[{lid}] no such library in the collected DB")
+            return
+        if lib.get("crawl_skip") or is_blocked_host(lib["base_url"]) or lib["platform_type"] not in REFILL_PLATFORMS:
+            log(f"[{lid}] {lib['name']}: not refilled ({lib.get('crawl_skip') or lib['platform_type']})")
+            return
+        run_id = con.execute("SELECT max(id) FROM crawl_run WHERE library_id=?", (lid,)).fetchone()[0]
+        if run_id is None:
+            log(f"[{lid}] {lib['name']}: not refilled (never crawled; run full first)")
+            return
+        before = con.execute("SELECT count(*) FROM holding WHERE library_id=?", (lid,)).fetchone()[0]
+        log(f"[{lid}] {lib['name']}: refill in pubdt order (run {run_id}), {before} rows before")
+        try:
+            seg = next(sg for sg in segments(lib) if sg[0] == "MAIN")
+            fill_other_order(con, lib, run_id, seg)
+        except Exception as e:  # noqa: BLE001 - one library's failure does not stop the others
+            log(f"[{lid}] {lib['name']}: refill FAILED {e!r}")
+            mark_blocked(con, lib, e)
+            return
+        after = con.execute("SELECT count(*) FROM holding WHERE library_id=?", (lid,)).fetchone()[0]
+        log(f"[{lid}] {lib['name']}: refill done, {after} rows after (+{after - before})")
+
+    threads = [threading.Thread(target=run, args=(i,)) for i in sorted(ids)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+
 def status(con):
     print("runs by status (latest per library):")
     for s, n in con.execute("""SELECT status, count(*) FROM crawl_run r WHERE id = (SELECT max(id) FROM crawl_run
@@ -1235,6 +1332,9 @@ def status(con):
     print("holdings rows:", con.execute("SELECT count(*) FROM holding WHERE removed_at IS NULL").fetchone()[0])
     print("libraries never succeeded:",
           con.execute("SELECT count(*) FROM library WHERE last_full_success_at IS NULL").fetchone()[0])
+    if "crawl_skip" in {r[1] for r in con.execute("PRAGMA table_info(library)")}:  # read-only status: maybe old DB
+        print("libraries not crawled (crawl_skip):",
+              con.execute("SELECT count(*) FROM library WHERE crawl_skip IS NOT NULL").fetchone()[0])
 
 
 def set_data_dir(path):
@@ -1260,7 +1360,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", default="", help="data folder (default: $CHAEKCHECK_DATA or ../chaekcheck-data)")
     ap.add_argument("cmd", choices=["init", "full", "status", "import-bookcube", "import-probe", "backfill-types",
-                                    "invalidate"])
+                                    "invalidate", "refill-pubdt"])
     ap.add_argument("--source", default="okbari-2026-10-03", help="library.source label for import-probe")
     ap.add_argument("--reason", default="")
     ap.add_argument("--skip", nargs=2, metavar=("ID", "REASON"), help="do not crawl this library; REASON '' clears it")
@@ -1275,7 +1375,8 @@ def main():
     ap.add_argument("--limit-pages", type=int, default=None)
     ap.add_argument("--platforms", default="", help="comma-separated platform_type values")
     ap.add_argument("--retry-failed", action="store_true", help="only libraries whose latest run did not succeed")
-    ap.add_argument("--include-big-subscription", action="store_true")
+    ap.add_argument("--include-big-subscription", action="store_true",
+                    help="no effect since cycle 13: those sites are all on *.dkyobobook.co.kr, which is never requested")
     ap.add_argument("--sections", default="", help="only these lists, e.g. AUDIO (no removal outside them)")
     ap.add_argument("--shard", default="", help="i/n: this process takes every n-th host starting at i")
     ap.add_argument("--audio-pass", action="store_true", help="also fetch YES24 /audiobook/ lists not yet fetched")
@@ -1318,6 +1419,11 @@ def main():
                         (i, now(), now(), USER_AGENT, "invalidated: " + a.reason))
         con.commit()
         print(f"invalidated {len(ids)} libraries")
+    elif a.cmd == "refill-pubdt":
+        ids = {int(x) for x in a.only.split(",") if x}
+        if not ids:
+            ap.error("refill-pubdt needs --only ID[,ID...]")
+        refill_pubdt(con, ids)
     elif a.cmd == "backfill-types":
         print("rows typed:", backfill_types(con))
     elif a.cmd == "full":
