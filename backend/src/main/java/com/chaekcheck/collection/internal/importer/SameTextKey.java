@@ -74,11 +74,15 @@ final class SameTextKey {
 
 	/**
 	 * A Roman numeral in capitals (I~XX, after NFKC also Ⅰ~Ⅻ), counted after a volume word or at the end of a part
-	 * ("Volume II", "Tome I", "핌퍼넬 II"); not inside a sentence ("King George IV and …"). Cycle 12 [확정] 사용자
+	 * ("Volume II", "Tome I", "핌퍼넬 II", also next to Korean: "지역여행Ⅱ"); not next to a Latin letter ("VIVID") nor
+	 * inside a sentence ("King George IV and …"). Cycle 12 [확정] 사용자
 	 * 2026-10-12.
 	 */
 	private static final Pattern ROMAN = Pattern
-		.compile("(?<![\\p{L}0-9])(X{1,2}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)(?![\\p{L}0-9])");
+		.compile("(?<![A-Za-z0-9])(X{1,2}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)(?![A-Za-z0-9])");
+
+	/** The last number of a part when only spaces, periods, commas or closing brackets follow it. */
+	private static final Pattern NUMBER_AT_END = Pattern.compile("(?<![0-9])([0-9]+)[\\s.,)\\]]*$");
 
 	private static final Pattern ROMAN_AFTER_VOLUME_WORD = Pattern
 		.compile("(?i)(?:vol|volume|tome|book|part|livre)\\.?\\s{0,3}$");
@@ -186,7 +190,8 @@ final class SameTextKey {
 
 	/**
 	 * The numbers of the volume marks in order (as integers, "01" = "1"): every number of the main title and of short
-	 * subtitle parts ({@link #SHORT_PART}), only the volume numbers ({@link #VOLUME_NUMBER}) of longer parts, and in
+	 * subtitle parts ({@link #SHORT_PART}), only the volume numbers ({@link #VOLUME_NUMBER}) and the number at the end
+	 * of longer parts, and in
 	 * every part the Roman and Chinese numerals in a volume place.
 	 */
 	static List<String> numbers(String text) {
@@ -210,6 +215,11 @@ final class SameTextKey {
 							found.put(volume.start(g), integer(volume.group(g)));
 						}
 					}
+				}
+				// a number at the end of the part, as a Roman numeral there ("살림지식총서 081", "마나가 필요 없어 01")
+				Matcher last = NUMBER_AT_END.matcher(part);
+				if (last.find()) {
+					found.put(last.start(1), integer(last.group(1)));
 				}
 			}
 			Matcher roman = ROMAN.matcher(part);
