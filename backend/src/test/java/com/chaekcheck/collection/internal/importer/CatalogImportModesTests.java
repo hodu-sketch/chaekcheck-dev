@@ -287,6 +287,35 @@ class CatalogImportModesTests {
 		assertThat(catalogLoad.hasWaitingExport()).isFalse();
 	}
 
+	/** Review 2026-10-12: an id taken by another library here stops the library part instead of skipping it. */
+	@Test
+	void anotherLibraryWithTheSameIdStartsNothing() throws Exception {
+		long id = insertedLibrary();
+		Path file = exportAndDiscard();
+		removeInsertedLibrary();
+		jdbc.sql("""
+				INSERT INTO library.library (id, name, platform_type, vendor, lending_model, base_url, join_method)
+				VALUES (:id, '다른 곳', 'YES24_V2', 'YES24', 'OWNED', 'https://other-part.test', 'test')""")
+			.param("id", id)
+			.update();
+		try {
+			assertThatThrownBy(() -> transfer().apply(file)).isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("library " + id);
+
+			assertThat(jdbc.sql("""
+					SELECT failure_reason, failure_detail LIKE 'library part%' AS part FROM collection.catalog_import
+					WHERE source = 'test-modes.sqlite'""").query().singleRow()).containsEntry("failure_reason", "error")
+				.containsEntry("part", true);
+			assertThat(jdbc.sql("SELECT count(*) FROM collection.collection_link WHERE collection_library_id >= 900000")
+				.query(Long.class)
+				.single()).isZero();
+			assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isZero();
+		}
+		finally {
+			jdbc.sql("DELETE FROM library.library WHERE id = :id").param("id", id).update();
+		}
+	}
+
 	@Test
 	void aMismatchRollsTheLibraryPartBack() throws Exception {
 		long id = insertedLibrary();

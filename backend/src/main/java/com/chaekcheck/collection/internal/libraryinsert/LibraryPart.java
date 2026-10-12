@@ -4,9 +4,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 
@@ -54,38 +55,69 @@ public final class LibraryPart {
 	/**
 	 * Puts the runs in, in the caller's transaction, under the library part's lock: for each run not here yet (by
 	 * report id) the libraries whose ids are not taken ({@link LibraryRegistry#add}), the links not here, and the run
-	 * row with its original time.
+	 * row with its original time. A library id that is here already must be the same library (name and address), and
+	 * a link that is here already must point at the same library; otherwise this throws and the caller rolls back.
+	 * @throws IllegalStateException when the payload is broken or this database holds another library or link
 	 */
 	public static Applied apply(List<Run> runs, LibraryRegistry registry, JdbcClient jdbc) {
 		LibraryInsertCommand.lock(jdbc);
 		if (runs == null || runs.isEmpty()) {
 			return new Applied(0, 0, 0, 0);
 		}
-		Set<Long> ids = new HashSet<>(registry.listAll().stream().map(RegisteredLibrary::id).toList());
+		Map<Long, RegisteredLibrary> here = new HashMap<>();
+		registry.listAll().forEach(library -> here.put(library.id(), library));
 		int applied = 0, skipped = 0, libraries = 0, links = 0;
 		for (Run run : runs.stream().sorted(Comparator.comparing(Run::ranAt)).toList()) {
-			boolean here = jdbc.sql("""
+			boolean done = jdbc.sql("""
 					SELECT count(*) > 0 FROM collection.library_insert_run
 					WHERE report_id = :reportId AND status = 'SUCCEEDED'""")
 				.param("reportId", run.reportId())
 				.query(Boolean.class)
 				.single();
-			if (here) {
+			if (done) {
 				skipped++;
 				continue;
 			}
-			List<NewEntry> entries = InsertReport.JSON.convertValue(run.payload().get("newLibraries"), ENTRIES);
-			var missing = entries.stream().map(NewEntry::library).filter(library -> !ids.contains(library.id())).toList();
+			JsonNode payload = run.payload() == null ? null : run.payload().get("newLibraries");
+			if (payload == null || !payload.isArray()) {
+				throw new IllegalStateException("run " + run.reportId() + " has no newLibraries list");
+			}
+			List<NewEntry> entries = InsertReport.JSON.convertValue(payload, ENTRIES);
+			List<com.chaekcheck.library.NewLibrary> missing = new java.util.ArrayList<>();
+			for (NewEntry entry : entries) {
+				RegisteredLibrary existing = here.get(entry.library().id());
+				if (existing == null) {
+					missing.add(entry.library());
+				}
+				else if (!existing.name().equals(entry.library().name())
+						|| !Objects.equals(existing.baseUrl(), entry.library().baseUrl())) {
+					throw new IllegalStateException("library " + existing.id() + " is " + existing.name() + " "
+							+ existing.baseUrl() + " here, the file has " + entry.library().name() + " "
+							+ entry.library().baseUrl());
+				}
+			}
 			registry.add(missing);
-			missing.forEach(library -> ids.add(library.id()));
+			registry.listAll().forEach(library -> here.put(library.id(), library));
 			libraries += missing.size();
 			for (NewEntry entry : entries) {
-				links += jdbc.sql("""
-						INSERT INTO collection.collection_link (collection_library_id, library_id)
-						VALUES (:collectionId, :libraryId) ON CONFLICT (collection_library_id) DO NOTHING""")
+				Long linked = jdbc.sql("""
+						SELECT library_id FROM collection.collection_link WHERE collection_library_id = :collectionId""")
 					.param("collectionId", entry.collectionId())
-					.param("libraryId", entry.library().id())
-					.update();
+					.query(Long.class)
+					.optional()
+					.orElse(null);
+				if (linked == null) {
+					links += jdbc.sql("""
+							INSERT INTO collection.collection_link (collection_library_id, library_id)
+							VALUES (:collectionId, :libraryId)""")
+						.param("collectionId", entry.collectionId())
+						.param("libraryId", entry.library().id())
+						.update();
+				}
+				else if (linked != entry.library().id()) {
+					throw new IllegalStateException("collection library " + entry.collectionId() + " is linked to "
+							+ linked + " here, the file has " + entry.library().id());
+				}
 			}
 			jdbc.sql("""
 					INSERT INTO collection.library_insert_run

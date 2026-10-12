@@ -173,10 +173,10 @@ class ImportTransfer {
 				return found;
 			});
 		}
-		catch (DataAccessException ex) {
+		catch (RuntimeException ex) { // a refused row, another library here, a broken payload
 			report.steps.put("library part", Duration.between(started, clock.instant()));
 			records.insertApplied(notes.source(), clock.instant(), report, manifest.exportId(), manifest.exportedAt(),
-					"error", "library part: " + ex.getMostSpecificCause());
+					"error", "library part: " + (ex instanceof DataAccessException data ? data.getMostSpecificCause() : ex));
 			log.error("apply refused, the library part failed and was rolled back. Nothing was loaded", ex);
 			throw ex;
 		}

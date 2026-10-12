@@ -76,10 +76,11 @@ class JdbcLibraryRegistry implements LibraryRegistry {
 					.update();
 			}
 		}
-		// past the highest id, never back: setval(n) makes the next value n + 1
-		String sequence = sequence();
-		jdbc.sql("SELECT setval('" + sequence + "', GREATEST((SELECT max(id) FROM library.library), "
-				+ "(SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM " + sequence + ")))")
+		// past the highest id, never back: setval(n) makes the next value n + 1. setval is not transactional: after a
+		// rollback the sequence stays moved, which only leaves a gap. Callers serialise on the library-insert lock.
+		jdbc.sql("SELECT setval(pg_get_serial_sequence('library.library', 'id'), GREATEST((SELECT max(id) FROM "
+				+ "library.library), (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM "
+				+ sequence() + ")))")
 			.query(Long.class)
 			.single();
 	}
@@ -107,7 +108,10 @@ class JdbcLibraryRegistry implements LibraryRegistry {
 			.list();
 	}
 
-	/** The identity sequence's name from the catalog (schema-qualified, quoted when needed). */
+	/**
+	 * The identity sequence's name from the catalog, schema-qualified and already quoted where needed by
+	 * {@code pg_get_serial_sequence}, so it can stand in a FROM clause.
+	 */
 	private String sequence() {
 		return jdbc.sql(SEQUENCE).query(String.class).single();
 	}

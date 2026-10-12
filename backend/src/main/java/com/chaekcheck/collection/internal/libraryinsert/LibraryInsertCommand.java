@@ -110,8 +110,13 @@ public class LibraryInsertCommand {
 		}
 		catch (DataAccessException ex) {
 			String detail = String.valueOf(ex.getMostSpecificCause().getMessage());
-			transactions.executeWithoutResult(status -> run(reportId, snapshot, 0, computed.rules(), "FAILED",
-					detail.substring(0, Math.min(detail.length(), FAILURE_DETAIL)), payload));
+			try {
+				transactions.executeWithoutResult(status -> run(reportId, snapshot, 0, computed.rules(), "FAILED",
+						detail.substring(0, Math.min(detail.length(), FAILURE_DETAIL)), payload));
+			}
+			catch (RuntimeException failedRow) {
+				ex.addSuppressed(failedRow);
+			}
 			log.error("library-insert: report {} not inserted, rolled back: {}", reportId, detail);
 			throw ex;
 		}
