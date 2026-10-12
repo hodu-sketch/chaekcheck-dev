@@ -146,6 +146,9 @@ class BuildLibrarySeedTest(unittest.TestCase):
                 join.setdefault(k, '')
             join.update(resolve_regions.resolved_columns(join, {}, names))
         write_tsv(self.rules + 'public_join.tsv', JOIN_HEADER, joins)
+        # every new library has a final address row (unchanged addresses map to themselves)
+        write_tsv(self.rules + 'final_origins.tsv', EMPTY_RULES['final_origins.tsv'],
+                  [{'listed_base_url': c[3], 'base_url': c[3], 'checked_on': '2026-10-12'} for c in discovered])
         write_tsv(self.rules + 'kyobo_probe.tsv', PROBE_HEADER, [
             {'site_url': 'https://a.dkyobobook.co.kr', 'name': '부여초등학교', 'model': '소장', 'lending_model': 'OWNED'},
             {'site_url': 'https://dara.dkyobobook.co.kr', 'name': '다라도서관', 'model': '대여',
@@ -505,6 +508,56 @@ class BuildLibrarySeedTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, 'must not be under backend/'):
             seed.main(self.snapshot, rules_dir=self.rules, out_dir='backend/build/x')
         self.assertFalse(os.path.exists('backend/build/x'))
+
+    def test_new_ids_start_after_the_last_identity_restart(self):
+        self.run_seed()
+        last = max(self.libraries())
+        # an applied changelog moved the identity past ids left empty on purpose (like 2664-2674, ADR-0067)
+        with open(self.patches['LIBRARY_DIR'] + '008-library-seed-candidates.yaml', 'w', encoding='utf-8') as f:
+            f.write(f'sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH {last + 1}\n'
+                    f'sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH {last + 10}\n')
+        added = DISCOVERED + [(100013, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True),
+                              (100012, '둘째도서관', 'YES24_V2', 'http://new2.yes24library.com', 'ORG', None, True)]
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        self.run_seed()
+        links = {int(r['collection_library_id']): int(r['library_id']) for r in self.read('LINK_CSV')}
+        self.assertEqual((links[100012], links[100013]), (last + 10, last + 11))  # collection id order
+        # a restart below the highest id does not move the numbers back
+        with open(self.patches['LIBRARY_DIR'] + '008-library-seed-candidates.yaml', 'w', encoding='utf-8') as f:
+            f.write('sql: ALTER TABLE library.library ALTER COLUMN id RESTART WITH 3\n')
+        self.assertEqual(seed.identity_restart(), 3)
+        added.append((100014, '셋째도서관', 'YES24_V2', 'http://new3.yes24library.com', 'ORG', None, True))
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        self.run_seed()
+        links = {int(r['collection_library_id']): int(r['library_id']) for r in self.read('LINK_CSV')}
+        self.assertEqual(links[100014], last + 12)
+
+    def test_new_library_without_a_final_origin_stops(self):
+        rows = [r for r in csv.DictReader(io.StringIO(text(self.rules + 'final_origins.tsv')), delimiter='	')
+                if r['listed_base_url'] not in ('http://m.yes24library.com', 'http://gana.yes24library.com')]
+        write_tsv(self.rules + 'final_origins.tsv', EMPTY_RULES['final_origins.tsv'], rows)
+        with self.assertRaisesRegex(SystemExit, r'without a final_origins.tsv row \(collection ids\): '
+                                    r'\[100005, 100007\]'):
+            self.run_seed()
+        # a library already in the service needs no row
+        write_tsv(self.rules + 'final_origins.tsv', EMPTY_RULES['final_origins.tsv'], rows + [
+            {'listed_base_url': u, 'base_url': u} for u in ('http://m.yes24library.com', 'http://gana.yes24library.com')])
+        self.run_seed()
+        write_tsv(self.rules + 'final_origins.tsv', EMPTY_RULES['final_origins.tsv'], [])
+        code, _out = self.run_seed()
+        self.assertEqual(code, 0)
+
+    def test_final_origin_gives_base_and_homepage_url(self):
+        rows = [{'listed_base_url': 'http://m.yes24library.com', 'base_url': 'https://m.yes24library.com:446',
+                 'checked_on': '2026-10-12'}]
+        rows += [{'listed_base_url': c[3], 'base_url': c[3]} for c in DISCOVERED if c[3] != 'http://m.yes24library.com']
+        write_tsv(self.rules + 'final_origins.tsv', EMPTY_RULES['final_origins.tsv'], rows)
+        self.run_seed()
+        lib = next(v for v in self.libraries().values() if v['name'] == '모름도서관')
+        self.assertEqual((lib['base_url'], lib['homepage_url']),
+                         ('https://m.yes24library.com:446', 'https://m.yes24library.com:446'))
 
 
 class RulesFolderTest(unittest.TestCase):

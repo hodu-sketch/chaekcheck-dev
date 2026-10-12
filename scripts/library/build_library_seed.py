@@ -29,8 +29,9 @@ Rules (plan handoff cycle 07, C5; cycle 09; cycle 13):
   kind TEST (library_kinds.tsv). A library left with no kind stops the run.
 - Kyobo rental and mixed sites (KYOBO_SUBSCRIPTION_V1 with the probe lending_model RENTAL or MIXED, kyobo_probe.tsv)
   are left out (plan ADR-0067, cycle 08). Their service ids leave the link seed and are never given again.
-- Numbers and names stay: a library already in the link seed keeps its service id and name. New libraries get
-  "last service id + 1" onward, in collection id order.
+- Numbers and names stay: a library already in the link seed keeps its service id and name. New libraries get ids in
+  collection id order from max(last service id + 1, the last "RESTART WITH n" in the applied library changelogs), as
+  LibraryRegistry.nextId() does, so ids left empty on purpose (2664-2674, ADR-0067) stay empty.
 - Name changes (cycle 08, R4): rules/name_overrides.tsv gives the new name of a service library, checked against an
   official source (docs/library-maintenance.md 4-12). It is applied after the kept names; the list's old name must be
   the kept name (or the new one already), else the script stops. Registered libraries change in memory only.
@@ -39,7 +40,9 @@ Rules (plan handoff cycle 07, C5; cycle 09; cycle 13):
 - lending_model (cycle 09 spec R3): KYOBO subscription -> the probe value, SUBSCRIPTION when the probe has none;
   BOOKCUBE -> SUBSCRIPTION when total_volume is 0 and total_item > 0 (bookcube_volume.tsv), else OWNED; the portal ->
   NULL; every other platform -> OWNED. A registered library keeps its library/008 value.
-- base_url and homepage_url: final_origins.tsv maps the listed address to the final address, else the listed one.
+- base_url and homepage_url: final_origins.tsv maps the listed address to the final address (an unchanged address
+  maps to itself), else the listed one. A new library without a row there is a rule error: the run stops (exit 1)
+  with the collection ids.
 - order_no: all service libraries (disabled ones too) grouped by (name, vendor, lending_model), numbered 1, 2, 3 by
   service id. Numbers 2 and up are printed; the run ends with exit code 3 unless order_no_allowed.tsv lists them.
 - join_survey: public libraries from public_join.tsv (REGION/OPEN -> SURVEYED with its rules and summary,
@@ -204,6 +207,17 @@ def registered_libraries():
         pilot = f.read()
     for lid, name, platform in re.findall(r"\((\d+), '([^']+)', '([A-Z0-9_]+)', 'https?://", pilot):
         found[int(lid)] = (name, platform)
+    return found
+
+
+def identity_restart():
+    """n of the last "RESTART WITH n" in the applied library changelogs (file name order), 0 when none."""
+    found = 0
+    for path in sorted(glob.glob(LIBRARY_DIR + '*.yaml')):
+        with open(path, encoding='utf-8') as f:
+            values = re.findall(r'RESTART WITH (\d+)', f.read())
+        if values:
+            found = int(values[-1])
     return found
 
 
@@ -379,6 +393,9 @@ def main(snapshot, rules_dir=None, db_state=None, out_dir=None):
     kept_links = {cid: sid for cid, sid in kept_links.items() if cid in discovered_ids}
     kept_names = {cid: name for cid, name in kept_names.items() if cid in discovered_ids}
     new = [c for c in discovered if c['id'] not in kept_links]
+    # the ids left empty on purpose (2664-2674, ADR-0067) stay empty: start where LibraryRegistry.nextId() does,
+    # GREATEST(max(id) + 1, the identity's next value), the identity being set by the last applied RESTART WITH
+    last_id = max(last_id, identity_restart() - 1)
 
     registered_rows = [r for r in rows if r['id'] < FIRST_DISCOVERED_ID]
     clashes = same_host(db, [(c, registered_rows) for c in discovered])
@@ -386,6 +403,9 @@ def main(snapshot, rules_dir=None, db_state=None, out_dir=None):
     in_service = [c for c in discovered if c['id'] in kept_links]
     new_clashes = same_host(db, [(c, in_service + [n for n in new if n['id'] < c['id']]) for c in new])
     db.close()
+    no_final = sorted(c['id'] for c in new if c['base_url'] not in rules['finals'])
+    if no_final:
+        raise SystemExit(f'rule error: new libraries without a final_origins.tsv row (collection ids): {no_final}')
 
     names = dict(kept_names)
     names.update({c['id']: c['name'] for c in new})
