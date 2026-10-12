@@ -134,7 +134,63 @@ class SameTextKeyTests {
 		// nothing left: the main title stays
 		assertThat(rules.comparisonTitle("(PC만 열람 가능)")).isEqualTo("(pc만열람가능)");
 		// without the tail list the tail stays in the title
-		assertThat(RULES.comparisonTitle("백만장자 마인드(PC만 열람 가능)")).isEqualTo("백만장자마인드(pc만열람가능)");
+		assertThat(new SameTextKey(List.of()).comparisonTitle("백만장자 마인드(PC만 열람 가능)"))
+			.isEqualTo("백만장자마인드(pc만열람가능)");
+	}
+
+	@Test
+	void cutsTheSettledTails() {
+		assertThat(RULES.comparisonTitle("백만장자 마인드(PC만 열람 가능)")).isEqualTo("백만장자마인드");
+		assertThat(key("별을 헨다(잠 못 이루는 밤을 위해)")).isEqualTo(key("별을 헨다"));
+		assertThat(key("아름다운 새벽 (한국인이 가장 좋아하는 단편소설)")).isEqualTo(key("아름다운 새벽"));
+		assertThat(key("만화 문재인 - 운명을 바꾼 남자 (스마트 패드 전용) 1")).isEqualTo(key("만화 문재인 - 운명을 바꾼 남자 1"));
+		// a trial is not a tail
+		assertThat(key("퀀텀 독서법 (체험판)")).isNotEqualTo(key("퀀텀 독서법"));
+	}
+
+	@Test
+	void takesOnlyVolumeNumbersFromALongSubtitle() {
+		assertThat(key("결국 이기는 사람들의 비밀 - 불공평한 세상에서 발견한 10가지 성공 법칙"))
+			.isEqualTo(key("결국 이기는 사람들의 비밀"));
+		assertThat(key("백년을 살아보니 - 97세 철학자 김형석 교수의 인생론")).isEqualTo(key("백년을 살아보니"));
+		assertThat(key("빅스페이서 매거진 : 부동산 분양 빅데이터 11월호 VOL. 1"))
+			.isNotEqualTo(key("빅스페이서 매거진 : 부동산 분양 빅데이터 11월호 VOL. 2"));
+		assertThat(key("홋카이도 셀프 트래블 - 2016-2017 최신판")).isNotEqualTo(key("홋카이도 셀프 트래블 - 2017~2018 최신판"));
+		assertThat(key("홋카이도 셀프 트래블 - 2016-2017 최신판")).isNotEqualTo(key("홋카이도 셀프 트래블"));
+		assertThat(SameTextKey.numbers("가 - 도시농부 올빼미의 텃밭가이드 2권")).containsExactly("2");
+		assertThat(SameTextKey.numbers("가 - SciFan 제178권 시리즈의 한 권")).containsExactly("178");
+		assertThat(SameTextKey.numbers("가 - 2014 커뮤니케이션이해총서 모음")).containsExactly("2014");
+		// a short part gives all its numbers
+		assertThat(SameTextKey.numbers("오개념 탈출 프로젝트 - 수학 1")).containsExactly("1");
+		assertThat(SameTextKey.numbers("묘왕동주 1 - 상")).containsExactly("1");
+	}
+
+	@Test
+	void readsRomanNumeralsInAVolumePlace() {
+		assertThat(key("London and the Kingdom - Volume I")).isNotEqualTo(key("London and the Kingdom - Volume II"));
+		assertThat(key("Fires - Book I")).isNotEqualTo(key("Fires - Book II"));
+		assertThat(key("ALICE IN WONDERLAND - I")).isNotEqualTo(key("ALICE IN WONDERLAND - III"));
+		assertThat(key("Mystr 럭키팩 7 - 스칼렛 핌퍼넬 I")).isNotEqualTo(key("Mystr 럭키팩 7 - 스칼렛 핌퍼넬 II"));
+		// a long part: the numeral after "Vol.", not the "of 3"
+		assertThat(SameTextKey.numbers("The Widow Barnaby - Vol. II (of 3)")).containsExactly("2");
+		assertThat(SameTextKey.numbers("x - A Journal of the Reigns of King George IV and King William IV, Vol. I"))
+			.containsExactly("1");
+		assertThat(RULES.volumeMarks("스칼렛 핌퍼넬 Ⅱ")).isEqualTo("n=2|s=|e=");
+		assertThat(SameTextKey.romanValue("XIV")).isEqualTo(14);
+		assertThat(SameTextKey.romanValue("XX")).isEqualTo(20);
+		// not a numeral inside a word or in lower case
+		assertThat(SameTextKey.numbers("VIVID - i love it")).isEmpty();
+	}
+
+	@Test
+	void readsChineseNumeralsInAVolumePlace() {
+		assertThat(key("오옥여 전집 - 作品卷一")).isNotEqualTo(key("오옥여 전집 - 作品卷三"));
+		assertThat(SameTextKey.numbers("오옥여 전집 - 作品卷二")).containsExactly("2");
+		assertThat(SameTextKey.numbers("三國志 第十二卷")).containsExactly("12");
+		assertThat(SameTextKey.chineseValue("二十三")).isEqualTo(23);
+		assertThat(SameTextKey.chineseValue("十")).isEqualTo(10);
+		// inside a word it is no volume
+		assertThat(SameTextKey.numbers("一人稱 소설")).isEmpty();
 	}
 
 	@Test
