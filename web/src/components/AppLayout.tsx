@@ -9,7 +9,7 @@ import styles from './AppLayout.module.css'
 
 export function AppLayout() {
   const location = useLocation()
-  // No login button and no "인기 도서" on the terms and privacy pages (flow.md S8, S9; cycle 10 [확정])
+  // No login button and no "사서추천도서" on the terms and privacy pages (flow.md S8, S9; cycle 10, 14 [확정])
   const legal = ['/terms', '/privacy'].includes(location.pathname)
   return (
     <div className={styles.shell}>
@@ -22,8 +22,8 @@ export function AppLayout() {
               <span className={styles.wordmark}>책첵</span>
             </Link>
             {!legal && (
-              <Link to="/popular" className={styles.navLink} aria-current={location.pathname === '/popular' ? 'page' : undefined}>
-                인기 도서
+              <Link to="/picks" className={styles.navLink} aria-current={location.pathname === '/picks' ? 'page' : undefined}>
+                사서추천도서
               </Link>
             )}
           </div>

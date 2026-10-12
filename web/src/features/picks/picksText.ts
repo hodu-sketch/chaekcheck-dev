@@ -1,8 +1,8 @@
 /** Books per page of a category: a 3 x 3 grid (R4-1). */
 export const PAGE_SIZE = 9
 
-/** [확정] (R7-1): the source and the stores it adds up; the month and the fetch day follow it. */
-export const SOURCE_TEXT = '출처: 출판유통통합전산망 (교보문고·예스24·알라딘·영풍문고·지역서점 종이책 판매 합산)'
+/** [확정] (cycle 14 R7-1): the source and its licence; the fetch day follows it. */
+export const SOURCE_TEXT = '출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형)'
 
 /**
  * S15 in two lines (R6-9). "검색하는 도서관", not "내 도서관": before login (or with 전체 도서관) it is not "my" libraries
@@ -14,20 +14,27 @@ export const REQUEST_LINES = [
   '이용하는 전자도서관 사이트에서 희망도서로 신청해 보세요.',
 ] as const
 
-/** [확정] (flow.md S13i). */
+/** [확정] (cycle 14 flow.md S13i); the source line follows them. */
 export const HELP_LINES = [
-  '종이책 순위라서 전자책이 없는 책도 있어요',
+  '국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 6번 추천분이에요',
+  '신간이라 아직 전자책이 없는 책도 있어요',
   '흐린 책은 검색하는 도서관에 전자책이 없어요',
   '있음/없음은 검색 화면에서 고른 지역·범위 기준이에요',
 ] as const
 
-/** "2026-09" → "2026년 9월"; null when the value has another shape. */
+/** "2026-10" → "2026년 10월" (S14's recommendation line); null when the value has another shape. */
 export function monthLabel(month: string | null): string | null {
   const match = month?.match(/^(\d{4})-(\d{2})$/)
   return match ? `${match[1]}년 ${Number(match[2])}월` : null
 }
 
-/** "2026-10-03T05:01:32+09:00" → "10월 3일 받음" (the day in Korea); null when not a date. */
+/** "2026년 10월 사서추천 · 문학" (cycle 14 flow.md S14): the month, then the field name. */
+export function pickLine(recommendedMonth: string, categoryName: string | null): string {
+  const month = monthLabel(recommendedMonth)
+  return [month ? `${month} 사서추천` : '사서추천', categoryName].filter(Boolean).join(' · ')
+}
+
+/** "2026-10-12T05:00:41+09:00" → "10월 12일 받음" (the day in Korea); null when not a date. */
 export function fetchedLabel(fetchedAt: string | null): string | null {
   if (!fetchedAt) return null
   const date = new Date(fetchedAt)
@@ -38,22 +45,22 @@ export function fetchedLabel(fetchedAt: string | null): string | null {
   return month && day ? `${month}월 ${day}일 받음` : null
 }
 
-/** The source line under the last category (R7-1): "출처: … · 2026년 9월 · 10월 3일 받음". */
-export function sourceLine(month: string | null, fetchedAt: string | null): string {
-  return [SOURCE_TEXT, monthLabel(month), fetchedLabel(fetchedAt)].filter(Boolean).join(' · ')
+/** The source line under the last field (R7-1): "출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음". */
+export function sourceLine(fetchedAt: string | null): string {
+  return [SOURCE_TEXT, fetchedLabel(fetchedAt)].filter(Boolean).join(' · ')
 }
 
-/** How many 9-book pages a category has (50 books: 6, the last with 5). */
+/** How many 9-book pages a field has (10 books: 2, the last with 1). */
 export function pageCount(books: number): number {
   return Math.max(1, Math.ceil(books / PAGE_SIZE))
 }
 
 /** Only our own cover address is used as an image source (C7); anything else shows the title. */
 export function safeCoverUrl(url: string | null): string | null {
-  return url && /^\/api\/v1\/popular-books\/covers\/\d+$/.test(url) ? url : null
+  return url && /^\/api\/v1\/picks\/covers\/\d+$/.test(url) ? url : null
 }
 
 /** The id of a category's block, for moving the page to it (S13c). */
 export function sectionId(code: string): string {
-  return `popular-${code}`
+  return `picks-${code}`
 }

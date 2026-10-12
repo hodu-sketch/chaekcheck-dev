@@ -4,8 +4,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
 import { holdingStream } from '../../api/searchStream'
 import type { BookDetail, HoldingStreamEvent, LibraryItem, TargetLibrary } from '../../api/types'
-import { PopularBookDialog } from './PopularBookDialog'
-import { testBooks } from './testPopular'
+import { PicksBookDialog } from './PicksBookDialog'
+import { testBooks } from './testPicks'
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
 vi.mock('../../api/client', async (importOriginal) => ({
@@ -24,7 +24,7 @@ beforeAll(() => {
 afterEach(cleanup)
 
 const PLAN: PlanParams = { scope: 'joinable', visit: 'any', residenceRegionIds: [1116], workRegionIds: [], libraryIds: [12] }
-const BOOK = testBooks('소설')[0]
+const BOOK = testBooks('소설', '11')[0]
 
 const DETAIL: BookDetail = {
   id: 5001,
@@ -116,7 +116,9 @@ function answerWithThreeHoldings() {
 }
 
 function renderDialog(onSearch = vi.fn()) {
-  render(<PopularBookDialog book={BOOK} plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />)
+  render(
+    <PicksBookDialog book={BOOK} categoryName="문학" plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />,
+  )
   return userEvent.setup()
 }
 
@@ -126,7 +128,7 @@ beforeEach(() => {
 })
 
 /** S14 (R6-1~R6-8, AC-8, AC-9, AC-21). */
-describe('popular book window', () => {
+describe('picks book window', () => {
   it('asks only the first three plan holdings and lists them borrowable first (AC-8)', async () => {
     vi.mocked(fetchBook).mockResolvedValue(DETAIL)
     answerWithThreeHoldings()
@@ -134,6 +136,11 @@ describe('popular book window', () => {
     const dialog = screen.getByRole('dialog', { name: '소설 1 대출 정보' })
     expect(await within(dialog).findAllByRole('article')).toHaveLength(3)
     expect(within(dialog).getAllByText('지은이 · 출판사').length).toBeGreaterThan(0)
+    // the recommendation line under the title, above author and publisher; no rank (cycle 14)
+    const line = within(dialog).getByText('2026년 10월 사서추천 · 문학')
+    expect(line.previousElementSibling?.tagName).toBe('H2')
+    expect(line.nextElementSibling?.textContent).toBe('지은이 · 출판사')
+    expect(within(dialog).queryByText(/위$/)).toBeNull()
     expect(vi.mocked(fetchBook).mock.calls[0].slice(0, 2)).toEqual(['5001', PLAN])
     expect(vi.mocked(holdingStream).mock.calls[0][0]).toMatchObject({ bookIds: [5001], holdingLimit: 3, libraryIds: [12] })
 

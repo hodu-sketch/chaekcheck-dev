@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
-import type { BookDetail, PopularBook } from '../../api/types'
+import type { BookDetail, PickBook } from '../../api/types'
 import { ResultRow } from '../search/ResultRow'
 import { useHoldings } from '../search/useHoldings'
 import { CoverImage } from './CoverImage'
-import { pickLibraryRows, POPULAR_HOLDING_LIMIT } from './pickLibraryRows'
-import { PopularWindow } from './PopularWindow'
-import styles from './PopularDialogs.module.css'
+import { pickLibraryRows, PICKS_HOLDING_LIMIT } from './pickLibraryRows'
+import { pickLine } from './picksText'
+import { PicksWindow } from './PicksWindow'
+import styles from './PicksDialogs.module.css'
 import { ChevronRight } from '../../components/icons'
 
 type Props = {
   /** The tapped book with an e-book in my libraries (`bookId` set); null keeps the window closed. */
-  book: PopularBook | null
+  book: PickBook | null
+  /** The name of the book's field as the answer names it ("문학", or a new field's name). */
+  categoryName: string | null
   plan: PlanParams
   onClose: () => void
   /** [책 검색 >>]: the page keeps its place, then opens the book screen (S3). */
@@ -20,13 +23,14 @@ type Props = {
 }
 
 /**
- * S14 (R6-1~R6-8): the tapped cover, our e-book's title, author and publisher (R6-2), [책 검색 >>] and at most three
+ * S14 (R6-1~R6-8): the tapped cover, our e-book's title, the recommendation line "2026년 10월 사서추천 · 문학" (cycle
+ * 14 [확정]), author and publisher (R6-2), [책 검색 >>] and at most three
  * library lines: only the first three plan holdings are asked (`holdingLimit=3`, user 2026-10-12), then sorted by
  * `pickLibraryRows`. The lines are S3's (`ResultRow`): a tap opens the library's book page in a new tab.
  */
-export function PopularBookDialog({ book, plan, onClose, onSearch, phone }: Props) {
+export function PicksBookDialog({ book, categoryName, plan, onClose, onSearch, phone }: Props) {
   return (
-    <PopularWindow
+    <PicksWindow
       open={book !== null}
       onOpenChange={(open) => !open && onClose()}
       title={book ? `${book.title} 대출 정보` : '대출 정보'}
@@ -34,19 +38,28 @@ export function PopularBookDialog({ book, plan, onClose, onSearch, phone }: Prop
       size="book"
     >
       {book?.bookId != null && (
-        <BookBody key={book.bookId} book={book} bookId={book.bookId} plan={plan} onSearch={onSearch} />
+        <BookBody
+          key={book.bookId}
+          book={book}
+          categoryName={categoryName}
+          bookId={book.bookId}
+          plan={plan}
+          onSearch={onSearch}
+        />
       )}
-    </PopularWindow>
+    </PicksWindow>
   )
 }
 
 function BookBody({
   book,
+  categoryName,
   bookId,
   plan,
   onSearch,
 }: {
-  book: PopularBook
+  book: PickBook
+  categoryName: string | null
   bookId: number
   plan: PlanParams
   onSearch: (bookId: number) => void
@@ -75,7 +88,7 @@ function BookBody({
                 exactTitle: false,
               },
             ],
-            { filter: 'all', ...plan, holdingLimit: POPULAR_HOLDING_LIMIT },
+            { filter: 'all', ...plan, holdingLimit: PICKS_HOLDING_LIMIT },
           )
         }
       })
@@ -94,8 +107,8 @@ function BookBody({
     <div className={styles.bookHead}>
       <CoverImage className={styles.bookCover} url={book.coverUrl} title={book.title} />
       <div className={styles.bookText}>
-        <span className={styles.bookRank}>{book.rank}위</span>
         <h2 className={styles.bookTitle}>{detail?.title ?? book.title}</h2>
+        <p className={styles.bookPick}>{pickLine(book.recommendedMonth, categoryName)}</p>
         {detail && (
           <p className={styles.bookMeta}>
             {[detail.authorDisplay, detail.publisher].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
@@ -155,7 +168,7 @@ function BookBody({
           </p>
         )}
         {!checking && rows.length === 0 && (
-          // the shared ranking cache may be up to 10 minutes behind the catalog [안] (handoff step 7-8)
+          // the shared picks cache may be up to 10 minutes behind the catalog [안] (handoff step 7-8)
           <p className={styles.checking}>
             {state.batchFailed ? '대출 정보를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요.' : '조건에 맞는 도서관이 없어요'}
           </p>

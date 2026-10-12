@@ -1,11 +1,11 @@
-import type { PopularBook } from '../../api/types'
-import { REQUEST_LINES } from './popularText'
-import { PopularWindow } from './PopularWindow'
-import styles from './PopularDialogs.module.css'
+import type { PickBook } from '../../api/types'
+import { REQUEST_LINES } from './picksText'
+import { PicksWindow } from './PicksWindow'
+import styles from './PicksDialogs.module.css'
 
 type Props = {
   /** The faded book that was tapped; null keeps the window closed. */
-  book: PopularBook | null
+  book: PickBook | null
   onClose: () => void
   phone: boolean
 }
@@ -13,7 +13,7 @@ type Props = {
 /** S15 (R6-9, AC-10): a faded book (no e-book in the searched libraries): its title, then where to ask for it. */
 export function RequestNotice({ book, onClose, phone }: Props) {
   return (
-    <PopularWindow
+    <PicksWindow
       open={book !== null}
       onOpenChange={(open) => !open && onClose()}
       title="전자책 신청 안내"
@@ -36,6 +36,6 @@ export function RequestNotice({ book, onClose, phone }: Props) {
           </p>
         </div>
       )}
-    </PopularWindow>
+    </PicksWindow>
   )
 }

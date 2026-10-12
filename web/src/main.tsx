@@ -17,7 +17,7 @@ import { AboutPage } from './features/about/AboutPage'
 import { BookPage } from './features/book/BookPage'
 import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
-import { PopularPage } from './features/popular/PopularPage'
+import { PicksPage } from './features/picks/PicksPage'
 import { RegionProvider } from './features/region/RegionContext'
 import { SearchPage } from './features/search/SearchPage'
 
@@ -39,7 +39,7 @@ function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
                 {/* cycle 10 (S13): public, no login (R7-3) */}
-                <Route path="/popular" element={<PopularPage />} />
+                <Route path="/picks" element={<PicksPage />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route

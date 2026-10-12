@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchPopularBooks } from './client'
+import { fetchPicks } from './client'
 import { holdingStream } from './searchStream'
 
 function mockFetch() {
@@ -18,13 +18,13 @@ afterEach(() => {
 
 const plan = { scope: 'all' as const, visit: 'any' as const, residenceRegionIds: [], workRegionIds: [], libraryIds: [] }
 
-/** Cycle 10 (design-delta API). */
-describe('popular book requests', () => {
+/** Cycle 14 (design-delta API); the holding limit from cycle 10. */
+describe('picks requests', () => {
   it('sends the plan like the book search', async () => {
     const fetchMock = mockFetch()
-    await fetchPopularBooks({ ...plan, scope: 'joinable', visit: 'none', workRegionIds: [3], libraryIds: [7, 8] }).catch(() => {})
+    await fetchPicks({ ...plan, scope: 'joinable', visit: 'none', workRegionIds: [3], libraryIds: [7, 8] }).catch(() => {})
     const url = requestedUrl(fetchMock)
-    expect(url.pathname).toBe('/api/v1/popular-books')
+    expect(url.pathname).toBe('/api/v1/picks')
     expect(Object.fromEntries(url.searchParams)).toEqual({
       scope: 'joinable',
       visit: 'none',
@@ -35,8 +35,8 @@ describe('popular book requests', () => {
 
   it('sends no query without a plan', async () => {
     const fetchMock = mockFetch()
-    await fetchPopularBooks(plan).catch(() => {})
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/popular-books')
+    await fetchPicks(plan).catch(() => {})
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/picks')
   })
 
   it('asks only the first three holdings for S14 (holdingLimit, AC-8)', async () => {

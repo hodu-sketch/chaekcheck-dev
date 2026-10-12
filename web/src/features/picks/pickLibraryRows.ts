@@ -1,7 +1,7 @@
 import type { ResultRow } from '../search/sortBatch'
 
 /** [확정] (R6-3): at most three library lines in the window, on every width; no "외 N곳". */
-export const POPULAR_HOLDING_LIMIT = 3
+export const PICKS_HOLDING_LIMIT = 3
 
 /**
  * The window's library lines (R6-3, R6-5) from the rows of the first three plan holdings: borrowable now (subscription
@@ -11,7 +11,7 @@ export const POPULAR_HOLDING_LIMIT = 3
 export function pickLibraryRows(
   rows: readonly ResultRow[],
   planIndex: ReadonlyMap<number, number>,
-  max: number = POPULAR_HOLDING_LIMIT,
+  max: number = PICKS_HOLDING_LIMIT,
 ): ResultRow[] {
   const order = (row: ResultRow) => planIndex.get(row.libraryId) ?? Number.MAX_SAFE_INTEGER
   return [...rows]

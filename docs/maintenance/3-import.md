@@ -208,7 +208,7 @@
         wsl -d Ubuntu --exec bash -c 'set -o pipefail; docker compose -p chaekcheck exec -T db pg_dump -U <DB_USERNAME> -Fc <DB_NAME> | docker compose -p chaekcheck exec -T db-ops pg_restore -U <DB_USERNAME> -d <DB_NAME> --exit-on-error'
 
 - 복사한 뒤 두 DB의 기준값·해시가 같은지는 첫 `apply`의 비교가 봅니다(다르면 `mismatch`).
-- `db-ops`에 서비스를 띄우려면 `DB_PORT=5434 ./gradlew bootRun --args='--server.port=8081'`. `.env`의 `CHAEKCHECK_POPULAR_FETCH_ENABLED=false`를 그대로 둡니다(켜지면 시작 받기가 진짜 사이트를 부름).
+- `db-ops`에 서비스를 띄우려면 `DB_PORT=5434 ./gradlew bootRun --args='--server.port=8081'`. `.env`의 `CHAEKCHECK_PICKS_FETCH_ENABLED=false`를 그대로 둡니다(켜지면 시작 받기가 진짜 국립중앙도서관 API를 부름).
 - 측정 스크립트: `CHAEKCHECK_BASE=http://localhost:8081 CHAEKCHECK_DB_SERVICE=db-ops python scripts/catalog/probe_during_import.py <폴더>`.
 
 ### 13-5. 반영 파일 판 2: 도서관 부분 (사이클 13, plan ADR-0086·0093)

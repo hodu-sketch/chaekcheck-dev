@@ -48,7 +48,7 @@
   min-width: 0;
 }
 
-/* cycle 10: "인기 도서", a text link right of the logo, left of the login button (same on phones) */
+/* cycle 10, 14: "사서추천도서", a text link right of the logo, left of the login button (same on phones) */
 .navLink {
   padding: calc(0.3 * var(--base-unscaled)) 0;
   font-size: calc(0.95 * var(--base-unscaled));

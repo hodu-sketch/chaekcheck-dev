@@ -7,7 +7,7 @@ import type {
   LibraryEligibilityRow,
   LibraryPage,
   LibraryScope,
-  PopularBooks,
+  Picks,
   Problem,
   RegionResolution,
   SearchField,
@@ -155,14 +155,14 @@ export function fetchLibraries(
 }
 
 /**
- * `GET /api/v1/popular-books` (cycle 10): last month's ranking, 17 categories x 50 books, each marked whether a plan
- * library holds it. Public, no login; sends the same plan as the book search (AC-7).
+ * `GET /api/v1/picks` (cycle 14): the National Library of Korea's librarian picks of the latest six months by field,
+ * each marked whether a plan library holds it. Public, no login; sends the same plan as the book search (AC-7).
  */
-export function fetchPopularBooks(plan: PlanParams, signal?: AbortSignal): Promise<PopularBooks> {
+export function fetchPicks(plan: PlanParams, signal?: AbortSignal): Promise<Picks> {
   const search = new URLSearchParams()
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
-  return getJson(`/api/v1/popular-books${suffix}`, signal)
+  return getJson(`/api/v1/picks${suffix}`, signal)
 }
 
 /**

@@ -6,11 +6,11 @@ import { loadPrefs, readVisit } from '../search/searchSettings'
 import { useLibraryScope } from '../search/useLibraryScope'
 
 /**
- * The plan of the popular books (cycle 10, AC-7): the same as the book screen's (`BookPage`), so 있음/없음 follows
+ * The plan of the librarian picks (cycle 10, AC-7): the same as the book screen's (`BookPage`), so 있음/없음 follows
  * what was chosen on the search screen: this browser's regions and added libraries before login, the account's after
  * (AC-16). `ready` is false while region ids are being checked; the request waits for it.
  */
-export function usePopularPlan(): { plan: PlanParams; ready: boolean; key: string } {
+export function usePicksPlan(): { plan: PlanParams; ready: boolean; key: string } {
   const [params] = useSearchParams()
   const [prefs] = useState(() => loadPrefs())
   const { scope } = useLibraryScope(params)

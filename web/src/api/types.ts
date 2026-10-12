@@ -369,35 +369,37 @@ export interface MyLibraries {
   max: number
 }
 
-// ---- cycle 10: popular books (design-delta API) ----
+// ---- cycle 14: librarian picks (design-delta API) ----
 
-/** One ranked book of `GET /api/v1/popular-books`. */
-export interface PopularBook {
-  /** 1..50 */
-  rank: number
+/** One book of `GET /api/v1/picks`. */
+export interface PickBook {
+  /** The National Library of Korea's recommendation number (1 to 20 digits). */
+  recomNo: string
+  /** The book's field code ("11", "6", ..., or a new one): S14 shows that field's name. */
+  category: string
+  /** "YYYY-MM" */
+  recommendedMonth: string
   title: string
-  /** `/api/v1/popular-books/covers/{coverId}`, or null: the card shows the title instead (R4-4). */
+  /** `/api/v1/picks/covers/{coverId}`, or null: the card shows the title instead (AC-14b). */
   coverUrl: string | null
-  /** Our book with the same ISBN, also when no plan library holds it; null when none. */
+  /** Our book found by ISBN or by title and first author, also when no plan library holds it; null when none. */
   bookId: number | null
-  /** `bookId` is set and a plan library holds the book; false shows the cover faded (R4-5). */
+  /** `bookId` is set and a plan library holds the book; false shows the cover faded (AC-6). */
   available: boolean
 }
 
-/** One category in display order: `ALL` first, then by sales. `name` is the short name ("경제·경영"). */
-export interface PopularCategory {
+/** One field in display order: `ALL` first, then 문학·인문·사회·자연·테마, then new fields. `name` is the name shown. */
+export interface PickCategory {
   code: string
   name: string
-  books: PopularBook[]
+  books: PickBook[]
 }
 
-/** `GET /api/v1/popular-books`: the latest month, or `month: null` with no categories before the first fetch. */
-export interface PopularBooks {
-  /** "YYYY-MM" */
-  month: string | null
-  /** ISO date-time with offset (e.g. "2026-10-03T05:01:32+09:00") */
+/** `GET /api/v1/picks`: the latest six recommendation months, or `fetchedAt: null` with no categories before the first fetch. */
+export interface Picks {
+  /** The latest successful fetch, ISO date-time with offset (e.g. "2026-10-12T05:00:41+09:00") */
   fetchedAt: string | null
-  categories: PopularCategory[]
+  categories: PickCategory[]
 }
 
 // ---- cycle 13: join survey date (ADR-0093) ----

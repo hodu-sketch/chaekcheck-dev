@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { safeCoverUrl } from './popularText'
+import { safeCoverUrl } from './picksText'
 import styles from './CoverImage.module.css'
 
 type Props = {
@@ -10,8 +10,8 @@ type Props = {
 }
 
 /**
- * The small cover from the ranking's source (ADR-0075), lazily loaded; without a cover or when it does not load, the
- * title in its place (R4-4, AC-14). Decorative for screen readers: the card or window around it names the book.
+ * The cover stored from the National Library of Korea (ADR-0091), lazily loaded; without a cover or when it does not
+ * load, the title in its place (R4-4, AC-14). Decorative for screen readers: the card or window around it names the book.
  */
 export function CoverImage({ url, title, className }: Props) {
   const safe = safeCoverUrl(url)

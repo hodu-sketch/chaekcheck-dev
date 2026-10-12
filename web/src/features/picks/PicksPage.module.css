@@ -1,6 +1,6 @@
 /*
- * S13 popular, design A (user choice 2026-10-12): each category in a white rounded panel sized to its 3 x 3 grid,
- * a large category title with "1–9위 / 50", round rank chips, soft grey ◀ ▶ beside the grid and page dots under it.
+ * S13 picks, design A (user choice 2026-10-12): each category in a white rounded panel sized to its 3 x 3 grid,
+ * a large category title with "1 - 9 / 10" (cycle 14: no rank chips), soft grey ◀ ▶ beside the grid and page dots under it.
  * The panels are the app's flat cards, like the search results and the book page: white, hairline border, no shadow
  * (user 2026-10-12: "지금 '인기 도서 화면'의 것을 다른 카드들과 같이 해줘").
  *
@@ -287,37 +287,6 @@
   filter: grayscale(0.5);
 }
 
-/* round rank chips (design A); the digits centred by the box, not by the font's line (cycle 10 icon check) */
-.rank {
-  position: absolute;
-  top: 0.4rem;
-  left: 0.4rem;
-  display: grid;
-  place-items: center;
-  min-width: 1.45rem;
-  height: 1.45rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.94);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
-  color: var(--ink);
-  font-size: 0.74rem;
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-  text-box: trim-both cap alphabetic;
-}
-
-/*
- * The chip says 있음 too: violet with a white number when a searched library has the e-book, white with a dark number
- * when not, for every rank (user 2026-10-12: "일괄적으로 책이 있으면 저 색있는 동그라미 책이 없으면 기존의 흰색
- * 동그라미로 바꿔줘"). Only the cover is faded, never the chip.
- */
-.rank[data-available='true'] {
-  background: var(--brand-strong);
-  color: #fff;
-}
-
 .dots {
   display: flex;
   justify-content: center;
@@ -466,17 +435,9 @@
   .arrow[data-side='next'] {
     right: -0.35rem;
   }
-
-  .rank {
-    top: 0.3rem;
-    left: 0.3rem;
-    min-width: 1.3rem;
-    height: 1.3rem;
-    font-size: 0.68rem;
-  }
 }
 
-/* "? 순위 기준 보기" at the end of the category list, like "정렬 기준 보기" in the sort menu (S13i) */
+/* "? 추천 기준 보기" at the end of the category list, like "정렬 기준 보기" in the sort menu (S13i) */
 .pickSeparator {
   height: 1px;
   margin: 0.35rem 0.2rem;
@@ -539,7 +500,7 @@
 /*
  * Touch screens only (the main pointer is a finger: `pointer: coarse`; not `hover: none`, which Samsung Internet does
  * not report), on this screen only: no vertical panning by the browser; a vertical swipe moves one category
- * (PopularPage), sideways swipes and pinch zoom stay (user 2026-10-12: "스크롤 바꿀때 폰 태블릿에서는 스크롤 없애고
+ * (PicksPage), sideways swipes and pinch zoom stay (user 2026-10-12: "스크롤 바꿀때 폰 태블릿에서는 스크롤 없애고
  * 그냥 위아래 넘김 이벤트일때 알아서 딱 알맞은 위치에 이동하도록"). Zoomed in, the page scrolls normally again
  * (data-zoomed), so nothing is out of reach. Lists and sheets that scroll inside keep scrolling.
  */

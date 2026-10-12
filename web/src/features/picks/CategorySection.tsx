@@ -1,23 +1,23 @@
 import { useRef } from 'react'
-import type { PopularBook, PopularCategory } from '../../api/types'
+import type { PickBook, PickCategory } from '../../api/types'
 import { CoverCard } from './CoverCard'
-import { pageCount, PAGE_SIZE, sectionId } from './popularText'
-import styles from './PopularPage.module.css'
+import { pageCount, PAGE_SIZE, sectionId } from './picksText'
+import styles from './PicksPage.module.css'
 
 /** [안] (cycle 10 step 7-4): how far a finger must move sideways to turn the page on phones and tablets. */
 export const SWIPE_PX = 50
 
 type Props = {
-  category: PopularCategory
-  /** 0 = ranks 1-9 */
+  category: PickCategory
+  /** 0 = books 1-9 */
   page: number
   onPage: (page: number) => void
-  onPick: (book: PopularBook) => void
+  onPick: (book: PickBook) => void
 }
 
 /**
- * One category block (R4-1, R4-2): its name, then ◀ 3 x 3 ▶. The arrows turn 9 books at a time; none before the
- * first page, none after the last (46-50, five books) (AC-2). Touch screens also turn it with a sideways swipe
+ * One field block (R4-1, R4-2): its name and "1 - 9 / 10", then ◀ 3 x 3 ▶. The arrows turn 9 books at a time; none
+ * before the first page, none after the last (AC-2). Touch screens also turn it with a sideways swipe
  * (AC-19); a mouse drag does nothing.
  */
 export function CategorySection({ category, page, onPage, onPick }: Props) {
@@ -39,9 +39,10 @@ export function CategorySection({ category, page, onPage, onPick }: Props) {
           <h2 id={titleId} className={styles.sectionTitle}>
             {category.name}
           </h2>
+          {/* [확정] cycle 14 flow.md: "1 - 9 / 10", no rank word */}
           <span className={styles.range}>
             <b>
-              {first}–{last}위
+              {first} - {last}
             </b>{' '}
             / {category.books.length}
           </span>
@@ -63,7 +64,7 @@ export function CategorySection({ category, page, onPage, onPick }: Props) {
           <ol
             className={styles.grid}
             start={first}
-            aria-label={`${category.name} ${first}~${last}위`}
+            aria-label={`${category.name} ${first}~${last}번째 / ${category.books.length}권`}
             onPointerDown={(event) => {
               swiped.current = false
               swipe.current = event.pointerType === 'mouse' ? null : { x: event.clientX, y: event.clientY }
@@ -92,9 +93,9 @@ export function CategorySection({ category, page, onPage, onPick }: Props) {
             }}
           >
             {books.map((book) => (
-              <CoverCard key={book.rank} book={book} onPick={onPick} />
+              <CoverCard key={book.recomNo} book={book} onPick={onPick} />
             ))}
-            {/* the last page (46-50) keeps the 3 x 3 space, so the panel does not shrink or move (user 2026-10-12) */}
+            {/* the last page keeps the 3 x 3 space, so the panel does not shrink or move (user 2026-10-12) */}
             {Array.from({ length: PAGE_SIZE - books.length }, (_, index) => (
               <li key={`empty-${index}`} className={styles.cell} aria-hidden="true" data-empty="">
                 <span className={styles.emptyCell} />
@@ -115,7 +116,7 @@ export function CategorySection({ category, page, onPage, onPick }: Props) {
             <span className={styles.arrowSpace} data-side="next" />
           )}
         </div>
-        {/* where this page is among the six (design A); the arrows and the list name say it to screen readers */}
+        {/* where this page is among the pages (design A); the arrows and the list name say it to screen readers */}
         <div className={styles.dots} aria-hidden="true">
           {Array.from({ length: pages }, (_, index) => (
             <i key={index} data-on={index === current} />

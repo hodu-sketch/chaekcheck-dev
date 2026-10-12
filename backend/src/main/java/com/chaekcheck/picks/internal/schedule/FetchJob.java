@@ -137,6 +137,7 @@ public class FetchJob {
 		}
 	}
 
+	// TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인 (plan cycle 14; if not allowed, covers are turned off)
 	private void fetchCovers(NlkClient client, long runId) throws InterruptedException {
 		List<String> sources = store.missingCoverSources();
 		int fetched = 0;

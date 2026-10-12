@@ -34,14 +34,12 @@
   min-width: 0;
 }
 
-/* design A: the rank as a small violet chip above the title */
-.bookRank {
-  padding: 0.1rem 0.55rem;
-  border-radius: 999px;
-  background: var(--brand-soft);
+
+/* the recommendation line right under the title, above author and publisher (cycle 14) */
+.bookPick {
   color: var(--brand-strong);
   font-size: var(--text-xs);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .bookTitle {

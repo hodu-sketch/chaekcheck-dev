@@ -1,7 +1,7 @@
 import { Dialog } from 'radix-ui'
 import type { ReactNode } from 'react'
 import { BottomSheet } from '../../components/BottomSheet'
-import styles from './PopularWindow.module.css'
+import styles from './PicksWindow.module.css'
 
 type Props = {
   open: boolean
@@ -16,11 +16,11 @@ type Props = {
 }
 
 /**
- * The popular screen's windows (S14, S15): in the middle on PC and tablet with the page behind dimmed and blurred,
+ * The picks screen's windows (S14, S15): in the middle on PC and tablet with the page behind dimmed and blurred,
  * closed by ⓧ, a click outside or Escape; on phones the shared bottom sheet with a handle and ⓧ, where the back button
  * closes only the window (flow.md "폰 아래 창 공통", AC-18).
  */
-export function PopularWindow({ open, onOpenChange, title, phone, size, children }: Props) {
+export function PicksWindow({ open, onOpenChange, title, phone, size, children }: Props) {
   if (phone) {
     return (
       <BottomSheet open={open} onOpenChange={onOpenChange} title={title} closeButton closeOnBack>

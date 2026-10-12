@@ -1,30 +1,29 @@
 import { Popover } from 'radix-ui'
 import { useRef, useState } from 'react'
-import type { PopularCategory } from '../../api/types'
+import type { PickCategory } from '../../api/types'
 import { BottomSheet } from '../../components/BottomSheet'
-import { fetchedLabel, HELP_LINES, monthLabel, SOURCE_TEXT } from './popularText'
-import styles from './PopularPage.module.css'
+import { HELP_LINES, sourceLine } from './picksText'
+import styles from './PicksPage.module.css'
 import { ChevronDown } from '../../components/icons'
 
 type Props = {
-  categories: PopularCategory[]
+  categories: PickCategory[]
   /** The category in the middle of the screen now (or the last one picked). */
   current: string
   onPick: (code: string) => void
   phone: boolean
-  /** For the explanation under "순위 기준 보기" (S13i). */
-  month: string | null
+  /** For the source line under "추천 기준 보기" (S13i). */
   fetchedAt: string | null
 }
 
 /**
- * S13c (R5-1, R5-2, AC-5): [전체 ▾], floating at the bottom of the screen (user 2026-10-12), opens the 17 categories in
+ * S13c (R5-1, R5-2, AC-5): [전체 ▾], floating at the bottom of the screen (user 2026-10-12), opens the fields in
  * screen order, the current one bold. PC and tablet: a list opening upward from it (Escape or a click outside
  * closes it); phones: the bottom sheet with ⓧ. Picking one closes the list; the page moves to that category.
- * S13i lives at the end of the list, like "정렬 기준 보기" in the sort menu (user 2026-10-12): "? 순위 기준 보기" opens
- * the explanation in place without closing the list.
+ * S13i lives at the end of the list, like "정렬 기준 보기" in the sort menu (user 2026-10-12): "? 추천 기준 보기" opens
+ * the explanation in place without closing the list (cycle 14 flow.md).
  */
-export function CategoryPicker({ categories, current, onPick, phone, month, fetchedAt }: Props) {
+export function CategoryPicker({ categories, current, onPick, phone, fetchedAt }: Props) {
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
   const helpRef = useRef<HTMLUListElement>(null)
@@ -39,10 +38,9 @@ export function CategoryPicker({ categories, current, onPick, phone, month, fetc
     changeOpen(false)
     onPick(code)
   }
-  const when = [monthLabel(month) && `${monthLabel(month)} 판매 순위`, fetchedLabel(fetchedAt)].filter(Boolean).join(' · ')
   const list = (
     <>
-      {/* only the categories scroll; "순위 기준 보기" stays in view under them (cycle 10 icon check) */}
+      {/* only the categories scroll; "추천 기준 보기" stays in view under them (cycle 10 icon check) */}
       <div className={styles.pickScroll}>
         <ul className={styles.pickList} aria-label="분류">
           {categories.map((category) => (
@@ -73,15 +71,14 @@ export function CategoryPicker({ categories, current, onPick, phone, month, fetc
         <span className={styles.pickHelpMark} aria-hidden="true">
           ?
         </span>
-        순위 기준 보기
+        추천 기준 보기
       </button>
       {help && (
         <ul ref={helpRef} className={styles.helpList}>
-          <li>{SOURCE_TEXT}</li>
-          {when && <li>{when}</li>}
           {HELP_LINES.map((line) => (
             <li key={line}>{line}</li>
           ))}
+          <li>{sourceLine(fetchedAt)}</li>
         </ul>
       )}
     </>

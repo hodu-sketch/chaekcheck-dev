@@ -79,4 +79,11 @@ describe('surveyMonthLabel', () => {
     expect(surveyMonthLabel('')).toBeNull()
     expect(surveyMonthLabel('2026-13-01')).toBeNull()
   })
+
+  it('names the National Library of Korea for the picks and covers (cycle 14)', () => {
+    render(<AboutPage />)
+
+    expect(screen.getByText(/사서추천도서 목록과 일부 표지는 국립중앙도서관 자료\(공공누리 제1유형\)예요/)).toBeTruthy()
+    expect(screen.queryByText(/출판유통/)).toBeNull()
+  })
 })
