@@ -40,6 +40,16 @@ class ModularityTests {
 			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("popular"));
 	}
 
+	/**
+	 * Cycle 13 (ADR-0083, ADR-0093): collection adds libraries through library's LibraryRegistry, never the other way;
+	 * collection still uses only catalog and library.
+	 */
+	@Test
+	void collectionUsesLibraryAndLibraryNotCollection() {
+		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library");
+		assertThat(dependenciesOf("library")).doesNotContain("collection");
+	}
+
 	private List<String> dependenciesOf(String module) {
 		ApplicationModule applicationModule = modules.getModuleByName(module).orElseThrow();
 		return applicationModule.getDirectDependencies(modules)

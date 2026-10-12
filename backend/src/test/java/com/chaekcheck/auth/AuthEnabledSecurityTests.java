@@ -89,6 +89,12 @@ class AuthEnabledSecurityTests {
 			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
 	}
 
+	/** Cycle 13 (ADR-0093): the join survey date of /about needs no login. */
+	@Test
+	void joinSurveyDateNeedsNoLogin() {
+		assertThat(mvc.get().uri("/api/v1/join-surveys/latest")).hasStatusOk();
+	}
+
 	@Test
 	void bothProvidersAreOfferedByDefault() {
 		assertThat(mvc.get().uri("/api/v1/auth/providers")).hasStatusOk()
