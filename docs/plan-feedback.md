@@ -3674,3 +3674,20 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 12는 Liquibase 파일을 더하지 않아 master 끝줄은 13의 두 줄 그대로. 옮긴 뒤 `./gradlew build`, `npm test`, Python 시험 통과
 - 사용자 결정(2026-10-14): "전부 진행" → main에 합치고 9단계(원래 `db`·`db-ops`)를 함. push는 하지 않음
 
+# 사이클 14
+
+인기 도서 → 사서추천도서 (plan `docs/cycles/14-librarian-picks/handoff.md`, ADR-0089~0092). 중간 기록(2026-10-12), 끝나면 덧붙임.
+
+## 시작 상태
+
+- worktree `../chaekcheck-dev-c14`, 브랜치 `cycle-14-librarian-picks`, 시작 커밋 `11ed991`(기본 브랜치 `main`의 그때 최신). 사이클 12(`cycle-12-grouping-rules`)·13(`cycle-13-crawler-to-dev`)은 아직 기본 브랜치에 들어오지 않음
+- docker 묶음 `chaekcheck-c14`(`docker compose -p chaekcheck-c14`), 볼륨 `chaekcheck-c14_db-data`가 따로 생긴 것을 `docker volume ls`로 확인. 원래 `chaekcheck`·`chaekcheck-c13`은 켜고 끄지 않음
+- worktree `.env`: `DB_PORT=5452`, `TEST_DB_PORT=5453`, `OPS_DB_PORT=5454`(쓰지 않음, 겹치지 않게만), `CHAEKCHECK_PICKS_FETCH_ENABLED=false`, 키 칸은 비워 둠(사용자가 직접). 그 밖의 값은 원래 `.env`와 같음
+- master 맨 끝 include: `collection/005-import-export.yaml`(plan 읽기와 같음). 그 뒤에 `# cycle 14` + `picks/001`
+- catalog 공개 API·normalize는 plan 읽기와 같은 모양(사이클 12가 아직 안 들어와 `title_norm`·`name_exact` 뜻 바뀜 없음)
+- 0단계 DB 정리: `db-test`(5453)에서 `DROP SCHEMA popular CASCADE` + `databasechangelog` `popular-001-%` 4줄 지움(1단계 시험이 옛 master로 `popular/001`을 적용했기 때문, 2단계 뒤 "다시 정리"에 해당). `db`(5452)는 아직 빈 DB(원래 서비스 DB 복사 전)
+
+## 알릴 것
+
+- **포트 겹침**: 사이클 13 worktree `.env` 주석에도 서버 8082·웹 5176이 적혀 있음. 13과 14 서버를 같이 켜면 겹침 → 켜기 전에 포트가 비었는지 확인하고 씀
+- **사이클 11 시험이 원래 db-test 컨테이너를 부름**: `CatalogTransferTests`·`CatalogImportModesTests`의 pg_dump는 `TestPgCommand` 기본값으로 묶음 `chaekcheck`의 `db-test`에서 돎. worktree에서 처음 `./gradlew build`를 했을 때 원래 `db-test`에 pg_dump(읽기, `-n catalog_next`)가 가서 "no matching schemas"로 실패함(쓰기 단계 전에 멈춤, 원래 DB에 쓴 것 없음). 그 뒤로는 `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck-c14,exec,-T,db-test`를 주고 돌림 → 714개 모두 통과. 12·13 worktree도 같은 문제가 있을 수 있음
