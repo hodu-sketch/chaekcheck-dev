@@ -1,6 +1,9 @@
-"""Tests for build_candidate_seed.py on a small made-up snapshot (plan handoff step 1).
+"""Tests for build_library_seed.py on a small made-up snapshot and rules folder (plan cycle 07 step 1, cycle 13 step 4).
 
-Run from the repository root: python -m unittest scripts/library/test_build_candidate_seed.py
+Run from the repository root: python -m unittest scripts/library/test_build_library_seed.py
+
+The script writes no seed file any more (plan cycle 13 R4-3). run_seed() copies its --out files to the seed paths
+of the temporary changelog, as applying the seed did, so later runs keep the numbers and names given.
 """
 import csv
 import io
@@ -13,19 +16,29 @@ import unittest
 from contextlib import redirect_stdout
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import build_candidate_seed as seed  # noqa: E402
+import build_library_seed as seed  # noqa: E402
+import resolve_regions  # noqa: E402
 
 REAL_REGIONS = 'backend/src/main/resources/db/changelog/region/002-region-seed.csv'
-KIND_HEADER = ['id', 'name', 'kind', 'sure', 'note']
-JOIN_HEADER = ['id', 'name', 'is_public', 'eligibility', 'basis', 'scope', 'visit_required', 'join_method',
-               'extra_condition', 'join_caution', 'quote', 'source_url', 'checked', 'memo', 'decision']
-PROBE_HEADER = ['category', 'name', 'url', 'status', 'platform', 'base_url', 'titles', 'model', 'note', 'checked_at']
-VOLUME_HEADER = ['id', 'name', 'base_url', 'totalItem', 'totalVolume', 'error']
+KIND_HEADER = ['collection_id', 'name', 'kind', 'sure', 'note']
+JOIN_HEADER = ['collection_id', 'name', 'is_public', 'eligibility', 'basis', 'scope', 'visit_required', 'join_method',
+               'extra_condition', 'join_caution', 'quote', 'source_url', 'checked', 'memo', 'decision', 'rules',
+               'eligibility_summary']
+PROBE_HEADER = ['site_url', 'name', 'category', 'model', 'lending_model', 'checked_at']
+VOLUME_HEADER = ['collection_id', 'name', 'base_url', 'total_item', 'total_volume', 'error', 'checked_on']
+OVERRIDE_HEADER = ['library_id', 'old_name', 'new_name', 'changed_on', 'source_url', 'checked_on']
+EMPTY_RULES = {'demo_or_closed.tsv': ['collection_id', 'name', 'decided_on', 'source'],
+               'same_site.tsv': ['collection_id', 'name', 'library_id', 'decided_on', 'note'],
+               'same_host_kept.tsv': ['collection_id', 'name', 'decided_on', 'note'],
+               'order_no_allowed.tsv': ['collection_id', 'order_no', 'decided_on', 'note'],
+               'scope_overrides.tsv': ['collection_id', 'residence', 'work_school', 'quote'],
+               'final_origins.tsv': ['listed_base_url', 'base_url', 'checked_on', 'service_id'],
+               'name_overrides.tsv': OVERRIDE_HEADER}
 
 REGISTERED = [(1, '가나도서관', 'KYOBO_V1', 'https://ga.example.kr'),
               (2, '다라도서관', 'KYOBO_SUBSCRIPTION_V1', 'https://dara.dkyobobook.co.kr')]
 # (id, name, platform, base_url, kind, crawl_skip, full success)
-CANDIDATES = [
+DISCOVERED = [
     (100001, '강동대학교', 'BOOKCUBE_FX', 'https://kd.bookcube.biz/FxLibrary', 'UNIV', None, True),
     (100002, '강동대학교', 'KYOBO_V1', 'http://kd.example.ac.kr:9090', 'UNIV', None, True),
     (100003, '부여초등학교', 'KYOBO_SUBSCRIPTION_V1', 'https://a.dkyobobook.co.kr', 'SCHOOL', None, True),
@@ -52,6 +65,11 @@ JOINS = {
 }
 
 
+def text(path):
+    with open(path, encoding='utf-8') as f:
+        return f.read()
+
+
 def write_tsv(path, header, rows):
     with open(path, 'w', encoding='utf-8', newline='') as f:
         w = csv.DictWriter(f, fieldnames=header, delimiter='\t', lineterminator='\n', restval='')
@@ -59,14 +77,13 @@ def write_tsv(path, header, rows):
         w.writerows(rows)
 
 
-class BuildCandidateSeedTest(unittest.TestCase):
+class BuildLibrarySeedTest(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         changelog = os.path.join(self.dir, 'changelog') + '/'
         os.makedirs(changelog + 'library')
-        os.makedirs(changelog + 'region')
-        shutil.copy(REAL_REGIONS, changelog + 'region/002-region-seed.csv')
+        os.makedirs(changelog + 'collection')
         with open(changelog + 'library/002-library-seed.yaml', 'w', encoding='utf-8') as f:
             f.write('databaseChangeLog: []\n')
         with open(changelog + 'library/004-library.csv', 'w', encoding='utf-8', newline='') as f:
@@ -75,27 +92,33 @@ class BuildCandidateSeedTest(unittest.TestCase):
             w.writerows(REGISTERED)
         self.patches = {'CHANGELOG': changelog, 'LIBRARY_DIR': changelog + 'library/',
                         'LIBRARY_CSV': changelog + 'library/008-library-candidates.csv',
-                        'RULE_CSV': changelog + 'library/008-eligibility-rule-candidates.csv',
-                        'LINK_CSV': changelog + 'collection/002-collection-link.csv',
-                        'REGIONS': changelog + 'region/002-region-seed.csv',
-                        'NAME_OVERRIDES': os.path.join(self.dir, 'name_overrides.tsv')}
+                        'LINK_CSV': changelog + 'collection/002-collection-link.csv'}
         self.saved = {k: getattr(seed, k) for k in self.patches}
         for k, v in self.patches.items():
             setattr(seed, k, v)
+        # where the applied seed was; the script writes none of them (see the module docstring)
+        self.seed_paths = {'LIBRARY_CSV': self.patches['LIBRARY_CSV'],
+                           'RULE_CSV': changelog + 'library/008-eligibility-rule-candidates.csv',
+                           'LINK_CSV': self.patches['LINK_CSV']}
+        self.out = os.path.join(self.dir, 'out')
+        self.rules = os.path.join(self.dir, 'rules') + '/'
+        os.makedirs(self.rules)
+        for name, header in EMPTY_RULES.items():
+            write_tsv(self.rules + name, header, [])
+        write_tsv(self.rules + 'demo_or_closed.tsv', EMPTY_RULES['demo_or_closed.tsv'],
+                  [{'collection_id': 100068, 'name': '삼각산어린이도서관', 'decided_on': '2026-10-05'}])
+        with open(self.rules + 'join_surveyed_on.txt', 'w', encoding='utf-8') as f:
+            f.write('2026-10-05\n')
         self.snapshot = os.path.join(self.dir, 'snapshot.sqlite')
-        self.write_snapshot(CANDIDATES)
-        self.kinds = os.path.join(self.dir, 'kinds.tsv')
-        self.joins = os.path.join(self.dir, 'join.tsv')
-        self.probe = os.path.join(self.dir, 'probe.tsv')
-        self.volumes = os.path.join(self.dir, 'volume.tsv')
-        self.write_inputs(CANDIDATES)
+        self.write_snapshot(DISCOVERED)
+        self.write_inputs(DISCOVERED)
 
     def tearDown(self):
         for k, v in self.saved.items():
             setattr(seed, k, v)
         shutil.rmtree(self.dir)
 
-    def write_snapshot(self, candidates):
+    def write_snapshot(self, discovered):
         if os.path.exists(self.snapshot):
             os.remove(self.snapshot)
         db = sqlite3.connect(self.snapshot)
@@ -105,37 +128,48 @@ class BuildCandidateSeedTest(unittest.TestCase):
                    'PRIMARY KEY (library_id, item_key))')
         for lid, name, platform, base in REGISTERED:
             db.execute('INSERT INTO library VALUES (?, ?, ?, ?, ?, NULL)', (lid, name, platform, base, '2026-10-01'))
-        for lid, name, platform, base, _kind, skip, done in candidates:
+        for lid, name, platform, base, _kind, skip, done in discovered:
             db.execute('INSERT INTO library VALUES (?, ?, ?, ?, ?, ?)',
                        (lid, name, platform, base, '2026-10-01' if done else None, skip))
         db.executemany('INSERT INTO holding VALUES (1, ?, NULL)', [('k1',), ('k2',)])
         db.commit()
         db.close()
 
-    def write_inputs(self, candidates):
-        write_tsv(self.kinds, KIND_HEADER, [{'id': c[0], 'name': c[1], 'kind': c[4], 'sure': 'Y'} for c in candidates])
-        write_tsv(self.joins, JOIN_HEADER, [dict(JOINS[c[0]], id=c[0], name=c[1], is_public='Y', checked='확인됨')
-                                            for c in candidates if c[0] in JOINS])
-        write_tsv(self.probe, PROBE_HEADER, [
-            {'name': '부여초등학교', 'status': 'OK', 'platform': 'KYOBO_SUBSCRIPTION_V1',
-             'base_url': 'https://a.dkyobobook.co.kr', 'model': '소장'},
-            {'name': '다라도서관', 'status': 'OK', 'platform': 'KYOBO_SUBSCRIPTION_V1',
-             'base_url': 'https://dara.dkyobobook.co.kr', 'model': '대여'}])
-        write_tsv(self.volumes, VOLUME_HEADER, [
-            {'id': lid, 'totalItem': v[0] if v else '', 'totalVolume': v[1] if v else '', 'error': '' if v else 'x'}
-            for lid, v in VOLUMES.items()])
+    def write_inputs(self, discovered):
+        write_tsv(self.rules + 'library_kinds.tsv', KIND_HEADER,
+                  [{'collection_id': c[0], 'name': c[1], 'kind': c[4], 'sure': 'Y'} for c in discovered])
+        joins = [dict(JOINS[c[0]], collection_id=str(c[0]), name=c[1], is_public='Y', checked='확인됨')
+                 for c in discovered if c[0] in JOINS]
+        names = resolve_regions.region_names()
+        for join in joins:  # the columns resolve_regions.py fills
+            for k in JOIN_HEADER:
+                join.setdefault(k, '')
+            join.update(resolve_regions.resolved_columns(join, {}, names))
+        write_tsv(self.rules + 'public_join.tsv', JOIN_HEADER, joins)
+        write_tsv(self.rules + 'kyobo_probe.tsv', PROBE_HEADER, [
+            {'site_url': 'https://a.dkyobobook.co.kr', 'name': '부여초등학교', 'model': '소장', 'lending_model': 'OWNED'},
+            {'site_url': 'https://dara.dkyobobook.co.kr', 'name': '다라도서관', 'model': '대여',
+             'lending_model': 'RENTAL'}])
+        write_tsv(self.rules + 'bookcube_volume.tsv', VOLUME_HEADER, [
+            {'collection_id': lid, 'total_item': v[0] if v else '', 'total_volume': v[1] if v else '',
+             'error': '' if v else 'x'} for lid, v in VOLUMES.items()])
 
     def run_seed(self, db_state=None):
+        """One run; without db_state the result goes to the seed paths, as applying the seed did."""
         out = io.StringIO()
         with redirect_stdout(out):
-            code = seed.main(self.snapshot, self.joins, self.kinds, self.probe, self.volumes, db_state=db_state)
+            code = seed.main(self.snapshot, rules_dir=self.rules, db_state=db_state, out_dir=self.out)
+        if db_state is None:
+            for key, name in (('LIBRARY_CSV', 'libraries.csv'), ('RULE_CSV', 'eligibility_rules.csv'),
+                              ('LINK_CSV', 'links.csv')):
+                shutil.copy(os.path.join(self.out, name), self.seed_paths[key])
         return code, out.getvalue()
 
     def seed_files(self):
-        return [open(self.patches[k], encoding='utf-8').read() for k in ('LIBRARY_CSV', 'RULE_CSV', 'LINK_CSV')]
+        return [text(self.seed_paths[k]) for k in ('LIBRARY_CSV', 'RULE_CSV', 'LINK_CSV')]
 
     def write_db_state(self, names=None):
-        """The db-state export of the seed written last; names replaces some current names {id: name}."""
+        """The db-state export of the seed applied last; names replaces some current names {id: name}."""
         rows = [(lid, name, platform) for lid, name, platform, _base in REGISTERED]
         rows += [(int(r['id']), r['name'], r['platform_type']) for r in self.read('LIBRARY_CSV')]
         path = os.path.join(self.dir, 'db-state.tsv')
@@ -149,22 +183,22 @@ class BuildCandidateSeedTest(unittest.TestCase):
         return self.write_db_state()
 
     def read(self, key):
-        return list(csv.DictReader(open(self.patches[key], encoding='utf-8')))
+        return list(csv.DictReader(io.StringIO(text(self.seed_paths[key]))))
 
     def libraries(self):
         return {int(r['id']): r for r in self.read('LIBRARY_CSV')}
 
     def test_same_input_gives_same_output(self):
         self.run_seed()
-        first = [open(self.patches[k], encoding='utf-8').read() for k in ('LIBRARY_CSV', 'RULE_CSV', 'LINK_CSV')]
+        first = self.seed_files()
         self.run_seed()
-        second = [open(self.patches[k], encoding='utf-8').read() for k in ('LIBRARY_CSV', 'RULE_CSV', 'LINK_CSV')]
+        second = self.seed_files()
         self.assertEqual(first, second)
 
-    def test_new_candidate_gets_the_next_number_and_others_keep_theirs(self):
+    def test_new_library_gets_the_next_number_and_others_keep_theirs(self):
         self.run_seed()
         before = self.libraries()
-        added = CANDIDATES + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
+        added = DISCOVERED + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
         self.write_snapshot(added)
         self.write_inputs(added)
         self.run_seed()
@@ -195,7 +229,7 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertIn('order_no 2 and up: 0', out)
 
     def test_same_name_vendor_and_lending_model_get_order_two_and_stop(self):
-        added = CANDIDATES + [(100014, '모름도서관', 'YES24_V2', 'http://m2.yes24library.com', 'ORG', None, True)]
+        added = DISCOVERED + [(100014, '모름도서관', 'YES24_V2', 'http://m2.yes24library.com', 'ORG', None, True)]
         self.write_snapshot(added)
         self.write_inputs(added)
         code, out = self.run_seed()
@@ -204,6 +238,12 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertEqual(libraries[second]['name'], '모름도서관')
         self.assertEqual(code, 3)
         self.assertIn(f'order_no 2 and up: 1\n  ({second}, 2)', out)
+        # a person allowed it: listed in order_no_allowed.tsv, the run goes on
+        write_tsv(self.rules + 'order_no_allowed.tsv', EMPTY_RULES['order_no_allowed.tsv'],
+                  [{'collection_id': 100014, 'order_no': 2, 'decided_on': '2026-10-12'}])
+        code, out = self.run_seed()
+        self.assertEqual(code, 0)
+        self.assertIn('order_no 2 and up not in order_no_allowed.tsv: 0', out)
 
     def test_vendor_from_the_platform_table(self):
         self.assertEqual({seed.VENDORS[p] for p in ('KYOBO_V1', 'KYOBO_SUBSCRIPTION_V1')}, {'KYOBO'})
@@ -238,7 +278,7 @@ class BuildCandidateSeedTest(unittest.TestCase):
         finally:
             db.close()
 
-    def test_left_out_candidates(self):
+    def test_left_out_libraries(self):
         code, out = self.run_seed()
         bases = {r['base_url'] for r in self.libraries().values()}
         self.assertNotIn('http://ga.example.kr:8080', bases)  # crawl_skip
@@ -289,17 +329,17 @@ class BuildCandidateSeedTest(unittest.TestCase):
         code, out = self.run_seed(self.write_db_state())
         self.assertIn("(2, 'RENTAL')", out.split('-- lending_model UPDATE where NULL')[1])
 
-    def test_kyobo_rental_and_mixed_candidates_leave_and_their_numbers_are_not_given_again(self):
+    def test_kyobo_rental_and_mixed_sites_leave_and_their_numbers_are_not_given_again(self):
         self.run_seed()
         before = self.libraries()
         rental_id = next(k for k, v in before.items() if v['base_url'] == 'https://b.dkyobobook.co.kr')
-        added = CANDIDATES + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
+        added = DISCOVERED + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
         self.write_snapshot(added)
         self.write_inputs(added)
-        with open(self.probe, 'a', encoding='utf-8', newline='') as f:
+        with open(self.rules + 'kyobo_probe.tsv', 'a', encoding='utf-8', newline='') as f:
             csv.DictWriter(f, fieldnames=PROBE_HEADER, delimiter='\t', lineterminator='\n', restval='').writerow(
-                {'name': '부여초등학교', 'status': 'OK', 'platform': 'KYOBO_SUBSCRIPTION_V1',
-                 'base_url': 'https://b.dkyobobook.co.kr', 'model': '혼합'})
+                {'site_url': 'https://b.dkyobobook.co.kr', 'name': '부여초등학교', 'model': '혼합',
+                 'lending_model': 'MIXED'})
         code, out = self.run_seed()
         after = self.libraries()
         self.assertNotIn(rental_id, after)
@@ -313,8 +353,7 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertIn("registered lending_model (library/008 UPDATE): (2, 'RENTAL')", out)
 
     def write_overrides(self, rows):
-        write_tsv(self.patches['NAME_OVERRIDES'],
-                  ['library_id', 'old_name', 'new_name', 'changed_on', 'source_url', 'checked_on'], rows)
+        write_tsv(self.rules + 'name_overrides.tsv', OVERRIDE_HEADER, rows)
 
     def test_listed_names_change_and_keep_their_numbers(self):
         self.run_seed()
@@ -343,32 +382,32 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.write_overrides([{'library_id': lib, 'old_name': '모름도서관', 'new_name': '가나도서관'}])
         code, out = self.run_seed()
         self.assertEqual(self.libraries()[lib]['name'], '가나도서관')
-        # ... but the YES24 candidate 가나도서관 has the same vendor and lending_model: order 2, the run stops
+        # ... but the YES24 library 가나도서관 has the same vendor and lending_model: order 2, the run stops
         self.assertEqual(code, 3)
         self.assertIn(f'({lib}, 2)', out)
 
     def test_registered_library_override_is_applied_in_memory_only(self):
         registered_csv = self.patches['LIBRARY_DIR'] + '004-library.csv'
-        before = open(registered_csv, encoding='utf-8').read()
+        before = text(registered_csv)
         db_state = self.db_state_after_first_run()
         self.write_overrides([{'library_id': 1, 'old_name': '가나도서관', 'new_name': '가나시립도서관'}])
         code, out = self.run_seed(db_state)
         self.assertIn("(1, '가나도서관', '가나시립도서관')", out)
-        self.assertEqual(open(registered_csv, encoding='utf-8').read(), before)
+        self.assertEqual(text(registered_csv), before)
 
     def test_changes_only_writes_no_seed_file(self):
         db_state = self.db_state_after_first_run()
         before = self.seed_files()
         renamed = next(k for k, v in self.libraries().items() if v['name'] == '모름도서관')
         self.write_overrides([{'library_id': renamed, 'old_name': '모름도서관', 'new_name': '새이름도서관'}])
-        added = CANDIDATES + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
+        added = DISCOVERED + [(100012, '새도서관', 'YES24_V2', 'http://new.yes24library.com', 'ORG', None, True)]
         self.write_snapshot(added)
         self.write_inputs(added)
-        with self.assertRaises(SystemExit):  # the new candidate is not in the db state
+        with self.assertRaises(SystemExit):  # the new library is not in the db state
             self.run_seed(db_state)
         self.assertEqual(self.seed_files(), before)
-        self.write_snapshot(CANDIDATES)
-        self.write_inputs(CANDIDATES)
+        self.write_snapshot(DISCOVERED)
+        self.write_inputs(DISCOVERED)
         code, out = self.run_seed(db_state)
         self.assertEqual(self.seed_files(), before)
         self.assertIn(f"({renamed}, '모름도서관', '새이름도서관')", out)
@@ -383,7 +422,7 @@ class BuildCandidateSeedTest(unittest.TestCase):
         self.assertIn(f"({renamed}, '모름도서관 (YES24''s)', '모름도서관')", out)
 
     def test_same_host_with_shared_keys_stops_until_read(self):
-        extra = CANDIDATES + [(100013, '가나분관', 'BOOKCUBE_FX', 'http://ga.example.kr:9000/FxLibrary', 'PUBLIC',
+        extra = DISCOVERED + [(100013, '가나분관', 'BOOKCUBE_FX', 'http://ga.example.kr:9000/FxLibrary', 'PUBLIC',
                                None, True)]
         self.write_snapshot(extra)
         self.write_inputs(extra)
@@ -401,6 +440,91 @@ class BuildCandidateSeedTest(unittest.TestCase):
             JOINS.update(joins)
         self.assertEqual(code, 2)
         self.assertIn('100013 가나분관', out)
+
+    def add_library_on_a_host(self, lid, name, base_url, shared_with):
+        """Adds a YES24 library sharing item key k1 with the library shared_with."""
+        added = DISCOVERED + [(lid, name, 'YES24_V2', base_url, 'UNIV', None, True)]
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        db = sqlite3.connect(self.snapshot)
+        db.executemany("INSERT INTO holding VALUES (?, 'k1', NULL)", [(shared_with,), (lid,)])
+        db.commit()
+        db.close()
+        return added
+
+    def test_new_library_on_the_host_of_a_discovered_service_library_stops_until_kept(self):
+        # cycle 13 (plan spec R2-7): 100002 is in the service already; before, only registered hosts were checked
+        self.run_seed()
+        self.add_library_on_a_host(100020, '강동대학교', 'http://kd.example.ac.kr', 100002)
+        code, out = self.run_seed()
+        self.assertEqual(code, 2)
+        self.assertIn('same host, new library against the service and the other new ones: 1 pairs, '
+                      'with shared item keys 1, not read yet 1\n  100020 강동대학교', out)
+        write_tsv(self.rules + 'same_host_kept.tsv', EMPTY_RULES['same_host_kept.tsv'],
+                  [{'collection_id': 100020, 'name': '강동대학교', 'decided_on': '2026-10-12'}])
+        code, out = self.run_seed()
+        self.assertEqual(code, 0)
+
+    def test_two_new_libraries_on_one_host_stop(self):
+        # like Yeoju 100584 / 102084 (plan spec R2-7-1): both new, one host
+        added = DISCOVERED + [(100020, '여주대학교', 'YES24_V2', 'http://y.example.ac.kr', 'UNIV', None, True),
+                              (100021, '여주대학교', 'KYOBO_V1', 'http://y.example.ac.kr:8091', 'UNIV', None, True)]
+        self.write_snapshot(added)
+        self.write_inputs(added)
+        db = sqlite3.connect(self.snapshot)
+        db.executemany("INSERT INTO holding VALUES (?, 'k1', NULL)", [(100020,), (100021,)])
+        db.commit()
+        db.close()
+        code, out = self.run_seed()
+        self.assertEqual(code, 2)
+        self.assertIn('  100021 여주대학교 http://y.example.ac.kr:8091 ~ 100020 여주대학교', out)
+
+    def test_new_libraries_are_listed_with_their_values(self):
+        self.run_seed()
+        self.add_library_on_a_host(100020, '새대학교', 'http://new.example.ac.kr', 100002)
+        code, out = self.run_seed()
+        self.assertEqual(code, 0)  # another host: no pair
+        self.assertRegex(out, r'new libraries: 1\n.*\n  \d+\t100020\t새대학교\tYES24_V2\tYES24\tOWNED\t1\t'
+                              r'MEMBERS_ONLY\thttp://new.example.ac.kr\tNULL\t-\n')
+        self.assertIn('join surveyed on: 2026-10-05', out)
+
+    def test_rules_file_without_a_column_stops(self):
+        write_tsv(self.rules + 'same_site.tsv', ['collection_id', 'name'], [])
+        with self.assertRaisesRegex(SystemExit, r"same_site.tsv: missing columns \['library_id'\]"):
+            self.run_seed()
+
+    def test_public_join_without_resolved_rules_stops(self):
+        rows = list(csv.DictReader(io.StringIO(text(self.rules + 'public_join.tsv')), delimiter='\t'))
+        for row in rows:
+            row['rules'] = ''
+        write_tsv(self.rules + 'public_join.tsv', JOIN_HEADER, rows)
+        with self.assertRaisesRegex(SystemExit, 'run scripts/library/resolve_regions.py'):
+            self.run_seed()
+
+    def test_out_under_backend_is_refused(self):
+        with self.assertRaisesRegex(SystemExit, 'must not be under backend/'):
+            seed.main(self.snapshot, rules_dir=self.rules, out_dir='backend/build/x')
+        self.assertFalse(os.path.exists('backend/build/x'))
+
+
+class RulesFolderTest(unittest.TestCase):
+    """The committed rules folder (scripts/library/rules/) loads and is up to date."""
+
+    def test_real_rules_folder(self):
+        rules = seed.load_rules()
+        self.assertEqual(rules['join_surveyed_on'], '2026-10-05')
+        self.assertTrue({100584, 102084} <= rules['same_host_kept'])  # plan spec R2-7-1
+        self.assertEqual(len(rules['same_host_kept']), 24)
+        self.assertEqual(rules['same_site'][100668], 279)
+        self.assertEqual(set(rules['demo_or_closed']), {100048, 100068, 100083, 100301})
+        self.assertEqual(rules['joins'][100008]['rules'], [('RESIDENCE', 41), ('WORK', 41), ('SCHOOL', 41)])
+        self.assertEqual(rules['joins'][100008]['eligibility_summary'], '경기 거주·재직·재학')
+
+    def test_public_join_regions_are_up_to_date(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = resolve_regions.main(['--check'])
+        self.assertEqual(code, 0, out.getvalue())
 
 
 if __name__ == '__main__':

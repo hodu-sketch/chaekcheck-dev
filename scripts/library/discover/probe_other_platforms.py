@@ -1,4 +1,4 @@
-"""Probe Bookcube / Aladin e-library candidates once each: alive? how many titles?
+"""Probe Bookcube / Aladin e-library sites once each: alive? how many titles?
 
 Usage: python probe_other_platforms.py <in.tsv> <out.tsv>
 in.tsv columns: platform, name, url. One request per site (two for Aladin: home + full list),

@@ -1,4 +1,4 @@
-"""Probe Aladin e-library candidates once: alive? standard screen (sub/sub.htm)? e-book menu code? how many titles?
+"""Probe Aladin e-library sites once: alive? standard screen (sub/sub.htm)? e-book menu code? how many titles?
 
 Usage: python probe_aladin.py <in.tsv> <out.tsv>
 Input columns: platform, name, url. Each result is written at once; a rerun skips sites already in out.tsv.
@@ -93,7 +93,7 @@ def main():
     by_host = defaultdict(list)
     for r in rows:
         by_host[c.host_key(r["url"])].append(r)
-    c.log(f"{len(rows)} candidates to probe on {len(by_host)} hosts ({len(done)} done before)")
+    c.log(f"{len(rows)} sites to probe on {len(by_host)} hosts ({len(done)} done before)")
     with ThreadPoolExecutor(max_workers=24) as ex:
         list(ex.map(lambda rs: [append(out_path, probe(r)) for r in rs], by_host.values()))
     counts = defaultdict(int)

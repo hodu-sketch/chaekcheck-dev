@@ -1,4 +1,4 @@
-"""Probe YES24 e-library candidates once: alive? which screen (YES24_V1/V2/V3)? how many titles?
+"""Probe YES24 e-library sites once: alive? which screen (YES24_V1/V2/V3)? how many titles?
 
 Usage: python probe_yes24.py <in.tsv> <out.tsv>
 Input columns: platform, name, url. Two requests per site (home, blank search), one at a time per host, 1 s apart.
@@ -105,7 +105,7 @@ def main():
     by_host = defaultdict(list)
     for r in rows:
         by_host[c.host_key(r["url"])].append(r)
-    c.log(f"{len(rows)} candidates to probe on {len(by_host)} hosts ({len(done_urls)} done before)")
+    c.log(f"{len(rows)} sites to probe on {len(by_host)} hosts ({len(done_urls)} done before)")
     with ThreadPoolExecutor(max_workers=24) as ex:
         list(ex.map(lambda rs: [append(out_path, probe(r)) for r in rs], by_host.values()))
     counts = defaultdict(int)
