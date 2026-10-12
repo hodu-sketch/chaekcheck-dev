@@ -38,7 +38,7 @@ function App() {
                 <Route path="/" element={<SearchPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
-                {/* cycle 10 (S13): public, no login (R7-3) */}
+                {/* cycle 10, 14 (S13 librarian picks): public, no login (R7-3) */}
                 <Route path="/picks" element={<PicksPage />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
                 <Route path="/about" element={<AboutPage />} />

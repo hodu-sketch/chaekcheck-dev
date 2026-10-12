@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchedLabel, monthLabel, pageCount, safeCoverUrl, sourceLine } from './picksText'
+import { cardTitle, fetchedLabel, monthLabel, pageCount, safeCoverUrl, sourceLine } from './picksText'
 
 describe('picks texts', () => {
   it('writes the month and the fetch day in Korean time', () => {
@@ -20,6 +20,14 @@ describe('picks texts', () => {
     expect(pageCount(52)).toBe(6)
     expect(pageCount(10)).toBe(2)
     expect(pageCount(9)).toBe(1)
+  })
+
+  it('shows the main title on a card without a cover', () => {
+    expect(cardTitle('시간을 읽는 그림 : 수천 년 세계사를 담은 기록의 그림들')).toBe('시간을 읽는 그림')
+    expect(cardTitle('브랜드 코드 : 베타라이프 : 일상에서')).toBe('브랜드 코드')
+    expect(cardTitle('Harry Potter = 해리 포터')).toBe('Harry Potter')
+    expect(cardTitle('뒷마당 탐조 클럽')).toBe('뒷마당 탐조 클럽')
+    expect(cardTitle('사피엔스:유인원에서')).toBe('사피엔스:유인원에서')
   })
 
   it('uses only our own cover addresses (C7)', () => {

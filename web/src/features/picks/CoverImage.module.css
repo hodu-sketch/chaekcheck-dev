@@ -32,3 +32,26 @@
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
+
+/* at most five lines, then "…" (cycle 14) */
+.titleText {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+}
+
+/* phone cards are narrow: smaller letters (cycle 14), the same phone width as the page (PHONE_QUERY) */
+@media (width <= 640px) {
+  .title {
+    padding: 0.3rem;
+    font-size: 0.62rem;
+    line-height: 1.3;
+  }
+
+  .titleText {
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+  }
+}

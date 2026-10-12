@@ -55,6 +55,15 @@ export function pageCount(books: number): number {
   return Math.max(1, Math.ceil(books / PAGE_SIZE))
 }
 
+/**
+ * The title shown on a card without a cover: the part before the first " : " or " = " (librarian picks carry long
+ * subtitles, "시간을 읽는 그림 : 수천 년 세계사를 담은 기록의 그림들"); the whole title when nothing is left.
+ */
+export function cardTitle(title: string): string {
+  const main = title.split(/\s+[:=]\s+/)[0].trim()
+  return main || title
+}
+
 /** Only our own cover address is used as an image source (C7); anything else shows the title. */
 export function safeCoverUrl(url: string | null): string | null {
   return url && /^\/api\/v1\/picks\/covers\/\d+$/.test(url) ? url : null

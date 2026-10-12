@@ -4,38 +4,99 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "web", "run", "dev", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
     },
     {
       "name": "web-lan",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "web", "run", "dev", "--", "--port", "5173", "--strictPort", "--host"],
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort",
+        "--host"
+      ],
       "port": 5173
     },
     {
       "name": "web-lan-5174",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "web", "run", "dev", "--", "--port", "5174", "--strictPort", "--host"],
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort",
+        "--host"
+      ],
       "port": 5174
     },
     {
       "name": "web-tunnel-5175",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "set __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.trycloudflare.com&& npm --prefix web run dev -- --port 5175 --strictPort"],
+      "runtimeArgs": [
+        "/c",
+        "set __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.trycloudflare.com&& npm --prefix web run dev -- --port 5175 --strictPort"
+      ],
       "port": 5175
     },
     {
       "name": "backend",
       "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend\\gradlew.bat",
-      "runtimeArgs": ["-p", "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend", "bootRun"],
+      "runtimeArgs": [
+        "-p",
+        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend",
+        "bootRun"
+      ],
       "port": 8080
     },
     {
       "name": "backend-no-login",
       "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend\\gradlew.bat",
-      "runtimeArgs": ["-p", "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend", "bootRun", "--args=--chaekcheck.auth.enabled=false"],
+      "runtimeArgs": [
+        "-p",
+        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend",
+        "bootRun",
+        "--args=--chaekcheck.auth.enabled=false"
+      ],
       "port": 8080
+    },
+    {
+      "name": "c14-backend-8083",
+      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c14\\backend\\gradlew.bat",
+      "runtimeArgs": [
+        "-p",
+        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c14\\backend",
+        "bootRun",
+        "--args=--server.port=8083"
+      ],
+      "port": 8083
+    },
+    {
+      "name": "c14-web-lan-5177",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set API_PROXY_TARGET=http://localhost:8083&& npm --prefix web run dev -- --port 5177 --strictPort --host"
+      ],
+      "port": 5177
     }
   ]
 }
