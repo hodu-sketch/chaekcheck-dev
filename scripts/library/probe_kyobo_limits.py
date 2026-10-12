@@ -109,6 +109,10 @@ def main_log(log_path, img_dir):
 
 
 def main():
+    # cycle 13 (plan spec R1-6 [확정], 2026-10-12): no request goes to the KYOBO subscription servers
+    # (*.dkyobobook.co.kr); they blocked our IP and rental/mixed sites are left out (ADR-0067). Every site this tool
+    # checks is on those servers, so it stops here. Lifting it needs a new user decision.
+    sys.exit("probe_kyobo_limits.py does not run since 2026-10-12: *.dkyobobook.co.kr is never requested (plan cycle 13 R1-6)")
     if sys.argv[1] == "--log":
         return main_log(sys.argv[2], sys.argv[3])
     out = sys.argv[1]

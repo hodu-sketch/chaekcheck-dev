@@ -2,7 +2,7 @@
 
 - 정기 유지보수의 **가져오기 절차 원본**입니다(plan ADR-0047, 2026-10-04). 순서 전체는 [README.md](README.md). plan 짝 문서: `../chaekcheck-plan/docs/research/collection/2-books.md` 6절.
 - 옮겨 온 곳: `docs/plan-feedback.md` `# 사이클 04` "가져오기 실행 방법"·"실제 가져오기 결과 (2026-10-03 18:05)", plan `docs/research/maintenance/periodic-tasks.md` 3절. 빠지는 줄의 기준과 실행 조건은 코드(`backend/src/main/java/com/chaekcheck/collection/internal/importer/`)를 보고 적었습니다.
-- 가져오기는 수집 SQLite의 원문을 정리하고 같은 책을 묶어 서비스 DB의 `catalog` 표(책, 사람, 소장)를 **지우고 새로 씁니다**(plan ADR-0031). 사이클 07부터 `collection` 모듈이 맡고(ADR-0060), 짝 표(`collection.collection_link`)에 있는 **모든 서비스 도서관**(등록 + 후보)의 책을 가져옵니다(ADR-0054). 책마다 가진 도서관 번호(`book.library_ids`)도 이때 계산합니다(ADR-0055). 정리·묶기 규칙의 근거는 plan `docs/research/ebook-catalog/search-and-normalization.md` 4절, `same-book-isbn.md` 5절, 주기 갱신 순서는 `catalog-refresh.md` 2절.
+- 가져오기는 수집 SQLite의 원문을 정리하고 같은 책을 묶어 서비스 DB의 `catalog` 표(책, 사람, 소장)를 **지우고 새로 씁니다**(plan ADR-0031). 사이클 07부터 `collection` 모듈이 맡고(ADR-0060), 짝 표(`collection.collection_link`)에 있는 **모든 서비스 도서관**(등록 + 수집 목록에서 찾아 넣은 곳)의 책을 가져옵니다(ADR-0054). 책마다 가진 도서관 번호(`book.library_ids`)도 이때 계산합니다(ADR-0055). 정리·묶기 규칙의 근거는 plan `docs/research/ebook-catalog/search-and-normalization.md` 4절, `same-book-isbn.md` 5절, 주기 갱신 순서는 `catalog-refresh.md` 2절.
 
 ## 1. 언제 돌리나 (실행 조건)
 
@@ -42,13 +42,13 @@
   - 사이클 11: `chaekcheck.catalog.load.pg-command`(PostgreSQL 18 도구를 부르는 명령 앞부분, 쉼표로 나눔, 13-1). 커밋되는 파일에는 넣지 않고 명령 인자나 `.env`로 줍니다.
   - 사이클 11 측정: `-PbootRunJvmArgs="…"`로 Java 옵션을 더합니다(공백으로 나눔, `-PbootRunXmx`는 그대로).
 - 사이클 04의 프로필 `catalog-import`, 설정 `chaekcheck.catalog.import.*`는 없어졌습니다.
-- 로그 끝의 요약(읽은 줄, 이유별 건너뜀, 등록·후보 도서관 수, 묶기 단계별 책 수, 국가서지로 ISBN이 붙은 수, 시간, 힙 최고 사용량)을 5절 표의 지난 값과 비교합니다. 크게 다르면 사용자에게 알리고 멈춥니다 [안].
+- 로그 끝의 요약(읽은 줄, 이유별 건너뜀, 등록 도서관과 그 밖의 도서관 수, 묶기 단계별 책 수, 국가서지로 ISBN이 붙은 수, 시간, 힙 최고 사용량)을 5절 표의 지난 값과 비교합니다. 크게 다르면 사용자에게 알리고 멈춥니다 [안].
 
 ## 4. 실제 가져오기
 
 1. 3절 명령을 `--chaekcheck.catalog.import.dry-run=true` 없이 실행합니다.
 2. 확인: 서버를 띄우고 `/api/v1/books` 검색 몇 가지("행동"+"새폴스키", "작별하지 않는다", "사랑")가 나오는지 봅니다.
-3. 결과 숫자를 5절 표에 한 줄 더하고, `docs/plan-feedback.md`에도 남깁니다. 가져오기마다 `collection.catalog_import`에 한 줄이 쌓입니다(책·소장·건너뜀 수, 등록·후보 도서관 수, 이유별 건너뜀 `skipped_by_reason`).
+3. 결과 숫자를 5절 표에 한 줄 더하고, `docs/plan-feedback.md`에도 남깁니다. 가져오기마다 `collection.catalog_import`에 한 줄이 쌓입니다(책·소장·건너뜀 수, 등록 도서관 수 `registered_library_count`와 그 밖의 도서관 수 `other_library_count`, 이유별 건너뜀 `skipped_by_reason`).
 
 ## 5. 확인할 숫자 (지난 값)
 
@@ -78,7 +78,7 @@
 
 | 로그의 이유 | 빠지는 줄 | 태그 |
 |---|---|---|
-| `library_not_in_service` | 짝 표에 없거나, 짝의 서비스 도서관이 꺼진 곳(같은 사이트로 뺀 후보, 전체 수집이 안 끝난 후보 등) | [확정] |
+| `library_not_in_service` | 짝 표에 없거나, 짝의 서비스 도서관이 꺼진 곳(같은 사이트로 뺀 곳, 전체 수집이 안 끝난 곳 등) | [확정] |
 | `library_base_url_mismatch` | 짝은 있지만 주소가 서비스 도서관과 다른 곳(안전장치) | [확정] (사이클 07) |
 | `kind_sound_video` | 북큐브 `content_kind` `book/wma`·`book/vod`·`book/wmv`, 교보 `동영상` | [확정] (사이클 07, ADR-0054) |
 | `removed` | 수집기가 빠진 책으로 표시한 줄(`removed_at`) | [확정] |

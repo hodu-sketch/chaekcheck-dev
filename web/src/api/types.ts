@@ -5,7 +5,7 @@
  * kind). Such a library is searched only when the user added it; never joinable.
  */
 export type Eligibility = 'OPEN' | 'ELIGIBLE' | 'UNKNOWN' | 'UNVERIFIED' | 'UNSURVEYED'
-/** How far a library's join rules were researched (cycle 07, ADR-0053); picks the join notice of a candidate library. */
+/** How far a library's join rules were researched (cycle 07, ADR-0053); picks the join notice of a library found in the collected list. */
 export type JoinSurvey = 'SURVEYED' | 'NOT_FOUND' | 'MEMBERS_ONLY' | 'NOT_SURVEYED'
 /** Search priority group; the plan is ordered by it (design-delta "우선순위 그룹 계산"). */
 export type PriorityGroup = 'MY_SIGUNGU' | 'MY_SIDO' | 'OPEN' | 'QUALIFIED' | 'NEEDS_CHECK'

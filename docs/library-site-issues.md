@@ -32,7 +32,7 @@
 | 사이트 | 주소 | 처음 결과 | 다시 확인 (2026-09-29) | 할 일 |
 |---|---|---|---|---|
 | 구미시립도서관 | `http://ebook.gumilib.or.kr` | `ConnectException` | 도메인 없음(curl 6) | YES24 `http://gumilib.yes24library.com`로 옮김(plan research.md 12절). YES24 목록을 모을 때 추가(4-2, 4-4) |
-| 춘천시립도서관 | `http://ebook.chuncheon.go.kr` | `ConnectException` | 도메인 없음(curl 6) | YES24 `https://elib.chuncheon.go.kr:447`로 옮김(같은 곳). robots.txt가 모든 봇을 막음(research.md 118행). 사용자 결정대로 조회 대상 후보 |
+| 춘천시립도서관 | `http://ebook.chuncheon.go.kr` | `ConnectException` | 도메인 없음(curl 6) | YES24 `https://elib.chuncheon.go.kr:447`로 옮김(같은 곳). robots.txt가 모든 봇을 막음(research.md 118행). 사용자 결정대로 조회 대상에 넣을 곳 |
 | 국립어린이청소년도서관 | `http://ebook.nlcy.go.kr` | 연결 시간 초과 | 시간 초과(curl 28) | 다른 날 다시 확인. 기관 홈페이지에서 전자책 주소 확인 |
 | 장성군립도서관 | `http://ebook.jangseong.go.kr:88` | 연결 시간 초과 | 시간 초과(curl 28) | 구독형(`jslib.dkyobobook.co.kr`)은 seed에 있음(id 129). 일반 사이트는 다른 날 다시 확인 |
 
@@ -54,9 +54,9 @@
 - 사이트 목록(https 최종 주소): 곡성교육문화회관 `ebook.jne.go.kr:8401`, 공주시시립도서관 `ebook.gongjulib.go.kr`, 광양공공도서관 `ebook.jne.go.kr:8402`, 광양평생교육관 `ebook.jne.go.kr:8403`, 구로구청 `ebook.guro.go.kr`, 구리시립도서관 `ebook.gurilib.go.kr:446`, 나주공공도서관 `ebook.jne.go.kr:8410`, 당진시립도서관 `lib.dangjin.go.kr:444`, 레인보우영동도서관 `ebook.rainbowlib.go.kr`, 목포공공도서관 `ebook.jne.go.kr:8409`, 안동시립도서관 `ebook.andong.go.kr`, 안양시립석수도서관 `elib.anyang.go.kr:8092`, 양평군도서관 `ebook.yplib.go.kr`, 영광공공도서관 `ebook.jne.go.kr:8411`, 장성공공도서관 `ebook.jne.go.kr:8408`, 전남광주통합특별시교육청 전남도서관 `ebook.jne.go.kr:8400`, 전라남도학생교육문화회관 `ebook.jne.go.kr:8407`, 진도공공도서관 `ebook.jne.go.kr:8406`, 진천군립도서관 `ebook.jincheon.go.kr:446`, 청도어린이도서관 `ebook.cheongdo.go.kr`, 충주시립도서관 `e-lib.chungju.go.kr`, 칠곡도서관 `ebook.chilgok.go.kr`, 해남공공도서관 `ebook.jne.go.kr:8404`, 화순도서관 `ebook.jne.go.kr:8405`. 2026-09-29에 강원도교육청 `ebook.gwe.go.kr`도 같은 오류.
 - 주의: 11곳이 전남교육청 서버 `ebook.jne.go.kr` 한 곳(포트만 다름)에 있습니다. 넣으면 같은 서버 몰림이 더 커집니다(plan-feedback "같은 호스트 병목").
 
-### 3-2. 후보 도서관 인증서 (2026-10-05, 사이클 07)
+### 3-2. 수집 목록에서 찾은 도서관의 인증서 (2026-10-05, 사이클 07)
 
-- 후보 도서관을 https 최종 주소로 바꾸면서(`library-maintenance.md` 13절) 15곳이 PKIX 오류. 모두 http → https 302 뒤의 https 서버.
+- 수집 목록에서 찾은 도서관을 https 최종 주소로 바꾸면서(`library-maintenance.md` 13절) 15곳이 PKIX 오류. 모두 http → https 302 뒤의 https 서버.
 - 중간 인증서 3개를 더함(받은 곳 = 인증서 AIA 주소, 발급 기관은 모두 JDK 최상위 기관):
   - Sectigo RSA Organization Validation Secure Server CA ← USERTrust RSA (`http://crt.sectigo.com/SectigoRSAOrganizationValidationSecureServerCA.crt`, 만료 2030-12-31)
   - GeoTrust TLS RSA CA G1 ← DigiCert Global Root G2 (`http://cacerts.geotrust.com/GeoTrustTLSRSACAG1.crt`, 만료 2027-11-02)
@@ -87,7 +87,7 @@
 
 ## 6. YES24 (2026-09-29)
 
-- 후보 110곳(plan 조사 때 목록 122곳 중 이미 seed·포털이 다루는 18곳 제외 + 새로 찾은 1곳)을 `scripts/library/CheckYes24Sites.java`로 확인. 전체 표와 이유: [`library-research/yes24-report-2026-09-29.md`](library-research/yes24-report-2026-09-29.md), 원자료 `library-research/yes24-search-2026-09-29.tsv`.
+- 확인할 곳 110곳(plan 조사 때 목록 122곳 중 이미 seed·포털이 다루는 18곳 제외 + 새로 찾은 1곳)을 `scripts/library/CheckYes24Sites.java`로 확인. 전체 표와 이유: [`library-research/yes24-report-2026-09-29.md`](library-research/yes24-report-2026-09-29.md), 원자료 `library-research/yes24-search-2026-09-29.tsv`.
 - 넣음: 66곳(seed `005`, id 206–271) = `YES24_V2` 54 + `YES24_V1` 8 + `YES24_V3` 4(마포나루·김천·경주·구미, EUC-KR 지금 화면. 새 화면 종류로 만듦, 사용자 결정).
 - 같은 도서관이 이미 다른 사이트로 있는 26곳은 이름에 "(YES24)"(사용자 결정). 전남교육청 8곳은 모두 넣음(사용자 결정). 대구점자도서관·북나들e는 넣고 이용 대상은 "안내"(`join_notice`)로(사용자 결정).
 - 빠진 곳 44곳: 주소 없음(404) 12, 결과 목록 없는 옛 `/YES24` 화면 10, 연결 오류 17, HTTP 400/500·다른 곳으로 이동 5. 새 주소 찾기는 진행 중(결과는 이 절에 더함).
@@ -114,9 +114,9 @@
 - **이미 목록에 있는 사이트로 옮긴 곳**: 칠곡(203), 충남도서관(164), 경북도서관(28), 수영(86), 구수산(대구 포털 11), 광주학생교육문화회관(133), 전남 미디어북(전남교육청 YES24 사이트들).
 - 서비스 중단: 대구학생전자도서관(6-2절 꺼 둔 도서관과 같은 곳). 전자책 페이지가 아님: 양산 `:8088`(열람실 좌석 화면).
 
-## 8. 후보 도서관 넣기에서 뺀 곳 (2026-10-05, 사이클 07)
+## 8. 수집 목록에서 찾은 도서관을 넣을 때 뺀 곳 (2026-10-05, 사이클 07)
 
-수집 DB 배포용 사본(`chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite`)의 후보 도서관(수집 번호 100001 이상)을 `scripts/library/build_candidate_seed.py`로 넣을 때 뺀 곳입니다. 절차와 셈은 `library-maintenance.md` 13절 2026-10-05 줄.
+수집 DB 배포용 사본(`chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite`)의 수집 목록에서 찾은 도서관(수집 번호 100001 이상)을 `scripts/library/build_candidate_seed.py`(지금 `build_library_seed.py`)로 넣을 때 뺀 곳입니다. 사이클 13부터 넣기 명령이 같은 규칙으로 빼고, 지금 목록은 [`library-left-out.md`](library-left-out.md)입니다. 절차와 셈은 `library-maintenance.md` 13절 2026-10-05 줄.
 
 - **같은 사이트 (`crawl_skip`) 99곳**: 수집 세션이 "same site as registered library N"으로 표시한 곳. 사본 `library.crawl_skip` 칸에 이유가 있음.
 - **같은 사이트를 다른 포트로 연 곳 8곳** (사용자 결정 2026-10-05: "① 8곳만 빼기"): 호스트가 등록 도서관과 같고 책 번호 목록이 서로 100% 같으며, 책 상세 주소도 포트만 다름.
@@ -186,7 +186,7 @@ YES24 사이트는 폰 브라우저를 첫 화면·목록·**검색 결과까지
 | 2611 | 강서공업고등학교 | 서울디지털콘텐츠고등학교 전자책도서관 | `http://gangseo-th.yes24library.com` |
 | 2563 | 대검 도서관 | 공소청 | `http://spo.yes24library.com` |
 
-- 이름 출처: 후보 이름은 수집 DB(교보 구축 기관 목록 등)에서 왔음(`build_candidate_seed.py`). 바뀐 이름을 쓸지, 사이트 제목을 따를지는 사용자 결정.
+- 이름 출처: 수집 목록에서 찾은 도서관의 이름은 수집 DB(교보 구축 기관 목록 등)에서 왔음(`build_candidate_seed.py`). 바뀐 이름을 쓸지, 사이트 제목을 따를지는 사용자 결정.
 
 ## 다시 볼 때 순서
 

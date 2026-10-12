@@ -16,12 +16,12 @@ describe('LibraryLogo', () => {
 
   it('shows nothing without a logo, and when the file fails', () => {
     const { container, unmount } = render(
-      <LibraryLogo name="후보" logoUrl={null} homepageUrl="https://lib.test/" size={24} />,
+      <LibraryLogo name="도서관" logoUrl={null} homepageUrl="https://lib.test/" size={24} />,
     )
     expect(container.innerHTML).toBe('')
     unmount()
 
-    const failed = render(<LibraryLogo name="후보" logoUrl="/library-logos/9.png" homepageUrl="https://lib.test/" size={24} />)
+    const failed = render(<LibraryLogo name="도서관" logoUrl="/library-logos/9.png" homepageUrl="https://lib.test/" size={24} />)
     fireEvent.error(screen.getByRole('img'))
     expect(failed.container.innerHTML).toBe('')
   })

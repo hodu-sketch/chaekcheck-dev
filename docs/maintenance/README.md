@@ -1,9 +1,9 @@
 # 정기 유지보수: ① 도서관 수집 → ② 책 수집 → 가져오기
 
 - 주기적으로 하는 유지보수 작업의 **절차 원본**입니다(plan ADR-0047, 2026-10-04). 원칙: 절차의 원본은 dev, 조사 기록·근거·결정은 plan [확정] (사용자, 2026-10-01).
-- 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기, 지금 이름으로는 후보 도서관을 등록 도서관으로 옮기기)과 6절(확인 필요)은 plan에 남습니다.
+- 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기, 지금 이름으로는 수집 목록에서 찾은 도서관을 서비스에 넣기)과 6절(확인 필요)은 plan에 남습니다.
 - 수집은 두 갈래입니다 [확정] (사용자 승인, 2026-10-05, plan 사이클 07): **① 도서관 수집**(어느 전자도서관이 있나 → 서비스 DB에 넣기) / **② 책 수집**(도서관마다 어떤 책이 있나). 그 뒤 **가져오기**가 ②의 결과를 서비스 DB 책 표로 옮깁니다. 원칙과 결정은 plan `docs/research/collection/1-libraries.md`, `2-books.md`에 있고, 여기에는 절차만 둡니다(ADR-0047).
-- 도서관 목록은 둘입니다 [확정] (사용자, 2026-10-04): **등록 도서관**(dev seed `library/001`~`006`, 280줄) / **후보 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스 등에서 찾음). 사이클 07부터 전체 수집이 끝난 후보 도서관은 서비스 DB에도 새 번호로 들어갑니다(2026-10-05 2,394곳, `library/008`). 자세히는 [1-libraries.md](1-libraries.md) "도서관 목록 두 가지".
+- 도서관 목록은 둘입니다 [확정] (사용자, 2026-10-04): **등록 도서관**(dev seed `library/001`~`006`, 280줄) / **수집 목록에서 찾은 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스 등에서 찾음). 사이클 07부터 전체 수집이 끝난 곳은 서비스 DB에도 새 번호로 들어갑니다(2026-10-05 2,394곳 `library/008` seed, 사이클 13부터는 넣기 명령 `library-insert`). 자세히는 [1-libraries.md](1-libraries.md) "도서관 목록 두 가지".
 - plan 저장소 위치: `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-plan\` (아래 "plan `…`"은 이 폴더 기준 경로). 문서 색인은 plan `docs/reference-index.md`.
 - 주기와 순서는 모두 [안]입니다. 정하는 곳은 주기 갱신 사이클입니다(별도 사이클 [확정], plan `docs/research/ebook-catalog/catalog-refresh.md` 머리말).
 
@@ -11,14 +11,14 @@
 
 | 갈래 | 하는 일 | 주기 | 절차 (dev) | plan 짝 문서 | 실행 도구 |
 |---|---|---|---|---|---|
-| ① 도서관 수집 | 후보 찾기 → 확인 → 같은 사이트 거르기 → **넣기**(서비스 DB seed) → 구독 규칙·마감 확인. 등록 도서관 확인(새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계)도 여기 | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `docs/research/collection/1-libraries.md` | 찾기·확인 `scripts/library/candidates/probe_*.py`, 넣기 `scripts/library/build_candidate_seed.py`, 등록 도서관 확인 `scripts/library/`(`CheckKyoboSites.java` …), 마감 확인 `scripts/library/probe_kyobo_limits.py` |
-| ② 책 수집 | 도서관마다 전자책 목록 받기 | 주 1회 전체 + 매일 신간 [확정] (plan `crawl-method.md` 2절). **신간 수집 명령은 아직 없음** → 지금은 전체만 | [2-crawl.md](2-crawl.md), 플랫폼별 방법 [platforms.md](platforms.md) | `docs/research/collection/2-books.md` | `scripts\crawl\resume.cmd` (`scripts/crawl/crawl_catalog.py`). 갈아타기 전에는 `chaekcheck-data\resume.cmd` |
+| ① 도서관 수집 | 수집 목록에서 찾기 → 확인 → 수집 → **넣기**(넣기 명령 `library-insert`: 미리 보기 → 보고서 → 넣기, 같은 사이트·같은 호스트 거르기 포함) → 구독 규칙·마감 확인. 등록 도서관 확인(새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계)도 여기 | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `docs/research/collection/1-libraries.md` | 찾기·확인 `scripts/library/discover/probe_*.py`, 넣기 `backend/`에서 `./gradlew bootRun` 프로필 `library-insert`(규칙 `scripts/library/rules/`), 등록 도서관 확인 `scripts/library/`(`CheckKyoboSites.java` …), 마감 확인 `scripts/library/probe_kyobo_limits.py` |
+| ② 책 수집 | 도서관마다 전자책 목록 받기 | 주 1회 전체 + 매일 신간 [확정] (plan `crawl-method.md` 2절). **신간 수집 명령은 아직 없음** → 지금은 전체만 | [2-crawl.md](2-crawl.md), 플랫폼별 방법 [platforms.md](platforms.md) | `docs/research/collection/2-books.md` | `scripts\crawl\resume.cmd` (`scripts/crawl/crawl_catalog.py`). 2026-10-12부터 이것만 돌림(옛 코드는 `chaekcheck-data\_old-scripts-2026-10-12\`에 보관) |
 | 가져오기 | ②의 결과(수집 DB 사본)를 서비스 DB 책 표로 (정리·같은 책 묶기·`book.library_ids`) | [안] ② 전체 수집이 끝날 때마다 | [3-import.md](3-import.md) | `docs/research/collection/2-books.md` 6절 | `backend/`에서 `./gradlew bootRun` 프로필 `collection-import` |
 | (자동) 서비스 | 사용자가 책을 찾으면 서비스 DB에서 찾고, 도서관 상세 페이지로 대출 상태를 실시간 조회 | 늘 | 아래 4절 | — | 서비스(`catalog`, `availability` 모듈) |
 
 ① → ② → 가져오기 순서로 이어집니다. ①에서 도서관이 바뀌면 ②에서 그 도서관을 받고, 가져오기를 다시 해야 서비스 검색에 반영됩니다. 자동 단계는 사람이 돌리지 않지만, 거기서 나는 오류(상세 페이지를 못 읽음)가 ①을 할 신호가 됩니다.
 
-## 1. ① 도서관 수집 (등록 도서관 확인·후보 도서관)
+## 1. ① 도서관 수집 (등록 도서관 확인·수집 목록에서 찾은 도서관)
 
 절차: [1-libraries.md](1-libraries.md) → [`docs/library-maintenance.md`](../library-maintenance.md). 볼 곳과 순서 [안]:
 
@@ -28,8 +28,8 @@
 4. 책 번호 체계 점검: `check_code_spaces.py` → 기준값과 비교. 크게 바뀌거나 새 화면 종류가 생기면 사용자에게 알림 [확정] (사용자, 2026-09-30) (4-11)
 5. 날짜가 정해진 것 확인: 꺼 둔 도서관 id 59·131 재개 확인 2027-01 (6-2), 중간 인증서 만료 2027-05-21·2027-11-02 ([`docs/library-site-issues.md`](../library-site-issues.md) 3절)
 6. 남은 확인 목록: `library-maintenance.md` 14절, plan `docs/reference-index.md` 6절 "도서관 목록·분류"
-7. 후보 도서관 찾기: 웹러브 북스 기관을 한 번씩 확인하고 수집 DB에 넣음 ([1-libraries.md](1-libraries.md) "후보 도서관 찾기")
-8. 같은 사이트 거르기와 서비스 DB에 넣기(seed): [1-libraries.md](1-libraries.md) "같은 사이트 거르기", "넣기"
+7. 수집 목록에서 도서관 찾기: 웹러브 북스 기관을 한 번씩 확인하고 수집 DB에 넣음 ([1-libraries.md](1-libraries.md) "수집 목록에서 도서관 찾기")
+8. 서비스 DB에 넣기(넣기 명령 `library-insert`, seed로 넣지 않음, ADR-0084): [1-libraries.md](1-libraries.md) "새 도서관 넣기". 같은 사이트·같은 호스트 거르기도 그 안에서
 9. 구독 규칙·마감 확인: 교보 구독형 사이트의 팝업·공지 제목과 날짜 ([1-libraries.md](1-libraries.md) "구독 규칙·마감 확인")
 
 운영 중 신호(3xx, 읽기 실패, 시간 초과)별로 할 일은 `library-maintenance.md` 4-9절에 있습니다.
@@ -38,13 +38,13 @@
 
 절차: [2-crawl.md](2-crawl.md).
 
-1. `scripts\crawl\resume.cmd` 실행(갈아타기 전에는 `chaekcheck-data\resume.cmd`, 2-crawl 1절). 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
-2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 사용자가 정한 줄만 동시 N건: 데이터 폴더의 `host-slots.txt` (지금 `103.182.126.192=4`, 2-crawl 2-1절)
+1. `scripts\crawl\resume.cmd` 실행(2026-10-12부터 이것만, 2-crawl 0-1절). 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
+2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 교보 구독형 서버(`*.dkyobobook.co.kr`)에는 요청을 보내지 않고, 그 서버용이던 `host-slots.txt`는 사이클 13부터 읽지 않음 (2-crawl 0-1·2-1절)
 3. 상태 보기: `python -X utf8 scripts\crawl\crawl_catalog.py status`, 로그 데이터 폴더 `logs\crawl-*.log` (2-crawl 3·5절)
-4. 실패한 도서관: 2-crawl 6절 "문제별 대처". 막힌 사이트는 우회하지 않고 `crawl_skip`으로 표시 (2-crawl 5-1절)
+4. 실패한 도서관: 2-crawl 6절 "문제별 대처". 막힌 사이트는 우회하지 않고 `crawl_skip`으로 표시. 다시 시도 뒤에도 403·시간 초과면 수집기가 그 도서관만 표시함 (2-crawl 0-1·5-1절)
 5. 끝난 뒤: 상세 주소 확인 `scripts\crawl\verify_detail_urls.py` (2-crawl 9절)
 
-화면 종류별 목록 주소와 예외는 [platforms.md](platforms.md), 원칙은 plan `docs/research/ebook-catalog/crawl-method.md`에 있습니다. 지금 진행 상태(어디까지 받았나)는 plan `crawl-runbook.md` 1·8절에 남습니다.
+화면 종류별 목록 주소와 예외는 [platforms.md](platforms.md), 원칙은 plan `docs/research/ebook-catalog/crawl-method.md`에 있습니다. 진행 상태(어디까지 받았나)는 2026-10-12부터 [2-crawl.md](2-crawl.md) 1·8·11절에 있습니다(plan `crawl-runbook.md`에서 옮김).
 
 ## 3. 가져오기 (받은 목록을 서비스 DB로)
 
@@ -67,7 +67,7 @@
 
 ## 체크리스트 (한 바퀴)
 
-- [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 seed 추가·수정(5·6절), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 후보 도서관 찾기 → 같은 사이트 거르기 → `build_candidate_seed.py`로 넣기 → 구독 규칙·마감 확인은 `1-libraries.md`
+- [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 수정(6절, 새 도서관은 넣기 명령), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 수집 목록에서 도서관 찾기 → 수집 → 넣기 명령(`library-insert` 미리 보기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → 넣기) → 구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] ②: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 가져오기: 사본 만들기 → dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
 - [ ] 4단계: 서비스 로그에서 상세 페이지 읽기 실패가 늘었는지

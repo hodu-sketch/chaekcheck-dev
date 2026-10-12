@@ -67,7 +67,7 @@ wsl -d Ubuntu -- docker rm -f chaekcheck-nginx-check
 | `GET /api/v1/libraries` | 압축 전 48,123바이트 → `Accept-Encoding: gzip`이면 5,404바이트, `Content-Encoding: gzip`, `Vary: Accept-Encoding` |
 
 - 프록시 응답이라 `gzip_proxied any`가 있어야 압축됩니다. 스트림(`text/event-stream`)은 `gzip_types`에 없어 압축되지 않습니다.
-- 후보 도서관을 넣은 뒤의 크기는 15단계에서 다시 잽니다(`docs/plan-feedback.md` `# 사이클 07`).
+- 수집 목록에서 찾은 도서관(사이클 07)을 넣은 뒤의 크기는 15단계에서 다시 잽니다(`docs/plan-feedback.md` `# 사이클 07`).
 
 ## 시험 결과 (2026-10-05, IP별 한도)
 

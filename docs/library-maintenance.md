@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `id` | bigint, PK, IDENTITY | seed는 **직접 번호를 넣습니다**. 마지막에 IDENTITY를 최댓값+1로 다시 시작 | seed |
 | `name` | text, NOT NULL (UNIQUE 아님) | 기관 정식 이름만. 업체·대출 방식 괄호를 붙이지 않음(사이클 09, ADR-0071). 기관 이름 속 괄호((주), (부산), 캠퍼스 등)는 그대로. 같은 기관의 사이트 여러 개는 `vendor`·`lending_model`·`order_no`로 구분 | 조사 |
-| `vendor` | text, CHECK IN (`KYOBO`, `YES24`, `BOOKCUBE`, `ALADIN`, `PORTAL`, `IN_HOUSE`), EBOOK이면 NOT NULL | 사이트 시스템 업체. 도서관 수집이 정하고 seed 생성 스크립트가 씀(수집 DB `library.vendor` 값이 있으면 그 값, 없으면 `platform_type` 대응표 `build_library_seed.py`(옛 이름 `build_candidate_seed.py`) `VENDORS`. 2026-10-05 사본처럼 칸이 없으면 모두 대응표. 2026-10-12부터). 화면에는 이름 다음에 "교보 · 소장"처럼 | seed 스크립트 |
+| `vendor` | text, CHECK IN (`KYOBO`, `YES24`, `BOOKCUBE`, `ALADIN`, `PORTAL`, `IN_HOUSE`), EBOOK이면 NOT NULL | 사이트 시스템 업체. 도서관 수집이 정하고 넣기 명령 `library-insert`(사이클 13부터, 그 전에는 seed 생성 스크립트)가 씀(수집 DB `library.vendor` 값이 있으면 그 값, 없으면 `platform_type` 대응표 `build_library_seed.py`(옛 이름 `build_candidate_seed.py`) `VENDORS`. 2026-10-05 사본처럼 칸이 없으면 모두 대응표. 2026-10-12부터). 화면에는 이름 다음에 "교보 · 소장"처럼 | seed 스크립트 |
 | `lending_model` | text, CHECK IN (`OWNED`, `SUBSCRIPTION`, `MIXED`, `RENTAL`), 통합 포털만 NULL | 대출 방식. 교보 구독형은 교보 probe 값(없으면 `SUBSCRIPTION`), 북큐브는 전체 권수 0 + 책 있음이면 `SUBSCRIPTION`, 나머지 `OWNED`(spec R3). 소장 판정에 쓰는 곳은 교보 구독형 화면 하나(`HoldingTask`) | seed 스크립트 |
 | `order_no` | integer, NOT NULL, 기본 1, CHECK ≥ 1 | 같은 (이름, 업체, 대출 방식) 안의 순번. 지금은 모두 1. 2가 붙으면 사이트 이름을 확인해 고치고 1로 되돌림(4-13) | seed 스크립트 |
 | `library_type` | text, NOT NULL, 기본 `EBOOK`, CHECK IN (`EBOOK`) | 전자/실물. 지금은 `EBOOK`만 | 기본값 |
@@ -100,7 +100,7 @@
 | `002-library-seed.yaml` | 시범 도서관 id 1(강서), 2(고흥). SQL INSERT |
 | `003-library-seed-cycle02.yaml` + `003-library-cycle02.csv`, `003-eligibility-rule-cycle02.csv` | 사이클 02 1차: 화면 종류별로 확인한 곳(id 3~15) |
 | `004-…` 이후 | 이 문서의 절차로 추가하는 묶음 |
-| `008-library-candidates.csv`, `008-eligibility-rule-candidates.csv` | 후보 도서관(사이클 07). `build_candidate_seed.py`(지금 `build_library_seed.py`)가 만들었음. 손으로 고치지 않음. 사이클 13부터 이 스크립트는 seed를 쓰지 않음 |
+| `008-library-candidates.csv`, `008-eligibility-rule-candidates.csv` | 수집 목록에서 찾은 도서관(사이클 07, 파일 이름은 적용된 그대로). `build_candidate_seed.py`(지금 `build_library_seed.py`)가 만들었음. 손으로 고치지 않음. 사이클 13부터 이 스크립트는 seed를 쓰지 않고, 새 도서관은 seed가 아니라 넣기 명령 `library-insert`로 넣음(ADR-0084, [`maintenance/1-libraries.md`](maintenance/1-libraries.md)) |
 | `../collection/002-collection-link.csv` | 수집 번호 ↔ 서비스 번호 짝(등록 도서관은 같은 번호). `build_candidate_seed.py`(지금 `build_library_seed.py`)가 만들었음 |
 
 - master(`db.changelog-master.yaml`)는 include만 합니다. 새 파일은 master 맨 아래에 include를 더합니다.
@@ -141,6 +141,9 @@
 | `CheckFinalOrigins.java` | 도서관마다 adapter와 같은 검색 주소(제목 "사랑")를 서비스와 같은 JDK·TLS로 부르고 리다이렉트를 하나씩 따라가 **최종 `base_url`**을 냄(4-7 1번). 같은 호스트는 1.1초 간격 하나씩, 호스트 12곳 동시 | `java scripts/library/CheckFinalOrigins.java <in.tsv>` (in: `id<TAB>platform_type<TAB>base_url`) → `SAME` / `MOVED_TO` / `MOVED_ELSEWHERE` / `HTTP_<code>` / `ERROR` |
 | `rules/final_origins.tsv` (옛 자리 `scripts/library/final-origins.tsv`, 2026-10-12 옮김) | 수집 도서관의 목록 주소 → 최종 주소(`MOVED_TO`만). `build_library_seed.py`와 넣기 명령이 `base_url`·`homepage_url`에 씀 | (데이터 파일) |
 | `check_front_page_names.py` | 켜진 도서관마다 첫 화면(`homepage_url`, 없으면 `base_url`)을 한 번 열어 그 도서관 이름이 글에 있는지, 페이지 제목이 무엇인지 적음. `--mobile`이면 폰 브라우저 User-Agent로 엶(YES24 모바일판 `/m/` 확인용). Windows curl, 같은 호스트는 1.1초 간격 하나씩, 호스트 12곳 동시. 판단은 사람이 함 | `python scripts/library/check_front_page_names.py <in.tsv> <out.tsv> [--mobile]` (in: `id<TAB>name<TAB>url`) |
+| `fetch.py` (2026-10-12 데이터 폴더에서 옮김) | 가입 조건 조사용으로 도서관 페이지 하나를 예의 있게 받아 최종 주소·HTTP 상태·본문 글(`--links` 링크, `--full` 전체)을 출력. 같은 호스트 1.1초 간격은 데이터 폴더 `library-join\.hostlocks` 잠금 파일로 지킴(옛 복사본과 같은 잠금) | `python scripts/library/fetch.py [--data-dir DIR] <url> [--links] [--full]` |
+| `probe_logos.py`, `probe_home_logos.py` (2026-10-12 데이터 폴더에서 옮김) | 전자도서관 사이트의 로고(없으면 도서관 본 홈페이지의 로고)를 받아 데이터 폴더 `logos\`에 저장하고 `logos.tsv`·`logos-home.tsv`에 적음. IP마다 한 줄, 1건씩 | `python scripts/library/probe_logos.py [--data-dir DIR] [--only ID,ID] [--limit N]`, `python scripts/library/probe_home_logos.py [--data-dir DIR] <ids> [--home ID=URL,…]` |
+| `discover/probe_*.py` (옛 자리 `candidates/`, 2026-10-12 바꿈) | 수집 목록(웹러브 북스 기관 등)의 사이트를 한 번씩 확인해 수집 DB에 넣을 곳을 고름. 절차는 [`maintenance/1-libraries.md`](maintenance/1-libraries.md) "수집 목록에서 도서관 찾기" | 같은 문서 |
 | `check_code_spaces.py` | 수집 SQLite(읽기 전용)에서 화면 종류끼리 책 번호가 같은 체계인지 대조: 같은 번호의 제목이 같은 비율(4-11). 판단은 하지 않음 | `python scripts/library/check_code_spaces.py ../chaekcheck-data/ebook-catalog.sqlite` |
 
 - 모두 **저장소 루트에서** 실행합니다. Java는 서비스와 같은 JDK 25(`C:\Users\yujun\.jdks\jdk-25.0.4.1+1\bin\java.exe`)를 씁니다. 다른 JDK나 curl은 TLS 결과가 다를 수 있습니다(예: 대구는 JDK에서만 설정이 필요, curl은 됨).
@@ -152,14 +155,14 @@
 
 ## 4. 작업 A: 전국 전자도서관 목록 찾기
 
-전국 전자도서관의 **공식 전체 목록은 없습니다**(2026-09-28 조사). 그래서 여러 출처를 합치고, 모은 후보 주소를 하나씩 실제로 불러 확정합니다 [확정] (사용자, 2026-09-28). 원래 조사 기록: plan 저장소 `docs/cycles/02-library-expansion/collection-method.md`, 결과 `research.md`.
+전국 전자도서관의 **공식 전체 목록은 없습니다**(2026-09-28 조사). 그래서 여러 출처를 합치고, 모은 주소를 하나씩 실제로 불러 확정합니다 [확정] (사용자, 2026-09-28). 원래 조사 기록: plan 저장소 `docs/cycles/02-library-expansion/collection-method.md`, 결과 `research.md`.
 
 ### 4-0. 전체 흐름
 
-1. 출처별로 후보를 모읍니다(4-1 ~ 4-4). 결과는 `이름<TAB>주소<TAB>출처` 목록 하나로 합칩니다.
+1. 출처별로 주소를 모읍니다(4-1 ~ 4-4). 결과는 `이름<TAB>주소<TAB>출처` 목록 하나로 합칩니다.
 2. 같은 주소(호스트+포트+경로 앞부분)는 하나로 합칩니다. 이미 seed에 있는 주소는 "재확인" 대상으로 따로 둡니다.
 3. 주소 모양으로 플랫폼과 화면 종류를 먼저 나눕니다(4-6).
-4. 후보마다 검색 1회로 살아 있는지, 최종 주소, 화면 종류를 확정합니다(4-7). 교보는 `CheckKyoboSites.java`로 자동입니다.
+4. 주소마다 검색 1회로 살아 있는지, 최종 주소, 화면 종류를 확정합니다(4-7). 교보는 `CheckKyoboSites.java`로 자동입니다.
 5. 가입 자격을 찾습니다(4-8).
 6. 넣을 수 있는 곳은 5절(추가)로, 못 넣는 곳은 이유와 함께 목록으로 남깁니다(11절 상태 표).
 7. 책 번호 규칙을 점검합니다(4-11). 목록을 확인할 때마다 합니다.
@@ -202,7 +205,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 
 - 웹러브 북스 https://ebook.okbari.net/library : 브라우저로 열고 플랫폼 탭(`button.nav-link`: 교보·북큐브·예스24·알라딘)을 누른 뒤 페이지를 넘기며 기관 카드의 링크를 모읍니다. 이름 검색칸에 "도서관"을 넣으면 도서관만 남습니다. 스크립트로 그리는 화면이라 일반 요청으로는 목록이 안 나오고, 탭을 스크립트로 누르면 전환이 안 될 때가 있습니다.
 - 2026-09-28: 예스24 903곳(이름에 "도서관" 165), 기준일 2026-02-06으로 보임. **주소가 낡은 곳이 많습니다**(`/B2B_…` 전부 404, `/YES24` 대부분 오류 화면). 공식 자료가 아니므로 모든 주소를 4-7로 다시 확인합니다.
-- 더 나은 후보: YES24 B2B 문의(공식 페이지 연락처)로 공공도서관 목록 요청 [확인 필요, 사람이 할 일].
+- 더 나은 방법: YES24 B2B 문의(공식 페이지 연락처)로 공공도서관 목록 요청 [확인 필요, 사람이 할 일].
 - 도서관 정보나루, 국가도서관통계시스템(https://www.libsta.go.kr/), 리브로피아 앱: 전자도서관 주소·플랫폼 정보가 없거나 앱 안에서만 보여 쓰지 않습니다.
 
 ### 4-5. 한 도서관이 사이트 여러 개를 운영함
@@ -229,12 +232,12 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 - 모양으로 나뉘지 않으면 사람이 열어 봅니다.
 - 결과를 못 읽으면 **먼저 응답 인코딩**을 봅니다. 2026-09-28에는 이걸 몰라 YES24 12곳을 "결과 못 읽음"으로 잘못 분류했다가 바로잡았습니다.
 
-### 4-7. 후보 하나씩 확정하기
+### 4-7. 모은 주소 하나씩 확정하기
 
 도서관 하나에 요청은 검색 1건(교보는 순위 값 1건 더)입니다.
 
 1. 검색 1건을 보냅니다. **리다이렉트를 하나씩 따라가며** 최종 주소를 기록합니다. 목록의 `http://호스트:포트`가 `https://호스트:다른포트`로 302되는 곳이 대부분입니다(교보 155곳 중 135곳). 서비스는 리다이렉트를 따라가지 않으므로(3xx는 실패) **`base_url`에는 최종 origin**을 넣습니다.
-   - **후보 도서관(사이클 07)도 이 단계를 거칩니다.** 수집 DB에는 목록 주소(대개 http)가 남아 있으므로 `CheckFinalOrigins.java`로 최종 주소를 받아 `final-origins.tsv`에 두고 seed를 다시 만듭니다. 2026-10-05에 이 단계를 빠뜨려 248곳이 http 주소로 들어갔고, 사용자가 "강동대학교 (북큐브)는 검색해도 안나오고"로 알아챘습니다(13절).
+   - **수집 목록에서 찾은 도서관도 이 단계를 거칩니다.** 수집 DB에는 목록 주소(대개 http)가 남아 있으므로 `CheckFinalOrigins.java`로 최종 주소를 받아 `scripts/library/rules/final_origins.tsv`에 두고(바뀌지 않은 곳도 같은 주소로 한 줄) 넣기 명령을 돌립니다. 줄이 없는 새 도서관이 있으면 넣기 명령이 규칙 오류(종료 1)로 멈춥니다(사용자 선택, 2026-10-12, [`maintenance/1-libraries.md`](maintenance/1-libraries.md)). 사이클 07에는 seed를 다시 만들었습니다. 2026-10-05에 이 단계를 빠뜨려 248곳이 http 주소로 들어갔고, 사용자가 "강동대학교 (북큐브)는 검색해도 안나오고"로 알아챘습니다(13절).
    - 가져오기는 수집 주소와 서비스 주소를 **호스트·경로·쿼리**로만 맞춥니다(http/https, 포트 차이는 같은 사이트로 봄, `CollectedCatalog.sameSite`).
    - 교보: `CheckKyoboSites.java … search`. 검색 URL `{origin}/elibrary-front/search/searchList.ink?schClst=ctts&schDvsn=000&schTxt=%EC%82%AC%EB%9E%91&recordCount=10&pageIndex=1`(구독형은 앞 경로 없음).
    - YES24 V2: `{origin}/search/?src_key=%EC%82%AC%EB%9E%91&srch_order=title&sort=title&page_num=1` → `div.total em`, `div.ebook-list div.bx`가 있으면 OK.
@@ -507,6 +510,8 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 
 ## 5. 작업 B: 도서관 추가
 
+> **사이클 13부터(2026-10-12, plan ADR-0084) 새 도서관은 seed로 넣지 않습니다.** 찾고 확인하는 일(아래 1~4번, 4절, 가입 자격 4-8·4-10)은 그대로 하고, 서비스 DB에 넣는 일은 넣기 명령 `library-insert`(미리 보기 → 보고서 → 넣기)가 합니다: 수집 DB에 도서관을 넣고 다 받은 뒤 사본으로 넣기 명령을 돌립니다. 절차는 [`maintenance/1-libraries.md`](maintenance/1-libraries.md) "새 도서관 넣기". 아래 5~6번(seed CSV와 changeset 만들기)은 사이클 06까지 쓰던 방법으로, 기록으로만 남깁니다.
+
 순서대로 합니다. 교보는 도구로 거의 자동입니다.
 
 - **가입 자격과 가입 방법은 도서관을 찾는 같은 작업에서 조사합니다** (사용자 결정 2026-09-29: "가입 자격 말이야 도서관 조사하면서 같이 하라고"). 도서관만 넣고 자격을 "나중에"로 남기지 않습니다. 4번(자격), 4-10(가입 방법), `homepage_url`(첫 화면, `find_front_pages.py`)까지 끝나야 추가가 끝난 것입니다. 2026-09-29에 41곳(id 165–205)을 먼저 넣고 자격을 따로 조사한 것이 이 규칙을 만든 계기입니다.
@@ -572,6 +577,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
   ```
   (`wsl … --exec`로 실행해야 `$POSTGRES_USER`가 컨테이너 안에서 풀립니다.) 백엔드가 떠 있으면 먼저 멈춥니다.
 - 다음 `./gradlew test`(db-test)와 `./gradlew bootRun`(db)이 Liquibase를 처음부터 적용합니다.
+- **초기화한 뒤 넣기 명령을 다시 돌립니다**(사이클 13부터): seed에는 넣기 명령으로 넣은 도서관이 없으므로, `db`를 새로 만들면 `library-insert`를 `preview` → `insert`로 다시 돌려야 그 도서관이 돌아옵니다(plan spec R2-10, [`maintenance/1-libraries.md`](maintenance/1-libraries.md)).
 - 배포 후에는 초기화하지 않습니다. 새 changeset만 추가합니다.
 
 ---
@@ -672,6 +678,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 | 2026-10-11 | **이름은 기관 이름만 (사이클 09 1~3단계).** 이름 끝 업체·대출 방식 괄호 277줄 셈(남길 45, 애매 2는 따로 이름 고침), 공식 이름 10곳 다시 확인(모두 spec과 같음, 943·64 경남교육청 기관 안내로 새로 확인), `name_overrides.tsv` 295줄, `build_candidate_seed.py --changes-only`로 `library/014` 목록(이름 289줄, 대출 방식 채우기 1,458줄), 북큐브 구독 339·380·386·705, 순번 2 이상 0. 사용자 승인: 289줄 목록 "승인, 커밋" | 4-13 |
 | 2026-10-12 | **규칙 폴더로 옮김 (사이클 13 4단계, 조사 없음).** 옛 seed 스크립트 상수(`DEMO_OR_CLOSED` 4, `SAME_SITE` 8, `SAME_HOST_KEPT` 22, `SCOPE_OVERRIDES` 8)와 `name_overrides.tsv`·`final-origins.tsv`·북큐브 권수(10-11 + 데이터 폴더 10-12 다시 받기 5줄)·데이터 폴더 가입 조사(`public-join-2026-10-05.tsv`)·종류(`candidate-kinds-2026-10-05.tsv`)·교보 probe(`kyobo-institutions-probe-2026-10-03.tsv`, 구독형 1,430줄)를 `scripts/library/rules/`로 옮김. 같은 호스트지만 남김에 여주대 100584·102084를 더함(plan spec R2-7-1). 가입 조사 지역은 `resolve_regions.py`로 번호·요약 문구를 미리 적음(100줄). 스크립트 이름 `build_library_seed.py`, 찾기 도구 폴더 `discover/`. 대조: 2026-10-12 사본에서 상수판과 규칙 폴더판의 도서관·규칙·짝 CSV가 같음(2,389곳, 규칙 253, 짝 2,669, 새 6곳). 같은 날 고침: 새 번호는 LibraryRegistry.nextId()처럼 max(가장 큰 번호 + 1, 적용된 library changelog의 마지막 RESTART WITH)부터라 2675~2680(일부러 비운 2664~2674는 그대로 비움, ADR-0067). 새 곳은 final_origins.tsv 줄이 꼭 있어야 하고 없으면 규칙 오류(종료 1). 여주대 100584는 최종 주소 https://ebook.yit.ac.kr:446. 다른 점은 새 도서관끼리·서비스 전체와 보는 같은 호스트 줄 하나(여주대 한 쌍, 남김 목록에 있어 멈추지 않음) | 3절 |
 | 2026-10-12 | **서비스에 넣지 않은 도서관 목록 (조사 없음, 사용자 요청 "빠진 도서관 따로 목록", 두 절 모두).** 출처: 넣기 명령 미리보기 보고서 `1af0721e4a3e`, 사본 `ebook-catalog-2026-10-12-0135.sqlite`(읽기 전용, 도서관 3,016 = 짝 있음 2,661 + 넣지 않음 349 + 새로 넣음 6), 규칙 폴더, 이 작업 트리의 서비스 DB(seed만, 도서관 2,663·짝 2,663). A(넣지 않음) 349곳: 교보 대여·혼합 232(혼합 194, 대여 38), `crawl_skip` 105(`same_site.tsv` 8곳은 모두 여기에 들어 같은 사이트 줄은 0), 전체 수집 안 끝남 2(100252, 102020), 체험용·운영 중단 4, 시험용 6. 넣지 않는 곳 중 서비스와 짝이 있는 곳은 없음. B(서비스에 있지만 문제, 알림용) 8곳: 꺼 둔 곳 5(59·131은 사본에 없음, 135는 `crawl_skip`, 2194·2198은 사본에서 끈 날 전까지 전체 수집 끝남), `gone_known.tsv` 3(44·261·269), 그 밖에 0. 사용자 결정: 서비스 DB에 이미 있는 곳은 기본으로 그대로 둠. 135·2194·2198의 끈 이유는 6-2 표에 없고 `library-site-issues.md` 9절에만 있었음 → `disabled_reasons.tsv`에 다섯 곳 모두 적음 | `docs/library-left-out.md`, `list_left_out.py`, `disabled_reasons.tsv` |
+| 2026-10-12 | **새 도서관 6곳 넣기 준비 (사이클 13, 넣기 명령 `library-insert`).** 출처: 사본 `chaekcheck-data/snapshots/ebook-catalog-2026-10-12-0135.sqlite`, 규칙 폴더 `scripts/library/rules/`, 보고서 `1af0721e4a3e`(13 작업 폴더 DB에서 미리 실행; 실제 `db` 넣기는 사이클 11·12 합친 뒤 9단계). 새로 넣는 곳(서비스 번호 ← 수집 번호): 2675 여주대학교 ← 100584 (KYOBO_V1, 교보·소장, 최종 주소 `https://ebook.yit.ac.kr:446`), 2676 한국선원복지고용센터 ← 102029 (YES24_V1, `http://ebook.koswec.or.kr`), 2677 여주대학교 ← 102084 (YES24_V2, `http://ebook.yit.ac.kr`), 2678 김천대학교 ← 102092 (YES24_V3, `http://yes24.gimcheon.ac.kr`), 2679 경운대학교 ← 102101 (YES24_V2, `http://library.ikw.ac.kr:8085`), 2680 천상중학교 ← 102171 (YES24_V2, `http://cheonsangms.yes24library.com`). 모두 YES24·교보 소장, 순번 1. **가입 자격**: 6곳 모두 공공도서관이 아니라(`library_kinds.tsv`: 대학 4·중학교 1·기관 1) 4-8·4-10의 예외(plan ADR-0053)대로 가입 조사 없이 `MEMBERS_ONLY`(소속 구성원용, 직접 추가했을 때만 검색), 규칙 줄 없음. 한국선원복지고용센터의 종류 `GOV`는 이름으로 정한 것이고 `sure`=N("고용센터, 공공기관으로 보임")이라, 9단계 실제 넣기 전에 사용자에게 확인함(plan R2-8). 여주대 두 곳은 같은 호스트(`ebook.yit.ac.kr`)이고 교보 쪽 책 2,199권 중 2,198권이 YES24 쪽에도 있으나 사이트·대출이 따로라 둘 다 넣음(plan spec R2-7-1, `same_host_kept.tsv`). 최종 주소는 2026-10-12에 `CheckFinalOrigins.java`로 확인(102084·102101은 서비스 읽기 제한 5초를 넘는 약 5.2초 응답, `curl -m 90`으로 리다이렉트 없음 확인). 가입 조건 조사 기준일 `2026-10-05`(`join_surveyed_on.txt`). 사라진 곳 44·261·269는 확인하고 `gone_known.tsv`(서비스에 그대로), 서비스에 넣지 않은 349곳은 [`library-left-out.md`](library-left-out.md) | `scripts/library/rules/final_origins.tsv`, `gone_known.tsv`, 보고서 `1af0721e4a3e` |
 
 ## 14. 사용자가 직접 확인할 목록 (원문이 애매해 판단을 미룬 것)
 

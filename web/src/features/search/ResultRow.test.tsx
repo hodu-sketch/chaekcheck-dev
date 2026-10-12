@@ -194,9 +194,9 @@ describe('the card opens the library (user request 2026-10-05)', () => {
   })
 })
 
-/** Cycle 07 (R6, AC-14): a candidate library's notice by its join research, then its front page. */
-describe('join notice of candidate libraries', () => {
-  const candidate: TargetLibrary = {
+/** Cycle 07 (R6, AC-14): a collected-list library's notice by its join research, then its front page. */
+describe('join notice of libraries found in the collected list', () => {
+  const collected: TargetLibrary = {
     ...openLibrary,
     id: 2,
     // cycle 09: no "(북큐브)" in the name any more; the vendor comes as its own value
@@ -214,7 +214,7 @@ describe('join notice of candidate libraries', () => {
     ['MEMBERS_ONLY', '학교·회사 같은 기관의 구성원용으로 보여요. 이용할 수 있는지는 그 기관에 확인해 주세요'],
     ['NOT_SURVEYED', '가입 정보를 아직 조사하지 않았어요'],
   ] as const)('%s shows its notice and the front page link', async (joinSurvey, notice) => {
-    const popover = await renderOpen({ ...candidate, joinSurvey })
+    const popover = await renderOpen({ ...collected, joinSurvey })
 
     expect(popover.textContent).toContain(notice)
     expect(popover.textContent).not.toContain('가입 자격 확인 필요')
@@ -223,8 +223,8 @@ describe('join notice of candidate libraries', () => {
     expect(link.getAttribute('rel')).toBe('noopener noreferrer')
   })
 
-  it('a surveyed candidate shows the usual join details', async () => {
-    const popover = await renderOpen({ ...candidate, joinSurvey: 'SURVEYED', eligibility: 'OPEN', chosen: false })
+  it('a surveyed one shows the usual join details', async () => {
+    const popover = await renderOpen({ ...collected, joinSurvey: 'SURVEYED', eligibility: 'OPEN', chosen: false })
 
     expect(popover.textContent).toContain('누구나 가입')
     expect(screen.queryByRole('link', { name: /도서관 첫 화면/ })).toBeNull()
@@ -234,7 +234,7 @@ describe('join notice of candidate libraries', () => {
     render(
       <ResultRow
         row={testRow({ libraryId: 2, rank: 1 })}
-        library={{ ...candidate, joinSurvey: 'NOT_SURVEYED', name: '<b>학교</b>' }}
+        library={{ ...collected, joinSurvey: 'NOT_SURVEYED', name: '<b>학교</b>' }}
         searchUrl={undefined}
       />,
     )

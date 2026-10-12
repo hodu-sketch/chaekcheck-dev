@@ -3639,3 +3639,27 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - `AboutPage.tsx`: 첫 문단 → 기준일 줄 → `{/* cycle 14: … */}` 주석 자리 → 제휴 문단 → 로고 내림 문단
 - `ModularityTests`에 `collectionUsesLibraryAndLibraryNotCollection`, `AuthEnabledSecurityTests`에 `joinSurveyDateNeedsNoLogin` 더함
 - 작업 폴더에서는 `TEST_PG_COMMAND`가 필요함(0단계)
+
+## 10단계 결과 ("후보" 이름 정리, AC-11 대조)
+
+- 바꾼 곳(이 인계서 목록 + 보탬): `catalog_import` 칸·제약, `ImportReport`·`ImportRecords`·`Notes`의 `otherLibraries`, `CollectedCatalog`(`FIRST_COLLECTED_ONLY_ID`·`addedLater()`), `CandidateSeedTests` → `LibrarySeedTests`, `LibraryCatalogTests.LibrariesAddedLater`, 스크립트·폴더(`build_library_seed.py`, `test_build_library_seed.py`, `discover/`), `JoinSurvey.java` Javadoc, `web/src/api/types.ts`·`ResultRow.tsx` 주석, `ResultRow.test.tsx` 시험 이름, `LibraryLogo.test.tsx`(`name="도서관"`), `BookSearchTests`의 시험 도서관 이름, `find_front_pages.py`, `scripts/crawl/README.md`, 절차 문서(`docs/maintenance/README.md`, `1-libraries.md`, `2-crawl.md`, `3-import.md`, `platforms.md`), `docs/library-maintenance.md`, `docs/library-site-issues.md`, `deploy/nginx/README.md`
+- 새 이름: 문서에서 "후보 도서관"은 "수집 목록에서 찾은 도서관"(또는 "수집으로 찾은 도서관"). **plan에 알림**: "후보 도서관"은 2026-10-04 사용자가 정한 이름이었으므로 plan 쪽 용어 기록도 바꿔야 함
+- 남은 "candidate"·"후보" 검색 결과(약 420줄)의 예외 분류
+  - 검색 후보(약 220줄): `availability`의 `candidates`·`Candidate`·`LookupTask.Candidate`, `SqlGrouping.Candidate`, `Contributors`, `application.yml` `max-candidates`, 웹 검색(`CANDIDATES_EXHAUSTED` 포함), `library-maintenance.md` 6-3 "이어 보기 후보"
+  - Liquibase 이름(약 30줄): `library/008-*`, `collection/002-*` 파일 이름과 그것을 읽는 옛 스크립트·시험, master 주석, 001·013·014·015 주석, 3-import 13-5 SQL의 `candidate_library_count`
+  - 지난 기록(약 170줄): `plan-feedback.md` 지난 절, cycle08·09 문서, `library-research/*`, `library-maintenance.md` 13절·4-12의 날짜 줄, 3-import 5절의 날짜 측정 줄, 규칙 TSV 안의 옛 결정 페이지 이름(`easy/...candidate-join-decisions.html`; 규칙 파일은 보고서 해시에 들어가므로 고치지 않음)
+  - 분류가 애매한 것(지난 기록으로 둠): 데이터 폴더 파일 이름(`yes24-candidates.tsv`, `candidate-kinds-2026-10-05.tsv`, git 밖), 옛 이름을 알려 주는 줄(`build_candidate_seed.py`, `candidates/`, "renamed from CandidateSeedTests", `1-libraries.md`의 "옛 이름" 한 줄)
+- `docs/maintenance/1-libraries.md`: 새 도서관 넣기 절차를 `library-insert`(사본 → preview → 보고서 읽기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → insert → 종료 코드 0~5)로 다시 씀
+- `docs/maintenance/2-crawl.md`: plan `crawl-runbook.md` 1·8절을 옮김(2·3절은 이미 2·2-1절에 있어 사본 줄만 더함), 갈아타기·`refill-pubdt`·교보 구독형 서버 요청 안 함·막힌 곳 표시·robots.txt·User-Agent·두 벌 검사, 11절 여주대 멈춤 기록
+- `scripts/library/probe_kyobo_limits.py`: 살피는 사이트가 모두 `*.dkyobobook.co.kr`이라 시작하자마자 이유를 보이고 끝나게 함(R1-6). 다시 쓰려면 사용자 결정이 필요
+- 도서관 연구 기록: `docs/library-maintenance.md` 13절에 새 6곳(번호·주소·종류·`MEMBERS_ONLY` 근거·최종 주소 확인·기준일)
+- 확인: `./gradlew build`(전체) 통과, `npm test` 370·`npm run lint` 통과, Python 시험 44 통과
+
+## 리뷰 반영 (java-reviewer, 2026-10-12)
+
+- 운영 반영의 도서관 부분: 이미 있는 번호가 **다른 도서관**(이름·주소가 다름)이거나 짝 줄이 다른 도서관을 가리키면 건너뛰지 않고 멈춤(롤백, `FAILED error` "library part"). 시험 `anotherLibraryWithTheSameIdStartsNothing`
+- 도서관 부분의 실패는 종류와 상관없이 기록 줄을 남김. `FAILED` 줄 쓰기가 실패해도 원래 오류를 잃지 않음. `setval`은 `pg_get_serial_sequence`를 바로 씀
+
+## 9단계 전에 사용자에게 물을 것
+
+- 102029 한국선원복지고용센터의 종류가 `GOV`(이름으로 정함, `sure`=N)라 `MEMBERS_ONLY`로 들어감. 넣기 전에 사용자 확인(plan R2-8)

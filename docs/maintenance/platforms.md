@@ -5,7 +5,7 @@
 - 목적: 전자도서관 사이트에서 **검색**(제목·저자·출판사)과 **전체 목록**(소장 전자책 전부)을 가져올 때 참고합니다.
 - 지금 서비스에 있는 adapter의 정확한 선택자는 `backend/src/main/java/com/chaekcheck/availability/internal/adapter/*.java` 주석이 원본입니다. adapter 설계는 사이클에서 합니다.
 - 화면 종류 값과 판별: [`docs/library-maintenance.md`](../library-maintenance.md) 1-3·4-6절, plan ADR-0016·ADR-0023. 수집 원칙(호출 간격·저장 범위·날짜 기록)은 plan `docs/research/ebook-catalog/crawl-method.md`, 조사 배경은 같은 폴더 `research.md`.
-- 실행 도구: `scripts/crawl/crawl_catalog.py`(전체 목록 수집), `scripts/library/candidates/probe_other_platforms.py`(북큐브·알라딘 후보 1회 확인) (2026-10-05 옮김, ADR-0047 B·C). 후보 도서관 찾기 도구(`probe_*.py`)와 절차는 [1-libraries.md](1-libraries.md) "후보 도서관 찾기".
+- 실행 도구: `scripts/crawl/crawl_catalog.py`(전체 목록 수집), `scripts/library/discover/probe_other_platforms.py`(북큐브·알라딘 기관 사이트 1회 확인) (2026-10-05 옮김, ADR-0047 B·C). 수집 목록에서 도서관 찾기 도구(`probe_*.py`)와 절차는 [1-libraries.md](1-libraries.md) "수집 목록에서 도서관 찾기".
 - 새 플랫폼이나 사이트 예외를 알게 되면 이 문서에 더합니다(2-crawl 7절).
 
 ## 0. 공통 규칙
@@ -70,7 +70,7 @@
 ## 4. YES24 [확정] (표본: 화성 `hsg.yes24library.com`(V2), 성동 `ebook.sdlib.or.kr:8092`(V1), 춘천 `elib.chuncheon.go.kr:447`(V2))
 
 - 검색: `{base}/search/?src_key={검색어}&srch_order={title|author|publisher|total}&sort={title|pubdt|lending|reserve|now}&page_num={쪽}`
-  - `sort=now`는 정렬이 아니라 "지금 대출 가능"만 거르는 값(dev adapter 주석). `sort=pubdt`는 출간일순 → 신간 수집 후보 [확인 필요: 등록일순인지]
+  - `sort=now`는 정렬이 아니라 "지금 대출 가능"만 거르는 값(dev adapter 주석). `sort=pubdt`는 출간일순 → 신간 수집에 쓸 수 있음 [확인 필요: 등록일순인지]
   - V1·V3는 검색어를 EUC-KR로 보내야 함(UTF-8이면 0건)
   - `srch_order=total` + 띄어쓰기로 느슨한 AND (사이클 03 조사)
 - 전체 목록: 빈 검색 `src_key=`
@@ -120,12 +120,12 @@
   - 끝까지 깨지는 쪽(사이트 오류)은 `sort=2`(출판일순)로 다시 읽어 채움 (2026-10-04, 대원대·성균관대, [2-crawl.md](2-crawl.md) 4절)
   - `<ProductListParam>`에 `<totalItem>`(종 수), `<totalVolume>`(권 수), `<page>`, `<itemCount>`
 - 검색: `{base}/xml/productSearch/?keyword={검색어}&keyoption2={0|1|2|3}` — 0 전체, 1 서명, 2 저자, 3 출판사(울산동부 "김" 저자 830건, "민음사" 출판사 10건 확인)
-  - HTML 상세검색 폼에는 `name`(서명)·저자·출판사 칸이 따로 있음(`searchType=detail`) → 필드별 AND 후보 [확인 필요]
+  - HTML 상세검색 폼에는 `name`(서명)·저자·출판사 칸이 따로 있음(`searchType=detail`) → 필드별 AND에 쓸 수 있음 [확인 필요]
 - `<Product>` 항목: `num`(북큐브 번호, 예 `F0003004`), `legacyCode`(교보식 `480…` 코드), `name`, `publisher`, `author`, `supplier`(예 "교보 전자책"), `category`, `category_type`, `publisherDate`, `buyDate`(도서관 구매일), 표지 4종, `longExplain`·`shortExplain`·`contents`(저장하지 않음), `volume`(보유 권수), `nowLendCount`, `nowReserveCount`, `format`(epub·pdf·xml·flash 확인), `isReservable`
 - HTML 화면: `/FxLibrary/product/list/`, 상세 `/FxLibrary/product/view/?num=`
 - 오디오북: `category_type`은 모두 `book`이고, **`format`이 `aud`이면 오디오북** [확정] (2026-10-01, 134곳 수집 결과 19,417줄). 다른 형식 값: epub, pdf, xml, `pdf/epub`, flash, image, kml, xdf, zip
 - 다산(`*.dasangng.co.kr`)은 북큐브네트웍스가 운영하는 같은 프로그램. XML도 같음(주왕산숲속 100건)
-- 후보 확인 결과(2026-09-30, 웹러브 북스 목록에서 공공도서관으로 보이는 174곳, 지금 이름으로는 후보 도서관): 열림·XML 확인 134곳, 오류 40곳(주소 없어짐·접속 거부). 134곳 합계 1,187,834종 [확정] (`totalItem` 합)
+- 기관 사이트 확인 결과(2026-09-30, 웹러브 북스 목록에서 공공도서관으로 보이는 174곳, 지금 이름으로는 수집 목록에서 찾은 도서관): 열림·XML 확인 134곳, 오류 40곳(주소 없어짐·접속 거부). 134곳 합계 1,187,834종 [확정] (`totalItem` 합)
 
 ## 8. 알라딘 [확정·일부] (표본: 울산과학대 `https://uc.aladinebook.co.kr`, 고령 다산도서관 `ebook.goryeong.go.kr:8888`)
 
@@ -168,5 +168,5 @@
 ## 출처
 
 - 모두 2026-09-30 직접 호출. 표본 주소는 각 절 제목에 적음
-- 기관 후보 목록: 웹러브 북스 https://ebook.okbari.net/library (제3자 자료, 수집 기준일 2026-02-06으로 보임)
+- 기관 목록: 웹러브 북스 https://ebook.okbari.net/library (제3자 자료, 수집 기준일 2026-02-06으로 보임)
 - 다산 운영사: 다산 사이트 개인정보처리방침 https://hec.dasangng.co.kr/FxLibrary/user/privacy/ (검색 요약으로 확인, 원문 미확인 [확인 필요])

@@ -41,7 +41,8 @@ export function ResultRow({ row, library, searchUrl }: Props) {
   const libraryName = library?.name ?? '도서관'
   // cycle 09: "교보 · 소장" on the line after the name, outside the name button; none from an older server
   const classification = library ? classificationText(library) : null
-  // a candidate library whose join rules were not found or not researched (cycle 07, R6): its notice instead
+  // a library from the collected list whose join rules were not found or not researched (cycle 07, R6): its notice
+  // instead
   const surveyNotice = library ? SURVEY_NOTICE[library.joinSurvey] : undefined
   const homepageUrl = safeHttpUrl(library?.homepageUrl)
   // cycle 08 R3: the site shows another page on phones; a note, never a blocked link (also when the check failed)

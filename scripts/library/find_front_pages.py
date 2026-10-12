@@ -4,8 +4,8 @@ Usage (from the repository root):
   python scripts/library/find_front_pages.py <out.tsv> [--write]
 
 For an EBOOK row the front page is the e-library's own main page (docs/library-maintenance.md 1-1, user decision
-2026-09-29: "도서관이 지금은 전자도서관이니까 전자도서관 홈페이지"). Candidates per platform are tried in order; the
-first one that answers 2xx after redirects wins. The URL written is the candidate itself, not the redirect target.
+2026-09-29: "도서관이 지금은 전자도서관이니까 전자도서관 홈페이지"). The possible front-page URLs of a platform are tried in
+order; the first one that answers 2xx after redirects wins. The URL written is the one tried, not the redirect target.
 --write also puts the found URLs into the homepage_url column of every library/*-library*.csv (only rows whose value
 is NULL). The pilot rows in 002-library-seed.yaml are printed for a hand edit.
 Politeness (2장): our User-Agent only, certificates always verified, one request at a time, 1.1 s between requests

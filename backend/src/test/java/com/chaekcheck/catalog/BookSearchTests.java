@@ -153,20 +153,20 @@ class BookSearchTests {
 	/** Cycle 07 (ADR-0055, AC-5 server side): the list reads library_ids, so libraries outside the plan never count. */
 	@Test
 	void booksOnlyOutsideThePlanAreNotShown() throws Exception {
-		long candidate = library("후보 학교", false);
+		long membersOnly = library("구성원용 학교", false);
 		jdbc.sql("UPDATE library.library SET join_survey = 'MEMBERS_ONLY', join_method = NULL WHERE id = ?")
-			.param(candidate)
+			.param(membersOnly)
 			.update();
-		long onlyCandidate = book("사랑 후보", "가", "가", "2020-01-01", candidate);
+		long onlyMembersOnly = book("사랑 구성원용", "가", "가", "2020-01-01", membersOnly);
 		long none = book("사랑 없음", "가", "가", "2020-01-01");
-		long shared = book("사랑 함께", "가", "가", "2020-01-01", open, candidate);
+		long shared = book("사랑 함께", "가", "가", "2020-01-01", open, membersOnly);
 
-		assertThat(ids("title=사랑")).containsExactly(shared).doesNotContain(onlyCandidate, none);
+		assertThat(ids("title=사랑")).containsExactly(shared).doesNotContain(onlyMembersOnly, none);
 		assertThat(mvc.get().uri("/api/v1/books?title=사랑")).bodyJson()
 			.extractingPath("$.items[0].holdingLibraryCount")
 			.isEqualTo(1);
 		assertThat(mvc.get().uri("/api/v1/books?title=사랑&page=2")).bodyJson().extractingPath("$.totalCount").isEqualTo(1);
-		assertThat(ids("title=사랑&libraryIds=" + candidate)).containsExactlyInAnyOrder(onlyCandidate, shared);
+		assertThat(ids("title=사랑&libraryIds=" + membersOnly)).containsExactlyInAnyOrder(onlyMembersOnly, shared);
 	}
 
 	/** Cycle 07 step 15: a plan over the GIN limit filters library_ids without the index, with the same result. */
