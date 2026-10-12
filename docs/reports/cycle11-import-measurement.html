@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사이클 11 가져오기 측정</title>
+<style>
+:root {
+  --font-anthropic-sans: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-anthropic-serif: Georgia, "Noto Serif KR", "Batang", serif;
+  --cds-font-size-caption: 0.8125rem; --cds-font-size-body: 0.9375rem; --cds-font-size-heading: 1.125rem;
+  --cds-font-size-title: 1.75rem; --cds-font-weight-medium: 600;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 16px; --cds-gap-lg: 24px; --cds-gap-xl: 32px;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 16px; --cds-pad-lg: 20px; --cds-radius: 8px;
+  --cds-dur-slow: 300ms;
+  --color-bg: #fbfbf9; --color-panel: #ffffff; --color-fg: #1f2328; --color-fg-muted: #5f6670;
+  --color-border-line: #e3e5e8; --color-ok: #1f7a4d; --color-warn: #9a6700; --color-bad: #c0392b;
+  --cds-surface-popover: #ffffff; --cds-border: #d8dbe0; --cds-shadow-popover: 0 4px 16px rgba(0,0,0,.12);
+  --cds-text-secondary: #5f6670; --cds-chart-grid: #eceef1; --cds-chart-axis: #c9cdd3;
+  --cds-chart-reference: #8a9099; --cds-chart-muted: #c3c8cf;
+  --s1: #3b6fd8; --s2: #e07b39; --s3: #2e9e6a; --s4: #9a5bd1; --s5: #c94f6d; --s6: #3aa6b9; --s7: #b38b2a; --s8: #6b7380;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #15171a; --color-panel: #1d2024; --color-fg: #e8eaed; --color-fg-muted: #a0a6ae;
+    --color-border-line: #30343a; --color-ok: #4cc38a; --color-warn: #d9a62e; --color-bad: #ef6b5b;
+    --cds-surface-popover: #23272c; --cds-border: #3a3f46; --cds-text-secondary: #a0a6ae;
+    --cds-chart-grid: #2a2e33; --cds-chart-axis: #4a5058; --cds-chart-reference: #8a9099; --cds-chart-muted: #4d535b;
+    --s1: #6f9bff; --s2: #f29a5c; --s3: #4cc38a; --s4: #b98bf0; --s5: #e8768f; --s6: #5cc7d8; --s7: #d6ae4a; --s8: #9aa1ab;
+    color-scheme: dark;
+  }
+}
+html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); }
+body { font-family: var(--font-anthropic-sans); font-size: 14px; }
+#dash-root { max-width: 1200px; margin-inline: auto; padding-inline: 16px; }
+.dash-skeleton { color: transparent; background: var(--color-border-line); border-radius: 4px; }
+.record-note { color: var(--color-fg-muted); font-size: 12px; padding-block: 12px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+</head>
+<body>
+<div id="dash-root">
+<p class="record-note">기록용 사본(2026-10-12, dev 사이클 11). 같은 내용의 결과 페이지: https://claude.ai/artifact/AsHQZrnF7nwfa8gTG6fNBy</p>
+<script id="dash-data" type="application/json">{"runs": [{"run": "dry-compact", "mode": "dry run", "config": "compact", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 18.3, "read_min": 8.4, "same_text_min": 0.8, "load_min": null, "heap_peak_mb": 2320, "live_mb": 1357, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1051, "db_cpu_s": 395.4, "temp_gb": 1.6, "db_max_gb": 8.4, "search_p95_ms": 416, "search_5xx": 0}, {"run": "dry-current", "mode": "dry run", "config": "objects", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 26.5, "read_min": 12.8, "same_text_min": 1.8, "load_min": null, "heap_peak_mb": 8428, "live_mb": 3834, "live_kind": "전체 GC 뒤", "full_gc": 1, "java_cpu_s": 2478, "db_cpu_s": 1383.2, "temp_gb": 2.6, "db_max_gb": 8.4, "search_p95_ms": 501, "search_5xx": 0}, {"run": "dry-sql", "mode": "dry run", "config": "sql", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 29.4, "read_min": 7.3, "same_text_min": 5.5, "load_min": null, "heap_peak_mb": 706, "live_mb": 304, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1032, "db_cpu_s": 1260.7, "temp_gb": 41.4, "db_max_gb": 16.8, "search_p95_ms": 373, "search_5xx": 0}, {"run": "exp-compact-1g", "mode": "export", "config": "compact", "copy": "새 사본", "heap_gb": 1, "ok": false, "result": "OOM", "total_min": 7.4, "read_min": null, "same_text_min": null, "load_min": null, "heap_peak_mb": null, "live_mb": 972, "live_kind": "전체 GC 뒤", "full_gc": 4, "java_cpu_s": null, "db_cpu_s": 129.5, "temp_gb": null, "db_max_gb": null, "search_p95_ms": 366, "search_5xx": 0}, {"run": "exp-compact-2g", "mode": "export", "config": "compact", "copy": "새 사본", "heap_gb": 2, "ok": true, "result": "끝까지", "total_min": 21.3, "read_min": 7.2, "same_text_min": 0.8, "load_min": 9.8, "heap_peak_mb": 2946, "live_mb": 1314, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 979, "db_cpu_s": 672.5, "temp_gb": 21.0, "db_max_gb": 19.1, "search_p95_ms": 395, "search_5xx": 0}, {"run": "exp-compact-3g", "mode": "export", "config": "compact", "copy": "새 사본", "heap_gb": 3, "ok": true, "result": "끝까지", "total_min": 21.4, "read_min": 7.1, "same_text_min": 0.7, "load_min": 10.1, "heap_peak_mb": 3064, "live_mb": 1338, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 971, "db_cpu_s": 680.2, "temp_gb": 21.0, "db_max_gb": 20.1, "search_p95_ms": 401, "search_5xx": 0}, {"run": "exp-compact-4g", "mode": "export", "config": "compact", "copy": "새 사본", "heap_gb": 4, "ok": true, "result": "끝까지", "total_min": 20.8, "read_min": 6.7, "same_text_min": 0.7, "load_min": 9.9, "heap_peak_mb": 3077, "live_mb": 1349, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 954, "db_cpu_s": 662.6, "temp_gb": 21.0, "db_max_gb": 20.9, "search_p95_ms": 395, "search_5xx": 0}, {"run": "exp-compact-6g-1", "mode": "export", "config": "compact", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 21.5, "read_min": 7.2, "same_text_min": 0.7, "load_min": 10.1, "heap_peak_mb": 2925, "live_mb": 1357, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1001, "db_cpu_s": 690.1, "temp_gb": 21.0, "db_max_gb": 20.9, "search_p95_ms": 399, "search_5xx": 0}, {"run": "exp-compact-6g-2", "mode": "export", "config": "compact", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 22.0, "read_min": 7.3, "same_text_min": 0.8, "load_min": 10.5, "heap_peak_mb": 2907, "live_mb": 1358, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1014, "db_cpu_s": 715.3, "temp_gb": 21.0, "db_max_gb": 19.0, "search_p95_ms": 420, "search_5xx": 0}, {"run": "exp-compact-opts-1g", "mode": "export", "config": "compact + Java 옵션", "copy": "새 사본", "heap_gb": 1, "ok": false, "result": "OOM", "total_min": 10.0, "read_min": null, "same_text_min": null, "load_min": null, "heap_peak_mb": null, "live_mb": 967, "live_kind": "전체 GC 뒤", "full_gc": 4, "java_cpu_s": null, "db_cpu_s": 181.5, "temp_gb": null, "db_max_gb": null, "search_p95_ms": 417, "search_5xx": 0}, {"run": "exp-compact-opts-2g", "mode": "export", "config": "compact + Java 옵션", "copy": "새 사본", "heap_gb": 2, "ok": true, "result": "끝까지", "total_min": 36.7, "read_min": 11.9, "same_text_min": 1.3, "load_min": 19.2, "heap_peak_mb": 2874, "live_mb": 1286, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1731, "db_cpu_s": 1345.2, "temp_gb": 22.0, "db_max_gb": 19.1, "search_p95_ms": 834, "search_5xx": 0}, {"run": "exp-current-4g", "mode": "export", "config": "objects", "copy": "새 사본", "heap_gb": 4, "ok": false, "result": "OOM", "total_min": 9.3, "read_min": null, "same_text_min": null, "load_min": null, "heap_peak_mb": null, "live_mb": 4091, "live_kind": "전체 GC 뒤", "full_gc": 106, "java_cpu_s": null, "db_cpu_s": 206.4, "temp_gb": null, "db_max_gb": null, "search_p95_ms": 963, "search_5xx": 0}, {"run": "exp-current-6g-1", "mode": "export", "config": "objects", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 26.4, "read_min": 7.2, "same_text_min": 1.3, "load_min": 13.7, "heap_peak_mb": 8432, "live_mb": 5013, "live_kind": "전체 GC 뒤", "full_gc": 2, "java_cpu_s": 3072, "db_cpu_s": 891.7, "temp_gb": 21.4, "db_max_gb": 19.4, "search_p95_ms": 460, "search_5xx": 0}, {"run": "exp-current-6g-2", "mode": "export", "config": "objects", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 27.8, "read_min": 7.4, "same_text_min": 1.5, "load_min": 14.1, "heap_peak_mb": 8460, "live_mb": 5016, "live_kind": "전체 GC 뒤", "full_gc": 2, "java_cpu_s": 3154, "db_cpu_s": 950.8, "temp_gb": 21.4, "db_max_gb": 20.8, "search_p95_ms": 490, "search_5xx": 0}, {"run": "exp-current-opts-3g", "mode": "export", "config": "objects + Java 옵션", "copy": "새 사본", "heap_gb": 3, "ok": false, "result": "OOM", "total_min": 11.1, "read_min": null, "same_text_min": null, "load_min": null, "heap_peak_mb": null, "live_mb": 3069, "live_kind": "전체 GC 뒤", "full_gc": 223, "java_cpu_s": null, "db_cpu_s": 263.1, "temp_gb": null, "db_max_gb": null, "search_p95_ms": 850, "search_5xx": 0}, {"run": "exp-current-opts-4g", "mode": "export", "config": "objects + Java 옵션", "copy": "새 사본", "heap_gb": 4, "ok": true, "result": "끝까지", "total_min": 31.0, "read_min": 7.8, "same_text_min": 3.5, "load_min": 14.7, "heap_peak_mb": 5631, "live_mb": 4009, "live_kind": "전체 GC 뒤", "full_gc": 102, "java_cpu_s": 5769, "db_cpu_s": 1034.1, "temp_gb": 21.6, "db_max_gb": 18.5, "search_p95_ms": 585, "search_5xx": 0}, {"run": "exp-current-opts-6g-1", "mode": "export", "config": "objects + Java 옵션", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 25.0, "read_min": 7.6, "same_text_min": 1.2, "load_min": 11.9, "heap_peak_mb": 8612, "live_mb": 3671, "live_kind": "전체 GC 뒤", "full_gc": 1, "java_cpu_s": 1851, "db_cpu_s": 847.3, "temp_gb": 21.2, "db_max_gb": 19.6, "search_p95_ms": 459, "search_5xx": 0}, {"run": "exp-current-opts-6g-2", "mode": "export", "config": "objects + Java 옵션", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 24.3, "read_min": 7.5, "same_text_min": 1.2, "load_min": 11.3, "heap_peak_mb": 8630, "live_mb": 3666, "live_kind": "전체 GC 뒤", "full_gc": 2, "java_cpu_s": 1745, "db_cpu_s": 808.2, "temp_gb": 21.2, "db_max_gb": 18.9, "search_p95_ms": 453, "search_5xx": 0}, {"run": "exp-old-current-6g", "mode": "export", "config": "objects", "copy": "옛 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 24.9, "read_min": 6.3, "same_text_min": 1.3, "load_min": 13.1, "heap_peak_mb": 8444, "live_mb": 4978, "live_kind": "전체 GC 뒤", "full_gc": 2, "java_cpu_s": 2934, "db_cpu_s": 861.3, "temp_gb": 21.1, "db_max_gb": 20.8, "search_p95_ms": 466, "search_5xx": 0}, {"run": "exp-sql-1g", "mode": "export", "config": "sql", "copy": "새 사본", "heap_gb": 1, "ok": true, "result": "끝까지", "total_min": 33.8, "read_min": 7.3, "same_text_min": 5.4, "load_min": 12.3, "heap_peak_mb": 419, "live_mb": 302, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1364, "db_cpu_s": 1592.4, "temp_gb": 61.0, "db_max_gb": 26.9, "search_p95_ms": 384, "search_5xx": 0}, {"run": "exp-sql-2g", "mode": "export", "config": "sql", "copy": "새 사본", "heap_gb": 2, "ok": true, "result": "끝까지", "total_min": 33.8, "read_min": 7.3, "same_text_min": 5.4, "load_min": 12.4, "heap_peak_mb": 498, "live_mb": 294, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1284, "db_cpu_s": 1595.1, "temp_gb": 61.0, "db_max_gb": 27.3, "search_p95_ms": 386, "search_5xx": 0}, {"run": "exp-sql-3g", "mode": "export", "config": "sql", "copy": "새 사본", "heap_gb": 3, "ok": true, "result": "끝까지", "total_min": 34.0, "read_min": 7.7, "same_text_min": 5.4, "load_min": 12.2, "heap_peak_mb": 565, "live_mb": 304, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1258, "db_cpu_s": 1591.1, "temp_gb": 61.0, "db_max_gb": 27.3, "search_p95_ms": 384, "search_5xx": 0}, {"run": "exp-sql-4g", "mode": "export", "config": "sql", "copy": "새 사본", "heap_gb": 4, "ok": true, "result": "끝까지", "total_min": 36.0, "read_min": 7.5, "same_text_min": 6.5, "load_min": 12.7, "heap_peak_mb": 574, "live_mb": 294, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1243, "db_cpu_s": 1768.5, "temp_gb": 61.1, "db_max_gb": 27.6, "search_p95_ms": 426, "search_5xx": 0}, {"run": "exp-sql-6g-1", "mode": "export", "config": "sql", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 36.8, "read_min": 7.5, "same_text_min": 6.5, "load_min": 13.2, "heap_peak_mb": 742, "live_mb": 297, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1244, "db_cpu_s": 1819.7, "temp_gb": 61.2, "db_max_gb": 27.5, "search_p95_ms": 449, "search_5xx": 0}, {"run": "exp-sql-6g-2", "mode": "export", "config": "sql", "copy": "새 사본", "heap_gb": 6, "ok": true, "result": "끝까지", "total_min": 34.3, "read_min": 7.3, "same_text_min": 5.6, "load_min": 12.5, "heap_peak_mb": 666, "live_mb": 302, "live_kind": "Remark 뒤(상한)", "full_gc": 0, "java_cpu_s": 1286, "db_cpu_s": 1638.1, "temp_gb": 61.0, "db_max_gb": 25.2, "search_p95_ms": 389, "search_5xx": 0}], "minheap": [{"config": "compact", "min_heap_gb": 2, "time_at_min_min": 21.3, "time_6g_min": 21.8, "failed_at_gb": 1, "temp_gb": 21.0, "db_max_gb": 20.9, "db_cpu_s": 703, "java_cpu_s": 1008, "same_as_current": true, "within_43": true, "default": true, "note": "기본값 (2026-10-12 사용자 결정)"}, {"config": "objects", "min_heap_gb": 6, "time_at_min_min": 26.4, "time_6g_min": 27.1, "failed_at_gb": 4, "temp_gb": 21.4, "db_max_gb": 20.8, "db_cpu_s": 921, "java_cpu_s": 3113, "same_as_current": true, "within_43": true, "default": false, "note": "옛 방식, 2026-10-12까지 이름 current"}, {"config": "objects + Java 옵션", "min_heap_gb": 4, "time_at_min_min": 31.0, "time_6g_min": 24.6, "failed_at_gb": 3, "temp_gb": 21.2, "db_max_gb": 19.6, "db_cpu_s": 828, "java_cpu_s": 1798, "same_as_current": true, "within_43": true, "default": false, "note": "옛 방식에 Java 옵션 둘"}, {"config": "compact + Java 옵션", "min_heap_gb": 2, "time_at_min_min": 36.7, "time_6g_min": null, "failed_at_gb": 1, "temp_gb": 22.0, "db_max_gb": 19.1, "db_cpu_s": 1345, "java_cpu_s": 1731, "same_as_current": true, "within_43": true, "default": false, "note": "2GB 실행은 도중에 테스트를 함께 돌려 시간이 늘어남, 참고만"}, {"config": "sql", "min_heap_gb": 1, "time_at_min_min": 33.8, "time_6g_min": 35.5, "failed_at_gb": null, "temp_gb": 61.2, "db_max_gb": 27.5, "db_cpu_s": 1729, "java_cpu_s": 1265, "same_as_current": true, "within_43": true, "default": false, "note": "DB 임시 표로 묶음"}], "compare": [{"pair": "objects ↔ compact", "kind": "dry run 책·줄", "lines": 19398469, "diff": 0}, {"pair": "objects ↔ sql", "kind": "dry run 책·줄", "lines": 19398469, "diff": 0}, {"pair": "objects ① ↔ objects ②", "kind": "내보내기 책·소장 번호", "lines": 19398469, "diff": 0}, {"pair": "objects ↔ objects + Java 옵션", "kind": "내보내기 책·소장 번호", "lines": 19398469, "diff": 0}, {"pair": "objects ↔ compact", "kind": "내보내기 책·소장 번호", "lines": 19398469, "diff": 0}, {"pair": "objects ↔ sql", "kind": "내보내기 책·소장 번호", "lines": 19398469, "diff": 0}, {"pair": "objects ↔ sql 1GB / compact 2GB / 옵션 4GB", "kind": "내보내기 책·소장 번호", "lines": 19398469, "diff": 0}, {"pair": "objects ↔ compact + Java 옵션 2GB", "kind": "내보내기 책·소장 번호", "lines": 19398469, "diff": 0}], "transfer": [{"phase": "내 PC 내보내기", "step": "읽기", "seconds": 512.4}, {"phase": "내 PC 내보내기", "step": "국가서지·키", "seconds": 155.7}, {"phase": "내 PC 내보내기", "step": "같은 글", "seconds": 75.4}, {"phase": "내 PC 내보내기", "step": "임시 표·둘째 읽기", "seconds": 560.4}, {"phase": "내 PC 내보내기", "step": "번호 잇기", "seconds": 81.3}, {"phase": "내 PC 내보내기", "step": "새 표 쓰기", "seconds": 129.3}, {"phase": "내 PC 내보내기", "step": "덤프·되읽기", "seconds": 82.5}, {"phase": "운영 반영 (상한 1GB)", "step": "비교", "seconds": 3.2}, {"phase": "운영 반영 (상한 1GB)", "step": "복원", "seconds": 65.4}, {"phase": "운영 반영 (상한 1GB)", "step": "색인·제약", "seconds": 149.8}, {"phase": "운영 반영 (상한 1GB)", "step": "통계", "seconds": 52.2}, {"phase": "운영 반영 (상한 1GB)", "step": "바꿔 끼우기", "seconds": 0.1}, {"phase": "내 PC 마저", "step": "색인·제약", "seconds": 60.2}, {"phase": "내 PC 마저", "step": "통계", "seconds": 24.8}, {"phase": "내 PC 마저", "step": "바꿔 끼우기", "seconds": 0.1}], "ac": [{"ac": "AC-1", "what": "내보내기 뒤 내 PC 검색 그대로", "result": "검색 응답 57개 같음", "status": "통과"}, {"ac": "AC-2", "what": "반영 뒤 운영 번호 = 내 PC 새 표", "result": "책 1,619,668·소장 17,778,801 번호 차이 0, 검색 응답 57개 같음", "status": "통과"}, {"ac": "AC-3", "what": "반영 중 기다림 1초 안, 5xx 0", "result": "바꿔 끼우기 0.08초, 검색 p95 760ms, 5xx 0", "status": "통과"}, {"ac": "AC-4", "what": "도서관·연결표·책 표가 다르면 시작 안 함", "result": "셋 다 mismatch와 다른 곳을 남김, 아무것도 안 바뀜", "status": "통과"}, {"ac": "AC-5", "what": "복원 도중 멈춤 뒤 다음 반영이 끝까지", "result": "검색 그대로, 다음 apply SUCCEEDED", "status": "통과"}, {"ac": "AC-6", "what": "finish 뒤 두 DB 값 같음", "result": "기준값·칸 구조·연결표·도서관 같음", "status": "통과"}, {"ac": "AC-7", "what": "운영 기록 한 줄에 내 PC + 반영 단계", "result": "export_id로 두 줄이 이어짐", "status": "통과"}, {"ac": "AC-8", "what": "세 방식 dry run 끝까지", "result": "18:16 / 26:31 / 29:24", "status": "통과"}, {"ac": "AC-9", "what": "세 방식 결과 같음", "result": "책·줄·번호 차이 0", "status": "통과"}, {"ac": "AC-10", "what": "측정 표", "result": "이 페이지", "status": "통과"}, {"ac": "AC-11", "what": "칸 구조가 다르면 mismatch", "result": "표 구조 mismatch", "status": "통과"}, {"ac": "AC-12", "what": "기다릴 때 export 다시 → 멈춤", "result": "읽기 전에 멈춤", "status": "통과"}, {"ac": "AC-13", "what": "반영 도중 멈춘 뒤 discard", "result": "1초 안에 복원 세션 없음, 롤백, 검색 그대로", "status": "통과"}, {"ac": "AC-14", "what": "상한 1GB에서 256MB로 끝까지", "result": "색인 2분 30초, OOMKilled 없음", "status": "통과"}, {"ac": "AC-15", "what": "finish를 색인에서 멈춤 → 다시 finish", "result": "기다림 유지, export 멈춤, 다시 finish 끝까지", "status": "통과"}], "old": [{"measure": "책 수 (①→②→③→④ 끝)", "cycle08": "1,615,125", "cycle11": "1,615,125"}, {"measure": "읽기", "cycle08": "9분 44초", "cycle11": "6분 16초"}, {"measure": "국가서지 + 키", "cycle08": "3분 10초", "cycle11": "2분 38초"}, {"measure": "같은 글", "cycle08": "1분 26초", "cycle11": "1분 15초"}, {"measure": "load", "cycle08": "18분 35초 (색인·통계·바꿔 끼우기 포함)", "cycle11": "13분 6초 (바꿔 끼우기 전까지) + 덤프"}, {"measure": "전체", "cycle08": "약 33분 (in-place)", "cycle11": "24분 51초 (export)"}, {"measure": "살아 있는 데이터", "cycle08": "약 4.8GB", "cycle11": "4,978MB"}], "slowdown": [{"step": "첫 읽기", "who": "Java", "plain_s": 435.0, "opts_s": 715.7, "ratio": 1.6}, {"step": "국가서지", "who": "Java", "plain_s": 101.5, "opts_s": 126.5, "ratio": 1.2}, {"step": "같은 글", "who": "Java", "plain_s": 45.0, "opts_s": 76.6, "ratio": 1.7}, {"step": "둘째 읽기(소장)", "who": "Java", "plain_s": 370.7, "opts_s": 800.7, "ratio": 2.2}, {"step": "번호 잇기", "who": "DB", "plain_s": 68.6, "opts_s": 129.5, "ratio": 1.9}, {"step": "새 표 쓰기", "who": "DB", "plain_s": 103.3, "opts_s": 167.8, "ratio": 1.6}, {"step": "GC 정지 합계", "who": "Java", "plain_s": 3.1, "opts_s": 3.9, "ratio": 1.3}, {"step": "Java CPU", "who": "Java", "plain_s": 979, "opts_s": 1731, "ratio": 1.8}]}</script>
+<script>
+// A stand-in for the dashboard type's `dash` object: the embedded data, the calculations, redraw on resize.
+window.dash = (function () {
+  const sets = JSON.parse(document.getElementById('dash-data').textContent);
+  const calcs = {}, listeners = [];
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const api = {
+    get colors() { return ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'].map(css); },
+    data(id) {
+      if (sets[id]) return { status: 'ok', data: sets[id], columns: Object.keys(sets[id][0] || {}), meta: [] };
+      if (calcs[id]) return { status: 'ok', data: calcs[id](), meta: [] };
+      return { status: 'missing', data: [], meta: [] };
+    },
+    calc(id, spec) { calcs[id] = () => spec.fn(...spec.inputs.map((i) => api.data(i).data)); },
+    onData(fn) { listeners.push(fn); fn(); },
+    refresh() {}, params() { return {}; }, setParams() {}, resetParams() {}, setLink() {}
+  };
+  let timer = null;
+  window.addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(() => listeners.forEach((f) => f()), 150); });
+  return api;
+})();
+</script>
+<style>
+.c11 { font-family: var(--font-anthropic-sans); display: flex; flex-direction: column; gap: var(--cds-gap-xl); padding-block: var(--cds-pad-md); }
+.c11 h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+.c11 h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.c11 h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.c11 p { margin: 0; max-width: 70ch; line-height: 1.55; }
+.c11 .muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.c11 .lede { font-size: var(--cds-font-size-body); }
+.c11 section { display: flex; flex-direction: column; gap: var(--cds-gap-md); }
+.c11 .grid { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
+.c11 .cards { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
+.c11 .card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+.c11 .opt-name { font-weight: var(--cds-font-weight-medium); }
+.c11 .big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+.c11 .kv { display: grid; grid-template-columns: auto 1fr; gap: var(--cds-gap-xs) var(--cds-gap-md); font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.c11 .kv dt { color: var(--color-fg-muted); }
+.c11 .kv dd { margin: 0; text-align: right; }
+.c11 .pill { align-self: flex-start; font-size: var(--cds-font-size-caption); padding: 2px var(--cds-pad-sm); border-radius: 999px; border: 1px solid var(--color-border-line); }
+.c11 .pill.rule { color: var(--color-ok); border-color: currentColor; }
+.c11 .note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); line-height: 1.5; }
+.c11 .chart { position: relative; min-height: 12rem; }
+.c11 .chart svg { display: block; overflow: visible; }
+.c11 .chart text { fill: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.c11 .chart .lbl { fill: var(--color-fg); }
+.c11 .tip { position: absolute; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); pointer-events: none; white-space: nowrap; z-index: 2; }
+.c11 .tip .t { color: var(--cds-text-secondary); }
+.c11 .ladder { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.c11 .ladder th { font-weight: var(--cds-font-weight-medium); text-align: left; padding: 0 var(--cds-pad-xs); }
+.c11 .ladder td { text-align: center; border-radius: var(--cds-radius); padding: var(--cds-pad-sm) var(--cds-pad-xs); }
+.c11 .ladder td.ok { background: color-mix(in srgb, var(--color-ok) 18%, transparent); }
+.c11 .ladder td.best { background: color-mix(in srgb, var(--color-ok) 38%, transparent); font-weight: var(--cds-font-weight-medium); }
+.c11 .ladder td.oom { background: color-mix(in srgb, var(--color-bad) 18%, transparent); color: var(--color-bad); }
+.c11 .ladder td.none { color: var(--color-fg-muted); }
+.c11 .legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.c11 .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.c11 .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.c11 .tablebox { overflow: auto; max-height: 28rem; }
+.c11 table.data { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.c11 table.data th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.c11 table.data th button { all: unset; cursor: pointer; }
+.c11 table.data th button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.c11 table.data td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.c11 table.data td.wrap { white-space: normal; min-width: 14rem; }
+.c11 table.data td.num, .c11 table.data th.num { text-align: right; }
+.c11 .bad { color: var(--color-bad); }
+.c11 .good { color: var(--color-ok); }
+.c11 input[type=search] { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); max-width: 18rem; }
+.c11 [data-dash-source-state=empty] { color: transparent; }
+.c11 [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+.c11 .fail { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.c11 .fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+</style>
+
+<div class="c11">
+  <header id="top" style="display:flex;flex-direction:column;gap:var(--cds-gap-sm)">
+    <h1>사이클 11 가져오기 측정</h1>
+    <p class="lede" id="takeaway" data-source="pick"><span class="dash-skeleton">—</span></p>
+    <p class="muted">2026-10-12, 같은 PC(WSL2), 새 수집 사본 ebook-catalog-2026-10-12-0135.sqlite(읽은 줄 26,144,897, 책 1,619,668권, 소장 17,778,801개). 내보내기 실행 시간은 Gradle 시작부터 파일을 만들고 되읽기까지입니다.</p>
+  </header>
+
+  <section id="choose">
+    <h2>기본 묶는 방식: compact</h2>
+    <p class="note">2026-10-12 사용자 결정으로 기본값을 compact로 바꿨고, objects(옛 방식, 그날까지 이름 current)와 sql은 설정 chaekcheck.collection.import.grouping으로 고를 수 있게 남겼습니다. 모든 방식의 결과가 책·번호까지 같습니다(아래 "결과가 같은지"). 인계서 R-B7 기준은 "결과 같음 + 전체 시간 43분 안 + 끝까지 된 힙이 가장 작은 것"입니다. 이 페이지의 힙은 내 PC에서 도는 가져오기 프로세스의 Java 힙이고, 검색 서비스(512MB)나 운영 반영(기본 512MB로 끝남)과는 다릅니다.</p>
+    <div class="cards" id="cards">
+      <article class="card" data-i="0"></article>
+      <article class="card" data-i="1"></article>
+      <article class="card" data-i="2"></article>
+      <article class="card" data-i="3"></article>
+      <article class="card" data-i="4"></article>
+    </div>
+  </section>
+
+  <section id="heap">
+    <h2>힙을 얼마나 줄일 수 있나</h2>
+    <div class="card">
+      <h3>힙 크기별 내보내기 결과</h3>
+      <p class="note">6GB에서 시작해 4 → 3 → 2 → 1GB로 내리며, 처음 실패한 값에서 멈췄습니다. 칸의 숫자는 전체 시간(분)입니다. 진한 칸이 끝까지 된 가장 작은 힙입니다. compact + Java 옵션은 결정 뒤 1GB와 2GB만 따로 쟀고, 2GB 실행은 도중에 테스트를 함께 돌려 시간이 늘어났습니다.</p>
+      <div class="tablebox" style="max-height:none"><table class="ladder" id="ladder" data-source="runs"></table></div>
+      <div class="legend"><span><i style="background:color-mix(in srgb, var(--color-ok) 38%, transparent)"></i>끝까지 된 가장 작은 값</span><span><i style="background:color-mix(in srgb, var(--color-ok) 18%, transparent)"></i>끝까지</span><span><i style="background:color-mix(in srgb, var(--color-bad) 18%, transparent)"></i>OutOfMemoryError</span><span>— 재지 않음</span></div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>메모리: 힙 최고와 살아 있는 데이터 (6GB, 첫 번째)</h3>
+        <p class="note">힙 최고는 힙 풀 최고 사용량의 합이라 -Xmx보다 클 수 있습니다. 살아 있는 데이터는 전체 GC 뒤 값, 전체 GC가 없으면 Remark 뒤 값(상한)입니다.</p>
+        <div class="chart" id="memchart" data-source="runs"></div>
+      </div>
+      <div class="card">
+        <h3>CPU 시간 (6GB, 첫 번째)</h3>
+        <p class="note">Java는 프로세스 CPU 시간, DB는 컨테이너 cgroup cpu.stat의 차이입니다.</p>
+        <div class="chart" id="cpuchart" data-source="runs"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="time">
+    <h2>시간과 DB 부담</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>전체 시간의 구성 (6GB, 첫 번째)</h3>
+        <p class="note">읽기는 수집 DB 첫 읽기, load는 새 표에 쓰기까지(둘째 읽기 포함), 나머지는 국가서지·묶기·덤프 등입니다. 점선은 R-B7의 43분입니다.</p>
+        <div class="chart" id="timechart" data-source="runs"></div>
+      </div>
+      <div class="card">
+        <h3>DB 디스크 (6GB 두 번 중 큰 값)</h3>
+        <p class="note">temp는 실행 동안 DB가 쓴 임시 파일(pg_stat_database.temp_bytes 차이), DB 최대는 실행 중 가장 컸던 DB 크기입니다. 시작 크기는 약 9.0GB입니다.</p>
+        <div class="chart" id="dbchart" data-source="minheap"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="slow">
+    <h2>compact + Java 옵션 2GB가 더 걸린 이유</h2>
+    <div class="card">
+      <p class="note">compact 2GB는 21분 17초, 같은 2GB에 Java 옵션 둘을 붙인 실행은 36분 42초였습니다. 단계마다 비교하면 Java 옵션과 상관없는 DB 단계(번호 잇기, 새 표 쓰기)도 1.6~1.9배 느려졌고, GC 정지 시간은 거의 같습니다. 그래서 대부분은 그 시간(19:01~19:38)에 같은 PC에서 돌던 다른 일 탓으로 봅니다: 기본값 변경 테스트(19:20쯤)와 사이클 12의 전체 빌드(테스트 686개)가 겹쳤습니다. 옵션 자체의 비용은 Java CPU가 약 750초 늘어난 것으로, 같은 글자 합치기가 문자열을 해시해 찾는 일입니다. compact는 글자를 이미 한 벌씩 모아 두어 합칠 것이 거의 없습니다(메모리 약 2% 감소). 그래서 compact에는 옵션을 붙이지 않습니다.</p>
+      <div class="tablebox"><table class="data" id="slowtable" data-source="slowdown" data-row-key="step">
+        <thead><tr><th data-field="step">단계</th><th data-field="who">누가 하는 일</th><th data-field="plain_s" class="num">compact 2GB</th><th data-field="opts_s" class="num">+ Java 옵션 2GB</th><th data-field="ratio" class="num">배수</th></tr></thead><tbody></tbody>
+      </table></div>
+      <p class="note">시간 단계는 분:초, GC 정지는 초, Java CPU는 초입니다. 정확한 옵션 비용은 PC가 조용할 때 다시 재야 알 수 있습니다.</p>
+    </div>
+  </section>
+
+  <section id="same">
+    <h2>결과가 같은지 (AC-8, AC-9)</h2>
+    <div class="card">
+      <p class="note">dry run은 책 목록(책 순번·제목·저자·출판사·출판일·ISBN·종류·도서관)과 줄마다의 책을, 내보내기는 새 표의 책 번호·소장 번호를 줄 단위로 비교했습니다(scripts/catalog/compare_grouping.py).</p>
+      <div class="tablebox"><table class="data" id="cmp" data-source="compare" data-row-key="pair,kind">
+        <thead><tr><th data-field="pair">비교</th><th data-field="kind">무엇을</th><th data-field="lines" class="num">줄 수</th><th data-field="diff" class="num">다른 줄</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="transfer">
+    <h2>가져오기 따로 하기 (A)</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>내보내기 → 운영 반영 → 마저 바꿔 끼우기</h3>
+        <p class="note">새 사본, objects(당시 이름 current), 내 PC 6GB. 운영 역할 DB는 상한 1GB 컨테이너, 반영 세션 메모리 256MB. 검색이 기다린 것은 운영 반영의 바꿔 끼우기(0.08초)뿐입니다.</p>
+        <div class="chart" id="flowchart" data-source="transfer"></div>
+      </div>
+      <div class="card">
+        <h3>인수 조건 (AC)</h3>
+        <div class="tablebox"><table class="data" id="actable" data-source="ac" data-row-key="ac">
+          <thead><tr><th data-field="ac">AC</th><th data-field="what">무엇</th><th data-field="result">결과</th><th data-field="status">판정</th></tr></thead><tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="old">
+    <h2>옛 사본 한 번 (사이클 08 #3c와 비교)</h2>
+    <div class="card">
+      <p class="note">같은 옛 사본 ebook-catalog-2026-10-05-0745.sqlite, objects(당시 이름 current), 6GB. 사이클 11은 내보내기라 색인·통계·바꿔 끼우기를 하지 않고(내 PC는 finish에서 약 1분 30초), 날마다 PC 부하가 달라 시간은 참고로만 봅니다.</p>
+      <div class="tablebox"><table class="data" id="oldtable" data-source="old" data-row-key="measure">
+        <thead><tr><th data-field="measure">항목</th><th data-field="cycle08">사이클 08 #3c</th><th data-field="cycle11">사이클 11</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="runs">
+    <h2>모든 실행</h2>
+    <div class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:var(--cds-gap-md);align-items:center;justify-content:space-between">
+        <p class="note">25번(옛 방식은 측정 당시 이름 current로 돌렸고, 여기서는 지금 이름 objects로 적음). 내보내기는 끝나면 새 표 번호를 뽑고 discard해서 내 PC 검색 서비스는 그대로였습니다. 검색 p95는 가져오는 동안 1초마다 부른 "사랑" 첫 쪽입니다.</p>
+        <label class="muted" for="runsearch">찾기 <input type="search" id="runsearch" placeholder="compact, OOM, 2 …"></label>
+      </div>
+      <div class="tablebox"><table class="data" id="runtable" data-source="runs" data-row-key="run">
+        <thead><tr>
+          <th data-field="run"><button type="button" data-k="run">실행</button></th>
+          <th data-field="config"><button type="button" data-k="config">방식</button></th>
+          <th data-field="mode"><button type="button" data-k="mode">종류</button></th>
+          <th data-field="heap_gb" class="num"><button type="button" data-k="heap_gb">힙 GB</button></th>
+          <th data-field="result"><button type="button" data-k="result">결과</button></th>
+          <th data-field="total_min" class="num"><button type="button" data-k="total_min">전체 분</button></th>
+          <th data-field="read_min" class="num"><button type="button" data-k="read_min">읽기 분</button></th>
+          <th data-field="same_text_min" class="num"><button type="button" data-k="same_text_min">같은 글 분</button></th>
+          <th data-field="load_min" class="num"><button type="button" data-k="load_min">load 분</button></th>
+          <th data-field="heap_peak_mb" class="num"><button type="button" data-k="heap_peak_mb">힙 최고 MB</button></th>
+          <th data-field="live_mb" class="num"><button type="button" data-k="live_mb">살아 있는 MB</button></th>
+          <th data-field="full_gc" class="num"><button type="button" data-k="full_gc">전체 GC</button></th>
+          <th data-field="java_cpu_s" class="num"><button type="button" data-k="java_cpu_s">Java CPU s</button></th>
+          <th data-field="db_cpu_s" class="num"><button type="button" data-k="db_cpu_s">DB CPU s</button></th>
+          <th data-field="temp_gb" class="num"><button type="button" data-k="temp_gb">temp GB</button></th>
+          <th data-field="db_max_gb" class="num"><button type="button" data-k="db_max_gb">DB 최대 GB</button></th>
+          <th data-field="search_p95_ms" class="num"><button type="button" data-k="search_p95_ms">검색 p95 ms</button></th>
+          <th data-field="search_5xx" class="num"><button type="button" data-k="search_5xx">5xx</button></th>
+        </tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </section>
+</div>
+
+<script>
+dash.calc('pick', {
+  title: 'R-B7 기준의 추천',
+  description: '결과가 같고 43분 안인 방식 중 끝까지 된 힙이 가장 작은 것, 그리고 6GB 평균이 가장 빠른 것(6GB에서 재지 않은 방식은 뺌).',
+  inputs: ['minheap'],
+  fn: (minheap) => {
+    const ok = minheap.filter((r) => String(r.same_as_current) === 'true' && String(r.within_43) === 'true');
+    const smallest = ok.slice().sort((a, b) => a.min_heap_gb - b.min_heap_gb || a.time_at_min_min - b.time_at_min_min)[0];
+    const timed = ok.filter((r) => r.time_6g_min !== null && r.time_6g_min !== undefined && r.time_6g_min !== '');
+    const fastest = timed.slice().sort((a, b) => Number(a.time_6g_min) - Number(b.time_6g_min))[0];
+    return [{ rule_pick: smallest.config, rule_heap_gb: smallest.min_heap_gb, rule_time_min: smallest.time_at_min_min,
+      fastest: fastest.config, fastest_time_min: fastest.time_6g_min, fastest_heap_gb: fastest.min_heap_gb }];
+  }
+});
+</script>
+
+<script>
+(function () {
+  const root = document.querySelector('.c11');
+  const fmt1 = d3.format('.1f'), fmt0 = d3.format(',.0f'), fmtc = d3.format(',');
+  const ORDER = ['compact', 'objects', 'objects + Java 옵션', 'compact + Java 옵션', 'sql'];
+  // the configurations measured twice at 6GB (compact + Java options was only measured at 1 and 2GB)
+  const SIX = ['compact', 'objects', 'objects + Java 옵션', 'sql'];
+  const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+  const tip = (() => { let el = null; return {
+    show(box, html, x, y) {
+      if (!el || el.parentNode !== box) { el = document.createElement('div'); el.className = 'tip'; box.appendChild(el); }
+      el.replaceChildren(...html); el.hidden = false;
+      const bw = box.clientWidth, w = el.offsetWidth;
+      el.style.left = Math.max(0, Math.min(bw - w, x + 12)) + 'px'; el.style.top = Math.max(0, y - 10) + 'px';
+    },
+    hide() { if (el) el.hidden = true; }
+  }; })();
+  const line = (cls, text) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = text; return d; };
+  const failed = (el, id) => { el.replaceChildren(); const d = document.createElement('div'); d.className = 'fail'; d.textContent = 'Failed to load'; el.appendChild(d); };
+
+  function hbars(el, rows, series, opts) {
+    el.replaceChildren();
+    const W = el.clientWidth || 320, rowH = 26, gapG = 14;
+    const svg = d3.select(el).append('svg').attr('width', '100%');
+    const probe = svg.append('text').attr('class', 'lbl');
+    const labW = d3.max(rows, (r) => { probe.text(r.label); return probe.node().getComputedTextLength(); }) + 10;
+    probe.remove();
+    const groupH = series.length * rowH + gapG;
+    const H = rows.length * groupH + 24;
+    svg.attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const max = opts.max || d3.max(rows, (r) => d3.max(series, (s) => num(r[s.key]) || 0)) * 1.15;
+    const x = d3.scaleLinear([0, max], [labW, W - 56]);
+    svg.append('g').selectAll('line').data(x.ticks(4)).join('line')
+      .attr('x1', (d) => x(d)).attr('x2', (d) => x(d)).attr('y1', 0).attr('y2', H - 20).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(x.ticks(4)).join('text')
+      .attr('x', (d) => x(d)).attr('y', H - 6).attr('text-anchor', 'middle').text((d) => opts.tick(d));
+    rows.forEach((r, gi) => {
+      const g = svg.append('g').attr('transform', `translate(0,${gi * groupH})`);
+      g.append('text').attr('class', 'lbl').attr('x', 0).attr('y', (series.length * rowH) / 2 + 4).text(r.label);
+      series.forEach((s, si) => {
+        const v = num(r[s.key]);
+        if (v === null) return;
+        const y = si * rowH + 4;
+        g.append('rect').attr('x', x(0)).attr('y', y).attr('height', rowH - 8).attr('rx', 4)
+          .attr('width', Math.max(2, x(v) - x(0))).style('fill', s.color)
+          .on('mousemove', (ev) => { const [mx, my] = d3.pointer(ev, el); tip.show(el, [line('t', r.label), line('', `${s.name} ${opts.val(v)}`)], mx, my); })
+          .on('mouseleave', () => tip.hide());
+        g.append('text').attr('x', x(v) + 6).attr('y', y + rowH / 2).text(opts.val(v));
+      });
+    });
+    if (opts.ref) {
+      svg.append('line').attr('x1', x(opts.ref.value)).attr('x2', x(opts.ref.value)).attr('y1', 0).attr('y2', H - 20)
+        .attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 3');
+      svg.append('text').attr('x', x(opts.ref.value) - 4).attr('y', 10).attr('text-anchor', 'end').text(opts.ref.label);
+    }
+    if (series.length > 1) {
+      const lg = document.createElement('div'); lg.className = 'legend';
+      series.forEach((s) => { const sp = document.createElement('span'); const i = document.createElement('i'); i.style.background = s.color; sp.append(i, s.name); lg.appendChild(sp); });
+      el.appendChild(lg);
+    }
+  }
+
+  function stacked(el, rows, parts, ref) {
+    el.replaceChildren();
+    const W = el.clientWidth || 320, rowH = 30;
+    const svg = d3.select(el).append('svg').attr('width', '100%');
+    const probe = svg.append('text').attr('class', 'lbl');
+    const labW = d3.max(rows, (r) => { probe.text(r.label); return probe.node().getComputedTextLength(); }) + 10;
+    probe.remove();
+    const H = rows.length * rowH + 26;
+    svg.attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const max = Math.max(ref.value, d3.max(rows, (r) => r.total)) * 1.08;
+    const x = d3.scaleLinear([0, max], [labW, W - 44]);
+    svg.append('g').selectAll('line').data(x.ticks(5)).join('line')
+      .attr('x1', (d) => x(d)).attr('x2', (d) => x(d)).attr('y1', 0).attr('y2', H - 20).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(x.ticks(5)).join('text')
+      .attr('x', (d) => x(d)).attr('y', H - 6).attr('text-anchor', 'middle').text((d) => d + '분');
+    rows.forEach((r, i) => {
+      const g = svg.append('g').attr('transform', `translate(0,${i * rowH})`);
+      g.append('text').attr('class', 'lbl').attr('y', rowH / 2 + 3).text(r.label);
+      let acc = 0;
+      parts.forEach((p) => {
+        const v = r[p.key] || 0;
+        g.append('rect').attr('x', x(acc)).attr('y', 5).attr('height', rowH - 12).attr('width', Math.max(0, x(acc + v) - x(acc) - 1))
+          .style('fill', p.color)
+          .on('mousemove', (ev) => { const [mx, my] = d3.pointer(ev, el); tip.show(el, [line('t', r.label), line('', `${p.name} ${fmt1(v)}분`), line('', `전체 ${fmt1(r.total)}분`)], mx, my); })
+          .on('mouseleave', () => tip.hide());
+        acc += v;
+      });
+      g.append('text').attr('x', x(r.total) + 6).attr('y', rowH / 2 + 3).text(fmt1(r.total) + '분');
+    });
+    svg.append('line').attr('x1', x(ref.value)).attr('x2', x(ref.value)).attr('y1', 0).attr('y2', H - 20)
+      .attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 3');
+    svg.append('text').attr('x', x(ref.value) - 4).attr('y', H - 24).attr('text-anchor', 'end').text(ref.label);
+    const lg = document.createElement('div'); lg.className = 'legend';
+    parts.forEach((p) => { const sp = document.createElement('span'); const i = document.createElement('i'); i.style.background = p.color; sp.append(i, p.name); lg.appendChild(sp); });
+    el.appendChild(lg);
+  }
+
+  function fillTable(table, rows, cols) {
+    const tb = table.querySelector('tbody');
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr');
+      cols.forEach((c) => {
+        const td = document.createElement('td');
+        if (c.cls) td.className = c.cls(r);
+        td.textContent = c.text(r);
+        tr.appendChild(td);
+      });
+      return tr;
+    }));
+  }
+
+  let sortKey = 'run', sortDir = 1;
+  root.querySelectorAll('#runtable th button').forEach((b) => b.addEventListener('click', () => {
+    sortDir = sortKey === b.dataset.k ? -sortDir : 1; sortKey = b.dataset.k; drawRuns();
+  }));
+  root.querySelector('#runsearch').addEventListener('input', () => drawRuns());
+
+  function drawRuns() {
+    const st = dash.data('runs');
+    const table = root.querySelector('#runtable');
+    if (st.status !== 'ok') { table.querySelector('tbody').replaceChildren(); return; }
+    const q = root.querySelector('#runsearch').value.trim().toLowerCase();
+    let rows = st.data.slice();
+    if (q) rows = rows.filter((r) => Object.values(r).join(' ').toLowerCase().includes(q.replace('gb', '')));
+    rows.sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      const na = num(va), nb = num(vb);
+      if (na !== null && nb !== null && !isNaN(na) && !isNaN(nb)) return (na - nb) * sortDir;
+      return String(va ?? '').localeCompare(String(vb ?? '')) * sortDir;
+    });
+    table.querySelectorAll('th').forEach((th) => {
+      const k = th.querySelector('button')?.dataset.k;
+      th.setAttribute('aria-sort', k === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
+    });
+    const n = (k, f) => (r) => (num(r[k]) === null ? '' : f(num(r[k])));
+    fillTable(table, rows, [
+      { text: (r) => r.run },
+      { text: (r) => r.config },
+      { text: (r) => r.mode + (r.copy === '옛 사본' ? ' · 옛 사본' : '') },
+      { text: n('heap_gb', fmtc), cls: () => 'num' },
+      { text: (r) => r.result, cls: (r) => (String(r.ok) === 'true' ? 'good' : 'bad') },
+      { text: n('total_min', fmt1), cls: () => 'num' },
+      { text: n('read_min', fmt1), cls: () => 'num' },
+      { text: n('same_text_min', fmt1), cls: () => 'num' },
+      { text: n('load_min', fmt1), cls: () => 'num' },
+      { text: n('heap_peak_mb', fmt0), cls: () => 'num' },
+      { text: (r) => (num(r.live_mb) === null ? '' : fmt0(num(r.live_mb)) + (r.live_kind === '전체 GC 뒤' ? '' : ' (R)')), cls: () => 'num' },
+      { text: n('full_gc', fmtc), cls: () => 'num' },
+      { text: n('java_cpu_s', fmt0), cls: () => 'num' },
+      { text: n('db_cpu_s', fmt0), cls: () => 'num' },
+      { text: n('temp_gb', fmt1), cls: () => 'num' },
+      { text: n('db_max_gb', fmt1), cls: () => 'num' },
+      { text: n('search_p95_ms', fmt0), cls: () => 'num' },
+      { text: n('search_5xx', fmtc), cls: () => 'num' }
+    ]);
+  }
+
+  dash.onData(() => {
+    const colors = dash.colors;
+    const pick = dash.data('pick'), mh = dash.data('minheap'), runs = dash.data('runs');
+
+    // takeaway
+    const tk = root.querySelector('#takeaway');
+    if (pick.status === 'ok' && pick.data.length) {
+      const p = pick.data[0];
+      const def = mh.status === 'ok' ? mh.data.find((r) => String(r.default) === 'true') : null;
+      tk.textContent = (def ? `기본값은 ${def.config}입니다(힙 ${def.min_heap_gb}GB, 약 ${fmt1(def.time_at_min_min)}분). ` : '')
+        + `모든 방식의 결과가 번호까지 같고, R-B7 기준(가장 작은 힙)으로는 ${p.rule_pick}(힙 ${p.rule_heap_gb}GB, 약 ${fmt1(p.rule_time_min)}분), 가장 빠른 것은 ${p.fastest}(약 ${fmt1(p.fastest_time_min)}분)입니다.`;
+    } else if (pick.status === 'error') { tk.textContent = '추천을 계산하지 못했습니다.'; }
+    else { tk.replaceChildren(); const s = document.createElement('span'); s.className = 'dash-skeleton'; s.textContent = '—'; tk.appendChild(s); }
+
+    // cards
+    root.querySelectorAll('#cards .card').forEach((card) => {
+      const i = Number(card.dataset.i);
+      card.replaceChildren();
+      if (mh.status !== 'ok') { card.classList.add('dash-skeleton'); return; }
+      card.classList.remove('dash-skeleton');
+      const r = mh.data[i];
+      if (!r) return;
+      const isPick = pick.status === 'ok' && pick.data[0] && pick.data[0].rule_pick === r.config;
+      const name = document.createElement('div'); name.className = 'opt-name'; name.textContent = r.config;
+      name.dataset.source = 'minheap'; name.dataset.field = 'config'; name.dataset.row = String(i);
+      const big = document.createElement('div'); big.className = 'big';
+      big.dataset.source = 'minheap'; big.dataset.field = 'min_heap_gb'; big.dataset.row = String(i);
+      big.textContent = `${r.min_heap_gb}GB`;
+      const cap = document.createElement('div'); cap.className = 'muted'; cap.textContent = '끝까지 된 가장 작은 힙';
+      const dl = document.createElement('dl'); dl.className = 'kv';
+      const add = (label, field, text) => {
+        const dt = document.createElement('dt'); dt.textContent = label;
+        const dd = document.createElement('dd'); dd.textContent = text;
+        dd.dataset.source = 'minheap'; dd.dataset.field = field; dd.dataset.row = String(i);
+        dl.append(dt, dd);
+      };
+      add('그 힙에서 전체', 'time_at_min_min', fmt1(r.time_at_min_min) + '분');
+      add('6GB 평균 전체', 'time_6g_min', num(r.time_6g_min) === null ? '재지 않음' : fmt1(r.time_6g_min) + '분');
+      add('실패한 힙', 'failed_at_gb', num(r.failed_at_gb) === null ? '1GB까지 모두 됨' : r.failed_at_gb + 'GB');
+      add('DB temp 쓰기', 'temp_gb', fmt1(r.temp_gb) + 'GB');
+      add('DB 최대 크기', 'db_max_gb', fmt1(r.db_max_gb) + 'GB');
+      add('DB CPU', 'db_cpu_s', fmt0(r.db_cpu_s) + '초');
+      const note = document.createElement('div'); note.className = 'note'; note.textContent = r.note || '';
+      note.dataset.source = 'minheap'; note.dataset.field = 'note'; note.dataset.row = String(i);
+      card.append(name, big, cap, dl, note);
+      if (String(r.default) === 'true') { const pl = document.createElement('span'); pl.className = 'pill rule'; pl.textContent = '기본값'; card.appendChild(pl); }
+      if (isPick) { const pl = document.createElement('span'); pl.className = 'pill'; pl.textContent = 'R-B7 기준(가장 작은 힙)'; card.appendChild(pl); }
+    });
+
+    // ladder
+    const lad = root.querySelector('#ladder');
+    lad.replaceChildren();
+    if (runs.status === 'ok') {
+      const ex = runs.data.filter((r) => r.mode === 'export' && r.copy === '새 사본');
+      const sizes = [6, 4, 3, 2, 1];
+      const head = document.createElement('tr');
+      head.appendChild(document.createElement('th'));
+      sizes.forEach((s) => { const th = document.createElement('th'); th.textContent = s + 'GB'; head.appendChild(th); });
+      lad.appendChild(head);
+      ORDER.forEach((cfg) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th'); th.textContent = cfg; tr.appendChild(th);
+        const okSizes = ex.filter((r) => r.config === cfg && String(r.ok) === 'true').map((r) => num(r.heap_gb));
+        const best = d3.min(okSizes);
+        sizes.forEach((s) => {
+          const td = document.createElement('td');
+          const these = ex.filter((r) => r.config === cfg && num(r.heap_gb) === s);
+          if (!these.length) { td.className = 'none'; td.textContent = '—'; }
+          else if (these.every((r) => String(r.ok) !== 'true')) { td.className = 'oom'; td.textContent = 'OOM ' + fmt1(num(these[0].total_min)); }
+          else {
+            td.className = s === best ? 'best' : 'ok';
+            td.textContent = these.filter((r) => String(r.ok) === 'true').map((r) => fmt1(num(r.total_min))).join(' / ');
+          }
+          tr.appendChild(td);
+        });
+        lad.appendChild(tr);
+      });
+    }
+
+    const first6 = (cfg) => runs.status === 'ok' ? runs.data.find((r) => r.config === cfg && r.mode === 'export' && r.copy === '새 사본' && num(r.heap_gb) === 6 && String(r.ok) === 'true') : null;
+
+    // memory
+    const mem = root.querySelector('#memchart');
+    if (runs.status === 'ok') {
+      hbars(mem, SIX.map((c) => { const r = first6(c); return { label: c, peak: r.heap_peak_mb, live: r.live_mb }; }),
+        [{ key: 'peak', name: '힙 최고', color: colors[0] }, { key: 'live', name: '살아 있는 데이터', color: colors[1] }],
+        { tick: (d) => fmtc(d / 1024) + 'GB', val: (v) => fmt0(v) + 'MB' });
+    } else if (runs.status === 'error') failed(mem); else mem.replaceChildren();
+
+    // cpu
+    const cpu = root.querySelector('#cpuchart');
+    if (runs.status === 'ok') {
+      hbars(cpu, SIX.map((c) => { const r = first6(c); return { label: c, java: r.java_cpu_s, db: r.db_cpu_s }; }),
+        [{ key: 'java', name: 'Java', color: colors[0] }, { key: 'db', name: 'DB 컨테이너', color: colors[2] }],
+        { tick: (d) => fmtc(d) + '초', val: (v) => fmt0(v) + '초' });
+    } else if (runs.status === 'error') failed(cpu); else cpu.replaceChildren();
+
+    // time
+    const tc = root.querySelector('#timechart');
+    if (runs.status === 'ok') {
+      stacked(tc, SIX.map((c) => {
+        const r = first6(c); const total = num(r.total_min), read = num(r.read_min), load = num(r.load_min);
+        return { label: c, total, read, load, rest: Math.max(0, total - read - load) };
+      }), [{ key: 'read', name: '읽기', color: colors[0] }, { key: 'load', name: 'load', color: colors[1] }, { key: 'rest', name: '나머지', color: 'var(--cds-chart-muted)' }],
+      { value: 43, label: '43분' });
+    } else if (runs.status === 'error') failed(tc); else tc.replaceChildren();
+
+    // db
+    const db = root.querySelector('#dbchart');
+    if (mh.status === 'ok') {
+      hbars(db, mh.data.map((r) => ({ label: r.config, temp: r.temp_gb, max: r.db_max_gb })),
+        [{ key: 'temp', name: 'temp 쓰기', color: colors[3] }, { key: 'max', name: 'DB 최대 크기', color: colors[4] }],
+        { tick: (d) => fmtc(d) + 'GB', val: (v) => fmt1(v) + 'GB' });
+    } else if (mh.status === 'error') failed(db); else db.replaceChildren();
+
+    // compare
+    const cmp = dash.data('compare');
+    if (cmp.status === 'ok') fillTable(root.querySelector('#cmp'), cmp.data, [
+      { text: (r) => r.pair }, { text: (r) => r.kind },
+      { text: (r) => fmtc(num(r.lines)), cls: () => 'num' },
+      { text: (r) => fmtc(num(r.diff)), cls: (r) => 'num ' + (num(r.diff) === 0 ? 'good' : 'bad') }
+    ]); else root.querySelector('#cmp tbody').replaceChildren();
+
+    // transfer
+    const tr = dash.data('transfer'), fc = root.querySelector('#flowchart');
+    if (tr.status === 'ok') {
+      const phases = [...new Set(tr.data.map((r) => r.phase))];
+      const steps = [...new Set(tr.data.map((r) => r.step))];
+      const palette = ['var(--cds-chart-muted)'].concat(colors);
+      const rows = phases.map((p) => {
+        const o = { label: p, total: 0 };
+        tr.data.filter((r) => r.phase === p).forEach((r) => { o[r.step] = num(r.seconds) / 60; o.total += num(r.seconds) / 60; });
+        return o;
+      });
+      stacked(fc, rows, steps.map((s, i) => ({ key: s, name: s, color: colors[i % colors.length] })), { value: 0, label: '' });
+    } else if (tr.status === 'error') failed(fc); else fc.replaceChildren();
+
+    const sl = dash.data('slowdown');
+    const mmssFmt = (v) => { const t = Math.round(v); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+    const cell = (r, k) => (r.step === 'GC 정지 합계' ? fmt1(num(r[k])) + '초' : r.step === 'Java CPU' ? fmt0(num(r[k])) + '초' : mmssFmt(num(r[k])));
+    if (sl.status === 'ok') fillTable(root.querySelector('#slowtable'), sl.data, [
+      { text: (r) => r.step }, { text: (r) => r.who },
+      { text: (r) => cell(r, 'plain_s'), cls: () => 'num' }, { text: (r) => cell(r, 'opts_s'), cls: () => 'num' },
+      { text: (r) => fmt1(num(r.ratio)) + '배', cls: () => 'num' }
+    ]); else root.querySelector('#slowtable tbody').replaceChildren();
+
+    const ac = dash.data('ac');
+    if (ac.status === 'ok') fillTable(root.querySelector('#actable'), ac.data, [
+      { text: (r) => r.ac }, { text: (r) => r.what, cls: () => 'wrap' }, { text: (r) => r.result, cls: () => 'wrap' },
+      { text: (r) => r.status, cls: () => 'good' }
+    ]); else root.querySelector('#actable tbody').replaceChildren();
+
+    const old = dash.data('old');
+    if (old.status === 'ok') fillTable(root.querySelector('#oldtable'), old.data, [
+      { text: (r) => r.measure }, { text: (r) => r.cycle08, cls: () => 'wrap' }, { text: (r) => r.cycle11, cls: () => 'wrap' }
+    ]); else root.querySelector('#oldtable tbody').replaceChildren();
+
+    drawRuns();
+  });
+})();
+</script>
+
+</div>
+</body>
+</html>
