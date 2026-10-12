@@ -78,10 +78,6 @@ databaseChangeLog:
   - include:
       file: library/014-library-classification.yaml
       relativeToChangelogFile: true
-  # cycle 10: popular books (ADR-0073)
-  - include:
-      file: popular/001-popular-schema.yaml
-      relativeToChangelogFile: true
   # cycle 11: separate import, export / apply (ADR-0078)
   - include:
       file: collection/005-import-export.yaml
@@ -92,4 +88,8 @@ databaseChangeLog:
       relativeToChangelogFile: true
   - include:
       file: collection/006-library-insert-run.yaml
+      relativeToChangelogFile: true
+  # cycle 14: librarian picks (ADR-0089)
+  - include:
+      file: picks/001-picks-schema.yaml
       relativeToChangelogFile: true

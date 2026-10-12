@@ -30,14 +30,15 @@ class ModularityTests {
 		}
 	}
 
-	/** Cycle 10 (ADR-0073): popular uses catalog and library only, and no module uses popular. */
+	/** Cycle 14 (ADR-0089): picks uses catalog and library only, and no module uses picks. */
 	@Test
-	void popularDependsOnCatalogAndLibraryOnly() {
-		assertThat(dependenciesOf("popular")).containsExactlyInAnyOrder("catalog", "library");
+	void picksDependsOnCatalogAndLibraryOnly() {
+		assertThat(dependenciesOf("picks")).containsExactlyInAnyOrder("catalog", "library");
+		assertThat(modules.getModuleByName("popular")).isEmpty();
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
-			.filter(name -> !name.equals("popular"))
-			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("popular"));
+			.filter(name -> !name.equals("picks"))
+			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("picks"));
 	}
 
 	/**

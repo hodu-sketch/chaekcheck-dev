@@ -14,8 +14,9 @@ chaekcheck:
     # provider) must not change them. Real environment variables still win over these.
     enabled: false
     providers: naver,kakao
-  popular:
+  picks:
     fetch:
-      # Tests never call the real site (plan cycle 10 C3). A class that tests the fetch turns it on for itself and
-      # brings a fake transport.
+      # Tests never call the real API or covers (plan cycle 14 C3). A class that tests the fetch turns it on for
+      # itself and brings a fake transport. No key: a test that needs one sets it.
       enabled: false
+      api-key: ""

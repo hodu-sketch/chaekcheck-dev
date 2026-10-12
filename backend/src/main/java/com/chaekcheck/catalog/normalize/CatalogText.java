@@ -4,6 +4,7 @@ import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -24,6 +25,15 @@ public final class CatalogText {
 	/** Company words removed from publishers (4.3); after NFKC "㈜" is "(주)". */
 	private static final Pattern PUBLISHER_COMPANY = Pattern
 		.compile("\\(주\\)|주식회사|도서출판|(?<![\\p{L}\\p{N}])(?:inc|ltd|co)(?![\\p{L}\\p{N}])\\.?");
+
+	/** A series name or note in front of a librarian pick title: {@code 〈…〉}, {@code <…>}, {@code […]} or {@code (…)}. */
+	private static final Pattern PICK_LEADING_BRACKET = Pattern
+		.compile("^\\s*(?:〈[^〉]*〉|<[^>]*>|\\[[^\\]]*\\]|\\([^)]*\\))\\s*");
+
+	/** A librarian pick main title ends at the first {@code :}, {@code (}, {@code [} or {@code =}. */
+	private static final Pattern PICK_TITLE_END = Pattern.compile("[:(\\[=]");
+
+	private static final Pattern NOT_LETTER_OR_DIGIT = Pattern.compile("[^\\p{L}\\p{N}]+");
 
 	private static final Pattern PUBLISHER_PUNCTUATION = Pattern.compile("[\\s.,]+");
 
@@ -64,6 +74,30 @@ public final class CatalogText {
 		String main = SUBTITLE_SEPARATOR.split(withoutSeries, 2)[0];
 		String normalized = norm(main);
 		return normalized.isEmpty() ? norm(text) : normalized;
+	}
+
+	/**
+	 * Title key for matching a librarian pick with our books (ADR-0090, plan research popular-books kpipa.md 4절):
+	 * NFKC, leading bracket groups ({@code 〈…〉}, {@code <…>}, {@code […]}, {@code (…)}) removed, then the part before
+	 * the first {@code :}, {@code (}, {@code [} or {@code =}, lower case, with everything but letters and digits removed.
+	 * Unlike {@link #mainTitleNorm} it never falls back to the whole title: an empty key means "do not match".
+	 */
+	public static String pickTitleKey(String title) {
+		if (title == null) {
+			return "";
+		}
+		String text = nfkc(title);
+		String previous;
+		do {
+			previous = text;
+			text = PICK_LEADING_BRACKET.matcher(text).replaceFirst("");
+		}
+		while (!text.equals(previous));
+		Matcher end = PICK_TITLE_END.matcher(text);
+		if (end.find()) {
+			text = text.substring(0, end.start());
+		}
+		return NOT_LETTER_OR_DIGIT.matcher(text.toLowerCase(Locale.ROOT)).replaceAll("");
 	}
 
 	/**

@@ -73,7 +73,40 @@ public final class Contributors {
 
 	private static final Pattern HANGUL = Pattern.compile("[가-힣]");
 
+	/** People after the first {@code ;} (translators and so on in library records: "A 지음 ;B 옮김"). */
+	private static final Pattern AFTER_SEMICOLON = Pattern.compile(";.*$");
+
+	/** A role label in front of the names: "지은이: 오서", "공저: A,B". */
+	private static final Pattern LEADING_ROLE_LABEL = Pattern.compile("^[가-힣]{1,4}\\s*:\\s*");
+
+	/**
+	 * Work words after an author's name in library records that are not role words of the collected data
+	 * ("애너 퀸들런 소설"); removed only for {@link #firstNameExact}.
+	 */
+	private static final Pattern TRAILING_WORK_WORD = Pattern
+		.compile("\\s+(?:장편소설|소설집|소설|시집|산문집|산문|에세이)$");
+
 	private Contributors() {
+	}
+
+	/**
+	 * First person of an author text from a library record (ADR-0090), as {@link CatalogText#nameExact}: the part
+	 * before the first {@code ;}, a leading role label ("지은이:") and a trailing work word ("소설") removed, then the
+	 * first name {@link #parse} finds. Null when there is none.
+	 */
+	public static String firstNameExact(String raw) {
+		if (raw == null || raw.isBlank()) {
+			return null;
+		}
+		String text = AFTER_SEMICOLON.matcher(CatalogText.nfkc(raw)).replaceFirst("").strip();
+		text = LEADING_ROLE_LABEL.matcher(text).replaceFirst("");
+		text = TRAILING_WORK_WORD.matcher(text).replaceFirst("");
+		List<Contributor> people = parse(text);
+		if (people.isEmpty()) {
+			return null;
+		}
+		String exact = people.getFirst().nameExact();
+		return exact.isEmpty() ? null : exact;
 	}
 
 	public static List<Contributor> parse(String raw) {

@@ -39,6 +39,40 @@ class CatalogTextTests {
 		assertThat(CatalogText.mainTitleNorm(title)).isEqualTo(main);
 	}
 
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "애니가 남긴 것|애니가남긴것", "시간을 읽는 그림 : 수천 년 세계사|시간을읽는그림",
+			"(아무도 모르지만 누구나 알아야 할) 최소한의 양자역학|최소한의양자역학", "〈청소년 문학〉 소나기|소나기",
+			"<세계문학> [특별판] 데미안|데미안", "이기적 유전자(40주년 기념판)|이기적유전자", "논어[완역]|논어",
+			"Harry Potter = 해리 포터|harrypotter", "茶가일상 : 차 한잔에|茶가일상", "브랜드 코드 : 베타라이프 : 인사이트|브랜드코드",
+			"그래서 지금 기분은 어때요?|그래서지금기분은어때요", "ＡＢＣ, 그리고 D!|abc그리고d", "책|책" })
+	void pickTitleKeyIsMainTitleWithoutSymbols(String title, String key) { // ADR-0090, plan kpipa.md 4절
+		assertThat(CatalogText.pickTitleKey(title)).isEqualTo(key);
+	}
+
+	@Test
+	void pickTitleKeyIsEmptyWhenNothingIsLeft() {
+		assertThat(CatalogText.pickTitleKey(null)).isEmpty();
+		assertThat(CatalogText.pickTitleKey("(세트)")).isEmpty();
+		assertThat(CatalogText.pickTitleKey(" : 부제만")).isEmpty();
+		assertThat(CatalogText.pickTitleKey("!!!")).isEmpty();
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "김선지 지음|김선지", "애너 퀸들런 소설 ;김지현 옮김|애너퀸들런",
+			"크리스티나 베른트 지음 ;추미란 옮김|크리스티나베른트", "프랑크 베르스트라테,셀린 브뢰카에르트 지음 ;최진영 옮김|프랑크베르스트라테",
+			"지은이: 오서|오서", "조슈아 플레처 ;옮긴이: 정지인|조슈아플레처", "오윤희|오윤희", "대니얼 R. 브룩스,살바토레 J. 에이고스타 지음|대니얼r브룩스",
+			"공저: 최신한,김진식,공병혜|최신한", "홍길동 글그림|홍길동", "홍길동 외 2명 지음|홍길동" })
+	void firstNameExactIsTheFirstPerson(String author, String name) { // ADR-0090
+		assertThat(Contributors.firstNameExact(author)).isEqualTo(name);
+	}
+
+	@Test
+	void firstNameExactIsNullWithoutAPerson() {
+		assertThat(Contributors.firstNameExact(null)).isNull();
+		assertThat(Contributors.firstNameExact("  ")).isNull();
+		assertThat(Contributors.firstNameExact(";옮긴이: 정지인")).isNull();
+	}
+
 	@Test
 	void searchWordsAreSplitOnSpacesAndNormalized() {
 		assertThat(CatalogText.words("  행동   경제학 ")).containsExactly("행동", "경제학");

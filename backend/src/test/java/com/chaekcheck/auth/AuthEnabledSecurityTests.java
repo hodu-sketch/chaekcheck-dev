@@ -26,8 +26,8 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chaekcheck.popular.PopularTestData;
-import com.chaekcheck.popular.internal.cache.PopularCache;
+import com.chaekcheck.picks.PicksTestData;
+import com.chaekcheck.picks.internal.cache.PicksCache;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -65,7 +65,7 @@ class AuthEnabledSecurityTests {
 	ApplicationContext context;
 
 	@Autowired
-	PopularCache popularCache;
+	PicksCache picksCache;
 
 	@Test
 	void hasOneFilterChainAndNoGeneratedUser() {
@@ -73,19 +73,20 @@ class AuthEnabledSecurityTests {
 		assertThat(context.getBeanNamesForType(UserDetailsService.class)).isEmpty();
 	}
 
-	/** Cycle 10 R7-3 (AC-16): popular books and covers need no login, and their Cache-Control stays. */
+	/** Cycle 14 R7-3 (AC-16): librarian picks and covers need no login, and their Cache-Control stays. */
 	@Test
-	void popularBooksNeedNoLogin() {
-		PopularTestData data = new PopularTestData(jdbc);
-		data.month();
-		long cover = data.cover(1, "/files/isbn/2026/07/06/s_t1.jpg");
-		popularCache.refresh();
+	void picksNeedNoLogin() {
+		PicksTestData data = new PicksTestData(jdbc);
+		data.run();
+		data.pick("20260922163135829100", "11", "어문학", "2026-10", "2026-09-22", "가", null, null);
+		long cover = data.cover("20260922163135829100", "https://www.nl.go.kr/afile/fileDownload/t1");
+		picksCache.refresh();
 
-		assertThat(mvc.get().uri("/api/v1/popular-books")).hasStatusOk()
+		assertThat(mvc.get().uri("/api/v1/picks")).hasStatusOk()
 			.bodyJson()
-			.extractingPath("$.month")
-			.isEqualTo("2026-09");
-		assertThat(mvc.get().uri("/api/v1/popular-books/covers/" + cover)).hasStatusOk()
+			.extractingPath("$.fetchedAt")
+			.isEqualTo("2026-10-12T05:00:41+09:00");
+		assertThat(mvc.get().uri("/api/v1/picks/covers/" + cover)).hasStatusOk()
 			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
 	}
 

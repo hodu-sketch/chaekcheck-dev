@@ -11,8 +11,8 @@ chaekcheck:
   # login on in .env the import did not start).
   auth:
     enabled: false
-  # The import never fetches the popular books
-  popular:
+  # The import never fetches the librarian picks
+  picks:
     fetch:
       enabled: false
   collection:

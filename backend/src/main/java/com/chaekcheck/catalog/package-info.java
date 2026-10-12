@@ -3,8 +3,8 @@
  * (ADR-0031), book search on normalized fields with pg_bigm (ADR-0032), and the holdings of a book for the
  * availability module.
  * <p>
- * Finding books by ISBN (popular books): {@link com.chaekcheck.catalog.BookLookup#byIsbn13} finds our books by ISBN-13 for the
- * popular module (ADR-0074).
+ * Finding books for the librarian picks: {@link com.chaekcheck.catalog.BookLookup} finds our books by ISBN-13, then by
+ * title and first author, for the picks module (ADR-0090).
  * <p>
  * Separate import (cycle 11, ADR-0078): {@link com.chaekcheck.catalog.CatalogLoad} also exports the new tables as one
  * file on the PC and applies that file on the production database.
