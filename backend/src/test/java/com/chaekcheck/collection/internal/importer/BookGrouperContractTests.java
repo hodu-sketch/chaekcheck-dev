@@ -3,6 +3,7 @@ package com.chaekcheck.collection.internal.importer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,13 +15,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.chaekcheck.catalog.normalize.Contributors.Contributor;
+import com.chaekcheck.catalog.normalize.Isbn;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Library;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
  * What every way of grouping must give for the same rows (cycle 11, ADR-0079, {@link BookGrouper}): the books of
  * steps ①~④, the counts per step, the most common value on a tie, the order of the first row, and each row's book.
- * Every grouping runs through the same expectations ({@link #assertContract}).
+ * {@code compact} and {@code sql} run through {@link #assertContract}, which has step ④'s cycle 12 rule (ADR-0082,
+ * {@link #sameTextRows}); {@code current} keeps the old rule and runs only through {@link #assertCurrentContract}
+ * until cycle 12 Phase B decides about it (ADR-0079 addendum).
  */
 class BookGrouperContractTests {
 
@@ -68,11 +73,17 @@ class BookGrouperContractTests {
 	@ParameterizedTest(name = "{0}")
 	@MethodSource("groupings")
 	void givesTheSameBooks(String name, Supplier<BookGrouper> groupers) {
-		assertContract(groupers);
+		assertCurrentContract(groupers);
 	}
 
-	/** The expectations, for the test classes of the other groupings too. */
+	/** The expectations of the cycle 12 rule, for the test classes of {@code compact} and {@code sql}. */
 	static void assertContract(Supplier<BookGrouper> groupers) {
+		assertCurrentContract(groupers);
+		assertSameTextRules(groupers);
+	}
+
+	/** The expectations the old step ④ and the cycle 12 rule share ({@link #rows()} has no case where they differ). */
+	static void assertCurrentContract(Supplier<BookGrouper> groupers) {
 		ImportReport report = new ImportReport();
 		List<BookGrouper.Book> books = new ArrayList<>();
 		Map<Row, Long> bookOfRow = new LinkedHashMap<>();
@@ -117,6 +128,116 @@ class BookGrouperContractTests {
 				700L, 700L);
 	}
 
+	static final String NATIONAL_ISBN = "9788900000900";
+
+	/**
+	 * Step ④'s cycle 12 cases (spec R1~R4), one unit each (portal codes are not shared), so steps ①~③ join nothing:
+	 * ISBNs from the alt codes, and one from the national bibliography.
+	 */
+	static List<Row> sameTextRows() {
+		List<Row> rows = new ArrayList<>();
+		// R1: two editions, each in its own library (AC-1)
+		rows.add(row(PORTAL_A, "EBK:0", isbnCode(1), "상법총칙 상행위", "가", "박영사", LocalDate.of(2014, 2, 1)));
+		rows.add(row(PORTAL_B, "EBK:1", isbnCode(2), "상법총칙 상행위", "가", "박영사", LocalDate.of(2020, 2, 1)));
+		// R1-3: A (ISBN), B (none), C (another ISBN): three books
+		rows.add(row(PORTAL_A, "EBK:2", isbnCode(3), "셋 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "EBK:3", null, "셋 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "EBK:4", isbnCode(4), "셋 책", "가", "나", null));
+		// A, B1, B2, C: three books, B1 and B2 one
+		rows.add(row(PORTAL_A, "EBK:5", isbnCode(5), "넷 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "EBK:6", null, "넷 책", "가", "나", null));
+		rows.add(row(PORTAL_B, "EBK:7", null, "넷 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "EBK:8", isbnCode(6), "넷 책", "가", "나", null));
+		// one ISBN and none: one book, its dates 15 years apart
+		rows.add(row(PORTAL_A, "EBK:9", isbnCode(7), "하나 책", "가", "나", LocalDate.of(2000, 1, 1)));
+		rows.add(row(PORTAL_B, "EBK:10", null, "하나 책", "가", "나", LocalDate.of(2015, 1, 1)));
+		// step ③'s ISBN counts too: B gets another ISBN from the national bibliography
+		rows.add(row(PORTAL_A, "EBK:11", isbnCode(8), "국가 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "EBK:12", null, "국가 책", "가", "나", null));
+		// R2: placeholders are no value (AC-2)
+		rows.add(row(PORTAL_A, "EBK:13", null, "햄릿", "기타", "기타", null));
+		rows.add(row(PORTAL_B, "EBK:14", null, "햄릿", "기타", "기타", null));
+		// R2-4: a placeholder first author, then the real one
+		rows.add(row(PORTAL_A, "EBK:15", null, "햄릿", "기타, 셰익스피어", "민음사", null));
+		rows.add(row(PORTAL_B, "EBK:16", null, "햄릿", "셰익스피어", "민음사", null));
+		// R3: only the subtitle differs (AC-3); dates 10 years apart
+		rows.add(row(PORTAL_A, "EBK:17", null, "백만장자 마인드", "가", "율리시즈", LocalDate.of(2010, 5, 1)));
+		rows.add(row(PORTAL_B, "EBK:18", null, "백만장자 마인드 - 부를 끌어 당기는", "가", "율리시즈", LocalDate.of(2020, 5, 1)));
+		// R3-2: other volumes (AC-4)
+		rows.add(row(PORTAL_A, "EBK:19", null, "오개념 탈출 프로젝트 - 수학 1", "가", "나", null));
+		rows.add(row(PORTAL_B, "EBK:20", null, "오개념 탈출 프로젝트 - 수학 2", "가", "나", null));
+		return rows;
+	}
+
+	static void assertSameTextRules(Supplier<BookGrouper> groupers) {
+		ImportReport report = new ImportReport();
+		List<BookGrouper.Book> books = new ArrayList<>();
+		List<Long> bookOfRow = new ArrayList<>();
+		try (BookGrouper grouping = groupers.get()) {
+			for (Row row : sameTextRows()) {
+				grouping.add(row, report);
+			}
+			grouping.groupByCodes(report);
+			String nationalKey = BookGrouper.key("국가책", "가", "나");
+			assertThat(grouping.bibliographyKeys()).contains(nationalKey);
+			grouping.attachBibliography(Map.of(nationalKey, NATIONAL_ISBN), report);
+			grouping.mergeSameText(report);
+			grouping.forEachBook(book -> {
+				books.add(book);
+				return books.size() * 100L;
+			});
+			for (Row row : sameTextRows()) {
+				bookOfRow.add(grouping.bookOf(row));
+			}
+		}
+
+		assertThat(report.booksAfterPlatformCode).isEqualTo(21);
+		assertThat(report.booksAfterKyoboIsbn).isEqualTo(21);
+		assertThat(report.nationalBibliographyIsbnAttached).isEqualTo(1);
+		assertThat(report.booksAfterNationalBibliography).isEqualTo(21);
+		assertThat(report.booksAfterSameText).isEqualTo(17);
+		assertThat(report.sameTextMerged).isEqualTo(4);
+		// merge keys minus keys: 상법 +1, 셋 +2, 넷 +2, 국가 +1
+		assertThat(report.sameTextIsbnSplit).isEqualTo(6);
+		assertThat(report.sameTextPlaceholderNoKey).isEqualTo(2);
+		// in the order of the books' first groups
+		assertThat(report.sameTextWideDates).isEqualTo(2);
+		assertThat(report.sameTextWideDateSamples).containsExactly("2000-01-01~2015-01-01 하나 책 / 가 / 나",
+				"2010-05-01~2020-05-01 백만장자 마인드 / 가 / 율리시즈");
+
+		assertThat(books).extracting(BookGrouper.Book::title)
+			.containsExactly("상법총칙 상행위", "상법총칙 상행위", "셋 책", "셋 책", "셋 책", "넷 책", "넷 책", "넷 책", "하나 책", "국가 책",
+					"국가 책", "햄릿", "햄릿", "햄릿", "백만장자 마인드", "오개념 탈출 프로젝트 - 수학 1", "오개념 탈출 프로젝트 - 수학 2");
+		assertThat(bookOfRow).containsExactly(100L, 200L, 300L, 400L, 500L, 600L, 700L, 700L, 800L, 900L, 900L, 1000L,
+				1100L, 1200L, 1300L, 1400L, 1400L, 1500L, 1500L, 1600L, 1700L);
+		// each edition with its own library and ISBN
+		assertThat(books.get(0).libraryIds()).containsExactly(3);
+		assertThat(books.get(1).libraryIds()).containsExactly(4);
+		assertThat(books.get(0).isbn13()).isEqualTo(isbnOf(1));
+		assertThat(books.get(1).isbn13()).isEqualTo(isbnOf(2));
+		assertThat(books.get(3).isbn13()).isNull();
+		assertThat(books.get(6).isbn13()).isNull();
+		assertThat(books.get(6).libraryIds()).containsExactly(3, 4);
+		assertThat(books.get(8).isbn13()).isEqualTo(isbnOf(7));
+		assertThat(books.get(8).libraryIds()).containsExactly(3, 4);
+		assertThat(books.get(9).isbn13()).isEqualTo(isbnOf(8));
+		assertThat(books.get(10).isbn13()).isEqualTo(NATIONAL_ISBN);
+		// the placeholders stay for display (R2-3)
+		assertThat(books.get(11).authorDisplay()).isEqualTo("기타");
+		assertThat(books.get(11).publisher()).isEqualTo("기타");
+		assertThat(books.get(11).contributors()).extracting(Contributor::name).containsExactly("기타");
+		assertThat(books.get(13).libraryIds()).containsExactly(3, 4);
+	}
+
+	/** A Kyobo-style code whose paper ISBN is {@link #isbnOf}(n). */
+	static String isbnCode(int n) {
+		return kyoboCode("8900001" + String.format("%02d", n));
+	}
+
+	static String isbnOf(int n) {
+		return Isbn.fromKyoboCode(isbnCode(n)).isbn13();
+	}
+
 	/** {@code 480} + t + the ISBN-13 check digit of {@code 978} + t ({@code Isbn.fromKyoboCode}). */
 	static String kyoboCode(String t) {
 		String body = "978" + t;
@@ -134,7 +255,12 @@ class BookGrouperContractTests {
 
 	private static Row row(Library library, String itemKey, String altCode, String title, String author,
 			String publisher) {
-		return new Row(library, itemKey, "https://lib.test/" + itemKey, "EBOOK", title, author, publisher, null, null,
+		return row(library, itemKey, altCode, title, author, publisher, null);
+	}
+
+	private static Row row(Library library, String itemKey, String altCode, String title, String author,
+			String publisher, LocalDate date) {
+		return new Row(library, itemKey, "https://lib.test/" + itemKey, "EBOOK", title, author, publisher, null, date,
 				null, altCode, Instant.parse("2026-10-01T00:00:00Z"));
 	}
 

@@ -53,6 +53,18 @@ final class ImportReport {
 	/** Groups that step ④ merged into another group. */
 	long sameTextMerged;
 
+	/**
+	 * Books step ④ kept apart by their ISBNs (cycle 12, R1): merge keys minus same-text keys, where a key with two or
+	 * more distinct ISBNs has one merge key per ISBN and one for its groups without an ISBN. Log only.
+	 */
+	long sameTextIsbnSplit;
+
+	/**
+	 * Groups without a same-text key only because their author or publisher is a placeholder (cycle 12, R2):
+	 * {@link SameTextKey.Key#placeholderOnly()}. Log only.
+	 */
+	long sameTextPlaceholderNoKey;
+
 	/** Merged books whose groups' dates are 2+ years apart (maybe different editions). */
 	long sameTextWideDates;
 
@@ -134,7 +146,7 @@ final class ImportReport {
 				  placeholder dates cleared: %d
 				  kyobo codes: %s
 				  books after (1) platform code: %d, (2) kyobo ISBN: %d, (3) national bibliography: %d, (4) same text: %d
-				  (4) same text: groups merged %d, merged books with dates 2+ years apart %d
+				  (4) same text: groups merged %d, kept apart by ISBN %d, no key for a placeholder %d, merged books with dates 2+ years apart %d
 				  national bibliography: rows (one per record ISBN) %d (%s), ISBN attached %d, ambiguous keys %d
 				  written: books %d, contributors %d, holdings %d
 				  book ids: kept %d, new %d, dropped %d
@@ -143,7 +155,7 @@ final class ImportReport {
 			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, candidateLibraries,
 					librariesWithoutFullSuccess, librariesNotInService, librariesBaseUrlMismatch, placeholderDatesCleared,
 					kyoboCodes, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
-					booksAfterSameText, sameTextMerged, sameTextWideDates, nationalBibliographyRecords,
+					booksAfterSameText, sameTextMerged, sameTextIsbnSplit, sameTextPlaceholderNoKey, sameTextWideDates, nationalBibliographyRecords,
 					nationalBibliographyReused ? "from the stored table" : "from the TTL files",
 					nationalBibliographyIsbnAttached, nationalBibliographyAmbiguous, books, contributors, holdings,
 					keptBookIds, newBookIds, droppedBookIds,

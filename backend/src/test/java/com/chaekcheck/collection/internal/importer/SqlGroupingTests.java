@@ -28,9 +28,10 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Library;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
- * The grouping {@code sql} ({@link SqlGrouping}, cycle 11 step 10) against db-test: the shared contract, then the
- * same books, rows, counts and samples as {@link BookGrouping} for random rows, a long chain of ISBN links, a tie
- * between characters whose UTF-16 and code point orders differ, and the pass limit. Only temporary tables are used,
+ * The grouping {@code sql} ({@link SqlGrouping}, cycle 11 step 10) against db-test: the shared contract (with step
+ * ④'s cycle 12 rule), then the same books, rows, counts and samples as {@link CompactGrouping} for random rows, a
+ * long chain of ISBN links, a tie between characters whose UTF-16 and code point orders differ, the merge keys of a
+ * key with 0, 1 and 2 ISBNs, and the pass limit. Only temporary tables are used,
  * so nothing is left behind and other tests are not touched.
  */
 @SpringBootTest
@@ -46,9 +47,9 @@ class SqlGroupingTests {
 
 	@ParameterizedTest(name = "seed {0}")
 	@ValueSource(longs = { 1, 2, 3, 4, 5, 6, 7, 8 })
-	void givesWhatCurrentGives(long seed) {
+	void givesWhatCompactGives(long seed) {
 		List<Row> rows = randomRows(new Random(seed), 1500);
-		Result current = run(BookGrouping::new, rows, seed);
+		Result current = run(CompactGrouping::new, rows, seed);
 		long started = System.nanoTime();
 		Result sql = run(() -> new SqlGrouping(dataSource), rows, seed);
 		System.out.printf("seed %d: %d rows, %d books, sql %d ms, passes %s, wide %d%n", seed, rows.size(),
@@ -59,6 +60,8 @@ class SqlGroupingTests {
 		assertThat(current.report.nationalBibliographyIsbnAttached).isPositive();
 		assertThat(current.report.booksAfterNationalBibliography).isLessThan(current.report.booksAfterKyoboIsbn);
 		assertThat(current.report.sameTextMerged).isPositive();
+		assertThat(current.report.sameTextIsbnSplit).isPositive();
+		assertThat(current.report.sameTextPlaceholderNoKey).isPositive();
 	}
 
 	@Test
@@ -70,7 +73,7 @@ class SqlGroupingTests {
 			rows.add(row(KYOBO, "K" + i, isbnCode(i), "책 " + i, "가", "나", null));
 			rows.add(row(YES24, "K" + i, isbnCode(i + 1), "책 " + i, "가", "나", null));
 		}
-		Result current = run(BookGrouping::new, rows, 0);
+		Result current = run(CompactGrouping::new, rows, 0);
 		Result sql = run(() -> new SqlGrouping(dataSource), rows, 0);
 		System.out.printf("chain of %d units: passes %s%n", units, sql.passes);
 		assertSame(sql, current);
@@ -95,7 +98,7 @@ class SqlGroupingTests {
 
 	/**
 	 * U+1F600 is {@code D83D DE00} in UTF-16 and U+FF21 is {@code FF21}: Java orders the emoji first, PostgreSQL's C
-	 * collation (code points) the other way. A tie between them goes to the emoji, as in {@link BookGrouping}.
+	 * collation (code points) the other way. A tie between them goes to the emoji, as in Java.
 	 */
 	@Test
 	void breaksTiesInJavaOrder() {
@@ -105,7 +108,7 @@ class SqlGroupingTests {
 				row(YES24, "K1", null, emoji, "😀", "Ａ", null),
 				row(PORTAL_A, "P1", null, "", "가", "나", null),
 				row(PORTAL_A, "P1", null, "𐀀", "가", "나", null));
-		Result current = run(BookGrouping::new, rows, 0);
+		Result current = run(CompactGrouping::new, rows, 0);
 		Result sql = run(() -> new SqlGrouping(dataSource), rows, 0);
 		assertSame(sql, current);
 		assertThat(sql.books.get(0).get(0)).isEqualTo(emoji);
@@ -114,29 +117,30 @@ class SqlGroupingTests {
 		assertThat(sql.books.get(1).get(0)).isEqualTo("𐀀");
 	}
 
-	/** {@link SqlGrouping#hashMapOrder} gives the order a real {@link HashMap} filled by computeIfAbsent gives. */
-	@ParameterizedTest(name = "seed {0}")
-	@ValueSource(longs = { 1, 2, 3, 4, 5 })
-	void ordersLikeAHashMap(long seed) {
-		Random random = new Random(seed);
-		int calls = 50 + random.nextInt(5000);
-		List<String> keyPool = new ArrayList<>();
-		for (int i = 0; i < 1 + random.nextInt(calls); i++) {
-			keyPool.add("key " + random.nextInt(1_000_000) + " " + i);
-		}
-		Map<String, LocalDate[]> map = new HashMap<>();
-		Map<String, Integer> firstCall = new HashMap<>();
-		int lastSizeBefore = 0;
-		for (int call = 0; call < calls; call++) {
-			String key = keyPool.get(random.nextInt(keyPool.size()));
-			lastSizeBefore = map.size();
-			map.computeIfAbsent(key, k -> new LocalDate[0]);
-			firstCall.putIfAbsent(key, call);
-		}
-		List<SqlGrouping.WideKey> keys = new ArrayList<>();
-		map.keySet().forEach(key -> keys.add(new SqlGrouping.WideKey(key.hashCode(), firstCall.get(key), key)));
-		assertThat(SqlGrouping.hashMapOrder(keys, lastSizeBefore)).extracting(SqlGrouping.WideKey::line)
-			.containsExactlyElementsOf(new ArrayList<>(map.keySet()));
+	/**
+	 * One key with 0, 1 and 2 distinct ISBNs (cycle 12 R1, R1-3): the merge key is the key alone up to one ISBN, then
+	 * the key and the group's ISBN, so the books are the ones {@link CompactGrouping} gives.
+	 */
+	@Test
+	void splitsAKeyByItsIsbnsAsJavaDoes() {
+		List<Row> rows = new ArrayList<>();
+		// no ISBN: one book
+		rows.add(row(PORTAL_A, "P0", null, "영 책", "가", "나", null));
+		rows.add(row(PORTAL_B, "P0", null, "영 책", "가", "나", null));
+		// one ISBN: one book
+		rows.add(row(PORTAL_A, "P1", isbnCode(1), "일 책", "가", "나", null));
+		rows.add(row(PORTAL_B, "P1", null, "일 책", "가", "나", null));
+		// two ISBNs: each its own book, the groups without one a third
+		rows.add(row(PORTAL_A, "P2", isbnCode(2), "이 책", "가", "나", null));
+		rows.add(row(PORTAL_B, "P2", null, "이 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "P3", isbnCode(3), "이 책", "가", "나", null));
+		rows.add(row(PORTAL_A, "P4", null, "이 책", "가", "나", null));
+		Result compact = run(CompactGrouping::new, rows, 0);
+		Result sql = run(() -> new SqlGrouping(dataSource), rows, 0);
+		assertSame(sql, compact);
+		assertThat(sql.bookOfRow).containsExactly(1007L, 1007L, 1014L, 1014L, 1021L, 1028L, 1035L, 1028L);
+		assertThat(sql.report.sameTextIsbnSplit).isEqualTo(2);
+		assertThat(sql.report.sameTextMerged).isEqualTo(3);
 	}
 
 	// --- running a grouping -----------------------------------------------------------------------------------------
@@ -196,7 +200,8 @@ class SqlGroupingTests {
 
 	static List<Object> counts(ImportReport r) {
 		return List.of(r.booksAfterPlatformCode, r.booksAfterKyoboIsbn, r.booksAfterNationalBibliography,
-				r.booksAfterSameText, r.sameTextMerged, r.sameTextWideDates, r.sameTextWideDateSamples,
+				r.booksAfterSameText, r.sameTextMerged, r.sameTextIsbnSplit, r.sameTextPlaceholderNoKey,
+				r.sameTextWideDates, r.sameTextWideDateSamples,
 				r.nationalBibliographyIsbnAttached, r.kyoboCodes);
 	}
 
@@ -215,11 +220,13 @@ class SqlGroupingTests {
 	static final List<Library> LIBRARIES = List.of(KYOBO, YES24, PORTAL_A, PORTAL_B, BOOKCUBE);
 
 	static final String[] TITLES = { "작별하지 않는다", "작별하지 않는다 : 특별판", "포털 책", "포털 책(개정판)", "같은 책",
-			"Same Book", "same book", "😀 책", "Ａ 책", "한 줄\t제목" };
+			"Same Book", "same book", "😀 책", "Ａ 책", "한 줄\t제목", "같은 책 1", "같은 책 01", "같은 책 - 상",
+			"[시리즈 2] 같은 책", "같은 책 : 부제" };
 
-	static final String[] AUTHORS = { "한강 저", "한강 지음", "가", "가, 나 공저", "나 옮김", null, "", "  " };
+	static final String[] AUTHORS = { "한강 저", "한강 지음", "가", "가, 나 공저", "나 옮김", null, "", "  ", "기타",
+			"기타, 가", "Unknown" };
 
-	static final String[] PUBLISHERS = { "문학동네", "(주)문학동네", "나", "다", null, " " };
+	static final String[] PUBLISHERS = { "문학동네", "(주)문학동네", "나", "다", null, " ", "기타", "미상" };
 
 	static final String[] CONTENT_TYPES = { "EBOOK", "AUDIOBOOK", null };
 
@@ -237,9 +244,17 @@ class SqlGroupingTests {
 				default -> "EBK:" + random.nextInt(300);
 			};
 			String altCode = random.nextInt(3) == 0 ? isbnCode(random.nextInt(40)) : null;
-			rows.add(new Row(library, itemKey, "https://lib.test/" + itemKey, pick(random, CONTENT_TYPES),
-					pick(random, TITLES), pick(random, AUTHORS), pick(random, PUBLISHERS), null, pick(random, DATES), null,
-					altCode, Instant.parse("2026-10-01T00:00:00Z")));
+			String title = pick(random, TITLES);
+			String author = pick(random, AUTHORS);
+			String publisher = pick(random, PUBLISHERS);
+			if (random.nextInt(12) == 0) {
+				// one text in several editions: step ④ splits it by ISBN (cycle 12 R1)
+				title = "판 책";
+				author = "한강 저";
+				publisher = "문학동네";
+			}
+			rows.add(new Row(library, itemKey, "https://lib.test/" + itemKey, pick(random, CONTENT_TYPES), title,
+					author, publisher, null, pick(random, DATES), null, altCode, Instant.parse("2026-10-01T00:00:00Z")));
 		}
 		return rows;
 	}

@@ -17,8 +17,8 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
  * The grouping {@code compact} (cycle 11, ADR-0079, spec R-B2 decision 9): the same books, ids and report counts as
- * {@link BookGrouping}, with less heap. The steps and their tie rules are the ones of {@link BookGrouping}; only the
- * way the counts are kept differs.
+ * {@link SqlGrouping}, with less heap. Steps ①~③ and their tie rules are the ones of {@link BookGrouping}; step ④
+ * follows the cycle 12 rule (ADR-0082), which {@link BookGrouping} does not have yet.
  * <ul>
  * <li>No object per step-① unit: every value is a column indexed by the unit number ({@link IntColumn} and friends,
  * pages of 16K entries, so growing never copies a large array).</li>
@@ -30,8 +30,7 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * <li>The unit key {@link BookGrouper#unitKey} is not kept: a {@link KeyTable} keeps two 64-bit hashes of it (128
  * bits) and finds the unit by them. Two keys with the same 128 bits are treated as impossible: for 10 million keys the
  * chance is about n²/2¹²⁹ ≈ 10⁻²⁵.</li>
- * <li>Step ④'s keys are kept the same way, and the order of the wide-date samples, which {@link BookGrouping} takes
- * from a {@link HashMap}, is worked out from the keys' {@link String#hashCode} ({@link MapShape}).</li>
+ * <li>Step ④'s keys are kept the same way.</li>
  * </ul>
  * Rough size per unit: 16 bytes of key hash, about 6 of key table slots, 49 of first values and counts, 8 of library
  * heads, then 12 more for the union-find and the group ISBN, against several hundred bytes of objects in
@@ -53,7 +52,7 @@ final class CompactGrouping implements BookGrouper {
 
 	private static final int FIELDS = 6;
 
-	/** Step ④ samples kept in the report, as in {@link BookGrouping#mergeSameText}. */
+	/** Step ④ samples kept in the report. */
 	private static final int WIDE_DATE_SAMPLES = 40;
 
 	/** Entries per page of the columns. */
@@ -66,9 +65,6 @@ final class CompactGrouping implements BookGrouper {
 	private final KeyTable units;
 
 	private int unitCount;
-
-	/** Always rebuild the wide-date sample order with a real {@link HashMap} (tests of that path). */
-	private final boolean replaySampleOrder;
 
 	private StringPool titles = new StringPool();
 
@@ -131,13 +127,12 @@ final class CompactGrouping implements BookGrouper {
 	private final Tally tally = new Tally();
 
 	CompactGrouping() {
-		this(1 << 10, false);
+		this(1 << 10);
 	}
 
-	/** For tests: a small first key table, and the real {@link HashMap} for the sample order. */
-	CompactGrouping(int unitTableCapacity, boolean replaySampleOrder) {
+	/** For tests: a small first key table. */
+	CompactGrouping(int unitTableCapacity) {
 		this.units = new KeyTable(unitTableCapacity);
-		this.replaySampleOrder = replaySampleOrder;
 		for (int field : new int[] { TITLE, AUTHOR, PUBLISHER, DATE }) {
 			firstInts[field] = new IntColumn();
 		}
@@ -377,185 +372,110 @@ final class CompactGrouping implements BookGrouper {
 		report.booksAfterNationalBibliography = groupCount();
 	}
 
-	/** Step ④, as {@link BookGrouping#mergeSameText}; the keys are kept as 128-bit hashes. */
+	/**
+	 * Step ④ (cycle 12, ADR-0082): groups with one same-text key ({@link BookGrouper#sameTextKey}, kept as 128-bit
+	 * hashes) are joined to the first, unless the key has two or more distinct ISBNs: then a group with an ISBN stays
+	 * a book of its own and the groups without one are joined to the first of them (spec R1-3). Two passes: the first
+	 * numbers the keys and notes each key's ISBNs as the step starts, the second joins.
+	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
 		Groups groups = groups();
-		SameText keys = new SameText();
+		KeyTable keys = new KeyTable(1 << 10);
+		// per group root: its key number + 1, 0 for none
+		int[] keyOf = new int[unitCount];
+		// per key: its first ISBN, and 0 (none), 1 (one) or 2 (two or more distinct)
+		LongColumn keyIsbn = new LongColumn();
+		ByteColumn keyIsbns = new ByteColumn();
 		for (int first = 0; first < unitCount; first++) {
 			if (groups.count[first] == 0) {
 				continue;
 			}
-			int from = groups.start[first];
-			int to = groups.end(first);
-			String key = textKey(groups.members, from, to);
-			if (key == null) {
+			SameTextKey.Key key = textKey(groups.members, groups.start[first], groups.end(first));
+			if (key.key() == null) {
+				if (key.placeholderOnly()) {
+					report.sameTextPlaceholderNoKey++;
+				}
 				continue;
 			}
-			LocalDate date = dateOf(groups.members, from, to);
-			int before = keys.table.size();
-			int id = keys.table.add(key);
-			if (id < before) {
-				report.sameTextMerged++;
-				union(keys.firstUnit.get(id), first);
+			int id = keys.add(key.key());
+			keyOf[first] = id + 1;
+			long isbn = isbnOf[first];
+			if (isbn != 0) {
+				byte seen = keyIsbns.get(id);
+				// after steps ② and ③ no two groups have the same ISBN
+				assert seen != 1 || keyIsbn.get(id) != isbn : "two groups with one ISBN before step ④";
+				if (seen == 0) {
+					keyIsbn.set(id, isbn);
+					keyIsbns.set(id, (byte) 1);
+				}
+				else if (seen == 1 && keyIsbn.get(id) != isbn) {
+					keyIsbns.set(id, (byte) 2);
+				}
+			}
+		}
+		// a merge: the groups joined into one book, numbered in the order of their first group
+		IntColumn mergeOfKey = new IntColumn();
+		IntColumn mergeFirst = new IntColumn();
+		IntColumn minDay = new IntColumn();
+		IntColumn maxDay = new IntColumn();
+		ByteColumn dated = new ByteColumn();
+		int merges = 0;
+		for (int first = 0; first < unitCount; first++) {
+			int id = keyOf[first] - 1;
+			if (id < 0) {
+				continue;
+			}
+			int merge;
+			if (keyIsbns.get(id) == 2 && isbnOf[first] != 0) {
+				merge = merges++;
+				mergeFirst.set(merge, first);
+			}
+			else if (mergeOfKey.get(id) == 0) {
+				merge = merges++;
+				mergeFirst.set(merge, first);
+				mergeOfKey.set(id, merge + 1);
 			}
 			else {
-				keys.firstUnit.set(id, first);
+				merge = mergeOfKey.get(id) - 1;
+				report.sameTextMerged++;
+				union(mergeFirst.get(merge), first);
 			}
+			LocalDate date = dateOf(groups.members, groups.start[first], groups.end(first));
 			if (date != null) {
-				keys.addDate(id, Math.toIntExact(date.toEpochDay()), key.hashCode());
-			}
-		}
-		// merged books whose editions may differ: their groups' dates are 2+ years apart [확인 필요: 표본]
-		int[] wide = new int[16];
-		int wideCount = 0;
-		for (int i = 0; i < keys.datedCount; i++) {
-			int id = keys.datedOrder.get(i);
-			if (keys.wide(id)) {
-				if (wideCount == wide.length) {
-					wide = Arrays.copyOf(wide, wideCount * 2);
+				int day = Math.toIntExact(date.toEpochDay());
+				if (dated.get(merge) == 0) {
+					dated.set(merge, (byte) 1);
+					minDay.set(merge, day);
+					maxDay.set(merge, day);
 				}
-				wide[wideCount++] = i;
+				else {
+					minDay.set(merge, Math.min(minDay.get(merge), day));
+					maxDay.set(merge, Math.max(maxDay.get(merge), day));
+				}
 			}
 		}
-		report.sameTextWideDates += wideCount;
-		int take = Math.min(wideCount, WIDE_DATE_SAMPLES - report.sameTextWideDateSamples.size());
-		if (take > 0) {
-			for (int i : wideDateSampleOrder(keys, Arrays.copyOf(wide, wideCount), take, groups)) {
-				int id = keys.datedOrder.get(i);
-				int from = groups.start[keys.firstUnit.get(id)];
-				int to = groups.end(keys.firstUnit.get(id));
-				report.sameTextWideDateSamples.add(LocalDate.ofEpochDay(keys.minDay.get(id)) + "~"
-						+ LocalDate.ofEpochDay(keys.maxDay.get(id)) + " " + text(TITLE, titles, groups.members, from, to)
+		report.sameTextIsbnSplit += merges - keys.size();
+		// merged books whose editions may differ: their groups' dates are 2+ years apart [확인 필요: 표본]; the
+		// samples in the order of the books' first groups
+		for (int merge = 0; merge < merges; merge++) {
+			if (dated.get(merge) == 0 || !LocalDate.ofEpochDay(minDay.get(merge))
+				.plusYears(2)
+				.isBefore(LocalDate.ofEpochDay(maxDay.get(merge)))) {
+				continue;
+			}
+			report.sameTextWideDates++;
+			if (report.sameTextWideDateSamples.size() < WIDE_DATE_SAMPLES) {
+				int first = mergeFirst.get(merge);
+				int from = groups.start[first];
+				int to = groups.end(first);
+				report.sameTextWideDateSamples.add(LocalDate.ofEpochDay(minDay.get(merge)) + "~"
+						+ LocalDate.ofEpochDay(maxDay.get(merge)) + " " + text(TITLE, titles, groups.members, from, to)
 						+ " / " + text(AUTHOR, authors, groups.members, from, to) + " / "
 						+ text(PUBLISHER, publishers, groups.members, from, to));
 			}
 		}
 		report.booksAfterSameText = groupCount();
-	}
-
-	/**
-	 * The first {@code take} wide keys (indexes into the dated order) in the order {@link BookGrouping} meets them:
-	 * the iteration order of its {@link HashMap} filled by {@link HashMap#computeIfAbsent}, whose shape
-	 * {@link MapShape} followed. When a bin whose order matters became a tree, the order is taken from a real
-	 * {@link HashMap} filled again by the same calls.
-	 */
-	private int[] wideDateSampleOrder(SameText keys, int[] wide, int take, Groups groups) {
-		MapShape shape = keys.shape;
-		long[] sorted = new long[wide.length];
-		for (int j = 0; j < wide.length; j++) {
-			sorted[j] = shape.sortKey(wide[j]);
-		}
-		Arrays.sort(sorted);
-		int[] order = new int[take];
-		boolean ordered = !replaySampleOrder;
-		for (int p = 0; p < take; p++) {
-			order[p] = MapShape.index(sorted[p]);
-			int bucket = (int) (sorted[p] >>> 32);
-			boolean shared = p > 0 && (int) (sorted[p - 1] >>> 32) == bucket
-					|| p + 1 < sorted.length && (int) (sorted[p + 1] >>> 32) == bucket;
-			ordered &= !shared || shape.listBin(bucket);
-		}
-		if (ordered) {
-			return order;
-		}
-		// the same calls as BookGrouping#mergeSameText: one per group with a key and a date
-		Map<String, Integer> replay = new HashMap<>();
-		for (int first = 0; first < unitCount; first++) {
-			if (groups.count[first] == 0) {
-				continue;
-			}
-			String key = textKey(groups.members, groups.start[first], groups.end(first));
-			if (key != null && dateOf(groups.members, groups.start[first], groups.end(first)) != null) {
-				replay.computeIfAbsent(key, k -> keys.dated.get(keys.table.find(k)) - 1);
-			}
-		}
-		int at = 0;
-		for (int i : replay.values()) {
-			if (at < take && keys.wide(keys.datedOrder.get(i))) {
-				order[at++] = i;
-			}
-		}
-		return order;
-	}
-
-	/**
-	 * The shape of a {@code new HashMap<>()} filled by {@link HashMap#computeIfAbsent} (JDK 25), followed call by call
-	 * from the keys' {@link String#hashCode}: a call first doubles the table when it holds more than 3/4 (from 16
-	 * buckets); a new key goes to the front of its bin; a new key finding 7 or more keys in its bin makes the bin a tree
-	 * from 64 buckets on, and doubles the table below 64. Doubling keeps the order inside a bin. So, except in bins
-	 * that became trees, the iteration order is by bucket, then newest key first.
-	 */
-	static final class MapShape {
-
-		private final IntColumn hashes = new IntColumn();
-
-		private int size;
-
-		private int capacity;
-
-		/** Keys per bin, up to 127. */
-		private byte[] bins;
-
-		/** Bins made trees: capacity then bucket. */
-		private final List<long[]> trees = new ArrayList<>();
-
-		/** One {@code computeIfAbsent} call; {@code added} when the key was not in the map. */
-		void call(int hashCode, boolean added) {
-			if (bins == null || size > capacity / 4 * 3) {
-				resize();
-			}
-			if (!added) {
-				return;
-			}
-			hashes.set(size, hashCode);
-			int bin = bucket(size, capacity);
-			int before = bins[bin];
-			bins[bin] = (byte) Math.min(127, before + 1);
-			size++;
-			if (before >= 7) {
-				if (capacity < 64) {
-					resize();
-				}
-				else {
-					trees.add(new long[] { capacity, bin });
-				}
-			}
-		}
-
-		/** Iteration order key of the key added {@code index}-th (from 0): bucket, then newest first. */
-		long sortKey(int index) {
-			return (long) bucket(index, capacity) << 32 | Integer.MAX_VALUE - index;
-		}
-
-		static int index(long sortKey) {
-			return Integer.MAX_VALUE - (int) sortKey;
-		}
-
-		/** Whether the bin of a bucket (of the final table) never was a tree, so its order is newest first. */
-		boolean listBin(int bucket) {
-			for (long[] tree : trees) {
-				if ((bucket & tree[0] - 1) == tree[1]) {
-					return false;
-				}
-			}
-			return true;
-		}
-
-		private int bucket(int index, int tableCapacity) {
-			int h = hashes.get(index);
-			return (h ^ h >>> 16) & tableCapacity - 1;
-		}
-
-		private void resize() {
-			capacity = bins == null ? 16 : capacity * 2;
-			bins = new byte[capacity];
-			for (int i = 0; i < size; i++) {
-				int bin = bucket(i, capacity);
-				bins[bin] = (byte) Math.min(127, bins[bin] + 1);
-			}
-		}
-
 	}
 
 	/** Gives every book to {@code sink} in the order of its first row, then frees all but what {@link #bookOf} needs. */
@@ -639,11 +559,10 @@ final class CompactGrouping implements BookGrouper {
 		return Arrays.copyOf(ids, distinct);
 	}
 
-	/** Same-text key (step ④): whole title, first author, publisher. */
-	private String textKey(int[] members, int from, int to) {
-		return BookGrouper.key(CatalogText.titleNorm(text(TITLE, titles, members, from, to)),
-				BookGrouper.firstAuthor(Contributors.parse(text(AUTHOR, authors, members, from, to))),
-				CatalogText.publisherNorm(text(PUBLISHER, publishers, members, from, to)));
+	/** Same-text key (step ④) of a group's most common title, author and publisher. */
+	private SameTextKey.Key textKey(int[] members, int from, int to) {
+		return BookGrouper.sameTextKey(text(TITLE, titles, members, from, to), text(AUTHOR, authors, members, from, to),
+				text(PUBLISHER, publishers, members, from, to));
 	}
 
 	/** National bibliography key (step ③): main title, first author, publisher. */
@@ -806,48 +725,6 @@ final class CompactGrouping implements BookGrouper {
 			i = next;
 		}
 		return root;
-	}
-
-	/** Step ④'s keys: per key its first group, its dates, and the order of the first dated group. */
-	private static final class SameText {
-
-		final KeyTable table = new KeyTable(1 << 10);
-
-		final IntColumn firstUnit = new IntColumn();
-
-		final IntColumn minDay = new IntColumn();
-
-		final IntColumn maxDay = new IntColumn();
-
-		/** Per key: its index in {@link #datedOrder} + 1; 0 when no group had a date. */
-		final IntColumn dated = new IntColumn();
-
-		final IntColumn datedOrder = new IntColumn();
-
-		int datedCount;
-
-		/** The shape of {@link BookGrouping}'s map of date ranges, for the order of the samples. */
-		final MapShape shape = new MapShape();
-
-		void addDate(int id, int day, int hashCode) {
-			boolean added = dated.get(id) == 0;
-			shape.call(hashCode, added);
-			if (added) {
-				datedOrder.set(datedCount, id);
-				dated.set(id, ++datedCount);
-				minDay.set(id, day);
-				maxDay.set(id, day);
-			}
-			else {
-				minDay.set(id, Math.min(minDay.get(id), day));
-				maxDay.set(id, Math.max(maxDay.get(id), day));
-			}
-		}
-
-		boolean wide(int id) {
-			return LocalDate.ofEpochDay(minDay.get(id)).plusYears(2).isBefore(LocalDate.ofEpochDay(maxDay.get(id)));
-		}
-
 	}
 
 	/**

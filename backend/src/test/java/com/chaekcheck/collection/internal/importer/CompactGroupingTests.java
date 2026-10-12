@@ -24,15 +24,16 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Library;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
- * The grouping {@code compact} (cycle 11, ADR-0079): the contract of every grouping, its 128-bit key table, and the
- * same result as {@link BookGrouping} for random rows.
+ * The grouping {@code compact} (cycle 11, ADR-0079): the contract of every grouping (with step ④'s cycle 12 rule),
+ * its 128-bit key table, and the same result with a key table that starts tiny for random rows. The same result as
+ * {@code sql} for random rows is checked in {@link SqlGroupingTests} (db-test).
  */
 class CompactGroupingTests {
 
 	@Test
 	void followsTheContract() {
 		BookGrouperContractTests.assertContract(CompactGrouping::new);
-		BookGrouperContractTests.assertContract(() -> new CompactGrouping(2, true));
+		BookGrouperContractTests.assertContract(() -> new CompactGrouping(2));
 	}
 
 	@Test
@@ -75,83 +76,25 @@ class CompactGroupingTests {
 		assertThat(table.find(33L, 600L)).isEqualTo(-1);
 	}
 
-	@Test
-	void mapShapeGivesTheOrderOfComputeIfAbsent() {
-		int treeKeys = 0;
-		for (long seed = 0; seed < 30; seed++) {
-			Random random = new Random(seed);
-			int distinct = 1 + random.nextInt(seed < 20 ? 3000 : 120);
-			List<String> pool = new ArrayList<>();
-			for (int i = 0; i < distinct; i++) {
-				// "Aa" and "BB" have the same hashCode: some keys share one, so some bins become trees
-				pool.add(random.nextInt(4) == 0 ? collidingText(random) : "key " + random.nextInt(1_000_000));
-			}
-			Map<String, Integer> map = new HashMap<>();
-			CompactGrouping.MapShape shape = new CompactGrouping.MapShape();
-			for (int call = 0; call < distinct * 2; call++) {
-				String key = pool.get(random.nextInt(pool.size()));
-				boolean added = !map.containsKey(key);
-				int index = map.size();
-				map.computeIfAbsent(key, k -> index);
-				shape.call(key.hashCode(), added);
-			}
-			long[] sorted = map.values().stream().mapToLong(shape::sortKey).sorted().toArray();
-			List<Integer> expected = new ArrayList<>(map.values());
-			for (int p = 0; p < sorted.length; p++) {
-				if (shape.listBin((int) (sorted[p] >>> 32))) {
-					assertThat(CompactGrouping.MapShape.index(sorted[p])).as("seed %d position %d", seed, p)
-						.isEqualTo(expected.get(p));
-				}
-				else {
-					treeKeys++;
-				}
-			}
-		}
-		assertThat(treeKeys).isPositive();
-	}
-
-	private static String collidingText(Random random) {
-		StringBuilder text = new StringBuilder();
-		for (int i = 0; i < 4; i++) {
-			text.append(random.nextBoolean() ? "Aa" : "BB");
-		}
-		return text.toString();
-	}
-
 	@ParameterizedTest
 	@ValueSource(longs = { 1, 2, 3, 42, 2026 })
-	void givesWhatTheCurrentGroupingGives(long seed) {
+	void givesTheSameWithATinyKeyTable(long seed) {
 		List<Row> rows = randomRows(new Random(seed), 4000);
 		Map<String, String> isbns = new HashMap<>();
-		Result current = run(BookGrouping::new, rows, isbns, new Random(seed));
-		assertThat(current.report.sameTextMerged).isPositive();
-		assertThat(current.report.nationalBibliographyIsbnAttached).isPositive();
-		assertThat(current.report.sameTextWideDateSamples).hasSize(40);
-		assertThat(current.report.booksAfterKyoboIsbn).isLessThan(current.report.booksAfterPlatformCode);
+		Result first = run(CompactGrouping::new, rows, isbns, new Random(seed));
+		// the random rows reach every step and every branch of step ④
+		assertThat(first.report.booksAfterKyoboIsbn).isLessThan(first.report.booksAfterPlatformCode);
+		assertThat(first.report.nationalBibliographyIsbnAttached).isPositive();
+		assertThat(first.report.sameTextMerged).isPositive();
+		assertThat(first.report.sameTextIsbnSplit).isPositive();
+		assertThat(first.report.sameTextPlaceholderNoKey).isPositive();
+		assertThat(first.report.sameTextWideDateSamples).hasSize(40);
 
-		for (Supplier<BookGrouper> compact : List.<Supplier<BookGrouper>>of(CompactGrouping::new,
-				() -> new CompactGrouping(2, true))) {
-			Result result = run(compact, rows, isbns, new Random(seed));
-			assertThat(result.keys).isEqualTo(current.keys);
-			assertThat(result.books).isEqualTo(current.books);
-			assertThat(result.bookOf).isEqualTo(current.bookOf);
-			assertThat(counts(result.report)).isEqualTo(counts(current.report));
-		}
-	}
-
-	@Test
-	void givesWhatTheCurrentGroupingGivesForFewRows() {
-		for (long seed = 100; seed < 140; seed++) {
-			List<Row> rows = randomRows(new Random(seed), 30 + (int) (seed % 7) * 25);
-			Result current = run(BookGrouping::new, rows, new HashMap<>(), new Random(seed));
-			for (Supplier<BookGrouper> compact : List.<Supplier<BookGrouper>>of(CompactGrouping::new,
-					() -> new CompactGrouping(2, true))) {
-				Result result = run(compact, rows, new HashMap<>(), new Random(seed));
-				assertThat(result.books).isEqualTo(current.books);
-				assertThat(result.bookOf).isEqualTo(current.bookOf);
-				assertThat(counts(result.report)).isEqualTo(counts(current.report));
-			}
-		}
+		Result result = run(() -> new CompactGrouping(2), rows, isbns, new Random(seed));
+		assertThat(result.keys).isEqualTo(first.keys);
+		assertThat(result.books).isEqualTo(first.books);
+		assertThat(result.bookOf).isEqualTo(first.bookOf);
+		assertThat(counts(result.report)).isEqualTo(counts(first.report));
 	}
 
 	private record Result(Set<String> keys, List<List<Object>> books, List<Long> bookOf, ImportReport report) {
@@ -205,7 +148,8 @@ class CompactGroupingTests {
 	private static List<Object> counts(ImportReport report) {
 		return Arrays.asList(report.booksAfterPlatformCode, report.booksAfterKyoboIsbn,
 				report.booksAfterNationalBibliography, report.booksAfterSameText, report.sameTextMerged,
-				report.sameTextWideDates, report.sameTextWideDateSamples, report.nationalBibliographyIsbnAttached,
+				report.sameTextIsbnSplit, report.sameTextPlaceholderNoKey, report.sameTextWideDates,
+				report.sameTextWideDateSamples, report.nationalBibliographyIsbnAttached,
 				report.kyoboCodes);
 	}
 
@@ -232,12 +176,13 @@ class CompactGroupingTests {
 
 	private static final String[] TITLES = { "가 책", "나 책", "다 책(개정판)", "라 책 : 부제", "마 책 - 시리즈 1", "Alpha",
 			"alpha", "ALPHA ", "바 책", "사 책", "아 책", "자 책", "차 책", "카 책", "타 책", "파 책", "하 책", "가 책 (특별판)",
-			"나 책 : 다른 부제", "  ", "거 책", "너 책", "더 책", "러 책" };
+			"나 책 : 다른 부제", "  ", "거 책", "너 책", "더 책", "러 책", "가 책 1", "가 책 01", "가 책 2", "[시리즈 3] 가 책",
+			"가 책 - 상", "가 책 (전면개정판)", "나 책 - 부제" };
 
 	private static final String[] AUTHORS = { "한강 저", "한강 지음", "김가 저 ; 이나 옮김", "이나 옮김", "박다", null, " ",
-			"최라 글, 정마 그림", "Kim" };
+			"최라 글, 정마 그림", "Kim", "기타", "기타, 한강", "Unknown", "홍길동 편" };
 
-	private static final String[] PUBLISHERS = { "문학동네", "(주)문학동네", "민음사", "창비", null, "" };
+	private static final String[] PUBLISHERS = { "문학동네", "(주)문학동네", "민음사", "창비", null, "", "기타", "미상" };
 
 	private static final String[] TYPES = { "EBOOK", "EBOOK", "EBOOK", "AUDIOBOOK", null, " " };
 
@@ -259,10 +204,17 @@ class CompactGroupingTests {
 			int alt = random.nextInt(6);
 			String altCode = alt == 0 ? KYOBO_CODES.get(random.nextInt(KYOBO_CODES.size())) : alt == 1 ? "X1" : null;
 			String title = TITLES[random.nextInt(TITLES.length)];
+			String author = AUTHORS[random.nextInt(AUTHORS.length)];
+			String publisher = PUBLISHERS[random.nextInt(PUBLISHERS.length)];
+			if (random.nextInt(12) == 0) {
+				// one text in several editions: step ④ splits it by ISBN (cycle 12 R1)
+				title = "판 책";
+				author = "한강 저";
+				publisher = "문학동네";
+			}
 			LocalDate date = random.nextInt(5) == 0 ? null : dates[random.nextInt(dates.length)];
 			rows.add(new Row(library, itemKey, "https://lib.test/" + itemKey, TYPES[random.nextInt(TYPES.length)],
-					title, AUTHORS[random.nextInt(AUTHORS.length)], PUBLISHERS[random.nextInt(PUBLISHERS.length)],
-					null, date, null, altCode, Instant.parse("2026-10-01T00:00:00Z")));
+					title, author, publisher, null, date, null, altCode, Instant.parse("2026-10-01T00:00:00Z")));
 		}
 		return rows;
 	}

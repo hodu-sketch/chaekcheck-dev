@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +37,7 @@ import com.chaekcheck.catalog.normalize.Contributors;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
- * The grouping {@code sql} (cycle 11, ADR-0079, decision 10 option A): the same books as {@link BookGrouping}, with
+ * The grouping {@code sql} (cycle 11, ADR-0079, decision 10 option A): the same books as {@link CompactGrouping}, with
  * the counting and joining done in PostgreSQL temporary tables on a connection of its own, so the heap holds no
  * per-row or per-unit counts. Java still makes every normalized value and every key (the same calls as
  * {@link BookGrouping}), so the text rules live in one place.
@@ -83,7 +82,7 @@ final class SqlGrouping implements BookGrouper {
 			+ " AND NOT EXISTS (SELECT 1 FROM grp_gisbn i WHERE i.label = grp_label.label)";
 
 	private static final List<String> TABLES = List.of("grp_in", "grp_unit", "grp_row", "grp_vote", "grp_date",
-			"grp_unitlib", "grp_label", "grp_gisbn", "grp_edge", "grp_comp", "grp_attach", "grp_text", "grp_key",
+			"grp_unitlib", "grp_label", "grp_gisbn", "grp_edge", "grp_comp", "grp_attach", "grp_text", "grp_merge", "grp_key",
 			"grp_wide", "grp_book");
 
 	private final Connection connection;
@@ -292,33 +291,44 @@ final class SqlGrouping implements BookGrouper {
 	}
 
 	/**
-	 * Step ④: every group's same-text key, computed in Java from the groups as they are when the step starts, goes to
-	 * {@code grp_text}; groups with one key are joined to the first. The counts follow {@code BookGrouping}.
+	 * Step ④ (cycle 12, ADR-0082): every group's same-text key, computed in Java ({@link BookGrouper#sameTextKey})
+	 * from the groups as they are when the step starts, goes to {@code grp_text}. A key with two or more distinct
+	 * ISBNs ({@code grp_gisbn}) is split: its merge key is the key plus the group's ISBN (empty without one), else the
+	 * key itself. Groups with one merge key are joined to the first. The counts follow {@link CompactGrouping}.
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
 		try {
-			execute("CREATE TEMPORARY TABLE grp_text (label int NOT NULL, key text COLLATE \"C\" NOT NULL, h int NOT NULL, d date)");
-			copyThroughFile("COPY grp_text (label, key, h, d) FROM STDIN",
+			execute("CREATE TEMPORARY TABLE grp_text (label int NOT NULL, key text COLLATE \"C\" NOT NULL, d date)");
+			copyThroughFile("COPY grp_text (label, key, d) FROM STDIN",
 					out -> forEachGroup(ALL_GROUPS, new int[] { TITLE, AUTHOR, PUBLISHER }, true, false, group -> {
-						String key = BookGrouper.key(CatalogText.titleNorm(group.values[TITLE]),
-								BookGrouper.firstAuthor(Contributors.parse(group.values[AUTHOR])),
-								CatalogText.publisherNorm(group.values[PUBLISHER]));
-						if (key != null) {
-							out.row(group.label, key, key.hashCode(), group.date);
+						SameTextKey.Key key = BookGrouper.sameTextKey(group.values[TITLE], group.values[AUTHOR],
+								group.values[PUBLISHER]);
+						if (key.key() != null) {
+							out.row(group.label, key.key(), group.date);
+						}
+						else if (key.placeholderOnly()) {
+							report.sameTextPlaceholderNoKey++;
 						}
 					}));
-			execute("ANALYZE grp_text");
-			// groups whose key an earlier group had
-			report.sameTextMerged += count("SELECT count(*) - count(DISTINCT key) FROM grp_text");
+			execute("""
+					CREATE TEMPORARY TABLE grp_merge AS
+					WITH t AS (SELECT t.label, t.key, t.d, i.isbn FROM grp_text t LEFT JOIN grp_gisbn i USING (label)),
+					  k AS (SELECT key, count(DISTINCT isbn) AS isbns FROM t GROUP BY key)
+					SELECT t.label, t.d, CASE WHEN k.isbns <= 1 THEN t.key ELSE t.key || chr(1) || coalesce(t.isbn, '') END
+					  COLLATE "C" AS merge_key
+					FROM t JOIN k USING (key)""");
+			execute("ANALYZE grp_merge");
+			// groups whose merge key an earlier group had; merge keys more than keys
+			report.sameTextMerged += count("SELECT count(*) - count(DISTINCT merge_key) FROM grp_merge");
+			report.sameTextIsbnSplit += count(
+					"SELECT (SELECT count(DISTINCT merge_key) FROM grp_merge) - (SELECT count(DISTINCT key) FROM grp_text)");
 			execute("""
 					CREATE TEMPORARY TABLE grp_key AS
-					SELECT key, min(label) AS first, min(label) FILTER (WHERE d IS NOT NULL) AS first_dated,
-					  min(d) AS lo, max(d) AS hi, min(h) AS h
-					FROM grp_text GROUP BY key""");
+					SELECT merge_key, min(label) AS first, min(d) AS lo, max(d) AS hi FROM grp_merge GROUP BY merge_key""");
 			wideDates(report);
-			join("SELECT t.label, k.first FROM grp_text t JOIN grp_key k USING (key) WHERE t.label <> k.first");
-			execute("DROP TABLE grp_text, grp_key");
+			join("SELECT m.label, k.first FROM grp_merge m JOIN grp_key k USING (merge_key) WHERE m.label <> k.first");
+			execute("DROP TABLE grp_text, grp_merge, grp_key");
 			report.booksAfterSameText = groupCount();
 		}
 		catch (SQLException | IOException ex) {
@@ -326,36 +336,23 @@ final class SqlGrouping implements BookGrouper {
 		}
 	}
 
-	/** One merged key whose groups' dates are 2+ years apart (BookGrouping's {@code dateRange} entry). */
-	record WideKey(int hash, int firstDated, String line) {
-	}
-
 	/**
-	 * Merged books whose groups' dates are 2+ years apart, counted as {@code BookGrouping} does, with the samples in
-	 * the order its {@code HashMap} gives them ({@link #hashMapOrder}).
+	 * Merged books whose groups' dates are 2+ years apart, with the samples in the order of the books' first groups
+	 * (cycle 12 decision 5).
 	 */
 	private void wideDates(ImportReport report) throws SQLException, IOException {
-		long datedKeys = count("SELECT count(*) FROM grp_key WHERE lo IS NOT NULL");
-		if (datedKeys == 0) {
-			return;
-		}
-		// the map's last computeIfAbsent: a new key when the last dated group is its key's first dated group
-		long lastIsNew = count("""
-				SELECT count(*) FROM grp_key
-				WHERE first_dated = (SELECT max(label) FROM grp_text WHERE d IS NOT NULL)""");
-		long sizeAtLastCall = datedKeys - lastIsNew;
 		// a superset in SQL (2 years are 730 or 731 days), the exact rule in Java
-		execute("CREATE TEMPORARY TABLE grp_wide AS SELECT first AS label, first_dated, h, lo, hi FROM grp_key WHERE hi - lo > 700");
-		record Candidate(int first, int firstDated, int hash, LocalDate lo, LocalDate hi) {
+		execute("CREATE TEMPORARY TABLE grp_wide AS SELECT first AS label, lo, hi FROM grp_key WHERE hi - lo > 700");
+		record Candidate(int first, LocalDate lo, LocalDate hi) {
 		}
 		List<Candidate> candidates = new ArrayList<>();
 		try (Statement statement = connection.createStatement();
-				ResultSet rs = statement.executeQuery("SELECT label, first_dated, h, lo, hi FROM grp_wide")) {
+				ResultSet rs = statement.executeQuery("SELECT label, lo, hi FROM grp_wide ORDER BY label")) {
 			while (rs.next()) {
-				LocalDate lo = rs.getObject(4, LocalDate.class);
-				LocalDate hi = rs.getObject(5, LocalDate.class);
+				LocalDate lo = rs.getObject(2, LocalDate.class);
+				LocalDate hi = rs.getObject(3, LocalDate.class);
 				if (lo.plusYears(2).isBefore(hi)) {
-					candidates.add(new Candidate(rs.getInt(1), rs.getInt(2), rs.getInt(3), lo, hi));
+					candidates.add(new Candidate(rs.getInt(1), lo, hi));
 				}
 			}
 		}
@@ -364,37 +361,14 @@ final class SqlGrouping implements BookGrouper {
 			forEachGroup("SELECT label FROM grp_wide", new int[] { TITLE, AUTHOR, PUBLISHER }, false, false,
 					group -> sampleOf.put(group.label, group.values[TITLE] + " / " + group.values[AUTHOR] + " / "
 							+ group.values[PUBLISHER]));
-			List<WideKey> wide = candidates.stream()
-				.map(c -> new WideKey(c.hash(), c.firstDated(), c.lo() + "~" + c.hi() + " " + sampleOf.get(c.first())))
-				.toList();
-			for (WideKey key : hashMapOrder(wide, sizeAtLastCall)) {
+			for (Candidate c : candidates) {
 				report.sameTextWideDates++;
 				if (report.sameTextWideDateSamples.size() < 40) {
-					report.sameTextWideDateSamples.add(key.line());
+					report.sameTextWideDateSamples.add(c.lo() + "~" + c.hi() + " " + sampleOf.get(c.first()));
 				}
 			}
 		}
 		execute("DROP TABLE grp_wide");
-	}
-
-	/**
-	 * The order a default {@link HashMap} filled by {@code computeIfAbsent} (one call per dated group, in group order)
-	 * gives its keys: by bucket, and inside a bucket the newest first ({@code computeIfAbsent} puts a new node at the
-	 * head; a resize keeps the order). The table doubles at the start of a call when the size passed 3/4 of it, so the
-	 * size at the last call sets it. Not covered: a bucket of 8+ keys, which the map turns into a tree (or, below 64
-	 * buckets, resizes for); that changes the order only of the wide keys inside that bucket.
-	 * @param sizeAtLastCall keys in the map when the last call started
-	 */
-	static List<WideKey> hashMapOrder(List<WideKey> keys, long sizeAtLastCall) {
-		int capacity = 16;
-		while (sizeAtLastCall > capacity / 4 * 3) {
-			capacity <<= 1;
-		}
-		int mask = capacity - 1;
-		return keys.stream()
-			.sorted(Comparator.<WideKey>comparingInt(k -> (k.hash() ^ (k.hash() >>> 16)) & mask)
-				.thenComparing(Comparator.comparingInt(WideKey::firstDated).reversed()))
-			.toList();
 	}
 
 	/** Gives every book to {@code sink} in group order and keeps each group's id in {@code grp_book}. */
