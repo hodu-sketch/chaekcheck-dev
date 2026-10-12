@@ -12,8 +12,9 @@ import java.util.regex.Pattern;
 import org.springframework.core.io.ClassPathResource;
 
 /**
- * The saved answer of {@code saseoApi.do} for the two years up to 2026-10-12 ({@code fixtures/nlk/saseo-2y.xml}: 108
- * items in 12 months, the latest 6 months hold 52) and changed copies of it for the failure cases (plan cycle 14 step
+ * The real answer of {@code saseoApi.do} for the two years up to 2026-10-12 ({@code fixtures/nlk/saseo-2y.xml}, fetched
+ * once on 2026-10-12 with user approval, no key in it: 108 items in 12 months, each item in its own {@code <list>},
+ * months latest first; the latest 6 months hold 52) and changed copies of it for the failure cases (plan cycle 14 step
  * 3). Tests never call the real API (C3).
  */
 public final class NlkFixtures {

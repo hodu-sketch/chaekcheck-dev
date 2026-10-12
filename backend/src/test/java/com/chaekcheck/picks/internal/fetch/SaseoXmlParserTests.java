@@ -21,9 +21,16 @@ class SaseoXmlParserTests {
 		assertThat(list.totalCount()).isEqualTo(108);
 		assertThat(list.rows()).hasSize(108);
 		PickRow first = list.rows().getFirst();
-		assertThat(first).isEqualTo(new PickRow("20261001091958039100", "11", "어문학", LocalDate.of(2026, 10, 1),
-				LocalDate.of(2026, 10, 1), "애니가 남긴 것", "애너 퀸들런 소설 ;김지현 옮김", "리프 콘텐츠그룹포레스트 콘텐츠그룹 포레스트",
-				"9791124591055", "https://www.nl.go.kr/afile/fileDownload/exWmn"));
+		assertThat(first.recomNo()).isEqualTo("20260922163135829100");
+		assertThat(first.drCode()).isEqualTo("11");
+		assertThat(first.drCodeName()).isEqualTo("어문학");
+		assertThat(first.recomMonth()).isEqualTo(LocalDate.of(2026, 10, 1));
+		assertThat(first.registeredOn()).isEqualTo(LocalDate.of(2026, 9, 22));
+		assertThat(first.title()).isEqualTo("삼문동 봉주르 아파트 : 오서 장편소설");
+		assertThat(first.author()).isEqualTo("지은이: 오서");
+		assertThat(first.publisher()).isEqualTo("자음과모음");
+		assertThat(first.isbn13()).matches("97[89][0-9]{10}");
+		assertThat(first.coverSource()).startsWith("https://www.nl.go.kr/afile/fileDownload/");
 
 		KeptPicks kept = KeptPicks.of(list.rows());
 		assertThat(kept.rows()).hasSize(52);
@@ -123,12 +130,12 @@ class SaseoXmlParserTests {
 	@Test
 	void sameMonthAndDayItemsBothStay() {
 		List<String> items = NlkFixtures.items(XML);
-		String twin = NlkFixtures.set(items.get(0), "recomNo", "20261001091958039099");
+		String twin = NlkFixtures.set(items.get(0), "recomNo", "20260922163135829099");
 
 		List<PickRow> rows = SaseoXmlParser.parse(NlkFixtures.bytes(NlkFixtures.withItems(List.of(items.get(0), twin))))
 			.rows();
 
-		assertThat(rows).extracting(PickRow::registeredOn).containsOnly(LocalDate.of(2026, 10, 1));
+		assertThat(rows).extracting(PickRow::registeredOn).containsOnly(LocalDate.of(2026, 9, 22));
 		assertThat(rows).hasSize(2);
 	}
 
