@@ -36,6 +36,9 @@
 - 바꿔 끼우기 설정 `chaekcheck.catalog.load.*`(8절): `lock-timeout`(기본 2s), `swap-attempts`(5), `swap-retry-wait`(10s), 가져오기 세션에만 `maintenance-work-mem`·`max-parallel-maintenance-workers`·`work-mem`(기본 = 서버 값. 2026-10-11 가져오기는 `1GB`·`4`로 돌림).
 - 설정 `chaekcheck.collection.import.*`: `sqlite-path`, `ttl-path`(비우면 국가서지 단계를 건너뜀), `dry-run`, `placeholder-date-libraries`(1950년 이전 날짜를 자리채움으로 보고 버릴 도서관의 **수집 번호**, 기본 `100555` 명지대).
   - 사이클 11: `mode`(`in-place` 기본·`export`·`apply`·`finish`·`discard`, 13절), `file`(내보낸 파일, `export`·`apply`·`finish`), `grouping`(책 묶는 방식 `compact` 기본(2026-10-12 사용자 결정)·`objects`(옛 방식, 2026-10-12까지 이름 `current`)·`sql`, ADR-0079. 세 방식은 책·번호까지 같고 힙과 시간이 다름: `compact` 힙 2GB·약 21분, `objects` 6GB·약 26분, `sql` 1GB·약 34분이지만 DB 임시 쓰기 약 61GB), `dry-run-output`(dry run이 `books.tsv.gz`·`rows.tsv.gz`를 쓸 폴더. `scripts/catalog/compare_grouping.py dryrun`으로 두 방식을 비교).
+  - 사이클 12: 묶음이 어떻게 바뀌었는지는 `python scripts/catalog/compare_grouping.py regroup <A> <B> [N]`으로 봅니다. A·B는 dry run 폴더나 `ids` 폴더(`compare_grouping.py ids`로 쓴 것)이고, 파일 이름으로 알아봅니다. 두 쪽에 다 있는 (도서관, 책 코드)로 맞대어 한쪽에만 있는 줄 수, 합쳐짐(B 한 책 ← A 여러 책)·나뉨(A 한 책 → B 여러 책)의 수와 앞 N개(기본 20, 제목·저자·출판사·ISBN·양쪽 책 번호)를 냅니다.
+  - 둘 다 `ids`면 나뉨마다 A 번호를 이어 받은 B 책이 겹치는 줄이 가장 많은 책인지(ADR-0062) `yes`/`NO`로 붙습니다. 메모리는 A 줄 1,700만이면 약 0.5GB입니다. 테스트: `python -m unittest scripts/catalog/test_compare_grouping.py`.
+  - 사이클 12: `exclude-candidate-libraries`(기본 `false`). 켜면 사이클 07 후보 도서관(수집 번호 100001부터)을 빼고 셉니다. 그 줄은 건너뜀 이유 `library_excluded_candidate`로 세고, 후보 도서관 수에는 넣지 않으며, 로그에 `candidate libraries excluded: N`을 남깁니다. 다른 이유로 이미 빠지는 도서관은 그 이유 그대로입니다. **dry run 전용**: `dry-run=true`가 아니면 시작하지 않습니다(진짜 가져오기에서 켜면 약 2,394곳이 서비스에서 빠지기 때문).
   - 사이클 11: `chaekcheck.catalog.load.pg-command`(PostgreSQL 18 도구를 부르는 명령 앞부분, 쉼표로 나눔, 13-1). 커밋되는 파일에는 넣지 않고 명령 인자나 `.env`로 줍니다.
   - 사이클 11 측정: `-PbootRunJvmArgs="…"`로 Java 옵션을 더합니다(공백으로 나눔, `-PbootRunXmx`는 그대로).
 - 사이클 04의 프로필 `catalog-import`, 설정 `chaekcheck.catalog.import.*`는 없어졌습니다.
