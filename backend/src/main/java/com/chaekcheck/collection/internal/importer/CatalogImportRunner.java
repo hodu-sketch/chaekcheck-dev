@@ -20,9 +20,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.library.LibraryRegistry;
 import com.sun.management.OperatingSystemMXBean;
 
 /**
@@ -103,8 +105,9 @@ class CatalogImportRunner {
 	}
 
 	@Bean
-	ApplicationRunner collectionImport(LibraryCatalog libraryCatalog, CatalogLoad catalogLoad, JdbcClient jdbc,
-			DataSource dataSource, Settings settings, ConfigurableApplicationContext context) {
+	ApplicationRunner collectionImport(LibraryCatalog libraryCatalog, LibraryRegistry libraryRegistry,
+			CatalogLoad catalogLoad, JdbcClient jdbc, DataSource dataSource,
+			PlatformTransactionManager transactionManager, Settings settings, ConfigurableApplicationContext context) {
 		return (ApplicationArguments args) -> {
 			settings.check();
 			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
@@ -115,8 +118,8 @@ class CatalogImportRunner {
 				.grouping(groupers(settings.grouping(), dataSource))
 				.dryRunOutput(settings.dryRunOutput())
 				.excludeCandidateLibraries(settings.excludeCandidateLibraries());
-			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, jdbc, records,
-					Clock.systemUTC());
+			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, libraryRegistry, jdbc,
+					transactionManager, records, Clock.systemUTC());
 			switch (settings.mode()) {
 				case "export" -> transfer.export(settings.sqlitePath(), settings.ttlPath(), settings.file(),
 						settings.grouping());

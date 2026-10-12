@@ -68,8 +68,12 @@ class JdbcCatalogLoad implements CatalogLoad {
 	/** The one-row table of an export (cycle 11, ADR-0078); only in {@code catalog_next}, never in Liquibase. */
 	static final String MANIFEST = NEXT + ".load_manifest";
 
-	/** The {@code load_manifest} layout; a file of another version is refused. */
-	static final int FORMAT_VERSION = 1;
+	/**
+	 * The {@code load_manifest} layout; a file of another version is refused. 2 since cycle 13 (ADR-0086): the
+	 * collection module's notes carry the library part, which an app of format 1 would not put in. The catalog module
+	 * does not read the notes.
+	 */
+	static final int FORMAT_VERSION = 2;
 
 	static final String WAITING_MESSAGE = "New tables of an export are waiting in " + NEXT
 			+ ": first finish them (after the production apply) or discard them";

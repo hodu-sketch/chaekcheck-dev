@@ -210,3 +210,29 @@
 - 복사한 뒤 두 DB의 기준값·해시가 같은지는 첫 `apply`의 비교가 봅니다(다르면 `mismatch`).
 - `db-ops`에 서비스를 띄우려면 `DB_PORT=5434 ./gradlew bootRun --args='--server.port=8081'`. `.env`의 `CHAEKCHECK_POPULAR_FETCH_ENABLED=false`를 그대로 둡니다(켜지면 시작 받기가 진짜 사이트를 부름).
 - 측정 스크립트: `CHAEKCHECK_BASE=http://localhost:8081 CHAEKCHECK_DB_SERVICE=db-ops python scripts/catalog/probe_during_import.py <폴더>`.
+
+### 13-5. 반영 파일 판 2: 도서관 부분 (사이클 13, plan ADR-0086·0093)
+
+새 도서관은 Liquibase seed가 아니라 넣기 명령 `library-insert`로 내 PC `db`에 들어갑니다([1-libraries.md](1-libraries.md)). 운영 DB에는 반영 파일이 함께 옮깁니다.
+
+- **판 2**: `load_manifest.format_version`이 2입니다. 판 1 파일은 판 2 앱이 읽지 않고(`manifest format 1 … reads 2`), 판 1 앱도 판 2 파일을 읽지 않습니다.
+- **export**: `notes.libraryPart`에 내 PC의 **성공한 넣기 실행 기록 전부**(`collection.library_insert_run`의 `SUCCEEDED` 줄: 보고서 번호, 실행 시각, 사본, 넣은 수, 가입 조사 기준일, 넣은 도서관·가입 규칙·짝 줄 `payload`)를 싣습니다. 수백 곳이어도 수십 KB라 목차(COMMENT)로 1초 안에 읽힙니다.
+- **apply 순서**: 한 트랜잭션에서 ① 넣기 명령과 같은 잠금(`pg_advisory_xact_lock`) ② 실행 기록마다(시각 순) 같은 보고서 번호의 성공 줄이 이미 있으면 건너뜀 ③ 없으면 없는 번호의 도서관·가입 규칙(`LibraryRegistry.add`), 없는 짝 줄, 실행 기록 줄(원래 시각) ④ 13-2의 비교. 비교가 다르면 도서관 부분도 롤백하고 `mismatch`. 같으면 커밋하고 책 쪽(복원·색인·바꿔 끼우기)을 시작합니다. `step_seconds`에 `library part`가 더해집니다.
+- **도서관 부분이 실패하면**(제약 위반 등) 롤백하고 책 쪽을 시작하지 않습니다. 기록 줄은 `FAILED error`, `failure_detail`이 `library part: …`로 시작합니다.
+- **도서관 부분 커밋 뒤 책 쪽이 실패하면**(`lock_not_acquired` 등) 도서관은 남습니다. 같은 파일을 다시 `apply`하면 도서관 부분은 건너뛰고 책 쪽을 다시 합니다.
+- **판 2 앱을 배포하기 전에**: 내 PC에 판 1 내보내기가 기다리고 있으면(`catalog_next.load_manifest`) 판 1 앱으로 먼저 `finish`하거나 `discard`합니다. 판 2 앱은 판 1 파일을 `finish`할 수 없습니다.
+- **로컬 DB를 새로 만들면**(Liquibase seed부터) seed 뒤에 `library-insert`를 다시 돌려야 넣었던 도서관이 돌아옵니다(seed에는 넣지 않음, ADR-0084). 운영 쪽은 반영 파일이 옮기므로 따로 돌리지 않습니다.
+
+#### 로컬 DB 이름 맞추기 (사이클 13, `PRE_DEPLOYMENT` 동안 한 번)
+
+사이클 13에서 `collection/001`의 `catalog_import.candidate_library_count`를 `other_library_count`로 그 자리에서 고쳤습니다(AC-11). 체크섬이 바뀌어 이미 만든 DB는 그대로 켜지지 않습니다. 데이터(가져온 책, 국가서지, 측정 결과)를 지키려고 `db`·`db-ops`에는 아래를 한 번 돌립니다(`db-test`는 컨테이너를 다시 띄움, tmpfs).
+
+```sql
+BEGIN;
+ALTER TABLE collection.catalog_import RENAME COLUMN candidate_library_count TO other_library_count;
+ALTER TABLE collection.catalog_import RENAME CONSTRAINT catalog_import_candidate_library_count_check TO catalog_import_other_library_count_check;
+UPDATE databasechangelog SET md5sum = NULL WHERE id = 'collection-001-catalog-import' AND filename LIKE '%collection/001-collection-schema.yaml';
+COMMIT;
+```
+
+`md5sum`이 NULL이면 다음 Liquibase 실행이 새 값으로 채웁니다.

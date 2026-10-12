@@ -28,12 +28,16 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.TestPgCommand;
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.catalog.CatalogLoad.Manifest;
+import com.chaekcheck.collection.internal.libraryinsert.LibraryPart;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryRef;
+import com.chaekcheck.library.LibraryRegistry;
 import com.chaekcheck.library.PlatformType;
 
 /**
@@ -61,6 +65,12 @@ class CatalogImportModesTests {
 
 	@Autowired
 	DataSource dataSource;
+
+	@Autowired
+	LibraryRegistry libraryRegistry;
+
+	@Autowired
+	PlatformTransactionManager transactionManager;
 
 	@TempDir
 	Path dir;
@@ -95,6 +105,7 @@ class CatalogImportModesTests {
 		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot")
 			.update();
 		jdbc.sql("DELETE FROM collection.catalog_import WHERE source LIKE 'test-%'").update();
+		removeInsertedLibrary();
 	}
 
 	private CatalogImporter importer() {
@@ -103,7 +114,8 @@ class CatalogImportModesTests {
 	}
 
 	private ImportTransfer transfer() {
-		return new ImportTransfer(importer(), catalogLoad, libraryCatalog, jdbc, new ImportRecords(jdbc), clock());
+		return new ImportTransfer(importer(), catalogLoad, libraryCatalog, libraryRegistry, jdbc, transactionManager,
+				new ImportRecords(jdbc), clock());
 	}
 
 	private static Clock clock() {
@@ -132,7 +144,7 @@ class CatalogImportModesTests {
 				SELECT jsonb_object_keys(step_seconds) FROM collection.catalog_import
 				WHERE source = 'test-modes.sqlite'""").query(String.class).list()).containsExactlyInAnyOrder("read",
 						"group", "nb", "normalize", "same_text", "books_copy", "holdings_read", "holdings_copy", "match",
-						"write", "load", "compare", "restore", "index", "analyze", "swap", "apply");
+						"write", "load", "library part", "compare", "restore", "index", "analyze", "swap", "apply");
 		assertThat(jdbc.sql("SELECT title FROM catalog.book ORDER BY title").query(String.class).list())
 			.containsExactly("둘째 책", "첫 책");
 	}
@@ -205,6 +217,123 @@ class CatalogImportModesTests {
 				WHERE source = 'test-modes.sqlite'""").query(Boolean.class).single()).isTrue();
 		assertThat(catalogLoad.hasWaitingExport()).isFalse();
 		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isEqualTo(2);
+	}
+
+	/** Cycle 13 (ADR-0086, AC-7): the export carries the succeeded library-insert runs, the apply puts them in. */
+	@Test
+	void theLibraryPartTravelsWithTheFile() throws Exception {
+		long id = insertedLibrary();
+		Path file = dir.resolve("export.dump");
+		Manifest manifest = transfer().export(sqlite, null, file, "compact");
+		assertThat(catalogLoad.readManifest(file).notes()).contains("\"libraryPart\"", "aaaaaaaaaaaa", PART_URL);
+		String ranAt = jdbc.sql("SELECT ran_at::text FROM collection.library_insert_run").query(String.class).single();
+		catalogLoad.discardPrepared();
+		removeInsertedLibrary(); // the production database has not got it yet
+
+		transfer().apply(file);
+
+		assertThat(jdbc.sql("""
+				SELECT l.base_url, k.collection_library_id, r.inserted_count, r.join_surveyed_on::text, r.ran_at::text
+				FROM library.library l JOIN collection.collection_link k ON k.library_id = l.id
+				  JOIN collection.library_insert_run r ON r.report_id = 'aaaaaaaaaaaa' WHERE l.id = :id""")
+			.param("id", id)
+			.query((rs, n) -> List.of(rs.getString(1), rs.getLong(2), rs.getInt(3), rs.getString(4), rs.getString(5)))
+			.single()).containsExactly(PART_URL, 910001L, 1, "2026-10-05", ranAt);
+		assertThat(jdbc.sql("SELECT count(*) FROM library.eligibility_rule WHERE library_id = :id")
+			.param("id", id)
+			.query(Long.class)
+			.single()).isEqualTo(1);
+		assertThat(jdbc.sql("""
+				SELECT status, export_id FROM collection.catalog_import WHERE source = 'test-modes.sqlite'""")
+			.query()
+			.singleRow()).containsEntry("status", "SUCCEEDED").containsEntry("export_id", manifest.exportId());
+	}
+
+	/** A library part already here is skipped, so an apply can run again (ADR-0086). */
+	@Test
+	void aLibraryPartHereIsSkipped() {
+		insertedLibrary();
+		List<LibraryPart.Run> runs = LibraryPart.export(jdbc);
+
+		LibraryPart.Applied applied = new TransactionTemplate(transactionManager)
+			.execute(status -> LibraryPart.apply(runs, libraryRegistry, jdbc));
+
+		assertThat(applied).isEqualTo(new LibraryPart.Applied(0, 1, 0, 0));
+	}
+
+	@Test
+	void aFailingLibraryPartStartsNothing() throws Exception {
+		long id = insertedLibrary();
+		Path file = exportAndDiscard();
+		removeInsertedLibrary();
+		// another library holds the address now: base_url is UNIQUE
+		jdbc.sql("""
+				INSERT INTO library.library (id, name, platform_type, vendor, lending_model, base_url, join_method)
+				VALUES (:id, '다른 곳', 'YES24_V2', 'YES24', 'OWNED', :url, 'test')""")
+			.param("id", id + 1)
+			.param("url", PART_URL)
+			.update();
+
+		assertThatThrownBy(() -> transfer().apply(file))
+			.isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+
+		Map<String, Object> row = jdbc.sql("""
+				SELECT status, failure_reason, failure_detail FROM collection.catalog_import
+				WHERE source = 'test-modes.sqlite'""").query().singleRow();
+		assertThat(row).containsEntry("status", "FAILED").containsEntry("failure_reason", "error");
+		assertThat((String) row.get("failure_detail")).startsWith("library part");
+		assertThat(jdbc.sql("SELECT count(*) FROM collection.library_insert_run").query(Long.class).single()).isZero();
+		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isZero();
+		assertThat(catalogLoad.hasWaitingExport()).isFalse();
+	}
+
+	@Test
+	void aMismatchRollsTheLibraryPartBack() throws Exception {
+		long id = insertedLibrary();
+		Path file = exportAndDiscard();
+		removeInsertedLibrary();
+		given(libraryCatalog.enabledLibraryRefs())
+			.willReturn(List.of(new LibraryRef(1, "https://kyobo.moved.test", PlatformType.KYOBO_V1)));
+
+		assertMismatch(file, "도서관");
+
+		assertThat(jdbc.sql("SELECT count(*) FROM library.library WHERE id = :id")
+			.param("id", id)
+			.query(Long.class)
+			.single()).isZero();
+		assertThat(jdbc.sql("SELECT count(*) FROM collection.library_insert_run").query(Long.class).single()).isZero();
+	}
+
+	static final String PART_URL = "https://part.test";
+
+	/** A library as the library-insert command leaves it: library, rule, link and a succeeded run row. */
+	private long insertedLibrary() {
+		long id = libraryRegistry.nextId();
+		String entry = """
+				{"collectionId":910001,"library":{"id":%d,"name":"반영 시험","platformType":"YES24_V2",
+				"vendor":"YES24","lendingModel":"OWNED","orderNo":1,"baseUrl":"%s","homepageUrl":"%s",
+				"visitRequired":false,"deferred":false,"joinSurvey":"MEMBERS_ONLY",
+				"rules":[{"basis":"RESIDENCE","scopeType":"REGION","scopeRegionId":11}]}}""".formatted(id, PART_URL,
+				PART_URL);
+		new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+			jdbc.sql("""
+					INSERT INTO collection.library_insert_run
+					  (report_id, ran_at, snapshot, inserted_count, join_surveyed_on, status, payload)
+					VALUES ('aaaaaaaaaaaa', TIMESTAMPTZ '2026-10-12 10:00:00+09', 'copy.sqlite', 1, DATE '2026-10-05',
+					  'SUCCEEDED', CAST(:payload AS jsonb))""")
+				.param("payload", "{\"newLibraries\":[" + entry + "]}")
+				.update();
+			LibraryPart.Run run = LibraryPart.export(jdbc).getFirst();
+			jdbc.sql("DELETE FROM collection.library_insert_run").update();
+			LibraryPart.apply(List.of(run), libraryRegistry, jdbc);
+		});
+		return id;
+	}
+
+	private void removeInsertedLibrary() {
+		jdbc.sql("DELETE FROM collection.library_insert_run").update();
+		jdbc.sql("DELETE FROM library.library WHERE base_url = :url").param("url", PART_URL).update();
+		jdbc.sql("DELETE FROM collection.collection_link WHERE collection_library_id >= 900000").update();
 	}
 
 	private Path exportAndDiscard() throws Exception {

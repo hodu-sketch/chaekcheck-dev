@@ -14,12 +14,16 @@ import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.catalog.CatalogLoad;
-import com.chaekcheck.catalog.CatalogLoad.Baseline;
 import com.chaekcheck.catalog.CatalogLoad.Manifest;
+import com.chaekcheck.collection.internal.libraryinsert.LibraryPart;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.library.LibraryRegistry;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -29,9 +33,13 @@ import tools.jackson.databind.json.JsonMapper;
  * <ul>
  * <li>{@code export}: read and group as an in-place import, fill {@code catalog_next}, write it into one file with
  * the PC's import record, library hash and link hash as the manifest's notes. No import row when it works.</li>
- * <li>{@code apply}: compare the file with this database (libraries, links, catalog baseline, table columns); when
- * anything differs, keep a {@code FAILED mismatch} row and touch nothing. Otherwise restore, index and swap, and keep
- * one row: the PC's counts and steps, then this database's steps, with the file's {@code export_id}.</li>
+ * <li>{@code apply}: first the library part (cycle 13, ADR-0086, ADR-0093): in one transaction under the library
+ * lock, the PC's succeeded library-insert runs not here yet (libraries, eligibility rules, links, run rows), then the
+ * comparison of the file with this database (libraries, links, catalog baseline, table columns). When anything
+ * differs, roll the library part back, keep a {@code FAILED mismatch} row and touch nothing. Otherwise commit it,
+ * then restore, index and swap, and keep one row: the PC's counts and steps, then this database's steps, with the
+ * file's {@code export_id}. When the library part fails, nothing starts ({@code FAILED error}, "library part"). When
+ * the books fail after the library part was committed, the libraries stay; a new apply skips them.</li>
  * <li>{@code finish}: swap in the PC's waiting {@code catalog_next}; one row with the {@code export_id}.</li>
  * <li>{@code discard}: drop {@code catalog_next}; no row.</li>
  * </ul>
@@ -54,12 +62,19 @@ class ImportTransfer {
 
 	private final Clock clock;
 
-	ImportTransfer(CatalogImporter importer, CatalogLoad catalogLoad, LibraryCatalog libraryCatalog, JdbcClient jdbc,
+	private final LibraryRegistry libraryRegistry;
+
+	private final TransactionTemplate transactions;
+
+	ImportTransfer(CatalogImporter importer, CatalogLoad catalogLoad, LibraryCatalog libraryCatalog,
+			LibraryRegistry libraryRegistry, JdbcClient jdbc, PlatformTransactionManager transactionManager,
 			ImportRecords records, Clock clock) {
 		this.importer = importer;
 		this.catalogLoad = catalogLoad;
 		this.libraryCatalog = libraryCatalog;
+		this.libraryRegistry = libraryRegistry;
 		this.jdbc = jdbc;
+		this.transactions = new TransactionTemplate(transactionManager);
 		this.records = records;
 		this.clock = clock;
 	}
@@ -68,19 +83,22 @@ class ImportTransfer {
 	 * What an export carries in the manifest's notes: the PC import's record (as its {@code catalog_import} row
 	 * would have it) and what the production database must share.
 	 * @param stepSeconds the PC's steps up to {@code write}, in order
+	 * @param libraryPart the PC's succeeded library-insert runs (cycle 13, manifest format 2)
 	 */
 	record Notes(String source, String grouping, long books, long contributors, long holdings,
 			Map<String, Long> skipped, int registeredLibraries, int otherLibraries, long keptBookIds,
 			long newBookIds, long droppedBookIds, Instant collectedFrom, Instant collectedTo,
-			Map<String, Double> stepSeconds, long maxHeapMb, DatabaseFingerprint fingerprint) {
+			Map<String, Double> stepSeconds, long maxHeapMb, DatabaseFingerprint fingerprint,
+			List<LibraryPart.Run> libraryPart) {
 
-		static Notes of(ImportReport report, String grouping, DatabaseFingerprint fingerprint) {
+		static Notes of(ImportReport report, String grouping, DatabaseFingerprint fingerprint,
+				List<LibraryPart.Run> libraryPart) {
 			Map<String, Double> seconds = new LinkedHashMap<>();
 			report.steps.forEach((step, time) -> seconds.put(step, time.toMillis() / 1000.0));
 			return new Notes(report.source, grouping, report.books, report.contributors, report.holdings,
 					new TreeMap<>(report.skipped), report.registeredLibraries, report.otherLibraries,
 					report.keptBookIds, report.newBookIds, report.droppedBookIds, report.collectedFrom,
-					report.collectedTo, seconds, report.maxHeapMb, fingerprint);
+					report.collectedTo, seconds, report.maxHeapMb, fingerprint, libraryPart);
 		}
 
 		/** The PC's record, to which this database's steps are added. */
@@ -112,7 +130,8 @@ class ImportTransfer {
 		}
 		Instant started = clock.instant();
 		ImportReport report = importer.prepare(sqlite, ttlDirectory);
-		String notes = JSON.writeValueAsString(Notes.of(report, grouping, DatabaseFingerprint.of(libraryCatalog, jdbc)));
+		String notes = JSON.writeValueAsString(Notes.of(report, grouping, DatabaseFingerprint.of(libraryCatalog, jdbc),
+				LibraryPart.export(jdbc)));
 		Instant dumpStarted = clock.instant();
 		Manifest manifest;
 		try {
@@ -137,10 +156,30 @@ class ImportTransfer {
 		Manifest manifest = catalogLoad.readManifest(file);
 		Notes notes = notes(manifest);
 		ImportReport report = notes.report();
-		DatabaseFingerprint here = DatabaseFingerprint.of(libraryCatalog, jdbc);
-		Baseline baseline = catalogLoad.baseline();
-		List<String> differences = DatabaseFingerprint.differences(here, baseline, notes.fingerprint(),
-				manifest.baseline());
+		List<String> differences;
+		try {
+			differences = transactions.execute(status -> {
+				LibraryPart.Applied part = LibraryPart.apply(notes.libraryPart(), libraryRegistry, jdbc);
+				report.steps.put("library part", Duration.between(started, clock.instant()));
+				List<String> found = DatabaseFingerprint.differences(DatabaseFingerprint.of(libraryCatalog, jdbc),
+						catalogLoad.baseline(), notes.fingerprint(), manifest.baseline());
+				if (found.isEmpty()) {
+					log.info("library part: {} runs put in ({} libraries, {} links), {} here already", part.runs(),
+							part.libraries(), part.links(), part.skippedRuns());
+				}
+				else {
+					status.setRollbackOnly();
+				}
+				return found;
+			});
+		}
+		catch (DataAccessException ex) {
+			report.steps.put("library part", Duration.between(started, clock.instant()));
+			records.insertApplied(notes.source(), clock.instant(), report, manifest.exportId(), manifest.exportedAt(),
+					"error", "library part: " + ex.getMostSpecificCause());
+			log.error("apply refused, the library part failed and was rolled back. Nothing was loaded", ex);
+			throw ex;
+		}
 		report.steps.put("compare", Duration.between(started, clock.instant()));
 		if (!differences.isEmpty()) {
 			String detail = String.join("; ", differences);
