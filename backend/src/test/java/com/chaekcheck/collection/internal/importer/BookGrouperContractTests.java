@@ -23,9 +23,8 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 /**
  * What every way of grouping must give for the same rows (cycle 11, ADR-0079, {@link BookGrouper}): the books of
  * steps ①~④, the counts per step, the most common value on a tie, the order of the first row, and each row's book.
- * {@code compact} and {@code sql} run through {@link #assertContract}, which has step ④'s cycle 12 rule (ADR-0082,
- * {@link #sameTextRows}); {@code current} keeps the old rule and runs only through {@link #assertCurrentContract}
- * until cycle 12 Phase B decides about it (ADR-0079 addendum).
+ * Every grouping runs through the same expectations ({@link #assertContract}), with step ④'s cycle 12 rule
+ * (ADR-0082, {@link #sameTextRows}).
  */
 class BookGrouperContractTests {
 
@@ -73,17 +72,17 @@ class BookGrouperContractTests {
 	@ParameterizedTest(name = "{0}")
 	@MethodSource("groupings")
 	void givesTheSameBooks(String name, Supplier<BookGrouper> groupers) {
-		assertCurrentContract(groupers);
+		assertContract(groupers);
 	}
 
-	/** The expectations of the cycle 12 rule, for the test classes of {@code compact} and {@code sql}. */
+	/** The expectations, for the test classes of the other groupings too. */
 	static void assertContract(Supplier<BookGrouper> groupers) {
-		assertCurrentContract(groupers);
+		assertCodeSteps(groupers);
 		assertSameTextRules(groupers);
 	}
 
-	/** The expectations the old step ④ and the cycle 12 rule share ({@link #rows()} has no case where they differ). */
-	static void assertCurrentContract(Supplier<BookGrouper> groupers) {
+	/** Steps ①~④ on {@link #rows()}. */
+	static void assertCodeSteps(Supplier<BookGrouper> groupers) {
 		ImportReport report = new ImportReport();
 		List<BookGrouper.Book> books = new ArrayList<>();
 		Map<Row, Long> bookOfRow = new LinkedHashMap<>();

@@ -25,8 +25,8 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
  * The grouping {@code compact} (cycle 11, ADR-0079): the contract of every grouping (with step ④'s cycle 12 rule),
- * its 128-bit key table, and the same result with a key table that starts tiny for random rows. The same result as
- * {@code sql} for random rows is checked in {@link SqlGroupingTests} (db-test).
+ * its 128-bit key table, and the same result as {@link BookGrouping} for random rows, also with a key table that
+ * starts tiny.
  */
 class CompactGroupingTests {
 
@@ -78,10 +78,10 @@ class CompactGroupingTests {
 
 	@ParameterizedTest
 	@ValueSource(longs = { 1, 2, 3, 42, 2026 })
-	void givesTheSameWithATinyKeyTable(long seed) {
+	void givesWhatTheObjectsGroupingGives(long seed) {
 		List<Row> rows = randomRows(new Random(seed), 4000);
 		Map<String, String> isbns = new HashMap<>();
-		Result first = run(CompactGrouping::new, rows, isbns, new Random(seed));
+		Result first = run(BookGrouping::new, rows, isbns, new Random(seed));
 		// the random rows reach every step and every branch of step ④
 		assertThat(first.report.booksAfterKyoboIsbn).isLessThan(first.report.booksAfterPlatformCode);
 		assertThat(first.report.nationalBibliographyIsbnAttached).isPositive();
@@ -90,11 +90,29 @@ class CompactGroupingTests {
 		assertThat(first.report.sameTextPlaceholderNoKey).isPositive();
 		assertThat(first.report.sameTextWideDateSamples).hasSize(40);
 
-		Result result = run(() -> new CompactGrouping(2), rows, isbns, new Random(seed));
-		assertThat(result.keys).isEqualTo(first.keys);
-		assertThat(result.books).isEqualTo(first.books);
-		assertThat(result.bookOf).isEqualTo(first.bookOf);
-		assertThat(counts(result.report)).isEqualTo(counts(first.report));
+		for (Supplier<BookGrouper> compact : List.<Supplier<BookGrouper>>of(CompactGrouping::new,
+				() -> new CompactGrouping(2))) {
+			Result result = run(compact, rows, isbns, new Random(seed));
+			assertThat(result.keys).isEqualTo(first.keys);
+			assertThat(result.books).isEqualTo(first.books);
+			assertThat(result.bookOf).isEqualTo(first.bookOf);
+			assertThat(counts(result.report)).isEqualTo(counts(first.report));
+		}
+	}
+
+	@Test
+	void givesWhatTheObjectsGroupingGivesForFewRows() {
+		for (long seed = 100; seed < 140; seed++) {
+			List<Row> rows = randomRows(new Random(seed), 30 + (int) (seed % 7) * 25);
+			Result objects = run(BookGrouping::new, rows, new HashMap<>(), new Random(seed));
+			for (Supplier<BookGrouper> compact : List.<Supplier<BookGrouper>>of(CompactGrouping::new,
+					() -> new CompactGrouping(2))) {
+				Result result = run(compact, rows, new HashMap<>(), new Random(seed));
+				assertThat(result.books).isEqualTo(objects.books);
+				assertThat(result.bookOf).isEqualTo(objects.bookOf);
+				assertThat(counts(result.report)).isEqualTo(counts(objects.report));
+			}
+		}
 	}
 
 	private record Result(Set<String> keys, List<List<Object>> books, List<Long> bookOf, ImportReport report) {

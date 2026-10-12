@@ -5,8 +5,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -26,7 +29,8 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * {@code book_idx}, Gangnam {@code book_num}, Bookcube, Aladin) group inside one library only.</li>
  * <li>Paper ISBN computed from a Kyobo-style code ({@link Isbn#fromKyoboCode}), from the item key or the alt code.</li>
  * <li>National bibliography ISBN, when (main title, first author, publisher) matches exactly one record.</li>
- * <li>Same whole title, first author and publisher ({@link #mergeSameText}).</li>
+ * <li>Same comparison title, volume marks, first author and publisher, split by ISBN ({@link #mergeSameText}, cycle
+ * 12).</li>
  * </ol>
  * To import every service library without keeping every row in memory (ADR-0054), the first pass keeps one
  * {@link Unit} per step-① group with the number of rows per value instead of the rows: the most common value of a
@@ -228,44 +232,71 @@ final class BookGrouping implements BookGrouper {
 	}
 
 	/**
-	 * Step ④ (user decision 2026-09-30): groups whose whole title, first author and publisher are the same after
-	 * normalizing become one book, even when their codes or ISBNs differ. The whole title keeps edition marks such as
-	 * "(개정판)" or "(40주년 기념판)", so those stay separate books; an edition not marked in the title is merged.
-	 * Groups without an author or publisher are never merged (not merged when unsure). When merged groups had
-	 * different ISBNs, the book keeps one of them.
+	 * Step ④ (cycle 12, ADR-0082): groups with one same-text key ({@link BookGrouper#sameTextKey}: comparison title,
+	 * volume marks, first author and publisher that are not placeholders) become one book, unless the key has two or
+	 * more distinct ISBNs as the step starts: then a group with an ISBN stays a book of its own and the groups without
+	 * one become one book (spec R1-3). Groups without a key are never merged (not merged when unsure).
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
-		Map<String, Integer> firstByKey = new HashMap<>();
-		Map<String, LocalDate[]> dateRange = new HashMap<>();
-		Map<String, String> sampleOf = new HashMap<>();
-		for (int[] members : groups()) {
-			String title = mostCommonOf(members, unit -> unit.titles);
-			String authorRaw = mostCommonOf(members, unit -> unit.authors);
-			String publisherRaw = mostCommonOf(members, unit -> unit.publishers);
-			String key = BookGrouper.key(CatalogText.titleNorm(title),
-					BookGrouper.firstAuthor(Contributors.parse(authorRaw)), CatalogText.publisherNorm(publisherRaw));
-			if (key == null) {
+		List<int[]> groups = groups();
+		String[] keys = new String[groups.size()];
+		Map<String, String> firstIsbnOfKey = new HashMap<>();
+		Set<String> splitKeys = new HashSet<>();
+		for (int g = 0; g < groups.size(); g++) {
+			int[] members = groups.get(g);
+			SameTextKey.Key key = BookGrouper.sameTextKey(mostCommonOf(members, unit -> unit.titles),
+					mostCommonOf(members, unit -> unit.authors), mostCommonOf(members, unit -> unit.publishers));
+			if (key.key() == null) {
+				if (key.placeholderOnly()) {
+					report.sameTextPlaceholderNoKey++;
+				}
 				continue;
 			}
-			LocalDate date = dateOf(members);
-			if (firstByKey.containsKey(key)) {
+			keys[g] = key.key();
+			String isbn = isbnOfRoot.get(members[0]);
+			if (isbn != null) {
+				String first = firstIsbnOfKey.putIfAbsent(key.key(), isbn);
+				if (first != null && !first.equals(isbn)) {
+					splitKeys.add(key.key());
+				}
+			}
+		}
+		// merge key → the first unit of its first group; in the order of the books' first groups
+		Map<String, Integer> firstByMergeKey = new LinkedHashMap<>();
+		Map<String, LocalDate[]> dateRange = new HashMap<>();
+		Map<String, Integer> firstGroupOf = new HashMap<>();
+		for (int g = 0; g < groups.size(); g++) {
+			if (keys[g] == null) {
+				continue;
+			}
+			int[] members = groups.get(g);
+			String isbn = isbnOfRoot.get(members[0]);
+			String mergeKey = splitKeys.contains(keys[g]) ? keys[g] + SEP + (isbn == null ? "" : isbn) : keys[g];
+			if (firstByMergeKey.containsKey(mergeKey)) {
 				report.sameTextMerged++;
 			}
-			unionWithFirst(firstByKey, key, members[0]);
+			unionWithFirst(firstByMergeKey, mergeKey, members[0]);
+			firstGroupOf.putIfAbsent(mergeKey, g);
+			LocalDate date = dateOf(members);
 			if (date != null) {
-				LocalDate[] range = dateRange.computeIfAbsent(key, k -> new LocalDate[] { date, date });
+				LocalDate[] range = dateRange.computeIfAbsent(mergeKey, k -> new LocalDate[] { date, date });
 				range[0] = date.isBefore(range[0]) ? date : range[0];
 				range[1] = date.isAfter(range[1]) ? date : range[1];
 			}
-			sampleOf.putIfAbsent(key, title + " / " + authorRaw + " / " + publisherRaw);
 		}
+		report.sameTextIsbnSplit += firstByMergeKey.size() - Arrays.stream(keys).filter(Objects::nonNull).distinct().count();
 		// merged books whose editions may differ: their groups' dates are 2+ years apart [확인 필요: 표본]
-		dateRange.forEach((key, range) -> {
-			if (range[0].plusYears(2).isBefore(range[1])) {
+		firstByMergeKey.keySet().forEach(mergeKey -> {
+			LocalDate[] range = dateRange.get(mergeKey);
+			if (range != null && range[0].plusYears(2).isBefore(range[1])) {
 				report.sameTextWideDates++;
 				if (report.sameTextWideDateSamples.size() < 40) {
-					report.sameTextWideDateSamples.add(range[0] + "~" + range[1] + " " + sampleOf.get(key));
+					int[] members = groups.get(firstGroupOf.get(mergeKey));
+					report.sameTextWideDateSamples.add(range[0] + "~" + range[1] + " "
+							+ mostCommonOf(members, unit -> unit.titles) + " / "
+							+ mostCommonOf(members, unit -> unit.authors) + " / "
+							+ mostCommonOf(members, unit -> unit.publishers));
 				}
 			}
 		});

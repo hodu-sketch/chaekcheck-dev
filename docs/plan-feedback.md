@@ -3218,7 +3218,16 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - **다름**: `CompactGroupingTests`는 DB가 없어 `sql`을 부를 수 없습니다. 그래서 무작위 대조를 `compact` 대 `compact`(키 표가 아주 작게 시작)로 바꾸고, 새 규칙의 모든 갈래(나뉨, 자리 채움, 합침, 표본 40)가 나오는지 확인합니다. `compact` 대 `sql` 무작위 대조는 `SqlGroupingTests.givesWhatCompactGives`(시드 8)에 있습니다. `followsALongChain`·`breaksTiesInJavaOrder`의 기준도 `compact`입니다
   - 무작위 줄에 권 표시, 앞 시리즈, 부제, "01", 자리 채움 저자·출판사, "편"만 있는 저자, 그리고 같은 글자에 다른 ISBN이 붙는 "판 책" 줄(1/12)을 더했습니다
   - 지운 것: `mapShapeGivesTheOrderOfComputeIfAbsent`, `ordersLikeAHashMap`. 더한 것: `SqlGroupingTests.splitsAKeyByItsIsbnsAsJavaDoes`(같은 키 안 ISBN 0·1·2개)
-- `current`(`BookGrouping`)는 그대로 옛 규칙입니다(ADR-0079 덧붙임, Phase B 11단계에서 정리)
+- `current`(`BookGrouping`)는 처음에 옛 규칙 그대로 두었습니다. 아래 "세 방식 남김"에서 새 규칙을 넣었습니다
+
+## 세 방식 남김: `objects`(`BookGrouping`)에도 새 규칙 (2026-10-12 19:30)
+
+- 사이클 11 전달(19:20): 기본 방식 = `compact`, **세 방식 모두 남겨 설정으로 고름**(사용자: "기본 방식은 compact로 해줘 그리고 sql이나 다른 방법들도 구현에 남겨둬 선택해서 할 수 있게 해줘"), 옛 방식 이름 `current` → `objects`(사용자 결정, 사이클 11이 바꿈)
+- **인계서와 다름**: 인계서 11단계 경우 1은 "`compact`나 `sql`이 통과하면 `current`를 지움"인데, 사용자가 세 방식을 남기기로 해서 경우 2처럼 `BookGrouping`에도 같은 규칙을 넣었습니다. ADR-0079 덧붙임과 사이클 12 spec R8-1을 plan에서 고쳐야 합니다
+- `BookGrouping.mergeSameText`: `SameTextKey`, 키의 ISBN이 둘 이상이면 나눔(ISBN 없는 묶음끼리 하나), 2년 차이 표본은 합친 책의 첫 묶음 순, 카운터 둘. `HashMap` 순서에 기대던 표본 순서가 없어졌습니다
+- 테스트: `BookGrouperContractTests`의 `assertCurrentContract`를 없애고 세 방식 모두 `assertContract`(새 규칙). `CompactGroupingTests` 무작위 대조의 기준을 다시 `BookGrouping`으로 돌렸습니다(시드 5 × 4000줄, 소량 시드 40). `SqlGroupingTests.givesWhatCompactGives`에서도 `BookGrouping`이 같은지 봅니다. 모두 통과(DB 없는 테스트 27, `SqlGroupingTests` 13)
+- 이름 `current` → `objects`, 기본값 `compact`는 사이클 11 커밋을 받을 때(rebase) 따릅니다. 사이클 11은 이 시각 기본 작업 폴더에서 이 변경을 아직 커밋하지 않았습니다
+- rebase 때 겹칠 파일(사이클 11이 고치는 중): `BookGrouper.java`, `BookGrouping.java`, `CatalogImportRunner.java`, `CatalogImporter.java`, `BookGrouperContractTests.java`, `CatalogImportModesTests.java`, `3-import.md`. 특히 사이클 11에도 새 파일 `CatalogImportSettingsTests.java`가 있어(커밋 전) **같은 이름의 파일을 양쪽에서 만든 상태**입니다. rebase 때 두 시험을 한 파일로 합칩니다
 
 ## Phase B에서 할 것 (사이클 11이 끝난 뒤)
 

@@ -30,7 +30,8 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
  * The grouping {@code sql} ({@link SqlGrouping}, cycle 11 step 10) against db-test: the shared contract (with step
- * ④'s cycle 12 rule), then the same books, rows, counts and samples as {@link CompactGrouping} for random rows, a
+ * ④'s cycle 12 rule), then the same books, rows, counts and samples as {@link CompactGrouping} (and
+ * {@link BookGrouping}) for random rows, a
  * long chain of ISBN links, a tie between characters whose UTF-16 and code point orders differ, the merge keys of a
  * key with 0, 1 and 2 ISBNs, and the pass limit. Only temporary tables are used,
  * so nothing is left behind and other tests are not touched.
@@ -56,6 +57,7 @@ class SqlGroupingTests {
 		System.out.printf("seed %d: %d rows, %d books, sql %d ms, passes %s, wide %d%n", seed, rows.size(),
 				sql.books.size(), (System.nanoTime() - started) / 1_000_000, sql.passes, sql.report.sameTextWideDates);
 		assertSame(sql, current);
+		assertSame(run(BookGrouping::new, rows, seed), current);
 		// the random rows reach every step
 		assertThat(current.report.booksAfterKyoboIsbn).isLessThan(current.report.booksAfterPlatformCode);
 		assertThat(current.report.nationalBibliographyIsbnAttached).isPositive();

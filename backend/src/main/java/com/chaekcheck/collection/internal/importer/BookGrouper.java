@@ -27,10 +27,9 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * common one; then a group's ISBN is the one most of its rows have.</li>
  * <li>Step ③: groups in the order of their first unit; a group without an ISBN whose key ({@link #key}) has one
  * national bibliography ISBN gets it and joins the first group with that ISBN.</li>
- * <li>Step ④: the same-text keys are all computed from the groups as they are when step ④ starts. Cycle 12
- * (ADR-0082): {@code compact} and {@code sql} use {@link #sameTextKey} and split a key by its ISBNs as the step
- * starts; the merged books' wide-date samples go in the order of their first group. {@code current} keeps the old
- * key (whole title) until cycle 12 Phase B.</li>
+ * <li>Step ④: the same-text keys ({@link #sameTextKey}, cycle 12, ADR-0082) and the ISBNs that split a key are
+ * all taken from the groups as they are when step ④ starts; the merged books' wide-date samples go in the order of
+ * their first group.</li>
  * <li>Joining keeps the smaller unit number as the group; its ISBN comes first.</li>
  * <li>A most common value: most rows, ties to the smallest by {@link String#compareTo}; the date by
  * {@code PublishedDates.representative}.</li>
