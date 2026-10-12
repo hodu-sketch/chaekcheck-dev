@@ -1,0 +1,6 @@
+library_id	name	disabled_on	reason	source
+59	대구학생전자도서관	2026-09-29	서비스 중지: "대구학생전자도서관 서비스가 중지됨을 알립니다", "홈페이지 접속은 가능하나 로그인 불가"(2025-07-22 공지). 대구교육청 공지에서 재개 소식이 보일 때 다시 확인	library/004-library-seed-kyobo.yaml, library-maintenance.md 6-2 (사용자 결정 2026-09-29)
+131	전남광주통합특별시 서구 통합도서관	2026-09-29	구독형 전자책 2026년 예산 소진으로 9월 중 중단, 2027년 1월 재개 예정(서구 공지 2026-09-14). 2027-01에 다시 확인	library/004-library-seed-kyobo.yaml, library-maintenance.md 6-2 (사용자 결정 2026-09-29)
+135	전라북도교육청통합도서관	2026-10-05	서비스 검색이 서버 오류. 사이트가 브라우저에도 'L7 Secure connect fail'(2026-10-01). 같은 교육청 책은 포털 도서관 15에 있음	library/010-library-disabled.yaml, library-site-issues.md 9절 (사용자 결정 2026-10-05)
+2194	장안대학교	2026-10-05	최종 주소를 끝내 못 받음: 연결 뒤 응답 없음(header parser received no bytes) 두 번	library/010-library-disabled.yaml, library-site-issues.md 9절 (사용자 결정 2026-10-05)
+2198	성균관대학교	2026-10-05	최종 주소를 끝내 못 받음: 시간 초과(5초) 세 번. 같은 호스트의 북큐브(558)는 응답	library/010-library-disabled.yaml, library-site-issues.md 9절 (사용자 결정 2026-10-05)
