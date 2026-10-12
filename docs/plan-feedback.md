@@ -3545,3 +3545,97 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - `holdings_count`를 언제 셌는지(`holdings_counted_on`)와 수집 시각이 다르면 차이가 날 수 있음. 비율 0.7 이상은 그 차이일 수 있어 우선순위가 낮음
 - 사이트 표시 수가 없는 나머지 약 2,400곳은 이 방법으로 볼 수 없음. 도서관마다 사이트 표시 수를 모으는 일도 이 사이클 후보
 
+# 사이클 13
+
+수집기 dev로 갈아타기 + 도서관 넣기 명령. 작업 폴더 `../chaekcheck-dev-c13`(브랜치 `cycle-13-crawler-to-dev`, `11ed991`에서 시작), 사이클 12와 나란히. 1~8단계와 10단계를 여기서 하고, 9단계(실데이터 `db` 넣기·운영 흉내 반영)와 main 합치기는 사이클 11·12가 main에 합쳐진 뒤(인계서 그대로).
+
+## 0단계 시작 확인 (2026-10-12)
+
+- 작업 폴더·DB 묶음: 사용자 결정(2026-10-12, 사이클 14 계획 페이지를 보고) "13=544x, 14=545x", 이름 "chaekcheck-c13 / chaekcheck-c14". 13은 `docker compose -p chaekcheck-c13`, DB 5442·5443·5444, 서버 8082, 웹 5176. 14는 `-p chaekcheck-c14`, DB 5452·5453, 서버 8081, 웹 5177(인계서의 `chaekcheck-13`, plan 14 페이지의 5442/5443·웹 5175에서 바꿈. 5175는 dev `web-tunnel-5175`가 이미 씀). 저장 공간 이름에도 프로젝트 이름이 붙음(`chaekcheck-c13_db-data`, 확인)
+- **14에 알릴 것(발견)**: 시험 도우미 `TestPgCommand`의 기본값이 `-p chaekcheck`의 `db-test`라, 작업 폴더에서는 `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,compose,-p,<프로젝트>,exec,-T,db-test`를 줘야 사이클 11 시험 15개가 통과함(없으면 `pg_dump: no matching schemas`로 실패하고 원래 `db-test`에 붙음). `.claude/launch.json`의 `backend` 설정은 원래 폴더 경로가 박혀 있어 작업 폴더에서 쓰면 원래 코드가 뜸
+- `PRE_DEPLOYMENT` 있음. master 끝 `collection/005`, `collection` 005, `library` 014 → 새 파일 `collection/006`, `library/015`
+- 수집기 프로세스 없음. 기준선: 위 `TEST_PG_COMMAND`로 `./gradlew build` 통과
+- 내 PC `db`의 판 1 내보내기 대기 여부는 main 합칠 때 봄(이 작업 폴더의 DB는 새로 만듦)
+
+## 사용자 결정 (2026-10-12, 이 세션)
+
+| 무엇 | 결정 |
+|---|---|
+| 옛 코드 보관 | dev 세션이 옮김 → `chaekcheck-data\_old-scripts-2026-10-12\`(`scripts\` 16개 파일 + `resume.cmd`, 지우지 않음) |
+| 새 곳의 최종 주소가 `final_origins`에 없을 때(확인 필요 항목) | "빠진 곳은 확인해 채움": 6곳을 `CheckFinalOrigins.java`로 확인(100584 → `https://ebook.yit.ac.kr:446`, 나머지 그대로. 시간 초과 2곳은 `curl -m 90`으로 다시 봄: 리다이렉트 없음, 약 5.2초). **새 곳은 `final_origins.tsv` 줄이 있어야 함**, 없으면 규칙 오류(종료 1). 옛 스크립트도 같은 규칙 |
+| 사라진 곳 3곳(44 국회도서관, 261 군포시, 269 김천시립: 서비스 켜짐, 수집 DB `crawl_skip`) | "확인하고 빼줘 파일로 적어줘": 2026-10-12에 한 번씩 열어 10-01 기록과 같음을 확인(빈 화면 19바이트 / 46번 사이트로 302 / 연결 끊김). 새 규칙 파일 `gone_known.tsv`, 보고서에는 `goneKnown`에 번호만. 서비스에서는 그대로 켜 둠 |
+| 여주대 빈 곳 채우기(AC-1) | "여주대는 빼자" → **AC-1을 이번 사이클에서 뺌**. 19:29 시작, 22분에 980줄(10권 한 쪽에 약 14초, 끝까지 약 30시간 예상)에서 멈춤. 줄 수 83,756 그대로, `quick_check` ok. 여주대 2곳 넣기는 그대로 |
+| 서비스에서 뺀 도서관 목록 | "둘 다": `docs/library-left-out.md`(A 수집했지만 안 넣은 349곳 이유별, B 서비스에 있지만 문제 있는 8곳: 끈 5 + 확인한 3). 만드는 스크립트 `scripts/library/list_left_out.py`. "기존 DB에 있는 도서관은 기본으로 포함" |
+
+## 설계·인계서와 달라진 점
+
+- **번호**: 옛 스크립트는 새 6곳에 2664~2669를 주었음(사이클 08에서 비운 번호). `nextId()`(= `GREATEST(max(id)+1, IDENTITY 다음 값)`, seed `RESTART WITH 2675`)와 맞게 옛 스크립트도 마지막 `RESTART WITH`부터 매기게 고침 → 둘 다 **2675~2680**
+- **사라진 곳 기대값 0**: 10-12 사본에서 3곳이 나옴(위 결정으로 `gone_known.tsv`). "사라진 곳"은 켜진 서비스 도서관만 봄(꺼진 59·131·135·2194·2198은 비교 안 함)
+- **바뀐 곳**: 주소(최종 주소 적용 뒤, 끝 `/` 무시), 이름(이름 바꾸기·HTML 풀기 뒤), 화면 종류, 대출 방식(화면 종류가 같을 때), 전체 수집 성공 없음(`crawl`). 10-12 사본 0
+- **같은 호스트 남김**은 옛 스크립트처럼 **새 곳 쪽 번호**가 `same_host_kept.tsv`에 있으면 뺌
+- **종료 코드 5** 더함: DB가 줄을 거절(제약 위반) → 롤백, `FAILED` 실행 기록 한 줄
+- **넣기 때 다시 확인**: 잠금 뒤 `nextId()`가 보고서 첫 번호와 다르면 종료 4(그 사이 다른 넣기가 번호를 씀)
+- 넣을 곳 0이면 넣기는 실행 기록을 남기지 않음
+- 규칙 파일 해시는 줄 끝을 `\n`으로 맞춘 글로 계산(git이 `\r\n`으로 꺼내도 같은 보고서 번호)
+- 운영 반영의 도서관 부분 실패는 `FAILED`, `failure_reason` `error`, `failure_detail` `library part: …`. `step_seconds`에 `library part` 단계 더함
+
+## 바꾼 이름 (모두 [안]에서 dev가 정함)
+
+| 인계서 [안] | 실제 |
+|---|---|
+| 프로필 `library-insert`, 설정 `chaekcheck.collection.library-insert.{mode,sqlite-path,rules-dir,report-dir,report-id}` | 그대로 |
+| 보고서 파일 `library-insert-<id>.json` | 그대로. 위치는 데이터 폴더 `chaekcheck-data\library-insert\`(9단계부터) |
+| 표 `collection.library_insert_run`과 칸 | 그대로. 부분 UNIQUE 이름 `library_insert_run_report_id_succeeded_key` |
+| `other_library_count`, `catalog_import_other_library_count_check` | 그대로 |
+| `LibraryRegistry`(`add`, `nextId`, `listAll`), `NewLibrary`, `NewEligibilityRule`, `RegisteredLibrary`, `JdbcLibraryRegistry` | 그대로. **`listAll()`에 `platformType` 더함**. `NewEligibilityRule`의 기준·범위는 글자(DB CHECK가 검사) |
+| `LibraryInsertRunner`, `RuleSet`, `LibraryInsertPlanner`, `InsertReport` | 그대로 + `LibraryInsertCommand`(미리 보기·넣기), `InsertPlan`, `CollectedLibraries`, `LibraryInsertException`, `LibraryPart`(반영 파일의 도서관 부분) |
+| advisory 잠금 키 | `LibraryInsertCommand.LOCK_KEY = 0x63686b4c6962496e` |
+| `notes.libraryPart` | 그대로(성공한 실행 기록 전부: `reportId`, `ranAt`, `snapshot`, `insertedCount`, `joinSurveyedOn`, `payload`) |
+| `JoinSurveyController` | 그대로. 응답 `{"surveyedOn": …}` |
+| `refill-pubdt` | `crawl_catalog.py refill-pubdt --only ID[,ID]` |
+| `FIRST_CANDIDATE_ID`·`candidate()` | Java `FIRST_COLLECTED_ONLY_ID`·`addedLater()`, Python `FIRST_DISCOVERED_ID` |
+| `LibrarySeedTests`(상수 `OTHERS`), `LibraryCatalogTests.LibrariesAddedLater` | 그대로 |
+| 규칙 폴더 파일 | `final_origins.tsv`(옛 `final-origins.tsv`를 옮김), `name_overrides.tsv`(옮김), `order_no_allowed.tsv`(순번 2 허용), **새 `gone_known.tsv`**. 칸 이름 `collection_id`. 꼴은 `scripts/library/rules/README.md` |
+| 옛 스크립트 | `build_library_seed.py`(인자 `--rules`, `--out`, `--changes-only`, 자리 인자는 사본 하나), `test_build_library_seed.py`, 폴더 `discover/`. `name_candidates()`는 원래 없었음 |
+
+- 기준일 API의 "최신" = 성공한 실행 기록의 `join_surveyed_on` **최댓값**(날짜 최대)
+- HTML 글자 풀기: Spring `org.springframework.web.util.HtmlUtils.htmlUnescape`(새 의존성 없음)
+- 지역 요약 문구: `resolve_regions.py`가 옛 함수(`eligibility_rules.region`, `apply_join_classification.summary_of`)로 `public_join.tsv`의 `rules`(`RESIDENCE:41;WORK:41`, 누구나 `RESIDENCE:NATIONWIDE`)와 `eligibility_summary`를 미리 적음. `scope_overrides.tsv`는 이 도우미만 읽음
+- 이름 바꾸기·최종 주소 파일은 규칙 폴더로 **옮김**(읽는 곳이 옛 스크립트뿐. `CheckFinalOrigins.java`는 입력을 만들 뿐 읽지 않음). 적용된 Liquibase 008·013·014 주석의 옛 경로는 그대로
+
+## 1단계 결과 (수집기 갈아타기)
+
+- 옛 수집기(`chaekcheck-data\scripts\crawl_catalog.py`, 10-04)와 dev 복사본(10-05)의 차이: dev 쪽에만 `--data-dir`·읽기 전용 `status`가 있고 **옛 쪽에만 있는 것은 없음**. `library.vendor` 칸은 옛 수집기가 아니라 데이터 폴더 `library-naming/apply_rename.py`(10-12)가 더했고 3,016곳 모두 NULL
+- dev 수집기에 더함: `vendor` 칸(새 DB는 표, 있는 DB는 `migrate`, `apply_rename.py`와 같은 CHECK), `refill-pubdt`(시작·끝 줄 수, `refill done`), `*.dkyobobook.co.kr`은 요청 직전에도 막음(`BlockedHost`)·`full`에서 빼고 로그 한 줄, 403이나 재시도 뒤 시간 초과면 그 도서관만 `crawl_skip`(`blocked <날짜>: …`), `status`에 받지 않음 수
+- `resume.cmd`: `--include-big-subscription` 뺌, `host-slots.txt`는 있으면 "ignored" 한 줄, 두 벌 검사가 `full`·`refill-pubdt`·옛 `refill_pubdt.py`를 봄
+- 데이터 폴더 도구 `fetch.py`(잠금 파일은 데이터 폴더 `library-join\.hostlocks` 그대로), `probe_logos.py`, `probe_home_logos.py`를 `scripts/library/`로 복사(`--data-dir` 규칙)
+- 첫 실행: dev `status`(읽기 전용)가 기대값과 같음. 성공 기록 없는 곳에서 교보 구독형 서버 204·받지 않음 4를 빼면 2곳(100252, 102020)
+- AC-2: 데이터 폴더 맨 위에 `resume.cmd` 없음, 보관 폴더에 옛 코드. refill이 도는 중에 dev `resume.cmd`를 실제로 돌리면 "already running"으로 종료 1(확인)
+- 참고: 데이터 폴더 `library-naming/apply_rename.py`는 옛 `scripts\`를 import하므로 보관 뒤에는 그대로 돌지 않음(옮기지 않기로 한 일회용 도구)
+- 참고: `*.dkyobobook.co.kr` 도서관은 수집 DB에 1,480곳. 서비스에 있는 교보 구독형 소장 사이트도 이제 다시 수집되지 않음(R1-6 [확정]의 결과)
+
+## 5단계 결과 (넣기 명령, 13 DB에서 미리 실행)
+
+13 작업 폴더의 DB(5442, seed만 있는 새 DB = 서비스 seed와 같음)와 사본 `ebook-catalog-2026-10-12-0135.sqlite`로:
+
+- 미리 보기 보고서 `1af0721e4a3e`: 새로 넣을 곳 6, 바뀐 곳 0, 사라진 곳 0(+확인한 곳 3), 의심 0, 순번 2 이상 0. 빠진 곳: 교보 대여·혼합 232, 받지 않음 105, 수집 성공 없음 2, 체험용·운영 중단 4, 같은 사이트 0(8곳 모두 `crawl_skip`이 먼저 걸림), 시험용 6
+- 새 6곳(AC-3·AC-6 미리 대조, 옛 스크립트 `--out`과 같음): 2675 여주대학교(100584, KYOBO_V1, KYOBO·OWNED, `https://ebook.yit.ac.kr:446`), 2676 한국선원복지고용센터(102029, YES24_V1), 2677 여주대학교(102084, YES24_V2), 2678 김천대학교(102092, YES24_V3), 2679 경운대학교(102101, YES24_V2), 2680 천상중학교(102171, YES24_V2). 모두 순번 1, `MEMBERS_ONLY`, 규칙 없음. 다른 점 없음(HTML 풀기는 이 6곳에 해당 없음)
+- 같은 보고서 번호로 넣기 → 6곳, 다시 미리 보기 → "넣을 도서관 없음"(보고서 `b2174dfd426d`). `/api/v1/libraries`에 2675~2680과 1215 `한화S&C`
+- 재시작 없이 보이는지(AC-4)는 시험(`LibraryInsertCommandTests`)으로 확인, 실제 화면 확인은 9단계
+
+## 7단계 결과 (판 2)
+
+- 로컬 DB 맞추기 SQL을 13 DB에서 흉내로 확인: 옛 이름·옛 체크섬으로 되돌리면 앱이 `ValidationFailedException`으로 멈추고, SQL(이름 둘 바꾸기 + `md5sum` NULL)을 돌리면 체크섬 오류 없이 켜지고 `md5sum`이 다시 채워짐. 절차는 `docs/maintenance/3-import.md` 13-5
+- 긴 `notes`(4만 자 넘음, 한글·따옴표·작은따옴표)를 `Manifests.parse`가 그대로 읽음(`ManifestsTests`)
+
+## 8단계 결과
+
+- `/about` 줄을 13 서버(8082)·웹(5176)으로 확인: 데스크톱·태블릿·모바일 폭 모두 첫 문단 아래 "가입 조건은 2026년 10월에 조사한 내용입니다." (Playwright MCP 브라우저는 다른 세션이 쓰고 있어 앱 안 브라우저로 확인). 사용자 폰 확인은 9단계와 함께
+
+## 사이클 14에 알릴 것
+
+- 새 `application-library-insert.yml`에도 `chaekcheck.popular.fetch.enabled: false` 줄이 있음(14가 `popular`를 지울 때 함께)
+- master 끝줄: `# cycle 13` 주석 아래 `library/015` → `collection/006` 순서
+- `AboutPage.tsx`: 첫 문단 → 기준일 줄 → `{/* cycle 14: … */}` 주석 자리 → 제휴 문단 → 로고 내림 문단
+- `ModularityTests`에 `collectionUsesLibraryAndLibraryNotCollection`, `AuthEnabledSecurityTests`에 `joinSurveyDateNeedsNoLogin` 더함
+- 작업 폴더에서는 `TEST_PG_COMMAND`가 필요함(0단계)
