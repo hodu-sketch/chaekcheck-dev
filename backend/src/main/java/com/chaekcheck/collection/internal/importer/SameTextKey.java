@@ -60,7 +60,10 @@ final class SameTextKey {
 	/** Main title ends at the first " : " or " - ", as in {@link CatalogText#mainTitleNorm}. */
 	private static final Pattern SUBTITLE_SEPARATOR = Pattern.compile("\\s+[:\\-]\\s+");
 
-	/** A subtitle part this long or shorter (spaces not counted) gives all its numbers ("- 수학 1", "- 상"). */
+	/**
+	 * A subtitle part this long or shorter (spaces and leading zeros not counted) gives all its numbers ("- 수학 1",
+	 * "- 상").
+	 */
 	static final int SHORT_PART = 8;
 
 	/**
@@ -80,10 +83,6 @@ final class SameTextKey {
 	 */
 	private static final Pattern ROMAN = Pattern
 		.compile("(?<![A-Za-z0-9])(X{1,2}(?:IX|IV|V?I{0,3})|IX|IV|V?I{1,3}|V)(?![A-Za-z0-9])");
-
-	/** The last number of a part when only spaces, periods, commas or closing brackets follow it. */
-	private static final Pattern NUMBER_AT_END = Pattern.compile("(?<![0-9])([0-9]+)[\\s.,)\\]]*$");
-
 	private static final Pattern ROMAN_AFTER_VOLUME_WORD = Pattern
 		.compile("(?i)(?:vol|volume|tome|book|part|livre)\\.?\\s{0,3}$");
 
@@ -190,8 +189,7 @@ final class SameTextKey {
 
 	/**
 	 * The numbers of the volume marks in order (as integers, "01" = "1"): every number of the main title and of short
-	 * subtitle parts ({@link #SHORT_PART}), only the volume numbers ({@link #VOLUME_NUMBER}) and the number at the end
-	 * of longer parts, and in
+	 * subtitle parts ({@link #SHORT_PART}), only the volume numbers ({@link #VOLUME_NUMBER}) of longer parts, and in
 	 * every part the Roman and Chinese numerals in a volume place.
 	 */
 	static List<String> numbers(String text) {
@@ -199,7 +197,9 @@ final class SameTextKey {
 		String[] parts = SUBTITLE_SEPARATOR.split(text, -1);
 		for (int p = 0; p < parts.length; p++) {
 			String part = parts[p];
-			boolean all = p == 0 || WHITESPACE.matcher(part).replaceAll("").length() <= SHORT_PART;
+			// counted without spaces and leading zeros, so "살림지식총서 081" is as short as "살림지식총서 81"
+			String counted = LEADING_ZEROS.matcher(WHITESPACE.matcher(part).replaceAll("")).replaceAll("");
+			boolean all = p == 0 || counted.length() <= SHORT_PART;
 			TreeMap<Integer, String> found = new TreeMap<>();
 			if (all) {
 				Matcher number = NUMBER.matcher(part);
@@ -215,11 +215,6 @@ final class SameTextKey {
 							found.put(volume.start(g), integer(volume.group(g)));
 						}
 					}
-				}
-				// a number at the end of the part, as a Roman numeral there ("살림지식총서 081", "마나가 필요 없어 01")
-				Matcher last = NUMBER_AT_END.matcher(part);
-				if (last.find()) {
-					found.put(last.start(1), integer(last.group(1)));
 				}
 			}
 			Matcher roman = ROMAN.matcher(part);

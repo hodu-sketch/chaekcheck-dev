@@ -160,10 +160,13 @@ class SameTextKeyTests {
 		assertThat(SameTextKey.numbers("가 - 도시농부 올빼미의 텃밭가이드 2권")).containsExactly("2");
 		assertThat(SameTextKey.numbers("가 - SciFan 제178권 시리즈의 한 권")).containsExactly("178");
 		assertThat(SameTextKey.numbers("가 - 2014 커뮤니케이션이해총서 모음")).containsExactly("2014");
-		// the number at the end of a long part (second dry run sample)
+		// leading zeros do not make a part long (second dry run sample)
 		assertThat(key("더 시커 : 마나가 필요 없어 01권")).isEqualTo(key("더 시커 : 마나가 필요 없어 01"));
 		assertThat(key("미국인의 발견 - 살림지식총서 81")).isEqualTo(key("미국인의 발견 - 살림지식총서 081"));
-		assertThat(SameTextKey.numbers("가 - 설계의 핵심 52")).containsExactly("52");
+		// a count or a series number at the end of a long part is description (third dry run sample)
+		assertThat(key("나는 다시 나를 설계하기로 했다 - 독일 최고의 멘탈 코치가 증명한 생각·행동·습관 설계의 핵심 52"))
+			.isEqualTo(key("나는 다시 나를 설계하기로 했다"));
+		assertThat(key("공포로의 여행 : 열린책들 세계문학 270")).isEqualTo(key("공포로의 여행"));
 		// a short part gives all its numbers
 		assertThat(SameTextKey.numbers("오개념 탈출 프로젝트 - 수학 1")).containsExactly("1");
 		assertThat(SameTextKey.numbers("묘왕동주 1 - 상")).containsExactly("1");
@@ -175,8 +178,8 @@ class SameTextKeyTests {
 		assertThat(key("Fires - Book I")).isNotEqualTo(key("Fires - Book II"));
 		assertThat(key("ALICE IN WONDERLAND - I")).isNotEqualTo(key("ALICE IN WONDERLAND - III"));
 		assertThat(key("Mystr 럭키팩 7 - 스칼렛 핌퍼넬 I")).isNotEqualTo(key("Mystr 럭키팩 7 - 스칼렛 핌퍼넬 II"));
-		// a long part: the numeral after "Vol." and the number at its end
-		assertThat(SameTextKey.numbers("The Widow Barnaby - Vol. II (of 3)")).containsExactly("2", "3");
+		// a long part: the numeral after "Vol.", not the "of 3"
+		assertThat(SameTextKey.numbers("The Widow Barnaby - Vol. II (of 3)")).containsExactly("2");
 		assertThat(SameTextKey.numbers("x - A Journal of the Reigns of King George IV and King William IV, Vol. I"))
 			.containsExactly("1");
 		assertThat(RULES.volumeMarks("스칼렛 핌퍼넬 Ⅱ")).isEqualTo("n=2|s=|e=");
