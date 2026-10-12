@@ -3,6 +3,7 @@ import type {
   BookPage,
   BookRole,
   BookSort,
+  LatestJoinSurvey,
   LibraryEligibilityRow,
   LibraryPage,
   LibraryScope,
@@ -162,4 +163,12 @@ export function fetchPopularBooks(plan: PlanParams, signal?: AbortSignal): Promi
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
   return getJson(`/api/v1/popular-books${suffix}`, signal)
+}
+
+/**
+ * `GET /api/v1/join-surveys/latest` (cycle 13, ADR-0093): the date the join rules were last surveyed, shown on S12.
+ * Public, no login.
+ */
+export function fetchLatestJoinSurvey(signal?: AbortSignal): Promise<LatestJoinSurvey> {
+  return getJson('/api/v1/join-surveys/latest', signal)
 }

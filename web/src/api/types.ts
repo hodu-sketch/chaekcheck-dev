@@ -399,3 +399,11 @@ export interface PopularBooks {
   fetchedAt: string | null
   categories: PopularCategory[]
 }
+
+// ---- cycle 13: join survey date (ADR-0093) ----
+
+/** `GET /api/v1/join-surveys/latest`: the newest join survey date of the library inserts; null before the first. */
+export interface LatestJoinSurvey {
+  /** "YYYY-MM-DD" */
+  surveyedOn: string | null
+}
