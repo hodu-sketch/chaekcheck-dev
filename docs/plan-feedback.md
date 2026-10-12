@@ -3146,3 +3146,80 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 정확한 옵션 비용은 PC가 조용할 때 다시 재야 앎(약 22분). 결론(`compact`에는 옵션을 붙이지 않음)은 바뀌지 않을 것으로 보여 다시 재지 않음
 - 측정 주의(다음 측정에): 같은 PC의 다른 세션이 빌드·테스트·가져오기를 돌리면 시간이 크게 섞임. 긴 측정 동안에는 다른 세션의 빌드를 멈추거나 측정 시간대를 알림
 - 이유(dev 판단): `compact`는 글자를 이미 한 벌씩 모으고 묶음마다 객체를 만들지 않아 두 옵션이 줄일 것이 적음. 옛 방식(`objects`)에서는 6GB → 4GB로 줄었음
+
+# 사이클 12
+
+인계서: plan `docs/cycles/12-grouping-rules/handoff.md`(미리 쓴 인계서). 사이클 11 측정(11단계)이 기본 작업 폴더에서 도는 동안 별도 worktree에서 Phase A만 했습니다.
+
+## 시작 (2026-10-12 12:11)
+
+- worktree `../chaekcheck-dev-c12`, 브랜치 `cycle-12-grouping-rules`, 시작 커밋 `60b6b1a`(사이클 11 `main` 최신) (사용자: "추천대로 시작")
+  - 중간 전달 커밋 `e3cfea4` 뒤로 묶기 코드(`BookGrouping`·`CompactGrouping`·`SqlGrouping`)와 그 테스트는 바뀌지 않았습니다. 바뀐 것은 `CatalogImportRunner` +7줄(CPU 로그)과 `measure_import.py`뿐입니다. 6단계에서 `CatalogImportRunner`를 고치므로 최신에서 시작해 rebase 충돌을 줄였습니다
+- `.env`: 기본 작업 폴더의 파일을 worktree 루트로 복사했습니다(git이 무시하는 파일, 값은 커밋하지 않음)
+- 테스트: DB 없는 테스트만 돌립니다. `db-test`를 쓰는 테스트와 `./gradlew build`는 사용자가 "지금 돌려도 돼"라고 알려 줄 때 돌립니다 (사용자: "제가 알려줄게요")
+- Phase B 실데이터 사본: 사이클 11 기준 숫자를 만든 `ebook-catalog-2026-10-12-0135.sqlite`를 그대로 씁니다 (사용자: "같은 사본")
+- 지킨 것: 기본 작업 폴더의 파일·브랜치·커밋 안 된 변경은 건드리지 않았습니다. 실데이터 실행, docker compose 명령, 앱 실행은 0번입니다
+
+## Phase A 커밋
+
+| 커밋 | 단계 |
+|---|---|
+| `f17dcc8` | 2단계 `SameTextKey`, `SameTextKeyTests` |
+| `ad0b816` | 6단계 사이클 07 도서관 빼기 설정, `CatalogImportSettingsTests` |
+| `5dd1e38` | 7단계 `compare_grouping.py regroup`, `test_compare_grouping.py`, `3-import.md` 3절 |
+| `f88e3d3` | 3·4·5·8단계 `compact`·`sql` 새 규칙, 카운터 둘, 계약·무작위 테스트 |
+| (이 커밋) | 9단계 문서 |
+
+## 테스트 결과 (Phase A)
+
+- 통과(DB 없음): `SameTextKeyTests` 14, `BookGrouperContractTests` 1(`current`), `CompactGroupingTests` 8(계약 + 무작위 시드 5 등), `CatalogImportSettingsTests` 3, `python -m unittest scripts/catalog/test_compare_grouping.py` 5. `compileJava`·`compileTestJava` 통과
+- **아직 안 돌림 (사용자가 알려 줄 때)**: `SqlGroupingTests`(새 계약, `compact` 대 `sql` 무작위, 새 `splitsAKeyByItsIsbnsAsJavaDoes`), `CatalogImportModesTests`, `NationalBibliographyTests`, `CatalogImporterTests`, `./gradlew build`(`ModularityTests`·`DocumentationTests` 포함)
+
+## 정한 이름과 정의 (인계서 [안]과 다른 것은 "다름")
+
+- `SameTextKey`(패키지 내부)와 `BookGrouper.sameTextKey(title, authorRaw, publisherRaw)`
+  - **다름**: 반환값이 `String`이 아니라 `SameTextKey.Key(String key, boolean placeholderOnly)`입니다. 카운터에 "자리 채움 값 때문에 키가 없어졌는지"가 필요해서입니다. `BookGrouper.key`·`firstAuthor`(③)는 그대로입니다
+  - 상수: `PLACEHOLDER_AUTHORS` = 기타, unknown(`nameExact`로 비교. 저자 "."는 `nameExact`가 빈 값이라 원래 없음), `PLACEHOLDER_PUBLISHERS` = 기타, 미상, unknown(`publisherNorm`으로 비교. "."는 원래 null), `EDITION_WORDS`(R3-2의 11개), `TAILS` = 빈 목록 + `TODO [확인 필요: Phase B 데이터 절차 → 사용자 확정]`. 시험용 생성자 `SameTextKey(List<String> tails)`
+  - 권 표시 형식: 늘 세 칸 `n=…|s=…|e=…`(빈 칸도 남김). 판 낱말은 찾은 낱말의 집합을 글자 순으로 둡니다. 예 「수학 1 개정 기념판 상」 → `n=1|s=상|e=개정,기념판`
+  - 상·중·하 위치: 앞이 `(`·`[`·공백·`-`·`.`·`·`·`,`이고, 뒤가 "권"·`)`·`]`·`·`·`,`·끝·부제 구분(` : `·` - `)일 때만 셉니다. 「하늘과…」·「세상 중심에서」·「상하이…」는 세지 않습니다
+  - 판 낱말은 공백을 지운 글자에서 찾습니다("전면 개정판" = "전면개정")
+  - 꼬리 떼기: 비교 제목에서는 끝에서만(여러 개면 거듭), 권 표시에서는 제목 어디서든(공백·대소문자 무시) 뗍니다
+  - **다름(덧붙임)**: 비교 제목 안 숫자도 앞의 0을 뗍니다. 인계서의 "01" = "1"은 권 표시 규칙인데, 비교 제목에 숫자가 그대로 남아 「해리 포터 01」과 「해리 포터 1」의 키가 달랐습니다. 키 전체에서 "01" = "1"이 되게 했습니다
+- 카운터(로그 전용, `ImportReport`의 (4)줄 "kept apart by ISBN", "no key for a placeholder")
+  - `sameTextIsbnSplit` = 합치는 키(mergeKey) 수 − 같은 글자 키 수. ISBN이 둘 이상인 키는 ISBN마다 하나, ISBN 없는 묶음들에 하나의 mergeKey를 가집니다
+  - `sameTextPlaceholderNoKey` = 키가 없는 묶음 가운데, 자리 채움 값을 값으로 쳤다면 키가 있었을 묶음 수(제목이 있고, 자리 채움을 뺀 규칙 전의 첫 저자와 출판사가 있음)
+  - `sameTextMerged`는 그대로 "앞 묶음에 합쳐진 묶음 수" = 키 있는 묶음 수 − mergeKey 수
+  - `ImportRecords`·`ImportTransfer`·`catalog_import` 칸에는 넣지 않았습니다
+- `compact`
+  - 두 번 훑음. 1회차에 묶음마다 키 번호(`int[unitCount]`), 키마다 첫 ISBN(`long`)과 "ISBN 0·1·2 이상"(`byte`)을 둡니다. 2회차에 합칩니다
+  - "②·③ 뒤 같은 ISBN 묶음은 하나뿐" 불변식은 `assert`로 확인합니다(같은 키 안에서만, 테스트에서는 켜짐, 실제 가져오기는 `-ea` 없음)
+  - 2년 차이 세기와 표본은 합친 책(mergeKey) 단위, 표본은 합친 책의 첫 묶음 순 최대 40개
+  - 지운 것: `MapShape`, `wideDateSampleOrder`, `SameText` 클래스, 생성자 인자 `replaySampleOrder`(이제 `CompactGrouping(int unitTableCapacity)`)
+  - 메모리 계산: 묶음당 4바이트(키 번호), 키당 9바이트(첫 ISBN, 표시) + 4바이트(공유 mergeKey 번호), 합친 책당 13바이트(첫 묶음, 최소·최대 날짜, 날짜 있음). 옛 `SameText`(키당 20바이트 + `MapShape` 해시)를 대신합니다. 실측은 Phase B 13단계
+- `sql`
+  - `grp_text(label, key, d)`(**`h` 칸 지움**), 새 임시 표 `grp_merge(label, d, merge_key)`. `merge_key` = (키의 `count(DISTINCT isbn)` ≤ 1) ? key : key ‖ `chr(1)` ‖ coalesce(isbn, ''). ISBN은 ④ 시작 때의 `grp_gisbn`
+  - `grp_key`는 이제 `merge_key`마다 `first`·`lo`·`hi`. 2년 차이 표본은 `first` 순
+  - 지운 것: `WideKey`, `hashMapOrder`, `lastIsNew`·`sizeAtLastCall` 계산
+- 6단계 설정
+  - 설정 `chaekcheck.collection.import.exclude-candidate-libraries`(기본 false), `Settings.excludeCandidateLibraries`, `CatalogImporter.excludeCandidateLibraries(boolean)`
+  - 건너뛴 이유 낱말 `library_excluded_candidate`, 로그 `candidate libraries excluded: N`
+  - 켜져 있는데 `dry-run`이 아니면 `Settings.check()`가 시작하지 않습니다(예외)
+  - 이미 다른 이유(서비스에 없음, 주소 다름 등)로 빠지는 도서관은 그 이유 그대로입니다. 뺀 후보는 `candidateLibraries`와 `librariesWithoutFullSuccess`에서도 셈하지 않습니다(**덧붙임**)
+  - **다름**: 시험을 `CatalogImportModesTests`(DB)가 아니라 새 `CatalogImportSettingsTests`(DB 없음)에 넣었습니다. 시작 거부 둘, 그리고 작은 SQLite로 진짜 `CatalogImporter` dry run을 돌려 후보 도서관 줄이 빠지는지(`rows.tsv.gz`까지) 봅니다. 측정 중에도 돌릴 수 있게 하려고 이렇게 했습니다
+- 7단계 `regroup <A> <B> [N]`(N 기본 20)
+  - 덧붙임: 목록에 "shared rows"(겹치는 줄 수)를 넣었습니다. B가 dry run이어도 B 번호(dry run이 매긴 번호)를 보여 줍니다
+  - 합쳐지거나 나뉜 책이 있으면 종료 코드 1입니다(다른 하위 명령과 같은 방식)
+  - ADR-0062 표시(나뉜 A 책의 번호를 받은 B 책이 겹치는 소장이 가장 많은지)는 A·B가 둘 다 `ids`일 때만 `yes`·`yes, tied`·`NO`로 냅니다. 동점일 때 백엔드가 고르는 기준(load id)은 파일에 없어서 "tied"로만 표시합니다
+  - 메모리: (도서관, 책 코드)를 64비트 해시로만 담는 표(칸당 12바이트), 1,700만 줄이면 약 0.5GB. 합성 200만 줄에서 67MB, 11초. 실데이터는 Phase B
+- 8단계 테스트
+  - `BookGrouperContractTests`: 옛 기대값은 `assertCurrentContract`(`current`만), 새 규칙은 `assertContract` = 옛 기대값(새 규칙에서도 같음) + `assertSameTextRules`(R1 2권, R1-3 3권, A·B1·B2·C 3권, ISBN 하나+없음 1권, ③ 국가서지 ISBN으로 나뉨, "기타" 따로·표시 그대로, 첫 저자 "기타"+실명 합침, 부제만 다름 1권, 권 다름 따로, 단계별 수, 카운터 둘, 표본 순서)
+  - **다름**: `CompactGroupingTests`는 DB가 없어 `sql`을 부를 수 없습니다. 그래서 무작위 대조를 `compact` 대 `compact`(키 표가 아주 작게 시작)로 바꾸고, 새 규칙의 모든 갈래(나뉨, 자리 채움, 합침, 표본 40)가 나오는지 확인합니다. `compact` 대 `sql` 무작위 대조는 `SqlGroupingTests.givesWhatCompactGives`(시드 8)에 있습니다. `followsALongChain`·`breaksTiesInJavaOrder`의 기준도 `compact`입니다
+  - 무작위 줄에 권 표시, 앞 시리즈, 부제, "01", 자리 채움 저자·출판사, "편"만 있는 저자, 그리고 같은 글자에 다른 ISBN이 붙는 "판 책" 줄(1/12)을 더했습니다
+  - 지운 것: `mapShapeGivesTheOrderOfComputeIfAbsent`, `ordersLikeAHashMap`. 더한 것: `SqlGroupingTests.splitsAKeyByItsIsbnsAsJavaDoes`(같은 키 안 ISBN 0·1·2개)
+- `current`(`BookGrouping`)는 그대로 옛 규칙입니다(ADR-0079 덧붙임, Phase B 11단계에서 정리)
+
+## Phase B에서 할 것 (사이클 11이 끝난 뒤)
+
+- 사이클 11 병합 커밋 위로 rebase하고, DB 테스트와 `./gradlew build`를 통과시킵니다
+- 11단계 `current` 정리, 12단계 꼬리 목록(사용자 확정), 13·14단계 실데이터 비교와 가져오기
+- 미리 알리는 질문(데이터를 본 뒤 올림): 로마 숫자·한자 숫자 권 표시(세부 9), 부제 안 숫자로 갈린 수
