@@ -14,9 +14,14 @@ export const REQUEST_LINES = [
   '이용하는 전자도서관 사이트에서 희망도서로 신청해 보세요.',
 ] as const
 
-/** [확정] (cycle 14 flow.md S13i); the source line follows them. */
+/**
+ * (cycle 14 flow.md S13i) with the user's changes of 2026-10-12: "최근 12번(2년)" (the flow had "6번") and how often the
+ * library recommends (seen in the 2-year answer: every other month 2 books in each of the four fields, theme months
+ * 12 books). The source line follows them.
+ */
 export const HELP_LINES = [
-  '국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 6번 추천분이에요',
+  '국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 12번(2년) 추천분이에요',
+  '보통 2달에 한 번, 한 번에 8권(문학·인문·사회·자연 각 2권)을 추천해요. 테마 추천 때는 12권이에요',
   '신간이라 아직 전자책이 없는 책도 있어요',
   '흐린 책은 검색하는 도서관에 전자책이 없어요',
   '있음/없음은 검색 화면에서 고른 지역·범위 기준이에요',

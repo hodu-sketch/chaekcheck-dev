@@ -15,7 +15,7 @@ class SaseoXmlParserTests {
 	static final String XML = NlkFixtures.saseo2y();
 
 	@Test
-	void savedAnswerGives108ItemsAndTheLatestSixMonthsHold52() {
+	void savedAnswerGives108ItemsInTwelveMonthsAllKept() {
 		SaseoXmlParser.SaseoList list = SaseoXmlParser.parse(NlkFixtures.bytes(XML));
 
 		assertThat(list.totalCount()).isEqualTo(108);
@@ -33,30 +33,33 @@ class SaseoXmlParserTests {
 		assertThat(first.coverSource()).startsWith("https://www.nl.go.kr/afile/fileDownload/");
 
 		KeptPicks kept = KeptPicks.of(list.rows());
-		assertThat(kept.rows()).hasSize(52);
+		assertThat(kept.rows()).hasSize(108);
 		assertThat(kept.receivedCount()).isEqualTo(108);
+		assertThat(kept.rows().stream().map(PickRow::recomMonth).distinct()).hasSize(12);
 		assertThat(kept.rows()).extracting(PickRow::recomMonth)
-			.containsOnly(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 8, 1), LocalDate.of(2026, 6, 1),
-					LocalDate.of(2026, 4, 1), LocalDate.of(2026, 2, 1), LocalDate.of(2025, 12, 1));
+			.contains(LocalDate.of(2026, 10, 1), LocalDate.of(2024, 12, 1));
 		assertThat(kept.newCategoryCodes()).isNull();
 		// the theme field has no name in the API
 		assertThat(kept.rows()).filteredOn(row -> row.drCode().equals("425")).extracting(PickRow::drCodeName).containsOnlyNulls();
 	}
 
 	@Test
-	void eightMonthsKeepTheLatestSix() { // AC-17
-		List<String> items = NlkFixtures.items(XML);
-		List<PickRow> rows = SaseoXmlParser.parse(NlkFixtures.bytes(NlkFixtures.withItems(items.subList(0, 70)))).rows();
+	void thirteenMonthsKeepTheLatestTwelve() { // AC-17 (12 by user decision 2026-10-12)
+		List<String> items = new ArrayList<>(NlkFixtures.items(XML));
+		String older = NlkFixtures.set(NlkFixtures.set(NlkFixtures.set(items.getLast(), "recomYear", "2024"), "recomMonth",
+				"10"), "recomNo", "1");
+		items.add(older);
+		List<PickRow> rows = SaseoXmlParser.parse(NlkFixtures.bytes(NlkFixtures.withItems(items))).rows();
 
 		KeptPicks kept = KeptPicks.of(rows);
 
-		assertThat(rows.stream().map(PickRow::recomMonth).distinct()).hasSizeGreaterThanOrEqualTo(8);
-		assertThat(kept.rows().stream().map(PickRow::recomMonth).distinct()).hasSize(6);
-		assertThat(kept.rows()).hasSize(52);
+		assertThat(rows.stream().map(PickRow::recomMonth).distinct()).hasSize(13);
+		assertThat(kept.rows().stream().map(PickRow::recomMonth).distinct()).hasSize(12);
+		assertThat(kept.rows()).hasSize(108).extracting(PickRow::recomNo).doesNotContain("1");
 	}
 
 	@Test
-	void fewerThanSixMonthsKeepsAll() {
+	void fewerThanTwelveMonthsKeepsAll() {
 		List<String> items = NlkFixtures.items(XML).subList(0, 10);
 
 		KeptPicks kept = KeptPicks.of(SaseoXmlParser.parse(NlkFixtures.bytes(NlkFixtures.withItems(items))).rows());

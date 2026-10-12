@@ -9,8 +9,9 @@ import java.util.TreeSet;
 import com.chaekcheck.picks.internal.PickCategory;
 
 /**
- * What a fetch keeps of the received list (spec R1-1, R2-5) [확정]: the books of the latest six distinct
- * recommendation months (all of them when there are fewer months). Field codes {@link PickCategory} does not know are
+ * What a fetch keeps of the received list (spec R1-1, R2-5): the books of the latest twelve distinct recommendation
+ * months (all of them when there are fewer months). Twelve, not the six of the handoff: user decision 2026-10-12
+ * ("12번(2년)으로 늘리기"), so each field shows about 18 books instead of 10. Field codes {@link PickCategory} does not know are
  * kept and named in {@code new_category_codes} (ADR-0089).
  * @param rows the kept books, in answer order
  * @param receivedCount rows received
@@ -19,8 +20,8 @@ import com.chaekcheck.picks.internal.PickCategory;
  */
 public record KeptPicks(List<PickRow> rows, int receivedCount, int missingIsbnCount, String newCategoryCodes) {
 
-	/** Recommendation months kept [확정 6]. */
-	public static final int MONTHS = 6;
+	/** Recommendation months kept (user decision 2026-10-12: 12, the handoff had 6). */
+	public static final int MONTHS = 12;
 
 	/** Numbers by value, then other codes as text, so 425 comes after 99 [안]. */
 	public static final Comparator<String> CODE_ORDER = Comparator

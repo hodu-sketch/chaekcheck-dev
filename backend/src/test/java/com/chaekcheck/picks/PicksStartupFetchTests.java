@@ -41,9 +41,9 @@ class PicksStartupFetchTests {
 		assertThat(run).containsEntry("trigger", "STARTUP")
 			.containsEntry("status", "SUCCEEDED")
 			.containsEntry("changed", true)
-			.containsEntry("kept_count", 52);
+			.containsEntry("kept_count", 108);
 		assertThat(nlk.requests().getFirst().getPath()).isEqualTo("/NL/search/openApi/saseoApi.do");
-		assertThat(jdbc.sql("SELECT count(*) FROM picks.pick").query(Long.class).single()).isEqualTo(52);
+		assertThat(jdbc.sql("SELECT count(*) FROM picks.pick").query(Long.class).single()).isEqualTo(108);
 	}
 
 	@AfterEach

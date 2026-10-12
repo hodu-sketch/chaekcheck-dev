@@ -93,7 +93,7 @@ class PicksFetchTests {
 	}
 
 	@Test
-	void successStoresTheLatestSixMonthsAndTheirCovers(CapturedOutput output) { // AC-12, AC-17
+	void successStoresTheLatestTwelveMonthsAndTheirCovers(CapturedOutput output) { // AC-12, AC-17
 		fetchJob.fetch(FetchTrigger.STARTUP);
 
 		long covers = count("SELECT count(DISTINCT cover_source) FROM picks.pick");
@@ -102,18 +102,19 @@ class PicksFetchTests {
 			.containsEntry("trigger", "STARTUP")
 			.containsEntry("changed", true)
 			.containsEntry("received_count", 108)
-			.containsEntry("kept_count", 52)
-			.containsEntry("missing_isbn_count", 0)
+			.containsEntry("kept_count", 108)
+			.containsEntry("missing_isbn_count", (int) count("SELECT count(*) FROM picks.pick WHERE isbn13 IS NULL"))
 			.containsEntry("cover_fetched_count", (int) covers)
 			.containsEntry("cover_failed_count", 0)
 			.containsEntry("request_count", 1 + (int) covers);
 		assertThat(run.get("failure_reason")).isNull();
 		assertThat(run.get("new_category_codes")).isNull();
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(52);
+		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
 		assertThat(jdbc.sql("SELECT DISTINCT to_char(recom_month, 'YYYY-MM') FROM picks.pick ORDER BY 1")
 			.query(String.class)
-			.list()).containsExactly("2025-12", "2026-02", "2026-04", "2026-06", "2026-08", "2026-10");
-		assertThat(covers).isGreaterThan(40);
+			.list()).containsExactly("2024-12", "2025-02", "2025-04", "2025-06", "2025-08", "2025-10", "2025-12", "2026-02",
+					"2026-04", "2026-06", "2026-08", "2026-10");
+		assertThat(covers).isGreaterThan(90);
 		assertThat(count("SELECT count(*) FROM picks.cover")).isEqualTo(covers);
 		// one list request, then one per new cover, each at least 1s after the one before
 		assertThat(nlk.requests()).hasSize(1 + (int) covers);
@@ -142,7 +143,7 @@ class PicksFetchTests {
 			.containsEntry("request_count", 1)
 			.containsEntry("cover_fetched_count", 0);
 		assertThat(nlk.requests()).hasSize(1);
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(52);
+		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
 	}
 
 	@Test
@@ -159,7 +160,7 @@ class PicksFetchTests {
 			.containsEntry("request_count", 1)
 			.containsEntry("kept_count", 0);
 		assertThat(lastRun().get("changed")).isNull();
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(52);
+		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
 		assertThat(output).contains("ERROR").contains("picks fetch (RETRY) failed: no_books");
 	}
 
@@ -209,7 +210,7 @@ class PicksFetchTests {
 		assertThat(lastRun()).containsEntry("status", "SUCCEEDED")
 			.containsEntry("cover_failed_count", 5)
 			.containsEntry("cover_fetched_count", sources.size() - 5);
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(52);
+		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
 		assertThat(jdbc.sql("SELECT DISTINCT content_type FROM picks.cover").query(String.class).list())
 			.containsExactly("image/jpeg");
 		assertThat(count("SELECT count(*) FROM picks.cover WHERE byte_size <> octet_length(image)")).isZero();
@@ -270,7 +271,7 @@ class PicksFetchTests {
 			.containsEntry("changed", true)
 			.containsEntry("cover_fetched_count", 0)
 			.containsEntry("request_count", 1);
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(52);
+		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
 		assertThat(count("SELECT count(*) FROM picks.cover")).isBetween(0L, (long) sources.size() - 1);
 	}
 
@@ -294,7 +295,6 @@ class PicksFetchTests {
 
 	private List<String> coverSources() {
 		return NlkFixtures.items(XML)
-			.subList(0, 52)
 			.stream()
 			.map(item -> item.replaceAll("(?s).*<recomfilepath>([^<]*)</recomfilepath>.*", "$1"))
 			.filter(url -> !url.isBlank())

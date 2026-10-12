@@ -23,7 +23,7 @@ import com.chaekcheck.picks.internal.fetch.SaseoXmlParser;
 import com.chaekcheck.picks.internal.store.PicksStore;
 
 /**
- * One fetch (plan cycle 14 design-delta "주요 흐름: 받기"): the list with one request, the latest six months kept
+ * One fetch (plan cycle 14 design-delta "주요 흐름: 받기"): the list with one request, the latest twelve months kept
  * ({@link KeptPicks}) and stored with a SUCCEEDED run in one transaction, or one FAILED run and {@code log.error}
  * (AC-11). When the list changed: the cache told, then the covers not stored yet, at least 1 second apart and made 200px
  * JPEG ({@link CoverResizer}; an image it cannot read counts as failed), the covers the list no longer uses deleted,

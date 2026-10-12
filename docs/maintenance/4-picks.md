@@ -1,7 +1,7 @@
 # 사서추천도서 받기 (국립중앙도서관 Open API)
 
 - 사이클 14(사이클 10 인기 도서를 대체). 결정과 근거는 plan ADR-0089~0092와 `docs/cycles/14-librarian-picks/`에 있고, 여기에는 운영 절차만 둡니다.
-- 하는 일: 국립중앙도서관 사서추천도서 Open API(`saseoApi.do`)에서 최근 2년 등록분을 요청 1건으로 받아, 추천 연월 최근 6개 달의 책만 `picks` 스키마에 저장합니다. 새 표지만 받아 폭 200px JPEG로 줄여 저장합니다. 화면은 `/picks`, API는 `GET /api/v1/picks`.
+- 하는 일: 국립중앙도서관 사서추천도서 Open API(`saseoApi.do`)에서 최근 3년 등록분을 요청 1건으로 받아, 추천 연월 최근 12개 달(12번 추천)의 책만 `picks` 스키마에 저장합니다. 새 표지만 받아 폭 200px JPEG로 줄여 저장합니다. 화면은 `/picks`, API는 `GET /api/v1/picks`.
 
 ## 1. 켜고 끄기, 인증키
 
@@ -10,7 +10,7 @@
 - 인증키: 환경 변수 `CHAEKCHECK_PICKS_NLK_API_KEY`(설정 `chaekcheck.picks.fetch.api-key`). **비밀값**입니다. 로컬은 `.env`(git 밖)에 사람이 직접 넣고, 운영은 배포 비밀값으로 넣습니다. 코드·설정 파일·`.env.example`·문서·커밋·로그에 값을 적지 않습니다
   - 키가 비어 있으면 요청을 보내지 않고 `fetch_run`에 `FAILED`/`key_missing` 한 줄과 WARN 로그 한 줄을 남깁니다
   - 키는 요청 주소(`key=`)에 들어가므로 로그에는 `key=***`로만 찍힙니다
-- 로컬에서 받기를 시험할 때만 켭니다(사용자 승인, 하루 최대 1번). 한 번 받으면 목록 요청 1건 + 새 표지(지금 약 52장), 표지는 1초 이상 간격
+- 로컬에서 받기를 시험할 때만 켭니다(사용자 승인, 하루 최대 1번). 한 번 받으면 목록 요청 1건 + 새 표지(처음엔 약 108장, 그 뒤엔 새 추천분만), 표지는 1초 이상 간격
 - 꺼도 공용 캐시 10분 새로 고침은 돕니다(저장된 목록을 화면에 보여 줌)
 
 ## 2. 언제 받나 (ADR-0092)
@@ -45,7 +45,7 @@ FROM picks.fetch_run ORDER BY started_at DESC LIMIT 10;
 | `request_rejected` | 200이 아님(3xx 포함, redirect 안 따름), 또는 오류 코드 요소가 옴(`failure_detail` `API error <코드>`) | 키가 거절됐는지, 주소가 바뀌었는지 확인 |
 | `format_changed` | `<channel>`·`<totalCount>` 없음, `recomNo`·제목·분야 코드·추천 연월이 틀림, 본문 10MB 넘음 | 응답 모양이 바뀌었는지 확인(`SaseoXmlParser`) |
 | `incomplete` | `totalCount`가 받은 수보다 큼 | `end-row`(1000)보다 많아졌는지 확인 |
-| `no_books` | 최근 6개 달에 책이 0권 | 사이트 쪽 문제일 수 있음. 다음 날 다시 받음 |
+| `no_books` | 최근 12개 달에 책이 0권 | 사이트 쪽 문제일 수 있음. 다음 날 다시 받음 |
 
 - `FAILED`면 목록은 바뀌지 않고 앞 목록이 그대로 보입니다. `failure_detail`에는 HTTP 상태나 오류 코드만 있고 키·주소·본문은 없습니다
 - `SUCCEEDED`이고 `changed=false`면 받은 목록이 저장된 것과 같아서 아무것도 바꾸지 않았다는 뜻입니다(표지도 받지 않음)

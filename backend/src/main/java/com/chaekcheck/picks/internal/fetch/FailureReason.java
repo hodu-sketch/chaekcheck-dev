@@ -13,7 +13,7 @@ public enum FailureReason {
 	FORMAT_CHANGED("format_changed"),
 	/** {@code totalCount} is larger than the rows received */
 	INCOMPLETE("incomplete"),
-	/** no book in the latest six months */
+	/** no book in the latest twelve recommendation months */
 	NO_BOOKS("no_books");
 
 	private final String value;

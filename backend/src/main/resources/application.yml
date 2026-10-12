@@ -198,8 +198,10 @@ chaekcheck:
       cron: "0 0 5 * * *"
       zone: Asia/Seoul
       base-url: https://nl.go.kr
-      # One list request: registered in the last 2 years, rows 1 to 1000 (2026-10-12: 108 rows, 1.56MB) [확정]
-      window: 2y
+      # One list request, rows 1 to 1000. Registered in the last 3 years: the latest 12 recommendations (about every two
+      # months) always fit (user decision 2026-10-12: 12 recommendations instead of 6; the handoff had 2y). 2y gave 108
+      # rows, 1.56MB on 2026-10-12
+      window: 3y
       end-row: 1000
       connect-timeout: 5s
       read-timeout: 10s

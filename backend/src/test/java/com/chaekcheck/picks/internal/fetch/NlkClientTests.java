@@ -73,7 +73,7 @@ class NlkClientTests {
 	}
 
 	@Test
-	void oneRequestWithTheTwoYearWindow() throws Exception {
+	void oneRequestWithTheThreeYearWindow() throws Exception {
 		byte[] body = client(KEY).fetchList(LocalDate.of(2026, 10, 12));
 
 		assertThat(body).hasSize(NlkFixtures.bytes(NlkFixtures.saseo2y()).length);
@@ -81,7 +81,7 @@ class NlkClientTests {
 		URI uri = requests.getFirst();
 		assertThat(uri.getPath()).isEqualTo("/NL/search/openApi/saseoApi.do");
 		assertThat(uri.getRawQuery()).isEqualTo("key=" + KEY
-				+ "&startRowNumApi=1&endRowNumApi=1000&start_date=20241012&end_date=20261012");
+				+ "&startRowNumApi=1&endRowNumApi=1000&start_date=20231012&end_date=20261012");
 		assertThat(logText()).contains("GET /NL/search/openApi/saseoApi.do?key=***&startRowNumApi=1")
 			.contains("-> 200");
 	}
@@ -162,7 +162,7 @@ class NlkClientTests {
 
 	private PicksProperties.Fetch settings(String key, DataSize maxBody) {
 		return new PicksProperties.Fetch(true, key, "0 0 5 * * *", ZoneId.of("Asia/Seoul"),
-				URI.create("http://localhost:" + server.getAddress().getPort()), Period.ofYears(2), 1000,
+				URI.create("http://localhost:" + server.getAddress().getPort()), Period.ofYears(3), 1000,
 				Duration.ofSeconds(5), Duration.ofMillis(800), maxBody, DataSize.ofMegabytes(5), Duration.ofSeconds(1),
 				"book search service", new PicksProperties.Cover(200, 0.8f, 16_000_000));
 	}

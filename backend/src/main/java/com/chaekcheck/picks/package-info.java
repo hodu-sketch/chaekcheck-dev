@@ -1,6 +1,6 @@
 /**
  * Librarian picks (cycle 14, replaces the popular books of cycle 10): the National Library of Korea's 사서추천도서,
- * the latest six recommendation months, by field (ADR-0089), shown with whether the user's plan libraries hold the
+ * the latest twelve recommendation months, by field (ADR-0089; twelve by user decision 2026-10-12), shown with whether the user's plan libraries hold the
  * e-book. REST only, no public Java types; no other module depends on this one.
  * <p>
  * Responsibilities: fetching the list with one Open API request ({@code saseoApi.do}) on its own single-thread

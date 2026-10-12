@@ -23,7 +23,8 @@ public record PicksProperties(Fetch fetch, Cache cache) {
 	 * @param cron when the daily fetch decision runs [확정 05:00]
 	 * @param zone zone of {@code cron}, of "today" and of the Monday rule (Asia/Seoul)
 	 * @param baseUrl the Open API host, without a trailing slash
-	 * @param window registration dates asked for: from today minus this to today [확정 2y]
+	 * @param window registration dates asked for: from today minus this to today (3y: twelve recommendations, about
+	 * every two months, always fit; the handoff had 2y for six)
 	 * @param endRow last row asked for [확정 1000]
 	 * @param connectTimeout connecting [확정 5s]
 	 * @param readTimeout until the response headers [확정 10s]; the whole request, body included, may take

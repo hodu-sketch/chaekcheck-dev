@@ -339,7 +339,7 @@ describe('picks windows on phones', () => {
     await user.click(screen.getByRole('button', { name: '분류: 전체' }))
     const sheet = screen.getByRole('dialog', { name: '분류 고르기' })
     await user.click(within(sheet).getByRole('button', { name: '추천 기준 보기' }))
-    expect(within(sheet).getByText('국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 6번 추천분이에요')).toBeTruthy()
+    expect(within(sheet).getByText('국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 12번(2년) 추천분이에요')).toBeTruthy()
     expect(within(sheet).getByText('흐린 책은 검색하는 도서관에 전자책이 없어요')).toBeTruthy()
     expect(within(sheet).getByText('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음')).toBeTruthy()
     await user.click(within(sheet).getByRole('button', { name: '닫기' }))
