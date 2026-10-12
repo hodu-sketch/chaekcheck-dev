@@ -33,7 +33,7 @@ class BookGrouperContractTests {
 	static final Library PORTAL_B = library(4, "ELIB_PORTAL_V1");
 
 	static Stream<Arguments> groupings() {
-		return Stream.of(Arguments.of("current", (Supplier<BookGrouper>) BookGrouping::new));
+		return Stream.of(Arguments.of("objects", (Supplier<BookGrouper>) BookGrouping::new));
 	}
 
 	/** Rows in reading order; the comment names the book each belongs to. */

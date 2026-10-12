@@ -67,7 +67,10 @@ class CatalogImporter {
 		this.clock = clock;
 	}
 
-	/** How the books are grouped (cycle 11, ADR-0079); {@code current} ({@link BookGrouping}) unless set. */
+	/**
+	 * How the books are grouped (cycle 11, ADR-0079); {@link BookGrouping} unless set. The import runner sets it from
+	 * {@code chaekcheck.collection.import.grouping} (default {@code compact}).
+	 */
 	private Supplier<BookGrouper> groupers = BookGrouping::new;
 
 	/** Folder a dry run writes its books and rows into (cycle 11, {@link DryRunDump}); null writes nothing. */

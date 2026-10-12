@@ -32,7 +32,9 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * {@link Unit} per step-① group with the number of rows per value instead of the rows: the most common value of a
  * book is then the same as counted over its rows. The second pass finds a row's book through its unit.
  * <p>
- * The grouping {@code current} (cycle 11, ADR-0079), the default.
+ * The grouping {@code objects} (cycle 11, ADR-0079; {@code current} until 2026-10-12, renamed by the user): one
+ * object per unit, the reference the other two are tested against. The default
+ * grouping is {@code compact} since 2026-10-12.
  */
 final class BookGrouping implements BookGrouper {
 

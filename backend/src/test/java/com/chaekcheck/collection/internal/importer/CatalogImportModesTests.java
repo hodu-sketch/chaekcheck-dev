@@ -113,7 +113,7 @@ class CatalogImportModesTests {
 	@Test
 	void exportKeepsNoRowAndApplyKeepsBothSteps() throws Exception { // AC-1, AC-7
 		Path file = dir.resolve("export.dump");
-		Manifest manifest = transfer().export(sqlite, null, file, "current");
+		Manifest manifest = transfer().export(sqlite, null, file, "compact");
 		assertThat(file).isRegularFile();
 		assertThat(rows()).isEmpty();
 		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isZero();
@@ -180,10 +180,10 @@ class CatalogImportModesTests {
 	@Test
 	void waitingTablesStopInPlaceAndExport() throws Exception { // AC-12
 		Path file = dir.resolve("export.dump");
-		transfer().export(sqlite, null, file, "current");
+		transfer().export(sqlite, null, file, "compact");
 
 		assertThatThrownBy(() -> transfer().requireNoWaitingExport()).hasMessageContaining("first finish them");
-		assertThatThrownBy(() -> transfer().export(sqlite, null, dir.resolve("again.dump"), "current"))
+		assertThatThrownBy(() -> transfer().export(sqlite, null, dir.resolve("again.dump"), "compact"))
 			.hasMessageContaining("first finish them");
 		assertThat(catalogLoad.hasWaitingExport()).isTrue();
 	}
@@ -191,7 +191,7 @@ class CatalogImportModesTests {
 	@Test
 	void finishKeepsARowWithTheExportId() throws Exception {
 		Path file = dir.resolve("export.dump");
-		Manifest manifest = transfer().export(sqlite, null, file, "current");
+		Manifest manifest = transfer().export(sqlite, null, file, "compact");
 
 		transfer().finish(file);
 
@@ -209,7 +209,7 @@ class CatalogImportModesTests {
 
 	private Path exportAndDiscard() throws Exception {
 		Path file = dir.resolve("export.dump");
-		transfer().export(sqlite, null, file, "current");
+		transfer().export(sqlite, null, file, "compact");
 		catalogLoad.discardPrepared();
 		return file;
 	}

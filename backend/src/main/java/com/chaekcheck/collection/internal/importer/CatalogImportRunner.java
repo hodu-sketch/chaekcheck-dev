@@ -46,7 +46,7 @@ class CatalogImportRunner {
 	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard");
 
 	/** The ways to group books (cycle 11, ADR-0079 [확정]). */
-	static final Set<String> GROUPINGS = Set.of("current", "compact", "sql");
+	static final Set<String> GROUPINGS = Set.of("objects", "compact", "sql");
 
 	/**
 	 * @param sqlitePath the collection DB (read-only); needed by {@code in-place} and {@code export}
@@ -57,7 +57,9 @@ class CatalogImportRunner {
 	 * and write them into {@code file}), {@code apply} (load {@code file} here), {@code finish} (swap in the new tables
 	 * waiting for {@code file}) or {@code discard} (drop the new tables). docs/maintenance/3-import.md 13
 	 * @param file the export file of {@code export}, {@code apply} and {@code finish}
-	 * @param grouping how the books are grouped: {@code current} (default), {@code compact} or {@code sql} (ADR-0079)
+	 * @param grouping how the books are grouped (ADR-0079): {@code compact} (default since 2026-10-12, user decision
+	 * after the cycle 11 measurement), {@code objects} (one object per unit; called {@code current} until 2026-10-12) or
+	 * {@code sql}; all three give the same books and ids
 	 * @param dryRunOutput folder a dry run writes {@code books.tsv.gz} and {@code rows.tsv.gz} into, for
 	 * {@code scripts/catalog/compare_grouping.py}; empty writes only the counts
 	 */
@@ -68,7 +70,7 @@ class CatalogImportRunner {
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
 			mode = mode == null ? "in-place" : mode;
-			grouping = grouping == null ? "current" : grouping;
+			grouping = grouping == null ? "compact" : grouping;
 		}
 
 		/** Refuses wrong values before anything runs. */
@@ -132,7 +134,7 @@ class CatalogImportRunner {
 	/** The grouping of {@code chaekcheck.collection.import.grouping} (ADR-0079). */
 	static Supplier<BookGrouper> groupers(String grouping, DataSource dataSource) {
 		return switch (grouping) {
-			case "current" -> BookGrouping::new;
+			case "objects" -> BookGrouping::new;
 			case "compact" -> CompactGrouping::new;
 			case "sql" -> () -> new SqlGrouping(dataSource);
 			default -> throw new IllegalStateException("grouping " + grouping + " is not built yet");

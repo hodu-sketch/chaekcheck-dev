@@ -17,8 +17,9 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * {@link #attachBibliography} (step ③, when the national bibliography is read), {@link #mergeSameText},
  * {@link #forEachBook}, then {@link #bookOf} for every row of the second pass.
  * <p>
- * Cycle 11 (ADR-0079): three ways, chosen by {@code chaekcheck.collection.import.grouping}: {@code current}
- * ({@link BookGrouping}), {@code compact} and {@code sql}. They must give the same books in the same order, and so the
+ * Cycle 11 (ADR-0079): three ways, chosen by {@code chaekcheck.collection.import.grouping}: {@code compact} (the
+ * default since 2026-10-12), {@code objects} ({@link BookGrouping}, called {@code current}
+ * until 2026-10-12) and {@code sql}. They must give the same books in the same order, and so the
  * same book and holding ids; the rules every way follows:
  * <ol>
  * <li>Step ① key: {@link #unitKey}. A unit is the rows with one key.</li>

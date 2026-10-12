@@ -3109,3 +3109,22 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 
 - `.claude/worktrees/`에 9·10단계 에이전트의 작업 폴더 둘이 남아 있음(커밋은 main으로 가져옴). 지워도 됨
 - compose `db-ops`는 멈춰 둠(볼륨 `db-ops-data` 약 9GB 남음)
+
+## 사용자 결정: 기본 방식과 옛 방식 이름 (2026-10-12 19:20)
+
+- **기본 묶는 방식 = `compact`** (R-B7). 사용자: "기본 방식은 compact로 해줘 그리고 sql이나 다른 방법들도 구현에 남겨둬 선택해서 할 수 있게 해줘"
+  - `chaekcheck.collection.import.grouping` 기본값 `current` → `compact`. 세 방식 모두 남기고 설정으로 고름
+  - 인계서와 다른 점: 인계서는 "측정 뒤 기본 방식 바꾸기(사용자 결정 뒤 다음 사이클)"였으나, 사용자가 지금 바꾸라고 해서 사이클 11에서 바꿈
+  - 결정 전에 보여 드린 비교: `compact` 힙 2GB·약 21분·DB 부담은 옛 방식과 같음, `sql` 힙 1GB·약 34분·실행마다 DB 임시 쓰기 약 61GB. 결과 페이지 https://claude.ai/artifact/AsHQZrnF7nwfa8gTG6fNBy
+- **옛 방식 이름 `current` → `objects`**. 사용자: "옛 방식 이름을 current가 아니라 다른 걸로 해야 할 것 같은데 normal이라던가 아니면 날짜를 붙이던가" → 선택지(objects / normal / v2026-10 / classic) 중 `objects`(묶음마다 Java 객체를 두는 방식)를 고름
+  - 설정 값 `current`는 이제 받지 않음(시작 전에 거절, `CatalogImportSettingsTests`). 클래스 이름 `BookGrouping`은 그대로
+  - 인계서에서 [확정]·"바꾸지 않는 것"으로 묶였던 값이라 plan 문서(ADR-0079, design-delta, spec)의 이름도 맞춰야 함
+  - 위의 측정 기록과 결과 페이지의 "current"는 바꾸기 전 이름 그대로 둠(= 지금의 `objects`)
+- 확인: `CatalogImportSettingsTests`(기본값 `compact`, 세 값 모두 고를 수 있음, `current`·잘못된 값 거절), `BookGrouperContractTests`, `CompactGroupingTests`, `SqlGroupingTests`, `CatalogImportModesTests`(이제 `compact`로 export), `CatalogImporterTests`, `ModularityTests` 통과. 전체 빌드는 돌고 있던 측정과 겹치지 않게 그 뒤에 돌림
+
+### 추가 측정: `compact` + Java 옵션 (사용자 요청 "응 재봐줘")
+
+- `-XX:+UseStringDeduplication -XX:+UseCompactObjectHeaders`
+- 1GB: **OOM**(9분 59초, 첫 읽기 뒤 묶기 중. 전체 GC 4번, 전체 GC 뒤 967MB). 옵션 없이는 7분 26초에 OOM. 옵션으로도 `compact`는 1GB에 들지 못함
+- 2GB: 측정 중(끝나면 덧붙임)
+- 이유(dev 판단): `compact`는 글자를 이미 한 벌씩 모으고 묶음마다 객체를 만들지 않아 두 옵션이 줄일 것이 적음. 옛 방식(`objects`)에서는 6GB → 4GB로 줄었음
