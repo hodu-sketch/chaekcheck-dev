@@ -1,22 +1,56 @@
 package com.chaekcheck.collection.internal.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.zip.GZIPInputStream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.chaekcheck.collection.internal.importer.CatalogImportRunner.Settings;
+import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.library.LibraryRef;
+import com.chaekcheck.library.PlatformType;
 
 /**
- * The import settings (cycle 11): mode {@code in-place} and grouping {@code compact} by default (user decision
- * 2026-10-12 after the step 11 measurement), each grouping selectable, wrong values refused before anything runs.
+ * The import settings, without a database. Cycle 11: mode {@code in-place} and grouping {@code compact} by default
+ * (user decision 2026-10-12 after the step 11 measurement), each grouping selectable, wrong values refused before
+ * anything runs. Cycle 12 (handoff steps 6 and 8-3): the dry-run-only setting {@code exclude-candidate-libraries} is
+ * refused outside a dry run, and a dry run of a tiny SQLite with it leaves the candidate library's rows out as
+ * {@code library_excluded_candidate}. A dry run writes nothing, so no catalog is needed.
  */
 class CatalogImportSettingsTests {
 
+	static final String KYOBO_BASE = "https://kyobo.test:446", BOOKCUBE_BASE = "https://bookcube.test/FxLibrary";
+
+	@TempDir
+	Path dir;
+
+	private static Settings settings(boolean dryRun, boolean excludeCandidateLibraries) {
+		return new Settings(Path.of("collection.sqlite"), null, dryRun, null, null, null, null,
+				null, excludeCandidateLibraries);
+	}
+
 	private static Settings settings(String mode, Path file, String grouping) {
-		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null);
+		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null, false);
 	}
 
 	@Test
@@ -45,6 +79,74 @@ class CatalogImportSettingsTests {
 		assertThatThrownBy(() -> settings(null, null, "current").check()).hasMessageContaining("grouping");
 		assertThatThrownBy(() -> settings("copy", null, null).check()).hasMessageContaining("mode");
 		assertThatThrownBy(() -> settings("export", null, null).check()).hasMessageContaining("file");
+	}
+
+	@Test
+	void excludingCandidatesRefusesARealImport() {
+		assertThatThrownBy(() -> settings(false, true).check()).isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("dry-run-only");
+	}
+
+	@Test
+	void excludingCandidatesStartsADryRun() {
+		assertThatNoException().isThrownBy(() -> settings(true, true).check());
+		assertThatNoException().isThrownBy(() -> settings(false, false).check());
+	}
+
+	@Test
+	void dryRunLeavesOutTheCandidateRows() throws Exception {
+		Path sqlite = sqlite();
+
+		ImportReport all = importer().run(sqlite, null, true);
+		assertThat(all.candidateLibraries).isOne();
+		assertThat(all.skipped).doesNotContainKey(CollectedCatalog.EXCLUDED_CANDIDATE);
+
+		Path out = dir.resolve("dry");
+		ImportReport excluded = importer().excludeCandidateLibraries(true).dryRunOutput(out).run(sqlite, null, true);
+		assertThat(excluded.registeredLibraries).isOne();
+		assertThat(excluded.candidateLibraries).isZero();
+		assertThat(excluded.rowsRead).isEqualTo(3);
+		assertThat(excluded.skipped).containsEntry(CollectedCatalog.EXCLUDED_CANDIDATE, 1L);
+		assertThat(excluded.skippedCount()).isEqualTo(all.skippedCount() + 1);
+		assertThat(excluded.books).isEqualTo(2);
+		assertThat(gunzip(out.resolve("rows.tsv.gz"))).hasSize(2).allMatch(line -> line.startsWith("1\t"));
+	}
+
+	/** Registered library 1 with two rows, candidate library 100001 (service id 900) with one. */
+	private Path sqlite() throws Exception {
+		Path sqlite = dir.resolve("test-settings.sqlite");
+		try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + sqlite); Statement s = c.createStatement()) {
+			s.execute("CREATE TABLE library (id INTEGER, base_url TEXT, last_full_success_at TEXT)");
+			s.execute("CREATE TABLE holding (library_id INTEGER, item_key TEXT, title TEXT, author_raw TEXT,"
+					+ " publisher TEXT, published_on TEXT, published_raw TEXT, supplier TEXT, content_kind TEXT,"
+					+ " content_type TEXT, first_seen_at TEXT, last_seen_at TEXT, removed_at TEXT, alt_code TEXT,"
+					+ " detail_url TEXT)");
+			s.execute("INSERT INTO library VALUES (1, '" + KYOBO_BASE + "', '2026-09-29T10:00:00+09:00'),"
+					+ " (100001, '" + BOOKCUBE_BASE + "', '2026-09-29T10:00:00+09:00')");
+			s.execute("INSERT INTO holding (library_id, item_key, title, author_raw, publisher, content_type, detail_url,"
+					+ " first_seen_at) VALUES"
+					+ " (1, 'K1', '첫 책', '가', '나', 'EBOOK', '" + KYOBO_BASE + "/detail?id=K1', '2026-09-29T00:00:00+09:00'),"
+					+ " (1, 'K2', '둘째 책', '다', '라', 'EBOOK', '" + KYOBO_BASE + "/detail?id=K2', '2026-09-29T00:00:00+09:00'),"
+					+ " (100001, 'B1', '셋째 책', '마', '바', 'EBOOK', '" + BOOKCUBE_BASE + "/detail?id=B1',"
+					+ " '2026-09-29T00:00:00+09:00')");
+		}
+		return sqlite;
+	}
+
+	/** A dry run reads only the links and the service libraries; the catalog, records and bibliography stay unused. */
+	private static CatalogImporter importer() {
+		LibraryCatalog libraryCatalog = mock(LibraryCatalog.class);
+		given(libraryCatalog.enabledLibraryRefs()).willReturn(List.of(new LibraryRef(1, KYOBO_BASE,
+				PlatformType.KYOBO_V1), new LibraryRef(900, BOOKCUBE_BASE, PlatformType.BOOKCUBE_FX)));
+		return new CatalogImporter(libraryCatalog, () -> Map.of(1L, 1L, 100001L, 900L), null, null, null, Set.of(),
+				Clock.fixed(Instant.parse("2026-09-30T03:00:00Z"), ZoneOffset.UTC));
+	}
+
+	private static List<String> gunzip(Path file) throws Exception {
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(new GZIPInputStream(Files.newInputStream(file)), StandardCharsets.UTF_8))) {
+			return reader.lines().toList();
+		}
 	}
 
 }

@@ -62,10 +62,13 @@ class CatalogImportRunner {
 	 * {@code sql}; all three give the same books and ids
 	 * @param dryRunOutput folder a dry run writes {@code books.tsv.gz} and {@code rows.tsv.gz} into, for
 	 * {@code scripts/catalog/compare_grouping.py}; empty writes only the counts
+	 * @param excludeCandidateLibraries leave out the cycle 07 candidate libraries (collection id from
+	 * {@link CollectedCatalog#FIRST_CANDIDATE_ID}); their rows are skipped as {@code library_excluded_candidate}.
+	 * Dry run only (cycle 12): a real import would drop about 2,394 libraries from the service
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
-			Path file, String grouping, Path dryRunOutput) {
+			Path file, String grouping, Path dryRunOutput, boolean excludeCandidateLibraries) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
@@ -91,6 +94,10 @@ class CatalogImportRunner {
 			if (dryRun && !mode.equals("in-place")) {
 				throw new IllegalStateException("dry-run is a read of mode in-place; mode " + mode + " has none");
 			}
+			if (excludeCandidateLibraries && !dryRun) {
+				throw new IllegalStateException("exclude-candidate-libraries is a dry-run-only setting: a real import"
+						+ " would leave about 2,394 candidate libraries out of the service; set dry-run=true");
+			}
 		}
 
 	}
@@ -106,7 +113,8 @@ class CatalogImportRunner {
 					records, new NationalBibliographyStore(dataSource), settings.placeholderDateLibraries(),
 					Clock.systemUTC())
 				.grouping(groupers(settings.grouping(), dataSource))
-				.dryRunOutput(settings.dryRunOutput());
+				.dryRunOutput(settings.dryRunOutput())
+				.excludeCandidateLibraries(settings.excludeCandidateLibraries());
 			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, jdbc, records,
 					Clock.systemUTC());
 			switch (settings.mode()) {

@@ -43,6 +43,9 @@ final class CollectedCatalog implements AutoCloseable {
 	/** Collection ids from here on are candidate libraries (the seed rule, ADR-0052). */
 	static final long FIRST_CANDIDATE_ID = 100_001;
 
+	/** Skip reason of the rows of a candidate library left out by {@code exclude-candidate-libraries} (cycle 12). */
+	static final String EXCLUDED_CANDIDATE = "library_excluded_candidate";
+
 	/** Dates before this are placeholders in the libraries named by {@code placeholder-date-libraries} (ADR-0054). */
 	static final LocalDate PLACEHOLDER_DATES_BEFORE = LocalDate.of(1950, 1, 1);
 
@@ -101,10 +104,14 @@ final class CollectedCatalog implements AutoCloseable {
 	 * {@code library_base_url_mismatch} (a safety check, {@link #sameSite}). {@code collected_at} is the collected
 	 * {@code last_full_success_at} [안]; a library without one uses its newest {@code last_seen_at}, and one without
 	 * rows at all is not imported.
+	 * With {@code excludeCandidates} (a dry run of cycle 12), a candidate library that would be imported is left out
+	 * instead: {@value #EXCLUDED_CANDIDATE}, not counted in {@code candidateLibraries}. Libraries skipped for the
+	 * reasons above keep those reasons, so only the candidates' imported rows differ from a run without it.
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders
+	 * @param excludeCandidates leave out the candidate libraries ({@link Library#candidate()})
 	 */
 	Libraries libraries(Map<Long, Long> links, List<LibraryRef> serviceLibraries, Set<Long> placeholderDateLibraries,
-			ImportReport report) throws SQLException {
+			boolean excludeCandidates, ImportReport report) throws SQLException {
 		Map<Long, LibraryRef> service = new HashMap<>();
 		serviceLibraries.forEach(ref -> service.put(ref.id(), ref));
 		Map<Long, Library> imported = new HashMap<>();
@@ -134,11 +141,15 @@ final class CollectedCatalog implements AutoCloseable {
 					skipped.put(collectionId, "library_not_in_service");
 					continue;
 				}
+				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),
+						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId));
+				if (excludeCandidates && library.candidate()) {
+					skipped.put(collectionId, EXCLUDED_CANDIDATE);
+					continue;
+				}
 				if (fullSuccess == null) {
 					report.librariesWithoutFullSuccess++;
 				}
-				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),
-						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId));
 				imported.put(collectionId, library);
 				if (library.candidate()) {
 					report.candidateLibraries++;
