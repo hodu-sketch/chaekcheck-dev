@@ -376,7 +376,12 @@
     --float-zone: 3.6rem;
     --source-h: 4rem;
     --panel-rest: 6.4rem;
-    --gw: min(100%, (100dvh - var(--top) - var(--float-zone) - var(--source-h) - var(--panel-rest)) * 0.66);
+    /*
+     * cycle 14 (user 2026-10-12: "폰에서 이미지가 너무 작은 느낌인데 조금 못 키우나?"): the source line's room is not
+     * taken from every block any more, only the last one needs it, so the covers grow (the last block may need a
+     * short scroll to show the source line)
+     */
+    --gw: min(100%, (100dvh - var(--top) - var(--float-zone) - var(--panel-rest)) * 0.66);
   }
 
   .picker {
@@ -386,12 +391,12 @@
 
   .panel {
     width: auto;
-    padding: 1.15rem 0.9rem 1rem;
+    padding: 1.15rem 0.55rem 1rem;
   }
 
   .cardHead {
     margin-bottom: 0.8rem;
-    padding: 0 0.2rem;
+    padding: 0 0.5rem;
   }
 
   .sectionTitle {
