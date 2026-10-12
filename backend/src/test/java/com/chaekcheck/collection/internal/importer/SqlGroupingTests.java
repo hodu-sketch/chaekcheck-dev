@@ -51,20 +51,20 @@ class SqlGroupingTests {
 	@ValueSource(longs = { 1, 2, 3, 4, 5, 6, 7, 8 })
 	void givesWhatCompactGives(long seed) {
 		List<Row> rows = randomRows(new Random(seed), 1500);
-		Result current = run(CompactGrouping::new, rows, seed);
+		Result compact = run(CompactGrouping::new, rows, seed);
 		long started = System.nanoTime();
 		Result sql = run(() -> new SqlGrouping(dataSource), rows, seed);
 		System.out.printf("seed %d: %d rows, %d books, sql %d ms, passes %s, wide %d%n", seed, rows.size(),
 				sql.books.size(), (System.nanoTime() - started) / 1_000_000, sql.passes, sql.report.sameTextWideDates);
-		assertSame(sql, current);
-		assertSame(run(BookGrouping::new, rows, seed), current);
+		assertSame(sql, compact);
+		assertSame(run(BookGrouping::new, rows, seed), compact);
 		// the random rows reach every step
-		assertThat(current.report.booksAfterKyoboIsbn).isLessThan(current.report.booksAfterPlatformCode);
-		assertThat(current.report.nationalBibliographyIsbnAttached).isPositive();
-		assertThat(current.report.booksAfterNationalBibliography).isLessThan(current.report.booksAfterKyoboIsbn);
-		assertThat(current.report.sameTextMerged).isPositive();
-		assertThat(current.report.sameTextIsbnSplit).isPositive();
-		assertThat(current.report.sameTextPlaceholderNoKey).isPositive();
+		assertThat(compact.report.booksAfterKyoboIsbn).isLessThan(compact.report.booksAfterPlatformCode);
+		assertThat(compact.report.nationalBibliographyIsbnAttached).isPositive();
+		assertThat(compact.report.booksAfterNationalBibliography).isLessThan(compact.report.booksAfterKyoboIsbn);
+		assertThat(compact.report.sameTextMerged).isPositive();
+		assertThat(compact.report.sameTextIsbnSplit).isPositive();
+		assertThat(compact.report.sameTextPlaceholderNoKey).isPositive();
 	}
 
 	@Test
@@ -76,10 +76,10 @@ class SqlGroupingTests {
 			rows.add(row(KYOBO, "K" + i, isbnCode(i), "책 " + i, "가", "나", null));
 			rows.add(row(YES24, "K" + i, isbnCode(i + 1), "책 " + i, "가", "나", null));
 		}
-		Result current = run(CompactGrouping::new, rows, 0);
+		Result compact = run(CompactGrouping::new, rows, 0);
 		Result sql = run(() -> new SqlGrouping(dataSource), rows, 0);
 		System.out.printf("chain of %d units: passes %s%n", units, sql.passes);
-		assertSame(sql, current);
+		assertSame(sql, compact);
 		assertThat(sql.books).hasSize(1);
 		assertThat(sql.passes.getFirst()).isGreaterThan(5);
 	}
@@ -111,9 +111,9 @@ class SqlGroupingTests {
 				row(YES24, "K1", null, emoji, "😀", "Ａ", null),
 				row(PORTAL_A, "P1", null, "", "가", "나", null),
 				row(PORTAL_A, "P1", null, "𐀀", "가", "나", null));
-		Result current = run(CompactGrouping::new, rows, 0);
+		Result compact = run(CompactGrouping::new, rows, 0);
 		Result sql = run(() -> new SqlGrouping(dataSource), rows, 0);
-		assertSame(sql, current);
+		assertSame(sql, compact);
 		assertThat(sql.books.get(0).get(0)).isEqualTo(emoji);
 		assertThat(sql.books.get(0).get(1)).isEqualTo("😀");
 		assertThat(sql.books.get(0).get(2)).isEqualTo("😀");
@@ -201,11 +201,11 @@ class SqlGroupingTests {
 		return isbns;
 	}
 
-	static void assertSame(Result sql, Result current) {
-		assertThat(sql.books).containsExactlyElementsOf(current.books);
-		assertThat(sql.bookOfRow).containsExactlyElementsOf(current.bookOfRow);
-		assertThat(sql.keys).isEqualTo(current.keys);
-		assertThat(counts(sql.report)).isEqualTo(counts(current.report));
+	static void assertSame(Result sql, Result expected) {
+		assertThat(sql.books).containsExactlyElementsOf(expected.books);
+		assertThat(sql.bookOfRow).containsExactlyElementsOf(expected.bookOfRow);
+		assertThat(sql.keys).isEqualTo(expected.keys);
+		assertThat(counts(sql.report)).isEqualTo(counts(expected.report));
 	}
 
 	static List<Object> counts(ImportReport r) {

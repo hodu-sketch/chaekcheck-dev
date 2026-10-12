@@ -3229,6 +3229,16 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 이름 `current` → `objects`, 기본값 `compact`는 사이클 11 커밋을 받을 때(rebase) 따릅니다. 사이클 11은 이 시각 기본 작업 폴더에서 이 변경을 아직 커밋하지 않았습니다
 - rebase 때 겹칠 파일(사이클 11이 고치는 중): `BookGrouper.java`, `BookGrouping.java`, `CatalogImportRunner.java`, `CatalogImporter.java`, `BookGrouperContractTests.java`, `CatalogImportModesTests.java`, `3-import.md`. 특히 사이클 11에도 새 파일 `CatalogImportSettingsTests.java`가 있어(커밋 전) **같은 이름의 파일을 양쪽에서 만든 상태**입니다. rebase 때 두 시험을 한 파일로 합칩니다
 
+## rebase와 전체 빌드 (2026-10-12 19:08)
+
+- 사이클 11 `11ed991`(기본 `compact`, 옛 방식 이름 `objects`) 위로 rebase했습니다. 시작 커밋 `60b6b1a` → 바탕 `11ed991`
+- 충돌 셋과 푼 방법
+  - `CatalogImportSettingsTests.java`(양쪽이 같은 이름으로 새로 만듦): 한 파일로 합쳤습니다. 사이클 11 시험 셋(기본값, 방식 고르기, 틀린 값 거절)과 사이클 12 시험 셋(빼기 설정 거부·허용, dry run에서 후보 도서관 줄 빠짐). `Settings` 칸이 하나 늘어 사이클 11 쪽 도우미에 `false`를 더함
+  - `3-import.md` 3절: 사이클 11의 `grouping` 설명(기본 `compact`·`objects`·`sql`)을 쓰고 사이클 12 줄을 그 아래에 둠
+  - `plan-feedback.md` 끝: 두 절을 다 남김(`# 사이클 11` 뒤에 `# 사이클 12`)
+- `SqlGroupingTests`의 지역 변수 이름 `current`를 `compact`로 바꿨습니다(기준이 `compact`라서)
+- `./gradlew build` 통과: 3분 50초, 테스트 686(건너뜀 1, 실패 0), `ModularityTests`·`DocumentationTests` 포함. 스크립트 시험 5 통과
+
 ## Phase B에서 할 것 (사이클 11이 끝난 뒤)
 
 - 사이클 11 병합 커밋 위로 rebase하고, DB 테스트와 `./gradlew build`를 통과시킵니다
