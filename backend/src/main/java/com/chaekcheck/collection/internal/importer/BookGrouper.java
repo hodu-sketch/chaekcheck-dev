@@ -99,6 +99,14 @@ interface BookGrouper extends AutoCloseable {
 		return mainTitleNorm + SEP + authorExact + SEP + publisherNorm;
 	}
 
+	/**
+	 * Step ④'s key (cycle 12, ADR-0082): comparison title, volume marks, first author that is not a placeholder,
+	 * publisher that is not a placeholder ({@link SameTextKey}). {@link #key} stays step ③'s.
+	 */
+	static SameTextKey.Key sameTextKey(String title, String authorRaw, String publisherRaw) {
+		return SameTextKey.RULES.of(title, authorRaw, publisherRaw);
+	}
+
 	/** Exact name of the first author (AUTHOR or UNKNOWN role); null when there is none. */
 	static String firstAuthor(List<Contributor> contributors) {
 		return contributors.stream()
