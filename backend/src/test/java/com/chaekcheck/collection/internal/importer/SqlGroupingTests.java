@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
@@ -135,8 +136,9 @@ class SqlGroupingTests {
 		rows.add(row(PORTAL_B, "P2", null, "이 책", "가", "나", null));
 		rows.add(row(PORTAL_A, "P3", isbnCode(3), "이 책", "가", "나", null));
 		rows.add(row(PORTAL_A, "P4", null, "이 책", "가", "나", null));
-		Result compact = run(CompactGrouping::new, rows, 0);
-		Result sql = run(() -> new SqlGrouping(dataSource), rows, 0);
+		// no national bibliography ISBN: the ISBNs are the rows' own
+		Result compact = run(CompactGrouping::new, rows, keys -> Map.of());
+		Result sql = run(() -> new SqlGrouping(dataSource), rows, keys -> Map.of());
 		assertSame(sql, compact);
 		assertThat(sql.bookOfRow).containsExactly(1007L, 1007L, 1014L, 1014L, 1021L, 1028L, 1035L, 1028L);
 		assertThat(sql.report.sameTextIsbnSplit).isEqualTo(2);
@@ -151,6 +153,12 @@ class SqlGroupingTests {
 
 	/** The full call sequence of {@link CatalogImporter}; the bibliography map gives an ISBN for some keys. */
 	static Result run(Supplier<BookGrouper> groupers, List<Row> rows, long seed) {
+		return run(groupers, rows, keys -> bibliography(keys, seed));
+	}
+
+	/** The full call sequence with the given national bibliography lookup. */
+	static Result run(Supplier<BookGrouper> groupers, List<Row> rows,
+			Function<Set<String>, Map<String, String>> bibliography) {
 		ImportReport report = new ImportReport();
 		List<List<Object>> books = new ArrayList<>();
 		List<Long> bookOfRow = new ArrayList<>();
@@ -160,7 +168,7 @@ class SqlGroupingTests {
 			rows.forEach(row -> grouping.add(row, report));
 			grouping.groupByCodes(report);
 			keys = new HashSet<>(grouping.bibliographyKeys());
-			grouping.attachBibliography(bibliography(keys, seed), report);
+			grouping.attachBibliography(bibliography.apply(keys), report);
 			grouping.mergeSameText(report);
 			grouping.forEachBook(book -> {
 				books.add(Arrays.asList(book.title(), book.authorDisplay(), book.publisher(), book.titleNorm(),

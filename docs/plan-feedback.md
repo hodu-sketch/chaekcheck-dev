@@ -3173,7 +3173,9 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 ## 테스트 결과 (Phase A)
 
 - 통과(DB 없음): `SameTextKeyTests` 14, `BookGrouperContractTests` 1(`current`), `CompactGroupingTests` 8(계약 + 무작위 시드 5 등), `CatalogImportSettingsTests` 3, `python -m unittest scripts/catalog/test_compare_grouping.py` 5. `compileJava`·`compileTestJava` 통과
-- **아직 안 돌림 (사용자가 알려 줄 때)**: `SqlGroupingTests`(새 계약, `compact` 대 `sql` 무작위, 새 `splitsAKeyByItsIsbnsAsJavaDoes`), `CatalogImportModesTests`, `NationalBibliographyTests`, `CatalogImporterTests`, `./gradlew build`(`ModularityTests`·`DocumentationTests` 포함)
+- `db-test` 테스트 (2026-10-12 15:43, 사이클 11 전달 "db-test(5433)는 써도 됩니다"): `SqlGroupingTests` 13(새 계약, `compact` 대 `sql` 무작위 1500줄 × 시드 8, `splitsAKeyByItsIsbnsAsJavaDoes`), `CatalogImportModesTests` 6, `NationalBibliographyTests` 4(고치지 않고 통과, ③ 키 그대로), `CatalogImporterTests` 5(고치지 않고 통과) 모두 통과
+  - 처음에는 `splitsAKeyByItsIsbnsAsJavaDoes` 1개가 실패했습니다. 시험 도우미의 무작위 국가서지 ISBN이 다른 키의 ISBN과 같아서였고, `compact`와 `sql`은 같은 결과였습니다. 이 시험만 국가서지 없이 돌게 고쳤습니다
+- **아직 안 돌림**: `./gradlew build` 전체(`ModularityTests`·`DocumentationTests` 포함). 사이클 11 측정이 CPU를 쓰는 18:15 뒤에 돌립니다
 
 ## 정한 이름과 정의 (인계서 [안]과 다른 것은 "다름")
 
