@@ -1,0 +1,18 @@
+# Library insert (plan cycle 13, ADR-0084): runs once and exits, no web server (docs/maintenance/1-libraries.md). The
+# service may keep running on the same database. Paths are given as arguments (LibraryInsertRunner), e.g.
+#   --chaekcheck.collection.library-insert.mode=preview
+#   --chaekcheck.collection.library-insert.sqlite-path=../../chaekcheck-data/snapshots/ebook-catalog-2026-10-12-0135.sqlite
+#   --chaekcheck.collection.library-insert.rules-dir=../scripts/library/rules
+#   --chaekcheck.collection.library-insert.report-dir=../../chaekcheck-data/library-insert
+spring:
+  main:
+    web-application-type: none
+
+chaekcheck:
+  # as in application-collection-import.yml: the login setup needs the web server
+  auth:
+    enabled: false
+  # the command never fetches the popular books
+  popular:
+    fetch:
+      enabled: false
