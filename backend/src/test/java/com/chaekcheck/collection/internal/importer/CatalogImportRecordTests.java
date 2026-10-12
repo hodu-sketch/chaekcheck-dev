@@ -82,7 +82,7 @@ class CatalogImportRecordTests {
 	void exportIdWithoutTimeIsRefused() {
 		assertThatThrownBy(() -> jdbc.sql("""
 				INSERT INTO collection.catalog_import (source, imported_at, book_count, holding_count, skipped_count,
-				  registered_library_count, candidate_library_count, skipped_by_reason, export_id)
+				  registered_library_count, other_library_count, skipped_by_reason, export_id)
 				VALUES ('test-x.sqlite', now(), 0, 0, 0, 0, 0, '{}', gen_random_uuid())""").update())
 			.isInstanceOf(DataIntegrityViolationException.class)
 			.hasMessageContaining("catalog_import_export_check");

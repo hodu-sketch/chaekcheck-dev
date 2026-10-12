@@ -26,10 +26,10 @@ final class ImportReport {
 
 	final Map<String, Long> kyoboCodes = new TreeMap<>();
 
-	/** Service libraries whose rows are imported: registered (collection id below 100001) and candidates. */
+	/** Service libraries whose rows are imported: registered (collection id below 100001) and the others, added later from the collected list. */
 	int registeredLibraries;
 
-	int candidateLibraries;
+	int otherLibraries;
 
 	int librariesWithoutFullSuccess;
 
@@ -148,7 +148,7 @@ final class ImportReport {
 		return """
 				collection import
 				  rows read: %d, skipped: %d %s
-				  libraries: registered %d, candidates %d (without a full success, collected_at from last_seen_at: %d); \
+				  libraries: registered %d, others %d (without a full success, collected_at from last_seen_at: %d); \
 				not in service %d, base URL mismatch %d
 				  placeholder dates cleared: %d
 				  kyobo codes: %s
@@ -159,7 +159,7 @@ final class ImportReport {
 				  book ids: kept %d, new %d, dropped %d
 				  collected: %s ~ %s
 				  time: %s; heap used up to %d MB (max %d MB)"""
-			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, candidateLibraries,
+			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, otherLibraries,
 					librariesWithoutFullSuccess, librariesNotInService, librariesBaseUrlMismatch, placeholderDatesCleared,
 					kyoboCodes, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
 					booksAfterSameText, sameTextMerged, sameTextIsbnSplit, sameTextSubtitleSplit, sameTextPlaceholderNoKey,

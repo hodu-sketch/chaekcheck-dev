@@ -70,7 +70,7 @@ class ImportTransfer {
 	 * @param stepSeconds the PC's steps up to {@code write}, in order
 	 */
 	record Notes(String source, String grouping, long books, long contributors, long holdings,
-			Map<String, Long> skipped, int registeredLibraries, int candidateLibraries, long keptBookIds,
+			Map<String, Long> skipped, int registeredLibraries, int otherLibraries, long keptBookIds,
 			long newBookIds, long droppedBookIds, Instant collectedFrom, Instant collectedTo,
 			Map<String, Double> stepSeconds, long maxHeapMb, DatabaseFingerprint fingerprint) {
 
@@ -78,7 +78,7 @@ class ImportTransfer {
 			Map<String, Double> seconds = new LinkedHashMap<>();
 			report.steps.forEach((step, time) -> seconds.put(step, time.toMillis() / 1000.0));
 			return new Notes(report.source, grouping, report.books, report.contributors, report.holdings,
-					new TreeMap<>(report.skipped), report.registeredLibraries, report.candidateLibraries,
+					new TreeMap<>(report.skipped), report.registeredLibraries, report.otherLibraries,
 					report.keptBookIds, report.newBookIds, report.droppedBookIds, report.collectedFrom,
 					report.collectedTo, seconds, report.maxHeapMb, fingerprint);
 		}
@@ -92,7 +92,7 @@ class ImportTransfer {
 			report.holdings = holdings;
 			report.skipped.putAll(skipped);
 			report.registeredLibraries = registeredLibraries;
-			report.candidateLibraries = candidateLibraries;
+			report.otherLibraries = otherLibraries;
 			report.keptBookIds = keptBookIds;
 			report.newBookIds = newBookIds;
 			report.droppedBookIds = droppedBookIds;

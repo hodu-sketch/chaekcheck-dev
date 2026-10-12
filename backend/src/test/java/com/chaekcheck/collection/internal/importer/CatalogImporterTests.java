@@ -62,7 +62,7 @@ class CatalogImporterTests {
 
 	LibraryCatalog libraryCatalog = mock(LibraryCatalog.class);
 
-	/** Registered libraries link to themselves; 100001 is a candidate with service id 900; 100002 has no link. */
+	/** Registered libraries link to themselves; 100001 was added later, with service id 900; 100002 has no link. */
 	Map<Long, Long> links = Map.of(1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L, 100001L, 900L);
 
 	@BeforeEach
@@ -211,7 +211,7 @@ class CatalogImporterTests {
 			.list()).containsExactly(1L, 2L, 4L, 5L);
 		assertThat(report.librariesWithoutFullSuccess).isEqualTo(1);
 		assertThat(jdbc.sql("""
-				SELECT book_count, holding_count, skipped_count, registered_library_count, candidate_library_count,
+				SELECT book_count, holding_count, skipped_count, registered_library_count, other_library_count,
 				  skipped_by_reason ->> 'library_base_url_mismatch' AS mismatch
 				FROM collection.catalog_import WHERE source = 'test-catalog.sqlite'""")
 			.query()
@@ -219,7 +219,7 @@ class CatalogImporterTests {
 			.containsEntry("holding_count", 11)
 			.containsEntry("skipped_count", 7)
 			.containsEntry("registered_library_count", 4)
-			.containsEntry("candidate_library_count", 0)
+			.containsEntry("other_library_count", 0)
 			.containsEntry("mismatch", "1");
 		// cycle 08 AC-7: the collected period is the oldest and newest library snapshot; every step has a time
 		assertThat(jdbc.sql("""
@@ -246,7 +246,7 @@ class CatalogImporterTests {
 	}
 
 	/**
-	 * Cycle 07: a candidate comes in under its service id through the link; the sound and video kinds are left out;
+	 * Cycle 07: a library added later comes in under its service id through the link; the sound and video kinds are left out;
 	 * 8-digit dates are read; the placeholder-date library's dates before 1950 are dropped (only there); the most
 	 * common values of a book are counted over its rows although the first pass keeps counts, not rows.
 	 */
@@ -282,7 +282,7 @@ class CatalogImporterTests {
 	}
 
 	@Test
-	void importsCandidatesThroughLinksWithTheNewRules() throws Exception {
+	void importsAddedLibrariesThroughLinksWithTheNewRules() throws Exception {
 		Path sqlite = dir.resolve("test-cycle07.sqlite");
 		String kyobo = KYOBO_BASE + "/detail?id=";
 		String yes24 = YES24_BASE + "/detail?id=";
@@ -303,7 +303,7 @@ class CatalogImporterTests {
 					+ " content_kind, content_type, detail_url, author_raw, publisher, first_seen_at)"
 					+ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '2026-09-29T00:00:00+09:00')";
 			try (PreparedStatement p = c.prepareStatement(insert)) {
-				// one shared code in libraries 1 and 2, and the candidate's book with the same text (④):
+				// one shared code in libraries 1 and 2, and the added library's book with the same text (④):
 				// the title most rows have wins
 				kind(p, 1, "K1", "다수 제목", null, "2020-01-01", "전자책", "EBOOK", kyobo + "K1", "가");
 				kind(p, 2, "K1", "소수 제목", null, "20200101", "전자책", "EBOOK", yes24 + "K1", "가");
@@ -330,7 +330,7 @@ class CatalogImporterTests {
 		assertThat(report.skipped).containsExactlyInAnyOrderEntriesOf(Map.of("kind_sound_video", 4L,
 				"library_not_in_service", 1L));
 		assertThat(report.registeredLibraries).isEqualTo(2);
-		assertThat(report.candidateLibraries).isEqualTo(1);
+		assertThat(report.otherLibraries).isEqualTo(1);
 		assertThat(report.placeholderDatesCleared).isEqualTo(1);
 		Map<String, Object> shared = jdbc.sql("""
 				SELECT b.published_on::text AS published_on, b.library_ids::text AS library_ids
@@ -348,10 +348,10 @@ class CatalogImporterTests {
 		assertThat(jdbc.sql("SELECT library_id FROM catalog.catalog_library_snapshot ORDER BY library_id")
 			.query(Long.class)
 			.list()).containsExactly(1L, 2L, 900L);
-		assertThat(jdbc.sql("SELECT holding_count, candidate_library_count FROM collection.catalog_import"
+		assertThat(jdbc.sql("SELECT holding_count, other_library_count FROM collection.catalog_import"
 				+ " WHERE source = 'test-cycle07.sqlite'")
 			.query()
-			.singleRow()).containsEntry("holding_count", 7).containsEntry("candidate_library_count", 1);
+			.singleRow()).containsEntry("holding_count", 7).containsEntry("other_library_count", 1);
 	}
 
 	private String dateOf(String title) {

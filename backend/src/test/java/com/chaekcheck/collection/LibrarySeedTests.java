@@ -13,15 +13,17 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The cycle 07 Liquibase files on db-test (plan handoff step 2): the candidate seed, the links, the new columns and
- * their CHECK constraints. Counts come from scripts/library/build_candidate_seed.py (docs/library-maintenance.md 13절).
+ * The cycle 07 Liquibase files on db-test (plan handoff step 2): the seed of the libraries found in the collected list
+ * (ids above 280), the links, the new columns and their CHECK constraints. Counts come from
+ * scripts/library/build_library_seed.py (docs/library-maintenance.md 13절). Cycle 13: renamed from CandidateSeedTests
+ * (AC-11), and library 1215's name (library/015, AC-9).
  * Each violation runs in its own test so the failed statement does not abort the others.
  */
 @SpringBootTest
 @Transactional
-class CandidateSeedTests {
+class LibrarySeedTests {
 
-	static final int REGISTERED = 280, CANDIDATES = 2383;
+	static final int REGISTERED = 280, OTHERS = 2383;
 
 	@Autowired
 	JdbcClient jdbc;
@@ -29,12 +31,12 @@ class CandidateSeedTests {
 	@Test
 	void seedCountsMatchTheScript() {
 		assertThat(count("SELECT count(*) FROM library.library WHERE id <= 280")).isEqualTo(REGISTERED);
-		// cycle 08 (ADR-0067): the 11 Kyobo rental and mixed candidates 2664~2674 left the seed; their ids are not reused
-		assertThat(count("SELECT count(*) FROM library.library WHERE id > 280")).isEqualTo(CANDIDATES);
+		// cycle 08 (ADR-0067): the 11 Kyobo rental and mixed libraries 2664~2674 left the seed; their ids are not reused
+		assertThat(count("SELECT count(*) FROM library.library WHERE id > 280")).isEqualTo(OTHERS);
 		assertThat(count("SELECT count(*) FROM library.library WHERE id BETWEEN 2664 AND 2674")).isZero();
 		assertThat(count("SELECT count(*) FROM collection.collection_link WHERE library_id BETWEEN 2664 AND 2674"))
 			.isZero();
-		assertThat(count("SELECT count(*) FROM collection.collection_link")).isEqualTo(REGISTERED + CANDIDATES);
+		assertThat(count("SELECT count(*) FROM collection.collection_link")).isEqualTo(REGISTERED + OTHERS);
 		assertThat(count("SELECT count(*) FROM collection.collection_link WHERE collection_library_id = library_id"))
 			.isEqualTo(REGISTERED);
 		assertThat(count("SELECT count(*) FROM library.eligibility_rule WHERE library_id > 280")).isEqualTo(253);
@@ -59,6 +61,13 @@ class CandidateSeedTests {
 		assertThat(count("SELECT count(*) FROM library.library WHERE logo_file IS NOT NULL")).isEqualTo(198);
 	}
 
+	/** Cycle 13 (AC-9): the collected list had library 1215's name HTML-escaped; library/015 fixes it. */
+	@Test
+	void library1215HasItsPlainName() {
+		assertThat(jdbc.sql("SELECT name FROM library.library WHERE id = 1215").query(String.class).single())
+			.isEqualTo("한화S&C");
+	}
+
 	/** Sequences are not rolled back with the test transactions, so other tests may have used numbers already. */
 	@Test
 	void identityContinuesAfterTheSeed() {
@@ -67,7 +76,7 @@ class CandidateSeedTests {
 				VALUES ('새 도서관', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://new.test', 'test') RETURNING id""")
 			.query(Long.class)
 			.single();
-		assertThat(id).isGreaterThan(REGISTERED + CANDIDATES);
+		assertThat(id).isGreaterThan(REGISTERED + OTHERS);
 	}
 
 	@Test

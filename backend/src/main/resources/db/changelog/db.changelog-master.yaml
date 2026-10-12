@@ -86,3 +86,10 @@ databaseChangeLog:
   - include:
       file: collection/005-import-export.yaml
       relativeToChangelogFile: true
+  # cycle 13: library insert (ADR-0084, ADR-0093) and the name of library 1215
+  - include:
+      file: library/015-library-name-1215.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: collection/006-library-insert-run.yaml
+      relativeToChangelogFile: true

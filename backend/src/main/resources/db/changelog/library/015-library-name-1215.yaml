@@ -1,0 +1,10 @@
+# cycle 13 (pre-decision 8): library 1215 came from the collected list with its name HTML-escaped. The applied seed
+# (008-library-candidates.csv) is not edited: the name changes here by (id, old name), like 013.
+databaseChangeLog:
+  - changeSet:
+      id: library-015-library-name-1215
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              UPDATE library.library SET name = '한화S&C' WHERE id = 1215 AND name = '한화S&amp;C'

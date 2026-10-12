@@ -40,8 +40,8 @@ final class CollectedCatalog implements AutoCloseable {
 	 */
 	static final Set<String> SOUND_VIDEO_KINDS = Set.of("book/wma", "book/vod", "book/wmv", "동영상");
 
-	/** Collection ids from here on are candidate libraries (the seed rule, ADR-0052). */
-	static final long FIRST_CANDIDATE_ID = 100_001;
+	/** Collection ids from here on are libraries found only in the collected list and added later (the seed rule, ADR-0052). */
+	static final long FIRST_COLLECTED_ONLY_ID = 100_001;
 
 	/** Skip reason of the rows of a candidate library left out by {@code exclude-candidate-libraries} (cycle 12). */
 	static final String EXCLUDED_CANDIDATE = "library_excluded_candidate";
@@ -57,8 +57,8 @@ final class CollectedCatalog implements AutoCloseable {
 	record Library(long serviceId, long collectionId, String platformType, String host, String origin,
 			Instant collectedAt, boolean placeholderDates) {
 
-		boolean candidate() {
-			return collectionId >= FIRST_CANDIDATE_ID;
+		boolean addedLater() {
+			return collectionId >= FIRST_COLLECTED_ONLY_ID;
 		}
 
 	}
@@ -151,8 +151,8 @@ final class CollectedCatalog implements AutoCloseable {
 					report.librariesWithoutFullSuccess++;
 				}
 				imported.put(collectionId, library);
-				if (library.candidate()) {
-					report.candidateLibraries++;
+				if (library.addedLater()) {
+					report.otherLibraries++;
 				}
 				else {
 					report.registeredLibraries++;

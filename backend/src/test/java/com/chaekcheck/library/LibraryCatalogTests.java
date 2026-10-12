@@ -498,7 +498,7 @@ class LibraryCatalogTests {
 
 	/** Cycle 07 (ADR-0053, ADR-0059): libraries whose join rules were not researched, and the logo. */
 	@Nested
-	class CandidateLibraries {
+	class LibrariesAddedLater {
 
 		@Test
 		void unsurveyedAreLeftOutWithoutLibraryIds() { // AC-4 server side
@@ -550,9 +550,9 @@ class LibraryCatalogTests {
 		}
 
 		@Test
-		void surveyedCandidateIsJudgedByItsRegionRules() {
+		void surveyedLibraryAddedLaterIsJudgedByItsRegionRules() {
 			onlyTestLibraries();
-			long seoul = library("서울 후보", 10);
+			long seoul = library("서울 추가", 10);
 			rule(seoul, "RESIDENCE", SEOUL);
 
 			assertThat(catalog.planSearch(Set.of(MAPO), Set.of()))
