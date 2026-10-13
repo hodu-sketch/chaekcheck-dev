@@ -27,14 +27,16 @@ describe('S12 서비스 안내 (cycle 07, ADR-0059)', () => {
 })
 
 describe('S12 join survey line (cycle 13, AC-10)', () => {
-  it('shows the survey month under the first paragraph, above the partnership notice', async () => {
+  it('shows the survey month under the first paragraph, above the picks paragraph and the partnership notice', async () => {
     vi.mocked(fetchLatestJoinSurvey).mockResolvedValue({ surveyedOn: '2026-10-05' })
     render(<AboutPage />)
 
     const line = await screen.findByText('가입 조건은 2026년 10월에 조사한 내용입니다.')
     const paragraphs = [...document.querySelectorAll<HTMLElement>('p')]
     expect(paragraphs.indexOf(line)).toBe(1)
-    expect(paragraphs[2]?.textContent).toBe(PARTNERSHIP)
+    // cycle 14 put its paragraph where cycle 13 marked it: above the partnership notice
+    expect(paragraphs[2]?.textContent).toMatch(/^사서추천도서 목록과 일부 표지는 국립중앙도서관 자료/)
+    expect(paragraphs[3]?.textContent).toBe(PARTNERSHIP)
   })
 
   it('shows no line before the first survey date', async () => {

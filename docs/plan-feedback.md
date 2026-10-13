@@ -3763,3 +3763,36 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 12는 collection 가져오기(`SameTextKey`, `SubtitleParts`, 묶기)만 바꿨고 `catalog/normalize`(`CatalogText`, `Contributors`)·`BookLookup`·changelog는 그대로 → `title_norm`·`book_contributor.name_exact` 뜻 바뀜 없음(1단계 전에 보고하라던 항목). 다만 12의 다시 가져오기로 서비스 DB 책 수가 바뀌었으므로(1,563,167권) 1단계 맞추기 측정은 복사 시점(1,619,668권) 값임
 - rebase 뒤 `./gradlew build` 739개 통과(`TEST_PG_COMMAND`로 c14 db-test), 웹 `npm test` 366개, `npm run build`, `npm run lint` 통과
 - 원래 DB(5432·5433)의 popular 정리는 14가 기본 브랜치에 들어간 뒤에 함(그 전에는 기본 브랜치 코드가 아직 `popular/001`을 가짐)
+
+## 7단계 진짜 받기 시험 (2026-10-14, 사용자 승인 "진짜 받기 시험 오늘 해")
+
+- 사용자: "지금 사이클 13작업 중이니까 안 겹치게 뭐 따로 워크트리랑 뭐 따로 빼서 하든 뭐든 해, db도 포트를 다르게 한다던가" → 이미 따로임을 확인하고 진행: worktree `chaekcheck-dev-c14`, docker 묶음 `chaekcheck-c14`(5452·5453), 서버 8083, 웹 5177. 사이클 13은 `chaekcheck-c13`(5442·5443), 8082·5176
+- 준비: 5452의 화면 확인용 임시 데이터 지움(`pick` 108, `cover` 108, `fetch_run` 1) → 빈 상태. `.env`는 그대로(`false`), 실행 인자 `--chaekcheck.picks.fetch.enabled=true`로만 켬
+- 결과(2026-10-14 01:39 KST, `STARTUP`)
+
+| 항목 | 값 |
+|---|---|
+| 목록 요청 | 1건, `start_date=20231014&end_date=20261014`(3년), 200, 771ms, 2,511,752바이트 |
+| `received_count` / `kept_count` | 163 / 108 (최근 12번 추천, 2024.12~2026.10) |
+| `missing_isbn_count`, `new_category_codes` | 0, 없음 |
+| 분야별 | 11·6·5·4 각 18, 425 36 |
+| 표지 | 요청 108, 받음 108, 실패 0, 간격 최소 1,000ms 평균 1,000.8ms 최대 1,014ms, 1분 56초 |
+| `picks.cover` | 108장, 1,285,929바이트(장당 4,158~22,290) |
+| `fetch_run` | `SUCCEEDED`, `changed=true`, `request_count` 109, 01:39:54.8~01:39:55.7(표지 전까지) |
+| 캐시 | 108권 중 72권 우리 책, 86ms(목록 저장 직후), 53ms(표지 뒤) |
+| `bnk.kpipa.or.kr` | 로그 0건(요청 경로: `/NL/search` 1, `/afile/fileDownload` 108) |
+| 키 | 로그 전체에서 0건(`.env`에서 읽어 세는 스크립트, 값 출력 없음) |
+
+- 받기를 켠 채 다시 켬(01:42): "picks fetch (start-up): nothing due", 요청 0건(같은 날 성공 규칙)
+- 3년 범위 163건 = 2년 108건 + 그 앞 55건. 남기는 건 12번이라 저장 결과는 같음
+- 같은 달 순서가 국립중앙도서관 웹 목록과 맞는지: 아직 안 봄(웹 화면을 열면 요청이 더 가므로 따로 승인받고 볼 일)
+
+## 사이클 13 위로 rebase (2026-10-14)
+
+- 사이클 13이 기본 브랜치에 들어옴(`5482978`, 01:40, 13이 12 위로 rebase된 것). 이 브랜치를 그 위로 rebase
+- 충돌: master 끝줄(13의 `library/015`·`collection/006` 뒤에 `# cycle 14` + `picks/001`), `docs/plan-feedback.md`(13 절 뒤에 14 절). `AboutPage.tsx`·`ModularityTests`·`AuthEnabledSecurityTests`는 저절로 합쳐짐
+- `AboutPage.tsx`: 13이 남긴 자리 표시 주석("cycle 14: the librarian picks paragraph goes here, above the partnership notice") 자리로 14 문단을 옮김. 13의 순서 시험(`AboutPage.test.tsx`, 조사 줄 다음이 제휴 안내)을 조사 줄 → 사서추천 문단 → 제휴 안내로 고침
+- `application-library-insert.yml`: 인계서는 `chaekcheck.popular.*` 줄을 "지운다"였으나, 지우기만 하면 도서관 넣기 명령에서 picks 받기 기본값(true)이 켜져 진짜 API를 부를 수 있어 **`chaekcheck.picks.fetch.enabled: false`로 바꿈**(`collection-import`와 같음)
+- 13이 배포 전 규칙으로 `collection-001-catalog-import`(`candidate_library_count` → `other_library_count`)를 고쳐 14의 DB 체크섬이 맞지 않았음 → 13의 절차(3-import.md 13-5 "로컬 DB 이름 맞추기")대로 5452에 이름 바꾸기 SQL + `md5sum` NULL, 5453은 컨테이너를 다시 띄움(`-p chaekcheck-c14 up -d --force-recreate db-test`)
+- rebase 뒤 `./gradlew build` 793개 통과, 웹 `npm test` 372개, `npm run build`, `npm run lint` 통과
+- 원래 `db`·`db-test`(5432·5433)의 popular 정리는 14가 기본 브랜치에 들어간 뒤 사용자에게 묻고 함

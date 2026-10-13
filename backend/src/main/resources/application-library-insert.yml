@@ -12,7 +12,7 @@ chaekcheck:
   # as in application-collection-import.yml: the login setup needs the web server
   auth:
     enabled: false
-  # the command never fetches the popular books
-  popular:
+  # the command never fetches the librarian picks (cycle 14 replaced the popular books)
+  picks:
     fetch:
       enabled: false

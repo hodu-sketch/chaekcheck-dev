@@ -37,10 +37,6 @@ export function AboutPage() {
           검색 결과를 기준으로 보여 줘요.
         </p>
         {surveyMonth && <p>가입 조건은 {surveyMonth}에 조사한 내용입니다.</p>}
-        {/* cycle 14: the librarian picks paragraph goes here, above the partnership notice */}
-        <p>각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없습니다.</p>
-        {/* TODO(확인 필요): the service's own e-mail address for logo take-down requests; the user will give it */}
-        <p>로고를 내려 달라는 요청은 연락처가 정해지면 이곳에 안내할게요.</p>
         {/*
           cycle 14 (ADR-0091) [확정 문구]. TODO(확인 필요): the contact for right holders who do not want a cover shown;
           TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인
@@ -49,6 +45,9 @@ export function AboutPage() {
           사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)예요. 표지 게시를 원하지 않는 권리자를
           위한 연락처는 정해지면 이곳에 안내할게요.
         </p>
+        <p>각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없습니다.</p>
+        {/* TODO(확인 필요): the service's own e-mail address for logo take-down requests; the user will give it */}
+        <p>로고를 내려 달라는 요청은 연락처가 정해지면 이곳에 안내할게요.</p>
       </div>
     </article>
   )
