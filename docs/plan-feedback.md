@@ -3797,4 +3797,4 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - rebase 뒤 `./gradlew build` 793개 통과, 웹 `npm test` 372개, `npm run build`, `npm run lint` 통과
 - 원래 `db`·`db-test`(5432·5433)의 popular 정리는 14가 기본 브랜치에 들어간 뒤 사용자에게 묻고 함
 
-- 받은 진짜 자료로 다시 잰 값(12·13 rebase 뒤, 받기 꺼진 서버 8083): 캐시 새로 고침 114ms(108권 중 72권 우리 책), `GET /api/v1/picks?residenceRegionIds=1116`(강서구) 200번 p50 27.4ms, p95 35.9ms, 응답 51,207바이트(분류 7개 = 전체 + 5분야 + 순서대로, 표지 주소 108개), `available` 68 / 108
+- 받은 진짜 자료로 다시 잰 값(12·13 rebase 뒤, 받기 꺼진 서버 8083): 캐시 새로 고침 114ms(108권 중 72권 우리 책), `GET /api/v1/picks?residenceRegionIds=1116`(강서구) 200번 p50 27.4ms, p95 35.9ms, 응답 51,207바이트(분류 6개 = 전체 + 5분야, 표지 주소 108개), `available` 68 / 108
