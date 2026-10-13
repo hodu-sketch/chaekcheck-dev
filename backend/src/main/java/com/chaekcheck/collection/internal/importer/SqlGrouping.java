@@ -82,7 +82,7 @@ final class SqlGrouping implements BookGrouper {
 			+ " AND NOT EXISTS (SELECT 1 FROM grp_gisbn i WHERE i.label = grp_label.label)";
 
 	private static final List<String> TABLES = List.of("grp_in", "grp_unit", "grp_row", "grp_vote", "grp_date",
-			"grp_unitlib", "grp_label", "grp_gisbn", "grp_edge", "grp_comp", "grp_attach", "grp_text", "grp_merge", "grp_key",
+			"grp_unitlib", "grp_label", "grp_gisbn", "grp_edge", "grp_comp", "grp_attach", "grp_text", "grp_part", "grp_merge", "grp_key",
 			"grp_wide", "grp_book");
 
 	private final Connection connection;
@@ -294,8 +294,8 @@ final class SqlGrouping implements BookGrouper {
 	 * Step ④ (cycle 12, ADR-0082): every group's same-text key, computed in Java ({@link BookGrouper#sameTextKey})
 	 * from the groups as they are when the step starts, goes to {@code grp_text}. A key with two or more distinct
 	 * ISBNs ({@code grp_gisbn}) is split by ISBN (the groups without one together), and a key with two or more
-	 * different subtitles by subtitle (user decision 2026-10-13): the merge key is the key, the ISBN part and the
-	 * subtitle part. Groups with one merge key are joined to the first. The counts follow {@link CompactGrouping}.
+	 * different subtitles where one library holds two of them ({@link SubtitleParts}, user decision 2026-10-14, the
+	 * parts in {@code grp_part}): the merge key is the key, the ISBN part and the subtitle part. Groups with one merge key are joined to the first. The counts follow {@link CompactGrouping}.
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
@@ -313,16 +313,48 @@ final class SqlGrouping implements BookGrouper {
 							report.sameTextPlaceholderNoKey++;
 						}
 					}));
+			// keys with two or more subtitles: their groups (in label order) with their libraries go through
+			// SubtitleParts in Java; the groups not kept whole get their part
+			execute("CREATE TEMPORARY TABLE grp_part (label int NOT NULL, part int NOT NULL)");
+			copyThroughFile("COPY grp_part (label, part) FROM STDIN", out -> {
+				try (Statement statement = connection.createStatement();
+						ResultSet rs = statement.executeQuery("""
+								WITH f AS (SELECT key FROM grp_text GROUP BY key
+								  HAVING count(DISTINCT sub) FILTER (WHERE sub <> '') >= 2)
+								SELECT t.key, t.label, t.sub, array_agg(DISTINCT u.library_id ORDER BY u.library_id)
+								FROM grp_text t JOIN f USING (key) JOIN grp_label l ON l.label = t.label
+								  JOIN grp_unitlib u ON u.unit = l.unit
+								GROUP BY t.key, t.label, t.sub
+								ORDER BY t.key, t.label""")) {
+					String current = null;
+					List<Integer> labels = new ArrayList<>();
+					List<String> subtitles = new ArrayList<>();
+					List<long[]> libraries = new ArrayList<>();
+					while (rs.next()) {
+						String key = rs.getString(1);
+						if (!key.equals(current)) {
+							writeParts(out, labels, subtitles, libraries);
+							current = key;
+						}
+						labels.add(rs.getInt(2));
+						subtitles.add(rs.getString(3));
+						libraries.add(Arrays.stream((Object[]) rs.getArray(4).getArray())
+							.mapToLong(id -> ((Number) id).longValue())
+							.toArray());
+					}
+					writeParts(out, labels, subtitles, libraries);
+				}
+			});
+			execute("ALTER TABLE grp_part ADD PRIMARY KEY (label)");
 			execute("""
 					CREATE TEMPORARY TABLE grp_merge AS
-					WITH t AS (SELECT t.label, t.key, t.sub, t.d, i.isbn FROM grp_text t LEFT JOIN grp_gisbn i USING (label)),
-					  k AS (SELECT key, count(DISTINCT isbn) AS isbns, count(DISTINCT sub) FILTER (WHERE sub <> '') AS subs
-					    FROM t GROUP BY key),
-					  b AS (SELECT t.label, t.d, t.sub, k.subs,
+					WITH t AS (SELECT t.label, t.key, t.d, i.isbn FROM grp_text t LEFT JOIN grp_gisbn i USING (label)),
+					  k AS (SELECT key, count(DISTINCT isbn) AS isbns FROM t GROUP BY key),
+					  b AS (SELECT t.label, t.d, coalesce(p.part, 0) AS part,
 					    t.key || chr(1) || CASE WHEN k.isbns <= 1 THEN '' ELSE coalesce(t.isbn, '') END AS isbn_bucket
-					    FROM t JOIN k USING (key))
+					    FROM t JOIN k USING (key) LEFT JOIN grp_part p USING (label))
 					SELECT label, d, isbn_bucket COLLATE "C" AS isbn_bucket,
-					  isbn_bucket || chr(1) || CASE WHEN subs <= 1 THEN '' ELSE sub END COLLATE "C" AS merge_key
+					  isbn_bucket || chr(1) || part::text COLLATE "C" AS merge_key
 					FROM b""");
 			execute("ANALYZE grp_merge");
 			// groups whose merge key an earlier group had; ISBN buckets more than keys; merge keys more than ISBN buckets
@@ -336,12 +368,28 @@ final class SqlGrouping implements BookGrouper {
 					SELECT merge_key, min(label) AS first, min(d) AS lo, max(d) AS hi FROM grp_merge GROUP BY merge_key""");
 			wideDates(report);
 			join("SELECT m.label, k.first FROM grp_merge m JOIN grp_key k USING (merge_key) WHERE m.label <> k.first");
-			execute("DROP TABLE grp_text, grp_merge, grp_key");
+			execute("DROP TABLE grp_text, grp_part, grp_merge, grp_key");
 			report.booksAfterSameText = groupCount();
 		}
 		catch (SQLException | IOException ex) {
 			throw failed("merge the same text", ex);
 		}
+	}
+
+	/** One key's groups through {@link SubtitleParts}: a line per group not kept whole; the lists are emptied. */
+	private static void writeParts(CopyText out, List<Integer> labels, List<String> subtitles, List<long[]> libraries)
+			throws SQLException, IOException {
+		if (!labels.isEmpty()) {
+			int[] parts = SubtitleParts.of(subtitles, libraries);
+			for (int i = 0; i < parts.length; i++) {
+				if (parts[i] != SubtitleParts.WHOLE) {
+					out.row(labels.get(i), parts[i]);
+				}
+			}
+		}
+		labels.clear();
+		subtitles.clear();
+		libraries.clear();
 	}
 
 	/**

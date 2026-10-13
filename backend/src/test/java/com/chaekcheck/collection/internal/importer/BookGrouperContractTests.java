@@ -165,11 +165,15 @@ class BookGrouperContractTests {
 		// R3-2: other volumes (AC-4)
 		rows.add(row(PORTAL_A, "EBK:19", null, "오개념 탈출 프로젝트 - 수학 1", "가", "나", null));
 		rows.add(row(PORTAL_B, "EBK:20", null, "오개념 탈출 프로젝트 - 수학 2", "가", "나", null));
-		// three different subtitles: one book each, the title without one apart (user decision 2026-10-13)
+		// three subtitles one library holds side by side: one book each, the title without one apart (user decision
+		// 2026-10-14)
 		rows.add(row(PORTAL_A, "EBK:21", null, "영단어 무한 지배자 : 고등편", "가", "다", null));
 		rows.add(row(PORTAL_A, "EBK:22", null, "영단어 무한 지배자 : 중등편", "가", "다", null));
-		rows.add(row(PORTAL_B, "EBK:23", null, "영단어 무한 지배자 : 초등편", "가", "다", null));
+		rows.add(row(PORTAL_A, "EBK:23", null, "영단어 무한 지배자 : 초등편", "가", "다", null));
 		rows.add(row(PORTAL_B, "EBK:24", null, "영단어 무한 지배자", "가", "다", null));
+		// two subtitles no library holds side by side: one book
+		rows.add(row(PORTAL_A, "EBK:25", null, "갈등 책 - 에세이", "가", "다", null));
+		rows.add(row(PORTAL_B, "EBK:26", null, "갈등 책 - 양장", "가", "다", null));
 		return rows;
 	}
 
@@ -195,12 +199,12 @@ class BookGrouperContractTests {
 			}
 		}
 
-		assertThat(report.booksAfterPlatformCode).isEqualTo(25);
-		assertThat(report.booksAfterKyoboIsbn).isEqualTo(25);
+		assertThat(report.booksAfterPlatformCode).isEqualTo(27);
+		assertThat(report.booksAfterKyoboIsbn).isEqualTo(27);
 		assertThat(report.nationalBibliographyIsbnAttached).isEqualTo(1);
-		assertThat(report.booksAfterNationalBibliography).isEqualTo(25);
-		assertThat(report.booksAfterSameText).isEqualTo(21);
-		assertThat(report.sameTextMerged).isEqualTo(4);
+		assertThat(report.booksAfterNationalBibliography).isEqualTo(27);
+		assertThat(report.booksAfterSameText).isEqualTo(22);
+		assertThat(report.sameTextMerged).isEqualTo(5);
 		// merge keys minus keys: 상법 +1, 셋 +2, 넷 +2, 국가 +1
 		assertThat(report.sameTextIsbnSplit).isEqualTo(6);
 		// 영단어: three subtitles and the title without one
@@ -214,9 +218,10 @@ class BookGrouperContractTests {
 		assertThat(books).extracting(BookGrouper.Book::title)
 			.containsExactly("상법총칙 상행위", "상법총칙 상행위", "셋 책", "셋 책", "셋 책", "넷 책", "넷 책", "넷 책", "하나 책", "국가 책",
 					"국가 책", "햄릿", "햄릿", "햄릿", "백만장자 마인드", "오개념 탈출 프로젝트 - 수학 1", "오개념 탈출 프로젝트 - 수학 2",
-					"영단어 무한 지배자 : 고등편", "영단어 무한 지배자 : 중등편", "영단어 무한 지배자 : 초등편", "영단어 무한 지배자");
+					"영단어 무한 지배자 : 고등편", "영단어 무한 지배자 : 중등편", "영단어 무한 지배자 : 초등편", "영단어 무한 지배자",
+					"갈등 책 - 양장");
 		assertThat(bookOfRow).containsExactly(100L, 200L, 300L, 400L, 500L, 600L, 700L, 700L, 800L, 900L, 900L, 1000L,
-				1100L, 1200L, 1300L, 1400L, 1400L, 1500L, 1500L, 1600L, 1700L, 1800L, 1900L, 2000L, 2100L);
+				1100L, 1200L, 1300L, 1400L, 1400L, 1500L, 1500L, 1600L, 1700L, 1800L, 1900L, 2000L, 2100L, 2200L, 2200L);
 		// each edition with its own library and ISBN
 		assertThat(books.get(0).libraryIds()).containsExactly(3);
 		assertThat(books.get(1).libraryIds()).containsExactly(4);

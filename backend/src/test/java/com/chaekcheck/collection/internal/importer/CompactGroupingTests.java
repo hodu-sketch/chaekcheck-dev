@@ -195,7 +195,8 @@ class CompactGroupingTests {
 	private static final String[] TITLES = { "가 책", "나 책", "다 책(개정판)", "라 책 : 부제", "마 책 - 시리즈 1", "Alpha",
 			"alpha", "ALPHA ", "바 책", "사 책", "아 책", "자 책", "차 책", "카 책", "타 책", "파 책", "하 책", "가 책 (특별판)",
 			"나 책 : 다른 부제", "  ", "거 책", "너 책", "더 책", "러 책", "가 책 1", "가 책 01", "가 책 2", "[시리즈 3] 가 책",
-			"가 책 - 상", "가 책 (전면개정판)", "나 책 - 부제" };
+			"가 책 - 상", "가 책 (전면개정판)", "나 책 - 부제", "가 책 : 하나",
+			"가 책 : 둘", "가 책 : 하나 더" };
 
 	private static final String[] AUTHORS = { "한강 저", "한강 지음", "김가 저 ; 이나 옮김", "이나 옮김", "박다", null, " ",
 			"최라 글, 정마 그림", "Kim", "기타", "기타, 한강", "Unknown", "홍길동 편" };
@@ -224,7 +225,7 @@ class CompactGroupingTests {
 			String title = TITLES[random.nextInt(TITLES.length)];
 			String author = AUTHORS[random.nextInt(AUTHORS.length)];
 			String publisher = PUBLISHERS[random.nextInt(PUBLISHERS.length)];
-			if (random.nextInt(12) == 0) {
+			if (random.nextInt(8) == 0) {
 				// one text in several editions: step ④ splits it by ISBN (cycle 12 R1)
 				title = "판 책";
 				author = "한강 저";

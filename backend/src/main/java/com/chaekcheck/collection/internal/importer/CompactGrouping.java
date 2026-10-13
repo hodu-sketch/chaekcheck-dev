@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -375,9 +376,9 @@ final class CompactGrouping implements BookGrouper {
 	/**
 	 * Step ④ (cycle 12, ADR-0082): groups with one same-text key ({@link BookGrouper#sameTextKey}, kept as 128-bit
 	 * hashes) are joined to the first, unless the key has two or more distinct ISBNs: then a group with an ISBN stays
-	 * a book of its own and the groups without one are joined to the first of them (spec R1-3). In the same way a key
-	 * with two or more different subtitles is split by subtitle, the groups without one together (user decision
-	 * 2026-10-13). Two passes: the first numbers the keys and notes each key's ISBNs and subtitles as the step starts,
+	 * a book of its own and the groups without one are joined to the first of them (spec R1-3). A key with two or
+	 * more different subtitles is split where one library holds two of them ({@link SubtitleParts}, user decision
+	 * 2026-10-14). Two passes: the first numbers the keys and notes each key's ISBNs and subtitles as the step starts,
 	 * the second joins.
 	 */
 	@Override
@@ -433,6 +434,32 @@ final class CompactGrouping implements BookGrouper {
 			}
 		}
 		subtitles = null;
+		// keys with two or more subtitles: their groups' parts ({@link SubtitleParts}); few keys, so the subtitles
+		// and libraries of their groups are taken again here
+		Map<Integer, List<Integer>> groupsOfKey = new LinkedHashMap<>();
+		for (int first = 0; first < unitCount; first++) {
+			int id = keyOf[first] - 1;
+			if (id >= 0 && keySubtitles.get(id) == 2) {
+				groupsOfKey.computeIfAbsent(id, k -> new ArrayList<>()).add(first);
+			}
+		}
+		Map<Integer, Integer> partOf = new HashMap<>();
+		for (List<Integer> ofKey : groupsOfKey.values()) {
+			List<String> keySubtitleTexts = new ArrayList<>();
+			List<long[]> keyLibraries = new ArrayList<>();
+			for (int first : ofKey) {
+				int from = groups.start[first];
+				int to = groups.end(first);
+				keySubtitleTexts.add(textKey(groups.members, from, to).subtitle());
+				keyLibraries.add(libraryIds(groups.members, from, to));
+			}
+			int[] parts = SubtitleParts.of(keySubtitleTexts, keyLibraries);
+			for (int i = 0; i < ofKey.size(); i++) {
+				if (parts[i] != SubtitleParts.WHOLE) {
+					partOf.put(ofKey.get(i), parts[i]);
+				}
+			}
+		}
 		// a merge: the groups joined into one book, numbered in the order of their first group; found by (key number,
 		// ISBN when the key is split by ISBN, subtitle number when it is split by subtitle)
 		KeyTable mergeOf = new KeyTable(1 << 10);
@@ -448,7 +475,8 @@ final class CompactGrouping implements BookGrouper {
 				continue;
 			}
 			long isbnPart = keyIsbns.get(id) == 2 ? isbnOf[first] : 0;
-			long subtitlePart = keySubtitles.get(id) == 2 ? subtitleOf[first] : 0;
+			int part = partOf.getOrDefault(first, SubtitleParts.WHOLE);
+			long subtitlePart = part == SubtitleParts.APART ? Integer.MAX_VALUE : part;
 			isbnBuckets.add(id, isbnPart);
 			int merge = mergeOf.add(subtitlePart << 32 | id, isbnPart);
 			if (merge == merges) {

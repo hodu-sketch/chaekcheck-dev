@@ -235,8 +235,9 @@ final class BookGrouping implements BookGrouper {
 	 * Step ④ (cycle 12, ADR-0082): groups with one same-text key ({@link BookGrouper#sameTextKey}: comparison title,
 	 * volume marks, first author and publisher that are not placeholders) become one book, unless the key has two or
 	 * more distinct ISBNs as the step starts: then a group with an ISBN stays a book of its own and the groups without
-	 * one become one book (spec R1-3). A key with two or more different subtitles is split the same way by subtitle
-	 * (user decision 2026-10-13). Groups without a key are never merged (not merged when unsure).
+	 * one become one book (spec R1-3). A key with two or more different subtitles is split where one library holds
+	 * two of them ({@link SubtitleParts}, user decision 2026-10-14). Groups without a key are never merged (not merged
+	 * when unsure).
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
@@ -273,6 +274,21 @@ final class BookGrouping implements BookGrouper {
 				}
 			}
 		}
+		// keys with two or more subtitles: their groups' parts ({@link SubtitleParts}), by group index
+		int[] parts = new int[groups.size()];
+		Map<String, List<Integer>> groupsOfKey = new LinkedHashMap<>();
+		for (int g = 0; g < groups.size(); g++) {
+			if (keys[g] != null && subtitleSplitKeys.contains(keys[g])) {
+				groupsOfKey.computeIfAbsent(keys[g], k -> new ArrayList<>()).add(g);
+			}
+		}
+		for (List<Integer> ofKey : groupsOfKey.values()) {
+			int[] keyParts = SubtitleParts.of(ofKey.stream().map(g -> subtitles[g]).toList(),
+					ofKey.stream().map(g -> libraryIds(groups.get(g))).toList());
+			for (int i = 0; i < ofKey.size(); i++) {
+				parts[ofKey.get(i)] = keyParts[i];
+			}
+		}
 		Set<String> isbnBuckets = new HashSet<>();
 		// merge key → the first unit of its first group; in the order of the books' first groups
 		Map<String, Integer> firstByMergeKey = new LinkedHashMap<>();
@@ -286,7 +302,7 @@ final class BookGrouping implements BookGrouper {
 			String isbn = isbnOfRoot.get(members[0]);
 			String isbnBucket = keys[g] + SEP + (splitKeys.contains(keys[g]) && isbn != null ? isbn : "");
 			isbnBuckets.add(isbnBucket);
-			String mergeKey = isbnBucket + SEP + (subtitleSplitKeys.contains(keys[g]) ? subtitles[g] : "");
+			String mergeKey = isbnBucket + SEP + parts[g];
 			if (firstByMergeKey.containsKey(mergeKey)) {
 				report.sameTextMerged++;
 			}
