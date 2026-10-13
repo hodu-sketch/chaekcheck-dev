@@ -60,13 +60,6 @@ final class ImportReport {
 	long sameTextIsbnSplit;
 
 	/**
-	 * Books step ④ kept apart by their subtitles (cycle 12, user decision 2026-10-13): merge keys minus (key, ISBN
-	 * part) pairs, where a key with two or more different subtitles has one merge key per subtitle and one for its
-	 * groups without one. Log only.
-	 */
-	long sameTextSubtitleSplit;
-
-	/**
 	 * Groups without a same-text key only because their author or publisher is a placeholder (cycle 12, R2):
 	 * {@link SameTextKey.Key#placeholderOnly()}. Log only.
 	 */
@@ -153,7 +146,7 @@ final class ImportReport {
 				  placeholder dates cleared: %d
 				  kyobo codes: %s
 				  books after (1) platform code: %d, (2) kyobo ISBN: %d, (3) national bibliography: %d, (4) same text: %d
-				  (4) same text: groups merged %d, kept apart by ISBN %d, by subtitle %d, no key for a placeholder %d, merged books with dates 2+ years apart %d
+				  (4) same text: groups merged %d, kept apart by ISBN %d, no key for a placeholder %d, merged books with dates 2+ years apart %d
 				  national bibliography: rows (one per record ISBN) %d (%s), ISBN attached %d, ambiguous keys %d
 				  written: books %d, contributors %d, holdings %d
 				  book ids: kept %d, new %d, dropped %d
@@ -162,8 +155,7 @@ final class ImportReport {
 			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, candidateLibraries,
 					librariesWithoutFullSuccess, librariesNotInService, librariesBaseUrlMismatch, placeholderDatesCleared,
 					kyoboCodes, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
-					booksAfterSameText, sameTextMerged, sameTextIsbnSplit, sameTextSubtitleSplit, sameTextPlaceholderNoKey,
-					sameTextWideDates, nationalBibliographyRecords,
+					booksAfterSameText, sameTextMerged, sameTextIsbnSplit, sameTextPlaceholderNoKey, sameTextWideDates, nationalBibliographyRecords,
 					nationalBibliographyReused ? "from the stored table" : "from the TTL files",
 					nationalBibliographyIsbnAttached, nationalBibliographyAmbiguous, books, contributors, holdings,
 					keptBookIds, newBookIds, droppedBookIds,

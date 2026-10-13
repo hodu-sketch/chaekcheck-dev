@@ -209,19 +209,6 @@ class SameTextKeyTests {
 	}
 
 	@Test
-	void givesTheSubtitle() {
-		assertThat(RULES.of("영단어 무한 지배자 : 고등편", "가", "나").subtitle()).isEqualTo("고등편");
-		assertThat(RULES.of("영단어 무한 지배자 : 고등편", "가", "나").key())
-			.isEqualTo(RULES.of("영단어 무한 지배자 : 중등편", "가", "나").key());
-		assertThat(RULES.of("영단어 무한 지배자", "가", "나").subtitle()).isEmpty();
-		assertThat(RULES.of("[시리즈 1] 가 책 - 부 제 01", "가", "나").subtitle()).isEqualTo("부제1");
-		assertThat(RULES.of("백만장자 마인드 - 부를 끌어 당기는 (PC만 열람 가능)", "가", "나").subtitle()).isEqualTo("부를끌어당기는");
-		// no key, no subtitle; the whole title compared, no subtitle
-		assertThat(RULES.of("햄릿 - 덴마크 왕자", "기타", "나").subtitle()).isEmpty();
-		assertThat(RULES.of("김동인 - 감자", "김동인", "나").subtitle()).isEmpty();
-	}
-
-	@Test
 	void readsChineseNumeralsInAVolumePlace() {
 		assertThat(key("오옥여 전집 - 作品卷一")).isNotEqualTo(key("오옥여 전집 - 作品卷三"));
 		assertThat(SameTextKey.numbers("오옥여 전집 - 作品卷二")).containsExactly("2");

@@ -210,7 +210,7 @@ class SqlGroupingTests {
 
 	static List<Object> counts(ImportReport r) {
 		return List.of(r.booksAfterPlatformCode, r.booksAfterKyoboIsbn, r.booksAfterNationalBibliography,
-				r.booksAfterSameText, r.sameTextMerged, r.sameTextIsbnSplit, r.sameTextSubtitleSplit, r.sameTextPlaceholderNoKey,
+				r.booksAfterSameText, r.sameTextMerged, r.sameTextIsbnSplit, r.sameTextPlaceholderNoKey,
 				r.sameTextWideDates, r.sameTextWideDateSamples,
 				r.nationalBibliographyIsbnAttached, r.kyoboCodes);
 	}

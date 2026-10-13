@@ -235,18 +235,14 @@ final class BookGrouping implements BookGrouper {
 	 * Step ④ (cycle 12, ADR-0082): groups with one same-text key ({@link BookGrouper#sameTextKey}: comparison title,
 	 * volume marks, first author and publisher that are not placeholders) become one book, unless the key has two or
 	 * more distinct ISBNs as the step starts: then a group with an ISBN stays a book of its own and the groups without
-	 * one become one book (spec R1-3). A key with two or more different subtitles is split the same way by subtitle
-	 * (user decision 2026-10-13). Groups without a key are never merged (not merged when unsure).
+	 * one become one book (spec R1-3). Groups without a key are never merged (not merged when unsure).
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
 		List<int[]> groups = groups();
 		String[] keys = new String[groups.size()];
-		String[] subtitles = new String[groups.size()];
 		Map<String, String> firstIsbnOfKey = new HashMap<>();
 		Set<String> splitKeys = new HashSet<>();
-		Map<String, String> firstSubtitleOfKey = new HashMap<>();
-		Set<String> subtitleSplitKeys = new HashSet<>();
 		for (int g = 0; g < groups.size(); g++) {
 			int[] members = groups.get(g);
 			SameTextKey.Key key = BookGrouper.sameTextKey(mostCommonOf(members, unit -> unit.titles),
@@ -265,15 +261,7 @@ final class BookGrouping implements BookGrouper {
 					splitKeys.add(key.key());
 				}
 			}
-			subtitles[g] = key.subtitle();
-			if (!key.subtitle().isEmpty()) {
-				String first = firstSubtitleOfKey.putIfAbsent(key.key(), key.subtitle());
-				if (first != null && !first.equals(key.subtitle())) {
-					subtitleSplitKeys.add(key.key());
-				}
-			}
 		}
-		Set<String> isbnBuckets = new HashSet<>();
 		// merge key → the first unit of its first group; in the order of the books' first groups
 		Map<String, Integer> firstByMergeKey = new LinkedHashMap<>();
 		Map<String, LocalDate[]> dateRange = new HashMap<>();
@@ -284,9 +272,7 @@ final class BookGrouping implements BookGrouper {
 			}
 			int[] members = groups.get(g);
 			String isbn = isbnOfRoot.get(members[0]);
-			String isbnBucket = keys[g] + SEP + (splitKeys.contains(keys[g]) && isbn != null ? isbn : "");
-			isbnBuckets.add(isbnBucket);
-			String mergeKey = isbnBucket + SEP + (subtitleSplitKeys.contains(keys[g]) ? subtitles[g] : "");
+			String mergeKey = splitKeys.contains(keys[g]) ? keys[g] + SEP + (isbn == null ? "" : isbn) : keys[g];
 			if (firstByMergeKey.containsKey(mergeKey)) {
 				report.sameTextMerged++;
 			}
@@ -299,8 +285,7 @@ final class BookGrouping implements BookGrouper {
 				range[1] = date.isAfter(range[1]) ? date : range[1];
 			}
 		}
-		report.sameTextIsbnSplit += isbnBuckets.size() - Arrays.stream(keys).filter(Objects::nonNull).distinct().count();
-		report.sameTextSubtitleSplit += firstByMergeKey.size() - isbnBuckets.size();
+		report.sameTextIsbnSplit += firstByMergeKey.size() - Arrays.stream(keys).filter(Objects::nonNull).distinct().count();
 		// merged books whose editions may differ: their groups' dates are 2+ years apart [확인 필요: 표본]
 		firstByMergeKey.keySet().forEach(mergeKey -> {
 			LocalDate[] range = dateRange.get(mergeKey);

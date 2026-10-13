@@ -116,15 +116,8 @@ final class SameTextKey {
 	 * @param key the key; null when a part is missing
 	 * @param placeholderOnly no key only because the author or the publisher is a placeholder (R2): with the
 	 * placeholder taken as a value there would be one
-	 * @param subtitle the subtitle compared when a key has two or more different ones (cycle 12, user decision
-	 * 2026-10-13: split a key by its subtitles as by its ISBNs); empty without a subtitle or a key
 	 */
-	record Key(String key, boolean placeholderOnly, String subtitle) {
-
-		Key(String key, boolean placeholderOnly) {
-			this(key, placeholderOnly, "");
-		}
-
+	record Key(String key, boolean placeholderOnly) {
 	}
 
 	private final List<String> tailNorms;
@@ -153,34 +146,15 @@ final class SameTextKey {
 		if (publisher == null) {
 			return new Key(null, false);
 		}
-		String subtitle = subtitle(title);
 		if (comparisonTitle.replace(".", "").equals(author)) {
 			// "김동인 - 감자": the main title is the author's name and the work is the subtitle, so the whole title is
 			// compared (cycle 12, user decision 2026-10-13 after 168 books took in 2,776 different works)
 			comparisonTitle = cutTails(LEADING_ZEROS.matcher(CatalogText.norm(
 					LEADING_SERIES.matcher(Normalizer.normalize(title, Normalizer.Form.NFKC)).replaceFirst("")))
 				.replaceAll(""));
-			subtitle = "";
 		}
 		char sep = BookGrouper.SEP;
-		return new Key(comparisonTitle + sep + volumeMarks(title) + sep + author + sep + publisher, false, subtitle);
-	}
-
-	/**
-	 * Everything after the main title ({@code 고등편} of "영단어 무한 지배자 : 고등편"), normalized as the comparison
-	 * title, without the tails; empty when the title has no subtitle.
-	 */
-	String subtitle(String title) {
-		String text = LEADING_SERIES.matcher(Normalizer.normalize(title, Normalizer.Form.NFKC)).replaceFirst("");
-		String[] parts = SUBTITLE_SEPARATOR.split(text, 2);
-		if (parts.length < 2) {
-			return "";
-		}
-		String rest = parts[1];
-		for (Pattern tail : tailPatterns) {
-			rest = tail.matcher(rest).replaceAll(" ");
-		}
-		return LEADING_ZEROS.matcher(CatalogText.norm(rest)).replaceAll("");
+		return new Key(comparisonTitle + sep + volumeMarks(title) + sep + author + sep + publisher, false);
 	}
 
 	/**
