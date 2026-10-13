@@ -105,10 +105,10 @@ final class CollectedCatalog implements AutoCloseable {
 	 * {@code last_full_success_at} [안]; a library without one uses its newest {@code last_seen_at}, and one without
 	 * rows at all is not imported.
 	 * With {@code excludeCandidates} (a dry run of cycle 12), a candidate library that would be imported is left out
-	 * instead: {@value #EXCLUDED_CANDIDATE}, not counted in {@code candidateLibraries}. Libraries skipped for the
+	 * instead: {@value #EXCLUDED_CANDIDATE}, not counted in {@code otherLibraries}. Libraries skipped for the
 	 * reasons above keep those reasons, so only the candidates' imported rows differ from a run without it.
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders
-	 * @param excludeCandidates leave out the candidate libraries ({@link Library#candidate()})
+	 * @param excludeCandidates leave out the candidate libraries ({@link Library#addedLater()})
 	 */
 	Libraries libraries(Map<Long, Long> links, List<LibraryRef> serviceLibraries, Set<Long> placeholderDateLibraries,
 			boolean excludeCandidates, ImportReport report) throws SQLException {
@@ -143,7 +143,7 @@ final class CollectedCatalog implements AutoCloseable {
 				}
 				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),
 						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId));
-				if (excludeCandidates && library.candidate()) {
+				if (excludeCandidates && library.addedLater()) {
 					skipped.put(collectionId, EXCLUDED_CANDIDATE);
 					continue;
 				}

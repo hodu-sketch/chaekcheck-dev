@@ -3664,3 +3664,12 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 
 - 102029 한국선원복지고용센터의 종류가 `GOV`(이름으로 정함, `sure`=N)라 `MEMBERS_ONLY`로 들어감. 넣기 전에 사용자 확인(plan R2-8)
   - 답(2026-10-12): "이대로 넣기". 9단계에서 `MEMBERS_ONLY`로 넣음
+
+## main 합치기 준비 (2026-10-14)
+
+- 사이클 11(`affe8dd`까지)·12(`3182918`까지, 그 뒤 문서 `eeae940`)가 main에 들어간 뒤 13 브랜치를 그 위로 옮김(rebase). 충돌: `CatalogImportRunner`(12의 `excludeCandidateLibraries`와 13의 `ImportTransfer` 생성자, 둘 다 살림), `plan-feedback.md`(둘 다 끝에 덧붙임)
+- 12의 새 코드가 13에서 바꾼 이름(`Library.candidate()`, `ImportReport.candidateLibraries`)을 쓰고 있어 13 이름(`addedLater()`, `otherLibraries`)으로 맞춤
+- **plan에 알림(AC-11 예외 하나 더)**: 12가 정한 시험용 설정 `exclude-candidate-libraries`(Java `excludeCandidateLibraries`, 건너뛴 이유 `EXCLUDED_CANDIDATE`)는 12의 이름이라 바꾸지 않음. 바꿀지는 plan이 정함
+- 12는 Liquibase 파일을 더하지 않아 master 끝줄은 13의 두 줄 그대로. 옮긴 뒤 `./gradlew build`, `npm test`, Python 시험 통과
+- 사용자 결정(2026-10-14): "전부 진행" → main에 합치고 9단계(원래 `db`·`db-ops`)를 함. push는 하지 않음
+

@@ -98,13 +98,13 @@ class CatalogImportSettingsTests {
 		Path sqlite = sqlite();
 
 		ImportReport all = importer().run(sqlite, null, true);
-		assertThat(all.candidateLibraries).isOne();
+		assertThat(all.otherLibraries).isOne();
 		assertThat(all.skipped).doesNotContainKey(CollectedCatalog.EXCLUDED_CANDIDATE);
 
 		Path out = dir.resolve("dry");
 		ImportReport excluded = importer().excludeCandidateLibraries(true).dryRunOutput(out).run(sqlite, null, true);
 		assertThat(excluded.registeredLibraries).isOne();
-		assertThat(excluded.candidateLibraries).isZero();
+		assertThat(excluded.otherLibraries).isZero();
 		assertThat(excluded.rowsRead).isEqualTo(3);
 		assertThat(excluded.skipped).containsEntry(CollectedCatalog.EXCLUDED_CANDIDATE, 1L);
 		assertThat(excluded.skippedCount()).isEqualTo(all.skippedCount() + 1);
