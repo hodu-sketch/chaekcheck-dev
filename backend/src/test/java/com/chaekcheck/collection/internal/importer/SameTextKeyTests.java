@@ -192,6 +192,23 @@ class SameTextKeyTests {
 	}
 
 	@Test
+	void comparesTheWholeTitleWhenTheMainTitleIsTheAuthor() {
+		// the works of one author (service sample after the cycle 12 swap)
+		assertThat(key("김동인 - 감자", "김동인", "가나출판")).isNotNull()
+			.isNotEqualTo(key("김동인 - 개소문과 당태종", "김동인", "가나출판"));
+		assertThat(key("Jack London - In a Far Country", "Jack London", "가나출판"))
+			.isNotEqualTo(key("Jack London - In the Forests of the North", "Jack London", "가나출판"));
+		assertThat(key("김동인 - 감자", "김동인 저", "가나출판")).isEqualTo(key("김동인 - 감자", "김동인", "가나출판"));
+		assertThat(key("김동인 - 감자", "김동인", "가나출판")).isNotEqualTo(key("김동인", "김동인", "가나출판"));
+		// the volume marks stay as they are; the tails still go
+		assertThat(key("이광수 - 흙 3", "이광수", "가나출판")).isNotEqualTo(key("이광수 - 흙 2", "이광수", "가나출판"));
+		assertThat(key("김기림 - 청소년이 읽는 우리 수필 09 (PC만 열람 가능)", "김기림", "가나출판"))
+			.isEqualTo(key("김기림 - 청소년이 읽는 우리 수필 09", "김기림", "가나출판"));
+		// another author: the subtitle is still left out
+		assertThat(key("감자 - 김동인 단편선", "김동인", "가나출판")).isEqualTo(key("감자", "김동인", "가나출판"));
+	}
+
+	@Test
 	void readsChineseNumeralsInAVolumePlace() {
 		assertThat(key("오옥여 전집 - 作品卷一")).isNotEqualTo(key("오옥여 전집 - 作品卷三"));
 		assertThat(SameTextKey.numbers("오옥여 전집 - 作品卷二")).containsExactly("2");

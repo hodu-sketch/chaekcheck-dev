@@ -146,16 +146,28 @@ final class SameTextKey {
 		if (publisher == null) {
 			return new Key(null, false);
 		}
+		if (comparisonTitle.replace(".", "").equals(author)) {
+			// "김동인 - 감자": the main title is the author's name and the work is the subtitle, so the whole title is
+			// compared (cycle 12, user decision 2026-10-13 after 168 books took in 2,776 different works)
+			comparisonTitle = cutTails(LEADING_ZEROS.matcher(CatalogText.norm(
+					LEADING_SERIES.matcher(Normalizer.normalize(title, Normalizer.Form.NFKC)).replaceFirst("")))
+				.replaceAll(""));
+		}
 		char sep = BookGrouper.SEP;
 		return new Key(comparisonTitle + sep + volumeMarks(title) + sep + author + sep + publisher, false);
 	}
 
 	/**
 	 * {@link CatalogText#mainTitleNorm} without the tails at its end, and without leading zeros of its numbers
-	 * ("01" = "1", as in the volume marks); the main title when nothing would be left.
+	 * ("01" = "1", as in the volume marks); the main title when nothing would be left. When the main title is the
+	 * first author's name, {@link #of} compares the whole title instead.
 	 */
 	String comparisonTitle(String title) {
-		String main = LEADING_ZEROS.matcher(CatalogText.mainTitleNorm(title)).replaceAll("");
+		return cutTails(LEADING_ZEROS.matcher(CatalogText.mainTitleNorm(title)).replaceAll(""));
+	}
+
+	/** The tails at the end taken off; the text as given when nothing would be left. */
+	private String cutTails(String main) {
 		String text = main;
 		boolean cut = true;
 		while (cut) {
