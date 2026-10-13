@@ -166,7 +166,7 @@ class CompactGroupingTests {
 	private static List<Object> counts(ImportReport report) {
 		return Arrays.asList(report.booksAfterPlatformCode, report.booksAfterKyoboIsbn,
 				report.booksAfterNationalBibliography, report.booksAfterSameText, report.sameTextMerged,
-				report.sameTextIsbnSplit, report.sameTextPlaceholderNoKey, report.sameTextWideDates,
+				report.sameTextIsbnSplit, report.sameTextSubtitleSplit, report.sameTextPlaceholderNoKey, report.sameTextWideDates,
 				report.sameTextWideDateSamples, report.nationalBibliographyIsbnAttached,
 				report.kyoboCodes);
 	}

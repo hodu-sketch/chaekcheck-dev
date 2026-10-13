@@ -293,19 +293,21 @@ final class SqlGrouping implements BookGrouper {
 	/**
 	 * Step ④ (cycle 12, ADR-0082): every group's same-text key, computed in Java ({@link BookGrouper#sameTextKey})
 	 * from the groups as they are when the step starts, goes to {@code grp_text}. A key with two or more distinct
-	 * ISBNs ({@code grp_gisbn}) is split: its merge key is the key plus the group's ISBN (empty without one), else the
-	 * key itself. Groups with one merge key are joined to the first. The counts follow {@link CompactGrouping}.
+	 * ISBNs ({@code grp_gisbn}) is split by ISBN (the groups without one together), and a key with two or more
+	 * different subtitles by subtitle (user decision 2026-10-13): the merge key is the key, the ISBN part and the
+	 * subtitle part. Groups with one merge key are joined to the first. The counts follow {@link CompactGrouping}.
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
 		try {
-			execute("CREATE TEMPORARY TABLE grp_text (label int NOT NULL, key text COLLATE \"C\" NOT NULL, d date)");
-			copyThroughFile("COPY grp_text (label, key, d) FROM STDIN",
+			execute("CREATE TEMPORARY TABLE grp_text (label int NOT NULL, key text COLLATE \"C\" NOT NULL,"
+					+ " sub text COLLATE \"C\" NOT NULL, d date)");
+			copyThroughFile("COPY grp_text (label, key, sub, d) FROM STDIN",
 					out -> forEachGroup(ALL_GROUPS, new int[] { TITLE, AUTHOR, PUBLISHER }, true, false, group -> {
 						SameTextKey.Key key = BookGrouper.sameTextKey(group.values[TITLE], group.values[AUTHOR],
 								group.values[PUBLISHER]);
 						if (key.key() != null) {
-							out.row(group.label, key.key(), group.date);
+							out.row(group.label, key.key(), key.subtitle(), group.date);
 						}
 						else if (key.placeholderOnly()) {
 							report.sameTextPlaceholderNoKey++;
@@ -313,16 +315,22 @@ final class SqlGrouping implements BookGrouper {
 					}));
 			execute("""
 					CREATE TEMPORARY TABLE grp_merge AS
-					WITH t AS (SELECT t.label, t.key, t.d, i.isbn FROM grp_text t LEFT JOIN grp_gisbn i USING (label)),
-					  k AS (SELECT key, count(DISTINCT isbn) AS isbns FROM t GROUP BY key)
-					SELECT t.label, t.d, CASE WHEN k.isbns <= 1 THEN t.key ELSE t.key || chr(1) || coalesce(t.isbn, '') END
-					  COLLATE "C" AS merge_key
-					FROM t JOIN k USING (key)""");
+					WITH t AS (SELECT t.label, t.key, t.sub, t.d, i.isbn FROM grp_text t LEFT JOIN grp_gisbn i USING (label)),
+					  k AS (SELECT key, count(DISTINCT isbn) AS isbns, count(DISTINCT sub) FILTER (WHERE sub <> '') AS subs
+					    FROM t GROUP BY key),
+					  b AS (SELECT t.label, t.d, t.sub, k.subs,
+					    t.key || chr(1) || CASE WHEN k.isbns <= 1 THEN '' ELSE coalesce(t.isbn, '') END AS isbn_bucket
+					    FROM t JOIN k USING (key))
+					SELECT label, d, isbn_bucket COLLATE "C" AS isbn_bucket,
+					  isbn_bucket || chr(1) || CASE WHEN subs <= 1 THEN '' ELSE sub END COLLATE "C" AS merge_key
+					FROM b""");
 			execute("ANALYZE grp_merge");
-			// groups whose merge key an earlier group had; merge keys more than keys
+			// groups whose merge key an earlier group had; ISBN buckets more than keys; merge keys more than ISBN buckets
 			report.sameTextMerged += count("SELECT count(*) - count(DISTINCT merge_key) FROM grp_merge");
 			report.sameTextIsbnSplit += count(
-					"SELECT (SELECT count(DISTINCT merge_key) FROM grp_merge) - (SELECT count(DISTINCT key) FROM grp_text)");
+					"SELECT (SELECT count(DISTINCT isbn_bucket) FROM grp_merge) - (SELECT count(DISTINCT key) FROM grp_text)");
+			report.sameTextSubtitleSplit += count(
+					"SELECT count(DISTINCT merge_key) - count(DISTINCT isbn_bucket) FROM grp_merge");
 			execute("""
 					CREATE TEMPORARY TABLE grp_key AS
 					SELECT merge_key, min(label) AS first, min(d) AS lo, max(d) AS hi FROM grp_merge GROUP BY merge_key""");
