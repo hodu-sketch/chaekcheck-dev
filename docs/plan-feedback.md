@@ -3798,3 +3798,67 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 원래 `db`·`db-test`(5432·5433)의 popular 정리는 14가 기본 브랜치에 들어간 뒤 사용자에게 묻고 함
 
 - 받은 진짜 자료로 다시 잰 값(12·13 rebase 뒤, 받기 꺼진 서버 8083): 캐시 새로 고침 114ms(108권 중 72권 우리 책), `GET /api/v1/picks?residenceRegionIds=1116`(강서구) 200번 p50 27.4ms, p95 35.9ms, 응답 51,207바이트(분류 6개 = 전체 + 5분야, 표지 주소 108개), `available` 68 / 108
+
+## [확인 필요] 표 결과 (인계서 "[확인 필요] 항목과 개발 중 확인 방법")
+
+| 항목 | 결과 | 남은 일 |
+|---|---|---|
+| Open API 하루 호출 한도 | 공식 문서를 이번에 확인하지 못함. dev는 하루 1번만 부름(10/12 픽스처 1건, 10/14 받기 시험 1건). 거절·오류 없음 | 운영 주 1~2건이라 막는 일 없음. 한도 문서 확인은 남음 |
+| 국립중앙도서관 표지를 저장해 보여 줘도 되는지 | 미확인. 구현은 함. 코드 `FetchJob.fetchCovers`, `AboutPage.tsx`에 `TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인` | **배포 전**: 공식 문서 / 문의(정보기술기반과 02-590-0727), 사용자·plan. 안 되면 표지 끄기 |
+| 같은 달·같은 등록일에서 `recomNo` 순서가 웹 목록 순서와 맞는지 | 미확인. API 응답 순서는 달 최신순이지만 달 안은 등록일순이 아님(우리 정렬과 다름). 웹 목록은 열면 요청이 더 가서 따로 승인받을 일 | 비교 남음(막는 일 없음) |
+| 제목+저자 52건 시간, 서비스 DB 맞는 비율 | 52건 73~87ms, 맞음 30(①) / 33(①이나 ②) / 52. plan 29 / 32. 12번(108권)으로 늘린 뒤 캐시 기준 72 / 108 | 없음 |
+| API 오류 응답 모양 | 진짜 오류를 만나지 않음. 지금 규칙: 200 아님 → `request_rejected` "HTTP <상태>", `<channel>`/`<totalCount>` 없고 오류 요소가 있으면 `request_rejected` "API error <코드>"(요소 이름 `*error*`·`err_code`·`result_code`, 짐작) | 진짜 오류를 만나면 모양 기록·규칙 손봄 |
+| 첫 저자 역할어 범위 | 52권에서 문제 없음. 사서추천 저자 칸의 "소설"·"지은이:"·"공저:"·";옮긴이:"는 `firstNameExact`에서 뗌(`ROLE_WORDS`는 안 바꿈) | 없음 |
+| (ADR 번호 0089~0092) | dev는 ADR을 만들지 않음 | plan |
+
+### 코드에 남은 `TODO(확인 필요)` (사이클 14 것)
+
+- `application.yml` `chaekcheck.picks.fetch.user-agent`: 배포 때 서비스 주소 붙이기 `"book search service (+<service URL>)"`
+- `FetchJob.fetchCovers`, `AboutPage.tsx`: 배포 전 국립중앙도서관 표지 이용 조건 확인
+- `AboutPage.tsx`: 표지 게시를 원하지 않는 권리자 연락처(문구는 "정해지면 이곳에 안내할게요")
+- 인증키: 대화에 값이 한 번 남음 → 배포 전 새 키를 받을지 결정
+
+## 정한 이름과 방법 ([안] → dev 결정)
+
+- 패키지: `picks.internal` 아래 `fetch`(`NlkTransport`·`HttpNlkTransport`·`NlkClient`·`NlkResponse`·`SaseoXmlParser`·`KeptPicks`·`PickRow`·`CoverUrls`·`FetchFailure`·`FailureReason`·`BodyLimit`·`RequestPacer`), `schedule`(`FetchDecision`·`FetchJob`·`FetchScheduler`·`FetchTrigger`), `store`(`PicksStore`), `cover`(`CoverResizer`), `cache`(`PicksCache`·`BookChoice`), `web`(`PicksController`·`PicksPlanParams`·`PicksErrors`·`CoverNotFoundException`·`InvalidPicksParamException`). 모듈 안 알림 `PicksChanged`, 설정 `PicksProperties`, `PickCategory`
+- 제목 키 `CatalogText.pickTitleKey`, 첫 저자 `Contributors.firstNameExact`, 레코드 `catalog.TitleAuthor`·`TitleAuthorBook`
+- changeset id `picks-001-schema`·`-fetch-run`·`-pick`·`-cover`, 제약 `fetch_run_trigger_check`·`fetch_run_failure_reason_status_check`·`fetch_run_changed_status_check`·`pick_recom_no_check`·`pick_cover_source_check`·`cover_source_url_key` 등, 색인 `fetch_run_status_started_at_idx`
+- 픽스처 `fixtures/nlk/saseo-2y.xml`(진짜 응답), 시험 `PicksSchemaTests`·`PicksFetchTests`·`PicksStartupFetchTests`·`PicksApiTests`·`SaseoXmlParserTests`·`NlkClientTests`(키 가림 포함)·`FetchDecisionTests`·`PicksCacheTests`, 로컬 전용 `LocalPicksMatchRunner`·`LocalCoverFetchRunner`
+- 웹 `features/picks`(`PicksPage`, `PicksBookDialog`, `PicksWindow`, `usePicksPlan`, `picksPosition`, `picksText`, `testPicks`), 화면 읽기용 이름 카드 "제목, 전자책 있음/없음", 그리드 "문학 1~9번째 / 18권"
+- 05:00에 목록이 없을 때 trigger `CATCH_UP`. 오늘 이미 성공했으면 안 받음. 시작 때는 "목록 없음"·"7일 초과"만 봄
+- "같은 목록" = 모든 칸이 같은 줄의 집합. `registered_on` NULL은 같은 달 맨 뒤. 새 분야 코드는 숫자면 수 순서, 아니면 글자 순서 뒤. `format_changed`는 한 권이라도 `recomNo`·제목·분야 코드·추천 연월이 틀리면, 또는 본문 10MB 초과. 저장하는 `missing_isbn_count`는 남긴 책 기준
+- 운영 메모 `docs/maintenance/4-picks.md`(`4-popular.md`를 바꿈), `README.md` 5절·체크리스트, `3-import.md` 환경 변수 줄
+- `changed=false`인 주에 실패한 표지를 다시 받지 않는 것: 이번 시험에서는 실패 0이라 문제 없었음
+
+## AC 확인표
+
+| AC | 확인 | 결과 |
+|---|---|---|
+| AC-1 전체 첫 9권 3×3(숫자 없음), 출처 줄·받은 날 | Vitest `PicksPage` + 폭 4개 화면 | 통과 |
+| AC-2 ◀ ▶ | Vitest | 통과 |
+| AC-3 내리면 다음 분류 | Vitest(맨 아래 = 마지막 분류) | 통과(실제 밀기는 사용자 폰) |
+| AC-4 분류 순서, 빈 분류 없음 | `PicksApiTests`·`PicksCacheTests` + Vitest | 통과 |
+| AC-4b 모르는 코드 → 전체 + 맨 뒤 "새분야"/"기타", 기록 | `PicksFetchTests`·`PicksApiTests` + Vitest | 통과(진짜 응답에는 새 코드 없음) |
+| AC-5 분류 목록 | Vitest + 화면 | 통과 |
+| AC-6 ISBN 또는 본제목+첫 저자, 흐림 | `BookLookupTests`·`PicksCacheTests`·`PicksApiTests` + Vitest | 통과 |
+| AC-7 검색 기준 바꾸면 바뀜 | `PicksApiTests`(scope) + Vitest | 통과 |
+| AC-8 S14 앞 3곳 | Vitest + 화면 | 통과 |
+| AC-9 [책 검색 >>]·도서관 줄 | Vitest | 통과 |
+| AC-10 흐린 책 → 신청 안내 | Vitest + 화면 | 통과 |
+| AC-11 오류·0권 → 그대로, 실패 기록, 오류 로그 | `PicksFetchTests` | 통과 |
+| AC-12 목록 1건 + 새 표지(1초), kpipa 0 | `PicksFetchTests` + 진짜 시험 로그 | 통과(109요청, 최소 간격 1,000ms, kpipa 0) |
+| AC-13 목록 없이 켜면 받고 기록 | `PicksStartupFetchTests` + 진짜 시험 | 통과(`STARTUP`) |
+| AC-13b 7일 초과면 받음 | `FetchDecisionTests` | 통과 |
+| AC-14 표지 안 열림 → 제목 글자 | Vitest | 통과 |
+| AC-14b 저장 표지는 우리 주소, 없으면 제목 | `PicksApiTests` + Vitest + 화면 | 통과 |
+| AC-15 "사서추천도서", "인기 도서" 없음 | Vitest `AppLayout`·`PicksPage` + 화면 | 통과 |
+| AC-16 로그인 없이 보임 | `AuthEnabledSecurityTests` | 통과 |
+| AC-17 범위 | `SaseoXmlParserTests`·`PicksFetchTests` + 진짜 시험 | 통과 — **최근 12번**(사용자 결정, 인계서 6번) |
+| AC-18 폰 아래 창 닫기·뒤로 | Vitest | 통과 |
+| AC-19 폰·태블릿 밀기 | Vitest | 통과 |
+| AC-20 S3 갔다 뒤로 → 보던 자리 | Vitest(저장된 자리로 돌아옴) | 통과(실제 왕복은 사용자 폰) |
+| AC-21 S14 404 아닌 오류 → S3 문구 | Vitest `PicksBookDialog` | 통과 |
+| AC-22 개발 DB에 출판유통 자료 없음 | `PicksSchemaTests` + SQL | 14의 5452·5453 통과. **원래 5432·5433은 기본 브랜치에 합친 뒤 정리**(사용자에게 물음) |
+
+- 사용자 폰 확인(Samsung Internet): "지금 맘에 들어" (2026-10-12). 주소는 `web-lan-5174`가 아니라 14 웹 `5177`
+- Playwright 확인: Playwright MCP 브라우저를 다른 세션이 쓰고 있어 Playwright 라이브러리 + Edge 헤드리스로 1280·768·375·320
