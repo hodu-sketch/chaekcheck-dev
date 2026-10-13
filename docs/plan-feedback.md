@@ -3674,6 +3674,44 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 12는 Liquibase 파일을 더하지 않아 master 끝줄은 13의 두 줄 그대로. 옮긴 뒤 `./gradlew build`, `npm test`, Python 시험 통과
 - 사용자 결정(2026-10-14): "전부 진행" → main에 합치고 9단계(원래 `db`·`db-ops`)를 함. push는 하지 않음
 
+## 9단계 결과 (실데이터, 2026-10-14)
+
+- main 합치기: 13을 main에 빨리 감기로 합침(`a21bde5`, push 안 함). 그 뒤 다른 세션이 사이클 14를 합치고 원래 DB를 정리함(02:11~02:15, 13의 export가 도는 중)
+- `db` 이름 맞추기 SQL: 데이터 그대로(가져오기 기록 9줄, 도서관 2,663곳), 새 코드 서비스(8080)가 체크섬 오류 없이 켜지고 `md5sum`이 다시 채워짐. `collection/006`·`library/015` 적용, 1215 `한화S&C`(AC-9)
+- **AC-3**: `db`·사본 `ebook-catalog-2026-10-12-0135.sqlite` 미리 보기 = 보고서 `1af0721e4a3e`(13 DB에서 미리 돌린 것과 번호까지 같음): 새 6, 바뀐 곳 0, 사라진 곳 0(+확인한 곳 3), 의심 0. 보고서는 데이터 폴더 `chaekcheck-data\library-insert\`
+- **AC-6**: `build_library_seed.py`(같은 사본·규칙 폴더)의 새 6곳(번호 2675~2680, 이름, 업체, 대출 방식, 순번, 가입 상태, 주소, 규칙 없음)이 보고서와 같음. 첫 번호 2675
+- **AC-4·AC-12**: 서비스(8080)를 켠 채 `insert` → 6곳(2675~2680). 다시 켜지 않고 `/api/v1/libraries`에 여주대 두 곳(2675 교보·소장, 2677 YES24·소장), 기준일 API `2026-10-05`. 실행 기록 한 줄(보고서 `1af0721e4a3e`, `ran_at`, 사본 이름, 넣은 수 6, `2026-10-05`, `SUCCEEDED`)
+- **AC-5**: 규칙 폴더 사본에서 미리 보기(`b2174dfd426d`) 뒤 `demo_or_closed.tsv`에 줄 하나를 더하고 같은 번호로 insert → 종료 4, "rules files [demo_or_closed.tsv]", 쓰기 0. 원래 규칙 폴더는 그대로
+- **AC-8**: 넣은 뒤 다시 미리 보기 → "넣을 도서관 없음"(`b2174dfd426d`)
+- **AC-10·AC-4 화면**: 사용자 폰(Samsung Internet, `web-lan-5174`)에서 `/about` 줄과 "직접 추가"의 여주대 두 곳 확인 ("둘 다 돼", 2026-10-14)
+- **AC-7** (운영 흉내)
+  - `db-ops`가 사이클 11 때 사본이라(책 1,619,668, 칸 옛 이름) 3-import 13-4대로 `db`를 다시 복사(01:43~01:48, 약 5분). 복사 전 `db-ops`에만 있던 `collection.catalog_import` 10줄은 `data/cycle13/db-ops-catalog_import-before-recopy-2026-10-14.sql`에 백업. 복사한 뒤 `db-ops`에서 넣은 6곳·짝·실행 기록을 지워 "운영에 아직 없음"을 흉내 냄(이름 맞추기는 복사로 같이 옴)
+  - `db` export: 38분(`export` 2,279초, `load` 863초, `dump` 97초), 파일 608MB(`data/cycle13/export-2026-10-14.dump`), `export_id 61ac0ef6-…`
+  - `db-ops` apply: 4분 35초, `mismatch` 없음. **도서관 부분 1.0초**(실행 기록 1, 도서관 6, 짝 6), `compare` 4.1초, `restore` 55초, `index` 128초. 책 1,568,452, 소장 18,024,491. `catalog_import` `SUCCEEDED`, `step_seconds`에 `library part`
+  - `db` finish: 1분 49초
+  - 확인: `db-ops`에 6곳·짝(수집 번호)·실행 기록(원래 `ran_at` 그대로)과 그 책(2675 2,199 / 2676 27,021 / 2677 83,756 / 2678 67,834 / 2679 63,681 / 2680 1,199, `db`와 같음). `db-ops`에 붙인 서비스(8084)의 `GET /api/v1/join-surveys/latest` = `2026-10-05`
+- 14가 합쳐진 뒤의 일: apply·finish는 14가 들어간 main 코드로 돌았고 문제 없음(14는 책 표를 바꾸지 않음). export 로그에 `popular.ranking_month` 없음 경고 한 줄(14가 원래 DB에서 `popular`를 지운 뒤 14 이전 코드의 export가 돌던 중). 8080 서비스는 13·14 main 코드로 다시 켬. `db-ops`는 내려 둠
+
+## 완료 기준
+
+| 항목 | 결과 |
+|---|---|
+| AC-1 여주대 빈 곳 채우기 | **뺌**(사용자 결정 "여주대는 빼자", 2026-10-12) |
+| AC-2 옛 코드 보관, dev만 시작 | 통과 |
+| AC-3 미리 보기 기대값 | 통과(사라진 곳 3은 `gone_known.tsv`로, 사용자 결정) |
+| AC-4 재시작 없이 직접 추가 | 통과(시험, 실제 `db`, 사용자 폰) |
+| AC-5 보고서와 다르면 넣지 않음 | 통과 |
+| AC-6 옛 스크립트와 같음 | 통과(옛 스크립트 번호 규칙을 `nextId`에 맞춤) |
+| AC-7 운영 반영 mismatch 없이 + 기준일 | 통과 |
+| AC-8 다시 돌리면 0 | 통과 |
+| AC-9 1215 이름 | 통과 |
+| AC-10 공지 한 줄 | 통과(Playwright 대신 앱 안 브라우저 세 폭, 사용자 폰) |
+| AC-11 "후보" 이름 없음 | 통과(예외 분류는 10단계 절, 12의 `exclude-candidate-libraries`는 plan이 정함) |
+| AC-12 실행 기록 한 줄 | 통과 |
+| `./gradlew build`, `npm test`·`build`·`lint`, Python 시험 | 통과 |
+| `*.dkyobobook.co.kr` 요청 0 | 수집기·`probe_kyobo_limits.py`에서 막음. 이번 사이클 수집 실행은 여주대 refill(22분, `ebook.yit.ac.kr`)뿐 |
+| 데이터 폴더 옛 코드 보관, 지운 것 없음 | 통과 |
+
 # 사이클 14
 
 인기 도서 → 사서추천도서 (plan `docs/cycles/14-librarian-picks/handoff.md`, ADR-0089~0092). 중간 기록(2026-10-12), 끝나면 덧붙임.
