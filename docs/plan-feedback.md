@@ -3862,3 +3862,10 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 
 - 사용자 폰 확인(Samsung Internet): "지금 맘에 들어" (2026-10-12). 주소는 `web-lan-5174`가 아니라 14 웹 `5177`
 - Playwright 확인: Playwright MCP 브라우저를 다른 세션이 쓰고 있어 Playwright 라이브러리 + Edge 헤드리스로 1280·768·375·320
+
+## 합치기와 원래 쪽 정리 (2026-10-14)
+
+- 사용자 "합쳐줘" → `cycle-14-librarian-picks`를 `main`에 앞으로 감기로 합침(`2a7faae`), 사용자 "지금 올리기" → `origin/main`에 push
+- 원래 `db`(5432)·`db-test`(5433): 사용자 승인 뒤 `DROP SCHEMA popular CASCADE`(표 5개) + `databasechangelog` `popular-001-*` 4줄씩 지움(AC-22 원래 DB 쪽 끝)
+- 원래 폴더 `.env`: 사용자 승인 뒤 `CHAEKCHECK_POPULAR_FETCH_ENABLED` 줄을 지우고 `CHAEKCHECK_PICKS_FETCH_ENABLED=false`를 넣음(키 줄은 넣지 않음)
+- 원래 서버(8080)는 10/12부터 옛 코드로 떠 있음: 다시 켜야 `picks-001-*`이 적용되고 `/picks` 화면이 동작함
