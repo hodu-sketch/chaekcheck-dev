@@ -375,18 +375,24 @@ final class CompactGrouping implements BookGrouper {
 	/**
 	 * Step ④ (cycle 12, ADR-0082): groups with one same-text key ({@link BookGrouper#sameTextKey}, kept as 128-bit
 	 * hashes) are joined to the first, unless the key has two or more distinct ISBNs: then a group with an ISBN stays
-	 * a book of its own and the groups without one are joined to the first of them (spec R1-3). Two passes: the first
-	 * numbers the keys and notes each key's ISBNs as the step starts, the second joins.
+	 * a book of its own and the groups without one are joined to the first of them (spec R1-3). In the same way a key
+	 * with two or more different subtitles is split by subtitle, the groups without one together (user decision
+	 * 2026-10-13). Two passes: the first numbers the keys and notes each key's ISBNs and subtitles as the step starts,
+	 * the second joins.
 	 */
 	@Override
 	public void mergeSameText(ImportReport report) {
 		Groups groups = groups();
 		KeyTable keys = new KeyTable(1 << 10);
-		// per group root: its key number + 1, 0 for none
+		KeyTable subtitles = new KeyTable(1 << 10);
+		// per group root: its key number + 1, 0 for none; its subtitle number + 1, 0 for none
 		int[] keyOf = new int[unitCount];
-		// per key: its first ISBN, and 0 (none), 1 (one) or 2 (two or more distinct)
+		int[] subtitleOf = new int[unitCount];
+		// per key: its first ISBN, and 0 (none), 1 (one) or 2 (two or more distinct); the same for subtitles
 		LongColumn keyIsbn = new LongColumn();
 		ByteColumn keyIsbns = new ByteColumn();
+		IntColumn keySubtitle = new IntColumn();
+		ByteColumn keySubtitles = new ByteColumn();
 		for (int first = 0; first < unitCount; first++) {
 			if (groups.count[first] == 0) {
 				continue;
@@ -413,9 +419,24 @@ final class CompactGrouping implements BookGrouper {
 					keyIsbns.set(id, (byte) 2);
 				}
 			}
+			if (!key.subtitle().isEmpty()) {
+				int subtitle = subtitles.add(key.subtitle()) + 1;
+				subtitleOf[first] = subtitle;
+				byte seen = keySubtitles.get(id);
+				if (seen == 0) {
+					keySubtitle.set(id, subtitle);
+					keySubtitles.set(id, (byte) 1);
+				}
+				else if (seen == 1 && keySubtitle.get(id) != subtitle) {
+					keySubtitles.set(id, (byte) 2);
+				}
+			}
 		}
-		// a merge: the groups joined into one book, numbered in the order of their first group
-		IntColumn mergeOfKey = new IntColumn();
+		subtitles = null;
+		// a merge: the groups joined into one book, numbered in the order of their first group; found by (key number,
+		// ISBN when the key is split by ISBN, subtitle number when it is split by subtitle)
+		KeyTable mergeOf = new KeyTable(1 << 10);
+		KeyTable isbnBuckets = new KeyTable(1 << 10);
 		IntColumn mergeFirst = new IntColumn();
 		IntColumn minDay = new IntColumn();
 		IntColumn maxDay = new IntColumn();
@@ -426,18 +447,15 @@ final class CompactGrouping implements BookGrouper {
 			if (id < 0) {
 				continue;
 			}
-			int merge;
-			if (keyIsbns.get(id) == 2 && isbnOf[first] != 0) {
-				merge = merges++;
+			long isbnPart = keyIsbns.get(id) == 2 ? isbnOf[first] : 0;
+			long subtitlePart = keySubtitles.get(id) == 2 ? subtitleOf[first] : 0;
+			isbnBuckets.add(id, isbnPart);
+			int merge = mergeOf.add(subtitlePart << 32 | id, isbnPart);
+			if (merge == merges) {
+				merges++;
 				mergeFirst.set(merge, first);
-			}
-			else if (mergeOfKey.get(id) == 0) {
-				merge = merges++;
-				mergeFirst.set(merge, first);
-				mergeOfKey.set(id, merge + 1);
 			}
 			else {
-				merge = mergeOfKey.get(id) - 1;
 				report.sameTextMerged++;
 				union(mergeFirst.get(merge), first);
 			}
@@ -455,7 +473,8 @@ final class CompactGrouping implements BookGrouper {
 				}
 			}
 		}
-		report.sameTextIsbnSplit += merges - keys.size();
+		report.sameTextIsbnSplit += isbnBuckets.size() - keys.size();
+		report.sameTextSubtitleSplit += merges - isbnBuckets.size();
 		// merged books whose editions may differ: their groups' dates are 2+ years apart [확인 필요: 표본]; the
 		// samples in the order of the books' first groups
 		for (int merge = 0; merge < merges; merge++) {
