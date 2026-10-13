@@ -3756,3 +3756,10 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 카드 폭(Edge 폰 흉내): 375×812 86 → 99px, 360×780 73 → 94px, 320×640 43 → 64px. 375·360은 이제 폭이 한계(페이지 바깥 여백 18px는 앱 전체 값이라 그대로)
 - 더 크게 하려면 폰에서 3×3 대신 2열(쪽마다 6권)로 바꾸는 방법이 있음(카드 약 145px). [확정] 3×3과 달라지므로 사용자·plan 결정이 필요
 - 사용자 폰 확인(Samsung Internet, `http://192.168.45.24:5177/picks`): "지금 맘에 들어" (2026-10-12). 3×3 그대로, 2열 안은 쓰지 않음
+
+### 사이클 12 위로 rebase (2026-10-14)
+
+- 사이클 12가 기본 브랜치에 들어옴(`3182918`, 2026-10-14 01:28). 이 브랜치를 그 위로 rebase. 충돌은 `docs/plan-feedback.md` 끝만(12 절 뒤에 14 절)
+- 12는 collection 가져오기(`SameTextKey`, `SubtitleParts`, 묶기)만 바꿨고 `catalog/normalize`(`CatalogText`, `Contributors`)·`BookLookup`·changelog는 그대로 → `title_norm`·`book_contributor.name_exact` 뜻 바뀜 없음(1단계 전에 보고하라던 항목). 다만 12의 다시 가져오기로 서비스 DB 책 수가 바뀌었으므로(1,563,167권) 1단계 맞추기 측정은 복사 시점(1,619,668권) 값임
+- rebase 뒤 `./gradlew build` 739개 통과(`TEST_PG_COMMAND`로 c14 db-test), 웹 `npm test` 366개, `npm run build`, `npm run lint` 통과
+- 원래 DB(5432·5433)의 popular 정리는 14가 기본 브랜치에 들어간 뒤에 함(그 전에는 기본 브랜치 코드가 아직 `popular/001`을 가짐)
