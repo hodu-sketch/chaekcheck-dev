@@ -23,6 +23,13 @@ class Yes24V2AdapterTests {
 	}
 
 	@Test
+	void buildsSearchUriForAnUnderscoreHost() { // cycle 18: 2624 hs_partners.yes24library.com
+		assertThat(adapter.searchUri("https://hs_partners.yes24library.com", SearchQuery.of("1984"), 1))
+			.hasToString("https://hs_partners.yes24library.com/search/?src_key=1984&srch_order=title&page_num=1"
+					+ "&sort=title");
+	}
+
+	@Test
 	void mapsSearchFieldsToTheSiteSearchOrder() {
 		assertThat(adapter.searchUri("https://x", SearchQuery.of("김석희", SearchField.AUTHOR), 1).getQuery())
 			.contains("srch_order=author");

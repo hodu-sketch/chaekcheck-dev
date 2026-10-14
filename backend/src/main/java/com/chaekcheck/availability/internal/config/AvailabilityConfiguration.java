@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.net.ssl.SSLContext;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,12 +17,14 @@ import com.chaekcheck.availability.internal.CacheStatistics;
 import com.chaekcheck.availability.internal.fetch.CaffeineSearchPageCache;
 import com.chaekcheck.availability.internal.fetch.DirectSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.FetchServiceSiteFetcher;
+import com.chaekcheck.availability.internal.fetch.HostRoutingSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.InMemoryHostThrottle;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
 import com.chaekcheck.availability.internal.fetch.LibrarySiteTls;
 import com.chaekcheck.availability.internal.fetch.SearchPageCache;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
+import com.chaekcheck.availability.internal.fetch.UnderscoreHostSiteFetcher;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.resolve.CaffeineDetailVerdictCache;
 import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
@@ -62,13 +66,24 @@ class AvailabilityConfiguration {
 		}
 		// JDK HttpClient: connect timeout on the client; read timeout (time to response headers), total time and
 		// body size on each request (DirectSiteFetcher).
+		SSLContext sslContext = LibrarySiteTls.sslContext();
 		HttpClient httpClient = HttpClient.newBuilder()
-			.sslContext(LibrarySiteTls.sslContext())
+			.sslContext(sslContext)
 			.connectTimeout(properties.connectTimeout())
 			.followRedirects(HttpClient.Redirect.NEVER)
 			.build();
-		return new DirectSiteFetcher(httpClient, properties.readTimeout(), properties.totalTimeout(),
-				properties.maxBodySize().toBytes(), properties.userAgent(), Clock.systemUTC());
+		DirectSiteFetcher direct = new DirectSiteFetcher(httpClient, properties.readTimeout(),
+				properties.totalTimeout(), properties.maxBodySize().toBytes(), properties.userAgent(),
+				Clock.systemUTC());
+		// Host names with an underscore, which java.net.http refuses (cycle 18, ADR-0111): same limits and TLS
+		return new HostRoutingSiteFetcher(direct, underscoreHostSiteFetcher(properties, sslContext));
+	}
+
+	private UnderscoreHostSiteFetcher underscoreHostSiteFetcher(AvailabilityProperties properties,
+			SSLContext sslContext) {
+		return UnderscoreHostSiteFetcher.create(sslContext, properties.connectTimeout(), properties.readTimeout(),
+				properties.totalTimeout(), properties.maxBodySize().toBytes(), properties.userAgent(),
+				Clock.systemUTC());
 	}
 
 	@Bean

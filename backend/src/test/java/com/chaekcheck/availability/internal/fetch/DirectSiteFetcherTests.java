@@ -144,6 +144,15 @@ class DirectSiteFetcherTests {
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT);
 	}
 
+	@Test
+	void addressJavaNetHttpRefusesIsAnUpstreamErrorForThatRowOnly() { // cycle 18: no IllegalArgumentException
+		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
+				() -> fetcher.fetch(URI.create("https://hs_partners.yes24library.com/"), Instant.MAX));
+
+		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+		assertThat(ex.getMessage()).contains("hs_partners.yes24library.com");
+	}
+
 	private URI url(String path) {
 		return URI.create("http://127.0.0.1:" + library.getAddress().getPort() + path);
 	}

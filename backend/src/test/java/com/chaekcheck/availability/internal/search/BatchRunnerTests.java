@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.SearchQuery;
 import com.chaekcheck.availability.internal.TestTargets;
+import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.SiteVerdict;
 import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
@@ -183,6 +184,27 @@ class BatchRunnerTests {
 			assertThat(f.problem()).containsEntry("code", "upstream_timeout");
 		});
 		assertThat(sink.count(StreamEvents.LIBRARY_RESULT)).isEqualTo(1);
+	}
+
+	@Test
+	void underscoreHostLibraryThatFailsFailsAlone() { // cycle 18 C4: certificate or timeout failure on the new path
+		Candidate underscore = new Candidate(
+				TestTargets.target(2624, PlatformType.YES24_V2, "https://hs_partners.yes24library.com"), 1);
+		Candidate other = new Candidate(kyobo(2), 1);
+		given(fetcher.fetchAsync(eq(underscore.target()), any(), anyInt(), any()))
+			.willReturn(CompletableFuture.failedFuture(UpstreamException.error("certificate name check failed")));
+		answer(other, page(other, 2, 1, 0));
+
+		run(runner(settings(20, 2, 1000, 300)), ResultFilter.ALL, List.of(underscore, other));
+
+		List<Object> failed = sink.dataOf(StreamEvents.LIBRARY_FAILED);
+		assertThat(failed).hasSize(1);
+		assertThat((StreamEvents.LibraryFailed) failed.getFirst()).satisfies(f -> {
+			assertThat(f.libraryId()).isEqualTo(2624);
+			assertThat(f.problem()).containsEntry("code", "upstream_error");
+		});
+		assertThat(sink.count(StreamEvents.LIBRARY_RESULT)).isEqualTo(1);
+		assertThat(sink.batchDone()).isNotNull();
 	}
 
 	@Test

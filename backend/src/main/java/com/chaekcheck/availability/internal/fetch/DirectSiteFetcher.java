@@ -67,11 +67,20 @@ public class DirectSiteFetcher implements SiteFetcher {
 		String status = "-";
 		CompletableFuture<HttpResponse<byte[]>> call = null;
 		try {
-			HttpRequest request = HttpRequest.newBuilder(uri)
-				.timeout(readTimeout)
-				.header(HttpHeaders.USER_AGENT, userAgent)
-				.GET()
-				.build();
+			HttpRequest request;
+			try {
+				request = HttpRequest.newBuilder(uri)
+					.timeout(readTimeout)
+					.header(HttpHeaders.USER_AGENT, userAgent)
+					.GET()
+					.build();
+			}
+			catch (IllegalArgumentException ex) {
+				// java.net.http refuses an address it cannot read the host of ("unsupported URI"); only this
+				// library's row fails (cycle 18). Underscore hosts do not get here (UnderscoreHostSiteFetcher).
+				status = "bad-uri";
+				throw new UpstreamException(UpstreamException.Kind.ERROR, "cannot request " + uri + ": " + ex, ex);
+			}
 			call = httpClient.sendAsync(request, BodyLimit.handler(maxBodyBytes));
 			HttpResponse<byte[]> res = call.get(totalTimeout.toMillis(), TimeUnit.MILLISECONDS);
 			status = Integer.toString(res.statusCode());
@@ -81,7 +90,7 @@ public class DirectSiteFetcher implements SiteFetcher {
 		catch (TimeoutException ex) {
 			call.cancel(true);
 			status = "total-timeout";
-			throw UpstreamException.timeout("request to " + uri.getHost() + " passed the total time limit of "
+			throw UpstreamException.timeout("request to " + SiteHostNames.hostOrNull(uri) + " passed the total time limit of "
 					+ totalTimeout.toMillis() + "ms");
 		}
 		catch (ExecutionException ex) {
@@ -89,18 +98,18 @@ public class DirectSiteFetcher implements SiteFetcher {
 			if (has(cause, BodyLimit.TooLargeException.class)) {
 				status = "body-too-large";
 				throw new UpstreamException(UpstreamException.Kind.ERROR,
-						"response from " + uri.getHost() + " is over " + maxBodyBytes + " bytes", cause);
+						"response from " + SiteHostNames.hostOrNull(uri) + " is over " + maxBodyBytes + " bytes", cause);
 			}
 			boolean timeout = isTimeout(cause);
 			status = timeout ? "timeout" : "io-error";
 			throw new UpstreamException(timeout ? UpstreamException.Kind.TIMEOUT : UpstreamException.Kind.ERROR,
-					"request to " + uri.getHost() + " failed: " + cause, cause);
+					"request to " + SiteHostNames.hostOrNull(uri) + " failed: " + cause, cause);
 		}
 		catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
 			call.cancel(true);
 			status = "interrupted";
-			throw new UpstreamException(UpstreamException.Kind.ERROR, "request to " + uri.getHost() + " interrupted",
+			throw new UpstreamException(UpstreamException.Kind.ERROR, "request to " + SiteHostNames.hostOrNull(uri) + " interrupted",
 					ex);
 		}
 		finally {

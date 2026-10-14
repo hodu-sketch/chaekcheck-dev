@@ -47,6 +47,9 @@ dependencies {
 	// Version managed by Spring Boot
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation "org.jsoup:jsoup:${jsoupVersion}"
+	// Library sites whose host name has an underscore (cycle 18, ADR-0111): java.net.http refuses such URIs, so
+	// availability sends those requests with Apache HttpClient 5. Version managed by Spring Boot.
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
 	// implementation: the catalog load writes with the driver's CopyManager (PostgreSQL COPY)
 	implementation 'org.postgresql:postgresql'
 	collectionImport "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"

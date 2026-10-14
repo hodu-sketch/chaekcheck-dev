@@ -56,6 +56,19 @@ class HostThrottleTests {
 	}
 
 	@Test
+	void underscoreHostOnDifferentPortsSharesOneSlot() { // cycle 18: no NullPointerException, same rule
+		assertThat(HostThrottle.key(URI.create("https://hs_partners.yes24library.com/search/")))
+			.isEqualTo("hs_partners.yes24library.com");
+
+		List<Span> spans = runConcurrently("https://hs_partners.yes24library.com/",
+				"https://HS_PARTNERS.yes24library.com:8443/");
+
+		Span first = spans.get(0).start().isBefore(spans.get(1).start()) ? spans.get(0) : spans.get(1);
+		Span second = first == spans.get(0) ? spans.get(1) : spans.get(0);
+		assertThat(second.start()).isAfterOrEqualTo(first.end().plus(INTERVAL));
+	}
+
+	@Test
 	void differentHostsRunInParallel() {
 		List<Span> spans = runConcurrently("https://a.test/", "https://b.test:446/");
 

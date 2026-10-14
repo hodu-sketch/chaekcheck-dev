@@ -21,6 +21,10 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	// Library sites whose host name has an underscore (cycle 18, ADR-0111): java.net.http refuses such URIs, so
+	// LibraryClient sends those requests with Apache HttpClient 5, the same library as the main service. Version
+	// managed by Spring Boot.
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

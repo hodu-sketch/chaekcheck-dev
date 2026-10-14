@@ -94,7 +94,8 @@ public class AladinV1Adapter implements PlatformAdapter {
 	@Override
 	public URI detailUri(URI searchUri, String detailPath) {
 		String navCode = UriComponentsBuilder.fromUri(searchUri).build().getQueryParams().getFirst("nav_code");
-		return UriComponentsBuilder.fromUri(searchUri)
+		// from the string, not fromUri: fromUri takes getHost(), which is null for a host with an underscore (cycle 18)
+		return UriComponentsBuilder.fromUriString(searchUri.toString())
 			.replaceQuery(null)
 			.queryParam("mode", "view")
 			.queryParam("nav_code", navCode)

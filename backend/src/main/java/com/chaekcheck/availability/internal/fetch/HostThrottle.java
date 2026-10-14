@@ -2,7 +2,6 @@ package com.chaekcheck.availability.internal.fetch;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.concurrent.Callable;
 
 /**
@@ -22,15 +21,18 @@ public interface HostThrottle {
 	 */
 	<T> T run(URI uri, Instant deadline, Callable<T> call);
 
-	/** The throttle key: host name in lower case, port ignored. */
+	/**
+	 * The throttle key: host name in lower case, port ignored. Host names with an underscore are read too (cycle 18,
+	 * {@link SiteHostNames}).
+	 * @throws com.chaekcheck.availability.internal.UpstreamException ERROR when the address has no host
+	 */
 	static String key(URI uri) {
-		return uri.getHost().toLowerCase(Locale.ROOT);
+		return SiteHostNames.host(uri);
 	}
 
 	/** host:port for logs. */
 	static String hostPort(URI uri) {
-		int port = uri.getPort() != -1 ? uri.getPort() : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
-		return uri.getHost() + ":" + port;
+		return SiteHostNames.hostOrNull(uri) + ":" + SiteHostNames.port(uri);
 	}
 
 }

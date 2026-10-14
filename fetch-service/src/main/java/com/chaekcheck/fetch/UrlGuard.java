@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,14 +17,26 @@ import org.springframework.stereotype.Component;
  * The HTTP client resolves the name again when it connects, so a name whose DNS answer changes between the two
  * lookups (DNS rebinding) is not fully covered. The shared token and running on a private network limit who can
  * try that.
+ * <p>
+ * Cycle 18: a host name with an underscore ({@code getHost()} is null) is read from the authority
+ * ({@link UnderscoreHosts}); the same name is resolved and checked here, and user info is refused for it too.
  */
 @Component
 class UrlGuard {
 
 	private final boolean allowLoopback;
 
+	private final HostResolver resolver;
+
+	@Autowired
 	UrlGuard(FetchProperties properties) {
+		this(properties, InetAddress::getAllByName);
+	}
+
+	/** With a DNS lookup of its own, for tests (an underscore name pointing at a private address). */
+	UrlGuard(FetchProperties properties, HostResolver resolver) {
 		this.allowLoopback = properties.allowLoopback();
+		this.resolver = resolver;
 	}
 
 	/** @throws BadUrlException when the URL must not be fetched */
@@ -39,12 +52,14 @@ class UrlGuard {
 		if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
 			throw new BadUrlException("only http and https");
 		}
-		if (uri.getHost() == null || uri.getRawUserInfo() != null) {
+		// the name LibraryClient connects to; host names with an underscore are read too (cycle 18, ADR-0111)
+		String host = UnderscoreHosts.host(uri);
+		if (host == null || UnderscoreHosts.hasUserInfo(uri)) {
 			throw new BadUrlException("host required, no user info");
 		}
 		InetAddress[] addresses;
 		try {
-			addresses = InetAddress.getAllByName(uri.getHost());
+			addresses = resolver.resolve(host);
 		}
 		catch (UnknownHostException ex) {
 			throw new BadUrlException("host does not resolve");
@@ -74,6 +89,14 @@ class UrlGuard {
 	private static boolean isSharedAddressSpace(InetAddress address) {
 		byte[] b = address.getAddress();
 		return b.length == 4 && (b[0] & 0xFF) == 100 && (b[1] & 0xC0) == 64;
+	}
+
+	/** DNS lookup of a host name. */
+	@FunctionalInterface
+	interface HostResolver {
+
+		InetAddress[] resolve(String host) throws UnknownHostException;
+
 	}
 
 	static class BadUrlException extends RuntimeException {

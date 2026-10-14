@@ -16,6 +16,7 @@ import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
+import com.chaekcheck.availability.internal.fetch.SiteHostNames;
 import com.chaekcheck.availability.internal.fetch.SiteResponse;
 import com.chaekcheck.availability.internal.resolve.DetailVerdictCache.DetailPage;
 import com.chaekcheck.library.PlatformType;
@@ -75,7 +76,9 @@ public class DetailPageFetcher {
 			if (!scheme.equals("http") && !scheme.equals("https")) {
 				return null;
 			}
-			if (uri.getHost() == null || base.getHost() == null || !uri.getHost().equalsIgnoreCase(base.getHost())) {
+			// host names with an underscore are compared too (cycle 18, ADR-0111)
+			String host = SiteHostNames.hostOrNull(uri);
+			if (host == null || !host.equals(SiteHostNames.hostOrNull(base))) {
 				return null;
 			}
 			return uri;
