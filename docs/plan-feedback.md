@@ -4157,3 +4157,32 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 테스트 계정 동의 값: `TERMS_OF_SERVICE`·`PRIVACY_COLLECTION` 각 1줄이 `'2026-10-04'` → `'1'`(`auth/002`가 바꾼 줄 2), `AGE_OVER_14` NULL 그대로. CHECK `account_consent_document_version_format_check` 있음
 - `/api/v1/me`의 동의 판 `"1"`은 로그인해야 보여서, 가입·로그인을 가짜 응답으로만 확인하기로 한 결정(위)에 따라 실제 로그인으로는 보지 않음. 응답 모양은 `AuthEnabledSecurityTests`(`"version":"1"`)가 확인
 - c16 작업 폴더·docker 묶음 `chaekcheck-c16`은 아직 지우지 않음
+
+## AC 확인표
+
+| AC | 확인 | 결과 |
+|---|---|---|
+| AC-1 새 공지 → 목록 맨 위(고정 다음) | `NoticeApiTests.newNoticeComesFirstAfterThePinnedOnes`, `NoticesPage.test`, 운영 SQL 1절 + Playwright | 통과 |
+| AC-2 서비스 안내 새 판, 옛 판 적용 기간·"이전 버전" | `DocumentApiTests.newAboutVersionIsCurrentAndTheOldOneStaysReadable`, `VersionPicker.test`·`AboutPage.test`, Playwright(`/about?version=1`) | 통과 |
+| AC-3 오늘 시행 약관 판 2로 가입 → 동의 기록 2 | `SignupTests.newTermsVersionInEffectTodayIsRecorded`, `SiteDocumentsTests` | 통과 |
+| AC-4 앞날 판은 그날 전까지 안 나옴 | `SiteDocumentsTests`, `DocumentApiTests.futureVersionIsNowhereBeforeItsDay`, `NoticeApiTests.noticePostedTomorrowIsNowhereYet`, `SignupTests.futureTermsVersionIsNotUsedYet`, 운영 SQL 4절 | 통과 |
+| AC-5 숨긴 공지 → 목록에서 빠지고 "찾을 수 없어요" | `NoticeApiTests.hiddenNoticeIsNowhere`, `NoticePage.test`, 운영 SQL 3절 | 통과 |
+| AC-6 `<script>`·`javascript:` 실행 안 됨 | `Markdown.test`, Playwright + 사용자 폰 | 통과 |
+| AC-7 바닥글 링크 넷, "문의: 준비 중" 없음, 로그인 꺼짐이면 이용약관만 빠짐 | `Footer.test`, `LegalPage.test`, Playwright 켬·끔 | 통과 |
+| AC-8 "검토 전 문구" 없음 | `LegalPage.test`, `SignupPage.test`, `rg` 0건(web/src) | 통과 |
+| AC-9 없는 판 → "찾을 수 없어요" | `DocumentApiTests`·`NoticeApiTests`(404 `version_not_found`), `NoticePage.test`·`LegalPage.test`, Playwright `/privacy?version=99` | 통과 |
+| AC-10 서비스 안내 글 아래 기준일 줄 | `AboutPage.test` | 통과(c16 DB에는 조사 값이 없어 화면에서는 줄이 빠진 상태만 봄) |
+| AC-11 "바뀐 점 보기" 펼침 | `DocumentApiTests.changeSummaryIsGiven`, `ChangeSummary.test`·`LegalPage.test`, Playwright `/terms` | 통과 |
+| AC-12 서비스 안내 이메일 → 메일 쓰기 | `SitecontentSchemaTests`(seed), `Markdown.test`·`AboutPage.test`, Playwright | 통과 |
+| AC-13 목록에 고친 날 없음, 글에서 보임 | `NoticeApiTests.editedNoticeShowsTheNewTitleAndItsEditedDayOnlyInTheNotice`, `NoticesPage.test`·`NoticePage.test`, Playwright | 통과 |
+
+## [확인 필요] 결과
+
+| 항목 | 결과 |
+|---|---|
+| `react-markdown@10`과 React 19.3, 묶음 크기 | 10.1.0 경고 없이 설치. JS gzip 170.28 → 208.23 kB |
+| seed 본문의 세미콜론·`$$` | `$$` + `splitStatements: false`로 그대로 들어감. 운영 SQL 시험에서도 `;`·`'`가 든 본문 정상 |
+| 사이클 15와 병합 | 16이 먼저 들어감(18 다음). 15 세션에 풀 곳 여섯 군데를 메시지로 알림 |
+| 날짜 고르기 칸이 폰에서 열리는 모양 | Samsung Internet: 아래에서 올라오는 라디오 목록 + "완료" |
+| 운영 SQL 초안이 실제로 도는지 | 1~6절 모두 기대대로. 고친 문장 없음, "줄 수를 보고 확정하기" 더함 |
+| 공개 전 값 | 공개일 2026-10-18(사용자). AWS 계약 법인·Cloudflare 연락처 등은 사이클 17 배포 때 |
