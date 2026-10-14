@@ -4053,6 +4053,30 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 알린 곳: dev 15·16(master include 순서, 바뀐 파일, plan-feedback 충돌 시 둘 다 남김), plan 17(밑줄 길 두 곳에도 ADR-0095 나가는 길 적용, 첫 배포 판의 016), plan 19(B는 19 뒤, 목록 수 변화), plan 18
 - 원래 DB(5432)에는 사이클 16을 합친 뒤 dev 16이 main으로 bootRun할 때 `library-016-disabled-cycle18`이 처음 적용됨(켜진 도서관 2,664 → 2,642, dev 16 알림 2026-10-14, main `73c6b53`)
 
+
+## B. 가져오기 고침과 넣기 "전자책 0권" (2026-10-14, 19보다 먼저)
+
+- **순서 바꿈 (사용자 결정)**: 인계서·scope.md "진행 순서"는 "19가 main에 들어간 뒤"(사용자 "19뒤에 하자")였으나, 19가 아직 인계 전이라 18 B를 먼저 함. 사용자: "근데 19는 너 다음인데 너가 알아서 마무리하고 이어서 19가 하도록 해야 하는 거 아니야?" → 선택 "18 B 지금", 이어서 "결과만 19에게 잘 알려줘", "너는 마무리 할 수 있으면 빨리 마무리하고" (2026-10-14). 그래서 B0의 "19 코드 읽기"는 없고, B7은 2026-10-12 사본으로 함. plan 18·19에 알림
+- 브랜치 `cycle-18-b-import-underscore-hosts`(worktree `../chaekcheck-dev-c18`, main `45d9b3b`에서 시작해 `5b9c69b`(15·16 합친 뒤) 위로 rebase), 복사본 `db`(5482)·`db-test`(5483)
+- **이름** (인계서 [안] 그대로이거나 바꾼 것)
+  - `collection/internal/SiteHosts`(public, `host`·`httpHost`): `LibraryInsertPlanner.host`의 손 읽기 규칙을 옮김(없으면 null). `LibraryInsertPlanner.host`는 이것을 부르고 빈 값이면 ""(지금과 같게). `CollectedCatalog.hostOf`·`httpHostOf`(scheme 검사는 그대로)·`sameSite`가 씀
+  - `collection/internal/importer/HoldingRowFilter`(public, `skipReason(removedAt, contentType, contentKind, detailUrl, title, libraryHost)`, `EXCLUDED_KINDS`·`SOUND_VIDEO_KINDS`도 옮김). 판정 순서 그대로. `CollectedCatalog.skipReason`은 이것을 부름
+  - `CollectedLibraries.importableRows(collectionId, libraryHost)`(`LibraryInsertPlanner.Holdings`에 더함): 그 도서관 `holding` 줄을 읽어 `HoldingRowFilter`를 통과한 수
+  - 빠진 이유 키 `no_ebooks`("전자책 0권")
+  - **옛 설정 이름**: `chaekcheck.collection.import.exclude-candidate-libraries` → **`exclude-added-later-libraries`**, Java `excludeAddedLaterLibraries`(설정·`CatalogImporter`), 건너뜀 이유 `library_excluded_candidate` → **`library_excluded_added_later`**, 로그 `candidate libraries excluded: N` → `added-later libraries excluded: N`, `CollectedCatalog.EXCLUDED_CANDIDATE` → `EXCLUDED_ADDED_LATER`. "나중에 더한(added later)"은 코드에 이미 있던 `Library.addedLater()`(수집 번호 100001부터)와 같은 말. 지난 `catalog_import` 기록의 옛 문자열은 그대로. 인계서가 적은 `FIRST_CANDIDATE_ID`는 코드에 없고 주석만 가리키던 것이라 `FIRST_COLLECTED_ONLY_ID`로 고침
+- **`no_ebooks` 자리**: 기존 6개 이유 다음 맨 끝(보고서 `leftOut` 키 순서도 맨 끝). 검사는 `library_kinds`·`final_origins` 없음 **오류 검사보다 앞**에 둠(0권 곳 때문에 규칙 파일 오류로 멈추지 않음). 셀 때 쓰는 호스트는 넣을 주소(`final_origins.tsv` 값, 없으면 수집 주소)의 호스트. 묻지 않고 종료 코드 그대로. 교보 대여·혼합은 첫 이유라 `no_ebooks`가 되지 않음
+- **문서·스크립트**: `docs/maintenance/3-import.md` 41행(새 이름), `docs/maintenance/1-libraries.md`(보고서 `leftOut` 설명에 `no_ebooks`, "전자책 0권 목록에서 넣을 주소가 바뀐 곳은 사이트를 열어 확인" 한 줄), `scripts/library/list_left_out.py` 이유 표에 `no_ebooks` 한 줄(`test_list_left_out.py` 통과)
+- **시험**: `SiteHostsTests` 3, `HoldingRowFilterTests` 2(이유별·순서, 밑줄 상세 주소 + 같은 밑줄 호스트 통과), `CatalogImportSettingsTests`(새 이름으로 같은 동작 + 밑줄 호스트 도서관 전자책 줄이 들어오고 `detail_url_not_http` 없음, AC-5), `LibraryInsertPlannerTests`(0권 곳은 맨 끝 이유이고 규칙 오류 검사보다 앞, 넣을 주소의 호스트로 셈), `LibraryInsertCommandTests`(① 오디오북만 → `no_ebooks` ② 넣을 주소와 책 주소 호스트 다름 → `no_ebooks` ③ 밑줄 주소 + 전자책 → 넣음, insert 뒤 ①②는 서비스·짝 줄에 없고 ③은 있음, AC-6). 시험 수집 사본에 전자책 줄이 없던 기존 넣기 시험은 도서관마다 전자책 한 줄을 더함(새 규칙에서는 0권이라 빠지므로)
+- **빌드**: `backend/` `./gradlew cleanTest build` 통과(main `5b9c69b` 위로 rebase한 뒤, 3분 10초, 시험 937개, 건너뜀 3, 실패 0, `ModularityTests`·`DocumentationTests` 포함)
+- **B7 내 PC 가져오기** (복사본 `db`, A1 적용된 판, `mode=in-place`, `compact`, `-PbootRunXmx=4g`, 2026-10-14 23:02~23:33 약 31분)
+  - 사본 `ebook-catalog-2026-10-12-0135.sqlite`(지난 10번과 같은 사본). 빠르게 하려고(사용자 "빨리 마무리") **dry run 전·후 비교는 하지 않고** 진짜 가져오기 결과를 같은 사본의 10번 기록과 비교함
+  - 기록 **11번** `SUCCEEDED`: 책 1,568,452 → **1,568,453**(kept 1,568,452 / new 1 / dropped 0), 소장 18,024,491 → **18,024,652**(+161), 건너뜀 8,120,406 → 8,120,245, 등록 275 → 272·나중에 더한 2,387 → 2,370(꺼진 22곳 중 수집 짝이 있는 곳이 빠짐)
+  - 이유별: **`detail_url_not_http` 283 → 42**(−241, AC-5), `kind_audiobook` 94,454 → 89,482(−4,972: 끈 오디오북 도서관 줄이 `library_not_in_service`로 감), `library_not_in_service` 8,018,423 → 8,023,475(+5,052 = 4,972 + 261 군포의 80), 나머지 같음. 2624 말고 판정이 바뀐 줄 없음(`HoldingRowFilter`가 같은 결과)
+  - **2624에 들어간 권수 241**. AC-1 SQL **0줄**(켜진 0권 도서관 없음)
+- **넣기 미리 보기 측정** (같은 사본, 규칙 폴더 지금 것, 보고서는 git 밖 임시 폴더): 보고서 `0a08d8e29ac1`, 새 곳 0·바뀐 곳 0·사라진 곳 0·의심 0, `leftOut` 교보 대여·혼합 232, `crawl_skip` 105, 전체 수집 없음 2, 체험·중단 4, 같은 사이트 0, 시험 6, **`no_ebooks` 0**. 이 사본의 새 곳은 사이클 13에서 다 넣어 줄 세기 대상이 없어 줄 세기 시간은 잴 수 없었음(미리 보기 전체 1초 안). 새 곳이 많은 사본에서 다시 볼 것
+- **확인**: AC-1(A1 + B7) 통과, AC-4 검색 부분(2624 책이 서비스 소장에 들어옴, 조회는 A2에서 확인), AC-5 통과(283 → 42), AC-6 시험 통과
+- **인계서와 다른 점**: 순서(19 전), dry run 비교 대신 10번 기록 비교, `FIRST_CANDIDATE_ID` 이름(코드에 없음)
+
 # 사이클 16
 
 공지사항과 안내·약관 페이지를 DB로 (`sitecontent`). 인계서: plan `docs/cycles/16-notices-and-policies/handoff.md`.
