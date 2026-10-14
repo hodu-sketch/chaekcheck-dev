@@ -3,11 +3,12 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { sendUsageEvent } from '../../api/usageEvents'
 import { AuthProvider, useAuth } from '../auth/AuthContext'
 import { NoticeBar, NoticeProvider } from '../auth/NoticeContext'
 import { RegionProvider, useRegions } from '../region/RegionContext'
 import { REGION_STORAGE_KEY } from '../region/regionStorage'
-import { MyLibraryProvider } from './MyLibraryContext'
+import { MyLibraryProvider, useMyLibrary } from './MyLibraryContext'
 import { RegionImportDialog } from './RegionImportDialog'
 import { REGION_IMPORT_KEY } from './regionImport'
 
@@ -27,6 +28,9 @@ const TREE = [
     ],
   },
 ]
+
+// cycle 15: the usage reports are checked here, never sent
+vi.mock('../../api/usageEvents', () => ({ sendUsageEvent: vi.fn(), setUsageLoginFeature: vi.fn() }))
 
 const RESOLUTIONS: Record<number, unknown> = {
   1102: { id: 1102, status: 'ACTIVE', label: '서울 중구', replacements: [] },
@@ -65,6 +69,9 @@ function fakeServer(fake: Fake) {
       return json(200, fake.serverRegions)
     }
     if (url === '/api/v1/me/libraries') return json(200, { libraryIds: [], max: 20 })
+    if (url.startsWith('/api/v1/me/libraries/') && (method === 'PUT' || method === 'DELETE')) {
+      return new Response(null, { status: 204 })
+    }
     // cycle 07: the browser's libraries go to the account in one go; the public list gives their names
     if (url === '/api/v1/me/library-imports' && method === 'POST') {
       const sent = (JSON.parse(init!.body as string) as { libraryIds: number[] }).libraryIds
@@ -85,6 +92,7 @@ function fakeServer(fake: Fake) {
 function Probe() {
   const { regions, source, ready, notices, setRegions } = useRegions()
   const { signOut } = useAuth()
+  const { addLibrary, removeLibrary } = useMyLibrary()
   return (
     <div>
       <p data-testid="source">{source}</p>
@@ -100,6 +108,12 @@ function Probe() {
       </button>
       <button type="button" onClick={() => void signOut()}>
         logout
+      </button>
+      <button type="button" onClick={() => void addLibrary(281).catch(() => {})}>
+        add
+      </button>
+      <button type="button" onClick={() => void removeLibrary(281).catch(() => {})}>
+        remove
       </button>
     </div>
   )
@@ -139,6 +153,7 @@ afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  vi.mocked(sendUsageEvent).mockClear()
   localStorage.clear()
 })
 
@@ -308,5 +323,64 @@ describe('S11 (AC-3)', () => {
     await waitFor(() => expect(text('regions')).toBe('{"residence":[1102],"work":[]}'))
     await act(async () => {})
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+/** Cycle 15 (AC-23): one usage report per saved region choice and per added or removed library, before and after login. */
+describe('usage reports', () => {
+  const reports = () => vi.mocked(sendUsageEvent).mock.calls.map(([event]) => event)
+
+  it('before login', async () => {
+    renderApp()
+    await waitFor(() => expect(text('ready')).toBe('true'))
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'save' }))
+    await user.click(screen.getByRole('button', { name: 'add' }))
+    await user.click(screen.getByRole('button', { name: 'add' }))
+    await user.click(screen.getByRole('button', { name: 'remove' }))
+
+    await waitFor(() =>
+      expect(reports()).toEqual([
+        { type: 'region_change', residenceRegionIds: [1102], workRegionIds: [] },
+        { type: 'my_library_add', libraryId: 281 },
+        { type: 'my_library_remove', libraryId: 281 },
+      ]),
+    )
+  })
+
+  it('after login, once the account kept the change', async () => {
+    fake.signedIn = true
+    renderApp()
+    await waitFor(() => expect(text('source')).toBe('account'))
+    await waitFor(() => expect(text('ready')).toBe('true'))
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(reports()).toHaveLength(1))
+    await user.click(screen.getByRole('button', { name: 'add' }))
+    await waitFor(() => expect(reports()).toHaveLength(2))
+    await user.click(screen.getByRole('button', { name: 'remove' }))
+
+    await waitFor(() =>
+      expect(reports()).toEqual([
+        { type: 'region_change', residenceRegionIds: [1102], workRegionIds: [] },
+        { type: 'my_library_add', libraryId: 281 },
+        { type: 'my_library_remove', libraryId: 281 },
+      ]),
+    )
+  })
+
+  it('a change the account refused is not reported', async () => {
+    fake.signedIn = true
+    fake.putStatus = 500
+    renderApp()
+    await waitFor(() => expect(text('source')).toBe('account'))
+    await waitFor(() => expect(text('ready')).toBe('true'))
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(fake.calls.some((call) => call.method === 'PUT')).toBe(true))
+
+    expect(reports()).toEqual([])
   })
 })

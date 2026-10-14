@@ -135,6 +135,7 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
         <p className={styles.searching}>조건에 맞는 도서관이 없어요</p>
       ) : (
         <ResultList
+          screen="catalog_results"
           batches={views}
           filter={filter}
           onFilterChange={onFilterChange}

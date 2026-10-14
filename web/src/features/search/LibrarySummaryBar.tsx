@@ -1,5 +1,6 @@
 import { Popover } from 'radix-ui'
 import type { TargetLibrary } from '../../api/types'
+import { libraryClick } from '../../lib/libraryClick'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import type { LibraryResult } from './useSearch'
 import styles from './LibrarySummaryBar.module.css'
@@ -124,7 +125,13 @@ function LibraryCell({
   return (
     <>
       {homepage ? (
-        <a className={`${styles.name} ${styles.nameLink}`} href={homepage} target="_blank" rel="noopener noreferrer">
+        <a
+          className={`${styles.name} ${styles.nameLink}`}
+          href={homepage}
+          target="_blank"
+          rel="noopener noreferrer"
+          {...libraryClick(library.id, 'summary_bar', { screen: 'direct_results' })}
+        >
           {library.name}
           <span className="visually-hidden"> 전자도서관 첫 화면 (새 창)</span>
         </a>

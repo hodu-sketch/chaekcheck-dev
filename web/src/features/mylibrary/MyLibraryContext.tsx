@@ -1,6 +1,7 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { addMyLibrary, getMyLibraries, getMyRegions, putMyRegions, removeMyLibrary } from '../../api/myLibraries'
 import type { MyRegions } from '../../api/types'
+import { sendUsageEvent } from '../../api/usageEvents'
 import { useOptionalAuth } from '../auth/AuthContext'
 import { loadChosenLibraries, MAX_CHOSEN_LIBRARIES, saveChosenLibraries } from './chosenLibraryStorage'
 import { BrowserStorageError, LibraryLimitError } from './myLibraryErrors'
@@ -123,6 +124,7 @@ export function MyLibraryProvider({ children }: { children: ReactNode }) {
         const next = [...libraryIds, libraryId]
         if (!saveChosenLibraries(next)) throw new BrowserStorageError()
         setBrowserIds(next)
+        sendUsageEvent({ type: 'my_library_add', libraryId })
         return
       }
       setLibraryIds((ids) => (ids.includes(libraryId) ? ids : [...ids, libraryId]))
@@ -132,6 +134,8 @@ export function MyLibraryProvider({ children }: { children: ReactNode }) {
         setLibraryIds((ids) => ids.filter((id) => id !== libraryId))
         throw error
       }
+      // only once it was kept, before and after login alike (cycle 15)
+      sendUsageEvent({ type: 'my_library_add', libraryId })
     },
     [mode, libraryIds, maxLibraries, setLibraryIds, setBrowserIds],
   )
@@ -142,6 +146,7 @@ export function MyLibraryProvider({ children }: { children: ReactNode }) {
         const next = libraryIds.filter((id) => id !== libraryId)
         if (!saveChosenLibraries(next)) throw new BrowserStorageError()
         setBrowserIds(next)
+        sendUsageEvent({ type: 'my_library_remove', libraryId })
         return
       }
       const before = libraryIds
@@ -152,6 +157,7 @@ export function MyLibraryProvider({ children }: { children: ReactNode }) {
         setLibraryIds(() => before)
         throw error
       }
+      sendUsageEvent({ type: 'my_library_remove', libraryId })
     },
     [mode, libraryIds, setLibraryIds, setBrowserIds],
   )

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BookDetail, Picks } from '../../api/types'
+import { sendUsageEvent } from '../../api/usageEvents'
 import { PicksPage } from './PicksPage'
 import { REQUEST_LINES } from './picksText'
 import { CATEGORIES, testPicks } from './testPicks'
@@ -15,6 +16,7 @@ const REGIONS = {
   resolveStoredRegions: () => Promise.resolve(false),
 }
 vi.mock('../region/RegionContext', () => ({ useRegions: () => REGIONS }))
+vi.mock('../../api/usageEvents', () => ({ sendUsageEvent: vi.fn() }))
 vi.mock('../search/useLibraryScope', () => ({ useLibraryScope: () => ({ scope: 'joinable' }) }))
 
 const BOOK_DETAIL: BookDetail = {
@@ -90,6 +92,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.mocked(sendUsageEvent).mockClear()
 })
 
 describe('librarian picks (S13)', () => {
@@ -283,6 +286,45 @@ describe('librarian picks (S13)', () => {
     expect(within(dialog).queryByTestId('sheet-handle')).toBeNull()
     await user.click(within(dialog).getByRole('button', { name: '책 검색' }))
     expect(await screen.findByText('책 화면')).toBeTruthy()
+  })
+})
+
+/** Cycle 15: usage reports of the picks screen (AC-23); the screen itself does not change. */
+describe('usage reports', () => {
+  const reported = (type: string) =>
+    vi
+      .mocked(sendUsageEvent)
+      .mock.calls.map(([event]) => event)
+      .filter((event) => event.type === type)
+
+  it('the field in the middle of the screen once each time it changes, the first one included', async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    stubFetch()
+    const user = renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    await waitFor(() => expect(reported('picks_list_view')).toEqual([{ type: 'picks_list_view', category: 'ALL' }]))
+
+    await user.click(within(section('전체')).getByRole('button', { name: '전체 다음 9권' }))
+    await user.click(screen.getByRole('button', { name: '분류: 전체' }))
+    await user.click(within(screen.getByRole('list', { name: '분류' })).getByRole('button', { name: '사회' }))
+
+    expect(reported('picks_list_view')).toEqual([
+      { type: 'picks_list_view', category: 'ALL' },
+      { type: 'picks_list_view', category: '5' },
+    ])
+  })
+
+  it('an opened book window with its field and book; a faded book opens none', async () => {
+    stubFetch()
+    const user = renderPage()
+    await screen.findByRole('region', { name: '전체' })
+
+    await user.click(cards('전체')[1])
+    expect(reported('picks_book_view')).toEqual([])
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '닫기' }))
+
+    await user.click(cards('전체')[0])
+    expect(reported('picks_book_view')).toEqual([{ type: 'picks_book_view', category: '11', bookId: 5001 }])
   })
 })
 

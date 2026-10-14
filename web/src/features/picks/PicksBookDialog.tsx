@@ -160,7 +160,13 @@ function BookBody({
       )}
       <div className={styles.rows}>
         {rows.map((row) => (
-          <ResultRow key={`${row.libraryId}-${row.rank}`} row={row} library={libraries.get(row.libraryId)} searchUrl={undefined} />
+          <ResultRow
+            key={`${row.libraryId}-${row.rank}`}
+            row={row}
+            library={libraries.get(row.libraryId)}
+            searchUrl={undefined}
+            screen="picks"
+          />
         ))}
         {checking && (
           <p className={styles.checking} role="status">

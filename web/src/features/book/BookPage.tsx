@@ -147,6 +147,7 @@ function BookView({ bookId }: { bookId: string }) {
         <p className={styles.loading}>조건에 맞는 도서관이 없어요</p>
       ) : (
         <ResultList
+          screen="book_page"
           batches={holdingBatchViews(holdings.state, filter)}
           filter={filter}
           onFilterChange={changeFilter}

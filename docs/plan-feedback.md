@@ -4211,6 +4211,10 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 합계 약 16.8GB. 인계서의 "작업 폴더 둘"(`.claude/worktrees/`)은 이미 없었음
 - 남긴 것: `data/cycle13/`(580MB, 인계서대로), `data/cycle11/` 나머지 5.9MB(AC별 로그·스크립트·대시보드 파이썬·보고서)
 
+## 15 밖: nginx `/picks`
+
+- main에 커밋돼 있음: `b4cd153` "nginx: /picks is a screen route (cycle 14); cycle 10's /popular had never been added". `deploy/nginx/chaekcheck-locations.conf`의 화면 주소 정규식에 `picks`가 들어 있음(15 시작 커밋 그대로)
+
 ## 진행
 
 ### 1단계 auth (커밋 `3a6604c`)
@@ -4250,6 +4254,31 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 대출 수 채우기: 구독형(요청 없음)·도서관 주소 밖 상세 주소(요청 없음)는 세지 않음. `book_view`·`search_more`로 세지 않음
 - 요청마다 로그: INFO `library=<번호> source=direct_search|holding_fill result=ok|failed|timeout|skipped ms=<ms>`, 실패면 끝에 ` error=<메시지>`. IP 없음. 기존 실패 줄(`BatchSession`·`HoldingSession`의 `batch=… failed: …`)은 그대로 둠: 묶음·쪽·소장 번호가 들어 있고 요청 없이 끝난 실패(도서관 없음, 주소 밖)도 남기 때문. 그래서 실패한 요청은 두 줄
 - 시험: `UsageRecordingTests`(가짜 fetcher; 한 번만·0권·끊김 두 경우·다음 묶음은 검색 아님·결과별 셈과 로그 줄·마감 뒤 답 TIMEOUT·건너뜀·캐시 안 셈·대출 수 채우기), 컨트롤러 시험 셋에 기록 호출 확인을 더함. `ModularityTests`에 `catalog → usagelog`, `availability → usagelog`
+
+### 6단계 사용 알림 주소
+
+- `usagelog/internal/web/UsageEventController`(`POST /api/v1/usage-events`, 늘 204·본문 없음), 검사는 `UsageEventReader`. 받은 몸통을 최대 8KB+1바이트까지만 읽음 → **본문 상한 8KB** [안], 넘으면 `malformed`
+- JSON 칸 이름은 design-delta "API" 표 그대로(`type`, `libraryId`, `place`, `screen`, `bookId`, `category`, `residenceRegionIds`, `workRegionIds`). 모르는 칸은 무시
+- 이유 정하기: JSON이 아니거나 객체가 아니거나 비었음 → `malformed`, `type` 없음·모름 → `unknown_type`, `place`·`screen`이 목록 밖·없음 → `invalid_place`·`invalid_screen`, `bookId`가 양의 정수가 아님(글자 "7" 포함) → `invalid_book_id`, 그 밖(도서관 번호가 숫자가 아님·없음, 분야가 비었거나 20자 넘음·제어 문자, 지역 배열이 없거나 20개 넘음·양의 정수가 아님) → `invalid_value`. 도서관 번호는 비우기 때 켜진 도서관만(`unknown_library`). 사서추천 분야는 목록으로 막지 않음
+- `raw_values`: 받은 JSON이 2KB 이하로 다시 쓸 수 있으면 그대로, 아니면(2KB 넘음·JSON 아님) 앞 2KB를 JSON 글자 하나로
+- **새로 알게 된 제약: PostgreSQL `text`·`jsonb`는 NUL 문자(`\u0000`)를 받지 않음.** 값 하나에 NUL이 있으면 그 묶음 전체가 실패하므로, 쓰기에서 모든 글자 값의 NUL을 빼고 `raw_values`는 NUL이 든 JSON이면 글자로 바꿔 넣음(직접 찾기 검색어 같은 서버 기록도 같음)
+- CSRF: **고칠 것이 없었음.** 지금 `csrf.spa()…ignoringRequestMatchers(WEBHOOKS)`가 웹훅 말고 모든 POST를 검사함. `UsageEventCsrfTests`(로그인 켬): 표시 없음 403 `csrf_invalid`, `XSRF-TOKEN` 쿠키 + `X-XSRF-TOKEN` 머리글 + 로그인 쿠키 없음 → 204이고 `signed_out` 줄 생김. 로그인 끔은 `UsageEventApiTests`가 표시 없이 204·줄 생김
+- 시험 `UsageEventApiTests`(AC-7·AC-9 끔·AC-10·AC-23 서버 쪽·2KB 자르기·NUL·로봇)
+
+### 7단계 04:30 정리
+
+- `usagelog/internal/cleanup/UsageLogCleanup`: `@Scheduled(cron = "${chaekcheck.usagelog.cleanup.cron}", zone = "${chaekcheck.usagelog.cleanup.zone}")`. 순서: 다섯 기록 표 IP 비우기(30일, `client_ip IS NOT NULL` 부분 색인을 탐) → `rejected_event` 30일 지움 → 다섯 기록 표·`dropped_batch`(1년, 받은 시각) → `library_response_daily`(서울 날짜로 1년 전 날보다 앞). 한 문장에 `batch-size`(1만) 줄씩, 덜 바뀔 때까지 되풀이. 기록 설정이 꺼져도 돎. 끝나면 INFO `usage log clean-up: ip cleared N, rejected deleted N, rows deleted N`, 실패는 WARN 한 줄
+- 시험 `UsageLogCleanupTests`(시계 고정 2026-10-14 04:30 서울, 나눌 크기 3): AC-13(366일 지움·364일 남김), AC-18(31일 IP NULL·나머지 칸 남음, 29일 IP 있음), `rejected_event` 31일 지움·29일 남김, 20줄을 3줄씩
+
+### 8단계 웹
+
+- 공용 보내기 `web/src/api/usageEvents.ts` `sendUsageEvent(event)`: `fetch` keepalive, `credentials: 'same-origin'`, JSON. 실패해도 아무것도 안 보이고 던지지 않고 다시 보내지 않음
+- 로그인 기능 상태는 `AuthContext`가 `/api/v1/me` 답을 받은 뒤 알려 줌(`setUsageLoginFeature`). 꺼짐 → 표시 없음. 켜짐 → 쿠키 값, 쿠키가 없으면 `GET /api/v1/auth/csrf-token` 먼저. **아직 모를 때**(첫 화면에서 `/api/v1/me` 답 전) → 쿠키가 있으면 붙이고, 403 `csrf_invalid`면 표시를 받아 한 번 더(켜짐과 같은 규칙)
+- 클릭 자리: `lib/libraryClick.ts`가 `onClick`과 `onAuxClick`(가운데 버튼만)을 줌. `preventDefault` 없음. **가운데 버튼 클릭은 셈**, 길게 눌러 여는 메뉴·오른쪽 버튼은 세지 않음(새 탭이 열렸는지 알 수 없음)
+- 화면 값 넘기기: `ResultList`·`BatchSection`·`ResultRow`에 `screen` prop, `DirectResults` = `direct_results`, `InstantResults` = `catalog_results`, `BookPage` = `book_page`, `PicksBookDialog` = `picks`, 내 도서관 로고 = `my_libraries`, 요약 막대 이름 = `summary_bar`/`direct_results`. 책 번호: 대출 수 줄(`holdingRow`·`failedRow`)에 `bookId`를 더해 보냄, 직접 찾기·내 도서관은 비움
+- 화면 행동: 사서 추천은 화면 가운데 분야(`currentCode`)가 바뀔 때마다 한 번(처음 열 때 포함, 같은 분야로 다시 그려도 안 보냄). 책 창은 창이 열리는 책(전자책 있음)만, 분야는 그 책의 분야 값(`전체` 목록에서 연 책도 그 책의 분야). 지역은 `RegionContext.setRegions`가 저장에 성공한 뒤(로그인 전 이 브라우저·뒤 계정), 내 도서관은 `MyLibraryContext`의 넣기·빼기가 저장된 뒤(이미 있으면 안 보냄, 서버가 거절하면 안 보냄). `mylibrary` 서버 코드는 고치지 않음
+- 더 보기 요청에 기록용 값: `batchStream`에 `usage`(scope·visit·지역·libraryIds), `fetchLibraryPage`에 그것과 `filter`
+- 시험: `usageEvents.test.ts`(꺼짐·켜짐·쿠키 없음·403 한 번 더·모름·실패), `libraryClicks.test.tsx`(여섯 자리·책 번호·새 탭·기본 동작 막지 않음·가운데 버튼), `PicksPage.test.tsx`·`regionSource.test.tsx`에 화면 행동(로그인 전후, 거절 시 안 보냄). `npm test` 391개, `npm run build`, `npm run lint`(경고 12개, main과 같음)
 
 ### 설계와 달라진 점 (사용자에게 알림)
 

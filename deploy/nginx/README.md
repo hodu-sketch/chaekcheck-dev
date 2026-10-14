@@ -7,7 +7,7 @@
 | `chaekcheck.conf` | 운영 예시. 80 → 443 이동, TLS, `root`(빌드 결과), 백엔드 주소. `TODO(확인 필요)`는 배포 때 채움 |
 | `chaekcheck-locations.conf` | 운영과 로컬 확인이 같이 쓰는 경로 규칙 |
 | `security-headers.conf` | 화면 파일 응답의 보안 헤더(CSP 포함). 고른 까닭은 파일 주석에 |
-| `rate-limits.conf` | 도서관을 부르는 API의 IP별 한도 영역(`limit_req_zone`, `limit_conn_zone`). http 단계에 둠 |
+| `rate-limits.conf` | 도서관을 부르는 API의 IP별 한도 영역(`limit_req_zone`, `limit_conn_zone`), 사용 알림 한도 영역(사이클 15, 분당 60), 로봇 이름 `map`(사이클 15). 모두 http 단계에 둠 |
 | `local-test.conf` | 로컬 확인용. HTTP 8088 |
 
 운영에서는 `chaekcheck.conf`를 nginx `conf.d`에, 나머지 세 파일을 `/etc/nginx/chaekcheck/`에 둡니다.
@@ -24,6 +24,9 @@
   - 동시 연결 [안]: IP마다 6개. 스트림은 30초 넘게 열려 있고 검색 화면은 스트림을 한두 개 엽니다.
   - 백엔드도 모든 사용자를 합쳐 동시에 도는 검색 수를 막습니다(`chaekcheck.availability.max-concurrent-searches`, 503 `server_busy`).
   - TODO(확인 필요): 배포 때 nginx 앞에 부하 분산기나 CDN이 있으면 `real_ip_header`·`set_real_ip_from`을 먼저 맞춰야 합니다. 안 그러면 모든 사용자가 한 주소로 보여 한도를 같이 씁니다.
+- 사용 알림 `POST /api/v1/usage-events`(사이클 15) [확정 한도]: IP마다 분당 60번, 한 번에 20번까지(`burst=20 nodelay` [안]). 넘으면 백엔드에 넘기지 않고 늘 같은 204(기록 안 됨)
+- 로봇 이름(사이클 15): User-Agent에 `bot`·`crawler`·`spider`(대소문자 무시)가 들면 도서관을 부르는 API에서 백엔드에 넘기기 전에 403. 화면 경로·책 목록 API는 막지 않음
+- `/robots.txt`(사이클 15, `web/public/robots.txt`): `Disallow: /api/`. `location /`이 `dist`의 파일로 내보냄
 - `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`, `/about`, `/my-libraries`, `/picks`, `/notices`, `/notices/{번호}` → `index.html`
 - `/assets/` → 이름에 해시가 든 빌드 파일. 1년 캐시
 - 그 밖 → `dist`에 있는 파일만, 없으면 404

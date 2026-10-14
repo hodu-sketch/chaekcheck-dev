@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ApiError, fetchPicks } from '../../api/client'
+import { sendUsageEvent } from '../../api/usageEvents'
 import type { PickBook, Picks } from '../../api/types'
 import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
@@ -281,6 +282,15 @@ export function PicksPage() {
   }, [])
   const currentCode = categories.some((c) => c.code === current) ? current : (categories[0]?.code ?? '')
 
+  // One usage report each time another field comes to the middle of the screen, the first one included; never again
+  // for the same field while it stays there (cycle 15)
+  const reportedCode = useRef('')
+  useEffect(() => {
+    if (!currentCode || reportedCode.current === currentCode) return
+    reportedCode.current = currentCode
+    sendUsageEvent({ type: 'picks_list_view', category: currentCode })
+  }, [currentCode])
+
   // S13c: that field's books 1-9, the page put straight there with no smooth scrolling (user 2026-10-11)
   const jump = (code: string) => {
     setPages((before) => ({ ...before, [code]: 0 }))
@@ -292,6 +302,10 @@ export function PicksPage() {
   const pick = (book: PickBook) => {
     savePosition({ scrollY: window.scrollY })
     setSelected(book)
+    // the book window opens only for a book with an e-book in my libraries (cycle 15 usage report)
+    if (book.available && book.bookId != null) {
+      sendUsageEvent({ type: 'picks_book_view', category: book.category, bookId: book.bookId })
+    }
   }
   // [책 검색 >>] (AC-9, AC-20): from a phone window's own history entry the book screen replaces that entry, so back
   // comes to this screen, not to the closed window

@@ -1,6 +1,8 @@
 import { Popover } from 'radix-ui'
 import type { JoinSurvey, TargetLibrary } from '../../api/types'
+import type { ClickScreen } from '../../api/usageEvents'
 import { LibraryLogo } from '../../components/LibraryLogo'
+import { libraryClick } from '../../lib/libraryClick'
 import { classificationText } from '../../lib/libraryClassification'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
@@ -17,6 +19,8 @@ interface Props {
   row: Row
   library: TargetLibrary | undefined
   searchUrl: string | undefined
+  /** The screen showing this line, for the usage report of its links (cycle 15); none sends nothing. */
+  screen?: ClickScreen
 }
 
 /**
@@ -24,8 +28,11 @@ interface Props {
  * link. No description or cover. The state comes from the row's availability only (ADR-0019). No "구독형" tag by the
  * library name: the state already says "구독형 · 바로 대출" (user request 2026-10-05).
  */
-export function ResultRow({ row, library, searchUrl }: Props) {
+export function ResultRow({ row, library, searchUrl, screen }: Props) {
   const phone = useMediaQuery('(width <= 640px)')
+  // a direct search has no book of ours; every other screen sends the row's book (spec R2-2)
+  const click = screen ? { screen, bookId: screen === 'direct_results' ? undefined : row.bookId } : undefined
+  const report = (place: Parameters<typeof libraryClick>[1]) => libraryClick(row.libraryId, place, click)
   // the book's own page; the library search page only when the site gave no book link
   const href = safeHttpUrl(row.detailUrl) ?? safeHttpUrl(searchUrl)
   // an extra condition (e.g. 책이음) next to a matching region is only extra text (AC-12, user decision 2026-09-29)
@@ -61,7 +68,13 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       )}
       {homepageUrl && (
         <p className={styles.join}>
-          <a className={styles.joinLink} href={homepageUrl} target="_blank" rel="noopener noreferrer">
+          <a
+            className={styles.joinLink}
+            href={homepageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            {...report('home_page')}
+          >
             도서관 첫 화면
             <span className="visually-hidden"> (새 창)</span>
           </a>
@@ -95,7 +108,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       <p className={styles.join}>
         가입:{' '}
         {joinUrl ? (
-          <a className={styles.joinLink} href={joinUrl} target="_blank" rel="noopener noreferrer">
+          <a className={styles.joinLink} href={joinUrl} target="_blank" rel="noopener noreferrer" {...report('join_link')}>
             {joinMethod}
             <span className="visually-hidden"> (새 창)</span>
           </a>
@@ -105,7 +118,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       </p>
       {siteUrl && (
         <p className={styles.join}>
-          <a className={styles.joinLink} href={siteUrl} target="_blank" rel="noopener noreferrer">
+          <a className={styles.joinLink} href={siteUrl} target="_blank" rel="noopener noreferrer" {...report('join_guide')}>
             전자도서관에서 가입 안내 보기
             <span className="visually-hidden"> (새 창)</span>
           </a>
@@ -128,7 +141,14 @@ export function ResultRow({ row, library, searchUrl }: Props) {
       <div className={styles.library}>
         {/* the logo on its own line above the name (user request 2026-10-05); it opens the library's main page */}
         <div className={styles.logoLine}>
-          <LibraryLogo name={libraryName} logoUrl={library?.logoUrl} homepageUrl={library?.homepageUrl} size={20} />
+          <LibraryLogo
+            name={libraryName}
+            logoUrl={library?.logoUrl}
+            homepageUrl={library?.homepageUrl}
+            size={20}
+            libraryId={row.libraryId}
+            click={click}
+          />
         </div>
         <p className={styles.libraryName}>
           {/* the library name opens the join details on every width (user requests 2026-10-05; U-12 before) */}
@@ -183,7 +203,7 @@ export function ResultRow({ row, library, searchUrl }: Props) {
         the library name and the subscription state stay above it and open their own notes.
       */}
       {href && (
-        <a className={styles.cardLink} href={href} target="_blank" rel="noopener noreferrer">
+        <a className={styles.cardLink} href={href} target="_blank" rel="noopener noreferrer" {...report('result_card')}>
           <span className="visually-hidden">
             {libraryName}에서 보기 (새 창)
           </span>

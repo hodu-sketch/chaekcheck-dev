@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -36,6 +37,8 @@ import com.chaekcheck.usagelog.internal.write.UsageLogWriter;
  * flush is pushed out of the way; the tests flush by hand.
  */
 @SpringBootTest(properties = { "chaekcheck.usagelog.enabled=true", "chaekcheck.usagelog.flush-interval=1h" })
+// the same context as the other logging-on classes (CatalogUsageLogTests, UsageEventApiTests): db-test has 100 connections
+@AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class UsageLogWriteTests {
 

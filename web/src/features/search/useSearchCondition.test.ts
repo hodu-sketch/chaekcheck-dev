@@ -112,10 +112,12 @@ describe('useSearch with a search condition', () => {
     await waitFor(() => expect(result.current.state.phase).toBe('done'))
 
     await act(async () => result.current.loadLibraryMore(1))
-    expect(fetchLibraryPage).toHaveBeenCalledWith(1, 'author', '김달', 2)
+    // cycle 15: the search's own values ride along for the usage log only
+    const usage = { scope: 'all', visit: 'any', residenceRegionIds: [], workRegionIds: [], libraryIds: [] }
+    expect(fetchLibraryPage).toHaveBeenCalledWith(1, 'author', '김달', 2, { ...usage, filter: 'all' })
 
     act(() => result.current.loadNextBatch())
-    expect(vi.mocked(batchStream).mock.calls[0][0]).toMatchObject({ field: 'author', query: '김달', batchNo: 3 })
+    expect(vi.mocked(batchStream).mock.calls[0][0]).toMatchObject({ field: 'author', query: '김달', batchNo: 3, usage })
   })
 
   it('a new condition drops every batch and starts again from batch 1 (AC-5)', async () => {

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchMe, logout, onSignedOut } from '../../api/auth'
+import { setUsageLoginFeature } from '../../api/usageEvents'
 import type { Me } from '../../api/types'
 
 /**
@@ -48,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void reload()
     return () => onSignedOut(null)
   }, [reload])
+
+  useEffect(() => {
+    // Usage reports carry the CSRF token only when the login feature is on (cycle 15)
+    if (state.status !== 'checking') setUsageLoginFeature(state.status === 'off' ? 'off' : 'on')
+  }, [state.status])
 
   const signOut = useCallback(async () => {
     await logout()

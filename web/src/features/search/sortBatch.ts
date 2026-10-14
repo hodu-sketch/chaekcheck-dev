@@ -8,6 +8,8 @@ export interface ResultRow extends LibraryItem {
   failed?: boolean
   /** The holding left the library's list at the last import (`holding_not_found`, ADR-0070): its own text. */
   gone?: boolean
+  /** The book of a holding row (catalog search, book page, picks); none on a direct search (cycle 15 usage log). */
+  bookId?: number
 }
 
 export interface SortContext {

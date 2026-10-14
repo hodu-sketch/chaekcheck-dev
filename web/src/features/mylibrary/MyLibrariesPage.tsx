@@ -245,12 +245,22 @@ function RegionField({ kind, regions, rows }: { kind: string; regions: string; r
   )
 }
 
+/** Logo clicks here are reported without a book (cycle 15). */
+const MY_LIBRARIES = { screen: 'my_libraries' } as const
+
 function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) {
   return (
     <ul id={id} className={styles.names}>
       {rows.map((row) => (
         <li key={row.id} className={styles.named}>
-          <LibraryLogo name={row.name} logoUrl={row.logoUrl} homepageUrl={row.homepageUrl} size={24} />
+          <LibraryLogo
+            name={row.name}
+            logoUrl={row.logoUrl}
+            homepageUrl={row.homepageUrl}
+            size={24}
+            libraryId={row.id}
+            click={MY_LIBRARIES}
+          />
           <ClassifiedName row={row} />
         </li>
       ))}
@@ -265,7 +275,14 @@ function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) 
 function LibraryName({ row, fallback }: { row: LibraryEligibilityRow | undefined; fallback: string }) {
   return (
     <span className={`${styles.name} ${styles.named}`}>
-      <LibraryLogo name={row?.name ?? fallback} logoUrl={row?.logoUrl} homepageUrl={row?.homepageUrl} size={24} />
+      <LibraryLogo
+        name={row?.name ?? fallback}
+        logoUrl={row?.logoUrl}
+        homepageUrl={row?.homepageUrl}
+        size={24}
+        libraryId={row?.id}
+        click={MY_LIBRARIES}
+      />
       {row ? <ClassifiedName row={row} /> : <span>{fallback}</span>}
     </span>
   )

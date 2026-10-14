@@ -1,4 +1,4 @@
-import { conditionParam, readProblem } from './client'
+import { addUsageValues, conditionParam, readProblem, type UsageSearchValues } from './client'
 import { SseParser } from './sseParser'
 import type {
   HoldingStreamEvent,
@@ -28,6 +28,8 @@ export interface BatchStreamParams {
   batchNo: number
   /** In request order; at most K (server limit). */
   candidates: Array<{ libraryId: number; page: number }>
+  /** The search this batch belongs to, sent only for the usage log (cycle 15); the server does not search with it. */
+  usage?: UsageSearchValues
 }
 
 const EVENT_NAMES = new Set([
@@ -70,6 +72,7 @@ export function batchStream(
     batchNo: String(params.batchNo),
     candidates: params.candidates.map((c) => `${c.libraryId}:${c.page}`).join(','),
   })
+  addUsageValues(search, params.usage)
   return readStream(`/api/v1/ebook-searches/batches/stream?${search}`, EVENT_NAMES, onEvent, signal)
 }
 

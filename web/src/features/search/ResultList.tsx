@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ToggleGroup } from 'radix-ui'
 import type { ResultFilter, TargetLibrary } from '../../api/types'
+import type { ClickScreen } from '../../api/usageEvents'
 import { BatchSection } from './BatchSection'
 import { BLOCKED_TEXT, type Blocked } from './blocked'
 import type { Batch } from './rowVerdict'
@@ -39,6 +40,8 @@ interface Props {
   hideFilter?: boolean
   /** Shown at the right end of the filter line: the sort (user request 2026-10-05). */
   toolbarEnd?: ReactNode
+  /** The screen, for the usage report of the result links (cycle 15). */
+  screen?: ClickScreen
 }
 
 /**
@@ -62,6 +65,7 @@ export function ResultList({
   finishedText,
   hideFilter,
   toolbarEnd,
+  screen,
 }: Props) {
   const libraryById = new Map(libraries.map((l) => [l.id, l]))
 
@@ -104,6 +108,7 @@ export function ResultList({
           first={index === 0}
           libraryById={libraryById}
           searchUrls={searchUrls}
+          screen={screen}
         />
       ))}
 

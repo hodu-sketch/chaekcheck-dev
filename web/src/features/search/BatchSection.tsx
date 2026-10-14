@@ -1,4 +1,5 @@
 import type { ResultFilter, TargetLibrary } from '../../api/types'
+import type { ClickScreen } from '../../api/usageEvents'
 import { ResultRow } from './ResultRow'
 import type { Batch } from './rowVerdict'
 import type { ResultRow as Row, SortedBatch } from './sortBatch'
@@ -15,13 +16,24 @@ interface Props {
   first: boolean
   libraryById: ReadonlyMap<number, TargetLibrary>
   searchUrls: ReadonlyMap<number, string>
+  screen?: ClickScreen
 }
 
 /**
  * One batch: a divider from the second batch on, then "지금 빌릴 수 있어요", "예약하고 기다려요" and the rows still
  * being checked ("대출 정보 조회 중"). Rows move between sections only within this batch.
  */
-export function BatchSection({ batch, sorted, filter, answeredSoFar, moreToCome, first, libraryById, searchUrls }: Props) {
+export function BatchSection({
+  batch,
+  sorted,
+  filter,
+  answeredSoFar,
+  moreToCome,
+  first,
+  libraryById,
+  searchUrls,
+  screen,
+}: Props) {
   const idPrefix = `batch-${batch.batchNo}`
   const shown = sorted.available.length + sorted.reserve.length + sorted.pending.length
   const libraries = new Set(batch.requestedLibraries).size
@@ -30,7 +42,12 @@ export function BatchSection({ batch, sorted, filter, answeredSoFar, moreToCome,
     <ol className={styles.rows}>
       {rows.map((row) => (
         <li key={`${row.libraryId}-${row.page}-${row.rank}`}>
-          <ResultRow row={row} library={libraryById.get(row.libraryId)} searchUrl={searchUrls.get(row.libraryId)} />
+          <ResultRow
+            row={row}
+            library={libraryById.get(row.libraryId)}
+            searchUrl={searchUrls.get(row.libraryId)}
+            screen={screen}
+          />
         </li>
       ))}
     </ol>

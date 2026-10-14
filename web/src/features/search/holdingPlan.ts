@@ -126,7 +126,7 @@ function onEvent(
 
 /** One row = one book at one library; `page` carries the book and `rank` the holding so keys stay unique. */
 export function holdingRow(item: LibraryItem, holdingId: number, bookId: number, libraryId: number): ResultRow {
-  return { ...item, libraryId, page: bookId, rank: holdingId }
+  return { ...item, libraryId, page: bookId, rank: holdingId, bookId }
 }
 
 function failedRow(
@@ -140,6 +140,7 @@ function failedRow(
     libraryId,
     page: bookId,
     rank: holdingId,
+    bookId,
     title: book?.title ?? '',
     author: book?.authorDisplay ?? null,
     publisher: book?.publisher ?? null,

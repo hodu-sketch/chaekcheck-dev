@@ -13,6 +13,7 @@ import type {
   Picks,
   Problem,
   RegionResolution,
+  ResultFilter,
   SearchField,
   SidoNode,
   SiteContentNotFound,
@@ -70,13 +71,36 @@ export function conditionParam(field: SearchField, text: string): Record<string,
   return { [field]: text }
 }
 
+/** Where the search looked: extra values on "more" requests so the usage log row tells which search it was. */
+export interface UsageSearchValues {
+  scope: LibraryScope
+  visit: VisitFilter
+  residenceRegionIds: number[]
+  workRegionIds: number[]
+  libraryIds: number[]
+}
+
+/** Adds the usage values; empty lists are left out like on the first stream. */
+export function addUsageValues(search: URLSearchParams, usage: UsageSearchValues | undefined): void {
+  if (!usage) return
+  search.set('scope', usage.scope)
+  search.set('visit', usage.visit)
+  if (usage.libraryIds.length) search.set('libraryIds', usage.libraryIds.join(','))
+  if (usage.residenceRegionIds.length) search.set('residenceRegionIds', usage.residenceRegionIds.join(','))
+  if (usage.workRegionIds.length) search.set('workRegionIds', usage.workRegionIds.join(','))
+}
+
+/** @param usage the search this page belongs to, with its filter: sent only for the usage log (cycle 15) */
 export function fetchLibraryPage(
   libraryId: number,
   field: SearchField,
   query: string,
   page: number,
+  usage?: UsageSearchValues & { filter: ResultFilter },
 ): Promise<LibraryPage> {
   const params = new URLSearchParams({ ...conditionParam(field, query), page: String(page) })
+  if (usage) params.set('filter', usage.filter)
+  addUsageValues(params, usage)
   return getJson(`/api/v1/availability/libraries/${libraryId}/ebooks?${params}`)
 }
 

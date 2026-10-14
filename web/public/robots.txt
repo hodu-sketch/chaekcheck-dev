@@ -1,0 +1,3 @@
+# Search engines may read the screens, never the API (cycle 15, spec R1-5).
+User-agent: *
+Disallow: /api/

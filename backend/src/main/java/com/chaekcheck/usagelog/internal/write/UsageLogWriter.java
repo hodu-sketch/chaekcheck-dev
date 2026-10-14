@@ -21,7 +21,8 @@ import com.chaekcheck.usagelog.internal.buffer.UsageRow;
 /**
  * Writes one batch in one transaction with asynchronous commit (ADR-0097): {@code SET LOCAL synchronous_commit TO
  * OFF}, one {@code batchUpdate} per table, the library answers as an upsert that adds to the day's line. Only this
- * transaction commits asynchronously; a crash may lose its last moments, which a usage log can afford.
+ * transaction commits asynchronously; a crash may lose its last moments, which a usage log can afford. PostgreSQL
+ * text refuses the NUL character, so it is taken out of every text value; one such value would fail the whole batch.
  */
 public class UsageLogWriter {
 
@@ -104,11 +105,11 @@ public class UsageLogWriter {
 			jdbc.execute("SET LOCAL synchronous_commit TO OFF");
 			batch(INSERT_SEARCH, searches, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
-				ps.setString(i++, r.kind());
+				ps.setString(i++, text(r.kind()));
 				i = conditions(ps, i, r.conditions());
 				setInteger(ps, i++, r.resultCount());
-				ps.setString(i++, r.loginStatus());
-				ps.setString(i, r.clientIp());
+				ps.setString(i++, text(r.loginStatus()));
+				ps.setString(i, text(r.clientIp()));
 			});
 			batch(INSERT_BOOK_VIEW, views, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
@@ -116,50 +117,50 @@ public class UsageLogWriter {
 				ps.setArray(i++, bigints(ps, r.residenceRegionIds()));
 				ps.setArray(i++, bigints(ps, r.workRegionIds()));
 				ps.setArray(i++, bigints(ps, r.libraryIds()));
-				ps.setString(i++, r.loginStatus());
-				ps.setString(i, r.clientIp());
+				ps.setString(i++, text(r.loginStatus()));
+				ps.setString(i, text(r.clientIp()));
 			});
 			batch(INSERT_MORE, mores, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
-				ps.setString(i++, r.kind());
+				ps.setString(i++, text(r.kind()));
 				ps.setInt(i++, r.seq());
 				setLong(ps, i++, r.libraryId());
 				i = conditions(ps, i, r.conditions());
-				ps.setString(i++, r.loginStatus());
-				ps.setString(i, r.clientIp());
+				ps.setString(i++, text(r.loginStatus()));
+				ps.setString(i, text(r.clientIp()));
 			});
 			batch(INSERT_CLICK, clicks, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
 				ps.setLong(i++, r.libraryId());
-				ps.setString(i++, r.place());
-				ps.setString(i++, r.screen());
+				ps.setString(i++, text(r.place()));
+				ps.setString(i++, text(r.screen()));
 				setLong(ps, i++, r.bookId());
-				ps.setString(i++, r.loginStatus());
-				ps.setString(i, r.clientIp());
+				ps.setString(i++, text(r.loginStatus()));
+				ps.setString(i, text(r.clientIp()));
 			});
 			batch(INSERT_SCREEN, screens, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
-				ps.setString(i++, r.kind());
-				ps.setString(i++, r.picksCategory());
+				ps.setString(i++, text(r.kind()));
+				ps.setString(i++, text(r.picksCategory()));
 				setLong(ps, i++, r.bookId());
 				ps.setArray(i++, r.residenceRegionIds() == null ? null : bigints(ps, r.residenceRegionIds()));
 				ps.setArray(i++, r.workRegionIds() == null ? null : bigints(ps, r.workRegionIds()));
 				setLong(ps, i++, r.libraryId());
-				ps.setString(i++, r.loginStatus());
-				ps.setString(i, r.clientIp());
+				ps.setString(i++, text(r.loginStatus()));
+				ps.setString(i, text(r.clientIp()));
 			});
 			batch(INSERT_REJECTED, rejected, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
-				ps.setString(i++, r.clientIp());
-				ps.setString(i++, r.reason());
-				ps.setString(i, r.rawValues());
+				ps.setString(i++, text(r.clientIp()));
+				ps.setString(i++, text(r.reason()));
+				ps.setString(i, text(r.rawValues()));
 			});
 			batch(UPSERT_RESPONSE, answers, (ps, e) -> {
 				ResponseKey key = e.getKey();
 				ResponseTotals t = e.getValue();
 				ps.setObject(1, key.day());
 				ps.setLong(2, key.libraryId());
-				ps.setString(3, key.source().name().toLowerCase(java.util.Locale.ROOT));
+				ps.setString(3, text(key.source().name().toLowerCase(java.util.Locale.ROOT)));
 				ps.setInt(4, t.ok());
 				ps.setInt(5, t.failed());
 				ps.setInt(6, t.timeout());
@@ -170,7 +171,7 @@ public class UsageLogWriter {
 			batch(INSERT_DROPPED, dropped, (ps, d) -> {
 				time(ps, 1, d.droppedAt());
 				ps.setInt(2, (int) Math.min(d.rowCount(), Integer.MAX_VALUE));
-				ps.setString(3, d.reason());
+				ps.setString(3, text(d.reason()));
 			});
 		});
 	}
@@ -189,6 +190,10 @@ public class UsageLogWriter {
 		jdbc.batchUpdate(sql, rows, rows.size(), setter::set);
 	}
 
+	private static String text(String value) {
+		return value == null || value.indexOf('\u0000') < 0 ? value : value.replace("\u0000", "");
+	}
+
 	private static int time(PreparedStatement ps, int index, Instant at) throws SQLException {
 		ps.setTimestamp(index, Timestamp.from(at));
 		return index + 1;
@@ -197,15 +202,15 @@ public class UsageLogWriter {
 	/** title ... library_ids: twelve parameters in table order. */
 	private static int conditions(PreparedStatement ps, int index, SearchConditions c) throws SQLException {
 		int i = index;
-		ps.setString(i++, c.title());
-		ps.setString(i++, c.author());
-		ps.setString(i++, c.publisher());
+		ps.setString(i++, text(c.title()));
+		ps.setString(i++, text(c.author()));
+		ps.setString(i++, text(c.publisher()));
 		ps.setArray(i++, c.exact() == null ? null : texts(ps, c.exact()));
 		ps.setArray(i++, c.roles() == null ? null : texts(ps, c.roles()));
-		ps.setString(i++, c.sort());
-		ps.setString(i++, c.filter());
-		ps.setString(i++, c.scope());
-		ps.setString(i++, c.visit());
+		ps.setString(i++, text(c.sort()));
+		ps.setString(i++, text(c.filter()));
+		ps.setString(i++, text(c.scope()));
+		ps.setString(i++, text(c.visit()));
 		ps.setArray(i++, bigints(ps, c.residenceRegionIds()));
 		ps.setArray(i++, bigints(ps, c.workRegionIds()));
 		ps.setArray(i++, bigints(ps, c.libraryIds()));
@@ -217,7 +222,7 @@ public class UsageLogWriter {
 	}
 
 	private static Array texts(PreparedStatement ps, List<String> values) throws SQLException {
-		return ps.getConnection().createArrayOf("text", values.toArray());
+		return ps.getConnection().createArrayOf("text", values.stream().map(UsageLogWriter::text).toArray());
 	}
 
 	private static void setLong(PreparedStatement ps, int index, Long value) throws SQLException {

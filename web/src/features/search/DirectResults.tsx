@@ -142,6 +142,7 @@ export function DirectResults({
             !firstBatchWaiting &&
             !noTargets && (
               <ResultList
+          screen="direct_results"
                 batches={view.batches}
                 filter={filter}
                 onFilterChange={onFilterChange}

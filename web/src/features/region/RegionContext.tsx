@@ -1,4 +1,5 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { sendUsageEvent } from '../../api/usageEvents'
 import { useOptionalAuth } from '../auth/AuthContext'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import type { RegionNotice } from './applyResolutions'
@@ -118,9 +119,11 @@ export function RegionProvider({ children }: { children: ReactNode }) {
         savedKey.current = regionsKey(saved)
         setRegionsState(saved)
         setReady(true)
+        reportRegions(saved)
       } else {
         if (source === 'browser') saveRegions(next)
         setRegionsState(next)
+        reportRegions(next)
       }
       setNotices([])
     },
@@ -149,6 +152,11 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     [regions, libraryIds, source, current, notices, setRegions, resolveStoredRegions],
   )
   return <RegionContext value={value}>{children}</RegionContext>
+}
+
+/** Usage report of a saved region choice, before and after login alike (cycle 15). */
+function reportRegions(regions: StoredRegions): void {
+  sendUsageEvent({ type: 'region_change', residenceRegionIds: regions.residence, workRegionIds: regions.work })
 }
 
 export function useRegions(): RegionContextValue {

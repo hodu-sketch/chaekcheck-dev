@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import { ApiError, fetchLibraryPage } from '../../api/client'
 import { batchStream, searchStream } from '../../api/searchStream'
 import type {
@@ -275,6 +275,19 @@ export function useSearch({
     return () => controller.abort()
   }, [field, query, filter, scope, visit, residenceKey, workKey, libraryKey, regionsReady, resolveStoredRegions])
 
+  // The search's own scope, visit, regions and libraries, sent with "more" only for the usage log (cycle 15). A change
+  // of any of them starts a new search, so the current values are those of the search on screen.
+  const usage = useMemo(
+    () => ({
+      scope,
+      visit,
+      residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
+      workRegionIds: workKey ? workKey.split(',').map(Number) : [],
+      libraryIds: libraryKey ? libraryKey.split(',').map(Number) : [],
+    }),
+    [scope, visit, residenceKey, workKey, libraryKey],
+  )
+
   /** 목록 맨 아래 "더 보기": the next libraries in plan order, or the next pages once every library was asked. */
   const loadNextBatch = useCallback(() => {
     if (state.phase === 'streaming' || !state.query) return
@@ -285,13 +298,13 @@ export function useSearch({
     batchController.current = controller
     dispatch({ type: 'batch-start', batchNo })
     batchStream(
-      { field: state.field, query: state.query, filter: state.filter, batchNo, candidates },
+      { field: state.field, query: state.query, filter: state.filter, batchNo, candidates, usage },
       (event) => dispatch({ type: 'event', batchNo, event }),
       controller.signal,
     ).catch((error: unknown) => {
       if (!controller.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: blockedBy(error) })
     })
-  }, [state])
+  }, [state, usage])
 
   /** A library's own "더 보기": its next page, added at the bottom as a new batch. */
   const loadLibraryMore = useCallback(
@@ -301,13 +314,16 @@ export function useSearch({
       if (!library || !entry || library.more === 'loading' || entry.status !== 'HasMore') return
       dispatch({ type: 'more-start', libraryId })
       try {
-        const page = await fetchLibraryPage(libraryId, state.field, state.query, entry.nextPage)
+        const page = await fetchLibraryPage(libraryId, state.field, state.query, entry.nextPage, {
+          ...usage,
+          filter: state.filter,
+        })
         dispatch({ type: 'more-done', page })
       } catch (error) {
         dispatch({ type: 'more-failed', libraryId, blocked: blockedBy(error) })
       }
     },
-    [state.libraries, state.plan, state.field, state.query],
+    [state.libraries, state.plan, state.field, state.query, state.filter, usage],
   )
 
   return { state, loadNextBatch, loadLibraryMore }

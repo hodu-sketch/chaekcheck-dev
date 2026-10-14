@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { libraryClick, type ClickContext } from '../lib/libraryClick'
 import { safeHttpUrl } from '../lib/safeUrl'
 import styles from './LibraryLogo.module.css'
 
@@ -10,6 +11,9 @@ interface Props {
   homepageUrl: string | null | undefined
   /** shown height in px: about 20 on result cards, 24 on 내 도서관 (cycle 07 flow) */
   size: 20 | 24
+  /** For the usage report of a click (cycle 15): the library and where the logo is shown; none sends nothing. */
+  libraryId?: number
+  click?: ClickContext
 }
 
 /** Only our own logo files are shown (ADR-0059); anything else is treated as no logo. */
@@ -22,7 +26,7 @@ function ownLogo(url: string | null | undefined): string | undefined {
  * (user request 2026-10-05: no empty box). Clicking opens the library's main page in a new tab; on a result card it sits above the card
  * link, so it never opens the book.
  */
-export function LibraryLogo({ name, logoUrl, homepageUrl, size }: Props) {
+export function LibraryLogo({ name, logoUrl, homepageUrl, size, libraryId, click }: Props) {
   const [failed, setFailed] = useState(false)
   const src = failed ? undefined : ownLogo(logoUrl)
   const href = safeHttpUrl(homepageUrl)
@@ -32,7 +36,13 @@ export function LibraryLogo({ name, logoUrl, homepageUrl, size }: Props) {
   )
   if (!href) return <span className={styles.wrap}>{picture}</span>
   return (
-    <a className={`${styles.wrap} ${styles.link}`} href={href} target="_blank" rel="noopener noreferrer">
+    <a
+      className={`${styles.wrap} ${styles.link}`}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      {...libraryClick(libraryId, 'logo', click)}
+    >
       {picture}
       <span className="visually-hidden"> 홈페이지 (새 창)</span>
     </a>
