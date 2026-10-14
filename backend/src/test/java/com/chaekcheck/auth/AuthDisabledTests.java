@@ -2,12 +2,15 @@ package com.chaekcheck.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.servlet.http.Cookie;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
@@ -30,6 +33,14 @@ class AuthDisabledTests {
 	void hasNoSecurityFilterChain() {
 		assertThat(context.getBeanNamesForType(SecurityFilterChain.class)).isEmpty();
 		assertThat(context.containsBean("springSecurityFilterChain")).isFalse();
+	}
+
+	@Test
+	void loginStatusIsLoginOffWithoutReadingTheCookie() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setCookies(new Cookie("access_token", "anything"));
+
+		assertThat(context.getBean(LoginStatusReader.class).read(request)).isEqualTo(LoginStatus.LOGIN_OFF);
 	}
 
 	@Test

@@ -188,6 +188,16 @@ class AuthEnabledSecurityTests {
 	}
 
 	@Test
+	void searchWithExpiredLoginCookieStillAnswers() {
+		// Cycle 15: the cookie now goes with every /api/v1 request, but it is read as a login only on /api/v1/me
+		long account = newAccount();
+		String expired = token(account, JWSAlgorithm.HS256, KEY, inMinutes(-5));
+
+		assertThat(mvc.get().uri("/api/v1/books?title=채식주의자").cookie(new Cookie("access_token", expired)))
+			.hasStatusOk();
+	}
+
+	@Test
 	void existingStreamIgnoresBrokenTokens() {
 		// A book id with no holdings: the stream starts and ends without calling any library
 		assertThat(mvc.get()

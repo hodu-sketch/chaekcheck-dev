@@ -144,7 +144,7 @@ class LoginCallbackTests {
 		assertThat(callback).hasStatus(HttpStatus.FOUND)
 			.hasHeader(HttpHeaders.LOCATION, "/auth/complete?result=login_success");
 		assertThat(callback.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
-			.anyMatch(c -> c.startsWith("access_token=") && c.contains("Path=/api/v1/me"))
+			.anyMatch(c -> c.startsWith("access_token=") && c.contains("Path=/api/v1;"))
 			.anyMatch(c -> c.startsWith("refresh_token=") && c.contains("Path=/api/v1/auth"));
 		assertThat(lastLogin(account)).isAfter(before);
 		assertThat(session.getAttribute(PendingSignup.SESSION_ATTRIBUTE)).isNull();

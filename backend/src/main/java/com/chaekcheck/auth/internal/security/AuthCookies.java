@@ -5,8 +5,12 @@ public final class AuthCookies {
 
 	public static final String ACCESS_TOKEN = "access_token";
 
-	/** The access token is sent only to the account API. */
-	public static final String ACCESS_TOKEN_PATH = "/api/v1/me";
+	/**
+	 * The access token goes with every API request (ADR-0102). Only the account API reads it as a login; the usage log
+	 * only checks its signature ({@code LoginStatusReader}). Cookies on the old path {@code /api/v1/me} are not cleared:
+	 * they expire within 15 minutes.
+	 */
+	public static final String ACCESS_TOKEN_PATH = "/api/v1";
 
 	public static final String REFRESH_TOKEN = "refresh_token";
 

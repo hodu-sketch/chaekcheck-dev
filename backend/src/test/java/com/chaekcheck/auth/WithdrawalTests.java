@@ -193,7 +193,7 @@ class WithdrawalTests {
 		assertThat(accountExists(account)).isFalse();
 		assertThat(session.getAttribute(ReauthenticationProof.SESSION_ATTRIBUTE)).isNull();
 		assertThat(result.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
-			.anyMatch(c -> c.startsWith("access_token=;") && c.contains("Path=/api/v1/me;") && c.contains("Max-Age=0"))
+			.anyMatch(c -> c.startsWith("access_token=;") && c.contains("Path=/api/v1;") && c.contains("Max-Age=0"))
 			.anyMatch(c -> c.startsWith("refresh_token=;") && c.contains("Path=/api/v1/auth;") && c.contains("Max-Age=0"));
 		// The other browser (AC-9)
 		assertThat(mvc.get().uri("/api/v1/me").cookie(new Cookie("access_token", otherBrowser.access().getValue())))

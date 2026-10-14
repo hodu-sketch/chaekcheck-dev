@@ -11,5 +11,10 @@
  * its public types (ADR-0048): {@code AccountId} (filled into controller parameters from the signed-in account),
  * {@code AccountDeleted}, {@code AccountPresence} (the account row lock, ADR-0051) and
  * {@code ConditionalOnAuthEnabled}.
+ * <p>
+ * Since cycle 15 {@code usagelog} also depends on it, only through {@code LoginStatusReader} and {@code LoginStatus}:
+ * whether a request comes from a signed-in browser, for the usage log only (ADR-0102). The {@code access_token} cookie
+ * path is {@code /api/v1} so that the cookie reaches the search APIs; it is still read as a login only on
+ * {@code /api/v1/me/**}.
  */
 package com.chaekcheck.auth;

@@ -63,7 +63,7 @@ class AuthTokenEndpointTests {
 		LoginCookies cookies = tokens.signIn(account);
 
 		assertThat(cookies.access().toString()).startsWith("access_token=")
-			.contains("Path=/api/v1/me", "Max-Age=900", "Secure", "HttpOnly", "SameSite=Lax")
+			.contains("Path=/api/v1;", "Max-Age=900", "Secure", "HttpOnly", "SameSite=Lax")
 			.doesNotContain("Domain");
 		assertThat(cookies.refresh().toString()).startsWith("refresh_token=")
 			.contains("Path=/api/v1/auth", "Secure", "HttpOnly", "SameSite=Lax")
@@ -149,6 +149,8 @@ class AuthTokenEndpointTests {
 
 		assertThat(result).hasStatus(HttpStatus.NO_CONTENT);
 		assertThat(rowCount(account)).isZero();
+		// Cycle 15 (ADR-0102): the access cookie lives on /api/v1 and is cleared there
+		assertThat(cookies.access().getPath()).isEqualTo("/api/v1");
 		assertClearedLike(result, cookies);
 	}
 
