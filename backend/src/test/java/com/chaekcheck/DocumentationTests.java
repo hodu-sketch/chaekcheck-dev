@@ -31,6 +31,7 @@ class DocumentationTests {
 		assertThat(Files.exists(docs.resolve("module-mylibrary.puml"))).isTrue();
 		assertThat(Files.exists(docs.resolve("module-picks.puml"))).isTrue();
 		assertThat(Files.exists(docs.resolve("module-sitecontent.puml"))).isTrue();
+		assertThat(Files.exists(docs.resolve("module-usagelog.puml"))).isTrue();
 	}
 
 }

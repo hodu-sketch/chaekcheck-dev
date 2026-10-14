@@ -216,3 +216,21 @@ chaekcheck:
     cache:
       # The shared cache of the picks is read again this often [확정 10m]
       refresh-interval: 10m
+  usagelog:
+    # Usage log (cycle 15, ADR-0096, ADR-0097). Off by default [확정]: off at the first deployment, switched on at the
+    # public opening day when the privacy policy says so (../.env or the environment: CHAEKCHECK_USAGELOG_ENABLED).
+    # Off records nothing; POST /api/v1/usage-events still answers 204.
+    enabled: ${CHAEKCHECK_USAGELOG_ENABLED:false}
+    # Rows waiting in memory at most [확정]; more are dropped and counted in usagelog.dropped_batch (buffer_full)
+    buffer-capacity: 10000
+    # One write (one transaction, asynchronous commit) this long after the previous one ended [확정]
+    flush-interval: 5s
+    # Failed batches remembered until a write succeeds; older ones are added to a newer note with the same reason
+    max-dropped-notes: 100
+    cleanup:
+      # IP cleared after 30 days, rejected_event after 30 days, the rest after one year [확정 04:30 Asia/Seoul]. Runs
+      # even when logging is off, so rows from a trial period still go. zone is also the day of library answers.
+      cron: "0 30 4 * * *"
+      zone: Asia/Seoul
+      # rows changed or deleted per statement
+      batch-size: 10000

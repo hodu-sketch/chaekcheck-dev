@@ -4186,3 +4186,56 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 | 날짜 고르기 칸이 폰에서 열리는 모양 | Samsung Internet: 아래에서 올라오는 라디오 목록 + "완료" |
 | 운영 SQL 초안이 실제로 도는지 | 1~6절 모두 기대대로. 고친 문장 없음, "줄 수를 보고 확정하기" 더함 |
 | 공개 전 값 | 공개일 2026-10-18(사용자). AWS 계약 법인·Cloudflare 연락처 등은 사이클 17 배포 때 |
+
+# 사이클 15
+
+사이클 15 사용자 행동 기록(`usagelog`). 인계서: plan `docs/current/handoff.md`(2026-10-14).
+
+## 시작 상태
+
+- 시작 커밋: main `b4cd153`(12·13·14 합친 뒤). 브랜치 `cycle-15-usage-log`
+- 작업 폴더·DB 묶음·포트(사용자 승인 2026-10-14 "이대로 (추천)"): 폴더 `../chaekcheck-dev-c15`, `docker compose -p chaekcheck-c15`, DB 5462·5463, 서버 8084, 웹 5178. 저장 공간 `chaekcheck-c15_db-data`(확인). 16은 다른 세션이 `../chaekcheck-dev-c16`, `-p chaekcheck-c16`, DB 5472·5473, 웹 5179로 개발 중. 18도 다른 세션이 개발 중(원래 폴더)
+- 사용자 발언: 이 세션 범위 "15만" (16은 다른 세션)
+- master 맨 끝 include: 시작 때 `# cycle 14` + `picks/001-picks-schema.yaml`(인계서와 같음). 15는 그 뒤에 `usagelog/001-usagelog-schema.yaml`
+- worktree 시험: `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck-c15,exec,-T,db-test`로 전체 빌드
+- 환경 주의: WSL은 마지막 프로세스가 끝나면 몇 초 뒤 꺼지고 컨테이너도 멈춤. 처음 auth 시험이 5463 연결 거부로 111개 실패 → `wsl -d Ubuntu -- sleep infinity`를 띄워 두고 다시 돌려 통과
+
+## 15 밖: 사이클 11 측정 데이터 정리 (2026-10-14)
+
+- 사용자 결정: "①②③ 모두 지움 (추천)", 남은 번호 파일은 설명을 들은 뒤 "① 지우고 ② 남김 (추천)"
+- 지운 것
+  - 도커 볼륨 `chaekcheck_db-ops-data` 10.14GB(멈춘 `chaekcheck-db-ops-1` 컨테이너도 지움). 안에 든 것은 사이클 13 9단계에서 다시 복사·apply한 상태였음(사용자에게 알림)
+  - `data/cycle11/m/` 4.96GB(측정 결과)
+  - `data/cycle11/export1.dump`·`export2.dump` 1.21GB
+  - `data/cycle11/ids-pc-next/`·`ids-ops-after/` 454MB(AC-2 번호 비교 파일, 결과는 사이클 11 절에 있음)
+  - 합계 약 16.8GB. 인계서의 "작업 폴더 둘"(`.claude/worktrees/`)은 이미 없었음
+- 남긴 것: `data/cycle13/`(580MB, 인계서대로), `data/cycle11/` 나머지 5.9MB(AC별 로그·스크립트·대시보드 파이썬·보고서)
+
+## 진행
+
+### 1단계 auth (커밋 `3a6604c`)
+
+- 쿠키 경로: `AuthCookies.ACCESS_TOKEN_PATH` `/api/v1/me` → `/api/v1`. 만드는 곳·지우는 곳(`TokenCookies.access`·`cleared`)이 같은 상수를 써서 로그아웃·탈퇴도 새 경로로 지움(시험 `Path=/api/v1;` 확인). 옛 경로 쿠키 지우는 코드 없음
+- `AccessTokenCookieResolver(PROTECTED)`는 그대로 `/api/v1/me/**`에서만 읽음. 만료 쿠키를 실은 `GET /api/v1/books` 200 시험 더함
+- 판별 부품: 공개 `auth/LoginStatusReader`(interface)·`auth/LoginStatus`(enum, `value()` = DB 값). 켜짐 `auth/internal/security/SignatureLoginStatusReader`: `NimbusJwtDecoder.withSecretKey(...).macAlgorithm(HS256)`에 `setJwtValidator(jwt -> success())`를 준 서명만 보는 디코더(로그인용 `jwtDecoder`는 그대로). 계정 존재는 보지 않음. 꺼짐 `auth/internal/LoginOffStatusReader`: 반대 조건 어노테이션은 새로 만들지 않고 `@ConditionalOnBooleanProperty(value = PROPERTY, havingValue = false, matchIfMissing = true)`를 직접 씀(auth 안에서만 쓰므로)
+- 시험: `LoginStatusReaderTests`(단위, 다섯 경우), `AuthDisabledTests`(쿠키 있어도 `LOGIN_OFF`), 로그인·갱신·탈퇴 시험의 경로 기대값 고침. auth 시험 133개, 전체 빌드 통과
+
+### 2·3단계 usagelog 뼈대·표·쓰기 경로
+
+- 표 여덟: `usagelog/001-usagelog-schema.yaml`, changeset id `usagelog-001-*`, 제약 이름 `<표>_<칸>_check`. `id` PK(`GENERATED ALWAYS AS IDENTITY`)와 BRIN을 둠, 부분 색인은 `(received_at) WHERE client_ip IS NOT NULL`(AC-16 측정에서 다시 봄)
+- 공개 API(이름 [안]): `UsageLog`(`capture`, `recordSearch(request, SearchKind, SearchConditions, Integer)`, `recordBookView`, `recordMore(request, MoreKind, seq, Long libraryId, SearchConditions)`, `recordLibraryResponse(libraryId, ResponseSource, ResponseResult, elapsedMs)`), `UsageRequest`(받은 시각·IP·로그인 상태 글자·`recorded`), `SearchConditions`(`catalog(...)`·`direct(...)`)
+- 안쪽: `internal/DefaultUsageLog`, `internal/RequestFacts`(로봇·IP), `internal/UsageLogProperties`, `internal/buffer/UsageBuffer`·`UsageRow`, `internal/write/UsageLogWriter`·`UsageLogFlusher`
+- 설정 키: `chaekcheck.usagelog.enabled`(`CHAEKCHECK_USAGELOG_ENABLED`, 기본 false, `.env.example`에 둠), `buffer-capacity` 10000, `flush-interval` 5s, `max-dropped-notes` 100, `cleanup.cron` `0 30 4 * * *`, `cleanup.zone` Asia/Seoul, `cleanup.batch-size` 10000. 시험 설정은 늘 꺼짐
+- 버퍼: `ArrayBlockingQueue`(1만), 넘치면 버리고 수를 셈 → 다음 쓰기 때 `dropped_batch` `buffer_full` 한 줄(비우기 한 번마다 한 줄). 도서관 응답은 `(day, libraryId, source)` 누적 맵(읽기·쓰기 잠금으로 비우기와 겹쳐도 수를 잃지 않음), 1만 상한 밖
+- 비우기 스레드: Spring 공용 예약 실행기가 아니라 **자기 단일 스레드**(`usagelog-flush`, `scheduleWithFixedDelay` 5s). 공용 `@Scheduled` 실행기는 Spring Boot 기본(스레드 1개)이고 따로 바꾼 설정이 없음(`spring.task` 없음). 그래서 5초 쓰기가 회원 정리·사서추천 받기와 서로 막지 않음
+- 실패: 그 묶음을 버림(도서관 응답 누적 포함). WARN 한 줄 `Usage log write failed, N rows dropped: <예외>`. 버린 기록은 메모리에 들고 있다가 다음 성공 때 `dropped_batch`(`db_failure`, 줄 수 = 줄 기록 + 도서관 응답 줄)로 넣음. 메모리 상한 100개, 넘치면 가장 오래된 것을 같은 이유의 다음 기록에 더함
+- 도서관 번호 확인: 비우기마다 사용 알림 줄이 있을 때만 `LibraryCatalog.enabledLibraryRefs()` 한 번
+- 종료: `SmartLifecycle` phase `DEFAULT_PHASE - 4096`(웹 서버 정상 종료 `-1024`, 시작·정지 `-2048`보다 늦게 멈춤). 시험에서 진짜 웹 서버를 켠 앱을 닫아 보니 로그 순서 "Commencing graceful shutdown → Graceful shutdown complete → (남은 기록 씀) → HikariPool Shutdown initiated"이고 줄이 남음(AC-15)
+- pgjdbc 실제 판: 42.7.13(`./gradlew dependencies`)
+- 배열은 `connection.createArrayOf("bigint"/"text", ...)`, IP는 `?::inet`. IP는 `X-Real-IP`가 IPv4·IPv6 글자일 때만(이름 조회 없음), 아니면 NULL
+
+### 설계와 달라진 점 (사용자에게 알림)
+
+1. **`exact` 칸 형식**: design-delta는 `exact boolean`이지만, 수집 목록 검색의 `exact`는 "정확히 찾을 칸 목록"(`title`·`author`·`publisher` 중 여럿)이라 참·거짓 하나로는 "받은 값"(spec R1-2)을 남길 수 없음. `exact text[]`(보내지 않으면 빈 배열)로 둠
+2. **`search_more`의 `scope`·`visit`은 NULL 가능**: 다음 묶음(`batches/stream`)은 검색어·`filter`만, 도서관별 더 보기는 검색어·`page`만 받음. 조건 칸 전부를 남기려고 웹이 이 두 요청에 `scope`·`visit`·지역·`libraryIds`(도서관별 더 보기는 `filter`도)를 **기록용 값으로 더 붙여 보내게** 함(서버 검색 동작은 그대로, 틀린 값은 검색을 막지 않고 기록에서 빈 값). 그래서 이 칸들이 빠질 수 있어 `search_more`에서만 NULL 허용
+3. CHECK를 더 둠 [안]: `scope IN ('all','joinable')`, `visit IN ('any','none')`, `filter IN ('all','available')`, `result_count >= 0`, `seq >= 1`, `book_id >= 1`, 수 칸 `>= 0`

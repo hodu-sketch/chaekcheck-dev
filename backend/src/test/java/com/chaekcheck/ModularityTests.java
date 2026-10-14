@@ -62,6 +62,17 @@ class ModularityTests {
 		assertThat(dependenciesOf("library")).doesNotContain("collection");
 	}
 
+	/**
+	 * Cycle 15 (ADR-0097, ADR-0102): usagelog uses library and auth only; catalog and availability call usagelog, so
+	 * the search modules still know nothing of auth (checked above), and usagelog uses neither of them (no cycle).
+	 */
+	@Test
+	void usagelogUsesLibraryAndAuthOnly() {
+		assertThat(dependenciesOf("usagelog")).containsExactlyInAnyOrder("library", "auth");
+		assertThat(dependenciesOf("auth")).doesNotContain("usagelog");
+		assertThat(dependenciesOf("library")).doesNotContain("usagelog");
+	}
+
 	private List<String> dependenciesOf(String module) {
 		ApplicationModule applicationModule = modules.getModuleByName(module).orElseThrow();
 		return applicationModule.getDirectDependencies(modules)

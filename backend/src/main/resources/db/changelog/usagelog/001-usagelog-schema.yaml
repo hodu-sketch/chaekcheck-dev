@@ -1,0 +1,270 @@
+# usagelog module (cycle 15; ADR-0096, ADR-0097, ADR-0102): what people search, open and click, and how each library
+# site answered, for deciding what to build next. Written in 5-second batches by the service, never read by it.
+# No member number, User-Agent or cookie value is stored (AC-12). client_ip is cleared after 30 days, rejected_event
+# rows are deleted after 30 days and everything else after one year (04:30 clean-up). No foreign key or join to other
+# schemas: library_id and book_id are plain numbers. No partitions (plan decision). BRIN on the time column of each
+# table for the clean-up and time-range reads; partial indexes on client_ip for the 30-day clearing [안: AC-16 check].
+# CHECK constraints and IDENTITY use sql changes (Liquibase OSS YAML has no CHECK).
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-001-schema
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: CREATE SCHEMA usagelog
+
+  - changeSet:
+      id: usagelog-001-search-event
+      author: chaekcheck
+      changes:
+        # One row per search: a catalog search's first page, or a direct search when its first batch is done (or the
+        # stream ended before it, result_count NULL). Conditions are the values the server read, after trimming.
+        # catalog: exact (fields searched exactly), roles, sort; direct: filter.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.search_event (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT search_event_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                kind text NOT NULL CONSTRAINT search_event_kind_check CHECK (kind IN ('catalog', 'direct')),
+                title text,
+                author text,
+                publisher text,
+                exact text[],
+                roles text[],
+                sort text,
+                filter text CONSTRAINT search_event_filter_check CHECK (filter IN ('all', 'available')),
+                scope text NOT NULL CONSTRAINT search_event_scope_check CHECK (scope IN ('all', 'joinable')),
+                visit text NOT NULL CONSTRAINT search_event_visit_check CHECK (visit IN ('any', 'none')),
+                residence_region_ids bigint[] NOT NULL DEFAULT '{}',
+                work_region_ids bigint[] NOT NULL DEFAULT '{}',
+                library_ids bigint[] NOT NULL DEFAULT '{}',
+                result_count integer CONSTRAINT search_event_result_count_check CHECK (result_count >= 0),
+                login_status text NOT NULL CONSTRAINT search_event_login_status_check
+                  CHECK (login_status IN ('signed_in', 'signed_out', 'login_off')),
+                client_ip inet,
+                CONSTRAINT search_event_condition_check
+                  CHECK (title IS NOT NULL OR author IS NOT NULL OR publisher IS NOT NULL),
+                CONSTRAINT search_event_kind_fields_check CHECK (
+                  (kind = 'catalog' AND exact IS NOT NULL AND roles IS NOT NULL AND sort IS NOT NULL AND filter IS NULL)
+                  OR (kind = 'direct' AND exact IS NULL AND roles IS NULL AND sort IS NULL AND filter IS NOT NULL))
+              )
+        - sql:
+            sql: CREATE INDEX search_event_received_at_brin ON usagelog.search_event USING brin (received_at)
+        - sql:
+            sql: >-
+              CREATE INDEX search_event_ip_received_at_idx ON usagelog.search_event (received_at)
+              WHERE client_ip IS NOT NULL
+
+  - changeSet:
+      id: usagelog-001-book-view
+      author: chaekcheck
+      changes:
+        # One row per book page answered (404 is not recorded). The holding fill on that page is not a view.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.book_view (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT book_view_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                book_id bigint NOT NULL,
+                residence_region_ids bigint[] NOT NULL DEFAULT '{}',
+                work_region_ids bigint[] NOT NULL DEFAULT '{}',
+                library_ids bigint[] NOT NULL DEFAULT '{}',
+                login_status text NOT NULL CONSTRAINT book_view_login_status_check
+                  CHECK (login_status IN ('signed_in', 'signed_out', 'login_off')),
+                client_ip inet
+              )
+        - sql:
+            sql: CREATE INDEX book_view_received_at_brin ON usagelog.book_view USING brin (received_at)
+        - sql:
+            sql: >-
+              CREATE INDEX book_view_ip_received_at_idx ON usagelog.book_view (received_at)
+              WHERE client_ip IS NOT NULL
+
+  - changeSet:
+      id: usagelog-001-search-more
+      author: chaekcheck
+      changes:
+        # "More" after a search, with the same condition columns so one row tells which search it was. seq: batch
+        # number (direct_next_batch), page (library_more, catalog_next_page). The next-batch and per-library requests
+        # carry only the search words and filter for the search itself; scope, visit, regions and libraries come from
+        # the web as extra values for this log, so they may be missing (NULL scope/visit, empty arrays).
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.search_more (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT search_more_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                kind text NOT NULL CONSTRAINT search_more_kind_check
+                  CHECK (kind IN ('direct_next_batch', 'library_more', 'catalog_next_page')),
+                seq integer NOT NULL CONSTRAINT search_more_seq_check CHECK (seq >= 1),
+                library_id bigint,
+                title text,
+                author text,
+                publisher text,
+                exact text[],
+                roles text[],
+                sort text,
+                filter text CONSTRAINT search_more_filter_check CHECK (filter IN ('all', 'available')),
+                scope text CONSTRAINT search_more_scope_check CHECK (scope IN ('all', 'joinable')),
+                visit text CONSTRAINT search_more_visit_check CHECK (visit IN ('any', 'none')),
+                residence_region_ids bigint[] NOT NULL DEFAULT '{}',
+                work_region_ids bigint[] NOT NULL DEFAULT '{}',
+                library_ids bigint[] NOT NULL DEFAULT '{}',
+                login_status text NOT NULL CONSTRAINT search_more_login_status_check
+                  CHECK (login_status IN ('signed_in', 'signed_out', 'login_off')),
+                client_ip inet,
+                CONSTRAINT search_more_condition_check
+                  CHECK (title IS NOT NULL OR author IS NOT NULL OR publisher IS NOT NULL),
+                CONSTRAINT search_more_library_id_check CHECK ((kind = 'library_more') = (library_id IS NOT NULL)),
+                CONSTRAINT search_more_kind_fields_check CHECK (
+                  (kind = 'catalog_next_page' AND exact IS NOT NULL AND roles IS NOT NULL AND sort IS NOT NULL
+                    AND filter IS NULL)
+                  OR (kind <> 'catalog_next_page' AND exact IS NULL AND roles IS NULL AND sort IS NULL))
+              )
+        - sql:
+            sql: CREATE INDEX search_more_received_at_brin ON usagelog.search_more USING brin (received_at)
+        - sql:
+            sql: >-
+              CREATE INDEX search_more_ip_received_at_idx ON usagelog.search_more (received_at)
+              WHERE client_ip IS NOT NULL
+
+  - changeSet:
+      id: usagelog-001-library-click
+      author: chaekcheck
+      changes:
+        # One row per click on a library link, reported by the web (POST /api/v1/usage-events). library_id is an
+        # enabled library when the row was written; book_id is empty on screens without a book.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.library_click (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT library_click_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                library_id bigint NOT NULL,
+                place text NOT NULL CONSTRAINT library_click_place_check CHECK (place IN
+                  ('result_card', 'join_link', 'join_guide', 'home_page', 'logo', 'summary_bar')),
+                screen text NOT NULL CONSTRAINT library_click_screen_check CHECK (screen IN
+                  ('direct_results', 'catalog_results', 'book_page', 'picks', 'my_libraries')),
+                book_id bigint CONSTRAINT library_click_book_id_check CHECK (book_id >= 1),
+                login_status text NOT NULL CONSTRAINT library_click_login_status_check
+                  CHECK (login_status IN ('signed_in', 'signed_out', 'login_off')),
+                client_ip inet
+              )
+        - sql:
+            sql: CREATE INDEX library_click_received_at_brin ON usagelog.library_click USING brin (received_at)
+        - sql:
+            sql: >-
+              CREATE INDEX library_click_ip_received_at_idx ON usagelog.library_click (received_at)
+              WHERE client_ip IS NOT NULL
+
+  - changeSet:
+      id: usagelog-001-screen-event
+      author: chaekcheck
+      changes:
+        # Screen actions the server does not see, reported by the web. Each kind fills only its own columns:
+        # picks_list_view = category, picks_book_view = category + book, region_change = both region lists,
+        # my_library_add/remove = library. No JSON column, no member number.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.screen_event (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT screen_event_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                kind text NOT NULL CONSTRAINT screen_event_kind_check CHECK (kind IN
+                  ('picks_list_view', 'picks_book_view', 'region_change', 'my_library_add', 'my_library_remove')),
+                picks_category text,
+                book_id bigint CONSTRAINT screen_event_book_id_check CHECK (book_id >= 1),
+                residence_region_ids bigint[],
+                work_region_ids bigint[],
+                library_id bigint,
+                login_status text NOT NULL CONSTRAINT screen_event_login_status_check
+                  CHECK (login_status IN ('signed_in', 'signed_out', 'login_off')),
+                client_ip inet,
+                CONSTRAINT screen_event_kind_fields_check CHECK (
+                  (kind = 'picks_list_view' AND picks_category IS NOT NULL AND book_id IS NULL
+                    AND residence_region_ids IS NULL AND work_region_ids IS NULL AND library_id IS NULL)
+                  OR (kind = 'picks_book_view' AND picks_category IS NOT NULL AND book_id IS NOT NULL
+                    AND residence_region_ids IS NULL AND work_region_ids IS NULL AND library_id IS NULL)
+                  OR (kind = 'region_change' AND picks_category IS NULL AND book_id IS NULL
+                    AND residence_region_ids IS NOT NULL AND work_region_ids IS NOT NULL AND library_id IS NULL)
+                  OR (kind IN ('my_library_add', 'my_library_remove') AND picks_category IS NULL AND book_id IS NULL
+                    AND residence_region_ids IS NULL AND work_region_ids IS NULL AND library_id IS NOT NULL))
+              )
+        - sql:
+            sql: CREATE INDEX screen_event_received_at_brin ON usagelog.screen_event USING brin (received_at)
+        - sql:
+            sql: >-
+              CREATE INDEX screen_event_ip_received_at_idx ON usagelog.screen_event (received_at)
+              WHERE client_ip IS NOT NULL
+
+  - changeSet:
+      id: usagelog-001-library-response-daily
+      author: chaekcheck
+      changes:
+        # How each library site answered, per Seoul day and source, added up in memory and upserted every 5 seconds.
+        # One request is counted once even when the fetch service retries it (ok_ms_* only for answered requests).
+        # skipped: a candidate the direct search could not send before its launch cut-off.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.library_response_daily (
+                day date NOT NULL,
+                library_id bigint NOT NULL,
+                source text NOT NULL CONSTRAINT library_response_daily_source_check
+                  CHECK (source IN ('direct_search', 'holding_fill')),
+                ok_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT library_response_daily_ok_count_check CHECK (ok_count >= 0),
+                failed_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT library_response_daily_failed_count_check CHECK (failed_count >= 0),
+                timeout_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT library_response_daily_timeout_count_check CHECK (timeout_count >= 0),
+                skipped_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT library_response_daily_skipped_count_check CHECK (skipped_count >= 0),
+                ok_ms_total bigint NOT NULL DEFAULT 0
+                  CONSTRAINT library_response_daily_ok_ms_total_check CHECK (ok_ms_total >= 0),
+                ok_ms_max integer NOT NULL DEFAULT 0
+                  CONSTRAINT library_response_daily_ok_ms_max_check CHECK (ok_ms_max >= 0),
+                CONSTRAINT library_response_daily_pkey PRIMARY KEY (day, library_id, source)
+              )
+        - sql:
+            sql: CREATE INDEX library_response_daily_day_brin ON usagelog.library_response_daily USING brin (day)
+
+  - changeSet:
+      id: usagelog-001-rejected-event
+      author: chaekcheck
+      changes:
+        # Usage reports with values we do not accept, kept with the IP for 30 days to spot misuse. raw_values is what
+        # was received, cut to 2KB by the service.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.rejected_event (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT rejected_event_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                client_ip inet,
+                reason text NOT NULL CONSTRAINT rejected_event_reason_check CHECK (reason IN ('unknown_library',
+                  'invalid_place', 'invalid_screen', 'invalid_book_id', 'malformed', 'unknown_type', 'invalid_value')),
+                raw_values jsonb
+              )
+        - sql:
+            sql: CREATE INDEX rejected_event_received_at_brin ON usagelog.rejected_event USING brin (received_at)
+
+  - changeSet:
+      id: usagelog-001-dropped-batch
+      author: chaekcheck
+      changes:
+        # Rows the service gave up: a batch whose write failed (db_failure) or reports dropped while the buffer was
+        # full (buffer_full). Written with the next batch that succeeds.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE usagelog.dropped_batch (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT dropped_batch_pkey PRIMARY KEY,
+                dropped_at timestamp with time zone NOT NULL,
+                row_count integer NOT NULL CONSTRAINT dropped_batch_row_count_check CHECK (row_count >= 0),
+                reason text NOT NULL CONSTRAINT dropped_batch_reason_check CHECK (reason IN ('db_failure', 'buffer_full'))
+              )
+        - sql:
+            sql: CREATE INDEX dropped_batch_dropped_at_brin ON usagelog.dropped_batch USING brin (dropped_at)
