@@ -93,3 +93,7 @@ databaseChangeLog:
   - include:
       file: picks/001-picks-schema.yaml
       relativeToChangelogFile: true
+  # cycle 18: libraries with no e-books turned off (ADR-0109)
+  - include:
+      file: library/016-library-disabled-cycle18.yaml
+      relativeToChangelogFile: true

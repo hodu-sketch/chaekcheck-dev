@@ -260,6 +260,34 @@ class MyLibraryApiTests {
 		assertThat(addLibrary(account, enabled.get(19))).hasStatus(HttpStatus.CONFLICT);
 	}
 
+	/**
+	 * Cycle 18 AC-3 server side: a library turned off by library/016 (323 느티나무도서관, no books on the site) that was
+	 * added before stays in the saved list, cannot be added again and is not in the public list, so the web shows it
+	 * as "쓸 수 없는 도서관" as for the other disabled ones.
+	 */
+	@Test
+	void libraryTurnedOffInCycle18StaysSavedButUnavailable() {
+		long account = newAccount();
+		long neutinamu = 323;
+		assertThat(jdbc.sql("SELECT enabled FROM library.library WHERE id = ?").param(neutinamu).query(Boolean.class).single())
+			.isFalse();
+
+		assertThat(addLibrary(account, neutinamu)).hasStatus(HttpStatus.NOT_FOUND)
+			.bodyJson()
+			.extractingPath("$.code")
+			.isEqualTo("library_not_found");
+		insertLibrary(account, neutinamu);
+		assertThat(addLibrary(account, enabled.get(0))).hasStatus(HttpStatus.NO_CONTENT);
+		assertThat(signedIn(mvc.get().uri("/api/v1/me/libraries"), account)).hasStatusOk()
+			.bodyJson()
+			.isStrictlyEqualTo("{\"libraryIds\":[%d,%d],\"max\":20}".formatted(neutinamu, enabled.get(0)));
+		assertThat(mvc.get().uri("/api/v1/libraries")).bodyJson()
+			.extractingPath("$.libraries[*].id")
+			.asArray()
+			.doesNotContain((int) neutinamu)
+			.contains(enabled.get(0).intValue());
+	}
+
 	@Test
 	void emptyingEverythingLeavesNoRow() { // AC-13
 		long account = newAccount();
