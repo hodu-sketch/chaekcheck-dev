@@ -76,8 +76,8 @@ class CatalogImporter {
 	/** Folder a dry run writes its books and rows into (cycle 11, {@link DryRunDump}); null writes nothing. */
 	private Path dryRunOutput;
 
-	/** Leave out the cycle 07 candidate libraries (cycle 12, dry run only, checked by the runner's settings). */
-	private boolean excludeCandidateLibraries;
+	/** Leave out the libraries added later in cycle 07 (cycle 12, dry run only, checked by the runner's settings). */
+	private boolean excludeAddedLaterLibraries;
 
 	CatalogImporter grouping(Supplier<BookGrouper> groupers) {
 		this.groupers = groupers;
@@ -89,8 +89,8 @@ class CatalogImporter {
 		return this;
 	}
 
-	CatalogImporter excludeCandidateLibraries(boolean exclude) {
-		this.excludeCandidateLibraries = exclude;
+	CatalogImporter excludeAddedLaterLibraries(boolean exclude) {
+		this.excludeAddedLaterLibraries = exclude;
 		return this;
 	}
 
@@ -120,10 +120,10 @@ class CatalogImporter {
 		try (CollectedCatalog collected = CollectedCatalog.open(sqlite); BookGrouper grouping = groupers.get()) {
 			Instant start = clock.instant();
 			Libraries libraries = collected.libraries(links.all(), libraryCatalog.enabledLibraryRefs(),
-					placeholderDateLibraries, excludeCandidateLibraries, report);
-			if (excludeCandidateLibraries) {
-				log.info("candidate libraries excluded: {}", libraries.skipped().values().stream()
-					.filter(CollectedCatalog.EXCLUDED_CANDIDATE::equals).count());
+					placeholderDateLibraries, excludeAddedLaterLibraries, report);
+			if (excludeAddedLaterLibraries) {
+				log.info("added-later libraries excluded: {}", libraries.skipped().values().stream()
+					.filter(CollectedCatalog.EXCLUDED_ADDED_LATER::equals).count());
 			}
 			collected.scan(libraries, today, report, row -> grouping.add(row, report));
 			report.steps.put("read", Duration.between(start, clock.instant()));

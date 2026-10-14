@@ -33,20 +33,24 @@ import com.chaekcheck.library.PlatformType;
 /**
  * The import settings, without a database. Cycle 11: mode {@code in-place} and grouping {@code compact} by default
  * (user decision 2026-10-12 after the step 11 measurement), each grouping selectable, wrong values refused before
- * anything runs. Cycle 12 (handoff steps 6 and 8-3): the dry-run-only setting {@code exclude-candidate-libraries} is
- * refused outside a dry run, and a dry run of a tiny SQLite with it leaves the candidate library's rows out as
- * {@code library_excluded_candidate}. A dry run writes nothing, so no catalog is needed.
+ * anything runs. Cycle 12 (handoff steps 6 and 8-3): the dry-run-only setting {@code exclude-added-later-libraries}
+ * (named {@code exclude-candidate-libraries} until cycle 18) is refused outside a dry run, and a dry run of a tiny
+ * SQLite with it leaves the added-later library's rows out as {@code library_excluded_added_later}. A dry run writes
+ * nothing, so no catalog is needed. Cycle 18: a library whose host has an underscore keeps its e-book rows.
  */
 class CatalogImportSettingsTests {
 
 	static final String KYOBO_BASE = "https://kyobo.test:446", BOOKCUBE_BASE = "https://bookcube.test/FxLibrary";
 
+	/** A host with an underscore, like 2624 hs_partners.yes24library.com (cycle 18). */
+	static final String UNDERSCORE_BASE = "https://hs_partners.example.test";
+
 	@TempDir
 	Path dir;
 
-	private static Settings settings(boolean dryRun, boolean excludeCandidateLibraries) {
+	private static Settings settings(boolean dryRun, boolean excludeAddedLaterLibraries) {
 		return new Settings(Path.of("collection.sqlite"), null, dryRun, null, null, null, null,
-				null, excludeCandidateLibraries);
+				null, excludeAddedLaterLibraries);
 	}
 
 	private static Settings settings(String mode, Path file, String grouping) {
@@ -82,37 +86,67 @@ class CatalogImportSettingsTests {
 	}
 
 	@Test
-	void excludingCandidatesRefusesARealImport() {
+	void excludingAddedLaterLibrariesRefusesARealImport() {
 		assertThatThrownBy(() -> settings(false, true).check()).isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("dry-run-only");
 	}
 
 	@Test
-	void excludingCandidatesStartsADryRun() {
+	void excludingAddedLaterLibrariesStartsADryRun() {
 		assertThatNoException().isThrownBy(() -> settings(true, true).check());
 		assertThatNoException().isThrownBy(() -> settings(false, false).check());
 	}
 
 	@Test
-	void dryRunLeavesOutTheCandidateRows() throws Exception {
+	void dryRunLeavesOutTheAddedLaterRows() throws Exception {
 		Path sqlite = sqlite();
 
 		ImportReport all = importer().run(sqlite, null, true);
 		assertThat(all.otherLibraries).isOne();
-		assertThat(all.skipped).doesNotContainKey(CollectedCatalog.EXCLUDED_CANDIDATE);
+		assertThat(all.skipped).doesNotContainKey(CollectedCatalog.EXCLUDED_ADDED_LATER);
 
 		Path out = dir.resolve("dry");
-		ImportReport excluded = importer().excludeCandidateLibraries(true).dryRunOutput(out).run(sqlite, null, true);
+		ImportReport excluded = importer().excludeAddedLaterLibraries(true).dryRunOutput(out).run(sqlite, null, true);
 		assertThat(excluded.registeredLibraries).isOne();
 		assertThat(excluded.otherLibraries).isZero();
 		assertThat(excluded.rowsRead).isEqualTo(3);
-		assertThat(excluded.skipped).containsEntry(CollectedCatalog.EXCLUDED_CANDIDATE, 1L);
+		assertThat(excluded.skipped).containsEntry(CollectedCatalog.EXCLUDED_ADDED_LATER, 1L);
 		assertThat(excluded.skippedCount()).isEqualTo(all.skippedCount() + 1);
 		assertThat(excluded.books).isEqualTo(2);
 		assertThat(gunzip(out.resolve("rows.tsv.gz"))).hasSize(2).allMatch(line -> line.startsWith("1\t"));
 	}
 
-	/** Registered library 1 with two rows, candidate library 100001 (service id 900) with one. */
+	@Test
+	void underscoreHostLibraryKeepsItsEbookRows() throws Exception { // cycle 18 AC-5 (2624)
+		Path sqlite = dir.resolve("underscore.sqlite");
+		try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + sqlite); Statement s = c.createStatement()) {
+			s.execute("CREATE TABLE library (id INTEGER, base_url TEXT, last_full_success_at TEXT)");
+			s.execute("CREATE TABLE holding (library_id INTEGER, item_key TEXT, title TEXT, author_raw TEXT,"
+					+ " publisher TEXT, published_on TEXT, published_raw TEXT, supplier TEXT, content_kind TEXT,"
+					+ " content_type TEXT, first_seen_at TEXT, last_seen_at TEXT, removed_at TEXT, alt_code TEXT,"
+					+ " detail_url TEXT)");
+			s.execute("INSERT INTO library VALUES (102467, '" + UNDERSCORE_BASE + "', '2026-09-29T10:00:00+09:00')");
+			s.execute("INSERT INTO holding (library_id, item_key, title, author_raw, publisher, content_type, detail_url,"
+					+ " first_seen_at) VALUES"
+					+ " (102467, 'Y1', '1984', '조지 오웰', '가', 'EBOOK', '" + UNDERSCORE_BASE
+					+ "/ebook/detail/?goods_id=1', '2026-09-29T00:00:00+09:00'),"
+					+ " (102467, 'Y2', '오디오 1984', '조지 오웰', '가', 'AUDIOBOOK', '" + UNDERSCORE_BASE
+					+ "/ebook/detail/?goods_id=2', '2026-09-29T00:00:00+09:00')");
+		}
+		LibraryCatalog libraryCatalog = mock(LibraryCatalog.class);
+		given(libraryCatalog.enabledLibraryRefs())
+			.willReturn(List.of(new LibraryRef(2624, UNDERSCORE_BASE, PlatformType.YES24_V2)));
+		CatalogImporter importer = new CatalogImporter(libraryCatalog, () -> Map.of(102467L, 2624L), null, null, null,
+				Set.of(), Clock.fixed(Instant.parse("2026-09-30T03:00:00Z"), ZoneOffset.UTC));
+
+		ImportReport report = importer.run(sqlite, null, true);
+
+		assertThat(report.otherLibraries).isOne();
+		assertThat(report.skipped).doesNotContainKey("detail_url_not_http").containsEntry("kind_audiobook", 1L);
+		assertThat(report.books).isOne();
+	}
+
+	/** Registered library 1 with two rows, added-later library 100001 (service id 900) with one. */
 	private Path sqlite() throws Exception {
 		Path sqlite = dir.resolve("test-settings.sqlite");
 		try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + sqlite); Statement s = c.createStatement()) {

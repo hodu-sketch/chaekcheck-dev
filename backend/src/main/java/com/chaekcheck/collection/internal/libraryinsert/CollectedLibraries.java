@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import com.chaekcheck.collection.internal.importer.HoldingRowFilter;
+
 /**
  * The libraries of a collection DB copy, read-only (plan cycle 13 R2-3; like {@code CollectedCatalog}, plain JDBC with
  * {@code open_mode=1}). Also counts the item keys two libraries share, for the same-host check (R2-7).
@@ -73,6 +75,31 @@ class CollectedLibraries implements LibraryInsertPlanner.Holdings, AutoCloseable
 				SELECT count(*) FROM holding a JOIN holding b ON b.library_id = ? AND b.item_key = a.item_key
 				  AND b.removed_at IS NULL
 				WHERE a.library_id = ? AND a.removed_at IS NULL""", otherCollectionId, collectionId);
+	}
+
+	/**
+	 * Rows of one library that pass {@link HoldingRowFilter}, the import's own rule (cycle 18, ADR-0110). Reads only
+	 * that library's rows ({@code holding} is indexed by library).
+	 */
+	@Override
+	public long importableRows(long collectionId, String libraryHost) {
+		try (PreparedStatement statement = connection.prepareStatement(
+				"SELECT removed_at, content_type, content_kind, detail_url, title FROM holding WHERE library_id = ?")) {
+			statement.setLong(1, collectionId);
+			long rows = 0;
+			try (ResultSet rs = statement.executeQuery()) {
+				while (rs.next()) {
+					if (HoldingRowFilter.skipReason(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+							rs.getString(5), libraryHost) == null) {
+						rows++;
+					}
+				}
+			}
+			return rows;
+		}
+		catch (SQLException ex) {
+			throw new IllegalStateException("Reading the collection DB copy failed", ex);
+		}
 	}
 
 	private long count(String sql, long first, Long second) {

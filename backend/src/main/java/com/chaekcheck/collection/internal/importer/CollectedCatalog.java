@@ -13,7 +13,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -21,6 +20,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import com.chaekcheck.catalog.normalize.PublishedDates;
+import com.chaekcheck.collection.internal.SiteHosts;
 import com.chaekcheck.library.LibraryRef;
 
 /**
@@ -31,20 +31,14 @@ import com.chaekcheck.library.LibraryRef;
  */
 final class CollectedCatalog implements AutoCloseable {
 
-	/** Kinds never imported [확정]. The user chose to import KIDS_BOOK, PAPER and UNKNOWN (2026-09-30). */
-	static final Set<String> EXCLUDED_KINDS = Set.of("AUDIOBOOK", "VIDEO_BOOK");
-
-	/**
-	 * Site labels of sound and video files the content type does not catch [확정] (ADR-0054, Q2): Bookcube's file
-	 * kinds {@code book/wma}, {@code book/vod}, {@code book/wmv} and Kyobo's {@code 동영상}.
-	 */
-	static final Set<String> SOUND_VIDEO_KINDS = Set.of("book/wma", "book/vod", "book/wmv", "동영상");
-
 	/** Collection ids from here on are libraries found only in the collected list and added later (the seed rule, ADR-0052). */
 	static final long FIRST_COLLECTED_ONLY_ID = 100_001;
 
-	/** Skip reason of the rows of a candidate library left out by {@code exclude-candidate-libraries} (cycle 12). */
-	static final String EXCLUDED_CANDIDATE = "library_excluded_candidate";
+	/**
+	 * Skip reason of the rows of a library added later left out by {@code exclude-added-later-libraries} (cycle 12;
+	 * named {@code exclude-candidate-libraries} and {@code library_excluded_candidate} until cycle 18).
+	 */
+	static final String EXCLUDED_ADDED_LATER = "library_excluded_added_later";
 
 	/** Dates before this are placeholders in the libraries named by {@code placeholder-date-libraries} (ADR-0054). */
 	static final LocalDate PLACEHOLDER_DATES_BEFORE = LocalDate.of(1950, 1, 1);
@@ -104,14 +98,14 @@ final class CollectedCatalog implements AutoCloseable {
 	 * {@code library_base_url_mismatch} (a safety check, {@link #sameSite}). {@code collected_at} is the collected
 	 * {@code last_full_success_at} [안]; a library without one uses its newest {@code last_seen_at}, and one without
 	 * rows at all is not imported.
-	 * With {@code excludeCandidates} (a dry run of cycle 12), a candidate library that would be imported is left out
-	 * instead: {@value #EXCLUDED_CANDIDATE}, not counted in {@code otherLibraries}. Libraries skipped for the
-	 * reasons above keep those reasons, so only the candidates' imported rows differ from a run without it.
+	 * With {@code excludeAddedLater} (a dry run of cycle 12), a library added later that would be imported is left
+	 * out instead: {@value #EXCLUDED_ADDED_LATER}, not counted in {@code otherLibraries}. Libraries skipped for the
+	 * reasons above keep those reasons, so only those libraries' imported rows differ from a run without it.
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders
-	 * @param excludeCandidates leave out the candidate libraries ({@link Library#addedLater()})
+	 * @param excludeAddedLater leave out the libraries added later ({@link Library#addedLater()})
 	 */
 	Libraries libraries(Map<Long, Long> links, List<LibraryRef> serviceLibraries, Set<Long> placeholderDateLibraries,
-			boolean excludeCandidates, ImportReport report) throws SQLException {
+			boolean excludeAddedLater, ImportReport report) throws SQLException {
 		Map<Long, LibraryRef> service = new HashMap<>();
 		serviceLibraries.forEach(ref -> service.put(ref.id(), ref));
 		Map<Long, Library> imported = new HashMap<>();
@@ -143,8 +137,8 @@ final class CollectedCatalog implements AutoCloseable {
 				}
 				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),
 						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId));
-				if (excludeCandidates && library.addedLater()) {
-					skipped.put(collectionId, EXCLUDED_CANDIDATE);
+				if (excludeAddedLater && library.addedLater()) {
+					skipped.put(collectionId, EXCLUDED_ADDED_LATER);
 					continue;
 				}
 				if (fullSuccess == null) {
@@ -210,35 +204,10 @@ final class CollectedCatalog implements AutoCloseable {
 		}
 	}
 
-	/** The first filter a row fails, or null (the order of the checks gives the reason that is counted). */
+	/** The first filter a row fails, or null ({@link HoldingRowFilter}, shared with the library insert). */
 	private static String skipReason(ResultSet rs, Library library) throws SQLException {
-		if (rs.getString(6) != null) {
-			return "removed";
-		}
-		String type = rs.getString(4);
-		if (type == null || EXCLUDED_KINDS.contains(type)) {
-			return "kind_" + String.valueOf(type).toLowerCase(Locale.ROOT);
-		}
-		String kind = rs.getString(5);
-		if (kind != null && SOUND_VIDEO_KINDS.contains(kind.strip())) {
-			return "kind_sound_video";
-		}
-		String detailUrl = rs.getString(3);
-		if (detailUrl == null || detailUrl.isBlank()) {
-			return "no_detail_url";
-		}
-		String detailHost = httpHostOf(detailUrl);
-		if (detailHost == null) {
-			return "detail_url_not_http";
-		}
-		if (!detailHost.equals(library.host())) {
-			return "detail_host_mismatch";
-		}
-		String title = rs.getString(7);
-		if (title == null || title.isBlank()) {
-			return "no_title";
-		}
-		return null;
+		return HoldingRowFilter.skipReason(rs.getString(6), rs.getString(4), rs.getString(5), rs.getString(3),
+				rs.getString(7), library.host());
 	}
 
 	/** Same strings (publishers, suppliers) share one instance to keep memory small. */
@@ -261,7 +230,9 @@ final class CollectedCatalog implements AutoCloseable {
 		try {
 			URI service = URI.create(serviceBaseUrl);
 			URI collected = URI.create(collectedBaseUrl);
-			return service.getHost() != null && service.getHost().equalsIgnoreCase(collected.getHost())
+			// hosts read by hand: URI gives none for names with an underscore (cycle 18)
+			String host = SiteHosts.host(serviceBaseUrl);
+			return host != null && host.equals(SiteHosts.host(collectedBaseUrl))
 					&& pathOf(service).equals(pathOf(collected))
 					&& Objects.equals(service.getRawQuery(), collected.getRawQuery());
 		}
@@ -306,30 +277,17 @@ final class CollectedCatalog implements AutoCloseable {
 		}
 	}
 
-	/** Host name in lower case, the port left out (the host throttle works on host names, ADR-0022). */
+	/**
+	 * Host name in lower case, the port left out (the host throttle works on host names, ADR-0022). Names with an
+	 * underscore are read too ({@link SiteHosts}, cycle 18).
+	 */
 	static String hostOf(String url) {
-		try {
-			String host = URI.create(url).getHost();
-			return host == null ? null : host.toLowerCase(Locale.ROOT);
-		}
-		catch (IllegalArgumentException ex) {
-			return null;
-		}
+		return SiteHosts.host(url);
 	}
 
-	/** Host of an http(s) URL; null for any other scheme or a URL that cannot be read. */
+	/** Host of an http(s) URL; null for any other scheme or a URL that cannot be read ({@link SiteHosts}). */
 	static String httpHostOf(String url) {
-		try {
-			URI uri = URI.create(url.strip());
-			String scheme = uri.getScheme();
-			if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
-				return null;
-			}
-			return uri.getHost() == null ? null : uri.getHost().toLowerCase(Locale.ROOT);
-		}
-		catch (IllegalArgumentException ex) {
-			return null;
-		}
+		return SiteHosts.httpHost(url);
 	}
 
 	private static Instant instant(String value) {

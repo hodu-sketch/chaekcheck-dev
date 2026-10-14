@@ -68,7 +68,8 @@ class LibraryInsertCommandTests {
 		try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + sqlite); Statement s = c.createStatement()) {
 			s.execute("CREATE TABLE library (id INTEGER PRIMARY KEY, name TEXT, platform_type TEXT, base_url TEXT,"
 					+ " last_full_success_at TEXT, crawl_skip TEXT, vendor TEXT)");
-			s.execute("CREATE TABLE holding (library_id INTEGER, item_key TEXT, removed_at TEXT)");
+			s.execute("CREATE TABLE holding (library_id INTEGER, item_key TEXT, removed_at TEXT, content_type TEXT,"
+					+ " content_kind TEXT, detail_url TEXT, title TEXT)");
 		}
 	}
 
@@ -209,6 +210,7 @@ class LibraryInsertCommandTests {
 		folder.kind(900001, "UNIV").origin("http://new-univ.test");
 		// the address of pilot library 2: base_url is UNIQUE
 		collect(900002, "같은 주소", "KYOBO_V1", "http://dup.test", DONE);
+		ebook(900002, "B1", "https://www.ghlib.go.kr:446");
 		folder.kind(900002, "UNIV").origin("http://dup.test", "https://www.ghlib.go.kr:446");
 		String id = command.preview(sqlite, folder.write(rulesDir), reportDir).reportId();
 		int libraries = count("SELECT count(*) FROM library.library");
@@ -230,13 +232,63 @@ class LibraryInsertCommandTests {
 			.containsEntry("entries", 2);
 	}
 
+	@Test
+	void librariesWithoutEbooksAreLeftOutWithoutAsking() { // cycle 18 AC-6, ADR-0110
+		// ① only audiobooks
+		collectOnly(900001, "오디오북 도서관", "BOOKCUBE_FX", "https://audio.test", DONE);
+		holding(900001, "A1", "AUDIOBOOK", "https://audio.test/detail/A1");
+		folder.kind(900001, "UNIV").origin("https://audio.test");
+		// ② e-books, but on another host than the address the library would get
+		collectOnly(900002, "옮긴 도서관", "YES24_V2", "http://old-host.test", DONE);
+		holding(900002, "E1", "EBOOK", "http://old-host.test/detail/E1");
+		folder.kind(900002, "UNIV").origin("http://old-host.test", "https://new-host.test");
+		// ③ underscore host with e-books
+		collectOnly(900003, "밑줄 도서관", "YES24_V2", "https://hs_partners.example.test", DONE);
+		holding(900003, "E1", "EBOOK", "https://hs_partners.example.test/ebook/detail/?goods_id=1");
+		holding(900003, "A1", "AUDIOBOOK", "https://hs_partners.example.test/ebook/detail/?goods_id=2");
+		folder.kind(900003, "UNIV").origin("https://hs_partners.example.test");
+
+		LibraryInsertCommand.Outcome preview = command.preview(sqlite, folder.write(rulesDir), reportDir);
+
+		assertThat(preview.exitCode()).isZero();
+		assertThat(preview.plan().leftOut().get(LibraryInsertPlanner.NO_EBOOKS)).containsExactly(900001L, 900002L);
+		assertThat(preview.plan().leftOut().keySet()).last().isEqualTo(LibraryInsertPlanner.NO_EBOOKS);
+		assertThat(preview.plan().newLibraries()).extracting(InsertPlan.NewEntry::collectionId).containsExactly(900003L);
+
+		LibraryInsertCommand.Outcome insert = command.insert(sqlite, rulesDir, reportDir, preview.reportId());
+
+		assertThat(insert.exitCode()).isZero();
+		assertThat(insert.inserted()).isOne();
+		assertThat(count("SELECT count(*) FROM collection.collection_link WHERE collection_library_id IN (900001, 900002)"))
+			.isZero();
+		assertThat(count("""
+				SELECT count(*) FROM library.library l JOIN collection.collection_link k ON k.library_id = l.id
+				WHERE k.collection_library_id = 900003 AND l.base_url = 'https://hs_partners.example.test'"""))
+			.isOne();
+	}
+
+	/** A library with one e-book on its own address (new libraries need one since cycle 18, ADR-0110). */
 	private void collect(long id, String name, String platform, String baseUrl, String fullSuccess) {
+		collectOnly(id, name, platform, baseUrl, fullSuccess);
+		ebook(id, "E" + id, baseUrl);
+	}
+
+	private void collectOnly(long id, String name, String platform, String baseUrl, String fullSuccess) {
 		sql("INSERT INTO library VALUES (" + id + ", '" + name + "', '" + platform + "', '" + baseUrl + "', "
 				+ (fullSuccess == null ? "NULL" : "'" + fullSuccess + "'") + ", NULL, NULL)");
 	}
 
+	private void ebook(long libraryId, String key, String origin) {
+		holding(libraryId, key, "EBOOK", origin + "/detail/" + key);
+	}
+
 	private void holding(long libraryId, String key) {
-		sql("INSERT INTO holding VALUES (" + libraryId + ", '" + key + "', NULL)");
+		holding(libraryId, key, "EBOOK", null);
+	}
+
+	private void holding(long libraryId, String key, String contentType, String detailUrl) {
+		sql("INSERT INTO holding VALUES (" + libraryId + ", '" + key + "', NULL, '" + contentType + "', NULL, "
+				+ (detailUrl == null ? "NULL" : "'" + detailUrl + "'") + ", '책 " + key + "')");
 	}
 
 	private void sql(String statement) {

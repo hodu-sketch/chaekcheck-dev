@@ -54,6 +54,9 @@ REASONS = [
     ('demo_or_closed', '체험용·운영 중단', '`demo_or_closed.tsv`에 있는 곳(사람이 정함)'),
     ('same_site', '서비스 도서관과 같은 사이트 (다른 포트)', '`same_site.tsv`에 있는 곳(사람이 정함)'),
     ('test', '시험용 (종류 `TEST`)', '`library_kinds.tsv` 종류가 `TEST`인 곳'),
+    ('no_ebooks', '전자책 0권',
+     '가져오기와 같은 거르기 규칙(`HoldingRowFilter`)으로 들어갈 책 줄이 0인 곳: 오디오북·동영상만 있음, 책이 없음, '
+     '책 주소의 호스트가 넣을 주소와 다름. 묻지 않고 뺌(사이클 18, plan ADR-0110)'),
 ]
 TRUE = {'t', 'true', '1', 'y', 'yes'}
 

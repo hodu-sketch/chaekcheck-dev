@@ -46,6 +46,12 @@ class LibraryInsertPlannerTests {
 	/** "a b" -> shared item keys of collection ids a and b (either order). */
 	Map<String, Long> shared = new HashMap<>();
 
+	/** Collection id -> rows the import would take; 1 when not set (cycle 18 "no e-books" check). */
+	Map<Long, Long> importable = new HashMap<>();
+
+	/** "id host" of every importable-rows question. */
+	List<String> importableAsked = new ArrayList<>();
+
 	@Test
 	void eachRuleLeavesOneLibraryOutInOrder() {
 		String rentalUrl = "https://rental.dkyobobook.co.kr";
@@ -302,6 +308,24 @@ class LibraryInsertPlannerTests {
 	}
 
 	@Test
+	void aLibraryWithoutEbooksIsLeftOutLastAndBeforeTheRulesChecks() { // cycle 18, ADR-0110
+		collect(100008, "오디오북만", "BOOKCUBE_FX", "http://audio.test", DONE, null);
+		importable.put(100008L, 0L);
+		// no kind and no final origin: a library with e-books would stop the run here
+		collect(100009, "옮긴 곳", "YES24_V2", "http://old.test", DONE, null);
+		folder.kind(100009, "UNIV").origin("http://old.test", "https://new.test:8443");
+
+		InsertPlan plan = plan(2675);
+
+		assertThat(plan.leftOut().keySet()).containsExactly("kyobo_rental_mixed", "crawl_skip", "no_full_success",
+				"demo_or_closed", "same_site", "test", "no_ebooks");
+		assertThat(plan.leftOut().get("no_ebooks")).containsExactly(100008L);
+		assertThat(plan.newLibraries()).extracting(InsertPlan.NewEntry::collectionId).containsExactly(100009L);
+		// counted against the host of the address the library would get
+		assertThat(importableAsked).contains("100009 new.test", "100008 audio.test");
+	}
+
+	@Test
 	void hostsAreComparedWithoutSchemeAndPort() {
 		assertThat(LibraryInsertPlanner.host("http://ebook.yit.ac.kr:8091")).isEqualTo("ebook.yit.ac.kr");
 		assertThat(LibraryInsertPlanner.host("https://EBOOK.yit.ac.kr:446/elibrary-front/")).isEqualTo("ebook.yit.ac.kr");
@@ -359,6 +383,12 @@ class LibraryInsertPlannerTests {
 			public long shared(long collectionId, long otherCollectionId) {
 				return LibraryInsertPlannerTests.this.shared.getOrDefault(collectionId + " " + otherCollectionId,
 						LibraryInsertPlannerTests.this.shared.getOrDefault(otherCollectionId + " " + collectionId, 0L));
+			}
+
+			@Override
+			public long importableRows(long collectionId, String libraryHost) {
+				importableAsked.add(collectionId + " " + libraryHost);
+				return importable.getOrDefault(collectionId, 1L);
 			}
 
 		});

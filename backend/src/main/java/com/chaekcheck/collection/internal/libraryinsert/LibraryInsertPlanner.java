@@ -4,13 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.web.util.HtmlUtils;
 
+import com.chaekcheck.collection.internal.SiteHosts;
+import com.chaekcheck.collection.internal.importer.HoldingRowFilter;
 import com.chaekcheck.collection.internal.libraryinsert.CollectedLibraries.CollectedLibrary;
 import com.chaekcheck.collection.internal.libraryinsert.InsertPlan.Change;
 import com.chaekcheck.collection.internal.libraryinsert.InsertPlan.Gone;
@@ -33,7 +34,10 @@ import com.chaekcheck.library.Vendor;
  *
  * <ul>
  * <li>Left out, the first rule that matches (R2-5): KYOBO rental or mixed (probe), {@code crawl_skip}, no full
- * success, demo or closed, same site, kind TEST. A library left with no kind is a rules error.</li>
+ * success, demo or closed, same site, kind TEST; then, last, no e-books (cycle 18, ADR-0110): no holding row the
+ * import would take ({@link HoldingRowFilter}, counted against the host of the address the library would get). A
+ * library left with no kind is a rules error; the no e-books check comes first, so a library without e-books never
+ * stops the run on a missing rule.</li>
  * <li>Values (R2-6): ids from {@code nextId} in collection id order; name = collected name, then the name override
  * of its service id, then HTML characters unescaped (pre-decision 8, {@link HtmlUtils#htmlUnescape}); vendor = the
  * collected vendor, else by platform; lending model by platform (probe, BOOKCUBE volumes, portal null, else
@@ -41,13 +45,19 @@ import com.chaekcheck.library.Vendor;
  * (a new library needs a {@code final_origins.tsv} row, user choice 2026-10-12).</li>
  * <li>Same host (R2-7): every new library against every service library and the new ones before it; a pair with
  * shared item keys is a suspect unless the new library is in {@code same_host_kept.tsv}. Hosts are compared without
- * scheme and port; parsed by hand, as {@code java.net.URI} gives no host for names with {@code _}.</li>
+ * scheme and port ({@link SiteHosts}: {@code java.net.URI} gives no host for names with {@code _}).</li>
  * <li>Changed and gone (R2-4): linked libraries whose collected address (final origin applied), name (override
  * applied), platform or lending model differ, or that are missing, not crawled or never fully crawled. Disabled
  * service libraries are not compared; gone libraries in {@code gone_known.tsv} are only counted.</li>
  * </ul>
  */
 class LibraryInsertPlanner {
+
+	/**
+	 * Left out because no holding row would be imported (cycle 18, ADR-0110): only audiobooks or videos, no rows, or
+	 * detail URLs on another host than the address the library would get. Shown as "전자책 0권".
+	 */
+	static final String NO_EBOOKS = "no_ebooks";
 
 	/** Collection ids from here on were found after the first 278 libraries (the seed rule, ADR-0052). */
 	static final long FIRST_COLLECTED_ONLY_ID = 100_001;
@@ -68,6 +78,12 @@ class LibraryInsertPlanner {
 
 		/** Item keys both libraries have. */
 		long shared(long collectionId, long otherCollectionId);
+
+		/**
+		 * Holding rows of a library the import would take ({@link HoldingRowFilter} passes them), detail URLs
+		 * checked against {@code libraryHost} (cycle 18).
+		 */
+		long importableRows(long collectionId, String libraryHost);
 
 	}
 
@@ -100,7 +116,7 @@ class LibraryInsertPlanner {
 
 		Map<String, List<Long>> leftOut = new LinkedHashMap<>();
 		for (String reason : List.of("kyobo_rental_mixed", "crawl_skip", "no_full_success", "demo_or_closed",
-				"same_site", "test")) {
+				"same_site", "test", NO_EBOOKS)) {
 			leftOut.put(reason, new ArrayList<>());
 		}
 		List<CollectedLibrary> chosen = new ArrayList<>();
@@ -109,6 +125,10 @@ class LibraryInsertPlanner {
 				continue;
 			}
 			String reason = leftOutReason(library);
+			if (reason == null && holdings.importableRows(library.id(), SiteHosts.host(insertedBaseUrl(library))) == 0) {
+				// last reason, before the rules checks below (cycle 18, ADR-0110): never asked, the exit code stays
+				reason = NO_EBOOKS;
+			}
 			if (reason != null) {
 				leftOut.get(reason).add(library.id());
 				continue;
@@ -167,6 +187,11 @@ class LibraryInsertPlanner {
 		leftOut.forEach((reason, ids) -> leftOutCopy.put(reason, List.copyOf(ids)));
 		return new InsertPlan(nextId, List.copyOf(added), List.copyOf(changed), List.copyOf(gone),
 				List.copyOf(goneKnown), List.copyOf(suspects), leftOutCopy);
+	}
+
+	/** The address a new library would get: its final origin, else the collected one. */
+	private String insertedBaseUrl(CollectedLibrary library) {
+		return rules.finalOrigins().getOrDefault(library.baseUrl(), library.baseUrl());
 	}
 
 	private String leftOutReason(CollectedLibrary library) {
@@ -361,30 +386,13 @@ class LibraryInsertPlanner {
 		}
 	}
 
-	/** Host name without scheme, user, port and path, lower case (plan research 1-4: hosts may contain {@code _}). */
+	/**
+	 * Host name without scheme, user, port and path, lower case (plan research 1-4: hosts may contain {@code _});
+	 * empty when there is none. The rule lives in {@link SiteHosts} since cycle 18.
+	 */
 	static String host(String url) {
-		String rest = url == null ? "" : url.strip();
-		int scheme = rest.indexOf("://");
-		if (scheme >= 0) {
-			rest = rest.substring(scheme + 3);
-		}
-		int end = rest.length();
-		for (char stop : new char[] { '/', '?', '#' }) {
-			int at = rest.indexOf(stop);
-			if (at >= 0 && at < end) {
-				end = at;
-			}
-		}
-		rest = rest.substring(0, end);
-		int user = rest.lastIndexOf('@');
-		if (user >= 0) {
-			rest = rest.substring(user + 1);
-		}
-		int port = rest.lastIndexOf(':');
-		if (port >= 0 && !rest.endsWith("]")) {
-			rest = rest.substring(0, port);
-		}
-		return rest.toLowerCase(Locale.ROOT);
+		String host = SiteHosts.host(url);
+		return host == null ? "" : host;
 	}
 
 }
