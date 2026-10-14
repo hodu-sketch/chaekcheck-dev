@@ -4058,6 +4058,7 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - master 맨 끝은 인계서대로 `# cycle 14` `picks/001-picks-schema.yaml`였고, 그 뒤에 `sitecontent/001`, `sitecontent/002`, `auth/002`를 붙임
 - "시작할 때 줄 번호" 목록: `ModularityTests.java:27`, `application.yml:92-97`, `AuthPropertiesTests.java:45-46,61-62`, `SignupTests.java:42-43,53-54,90-91,148-149,162`, `AuthEnabledSecurityTests.java:113-121`(실제로 `:114,121`), `AuthSchemaTests.java:40-41`, `AccountDeletionTests.java:93-94`, `chaekcheck-locations.conf:91` 모두 인계서와 같음
 - `/picks` nginx 줄은 main `b4cd153`에 커밋돼 있음(사이클 15 인계서 "15 밖" 확인과 같은 줄)
+- 합치기 전 main에 사이클 18 A1·A2(`5f8403c`까지)가 먼저 들어와 rebase함. master 끝은 `# cycle 18` `library/016-library-disabled-cycle18.yaml` 뒤에 16 줄 셋. `plan-feedback.md`는 `# 사이클 18` 뒤에 `# 사이클 16`. 사이클 15는 아직 main에 없음 → 15가 나중에 합치며 master 끝·`ModularityTests`·`auth/package-info.java`·`AuthEnabledSecurityTests`·`application.yml`을 풂
 
 ## 사용자 결정
 
