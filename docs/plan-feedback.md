@@ -4009,3 +4009,40 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 6-2 표에는 사이클 07에서 끈 135·2194·2198 줄이 원래 없음(이유는 `disabled_reasons.tsv`·`library-site-issues.md` 9절). 이번에는 더하지 않음
   - 261은 서비스에 80권이 있어 AC-1 SQL로는 0권이 아니지만, 22곳 목록(옮긴 사이트)대로 끔
 
+
+## A2. 밑줄 호스트 요청 길
+
+- 브랜치 `cycle-18-a2-underscore-host`(worktree `../chaekcheck-dev-c18-a2`, main `b4cd153`에서 시작, A1을 main에 합친 뒤 그 위로 rebase). db-test는 `chaekcheck-c18b`(5493), 실제 확인 서버는 A1 쪽 8086과 겹치지 않게 **8088**(본 서비스)·**8087**(조회 서버)
+- **고른 HTTP 라이브러리**: Apache HttpClient 5 `org.apache.httpcomponents.client5:httpclient5` **5.6.4**. 버전은 Spring Boot 4.1.1 의존성 관리가 정함(`dependencyInsight`: "selected by rule", 버전 적지 않음). `backend/build.gradle`·`fetch-service/build.gradle`에 하나씩(앱마다 하나, 같은 라이브러리). 첫 후보로 네 조건을 다 맞춰 다른 후보는 시험하지 않음
+- **시제품** (`UnderscoreHostProbe`, 시험 쪽, `CHAEKCHECK_UNDERSCORE_PROBE=1`일 때만 돌고 빌드에서는 건너뜀. 사용자 승인 "2624 시제품 요청")
+  - 2624에 **2건**(2026-10-14 21:43, 5초 간격, User-Agent `chaekcheck/0.0.1`): 첫 화면 `/` **200**(32,688바이트, 1,396ms), 검색 `/search/?src_key=1984&srch_order=title&page_num=1&sort=title` **200**(21,958바이트, 821ms, 「1984」 결과 있음)
+  - **SNI 없음**: `-Djavax.net.debug=ssl:handshake` 로그에 `Ignore, context unavailable extension: server_name`(ClientHello에 server_name을 넣지 않음). JDK는 `SNIHostName`으로 만들 수 없는 이름(밑줄)이면 SNI를 빼므로 따로 설정하지 않음
+  - **인증서 이름 검사 켬**: `HostnameVerificationPolicy.CLIENT` + HttpClient `DefaultHostnameVerifier`(`*.yes24library.com` 와일드카드가 `hs_partners.yes24library.com`에 맞음, 통과). 기본값 `BOTH`/`BUILTIN`(JDK의 HTTPS 이름 검사)은 쓸 수 없음: JDK `HostnameChecker`가 이름을 `SNIHostName`으로 바꾸다 밑줄에서 거절함. 그래서 검사를 끄지 않고 HttpClient 쪽 검사로 둠
+  - C3의 제한은 그대로 걸림: 연결 시간(`ConnectionConfig.connectTimeout`), 읽기 시간(`socketTimeout`·`responseTimeout` = 응답 머리까지 + 본문 읽는 중 멈춤), 전체 시간(가상 스레드 + `FutureTask.get(totalTimeout)`, 넘으면 요청 취소), 응답 크기(Content-Length 또는 읽은 수가 넘으면 `BodyLimit.TooLargeException`), `LibrarySiteTls.sslContext()` 그대로
+  - `toUri()`: `Yes24V2Adapter.searchUri`는 밑줄 호스트에서 **예외 없음**(`encode().build().toUri()`가 한 인자 `URI` 생성이라 registry-based authority로 받음, `getHost()`만 null)
+  - 지금 코드가 실패한 자리(spec R3-2, 코드와 시제품으로 확인): `URI.getHost()` null → 검색 묶음 계획의 `Candidate.hostKey` → `HostThrottle.key`에서 **NullPointerException**(가장 먼저). 그걸 넘어가도 `HttpRequest.newBuilder`가 `IllegalArgumentException: unsupported URI https://hs_partners.yes24library.com`, `DetailPageFetcher.checkedUri`는 null(상세 쪽 요청 안 함)
+- **구현** (본 서비스 `availability/internal` 안만, 공개 API·이벤트·모듈 의존 그대로)
+  - 호스트 읽기 `fetch/SiteHostNames`(인계서 예시 이름 그대로): `getHost()`가 있으면 소문자, 없으면 raw authority에서 사용자 정보·포트를 떼고 읽음. 없으면 `UpstreamException.error`. `HostThrottle.key`·`hostPort`, `Candidate.hostKey`(못 읽는 주소는 주소 자체를 키로 → 묶음이 깨지지 않고 그 줄만 실패), `DetailPageFetcher.checkedUri`(밑줄 호스트끼리 같으면 통과), `DirectSiteFetcher` 로그·예외 문구가 씀
+  - 밑줄 길 `fetch/UnderscoreHostSiteFetcher`(인계서 예시 이름 그대로). 갈래는 `fetch/HostRoutingSiteFetcher`가 `DirectSiteFetcher` 앞에서 고름: "`getHost()`가 null이고 읽은 호스트에 `_`가 있음"(인계서 [안] 그대로). `AvailabilityConfiguration.siteFetcher`의 direct 갈래에 둠. 조회 서버 모드는 바뀌지 않음(조회 서버 앱이 같은 갈래를 가짐)
+  - 그 밖의 설정: redirect 따르지 않음, 자동 재시도·쿠키·압축(`Accept-Encoding`) 끔(JDK 길과 같게 사이트 바이트를 그대로 받음), 같은 User-Agent. 오류 구분은 `DirectSiteFetcher`와 같음(시간 초과 TIMEOUT, 크기 초과·입출력·인증서 실패 ERROR)
+  - **`via` 값 `direct-underscore`**, 로그 한 줄 모양은 같음: `upstream via=direct-underscore host=hs_partners.yes24library.com:443 path=/search/ start=… end=… status=200 userAgent="chaekcheck/0.0.1"`. 사이클 15의 도서관 응답 하루 요약은 `BatchRunner`에서 셈(design-delta "부를 자리")이라 `via`와 상관없음
+  - 지금 길 방어(A2-5): `DirectSiteFetcher`가 `HttpRequest.newBuilder`의 `IllegalArgumentException`을 잡아 ERROR(로그 status `bad-uri`)
+  - **어댑터(A2-4)**: 9개 모두 밑줄 기준 주소로 검색 주소를 만들 수 있는지 시험(`UnderscoreHostSearchUriTests`). **`AladinV1Adapter.detailUri`만 고침**: `UriComponentsBuilder.fromUri(searchUri)`가 `getHost()`(null)를 써서 호스트를 잃음 → `fromUriString(searchUri.toString())` 한 줄. `searchUri`의 `.host(base.getHost())`는 Spring `UriComponents`라 밑줄을 읽어 괜찮음. 나머지 8개(`Yes24V1`·`V2`·`V3`, `KyoboV1`, `KyoboSubscriptionV1`, `BookcubeFx`, `ElibPortalV1`, `GangnamV1`)는 고칠 것 없음
+- **조회 서버 앱(A2-7, plan 인계서 보탬 cd93f52 반영)**
+  - `UnderscoreHosts`(조회 서버 안, 본 서비스 코드와 나누지 않음): 연결할 이름 = `getHost()` 또는 밑줄 호스트를 authority에서 읽은 값
+  - `UrlGuard`: 그 이름으로 DNS를 풀어 사설·내부 주소면 거부(지금 규칙 그대로). 사용자 정보 거부도 그대로인데, registry-based authority에서는 `getRawUserInfo()`가 null이라 authority의 `@`도 따로 봄. 밑줄이 없는데 `getHost()`가 null인 주소는 지금처럼 거부. 시험용으로 DNS 조회를 바꿔 끼울 수 있게 함(`HostResolver`)
+  - `LibraryClient`: 밑줄 호스트는 본 서비스와 같은 HttpClient 설정(같은 네 조건, 조회 서버의 `LibrarySiteTls`·`BodyLimit`·`TlsCompatibility`는 JSSE 전역이라 그대로 걸림), 결과 구분(`RESPONDED`·`TIMEOUT`·`CONNECT_FAILED`·`ERROR`)과 로그 한 줄도 같음. 로그 `host=`는 읽은 호스트(null 안 찍힘). JDK 길도 `unsupported URI`는 ERROR로
+  - 본 서비스 → 조회 서버: `FetchServiceSiteFetcher`가 `uri.toString()`을 보내 밑줄 주소가 그대로 넘어감(실제 확인으로 봄)
+- **시험** (진짜 사이트 없음)
+  - 본 서비스: `SiteHostNamesTests` 5, `HostThrottleTests`에 밑줄 호스트 다른 포트 한 칸 1, `HoldingTaskTests`에 `checkedUri`·`hostKey`·`Candidate` 2, `UnderscoreHostSiteFetcherTests` 10(가짜 사이트, HttpClient DNS를 바꿔 밑줄 이름을 127.0.0.1로: User-Agent·압축 요청 없음, 3xx 안 따름, 크기 초과 ERROR 둘, 전체 시간 TIMEOUT, 머리 늦음 TIMEOUT, **로컬 HTTPS**(시험용 자체 서명 `*.example.test`, `src/test/resources/tls/test/underscore-host-site.p12`, 시험 안에서만 신뢰)에서 이름 맞는 인증서 통과 + **서버가 SNI를 받지 않음**(서버 `SNIMatcher`가 불리지 않음, 밑줄 없는 이름은 불리는 대조 시험), 다른 이름 인증서는 ERROR), `HostRoutingSiteFetcherTests` 2, `BatchRunnerTests`에 밑줄 도서관 실패 가두기 1, `DirectSiteFetcherTests`에 `unsupported URI` ERROR 1, `Yes24V2AdapterTests`에 밑줄 기준 주소 1, `UnderscoreHostSearchUriTests` 9
+  - 조회 서버: `UrlGuardTests` 5(밑줄 공개 주소 통과·연결 이름으로 DNS 조회, **밑줄 이름이 사설·루프백 주소로 풀리면 거부**, 사용자 정보 거부, 못 푸는 이름 거부, 보통 호스트 그대로), `LibraryClientUnderscoreHostTests` 5(가짜 사이트: 받기·User-Agent, 3xx, 크기 초과 ERROR, 머리 늦음 TIMEOUT, 닫힌 포트 CONNECT_FAILED). 조회 서버 쪽 인증서·SNI는 같은 HttpClient 설정이라 본 서비스 시험으로 대신함
+  - 빌드: `backend/` `./gradlew build` 통과(7분 52초, `ModularityTests`·`DocumentationTests` 포함), `fetch-service/` `./gradlew build` 통과(23초). A1 위로 rebase한 뒤 다시 돌려 둘 다 통과(backend 6분 6초)
+- **실제 확인** (사용자 결정 "실제 확인은 dev가 시험 계정으로(본 서비스 + 조회 서버 앱)", 복사본 `db`)
+  - direct 모드(8088, 로그인 끔): `GET /api/v1/availability/libraries/2624/ebooks?title=1984` → `totalCount` 1, 「1984」 **보유 1·대출 0·`AVAILABLE`**, 로그 `upstream via=direct-underscore host=hs_partners.yes24library.com:443 … status=200`, NullPointerException 0
+  - 조회 서버 모드(본 서비스 8088 `FETCH_MODE=fetch-service` → 조회 서버 8087): 같은 요청 → 보유 1·대출 0, 조회 서버 로그 `library host=hs_partners.yes24library.com path=/search/ … status=200`, 본 서비스 로그 `fetch-service via=fetch-1 host=hs_partners.yes24library.com:443 … status=200`. 2624에 1건
+  - **실수 기록**: direct 모드 첫 확인을 `GET /api/v1/ebook-searches/stream?title=1984&libraryIds=2624`(지역 없이)로 불러, 계획이 2624(직접 추가) + 지역 없는 전체 도서관이 되어 **다른 도서관 21곳에도 평소 검색처럼 한 건씩** 요청이 나감(2026-10-14 22:04:27~22:04:35, 묶음 한도에서 멈춤, 간격 규칙은 지켜짐). 그중 **교보 구독형 서버 2건**(`hallalib.dkyobobook.co.kr`, `libgen.dkyobobook.co.kr`, 둘 다 시간 초과)은 C6 "요청하지 않음"을 어긴 것. 그 뒤로는 도서관 하나만 부르는 API로만 확인함. 2624 줄은 이 검색에서 200(위 숫자는 이 검색의 캐시에서도 같았음)
+  - 검색 결과에 2624 책이 나오는 부분(AC-4 검색)은 B 뒤
+- **사이클 17과 합치기(A2-6)**: 17의 나가는 길 고르기·IP별 셈·User-Agent(ADR-0095)는 아직 main에 없음 → 17 쪽이 합칠 때 `UnderscoreHostSiteFetcher`(본 서비스)와 `LibraryClient` 밑줄 갈래(조회 서버)에도 같은 길을 적용해야 함. 프록시를 거치게 되면 HttpClient 5는 `HttpClients.custom().setProxy(...)` 또는 `setRoutePlanner(...)`로 설정 [확인 필요: 17 합칠 때]
+- **바꾼 이름**: 인계서 [안] 이름 그대로 `SiteHostNames`·`UnderscoreHostSiteFetcher`·`HostRoutingSiteFetcher`·`UnderscoreHostProbe`·`SiteHostNamesTests`·`UnderscoreHostSiteFetcherTests`. 더한 것: `UnderscoreHostSearchUriTests`, `HostRoutingSiteFetcherTests`, 조회 서버 `UnderscoreHosts`·`UrlGuardTests`·`LibraryClientUnderscoreHostTests`
+- **인계서와 다른 점**: 실제 확인의 다른 도서관 요청(위 실수), 실제 확인 서버 포트 8088(A1이 8086을 써서). 그 밖에 없음
+- **확인**: AC-4의 조회 부분 통과(direct·조회 서버 둘 다). C3 네 조건 + SNI 없음 + redirect 안 따름 + 같은 User-Agent·로그 모양. C4 실패 가두기(시험)
