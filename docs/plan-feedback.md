@@ -4142,3 +4142,11 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - "공지글 버전별로있는거 용도가 뭐야? 한 게시글 덮어씌우는거야? 이거 약관에만있으면되는거아니야?" → 덮어쓰기가 아니라 새 판을 더함(2026-10-12 "서비스 안내 공지 모두 이전 기록이 보였으면" 결정)이라고 답함
   - "근데 어짜피 기능 공유해서 이런거니까 공지 판 있는 설정으로 안 쓰면 되는거아닌가?" → **코드는 그대로 두고 운영으로 정함**: 공지는 보통 고치지 않음(판 1만이면 날짜 고르기 칸이 안 나옴). 꼭 고칠 때만 새 판, 아니면 숨기고 새 공지. 운영 메모 `5-sitecontent.md` 2절. plan은 공지 판 기능을 줄일지 다음 사이클에 볼 수 있음
   - "개인정보처리방침은 뭐 약관처럼 히스토리없나" → 약관과 같은 기능이 있고, 시행 중인 판이 하나뿐이라 칸이 숨겨져 있었다고 답함
+
+## main에 합침 (2026-10-14)
+
+- 사용자가 c16 폰 확인 뒤 합치기로 함. main `5f8403c`(사이클 18 A1·A2) 위로 rebase한 뒤 fast-forward, main `7ca62d3`. push 안 함. rebase 뒤 `./gradlew build` 통과(시험 865개, 실패 0), 웹 `npm test`(410)·`build`·`lint` 통과
+- 원래 `db`(5432)에 main으로 `bootRun`: `databasechangelog`에 `sitecontent-001-*` 넷, `sitecontent-002-*` 넷, `auth-002-consent-version-number`가 생김. **사이클 18의 `library-016-disabled-cycle18`도 이때 처음 들어감**(켜진 도서관 2,664 → 2,642, 18이 예상한 변경)
+- 테스트 계정 동의 값: `TERMS_OF_SERVICE`·`PRIVACY_COLLECTION` 각 1줄이 `'2026-10-04'` → `'1'`(`auth/002`가 바꾼 줄 2), `AGE_OVER_14` NULL 그대로. CHECK `account_consent_document_version_format_check` 있음
+- `/api/v1/me`의 동의 판 `"1"`은 로그인해야 보여서, 가입·로그인을 가짜 응답으로만 확인하기로 한 결정(위)에 따라 실제 로그인으로는 보지 않음. 응답 모양은 `AuthEnabledSecurityTests`(`"version":"1"`)가 확인
+- c16 작업 폴더·docker 묶음 `chaekcheck-c16`은 아직 지우지 않음
