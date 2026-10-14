@@ -4046,6 +4046,13 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - **바꾼 이름**: 인계서 [안] 이름 그대로 `SiteHostNames`·`UnderscoreHostSiteFetcher`·`HostRoutingSiteFetcher`·`UnderscoreHostProbe`·`SiteHostNamesTests`·`UnderscoreHostSiteFetcherTests`. 더한 것: `UnderscoreHostSearchUriTests`, `HostRoutingSiteFetcherTests`, 조회 서버 `UnderscoreHosts`·`UrlGuardTests`·`LibraryClientUnderscoreHostTests`
 - **인계서와 다른 점**: 실제 확인의 다른 도서관 요청(위 실수), 실제 확인 서버 포트 8088(A1이 8086을 써서). 그 밖에 없음
 - **확인**: AC-4의 조회 부분 통과(direct·조회 서버 둘 다). C3 네 조건 + SNI 없음 + redirect 안 따름 + 같은 User-Agent·로그 모양. C4 실패 가두기(시험)
+
+## main에 합침
+
+- 2026-10-14 A1(`d8513f7`~`d3e8413`)·A2(`fc4eb5d`·`5f8403c`)를 main에 fast-forward로 합침(push 안 함). 사용자: "니가 다른 세션들에게 알려줄거 알려주고 main에 합쳐도 되면 합쳐"
+- 알린 곳: dev 15·16(master include 순서, 바뀐 파일, plan-feedback 충돌 시 둘 다 남김), plan 17(밑줄 길 두 곳에도 ADR-0095 나가는 길 적용, 첫 배포 판의 016), plan 19(B는 19 뒤, 목록 수 변화), plan 18
+- 원래 DB(5432)에는 사이클 16을 합친 뒤 dev 16이 main으로 bootRun할 때 `library-016-disabled-cycle18`이 처음 적용됨(켜진 도서관 2,664 → 2,642, dev 16 알림 2026-10-14, main `73c6b53`)
+
 # 사이클 16
 
 공지사항과 안내·약관 페이지를 DB로 (`sitecontent`). 인계서: plan `docs/cycles/16-notices-and-policies/handoff.md`.
