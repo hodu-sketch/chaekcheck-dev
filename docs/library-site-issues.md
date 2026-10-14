@@ -7,7 +7,7 @@
   - 확인 도구 결과 상태(`OK`, `HTTP_404`, `MOVED`, `OTHER`, `ERROR`)의 뜻과 처리: 11절
   - 호출 예절(우리 User-Agent만, 호스트당 1건, 1초 간격): 2절
 - 처음 조사: 2026-09-29 교보 공식 목록 216곳 확인(`scripts/library/CheckKyoboSites.java`). 결과 요약은 `docs/plan-feedback.md` "11단계 seed 결과".
-- **지금 서비스에 넣지 않은 곳 전체 목록(2026-10-12)**: [`library-left-out.md`](library-left-out.md). 넣기 명령 `library-insert` 미리보기 보고서 `1af0721e4a3e`와 사본 `ebook-catalog-2026-10-12-0135.sqlite`로 만든 표입니다. A절은 수집 DB에 있지만 넣지 않는 349곳을 이유별로(교보 대여·혼합 232, `crawl_skip` 105, 체험용·운영 중단 4, 시험용 6, 전체 수집 안 끝남 2, 같은 사이트 0), B절은 서비스에 있지만 꺼 둔 5곳(59·131·135·2194·2198)과 켜져 있지만 수집하지 않는 3곳(`gone_known.tsv` 44·261·269)입니다. 서비스 DB에 이미 있는 곳은 기본으로 그대로 둡니다(사용자 결정 2026-10-12, B절은 알림용). 다시 만들기: `scripts/library/list_left_out.py`. 아래 절들은 그때그때의 조사 기록이고, 지금 빠진 곳의 기준은 그 문서입니다.
+- **지금 서비스에 넣지 않은 곳 전체 목록(2026-10-12)**: [`library-left-out.md`](library-left-out.md). 넣기 명령 `library-insert` 미리보기 보고서 `1af0721e4a3e`와 사본 `ebook-catalog-2026-10-12-0135.sqlite`로 만든 표입니다. A절은 수집 DB에 있지만 넣지 않는 349곳을 이유별로(교보 대여·혼합 232, `crawl_skip` 105, 체험용·운영 중단 4, 시험용 6, 전체 수집 안 끝남 2, 같은 사이트 0), B절은 서비스에 있지만 꺼 둔 5곳(59·131·135·2194·2198)과 켜져 있지만 수집하지 않는 3곳(`gone_known.tsv` 44·261·269)입니다. 서비스 DB에 이미 있는 곳은 기본으로 그대로 둡니다(사용자 결정 2026-10-12, B절은 알림용). 다시 만들기: `scripts/library/list_left_out.py`. 아래 절들은 그때그때의 조사 기록이고, 지금 빠진 곳의 기준은 그 문서입니다. **2026-10-14 다시 만듦(사이클 18)**: 0권 22곳을 끄고(11절) B절은 27곳(꺼 둔 곳 27, `gone_known.tsv` 0). 보고서 `b2174dfd426d`(같은 사본, 사이클 13 실제 넣기 뒤 미리 보기).
 
 ## 1. 주소가 없어졌거나 다른 화면 (11곳)
 
@@ -187,6 +187,45 @@ YES24 사이트는 폰 브라우저를 첫 화면·목록·**검색 결과까지
 | 2563 | 대검 도서관 | 공소청 | `http://spo.yes24library.com` |
 
 - 이름 출처: 수집 목록에서 찾은 도서관의 이름은 수집 DB(교보 구축 기관 목록 등)에서 왔음(`build_candidate_seed.py`). 바뀐 이름을 쓸지, 사이트 제목을 따를지는 사용자 결정.
+
+## 11. 전자책이 0권이라 끈 곳 (2026-10-14, 사이클 18)
+
+서비스에 켜져 있는데 서비스 책(`catalog.holding`)이 0권인 곳을 plan 사이클 18이 조사했고(plan `docs/cycles/18-empty-library-holdings/research.md` 2절), **사용자 결정(2026-10-14, plan ADR-0109)으로 22곳을 끔**(`enabled = false`, `library/016-library-disabled-cycle18.yaml`). 끈 이유는 `scripts/library/disabled_reasons.tsv`, 다시 켜는 법은 `library-maintenance.md` 6-2.
+
+- 기준: 내 PC 서비스 DB(2026-10-14)에서 `SELECT l.id FROM library.library l WHERE l.enabled AND NOT EXISTS (SELECT 1 FROM catalog.holding h WHERE h.library_id = l.id)` = 22줄(아래 21곳 + 현대제철 2624). 261은 옛 수집분 80권이 있어 이 SQL에는 나오지 않지만 사이트를 옮겨 같이 끔. 2624는 끄지 않음(호스트 밑줄 `hs_partners.yes24library.com` 때문에 가져오기가 전자책 241줄을 못 읽음, 사이클 18 B에서 고침)
+- 수집 DB 근거: `chaekcheck-data/ebook-catalog.sqlite`(읽기 전용, 2026-10-14 조회)의 `library`·`holding`. "모은 줄이 모두 오디오북" = `holding.content_type`이 모두 `AUDIOBOOK`이고 가져오기는 오디오북을 뺌(`kind_audiobook`, [maintenance/3-import.md](maintenance/3-import.md) 6절)
+- 원문 출처: research.md 2절(plan 세션이 앱 안 브라우저로 첫 화면을 한 번씩 엶, 2026-10-14). research.md에 원문이 없던 북큐브 8곳은 이 작업(dev)에서 첫 화면을 한 번씩 받음: 우리 User-Agent `chaekcheck/0.0.1`, 한 곳에 1건, 5초 간격(2절). 북큐브 첫 화면 HTML의 "분야별 eBook" 메뉴(`class="category_all"`)에는 권수 없이 분류 이름만 있음
+- 교보 구독형 서버(`*.dkyobobook.co.kr`)는 열지 않음(2026-10-07부터 집 IP를 막아 사이클 13에서 요청하지 않기로 함). 수집 기록으로만 판단
+- 305와 168은 같은 기관(군산교육문화회관 대야분관)의 북큐브·교보 사이트. 261은 46번 군포시중앙도서관과 같은 사이트
+
+| 서비스 번호 | 이름 | 주소 | 원인 | 사이트 원문 / 근거 | 확인일 |
+|---|---|---|---|---|---|
+| 112 | 울주도서관 | `https://usul.mhebook.co.kr` | 오디오북만 있음 | 첫 화면(`/`)이 스크립트로 `/elibrary-front/`로 보내는 빈 쪽이라 메뉴를 못 읽음(그 주소는 302, 더 따라가지 않음). 수집 DB: 2026-09-30 전체 수집 성공, 사이트 권수 167 = 모은 167줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 168 | 군산교육문화회관 대야분관 | `https://ebook.jbe.go.kr:10114` | 오디오북만 있음 (305와 같은 기관) | 112와 같음(첫 화면이 `/elibrary-front/`로 보내는 빈 쪽, 그 주소는 302). 수집 DB: 2026-09-30 성공, 사이트 권수 179 = 모은 179줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 305 | 군산교육문화회관대야분관 | `http://ebook.jbe.go.kr:10036/FxLibrary_dea` | 오디오북만 있음 (168과 같은 기관) | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 사이트 권수 292 = 모은 292줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 318 | 남평공공도서관 전자도서관 | `http://ebook.jne.go.kr:8084/FxLibrary_np` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 101줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 323 | 느티나무도서관 전자도서관 | `http://neutinamulib.bookcube.biz/FxLibrary` | 사이트에 책이 없음 | 첫 화면 "전체 (0종)". 수집 DB: 2026-09-30 수집 성공, 사이트 권수 0 | 2026-10-14 |
+| 378 | 정관도서관 | `http://jglib.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "전체 (2,982종) / 오디오북 (2,982종)". 수집 DB: 2,982줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 425 | 강원대학교 전자책 도서관 | `http://ebook.kangwon.ac.kr:8090/FxLibrary` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 100줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 455 | 국립아시아문화전당 북라이브 | `http://acc.bookcube.biz:8090/BookLive` | 오디오북만 있음 | 북큐브 오디오북 전용 화면 BookLive, "10월의 오디오북". 수집 DB: 183줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 514 | 명현중학교 전자책 도서관 | `http://mh.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 100줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 537 | 상관중학교 전자 도서관 | `https://sanggwan.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "전체 (463종) / 오디오북 (463종)". 수집 DB: 463줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 622 | 인천연송고등학교 | `http://iys.icehs.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 100줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 623 | 인천예술고등학교 전자책도서관 | `http://inart.icehs.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 100줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 625 | 인천청량중학교 전자책 도서관 | `http://cheongryang.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 100줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 626 | 인천효성고등학교 전자도서관 | `http://in-hyoseong.bookcube.biz/FxLibrary` | 오디오북만 있음 | 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 수집 DB: 100줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 721 | 휴맥 오디오북 라이브 | `http://humacaudiolive.bookcube.biz:8090/BookLive` | 오디오북만 있음 | 북큐브 오디오북 전용 화면 BookLive, "10월의 오디오북". 수집 DB: 5줄 모두 `AUDIOBOOK` | 2026-10-14 |
+| 1045 | 성남문화재단 전자도서관 | `https://snart.dkyobobook.co.kr` | 교보 구독형, 수집 때 0권 | 수집 기록: 2026-10-04 전체 수집 성공, 사이트 권수 0(막힘 2026-10-07보다 앞). 사이트는 열지 않음. 다른 IP에서 다시 받을 때 책이 있으면 다시 켬 | 2026-10-14 (수집 기록) |
+| 1131 | SSAFY(자율PJT) | `https://ssafy3.dkyobobook.co.kr` | 교보 구독형, 수집 때 0권 | 1045와 같음(2026-10-04 성공, 사이트 권수 0) | 2026-10-14 (수집 기록) |
+| 1620 | 서울고은초등학교 | `https://goeun.dkyobobook.co.kr` | 교보 구독형, 수집 때 0권 | 1045와 같음(2026-10-04 성공, 사이트 권수 0) | 2026-10-14 (수집 기록) |
+| 2023 | 청원대길초등학교 | `https://daegil.dkyobobook.co.kr` | 교보 구독형, 수집 때 0권 | 1045와 같음(2026-10-04 성공, 사이트 권수 0) | 2026-10-14 (수집 기록) |
+| 44 | 국회도서관 | `https://ebook.nanet.go.kr:8089` | 수집 안 함으로 알려짐 | 수집 DB `crawl_skip`: "site answers non-browser clients with an empty page (any headers); not bypassed. 17,162 titles seen in a browser (2026-10-01)". 전에 `gone_known.tsv`(2026-10-12 확인)에 두고 켜 두었던 곳 | 2026-10-14 (수집 기록) |
+| 269 | 김천시립도서관 | `http://ebook.gcl.go.kr` | 수집 안 함으로 알려짐 | 수집 DB `crawl_skip`: "since 2026-09-30 the site resets scripted connections (browser OK; 7,921 titles on 2026-09-29); not bypassed". 전에 `gone_known.tsv`에 두었던 곳 | 2026-10-14 (수집 기록) |
+| 261 | 군포시도서관 | `http://ebook.gunpolib.go.kr:8080` | 다른 사이트로 옮김 (= 46번) | 수집 DB `crawl_skip`: "moved: http://ebook.gunpolib.go.kr:8080 now redirects to the KYOBO site https://ebook.gunpolib.go.kr:444 = library 46 (2026-10-01)". 서비스 46번 군포시중앙도서관(교보 소장형, 10,396권)이 그 주소. 서비스에 남은 80권은 옮기기 전 수집분. 전에 `gone_known.tsv`에 두었던 곳 | 2026-10-14 (수집 기록) |
+
+- 원인 묶음: 오디오북만 있음 14, 사이트에 책이 없음 1, 교보 구독형 수집 때 0권 4, 수집 안 함으로 알려짐 2, 다른 사이트로 옮김 1
+- 44·261·269는 `scripts/library/rules/gone_known.tsv`에서 지움(꺼진 곳은 넣기 명령이 비교하지 않으므로 "사라진 곳"에 다시 나오지 않음)
+- 다시 볼 때: 교보 구독형 4곳은 다른 IP에서 교보 구독형 서버를 다시 받을 때(backlog). 오디오북만 있는 곳은 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때 6-2대로 켬
 
 ## 다시 볼 때 순서
 

@@ -300,8 +300,9 @@ def render(report, snapshot_name, collected, rules_dir, service, disabled, date)
 
     out.append('### B-2. 켜져 있지만 수집하지 않음, 사람이 확인하고 둠 (`gone_known.tsv`, {}곳)'.format(len(gone_ids)))
     out.append('')
-    out.append('넣기 보고서의 `goneKnown` {}. 다시 묻지 않습니다(`rules/README.md`).'.format(
-        report.get('goneKnown', [])))
+    report_known = sorted(report.get('goneKnown', []))
+    out.append('넣기 보고서의 `goneKnown` {}{}. 다시 묻지 않습니다(`rules/README.md`).'.format(report_known, '' if report_known == gone_ids
+               else ' (보고서를 만든 뒤 `gone_known.tsv`가 바뀜, 지금 파일 {})'.format(gone_ids)))
     out.append('')
     rows = []
     for cid in gone_ids:

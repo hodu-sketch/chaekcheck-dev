@@ -1,4 +1,1 @@
 collection_id	name	decided_on	checked_on	state
-44	국회도서관	2026-10-12	2026-10-12	https://ebook.nanet.go.kr:8089/ answers 200 with a 19-byte empty page to a script (crawl_skip since 2026-10-01)
-261	군포시도서관	2026-10-12	2026-10-12	http://ebook.gunpolib.go.kr:8080/ redirects (302) to https://ebook.gunpolib.go.kr:444/elibrary-front/ = library 46 (crawl_skip since 2026-10-01)
-269	김천시립도서관	2026-10-12	2026-10-12	http://ebook.gcl.go.kr/ resets a scripted connection (curl exit 56; crawl_skip since 2026-09-30)

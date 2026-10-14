@@ -211,7 +211,7 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | 261 | 군포시도서관(YES24) | 주소가 교보 군포(46, 수집 끝남)로 넘어감 |
 | 269 | 김천시립도서관 (YES24) | 2026-09-30부터 스크립트 연결을 끊음(브라우저는 열림). 우회하지 않음. 같은 서버 북큐브(100035)는 막히기 전 3,481종 받음 |
 
-- 44·261·269는 서비스에는 그대로 둡니다: 2026-10-12에 다시 열어 위와 같은 상태임을 확인하고 `scripts/library/rules/gone_known.tsv`에 적었습니다(사용자 선택, 2026-10-12). 넣기 명령 보고서의 "사라진 곳"에 다시 나오지 않습니다([1-libraries.md](1-libraries.md)).
+- 44·261·269는 2026-10-12에 다시 열어 위와 같은 상태임을 확인하고 `scripts/library/rules/gone_known.tsv`에 적어 서비스에 두었습니다(사용자 선택, 2026-10-12). **2026-10-14 사이클 18에서 셋을 끄고**(`library/016-library-disabled-cycle18.yaml`, [library-site-issues.md](../library-site-issues.md) 11절) `gone_known.tsv`에서 지웠습니다. 꺼진 곳은 넣기 명령이 비교하지 않아 "사라진 곳"에 다시 나오지 않습니다([1-libraries.md](1-libraries.md)).
 - **2026-10-12부터 수집기가 스스로 표시하는 곳** (plan spec R1-7, 0-1절): 다시 시도 뒤에도 HTTP 403이나 시간 초과면 `crawl_skip`이 `blocked {날짜}: HTTP 403 (clear: --skip {id} '')`(또는 `time-out`)이 됩니다. 이 표시는 그 도서관 하나에만 붙습니다. 사람이 사이트를 확인하고 여기 표에 이유를 더하거나, 잠깐 오류였으면 `status --skip {id} ""`로 풉니다.
 - 교보 구독형 서버(`*.dkyobobook.co.kr`)의 도서관은 `crawl_skip`이 없어도 받지 않습니다(0-1절).
 

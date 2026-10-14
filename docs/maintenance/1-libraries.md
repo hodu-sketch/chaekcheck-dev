@@ -106,7 +106,7 @@
 | `newLibraries` | 새로 넣을 곳: 수집 번호와 서비스 번호·이름·업체·대출 방식·순번·가입 조사 상태·가입 규칙·주소 | Claude가 읽고 종류·이름이 이상하면 사용자에게 물음 |
 | `changed` | 짝이 있는 서비스 도서관 중 수집 DB 값이 다른 곳(사이트 주소, 기관 이름, 화면 종류·대출 방식, 받지 않음·실패) | **사용자에게 물음**. 명령은 보고만 하고 고치지 않음. 고치기는 지금처럼 SQL·changeset(spec R2-9, `library-maintenance.md` 6절) |
 | `gone` | 짝이 있는데 사본에서 없어졌거나 받지 않음이 된 곳 | **사용자에게 물음**. 확인하고 서비스에 그대로 둘 곳은 `rules/gone_known.tsv`에 적음 |
-| `goneKnown` | `gone` 중 `gone_known.tsv`에 있어 다시 묻지 않는 수집 번호(지금 44·261·269, 2026-10-12 확인) | 없음 |
+| `goneKnown` | `gone` 중 `gone_known.tsv`에 있어 다시 묻지 않는 수집 번호(2026-10-12에 44·261·269를 적었으나 사이클 18에서 셋을 끄고 지움(2026-10-14, `library/016`). 지금 0줄) | 없음 |
 | `suspects` | 사람이 먼저 읽을 새 곳: `SAME_HOST`(아래 "같은 사이트·같은 호스트 거르기"), `ORDER_NO`(같은 이름·업체·대출 방식에 순번 2 이상) | **사용자에게 물음**. 다른 도서관이면 `same_host_kept.tsv`, 같은 사이트면 `same_site.tsv`, 순번 2를 그대로 두면 `order_no_allowed.tsv`에 적고 다시 미리 보기 |
 | `leftOut` | 이유별로 뺀 수집 번호(교보 대여·혼합, `crawl_skip`, 전체 수집 성공 없음, 체험용·운영 중단, 같은 사이트, 종류 TEST, spec R2-5) | [`docs/library-left-out.md`](../library-left-out.md)를 `python scripts/library/list_left_out.py --report …`로 다시 만듦 |
 
