@@ -96,6 +96,15 @@ class AuthEnabledSecurityTests {
 		assertThat(mvc.get().uri("/api/v1/join-surveys/latest")).hasStatusOk();
 	}
 
+	/** Cycle 16 (ADR-0098): notices and documents need no login. */
+	@Test
+	void noticesAndDocumentsNeedNoLogin() {
+		for (String uri : new String[] { "/api/v1/notices", "/api/v1/documents/terms-of-service",
+				"/api/v1/documents/privacy-policy" }) {
+			assertThat(mvc.get().uri(uri)).as(uri).hasStatusOk();
+		}
+	}
+
 	@Test
 	void bothProvidersAreOfferedByDefault() {
 		assertThat(mvc.get().uri("/api/v1/auth/providers")).hasStatusOk()
@@ -111,14 +120,14 @@ class AuthEnabledSecurityTests {
 			.update();
 		jdbc.sql("""
 				INSERT INTO auth.account_consent (account_id, consent_type, document_version, agreed_at)
-				VALUES (?, 'TERMS_OF_SERVICE', '2026-10-04', '2026-10-04T10:00:00Z'),
+				VALUES (?, 'TERMS_OF_SERVICE', '1', '2026-10-04T10:00:00Z'),
 				       (?, 'AGE_OVER_14', NULL, '2026-10-04T10:00:01Z')""").params(account, account).update();
 
 		assertThat(me(token(account, JWSAlgorithm.HS256, KEY, inMinutes(15)))).hasStatusOk()
 			.bodyJson()
 			.isStrictlyEqualTo("""
 					{"id":%d,"loginMethods":["KAKAO"],"consents":[
-					  {"type":"TERMS_OF_SERVICE","version":"2026-10-04","agreedAt":"2026-10-04T10:00:00Z"},
+					  {"type":"TERMS_OF_SERVICE","version":"1","agreedAt":"2026-10-04T10:00:00Z"},
 					  {"type":"AGE_OVER_14","agreedAt":"2026-10-04T10:00:01Z"}]}
 					""".formatted(account));
 	}

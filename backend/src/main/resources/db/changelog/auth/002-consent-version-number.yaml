@@ -1,0 +1,15 @@
+# auth module (cycle 16; ADR-0099): a document consent now records the sitecontent version number as text ('1', '2',
+# ...) instead of the effective date. The test account's records of the placeholder version '2026-10-04' become '1'
+# (sitecontent/002 seeds version 1 with that effective day), then the format is checked. AGE_OVER_14 keeps NULL.
+# If a row holds another value the CHECK fails: report the row, do not change its value here.
+databaseChangeLog:
+  - changeSet:
+      id: auth-002-consent-version-number
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: UPDATE auth.account_consent SET document_version = '1' WHERE document_version = '2026-10-04'
+        - sql:
+            sql: >-
+              ALTER TABLE auth.account_consent ADD CONSTRAINT account_consent_document_version_format_check
+                CHECK (document_version IS NULL OR document_version ~ '^[1-9][0-9]*$')

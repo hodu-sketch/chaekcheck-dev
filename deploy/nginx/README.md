@@ -24,7 +24,7 @@
   - 동시 연결 [안]: IP마다 6개. 스트림은 30초 넘게 열려 있고 검색 화면은 스트림을 한두 개 엽니다.
   - 백엔드도 모든 사용자를 합쳐 동시에 도는 검색 수를 막습니다(`chaekcheck.availability.max-concurrent-searches`, 503 `server_busy`).
   - TODO(확인 필요): 배포 때 nginx 앞에 부하 분산기나 CDN이 있으면 `real_ip_header`·`set_real_ip_from`을 먼저 맞춰야 합니다. 안 그러면 모든 사용자가 한 주소로 보여 한도를 같이 씁니다.
-- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy` → `index.html`
+- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`, `/about`, `/my-libraries`, `/picks`, `/notices`, `/notices/{번호}` → `index.html`
 - `/assets/` → 이름에 해시가 든 빌드 파일. 1년 캐시
 - 그 밖 → `dist`에 있는 파일만, 없으면 404
 

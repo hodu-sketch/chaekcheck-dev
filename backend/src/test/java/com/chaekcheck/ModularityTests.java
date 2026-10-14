@@ -19,12 +19,13 @@ class ModularityTests {
 
 	/**
 	 * Cycle 06 (ADR-0048, ADR-0037): only mylibrary uses auth, and the search modules know neither auth nor mylibrary.
-	 * {@code verify()} already fails on a dependency outside mylibrary's {@code allowedDependencies}.
+	 * {@code verify()} already fails on a dependency outside mylibrary's {@code allowedDependencies}. Cycle 16
+	 * (ADR-0099): auth reads the sign-up document versions from sitecontent, its only dependency.
 	 */
 	@Test
 	void dependencyDirections() {
 		assertThat(dependenciesOf("mylibrary")).containsExactlyInAnyOrder("auth", "library", "region");
-		assertThat(dependenciesOf("auth")).isEmpty();
+		assertThat(dependenciesOf("auth")).containsExactly("sitecontent");
 		for (String search : List.of("catalog", "availability", "library", "region")) {
 			assertThat(dependenciesOf(search)).as(search).doesNotContain("auth", "mylibrary");
 		}
@@ -39,6 +40,16 @@ class ModularityTests {
 			.map(module -> module.getIdentifier().toString())
 			.filter(name -> !name.equals("picks"))
 			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("picks"));
+	}
+
+	/** Cycle 16 (ADR-0098, ADR-0099): sitecontent depends on no module, and only auth depends on it. */
+	@Test
+	void sitecontentDependsOnNothingAndOnlyAuthUsesIt() {
+		assertThat(dependenciesOf("sitecontent")).isEmpty();
+		modules.stream()
+			.map(module -> module.getIdentifier().toString())
+			.filter(name -> !name.equals("auth"))
+			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("sitecontent"));
 	}
 
 	/**

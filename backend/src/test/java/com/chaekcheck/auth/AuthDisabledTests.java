@@ -48,6 +48,15 @@ class AuthDisabledTests {
 			.isEqualTo("not_found");
 	}
 
+	/** Cycle 16 (ADR-0100): the terms stay readable through the API when login is off; only the web route hides. */
+	@Test
+	void noticesAndDocumentsAreOpen() {
+		for (String uri : new String[] { "/api/v1/notices", "/api/v1/documents/terms-of-service",
+				"/api/v1/documents/privacy-policy" }) {
+			assertThat(mvc.get().uri(uri)).as(uri).hasStatusOk();
+		}
+	}
+
 	@Test
 	void existingApiHasNoSecurityHeaders() {
 		assertThat(mvc.get().uri("/api/v1/regions")).hasStatusOk()

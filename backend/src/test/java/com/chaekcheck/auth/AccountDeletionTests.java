@@ -91,7 +91,7 @@ class AccountDeletionTests {
 			.update();
 		jdbc.sql("""
 				INSERT INTO auth.account_consent (account_id, consent_type, document_version, agreed_at)
-				VALUES (?, 'TERMS_OF_SERVICE', '2026-10-04', now())""").param(id).update();
+				VALUES (?, 'TERMS_OF_SERVICE', '1', now())""").param(id).update();
 		jdbc.sql("""
 				INSERT INTO auth.refresh_token (account_id, token_hash, expires_at)
 				VALUES (?, ?, now() + interval '30 days')""").params(id, ("h" + id).getBytes()).update();

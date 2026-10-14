@@ -89,12 +89,6 @@ chaekcheck:
       app-id: ${KAKAO_APP_ID:}
       # Users linked to the app (admin key, limit 1-100, from_id, 100 calls a minute): the daily link check (C29)
       user-ids-uri: https://kapi.kakao.com/v1/user/ids
-    documents:
-      # Effective dates of the documents agreed to at sign-up, YYYY-MM-DD (C27). The web's terms and privacy pages
-      # must show the same versions.
-      # TODO(확인 필요): placeholder dates. The user decides the versions after reviewing the wording (before deploy).
-      terms-of-service-version: "2026-10-04"
-      privacy-collection-version: "2026-10-04"
     provider-calls:
       # [확정] (user approval 2026-10-04, C20); not from a provider document, to be checked with real calls
       connect-timeout: 3s

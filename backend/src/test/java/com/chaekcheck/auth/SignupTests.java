@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
 
@@ -32,15 +33,14 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chaekcheck.auth.internal.login.PendingSignup;
+import com.chaekcheck.sitecontent.internal.Today;
 import com.nimbusds.jwt.SignedJWT;
 
 /** Step 6: consent and sign-up, cancel, and abandoned sign-ups, with fake Naver and Kakao unlink endpoints. */
 @SpringBootTest(properties = { "chaekcheck.auth.enabled=true",
 		"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=test-kakao-admin-key", "chaekcheck.auth.kakao.app-id=123456",
 		"chaekcheck.auth.naver.client-id=test-naver-id", "chaekcheck.auth.naver.client-secret=test-naver-secret",
-		"chaekcheck.auth.kakao.client-id=test-kakao-id", "chaekcheck.auth.kakao.client-secret=test-kakao-secret",
-		"chaekcheck.auth.documents.terms-of-service-version=2026-10-01",
-		"chaekcheck.auth.documents.privacy-collection-version=2026-10-02" })
+		"chaekcheck.auth.kakao.client-id=test-kakao-id", "chaekcheck.auth.kakao.client-secret=test-kakao-secret" })
 @AutoConfigureMockMvc
 @Transactional
 class SignupTests {
@@ -49,9 +49,11 @@ class SignupTests {
 
 	static final String CSRF = "test-csrf-token";
 
+	static final String TERMS_1 = "{\"type\":\"TERMS_OF_SERVICE\",\"version\":\"1\"}";
+
 	static final String VALID = """
-			{"consents":[{"type":"TERMS_OF_SERVICE","version":"2026-10-01"},
-			  {"type":"PRIVACY_COLLECTION","version":"2026-10-02"},{"type":"AGE_OVER_14"}]}""";
+			{"consents":[{"type":"TERMS_OF_SERVICE","version":"1"},
+			  {"type":"PRIVACY_COLLECTION","version":"1"},{"type":"AGE_OVER_14"}]}""";
 
 	@DynamicPropertySource
 	static void settings(DynamicPropertyRegistry registry) {
@@ -77,6 +79,9 @@ class SignupTests {
 	@Autowired
 	ApplicationContext context;
 
+	@Autowired
+	Today today;
+
 	@BeforeEach
 	void resetFake() {
 		fake.reset();
@@ -87,8 +92,8 @@ class SignupTests {
 		assertThat(mvc.get().uri("/api/v1/auth/signup").session(pending("KAKAO", "s-info", null))).hasStatusOk()
 			.bodyJson()
 			.isStrictlyEqualTo("""
-					{"provider":"KAKAO","documents":[{"type":"TERMS_OF_SERVICE","version":"2026-10-01"},
-					  {"type":"PRIVACY_COLLECTION","version":"2026-10-02"}]}""");
+					{"provider":"KAKAO","documents":[{"type":"TERMS_OF_SERVICE","version":"1"},
+					  {"type":"PRIVACY_COLLECTION","version":"1"}]}""");
 	}
 
 	@Test
@@ -134,7 +139,7 @@ class SignupTests {
 		assertThat(jdbc.sql("""
 				SELECT consent_type || ':' || coalesce(document_version, '-') FROM auth.account_consent
 				WHERE account_id = ? ORDER BY consent_type""").param(account).query(String.class).list())
-			.containsExactly("AGE_OVER_14:-", "PRIVACY_COLLECTION:2026-10-02", "TERMS_OF_SERVICE:2026-10-01");
+			.containsExactly("AGE_OVER_14:-", "PRIVACY_COLLECTION:1", "TERMS_OF_SERVICE:1");
 		assertThat(subjectOfAccessCookie(result)).isEqualTo(String.valueOf(account));
 		assertThat(session.getAttribute(PendingSignup.SESSION_ATTRIBUTE)).isNull();
 		assertThat(fake.unlinkRequests).isEmpty();
@@ -145,8 +150,8 @@ class SignupTests {
 		MockHttpSession session = pending("KAKAO", "s-missing", null);
 
 		MvcTestResult result = signUp(session, """
-				{"consents":[{"type":"TERMS_OF_SERVICE","version":"2026-10-01"},
-				  {"type":"PRIVACY_COLLECTION","version":"2026-10-02"}]}""");
+				{"consents":[{"type":"TERMS_OF_SERVICE","version":"1"},
+				  {"type":"PRIVACY_COLLECTION","version":"1"}]}""");
 
 		assertThat(result).hasStatus(HttpStatus.BAD_REQUEST).bodyJson().isLenientlyEqualTo("""
 				{"code":"validation_error","errors":[{"field":"consents","code":"required",
@@ -159,13 +164,72 @@ class SignupTests {
 	void oldDocumentVersionIsConflict() {
 		MockHttpSession session = pending("NAVER", "s-old", "naver-token");
 
-		MvcTestResult result = signUp(session, VALID.replace("2026-10-02", "2026-09-01"));
+		MvcTestResult result = signUp(session, VALID.replace("{\"type\":\"PRIVACY_COLLECTION\",\"version\":\"1\"}", "{\"type\":\"PRIVACY_COLLECTION\",\"version\":\"9\"}"));
 
 		assertThat(result).hasStatus(HttpStatus.CONFLICT)
 			.bodyJson()
 			.extractingPath("$.code")
 			.isEqualTo("document_version_mismatch");
 		assertThat(count("auth.login_method WHERE subject = 's-old'")).isZero();
+	}
+
+	/** AC-3 (ADR-0099): a terms version in effect today is the one to agree to, and it is recorded. */
+	@Test
+	void newTermsVersionInEffectTodayIsRecorded() {
+		termsVersion(2, today.get());
+		MockHttpSession session = pending("KAKAO", "s-terms-2", null);
+
+		assertThat(mvc.get().uri("/api/v1/auth/signup").session(session)).hasStatusOk()
+			.bodyJson()
+			.extractingPath("$.documents[0].version")
+			.isEqualTo("2");
+		assertThat(signUp(session, VALID.replace(TERMS_1, TERMS_1.replace("\"1\"", "\"2\""))))
+			.hasStatus(HttpStatus.CREATED);
+		assertThat(jdbc.sql("""
+				SELECT document_version FROM auth.account_consent
+				WHERE account_id = ? AND consent_type = 'TERMS_OF_SERVICE'""")
+			.param(accountOf("KAKAO", "s-terms-2"))
+			.query(String.class)
+			.single()).isEqualTo("2");
+	}
+
+	/** AC-4: a version that takes effect tomorrow is not offered and cannot be agreed to yet. */
+	@Test
+	void futureTermsVersionIsNotUsedYet() {
+		termsVersion(2, today.get().plusDays(1));
+		MockHttpSession session = pending("KAKAO", "s-terms-future", null);
+
+		assertThat(mvc.get().uri("/api/v1/auth/signup").session(session)).hasStatusOk()
+			.bodyJson()
+			.extractingPath("$.documents[0].version")
+			.isEqualTo("1");
+		assertThat(signUp(session, VALID.replace(TERMS_1, TERMS_1.replace("\"1\"", "\"2\""))))
+			.hasStatus(HttpStatus.CONFLICT)
+			.bodyJson()
+			.extractingPath("$.code")
+			.isEqualTo("document_version_mismatch");
+	}
+
+	/** A version that takes effect after the screen loaded the documents makes the sign-up 409. */
+	@Test
+	void versionTakingEffectAfterTheScreenLoadedIsConflict() {
+		MockHttpSession session = pending("KAKAO", "s-terms-late", null);
+		assertThat(mvc.get().uri("/api/v1/auth/signup").session(session)).hasStatusOk()
+			.bodyJson()
+			.extractingPath("$.documents[0].version")
+			.isEqualTo("1");
+		termsVersion(2, today.get());
+
+		assertThat(signUp(session, VALID)).hasStatus(HttpStatus.CONFLICT)
+			.bodyJson()
+			.extractingPath("$.code")
+			.isEqualTo("document_version_mismatch");
+	}
+
+	private void termsVersion(int number, LocalDate effectiveOn) {
+		jdbc.sql("""
+				INSERT INTO sitecontent.document_version (document_key, version_no, effective_on, body)
+				VALUES ('TERMS_OF_SERVICE', ?, ?, 'terms')""").params(number, effectiveOn).update();
 	}
 
 	@Test

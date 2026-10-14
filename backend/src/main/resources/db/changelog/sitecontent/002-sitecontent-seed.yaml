@@ -1,0 +1,102 @@
+# sitecontent module (cycle 16; ADR-0098, ADR-0099): version 1 of the four documents for the development databases,
+# the texts the web code held until now (legalText.ts, AboutPage.tsx) in markdown. No notice. effective_on
+# 2026-10-04 continues the consent records of the test account (auth/002 changes them to '1').
+# The terms, the collection notice and the privacy policy are placeholders: each body starts with
+# "이 문서는 검토 전 자리 글입니다" (spec R8-4). Sign-in is Kakao only (user, 2026-10-13). The about text is plan
+# drafts/about.md (approved 2026-10-14).
+# Before the public opening this file is replaced by the reviewed drafts while PRE_DEPLOYMENT exists (handoff
+# "공개 전에 할 것"); not during cycle 16.
+# Bodies are dollar-quoted ($$...$$) and splitStatements: false, so semicolons in the text never split a statement.
+databaseChangeLog:
+  - changeSet:
+      id: sitecontent-002-terms-of-service
+      author: chaekcheck
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              INSERT INTO sitecontent.document_version (document_key, version_no, effective_on, body)
+              VALUES ('TERMS_OF_SERVICE', 1, DATE '2026-10-04', $$이 문서는 검토 전 자리 글입니다. 배포 전에 실제 이용약관으로 바꿉니다.
+
+              책첵은 여러 전자도서관의 공개 검색 결과를 모아 보여 주는 서비스입니다. 대출과 예약은 각 도서관에서 합니다.$$)
+
+  - changeSet:
+      id: sitecontent-002-privacy-collection
+      author: chaekcheck
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              INSERT INTO sitecontent.document_version (document_key, version_no, effective_on, body, consent_items)
+              VALUES ('PRIVACY_COLLECTION', 1, DATE '2026-10-04', $$이 문서는 검토 전 자리 글입니다. 배포 전에 실제 수집·이용 동의 문구로 바꿉니다.
+
+              수집하는 항목, 목적, 보유 기간은 위 표와 같습니다.$$, $$[
+                {"label": "목적", "text": "회원 식별과 로그인 유지, 내 지역에서 가입할 수 있는 도서관을 찾아 검색에 쓰기(거주·직장 지역), 직접 고른 도서관을 검색 결과에서 먼저 보여 주기(직접 추가한 도서관)"},
+                {"label": "항목", "text": "카카오 회원 식별 번호, 거주지 지역(시군구), 직장 지역(시군구), 직접 추가한 도서관(고른 경우)"},
+                {"label": "보유·이용 기간", "text": "탈퇴할 때까지, 또는 마지막 로그인 뒤 1년"},
+                {"label": "거부할 권리와 불이익", "text": "동의하지 않을 수 있어요. 동의하지 않으면 가입할 수 없지만, 책 검색은 로그인 없이 그대로 쓸 수 있어요"}
+              ]$$::jsonb)
+
+  - changeSet:
+      id: sitecontent-002-privacy-policy
+      author: chaekcheck
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              INSERT INTO sitecontent.document_version (document_key, version_no, effective_on, body)
+              VALUES ('PRIVACY_POLICY', 1, DATE '2026-10-04', $$이 문서는 검토 전 자리 글입니다. 배포 전에 실제 개인정보 처리방침으로 바꿉니다.
+
+              ## 처리하는 개인정보와 목적
+
+              카카오 회원 식별 번호를 회원 식별과 로그인 유지에 씁니다.
+
+              거주지 지역(시군구)과 직장 지역(시군구)을 내 지역에서 가입할 수 있는 도서관을 찾아 검색에 쓰는 데 씁니다.
+
+              직접 추가한 도서관(고른 경우)을 직접 고른 도서관을 검색 결과에서 먼저 보여 주는 데 씁니다.
+
+              ## 보유·이용 기간
+
+              탈퇴할 때까지, 또는 마지막 로그인 뒤 1년까지 보유합니다.
+
+              ## 파기 절차와 방법
+
+              보유 기간이 끝나거나 탈퇴하면 지체 없이 데이터베이스에서 지웁니다.
+
+              ## 제3자 제공과 처리 위탁
+
+              검토 전입니다. 제공·위탁이 있으면 대상과 목적을 적습니다.
+
+              ## 정보주체의 권리와 행사 방법
+
+              설정의 "탈퇴"로 언제든 계정과 동의 기록을 지울 수 있습니다.
+
+              저장한 지역과 직접 추가한 도서관은 "내 도서관" 화면에서 언제든 비우거나 지울 수 있습니다.
+
+              ## 안전성 확보 조치
+
+              검토 전입니다. 접근 통제, 전송 구간 암호화 등을 적습니다.
+
+              ## 개인정보 보호책임자
+
+              운영자 본인이 보호책임자입니다. 연락처: 준비 중
+
+              ## 처리방침의 변경
+
+              바뀌면 시행일과 함께 이 화면에 알립니다.$$)
+
+  - changeSet:
+      id: sitecontent-002-about
+      author: chaekcheck
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              INSERT INTO sitecontent.document_version (document_key, version_no, effective_on, body)
+              VALUES ('ABOUT', 1, DATE '2026-10-04', $$책첵은 여러 전자도서관에서 지금 빌릴 수 있는 전자책을 한 번에 찾아 주는 서비스예요.
+
+              사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)예요.
+
+              각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없습니다.
+
+              문의·로고·표지 내림 요청: <chaekcheck9104@gmail.com>$$)

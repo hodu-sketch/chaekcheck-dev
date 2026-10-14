@@ -97,3 +97,13 @@ databaseChangeLog:
   - include:
       file: library/016-library-disabled-cycle18.yaml
       relativeToChangelogFile: true
+  # cycle 16: notices and documents (ADR-0098, ADR-0099), consent records hold the version number
+  - include:
+      file: sitecontent/001-sitecontent-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: sitecontent/002-sitecontent-seed.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: auth/002-consent-version-number.yaml
+      relativeToChangelogFile: true

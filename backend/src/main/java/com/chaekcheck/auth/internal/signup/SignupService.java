@@ -11,17 +11,19 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.chaekcheck.auth.internal.AuthProperties;
 import com.chaekcheck.auth.ConditionalOnAuthEnabled;
 import com.chaekcheck.auth.internal.account.AccountStore;
 import com.chaekcheck.auth.internal.account.AccountStore.NewConsent;
 import com.chaekcheck.auth.internal.login.PendingSignup;
 import com.chaekcheck.auth.internal.token.TokenService;
 import com.chaekcheck.auth.internal.token.TokenService.LoginCookies;
+import com.chaekcheck.sitecontent.ConsentDocument;
+import com.chaekcheck.sitecontent.SiteDocuments;
 
 /**
- * Sign-up from a pending sign-up and the three consents (handoff step 6, AC-2). The document versions in
- * {@code chaekcheck.auth.documents} are the source (C27).
+ * Sign-up from a pending sign-up and the three consents (handoff step 6, AC-2). The document versions are the
+ * current versions in sitecontent ({@link SiteDocuments}, ADR-0099), read again at every call: a version that takes
+ * effect after the screen loaded makes the sign-up 409.
  */
 @Service
 @ConditionalOnAuthEnabled
@@ -33,22 +35,28 @@ public class SignupService {
 
 	private final TransactionTemplate transaction;
 
-	private final AuthProperties.Documents documents;
+	private final SiteDocuments siteDocuments;
 
 	private final Clock clock = Clock.systemUTC();
 
 	SignupService(AccountStore accounts, TokenService tokens, TransactionTemplate transaction,
-			AuthProperties properties) {
+			SiteDocuments siteDocuments) {
 		this.accounts = accounts;
 		this.tokens = tokens;
 		this.transaction = transaction;
-		this.documents = properties.documents();
+		this.siteDocuments = siteDocuments;
 	}
 
-	/** The documents to agree to, with their current versions ({@code GET /api/v1/auth/signup}). */
+	/**
+	 * The documents to agree to, with their current version numbers as text, e.g. {@code "1"}
+	 * ({@code GET /api/v1/auth/signup}).
+	 */
 	public List<Document> documents() {
-		return List.of(new Document(ConsentType.TERMS_OF_SERVICE, documents.termsOfServiceVersion()),
-				new Document(ConsentType.PRIVACY_COLLECTION, documents.privacyCollectionVersion()));
+		return List.of(
+				new Document(ConsentType.TERMS_OF_SERVICE,
+						String.valueOf(siteDocuments.currentVersion(ConsentDocument.TERMS_OF_SERVICE))),
+				new Document(ConsentType.PRIVACY_COLLECTION,
+						String.valueOf(siteDocuments.currentVersion(ConsentDocument.PRIVACY_COLLECTION))));
 	}
 
 	/**

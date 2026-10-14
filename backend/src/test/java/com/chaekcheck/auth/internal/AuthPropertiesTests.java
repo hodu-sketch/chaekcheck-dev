@@ -41,9 +41,7 @@ class AuthPropertiesTests {
 		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.jwt.secret=test-secret",
 				"chaekcheck.auth.naver.client-id=n-id", "chaekcheck.auth.naver.client-secret=n-secret",
 				"chaekcheck.auth.kakao.client-id=k-id", "chaekcheck.auth.kakao.client-secret=k-secret",
-				"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=k-admin", "chaekcheck.auth.kakao.app-id=123",
-				"chaekcheck.auth.documents.terms-of-service-version=2026-10-04",
-				"chaekcheck.auth.documents.privacy-collection-version=2026-10-04")
+				"chaekcheck.auth.public-base-url=http://localhost:5173", "chaekcheck.auth.kakao.admin-key=k-admin", "chaekcheck.auth.kakao.app-id=123")
 			.withPropertyValues(endpoints("naver"))
 			.withPropertyValues(endpoints("kakao"))
 			.run(context -> {
@@ -57,9 +55,7 @@ class AuthPropertiesTests {
 		runner.withPropertyValues("chaekcheck.auth.enabled=true", "chaekcheck.auth.providers=kakao",
 				"chaekcheck.auth.jwt.secret=test-secret", "chaekcheck.auth.kakao.client-id=k-id",
 				"chaekcheck.auth.kakao.client-secret=k-secret", "chaekcheck.auth.kakao.admin-key=k-admin", "chaekcheck.auth.kakao.app-id=123",
-				"chaekcheck.auth.public-base-url=http://localhost:5173",
-				"chaekcheck.auth.documents.terms-of-service-version=2026-10-04",
-				"chaekcheck.auth.documents.privacy-collection-version=2026-10-04")
+				"chaekcheck.auth.public-base-url=http://localhost:5173")
 			.withPropertyValues(endpoints("naver"))
 			.withPropertyValues(endpoints("kakao"))
 			.run(context -> {

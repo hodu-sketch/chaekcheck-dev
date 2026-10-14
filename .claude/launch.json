@@ -97,6 +97,37 @@
         "set API_PROXY_TARGET=http://localhost:8083&& npm --prefix web run dev -- --port 5177 --strictPort --host"
       ],
       "port": 5177
+    },
+    {
+      "name": "c16-backend-8085",
+      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c16\\backend\\gradlew.bat",
+      "runtimeArgs": [
+        "-p",
+        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c16\\backend",
+        "bootRun",
+        "--args=--server.port=8085"
+      ],
+      "port": 8085
+    },
+    {
+      "name": "c16-backend-no-login-8085",
+      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c16\\backend\\gradlew.bat",
+      "runtimeArgs": [
+        "-p",
+        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c16\\backend",
+        "bootRun",
+        "--args=--server.port=8085 --chaekcheck.auth.enabled=false"
+      ],
+      "port": 8085
+    },
+    {
+      "name": "c16-web-lan-5179",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set API_PROXY_TARGET=http://localhost:8085&& npm --prefix C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c16\\web run dev -- --port 5179 --strictPort --host"
+      ],
+      "port": 5179
     }
   ]
 }

@@ -38,7 +38,7 @@ class AuthSchemaTests {
 			.update();
 		jdbc.sql("""
 				INSERT INTO auth.account_consent (account_id, consent_type, document_version, agreed_at)
-				VALUES (?, 'TERMS_OF_SERVICE', '2026-10-04', now()), (?, 'AGE_OVER_14', NULL, now())""")
+				VALUES (?, 'TERMS_OF_SERVICE', '1', now()), (?, 'AGE_OVER_14', NULL, now())""")
 			.params(account, account)
 			.update();
 		jdbc.sql("""
@@ -53,6 +53,28 @@ class AuthSchemaTests {
 				.query(Long.class)
 				.single()).as(table).isZero();
 		}
+	}
+
+	/** Cycle 16 (ADR-0099): a document consent holds the sitecontent version number as text; AGE_OVER_14 NULL. */
+	@Test
+	void documentVersionIsAVersionNumber() {
+		long account = newAccount();
+		for (String bad : new String[] { "2026-10-04", "0", "01", "1a", "" }) {
+			// behind a savepoint, so the test transaction stays usable for the next value
+			jdbc.sql("SAVEPOINT violation").update();
+			assertThatThrownBy(() -> consent(account, "TERMS_OF_SERVICE", bad)).as(bad)
+				.isInstanceOf(DataIntegrityViolationException.class);
+			jdbc.sql("ROLLBACK TO SAVEPOINT violation").update();
+		}
+		consent(account, "TERMS_OF_SERVICE", "1");
+		consent(account, "PRIVACY_COLLECTION", "12");
+		consent(account, "AGE_OVER_14", null);
+	}
+
+	private void consent(long account, String type, String version) {
+		jdbc.sql("""
+				INSERT INTO auth.account_consent (account_id, consent_type, document_version, agreed_at)
+				VALUES (?, ?, ?, now())""").params(account, type, version).update();
 	}
 
 	@Test

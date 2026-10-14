@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -30,7 +29,7 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		@NotBlank(message = "is required when login is on (environment variable AUTH_PUBLIC_BASE_URL)")
 		@Pattern(regexp = "https?://[^/\\s]+",
 				message = "must be scheme, host and optional port only, e.g. http://localhost:5173 (AUTH_PUBLIC_BASE_URL)") String publicBaseUrl,
-		ProviderCalls providerCalls, @Valid Documents documents, Cleanup cleanup,
+		ProviderCalls providerCalls, Cleanup cleanup,
 		@NotEmpty(message = "must name at least one of naver, kakao (environment variable AUTH_PROVIDERS)") Set<LoginProvider> providers) {
 
 	public AuthProperties {
@@ -39,7 +38,6 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 		kakao = kakao != null ? kakao : new Provider(null, null, null, null, null, null, null, null, null);
 		tokens = tokens != null ? tokens : new Tokens(null, null, null, null);
 		providerCalls = providerCalls != null ? providerCalls : new ProviderCalls(null, null);
-		documents = documents != null ? documents : new Documents(null, null);
 		providers = providers != null ? Set.copyOf(providers) : Set.of(LoginProvider.values());
 		cleanup = cleanup != null ? cleanup : new Cleanup(null, null, null, null);
 	}
@@ -149,15 +147,6 @@ public record AuthProperties(@Valid Jwt jwt, @Valid Provider naver, @Valid Provi
 			kakaoCallInterval = kakaoCallInterval != null ? kakaoCallInterval : Duration.ofMillis(700);
 		}
 
-	}
-
-	/**
-	 * Current versions of the documents a user agrees to at sign-up: the effective date, {@code YYYY-MM-DD}. The
-	 * server setting is the source; sign-up with another version is 409 (C27).
-	 */
-	public record Documents(
-			@NotNull @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "must be YYYY-MM-DD") String termsOfServiceVersion,
-			@NotNull @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "must be YYYY-MM-DD") String privacyCollectionVersion) {
 	}
 
 }

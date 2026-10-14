@@ -6,7 +6,8 @@
  * <p>
  * The whole module is switched by {@code chaekcheck.auth.enabled} (default off, ADR-0046). When it is off the
  * application behaves as in cycle 04: no security filter, no {@code /api/v1/auth/**} or {@code /api/v1/me}.
- * This module depends on no other module (AC-18). Since cycle 06 only {@code mylibrary} depends on it, and only on
+ * This module depends only on {@code sitecontent}'s public API {@code SiteDocuments} for the sign-up document versions
+ * (cycle 16, ADR-0099; until then it depended on no module, AC-18). Since cycle 06 only {@code mylibrary} depends on it, and only on
  * its public types (ADR-0048): {@code AccountId} (filled into controller parameters from the signed-in account),
  * {@code AccountDeleted}, {@code AccountPresence} (the account row lock, ADR-0051) and
  * {@code ConditionalOnAuthEnabled}.
