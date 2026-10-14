@@ -65,6 +65,8 @@ COMMIT;
 
 ## 2. 공지 고치기 (새 판)
 
+공지는 보통 고치지 않습니다. 판이 하나뿐이면 날짜 고르기 칸이 나오지 않습니다. 꼭 고쳐야 할 때만 새 판을 넣고(그 공지에만 칸과 "고침" 표시가 생김), 아니면 숨기고 새 공지를 올립니다(사용자, 2026-10-14).
+
 ```sql
 BEGIN;
 INSERT INTO sitecontent.notice_version (notice_id, version_no, effective_on, title, body)
