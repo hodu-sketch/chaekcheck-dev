@@ -3998,7 +3998,7 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 스크립트 한 줄 고침: B-2 머리 글이 보고서의 `goneKnown`([44, 261, 269])만 보여 줘 지운 뒤에도 셋이 남은 것처럼 읽힘 → 보고서 값과 지금 `gone_known.tsv`가 다르면 "(보고서를 만든 뒤 `gone_known.tsv`가 바뀜, 지금 파일 [])"을 붙임. `test_list_left_out.py` 통과
 - **AC-1 SQL (016 적용 뒤, 복사본 `db`)**: `2624` 한 줄만 남음. 22곳 밖에서 새로 나온 곳 없음(끈 것 더하지 않음). 2624는 B 뒤에 0권이 아니게 됨(끄지 않음)
 - **AC-2**: 시험 `theListLeavesThemOut` 통과(목록 수 = 켜진 수, 22곳 없음). 복사본에 앱(8086)을 띄워 `GET /api/v1/libraries` = **2,642곳**(2,664 − 22), 22곳 하나도 없음. 켜진 2,642 / 꺼진 27 / 전체 2,669
-- **AC-3**: 서버 쪽에는 "쓸 수 없는 도서관" 표시 시험이 없음(웹이 "내 도서관" 번호와 목록 API를 맞춰 봄). 그래서 `MyLibraryApiTests`에 `libraryTurnedOffInCycle18StaysSavedButUnavailable` 한 경우: 323을 추가하면 404 `library_not_found`, 전에 넣어 둔 323은 `GET /api/v1/me/libraries`에 그대로 있고 목록 API에는 없음. 화면 확인(Playwright 1280)은 이 세션에서 하지 않음
+- **AC-3**: 서버 쪽에는 "쓸 수 없는 도서관" 표시 시험이 없음(웹이 "내 도서관" 번호와 목록 API를 맞춰 봄). 그래서 `MyLibraryApiTests`에 `libraryTurnedOffInCycle18StaysSavedButUnavailable` 한 경우: 323을 추가하면 404 `library_not_found`, 전에 넣어 둔 323은 `GET /api/v1/me/libraries`에 그대로 있고 목록 API에는 없음. 화면 확인: 데스크톱 1280, 복사본 `db`에 A1 판 서버(8086, 로그인 켬) + 웹 5180, 로컬 시험 계정 2번(323·2624·60을 직접 추가, 개발용 JWT 키로 2시간 토큰). "내 도서관 관리"에서 323 줄이 "지금은 쓸 수 없는 도서관이에요"로 나오고 60·2624는 이름·업체가 나옴. Playwright MCP 브라우저를 다른 세션이 쓰고 있어 앱 안 브라우저로 봄(스크린숏은 창이 그려지지 않아 실패, 글로 확인). 확인 뒤 `mylibrary` 행부터 계정까지 지움
 - **AC-7**: `library-site-issues.md` 11절에 22곳 원인·원문(또는 수집 기록 근거)·확인일
 - `LibraryDisabledCycle18Tests`의 "다른 도서관 수는 바뀌지 않음"은 db-test에서 꺼진 도서관이 정확히 이전 5곳(59·131·135·2194·2198) + 22곳인지로 봄. changeset 줄이 `EXECUTED`인지도 봄
 - 빌드: `./gradlew build` 통과(7분 31초, 시험 796개, 건너뜀 2, 실패 0, `ModularityTests`·`DocumentationTests` 포함)
