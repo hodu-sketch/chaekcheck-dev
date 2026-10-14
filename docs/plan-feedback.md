@@ -3953,3 +3953,59 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 2. 같은 달 순서: 지금처럼 "나중 등록 먼저" 유지 vs 국립중앙도서관 웹(응답) 순서
 3. 배포 전: 표지 이용 조건, 권리자 연락처, User-Agent 서비스 주소, 인증키 새로 받기
 4. 없는 주소용 화면(`*` 경로)이 필요한지
+
+
+# 사이클 18
+
+소장이 비었거나 덜 모인 도서관 (plan `docs/cycles/18-empty-library-holdings/handoff.md`, ADR-0109~0111). A1·A2를 따로 합치고 B는 사이클 19 뒤 새 브랜치(인계서 dev 순서). 묶음마다 덧붙임.
+
+## 시작 상태
+
+- worktree `../chaekcheck-dev-c18`, 브랜치 `cycle-18-a1-disable-libraries`(A1) / `cycle-18-a2-underscore-host`(A2, worktree `../chaekcheck-dev-c18-a2`). 시작 커밋 `b4cd153`(main 그때 최신, 사이클 13·14 들어감)
+- docker 묶음 `chaekcheck-c18`(`docker compose -p chaekcheck-c18`): `db` 5482, `db-test` 5483, `db-ops` 5484(쓰지 않음, 겹치지 않게만). 서버 8086, 조회 서버 8087, 웹 5180. A2 worktree는 db-test를 따로 `chaekcheck-c18b`(5493)로 씀. 원래 `chaekcheck`·`-c15`·`-c16` 묶음은 켜고 끄지 않음
+- `db`는 원래 서비스 DB(`chaekcheck-db-1`, 5432)를 `pg_dump | pg_restore`로 한 번 복사(원래 DB는 읽기만, 6분 4초). 복사본 도서관 2,669곳, `catalog.holding` 18,024,491줄
+- Gradle은 `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck-c18,exec,-T,db-test`를 줘서 돌림(사이클 14 "알릴 것"과 같은 이유)
+- 사용자 결정(2026-10-14, 이 세션): "2624 시제품 요청 승인", "실제 확인은 dev가 시험 계정으로(본 서비스 + 조회 서버 앱)"
+
+### 기준 빌드와 기준 수치 (0단계)
+
+- 기준 빌드: 시작 커밋 그대로 `./gradlew build` 통과(6분 48초, 시험 793개, 건너뜀 2, 실패 0). `ModularityTests`·`DocumentationTests` 포함
+- 기준 수치(원래 서비스 DB 읽기, 복사본도 같음, 2026-10-14)
+  - 켜진 0권 도서관(AC-1 SQL): **22줄** = 끌 22곳 중 21곳 + 현대제철 2624. 261 군포시도서관은 옮기기 전 수집분 80권이 있어 이 SQL에는 나오지 않음(그래도 22곳 목록대로 끔)
+  - `GET /api/v1/libraries` 도서관 수: **2,664곳**(켜진 도서관 수와 같음, `LibraryService.eligibilityFor` = `findByEnabledTrueOrderById`). plan 읽기 2,658곳과 6곳 차이는 사이클 13 실제 넣기(2675~2680, 2026-10-13)
+  - 마지막 `collection.catalog_import`(10번, 2026-10-13, `SUCCEEDED`)의 `detail_url_not_http`: **283**(9번도 283)
+
+## A1. 22곳 끄기
+
+- **Liquibase**: `library/016-library-disabled-cycle18.yaml`, changeset id `library-016-disabled-cycle18`, author `chaekcheck`. SQL은 인계서 그대로(22곳 `enabled = false, updated_at = now()`). 머리 주석에 사이클 18·ADR-0109·사용자 결정 2026-10-14·원인 묶음·`library-site-issues.md` 11절. master 맨 끝(`# cycle 14` `picks/001` 뒤)에 `# cycle 18: libraries with no e-books turned off (ADR-0109)` + include. 기존 changeset은 고치지 않음(`PRE_DEPLOYMENT` 있어도, C2). 다른 사이클과 rebase는 아직 없음(합칠 때 나중 쪽이 끝으로 옮김)
+- **적용**: 복사본 `db`에 앱을 8086으로 한 번 띄워 적용(`EXECUTED`, orderexecuted 59) 뒤 끔. `db-test`는 빌드 때 적용
+- **바꾼 파일**
+  - `scripts/library/disabled_reasons.tsv` 22줄(끈 날 2026-10-14, 이름은 서비스 DB 값, 교보 구독형 4곳에 "다른 IP에서 다시 받을 때 책이 있으면 다시 켬")
+  - `scripts/library/rules/gone_known.tsv`: 44·261·269 지움(머리 줄만). 꺼진 곳은 넣기 명령이 비교하지 않으므로(`LibraryInsertPlanner.compare`가 `enabled`가 아니면 건너뜀) "사라진 곳"에 다시 나오지 않음
+  - `docs/library-site-issues.md` 새 **11절** "전자책이 0권이라 끈 곳 (2026-10-14, 사이클 18)": 22곳 번호·이름·주소·원인·원문/근거·확인일(AC-7). 머리말의 `library-left-out.md` 안내에 다시 만든 날 한 줄
+  - `docs/library-maintenance.md` 6-2 "꺼 둔 도서관" 표 22줄, 13절 작업 기록 한 줄
+  - `docs/maintenance/3-import.md` 13절 머리에 "끄기 변경 파일이 든 판으로 내 PC를 띄운 뒤 내보내기. 끄기 전 판으로 내보내면 반영 비교가 mismatch로 멈춤"
+  - 인계서에 없던 작은 고침(지운 `gone_known` 줄을 가리키던 글): `docs/maintenance/1-libraries.md`(`goneKnown` 설명), `docs/maintenance/2-crawl.md`(44·261·269 줄), `scripts/library/rules/README.md`
+  - `docs/library-left-out.md` 다시 만듦, `scripts/library/list_left_out.py` 한 줄 고침(아래)
+  - 시험: `LibraryDisabledCycle18Tests`(새), `MyLibraryApiTests`에 한 경우
+- **사이트를 다시 연 곳** (C6: 우리 User-Agent `chaekcheck/0.0.1`, 한 곳에 1건, 5초 간격, 2026-10-14 21:39~21:40, `curl`)
+  - 북큐브 8곳(305·318·425·514·622·623·625·626): 모두 200. 첫 화면 HTML의 "분야별 eBook" 메뉴(`class="category_all"`)에 "오디오북" 하나뿐. **권수는 HTML에 없어** research.md의 "전체 (N종) / 오디오북 (N종)" 같은 권수 원문은 못 얻음. 원문은 메뉴 이름만 적고 권수는 수집 DB(모은 줄 모두 `AUDIOBOOK`)로 적음
+  - 교보 112·168: 첫 화면 `/`가 스크립트로 `/elibrary-front/`로 보내는 빈 쪽(200). 그 주소를 한 번 더 받았더니(곳마다 2건째, 6초 간격) 302라 더 따라가지 않음. **원문 못 얻음** → 수집 DB 근거(2026-09-30 전체 수집 성공, 사이트 권수 167·179 = 모은 줄, 모두 `AUDIOBOOK`)로 적음. 지시("곳마다 1건")와 달리 2건을 보냄
+  - 교보 구독형 4곳(1045·1131·1620·2023)은 열지 않음. 수집 DB(2026-10-04 전체 수집 성공, 사이트 권수 0)로만 적음
+  - 378·537·323·455·721은 research.md 원문(plan 세션, 2026-10-14), 44·269·261은 수집 DB `crawl_skip` 원문(영어 그대로)
+- **`library-left-out.md`**: B절 **8곳 → 27곳**(B-1 꺼 둔 곳 27, B-2 `gone_known` 0, B-3 0). A절 349곳 그대로. `disabled_reasons.tsv`만으로 22곳 이유가 모두 나옴("이유 기록 없음" 0)
+  - `--report`는 `chaekcheck-data/library-insert/library-insert-b2174dfd426d.json`(사이클 13 실제 넣기 뒤 미리 보기, 가장 최근), `--snapshot`은 지난번과 같은 `ebook-catalog-2026-10-12-0135.sqlite`, `--service`는 복사본 `db`(016 적용 뒤) 내보내기, `--date 2026-10-14`. 지난번 보고서 `1af0721e4a3e`는 넣기 전이라 "새로 넣는 곳 6곳"이 나와 지금 서비스와 맞지 않아 최근 것을 씀
+  - 스크립트 한 줄 고침: B-2 머리 글이 보고서의 `goneKnown`([44, 261, 269])만 보여 줘 지운 뒤에도 셋이 남은 것처럼 읽힘 → 보고서 값과 지금 `gone_known.tsv`가 다르면 "(보고서를 만든 뒤 `gone_known.tsv`가 바뀜, 지금 파일 [])"을 붙임. `test_list_left_out.py` 통과
+- **AC-1 SQL (016 적용 뒤, 복사본 `db`)**: `2624` 한 줄만 남음. 22곳 밖에서 새로 나온 곳 없음(끈 것 더하지 않음). 2624는 B 뒤에 0권이 아니게 됨(끄지 않음)
+- **AC-2**: 시험 `theListLeavesThemOut` 통과(목록 수 = 켜진 수, 22곳 없음). 복사본에 앱(8086)을 띄워 `GET /api/v1/libraries` = **2,642곳**(2,664 − 22), 22곳 하나도 없음. 켜진 2,642 / 꺼진 27 / 전체 2,669
+- **AC-3**: 서버 쪽에는 "쓸 수 없는 도서관" 표시 시험이 없음(웹이 "내 도서관" 번호와 목록 API를 맞춰 봄). 그래서 `MyLibraryApiTests`에 `libraryTurnedOffInCycle18StaysSavedButUnavailable` 한 경우: 323을 추가하면 404 `library_not_found`, 전에 넣어 둔 323은 `GET /api/v1/me/libraries`에 그대로 있고 목록 API에는 없음. 화면 확인(Playwright 1280)은 이 세션에서 하지 않음
+- **AC-7**: `library-site-issues.md` 11절에 22곳 원인·원문(또는 수집 기록 근거)·확인일
+- `LibraryDisabledCycle18Tests`의 "다른 도서관 수는 바뀌지 않음"은 db-test에서 꺼진 도서관이 정확히 이전 5곳(59·131·135·2194·2198) + 22곳인지로 봄. changeset 줄이 `EXECUTED`인지도 봄
+- 빌드: `./gradlew build` 통과(7분 31초, 시험 796개, 건너뜀 2, 실패 0, `ModularityTests`·`DocumentationTests` 포함)
+- 인계서와 다른 점
+  - 112·168 사이트에 곳마다 2건(위). 원문 대신 수집 DB 근거
+  - `list_left_out.py` 한 줄 고침, `--report`를 최근 보고서로
+  - `gone_known`을 가리키던 문서 세 곳도 고침
+  - 6-2 표에는 사이클 07에서 끈 135·2194·2198 줄이 원래 없음(이유는 `disabled_reasons.tsv`·`library-site-issues.md` 9절). 이번에는 더하지 않음
+  - 261은 서비스에 80권이 있어 AC-1 SQL로는 0권이 아니지만, 22곳 목록(옮긴 사이트)대로 끔
+
