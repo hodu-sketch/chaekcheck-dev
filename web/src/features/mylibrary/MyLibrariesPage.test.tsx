@@ -383,3 +383,39 @@ describe('S10 address', () => {
     expect(screen.getByText('불러오는 중')).toBeTruthy()
   })
 })
+
+/** User request 2026-10-14: at most 10 libraries at a time in each long list, then "더 보기" for 10 more. */
+describe('S10 long lists', () => {
+  const names = (scope: HTMLElement) => within(scope).queryAllByRole('listitem').length
+
+  it('누구나 가입, a region and the name search show 10, then 10 more per "더 보기"', async () => {
+    fake.libraries = [
+      ...Array.from({ length: 25 }, (_, i) => lib(100 + i, `누구나 도서관 ${i + 1}`, 'OPEN')),
+      ...Array.from({ length: 12 }, (_, i) => lib(200 + i, `마포 도서관 ${i + 1}`, 'ELIGIBLE', ['RESIDENCE'])),
+    ]
+    await ready()
+    const user = userEvent.setup()
+
+    const openToAll = screen.getByText('누구나 가입하는 도서관 25곳도 늘 내 도서관에 들어 있어요').closest('details')!
+    await user.click(within(openToAll).getByText('누구나 가입하는 도서관 25곳도 늘 내 도서관에 들어 있어요'))
+    expect(names(openToAll)).toBe(10)
+    await user.click(within(openToAll).getByRole('button', { name: '더 보기' }))
+    expect(names(openToAll)).toBe(20)
+    await user.click(within(openToAll).getByRole('button', { name: '더 보기' }))
+    expect(names(openToAll)).toBe(25)
+    expect(within(openToAll).queryByRole('button', { name: '더 보기' })).toBeNull()
+
+    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주 지역으로 자동' })
+    await user.click(within(byResidence).getByRole('button', { name: '거주 지역으로 자동 12곳' }))
+    expect(names(byResidence)).toBe(10)
+    await user.click(within(byResidence).getByRole('button', { name: '더 보기' }))
+    expect(names(byResidence)).toBe(12)
+
+    const add = section('직접 도서관 추가')
+    await user.type(within(add).getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '도서관')
+    expect(within(add).getAllByRole('button', { name: /추가/ })).toHaveLength(10)
+    await user.click(within(add).getByRole('button', { name: '더 보기' }))
+    expect(within(add).getAllByRole('button', { name: /추가/ })).toHaveLength(20)
+  })
+})
+

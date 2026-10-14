@@ -106,13 +106,21 @@ export function SearchPage() {
 
   const hasSearch = settings.direct ? directValid : bookQuery !== null
 
-  /** Keeps filter, scope, visit and the settings; replaces the conditions. */
+  // The form starts again only when the search words in the address change (a search, back or forward). A switch,
+  // the filter, the sort or the settings leave what is being typed and the open 상세검색 as they are (user report
+  // 2026-10-14: the words typed went away on "방문 없이 가입").
+  const formKey = input
+    ? JSON.stringify([input.title, input.author, input.publisher, input.exact, input.roles])
+    : ''
+
+  /** Keeps filter, scope, visit, the sort and the settings; replaces the conditions. */
   const search = (next: BookSearchInput) => {
     const address = new URLSearchParams()
     writeFilter(filter, address)
     if (addressScope) address.set('scope', addressScope)
     writeVisit(visit, address)
-    writeBookSearch(next, address)
+    // the sort is changed outside the form (the result list), so the address has the current one
+    writeBookSearch({ ...next, sort: input?.sort ?? next.sort }, address)
     writeSettings(settings, address)
     navigate(`/search?${address}`)
   }
@@ -185,7 +193,7 @@ export function SearchPage() {
           </h1>
         )}
         <SearchForm
-          key={params.toString()}
+          key={formKey}
           initial={input ?? EMPTY_INPUT}
           settings={settings}
           hasResults={hasSearch}

@@ -346,3 +346,28 @@ describe('phones: "찾을 도서관" inside the settings panel (D안, user choic
     expect(await screen.findByRole('button', { name: '검색 설정 (찾을 도서관 바꿈)' })).toBeTruthy()
   })
 })
+
+/** User report 2026-10-14: words typed but not searched yet went away when a switch was pressed. */
+describe('typed words stay on the search screen', () => {
+  it('through "방문 없이 가입", the scope switch and the 내 도서관 switch, and the next search keeps the sort', async () => {
+    renderSearch('/search?title=사랑&view=books&sort=newest')
+    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    const user = userEvent.setup()
+    const title = screen.getByRole('searchbox', { name: '책 제목' })
+
+    await user.clear(title)
+    await user.type(title, '채식주의자')
+    await user.click(screen.getByRole('button', { name: '방문 없이 가입' }))
+    await user.click(switchItem('전체 도서관'))
+    expect((screen.getByRole('searchbox', { name: '책 제목' }) as HTMLInputElement).value).toBe('채식주의자')
+
+    await user.click(switchItem('내 도서관'))
+    expect((screen.getByRole('searchbox', { name: '책 제목' }) as HTMLInputElement).value).toBe('채식주의자')
+
+    await user.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() => expect(lastBooks().searchParams.get('title')).toBe('채식주의자'))
+    expect(lastBooks().searchParams.get('sort')).toBe('newest')
+    expect(lastBooks().searchParams.get('visit')).toBe('none')
+  })
+})
+

@@ -27,8 +27,12 @@ const TEXT = {
   browserBlocked: '이 브라우저에 저장하지 못했어요',
 }
 
-/** Name search results shown at a time; more with "더 보기" (cycle 07 flow S10) [확정]. */
-const PAGE = 20
+/**
+ * Libraries shown at a time in every long list here (name search results, 누구나 가입, the regions' libraries); more
+ * with "더 보기". 20 in cycle 07 (flow S10); 10 since the user's request of 2026-10-14 ("최대 10개까지 뜨고 그 이후에
+ * 더보기", too many at once).
+ */
+const PAGE = 10
 
 /**
  * S10 `/my-libraries` (cycle 06 flow S10): the regions, the libraries they bring in, and the libraries added by hand.
@@ -249,22 +253,30 @@ function RegionField({ kind, regions, rows }: { kind: string; regions: string; r
 const MY_LIBRARIES = { screen: 'my_libraries' } as const
 
 function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) {
+  const [shown, setShown] = useState(PAGE)
   return (
-    <ul id={id} className={styles.names}>
-      {rows.map((row) => (
-        <li key={row.id} className={styles.named}>
-          <LibraryLogo
-            name={row.name}
-            logoUrl={row.logoUrl}
-            homepageUrl={row.homepageUrl}
-            size={24}
-            libraryId={row.id}
-            click={MY_LIBRARIES}
-          />
-          <ClassifiedName row={row} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul id={id} className={styles.names}>
+        {rows.slice(0, shown).map((row) => (
+          <li key={row.id} className={styles.named}>
+            <LibraryLogo
+              name={row.name}
+              logoUrl={row.logoUrl}
+              homepageUrl={row.homepageUrl}
+              size={24}
+              libraryId={row.id}
+              click={MY_LIBRARIES}
+            />
+            <ClassifiedName row={row} />
+          </li>
+        ))}
+      </ul>
+      {rows.length > shown && (
+        <button type="button" className={styles.more} onClick={() => setShown((n) => n + PAGE)}>
+          더 보기
+        </button>
+      )}
+    </>
   )
 }
 
