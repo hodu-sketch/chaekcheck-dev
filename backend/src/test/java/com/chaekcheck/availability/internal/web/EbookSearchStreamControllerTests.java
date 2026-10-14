@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,8 @@ import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.SearchConditions;
+import com.chaekcheck.usagelog.UsageLog;
 
 /**
  * First-batch stream. Requests carry the same Accept header as the web client: errors must come back as Problem
@@ -61,6 +64,9 @@ class EbookSearchStreamControllerTests {
 	@MockitoBean
 	BatchRunner batchRunner;
 
+	@MockitoBean
+	UsageLog usageLog;
+
 	@BeforeEach
 	void setUp() {
 		given(batchRunner.streamDuration()).willReturn(Duration.ofSeconds(30));
@@ -74,7 +80,7 @@ class EbookSearchStreamControllerTests {
 			sink.send(StreamEvents.DONE, new StreamEvents.Done(invocation.getArgument(3)));
 			sink.complete();
 			return null;
-		}).given(batchRunner).start(any(), any(), any(), anyInt(), any(), any(), any());
+		}).given(batchRunner).start(any(), any(), any(), anyInt(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -94,7 +100,7 @@ class EbookSearchStreamControllerTests {
 			.contains("event:done\ndata:{\"batchNo\":1}");
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<Candidate>> candidates = ArgumentCaptor.forClass(List.class);
-		verify(batchRunner).start(any(), any(), eq(ResultFilter.AVAILABLE), eq(1), candidates.capture(), any(), any());
+		verify(batchRunner).start(any(), any(), eq(ResultFilter.AVAILABLE), eq(1), candidates.capture(), any(), any(), any());
 		assertThat(candidates.getValue()).containsExactly(new Candidate(TestTargets.GOHEUNG, 1),
 				new Candidate(TestTargets.GANGSEO, 1));
 	}
@@ -105,7 +111,7 @@ class EbookSearchStreamControllerTests {
 
 		get(URL + "?title=사랑");
 
-		verify(batchRunner).start(any(), any(), eq(ResultFilter.ALL), eq(1), any(), any(), any());
+		verify(batchRunner).start(any(), any(), eq(ResultFilter.ALL), eq(1), any(), any(), any(), any());
 	}
 
 	@Test
@@ -120,7 +126,7 @@ class EbookSearchStreamControllerTests {
 			.doesNotContain("\"id\":3,");
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<Candidate>> candidates = ArgumentCaptor.forClass(List.class);
-		verify(batchRunner).start(any(), any(), any(), eq(1), candidates.capture(), any(), any());
+		verify(batchRunner).start(any(), any(), any(), eq(1), candidates.capture(), any(), any(), any());
 		assertThat(candidates.getValue()).containsExactly(new Candidate(TestTargets.GOHEUNG, 1));
 	}
 
@@ -229,7 +235,7 @@ class EbookSearchStreamControllerTests {
 			.doesNotContain("\"id\":3,");
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<Candidate>> candidates = ArgumentCaptor.forClass(List.class);
-		verify(batchRunner).start(any(), any(), any(), eq(1), candidates.capture(), any(), any());
+		verify(batchRunner).start(any(), any(), any(), eq(1), candidates.capture(), any(), any(), any());
 		// an extra condition next to a matching region is extra information only (AC-12, 2026-09-29)
 		assertThat(candidates.getValue()).containsExactly(new Candidate(TestTargets.GOHEUNG, 1),
 				new Candidate(extra, 1), new Candidate(eligible, 1), new Candidate(openWithCaution, 1));
@@ -262,7 +268,7 @@ class EbookSearchStreamControllerTests {
 		givenPlan(Set.of(), Set.of(), List.of(TestTargets.GOHEUNG));
 		org.mockito.BDDMockito.willThrow(new SearchBusyException(20))
 			.given(batchRunner)
-			.start(any(), any(), any(), anyInt(), any(), any(), any());
+			.start(any(), any(), any(), anyInt(), any(), any(), any(), any());
 
 		MvcTestResult result = get(URL + "?title=사랑");
 		assertProblem(result, HttpStatus.SERVICE_UNAVAILABLE, "server_busy");
@@ -272,7 +278,7 @@ class EbookSearchStreamControllerTests {
 	@Test
 	void shortQueryIs400BeforeTheStreamOpens() {
 		assertProblem(get(URL + "?title=가"), HttpStatus.BAD_REQUEST, "invalid_query");
-		verify(batchRunner, org.mockito.Mockito.never()).start(any(), any(), any(), anyInt(), any(), any(), any());
+		verify(batchRunner, org.mockito.Mockito.never()).start(any(), any(), any(), anyInt(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -326,7 +332,7 @@ class EbookSearchStreamControllerTests {
 			.doesNotContain("\"title\"")
 			.doesNotContain("\"publisher\"");
 		verify(batchRunner).start(any(), eq(SearchQuery.of("김달", SearchField.AUTHOR)), any(), eq(1), any(), any(),
-				any());
+				any(), any());
 	}
 
 	@Test
@@ -336,7 +342,7 @@ class EbookSearchStreamControllerTests {
 		get(URL + "?publisher=빅피시");
 
 		verify(batchRunner).start(any(), eq(SearchQuery.of("빅피시", SearchField.PUBLISHER)), any(), eq(1), any(),
-				any(), any());
+				any(), any(), any());
 	}
 
 	@ParameterizedTest
@@ -378,7 +384,7 @@ class EbookSearchStreamControllerTests {
 	}
 
 	private void verifyNoInteractionsWithStart() {
-		verify(batchRunner, org.mockito.Mockito.never()).start(any(), any(), any(), anyInt(), any(), any(), any());
+		verify(batchRunner, org.mockito.Mockito.never()).start(any(), any(), any(), anyInt(), any(), any(), any(), any());
 	}
 
 	private MvcTestResult get(String uri) {
@@ -390,6 +396,30 @@ class EbookSearchStreamControllerTests {
 			.hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
 			.bodyJson()
 			.isLenientlyEqualTo("{\"status\":%d,\"code\":\"%s\"}".formatted(status.value(), code));
+	}
+
+	@Test
+	void searchIsRecordedOnceWithItsConditions() { // cycle 15 AC-3 (controller part)
+		givenPlan(Set.of(1114L), Set.of(), List.of(TestTargets.GOHEUNG));
+
+		get(URL + "?title=  채식주의자 &residenceRegionIds=1114&filter=available&scope=joinable&libraryIds=2");
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Consumer<Integer>> searched = ArgumentCaptor.forClass(Consumer.class);
+		verify(batchRunner).start(any(), any(), any(), eq(1), any(), any(), any(), searched.capture());
+		searched.getValue().accept(5);
+		verify(usageLog).recordSearch(any(), eq(UsageLog.SearchKind.DIRECT),
+				eq(SearchConditions.direct("채식주의자", null, null, "available", "joinable", "any", List.of(1114L),
+						List.of(), List.of(2L))),
+				eq(5));
+	}
+
+	@Test
+	void badRequestsRecordNothing() { // cycle 15 AC-5 (direct search)
+		get(URL + "?title=채");
+
+		verify(batchRunner, org.mockito.Mockito.never()).start(any(), any(), any(), anyInt(), any(), any(), any(), any());
+		verify(usageLog, org.mockito.Mockito.never()).recordSearch(any(), any(), any(), any());
 	}
 
 }

@@ -44,6 +44,7 @@ import com.chaekcheck.catalog.HoldingRef;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.UsageLog;
 
 /** Batch rules with a fake fetcher (design-delta "묶음 실행 규칙"). */
 class BatchRunnerTests {
@@ -76,12 +77,12 @@ class BatchRunnerTests {
 		Candidate held = new Candidate(kyobo(1), 1);
 		CompletableFuture<LibraryPage> answer = new CompletableFuture<>();
 		given(fetcher.fetchAsync(eq(held.target()), eq(QUERY), eq(held.page()), any())).willReturn(answer);
-		runner.start(sink, QUERY, ResultFilter.ALL, 1, List.of(held), List.of(), null);
+		runner.start(sink, QUERY, ResultFilter.ALL, 1, List.of(held), List.of(), null, null);
 		await().until(() -> sink.count(StreamEvents.LIBRARY_REQUESTED) == 1);
 
 		RecordingSink refused = new RecordingSink();
 		assertThatThrownBy(() -> runner.start(refused, QUERY, ResultFilter.ALL, 1,
-				List.of(new Candidate(kyobo(2), 1)), List.of(), null))
+				List.of(new Candidate(kyobo(2), 1)), List.of(), null, null))
 			.isInstanceOf(SearchBusyException.class);
 		assertThatThrownBy(() -> runner.startHoldings(refused, ResultFilter.ALL, 1, List.of(), List.of(), null))
 			.isInstanceOf(SearchBusyException.class);
@@ -249,7 +250,7 @@ class BatchRunnerTests {
 
 		BatchRunner runner = runner(settings(20, 1, 8000, 3000));
 		runner.start(sink, QUERY, ResultFilter.ALL, 2, List.of(ok), List.of(new BatchRunner.MissingCandidate(7, 2)),
-				null);
+				null, null);
 		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
 
 		StreamEvents.LibraryFailed failed = (StreamEvents.LibraryFailed) sink.dataOf(StreamEvents.LIBRARY_FAILED).getFirst();
@@ -437,14 +438,16 @@ class BatchRunnerTests {
 
 	private void run(BatchRunner runner, ResultFilter filter, List<Candidate> candidates, Runnable during) {
 		runner.start(sink, QUERY, filter, 2, candidates, List.of(),
-				StreamEvents.Targets.of(QUERY, filter.value(), "all", "any", false, List.of()));
+				StreamEvents.Targets.of(QUERY, filter.value(), "all", "any", false, List.of()), null);
 		during.run();
 		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
 	}
 
+	private final UsageLog usageLog = mock(UsageLog.class);
+
 	private BatchRunner runner(AvailabilityProperties.Batch settings) {
 		return new BatchRunner(mock(LibraryCatalog.class), fetcher, detailPages, new AvailabilityResolvers(detailLookup), settings,
-				Duration.ofSeconds(30), HOST_INTERVAL, executor, slots, Clock.systemUTC());
+				Duration.ofSeconds(30), HOST_INTERVAL, executor, slots, Clock.systemUTC(), usageLog);
 	}
 
 	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,

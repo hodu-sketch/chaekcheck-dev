@@ -69,6 +69,8 @@ class ModularityTests {
 	@Test
 	void usagelogUsesLibraryAndAuthOnly() {
 		assertThat(dependenciesOf("usagelog")).containsExactlyInAnyOrder("library", "auth");
+		assertThat(dependenciesOf("catalog")).contains("usagelog");
+		assertThat(dependenciesOf("availability")).contains("usagelog");
 		assertThat(dependenciesOf("auth")).doesNotContain("usagelog");
 		assertThat(dependenciesOf("library")).doesNotContain("usagelog");
 	}

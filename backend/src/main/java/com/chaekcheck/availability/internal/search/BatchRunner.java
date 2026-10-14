@@ -16,6 +16,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -34,6 +35,9 @@ import com.chaekcheck.catalog.HoldingRef;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.UsageLog;
+import com.chaekcheck.usagelog.UsageLog.ResponseResult;
+import com.chaekcheck.usagelog.UsageLog.ResponseSource;
 
 /**
  * Runs one batch of a search (ADR-0014, design-delta "묶음 실행 규칙"). The server keeps no search state: the
@@ -58,6 +62,13 @@ import com.chaekcheck.library.SearchTarget;
  * <p>
  * The runner knows nothing about screen kinds or detail lookups: it resolves each page with the resolver for its
  * screen kind and waits until that library's delivery is done (ADR-0019).
+ * <p>
+ * Cycle 15: every request to a library site (search pages and holdings) is counted once for the usage log's daily
+ * library answers and written as one INFO line {@code library=… source=… result=… ms=…}: OK, FAILED
+ * ({@code UpstreamException.Kind.ERROR}), TIMEOUT (its own timeout, or answered after the batch deadline), and
+ * SKIPPED for each candidate not sent by the launch cutoff (plan C5). A request the fetch service sends again is one
+ * request, measured from the first send to the last answer. Requests still count after the browser left; answers
+ * from the cache are not requests and are not counted.
  */
 public class BatchRunner {
 
@@ -89,9 +100,11 @@ public class BatchRunner {
 
 	private final Clock clock;
 
+	private final UsageLog usageLog;
+
 	public BatchRunner(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher, DetailPageFetcher detailPages,
 			AvailabilityResolvers resolvers, AvailabilityProperties.Batch settings, Duration detailDeadline,
-			Duration hostMinInterval, Executor executor, SearchSlots slots, Clock clock) {
+			Duration hostMinInterval, Executor executor, SearchSlots slots, Clock clock, UsageLog usageLog) {
 		this.libraryCatalog = libraryCatalog;
 		this.fetcher = fetcher;
 		this.detailPages = detailPages;
@@ -102,6 +115,7 @@ public class BatchRunner {
 		this.executor = executor;
 		this.slots = slots;
 		this.clock = clock;
+		this.usageLog = usageLog;
 	}
 
 	/**
@@ -130,12 +144,14 @@ public class BatchRunner {
 	 * @throws SearchBusyException when every search slot is taken; nothing was sent
 	 * @param targets the targets event (first stream only), or null
 	 * @param notFound candidates whose library is missing or disabled; each fails on its own
+	 * @param searched first stream only, else null: called once, with the counted rows when batch-done is sent, or with
+	 * null when the stream ends before that (cycle 15 usage log)
 	 */
 	public void start(EventSink sink, SearchQuery query, ResultFilter filter, int batchNo, List<Candidate> candidates,
-			List<MissingCandidate> notFound, StreamEvents.Targets targets) {
+			List<MissingCandidate> notFound, StreamEvents.Targets targets, Consumer<Integer> searched) {
 		SearchSlots.Slot slot = slots.acquire();
 		try {
-			startSearch(slot, sink, query, filter, batchNo, candidates, notFound, targets);
+			startSearch(slot, sink, query, filter, batchNo, candidates, notFound, targets, searched);
 		}
 		catch (RuntimeException ex) {
 			slot.close();
@@ -144,8 +160,9 @@ public class BatchRunner {
 	}
 
 	private void startSearch(SearchSlots.Slot slot, EventSink sink, SearchQuery query, ResultFilter filter,
-			int batchNo, List<Candidate> candidates, List<MissingCandidate> notFound, StreamEvents.Targets targets) {
-		BatchSession session = new BatchSession(sink, batchNo, filter, settings.rowLimit(), slot::close);
+			int batchNo, List<Candidate> candidates, List<MissingCandidate> notFound, StreamEvents.Targets targets,
+			Consumer<Integer> searched) {
+		BatchSession session = new BatchSession(sink, batchNo, filter, settings.rowLimit(), slot::close, searched);
 		releaseLater(slot);
 		if (targets != null) {
 			session.targets(targets);
@@ -158,7 +175,10 @@ public class BatchRunner {
 			Instant detailBy = start.plus(detailDeadline);
 			StreamEvents.StopReason reason = runTasks(session, candidates, deadline, candidate -> {
 				SearchTarget target = candidate.target();
+				Instant requestedAt = clock.instant();
 				return fetcher.fetchAsync(target, query, candidate.page(), deadline).whenComplete((page, ex) -> {
+					answered(target.id(), ResponseSource.DIRECT_SEARCH, requestedAt, deadline, ex,
+							page != null && page.cached());
 					// count the rows before the slot is freed (chained after this), so the next launch sees them
 					try {
 						if (ex != null) {
@@ -172,7 +192,7 @@ public class BatchRunner {
 						session.failed(candidate, asUpstream(resolveFailure));
 					}
 				});
-			});
+			}, candidate -> notSent(candidate.target().id(), ResponseSource.DIRECT_SEARCH));
 			log.info("batch={} planSize={} candidates={} requested={} stopReason={} startedAt={}", batchNo,
 					planSize < 0 ? "-" : planSize, candidates.size(), session.requestedCount(), reason, start);
 		});
@@ -209,8 +229,9 @@ public class BatchRunner {
 		executor.execute(() -> {
 			Instant start = clock.instant();
 			Instant deadline = start.plus(settings.deadline());
-			StreamEvents.StopReason reason = runTasks(session, tasks, deadline, task -> startHolding(session, batchNo, task,
-					deadline));
+			StreamEvents.StopReason reason = runTasks(session, tasks, deadline,
+					task -> startHolding(session, batchNo, task, deadline),
+					task -> notSent(task.target().id(), ResponseSource.HOLDING_FILL));
 			log.info("holding batch={} holdings={} requested={} stopReason={} startedAt={}", batchNo, tasks.size(),
 					session.requestedCount(), reason, start);
 		});
@@ -233,6 +254,8 @@ public class BatchRunner {
 		}
 		Instant requestedAt = clock.instant();
 		return detailPages.fetch(task.target(), task.detailUri(), deadline).whenComplete((page, ex) -> {
+			answered(task.target().id(), ResponseSource.HOLDING_FILL, requestedAt, deadline, ex,
+					page != null && page.fetchedAt().isBefore(requestedAt));
 			try {
 				if (ex != null) {
 					session.failed(task, asUpstream(ex));
@@ -267,9 +290,10 @@ public class BatchRunner {
 	 * free; no task starts once the row limit is passed or the cutoff is reached; the session fails what is still in
 	 * flight at the deadline.
 	 * @param start sends one task; its future must complete after the session counted the task's rows
+	 * @param notSent called for each task with a request still waiting when the launch cutoff stops the loop
 	 */
 	private <T extends LookupTask> StreamEvents.StopReason runTasks(LaunchSession<T> session, List<T> tasks,
-			Instant deadline, Function<T, CompletableFuture<?>> start) {
+			Instant deadline, Function<T, CompletableFuture<?>> start, Consumer<T> notSent) {
 		Instant cutoff = deadline.minus(settings.launchCutoff());
 		long untilDeadline = Math.max(0, Duration.between(clock.instant(), deadline).toMillis());
 		CompletableFuture.runAsync(session::deadlinePassed,
@@ -296,8 +320,62 @@ public class BatchRunner {
 			}
 			start.apply(task).whenComplete((result, ex) -> launches.finished(task));
 		}
+		if (reason == StreamEvents.StopReason.LAUNCH_CUTOFF) {
+			launches.remaining().stream().filter(task -> task.hostKey() != null).forEach(notSent);
+		}
 		session.launchFinished(reason);
 		return reason;
+	}
+
+	/**
+	 * One request to a library ended: the usage log's daily count and one log line (cycle 15). An answer from the
+	 * 3-minute cache sent no request to the library, so it is not counted.
+	 */
+	private void answered(long libraryId, ResponseSource source, Instant requestedAt, Instant deadline, Throwable ex,
+			boolean fromCache) {
+		if (fromCache) {
+			return;
+		}
+		try {
+			Instant now = clock.instant();
+			long ms = Math.max(0, Duration.between(requestedAt, now).toMillis());
+			ResponseResult result;
+			String error = null;
+			if (ex != null) {
+				UpstreamException upstream = asUpstream(ex);
+				result = upstream.kind() == UpstreamException.Kind.TIMEOUT ? ResponseResult.TIMEOUT
+						: ResponseResult.FAILED;
+				error = upstream.getMessage();
+			}
+			else {
+				result = now.isAfter(deadline) ? ResponseResult.TIMEOUT : ResponseResult.OK;
+			}
+			usageLog.recordLibraryResponse(libraryId, source, result, ms);
+			if (error == null) {
+				log.info("library={} source={} result={} ms={}", libraryId, name(source), name(result), ms);
+			}
+			else {
+				log.info("library={} source={} result={} ms={} error={}", libraryId, name(source), name(result), ms,
+						error);
+			}
+		}
+		catch (RuntimeException failure) {
+			log.warn("library answer not counted: {}", failure.toString());
+		}
+	}
+
+	private void notSent(long libraryId, ResponseSource source) {
+		try {
+			usageLog.recordLibraryResponse(libraryId, source, ResponseResult.SKIPPED, 0);
+			log.info("library={} source={} result=skipped ms=0", libraryId, name(source));
+		}
+		catch (RuntimeException failure) {
+			log.warn("library answer not counted: {}", failure.toString());
+		}
+	}
+
+	private static String name(Enum<?> value) {
+		return value.name().toLowerCase(java.util.Locale.ROOT);
 	}
 
 	/** What the launch loop needs from a stream session. Implementations are synchronized. */
@@ -339,6 +417,17 @@ public class BatchRunner {
 		Launches(int parallelism, List<T> tasks) {
 			this.freeSlots = parallelism;
 			this.pending = new ArrayDeque<>(tasks);
+		}
+
+		/** Tasks never started, in task order. */
+		List<T> remaining() {
+			lock.lock();
+			try {
+				return List.copyOf(pending);
+			}
+			finally {
+				lock.unlock();
+			}
 		}
 
 		boolean hasPending() {

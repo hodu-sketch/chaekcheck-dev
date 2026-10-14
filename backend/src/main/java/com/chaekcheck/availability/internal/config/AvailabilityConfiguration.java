@@ -34,6 +34,7 @@ import com.chaekcheck.availability.internal.search.BatchRunner;
 import com.chaekcheck.availability.internal.search.SearchSlots;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.usagelog.UsageLog;
 import com.github.benmanes.caffeine.cache.Ticker;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -140,10 +141,10 @@ class AvailabilityConfiguration {
 	@Bean
 	BatchRunner batchRunner(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher,
 			DetailPageFetcher detailPageFetcher, AvailabilityResolvers resolvers, AvailabilityProperties properties,
-			ExecutorService availabilityExecutor, SearchSlots searchSlots) {
+			ExecutorService availabilityExecutor, SearchSlots searchSlots, UsageLog usageLog) {
 		return new BatchRunner(libraryCatalog, fetcher, detailPageFetcher, resolvers, properties.batch(),
 				properties.detail().deadline(), properties.hostMinInterval(), availabilityExecutor, searchSlots,
-				Clock.systemUTC());
+				Clock.systemUTC(), usageLog);
 	}
 
 }

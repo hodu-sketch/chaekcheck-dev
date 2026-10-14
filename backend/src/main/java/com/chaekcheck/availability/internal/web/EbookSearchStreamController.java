@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -21,12 +23,18 @@ import com.chaekcheck.availability.internal.search.StreamEvents;
 import com.chaekcheck.availability.internal.search.VisitFilter;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.SearchConditions;
+import com.chaekcheck.usagelog.UsageLog;
+import com.chaekcheck.usagelog.UsageRequest;
 
 /**
  * First batch of a search (ADR-0014, design-delta "API"): the whole plan as {@code targets}, then batch 1 in plan
  * order. Everything is validated before the stream opens, in the order condition, filter, scope, visit, regions, so bad
  * input gets an ordinary Problem Details response: 400 invalid_query, 400 validation_error, 422 invalid_region. No
  * {@code produces} condition: the same request must be able to get {@code application/problem+json}.
+ * <p>
+ * Cycle 15: the search is logged once per stream, when batch 1 is done (with its counted rows) or when the stream
+ * ends before that (no count). What the log needs from the request is taken here, on the request thread.
  */
 @RestController
 class EbookSearchStreamController {
@@ -36,8 +44,11 @@ class EbookSearchStreamController {
 
 	private final BatchRunner batchRunner;
 
-	EbookSearchStreamController(BatchRunner batchRunner) {
+	private final UsageLog usageLog;
+
+	EbookSearchStreamController(BatchRunner batchRunner, UsageLog usageLog) {
 		this.batchRunner = batchRunner;
+		this.usageLog = usageLog;
 	}
 
 	@GetMapping("/api/v1/ebook-searches/stream")
@@ -45,7 +56,8 @@ class EbookSearchStreamController {
 			@RequestParam(required = false) String residenceRegionIds,
 			@RequestParam(required = false) String workRegionIds, @RequestParam(required = false) String filter,
 			@RequestParam(required = false) String scope, @RequestParam(required = false) String visit,
-			@RequestParam(required = false) String libraryIds) {
+			@RequestParam(required = false) String libraryIds, HttpServletRequest request) {
+		UsageRequest usage = usageLog.capture(request);
 		SearchQuery query = SearchConditionParam.parse(params);
 		ResultFilter resultFilter = parseFilter(filter);
 		LibraryScope libraryScope = parseScope(scope);
@@ -60,8 +72,11 @@ class EbookSearchStreamController {
 		StreamEvents.Targets targets = StreamEvents.Targets.of(query, resultFilter.value(), libraryScope.value(),
 				visitFilter.value(), !residence.isEmpty() || !work.isEmpty(),
 				plan.stream().map(StreamEvents.Library::from).toList());
+		SearchConditions conditions = UsageConditions.of(query, resultFilter, libraryScope, visitFilter, residence,
+				work, chosen);
 		batchRunner.start(new SseEventSink(emitter), query, resultFilter, 1,
-				plan.stream().map(target -> new Candidate(target, 1)).toList(), List.of(), targets);
+				plan.stream().map(target -> new Candidate(target, 1)).toList(), List.of(), targets,
+				rows -> usageLog.recordSearch(usage, UsageLog.SearchKind.DIRECT, conditions, rows));
 		return streamResponse(emitter);
 	}
 

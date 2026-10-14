@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,9 +61,17 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 	/** Gives the search slot back; runs once, after the last event. */
 	private final Runnable onFinished;
 
-	BatchSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit, Runnable onFinished) {
+	/**
+	 * First stream only (cycle 15 usage log), else null: called exactly once, with the counted rows when batch-done is
+	 * sent, or with null when the stream ends before that (client gone, done without batch-done).
+	 */
+	private Consumer<Integer> searched;
+
+	BatchSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit, Runnable onFinished,
+			Consumer<Integer> searched) {
 		this.sink = sink;
 		this.onFinished = onFinished;
+		this.searched = searched;
 		this.batchNo = batchNo;
 		this.filter = filter;
 		this.rowLimit = rowLimit;
@@ -171,6 +180,7 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 		batchDoneSent = true;
 		send(StreamEvents.BATCH_DONE, new StreamEvents.BatchDone(batchNo, requested, succeeded, failed, countedRows,
 				pendingRows, stopReason));
+		searched(clientGone ? null : countedRows);
 		heldVerdicts.forEach(verdict -> send(StreamEvents.ROW_VERDICT, verdict));
 		heldVerdicts.clear();
 		CompletableFuture.allOf(deliveries.toArray(CompletableFuture[]::new)).whenComplete((v, ex) -> finish());
@@ -181,6 +191,7 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 			return;
 		}
 		finished = true;
+		searched(null);
 		try {
 			send(StreamEvents.DONE, new StreamEvents.Done(batchNo));
 			if (!clientGone) {
@@ -196,6 +207,22 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 		if (!clientGone && !sink.send(name, data)) {
 			clientGone = true;
 			log.info("batch stream client disconnected; remaining lookups still finish and fill the cache");
+			searched(null);
+		}
+	}
+
+	/** Records the search once; a failure there never touches the stream. */
+	private void searched(Integer rows) {
+		Consumer<Integer> once = searched;
+		searched = null;
+		if (once == null) {
+			return;
+		}
+		try {
+			once.accept(rows);
+		}
+		catch (RuntimeException ex) {
+			log.warn("search not recorded: {}", ex.toString());
 		}
 	}
 

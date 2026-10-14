@@ -1,0 +1,294 @@
+package com.chaekcheck.availability.internal.search;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+
+import com.chaekcheck.availability.internal.SearchQuery;
+import com.chaekcheck.availability.internal.TestTargets;
+import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.adapter.ParsedDetail;
+import com.chaekcheck.availability.internal.config.AvailabilityProperties;
+import com.chaekcheck.availability.internal.fetch.LibraryPage;
+import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
+import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
+import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
+import com.chaekcheck.availability.internal.resolve.DetailPageFetcher;
+import com.chaekcheck.availability.internal.resolve.DetailVerdictCache;
+import com.chaekcheck.catalog.HoldingRef;
+import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.library.PlatformType;
+import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.SearchConditions;
+import com.chaekcheck.usagelog.UsageLog;
+import com.chaekcheck.usagelog.UsageRequest;
+
+/**
+ * Cycle 15 step 5 with a fake fetcher (no library site): the direct search is recorded exactly once per stream (AC-3,
+ * AC-4), and every library request is counted once by result with one log line (AC-24, plan C5).
+ */
+@ExtendWith(OutputCaptureExtension.class)
+class UsageRecordingTests {
+
+	static final SearchQuery QUERY = SearchQuery.of("채식주의자");
+
+	LibraryPageFetcher fetcher = mock(LibraryPageFetcher.class);
+
+	DetailPageFetcher detailPages = mock(DetailPageFetcher.class);
+
+	ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+	RecordingUsageLog usageLog = new RecordingUsageLog();
+
+	List<Integer> searched = Collections.synchronizedList(new ArrayList<>());
+
+	@AfterEach
+	void close() {
+		executor.close();
+	}
+
+	@Test
+	void firstBatchDoneRecordsTheCountedRowsOnce() { // AC-3
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		List<Candidate> candidates = List.of(candidate(1), candidate(2));
+		candidates.forEach(c -> answer(c, CompletableFuture.completedFuture(page(c, 3, false))));
+
+		runner(settings(20, 2, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 1, candidates, List.of(), null,
+				searched::add);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(searched).containsExactly(6);
+	}
+
+	@Test
+	void noCandidatesIsZeroNotUnknown() {
+		Sink sink = new Sink(Integer.MAX_VALUE);
+
+		runner(settings(20, 2, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 1, List.of(), List.of(), null,
+				searched::add);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(searched).containsExactly(0);
+	}
+
+	@Test
+	void clientGoneBeforeBatchDoneRecordsNoCountOnce() { // AC-4
+		// the browser is gone after the first event: nothing more reaches it, the search still ends normally
+		Sink sink = new Sink(1);
+		Candidate c = candidate(1);
+		answer(c, CompletableFuture.completedFuture(page(c, 3, false)));
+
+		runner(settings(20, 1, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 1, List.of(c), List.of(), null,
+				searched::add);
+		await().atMost(Duration.ofSeconds(5)).until(() -> usageLog.answers.size() == 1);
+		await().pollDelay(Duration.ofMillis(200)).atMost(Duration.ofSeconds(5)).until(() -> !searched.isEmpty());
+
+		assertThat(searched).containsExactly((Integer) null);
+	}
+
+	@Test
+	void clientGoneAtBatchDoneRecordsNoCount() { // AC-4: batch-done was not delivered
+		// events: library-requested, library-result, then batch-done fails
+		Sink sink = new Sink(2);
+		Candidate c = candidate(1);
+		answer(c, CompletableFuture.completedFuture(page(c, 3, false)));
+
+		runner(settings(20, 1, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 1, List.of(c), List.of(), null,
+				searched::add);
+		await().atMost(Duration.ofSeconds(5)).until(() -> !searched.isEmpty());
+		await().pollDelay(Duration.ofMillis(300)).until(() -> true);
+
+		assertThat(searched).containsExactly((Integer) null);
+	}
+
+	@Test
+	void laterBatchesRecordNoSearch() {
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		Candidate c = candidate(1);
+		answer(c, CompletableFuture.completedFuture(page(c, 3, false)));
+
+		runner(settings(20, 1, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 2, List.of(c), List.of(), null, null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(searched).isEmpty();
+		assertThat(usageLog.answers).containsExactly("1 DIRECT_SEARCH OK");
+	}
+
+	@Test
+	void eachRequestIsCountedByItsResult(CapturedOutput output) { // AC-24
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		Candidate ok = candidate(1);
+		Candidate error = candidate(2);
+		Candidate timeout = candidate(3);
+		Candidate cached = candidate(4);
+		answer(ok, CompletableFuture.completedFuture(page(ok, 1, false)));
+		answer(error, CompletableFuture.failedFuture(UpstreamException.error("HTTP 500")));
+		answer(timeout, CompletableFuture.failedFuture(UpstreamException.timeout("read timed out")));
+		answer(cached, CompletableFuture.completedFuture(page(cached, 1, true)));
+
+		runner(settings(20, 4, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 2,
+				List.of(ok, error, timeout, cached), List.of(), null, null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(usageLog.answers).containsExactlyInAnyOrder("1 DIRECT_SEARCH OK", "2 DIRECT_SEARCH FAILED",
+				"3 DIRECT_SEARCH TIMEOUT");
+		assertThat(output).containsPattern("library=1 source=direct_search result=ok ms=\\d+")
+			.containsPattern("library=2 source=direct_search result=failed ms=\\d+ error=HTTP 500")
+			.containsPattern("library=3 source=direct_search result=timeout ms=\\d+")
+			.doesNotContain("library=4 source=");
+	}
+
+	@Test
+	void answerAfterTheBatchDeadlineIsATimeoutAndNotSentIsSkipped() { // plan C5
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		Candidate slow = candidate(1);
+		Candidate waiting = candidate(2);
+		CompletableFuture<LibraryPage> late = new CompletableFuture<>();
+		answer(slow, late);
+		answer(waiting, CompletableFuture.completedFuture(page(waiting, 1, false)));
+
+		// one at a time, deadline 600ms, no launch in the last 500ms: the second never starts
+		runner(settings(20, 1, 600, 500)).start(sink, QUERY, ResultFilter.ALL, 2, List.of(slow, waiting), List.of(),
+				null, null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+		assertThat(usageLog.answers).containsExactly("2 DIRECT_SEARCH SKIPPED");
+
+		late.complete(page(slow, 1, false));
+
+		assertThat(usageLog.answers).containsExactly("2 DIRECT_SEARCH SKIPPED", "1 DIRECT_SEARCH TIMEOUT");
+	}
+
+	@Test
+	void holdingRequestsAreCountedAsHoldingFill() { // AC-17 part: not a book view
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		SearchTarget library = TestTargets.target(1, PlatformType.KYOBO_V1, "https://lib1.test");
+		HoldingTask task = HoldingTask.of(library, new HoldingRef(11, 7, 1, "KYOBO_V1",
+				"https://lib1.test/detail?id=7", "책", "저자", "출판사"));
+		HoldingTask cachedTask = HoldingTask.of(library, new HoldingRef(12, 8, 1, "KYOBO_V1",
+				"https://lib1.test/detail?id=8", "책", "저자", "출판사"));
+		HoldingTask offHost = new HoldingTask(library, new HoldingRef(13, 9, 1, "KYOBO_V1", "https://evil.test/x",
+				"책", "저자", "출판사"), null);
+		given(detailPages.fetch(eq(library), eq(task.detailUri()), any())).willReturn(CompletableFuture
+			.completedFuture(new DetailVerdictCache.DetailPage(ParsedDetail.counted(2, 1, 0), Instant.now().plusSeconds(1))));
+		given(detailPages.fetch(eq(library), eq(cachedTask.detailUri()), any())).willReturn(CompletableFuture
+			.completedFuture(new DetailVerdictCache.DetailPage(ParsedDetail.counted(2, 1, 0), Instant.EPOCH)));
+
+		runner(settings(20, 1, 3000, 1000)).startHoldings(sink, ResultFilter.ALL, 1, List.of(task, cachedTask, offHost),
+				List.of(), null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(usageLog.answers).containsExactly("1 HOLDING_FILL OK");
+		assertThat(usageLog.bookViews).isZero();
+	}
+
+	private BatchRunner runner(AvailabilityProperties.Batch settings) {
+		return new BatchRunner(mock(LibraryCatalog.class), fetcher, detailPages,
+				new AvailabilityResolvers(mock(DetailLookupResolver.class)), settings, Duration.ofSeconds(3),
+				Duration.ZERO, executor, new SearchSlots(4), Clock.systemUTC(), usageLog);
+	}
+
+	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,
+			long cutoffMillis) {
+		return new AvailabilityProperties.Batch(rowLimit, parallelism, Duration.ofMillis(deadlineMillis),
+				Duration.ofMillis(cutoffMillis), 50);
+	}
+
+	private void answer(Candidate candidate, CompletableFuture<LibraryPage> page) {
+		given(fetcher.fetchAsync(eq(candidate.target()), eq(QUERY), eq(candidate.page()), any())).willReturn(page);
+	}
+
+	private static Candidate candidate(long id) {
+		return new Candidate(TestTargets.target(id, PlatformType.KYOBO_V1, "https://lib" + id + ".test"), 1);
+	}
+
+	private static LibraryPage page(Candidate candidate, int rows, boolean cached) {
+		List<LibraryPage.Item> items = new ArrayList<>();
+		for (int i = 1; i <= rows; i++) {
+			items.add(new LibraryPage.Item(i, "t" + i, null, null, null, 1, 0, 0, 1, "t" + i, null, null, null, null));
+		}
+		return new LibraryPage(candidate.target().id(), QUERY.value(), 1, 10, rows, false, Instant.now(), cached, 0,
+				null, "https://x", items);
+	}
+
+	/** Accepts the first {@code delivered} events, then reports the browser gone. */
+	static final class Sink implements EventSink {
+
+		private final int delivered;
+
+		private int sent;
+
+		volatile boolean completed;
+
+		Sink(int delivered) {
+			this.delivered = delivered;
+		}
+
+		@Override
+		public synchronized boolean send(String name, Object data) {
+			return sent++ < delivered;
+		}
+
+		@Override
+		public void complete() {
+			completed = true;
+		}
+
+	}
+
+	static final class RecordingUsageLog implements UsageLog {
+
+		final List<String> answers = Collections.synchronizedList(new ArrayList<>());
+
+		volatile int bookViews;
+
+		@Override
+		public UsageRequest capture(HttpServletRequest request) {
+			return UsageRequest.NOT_RECORDED;
+		}
+
+		@Override
+		public void recordSearch(UsageRequest request, SearchKind kind, SearchConditions conditions,
+				Integer resultCount) {
+		}
+
+		@Override
+		public void recordBookView(UsageRequest request, long bookId, List<Long> residenceRegionIds,
+				List<Long> workRegionIds, List<Long> libraryIds) {
+			bookViews++;
+		}
+
+		@Override
+		public void recordMore(UsageRequest request, MoreKind kind, int seq, Long libraryId,
+				SearchConditions conditions) {
+		}
+
+		@Override
+		public void recordLibraryResponse(long libraryId, ResponseSource source, ResponseResult result,
+				long elapsedMs) {
+			answers.add(libraryId + " " + source + " " + result);
+		}
+
+	}
+
+}

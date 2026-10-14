@@ -4234,8 +4234,25 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - pgjdbc 실제 판: 42.7.13(`./gradlew dependencies`)
 - 배열은 `connection.createArrayOf("bigint"/"text", ...)`, IP는 `?::inet`. IP는 `X-Real-IP`가 IPv4·IPv6 글자일 때만(이름 조회 없음), 아니면 NULL
 
+### 4단계 catalog
+
+- `BookSearchController`가 `UsageLog`를 받음(`catalog → usagelog`). 요청을 받자마자 `capture`, 검색이 응답을 만든 뒤 `page=1`이면 `recordSearch(CATALOG, …, totalCount)`, 2 이상이면 `recordMore(CATALOG_NEXT_PAGE, seq=page)`. 책 상세는 찾은 뒤 `recordBookView`(지역·고른 도서관 포함). 400·404·422는 예외가 먼저 나서 기록 없음
+- 조건 값: 검색어는 서버가 다듬은 값, `exact`는 `title,author,publisher` 순서의 목록, `roles`는 더 고른 역할(`translator`·`illustrator`·`editor`)만, `sort`·`scope`·`visit`은 소문자 이름(보내지 않으면 기본값 `default`·`all`·`any`)
+- 시험 `CatalogUsageLogTests`(기록 켬, 비우기는 손으로 부르고 시험 트랜잭션 안에서 돌아 끝나면 되돌림): AC-1, 0권, AC-2, AC-5(400·422·404), AC-6(Googlebot 응답 본문이 같고 줄 없음), AC-17 일부
+
+### 5단계 availability
+
+- 직접 찾기 첫 묶음: `BatchRunner.start`에 마지막 인자 `Consumer<Integer> searched`(첫 스트림만, 다음 묶음은 null)를 더함. `BatchSession`이 정확히 한 번 부름: batch-done을 보낸 순간 `countedRows`, 그 전에 보내기가 실패하면(`clientGone`) 그 순간 null, batch-done 없이 `finish()`면 null. 세션의 모든 메서드가 `synchronized`라 "한 번" 표시는 필드 하나(부른 뒤 null로 비움)로 충분. **`SseEmitter`의 `onCompletion`·`onTimeout`·`onError` 콜백은 더하지 않음**: 시간 초과·오류 뒤에도 다음 보내기 실패나 `finish()`에서 남음
+- 다음 묶음(`EbookBatchStreamController`): 스트림을 연 뒤 `recordMore(DIRECT_NEXT_BATCH, seq=batchNo)`. 조건은 이 요청의 검색어·`filter` + 기록용으로 더 받은 `scope`·`visit`·`residenceRegionIds`·`workRegionIds`·`libraryIds`(사용자 승인 2026-10-14 "그래 이대로 해"). 기록용 값이 없거나 틀리면 그 칸만 빈 값이고 응답은 같음
+- 도서관별 더 보기(`LibraryEbookController`): 슬롯을 잡은 뒤 `recordMore(LIBRARY_MORE, libraryId, seq=page)`, 기록용 값은 `filter`·`scope`·`visit`·지역·`libraryIds`. `fetcher.fetch` 앞뒤로 시간을 재서 `direct_search`로 셈
+- 도서관 응답 분류: 성공 → OK, `Kind.ERROR` → FAILED, `Kind.TIMEOUT` → TIMEOUT, 성공했지만 묶음 마감 뒤에 온 답 → TIMEOUT, 시작 마감(`LAUNCH_CUTOFF`)으로 멈췄을 때 아직 안 보낸 후보 → 하나마다 SKIPPED(줄 수 제한 `ROW_LIMIT`으로 멈춘 경우는 건너뜀이 아님). 시간은 `fetchAsync`를 부른 때부터 끝날 때까지라 조회 서버 바꿔 보내기는 한 번·처음부터 끝까지로 셈
+- **설계에 없던 것: 3분 캐시에서 나온 답은 세지 않음.** 도서관에 요청을 보내지 않았기 때문(검색 쪽 `LibraryPage.cached()`, 대출 수 채우기 쪽 `fetchedAt`이 요청 전). 같은 페이지를 다른 검색과 함께 기다린 경우는 두 번 셀 수 있음
+- 대출 수 채우기: 구독형(요청 없음)·도서관 주소 밖 상세 주소(요청 없음)는 세지 않음. `book_view`·`search_more`로 세지 않음
+- 요청마다 로그: INFO `library=<번호> source=direct_search|holding_fill result=ok|failed|timeout|skipped ms=<ms>`, 실패면 끝에 ` error=<메시지>`. IP 없음. 기존 실패 줄(`BatchSession`·`HoldingSession`의 `batch=… failed: …`)은 그대로 둠: 묶음·쪽·소장 번호가 들어 있고 요청 없이 끝난 실패(도서관 없음, 주소 밖)도 남기 때문. 그래서 실패한 요청은 두 줄
+- 시험: `UsageRecordingTests`(가짜 fetcher; 한 번만·0권·끊김 두 경우·다음 묶음은 검색 아님·결과별 셈과 로그 줄·마감 뒤 답 TIMEOUT·건너뜀·캐시 안 셈·대출 수 채우기), 컨트롤러 시험 셋에 기록 호출 확인을 더함. `ModularityTests`에 `catalog → usagelog`, `availability → usagelog`
+
 ### 설계와 달라진 점 (사용자에게 알림)
 
 1. **`exact` 칸 형식**: design-delta는 `exact boolean`이지만, 수집 목록 검색의 `exact`는 "정확히 찾을 칸 목록"(`title`·`author`·`publisher` 중 여럿)이라 참·거짓 하나로는 "받은 값"(spec R1-2)을 남길 수 없음. `exact text[]`(보내지 않으면 빈 배열)로 둠
-2. **`search_more`의 `scope`·`visit`은 NULL 가능**: 다음 묶음(`batches/stream`)은 검색어·`filter`만, 도서관별 더 보기는 검색어·`page`만 받음. 조건 칸 전부를 남기려고 웹이 이 두 요청에 `scope`·`visit`·지역·`libraryIds`(도서관별 더 보기는 `filter`도)를 **기록용 값으로 더 붙여 보내게** 함(서버 검색 동작은 그대로, 틀린 값은 검색을 막지 않고 기록에서 빈 값). 그래서 이 칸들이 빠질 수 있어 `search_more`에서만 NULL 허용
+2. **`search_more`의 `scope`·`visit`은 NULL 가능** (사용자 승인 2026-10-14 "그래 이대로 해"): 다음 묶음(`batches/stream`)은 검색어·`filter`만, 도서관별 더 보기는 검색어·`page`만 받음. 조건 칸 전부를 남기려고 웹이 이 두 요청에 `scope`·`visit`·지역·`libraryIds`(도서관별 더 보기는 `filter`도)를 **기록용 값으로 더 붙여 보내게** 함(서버 검색 동작은 그대로, 틀린 값은 검색을 막지 않고 기록에서 빈 값). 그래서 이 칸들이 빠질 수 있어 `search_more`에서만 NULL 허용
 3. CHECK를 더 둠 [안]: `scope IN ('all','joinable')`, `visit IN ('any','none')`, `filter IN ('all','available')`, `result_count >= 0`, `seq >= 1`, `book_id >= 1`, 수 칸 `>= 0`

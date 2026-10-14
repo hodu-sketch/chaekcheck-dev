@@ -36,6 +36,8 @@ import com.chaekcheck.availability.internal.search.Candidate;
 import com.chaekcheck.availability.internal.search.EventSink;
 import com.chaekcheck.availability.internal.search.ResultFilter;
 import com.chaekcheck.availability.internal.search.StreamEvents;
+import com.chaekcheck.usagelog.SearchConditions;
+import com.chaekcheck.usagelog.UsageLog;
 
 /** Next-batch stream ("더 보기" at the bottom of the list). */
 @WebMvcTest(EbookBatchStreamController.class)
@@ -49,6 +51,9 @@ class EbookBatchStreamControllerTests {
 	@MockitoBean
 	BatchRunner batchRunner;
 
+	@MockitoBean
+	UsageLog usageLog;
+
 	@BeforeEach
 	void setUp() {
 		given(batchRunner.streamDuration()).willReturn(Duration.ofSeconds(30));
@@ -58,7 +63,7 @@ class EbookBatchStreamControllerTests {
 			sink.send(StreamEvents.DONE, new StreamEvents.Done(invocation.getArgument(3)));
 			sink.complete();
 			return null;
-		}).given(batchRunner).start(any(), any(), any(), anyInt(), any(), any(), any());
+		}).given(batchRunner).start(any(), any(), any(), anyInt(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -78,7 +83,7 @@ class EbookBatchStreamControllerTests {
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<BatchRunner.MissingCandidate>> missing = ArgumentCaptor.forClass(List.class);
 		verify(batchRunner).start(any(), eq(SearchQuery.of("사랑")), eq(ResultFilter.ALL), eq(2), found.capture(),
-				missing.capture(), eq(null));
+				missing.capture(), eq(null), any());
 		assertThat(found.getValue()).containsExactly(new Candidate(TestTargets.GOHEUNG, 2),
 				new Candidate(TestTargets.GANGSEO, 1));
 		assertThat(missing.getValue()).containsExactly(new BatchRunner.MissingCandidate(7, 1));
@@ -91,7 +96,7 @@ class EbookBatchStreamControllerTests {
 		assertThat(get(BATCH_URL + "?author=김달&batchNo=2&candidates=2:2")).hasStatusOk();
 
 		verify(batchRunner).start(any(), eq(SearchQuery.of("김달", SearchField.AUTHOR)), any(), eq(2), any(), any(),
-				eq(null));
+				eq(null), any());
 	}
 
 	@ParameterizedTest
@@ -140,11 +145,34 @@ class EbookBatchStreamControllerTests {
 	}
 
 	private void verifyNoInteractionsWithStart() {
-		verify(batchRunner, never()).start(any(), any(), any(), anyInt(), any(), any(), any());
+		verify(batchRunner, never()).start(any(), any(), any(), anyInt(), any(), any(), any(), any());
 	}
 
 	private MvcTestResult get(String uri) {
 		return mvc.get().uri(uri).header("Accept", ACCEPT).exchange(Duration.ofSeconds(5));
+	}
+
+	@Test
+	void nextBatchIsRecordedAsMoreWithTheExtraValues() { // cycle 15 AC-3 (more)
+		given(batchRunner.target(2)).willReturn(Optional.of(TestTargets.GOHEUNG));
+
+		get(BATCH_URL + "?title=채식주의자&filter=available&batchNo=3&candidates=2:2&scope=joinable&visit=none"
+				+ "&residenceRegionIds=1114&workRegionIds=x&libraryIds=2,5");
+
+		verify(usageLog).recordMore(any(), eq(UsageLog.MoreKind.DIRECT_NEXT_BATCH), eq(3), eq(null),
+				eq(SearchConditions.direct("채식주의자", null, null, "available", "joinable", "none", List.of(1114L),
+						List.of(), List.of(2L, 5L))));
+	}
+
+	@Test
+	void nextBatchWithoutTheExtraValuesStillRuns() {
+		given(batchRunner.target(2)).willReturn(Optional.of(TestTargets.GOHEUNG));
+
+		assertThat(get(BATCH_URL + "?title=채식주의자&batchNo=2&candidates=2:1")).hasStatusOk();
+
+		verify(usageLog).recordMore(any(), eq(UsageLog.MoreKind.DIRECT_NEXT_BATCH), eq(2), eq(null),
+				eq(SearchConditions.direct("채식주의자", null, null, "all", null, null, List.of(), List.of(),
+						List.of())));
 	}
 
 }

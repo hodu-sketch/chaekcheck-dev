@@ -4,6 +4,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chaekcheck.availability.internal.SearchQuery;
+import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
@@ -18,6 +23,10 @@ import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.search.SearchSlots;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.UsageLog;
+import com.chaekcheck.usagelog.UsageLog.ResponseResult;
+import com.chaekcheck.usagelog.UsageLog.ResponseSource;
+import com.chaekcheck.usagelog.UsageRequest;
 
 /**
  * Per-library "more" API: one page of one library (design-delta "페이지 객체"). Rows that a stream would send as
@@ -26,6 +35,8 @@ import com.chaekcheck.library.SearchTarget;
  */
 @RestController
 class LibraryEbookController {
+
+	private static final Logger log = LoggerFactory.getLogger(LibraryEbookController.class);
 
 	private final LibraryCatalog libraryCatalog;
 
@@ -37,28 +48,72 @@ class LibraryEbookController {
 
 	private final SearchSlots slots;
 
+	private final UsageLog usageLog;
+
 	LibraryEbookController(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher, AvailabilityResolvers resolvers,
-			AvailabilityProperties properties, SearchSlots slots) {
+			AvailabilityProperties properties, SearchSlots slots, UsageLog usageLog) {
 		this.libraryCatalog = libraryCatalog;
 		this.fetcher = fetcher;
 		this.resolvers = resolvers;
 		this.detailDeadline = properties.detail().deadline();
 		this.slots = slots;
+		this.usageLog = usageLog;
 	}
 
-	/** Path and query values are read as text so every bad value maps to this API's own error codes. */
+	/**
+	 * Path and query values are read as text so every bad value maps to this API's own error codes. Cycle 15: a valid
+	 * request is logged as "more" ({@code filter}, {@code scope}, {@code visit}, regions and {@code libraryIds} are
+	 * extra values for that row only), and its request to the library is counted like a direct search's.
+	 */
 	@GetMapping("/api/v1/availability/libraries/{libraryId}/ebooks")
 	LibraryPage ebooks(@PathVariable String libraryId, @RequestParam MultiValueMap<String, String> params,
-			@RequestParam(required = false) String page) {
+			@RequestParam(required = false) String page, @RequestParam(required = false) String filter,
+			@RequestParam(required = false) String scope, @RequestParam(required = false) String visit,
+			@RequestParam(required = false) String residenceRegionIds,
+			@RequestParam(required = false) String workRegionIds, @RequestParam(required = false) String libraryIds,
+			HttpServletRequest request) {
+		UsageRequest usage = usageLog.capture(request);
 		SearchQuery query = SearchConditionParam.parse(params);
 		int pageNumber = parsePage(page);
 		SearchTarget target = parseLibraryId(libraryId).flatMap(libraryCatalog::findEnabledTarget)
 			.orElseThrow(() -> new AvailabilityErrors.LibraryNotFoundException(libraryId));
 		try (SearchSlots.Slot _ = slots.acquire()) {
-			LibraryPage fetched = fetcher.fetch(target, query, pageNumber);
+			usageLog.recordMore(usage, UsageLog.MoreKind.LIBRARY_MORE, pageNumber, target.id(),
+					UsageConditions.more(query, UsageConditions.filterValue(filter), scope, visit, residenceRegionIds,
+							workRegionIds, libraryIds));
+			LibraryPage fetched = fetch(target, query, pageNumber);
 			return resolvers.forPlatform(target.platformType())
 				.resolve(target, fetched, Instant.now().plus(detailDeadline))
 				.completedPage();
+		}
+	}
+
+	/** The library request, counted for the usage log and logged as one line (answers from the cache are not). */
+	private LibraryPage fetch(SearchTarget target, SearchQuery query, int pageNumber) {
+		long started = System.nanoTime();
+		try {
+			LibraryPage fetched = fetcher.fetch(target, query, pageNumber);
+			if (!fetched.cached()) {
+				answered(target.id(), ResponseResult.OK, started, null);
+			}
+			return fetched;
+		}
+		catch (UpstreamException ex) {
+			answered(target.id(), ex.kind() == UpstreamException.Kind.TIMEOUT ? ResponseResult.TIMEOUT
+					: ResponseResult.FAILED, started, ex.getMessage());
+			throw ex;
+		}
+	}
+
+	private void answered(long libraryId, ResponseResult result, long startedNanos, String error) {
+		long ms = Duration.ofNanos(System.nanoTime() - startedNanos).toMillis();
+		usageLog.recordLibraryResponse(libraryId, ResponseSource.DIRECT_SEARCH, result, ms);
+		String name = result.name().toLowerCase(java.util.Locale.ROOT);
+		if (error == null) {
+			log.info("library={} source=direct_search result={} ms={}", libraryId, name, ms);
+		}
+		else {
+			log.info("library={} source=direct_search result={} ms={} error={}", libraryId, name, ms, error);
 		}
 	}
 

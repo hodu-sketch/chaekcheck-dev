@@ -1,5 +1,7 @@
 package com.chaekcheck.availability.internal.web;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -44,6 +46,8 @@ import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.availability.internal.TestTargets;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.usagelog.SearchConditions;
+import com.chaekcheck.usagelog.UsageLog;
 
 @WebMvcTest(LibraryEbookController.class)
 @Import(LibraryEbookControllerTests.Resolvers.class)
@@ -79,6 +83,9 @@ class LibraryEbookControllerTests {
 
 	@Autowired
 	SearchSlots searchSlots;
+
+	@MockitoBean
+	UsageLog usageLog;
 
 	@MockitoBean
 	LibraryCatalog libraryCatalog;
@@ -258,6 +265,45 @@ class LibraryEbookControllerTests {
 			.isLenientlyEqualTo("""
 					{"status":%d,"title":"%s","code":"%s"}
 					""".formatted(status.value(), status.getReasonPhrase(), code));
+	}
+
+	@Test
+	void libraryMoreIsRecordedAndItsRequestCounted() { // cycle 15 AC-3 (more), AC-24
+		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
+		given(fetcher.fetch(GOHEUNG, SearchQuery.of("채식주의자"), 2)).willReturn(new LibraryPage(2, "채식주의자", 2, 50,
+				0, false, Instant.now(), false, 0, null, "https://www.ghlib.go.kr:446/x", List.of()));
+
+		assertThat(mvc.get().uri(URL + "?title=채식주의자&page=2&filter=available&visit=none", 2).exchange())
+			.hasStatusOk();
+
+		verify(usageLog).recordMore(any(), eq(UsageLog.MoreKind.LIBRARY_MORE), eq(2), eq(2L),
+				eq(SearchConditions.direct("채식주의자", null, null, "available", null, "none", List.of(), List.of(),
+						List.of())));
+		verify(usageLog).recordLibraryResponse(eq(2L), eq(UsageLog.ResponseSource.DIRECT_SEARCH),
+				eq(UsageLog.ResponseResult.OK), anyLong());
+	}
+
+	@Test
+	void cachedPageIsNotALibraryRequest() {
+		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
+		given(fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 1)).willReturn(new LibraryPage(2, "사랑", 1, 50, 0, false,
+				Instant.now(), true, 30, null, "https://www.ghlib.go.kr:446/x", List.of()));
+
+		assertThat(mvc.get().uri(URL + "?title=사랑", 2).exchange()).hasStatusOk();
+
+		verify(usageLog, never()).recordLibraryResponse(anyLong(), any(), any(), anyLong());
+	}
+
+	@Test
+	void failedRequestIsCountedByKind() {
+		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
+		given(fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 1))
+			.willThrow(com.chaekcheck.availability.internal.UpstreamException.timeout("read timed out"));
+
+		mvc.get().uri(URL + "?title=사랑", 2).exchange();
+
+		verify(usageLog).recordLibraryResponse(eq(2L), eq(UsageLog.ResponseSource.DIRECT_SEARCH),
+				eq(UsageLog.ResponseResult.TIMEOUT), anyLong());
 	}
 
 }
