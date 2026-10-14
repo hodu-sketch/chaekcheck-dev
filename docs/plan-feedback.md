@@ -4295,3 +4295,44 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - AC-16 측정(c15 서버, 같은 요청 600개 × 2번: 수집 목록 검색 4종 + 책 페이지, 도서관 사이트 부르지 않음, 모니터링 도구 없음): 응답 시간 중앙값 꺼짐 55.3·56.0ms / 켬 55.8·55.9ms(차이 1% 안). 서비스(Java 작업 집합) 꺼짐 295~298MB / 켬 325MB(약 27~30MB, 50MB 안, 서로 다른 JVM 실행이라 오차 있음). DB 컨테이너 꺼짐 62MB / 켬 71MB(9MB). 켬에서 버린 묶음 0
 - 넣기 비용(`search_event` 1만 줄 한 번에, 비동기 커밋, 되돌림): `id` PK + 부분 색인 있음 27.6ms / 둘 다 없음 13.1ms. 정렬 메모리를 쓰는 단계는 없음. 5초 묶음 크기에서는 둘 다 작아 그대로 둠 [안]
 - 남은 것: 사용자 실제 폰 확인(`web-lan-5174`가 아니라 15는 아직 main에 안 합침 → 합친 뒤 또는 c15 웹 5178), main에 합치기·원래 DB 적용, 확인용 책·picks 복사 데이터 지우기, AC 확인표·[확인 필요] 표 정리
+
+## AC 확인표
+
+| AC | 결과 | 근거 |
+|---|---|---|
+| AC-1 수집 목록 검색 → `search_event` 한 줄 | 통과 | `CatalogUsageLogTests.firstPageIsOneSearchRow` |
+| AC-2 `page=2` → 검색 그대로, `search_more` 한 줄 | 통과 | `CatalogUsageLogTests.laterPageIsMore` |
+| AC-3 직접 찾기 첫 묶음 한 줄·결과 수, 더 보기 → `search_more` | 통과 | `UsageRecordingTests`, `EbookSearchStreamControllerTests`·`EbookBatchStreamControllerTests`·`LibraryEbookControllerTests` |
+| AC-4 첫 묶음 전 닫힘 → 결과 수 빈 한 줄 | 통과 | `UsageRecordingTests.clientGone*` (한 번만) |
+| AC-5 400·422 → 기록 없음 | 통과 | `CatalogUsageLogTests.rejectedRequestsLeaveNoRow`, 직접 찾기 `badRequestsRecordNothing` |
+| AC-6 Googlebot → 기록 없음 | 통과 | `UsageLogBufferTests.robotsAreNotRecorded`, `CatalogUsageLogTests`, `UsageEventApiTests` |
+| AC-6b nginx 로봇 거절, robots.txt | 통과 | 로컬 nginx(위 9·10단계 절) |
+| AC-7 여섯 자리 → 새 탭 + `library_click` | 통과(데스크톱) | `libraryClicks.test.tsx`, `UsageEventApiTests`, Playwright. **폰 확인 남음** |
+| AC-8 책 페이지 책 번호 있음, 직접 찾기 비움 | 통과 | `libraryClicks.test.tsx`, Playwright(`logo/book_page/900001`) |
+| AC-9 켬: CSRF 표시로 기록·없으면 403 / 끔: 표시 없이 | 통과 | `UsageEventCsrfTests`, `UsageEventApiTests`, `usageEvents.test.ts` |
+| AC-10 없는 도서관·틀린 값 → 204, `rejected_event` | 통과 | `UsageEventApiTests.badReportsAreRejectedWithTheirReason`, `UsageLogWriteTests` |
+| AC-11 IP당 1분 60번 넘음 → 기록 안 됨 | 통과 | 로컬 nginx: 80번 → 31줄 |
+| AC-12 회원 번호·UA·쿠키 칸 없음 | 통과 | `UsageLogSchemaTests.noMemberNumberUserAgentOrCookieColumn` |
+| AC-13 1년 1일 전 지움, 364일 남김 | 통과 | `UsageLogCleanupTests` |
+| AC-14 DB 실패에도 검색 정상 | 통과 | 쓰기는 요청과 다른 스레드·트랜잭션, 실패 시험 `UsageLogWriteTests.failedBatch…`(검색 쪽은 큐에 넣기만, 예외를 밖으로 내지 않음) |
+| AC-15 정상 종료 → 직전 기록 남음 | 통과 | `UsageLogShutdownTests`(진짜 웹 서버) |
+| AC-16 응답 시간 10%·메모리 50MB 안 | 통과 | 위 측정 |
+| AC-17 책 페이지 → `book_view` 한 줄, 대출 수 채우기로 안 늘어남 | 통과 | `CatalogUsageLogTests.bookPageIsOneView`, `UsageRecordingTests.holdingRequests…`. 거르기를 바꾸면 한 줄 더(위 "알게 된 것") |
+| AC-18 31일 IP NULL, 29일 IP 있음 | 통과 | `UsageLogCleanupTests` |
+| AC-19 실패 뒤 성공 → `dropped_batch` + 로그 | 통과 | `UsageLogWriteTests.failedBatchIsDroppedAndNotedWithTheNextOne` |
+| AC-20 로그인 켬·끔 모두, 끔은 `login_off` | 통과 | 끔 `CatalogUsageLogTests`(`login_off`), `AuthDisabledTests`(쿠키 있어도 `LOGIN_OFF`), 켬 `UsageEventCsrfTests` |
+| AC-21 설정 꺼짐 → 기록 없음, 켬 → 생김 | 통과 | `UsageLogDisabledTests`, `UsageLogWriteTests` |
+| AC-23 화면 행동 각 한 줄(로그인 전후) | 통과(데스크톱) | `PicksPage.test.tsx`, `regionSource.test.tsx`, `UsageEventApiTests`, Playwright(로그인 전). 사서 추천 책 창은 c15 DB에 전자책 있는 추천 책이 없어 Playwright로는 못 봄(Vitest로 확인) |
+| AC-24 도서관별 하루 줄, 요청마다 로그 | 통과 | `UsageRecordingTests.eachRequestIsCountedByItsResult`, `UsageLogWriteTests.libraryAnswersAddToTheDayLine` |
+| AC-25 로그인함/안 함/틀린 서명/만료 → in/out/out/in, 결과 같음 | 통과 | `LoginStatusReaderTests`, `UsageEventCsrfTests.searchRowsTellTheLoginStatusAndAnswersStayTheSame` |
+| AC-26 `access_token` 경로 `/api/v1` | 통과 | `AuthTokenEndpointTests`, `LoginCallbackTests`, `WithdrawalTests` |
+
+## [확인 필요] 결과
+
+| 항목 | 결과 |
+|---|---|
+| `SmartLifecycle` 정지 phase와 Hikari 닫힘 순서 | `DEFAULT_PHASE - 4096`. 웹 서버 정상 종료 → 남은 기록 씀 → Hikari 닫힘(`UsageLogShutdownTests`, 로그 순서 확인) |
+| dev pgjdbc 실제 판 | 42.7.13 |
+| `id` PK·부분 색인 | 둠. 1만 줄 넣기 27.6ms(없으면 13.1ms), 정렬 메모리 없음. 5초 묶음에서는 작음 [안] |
+| 예약 작업 실행기 | 공용 `@Scheduled`는 Spring Boot 기본 스레드 1개(바꾼 설정 없음). 5초 쓰기는 자기 스레드라 회원 정리·사서추천 받기와 서로 막지 않음. 04:30 정리만 공용 실행기 |
+| nginx realip, 광고 차단 비율, 검색 로봇의 API 호출 | 배포·운영 뒤(사이클 17) |
