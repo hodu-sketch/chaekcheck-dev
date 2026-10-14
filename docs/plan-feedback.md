@@ -4362,3 +4362,10 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 지운 것: c15 서버(8084)·웹(5178), docker 묶음 `chaekcheck-c15`(컨테이너 둘, 저장 공간 `chaekcheck-c15_db-data`. 확인용 책 900001과 원래 DB에서 복사한 사서 추천 데이터도 함께), 확인용 nginx 컨테이너, 작업 폴더 `../chaekcheck-dev-c15`, 브랜치 `cycle-15-usage-log`(main에 모두 들어 있음), `.claude/launch.json`의 `c15-*` 세 항목
 - 원래 묶음 `chaekcheck`, c16·c18 묶음과 작업 폴더는 건드리지 않음. 포트 5462·5463·8084·5178은 비었음
 
+
+## 정리 (2026-10-14)
+
+- c16 작업 폴더 `../chaekcheck-dev-c16`과 브랜치 `cycle-16-notices-and-policies`를 지움(main에 합친 뒤, 커밋 안 한 변경 없음)
+- docker 묶음 `chaekcheck-c16`(컨테이너 `db`·`db-test`, 볼륨 `chaekcheck-c16_db-data`, 네트워크)을 지움. 포트 5472·5473·8085·5179가 빔
+- `.claude/launch.json`에서 c16 항목 셋을 뺌
+- main 순서: 18 A1·A2 → 16 → 15(`a34c6ed`, 사이클 15 세션이 합침)
