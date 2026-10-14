@@ -4046,3 +4046,88 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - **바꾼 이름**: 인계서 [안] 이름 그대로 `SiteHostNames`·`UnderscoreHostSiteFetcher`·`HostRoutingSiteFetcher`·`UnderscoreHostProbe`·`SiteHostNamesTests`·`UnderscoreHostSiteFetcherTests`. 더한 것: `UnderscoreHostSearchUriTests`, `HostRoutingSiteFetcherTests`, 조회 서버 `UnderscoreHosts`·`UrlGuardTests`·`LibraryClientUnderscoreHostTests`
 - **인계서와 다른 점**: 실제 확인의 다른 도서관 요청(위 실수), 실제 확인 서버 포트 8088(A1이 8086을 써서). 그 밖에 없음
 - **확인**: AC-4의 조회 부분 통과(direct·조회 서버 둘 다). C3 네 조건 + SNI 없음 + redirect 안 따름 + 같은 User-Agent·로그 모양. C4 실패 가두기(시험)
+# 사이클 16
+
+공지사항과 안내·약관 페이지를 DB로 (`sitecontent`). 인계서: plan `docs/cycles/16-notices-and-policies/handoff.md`.
+
+## 시작 상태 (2026-10-14)
+
+- 시작 커밋: main `b4cd153` (사이클 12·13·14 합친 뒤). 사이클 15는 아직 main에 없음
+- 작업 폴더 `../chaekcheck-dev-c16`, 브랜치 `cycle-16-notices-and-policies`, docker 프로젝트 `chaekcheck-c16`(볼륨 `chaekcheck-c16_db-data`), DB 5472 / 시험 DB 5473, 서버 8085, 웹 5179. 15는 5462·5463·8084·5178, 18은 다른 세션
+- 새 DB는 비어 있는 상태에서 Liquibase로 만듦(원래 DB를 복사하지 않음). 이 사이클 화면에는 책 목록이 필요 없음
+- master 맨 끝은 인계서대로 `# cycle 14` `picks/001-picks-schema.yaml`였고, 그 뒤에 `sitecontent/001`, `sitecontent/002`, `auth/002`를 붙임
+- "시작할 때 줄 번호" 목록: `ModularityTests.java:27`, `application.yml:92-97`, `AuthPropertiesTests.java:45-46,61-62`, `SignupTests.java:42-43,53-54,90-91,148-149,162`, `AuthEnabledSecurityTests.java:113-121`(실제로 `:114,121`), `AuthSchemaTests.java:40-41`, `AccountDeletionTests.java:93-94`, `chaekcheck-locations.conf:91` 모두 인계서와 같음
+- `/picks` nginx 줄은 main `b4cd153`에 커밋돼 있음(사이클 15 인계서 "15 밖" 확인과 같은 줄)
+
+## 사용자 결정
+
+- **공개일 2026-10-18** (사용자, 2026-10-14: "공개일 10월 18일"). 인계서 "공개 전에 할 것"의 공개일 [확인 필요]의 답. 운영 첫 판의 시행일·게시일과 첫 공지 게시일이 이 날입니다. seed를 검토한 글로 바꾸는 일은 인계서대로 별도 작업이며, 사이클 17이 `PRE_DEPLOYMENT`를 지우기 전에 해야 합니다
+- **가입 화면은 지금은 가짜 응답으로만 확인** (사용자, 2026-10-14: "지금은 일단 가짜응답으로만확인"). c16 웹 포트 5179는 카카오 콘솔에 돌아올 주소가 없어 실제 카카오 로그인은 하지 않음. AC-3·AC-4의 근거는 서버 시험(`SignupTests`)
+- **처리방침 표는 목록으로** (사용자, 2026-10-14, 질문 "처리방침 표"에 "표를 목록으로 바꿈" 선택). 승인된 `drafts/privacy-policy.md` 1절(수집 항목·목적·보유 기간)과 2절(위탁·국외 이전)은 마크다운 표인데, `react-markdown`만으로는 표를 그리지 못해 `|` 글자가 그대로 보입니다(표에는 `remark-gfm`이 필요, research.md 1절). 새 의존성은 `react-markdown` 하나로 두고, 공개 전 seed를 바꿀 때 두 표를 **같은 내용의 목록**으로 바꿔 넣습니다. plan은 다음 사이클에 `drafts/privacy-policy.md`를 목록 모양으로 고쳐 주세요(dev는 plan 파일을 고치지 않음). `drafts/privacy-collection.md`의 표는 `consent_items` JSON으로 들어가므로 상관없음
+
+## 정한 이름 (인계서 [안])
+
+- 공개 API: `sitecontent/SiteDocuments`(`int currentVersion(ConsentDocument)`), `sitecontent/ConsentDocument { TERMS_OF_SERVICE, PRIVACY_COLLECTION }` — 인계서 이름 그대로
+- `sitecontent/package-info.java`: `@ApplicationModule(allowedDependencies = {})`(빈 목록을 적음)
+- 안쪽: `internal/Today`(Asia/Seoul 날짜, 시험이 시계를 고정), `internal/VersionDate`, `internal/document/{DocumentStore, JdbcSiteDocuments}`, `internal/notice/NoticeStore`, `internal/web/{DocumentController, NoticeController, SitecontentErrors, SitecontentParams, SitecontentResponses}`
+- `Today`는 `Clock` 빈 대신 둠: 앱에 이름이 다른 `Clock` 빈이 여럿(`picksClock` 등) 있어 형으로 주입하면 겹침
+- changeset id: `sitecontent-001-{schema, notice, notice-version, document-version}`, `sitecontent-002-{terms-of-service, privacy-collection, privacy-policy, about}`, `auth-002-consent-version-number`. 제약 이름은 design-delta 표 그대로, 동의문 4개 검사만 `document_version_consent_items_shape_check`(표에 이름이 없던 둘째 CHECK)
+- 시험: `SitecontentSchemaTests`, `SiteDocumentsTests`, `DocumentApiTests`, `NoticeApiTests`(+ 도움 `SitecontentTestData`). 고친 시험: `SignupTests`, `AuthSchemaTests`, `AuthEnabledSecurityTests`, `AuthDisabledTests`, `AuthPropertiesTests`, `AccountDeletionTests`, `ModularityTests`, `DocumentationTests`. 지운 시험: `DocumentVersionsMatchWebTests`
+- 운영 메모: `docs/maintenance/5-sitecontent.md`(README 6절에서 링크)
+- 웹: `components/{Markdown, VersionPicker, versionPeriod, ChangeSummary, ContentStates}`, `features/notices/{NoticesPage, NoticePage}`, `features/sitecontent/{siteContent, DocumentState}`. 바닥글 시험은 `LegalPage.test.tsx`에서 새 `Footer.test.tsx`로 옮김. `AuthScreens.test.tsx`는 `documentVersions`를 쓰지 않아 고칠 것이 없었음
+- launch 설정: `c16-backend-8085`, `c16-backend-no-login-8085`, `c16-web-lan-5179`
+
+## 설계와 달라진 점·dev가 정한 것
+
+- **빈 제목·본문 검사**: design-delta의 `btrim(x) <> ''`는 공백만 지워서, 줄바꿈만 있는 본문이 통과함(시험 `SitecontentSchemaTests`가 찾음). CHECK 식의 글자 모양은 [안]이라 `btrim(x, E' \t\r\n') <> ''`로 넓힘(셋 다). 이 changeset은 c16 `db-test`에서만 돌았던 상태라 그 DB의 sitecontent schema·`auth/002` 제약·changelog 줄만 지우고 다시 적용함(다른 작업 폴더 DB에는 돈 적 없음)
+- **seed**: `$$ … $$` + `splitStatements: false` 그대로 됨. YAML `|-` 블록 안 들여쓰기는 빠지고 마크다운 문단·`##` 제목이 그대로 들어감(API로 확인). 처리방침 첫 줄 "이 문서는 검토 전 자리 글입니다. 배포 전에 실제 개인정보 처리방침으로 바꿉니다." 동의문 라벨은 지금 웹 그대로(목적 / 항목 / 보유·이용 기간 / 거부할 권리와 불이익), 로그인 수단은 "카카오 회원 식별 번호"로 바꿈
+- **API**
+  - 정수가 아닌 `page`·`version`·`noticeId`: 400 `validation_error`, `code` `typeMismatch`. 1보다 작으면 `Min`, int 범위를 넘으면 `Max`. 값을 손으로 읽어서 루트 `bad_request`로 새지 않음
+  - `noticeId`가 정수가 아니면 400(인계서 [안] 그대로)
+  - 공지 0개: `page` 1, `items` [], `hasMore` false
+  - 고정 공지 순서: 일반 공지와 같게(게시일 최신, 같으면 번호 큰 순)
+  - 옛 판을 볼 때 `title`은 그 판의 제목, `editedOn`은 지금 판 기준(지금 판이 2 이상이면 그 날짜)
+  - 문서에 시행 중인 판이 하나도 없으면 404 `version_not_found`(seed가 있어 일어나지 않음)
+  - 오류 응답에 `"type":"about:blank"`는 나오지 않음(Spring 기본, 다른 모듈 오류와 같음)
+- **auth**: `AuthSchemaTests`는 로그인 꺼짐이고 `SignupService`가 로그인 켬에서만 생기므로 `DIRECT_DEPENDENCIES` 없이 통과. `auth/package-info.java`에 `allowedDependencies`는 적지 않고 Javadoc만 고침(지금도 annotation 없음). 제약 위반을 이어서 시험하는 곳은 SQL `SAVEPOINT`로 감쌈(앱의 트랜잭션 관리자가 JPA라 nested 트랜잭션을 못 씀)
+- **웹** (웹 에이전트가 구현, 내가 확인)
+  - `react-markdown` 10.1.0, React 19.3과 경고 없이 설치. 묶음 크기 JS 548.36 kB → 671.30 kB(gzip 170.28 → 208.23, +38), CSS 86.15 → 92.16 kB. 글 화면에서만 늦게 불러오면 줄일 수 있음(하지 않음)
+  - `allowedElements` 씀: h1~h6, p, ul, ol, li, strong, a. 나머지는 글자만 남음
+  - 날짜 고르기 칸 = 기본 `<select>`(`aria-label="적용 기간"`). 폰에서 어떻게 열리는지는 사용자 실제 폰에서 확인
+  - "목록으로": 목록 줄이 보던 쪽을 라우터 state로 넘김. 주소로 바로 연 글은 `/notices`로
+  - 지금 판을 고르면 `version` 없는 주소(다른 값은 유지)
+  - 404 링크 글: 없는 판 "지금 버전 보기", 없는 공지 "공지 목록 보기"(flow.md "지금 버전 링크"·"공지 목록 링크"의 글자를 정함)
+  - 서비스 안내 제목 아래 날짜는 보고 있는 판의 날짜
+  - 오류: 4xx는 바로 보임, 5xx·연결 끊김은 1초 뒤 한 번 더 읽고 "글을 불러오지 못했어요". "지연" 시간 기준은 숫자가 없어 따로 두지 않음
+  - 숫자가 아닌 공지 번호·`?version=`은 서버를 부르지 않고 "찾을 수 없어요". 틀린 `?page=`는 1쪽. 서버가 쪽을 맞추면 주소를 `replace`
+  - 쪽 번호: PC·태블릿 1~10 묶음, 폰 1~5 묶음, ‹ ›는 폰에서 늘, PC는 10쪽 넘을 때만, 갈 곳 없으면 흐리게. 한 쪽뿐이면 번호 없음
+  - 가입: 두 글을 읽는 동안에도 체크 칸·가입을 잠그고 표 자리에 회색 줄. `getSignup()` 판 번호가 숫자가 아니면 못 읽음으로 처리
+  - `TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인`은 `AboutPage.tsx` 주석에 남김
+- **npm audit**: high 1건(`source-map-js`)을 알림. react-markdown 전부터 있던 것
+
+## 운영 SQL 5단계 결과 (2026-10-14, c16 개발 DB `db`)
+
+| 절 | 결과 |
+|---|---|
+| 1 새 공지 | 일반·고정 각 1줄, 번호 1·2. API 목록에 바로 나옴(고정은 `pinned`) |
+| 2 고치기 | 정상 `INSERT 0 1`, 없는 번호 `INSERT 0 0`, 마지막 판보다 이른 날짜 `INSERT 0 0`. 글에 `editedOn` |
+| 3 숨김·보이기·고정·풀기 | 각 `UPDATE 1`. 숨김 → 목록에서 빠지고 주소 404 `notice_not_found`, 다시 보이기·고정 반영 |
+| 4 문서 새 판 + 공지 | 처리방침 판 2(앞날 2026-10-20) + 공지 각 1줄, 이른 날짜 0줄, `ABOUT` `change_summary` NULL 1줄. 앞날 판은 `versions`에 없고 `?version=2` 404 |
+| 5 동의문 새 판 | 정상 1줄, 3항목 → `document_version_consent_items_shape_check` 위반 |
+| 6 확인 질의 셋 | 지금 판·적용 기간·공지 목록이 API와 같음 |
+
+- 고친 문장 없음. 더한 것: "줄 수를 보고 확정하기" — psql에 파일을 한 번에 넣으면 `COMMIT;`까지 쉬지 않으므로, `WITH ins AS (INSERT … RETURNING 1) SELECT count(*) = 1 AS ok FROM ins \gset` + `\if :ok COMMIT \else ROLLBACK`으로 한 번에 가름(이른 날짜로 시험 → rolled back). 운영 메모 0절
+- 시퀀스 이름 `sitecontent.notice_id_seq`(사이클 17 DB 계정 USAGE 대상)
+- 이 PC의 WSL psql에서 한국어 오류가 깨져 보여 `SET lc_messages = 'C'`로 봄
+
+## nginx (9단계)
+
+- 화면 주소 정규식에 `notices|notices/[0-9]+`를 더하고 주석·README 표 고침. `local-test.conf`로 띄워(c16 웹 빌드, 호스트 8098) `/notices`, `/notices/1`, `/notices?page=2`, `/privacy` 모두 200 `text/html`. `/notices/abc`는 404(정규식이 숫자만 받음)
+
+## 화면 확인 (Playwright, c16 서버·웹, 2026-10-14)
+
+- 1280: 공지 목록(고정 표시·날짜 오른쪽), 공지 글(게시일·고침, 날짜 고르기 칸 → 옛 판 "이전 버전"·"2026-10-13 ~ 2026-10-13 적용"), 서비스 안내 판 2 → 판 1 "이전 버전"·메일 링크, 이용약관 "바뀐 점 보기" 펼침(목록·굵게), `?version=99` "찾을 수 없어요" + "지금 버전 보기"
+- AC-6: `<script>`·`<img onerror>`는 글자로만 보이고 요소가 생기지 않음, `javascript:` 링크의 `href`는 빈 값, 콘솔 오류는 로그인 확인 401뿐
+- 768·375: 한 열 흰 카드, 폰 목록은 제목 두 줄 + 아래 날짜, ‹ 1 2 ›, 2쪽 글 → "목록으로" → `?page=2`
+- 로그인 끔(`c16-backend-no-login-8085`): 바닥글 "공지사항 · 서비스 안내 · 개인정보 처리방침", `/privacy` 열림, `/terms` 안 그려짐. 켬: 링크 넷. "문의: 준비 중" 없음
+- 서비스 안내 기준일 줄은 c16 DB가 비어 있어(가입 조사 값 없음) 빠짐. 줄 위치는 `AboutPage.test`가 확인
