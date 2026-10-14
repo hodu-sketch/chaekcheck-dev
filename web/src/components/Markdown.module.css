@@ -1,0 +1,62 @@
+/* the look of the S8·S9 text before cycle 16 (LegalPage.module.css .body and .heading) */
+.markdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  color: var(--ink);
+  font-size: var(--text-md);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+/* a section heading after text: a hairline above, as between the privacy policy sections before */
+.markdown > :not(h1, h2) + h2 {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* a heading sits close to its own text */
+.markdown :is(h1, h2, h3, h4, h5, h6) + * {
+  margin-top: -0.8rem;
+}
+
+.markdown p {
+  margin: 0;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.markdown strong {
+  font-weight: 800;
+}
+
+.markdown a {
+  color: var(--brand-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

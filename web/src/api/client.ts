@@ -3,15 +3,20 @@ import type {
   BookPage,
   BookRole,
   BookSort,
+  DocumentKey,
   LatestJoinSurvey,
   LibraryEligibilityRow,
   LibraryPage,
   LibraryScope,
+  Notice,
+  NoticeList,
   Picks,
   Problem,
   RegionResolution,
   SearchField,
   SidoNode,
+  SiteContentNotFound,
+  SiteDocument,
   VisitFilter,
 } from './types'
 
@@ -171,4 +176,37 @@ export function fetchPicks(plan: PlanParams, signal?: AbortSignal): Promise<Pick
  */
 export function fetchLatestJoinSurvey(signal?: AbortSignal): Promise<LatestJoinSurvey> {
   return getJson('/api/v1/join-surveys/latest', signal)
+}
+
+/** `?version=n` when a version is asked for; none means the current version. */
+function versionSuffix(version: number | null): string {
+  return version === null ? '' : `?version=${version}`
+}
+
+/** `GET /api/v1/notices?page=n` (cycle 16): public, no login. Page 1 is sent without the parameter. */
+export function fetchNotices(page: number, signal?: AbortSignal): Promise<NoticeList> {
+  return getJson(`/api/v1/notices${page > 1 ? `?page=${page}` : ''}`, signal)
+}
+
+/** `GET /api/v1/notices/{noticeId}?version=n`: 404 `notice_not_found` or `version_not_found`. */
+export function fetchNotice(noticeId: number, version: number | null, signal?: AbortSignal): Promise<Notice> {
+  return getJson(`/api/v1/notices/${noticeId}${versionSuffix(version)}`, signal)
+}
+
+/** `GET /api/v1/documents/{documentKey}?version=n`: 404 `document_not_found` or `version_not_found`. */
+export function fetchDocument(key: DocumentKey, version: number | null, signal?: AbortSignal): Promise<SiteDocument> {
+  return getJson(`/api/v1/documents/${key}${versionSuffix(version)}`, signal)
+}
+
+/** Which 404 of the notice and document APIs this is, or null for any other failure. */
+export function notFoundCode(error: unknown): SiteContentNotFound | null {
+  if (!(error instanceof ApiError) || error.status !== 404) return null
+  const code = error.problem.code
+  return code === 'notice_not_found' || code === 'document_not_found' || code === 'version_not_found' ? code : null
+}
+
+/** One more try for a server error or a lost connection; a 4xx answer stays as it is. */
+export function retryServerErrors(failureCount: number, error: Error): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
+  return failureCount < 1
 }

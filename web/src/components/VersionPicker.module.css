@@ -1,0 +1,36 @@
+.picker {
+  max-width: 100%;
+  min-height: 2.2rem;
+  padding: 0.3rem 2rem 0.3rem 0.75rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  /* the arrow is drawn here, so every browser shows the same box */
+  appearance: none;
+  background: var(--paper)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%234e5968' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 0.7rem center;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.picker:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* small and grey-violet, no yellow (C8) */
+.earlier {
+  display: inline-block;
+  margin-left: 0.6rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-tag);
+  background: var(--brand-mist);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: middle;
+  white-space: nowrap;
+}

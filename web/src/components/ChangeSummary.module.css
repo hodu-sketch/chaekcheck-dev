@@ -1,0 +1,45 @@
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0;
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.arrow {
+  display: inline-block;
+  transition: transform 150ms;
+}
+
+.arrow[data-open='true'] {
+  transform: rotate(180deg);
+}
+
+/* the theme's grey panel, not yellow (C8) */
+.body {
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--paper-deep);
+}
+
+.body > div {
+  font-size: var(--text-sm);
+}

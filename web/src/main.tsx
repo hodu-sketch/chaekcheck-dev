@@ -17,6 +17,8 @@ import { AboutPage } from './features/about/AboutPage'
 import { BookPage } from './features/book/BookPage'
 import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
+import { NoticePage } from './features/notices/NoticePage'
+import { NoticesPage } from './features/notices/NoticesPage'
 import { PicksPage } from './features/picks/PicksPage'
 import { RegionProvider } from './features/region/RegionContext'
 import { SearchPage } from './features/search/SearchPage'
@@ -50,14 +52,11 @@ function App() {
                     </LoginOnly>
                   }
                 />
-                <Route
-                  path="/privacy"
-                  element={
-                    <LoginOnly>
-                      <LegalPage document="privacy" />
-                    </LoginOnly>
-                  }
-                />
+                {/* open whether login is on or off (cycle 16, ADR-0100); /terms stays login-only */}
+                <Route path="/privacy" element={<LegalPage document="privacy" />} />
+                {/* cycle 16 (S16, S17): public, no login; reached from the footer only */}
+                <Route path="/notices" element={<NoticesPage />} />
+                <Route path="/notices/:noticeId" element={<NoticePage />} />
                 {/* open before login and with login off too (cycle 07, spec R3-6): saved in this browser then */}
                 <Route path="/my-libraries" element={<MyLibrariesPage />} />
                 <Route

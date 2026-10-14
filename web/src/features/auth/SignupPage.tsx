@@ -1,32 +1,64 @@
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { cancelSignup, getSignup, postSignup } from '../../api/auth'
-import { ApiError } from '../../api/client'
-import type { ConsentInput, SignupInfo } from '../../api/types'
+import { ApiError, fetchDocument, retryServerErrors } from '../../api/client'
+import type { ConsentInput, DocumentKey, SignupInfo, SiteDocument } from '../../api/types'
+import { LoadingLines } from '../../components/ContentStates'
+import { Markdown } from '../../components/Markdown'
+import { positiveNumber } from '../sitecontent/siteContent'
 import { useAuth } from './AuthContext'
 import { SIGNUP_SUCCESS_MESSAGE, takeReturnPath } from './authResult'
-import {
-  COLLECTION_NOTICE,
-  NOT_REVIEWED,
-  PRIVACY_COLLECTION_BODY,
-  TERMS_OF_SERVICE_BODY,
-} from './legalText'
 import { useNotice } from './NoticeContext'
 import styles from './SignupPage.module.css'
 
 type Box = 'TERMS_OF_SERVICE' | 'PRIVACY_COLLECTION' | 'AGE_OVER_14'
+type DocumentBox = Exclude<Box, 'AGE_OVER_14'>
 
-const BOXES: ReadonlyArray<{ type: Box; label: string; body?: ReadonlyArray<string> }> = [
-  { type: 'TERMS_OF_SERVICE', label: '이용약관에 동의합니다', body: TERMS_OF_SERVICE_BODY },
-  { type: 'PRIVACY_COLLECTION', label: '개인정보 수집·이용에 동의합니다', body: PRIVACY_COLLECTION_BODY },
+const BOXES: ReadonlyArray<{ type: Box; label: string }> = [
+  { type: 'TERMS_OF_SERVICE', label: '이용약관에 동의합니다' },
+  { type: 'PRIVACY_COLLECTION', label: '개인정보 수집·이용에 동의합니다' },
   { type: 'AGE_OVER_14', label: '만 14세 이상입니다' },
 ]
+
+/** Where each agreed document's text is read (cycle 16, design-delta 가입 흐름). */
+const DOCUMENT_KEYS: Record<DocumentBox, DocumentKey> = {
+  TERMS_OF_SERVICE: 'terms-of-service',
+  PRIVACY_COLLECTION: 'privacy-collection',
+}
+
+function isDocumentBox(type: Box): type is DocumentBox {
+  return type !== 'AGE_OVER_14'
+}
+
+/**
+ * The text of one document at the version `GET /api/v1/auth/signup` gave, so the text shown is the version agreed to
+ * (cycle 16). A version that is not a version number fails like a failed read.
+ */
+function useSignupDocument(info: SignupInfo | null, type: DocumentBox) {
+  const raw = info?.documents.find((document) => document.type === type)?.version ?? null
+  const version = positiveNumber(raw)
+  const key = DOCUMENT_KEYS[type]
+  return useQuery<SiteDocument>({
+    queryKey: ['documents', key, version, raw],
+    queryFn: ({ signal }) => {
+      if (version === null) throw new Error(`not a version number: ${raw}`)
+      return fetchDocument(key, version, signal)
+    },
+    enabled: info !== null,
+    retry: retryServerErrors,
+  })
+}
 
 const NONE: Record<Box, boolean> = { TERMS_OF_SERVICE: false, PRIVACY_COLLECTION: false, AGE_OVER_14: false }
 
 /**
  * S6 `/signup`: consent for a provider account seen for the first time (R2). No account exists before 가입. Opened
  * only right after the provider; without a pending sign-up (404) the browser goes to S1 (flow.md).
+ *
+ * Cycle 16: the notice table (`consentItems`) and the full texts come from `GET /api/v1/documents/...` at the versions
+ * the sign-up info gave. If either read fails, the boxes and 가입 are locked with "약관 글을 불러오지 못했어요" and
+ * 다시 시도 (the same versions); 취소 still works (user decision 2026-10-14).
  */
 export function SignupPage() {
   const navigate = useNavigate()
@@ -53,6 +85,22 @@ export function SignupPage() {
       .catch(() => navigate('/', { replace: true }))
   }, [navigate])
 
+  const terms = useSignupDocument(info, 'TERMS_OF_SERVICE')
+  const collection = useSignupDocument(info, 'PRIVACY_COLLECTION')
+  const bodies: Record<DocumentBox, string | undefined> = {
+    TERMS_OF_SERVICE: terms.data?.version.body,
+    PRIVACY_COLLECTION: collection.data?.version.body,
+  }
+  const failed = terms.isError || collection.isError
+  // the boxes can be checked only once both texts are there
+  const locked = !(terms.isSuccess && collection.isSuccess)
+  const consentItems = collection.data?.version.consentItems ?? []
+
+  const retryDocuments = () => {
+    if (terms.isError) void terms.refetch()
+    if (collection.isError) void collection.refetch()
+  }
+
   const all = BOXES.every((box) => checked[box.type])
 
   const toggle = (type: Box) => {
@@ -66,7 +114,7 @@ export function SignupPage() {
   }
 
   const submit = async () => {
-    if (info === null || !all) return
+    if (info === null || !all || locked) return
     setSaving(true)
     setMessage(null)
     const consents: ConsentInput[] = [
@@ -81,7 +129,7 @@ export function SignupPage() {
     } catch (error) {
       const code = error instanceof ApiError ? error.problem.code : null
       if (code === 'document_version_mismatch') {
-        // C24: say so, read the new versions, show the boxes empty again
+        // C24: say so, read the new versions (and so their texts), show the boxes empty again
         setMessage('약관이 바뀌었어요. 다시 확인해 주세요')
         setChecked(NONE)
         setTouched(false)
@@ -118,50 +166,62 @@ export function SignupPage() {
       </h1>
       <p className={styles.lead}>처음 로그인하셨네요. 아래 내용을 확인하고 동의하면 가입이 끝나요.</p>
 
-      <table className={styles.notice}>
-        <caption className={styles.caption}>개인정보 수집·이용 안내</caption>
-        <tbody>
-          {COLLECTION_NOTICE.map((row) => (
-            <tr key={row.label}>
-              <th scope="row">{row.label}</th>
-              <td>
-                {row.text}
-                {!row.reviewed && <span className={styles.draft}>{NOT_REVIEWED}</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {failed ? (
+        <div className={styles.failed} role="alert">
+          <p>약관 글을 불러오지 못했어요</p>
+          <button type="button" className={styles.more} onClick={retryDocuments}>
+            다시 시도
+          </button>
+        </div>
+      ) : collection.isPending ? (
+        <LoadingLines />
+      ) : (
+        <table className={styles.notice}>
+          <caption className={styles.caption}>개인정보 수집·이용 안내</caption>
+          <tbody>
+            {consentItems.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{row.label}</th>
+                <td>{row.text}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       <div className={styles.boxes}>
         <label className={styles.allRow}>
-          <input type="checkbox" checked={all} onChange={toggleAll} />
+          <input type="checkbox" checked={all} onChange={toggleAll} disabled={locked} />
           <span>모두 동의</span>
         </label>
         {BOXES.map((box) => (
           <div key={box.type} className={styles.row}>
             <label className={styles.boxLabel}>
-              <input type="checkbox" checked={checked[box.type]} onChange={() => toggle(box.type)} />
+              <input
+                type="checkbox"
+                checked={checked[box.type]}
+                onChange={() => toggle(box.type)}
+                disabled={locked}
+              />
               <span>
                 {box.label} <span className={styles.required}>(필수)</span>
               </span>
             </label>
-            {box.body && (
+            {isDocumentBox(box.type) && (
               <button
                 type="button"
                 className={styles.more}
                 aria-expanded={open === box.type}
+                disabled={bodies[box.type] === undefined}
                 onClick={() => setOpen(open === box.type ? null : box.type)}
               >
                 전문 보기
               </button>
             )}
             {touched && !checked[box.type] && <p className={styles.missing}>필수 항목이에요</p>}
-            {box.body && open === box.type && (
+            {isDocumentBox(box.type) && open === box.type && bodies[box.type] !== undefined && (
               <div className={styles.body}>
-                {box.body.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
+                <Markdown>{bodies[box.type]!}</Markdown>
               </div>
             )}
           </div>
@@ -178,7 +238,7 @@ export function SignupPage() {
         <button type="button" className={styles.cancel} onClick={cancel} disabled={saving}>
           취소
         </button>
-        <button type="button" className={styles.submit} onClick={submit} disabled={!all || saving}>
+        <button type="button" className={styles.submit} onClick={submit} disabled={!all || locked || saving}>
           {saving ? '가입하는 중' : '가입'}
         </button>
       </div>

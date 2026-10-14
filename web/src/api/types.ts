@@ -409,3 +409,77 @@ export interface LatestJoinSurvey {
   /** "YYYY-MM-DD" */
   surveyedOn: string | null
 }
+
+// ---- cycle 16: notices and documents (design-delta API, ADR-0098) ----
+
+/** One row of `GET /api/v1/notices`. The list never says when a notice was edited (AC-13). */
+export interface NoticeListItem {
+  id: number
+  title: string
+  /** "YYYY-MM-DD": the effective date of version 1 */
+  postedOn: string
+}
+
+/** `GET /api/v1/notices?page=n`: 10 a page; `pinned` only on page 1 and not counted. `page` is the page the server used. */
+export interface NoticeList {
+  pinned: NoticeListItem[]
+  items: NoticeListItem[]
+  page: number
+  pageSize: number
+  totalCount: number
+  hasMore: boolean
+}
+
+/** One version in `versions`: in force or past ones only (future ones are left out). */
+export interface DocumentVersionInfo {
+  number: number
+  /** "YYYY-MM-DD" */
+  effectiveOn: string
+  /** "YYYY-MM-DD" the next version took over; null for the current version */
+  supersededOn: string | null
+}
+
+/** The version being shown. */
+export interface ShownVersion {
+  number: number
+  effectiveOn: string
+  /** false for an earlier version opened with `?version=` */
+  current: boolean
+  /** Markdown (C2: drawn without HTML) */
+  body: string
+}
+
+/** `GET /api/v1/notices/{noticeId}?version=n` */
+export interface Notice {
+  id: number
+  title: string
+  postedOn: string
+  /** the current version's effective date when the notice was edited, else null */
+  editedOn: string | null
+  version: ShownVersion
+  versions: DocumentVersionInfo[]
+}
+
+/** The address keys of `GET /api/v1/documents/{documentKey}`. */
+export type DocumentKey = 'about' | 'terms-of-service' | 'privacy-policy' | 'privacy-collection'
+
+/** One of the four things a collection consent must say (개인정보 보호법 제15조②). */
+export interface ConsentItem {
+  label: string
+  text: string
+}
+
+/** `GET /api/v1/documents/{documentKey}?version=n` */
+export interface SiteDocument {
+  key: DocumentKey
+  version: ShownVersion & {
+    /** Markdown, only on terms, privacy policy and collection consent versions that changed something */
+    changeSummary?: string | null
+    /** exactly four on `privacy-collection`, absent or null elsewhere */
+    consentItems?: ConsentItem[] | null
+  }
+  versions: DocumentVersionInfo[]
+}
+
+/** The 404 codes of the notice and document APIs. */
+export type SiteContentNotFound = 'notice_not_found' | 'document_not_found' | 'version_not_found'

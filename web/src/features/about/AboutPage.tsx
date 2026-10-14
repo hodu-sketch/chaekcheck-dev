@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
 import { fetchLatestJoinSurvey } from '../../api/client'
+import { Markdown } from '../../components/Markdown'
+import { EarlierVersionMark, VersionPicker } from '../../components/VersionPicker'
 import styles from '../auth/LegalPage.module.css'
+import { DocumentState } from '../sitecontent/DocumentState'
+import { useSiteDocument } from '../sitecontent/siteContent'
 import { surveyMonthLabel } from './aboutText'
 
 /**
- * S12 `/about` (cycle 07, ADR-0059): what 책첵 is, whose logos and names these are, and where to ask for a logo to be
- * taken down. The same white card as S8·S9. Open without login.
+ * S12 `/about` (cycle 07, ADR-0059): what 책첵 is, whose logos and names these are, and the contact e-mail. Since
+ * cycle 16 the text is the `about` document from `GET /api/v1/documents/about` (ADR-0098), drawn as markdown: title,
+ * the version's date with the date picker under it, then the text. The same white card as S8·S9. Open without login.
  *
- * Cycle 13 (spec R5, ADR-0093): under the first paragraph, the month the join rules were surveyed. While it loads the
- * line is left out and the rest shows at once; no date yet or an error leaves it out too.
+ * Cycle 13 (spec R5, ADR-0093): the month the join rules were surveyed is not part of the text; the screen adds it
+ * right under the whole text (cycle 16 C6, user decision 2026-10-14). While it loads, with no date yet, or on an error,
+ * the line is left out.
+ *
+ * Cycle 14 (ADR-0091): the picks paragraph is now in the text (cycle 16 `drafts/about.md`).
+ * TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인
  */
 export function AboutPage() {
   const [surveyMonth, setSurveyMonth] = useState<string | null>(null)
+  const { version, query } = useSiteDocument('about')
+  const doc = query.data
 
   useEffect(() => {
     const controller = new AbortController()
@@ -29,26 +40,23 @@ export function AboutPage() {
       <header className={styles.head}>
         <h1 id="about-title" className={styles.title}>
           서비스 안내
+          {doc && !doc.version.current && <EarlierVersionMark />}
         </h1>
+        {doc && (
+          <div className={styles.meta}>
+            <span>{doc.version.effectiveOn}</span>
+            <VersionPicker versions={doc.versions} shown={doc.version.number} />
+          </div>
+        )}
       </header>
-      <div className={styles.body}>
-        <p>
-          책첵은 여러 전자도서관에서 지금 빌릴 수 있는 전자책을 한 번에 찾아 주는 서비스예요. 수량은 각 도서관의 공개
-          검색 결과를 기준으로 보여 줘요.
-        </p>
-        {surveyMonth && <p>가입 조건은 {surveyMonth}에 조사한 내용입니다.</p>}
-        {/*
-          cycle 14 (ADR-0091) [확정 문구]. TODO(확인 필요): the contact for right holders who do not want a cover shown;
-          TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인
-        */}
-        <p>
-          사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)예요. 표지 게시를 원하지 않는 권리자를
-          위한 연락처는 정해지면 이곳에 안내할게요.
-        </p>
-        <p>각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없습니다.</p>
-        {/* TODO(확인 필요): the service's own e-mail address for logo take-down requests; the user will give it */}
-        <p>로고를 내려 달라는 요청은 연락처가 정해지면 이곳에 안내할게요.</p>
-      </div>
+      <DocumentState version={version} query={query}>
+        {(loaded) => (
+          <>
+            <Markdown>{loaded.version.body}</Markdown>
+            {surveyMonth && <p className={styles.note}>가입 조건은 {surveyMonth}에 조사한 내용입니다.</p>}
+          </>
+        )}
+      </DocumentState>
     </article>
   )
 }
