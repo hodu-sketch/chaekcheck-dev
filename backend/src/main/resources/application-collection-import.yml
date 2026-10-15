@@ -19,3 +19,6 @@ chaekcheck:
     import:
       # 명지대학교 (collection id 100555) fills unknown dates with 1900~1905 (plan research 2절 7, ADR-0054)
       placeholder-date-libraries: 100555
+      # Rules files read before the collection DB (cycle 19: author_publisher_swapped.tsv, supplier_families.tsv;
+      # scripts/library/rules/README.md). Relative to backend/, where ./gradlew bootRun runs
+      rules-dir: ../scripts/library/rules

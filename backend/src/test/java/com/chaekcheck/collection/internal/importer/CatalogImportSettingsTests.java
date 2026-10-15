@@ -50,11 +50,11 @@ class CatalogImportSettingsTests {
 
 	private static Settings settings(boolean dryRun, boolean excludeAddedLaterLibraries) {
 		return new Settings(Path.of("collection.sqlite"), null, dryRun, null, null, null, null,
-				null, excludeAddedLaterLibraries);
+				null, excludeAddedLaterLibraries, null);
 	}
 
 	private static Settings settings(String mode, Path file, String grouping) {
-		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null, false);
+		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null, false, null);
 	}
 
 	@Test
@@ -64,6 +64,19 @@ class CatalogImportSettingsTests {
 		assertThat(defaults.mode()).isEqualTo("in-place");
 		assertThat(defaults.grouping()).isEqualTo("compact");
 		defaults.check();
+	}
+
+	@Test
+	void rulesDirIsTheRulesFolderByDefault() { // cycle 19
+		assertThat(settings(null, null, null).rulesDir()).isEqualTo(Path.of("../scripts/library/rules"));
+		Settings set = new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false,
+				Path.of("rules"));
+		assertThat(set.rulesDir()).isEqualTo(Path.of("rules"));
+		assertThat(settings("export", Path.of("f"), null).readsCollection()).isTrue();
+		assertThat(settings(null, null, null).readsCollection()).isTrue();
+		for (String mode : new String[] { "apply", "finish", "discard" }) {
+			assertThat(settings(mode, Path.of("f"), null).readsCollection()).as(mode).isFalse();
+		}
 	}
 
 	@Test

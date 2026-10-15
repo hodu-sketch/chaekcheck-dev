@@ -89,6 +89,14 @@ class CatalogImporter {
 		return this;
 	}
 
+	/** The rules files (cycle 19, {@link ImportRules}); none unless set. The import runner reads them from rules-dir. */
+	private ImportRules rules = ImportRules.NONE;
+
+	CatalogImporter rules(ImportRules rules) {
+		this.rules = rules;
+		return this;
+	}
+
 	CatalogImporter excludeAddedLaterLibraries(boolean exclude) {
 		this.excludeAddedLaterLibraries = exclude;
 		return this;
@@ -120,7 +128,7 @@ class CatalogImporter {
 		try (CollectedCatalog collected = CollectedCatalog.open(sqlite); BookGrouper grouping = groupers.get()) {
 			Instant start = clock.instant();
 			Libraries libraries = collected.libraries(links.all(), libraryCatalog.enabledLibraryRefs(),
-					placeholderDateLibraries, excludeAddedLaterLibraries, report);
+					placeholderDateLibraries, excludeAddedLaterLibraries, rules, report);
 			if (excludeAddedLaterLibraries) {
 				log.info("added-later libraries excluded: {}", libraries.skipped().values().stream()
 					.filter(CollectedCatalog.EXCLUDED_ADDED_LATER::equals).count());

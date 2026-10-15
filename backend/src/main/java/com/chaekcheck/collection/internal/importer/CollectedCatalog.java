@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,10 @@ import com.chaekcheck.library.LibraryRef;
  * crawler writes in WAL mode) read-only. Everything is read in one transaction, so the two passes of an import
  * ({@link #scan}) see the same rows. Only plain JDBC is used: the driver ({@code sqlite-jdbc}) is on the import
  * classpath only.
+ * <p>
+ * The rows' {@code author_raw} and {@code publisher_raw} are the collected text, except for the libraries of
+ * {@code author_publisher_swapped.tsv}, whose two values are swapped here (cycle 19, ADR-0115): their holdings keep
+ * the swapped, right values.
  */
 final class CollectedCatalog implements AutoCloseable {
 
@@ -43,13 +48,23 @@ final class CollectedCatalog implements AutoCloseable {
 	/** Dates before this are placeholders in the libraries named by {@code placeholder-date-libraries} (ADR-0054). */
 	static final LocalDate PLACEHOLDER_DATES_BEFORE = LocalDate.of(1950, 1, 1);
 
+	/** swap_before days are Korean days. */
+	private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
+
 	/**
 	 * A collection library whose rows are imported under its service id.
 	 * @param host lower-case host of the base URL; detail URLs must be on it
 	 * @param origin scheme, host and port of the service base URL; detail URLs are moved onto it
+	 * @param authorPublisherSwapped its author and publisher columns were collected the other way round
+	 * ({@code author_publisher_swapped.tsv}, cycle 19 ADR-0115): {@link #scan} reads them swapped
 	 */
 	record Library(long serviceId, long collectionId, String platformType, String host, String origin,
-			Instant collectedAt, boolean placeholderDates) {
+			Instant collectedAt, boolean placeholderDates, boolean authorPublisherSwapped) {
+
+		Library(long serviceId, long collectionId, String platformType, String host, String origin,
+				Instant collectedAt, boolean placeholderDates) {
+			this(serviceId, collectionId, platformType, host, origin, collectedAt, placeholderDates, false);
+		}
 
 		boolean addedLater() {
 			return collectionId >= FIRST_COLLECTED_ONLY_ID;
@@ -101,11 +116,15 @@ final class CollectedCatalog implements AutoCloseable {
 	 * With {@code excludeAddedLater} (a dry run of cycle 12), a library added later that would be imported is left
 	 * out instead: {@value #EXCLUDED_ADDED_LATER}, not counted in {@code otherLibraries}. Libraries skipped for the
 	 * reasons above keep those reasons, so only those libraries' imported rows differ from a run without it.
+	 * A library read swapped ({@link ImportRules#swapped}) whose copy was collected on or after its
+	 * {@code swap_before} day stops the import: the crawler fixed on that day reads it right, so swapping would turn
+	 * it wrong again (cycle 19, ADR-0115).
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders
 	 * @param excludeAddedLater leave out the libraries added later ({@link Library#addedLater()})
+	 * @param rules the import's rules files
 	 */
 	Libraries libraries(Map<Long, Long> links, List<LibraryRef> serviceLibraries, Set<Long> placeholderDateLibraries,
-			boolean excludeAddedLater, ImportReport report) throws SQLException {
+			boolean excludeAddedLater, ImportRules rules, ImportReport report) throws SQLException {
 		Map<Long, LibraryRef> service = new HashMap<>();
 		serviceLibraries.forEach(ref -> service.put(ref.id(), ref));
 		Map<Long, Library> imported = new HashMap<>();
@@ -136,7 +155,17 @@ final class CollectedCatalog implements AutoCloseable {
 					continue;
 				}
 				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),
-						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId));
+						originOf(ref.baseUrl()), instant(collected), placeholderDateLibraries.contains(collectionId),
+						rules.swapped(collectionId));
+				if (library.authorPublisherSwapped()) {
+					LocalDate before = rules.swapBefore().get(collectionId);
+					if (!library.collectedAt().isBefore(before.atStartOfDay(KOREA).toInstant())) {
+						throw new IllegalStateException("collection library " + collectionId + " was collected at "
+								+ library.collectedAt() + ", on or after swap_before " + before + " of "
+								+ ImportRules.SWAPPED_FILE + ": before removing its row, check the copy with"
+								+ " scripts/library/check_author_publisher_swap.py (docs/maintenance/3-import.md)");
+					}
+				}
 				if (excludeAddedLater && library.addedLater()) {
 					skipped.put(collectionId, EXCLUDED_ADDED_LATER);
 					continue;
@@ -195,9 +224,15 @@ final class CollectedCatalog implements AutoCloseable {
 							report.placeholderDatesCleared++;
 						}
 					}
+					// author and publisher swapped for the libraries of author_publisher_swapped.tsv (ADR-0115), in both passes
+					String author = library.authorPublisherSwapped() ? rs.getString(9) : rs.getString(8);
+					String publisher = library.authorPublisherSwapped() ? rs.getString(8) : rs.getString(9);
+					if (library.authorPublisherSwapped() && report != null) {
+						report.authorPublisherSwappedRows++;
+					}
 					sink.accept(new Row(library, rs.getString(2), onOrigin(rs.getString(3), library.origin()),
 							rs.getString(4), rs.getString(7),
-							rs.getString(8), share(shared, rs.getString(9)), publishedRaw, publishedOn,
+							author, share(shared, publisher), publishedRaw, publishedOn,
 							share(shared, rs.getString(12)), rs.getString(13), instant(rs.getString(14))));
 				}
 			}

@@ -1,6 +1,6 @@
 # 도서관 규칙 폴더 (`scripts/library/rules/`)
 
-사람이 정한 도서관 규칙과 조사 결과를 규칙마다 파일 하나로 둡니다 (plan ADR-0085, 사이클 13 4단계). 넣기 명령 `library-insert`(설정 `rules-dir`)와 비교용 옛 스크립트 `build_library_seed.py`가 같은 파일을 읽습니다.
+사람이 정한 도서관 규칙과 조사 결과를 규칙마다 파일 하나로 둡니다 (plan ADR-0085, 사이클 13 4단계). 넣기 명령 `library-insert`(설정 `rules-dir`)와 비교용 옛 스크립트 `build_library_seed.py`가 같은 파일을 읽습니다. 책 가져오기 `collection-import`(설정 `chaekcheck.collection.import.rules-dir`, 기본 `../scripts/library/rules`)도 아래 두 파일(`author_publisher_swapped.tsv`, `supplier_families.tsv`)을 수집 사본을 열기 전에 읽고, 파일·칸이 없거나 값이 틀리면 멈춥니다(사이클 19, plan ADR-0114·0115). 모든 규칙의 목록: [`docs/maintenance/rules-index.md`](../../../docs/maintenance/rules-index.md)
 
 - 꼴: UTF-8, 탭 구분, 첫 줄 머리, 줄 끝 `\n`. **따옴표 처리 없음**(칸 안에 `"`가 있어도 글자 그대로, 칸에 탭·줄바꿈은 없음). 빈 칸은 값 없음
 - `collection_id`는 수집 DB `library.id`, `library_id`는 서비스 `library.library.id`
@@ -22,6 +22,8 @@
 | `kyobo_probe.tsv` | `site_url, name, category, model, lending_model, checked_at` | 교보 구독형 사이트의 운영 방식. `lending_model` `OWNED`·`MIXED`·`RENTAL`(MIXED·RENTAL은 넣지 않음, ADR-0067). `site_url`은 끝 `/`를 뗀 주소로, 수집 `base_url`의 끝 `/`를 떼고 맞춤 | 데이터 폴더 `other-platforms\kyobo-institutions-probe-2026-10-03.tsv`에서 `platform` = `KYOBO_SUBSCRIPTION_V1`이고 `model`이 소장·혼합·대여인 1,430줄. `site_url` = `base_url`(없으면 `url`), `model`(소장·혼합·대여) → `lending_model` |
 | `bookcube_volume.tsv` | `collection_id, name, base_url, total_item, total_volume, error, checked_on` | 북큐브 사이트의 종 수·권수. 권수 0이고 종 수가 있으면 구독, 값이 없으면(오류) 소장 | `scripts/library/bookcube-volume-2026-10-11.tsv`(그대로 남김, 적용된 `library/014` 주석이 가리킴) + 데이터 폴더 `library-naming\bookcube-volume-recheck-2026-10-12.tsv` 5줄을 덮어씀(`checked_on` 2026-10-12). 바뀌는 대출 방식 없음(plan 사이클 13 research 6절) |
 | `join_surveyed_on.txt` | 한 줄 `YYYY-MM-DD` | 가입 조건 조사 기준일. 넣기 실행 기록에 남고 `/about` 공지에 쓰임(ADR-0087) | `2026-10-05` (plan 사이클 13 handoff [확정]) |
+| `author_publisher_swapped.tsv` | `collection_id, name, decided_on, swap_before, note` | 저자·출판사 칸을 뒤바꿔 수집한 통합 포털(수집 11 대구, 12 경기도교육청, 15 전북교육청). 가져오기가 두 칸을 바꿔 읽음(서비스 `holding.author_raw`·`publisher_raw`도 바꾼 값). `swap_before`(고친 수집기를 main에 합친 날, 한국 날짜) 이후에 수집한 사본이면 가져오기가 멈춤 → `scripts/library/check_author_publisher_swap.py`로 그 사본을 확인해 "바름"이면 줄을 지우고 다시 가져옴([3-import.md](../../../docs/maintenance/3-import.md)) | 사이클 19(plan ADR-0115), 사이트 확인 2026-10-14·16, 수집기 상수 `PUBLISHER_FIRST_PORTAL_HOSTS` |
+| `supplier_families.tsv` | `supplier, family, decided_on, note` | 같은 공급사의 다른 이름 → 같은 묶음(`family`). 가져오기 ② 단계가 (묶음, 상품 코드)로 같은 책을 이음. 이름은 NFKC·소문자·`(주)` 같은 법인 표시·공백을 뗀 뒤 견줌. 목록에 없는 이름은 그 이름 하나가 한 묶음, 빈 공급사는 코드로 잇지 않음. 한 이름은 한 묶음에만 | 사이클 19(plan ADR-0114). 2026-10-12 사본의 공급사 이름 133가지(플랫폼별)를 보고 만듦(`plan-feedback.md` # 사이클 19) |
 
 ## 지역 번호 (`resolve_regions.py`)
 

@@ -68,15 +68,23 @@ class CatalogImportRunner {
 	 * {@link CollectedCatalog#FIRST_COLLECTED_ONLY_ID}); their rows are skipped as
 	 * {@code library_excluded_added_later}. Dry run only (cycle 12): a real import would drop about 2,394 libraries
 	 * from the service. Named {@code exclude-candidate-libraries} until cycle 18
+	 * @param rulesDir the rules folder ({@code scripts/library/rules}, cycle 19 {@link ImportRules}); read by the modes
+	 * that read a collection DB ({@code in-place}, dry run, {@code export}), before the DB is opened
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
-			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries) {
+			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
 			mode = mode == null ? "in-place" : mode;
 			grouping = grouping == null ? "compact" : grouping;
+			rulesDir = rulesDir == null ? Path.of("../scripts/library/rules") : rulesDir;
+		}
+
+		/** Whether the mode reads a collection DB, and so the rules files. */
+		boolean readsCollection() {
+			return mode.equals("in-place") || mode.equals("export");
 		}
 
 		/** Refuses wrong values before anything runs. */
@@ -112,13 +120,16 @@ class CatalogImportRunner {
 		return (ApplicationArguments args) -> {
 			settings.check();
 			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
+			// the rules files first: a missing or wrong file stops before the collection DB is read (cycle 19)
+			ImportRules rules = settings.readsCollection() ? ImportRules.read(settings.rulesDir()) : ImportRules.NONE;
 			ImportRecords records = new ImportRecords(jdbc);
 			CatalogImporter importer = new CatalogImporter(libraryCatalog, new JdbcCollectionLinks(jdbc), catalogLoad,
 					records, new NationalBibliographyStore(dataSource), settings.placeholderDateLibraries(),
 					Clock.systemUTC())
 				.grouping(groupers(settings.grouping(), dataSource))
 				.dryRunOutput(settings.dryRunOutput())
-				.excludeAddedLaterLibraries(settings.excludeAddedLaterLibraries());
+				.excludeAddedLaterLibraries(settings.excludeAddedLaterLibraries())
+				.rules(rules);
 			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, libraryRegistry, jdbc,
 					transactionManager, records, Clock.systemUTC());
 			switch (settings.mode()) {
