@@ -25,7 +25,7 @@ import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
  * <li>Step ① key: {@link #unitKey}. A unit is the rows with one key.</li>
  * <li>Step ②: units are joined through every Kyobo-style ISBN they have ({@link #kyoboIsbn}), not only their most
  * common one, then through every supplier code key ({@link Row#supplierCodeKey}, cycle 19 ADR-0114: same supplier
- * family, product code and comparison title); then a group's ISBN is the one most of its rows have (the code keys are never ISBNs).
+ * family, product code, comparison title and publisher); then a group's ISBN is the one most of its rows have (the code keys are never ISBNs).
  * {@code supplierCodeJoins} = groups after the ISBN joins minus groups after the code joins;
  * {@code codeJoinedIsbnConflicts} = groups after step ② made of two or more ISBN-join groups that hold two or more
  * distinct ISBNs.</li>

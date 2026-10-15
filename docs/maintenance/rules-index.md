@@ -53,7 +53,7 @@
 | `EDITION_WORDS` | `SameTextKey` | 권 표시에서 읽는 판 낱말(개정, 증보, 특별판 …, 사이클 12 R3-2) | `SameTextKeyTests` | 다시 가져오기 |
 | `TAILS` | `SameTextKey` | 제목 끝에서 떼는 이용 안내·시리즈 이름(사이클 12 R3-3) | `SameTextKeyTests` | 다시 가져오기 |
 | `PLACEHOLDER_AUTHORS`, `PLACEHOLDER_PUBLISHERS` | `SameTextKey` | 비교에 쓰지 않는 자리 채움 저자·출판사(기타, 미상, unknown) | `SameTextKeyTests`. 로그 `no key for a placeholder` | 다시 가져오기 |
-| 공급사 코드 칸 | `CollectedCatalog.SUPPLIER_CODE_COLUMN`, `supplierCodeKey` | ② 공급사 코드 키에 쓰는 칸. `BOOKCUBE_FX`는 `alt_code`, 교보·교보 구독형·YES24는 `item_key`, 그 밖은 없음(ADR-0114). 키 = (공급사 묶음, 코드, **줄의 ④ 비교 제목**): 제목이 같은 줄끼리만 이음. 사이클 19 dry run에서 703번 도서관 「우리전자책」 줄이 같은 번호를 다른 책에 붙여 다른 책이 합쳐져 더함(사용자 결정 2026-10-16) | `BookGrouperContractTests`(세 묶는 방식 같은 결과). 로그 `(2) supplier code joins` | 상수와 계약 시험을 고칩니다. 다시 가져오기 |
+| 공급사 코드 칸 | `CollectedCatalog.SUPPLIER_CODE_COLUMN`, `supplierCodeKey` | ② 공급사 코드 키에 쓰는 칸. `BOOKCUBE_FX`는 `alt_code`, 교보·교보 구독형·YES24는 `item_key`, 그 밖은 없음(ADR-0114). 키 = (공급사 묶음, 코드, **줄의 ④ 비교 제목**, **다듬은 출판사**): 제목과 출판사가 같은 줄끼리만 이음. 사이클 19 dry run에서 703번 도서관 「우리전자책」 줄이 같은 번호를 다른 책에 붙여, 그리고 같은 제목의 다른 출판사 책이 같은 번호로 이어져 더함(사용자 결정 2026-10-16 두 번) | `BookGrouperContractTests`(세 묶는 방식 같은 결과). 로그 `(2) supplier code joins` | 상수와 계약 시험을 고칩니다. 다시 가져오기 |
 | `SHARED_CODE_KINDS` | `BookGrouper` | ①에서 상품 번호가 한 번호 공간인 화면 종류 | `scripts/library/check_code_spaces.py` ([library-maintenance.md](../library-maintenance.md) 4-11) | 다시 가져오기 |
 | `EXCLUDED_KINDS`, `SOUND_VIDEO_KINDS` | `HoldingRowFilter` | 가져오지 않는 종류(오디오북·동영상북, 소리·영상 파일). 넣기 명령과 같이 씁니다 | 가져오기 기록 `skipped_by_reason` | 다시 가져오기(넣기 명령도 같이 바뀜) |
 | `placeholder-date-libraries` | `application-collection-import.yml` | 1950년 앞 날짜를 자리 채움으로 보는 수집 도서관(명지대 100555, ADR-0054) | 로그 `placeholder dates cleared` | 설정을 고칩니다. 다시 가져오기 |

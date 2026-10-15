@@ -106,12 +106,15 @@ class BookGrouperContractTests {
 		// 6, 7: one code and title, two ISBNs (item key of the BOOKCUBE row gives another one): joined, counted as a
 		// conflict; the book's ISBN is an ISBN, never the code
 		rows.add(coded(KYOBO, kyoboCode("890000101"), null, "교보문고", "코드 책", "임", "계"));
-		rows.add(coded(BOOKCUBE_B, kyoboCode("890000102"), kyoboCode("890000101"), "교보 전자책", "코드 책", "갑을", "병정"));
+		rows.add(coded(BOOKCUBE_B, kyoboCode("890000102"), kyoboCode("890000101"), "교보 전자책", "코드 책", "갑을", "계"));
 		// 8: the same code under 기타 → no key
 		rows.add(coded(BOOKCUBE_B, "B8", "1210492004114", "기타 전자책", "기타 책", "무기", "경신"));
 		// 9, 10: one family and code on different titles (library 703's 우리전자책 rows, cycle 19 dry run) → apart
 		rows.add(coded(BOOKCUBE_A, "H1", "02120788", "우리전자책 전자책", "노고지리우지진다", "김남천", "작가문화"));
 		rows.add(coded(BOOKCUBE_B, "H2", "02120788", "우리전자책 전자책", "광화사", "김남천", "작가문화"));
+		// 11, 12: one family, code and title, other publishers (second cycle 19 dry run) → apart
+		rows.add(coded(BOOKCUBE_A, "S1", "5550001", "OPMS 전자책", "스티브 잡스처럼 성공하라", "박민진", "유페이퍼"));
+		rows.add(coded(BOOKCUBE_B, "S2", "5550001", "OPMS 전자책", "스티브 잡스처럼 성공하라", "민찬", "코난북스"));
 		return rows;
 	}
 
@@ -141,7 +144,8 @@ class BookGrouperContractTests {
 		assertThat(bookOfRow.get(6)).isEqualTo(bookOfRow.get(7));
 		assertThat(bookOfRow.get(8)).isNotEqualTo(bookOfRow.get(0));
 		assertThat(bookOfRow.get(9)).isNotEqualTo(bookOfRow.get(10));
-		assertThat(books).hasSize(9);
+		assertThat(bookOfRow.get(11)).isNotEqualTo(bookOfRow.get(12));
+		assertThat(books).hasSize(11);
 		assertThat(report.supplierCodeJoins).isEqualTo(2);
 		assertThat(report.codeJoinedIsbnConflicts).isEqualTo(1);
 		BookGrouper.Book conflict = books.get((int) (bookOfRow.get(6) / 100) - 1);
@@ -155,7 +159,7 @@ class BookGrouperContractTests {
 			String author, String publisher) {
 		return new Row(library, itemKey, "https://lib.test/" + itemKey, "EBOOK", title, author, publisher, null, null,
 				supplier, altCode, Instant.parse("2026-10-01T00:00:00Z"), CollectedCatalog.supplierCodeKey(
-						library.platformType(), itemKey, altCode, CODE_RULES.family(supplier), title));
+						library.platformType(), itemKey, altCode, CODE_RULES.family(supplier), title, publisher));
 	}
 
 	/** Steps ①~④ on {@link #rows()}. */

@@ -20,6 +20,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import com.chaekcheck.catalog.normalize.CatalogText;
 import com.chaekcheck.catalog.normalize.PublishedDates;
 import com.chaekcheck.collection.internal.SiteHosts;
 import com.chaekcheck.library.LibraryRef;
@@ -114,14 +115,16 @@ final class CollectedCatalog implements AutoCloseable {
 
 	/**
 	 * Step ②'s supplier code key (cycle 19 R2-3, ADR-0114): the supplier's family ({@link ImportRules#family}), the
-	 * product code of the screen kind ({@link #SUPPLIER_CODE_COLUMN}, spaces taken off) and the row's step ④
-	 * comparison title ({@link SameTextKey#comparisonTitle}): one code joins only rows with the same title. The title
-	 * part was added after the cycle 19 dry run (user choice 2026-10-16): some libraries put one code on different
-	 * books (library 703's 우리전자책 rows), while rows whose only error is the author field still join. Null when the
-	 * kind has no code, the code is empty, the supplier is empty or the title gives no comparison title: such rows are
+	 * product code of the screen kind ({@link #SUPPLIER_CODE_COLUMN}, spaces taken off), the row's step ④
+	 * comparison title ({@link SameTextKey#comparisonTitle}) and its publisher ({@link CatalogText#publisherNorm}): one
+	 * code joins only rows with the same title and publisher. Title and publisher were added after the cycle 19 dry
+	 * runs (user choices 2026-10-16): some libraries put one code on different books (library 703's 우리전자책 rows;
+	 * same-titled books of other publishers), while rows whose only error is the author field still join. Null when
+	 * the kind has no code, or the code, the supplier, the comparison title or the publisher is empty: such rows are
 	 * not joined by code. Computed once here, so the three groupings count the same keys.
 	 */
-	static String supplierCodeKey(String platformType, String itemKey, String altCode, String family, String title) {
+	static String supplierCodeKey(String platformType, String itemKey, String altCode, String family, String title,
+			String publisher) {
 		String column = SUPPLIER_CODE_COLUMN.get(platformType);
 		if (column == null || family == null || title == null) {
 			return null;
@@ -129,8 +132,9 @@ final class CollectedCatalog implements AutoCloseable {
 		String code = column.equals("alt_code") ? altCode : itemKey;
 		code = code == null ? "" : code.strip();
 		String comparison = SameTextKey.RULES.comparisonTitle(title);
-		return code.isEmpty() || comparison.isEmpty() ? null
-				: family + BookGrouper.SEP + code + BookGrouper.SEP + comparison;
+		String publisherNorm = CatalogText.publisherNorm(publisher);
+		return code.isEmpty() || comparison.isEmpty() || publisherNorm == null ? null
+				: family + BookGrouper.SEP + code + BookGrouper.SEP + comparison + BookGrouper.SEP + publisherNorm;
 	}
 
 	private final Connection connection;
@@ -276,7 +280,7 @@ final class CollectedCatalog implements AutoCloseable {
 					}
 					String supplier = share(shared, rs.getString(12));
 					String codeKey = supplierCodeKey(library.platformType(), rs.getString(2), rs.getString(13),
-							libraries.rules().family(supplier), rs.getString(7));
+							libraries.rules().family(supplier), rs.getString(7), publisher);
 					sink.accept(new Row(library, rs.getString(2), onOrigin(rs.getString(3), library.origin()),
 							rs.getString(4), rs.getString(7),
 							author, share(shared, publisher), publishedRaw, publishedOn,
