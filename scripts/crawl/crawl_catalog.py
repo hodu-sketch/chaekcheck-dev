@@ -36,6 +36,40 @@ from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
+# ---------------------------------------------------------------- 규칙 (rules)
+# Values people decided (ADR-0117). Each has a row in docs/maintenance/rules-index.md: what it means, how to check
+# it against the data, and what to do after changing it (a change takes effect from the next crawl).
+
+# Library ids from the dev seed that init leaves out.
+DISABLED_IDS = {59, 131}  # rules-index.md: DISABLED_IDS
+# Rows per list page, by platform.  rules-index.md: PAGE_SIZE
+PAGE_SIZE = {"KYOBO_V1": 500, "YES24_V1": 50, "YES24_V2": 10, "YES24_V3": 10, "KYOBO_SUBSCRIPTION_V1": 80,
+             "ELIB_PORTAL_V1": 100, "GANGNAM_V1": 20, "BOOKCUBE_FX": 100, "ALADIN_V1": 100}
+# rules-index.md: PAGE_SIZE_BY_HOST
+PAGE_SIZE_BY_HOST = {  # hosts that cut or time out on the default page size (2026-09-30)
+    "ebook.jbe.go.kr": 100, "ebook.chilgok.go.kr": 100, "lib.goe.go.kr": 50}
+# Subscription sites whose catalogue is the ~200k shared KYOBO subscription pool (all on *.dkyobobook.co.kr):
+# skipped unless --include-big-subscription (about 2,500 pages each on one shared server).
+BIG_SUBSCRIPTION_MIN = 50000  # rules-index.md: BIG_SUBSCRIPTION_MIN
+# Never requested (cycle 13 spec R1-6): the KYOBO subscription servers blocked our IP, and rental/mixed sites are
+# left out of the service (ADR-0067), so there is nothing to fetch there. Checked again right before every request.
+BLOCKED_HOST_SUFFIX = "dkyobobook.co.kr"  # rules-index.md: BLOCKED_HOST_SUFFIX
+# Hosting platforms that serve many libraries from one server: one politeness queue each (host_key, --queue-by-ip).
+# rules-index.md: SHARED_HOSTS
+SHARED_HOSTS = ("dkyobobook.co.kr", "bookcube.biz", "dasangng.co.kr", "aladinebook.co.kr", "yes24library.com",
+                "libworks.co.kr", "hongjicns.co.kr")
+# Parallelism, chosen per run (--workers, --per-host, --gap). Defaults are the agreed politeness rule:
+# one request at a time per server, at least 1 s apart (cycle 01 spec 5.6); different servers run in parallel.
+MIN_GAP = 1.0          # seconds between requests to one host; rules-index.md: MIN_GAP
+PER_HOST = 1           # requests in flight at once on one host; rules-index.md: PER_HOST
+MATCH_TOLERANCE = 0.01  # distinct items vs site total; rules-index.md: MATCH_TOLERANCE
+# Integrated portals (ELIB_PORTAL_V1) whose list rows show the publisher before the author in div.info
+# (cycle 19 spec R3-1, ADR-0115); every other portal shows the author first. Seen on the sites 2026-10-16.
+# rules-index.md: PUBLISHER_FIRST_PORTAL_HOSTS
+PUBLISHER_FIRST_PORTAL_HOSTS = {"lib.goe.go.kr", "library.daegu.go.kr", "lib.jbe.go.kr"}
+
+# ---------------------------------------------------------------- settings
+
 # Moved into the dev repository as scripts/crawl/ (ADR-0047 B, 2026-10-05). The collected data stays outside git:
 # ROOT is the data folder (ebook-catalog.sqlite, logs/, other-platforms/, secrets/), chosen by --data-dir or the
 # CHAEKCHECK_DATA environment variable; by default the chaekcheck-data folder next to this repository.
@@ -47,33 +81,17 @@ SEED_CSVS = ["003-library-cycle02.csv", "004-library.csv", "005-library-yes24.cs
 # 002-library-seed.yaml is SQL, not CSV: the two pilot libraries.
 PILOTS = [(1, "서울 강서구 전자도서관", "YES24_V2", "https://ebook.gangseo.seoul.kr", None),
           (2, "고흥군립도서관 전자도서관", "KYOBO_V1", "https://www.ghlib.go.kr:446", None)]
-DISABLED_IDS = {59, 131}
 PLATFORMS = {"KYOBO_V1", "YES24_V1", "YES24_V2", "YES24_V3", "KYOBO_SUBSCRIPTION_V1", "ELIB_PORTAL_V1", "GANGNAM_V1",
              "BOOKCUBE_FX", "ALADIN_V1"}
-PAGE_SIZE = {"KYOBO_V1": 500, "YES24_V1": 50, "YES24_V2": 10, "YES24_V3": 10, "KYOBO_SUBSCRIPTION_V1": 80,
-             "ELIB_PORTAL_V1": 100, "GANGNAM_V1": 20, "BOOKCUBE_FX": 100, "ALADIN_V1": 100}
-# Subscription sites whose catalogue is the ~200k shared KYOBO subscription pool (all on *.dkyobobook.co.kr):
-# skipped unless --include-big-subscription (about 2,500 pages each on one shared server).
-BIG_SUBSCRIPTION_MIN = 50000
-# Never requested (cycle 13 spec R1-6): the KYOBO subscription servers blocked our IP, and rental/mixed sites are
-# left out of the service (ADR-0067), so there is nothing to fetch there. Checked again right before every request.
-BLOCKED_HOST_SUFFIX = "dkyobobook.co.kr"
 # library.vendor values (same CHECK as the data folder's library-naming/apply_rename.py, 2026-10-12)
 VENDORS = ("KYOBO", "YES24", "BOOKCUBE", "ALADIN", "PORTAL", "IN_HOUSE")
-PAGE_SIZE_BY_HOST = {  # hosts that cut or time out on the default page size (2026-09-30)
-    "ebook.jbe.go.kr": 100, "ebook.chilgok.go.kr": 100, "lib.goe.go.kr": 50}
 
 # The KYOBO subscription sites serve a mobile page without the total unless the agent looks like a desktop browser.
 # Identifies the project only; a contact address is added when the service has a public one.
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)"
-# Parallelism, chosen per run (--workers, --per-host, --gap). Defaults are the agreed politeness rule:
-# one request at a time per server, at least 1 s apart (cycle 01 spec 5.6); different servers run in parallel.
-MIN_GAP = 1.0          # seconds between requests to one host
-PER_HOST = 1           # requests in flight at once on one host
 TIMEOUT = 90
 RETRIES = 3
 RETRY_WAIT = 30
-MATCH_TOLERANCE = 0.01  # distinct items vs site total
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS library (
@@ -327,9 +345,7 @@ _host_slots = defaultdict(lambda: threading.BoundedSemaphore(PER_HOST))
 # Shared hosting servers (YES24, Bookcube, Aladin ...) are split into one queue per IP, and different domains on
 # the same IP share one queue. If a split IP of a shared server gets slow or keeps failing, every IP of that
 # shared server falls back to one queue (they may share one machine or database behind the IPs).
-QUEUE_BY_IP = False
-SHARED_HOSTS = ("dkyobobook.co.kr", "bookcube.biz", "dasangng.co.kr", "aladinebook.co.kr", "yes24library.com",
-                "libworks.co.kr", "hongjicns.co.kr")
+QUEUE_BY_IP = False  # shared servers: SHARED_HOSTS in the rules block
 SPLIT_SLOW = 12.0         # seconds: average response time of an IP queue of a shared server that triggers the fallback
 SPLIT_FAILS = 5           # consecutive failed requests on such a queue that trigger the fallback
 _ip_of = {}               # hostname -> IP
@@ -693,6 +709,8 @@ def parse_portal(body, base, kind, menu=None):
     doc = BeautifulSoup(body.decode("utf-8", "replace"), "lxml")
     if doc.select_one("ul.bbs_webzine") is None and "찾으시는 자료가 없습니다" not in doc.get_text():
         raise ValueError("ELIB_PORTAL: ul.bbs_webzine missing")
+    # div.info is "author | publisher | date" on most portals, "publisher | author | date" on these (R3-1)
+    publisher_first = urlsplit(base).hostname in PUBLISHER_FIRST_PORTAL_HOSTS
     items, seen = [], set()
     for li in doc.select("ul.bbs_webzine > li"):
         a = li.select_one("div.list-body a.book_link[data-book_idx]")
@@ -707,11 +725,14 @@ def parse_portal(body, base, kind, menu=None):
         for label in li.select("div.meta label"):
             value = label.find_next_sibling("span")
             meta[txt(label).rstrip(":").strip()] = txt(value)
+        first = info[0] if info else None
+        second = info[1] if len(info) > 1 else None
+        author, publisher = (second, first) if publisher_first else (first, second)
         pub_raw = info[2] if len(info) > 2 else None
         img = li.select_one("div.thumb img")
         items.append(dict(
-            item_key=f"{kind}:{idx}", platform="ELIB_PORTAL", title=txt(a), author_raw=info[0] if info else None,
-            publisher=info[1] if len(info) > 1 else None, published_on=date_of(pub_raw), published_raw=pub_raw,
+            item_key=f"{kind}:{idx}", platform="ELIB_PORTAL", title=txt(a), author_raw=author,
+            publisher=publisher, published_on=date_of(pub_raw), published_raw=pub_raw,
             supplier=meta.get("공급사"), content_kind={"EBK": "전자책", "ADO": "오디오북"}.get(kind, kind),
             category_code=None, category_name=None, cover_url=abs_url(base, img.get("src") if img else None),
             # menu_idx is required on some portals (Gangwon answers an empty page without it, 2026-09-30)
