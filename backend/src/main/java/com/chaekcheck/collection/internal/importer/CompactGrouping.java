@@ -51,7 +51,10 @@ final class CompactGrouping implements BookGrouper {
 
 	private static final int DATE = 5;
 
-	private static final int FIELDS = 6;
+	/** Step ②'s supplier code key (cycle 19), as its number in {@link #codes}. Not a book value. */
+	private static final int CODE = 6;
+
+	private static final int FIELDS = 7;
 
 	/** Step ④ samples kept in the report. */
 	private static final int WIDE_DATE_SAMPLES = 40;
@@ -64,6 +67,9 @@ final class CompactGrouping implements BookGrouper {
 	private static final int PAGE_MASK = PAGE - 1;
 
 	private final KeyTable units;
+
+	/** Supplier code keys ({@link Row#supplierCodeKey}) by number; dropped after step ②. */
+	private KeyTable codes = new KeyTable(1 << 10);
 
 	private int unitCount;
 
@@ -134,7 +140,7 @@ final class CompactGrouping implements BookGrouper {
 	/** For tests: a small first key table. */
 	CompactGrouping(int unitTableCapacity) {
 		this.units = new KeyTable(unitTableCapacity);
-		for (int field : new int[] { TITLE, AUTHOR, PUBLISHER, DATE }) {
+		for (int field : new int[] { TITLE, AUTHOR, PUBLISHER, DATE, CODE }) {
 			firstInts[field] = new IntColumn();
 		}
 		for (int field = 0; field < FIELDS; field++) {
@@ -170,6 +176,9 @@ final class CompactGrouping implements BookGrouper {
 		String isbn = BookGrouper.kyoboIsbn(row, report);
 		if (isbn != null) {
 			vote(ISBN, unit, encodeIsbn(isbn));
+		}
+		if (row.supplierCodeKey() != null) {
+			vote(CODE, unit, codes.add(row.supplierCodeKey()));
 		}
 	}
 
@@ -306,8 +315,35 @@ final class CompactGrouping implements BookGrouper {
 			}
 		}
 		byIsbn = null;
+		// then every supplier code key (cycle 19, ADR-0114); counted against the groups the ISBNs gave
+		long afterIsbns = groupCount();
+		int[] isbnGroup = new int[n];
+		for (int unit = 0; unit < n; unit++) {
+			isbnGroup[unit] = find(unit);
+		}
+		LongIntMap byCode = new LongIntMap();
+		for (int unit = 0; unit < n; unit++) {
+			if (firstCounts[CODE].get(unit) > 0) {
+				unionWithFirst(byCode, firstInts[CODE].get(unit) + 1L, unit);
+			}
+			for (int node = moreHead.get(unit); node != 0; node = moreNext.get(node - 1)) {
+				if (moreField.get(node - 1) == CODE) {
+					unionWithFirst(byCode, moreValue.get(node - 1) + 1, unit);
+				}
+			}
+		}
+		byCode = null;
+		codes = null;
+		report.supplierCodeJoins = afterIsbns - groupCount();
 		// the ISBN of a group: the one most of its rows computed
 		Groups groups = groups();
+		for (int root = 0; root < n; root++) {
+			if (groups.count[root] > 1 && codeJoinedWithIsbns(groups, root, isbnGroup)) {
+				report.codeJoinedIsbnConflicts++;
+			}
+		}
+		firstCounts[CODE] = null;
+		firstInts[CODE] = null;
 		for (int root = 0; root < n; root++) {
 			if (groups.count[root] > 0) {
 				long isbn = mostCommon(ISBN, groups.members, groups.start[root], groups.end(root));
@@ -317,6 +353,31 @@ final class CompactGrouping implements BookGrouper {
 			}
 		}
 		report.booksAfterKyoboIsbn = groupCount();
+	}
+
+	/** A group that the code keys joined from two or more ISBN groups and that holds two or more distinct ISBNs. */
+	private boolean codeJoinedWithIsbns(Groups groups, int root, int[] isbnGroup) {
+		int from = groups.start[root], to = groups.end(root);
+		boolean joined = false;
+		for (int i = from + 1; i < to && !joined; i++) {
+			joined = isbnGroup[groups.members[i]] != isbnGroup[groups.members[from]];
+		}
+		if (!joined) {
+			return false;
+		}
+		Set<Long> isbns = new HashSet<>();
+		for (int i = from; i < to; i++) {
+			int unit = groups.members[i];
+			if (firstCounts[ISBN].get(unit) > 0) {
+				isbns.add(firstIsbn.get(unit));
+			}
+			for (int node = moreHead.get(unit); node != 0; node = moreNext.get(node - 1)) {
+				if (moreField.get(node - 1) == ISBN) {
+					isbns.add(moreValue.get(node - 1));
+				}
+			}
+		}
+		return isbns.size() > 1;
 	}
 
 	@Override

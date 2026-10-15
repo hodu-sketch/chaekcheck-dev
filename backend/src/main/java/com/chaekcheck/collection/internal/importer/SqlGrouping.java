@@ -74,7 +74,7 @@ final class SqlGrouping implements BookGrouper {
 
 	/** Value kinds in {@code grp_vote}, and the extra kinds of a group line ({@link #forEachGroup}). */
 	private static final int GROUP = 0, TITLE = 1, AUTHOR = 2, PUBLISHER = 3, CONTENT_TYPE = 4, ISBN = 5, DATE = 6,
-			GROUP_ISBN = 7, LIBRARY = 8;
+			GROUP_ISBN = 7, LIBRARY = 8, CODE = 9;
 
 	private static final String ALL_GROUPS = "SELECT label FROM grp_label WHERE unit = label";
 
@@ -83,7 +83,7 @@ final class SqlGrouping implements BookGrouper {
 
 	private static final List<String> TABLES = List.of("grp_in", "grp_unit", "grp_row", "grp_vote", "grp_date",
 			"grp_unitlib", "grp_label", "grp_gisbn", "grp_edge", "grp_comp", "grp_attach", "grp_text", "grp_part", "grp_merge", "grp_key",
-			"grp_wide", "grp_book");
+			"grp_wide", "grp_book", "grp_isbngroup");
 
 	private final Connection connection;
 
@@ -126,10 +126,10 @@ final class SqlGrouping implements BookGrouper {
 			execute("""
 					CREATE TEMPORARY TABLE grp_in (seq bigint NOT NULL, unit_key text NOT NULL, library_id bigint NOT NULL,
 					  item_key text, title text, author text, publisher text, content_type text, published_on date,
-					  isbn text)""");
+					  isbn text, code text)""");
 			rowsIn = copyApi.copyIn("""
 					COPY grp_in (seq, unit_key, library_id, item_key, title, author, publisher, content_type,
-					  published_on, isbn) FROM STDIN""");
+					  published_on, isbn, code) FROM STDIN""");
 			rows = new CopyText(bytes -> rowsIn.writeToCopy(bytes, 0, bytes.length));
 		}
 		catch (SQLException | RuntimeException ex) {
@@ -152,7 +152,7 @@ final class SqlGrouping implements BookGrouper {
 		try {
 			rows.row(seq++, BookGrouper.unitKey(row), row.library().serviceId(), row.itemKey(), counted(row.title()),
 					counted(row.authorRaw()), counted(row.publisher()), counted(row.contentType()), row.publishedOn(),
-					counted(isbn));
+					counted(isbn), row.supplierCodeKey());
 		}
 		catch (SQLException | IOException ex) {
 			throw failed("copy a row", ex);
@@ -185,7 +185,7 @@ final class SqlGrouping implements BookGrouper {
 			execute("""
 					CREATE TEMPORARY TABLE grp_row AS
 					SELECT i.seq, u.unit, i.library_id, i.item_key, i.title, i.author, i.publisher, i.content_type,
-					  i.published_on, i.isbn
+					  i.published_on, i.isbn, i.code
 					FROM grp_in i JOIN grp_unit u USING (unit_key)""");
 			report.booksAfterPlatformCode = count("SELECT count(*) FROM grp_unit");
 			execute("CREATE TEMPORARY TABLE grp_label AS SELECT unit, unit AS label FROM grp_unit");
@@ -199,9 +199,9 @@ final class SqlGrouping implements BookGrouper {
 					SELECT r.unit, v.kind, v.value, count(*) AS n
 					FROM grp_row r
 					  CROSS JOIN LATERAL (VALUES (%d, r.title), (%d, r.author), (%d, r.publisher), (%d, r.content_type),
-					    (%d, r.isbn)) AS v (kind, value)
+					    (%d, r.isbn), (%d, r.code)) AS v (kind, value)
 					WHERE v.value IS NOT NULL
-					GROUP BY r.unit, v.kind, v.value""".formatted(TITLE, AUTHOR, PUBLISHER, CONTENT_TYPE, ISBN));
+					GROUP BY r.unit, v.kind, v.value""".formatted(TITLE, AUTHOR, PUBLISHER, CONTENT_TYPE, ISBN, CODE));
 			execute("""
 					CREATE TEMPORARY TABLE grp_date AS
 					SELECT unit, published_on AS d, count(*) AS n FROM grp_row WHERE published_on IS NOT NULL
@@ -216,6 +216,21 @@ final class SqlGrouping implements BookGrouper {
 					WITH iv AS (SELECT unit, value FROM grp_vote WHERE kind = %d),
 					  f AS (SELECT value, min(unit) AS first FROM iv GROUP BY value)
 					SELECT iv.unit, f.first FROM iv JOIN f USING (value) WHERE iv.unit <> f.first""".formatted(ISBN));
+			// then every supplier code key (cycle 19, ADR-0114), between the groups the ISBNs gave
+			long afterIsbns = groupCount();
+			execute("CREATE TEMPORARY TABLE grp_isbngroup AS SELECT unit, label AS isbn_label FROM grp_label");
+			join("""
+					WITH cv AS (SELECT l.label, v.value FROM grp_vote v JOIN grp_label l USING (unit) WHERE v.kind = %d),
+					  f AS (SELECT value, min(label) AS first FROM cv GROUP BY value)
+					SELECT DISTINCT cv.label, f.first FROM cv JOIN f USING (value) WHERE cv.label <> f.first""".formatted(CODE));
+			report.supplierCodeJoins = afterIsbns - groupCount();
+			// groups the codes joined from two or more ISBN groups that hold two or more distinct ISBNs
+			report.codeJoinedIsbnConflicts = count("""
+					SELECT count(*) FROM (
+					  SELECT l.label FROM grp_label l JOIN grp_isbngroup g USING (unit)
+					    LEFT JOIN grp_vote v ON v.unit = l.unit AND v.kind = %d
+					  GROUP BY l.label HAVING count(DISTINCT g.isbn_label) > 1 AND count(DISTINCT v.value) > 1) t""".formatted(ISBN));
+			execute("DROP TABLE grp_isbngroup");
 			// the ISBN of a group: the one most of its rows computed, ties to the smallest (digits: C order = Java's)
 			execute("""
 					CREATE TEMPORARY TABLE grp_gisbn AS

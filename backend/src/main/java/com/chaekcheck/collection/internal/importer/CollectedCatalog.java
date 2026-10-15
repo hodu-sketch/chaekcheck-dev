@@ -76,17 +76,56 @@ final class CollectedCatalog implements AutoCloseable {
 	 * The collection libraries: the ones to import, and the skip reason of the others' rows.
 	 * @param imported by collection id
 	 * @param skipped collection id → skip reason of its rows
+	 * @param rules the rules files, for the rows' supplier code keys
 	 */
-	record Libraries(Map<Long, Library> imported, Map<Long, String> skipped) {
+	record Libraries(Map<Long, Library> imported, Map<Long, String> skipped, ImportRules rules) {
+
+		Libraries(Map<Long, Library> imported, Map<Long, String> skipped) {
+			this(imported, skipped, ImportRules.NONE);
+		}
+
 	}
+
+	/**
+	 * Screen kinds whose rows have a supplier code for step ② (cycle 19 R2-3, ADR-0114): the column holding the
+	 * supplier's product code. Rule: docs/maintenance/rules-index.md "공급사 코드 칸".
+	 */
+	static final Map<String, String> SUPPLIER_CODE_COLUMN = Map.of("BOOKCUBE_FX", "alt_code", "KYOBO_V1", "item_key",
+			"KYOBO_SUBSCRIPTION_V1", "item_key", "YES24_V1", "item_key", "YES24_V2", "item_key", "YES24_V3", "item_key");
 
 	/**
 	 * One holding row that passed the filters.
 	 * @param publishedOn the parsed date; null when missing, unreadable, in the future or a placeholder
+	 * @param supplierCodeKey step ②'s (supplier family, product code) key ({@link #supplierCodeKey}); null without one
 	 */
 	record Row(Library library, String itemKey, String detailUrl, String contentType, String title, String authorRaw,
 			String publisher, String publishedRaw, LocalDate publishedOn, String supplier, String altCode,
-			Instant firstSeenAt) {
+			Instant firstSeenAt, String supplierCodeKey) {
+
+		/** A row without a supplier code key (tests). */
+		Row(Library library, String itemKey, String detailUrl, String contentType, String title, String authorRaw,
+				String publisher, String publishedRaw, LocalDate publishedOn, String supplier, String altCode,
+				Instant firstSeenAt) {
+			this(library, itemKey, detailUrl, contentType, title, authorRaw, publisher, publishedRaw, publishedOn,
+					supplier, altCode, firstSeenAt, null);
+		}
+
+	}
+
+	/**
+	 * Step ②'s supplier code key (cycle 19 R2-3, ADR-0114): the supplier's family ({@link ImportRules#family}) and
+	 * the product code of the screen kind ({@link #SUPPLIER_CODE_COLUMN}), spaces taken off. Null when the kind has
+	 * no code, the code is empty or the supplier is empty: such rows are not joined by code. Computed once here, so the
+	 * three groupings count the same keys.
+	 */
+	static String supplierCodeKey(String platformType, String itemKey, String altCode, String family) {
+		String column = SUPPLIER_CODE_COLUMN.get(platformType);
+		if (column == null || family == null) {
+			return null;
+		}
+		String code = column.equals("alt_code") ? altCode : itemKey;
+		code = code == null ? "" : code.strip();
+		return code.isEmpty() ? null : family + BookGrouper.SEP + code;
 	}
 
 	private final Connection connection;
@@ -182,7 +221,7 @@ final class CollectedCatalog implements AutoCloseable {
 				}
 			}
 		}
-		return new Libraries(imported, skipped);
+		return new Libraries(imported, skipped, rules);
 	}
 
 	/**
@@ -230,10 +269,13 @@ final class CollectedCatalog implements AutoCloseable {
 					if (library.authorPublisherSwapped() && report != null) {
 						report.authorPublisherSwappedRows++;
 					}
+					String supplier = share(shared, rs.getString(12));
+					String codeKey = supplierCodeKey(library.platformType(), rs.getString(2), rs.getString(13),
+							libraries.rules().family(supplier));
 					sink.accept(new Row(library, rs.getString(2), onOrigin(rs.getString(3), library.origin()),
 							rs.getString(4), rs.getString(7),
 							author, share(shared, publisher), publishedRaw, publishedOn,
-							share(shared, rs.getString(12)), rs.getString(13), instant(rs.getString(14))));
+							supplier, rs.getString(13), instant(rs.getString(14)), codeKey));
 				}
 			}
 		}

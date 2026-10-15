@@ -55,6 +55,9 @@ final class BookGrouping implements BookGrouper {
 
 		final Votes<String> isbns = new Votes<>();
 
+		/** Step ②'s supplier code keys of the unit's rows (cycle 19, {@link Row#supplierCodeKey}). */
+		final Votes<String> codes = new Votes<>();
+
 		final Votes<LocalDate> dates = new Votes<>();
 
 		/** One row per library: (library, item key) is unique in the collection DB. */
@@ -139,6 +142,7 @@ final class BookGrouping implements BookGrouper {
 		unit.contentTypes.add(row.contentType());
 		unit.dates.add(row.publishedOn());
 		unit.isbns.add(BookGrouper.kyoboIsbn(row, report));
+		unit.codes.add(row.supplierCodeKey());
 		unit.addLibrary(row.library().serviceId());
 	}
 
@@ -169,6 +173,29 @@ final class BookGrouping implements BookGrouper {
 		for (int i = 0; i < units.size(); i++) {
 			int unit = i;
 			units.get(i).isbns.forEach((isbn, rows) -> unionWithFirst(byIsbn, isbn, unit));
+		}
+		// then every supplier code key (cycle 19, ADR-0114); counted against the groups the ISBNs gave
+		long afterIsbns = groupCount();
+		int[] isbnGroup = new int[units.size()];
+		for (int i = 0; i < isbnGroup.length; i++) {
+			isbnGroup[i] = find(i);
+		}
+		Map<String, Integer> byCode = new HashMap<>();
+		for (int i = 0; i < units.size(); i++) {
+			int unit = i;
+			units.get(i).codes.forEach((code, rows) -> unionWithFirst(byCode, code, unit));
+		}
+		report.supplierCodeJoins = afterIsbns - groupCount();
+		for (int[] members : groups()) {
+			Set<Integer> before = new HashSet<>();
+			Set<String> isbns = new HashSet<>();
+			for (int unit : members) {
+				before.add(isbnGroup[unit]);
+				units.get(unit).isbns.forEach((isbn, rows) -> isbns.add(isbn));
+			}
+			if (before.size() > 1 && isbns.size() > 1) {
+				report.codeJoinedIsbnConflicts++;
+			}
 		}
 		// the ISBN of a group: the one most of its rows computed
 		for (int[] members : groups()) {

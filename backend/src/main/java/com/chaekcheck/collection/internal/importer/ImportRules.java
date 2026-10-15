@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -25,7 +26,8 @@ import java.util.regex.Pattern;
  * crawler reads them right; check with {@code scripts/library/check_author_publisher_swap.py} and remove the row,
  * docs/maintenance/3-import.md).</li>
  * <li>{@code supplier_families.tsv}: different names of one supplier, so step ② can join their codes. A supplier not
- * listed is its own family under its {@link #supplierName normalized name}.</li>
+ * listed is its own family under its {@link #supplierName normalized name}; an empty or placeholder supplier
+ * ({@link #PLACEHOLDER_SUPPLIERS}) has none.</li>
  * </ul>
  * @param swapBefore collection id → the first day (Korean time) a copy must not be read swapped any more
  * @param families normalized supplier name → family
@@ -43,6 +45,12 @@ record ImportRules(Map<Long, LocalDate> swapBefore, Map<String, String> families
 	private static final Pattern COMPANY_MARKS = Pattern.compile("\\(주\\)|주식회사|\\(유\\)|유한회사|\\(사\\)|㈜");
 
 	private static final Pattern SPACES = Pattern.compile("\\s+");
+
+	/**
+	 * Supplier names that name no supplier ("기타", and "기타 전자책" as BOOKCUBE writes it): such rows are not joined
+	 * by code, like an empty supplier. Rule: docs/maintenance/rules-index.md "supplier_families.tsv".
+	 */
+	static final Set<String> PLACEHOLDER_SUPPLIERS = Set.of("기타", "기타전자책");
 
 	ImportRules {
 		swapBefore = Map.copyOf(swapBefore);
@@ -90,7 +98,7 @@ record ImportRules(Map<Long, LocalDate> swapBefore, Map<String, String> families
 	 */
 	String family(String supplier) {
 		String name = supplierName(supplier);
-		return name == null ? null : families.getOrDefault(name, name);
+		return name == null || PLACEHOLDER_SUPPLIERS.contains(name) ? null : families.getOrDefault(name, name);
 	}
 
 	/** NFKC, lower case, company marks and spaces removed; null when nothing is left. */

@@ -79,6 +79,79 @@ class BookGrouperContractTests {
 	static void assertContract(Supplier<BookGrouper> groupers) {
 		assertCodeSteps(groupers);
 		assertSameTextRules(groupers);
+		assertSupplierCodeRules(groupers);
+	}
+
+	static final Library BOOKCUBE_A = library(5, "BOOKCUBE_FX");
+
+	static final Library BOOKCUBE_B = library(6, "BOOKCUBE_FX");
+
+	/** Supplier families of the cycle 19 tests (ADR-0114): Y2Books and 와이투북스 are one, 교보 as in the rules. */
+	static final ImportRules CODE_RULES = new ImportRules(Map.of(), Map.of(ImportRules.supplierName("Y2Books 전자책"),
+			"y2books", ImportRules.supplierName("와이투북스"), "y2books", ImportRules.supplierName("교보 전자책"), "kyobo",
+			ImportRules.supplierName("교보문고"), "kyobo"));
+
+	/** Rows of the cycle 19 supplier code rules; the comment names what each case checks. */
+	static List<Row> supplierCodeRows() {
+		List<Row> rows = new ArrayList<>();
+		// 0, 1: BOOKCUBE alt code = Kyobo item key, Y2Books 전자책 = 와이투북스 → one book (AC-2), though the texts differ
+		rows.add(coded(BOOKCUBE_A, "B1", "1210492004114", "Y2Books 전자책", "(부를 끌어 당기는) 백만장자 마인드", "김근아 저자", "율리시즈"));
+		rows.add(coded(KYOBO, "1210492004114", null, "와이투북스", "백만장자 마인드", "모리세 시게토모", "율리시즈"));
+		// 2, 3: the same 9-digit number from BOOKCUBE's own supplier and from YES24 → apart
+		rows.add(coded(BOOKCUBE_A, "190700059", "190700059", "(주)북큐브네트웍스", "북큐브 책", "갑", "을"));
+		rows.add(coded(YES24, "190700059", null, "YES24", "예스 책", "병", "정"));
+		// 4, 5: no supplier → apart
+		rows.add(coded(BOOKCUBE_A, "B7", "777", null, "공급사 없는 책 하나", "무", "기"));
+		rows.add(coded(BOOKCUBE_B, "B7", "777", null, "공급사 없는 책 둘", "경", "신"));
+		// 6, 7: one code, two ISBNs (item key of the BOOKCUBE row gives another one): joined, counted as a conflict;
+		// the book's ISBN is an ISBN, never the code
+		rows.add(coded(KYOBO, kyoboCode("890000101"), null, "교보문고", "코드 책 하나", "임", "계"));
+		rows.add(coded(BOOKCUBE_B, kyoboCode("890000102"), kyoboCode("890000101"), "교보 전자책", "코드 책 둘", "갑을", "병정"));
+		// 8: the same code under 기타 → no key
+		rows.add(coded(BOOKCUBE_B, "B8", "1210492004114", "기타 전자책", "기타 책", "무기", "경신"));
+		return rows;
+	}
+
+	/** Step ②'s supplier code keys (cycle 19, ADR-0114) on {@link #supplierCodeRows()}. */
+	static void assertSupplierCodeRules(Supplier<BookGrouper> groupers) {
+		ImportReport report = new ImportReport();
+		List<BookGrouper.Book> books = new ArrayList<>();
+		List<Long> bookOfRow = new ArrayList<>();
+		try (BookGrouper grouping = groupers.get()) {
+			for (Row row : supplierCodeRows()) {
+				grouping.add(row, report);
+			}
+			grouping.groupByCodes(report);
+			grouping.attachBibliography(Map.of(), report);
+			grouping.mergeSameText(report);
+			grouping.forEachBook(book -> {
+				books.add(book);
+				return books.size() * 100L;
+			});
+			for (Row row : supplierCodeRows()) {
+				bookOfRow.add(grouping.bookOf(row));
+			}
+		}
+		assertThat(bookOfRow.get(0)).isEqualTo(bookOfRow.get(1));
+		assertThat(bookOfRow.get(2)).isNotEqualTo(bookOfRow.get(3));
+		assertThat(bookOfRow.get(4)).isNotEqualTo(bookOfRow.get(5));
+		assertThat(bookOfRow.get(6)).isEqualTo(bookOfRow.get(7));
+		assertThat(bookOfRow.get(8)).isNotEqualTo(bookOfRow.get(0));
+		assertThat(books).hasSize(7);
+		assertThat(report.supplierCodeJoins).isEqualTo(2);
+		assertThat(report.codeJoinedIsbnConflicts).isEqualTo(1);
+		BookGrouper.Book conflict = books.get((int) (bookOfRow.get(6) / 100) - 1);
+		assertThat(conflict.isbn13()).isEqualTo(Isbn.fromKyoboCode(kyoboCode("890000101")).isbn13());
+		BookGrouper.Book y2 = books.get((int) (bookOfRow.get(0) / 100) - 1);
+		assertThat(y2.libraryIds()).containsExactly(1, 5);
+		assertThat(y2.isbn13()).isNull();
+	}
+
+	private static Row coded(Library library, String itemKey, String altCode, String supplier, String title,
+			String author, String publisher) {
+		return new Row(library, itemKey, "https://lib.test/" + itemKey, "EBOOK", title, author, publisher, null, null,
+				supplier, altCode, Instant.parse("2026-10-01T00:00:00Z"), CollectedCatalog.supplierCodeKey(
+						library.platformType(), itemKey, altCode, CODE_RULES.family(supplier)));
 	}
 
 	/** Steps ①~④ on {@link #rows()}. */

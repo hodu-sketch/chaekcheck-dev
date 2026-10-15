@@ -65,6 +65,7 @@ class SqlGroupingTests {
 		assertThat(compact.report.sameTextMerged).isPositive();
 		assertThat(compact.report.sameTextIsbnSplit).isPositive();
 		assertThat(compact.report.sameTextPlaceholderNoKey).isPositive();
+		assertThat(compact.report.supplierCodeJoins).isPositive();
 	}
 
 	@Test
@@ -212,7 +213,8 @@ class SqlGroupingTests {
 		return List.of(r.booksAfterPlatformCode, r.booksAfterKyoboIsbn, r.booksAfterNationalBibliography,
 				r.booksAfterSameText, r.sameTextMerged, r.sameTextIsbnSplit, r.sameTextSubtitleSplit, r.sameTextPlaceholderNoKey,
 				r.sameTextWideDates, r.sameTextWideDateSamples,
-				r.nationalBibliographyIsbnAttached, r.kyoboCodes);
+				r.nationalBibliographyIsbnAttached, r.kyoboCodes, r.supplierCodeJoins, r.codeJoinedIsbnConflicts,
+				r.leadingNoteCut);
 	}
 
 	// --- rows ---------------------------------------------------------------------------------------------------------
@@ -247,6 +249,8 @@ class SqlGroupingTests {
 	/** Random rows from small pools: shared codes, ISBN chains, ties, same text, missing authors. */
 	static List<Row> randomRows(Random random, int count) {
 		List<Row> rows = new ArrayList<>();
+		// supplier code keys from their own source, so the other values stay as before cycle 19
+		Random codes = new Random(17L * count);
 		for (int i = 0; i < count; i++) {
 			Library library = LIBRARIES.get(random.nextInt(LIBRARIES.size()));
 			String itemKey = switch (random.nextInt(3)) {
@@ -265,7 +269,9 @@ class SqlGroupingTests {
 				publisher = "문학동네";
 			}
 			rows.add(new Row(library, itemKey, "https://lib.test/" + itemKey, pick(random, CONTENT_TYPES), title,
-					author, publisher, null, pick(random, DATES), null, altCode, Instant.parse("2026-10-01T00:00:00Z")));
+					author, publisher, null, pick(random, DATES), null, altCode, Instant.parse("2026-10-01T00:00:00Z"),
+					// a supplier code key now and then (cycle 19): joins units across libraries in step ②
+					codes.nextInt(12) == 0 ? "f" + codes.nextInt(3) + BookGrouper.SEP + codes.nextInt(300) : null));
 		}
 		return rows;
 	}

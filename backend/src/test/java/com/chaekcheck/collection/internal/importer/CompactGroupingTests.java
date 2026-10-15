@@ -88,6 +88,7 @@ class CompactGroupingTests {
 		assertThat(first.report.sameTextMerged).isPositive();
 		assertThat(first.report.sameTextIsbnSplit).isPositive();
 		assertThat(first.report.sameTextPlaceholderNoKey).isPositive();
+		assertThat(first.report.supplierCodeJoins).isPositive();
 		assertThat(first.report.sameTextWideDateSamples).hasSize(40);
 
 		for (Supplier<BookGrouper> compact : List.<Supplier<BookGrouper>>of(CompactGrouping::new,
@@ -168,7 +169,7 @@ class CompactGroupingTests {
 				report.booksAfterNationalBibliography, report.booksAfterSameText, report.sameTextMerged,
 				report.sameTextIsbnSplit, report.sameTextSubtitleSplit, report.sameTextPlaceholderNoKey, report.sameTextWideDates,
 				report.sameTextWideDateSamples, report.nationalBibliographyIsbnAttached,
-				report.kyoboCodes);
+				report.kyoboCodes, report.supplierCodeJoins, report.codeJoinedIsbnConflicts, report.leadingNoteCut);
 	}
 
 	private static final List<Library> LIBRARIES = List.of(library(1, "KYOBO_V1"), library(2, "YES24_V2"),
@@ -207,6 +208,8 @@ class CompactGroupingTests {
 
 	private static List<Row> randomRows(Random random, int count) {
 		List<Row> rows = new ArrayList<>();
+		// supplier code keys from their own source, so the other values stay as before cycle 19
+		Random codes = new Random(17L * count);
 		Set<String> seen = new HashSet<>();
 		LocalDate[] dates = new LocalDate[30];
 		for (int i = 0; i < dates.length; i++) {
@@ -233,7 +236,9 @@ class CompactGroupingTests {
 			}
 			LocalDate date = random.nextInt(5) == 0 ? null : dates[random.nextInt(dates.length)];
 			rows.add(new Row(library, itemKey, "https://lib.test/" + itemKey, TYPES[random.nextInt(TYPES.length)],
-					title, author, publisher, null, date, null, altCode, Instant.parse("2026-10-01T00:00:00Z")));
+					title, author, publisher, null, date, null, altCode, Instant.parse("2026-10-01T00:00:00Z"),
+					// a supplier code key now and then (cycle 19): joins units across libraries in step ②
+					codes.nextInt(12) == 0 ? "f" + codes.nextInt(3) + BookGrouper.SEP + codes.nextInt(300) : null));
 		}
 		return rows;
 	}
