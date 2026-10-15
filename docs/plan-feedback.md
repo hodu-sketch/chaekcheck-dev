@@ -4400,3 +4400,91 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - docker 묶음 `chaekcheck-c16`(컨테이너 `db`·`db-test`, 볼륨 `chaekcheck-c16_db-data`, 네트워크)을 지움. 포트 5472·5473·8085·5179가 빔
 - `.claude/launch.json`에서 c16 항목 셋을 뺌
 - main 순서: 18 A1·A2 → 16 → 15(`a34c6ed`, 사이클 15 세션이 합침)
+
+# 사이클 19
+
+인계서: plan `docs/current/handoff.md` (사이클 19 같은 책을 갈라 놓는 저자·제목 표기 정리, 2026-10-16 승인). 사용자 요청(2026-10-16): "사이클 plan의 문서와 handoff문서 읽고 파악해 줘 그리고 나한테 물어봐야 진행이 가능한 거 있으면 가능하면 빨리 물어봐줘 물어보지 않고 진행 가능한 건 먼저 진해해줘 병렬로 나한테 물어보지 않고 진행이 가능하면 진행해줘 개발말이야 다른 세션이랑 겹치지 않게 포트 나눠서 하고".
+
+## 시작 상태 (0단계, 2026-10-16)
+
+- 작업 폴더 `../chaekcheck-dev-c19`, 브랜치 `cycle-19-author-angle-brackets`, 시작 커밋 `0a75f7a`(인계서와 같음, 그 뒤 main에 들어온 커밋 없음)
+- docker `-p chaekcheck-c19`, 포트 DB 5492 / 시험 DB 5493 / 운영 역할 DB 5494, 서버 8089, fetch-service 8090, 웹 5181. 8088은 `chaekcheck-nginx-tunnel` 컨테이너가 써서 건너뜀. 원래 프로젝트 `chaekcheck`은 켜고 끄지 않음
+- 원래 DB(5432) 마지막 기록 **11번 SUCCEEDED**(사본 `ebook-catalog-2026-10-12-0135.sqlite`, 책 1,568,453, 소장 18,024,652, `detail_url_not_http` 42) 확인. c19 DB(5492)에 `pg_dump | pg_restore`로 한 번 복사(5분 10초, 원래 DB는 읽기만)
+- 사이클 21: main에 아직 없음(plan 설계 중, dev worktree 없음)
+- 기준 빌드: 시작 커밋에서 `./gradlew build` 통과(7분 24초)
+- 기준 번호 파일: `python scripts/catalog/compare_grouping.py ids db data/c19/before-ids catalog`(원래 DB, 기록 11번, 3분 34초). `data/c19/before-ids/`(git 밖)
+- 세 도서관의 서비스 도서관 번호(`collection.collection_link`): 수집 11 → **11** 대구전자도서관, 12 → **12** 경기도교육청 전자도서관, 15 → **15** 전북특별자치도교육청 전자도서관(모두 켜짐, `ELIB_PORTAL_V1`). 비교용 부산 10 → 10
+- master 맨 끝 include: `usagelog/001`(인계서와 같음)
+
+### 기준값 (c19 복사본 = 기록 11번 상태, SQL `data/c19/baseline.sql`·`scope3.sql`)
+
+| 항목 | 값 |
+|---|---|
+| scope 2: `book_contributor.name_exact`에 꺾쇠 | 138,148줄, 54,089가지. 그중 꺾쇠를 뗀 이름이 이미 있는 것 44,250가지 |
+| research SQL 5: 붙은 역할 표기(`holding.author_raw`) | 1,137줄, 515가지 |
+| `book.author_display`에 꺾쇠·다른 괄호 | 104,853권 |
+| scope 3: "김정은" 저자 검색(AUTHOR·UNKNOWN) | 단어 145권, 정확히 일치 125권, `<김정은>` 정확히 일치 9권. 내 PC 서비스(8080)가 꺼져 있어 API 대신 같은 조건 SQL로 잼 |
+| 「백만장자 마인드」(율리시즈) | 6권: 38755(60소장), 232553「(부를 끌어 당기는) …」(9), 247114 저자·출판사 뒤바뀜(2), 410727「부를 끌어 당기는 …」(2), 430405 꺾쇠(2), 998155 김근아 저자(1) |
+| AC-11 2624 소장 | 241 |
+| 책 수 | 1,568,453 |
+
+## 단계별 커밋
+
+| 커밋 | 단계 |
+|---|---|
+| `4bbf55c` | 8단계 수집기 `PUBLISHER_FIRST_PORTAL_HOSTS`, 맨 위 "규칙" 묶음 |
+| `a2ccc33` | 1~3단계 `stripMarks`, 붙은 역할 좁은 규칙·보호 장치, `displayText`, 저자 검색어 |
+| `e467117` | 4단계 앞 괄호(`LEADING_NOTE_KEEP_WORDS`) |
+| `2cde663` | 5단계 `ImportRules`, `rules-dir`, 세 도서관 바꿔 읽기, `swap_before` |
+| `91f91f1` | 6단계 ② 공급사 코드 키(세 묶는 방식) |
+| `a536d14` | 7단계 책 표 저자 칸 `displayText`, 가져오기 통합 시험 |
+| `ba26691` | 10단계 `cached_count`, `CACHED` |
+| `cb150fb` | 11단계 `rules-index.md`, 시작 점검, 12-1 절차, 메모리 안내, 6-2 세 줄 |
+| `f4db60b` | (인계서 밖) `stored-bibliography` 설정 |
+
+## 이름 (인계서 [안] → 실제)
+
+- 그대로: `Contributors.stripMarks`·`displayText`, `ImportRules`, `rules-dir`(`chaekcheck.collection.import.rules-dir`), `Library.authorPublisherSwapped`, `Row.supplierCodeKey`, `SameTextKey.LEADING_NOTE_KEEP_WORDS`, `ImportReport`의 `supplierCodeJoins`·`codeJoinedIsbnConflicts`·`authorPublisherSwappedRows`·`leadingNoteCut`, 규칙 파일 칸, changeset id `usagelog-002-cached-count`, `docs/maintenance/rules-index.md`, `scripts/library/check_author_publisher_swap.py`, `ContributorsTests`·`ImportRulesTests`, `scripts/crawl/test_parse_portal.py`
+- 더한 이름: `CollectedCatalog.SUPPLIER_CODE_COLUMN`(코드 칸 표), `ImportRules.PLACEHOLDER_SUPPLIERS`, `Settings.readsCollection()`, 설정 `stored-bibliography`
+- `rules-dir`는 `in-place`(dry run 포함)·`export`에서만 읽음(`apply`·`finish`·`discard`는 사본을 읽지 않음)
+
+## 인계서와 달라진 점, 새로 알게 된 것
+
+- **국가서지 TTL 파일이 없음 → 저장된 표로 읽는 설정을 더함.** `data/nlk/ttl`이 비어 있음(폴더 시각 2026-10-15 12:26, 사이클 18 정리 무렵 지워진 것으로 보임, 휴지통·디스크에서 못 찾음). 가져오기는 TTL 파일이 없으면 멈추므로, 2026-10-11에 풀어 둔 원문 표(`collection.national_bibliography_record`, `book_ttl_20260807`)를 그대로 읽는 `stored-bibliography=true`를 더함. 사용자 결정(2026-10-16, 질문 "국가서지 TTL"): "저장된 표로 읽기 (추천)". 같은 원문이라 ③ 결과는 TTL로 읽을 때와 같음(`CatalogImporterTests`에서 TTL 가져오기와 붙은 수·책 수가 같음을 확인). 새 TTL을 받으면 다시 `ttl-path`를 씀. **plan 쪽 확인 필요: TTL 파일을 다시 받을지(다음 국가서지 갱신 때)**
+- **공급사 「기타」·「기타 전자책」도 코드로 잇지 않음**(`ImportRules.PLACEHOLDER_SUPPLIERS`). 인계서는 "공급사가 빈 줄은 코드로 잇지 않음"만 정함. 「기타」는 여러 회사를 한 이름으로 적은 것이라 같은 번호가 다른 책일 수 있어 더함(같은 방향: 확실하지 않으면 잇지 않음)
+- 코드 다듬기: 앞뒤 공백만 뗌. 앞의 0은 그대로(교보 `480KB…`·`480…`처럼 모양이 여럿이라 바꾸지 않음)
+- `KYOBO_SUBSCRIPTION_V1`의 `item_key`(`480D…`·`480N…`)는 교보 소장형(`480…`, `480KB…`)과 번호 모양이 달라 서로 섞여 이어지지 않음 → 인계서대로 코드 키에 넣음. 교보 구독형끼리는 이미 ① 단계(`SHARED` 번호 공간)에서 이어짐
+- `swap_before`: **2026-10-17(임시)**. 정의는 "고친 수집기(8단계)를 main에 합친 날"이라 합칠 때 그날로 맞춤. 판정 기준: 세 도서관의 수집 시각(`Library.collectedAt`, `last_full_success_at`)이 그날 0시(한국 시각) 이후면 멈춤
+- 붙은 역할의 띄운 글(`displayText`)을 다시 `parse`하면 한 사람으로 읽힘(「밥 프록터 저 이재경 역 조성희 감수」는 쉼표·`/`가 없어 지금 규칙으로 나뉘지 않음). 사람 줄은 늘 원문에서 만들므로 문제없음. 띄운 글에 `displayText`를 다시 써도 같은 글임을 시험으로 확인
+- 검색어가 기호뿐인 저자(「<>」) 단어 검색은 결과 없음으로 처리(전에는 단어가 없어 SQL이 깨질 수 있었음)
+- 기존 시험 하나의 기대값을 바꿈: `CatalogTextTests.organizationsStayOneName` 「tvN STORY 〈벌거벗은 한국사〉 제작팀」 → 이름 「tvN STORY 벌거벗은 한국사 제작팀」(R1-2 그대로)
+- 무작위 비교 시험(`CompactGroupingTests`·`SqlGroupingTests`)의 줄에 공급사 코드 키를 섞음(따로 난수원을 써서 다른 값은 그대로). 세 방식이 같은 책·같은 셈을 냄
+
+## 공급사 묶음 목록 (`scripts/library/rules/supplier_families.tsv`)
+
+- 만든 방법: 2026-10-12 사본의 `holding.supplier`를 플랫폼별로 셈(133가지, `data/c19/suppliers.tsv`, git 밖). 같은 회사의 다른 표기(법인 표시, 「전자책」 꼬리, 영문·한글)를 묶음
+- 묶음(45줄): kyobo(교보문고, 교보 전자책, 교보문고 전자책, 교보문고전자책, (주)교보문고, 교보전자책, KYOBO), yes24(YES24, 예스이십사, 예스24, YES24 전자책, 예스이십사 전자책), **y2books(Y2Books 전자책, 와이투북스)**, bookcube(북큐브, (주)북큐브네트웍스, BOOKCUBE), booktopia, aladin, woori(우리전자책), opms(OPMS, OPMS 전자책, 웅진OPMS), youngpoong(영풍문고), nurimedia, ipafrica, acadipia, bookrail, eco, contentsportal(컨텐츠포탈·컨텐츠포털), efuture(이퓨쳐·이퓨처)
+- 넣지 않은 것(확실하지 않음): 웅진·웅진북센, 한국학술정보·(주)학술정보, 북큐브D, 누리미디어 이러닝, 컨텐츠포탈(오디오락)·오디오락
+- **사용자·plan 확인 필요**(인계서 "사용자가 할 것")
+
+## 12단계: 미리 돌려 보기와 비교 (2026-10-16) — **멈출 조건 1번에 걸림, 13단계 하지 않음**
+
+- dry run: c19 DB(기록 11번 복사본), 같은 사본 `ebook-catalog-2026-10-12-0135.sqlite`, `compact`, `-PbootRunXmx=2g`, `stored-bibliography=true`, 출력 `data/c19/dry-new`(git 밖). 07:14~07:49(Gradle 34분 51초: 읽기 14분 43초, 국가서지 1분 11초 + 키 45초, 같은 글 4분 32초, 덤프 13분 27초). **2GB 안에서 끝남**, `rules-dir` 읽음, `swap_before` 앞 사본이라 멈추지 않음
+- 셈: 줄 26,144,897, 건너뜀 8,120,245(기록 11번과 같음), 저자·출판사 바꿔 읽음 **139,947줄**, ② 공급사 코드로 이음 **5,025,727**, 코드로 이었는데 ISBN 둘 이상인 묶음 **0**, 앞 괄호 뗀 묶음 **8,328**, 국가서지 ISBN 붙음 251,083(저장된 표에서)
+- 책 수 1,568,453 → **1,278,008**(−290,445, −18.5%). ① 7,686,888 → ② 2,340,588 → ③ 2,117,748 → ④ 1,278,008
+- `compare_grouping.py regroup`(A = 기록 11번 ids, B = dry run): 줄 18,024,652 모두 맞댐, **합쳐짐 215,531**, **나뉨 15,622**
+- 원인별 합쳐짐(한 묶음이 여러 원인에 들 수 있음, 일회용 스크립트 `data/c19/samples.py`, 원인은 합쳐진 A 책들의 대표 표기 차이로 가름): 꺾쇠 82,607, 뒤바뀐 칸 67,344, 제목 앞 괄호 1,777, 다른 괄호 112, 붙은 역할 66, **나머지(상품 코드 등) 78,431**. 표본 각 20권과 나뉨 20권: `data/c19/samples.md`
+  - 꺾쇠·다른 괄호·붙은 역할·제목 앞 괄호·뒤바뀐 칸 표본은 모두 같은 책(같은 제목·출판사, 표기만 다름)
+  - 저자가 다르게 보이는 줄(417번 「AI로 세상읽기」 이병훈·장윤정, 495번 「나는 산안에 산다」 정인성·최홍섭 등)은 **제목과 상품 코드가 같고 그 도서관 줄의 저자 칸만 틀린 것**으로 판단(research (a)의 「김근아」와 같은 경우, 상품 코드 규칙이 바로잡으려던 것)
+- **제목이 다른 책끼리의 합쳐짐: 12,293건**(일회용 `data/c19/title_diff.py`, 본제목을 다듬어 견줌, 결과 `data/c19/title_diff.md`). 원인: 나머지(상품 코드) 9,605, 꺾쇠 1,267, 뒤바뀐 칸 1,260, 제목 앞 괄호 511. 무작위 40건 중 **다른 책이 약 13건**:
+  - 「빈집, 그리고 빈 껍질」 + 「그날은 오는가」(이영춘), 「노고지리우지진다」 + 「광화사」(김남천), 「문화촌」 + 「탄금대」, 「두만강 1부 (상)」 + 「백배 천배로」, 「인삼」 + 「횡설」, 「이상 시선」 + 「채만식 수필집 2」, 「강원도의 별」 + 「10년 만에 그녀를 만나서」, 「병원 서비스 코디네이터 길라잡이」 + 「옥탑방 고양이」, 「Take Out English」 + 「MARKETING IS WAR」, 「들려라 영어 제4권」 + 「크리스천 스타트」, 「센스 앤 센시빌리티」 + 「숨쉬는 평화학」, 「타이베이 미식기행」 + 「우유니 … 볼리비아 자유여행」, 「시사 ELITE TOEIC 5 Reading」 + 「… 7 Listening 1」
+  - **원인(원문 줄 확인, `data/c19/wrong2.out`)**: 거의 모두 **703번 도서관(북큐브)의 공급사 「우리전자책 전자책」 줄**. 이 도서관은 북토피아 번호 꼴 `alt_code`(예: `01100765`, `02120788`, `03060093`)를 다른 도서관과 **다른 책**에 붙임. 다른 도서관에서는 같은 번호가 같은 책(우리전자책·북토피아 모두). 하나는 교보 화면(`KYOBO_V1`, 890·921번)의 공급사 「북큐브」 줄 `item_key` 9자리(`180403102`)가 북큐브 자체 번호와 겹친 것
+  - ISBN이 있는 줄이 없어 멈출 조건 2번(`codeJoinedIsbnConflicts`)은 0으로 잡지 못함
+- 「백만장자 마인드」(율리시즈) 줄 수 전후: 다시 가져오기 뒤 잼(이번에는 dry run이라 책 번호가 다름). 통합 시험에서는 한 책
+- **멈출 조건 판정(C4)**: 1번 **걸림**(원인별 표본 중 "상품 코드" 쪽 제목이 다른 합쳐짐에 다른 책이 1권 넘게 있음), 2번 안 걸림(0), 3번 안 걸림. → 13단계(합치기·다시 가져오기·운영 역할 반영)를 하지 않고 사용자에게 알림. plan이 R2-3(공급사 코드) 규칙을 고쳐야 함
+- dev가 본 고칠 안(결정은 plan·사용자)
+  1. 공급사 코드로 이을 때 비교 제목(④의 `comparisonTitle`)도 같아야 함 — 인계서 "제목 조건은 두지 않음"을 바꾸는 것. 저자 칸이 틀린 줄(김근아 꼴)은 그대로 이어짐
+  2. 703번 도서관(그리고 같은 꼴의 도서관)의 코드를 쓰지 않음 — 규칙 파일에 도서관을 적음. 다른 도서관에 같은 꼴이 있는지는 (가족, 코드)마다 제목이 갈리는 도서관을 세어 찾아야 함
+  3. `KYOBO_V1` 등 교보·YES24 화면에서 공급사가 그 회사가 아닌 줄(「북큐브」 등)은 `item_key`를 공급사 코드로 쓰지 않음
+- AC-14 기준값(c19 복사본 = 기록 11번, `data/c19/ac14/ac14.py`, 서비스와 같은 맞추기): 사서추천 **72/108**(최근 12번), 이동진 **36/44**, 서울대 100선 **87/100** — plan 값과 같음. 참고: `LocalPicksMatchRunner`(최근 6번) 33/52
+- 9단계 검증 스크립트 실제 실행(2026-10-12 사본, 191초): 11·12·15 뒤바뀜(99.88~99.96%), 10·13·14·280 바름(0~0.33%). 문턱값: 줄 근거 3회·한쪽 80%, 도서관 판정 줄 100·한쪽 90% (AC-19 통과)
