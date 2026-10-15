@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.catalog.CatalogLoad.NewBook;
 import com.chaekcheck.catalog.CatalogLoad.NewHolding;
+import com.chaekcheck.catalog.normalize.Contributors;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Libraries;
 import com.chaekcheck.library.LibraryCatalog;
 
@@ -178,8 +179,9 @@ class CatalogImporter {
 			CatalogLoad.Result result;
 			try {
 				CatalogLoad.Loader loader = session -> {
+					// the author field without marks and with stuck role words spaced (cycle 19 R1-5)
 					grouping.forEachBook(book -> session.addBook(new NewBook(book.title(),
-							book.authorDisplay(), book.publisher(), book.titleNorm(), book.mainTitleNorm(),
+							Contributors.displayText(book.authorDisplay()), book.publisher(), book.titleNorm(), book.mainTitleNorm(),
 							book.publisherNorm(), book.publishedOn(), book.isbn13(), book.contentType(), book.libraryIds(),
 							book.contributors())));
 					report.noteHeap();

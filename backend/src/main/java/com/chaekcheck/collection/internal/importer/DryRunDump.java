@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
+import com.chaekcheck.catalog.normalize.Contributors;
 import com.chaekcheck.collection.internal.importer.CollectedCatalog.Row;
 
 /**
@@ -45,7 +46,8 @@ final class DryRunDump {
 			long[] next = { 0 };
 			grouping.forEachBook(book -> {
 				long number = ++next[0];
-				line(books, Long.toString(number), book.title(), book.authorDisplay(), book.publisher(),
+				line(books, Long.toString(number), book.title(), Contributors.displayText(book.authorDisplay()),
+						book.publisher(),
 						book.publishedOn() == null ? null : book.publishedOn().toString(), book.isbn13(),
 						book.contentType(),
 						Arrays.stream(book.libraryIds()).mapToObj(Long::toString).collect(Collectors.joining(",")));

@@ -354,6 +354,105 @@ class CatalogImporterTests {
 			.singleRow()).containsEntry("holding_count", 7).containsEntry("other_library_count", 1);
 	}
 
+	/**
+	 * Cycle 19 (ADR-0113~0115) from one tiny SQLite: marks and stuck role words in author texts, the leading note,
+	 * supplier codes and the author and publisher of a swapped portal (AC-1, 2, 4, 5, 6, 9, 17).
+	 */
+	@Test
+	void cycle19AuthorTitleAndCodeRules() throws Exception {
+		Path sqlite = dir.resolve("test-cycle19.sqlite");
+		String portal2 = "https://portal2.test/elib";
+		String bookcube = "https://bookcube.test/FxLibrary";
+		try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + sqlite)) {
+			try (Statement s = c.createStatement()) {
+				s.execute("CREATE TABLE library (id INTEGER, base_url TEXT, last_full_success_at TEXT)");
+				s.execute("CREATE TABLE holding (library_id INTEGER, item_key TEXT, title TEXT, author_raw TEXT,"
+						+ " publisher TEXT, published_on TEXT, published_raw TEXT, supplier TEXT, content_kind TEXT,"
+						+ " content_type TEXT, first_seen_at TEXT, last_seen_at TEXT, removed_at TEXT, alt_code TEXT,"
+						+ " detail_url TEXT)");
+				s.execute("INSERT INTO library VALUES (1, '" + KYOBO_BASE + "', '2026-09-29T10:00:00+09:00'),"
+						+ " (2, '" + YES24_BASE + "', '2026-09-29T10:00:00+09:00'),"
+						+ " (4, '" + PORTAL_BASE + "', '2026-09-29T10:00:00+09:00'),"
+						+ " (5, '" + portal2 + "', '2026-09-29T10:00:00+09:00'),"
+						+ " (100001, '" + bookcube + "', '2026-09-29T10:00:00+09:00')");
+			}
+			String insert = "INSERT INTO holding (library_id, item_key, title, author_raw, publisher, supplier, alt_code,"
+					+ " detail_url, content_kind, content_type, first_seen_at)"
+					+ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, '전자책', 'EBOOK', '2026-09-29T00:00:00+09:00')";
+			try (PreparedStatement p = c.prepareStatement(insert)) {
+				// AC-1: angle brackets and plain names → one book
+				coded(p, 1, "K1", "채널 전쟁", "<김정은>,<김지혜> 저", "가나", null, null, KYOBO_BASE);
+				coded(p, 5, "E1", "채널 전쟁", "김정은, 김지혜 저", "가나", null, null, portal2);
+				// AC-2: plain, angle brackets, 김근아 (same supplier code), leading note, swapped portal → one book;
+				// the modifier without brackets stays apart
+				coded(p, 5, "E2", "백만장자 마인드", "모리세 시게토모", "율리시즈", null, null, portal2);
+				coded(p, 1, "K2", "백만장자 마인드", "<모리세 시게토모> 저", "율리시즈", null, null, KYOBO_BASE);
+				coded(p, 100001, "B2", "백만장자 마인드", "김근아 저자", "율리시즈", "Y2Books 전자책", "1210492004114",
+						bookcube);
+				coded(p, 1, "1210492004114", "(부를 끌어 당기는) 백만장자 마인드", "모리세 시게토모", "율리시즈", "와이투북스",
+						null, KYOBO_BASE);
+				coded(p, 2, "1210492004114", "(부를 끌어 당기는) 백만장자 마인드", "모리세 시게토모", "율리시즈", "와이투북스",
+						null, YES24_BASE);
+				coded(p, 4, "E3", "백만장자 마인드", "율리시즈", "모리세 시게토모", null, null, PORTAL_BASE);
+				coded(p, 5, "E4", "부를 끌어 당기는 백만장자 마인드", "모리세 시게토모", "율리시즈", null, null, portal2);
+				// AC-5: 〈 〉 marks → one book
+				coded(p, 5, "E5", "슈퍼차이나", "KBS 〈슈퍼차이나〉 제작팀", "가나", null, null, portal2);
+				coded(p, 1, "K5", "슈퍼차이나", "KBS 슈퍼차이나 제작팀", "가나", null, null, KYOBO_BASE);
+				// AC-6: (만화) is kept → two books
+				coded(p, 5, "E6", "(만화) 삼국지", "이문열", "가나", null, null, portal2);
+				coded(p, 1, "K6", "삼국지", "이문열", "가나", null, null, KYOBO_BASE);
+				// AC-17: a stuck role word is spaced in the author field; AC-4: [ ] stays
+				coded(p, 5, "E7", "앨리스", "루이스 캐럴 저이소연 역", "펭귄", null, null, portal2);
+				coded(p, 5, "E8", "풍경", "존 버거 [지음]", "열화당", null, null, portal2);
+				p.executeBatch();
+			}
+		}
+		ImportRules rules = new ImportRules(Map.of(4L, java.time.LocalDate.of(2026, 10, 17)),
+				Map.of(ImportRules.supplierName("Y2Books 전자책"), "y2books", ImportRules.supplierName("와이투북스"),
+						"y2books"));
+
+		ImportReport report = importer(Set.of()).rules(rules).run(sqlite, null, false);
+
+		assertThat(report.authorPublisherSwappedRows).isOne();
+		assertThat(report.supplierCodeJoins).isOne();
+		assertThat(report.codeJoinedIsbnConflicts).isZero();
+		assertThat(report.leadingNoteCut).isPositive();
+		assertThat(booksTitled("채널 전쟁")).isOne();
+		assertThat(booksTitled("%백만장자 마인드")).isEqualTo(2);
+		assertThat(jdbc.sql("SELECT count(DISTINCT book_id) FROM catalog.holding WHERE item_key IN"
+				+ " ('E2', 'K2', 'B2', '1210492004114', 'E3')").query(Long.class).single()).isOne();
+		assertThat(booksTitled("슈퍼차이나")).isOne();
+		assertThat(booksTitled("%삼국지")).isEqualTo(2);
+		// AC-9: the swapped portal's holding keeps the right values
+		assertThat(jdbc.sql("SELECT author_raw || ' / ' || publisher_raw FROM catalog.holding WHERE item_key = 'E3'")
+			.query(String.class).single()).isEqualTo("모리세 시게토모 / 율리시즈");
+		// AC-4, AC-17
+		List<String> authors = jdbc.sql("SELECT author_display FROM catalog.book").query(String.class).list();
+		assertThat(authors).noneMatch(a -> a != null && a.matches(".*[<>〈〉「」《》].*"));
+		assertThat(authors).contains("루이스 캐럴 저 이소연 역", "존 버거 [지음]");
+		assertThat(jdbc.sql("SELECT name || ':' || role FROM catalog.book_contributor c JOIN catalog.book b"
+				+ " ON b.id = c.book_id WHERE b.title = '앨리스' ORDER BY position").query(String.class).list())
+			.containsExactly("루이스 캐럴:AUTHOR", "이소연:TRANSLATOR");
+	}
+
+	private long booksTitled(String pattern) {
+		return jdbc.sql("SELECT count(*) FROM catalog.book WHERE title LIKE :t").param("t", pattern)
+			.query(Long.class).single();
+	}
+
+	private static void coded(PreparedStatement p, long library, String key, String title, String author,
+			String publisher, String supplier, String altCode, String base) throws Exception {
+		p.setLong(1, library);
+		p.setString(2, key);
+		p.setString(3, title);
+		p.setString(4, author);
+		p.setString(5, publisher);
+		p.setString(6, supplier);
+		p.setString(7, altCode);
+		p.setString(8, base + "/detail?id=" + key);
+		p.addBatch();
+	}
+
 	private String dateOf(String title) {
 		return jdbc.sql("SELECT published_on::text FROM catalog.book WHERE title = :title")
 			.param("title", title)
