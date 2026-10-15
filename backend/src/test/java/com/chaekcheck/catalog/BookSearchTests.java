@@ -101,6 +101,27 @@ class BookSearchTests {
 	}
 
 	@Test
+	void authorMarksInTheQueryAreRemovedLikeStoredNames() throws Exception { // cycle 19 AC-3
+		long book = book("채널 전쟁", "<김정은>,<김지혜> 저", "가나출판", "2020-01-01", open);
+
+		for (String author : List.of("김정은", "<김정은>", "＜김정은＞")) {
+			assertThat(ids("author=" + author)).as(author).containsExactly(book);
+			assertThat(ids("author=" + author + "&exact=author")).as(author).containsExactly(book);
+		}
+		assertThat(ids("author=<>")).isEmpty();
+	}
+
+	@Test
+	void stuckRoleWordsFindBothPeople() throws Exception { // cycle 19 AC-7
+		long alice = book("이상한 나라의 앨리스", "루이스 캐럴 저이소연 역", "펭귄클래식코리아", "2020-03-01", open);
+
+		assertThat(ids("author=루이스 캐럴")).containsExactly(alice);
+		assertThat(ids("author=이소연")).isEmpty();
+		assertThat(ids("author=이소연&roles=translator")).containsExactly(alice);
+		assertThat(ids("author=이소연&roles=translator&exact=author")).containsExactly(alice);
+	}
+
+	@Test
 	void allWordsMustBeInOnePersonsName() throws Exception { // ADR-0032
 		book("공저 책", "김가나 저/박다라 저", "가나출판", "2020-01-01", open);
 

@@ -196,11 +196,15 @@ public class PgBigmBookSearch implements BookSearch {
 		if (query.author() != null) {
 			List<String> person = new ArrayList<>();
 			if (query.exactAuthor()) {
-				params.put("authorExact", CatalogText.nameExact(query.author()));
+				params.put("authorExact", query.authorExact());
 				person.add("c.name_exact = :authorExact");
 			}
 			else {
 				words(query.authorWords(), "a", "c.name_norm", person, params);
+				if (person.isEmpty()) {
+					// only marks ("<>"): no name to find, like an exact search for an empty name
+					person.add("FALSE");
+				}
 			}
 			params.put("roles", query.roles().stream().map(Role::name).sorted().toList());
 			// every word in one person's name (ADR-0032), in the searched roles

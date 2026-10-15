@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.chaekcheck.catalog.normalize.CatalogText;
+import com.chaekcheck.catalog.normalize.Contributors;
 import com.chaekcheck.catalog.normalize.Contributors.Role;
 
 /**
@@ -26,8 +27,14 @@ public record BookQuery(String title, String author, String publisher, boolean e
 		return CatalogText.words(title);
 	}
 
+	/** Author words without the marks stored names lose ({@link Contributors#stripMarks}, cycle 19 R1-4). */
 	public List<String> authorWords() {
-		return CatalogText.words(author);
+		return CatalogText.words(Contributors.stripMarks(author));
+	}
+
+	/** Author as one exact name, marks removed like stored names (cycle 19 R1-4). */
+	public String authorExact() {
+		return CatalogText.nameExact(Contributors.stripMarks(author));
 	}
 
 	public List<String> publisherWords() {

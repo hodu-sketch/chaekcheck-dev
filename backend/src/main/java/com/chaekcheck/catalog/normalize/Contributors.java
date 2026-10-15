@@ -16,6 +16,9 @@ import java.util.regex.Pattern;
  * <li>A bracket after a name that is not a role is an alias ({@code 김도형(별별역사)}).</li>
  * <li>{@code 외} (more people) is not a person.</li>
  * <li>글그림 gives two rows for the same person: AUTHOR and ILLUSTRATOR.</li>
+ * <li>Marks are removed first ({@link #stripMarks}, ADR-0113).</li>
+ * <li>A role word with the next name stuck to it ("루이스 캐럴 저이소연 역") is split by a narrow rule, up to a third
+ * person, unless a role word is already written on its own before it (ADR-0113).</li>
  * </ul>
  */
 public final class Contributors {
@@ -73,6 +76,32 @@ public final class Contributors {
 
 	private static final Pattern HANGUL = Pattern.compile("[가-힣]");
 
+	/**
+	 * Marks removed from author texts (R1-1, R1-2): angle brackets in every width ({@code < > ＜ ＞ ﹤ ﹥}, all
+	 * {@code < >} after NFKC) and the marks of {@code 〈 〉 「 」 《 》}, keeping the text inside. {@code [ ]} stays.
+	 * Rule: docs/maintenance/rules-index.md "저자 기호 떼기".
+	 */
+	private static final Pattern MARKS = Pattern.compile("[<>＜＞﹤﹥〈〉〈〉「」｢｣《》]");
+
+	private static final Pattern SPACES = Pattern.compile("\\s{2,}");
+
+	/**
+	 * Narrow rule for a role word with the next name stuck to it (R1-3): names, a space, an author word, a Hangul name
+	 * of 2 to 4 letters, a space, a translator or illustrator word; then maybe once more a name of 2 to 4 letters and
+	 * a third role word. "편", "그림" and "역" are not first words (family name 편, 그림 형제). Rule:
+	 * docs/maintenance/rules-index.md "붙은 역할 낱말".
+	 */
+	private static final Pattern ATTACHED_ROLES = Pattern
+		.compile("^(.+?)\\s+(저자|저|지은이|지음|글)([가-힣]{2,4})\\s+(옮긴이|옮김|번역|역자|역|그림)"
+				+ "(?:([가-힣]{2,4})\\s+(감수|편집|엮음|편|기획|해설|그림|사진|옮김|역))?$");
+
+	/**
+	 * Guard of the narrow rule: a role word written on its own before the stuck word ("… 지음, 다니엘라 저메인 역")
+	 * means the stuck letters belong to a name. Rule: docs/maintenance/rules-index.md "붙은 역할 낱말".
+	 */
+	private static final Pattern SEPARATE_ROLE = Pattern
+		.compile("(?<![가-힣A-Za-z])(?:" + ROLE_ALTERNATION + ")(?![가-힣A-Za-z])");
+
 	/** People after the first {@code ;} (translators and so on in library records: "A 지음 ;B 옮김"). */
 	private static final Pattern AFTER_SEMICOLON = Pattern.compile(";.*$");
 
@@ -87,6 +116,48 @@ public final class Contributors {
 		.compile("\\s+(?:장편소설|소설집|소설|시집|산문집|산문|에세이)$");
 
 	private Contributors() {
+	}
+
+	/**
+	 * Author text without the marks of {@link #MARKS} (ADR-0113); runs of spaces left behind become one. Text without
+	 * marks comes back unchanged. Null stays null.
+	 */
+	public static String stripMarks(String raw) {
+		if (raw == null) {
+			return null;
+		}
+		Matcher marks = MARKS.matcher(raw);
+		if (!marks.find()) {
+			return raw;
+		}
+		return SPACES.matcher(marks.replaceAll("")).replaceAll(" ").strip();
+	}
+
+	/**
+	 * Author text for the book's author field (R1-5): {@link #stripMarks}, then a space after each stuck role word that
+	 * {@link #parse} splits ("밥 프록터 저이재경 역조성희 감수" → "밥 프록터 저 이재경 역 조성희 감수"). Texts the guard
+	 * keeps and texts without stuck role words stay as they are.
+	 */
+	public static String displayText(String raw) {
+		String text = stripMarks(raw);
+		if (text == null || text.isBlank()) {
+			return text;
+		}
+		String nfkc = CatalogText.nfkc(text);
+		List<Attached> found = attached(nfkc);
+		if (found.isEmpty() || nfkc.length() != text.length()) {
+			// offsets come from the NFKC text; a text NFKC changes in length is left unspaced (rare, safe side)
+			return text;
+		}
+		StringBuilder out = new StringBuilder(text);
+		for (int i = found.size() - 1; i >= 0; i--) {
+			Attached a = found.get(i);
+			if (a.match().group(5) != null) {
+				out.insert(a.start() + a.match().start(5), ' ');
+			}
+			out.insert(a.start() + a.match().start(3), ' ');
+		}
+		return out.toString();
 	}
 
 	/**
@@ -111,19 +182,30 @@ public final class Contributors {
 
 	public static List<Contributor> parse(String raw) {
 		List<Contributor> people = new ArrayList<>();
-		if (raw == null || raw.isBlank()) {
+		String text = raw == null ? null : stripMarks(CatalogText.nfkc(raw));
+		if (text == null || text.isBlank()) {
 			return people;
 		}
 		int position = 0;
-		for (String part : CatalogText.nfkc(raw).split("/")) {
-			String text = OTHERS.matcher(part.strip()).replaceFirst("").strip();
+		for (List<Item> part : parts(text)) {
 			// a part with Hangul may list several people, each with its own role ("A 저자, B 번역") or one role
 			// after the last ("A, B 공저"); a name without a role takes the role of the next one that has it
-			String[] items = HANGUL.matcher(text).find() ? text.split(",") : new String[] { text };
 			List<String> names = new ArrayList<>();
 			List<List<Role>> roles = new ArrayList<>();
-			for (String item : items) {
-				String candidate = OTHERS.matcher(item.strip()).replaceFirst("").strip();
+			for (Item item : part) {
+				String candidate = item.candidate();
+				Matcher stuck = stuck(text, item);
+				if (stuck != null) {
+					names.add(stuck.group(1).strip());
+					roles.add(ROLE_WORDS.get(stuck.group(2)));
+					names.add(stuck.group(3));
+					roles.add(ROLE_WORDS.get(stuck.group(4)));
+					if (stuck.group(5) != null) {
+						names.add(stuck.group(5));
+						roles.add(ROLE_WORDS.get(stuck.group(6)));
+					}
+					continue;
+				}
 				Matcher role = TRAILING_ROLE.matcher(candidate);
 				if (role.matches()) {
 					String word = role.group(2) != null ? role.group(2) : role.group(3);
@@ -156,6 +238,69 @@ public final class Contributors {
 			}
 		}
 		return people;
+	}
+
+	/**
+	 * The items of a text as {@link #parse} reads them: parts split on {@code /}, a part with Hangul split on commas
+	 * too; each item stripped and without a trailing {@code 외}, with its offset in the text.
+	 */
+	private static List<List<Item>> parts(String text) {
+		List<List<Item>> parts = new ArrayList<>();
+		int partStart = 0;
+		for (String part : text.split("/", -1)) {
+			List<Item> items = new ArrayList<>();
+			String whole = OTHERS.matcher(part.strip()).replaceFirst("").strip();
+			if (HANGUL.matcher(whole).find()) {
+				int itemStart = partStart;
+				for (String piece : part.split(",", -1)) {
+					items.add(item(piece, itemStart));
+					itemStart += piece.length() + 1;
+				}
+			}
+			else {
+				items.add(item(part, partStart));
+			}
+			parts.add(items);
+			partStart += part.length() + 1;
+		}
+		return parts;
+	}
+
+	private static Item item(String piece, int start) {
+		String stripped = piece.strip();
+		String candidate = OTHERS.matcher(stripped).replaceFirst("").strip();
+		return new Item(candidate, start + (stripped.isEmpty() ? 0 : piece.indexOf(stripped)));
+	}
+
+	/** The narrow-rule match of an item (R1-3); null when it does not match or the guard keeps it. */
+	private static Matcher stuck(String text, Item item) {
+		Matcher stuck = ATTACHED_ROLES.matcher(item.candidate());
+		if (!stuck.matches()) {
+			return null;
+		}
+		String before = text.substring(0, item.start() + stuck.start(2));
+		return SEPARATE_ROLE.matcher(before).find() ? null : stuck;
+	}
+
+	/** Items of {@code text} the narrow rule splits. */
+	private static List<Attached> attached(String text) {
+		List<Attached> found = new ArrayList<>();
+		for (List<Item> part : parts(text)) {
+			for (Item item : part) {
+				Matcher stuck = stuck(text, item);
+				if (stuck != null) {
+					found.add(new Attached(item.start(), stuck));
+				}
+			}
+		}
+		return found;
+	}
+
+	/** One item of a part: the text to read and where it starts in the whole text. */
+	private record Item(String candidate, int start) {
+	}
+
+	private record Attached(int start, Matcher match) {
 	}
 
 	private static Name name(String candidate) {

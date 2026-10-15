@@ -135,9 +135,9 @@ class CatalogTextTests {
 	}
 
 	@Test
-	void organizationsStayOneName() { // 단체 이름은 저자로 둠 (research 4.1)
+	void organizationsStayOneName() { // 단체 이름은 저자로 둠 (research 4.1); 〈 〉 marks go (cycle 19 R1-2)
 		assertThat(Contributors.parse("tvN STORY 〈벌거벗은 한국사〉 제작팀")).extracting(Contributor::name, Contributor::role)
-			.containsExactly(org.assertj.core.groups.Tuple.tuple("tvN STORY 〈벌거벗은 한국사〉 제작팀", Role.UNKNOWN));
+			.containsExactly(org.assertj.core.groups.Tuple.tuple("tvN STORY 벌거벗은 한국사 제작팀", Role.UNKNOWN));
 	}
 
 	@Test
