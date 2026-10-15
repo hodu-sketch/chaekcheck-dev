@@ -308,6 +308,9 @@ final class SqlGrouping implements BookGrouper {
 								group.values[PUBLISHER]);
 						if (key.key() != null) {
 							out.row(group.label, key.key(), key.subtitle(), group.date);
+							if (key.leadingNoteCut()) {
+								report.leadingNoteCut++;
+							}
 						}
 						else if (key.placeholderOnly()) {
 							report.sameTextPlaceholderNoKey++;

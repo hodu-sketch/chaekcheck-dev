@@ -258,6 +258,9 @@ final class BookGrouping implements BookGrouper {
 				}
 				continue;
 			}
+			if (key.leadingNoteCut()) {
+				report.leadingNoteCut++;
+			}
 			keys[g] = key.key();
 			String isbn = isbnOfRoot.get(members[0]);
 			if (isbn != null) {

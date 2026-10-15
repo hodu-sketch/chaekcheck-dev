@@ -10,6 +10,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.chaekcheck.catalog.normalize.CatalogText;
 import com.chaekcheck.catalog.normalize.Contributors;
@@ -21,7 +22,8 @@ import com.chaekcheck.catalog.normalize.Contributors.Role;
  * publisher, joined by {@link BookGrouper#SEP}; no key when a part is missing (not merged when unsure). Both the
  * {@code compact} and the {@code sql} grouping call it through {@link BookGrouper#sameTextKey}.
  * <ul>
- * <li>Comparison title: {@link CatalogText#mainTitleNorm} without the {@link #tails} at its end (R3-1).</li>
+ * <li>Comparison title: {@link CatalogText#mainTitleNorm} without the {@link #tails} at its end (R3-1), and without
+ * a leading note in brackets that is not kept ({@link #withoutLeadingNote}, cycle 19 R2-2).</li>
  * <li>Volume marks ({@link #volumeMarks}): from the whole title (NFKC, leading series name and tails removed) the
  * numbers in order ({@link #numbers}), 상·중·하 where they stand alone, and the edition words (R3-2), as
  * {@code n=1,2018|s=상|e=개정}.</li>
@@ -49,6 +51,18 @@ final class SameTextKey {
 	 */
 	static final List<String> TAILS = List.of("(PC만 열람 가능)", "(스마트 패드 전용)", "(잠 못 이루는 밤을 위해)",
 			"(한국인이 가장 좋아하는 단편소설)");
+
+	/**
+	 * Leading notes kept in the comparison title (cycle 19 R2-2, 확인 결과 결정 #3 [확정]): editions, originals and
+	 * translations, forms, a later volume. Compared without spaces, upper case after NFKC; a note ending in "판" or
+	 * holding "EDITION" is kept too. Rule: docs/maintenance/rules-index.md "LEADING_NOTE_KEEP_WORDS".
+	 */
+	static final List<String> LEADING_NOTE_KEEP_WORDS = List.of("개정판", "개정2판", "증보", "증보판", "4판", "리커버",
+			"2nd EDITION", "4th EDITION", "영어원서", "영어 원서", "영문 번역판", "한영대역", "원문", "완역", "고본완역", "오디오북",
+			"전자책", "체험판", "무료체험판", "만화", "큰글자책", "속");
+
+	/** A bracket note at the very front of the title (KORMARC 245 표제 관련 정보 in front, 관제). */
+	private static final Pattern LEADING_NOTE = Pattern.compile("^\\(([^()]*)\\)\\s*");
 
 	/** A series name in front of the title, as in {@link CatalogText#mainTitleNorm}. */
 	private static final Pattern LEADING_SERIES = Pattern.compile("^\\s*(?:〈[^〉]*〉|<[^>]*>|\\[[^\\]]*\\])\\s*");
@@ -119,10 +133,10 @@ final class SameTextKey {
 	 * @param subtitle the subtitle compared when a key has two or more different ones (cycle 12, user decision
 	 * 2026-10-13: split a key by its subtitles as by its ISBNs); empty without a subtitle or a key
 	 */
-	record Key(String key, boolean placeholderOnly, String subtitle) {
+	record Key(String key, boolean placeholderOnly, String subtitle, boolean leadingNoteCut) {
 
 		Key(String key, boolean placeholderOnly) {
-			this(key, placeholderOnly, "");
+			this(key, placeholderOnly, "", false);
 		}
 
 	}
@@ -132,6 +146,10 @@ final class SameTextKey {
 	private final List<Pattern> tailPatterns;
 
 	/** For tests: other tails than {@link #TAILS}. */
+	private static final Set<String> KEEP_NOTES = LEADING_NOTE_KEEP_WORDS.stream()
+		.map(SameTextKey::compactNote)
+		.collect(Collectors.toUnmodifiableSet());
+
 	SameTextKey(List<String> tails) {
 		this.tailNorms = tails.stream().map(CatalogText::norm).filter(t -> !t.isEmpty()).toList();
 		this.tailPatterns = tails.stream().filter(t -> !CatalogText.norm(t).isEmpty()).map(SameTextKey::spaceInsensitive).toList();
@@ -139,6 +157,7 @@ final class SameTextKey {
 
 	Key of(String title, String authorRaw, String publisherRaw) {
 		String comparisonTitle = comparisonTitle(title);
+		boolean noteCut = title != null && withoutLeadingNote(title) != title;
 		List<Contributor> contributors = Contributors.parse(authorRaw);
 		String author = firstAuthor(contributors);
 		String publisher = CatalogText.publisherNorm(publisherRaw);
@@ -158,12 +177,14 @@ final class SameTextKey {
 			// "김동인 - 감자": the main title is the author's name and the work is the subtitle, so the whole title is
 			// compared (cycle 12, user decision 2026-10-13 after 168 books took in 2,776 different works)
 			comparisonTitle = cutTails(LEADING_ZEROS.matcher(CatalogText.norm(
-					LEADING_SERIES.matcher(Normalizer.normalize(title, Normalizer.Form.NFKC)).replaceFirst("")))
+					LEADING_SERIES.matcher(Normalizer.normalize(withoutLeadingNote(title), Normalizer.Form.NFKC))
+						.replaceFirst("")))
 				.replaceAll(""));
 			subtitle = "";
 		}
 		char sep = BookGrouper.SEP;
-		return new Key(comparisonTitle + sep + volumeMarks(title) + sep + author + sep + publisher, false, subtitle);
+		return new Key(comparisonTitle + sep + volumeMarks(title) + sep + author + sep + publisher, false, subtitle,
+				noteCut);
 	}
 
 	/**
@@ -189,7 +210,34 @@ final class SameTextKey {
 	 * first author's name, {@link #of} compares the whole title instead.
 	 */
 	String comparisonTitle(String title) {
-		return cutTails(LEADING_ZEROS.matcher(CatalogText.mainTitleNorm(title)).replaceAll(""));
+		return cutTails(LEADING_ZEROS.matcher(CatalogText.mainTitleNorm(withoutLeadingNote(title))).replaceAll(""));
+	}
+
+	/**
+	 * The title (NFKC, leading series name removed) without its first leading {@code ( … )} note (cycle 19 R2-2,
+	 * ADR-0114): "(부를 끌어 당기는) 백만장자 마인드" → "백만장자 마인드". The same title object when there is no
+	 * note, the note is kept ({@link #LEADING_NOTE_KEEP_WORDS}, "…판", EDITION), or nothing would be left. Only the
+	 * comparison title uses it; volume marks and subtitles still read the whole title.
+	 */
+	static String withoutLeadingNote(String title) {
+		if (title == null) {
+			return null;
+		}
+		String rest = LEADING_SERIES.matcher(Normalizer.normalize(title, Normalizer.Form.NFKC)).replaceFirst("");
+		Matcher note = LEADING_NOTE.matcher(rest);
+		if (!note.find()) {
+			return title;
+		}
+		String inside = compactNote(note.group(1));
+		if (KEEP_NOTES.contains(inside) || inside.endsWith("판") || inside.contains("EDITION")) {
+			return title;
+		}
+		String after = rest.substring(note.end());
+		return CatalogText.mainTitleNorm(after).isEmpty() ? title : after;
+	}
+
+	private static String compactNote(String note) {
+		return WHITESPACE.matcher(Normalizer.normalize(note, Normalizer.Form.NFKC)).replaceAll("").toUpperCase(Locale.ROOT);
 	}
 
 	/** The tails at the end taken off; the text as given when nothing would be left. */

@@ -42,7 +42,22 @@ final class ImportReport {
 	/** Dates before 1950 of the placeholder-date libraries, set to null. */
 	long placeholderDatesCleared;
 
+	/** Rows whose author and publisher were read swapped (cycle 19, ADR-0115: author_publisher_swapped.tsv). */
+	long authorPublisherSwappedRows;
+
 	long booksAfterPlatformCode;
+
+	/**
+	 * Step ② joins made by a supplier code key (cycle 19, ADR-0114): rows or groups joined to another group only through
+	 * the same (supplier family, code). Log only.
+	 */
+	long supplierCodeJoins;
+
+	/**
+	 * Groups after step ② joined through a supplier code that hold two or more distinct ISBNs (cycle 19, ADR-0114). A
+	 * stop condition of the cycle 19 comparison (handoff C4-2): above 0, plan decides before a real import.
+	 */
+	long codeJoinedIsbnConflicts;
 
 	long booksAfterKyoboIsbn;
 
@@ -71,6 +86,9 @@ final class ImportReport {
 	 * {@link SameTextKey.Key#placeholderOnly()}. Log only.
 	 */
 	long sameTextPlaceholderNoKey;
+
+	/** Groups whose step ④ comparison title lost a leading bracket note (cycle 19 R2-2). Log only. */
+	long leadingNoteCut;
 
 	/** Merged books whose groups' dates are 2+ years apart (maybe different editions). */
 	long sameTextWideDates;
@@ -150,10 +168,11 @@ final class ImportReport {
 				  rows read: %d, skipped: %d %s
 				  libraries: registered %d, others %d (without a full success, collected_at from last_seen_at: %d); \
 				not in service %d, base URL mismatch %d
-				  placeholder dates cleared: %d
+				  placeholder dates cleared: %d; author and publisher read swapped: %d rows
 				  kyobo codes: %s
+				  (2) supplier code joins %d, code-joined groups with 2+ ISBNs %d
 				  books after (1) platform code: %d, (2) kyobo ISBN: %d, (3) national bibliography: %d, (4) same text: %d
-				  (4) same text: groups merged %d, kept apart by ISBN %d, by subtitle %d, no key for a placeholder %d, merged books with dates 2+ years apart %d
+				  (4) same text: groups merged %d, kept apart by ISBN %d, by subtitle %d, no key for a placeholder %d, leading note cut %d, merged books with dates 2+ years apart %d
 				  national bibliography: rows (one per record ISBN) %d (%s), ISBN attached %d, ambiguous keys %d
 				  written: books %d, contributors %d, holdings %d
 				  book ids: kept %d, new %d, dropped %d
@@ -161,9 +180,9 @@ final class ImportReport {
 				  time: %s; heap used up to %d MB (max %d MB)"""
 			.formatted(rowsRead, skippedCount(), skipped, registeredLibraries, otherLibraries,
 					librariesWithoutFullSuccess, librariesNotInService, librariesBaseUrlMismatch, placeholderDatesCleared,
-					kyoboCodes, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
+					authorPublisherSwappedRows, kyoboCodes, supplierCodeJoins, codeJoinedIsbnConflicts, booksAfterPlatformCode, booksAfterKyoboIsbn, booksAfterNationalBibliography,
 					booksAfterSameText, sameTextMerged, sameTextIsbnSplit, sameTextSubtitleSplit, sameTextPlaceholderNoKey,
-					sameTextWideDates, nationalBibliographyRecords,
+					leadingNoteCut, sameTextWideDates, nationalBibliographyRecords,
 					nationalBibliographyReused ? "from the stored table" : "from the TTL files",
 					nationalBibliographyIsbnAttached, nationalBibliographyAmbiguous, books, contributors, holdings,
 					keptBookIds, newBookIds, droppedBookIds,

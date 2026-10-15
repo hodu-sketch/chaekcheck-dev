@@ -233,6 +233,40 @@ class SameTextKeyTests {
 	}
 
 	@Test
+	void leadingNoteIsCutFromTheComparisonTitle() { // cycle 19 R2-2, AC-6
+		assertThat(key("(부를 끌어 당기는) 백만장자 마인드")).isNotNull().isEqualTo(key("백만장자 마인드"));
+		assertThat(RULES.comparisonTitle("(부를 끌어 당기는) 백만장자 마인드")).isEqualTo("백만장자마인드");
+		assertThat(RULES.of("(부를 끌어 당기는) 백만장자 마인드", "홍길동", "가나출판").leadingNoteCut()).isTrue();
+		assertThat(RULES.of("백만장자 마인드", "홍길동", "가나출판").leadingNoteCut()).isFalse();
+		// after a leading series name too
+		assertThat(key("[청소년 문학] (아름다운) 소나기")).isEqualTo(key("소나기"));
+		// a modifier without brackets stays (backlog)
+		assertThat(key("부를 끌어 당기는 백만장자 마인드")).isNotEqualTo(key("백만장자 마인드"));
+	}
+
+	@Test
+	void keptLeadingNotesStay() { // cycle 19 R2-2, AC-6
+		for (String note : List.of("(만화)", "(개정판)", "(속)", "(3판)", "(제2판)", "(2nd EDITION)", "(2nd edition)",
+				"(큰글자책)", "(영어 원서)", "(영어원서)", "(오디오북)")) {
+			assertThat(RULES.comparisonTitle(note + " 삼국지")).as(note).isNotEqualTo(RULES.comparisonTitle("삼국지"));
+			assertThat(RULES.of(note + " 삼국지", "홍길동", "가나출판").leadingNoteCut()).as(note).isFalse();
+		}
+		assertThat(key("(만화) 삼국지")).isNotEqualTo(key("삼국지"));
+	}
+
+	@Test
+	void titleOfOnlyANoteStays() {
+		assertThat(RULES.comparisonTitle("(세트)")).isEqualTo("(세트)");
+		assertThat(RULES.of("(세트)", "홍길동", "가나출판").leadingNoteCut()).isFalse();
+	}
+
+	@Test
+	void volumeMarksStillReadTheWholeTitle() { // cycle 19 R2-2
+		assertThat(RULES.volumeMarks("(개정판) 삼국지 1")).isEqualTo("n=1|s=|e=개정");
+		assertThat(key("(부를 끌어 당기는) 백만장자 마인드 2")).isNotEqualTo(key("백만장자 마인드"));
+	}
+
+	@Test
 	void joinsThePartsWithTheSeparator() {
 		assertThat(key("수학 1", "홍길동", "(주)가나출판"))
 			.isEqualTo("수학1" + BookGrouper.SEP + "n=1|s=|e=" + BookGrouper.SEP + "홍길동" + BookGrouper.SEP + "가나출판");

@@ -405,6 +405,9 @@ final class CompactGrouping implements BookGrouper {
 				}
 				continue;
 			}
+			if (key.leadingNoteCut()) {
+				report.leadingNoteCut++;
+			}
 			int id = keys.add(key.key());
 			keyOf[first] = id + 1;
 			long isbn = isbnOf[first];
