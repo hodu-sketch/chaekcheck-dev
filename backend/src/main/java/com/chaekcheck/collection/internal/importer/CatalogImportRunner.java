@@ -66,7 +66,7 @@ class CatalogImportRunner {
 	 * {@code scripts/catalog/compare_grouping.py}; empty writes only the counts
 	 * @param excludeAddedLaterLibraries leave out the libraries added later in cycle 07 (collection id from
 	 * {@link CollectedCatalog#FIRST_COLLECTED_ONLY_ID}); their rows are skipped as
-	 * {@code library_excluded_added_later}. Dry run only (cycle 12): a real import would drop about 2,394 libraries
+	 * {@code library_excluded_added_later}. Dry run only (cycle 12): a real import would drop about 2,370 libraries
 	 * from the service. Named {@code exclude-candidate-libraries} until cycle 18
 	 * @param rulesDir the rules folder ({@code scripts/library/rules}, cycle 19 {@link ImportRules}); read by the modes
 	 * that read a collection DB ({@code in-place}, dry run, {@code export}), before the DB is opened
@@ -107,7 +107,7 @@ class CatalogImportRunner {
 			}
 			if (excludeAddedLaterLibraries && !dryRun) {
 				throw new IllegalStateException("exclude-added-later-libraries is a dry-run-only setting: a real import"
-						+ " would leave about 2,394 libraries out of the service; set dry-run=true");
+						+ " would leave about 2,370 libraries out of the service; set dry-run=true");
 			}
 		}
 

@@ -98,7 +98,7 @@
   - `menu_idx`는 포털마다 다름(부산 14/19, 강원 126/129, 인천 11/23) → 첫 화면에서 `book/index.do?menu_idx=N&menu=NEW&type=EBK` 링크를 찾아 씀
   - 전체 건수가 없음 → 빈 쪽이 나올 때까지. 최신순이라 도중에 책이 들어와도 빠지지 않고 겹치기만 함
   - 인천교육청은 이 목록에 로그인이 필요함("로그인 후 이용가능합니다"). 대신 **검색어를 공백 하나로 넣은 검색**(`search/table.do?menu_idx=10&…&search_text=%20&rowCount=100&viewPage=N`)이 로그인 없이 전체(9,972건, 전자책·오디오북 함께)를 보여 줌 [확정] (2026-10-01). 줄은 `div.row a.name.goDetail[data-book_idx][data-type]`, 그 아래 `p`가 저자 / "출판사, 날짜" / 소속도서관. 상세 메뉴 번호는 쪽 스크립트에 있음(인천 전자책 11, 오디오북 23)
-- 목록 줄 `ul.bbs_webzine > li`: `a.book_link[data-book_idx]`, `div.info span`(저자, 출판사, 출간일), `div.meta`(소속도서관, 공급사, 대출 가능 여부, "대출 : X/Y", "예약 : Z/W"), 표지 주소(파일 이름이 ISBN인 경우 있음, 예: `9791194267676.jpg` [확인 필요])
+- 목록 줄 `ul.bbs_webzine > li`: `a.book_link[data-book_idx]`, `div.info span`(칸 순서가 사이트마다 다름: 대부분 저자, 출판사, 출간일. **출판사가 먼저인 포털 = 경기도교육청·대구·전북교육청**(`lib.goe.go.kr`, `library.daegu.go.kr`, `lib.jbe.go.kr`, 수집기 상수 `PUBLISHER_FIRST_PORTAL_HOSTS`, 사이트 확인 2026-10-14·16, 사이클 19)), `div.meta`(소속도서관, 공급사, 대출 가능 여부, "대출 : X/Y", "예약 : Z/W"), 표지 주소(파일 이름이 ISBN인 경우 있음, 예: `9791194267676.jpg` [확인 필요])
 - 한 쪽에 같은 책이 두 번 나오는 경우 있음(경북 100줄 중 96개) → 책 번호로 겹침 제거
 - 상세: `{root}/module/elib/book/view.do?menu_idx={목록 메뉴 번호}&book_idx=&type=`. 강원은 `menu_idx`가 없으면 빈 화면, 목록 메뉴 번호(126)나 검색 메뉴 번호(2)를 붙이면 열림 [확정] (2026-09-30)
 - 여러 업체(교보·YES24·알라딘·웅진 등) 책이 한 목록에 섞이고, 소속도서관(분관)도 줄마다 있음

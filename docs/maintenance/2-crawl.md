@@ -15,6 +15,8 @@
 
 이 수집은 정기 유지보수의 2단계입니다. 앞뒤 단계(도서관 목록 확인, 서비스 DB로 가져오기)는 [README.md](README.md).
 
+**수집 전 점검 (사이클 19, plan ADR-0117)**: [rules-index.md](rules-index.md) 1절(수집기 규칙)을 훑습니다. 통합 포털 새 책 목록 한 쪽을 포털마다 한 번 열어 `div.info` 칸 순서가 `PUBLISHER_FIRST_PORTAL_HOSTS`와 맞는지 확인합니다(출판사가 먼저인 곳만 상수에 있음, [platforms.md](platforms.md) 5절).
+
 | 순서 | 문서 | 무엇을 알 수 있나 |
 |---|---|---|
 | 1 | 이 문서 | 이어 받기, 명령, 문제별 대처, 새 사이트 붙이는 순서 |

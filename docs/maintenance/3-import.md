@@ -24,21 +24,22 @@
 | 수집 SQLite | 배포용 사본 `chaekcheck-data\snapshots\…sqlite` (또는 원본 `chaekcheck-data\ebook-catalog.sqlite`) | git 밖. 읽기만 함 |
 | 국가서지 TTL 폴더 | `data/nlk/ttl` (저장소 안, git에 넣지 않음) | ISBN을 붙이는 데 씀 |
 | 서비스 DB | `.env`의 개발 DB (compose 서비스 `db`) | 도서관 seed와 짝 표(`collection/002`)가 최신이어야 함. 가져오기는 짝 표로 수집 번호를 서비스 번호로 바꾸고, 그 서비스 도서관이 켜져 있고 주소(`base_url`)가 같은 줄만 받음 |
+| 규칙 파일 두 개 | `scripts/library/rules/author_publisher_swapped.tsv`, `supplier_families.tsv` (설정 `chaekcheck.collection.import.rules-dir`, 기본 `../scripts/library/rules`) | 사이클 19. 수집 사본을 열기 전에 읽고, 없거나 틀리면 멈춤. **시작 전 [rules-index.md](rules-index.md)를 훑고** "확인하는 법"이 있는 줄(특히 공급사 이름, 뒤바뀐 포털)을 봄 |
 
 ## 3. 먼저 세기만 (dry run)
 
 `backend/`에서 명령 끝에 `--chaekcheck.collection.import.dry-run=true`를 더해 실행합니다. 읽고 묶어서 숫자만 로그에 내고, DB에는 쓰지 않습니다.
 
-    ./gradlew bootRun -PbootRunXmx=6g --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.dry-run=true'
+    ./gradlew bootRun -PbootRunXmx=2g --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.dry-run=true'
 
-- **힙**: `bootRun`의 기본 `-Xmx`는 서비스용 512MB라(사이클 08), 가져오기는 `-PbootRunXmx=6g`를 줍니다. 2026-10-11 `-Xmx4g`는 첫 읽기 중 살아 있는 데이터가 4,066MB라 전체 GC만 반복하다 멈춤(못 씀). 6GB 결과는 5절 표.
+- **힙**: `bootRun`의 기본 `-Xmx`는 서비스용 512MB라(사이클 08), 가져오기는 힙을 따로 줍니다. 기본 묶는 방식 `compact`는 **`-PbootRunXmx=2g`** 로 끝납니다(사이클 18·19 확인, plan ADR-0105). **6GB(`-PbootRunXmx=6g`)는 `objects` 방식만 필요합니다**: 2026-10-11 `objects`에 `-Xmx4g`는 첫 읽기 중 살아 있는 데이터가 4,066MB라 전체 GC만 반복하다 멈춤(못 씀). 6GB 결과는 5절 표.
 - 프로필 `collection-import`는 웹 서버 없이 한 번 돌고 끝납니다(`application-collection-import.yml`). 로그인 기능은 이 프로필에서 늘 꺼집니다(웹 서버가 없어 켜면 시작하지 못함, 2026-10-05).
 - 바꿔 끼우기 설정 `chaekcheck.catalog.load.*`(8절): `lock-timeout`(기본 2s), `swap-attempts`(5), `swap-retry-wait`(10s), 가져오기 세션에만 `maintenance-work-mem`·`max-parallel-maintenance-workers`·`work-mem`(기본 = 서버 값. 2026-10-11 가져오기는 `1GB`·`4`로 돌림).
 - 설정 `chaekcheck.collection.import.*`: `sqlite-path`, `ttl-path`(비우면 국가서지 단계를 건너뜀), `dry-run`, `placeholder-date-libraries`(1950년 이전 날짜를 자리채움으로 보고 버릴 도서관의 **수집 번호**, 기본 `100555` 명지대).
   - 사이클 11: `mode`(`in-place` 기본·`export`·`apply`·`finish`·`discard`, 13절), `file`(내보낸 파일, `export`·`apply`·`finish`), `grouping`(책 묶는 방식 `compact` 기본(2026-10-12 사용자 결정)·`objects`(옛 방식, 2026-10-12까지 이름 `current`)·`sql`, ADR-0079. 세 방식은 책·번호까지 같고 힙과 시간이 다름: `compact` 힙 2GB·약 21분, `objects` 6GB·약 26분(사이클 12 새 규칙 뒤로는 살아 있는 데이터가 약 5.8GB라 6GB에서 전체 GC가 잦음, `-PbootRunXmx=8g` 권장), `sql` 1GB·약 34분이지만 DB 임시 쓰기 약 61GB), `dry-run-output`(dry run이 `books.tsv.gz`·`rows.tsv.gz`를 쓸 폴더. `scripts/catalog/compare_grouping.py dryrun`으로 두 방식을 비교).
   - 사이클 12: 묶음이 어떻게 바뀌었는지는 `python scripts/catalog/compare_grouping.py regroup <A> <B> [N]`으로 봅니다. A·B는 dry run 폴더나 `ids` 폴더(`compare_grouping.py ids`로 쓴 것)이고, 파일 이름으로 알아봅니다. 두 쪽에 다 있는 (도서관, 책 코드)로 맞대어 한쪽에만 있는 줄 수, 합쳐짐(B 한 책 ← A 여러 책)·나뉨(A 한 책 → B 여러 책)의 수와 앞 N개(기본 20, 제목·저자·출판사·ISBN·양쪽 책 번호)를 냅니다.
   - 둘 다 `ids`면 나뉨마다 A 번호를 이어 받은 B 책이 겹치는 줄이 가장 많은 책인지(ADR-0062) `yes`/`NO`로 붙습니다. 메모리는 A 줄 1,700만이면 약 0.5GB입니다. 테스트: `python -m unittest scripts/catalog/test_compare_grouping.py`.
-  - 사이클 12: `exclude-added-later-libraries`(기본 `false`, 사이클 18까지 이름 `exclude-candidate-libraries`). 켜면 사이클 07에 나중에 더한 도서관(수집 번호 100001부터)을 빼고 셉니다. 그 줄은 건너뜀 이유 `library_excluded_added_later`(사이클 18까지 `library_excluded_candidate`, 지난 `catalog_import` 기록은 옛 문자열 그대로)로 세고, 나중에 더한 도서관 수에는 넣지 않으며, 로그에 `added-later libraries excluded: N`을 남깁니다. 다른 이유로 이미 빠지는 도서관은 그 이유 그대로입니다. **dry run 전용**: `dry-run=true`가 아니면 시작하지 않습니다(진짜 가져오기에서 켜면 약 2,394곳이 서비스에서 빠지기 때문).
+  - 사이클 12: `exclude-added-later-libraries`(기본 `false`, 사이클 18까지 이름 `exclude-candidate-libraries`). 켜면 사이클 07에 나중에 더한 도서관(수집 번호 100001부터)을 빼고 셉니다. 그 줄은 건너뜀 이유 `library_excluded_added_later`(사이클 18까지 `library_excluded_candidate`, 지난 `catalog_import` 기록은 옛 문자열 그대로)로 세고, 나중에 더한 도서관 수에는 넣지 않으며, 로그에 `added-later libraries excluded: N`을 남깁니다. 다른 이유로 이미 빠지는 도서관은 그 이유 그대로입니다. **dry run 전용**: `dry-run=true`가 아니면 시작하지 않습니다(진짜 가져오기에서 켜면 약 2,370곳이 서비스에서 빠지기 때문, 가져오기 기록 11번의 나중에 더한 도서관 수).
   - 사이클 11: `chaekcheck.catalog.load.pg-command`(PostgreSQL 18 도구를 부르는 명령 앞부분, 쉼표로 나눔, 13-1). 커밋되는 파일에는 넣지 않고 명령 인자나 `.env`로 줍니다.
   - 사이클 11 측정: `-PbootRunJvmArgs="…"`로 Java 옵션을 더합니다(공백으로 나눔, `-PbootRunXmx`는 그대로).
 - 사이클 04의 프로필 `catalog-import`, 설정 `chaekcheck.catalog.import.*`는 없어졌습니다.
@@ -150,8 +151,21 @@
 | 묶기·대표값·날짜 규칙을 고침 | 새 코드로 가져오기 → 바꿔 끼우기. 서비스는 그대로 |
 | 검색어 다듬기 규칙을 고침 | 옛 서비스 켜 둔 채 새 코드로 가져오기 → 바꿔 끼우자마자 서비스를 새 코드로 다시 켬 |
 
+- 저자 정리(`catalog.normalize`의 `Contributors`: 기호 떼기, 붙은 역할 낱말, 사이클 19)를 고치면 세 번째 줄입니다. 저장 이름과 저자 검색어가 같은 규칙을 씁니다.
+
 - 세 번째 줄의 이유: 저장된 `title_norm` 같은 다듬은 값과 서비스가 검색어를 다듬는 방법이 같아야 찾힙니다. 바꿔 끼운 뒤 옛 서비스가 새 규칙의 표를 읽는 시간을 짧게 합니다.
 - 예: 사이클 12의 ④ 같은 글자 규칙 바꿈(plan ADR-0082, 비교 제목 + 권 표시 + 첫 저자 + 출판사, 같은 키 안에서 ISBN이 둘 이상이면 판마다 나눔, 자리 채움 값은 값 없음)은 두 번째 줄입니다. `catalog`의 다듬기 함수와 검색은 그대로라 새 코드로 가져와 바꿔 끼우고, 서비스는 다시 켜지 않습니다. 묶음이 얼마나 바뀌었는지는 가져오기 전 `compare_grouping.py ids db <before> catalog`로 지금 번호를 받아 두고, 뒤에 `regroup <before> <after>`로 봅니다(3절). 바꿔 끼운 뒤에는 옛 번호 파일을 다시 만들 수 없습니다.
+
+### 12-1. 뒤바뀜 규칙 줄 지우기 (사이클 19, plan ADR-0115)
+
+`author_publisher_swapped.tsv`의 포털은 수집기가 저자·출판사를 바꿔 넣던 곳입니다. 고친 수집기(`PUBLISHER_FIRST_PORTAL_HOSTS`)를 main에 합친 날이 `swap_before`입니다. 그날 이후에 수집한 사본을 가져오면 다음처럼 멈춥니다.
+
+    collection library 11 was collected at …, on or after swap_before … of author_publisher_swapped.tsv: before removing its row, check the copy with scripts/library/check_author_publisher_swap.py
+
+1. 줄을 그냥 지우지 않습니다.
+2. 그 사본으로 `python scripts/library/check_author_publisher_swap.py <사본.sqlite>`를 돌립니다. 포털 도서관마다 "바름 / 뒤바뀜 / 판단 못 함"과 줄 수를 냅니다.
+3. 파일에 있는 도서관이 모두 **"바름"** 이면 그 줄들을 지우고(머리 줄은 남김) 커밋한 뒤 다시 가져옵니다.
+4. "바름"이 아닌 곳이 있으면 지우지 않고 사용자에게 묻습니다(수집기 상수나 사이트 칸 순서를 다시 봐야 함, [rules-index.md](rules-index.md) 1절).
 
 ## 13. 따로 하기: 내 PC에서 가져오고 운영 DB에는 파일로 반영 (사이클 11, plan ADR-0078)
 
@@ -174,7 +188,7 @@
 
 1. **내 PC 내보내기** (`export`): 수집 사본으로 가져오기를 돌려 `catalog_next`를 채우고 파일 하나를 만듭니다. 내 PC 검색은 그대로입니다. `catalog_next`는 남아 "기다림"이 됩니다. 기록 줄은 남기지 않고 로그에 파일 경로·크기·`export_id`를 냅니다.
 
-        ./gradlew bootRun -PbootRunXmx=6g --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.mode=export --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/<사본>.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.file=../data/cycle11/<이름>.dump --chaekcheck.catalog.load.pg-command=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck,exec,-T,db'
+        ./gradlew bootRun -PbootRunXmx=2g --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.mode=export --chaekcheck.collection.import.sqlite-path=../../chaekcheck-data/snapshots/<사본>.sqlite --chaekcheck.collection.import.ttl-path=../data/nlk/ttl --chaekcheck.collection.import.file=../data/cycle11/<이름>.dump --chaekcheck.catalog.load.pg-command=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck,exec,-T,db'
 
 2. **파일을 운영 쪽으로 옮김** (손으로. 인터넷으로 보내는 기능은 없음).
 3. **운영 반영** (`apply`): 운영 DB에 붙여 돌립니다. 반영 연결의 `maintenance_work_mem`은 256MB입니다 [확정] (handoff C4. 1GB면 상한 512MB 컨테이너가 `OOMKilled`된 사례가 있음, 사이클 08).

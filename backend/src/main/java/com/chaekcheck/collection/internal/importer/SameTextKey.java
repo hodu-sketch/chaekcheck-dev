@@ -34,20 +34,30 @@ import com.chaekcheck.catalog.normalize.Contributors.Role;
  */
 final class SameTextKey {
 
-	/** Placeholder authors (by {@link Contributor#nameExact}); "." already has no exact name (R2-2 [확정]). */
+	/**
+	 * Placeholder authors (by {@link Contributor#nameExact}); "." already has no exact name (R2-2 [확정]). Rule:
+	 * docs/maintenance/rules-index.md "PLACEHOLDER_AUTHORS".
+	 */
 	static final Set<String> PLACEHOLDER_AUTHORS = Set.of("기타", "unknown");
 
-	/** Placeholder publishers (by {@link CatalogText#publisherNorm}); "." already has none (R2-2 [확정]). */
+	/**
+	 * Placeholder publishers (by {@link CatalogText#publisherNorm}); "." already has none (R2-2 [확정]). Rule:
+	 * docs/maintenance/rules-index.md "PLACEHOLDER_PUBLISHERS".
+	 */
 	static final Set<String> PLACEHOLDER_PUBLISHERS = Set.of("기타", "미상", "unknown");
 
-	/** Edition words of the volume marks (R3-2 [확정]); the longest are found first. */
+	/**
+	 * Edition words of the volume marks (R3-2 [확정]); the longest are found first. Rule:
+	 * docs/maintenance/rules-index.md "EDITION_WORDS".
+	 */
 	static final List<String> EDITION_WORDS = List.of("개정", "증보", "전면개정", "특별판", "기념판", "리커버", "완결", "외전",
 			"합본", "세트", "시즌");
 
 	/**
 	 * Notes taken off the title's end and out of the volume marks (R3-3), as written on the sites; compared normalized
 	 * ({@link CatalogText#norm}). Usage notes and series names one publisher put on the same work [확정] (사용자
-	 * 2026-10-12, cycle 12 step 12, candidates in plan-feedback "# 사이클 12").
+	 * 2026-10-12, cycle 12 step 12, candidates in plan-feedback "# 사이클 12"). Rule: docs/maintenance/rules-index.md
+	 * "TAILS".
 	 */
 	static final List<String> TAILS = List.of("(PC만 열람 가능)", "(스마트 패드 전용)", "(잠 못 이루는 밤을 위해)",
 			"(한국인이 가장 좋아하는 단편소설)");

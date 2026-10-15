@@ -12,12 +12,14 @@ import com.chaekcheck.collection.internal.SiteHosts;
  */
 public final class HoldingRowFilter {
 
-	/** Kinds never imported [확정]. The user chose to import KIDS_BOOK, PAPER and UNKNOWN (2026-09-30). */
+	/** Kinds never imported [확정]. The user chose to import KIDS_BOOK, PAPER and UNKNOWN (2026-09-30). Rule:
+	 * docs/maintenance/rules-index.md "EXCLUDED_KINDS". */
 	public static final Set<String> EXCLUDED_KINDS = Set.of("AUDIOBOOK", "VIDEO_BOOK");
 
 	/**
 	 * Site labels of sound and video files the content type does not catch [확정] (ADR-0054, Q2): Bookcube's file
-	 * kinds {@code book/wma}, {@code book/vod}, {@code book/wmv} and Kyobo's {@code 동영상}.
+	 * kinds {@code book/wma}, {@code book/vod}, {@code book/wmv} and Kyobo's {@code 동영상}. Rule:
+	 * docs/maintenance/rules-index.md "SOUND_VIDEO_KINDS".
 	 */
 	public static final Set<String> SOUND_VIDEO_KINDS = Set.of("book/wma", "book/vod", "book/wmv", "동영상");
 

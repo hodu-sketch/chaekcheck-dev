@@ -46,6 +46,7 @@ interface BookGrouper extends AutoCloseable {
 	/**
 	 * Screen kinds whose item keys are one shared numbering. Sites may change their numbering, so this is checked
 	 * again with every library list check (docs/library-maintenance.md 4-11, scripts/library/check_code_spaces.py).
+	 * Rule: docs/maintenance/rules-index.md "SHARED_CODE_KINDS".
 	 */
 	Set<String> SHARED_CODE_KINDS = Set.of("KYOBO_V1", "KYOBO_SUBSCRIPTION_V1", "YES24_V1", "YES24_V2", "YES24_V3");
 
