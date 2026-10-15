@@ -70,10 +70,13 @@ class CatalogImportRunner {
 	 * from the service. Named {@code exclude-candidate-libraries} until cycle 18
 	 * @param rulesDir the rules folder ({@code scripts/library/rules}, cycle 19 {@link ImportRules}); read by the modes
 	 * that read a collection DB ({@code in-place}, dry run, {@code export}), before the DB is opened
+	 * @param storedBibliography step ③ from the stored national bibliography records without the TTL files (cycle 19:
+	 * the TTL files were lost on 2026-10-15, user choice 2026-10-16); only without {@code ttl-path}
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
-			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir) {
+			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir,
+			boolean storedBibliography) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
@@ -102,6 +105,9 @@ class CatalogImportRunner {
 			if ((mode.equals("export") || mode.equals("apply") || mode.equals("finish")) && file == null) {
 				throw new IllegalStateException("Set chaekcheck.collection.import.file for mode " + mode);
 			}
+			if (storedBibliography && ttlPath != null) {
+				throw new IllegalStateException("Set either ttl-path or stored-bibliography, not both");
+			}
 			if (dryRun && !mode.equals("in-place")) {
 				throw new IllegalStateException("dry-run is a read of mode in-place; mode " + mode + " has none");
 			}
@@ -129,7 +135,8 @@ class CatalogImportRunner {
 				.grouping(groupers(settings.grouping(), dataSource))
 				.dryRunOutput(settings.dryRunOutput())
 				.excludeAddedLaterLibraries(settings.excludeAddedLaterLibraries())
-				.rules(rules);
+				.rules(rules)
+				.storedBibliography(settings.storedBibliography());
 			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, libraryRegistry, jdbc,
 					transactionManager, records, Clock.systemUTC());
 			switch (settings.mode()) {

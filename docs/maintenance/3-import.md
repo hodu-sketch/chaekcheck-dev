@@ -23,6 +23,7 @@
 |---|---|---|
 | 수집 SQLite | 배포용 사본 `chaekcheck-data\snapshots\…sqlite` (또는 원본 `chaekcheck-data\ebook-catalog.sqlite`) | git 밖. 읽기만 함 |
 | 국가서지 TTL 폴더 | `data/nlk/ttl` (저장소 안, git에 넣지 않음) | ISBN을 붙이는 데 씀 |
+| (TTL이 없을 때) 저장된 국가서지 표 | 설정 `chaekcheck.collection.import.stored-bibliography=true`(`ttl-path`는 비움) | 사이클 19: TTL 파일이 2026-10-15에 지워져, 마지막으로 풀어 둔 원문 표(`collection.national_bibliography_record`, 2026-10-11, `book_ttl_20260807`)를 그대로 읽음(사용자 결정 2026-10-16). 표가 비어 있으면 멈춤. 새 TTL을 받으면 다시 `ttl-path`를 씀 |
 | 서비스 DB | `.env`의 개발 DB (compose 서비스 `db`) | 도서관 seed와 짝 표(`collection/002`)가 최신이어야 함. 가져오기는 짝 표로 수집 번호를 서비스 번호로 바꾸고, 그 서비스 도서관이 켜져 있고 주소(`base_url`)가 같은 줄만 받음 |
 | 규칙 파일 두 개 | `scripts/library/rules/author_publisher_swapped.tsv`, `supplier_families.tsv` (설정 `chaekcheck.collection.import.rules-dir`, 기본 `../scripts/library/rules`) | 사이클 19. 수집 사본을 열기 전에 읽고, 없거나 틀리면 멈춤. **시작 전 [rules-index.md](rules-index.md)를 훑고** "확인하는 법"이 있는 줄(특히 공급사 이름, 뒤바뀐 포털)을 봄 |
 

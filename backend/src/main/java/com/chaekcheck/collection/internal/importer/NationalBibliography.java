@@ -55,6 +55,23 @@ final class NationalBibliography {
 	 * ISBN-13 for each wanted key that exactly one record with one ISBN matches. Sets the report's
 	 * {@code nationalBibliographyNormalize} (time spent making keys) and {@code nationalBibliographyReused}.
 	 */
+	/**
+	 * {@link #lookup} from the stored records alone, without the TTL files (cycle 19: the TTL files were lost on
+	 * 2026-10-15; the user chose to read the stored table, 2026-10-16). Stops when nothing is stored.
+	 */
+	static Map<String, String> lookupStored(Set<String> wantedKeys, NationalBibliographyStore store,
+			ImportReport report) throws SQLException {
+		if (store.fingerprint() == null) {
+			throw new IllegalStateException("No stored national bibliography records; give ttl-path instead");
+		}
+		Matching matching = new Matching(wantedKeys, report);
+		report.nationalBibliographyReused = true;
+		store.forEach(matching::add);
+		report.nationalBibliographyNormalize = Duration.ofNanos(matching.normalizeNanos);
+		matching.found.values().removeIf(isbn -> isbn.equals(AMBIGUOUS));
+		return matching.found;
+	}
+
 	static Map<String, String> lookup(Path ttlDirectory, Set<String> wantedKeys, NationalBibliographyStore store,
 			Clock clock, ImportReport report) throws IOException, SQLException {
 		List<Path> files;

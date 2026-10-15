@@ -90,6 +90,14 @@ class CatalogImporter {
 		return this;
 	}
 
+	/** Step ③ from the stored records when no TTL folder is given (cycle 19, {@link NationalBibliography#lookupStored}). */
+	private boolean storedBibliography;
+
+	CatalogImporter storedBibliography(boolean stored) {
+		this.storedBibliography = stored;
+		return this;
+	}
+
 	/** The rules files (cycle 19, {@link ImportRules}); none unless set. The import runner reads them from rules-dir. */
 	private ImportRules rules = ImportRules.NONE;
 
@@ -104,7 +112,8 @@ class CatalogImporter {
 	}
 
 	/**
-	 * @param ttlDirectory folder with the unzipped national bibliography {@code .ttl} files; null skips step ③
+	 * @param ttlDirectory folder with the unzipped national bibliography {@code .ttl} files; null skips step ③, or
+	 * reads the stored records with {@link #storedBibliography}
 	 * @param dryRun read and group only; nothing is written to the database
 	 */
 	ImportReport run(Path sqlite, Path ttlDirectory, boolean dryRun) throws SQLException, IOException {
@@ -149,6 +158,12 @@ class CatalogImporter {
 				Set<String> keys = grouping.bibliographyKeys();
 				log.info("national bibliography lookup for {} keys", keys.size());
 				Map<String, String> isbns = NationalBibliography.lookup(ttlDirectory, keys, bibliography, clock, report);
+				grouping.attachBibliography(isbns, report);
+			}
+			else if (storedBibliography) {
+				Set<String> keys = grouping.bibliographyKeys();
+				log.info("national bibliography lookup for {} keys (stored records)", keys.size());
+				Map<String, String> isbns = NationalBibliography.lookupStored(keys, bibliography, report);
 				grouping.attachBibliography(isbns, report);
 			}
 			else {

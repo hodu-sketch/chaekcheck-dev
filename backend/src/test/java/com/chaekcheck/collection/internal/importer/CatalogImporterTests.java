@@ -243,6 +243,13 @@ class CatalogImporterTests {
 			.query(Long.class)
 			.single()).isEqualTo(2);
 		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isEqualTo(9);
+
+		// cycle 19: step ③ from the stored records alone (no TTL files) gives what the TTL import gave
+		ImportReport stored = importer(Set.of()).storedBibliography(true).run(sqlite, null, false);
+		assertThat(stored.nationalBibliographyReused).isTrue();
+		assertThat(stored.nationalBibliographyIsbnAttached).isEqualTo(report.nationalBibliographyIsbnAttached)
+			.isPositive();
+		assertThat(stored.books).isEqualTo(report.books);
 	}
 
 	/**
