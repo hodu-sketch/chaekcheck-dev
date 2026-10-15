@@ -151,8 +151,9 @@ class UsageRecordingTests {
 				List.of(ok, error, timeout, cached), List.of(), null, null);
 		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
 
+		// the cached answer counts only as CACHED and writes no line (cycle 19, ADR-0116)
 		assertThat(usageLog.answers).containsExactlyInAnyOrder("1 DIRECT_SEARCH OK", "2 DIRECT_SEARCH FAILED",
-				"3 DIRECT_SEARCH TIMEOUT");
+				"3 DIRECT_SEARCH TIMEOUT", "4 DIRECT_SEARCH CACHED");
 		assertThat(output).containsPattern("library=1 source=direct_search result=ok ms=\\d+")
 			.containsPattern("library=2 source=direct_search result=failed ms=\\d+ error=HTTP 500")
 			.containsPattern("library=3 source=direct_search result=timeout ms=\\d+")
@@ -198,7 +199,7 @@ class UsageRecordingTests {
 				List.of(), null);
 		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
 
-		assertThat(usageLog.answers).containsExactly("1 HOLDING_FILL OK");
+		assertThat(usageLog.answers).containsExactlyInAnyOrder("1 HOLDING_FILL OK", "1 HOLDING_FILL CACHED");
 		assertThat(usageLog.bookViews).isZero();
 	}
 

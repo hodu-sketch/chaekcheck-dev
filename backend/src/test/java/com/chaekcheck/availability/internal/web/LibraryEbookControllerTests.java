@@ -284,14 +284,16 @@ class LibraryEbookControllerTests {
 	}
 
 	@Test
-	void cachedPageIsNotALibraryRequest() {
+	void cachedPageCountsOnlyAsCached() { // cycle 19, ADR-0116
 		given(libraryCatalog.findEnabledTarget(2)).willReturn(Optional.of(GOHEUNG));
 		given(fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 1)).willReturn(new LibraryPage(2, "사랑", 1, 50, 0, false,
 				Instant.now(), true, 30, null, "https://www.ghlib.go.kr:446/x", List.of()));
 
 		assertThat(mvc.get().uri(URL + "?title=사랑", 2).exchange()).hasStatusOk();
 
-		verify(usageLog, never()).recordLibraryResponse(anyLong(), any(), any(), anyLong());
+		verify(usageLog).recordLibraryResponse(2L, UsageLog.ResponseSource.DIRECT_SEARCH,
+				UsageLog.ResponseResult.CACHED, 0);
+		verify(usageLog, never()).recordLibraryResponse(anyLong(), any(), eq(UsageLog.ResponseResult.OK), anyLong());
 	}
 
 	@Test

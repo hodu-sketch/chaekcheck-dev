@@ -59,14 +59,17 @@ class UsageLogBufferTests {
 		buffer.addResponse(day, 7, ResponseSource.DIRECT_SEARCH, ResponseResult.TIMEOUT, 8000);
 		buffer.addResponse(day, 7, ResponseSource.DIRECT_SEARCH, ResponseResult.SKIPPED, 0);
 		buffer.addResponse(day, 7, ResponseSource.HOLDING_FILL, ResponseResult.OK, 30);
+		// cycle 19: a cached answer counts only in cached, its time is ignored
+		buffer.addResponse(day, 7, ResponseSource.DIRECT_SEARCH, ResponseResult.CACHED, 5000);
+		buffer.addResponse(day, 7, ResponseSource.HOLDING_FILL, ResponseResult.CACHED, 0);
 
 		UsageBuffer.Batch batch = buffer.drain();
 
 		assertThat(batch.responses()).containsEntry(
 				new UsageBuffer.ResponseKey(day, 7, ResponseSource.DIRECT_SEARCH),
-				new UsageBuffer.ResponseTotals(2, 1, 1, 1, 1020, 900));
+				new UsageBuffer.ResponseTotals(2, 1, 1, 1, 1020, 900, 1));
 		assertThat(batch.responses()).containsEntry(new UsageBuffer.ResponseKey(day, 7, ResponseSource.HOLDING_FILL),
-				new UsageBuffer.ResponseTotals(1, 0, 0, 0, 30, 30));
+				new UsageBuffer.ResponseTotals(1, 0, 0, 0, 30, 30, 1));
 		assertThat(batch.rows()).isEmpty();
 	}
 

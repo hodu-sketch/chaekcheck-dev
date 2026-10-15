@@ -59,15 +59,16 @@ public class UsageLogWriter {
 
 	static final String UPSERT_RESPONSE = """
 			INSERT INTO usagelog.library_response_daily AS d (day, library_id, source, ok_count, failed_count,
-			  timeout_count, skipped_count, ok_ms_total, ok_ms_max)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			  timeout_count, skipped_count, ok_ms_total, ok_ms_max, cached_count)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT (day, library_id, source) DO UPDATE SET
 			  ok_count = d.ok_count + EXCLUDED.ok_count,
 			  failed_count = d.failed_count + EXCLUDED.failed_count,
 			  timeout_count = d.timeout_count + EXCLUDED.timeout_count,
 			  skipped_count = d.skipped_count + EXCLUDED.skipped_count,
 			  ok_ms_total = d.ok_ms_total + EXCLUDED.ok_ms_total,
-			  ok_ms_max = GREATEST(d.ok_ms_max, EXCLUDED.ok_ms_max)""";
+			  ok_ms_max = GREATEST(d.ok_ms_max, EXCLUDED.ok_ms_max),
+			  cached_count = d.cached_count + EXCLUDED.cached_count""";
 
 	private final JdbcTemplate jdbc;
 
@@ -167,6 +168,7 @@ public class UsageLogWriter {
 				ps.setInt(7, t.skipped());
 				ps.setLong(8, t.okMsTotal());
 				ps.setInt(9, t.okMsMax());
+				ps.setInt(10, t.cached());
 			});
 			batch(INSERT_DROPPED, dropped, (ps, d) -> {
 				time(ps, 1, d.droppedAt());

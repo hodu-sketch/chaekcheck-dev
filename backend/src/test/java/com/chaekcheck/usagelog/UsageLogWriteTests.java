@@ -121,10 +121,13 @@ class UsageLogWriteTests {
 		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.OK, 700);
 		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.SKIPPED, 0);
 		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.FAILED, 20);
+		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.CACHED, 9000);
+		flusher.flush();
+		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.CACHED, 0);
 		flusher.flush();
 
 		Map<String, Object> line = jdbc.sql("""
-				SELECT ok_count, failed_count, timeout_count, skipped_count, ok_ms_total, ok_ms_max
+				SELECT ok_count, failed_count, timeout_count, skipped_count, ok_ms_total, ok_ms_max, cached_count
 				FROM usagelog.library_response_daily WHERE day = ? AND library_id = ? AND source = 'holding_fill'""")
 			.params(day, enabledLibrary)
 			.query()
@@ -134,7 +137,8 @@ class UsageLogWriteTests {
 			.containsEntry("timeout_count", 1)
 			.containsEntry("skipped_count", 1)
 			.containsEntry("ok_ms_total", 800L)
-			.containsEntry("ok_ms_max", 700);
+			.containsEntry("ok_ms_max", 700)
+			.containsEntry("cached_count", 2);
 	}
 
 	@Test

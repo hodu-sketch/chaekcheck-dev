@@ -106,6 +106,12 @@ class UsageLogSchemaTests {
 				+ "VALUES (DATE '2026-10-14', 1, 'collector')").update());
 		violates(() -> jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source, ok_count) "
 				+ "VALUES (DATE '2026-10-14', 1, 'direct_search', -1)").update());
+		// cycle 19 (ADR-0116): cached_count is 0 by default and never negative
+		violates(() -> jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source, cached_count) "
+				+ "VALUES (DATE '2026-10-14', 1, 'direct_search', -1)").update());
+		assertThat(jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source) "
+				+ "VALUES (DATE '2026-10-15', 3, 'direct_search') RETURNING cached_count").query(Integer.class).single())
+			.isZero();
 	}
 
 	private void search(String kind, String title, String exact, String roles, String sort, String filter,

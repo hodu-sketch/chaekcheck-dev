@@ -111,3 +111,7 @@ databaseChangeLog:
   - include:
       file: usagelog/001-usagelog-schema.yaml
       relativeToChangelogFile: true
+  # cycle 19: usage log cached answers (ADR-0116)
+  - include:
+      file: usagelog/002-library-response-cached-count.yaml
+      relativeToChangelogFile: true

@@ -88,12 +88,18 @@ class LibraryEbookController {
 		}
 	}
 
-	/** The library request, counted for the usage log and logged as one line (answers from the cache are not). */
+	/**
+	 * The library request, counted for the usage log and logged as one line; an answer from the cache counts only as
+	 * CACHED, without a line (cycle 19, ADR-0116).
+	 */
 	private LibraryPage fetch(SearchTarget target, SearchQuery query, int pageNumber) {
 		long started = System.nanoTime();
 		try {
 			LibraryPage fetched = fetcher.fetch(target, query, pageNumber);
-			if (!fetched.cached()) {
+			if (fetched.cached()) {
+				usageLog.recordLibraryResponse(target.id(), ResponseSource.DIRECT_SEARCH, ResponseResult.CACHED, 0);
+			}
+			else {
 				answered(target.id(), ResponseResult.OK, started, null);
 			}
 			return fetched;

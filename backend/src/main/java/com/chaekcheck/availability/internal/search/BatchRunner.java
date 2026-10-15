@@ -67,8 +67,8 @@ import com.chaekcheck.usagelog.UsageLog.ResponseSource;
  * library answers and written as one INFO line {@code library=… source=… result=… ms=…}: OK, FAILED
  * ({@code UpstreamException.Kind.ERROR}), TIMEOUT (its own timeout, or answered after the batch deadline), and
  * SKIPPED for each candidate not sent by the launch cutoff (plan C5). A request the fetch service sends again is one
- * request, measured from the first send to the last answer. Requests still count after the browser left; answers
- * from the cache are not requests and are not counted.
+ * request, measured from the first send to the last answer. Requests still count after the browser left. Answers
+ * from the cache are not requests: they are counted only as CACHED (cycle 19, ADR-0116), without a log line.
  */
 public class BatchRunner {
 
@@ -329,11 +329,12 @@ public class BatchRunner {
 
 	/**
 	 * One request to a library ended: the usage log's daily count and one log line (cycle 15). An answer from the
-	 * 3-minute cache sent no request to the library, so it is not counted.
+	 * 3-minute cache sent no request to the library: it counts only as CACHED, with no log line (cycle 19, ADR-0116).
 	 */
 	private void answered(long libraryId, ResponseSource source, Instant requestedAt, Instant deadline, Throwable ex,
 			boolean fromCache) {
 		if (fromCache) {
+			usageLog.recordLibraryResponse(libraryId, source, ResponseResult.CACHED, 0);
 			return;
 		}
 		try {

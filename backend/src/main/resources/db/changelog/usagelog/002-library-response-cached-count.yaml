@@ -1,0 +1,13 @@
+# Cycle 19 (ADR-0116): library answers from the 3-minute cache, per day, library and source. A cached answer sends
+# no request to the library, so it stays out of the other counts and the answer times. A constant default does not
+# rewrite the table (PostgreSQL 18 ALTER TABLE notes); the CHECK reads the small table once.
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-002-cached-count
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.library_response_daily
+                ADD COLUMN cached_count integer NOT NULL DEFAULT 0
+                CONSTRAINT library_response_daily_cached_count_check CHECK (cached_count >= 0)

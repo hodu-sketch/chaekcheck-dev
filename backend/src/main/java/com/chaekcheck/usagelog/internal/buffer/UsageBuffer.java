@@ -94,7 +94,8 @@ public class UsageBuffer {
 	public record ResponseKey(LocalDate day, long libraryId, ResponseSource source) {
 	}
 
-	public record ResponseTotals(int ok, int failed, int timeout, int skipped, long okMsTotal, int okMsMax) {
+	public record ResponseTotals(int ok, int failed, int timeout, int skipped, long okMsTotal, int okMsMax,
+			int cached) {
 	}
 
 	private static final class ResponseCounts {
@@ -106,6 +107,9 @@ public class UsageBuffer {
 		private int timeout;
 
 		private int skipped;
+
+		/** Answers from the cache (cycle 19, ADR-0116): no request, no time. */
+		private int cached;
 
 		private long okMsTotal;
 
@@ -122,11 +126,12 @@ public class UsageBuffer {
 				case FAILED -> failed++;
 				case TIMEOUT -> timeout++;
 				case SKIPPED -> skipped++;
+				case CACHED -> cached++;
 			}
 		}
 
 		synchronized ResponseTotals totals() {
-			return new ResponseTotals(ok, failed, timeout, skipped, okMsTotal, okMsMax);
+			return new ResponseTotals(ok, failed, timeout, skipped, okMsTotal, okMsMax, cached);
 		}
 
 	}

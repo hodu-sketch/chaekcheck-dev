@@ -33,7 +33,8 @@ public interface UsageLog {
 
 	/**
 	 * One request to a library site, counted per Seoul day of its end. Not tied to who searched, so robots count too.
-	 * @param elapsedMs from sending to the answer; kept only for {@link ResponseResult#OK}
+	 * @param elapsedMs from sending to the answer; kept only for {@link ResponseResult#OK} ({@link ResponseResult#CACHED}
+	 * sent no request, so its value is ignored)
 	 */
 	void recordLibraryResponse(long libraryId, ResponseSource source, ResponseResult result, long elapsedMs);
 
@@ -57,7 +58,11 @@ public interface UsageLog {
 
 	enum ResponseResult {
 
-		OK, FAILED, TIMEOUT, SKIPPED
+		/**
+		 * {@code CACHED} (cycle 19, ADR-0116): answered from the 3-minute cache, no request sent to the library; counted
+		 * only in {@code cached_count}, never in the answer times or the other counts.
+		 */
+		OK, FAILED, TIMEOUT, SKIPPED, CACHED
 
 	}
 
