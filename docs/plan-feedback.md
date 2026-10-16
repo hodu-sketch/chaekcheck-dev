@@ -4663,3 +4663,19 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - **옮기기 시험**: changeset `picks-002-move-librarian`의 SQL을 YAML에서 읽어 사이클 14 꼴 `pick`에 다시 돌림. 같은 달에서는 등록일 순서, NULL은 끝, recomNo는 글자 순서('9' > '10'), 모르는 코드 30·999·abc는 6~8번, 빈 이름은 "기타"인지 봄
 - `PicksFetchTests.theFetchLeavesTheOtherListsAndTheirCovers`(AC-10): 사서 받기 뒤에도 서울대 줄과 그 표지가 그대로 남고, 그 표지 주소는 요청하지 않음. 모르는 분야 999는 6번 자리에 "새분야"로 들어감
 - 빌드: `./gradlew build` 통과(4분 6초, 시험 1,012개)
+
+### 0단계 YouTube Data API (2026-10-16, 사용자 키를 plan 21이 전달)
+
+- 키: dev `.env`와 c21 `.env`에 **`CHAEKCHECK_YOUTUBE_API_KEY`** [안: 이름]로 넣음(둘 다 git 밖). 값은 어디에도 적지 않음
+- 요청 28번, 모두 `www.googleapis.com/youtube/v3`(`playlists`·`channels`·`playlistItems`의 `list`만, `search.list`·`www.youtube.com` 0건). 할당량은 호출마다 1단위로 **28단위**(하루 기본 10,000)
+- 「이달의 책」 `PLUpgTv3bu9rGxQBAMVaMvam27P0YbiY29`: 29개, 한 쪽(50개)에 다 옴, 모두 `public`. 마지막 영상은 2026-06-24 `lMx0zEd1qtY`(히스토리아 비테이)
+- **2026-10-15 뒤 새 영상 없음**(이달의 책, 업로드 모두). AC-5 기대값(첫 권 = 2026년 6월 「히스토리아 비테이」)은 그대로
+- 업로드 재생목록 ID 얻는 법(확인 필요 #4): `playlists.list?part=snippet&id=<이달의 책>`의 `snippet.channelId`(`UCuKKkBSGK4e9fuaquWXorJg`) → `channels.list?part=contentDetails&id=<채널>`의 `contentDetails.relatedPlaylists.uploads` = **`UUuKKkBSGK4e9fuaquWXorJg`**(채널 ID 앞 `UC`를 `UU`로 바꾼 값과 같음). 업로드 574개, 12쪽
+- 영상 ID 꼴(확인 필요 #3): 받은 603개가 모두 11자 `[A-Za-z0-9_-]`. 공식 문서에는 꼴이 없으므로 CHECK는 plan 지시대로 `^[A-Za-z0-9_-]{1,64}$`(근거: 관찰)
+- 책 이름 표시: 이달의 책 29개 모두 제목이나 설명에 `[ ]`·`《 》`·`〈 〉`·`『 』`·🔖 중 하나가 있음(제목·설명은 메모리에서만 셈, 파일·로그에 남기지 않음)
+- 조사 문서의 영상 31개는 모두 업로드에 있음. 이달의 책 재생목록에 없는 것은 2023-12의 둘(`tCF80BMAGOs`, `ZZuD0EDOfwY`)뿐. 2024-12 `qSGsZPWBEY0`·2025-12 `6fhNgxzKaLE` 올해의 책 영상은 이달의 책 재생목록에 들어 있음
+- **수집기 설계에 영향**(design-delta "업로드 재생목록에서 제목에 올해의 책·베스트북이 든 12월 영상")
+  - 이 규칙이 잡는 것은 2023-12-22 `tCF80BMAGOs` 하나. 2023-12-29 `ZZuD0EDOfwY`의 제목에는 "올해의"는 있으나 "올해의 책"이 없어 못 잡음
+  - 2024·2025 올해의 책 영상은 이달의 책 재생목록으로 들어오므로 이 규칙이 필요 없음
+  - 12월이 아닌 이달의 책 영상(2025-05~2026-06) 제목에도 "올해의 책"이 듦. 12월로 좁히지 않으면 업로드 쪽에서 겹쳐 잡힘(이달의 책과 같은 영상이라 해는 없음)
+  - 첫 목록 파일은 조사 문서에서 옮기므로 2023-12 둘은 이미 들어 있음. 앞으로 올해의 책이 이달의 책 재생목록 밖에만 올라오면 "올해의" 한 낱말 규칙이 필요할 수 있음 → plan 판단
