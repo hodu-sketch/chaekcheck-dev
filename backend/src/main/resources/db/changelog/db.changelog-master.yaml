@@ -117,5 +117,8 @@ databaseChangeLog:
       relativeToChangelogFile: true
   # cycle 21: recommended lists (ADR-0122, ADR-0126)
   - include:
+      file: picks/002-curated-lists.yaml
+      relativeToChangelogFile: true
+  - include:
       file: usagelog/003-screen-event-picks-list.yaml
       relativeToChangelogFile: true

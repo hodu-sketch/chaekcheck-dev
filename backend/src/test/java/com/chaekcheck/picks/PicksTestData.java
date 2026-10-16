@@ -30,13 +30,23 @@ public final class PicksTestData {
 	 */
 	public void pick(String recomNo, String drCode, String drCodeName, String recomMonth, String registeredOn,
 			String title, String author, String isbn13) {
+		// cycle 21: a librarian row of list_book; a field not stored yet goes at the end, named as the fetch would
 		jdbc.sql("""
-				INSERT INTO picks.pick (recom_no, dr_code, dr_code_name, recom_month, registered_on, title, author,
-				  isbn13)
-				VALUES (:no, :code, :name, CAST(:month AS date), CAST(:registered AS date), :title, :author, :isbn)""")
+				INSERT INTO picks.list_field (list_key, code, name, position)
+				SELECT 'librarian', :code, coalesce(nullif(:name, ''), '기타'), coalesce(max(position), 0) + 1
+				FROM picks.list_field WHERE list_key = 'librarian'
+				ON CONFLICT (list_key, code) DO NOTHING""")
+			.param("code", drCode)
+			.param("name", drCodeName == null ? "" : drCodeName)
+			.update();
+		jdbc.sql("""
+				INSERT INTO picks.list_book (list_key, field_code, position, source_no, recommended_month,
+				  registered_on, title, author, isbn13)
+				SELECT 'librarian', :code, count(*) + 1, :no, CAST(:month AS date), CAST(:registered AS date), :title,
+				  :author, :isbn
+				FROM picks.list_book WHERE list_key = 'librarian' AND field_code = :code""")
 			.param("no", recomNo)
 			.param("code", drCode)
-			.param("name", drCodeName)
 			.param("month", recomMonth + "-01")
 			.param("registered", registeredOn)
 			.param("title", title)
@@ -47,7 +57,7 @@ public final class PicksTestData {
 
 	/** Stores a cover for a pick; returns its id. */
 	public long cover(String recomNo, String sourceUrl) {
-		jdbc.sql("UPDATE picks.pick SET cover_source = :url WHERE recom_no = :no")
+		jdbc.sql("UPDATE picks.list_book SET cover_source = :url WHERE list_key = 'librarian' AND source_no = :no")
 			.param("url", sourceUrl)
 			.param("no", recomNo)
 			.update();

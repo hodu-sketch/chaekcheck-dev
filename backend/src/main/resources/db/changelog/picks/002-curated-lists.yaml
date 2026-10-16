@@ -1,0 +1,131 @@
+# Cycle 21 (ADR-0122, ADR-0123, ADR-0124, ADR-0126): the three recommended lists in one pair of tables. list_field is
+# each list's fields in display order; list_book is every list's books, split by list_key. The librarian picks keep
+# being fetched by the server and written to their own rows only; Lee Dong-jin's picks and the SNU 100 come with the
+# import (notes.listPart) and are written by CuratedListTransfer.replace, also only their rows. book_id is a value
+# (catalog.book.id), no foreign key, so the catalog swap's outside foreign key check is not touched; the librarian
+# rows leave it NULL and are matched when the cache is built (ADR-0090). cover stays as it was: a list_book row and
+# its cover are matched by cover_source = source_url.
+# The librarian picks move over from picks.pick in the same order the cache shows them (PicksCache.BOOK_ORDER), so
+# the screen is not empty after the deployment (FetchDecision rules 1 and 2), then picks.pick is dropped.
+# CHECK constraints and IDENTITY use sql changes (Liquibase OSS YAML has no CHECK).
+databaseChangeLog:
+  - changeSet:
+      id: picks-002-list-field
+      author: chaekcheck
+      changes:
+        # Librarian: the API's drCode (known and new); the other lists: the codes of scripts/crawl/lists/fields.tsv.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE picks.list_field (
+                list_key text NOT NULL CONSTRAINT list_field_list_key_check
+                  CHECK (list_key IN ('librarian', 'leedongjin', 'snu100')),
+                code text NOT NULL CONSTRAINT list_field_code_check CHECK (length(code) BETWEEN 1 AND 20),
+                name text NOT NULL CONSTRAINT list_field_name_check CHECK (length(name) >= 1),
+                position smallint NOT NULL CONSTRAINT list_field_position_check CHECK (position >= 1),
+                CONSTRAINT list_field_pkey PRIMARY KEY (list_key, code),
+                CONSTRAINT list_field_position_key UNIQUE (list_key, position)
+              )
+
+  - changeSet:
+      id: picks-002-list-book
+      author: chaekcheck
+      changes:
+        # Columns by list (design-delta "데이터"): librarian = source_no (recomNo), recommended_month, registered_on;
+        # leedongjin = recommended_month, video_id, year_book; snu100 = toc_no. The pinned_* columns are the edition
+        # the collector (or a person) chose; book_id is that edition matched at export. cover_source: the
+        # librarian's recomfilepath on www.nl.go.kr/afile/ as before (ADR-0091); the other lists' covers come from
+        # the collector, always https (it writes http addresses as https).
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE picks.list_book (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT list_book_pkey PRIMARY KEY,
+                list_key text NOT NULL,
+                field_code text NOT NULL,
+                position integer NOT NULL CONSTRAINT list_book_position_check CHECK (position >= 1),
+                title text NOT NULL,
+                author text,
+                publisher text,
+                isbn13 text CONSTRAINT list_book_isbn13_check CHECK (isbn13 ~ '^97[89][0-9]{10}$'),
+                recommended_month date CONSTRAINT list_book_recommended_month_check
+                  CHECK (EXTRACT(DAY FROM recommended_month) = 1),
+                year_book smallint CONSTRAINT list_book_year_book_check CHECK (year_book BETWEEN 2000 AND 2100),
+                video_id text CONSTRAINT list_book_video_id_check CHECK (video_id ~ '^[A-Za-z0-9_-]{1,64}$'),
+                toc_no smallint CONSTRAINT list_book_toc_no_check CHECK (toc_no BETWEEN 1 AND 100),
+                source_no text CONSTRAINT list_book_source_no_check CHECK (source_no ~ '^[0-9]{1,20}$'),
+                registered_on date,
+                pinned_title text,
+                pinned_author text,
+                pinned_publisher text,
+                pinned_isbn13 text CONSTRAINT list_book_pinned_isbn13_check
+                  CHECK (pinned_isbn13 ~ '^97[89][0-9]{10}$'),
+                book_id bigint CONSTRAINT list_book_book_id_check CHECK (book_id >= 1),
+                cover_source text,
+                CONSTRAINT list_book_field_fkey FOREIGN KEY (list_key, field_code)
+                  REFERENCES picks.list_field (list_key, code) ON DELETE CASCADE,
+                CONSTRAINT list_book_librarian_check CHECK (list_key <> 'librarian' OR (
+                  source_no IS NOT NULL AND recommended_month IS NOT NULL AND book_id IS NULL AND toc_no IS NULL
+                  AND video_id IS NULL AND year_book IS NULL
+                  AND (cover_source IS NULL OR cover_source LIKE 'https://www.nl.go.kr/afile/%'))),
+                CONSTRAINT list_book_leedongjin_check CHECK (list_key <> 'leedongjin' OR (
+                  recommended_month IS NOT NULL AND video_id IS NOT NULL AND source_no IS NULL
+                  AND registered_on IS NULL AND toc_no IS NULL
+                  AND (cover_source IS NULL OR cover_source LIKE 'https://%'))),
+                CONSTRAINT list_book_snu100_check CHECK (list_key <> 'snu100' OR (
+                  toc_no IS NOT NULL AND source_no IS NULL AND registered_on IS NULL AND recommended_month IS NULL
+                  AND video_id IS NULL AND year_book IS NULL
+                  AND (cover_source IS NULL OR cover_source LIKE 'https://%')))
+              )
+        - sql:
+            sql: CREATE INDEX list_book_field_idx ON picks.list_book (list_key, field_code)
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX list_book_snu100_toc_no_key ON picks.list_book (toc_no)
+              WHERE list_key = 'snu100'
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX list_book_librarian_source_no_key ON picks.list_book (source_no)
+              WHERE list_key = 'librarian'
+        # the cover clean-up reads every cover_source
+        - sql:
+            sql: CREATE INDEX list_book_cover_source_idx ON picks.list_book (cover_source)
+
+  - changeSet:
+      id: picks-002-move-librarian
+      author: chaekcheck
+      changes:
+        # Fields: the five known codes in the cycle 14 order (PickCategory), then the other codes in pick by
+        # KeptPicks.CODE_ORDER (numbers by value, then the rest by text) from position 6, named by the API's name or
+        # "기타" when it has none (cycle 14 R2-5, PicksCache.OTHER_NAME).
+        - sql:
+            splitStatements: false
+            sql: >-
+              INSERT INTO picks.list_field (list_key, code, name, position)
+              VALUES ('librarian', '11', '문학', 1), ('librarian', '6', '인문', 2), ('librarian', '5', '사회', 3),
+                ('librarian', '4', '자연', 4), ('librarian', '425', '테마', 5)
+        - sql:
+            splitStatements: false
+            sql: >-
+              INSERT INTO picks.list_field (list_key, code, name, position)
+              SELECT 'librarian', dr_code, coalesce(name, '기타'),
+                5 + ROW_NUMBER() OVER (ORDER BY dr_code !~ '^[0-9]{1,18}$',
+                  CASE WHEN dr_code ~ '^[0-9]{1,18}$' THEN dr_code::numeric END, dr_code)
+              FROM (SELECT dr_code, min(nullif(btrim(dr_code_name), '')) AS name
+                FROM picks.pick
+                WHERE dr_code NOT IN ('11', '6', '5', '4', '425')
+                GROUP BY dr_code) other
+        # Books: position inside a field in the cache's order (PicksCache.BOOK_ORDER: month, then registration date
+        # with unknown last, then recomNo as text, each latest first); source_no = recom_no.
+        - sql:
+            splitStatements: false
+            sql: >-
+              INSERT INTO picks.list_book (list_key, field_code, position, title, author, publisher, isbn13,
+                recommended_month, source_no, registered_on, cover_source)
+              SELECT 'librarian', dr_code,
+                ROW_NUMBER() OVER (PARTITION BY dr_code
+                  ORDER BY recom_month DESC, registered_on DESC NULLS LAST, recom_no COLLATE "C" DESC),
+                title, author, publisher, isbn13, recom_month, recom_no, registered_on, cover_source
+              FROM picks.pick
+        - sql:
+            sql: DROP TABLE picks.pick

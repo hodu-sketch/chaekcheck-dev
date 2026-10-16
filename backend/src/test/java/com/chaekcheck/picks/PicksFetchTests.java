@@ -96,21 +96,21 @@ class PicksFetchTests {
 	void successStoresTheLatestTwelveMonthsAndTheirCovers(CapturedOutput output) { // AC-12, AC-17
 		fetchJob.fetch(FetchTrigger.STARTUP);
 
-		long covers = count("SELECT count(DISTINCT cover_source) FROM picks.pick");
+		long covers = count("SELECT count(DISTINCT cover_source) FROM picks.list_book");
 		Map<String, Object> run = lastRun();
 		assertThat(run).containsEntry("status", "SUCCEEDED")
 			.containsEntry("trigger", "STARTUP")
 			.containsEntry("changed", true)
 			.containsEntry("received_count", 108)
 			.containsEntry("kept_count", 108)
-			.containsEntry("missing_isbn_count", (int) count("SELECT count(*) FROM picks.pick WHERE isbn13 IS NULL"))
+			.containsEntry("missing_isbn_count", (int) count("SELECT count(*) FROM picks.list_book WHERE list_key = 'librarian' AND isbn13 IS NULL"))
 			.containsEntry("cover_fetched_count", (int) covers)
 			.containsEntry("cover_failed_count", 0)
 			.containsEntry("request_count", 1 + (int) covers);
 		assertThat(run.get("failure_reason")).isNull();
 		assertThat(run.get("new_category_codes")).isNull();
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
-		assertThat(jdbc.sql("SELECT DISTINCT to_char(recom_month, 'YYYY-MM') FROM picks.pick ORDER BY 1")
+		assertThat(count("SELECT count(*) FROM picks.list_book")).isEqualTo(108);
+		assertThat(jdbc.sql("SELECT DISTINCT to_char(recommended_month, 'YYYY-MM') FROM picks.list_book ORDER BY 1")
 			.query(String.class)
 			.list()).containsExactly("2024-12", "2025-02", "2025-04", "2025-06", "2025-08", "2025-10", "2025-12", "2026-02",
 					"2026-04", "2026-06", "2026-08", "2026-10");
@@ -143,7 +143,32 @@ class PicksFetchTests {
 			.containsEntry("request_count", 1)
 			.containsEntry("cover_fetched_count", 0);
 		assertThat(nlk.requests()).hasSize(1);
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
+		assertThat(count("SELECT count(*) FROM picks.list_book")).isEqualTo(108);
+	}
+
+	@Test
+	void theFetchLeavesTheOtherListsAndTheirCovers() { // cycle 21 AC-10 (ADR-0122)
+		jdbc.sql("INSERT INTO picks.list_field (list_key, code, name, position) VALUES ('snu100', 'korean_lit', '한국문학', 1)")
+			.update();
+		jdbc.sql("""
+				INSERT INTO picks.list_book (list_key, field_code, position, title, toc_no, book_id, cover_source)
+				VALUES ('snu100', 'korean_lit', 3, '구운몽', 3, 77, 'https://image.yes24.com/goods/3/M')""").update();
+		jdbc.sql("""
+				INSERT INTO picks.cover (source_url, content_type, image, byte_size, fetched_at)
+				VALUES ('https://image.yes24.com/goods/3/M', 'image/jpeg', '\\x01', 1, now())""").update();
+
+		fetchJob.fetch(FetchTrigger.SCHEDULED);
+
+		assertThat(lastRun()).containsEntry("status", "SUCCEEDED").containsEntry("changed", true);
+		assertThat(jdbc.sql("""
+				SELECT title || ':' || toc_no || ':' || book_id FROM picks.list_book WHERE list_key = 'snu100'""")
+			.query(String.class)
+			.list()).containsExactly("구운몽:3:77");
+		assertThat(count("SELECT count(*) FROM picks.cover WHERE source_url = 'https://image.yes24.com/goods/3/M'"))
+			.isEqualTo(1);
+		// the new librarian covers only: the other list's cover was not requested
+		assertThat(nlk.requests()).extracting(URI::getHost).doesNotContain("image.yes24.com");
+		assertThat(count("SELECT count(*) FROM picks.list_book WHERE list_key = 'librarian'")).isEqualTo(108);
 	}
 
 	@Test
@@ -160,7 +185,7 @@ class PicksFetchTests {
 			.containsEntry("request_count", 1)
 			.containsEntry("kept_count", 0);
 		assertThat(lastRun().get("changed")).isNull();
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
+		assertThat(count("SELECT count(*) FROM picks.list_book")).isEqualTo(108);
 		assertThat(output).contains("ERROR").contains("picks fetch (RETRY) failed: no_books");
 	}
 
@@ -173,7 +198,7 @@ class PicksFetchTests {
 		assertThat(lastRun()).containsEntry("status", "FAILED")
 			.containsEntry("failure_reason", "request_rejected")
 			.containsEntry("failure_detail", "HTTP 401");
-		assertThat(count("SELECT count(*) FROM picks.pick")).isZero();
+		assertThat(count("SELECT count(*) FROM picks.list_book")).isZero();
 		assertThat(output).contains("ERROR").doesNotContain(KEY);
 
 		nlk.listXml("<?xml version=\"1.0\"?><error><error_code>010</error_code></error>");
@@ -191,7 +216,11 @@ class PicksFetchTests {
 		fetchJob.fetch(FetchTrigger.SCHEDULED);
 
 		assertThat(lastRun()).containsEntry("status", "SUCCEEDED").containsEntry("new_category_codes", "999");
-		assertThat(count("SELECT count(*) FROM picks.pick WHERE dr_code = '999'")).isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM picks.list_book WHERE field_code = '999'")).isEqualTo(1);
+		// cycle 21: the new field goes after the five known ones, named by the API
+		assertThat(jdbc.sql("SELECT name || ':' || position FROM picks.list_field WHERE code = '999'")
+			.query(String.class)
+			.single()).isEqualTo("새분야:6");
 	}
 
 	@Test
@@ -210,7 +239,7 @@ class PicksFetchTests {
 		assertThat(lastRun()).containsEntry("status", "SUCCEEDED")
 			.containsEntry("cover_failed_count", 5)
 			.containsEntry("cover_fetched_count", sources.size() - 5);
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
+		assertThat(count("SELECT count(*) FROM picks.list_book")).isEqualTo(108);
 		assertThat(jdbc.sql("SELECT DISTINCT content_type FROM picks.cover").query(String.class).list())
 			.containsExactly("image/jpeg");
 		assertThat(count("SELECT count(*) FROM picks.cover WHERE byte_size <> octet_length(image)")).isZero();
@@ -232,17 +261,17 @@ class PicksFetchTests {
 		fetchJob.fetch(FetchTrigger.SCHEDULED);
 
 		long added = jdbc.sql("""
-				SELECT count(DISTINCT cover_source) FROM picks.pick WHERE recom_no = ANY(CAST(:nos AS text[]))""")
+				SELECT count(DISTINCT cover_source) FROM picks.list_book WHERE list_key = 'librarian' AND source_no = ANY(CAST(:nos AS text[]))""")
 			.param("nos", recomNos(items.subList(30, 52)))
 			.query(Long.class)
 			.single();
 		assertThat(nlk.requests()).hasSize(1 + (int) added);
 		assertThat(lastRun()).containsEntry("changed", true).containsEntry("cover_fetched_count", (int) added);
 		assertThat(count("SELECT count(*) FROM picks.cover")).isEqualTo(count(
-				"SELECT count(DISTINCT cover_source) FROM picks.pick")).isLessThan(first + added);
+				"SELECT count(DISTINCT cover_source) FROM picks.list_book")).isLessThan(first + added);
 		assertThat(count("""
 				SELECT count(*) FROM picks.cover c
-				WHERE NOT EXISTS (SELECT 1 FROM picks.pick p WHERE p.cover_source = c.source_url)""")).isZero();
+				WHERE NOT EXISTS (SELECT 1 FROM picks.list_book p WHERE p.cover_source = c.source_url)""")).isZero();
 	}
 
 	@Test
@@ -254,7 +283,7 @@ class PicksFetchTests {
 
 		fetchJob.fetch(FetchTrigger.SCHEDULED);
 
-		assertThat(count("SELECT count(*) FROM picks.pick WHERE cover_source IS NULL")).isEqualTo(2);
+		assertThat(count("SELECT count(*) FROM picks.list_book WHERE cover_source IS NULL")).isEqualTo(2);
 		assertThat(nlk.requests()).hasSize(2);
 		assertThat(nlk.requests()).extracting(URI::getHost).containsOnly("nl.go.kr", "www.nl.go.kr");
 	}
@@ -271,7 +300,7 @@ class PicksFetchTests {
 			.containsEntry("changed", true)
 			.containsEntry("cover_fetched_count", 0)
 			.containsEntry("request_count", 1);
-		assertThat(count("SELECT count(*) FROM picks.pick")).isEqualTo(108);
+		assertThat(count("SELECT count(*) FROM picks.list_book")).isEqualTo(108);
 		assertThat(count("SELECT count(*) FROM picks.cover")).isBetween(0L, (long) sources.size() - 1);
 	}
 

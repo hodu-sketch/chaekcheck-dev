@@ -4635,3 +4635,31 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 웹: `UsageEvent`에 `list`(`PicksListKey`)를 더함. 목록 화면은 아직 사서 목록만 보이므로 지금은 `list: 'librarian'`으로 보냄(`TODO(cycle 21 step 9-3)`: 주소의 목록으로)
 - 시험: `UsageLogSchemaTests.picksEventsNameTheirList`(셋 받음, NULL·`yes24` 거절, 다른 종류에 목록 있으면 거절), `UsageEventApiTests`(목록 저장, 목록 없음·틀림 → `invalid_value`), CSRF·쓰기 시험 고침
 - 빌드: `./gradlew build` 통과(4분 54초), 웹 vitest 440 · `npm run build` 통과
+
+### 0단계 뒤 결정 받음 (plan 21 → dev 21, 2026-10-16, plan 커밋 178fd6e·08e6e23)
+
+1. 새 이동진 책 분야는 사람이 정함. 수집기는 ISBN 서지 `SUBJECT` 한 자리로 제안만 하고(`subject_fields.tsv` [안]), 새 책은 제안과 함께 `leedongjin_pending.tsv`로
+2. 지금 44권 분야는 조사 문서 5절 그대로. R3-9(KDC 다시 매기기)와 8단계 2, "KDC 확정 기다림" 조건은 없어짐
+3. 표지는 수집 DB `holding.cover_url`을 받아 200px로 줄임
+4·5. 서울대 고정 판(`manual`): 「미국의 민주주의」 607617, 「페더랄리스트」 463760. 신원문화사 105는 교보 소개상 청소년 요약판이라 뺌
+6. 표지 차례: ① 고정 판 ISBN의 국립중앙도서관 표지 ② 수집 DB 표지 가운데 YES24(`image.yes24.com`)·교보(`dcontent.dkyobobook.co.kr`) ③ 그 책의 첫 주소. 받지 못하면 다음 차례, 다 안 되면 제목 글자
+- `cover_source` CHECK: 이동진·서울대는 `https://`로 시작(수집기가 http를 https로 바꿔 적음), 사서는 지금처럼 `https://www.nl.go.kr/afile/`
+
+### 1단계 1 `picks/002`와 4단계 1 `PicksStore`
+
+- 새 `picks/002-curated-lists.yaml`, changeset 셋 [안: 이름]
+  - `picks-002-list-field`: PK `(list_key, code)`, UNIQUE `(list_key, position)`, CHECK(목록 셋, 코드 1~20자, 이름 1자 이상, 순서 ≥ 1)
+  - `picks-002-list-book`: 칸은 design-delta "데이터" 표 그대로. `id`는 `GENERATED ALWAYS AS IDENTITY`. FK `(list_key, field_code)` ON DELETE CASCADE. 목록별 CHECK `list_book_librarian_check`·`list_book_leedongjin_check`·`list_book_snu100_check`(표지 접두도 이 안에 넣음). `book_id ≥ 1` CHECK를 더함. 부분 UNIQUE `list_book_snu100_toc_no_key`·`list_book_librarian_source_no_key`, 색인 `(list_key, field_code)`·`(cover_source)`(표지 정리용 [안])
+  - `picks-002-move-librarian`: 아는 다섯 분야(1~5) → `pick`의 그 밖 코드는 `KeptPicks.CODE_ORDER`(숫자는 값 순서, 그다음 글자)로 6부터, 이름은 `min(nullif(btrim(dr_code_name), ''))`, 없으면 "기타" → `list_book`에 `BOOK_ORDER` 순서로 `position` → `DROP TABLE picks.pick`
+- master: `# cycle 21` 아래 `picks/002`, 그다음 `usagelog/003`
+- `PicksStore`(4단계 1)를 함께 바꿈. `pick`을 지우므로 따로 둘 수 없었음
+  - 모든 읽기·쓰기는 `librarian` 줄만. 저장할 때 `position`은 `BOOK_ORDER` 순서이고, 목록 잠금은 `pg_advisory_xact_lock(hashtext('picks.list_book'), hashtext(list_key))`
+  - 새 분야는 `list_field` 끝에 붙음(이름은 API 이름, 없으면 "기타"). 이미 있는 분야는 이름과 자리를 그대로 둠
+  - **"같은 목록인가" 비교에서 분야 이름을 뺌** [안]: 아는 분야는 우리 짧은 이름(「문학」)으로 저장되어 API의 `drCodeName`과 다르므로, 넣으면 매주 "바뀜"이 됨
+  - `missingCoverSources`는 `librarian` 줄만 보고, `deleteUnusedCovers`는 모든 목록 줄을 기준으로 함
+  - `readPicks`의 `drCodeName`은 `list_field.name`. `PicksCache`의 목록별 사본과 분야 이름·순서를 `list_field`에서 읽는 일은 4단계 5에서 함
+- 시험 `PicksSchemaTests`
+  - 목록별 CHECK, 분야 CHECK, CASCADE, `pick`이 없어짐
+  - **옮기기 시험**: changeset `picks-002-move-librarian`의 SQL을 YAML에서 읽어 사이클 14 꼴 `pick`에 다시 돌림. 같은 달에서는 등록일 순서, NULL은 끝, recomNo는 글자 순서('9' > '10'), 모르는 코드 30·999·abc는 6~8번, 빈 이름은 "기타"인지 봄
+- `PicksFetchTests.theFetchLeavesTheOtherListsAndTheirCovers`(AC-10): 사서 받기 뒤에도 서울대 줄과 그 표지가 그대로 남고, 그 표지 주소는 요청하지 않음. 모르는 분야 999는 6번 자리에 "새분야"로 들어감
+- 빌드: `./gradlew build` 통과(4분 6초, 시험 1,012개)

@@ -43,13 +43,14 @@ class PicksStartupFetchTests {
 			.containsEntry("changed", true)
 			.containsEntry("kept_count", 108);
 		assertThat(nlk.requests().getFirst().getPath()).isEqualTo("/NL/search/openApi/saseoApi.do");
-		assertThat(jdbc.sql("SELECT count(*) FROM picks.pick").query(Long.class).single()).isEqualTo(108);
+		assertThat(jdbc.sql("SELECT count(*) FROM picks.list_book").query(Long.class).single()).isEqualTo(108);
 	}
 
 	@AfterEach
 	void deleteWhatTheStartUpFetchWrote() {
 		jdbc.sql("DELETE FROM picks.cover").update();
-		jdbc.sql("DELETE FROM picks.pick").update();
+		jdbc.sql("DELETE FROM picks.list_book WHERE list_key = 'librarian'").update();
+		jdbc.sql("DELETE FROM picks.list_field WHERE list_key = 'librarian' AND position > 5").update();
 		jdbc.sql("DELETE FROM picks.fetch_run").update();
 	}
 
