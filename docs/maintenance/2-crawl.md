@@ -202,6 +202,8 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | `python -X utf8 scripts\crawl\verify_detail_urls.py [결과.tsv] [화면종류,…]` | 상세 URL 확인. **수집과 같은 서버를 동시에 치지 않게** 화면 종류를 골라서 |
 | `python -X utf8 scripts\library\discover\probe_other_platforms.py 입력.tsv 결과.tsv` | 기관 사이트 한 번씩 확인(입력: platform, name, url) |
 
+- 추천 목록 (사이클 21, plan ADR-0128): 수집기를 돌릴 때, 지난 갱신 뒤 한 달이 넘었으면 `python scripts/crawl/recommended_lists.py --sqlite <수집 사본>`도 함께 돌립니다. 이동진 영상 다시 확인(30일 규칙), 새 책은 `scripts/crawl/lists/leedongjin_pending.tsv`에 분야 제안과 함께 들어가며(사람이 분야를 정해 `leedongjin.tsv`로 옮김), 판 고르기와 표지를 다시 합니다. 키는 `.env`의 `CHAEKCHECK_YOUTUBE_API_KEY`·`CHAEKCHECK_PICKS_NLK_API_KEY`, 기록은 `data/recommended-lists/collect.log`
+
 ## 5-1. 받지 않는 도서관 (`library.crawl_skip`)
 
 주기 갱신 때 다시 확인할 대상입니다. 아래 표는 2026-10-01 기준이고, 지금 목록은 `status`나 `SELECT id, name, crawl_skip FROM library WHERE crawl_skip IS NOT NULL`로 봅니다. 차단된 곳을 받으려면 도서관에 자동 수집 허용이나 자료 제공을 문의하는 것이 방법입니다 [안]. **브라우저 흉내나 차단 우회는 하지 않습니다.**

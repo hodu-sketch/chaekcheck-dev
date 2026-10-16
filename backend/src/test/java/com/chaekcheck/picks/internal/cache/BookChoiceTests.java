@@ -14,6 +14,34 @@ class BookChoiceTests {
 	static final Map<Long, Boolean> KINDS = Map.of(1L, false, 2L, false, 3L, false, 4L, false, 5L, false, 11L, true,
 			12L, true, 13L, true);
 
+	/**
+	 * The fixture the collector's Python tests read too (ADR-0124: the collector chooses the fixed editions by the same
+	 * rule): scripts/crawl/testdata/book_choice_cases.json.
+	 */
+	@Test
+	void theSameChoiceAsTheCollector() throws java.io.IOException {
+		java.nio.file.Path file = java.nio.file.Path.of("..", "scripts", "crawl", "testdata", "book_choice_cases.json");
+		tools.jackson.databind.JsonNode data = tools.jackson.databind.json.JsonMapper.builder()
+			.build()
+			.readTree(java.nio.file.Files.readString(file));
+		Map<Long, Boolean> kinds = new java.util.HashMap<>();
+		data.get("kinds").properties().forEach(entry -> kinds.put(Long.parseLong(entry.getKey()), entry.getValue().asBoolean()));
+		assertThat(data.get("cases").size()).isGreaterThanOrEqualTo(6);
+		for (tools.jackson.databind.JsonNode testCase : data.get("cases")) {
+			List<BookChoice.Candidate> candidates = new java.util.ArrayList<>();
+			for (tools.jackson.databind.JsonNode candidate : testCase.get("candidates")) {
+				long[] libraries = new long[candidate.get("libraryIds").size()];
+				for (int i = 0; i < libraries.length; i++) {
+					libraries[i] = candidate.get("libraryIds").get(i).asLong();
+				}
+				candidates.add(new BookChoice.Candidate(candidate.get("id").asLong(), candidate.get("title").asString(),
+						libraries));
+			}
+			assertThat(BookChoice.choose(candidates, kinds).orElseThrow().bookId()).as(testCase.get("name").asString())
+				.isEqualTo(testCase.get("chosen").asLong());
+		}
+	}
+
 	@Test
 	void subscriptionLibrariesCountAsOne() {
 		assertThat(BookChoice.held(new long[] { 11, 12, 13 }, KINDS)).isEqualTo(1);

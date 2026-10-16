@@ -1,0 +1,15 @@
+list	code	name	position
+leedongjin	korean_fiction	한국 소설	1
+leedongjin	foreign_fiction	외국 소설	2
+leedongjin	graphic_novel	그래픽노블	3
+leedongjin	essay	에세이	4
+leedongjin	humanities	인문·철학	5
+leedongjin	history	역사	6
+leedongjin	society	사회·정치	7
+leedongjin	economy	경제·자기계발	8
+leedongjin	science	과학·의학	9
+snu100	korean_lit	한국문학	1
+snu100	foreign_lit	외국문학	2
+snu100	eastern_thought	동양사상	3
+snu100	western_thought	서양사상	4
+snu100	science_tech	과학기술	5

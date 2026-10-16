@@ -4739,3 +4739,48 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 사용 알림: `list`가 주소의 목록
 - 시험: vitest 452개 통과. 새 `PicksLists.test.tsx` 12개(문구, 표지 아래 글자, 책 창 줄, [영상 보기] 새 탭·주소 검사, 출처 줄 약관 링크, 상태 문구, 서울대 "목록 이름" 줄·분야와 번호 없음, 광장 → 희망도서 안내, 모르는 목록 이름). `npm run build`·`lint`(새 경고 없음) 통과
 - 화면 확인(Playwright·사용자)은 목록 자료를 넣은 뒤에 함(8·10단계)
+
+### 7·8단계 수집기와 첫 목록 파일 (2026-10-16)
+
+- 새 `scripts/crawl/recommended_lists.py`(수집기) [안: 이름]. 새 의존성 `psycopg[binary]>=3.2`, `Pillow>=11`(`requirements.txt`). `.env` 키는 `CHAEKCHECK_YOUTUBE_API_KEY`·`CHAEKCHECK_PICKS_NLK_API_KEY`. 기록은 `data/recommended-lists/collect.log`(git 밖). `docs/maintenance/2-crawl.md`에 한 줄 더함
+- 하는 일
+  1. YouTube: 「이달의 책」·업로드 목록을 끝까지 읽어 공개 영상이면 `checked_on`을 고치고, 사라졌거나 비공개면 그 줄을 지움
+     - 새 영상의 책 이름은 ISBN 서지로 찾아, `SUBJECT` 제안(`subject_fields.tsv` [안])과 함께 `leedongjin_pending.tsv`에 넣음(결정 #1)
+     - 책 이름 가운데 하나라도 이미 목록에 있는 영상은 다룬 영상으로 봄. 올해의 책 영상이면 그 책을 그해 12월로 옮김(R3-5)
+     - 채널 표지 낱말([이달의 책], 베스트북 등)은 책 이름에서 뺌
+  2. 판 고르기(`pinned_by` manual은 그대로)
+     - "같은 책" = 시작 판(지금 고정 판, 없으면 줄의 ISBN, 없으면 줄의 제목+첫 저자)과 `main_title_norm`이 같거나 **권 번호를 덜어 낸 본제목이 같고**, 저자(AUTHOR·UNKNOWN 역할의 `name_exact`)를 하나 이상 공유하는 판
+     - 거르기: 제목의 영어원서·원서·어린이·초등·청소년·만화·그림책·논술·"공부가 되는"·"100분 고전", 출판사 "어린이", 저자 "번역AI"
+     - 거르고 남은 판이 없으면 같은 본제목 판 전체(저자 무관)에서 다시 고르고, 그래도 없으면 고정 판을 비움
+     - 고르기는 Java `BookChoice`와 같은 공식. 같은 시험 자료 `scripts/crawl/testdata/book_choice_cases.json`을 Java `BookChoiceTests`와 Python 시험이 함께 읽음
+  3. 표지: 고정 판 ISBN의 국립중앙도서관 표지 → 수집 사본 `holding.cover_url` 가운데 YES24·교보 → 첫 주소(결정 #6)
+     - 한 줄에 4번까지 시도하고, `http`는 `https`로 바꿔 적음
+     - 이미 받은 표지 파일이 있으면 다시 요청하지 않음
+     - 쓰지 않는 표지 파일은 지움
+  - 실패: YouTube·API 오류(키 거절, 할당량, 응답 없음)면 목록 파일을 건드리지 않고 기록 한 줄. DB 오류면 고정 판을 그대로 둠
+  - 요청마다 호스트를 기록함. 실제 실행에서 `www.youtube.com`은 0건
+- **설계와 다른 점**
+  - "같은 책"을 Python에서 제목 정규화로 다시 구하지 않음. 시작 판의 DB 값(`main_title_norm`, `name_exact`)으로 묶음
+  - 서울대 첫 목록 파일의 시작 판은 조사 표의 "고른 판"(사용자 승인 규칙으로 고른 것)으로 넣었고, 수집기가 그 안에서 다시 고름(`note`에 "조사 판에서 시작")
+- **첫 목록 파일**(8단계)
+  - `fields.tsv` 14줄 [안: 코드]. 이동진 `korean_fiction`·`foreign_fiction`·`graphic_novel`·`essay`·`humanities`·`history`·`society`·`economy`·`science`, 서울대 `korean_lit`·`foreign_lit`·`eastern_thought`·`western_thought`·`science_tech`
+  - `leedongjin.tsv` 43줄: 조사 44권에서 「마음 깊은 숨」을 뺌. 이달의 책이면서 그해 올해의 책인 7권은 그해 12월·올해의 책 영상으로 한 줄씩(R3-5). 분야는 조사 5절 그대로(결정 #2). `checked_on` 2026-10-16
+  - `snu100.tsv` 100줄. 「미국의 민주주의」 607617 판·「페더랄리스트」 463760 판은 `manual`(결정 #4·5)
+  - 표지 122장, 1.7MB
+  - 만든 스크립트는 일회용이라 저장소에 넣지 않음
+- 수집기 실행(c21 DB 5502 = 원래 DB 복사본, 수집 사본 `ebook-catalog-2026-10-12-0135.sqlite`)
+  - 고정 판: 이동진 35/43, 서울대 87/100
+  - 연암집·춘향전·실천이성비판은 거르기 뒤 다른 판이 골라짐: 지식을만드는지식 「연암집」, 작가문화 「춘향전」, 아카넷 「실천이성비판」
+  - 확인 필요 파일에는 1줄(2025-05 영상 설명란의 「레인보우: 나의 사랑」, 영화 이름으로 보임)
+- **Java로 맞춘 수**(c21 DB에 `LocalListsRunner`로 넣음): 서울대 87/100, 이동진 36/43. 조사 값과 같음. `listPart` 1.9MB, `read` 0.56초, `replace` 4.9초(표지 122장 넣기 포함)
+- **AC-7과 공식이 어긋남 (결정 필요)**
+  - 「토지」: 마로니에북스 1권 보유량 207, 2권 209 → 공식(보유량 먼저, 같을 때만 1권)대로 **2권**이 골라짐. AC-7 "그 판의 1권"과 다름
+  - 「탁류」는 1·2·3권 보유량이 같아(253) 1권
+  - 안: (가) 지금 공식대로 둠 / (나) 같은 출판사·같은 세트의 권들은 한 판으로 보고, 보유량은 세트에서 가장 큰 값으로, 고른 세트의 1권을 씀 → plan에 물음
+- 수집기 시험 `python -m unittest scripts/crawl/test_recommended_lists.py` 18개 통과(네트워크·DB 없음)
+  - AC-11: 새 영상 → 확인 필요 줄, 제목·설명 없음, 키 없음
+  - AC-12: googleapis만 요청
+  - AC-13: 키 거절 → 파일 그대로 + 실패 한 줄
+  - AC-14: 책 이름 없음
+  - 그 밖: 사라진 영상, 올해의 책 12월로 옮기기, manual 보존, 거르기와 대신 고르기, 권 묶기와 1권, 표지 200px·5MB·호스트 차례, Java와 같은 고르기
+- 개발용 `backend/src/test/java/com/chaekcheck/picks/LocalListsRunner.java`: `CHAEKCHECK_LISTS_DB_URL`가 있을 때만(5432는 막음) 목록을 그 DB에 넣음

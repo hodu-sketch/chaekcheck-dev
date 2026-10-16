@@ -1,0 +1,56 @@
+{
+  "_comment": "Cycle 21 (ADR-0124, ADR-0125): one fixture for Java BookChoiceTests and Python test_recommended_lists; both must choose the same book. kinds: enabled library id -> lends by subscription; a library not in kinds is disabled.",
+  "kinds": { "1": false, "2": false, "3": false, "4": false, "5": false, "11": true, "12": true, "13": true },
+  "cases": [
+    {
+      "name": "three subscription libraries count as one",
+      "candidates": [
+        { "id": 10, "title": "구운몽", "libraryIds": [1, 11, 12, 13] },
+        { "id": 20, "title": "구운몽", "libraryIds": [1, 2, 3] }
+      ],
+      "chosen": 20
+    },
+    {
+      "name": "disabled libraries count for nothing",
+      "candidates": [
+        { "id": 10, "title": "구운몽", "libraryIds": [1, 98, 99] },
+        { "id": 20, "title": "구운몽", "libraryIds": [2, 3] }
+      ],
+      "chosen": 20
+    },
+    {
+      "name": "the same count: the first volume",
+      "candidates": [
+        { "id": 5, "title": "탁류 3", "libraryIds": [1, 2] },
+        { "id": 8, "title": "탁류 1", "libraryIds": [3, 4] },
+        { "id": 6, "title": "탁류 2", "libraryIds": [1, 5] }
+      ],
+      "chosen": 8
+    },
+    {
+      "name": "the same count: a book with no volume is a first volume, then the smaller id",
+      "candidates": [
+        { "id": 9, "title": "토지. 1(1부 1권)", "libraryIds": [1] },
+        { "id": 7, "title": "토지", "libraryIds": [2] },
+        { "id": 3, "title": "토지. 2(1부 2권)", "libraryIds": [3] }
+      ],
+      "chosen": 7
+    },
+    {
+      "name": "(상) is a first volume",
+      "candidates": [
+        { "id": 4, "title": "고향 (하)", "libraryIds": [1] },
+        { "id": 5, "title": "고향 (상)", "libraryIds": [2] }
+      ],
+      "chosen": 5
+    },
+    {
+      "name": "held more wins over the first volume",
+      "candidates": [
+        { "id": 1, "title": "토지. 1(1부 1권)", "libraryIds": [1] },
+        { "id": 2, "title": "토지. 2(1부 2권)", "libraryIds": [1, 2] }
+      ],
+      "chosen": 2
+    }
+  ]
+}

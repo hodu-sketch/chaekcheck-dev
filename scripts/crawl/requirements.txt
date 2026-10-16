@@ -1,2 +1,4 @@
 beautifulsoup4>=4.12
 lxml>=5
+psycopg[binary]>=3.2
+Pillow>=11

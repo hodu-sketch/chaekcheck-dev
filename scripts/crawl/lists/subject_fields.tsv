@@ -1,0 +1,11 @@
+subject	field_suggestion	note
+0	humanities	총류
+1	humanities	철학
+2	humanities	종교
+3	society	사회과학: 경제·경영이면 economy
+4	science	자연과학
+5	science	기술과학
+6	essay	예술
+7	humanities	언어
+8	foreign_fiction	문학: 한국 작가면 korean_fiction, 수필이면 essay
+9	history	역사
