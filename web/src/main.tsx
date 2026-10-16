@@ -19,7 +19,7 @@ import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
 import { NoticePage } from './features/notices/NoticePage'
 import { NoticesPage } from './features/notices/NoticesPage'
-import { PicksPage } from './features/picks/PicksPage'
+import { PicksRoute } from './features/picks/PicksPage'
 import { RegionProvider } from './features/region/RegionContext'
 import { SearchPage } from './features/search/SearchPage'
 
@@ -44,7 +44,7 @@ function App() {
                     (ADR-0126), the old address goes to the librarian picks. TODO(cycle 21 step 9-2/9-3): the
                     screen still reads the old API whatever the list */}
                 <Route path="/picks" element={<Navigate to="/picks/librarian" replace />} />
-                <Route path="/picks/:listKey" element={<PicksPage />} />
+                <Route path="/picks/:listKey" element={<PicksRoute />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route

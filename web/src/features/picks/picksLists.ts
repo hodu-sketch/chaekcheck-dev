@@ -1,0 +1,104 @@
+import type { PickBook, PicksListKey } from '../../api/types'
+import { HELP_LINES, monthLabel, sourceLine } from './picksText'
+
+/** The YouTube Terms of Service, linked from Lee Dong-jin's source line (cycle 21 spec R5-5) [확정]. */
+export const YOUTUBE_TERMS_URL = 'https://www.youtube.com/t/terms'
+
+/** A video id as the API gives it ([안] CHECK `^[A-Za-z0-9_-]{1,64}$`, observed 11 characters). */
+const VIDEO_ID = /^[A-Za-z0-9_-]{1,64}$/
+
+/** What a list's screen says and shows (cycle 21 spec R5, R6, R7). */
+export interface PicksList {
+  key: PicksListKey
+  /** The list's name: the menu item and the heading (design A). */
+  name: string
+  /** While the list is not stored yet (R7-1). */
+  emptyText: string
+  /** When the screen's request failed (R7-1). */
+  failedText: string
+  /** For screen readers while loading. */
+  loadingText: string
+  /** "? 기준 보기" in the field list (S13i), and its source line. */
+  helpLabel: string
+  helpLines: readonly string[]
+  /** Under the last field; the YouTube terms link follows Lee Dong-jin's. */
+  source: (fetchedAt: string | null) => string
+  /** Under the cover (R5-1, R5-2): "26.06", the table-of-contents number, or nothing. */
+  coverLabel: (book: PickBook) => string | null
+  /** S14's line under the title (R6-1, R6-2). */
+  pickLine: (book: PickBook, categoryName: string | null) => string
+}
+
+/** [확정] cycle 14: the librarian picks keep their words ("사서추천도서", AC-10). */
+const LIBRARIAN: PicksList = {
+  key: 'librarian',
+  name: '사서 추천도서',
+  emptyText: '아직 사서추천도서를 준비하고 있어요',
+  failedText: '사서추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
+  loadingText: '사서추천도서를 불러오는 중',
+  helpLabel: '추천 기준 보기',
+  helpLines: HELP_LINES,
+  source: sourceLine,
+  coverLabel: () => null,
+  pickLine: (book, categoryName) => {
+    const month = monthLabel(book.recommendedMonth)
+    return [month ? `${month} 사서추천` : '사서추천', categoryName].filter(Boolean).join(' · ')
+  },
+}
+
+const LEEDONGJIN: PicksList = {
+  key: 'leedongjin',
+  name: '이동진 추천도서',
+  emptyText: '아직 이동진 추천도서를 준비하고 있어요',
+  failedText: '이동진 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
+  loadingText: '이동진 추천도서를 불러오는 중',
+  helpLabel: '기준 보기',
+  helpLines: [
+    '이동진 평론가가 유튜브 「B tv 이동진의 파이아키아」에서 고른 이달의 책과 올해의 책이에요',
+    '책첵은 이동진 평론가·파이아키아와 관계가 없어요',
+    '흐린 책은 검색하는 도서관에 전자책이 없어요',
+  ],
+  source: () => '출처: 유튜브 「B tv 이동진의 파이아키아」 · 책첵은 이동진 평론가·파이아키아와 관계가 없어요',
+  coverLabel: (book) => {
+    const match = book.recommendedMonth?.match(/^\d{2}(\d{2})-(\d{2})$/)
+    return match ? `${match[1]}.${match[2]}` : null
+  },
+  pickLine: (book) => {
+    const month = monthLabel(book.recommendedMonth)
+    const line = `이동진 평론가가 「파이아키아」 영상에서 추천${month ? ` (${month})` : ''}`
+    return book.yearBook ? `${line} · ${book.yearBook} 올해의 책` : line
+  },
+}
+
+const SNU100: PicksList = {
+  key: 'snu100',
+  name: '서울대 100선',
+  emptyText: '아직 서울대 100선을 준비하고 있어요',
+  failedText: '서울대 100선을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
+  loadingText: '서울대 100선을 불러오는 중',
+  helpLabel: '기준 보기',
+  helpLines: [
+    '서울대학교 기초교육원이 펴낸 『권장도서 해제집』의 100권이에요',
+    '판이 여러 개인 책은 가장 많은 도서관이 가진 판을 보여 드려요',
+    '흐린 책은 검색하는 도서관에 전자책이 없어요',
+  ],
+  source: () => '출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)',
+  coverLabel: (book) => (book.tocNo == null ? null : String(book.tocNo)),
+  pickLine: () => '서울대 권장도서 100선',
+}
+
+export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
+  librarian: LIBRARIAN,
+  leedongjin: LEEDONGJIN,
+  snu100: SNU100,
+}
+
+/** The list an address names, or null for any other name. */
+export function picksList(key: string | undefined): PicksList | null {
+  return key === 'librarian' || key === 'leedongjin' || key === 'snu100' ? PICKS_LISTS[key] : null
+}
+
+/** [영상 보기] (R6-2): the video's YouTube page, built from the id only; null when the id has another shape. */
+export function videoUrl(videoId: string | null): string | null {
+  return videoId && VIDEO_ID.test(videoId) ? `https://www.youtube.com/watch?v=${videoId}` : null
+}

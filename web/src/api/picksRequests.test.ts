@@ -22,9 +22,11 @@ const plan = { scope: 'all' as const, visit: 'any' as const, residenceRegionIds:
 describe('picks requests', () => {
   it('sends the plan like the book search', async () => {
     const fetchMock = mockFetch()
-    await fetchPicks({ ...plan, scope: 'joinable', visit: 'none', workRegionIds: [3], libraryIds: [7, 8] }).catch(() => {})
+    await fetchPicks('librarian', { ...plan, scope: 'joinable', visit: 'none', workRegionIds: [3], libraryIds: [7, 8] }).catch(
+      () => {},
+    )
     const url = requestedUrl(fetchMock)
-    expect(url.pathname).toBe('/api/v1/picks')
+    expect(url.pathname).toBe('/api/v1/picks/librarian')
     expect(Object.fromEntries(url.searchParams)).toEqual({
       scope: 'joinable',
       visit: 'none',
@@ -35,8 +37,8 @@ describe('picks requests', () => {
 
   it('sends no query without a plan', async () => {
     const fetchMock = mockFetch()
-    await fetchPicks(plan).catch(() => {})
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/picks')
+    await fetchPicks('snu100', plan).catch(() => {})
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/picks/snu100')
   })
 
   it('asks only the first three holdings for S14 (holdingLimit, AC-8)', async () => {

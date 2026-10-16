@@ -6,6 +6,7 @@ import { holdingStream } from '../../api/searchStream'
 import type { BookDetail, HoldingStreamEvent, LibraryItem, TargetLibrary } from '../../api/types'
 import { PicksBookDialog } from './PicksBookDialog'
 import { testBooks } from './testPicks'
+import { PICKS_LISTS } from './picksLists'
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
 vi.mock('../../api/client', async (importOriginal) => ({
@@ -117,7 +118,7 @@ function answerWithThreeHoldings() {
 
 function renderDialog(onSearch = vi.fn()) {
   render(
-    <PicksBookDialog book={BOOK} categoryName="문학" plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />,
+    <PicksBookDialog book={BOOK} categoryName="문학" plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} list={PICKS_LISTS.librarian} />,
   )
   return userEvent.setup()
 }
@@ -171,7 +172,8 @@ describe('picks book window', () => {
     vi.mocked(holdingStream).mockImplementation(() => new Promise(() => {}))
     renderDialog()
     expect(await screen.findByText('확인 중…')).toBeTruthy()
-    expect(screen.getByRole('heading', { name: '우리 전자책 제목' })).toBeTruthy()
+    // cycle 21 (ADR-0129): the shown name the list gives, not the book screen's title
+    expect(screen.getByRole('heading', { name: BOOK.title })).toBeTruthy()
   })
 
   it('a book that left the lists: the book screen words (AC-21)', async () => {

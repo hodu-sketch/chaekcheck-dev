@@ -539,3 +539,51 @@
     --source-h: 5.3rem;
   }
 }
+
+/*
+ * Cycle 21: the words under a cover (R5-1, R5-2): Lee Dong-jin "26.06", the SNU number. Three rows of them take room
+ * from the grid, so the panel stays inside the screen.
+ */
+.page[data-labels] {
+  --panel-rest: 10.2rem;
+}
+
+.coverLabel {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Cycle 21 (flow #4 A, user: "pc는 a 폰은 c"): PC and tablets show the list's name above the first field, going up
+ * with it; phones keep it for screen readers only (the floating button names the list, C).
+ */
+.listTitle {
+  width: fit-content;
+  margin: 1.1rem auto 0;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+@media (width <= 640px) {
+  .listTitle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.source a {
+  color: inherit;
+  text-decoration: underline;
+}

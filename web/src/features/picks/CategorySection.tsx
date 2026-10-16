@@ -13,6 +13,8 @@ type Props = {
   page: number
   onPage: (page: number) => void
   onPick: (book: PickBook) => void
+  /** The words under a cover (cycle 21 R5-1, R5-2), or none. */
+  coverLabel?: (book: PickBook) => string | null
 }
 
 /**
@@ -20,7 +22,7 @@ type Props = {
  * before the first page, none after the last (AC-2). Touch screens also turn it with a sideways swipe
  * (AC-19); a mouse drag does nothing.
  */
-export function CategorySection({ category, page, onPage, onPick }: Props) {
+export function CategorySection({ category, page, onPage, onPick, coverLabel }: Props) {
   const pages = pageCount(category.books.length)
   const current = Math.min(Math.max(page, 0), pages - 1)
   const books = category.books.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE)
@@ -93,7 +95,7 @@ export function CategorySection({ category, page, onPage, onPick }: Props) {
             }}
           >
             {books.map((book) => (
-              <CoverCard key={book.recomNo} book={book} onPick={onPick} />
+              <CoverCard key={book.id} book={book} onPick={onPick} label={coverLabel?.(book) ?? null} />
             ))}
             {/* the last page keeps the 3 x 3 space, so the panel does not shrink or move (user 2026-10-12) */}
             {Array.from({ length: PAGE_SIZE - books.length }, (_, index) => (

@@ -369,35 +369,48 @@ export interface MyLibraries {
   max: number
 }
 
-// ---- cycle 14: librarian picks (design-delta API) ----
+// ---- cycle 14: librarian picks; cycle 21: the three recommended lists (ADR-0126) ----
 
-/** One book of `GET /api/v1/picks`. */
+/** The recommended lists, as `GET /api/v1/picks/{listKey}` names them. */
+export type PicksListKey = 'librarian' | 'leedongjin' | 'snu100'
+
+/** One book of `GET /api/v1/picks/{listKey}`. */
 export interface PickBook {
-  /** The National Library of Korea's recommendation number (1 to 20 digits). */
-  recomNo: string
-  /** The book's field code ("11", "6", ..., or a new one): S14 shows that field's name. */
+  /** The librarian's recommendation number (1 to 20 digits); the other lists' row id. Unique within a list. */
+  id: string
+  /** The book's field code ("11", "6", ... for the librarian; "foreign_fiction", "korean_lit", ... for the others). */
   category: string
-  /** "YYYY-MM" */
-  recommendedMonth: string
+  /** The shown name: our book's title without its edition marks, else the list's title (ADR-0129). */
   title: string
+  /** The list's own title when it differs from `title` (S14 shows it on one line), else null. */
+  listTitle: string | null
   /** `/api/v1/picks/covers/{coverId}`, or null: the card shows the title instead (AC-14b). */
   coverUrl: string | null
-  /** Our book found by ISBN or by title and first author, also when no plan library holds it; null when none. */
+  /** Our book, also when no plan library holds it; null when none. */
   bookId: number | null
   /** `bookId` is set and a plan library holds the book; false shows the cover faded (AC-6). */
   available: boolean
+  /** "YYYY-MM": the librarian's and Lee Dong-jin's recommendation month; null for the SNU 100. */
+  recommendedMonth: string | null
+  /** Lee Dong-jin: the year of the books of the year it was in, else null. */
+  yearBook: number | null
+  /** Lee Dong-jin's video, else null. */
+  videoId: string | null
+  /** The SNU 100's table-of-contents number, else null. */
+  tocNo: number | null
 }
 
-/** One field in display order: `ALL` first, then 문학·인문·사회·자연·테마, then new fields. `name` is the name shown. */
+/** One field in display order: `ALL` first, then the list's fields. `name` is the name shown. */
 export interface PickCategory {
   code: string
   name: string
   books: PickBook[]
 }
 
-/** `GET /api/v1/picks`: the latest six recommendation months, or `fetchedAt: null` with no categories before the first fetch. */
+/** `GET /api/v1/picks/{listKey}`: no categories before the list is stored. */
 export interface Picks {
-  /** The latest successful fetch, ISO date-time with offset (e.g. "2026-10-12T05:00:41+09:00") */
+  list: PicksListKey
+  /** The librarian picks' latest successful fetch, ISO date-time with offset; null for the other lists. */
   fetchedAt: string | null
   categories: PickCategory[]
 }

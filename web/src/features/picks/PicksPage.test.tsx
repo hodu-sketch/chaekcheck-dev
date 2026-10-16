@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BookDetail, Picks } from '../../api/types'
 import { sendUsageEvent } from '../../api/usageEvents'
-import { PicksPage } from './PicksPage'
+import { PicksRoute } from './PicksPage'
 import { REQUEST_LINES } from './picksText'
 import { CATEGORIES, testPicks } from './testPicks'
 
@@ -41,7 +41,7 @@ function stubFetch(picks: () => Response | Promise<Response> = () => json(testPi
     vi.fn(async (input: string) => {
       const url = new URL(input, 'http://localhost')
       calls.push(url)
-      if (url.pathname === '/api/v1/picks') return picks()
+      if (url.pathname === '/api/v1/picks/librarian') return picks()
       if (url.pathname.startsWith('/api/v1/books/')) return json(BOOK_DETAIL)
       return json({ title: 'Bad Request', status: 400, code: 'validation_error' }, 400)
     }),
@@ -61,9 +61,9 @@ function phoneWidth() {
 
 function renderPage() {
   render(
-    <MemoryRouter initialEntries={['/picks']}>
+    <MemoryRouter initialEntries={['/picks/librarian']}>
       <Routes>
-        <Route path="/picks" element={<PicksPage />} />
+        <Route path="/picks/:listKey" element={<PicksRoute />} />
         <Route path="/books/:bookId" element={<p>책 화면</p>} />
       </Routes>
     </MemoryRouter>,
@@ -100,7 +100,7 @@ describe('librarian picks (S13)', () => {
     stubFetch()
     renderPage()
     expect(await screen.findByRole('region', { name: '전체' })).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서추천도서')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
     expect(numbers('전체')).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
     expect(cards('전체')[0].getAttribute('aria-label')).toBe('전체 1, 전자책 있음')
     // no rank chip: nothing but the cover (or its title) in a card
@@ -137,11 +137,11 @@ describe('librarian picks (S13)', () => {
     expect(numbers('문학')[0]).toBe(1)
     await user.click(within(section('문학')).getByRole('button', { name: '문학 다음 9권' }))
     expect(numbers('전체')[0]).toBe(10)
-    expect(window.history.state.chaekcheckPicks.pages).toEqual({ ALL: 1, '11': 1 })
+    expect(window.history.state['chaekcheckPicks:librarian'].pages).toEqual({ ALL: 1, '11': 1 })
   })
 
   it('comes back to the saved pages and scroll position (AC-20)', async () => {
-    window.history.replaceState({ chaekcheckPicks: { pages: { ALL: 1 }, scrollY: 640 } }, '')
+    window.history.replaceState({ 'chaekcheckPicks:librarian': { pages: { ALL: 1 }, scrollY: 640 } }, '')
     const scrollTo = vi.fn()
     vi.stubGlobal('scrollTo', scrollTo)
     stubFetch()
@@ -176,7 +176,7 @@ describe('librarian picks (S13)', () => {
     const calls = stubFetch()
     renderPage()
     await screen.findByRole('region', { name: '전체' })
-    const url = calls.find((c) => c.pathname === '/api/v1/picks')!
+    const url = calls.find((c) => c.pathname === '/api/v1/picks/librarian')!
     expect(url.searchParams.get('scope')).toBe('joinable')
     expect(url.searchParams.get('residenceRegionIds')).toBe('1116')
     expect(url.searchParams.get('libraryIds')).toBe('12,34')
@@ -200,12 +200,12 @@ describe('librarian picks (S13)', () => {
     stubFetch(() => new Promise<Response>(() => {}))
     renderPage()
     expect(screen.getAllByTestId('skeleton-card')).toHaveLength(9)
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서추천도서')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
     expect(screen.getByRole('status').textContent).toBe('사서추천도서를 불러오는 중')
   })
 
   it('says the picks are being prepared when there are none yet', async () => {
-    const empty: Picks = { fetchedAt: null, categories: [] }
+    const empty: Picks = { list: 'librarian', fetchedAt: null, categories: [] }
     stubFetch(() => json(empty))
     renderPage()
     expect(await screen.findByText('아직 사서추천도서를 준비하고 있어요')).toBeTruthy()
@@ -280,7 +280,9 @@ describe('librarian picks (S13)', () => {
     await screen.findByRole('region', { name: '전체' })
     await user.click(cards('전체')[0])
     const dialog = screen.getByRole('dialog', { name: '전체 1 대출 정보' })
-    expect(await within(dialog).findByText('우리 전자책 제목')).toBeTruthy()
+    // cycle 21 (ADR-0129): the shown name the list gives
+    expect(await within(dialog).findByText('지은이 · 출판사')).toBeTruthy()
+    expect(within(dialog).getByRole('heading', { name: '전체 1' })).toBeTruthy()
     // the book's field is 문학 (code 11), its month 2026-10
     expect(within(dialog).getByText('2026년 10월 사서추천 · 문학')).toBeTruthy()
     expect(within(dialog).queryByTestId('sheet-handle')).toBeNull()
@@ -412,6 +414,6 @@ describe('picks windows on phones', () => {
     await waitFor(() => expect(window.history.state).toHaveProperty('chaekcheckSheet'))
     window.history.back()
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서추천도서')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
   })
 })

@@ -17,13 +17,17 @@ export function testBooks(prefix: string, category: string, count = 10): PickBoo
     const n = index + 1
     const available = n % 2 === 1
     return {
-      recomNo: `2026092216313582${String(9100 - n).padStart(4, '0')}`,
+      id: `2026092216313582${String(9100 - n).padStart(4, '0')}`,
       category,
-      recommendedMonth: n <= 5 ? '2026-10' : '2026-08',
       title: `${prefix} ${n}`,
+      listTitle: null,
       coverUrl: n === 3 ? null : `/api/v1/picks/covers/${1000 + n}`,
       bookId: available ? 5000 + n : null,
       available,
+      recommendedMonth: n <= 5 ? '2026-10' : '2026-08',
+      yearBook: null,
+      videoId: null,
+      tocNo: null,
     }
   })
 }
@@ -37,5 +41,5 @@ export function testCategories(): PickCategory[] {
 }
 
 export function testPicks(overrides: Partial<Picks> = {}): Picks {
-  return { fetchedAt: '2026-10-12T05:00:41+09:00', categories: testCategories(), ...overrides }
+  return { list: 'librarian', fetchedAt: '2026-10-12T05:00:41+09:00', categories: testCategories(), ...overrides }
 }

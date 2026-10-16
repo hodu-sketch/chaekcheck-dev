@@ -1,5 +1,10 @@
-/** The key of the picks screen's place in `history.state`, next to the router's own state. */
-const KEY = 'chaekcheckPicks'
+/**
+ * The key of a list's place in `history.state`, next to the router's own state; one per list (cycle 21 spec R2-6,
+ * C14 AC-20).
+ */
+function stateKey(list: string): string {
+  return `chaekcheckPicks:${list}`
+}
 
 /** Where the picks screen was: each field's page (0 = books 1-9) and the scroll position (AC-20). */
 export interface PicksPosition {
@@ -12,10 +17,10 @@ export interface PicksPosition {
  * the book screen (S3) finds it; nothing is kept in the address or in storage, and the screen does not render again
  * on every scroll (a router `navigate(…, { replace, state })` would).
  */
-export function readPosition(): PicksPosition | null {
+export function readPosition(list: string): PicksPosition | null {
   const state: unknown = window.history.state
   if (typeof state !== 'object' || state === null) return null
-  const saved = (state as Record<string, unknown>)[KEY]
+  const saved = (state as Record<string, unknown>)[stateKey(list)]
   if (typeof saved !== 'object' || saved === null) return null
   const { pages, scrollY } = saved as Partial<PicksPosition>
   return {
@@ -24,9 +29,9 @@ export function readPosition(): PicksPosition | null {
   }
 }
 
-export function savePosition(change: Partial<PicksPosition>): void {
+export function savePosition(list: string, change: Partial<PicksPosition>): void {
   const state: unknown = window.history.state
   const current = typeof state === 'object' && state !== null ? (state as Record<string, unknown>) : {}
-  const saved = readPosition() ?? { pages: {}, scrollY: 0 }
-  window.history.replaceState({ ...current, [KEY]: { ...saved, ...change } }, '')
+  const saved = readPosition(list) ?? { pages: {}, scrollY: 0 }
+  window.history.replaceState({ ...current, [stateKey(list)]: { ...saved, ...change } }, '')
 }

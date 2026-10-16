@@ -5,7 +5,7 @@ import { ResultRow } from '../search/ResultRow'
 import { useHoldings } from '../search/useHoldings'
 import { CoverImage } from './CoverImage'
 import { pickLibraryRows, PICKS_HOLDING_LIMIT } from './pickLibraryRows'
-import { pickLine } from './picksText'
+import { videoUrl, type PicksList } from './picksLists'
 import { PicksWindow } from './PicksWindow'
 import styles from './PicksDialogs.module.css'
 import { ChevronRight } from '../../components/icons'
@@ -20,6 +20,8 @@ type Props = {
   /** [책 검색 >>]: the page keeps its place, then opens the book screen (S3). */
   onSearch: (bookId: number) => void
   phone: boolean
+  /** The list's line under the title (cycle 21 R6-1, R6-2). */
+  list: PicksList
 }
 
 /**
@@ -28,7 +30,7 @@ type Props = {
  * library lines: only the first three plan holdings are asked (`holdingLimit=3`, user 2026-10-12), then sorted by
  * `pickLibraryRows`. The lines are S3's (`ResultRow`): a tap opens the library's book page in a new tab.
  */
-export function PicksBookDialog({ book, categoryName, plan, onClose, onSearch, phone }: Props) {
+export function PicksBookDialog({ book, categoryName, plan, onClose, onSearch, phone, list }: Props) {
   return (
     <PicksWindow
       open={book !== null}
@@ -45,9 +47,22 @@ export function PicksBookDialog({ book, categoryName, plan, onClose, onSearch, p
           bookId={book.bookId}
           plan={plan}
           onSearch={onSearch}
+          list={list}
+          phone={phone}
         />
       )}
     </PicksWindow>
+  )
+}
+
+/** [영상 보기] (cycle 21 R6-2): Lee Dong-jin's video in a new tab; nothing for the other lists. */
+export function VideoLink({ videoId }: { videoId: string | null }) {
+  const url = videoUrl(videoId)
+  if (!url) return null
+  return (
+    <a className={styles.videoLink} href={url} target="_blank" rel="noopener noreferrer">
+      영상 보기
+    </a>
   )
 }
 
@@ -57,12 +72,16 @@ function BookBody({
   bookId,
   plan,
   onSearch,
+  list,
+  phone,
 }: {
   book: PickBook
   categoryName: string | null
   bookId: number
   plan: PlanParams
   onSearch: (bookId: number) => void
+  list: PicksList
+  phone: boolean
 }) {
   const holdings = useHoldings()
   const { open } = holdings
@@ -107,18 +126,24 @@ function BookBody({
     <div className={styles.bookHead}>
       <CoverImage className={styles.bookCover} url={book.coverUrl} title={book.title} />
       <div className={styles.bookText}>
-        <h2 className={styles.bookTitle}>{detail?.title ?? book.title}</h2>
-        <p className={styles.bookPick}>{pickLine(book.recommendedMonth, categoryName)}</p>
+        {/* the shown name (cycle 21 R6-3): our title without edition marks; the list's own name on a line if other */}
+        <h2 className={styles.bookTitle}>{book.title}</h2>
+        {book.listTitle && <p className={styles.bookListTitle}>목록 이름 「{book.listTitle}」</p>}
+        <p className={styles.bookPick}>{list.pickLine(book, categoryName)}</p>
         {detail && (
           <p className={styles.bookMeta}>
             {[detail.authorDisplay, detail.publisher].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
           </p>
         )}
-        {!error && (
-          <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>
-            책 검색 <ChevronRight size={6} />
-          </button>
-        )}
+        {/* [영상 보기] (R6-2): next to "책 검색 >>" on PC and tablets, on the line below on phones */}
+        <div className={styles.bookActions} data-phone={phone || undefined}>
+          {!error && (
+            <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>
+              책 검색 <ChevronRight size={6} />
+            </button>
+          )}
+          <VideoLink videoId={book.videoId} />
+        </div>
       </div>
     </div>
   )

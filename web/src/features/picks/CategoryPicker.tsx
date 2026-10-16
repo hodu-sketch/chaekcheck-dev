@@ -2,7 +2,7 @@ import { Popover } from 'radix-ui'
 import { useRef, useState } from 'react'
 import type { PickCategory } from '../../api/types'
 import { BottomSheet } from '../../components/BottomSheet'
-import { HELP_LINES, sourceLine } from './picksText'
+import type { PicksList } from './picksLists'
 import styles from './PicksPage.module.css'
 import { ChevronDown } from '../../components/icons'
 
@@ -12,8 +12,10 @@ type Props = {
   current: string
   onPick: (code: string) => void
   phone: boolean
-  /** For the source line under "추천 기준 보기" (S13i). */
+  /** For the source line under "기준 보기" (S13i). */
   fetchedAt: string | null
+  /** The list's words (cycle 21 R5-5); phones also name it in the button (flow #4 C). */
+  list: PicksList
 }
 
 /**
@@ -23,7 +25,7 @@ type Props = {
  * S13i lives at the end of the list, like "정렬 기준 보기" in the sort menu (user 2026-10-12): "? 추천 기준 보기" opens
  * the explanation in place without closing the list (cycle 14 flow.md).
  */
-export function CategoryPicker({ categories, current, onPick, phone, fetchedAt }: Props) {
+export function CategoryPicker({ categories, current, onPick, phone, fetchedAt, list: picks }: Props) {
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
   const helpRef = useRef<HTMLUListElement>(null)
@@ -71,21 +73,22 @@ export function CategoryPicker({ categories, current, onPick, phone, fetchedAt }
         <span className={styles.pickHelpMark} aria-hidden="true">
           ?
         </span>
-        추천 기준 보기
+        {picks.helpLabel}
       </button>
       {help && (
         <ul ref={helpRef} className={styles.helpList}>
-          {HELP_LINES.map((line) => (
+          {picks.helpLines.map((line) => (
             <li key={line}>{line}</li>
           ))}
-          <li>{sourceLine(fetchedAt)}</li>
+          <li>{picks.source(fetchedAt)}</li>
         </ul>
       )}
     </>
   )
   const face = (
     <>
-      <span className={styles.pickerName}>{currentName}</span>
+      {/* phones: [이동진 추천도서 · 외국 소설 ▾] (flow #4 C, user: "pc는 a 폰은 c") */}
+      <span className={styles.pickerName}>{phone ? `${picks.name} · ${currentName}` : currentName}</span>
       <span className={styles.pickerMark} aria-hidden="true">
         <ChevronDown size={10} />
       </span>

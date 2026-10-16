@@ -1,4 +1,5 @@
 import { fetchCsrfToken, readCsrfCookie } from './auth'
+import type { PicksListKey } from './types'
 
 /**
  * Usage reports (cycle 15, ADR-0097): what the server does not see, sent to `POST /api/v1/usage-events` with
@@ -10,8 +11,6 @@ export type ClickPlace = 'result_card' | 'join_link' | 'join_guide' | 'home_page
 
 export type ClickScreen = 'direct_results' | 'catalog_results' | 'book_page' | 'picks' | 'my_libraries'
 
-/** The recommended lists (cycle 21, ADR-0126); the server refuses picks reports without one. */
-export type PicksListKey = 'librarian' | 'leedongjin' | 'snu100'
 
 export type UsageEvent =
   | { type: 'library_click'; libraryId: number; place: ClickPlace; screen: ClickScreen; bookId?: number }

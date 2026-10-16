@@ -171,3 +171,40 @@
     padding: 0 0 0.8rem;
   }
 }
+
+/* cycle 21 (R6-3): the list's own name when our title differs */
+.bookListTitle {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+/* "책 검색 >>" and [영상 보기] side by side on PC and tablets, [영상 보기] on the line below on phones (R6-2) */
+.bookActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+
+.bookActions[data-phone] {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.videoLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.videoLink:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

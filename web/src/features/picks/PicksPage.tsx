@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { ApiError, fetchPicks } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
 import type { PickBook, Picks } from '../../api/types'
@@ -8,7 +8,8 @@ import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { CategoryPicker } from './CategoryPicker'
 import { CategorySection } from './CategorySection'
-import { PAGE_SIZE, sectionId, sourceLine } from './picksText'
+import { PAGE_SIZE, sectionId } from './picksText'
+import { picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
 import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
 import { RequestNotice } from './RequestNotice'
@@ -36,20 +37,30 @@ const SWIPE_Y_PX = 30
 type Loaded = { key: string; data: Picks | null; failed: boolean }
 
 /**
- * S13 picks (cycle 14 flow.md, R4·R5·R7): the National Library of Korea's librarian picks of the latest six months by
- * field, each field a block as tall as the screen with ◀ 3 x 3 ▶; scrolling down brings the next category, and the category box at the top follows the block
- * in the middle of the screen (AC-3). Covers of books with no e-book in my libraries are faded (AC-6). The pages and
- * the scroll position stay in this history entry, so back from the book screen comes to the same place (AC-20).
+ * `/picks/:listKey` (cycle 21, ADR-0126): one screen per list, made again when the list changes, so each keeps its own
+ * place. Another name shows nothing, as any address the app does not know [안].
  */
-export function PicksPage() {
+export function PicksRoute() {
+  const list = picksList(useParams().listKey)
+  return list ? <PicksPage key={list.key} list={list} /> : null
+}
+
+/**
+ * S13 picks (cycle 14 flow.md, R4·R5·R7; cycle 21 the three lists): a recommended list by field, each field a block
+ * as tall as the screen with ◀ 3 x 3 ▶; scrolling down brings the next category, and the category box at the top
+ * follows the block in the middle of the screen (AC-3). Covers of books with no e-book in my libraries are faded
+ * (AC-6). The pages and the scroll position stay in this history entry, one place per list, so back from the book
+ * screen comes to the same place (AC-20).
+ */
+export function PicksPage({ list }: { list: PicksList }) {
   const navigate = useNavigate()
   const phone = useMediaQuery(PHONE_QUERY)
   const touchMode = useMediaQuery(TOUCH_QUERY)
   const { plan, ready, key } = usePicksPlan()
   const { resolveStoredRegions } = useRegions()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
-  const [pages, setPages] = useState<Record<string, number>>(() => readPosition()?.pages ?? {})
-  const [restoreY] = useState(() => readPosition()?.scrollY ?? null)
+  const [pages, setPages] = useState<Record<string, number>>(() => readPosition(list.key)?.pages ?? {})
+  const [restoreY] = useState(() => readPosition(list.key)?.scrollY ?? null)
   const restored = useRef(false)
   const [current, setCurrent] = useState('')
   const [selected, setSelected] = useState<PickBook | null>(null)
@@ -61,7 +72,7 @@ export function PicksPage() {
     let retried = false
     const load = async () => {
       try {
-        const data = await fetchPicks(plan, controller.signal)
+        const data = await fetchPicks(list.key, plan, controller.signal)
         setLoaded({ key, data, failed: false })
       } catch (failure) {
         if (controller.signal.aborted) return
@@ -75,17 +86,17 @@ export function PicksPage() {
     }
     void load()
     return () => controller.abort()
-  }, [ready, plan, key, resolveStoredRegions])
+  }, [ready, plan, key, resolveStoredRegions, list.key])
 
   // the place stays in this history entry (AC-20); the browser does not move the page on back and forth
   useEffect(() => {
-    savePosition({ pages })
-  }, [pages])
+    savePosition(list.key, { pages })
+  }, [pages, list.key])
   useEffect(() => {
     let timer: number | undefined
     const onScroll = () => {
       window.clearTimeout(timer)
-      timer = window.setTimeout(() => savePosition({ scrollY: window.scrollY }), 150)
+      timer = window.setTimeout(() => savePosition(list.key, { scrollY: window.scrollY }), 150)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     const before = window.history.scrollRestoration
@@ -95,7 +106,7 @@ export function PicksPage() {
       window.removeEventListener('scroll', onScroll)
       window.history.scrollRestoration = before
     }
-  }, [])
+  }, [list.key])
 
   // the blocks are sized under the sticky app header, whatever its height on this width
   useEffect(() => {
@@ -288,9 +299,8 @@ export function PicksPage() {
   useEffect(() => {
     if (!currentCode || reportedCode.current === currentCode) return
     reportedCode.current = currentCode
-    // TODO(cycle 21 step 9-3): the list of the address; the screen shows the librarian picks for now
-    sendUsageEvent({ type: 'picks_list_view', list: 'librarian', category: currentCode })
-  }, [currentCode])
+    sendUsageEvent({ type: 'picks_list_view', list: list.key, category: currentCode })
+  }, [currentCode, list.key])
 
   // S13c: that field's books 1-9, the page put straight there with no smooth scrolling (user 2026-10-11)
   const jump = (code: string) => {
@@ -301,31 +311,31 @@ export function PicksPage() {
     })
   }
   const pick = (book: PickBook) => {
-    savePosition({ scrollY: window.scrollY })
+    savePosition(list.key, { scrollY: window.scrollY })
     setSelected(book)
     // the book window opens only for a book with an e-book in my libraries (cycle 15 usage report)
     if (book.available && book.bookId != null) {
-      sendUsageEvent({ type: 'picks_book_view', list: 'librarian', category: book.category, bookId: book.bookId })
+      sendUsageEvent({ type: 'picks_book_view', list: list.key, category: book.category, bookId: book.bookId })
     }
   }
   // [책 검색 >>] (AC-9, AC-20): from a phone window's own history entry the book screen replaces that entry, so back
   // comes to this screen, not to the closed window
   const openBook = (bookId: number) => {
-    savePosition({ scrollY: window.scrollY })
+    savePosition(list.key, { scrollY: window.scrollY })
     navigate(`/books/${bookId}`, { replace: onWindowEntry() })
   }
 
   let body
   if (!result) {
-    body = <LoadingBlock />
+    body = <LoadingBlock text={list.loadingText} />
   } else if (result.failed) {
     body = (
       <p className={styles.notice} role="alert">
-        사서추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.
+        {list.failedText}
       </p>
     )
   } else if (categories.length === 0) {
-    body = <p className={styles.empty}>아직 사서추천도서를 준비하고 있어요</p>
+    body = <p className={styles.empty}>{list.emptyText}</p>
   } else {
     body = (
       <>
@@ -336,9 +346,20 @@ export function PicksPage() {
             page={pages[category.code] ?? 0}
             onPage={(page) => setPages((before) => ({ ...before, [category.code]: page }))}
             onPick={pick}
+            coverLabel={list.coverLabel}
           />
         ))}
-        <p className={styles.source}>{sourceLine(data?.fetchedAt ?? null)}</p>
+        <p className={styles.source}>
+          {list.source(data?.fetchedAt ?? null)}
+          {list.key === 'leedongjin' && (
+            <>
+              {' · '}
+              <a href={YOUTUBE_TERMS_URL} target="_blank" rel="noopener noreferrer">
+                YouTube 서비스 약관
+              </a>
+            </>
+          )}
+        </p>
       </>
     )
   }
@@ -349,12 +370,14 @@ export function PicksPage() {
       className={styles.page}
       data-zoomed={zoomed || undefined}
       data-touch={touchMode || undefined}
+      data-labels={list.key !== 'librarian' || undefined}
     >
       {/*
-        Design A with the user's later choices (2026-10-12): no visible heading ("이거 위에 있는거 불필요하니까 없애고"),
-        only one for screen readers; the category picker floats at the bottom centre and follows the category in view.
+        Cycle 21 (flow #4, user: "pc는 a 폰은 c"): PC and tablets show the list's name above the first field (A), going up
+        with it; phones only name it to screen readers and show it in the floating button (C). The category picker
+        floats at the bottom centre and follows the category in view.
       */}
-      <h1 className="visually-hidden">사서추천도서</h1>
+      <h1 className={styles.listTitle}>{list.name}</h1>
       <div className={styles.blocks}>{body}</div>
       {categories.length > 0 && (
         <div className={styles.floating}>
@@ -364,6 +387,7 @@ export function PicksPage() {
             onPick={jump}
             phone={phone}
             fetchedAt={data?.fetchedAt ?? null}
+            list={list}
           />
         </div>
       )}
@@ -374,22 +398,24 @@ export function PicksPage() {
         onClose={() => setSelected(null)}
         onSearch={openBook}
         phone={phone}
+        list={list}
       />
       <RequestNotice
         book={selected && !(selected.available && selected.bookId != null) ? selected : null}
         onClose={() => setSelected(null)}
         phone={phone}
+        list={list}
       />
     </div>
   )
 }
 
 /** Loading (flow.md S13): nine gray cards where the first category will be. */
-function LoadingBlock() {
+function LoadingBlock({ text }: { text: string }) {
   return (
     <section className={styles.section} aria-busy="true">
       <p className="visually-hidden" role="status">
-        사서추천도서를 불러오는 중
+        {text}
       </p>
       <div className={styles.panel}>
         <div className={styles.pager}>

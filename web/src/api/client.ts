@@ -11,6 +11,7 @@ import type {
   Notice,
   NoticeList,
   Picks,
+  PicksListKey,
   Problem,
   RegionResolution,
   ResultFilter,
@@ -184,14 +185,14 @@ export function fetchLibraries(
 }
 
 /**
- * `GET /api/v1/picks` (cycle 14): the National Library of Korea's librarian picks of the latest six months by field,
- * each marked whether a plan library holds it. Public, no login; sends the same plan as the book search (AC-7).
+ * `GET /api/v1/picks/{listKey}` (cycle 14, cycle 21 ADR-0126): one recommended list by field, each book marked whether
+ * a plan library holds it. Public, no login; sends the same plan as the book search (AC-7).
  */
-export function fetchPicks(plan: PlanParams, signal?: AbortSignal): Promise<Picks> {
+export function fetchPicks(list: PicksListKey, plan: PlanParams, signal?: AbortSignal): Promise<Picks> {
   const search = new URLSearchParams()
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
-  return getJson(`/api/v1/picks${suffix}`, signal)
+  return getJson(`/api/v1/picks/${list}${suffix}`, signal)
 }
 
 /**

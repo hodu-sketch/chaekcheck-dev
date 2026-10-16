@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { CategoryPicker } from './CategoryPicker'
 import { CATEGORIES, testCategories } from './testPicks'
+import { PICKS_LISTS } from './picksLists'
 
 afterEach(cleanup)
 
@@ -25,6 +26,7 @@ function Harness() {
       onPick={setCurrent}
       phone={false}
       fetchedAt="2026-10-12T05:00:41+09:00"
+      list={PICKS_LISTS.librarian}
     />
   )
 }
