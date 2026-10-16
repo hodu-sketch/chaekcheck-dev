@@ -1,4 +1,4 @@
 collection_id	name	decided_on	swap_before	note
-11	대구전자도서관	2026-10-15	2026-10-17	통합 포털 목록 div.info 칸 순서가 출판사 → 저자 → 날짜(사이트 확인 2026-10-14, 2026-10-16). 수집기가 저자·출판사를 바꿔 넣음. 가져오기가 두 칸을 바꿔 읽음(plan ADR-0115). swap_before = 고친 수집기(PUBLISHER_FIRST_PORTAL_HOSTS)를 main에 합친 날
-12	경기도교육청 전자도서관	2026-10-15	2026-10-17	통합 포털 목록 div.info 칸 순서가 출판사 → 저자 → 날짜(사이트 확인 2026-10-14, 2026-10-16). 수집기가 저자·출판사를 바꿔 넣음. 가져오기가 두 칸을 바꿔 읽음(plan ADR-0115). swap_before = 고친 수집기(PUBLISHER_FIRST_PORTAL_HOSTS)를 main에 합친 날
-15	전북특별자치도교육청 전자도서관	2026-10-15	2026-10-17	통합 포털 목록 div.info 칸 순서가 출판사 → 저자 → 날짜(사이트 확인 2026-10-14, 2026-10-16). 수집기가 저자·출판사를 바꿔 넣음. 가져오기가 두 칸을 바꿔 읽음(plan ADR-0115). swap_before = 고친 수집기(PUBLISHER_FIRST_PORTAL_HOSTS)를 main에 합친 날
+11	대구전자도서관	2026-10-15	2026-10-16	통합 포털 목록 div.info 칸 순서가 출판사 → 저자 → 날짜(사이트 확인 2026-10-14, 2026-10-16). 수집기가 저자·출판사를 바꿔 넣음. 가져오기가 두 칸을 바꿔 읽음(plan ADR-0115). swap_before = 고친 수집기(PUBLISHER_FIRST_PORTAL_HOSTS)를 main에 합친 날
+12	경기도교육청 전자도서관	2026-10-15	2026-10-16	통합 포털 목록 div.info 칸 순서가 출판사 → 저자 → 날짜(사이트 확인 2026-10-14, 2026-10-16). 수집기가 저자·출판사를 바꿔 넣음. 가져오기가 두 칸을 바꿔 읽음(plan ADR-0115). swap_before = 고친 수집기(PUBLISHER_FIRST_PORTAL_HOSTS)를 main에 합친 날
+15	전북특별자치도교육청 전자도서관	2026-10-15	2026-10-16	통합 포털 목록 div.info 칸 순서가 출판사 → 저자 → 날짜(사이트 확인 2026-10-14, 2026-10-16). 수집기가 저자·출판사를 바꿔 넣음. 가져오기가 두 칸을 바꿔 읽음(plan ADR-0115). swap_before = 고친 수집기(PUBLISHER_FIRST_PORTAL_HOSTS)를 main에 합친 날
