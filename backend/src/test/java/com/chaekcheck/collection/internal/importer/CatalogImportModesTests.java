@@ -3,8 +3,11 @@ package com.chaekcheck.collection.internal.importer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -39,12 +42,14 @@ import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryRef;
 import com.chaekcheck.library.LibraryRegistry;
 import com.chaekcheck.library.PlatformType;
+import com.chaekcheck.picks.CuratedListTransfer;
 
 /**
  * The separate import's modes (cycle 11 handoff step 5, ADR-0078) on a tiny SQLite, with the real pg tools in the
  * db-test container: export keeps no row, apply keeps one row with the PC's and its own steps, a database with
  * other libraries, links or catalog refuses the file ({@code mismatch}), waiting new tables stop new imports, and
  * the finish keeps a row with the same {@code export_id}. The pg command makes its own context; it is closed after.
+ * Since cycle 21 (ADR-0123) the file carries the recommended lists, put in after the swap (handoff step 5).
  */
 @SpringBootTest
 @DirtiesContext
@@ -72,6 +77,12 @@ class CatalogImportModesTests {
 	@Autowired
 	PlatformTransactionManager transactionManager;
 
+	@Autowired
+	CuratedListTransfer curatedLists;
+
+	/** One Lee Dong-jin row the export matches to "첫 책" by title and first author, one SNU row it cannot match. */
+	Path lists;
+
 	@TempDir
 	Path dir;
 
@@ -96,7 +107,29 @@ class CatalogImportModesTests {
 					+ " (1, 'K1', '첫 책', '가', '나', 'EBOOK', '" + KYOBO_BASE + "/detail?id=K1', '2026-09-29T00:00:00+09:00'),"
 					+ " (1, 'K2', '둘째 책', '다', '라', 'EBOOK', '" + KYOBO_BASE + "/detail?id=K2', '2026-09-29T00:00:00+09:00')");
 		}
+		lists = Files.createDirectories(dir.resolve("lists"));
+		Files.writeString(lists.resolve("fields.tsv"), tsv(List.of("list", "code", "name", "position"),
+				List.of("leedongjin", "f", "분야", "1"), List.of("snu100", "k", "한국문학", "1")), StandardCharsets.UTF_8);
+		Files.writeString(lists.resolve("leedongjin.tsv"), tsv(
+				List.of("month", "position", "year_book", "video_id", "field", "title", "author", "publisher", "isbn13",
+						"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by",
+						"checked_on"),
+				List.of("2026-06", "1", "", "lMx0zEd1qtY", "f", "첫 책", "가", "", "", "", "", "", "", "", "", "")),
+				StandardCharsets.UTF_8);
+		Files.writeString(lists.resolve("snu100.tsv"), tsv(
+				List.of("toc_no", "field", "title", "author", "cover_url", "pinned_title", "pinned_author",
+						"pinned_publisher", "pinned_isbn13", "pinned_by"),
+				List.of("17", "k", "광장", "최인훈", "", "", "", "", "", "")), StandardCharsets.UTF_8);
 		empty();
+	}
+
+	@SafeVarargs
+	private static String tsv(List<String>... lines) {
+		StringBuilder text = new StringBuilder();
+		for (List<String> line : lines) {
+			text.append(String.join("\t", line)).append('\n');
+		}
+		return text.toString();
 	}
 
 	@AfterEach
@@ -105,6 +138,7 @@ class CatalogImportModesTests {
 		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot")
 			.update();
 		jdbc.sql("DELETE FROM collection.catalog_import WHERE source LIKE 'test-%'").update();
+		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100')").update();
 		removeInsertedLibrary();
 	}
 
@@ -114,8 +148,20 @@ class CatalogImportModesTests {
 	}
 
 	private ImportTransfer transfer() {
+		return transfer(curatedLists);
+	}
+
+	private ImportTransfer transfer(CuratedListTransfer lists) {
 		return new ImportTransfer(importer(), catalogLoad, libraryCatalog, libraryRegistry, jdbc, transactionManager,
-				new ImportRecords(jdbc), clock());
+				new ImportRecords(jdbc), clock(), lists, this.lists);
+	}
+
+	/** {@code list_key:title:book title or -} of the stored Lee Dong-jin and SNU rows. */
+	private List<String> storedLists() {
+		return jdbc.sql("""
+				SELECT l.list_key || ':' || l.title || ':' || coalesce(b.title, '-')
+				FROM picks.list_book l LEFT JOIN catalog.book b ON b.id = l.book_id
+				WHERE l.list_key IN ('leedongjin', 'snu100') ORDER BY l.list_key""").query(String.class).list();
 	}
 
 	private static Clock clock() {
@@ -144,9 +190,50 @@ class CatalogImportModesTests {
 				SELECT jsonb_object_keys(step_seconds) FROM collection.catalog_import
 				WHERE source = 'test-modes.sqlite'""").query(String.class).list()).containsExactlyInAnyOrder("read",
 						"group", "nb", "normalize", "same_text", "books_copy", "holdings_read", "holdings_copy", "match",
-						"write", "load", "library part", "compare", "restore", "index", "analyze", "swap", "apply");
+						"write", "load", "library part", "compare", "restore", "index", "analyze", "swap", "apply",
+						"lists");
 		assertThat(jdbc.sql("SELECT title FROM catalog.book ORDER BY title").query(String.class).list())
 			.containsExactly("둘째 책", "첫 책");
+		// cycle 21: matched to the file's book, put in after the swap; the ids carried over, so the id still fits
+		assertThat(storedLists()).containsExactly("leedongjin:첫 책:첫 책", "snu100:광장:-");
+	}
+
+	@Test
+	void theFileCarriesTheListsMatchedToItsBooks() throws Exception { // cycle 21 (ADR-0123, ADR-0124)
+		Path file = dir.resolve("export.dump");
+		transfer().export(sqlite, null, file, "compact");
+
+		String notes = catalogLoad.readManifest(file).notes();
+		assertThat(notes).contains("\"listPart\"", "lMx0zEd1qtY", "광장", "matched");
+		assertThat(catalogLoad.readManifest(file).formatVersion()).isEqualTo(3);
+		assertThat(storedLists()).isEmpty();
+	}
+
+	@Test
+	void noListsFolderStopsTheExportBeforeAnythingIsRead() throws Exception { // cycle 21 (ADR-0123)
+		Files.delete(lists.resolve("snu100.tsv"));
+
+		assertThatThrownBy(() -> transfer().export(sqlite, null, dir.resolve("export.dump"), "compact"))
+			.isInstanceOf(CuratedListTransfer.ListFileException.class)
+			.hasMessageContaining("snu100.tsv");
+		assertThat(jdbc.sql("SELECT to_regclass('catalog_next.book') IS NULL").query(Boolean.class).single()).isTrue();
+		assertThat(dir.resolve("export.dump")).doesNotExist();
+	}
+
+	@Test
+	void listsThatFailLeaveTheSwappedCatalogAndTheListsBefore() throws Exception { // cycle 21 handoff step 5-3
+		Path file = exportAndDiscard();
+		CuratedListTransfer failing = mock(CuratedListTransfer.class);
+		given(failing.replace(any())).willThrow(new IllegalStateException("lock_timeout"));
+
+		transfer(failing).apply(file);
+
+		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isEqualTo(2);
+		assertThat(jdbc.sql("""
+				SELECT status || ':' || jsonb_exists(step_seconds, 'lists failed') || ':' || jsonb_exists(step_seconds, 'apply')
+				FROM collection.catalog_import WHERE source = 'test-modes.sqlite'""").query(String.class).single())
+			.isEqualTo("SUCCEEDED:true:true");
+		assertThat(storedLists()).isEmpty();
 	}
 
 	@Test
@@ -217,6 +304,7 @@ class CatalogImportModesTests {
 				WHERE source = 'test-modes.sqlite'""").query(Boolean.class).single()).isTrue();
 		assertThat(catalogLoad.hasWaitingExport()).isFalse();
 		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isEqualTo(2);
+		assertThat(storedLists()).containsExactly("leedongjin:첫 책:첫 책", "snu100:광장:-");
 	}
 
 	/** Cycle 13 (ADR-0086, AC-7): the export carries the succeeded library-insert runs, the apply puts them in. */

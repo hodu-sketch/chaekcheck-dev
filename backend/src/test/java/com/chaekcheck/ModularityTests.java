@@ -36,10 +36,12 @@ class ModularityTests {
 	void picksDependsOnCatalogAndLibraryOnly() {
 		assertThat(dependenciesOf("picks")).containsExactlyInAnyOrder("catalog", "library");
 		assertThat(modules.getModuleByName("popular")).isEmpty();
+		// cycle 21 (ADR-0123): only collection uses picks (CuratedListTransfer), and picks does not know collection
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
-			.filter(name -> !name.equals("picks"))
+			.filter(name -> !name.equals("picks") && !name.equals("collection"))
 			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("picks"));
+		assertThat(dependenciesOf("picks")).doesNotContain("collection");
 	}
 
 	/** Cycle 16 (ADR-0098, ADR-0099): sitecontent depends on no module, and only auth depends on it. */
@@ -54,11 +56,11 @@ class ModularityTests {
 
 	/**
 	 * Cycle 13 (ADR-0083, ADR-0093): collection adds libraries through library's LibraryRegistry, never the other way;
-	 * collection still uses only catalog and library.
+	 * collection uses catalog and library, and since cycle 21 picks for the recommended lists (ADR-0123).
 	 */
 	@Test
 	void collectionUsesLibraryAndLibraryNotCollection() {
-		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library");
+		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks");
 		assertThat(dependenciesOf("library")).doesNotContain("collection");
 	}
 

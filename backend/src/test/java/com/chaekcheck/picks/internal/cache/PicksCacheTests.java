@@ -1,6 +1,7 @@
 package com.chaekcheck.picks.internal.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,13 +19,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.QueryTimeoutException;
 
 import com.chaekcheck.catalog.BookLookup;
+import com.chaekcheck.catalog.IdBook;
 import com.chaekcheck.catalog.IsbnBook;
 import com.chaekcheck.catalog.TitleAuthor;
 import com.chaekcheck.catalog.TitleAuthorBook;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.picks.internal.store.PicksStore;
+import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
+import com.chaekcheck.picks.internal.store.PicksStore.StoredField;
 
-/** Matching, choosing, ordering and keeping the copy before (plan cycle 14 step 5; ADR-0090, AC-4, AC-4b, AC-6). */
+/**
+ * The shared copies per list (cycle 14 design-delta "캐시", cycle 21 handoff step 4-5): order, fields, our book, the
+ * shown name, and the copy before after a failure (C9).
+ */
 class PicksCacheTests {
 
 	final PicksStore store = mock(PicksStore.class);
@@ -34,18 +42,27 @@ class PicksCacheTests {
 
 	final PicksCache cache = new PicksCache(store, lookup, libraries);
 
+	final List<StoredField> fields = new ArrayList<>(List.of(field("librarian", "11", "문학"),
+			field("librarian", "6", "인문"), field("librarian", "5", "사회"), field("librarian", "4", "자연"),
+			field("librarian", "425", "테마")));
+
 	@BeforeEach
-	void enabledLibraries() {
+	void stored() {
 		given(libraries.lendingKinds()).willReturn(Map.of(1L, false, 2L, false, 7L, false));
+		given(store.fields()).willReturn(fields);
+		given(store.books(any())).willReturn(List.of());
+		given(lookup.byIsbn13(any())).willReturn(List.of());
+		given(lookup.byTitleAndAuthor(any())).willReturn(List.of());
+		given(lookup.byIds(any())).willReturn(List.of());
 	}
 
 	@Test
-	void isbnFirstThenTitleAndAuthorForTheRest() {
-		given(store.readPicks()).willReturn(List.of(pick("3", "11", null, "9791124591055", "가", "김가"),
-				pick("2", "11", null, null, "나", "김나"), pick("1", "6", null, "9788968335273", "다", "김다")));
+	void librarianByIsbnFirstThenTitleAndAuthorForTheRest() {
+		given(store.books("librarian")).willReturn(List.of(librarian("3", "11", null, "9791124591055", "가", "김가"),
+				librarian("2", "11", null, null, "나", "김나"), librarian("1", "6", null, "9788968335273", "다", "김다")));
 		given(store.lastSucceededAt()).willReturn(Optional.of(Instant.parse("2026-10-11T20:00:41Z")));
 		given(lookup.byIsbn13(any()))
-			.willReturn(List.of(new IsbnBook("9791124591055", 100, "가", "가", new long[] { 7 })));
+			.willReturn(List.of(new IsbnBook("9791124591055", 100, "가(큰글자)", "가", new long[] { 7 })));
 		TitleAuthor na = new TitleAuthor("나", "김나");
 		TitleAuthor da = new TitleAuthor("다", "김다");
 		given(lookup.byTitleAndAuthor(any())).willReturn(List.of(new TitleAuthorBook(na, 300, "나", "", new long[] { 1 }),
@@ -54,33 +71,30 @@ class PicksCacheTests {
 
 		cache.refresh();
 
-		List<PicksCache.Book> books = cache.snapshot().categories().getFirst().books();
-		assertThat(books).extracting(PicksCache.Book::recomNo, PicksCache.Book::bookId)
-			.containsExactly(org.assertj.core.groups.Tuple.tuple("3", 100L), org.assertj.core.groups.Tuple.tuple("2", 200L),
-					org.assertj.core.groups.Tuple.tuple("1", 400L));
-		assertThat(cache.snapshot().fetchedAt()).isEqualTo(Instant.parse("2026-10-11T20:00:41Z"));
+		List<PicksCache.Book> books = cache.snapshot("librarian").categories().getFirst().books();
+		assertThat(books).extracting(PicksCache.Book::id, PicksCache.Book::bookId, PicksCache.Book::title,
+				PicksCache.Book::listTitle)
+			.containsExactly(tuple("3", 100L, "가", null), tuple("2", 200L, "나", null), tuple("1", 400L, "다", null));
+		assertThat(cache.snapshot("librarian").fetchedAt()).isEqualTo(Instant.parse("2026-10-11T20:00:41Z"));
 	}
 
 	@Test
-	void ordersAndListsByField() { // AC-4, AC-4b
-		given(store.readPicks()).willReturn(List.of(pick("20260922163135829100", "11", "2026-09-22", null, "가", null),
-				pick("20260928084907621100", "6", "2026-09-28", null, "나", null),
-				pick("20260928084907621200", "425", "2026-09-28", null, "다", null),
-				pick("20260801000000000000", "999", null, null, "라", null, "새분야"),
-				pick("20260801000000000001", "1000", null, null, "마", null, null),
-				pick("20260101000000000000", "11", "2026-01-29", null, "바", null)));
-		given(lookup.byIsbn13(any())).willReturn(List.of());
-		given(lookup.byTitleAndAuthor(any())).willReturn(List.of());
+	void librarianOrdersAndListsByField() { // C14 AC-4, AC-4b
+		fields.add(field("librarian", "999", "새분야"));
+		fields.add(field("librarian", "1000", "기타"));
+		given(store.books("librarian")).willReturn(List.of(librarian("20260922163135829100", "11", "2026-09-22", null, "가", null),
+				librarian("20260928084907621100", "6", "2026-09-28", null, "나", null),
+				librarian("20260928084907621200", "425", "2026-09-28", null, "다", null),
+				librarian("20260801000000000000", "999", null, null, "라", null),
+				librarian("20260801000000000001", "1000", null, null, "마", null),
+				librarian("20260101000000000000", "11", "2026-01-29", null, "바", null)));
 
 		cache.refresh();
 
-		List<PicksCache.Category> categories = cache.snapshot().categories();
+		List<PicksCache.Category> categories = cache.snapshot("librarian").categories();
 		assertThat(categories).extracting(PicksCache.Category::code, PicksCache.Category::name)
-			.containsExactly(org.assertj.core.groups.Tuple.tuple("ALL", "전체"),
-					org.assertj.core.groups.Tuple.tuple("11", "문학"), org.assertj.core.groups.Tuple.tuple("6", "인문"),
-					org.assertj.core.groups.Tuple.tuple("425", "테마"),
-					org.assertj.core.groups.Tuple.tuple("999", "새분야"),
-					org.assertj.core.groups.Tuple.tuple("1000", "기타"));
+			.containsExactly(tuple("ALL", "전체"), tuple("11", "문학"), tuple("6", "인문"), tuple("425", "테마"),
+					tuple("999", "새분야"), tuple("1000", "기타"));
 		// month, then registration date (unknown last), then recomNo as text, latest first
 		assertThat(categories.getFirst().books()).extracting(PicksCache.Book::title)
 			.containsExactly("다", "나", "가", "마", "라", "바");
@@ -88,40 +102,100 @@ class PicksCacheTests {
 	}
 
 	@Test
-	void aFailedRefreshKeepsTheCopyBefore() { // C9
-		given(store.readPicks()).willReturn(List.of(pick("1", "11", null, null, "가", null)));
-		given(lookup.byIsbn13(any())).willReturn(List.of());
-		given(lookup.byTitleAndAuthor(any())).willReturn(List.of());
-		cache.refresh();
-		PicksCache.Snapshot before = cache.snapshot();
-		given(lookup.byTitleAndAuthor(any())).willThrow(new QueryTimeoutException("lock_timeout"));
+	void leedongjinByMonthThenOrderWithTheImportsBooks() { // AC-5, AC-16
+		fields.add(field("leedongjin", "foreign_fiction", "외국 소설"));
+		fields.add(field("leedongjin", "science", "과학·의학"));
+		given(store.books("leedongjin")).willReturn(List.of(
+				book(11, "foreign_fiction", 2, "2025-12", "맡겨진 소녀", 501L, 2025),
+				book(12, "science", 1, "2026-06", "히스토리아 비테이", 502L, null),
+				book(13, "foreign_fiction", 1, "2025-12", "햄릿", 503L, 2025),
+				book(14, "science", 1, "2026-01", "인간 제국 쇠망사", 999L, null)));
+		given(lookup.byIds(any())).willReturn(List.of(new IdBook(501, "맡겨진 소녀", "다산책방", new long[] { 1 }),
+				new IdBook(502, "히스토리아 비테이", "지식서재", new long[] { 2 }),
+				new IdBook(503, "햄릿(Hamlet)", "민음사", new long[] { 7 })));
 
 		cache.refresh();
 
-		assertThat(cache.snapshot()).isSameAs(before);
+		PicksCache.Snapshot snapshot = cache.snapshot("leedongjin");
+		assertThat(snapshot.fetchedAt()).isNull();
+		assertThat(snapshot.categories()).extracting(PicksCache.Category::code)
+			.containsExactly("ALL", "foreign_fiction", "science");
+		// 999 is no longer in the catalog: the list's title, no book
+		assertThat(snapshot.categories().getFirst().books())
+			.extracting(PicksCache.Book::id, PicksCache.Book::title, PicksCache.Book::listTitle, PicksCache.Book::bookId,
+					PicksCache.Book::yearBook)
+			.containsExactly(tuple("12", "히스토리아 비테이", null, 502L, null), tuple("14", "인간 제국 쇠망사", null, null, null),
+					tuple("13", "햄릿", null, 503L, 2025), tuple("11", "맡겨진 소녀", null, 501L, 2025));
 	}
 
 	@Test
-	void nothingStoredIsEmpty() {
-		given(store.readPicks()).willReturn(List.of());
+	void snuByTableOfContentsWithTheListTitleWhenItDiffers() { // AC-4, AC-16
+		fields.add(field("snu100", "korean_lit", "한국문학"));
+		fields.add(field("snu100", "foreign_lit", "외국문학"));
+		fields.add(field("snu100", "science", "과학기술"));
+		given(store.books("snu100")).willReturn(List.of(snu(30, "foreign_lit", 23, "셰익스피어: 햄릿 외 3편", 703L),
+				snu(20, "korean_lit", 16, "토지", 702L), snu(10, "korean_lit", 3, "구운몽", 701L)));
+		given(lookup.byIds(any())).willReturn(List.of(new IdBook(701, "구운몽", "x", new long[] { 1 }),
+				new IdBook(702, "토지. 1(1부 1권)", "x", new long[] { 1 }), new IdBook(703, "햄릿", "x", new long[] { 1 })));
 
 		cache.refresh();
 
-		assertThat(cache.snapshot()).isSameAs(PicksCache.Snapshot.EMPTY);
+		List<PicksCache.Category> categories = cache.snapshot("snu100").categories();
+		assertThat(categories).extracting(PicksCache.Category::code).containsExactly("ALL", "korean_lit", "foreign_lit");
+		assertThat(categories.getFirst().books())
+			.extracting(PicksCache.Book::tocNo, PicksCache.Book::title, PicksCache.Book::listTitle)
+			.containsExactly(tuple(3, "구운몽", null), tuple(16, "토지", null), tuple(23, "햄릿", "셰익스피어: 햄릿 외 3편"));
+		assertThat(categories.getFirst().books().getFirst().recommendedMonth()).isNull();
 	}
 
-	private static PicksStore.StoredPick pick(String recomNo, String code, String registered, String isbn, String title,
+	@Test
+	void aFailedListKeepsItsCopyBeforeAndTheOthersGoOn() { // C9
+		fields.add(field("snu100", "korean_lit", "한국문학"));
+		given(store.books("librarian")).willReturn(List.of(librarian("1", "11", null, null, "가", null)));
+		given(store.books("snu100")).willReturn(List.of(snu(1, "korean_lit", 3, "구운몽", null)));
+		cache.refresh();
+		PicksCache.Snapshot before = cache.snapshot("librarian");
+		given(lookup.byTitleAndAuthor(any())).willThrow(new QueryTimeoutException("lock_timeout"));
+		given(store.books("snu100")).willReturn(List.of(snu(1, "korean_lit", 3, "구운몽", null),
+				snu(2, "korean_lit", 4, "청구야담", null)));
+
+		cache.refresh();
+
+		assertThat(cache.snapshot("librarian")).isSameAs(before);
+		assertThat(cache.snapshot("snu100").categories().getFirst().books()).hasSize(2);
+	}
+
+	@Test
+	void nothingStoredOrNoSuchListIsEmpty() {
+		cache.refresh();
+
+		assertThat(cache.snapshot("librarian")).isSameAs(PicksCache.Snapshot.EMPTY);
+		assertThat(cache.snapshot("leedongjin")).isSameAs(PicksCache.Snapshot.EMPTY);
+		assertThat(cache.snapshot("yes24")).isSameAs(PicksCache.Snapshot.EMPTY);
+	}
+
+	private static StoredField field(String list, String code, String name) {
+		return new StoredField(list, code, name);
+	}
+
+	private static StoredBook librarian(String recomNo, String code, String registered, String isbn, String title,
 			String author) {
-		return pick(recomNo, code, registered, isbn, title, author, null);
-	}
-
-	private static PicksStore.StoredPick pick(String recomNo, String code, String registered, String isbn, String title,
-			String author, String codeName) {
 		LocalDate month = recomNo.startsWith("202609") ? LocalDate.of(2026, 10, 1)
 				: recomNo.startsWith("202608") ? LocalDate.of(2026, 8, 1)
 				: recomNo.startsWith("202601") ? LocalDate.of(2026, 2, 1) : LocalDate.of(2026, 10, 1);
-		return new PicksStore.StoredPick(recomNo, code, codeName, month, registered == null ? null : LocalDate.parse(registered),
-				title, author, isbn, null);
+		return new StoredBook(Long.parseLong(recomNo.substring(Math.max(0, recomNo.length() - 6))), code, 1, title,
+				author, isbn, month, null, null, null, recomNo, registered == null ? null : LocalDate.parse(registered),
+				null, null);
+	}
+
+	private static StoredBook book(long id, String field, int position, String month, String title, Long bookId,
+			Integer yearBook) {
+		return new StoredBook(id, field, position, title, null, null, LocalDate.parse(month + "-01"), yearBook,
+				"vid" + id, null, null, null, bookId, null);
+	}
+
+	private static StoredBook snu(long id, String field, int tocNo, String title, Long bookId) {
+		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, null);
 	}
 
 }

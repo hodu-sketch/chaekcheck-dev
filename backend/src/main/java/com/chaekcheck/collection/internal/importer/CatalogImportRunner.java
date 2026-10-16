@@ -22,9 +22,11 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryRegistry;
+import com.chaekcheck.picks.CuratedListTransfer;
 import com.sun.management.OperatingSystemMXBean;
 
 /**
@@ -72,17 +74,20 @@ class CatalogImportRunner {
 	 * that read a collection DB ({@code in-place}, dry run, {@code export}), before the DB is opened
 	 * @param storedBibliography step ③ from the stored national bibliography records without the TTL files (cycle 19:
 	 * the TTL files were lost on 2026-10-15, user choice 2026-10-16); only without {@code ttl-path}
+	 * @param listsDir the recommended lists folder ({@code scripts/crawl/lists}, cycle 21 ADR-0128); {@code export}
+	 * and a real {@code in-place} stop before reading the collection DB when it or a list file is missing
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
 			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir,
-			boolean storedBibliography) {
+			boolean storedBibliography, Path listsDir) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
 			mode = mode == null ? "in-place" : mode;
 			grouping = grouping == null ? "compact" : grouping;
 			rulesDir = rulesDir == null ? Path.of("../scripts/library/rules") : rulesDir;
+			listsDir = listsDir == null ? Path.of("../scripts/crawl/lists") : listsDir;
 		}
 
 		/** Whether the mode reads a collection DB, and so the rules files. */
@@ -122,7 +127,8 @@ class CatalogImportRunner {
 	@Bean
 	ApplicationRunner collectionImport(LibraryCatalog libraryCatalog, LibraryRegistry libraryRegistry,
 			CatalogLoad catalogLoad, JdbcClient jdbc, DataSource dataSource,
-			PlatformTransactionManager transactionManager, Settings settings, ConfigurableApplicationContext context) {
+			PlatformTransactionManager transactionManager, Settings settings, ConfigurableApplicationContext context,
+			CuratedListTransfer curatedLists, BookLookup bookLookup) {
 		return (ApplicationArguments args) -> {
 			settings.check();
 			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
@@ -138,7 +144,7 @@ class CatalogImportRunner {
 				.rules(rules)
 				.storedBibliography(settings.storedBibliography());
 			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, libraryRegistry, jdbc,
-					transactionManager, records, Clock.systemUTC());
+					transactionManager, records, Clock.systemUTC(), curatedLists, settings.listsDir());
 			switch (settings.mode()) {
 				case "export" -> transfer.export(settings.sqlitePath(), settings.ttlPath(), settings.file(),
 						settings.grouping());
@@ -148,8 +154,12 @@ class CatalogImportRunner {
 				default -> {
 					if (!settings.dryRun()) {
 						transfer.requireNoWaitingExport();
+						transfer.checkLists();
 					}
 					importer.run(settings.sqlitePath(), settings.ttlPath(), settings.dryRun());
+					if (!settings.dryRun()) {
+						transfer.replaceListsInPlace(bookLookup);
+					}
 				}
 			}
 			// cycle 11 measurement (ADR-0079): the Java side's CPU, next to the database container's cpu.stat

@@ -82,10 +82,12 @@ class AuthEnabledSecurityTests {
 		long cover = data.cover("20260922163135829100", "https://www.nl.go.kr/afile/fileDownload/t1");
 		picksCache.refresh();
 
-		assertThat(mvc.get().uri("/api/v1/picks")).hasStatusOk()
+		assertThat(mvc.get().uri("/api/v1/picks/librarian")).hasStatusOk()
 			.bodyJson()
 			.extractingPath("$.fetchedAt")
 			.isEqualTo("2026-10-12T05:00:41+09:00");
+		// cycle 21 (ADR-0126): the other lists too
+		assertThat(mvc.get().uri("/api/v1/picks/snu100")).hasStatusOk();
 		assertThat(mvc.get().uri("/api/v1/picks/covers/" + cover)).hasStatusOk()
 			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
 	}

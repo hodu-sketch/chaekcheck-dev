@@ -24,8 +24,9 @@ import com.chaekcheck.picks.internal.cache.PicksCache;
 import com.chaekcheck.picks.internal.store.PicksStore;
 
 /**
- * The librarian picks screen (plan cycle 14 design-delta "API"). No login (R7-3), no library site or National Library
- * request is made. The lists come from the shared cache; whether a book is in the user's plan libraries is worked out
+ * The recommended lists' screens (plan cycle 14 design-delta "API"; cycle 21 ADR-0126: one address per list,
+ * {@code librarian}, {@code leedongjin}, {@code snu100}, any other name 404 {@code list_not_found}). No login (R7-3), no
+ * library site or National Library request is made. The lists come from the shared cache; whether a book is in the user's plan libraries is worked out
  * per request and never cached (ADR-0090).
  */
 @RestController
@@ -53,8 +54,11 @@ class PicksController {
 		this.zone = properties.fetch().zone();
 	}
 
-	@GetMapping("/api/v1/picks")
-	Picks picks(@RequestParam MultiValueMap<String, String> params) {
+	@GetMapping("/api/v1/picks/{listKey}")
+	Picks picks(@PathVariable String listKey, @RequestParam MultiValueMap<String, String> params) {
+		if (!PicksCache.LISTS.contains(listKey)) {
+			throw new ListNotFoundException();
+		}
 		PicksPlanParams read = new PicksPlanParams(params);
 		PlanOptions options = read.planOptions();
 		Set<Long> residence = read.regionIds("residenceRegionIds");
@@ -63,9 +67,9 @@ class PicksController {
 		Set<Long> planIds = new HashSet<>();
 		plan.forEach(target -> planIds.add(target.id()));
 
-		PicksCache.Snapshot snapshot = cache.snapshot();
+		PicksCache.Snapshot snapshot = cache.snapshot(listKey);
 		if (snapshot.categories().isEmpty()) {
-			return new Picks(null, List.of());
+			return new Picks(listKey, null, List.of());
 		}
 		List<Picks.Category> categories = snapshot.categories()
 			.stream()
@@ -78,7 +82,7 @@ class PicksController {
 					.toOffsetDateTime()
 					.truncatedTo(ChronoUnit.SECONDS)
 					.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-		return new Picks(fetchedAt, categories);
+		return new Picks(listKey, fetchedAt, categories);
 	}
 
 	@GetMapping(COVER_PATH + "{coverId}")
@@ -100,8 +104,10 @@ class PicksController {
 				}
 			}
 		}
-		return new Picks.Book(book.recomNo(), book.category(), book.recommendedMonth().format(MONTH), book.title(),
-				book.coverId() == null ? null : COVER_PATH + book.coverId(), book.bookId(), available);
+		return new Picks.Book(book.id(), book.category(), book.title(), book.listTitle(),
+				book.coverId() == null ? null : COVER_PATH + book.coverId(), book.bookId(), available,
+				book.recommendedMonth() == null ? null : book.recommendedMonth().format(MONTH), book.yearBook(),
+				book.videoId(), book.tocNo());
 	}
 
 	/** An id that is not a positive number names no cover: 404 like a missing one. */
@@ -123,25 +129,33 @@ class PicksController {
 	}
 
 	/**
-	 * The response (design-delta "API"): lists in display order with their short names; {@code fetchedAt} null and no
-	 * lists when nothing is stored.
-	 * @param fetchedAt the latest successful fetch, ISO 8601 with the Asia/Seoul offset
+	 * The response (cycle 21 design-delta "API"): one list's fields in display order with their short names; no
+	 * fields when nothing is stored.
+	 * @param list the list's name, as in the address
+	 * @param fetchedAt the latest successful fetch of the librarian picks, ISO 8601 with the Asia/Seoul offset; null
+	 * for the other lists and when nothing is stored
 	 */
-	record Picks(String fetchedAt, List<Category> categories) {
+	record Picks(String list, String fetchedAt, List<Category> categories) {
 
-		/** @param code {@code ALL} or the API's field code */
+		/** @param code {@code ALL} or the list's field code */
 		record Category(String code, String name, List<Book> books) {
 		}
 
 		/**
+		 * @param id the librarian's {@code recomNo}, the other lists' row id
 		 * @param category the book's field code
-		 * @param recommendedMonth {@code YYYY-MM}
+		 * @param title the shown name: our book's title without edition marks, else the list's title (ADR-0129)
+		 * @param listTitle the list's title when it differs from {@code title}, else null
 		 * @param coverUrl our address of the stored cover, or null (the web shows the title)
 		 * @param bookId our book, also when no plan library holds it; null without one
 		 * @param available a plan library holds our book
+		 * @param recommendedMonth {@code YYYY-MM} (librarian, Lee Dong-jin), else null
+		 * @param yearBook the year of Lee Dong-jin's books of the year it was in, else null
+		 * @param videoId Lee Dong-jin's video, else null
+		 * @param tocNo the SNU table-of-contents number, else null
 		 */
-		record Book(String recomNo, String category, String recommendedMonth, String title, String coverUrl,
-				Long bookId, boolean available) {
+		record Book(String id, String category, String title, String listTitle, String coverUrl, Long bookId,
+				boolean available, String recommendedMonth, Integer yearBook, String videoId, Integer tocNo) {
 		}
 
 	}

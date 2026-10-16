@@ -15,8 +15,8 @@ import com.chaekcheck.library.InvalidRegionException;
 
 /**
  * Problem Details for the picks APIs (ADR-0008), in the shape of the catalog ones: 400 {@code validation_error}
- * with {@code errors[]}, 404 {@code cover_not_found}, 422 {@code invalid_region}. Applies to this package only; 500
- * stays with the common handler ({@code internal_error}).
+ * with {@code errors[]}, 404 {@code cover_not_found} and {@code list_not_found}, 422 {@code invalid_region}. Applies
+ * to this package only; 500 stays with the common handler ({@code internal_error}).
  */
 @RestControllerAdvice(basePackageClasses = PicksErrors.class)
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -32,6 +32,11 @@ class PicksErrors {
 	@ExceptionHandler
 	ProblemDetail coverNotFound(CoverNotFoundException ex) {
 		return problem(HttpStatus.NOT_FOUND, "cover_not_found", "The cover does not exist");
+	}
+
+	@ExceptionHandler
+	ProblemDetail listNotFound(ListNotFoundException ex) {
+		return problem(HttpStatus.NOT_FOUND, "list_not_found", "The list does not exist");
 	}
 
 	@ExceptionHandler

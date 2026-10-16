@@ -4679,3 +4679,41 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
   - 2024·2025 올해의 책 영상은 이달의 책 재생목록으로 들어오므로 이 규칙이 필요 없음
   - 12월이 아닌 이달의 책 영상(2025-05~2026-06) 제목에도 "올해의 책"이 듦. 12월로 좁히지 않으면 업로드 쪽에서 겹쳐 잡힘(이달의 책과 같은 영상이라 해는 없음)
   - 첫 목록 파일은 조사 문서에서 옮기므로 2023-12 둘은 이미 들어 있음. 앞으로 올해의 책이 이달의 책 재생목록 밖에만 올라오면 "올해의" 한 낱말 규칙이 필요할 수 있음 → plan 판단
+
+### 4단계 4~6과 5단계 (2026-10-16, 사용자: "다음 단계 알아서 해")
+
+- **`CuratedListTransfer`**(공개, `picks` 기본 패키지) [안: 모양]
+  - 모양: `check(Path)`(파일만, prepare 전) / `read(Path, BookLookup)` → `ListPart(json, counts, warnings)` / `replace(String)` → `Replaced(fields, books, coversAdded, coversDeleted)`, 그리고 `ListFileException(file, line)`. 확인 필요 #14의 "검사 시점 나누기"는 이 모양으로 함
+  - 구현은 `picks/internal/lists/`(`ListFiles`가 읽고 검사, `CuratedLists`가 맞추고 넣음)
+  - 목록 파일 읽기: 머리 줄의 칸 이름으로 읽음(칸 순서는 상관없음, 모르는 칸 `note`는 무시). 값 검사는 DB CHECK와 같음. 틀리면 "파일 line N: 칸 무엇"
+  - `fields.tsv`에는 `leedongjin`·`snu100`만 둠. 이동진은 (연월, position)이 겹치면 안 되고, 서울대는 toc_no가 겹치면 안 됨
+  - 맞추기 ①~④: 맞출 줄 전부에 대해 ISBN 쿼리 하나, 제목+저자 쿼리 하나만 씀
+    - ② 출판사 좁히기: `CatalogText.publisherNorm(pinned_publisher)`가 `publisher_norm`과 같은 책만 남김
+    - 고정 판이 있는데 못 찾으면 ④로 넘어가지 않고 NULL
+  - `listPart` JSON: `fields`, `books`(목록 파일 칸 − `pinned_by`·`checked_on`·`note` + `bookId`·`coverUrl`), `covers`(`sourceUrl`, `fetchedAt`=표지 파일 시각, `jpegBase64`; 줄이 쓰는 표지만), `counts`
+  - 경고(ListPart.warnings, 로그 WARN)
+    - `checked_on`이 비었거나 30일이 지난 이동진 줄
+    - 표지 파일이 없거나 JPEG가 아닌 줄. 이 줄은 `cover_source`를 비움(멈추지 않음 [안])
+  - `replace`: 이동진·서울대 목록 잠금 → 두 목록의 `list_book`·`list_field` 지우기 → 넣기 → 표지 `ON CONFLICT DO NOTHING` → 쓰지 않는 표지 지우기. 한 트랜잭션이고, 사서 줄은 건드리지 않음
+- **`PicksCache`**: 목록마다 사본 하나. 한 목록이 실패하면 그 목록만 앞 사본이 남음
+  - 사서는 지금처럼 맞춤(새 `BookChoice`). 이동진·서울대는 저장된 `book_id`를 `byIds`로 읽음. 그 책이 카탈로그에서 사라졌으면 못 맞춘 줄로 봄
+  - 화면 이름(`ShownTitle`)과 `listTitle`을 붙임. 분야 이름과 순서는 `list_field`에서 읽음(`PickCategory`·`CODE_ORDER`는 이제 받기에서만 씀)
+- **API**: `GET /api/v1/picks/{listKey}` → `{list, fetchedAt, categories[{code, name, books[{id, category, title, listTitle, coverUrl, bookId, available, recommendedMonth, yearBook, videoId, tocNo}]}]}`. 모르는 이름은 404 `list_not_found`. `GET /api/v1/picks`는 지움(404)
+- **5단계**
+  - 설정 `chaekcheck.collection.import.lists-dir`(기본 `../scripts/crawl/lists`, `application-collection-import.yml`에도 적음)
+  - `Notes.listPart`(String)
+  - export: `check` → prepare → `read(preparedLookup)`. 실패하면 `discardPrepared`. 단계 시간은 `lists`
+  - apply·finish: 바꿔 끼운 뒤 `replace`
+  - in-place: dry run이 아니면 읽기 전에 `check`, 바꿔 끼운 뒤 `BookLookup` 빈(바뀐 `catalog`)으로 `read`·`replace`
+  - **목록 넣기 실패 기록 자리** [안]: 가져오기 줄은 SUCCEEDED 그대로 두고, `step_seconds`에 `lists failed` 키를 남기고 로그는 ERROR. 성공하면 `lists` 키
+  - dry run은 목록을 검사하지 않음(쓰지 않으므로)
+  - `collection` `allowedDependencies`에 `picks`를 더함. `ModularityTests`는 "picks를 쓰는 것은 collection뿐, picks는 collection을 모름"으로 고침
+- 시험(새로)
+  - `CuratedListTransferTests` 4: 폴더·파일 없음, 칸 오류 줄 번호, 맞추기(출판사 좁히기 + 보유량) + 표지 + 경고, `replace`가 사서 줄·사서 표지를 건드리지 않고 두 번 돌려도 같음
+  - `PicksCacheTests` 6, `PicksApiTests`(404·옛 주소 없음·이동진·서울대 칸)
+  - `CatalogImportModesTests`
+    - export 파일에 `listPart`가 실리고 형식 번호는 3
+    - apply·finish 뒤 목록이 들어가고 `book_id`가 바꿔 끼운 책을 가리킴
+    - 목록 파일이 없으면 export가 사본을 읽기 전에 멈춤(`catalog_next` 없음)
+    - `replace`가 실패해도 카탈로그는 바뀌고 `lists failed`가 남음
+- 빌드: `./gradlew build` 통과(4분 11초, 시험 1,024개)

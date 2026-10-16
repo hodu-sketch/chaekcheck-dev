@@ -50,11 +50,11 @@ class CatalogImportSettingsTests {
 
 	private static Settings settings(boolean dryRun, boolean excludeAddedLaterLibraries) {
 		return new Settings(Path.of("collection.sqlite"), null, dryRun, null, null, null, null,
-				null, excludeAddedLaterLibraries, null, false);
+				null, excludeAddedLaterLibraries, null, false, null);
 	}
 
 	private static Settings settings(String mode, Path file, String grouping) {
-		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null, false, null, false);
+		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null, false, null, false, null);
 	}
 
 	@Test
@@ -70,7 +70,7 @@ class CatalogImportSettingsTests {
 	void rulesDirIsTheRulesFolderByDefault() { // cycle 19
 		assertThat(settings(null, null, null).rulesDir()).isEqualTo(Path.of("../scripts/library/rules"));
 		Settings set = new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false,
-				Path.of("rules"), false);
+				Path.of("rules"), false, null);
 		assertThat(set.rulesDir()).isEqualTo(Path.of("rules"));
 		assertThat(settings("export", Path.of("f"), null).readsCollection()).isTrue();
 		assertThat(settings(null, null, null).readsCollection()).isTrue();
@@ -80,10 +80,17 @@ class CatalogImportSettingsTests {
 	}
 
 	@Test
+	void listsDirIsTheListsFolderByDefault() { // cycle 21
+		assertThat(settings(null, null, null).listsDir()).isEqualTo(Path.of("../scripts/crawl/lists"));
+		assertThat(new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false, null, false,
+				Path.of("lists")).listsDir()).isEqualTo(Path.of("lists"));
+	}
+
+	@Test
 	void storedBibliographyOnlyWithoutATtlPath() { // cycle 19
-		new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false, null, true).check();
+		new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false, null, true, null).check();
 		assertThatThrownBy(() -> new Settings(Path.of("c.sqlite"), Path.of("ttl"), false, null, null, null, null, null,
-				false, null, true).check()).hasMessageContaining("stored-bibliography");
+				false, null, true, null).check()).hasMessageContaining("stored-bibliography");
 	}
 
 	@Test

@@ -258,22 +258,26 @@ public class PicksStore {
 			.update();
 	}
 
-	/**
-	 * The stored librarian list as the cache holds it, with each book's stored cover id; {@code drCodeName} is the
-	 * field's stored name.
-	 */
-	public List<StoredPick> readPicks() {
+	/** Every list's fields, by list and then display order. */
+	public List<StoredField> fields() {
+		return jdbc.sql("SELECT list_key, code, name FROM picks.list_field ORDER BY list_key, position")
+			.query((rs, rowNum) -> new StoredField(rs.getString(1), rs.getString(2), rs.getString(3)))
+			.list();
+	}
+
+	/** One list's stored rows with each book's stored cover id, in no particular order. */
+	public List<StoredBook> books(String listKey) {
 		return jdbc.sql("""
-				SELECT b.source_no AS recom_no, b.field_code AS dr_code, f.name AS dr_code_name,
-				  b.recommended_month AS recom_month, b.registered_on, b.title, b.author, b.isbn13, c.id AS cover_id
-				FROM picks.list_book b
-				  JOIN picks.list_field f ON f.list_key = b.list_key AND f.code = b.field_code
-				  LEFT JOIN picks.cover c ON c.source_url = b.cover_source
-				WHERE b.list_key = 'librarian'""")
-			.query((rs, rowNum) -> new StoredPick(rs.getString("recom_no"), rs.getString("dr_code"),
-					rs.getString("dr_code_name"), rs.getDate("recom_month").toLocalDate(), date(rs, "registered_on"),
+				SELECT b.id, b.field_code, b.position, b.title, b.author, b.isbn13, b.recommended_month, b.year_book,
+				  b.video_id, b.toc_no, b.source_no, b.registered_on, b.book_id, c.id AS cover_id
+				FROM picks.list_book b LEFT JOIN picks.cover c ON c.source_url = b.cover_source
+				WHERE b.list_key = :list""")
+			.param("list", listKey)
+			.query((rs, rowNum) -> new StoredBook(rs.getLong("id"), rs.getString("field_code"), rs.getInt("position"),
 					rs.getString("title"), rs.getString("author"), rs.getString("isbn13"),
-					rs.getObject("cover_id", Long.class)))
+					date(rs, "recommended_month"), rs.getObject("year_book", Integer.class), rs.getString("video_id"),
+					rs.getObject("toc_no", Integer.class), rs.getString("source_no"), date(rs, "registered_on"),
+					rs.getObject("book_id", Long.class), rs.getObject("cover_id", Long.class)))
 			.list();
 	}
 
@@ -300,12 +304,20 @@ public class PicksStore {
 	public record Saved(long runId, boolean changed) {
 	}
 
-	/** @param coverId the stored cover, or null */
-	public record StoredPick(String recomNo, String drCode, String drCodeName, LocalDate recomMonth,
-			LocalDate registeredOn, String title, String author, String isbn13, Long coverId) {
+	public record StoredCover(String contentType, byte[] image) {
 	}
 
-	public record StoredCover(String contentType, byte[] image) {
+	public record StoredField(String listKey, String code, String name) {
+	}
+
+	/**
+	 * One {@code list_book} row (design-delta "데이터").
+	 * @param bookId the matched book of a Lee Dong-jin or SNU row; null for the librarian rows (matched by the cache)
+	 * @param coverId the stored cover, or null
+	 */
+	public record StoredBook(long id, String fieldCode, int position, String title, String author, String isbn13,
+			LocalDate recommendedMonth, Integer yearBook, String videoId, Integer tocNo, String sourceNo,
+			LocalDate registeredOn, Long bookId, Long coverId) {
 	}
 
 }
