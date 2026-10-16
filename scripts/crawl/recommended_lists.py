@@ -57,8 +57,10 @@ KAKAO_BOOK_API = 'https://dapi.kakao.com/v3/search/book'
 # the National Library of Korea's holdings search; its imageUrl is a path on NLK_COVER_BASE
 NLK_SEARCH_API = 'https://www.nl.go.kr/NL/search/openApi/search.do'
 NLK_COVER_BASE = 'https://cover.nl.go.kr/'
-# covers from outside the collected catalog (the ISBN bibliography, Kakao's Daum CDN)
-OUTSIDE_COVER_HOSTS = ('www.nl.go.kr', 'nl.go.kr', 'cover.nl.go.kr', 't1.daumcdn.net', 'search1.kakaocdn.net')
+# covers from outside the collected catalog (the ISBN bibliography and holdings, Kakao's Daum CDN, a publisher's page
+# put in by hand: 「가족이라는 사치」 from Gimm-Young, user 2026-10-17); they are not taken again when an edition changes
+OUTSIDE_COVER_HOSTS = ('www.nl.go.kr', 'nl.go.kr', 'cover.nl.go.kr', 't1.daumcdn.net', 'search1.kakaocdn.net',
+                       'www.gimmyoung.com')
 USER_AGENT = 'chaekcheck-collector/1.0 (+https://github.com/; contact via repository)'
 
 # rules-index.md: 표지 크기 (ADR-0091, the server's chaekcheck.picks.fetch.cover)
