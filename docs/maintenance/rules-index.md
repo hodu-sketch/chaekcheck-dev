@@ -57,3 +57,25 @@
 | `SHARED_CODE_KINDS` | `BookGrouper` | ①에서 상품 번호가 한 번호 공간인 화면 종류 | `scripts/library/check_code_spaces.py` ([library-maintenance.md](../library-maintenance.md) 4-11) | 다시 가져오기 |
 | `EXCLUDED_KINDS`, `SOUND_VIDEO_KINDS` | `HoldingRowFilter` | 가져오지 않는 종류(오디오북·동영상북, 소리·영상 파일). 넣기 명령과 같이 씁니다 | 가져오기 기록 `skipped_by_reason` | 다시 가져오기(넣기 명령도 같이 바뀜) |
 | `placeholder-date-libraries` | `application-collection-import.yml` | 1950년 앞 날짜를 자리 채움으로 보는 수집 도서관(명지대 100555, ADR-0054) | 로그 `placeholder dates cleared` | 설정을 고칩니다. 다시 가져오기 |
+
+## 4. 추천 목록 (사이클 21, `scripts/crawl/lists/`, `picks` 모듈)
+
+수집기 `scripts/crawl/recommended_lists.py`와 화면 이름·판 고르기 코드가 쓰는 값입니다. 파일 칸은 [`scripts/crawl/lists/README.md`](../../scripts/crawl/lists/README.md), 절차는 [4-picks.md](4-picks.md) 6절.
+
+| 이름 | 어디에 | 뜻 | 확인하는 법 | 바꾸는 법과 그 뒤 할 일 |
+|---|---|---|---|---|
+| 올해의 책 영상 낱말 | `collector_words.tsv` `year_book_title` | 업로드 재생목록에서 12월에 올라온 영상의 제목에 이 낱말(「올해의」, 「베스트북」)이 들면 올해의 책 영상 후보로 봅니다(사용자 승인 2026-10-16). 「올해의 영화」도 걸리지만 확인 필요 파일에서 사람이 거릅니다 | 수집 기록의 `new book in …` 줄과 `leedongjin_pending.tsv`. 시험 `test_a_december_upload_with_a_year_word_is_left_for_a_person` | 줄을 더하거나 고칩니다. **다음 수집부터** |
+| 채널 표지 낱말 | `collector_words.tsv` `not_a_book` | 괄호 안에 있어도 책 이름이 아닌 채널 표지(「이달의 책」, 「베스트북」, 「최고의 책」, 채널·평론가 이름). 공백을 빼고 견줍니다 | pending 파일에 이런 이름이 남으면 낱말을 더합니다. 시험 `test_book_names_and_channel_words` | 줄을 더합니다. 다음 수집부터 |
+| 판 거르기 낱말 | `collector_words.tsv` `excluded_title`·`excluded_publisher`·`excluded_name` | 고정 판으로 고르지 않는 판: 제목에 영어원서·원서·어린이·초등·청소년·만화·그림책·논술·「공부가 되는」·「100분 고전」, 출판사에 「어린이」, 기여자에 「번역AI」(spec R3-3·R3-4) | 수집 뒤 `snu100.tsv`의 `pinned_title`·`pinned_publisher`를 훑습니다. 시험 `EditionTests` | 줄을 더하고 수집기를 `--skip-youtube`로 다시 돌린 뒤 목록 파일을 커밋합니다. **다시 가져오기**(export에 실려야 화면이 바뀜) |
+| 표지 출처 차례 | `cover_sources.tsv`(수집기 `COVER_SOURCES`가 아는 이름만) | 표지를 찾는 곳과 차례: ① `nlk_isbn` 국립중앙도서관 ISBN 서지(고정 판 ISBN) ② `collected_preferred` 수집 사본 표지 중 `cover_hosts.tsv` 호스트 ③ `collected_other` 수집 사본의 그 밖의 표지 ④ `kakao_book` 카카오 책 검색(ISBN, 없으면 제목+저자 성, 끝으로 같은 제목) ⑤ `nlk_title` ISBN 서지 제목 검색. 출처마다 5개까지 시도하고, 빈 표지 그림은 건너뜀. 모든 줄(우리 책을 못 맞춘 줄도)에 표지를 찾음(사용자 2026-10-16 "책 표지 무조건 다 보였으면 해 인터넷 수집해서(어디서 수집해야 하는지는 기록 다 해)") | 수집 기록 `GET <호스트>`·`cover:` 줄. 시험 `test_a_book_we_do_not_have_gets_its_cover_from_kakao`, `test_a_missing_rules_file_stops_before_any_request` | 줄 차례를 고치거나 뺍니다. 새 출처는 수집기 코드가 먼저 있어야 함(모르는 이름이면 멈춤). 이미 받은 표지는 그대로이므로 그 책의 `cover_url`을 비우고 다시 돌립니다. 다시 가져오기 |
+| 표지 호스트 차례 | `cover_hosts.tsv` | ② 안에서 먼저 시도할 호스트와 차례(YES24 → 교보, 결정 #6) | 수집 기록의 `GET <호스트>` 줄. 시험 `test_collected_covers_put_yes24_and_kyobo_first_as_https` | 줄을 고칩니다. 이미 받은 표지는 그대로이므로, 바꾸려면 그 책의 `cover_url`을 비우고 다시 돌립니다. 다시 가져오기 |
+| 빈 표지 그림 | `cover_placeholders.tsv`, 수집기 `PLACEHOLDER_DISTANCE`(24) | "표지 없음" 그림(국립중앙도서관 로고, 교보 「제공된 상품이미지가 없습니다」)의 16x16 평균 해시. 받은 그림의 256비트 가운데 24비트 이하만 다르면 표지로 쓰지 않고 다음 후보로 갑니다. 이미 받은 표지가 이 그림이면 다시 찾음 | 수집 기록 `gave a "no image" picture`. 시험 `test_placeholder_picture_is_skipped_for_the_next_one` | 새 빈 그림을 보면 `image_hash`로 해시를 구해 줄을 더하고 수집기를 다시 돌립니다. 다시 가져오기 |
+| 표지 검색 제목 | 목록 줄의 `cover_title` | 목록 제목이 한 책의 이름이 아닐 때 표지를 찾는 제목(서울대 「근현대사 4부작」 → 「혁명의 시대」). 화면 이름은 바뀌지 않음 | `snu100.tsv` | 칸을 채우고 그 줄의 `cover_url`을 비운 뒤 다시 돌립니다 |
+| 표지 바꿔 받기 | 수집기 `OUTSIDE_COVER_HOSTS` | 고정 판이 바뀌어 지금 표지가 새 판의 수집 표지 목록에 없으면 다시 받음(「토지」 2권 → 1권). 국립중앙도서관·카카오(Daum CDN) 표지는 판과 묶이지 않아 그대로 둠 | 시험 `test_stale_catalog_cover_is_taken_again_when_the_edition_changed` | 호스트가 바뀌면 고칩니다 |
+| 분야 제안표 | `subject_fields.tsv` | ISBN 서지 `SUBJECT` 한 자리 → 이동진 분야 제안(제안만, 사람이 정함, 결정 #1). `note`에 헷갈리는 경우를 적음 | pending 파일의 `field_suggestion` | 줄을 고칩니다. 다음 수집부터 |
+| 목록 분야 | `fields.tsv` | 이동진·서울대 분야 코드·이름·순서(spec R5-1·R5-2) | 화면 [분야 ▾] 순서 | 고치고 커밋. 다시 가져오기. 코드를 바꾸면 그 분야를 쓰는 줄의 `field`도 같이 고칩니다 |
+| 판 고르기 | `BookChoice`(`picks/internal/cache`), 수집기 `choose()` | 켜진 도서관만 세고 구독형은 몇 곳이든 1(ADR-0125). 여러 권짜리는 **같은 출판사의 같은 세트**(판 표시와 권 번호를 덜어 낸 본제목·출판사가 같음)를 한 판으로 보고, 보유량은 그 세트 권들 가운데 가장 큰 값, 쓰는 책은 그 세트의 1권(1·상, 없으면 가장 작은 권). 가장 많이 가진 판, 같으면 책 번호 작은 것(범위 결정 #7, 2026-10-16 바로잡음: 「토지」 1권 207·2권 209 → 1권) | 공용 시험 자료 `scripts/crawl/testdata/book_choice_cases.json`(`BookChoiceTests`와 `test_recommended_lists` `SameRuleAsJava`가 함께 읽음) | 두 코드를 **같이** 고치고 시험 자료에 경우를 더합니다. 사서는 다음 캐시 새로 고침, 이동진·서울대는 수집기 다시 돌리기 + 다시 가져오기 |
+| 화면 책 이름 | `ShownTitle`(`picks/internal/cache`), 수집기 `read_title()` | 맞춘 책 제목에서 덜어 내는 것: 앞 `[시리즈]`, 끝 괄호(판·언어 표시, 괄호 안이 권이면 권), 끝 낱말 「오리지널판」·「세트」, 끝 권 번호(1~2자리, 「화씨 451」은 권 아님). 1권만 지우고 2권부터는 숫자를 남김(ADR-0129) | `ShownTitleTests`, `test_volumes_read_like_shown_title` | 두 코드를 같이 고칩니다. 사서는 다음 캐시, 다른 목록은 수집기 다시 돌리기 + 다시 가져오기(세트 묶기도 같이 바뀜) |
+| 30일 확인 | `CuratedLists.CHECK_DAYS`, 수집기 `checked_on` | 이동진 줄을 YouTube에서 30일 넘게 확인 못 하면 export가 경고(YouTube 개발자 정책 III.E.4) | export 로그 WARN `not checked since` | 바꾸지 않습니다(약관) |
+| 표지 크기 | 수집기 `COVER_WIDTH`·`COVER_QUALITY`·`COVER_MAX_BYTES` | 폭 200px, JPEG 품질 0.8, 원본 5MB 넘으면 받지 않음(ADR-0091과 같음) | `CoverTests` | 서버 `chaekcheck.picks.fetch.cover`와 같이 고칩니다 |
+| 이달의 책 재생목록 | 수집기 `MONTHLY_PLAYLIST` | 「B tv 이동진의 파이아키아」 「이달의 책」 재생목록 ID. 업로드 재생목록은 그 채널에서 API로 얻음 | 수집 기록 `GET www.googleapis.com /youtube/v3/playlistItems` | 채널이 재생목록을 바꾸면 고칩니다 |

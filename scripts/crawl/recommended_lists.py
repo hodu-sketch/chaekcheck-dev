@@ -49,16 +49,20 @@ ROOT = Path(__file__).resolve().parents[2]
 LISTS_DIR = ROOT / 'scripts' / 'crawl' / 'lists'
 LOG_FILE = ROOT / 'data' / 'recommended-lists' / 'collect.log'
 
+# rules-index.md: 이달의 책 재생목록
 MONTHLY_PLAYLIST = 'PLUpgTv3bu9rGxQBAMVaMvam27P0YbiY29'
 YOUTUBE_API = 'https://www.googleapis.com/youtube/v3/'
 SEOJI_API = 'https://www.nl.go.kr/seoji/SearchApi.do'
+KAKAO_BOOK_API = 'https://dapi.kakao.com/v3/search/book'
+# covers from outside the collected catalog (the ISBN bibliography, Kakao's Daum CDN)
+OUTSIDE_COVER_HOSTS = ('www.nl.go.kr', 'nl.go.kr', 't1.daumcdn.net', 'search1.kakaocdn.net')
 USER_AGENT = 'chaekcheck-collector/1.0 (+https://github.com/; contact via repository)'
 
+# rules-index.md: 표지 크기 (ADR-0091, the server's chaekcheck.picks.fetch.cover)
 COVER_WIDTH = 200
 COVER_QUALITY = 80
 COVER_MAX_BYTES = 5 * 1024 * 1024
 REQUEST_INTERVAL = 1.0
-PREFERRED_COVER_HOSTS = ('image.yes24.com', 'dcontent.dkyobobook.co.kr')
 
 LEEDONGJIN_COLUMNS = ['month', 'position', 'year_book', 'video_id', 'field', 'title', 'author', 'publisher', 'isbn13',
                       'cover_url', 'pinned_title', 'pinned_author', 'pinned_publisher', 'pinned_isbn13', 'pinned_by',
@@ -67,14 +71,9 @@ SNU_COLUMNS = ['toc_no', 'field', 'title', 'author', 'cover_url', 'pinned_title'
                'pinned_isbn13', 'pinned_by', 'note']
 PENDING_COLUMNS = ['video_id', 'month', 'reason', 'title', 'author', 'isbn13', 'field_suggestion']
 
-# spec R3-3, R3-4: editions never chosen
-EXCLUDED_TITLE_WORDS = ('영어원서', '원서', '어린이', '초등', '청소년', '만화', '그림책', '논술', '공부가 되는', '100분 고전')
 BOOK_NAME = re.compile(r'\[([^\[\]]+)\]|《([^《》]+)》|〈([^〈〉]+)〉|『([^『』]+)』|🔖\s*([^\n]+)')
-# words that are the channel's own labels, never a book (e.g. "[이달의 책]")
-NOT_A_BOOK = re.compile(r'이달의책|올해의책|베스트북|최고의책|파이아키아|Btv|이동진', re.IGNORECASE)
-YEAR_BOOK_TITLE = re.compile(r'올해의\s*책|베스트북')
 
-# ShownTitle (Java) reading of the volume, for the first volume (ADR-0125)
+# rules-index.md: 화면 책 이름 — ShownTitle (Java) reading of the volume, for the sets and the first volume (ADR-0125)
 SERIES = re.compile(r'^\[[^\]]*\]\s*')
 LAST_PARENTHESES = re.compile(r'\s*\(([^()]*)\)$')
 ORIGINAL_EDITION = re.compile(r'\s+(?:오리지널판|세트)$')
@@ -84,6 +83,89 @@ VOLUME_AT_END = re.compile(r'(?:[.,]\s*|\s+)(?:제\s*)?(\d{1,2}|상|중|하)\s*�
 
 class CollectorFailure(Exception):
     """An answer the run cannot go on with: the files stay as they were."""
+
+
+# ---------------------------------------------------------------- rules files (docs/maintenance/rules-index.md)
+
+@dataclass
+class Rules:
+    """
+    The collector's words and orders, read from the lists folder so they change without code (user note 2026-10-16:
+    "다른 ai가 잘 파악하게"): collector_words.tsv (kind, word, note) and cover_hosts.tsv (order, host, note). The field
+    suggestions are subject_fields.tsv.
+    """
+    year_book_title: tuple[str, ...]   # an upload's December title with one of them: a book-of-the-year video
+    not_a_book: tuple[str, ...]        # the channel's own labels, compared without spaces, never a book name
+    excluded_title: tuple[str, ...]    # editions never chosen (R3-3, R3-4)
+    excluded_publisher: tuple[str, ...]
+    excluded_name: tuple[str, ...]
+    cover_hosts: tuple[str, ...]       # collected cover addresses tried first, in order (decision #6)
+    cover_sources: tuple[str, ...]     # where covers come from, in order (cover_sources.tsv)
+    placeholders: tuple[int, ...] = ()  # "no image" pictures (cover_placeholders.tsv), as image_hash values
+
+    def is_placeholder(self, image: bytes) -> bool:
+        mark = image_hash(image)
+        return any(bin(mark ^ known).count('1') <= PLACEHOLDER_DISTANCE for known in self.placeholders)
+
+    def year_book(self, title: str) -> bool:
+        return any(word in (title or '') for word in self.year_book_title)
+
+    def is_label(self, name: str) -> bool:
+        squeezed = unicodedata.normalize('NFKC', name).replace(' ', '').lower()
+        return any(word.replace(' ', '').lower() in squeezed for word in self.not_a_book)
+
+
+WORD_KINDS = ('year_book_title', 'not_a_book', 'excluded_title', 'excluded_publisher', 'excluded_name')
+# rules-index.md: 빈 표지 그림 — at most this many of the 256 bits may differ from a known "no image" picture
+PLACEHOLDER_DISTANCE = 24
+
+
+def image_hash(image: bytes) -> int:
+    """16x16 grey average hash: the same picture made smaller or recompressed gives (nearly) the same 256 bits."""
+    from PIL import Image
+    with Image.open(io.BytesIO(image)) as picture:
+        small = picture.convert('L').resize((16, 16), Image.LANCZOS)
+        pixels = list(small.getdata())
+    mean = sum(pixels) / len(pixels)
+    return sum(1 << i for i, value in enumerate(pixels) if value > mean)
+
+
+# rules-index.md: 표지 출처 차례 — the sources the collector knows (cover_sources.tsv picks and orders them)
+COVER_SOURCES = ('nlk_isbn', 'collected_preferred', 'collected_other', 'kakao_book', 'nlk_title')
+_rules: Rules | None = None
+
+
+def load_rules(lists_dir: Path) -> Rules:
+    """Reads the two rules files; a missing file or an unknown kind stops the run before any request."""
+    header, rows = read_tsv(lists_dir / 'collector_words.tsv')
+    if header[:2] != ['kind', 'word']:
+        raise CollectorFailure(f'{lists_dir / "collector_words.tsv"}: missing or without the columns kind, word')
+    words = {kind: [] for kind in WORD_KINDS}
+    for row in rows:
+        if row['kind'] not in words:
+            raise CollectorFailure(f'collector_words.tsv: unknown kind {row["kind"]}')
+        words[row['kind']].append(row['word'])
+    header, hosts = read_tsv(lists_dir / 'cover_hosts.tsv')
+    if header[:2] != ['order', 'host']:
+        raise CollectorFailure(f'{lists_dir / "cover_hosts.tsv"}: missing or without the columns order, host')
+    hosts.sort(key=lambda h: int(h['order']))
+    header, sources = read_tsv(lists_dir / 'cover_sources.tsv')
+    if header[:2] != ['order', 'source']:
+        raise CollectorFailure(f'{lists_dir / "cover_sources.tsv"}: missing or without the columns order, source')
+    unknown = [r['source'] for r in sources if r['source'] not in COVER_SOURCES]
+    if unknown:
+        raise CollectorFailure(f'cover_sources.tsv: unknown source {unknown[0]} (known: {", ".join(COVER_SOURCES)})')
+    sources.sort(key=lambda r: int(r['order']))
+    _, placeholders = read_tsv(lists_dir / 'cover_placeholders.tsv')
+    return Rules(*(tuple(words[kind]) for kind in WORD_KINDS), tuple(h['host'] for h in hosts),
+                 tuple(r['source'] for r in sources), tuple(int(r['hash'], 16) for r in placeholders))
+
+
+def rules() -> Rules:
+    global _rules
+    if _rules is None:
+        _rules = load_rules(LISTS_DIR)
+    return _rules
 
 
 # ---------------------------------------------------------------- log and requests
@@ -120,6 +202,9 @@ class Http:
         return text
 
     def get(self, url: str, max_bytes: int | None = None) -> tuple[int, str, bytes]:
+        return self.get_with(url, {}, max_bytes)
+
+    def get_with(self, url: str, headers: dict, max_bytes: int | None = None) -> tuple[int, str, bytes]:
         parts = urllib.parse.urlsplit(url)
         host = parts.hostname or ''
         wait = REQUEST_INTERVAL - (time.monotonic() - self.last.get(host, -1e9))
@@ -127,7 +212,7 @@ class Http:
             self.sleep(wait)
         self.hosts.append(host)
         self.log.line(f'GET {host} {parts.path}')
-        request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+        request = urllib.request.Request(url, headers=dict(headers, **{'User-Agent': USER_AGENT}))
         try:
             with self.opener(request, timeout=30) as response:
                 # read() for the whole body: read(-1) keeps the chunk marks of a chunked answer
@@ -232,11 +317,6 @@ def read_title(title: str) -> tuple[str, str | None]:
     return re.sub(r'[\s.,:;·\-]+$', '', text), volume
 
 
-def first_volume(title: str) -> bool:
-    volume = volume_of(title)
-    return volume is None or volume in ('1', '상')
-
-
 def held(library_ids, kinds: dict[int, bool]) -> int:
     """Enabled libraries that do not lend by subscription, plus 1 when any enabled subscription library has it."""
     owned = 0
@@ -252,20 +332,40 @@ def held(library_ids, kinds: dict[int, bool]) -> int:
     return owned + (1 if subscription else 0)
 
 
+def volume_order(volume: str) -> int:
+    return {'상': 1, '중': 2, '하': 3}.get(volume) or int(volume)
+
+
+# rules-index.md: 판 고르기
 def choose(candidates: list[dict], kinds: dict[int, bool]) -> dict | None:
-    """Held most, then the first volume, then the smaller id (ADR-0125)."""
-    if not candidates:
+    """
+    The same rule as Java's BookChoice (ADR-0125, plan scope decision #7): a set (the same title without edition marks
+    and volume, the same publisher, only the volume differing) is one edition, held as its volume held most and shown
+    by its first volume (1 or 상, else the smallest); the edition held most wins, then the smaller id.
+    """
+    editions = []
+    sets: dict[tuple[str, str], list[dict]] = {}
+    for book in candidates:
+        base, volume = read_title(book['title'])
+        if volume is None:
+            editions.append((held(book['library_ids'], kinds), book))
+        else:
+            sets.setdefault((text_key(base), text_key(book.get('publisher') or '')), []).append(book)
+    for members in sets.values():
+        first = min(members, key=lambda b: (volume_order(volume_of(b['title'])), b['id']))
+        editions.append((max(held(b['library_ids'], kinds) for b in members), first))
+    if not editions:
         return None
-    return min(candidates, key=lambda b: (-held(b['library_ids'], kinds), not first_volume(b['title']), b['id']))
+    return min(editions, key=lambda e: (-e[0], e[1]['id']))[1]
 
 
 def excluded(book: dict) -> bool:
     title = book['title'] or ''
-    if any(word in title for word in EXCLUDED_TITLE_WORDS):
+    if any(word in title for word in rules().excluded_title):
         return True
-    if '어린이' in (book.get('publisher') or ''):
+    if any(word in (book.get('publisher') or '') for word in rules().excluded_publisher):
         return True
-    return any('번역AI' in (name or '') or '번역ai' in (name or '') for name in book.get('names', []))
+    return any(word.lower() in (name or '').lower() for word in rules().excluded_name for name in book.get('names', []))
 
 
 # ---------------------------------------------------------------- the PC's catalog
@@ -439,7 +539,7 @@ def book_names(video: Video) -> list[str]:
         for match in BOOK_NAME.finditer(text or ''):
             name = next(g for g in match.groups() if g)
             name = name.strip().split('\n')[0].strip(' "\'')
-            if name and not NOT_A_BOOK.search(unicodedata.normalize('NFKC', name).replace(' ', '')) and name not in names:
+            if name and not rules().is_label(name) and name not in names:
                 names.append(name)
     return names
 
@@ -476,12 +576,72 @@ class Seoji:
         key = text_key(name)
         return [d for d in self.search(title=name) if text_key((d.get('TITLE') or '').split(':')[0]) == key]
 
+    def cover_by_title(self, title: str) -> str | None:
+        for doc in self.by_title(title):
+            url = (doc.get('TITLE_URL') or '').strip()
+            if url:
+                return https(url)
+        return None
+
     def cover_url(self, isbn: str) -> str | None:
         for doc in self.search(isbn=isbn):
             url = (doc.get('TITLE_URL') or '').strip()
             if url:
                 return 'https://' + url[len('http://'):] if url.startswith('http://') else url
         return None
+
+
+class KakaoBooks:
+    """
+    Kakao book search (dapi.kakao.com/v3/search/book, REST key KAKAO_REST_API_KEY): a cover for a book our catalog
+    does not have, or whose catalog covers did not load (user 2026-10-16: "책 표지 무조건 다 보였으면 해 인터넷 수집해서").
+    The thumbnail's fname is the original image on the Daum CDN; that one is taken (the thumbnail is 120px wide).
+    """
+
+    def __init__(self, http: Http, key: str):
+        self.http = http
+        self.key = key
+
+    def _search(self, **params) -> list[dict]:
+        url = KAKAO_BOOK_API + '?' + urllib.parse.urlencode(dict(params, size=50))
+        status, _, body = self.http.get_with(url, {'Authorization': 'KakaoAK ' + self.key})
+        if status != 200:
+            raise CollectorFailure(f'dapi.kakao.com: HTTP {status}')
+        return json.loads(body.decode('utf-8')).get('documents', [])
+
+    @staticmethod
+    def image(document: dict) -> str | None:
+        thumbnail = document.get('thumbnail') or ''
+        if not thumbnail:
+            return None
+        original = urllib.parse.parse_qs(urllib.parse.urlsplit(thumbnail).query).get('fname', [None])[0]
+        return https(original or thumbnail)
+
+    def covers(self, isbn: str | None, title: str | None, author: str | None, limit: int = 5) -> list[str]:
+        """
+        Cover addresses in order: by ISBN when there is one; then the title, the exact main title first, then
+        containing it, by the author; then the same title by anyone. A "no image" one is skipped later, so a few.
+        """
+        documents = []
+        if isbn:
+            documents += self._search(query=isbn, target='isbn')
+        if title:
+            key = text_key(title)
+            # the family name (the last word) of the first author: 「제러미 리프킨」 also matches 「제레미 리프킨」
+            author_key = text_key(re.split(r'[,·/;]', author or '')[0].split()[-1]) if author and author.split() else ''
+            found = self._search(query=title, target='title')
+            by_author = [d for d in found if not author_key or any(author_key in text_key(a) for a in d.get('authors', []))]
+
+            def same_title(d):
+                return text_key(re.split(r'[:(]', d.get('title') or '')[0]) == key
+            # last: the same title by anyone (a classic Kakao names by its translator, 「보조법어」 by 김탄허)
+            documents += [d for d in by_author if same_title(d)] + [d for d in by_author if key in text_key(d.get('title') or '')]                 + [d for d in found if same_title(d)]
+        urls = []
+        for document in documents:
+            url = self.image(document)
+            if url and url not in urls:
+                urls.append(url)
+        return urls[:limit]
 
 
 def sync_youtube(rows: list[dict], pending: list[dict], youtube: YouTube, seoji: Seoji | None,
@@ -500,14 +660,20 @@ def sync_youtube(rows: list[dict], pending: list[dict], youtube: YouTube, seoji:
     rows = kept
     pending = [p for p in pending if p['video_id'] in public]
     listed = {r['video_id'] for r in rows} | {p['video_id'] for p in pending}
+    # the list starts with its first month (research 2023-12, spec R3-5): older videos are not looked at [안]
+    first_month = min((r['month'] for r in rows), default='0000-00')
     monthly_ids = {v.video_id for v in monthly}
+    # December uploads outside the playlist whose title has a year-book word (collector_words.tsv; widened to "올해의"
+    # 2026-10-16: a "올해의 영화" video may come in too, a person sorts it out in the pending file)
     year_books = [v for v in uploads if v.public and v.video_id not in monthly_ids and v.published[5:7] == '12'
-                  and YEAR_BOOK_TITLE.search(v.title or '')]
+                  and rules().year_book(v.title)]
     for video, year_book in [(v, None) for v in monthly if v.public] + [(v, v.published[:4]) for v in year_books]:
         if video.video_id in listed:
             continue
         month = f'{video.published[:4]}-12' if year_book else video_month(video)
-        if year_book is None and video.title and YEAR_BOOK_TITLE.search(video.title) and month.endswith('-12'):
+        if month < first_month:
+            continue
+        if year_book is None and rules().year_book(video.title) and month.endswith('-12'):
             year_book = month[:4]
         names = book_names(video)
         if not names:
@@ -586,46 +752,79 @@ def collected_covers(sqlite: sqlite3.Connection, keys: list[tuple[int, str]]) ->
             url = https(row[0])
             if url not in urls:
                 urls.append(url)
-    preferred = [u for u in urls if urllib.parse.urlsplit(u).hostname in PREFERRED_COVER_HOSTS]
+    order = {host: i for i, host in enumerate(rules().cover_hosts)}
+    preferred = sorted((u for u in urls if urllib.parse.urlsplit(u).hostname in order),
+                       key=lambda u: order[urllib.parse.urlsplit(u).hostname])
     return preferred + [u for u in urls if u not in preferred]
 
 
-def fetch_covers(lists_dir: Path, rows: list[dict], chosen: dict[int, int], catalog: Catalog,
+def fetch_covers(lists_dir: Path, rows: list[dict], chosen: dict[int, int], catalog: Catalog | None,
                  sqlite: sqlite3.Connection | None, seoji: Seoji | None, http: Http, log: Log,
-                 attempts: int = 4) -> None:
+                 kakao: KakaoBooks | None = None, attempts: int = 5) -> None:
+    """
+    Every row gets a cover when any source has one (user 2026-10-16), in the order of cover_sources.tsv: the ISBN
+    bibliography's cover of the edition (or of the row's ISBN), the collected catalog's covers of our edition (YES24 and
+    Kyobo first, then the others), then Kakao book search. A row our catalog does not have uses the first and the last.
+    """
     for index, row in enumerate(rows):
-        if index not in chosen:
-            continue
+        book_id = chosen.get(index)
+        isbn = row.get('pinned_isbn13') or row.get('isbn13')
+        # cover_title: the title to search a cover by when the list's title is not a book's (e.g. a four-book set)
+        search_title = row.get('cover_title') or row.get('title')
+        collected = []
+        if sqlite is not None and catalog is not None and book_id is not None:
+            collected = collected_covers(sqlite, catalog.holding_keys(book_id))
         current = row.get('cover_url')
-        if current and cover_file(lists_dir, current).exists():
-            continue
-        candidates = []
-        if seoji and row.get('pinned_isbn13'):
-            try:
-                url = seoji.cover_url(row['pinned_isbn13'])
-                if url:
-                    candidates.append(url)
-            except CollectorFailure as ex:
-                log.line(f'cover: ISBN bibliography lookup failed ({ex})')
-        if sqlite is not None:
-            candidates += [u for u in collected_covers(sqlite, catalog.holding_keys(chosen[index])) if u not in candidates]
+        # keep the cover made before, unless the edition changed: a catalog cover that is not this edition's is
+        # taken again (「토지」 went from volume 2 to volume 1); a cover from search stays (it is checked by hand)
+        stale = current and collected and urllib.parse.urlsplit(current).hostname not in OUTSIDE_COVER_HOSTS \
+            and current not in collected
+        if current and cover_file(lists_dir, current).exists() and not stale:
+            if not rules().is_placeholder(cover_file(lists_dir, current).read_bytes()):
+                continue
+        order = {host: i for i, host in enumerate(rules().cover_hosts)}
+        by_source = {
+            'nlk_isbn': lambda: [seoji.cover_url(isbn)] if seoji and isbn else [],
+            'collected_preferred': lambda: [u for u in collected if urllib.parse.urlsplit(u).hostname in order],
+            'collected_other': lambda: [u for u in collected if urllib.parse.urlsplit(u).hostname not in order],
+            'kakao_book': lambda: kakao.covers(isbn, search_title, row.get('author')) if kakao else [],
+            'nlk_title': lambda: [seoji.cover_by_title(search_title)] if seoji and search_title else [],
+        }
         row['cover_url'] = ''
-        stored = next((url for url in candidates if cover_file(lists_dir, url).exists()), None)
-        if stored:  # made by an earlier run: no request
-            row['cover_url'] = stored
-            continue
-        for url in candidates[:attempts]:
-            try:
-                status, _, body = http.get(url, COVER_MAX_BYTES)
-                if status != 200:
-                    continue
-                path = cover_file(lists_dir, url)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(shrink(body))
-                row['cover_url'] = url
+        for source in rules().cover_sources:
+            if row['cover_url']:
                 break
-            except (CollectorFailure, ValueError, OSError) as ex:
-                log.line(f'cover: {urllib.parse.urlsplit(url).hostname} failed ({ex.__class__.__name__})')
+            tried = 0  # at most `attempts` addresses of one source
+            try:
+                urls = [u for u in by_source[source]() if u]
+            except CollectorFailure as ex:
+                log.line(f'cover: {source} lookup failed ({ex})')
+                continue
+            for url in urls:
+                if tried >= attempts:
+                    break
+                if cover_file(lists_dir, url).exists():  # made by an earlier run: no request
+                    if rules().is_placeholder(cover_file(lists_dir, url).read_bytes()):
+                        continue
+                    row['cover_url'] = url
+                    break
+                tried += 1
+                try:
+                    status, _, body = http.get(url, COVER_MAX_BYTES)
+                    if status != 200:
+                        continue
+                    small = shrink(body)
+                    if rules().is_placeholder(small):
+                        log.line(f'cover: {urllib.parse.urlsplit(url).hostname} gave a "no image" picture')
+                        continue
+                    path = cover_file(lists_dir, url)
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(small)
+                    row['cover_url'] = url
+                    log.line(f"cover: {row.get('title')} from {source}")
+                    break
+                except (CollectorFailure, ValueError, OSError) as ex:
+                    log.line(f'cover: {urllib.parse.urlsplit(url).hostname} failed ({ex.__class__.__name__})')
         if not row['cover_url']:
             log.line(f"cover: none for {row.get('title')}; the screen shows its title")
 
@@ -644,12 +843,13 @@ def remove_unused_covers(lists_dir: Path, rows: list[dict]) -> int:
 
 def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.Connection | None = None,
         sleep=time.sleep) -> int:
+    global _rules
     lists_dir = Path(args.lists_dir)
     env = read_env(Path(args.env))
     youtube_key = env.get('CHAEKCHECK_YOUTUBE_API_KEY', '')
     seoji_key = env.get('CHAEKCHECK_PICKS_NLK_API_KEY', '')
     log = Log(Path(args.log) if args.log else None)
-    http = Http(log, [youtube_key, seoji_key], sleep=sleep, opener=http_opener)
+    http = Http(log, [youtube_key, seoji_key, env.get('KAKAO_REST_API_KEY', '')], sleep=sleep, opener=http_opener)
     today = args.today or dt.date.today().isoformat()
 
     lee_header, lee = read_tsv(lists_dir / 'leedongjin.tsv')
@@ -658,7 +858,14 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
     _, subjects = read_tsv(lists_dir / 'subject_fields.tsv')
     subject_fields = {s['subject']: s['field_suggestion'] for s in subjects}
     seoji = Seoji(http, seoji_key) if seoji_key else None
+    kakao_key = env.get('KAKAO_REST_API_KEY', '')
+    kakao = KakaoBooks(http, kakao_key) if kakao_key else None
     status = 0
+    try:
+        _rules = load_rules(lists_dir)
+    except CollectorFailure as ex:
+        log.line(f'rules: {ex}; nothing was asked or changed')
+        return 1
 
     if not args.skip_youtube:
         try:
@@ -683,11 +890,11 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
             catalog = None
             status = 1
 
-    if not args.skip_covers and catalog is not None:
+    if not args.skip_covers:
         if sqlite is None and args.sqlite:
             sqlite = sqlite3.connect(f'file:{Path(args.sqlite).as_posix()}?mode=ro', uri=True)
-        fetch_covers(lists_dir, lee, chosen_lee, catalog, sqlite, seoji, http, log)
-        fetch_covers(lists_dir, snu, chosen_snu, catalog, sqlite, seoji, http, log)
+        fetch_covers(lists_dir, lee, chosen_lee, catalog, sqlite, seoji, http, log, kakao)
+        fetch_covers(lists_dir, snu, chosen_snu, catalog, sqlite, seoji, http, log, kakao)
         log.line(f'covers: {remove_unused_covers(lists_dir, lee + snu)} unused files removed')
 
     write_tsv(lists_dir / 'leedongjin.tsv', lee_header or LEEDONGJIN_COLUMNS, lee)

@@ -26,6 +26,9 @@
 }
 
 .brand {
+  /* the logo never wraps or shrinks (it broke into two lines at 660px with the cycle 21 menus) */
+  flex-shrink: 0;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: calc(0.8 * var(--base-unscaled));
@@ -61,6 +64,13 @@
   flex-shrink: 0;
 }
 
+/* narrow tablets: less room between the logo and the menus, so the last menu keeps clear of 로그인 (641px) */
+@media (641px <= width <= 760px) {
+  .start {
+    gap: calc(0.4 * var(--base-unscaled));
+  }
+}
+
 /* room for the cycle 20 dot: a phone dot's size [안] */
 .statusSlot {
   display: inline-block;
@@ -93,8 +103,11 @@
 
 /* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
 @media (width <= 640px) {
-  .brand {
+  /* above the phone menu's row-wide button (HeaderMenu .menuButton), so the logo and 로그인 keep their own taps */
+  .brand,
+  .end {
     position: relative;
+    z-index: 1;
   }
 
   .brand::after {

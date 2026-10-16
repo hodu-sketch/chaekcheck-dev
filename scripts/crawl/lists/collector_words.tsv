@@ -1,0 +1,22 @@
+kind	word	note
+year_book_title	올해의	업로드 재생목록의 12월 영상 제목에 들면 올해의 책 영상 후보 (사용자 승인 2026-10-16: "올해의 영화"가 걸려도 사람이 거름)
+year_book_title	베스트북	2025-12 영상 제목 꼴
+not_a_book	이달의책	채널 표지: 공백을 빼고 견줌
+not_a_book	올해의책	채널 표지
+not_a_book	베스트북	채널 표지
+not_a_book	최고의책	채널 표지 ("11월 최고의 책")
+not_a_book	파이아키아	채널 이름
+not_a_book	Btv	채널 이름
+not_a_book	이동진	평론가 이름
+excluded_title	영어원서	판 고르기에서 빼는 제목 낱말 (spec R3-3)
+excluded_title	원서	spec R3-3
+excluded_title	어린이	spec R3-3
+excluded_title	초등	spec R3-3
+excluded_title	청소년	spec R3-3
+excluded_title	만화	spec R3-3
+excluded_title	그림책	spec R3-3
+excluded_title	논술	spec R3-3
+excluded_title	공부가 되는	spec R3-3
+excluded_title	100분 고전	요약 시리즈 (spec R3-4)
+excluded_publisher	어린이	출판사 이름에 들면 뺌 (spec R3-4)
+excluded_name	번역AI	기여자 이름에 들면 뺌, 기계 번역 (spec R3-4)

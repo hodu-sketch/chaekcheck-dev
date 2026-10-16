@@ -147,12 +147,6 @@ describe('the lists words', () => {
     expect(picksList(undefined)).toBeNull()
   })
 
-  it('labels covers by list (R5-1, R5-2)', () => {
-    expect(PICKS_LISTS.leedongjin.coverLabel(book({ recommendedMonth: '2026-06' }))).toBe('26.06')
-    expect(PICKS_LISTS.snu100.coverLabel(book({ tocNo: 3 }))).toBe('3')
-    expect(PICKS_LISTS.librarian.coverLabel(book({ recommendedMonth: '2026-10' }))).toBeNull()
-  })
-
   it('says where a book was recommended (R6-1, R6-2)', () => {
     expect(PICKS_LISTS.leedongjin.pickLine(book({ recommendedMonth: '2026-03' }), '외국 소설')).toBe(
       '이동진 평론가가 「파이아키아」 영상에서 추천 (2026년 3월)',
@@ -174,7 +168,7 @@ describe('the lists words', () => {
 })
 
 describe('Lee Dong-jin screen', () => {
-  it('shows the list name, the latest first with "26.06", and the source line with the terms link', async () => {
+  it('shows the list name, the latest first with no date under it, and the source line with the terms link', async () => {
     const asked = stubFetch({ leedongjin: LEEDONGJIN })
     renderAt('/picks/leedongjin')
 
@@ -182,8 +176,9 @@ describe('Lee Dong-jin screen', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('이동진 추천도서')
     expect(asked).toContain('/api/v1/picks/leedongjin')
     const cards = within(all).getAllByRole('button', { name: /전자책/ })
-    expect(cards[0].getAttribute('aria-label')).toBe('히스토리아 비테이 (26.06), 전자책 있음')
-    expect(within(all).getByText('26.06')).toBeTruthy()
+    // user 2026-10-16: "추천도서 각각에 날짜나 숫자 붙이지 마"
+    expect(cards[0].getAttribute('aria-label')).toBe('히스토리아 비테이, 전자책 있음')
+    expect(within(all).queryByText('26.06')).toBeNull()
     // AC-9
     const source = screen.getByText(/책첵은 이동진 평론가·파이아키아와 관계가 없어요/, { selector: 'p' })
     expect(within(source).getByRole('link', { name: 'YouTube 서비스 약관' }).getAttribute('href')).toBe(YOUTUBE_TERMS_URL)
@@ -241,16 +236,16 @@ describe('Lee Dong-jin screen', () => {
 })
 
 describe('SNU 100 screen', () => {
-  it('numbers the covers and shows the source (AC-4)', async () => {
+  it('keeps the table-of-contents order with no number under the covers, and shows the source (AC-4)', async () => {
     stubFetch({ snu100: SNU })
     renderAt('/picks/snu100')
     const all = await screen.findByRole('region', { name: '전체' })
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('서울대 100선')
     expect(within(all).getAllByRole('button', { name: /전자책/ }).map((card) => card.getAttribute('aria-label'))).toEqual([
-      '구운몽 (3), 전자책 있음',
-      '햄릿 (23), 전자책 있음',
-      '광장 (17), 전자책 없음',
+      '구운몽, 전자책 있음',
+      '햄릿, 전자책 있음',
+      '광장, 전자책 없음',
     ])
     expect(screen.getByText('출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)')).toBeTruthy()
   })

@@ -1,56 +1,76 @@
 {
-  "_comment": "Cycle 21 (ADR-0124, ADR-0125): one fixture for Java BookChoiceTests and Python test_recommended_lists; both must choose the same book. kinds: enabled library id -> lends by subscription; a library not in kinds is disabled.",
+  "_comment": "Cycle 21 (ADR-0124, ADR-0125, plan scope decision #7): one fixture for Java BookChoiceTests and Python test_recommended_lists; both must choose the same book. kinds: enabled library id -> lends by subscription; a library not in kinds is disabled. A set = the same title without edition marks and volume and the same publisher; it is held as its volume held most and shows its first volume (1 or 상, else the smallest).",
   "kinds": { "1": false, "2": false, "3": false, "4": false, "5": false, "11": true, "12": true, "13": true },
   "cases": [
     {
       "name": "three subscription libraries count as one",
       "candidates": [
-        { "id": 10, "title": "구운몽", "libraryIds": [1, 11, 12, 13] },
-        { "id": 20, "title": "구운몽", "libraryIds": [1, 2, 3] }
+        { "id": 10, "title": "구운몽", "publisher": "가", "libraryIds": [1, 11, 12, 13] },
+        { "id": 20, "title": "구운몽", "publisher": "나", "libraryIds": [1, 2, 3] }
       ],
       "chosen": 20
     },
     {
       "name": "disabled libraries count for nothing",
       "candidates": [
-        { "id": 10, "title": "구운몽", "libraryIds": [1, 98, 99] },
-        { "id": 20, "title": "구운몽", "libraryIds": [2, 3] }
+        { "id": 10, "title": "구운몽", "publisher": "가", "libraryIds": [1, 98, 99] },
+        { "id": 20, "title": "구운몽", "publisher": "나", "libraryIds": [2, 3] }
       ],
       "chosen": 20
     },
     {
-      "name": "the same count: the first volume",
+      "name": "토지: volume 2 held more than volume 1, still volume 1 (AC-7)",
       "candidates": [
-        { "id": 5, "title": "탁류 3", "libraryIds": [1, 2] },
-        { "id": 8, "title": "탁류 1", "libraryIds": [3, 4] },
-        { "id": 6, "title": "탁류 2", "libraryIds": [1, 5] }
+        { "id": 1791, "title": "토지. 2(1부 2권)", "publisher": "마로니에북스", "libraryIds": [1, 2, 3] },
+        { "id": 1780, "title": "토지. 1(1부 1권)", "publisher": "마로니에북스", "libraryIds": [1, 2] },
+        { "id": 11193, "title": "토지 2", "publisher": "다산책방", "libraryIds": [4] }
       ],
-      "chosen": 8
+      "chosen": 1780
     },
     {
-      "name": "the same count: a book with no volume is a first volume, then the smaller id",
+      "name": "탁류: every volume held the same, volume 1",
       "candidates": [
-        { "id": 9, "title": "토지. 1(1부 1권)", "libraryIds": [1] },
-        { "id": 7, "title": "토지", "libraryIds": [2] },
-        { "id": 3, "title": "토지. 2(1부 2권)", "libraryIds": [3] }
+        { "id": 236184, "title": "탁류 3", "publisher": "지혜의숲", "libraryIds": [1, 2] },
+        { "id": 236186, "title": "탁류 1", "publisher": "지혜의숲", "libraryIds": [1, 2] },
+        { "id": 236185, "title": "탁류 2", "publisher": "지혜의숲", "libraryIds": [1, 2] },
+        { "id": 223812, "title": "탁류", "publisher": "더플래닛", "libraryIds": [3] }
+      ],
+      "chosen": 236186
+    },
+    {
+      "name": "a set without volume 1 shows its smallest",
+      "candidates": [
+        { "id": 5, "title": "카라마조프가의 형제들 3", "publisher": "가", "libraryIds": [1, 2] },
+        { "id": 9, "title": "카라마조프가의 형제들 2", "publisher": "가", "libraryIds": [1] }
+      ],
+      "chosen": 9
+    },
+    {
+      "name": "(상) is a first volume; another publisher's volumes are another set",
+      "candidates": [
+        { "id": 281958, "title": "고향 (하)", "publisher": "크리에이트플러스", "libraryIds": [1, 2] },
+        { "id": 281957, "title": "고향 (상)", "publisher": "크리에이트플러스", "libraryIds": [1] },
+        { "id": 1614202, "title": "고향 (상)", "publisher": "북향", "libraryIds": [3] }
+      ],
+      "chosen": 281957
+    },
+    {
+      "name": "a single book held more beats a set",
+      "candidates": [
+        { "id": 1, "title": "토지. 1(1부 1권)", "publisher": "마로니에북스", "libraryIds": [1] },
+        { "id": 2, "title": "토지. 2(1부 2권)", "publisher": "마로니에북스", "libraryIds": [1, 2] },
+        { "id": 3, "title": "토지", "publisher": "솔", "libraryIds": [1, 2, 3] }
+      ],
+      "chosen": 3
+    },
+    {
+      "name": "the same count: the smaller id",
+      "candidates": [
+        { "id": 9, "title": "구운몽", "publisher": "가", "libraryIds": [1] },
+        { "id": 7, "title": "구운몽", "publisher": "나", "libraryIds": [2] },
+        { "id": 8, "title": "구운몽 1", "publisher": "다", "libraryIds": [3] }
       ],
       "chosen": 7
-    },
-    {
-      "name": "(상) is a first volume",
-      "candidates": [
-        { "id": 4, "title": "고향 (하)", "libraryIds": [1] },
-        { "id": 5, "title": "고향 (상)", "libraryIds": [2] }
-      ],
-      "chosen": 5
-    },
-    {
-      "name": "held more wins over the first volume",
-      "candidates": [
-        { "id": 1, "title": "토지. 1(1부 1권)", "libraryIds": [1] },
-        { "id": 2, "title": "토지. 2(1부 2권)", "libraryIds": [1, 2] }
-      ],
-      "chosen": 2
     }
   ]
 }

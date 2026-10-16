@@ -179,7 +179,10 @@ export function PicksPage({ list }: { list: PicksList }) {
     const list = codes.split(',')
     let lastWheel = -Infinity
     const step = (down: boolean) => {
-      const header = document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0
+      // under the app header and the list's name bar
+      const header =
+        (document.querySelector<HTMLElement>('[data-app-header]')?.offsetHeight ?? 0) +
+        (document.querySelector<HTMLElement>('[data-picks-title]')?.offsetHeight ?? 0)
       const max = document.documentElement.scrollHeight - window.innerHeight
       const places = list
         .map((code) => document.getElementById(sectionId(code)))
@@ -346,7 +349,6 @@ export function PicksPage({ list }: { list: PicksList }) {
             page={pages[category.code] ?? 0}
             onPage={(page) => setPages((before) => ({ ...before, [category.code]: page }))}
             onPick={pick}
-            coverLabel={list.coverLabel}
           />
         ))}
         <p className={styles.source}>
@@ -370,14 +372,14 @@ export function PicksPage({ list }: { list: PicksList }) {
       className={styles.page}
       data-zoomed={zoomed || undefined}
       data-touch={touchMode || undefined}
-      data-labels={list.key !== 'librarian' || undefined}
     >
       {/*
-        Cycle 21 (flow #4, user: "pc는 a 폰은 c"): PC and tablets show the list's name above the first field (A), going up
-        with it; phones only name it to screen readers and show it in the floating button (C). The category picker
-        floats at the bottom centre and follows the category in view.
+        Cycle 21: the list's name fixed at the top left under the app header on every width (user 2026-10-16, in place
+        of flow #4 A/C). The category picker floats at the bottom centre and follows the category in view.
       */}
-      <h1 className={styles.listTitle}>{list.name}</h1>
+      <h1 className={styles.listTitle} data-picks-title="">
+        {list.name}
+      </h1>
       <div className={styles.blocks}>{body}</div>
       {categories.length > 0 && (
         <div className={styles.floating}>

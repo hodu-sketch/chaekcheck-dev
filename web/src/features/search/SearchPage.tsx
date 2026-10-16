@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from './resultFilter'
@@ -105,6 +105,10 @@ export function SearchPage() {
   }, [params.toString(), settings.direct, ready, scope, visit, residenceKey, workKey, libraryKey])
 
   const hasSearch = settings.direct ? directValid : bookQuery !== null
+  // 「전자책 검색」 (header menu 도서검색, user 2026-10-16, design A): `/search` before a search keeps the results'
+  // layout, with the screen's name at the top left and a short note where the results will come
+  const { pathname } = useLocation()
+  const ebookStart = !hasSearch && pathname === '/search'
 
   // The form starts again only when the search words in the address change (a search, back or forward). A switch,
   // the filter, the sort or the settings leave what is being typed and the open 상세검색 as they are (user report
@@ -180,12 +184,13 @@ export function SearchPage() {
   return (
     <div
       className={styles.page}
-      data-state={hasSearch ? 'results' : 'start'}
+      data-state={hasSearch ? 'results' : ebookStart ? 'ebook' : 'start'}
       // phones: the app layout fits this screen into the window (no scroll, user request 2026-10-05)
       data-fits-screen={hasSearch ? undefined : true}
     >
       <section className={styles.searchArea}>
-        {!hasSearch && (
+        {ebookStart && <h1 className={styles.screenTitle}>전자책 검색</h1>}
+        {!hasSearch && !ebookStart && (
           <h1 className={styles.headline}>
             <em>지금 빌릴 수 있는</em>
             <br />
@@ -197,6 +202,7 @@ export function SearchPage() {
           initial={input ?? EMPTY_INPUT}
           settings={settings}
           hasResults={hasSearch}
+          centered={!hasSearch && !ebookStart}
           onSearch={search}
           onSettingsChange={changeSettings}
           settingsScope={
@@ -250,6 +256,12 @@ export function SearchPage() {
             </p>
           ))}
         </div>
+      )}
+
+      {ebookStart && (
+        <section className={styles.results}>
+          <p className={styles.ebookNote}>책 제목을 넣으면, 그 책을 지금 빌릴 수 있는 전자도서관을 여기에 보여 드려요</p>
+        </section>
       )}
 
       {settings.direct && directValid && condition && (

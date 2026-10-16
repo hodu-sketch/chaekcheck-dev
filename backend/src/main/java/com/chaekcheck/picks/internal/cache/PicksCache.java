@@ -222,7 +222,7 @@ public class PicksCache implements PicksChanged {
 		List<String> isbns = rows.stream().map(StoredBook::isbn13).filter(Objects::nonNull).distinct().toList();
 		for (IsbnBook book : bookLookup.byIsbn13(isbns)) {
 			byIsbn.computeIfAbsent(book.isbn13(), isbn -> new ArrayList<>())
-				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()));
+				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.publisherNorm(), book.libraryIds()));
 		}
 		Map<StoredBook, Ours> ours = new HashMap<>();
 		Map<TitleAuthor, List<StoredBook>> rest = new LinkedHashMap<>();
@@ -242,7 +242,7 @@ public class PicksCache implements PicksChanged {
 		Map<TitleAuthor, List<BookChoice.Candidate>> byTitle = new HashMap<>();
 		for (TitleAuthorBook book : bookLookup.byTitleAndAuthor(rest.keySet())) {
 			byTitle.computeIfAbsent(book.query(), query -> new ArrayList<>())
-				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()));
+				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.publisherNorm(), book.libraryIds()));
 		}
 		rest.forEach((query, same) -> BookChoice.choose(byTitle.getOrDefault(query, List.of()), kinds)
 			.ifPresent(found -> same.forEach(row -> ours.put(row, Ours.of(found)))));

@@ -23,8 +23,6 @@ export interface PicksList {
   helpLines: readonly string[]
   /** Under the last field; the YouTube terms link follows Lee Dong-jin's. */
   source: (fetchedAt: string | null) => string
-  /** Under the cover (R5-1, R5-2): "26.06", the table-of-contents number, or nothing. */
-  coverLabel: (book: PickBook) => string | null
   /** S14's line under the title (R6-1, R6-2). */
   pickLine: (book: PickBook, categoryName: string | null) => string
 }
@@ -39,7 +37,6 @@ const LIBRARIAN: PicksList = {
   helpLabel: '추천 기준 보기',
   helpLines: HELP_LINES,
   source: sourceLine,
-  coverLabel: () => null,
   pickLine: (book, categoryName) => {
     const month = monthLabel(book.recommendedMonth)
     return [month ? `${month} 사서추천` : '사서추천', categoryName].filter(Boolean).join(' · ')
@@ -59,10 +56,6 @@ const LEEDONGJIN: PicksList = {
     '흐린 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 유튜브 「B tv 이동진의 파이아키아」 · 책첵은 이동진 평론가·파이아키아와 관계가 없어요',
-  coverLabel: (book) => {
-    const match = book.recommendedMonth?.match(/^\d{2}(\d{2})-(\d{2})$/)
-    return match ? `${match[1]}.${match[2]}` : null
-  },
   pickLine: (book) => {
     const month = monthLabel(book.recommendedMonth)
     const line = `이동진 평론가가 「파이아키아」 영상에서 추천${month ? ` (${month})` : ''}`
@@ -83,7 +76,6 @@ const SNU100: PicksList = {
     '흐린 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)',
-  coverLabel: (book) => (book.tocNo == null ? null : String(book.tocNo)),
   pickLine: () => '서울대 권장도서 100선',
 }
 

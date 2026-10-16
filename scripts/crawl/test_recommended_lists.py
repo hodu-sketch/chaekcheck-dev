@@ -89,6 +89,8 @@ class ListsDir:
         rl.write_tsv(self.path / 'snu100.tsv', rl.SNU_COLUMNS, list(snu_rows))
         rl.write_tsv(self.path / 'subject_fields.tsv', ['subject', 'field_suggestion', 'note'],
                      [{'subject': '9', 'field_suggestion': 'history', 'note': ''}])
+        for name in ('collector_words.tsv', 'cover_hosts.tsv', 'cover_sources.tsv'):
+            shutil.copy(rl.LISTS_DIR / name, self.path / name)
         (self.path / '.env').write_text(
             f'CHAEKCHECK_YOUTUBE_API_KEY={KEY}\nCHAEKCHECK_PICKS_NLK_API_KEY={SEOJI_KEY}\n', encoding='utf-8')
 
@@ -184,6 +186,22 @@ class YouTubeTests(unittest.TestCase):
                          [('2026-12', 'YEARBOOK001', '2026')])
         self.assertFalse((self.lists.path / 'leedongjin_pending.tsv').exists())
 
+    def test_a_december_upload_with_a_year_word_is_left_for_a_person(self):  # widened 2026-10-16
+        monthly = [item('lMx0zEd1qtY', '2026-06-24', '《히스토리아 비테이》')]
+        uploads = [item('MOVIES00001', '2026-12-20', '2026 올해의 영화 결산', '《어떤 영화》'),
+                   item('NOVEMBER001', '2026-11-20', '올해의 책 예고', '《다른 책》')]
+        run(self.lists, youtube_answers(monthly, uploads))
+        _, pending = rl.read_tsv(self.lists.path / 'leedongjin_pending.tsv')
+        self.assertEqual([(p['video_id'], p['month'], p['title']) for p in pending],
+                         [('MOVIES00001', '2026-12', '어떤 영화')])
+
+    def test_a_missing_rules_file_stops_before_any_request(self):
+        (self.lists.path / 'collector_words.tsv').unlink()
+        before = self.lists.text()
+        status, opener = run(self.lists, youtube_answers([], []))
+        self.assertEqual((status, opener.urls), (1, []))
+        self.assertEqual(self.lists.text(), before)
+
     def test_book_names_and_channel_words(self):  # R4-2
         video = rl.Video('x', '2026-10-01', True, '[이달의 책] 《가》 〈나〉', '『다』\n🔖 라 마\n[베스트북]')
         self.assertEqual(rl.book_names(video), ['가', '나', '다', '라 마'])
@@ -255,7 +273,8 @@ class SameRuleAsJava(unittest.TestCase):
         data = json.loads((HERE / 'testdata' / 'book_choice_cases.json').read_text(encoding='utf-8'))
         kinds = {int(k): v for k, v in data['kinds'].items()}
         for case in data['cases']:
-            books = [{'id': c['id'], 'title': c['title'], 'library_ids': c['libraryIds']} for c in case['candidates']]
+            books = [{'id': c['id'], 'title': c['title'], 'publisher': c['publisher'], 'library_ids': c['libraryIds']}
+                     for c in case['candidates']]
             with self.subTest(case['name']):
                 self.assertEqual(rl.choose(books, kinds)['id'], case['chosen'])
 
@@ -289,6 +308,74 @@ class CoverTests(unittest.TestCase):
                        opener=Opener({'example.test': (200, big)}))
         with self.assertRaises(rl.CollectorFailure):
             http.get('https://example.test/a.jpg', rl.COVER_MAX_BYTES)
+
+    def test_a_book_we_do_not_have_gets_its_cover_from_kakao(self):  # user 2026-10-16
+        from PIL import Image
+        png = io.BytesIO()
+        Image.new('RGB', (300, 450), (10, 20, 30)).save(png, 'PNG')
+        lists = ListsDir([])
+        self.addCleanup(lists.close)
+        kakao = json.dumps({'documents': [
+            {'title': '광장의 아이들', 'authors': ['다른 사람'], 'thumbnail': 'https://search1.kakaocdn.net/thumb/x?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F2'},
+            {'title': '광장', 'authors': ['최인훈'], 'thumbnail': 'https://search1.kakaocdn.net/thumb/R120x174?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F1'}]}).encode()
+        opener = Opener({'dapi.kakao.com': (200, kakao), 't1.daumcdn.net/lbook/image/1': (200, png.getvalue())})
+        rows = [{'title': '광장', 'author': '최인훈', 'cover_url': ''}]
+        http = rl.Http(rl.Log(None), [], sleep=lambda s: None, opener=opener)
+        rl.fetch_covers(lists.path, rows, {}, None, None, None, http, rl.Log(None), rl.KakaoBooks(http, 'k'))
+        self.assertEqual(rows[0]['cover_url'], 'https://t1.daumcdn.net/lbook/image/1')
+        self.assertTrue(rl.cover_file(lists.path, rows[0]['cover_url']).exists())
+
+    def test_placeholder_picture_is_skipped_for_the_next_one(self):  # NLK logo, Kyobo "no image" (2026-10-16)
+        import dataclasses
+        from unittest import mock
+        from PIL import Image
+
+        def picture(box):
+            image = Image.new('RGB', (300, 450), (255, 255, 255))
+            image.paste((0, 0, 0), box)
+            out = io.BytesIO()
+            image.save(out, 'PNG')
+            return out.getvalue()
+        no_image, real = picture((150, 0, 300, 450)), picture((0, 225, 300, 450))
+        known = rl.image_hash(rl.shrink(no_image))
+        self.addCleanup(mock.patch.stopall)
+        mock.patch.object(rl, '_rules', dataclasses.replace(rl.rules(), placeholders=(known,))).start()
+        lists = ListsDir([])
+        self.addCleanup(lists.close)
+        thumb = 'https://search1.kakaocdn.net/thumb/x?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F'
+        kakao = json.dumps({'documents': [{'title': '광장', 'authors': ['최인훈'], 'thumbnail': thumb + '1'},
+                                          {'title': '광장', 'authors': ['최인훈'], 'thumbnail': thumb + '2'}]}).encode()
+        opener = Opener({'dapi.kakao.com': (200, kakao), 't1.daumcdn.net/lbook/image/1': (200, no_image),
+                         't1.daumcdn.net/lbook/image/2': (200, real)})
+        rows = [{'title': '광장', 'author': '최인훈', 'cover_url': ''}]
+        http = rl.Http(rl.Log(None), [], sleep=lambda s: None, opener=opener)
+        rl.fetch_covers(lists.path, rows, {}, None, None, None, http, rl.Log(None), rl.KakaoBooks(http, 'k'))
+        self.assertEqual(rows[0]['cover_url'], 'https://t1.daumcdn.net/lbook/image/2')
+        self.assertFalse(rl.cover_file(lists.path, 'https://t1.daumcdn.net/lbook/image/1').exists())
+
+    def test_stale_catalog_cover_is_taken_again_when_the_edition_changed(self):  # 「토지」 volume 2 → 1
+        import sqlite3
+        from PIL import Image
+        png = io.BytesIO()
+        Image.new('RGB', (300, 450), (10, 20, 30)).save(png, 'PNG')
+        lists = ListsDir([])
+        self.addCleanup(lists.close)
+        old = 'https://image.yes24.com/goods/2/M'
+        path = rl.cover_file(lists.path, old)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(rl.shrink(png.getvalue()))
+        db = sqlite3.connect(':memory:')
+        db.execute('CREATE TABLE holding (library_id INTEGER, item_key TEXT, cover_url TEXT)')
+        db.execute("INSERT INTO holding VALUES (2, 'b', 'https://image.yes24.com/goods/1/M')")
+
+        class Catalog:
+            def holding_keys(self, book_id):
+                return [(2, 'b')] if book_id == 1780 else []
+        rows = [{'title': '토지', 'author': '박경리', 'cover_url': old}]
+        http = rl.Http(rl.Log(None), [], sleep=lambda s: None,
+                       opener=Opener({'image.yes24.com/goods/1/M': (200, png.getvalue())}))
+        rl.fetch_covers(lists.path, rows, {0: 1780}, Catalog(), db, None, http, rl.Log(None), None)
+        self.assertEqual(rows[0]['cover_url'], 'https://image.yes24.com/goods/1/M')
 
     def test_collected_covers_put_yes24_and_kyobo_first_as_https(self):
         import sqlite3

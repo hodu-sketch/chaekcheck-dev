@@ -9,7 +9,8 @@ import java.util.regex.Pattern;
  * last parentheses (edition or language: 「햄릿(Hamlet)」, 「오디세이아(고대 그리스어 완역본)」), a last word
  * "오리지널판", and the volume when it is the first ({@code 1}, {@code (상)}: 「토지. 1(1부 1권)」, 「위대한 유산(상)」).
  * Later volumes keep their number. When nothing would be left, the title stays as it is. The same reading tells
- * {@link BookChoice} which edition is the first volume.
+ * {@link BookChoice} which edition is the first volume. Rule: docs/maintenance/rules-index.md "화면 책 이름" (the
+ * collector's read_title() is the same reading).
  */
 final class ShownTitle {
 

@@ -4,8 +4,9 @@
   gap: 1.6rem;
 }
 
-/* with results: one centered column of --content-width (user choice 2026-10-05) */
-.page[data-state='results'] {
+/* with results, and 「전자책 검색」 before a search: one centered column of --content-width (user choice 2026-10-05) */
+.page[data-state='results'],
+.page[data-state='ebook'] {
   width: 100%;
   max-width: var(--content-width);
   margin: 0 auto;
@@ -233,6 +234,28 @@
   outline-offset: 2px;
 }
 
+/* 「전자책 검색」's name, as the recommended lists' name (cycle 21) */
+.screenTitle {
+  margin: 0;
+  font-size: calc(1.2 * var(--text-lg));
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* 「전자책 검색」 before a search: the results' white box with one short note (design A, user 2026-10-16) */
+.ebookNote {
+  margin: 0;
+  padding: 3rem 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-align: center;
+  word-break: keep-all;
+}
+
 /* direct search: holds the "N곳" button (phones: on the "상세검색 · 설정" line; wider: the scope row's right end) */
 .countSlot {
   display: flex;
@@ -249,9 +272,14 @@
     padding-top: 1.25rem;
   }
 
-  /* the first screen fits the visible height with no scroll (user request 2026-10-05): less room above on short screens */
+  /*
+   * The first screen fits the visible height with no scroll (user request 2026-10-05). The headline starts about a
+   * quarter down the window and the search line sits a little above the middle, as on Google's phone page (measured
+   * 2026-10-16 at 375x812: logo from 205px, search box 324-374px; Bing's box 236px): user 2026-10-16 "너무 위에 있어 …
+   * 다른 유명 사이트들 참고해". Less room above on short screens.
+   */
   .page[data-state='start'] .searchArea {
-    padding-top: clamp(0.75rem, 10dvh - 1.5rem, 6vh);
+    padding-top: clamp(1.5rem, 25dvh - 6.5rem, 18dvh);
     gap: 1.1rem;
   }
 }

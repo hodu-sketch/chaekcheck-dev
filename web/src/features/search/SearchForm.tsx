@@ -28,6 +28,8 @@ type Props = {
   settings: SearchSettings
   /** Results are shown: changing exact match or roles then searches again at once [안]. */
   hasResults: boolean
+  /** The centred first screen (`/` before a search); `/search` before a search keeps the results' layout. */
+  centered?: boolean
   onSearch: (input: BookSearchInput) => void
   onSettingsChange: (settings: SearchSettings) => void
   /** Phones: the "찾을 도서관" section for the settings panel, and whether it differs from the default. */
@@ -49,6 +51,7 @@ export function SearchForm({
   initial,
   settings,
   hasResults,
+  centered = !hasResults,
   onSearch,
   onSettingsChange,
   settingsScope,
@@ -118,7 +121,7 @@ export function SearchForm({
   )
 
   return (
-    <form className={styles.form} data-start={hasResults ? undefined : true} onSubmit={handleSubmit} role="search" noValidate>
+    <form className={styles.form} data-start={centered ? true : undefined} onSubmit={handleSubmit} role="search" noValidate>
       <div className={styles.topLine}>
         <div className={styles.field} data-invalid={problems.title || problems.none ? true : undefined}>
           <label htmlFor={`${id}-title`} className="visually-hidden">

@@ -58,7 +58,10 @@ class CuratedLists implements CuratedListTransfer {
 
 	private static final Logger log = LoggerFactory.getLogger(CuratedLists.class);
 
-	/** A Lee Dong-jin row not seen public on YouTube for longer is warned about (YouTube policy III.E.4) [확정]. */
+	/**
+	 * A Lee Dong-jin row not seen public on YouTube for longer is warned about (YouTube policy III.E.4) [확정]. Rule:
+	 * docs/maintenance/rules-index.md "30일 확인"
+	 */
 	static final int CHECK_DAYS = 30;
 
 	private static final List<String> LISTS = List.of(ListFiles.LEEDONGJIN, ListFiles.SNU100);
@@ -219,7 +222,7 @@ class CuratedLists implements CuratedListTransfer {
 		Map<String, List<BookChoice.Candidate>> byIsbn = new HashMap<>();
 		for (IsbnBook book : lookup.byIsbn13(isbns)) {
 			byIsbn.computeIfAbsent(book.isbn13(), isbn -> new ArrayList<>())
-				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()));
+				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.publisherNorm(), book.libraryIds()));
 		}
 		Map<TitleAuthor, List<TitleAuthorBook>> byTitle = new HashMap<>();
 		for (TitleAuthorBook book : lookup.byTitleAndAuthor(queries)) {
@@ -237,7 +240,7 @@ class CuratedLists implements CuratedListTransfer {
 						.getOrDefault(new TitleAuthor(pinned.title(), pinned.author()), List.of())
 						.stream()
 						.filter(book -> publisher == null || publisher.equals(book.publisherNorm()))
-						.map(book -> new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()))
+						.map(book -> new BookChoice.Candidate(book.bookId(), book.title(), book.publisherNorm(), book.libraryIds()))
 						.toList();
 					found = choose(same, kinds);
 				}
@@ -247,7 +250,7 @@ class CuratedLists implements CuratedListTransfer {
 				if (found.isEmpty()) {
 					found = choose(byTitle.getOrDefault(new TitleAuthor(row.title(), row.author()), List.of())
 						.stream()
-						.map(book -> new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()))
+						.map(book -> new BookChoice.Candidate(book.bookId(), book.title(), book.publisherNorm(), book.libraryIds()))
 						.toList(), kinds);
 				}
 			}

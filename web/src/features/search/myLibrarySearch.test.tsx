@@ -371,3 +371,14 @@ describe('typed words stay on the search screen', () => {
   })
 })
 
+
+/** 「전자책 검색」 (header 도서검색, user 2026-10-16, design A): /search before a search keeps the results' layout. */
+describe('전자책 검색', () => {
+  it('shows its name and a short note, not the first screen headline, and sends no search', async () => {
+    renderSearch('/search')
+    expect(await screen.findByRole('heading', { level: 1, name: '전자책 검색' })).toBeTruthy()
+    expect(screen.getByText('책 제목을 넣으면, 그 책을 지금 빌릴 수 있는 전자도서관을 여기에 보여 드려요')).toBeTruthy()
+    expect(screen.queryByText('전자도서관을 찾아 드려요')).toBeNull()
+    expect(fake.books).toHaveLength(0)
+  })
+})

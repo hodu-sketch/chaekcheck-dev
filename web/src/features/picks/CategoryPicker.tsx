@@ -87,8 +87,7 @@ export function CategoryPicker({ categories, current, onPick, phone, fetchedAt, 
   )
   const face = (
     <>
-      {/* phones: [이동진 추천도서 · 외국 소설 ▾] (flow #4 C, user: "pc는 a 폰은 c") */}
-      <span className={styles.pickerName}>{phone ? `${picks.name} · ${currentName}` : currentName}</span>
+      <span className={styles.pickerName}>{currentName}</span>
       <span className={styles.pickerMark} aria-hidden="true">
         <ChevronDown size={10} />
       </span>

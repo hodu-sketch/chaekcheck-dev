@@ -1,28 +1,35 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router'
-import { MENU_DELAY_MS, MENUS, inMenu } from './headerMenus'
+import { MENU_DELAY_MS, MENU_TOGGLE_EVENT, MENUS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
 
-/** A finger, not a mouse: first tap opens (spec R1-5). Samsung Internet reports hover, so pointer only (cycle 10). */
-const TOUCH_QUERY = '(pointer: coarse)'
-
-function isTouch() {
-  return typeof window.matchMedia === 'function' && window.matchMedia(TOUCH_QUERY).matches
+/**
+ * Wide screens (641px and up): the big menus right of the logo. Every column opens at once, each right under its big
+ * menu, over a full-width band; nothing below is darkened (R1-2; user 2026-10-16: "나는 다 보였으면 하는데"). A big
+ * menu's cell is as wide as its word or its longest item, whichever is wider, and the cells are 36px apart, so the
+ * open columns never run into each other ("상단 탭 글자간의 거리 줄이고", "글자가 겹치면 좀 거리를 띄우던가").
+ * Resting on a big menu for 0.5s opens them. Clicking a big menu opens them without leaving the screen, and clicking
+ * it again closes them ("pc 탭 말이야 누르면 아래 항목 보이도록 해줘"; it went to its first item before, R1-3).
+ * Keyboard: Tab to a big menu, Enter opens or closes, ↓ opens and moves into its column, Esc closes and returns to the
+ * big menu.
+ */
+/** The label with the most characters (Korean labels are near one width per character). */
+function longest(labels: string[]) {
+  return labels.reduce((a, b) => (b.length > a.length ? b : a), '')
 }
 
-/**
- * Wide screens (641px and up): the big menus right of the logo. Resting on one for 0.5s opens both columns at once,
- * each right under its big menu over a full-width band with a line and a shadow; nothing below is darkened (R1-2).
- * Clicking a big menu goes to its first item (R1-3); on touch screens the first tap opens instead. Keyboard: Tab to a
- * big menu, Enter goes, ↓ opens and moves into its column, Esc closes and returns to the big menu.
- */
 export function HeaderMenu() {
   const { pathname } = useLocation()
   // open on the screen it was opened on: a new screen closes it
-  const [openAt, setOpenAt] = useState<string | null>(null)
-  const open = openAt === pathname
-  const setOpen = (next: boolean) => setOpenAt(next ? pathname : null)
+  const [opened, setOpened] = useState<{ at: string; key: string } | null>(null)
+  const openKey = opened?.at === pathname ? opened.key : null
+  // opened by a click: a second click closes it; opened by resting the pointer: a click keeps it open
+  const clicked = useRef(false)
+  const setOpen = (key: string | null) => {
+    if (key === null) clicked.current = false
+    setOpened(key === null ? null : { at: pathname, key })
+  }
   const timer = useRef<number | undefined>(undefined)
   const root = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -31,15 +38,44 @@ export function HeaderMenu() {
     window.clearTimeout(timer.current)
     timer.current = undefined
   }
-  const later = (next: boolean) => {
+  const later = (key: string | null) => {
     clearTimer()
-    timer.current = window.setTimeout(() => setOpen(next), MENU_DELAY_MS)
+    timer.current = window.setTimeout(() => setOpen(key), MENU_DELAY_MS)
+  }
+  const onBigEnter = (key: string) => {
+    if (openKey === null) later(key)
+    else clearTimer()
   }
 
   useEffect(() => clearTimer, [])
 
+  // the logo (MENU_TOGGLE_EVENT): open every column on the screen it goes to, or close them when open there
+  useEffect(() => {
+    const onToggle = (event: Event) => {
+      const at = (event as CustomEvent<string>).detail
+      clearTimer()
+      clicked.current = true
+      setOpened((current) => (current?.at === at ? null : { at, key: MENUS[0].key }))
+    }
+    window.addEventListener(MENU_TOGGLE_EVENT, onToggle)
+    return () => window.removeEventListener(MENU_TOGGLE_EVENT, onToggle)
+  }, [])
+
+  // open: a press anywhere else closes them (focus may be on the logo, outside this menu, so blur alone is not enough)
+  useEffect(() => {
+    if (!openKey) return
+    const onDown = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (!root.current?.contains(target) && !target?.closest('[data-menu-toggle]')) setOpen(null)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+    // setOpen only sets state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openKey])
+
   const focusFirstItem = (key: string) => {
-    setOpen(true)
+    setOpen(key)
     // the column is in the DOM already (hidden); focus it once it shows
     window.requestAnimationFrame(() => {
       root.current?.querySelector<HTMLAnchorElement>(`[data-column="${key}"] a`)?.focus()
@@ -53,15 +89,19 @@ export function HeaderMenu() {
       focusFirstItem(key)
     } else if (event.key === 'Escape') {
       clearTimer()
-      setOpen(false)
+      setOpen(null)
     }
   }
 
-  const onBigClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!open && isTouch()) {
-      event.preventDefault()
-      clearTimer()
-      setOpen(true)
+  const onBigClick = (event: MouseEvent<HTMLAnchorElement>, key: string) => {
+    event.preventDefault()
+    clearTimer()
+    // the same big menu again closes them; another one keeps them open (every column is open anyway)
+    if (openKey === key && clicked.current) {
+      setOpen(null)
+    } else {
+      setOpen(key)
+      clicked.current = true
     }
   }
 
@@ -70,7 +110,7 @@ export function HeaderMenu() {
     const at = links.indexOf(document.activeElement as HTMLAnchorElement)
     if (event.key === 'Escape') {
       event.preventDefault()
-      setOpen(false)
+      setOpen(null)
       root.current?.querySelector<HTMLAnchorElement>(`[data-big="${key}"]`)?.focus()
     } else if (event.key === 'ArrowDown' && at < links.length - 1) {
       event.preventDefault()
@@ -86,34 +126,40 @@ export function HeaderMenu() {
     <div
       ref={root}
       className={styles.wide}
-      data-open={open ? '' : undefined}
-      onMouseEnter={() => later(true)}
-      onMouseLeave={() => later(false)}
+      data-open={openKey ? '' : undefined}
+      onMouseLeave={() => later(null)}
       onFocus={() => clearTimer()}
       onBlur={(event) => {
-        if (!root.current?.contains(event.relatedTarget as Node | null)) setOpen(false)
+        const to = event.relatedTarget as Element | null
+        // focus going to the logo: its click opens or closes them, so they are not closed first
+        if (!root.current?.contains(to) && !to?.closest('[data-menu-toggle]')) setOpen(null)
       }}
     >
       <nav aria-label="주 메뉴">
         <ul className={styles.bigList}>
           {MENUS.map((menu) => (
-            <li key={menu.key} className={styles.big}>
+            <li key={menu.key} className={styles.big} onMouseEnter={() => onBigEnter(menu.key)}>
               <Link
                 to={menu.items[0].to}
                 className={styles.bigLink}
                 data-big={menu.key}
                 data-current={inMenu(pathname, menu) ? '' : undefined}
-                aria-expanded={open}
-                aria-controls={panelId}
-                onClick={onBigClick}
+                aria-expanded={openKey !== null}
+                aria-controls={`${panelId}-${menu.key}`}
+                onClick={(event) => onBigClick(event, menu.key)}
                 onKeyDown={(event) => onBigKeyDown(event, menu.key)}
               >
                 {menu.label}
               </Link>
+              {/* no height: makes the cell as wide as the longest item, so the open columns keep apart */}
+              <span className={styles.sizer} aria-hidden="true">
+                {longest(menu.items.map((item) => item.label))}
+              </span>
               <ul
+                id={`${panelId}-${menu.key}`}
                 className={styles.column}
                 data-column={menu.key}
-                hidden={!open}
+                hidden={openKey === null}
                 onKeyDown={(event) => onColumnKeyDown(event, menu.key)}
               >
                 {menu.items.map((item) => (
@@ -122,7 +168,7 @@ export function HeaderMenu() {
                       to={item.to}
                       className={styles.item}
                       aria-current={pathname === item.to ? 'page' : undefined}
-                      onClick={() => setOpen(false)}
+                      onClick={() => setOpen(null)}
                     >
                       {item.label}
                     </Link>
@@ -133,15 +179,21 @@ export function HeaderMenu() {
           ))}
         </ul>
       </nav>
-      {/* the full-width band behind the columns (data4library.kr, 2026-10-16) */}
-      <div id={panelId} className={styles.band} hidden={!open} aria-hidden="true" />
+      {/* the full-width band behind the columns, as tall as the longest (data4library.kr, 2026-10-16) */}
+      <div
+        className={styles.band}
+        hidden={!openKey}
+        aria-hidden="true"
+        style={{ '--rows': Math.max(...MENUS.map((m) => m.items.length)) } as CSSProperties}
+      />
     </div>
   )
 }
 
 /**
- * Phones (640px and below, spec R1-5): ☰ at the right end. It opens the same menus from the top with the screen below
- * darkened; ✕, the darkened part, Esc or a menu item closes it.
+ * Phones (640px and below; user 2026-10-16: "오른쪽 위에 누르면 메뉴 보이는게 아니라 그냥 상단 탭 자체를 누르면 메뉴
+ * 보이는 걸로"): no ☰; the header row itself is the button (the logo and 로그인 keep their own taps). It opens the same
+ * menus under the header with the screen below darkened; the row again, the darkened part, Esc or a menu item closes it.
  */
 export function PhoneMenu() {
   const { pathname } = useLocation()
@@ -155,6 +207,17 @@ export function PhoneMenu() {
     const header = button.current?.closest('[data-app-header]')
     setOpened(next ? { at: pathname, top: header?.getBoundingClientRect().bottom ?? 0 } : null)
   }
+
+  // the logo (MENU_TOGGLE_EVENT): open on the screen it goes to, or close when open there
+  useEffect(() => {
+    const onToggle = (event: Event) => {
+      const at = (event as CustomEvent<string>).detail
+      const top = button.current?.closest('[data-app-header]')?.getBoundingClientRect().bottom ?? 0
+      setOpened((current) => (current?.at === at ? null : { at, top }))
+    }
+    window.addEventListener(MENU_TOGGLE_EVENT, onToggle)
+    return () => window.removeEventListener(MENU_TOGGLE_EVENT, onToggle)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -178,9 +241,7 @@ export function PhoneMenu() {
         aria-controls={drawerId}
         aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
         onClick={() => setOpen(!open)}
-      >
-        <span aria-hidden="true">{open ? '✕' : '☰'}</span>
-      </button>
+      />
       {open && (
         <>
           <div
