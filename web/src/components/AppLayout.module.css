@@ -48,25 +48,24 @@
   min-width: 0;
 }
 
-/* cycle 10, 14: "사서추천도서", a text link right of the logo, left of the login button (same on phones) */
-.navLink {
-  padding: calc(0.3 * var(--base-unscaled)) 0;
-  font-size: calc(0.95 * var(--base-unscaled));
-  font-weight: 700;
-  color: var(--ink-soft);
-  text-decoration: none;
-  white-space: nowrap;
+/* cycle 21: the big menus (HeaderMenu) right of the logo; the header's padding moves into them so a column starts
+   right at the bar's bottom edge */
+.start {
+  align-self: stretch;
 }
 
-.navLink:hover,
-.navLink[aria-current='page'] {
-  color: var(--brand-strong);
+.end {
+  display: flex;
+  align-items: center;
+  gap: calc(0.6 * var(--base-unscaled));
+  flex-shrink: 0;
 }
 
-.navLink:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* room for the cycle 20 dot: a phone dot's size [안] */
+.statusSlot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
 }
 
 .main {
@@ -94,13 +93,11 @@
 
 /* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
 @media (width <= 640px) {
-  .brand,
-  .navLink {
+  .brand {
     position: relative;
   }
 
-  .brand::after,
-  .navLink::after {
+  .brand::after {
     content: '';
     position: absolute;
     top: 50%;

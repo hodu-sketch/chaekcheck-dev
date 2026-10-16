@@ -5,12 +5,11 @@ import { RegionImportDialog } from '../features/mylibrary/RegionImportDialog'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
+import { HeaderMenu, PhoneMenu } from './HeaderMenu'
 import styles from './AppLayout.module.css'
 
 export function AppLayout() {
   const location = useLocation()
-  // No login button and no "사서추천도서" on the terms and privacy pages (flow.md S8, S9; cycle 10, 14 [확정])
-  const legal = ['/terms', '/privacy'].includes(location.pathname)
   return (
     <div className={styles.shell}>
       {/* data-app-header: screens with their own sticky bar read its height (cycle 10 S13) */}
@@ -21,13 +20,15 @@ export function AppLayout() {
             <Link to="/" className={styles.brand}>
               <span className={styles.wordmark}>책첵</span>
             </Link>
-            {!legal && (
-              <Link to="/picks" className={styles.navLink} aria-current={location.pathname === '/picks' ? 'page' : undefined}>
-                사서추천도서
-              </Link>
-            )}
+            <HeaderMenu />
           </div>
-          {!legal && <AuthHeaderAction />}
+          {/* the same header on every screen, the terms and privacy pages too (cycle 21 spec R1-6, cycle 20) */}
+          <div className={styles.end}>
+            {/* cycle 20 puts the lookup status dot here: left of 로그인, on phones left of ☰ (spec R1-6) */}
+            <span className={styles.statusSlot} data-lookup-status-slot="" aria-hidden="true" />
+            <AuthHeaderAction />
+            <PhoneMenu />
+          </div>
         </header>
       </div>
       <main className={styles.main}>

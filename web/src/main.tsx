@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import './styles/fonts.css'
 import './styles/global.css'
 import { AppLayout } from './components/AppLayout'
@@ -40,8 +40,11 @@ function App() {
                 <Route path="/" element={<SearchPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
-                {/* cycle 10, 14 (S13 librarian picks): public, no login (R7-3) */}
-                <Route path="/picks" element={<PicksPage />} />
+                {/* cycle 10, 14 (S13 librarian picks): public, no login (R7-3); cycle 21: one screen per list
+                    (ADR-0126), the old address goes to the librarian picks. TODO(cycle 21 step 9-2/9-3): the
+                    screen still reads the old API whatever the list */}
+                <Route path="/picks" element={<Navigate to="/picks/librarian" replace />} />
+                <Route path="/picks/:listKey" element={<PicksPage />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route
