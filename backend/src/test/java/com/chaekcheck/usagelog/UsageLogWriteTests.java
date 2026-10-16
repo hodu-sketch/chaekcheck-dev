@@ -81,7 +81,7 @@ class UsageLogWriteTests {
 		buffer.offer(new UsageRow.More(AT, "catalog_next_page", 2, null, CATALOG, "login_off", "2001:db8::1"));
 		buffer.offer(new UsageRow.LibraryClick(AT, enabledLibrary, "result_card", "book_page", 345L, "signed_in",
 				"203.0.113.7", "{}"));
-		buffer.offer(new UsageRow.ScreenEvent(AT, "region_change", null, null, List.of(1114L), List.of(1102L), null,
+		buffer.offer(new UsageRow.ScreenEvent(AT, "region_change", null, null, null, List.of(1114L), List.of(1102L), null,
 				"signed_in", "203.0.113.7", "{}"));
 		buffer.offer(new UsageRow.Rejected(AT, "203.0.113.7", "malformed", null));
 		buffer.addResponse(LocalDate.of(2026, 10, 14), enabledLibrary, ResponseSource.DIRECT_SEARCH,
@@ -205,7 +205,7 @@ class UsageLogWriteTests {
 				"{\"libraryId\":" + disabled + "}"));
 		buffer.offer(new UsageRow.LibraryClick(AT, 999_999_999L, "logo", "picks", null, "login_off", "203.0.113.7",
 				"{\"libraryId\":999999999}"));
-		buffer.offer(new UsageRow.ScreenEvent(AT, "my_library_add", null, null, null, null, 999_999_999L,
+		buffer.offer(new UsageRow.ScreenEvent(AT, "my_library_add", null, null, null, null, null, 999_999_999L,
 				"login_off", "203.0.113.7", "{\"libraryId\":999999999}"));
 
 		flusher.flush();

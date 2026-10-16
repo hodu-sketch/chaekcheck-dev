@@ -4626,3 +4626,12 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - 경로(9-2 일부): `/picks` → `/picks/librarian`으로 넘김, `/picks/:listKey`가 지금 `PicksPage`를 보임. **화면은 아직 옛 API를 읽어 세 경로 모두 사서 목록을 보임**(`TODO(cycle 21 step 9-2/9-3)`). 모르는 목록 이름 처리는 9-2에서
 - 확인: vitest 440개 통과(머리말 13개 새로), `npm run build` 통과. Playwright 1280(펼침)·768(약관 화면, 같은 머리말)·375(☰ 열림)·320, 가로 넘침 없음. 서버를 켜지 않아 로그인 버튼 없이 봄(로그인 칸은 서버 응답 전 빈 자리). 화면 확인(사용자)은 9단계 끝에
 - dev main 폴더의 `.claude/launch.json`에 `c21-web-lan-5182`(API 8091로 넘김)를 더함(커밋하지 않음, 사이클 끝에 지움)
+
+### 1단계 2 `usagelog/003`과 6단계 (plan 21 허락 2026-10-16: "usagelog/003은 결정과 상관없으니 먼저 해도 돼")
+
+- 새 `usagelog/003-screen-event-picks-list.yaml`, changeset `usagelog-003-screen-event-picks-list`: `picks_list` 칸 + CHECK `screen_event_picks_list_check`(셋 중 하나) → 있던 `picks_*` 줄을 `librarian`으로 채움 → `screen_event_kind_fields_check`를 지우고, picks 종류일 때 `picks_list IS NOT NULL`, 그 밖일 때 NULL로 다시 검
+- master 끝: `# cycle 21: recommended lists (ADR-0122, ADR-0126)` + `usagelog/003` include. `picks/002`는 표지 결정 뒤 같은 주석 아래 **`usagelog/003` 앞**에 넣을 예정(두 파일은 서로 기대지 않음, 아직 어디에도 적용 안 됨)
+- 6단계: `UsageEventReader`가 `picks_list_view`·`picks_book_view`에서 `list`를 필수로 읽음(없음·셋 밖 → `rejected_event` `invalid_value`), `UsageRow.ScreenEvent`에 `picksList`, `UsageLogWriter` INSERT에 `picks_list`
+- 웹: `UsageEvent`에 `list`(`PicksListKey`)를 더함. 목록 화면은 아직 사서 목록만 보이므로 지금은 `list: 'librarian'`으로 보냄(`TODO(cycle 21 step 9-3)`: 주소의 목록으로)
+- 시험: `UsageLogSchemaTests.picksEventsNameTheirList`(셋 받음, NULL·`yes24` 거절, 다른 종류에 목록 있으면 거절), `UsageEventApiTests`(목록 저장, 목록 없음·틀림 → `invalid_value`), CSRF·쓰기 시험 고침
+- 빌드: `./gradlew build` 통과(4분 54초), 웹 vitest 440 · `npm run build` 통과

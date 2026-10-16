@@ -288,7 +288,8 @@ export function PicksPage() {
   useEffect(() => {
     if (!currentCode || reportedCode.current === currentCode) return
     reportedCode.current = currentCode
-    sendUsageEvent({ type: 'picks_list_view', category: currentCode })
+    // TODO(cycle 21 step 9-3): the list of the address; the screen shows the librarian picks for now
+    sendUsageEvent({ type: 'picks_list_view', list: 'librarian', category: currentCode })
   }, [currentCode])
 
   // S13c: that field's books 1-9, the page put straight there with no smooth scrolling (user 2026-10-11)
@@ -304,7 +305,7 @@ export function PicksPage() {
     setSelected(book)
     // the book window opens only for a book with an e-book in my libraries (cycle 15 usage report)
     if (book.available && book.bookId != null) {
-      sendUsageEvent({ type: 'picks_book_view', category: book.category, bookId: book.bookId })
+      sendUsageEvent({ type: 'picks_book_view', list: 'librarian', category: book.category, bookId: book.bookId })
     }
   }
   // [책 검색 >>] (AC-9, AC-20): from a phone window's own history entry the book screen replaces that entry, so back

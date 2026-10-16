@@ -115,3 +115,7 @@ databaseChangeLog:
   - include:
       file: usagelog/002-library-response-cached-count.yaml
       relativeToChangelogFile: true
+  # cycle 21: recommended lists (ADR-0122, ADR-0126)
+  - include:
+      file: usagelog/003-screen-event-picks-list.yaml
+      relativeToChangelogFile: true

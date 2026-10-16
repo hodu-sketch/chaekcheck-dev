@@ -70,22 +70,23 @@ class UsageEventApiTests {
 
 	@Test
 	void screenActionsAreOneRowEach() { // AC-23 (server part)
-		post("{\"type\":\"picks_list_view\",\"category\":\"11\"}");
-		post("{\"type\":\"picks_book_view\",\"category\":\"11\",\"bookId\":345}");
+		post("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"11\"}");
+		post("{\"type\":\"picks_book_view\",\"list\":\"snu100\",\"category\":\"korean_lit\",\"bookId\":345}");
 		post("{\"type\":\"region_change\",\"residenceRegionIds\":[1114],\"workRegionIds\":[]}");
 		post("{\"type\":\"my_library_add\",\"libraryId\":%d}".formatted(library));
 		post("{\"type\":\"my_library_remove\",\"libraryId\":%d}".formatted(library));
 		flusher.flush();
 
 		assertThat(jdbc.sql("""
-				SELECT kind, picks_category, book_id, array_to_string(residence_region_ids, ',') AS residence,
+				SELECT kind, picks_list, picks_category, book_id, array_to_string(residence_region_ids, ',') AS residence,
 				  array_to_string(work_region_ids, ',') AS work, library_id
 				FROM usagelog.screen_event ORDER BY id""").query().listOfRows()).hasSize(5)
-			.extracting(r -> r.get("kind") + "|" + r.get("picks_category") + "|" + r.get("book_id") + "|"
-					+ r.get("residence") + "|" + r.get("work") + "|" + r.get("library_id"))
-			.containsExactly("picks_list_view|11|null|null|null|null", "picks_book_view|11|345|null|null|null",
-					"region_change|null|null|1114||null", "my_library_add|null|null|null|null|" + library,
-					"my_library_remove|null|null|null|null|" + library);
+			.extracting(r -> r.get("kind") + "|" + r.get("picks_list") + "|" + r.get("picks_category") + "|"
+					+ r.get("book_id") + "|" + r.get("residence") + "|" + r.get("work") + "|" + r.get("library_id"))
+			.containsExactly("picks_list_view|librarian|11|null|null|null|null",
+					"picks_book_view|snu100|korean_lit|345|null|null|null",
+					"region_change|null|null|null|1114||null", "my_library_add|null|null|null|null|null|" + library,
+					"my_library_remove|null|null|null|null|null|" + library);
 		assertThat(UsageLogTestTables.count(jdbc, "rejected_event")).isZero();
 	}
 
@@ -107,8 +108,11 @@ class UsageEventApiTests {
 		post("");
 		post("{\"type\":\"page_scroll\"}");
 		post("{\"libraryId\":1}");
-		post("{\"type\":\"picks_list_view\",\"category\":\"\"}");
-		post("{\"type\":\"picks_list_view\",\"category\":\"123456789012345678901\"}");
+		post("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"\"}");
+		post("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"123456789012345678901\"}");
+		// cycle 21 (ADR-0126): the list is required and one of three
+		post("{\"type\":\"picks_list_view\",\"category\":\"11\"}");
+		post("{\"type\":\"picks_book_view\",\"list\":\"yes24\",\"category\":\"11\",\"bookId\":345}");
 		post("{\"type\":\"region_change\",\"residenceRegionIds\":[1114]}");
 		post("{\"type\":\"region_change\",\"residenceRegionIds\":[0],\"workRegionIds\":[]}");
 		post("{\"type\":\"my_library_add\",\"libraryId\":\"12\"}");
@@ -123,7 +127,7 @@ class UsageEventApiTests {
 			.containsExactlyInAnyOrder("unknown_library", "unknown_library", "invalid_place", "invalid_screen",
 					"invalid_book_id", "invalid_book_id", "malformed", "malformed", "malformed", "unknown_type",
 					"unknown_type", "invalid_value", "invalid_value", "invalid_value", "invalid_value", "invalid_value",
-					"unknown_library");
+					"invalid_value", "invalid_value", "unknown_library");
 		assertThat(jdbc.sql("SELECT raw_values ->> 'place' FROM usagelog.rejected_event WHERE reason = 'invalid_place'")
 			.query(String.class)
 			.single()).isEqualTo("cover");
@@ -151,7 +155,8 @@ class UsageEventApiTests {
 			.uri(URL)
 			.contentType(MediaType.APPLICATION_JSON)
 			.header("User-Agent", "Googlebot/2.1")
-			.content("{\"type\":\"picks_list_view\",\"category\":\"11\"}")).hasStatus(HttpStatus.NO_CONTENT);
+			.content("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"11\"}"))
+			.hasStatus(HttpStatus.NO_CONTENT);
 		flusher.flush();
 
 		assertThat(UsageLogTestTables.count(jdbc, "screen_event")).isZero();

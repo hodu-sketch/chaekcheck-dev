@@ -302,15 +302,15 @@ describe('usage reports', () => {
     stubFetch()
     const user = renderPage()
     await screen.findByRole('region', { name: '전체' })
-    await waitFor(() => expect(reported('picks_list_view')).toEqual([{ type: 'picks_list_view', category: 'ALL' }]))
+    await waitFor(() => expect(reported('picks_list_view')).toEqual([{ type: 'picks_list_view', list: 'librarian', category: 'ALL' }]))
 
     await user.click(within(section('전체')).getByRole('button', { name: '전체 다음 9권' }))
     await user.click(screen.getByRole('button', { name: '분류: 전체' }))
     await user.click(within(screen.getByRole('list', { name: '분류' })).getByRole('button', { name: '사회' }))
 
     expect(reported('picks_list_view')).toEqual([
-      { type: 'picks_list_view', category: 'ALL' },
-      { type: 'picks_list_view', category: '5' },
+      { type: 'picks_list_view', list: 'librarian', category: 'ALL' },
+      { type: 'picks_list_view', list: 'librarian', category: '5' },
     ])
   })
 
@@ -324,7 +324,7 @@ describe('usage reports', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '닫기' }))
 
     await user.click(cards('전체')[0])
-    expect(reported('picks_book_view')).toEqual([{ type: 'picks_book_view', category: '11', bookId: 5001 }])
+    expect(reported('picks_book_view')).toEqual([{ type: 'picks_book_view', list: 'librarian', category: '11', bookId: 5001 }])
   })
 })
 

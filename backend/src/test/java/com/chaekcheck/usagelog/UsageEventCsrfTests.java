@@ -54,7 +54,7 @@ class UsageEventCsrfTests {
 
 	static final String CSRF = "test-csrf-token";
 
-	static final String BODY = "{\"type\":\"picks_list_view\",\"category\":\"11\"}";
+	static final String BODY = "{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"11\"}";
 
 	static final byte[] KEY = randomKey();
 

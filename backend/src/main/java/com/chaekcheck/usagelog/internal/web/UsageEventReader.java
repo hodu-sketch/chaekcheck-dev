@@ -25,6 +25,9 @@ final class UsageEventReader {
 
 	static final int MAX_CATEGORY_LENGTH = 20;
 
+	/** The recommended lists (ADR-0126), as {@code screen_event.picks_list} allows. */
+	static final Set<String> PICKS_LISTS = Set.of("librarian", "leedongjin", "snu100");
+
 	static final Set<String> PLACES = Set.of("result_card", "join_link", "join_guide", "home_page", "logo",
 			"summary_bar");
 
@@ -59,13 +62,14 @@ final class UsageEventReader {
 			return switch (type(node)) {
 				case "library_click" -> new UsageRow.LibraryClick(request.receivedAt(), libraryId(node),
 						place(node), screen(node), optionalBookId(node), request.loginStatus(), request.clientIp(), raw);
-				case "picks_list_view" -> screen(request, raw, "picks_list_view", category(node), null, null, null, null);
-				case "picks_book_view" -> screen(request, raw, "picks_book_view", category(node), bookId(node), null,
-						null, null);
-				case "region_change" -> screen(request, raw, "region_change", null, null,
+				case "picks_list_view" -> screen(request, raw, "picks_list_view", picksList(node), category(node), null,
+						null, null, null);
+				case "picks_book_view" -> screen(request, raw, "picks_book_view", picksList(node), category(node),
+						bookId(node), null, null, null);
+				case "region_change" -> screen(request, raw, "region_change", null, null, null,
 						regionIds(node, "residenceRegionIds"), regionIds(node, "workRegionIds"), null);
 				case "my_library_add", "my_library_remove" -> screen(request, raw, type(node), null, null, null, null,
-						libraryId(node));
+						null, libraryId(node));
 				default -> throw new Rejected("unknown_type");
 			};
 		}
@@ -74,10 +78,10 @@ final class UsageEventReader {
 		}
 	}
 
-	private static UsageRow.ScreenEvent screen(UsageRequest request, String raw, String kind, String category,
-			Long bookId, List<Long> residence, List<Long> work, Long libraryId) {
-		return new UsageRow.ScreenEvent(request.receivedAt(), kind, category, bookId, residence, work, libraryId,
-				request.loginStatus(), request.clientIp(), raw);
+	private static UsageRow.ScreenEvent screen(UsageRequest request, String raw, String kind, String list,
+			String category, Long bookId, List<Long> residence, List<Long> work, Long libraryId) {
+		return new UsageRow.ScreenEvent(request.receivedAt(), kind, list, category, bookId, residence, work,
+				libraryId, request.loginStatus(), request.clientIp(), raw);
 	}
 
 	private JsonNode parse(byte[] body) {
@@ -143,6 +147,15 @@ final class UsageEventReader {
 			throw new Rejected("invalid_book_id");
 		}
 		return id;
+	}
+
+	/** The recommended list of a picks event: required, one of {@link #PICKS_LISTS} (cycle 21, ADR-0126). */
+	private static String picksList(JsonNode node) {
+		JsonNode list = node.get("list");
+		if (list == null || !list.isString() || !PICKS_LISTS.contains(list.asString())) {
+			throw new Rejected("invalid_value");
+		}
+		return list.asString();
 	}
 
 	private static String category(JsonNode node) {

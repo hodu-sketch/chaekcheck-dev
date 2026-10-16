@@ -97,6 +97,18 @@ class UsageLogSchemaTests {
 	}
 
 	@Test
+	void picksEventsNameTheirList() { // cycle 21 (ADR-0126, usagelog/003)
+		screen("'librarian'", "'picks_list_view'", "'11'", "NULL", "NULL", "NULL", "NULL");
+		screen("'leedongjin'", "'picks_list_view'", "'korean_fiction'", "NULL", "NULL", "NULL", "NULL");
+		screen("'snu100'", "'picks_book_view'", "'korean_lit'", "345", "NULL", "NULL", "NULL");
+		violates(() -> screen("NULL", "'picks_list_view'", "'11'", "NULL", "NULL", "NULL", "NULL"));
+		violates(() -> screen("NULL", "'picks_book_view'", "'11'", "345", "NULL", "NULL", "NULL"));
+		violates(() -> screen("'yes24'", "'picks_list_view'", "'11'", "NULL", "NULL", "NULL", "NULL"));
+		violates(() -> screen("'librarian'", "'region_change'", "NULL", "NULL", "'{1114}'", "'{}'", "NULL"));
+		violates(() -> screen("'librarian'", "'my_library_add'", "NULL", "NULL", "NULL", "NULL", "12"));
+	}
+
+	@Test
 	void otherTablesRulesHold() {
 		violates(() -> jdbc.sql("INSERT INTO usagelog.rejected_event (received_at, reason) VALUES (now(), 'spam')")
 			.update());
@@ -137,13 +149,20 @@ class UsageLogSchemaTests {
 				VALUES (now(), 12, %s, %s, %s)""".formatted(place, screen, loginStatus)).update();
 	}
 
+	/** Picks kinds get the librarian list, as rows before cycle 21; the others none. */
 	private void screen(String kind, String category, String bookId, String residence, String work,
 			String libraryId) {
+		screen(kind.startsWith("'picks_") ? "'librarian'" : "NULL", kind, category, bookId, residence, work,
+				libraryId);
+	}
+
+	private void screen(String list, String kind, String category, String bookId, String residence, String work,
+			String libraryId) {
 		jdbc.sql("""
-				INSERT INTO usagelog.screen_event (received_at, kind, picks_category, book_id, residence_region_ids,
-				  work_region_ids, library_id, login_status)
-				VALUES (now(), %s, %s, %s, %s, %s, %s, 'login_off')"""
-			.formatted(kind, category, bookId, residence, work, libraryId)).update();
+				INSERT INTO usagelog.screen_event (received_at, kind, picks_list, picks_category, book_id,
+				  residence_region_ids, work_region_ids, library_id, login_status)
+				VALUES (now(), %s, %s, %s, %s, %s, %s, %s, 'login_off')"""
+			.formatted(kind, list, category, bookId, residence, work, libraryId)).update();
 	}
 
 	private void violates(Runnable insert) {

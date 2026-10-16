@@ -46,9 +46,9 @@ public class UsageLogWriter {
 			VALUES (?, ?, ?, ?, ?, ?, ?::inet)""";
 
 	static final String INSERT_SCREEN = """
-			INSERT INTO usagelog.screen_event (received_at, kind, picks_category, book_id, residence_region_ids,
-			  work_region_ids, library_id, login_status, client_ip)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::inet)""";
+			INSERT INTO usagelog.screen_event (received_at, kind, picks_list, picks_category, book_id,
+			  residence_region_ids, work_region_ids, library_id, login_status, client_ip)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::inet)""";
 
 	static final String INSERT_REJECTED = """
 			INSERT INTO usagelog.rejected_event (received_at, client_ip, reason, raw_values)
@@ -142,6 +142,7 @@ public class UsageLogWriter {
 			batch(INSERT_SCREEN, screens, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
 				ps.setString(i++, text(r.kind()));
+				ps.setString(i++, text(r.picksList()));
 				ps.setString(i++, text(r.picksCategory()));
 				setLong(ps, i++, r.bookId());
 				ps.setArray(i++, r.residenceRegionIds() == null ? null : bigints(ps, r.residenceRegionIds()));

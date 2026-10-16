@@ -35,9 +35,11 @@ public sealed interface UsageRow {
 	}
 
 	/**
-	 * A screen action; {@code libraryId} only for my_library_add/remove. {@link #raw} as in {@link LibraryClick}.
+	 * A screen action; {@code libraryId} only for my_library_add/remove, {@code picksList} ({@code librarian},
+	 * {@code leedongjin}, {@code snu100}; cycle 21, ADR-0126) and {@code picksCategory} only for the picks kinds.
+	 * {@link #raw} as in {@link LibraryClick}.
 	 */
-	record ScreenEvent(Instant receivedAt, String kind, String picksCategory, Long bookId,
+	record ScreenEvent(Instant receivedAt, String kind, String picksList, String picksCategory, Long bookId,
 			List<Long> residenceRegionIds, List<Long> workRegionIds, Long libraryId, String loginStatus,
 			String clientIp, String raw) implements NamesLibrary {
 	}

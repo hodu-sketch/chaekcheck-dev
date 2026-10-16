@@ -3,7 +3,7 @@ import { sendUsageEvent, setUsageLoginFeature } from './usageEvents'
 
 /** Cycle 15 step 8: the one place that sends usage reports (AC-9 web part). */
 
-const EVENT = { type: 'picks_list_view', category: '11' } as const
+const EVENT = { type: 'picks_list_view', list: 'librarian', category: '11' } as const
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -49,7 +49,7 @@ describe('sendUsageEvent', () => {
     expect(post.keepalive).toBe(true)
     expect(post.credentials).toBe('same-origin')
     expect(post.headers['X-XSRF-TOKEN']).toBeUndefined()
-    expect(JSON.parse(post.body as string)).toEqual({ type: 'picks_list_view', category: '11' })
+    expect(JSON.parse(post.body as string)).toEqual({ type: 'picks_list_view', list: 'librarian', category: '11' })
   })
 
   it('login on: the token from the cookie goes in the header', async () => {

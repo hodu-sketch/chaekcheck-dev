@@ -1,0 +1,32 @@
+# Cycle 21 (ADR-0126): which recommended list a picks screen event was on. Rows before cycle 21 were all the
+# librarian picks. The kind check is made again with the new column: picks events need it, the others leave it NULL.
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-003-screen-event-picks-list
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.screen_event
+                ADD COLUMN picks_list text
+                CONSTRAINT screen_event_picks_list_check CHECK (picks_list IN ('librarian', 'leedongjin', 'snu100'))
+        - sql:
+            sql: >-
+              UPDATE usagelog.screen_event SET picks_list = 'librarian'
+              WHERE kind IN ('picks_list_view', 'picks_book_view')
+        - sql:
+            sql: ALTER TABLE usagelog.screen_event DROP CONSTRAINT screen_event_kind_fields_check
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.screen_event ADD CONSTRAINT screen_event_kind_fields_check CHECK (
+                (kind = 'picks_list_view' AND picks_list IS NOT NULL AND picks_category IS NOT NULL
+                  AND book_id IS NULL AND residence_region_ids IS NULL AND work_region_ids IS NULL
+                  AND library_id IS NULL)
+                OR (kind = 'picks_book_view' AND picks_list IS NOT NULL AND picks_category IS NOT NULL
+                  AND book_id IS NOT NULL AND residence_region_ids IS NULL AND work_region_ids IS NULL
+                  AND library_id IS NULL)
+                OR (kind = 'region_change' AND picks_list IS NULL AND picks_category IS NULL AND book_id IS NULL
+                  AND residence_region_ids IS NOT NULL AND work_region_ids IS NOT NULL AND library_id IS NULL)
+                OR (kind IN ('my_library_add', 'my_library_remove') AND picks_list IS NULL
+                  AND picks_category IS NULL AND book_id IS NULL AND residence_region_ids IS NULL
+                  AND work_region_ids IS NULL AND library_id IS NOT NULL))
