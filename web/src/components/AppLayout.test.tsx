@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppLayout } from './AppLayout'
-import { MENU_DELAY_MS } from './HeaderMenu'
+import { MENU_DELAY_MS } from './headerMenus'
 
 vi.mock('../features/auth/AuthHeaderAction', () => ({ AuthHeaderAction: () => <button type="button">로그인</button> }))
 vi.mock('../features/auth/NoticeContext', () => ({ NoticeBar: () => null }))

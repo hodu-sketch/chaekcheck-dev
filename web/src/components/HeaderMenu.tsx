@@ -1,35 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router'
+import { MENU_DELAY_MS, MENUS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
-
-/** The header menus (cycle 21 spec R1, ADR-0127): two big menus, each with its items. */
-export const MENUS = [
-  {
-    key: 'picks',
-    label: '추천도서',
-    items: [
-      { to: '/picks/leedongjin', label: '이동진 추천도서' },
-      { to: '/picks/librarian', label: '사서 추천도서' },
-      { to: '/picks/snu100', label: '서울대 100선' },
-    ],
-  },
-  { key: 'my', label: '마이페이지', items: [{ to: '/my-libraries', label: '내 도서관 관리' }] },
-] as const
-
-/** Open after the pointer rests this long, close this long after it leaves (spec R1-3, NN/g) [확정]. */
-export const MENU_DELAY_MS = 500
 
 /** A finger, not a mouse: first tap opens (spec R1-5). Samsung Internet reports hover, so pointer only (cycle 10). */
 const TOUCH_QUERY = '(pointer: coarse)'
 
 function isTouch() {
   return typeof window.matchMedia === 'function' && window.matchMedia(TOUCH_QUERY).matches
-}
-
-function inMenu(pathname: string, menu: (typeof MENUS)[number]) {
-  return menu.items.some((item) => pathname === item.to || pathname.startsWith(item.to + '/'))
-    || (menu.key === 'picks' && pathname === '/picks')
 }
 
 /**
@@ -40,7 +19,10 @@ function inMenu(pathname: string, menu: (typeof MENUS)[number]) {
  */
 export function HeaderMenu() {
   const { pathname } = useLocation()
-  const [open, setOpen] = useState(false)
+  // open on the screen it was opened on: a new screen closes it
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const open = openAt === pathname
+  const setOpen = (next: boolean) => setOpenAt(next ? pathname : null)
   const timer = useRef<number | undefined>(undefined)
   const root = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -55,11 +37,6 @@ export function HeaderMenu() {
   }
 
   useEffect(() => clearTimer, [])
-  // a new screen closes the menu
-  useEffect(() => {
-    clearTimer()
-    setOpen(false)
-  }, [pathname])
 
   const focusFirstItem = (key: string) => {
     setOpen(true)
@@ -168,17 +145,22 @@ export function HeaderMenu() {
  */
 export function PhoneMenu() {
   const { pathname } = useLocation()
-  const [open, setOpen] = useState(false)
+  // where it was opened and the header's bottom then (the darkening starts there); a new screen closes it
+  const [opened, setOpened] = useState<{ at: string; top: number } | null>(null)
+  const open = opened?.at === pathname
   const button = useRef<HTMLButtonElement>(null)
   const drawerId = useId()
 
-  useEffect(() => setOpen(false), [pathname])
+  const setOpen = (next: boolean) => {
+    const header = button.current?.closest('[data-app-header]')
+    setOpened(next ? { at: pathname, top: header?.getBoundingClientRect().bottom ?? 0 } : null)
+  }
 
   useEffect(() => {
     if (!open) return
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setOpen(false)
+        setOpened(null)
         button.current?.focus()
       }
     }
@@ -195,7 +177,7 @@ export function PhoneMenu() {
         aria-expanded={open}
         aria-controls={drawerId}
         aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
-        onClick={() => setOpen((was) => !was)}
+        onClick={() => setOpen(!open)}
       >
         <span aria-hidden="true">{open ? '✕' : '☰'}</span>
       </button>
@@ -204,7 +186,7 @@ export function PhoneMenu() {
           <div
             className={styles.dim}
             data-testid="menu-dim"
-            style={{ top: button.current?.closest('[data-app-header]')?.getBoundingClientRect().bottom ?? 0 }}
+            style={{ top: opened?.top ?? 0 }}
             onClick={() => setOpen(false)}
           />
           <nav id={drawerId} className={styles.drawer} aria-label="주 메뉴">
