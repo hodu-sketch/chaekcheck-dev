@@ -2,5 +2,5 @@ order	source	note
 1	nlk_isbn	국립중앙도서관 ISBN 서지 TITLE_URL: 고정 판 ISBN, 없으면 줄의 ISBN (결정 #6)
 2	collected_preferred	수집 사본 holding.cover_url 가운데 cover_hosts.tsv 호스트(YES24, 교보) 차례 (결정 #6)
 3	collected_other	수집 사본의 그 밖의 표지 주소(도서관 전자도서관) (결정 #6)
-4	kakao_book	카카오 책 검색 dapi.kakao.com/v3/search/book: ISBN, 없으면 제목+저자. 표지 원본(Daum CDN). 우리 책이 없는 책도 (사용자 2026-10-16: "책 표지 무조건 다 보였으면 해 인터넷 수집해서")
+4	nlk_holdings	국립중앙도서관 소장자료 검색 search.do의 imageUrl(cover.nl.go.kr): ISBN, 없으면 제목+저자 성. 우리 책이 없는 책도. 카카오 책 검색 대신 (사용자 2026-10-17: "도서관정보나루라던가 아니면 공공도서관 api라던가 출처 많자나 … 그걸로 다시 조사하고 반영해봐")
 5	nlk_title	국립중앙도서관 ISBN 서지 제목 검색의 TITLE_URL: 위에서 못 찾은 책 [안]

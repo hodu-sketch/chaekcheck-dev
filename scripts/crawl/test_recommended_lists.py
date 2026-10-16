@@ -309,21 +309,38 @@ class CoverTests(unittest.TestCase):
         with self.assertRaises(rl.CollectorFailure):
             http.get('https://example.test/a.jpg', rl.COVER_MAX_BYTES)
 
-    def test_a_book_we_do_not_have_gets_its_cover_from_kakao(self):  # user 2026-10-16
+    @staticmethod
+    def holdings(*documents):
+        return json.dumps({'result': [dict(zip(('titleInfo', 'authorInfo', 'imageUrl'), d)) for d in documents]}).encode()
+
+    def test_a_book_we_do_not_have_gets_its_cover_from_the_nlk_holdings_not_kakao(self):  # user 2026-10-17
         from PIL import Image
         png = io.BytesIO()
         Image.new('RGB', (300, 450), (10, 20, 30)).save(png, 'PNG')
         lists = ListsDir([])
         self.addCleanup(lists.close)
-        kakao = json.dumps({'documents': [
-            {'title': '광장의 아이들', 'authors': ['다른 사람'], 'thumbnail': 'https://search1.kakaocdn.net/thumb/x?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F2'},
-            {'title': '광장', 'authors': ['최인훈'], 'thumbnail': 'https://search1.kakaocdn.net/thumb/R120x174?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F1'}]}).encode()
-        opener = Opener({'dapi.kakao.com': (200, kakao), 't1.daumcdn.net/lbook/image/1': (200, png.getvalue())})
+        # an anthology with the same name comes first; the author picks the right one
+        found = self.holdings(('<span class="searching_txt">광장</span>', '김사과 외', 'kolis/2019/OTHER.jpg'),
+                              ('<span class="searching_txt">광장</span> : 최인훈 장편소설', '최인훈', 'kolis_on/2021/RIGHT.jpg'))
+        opener = Opener({'www.nl.go.kr/NL/search/openApi/search.do': (200, found),
+                         'cover.nl.go.kr/kolis_on/2021/RIGHT.jpg': (200, png.getvalue())})
         rows = [{'title': '광장', 'author': '최인훈', 'cover_url': ''}]
         http = rl.Http(rl.Log(None), [], sleep=lambda s: None, opener=opener)
-        rl.fetch_covers(lists.path, rows, {}, None, None, None, http, rl.Log(None), rl.KakaoBooks(http, 'k'))
-        self.assertEqual(rows[0]['cover_url'], 'https://t1.daumcdn.net/lbook/image/1')
+        rl.fetch_covers(lists.path, rows, {}, None, None, rl.Seoji(http, 'k'), http, rl.Log(None), rl.KakaoBooks(http, 'k'))
+        self.assertEqual(rows[0]['cover_url'], 'https://cover.nl.go.kr/kolis_on/2021/RIGHT.jpg')
         self.assertTrue(rl.cover_file(lists.path, rows[0]['cover_url']).exists())
+        self.assertFalse([u for u in opener.urls if 'kakao' in u])
+
+    def test_a_classic_whose_author_does_not_show_stays_a_title_card(self):  # no "same title by anyone"
+        lists = ListsDir([])
+        self.addCleanup(lists.close)
+        found = self.holdings(('<span class="searching_txt">광장</span>', '김사과 외', 'kolis/2019/OTHER.jpg'))
+        opener = Opener({'www.nl.go.kr/NL/search/openApi/search.do': (200, found),
+                         'www.nl.go.kr/seoji': (200, json.dumps({'docs': []}).encode())})
+        rows = [{'title': '광장', 'author': '최인훈', 'cover_url': ''}]
+        http = rl.Http(rl.Log(None), [], sleep=lambda s: None, opener=opener)
+        rl.fetch_covers(lists.path, rows, {}, None, None, rl.Seoji(http, 'k'), http, rl.Log(None))
+        self.assertEqual(rows[0]['cover_url'], '')
 
     def test_placeholder_picture_is_skipped_for_the_next_one(self):  # NLK logo, Kyobo "no image" (2026-10-16)
         import dataclasses
@@ -342,16 +359,14 @@ class CoverTests(unittest.TestCase):
         mock.patch.object(rl, '_rules', dataclasses.replace(rl.rules(), placeholders=(known,))).start()
         lists = ListsDir([])
         self.addCleanup(lists.close)
-        thumb = 'https://search1.kakaocdn.net/thumb/x?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F'
-        kakao = json.dumps({'documents': [{'title': '광장', 'authors': ['최인훈'], 'thumbnail': thumb + '1'},
-                                          {'title': '광장', 'authors': ['최인훈'], 'thumbnail': thumb + '2'}]}).encode()
-        opener = Opener({'dapi.kakao.com': (200, kakao), 't1.daumcdn.net/lbook/image/1': (200, no_image),
-                         't1.daumcdn.net/lbook/image/2': (200, real)})
+        found = self.holdings(('광장', '최인훈', 'kolis/1.jpg'), ('광장', '최인훈', 'kolis/2.jpg'))
+        opener = Opener({'www.nl.go.kr/NL/search/openApi/search.do': (200, found),
+                         'cover.nl.go.kr/kolis/1.jpg': (200, no_image), 'cover.nl.go.kr/kolis/2.jpg': (200, real)})
         rows = [{'title': '광장', 'author': '최인훈', 'cover_url': ''}]
         http = rl.Http(rl.Log(None), [], sleep=lambda s: None, opener=opener)
-        rl.fetch_covers(lists.path, rows, {}, None, None, None, http, rl.Log(None), rl.KakaoBooks(http, 'k'))
-        self.assertEqual(rows[0]['cover_url'], 'https://t1.daumcdn.net/lbook/image/2')
-        self.assertFalse(rl.cover_file(lists.path, 'https://t1.daumcdn.net/lbook/image/1').exists())
+        rl.fetch_covers(lists.path, rows, {}, None, None, rl.Seoji(http, 'k'), http, rl.Log(None))
+        self.assertEqual(rows[0]['cover_url'], 'https://cover.nl.go.kr/kolis/2.jpg')
+        self.assertFalse(rl.cover_file(lists.path, 'https://cover.nl.go.kr/kolis/1.jpg').exists())
 
     def test_stale_catalog_cover_is_taken_again_when_the_edition_changed(self):  # 「토지」 volume 2 → 1
         import sqlite3

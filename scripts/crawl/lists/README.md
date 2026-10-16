@@ -65,6 +65,6 @@
 |---|---|---|
 | `subject_fields.tsv` | `subject`, `field_suggestion`, `note` | ISBN 서지 `SUBJECT`(0~9) → 이동진 분야 제안 |
 | `collector_words.tsv` | `kind`, `word`, `note` | `year_book_title`(12월 업로드 제목 → 올해의 책 후보), `not_a_book`(책 이름이 아닌 채널 표지), `excluded_title`·`excluded_publisher`·`excluded_name`(고르지 않는 판). 모르는 `kind`면 수집기가 멈춤 |
-| `cover_sources.tsv` | `order`, `source`, `note` | 표지를 찾는 곳과 차례: `nlk_isbn`, `collected_preferred`, `collected_other`, `kakao_book`, `nlk_title`(뜻은 `note`와 4-picks.md 6-3). 모르는 이름이면 수집기가 멈춤 |
+| `cover_sources.tsv` | `order`, `source`, `note` | 표지를 찾는 곳과 차례: `nlk_isbn`, `collected_preferred`, `collected_other`, `nlk_holdings`, `nlk_title`(뜻은 `note`와 4-picks.md 6-3). 수집기는 `kakao_book`도 알지만 차례에 넣지 않음(카카오 썸네일은 오래 저장하면 안 됨, 2026-10-17). 모르는 이름이면 수집기가 멈춤 |
 | `cover_hosts.tsv` | `order`, `host`, `note` | 수집 사본 표지 주소 가운데 먼저 시도할 호스트와 차례 |
 | `cover_placeholders.tsv` | `hash`, `source`, `note` | "표지 없음" 그림의 16x16 평균 해시(16진 64자리, 수집기 `image_hash`). 이 그림과 거의 같으면 표지로 쓰지 않음 |

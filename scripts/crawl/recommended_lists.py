@@ -54,8 +54,11 @@ MONTHLY_PLAYLIST = 'PLUpgTv3bu9rGxQBAMVaMvam27P0YbiY29'
 YOUTUBE_API = 'https://www.googleapis.com/youtube/v3/'
 SEOJI_API = 'https://www.nl.go.kr/seoji/SearchApi.do'
 KAKAO_BOOK_API = 'https://dapi.kakao.com/v3/search/book'
+# the National Library of Korea's holdings search; its imageUrl is a path on NLK_COVER_BASE
+NLK_SEARCH_API = 'https://www.nl.go.kr/NL/search/openApi/search.do'
+NLK_COVER_BASE = 'https://cover.nl.go.kr/'
 # covers from outside the collected catalog (the ISBN bibliography, Kakao's Daum CDN)
-OUTSIDE_COVER_HOSTS = ('www.nl.go.kr', 'nl.go.kr', 't1.daumcdn.net', 'search1.kakaocdn.net')
+OUTSIDE_COVER_HOSTS = ('www.nl.go.kr', 'nl.go.kr', 'cover.nl.go.kr', 't1.daumcdn.net', 'search1.kakaocdn.net')
 USER_AGENT = 'chaekcheck-collector/1.0 (+https://github.com/; contact via repository)'
 
 # rules-index.md: 표지 크기 (ADR-0091, the server's chaekcheck.picks.fetch.cover)
@@ -131,7 +134,7 @@ def image_hash(image: bytes) -> int:
 
 
 # rules-index.md: 표지 출처 차례 — the sources the collector knows (cover_sources.tsv picks and orders them)
-COVER_SOURCES = ('nlk_isbn', 'collected_preferred', 'collected_other', 'kakao_book', 'nlk_title')
+COVER_SOURCES = ('nlk_isbn', 'collected_preferred', 'collected_other', 'nlk_holdings', 'kakao_book', 'nlk_title')
 _rules: Rules | None = None
 
 
@@ -591,6 +594,51 @@ class Seoji:
         return None
 
 
+class NlkHoldings:
+    """
+    The National Library of Korea's holdings search (www.nl.go.kr/NL/search/openApi/search.do, the same key as the ISBN
+    bibliography): a cover for a book our catalog does not have, in place of Kakao book search, which may not be kept
+    long (user 2026-10-17: "도서관정보나루라던가 아니면 공공도서관 api라던가 출처 많자나 … 그걸로 다시 조사하고 반영해봐";
+    plan research cover-copyright.md 5). Its imageUrl is a path on cover.nl.go.kr.
+    """
+
+    def __init__(self, http: Http, key: str):
+        self.http = http
+        self.key = key
+
+    def _search(self, **params) -> list[dict]:
+        data = self.http.json(NLK_SEARCH_API, dict(params, key=self.key, apiType='json', pageSize=30))
+        return data.get('result', []) or []
+
+    @staticmethod
+    def main_title(document: dict) -> str:
+        title = re.sub(r'<[^>]+>', '', document.get('titleInfo') or '')
+        return text_key(re.split(r'[:(]', title)[0])
+
+    def covers(self, isbn: str | None, title: str | None, author: str | None, limit: int = 5) -> list[str]:
+        """
+        Cover addresses in order: by ISBN when there is one; then the title by the author, the exact main title first,
+        then containing it. Unlike Kakao there is no "same title by anyone": the holdings have many other books with
+        a classic's name (「광장」 is also an anthology), so a book whose author does not show stays a title card.
+        """
+        documents = []
+        if isbn:
+            documents += self._search(detailSearch='true', isbnOp='isbn', isbnCode=isbn)
+        if title and author and author.split():
+            key = text_key(title)
+            # the family name (the last word) of the first author, as in KakaoBooks
+            author_key = text_key(re.split(r'[,·/;]', author)[0].split()[-1])
+            found = [d for d in self._search(srchTarget='title', kwd=title, category='도서')
+                     if author_key and author_key in text_key(d.get('authorInfo') or '')]
+            documents += [d for d in found if self.main_title(d) == key] + [d for d in found if key in self.main_title(d)]
+        urls = []
+        for document in documents:
+            path = (document.get('imageUrl') or '').strip().lstrip('/')
+            if path and NLK_COVER_BASE + path not in urls:
+                urls.append(NLK_COVER_BASE + path)
+        return urls[:limit]
+
+
 class KakaoBooks:
     """
     Kakao book search (dapi.kakao.com/v3/search/book, REST key KAKAO_REST_API_KEY): a cover for a book our catalog
@@ -764,7 +812,8 @@ def fetch_covers(lists_dir: Path, rows: list[dict], chosen: dict[int, int], cata
     """
     Every row gets a cover when any source has one (user 2026-10-16), in the order of cover_sources.tsv: the ISBN
     bibliography's cover of the edition (or of the row's ISBN), the collected catalog's covers of our edition (YES24 and
-    Kyobo first, then the others), then Kakao book search. A row our catalog does not have uses the first and the last.
+    Kyobo first, then the others), then the NLK holdings search. A row our catalog does not have uses the first and the
+    last. Kakao book search is not in the order since 2026-10-17 (its thumbnails may not be kept long).
     """
     for index, row in enumerate(rows):
         book_id = chosen.get(index)
@@ -787,6 +836,8 @@ def fetch_covers(lists_dir: Path, rows: list[dict], chosen: dict[int, int], cata
             'nlk_isbn': lambda: [seoji.cover_url(isbn)] if seoji and isbn else [],
             'collected_preferred': lambda: [u for u in collected if urllib.parse.urlsplit(u).hostname in order],
             'collected_other': lambda: [u for u in collected if urllib.parse.urlsplit(u).hostname not in order],
+            'nlk_holdings': lambda: NlkHoldings(seoji.http, seoji.key).covers(isbn, search_title, row.get('author'))
+            if seoji else [],
             'kakao_book': lambda: kakao.covers(isbn, search_title, row.get('author')) if kakao else [],
             'nlk_title': lambda: [seoji.cover_by_title(search_title)] if seoji and search_title else [],
         }
