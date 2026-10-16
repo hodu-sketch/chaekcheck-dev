@@ -17,7 +17,8 @@ final class ShownTitle {
 
 	private static final Pattern LAST_PARENTHESES = Pattern.compile("\\s*\\(([^()]*)\\)$");
 
-	private static final Pattern ORIGINAL_EDITION = Pattern.compile("\\s+오리지널판$");
+	/** A last word that names an edition, not the book: 「백석의 사슴 오리지널판」, 「안나 카레니나 세트」 (spec R3-3). */
+	private static final Pattern ORIGINAL_EDITION = Pattern.compile("\\s+(?:오리지널판|세트)$");
 
 	/** A volume in parentheses: 「(상)」, 「(2권)」. */
 	private static final Pattern VOLUME_INSIDE = Pattern.compile("(?:제\\s*)?(\\d{1,2}|상|중|하)\\s*권?");

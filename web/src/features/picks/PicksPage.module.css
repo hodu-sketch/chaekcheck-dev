@@ -564,11 +564,25 @@
  * with it; phones keep it for screen readers only (the floating button names the list, C).
  */
 .listTitle {
-  width: fit-content;
-  margin: 1.1rem auto 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: var(--title-h);
+  margin: 0;
   font-size: var(--text-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+@media (width > 640px) {
+  .page {
+    --title-h: 2.6rem;
+  }
+
+  /* the first block is shorter by the title, so the floating button stays under its panel on the first screen */
+  .blocks > .section:first-child {
+    min-height: calc(100dvh - var(--top) - var(--title-h));
+  }
 }
 
 @media (width <= 640px) {

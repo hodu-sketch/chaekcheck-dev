@@ -263,6 +263,7 @@ class SameRuleAsJava(unittest.TestCase):
         for title, base, volume in [('토지. 1(1부 1권)', '토지', '1'), ('위대한 유산(상)', '위대한 유산', '상'),
                                     ('탁류 3', '탁류', '3'), ('화씨 451', '화씨 451', None), ('1984', '1984', None),
                                     ('백석의 사슴 오리지널판', '백석의 사슴', None), ('햄릿(Hamlet)', '햄릿', None),
+                                    ('안나 카레니나 세트', '안나 카레니나', None),
                                     ('삼국지 02권', '삼국지', '2')]:
             with self.subTest(title):
                 self.assertEqual(rl.read_title(title), (base, volume))

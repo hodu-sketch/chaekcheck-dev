@@ -77,7 +77,7 @@ YEAR_BOOK_TITLE = re.compile(r'올해의\s*책|베스트북')
 # ShownTitle (Java) reading of the volume, for the first volume (ADR-0125)
 SERIES = re.compile(r'^\[[^\]]*\]\s*')
 LAST_PARENTHESES = re.compile(r'\s*\(([^()]*)\)$')
-ORIGINAL_EDITION = re.compile(r'\s+오리지널판$')
+ORIGINAL_EDITION = re.compile(r'\s+(?:오리지널판|세트)$')
 VOLUME_INSIDE = re.compile(r'(?:제\s*)?(\d{1,2}|상|중|하)\s*권?')
 VOLUME_AT_END = re.compile(r'(?:[.,]\s*|\s+)(?:제\s*)?(\d{1,2}|상|중|하)\s*권?$|(?<=\D)(\d{1,2})권$')
 
