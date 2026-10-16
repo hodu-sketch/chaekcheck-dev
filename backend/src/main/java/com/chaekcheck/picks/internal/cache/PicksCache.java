@@ -24,6 +24,7 @@ import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.IsbnBook;
 import com.chaekcheck.catalog.TitleAuthor;
 import com.chaekcheck.catalog.TitleAuthorBook;
+import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.picks.internal.PickCategory;
 import com.chaekcheck.picks.internal.PicksChanged;
 import com.chaekcheck.picks.internal.fetch.KeptPicks;
@@ -60,11 +61,14 @@ public class PicksCache implements PicksChanged {
 
 	private final BookLookup bookLookup;
 
+	private final LibraryCatalog libraries;
+
 	private final AtomicReference<Snapshot> current = new AtomicReference<>(Snapshot.EMPTY);
 
-	PicksCache(PicksStore store, BookLookup bookLookup) {
+	PicksCache(PicksStore store, BookLookup bookLookup, LibraryCatalog libraries) {
 		this.store = store;
 		this.bookLookup = bookLookup;
+		this.libraries = libraries;
 	}
 
 	/** The copy now; {@link Snapshot#EMPTY} until a list is stored. */
@@ -109,7 +113,7 @@ public class PicksCache implements PicksChanged {
 		}
 		Instant fetchedAt = store.lastSucceededAt().orElse(null);
 		stored.sort(BOOK_ORDER);
-		Map<String, BookChoice.Candidate> ours = match(stored);
+		Map<String, BookChoice.Candidate> ours = match(stored, libraries.lendingKinds());
 
 		List<Book> books = stored.stream().map(pick -> {
 			BookChoice.Candidate our = ours.get(pick.recomNo());
@@ -144,18 +148,18 @@ public class PicksCache implements PicksChanged {
 	}
 
 	/** Our book per {@code recomNo}: by ISBN, then the rest by title and first author. */
-	private Map<String, BookChoice.Candidate> match(List<PicksStore.StoredPick> picks) {
+	private Map<String, BookChoice.Candidate> match(List<PicksStore.StoredPick> picks, Map<Long, Boolean> kinds) {
 		Map<String, List<BookChoice.Candidate>> byIsbn = new HashMap<>();
 		List<String> isbns = picks.stream().map(PicksStore.StoredPick::isbn13).filter(Objects::nonNull).distinct().toList();
 		for (IsbnBook book : bookLookup.byIsbn13(isbns)) {
 			byIsbn.computeIfAbsent(book.isbn13(), isbn -> new ArrayList<>())
-				.add(new BookChoice.Candidate(book.bookId(), book.libraryIds()));
+				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()));
 		}
 		Map<String, BookChoice.Candidate> ours = new HashMap<>();
 		Map<TitleAuthor, List<String>> rest = new LinkedHashMap<>();
 		for (PicksStore.StoredPick pick : picks) {
 			Optional<BookChoice.Candidate> found = pick.isbn13() == null ? Optional.empty()
-					: BookChoice.choose(byIsbn.getOrDefault(pick.isbn13(), List.of()));
+					: BookChoice.choose(byIsbn.getOrDefault(pick.isbn13(), List.of()), kinds);
 			if (found.isPresent()) {
 				ours.put(pick.recomNo(), found.get());
 			}
@@ -170,9 +174,9 @@ public class PicksCache implements PicksChanged {
 		Map<TitleAuthor, List<BookChoice.Candidate>> byTitle = new HashMap<>();
 		for (TitleAuthorBook book : bookLookup.byTitleAndAuthor(rest.keySet())) {
 			byTitle.computeIfAbsent(book.query(), query -> new ArrayList<>())
-				.add(new BookChoice.Candidate(book.bookId(), book.libraryIds()));
+				.add(new BookChoice.Candidate(book.bookId(), book.title(), book.libraryIds()));
 		}
-		rest.forEach((query, recomNos) -> BookChoice.choose(byTitle.getOrDefault(query, List.of()))
+		rest.forEach((query, recomNos) -> BookChoice.choose(byTitle.getOrDefault(query, List.of()), kinds)
 			.ifPresent(found -> recomNos.forEach(recomNo -> ours.put(recomNo, found))));
 		return ours;
 	}

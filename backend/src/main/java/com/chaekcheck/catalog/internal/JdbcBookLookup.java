@@ -12,10 +12,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 import com.chaekcheck.catalog.BookLookup;
+import com.chaekcheck.catalog.IdBook;
 import com.chaekcheck.catalog.IsbnBook;
 import com.chaekcheck.catalog.TitleAuthor;
 import com.chaekcheck.catalog.TitleAuthorBook;
@@ -23,17 +25,37 @@ import com.chaekcheck.catalog.normalize.CatalogText;
 import com.chaekcheck.catalog.normalize.Contributors;
 
 /**
- * Reads {@code catalog.book} by its UNIQUE {@code book_isbn13_key}, and by title key and first author (ADR-0090).
+ * Reads {@code catalog.book} by its UNIQUE {@code book_isbn13_key}, by title key and first author (ADR-0090), and by
+ * id. The same queries read {@code catalog_next} for {@link com.chaekcheck.catalog.CatalogLoad#preparedLookup()}:
+ * those tables have no indexes yet, so each call stays one query (ADR-0124).
  */
 @Component
 class JdbcBookLookup implements BookLookup {
+
+	static final String CATALOG = "catalog";
+
+	static final String CATALOG_NEXT = "catalog_next";
 
 	private static final Pattern ISBN13 = Pattern.compile("97[89][0-9]{10}");
 
 	private final JdbcClient jdbc;
 
+	/** {@link #CATALOG} or {@link #CATALOG_NEXT}; never from outside, it is put into the SQL. */
+	private final String schema;
+
+	@Autowired
 	JdbcBookLookup(JdbcClient jdbc) {
+		this(jdbc, CATALOG);
+	}
+
+	private JdbcBookLookup(JdbcClient jdbc, String schema) {
 		this.jdbc = jdbc;
+		this.schema = schema;
+	}
+
+	/** Reads the prepared {@code catalog_next} instead of {@code catalog}. */
+	static JdbcBookLookup ofPrepared(JdbcClient jdbc) {
+		return new JdbcBookLookup(jdbc, CATALOG_NEXT);
 	}
 
 	@Override
@@ -47,10 +69,11 @@ class JdbcBookLookup implements BookLookup {
 		if (isbns.isEmpty()) {
 			return List.of();
 		}
-		return jdbc.sql("SELECT id, isbn13, library_ids FROM catalog.book WHERE isbn13 = ANY(CAST(:isbns AS text[]))")
+		return jdbc.sql("SELECT id, isbn13, title, publisher_norm, library_ids FROM " + schema
+				+ ".book WHERE isbn13 = ANY(CAST(:isbns AS text[]))")
 			.param("isbns", isbns.toArray(String[]::new))
-			.query((rs, rowNum) -> new IsbnBook(rs.getString("isbn13"), rs.getLong("id"),
-					longs(rs.getArray("library_ids"))))
+			.query((rs, rowNum) -> new IsbnBook(rs.getString("isbn13"), rs.getLong("id"), rs.getString("title"),
+					rs.getString("publisher_norm"), longs(rs.getArray("library_ids"))))
 			.list();
 	}
 
@@ -79,9 +102,9 @@ class JdbcBookLookup implements BookLookup {
 		List<TitleAuthorBook> found = new ArrayList<>();
 		Set<Hit> added = new HashSet<>();
 		jdbc.sql("""
-				SELECT DISTINCT c.name_exact, b.id, b.title, b.library_ids
-				FROM catalog.book_contributor c JOIN catalog.book b ON b.id = c.book_id
-				WHERE c.name_exact COLLATE "C" = ANY(CAST(:names AS text[]))""")
+				SELECT DISTINCT c.name_exact, b.id, b.title, b.publisher_norm, b.library_ids
+				FROM %1$s.book_contributor c JOIN %1$s.book b ON b.id = c.book_id
+				WHERE c.name_exact COLLATE "C" = ANY(CAST(:names AS text[]))""".formatted(schema))
 			.param("names", byName.keySet().toArray(String[]::new))
 			.query(rs -> {
 				List<Keyed> wanted = byName.get(rs.getString("name_exact"));
@@ -92,11 +115,31 @@ class JdbcBookLookup implements BookLookup {
 				long bookId = rs.getLong("id");
 				for (Keyed query : wanted) {
 					if (query.key().equals(bookKey) && added.add(new Hit(query.query(), bookId))) {
-						found.add(new TitleAuthorBook(query.query(), bookId, longs(rs.getArray("library_ids"))));
+						found.add(new TitleAuthorBook(query.query(), bookId, rs.getString("title"),
+								rs.getString("publisher_norm"), longs(rs.getArray("library_ids"))));
 					}
 				}
 			});
 		return found;
+	}
+
+	@Override
+	public List<IdBook> byIds(Collection<Long> bookIds) {
+		Set<Long> ids = new LinkedHashSet<>();
+		for (Long id : bookIds) {
+			if (id != null) {
+				ids.add(id);
+			}
+		}
+		if (ids.isEmpty()) {
+			return List.of();
+		}
+		return jdbc.sql("SELECT id, title, publisher_norm, library_ids FROM " + schema
+				+ ".book WHERE id = ANY(CAST(:ids AS bigint[]))")
+			.param("ids", ids.toArray(Long[]::new))
+			.query((rs, rowNum) -> new IdBook(rs.getLong("id"), rs.getString("title"), rs.getString("publisher_norm"),
+					longs(rs.getArray("library_ids"))))
+			.list();
 	}
 
 	private record Keyed(TitleAuthor query, String key) {

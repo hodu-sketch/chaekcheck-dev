@@ -9,8 +9,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.QueryTimeoutException;
 
@@ -18,6 +20,7 @@ import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.IsbnBook;
 import com.chaekcheck.catalog.TitleAuthor;
 import com.chaekcheck.catalog.TitleAuthorBook;
+import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.picks.internal.store.PicksStore;
 
 /** Matching, choosing, ordering and keeping the copy before (plan cycle 14 step 5; ADR-0090, AC-4, AC-4b, AC-6). */
@@ -27,17 +30,13 @@ class PicksCacheTests {
 
 	final BookLookup lookup = mock(BookLookup.class);
 
-	final PicksCache cache = new PicksCache(store, lookup);
+	final LibraryCatalog libraries = mock(LibraryCatalog.class);
 
-	@Test
-	void choiceIsTheBookInMostLibrariesThenTheSmallerId() {
-		BookChoice.Candidate few = new BookChoice.Candidate(1, new long[] { 1 });
-		BookChoice.Candidate many = new BookChoice.Candidate(9, new long[] { 1, 2, 3 });
-		BookChoice.Candidate manyToo = new BookChoice.Candidate(5, new long[] { 4, 5, 6 });
+	final PicksCache cache = new PicksCache(store, lookup, libraries);
 
-		assertThat(BookChoice.choose(List.of(few, many))).contains(many);
-		assertThat(BookChoice.choose(List.of(many, manyToo, few))).contains(manyToo);
-		assertThat(BookChoice.choose(List.of())).isEmpty();
+	@BeforeEach
+	void enabledLibraries() {
+		given(libraries.lendingKinds()).willReturn(Map.of(1L, false, 2L, false, 7L, false));
 	}
 
 	@Test
@@ -45,11 +44,13 @@ class PicksCacheTests {
 		given(store.readPicks()).willReturn(List.of(pick("3", "11", null, "9791124591055", "가", "김가"),
 				pick("2", "11", null, null, "나", "김나"), pick("1", "6", null, "9788968335273", "다", "김다")));
 		given(store.lastSucceededAt()).willReturn(Optional.of(Instant.parse("2026-10-11T20:00:41Z")));
-		given(lookup.byIsbn13(any())).willReturn(List.of(new IsbnBook("9791124591055", 100, new long[] { 7 })));
+		given(lookup.byIsbn13(any()))
+			.willReturn(List.of(new IsbnBook("9791124591055", 100, "가", "가", new long[] { 7 })));
 		TitleAuthor na = new TitleAuthor("나", "김나");
 		TitleAuthor da = new TitleAuthor("다", "김다");
-		given(lookup.byTitleAndAuthor(any())).willReturn(List.of(new TitleAuthorBook(na, 300, new long[] { 1 }),
-				new TitleAuthorBook(na, 200, new long[] { 1 }), new TitleAuthorBook(da, 400, new long[] { 1, 2 })));
+		given(lookup.byTitleAndAuthor(any())).willReturn(List.of(new TitleAuthorBook(na, 300, "나", "", new long[] { 1 }),
+				new TitleAuthorBook(na, 200, "나", "", new long[] { 1 }),
+				new TitleAuthorBook(da, 400, "다", "", new long[] { 1, 2 })));
 
 		cache.refresh();
 

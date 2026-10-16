@@ -4,8 +4,12 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Public API of the catalog module for the librarian picks (ADR-0090): finds our books by ISBN-13, then by title and
- * first author, so a picked book and our book are matched when they are shown, never stored as a pair.
+ * Public API of the catalog module for the recommended lists (ADR-0090, ADR-0124): finds our books by ISBN-13, then by
+ * title and first author, and reads books by id. The librarian picks are matched when they are shown; the lists the
+ * import carries store the matched book id ({@code picks.list_book.book_id}) and read it back by id.
+ * <p>
+ * The bean reads {@code catalog}; {@link CatalogLoad#preparedLookup()} gives one that reads the prepared
+ * {@code catalog_next}.
  */
 public interface BookLookup {
 
@@ -25,5 +29,12 @@ public interface BookLookup {
 	 * query for any number of titles.
 	 */
 	List<TitleAuthorBook> byTitleAndAuthor(Collection<TitleAuthor> queries);
+
+	/**
+	 * Our books with the given ids, one row per book in no particular order. Ids without a book are left out;
+	 * repeated ids give one row; nulls are skipped. An empty input gives an empty list. One query for any number of
+	 * ids.
+	 */
+	List<IdBook> byIds(Collection<Long> bookIds);
 
 }

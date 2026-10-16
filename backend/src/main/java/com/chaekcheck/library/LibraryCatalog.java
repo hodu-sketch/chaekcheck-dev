@@ -1,6 +1,7 @@
 package com.chaekcheck.library;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -39,6 +40,13 @@ public interface LibraryCatalog {
 	 * @throws InvalidRegionException if any id is abolished, unknown or a SIDO id
 	 */
 	List<LibraryEligibility> eligibilityFor(Set<Long> residenceIds, Set<Long> workIds);
+
+	/**
+	 * Every enabled library id with whether it lends by subscription ({@link LendingModel#SUBSCRIPTION}), for counting
+	 * holdings when one edition of a book is chosen (ADR-0125): subscription libraries count as one together.
+	 * Disabled libraries are not in the map, so their holdings count for nothing. Unmodifiable.
+	 */
+	Map<Long, Boolean> lendingKinds();
 
 	/** Every enabled library with its site root, in id order (catalog importer comparison). */
 	List<LibraryRef> enabledLibraryRefs();

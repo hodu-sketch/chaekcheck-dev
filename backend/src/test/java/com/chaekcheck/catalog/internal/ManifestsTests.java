@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 
 /**
- * Cycle 13 (ADR-0086): the manifest of format 2 and its notes, read from the line {@code pg_restore} prints for the
+ * Cycle 13 (ADR-0086), cycle 21 (ADR-0123): the manifest of format 3 and its notes, read from the line {@code pg_restore} prints for the
  * table comment (no database needed).
  */
 class ManifestsTests {
@@ -15,7 +15,15 @@ class ManifestsTests {
 	void aFormatOneFileIsRefused() {
 		assertThatThrownBy(() -> Manifests.parse(restoreOutput(1, "{}")))
 			.hasMessageContaining("manifest format 1")
-			.hasMessageContaining("reads 2");
+			.hasMessageContaining("reads 3");
+	}
+
+	@Test
+	void aFormatTwoFileIsRefused() {
+		// a file exported before cycle 21 has no recommended lists: finish or discard it with the code that made it
+		assertThatThrownBy(() -> Manifests.parse(restoreOutput(2, "{\"libraryPart\":[]}")))
+			.hasMessageContaining("manifest format 2")
+			.hasMessageContaining("reads 3");
 	}
 
 	@Test

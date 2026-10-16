@@ -4587,3 +4587,31 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - `video_id` CHECK는 [안] `^[A-Za-z0-9_-]{1,64}$`로 둠. 근거: 공식 문서에는 꼴이 없고, 조사 문서 44줄의 영상 ID를 "관찰"한 것
 - 1단계 Liquibase는 표지 결정(`cover_source` CHECK) 뒤로 미룸. 2·3단계를 먼저 함
 
+
+## 단계별 진행
+
+- 기준 빌드: 시작 커밋 `1c129e8`에서 `./gradlew build` 통과(5분 6초, docker `chaekcheck-c21` 시험 DB 5503, `TEST_PG_COMMAND=…-p,chaekcheck-c21…`)
+- c21 DB(5502)는 아직 비어 있음. 원래 DB 복사는 19의 가져오기(`collection-import` 프로세스 둘)가 끝난 뒤에 함(무거운 읽기를 겹치지 않으려고)
+
+### 2단계 `catalog` 공개 API (1단계보다 먼저, plan 21 지시 2026-10-16)
+
+- `IsbnBook`·`TitleAuthorBook`에 `title`·`publisherNorm`(`catalog.book.title`·`publisher_norm`)을 더함
+- 출판사 정리 함수(확인 필요 #7): `publisher_norm`은 가져오기 때 `CatalogText.publisherNorm`으로 채워짐(`BookGrouping`·`CompactGrouping`·`CollectedCatalog`·`NationalBibliography`) → 수집기·`CuratedListTransfer`도 같은 함수 값으로 견주면 됨
+- `BookLookup.byIds(Collection<Long>)` → 새 공개 레코드 **`IdBook(bookId, title, publisherNorm, libraryIds)`** [안: 이름]. 없는 번호·null·겹친 번호는 빼고, 쿼리 하나
+- **`CatalogLoad.preparedLookup()`**: `catalog_next.book`이 없으면 `IllegalStateException("… prepare first")`. 같은 `JdbcBookLookup`이 스키마 이름만 `catalog_next`로 바꿔 읽음(쿼리 모양은 그대로: ISBN 묶음 하나, 저자 이름 묶음 하나). `catalog_next` 쿼리 시간은 10단계 실데이터에서 잼(확인 필요 #6)
+- `FORMAT_VERSION` 2 → 3. 형식 2 파일 거절 시험(`ManifestsTests.aFormatTwoFileIsRefused`)
+- 시험: `BookLookupTests` 4개 더함(`title`·`publisherNorm`, `byIds`, `preparedLookup`이 `catalog_next`만 읽음, 없으면 멈춤)
+
+### 3단계 `library.lendingKinds()`
+
+- 모양 [안]: `Map<Long, Boolean> lendingKinds()`(켜진 도서관 번호 → 구독형인지, 꺼진 도서관은 없음, 고칠 수 없는 Map)
+- 시험 `LibraryLendingKindsTests`: 켜진 수·구독형 수가 DB와 같음, 꺼진 도서관(끈 구독형, 교보 59·131)은 없음
+
+### 4단계 일부 (1단계와 상관없는 것)
+
+- `BookChoice`: `choose(candidates, lendingKinds)`, 보유량 = 켜진 구독형 아닌 수 + (켜진 구독형이 하나라도 있으면 1), 같으면 1권(또는 권 번호 없음) 먼저, 그다음 번호 작은 것. `Candidate`에 `title`을 더함. `PicksCache`(사서)가 읽을 때마다 `lendingKinds()`를 부름
+- `ShownTitle`(`picks/internal/cache/`) [안: 규칙 세부]
+  - 덜어 냄: 앞 `[…]`(뒤에 글자가 남을 때), 끝 괄호(2번까지, 판·언어 표시. 괄호 안이 `상`·`중`·`하`·`1~2자리 숫자(권)`이면 권 번호로 읽음), 끝 낱말 "오리지널판", 끝 권 번호(`. 1`, ` 3`, ` 상`, `2권`; **숫자는 1~2자리만** → 「화씨 451」·「1984」는 권 번호 없음)
+  - 1권(`1`·`상`)은 지우고, 2권부터는 「토지 2」처럼 숫자를 남김. 다 덜어 내 비면 원래 제목
+  - 시험 `ShownTitleTests`(인계서 예 6개 + 경계), `BookChoiceTests`(구독형 셋 = 1, 꺼진 도서관 0, 1권 먼저, 번호 작은 것)
+- 단계 빌드: `./gradlew build` 통과(3분 43초, 시험 1,005개 + 새 시험)

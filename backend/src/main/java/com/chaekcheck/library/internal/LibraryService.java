@@ -3,10 +3,12 @@ package com.chaekcheck.library.internal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +22,7 @@ import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.InvalidRegionException;
 import com.chaekcheck.library.InvalidRegionException.InvalidRegion;
 import com.chaekcheck.library.JoinSurvey;
+import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryEligibility;
 import com.chaekcheck.library.LibraryEligibility.RegionBasis;
@@ -186,6 +189,15 @@ class LibraryService implements LibraryCatalog {
 					library.getVendor(), library.getLendingModel(), library.getOrderNo()));
 		}
 		return list;
+	}
+
+	@Override
+	public Map<Long, Boolean> lendingKinds() {
+		Map<Long, Boolean> kinds = new LinkedHashMap<>();
+		for (Library library : libraries.findByEnabledTrueOrderById()) {
+			kinds.put(library.getId(), library.getLendingModel() == LendingModel.SUBSCRIPTION);
+		}
+		return Collections.unmodifiableMap(kinds);
 	}
 
 	@Override

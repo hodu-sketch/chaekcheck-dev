@@ -84,6 +84,15 @@ public interface CatalogLoad {
 	 */
 	Result finishPrepared(Path file);
 
+	/**
+	 * A {@link BookLookup} that reads the {@code catalog_next} {@link #prepare} filled, with the ids that file will
+	 * carry, so the import can match its recommended lists before {@link #export} (ADR-0124). Valid until the export
+	 * fails, the finish swaps it in or it is discarded; the tables have no indexes, so each lookup is one query that
+	 * reads them whole.
+	 * @throws IllegalStateException when there is no {@code catalog_next}
+	 */
+	BookLookup preparedLookup();
+
 	/** Whether new tables of an export are waiting here, so an import can stop before reading anything. */
 	boolean hasWaitingExport();
 

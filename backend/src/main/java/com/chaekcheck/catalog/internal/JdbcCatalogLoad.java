@@ -30,7 +30,9 @@ import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
+import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.catalog.normalize.Contributors.Contributor;
 
@@ -70,10 +72,11 @@ class JdbcCatalogLoad implements CatalogLoad {
 
 	/**
 	 * The {@code load_manifest} layout; a file of another version is refused. 2 since cycle 13 (ADR-0086): the
-	 * collection module's notes carry the library part, which an app of format 1 would not put in. The catalog module
+	 * collection module's notes carry the library part, which an app of format 1 would not put in. 3 since cycle 21
+	 * (ADR-0123): the notes carry the recommended lists ({@code listPart}), put in after the swap. The catalog module
 	 * does not read the notes.
 	 */
-	static final int FORMAT_VERSION = 2;
+	static final int FORMAT_VERSION = 3;
 
 	static final String WAITING_MESSAGE = "New tables of an export are waiting in " + NEXT
 			+ ": first finish them (after the production apply) or discard them";
@@ -236,6 +239,16 @@ class JdbcCatalogLoad implements CatalogLoad {
 		catch (SQLException ex) {
 			throw new IllegalStateException("Cannot drop " + NEXT, ex);
 		}
+	}
+
+	@Override
+	public BookLookup preparedLookup() {
+		// through JdbcClient, so a caller's transaction sees its own tables
+		JdbcClient jdbc = JdbcClient.create(dataSource);
+		if (!jdbc.sql("SELECT to_regclass(?) IS NOT NULL").param(NEXT + ".book").query(Boolean.class).single()) {
+			throw new IllegalStateException("No " + NEXT + " to look books up in: prepare first");
+		}
+		return JdbcBookLookup.ofPrepared(jdbc);
 	}
 
 	@Override
