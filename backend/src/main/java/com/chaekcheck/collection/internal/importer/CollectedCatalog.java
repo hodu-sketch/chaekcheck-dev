@@ -120,8 +120,9 @@ final class CollectedCatalog implements AutoCloseable {
 	 * code joins only rows with the same title and publisher. Title and publisher were added after the cycle 19 dry
 	 * runs (user choices 2026-10-16): some libraries put one code on different books (library 703's 우리전자책 rows;
 	 * same-titled books of other publishers), while rows whose only error is the author field still join. Null when
-	 * the kind has no code, or the code, the supplier, the comparison title or the publisher is empty: such rows are
-	 * not joined by code. Computed once here, so the three groupings count the same keys.
+	 * the kind has no code, or the code, the supplier, the comparison title or the publisher is empty or a placeholder
+	 * ({@link SameTextKey#PLACEHOLDER_PUBLISHERS}, third dry run: 「귀가」 of two authors under 기타): such rows are not
+	 * joined by code. Computed once here, so the three groupings count the same keys.
 	 */
 	static String supplierCodeKey(String platformType, String itemKey, String altCode, String family, String title,
 			String publisher) {
@@ -133,7 +134,8 @@ final class CollectedCatalog implements AutoCloseable {
 		code = code == null ? "" : code.strip();
 		String comparison = SameTextKey.RULES.comparisonTitle(title);
 		String publisherNorm = CatalogText.publisherNorm(publisher);
-		return code.isEmpty() || comparison.isEmpty() || publisherNorm == null ? null
+		boolean noPublisher = publisherNorm == null || SameTextKey.PLACEHOLDER_PUBLISHERS.contains(publisherNorm);
+		return code.isEmpty() || comparison.isEmpty() || noPublisher ? null
 				: family + BookGrouper.SEP + code + BookGrouper.SEP + comparison + BookGrouper.SEP + publisherNorm;
 	}
 

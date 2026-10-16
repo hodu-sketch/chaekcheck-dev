@@ -115,6 +115,9 @@ class BookGrouperContractTests {
 		// 11, 12: one family, code and title, other publishers (second cycle 19 dry run) → apart
 		rows.add(coded(BOOKCUBE_A, "S1", "5550001", "OPMS 전자책", "스티브 잡스처럼 성공하라", "박민진", "유페이퍼"));
 		rows.add(coded(BOOKCUBE_B, "S2", "5550001", "OPMS 전자책", "스티브 잡스처럼 성공하라", "민찬", "코난북스"));
+		// 13, 14: one family, code and title under the placeholder publisher 기타 (third dry run) → apart
+		rows.add(coded(BOOKCUBE_A, "G1", "5550002", "OPMS 전자책", "귀가", "샤를 루이 필립", "기타"));
+		rows.add(coded(BOOKCUBE_B, "G2", "5550002", "OPMS 전자책", "귀가", "이민숙", "기타"));
 		return rows;
 	}
 
@@ -145,7 +148,8 @@ class BookGrouperContractTests {
 		assertThat(bookOfRow.get(8)).isNotEqualTo(bookOfRow.get(0));
 		assertThat(bookOfRow.get(9)).isNotEqualTo(bookOfRow.get(10));
 		assertThat(bookOfRow.get(11)).isNotEqualTo(bookOfRow.get(12));
-		assertThat(books).hasSize(11);
+		assertThat(bookOfRow.get(13)).isNotEqualTo(bookOfRow.get(14));
+		assertThat(books).hasSize(13);
 		assertThat(report.supplierCodeJoins).isEqualTo(2);
 		assertThat(report.codeJoinedIsbnConflicts).isEqualTo(1);
 		BookGrouper.Book conflict = books.get((int) (bookOfRow.get(6) / 100) - 1);
