@@ -6,7 +6,6 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
 import { HeaderMenu, PhoneMenu } from './HeaderMenu'
-import { toggleMenusAt } from './headerMenus'
 import styles from './AppLayout.module.css'
 
 export function AppLayout() {
@@ -18,8 +17,9 @@ export function AppLayout() {
         <header className={styles.header}>
           {/* no tagline next to the logo on any width (cycle 10, user 2026-10-11) */}
           <div className={styles.start}>
-            {/* the logo goes to the main page and opens or closes the menus there (user 2026-10-16) */}
-            <Link to="/" className={styles.brand} data-menu-toggle="" onClick={() => toggleMenusAt('/')}>
+            {/* the logo only goes to the main page, menus or not (user 2026-10-16, after using it: "좌상단 로고는 아래 탭
+                늘려서 보이는 거랑 관계 없이 그냥 메인으로 옮겨주는 걸로만 해") */}
+            <Link to="/" className={styles.brand}>
               <span className={styles.wordmark}>책첵</span>
             </Link>
             <HeaderMenu />

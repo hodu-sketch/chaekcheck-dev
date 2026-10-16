@@ -150,20 +150,18 @@ describe('header', () => {
     expect(column('picks').hidden).toBe(false)
   })
 
-  it('goes to the main page on the logo and opens the menus there; the logo again closes them', () => { // user 2026-10-16
+  it('goes to the main page on the logo and opens no menu', () => { // user 2026-10-16
     renderAt('/picks/snu100')
-    const logo = screen.getByRole('link', { name: '책첵' })
-    fireEvent.click(logo)
-    expect(screen.getByTestId('where').textContent).toBe('/')
-    expect(column('picks').hidden).toBe(false)
-    expect(column('search').hidden).toBe(false)
-    expect(screen.getByTestId('menu-dim')).toBeTruthy()
-    fireEvent.click(logo)
+    fireEvent.click(screen.getByRole('link', { name: '책첵' }))
     expect(screen.getByTestId('where').textContent).toBe('/')
     expect(column('picks').hidden).toBe(true)
     expect(screen.queryByTestId('menu-dim')).toBeNull()
-    // opened from the logo, a press elsewhere closes them
-    fireEvent.click(logo)
+  })
+
+  it('closes on a press elsewhere', () => {
+    renderAt('/picks/snu100')
+    fireEvent.click(within(wide()).getByRole('link', { name: '추천도서' }))
+    expect(column('picks').hidden).toBe(false)
     fireEvent.pointerDown(screen.getByTestId('where'))
     expect(column('picks').hidden).toBe(true)
   })

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router'
-import { MENU_DELAY_MS, MENU_TOGGLE_EVENT, MENUS, inMenu } from './headerMenus'
+import { MENU_DELAY_MS, MENUS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
 
 /**
@@ -49,24 +49,12 @@ export function HeaderMenu() {
 
   useEffect(() => clearTimer, [])
 
-  // the logo (MENU_TOGGLE_EVENT): open every column on the screen it goes to, or close them when open there
-  useEffect(() => {
-    const onToggle = (event: Event) => {
-      const at = (event as CustomEvent<string>).detail
-      clearTimer()
-      clicked.current = true
-      setOpened((current) => (current?.at === at ? null : { at, key: MENUS[0].key }))
-    }
-    window.addEventListener(MENU_TOGGLE_EVENT, onToggle)
-    return () => window.removeEventListener(MENU_TOGGLE_EVENT, onToggle)
-  }, [])
-
-  // open: a press anywhere else closes them (focus may be on the logo, outside this menu, so blur alone is not enough)
+  // open: a press anywhere else closes them (opened by resting the pointer, focus may never have come in, so blur
+  // alone is not enough)
   useEffect(() => {
     if (!openKey) return
     const onDown = (event: PointerEvent) => {
-      const target = event.target as Element | null
-      if (!root.current?.contains(target) && !target?.closest('[data-menu-toggle]')) setOpen(null)
+      if (!root.current?.contains(event.target as Node | null)) setOpen(null)
     }
     document.addEventListener('pointerdown', onDown)
     return () => document.removeEventListener('pointerdown', onDown)
@@ -130,9 +118,7 @@ export function HeaderMenu() {
       onMouseLeave={() => later(null)}
       onFocus={() => clearTimer()}
       onBlur={(event) => {
-        const to = event.relatedTarget as Element | null
-        // focus going to the logo: its click opens or closes them, so they are not closed first
-        if (!root.current?.contains(to) && !to?.closest('[data-menu-toggle]')) setOpen(null)
+        if (!root.current?.contains(event.relatedTarget as Node | null)) setOpen(null)
       }}
     >
       <nav aria-label="주 메뉴">
@@ -207,17 +193,6 @@ export function PhoneMenu() {
     const header = button.current?.closest('[data-app-header]')
     setOpened(next ? { at: pathname, top: header?.getBoundingClientRect().bottom ?? 0 } : null)
   }
-
-  // the logo (MENU_TOGGLE_EVENT): open on the screen it goes to, or close when open there
-  useEffect(() => {
-    const onToggle = (event: Event) => {
-      const at = (event as CustomEvent<string>).detail
-      const top = button.current?.closest('[data-app-header]')?.getBoundingClientRect().bottom ?? 0
-      setOpened((current) => (current?.at === at ? null : { at, top }))
-    }
-    window.addEventListener(MENU_TOGGLE_EVENT, onToggle)
-    return () => window.removeEventListener(MENU_TOGGLE_EVENT, onToggle)
-  }, [])
 
   useEffect(() => {
     if (!open) return
