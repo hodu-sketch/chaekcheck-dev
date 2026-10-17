@@ -7,13 +7,15 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@link HostQueueBoard} in this process's memory (state-store {@code memory}, ADR-0133): one row per
  * {@code (lane, host)} while something is waiting or a timeout is fresh, holding the start time of every open wait
  * per library and the libraries seen on the host. A row is dropped when it has no wait and no timeout left.
- * {@code ConcurrentHashMap} throughout [안].
+ * {@code ConcurrentHashMap} for the rows, skip lists inside so one host's libraries come in id order [안].
  */
 public final class InMemoryHostQueueBoard implements HostQueueBoard {
 
@@ -110,11 +112,11 @@ public final class InMemoryHostQueueBoard implements HostQueueBoard {
 
 	private static final class HostRow {
 
-		/** library -> open waits */
-		final Map<Long, Set<OpenWait>> waits = new ConcurrentHashMap<>();
+		/** library -> open waits, ascending library id */
+		final Map<Long, Set<OpenWait>> waits = new ConcurrentSkipListMap<>();
 
 		/** libraries seen waiting on this host since the start (learned, not configured: a restart forgets them) */
-		final Set<Long> seen = ConcurrentHashMap.newKeySet();
+		final Set<Long> seen = new ConcurrentSkipListSet<>();
 
 		volatile Instant lastTimeout;
 

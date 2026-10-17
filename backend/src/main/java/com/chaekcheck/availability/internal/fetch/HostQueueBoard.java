@@ -32,8 +32,8 @@ public interface HostQueueBoard {
 
 	/**
 	 * Libraries queued at {@code now}: with a wait begun within {@code waitWindow}, or on a host with a timeout within
-	 * {@code timeoutWindow} (every library seen waiting on that host since the start). In order of first sight, at
-	 * most {@code limit}.
+	 * {@code timeoutWindow} (every library seen waiting on that host since the start). Within one host in ascending
+	 * library id; at most {@code limit}.
 	 */
 	Set<Long> queuedLibraryIds(Instant now, Duration waitWindow, Duration timeoutWindow, int limit);
 

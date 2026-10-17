@@ -41,6 +41,8 @@ import com.chaekcheck.availability.internal.state.DbErrorRecord;
 import com.chaekcheck.availability.internal.state.InMemoryLastTimeRecord;
 import com.chaekcheck.availability.internal.state.RefusalRecord;
 import com.chaekcheck.availability.internal.status.DefaultLookupHealth;
+import com.chaekcheck.availability.internal.status.EgressLaneStatus;
+import com.chaekcheck.availability.internal.status.LookupStatusService;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.usagelog.UsageLog;
@@ -180,6 +182,24 @@ class AvailabilityConfiguration {
 	@Bean
 	LookupHealth lookupHealth(DbErrorRecord dbErrorRecord, LookupOpsCounters counters) {
 		return new DefaultLookupHealth(dbErrorRecord, counters, Clock.systemUTC());
+	}
+
+	/**
+	 * The egress lanes as the status signal reads them (spec R1 additions). Cycle 17/22's lane code replaces this
+	 * bean with a real one; until then nothing is paused and every lane is allowed (reason NONE).
+	 */
+	@Bean
+	EgressLaneStatus egressLaneStatus() {
+		return EgressLaneStatus.NONE;
+	}
+
+	/** Judges GET /api/v1/lookup-status from memory, with a 1s memo (ADR-0118). */
+	@Bean
+	LookupStatusService lookupStatusService(SearchSlots searchSlots, RefusalRecord refusalRecord,
+			DbErrorRecord dbErrorRecord, HostQueueBoard hostQueueBoard, EgressLaneStatus egressLaneStatus,
+			AvailabilityProperties properties) {
+		return new LookupStatusService(searchSlots, refusalRecord, dbErrorRecord, hostQueueBoard, egressLaneStatus,
+				properties.lookupStatus(), Clock.systemUTC());
 	}
 
 	/** Caps the searches running at once, so the unbounded executor above never gets unbounded work. */
