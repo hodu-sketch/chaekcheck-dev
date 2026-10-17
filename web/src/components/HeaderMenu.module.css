@@ -41,7 +41,8 @@
 .sizer {
   height: 0;
   overflow: hidden;
-  padding: 0 1.125rem;
+  /* 8px more on the right: the open columns keep about 24px apart */
+  padding: 0 calc(0.375rem + 0.5rem) 0 0.375rem;
   font-size: var(--item-size);
   /* as the list on screen (bold), the widest an item gets */
   font-weight: 800;
@@ -53,8 +54,9 @@
   display: flex;
   flex: 1;
   align-items: center;
-  /* 36px between the cells (user 2026-10-16 "상단 탭 글자간의 거리 줄이고"; Kyobo, YES24, Naver: 28-40px) */
-  padding: 0 1.125rem;
+  /* 12px between the cells, the least that keeps the open columns apart (user 2026-10-17: "(도서검색, 추천도서,
+     마이페이지) 요 세 요소들 사이의 간격은 좀 더 줄여줘") */
+  padding: 0 0.375rem;
   /* the big menus a step larger than their items (user 2026-10-16: "왜 탭 안의 글자 크기가 더 작니?") */
   font-size: var(--text-md);
   font-weight: 700;
@@ -102,7 +104,7 @@
 .item {
   display: block;
   /* the items' words start where the big menu's word starts */
-  padding: 0.4rem 1.125rem;
+  padding: 0.4rem 0.375rem;
   font-size: var(--item-size);
   /* fixed, so the band's height below matches three rows */
   line-height: 1.5;
@@ -211,22 +213,6 @@
 }
 
 /* narrow wide screens (tablets): 24px between the cells instead of 36px, so the logo and 로그인 keep their room */
-@media (width <= 900px) {
-  .bigLink,
-  .item,
-  .sizer {
-    padding-inline: 0.75rem;
-  }
-}
-
-@media (width <= 760px) {
-  .bigLink,
-  .item,
-  .sizer {
-    padding-inline: 0.5rem;
-  }
-}
-
 @media (width <= 640px) {
   .wide {
     display: none;

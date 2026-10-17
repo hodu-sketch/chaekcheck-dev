@@ -47,7 +47,9 @@
 .start {
   display: flex;
   align-items: center;
-  gap: calc(1.3 * var(--base-unscaled));
+  /* more room between the logo and the menus than between the menus (user 2026-10-17: "책첵이랑 (도서검색, 추천도서,
+     마이페이지) 이것 사이의 간격은 더 띄워주고") */
+  gap: calc(5 * var(--base-unscaled));
   min-width: 0;
 }
 
@@ -64,10 +66,11 @@
   flex-shrink: 0;
 }
 
-/* narrow tablets: less room between the logo and the menus, so the last menu keeps clear of 로그인 (641px) */
-@media (641px <= width <= 760px) {
+
+/* narrow tablets: a little less room after the logo, so the last menu keeps clear of 로그인 (641px) */
+@media (641px <= width <= 720px) {
   .start {
-    gap: calc(0.4 * var(--base-unscaled));
+    gap: calc(3.6 * var(--base-unscaled));
   }
 }
 
