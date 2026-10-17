@@ -3,7 +3,7 @@
 - 서비스·조회 서버의 운영 숫자를 한 곳에서 찾는 목록입니다. 값마다 한 줄: 값 / 어디(파일·속성) / 환경 변수 / 함께 바꿀 곳 / 왜 / 정한 plan 문서·ADR / 바꾸면 다시 켤 것. 코드의 값 옆 주석은 이 문서를 가리킵니다 [확정] (plan 사이클 20 세 관점 검토 #17, plan `docs/settings-index.md` 머리말).
 - 근거(계산·결정 원문)는 plan `docs/settings-index.md`(2·3·5·6·6-1·8절)에 있고, 여기에는 **지금 코드의 값과 바꾸는 방법**만 둡니다.
 - 환경 변수 이름 규칙 [확정] (plan `docs/settings-index.md` 8절, Spring Boot "Binding From Environment Variables"): 속성 이름의 점 → `_`, `-`는 빼고, 대문자. 예 `chaekcheck.availability.max-concurrent-searches` → `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES`. 운영은 `prod.env`(사이클 17)에 적고 서비스를 다시 켭니다. 아래 표의 환경 변수는 모두 이 규칙으로 만든 이름이라 `application.yml`에 `${…}` 자리가 없어도 덮어씁니다.
-- 확인(2026-10-17, 사이클 20 1단계): `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES=2`로 켜면 `GET /api/v1/lookup-status`의 `slots`가 2 — 결과는 `docs/plan-feedback.md` `# 사이클 20`.
+- 확인(2026-10-17, 사이클 20 1단계): `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES=2 CHAEKCHECK_AVAILABILITY_OPSSUMMARY_INTERVAL=15s`로 켜니 `GET /api/v1/lookup-status`의 `slots`가 2, 요약 로그가 15초마다 — `application.yml`에 `${…}` 자리가 없어도 환경 변수가 이김(`docs/plan-feedback.md` `# 사이클 20`).
 - 사이클 20부터 더한 값부터 채웠습니다. 그 앞 사이클의 값(캐시·마감·로그인·사용 기록 정리 시각 등)은 plan `docs/settings-index.md` 2·3·5·7·9절이 색인하며, 이 표에는 사이클 20이 건드린 것만 있습니다. 새 값을 더하거나 바꾸면 이 표에 한 줄을 더하거나 고칩니다.
 
 ## 1. 서비스 (`backend/src/main/resources/application.yml`)
@@ -23,7 +23,7 @@
 | 줄 선 도서관: 기다림을 세는 시간 | 10s | `chaekcheck.availability.lookup-status.queue-wait-window` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_QUEUEWAITWINDOW` | 묶음 마감 `batch.deadline` 8s (10초 = 8초 + 2초; 마감을 바꾸면 함께) | 시작한 지 10초 지난 기다림은 세지 않아 짝이 어긋나도 「밀려요」가 저절로 사라짐 | 전반 점검 #3, spec R4 | 서비스 |
 | 줄 선 도서관: 시간 초과 남기기 | 60s | `chaekcheck.availability.lookup-status.queue-timeout-window` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_QUEUETIMEOUTWINDOW` | — | 자리 대기 시간 초과 뒤 60초 동안 그 호스트의 도서관을 줄 섬으로 봄 | spec R4 | 서비스 |
 | 줄 선 도서관 목록 길이 | 200 | `chaekcheck.availability.lookup-status.max-queued-libraries` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_MAXQUEUEDLIBRARIES` | — | 상태 응답 `queuedLibraryIds` 최대 [안] | design-delta API 표 | 서비스 |
-| 운영 요약 로그 간격 | 1m | `chaekcheck.availability.ops-summary.interval` | `CHAEKCHECK_AVAILABILITY_OPSSUMMARY_INTERVAL` | 사이클 17 CloudWatch "요약 줄 5분 없음" 경보 | 1분마다 INFO 한 줄 `lookup ops …` (필드는 `docs/plan-feedback.md` `# 사이클 20` 1-11) | 전반 점검 #5, ADR-0132 | 서비스 |
+| 운영 요약 로그 간격 | 1m | `chaekcheck.availability.ops-summary.interval` | `CHAEKCHECK_AVAILABILITY_OPSSUMMARY_INTERVAL` | 사이클 17 CloudWatch "요약 줄 5분 없음" 경보, 503 급증 경보(`refused`) | 1분마다 INFO 한 줄 `lookup ops: slotsMax= slotsInUse= slotsMaxInUse= refused= libraryRequests= bodyTooLarge= dbErrors= parseMax= parseInUse= parseMaxInUse= queuedLibraries= pausedLanes= heapUsedMb= heapMaxMb=` (`docs/plan-feedback.md` `# 사이클 20`) | 전반 점검 #5, ADR-0132 | 서비스 |
 
 ## 2. 조회 서버 (`fetch-service/src/main/resources/application.yml`)
 

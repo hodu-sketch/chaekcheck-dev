@@ -4955,3 +4955,121 @@ plan 20 알림(사용자 결정, 결정 페이지 plan `docs/cycles/21-recommend
 - **남은 것: 8080(원래 DB)·8081(db-ops) 서비스가 아직 19 코드**(dev 19가 main 폴더에서 띄움). 끄는 것이 이 세션 권한에서 막혀 사용자에게 다시 켜 달라고 함. 다시 켜기 전까지 두 서비스의 추천도서 캐시는 옛 사본을 유지함(설계대로)
   - 같은 날 14:36 사용자 "새 코드로 다시 해줘" → 두 서비스는 dev 19가 이미 끔(db-ops 컨테이너도 끔, 사용자 "연 거 닫아줘"). db-ops를 다시 켜고 main(21 코드)으로 8080(원래 DB)·8081(db-ops)을 켬. 두 서비스 모두 사서 72/108, 이동진 36/43, 서울대 87/100, 분야 6·10·6
 - **정리**: main `.claude/launch.json`의 c21 항목 둘 되돌림, docker `chaekcheck-c21` 지움(볼륨 포함: 5502·5503·5504 복사본), worktree `../chaekcheck-dev-c21`와 브랜치 지움(합쳐짐). 수집기 기록 `data/recommended-lists/collect.log`는 main 폴더로 옮김. 반영 파일·기록은 `data/c21/`(git 밖)
+
+# 사이클 20
+
+인계서: plan `docs/cycles/20-lookup-status-and-extension/handoff.md`(= `docs/current/handoff.md`, 조회 상태 신호와 브라우저 확장 조회, 2026-10-17). 이 절은 **1단계 백엔드(1-0~1-8, 1-10, 1-11)** 기록입니다. 웹(1-12~1-14)은 같은 브랜치에서 다른 세션이 만들고 이 절 아래에 이어 적습니다.
+
+## 시작 상태 (2026-10-17)
+
+- 작업 폴더 `../chaekcheck-dev-c20`, 브랜치 `cycle-20-lookup-status`, 시작 커밋 `52768b7`(사이클 21이 main에 들어간 뒤). docker `-p chaekcheck-c20`: DB 5512(원래 DB를 pg_restore한 사본, 책 1,331,194권) / 시험 DB 5513 / 운영 역할 5514, 서버 8094, 조회 서버 8096, 웹 5183(LAN 5184)
+- 시험은 `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck-c20,exec,-T,db-test`로 돌림(다른 세션의 db-test를 건드리지 않게)
+- 번호마다 `backend/` `./gradlew build`(ModularityTests·DocumentationTests 포함)를 통과시키고 따로 커밋했습니다. 조회 서버를 고친 1-1·1-3은 `fetch-service/` `./gradlew build`도 통과
+
+## 1단계 백엔드 기록 (2026-10-17)
+
+| 번호 | 커밋 | 한 일 |
+|---|---|---|
+| 1-0 | `f518390` | `docs/maintenance/settings-index.md` 새로 만듦(값 / 속성 / 환경 변수 / 함께 바꿀 곳 / 왜 / plan 문서 / 다시 켤 것), `docs/maintenance/README.md` 7절에서 링크 |
+| 1-1 | `09ae157` | `max-concurrent-searches` 40, `batch.row-limit` 10, `max-body-size` 1MB(서비스·조회 서버), `chaekcheck.lookup.state-store: memory`(`LookupStateProperties`, enum이라 다른 값이면 바인딩 실패로 켜지지 않음), `chaekcheck.catalog.books.default-page-size: 10`(`BookSearchSettings`; `BookParams.MAX_PAGE_SIZE` 20은 그대로). `BookSearchTests`: `pageSize` 없이 10권, 20이면 20권, 21이면 400 (AC-21) |
+| 1-2 | `28c29ea` | `usagelog/004-library-response-source-extension.yaml`을 master 맨 끝에 include(changeset 하나 `usagelog-004-extension-source-and-body-too-large`: CHECK 둘 다시 걺 + `body_too_large_count`). `ResponseResult.BODY_TOO_LARGE`(`failed_count`·`body_too_large_count` +1, upsert에 칸 추가). 시험: `UsageLogWriteTests`(두 칸 +1, AC-34 쓰기 부분), `UsageLogSchemaTests`(`source='extension'`·`'server_for_extension'`, `reason='invalid_plan'`·`'invalid_client_key'` 줄이 들어감 — 미리 허용 확인; 새 칸 기본 0·음수 거절). `docs/maintenance/5-usage-log.md`에 새 칸·미리 허용한 값 |
+| 1-3 | `ad8bf4a` | `Accept-Encoding: gzip`(직접·밑줄 호스트·조회 서버 셋 다) + `ContentEncoding`(gzip 풀기, 풀었을 때도 상한). `UpstreamException.bodyTooLarge(uri, maxBytes, receivedBytes)` 표시, 조회 서버 새 outcome `BODY_TOO_LARGE`(+`receivedBytes`), `BatchRunner`·`LibraryEbookController`가 INFO `body_too_large library=… url=… receivedBytes=… at=…` + 사용 기록 `BODY_TOO_LARGE` + 요약 카운터. JDK `HttpServer` 시험: 요청 머리 `Accept-Encoding: gzip`, 평문 1KB+1 실패, gzip 폭탄(선로 약 90B → 64KB) 실패, 보통 gzip 페이지는 평문과 같은 바이트(EUC-KR 그대로), 로그 한 줄과 사용 기록 +1. 조회 서버에도 같은 시험 |
+| 1-4 | `319fddf` | `ParseSlots`(`Semaphore(8)`, 기다림 2초) — `LibraryPageFetcher.load`의 `adapter.parse`, `DetailPageFetcher.load`의 `parseDetail` 모두 같은 자리. 못 얻으면 `UpstreamException` ERROR + 코드 `parse_busy`(문제 503 `parse_busy`, 스트림 `library-failed`, 사용 기록 FAILED, 캐시 안 넣음 — Caffeine이 실패한 future를 지우는 것 확인: `CaffeineSearchPageCache` 28행). `ParseSlotsTests`: 해석을 막은 가짜 adapter로 9번째가 2초 기다린 뒤 혼자 실패, 동시 해석 최대 8, 나머지 8은 결과 (AC-33 서버 부분) |
+| 1-5 | `a47a308` | `DetailUrls.checked`(fetch 패키지, `DetailPageFetcher.checkedUri`가 위임)로 `LibraryPageFetcher.toPage`에서 다른 호스트 `detailUrl`을 null로(캐시 경로 포함), `DetailLookupResolver.lookup`도 같은 검사(다른 호스트면 요청 없이 UNKNOWN). 시험: 같은 호스트/다른 호스트 링크 한 쌍(캐시 적중 때도 null), `javascript:` 링크 (AC-18 서버 모드) |
+| 1-6 | `4d3879a` | `SearchSlots`가 거절 시각을 `RefusalRecord`에 적고 `inUse()`·`max()` 공개. `com.chaekcheck.availability.LookupHealth`(공개 메서드 `recordDbError()` 하나) + `internal/status/DefaultLookupHealth`(`DbErrorRecord`에 시각, 카운터). 두 기록은 `internal/state/LastTimeRecord` 뒤 `InMemoryLastTimeRecord`, `state-store` switch로 고름. 루트 `ApiExceptionHandler`: `DataAccessException`·`CannotCreateTransactionException` 처리기 → `recordDbError()` 뒤 지금 `unexpected`와 같은 500 `internal_error`. 시험 `SearchSlotsTests`, `DatabaseFailureHandlingTests`(두 예외 모두 본문 같음·호출 1번, 다른 예외는 세지 않음), ModularityTests 그대로 통과 |
+| 1-7 | `ab1095e` | `HostQueueBoard` 인터페이스 + `InMemoryHostQueueBoard`(`(laneId, hostKey, libraryId)` → 열린 기다림마다 시작 시각, 호스트에서 본 도서관, 최근 시간 초과; 비면 줄 지움). `LibraryPageFetcher.throttled`가 두 호출자(`LibraryPageFetcher`·`DetailPageFetcher`)의 `throttle.run`을 감쌈. `HostQueueBoardTests`: 기다리는 중 오류 → 0, 10초 지난 기다림 빠짐, 시간 초과 60초 남고 61초에 빠짐, 포털(같은 호스트 도서관 모두), 목록 상한, 읽기 시간 초과는 줄 시간 초과가 아님 (AC-32) |
+| 1-8 | `bd78da2` | `LookupStatusService`(1초 메모, 잠금 뒤 계산 한 번), `EgressLaneStatus` 읽기 포트(+ `NONE` 기본 구현), `LookupStatus` 응답, `LookupStatusController` `GET /api/v1/lookup-status`(`Cache-Control: no-cache`). `SecurityConfiguration`은 바꿀 것 없음(`/api/v1/me/**` 밖은 이미 `permitAll`). 시험: 판정 표(40에서 19 초록·20 노랑·40 빨강, 503 뒤 10초 빨강·11초 원래대로, 회색이 빨강·`NO_LANE`보다 앞섬, `VENDOR_PAUSED`·`NO_LANE`, 포트 없음 → `NONE`), 메모(1초 안 두 번 → 계산 한 번), 컨트롤러 60번에 `SiteFetcher`·`HostThrottle` 호출 0 (AC-7) |
+| 1-10 | `48f9722` | `StopReason.CLIENT_GONE`: send 실패뿐 아니라 `SseEmitter.onError`·`onTimeout`(`EventSink.onClientGone`으로 세션에 전달)에서도 켜짐. 떠난 뒤 새 도서관 안 띄움·남은 후보 `notSent`(SKIPPED)·떠난 뒤 온 페이지는 포털 상세를 새로 시작하지 않음·넘긴 요청은 끝까지 받아 캐시·자리는 다 끝나면 반납. holding 묶음은 줄 상한 없음(`Integer.MAX_VALUE`). 시험: targets 뒤 끊김(남은 후보 즉시 SKIPPED, 진행 중 1건 OK, `stopReason=CLIENT_GONE`, 검색 수 null), onError 경로, holding 30개 모두 요청 (AC-28), 바로 검색 10줄에서 멈춤 (AC-21) |
+| 1-11 | `4c3dc76` | `LookupOpsSummaryLog`(1분, `CacheStatsLog`와 같은 방식, `internal/ops`). 필드 모양은 아래 |
+
+- 시험 수: 마지막 전체 빌드(1-11 커밋 `4c3dc76`) `backend/` 1,081개 통과(실패 0, 건너뜀 4; 시작 때 1,039개), `fetch-service/` 31개 통과(시작 때 26개). 전체 빌드 한 번에 약 4분 15초~5분 30초
+- 알려진 흔들림: `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`가 다른 gradle 실행과 겹쳐 돌릴 때 1번 실패(사이클 21 기록과 같은 시험, 혼자 돌리면 통과). 1-6 전체 빌드에서 `UsageEventCsrfTests`·`UsageLogShutdownTests`가 db-test 연결 실패로 떨어진 것은 내가 더한 `@SpringBootTest` 컨텍스트 하나(`DatabaseFailureHandlingTests`)가 연결 100개를 넘긴 탓 → 1-8에서 web slice(`@WebMvcTest(BookSearchController)`)로 바꿔 해결
+
+## 정한 이름 (모두 [안] → dev가 정함)
+
+| 것 | 이름 |
+|---|---|
+| 상태 저장소 속성 | `chaekcheck.lookup.state-store` = `memory` (`CHAEKCHECK_LOOKUP_STATESTORE`, `LookupStateProperties.StateStore.MEMORY`) |
+| 책 기준 검색 기본 쪽 | `chaekcheck.catalog.books.default-page-size` (`CHAEKCHECK_CATALOG_BOOKS_DEFAULTPAGESIZE`) |
+| 해석 자리 | `chaekcheck.availability.parse-slots.max` / **`.max-wait`** (`…_PARSESLOTS_MAX` / `…_PARSESLOTS_MAXWAIT`). 인계서 예시 `wait`는 Java record 구성 요소 이름으로 쓸 수 없어(`Object.wait`) `max-wait`로 |
+| 상태 불 | `chaekcheck.availability.lookup-status.memo` 1s · `red-after-refusal` 10s · `gray-after-db-error` 30s · `queue-wait-window` 10s · `queue-timeout-window` 60s · `max-queued-libraries` 200 (환경 변수는 `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_…`) |
+| 요약 로그 간격 | `chaekcheck.availability.ops-summary.interval` 1m (`CHAEKCHECK_AVAILABILITY_OPSSUMMARY_INTERVAL`) |
+| 코드 값 | `reason=DB_ERROR`, `ResponseResult.BODY_TOO_LARGE`, 조회 서버 `Outcome.BODY_TOO_LARGE`, 문제 코드 `parse_busy`(HTTP 503 모양), `StopReason.CLIENT_GONE` |
+| 클래스 | `LookupHealth`(공개) / `DefaultLookupHealth`, `ParseSlots`, `HostQueueBoard`·`InMemoryHostQueueBoard`, `LookupStatusService`·`LookupStatus`·`LookupStatusController`, `EgressLaneStatus`, `LookupOpsCounters`·`LookupOpsSummaryLog`, `LastTimeRecord`·`RefusalRecord`·`DbErrorRecord`·`InMemoryLastTimeRecord`, `ContentEncoding`, `DetailUrls`, `BookSearchSettings`, `LookupStateProperties` |
+| 패키지 | 상태 신호 `availability/internal/status`, 메모리 상태 저장소 `availability/internal/state`, 카운터·요약 로그 `availability/internal/ops`(인계서 예시는 `config`; `CacheStatsLog`는 그대로 `config`에 둠) |
+| 길 번호 | `HostQueueBoard.DEFAULT_LANE = "direct"` (사이클 17 전까지 상수 하나) |
+
+## 설계 위에 더한 세부 (인계서가 알리라고 한 것)
+
+- **조회 서버 새 outcome**: `FetchResult.Outcome.BODY_TOO_LARGE`와 새 칸 `receivedBytes`(선로에서 받은 바이트). 본 서비스 `FetchServiceSiteFetcher`는 그 outcome을 `UpstreamException.bodyTooLarge`로 바꾸고, 모르는 outcome은 지금처럼 ERROR(시험 `unknownOutcomeIsAnErrorForThatLibrary`)라 조회 서버를 먼저 배포해도 깨지지 않음. 본 서비스 쪽 `FetchResult` record에 `receivedBytes`가 더해졌지만 Jackson 3 기본값이 모르는 속성을 무시하므로 옛 조회 서버 응답도 읽힘
+- **나가는 길 포트를 20이 먼저 정의**: `availability/internal/status/EgressLaneStatus`(`egressMode()`: `ALL`·`PROXY_ONLY`·`DIRECT_ONLY`, `vendorLanesPaused()`, `pausedLaneCount()` 기본 0). `AvailabilityConfiguration`이 `EgressLaneStatus.NONE` bean을 둠 → 사이클 17/22가 진짜 구현 bean으로 바꾸면 됨. 상태 판정은 `vendorLanesPaused`면 최소 노랑 `VENDOR_PAUSED`, `PROXY_ONLY`이고 멈췄으면 빨강 `NO_LANE`(자리가 다 찼어도 `NO_LANE`이 앞섬)
+- **`HostQueueBoard`를 감싼 방식**: `HostThrottle.run`에는 도서관 번호가 없어 `LibraryPageFetcher.throttled(board, throttle, libraryId, uri, deadline, clock, call)` 하나로 두 호출자를 감쌈 — `begin` → `throttle.run` → 넘긴 Callable 첫 줄에서 `wait.end()` → `finally`에서 다시 `end()`(두 번은 한 번). `end()` 전에 TIMEOUT이 나면 `timedOut(lane, host)`. 읽기 시간 초과(call 안)는 줄 시간 초과로 보지 않음. 상세(마감 30초) 기다림도 10초 뒤에는 세지 않음(감수 [안] 그대로)
+- **`CannotCreateTransactionException`도 셈**: Spring Framework javadoc(2026-10-17, Context7) 확인 — `CannotCreateTransactionException extends TransactionException`(DataAccessException 아님), `CannotGetJdbcConnectionException extends DataAccessResourceFailureException`(DataAccessException). 그래서 처리기는 `@ExceptionHandler({DataAccessException.class, CannotCreateTransactionException.class})` 하나. 모듈 예외 처리기 중 이 둘을 먼저 잡는 곳 없음(2026-10-17 grep)
+- `ApiExceptionHandler`는 `ObjectProvider<LookupHealth>`로 생성자 주입: 모듈 하나만 올리는 `@WebMvcTest` 조각(availability bean 없음)도 이 advice를 올리기 때문. 운영 컨텍스트에서는 늘 있음
+- gzip 풀기는 압축본을 다 받은 뒤(이미 1MB로 끊김) 풀면서 셈 — 스트림 중간 해제가 아니라 요청 하나당 최대 "압축본 1MB + 풀린 것 1MB + 16KB 조각"까지만 잡음. 풀었을 때 상한을 넘으면 `BodyLimit.TooLargeException`(받은 바이트 = 압축본 길이). gzip이 아닌 `Content-Encoding`(br·deflate)은 그 도서관만 ERROR. 빈 본문에 gzip 표시가 붙은 답(리다이렉트 등)은 빈 그대로 둠
+- `parse_busy`는 `Problems.upstream`에서 HTTP 503 모양(`{"status":503,"code":"parse_busy"}`)으로 — 스트림 `library-failed`의 `problem`과 「더 보기」 응답 모두. 웹은 모르는 코드를 실패로 보므로 바꿀 것 없음
+- 사이클 20 설정 속성(`parse-slots`·`lookup-status`·`ops-summary`)은 1-4에서 `AvailabilityProperties`와 `application.yml`에 한 번에 더함(record 생성자가 번호마다 바뀌지 않게)
+- `DetailUrls`를 `fetch` 패키지에 둔 이유: `LibraryPageFetcher`(fetch)가 `DetailPageFetcher`(resolve)를 부르면 모듈 안 패키지 순환이 생김. `DetailPageFetcher.checkedUri`는 위임만
+- 떠난 묶음: 손님이 떠난 뒤 `launches.next`가 고른 작업(호스트가 비길 기다리던 것)도 시작하지 않고 SKIPPED로 셈(인계서에는 없던 구멍). 떠난 스트림에는 `sink.complete()`를 부르지 않음(지금과 같음)
+
+## 확인 필요 결과
+
+### SSE 끊김을 알아채는 시점 (1-10, nginx `deploy/nginx/local-test.conf`를 8089로 바꿔 WSL docker로 c20 서버 8094 앞에 둠, 2026-10-17)
+
+파이썬 소켓으로 `/api/v1/ebook-searches/stream?title=…`(도서관 376곳 계획)을 열어 이벤트 3개를 받은 뒤 끊고, 끊은 시각과 서버 로그 `batch stream client disconnected` 시각을 비교(둘 다 UTC, ms).
+
+| 경로 | 끊는 방법 | 끊은 시각 → 서버가 안 시각 | 그 뒤 |
+|---|---|---|---|
+| 직접 8094 | RST | 10:26:07.971 → 10:26:07.973 (**2ms**) | `stopReason=CLIENT_GONE requested=3`, 나머지 373 SKIPPED |
+| nginx 8089 | RST | 10:26:23.475 → 10:26:23.482 (**7ms**) | (캐시 적중으로 ROW_LIMIT가 먼저 남 — 끊김 감지 시각만 유효) |
+| 직접 8094 | FIN | 10:27:50.054 → 10:27:50.054 (**0ms**) | `CLIENT_GONE requested=3` |
+| nginx 8089 | FIN | 10:28:05.391 → 10:28:05.394 (**3ms**) | `CLIENT_GONE requested=5`, 371 SKIPPED, 그 뒤 새 `upstream` 줄 없음(이미 나간 5건의 답만) |
+
+- 모두 **다음 send를 기다리지 않고** Tomcat이 연결 끊김을 읽어 `SseEmitter.onError`로 알려 옴(`send` 실패보다 먼저). nginx(`proxy_ignore_client_abort` 기본 off)는 손님이 끊으면 백엔드 연결도 닫아 지연이 수 ms. 그래서 1-10의 "`onError`·`onTimeout`에서도 `clientGone`"이 실제 경로
+- 끊긴 뒤 `library=… result=skipped` 371줄이 한꺼번에 남음(후보마다 한 줄, 지금 방식 그대로). 운영 로그 양이 걱정이면 한 줄로 묶는 것은 다음 사이클 거리 [안]
+
+### gzip 압축률 (1-3, 2026-10-17, 1초 간격, 「사랑」 검색 1쪽)
+
+| 도서관 | 화면 종류 | gzip 안 물음 | `Accept-Encoding: gzip` 물음 | 결과 |
+|---|---|---|---|---|
+| 2 고흥 | KYOBO_V1 | 120,108B | 120,108B, `Content-Encoding` 없음 | 압축 안 해 줌 |
+| 3 서울교육청 | KYOBO_V1 | 120,429B | 같음, 없음 | 압축 안 해 줌 |
+| 10 부산 | ELIB_PORTAL_V1 | 82,154B | 같음, 없음 | 압축 안 해 줌 |
+| 14 경북교육청 | ELIB_PORTAL_V1 | (TLS 시간 초과 1회) | 59,488B, 없음 | 압축 안 해 줌 |
+| 206 횡성 | YES24_V2 | 42,373B | 같음, 없음 | 압축 안 해 줌 |
+| 207 화성 | YES24_V2 | 38,231B | 같음, 없음 | 압축 안 해 줌 |
+| 281 KB작은도서관 | BOOKCUBE_FX | 142,200B | 같음, 없음 | 압축 안 해 줌 |
+| 290 경남대표 | BOOKCUBE_FX | 136,734B | 같음, 없음 | 압축 안 해 줌 |
+| 1 강서 | YES24_V2 | (읽기 시간 초과) | (읽기 시간 초과) | — |
+
+- **재 본 8곳(화면 종류 4가지) 모두 gzip을 물어도 압축하지 않고 평문을 줌** → 지금 도서관들에서는 전송량 절감 효과 0. 압축해 줬다면 로컬 gzip(level 6)으로 고흥 120KB → 19KB(0.16), 횡성 42KB → 8.5KB(0.20), 경남대표 137KB → 30KB(0.22) 정도
+- 그래도 코드는 둠: 비용이 없고(헤더 하나, 풀기는 압축본이 왔을 때만), 도서관 쪽 설정이 바뀌면 그때부터 효과. "풀었을 때도 1MB" 보호는 그대로 필요
+
+### 환경 변수로 값이 바뀌는지 (1-1·1-8, 2026-10-17)
+
+- `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES=2 CHAEKCHECK_AVAILABILITY_OPSSUMMARY_INTERVAL=15s`로 1-11 jar(`java -jar`, JDK 25)를 8094에 켜고 `GET /api/v1/lookup-status` → `{"slots":2,"inUse":0,"level":"GREEN","reason":"NONE","queuedLibraryIds":[],"serverTime":"2026-10-17T10:35:44.885675Z"}` — **`slots`=2**, 요약 로그도 15초마다(`application.yml`에 `${…}` 자리 없이 Spring 환경 변수 규칙만으로 덮어씀을 확인)
+- 같은 서버에서 검색 둘(「바람」·「하늘」)을 동시에 열자 다음 요약 줄이 `slotsMaxInUse=2 libraryRequests=13`(카운터가 실제 요청을 셈). 다만 흔한 낱말은 첫 5~6곳이 10줄을 넘겨 묶음이 **0.4초 만에 ROW_LIMIT로 끝나** 자리가 바로 비므로, 인계서 "시험 방법"의 자리 2 수동 시험(셋째 검색 503 → 즉시 빨강)은 결과가 적은 낱말이나 책 화면 대출 상태(8초 묶음)로 해야 함 — 웹 확인 때 참고
+- 기본값으로 켰을 때 응답: `{"slots":40,"inUse":0,"level":"GREEN","reason":"NONE","queuedLibraryIds":[],"serverTime":"2026-10-17T10:25:55.309394200Z"}` — 직접과 nginx 경유가 같은 `serverTime`(1초 메모)
+
+### `HostQueueBoard`가 포털 소속 도서관을 배우는 한계
+
+- 보드는 "이 호스트에서 기다린 적 있는 도서관"만 압니다(`seen`). 시간 초과 뒤 60초 동안 목록에 오르는 것은 서버가 켜진 뒤 그 호스트에서 한 번이라도 기다린 도서관뿐이라, 재시작 직후나 처음 묻는 포털 도서관은 빠질 수 있음. 설정으로 호스트 → 도서관 표를 주지 않는 한 그대로(감수). 사이클 17 길이 들어오면 `DEFAULT_LANE` 자리에 길 번호를 넘기면 됨
+
+### 503 급증 경보 기준값 [안]과 요약 로그 필드 모양 (사이클 17과 맞춤)
+
+- 한 줄: `lookup ops: slotsMax=40 slotsInUse=3 slotsMaxInUse=7 refused=0 libraryRequests=120 bodyTooLarge=0 dbErrors=0 parseMax=8 parseInUse=0 parseMaxInUse=5 queuedLibraries=2 pausedLanes=0 heapUsedMb=210 heapMaxMb=512`
+  - 1분치로 0에서 다시 세는 것: `refused`(503 수), `libraryRequests`(서버가 보낸 도서관 요청), `bodyTooLarge`, `dbErrors`, `slotsMaxInUse`, `parseMaxInUse`. 찍는 순간 값: `slotsInUse`, `parseInUse`, `queuedLibraries`, `pausedLanes`(17 전 0), 힙
+  - 2단계에 `extensionRequests`·`planWeight`, 3단계에 `ledgerSize`를 같은 줄 끝에 더함
+  - CloudWatch 지표 필터 예: `[..., refused_label="refused=*", ...]` 대신 간단히 `"lookup ops:"` 줄에서 `refused=(\d+)`를 뽑는 필터 패턴 → 지표 `LookupRefused`(Sum)
+- **503 급증 경보 기준값 [안]**: `refused` 1분 합 ≥ 10(한 줄에서), 또는 5분 합 ≥ 20. 근거: 자리 40 × 묶음 약 8초면 1분에 약 300묶음이 지나가므로 1분에 10번 거절은 "순간 몰림"이 아니라 자리가 꾸준히 찬 상태. 같이 보는 값: `slotsMaxInUse`가 40에 붙어 있는지, `heapUsedMb`/`heapMaxMb` 85%. 배포 뒤 실제 분포를 보고 맞춤 → 사이클 17 `from-cycle-20-observability.md`에 넘김
+
+## 웹 세션이 알아야 할 것
+
+- 상태 API: `GET /api/v1/lookup-status` → `200 {"slots":40,"inUse":0,"level":"GREEN|YELLOW|RED|GRAY","reason":"NONE|VENDOR_PAUSED|NO_LANE|DB_ERROR","queuedLibraryIds":[1215,3301],"serverTime":"2026-10-17T10:25:55.309Z"}`, `Cache-Control: no-cache`, 로그인 무관
+- `StopReason.CLIENT_GONE`은 `batch-done`에 실릴 수 있지만 그 손님은 이미 떠났으므로 화면에는 오지 않음. `library-failed`의 `problem`에 새 코드 `parse_busy`(status 503)가 올 수 있음 — 「확인하지 못한 도서관」 처리와 같음
+- `GET /api/v1/books`는 `pageSize` 없이 10권. 웹 시험 자료의 `pageSize: 20` 기대값이 있으면 10으로
+
+## 사용자 결정이 필요한 것 (없으면 그대로)
+
+- 503 경보 기준값(위 [안]) — 사이클 17에서 정함
+- 떠난 묶음의 `result=skipped` 로그가 후보 수만큼(수백 줄) 남는 것을 묶을지
