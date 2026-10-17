@@ -1,7 +1,9 @@
 package com.chaekcheck.fetch;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.concurrent.Semaphore;
 
 import org.slf4j.Logger;
@@ -53,7 +55,17 @@ class FetchController {
 			throw new UnavailableException();
 		}
 		try {
-			return libraryClient.get(urlGuard.check(request.url()), request.requestId());
+			URI url = urlGuard.check(request.url());
+			// cycle 22: the main service names the lane; none = direct (an older main service). A lane this server does
+			// not have, or one its mode excludes, is a failure of this request only, never a different lane.
+			String laneId = request.lane() == null || request.lane().isBlank() ? EgressLane.DIRECT_ID : request.lane();
+			EgressLane lane = libraryClient.lane(laneId);
+			if (lane == null) {
+				log.info("rejected lane={} requestId={}", laneId, request.requestId());
+				Instant now = Instant.now();
+				return FetchResult.failed(FetchResult.Outcome.ERROR, now, now);
+			}
+			return libraryClient.get(url, request.requestId(), lane).withLane(lane.id());
 		}
 		finally {
 			slots.release();
@@ -99,7 +111,8 @@ class FetchController {
 		return problem;
 	}
 
-	record FetchRequest(String url, String requestId) {
+	/** @param lane the egress lane id chosen by the main service (cycle 22); null from an older main service */
+	record FetchRequest(String url, String requestId, String lane) {
 	}
 
 	static class UnauthorizedException extends RuntimeException {

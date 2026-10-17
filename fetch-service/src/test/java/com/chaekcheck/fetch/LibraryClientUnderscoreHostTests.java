@@ -101,7 +101,7 @@ class LibraryClientUnderscoreHostTests {
 
 	@Test
 	void underscoreHostIsFetchedWithTheUserAgent() {
-		FetchResult result = client.get(url("/page"), "r1");
+		FetchResult result = client.get(url("/page"), "r1", EgressLane.DIRECT);
 
 		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.RESPONDED);
 		assertThat(result.status()).isEqualTo(200);
@@ -112,7 +112,7 @@ class LibraryClientUnderscoreHostTests {
 
 	@Test
 	void redirectIsNotFollowed() {
-		FetchResult result = client.get(url("/redirect"), "r2");
+		FetchResult result = client.get(url("/redirect"), "r2", EgressLane.DIRECT);
 
 		assertThat(result.status()).isEqualTo(302);
 		assertThat(result.location()).isEqualTo("/page");
@@ -121,7 +121,7 @@ class LibraryClientUnderscoreHostTests {
 
 	@Test
 	void bodyOverTheLimitIsBodyTooLarge() { // cycle 20: its own outcome, with the bytes read
-		FetchResult result = client.get(url("/big"), "r3");
+		FetchResult result = client.get(url("/big"), "r3", EgressLane.DIRECT);
 
 		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.BODY_TOO_LARGE);
 		assertThat(result.receivedBytes()).isGreaterThan(1024);
@@ -129,7 +129,7 @@ class LibraryClientUnderscoreHostTests {
 
 	@Test
 	void gzipIsAskedForAndInflated() { // cycle 20 (AC-34)
-		FetchResult result = client.get(url("/gzip"), "r6");
+		FetchResult result = client.get(url("/gzip"), "r6", EgressLane.DIRECT);
 
 		assertThat(acceptEncodings).containsExactly("gzip");
 		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.RESPONDED);
@@ -138,7 +138,7 @@ class LibraryClientUnderscoreHostTests {
 
 	@Test
 	void gzipBombIsBodyTooLarge() { // cycle 20 (AC-34): the inflated bytes pass the limit the wire bytes kept
-		FetchResult result = client.get(url("/gzip-bomb"), "r7");
+		FetchResult result = client.get(url("/gzip-bomb"), "r7", EgressLane.DIRECT);
 
 		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.BODY_TOO_LARGE);
 		assertThat(result.receivedBytes()).isLessThan(1024);
@@ -146,7 +146,7 @@ class LibraryClientUnderscoreHostTests {
 
 	@Test
 	void noHeadersWithinTheReadTimeoutIsATimeout() {
-		assertThat(client.get(url("/slow-headers"), "r4").outcome()).isEqualTo(FetchResult.Outcome.TIMEOUT);
+		assertThat(client.get(url("/slow-headers"), "r4", EgressLane.DIRECT).outcome()).isEqualTo(FetchResult.Outcome.TIMEOUT);
 	}
 
 	@Test
@@ -155,7 +155,7 @@ class LibraryClientUnderscoreHostTests {
 		try (ServerSocket socket = new ServerSocket(0)) {
 			port = socket.getLocalPort();
 		}
-		FetchResult result = client.get(URI.create("http://hs_lib.example.test:" + port + "/page"), "r5");
+		FetchResult result = client.get(URI.create("http://hs_lib.example.test:" + port + "/page"), "r5", EgressLane.DIRECT);
 
 		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.CONNECT_FAILED);
 	}

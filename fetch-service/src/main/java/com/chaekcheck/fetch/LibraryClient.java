@@ -2,7 +2,11 @@ package com.chaekcheck.fetch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Authenticator;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
+import java.net.ProxySelector;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,6 +18,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -25,6 +32,8 @@ import javax.net.ssl.SSLContext;
 import org.apache.hc.client5.http.ConnectTimeoutException;
 import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.SystemDefaultDnsResolver;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.impl.auth.CredentialsProviderBuilder;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -36,6 +45,7 @@ import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,15 +62,18 @@ import org.springframework.stereotype.Component;
  * <p>
  * Cycle 18 (ADR-0111): a host name with an underscore goes through Apache HttpClient 5 instead (java.net.http refuses
  * it), with the same limits, outcomes and log line ({@link #getUnderscoreHost}).
+ * <p>
+ * Cycle 22 (ADR-0130, handoff 1-15 #5): one client pair per egress lane the mode allows. A proxy lane's clients send
+ * through the lane's proxy ({@link ProxySelector#of}, Apache {@code setProxy}); the direct lane's JDK client uses
+ * {@link HttpClient.Builder#NO_PROXY}. Optional proxy credentials (one pair) answer the proxy's 407. The main
+ * service picks the lane; here only {@link #lane(String)} maps the id to its clients.
  */
 @Component
 class LibraryClient implements AutoCloseable {
 
 	private static final Logger log = LoggerFactory.getLogger(LibraryClient.class);
 
-	private final HttpClient httpClient;
-
-	private final CloseableHttpClient underscoreClient;
+	private final Map<String, LaneClients> lanes = new LinkedHashMap<>();
 
 	private final FetchProperties properties;
 
@@ -76,12 +89,58 @@ class LibraryClient implements AutoCloseable {
 		this.properties = properties;
 		this.clock = Clock.systemUTC();
 		SSLContext sslContext = LibrarySiteTls.sslContext();
-		this.httpClient = HttpClient.newBuilder()
-			.sslContext(sslContext)
-			.connectTimeout(properties.connectTimeout())
-			.followRedirects(HttpClient.Redirect.NEVER)
-			.build();
-		this.underscoreClient = underscoreClient(properties, sslContext, underscoreDns);
+		List<EgressLane> allowed = properties.egress().allowedLanes();
+		if (allowed.isEmpty()) {
+			throw new IllegalStateException("fetch.egress.mode " + properties.egress().mode() + " leaves no lane");
+		}
+		String[] credentials = properties.egress().credentials();
+		for (EgressLane lane : allowed) {
+			HttpClient.Builder builder = HttpClient.newBuilder()
+				.sslContext(sslContext)
+				.connectTimeout(properties.connectTimeout())
+				.followRedirects(HttpClient.Redirect.NEVER)
+				.proxy(lane.isDirect() ? HttpClient.Builder.NO_PROXY : ProxySelector.of(lane.proxy()));
+			String[] laneCredentials = lane.isDirect() ? null : credentials;
+			if (laneCredentials != null) {
+				builder.authenticator(new ProxyAuthenticator(laneCredentials[0], laneCredentials[1]));
+			}
+			lanes.put(lane.id(), new LaneClients(lane, builder.build(),
+					underscoreClient(properties, sslContext, underscoreDns, lane.proxy(), laneCredentials)));
+		}
+		long proxies = allowed.stream().filter(lane -> !lane.isDirect()).count();
+		// no addresses in this line
+		log.info("egress lanes mode={} lanes={} direct={} proxies={} vendor={}", properties.egress().mode(),
+				allowed.size(), allowed.size() - proxies, proxies,
+				allowed.stream().filter(lane -> !lane.isDirect()).map(EgressLane::vendor).findFirst().orElse("-"));
+	}
+
+	/** The lane with this id among those the mode allows, or null. */
+	EgressLane lane(String id) {
+		LaneClients clients = lanes.get(id);
+		return clients == null ? null : clients.lane();
+	}
+
+	/** The clients of one lane. */
+	private record LaneClients(EgressLane lane, HttpClient httpClient, CloseableHttpClient underscoreClient) {
+	}
+
+	/** Answers only the proxy's challenge, never a site's. */
+	private static final class ProxyAuthenticator extends Authenticator {
+
+		private final String username;
+
+		private final char[] password;
+
+		ProxyAuthenticator(String username, String password) {
+			this.username = username;
+			this.password = password.toCharArray();
+		}
+
+		@Override
+		protected PasswordAuthentication getPasswordAuthentication() {
+			return getRequestorType() == RequestorType.PROXY ? new PasswordAuthentication(username, password) : null;
+		}
+
 	}
 
 	/**
@@ -91,12 +150,18 @@ class LibraryClient implements AutoCloseable {
 	 * SNIHostName. No redirects, retries, cookies or content compression.
 	 */
 	private static CloseableHttpClient underscoreClient(FetchProperties properties, SSLContext sslContext,
-			DnsResolver dns) {
+			DnsResolver dns, InetSocketAddress proxy, String[] credentials) {
 		ClientTlsStrategyBuilder tls = ClientTlsStrategyBuilder.create()
 			.setSslContext(sslContext)
 			.setHostVerificationPolicy(HostnameVerificationPolicy.CLIENT)
 			.setHostnameVerifier(new DefaultHostnameVerifier());
+		HttpHost proxyHost = proxy == null ? null : new HttpHost("http", proxy.getHostString(), proxy.getPort());
 		return HttpClients.custom()
+			.setProxy(proxyHost)
+			.setDefaultCredentialsProvider(proxyHost == null || credentials == null ? null
+					: CredentialsProviderBuilder.create()
+						.add(new AuthScope(proxyHost), credentials[0], credentials[1].toCharArray())
+						.build())
 			.setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
 				.setTlsSocketStrategy(tls.buildClassic())
 				.setDnsResolver(dns)
@@ -116,10 +181,13 @@ class LibraryClient implements AutoCloseable {
 			.build();
 	}
 
-	FetchResult get(URI uri, String requestId) {
+	/** @param lane one of {@link #lane(String)}'s lanes */
+	FetchResult get(URI uri, String requestId, EgressLane lane) {
+		LaneClients clients = lanes.get(lane.id());
 		if (UnderscoreHosts.isUnderscoreHost(uri)) {
-			return getUnderscoreHost(uri, requestId);
+			return getUnderscoreHost(uri, requestId, lane, clients.underscoreClient());
 		}
+		HttpClient httpClient = clients.httpClient();
 		Instant start = clock.instant();
 		String status = "-";
 		CompletableFuture<HttpResponse<byte[]>> call = null;
@@ -158,7 +226,7 @@ class LibraryClient implements AutoCloseable {
 			return new FetchResult(FetchResult.Outcome.RESPONDED, response.statusCode(),
 					response.headers().firstValue("Content-Type").orElse(null),
 					response.headers().firstValue("Location").orElse(null),
-					Base64.getEncoder().encodeToString(body), start, clock.instant());
+					Base64.getEncoder().encodeToString(body), start, clock.instant(), null, lane.id());
 		}
 		catch (TimeoutException ex) {
 			// the whole request, body included, passed the total time limit
@@ -191,14 +259,15 @@ class LibraryClient implements AutoCloseable {
 			return FetchResult.failed(FetchResult.Outcome.ERROR, start, clock.instant());
 		}
 		finally {
-			log.info("library host={} path={} requestId={} start={} end={} status={} userAgent=\"{}\"",
-					UnderscoreHosts.host(uri), uri.getRawPath(), requestId, start, clock.instant(), status,
-					properties.userAgent());
+			log.info("library host={} path={} requestId={} lane={} vendor={} start={} end={} status={} userAgent=\"{}\"",
+					UnderscoreHosts.host(uri), uri.getRawPath(), requestId, lane.id(), lane.vendor(), start,
+					clock.instant(), status, properties.userAgent());
 		}
 	}
 
-	/** Same limits, outcomes and log line as {@link #get}, through {@link #underscoreClient}. */
-	private FetchResult getUnderscoreHost(URI uri, String requestId) {
+	/** Same limits, outcomes and log line as {@link #get}, through the lane's Apache client. */
+	private FetchResult getUnderscoreHost(URI uri, String requestId, EgressLane lane,
+			CloseableHttpClient underscoreClient) {
 		Instant start = clock.instant();
 		String status = "-";
 		HttpGet get = new HttpGet(uri);
@@ -209,7 +278,7 @@ class LibraryClient implements AutoCloseable {
 					body(response.getEntity(), properties.maxBodySize().toBytes()), properties.maxBodySize().toBytes());
 			return new FetchResult(FetchResult.Outcome.RESPONDED, response.getCode(),
 					value(response.getFirstHeader("Content-Type")), value(response.getFirstHeader("Location")),
-					Base64.getEncoder().encodeToString(body), start, clock.instant());
+					Base64.getEncoder().encodeToString(body), start, clock.instant(), null, lane.id());
 		}));
 		try {
 			Thread.ofVirtual().name("underscore-host-fetch").start(call);
@@ -249,9 +318,9 @@ class LibraryClient implements AutoCloseable {
 			return FetchResult.failed(FetchResult.Outcome.ERROR, start, clock.instant());
 		}
 		finally {
-			log.info("library host={} path={} requestId={} start={} end={} status={} userAgent=\"{}\"",
-					UnderscoreHosts.host(uri), uri.getRawPath(), requestId, start, clock.instant(), status,
-					properties.userAgent());
+			log.info("library host={} path={} requestId={} lane={} vendor={} start={} end={} status={} userAgent=\"{}\"",
+					UnderscoreHosts.host(uri), uri.getRawPath(), requestId, lane.id(), lane.vendor(), start,
+					clock.instant(), status, properties.userAgent());
 		}
 	}
 
@@ -309,7 +378,9 @@ class LibraryClient implements AutoCloseable {
 
 	@Override
 	public void close() throws IOException {
-		underscoreClient.close();
+		for (LaneClients clients : lanes.values()) {
+			clients.underscoreClient().close();
+		}
 	}
 
 }

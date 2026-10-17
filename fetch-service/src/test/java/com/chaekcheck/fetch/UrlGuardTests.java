@@ -79,7 +79,7 @@ class UrlGuardTests {
 
 	static FetchProperties properties(boolean allowLoopback) {
 		return new FetchProperties("X-Fetch-Token", "t", "chaekcheck-fetch/test", Duration.ofSeconds(1),
-				Duration.ofMillis(500), Duration.ofSeconds(1), DataSize.ofBytes(1024), 4, allowLoopback);
+				Duration.ofMillis(500), Duration.ofSeconds(1), DataSize.ofBytes(1024), 4, allowLoopback, null);
 	}
 
 }
