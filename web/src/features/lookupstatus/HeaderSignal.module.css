@@ -1,7 +1,8 @@
 /*
- * Cycle 20 header light (mock-up approved 2026-10-17). The colors are text colors on white at 4.5:1 or better
- * (handoff 1-12 접근성): green 5.1, amber 4.9, red 5.6, grey 7.4. The dot takes the same color as the text, so the
- * two read as one sign. Sizes in rem and em, like the rest of the header.
+ * Cycle 20 header light (mock-up approved 2026-10-17). Colors: the user picked "D2" of the options shown on 2026-10-17
+ * ("선명쪽인데 좀 더 흰 깔이 섞인 것" → vivid, 12% white): green #2c9860 (4.0:1 on white), amber #c9691f (3.6:1),
+ * red #db4360 (4.1:1), grey = --ink-soft. The user chose looks over the handoff's 4.5:1 (recorded in plan-feedback).
+ * The dot takes the same color as the text, so the two read as one sign. Sizes in rem and em, like the rest of the header.
  */
 .button {
   --signal: var(--ink-soft);
@@ -35,17 +36,17 @@
 
 .button[data-level='GREEN'],
 .popoverTitle[data-level='GREEN'] {
-  --signal: #15803d;
+  --signal: #2c9860;
 }
 
 .button[data-level='YELLOW'],
 .popoverTitle[data-level='YELLOW'] {
-  --signal: #b45309;
+  --signal: #c9691f;
 }
 
 .button[data-level='RED'],
 .popoverTitle[data-level='RED'] {
-  --signal: #c81e1e;
+  --signal: #db4360;
 }
 
 .button[data-level='GRAY'],
