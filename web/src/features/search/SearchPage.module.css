@@ -93,27 +93,24 @@
 
 .notice {
   padding: 0.75rem 1.1rem;
+  /* white cards with a violet border instead of the amber boxes, on every notice (user 2026-10-17: "이런 노란색 알람
+     별로야... 흰 색 카드에 회색이나 보라색 테두리로해줘. 이것 말고 일괄적으로도") */
+  border: 1px solid var(--brand);
   border-radius: var(--radius-md);
-  background: var(--reserve-soft);
-  color: #7a4506;
+  background: var(--paper);
+  color: var(--ink);
   font-size: var(--text-md);
   font-weight: 700;
 }
 
 .notice[data-kind='replaced'] {
-  background: var(--brand-soft);
   color: var(--brand-strong);
 }
 
+/* a failure keeps its red, on the same white card */
 .notice[data-kind='error'] {
-  background: var(--fail-soft);
+  border-color: var(--fail);
   color: var(--fail);
-}
-
-/* a refused search (429, 503): the amber "wait" notice, not the red failure (cycle 08 R2) */
-.notice[data-kind='blocked'] {
-  background: var(--reserve-soft);
-  color: #7a4506;
 }
 
 .noticeAction {
