@@ -215,11 +215,14 @@ describe('header', () => {
     expect(container.querySelector('[data-lookup-status-slot]')).toBeTruthy()
   })
 
-  it('keeps the dot place left of 로그인, empty before the first answer', () => {
+  it('keeps the dot place left of 로그인 (phones: dot, then ▾, then 로그인), empty before the first answer', () => {
+    // user 2026-10-17: "폰인데 이거 위치 서로 바꾸는 게 나은 것 같아" (the dot and the ▾ swapped)
     const { container } = renderAt('/')
     const slot = container.querySelector('[data-lookup-status-slot]')!
+    const caret = slot.nextElementSibling!
     const login = screen.getByRole('button', { name: '로그인' })
-    expect(slot.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(caret.querySelector('svg')).toBeTruthy()
+    expect(caret.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(slot.childElementCount).toBe(0)
   })
 })
