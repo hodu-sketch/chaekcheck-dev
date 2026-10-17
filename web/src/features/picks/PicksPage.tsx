@@ -9,7 +9,7 @@ import { useRegions } from '../region/RegionContext'
 import { CategoryPicker } from './CategoryPicker'
 import { CategorySection } from './CategorySection'
 import { PAGE_SIZE, sectionId } from './picksText'
-import { picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
+import { picksList, type PicksList } from './picksLists'
 import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
 import { RequestNotice } from './RequestNotice'
@@ -351,17 +351,6 @@ export function PicksPage({ list }: { list: PicksList }) {
             onPick={pick}
           />
         ))}
-        <p className={styles.source}>
-          {list.source(data?.fetchedAt ?? null)}
-          {list.key === 'leedongjin' && (
-            <>
-              {' · '}
-              <a href={YOUTUBE_TERMS_URL} target="_blank" rel="noopener noreferrer">
-                YouTube 서비스 약관
-              </a>
-            </>
-          )}
-        </p>
       </>
     )
   }

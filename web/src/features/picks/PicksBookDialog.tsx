@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
 import type { BookDetail, PickBook } from '../../api/types'
 import { ResultRow } from '../search/ResultRow'
@@ -122,6 +122,35 @@ function BookBody({
     return () => controller.abort()
   }, [bookId, plan, open])
 
+  // phones: [영상 보기]'s right edge on the right end of the purple recommendation line's longest line, so the two
+  // purple texts share one vertical line (user 2026-10-17: "오른쪽 끝이긴 한데 세로선으로 안 맞잖아 위의 또다른 보라
+  // 글자랑 이거 정렬 맞추게 해줘"). The line wraps by words, so its box is wider than its text: measured, not CSS.
+  const pickRef = useRef<HTMLParagraphElement>(null)
+  const actionsRef = useRef<HTMLDivElement>(null)
+  const [actionsWidth, setActionsWidth] = useState<number | null>(null)
+  const hasVideo = videoUrl(book.videoId) !== null
+  useLayoutEffect(() => {
+    const pick = pickRef.current
+    const actions = actionsRef.current
+    if (!phone || !hasVideo || !pick || !actions) {
+      setActionsWidth(null)
+      return
+    }
+    const measure = () => {
+      const range = document.createRange()
+      range.selectNodeContents(pick)
+      const right = Math.max(...Array.from(range.getClientRects(), (r) => r.right))
+      // the widest of the two: when both do not fit on one line, [영상 보기] goes to the next line, at the same right edge
+      const needed = Math.max(...Array.from(actions.children, (child) => child.getBoundingClientRect().width))
+      const width = right - actions.getBoundingClientRect().left
+      setActionsWidth(Number.isFinite(width) && width >= needed ? Math.round(width) : null)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(pick)
+    return () => observer.disconnect()
+  }, [phone, hasVideo, detail, error])
+
   const head = (
     <div className={styles.bookHead}>
       <CoverImage className={styles.bookCover} url={book.coverUrl} title={book.title} />
@@ -129,14 +158,21 @@ function BookBody({
         {/* the shown name (cycle 21 R6-3): our title without edition marks. No "목록 이름" line (user 2026-10-17:
             "목록 이름 아예 다 빼줘 무의미한것 같아"; `listTitle` still comes from the API) */}
         <h2 className={styles.bookTitle}>{book.title}</h2>
-        <p className={styles.bookPick}>{list.pickLine(book, categoryName)}</p>
+        <p ref={pickRef} className={styles.bookPick}>
+          {list.pickLine(book, categoryName)}
+        </p>
         {detail && (
           <p className={styles.bookMeta}>
             {[detail.authorDisplay, detail.publisher].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
           </p>
         )}
         {/* [영상 보기] (R6-2): next to "책 검색 >>" on PC and tablets, at the right end of the same line on phones */}
-        <div className={styles.bookActions} data-phone={phone || undefined}>
+        <div
+          ref={actionsRef}
+          className={styles.bookActions}
+          data-phone={phone || undefined}
+          style={actionsWidth !== null ? { width: actionsWidth, alignSelf: 'flex-start' } : undefined}
+        >
           {!error && (
             <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>
               책 검색 <ChevronRight size={6} />

@@ -2,7 +2,7 @@ import { Popover } from 'radix-ui'
 import { useRef, useState } from 'react'
 import type { PickCategory } from '../../api/types'
 import { BottomSheet } from '../../components/BottomSheet'
-import type { PicksList } from './picksLists'
+import { YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
 import styles from './PicksPage.module.css'
 import { ChevronDown } from '../../components/icons'
 
@@ -80,7 +80,19 @@ export function CategoryPicker({ categories, current, onPick, phone, fetchedAt, 
           {picks.helpLines.map((line) => (
             <li key={line}>{line}</li>
           ))}
-          <li>{picks.source(fetchedAt)}</li>
+          {/* the source lives only here, with Lee Dong-jin's YouTube terms link (user 2026-10-17: "어짜피 여기 기준 보기에
+              정보 있는데 화면 아래에 정보 두는 거 별로야 그냥 빼줘"; it was also a line under the last panel, R5-5) */}
+          <li>
+            {picks.source(fetchedAt)}
+            {picks.key === 'leedongjin' && (
+              <>
+                {' · '}
+                <a href={YOUTUBE_TERMS_URL} target="_blank" rel="noopener noreferrer">
+                  YouTube 서비스 약관
+                </a>
+              </>
+            )}
+          </li>
         </ul>
       )}
     </>

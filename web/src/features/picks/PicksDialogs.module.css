@@ -184,8 +184,17 @@
    좀 그래 책 검색과 같은 행의 우측끝에 두던가"; it was on the line below, R6-2) */
 .bookActions[data-phone] {
   align-self: stretch;
-  flex-wrap: nowrap;
   justify-content: space-between;
+}
+
+/* never broken inside; on a very narrow phone (320px) [영상 보기] goes to the next line, still at the right end */
+.bookActions[data-phone] .searchButton,
+.bookActions[data-phone] .videoLink {
+  white-space: nowrap;
+}
+
+.bookActions[data-phone] .videoLink {
+  margin-left: auto;
 }
 
 .videoLink {

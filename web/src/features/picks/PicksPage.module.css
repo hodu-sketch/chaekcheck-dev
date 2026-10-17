@@ -358,18 +358,6 @@
  * The source line right under the last panel (user 2026-10-12: "지금 이거 마지막 분류 이상해": no empty last screen).
  * The page ends with it and the footer; the footer is the last scroll stop, showing the end of the last panel above.
  */
-.source {
-  /* one paragraph, the terms link running on with the words (a flex row put the link in a column of its own) */
-  display: block;
-  min-height: var(--source-h);
-  padding-block: 0.8rem;
-  padding-inline: 0.5rem;
-  color: var(--ink-faint);
-  font-size: var(--text-xs);
-  text-align: center;
-  word-break: keep-all;
-}
-
 /* the app footer under this screen gets room at its bottom, so the floating button never covers its lines */
 :global(body):has(.floating) :global(footer) {
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
@@ -581,7 +569,8 @@
   letter-spacing: -0.02em;
 }
 
-.source a {
+/* Lee Dong-jin's YouTube terms link in "기준 보기" (the source lives only there since 2026-10-17) */
+.helpList a {
   color: inherit;
   text-decoration: underline;
 }

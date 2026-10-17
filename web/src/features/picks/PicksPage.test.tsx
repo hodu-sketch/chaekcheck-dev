@@ -96,7 +96,7 @@ afterEach(() => {
 })
 
 describe('librarian picks (S13)', () => {
-  it('shows books 1-9 of each field with no rank chip, the card head and the source line (AC-1)', async () => {
+  it('shows books 1-9 of each field with no rank chip and the card head, no source line under them (AC-1)', async () => {
     stubFetch()
     renderPage()
     expect(await screen.findByRole('region', { name: '전체' })).toBeTruthy()
@@ -107,7 +107,8 @@ describe('librarian picks (S13)', () => {
     expect(cards('전체')[0].querySelector('[aria-hidden="true"][data-available]')).toBeNull()
     expect(within(section('전체')).getByText('1 - 9').parentElement!.textContent).toBe('1 - 9 / 10')
     expect(within(section('전체')).getByRole('list').getAttribute('aria-label')).toBe('전체 1~9번째 / 10권')
-    expect(screen.getByText('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음')).toBeTruthy()
+    // user 2026-10-17: the source is only in 기준 보기
+    expect(screen.queryByText('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음')).toBeNull()
     // AC-15
     expect(document.body.textContent).not.toMatch(/인기 도서|순위|출판유통/)
   })
