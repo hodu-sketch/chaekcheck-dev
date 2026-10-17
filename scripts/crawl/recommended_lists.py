@@ -487,20 +487,16 @@ def choose_editions(rows: list[dict], catalog: Catalog, kinds: dict[int, bool], 
         for anchor in anchors:
             for book in catalog.same_book(anchor):
                 candidates[book['id']] = book
+        # same main title + a shared author only (R3-3). When every such edition is excluded (an adaptation for
+        # children, a summary, a machine translation, R3-4) the row is left unmatched: no re-pick by the title alone,
+        # which could land on another author's book (plan retro 21 decision #2, matching-guide.md 2-2, 4)
         best = choose([b for b in candidates.values() if not excluded(b)], kinds)
-        if best is None and anchors:
-            # every edition of the anchor's authors is excluded (an adaptation for children, a summary, a machine
-            # translation, R3-4): the same main title by anyone, as the research did for the classics (R3-3)
-            for anchor in anchors:
-                for book in catalog.same_book(dict(anchor, authors=set())):
-                    candidates[book['id']] = book
-            # and the list's own title as a main title (the anchor's may carry a subtitle without " : ")
-            for book in catalog.same_book({'main': text_key(row.get('title')), 'authors': set()}):
-                candidates[book['id']] = book
-            best = choose([b for b in candidates.values() if not excluded(b)], kinds)
         name = row.get('title')
         if best is None:
-            if row.get('pinned_title') or row.get('pinned_isbn13'):
+            if candidates:
+                log.line(f'edition: every same-author edition excluded for {name}; left unmatched (pin one as manual '
+                         f'if a right edition exists)')
+            elif row.get('pinned_title') or row.get('pinned_isbn13'):
                 log.line(f'edition: none left for {name}; the export matches the row by its own title')
             for column in ('pinned_title', 'pinned_author', 'pinned_publisher', 'pinned_isbn13', 'pinned_by'):
                 row[column] = ''

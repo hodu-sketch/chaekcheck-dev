@@ -246,13 +246,26 @@ class EditionTests(unittest.TestCase):
         self.assertEqual((rows[0]['pinned_publisher'], rows[0]['pinned_by']), ('명현', 'collector'))
         self.assertEqual(rows[1]['pinned_publisher'], '위즈덤커넥트')
 
-    def test_excluded_editions_fall_back_to_the_title(self):  # R3-4: 실천이성비판
+    def test_all_same_author_editions_excluded_leaves_the_row_unmatched(self):  # R3-3·R3-4: 실천이성비판
+        # the only non-excluded edition with the same title is another author's: no re-pick by the title alone
+        # (plan retro 21 decision #2)
         catalog = FakeCatalog([
             book(1, '실천이성비판: 흔들리는 시대', authors=('칸트', '번역AI'), names=('칸트', '통합언어인텔리전스기반번역AI'),
                  libs=(1, 2, 3)),
             book(2, '실천이성비판', publisher='아카넷', authors=('백종현',), libs=(1, 2))])
-        rows = [{'title': '실천이성비판', 'pinned_title': '실천이성비판: 흔들리는 시대', 'pinned_by': ''}]
+        rows = [{'title': '실천이성비판', 'pinned_title': '실천이성비판: 흔들리는 시대', 'pinned_author': '칸트',
+                 'pinned_publisher': '출판사', 'pinned_isbn13': '', 'pinned_by': 'collector'}]
+        self.assertEqual(rl.choose_editions(rows, catalog, self.kinds, rl.Log(None)), {})
+        for column in ('pinned_title', 'pinned_author', 'pinned_publisher', 'pinned_isbn13', 'pinned_by'):
+            self.assertEqual(rows[0][column], '', column)
+
+    def test_a_non_excluded_same_author_edition_is_chosen(self):  # R3-4: 실천이성비판, 칸트 named on the 아카넷 edition
+        catalog = FakeCatalog([
+            book(1, '실천이성비판', authors=('칸트', '번역AI'), names=('칸트', '통합언어인텔리전스기반번역AI'), libs=(1, 2, 3)),
+            book(2, '실천이성비판', publisher='아카넷', authors=('칸트', '백종현'), libs=(1, 2))])
+        rows = [{'title': '실천이성비판', 'pinned_title': '실천이성비판', 'pinned_publisher': '출판사', 'pinned_by': ''}]
         self.assertEqual(rl.choose_editions(rows, catalog, self.kinds, rl.Log(None)), {0: 2})
+        self.assertEqual((rows[0]['pinned_publisher'], rows[0]['pinned_by']), ('아카넷', 'collector'))
 
     def test_every_volume_is_one_book_and_the_first_wins_a_tie(self):  # AC-7
         catalog = FakeCatalog([book(5, '탁류 3', libs=(1, 2)), book(6, '탁류 1', libs=(2, 3)), book(7, '탁류 2', libs=(1, 3))])

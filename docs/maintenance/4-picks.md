@@ -129,7 +129,7 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 ### 6-3. 판 고르기와 표지 (수집기가 하는 일)
 
 - 같은 책: 시작 판(지금 고정 판, 없으면 줄의 ISBN, 없으면 줄의 제목 + 첫 저자로 내 PC DB에서 찾은 책)과 `main_title_norm`이 같거나 **권 번호를 덜어 낸 본제목**이 같고, 저자(`name_exact`)를 하나 이상 공유하는 판
-- 거르기: `collector_words.tsv`의 `excluded_*` 낱말(요약·어린이·기계 번역 판, spec R3-3·R3-4). 다 걸러지면 같은 본제목 판 전체(저자 무관)에서 다시 고르고, 그래도 없으면 고정 판을 비웁니다(export가 줄의 제목 + 저자로 다시 찾음)
+- 거르기: `collector_words.tsv`의 `excluded_*` 낱말(요약·어린이·기계 번역 판, spec R3-3·R3-4). 다 걸러지면 고정 판을 비웁니다(저자 무관으로 다시 고르지 않음, plan 21 회고 결정 #2 2026-10-17). 그 줄은 export가 줄의 제목 + 저자로 다시 찾고, 그래도 못 맞춤이면 못 맞춘 책으로 둡니다 → 바른 판이 카탈로그에 있으면 지침(plan `matching-guide.md` 4절)대로 사람이 `manual`로 고정합니다. 기록에 `edition: every same-author edition excluded for …` 한 줄이 남습니다
 - 고르기: Java `BookChoice`와 같은 공식(rules-index 4절 "판 고르기"). 같은 시험 자료 `scripts/crawl/testdata/book_choice_cases.json`을 Java·Python 시험이 함께 읽습니다
 - `pinned_by = manual` 줄은 덮어쓰지 않습니다. 사람이 판을 정하려면 `pinned_title`·`pinned_author`·`pinned_publisher`(필요하면 `pinned_isbn13`)를 적고 `pinned_by`에 `manual`, `note`에 까닭과 날짜를 적습니다
 - 표지는 모든 줄에 찾습니다. 우리 책을 못 맞춘 줄도 인터넷에서 찾습니다(사용자 2026-10-16: "책 표지 무조건 다 보였으면 해 인터넷 수집해서(어디서 수집해야 하는지는 기록 다 해)채워")
