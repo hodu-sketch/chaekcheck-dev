@@ -8,7 +8,6 @@ import { latestRowPerLibrary, pickLibraryRows, PICKS_HOLDING_STEPS } from './pic
 import { videoUrl, type PicksList } from './picksLists'
 import { PicksWindow } from './PicksWindow'
 import styles from './PicksDialogs.module.css'
-import { ChevronRight } from '../../components/icons'
 
 type Props = {
   /** The tapped book with an e-book in my libraries (`bookId` set); null keeps the window closed. */
@@ -192,7 +191,7 @@ function BookBody({
         >
           {!error && (
             <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>
-              책 검색 <ChevronRight size={6} />
+              책 검색
             </button>
           )}
           <VideoLink videoId={book.videoId} />
