@@ -7,7 +7,8 @@
   --signal: var(--ink-soft);
   display: inline-flex;
   align-items: center;
-  gap: 0.35em;
+  /* a little more air between the dot and its text (user 2026-10-17: "점하고 상태모름 메세지 사이에 간격 좀 더 줘") */
+  gap: 0.7em;
   margin: 0;
   padding: 0.2rem 0.35rem;
   border: none;
