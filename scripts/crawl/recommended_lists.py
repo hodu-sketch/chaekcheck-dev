@@ -80,7 +80,10 @@ BOOK_NAME = re.compile(r'\[([^\[\]]+)\]|《([^《》]+)》|〈([^〈〉]+)〉|�
 
 # rules-index.md: 화면 책 이름 — ShownTitle (Java) reading of the volume, for the sets and the first volume (ADR-0125)
 SERIES = re.compile(r'^\[[^\]]*\]\s*')
-LAST_PARENTHESES = re.compile(r'\s*\(([^()]*)\)$')
+LAST_PARENTHESES = re.compile(r'\s*[(\[]([^()\[\]]*)[)\]]$')
+DASH_SUBTITLE = re.compile(r'\s+-\s+.*$')
+PART_AT_END = re.compile(r'(?:[.,]\s*|\s+)(\d{1,2})\s*부\s*(\d{1,2})\s*권$')
+GLUED_AT_END = re.compile(r'(?<=[가-힣])(\d{1,2})$')
 ORIGINAL_EDITION = re.compile(r'\s+(?:오리지널판|세트)$')
 VOLUME_INSIDE = re.compile(r'(?:제\s*)?(\d{1,2}|상|중|하)\s*권?')
 VOLUME_AT_END = re.compile(r'(?:[.,]\s*|\s+)(?:제\s*)?(\d{1,2}|상|중|하)\s*권?$|(?<=\D)(\d{1,2})권$')
@@ -302,6 +305,9 @@ def read_title(title: str) -> tuple[str, str | None]:
     m = SERIES.match(text)
     if m and m.end() < len(text):
         text = text[m.end():]
+    m = DASH_SUBTITLE.search(text)
+    if m and m.start() > 0:
+        text = text[:m.start()]
     for _ in range(2):
         m = ORIGINAL_EDITION.search(text)
         if m:
@@ -313,10 +319,16 @@ def read_title(title: str) -> tuple[str, str | None]:
                 volume = inside.group(1)
             text = text[:m.start()]
     if volume is None:
-        m = VOLUME_AT_END.search(text)
-        if m and m.start() > 0:
-            volume = m.group(1) or m.group(2)
-            text = text[:m.start()]
+        part, end, glued = PART_AT_END.search(text), VOLUME_AT_END.search(text), GLUED_AT_END.search(text)
+        if part and part.start() > 0:
+            volume = f'{int(part.group(1))}부 {int(part.group(2))}권'
+            text = text[:part.start()]
+        elif end and end.start() > 0:
+            volume = end.group(1) or end.group(2)
+            text = text[:end.start()]
+        elif glued and glued.start() > 1:
+            volume = glued.group(1)
+            text = text[:glued.start()]
     if volume and volume.isdigit():
         volume = str(int(volume))
     return re.sub(r'[\s.,:;·\-]+$', '', text), volume
@@ -338,6 +350,10 @@ def held(library_ids, kinds: dict[int, bool]) -> int:
 
 
 def volume_order(volume: str) -> int:
+    """상 = 1, 중 = 2, 하 = 3, a number as itself, '2부 3권' = 203 (Java BookChoice.volumeOrder)."""
+    if '부 ' in volume:
+        part, rest = volume.split('부 ')
+        return int(part) * 100 + int(rest.rstrip('권'))
     return {'상': 1, '중': 2, '하': 3}.get(volume) or int(volume)
 
 
@@ -429,7 +445,14 @@ class Catalog:
             found += [b for b in prefix if b['id'] not in known and text_key(title_base(b['title'])) == base]
         if not anchor['authors']:
             return found
-        return [b for b in found if b['authors'] & anchor['authors']]
+        kept = [b for b in found if b['authors'] & anchor['authors']]
+        # the other volumes of a kept set, though their author is written another way (the same publisher's set is one
+        # edition: 더클래식 「카라마조프가의 형제들. 1」 has 「도스토옙스키」, its volume 2 「표도르 도스토옙스키」; plan
+        # matching-guide.md 6절, 2026-10-17)
+        sets = {text_key(b['publisher'] or '') for b in kept if volume_of(b['title'])}
+        known = {b['id'] for b in kept}
+        return kept + [b for b in found if b['id'] not in known and volume_of(b['title'])
+                       and text_key(b['publisher'] or '') in sets]
 
     def holding_keys(self, book_id: int) -> list[tuple[int, str]]:
         """(collection library id, item key) of a book's holdings, for the collected cover addresses."""

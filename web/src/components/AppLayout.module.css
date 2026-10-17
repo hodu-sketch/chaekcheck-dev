@@ -81,6 +81,11 @@
   height: 10px;
 }
 
+/* phones only: the row's ▾ */
+.menuCaret {
+  display: none;
+}
+
 .main {
   flex: 1;
   width: 100%;
@@ -111,6 +116,24 @@
   .end {
     position: relative;
     z-index: 1;
+  }
+
+  /* .end lets taps through to the row's button (the ▾ and the room between) except on its own controls: 로그인 and
+     the cycle 20 dot (its 44px place opens no menu, plan 20 review #9, from-cycle-20-header-light.md "바뀜") */
+  .end {
+    pointer-events: none;
+  }
+
+  .end > * {
+    pointer-events: auto;
+  }
+
+  .end > .menuCaret {
+    display: inline-flex;
+    align-items: center;
+    pointer-events: none;
+    color: var(--ink-soft);
+    font-size: var(--text-sm);
   }
 
   .brand::after {

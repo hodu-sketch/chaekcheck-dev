@@ -75,12 +75,16 @@ public final class BookChoice {
 		.comparingInt((Candidate c) -> volumeOrder(ShownTitle.read(Objects.requireNonNullElse(c.title(), "")).volume()))
 		.thenComparingLong(Candidate::bookId);
 
+	/** 상 = 1, 중 = 2, 하 = 3, a number as itself, 「2부 3권」 = 203 (the collector's volume_order). */
 	private static int volumeOrder(String volume) {
 		return switch (volume) {
 			case "상" -> 1;
 			case "중" -> 2;
 			case "하" -> 3;
-			default -> Integer.parseInt(volume);
+			default -> volume.contains("부 ")
+					? Integer.parseInt(volume.substring(0, volume.indexOf('부'))) * 100
+							+ Integer.parseInt(volume.substring(volume.indexOf(' ') + 1, volume.length() - 1))
+					: Integer.parseInt(volume);
 		};
 	}
 

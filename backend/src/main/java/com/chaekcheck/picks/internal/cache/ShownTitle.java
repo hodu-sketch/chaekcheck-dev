@@ -8,7 +8,10 @@ import java.util.regex.Pattern;
  * edition marks, so every list shows one name for one book. Taken off [안: details]: a leading {@code [시리즈]}, the
  * last parentheses (edition or language: 「햄릿(Hamlet)」, 「오디세이아(고대 그리스어 완역본)」), a last word
  * "오리지널판", and the volume when it is the first ({@code 1}, {@code (상)}: 「토지. 1(1부 1권)」, 「위대한 유산(상)」).
- * Later volumes keep their number. When nothing would be left, the title stays as it is. The same reading tells
+ * Since 2026-10-17 (plan matching-guide.md 2절, counted in the catalog: plan-feedback "# 사이클 21") also a last
+ * {@code [한글판]} or {@code [1]}, a subtitle after " - " (「… 1 - 세계문학전집 157」), 「토지 1부 1권」 and a number right
+ * after Hangul (「카라마조프가의 형제들1」). Later volumes keep their number. When nothing would be left, the title stays
+ * as it is. The same reading tells
  * {@link BookChoice} which edition is the first volume. Rule: docs/maintenance/rules-index.md "화면 책 이름" (the
  * collector's read_title() is the same reading).
  */
@@ -16,7 +19,18 @@ final class ShownTitle {
 
 	private static final Pattern SERIES = Pattern.compile("^\\[[^\\]]*\\]\\s*");
 
-	private static final Pattern LAST_PARENTHESES = Pattern.compile("\\s*\\(([^()]*)\\)$");
+	/** The last parentheses or square brackets: 「(Hamlet)」, 「[한글판]」, 「[1]」. */
+	private static final Pattern LAST_PARENTHESES = Pattern.compile("\\s*[(\\[]([^()\\[\\]]*)[)\\]]$");
+
+	/** A subtitle after " - ": 「카라마조프가의 형제들 1 - 세계문학전집 157」. */
+	private static final Pattern DASH_SUBTITLE = Pattern.compile("\\s+-\\s+.*$");
+
+	/** Part and volume at the end: 「토지 1부 1권」 (read as {@code 1부 1권}). */
+	private static final Pattern PART_AT_END = Pattern
+		.compile("(?:[.,]\\s*|\\s+)(\\d{1,2})\\s*부\\s*(\\d{1,2})\\s*권$");
+
+	/** A number right after Hangul: 「카라마조프가의 형제들1」 (two digits at most). */
+	private static final Pattern GLUED_AT_END = Pattern.compile("(?<=[가-힣])(\\d{1,2})$");
 
 	/** A last word that names an edition, not the book: 「백석의 사슴 오리지널판」, 「안나 카레니나 세트」 (spec R3-3). */
 	private static final Pattern ORIGINAL_EDITION = Pattern.compile("\\s+(?:오리지널판|세트)$");
@@ -41,7 +55,7 @@ final class ShownTitle {
 
 		/** The first volume, or a book with no volume. */
 		boolean firstVolume() {
-			return volume == null || volume.equals("1") || volume.equals("상");
+			return volume == null || volume.equals("1") || volume.equals("상") || volume.equals("1부 1권");
 		}
 
 	}
@@ -66,6 +80,10 @@ final class ShownTitle {
 		if (series.find() && series.end() < text.length()) {
 			text = text.substring(series.end());
 		}
+		Matcher dash = DASH_SUBTITLE.matcher(text);
+		if (dash.find() && dash.start() > 0) {
+			text = text.substring(0, dash.start());
+		}
 		for (int round = 0; round < 2; round++) {
 			Matcher original = ORIGINAL_EDITION.matcher(text);
 			if (original.find()) {
@@ -81,10 +99,20 @@ final class ShownTitle {
 			}
 		}
 		if (volume == null) {
+			Matcher part = PART_AT_END.matcher(text);
 			Matcher end = VOLUME_AT_END.matcher(text);
-			if (end.find() && end.start() > 0) {
+			Matcher glued = GLUED_AT_END.matcher(text);
+			if (part.find() && part.start() > 0) {
+				volume = stripZeros(part.group(1)) + "부 " + stripZeros(part.group(2)) + "권";
+				text = text.substring(0, part.start());
+			}
+			else if (end.find() && end.start() > 0) {
 				volume = stripZeros(end.group(1) != null ? end.group(1) : end.group(2));
 				text = text.substring(0, end.start());
+			}
+			else if (glued.find() && glued.start() > 1) {
+				volume = stripZeros(glued.group(1));
+				text = text.substring(0, glued.start());
 			}
 		}
 		text = TRAILING.matcher(text).replaceAll("");
