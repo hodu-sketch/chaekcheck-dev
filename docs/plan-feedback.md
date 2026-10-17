@@ -4956,6 +4956,68 @@ plan 20 알림(사용자 결정, 결정 페이지 plan `docs/cycles/21-recommend
   - 같은 날 14:36 사용자 "새 코드로 다시 해줘" → 두 서비스는 dev 19가 이미 끔(db-ops 컨테이너도 끔, 사용자 "연 거 닫아줘"). db-ops를 다시 켜고 main(21 코드)으로 8080(원래 DB)·8081(db-ops)을 켬. 두 서비스 모두 사서 72/108, 이동진 36/43, 서울대 87/100, 분야 6·10·6
 - **정리**: main `.claude/launch.json`의 c21 항목 둘 되돌림, docker `chaekcheck-c21` 지움(볼륨 포함: 5502·5503·5504 복사본), worktree `../chaekcheck-dev-c21`와 브랜치 지움(합쳐짐). 수집기 기록 `data/recommended-lists/collect.log`는 main 폴더로 옮김. 반영 파일·기록은 `data/c21/`(git 밖)
 
+### plan 21 회고 고침: 저자 무관 다시 고르기 지움 (2026-10-17)
+
+plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 지침 `matching-guide.md` 2-2절·4절). 작업 폴더 `../chaekcheck-dev-c20`(브랜치 `cycle-20-lookup-status`, 사이클 20 세션과 같이 씀). 코드·시험·문서·목록 파일 변경은 커밋 **`347a53d`**(처음에는 사이클 20 세션의 "a smaller header dot on phones" 커밋에 스테이지된 4파일이 함께 들어갔던 것을, 다른 에이전트가 모두 끝난 뒤 cherry-pick으로 둘로 나눔. 트리는 같음).
+
+#### 바꾼 것
+
+- 수집기 `scripts/crawl/recommended_lists.py` `choose_editions`: 같은 본제목 + 저자 하나 이상 같은 판(`same_book`)을 `excluded()`로 거른 뒤 남은 판이 없으면, **저자를 보지 않고 다시 모으던 길(고정 판의 본제목 저자 무관 + 목록 줄 제목 저자 무관)을 지움**. 그 줄은 기존 `best is None` 길대로 고정 판 칸 5개(`pinned_title`·`pinned_author`·`pinned_publisher`·`pinned_isbn13`·`pinned_by`)를 비움. `manual` 줄은 전과 같이 건드리지 않음. `authors=set()`로 `same_book`을 부르는 곳 없음(끝 기준 1)
+- 기록 줄: 같은 저자 판이 모두 걸러진 줄에 `edition: every same-author edition excluded for <제목>; left unmatched (pin one as manual if a right edition exists)` 한 줄. 후보 자체가 없던 줄은 전처럼 고정 판이 있었을 때만 `edition: none left for …`
+- 시험 `scripts/crawl/test_recommended_lists.py`
+  - `test_excluded_editions_fall_back_to_the_title` → **`test_all_same_author_editions_excluded_leaves_the_row_unmatched`**: 칸트+번역AI 판(걸러짐)과 백종현만 적힌 아카넷 판 → `{}`, 고정 판 칸 5개 모두 빔
+  - **`test_a_non_excluded_same_author_edition_is_chosen`**(새로 나눔): 같은 본제목의 칸트+번역AI 판(걸러짐)과 칸트·백종현 아카넷 판 → 아카넷 판을 고름. 옛 시험의 "걸러지지 않은 같은 저자 판을 고름" 경우를 남긴 것. 옛 시험에서는 아카넷 판의 본제목이 달라(「실천이성비판: 흔들리는 시대」 ↔ 「실천이성비판」) 지운 길로만 닿았으므로 두 판의 본제목을 같게 함
+  - 결과: `python -X utf8 -m unittest test_recommended_lists` **25개 통과**(네트워크·DB 없음). `testdata/book_choice_cases.json`·Java는 바꾸지 않음(인계서대로, Gradle 안 돌림)
+- 문서 `docs/maintenance/4-picks.md` 6-3절 거르기 문장: "다 걸러지면 같은 본제목 판 전체(저자 무관)에서 다시 고르고 …" → "다 걸러지면 고정 판을 비움(저자 무관으로 다시 고르지 않음) → export가 줄의 제목 + 저자로 다시 찾고, 그래도 못 맞춤이면 못 맞춘 책 → 바른 판이 있으면 지침 4절대로 사람이 `manual`". `docs/plan-feedback.md` 4775행 근처의 옛 설명(2026-10-16 기록 "연암집·춘향전·실천이성비판은 거르기 뒤 다른 판이 골라짐")은 기록이라 그대로 두고 여기서 **바뀜**이라 적음
+
+#### 다시 돌리기 (2026-10-17 18:59~19:00)
+
+- 명령: `python -X utf8 scripts/crawl/recommended_lists.py --db-port 5512 --sqlite ../chaekcheck-data/snapshots/ebook-catalog-2026-10-12-0135.sqlite` (c20 DB 5512 = 원래 카탈로그 복사본, 가져오기 13번, 책 1,331,194. 읽기만). YouTube 확인은 평소 차례대로 함(`www.googleapis.com` 15번, `--skip-youtube` 쓰지 않음). 표지: 새로 받은 것 없음, 못 찾은 3권(변신인형·보조법어·제자백가 선독)은 전과 같음. `hosts asked: ['www.googleapis.com', 'www.nl.go.kr']`(youtube.com 없음). 기록은 평소 자리 `data/recommended-lists/collect.log`(c20 폴더)
+- 전 목록 파일 사본: `data/c20/retro21/before/`(git 밖)
+- **맞춘 수 전·뒤: 이동진 35/43 → 35/43, 서울대 87/100 → 87/100** (Java 쪽 이동진 36/43은 같은 책 번호가 둘인 줄을 세는 차이, 전과 같음)
+- **고정 판이 바뀌거나 비게 된 줄: 0줄.** `leedongjin.tsv`는 43줄 `checked_on`만 2026-10-16 → 2026-10-17, `snu100.tsv`·`leedongjin_pending.tsv`는 내용 바뀜 없음. 기록에 `every same-author edition excluded` 줄 없음
+- 왜 0줄인가: 수집기는 지금 고정 판(ISBN → 제목+출판사)을 시작 판으로 삼아 **그 판의 저자**로 같은 책을 모읍니다. 지운 길로 골라졌던 판도 이미 고정 판으로 적혀 있으면 자기 자신이 시작 판이 되어, 걸러지지 않는 한 그대로 남습니다. 그래서 **지운 길의 영향은 고정 판이 없는 줄(새 줄, 또는 고정 판 칸을 비운 뒤)에만 나타납니다**
+
+| 줄 | 목록 제목·저자 | 전 고정 판(제목·출판사·ISBN·책 번호) | 뒤 |
+|---|---|---|---|
+| (바뀐 줄 없음) | | | |
+
+- 명세 R3-4 "자동으로 풀림" 세 권(뒤에도 같음):
+  - 서울대 2 「연암집」 박지원 → 지식을만드는지식 「연암집」 박지원(책 450534, ISBN 없음, 보유 5). 카탈로그의 「연암집」은 지식을만드는지식(5)·지만지(1)·편집부(1) 세 판, 박지원 판이 고정. **맞음**
+  - 서울대 81 「실천이성비판」(목록 저자 임마누엘 칸트) → 아카넷 「실천이성비판」 임마누엘 칸트(책 1055239, 9788957336410, 보유 3). 지금 카탈로그(13번)에는 본제목 「실천이성비판」이 이 판 하나뿐이라(번역AI 판은 본제목 「실천이성비판: 흔들리는 시대」) 같은 저자 판으로 바로 맞음. **맞음**
+  - 서울대 4 「춘향전」 → 작가문화 「춘향전」 작가문화 편집부(책 214341, ISBN 없음, 보유 42). 고정 판은 그대로지만 **R3-3 "본제목 + 저자"로 맞춘 것이 아님**(지운 길이 고른 판이 남은 것) — 아래 "plan 결정 필요" 1
+
+#### 덤: 고정 판 없이 처음부터 골라 보기 (DB만 읽음, 결과는 저장소에 넣지 않음)
+
+지운 길이 실제로 무엇을 골랐는지 보려고, 두 목록의 `collector` 줄 고정 판 칸을 비운 사본(`manual` 2줄은 그대로)으로 **새 코드**와 **옛 코드(`a47a308`의 파일)** 를 각각 `--skip-youtube --skip-covers`로 돌려 견줌(임시 폴더, 외부 요청 0, c20 DB만).
+
+- 이동진: 새 35/43 = 옛 35/43 = 지금 파일 35/43, 고른 판도 모두 같음(이동진 줄은 ISBN이 있어 시작 판이 분명함)
+- 서울대: **옛 69/100 → 새 68/100.** 두 코드가 다르게 간 줄은 **4 「춘향전」 하나뿐**: 옛 코드는 작가문화 편집부 판(지금 고정 판과 같음)을 골랐고, 새 코드는 `edition: every same-author edition excluded for 춘향전` → 빔
+  - 까닭: 목록 줄의 저자 칸이 **「구들」**(plan `research/snu-100/picks.md` 4번: 조사 때 고른 삐아제어린이 판의 저자. 해제집 목차에는 저자가 없음). 제목 「춘향전」 + 저자 구들로 찾은 시작 판은 삐아제어린이 「춘향전」 구들(책 157667, 9788959040803, 보유 72)뿐이고 출판사 이름의 "어린이"로 걸러짐 → 같은 저자 판이 모두 걸러진 경우
+  - 카탈로그의 「춘향전」 본제목 판은 49개(걸러지는 것 3: 삐아제어린이, 「[100분 고전 040] 춘향전」, 「춘향전 - 논술세대를 위한 …」). 저자 「작자 미상」 판 가운데는 유페이퍼 769378(보유 28)이 가장 많이 보유됨
+- 서울대의 나머지 차이(처음부터 고르면 87이 아니라 68~69): 지금 파일의 87은 **조사 판(2026-10-15)에서 시작**한 결과이고, 처음부터 고르면 목록 줄 제목 + 저자로 시작 판을 찾아야 해서 「고향」·「백석시선집」·「당시선」·「일리아스, 오디세이아」·「그리스 비극」·「셰익스피어: 햄릿 외 3편」·「주홍글자」·「스완씨 댁 쪽으로」·「정부론 2편」·「도덕계보학」 등 목록 제목과 카탈로그 제목이 다른 19줄은 못 찾고, 「탁류」·「토지」·「위대한 유산」·「카라마조프가의 형제들」 등 20줄은 시작 판이 달라 다른 판으로 감. 옛·새 코드가 같고 이번 고침과 무관(옛 코드도 69). 적어 두는 까닭: 목록 파일의 고정 판을 통째로 비우면 서울대 맞춘 수가 크게 줄므로, 고정 판 칸은 줄마다 다뤄야 함
+
+#### export ④(목록 줄 ISBN → 제목 + 저자)로 다시 맞춰지는지 (고정 판이 빈 줄)
+
+- 이번 다시 돌리기로 빈 줄은 없으므로 지금 반영 파일에는 해당 없음
+- 「춘향전」 고정 판이 비게 되면(위 덤처럼 처음부터 고르거나 사람이 비우면): 서울대 줄은 ISBN이 없어 ④는 제목 「춘향전」 + 첫 저자 「구들」(`name_exact`)로 찾음(`CuratedLists` ④, `JdbcBookLookup.byTitleAndAuthor`) → **삐아제어린이 「춘향전」 구들(157667)에 맞춰짐**. Java ④에는 거르기 낱말이 없어 수집기가 "어린이"로 거른 판이 그대로 들어감(인계서 "걸리는 판에 맞춰지면 고치지 말고 plan에 알림"의 경우). 고치지 않음
+- 다른 못 맞춘 줄(이동진 8, 서울대 13)은 전과 같고 이번 일과 무관
+
+#### plan 결정 필요 (dev는 고정하지 않음)
+
+1. **서울대 4 「춘향전」**: 지금 고정 판 작가문화 편집부(214341)는 지운 길(저자 무관)이 고른 것이고, 목록 저자 「구들」과도 「작자 미상」과도 다름. 길은 둘
+   - (가) 목록 줄의 저자 칸을 「작자 미상」으로 고치고 고정 판 칸을 비움 → 수집기가 저자 「작자 미상」 판 가운데 보유량 최대인 유페이퍼 769378(28)을 고름(고정 판을 둔 채 저자만 고치면 바뀌지 않음). export ④도 「작자 미상」으로 찾게 됨
+   - (나) 지침 4절대로 바른 판을 사람이 `manual`로 고정(메모에 근거)
+   - 저자 칸을 「구들」로 둔 채 고정 판만 비우는 길은 export ④가 삐아제어린이(어린이책) 판에 맞추므로 피해야 함
+
+   | 줄 | 목록 제목·저자 | 지금 고정 판 | 카탈로그에 있는 바른 후보(보유량 순) |
+   |---|---|---|---|
+   | 서울대 4 | 춘향전 · 구들(목록 칸) | 작가문화 「춘향전」 작가문화 편집부 · ISBN 없음 · 214341 (42) | 신원문화사 「춘향전」 편집부 · 9788935910564 · 231034 (34) / 동아출판 「춘향전」 작가 미상 저 · ISBN 없음 · 159794 (30) / 유페이퍼 「춘향전」 작자 미상 · ISBN 없음 · 769378 (28) |
+
+2. 운영 반영: 목록 파일 내용이 바뀌지 않았으므로(`checked_on`만) 지금 반영할 것이 없음. 다음 정기 가져오기 때 함께 실림(ADR-0123·0124). 1번이 정해져 목록 파일이 바뀌면 그때 export ④까지 다시 봄
+
+- **춘향전(서울대 4) 결정** [확정] (사용자 승인 2026-10-17, plan `docs/cycles/21-recommended-books/easy/2026-10-17-chunhyang-edition.html`, 기록 plan `matching-guide.md` 6절): 목록 줄 저자 칸 「구들」→「작자 미상」, 고정 판은 지금 판 작가문화 214341(보유 42곳) 그대로, `pinned_by`를 `manual`로, 메모에 "후보 중 보유 최다, 사용자 승인 2026-10-17". 화면은 바뀌지 않음. 수집기 시험 25개 통과. 커밋 `9f6e7cd`(나누기 전 `8e6ecd4`). Java export ④에 거르기 낱말이 없는 문제는 plan 백로그(지금 고치지 않음)
+
 # 사이클 20
 
 인계서: plan `docs/cycles/20-lookup-status-and-extension/handoff.md`(= `docs/current/handoff.md`, 조회 상태 신호와 브라우저 확장 조회, 2026-10-17). 이 절은 **1단계 백엔드(1-0~1-8, 1-10, 1-11)** 기록입니다. 웹(1-12~1-14)은 같은 브랜치에서 다른 세션이 만들고 이 절 아래에 이어 적습니다.
@@ -5073,3 +5135,32 @@ plan 20 알림(사용자 결정, 결정 페이지 plan `docs/cycles/21-recommend
 
 - 503 경보 기준값(위 [안]) — 사이클 17에서 정함
 - 떠난 묶음의 `result=skipped` 로그가 후보 수만큼(수백 줄) 남는 것을 묶을지
+
+## 1단계 웹 기록 (2026-10-17, 1-12·1-13·1-14)
+
+작업은 백엔드와 같은 워크트리 `../chaekcheck-dev-c20`에서 `web/`만. 단계마다 `npm run build` + vitest 통과, **vitest 61파일 502개**(시작 461). 기존 시험 자료의 `pageSize: 20` 기대값은 깨지지 않아 바꾸지 않음.
+
+- 커밋: 1-12 `94c8deb`, 1-13 `1cf46e7`, 1-14 `22eca3d`, 사용자 결정 반영 `5b0491c`·`cf88aeb`·`91d271b`·`a053a71`·`77974f5`·`f846527`·`b057c56`, 화면 확인 중 고침 `ad70366`(말풍선 글에 포커스 테두리 없앰)
+- 새 파일: `web/src/api/lookupStatus.ts`(`fetchLookupStatus`, `LookupStatus`·`LookupLevel`·`LookupReason`, `LOOKUP_STATUS_POLL_SECONDS`, `LOOKUP_STATUS_STALE_MS`=30000), `web/src/features/lookupstatus/`(`LookupStatusProvider.tsx` — `useLookupStatus` → `{view, queued}`, `HeaderSignal.tsx`+css, `lookupStatusText.ts` — `LEVEL_LABEL`·`LEVEL_ARIA`·`secondLine`·`QUEUED_LABEL`, `serverBusy.ts` — 503을 provider에 알림), `web/src/components/HeaderOpen.tsx`(메뉴·말풍선 중 하나만 열림)
+- 고친 곳: `AppLayout.tsx`(+css·test; `statusSlot`의 `aria-hidden` 뺌 — 안에 버튼이 들어감), `HeaderMenu.tsx`, `blocked.ts`(`reportBlocked(error)`: 503이면 빨강 신호), `useSearch.ts`·`useHoldings.ts`·`InstantResults.tsx`·`BookList.tsx`, `sortBatch.ts`(`SortedBatch.unchecked`), `resultFilter.ts`(`uncheckedText(n)`, `emptyResultText(answered, unchecked, filter)`), `BatchSection.tsx`, `ResultList.tsx`(`UNCHECKED_GROUP_TITLE`, `uncheckedLibraries`), `ResultRow.tsx`(`LOOKUP_UNCHECKED`, `UncheckedLibraryLine`, 「밀려요」 `useQueuedMark`), `holdingView.ts`·`DirectResults.tsx`
+- 환경 변수 [안: dev]: `VITE_LOOKUP_STATUS_POLL_SECONDS`(기본 10), `VITE_HOLDING_AUTO_BATCHES`(기본 3). `web/.env.example`은 없음 → `docs/maintenance/settings-index.md` 3절
+- aria-label: 「조회 상태: 원활 / 붐빔 / 혼잡 / 모름」(초록만 [확정], 나머지는 글에 맞춰 [안])
+- TanStack Query v5(Context7 확인): `refetchInterval` 10초는 `focusManager.isFocused()`(visibilitychange)일 때만 돌고 `refetchIntervalInBackground: false`라 숨기면 멈춤, `refetchOnWindowFocus: 'always'`로 보이면 즉시 1회, `retry: false`. 회색 판정은 provider(마지막 성공 + 30초, 탭 복귀·503 때 재판정; 회색이 모든 단계보다 앞섬)
+
+### 사용자 결정 (인계서·목업과 다른 점, 말 그대로)
+
+1. 폰 머리말 순서: 목업 「▾ · ● · 로그인」 → **「● · ▾ · 로그인」**. "폰인데 이거 위치 서로 바꾸는 게 나은 것 같아"
+2. 불 뒤 여백: PC·폰 모두 목업보다 왼쪽. "폰이나 pc나 둘 다 상태 동그라미(메시지)가 좀 더 왼쪽으로" → `.statusSlot:not(:empty)` margin-right PC `1.4 × --base-unscaled`, 폰은 그 뒤 "모바일은 검은 점이 이것보다는 조금 더 오른 쪽으로"로 `0.7 × --base-unscaled`
+3. **점 애니메이션 — 인계서 1-12 「움직임 없음」[확정] 대신**: "검은 점들이 늘었다 줄어드는 애니메이션이 있었으면 해" → 처음엔 크기 맥박 + 옅은 고리였으나 "동그라미 크기만 줄었다 키우지 뭐 다른 색의 동그라미가 더 커지는 애니메이션은 빼줘"로 고리 뺌 → "회색의 것은 좀 다르게 … 지금 회색은 죽은 거니까 안 움직이게 하고 canvas처럼 상황에 따라서 애니메이션이 달랐으면 해" → 목업 승인("이대로 ok"): 초록 2.4초 1→1.25배, 노랑 1.4초 1→1.3배, 빨강 0.9초 1→1.4배 + 살짝 깜빡임, 회색 멈춤. `transform`(빨강은 opacity도)만, `prefers-reduced-motion: reduce`면 없음. 말풍선 안 점은 움직이지 않음
+4. 폰 점 크기: "모바일에서는 상태 동그라미의 크기를 좀 줄였으면 해" → 0.55rem → 폰 0.42rem(375에서 10.75px → 7.7px), 44px 탭 영역 그대로
+5. 점과 글 사이: "점하고 상태모름 메세지 사이에 간격 좀 더 줘" → `gap` 0.35em → 0.7em
+6. (사이클 21 화면, 덤) 추천도서 책 창 「영상 보기」: "이거 영상 보기 pc/태블릿에서도 좀 우측으로" → PC·태블릿에서 「책 검색」 뒤 1.2rem 더 띄움(`a0d732c`), 폰은 그대로
+
+### [안]으로 정한 것·인계서와 다른 점
+
+- 직접 찾기 실패 도서관 줄의 링크: 인계서 "누르면 그 도서관 검색 페이지"의 주소(`librarySearchUrl`)는 페이지를 읽어야 알 수 있어 실패한 도서관엔 없음 → 우선 `homepageUrl`(전자도서관 첫 화면)로 연결, 없으면 링크 없음. **확인 필요**: 서버가 `library-failed`에 검색 주소를 실어 주면 바꿀 수 있음(1단계 마무리 때 백엔드에서 검토)
+- 「N곳은 확인하지 못했어요」: 묶음 빈 문구 "지금까지 N곳에서 … 찾지 못했습니다 · M곳은 확인하지 못했어요"(N은 실패 제외); 답한 곳이 0이면 뒤 문장만. 직접 찾기 전체 빈 결과도 같음. 실패 도서관 수 = 책 기준은 Failed holding이 있는 도서관, 직접 찾기는 `status: 'failed'` 도서관
+- 회색 기준 시각: 성공이 한 번도 없으면 provider 마운트 시각부터 30초 → 회색 「조회 상태를 받아오지 못했어요」(첫 응답 전 빈 자리 규칙은 지킴)
+- 「밀려요」: PENDING 줄과 확인못한 묶음 줄에만, 확인못한 줄은 한 번 붙으면 새 검색 전까지 유지(ref latch). PC는 도서관 이름 옆, 폰은 `.libraryName` 안 `flex-basis:100%`로 이름 아래. S14 창은 줄 글만 바뀜
+- 1-14 「더 보기」: 기존 목록 아래 「더 보기」 버튼(같은 모양)을 그대로 씀 — 책 화면에서는 그 책 줄들 바로 아래. `batchFailed`면 이어 부르지 않음. S14 넓히기는 `open()`마다 횟수를 1로 되돌려 따로 셈
+- 화면 확인(백엔드 없이 fetch 스텁): 1280·768 점+글 오른쪽 끝, 375 점만·44px·점 탭 → 말풍선만, 320 가로 스크롤 없음·빈 곳 탭 → 메뉴. 실제 상태 응답·「밀려요」·묶음·「더 보기」·503 빨강·로그인 버튼 포함 머리말은 c20 서버 8094로 아래 "1단계 화면 확인"에서

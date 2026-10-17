@@ -31,9 +31,14 @@
 |---|---|---|---|---|---|---|---|
 | 도서관 응답 본문 상한 | 1MB (압축본도, 풀었을 때도) | `fetch.max-body-size` | `FETCH_MAXBODYSIZE` (운영 compose는 `${LOOKUP_MAX_BODY_MB}MB`) | 서비스 `chaekcheck.availability.max-body-size` | 서비스와 같은 상한. 넘으면 `outcome=BODY_TOO_LARGE`로 돌려주고 서비스가 `body_too_large`로 기록 | 사이클 20 세 관점 검토 #7, 전반 점검 #6 | 조회 서버 |
 
-## 3. 웹 · 확장 (사이클 20 뒤 단계에서 채움)
+## 3. 웹 · 확장
 
-- 웹 값은 빌드 때 `VITE_*`(예 `VITE_LOOKUP_STATUS_POLL_SECONDS`=10, 책 화면 자동 이어 부르기 3묶음), 확장 값은 `extension/config.js` 한 파일 — 둘 다 다시 빌드·다시 깔아야 바뀝니다. 1단계 웹 작업과 2단계 확장 작업이 이 절에 한 줄씩 더합니다.
+- 웹 값은 빌드 때 `VITE_*`, 확장 값은 `extension/config.js` 한 파일(2단계) — 둘 다 다시 빌드·다시 깔아야 바뀝니다. 웹은 `web/.env.local`에 적습니다(`.env.example` 없음).
+
+| 값 | 지금 값 | 어디 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 할 것 |
+|---|---|---|---|---|---|---|
+| 상태 묻는 간격 | 10초 | `VITE_LOOKUP_STATUS_POLL_SECONDS` (`web/src/api/lookupStatus.ts`) | 서버 상태 메모 1초(1절) | 탭이 보일 때만 묻고, 마지막 성공 뒤 30초(`LOOKUP_STATUS_STALE_MS`, 코드 상수)가 지나면 회색 | spec R1·R5, ADR-0118 | 웹 빌드 |
+| 책 화면 자동 이어 부르기 | 3묶음 | `VITE_HOLDING_AUTO_BATCHES` (`web/src/features/search/useHoldings.ts`) | holding 묶음 동시 5·마감 8초(서버) | 첫 묶음 포함 3묶음 뒤 「더 보기」 | spec R15-1, ADR-0132, 전반 점검 #7 | 웹 빌드 |
 
 ## 4. 코드 상수 (설정이 아닌 것)
 
