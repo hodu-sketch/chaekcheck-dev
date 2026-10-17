@@ -141,8 +141,8 @@ describe('S16 notice list (cycle 16)', () => {
     renderAt('/notices?page=12')
 
     const pages = await screen.findByRole('navigation', { name: '쪽' })
-    expect(within(pages).getAllByRole('link').map((link) => link.textContent)).toEqual([
-      '‹', '11', '12', '13', '14', '15', '›',
+    expect(within(pages).getAllByRole('link').map((link) => link.getAttribute('aria-label') ?? link.textContent)).toEqual([
+      '이전 쪽', '11', '12', '13', '14', '15', '다음 쪽',
     ])
     expect(within(pages).getByRole('link', { name: '이전 쪽' }).getAttribute('href')).toBe('/notices?page=11')
     expect(within(pages).getByRole('link', { name: '다음 쪽' }).getAttribute('href')).toBe('/notices?page=13')
@@ -156,7 +156,9 @@ describe('S16 notice list (cycle 16)', () => {
     renderAt('/notices')
 
     const pages = await screen.findByRole('navigation', { name: '쪽' })
-    expect(within(pages).getAllByRole('link').map((link) => link.textContent)).toEqual(['‹', '1', '2', '3', '4', '5', '›'])
+    expect(within(pages).getAllByRole('link').map((link) => link.getAttribute('aria-label') ?? link.textContent)).toEqual([
+      '이전 쪽', '1', '2', '3', '4', '5', '다음 쪽',
+    ])
     expect(within(pages).getByRole('link', { name: '이전 쪽' }).getAttribute('aria-disabled')).toBe('true')
     expect(within(pages).getByRole('link', { name: '다음 쪽' }).getAttribute('href')).toBe('/notices?page=2')
   })

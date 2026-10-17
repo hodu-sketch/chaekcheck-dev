@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router'
+import { ChevronLeft } from './icons'
 import styles from './BackLink.module.css'
 
 /**
@@ -14,8 +15,9 @@ export function BackLink() {
   }
   return (
     <div className={styles.row}>
+      {/* the app's chevron like 「‹ 목록으로」, not the ← glyph (user 2026-10-17) */}
       <button type="button" className={styles.back} onClick={back}>
-        ← 돌아가기
+        <ChevronLeft size={7} /> 돌아가기
       </button>
     </div>
   )

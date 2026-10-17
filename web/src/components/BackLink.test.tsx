@@ -33,13 +33,13 @@ describe('back link', () => {
     const user = userEvent.setup()
     render(<App start="/search" />)
     await user.click(screen.getByRole('link', { name: '약관' }))
-    await user.click(screen.getByRole('button', { name: '← 돌아가기' }))
+    await user.click(screen.getByRole('button', { name: '돌아가기' }))
     expect(screen.getByRole('link', { name: '약관' })).toBeTruthy()
   })
 
   it('goes to the start screen when the page was opened from its address', async () => {
     render(<App start="/terms" />)
-    await userEvent.setup().click(screen.getByRole('button', { name: '← 돌아가기' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: '돌아가기' }))
     expect(screen.getByText('첫 화면')).toBeTruthy()
   })
 })

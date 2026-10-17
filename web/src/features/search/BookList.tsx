@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronRight } from '../../components/icons'
 import { Link } from 'react-router'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort } from '../../api/types'
@@ -114,7 +115,7 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
               </span>
               <span className={styles.count}>보유 도서관 {book.holdingLibraryCount}곳</span>
               <span className={styles.chevron} aria-hidden="true">
-                ›
+                <ChevronRight size={8} />
               </span>
             </Link>
           </li>

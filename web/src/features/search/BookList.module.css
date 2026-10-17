@@ -60,8 +60,9 @@
 
 .chevron {
   grid-area: chevron;
+  display: inline-flex;
+  align-items: center;
   color: var(--ink-faint);
-  font-size: 1.4rem;
 }
 
 .bottom {
@@ -117,10 +118,6 @@
     padding: 0.85rem 1rem;
     /* white on the grey canvas: no outer panel on phones */
     background: var(--card);
-  }
-
-  .chevron {
-    font-size: var(--text-lg);
   }
 
   .more {

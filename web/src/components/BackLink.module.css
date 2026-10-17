@@ -4,6 +4,9 @@
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
   min-height: var(--control-height);
   padding: 0 1rem;
   border: 1px solid var(--rule-strong);

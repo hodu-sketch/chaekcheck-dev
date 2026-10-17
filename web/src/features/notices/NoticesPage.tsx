@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight } from '../../components/icons'
 import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { fetchNotices, retryServerErrors } from '../../api/client'
@@ -111,7 +112,7 @@ function Pages({ page, totalPages, phone }: { page: number; totalPages: number; 
   const numbers = Array.from({ length: last - first + 1 }, (_, index) => first + index)
   return (
     <nav className={styles.pages} aria-label="쪽">
-      {arrows && <Arrow to={page > 1 ? page - 1 : null} label="이전 쪽" text="‹" />}
+      {arrows && <Arrow to={page > 1 ? page - 1 : null} label="이전 쪽" side="prev" />}
       {numbers.map((number) => (
         <Link
           key={number}
@@ -122,22 +123,24 @@ function Pages({ page, totalPages, phone }: { page: number; totalPages: number; 
           {number}
         </Link>
       ))}
-      {arrows && <Arrow to={page < totalPages ? page + 1 : null} label="다음 쪽" text="›" />}
+      {arrows && <Arrow to={page < totalPages ? page + 1 : null} label="다음 쪽" side="next" />}
     </nav>
   )
 }
 
-function Arrow({ to, label, text }: { to: number | null; label: string; text: string }) {
+/* the app's chevrons, not ‹ › glyphs: the same mark everywhere (user 2026-10-17) */
+function Arrow({ to, label, side }: { to: number | null; label: string; side: 'prev' | 'next' }) {
+  const mark = side === 'prev' ? <ChevronLeft size={8} /> : <ChevronRight size={8} />
   if (to === null) {
     return (
       <span className={styles.arrow} aria-label={label} aria-disabled="true" role="link">
-        {text}
+        {mark}
       </span>
     )
   }
   return (
     <Link to={pageHref(to)} className={styles.arrow} aria-label={label}>
-      {text}
+      {mark}
     </Link>
   )
 }

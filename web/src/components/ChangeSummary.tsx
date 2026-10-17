@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { ChevronDown } from './icons'
 import { Markdown } from './Markdown'
 import styles from './ChangeSummary.module.css'
 
@@ -20,8 +21,9 @@ export function ChangeSummary({ summary }: { summary: string | null | undefined 
         onClick={() => setOpen(!open)}
       >
         바뀐 점 보기
+        {/* the app's chevron, not the ▾ glyph: the same mark on every fold (user 2026-10-17, "화살표랑 꺽쇠 섞여있는데") */}
         <span className={styles.arrow} data-open={open} aria-hidden="true">
-          ▾
+          <ChevronDown size={10} />
         </span>
       </button>
       {open && (
