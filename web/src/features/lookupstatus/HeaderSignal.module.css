@@ -63,22 +63,13 @@
 }
 
 /*
- * The dot in the header breathes: a slow, soft grow-and-shrink in every color, with a faint ring that widens and fades
- * behind it (user 2026-10-17: "검은 점들이 늘었다 줄어드는 애니메이션이 있었으면 해"; this replaces the handoff's "움직임
- * 없음" for the dot). Transform and opacity only, so nothing around it moves; off with reduced motion.
+ * The dot in the header breathes: a slow, soft grow-and-shrink in every color (user 2026-10-17: "검은 점들이 늘었다
+ * 줄어드는 애니메이션이 있었으면 해"; this replaces the handoff's "움직임 없음" for the dot). Only the dot itself scales:
+ * no widening ring behind it (user 2026-10-17: "동그라미 크기만 줄었다 키우지 뭐 다른 색의 동그라미가 더 커지는 애니메이션은
+ * 빼줘"). Transform only, so nothing around it moves; off with reduced motion.
  */
 .button .dot {
   animation: pulse 1.8s ease-in-out infinite;
-}
-
-.button .dot::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: var(--signal);
-  opacity: 0;
-  animation: ring 1.8s ease-out infinite;
 }
 
 @keyframes pulse {
@@ -92,22 +83,8 @@
   }
 }
 
-@keyframes ring {
-  0% {
-    transform: scale(1);
-    opacity: 0.35;
-  }
-
-  70%,
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .button .dot,
-  .button .dot::after {
+  .button .dot {
     animation: none;
   }
 }
