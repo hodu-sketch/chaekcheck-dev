@@ -58,7 +58,9 @@ const LEEDONGJIN: PicksList = {
   source: () => '출처: 유튜브 「B tv 이동진의 파이아키아」 · 책첵은 이동진 평론가·파이아키아와 관계가 없어요',
   pickLine: (book) => {
     const month = monthLabel(book.recommendedMonth)
-    const line = `이동진 평론가가 「파이아키아」 영상에서 추천${month ? ` (${month})` : ''}`
+    // just the month (user 2026-10-17: "이동진 평론가가 파이아키아에서 추천이라고 계속 공통 중복 메세지 뜨는데 그냥 2026년
+    // 6월 추천 이런것만 해줘 어짜피 영상보기 있으니까"; R6-2 was "이동진 평론가가 「파이아키아」 영상에서 추천 (…)")
+    const line = month ? `${month} 추천` : '추천'
     return book.yearBook ? `${line} · ${book.yearBook} 올해의 책` : line
   },
 }

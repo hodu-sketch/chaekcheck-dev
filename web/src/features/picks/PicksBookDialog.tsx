@@ -154,8 +154,11 @@ function BookBody({
       const range = document.createRange()
       range.selectNodeContents(pick)
       const right = Math.max(...Array.from(range.getClientRects(), (r) => r.right))
-      // the widest of the two: when both do not fit on one line, [영상 보기] goes to the next line, at the same right edge
-      const needed = Math.max(...Array.from(actions.children, (child) => child.getBoundingClientRect().width))
+      // both on one line: when the purple line is shorter than that ("2026년 6월 추천", user 2026-10-17), [영상 보기]
+      // stays on the line of [책 검색 >>] at the right end of the text column instead of wrapping under it
+      const gap = parseFloat(getComputedStyle(actions).columnGap) || 0
+      const children = Array.from(actions.children, (child) => child.getBoundingClientRect().width)
+      const needed = children.reduce((sum, w) => sum + w, 0) + gap * Math.max(0, children.length - 1)
       const width = right - actions.getBoundingClientRect().left
       setActionsWidth(Number.isFinite(width) && width >= needed ? Math.round(width) : null)
     }
