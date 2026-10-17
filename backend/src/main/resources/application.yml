@@ -110,6 +110,16 @@ chaekcheck:
       inactive-after: 1y
       # Kakao allows 100 user-list calls a minute per app; 0.7 s apart stays below it
       kakao-call-interval: 700ms
+  lookup:
+    # Where the lookup state kept in memory lives (status memo, last DB error time, HostQueueBoard, SearchSlots
+    # refusal time; ADR-0133). Only "memory" exists; another value stops the start. Redis comes when the service
+    # runs on several instances. docs/maintenance/settings-index.md
+    state-store: memory
+  catalog:
+    books:
+      # GET /api/v1/books page size when pageSize is not sent; the maximum stays 20 (BookParams.MAX_PAGE_SIZE).
+      # 20 -> 10 [확정] (cycle 20 ADR-0132, spec R15). docs/maintenance/settings-index.md
+      default-page-size: 10
   availability:
     cache-ttl: 3m
     # cycle 08 (ADR-0066): one limit per cache, statistics logged. 1,000 each as before [안] until step 9 measures them.
@@ -128,17 +138,23 @@ chaekcheck:
     # 15s = the longest wait before the headers today (connect 5s + read 5s) + 5s for the body, so no answer that
     # works now is cut; a site that sends its body very slowly can no longer hold a connection without end.
     total-timeout: 15s
-    # [안] direct mode: largest library body read; past it reading stops and the request fails (upstream_error).
-    # Largest real answers saved (2026-10-05, data/cycle07/probe): BOOKCUBE search XML 322KB (20 rows), KYOBO search
-    # page 188KB; test fixtures (scripts removed) at most 130KB. 4MB is about 12x the largest.
-    max-body-size: 4MB
-    # [안] batch streams and "more" calls running at once; more get 503 server_busy at once (not queued).
-    # 20 x parallelism 5 = at most 100 library requests in flight from batches, and the host throttle (1 per host)
-    # still applies. A personal service rarely has 20 searches in the same few seconds; tune with real traffic.
-    max-concurrent-searches: 20
+    # Largest library body read, the compressed bytes and the decompressed bytes both (cycle 20, ADR-0132; gzip is
+    # asked for and inflated here): past it reading stops and the request fails for that library only, counted as
+    # body_too_large. Largest real answers saved (2026-10-05, data/cycle07/probe): BOOKCUBE search XML 322KB (20
+    # rows), KYOBO search page 188KB. 4MB -> 1MB [확정] (cycle 20 review #7). Same value as the fetch service and
+    # later nginx / the extension (LOOKUP_MAX_BODY_MB). docs/maintenance/settings-index.md
+    max-body-size: 1MB
+    # Batch streams and "more" calls running at once; more get 503 server_busy at once (not queued).
+    # 40 x parallelism 5 = at most 200 library requests in flight from batches, and the host throttle (1 per host)
+    # still applies. 20 -> 40 [확정] (cycle 20 overall review #13) together with the parse slots below, which keep
+    # the heap estimate (about 340MB) valid. The status signal turns yellow at half and red at all of these slots.
+    # docs/maintenance/settings-index.md
+    max-concurrent-searches: 40
     batch:
-      # no new request once more than 20 rows are counted; requests already started are still received [확정]
-      row-limit: 20
+      # no new request once more than 10 rows are counted; requests already started are still received [확정]
+      # (20 -> 10, cycle 20 ADR-0132, spec R15). Holding batches (the book page) have no row limit (R15-1).
+      # docs/maintenance/settings-index.md
+      row-limit: 10
       # [안] libraries fetched at once; to be tuned with real batch timings
       parallelism: 5
       # search pages must answer within 8s of the batch start, else upstream_timeout [확정]

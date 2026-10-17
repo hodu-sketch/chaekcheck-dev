@@ -27,6 +27,7 @@ final class BookParams {
 
 	static final int MAX_LENGTH = 50;
 
+	/** Largest {@code pageSize} (API contract: 21 is 400). The default comes from {@link BookSearchSettings}. */
 	static final int MAX_PAGE_SIZE = 20;
 
 	static final int MAX_REGION_IDS = 20;
@@ -42,8 +43,12 @@ final class BookParams {
 
 	private final MultiValueMap<String, String> params;
 
-	BookParams(MultiValueMap<String, String> params) {
+	private final int defaultPageSize;
+
+	/** @param defaultPageSize books on a page when {@code pageSize} is not sent (cycle 20: 10, settable) */
+	BookParams(MultiValueMap<String, String> params, int defaultPageSize) {
 		this.params = params;
+		this.defaultPageSize = defaultPageSize;
 	}
 
 	BookQuery query() {
@@ -72,7 +77,7 @@ final class BookParams {
 		};
 		planOptions(); // validated here to keep the error order; the controller reads it again
 		int page = positive("page", 1, Integer.MAX_VALUE);
-		int pageSize = positive("pageSize", MAX_PAGE_SIZE, MAX_PAGE_SIZE);
+		int pageSize = positive("pageSize", defaultPageSize, MAX_PAGE_SIZE);
 		Set<Role> roles = EnumSet.of(Role.AUTHOR, Role.UNKNOWN);
 		roleNames.forEach(name -> roles.add(Role.valueOf(name.toUpperCase(Locale.ROOT))));
 		return new BookQuery(title, author, publisher, exact.contains("title"), exact.contains("author"),

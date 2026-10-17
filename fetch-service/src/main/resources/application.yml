@@ -26,11 +26,13 @@ fetch:
   # works now is cut; a library that sends its body very slowly can no longer hold a slot without end.
   # The main service gives up on this server after its own read timeout (7s) anyway.
   total-timeout: 15s
-  # [안] largest library body read; past it the call stops reading and fails as ERROR (upstream_error).
+  # Largest library body read, compressed and decompressed both (gzip is asked for and inflated here, cycle 20);
+  # past it the call stops reading and fails as BODY_TOO_LARGE, which the main service records as body_too_large.
   # Largest real answers saved (2026-10-05, data/cycle07/probe): BOOKCUBE search XML 322KB (20 rows), KYOBO
-  # search page 188KB; test fixtures (scripts removed) at most 130KB. 4MB is about 12x the largest, and
-  # 32 slots x 4MB (x1.33 as base64) stays near 170MB at worst.
-  max-body-size: 4MB
+  # search page 188KB. 4MB -> 1MB [확정] (cycle 20 review #7), the same value as the main service
+  # (LOOKUP_MAX_BODY_MB in production); 32 slots x 1MB (x1.33 as base64) stays near 43MB at worst.
+  # Environment variable: FETCH_MAXBODYSIZE. ../../../../docs/maintenance/settings-index.md
+  max-body-size: 1MB
   # [안] requests handled at once; more get 503 so the main service tries the next fetch server
   max-concurrent: 32
   allow-loopback: false

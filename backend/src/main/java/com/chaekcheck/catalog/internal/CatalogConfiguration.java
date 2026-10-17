@@ -9,9 +9,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 import com.chaekcheck.catalog.internal.search.BookSearch;
 import com.chaekcheck.catalog.internal.search.PgBigmBookSearch;
+import com.chaekcheck.catalog.internal.web.BookSearchSettings;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(CatalogLoadSettings.class)
+@EnableConfigurationProperties({ CatalogLoadSettings.class, BookSearchSettings.class })
 class CatalogConfiguration {
 
 	@Bean

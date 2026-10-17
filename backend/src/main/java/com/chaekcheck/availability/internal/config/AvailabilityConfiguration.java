@@ -40,7 +40,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import tools.jackson.databind.json.JsonMapper;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(AvailabilityProperties.class)
+@EnableConfigurationProperties({ AvailabilityProperties.class, LookupStateProperties.class })
 class AvailabilityConfiguration {
 
 	/**

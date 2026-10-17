@@ -214,12 +214,19 @@ class BookSearchTests {
 			book("사랑 " + i, "가", "가", "2020-01-01", open);
 		}
 
+		// cycle 20 (ADR-0132, AC-21): 10 books a page without pageSize, 20 on request, 21 is 400 (validationErrors)
 		assertThat(mvc.get().uri("/api/v1/books?title=사랑")).bodyJson()
-			.isLenientlyEqualTo("{\"page\":1,\"pageSize\":20,\"totalCount\":25,\"hasMore\":true,"
+			.isLenientlyEqualTo("{\"page\":1,\"pageSize\":10,\"totalCount\":25,\"hasMore\":true,"
 					+ "\"collectedFrom\":\"2026-09-29\",\"collectedTo\":\"2026-09-29\"}");
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑")).bodyJson().extractingPath("$.items.length()")
+			.isEqualTo(10);
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&pageSize=20")).bodyJson()
+			.extractingPath("$.items.length()").isEqualTo(20);
 		assertThat(mvc.get().uri("/api/v1/books?title=사랑&page=2&pageSize=20")).bodyJson()
 			.isLenientlyEqualTo("{\"page\":2,\"totalCount\":25,\"hasMore\":false}");
 		assertThat(mvc.get().uri("/api/v1/books?title=사랑&page=3")).bodyJson()
+			.isLenientlyEqualTo("{\"page\":3,\"totalCount\":25,\"hasMore\":false}");
+		assertThat(mvc.get().uri("/api/v1/books?title=사랑&page=4")).bodyJson()
 			.isLenientlyEqualTo("{\"items\":[],\"totalCount\":25,\"hasMore\":false}");
 	}
 

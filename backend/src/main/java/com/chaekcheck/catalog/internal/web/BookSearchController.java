@@ -42,16 +42,20 @@ class BookSearchController {
 
 	private final UsageLog usageLog;
 
-	BookSearchController(BookSearch bookSearch, LibraryCatalog libraryCatalog, UsageLog usageLog) {
+	private final BookSearchSettings settings;
+
+	BookSearchController(BookSearch bookSearch, LibraryCatalog libraryCatalog, UsageLog usageLog,
+			BookSearchSettings settings) {
 		this.bookSearch = bookSearch;
 		this.libraryCatalog = libraryCatalog;
 		this.usageLog = usageLog;
+		this.settings = settings;
 	}
 
 	@GetMapping("/api/v1/books")
 	BookPage books(@RequestParam MultiValueMap<String, String> params, HttpServletRequest request) {
 		UsageRequest usage = usageLog.capture(request);
-		BookParams read = new BookParams(params);
+		BookParams read = new BookParams(params, settings.defaultPageSize());
 		BookQuery query = read.query();
 		BookPage page = bookSearch.search(query, plan(read));
 		SearchConditions conditions = conditions(query, read);
@@ -70,7 +74,8 @@ class BookSearchController {
 			HttpServletRequest request) {
 		UsageRequest usage = usageLog.capture(request);
 		long id = parseId(bookId);
-		BookParams read = new BookParams(params == null ? new LinkedMultiValueMap<>() : params);
+		BookParams read = new BookParams(params == null ? new LinkedMultiValueMap<>() : params,
+				settings.defaultPageSize());
 		List<SearchTarget> plan = plan(read);
 		BookDetail detail = bookSearch.find(id, plan).orElseThrow(() -> new BookNotFoundException(id));
 		usageLog.recordBookView(usage, id, List.copyOf(read.regionIds("residenceRegionIds")),
