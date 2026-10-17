@@ -4,15 +4,28 @@ import type { ResultFilter, TargetLibrary } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
 import { BatchSection } from './BatchSection'
 import { BLOCKED_TEXT, type Blocked } from './blocked'
+import { ResultRow, UncheckedLibraryLine } from './ResultRow'
 import type { Batch } from './rowVerdict'
-import type { SortedBatch } from './sortBatch'
+import type { ResultRow as Row, SortedBatch } from './sortBatch'
 import styles from './ResultList.module.css'
 
 export interface BatchView {
   batch: Batch
   sorted: SortedBatch
   answeredSoFar: number
+  /** Libraries whose lookup failed so far (cycle 20); 0 when the caller does not count them. */
+  uncheckedSoFar?: number
 }
+
+/** A library of a direct search whose page could not be read (cycle 20 review #1): one line, no book. */
+export interface UncheckedLibrary {
+  library: TargetLibrary
+  /** The library's own site, when known. */
+  url: string | null
+}
+
+/** The title of the group of rows that could not be checked (cycle 20 handoff 1-13) [확정]. */
+export const UNCHECKED_GROUP_TITLE = '확인하지 못한 도서관'
 
 interface Props {
   batches: BatchView[]
@@ -42,6 +55,8 @@ interface Props {
   toolbarEnd?: ReactNode
   /** The screen, for the usage report of the result links (cycle 15). */
   screen?: ClickScreen
+  /** Direct search (cycle 20): libraries that failed as a whole, one line each in 「확인하지 못한 도서관」. */
+  uncheckedLibraries?: UncheckedLibrary[]
 }
 
 /**
@@ -66,8 +81,29 @@ export function ResultList({
   hideFilter,
   toolbarEnd,
   screen,
+  uncheckedLibraries = [],
 }: Props) {
   const libraryById = new Map(libraries.map((l) => [l.id, l]))
+  // 「확인하지 못한 도서관」 (cycle 20 handoff 1-13 [확정], review #2): every batch's failed and UNKNOWN rows and the failed
+  // libraries of a direct search, in plan order, as one group right above "더 보기"; shown in both filters
+  const planIndex = new Map(libraries.map((l, index) => [l.id, index]))
+  const at = (libraryId: number) => planIndex.get(libraryId) ?? Number.MAX_SAFE_INTEGER
+  const unchecked: Array<{ key: string; order: number; rank: number; row?: Row; library?: UncheckedLibrary }> = [
+    ...batches.flatMap((view) =>
+      view.sorted.unchecked.map((row) => ({
+        key: `${row.libraryId}-${row.page}-${row.rank}`,
+        order: at(row.libraryId),
+        rank: row.rank,
+        row,
+      })),
+    ),
+    ...uncheckedLibraries.map((library) => ({
+      key: `library-${library.library.id}`,
+      order: at(library.library.id),
+      rank: -1,
+      library,
+    })),
+  ].sort((a, b) => a.order - b.order || a.rank - b.rank)
 
   return (
     <section className={styles.list}>
@@ -104,6 +140,7 @@ export function ResultList({
           sorted={view.sorted}
           filter={filter}
           answeredSoFar={view.answeredSoFar}
+          uncheckedSoFar={view.uncheckedSoFar ?? 0}
           moreToCome={remaining > 0}
           first={index === 0}
           libraryById={libraryById}
@@ -111,6 +148,32 @@ export function ResultList({
           screen={screen}
         />
       ))}
+
+      {unchecked.length > 0 && (
+        <section className={styles.group} data-group="unchecked" aria-labelledby="unchecked-title">
+          <h2 id="unchecked-title" className={styles.groupTitle}>
+            {UNCHECKED_GROUP_TITLE} <span className={styles.groupCount}>({unchecked.length})</span>
+          </h2>
+          <ol className={styles.rows}>
+            {unchecked.map((item) => (
+              <li key={item.key}>
+                {item.row ? (
+                  <ResultRow
+                    row={item.row}
+                    library={libraryById.get(item.row.libraryId)}
+                    searchUrl={searchUrls.get(item.row.libraryId)}
+                    screen={screen}
+                  />
+                ) : (
+                  item.library && (
+                    <UncheckedLibraryLine library={item.library.library} url={item.library.url} screen={screen} />
+                  )
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <div className={styles.bottom}>
         {loading ? (

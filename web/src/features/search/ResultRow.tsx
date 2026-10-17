@@ -1,4 +1,5 @@
 import { Popover } from 'radix-ui'
+import { useRef } from 'react'
 import type { JoinSurvey, TargetLibrary } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
 import { LibraryLogo } from '../../components/LibraryLogo'
@@ -6,11 +7,72 @@ import { libraryClick } from '../../lib/libraryClick'
 import { classificationText } from '../../lib/libraryClassification'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
+import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
+import { useLookupStatus } from '../lookupstatus/LookupStatusProvider'
 import { needsJoinCheck, type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
 /** [확정] (cycle 08 handoff step 7-4): a holding that left the library's list (`holding_not_found`). */
 export const HOLDING_GONE = '이 도서관 목록에서 빠졌어요'
+
+/** [확정] (cycle 20 handoff 1-13): a row whose lookup failed; "확인 실패" before. */
+export const LOOKUP_UNCHECKED = '대출 정보를 확인하지 못했어요'
+
+/**
+ * Whether the row carries 「지금 이 도서관 조회가 밀려요」 (cycle 20 spec R4, review #5 [확정]): only while the row is
+ * still being checked, or in 「확인하지 못한 도서관」; never on a row that answered. A row that was marked when its lookup
+ * failed keeps the mark until the next search (the row is unmounted then), whatever the later status answers say.
+ */
+function useQueuedMark(libraryId: number, checking: boolean, unchecked: boolean): boolean {
+  const { queued } = useLookupStatus()
+  const kept = useRef(false)
+  const now = queued.has(libraryId)
+  if (unchecked && now) kept.current = true
+  return (unchecked && kept.current) || (checking && now)
+}
+
+/** The small amber tag 「지금 이 도서관 조회가 밀려요」: next to the name on wide screens, under it on phones. */
+function QueuedTag() {
+  return <span className={styles.queued}>{QUEUED_LABEL}</span>
+}
+
+/**
+ * A library of a direct search whose page could not be read (cycle 20 review #1 [확정]): one line, no book title,
+ * 「○○도서관 · 대출 정보를 확인하지 못했어요」; the line opens the library's site when it is known.
+ */
+export function UncheckedLibraryLine({
+  library,
+  url,
+  screen,
+}: {
+  library: TargetLibrary
+  url: string | null
+  screen?: ClickScreen
+}) {
+  const queued = useQueuedMark(library.id, false, true)
+  const href = safeHttpUrl(url)
+  const click = screen ? { screen } : undefined
+  return (
+    <article className={`${styles.row} ${styles.libraryLine}`} data-group="unchecked" data-link={href ? true : undefined}>
+      <p className={styles.libraryName}>
+        <span className={styles.libraryLineName}>{library.name}</span>
+        <span className={styles.libraryLineState}> · {LOOKUP_UNCHECKED}</span>
+        {queued && <QueuedTag />}
+      </p>
+      {href && (
+        <a
+          className={styles.cardLink}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          {...libraryClick(library.id, 'result_card', click)}
+        >
+          <span className="visually-hidden">{library.name}에서 보기 (새 창)</span>
+        </a>
+      )}
+    </article>
+  )
+}
 
 /** [안] wording (user kept the handoff text, 2026-10-11). */
 export const MOBILE_SITE_NOTE = '폰에서는 사이트가 다른 화면을 보여요. PC에서 열어 주세요'
@@ -54,8 +116,17 @@ export function ResultRow({ row, library, searchUrl, screen }: Props) {
   const homepageUrl = safeHttpUrl(library?.homepageUrl)
   // cycle 08 R3: the site shows another page on phones; a note, never a blocked link (also when the check failed)
   const mobileNote = phone && library?.mobileSiteDiffers === true
-  const state = row.failed ? (row.gone ? HOLDING_GONE : '확인 실패') : stateText(row)
-  const group = row.availability === 'AVAILABLE' ? 'borrow' : row.availability === 'PENDING' ? 'pending' : 'reserve'
+  const state = row.failed ? (row.gone ? HOLDING_GONE : LOOKUP_UNCHECKED) : stateText(row)
+  const unchecked = !row.gone && (row.failed === true || row.availability === 'UNKNOWN')
+  const group =
+    row.availability === 'AVAILABLE'
+      ? 'borrow'
+      : row.availability === 'PENDING'
+        ? 'pending'
+        : unchecked
+          ? 'unchecked'
+          : 'reserve'
+  const queued = useQueuedMark(row.libraryId, row.availability === 'PENDING', unchecked)
 
   const conditionLines = surveyNotice ? (
     <>
@@ -171,6 +242,7 @@ export function ResultRow({ row, library, searchUrl, screen }: Props) {
             </Popover.Portal>
           </Popover.Root>
           {chosen && <span className={styles.chosen}>직접 추가</span>}
+          {queued && <QueuedTag />}
         </p>
         {classification && <p className={styles.classification}>{classification}</p>}
         {mobileNote && <p className={styles.mobileNote}>{MOBILE_SITE_NOTE}</p>}

@@ -1,5 +1,6 @@
 import type { ResultFilter, TargetLibrary } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
+import { emptyResultText } from './resultFilter'
 import { ResultRow } from './ResultRow'
 import type { Batch } from './rowVerdict'
 import type { ResultRow as Row, SortedBatch } from './sortBatch'
@@ -11,6 +12,8 @@ interface Props {
   filter: ResultFilter
   /** Libraries answered so far in this search, for "지금까지 N곳에서 찾지 못했습니다". */
   answeredSoFar: number
+  /** Of those, the libraries whose lookup failed (cycle 20): counted apart as "N곳은 확인하지 못했어요". */
+  uncheckedSoFar: number
   /** Another batch may follow ("더 보기" is shown under the list). */
   moreToCome: boolean
   first: boolean
@@ -21,13 +24,15 @@ interface Props {
 
 /**
  * One batch: a divider from the second batch on, then "지금 빌릴 수 있어요", "예약하고 기다려요" and the rows still
- * being checked ("대출 정보 조회 중"). Rows move between sections only within this batch.
+ * being checked ("대출 정보 조회 중"). Rows move between sections only within this batch. The rows that could not be
+ * checked are not here: the list gathers them from every batch into 「확인하지 못한 도서관」 at the bottom (cycle 20).
  */
 export function BatchSection({
   batch,
   sorted,
   filter,
   answeredSoFar,
+  uncheckedSoFar,
   moreToCome,
   first,
   libraryById,
@@ -64,9 +69,7 @@ export function BatchSection({
       )}
 
       {shown === 0 && batch.status === 'done' && moreToCome && (
-        <p className={styles.empty}>
-          지금까지 {answeredSoFar}곳에서 {filter === 'available' ? '지금 빌릴 수 있는 책을' : '이 제목을'} 찾지 못했습니다
-        </p>
+        <p className={styles.empty}>{emptyResultText(answeredSoFar, uncheckedSoFar, filter)}</p>
       )}
 
       {sorted.available.length > 0 && (

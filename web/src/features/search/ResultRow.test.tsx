@@ -1,9 +1,14 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
-import { HOLDING_GONE, MOBILE_SITE_NOTE, ResultRow } from './ResultRow'
+import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
+import { HOLDING_GONE, LOOKUP_UNCHECKED, MOBILE_SITE_NOTE, ResultRow, UncheckedLibraryLine } from './ResultRow'
 import { testRow } from './testRows'
+
+// the header light's queued libraries (cycle 20), set per test
+const lookup = { queued: new Set<number>() }
+vi.mock('../lookupstatus/LookupStatusProvider', () => ({ useLookupStatus: () => ({ view: null, queued: lookup.queued }) }))
 
 afterEach(cleanup)
 
@@ -362,9 +367,60 @@ describe('library classification on the card', () => {
 
 /** Cycle 08 (ADR-0070, AC-8c): a holding the last import dropped. */
 describe('holding that left the list', () => {
-  it('says so in place of "확인 실패"', () => {
+  it('says so in place of the failed row text', () => {
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1, failed: true, gone: true })} library={openLibrary} searchUrl={undefined} />)
     expect(screen.getByText(HOLDING_GONE)).toBeTruthy()
+    expect(screen.queryByText(LOOKUP_UNCHECKED)).toBeNull()
+  })
+})
+
+/** Cycle 20 handoff 1-13 [확정]: the failed row's text, and 「밀려요」 (spec R4, review #5, AC-5). */
+describe('unchecked rows and the queued mark (cycle 20)', () => {
+  afterEach(() => {
+    lookup.queued = new Set()
+  })
+
+  it('a failed row says 「대출 정보를 확인하지 못했어요」 in the unchecked group', () => {
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1, failed: true, availability: 'UNKNOWN' })} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.getByText(LOOKUP_UNCHECKED)).toBeTruthy()
     expect(screen.queryByText('확인 실패')).toBeNull()
+    expect(screen.getByRole('article').getAttribute('data-group')).toBe('unchecked')
+  })
+
+  it('marks a row still being checked and an unchecked row of a queued library, never an answered one (AC-5)', () => {
+    lookup.queued = new Set([2])
+    const { rerender } = render(
+      <ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'PENDING' })} library={openLibrary} searchUrl={undefined} />,
+    )
+    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
+    rerender(<ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'AVAILABLE' })} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.queryByText(QUEUED_LABEL)).toBeNull()
+    rerender(<ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'UNKNOWN', failed: true })} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
+  })
+
+  it('does not mark a library that is not queued', () => {
+    lookup.queued = new Set([9])
+    render(<ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'PENDING' })} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.queryByText(QUEUED_LABEL)).toBeNull()
+  })
+
+  it('keeps the mark on a failed row after the library left the queue, until the next search', () => {
+    lookup.queued = new Set([2])
+    const row = testRow({ libraryId: 2, rank: 1, availability: 'UNKNOWN', failed: true })
+    const { rerender } = render(<ResultRow row={row} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
+    lookup.queued = new Set()
+    rerender(<ResultRow row={{ ...row }} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
+  })
+
+  it('a direct search library that failed is one line with the text and a link to its site (review #1)', () => {
+    lookup.queued = new Set([2])
+    render(<UncheckedLibraryLine library={openLibrary} url="https://lib.example/" />)
+    const line = screen.getByRole('article')
+    expect(line.textContent).toContain(`${openLibrary.name} · ${LOOKUP_UNCHECKED}`)
+    expect(line.textContent).toContain(QUEUED_LABEL)
+    expect(screen.getByRole('link').getAttribute('href')).toBe('https://lib.example/')
   })
 })

@@ -4,7 +4,7 @@ import type { Eligibility, LibraryItem, ResultFilter } from '../../api/types'
 export interface ResultRow extends LibraryItem {
   libraryId: number
   page: number
-  /** The lookup of this row failed (holding stream): shown as "확인 실패". */
+  /** The lookup of this row failed (holding stream): in 「확인하지 못한 도서관」 as "대출 정보를 확인하지 못했어요" (cycle 20). */
   failed?: boolean
   /** The holding left the library's list at the last import (`holding_not_found`, ADR-0070): its own text. */
   gone?: boolean
@@ -29,10 +29,15 @@ export interface SortContext {
 export interface SortedBatch {
   /** 지금 빌릴 수 있어요: AVAILABLE */
   available: ResultRow[]
-  /** 예약하고 기다려요: RESERVABLE, then UNKNOWN at the bottom */
+  /** 예약하고 기다려요: RESERVABLE, then the `gone` rows at the bottom (cycle 20 review #3 [확정]) */
   reserve: ResultRow[]
   /** 대출 정보 조회 중: PENDING, until their row-verdict arrives */
   pending: ResultRow[]
+  /**
+   * 확인하지 못한 도서관 (cycle 20 handoff 1-13 [확정], review #2): `failed` (not `gone`) and UNKNOWN rows in plan order.
+   * The list gathers them from every batch into one group at the bottom, shown in both filters.
+   */
+  unchecked: ResultRow[]
 }
 
 /**
@@ -82,10 +87,11 @@ export function sortBatch(rows: ResultRow[], context: SortContext): SortedBatch 
 
   const available = rows.filter((row) => row.availability === 'AVAILABLE')
   const reservable = rows.filter((row) => row.availability === 'RESERVABLE')
-  const unknown = rows.filter((row) => row.availability === 'UNKNOWN')
-  const pending = rows
-    .filter((row) => row.availability === 'PENDING')
-    .sort((a, b) => planIndex(a) - planIndex(b) || a.rank - b.rank)
+  // a holding that left the library's list stays at the bottom of the reserve group (cycle 20 review #3)
+  const gone = rows.filter((row) => row.gone)
+  const byPlan = (a: ResultRow, b: ResultRow) => planIndex(a) - planIndex(b) || a.rank - b.rank
+  const pending = rows.filter((row) => row.availability === 'PENDING').sort(byPlan)
+  const unchecked = rows.filter((row) => !row.gone && (row.failed || row.availability === 'UNKNOWN')).sort(byPlan)
 
   const borrowGroups = groupByTitle(available, borrowInTitle).sort((a, b) => {
     const stockA = stock(a.rows)
@@ -101,18 +107,22 @@ export function sortBatch(rows: ResultRow[], context: SortContext): SortedBatch 
       sum(a.rows, (row) => row.reservations) - sum(b.rows, (row) => row.reservations) ||
       firstPlanIndex(a.rows, planIndex) - firstPlanIndex(b.rows, planIndex),
   )
-  const unknownGroups = groupByTitle(unknown, reserveInTitle).sort(
+  const goneGroups = groupByTitle(gone, reserveInTitle).sort(
     (a, b) => firstPlanIndex(a.rows, planIndex) - firstPlanIndex(b.rows, planIndex),
   )
 
   return {
     available: borrowGroups.flatMap((group) => group.rows),
-    reserve: [...reserveGroups, ...unknownGroups].flatMap((group) => group.rows),
+    reserve: [...reserveGroups, ...goneGroups].flatMap((group) => group.rows),
     pending,
+    unchecked,
   }
 }
 
-/** "대출만" keeps rows that can be borrowed now, and the rows still being checked (they may become borrowable). */
+/**
+ * "대출만" keeps rows that can be borrowed now, and the rows still being checked (they may become borrowable). The
+ * 「확인하지 못한 도서관」 rows are not filtered: they show in both filters (cycle 20 handoff 1-13 [확정]).
+ */
 export function applyFilter(sorted: SortedBatch, filter: ResultFilter): SortedBatch {
   return filter === 'available' ? { ...sorted, reserve: [] } : sorted
 }

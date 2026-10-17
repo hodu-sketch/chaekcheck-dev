@@ -6,8 +6,9 @@ import { InfoTip } from '../../components/InfoTip'
 import { useRegions } from '../region/RegionContext'
 import { BLOCKED_TEXT, blockedBy } from './blocked'
 import { LibraryCountButton } from './LibrarySummaryBar'
-import { ResultList, type BatchView } from './ResultList'
+import { ResultList, type BatchView, type UncheckedLibrary } from './ResultList'
 import listStyles from './ResultList.module.css'
+import { uncheckedText } from './resultFilter'
 import { DIRECT_REASON } from './searchSettings'
 import { SortSelect } from './SortSelect'
 import { remainingLibraries } from './searchPlan'
@@ -72,6 +73,16 @@ export function DirectResults({
       loanRates.set(Number(id), library.loanRate)
       if (library.pages[0]) searchUrls.set(Number(id), library.pages[0].librarySearchUrl)
     }
+    // libraries whose page could not be read (cycle 20 review #1): one line each in 「확인하지 못한 도서관」, which opens
+    // the library's site (the search page's address is only known from a page that was read)
+    const failed = new Set(
+      Object.entries(state.libraries)
+        .filter(([, library]) => library.status === 'failed')
+        .map(([id]) => Number(id)),
+    )
+    const uncheckedLibraries: UncheckedLibrary[] = targets
+      .filter((l) => failed.has(l.id))
+      .map((library) => ({ library, url: library.homepageUrl }))
     const answered = new Set<number>()
     const batches: BatchView[] = state.batches.map((batch) => {
       for (const id of batch.requestedLibraries) answered.add(id)
@@ -79,10 +90,11 @@ export function DirectResults({
         batch,
         sorted: applyFilter(sortBatch(batch.rows, { planIndex, eligibility, cautioned, visitRequired, loanRates, chosen }), filter),
         answeredSoFar: answered.size,
+        uncheckedSoFar: [...answered].filter((id) => failed.has(id)).length,
       }
     })
     const rowCount = state.batches.reduce((sum, batch) => sum + batch.rows.length, 0)
-    return { batches, searchUrls, rowCount }
+    return { batches, searchUrls, rowCount, uncheckedLibraries }
   }, [state.batches, state.libraries, targets, filter])
 
   // requested libraries only, those with results first [확정]
@@ -135,7 +147,11 @@ export function DirectResults({
           )}
           {allEmpty ? (
             <div className={styles.allEmpty}>
-              <p className={styles.allEmptyTitle}>{allEmptyMessage(state.field, state.query, requested.length)}</p>
+              {/* the failed libraries are counted apart (cycle 20 handoff 1-13 [확정]) */}
+              <p className={styles.allEmptyTitle}>
+                {allEmptyMessage(state.field, state.query, requested.length - view.uncheckedLibraries.length)}
+                {view.uncheckedLibraries.length > 0 && ` · ${uncheckedText(view.uncheckedLibraries.length)}`}
+              </p>
               <p className={styles.allEmptyLibraries}>{requested.map((l) => l.name).join(' · ')}</p>
             </div>
           ) : (
@@ -164,6 +180,7 @@ export function DirectResults({
                 batchFailed={state.batchFailed}
                 blocked={state.blocked}
                 onMore={loadNextBatch}
+                uncheckedLibraries={view.uncheckedLibraries}
               />
             )
           )}

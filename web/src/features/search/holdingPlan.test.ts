@@ -98,7 +98,7 @@ describe('holding plan (ADR-0030)', () => {
     expect(nextHoldingCandidates(state, 1)).toEqual([100])
   })
 
-  it('a failed holding is one "확인 실패" row with the book it belongs to', () => {
+  it('a failed holding is one 「대출 정보를 확인하지 못했어요」 row with the book it belongs to', () => {
     let state = holdingsReducer(EMPTY_HOLDINGS, { type: 'batch-start', batchNo: 1 })
     state = run(state, 1, targets, {
       name: 'holding-failed',
@@ -111,7 +111,29 @@ describe('holding plan (ADR-0030)', () => {
     expect(nextHoldingCandidates(state, 50)).toEqual([101, 102])
   })
 
-  // cycle 08 (ADR-0070): a holding the last import dropped says so instead of "확인 실패"
+  // cycle 20 (handoff 1-13): the failed row goes to the view's unchecked section, and its library is counted apart
+  it('shows a failed holding in the unchecked section and counts its library apart (AC-4)', () => {
+    let state = holdingsReducer(EMPTY_HOLDINGS, { type: 'batch-start', batchNo: 1 })
+    state = run(
+      state,
+      1,
+      targets,
+      { name: 'holding-requested', data: { batchNo: 1, holdingId: 101, bookId: 10, libraryId: 2 } },
+      { name: 'holding-requested', data: { batchNo: 1, holdingId: 100, bookId: 10, libraryId: 1 } },
+      { name: 'holding-result', data: { batchNo: 1, holdingId: 101, bookId: 10, libraryId: 2, item: item('행동', 1, 1), fetchedAt: '', cached: false } },
+      {
+        name: 'holding-failed',
+        data: { batchNo: 1, holdingId: 100, bookId: 10, libraryId: 1, problem: { title: 'Bad Gateway', status: 502, code: 'upstream_error' } },
+      },
+    )
+    const [view] = holdingBatchViews(state, 'available')
+    expect(view.sorted.unchecked.map((row) => row.libraryId)).toEqual([1])
+    expect(view.sorted.reserve).toEqual([])
+    expect(view.answeredSoFar).toBe(2)
+    expect(view.uncheckedSoFar).toBe(1)
+  })
+
+  // cycle 08 (ADR-0070): a holding the last import dropped says so instead of the failed row's text
   it('marks a holding that left the catalog as gone', () => {
     let state = holdingsReducer(EMPTY_HOLDINGS, { type: 'batch-start', batchNo: 1 })
     state = run(state, 1, targets, {

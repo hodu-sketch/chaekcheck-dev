@@ -19,9 +19,21 @@ export function holdingBatchViews(state: HoldingsState, filter: ResultFilter): B
     chosen: new Set(libraries.filter((l) => l.chosen).map((l) => l.id)),
   }
   const answered = new Set<number>()
+  // the libraries whose holding lookup failed (cycle 20: "N곳은 확인하지 못했어요")
+  const failedLibraries = new Set(
+    Object.values(state.entries)
+      .filter((entry) => entry.status === 'Failed')
+      .map((entry) => entry.libraryId),
+  )
   return state.batches.map((batch) => {
     for (const id of batch.requestedLibraries) answered.add(id)
-    return { batch, sorted: applyFilter(sortBatch(batch.rows, context), filter), answeredSoFar: answered.size }
+    const uncheckedSoFar = [...answered].filter((id) => failedLibraries.has(id)).length
+    return {
+      batch,
+      sorted: applyFilter(sortBatch(batch.rows, context), filter),
+      answeredSoFar: answered.size,
+      uncheckedSoFar,
+    }
   })
 }
 

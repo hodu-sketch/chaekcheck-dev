@@ -565,3 +565,56 @@
     translate: -50% -50%;
   }
 }
+
+/* cycle 20 (spec R4, review #5): 「지금 이 도서관 조회가 밀려요」, a small amber tag next to the library name */
+.queued {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-tag);
+  background: var(--reserve-soft);
+  color: var(--reserve);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* phones: under the name, on its own line */
+@media (width <= 640px) {
+  .queued {
+    flex-basis: 100%;
+    align-self: flex-start;
+    width: fit-content;
+    margin-top: 0.1rem;
+  }
+}
+
+/* cycle 20 (review #1): a direct search library that failed as a whole, one line without a book */
+.libraryLine {
+  display: block;
+  padding-block: 0.7rem;
+}
+
+.libraryLine .libraryName {
+  /* one running line of text (name, then the state), the tag after it */
+  display: block;
+  font-size: var(--text-md);
+}
+
+.libraryLine .queued {
+  margin-left: 0.5rem;
+}
+
+@media (width <= 640px) {
+  .libraryLine .queued {
+    display: block;
+    margin: 0.3rem 0 0;
+  }
+}
+
+.libraryLineName {
+  color: var(--ink);
+}
+
+.libraryLineState {
+  font-weight: 700;
+  color: var(--ink-soft);
+}

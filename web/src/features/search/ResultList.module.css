@@ -121,6 +121,15 @@
   background: var(--ink-faint);
 }
 
+/* cycle 20: 「확인하지 못한 도서관」, one group at the bottom in grey like the rows being checked */
+.group[data-group='unchecked'] .groupTitle {
+  color: var(--ink-soft);
+}
+
+.group[data-group='unchecked'] .groupTitle::before {
+  background: var(--ink-faint);
+}
+
 /* one batch of results */
 .batch {
   display: flex;

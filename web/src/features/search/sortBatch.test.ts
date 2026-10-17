@@ -50,7 +50,7 @@ describe('sortBatch (spec 5.6)', () => {
     expect(ids(sortBatch(rows, context([], [1], [4])).available)).toEqual(['2/1', '1/1', '4/1', '3/1'])
   })
 
-  it('splits into borrow, reserve (UNKNOWN last) and pending sections', () => {
+  it('splits into borrow, reserve, pending and unchecked (UNKNOWN) sections', () => { // cycle 20 AC-4
     const sorted = sortBatch(
       [
         testRow({ libraryId: 1, rank: 1, availability: 'UNKNOWN', availabilityBasis: 'SITE_DETAIL' }),
@@ -62,8 +62,39 @@ describe('sortBatch (spec 5.6)', () => {
     )
 
     expect(ids(sorted.available)).toEqual(['1/4'])
-    expect(ids(sorted.reserve)).toEqual(['1/2', '1/1'])
+    expect(ids(sorted.reserve)).toEqual(['1/2'])
     expect(ids(sorted.pending)).toEqual(['1/3'])
+    expect(ids(sorted.unchecked)).toEqual(['1/1'])
+  })
+
+  /** Cycle 20 handoff 1-13 [확정] (reviews #2, #3): failed and UNKNOWN rows in plan order; `gone` stays in reserve. */
+  it('puts failed and UNKNOWN rows in the unchecked section in plan order, gone rows last in reserve (AC-4)', () => {
+    const sorted = sortBatch(
+      [
+        testRow({ libraryId: 4, rank: 1, availability: 'UNKNOWN', availabilityBasis: 'SITE_DETAIL' }),
+        testRow({ libraryId: 2, rank: 1, availability: 'UNKNOWN', failed: true, gone: true }),
+        testRow({ libraryId: 3, rank: 2, availability: 'UNKNOWN', failed: true }),
+        testRow({ libraryId: 1, rank: 1, availability: 'RESERVABLE', available: 0 }),
+        testRow({ libraryId: 3, rank: 1, availability: 'UNKNOWN', failed: true }),
+      ],
+      context(),
+    )
+    expect(ids(sorted.unchecked)).toEqual(['3/1', '3/2', '4/1'])
+    expect(ids(sorted.reserve)).toEqual(['1/1', '2/1'])
+  })
+
+  it('keeps the unchecked section in the "지금 빌릴 수 있는 책만" filter (AC-16)', () => {
+    const sorted = sortBatch(
+      [
+        testRow({ libraryId: 1, rank: 1, availability: 'RESERVABLE', available: 0 }),
+        testRow({ libraryId: 2, rank: 1, availability: 'UNKNOWN', failed: true }),
+      ],
+      context(),
+    )
+    const filtered = applyFilter(sorted, 'available')
+    expect(filtered.reserve).toEqual([])
+    expect(ids(filtered.unchecked)).toEqual(['2/1'])
+    expect(ids(applyFilter(sorted, 'all').unchecked)).toEqual(['2/1'])
   })
 
   it('groups the same title inside a section; more stock first (AC-21)', () => {
