@@ -87,6 +87,14 @@
   margin-right: calc(1.4 * var(--base-unscaled));
 }
 
+/* phones: a little less than on PC, still more than the mock-up (user 2026-10-17, after seeing it: "모바일은 검은 점이
+   이것보다는 조금 더 오른 쪽으로") */
+@media (width <= 640px) {
+  .statusSlot:not(:empty) {
+    margin-right: calc(0.7 * var(--base-unscaled));
+  }
+}
+
 /* phones only: the row's ▾ */
 .menuCaret {
   display: none;
