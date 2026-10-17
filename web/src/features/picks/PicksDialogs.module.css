@@ -172,12 +172,6 @@
   }
 }
 
-/* cycle 21 (R6-3): the list's own name when our title differs */
-.bookListTitle {
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
-}
-
 /* "책 검색 >>" and [영상 보기] side by side on PC and tablets, [영상 보기] on the line below on phones (R6-2) */
 .bookActions {
   display: flex;

@@ -126,9 +126,9 @@ function BookBody({
     <div className={styles.bookHead}>
       <CoverImage className={styles.bookCover} url={book.coverUrl} title={book.title} />
       <div className={styles.bookText}>
-        {/* the shown name (cycle 21 R6-3): our title without edition marks; the list's own name on a line if other */}
+        {/* the shown name (cycle 21 R6-3): our title without edition marks. No "목록 이름" line (user 2026-10-17:
+            "목록 이름 아예 다 빼줘 무의미한것 같아"; `listTitle` still comes from the API) */}
         <h2 className={styles.bookTitle}>{book.title}</h2>
-        {book.listTitle && <p className={styles.bookListTitle}>목록 이름 「{book.listTitle}」</p>}
         <p className={styles.bookPick}>{list.pickLine(book, categoryName)}</p>
         {detail && (
           <p className={styles.bookMeta}>

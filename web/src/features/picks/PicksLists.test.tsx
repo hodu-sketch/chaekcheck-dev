@@ -250,7 +250,7 @@ describe('SNU 100 screen', () => {
     expect(screen.getByText('출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)')).toBeTruthy()
   })
 
-  it('shows our title with the list name on one line, and no field or number (AC-8, AC-16)', async () => {
+  it('shows our title with no list name line, and no field or number (AC-8; AC-16 line taken out 2026-10-17)', async () => {
     stubFetch({ snu100: SNU })
     const user = renderAt('/picks/snu100')
     const all = await screen.findByRole('region', { name: '전체' })
@@ -259,7 +259,7 @@ describe('SNU 100 screen', () => {
 
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('heading', { name: '햄릿' })).toBeTruthy()
-    expect(within(dialog).getByText('목록 이름 「셰익스피어: 햄릿 외 3편」')).toBeTruthy()
+    expect(within(dialog).queryByText(/목록 이름/)).toBeNull()
     expect(within(dialog).getByText('서울대 권장도서 100선')).toBeTruthy()
     expect(within(dialog).queryByText(/한국문학|외국문학|23/)).toBeNull()
     expect(within(dialog).queryByRole('link', { name: '영상 보기' })).toBeNull()

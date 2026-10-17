@@ -33,7 +33,6 @@ export function RequestNotice({ book, onClose, phone, list }: Props) {
             </svg>
           </span>
           <p className={styles.noticeTitle}>{book.title}</p>
-          {book.listTitle && <p className={styles.bookListTitle}>목록 이름 「{book.listTitle}」</p>}
           {list.key !== 'librarian' && <p className={styles.bookPick}>{list.pickLine(book, null)}</p>}
           <p className={styles.noticeText}>
             {REQUEST_LINES[0]}
