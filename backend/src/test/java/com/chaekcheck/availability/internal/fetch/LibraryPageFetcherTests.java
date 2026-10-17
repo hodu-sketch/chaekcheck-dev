@@ -62,6 +62,39 @@ class LibraryPageFetcherTests {
 	}
 
 	@Test
+	void detailLinkOffTheLibrarysHostIsDroppedFromThePageAndTheCache() throws Exception { // cycle 20, AC-18
+		com.chaekcheck.availability.internal.adapter.PlatformAdapter adapter = mock(
+				com.chaekcheck.availability.internal.adapter.PlatformAdapter.class);
+		given(adapter.platform()).willReturn(PlatformType.ELIB_PORTAL_V1);
+		given(adapter.pageSize()).willReturn(10);
+		given(adapter.searchUri(any(), any(), org.mockito.ArgumentMatchers.anyInt()))
+			.willReturn(URI.create("https://library.busan.go.kr/elib/module/elib/search/index.do?menu_idx=10"));
+		given(adapter.librarySearchUri(any(), any(), any())).willReturn(URI.create("https://library.busan.go.kr/elib"));
+		given(adapter.detailUri(any(), any())).willCallRealMethod();
+		given(adapter.parse(any(), any())).willReturn(new com.chaekcheck.availability.internal.adapter.ParsedPage(2,
+				List.of(new com.chaekcheck.availability.internal.adapter.ParsedItem("같은 호스트", null, null, null, null,
+								1, 0, "/elib/module/elib/book/view.do?book_idx=1",
+								com.chaekcheck.availability.internal.adapter.SiteVerdict.BLANK),
+						new com.chaekcheck.availability.internal.adapter.ParsedItem("다른 호스트", null, null, null, null,
+								1, 0, "https://evil.test/elib/module/elib/book/view.do?book_idx=2",
+								com.chaekcheck.availability.internal.adapter.SiteVerdict.BLANK))));
+		given(client.fetch(any(), any())).willReturn(ok("<html/>"));
+		LibraryPageFetcher checked = new LibraryPageFetcher(List.of(adapter),
+				new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
+				new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), client, DEADLINE, Clock.systemUTC(),
+				new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)));
+
+		LibraryPage page = checked.fetch(BUSAN, SearchQuery.of("사랑"), 1);
+		LibraryPage cached = checked.fetch(BUSAN, SearchQuery.of("사랑"), 1);
+
+		assertThat(page.items()).extracting(LibraryPage.Item::detailUrl)
+			.containsExactly("https://library.busan.go.kr/elib/module/elib/book/view.do?book_idx=1", null);
+		assertThat(cached.cached()).isTrue();
+		assertThat(cached.items().get(1).detailUrl()).isNull();
+		verify(client, times(1)).fetch(any(), any());
+	}
+
+	@Test
 	void secondKyoboPageHasRanks51To100() { // AC-15
 		given(client.fetch(any(), any())).willReturn(ok(html("kyobo-v1/love-p2.html")));
 

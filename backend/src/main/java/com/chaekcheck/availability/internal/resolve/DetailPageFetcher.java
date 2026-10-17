@@ -5,7 +5,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,10 +13,10 @@ import org.slf4j.LoggerFactory;
 
 import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
+import com.chaekcheck.availability.internal.fetch.DetailUrls;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.ParseSlots;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
-import com.chaekcheck.availability.internal.fetch.SiteHostNames;
 import com.chaekcheck.availability.internal.fetch.SiteResponse;
 import com.chaekcheck.availability.internal.resolve.DetailVerdictCache.DetailPage;
 import com.chaekcheck.library.PlatformType;
@@ -70,27 +69,11 @@ public class DetailPageFetcher {
 	}
 
 	/**
-	 * The detail URL when it may be requested [안]: http(s), and the same host name as the library's site root.
-	 * Null otherwise: then no request is sent and that row fails on its own.
+	 * The detail URL when it may be requested [안]: http(s), and the same host name as the library's site root
+	 * ({@link DetailUrls#checked}). Null otherwise: then no request is sent and that row fails on its own.
 	 */
 	public static URI checkedUri(String detailUrl, String baseUrl) {
-		try {
-			URI uri = URI.create(detailUrl.strip());
-			URI base = URI.create(baseUrl);
-			String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-			if (!scheme.equals("http") && !scheme.equals("https")) {
-				return null;
-			}
-			// host names with an underscore are compared too (cycle 18, ADR-0111)
-			String host = SiteHostNames.hostOrNull(uri);
-			if (host == null || !host.equals(SiteHostNames.hostOrNull(base))) {
-				return null;
-			}
-			return uri;
-		}
-		catch (RuntimeException ex) {
-			return null;
-		}
+		return DetailUrls.checked(detailUrl, baseUrl);
 	}
 
 	private DetailPage load(PlatformAdapter adapter, URI detailUrl, Instant deadline) {

@@ -127,11 +127,13 @@ public class LibraryPageFetcher {
 		for (int i = 0; i < parsed.items().size(); i++) {
 			ParsedItem p = parsed.items().get(i);
 			Integer available = p.holdings() == null || p.loaned() == null ? null : p.holdings() - p.loaned();
+			// cycle 20 (AC-18): a detail link off the library's host is dropped here, so it is neither shown nor
+			// requested, on the cache path too (the cached page already carries null)
+			URI detailUri = p.detailPath() == null ? null
+					: DetailUrls.checked(adapter.detailUri(searchUri, p.detailPath()).toString(), target.baseUrl());
 			items.add(new LibraryPage.Item((page - 1) * pageSize + i + 1, p.title(), p.author(), p.publisher(),
 					p.supplier(), p.holdings(), p.loaned(), p.reservations(), available, titleKeys.key(p.title()),
-					null, null,
-					p.detailPath() == null ? null : adapter.detailUri(searchUri, p.detailPath()).toString(),
-					p.siteVerdict()));
+					null, null, detailUri == null ? null : detailUri.toString(), p.siteVerdict()));
 			if (p.holdings() != null && p.loaned() != null) {
 				holdingsTotal += p.holdings();
 				loanedTotal += p.loaned();

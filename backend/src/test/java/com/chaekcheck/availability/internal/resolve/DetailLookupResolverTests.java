@@ -93,6 +93,19 @@ class DetailLookupResolverTests {
 	}
 
 	@Test
+	void rowWithDetailLinkOffTheLibrarysHostIsUnknownWithoutARequest() { // cycle 20, AC-18 server mode
+		LibraryPage.Item offHost = new LibraryPage.Item(1, "t", null, null, null, null, 3, 0, null, "t", null, null,
+				"https://evil.test/elib/module/elib/book/view.do?book_idx=1", SiteVerdict.BLANK);
+		LibraryPage.Item notHttp = new LibraryPage.Item(2, "t", null, null, null, null, 3, 0, null, "t", null, null,
+				"javascript:alert(1)", SiteVerdict.BLANK);
+
+		assertThat(resolver.lookup(GB, offHost, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
+		assertThat(resolver.lookup(GB, offHost, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
+		assertThat(resolver.lookup(GB, notHttp, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
+		verify(siteFetcher, never()).fetch(any(), any());
+	}
+
+	@Test
 	void rowWithoutDetailLinkIsUnknownWithoutARequest() {
 		LibraryPage.Item noLink = new LibraryPage.Item(1, "t", null, null, null, null, 3, 0, null, "t", null, null,
 				null, SiteVerdict.BLANK);

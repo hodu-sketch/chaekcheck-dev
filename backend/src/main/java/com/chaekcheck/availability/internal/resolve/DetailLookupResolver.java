@@ -49,10 +49,11 @@ public class DetailLookupResolver {
 	}
 
 	public CompletableFuture<Decision> lookup(SearchTarget target, LibraryPage.Item item, Instant deadline) {
-		if (item.detailUrl() == null) {
+		// cycle 20 (AC-18): the same host check as holdings; a link off the library's host is UNKNOWN, no request
+		URI uri = item.detailUrl() == null ? null : DetailPageFetcher.checkedUri(item.detailUrl(), target.baseUrl());
+		if (uri == null) {
 			return CompletableFuture.completedFuture(UNKNOWN);
 		}
-		URI uri = URI.create(item.detailUrl());
 		long left = Math.max(0, Duration.between(clock.instant(), deadline).toMillis());
 		return pages.fetch(target, uri, deadline)
 			.thenApply(page -> decision(page.detail().siteVerdict()))
