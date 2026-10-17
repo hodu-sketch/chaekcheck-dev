@@ -127,6 +127,11 @@
   overflow-wrap: anywhere;
 }
 
+/* the popover holds no control: Radix focuses it for Esc, but a ring around plain text only looks like a mistake */
+.popover:focus-visible {
+  outline: none;
+}
+
 .popoverTitle {
   --signal: var(--ink-soft);
   display: flex;
