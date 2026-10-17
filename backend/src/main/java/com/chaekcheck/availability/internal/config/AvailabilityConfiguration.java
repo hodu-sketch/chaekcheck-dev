@@ -29,6 +29,7 @@ import com.chaekcheck.availability.internal.fetch.SearchPageCache;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
 import com.chaekcheck.availability.internal.fetch.UnderscoreHostSiteFetcher;
 import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
+import com.chaekcheck.availability.internal.ops.LookupOpsSummaryLog;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.resolve.CaffeineDetailVerdictCache;
 import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
@@ -200,6 +201,14 @@ class AvailabilityConfiguration {
 			AvailabilityProperties properties) {
 		return new LookupStatusService(searchSlots, refusalRecord, dbErrorRecord, hostQueueBoard, egressLaneStatus,
 				properties.lookupStatus(), Clock.systemUTC());
+	}
+
+	/** One INFO line a minute with the lookup counters (cycle 20, ADR-0132, AC-40). */
+	@Bean(destroyMethod = "close")
+	LookupOpsSummaryLog lookupOpsSummaryLog(LookupOpsCounters counters, SearchSlots searchSlots, ParseSlots parseSlots,
+			HostQueueBoard hostQueueBoard, EgressLaneStatus egressLaneStatus, AvailabilityProperties properties) {
+		return new LookupOpsSummaryLog(counters, searchSlots, parseSlots, hostQueueBoard, egressLaneStatus,
+				properties.lookupStatus(), properties.opsSummary().interval(), Clock.systemUTC());
 	}
 
 	/** Caps the searches running at once, so the unbounded executor above never gets unbounded work. */

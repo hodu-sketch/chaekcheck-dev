@@ -36,4 +36,9 @@ public interface EgressLaneStatus {
 	/** Every vendor lane is paused (vendor errors 407 / 429, account trouble, or 90% of the data used). */
 	boolean vendorLanesPaused();
 
+	/** Lanes paused right now, for the operations summary line; 0 until the lane code exists. */
+	default int pausedLaneCount() {
+		return 0;
+	}
+
 }
