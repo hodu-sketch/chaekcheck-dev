@@ -122,3 +122,7 @@ databaseChangeLog:
   - include:
       file: usagelog/003-screen-event-picks-list.yaml
       relativeToChangelogFile: true
+  # cycle 20: lookup status and extension (ADR-0119, ADR-0132)
+  - include:
+      file: usagelog/004-library-response-source-extension.yaml
+      relativeToChangelogFile: true

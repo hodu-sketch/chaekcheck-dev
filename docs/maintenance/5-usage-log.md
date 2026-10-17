@@ -86,11 +86,13 @@
 - `source`
   - `direct_search`: 직접 찾기의 첫 묶음·다음 묶음·도서관별 더 보기입니다.
   - `holding_fill`: 책 페이지·수집 목록 결과·사서 추천 창의 대출 수 채우기입니다.
+  - `extension`·`server_for_extension`: 확장 모드(사이클 20 2·3단계)의 값입니다. `usagelog/004`가 미리 허용해 두었고, 1단계 코드는 아직 쓰지 않습니다.
 - 결과
   - `ok`: 성공
   - `failed`: 오류
   - `timeout`: 요청 자체의 시간 초과이거나, 묶음 마감 뒤에 온 답
   - `skipped`: 시작 마감까지 보내지 못한 후보
+  - `body_too_large_count`(사이클 20, `usagelog/004`): 도서관 응답이 본문 상한(1MB, 압축본·풀었을 때 모두)을 넘어 실패한 수입니다. 같은 건이 `failed_count`에도 들어갑니다. 상한은 `chaekcheck.availability.max-body-size`([settings-index.md](settings-index.md)). 이 수가 쌓이는 도서관은 상한을 올릴지 판단하는 근거이고, 서버 로그에는 `body_too_large library=… url=… receivedBytes=… at=…` 한 줄이 같이 남습니다.
 - 셈 규칙
   - 조회 서버를 바꿔 다시 보내도 한 번으로 셉니다. 시간은 처음 보낸 때부터 마지막 답까지입니다.
   - 3분 캐시에서 나온 답은 도서관에 보낸 요청이 아니라서 세지 않습니다.
@@ -107,6 +109,7 @@
 | `invalid_book_id` | 책 번호가 양의 정수가 아님 |
 | `invalid_value` | 그 밖의 틀린 값이나 빠진 칸 |
 | `unknown_library` | 없거나 꺼진 도서관 번호 |
+| `invalid_plan`, `invalid_client_key` | 확장 모드 계획·브라우저 번호 거절(사이클 20 2·3단계). `usagelog/004`가 미리 허용, 1단계 코드는 아직 쓰지 않음 |
 
 ### `dropped_batch.reason`
 
@@ -129,7 +132,7 @@
 ## 4. 요청마다 서버 로그 한 줄
 
 ```
-library=<도서관 번호> source=direct_search|holding_fill result=ok|failed|timeout|skipped ms=<ms>[ error=<메시지>]
+library=<도서관 번호> source=direct_search|holding_fill result=ok|failed|timeout|skipped|body_too_large ms=<ms>[ error=<메시지>]
 ```
 
 - IP는 남기지 않습니다.

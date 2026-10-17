@@ -1,0 +1,32 @@
+# Cycle 20 (ADR-0119, ADR-0132): extension-mode sources, the rejection reasons of the lookup plans, and the count of
+# library answers that passed the body limit. One changeset, applied once before the first deployment, so the values
+# of the later cycle 20 stages (extension, server_for_extension, invalid_plan, invalid_client_key) are allowed in
+# advance: stage 1 code does not write them yet, and that is not an error (plan final check #10). The CHECKs are
+# dropped and added again under their names from usagelog/001; a constant default does not rewrite the table.
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-004-extension-source-and-body-too-large
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: ALTER TABLE usagelog.library_response_daily DROP CONSTRAINT library_response_daily_source_check
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.library_response_daily
+                ADD CONSTRAINT library_response_daily_source_check
+                CHECK (source IN ('direct_search', 'holding_fill', 'extension', 'server_for_extension'))
+        - sql:
+            sql: ALTER TABLE usagelog.rejected_event DROP CONSTRAINT rejected_event_reason_check
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.rejected_event
+                ADD CONSTRAINT rejected_event_reason_check
+                CHECK (reason IN ('unknown_library', 'invalid_place', 'invalid_screen', 'invalid_book_id', 'malformed',
+                  'unknown_type', 'invalid_value', 'invalid_plan', 'invalid_client_key'))
+        # Answers that passed the body limit (1MB, compressed or decompressed): counted here and in failed_count
+        # [확정] (plan final check #6)
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.library_response_daily
+                ADD COLUMN body_too_large_count integer NOT NULL DEFAULT 0
+                CONSTRAINT library_response_daily_body_too_large_count_check CHECK (body_too_large_count >= 0)

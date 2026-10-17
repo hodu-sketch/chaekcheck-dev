@@ -54,6 +54,12 @@ class UsageLogSchemaTests {
 			.update();
 		jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source) "
 				+ "VALUES (DATE '2026-10-14', 1, 'holding_fill')").update();
+		// cycle 20 (usagelog/004): the extension-mode values are allowed in advance, before any code writes them
+		jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source) "
+				+ "VALUES (DATE '2026-10-14', 1, 'extension'), (DATE '2026-10-14', 1, 'server_for_extension')").update();
+		jdbc.sql("INSERT INTO usagelog.rejected_event (received_at, client_ip, reason, raw_values) "
+				+ "VALUES (now(), '203.0.113.7', 'invalid_plan', '{\"planId\":\"x\"}'), "
+				+ "(now(), '203.0.113.7', 'invalid_client_key', NULL)").update();
 	}
 
 	@Test
@@ -124,6 +130,12 @@ class UsageLogSchemaTests {
 		assertThat(jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source) "
 				+ "VALUES (DATE '2026-10-15', 3, 'direct_search') RETURNING cached_count").query(Integer.class).single())
 			.isZero();
+		// cycle 20 (usagelog/004): body_too_large_count is 0 by default and never negative
+		violates(() -> jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source, "
+				+ "body_too_large_count) VALUES (DATE '2026-10-14', 1, 'direct_search', -1)").update());
+		assertThat(jdbc.sql("INSERT INTO usagelog.library_response_daily (day, library_id, source) "
+				+ "VALUES (DATE '2026-10-15', 4, 'direct_search') RETURNING body_too_large_count").query(Integer.class)
+			.single()).isZero();
 	}
 
 	private void search(String kind, String title, String exact, String roles, String sort, String filter,

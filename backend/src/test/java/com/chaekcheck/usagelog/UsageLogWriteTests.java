@@ -124,21 +124,25 @@ class UsageLogWriteTests {
 		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.CACHED, 9000);
 		flusher.flush();
 		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.CACHED, 0);
+		// cycle 20 (AC-34): over the body limit is one failure and one body_too_large
+		buffer.addResponse(day, enabledLibrary, ResponseSource.HOLDING_FILL, ResponseResult.BODY_TOO_LARGE, 300);
 		flusher.flush();
 
 		Map<String, Object> line = jdbc.sql("""
-				SELECT ok_count, failed_count, timeout_count, skipped_count, ok_ms_total, ok_ms_max, cached_count
+				SELECT ok_count, failed_count, timeout_count, skipped_count, ok_ms_total, ok_ms_max, cached_count,
+				  body_too_large_count
 				FROM usagelog.library_response_daily WHERE day = ? AND library_id = ? AND source = 'holding_fill'""")
 			.params(day, enabledLibrary)
 			.query()
 			.singleRow();
 		assertThat(line).containsEntry("ok_count", 2)
-			.containsEntry("failed_count", 1)
+			.containsEntry("failed_count", 2)
 			.containsEntry("timeout_count", 1)
 			.containsEntry("skipped_count", 1)
 			.containsEntry("ok_ms_total", 800L)
 			.containsEntry("ok_ms_max", 700)
-			.containsEntry("cached_count", 2);
+			.containsEntry("cached_count", 2)
+			.containsEntry("body_too_large_count", 1);
 	}
 
 	@Test

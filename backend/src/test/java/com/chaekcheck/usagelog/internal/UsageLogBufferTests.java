@@ -67,9 +67,9 @@ class UsageLogBufferTests {
 
 		assertThat(batch.responses()).containsEntry(
 				new UsageBuffer.ResponseKey(day, 7, ResponseSource.DIRECT_SEARCH),
-				new UsageBuffer.ResponseTotals(2, 1, 1, 1, 1020, 900, 1));
+				new UsageBuffer.ResponseTotals(2, 1, 1, 1, 1020, 900, 1, 0));
 		assertThat(batch.responses()).containsEntry(new UsageBuffer.ResponseKey(day, 7, ResponseSource.HOLDING_FILL),
-				new UsageBuffer.ResponseTotals(1, 0, 0, 0, 30, 30, 1));
+				new UsageBuffer.ResponseTotals(1, 0, 0, 0, 30, 30, 1, 0));
 		assertThat(batch.rows()).isEmpty();
 	}
 

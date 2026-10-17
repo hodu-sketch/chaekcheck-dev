@@ -94,8 +94,9 @@ public class UsageBuffer {
 	public record ResponseKey(LocalDate day, long libraryId, ResponseSource source) {
 	}
 
+	/** @param bodyTooLarge answers over the body limit (cycle 20); each is also one of {@code failed} */
 	public record ResponseTotals(int ok, int failed, int timeout, int skipped, long okMsTotal, int okMsMax,
-			int cached) {
+			int cached, int bodyTooLarge) {
 	}
 
 	private static final class ResponseCounts {
@@ -110,6 +111,9 @@ public class UsageBuffer {
 
 		/** Answers from the cache (cycle 19, ADR-0116): no request, no time. */
 		private int cached;
+
+		/** Over the body limit (cycle 20, ADR-0132): one failure, and this count besides. */
+		private int bodyTooLarge;
 
 		private long okMsTotal;
 
@@ -127,11 +131,15 @@ public class UsageBuffer {
 				case TIMEOUT -> timeout++;
 				case SKIPPED -> skipped++;
 				case CACHED -> cached++;
+				case BODY_TOO_LARGE -> {
+					failed++;
+					bodyTooLarge++;
+				}
 			}
 		}
 
 		synchronized ResponseTotals totals() {
-			return new ResponseTotals(ok, failed, timeout, skipped, okMsTotal, okMsMax, cached);
+			return new ResponseTotals(ok, failed, timeout, skipped, okMsTotal, okMsMax, cached, bodyTooLarge);
 		}
 
 	}

@@ -60,9 +60,11 @@ public interface UsageLog {
 
 		/**
 		 * {@code CACHED} (cycle 19, ADR-0116): answered from the 3-minute cache, no request sent to the library; counted
-		 * only in {@code cached_count}, never in the answer times or the other counts.
+		 * only in {@code cached_count}, never in the answer times or the other counts. {@code BODY_TOO_LARGE} (cycle 20,
+		 * ADR-0132): the answer passed the body limit (1MB, compressed or decompressed) and the request failed; counted
+		 * in {@code failed_count} and in {@code body_too_large_count} both [확정].
 		 */
-		OK, FAILED, TIMEOUT, SKIPPED, CACHED
+		OK, FAILED, TIMEOUT, SKIPPED, CACHED, BODY_TOO_LARGE
 
 	}
 
