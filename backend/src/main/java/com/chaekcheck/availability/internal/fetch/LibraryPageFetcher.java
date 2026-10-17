@@ -24,7 +24,8 @@ import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.SearchTarget;
 
 /**
- * Fetches one page of one library: cache, then host throttle, then {@link SiteFetcher}, then adapter.
+ * Fetches one page of one library: cache, then host throttle, then {@link SiteFetcher}, then adapter inside a
+ * {@link ParseSlots} slot (cycle 20).
  */
 public class LibraryPageFetcher {
 
@@ -42,8 +43,11 @@ public class LibraryPageFetcher {
 
 	private final BookKeyNormalizer titleKeys;
 
+	private final ParseSlots parseSlots;
+
 	public LibraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, Duration requestDeadline, Clock clock, BookKeyNormalizer titleKeys) {
+			SiteFetcher siteFetcher, Duration requestDeadline, Clock clock, BookKeyNormalizer titleKeys,
+			ParseSlots parseSlots) {
 		adapters.forEach(adapter -> this.adapters.put(adapter.platform(), adapter));
 		this.cache = cache;
 		this.throttle = throttle;
@@ -51,6 +55,7 @@ public class LibraryPageFetcher {
 		this.requestDeadline = requestDeadline;
 		this.clock = clock;
 		this.titleKeys = titleKeys;
+		this.parseSlots = parseSlots;
 	}
 
 	/**
@@ -105,8 +110,10 @@ public class LibraryPageFetcher {
 			throw UpstreamException.error("status " + response.status() + " from " + HostThrottle.hostPort(uri)
 					+ " via " + response.via());
 		}
-		// adapters decode the bytes themselves: EUC-KR sites send no charset in Content-Type
-		return new FetchedPage(adapter.parse(response.body(), response.declaredCharset()), uri, clock.instant());
+		// adapters decode the bytes themselves: EUC-KR sites send no charset in Content-Type. The parse waits for a
+		// slot (cycle 20); without one in time this library fails with parse_busy and nothing is cached
+		return new FetchedPage(parseSlots.parse(() -> adapter.parse(response.body(), response.declaredCharset())),
+				uri, clock.instant());
 	}
 
 	private LibraryPage toPage(SearchTarget target, SearchQuery query, int page, PlatformAdapter adapter,

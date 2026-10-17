@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
+import com.chaekcheck.availability.internal.fetch.ParseSlots;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
 import com.chaekcheck.availability.internal.fetch.SiteHostNames;
 import com.chaekcheck.availability.internal.fetch.SiteResponse;
@@ -41,13 +42,17 @@ public class DetailPageFetcher {
 
 	private final Clock clock;
 
+	private final ParseSlots parseSlots;
+
+	/** @param parseSlots the same slots as search pages (cycle 20 [안: 같은 자리]) */
 	public DetailPageFetcher(List<PlatformAdapter> adapters, DetailVerdictCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, Clock clock) {
+			SiteFetcher siteFetcher, Clock clock, ParseSlots parseSlots) {
 		adapters.forEach(adapter -> this.adapters.put(adapter.platform(), adapter));
 		this.cache = cache;
 		this.throttle = throttle;
 		this.siteFetcher = siteFetcher;
 		this.clock = clock;
+		this.parseSlots = parseSlots;
 	}
 
 	/**
@@ -95,7 +100,8 @@ public class DetailPageFetcher {
 		if (!response.isSuccess()) {
 			throw UpstreamException.error("detail status " + response.status() + " from " + HostThrottle.hostPort(uri));
 		}
-		DetailPage page = new DetailPage(adapter.parseDetail(response.body(), response.declaredCharset()),
+		DetailPage page = new DetailPage(
+				parseSlots.parse(() -> adapter.parseDetail(response.body(), response.declaredCharset())),
 				clock.instant());
 		log.info("detail page host={} path={} detail={} via={}", HostThrottle.hostPort(uri), uri.getRawPath(),
 				page.detail(), response.via());

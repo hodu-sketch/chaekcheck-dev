@@ -18,12 +18,44 @@ import org.springframework.util.unit.DataSize;
  * @param maxConcurrentSearches batch streams and "more" calls running at once; more are refused with 503
  * {@code server_busy} (SearchSlots)
  * @param caches size limit of each cache and how often their statistics are logged (cycle 08, ADR-0066)
+ * @param parseSlots pages parsed at once and the wait for a slot (cycle 20, AC-33)
+ * @param lookupStatus the status signal's times and list size (cycle 20, ADR-0118)
+ * @param opsSummary the one-minute operations summary line (cycle 20, ADR-0132)
  */
 @ConfigurationProperties("chaekcheck.availability")
 public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostMaxConcurrency,
 		Duration hostMinInterval, Duration connectTimeout, Duration readTimeout, Duration requestDeadline, Batch batch,
 		Detail detail, Kyobo kyobo, Yes24 yes24, String userAgent, Fetch fetch, Duration totalTimeout,
-		DataSize maxBodySize, int maxConcurrentSearches) {
+		DataSize maxBodySize, int maxConcurrentSearches, ParseSlots parseSlots, LookupStatus lookupStatus,
+		OpsSummary opsSummary) {
+
+	/**
+	 * Library pages parsed at the same time (cycle 20, overall review #4; docs/maintenance/settings-index.md).
+	 * @param max slots [확정 8]
+	 * @param maxWait longest wait for a slot once the body has arrived; then that library fails with parse_busy [확정 2s]
+	 */
+	public record ParseSlots(int max, Duration maxWait) {
+	}
+
+	/**
+	 * The status signal {@code GET /api/v1/lookup-status} (cycle 20, ADR-0118; docs/maintenance/settings-index.md).
+	 * @param memo how long one computed answer is handed out again [확정 1s]
+	 * @param redAfterRefusal RED for this long after a 503 server_busy [확정 10s]
+	 * @param grayAfterDbError GRAY (DB_ERROR) for this long after a DB error [확정 30s]
+	 * @param queueWaitWindow a host-queue wait older than this is no longer counted [확정 10s = batch deadline + 2s]
+	 * @param queueTimeoutWindow a throttle timeout keeps the host queued this long [확정 60s]
+	 * @param maxQueuedLibraries longest {@code queuedLibraryIds} list [안 200]
+	 */
+	public record LookupStatus(Duration memo, Duration redAfterRefusal, Duration grayAfterDbError,
+			Duration queueWaitWindow, Duration queueTimeoutWindow, int maxQueuedLibraries) {
+	}
+
+	/**
+	 * The operations summary log line (cycle 20, overall review #5; docs/maintenance/settings-index.md).
+	 * @param interval how often the line is written [확정 1m]
+	 */
+	public record OpsSummary(Duration interval) {
+	}
 
 	/**
 	 * The in-memory caches (ADR-0006: 3 minutes; plan ADR-0066: one limit per cache, no weight limit).

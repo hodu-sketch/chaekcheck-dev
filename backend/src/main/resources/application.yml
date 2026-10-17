@@ -144,6 +144,32 @@ chaekcheck:
     # rows), KYOBO search page 188KB. 4MB -> 1MB [확정] (cycle 20 review #7). Same value as the fetch service and
     # later nginx / the extension (LOOKUP_MAX_BODY_MB). docs/maintenance/settings-index.md
     max-body-size: 1MB
+    # Library pages parsed at the same time, search and detail pages together (cycle 20, overall review #4, AC-33):
+    # parsing a 1MB page was measured at about 7.4MB of heap, so 8 slots bound the heap with 40 search slots. A page
+    # waits for a slot up to parse-slots.max-wait after its body arrived, then that library alone fails (parse_busy).
+    # From stage 2 the extension uploads share the same slots. docs/maintenance/settings-index.md
+    parse-slots:
+      max: 8
+      max-wait: 2s
+    # The status signal GET /api/v1/lookup-status (cycle 20, ADR-0118) [확정 values, names 안].
+    # docs/maintenance/settings-index.md
+    lookup-status:
+      # one computed answer is handed out again for this long
+      memo: 1s
+      # RED for this long after a 503 server_busy
+      red-after-refusal: 10s
+      # GRAY (reason DB_ERROR) for this long after a DB error seen by the API (overall review #9)
+      gray-after-db-error: 30s
+      # a host-queue wait older than this no longer counts as queued: batch deadline 8s + 2s (change together)
+      queue-wait-window: 10s
+      # a throttle timeout keeps that host's libraries queued for this long (spec R4)
+      queue-timeout-window: 60s
+      # longest queuedLibraryIds list in the answer [안]
+      max-queued-libraries: 200
+    # One INFO line a minute with the lookup counters (cycle 20, overall review #5, AC-40):
+    # docs/maintenance/settings-index.md, field shape in docs/plan-feedback.md (# 사이클 20)
+    ops-summary:
+      interval: 1m
     # Batch streams and "more" calls running at once; more get 503 server_busy at once (not queued).
     # 40 x parallelism 5 = at most 200 library requests in flight from batches, and the host throttle (1 per host)
     # still applies. 20 -> 40 [확정] (cycle 20 overall review #13) together with the parse slots below, which keep

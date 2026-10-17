@@ -54,7 +54,7 @@ class LibraryPageFetcherTests {
 					new ElibPortalV1Adapter()),
 			new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
 			new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), client, DEADLINE, Clock.systemUTC(),
-			new BookKeyNormalizer());
+			new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)));
 
 	@AfterEach
 	void close() {

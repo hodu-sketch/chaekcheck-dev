@@ -47,7 +47,8 @@ class DetailLookupResolverTests {
 
 	DetailLookupResolver resolver = new DetailLookupResolver(List.of(new ElibPortalV1Adapter()),
 			new CaffeineDetailVerdictCache(Duration.ofMinutes(3), 100, executor, Ticker.systemTicker()),
-			new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), siteFetcher, Clock.systemUTC());
+			new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), siteFetcher, Clock.systemUTC(),
+			new com.chaekcheck.availability.internal.fetch.ParseSlots(8, Duration.ofSeconds(2)));
 
 	@AfterEach
 	void close() {

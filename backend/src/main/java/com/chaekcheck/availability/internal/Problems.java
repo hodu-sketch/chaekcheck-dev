@@ -21,8 +21,15 @@ public final class Problems {
 		return problem;
 	}
 
-	/** 504 upstream_timeout or 502 upstream_error. Never includes the upstream message or body. */
+	/**
+	 * 504 upstream_timeout or 502 upstream_error; 503 {@code parse_busy} when the page got no parse slot in time
+	 * (cycle 20). Never includes the upstream message or body.
+	 */
 	public static ProblemDetail upstream(UpstreamException ex) {
+		if (ex.code() != null) {
+			return problem(HttpStatus.SERVICE_UNAVAILABLE, ex.code(),
+					"The server is busy reading library pages; the library was not read this time");
+		}
 		return ex.kind() == UpstreamException.Kind.TIMEOUT
 				? problem(HttpStatus.GATEWAY_TIMEOUT, "upstream_timeout", "The library did not respond in time")
 				: problem(HttpStatus.BAD_GATEWAY, "upstream_error",

@@ -24,21 +24,24 @@ public class UpstreamException extends RuntimeException {
 
 	private final long receivedBytes;
 
+	private final String code;
+
 	public UpstreamException(Kind kind, String message) {
 		this(kind, message, null);
 	}
 
 	public UpstreamException(Kind kind, String message, Throwable cause) {
-		this(kind, message, cause, false, null, -1);
+		this(kind, message, cause, false, null, -1, null);
 	}
 
 	private UpstreamException(Kind kind, String message, Throwable cause, boolean bodyTooLarge, URI uri,
-			long receivedBytes) {
+			long receivedBytes, String code) {
 		super(message, cause);
 		this.kind = kind;
 		this.bodyTooLarge = bodyTooLarge;
 		this.uri = uri;
 		this.receivedBytes = receivedBytes;
+		this.code = code;
 	}
 
 	public Kind kind() {
@@ -60,8 +63,21 @@ public class UpstreamException extends RuntimeException {
 		return receivedBytes;
 	}
 
+	/**
+	 * A problem code of its own instead of the kind's ({@code upstream_error} / {@code upstream_timeout}): today
+	 * only {@code parse_busy} (cycle 20, no parse slot in time); null otherwise.
+	 */
+	public String code() {
+		return code;
+	}
+
 	public static UpstreamException error(String message) {
 		return new UpstreamException(Kind.ERROR, message);
+	}
+
+	/** No parse slot within the wait (cycle 20, AC-33): ERROR with code {@code parse_busy}. */
+	public static UpstreamException parseBusy(String message) {
+		return new UpstreamException(Kind.ERROR, message, null, false, null, -1, "parse_busy");
 	}
 
 	public static UpstreamException timeout(String message) {
@@ -74,7 +90,7 @@ public class UpstreamException extends RuntimeException {
 	 */
 	public static UpstreamException bodyTooLarge(URI uri, long maxBytes, long receivedBytes, Throwable cause) {
 		return new UpstreamException(Kind.ERROR, "response from " + uri + " is over " + maxBytes + " bytes"
-				+ (receivedBytes < 0 ? "" : " (received " + receivedBytes + ")"), cause, true, uri, receivedBytes);
+				+ (receivedBytes < 0 ? "" : " (received " + receivedBytes + ")"), cause, true, uri, receivedBytes, null);
 	}
 
 }

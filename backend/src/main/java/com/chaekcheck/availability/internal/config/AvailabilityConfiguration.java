@@ -22,6 +22,7 @@ import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.InMemoryHostThrottle;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
 import com.chaekcheck.availability.internal.fetch.LibrarySiteTls;
+import com.chaekcheck.availability.internal.fetch.ParseSlots;
 import com.chaekcheck.availability.internal.fetch.SearchPageCache;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
 import com.chaekcheck.availability.internal.fetch.UnderscoreHostSiteFetcher;
@@ -101,11 +102,17 @@ class AvailabilityConfiguration {
 				Ticker.systemTicker());
 	}
 
+	/** The one set of parse slots, shared by search pages, detail pages and later the extension uploads (cycle 20). */
+	@Bean
+	ParseSlots parseSlots(AvailabilityProperties properties) {
+		return new ParseSlots(properties.parseSlots().max(), properties.parseSlots().maxWait());
+	}
+
 	@Bean
 	LibraryPageFetcher libraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, AvailabilityProperties properties) {
+			SiteFetcher siteFetcher, AvailabilityProperties properties, ParseSlots parseSlots) {
 		return new LibraryPageFetcher(adapters, cache, throttle, siteFetcher, properties.requestDeadline(),
-				Clock.systemUTC(), new BookKeyNormalizer());
+				Clock.systemUTC(), new BookKeyNormalizer(), parseSlots);
 	}
 
 	@Bean
@@ -124,8 +131,9 @@ class AvailabilityConfiguration {
 	/** The one path detail pages are loaded on: portal blank verdicts and the holding stream. */
 	@Bean
 	DetailPageFetcher detailPageFetcher(List<PlatformAdapter> adapters, DetailVerdictCache detailVerdictCache,
-			HostThrottle throttle, SiteFetcher siteFetcher) {
-		return new DetailPageFetcher(adapters, detailVerdictCache, throttle, siteFetcher, Clock.systemUTC());
+			HostThrottle throttle, SiteFetcher siteFetcher, ParseSlots parseSlots) {
+		return new DetailPageFetcher(adapters, detailVerdictCache, throttle, siteFetcher, Clock.systemUTC(),
+				parseSlots);
 	}
 
 	@Bean
