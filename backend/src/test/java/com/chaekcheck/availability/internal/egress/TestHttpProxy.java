@@ -17,7 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A minimal HTTP proxy for tests (cycle 22): plain {@code GET http://host:port/path} requests are forwarded, and
+ * A minimal HTTP proxy for tests (webshare cycle (in cycle 20)): plain {@code GET http://host:port/path} requests are forwarded, and
  * {@code CONNECT host:port} opens a tunnel (https sites). Every host is sent to one fixed target address (the test's
  * fake library), so test host names need no DNS. Optionally requires {@code Proxy-Authorization: Basic} and answers
  * 407 without it. Records the request lines it served, so a test can prove which lane a request left through.

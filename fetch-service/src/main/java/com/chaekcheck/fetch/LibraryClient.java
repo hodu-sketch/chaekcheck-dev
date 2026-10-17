@@ -63,7 +63,7 @@ import org.springframework.stereotype.Component;
  * Cycle 18 (ADR-0111): a host name with an underscore goes through Apache HttpClient 5 instead (java.net.http refuses
  * it), with the same limits, outcomes and log line ({@link #getUnderscoreHost}).
  * <p>
- * Cycle 22 (ADR-0130, handoff 1-15 #5): one client pair per egress lane the mode allows. A proxy lane's clients send
+ * Webshare cycle (in cycle 20) (ADR-0130, handoff 1-15 #5): one client pair per egress lane the mode allows. A proxy lane's clients send
  * through the lane's proxy ({@link ProxySelector#of}, Apache {@code setProxy}); the direct lane's JDK client uses
  * {@link HttpClient.Builder#NO_PROXY}. Optional proxy credentials (one pair) answer the proxy's 407. The main
  * service picks the lane; here only {@link #lane(String)} maps the id to its clients.

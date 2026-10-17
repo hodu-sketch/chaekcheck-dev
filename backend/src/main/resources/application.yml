@@ -127,11 +127,11 @@ chaekcheck:
       search-page-max-size: 1000
       detail-verdict-max-size: 1000
       stats-log-interval: 5m
-    # Per egress lane and library host (cycle 22, ADR-0130; before cycle 22 the same values were per host for the
+    # Per egress lane and library host (webshare cycle (in cycle 20), ADR-0130; before webshare cycle (in cycle 20) the same values were per host for the
     # one direct path): 1 request at a time, the next one 1s after the previous ended. docs/maintenance/settings-index.md
     host-max-concurrency: 1
     host-min-interval: 1s
-    # Egress lanes (cycle 22, handoff 1-15, ADR-0130): the server's own IP ("direct") plus one lane per proxy in
+    # Egress lanes (webshare cycle (in cycle 20), handoff 1-15, ADR-0130): the server's own IP ("direct") plus one lane per proxy in
     # egress.proxies. Production: EC2 IP + 20 Webshare KR static proxies; local default: direct only.
     # docs/maintenance/settings-index.md, names and log shapes in docs/plan-feedback.md (# 사이클 22)
     egress:
@@ -229,7 +229,7 @@ chaekcheck:
       # 10 per page, same as YES24 (user decision 2026-09-27; design value was 50). The site accepts 10.
       record-count: 10
       # Kyobo subscription servers (*.dkyobobook.co.kr, 4-6s an answer): all their host names are one pool per egress
-      # lane with this many requests at a time and no 1s interval (ADR-0094, cycle 22 handoff 1-15 #3) [확정 3]. A lane
+      # lane with this many requests at a time and no 1s interval (ADR-0094, webshare cycle (in cycle 20) handoff 1-15 #3) [확정 3]. A lane
       # drops to 1 at a time after 3 failures in a row or an answer slower than 10s (HostRules, numbers [안]).
       # Environment: CHAEKCHECK_AVAILABILITY_KYOBO_SUBSCRIPTIONMAXCONCURRENCY. docs/maintenance/settings-index.md
       subscription-max-concurrency: 3

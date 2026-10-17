@@ -30,7 +30,7 @@ import com.chaekcheck.availability.internal.status.EgressLaneStatus;
  * </pre>
  * The counts ({@code refused}, {@code libraryRequests}, {@code bodyTooLarge}, {@code dbErrors}, the two maxima, the
  * {@code lane*} counts) are for the minute just ended and start again at zero; the rest is the state at the moment
- * of writing. Cycle 22 adds the lane fields: {@code pausedLanes} = paused (lane, host) pairs, {@code pausedLaneList}
+ * of writing. Webshare cycle (in cycle 20) adds the lane fields: {@code pausedLanes} = paused (lane, host) pairs, {@code pausedLaneList}
  * = {@code lane@host} of at most {@value #PAUSED_LIST_MAX} of them (the per-pair 0/1 metric; {@code lane_paused} /
  * {@code lane_resumed} lines carry the changes), {@code laneRequests} per lane in lane order. Stage 2 adds
  * the extension requests and the plan weight, stage 3 the ledger size. Same shape as {@code CacheStatsLog}: its own

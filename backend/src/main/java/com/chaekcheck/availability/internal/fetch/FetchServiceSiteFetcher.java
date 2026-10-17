@@ -39,7 +39,7 @@ import tools.jackson.databind.json.JsonMapper;
  * </ul>
  * The resting state is per instance (plan-feedback C2-U-1).
  * <p>
- * Cycle 22: the request names the lane the main service chose ({@code lane}); the fetch server reads the same lane
+ * Webshare cycle (in cycle 20): the request names the lane the main service chose ({@code lane}); the fetch server reads the same lane
  * setting and sends through that lane's proxy. Lane choice, throttle and paused lanes stay here (ADR-0011).
  */
 public class FetchServiceSiteFetcher implements SiteFetcher {
@@ -172,14 +172,14 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 	public record Server(String id, URI url) {
 	}
 
-	/** @param lane the egress lane id the fetch server must send through (cycle 22); an older server ignores it */
+	/** @param lane the egress lane id the fetch server must send through (webshare cycle (in cycle 20)); an older server ignores it */
 	record FetchRequest(String url, String requestId, String lane) {
 	}
 
 	/**
 	 * Fetch server answer. {@code outcome}: RESPONDED (the library answered with {@code status}), TIMEOUT,
 	 * BODY_TOO_LARGE (cycle 20, with {@code receivedBytes}), or CONNECT_FAILED / ERROR (also an unknown or
-	 * disallowed lane, cycle 22). {@code lane} echoes the lane the server used (null from an older server). {@code body} is Base64 in the
+	 * disallowed lane, webshare cycle (in cycle 20)). {@code lane} echoes the lane the server used (null from an older server). {@code body} is Base64 in the
 	 * JSON; Jackson decodes it straight into bytes, so the body is never held as a String as well (cycle 08 handoff
 	 * step 5-5).
 	 */

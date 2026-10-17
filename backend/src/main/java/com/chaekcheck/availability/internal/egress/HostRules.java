@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * How much one lane may send to one library site (ADR-0094, ADR-0130, spec R13-3): by default one request at a
  * time per host name and {@code host-min-interval} (1s) after the previous one ended ({@code host-max-concurrency}
- * 1 — both values mean "per lane, per site" since cycle 22). Kyobo subscription servers ({@code *.dkyobobook.co.kr},
+ * 1 — both values mean "per lane, per site" since webshare cycle (in cycle 20)). Kyobo subscription servers ({@code *.dkyobobook.co.kr},
  * usually 4-6s an answer) are one pool per lane: {@code kyobo.subscription-max-concurrency} (3) at a time across
  * all their host names, no interval. Counted per lane, so 21 lanes may send 21 requests a second to one site [확정].
  * <p>

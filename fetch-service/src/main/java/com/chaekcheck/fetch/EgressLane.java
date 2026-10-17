@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * One way out to the library sites, the same lane list as the main service (cycle 22, ADR-0130, handoff 1-15 #5):
+ * One way out to the library sites, the same lane list as the main service (webshare cycle (in cycle 20), ADR-0130, handoff 1-15 #5):
  * {@code direct} (this server's IP) and {@code proxy-01}, {@code proxy-02} … one per entry of {@code fetch.egress.proxies}
  * in order. The main service picks the lane and names it in the request; this service only maps the id to the
  * proxy. No shared code between the two applications on purpose (ADR-0011, cycle 18 decision #4): the parsing is

@@ -56,7 +56,7 @@ class FetchController {
 		}
 		try {
 			URI url = urlGuard.check(request.url());
-			// cycle 22: the main service names the lane; none = direct (an older main service). A lane this server does
+			// webshare cycle (in cycle 20): the main service names the lane; none = direct (an older main service). A lane this server does
 			// not have, or one its mode excludes, is a failure of this request only, never a different lane.
 			String laneId = request.lane() == null || request.lane().isBlank() ? EgressLane.DIRECT_ID : request.lane();
 			EgressLane lane = libraryClient.lane(laneId);
@@ -111,7 +111,7 @@ class FetchController {
 		return problem;
 	}
 
-	/** @param lane the egress lane id chosen by the main service (cycle 22); null from an older main service */
+	/** @param lane the egress lane id chosen by the main service (webshare cycle (in cycle 20)); null from an older main service */
 	record FetchRequest(String url, String requestId, String lane) {
 	}
 

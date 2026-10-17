@@ -8,7 +8,7 @@ import com.chaekcheck.availability.internal.egress.EgressLane;
 /**
  * Picks the request path for one address (cycle 18, ADR-0111): an address whose host has an underscore
  * ({@link SiteHostNames#needsUnderscorePath}) goes to {@link UnderscoreHostSiteFetcher}, every other address to the
- * direct path as before. Only used in direct mode, one per egress lane ({@link LaneSiteFetcher}, cycle 22); in
+ * direct path as before. Only used in direct mode, one per egress lane ({@link LaneSiteFetcher}, webshare cycle (in cycle 20)); in
  * fetch-service mode the fetch server makes the same choice.
  */
 public class HostRoutingSiteFetcher implements SiteFetcher, AutoCloseable {

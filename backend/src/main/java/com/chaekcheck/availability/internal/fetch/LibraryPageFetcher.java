@@ -26,7 +26,7 @@ import com.chaekcheck.library.SearchTarget;
 
 /**
  * Fetches one page of one library: cache, then the egress lanes ({@link EgressLanes}: lane choice, per-lane host
- * throttle and the lane's {@link SiteFetcher}, cycle 22), then adapter inside a {@link ParseSlots} slot (cycle 20).
+ * throttle and the lane's {@link SiteFetcher}, webshare cycle (in cycle 20)), then adapter inside a {@link ParseSlots} slot (cycle 20).
  */
 public class LibraryPageFetcher {
 

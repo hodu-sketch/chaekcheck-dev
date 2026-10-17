@@ -3,7 +3,7 @@ package com.chaekcheck.availability.internal.fetch;
 import java.net.URI;
 
 /**
- * Throttle keys of library addresses. The call spacing itself is per lane and host since cycle 22
+ * Throttle keys of library addresses. The call spacing itself is per lane and host since webshare cycle (in cycle 20)
  * ({@link com.chaekcheck.availability.internal.egress.LaneThrottle}, ADR-0010 made per lane by ADR-0095/0130).
  */
 public final class HostThrottle {

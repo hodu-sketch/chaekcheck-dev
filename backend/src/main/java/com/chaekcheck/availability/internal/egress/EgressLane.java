@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * One way out to the library sites (cycle 22 / handoff 1-15, ADR-0130): the server's own IP ({@link Kind#DIRECT},
+ * One way out to the library sites (webshare cycle (in cycle 20) / handoff 1-15, ADR-0130): the server's own IP ({@link Kind#DIRECT},
  * id {@code direct}) or an HTTP proxy ({@link Kind#PROXY}, ids {@code proxy-01}, {@code proxy-02} … in list order)
  * such as one of the Webshare Korean static residential addresses. A server with several public IPs is expressed
  * as proxy lanes too (tinyproxy {@code Bind} per IP, multi-source-ip 6절 #2), so there is one code path for both.

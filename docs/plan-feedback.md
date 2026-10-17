@@ -5196,7 +5196,7 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - main에 fast-forward: `262bb03`(1단계 + 사이클 21 회고 고침 + 저녁 결정 전부). 나가는 길(1-15)은 c20 브랜치에서 계속 만들고 따로 합침
 - 8080(원래 DB 5432)·8081(db-ops 5434)을 합친 main 코드로 다시 켬 → 켤 때 `usagelog/004`가 두 DB에 적용됨
 
-# 사이클 22 (사이클 20 안에서, 2026-10-17)
+# 사이클 webshare (사이클 20 안에서, 2026-10-17)
 
 인계서: plan `docs/current/handoff.md` **1-15 「나가는 길: 길 목록과 막힌 길」**(2026-10-17, plan 커밋 `2c0ea1f`). 기준: ADR-0130(ADR-0095·0094를 이어받음), 사이클 17 spec R13 · AC-8 · AC-9, `from-research-lookup-egress.md` #1~#4 · #9, `from-cycle-20-proxy-only.md`, `from-cycle-20-blocked-ip-resume.md`, plan `research/deploy/multi-source-ip.md` 7~9 · 11절. 사이클 20 worktree(`cycle-20-lookup-status`, c20 docker 5512/5513)에서 만들었고 커밋 머리는 `Cycle 22:`.
 

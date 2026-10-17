@@ -33,7 +33,7 @@ import org.springframework.util.unit.DataSize;
 import com.sun.net.httpserver.HttpServer;
 
 /**
- * Egress lanes on the fetch server (cycle 22, handoff 1-15 #5): the request names the lane, the server sends through
+ * Egress lanes on the fetch server (webshare cycle (in cycle 20), handoff 1-15 #5): the request names the lane, the server sends through
  * that lane's proxy (JDK and underscore paths), echoes the lane, treats a missing lane as direct and a lane it does
  * not have (or its mode excludes) as ERROR. Two {@link TestHttpProxy} instances stand in for Webshare.
  */

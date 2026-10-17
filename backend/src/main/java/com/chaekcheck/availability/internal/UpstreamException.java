@@ -65,7 +65,7 @@ public class UpstreamException extends RuntimeException {
 
 	/**
 	 * A problem code of its own instead of the kind's ({@code upstream_error} / {@code upstream_timeout}):
-	 * {@code parse_busy} (cycle 20, no parse slot in time) or {@code no_lane_for_host} (cycle 22, every lane paused
+	 * {@code parse_busy} (cycle 20, no parse slot in time) or {@code no_lane_for_host} (webshare cycle (in cycle 20), every lane paused
 	 * on the site); null otherwise.
 	 */
 	public String code() {
@@ -77,7 +77,7 @@ public class UpstreamException extends RuntimeException {
 	}
 
 	/**
-	 * Every egress lane is paused on this library's site (cycle 22, handoff 1-15): ERROR with code
+	 * Every egress lane is paused on this library's site (webshare cycle (in cycle 20), handoff 1-15): ERROR with code
 	 * {@code no_lane_for_host}; the library fails at once ("확인 불가"), nothing is cached.
 	 */
 	public static UpstreamException noLane(String message) {

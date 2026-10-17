@@ -101,7 +101,7 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 	}
 
 	/**
-	 * Through an HTTP proxy (cycle 22 egress lane): the same client with {@code proxy} as its route and, when
+	 * Through an HTTP proxy (webshare cycle (in cycle 20) egress lane): the same client with {@code proxy} as its route and, when
 	 * {@code credentials} is given, Basic credentials for that proxy alone (sent after its 407).
 	 * @param proxy the lane's proxy, or null for the direct lane
 	 * @param credentials {@code {username, password}}, or null for IP authorization
@@ -153,7 +153,7 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 		return new UnderscoreHostSiteFetcher(client, totalTimeout, maxBodyBytes, userAgent, clock);
 	}
 
-	/** {@code lane} names the lane this client was built for (cycle 22), for {@code via} and the log line. */
+	/** {@code lane} names the lane this client was built for (webshare cycle (in cycle 20)), for {@code via} and the log line. */
 	@Override
 	public SiteResponse fetch(URI uri, Instant deadline, EgressLane lane) {
 		Instant start = clock.instant();

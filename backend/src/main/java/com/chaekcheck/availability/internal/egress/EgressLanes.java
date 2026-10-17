@@ -16,7 +16,7 @@ import com.chaekcheck.availability.internal.fetch.SiteHostNames;
 import com.chaekcheck.availability.internal.fetch.SiteResponse;
 
 /**
- * The egress lanes (cycle 22 / handoff 1-15, ADR-0130) and the one place a library request picks its lane: the lanes
+ * The egress lanes (webshare cycle (in cycle 20) / handoff 1-15, ADR-0130) and the one place a library request picks its lane: the lanes
  * the mode allows, minus those paused on this host, go to the {@link LaneThrottle}, which runs the request on the
  * first lane that can send now (per lane and site: 1 at a time + 1s, Kyobo 3 pooled), taking turns among free
  * lanes. The lane's {@link SiteFetcher} client sends; the answer's {@code via} is the lane id. Every outcome feeds

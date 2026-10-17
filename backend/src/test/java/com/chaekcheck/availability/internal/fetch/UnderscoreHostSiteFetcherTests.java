@@ -202,7 +202,7 @@ class UnderscoreHostSiteFetcherTests {
 		assertThat(response.status()).isEqualTo(200);
 		assertThat(response.body()).hasSize((int) MAX_BODY);
 		assertThat(response.contentType()).isEqualTo("text/html; charset=UTF-8");
-		assertThat(response.via()).as("cycle 22: via is the lane id").isEqualTo(EgressLane.DIRECT_ID);
+		assertThat(response.via()).as("webshare cycle (in cycle 20): via is the lane id").isEqualTo(EgressLane.DIRECT_ID);
 		assertThat(userAgents).containsExactly("chaekcheck/test");
 		// cycle 20: gzip is asked for on this path too (the client's own decoding stays off, ContentEncoding inflates)
 		assertThat(acceptEncodings).containsExactly("gzip");

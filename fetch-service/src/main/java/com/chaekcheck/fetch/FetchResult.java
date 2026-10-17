@@ -10,7 +10,7 @@ import java.time.Instant;
  * RESPONDED
  * @param receivedBytes only for {@link Outcome#BODY_TOO_LARGE}: bytes read from the library before the read stopped
  * (the main service logs them); else null
- * @param lane the egress lane the request went through (cycle 22), echoed back; null when the request named a lane
+ * @param lane the egress lane the request went through (webshare cycle (in cycle 20)), echoed back; null when the request named a lane
  * this server does not have
  */
 public record FetchResult(Outcome outcome, Integer status, String contentType, String location, String body,
@@ -28,7 +28,7 @@ public record FetchResult(Outcome outcome, Integer status, String contentType, S
 		 * main service can count it as {@code body_too_large}; an older main service treats it like ERROR.
 		 */
 		BODY_TOO_LARGE,
-		/** Any other failure talking to the library, or a lane this server does not have (cycle 22). */
+		/** Any other failure talking to the library, or a lane this server does not have (webshare cycle (in cycle 20)). */
 		ERROR
 	}
 

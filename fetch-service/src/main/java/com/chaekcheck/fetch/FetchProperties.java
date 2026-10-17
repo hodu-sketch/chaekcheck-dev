@@ -16,7 +16,7 @@ import org.springframework.util.unit.DataSize;
  * @param maxBodySize largest library body read; a bigger one stops being read and the call fails (ERROR)
  * @param maxConcurrent requests handled at once; more get 503
  * @param allowLoopback only for tests with a local fake library; never in real configuration
- * @param egress the egress lanes, the same list as the main service (cycle 22, handoff 1-15 #5)
+ * @param egress the egress lanes, the same list as the main service (webshare cycle (in cycle 20), handoff 1-15 #5)
  */
 @ConfigurationProperties("fetch")
 public record FetchProperties(String tokenHeader, String token, String userAgent, Duration connectTimeout,

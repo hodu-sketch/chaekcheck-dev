@@ -36,7 +36,7 @@ fetch:
   # [안] requests handled at once; more get 503 so the main service tries the next fetch server
   max-concurrent: 32
   allow-loopback: false
-  # Egress lanes (cycle 22, ADR-0130, handoff 1-15 #5): the SAME list as the main service's
+  # Egress lanes (webshare cycle (in cycle 20), ADR-0130, handoff 1-15 #5): the SAME list as the main service's
   # chaekcheck.availability.egress.* (the production compose passes one value to both). The main service picks the
   # lane and names it in the request (lane: direct | proxy-01 …); this server maps the id to the proxy. A request for
   # a lane missing here or excluded by the mode is answered outcome=ERROR. Environment: FETCH_EGRESS_MODE,

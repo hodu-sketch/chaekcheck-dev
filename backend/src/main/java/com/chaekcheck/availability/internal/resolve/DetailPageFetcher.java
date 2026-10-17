@@ -26,7 +26,7 @@ import com.chaekcheck.library.SearchTarget;
 
 /**
  * Loads a book's detail page (ADR-0029) through the same 3-minute cache and egress lanes ({@link EgressLanes}:
- * lane choice and per-lane host throttle, cycle 22) as search pages (호출 예의 [확정]). The one place detail pages are requested: the portal's blank-verdict lookup and the
+ * lane choice and per-lane host throttle, webshare cycle (in cycle 20)) as search pages (호출 예의 [확정]). The one place detail pages are requested: the portal's blank-verdict lookup and the
  * holding stream both use it.
  */
 public class DetailPageFetcher {

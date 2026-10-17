@@ -6,7 +6,7 @@ import java.time.Instant;
 import com.chaekcheck.availability.internal.egress.EgressLane;
 
 /**
- * GETs one library page (ADR-0015) through one egress lane (cycle 22, ADR-0130). Two implementations:
+ * GETs one library page (ADR-0015) through one egress lane (webshare cycle (in cycle 20), ADR-0130). Two implementations:
  * {@link LaneSiteFetcher} calls the site from this server with the lane's own HTTP client (direct, or through the
  * lane's proxy), {@link FetchServiceSiteFetcher} goes through a fetch server and names the lane in the request.
  * Chosen by {@code chaekcheck.availability.fetch.mode}; there is no automatic switch between them.

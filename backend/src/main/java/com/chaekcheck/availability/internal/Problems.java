@@ -23,7 +23,7 @@ public final class Problems {
 
 	/**
 	 * 504 upstream_timeout or 502 upstream_error; 503 {@code parse_busy} when the page got no parse slot in time
-	 * (cycle 20); 502 {@code no_lane_for_host} when every egress lane is paused on the library's site (cycle 22).
+	 * (cycle 20); 502 {@code no_lane_for_host} when every egress lane is paused on the library's site (webshare cycle (in cycle 20)).
 	 * Never includes the upstream message or body.
 	 */
 	public static ProblemDetail upstream(UpstreamException ex) {

@@ -18,7 +18,7 @@ import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.egress.EgressLane;
 
 /**
- * Direct mode with egress lanes (cycle 22, handoff 1-15 #2): one HTTP client pair per lane — the JDK client
+ * Direct mode with egress lanes (webshare cycle (in cycle 20), handoff 1-15 #2): one HTTP client pair per lane — the JDK client
  * ({@link DirectSiteFetcher}) and the Apache client for underscore host names ({@link UnderscoreHostSiteFetcher}),
  * routed by {@link HostRoutingSiteFetcher}. A proxy lane's clients send everything through the lane's proxy
  * ({@link ProxySelector#of}; https sites go through a CONNECT tunnel); the direct lane's clients use

@@ -55,7 +55,7 @@ class FetchServiceSiteFetcherTests {
 		SiteResponse response = fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(200);
-		// cycle 22: via is the lane, the server id stays in the log line; the request carried the lane
+		// webshare cycle (in cycle 20): via is the lane, the server id stays in the log line; the request carried the lane
 		assertThat(response.via()).isEqualTo("direct");
 		assertThat(second.hits.getFirst().body()).contains("\"lane\":\"direct\"");
 		assertThat(second.hits).hasSize(1);

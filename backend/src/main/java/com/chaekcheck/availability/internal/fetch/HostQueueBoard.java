@@ -15,14 +15,14 @@ import java.util.Set;
  * <li>A wait counts only while it is younger than the wait window (10s = batch deadline 8s + 2s), so a lost end
  * heals itself; a throttle timeout keeps the host queued for the timeout window (60s).</li>
  * <li>Keys are {@code (laneId, hostKey, libraryId)}: several libraries on one host (a portal) are all queued when
- * that host is. A wait is for "any lane" ({@link #DEFAULT_LANE}): the lane is chosen when the wait ends (cycle 22
+ * that host is. A wait is for "any lane" ({@link #DEFAULT_LANE}): the lane is chosen when the wait ends (webshare cycle (in cycle 20)
  * {@code EgressLanes}), and a host whose lanes are all paused fails at once, so it is never queued.</li>
  * </ul>
  * Behind a store interface (ADR-0133): {@link InMemoryHostQueueBoard} is the {@code memory} implementation.
  */
 public interface HostQueueBoard {
 
-	/** The wait key while no lane is chosen yet: "waiting for any lane" (cycle 22, handoff 1-15 #3) [안]. */
+	/** The wait key while no lane is chosen yet: "waiting for any lane" (webshare cycle (in cycle 20), handoff 1-15 #3) [안]. */
 	String DEFAULT_LANE = "any";
 
 	/** A wait for {@code hostKey}'s slot on {@code laneId} starts now for {@code libraryId}. */

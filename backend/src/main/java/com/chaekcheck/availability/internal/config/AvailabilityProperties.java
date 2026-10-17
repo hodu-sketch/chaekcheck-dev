@@ -23,9 +23,9 @@ import com.chaekcheck.availability.internal.egress.EgressMode;
  * @param parseSlots pages parsed at once and the wait for a slot (cycle 20, AC-33)
  * @param lookupStatus the status signal's times and list size (cycle 20, ADR-0118)
  * @param opsSummary the one-minute operations summary line (cycle 20, ADR-0132)
- * @param hostMaxConcurrency requests at a time from one egress lane to one library host (cycle 22: per lane) [확정 1]
+ * @param hostMaxConcurrency requests at a time from one egress lane to one library host (webshare cycle (in cycle 20): per lane) [확정 1]
  * @param hostMinInterval wait after the previous request from that lane to that host ended [확정 1s]
- * @param egress the egress lanes: mode, proxy list, vendor, credentials, blocked-lane rule (cycle 22, ADR-0130)
+ * @param egress the egress lanes: mode, proxy list, vendor, credentials, blocked-lane rule (webshare cycle (in cycle 20), ADR-0130)
  */
 @ConfigurationProperties("chaekcheck.availability")
 public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostMaxConcurrency,
@@ -35,7 +35,7 @@ public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostM
 		OpsSummary opsSummary, Egress egress) {
 
 	/**
-	 * The egress lanes (cycle 22, handoff 1-15, ADR-0130; docs/maintenance/settings-index.md).
+	 * The egress lanes (webshare cycle (in cycle 20), handoff 1-15, ADR-0130; docs/maintenance/settings-index.md).
 	 * @param mode {@code all} (default) / {@code proxy-only} / {@code direct-only} [확정 values, 안 spelling]
 	 * @param proxies comma separated {@code host:port} list, one proxy lane each in order ({@code proxy-01} …);
 	 * empty = the direct lane only. Production values are secrets (spec R13-2)
@@ -130,7 +130,7 @@ public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostM
 	/**
 	 * @param recordCount results per page requested from KYOBO sites
 	 * @param subscriptionMaxConcurrency requests at a time from one lane to all Kyobo subscription hosts together
-	 * (cycle 22, ADR-0094) [확정 3, name 안]
+	 * (webshare cycle (in cycle 20), ADR-0094) [확정 3, name 안]
 	 * @param subscriptionHostSuffix the host names that form that pool [확정 .dkyobobook.co.kr]
 	 */
 	public record Kyobo(int recordCount, int subscriptionMaxConcurrency, String subscriptionHostSuffix) {

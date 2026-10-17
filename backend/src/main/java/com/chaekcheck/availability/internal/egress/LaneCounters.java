@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Per-lane counts for the one-minute operations summary line (cycle 22; same shape as
+ * Per-lane counts for the one-minute operations summary line (webshare cycle (in cycle 20); same shape as
  * {@code LookupOpsCounters}): requests sent on each lane, pauses started, retests sent and lanes resumed since the
  * last drain. Per process on purpose, like the other summary counters.
  */

@@ -29,7 +29,7 @@ public final class AdapterFixtures {
 	public static final AvailabilityProperties.OpsSummary OPS_SUMMARY = new AvailabilityProperties.OpsSummary(
 			Duration.ofMinutes(1));
 
-	/** Direct lane only, the production block rule (cycle 22). */
+	/** Direct lane only, the production block rule (webshare cycle (in cycle 20)). */
 	public static final AvailabilityProperties.Egress EGRESS = new AvailabilityProperties.Egress(
 			com.chaekcheck.availability.internal.egress.EgressMode.ALL, "", "webshare", "", "",
 			new AvailabilityProperties.Egress.Block(5, Duration.ofMinutes(10), Duration.ofDays(7), Duration.ofSeconds(30),

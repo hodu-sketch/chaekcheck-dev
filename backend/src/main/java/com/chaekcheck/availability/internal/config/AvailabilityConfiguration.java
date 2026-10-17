@@ -67,7 +67,7 @@ class AvailabilityConfiguration {
 		return Executors.newVirtualThreadPerTaskExecutor();
 	}
 
-	// Egress lanes (cycle 22, handoff 1-15, ADR-0130): the full lane list, the clients per lane, the per-lane host
+	// Egress lanes (webshare cycle (in cycle 20), handoff 1-15, ADR-0130): the full lane list, the clients per lane, the per-lane host
 	// throttle and the paused lanes behind store interfaces (memory), and EgressLanes picking the lane.
 
 	/** Every configured lane: direct, then one per proxy. The mode filters them in {@link #egressLanes}. */
@@ -222,7 +222,7 @@ class AvailabilityConfiguration {
 	}
 
 	/**
-	 * The egress lanes as the status signal reads them (spec R1 additions, cycle 22): the mode and the paused
+	 * The egress lanes as the status signal reads them (spec R1 additions, webshare cycle (in cycle 20)): the mode and the paused
 	 * (lane, host) count; the vendor pause stays false until cycle 17.
 	 */
 	@Bean

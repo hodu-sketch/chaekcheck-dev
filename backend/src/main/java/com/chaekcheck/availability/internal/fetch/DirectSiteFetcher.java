@@ -23,7 +23,7 @@ import com.chaekcheck.availability.internal.egress.EgressLane;
 
 /**
  * Calls the library site from this server (cycle 01 {@code UpstreamClient}), on the server's own IP or through the
- * HTTP proxy the {@link HttpClient} was built with (cycle 22 egress lanes). Every request carries the configured
+ * HTTP proxy the {@link HttpClient} was built with (webshare cycle (in cycle 20) egress lanes). Every request carries the configured
  * User-Agent and is logged with host, path, start and end time, status and User-Agent. Redirects are not followed.
  * Limits (application.yml {@code chaekcheck.availability.*}): the client's connect timeout, the read timeout (until
  * the response headers), a total time limit for the whole request including the body (TIMEOUT), and a maximum body
@@ -66,7 +66,7 @@ public class DirectSiteFetcher implements SiteFetcher {
 	}
 
 	/**
-	 * {@code lane} names the lane this client was built for (cycle 22): it goes into the answer's {@code via} and the
+	 * {@code lane} names the lane this client was built for (webshare cycle (in cycle 20)): it goes into the answer's {@code via} and the
 	 * log line; the client itself already sends through that lane's proxy, or none.
 	 */
 	@Override
