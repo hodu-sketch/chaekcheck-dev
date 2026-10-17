@@ -5317,3 +5317,9 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 로컬에서 Webshare 프록시 길을 실제로 쓰려면 `.env`의 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME` / `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD`에 대시보드 값을 붙여 넣어야 함(빈 값이면 프록시 길은 407 → 사이트마다 5번 뒤 멈추고 직접 길만 남음; 빨리 보려면 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE=direct-only`). 2026-10-18 넣고 확인함(위 「Webshare 선제 인증」)
 - 운영 compose의 공통 이름(`LOOKUP_EGRESS_*`)과 `prod.env` 값, Webshare 주소 비밀 값 넣기는 사이클 17
 - 막힘 숫자(5번 · 403/407/429/503 · 교보 3번/10초)는 [안]: 배포 뒤 `lane_paused` 줄 빈도를 보고 조정
+
+### main 합치기 (2026-10-18 아침)
+
+- main에 fast-forward: `d5341a6`(나가는 길 1-15 + Webshare 선제 인증 + 기록). 1단계 `262bb03` 뒤 둘째 합치기. 푸시 안 함
+- 8080(원래 DB)·8081(db-ops)을 이 코드로 다시 켬. 메인 폴더 `.env`에는 나가는 길 값이 없어 둘 다 `egress lanes mode=ALL lanes=1 direct=1 proxies=0`(직접 길 하나) — Webshare 길은 c20 워크트리 `.env`(아이디·비밀번호 포함)에만 있음. 메인 폴더에서도 쓰려면 같은 값을 메인 `.env`에 옮기면 됨(사용자 결정)
+- plan 20에 알림: CONNECT 407 무챌린지 사실, 비표준 포트(442·8088) 사이트가 Webshare 길로 연결 시간 초과 → 직접 길 예외 목록을 둘지는 plan/사용자 결정
