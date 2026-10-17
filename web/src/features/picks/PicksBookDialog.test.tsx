@@ -144,6 +144,8 @@ describe('picks book window', () => {
     expect(within(dialog).queryByText(/위$/)).toBeNull()
     expect(vi.mocked(fetchBook).mock.calls[0].slice(0, 2)).toEqual(['5001', PLAN])
     expect(vi.mocked(holdingStream).mock.calls[0][0]).toMatchObject({ bookIds: [5001], holdingLimit: 3, libraryIds: [12] })
+    // 다 can lend it now: nothing more is asked
+    expect(vi.mocked(holdingStream)).toHaveBeenCalledTimes(1)
 
     const rows = within(dialog).getAllByRole('article')
     expect(rows.map((row) => within(row).getByRole('button', { name: /가입 정보$/ }).textContent)).toEqual([
@@ -152,6 +154,45 @@ describe('picks book window', () => {
       '가 도서관',
     ])
     expect(within(dialog).queryByText(/외 \d+곳/)).toBeNull()
+    expect(within(dialog).queryByText('확인 중…')).toBeNull()
+  })
+
+  it('none of the first three can lend it now: asks the next libraries until one can (user 2026-10-17)', async () => {
+    vi.mocked(fetchBook).mockResolvedValue(DETAIL)
+    const names = ['가', '나', '다', '라', '마']
+    vi.mocked(holdingStream).mockImplementation(async (params, onEvent) => {
+      const libraries = names.slice(0, params.holdingLimit).map((name, i) => library(i + 1, `${name} 도서관`))
+      onEvent({
+        name: 'targets',
+        data: {
+          filter: 'all',
+          scope: 'joinable',
+          visit: 'any',
+          regionFilterApplied: true,
+          libraries,
+          holdings: libraries.map((l) => ({ holdingId: 100 + l.id, bookId: 5001, libraryId: l.id })),
+        },
+      })
+      for (const l of libraries) {
+        // only 마 (the fifth) can lend it now
+        const result = l.id === 5 ? item({ availability: 'AVAILABLE', available: 1, loaned: 1 }) : item({ reservations: l.id })
+        onEvent({
+          name: 'holding-result',
+          data: { batchNo: 1, holdingId: 100 + l.id, bookId: 5001, libraryId: l.id, item: result, fetchedAt: '', cached: false },
+        })
+      }
+      onEvent({ name: 'done', data: { batchNo: 1 } })
+    })
+    renderDialog()
+    const dialog = screen.getByRole('dialog', { name: '소설 1 대출 정보' })
+    expect(await within(dialog).findByText('검색하는 도서관 5곳 중 3곳')).toBeTruthy()
+    expect(vi.mocked(holdingStream).mock.calls.map((call) => call[0].holdingLimit)).toEqual([3, 6])
+    const rows = within(dialog).getAllByRole('article')
+    expect(rows.map((row) => within(row).getByRole('button', { name: /가입 정보$/ }).textContent)).toEqual([
+      '마 도서관',
+      '가 도서관',
+      '나 도서관',
+    ])
     expect(within(dialog).queryByText('확인 중…')).toBeNull()
   })
 

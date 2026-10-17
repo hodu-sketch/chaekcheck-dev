@@ -4,6 +4,21 @@ import type { ResultRow } from '../search/sortBatch'
 export const PICKS_HOLDING_LIMIT = 3
 
 /**
+ * How many plan holdings the window asks, step by step (user 2026-10-17: when none of the first three can be borrowed
+ * now, the next libraries are asked too, "빌릴 수 있는 곳이 나올 때까지 더 조회"; it was the first three only, cycle 10).
+ * The server keeps a detail page's answer 3 minutes (`availability.cache-ttl`), so the libraries already asked are not
+ * asked again; 20 is the server's largest `holdingLimit`.
+ */
+export const PICKS_HOLDING_STEPS = [3, 6, 10, 20] as const
+
+/** One row per library: a later batch (a wider step) replaces the earlier one's row. */
+export function latestRowPerLibrary(rows: readonly ResultRow[]): ResultRow[] {
+  const byLibrary = new Map<number, ResultRow>()
+  for (const row of rows) byLibrary.set(row.libraryId, row)
+  return [...byLibrary.values()]
+}
+
+/**
  * The window's library lines (R6-3, R6-5) from the rows of the first three plan holdings: borrowable now (subscription
  * "바로 대출" included) first, then on loan with the fewest reservations first, then those that could not be decided,
  * then failed lookups last. Ties keep the plan order (직접 추가 → 가입 단계 …).

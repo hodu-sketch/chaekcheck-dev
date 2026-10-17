@@ -4,7 +4,7 @@ import type { BookDetail, PickBook } from '../../api/types'
 import { ResultRow } from '../search/ResultRow'
 import { useHoldings } from '../search/useHoldings'
 import { CoverImage } from './CoverImage'
-import { pickLibraryRows, PICKS_HOLDING_LIMIT } from './pickLibraryRows'
+import { latestRowPerLibrary, pickLibraryRows, PICKS_HOLDING_STEPS } from './pickLibraryRows'
 import { videoUrl, type PicksList } from './picksLists'
 import { PicksWindow } from './PicksWindow'
 import styles from './PicksDialogs.module.css'
@@ -87,30 +87,13 @@ function BookBody({
   const { open } = holdings
   const [detail, setDetail] = useState<BookDetail | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
+  // which of PICKS_HOLDING_STEPS is asked now
+  const [step, setStep] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
     fetchBook(String(bookId), plan, controller.signal)
-      .then((found) => {
-        setDetail(found)
-        if (found.holdingLibraryCount > 0) {
-          open(
-            [
-              {
-                id: found.id,
-                title: found.title,
-                authorDisplay: found.authorDisplay,
-                publisher: found.publisher,
-                publishedOn: found.publishedOn,
-                holdingLibraryCount: found.holdingLibraryCount,
-                joinTier: 'OPEN',
-                exactTitle: false,
-              },
-            ],
-            { filter: 'all', ...plan, holdingLimit: PICKS_HOLDING_LIMIT },
-          )
-        }
-      })
+      .then((found) => setDetail(found))
       .catch((failure: unknown) => {
         if (controller.signal.aborted) return
         setError(
@@ -120,7 +103,38 @@ function BookBody({
         )
       })
     return () => controller.abort()
-  }, [bookId, plan, open])
+  }, [bookId, plan])
+
+  useEffect(() => {
+    if (!detail || detail.holdingLibraryCount === 0) return
+    open(
+      [
+        {
+          id: detail.id,
+          title: detail.title,
+          authorDisplay: detail.authorDisplay,
+          publisher: detail.publisher,
+          publishedOn: detail.publishedOn,
+          holdingLibraryCount: detail.holdingLibraryCount,
+          joinTier: 'OPEN',
+          exactTitle: false,
+        },
+      ],
+      { filter: 'all', ...plan, holdingLimit: PICKS_HOLDING_STEPS[step] },
+    )
+  }, [detail, step, plan, open])
+
+  // none of the libraries asked can lend it now, and there may be more: ask the next step
+  const { state } = holdings
+  const asked = latestRowPerLibrary(state.batches.flatMap((batch) => batch.rows))
+  const more =
+    state.phase === 'done' &&
+    !state.batchFailed &&
+    step < PICKS_HOLDING_STEPS.length - 1 &&
+    state.libraries.length >= PICKS_HOLDING_STEPS[step] &&
+    !asked.some((row) => row.availability === 'AVAILABLE')
+  // adjusted while rendering (no effect): the next render opens the wider step, whose `targets` then name more libraries
+  if (more) setStep(step + 1)
 
   // phones: [영상 보기]'s right edge on the right end of the purple recommendation line's longest line, so the two
   // purple texts share one vertical line (user 2026-10-17: "오른쪽 끝이긴 한데 세로선으로 안 맞잖아 위의 또다른 보라
@@ -203,21 +217,19 @@ function BookBody({
     )
   }
 
-  const { state } = holdings
   const planIndex = new Map(state.libraries.map((library, index) => [library.id, index]))
   const libraries = new Map(state.libraries.map((library) => [library.id, library]))
-  const rows = pickLibraryRows(
-    state.batches.flatMap((batch) => batch.rows),
-    planIndex,
-  )
-  const checking = detail === null || (detail.holdingLibraryCount > 0 && state.phase !== 'done')
+  const rows = pickLibraryRows(asked, planIndex)
+  const checking = detail === null || (detail.holdingLibraryCount > 0 && (state.phase !== 'done' || more))
 
   return (
     <div className={styles.book}>
       {head}
       {detail !== null && detail.holdingLibraryCount > 0 && (
-        // design A: what the lines are (R6-3: the first three searched libraries in plan order)
-        <p className={styles.rowsLabel}>검색하는 도서관 중 앞의 3곳</p>
+        // design A: what the lines are (R6-3); after more steps, how many were asked
+        <p className={styles.rowsLabel}>
+          {step === 0 ? '검색하는 도서관 중 앞의 3곳' : `검색하는 도서관 ${state.libraries.length}곳 중 3곳`}
+        </p>
       )}
       <div className={styles.rows}>
         {rows.map((row) => (
