@@ -8,8 +8,9 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
 import { HeaderOpenProvider } from './HeaderOpen'
-import { ChevronDown } from './icons'
+import { ChevronDown, ChevronUp } from './icons'
 import { HeaderMenu, PhoneMenu } from './HeaderMenu'
+import { useHeaderOpen } from './HeaderOpen'
 import styles from './AppLayout.module.css'
 
 export function AppLayout() {
@@ -26,6 +27,9 @@ export function AppLayout() {
 
 function Shell() {
   const location = useLocation()
+  // phones: the ▾ turns into ▴ while the menus are open (user 2026-10-17: "탭 누르고 아래 상세 탭이 뜨면 윗 방향으로
+  // 바꾸고 다시 닫히면 아랫방향으로")
+  const menusOpen = useHeaderOpen().owner === 'menu'
   return (
     <div className={styles.shell}>
       {/* data-app-header: screens with their own sticky bar read its height (cycle 10 S13) */}
@@ -51,7 +55,7 @@ function Shell() {
             {/* phones: a small ▾ saying the row opens the menus (plan 20 review #7, user "로그인 왼쪽" 2026-10-17); a tap on
                 it goes through to the row's button */}
             <span className={styles.menuCaret} aria-hidden="true">
-              <ChevronDown size={12} />
+              {menusOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </span>
             <AuthHeaderAction />
           </div>
