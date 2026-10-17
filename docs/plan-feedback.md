@@ -5323,3 +5323,4 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - main에 fast-forward: `d5341a6`(나가는 길 1-15 + Webshare 선제 인증 + 기록). 1단계 `262bb03` 뒤 둘째 합치기. 푸시 안 함
 - 8080(원래 DB)·8081(db-ops)을 이 코드로 다시 켬. 메인 폴더 `.env`에는 나가는 길 값이 없어 둘 다 `egress lanes mode=ALL lanes=1 direct=1 proxies=0`(직접 길 하나) — Webshare 길은 c20 워크트리 `.env`(아이디·비밀번호 포함)에만 있음. 메인 폴더에서도 쓰려면 같은 값을 메인 `.env`에 옮기면 됨(사용자 결정)
 - plan 20에 알림: CONNECT 407 무챌린지 사실, 비표준 포트(442·8088) 사이트가 Webshare 길로 연결 시간 초과 → 직접 길 예외 목록을 둘지는 plan/사용자 결정
+- 비표준 포트 사이트(`:442`·`:8088`)가 Webshare 길로 연결 시간 초과하는 것: 사용자 결정 **"어짜피 기존 규칙으로 가니까 냅둬"** (2026-10-18, plan 20 전달; plan `multi-source-ip.md` 11절 c1de7b4) → 예외 목록 없이 막힌 길 규칙(5번 연속이면 그 길·그 사이트 10분부터 쉼)에 맡김. 코드 변경 없음
