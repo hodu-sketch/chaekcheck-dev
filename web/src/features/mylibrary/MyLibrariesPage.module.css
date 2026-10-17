@@ -114,8 +114,11 @@
 
 .names li {
   padding: 0.15rem 0.6rem;
+  /* white cards with a grey border, also inside the violet "누구나 가입" box (user 2026-10-17: "각 도서관 카드들 흰색이고
+     회색 테두리로 해줘") */
+  border: 1px solid var(--rule-strong);
   border-radius: var(--radius-tag);
-  background: var(--paper-deep);
+  background: var(--paper);
 }
 
 .search {
