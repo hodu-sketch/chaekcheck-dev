@@ -180,6 +180,12 @@
   gap: 0.5rem 0.9rem;
 }
 
+/* PC and tablets: a little more room between "책 검색 >>" and [영상 보기] (user 2026-10-17: "영상 보기 pc/태블릿에서도 좀
+   우측으로") */
+.bookActions:not([data-phone]) .videoLink {
+  margin-left: 1.2rem;
+}
+
 /* phones: [영상 보기] on the same line as "책 검색", at its right end (user 2026-10-17: "영상보기 개행 다음에 있어서
    좀 그래 책 검색과 같은 행의 우측끝에 두던가"; it was on the line below, R6-2) */
 .bookActions[data-phone] {
