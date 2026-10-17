@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
+import com.chaekcheck.availability.internal.egress.BlockSignal;
 import com.chaekcheck.availability.internal.egress.EgressLane;
 import com.chaekcheck.availability.internal.egress.EgressLanes;
 import com.chaekcheck.availability.internal.egress.EgressMode;
@@ -41,8 +42,9 @@ import com.sun.net.httpserver.HttpsServer;
 /**
  * Requests really leave through the lane's proxy (17 AC-8 / R13-1, handoff 1-15 tests): a fake library on loopback,
  * two {@link TestHttpProxy} instances as proxy lanes, the real {@link LaneSiteFetcher} and {@link EgressLanes}. Also
- * the proxy credentials (user decision 2026-10-17: the local PC uses Webshare's username / password) on the JDK
- * path (http and the https CONNECT tunnel) and on the Apache path for underscore host names.
+ * the proxy credentials (user decision 2026-10-17: the local PC uses Webshare's username / password): every proxy
+ * lane is one Apache client that sends them preemptively, for http, the https CONNECT tunnel and underscore host
+ * names, because Webshare answers an unauthenticated CONNECT with 407 and no challenge (found 2026-10-18).
  */
 @ExtendWith(OutputCaptureExtension.class)
 class LaneSiteFetcherProxyTests {
@@ -172,6 +174,69 @@ class LaneSiteFetcherProxyTests {
 		assertThat(apache.status()).as("Apache client (underscore host): CONNECT with Basic").isEqualTo(200);
 		assertThat(tlsProxy.served).hasSize(2).allMatch(line -> line.startsWith("CONNECT "));
 		assertThat(tlsProxy.served.get(1)).startsWith("CONNECT hs_site.example.test:");
+		// a challenging proxy needs no second round trip either: the credentials were on the first request
+		assertThat(tlsProxy.refused.get()).isZero();
+	}
+
+	@Test
+	void credentialsGoOutOnTheFirstRequestSoAWebshareLikeProxyWithoutAChallengeAccepts(CapturedOutput output)
+			throws Exception {
+		// Webshare (curl, 2026-10-18): unauthenticated CONNECT -> 407, no Proxy-Authenticate, connection closed
+		TestHttpProxy httpProxy = proxy(null, "user", "pw").webshareLike();
+		TestHttpProxy tlsProxy = proxy(tlsLibrary.getAddress(), "user", "pw").webshareLike();
+		URI http = URI.create("http://127.0.0.1:" + library.getAddress().getPort() + "/search?q=x");
+		URI https = URI.create("https://site.example.test:" + tlsLibrary.getAddress().getPort() + "/");
+		URI underscore = URI.create("https://hs_site.example.test:" + tlsLibrary.getAddress().getPort() + "/");
+		String[] credentials = { "user", "pw" };
+
+		SiteResponse plain = lanes(EgressLane.list(httpProxy.hostPort(), "webshare"), EgressMode.PROXY_ONLY, credentials)
+			.fetch(http, Instant.MAX);
+		assertThat(plain.status()).as("http through the proxy, first try").isEqualTo(200);
+		assertThat(plain.via()).isEqualTo("proxy-01");
+		assertThat(httpProxy.refused.get()).isZero();
+		assertThat(httpProxy.served).hasSize(1).first().asString().startsWith("GET http://127.0.0.1:");
+
+		EgressLanes tlsLanes = lanes(EgressLane.list(tlsProxy.hostPort(), "webshare"), EgressMode.PROXY_ONLY,
+				credentials);
+		SiteResponse tunneled = tlsLanes.fetch(https, Instant.MAX);
+		assertThat(tunneled.status()).as("https: the first CONNECT carries Proxy-Authorization").isEqualTo(200);
+		assertThat(new String(tunneled.body(), StandardCharsets.UTF_8)).isEqualTo("tls ok");
+		assertThat(tlsLanes.fetch(underscore, Instant.MAX).status()).as("underscore host, same client").isEqualTo(200);
+		assertThat(tlsProxy.refused.get()).isZero();
+		assertThat(tlsProxy.served).hasSize(2).allMatch(line -> line.startsWith("CONNECT "));
+		assertThat(tlsProxy.served.get(1)).startsWith("CONNECT hs_site.example.test:");
+
+		// the log line keeps the lane fields and bytes=, and never the proxy address
+		assertThat(output.getOut()).contains("upstream via=proxy-01 lane=proxy-01 vendor=webshare host=site.example.test:")
+			.contains("status=200 bytes=6 ")
+			.doesNotContain(tlsProxy.hostPort())
+			.doesNotContain(httpProxy.hostPort())
+			.doesNotContain("user:pw")
+			.doesNotContain("dXNlcjpwdw==");
+	}
+
+	@Test
+	void withoutOrWithWrongCredentialsTheProxys407IsTheAnswerAndABlockSignal() throws Exception {
+		TestHttpProxy tlsProxy = proxy(tlsLibrary.getAddress(), "user", "pw").webshareLike();
+		List<EgressLane> laneList = EgressLane.list(tlsProxy.hostPort(), "webshare");
+		URI http = URI.create("http://127.0.0.1:" + library.getAddress().getPort() + "/search?q=x");
+		URI https = URI.create("https://site.example.test:" + tlsLibrary.getAddress().getPort() + "/");
+
+		// no credentials (the production setting): the lane behaves as before, the proxy's 407 is the answer
+		EgressLanes noCredentials = lanes(laneList, EgressMode.PROXY_ONLY, null);
+		SiteResponse plain = noCredentials.fetch(http, Instant.MAX);
+		assertThat(plain.status()).isEqualTo(407);
+		assertThat(BlockSignal.of(plain)).isTrue();
+		SiteResponse tunnel = noCredentials.fetch(https, Instant.MAX);
+		assertThat(tunnel.status()).as("a refused CONNECT is reported as the proxy's status").isEqualTo(407);
+		assertThat(tunnel.via()).isEqualTo("proxy-01");
+		assertThat(BlockSignal.of(tunnel)).isTrue();
+
+		EgressLanes wrong = lanes(laneList, EgressMode.PROXY_ONLY, new String[] { "user", "wrong" });
+		assertThat(wrong.fetch(http, Instant.MAX).status()).isEqualTo(407);
+		assertThat(wrong.fetch(https, Instant.MAX).status()).isEqualTo(407);
+		assertThat(tlsProxy.refused.get()).isEqualTo(4);
+		assertThat(tlsProxy.served).isEmpty();
 	}
 
 	private TestHttpProxy proxy(InetSocketAddress target, String username, String password) throws IOException {

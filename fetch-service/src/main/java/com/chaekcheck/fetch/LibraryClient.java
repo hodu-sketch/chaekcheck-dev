@@ -2,11 +2,8 @@ package com.chaekcheck.fetch;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Authenticator;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
-import java.net.ProxySelector;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,22 +27,25 @@ import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLContext;
 
 import org.apache.hc.client5.http.ConnectTimeoutException;
+import org.apache.hc.client5.http.ContextBuilder;
 import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.SystemDefaultDnsResolver;
-import org.apache.hc.client5.http.auth.AuthScope;
-import org.apache.hc.client5.http.impl.auth.CredentialsProviderBuilder;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.TunnelRefusedException;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,10 +63,14 @@ import org.springframework.stereotype.Component;
  * Cycle 18 (ADR-0111): a host name with an underscore goes through Apache HttpClient 5 instead (java.net.http refuses
  * it), with the same limits, outcomes and log line ({@link #getUnderscoreHost}).
  * <p>
- * Webshare cycle (in cycle 20) (ADR-0130, handoff 1-15 #5): one client pair per egress lane the mode allows. A proxy lane's clients send
- * through the lane's proxy ({@link ProxySelector#of}, Apache {@code setProxy}); the direct lane's JDK client uses
- * {@link HttpClient.Builder#NO_PROXY}. Optional proxy credentials (one pair) answer the proxy's 407. The main
- * service picks the lane; here only {@link #lane(String)} maps the id to its clients.
+ * Webshare cycle (in cycle 20) (ADR-0130, handoff 1-15 #5): one client per egress lane the mode allows. The direct
+ * lane keeps the JDK client ({@link HttpClient.Builder#NO_PROXY}) plus the Apache client for underscore names. A
+ * proxy lane is one Apache client for every host, with the proxy as its route (https as a CONNECT tunnel) and the
+ * optional proxy credentials (one pair) sent <em>preemptively</em> on the first request: Webshare answers an
+ * unauthenticated CONNECT with 407 and no {@code Proxy-Authenticate} challenge, which the JDK client waits for
+ * (connect timeout). A CONNECT the proxy refuses is answered as RESPONDED with the proxy's status, as a plain http
+ * request through the proxy already is. The main service picks the lane; here only {@link #lane(String)} maps
+ * the id to its client.
  */
 @Component
 class LibraryClient implements AutoCloseable {
@@ -84,28 +88,37 @@ class LibraryClient implements AutoCloseable {
 		this(properties, SystemDefaultDnsResolver.INSTANCE);
 	}
 
-	/** With a DNS resolver of its own for the underscore path, for tests that point such a name at a local server. */
-	LibraryClient(FetchProperties properties, DnsResolver underscoreDns) {
+	/** With a DNS resolver of its own for the Apache path, for tests that point an underscore name at a local server. */
+	LibraryClient(FetchProperties properties, DnsResolver apacheDns) {
+		this(properties, apacheDns, LibrarySiteTls.sslContext());
+	}
+
+	/** With a TLS context of its own too, for tests with a local https server. */
+	LibraryClient(FetchProperties properties, DnsResolver apacheDns, SSLContext sslContext) {
 		this.properties = properties;
 		this.clock = Clock.systemUTC();
-		SSLContext sslContext = LibrarySiteTls.sslContext();
 		List<EgressLane> allowed = properties.egress().allowedLanes();
 		if (allowed.isEmpty()) {
 			throw new IllegalStateException("fetch.egress.mode " + properties.egress().mode() + " leaves no lane");
 		}
 		String[] credentials = properties.egress().credentials();
 		for (EgressLane lane : allowed) {
-			HttpClient.Builder builder = HttpClient.newBuilder()
-				.sslContext(sslContext)
-				.connectTimeout(properties.connectTimeout())
-				.followRedirects(HttpClient.Redirect.NEVER)
-				.proxy(lane.isDirect() ? HttpClient.Builder.NO_PROXY : ProxySelector.of(lane.proxy()));
-			String[] laneCredentials = lane.isDirect() ? null : credentials;
-			if (laneCredentials != null) {
-				builder.authenticator(new ProxyAuthenticator(laneCredentials[0], laneCredentials[1]));
+			if (lane.isDirect()) {
+				HttpClient jdk = HttpClient.newBuilder()
+					.sslContext(sslContext)
+					.connectTimeout(properties.connectTimeout())
+					.followRedirects(HttpClient.Redirect.NEVER)
+					.proxy(HttpClient.Builder.NO_PROXY)
+					.build();
+				lanes.put(lane.id(), new LaneClients(lane, jdk,
+						apacheClient(properties, sslContext, apacheDns, null), null, null));
 			}
-			lanes.put(lane.id(), new LaneClients(lane, builder.build(),
-					underscoreClient(properties, sslContext, underscoreDns, lane.proxy(), laneCredentials)));
+			else {
+				HttpHost proxyHost = new HttpHost("http", lane.proxy().getHostString(), lane.proxy().getPort());
+				lanes.put(lane.id(), new LaneClients(lane, null, apacheClient(properties, sslContext, apacheDns, proxyHost),
+						proxyHost, credentials == null ? null
+								: new UsernamePasswordCredentials(credentials[0], credentials[1].toCharArray())));
+			}
 		}
 		long proxies = allowed.stream().filter(lane -> !lane.isDirect()).count();
 		// no addresses in this line
@@ -120,58 +133,62 @@ class LibraryClient implements AutoCloseable {
 		return clients == null ? null : clients.lane();
 	}
 
-	/** The clients of one lane. */
-	private record LaneClients(EgressLane lane, HttpClient httpClient, CloseableHttpClient underscoreClient) {
-	}
+	/**
+	 * The clients of one lane: the direct lane has the JDK client and the Apache client for underscore names; a proxy
+	 * lane has only the Apache client ({@code httpClient} null), with its proxy and, when configured, credentials.
+	 */
+	private record LaneClients(EgressLane lane, HttpClient httpClient, CloseableHttpClient apacheClient,
+			HttpHost proxyHost, UsernamePasswordCredentials proxyCredentials) {
 
-	/** Answers only the proxy's challenge, never a site's. */
-	private static final class ProxyAuthenticator extends Authenticator {
-
-		private final String username;
-
-		private final char[] password;
-
-		ProxyAuthenticator(String username, String password) {
-			this.username = username;
-			this.password = password.toCharArray();
-		}
-
-		@Override
-		protected PasswordAuthentication getPasswordAuthentication() {
-			return getRequestorType() == RequestorType.PROXY ? new PasswordAuthentication(username, password) : null;
+		/**
+		 * The context of one request: with credentials, a Basic scheme already holding them for the proxy, so the
+		 * first request (CONNECT or plain http) carries {@code Proxy-Authorization} without a 407 round trip.
+		 */
+		HttpClientContext context() {
+			return proxyCredentials == null ? HttpClientContext.create()
+					: ContextBuilder.create().preemptiveBasicAuth(proxyHost, proxyCredentials).build();
 		}
 
 	}
+
+	/** Connections one client keeps open through its route; a proxy lane talks to many sites at once. */
+	private static final int MAX_CONNECTIONS = 200;
+
+	private static final int MAX_CONNECTIONS_PER_ROUTE = 8;
 
 	/**
-	 * Apache HttpClient 5 for host names with an underscore (cycle 18, ADR-0111), with the same limits and TLS as the
-	 * JDK client. The certificate's host name is checked by HttpClient's own verifier (the JDK's built-in check
-	 * refuses underscore names); no SNI goes out because the JDK leaves out a server name that is not a valid
-	 * SNIHostName. No redirects, retries, cookies or content compression.
+	 * Apache HttpClient 5: for host names with an underscore on the direct lane (cycle 18, ADR-0111) and for every
+	 * host of a proxy lane (webshare cycle), with the same limits and TLS as the JDK client. The certificate's host
+	 * name is checked by HttpClient's own verifier (the JDK's built-in check refuses underscore names); no SNI goes
+	 * out for a name that is not a valid SNIHostName. No redirects, retries, cookies, content compression or auth
+	 * cache across requests (each request's context carries the proxy credentials itself); a pooled connection idle
+	 * for a second is checked before reuse.
+	 * @param proxyHost the lane's proxy, or null for the direct lane
 	 */
-	private static CloseableHttpClient underscoreClient(FetchProperties properties, SSLContext sslContext,
-			DnsResolver dns, InetSocketAddress proxy, String[] credentials) {
+	private static CloseableHttpClient apacheClient(FetchProperties properties, SSLContext sslContext,
+			DnsResolver dns, HttpHost proxyHost) {
 		ClientTlsStrategyBuilder tls = ClientTlsStrategyBuilder.create()
 			.setSslContext(sslContext)
 			.setHostVerificationPolicy(HostnameVerificationPolicy.CLIENT)
 			.setHostnameVerifier(new DefaultHostnameVerifier());
-		HttpHost proxyHost = proxy == null ? null : new HttpHost("http", proxy.getHostString(), proxy.getPort());
 		return HttpClients.custom()
 			.setProxy(proxyHost)
-			.setDefaultCredentialsProvider(proxyHost == null || credentials == null ? null
-					: CredentialsProviderBuilder.create()
-						.add(new AuthScope(proxyHost), credentials[0], credentials[1].toCharArray())
-						.build())
 			.setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
 				.setTlsSocketStrategy(tls.buildClassic())
 				.setDnsResolver(dns)
+				.setMaxConnTotal(MAX_CONNECTIONS)
+				.setMaxConnPerRoute(MAX_CONNECTIONS_PER_ROUTE)
 				.setDefaultConnectionConfig(ConnectionConfig.custom()
 					.setConnectTimeout(Timeout.of(properties.connectTimeout()))
 					.setSocketTimeout(Timeout.of(properties.readTimeout()))
+					.setValidateAfterInactivity(TimeValue.ofSeconds(1))
+					.setTimeToLive(TimeValue.ofMinutes(1))
 					.build())
 				.build())
-			.setDefaultRequestConfig(
-					RequestConfig.custom().setResponseTimeout(Timeout.of(properties.readTimeout())).build())
+			.setDefaultRequestConfig(RequestConfig.custom()
+				.setConnectionRequestTimeout(Timeout.of(properties.connectTimeout()))
+				.setResponseTimeout(Timeout.of(properties.readTimeout()))
+				.build())
 			.disableRedirectHandling()
 			.disableAutomaticRetries()
 			.disableCookieManagement()
@@ -184,8 +201,8 @@ class LibraryClient implements AutoCloseable {
 	/** @param lane one of {@link #lane(String)}'s lanes */
 	FetchResult get(URI uri, String requestId, EgressLane lane) {
 		LaneClients clients = lanes.get(lane.id());
-		if (UnderscoreHosts.isUnderscoreHost(uri)) {
-			return getUnderscoreHost(uri, requestId, lane, clients.underscoreClient());
+		if (clients.httpClient() == null || UnderscoreHosts.isUnderscoreHost(uri)) {
+			return getWithApache(uri, requestId, clients);
 		}
 		HttpClient httpClient = clients.httpClient();
 		Instant start = clock.instant();
@@ -266,14 +283,14 @@ class LibraryClient implements AutoCloseable {
 	}
 
 	/** Same limits, outcomes and log line as {@link #get}, through the lane's Apache client. */
-	private FetchResult getUnderscoreHost(URI uri, String requestId, EgressLane lane,
-			CloseableHttpClient underscoreClient) {
+	private FetchResult getWithApache(URI uri, String requestId, LaneClients clients) {
+		EgressLane lane = clients.lane();
 		Instant start = clock.instant();
 		String status = "-";
 		HttpGet get = new HttpGet(uri);
 		get.setHeader("User-Agent", properties.userAgent());
 		get.setHeader("Accept-Encoding", ContentEncoding.GZIP);
-		FutureTask<FetchResult> call = new FutureTask<>(() -> underscoreClient.execute(get, response -> {
+		FutureTask<FetchResult> call = new FutureTask<>(() -> clients.apacheClient().execute(get, clients.context(), response -> {
 			byte[] body = ContentEncoding.decoded(value(response.getFirstHeader("Content-Encoding")),
 					body(response.getEntity(), properties.maxBodySize().toBytes()), properties.maxBodySize().toBytes());
 			return new FetchResult(FetchResult.Outcome.RESPONDED, response.getCode(),
@@ -298,6 +315,15 @@ class LibraryClient implements AutoCloseable {
 			if (tooLarge != null) {
 				status = "body-too-large";
 				return FetchResult.bodyTooLarge(tooLarge.received(), start, clock.instant());
+			}
+			TunnelRefusedException refused = find(cause, TunnelRefusedException.class);
+			if (refused != null) {
+				// the proxy refused the CONNECT (407: not authorized, or any other code): answered as the proxy's
+				// status, as a plain http request through the proxy is, so the main service counts one 407
+				int code = refused.getResponse().getCode();
+				status = Integer.toString(code);
+				return new FetchResult(FetchResult.Outcome.RESPONDED, code, null, null, "", start, clock.instant(), null,
+						lane.id());
 			}
 			if (has(cause, ConnectTimeoutException.class) || has(cause, ConnectException.class)) {
 				status = "connect-failed";
@@ -379,7 +405,7 @@ class LibraryClient implements AutoCloseable {
 	@Override
 	public void close() throws IOException {
 		for (LaneClients clients : lanes.values()) {
-			clients.underscoreClient().close();
+			clients.apacheClient().close();
 		}
 	}
 

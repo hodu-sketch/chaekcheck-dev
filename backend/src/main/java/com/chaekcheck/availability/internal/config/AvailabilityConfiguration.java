@@ -91,9 +91,10 @@ class AvailabilityConfiguration {
 					fetch.tokenHeader(), fetch.token(), fetch.connectTimeout(), fetch.readTimeout(),
 					fetch.restDuration(), jsonMapper, Clock.systemUTC());
 		}
-		// JDK HttpClient per lane: connect timeout and proxy on the client; read timeout (time to response headers),
-		// total time and body size on each request (DirectSiteFetcher). Host names with an underscore go through
-		// Apache HttpClient with the same lane proxy (cycle 18, ADR-0111).
+		// One HTTP client per lane: the direct lane on the JDK client (DirectSiteFetcher; underscore host names on
+		// Apache HttpClient, cycle 18, ADR-0111), every proxy lane on Apache HttpClient with the proxy as its route
+		// and the credentials, when given, sent preemptively (webshare cycle). Connect timeout on the client; read
+		// timeout (time to response headers), total time and body size on each request.
 		return new LaneSiteFetcher(laneList(properties), LibrarySiteTls.sslContext(), properties.connectTimeout(),
 				properties.readTimeout(), properties.totalTimeout(), properties.maxBodySize().toBytes(),
 				properties.userAgent(), properties.egress().credentials(), Clock.systemUTC());

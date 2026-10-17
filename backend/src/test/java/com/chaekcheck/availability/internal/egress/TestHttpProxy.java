@@ -20,7 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * A minimal HTTP proxy for tests (webshare cycle (in cycle 20)): plain {@code GET http://host:port/path} requests are forwarded, and
  * {@code CONNECT host:port} opens a tunnel (https sites). Every host is sent to one fixed target address (the test's
  * fake library), so test host names need no DNS. Optionally requires {@code Proxy-Authorization: Basic} and answers
- * 407 without it. Records the request lines it served, so a test can prove which lane a request left through.
+ * 407 without it — with a {@code Proxy-Authenticate} challenge by default, or like Webshare's static residential
+ * proxies ({@link #webshareLike()}, verified with curl 2026-10-18): {@code 407} with {@code Proxy-Connection: close},
+ * {@code Connection: close} and <em>no</em> {@code Proxy-Authenticate}, so a client that waits for a challenge never
+ * authenticates. Credentials on the first request are accepted either way. Records the request lines it served, so
+ * a test can prove which lane a request left through, and counts the requests it refused.
  * Also runnable on its own ({@link #main}) for the local {@code bootRun} check of handoff 1-15.
  */
 public final class TestHttpProxy implements AutoCloseable {
@@ -37,6 +41,8 @@ public final class TestHttpProxy implements AutoCloseable {
 	public final List<String> served = new CopyOnWriteArrayList<>();
 
 	public final AtomicInteger refused = new AtomicInteger();
+
+	private volatile boolean challenge = true;
 
 	private volatile boolean closed;
 
@@ -55,6 +61,12 @@ public final class TestHttpProxy implements AutoCloseable {
 		this.requiredAuthorization = username == null ? null : "Basic " + Base64.getEncoder()
 			.encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
 		Thread.ofVirtual().name("test-proxy-accept").start(this::accept);
+	}
+
+	/** Refuse like Webshare: 407 without a {@code Proxy-Authenticate} challenge, connection closed. */
+	public TestHttpProxy webshareLike() {
+		this.challenge = false;
+		return this;
 	}
 
 	public int port() {
@@ -92,8 +104,12 @@ public final class TestHttpProxy implements AutoCloseable {
 					.noneMatch(h -> h.toLowerCase().startsWith("proxy-authorization:")
 							&& h.substring(h.indexOf(':') + 1).strip().equals(requiredAuthorization))) {
 					refused.incrementAndGet();
-					out.write(("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"test\"\r\n"
-							+ "Content-Length: 0\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+					String answer = challenge
+							? "HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"test\"\r\n"
+									+ "Content-Length: 0\r\nConnection: close\r\n\r\n"
+							: "HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Connection: close\r\n"
+									+ "Connection: close\r\nContent-Length: 0\r\n\r\n";
+					out.write(answer.getBytes(StandardCharsets.US_ASCII));
 					out.flush();
 					return;
 				}
@@ -125,7 +141,17 @@ public final class TestHttpProxy implements AutoCloseable {
 					forwarded.append("Connection: close\r\n\r\n");
 					upstream.getOutputStream().write(forwarded.toString().getBytes(StandardCharsets.ISO_8859_1));
 					upstream.getOutputStream().flush();
-					upstream.getInputStream().transferTo(out);
+					// this proxy serves one request per connection and says so, as a real proxy does
+					InputStream upstreamIn = upstream.getInputStream();
+					StringBuilder responseHead = new StringBuilder();
+					for (String h : readHead(upstreamIn)) {
+						if (!h.toLowerCase().startsWith("connection:")) {
+							responseHead.append(h).append("\r\n");
+						}
+					}
+					responseHead.append("Connection: close\r\n\r\n");
+					out.write(responseHead.toString().getBytes(StandardCharsets.ISO_8859_1));
+					upstreamIn.transferTo(out);
 					out.flush();
 				}
 				return;
