@@ -83,6 +83,20 @@ class UnderscoreHostSiteFetcherTests {
 			writeQuietly(exchange.getResponseBody(), body);
 			exchange.close();
 		});
+		library.createContext("/gzip", exchange -> {
+			byte[] body = DirectSiteFetcherTests.gzip("<html>1984 gz</html>".getBytes());
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		library.createContext("/gzip-bomb", exchange -> {
+			byte[] body = DirectSiteFetcherTests.gzip(new byte[64 * 1024]);
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
 		library.createContext("/chunked-big", exchange -> {
 			exchange.sendResponseHeaders(200, 0);
 			for (int i = 0; i < 64; i++) {
@@ -189,8 +203,20 @@ class UnderscoreHostSiteFetcherTests {
 		assertThat(response.contentType()).isEqualTo("text/html; charset=UTF-8");
 		assertThat(response.via()).isEqualTo(UnderscoreHostSiteFetcher.VIA);
 		assertThat(userAgents).containsExactly("chaekcheck/test");
-		// like java.net.http: no compression asked for, so the body is the site's bytes
-		assertThat(acceptEncodings).containsExactly("null");
+		// cycle 20: gzip is asked for on this path too (the client's own decoding stays off, ContentEncoding inflates)
+		assertThat(acceptEncodings).containsExactly("gzip");
+	}
+
+	@Test
+	void gzipAnswerIsInflatedAndABombIsTooLarge() { // cycle 20 (AC-34)
+		SiteResponse gz = fetcher.fetch(url("/gzip"), Instant.MAX);
+		assertThat(gz.body()).isEqualTo("<html>1984 gz</html>".getBytes());
+
+		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
+				() -> fetcher.fetch(url("/gzip-bomb"), Instant.MAX));
+		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+		assertThat(ex.bodyTooLarge()).isTrue();
+		assertThat(ex.receivedBytes()).isLessThan(MAX_BODY);
 	}
 
 	@Test

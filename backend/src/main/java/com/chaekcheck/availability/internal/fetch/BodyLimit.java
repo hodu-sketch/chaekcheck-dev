@@ -28,11 +28,22 @@ final class BodyLimit {
 		return info -> new Subscriber(maxBytes, info.headers().firstValueAsLong("Content-Length").orElse(-1));
 	}
 
-	/** The body passed the limit. An IOException, so the HTTP client reports it like a broken read. */
+	/**
+	 * The body passed the limit. An IOException, so the HTTP client reports it like a broken read.
+	 * @param received bytes read from the network before the read stopped (the declared length when refused on
+	 * Content-Length alone), for the {@code body_too_large} log line (cycle 20)
+	 */
 	static final class TooLargeException extends IOException {
 
-		TooLargeException(long maxBytes) {
+		private final long received;
+
+		TooLargeException(long maxBytes, long received) {
 			super("response body over " + maxBytes + " bytes");
+			this.received = received;
+		}
+
+		long received() {
+			return received;
 		}
 
 	}
@@ -64,7 +75,7 @@ final class BodyLimit {
 		public void onSubscribe(Flow.Subscription subscription) {
 			this.subscription = subscription;
 			if (declaredLength > maxBytes) {
-				tooLarge();
+				tooLarge(declaredLength);
 				return;
 			}
 			subscription.request(Long.MAX_VALUE);
@@ -78,7 +89,7 @@ final class BodyLimit {
 			for (ByteBuffer item : items) {
 				int length = item.remaining();
 				if ((long) received + length > maxBytes) {
-					tooLarge();
+					tooLarge((long) received + length);
 					return;
 				}
 				if (received + length > body.length) {
@@ -105,9 +116,9 @@ final class BodyLimit {
 			return result;
 		}
 
-		private void tooLarge() {
+		private void tooLarge(long receivedBytes) {
 			subscription.cancel();
-			result.completeExceptionally(new TooLargeException(maxBytes));
+			result.completeExceptionally(new TooLargeException(maxBytes, receivedBytes));
 		}
 
 	}

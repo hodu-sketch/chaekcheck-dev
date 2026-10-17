@@ -31,6 +31,8 @@ class LibraryClientUnderscoreHostTests {
 
 	final List<String> userAgents = new CopyOnWriteArrayList<>();
 
+	final List<String> acceptEncodings = new CopyOnWriteArrayList<>();
+
 	LibraryClient client;
 
 	@BeforeEach
@@ -48,6 +50,22 @@ class LibraryClientUnderscoreHostTests {
 		library.createContext("/redirect", exchange -> {
 			exchange.getResponseHeaders().add("Location", "/page");
 			exchange.sendResponseHeaders(302, -1);
+			exchange.close();
+		});
+		library.createContext("/gzip", exchange -> {
+			acceptEncodings.add(String.valueOf(exchange.getRequestHeaders().getFirst("Accept-Encoding")));
+			byte[] body = gzip("<html>1984 gz</html>".getBytes());
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		// about 90 bytes on the wire that inflate to 64KB: over the 1KB limit of the test properties
+		library.createContext("/gzip-bomb", exchange -> {
+			byte[] body = gzip(new byte[64 * 1024]);
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
 			exchange.close();
 		});
 		library.createContext("/big", exchange -> {
@@ -102,8 +120,28 @@ class LibraryClientUnderscoreHostTests {
 	}
 
 	@Test
-	void bodyOverTheLimitIsAnError() {
-		assertThat(client.get(url("/big"), "r3").outcome()).isEqualTo(FetchResult.Outcome.ERROR);
+	void bodyOverTheLimitIsBodyTooLarge() { // cycle 20: its own outcome, with the bytes read
+		FetchResult result = client.get(url("/big"), "r3");
+
+		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.BODY_TOO_LARGE);
+		assertThat(result.receivedBytes()).isGreaterThan(1024);
+	}
+
+	@Test
+	void gzipIsAskedForAndInflated() { // cycle 20 (AC-34)
+		FetchResult result = client.get(url("/gzip"), "r6");
+
+		assertThat(acceptEncodings).containsExactly("gzip");
+		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.RESPONDED);
+		assertThat(new String(Base64.getDecoder().decode(result.body()))).isEqualTo("<html>1984 gz</html>");
+	}
+
+	@Test
+	void gzipBombIsBodyTooLarge() { // cycle 20 (AC-34): the inflated bytes pass the limit the wire bytes kept
+		FetchResult result = client.get(url("/gzip-bomb"), "r7");
+
+		assertThat(result.outcome()).isEqualTo(FetchResult.Outcome.BODY_TOO_LARGE);
+		assertThat(result.receivedBytes()).isLessThan(1024);
 	}
 
 	@Test
@@ -124,6 +162,19 @@ class LibraryClientUnderscoreHostTests {
 
 	private URI url(String path) {
 		return URI.create("http://hs_lib.example.test:" + library.getAddress().getPort() + path);
+	}
+
+	static byte[] gzip(byte[] plain) {
+		try {
+			java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+			try (java.util.zip.GZIPOutputStream gz = new java.util.zip.GZIPOutputStream(out)) {
+				gz.write(plain);
+			}
+			return out.toByteArray();
+		}
+		catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 
 	/** @return false once the client has gone */

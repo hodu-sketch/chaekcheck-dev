@@ -50,8 +50,9 @@ import com.chaekcheck.availability.internal.UpstreamException;
  * {@code *.yes24library.com} match). The JDK's built-in check ({@code HostnameVerificationPolicy.BUILTIN}) cannot
  * be used: it turns the name into an {@code SNIHostName}, which refuses underscores;</li>
  * <li>no SNI: the JDK leaves the server name out of the handshake when it is not a valid {@code SNIHostName};</li>
- * <li>no redirects, no retries, no cookies, no content compression, the configured User-Agent, and one log line
- * like the direct path's.</li>
+ * <li>no redirects, no retries, no cookies, the client's own content compression off (cycle 20 asks for gzip and
+ * inflates it in {@link ContentEncoding}, under the same limit as the direct path), the configured User-Agent, and
+ * one log line like the direct path's.</li>
  * </ul>
  * A failure (certificate, timeout, size) fails only that library's row, as on the direct path.
  */
@@ -128,6 +129,7 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 		String status = "-";
 		HttpGet get = new HttpGet(uri);
 		get.setHeader(HttpHeaders.USER_AGENT, userAgent);
+		get.setHeader(HttpHeaders.ACCEPT_ENCODING, ContentEncoding.GZIP);
 		FutureTask<SiteResponse> call = new FutureTask<>(() -> httpClient.execute(get, this::read));
 		try {
 			Thread.ofVirtual().name("underscore-host-fetch").start(call);
@@ -144,10 +146,10 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 		}
 		catch (ExecutionException ex) {
 			Throwable cause = ex.getCause();
-			if (has(cause, BodyLimit.TooLargeException.class)) {
+			BodyLimit.TooLargeException tooLarge = DirectSiteFetcher.find(cause, BodyLimit.TooLargeException.class);
+			if (tooLarge != null) {
 				status = "body-too-large";
-				throw new UpstreamException(UpstreamException.Kind.ERROR,
-						"response from " + host + " is over " + maxBodyBytes + " bytes", cause);
+				throw UpstreamException.bodyTooLarge(uri, maxBodyBytes, tooLarge.received(), cause);
 			}
 			boolean timeout = DirectSiteFetcher.isTimeout(cause);
 			status = timeout ? "timeout" : "io-error";
@@ -168,8 +170,12 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 	}
 
 	private SiteResponse read(ClassicHttpResponse response) throws IOException {
+		byte[] body = body(response.getEntity());
+		// the same limit again on the inflated bytes (cycle 20); another encoding fails this library alone
+		byte[] decoded = ContentEncoding.decoded(value(response.getFirstHeader(HttpHeaders.CONTENT_ENCODING)), body,
+				maxBodyBytes);
 		return new SiteResponse(response.getCode(), value(response.getFirstHeader(HttpHeaders.CONTENT_TYPE)),
-				value(response.getFirstHeader(HttpHeaders.LOCATION)), body(response.getEntity()), VIA);
+				value(response.getFirstHeader(HttpHeaders.LOCATION)), decoded, VIA);
 	}
 
 	/** The body, at most {@code maxBodyBytes}; more (declared or read) fails like {@link BodyLimit}. */
@@ -179,7 +185,7 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 		}
 		long declared = entity.getContentLength();
 		if (declared > maxBodyBytes) {
-			throw new BodyLimit.TooLargeException(maxBodyBytes);
+			throw new BodyLimit.TooLargeException(maxBodyBytes, declared);
 		}
 		byte[] body = new byte[(int) (declared >= 0 ? declared : Math.min(READ_CHUNK, maxBodyBytes))];
 		int received = 0;
@@ -192,7 +198,7 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 					}
 					// no or a wrong Content-Length: grow by doubling, never past the limit
 					if (received + 1L > maxBodyBytes) {
-						throw new BodyLimit.TooLargeException(maxBodyBytes);
+						throw new BodyLimit.TooLargeException(maxBodyBytes, received + 1L);
 					}
 					body = Arrays.copyOf(body, (int) Math.min(maxBodyBytes, Math.max(received + 1L, 2L * body.length)));
 					body[received++] = (byte) next;

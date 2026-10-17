@@ -68,6 +68,11 @@ class LibraryEbookControllerTests {
 		}
 
 		@Bean
+		com.chaekcheck.availability.internal.ops.LookupOpsCounters lookupOpsCounters() {
+			return new com.chaekcheck.availability.internal.ops.LookupOpsCounters();
+		}
+
+		@Bean
 		AvailabilityProperties availabilityProperties() {
 			return AdapterFixtures.PROPERTIES;
 		}

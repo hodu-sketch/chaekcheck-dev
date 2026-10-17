@@ -28,6 +28,7 @@ import com.chaekcheck.availability.internal.adapter.ParsedDetail;
 import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
+import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolver;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.resolve.DetailPageFetcher;
@@ -69,6 +70,10 @@ import com.chaekcheck.usagelog.UsageLog.ResponseSource;
  * SKIPPED for each candidate not sent by the launch cutoff (plan C5). A request the fetch service sends again is one
  * request, measured from the first send to the last answer. Requests still count after the browser left. Answers
  * from the cache are not requests: they are counted only as CACHED (cycle 19, ADR-0116), without a log line.
+ * <p>
+ * Cycle 20 (ADR-0132): an answer over the body limit is BODY_TOO_LARGE in the usage log (one failure and one
+ * body_too_large), one more INFO line {@code body_too_large library=… url=… receivedBytes=… at=…}, and one on the
+ * summary counter. Every request sent also counts on the summary counter.
  */
 public class BatchRunner {
 
@@ -102,9 +107,12 @@ public class BatchRunner {
 
 	private final UsageLog usageLog;
 
+	private final LookupOpsCounters counters;
+
 	public BatchRunner(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher, DetailPageFetcher detailPages,
 			AvailabilityResolvers resolvers, AvailabilityProperties.Batch settings, Duration detailDeadline,
-			Duration hostMinInterval, Executor executor, SearchSlots slots, Clock clock, UsageLog usageLog) {
+			Duration hostMinInterval, Executor executor, SearchSlots slots, Clock clock, UsageLog usageLog,
+			LookupOpsCounters counters) {
 		this.libraryCatalog = libraryCatalog;
 		this.fetcher = fetcher;
 		this.detailPages = detailPages;
@@ -116,6 +124,7 @@ public class BatchRunner {
 		this.slots = slots;
 		this.clock = clock;
 		this.usageLog = usageLog;
+		this.counters = counters;
 	}
 
 	/**
@@ -342,11 +351,14 @@ public class BatchRunner {
 			long ms = Math.max(0, Duration.between(requestedAt, now).toMillis());
 			ResponseResult result;
 			String error = null;
+			counters.libraryRequest();
 			if (ex != null) {
 				UpstreamException upstream = asUpstream(ex);
-				result = upstream.kind() == UpstreamException.Kind.TIMEOUT ? ResponseResult.TIMEOUT
-						: ResponseResult.FAILED;
+				result = resultOf(upstream);
 				error = upstream.getMessage();
+				if (upstream.bodyTooLarge()) {
+					bodyTooLarge(libraryId, upstream, now, counters);
+				}
 			}
 			else {
 				result = now.isAfter(deadline) ? ResponseResult.TIMEOUT : ResponseResult.OK;
@@ -363,6 +375,22 @@ public class BatchRunner {
 		catch (RuntimeException failure) {
 			log.warn("library answer not counted: {}", failure.toString());
 		}
+	}
+
+	/** TIMEOUT, BODY_TOO_LARGE (cycle 20) or FAILED. */
+	public static ResponseResult resultOf(UpstreamException upstream) {
+		if (upstream.kind() == UpstreamException.Kind.TIMEOUT) {
+			return ResponseResult.TIMEOUT;
+		}
+		return upstream.bodyTooLarge() ? ResponseResult.BODY_TOO_LARGE : ResponseResult.FAILED;
+	}
+
+	/** The one INFO line per answer over the body limit (cycle 20, AC-34), and the summary counter. */
+	public static void bodyTooLarge(long libraryId, UpstreamException upstream, Instant at,
+			LookupOpsCounters counters) {
+		log.info("body_too_large library={} url={} receivedBytes={} at={}", libraryId, upstream.uri(),
+				upstream.receivedBytes(), at);
+		counters.bodyTooLarge();
 	}
 
 	private void notSent(long libraryId, ResponseSource source) {

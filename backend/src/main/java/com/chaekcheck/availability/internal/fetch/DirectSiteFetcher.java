@@ -25,7 +25,9 @@ import com.chaekcheck.availability.internal.UpstreamException;
  * User-Agent and is logged with host, path, start and end time, status and User-Agent. Redirects are not followed.
  * Limits (application.yml {@code chaekcheck.availability.*}): the client's connect timeout, the read timeout (until
  * the response headers), a total time limit for the whole request including the body (TIMEOUT), and a maximum body
- * size: a bigger body stops being read and the request fails as ERROR (upstream_error).
+ * size: a bigger body stops being read and the request fails as ERROR (upstream_error) marked
+ * {@link UpstreamException#bodyTooLarge()}. Cycle 20: the request asks for gzip and the answer is inflated here
+ * ({@link ContentEncoding}); the limit applies to the compressed and the inflated bytes both.
  */
 public class DirectSiteFetcher implements SiteFetcher {
 
@@ -72,6 +74,7 @@ public class DirectSiteFetcher implements SiteFetcher {
 				request = HttpRequest.newBuilder(uri)
 					.timeout(readTimeout)
 					.header(HttpHeaders.USER_AGENT, userAgent)
+					.header(HttpHeaders.ACCEPT_ENCODING, ContentEncoding.GZIP)
 					.GET()
 					.build();
 			}
@@ -84,8 +87,9 @@ public class DirectSiteFetcher implements SiteFetcher {
 			call = httpClient.sendAsync(request, BodyLimit.handler(maxBodyBytes));
 			HttpResponse<byte[]> res = call.get(totalTimeout.toMillis(), TimeUnit.MILLISECONDS);
 			status = Integer.toString(res.statusCode());
+			byte[] body = decoded(uri, res.headers().firstValue(HttpHeaders.CONTENT_ENCODING).orElse(null), res.body());
 			return new SiteResponse(res.statusCode(), res.headers().firstValue(HttpHeaders.CONTENT_TYPE).orElse(null),
-					res.headers().firstValue(HttpHeaders.LOCATION).orElse(null), res.body(), VIA);
+					res.headers().firstValue(HttpHeaders.LOCATION).orElse(null), body, VIA);
 		}
 		catch (TimeoutException ex) {
 			call.cancel(true);
@@ -93,12 +97,18 @@ public class DirectSiteFetcher implements SiteFetcher {
 			throw UpstreamException.timeout("request to " + SiteHostNames.hostOrNull(uri) + " passed the total time limit of "
 					+ totalTimeout.toMillis() + "ms");
 		}
+		catch (UpstreamException ex) {
+			if (ex.bodyTooLarge()) {
+				status = "body-too-large";
+			}
+			throw ex;
+		}
 		catch (ExecutionException ex) {
 			Throwable cause = ex.getCause();
-			if (has(cause, BodyLimit.TooLargeException.class)) {
+			BodyLimit.TooLargeException tooLarge = find(cause, BodyLimit.TooLargeException.class);
+			if (tooLarge != null) {
 				status = "body-too-large";
-				throw new UpstreamException(UpstreamException.Kind.ERROR,
-						"response from " + SiteHostNames.hostOrNull(uri) + " is over " + maxBodyBytes + " bytes", cause);
+				throw UpstreamException.bodyTooLarge(uri, maxBodyBytes, tooLarge.received(), cause);
 			}
 			boolean timeout = isTimeout(cause);
 			status = timeout ? "timeout" : "io-error";
@@ -118,17 +128,38 @@ public class DirectSiteFetcher implements SiteFetcher {
 		}
 	}
 
+	/**
+	 * The body as the site produced it: inflated when the answer is gzip (cycle 20). Over the limit while inflating
+	 * is the same failure as over the limit on the wire; another encoding fails this library alone.
+	 */
+	private byte[] decoded(URI uri, String contentEncoding, byte[] body) {
+		try {
+			return ContentEncoding.decoded(contentEncoding, body, maxBodyBytes);
+		}
+		catch (BodyLimit.TooLargeException ex) {
+			throw UpstreamException.bodyTooLarge(uri, maxBodyBytes, body.length, ex);
+		}
+		catch (java.io.IOException ex) {
+			throw new UpstreamException(UpstreamException.Kind.ERROR,
+					"response from " + SiteHostNames.hostOrNull(uri) + " cannot be decoded: " + ex, ex);
+		}
+	}
+
 	static boolean isTimeout(Throwable ex) {
 		return has(ex, HttpTimeoutException.class) || has(ex, SocketTimeoutException.class);
 	}
 
 	private static boolean has(Throwable ex, Class<? extends Throwable> type) {
+		return find(ex, type) != null;
+	}
+
+	static <T extends Throwable> T find(Throwable ex, Class<T> type) {
 		for (Throwable t = ex; t != null; t = t.getCause()) {
 			if (type.isInstance(t)) {
-				return true;
+				return type.cast(t);
 			}
 		}
-		return false;
+		return null;
 	}
 
 }

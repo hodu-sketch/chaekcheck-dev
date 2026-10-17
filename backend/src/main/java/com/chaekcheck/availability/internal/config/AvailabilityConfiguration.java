@@ -25,6 +25,7 @@ import com.chaekcheck.availability.internal.fetch.LibrarySiteTls;
 import com.chaekcheck.availability.internal.fetch.SearchPageCache;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
 import com.chaekcheck.availability.internal.fetch.UnderscoreHostSiteFetcher;
+import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.resolve.CaffeineDetailVerdictCache;
 import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
@@ -138,13 +139,20 @@ class AvailabilityConfiguration {
 		return new SearchSlots(properties.maxConcurrentSearches());
 	}
 
+	/** Counters of the one-minute operations summary (cycle 20, ADR-0132). */
+	@Bean
+	LookupOpsCounters lookupOpsCounters() {
+		return new LookupOpsCounters();
+	}
+
 	@Bean
 	BatchRunner batchRunner(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher,
 			DetailPageFetcher detailPageFetcher, AvailabilityResolvers resolvers, AvailabilityProperties properties,
-			ExecutorService availabilityExecutor, SearchSlots searchSlots, UsageLog usageLog) {
+			ExecutorService availabilityExecutor, SearchSlots searchSlots, UsageLog usageLog,
+			LookupOpsCounters counters) {
 		return new BatchRunner(libraryCatalog, fetcher, detailPageFetcher, resolvers, properties.batch(),
 				properties.detail().deadline(), properties.hostMinInterval(), availabilityExecutor, searchSlots,
-				Clock.systemUTC(), usageLog);
+				Clock.systemUTC(), usageLog, counters);
 	}
 
 }

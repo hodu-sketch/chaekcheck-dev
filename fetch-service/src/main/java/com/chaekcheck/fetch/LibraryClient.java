@@ -45,9 +45,10 @@ import org.springframework.stereotype.Component;
 /**
  * GETs a library page: GET only, redirects not followed, fixed User-Agent. Limits (application.yml {@code fetch.*}):
  * connect timeout, read timeout (until the response headers), a total time limit for the whole request including
- * the body, and a maximum body size; a bigger body stops being read and the call fails as ERROR. No cache and no host
- * throttling (those live in the main service, ADR-0011). Every call is logged with host, path, start, end, status and
- * User-Agent.
+ * the body, and a maximum body size; a bigger body stops being read and the call fails as BODY_TOO_LARGE (cycle 20;
+ * ERROR before). The request asks for gzip and the answer is inflated here under the same limit
+ * ({@link ContentEncoding}). No cache and no host throttling (those live in the main service, ADR-0011). Every call
+ * is logged with host, path, start, end, status and User-Agent.
  * <p>
  * Cycle 18 (ADR-0111): a host name with an underscore goes through Apache HttpClient 5 instead (java.net.http refuses
  * it), with the same limits, outcomes and log line ({@link #getUnderscoreHost}).
@@ -128,6 +129,7 @@ class LibraryClient implements AutoCloseable {
 				request = HttpRequest.newBuilder(uri)
 					.timeout(properties.readTimeout())
 					.header("User-Agent", properties.userAgent())
+					.header("Accept-Encoding", ContentEncoding.GZIP)
 					.GET()
 					.build();
 			}
@@ -139,10 +141,24 @@ class LibraryClient implements AutoCloseable {
 			call = httpClient.sendAsync(request, BodyLimit.handler(properties.maxBodySize().toBytes()));
 			HttpResponse<byte[]> response = call.get(properties.totalTimeout().toMillis(), TimeUnit.MILLISECONDS);
 			status = Integer.toString(response.statusCode());
+			byte[] body;
+			try {
+				body = ContentEncoding.decoded(response.headers().firstValue("Content-Encoding").orElse(null),
+						response.body(), properties.maxBodySize().toBytes());
+			}
+			catch (BodyLimit.TooLargeException ex) {
+				// a compression bomb: the inflated bytes passed the limit the wire bytes kept
+				status = "body-too-large";
+				return FetchResult.bodyTooLarge(response.body().length, start, clock.instant());
+			}
+			catch (IOException ex) {
+				status = "bad-encoding";
+				return FetchResult.failed(FetchResult.Outcome.ERROR, start, clock.instant());
+			}
 			return new FetchResult(FetchResult.Outcome.RESPONDED, response.statusCode(),
 					response.headers().firstValue("Content-Type").orElse(null),
 					response.headers().firstValue("Location").orElse(null),
-					Base64.getEncoder().encodeToString(response.body()), start, clock.instant());
+					Base64.getEncoder().encodeToString(body), start, clock.instant());
 		}
 		catch (TimeoutException ex) {
 			// the whole request, body included, passed the total time limit
@@ -152,9 +168,10 @@ class LibraryClient implements AutoCloseable {
 		}
 		catch (ExecutionException ex) {
 			Throwable cause = ex.getCause();
-			if (has(cause, BodyLimit.TooLargeException.class)) {
+			BodyLimit.TooLargeException tooLarge = find(cause, BodyLimit.TooLargeException.class);
+			if (tooLarge != null) {
 				status = "body-too-large";
-				return FetchResult.failed(FetchResult.Outcome.ERROR, start, clock.instant());
+				return FetchResult.bodyTooLarge(tooLarge.received(), start, clock.instant());
 			}
 			if (has(cause, HttpConnectTimeoutException.class) || has(cause, ConnectException.class)) {
 				status = "connect-failed";
@@ -186,8 +203,10 @@ class LibraryClient implements AutoCloseable {
 		String status = "-";
 		HttpGet get = new HttpGet(uri);
 		get.setHeader("User-Agent", properties.userAgent());
+		get.setHeader("Accept-Encoding", ContentEncoding.GZIP);
 		FutureTask<FetchResult> call = new FutureTask<>(() -> underscoreClient.execute(get, response -> {
-			byte[] body = body(response.getEntity(), properties.maxBodySize().toBytes());
+			byte[] body = ContentEncoding.decoded(value(response.getFirstHeader("Content-Encoding")),
+					body(response.getEntity(), properties.maxBodySize().toBytes()), properties.maxBodySize().toBytes());
 			return new FetchResult(FetchResult.Outcome.RESPONDED, response.getCode(),
 					value(response.getFirstHeader("Content-Type")), value(response.getFirstHeader("Location")),
 					Base64.getEncoder().encodeToString(body), start, clock.instant());
@@ -206,9 +225,10 @@ class LibraryClient implements AutoCloseable {
 		}
 		catch (ExecutionException ex) {
 			Throwable cause = ex.getCause();
-			if (has(cause, BodyLimit.TooLargeException.class)) {
+			BodyLimit.TooLargeException tooLarge = find(cause, BodyLimit.TooLargeException.class);
+			if (tooLarge != null) {
 				status = "body-too-large";
-				return FetchResult.failed(FetchResult.Outcome.ERROR, start, clock.instant());
+				return FetchResult.bodyTooLarge(tooLarge.received(), start, clock.instant());
 			}
 			if (has(cause, ConnectTimeoutException.class) || has(cause, ConnectException.class)) {
 				status = "connect-failed";
@@ -242,7 +262,7 @@ class LibraryClient implements AutoCloseable {
 		}
 		long declared = entity.getContentLength();
 		if (declared > maxBytes) {
-			throw new BodyLimit.TooLargeException(maxBytes);
+			throw new BodyLimit.TooLargeException(maxBytes, declared);
 		}
 		byte[] body = new byte[(int) (declared >= 0 ? declared : Math.min(16 * 1024, maxBytes))];
 		int received = 0;
@@ -255,7 +275,7 @@ class LibraryClient implements AutoCloseable {
 					}
 					// no or a wrong Content-Length: grow by doubling, never past the limit
 					if (received + 1L > maxBytes) {
-						throw new BodyLimit.TooLargeException(maxBytes);
+						throw new BodyLimit.TooLargeException(maxBytes, received + 1L);
 					}
 					body = Arrays.copyOf(body, (int) Math.min(maxBytes, Math.max(received + 1L, 2L * body.length)));
 					body[received++] = (byte) next;
@@ -275,12 +295,16 @@ class LibraryClient implements AutoCloseable {
 	}
 
 	private static boolean has(Throwable ex, Class<? extends Throwable> type) {
+		return find(ex, type) != null;
+	}
+
+	private static <T extends Throwable> T find(Throwable ex, Class<T> type) {
 		for (Throwable t = ex; t != null; t = t.getCause()) {
 			if (type.isInstance(t)) {
-				return true;
+				return type.cast(t);
 			}
 		}
-		return false;
+		return null;
 	}
 
 	@Override

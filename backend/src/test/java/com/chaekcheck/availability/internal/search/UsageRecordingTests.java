@@ -32,6 +32,7 @@ import com.chaekcheck.availability.internal.adapter.ParsedDetail;
 import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
+import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
 import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
 import com.chaekcheck.availability.internal.resolve.DetailPageFetcher;
@@ -60,6 +61,8 @@ class UsageRecordingTests {
 	ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 	RecordingUsageLog usageLog = new RecordingUsageLog();
+
+	LookupOpsCounters counters = new LookupOpsCounters();
 
 	List<Integer> searched = Collections.synchronizedList(new ArrayList<>());
 
@@ -161,6 +164,27 @@ class UsageRecordingTests {
 	}
 
 	@Test
+	void answerOverTheBodyLimitIsBodyTooLargeWithItsOwnLine(CapturedOutput output) { // cycle 20, AC-34
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		Candidate big = candidate(5);
+		Candidate ok = candidate(6);
+		answer(big, CompletableFuture.failedFuture(UpstreamException.bodyTooLarge(
+				java.net.URI.create("https://lib5.test/search?q=x"), 1024, 1500, null)));
+		answer(ok, CompletableFuture.completedFuture(page(ok, 1, false)));
+
+		runner(settings(20, 2, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 2, List.of(big, ok), List.of(), null,
+				null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
+
+		assertThat(usageLog.answers).containsExactlyInAnyOrder("5 DIRECT_SEARCH BODY_TOO_LARGE", "6 DIRECT_SEARCH OK");
+		assertThat(output).containsPattern("body_too_large library=5 url=https://lib5.test/search\\?q=x receivedBytes=1500 at=\\S+")
+			.containsPattern("library=5 source=direct_search result=body_too_large ms=\\d+ error=");
+		LookupOpsCounters.Snapshot counts = counters.drain();
+		assertThat(counts.bodyTooLarge()).isEqualTo(1);
+		assertThat(counts.libraryRequests()).isEqualTo(2);
+	}
+
+	@Test
 	void answerAfterTheBatchDeadlineIsATimeoutAndNotSentIsSkipped() { // plan C5
 		Sink sink = new Sink(Integer.MAX_VALUE);
 		Candidate slow = candidate(1);
@@ -206,7 +230,7 @@ class UsageRecordingTests {
 	private BatchRunner runner(AvailabilityProperties.Batch settings) {
 		return new BatchRunner(mock(LibraryCatalog.class), fetcher, detailPages,
 				new AvailabilityResolvers(mock(DetailLookupResolver.class)), settings, Duration.ofSeconds(3),
-				Duration.ZERO, executor, new SearchSlots(4), Clock.systemUTC(), usageLog);
+				Duration.ZERO, executor, new SearchSlots(4), Clock.systemUTC(), usageLog, counters);
 	}
 
 	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,

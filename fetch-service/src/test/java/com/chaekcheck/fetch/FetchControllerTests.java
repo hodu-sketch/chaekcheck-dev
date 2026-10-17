@@ -109,7 +109,43 @@ class FetchControllerTests {
 				exchange.getResponseBody().write(body);
 				exchange.close();
 			});
+			// cycle 20: gzip is asked for and inflated; the EUC-KR bytes come back byte for byte
+			library.createContext("/gzip-euc-kr", exchange -> {
+				acceptEncodings.add(String.valueOf(exchange.getRequestHeaders().getFirst("Accept-Encoding")));
+				byte[] body = LibraryClientUnderscoreHostTests.gzip("<p>채식주의자</p>".getBytes(Charset.forName("EUC-KR")));
+				exchange.getResponseHeaders().add("Content-Type", "text/html; charset=EUC-KR");
+				exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+				exchange.sendResponseHeaders(200, body.length);
+				exchange.getResponseBody().write(body);
+				exchange.close();
+			});
+			library.createContext("/brotli", exchange -> {
+				byte[] body = new byte[16];
+				exchange.getResponseHeaders().add("Content-Encoding", "br");
+				exchange.sendResponseHeaders(200, body.length);
+				exchange.getResponseBody().write(body);
+				exchange.close();
+			});
 			library.start();
+		}
+
+		final java.util.List<String> acceptEncodings = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+		@Test
+		void gzipAnswerIsInflatedToTheSitesBytes() { // cycle 20 (AC-34)
+			MvcTestResult result = post(mvc, TOKEN, url("/gzip-euc-kr"));
+
+			assertThat(acceptEncodings).containsExactly("gzip");
+			assertThat(result).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("RESPONDED");
+			assertThat(result).bodyJson()
+				.extractingPath("$.body")
+				.isEqualTo(Base64.getEncoder().encodeToString("<p>채식주의자</p>".getBytes(Charset.forName("EUC-KR"))));
+		}
+
+		@Test
+		void encodingNotAskedForIsAnError() { // cycle 20 [안]: only gzip is inflated
+			assertThat(post(mvc, TOKEN, url("/brotli"))).hasStatus(200).bodyJson()
+				.extractingPath("$.outcome").isEqualTo("ERROR");
 		}
 
 		@AfterEach
@@ -201,6 +237,22 @@ class FetchControllerTests {
 				}
 				exchange.close();
 			});
+			// cycle 20: about 90 bytes on the wire that inflate to 64KB, over the 1KB limit
+			library.createContext("/gzip-bomb", exchange -> {
+				byte[] body = LibraryClientUnderscoreHostTests.gzip(new byte[64 * 1024]);
+				exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+				exchange.sendResponseHeaders(200, body.length);
+				exchange.getResponseBody().write(body);
+				exchange.close();
+			});
+			// gzip that inflates to exactly the limit: returned
+			library.createContext("/gzip-fits", exchange -> {
+				byte[] body = LibraryClientUnderscoreHostTests.gzip(new byte[1024]);
+				exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+				exchange.sendResponseHeaders(200, body.length);
+				exchange.getResponseBody().write(body);
+				exchange.close();
+			});
 			// headers at once (inside the read timeout), then a few bytes every 200ms for 3s
 			library.createContext("/trickle", exchange -> {
 				exchange.sendResponseHeaders(200, 0);
@@ -232,17 +284,31 @@ class FetchControllerTests {
 		}
 
 		@Test
-		void bodyDeclaredOverTheLimitFails() {
-			assertThat(post(mvc, TOKEN, url("/declared-big"))).hasStatus(200).bodyJson()
-				.extractingPath("$.outcome").isEqualTo("ERROR");
+		void bodyDeclaredOverTheLimitFails() { // cycle 20: BODY_TOO_LARGE, with the declared length
+			MvcTestResult result = post(mvc, TOKEN, url("/declared-big"));
+
+			assertThat(result).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("BODY_TOO_LARGE");
+			assertThat(result).bodyJson().extractingPath("$.receivedBytes").isEqualTo(1025);
 		}
 
 		@Test
 		void chunkedBodyOverTheLimitFails() {
 			MvcTestResult result = post(mvc, TOKEN, url("/chunked-big"));
 
-			assertThat(result).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("ERROR");
+			assertThat(result).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("BODY_TOO_LARGE");
 			assertThat(result).bodyJson().extractingPath("$.body").isNull();
+		}
+
+		@Test
+		void gzipBombIsBodyTooLargeAndGzipAtTheLimitIsReturned() { // cycle 20 (AC-34)
+			MvcTestResult bomb = post(mvc, TOKEN, url("/gzip-bomb"));
+			assertThat(bomb).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("BODY_TOO_LARGE");
+			assertThat(bomb).bodyJson().extractingPath("$.body").isNull();
+
+			MvcTestResult fits = post(mvc, TOKEN, url("/gzip-fits"));
+			assertThat(fits).hasStatus(200).bodyJson().extractingPath("$.outcome").isEqualTo("RESPONDED");
+			assertThat(fits).bodyJson().extractingPath("$.body")
+				.isEqualTo(Base64.getEncoder().encodeToString(new byte[1024]));
 		}
 
 		@Test

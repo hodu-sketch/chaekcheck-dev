@@ -19,7 +19,9 @@ import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.config.AvailabilityProperties;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
+import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
+import com.chaekcheck.availability.internal.search.BatchRunner;
 import com.chaekcheck.availability.internal.search.SearchSlots;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.SearchTarget;
@@ -50,14 +52,17 @@ class LibraryEbookController {
 
 	private final UsageLog usageLog;
 
+	private final LookupOpsCounters counters;
+
 	LibraryEbookController(LibraryCatalog libraryCatalog, LibraryPageFetcher fetcher, AvailabilityResolvers resolvers,
-			AvailabilityProperties properties, SearchSlots slots, UsageLog usageLog) {
+			AvailabilityProperties properties, SearchSlots slots, UsageLog usageLog, LookupOpsCounters counters) {
 		this.libraryCatalog = libraryCatalog;
 		this.fetcher = fetcher;
 		this.resolvers = resolvers;
 		this.detailDeadline = properties.detail().deadline();
 		this.slots = slots;
 		this.usageLog = usageLog;
+		this.counters = counters;
 	}
 
 	/**
@@ -90,7 +95,7 @@ class LibraryEbookController {
 
 	/**
 	 * The library request, counted for the usage log and logged as one line; an answer from the cache counts only as
-	 * CACHED, without a line (cycle 19, ADR-0116).
+	 * CACHED, without a line (cycle 19, ADR-0116). Over the body limit is BODY_TOO_LARGE with its own line (cycle 20).
 	 */
 	private LibraryPage fetch(SearchTarget target, SearchQuery query, int pageNumber) {
 		long started = System.nanoTime();
@@ -105,14 +110,17 @@ class LibraryEbookController {
 			return fetched;
 		}
 		catch (UpstreamException ex) {
-			answered(target.id(), ex.kind() == UpstreamException.Kind.TIMEOUT ? ResponseResult.TIMEOUT
-					: ResponseResult.FAILED, started, ex.getMessage());
+			if (ex.bodyTooLarge()) {
+				BatchRunner.bodyTooLarge(target.id(), ex, Instant.now(), counters);
+			}
+			answered(target.id(), BatchRunner.resultOf(ex), started, ex.getMessage());
 			throw ex;
 		}
 	}
 
 	private void answered(long libraryId, ResponseResult result, long startedNanos, String error) {
 		long ms = Duration.ofNanos(System.nanoTime() - startedNanos).toMillis();
+		counters.libraryRequest();
 		usageLog.recordLibraryResponse(libraryId, ResponseSource.DIRECT_SEARCH, result, ms);
 		String name = result.name().toLowerCase(java.util.Locale.ROOT);
 		if (error == null) {

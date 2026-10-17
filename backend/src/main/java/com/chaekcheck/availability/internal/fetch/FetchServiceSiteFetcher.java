@@ -30,7 +30,10 @@ import tools.jackson.databind.json.JsonMapper;
  * <li>Connection refused, connect timeout or 503: that server rests for {@code restDuration} and the request goes
  * to the next server, while time remains before the deadline.</li>
  * <li>Read timeout on the fetch server: no failover (the library may already have been called), TIMEOUT.</li>
- * <li>200 with a library-side failure ({@code outcome} TIMEOUT or ERROR): no failover, the library fails.</li>
+ * <li>200 with a library-side failure ({@code outcome} TIMEOUT, BODY_TOO_LARGE or ERROR): no failover, the library
+ * fails. BODY_TOO_LARGE (cycle 20) is marked {@link UpstreamException#bodyTooLarge()} so it is counted as
+ * {@code body_too_large}; an outcome this version does not know is ERROR, so a newer fetch server does not break
+ * an older main service.</li>
  * <li>Every server resting: ERROR. Never falls back to calling the library directly.</li>
  * </ul>
  * The resting state is per instance (plan-feedback C2-U-1).
@@ -149,6 +152,8 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 					result.body(), server.id());
 			case "TIMEOUT" -> throw UpstreamException.timeout(
 					"library " + HostThrottle.hostPort(uri) + " timed out on fetch server " + server.id());
+			case "BODY_TOO_LARGE" -> throw UpstreamException.bodyTooLarge(uri, -1,
+					result.receivedBytes() == null ? -1 : result.receivedBytes(), null);
 			default -> throw UpstreamException.error("library " + HostThrottle.hostPort(uri) + " failed on fetch server "
 					+ server.id() + ": " + result.outcome());
 		};
@@ -162,12 +167,13 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 	}
 
 	/**
-	 * Fetch server answer. {@code outcome}: RESPONDED (the library answered with {@code status}), TIMEOUT, or
-	 * CONNECT_FAILED / ERROR. {@code body} is Base64 in the JSON; Jackson decodes it straight into bytes, so the body
-	 * is never held as a String as well (cycle 08 handoff step 5-5).
+	 * Fetch server answer. {@code outcome}: RESPONDED (the library answered with {@code status}), TIMEOUT,
+	 * BODY_TOO_LARGE (cycle 20, with {@code receivedBytes}), or CONNECT_FAILED / ERROR. {@code body} is Base64 in the
+	 * JSON; Jackson decodes it straight into bytes, so the body is never held as a String as well (cycle 08 handoff
+	 * step 5-5).
 	 */
 	record FetchResult(String outcome, Integer status, String contentType, String location, byte[] body,
-			Instant startedAt, Instant endedAt) {
+			Instant startedAt, Instant endedAt, Long receivedBytes) {
 
 		int statusOrZero() {
 			return status == null ? 0 : status;

@@ -111,6 +111,37 @@ class FetchServiceSiteFetcherTests {
 	}
 
 	@Test
+	void bodyTooLargeOnTheFetchServerIsMarkedSo() { // cycle 20 (AC-34): the new outcome, with the bytes read
+		FakeServer first = server(exchange -> new Reply(200, """
+				{"outcome":"BODY_TOO_LARGE","status":null,"contentType":null,"location":null,"body":null,
+				 "startedAt":"2026-09-28T00:00:00Z","endedAt":"2026-09-28T00:00:01Z","receivedBytes":1048577}"""));
+		FakeServer second = server(exchange -> responded(200, new byte[0]));
+		FetchServiceSiteFetcher fetcher = fetcher(first.url(), second.url());
+
+		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline()))
+			.isInstanceOfSatisfying(UpstreamException.class, e -> {
+				assertThat(e.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+				assertThat(e.bodyTooLarge()).isTrue();
+				assertThat(e.uri()).isEqualTo(LIBRARY);
+				assertThat(e.receivedBytes()).isEqualTo(1048577);
+			});
+		assertThat(second.hits).isEmpty();
+	}
+
+	@Test
+	void unknownOutcomeIsAnErrorForThatLibrary() { // a newer fetch server never breaks this service
+		FakeServer first = server(exchange -> new Reply(200, """
+				{"outcome":"SOMETHING_NEW","status":null,"contentType":null,"location":null,"body":null,
+				 "startedAt":"2026-09-28T00:00:00Z","endedAt":"2026-09-28T00:00:01Z","newField":1}"""));
+
+		assertThatThrownBy(() -> fetcher(first.url()).fetch(LIBRARY, deadline()))
+			.isInstanceOfSatisfying(UpstreamException.class, e -> {
+				assertThat(e.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+				assertThat(e.bodyTooLarge()).isFalse();
+			});
+	}
+
+	@Test
 	void allServersRestingFailsWithoutCallingTheLibraryDirectly() {
 		FakeServer first = server(exchange -> new Reply(503, "{}"));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), closedPortUrl());

@@ -447,7 +447,8 @@ class BatchRunnerTests {
 
 	private BatchRunner runner(AvailabilityProperties.Batch settings) {
 		return new BatchRunner(mock(LibraryCatalog.class), fetcher, detailPages, new AvailabilityResolvers(detailLookup), settings,
-				Duration.ofSeconds(30), HOST_INTERVAL, executor, slots, Clock.systemUTC(), usageLog);
+				Duration.ofSeconds(30), HOST_INTERVAL, executor, slots, Clock.systemUTC(), usageLog,
+				new com.chaekcheck.availability.internal.ops.LookupOpsCounters());
 	}
 
 	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,

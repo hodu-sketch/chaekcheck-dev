@@ -3,15 +3,20 @@ package com.chaekcheck.availability.internal.fetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,12 +25,17 @@ import org.junit.jupiter.api.Test;
 import com.chaekcheck.availability.internal.UpstreamException;
 import com.sun.net.httpserver.HttpServer;
 
-/** Body size and total time limits of the direct mode, against a fake library on loopback. */
+/**
+ * Body size and total time limits of the direct mode, against a fake library on loopback. Cycle 20: gzip is asked
+ * for and inflated, and the limit holds for the inflated bytes too (AC-34).
+ */
 class DirectSiteFetcherTests {
 
 	static final long MAX_BODY = 1024;
 
 	HttpServer library;
+
+	final List<String> acceptEncodings = new CopyOnWriteArrayList<>();
 
 	DirectSiteFetcher fetcher = new DirectSiteFetcher(
 			HttpClient.newBuilder()
@@ -39,8 +49,40 @@ class DirectSiteFetcherTests {
 		library = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		library.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 		library.createContext("/fits", exchange -> {
+			acceptEncodings.add(String.valueOf(exchange.getRequestHeaders().getFirst("Accept-Encoding")));
 			byte[] body = new byte[(int) MAX_BODY];
 			exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		// cycle 20: a normal gzip page (EUC-KR bytes stay bytes), one that inflates to exactly the limit, a bomb
+		// (about 90 bytes on the wire, 64KB inflated), and an encoding this service did not ask for
+		library.createContext("/gzip", exchange -> {
+			byte[] body = gzip(EUC_KR_PAGE);
+			exchange.getResponseHeaders().add("Content-Type", "text/html; charset=EUC-KR");
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		library.createContext("/gzip-fits", exchange -> {
+			byte[] body = gzip(new byte[(int) MAX_BODY]);
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		library.createContext("/gzip-bomb", exchange -> {
+			byte[] body = gzip(new byte[64 * 1024]);
+			exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		library.createContext("/brotli", exchange -> {
+			byte[] body = new byte[16];
+			exchange.getResponseHeaders().add("Content-Encoding", "br");
 			exchange.sendResponseHeaders(200, body.length);
 			exchange.getResponseBody().write(body);
 			exchange.close();
@@ -98,12 +140,45 @@ class DirectSiteFetcherTests {
 	}
 
 	@Test
-	void bodyAtTheLimitIsReturned() {
+	void bodyAtTheLimitIsReturnedAndGzipIsAskedFor() { // AC-34: the request carries Accept-Encoding: gzip
 		SiteResponse response = fetcher.fetch(url("/fits"), Instant.MAX);
 
 		assertThat(response.status()).isEqualTo(200);
 		assertThat(response.body()).hasSize((int) MAX_BODY);
 		assertThat(response.contentType()).isEqualTo("text/html; charset=UTF-8");
+		assertThat(acceptEncodings).containsExactly("gzip");
+	}
+
+	@Test
+	void gzipAnswerIsInflatedToTheSitesBytes() { // AC-34: same bytes as a plain answer, EUC-KR untouched
+		SiteResponse response = fetcher.fetch(url("/gzip"), Instant.MAX);
+
+		assertThat(response.status()).isEqualTo(200);
+		assertThat(response.body()).isEqualTo(EUC_KR_PAGE);
+		assertThat(response.declaredCharset()).isEqualTo(Charset.forName("EUC-KR"));
+		assertThat(fetcher.fetch(url("/gzip-fits"), Instant.MAX).body()).hasSize((int) MAX_BODY);
+	}
+
+	@Test
+	void gzipBombIsBodyTooLargeWithoutHoldingTheInflatedBytes() { // AC-34: compression bomb
+		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
+				() -> fetcher.fetch(url("/gzip-bomb"), Instant.MAX));
+
+		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+		assertThat(ex.bodyTooLarge()).isTrue();
+		assertThat(ex.uri()).isEqualTo(url("/gzip-bomb"));
+		// what came over the wire is small; the inflater stopped right past the limit (ContentEncodingTests)
+		assertThat(ex.receivedBytes()).isPositive().isLessThan(MAX_BODY);
+	}
+
+	@Test
+	void encodingNotAskedForFailsThatLibraryAlone() { // [안]: only gzip is inflated
+		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
+				() -> fetcher.fetch(url("/brotli"), Instant.MAX));
+
+		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+		assertThat(ex.bodyTooLarge()).isFalse();
+		assertThat(ex.getMessage()).contains("Content-Encoding");
 	}
 
 	@Test
@@ -112,6 +187,8 @@ class DirectSiteFetcherTests {
 				() -> fetcher.fetch(url("/declared-big"), Instant.MAX));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+		assertThat(ex.bodyTooLarge()).isTrue();
+		assertThat(ex.receivedBytes()).isEqualTo(MAX_BODY + 1);
 	}
 
 	@Test
@@ -120,7 +197,9 @@ class DirectSiteFetcherTests {
 				() -> fetcher.fetch(url("/chunked-big"), Instant.MAX));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
+		assertThat(ex.bodyTooLarge()).isTrue();
 		assertThat(ex.getMessage()).contains("over 1024 bytes");
+		assertThat(ex.receivedBytes()).isGreaterThan(MAX_BODY);
 	}
 
 	@Test
@@ -155,6 +234,21 @@ class DirectSiteFetcherTests {
 
 	private URI url(String path) {
 		return URI.create("http://127.0.0.1:" + library.getAddress().getPort() + path);
+	}
+
+	static final byte[] EUC_KR_PAGE = "<html><p>채식주의자</p></html>".getBytes(Charset.forName("EUC-KR"));
+
+	static byte[] gzip(byte[] plain) {
+		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			try (GZIPOutputStream gz = new GZIPOutputStream(out)) {
+				gz.write(plain);
+			}
+			return out.toByteArray();
+		}
+		catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
 	}
 
 	/** @return false once the client has gone */
