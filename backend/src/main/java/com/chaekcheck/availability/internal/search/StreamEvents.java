@@ -115,7 +115,12 @@ public final class StreamEvents {
 		/** every candidate was requested */
 		CANDIDATES_EXHAUSTED,
 		/** too little time left to start another request */
-		LAUNCH_CUTOFF
+		LAUNCH_CUTOFF,
+		/**
+		 * the browser left the stream (send failed, or the emitter reported an error or timeout): no new library was
+		 * started, the ones in flight still finish and fill the cache (cycle 20, ADR-0131). Never reaches a browser.
+		 */
+		CLIENT_GONE
 	}
 
 	/** A PENDING row's final value. The row is found by libraryId + page + rank. */

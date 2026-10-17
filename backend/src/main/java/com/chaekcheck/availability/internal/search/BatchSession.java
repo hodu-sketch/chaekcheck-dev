@@ -75,6 +75,21 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 		this.batchNo = batchNo;
 		this.filter = filter;
 		this.rowLimit = rowLimit;
+		sink.onClientGone(this::clientGone);
+	}
+
+	/** The browser left (cycle 20, ADR-0131): no new library starts; what is in flight still finishes. */
+	synchronized void clientGone() {
+		if (!clientGone) {
+			clientGone = true;
+			log.info("batch stream client disconnected; remaining lookups still finish and fill the cache");
+			searched(null);
+		}
+	}
+
+	@Override
+	public synchronized boolean isClientGone() {
+		return clientGone;
 	}
 
 	synchronized void targets(StreamEvents.Targets targets) {
@@ -205,9 +220,7 @@ class BatchSession implements SiteResultDelivery.Channel, BatchRunner.LaunchSess
 
 	private void send(String name, Object data) {
 		if (!clientGone && !sink.send(name, data)) {
-			clientGone = true;
-			log.info("batch stream client disconnected; remaining lookups still finish and fill the cache");
-			searched(null);
+			clientGone();
 		}
 	}
 

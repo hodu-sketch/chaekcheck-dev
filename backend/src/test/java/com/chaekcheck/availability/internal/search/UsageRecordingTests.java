@@ -126,6 +126,54 @@ class UsageRecordingTests {
 	}
 
 	@Test
+	void clientGoneStartsNoNewLibraryAndSkipsTheRest(CapturedOutput output) { // cycle 20, ADR-0131, AC-24
+		// the browser takes the targets event and is gone at the second one (library-requested of candidate 1,
+		// whose request is sent anyway)
+		Sink sink = new Sink(1);
+		Candidate first = candidate(1);
+		Candidate second = candidate(2);
+		Candidate third = candidate(3);
+		CompletableFuture<LibraryPage> inFlight = new CompletableFuture<>();
+		answer(first, inFlight);
+		answer(second, CompletableFuture.completedFuture(page(second, 1, false)));
+		answer(third, CompletableFuture.completedFuture(page(third, 1, false)));
+
+		runner(settings(20, 1, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 1, List.of(first, second, third),
+				List.of(), StreamEvents.Targets.of(QUERY, "all", "all", "any", false, List.of()), searched::add);
+		// no new library starts: the rest is skipped at once, while the first is still in flight
+		await().atMost(Duration.ofSeconds(5)).until(() -> usageLog.answers.size() == 2);
+		assertThat(usageLog.answers).containsExactlyInAnyOrder("2 DIRECT_SEARCH SKIPPED", "3 DIRECT_SEARCH SKIPPED");
+		// the request already sent is still received (and fills the cache)
+		inFlight.complete(page(first, 1, false));
+		await().atMost(Duration.ofSeconds(5)).until(() -> usageLog.answers.size() == 3);
+
+		assertThat(usageLog.answers).contains("1 DIRECT_SEARCH OK");
+		await().atMost(Duration.ofSeconds(5)).until(() -> output.getOut().contains("stopReason=CLIENT_GONE"));
+		assertThat(searched).containsExactly((Integer) null);
+	}
+
+	@Test
+	void emitterErrorMarksTheClientGoneWithoutAFailedSend() { // cycle 20: onError / onTimeout path
+		Sink sink = new Sink(Integer.MAX_VALUE);
+		Candidate first = candidate(1);
+		Candidate second = candidate(2);
+		CompletableFuture<LibraryPage> inFlight = new CompletableFuture<>();
+		answer(first, inFlight);
+		answer(second, CompletableFuture.completedFuture(page(second, 1, false)));
+
+		runner(settings(20, 1, 3000, 1000)).start(sink, QUERY, ResultFilter.ALL, 2, List.of(first, second), List.of(),
+				null, null);
+		await().atMost(Duration.ofSeconds(5)).until(() -> sink.sent >= 1);
+		sink.clientGone.run();
+		inFlight.complete(page(first, 1, false));
+		await().atMost(Duration.ofSeconds(5)).until(() -> usageLog.answers.size() == 2);
+
+		assertThat(usageLog.answers).containsExactlyInAnyOrder("1 DIRECT_SEARCH OK", "2 DIRECT_SEARCH SKIPPED");
+		// the stream is not completed for a browser that left; the slot still goes back
+		assertThat(sink.completed).isFalse();
+	}
+
+	@Test
 	void laterBatchesRecordNoSearch() {
 		Sink sink = new Sink(Integer.MAX_VALUE);
 		Candidate c = candidate(1);
@@ -261,9 +309,13 @@ class UsageRecordingTests {
 
 		private final int delivered;
 
-		private int sent;
+		volatile int sent;
 
 		volatile boolean completed;
+
+		/** What the session registered (cycle 20): the emitter's error / timeout path. */
+		volatile Runnable clientGone = () -> {
+		};
 
 		Sink(int delivered) {
 			this.delivered = delivered;
@@ -277,6 +329,11 @@ class UsageRecordingTests {
 		@Override
 		public void complete() {
 			completed = true;
+		}
+
+		@Override
+		public void onClientGone(Runnable listener) {
+			clientGone = listener;
 		}
 
 	}

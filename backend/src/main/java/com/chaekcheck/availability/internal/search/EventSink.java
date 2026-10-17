@@ -11,4 +11,12 @@ public interface EventSink {
 
 	void complete();
 
+	/**
+	 * Called once by the session: {@code listener} runs when the sink learns on its own that the client is gone (the
+	 * SSE emitter's error or timeout callback, cycle 20 ADR-0131). A sink that only learns it from a failed
+	 * {@link #send} keeps the default.
+	 */
+	default void onClientGone(Runnable listener) {
+	}
+
 }

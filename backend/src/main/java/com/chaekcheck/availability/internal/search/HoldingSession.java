@@ -47,12 +47,27 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 	/** Gives the search slot back; runs once, after the last event. */
 	private final Runnable onFinished;
 
+	/** @param rowLimit rows after which no new request starts; the book page passes "none" (cycle 20, R15-1) */
 	HoldingSession(EventSink sink, int batchNo, ResultFilter filter, int rowLimit, Runnable onFinished) {
 		this.sink = sink;
 		this.onFinished = onFinished;
 		this.batchNo = batchNo;
 		this.filter = filter;
 		this.rowLimit = rowLimit;
+		sink.onClientGone(this::clientGone);
+	}
+
+	/** The browser left (cycle 20, ADR-0131): no new holding starts; what is in flight still finishes. */
+	synchronized void clientGone() {
+		if (!clientGone) {
+			clientGone = true;
+			log.info("holding stream client disconnected; remaining lookups still finish and fill the cache");
+		}
+	}
+
+	@Override
+	public synchronized boolean isClientGone() {
+		return clientGone;
 	}
 
 	synchronized void targets(StreamEvents.HoldingTargets targets) {
@@ -146,8 +161,7 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 
 	private void send(String name, Object data) {
 		if (!clientGone && !sink.send(name, data)) {
-			clientGone = true;
-			log.info("holding stream client disconnected; remaining lookups still finish and fill the cache");
+			clientGone();
 		}
 	}
 

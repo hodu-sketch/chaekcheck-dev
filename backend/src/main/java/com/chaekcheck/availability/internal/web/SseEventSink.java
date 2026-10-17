@@ -7,7 +7,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.chaekcheck.availability.internal.search.EventSink;
 
-/** Writes stream events as SSE ({@code event:} name + JSON {@code data:}). No event ids (no reconnect resume). */
+/**
+ * Writes stream events as SSE ({@code event:} name + JSON {@code data:}). No event ids (no reconnect resume). The
+ * emitter's error and timeout callbacks tell the session the client is gone (cycle 20, ADR-0131), so a batch stops
+ * starting libraries even between two sends.
+ */
 class SseEventSink implements EventSink {
 
 	private final SseEmitter emitter;
@@ -31,6 +35,12 @@ class SseEventSink implements EventSink {
 	@Override
 	public void complete() {
 		emitter.complete();
+	}
+
+	@Override
+	public void onClientGone(Runnable listener) {
+		emitter.onError(ex -> listener.run());
+		emitter.onTimeout(listener);
 	}
 
 }

@@ -74,6 +74,12 @@ import com.chaekcheck.usagelog.UsageLog.ResponseSource;
  * Cycle 20 (ADR-0132): an answer over the body limit is BODY_TOO_LARGE in the usage log (one failure and one
  * body_too_large), one more INFO line {@code body_too_large library=… url=… receivedBytes=… at=…}, and one on the
  * summary counter. Every request sent also counts on the summary counter.
+ * <p>
+ * Cycle 20 (ADR-0131): once the browser left ({@code clientGone}: a send failed, or the emitter reported an error
+ * or timeout) no new library starts ({@link StreamEvents.StopReason#CLIENT_GONE}; the rest is {@code notSent},
+ * SKIPPED), portal detail lookups are not started for pages that arrive after it, and requests already sent are
+ * received to the end so they fill the cache; the slot goes back when they are all done. Holding batches have no
+ * row limit (R15-1): the book page fills every visible holding.
  */
 public class BatchRunner {
 
@@ -194,6 +200,11 @@ public class BatchRunner {
 							session.failed(candidate, asUpstream(ex));
 							return;
 						}
+						if (session.isClientGone()) {
+							// nobody will read the verdicts: no portal detail pages are started for this page
+							session.succeeded(candidate, new AvailabilityResolver.Resolution(page, List.of()));
+							return;
+						}
 						AvailabilityResolver resolver = resolvers.forPlatform(target.platformType());
 						session.succeeded(candidate, resolver.resolve(target, page, detailBy));
 					}
@@ -229,7 +240,9 @@ public class BatchRunner {
 
 	private void startHoldingBatch(SearchSlots.Slot slot, EventSink sink, ResultFilter filter, int batchNo,
 			List<HoldingTask> tasks, List<MissingHolding> notFound, StreamEvents.HoldingTargets targets) {
-		HoldingSession session = new HoldingSession(sink, batchNo, filter, settings.rowLimit(), slot::close);
+		// no row limit for the book page (cycle 20, R15-1 [확정]): every holding of the visible books is asked, over
+		// several batches the web asks for; parallelism, deadline and launch cutoff stay
+		HoldingSession session = new HoldingSession(sink, batchNo, filter, Integer.MAX_VALUE, slot::close);
 		releaseLater(slot);
 		if (targets != null) {
 			session.targets(targets);
@@ -310,6 +323,10 @@ public class BatchRunner {
 		Launches<T> launches = new Launches<>(settings.parallelism(), tasks);
 		StreamEvents.StopReason reason = StreamEvents.StopReason.CANDIDATES_EXHAUSTED;
 		while (launches.hasPending()) {
+			if (session.isClientGone()) {
+				reason = StreamEvents.StopReason.CLIENT_GONE;
+				break;
+			}
 			if (session.rowLimitReached()) {
 				reason = StreamEvents.StopReason.ROW_LIMIT;
 				break;
@@ -317,6 +334,15 @@ public class BatchRunner {
 			T task = launches.next(cutoff);
 			if (task == null) {
 				reason = StreamEvents.StopReason.LAUNCH_CUTOFF;
+				break;
+			}
+			if (session.isClientGone()) {
+				// picked while the browser left: not started, and skipped like the rest
+				launches.cancel(task);
+				if (task.hostKey() != null) {
+					notSent.accept(task);
+				}
+				reason = StreamEvents.StopReason.CLIENT_GONE;
 				break;
 			}
 			if (session.rowLimitReached()) {
@@ -329,7 +355,7 @@ public class BatchRunner {
 			}
 			start.apply(task).whenComplete((result, ex) -> launches.finished(task));
 		}
-		if (reason == StreamEvents.StopReason.LAUNCH_CUTOFF) {
+		if (reason == StreamEvents.StopReason.LAUNCH_CUTOFF || reason == StreamEvents.StopReason.CLIENT_GONE) {
 			launches.remaining().stream().filter(task -> task.hostKey() != null).forEach(notSent);
 		}
 		session.launchFinished(reason);
@@ -411,6 +437,9 @@ public class BatchRunner {
 	interface LaunchSession<T extends LookupTask> {
 
 		boolean rowLimitReached();
+
+		/** The browser left: no new task starts (cycle 20, ADR-0131). */
+		boolean isClientGone();
 
 		/** A task with a request is about to start. */
 		void requested(T task);

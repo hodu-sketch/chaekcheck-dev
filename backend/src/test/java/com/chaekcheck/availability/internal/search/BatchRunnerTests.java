@@ -330,7 +330,7 @@ class BatchRunnerTests {
 	// cycle 04 holding batches: the same launch rules on detail pages (ADR-0029)
 
 	@Test
-	void holdingsStopAtTheRowLimitAndSubscriptionsSendNoRequest() { // AC-13, 교보 구독형 요청 없음
+	void holdingsHaveNoRowLimitAndSubscriptionsSendNoRequest() { // cycle 20 R15-1 (AC-28); 교보 구독형 요청 없음
 		List<HoldingTask> tasks = new ArrayList<>();
 		for (long id = 1; id <= 3; id++) {
 			tasks.add(HoldingTask.of(subscription(100 + id), holding(100 + id, 100 + id, "https://sub" + id + ".test/x")));
@@ -348,9 +348,22 @@ class BatchRunnerTests {
 		assertThat(sink.dataOf(StreamEvents.HOLDING_RESULT)).first()
 			.extracting(e -> ((StreamEvents.HoldingResult) e).item().availabilityBasis())
 			.isEqualTo(LibraryPage.AvailabilityBasis.SUBSCRIPTION);
-		assertThat(sink.count(StreamEvents.HOLDING_REQUESTED)).isLessThan(30).isGreaterThanOrEqualTo(18);
-		assertThat(sink.batchDone().stopReason()).isEqualTo(StreamEvents.StopReason.ROW_LIMIT);
+		// 30 holdings over the old row limit of 20 (settings) are all asked: the book page has no row limit
+		assertThat(sink.count(StreamEvents.HOLDING_REQUESTED)).isEqualTo(30);
+		assertThat(sink.count(StreamEvents.HOLDING_RESULT)).isEqualTo(33);
+		assertThat(sink.batchDone().stopReason()).isEqualTo(StreamEvents.StopReason.CANDIDATES_EXHAUSTED);
 		assertThat(sink.names()).endsWith(StreamEvents.BATCH_DONE, StreamEvents.DONE);
+	}
+
+	@Test
+	void directSearchStillStopsAtTenRows() { // cycle 20 R15 (AC-21): row-limit 10 for search pages
+		List<Candidate> candidates = kyoboCandidates(8);
+		candidates.forEach(c -> answer(c, page(c, 10, 10, 0)));
+
+		run(runner(settings(10, 1, 8000, 3000)), ResultFilter.ALL, candidates);
+
+		assertThat(sink.count(StreamEvents.LIBRARY_REQUESTED)).isEqualTo(2);
+		assertThat(sink.batchDone().stopReason()).isEqualTo(StreamEvents.StopReason.ROW_LIMIT);
 	}
 
 	@Test
