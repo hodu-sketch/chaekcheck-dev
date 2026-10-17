@@ -81,6 +81,12 @@
   min-height: 0.7rem;
 }
 
+/* the light sits a little further left than the mock-up on every width: more room between it and what follows (PC:
+   로그인; phones: the ▾, then 로그인) (user 2026-10-17: "폰이나 pc나 둘 다 상태 동그라미(메시지)가 좀 더 왼쪽으로") */
+.statusSlot:not(:empty) {
+  margin-right: calc(1.4 * var(--base-unscaled));
+}
+
 /* phones only: the row's ▾ */
 .menuCaret {
   display: none;
