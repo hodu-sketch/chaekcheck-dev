@@ -45,14 +45,21 @@
   display: none;
 }
 
-.openToAll summary::after,
-.fold::after {
-  content: ' ▸';
+/* the fold marks: the app's chevron (components/icons), down when closed, up when open */
+.caret {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35em;
+  vertical-align: middle;
 }
 
-.openToAll[open] summary::after,
-.fold[aria-expanded='true']::after {
-  content: ' ▾';
+.openToAll .caretUp,
+.openToAll[open] .caretDown {
+  display: none;
+}
+
+.openToAll[open] .caretUp {
+  display: inline-flex;
 }
 
 /* the shorter "누구나 가입 N곳은 늘 포함돼요" is for phones only (user request 2026-10-05) */

@@ -3,6 +3,7 @@ import { useId, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
 import { BackLink } from '../../components/BackLink'
+import { ChevronDown, ChevronUp } from '../../components/icons'
 import { InfoTip } from '../../components/InfoTip'
 import { LibraryLogo } from '../../components/LibraryLogo'
 import { classificationParts, classificationText } from '../../lib/libraryClassification'
@@ -147,6 +148,16 @@ function OpenToAll({ rows }: { rows: LibraryEligibilityRow[] }) {
         {/* phones: a shorter line that does not wrap at 320px (user request 2026-10-05) */}
         <span className={styles.wide}>누구나 가입하는 도서관 {rows.length}곳도 늘 내 도서관에 들어 있어요</span>
         <span className={styles.narrow}>누구나 가입 {rows.length}곳은 늘 포함돼요</span>
+        {/* the same chevron as the header and the search form, down when it opens downward, up while open (user
+            2026-10-17: "아래로 내려서 보여주는거니 아래향 화살표로 … 화살표랑 꺽쇠 섞여있는데") */}
+        <span className={styles.caret} aria-hidden="true">
+          <span className={styles.caretDown}>
+            <ChevronDown size={10} />
+          </span>
+          <span className={styles.caretUp}>
+            <ChevronUp size={10} />
+          </span>
+        </span>
       </summary>
       <NameList rows={rows} />
     </details>
@@ -241,6 +252,9 @@ function RegionField({ kind, regions, rows }: { kind: string; regions: string; r
             onClick={() => setOpen((value) => !value)}
           >
             {title} {rows.length}곳
+            <span className={styles.caret} aria-hidden="true">
+              {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+            </span>
           </button>
         )}
       </div>
