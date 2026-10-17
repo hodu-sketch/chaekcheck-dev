@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 import com.chaekcheck.availability.internal.adapter.AdapterFixtures;
-import com.chaekcheck.availability.internal.fetch.HostThrottle;
+import com.chaekcheck.availability.internal.egress.EgressLanes;
 import com.chaekcheck.availability.internal.fetch.InMemoryHostQueueBoard;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
 import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
@@ -40,8 +40,8 @@ class LookupStatusControllerTests {
 		}
 
 		@Bean
-		HostThrottle hostThrottle() {
-			return mock(HostThrottle.class);
+		EgressLanes egressLanes() {
+			return mock(EgressLanes.class);
 		}
 
 		@Bean
@@ -61,7 +61,7 @@ class LookupStatusControllerTests {
 	SiteFetcher siteFetcher;
 
 	@Autowired
-	HostThrottle hostThrottle;
+	EgressLanes egressLanes;
 
 	@Test
 	void answersTheSignalWithoutCachingOrCallingALibrary() {
@@ -76,7 +76,7 @@ class LookupStatusControllerTests {
 			.isLenientlyEqualTo("{\"slots\":40,\"inUse\":0,\"level\":\"GREEN\",\"reason\":\"NONE\","
 					+ "\"queuedLibraryIds\":[]}");
 		assertThat(result).bodyJson().extractingPath("$.serverTime").asString().endsWith("Z");
-		verifyNoInteractions(siteFetcher, hostThrottle);
+		verifyNoInteractions(siteFetcher, egressLanes);
 	}
 
 }

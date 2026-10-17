@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import com.chaekcheck.availability.internal.SearchQuery;
 import com.chaekcheck.availability.internal.TestTargets;
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.TestLanes;
 import com.chaekcheck.availability.internal.adapter.ParsedPage;
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
@@ -65,12 +66,12 @@ class ParseSlotsTests {
 			return new ParsedPage(0, List.of());
 		});
 		SiteFetcher site = mock(SiteFetcher.class);
-		given(site.fetch(any(), any()))
+		given(site.fetch(any(), any(), any()))
 			.willReturn(new SiteResponse(200, "text/html", null, "<html/>".getBytes(StandardCharsets.UTF_8), "test"));
 		ParseSlots slots = new ParseSlots(8, Duration.ofSeconds(2));
 		LibraryPageFetcher fetcher = new LibraryPageFetcher(List.of(adapter),
 				new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
-				new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), site, Duration.ofSeconds(10),
+				TestLanes.direct(site, Clock.systemUTC()), Duration.ofSeconds(10),
 				Clock.systemUTC(), new BookKeyNormalizer(), slots, new InMemoryHostQueueBoard());
 
 		List<CompletableFuture<LibraryPage>> first = new ArrayList<>();

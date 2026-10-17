@@ -13,20 +13,20 @@ import org.slf4j.LoggerFactory;
 
 import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
+import com.chaekcheck.availability.internal.egress.EgressLanes;
 import com.chaekcheck.availability.internal.fetch.DetailUrls;
 import com.chaekcheck.availability.internal.fetch.HostQueueBoard;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
 import com.chaekcheck.availability.internal.fetch.ParseSlots;
-import com.chaekcheck.availability.internal.fetch.SiteFetcher;
 import com.chaekcheck.availability.internal.fetch.SiteResponse;
 import com.chaekcheck.availability.internal.resolve.DetailVerdictCache.DetailPage;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.SearchTarget;
 
 /**
- * Loads a book's detail page (ADR-0029) through the same 3-minute cache, host throttle and {@link SiteFetcher} as
- * search pages (호출 예의 [확정]). The one place detail pages are requested: the portal's blank-verdict lookup and the
+ * Loads a book's detail page (ADR-0029) through the same 3-minute cache and egress lanes ({@link EgressLanes}:
+ * lane choice and per-lane host throttle, cycle 22) as search pages (호출 예의 [확정]). The one place detail pages are requested: the portal's blank-verdict lookup and the
  * holding stream both use it.
  */
 public class DetailPageFetcher {
@@ -37,9 +37,7 @@ public class DetailPageFetcher {
 
 	private final DetailVerdictCache cache;
 
-	private final HostThrottle throttle;
-
-	private final SiteFetcher siteFetcher;
+	private final EgressLanes lanes;
 
 	private final Clock clock;
 
@@ -52,12 +50,11 @@ public class DetailPageFetcher {
 	 * @param queueBoard the same board as search pages; a detail wait (deadline 30s) also stops counting after the
 	 * 10s window, accepted [안]
 	 */
-	public DetailPageFetcher(List<PlatformAdapter> adapters, DetailVerdictCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, Clock clock, ParseSlots parseSlots, HostQueueBoard queueBoard) {
+	public DetailPageFetcher(List<PlatformAdapter> adapters, DetailVerdictCache cache, EgressLanes lanes, Clock clock,
+			ParseSlots parseSlots, HostQueueBoard queueBoard) {
 		adapters.forEach(adapter -> this.adapters.put(adapter.platform(), adapter));
 		this.cache = cache;
-		this.throttle = throttle;
-		this.siteFetcher = siteFetcher;
+		this.lanes = lanes;
 		this.clock = clock;
 		this.parseSlots = parseSlots;
 		this.queueBoard = queueBoard;
@@ -88,16 +85,15 @@ public class DetailPageFetcher {
 	private DetailPage load(long libraryId, PlatformAdapter adapter, URI detailUrl, Instant deadline) {
 		// same host, so the throttle key does not change (Bookcube reads the book's XML instead of its page)
 		URI uri = adapter.detailFetchUri(detailUrl);
-		SiteResponse response = LibraryPageFetcher.throttled(queueBoard, throttle, libraryId, uri, deadline, clock,
-				() -> siteFetcher.fetch(uri, deadline));
+		SiteResponse response = LibraryPageFetcher.routed(queueBoard, lanes, libraryId, uri, deadline, clock);
 		if (!response.isSuccess()) {
 			throw UpstreamException.error("detail status " + response.status() + " from " + HostThrottle.hostPort(uri));
 		}
 		DetailPage page = new DetailPage(
 				parseSlots.parse(() -> adapter.parseDetail(response.body(), response.declaredCharset())),
 				clock.instant());
-		log.info("detail page host={} path={} detail={} via={}", HostThrottle.hostPort(uri), uri.getRawPath(),
-				page.detail(), response.via());
+		log.info("detail page host={} path={} detail={} via={} lane={}", HostThrottle.hostPort(uri), uri.getRawPath(),
+				page.detail(), response.via(), response.via());
 		return page;
 	}
 

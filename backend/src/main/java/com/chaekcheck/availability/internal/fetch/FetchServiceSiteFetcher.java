@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.EgressLane;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -37,6 +38,9 @@ import tools.jackson.databind.json.JsonMapper;
  * <li>Every server resting: ERROR. Never falls back to calling the library directly.</li>
  * </ul>
  * The resting state is per instance (plan-feedback C2-U-1).
+ * <p>
+ * Cycle 22: the request names the lane the main service chose ({@code lane}); the fetch server reads the same lane
+ * setting and sends through that lane's proxy. Lane choice, throttle and paused lanes stay here (ADR-0011).
  */
 public class FetchServiceSiteFetcher implements SiteFetcher {
 
@@ -79,7 +83,7 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 	}
 
 	@Override
-	public SiteResponse fetch(URI uri, Instant deadline) {
+	public SiteResponse fetch(URI uri, Instant deadline, EgressLane lane) {
 		String requestId = UUID.randomUUID().toString();
 		boolean failedOver = false;
 		for (Server server : servers) {
@@ -92,9 +96,10 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 				continue;
 			}
 			try {
-				SiteResponse response = call(server, uri, requestId, deadline);
-				log.info("fetch-service via={} host={} path={} requestId={} failedOver={} status={}", server.id(),
-						HostThrottle.hostPort(uri), uri.getRawPath(), requestId, failedOver, response.status());
+				SiteResponse response = call(server, uri, requestId, deadline, lane);
+				log.info("fetch-service via={} lane={} vendor={} host={} path={} requestId={} failedOver={} status={} bytes={}",
+						server.id(), lane.id(), lane.vendor(), HostThrottle.hostPort(uri), uri.getRawPath(), requestId,
+						failedOver, response.status(), response.body().length);
 				return response;
 			}
 			catch (ServerUnavailable ex) {
@@ -108,7 +113,7 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 				+ " (all resting or deadline passed)");
 	}
 
-	private SiteResponse call(Server server, URI uri, String requestId, Instant deadline) {
+	private SiteResponse call(Server server, URI uri, String requestId, Instant deadline, EgressLane lane) {
 		Duration left = Duration.between(clock.instant(), deadline);
 		Duration timeout = left.compareTo(readTimeout) < 0 ? left : readTimeout;
 		HttpRequest request = HttpRequest.newBuilder(server.url().resolve("/v1/fetches"))
@@ -116,7 +121,7 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 			.header("Content-Type", "application/json")
 			.header(tokenHeader, token)
 			.POST(HttpRequest.BodyPublishers.ofByteArray(
-					jsonMapper.writeValueAsBytes(new FetchRequest(uri.toString(), requestId))))
+					jsonMapper.writeValueAsBytes(new FetchRequest(uri.toString(), requestId, lane.id()))))
 			.build();
 		HttpResponse<byte[]> response;
 		try {
@@ -149,11 +154,15 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 		FetchResult result = jsonMapper.readValue(response.body(), FetchResult.class);
 		return switch (result.outcome()) {
 			case "RESPONDED" -> new SiteResponse(result.statusOrZero(), result.contentType(), result.location(),
-					result.body(), server.id());
+					result.body(), lane.id());
 			case "TIMEOUT" -> throw UpstreamException.timeout(
 					"library " + HostThrottle.hostPort(uri) + " timed out on fetch server " + server.id());
 			case "BODY_TOO_LARGE" -> throw UpstreamException.bodyTooLarge(uri, -1,
 					result.receivedBytes() == null ? -1 : result.receivedBytes(), null);
+			// the cause marks "no answer from the site" for the blocked-lane rule (BlockSignal), as on the direct path
+			case "CONNECT_FAILED" -> throw new UpstreamException(UpstreamException.Kind.ERROR, "library "
+					+ HostThrottle.hostPort(uri) + " refused the connection from fetch server " + server.id() + " lane "
+					+ lane.id(), new ConnectException("connect failed on the fetch server"));
 			default -> throw UpstreamException.error("library " + HostThrottle.hostPort(uri) + " failed on fetch server "
 					+ server.id() + ": " + result.outcome());
 		};
@@ -163,17 +172,19 @@ public class FetchServiceSiteFetcher implements SiteFetcher {
 	public record Server(String id, URI url) {
 	}
 
-	record FetchRequest(String url, String requestId) {
+	/** @param lane the egress lane id the fetch server must send through (cycle 22); an older server ignores it */
+	record FetchRequest(String url, String requestId, String lane) {
 	}
 
 	/**
 	 * Fetch server answer. {@code outcome}: RESPONDED (the library answered with {@code status}), TIMEOUT,
-	 * BODY_TOO_LARGE (cycle 20, with {@code receivedBytes}), or CONNECT_FAILED / ERROR. {@code body} is Base64 in the
+	 * BODY_TOO_LARGE (cycle 20, with {@code receivedBytes}), or CONNECT_FAILED / ERROR (also an unknown or
+	 * disallowed lane, cycle 22). {@code lane} echoes the lane the server used (null from an older server). {@code body} is Base64 in the
 	 * JSON; Jackson decodes it straight into bytes, so the body is never held as a String as well (cycle 08 handoff
 	 * step 5-5).
 	 */
 	record FetchResult(String outcome, Integer status, String contentType, String location, byte[] body,
-			Instant startedAt, Instant endedAt, Long receivedBytes) {
+			Instant startedAt, Instant endedAt, Long receivedBytes, String lane) {
 
 		int statusOrZero() {
 			return status == null ? 0 : status;

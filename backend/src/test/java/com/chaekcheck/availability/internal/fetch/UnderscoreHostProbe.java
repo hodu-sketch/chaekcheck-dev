@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+import com.chaekcheck.availability.internal.egress.EgressLane;
 import com.chaekcheck.availability.internal.SearchQuery;
 import com.chaekcheck.availability.internal.adapter.AdapterFixtures;
 import com.chaekcheck.availability.internal.adapter.Yes24V2Adapter;
@@ -61,7 +62,7 @@ class UnderscoreHostProbe {
 			for (URI uri : List.of(base, search)) {
 				long started = System.nanoTime();
 				try {
-					SiteResponse response = fetcher.fetch(uri, Instant.now().plusSeconds(20));
+					SiteResponse response = fetcher.fetch(uri, Instant.now().plusSeconds(20), EgressLane.DIRECT);
 					String body = new String(response.body(), java.nio.charset.StandardCharsets.UTF_8);
 					int at = body.indexOf("1984");
 					System.out.println("PROBE fetch " + uri + " -> " + response + " in "

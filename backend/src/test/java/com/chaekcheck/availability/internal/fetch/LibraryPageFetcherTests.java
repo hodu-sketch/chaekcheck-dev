@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import com.chaekcheck.availability.internal.SearchField;
 import com.chaekcheck.availability.internal.SearchQuery;
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.TestLanes;
 import com.chaekcheck.availability.internal.adapter.AdapterFixtures;
 import com.chaekcheck.availability.internal.adapter.ElibPortalV1Adapter;
 import com.chaekcheck.availability.internal.adapter.KyoboV1Adapter;
@@ -53,7 +54,7 @@ class LibraryPageFetcherTests {
 			List.of(new KyoboV1Adapter(AdapterFixtures.PROPERTIES), new Yes24V2Adapter(AdapterFixtures.PROPERTIES),
 					new ElibPortalV1Adapter()),
 			new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
-			new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), client, DEADLINE, Clock.systemUTC(),
+			TestLanes.direct(client, Clock.systemUTC()), DEADLINE, Clock.systemUTC(),
 			new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)), new InMemoryHostQueueBoard());
 
 	@AfterEach
@@ -78,10 +79,10 @@ class LibraryPageFetcherTests {
 						new com.chaekcheck.availability.internal.adapter.ParsedItem("다른 호스트", null, null, null, null,
 								1, 0, "https://evil.test/elib/module/elib/book/view.do?book_idx=2",
 								com.chaekcheck.availability.internal.adapter.SiteVerdict.BLANK))));
-		given(client.fetch(any(), any())).willReturn(ok("<html/>"));
+		given(client.fetch(any(), any(), any())).willReturn(ok("<html/>"));
 		LibraryPageFetcher checked = new LibraryPageFetcher(List.of(adapter),
 				new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
-				new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), client, DEADLINE, Clock.systemUTC(),
+				TestLanes.direct(client, Clock.systemUTC()), DEADLINE, Clock.systemUTC(),
 				new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)), new InMemoryHostQueueBoard());
 
 		LibraryPage page = checked.fetch(BUSAN, SearchQuery.of("사랑"), 1);
@@ -91,12 +92,12 @@ class LibraryPageFetcherTests {
 			.containsExactly("https://library.busan.go.kr/elib/module/elib/book/view.do?book_idx=1", null);
 		assertThat(cached.cached()).isTrue();
 		assertThat(cached.items().get(1).detailUrl()).isNull();
-		verify(client, times(1)).fetch(any(), any());
+		verify(client, times(1)).fetch(any(), any(), any());
 	}
 
 	@Test
 	void secondKyoboPageHasRanks51To100() { // AC-15
-		given(client.fetch(any(), any())).willReturn(ok(html("kyobo-v1/love-p2.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("kyobo-v1/love-p2.html")));
 
 		LibraryPage page = fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 2);
 
@@ -111,7 +112,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void yes24DetailUrlIsTheBookPage() {
-		given(client.fetch(any(), any())).willReturn(ok(html("yes24-v2/veg-p1.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("yes24-v2/veg-p1.html")));
 
 		LibraryPage page = fetcher.fetch(GANGSEO, SearchQuery.of("채식주의자"), 1);
 
@@ -121,7 +122,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void computesAvailableAndLoanRate() {
-		given(client.fetch(any(), any())).willReturn(ok(html("yes24-v2/love-p1.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("yes24-v2/love-p1.html")));
 
 		LibraryPage page = fetcher.fetch(GANGSEO, SearchQuery.of("사랑"), 1);
 
@@ -134,7 +135,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void emptyResultHasNullLoanRateAndNoMore() {
-		given(client.fetch(any(), any())).willReturn(ok(html("kyobo-v1/none.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("kyobo-v1/none.html")));
 
 		LibraryPage page = fetcher.fetch(GOHEUNG, SearchQuery.of("없는책제목"), 1);
 
@@ -145,7 +146,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void secondRequestIsServedFromCache() {
-		given(client.fetch(any(), any())).willReturn(ok(html("kyobo-v1/veg-p1.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("kyobo-v1/veg-p1.html")));
 
 		LibraryPage first = fetcher.fetch(GOHEUNG, SearchQuery.of("채식주의자"), 1);
 		LibraryPage second = fetcher.fetch(GOHEUNG, SearchQuery.of("  채식주의자 "), 1);
@@ -153,12 +154,12 @@ class LibraryPageFetcherTests {
 		assertThat(first.cached()).isFalse();
 		assertThat(second.cached()).isTrue();
 		assertThat(second.fetchedAt()).isEqualTo(first.fetchedAt());
-		verify(client, times(1)).fetch(any(), any());
+		verify(client, times(1)).fetch(any(), any(), any());
 	}
 
 	@Test
 	void sameTextInAnotherFieldIsNotSharedInTheCache() { // AC-6
-		given(client.fetch(any(), any())).willReturn(ok(html("kyobo-v1/veg-p1.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("kyobo-v1/veg-p1.html")));
 
 		LibraryPage title = fetcher.fetch(GOHEUNG, SearchQuery.of("김달"), 1);
 		LibraryPage author = fetcher.fetch(GOHEUNG, SearchQuery.of("김달", SearchField.AUTHOR), 1);
@@ -168,14 +169,14 @@ class LibraryPageFetcherTests {
 		assertThat(author.cached()).isFalse();
 		assertThat(authorAgain.cached()).isTrue();
 		ArgumentCaptor<URI> uris = ArgumentCaptor.forClass(URI.class);
-		verify(client, times(2)).fetch(uris.capture(), any());
+		verify(client, times(2)).fetch(uris.capture(), any(), any());
 		assertThat(uris.getAllValues()).extracting(URI::getRawQuery)
 			.satisfiesExactly(q -> assertThat(q).startsWith("schClst=ctts&"), q -> assertThat(q).startsWith("schClst=autr&"));
 	}
 
 	@Test
 	void portalAuthorPageOpensTheSearchPageInTheLibraryButDetailsKeepTheFetchedFolder() {
-		given(client.fetch(any(), any())).willReturn(ok(html("elib-portal-v1/busan-table-author-p1.html")));
+		given(client.fetch(any(), any(), any())).willReturn(ok(html("elib-portal-v1/busan-table-author-p1.html")));
 
 		LibraryPage page = fetcher.fetch(BUSAN, SearchQuery.of("김달", SearchField.AUTHOR), 1);
 
@@ -189,7 +190,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void slowLibraryTimesOutButStillFillsTheCache() throws Exception {
-		given(client.fetch(any(), any())).willAnswer(invocation -> {
+		given(client.fetch(any(), any(), any())).willAnswer(invocation -> {
 			Thread.sleep(DEADLINE.plusMillis(300));
 			return ok(html("kyobo-v1/veg-p1.html"));
 		});
@@ -204,7 +205,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void upstreamErrorsPassThrough() {
-		given(client.fetch(any(), any())).willThrow(UpstreamException.error("status 500"));
+		given(client.fetch(any(), any(), any())).willThrow(UpstreamException.error("status 500"));
 
 		assertThatThrownBy(() -> fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 1))
 			.isInstanceOfSatisfying(UpstreamException.class,
@@ -213,7 +214,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void unparseablePageIsAnUpstreamError() {
-		given(client.fetch(any(), any())).willReturn(ok("<html>login required</html>"));
+		given(client.fetch(any(), any(), any())).willReturn(ok("<html>login required</html>"));
 
 		assertThatThrownBy(() -> fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 1))
 			.isInstanceOfSatisfying(UpstreamException.class,
@@ -222,7 +223,7 @@ class LibraryPageFetcherTests {
 
 	@Test
 	void nonSuccessStatusIsAnUpstreamError() { // 3xx too: redirects are not followed
-		given(client.fetch(any(), any()))
+		given(client.fetch(any(), any(), any()))
 			.willReturn(new SiteResponse(302, null, "https://elsewhere.test/", null, "direct"));
 
 		assertThatThrownBy(() -> fetcher.fetch(GOHEUNG, SearchQuery.of("사랑"), 1))

@@ -64,8 +64,9 @@ public class UpstreamException extends RuntimeException {
 	}
 
 	/**
-	 * A problem code of its own instead of the kind's ({@code upstream_error} / {@code upstream_timeout}): today
-	 * only {@code parse_busy} (cycle 20, no parse slot in time); null otherwise.
+	 * A problem code of its own instead of the kind's ({@code upstream_error} / {@code upstream_timeout}):
+	 * {@code parse_busy} (cycle 20, no parse slot in time) or {@code no_lane_for_host} (cycle 22, every lane paused
+	 * on the site); null otherwise.
 	 */
 	public String code() {
 		return code;
@@ -74,6 +75,16 @@ public class UpstreamException extends RuntimeException {
 	public static UpstreamException error(String message) {
 		return new UpstreamException(Kind.ERROR, message);
 	}
+
+	/**
+	 * Every egress lane is paused on this library's site (cycle 22, handoff 1-15): ERROR with code
+	 * {@code no_lane_for_host}; the library fails at once ("확인 불가"), nothing is cached.
+	 */
+	public static UpstreamException noLane(String message) {
+		return new UpstreamException(Kind.ERROR, message, null, false, null, -1, NO_LANE_FOR_HOST);
+	}
+
+	public static final String NO_LANE_FOR_HOST = "no_lane_for_host";
 
 	/** No parse slot within the wait (cycle 20, AC-33): ERROR with code {@code parse_busy}. */
 	public static UpstreamException parseBusy(String message) {

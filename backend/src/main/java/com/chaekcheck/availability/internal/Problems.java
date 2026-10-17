@@ -23,9 +23,14 @@ public final class Problems {
 
 	/**
 	 * 504 upstream_timeout or 502 upstream_error; 503 {@code parse_busy} when the page got no parse slot in time
-	 * (cycle 20). Never includes the upstream message or body.
+	 * (cycle 20); 502 {@code no_lane_for_host} when every egress lane is paused on the library's site (cycle 22).
+	 * Never includes the upstream message or body.
 	 */
 	public static ProblemDetail upstream(UpstreamException ex) {
+		if (UpstreamException.NO_LANE_FOR_HOST.equals(ex.code())) {
+			return problem(HttpStatus.BAD_GATEWAY, ex.code(),
+					"Every way to this library's site is paused right now; the library was not read this time");
+		}
 		if (ex.code() != null) {
 			return problem(HttpStatus.SERVICE_UNAVAILABLE, ex.code(),
 					"The server is busy reading library pages; the library was not read this time");

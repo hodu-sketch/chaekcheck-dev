@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.EgressLane;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
@@ -196,12 +197,12 @@ class UnderscoreHostSiteFetcherTests {
 
 	@Test
 	void underscoreHostIsRequestedWithTheUserAgent() {
-		SiteResponse response = fetcher.fetch(url("/fits"), Instant.MAX);
+		SiteResponse response = fetcher.fetch(url("/fits"), Instant.MAX, EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(200);
 		assertThat(response.body()).hasSize((int) MAX_BODY);
 		assertThat(response.contentType()).isEqualTo("text/html; charset=UTF-8");
-		assertThat(response.via()).isEqualTo(UnderscoreHostSiteFetcher.VIA);
+		assertThat(response.via()).as("cycle 22: via is the lane id").isEqualTo(EgressLane.DIRECT_ID);
 		assertThat(userAgents).containsExactly("chaekcheck/test");
 		// cycle 20: gzip is asked for on this path too (the client's own decoding stays off, ContentEncoding inflates)
 		assertThat(acceptEncodings).containsExactly("gzip");
@@ -209,11 +210,11 @@ class UnderscoreHostSiteFetcherTests {
 
 	@Test
 	void gzipAnswerIsInflatedAndABombIsTooLarge() { // cycle 20 (AC-34)
-		SiteResponse gz = fetcher.fetch(url("/gzip"), Instant.MAX);
+		SiteResponse gz = fetcher.fetch(url("/gzip"), Instant.MAX, EgressLane.DIRECT);
 		assertThat(gz.body()).isEqualTo("<html>1984 gz</html>".getBytes());
 
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/gzip-bomb"), Instant.MAX));
+				() -> fetcher.fetch(url("/gzip-bomb"), Instant.MAX, EgressLane.DIRECT));
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.bodyTooLarge()).isTrue();
 		assertThat(ex.receivedBytes()).isLessThan(MAX_BODY);
@@ -221,7 +222,7 @@ class UnderscoreHostSiteFetcherTests {
 
 	@Test
 	void redirectIsNotFollowed() {
-		SiteResponse response = fetcher.fetch(url("/redirect"), Instant.MAX);
+		SiteResponse response = fetcher.fetch(url("/redirect"), Instant.MAX, EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(302);
 		assertThat(response.location()).isEqualTo("/fits");
@@ -230,13 +231,13 @@ class UnderscoreHostSiteFetcherTests {
 
 	@Test
 	void chunkedBodyWithinTheLimitIsReturned() {
-		assertThat(fetcher.fetch(url("/chunked-fits"), Instant.MAX).body()).hasSize(1024);
+		assertThat(fetcher.fetch(url("/chunked-fits"), Instant.MAX, EgressLane.DIRECT).body()).hasSize(1024);
 	}
 
 	@Test
 	void bodyDeclaredOverTheLimitIsAnUpstreamError() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/declared-big"), Instant.MAX));
+				() -> fetcher.fetch(url("/declared-big"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.getMessage()).contains("over 1024 bytes");
@@ -245,7 +246,7 @@ class UnderscoreHostSiteFetcherTests {
 	@Test
 	void chunkedBodyOverTheLimitIsAnUpstreamError() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/chunked-big"), Instant.MAX));
+				() -> fetcher.fetch(url("/chunked-big"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.getMessage()).contains("over 1024 bytes");
@@ -255,7 +256,7 @@ class UnderscoreHostSiteFetcherTests {
 	void slowBodyHitsTheTotalTimeLimit() {
 		long start = System.nanoTime();
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/trickle"), Instant.MAX));
+				() -> fetcher.fetch(url("/trickle"), Instant.MAX, EgressLane.DIRECT));
 		long tookMillis = (System.nanoTime() - start) / 1_000_000;
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT);
@@ -266,14 +267,14 @@ class UnderscoreHostSiteFetcherTests {
 	@Test
 	void noHeadersWithinTheReadTimeoutIsATimeout() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/slow-headers"), Instant.MAX));
+				() -> fetcher.fetch(url("/slow-headers"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT);
 	}
 
 	@Test
 	void certificateForTheNameIsAcceptedAndNoServerNameIsSent() {
-		SiteResponse response = fetcher.fetch(tlsUrl("hs_site.example.test"), Instant.MAX);
+		SiteResponse response = fetcher.fetch(tlsUrl("hs_site.example.test"), Instant.MAX, EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(200);
 		assertThat(response.body()).asString().isEqualTo("ok");
@@ -283,7 +284,7 @@ class UnderscoreHostSiteFetcherTests {
 	@Test
 	void serverNameCheckInThisTestSeesANameWhenOneIsSent() {
 		// control for the test above: a name without an underscore does go out as SNI
-		fetcher.fetch(tlsUrl("site.example.test"), Instant.MAX);
+		fetcher.fetch(tlsUrl("site.example.test"), Instant.MAX, EgressLane.DIRECT);
 
 		assertThat(serverNamesSeen).hasSize(1);
 	}
@@ -291,7 +292,7 @@ class UnderscoreHostSiteFetcherTests {
 	@Test
 	void certificateForAnotherNameIsAnUpstreamError() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(tlsUrl("hs_site.other.test"), Instant.MAX));
+				() -> fetcher.fetch(tlsUrl("hs_site.other.test"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.getMessage()).contains("hs_site.other.test");

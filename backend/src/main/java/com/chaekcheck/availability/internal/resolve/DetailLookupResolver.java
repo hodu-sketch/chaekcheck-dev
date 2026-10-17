@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
 import com.chaekcheck.availability.internal.adapter.SiteVerdict;
-import com.chaekcheck.availability.internal.fetch.HostThrottle;
+import com.chaekcheck.availability.internal.egress.EgressLanes;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.Availability;
 import com.chaekcheck.availability.internal.fetch.HostQueueBoard;
@@ -44,9 +44,9 @@ public class DetailLookupResolver {
 		this.clock = clock;
 	}
 
-	public DetailLookupResolver(List<PlatformAdapter> adapters, DetailVerdictCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, Clock clock, ParseSlots parseSlots, HostQueueBoard queueBoard) {
-		this(new DetailPageFetcher(adapters, cache, throttle, siteFetcher, clock, parseSlots, queueBoard), clock);
+	public DetailLookupResolver(List<PlatformAdapter> adapters, DetailVerdictCache cache, EgressLanes lanes,
+			Clock clock, ParseSlots parseSlots, HostQueueBoard queueBoard) {
+		this(new DetailPageFetcher(adapters, cache, lanes, clock, parseSlots, queueBoard), clock);
 	}
 
 	public CompletableFuture<Decision> lookup(SearchTarget target, LibraryPage.Item item, Instant deadline) {

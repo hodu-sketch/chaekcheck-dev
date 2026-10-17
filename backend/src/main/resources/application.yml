@@ -127,8 +127,41 @@ chaekcheck:
       search-page-max-size: 1000
       detail-verdict-max-size: 1000
       stats-log-interval: 5m
+    # Per egress lane and library host (cycle 22, ADR-0130; before cycle 22 the same values were per host for the
+    # one direct path): 1 request at a time, the next one 1s after the previous ended. docs/maintenance/settings-index.md
     host-max-concurrency: 1
     host-min-interval: 1s
+    # Egress lanes (cycle 22, handoff 1-15, ADR-0130): the server's own IP ("direct") plus one lane per proxy in
+    # egress.proxies. Production: EC2 IP + 20 Webshare KR static proxies; local default: direct only.
+    # docs/maintenance/settings-index.md, names and log shapes in docs/plan-feedback.md (# 사이클 22)
+    egress:
+      # all = every lane / proxy-only = never the direct lane (retests included, no fallback when every proxy lane
+      # is paused) / direct-only = the direct lane only. proxy-only with an empty proxy list stops the start.
+      # The ${…} placeholders read ../.env (spring.config.import above) as well as real environment variables, like
+      # the other secrets in this file.
+      mode: ${CHAEKCHECK_AVAILABILITY_EGRESS_MODE:all}
+      # Comma separated host:port, in order: proxy-01, proxy-02 … The addresses are secrets: ../.env or the
+      # environment only, never in this file.
+      proxies: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES:}
+      # Vendor name in logs (lane=proxy-03 vendor=webshare)
+      proxy-vendor: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR:webshare}
+      # One username / password pair for every proxy lane (Webshare "Proxy Username / Proxy Password"). Empty = the
+      # vendor authorizes this server's IP (production, IP Authorization = EC2 IP). ../.env or the environment only,
+      # never logged (user decision 2026-10-17: the local PC uses the pair).
+      proxy-username: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME:}
+      proxy-password: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD:}
+      block:
+        # A lane stops sending to a host after this many block signals in a row on that lane and host (no answer,
+        # or 403 / 407 / 429 / 503) [안 5]; one body-too-large, parse failure or timeout alone never pauses a lane.
+        failures-to-block: 5
+        # Then one retest request after 10 min; still blocked -> the pause doubles (20, 40, 80 min …) up to 7 days
+        # [확정] (from-cycle-20-blocked-ip-resume.md). A 2xx retest resumes the lane.
+        first-pause: 10m
+        max-pause: 7d
+        # how often pauses that ran out are looked for [안]
+        retest-check-interval: 30s
+        # one retest request, the lane's throttle wait included [안]
+        retest-timeout: 20s
     # 5s: some sites take 1-3s to connect (Gyeonggi education office, 2026-09-29); cycle 01 value was 3s (user decision 2026-09-29)
     connect-timeout: 5s
     read-timeout: 5s
@@ -195,6 +228,12 @@ chaekcheck:
     kyobo:
       # 10 per page, same as YES24 (user decision 2026-09-27; design value was 50). The site accepts 10.
       record-count: 10
+      # Kyobo subscription servers (*.dkyobobook.co.kr, 4-6s an answer): all their host names are one pool per egress
+      # lane with this many requests at a time and no 1s interval (ADR-0094, cycle 22 handoff 1-15 #3) [확정 3]. A lane
+      # drops to 1 at a time after 3 failures in a row or an answer slower than 10s (HostRules, numbers [안]).
+      # Environment: CHAEKCHECK_AVAILABILITY_KYOBO_SUBSCRIPTIONMAXCONCURRENCY. docs/maintenance/settings-index.md
+      subscription-max-concurrency: 3
+      subscription-host-suffix: .dkyobobook.co.kr
     yes24:
       # "now" is a filter on the site (only books available now), so title order is used (user decision 2026-09-27)
       sort: title

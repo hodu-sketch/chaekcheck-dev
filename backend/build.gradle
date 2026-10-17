@@ -74,6 +74,12 @@ tasks.named('bootRun') {
 	// searches at once. The import needs more: ./gradlew bootRun -PbootRunXmx=2g ... with the default compact grouping,
 	// 6g only for the objects grouping (docs/maintenance/3-import.md)
 	jvmArgs "-Xmx${project.findProperty('bootRunXmx') ?: '512m'}"
+	// Cycle 22, local only: proxy lanes with a username / password (Webshare "Proxy Username / Proxy Password",
+	// used on the local PC because the plan authorizes one IP and that is the EC2 IP). The JDK refuses Basic for
+	// the CONNECT tunnel of https sites by default (conf/net.properties jdk.http.auth.tunneling.disabledSchemes=
+	// Basic); clearing it lets java.net.http answer the proxy's 407. Production uses IP authorization: the jar
+	// runs without this flag. docs/maintenance/settings-index.md
+	jvmArgs '-Djdk.http.auth.tunneling.disabledSchemes='
 	// Cycle 11 measurement (ADR-0079): more JVM options, split at spaces, e.g.
 	// -PbootRunJvmArgs="-XX:+UseStringDeduplication -XX:+UseCompactObjectHeaders -Xlog:gc*:file=../data/cycle11/gc.log"
 	def extraJvmArgs = project.findProperty('bootRunJvmArgs')
@@ -84,6 +90,8 @@ tasks.named('bootRun') {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Cycle 22: the proxy-credentials test tunnels https through a Basic-auth test proxy (see bootRun above)
+	systemProperty 'jdk.http.auth.tunneling.disabledSchemes', ''
 	// Tests use the db-test service from ../compose.yaml (see application-test.yml)
 	systemProperty 'spring.profiles.active', 'test'
 }

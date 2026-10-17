@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.EgressLane;
 import com.sun.net.httpserver.HttpServer;
 
 /**
@@ -141,7 +142,7 @@ class DirectSiteFetcherTests {
 
 	@Test
 	void bodyAtTheLimitIsReturnedAndGzipIsAskedFor() { // AC-34: the request carries Accept-Encoding: gzip
-		SiteResponse response = fetcher.fetch(url("/fits"), Instant.MAX);
+		SiteResponse response = fetcher.fetch(url("/fits"), Instant.MAX, EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(200);
 		assertThat(response.body()).hasSize((int) MAX_BODY);
@@ -151,18 +152,18 @@ class DirectSiteFetcherTests {
 
 	@Test
 	void gzipAnswerIsInflatedToTheSitesBytes() { // AC-34: same bytes as a plain answer, EUC-KR untouched
-		SiteResponse response = fetcher.fetch(url("/gzip"), Instant.MAX);
+		SiteResponse response = fetcher.fetch(url("/gzip"), Instant.MAX, EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(200);
 		assertThat(response.body()).isEqualTo(EUC_KR_PAGE);
 		assertThat(response.declaredCharset()).isEqualTo(Charset.forName("EUC-KR"));
-		assertThat(fetcher.fetch(url("/gzip-fits"), Instant.MAX).body()).hasSize((int) MAX_BODY);
+		assertThat(fetcher.fetch(url("/gzip-fits"), Instant.MAX, EgressLane.DIRECT).body()).hasSize((int) MAX_BODY);
 	}
 
 	@Test
 	void gzipBombIsBodyTooLargeWithoutHoldingTheInflatedBytes() { // AC-34: compression bomb
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/gzip-bomb"), Instant.MAX));
+				() -> fetcher.fetch(url("/gzip-bomb"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.bodyTooLarge()).isTrue();
@@ -174,7 +175,7 @@ class DirectSiteFetcherTests {
 	@Test
 	void encodingNotAskedForFailsThatLibraryAlone() { // [안]: only gzip is inflated
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/brotli"), Instant.MAX));
+				() -> fetcher.fetch(url("/brotli"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.bodyTooLarge()).isFalse();
@@ -184,7 +185,7 @@ class DirectSiteFetcherTests {
 	@Test
 	void bodyDeclaredOverTheLimitIsAnUpstreamError() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/declared-big"), Instant.MAX));
+				() -> fetcher.fetch(url("/declared-big"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.bodyTooLarge()).isTrue();
@@ -194,7 +195,7 @@ class DirectSiteFetcherTests {
 	@Test
 	void chunkedBodyOverTheLimitIsAnUpstreamError() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/chunked-big"), Instant.MAX));
+				() -> fetcher.fetch(url("/chunked-big"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.bodyTooLarge()).isTrue();
@@ -206,7 +207,7 @@ class DirectSiteFetcherTests {
 	void slowBodyHitsTheTotalTimeLimit() {
 		long start = System.nanoTime();
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/trickle"), Instant.MAX));
+				() -> fetcher.fetch(url("/trickle"), Instant.MAX, EgressLane.DIRECT));
 		long tookMillis = (System.nanoTime() - start) / 1_000_000;
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT);
@@ -218,7 +219,7 @@ class DirectSiteFetcherTests {
 	@Test
 	void noHeadersWithinTheReadTimeoutIsStillATimeout() {
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(url("/slow-headers"), Instant.MAX));
+				() -> fetcher.fetch(url("/slow-headers"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT);
 	}
@@ -226,7 +227,7 @@ class DirectSiteFetcherTests {
 	@Test
 	void addressJavaNetHttpRefusesIsAnUpstreamErrorForThatRowOnly() { // cycle 18: no IllegalArgumentException
 		UpstreamException ex = catchThrowableOfType(UpstreamException.class,
-				() -> fetcher.fetch(URI.create("https://hs_partners.yes24library.com/"), Instant.MAX));
+				() -> fetcher.fetch(URI.create("https://hs_partners.yes24library.com/"), Instant.MAX, EgressLane.DIRECT));
 
 		assertThat(ex.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 		assertThat(ex.getMessage()).contains("hs_partners.yes24library.com");

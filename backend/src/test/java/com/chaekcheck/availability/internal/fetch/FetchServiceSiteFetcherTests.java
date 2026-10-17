@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.EgressLane;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -51,10 +52,12 @@ class FetchServiceSiteFetcherTests {
 		FakeServer second = server(exchange -> responded(200, "<p>ok</p>".getBytes(StandardCharsets.UTF_8)));
 		FetchServiceSiteFetcher fetcher = fetcher(closedPortUrl(), second.url());
 
-		SiteResponse response = fetcher.fetch(LIBRARY, deadline());
+		SiteResponse response = fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(200);
-		assertThat(response.via()).isEqualTo("fetch-2");
+		// cycle 22: via is the lane, the server id stays in the log line; the request carried the lane
+		assertThat(response.via()).isEqualTo("direct");
+		assertThat(second.hits.getFirst().body()).contains("\"lane\":\"direct\"");
 		assertThat(second.hits).hasSize(1);
 	}
 
@@ -64,8 +67,8 @@ class FetchServiceSiteFetcherTests {
 		FakeServer second = server(exchange -> responded(200, new byte[0]));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), second.url());
 
-		fetcher.fetch(LIBRARY, deadline());
-		fetcher.fetch(LIBRARY, deadline());
+		fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT);
+		fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT);
 
 		assertThat(first.hits).hasSize(1);
 		assertThat(second.hits).hasSize(2);
@@ -80,7 +83,7 @@ class FetchServiceSiteFetcherTests {
 		FakeServer second = server(exchange -> responded(200, new byte[0]));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), second.url());
 
-		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline()))
+		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT))
 			.isInstanceOfSatisfying(UpstreamException.class,
 					e -> assertThat(e.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT));
 		assertThat(second.hits).isEmpty();
@@ -92,7 +95,7 @@ class FetchServiceSiteFetcherTests {
 		FakeServer second = server(exchange -> responded(200, new byte[0]));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), second.url());
 
-		assertThat(fetcher.fetch(LIBRARY, deadline()).status()).isEqualTo(403);
+		assertThat(fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT).status()).isEqualTo(403);
 		assertThat(second.hits).isEmpty();
 	}
 
@@ -104,7 +107,7 @@ class FetchServiceSiteFetcherTests {
 		FakeServer second = server(exchange -> responded(200, new byte[0]));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), second.url());
 
-		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline()))
+		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT))
 			.isInstanceOfSatisfying(UpstreamException.class,
 					e -> assertThat(e.kind()).isEqualTo(UpstreamException.Kind.TIMEOUT));
 		assertThat(second.hits).isEmpty();
@@ -118,7 +121,7 @@ class FetchServiceSiteFetcherTests {
 		FakeServer second = server(exchange -> responded(200, new byte[0]));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), second.url());
 
-		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline()))
+		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT))
 			.isInstanceOfSatisfying(UpstreamException.class, e -> {
 				assertThat(e.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 				assertThat(e.bodyTooLarge()).isTrue();
@@ -134,7 +137,7 @@ class FetchServiceSiteFetcherTests {
 				{"outcome":"SOMETHING_NEW","status":null,"contentType":null,"location":null,"body":null,
 				 "startedAt":"2026-09-28T00:00:00Z","endedAt":"2026-09-28T00:00:01Z","newField":1}"""));
 
-		assertThatThrownBy(() -> fetcher(first.url()).fetch(LIBRARY, deadline()))
+		assertThatThrownBy(() -> fetcher(first.url()).fetch(LIBRARY, deadline(), EgressLane.DIRECT))
 			.isInstanceOfSatisfying(UpstreamException.class, e -> {
 				assertThat(e.kind()).isEqualTo(UpstreamException.Kind.ERROR);
 				assertThat(e.bodyTooLarge()).isFalse();
@@ -146,10 +149,10 @@ class FetchServiceSiteFetcherTests {
 		FakeServer first = server(exchange -> new Reply(503, "{}"));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url(), closedPortUrl());
 
-		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline()))
+		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT))
 			.isInstanceOfSatisfying(UpstreamException.class,
 					e -> assertThat(e.kind()).isEqualTo(UpstreamException.Kind.ERROR));
-		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline())).isInstanceOf(UpstreamException.class);
+		assertThatThrownBy(() -> fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT)).isInstanceOf(UpstreamException.class);
 		assertThat(first.hits).hasSize(1);
 	}
 
@@ -162,7 +165,7 @@ class FetchServiceSiteFetcherTests {
 			.formatted(Base64.getEncoder().encodeToString(eucKr))));
 		FetchServiceSiteFetcher fetcher = fetcher(first.url());
 
-		SiteResponse response = fetcher.fetch(LIBRARY, deadline());
+		SiteResponse response = fetcher.fetch(LIBRARY, deadline(), EgressLane.DIRECT);
 
 		assertThat(response.body()).isEqualTo(eucKr);
 		assertThat(response.declaredCharset()).isEqualTo(Charset.forName("EUC-KR"));
@@ -176,7 +179,7 @@ class FetchServiceSiteFetcherTests {
 				{"outcome":"RESPONDED","status":301,"contentType":null,"location":"https://lib.test/new",
 				 "body":"","startedAt":"2026-09-28T00:00:00Z","endedAt":"2026-09-28T00:00:01Z"}"""));
 
-		SiteResponse response = fetcher(first.url()).fetch(LIBRARY, deadline());
+		SiteResponse response = fetcher(first.url()).fetch(LIBRARY, deadline(), EgressLane.DIRECT);
 
 		assertThat(response.status()).isEqualTo(301);
 		assertThat(response.location()).isEqualTo("https://lib.test/new");

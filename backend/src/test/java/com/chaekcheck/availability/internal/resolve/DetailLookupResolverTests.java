@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.availability.internal.TestTargets;
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.TestLanes;
 import com.chaekcheck.availability.internal.adapter.ElibPortalV1Adapter;
 import com.chaekcheck.availability.internal.adapter.SiteVerdict;
-import com.chaekcheck.availability.internal.fetch.InMemoryHostThrottle;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.Availability;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.AvailabilityBasis;
@@ -47,7 +47,7 @@ class DetailLookupResolverTests {
 
 	DetailLookupResolver resolver = new DetailLookupResolver(List.of(new ElibPortalV1Adapter()),
 			new CaffeineDetailVerdictCache(Duration.ofMinutes(3), 100, executor, Ticker.systemTicker()),
-			new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), siteFetcher, Clock.systemUTC(),
+			TestLanes.direct(siteFetcher, Clock.systemUTC()), Clock.systemUTC(),
 			new com.chaekcheck.availability.internal.fetch.ParseSlots(8, Duration.ofSeconds(2)),
 			new com.chaekcheck.availability.internal.fetch.InMemoryHostQueueBoard());
 
@@ -58,7 +58,7 @@ class DetailLookupResolverTests {
 
 	@Test
 	void reservableOnTheDetailPage() { // AC-15: 신 퇴마록 신세편 1
-		given(siteFetcher.fetch(any(), any())).willReturn(page("elib-portal-v1/detail-reservable.html"));
+		given(siteFetcher.fetch(any(), any(), any())).willReturn(page("elib-portal-v1/detail-reservable.html"));
 
 		assertThat(resolver.lookup(GB, row(63941), inSeconds(5)).join())
 			.isEqualTo(new Decision(Availability.RESERVABLE, AvailabilityBasis.SITE_DETAIL));
@@ -66,28 +66,28 @@ class DetailLookupResolverTests {
 
 	@Test
 	void availableOnTheDetailPageAndCachedForTheNextSearch() {
-		given(siteFetcher.fetch(any(), any())).willReturn(page("elib-portal-v1/detail-available.html"));
+		given(siteFetcher.fetch(any(), any(), any())).willReturn(page("elib-portal-v1/detail-available.html"));
 
 		resolver.lookup(GB, row(36476), inSeconds(5)).join();
 		Decision second = resolver.lookup(GB, row(36476), inSeconds(5)).join();
 
 		assertThat(second).isEqualTo(new Decision(Availability.AVAILABLE, AvailabilityBasis.SITE_DETAIL));
-		verify(siteFetcher, times(1)).fetch(any(), any());
+		verify(siteFetcher, times(1)).fetch(any(), any(), any());
 	}
 
 	@Test
 	void unknownValueFailureAndTimeoutAreUnknown() {
 		Decision unknown = new Decision(Availability.UNKNOWN, AvailabilityBasis.SITE_DETAIL);
-		given(siteFetcher.fetch(any(), any())).willReturn(page("elib-portal-v1/detail-unknown.html"));
+		given(siteFetcher.fetch(any(), any(), any())).willReturn(page("elib-portal-v1/detail-unknown.html"));
 		assertThat(resolver.lookup(GB, row(1), inSeconds(5)).join()).isEqualTo(unknown);
 
-		willThrow(UpstreamException.error("403")).given(siteFetcher).fetch(any(), any());
+		willThrow(UpstreamException.error("403")).given(siteFetcher).fetch(any(), any(), any());
 		assertThat(resolver.lookup(GB, row(2), inSeconds(5)).join()).isEqualTo(unknown);
 
 		willAnswer(invocation -> {
 			Thread.sleep(2000);
 			return page("elib-portal-v1/detail-available.html");
-		}).given(siteFetcher).fetch(any(), any());
+		}).given(siteFetcher).fetch(any(), any(), any());
 		long start = System.nanoTime();
 		assertThat(resolver.lookup(GB, row(3), Instant.now().plusMillis(200)).join()).isEqualTo(unknown);
 		assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(1500));
@@ -103,7 +103,7 @@ class DetailLookupResolverTests {
 		assertThat(resolver.lookup(GB, offHost, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
 		assertThat(resolver.lookup(GB, offHost, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
 		assertThat(resolver.lookup(GB, notHttp, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
-		verify(siteFetcher, never()).fetch(any(), any());
+		verify(siteFetcher, never()).fetch(any(), any(), any());
 	}
 
 	@Test
@@ -112,7 +112,7 @@ class DetailLookupResolverTests {
 				null, SiteVerdict.BLANK);
 
 		assertThat(resolver.lookup(GB, noLink, inSeconds(5)).join().availability()).isEqualTo(Availability.UNKNOWN);
-		verify(siteFetcher, never()).fetch(any(), any());
+		verify(siteFetcher, never()).fetch(any(), any(), any());
 	}
 
 	private static LibraryPage.Item row(int bookIdx) {

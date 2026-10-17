@@ -12,7 +12,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,6 +21,11 @@ import org.junit.jupiter.api.Test;
 import com.chaekcheck.availability.internal.SearchQuery;
 import com.chaekcheck.availability.internal.TestTargets;
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.LaneThrottle;
+import com.chaekcheck.availability.internal.egress.HostRules;
+import com.chaekcheck.availability.internal.egress.EgressMode;
+import com.chaekcheck.availability.internal.egress.EgressLane;
+import com.chaekcheck.availability.internal.egress.TestLanes;
 import com.chaekcheck.availability.internal.adapter.AdapterFixtures;
 import com.chaekcheck.availability.internal.adapter.KyoboV1Adapter;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
@@ -100,9 +104,9 @@ class HostQueueBoardTests {
 
 	@Test
 	void errorWhileWaitingLeavesNoWaitBehind() { // AC-32 (1), through LibraryPageFetcher's wrapping
-		HostThrottle failing = new HostThrottle() {
+		LaneThrottle failing = new LaneThrottle() {
 			@Override
-			public <T> T run(URI uri, Instant deadline, Callable<T> call) {
+			public <T> T run(List<EgressLane> lanes, URI uri, HostRules.Rule rule, Instant deadline, LaneCall<T> call) {
 				throw UpstreamException.error("throttle broke while waiting");
 			}
 		};
@@ -117,9 +121,9 @@ class HostQueueBoardTests {
 
 	@Test
 	void throttleTimeoutWhileWaitingIsRecordedForTheHost() {
-		HostThrottle slow = new HostThrottle() {
+		LaneThrottle slow = new LaneThrottle() {
 			@Override
-			public <T> T run(URI uri, Instant deadline, Callable<T> call) {
+			public <T> T run(List<EgressLane> lanes, URI uri, HostRules.Rule rule, Instant deadline, LaneCall<T> call) {
 				throw UpstreamException.timeout("no free slot before the deadline");
 			}
 		};
@@ -136,10 +140,10 @@ class HostQueueBoardTests {
 	@Test
 	void waitEndsWhenTheCallStartsSoACallThatTimesOutIsNotAQueueTimeout() {
 		SiteFetcher site = mock(SiteFetcher.class);
-		given(site.fetch(any(), any())).willThrow(UpstreamException.timeout("read timed out"));
+		given(site.fetch(any(), any(), any())).willThrow(UpstreamException.timeout("read timed out"));
 		LibraryPageFetcher fetcher = new LibraryPageFetcher(List.of(new KyoboV1Adapter(AdapterFixtures.PROPERTIES)),
 				new CaffeineSearchPageCache(Duration.ofMinutes(3), 100, executor, Ticker.systemTicker()),
-				new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), site, Duration.ofSeconds(5),
+				TestLanes.direct(site, Clock.systemUTC()), Duration.ofSeconds(5),
 				Clock.fixed(T0, ZoneOffset.UTC), new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)),
 				board);
 
@@ -149,10 +153,12 @@ class HostQueueBoardTests {
 		assertThat(queued(T0)).isEmpty();
 	}
 
-	private LibraryPageFetcher fetcher(HostThrottle throttle) {
+	private LibraryPageFetcher fetcher(LaneThrottle throttle) {
 		return new LibraryPageFetcher(List.of(new KyoboV1Adapter(AdapterFixtures.PROPERTIES)),
-				new CaffeineSearchPageCache(Duration.ofMinutes(3), 100, executor, Ticker.systemTicker()), throttle,
-				mock(SiteFetcher.class), Duration.ofSeconds(5), Clock.fixed(T0, ZoneOffset.UTC),
+				new CaffeineSearchPageCache(Duration.ofMinutes(3), 100, executor, Ticker.systemTicker()),
+				TestLanes.of(EgressMode.DIRECT_ONLY, List.of(EgressLane.DIRECT), HostRules.standard(), throttle,
+						mock(SiteFetcher.class), Clock.fixed(T0, ZoneOffset.UTC)),
+				Duration.ofSeconds(5), Clock.fixed(T0, ZoneOffset.UTC),
 				new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)), board);
 	}
 

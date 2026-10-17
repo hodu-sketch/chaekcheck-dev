@@ -1,12 +1,9 @@
 package com.chaekcheck.availability.internal.config;
 
-import java.net.http.HttpClient;
 import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.net.ssl.SSLContext;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -14,20 +11,26 @@ import org.springframework.context.annotation.Configuration;
 
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
 import com.chaekcheck.availability.internal.CacheStatistics;
+import com.chaekcheck.availability.internal.egress.BlockedLaneRetest;
+import com.chaekcheck.availability.internal.egress.BlockedLanes;
+import com.chaekcheck.availability.internal.egress.DefaultEgressLaneStatus;
+import com.chaekcheck.availability.internal.egress.EgressLane;
+import com.chaekcheck.availability.internal.egress.EgressLanes;
+import com.chaekcheck.availability.internal.egress.HostRules;
+import com.chaekcheck.availability.internal.egress.InMemoryBlockedLanes;
+import com.chaekcheck.availability.internal.egress.InMemoryLaneThrottle;
+import com.chaekcheck.availability.internal.egress.LaneCounters;
+import com.chaekcheck.availability.internal.egress.LaneThrottle;
 import com.chaekcheck.availability.internal.fetch.CaffeineSearchPageCache;
-import com.chaekcheck.availability.internal.fetch.DirectSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.FetchServiceSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.HostQueueBoard;
-import com.chaekcheck.availability.internal.fetch.HostRoutingSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.InMemoryHostQueueBoard;
-import com.chaekcheck.availability.internal.fetch.HostThrottle;
-import com.chaekcheck.availability.internal.fetch.InMemoryHostThrottle;
+import com.chaekcheck.availability.internal.fetch.LaneSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
 import com.chaekcheck.availability.internal.fetch.LibrarySiteTls;
 import com.chaekcheck.availability.internal.fetch.ParseSlots;
 import com.chaekcheck.availability.internal.fetch.SearchPageCache;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
-import com.chaekcheck.availability.internal.fetch.UnderscoreHostSiteFetcher;
 import com.chaekcheck.availability.internal.ops.LookupOpsCounters;
 import com.chaekcheck.availability.internal.ops.LookupOpsSummaryLog;
 import com.chaekcheck.availability.internal.resolve.AvailabilityResolvers;
@@ -64,7 +67,18 @@ class AvailabilityConfiguration {
 		return Executors.newVirtualThreadPerTaskExecutor();
 	}
 
-	/** Direct calls or calls through the fetch servers (ADR-0015). There is no automatic switch between them. */
+	// Egress lanes (cycle 22, handoff 1-15, ADR-0130): the full lane list, the clients per lane, the per-lane host
+	// throttle and the paused lanes behind store interfaces (memory), and EgressLanes picking the lane.
+
+	/** Every configured lane: direct, then one per proxy. The mode filters them in {@link #egressLanes}. */
+	private static List<EgressLane> laneList(AvailabilityProperties properties) {
+		return EgressLane.list(properties.egress().proxies(), properties.egress().proxyVendor());
+	}
+
+	/**
+	 * Direct calls (one HTTP client pair per lane) or calls through the fetch servers, which name the lane
+	 * (ADR-0015). There is no automatic switch between them.
+	 */
 	@Bean
 	SiteFetcher siteFetcher(AvailabilityProperties properties, JsonMapper jsonMapper) {
 		AvailabilityProperties.Fetch fetch = properties.fetch();
@@ -77,32 +91,55 @@ class AvailabilityConfiguration {
 					fetch.tokenHeader(), fetch.token(), fetch.connectTimeout(), fetch.readTimeout(),
 					fetch.restDuration(), jsonMapper, Clock.systemUTC());
 		}
-		// JDK HttpClient: connect timeout on the client; read timeout (time to response headers), total time and
-		// body size on each request (DirectSiteFetcher).
-		SSLContext sslContext = LibrarySiteTls.sslContext();
-		HttpClient httpClient = HttpClient.newBuilder()
-			.sslContext(sslContext)
-			.connectTimeout(properties.connectTimeout())
-			.followRedirects(HttpClient.Redirect.NEVER)
-			.build();
-		DirectSiteFetcher direct = new DirectSiteFetcher(httpClient, properties.readTimeout(),
-				properties.totalTimeout(), properties.maxBodySize().toBytes(), properties.userAgent(),
-				Clock.systemUTC());
-		// Host names with an underscore, which java.net.http refuses (cycle 18, ADR-0111): same limits and TLS
-		return new HostRoutingSiteFetcher(direct, underscoreHostSiteFetcher(properties, sslContext));
+		// JDK HttpClient per lane: connect timeout and proxy on the client; read timeout (time to response headers),
+		// total time and body size on each request (DirectSiteFetcher). Host names with an underscore go through
+		// Apache HttpClient with the same lane proxy (cycle 18, ADR-0111).
+		return new LaneSiteFetcher(laneList(properties), LibrarySiteTls.sslContext(), properties.connectTimeout(),
+				properties.readTimeout(), properties.totalTimeout(), properties.maxBodySize().toBytes(),
+				properties.userAgent(), properties.egress().credentials(), Clock.systemUTC());
 	}
 
-	private UnderscoreHostSiteFetcher underscoreHostSiteFetcher(AvailabilityProperties properties,
-			SSLContext sslContext) {
-		return UnderscoreHostSiteFetcher.create(sslContext, properties.connectTimeout(), properties.readTimeout(),
-				properties.totalTimeout(), properties.maxBodySize().toBytes(), properties.userAgent(),
-				Clock.systemUTC());
+	/** Per lane and host: 1 at a time + 1s; Kyobo subscription hosts pooled at 3 per lane (ADR-0094). */
+	@Bean
+	HostRules hostRules(AvailabilityProperties properties) {
+		return new HostRules(properties.hostMaxConcurrency(), properties.hostMinInterval(),
+				properties.kyobo().subscriptionMaxConcurrency(), properties.kyobo().subscriptionHostSuffix());
 	}
 
 	@Bean
-	HostThrottle hostThrottle(AvailabilityProperties properties) {
-		return new InMemoryHostThrottle(properties.hostMaxConcurrency(), properties.hostMinInterval(),
-				Clock.systemUTC());
+	LaneThrottle laneThrottle(LookupStateProperties state) {
+		return switch (state.stateStore()) {
+			case MEMORY -> new InMemoryLaneThrottle(Clock.systemUTC());
+		};
+	}
+
+	/** Which lane is paused on which host, with the block / retest rule (spec R13-4). */
+	@Bean
+	BlockedLanes blockedLanes(AvailabilityProperties properties, LookupStateProperties state) {
+		AvailabilityProperties.Egress.Block block = properties.egress().block();
+		return switch (state.stateStore()) {
+			case MEMORY -> new InMemoryBlockedLanes(block.failuresToBlock(), block.firstPause(), block.maxPause());
+		};
+	}
+
+	@Bean
+	LaneCounters laneCounters(AvailabilityProperties properties) {
+		return new LaneCounters(laneList(properties));
+	}
+
+	/** The one place a library request picks its lane; fails the start when the mode leaves no lane. */
+	@Bean
+	EgressLanes egressLanes(AvailabilityProperties properties, HostRules hostRules, LaneThrottle laneThrottle,
+			BlockedLanes blockedLanes, SiteFetcher siteFetcher, LaneCounters laneCounters) {
+		return new EgressLanes(properties.egress().mode(), laneList(properties), hostRules, laneThrottle, blockedLanes,
+				siteFetcher, laneCounters, Clock.systemUTC());
+	}
+
+	/** Retests paused lanes: 10 min, doubling, 7 days at most. */
+	@Bean(destroyMethod = "close")
+	BlockedLaneRetest blockedLaneRetest(EgressLanes egressLanes, AvailabilityProperties properties) {
+		AvailabilityProperties.Egress.Block block = properties.egress().block();
+		return new BlockedLaneRetest(egressLanes, block.retestCheckInterval(), block.retestTimeout());
 	}
 
 	@Bean
@@ -127,11 +164,10 @@ class AvailabilityConfiguration {
 	}
 
 	@Bean
-	LibraryPageFetcher libraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, AvailabilityProperties properties, ParseSlots parseSlots,
-			HostQueueBoard hostQueueBoard) {
-		return new LibraryPageFetcher(adapters, cache, throttle, siteFetcher, properties.requestDeadline(),
-				Clock.systemUTC(), new BookKeyNormalizer(), parseSlots, hostQueueBoard);
+	LibraryPageFetcher libraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, EgressLanes egressLanes,
+			AvailabilityProperties properties, ParseSlots parseSlots, HostQueueBoard hostQueueBoard) {
+		return new LibraryPageFetcher(adapters, cache, egressLanes, properties.requestDeadline(), Clock.systemUTC(),
+				new BookKeyNormalizer(), parseSlots, hostQueueBoard);
 	}
 
 	@Bean
@@ -150,9 +186,9 @@ class AvailabilityConfiguration {
 	/** The one path detail pages are loaded on: portal blank verdicts and the holding stream. */
 	@Bean
 	DetailPageFetcher detailPageFetcher(List<PlatformAdapter> adapters, DetailVerdictCache detailVerdictCache,
-			HostThrottle throttle, SiteFetcher siteFetcher, ParseSlots parseSlots, HostQueueBoard hostQueueBoard) {
-		return new DetailPageFetcher(adapters, detailVerdictCache, throttle, siteFetcher, Clock.systemUTC(),
-				parseSlots, hostQueueBoard);
+			EgressLanes egressLanes, ParseSlots parseSlots, HostQueueBoard hostQueueBoard) {
+		return new DetailPageFetcher(adapters, detailVerdictCache, egressLanes, Clock.systemUTC(), parseSlots,
+				hostQueueBoard);
 	}
 
 	@Bean
@@ -186,12 +222,12 @@ class AvailabilityConfiguration {
 	}
 
 	/**
-	 * The egress lanes as the status signal reads them (spec R1 additions). Cycle 17/22's lane code replaces this
-	 * bean with a real one; until then nothing is paused and every lane is allowed (reason NONE).
+	 * The egress lanes as the status signal reads them (spec R1 additions, cycle 22): the mode and the paused
+	 * (lane, host) count; the vendor pause stays false until cycle 17.
 	 */
 	@Bean
-	EgressLaneStatus egressLaneStatus() {
-		return EgressLaneStatus.NONE;
+	EgressLaneStatus egressLaneStatus(AvailabilityProperties properties, BlockedLanes blockedLanes) {
+		return new DefaultEgressLaneStatus(properties.egress().mode(), blockedLanes, Clock.systemUTC());
 	}
 
 	/** Judges GET /api/v1/lookup-status from memory, with a 1s memo (ADR-0118). */
@@ -206,9 +242,11 @@ class AvailabilityConfiguration {
 	/** One INFO line a minute with the lookup counters (cycle 20, ADR-0132, AC-40). */
 	@Bean(destroyMethod = "close")
 	LookupOpsSummaryLog lookupOpsSummaryLog(LookupOpsCounters counters, SearchSlots searchSlots, ParseSlots parseSlots,
-			HostQueueBoard hostQueueBoard, EgressLaneStatus egressLaneStatus, AvailabilityProperties properties) {
+			HostQueueBoard hostQueueBoard, EgressLaneStatus egressLaneStatus, LaneCounters laneCounters,
+			BlockedLanes blockedLanes, AvailabilityProperties properties) {
 		return new LookupOpsSummaryLog(counters, searchSlots, parseSlots, hostQueueBoard, egressLaneStatus,
-				properties.lookupStatus(), properties.opsSummary().interval(), Clock.systemUTC());
+				laneCounters, blockedLanes, properties.lookupStatus(), properties.opsSummary().interval(),
+				Clock.systemUTC());
 	}
 
 	/** Caps the searches running at once, so the unbounded executor above never gets unbounded work. */

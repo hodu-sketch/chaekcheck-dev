@@ -29,20 +29,26 @@ public final class AdapterFixtures {
 	public static final AvailabilityProperties.OpsSummary OPS_SUMMARY = new AvailabilityProperties.OpsSummary(
 			Duration.ofMinutes(1));
 
+	/** Direct lane only, the production block rule (cycle 22). */
+	public static final AvailabilityProperties.Egress EGRESS = new AvailabilityProperties.Egress(
+			com.chaekcheck.availability.internal.egress.EgressMode.ALL, "", "webshare", "", "",
+			new AvailabilityProperties.Egress.Block(5, Duration.ofMinutes(10), Duration.ofDays(7), Duration.ofSeconds(30),
+					Duration.ofSeconds(20)));
+
 	/** KYOBO record count 50 matches the cycle 01 fixtures (saved with recordCount=50). */
 	public static final AvailabilityProperties PROPERTIES = new AvailabilityProperties(Duration.ofMinutes(3), CACHES, 1,
 			Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
 			new AvailabilityProperties.Batch(20, 5, Duration.ofSeconds(8), Duration.ofSeconds(3), 50),
-			new AvailabilityProperties.Detail(Duration.ofSeconds(30)), new AvailabilityProperties.Kyobo(50),
+			new AvailabilityProperties.Detail(Duration.ofSeconds(30)), new AvailabilityProperties.Kyobo(50, 3, ".dkyobobook.co.kr"),
 			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null, Duration.ofSeconds(15),
-			DataSize.ofMegabytes(4), 20, PARSE_SLOTS, LOOKUP_STATUS, OPS_SUMMARY);
+			DataSize.ofMegabytes(4), 20, PARSE_SLOTS, LOOKUP_STATUS, OPS_SUMMARY, EGRESS);
 
 	/** Same as {@link #PROPERTIES} with KYOBO record count 10 (cycle 02 fixtures). */
 	public static final AvailabilityProperties PROPERTIES_10 = new AvailabilityProperties(Duration.ofMinutes(3), CACHES,
 			1, Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
-			PROPERTIES.batch(), PROPERTIES.detail(), new AvailabilityProperties.Kyobo(10),
+			PROPERTIES.batch(), PROPERTIES.detail(), new AvailabilityProperties.Kyobo(10, 3, ".dkyobobook.co.kr"),
 			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null, Duration.ofSeconds(15),
-			DataSize.ofMegabytes(4), 20, PARSE_SLOTS, LOOKUP_STATUS, OPS_SUMMARY);
+			DataSize.ofMegabytes(4), 20, PARSE_SLOTS, LOOKUP_STATUS, OPS_SUMMARY, EGRESS);
 
 	private AdapterFixtures() {
 	}

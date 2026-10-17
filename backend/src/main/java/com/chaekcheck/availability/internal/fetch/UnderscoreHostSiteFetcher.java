@@ -2,6 +2,7 @@ package com.chaekcheck.availability.internal.fetch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -19,6 +20,8 @@ import org.apache.hc.client5.http.SystemDefaultDnsResolver;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.impl.auth.CredentialsProviderBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
@@ -26,6 +29,7 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.util.Timeout;
@@ -34,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 
 import com.chaekcheck.availability.internal.UpstreamException;
+import com.chaekcheck.availability.internal.egress.EgressLane;
 
 /**
  * Calls a library site whose host name has an underscore (cycle 18, ADR-0111; today only 2624
@@ -92,17 +97,43 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 	public static UnderscoreHostSiteFetcher create(SSLContext sslContext, Duration connectTimeout,
 			Duration readTimeout, Duration totalTimeout, long maxBodyBytes, String userAgent, Clock clock) {
 		return create(sslContext, connectTimeout, readTimeout, totalTimeout, maxBodyBytes, userAgent, clock,
-				SystemDefaultDnsResolver.INSTANCE);
+				SystemDefaultDnsResolver.INSTANCE, null, null);
+	}
+
+	/**
+	 * Through an HTTP proxy (cycle 22 egress lane): the same client with {@code proxy} as its route and, when
+	 * {@code credentials} is given, Basic credentials for that proxy alone (sent after its 407).
+	 * @param proxy the lane's proxy, or null for the direct lane
+	 * @param credentials {@code {username, password}}, or null for IP authorization
+	 */
+	public static UnderscoreHostSiteFetcher create(SSLContext sslContext, Duration connectTimeout,
+			Duration readTimeout, Duration totalTimeout, long maxBodyBytes, String userAgent, Clock clock,
+			InetSocketAddress proxy, String[] credentials) {
+		return create(sslContext, connectTimeout, readTimeout, totalTimeout, maxBodyBytes, userAgent, clock,
+				SystemDefaultDnsResolver.INSTANCE, proxy, credentials);
 	}
 
 	/** With a DNS resolver of its own, for tests that point an underscore name at a local server. */
 	static UnderscoreHostSiteFetcher create(SSLContext sslContext, Duration connectTimeout, Duration readTimeout,
 			Duration totalTimeout, long maxBodyBytes, String userAgent, Clock clock, DnsResolver dnsResolver) {
+		return create(sslContext, connectTimeout, readTimeout, totalTimeout, maxBodyBytes, userAgent, clock,
+				dnsResolver, null, null);
+	}
+
+	static UnderscoreHostSiteFetcher create(SSLContext sslContext, Duration connectTimeout, Duration readTimeout,
+			Duration totalTimeout, long maxBodyBytes, String userAgent, Clock clock, DnsResolver dnsResolver,
+			InetSocketAddress proxy, String[] credentials) {
 		ClientTlsStrategyBuilder tls = ClientTlsStrategyBuilder.create()
 			.setSslContext(sslContext)
 			.setHostVerificationPolicy(HostnameVerificationPolicy.CLIENT)
 			.setHostnameVerifier(new DefaultHostnameVerifier());
+		HttpHost proxyHost = proxy == null ? null : new HttpHost("http", proxy.getHostString(), proxy.getPort());
 		CloseableHttpClient client = HttpClients.custom()
+			.setProxy(proxyHost)
+			.setDefaultCredentialsProvider(proxyHost == null || credentials == null ? null
+					: CredentialsProviderBuilder.create()
+						.add(new AuthScope(proxyHost), credentials[0], credentials[1].toCharArray())
+						.build())
 			.setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
 				.setTlsSocketStrategy(tls.buildClassic())
 				.setDnsResolver(dnsResolver)
@@ -122,15 +153,16 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 		return new UnderscoreHostSiteFetcher(client, totalTimeout, maxBodyBytes, userAgent, clock);
 	}
 
+	/** {@code lane} names the lane this client was built for (cycle 22), for {@code via} and the log line. */
 	@Override
-	public SiteResponse fetch(URI uri, Instant deadline) {
+	public SiteResponse fetch(URI uri, Instant deadline, EgressLane lane) {
 		Instant start = clock.instant();
 		String host = SiteHostNames.hostOrNull(uri);
 		String status = "-";
 		HttpGet get = new HttpGet(uri);
 		get.setHeader(HttpHeaders.USER_AGENT, userAgent);
 		get.setHeader(HttpHeaders.ACCEPT_ENCODING, ContentEncoding.GZIP);
-		FutureTask<SiteResponse> call = new FutureTask<>(() -> httpClient.execute(get, this::read));
+		FutureTask<SiteResponse> call = new FutureTask<>(() -> httpClient.execute(get, response -> read(response, lane)));
 		try {
 			Thread.ofVirtual().name("underscore-host-fetch").start(call);
 			SiteResponse response = call.get(totalTimeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -164,18 +196,19 @@ public class UnderscoreHostSiteFetcher implements SiteFetcher, AutoCloseable {
 			throw new UpstreamException(UpstreamException.Kind.ERROR, "request to " + host + " interrupted", ex);
 		}
 		finally {
-			log.info("upstream via={} host={} path={} start={} end={} status={} userAgent=\"{}\"", VIA,
-					HostThrottle.hostPort(uri), uri.getRawPath(), start, clock.instant(), status, userAgent);
+			log.info("upstream via={} lane={} vendor={} host={} path={} start={} end={} status={} userAgent=\"{}\"",
+					VIA, lane.id(), lane.vendor(), HostThrottle.hostPort(uri), uri.getRawPath(), start, clock.instant(),
+					status, userAgent);
 		}
 	}
 
-	private SiteResponse read(ClassicHttpResponse response) throws IOException {
+	private SiteResponse read(ClassicHttpResponse response, EgressLane lane) throws IOException {
 		byte[] body = body(response.getEntity());
 		// the same limit again on the inflated bytes (cycle 20); another encoding fails this library alone
 		byte[] decoded = ContentEncoding.decoded(value(response.getFirstHeader(HttpHeaders.CONTENT_ENCODING)), body,
 				maxBodyBytes);
 		return new SiteResponse(response.getCode(), value(response.getFirstHeader(HttpHeaders.CONTENT_TYPE)),
-				value(response.getFirstHeader(HttpHeaders.LOCATION)), decoded, VIA);
+				value(response.getFirstHeader(HttpHeaders.LOCATION)), decoded, lane.id());
 	}
 
 	/** The body, at most {@code maxBodyBytes}; more (declared or read) fails like {@link BodyLimit}. */

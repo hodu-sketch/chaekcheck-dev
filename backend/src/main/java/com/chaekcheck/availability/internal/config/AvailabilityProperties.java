@@ -7,6 +7,8 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.unit.DataSize;
 
+import com.chaekcheck.availability.internal.egress.EgressMode;
+
 /**
  * Settings for calling library sites (design-delta "외부 연동", "묶음 실행 규칙"). Values live in application.yml.
  * @param readTimeout until a library's response headers arrive (direct mode)
@@ -21,13 +23,54 @@ import org.springframework.util.unit.DataSize;
  * @param parseSlots pages parsed at once and the wait for a slot (cycle 20, AC-33)
  * @param lookupStatus the status signal's times and list size (cycle 20, ADR-0118)
  * @param opsSummary the one-minute operations summary line (cycle 20, ADR-0132)
+ * @param hostMaxConcurrency requests at a time from one egress lane to one library host (cycle 22: per lane) [확정 1]
+ * @param hostMinInterval wait after the previous request from that lane to that host ended [확정 1s]
+ * @param egress the egress lanes: mode, proxy list, vendor, credentials, blocked-lane rule (cycle 22, ADR-0130)
  */
 @ConfigurationProperties("chaekcheck.availability")
 public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostMaxConcurrency,
 		Duration hostMinInterval, Duration connectTimeout, Duration readTimeout, Duration requestDeadline, Batch batch,
 		Detail detail, Kyobo kyobo, Yes24 yes24, String userAgent, Fetch fetch, Duration totalTimeout,
 		DataSize maxBodySize, int maxConcurrentSearches, ParseSlots parseSlots, LookupStatus lookupStatus,
-		OpsSummary opsSummary) {
+		OpsSummary opsSummary, Egress egress) {
+
+	/**
+	 * The egress lanes (cycle 22, handoff 1-15, ADR-0130; docs/maintenance/settings-index.md).
+	 * @param mode {@code all} (default) / {@code proxy-only} / {@code direct-only} [확정 values, 안 spelling]
+	 * @param proxies comma separated {@code host:port} list, one proxy lane each in order ({@code proxy-01} …);
+	 * empty = the direct lane only. Production values are secrets (spec R13-2)
+	 * @param proxyVendor the vendor name written in logs for the proxy lanes [안 webshare]
+	 * @param proxyUsername one username for every proxy lane; empty = the vendor authorizes this server's IP
+	 * (production). Environment only, never logged (user decision 2026-10-17: local PC uses the pair)
+	 * @param proxyPassword as above
+	 * @param block the blocked-lane rule
+	 */
+	public record Egress(EgressMode mode, String proxies, String proxyVendor, String proxyUsername,
+			String proxyPassword, Block block) {
+
+		public Egress {
+			mode = mode == null ? EgressMode.ALL : mode;
+		}
+
+		/** {@code {username, password}} when both are set, else null. */
+		public String[] credentials() {
+			return proxyUsername == null || proxyUsername.isBlank() || proxyPassword == null || proxyPassword.isEmpty()
+					? null : new String[] { proxyUsername, proxyPassword };
+		}
+
+		/**
+		 * When a lane stops sending to a host and how it is tried again ({@code from-cycle-20-blocked-ip-resume.md}).
+		 * @param failuresToBlock block signals in a row that pause the lane on that host [안 5, dev per ADR-0094]
+		 * @param firstPause the first pause [확정 10m]
+		 * @param maxPause the longest pause after doubling [확정 7d]
+		 * @param retestCheckInterval how often pauses that ran out are looked for [안 30s]
+		 * @param retestTimeout deadline of one retest request, throttle wait included [안 20s]
+		 */
+		public record Block(int failuresToBlock, Duration firstPause, Duration maxPause, Duration retestCheckInterval,
+				Duration retestTimeout) {
+		}
+
+	}
 
 	/**
 	 * Library pages parsed at the same time (cycle 20, overall review #4; docs/maintenance/settings-index.md).
@@ -84,8 +127,13 @@ public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostM
 	public record Detail(Duration deadline) {
 	}
 
-	/** @param recordCount results per page requested from KYOBO sites */
-	public record Kyobo(int recordCount) {
+	/**
+	 * @param recordCount results per page requested from KYOBO sites
+	 * @param subscriptionMaxConcurrency requests at a time from one lane to all Kyobo subscription hosts together
+	 * (cycle 22, ADR-0094) [확정 3, name 안]
+	 * @param subscriptionHostSuffix the host names that form that pool [확정 .dkyobobook.co.kr]
+	 */
+	public record Kyobo(int recordCount, int subscriptionMaxConcurrency, String subscriptionHostSuffix) {
 	}
 
 	/** @param sort value of the YES24 {@code sort} parameter */

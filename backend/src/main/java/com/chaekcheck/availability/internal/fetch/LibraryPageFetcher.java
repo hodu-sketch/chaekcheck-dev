@@ -19,13 +19,14 @@ import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.ParsedItem;
 import com.chaekcheck.availability.internal.adapter.ParsedPage;
 import com.chaekcheck.availability.internal.adapter.PlatformAdapter;
+import com.chaekcheck.availability.internal.egress.EgressLanes;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
 import com.chaekcheck.library.PlatformType;
 import com.chaekcheck.library.SearchTarget;
 
 /**
- * Fetches one page of one library: cache, then host throttle, then {@link SiteFetcher}, then adapter inside a
- * {@link ParseSlots} slot (cycle 20).
+ * Fetches one page of one library: cache, then the egress lanes ({@link EgressLanes}: lane choice, per-lane host
+ * throttle and the lane's {@link SiteFetcher}, cycle 22), then adapter inside a {@link ParseSlots} slot (cycle 20).
  */
 public class LibraryPageFetcher {
 
@@ -33,9 +34,7 @@ public class LibraryPageFetcher {
 
 	private final SearchPageCache cache;
 
-	private final HostThrottle throttle;
-
-	private final SiteFetcher siteFetcher;
+	private final EgressLanes lanes;
 
 	private final Duration requestDeadline;
 
@@ -47,13 +46,12 @@ public class LibraryPageFetcher {
 
 	private final HostQueueBoard queueBoard;
 
-	public LibraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, Duration requestDeadline, Clock clock, BookKeyNormalizer titleKeys,
-			ParseSlots parseSlots, HostQueueBoard queueBoard) {
+	public LibraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, EgressLanes lanes,
+			Duration requestDeadline, Clock clock, BookKeyNormalizer titleKeys, ParseSlots parseSlots,
+			HostQueueBoard queueBoard) {
 		adapters.forEach(adapter -> this.adapters.put(adapter.platform(), adapter));
 		this.cache = cache;
-		this.throttle = throttle;
-		this.siteFetcher = siteFetcher;
+		this.lanes = lanes;
 		this.requestDeadline = requestDeadline;
 		this.clock = clock;
 		this.titleKeys = titleKeys;
@@ -107,8 +105,7 @@ public class LibraryPageFetcher {
 	}
 
 	private FetchedPage load(long libraryId, PlatformAdapter adapter, URI uri, Instant deadline) {
-		SiteResponse response = throttled(queueBoard, throttle, libraryId, uri, deadline, clock,
-				() -> siteFetcher.fetch(uri, deadline));
+		SiteResponse response = routed(queueBoard, lanes, libraryId, uri, deadline, clock);
 		if (!response.isSuccess()) {
 			// 3xx included: redirects are not followed (cycle 01 rule)
 			throw UpstreamException.error("status " + response.status() + " from " + HostThrottle.hostPort(uri)
@@ -153,23 +150,21 @@ public class LibraryPageFetcher {
 	}
 
 	/**
-	 * The throttle call wrapped for the {@link HostQueueBoard} (cycle 20, overall review #3): the wait begins before
-	 * {@code throttle.run}, ends on the first line of the call, and again in {@code finally}; a TIMEOUT thrown while
-	 * the wait is still open is a throttle timeout, recorded for that host. Shared with {@code DetailPageFetcher}.
+	 * The lane request wrapped for the {@link HostQueueBoard} (cycle 20, overall review #3): the wait begins before
+	 * the lanes look for a free slot, ends when a lane starts sending, and again in {@code finally}; a TIMEOUT
+	 * thrown while the wait is still open is a throttle timeout, recorded for that host. A host whose every lane is
+	 * paused fails at once ({@code no_lane_for_host}), so it is not queued. Shared with {@code DetailPageFetcher}.
 	 */
-	public static <T> T throttled(HostQueueBoard board, HostThrottle throttle, long libraryId, URI uri,
-			Instant deadline, Clock clock, java.util.concurrent.Callable<T> call) {
+	public static SiteResponse routed(HostQueueBoard board, EgressLanes lanes, long libraryId, URI uri,
+			Instant deadline, Clock clock) {
 		String hostKey = SiteHostNames.hostOrNull(uri);
 		if (hostKey == null) {
-			// no readable host: the throttle itself fails this request (ERROR), nothing to queue
-			return throttle.run(uri, deadline, call);
+			// no readable host: the lanes fail this request (ERROR), nothing to queue
+			return lanes.fetch(uri, deadline);
 		}
 		HostQueueBoard.Wait wait = board.begin(HostQueueBoard.DEFAULT_LANE, hostKey, libraryId, clock.instant());
 		try {
-			return throttle.run(uri, deadline, () -> {
-				wait.end();
-				return call.call();
-			});
+			return lanes.fetch(uri, deadline, wait::end);
 		}
 		catch (UpstreamException ex) {
 			if (ex.kind() == UpstreamException.Kind.TIMEOUT && !wait.ended()) {
