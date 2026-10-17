@@ -74,11 +74,11 @@
   }
 }
 
-/* room for the cycle 20 dot: a phone dot's size [안] */
+/* the cycle 20 light's place: empty (no width) before the first answer, then as wide as the dot and its text */
 .statusSlot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 0.7rem;
 }
 
 /* phones only: the row's ▾ */

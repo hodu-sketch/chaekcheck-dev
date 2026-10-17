@@ -1,8 +1,26 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router'
+import { useHeaderOpen } from './HeaderOpen'
 import { MENU_DELAY_MS, MENUS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
+
+/**
+ * Cycle 20 (handoff 1-12 [확정]): the menus and the lookup status popover never show together. Open menus claim the
+ * header; when the popover claims it instead, `close` runs.
+ */
+function useExclusiveWithStatus(open: boolean, close: () => void) {
+  const { owner, claim, release } = useHeaderOpen()
+  useEffect(() => {
+    if (open) claim('menu')
+    else release('menu')
+  }, [open, claim, release])
+  useEffect(() => {
+    if (open && owner === 'status') close()
+    // close only sets state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner])
+}
 
 /**
  * Wide screens (641px and up): the big menus right of the logo. Every column opens at once, each right under its big
@@ -48,6 +66,7 @@ export function HeaderMenu() {
   }
 
   useEffect(() => clearTimer, [])
+  useExclusiveWithStatus(openKey !== null, () => setOpen(null))
 
   // open: a press anywhere else closes them (opened by resting the pointer, focus may never have come in, so blur
   // alone is not enough)
@@ -193,6 +212,7 @@ export function PhoneMenu() {
     const header = button.current?.closest('[data-app-header]')
     setOpened(next ? { at: pathname, top: header?.getBoundingClientRect().bottom ?? 0 } : null)
   }
+  useExclusiveWithStatus(open, () => setOpened(null))
 
   useEffect(() => {
     if (!open) return

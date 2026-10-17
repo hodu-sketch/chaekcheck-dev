@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
-import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
+import { BLOCKED_TEXT, blockedBy, reportBlocked, type Blocked } from './blocked'
 import { holdingBatchViews } from './holdingView'
 import { ResultList } from './ResultList'
 import { SortSelect } from './SortSelect'
@@ -62,6 +62,8 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
             retried = true
             if (await onInvalidRegion().catch(() => false)) return
           }
+          // a refused page (503) turns the header light red too (cycle 20 spec R2)
+          reportBlocked(apiError)
           setError(apiError)
         })
     void load()
@@ -79,7 +81,7 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
       if (page.items.length > 0) open(page.items, planOptions())
     } catch (failure) {
       setPageFailed(true)
-      setPageBlocked(blockedBy(failure))
+      setPageBlocked(reportBlocked(failure))
     } finally {
       setPageLoading(false)
     }

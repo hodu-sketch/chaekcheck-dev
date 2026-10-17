@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppLayout } from './AppLayout'
@@ -7,6 +8,18 @@ import { MENU_DELAY_MS } from './headerMenus'
 vi.mock('../features/auth/AuthHeaderAction', () => ({ AuthHeaderAction: () => <button type="button">로그인</button> }))
 vi.mock('../features/auth/NoticeContext', () => ({ NoticeBar: () => null }))
 vi.mock('../features/mylibrary/RegionImportDialog', () => ({ RegionImportDialog: () => null }))
+
+/** The lookup status answer (cycle 20); by default the ask never answers, so the header draws only the dot's place. */
+const GREEN = JSON.stringify({ slots: 40, inUse: 0, level: 'GREEN', reason: 'NONE', queuedLibraryIds: [], serverTime: '' })
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})))
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+})
 
 afterEach(() => {
   cleanup()
@@ -19,14 +32,17 @@ function Where() {
 }
 
 function renderAt(path: string) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="*" element={<Where />} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="*" element={<Where />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -110,7 +126,8 @@ describe('header', () => {
     const big = within(wide()).getByRole('link', { name: '추천도서' })
     big.focus()
     fireEvent.keyDown(big, { key: 'ArrowDown' })
-    act(() => vi.runAllTimers())
+    // the first item is focused on the next frame (not runAllTimers: the status ask repeats every 10s)
+    act(() => vi.advanceTimersByTime(100))
     expect(column('picks').hidden).toBe(false)
     const first = within(column('picks')).getByRole('link', { name: '이동진 추천도서' })
     first.focus()
@@ -189,19 +206,80 @@ describe('header', () => {
     )
   })
 
-  it.each(['/terms', '/privacy'])('is the same header on %s', (path) => { // AC-3
-    renderAt(path)
+  it.each(['/terms', '/privacy'])('is the same header on %s', (path) => { // AC-3; cycle 20 AC-1 (ADR-0121)
+    const { container } = renderAt(path)
     expect(within(wide()).getByRole('link', { name: '추천도서' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '메뉴 열기' })).toBeTruthy()
     expect(screen.getByRole('link', { name: '책첵' })).toBeTruthy()
+    expect(container.querySelector('[data-lookup-status-slot]')).toBeTruthy()
   })
 
-  it('keeps the dot place left of 로그인', () => {
+  it('keeps the dot place left of 로그인, empty before the first answer', () => {
     const { container } = renderAt('/')
     const slot = container.querySelector('[data-lookup-status-slot]')!
     const login = screen.getByRole('button', { name: '로그인' })
     expect(slot.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(slot.childElementCount).toBe(0)
+  })
+})
+
+/**
+ * Cycle 20 handoff 1-12 [확정] (plan 21 dev review #9): the dot opens the status popover and never the menus; the
+ * menus and the popover never show together; Esc closes only the open one and returns the focus to its opener.
+ */
+describe('status dot and the menus', () => {
+  async function renderGreen(path = '/') {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(GREEN, { status: 200 }))))
+    const result = renderAt(path)
+    await screen.findByRole('button', { name: '조회 상태: 원활' })
+    return result
+  }
+  const dot = () => screen.getByRole('button', { name: '조회 상태: 원활' })
+
+  it('the dot opens the popover and no menu, on phones too', async () => {
+    await renderGreen()
+    fireEvent.click(dot())
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(column('picks').hidden).toBe(true)
+    expect(screen.queryByTestId('menu-dim')).toBeNull()
+  })
+
+  it('the dot closes open menus, and opening the menus closes the popover', async () => {
+    await renderGreen()
+    fireEvent.click(within(wide()).getByRole('link', { name: '추천도서' }))
+    expect(column('picks').hidden).toBe(false)
+    fireEvent.click(dot())
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(column('picks').hidden).toBe(true)
+
+    fireEvent.click(within(wide()).getByRole('link', { name: '추천도서' }))
+    expect(column('picks').hidden).toBe(false)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('the phone menu closes the popover and the dot closes the phone menu', async () => {
+    await renderGreen()
+    fireEvent.click(dot())
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '메뉴 열기' }))
+    expect(screen.getByTestId('menu-dim')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(dot())
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(screen.queryByTestId('menu-dim')).toBeNull()
+  })
+
+  it('Esc closes the popover alone and returns the focus to the dot', async () => {
+    await renderGreen()
+    dot().focus()
+    fireEvent.click(dot())
+    const popover = await screen.findByRole('dialog')
+    fireEvent.keyDown(popover, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    // Radix returns the focus on the next tick
+    await waitFor(() => expect(document.activeElement).toBe(dot()))
+    expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 })
 

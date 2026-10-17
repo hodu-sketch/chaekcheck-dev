@@ -1,0 +1,128 @@
+/*
+ * Cycle 20 header light (mock-up approved 2026-10-17). The colors are text colors on white at 4.5:1 or better
+ * (handoff 1-12 접근성): green 5.1, amber 4.9, red 5.6, grey 7.4. The dot takes the same color as the text, so the
+ * two read as one sign. Sizes in rem and em, like the rest of the header.
+ */
+.button {
+  --signal: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0.2rem 0.35rem;
+  border: none;
+  border-radius: var(--radius-tag);
+  background: none;
+  color: var(--signal);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.button:hover,
+.button[data-state='open'] {
+  background: var(--paper-deep);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.button[data-level='GREEN'],
+.popoverTitle[data-level='GREEN'] {
+  --signal: #15803d;
+}
+
+.button[data-level='YELLOW'],
+.popoverTitle[data-level='YELLOW'] {
+  --signal: #b45309;
+}
+
+.button[data-level='RED'],
+.popoverTitle[data-level='RED'] {
+  --signal: #c81e1e;
+}
+
+.button[data-level='GRAY'],
+.popoverTitle[data-level='GRAY'] {
+  --signal: var(--ink-soft);
+}
+
+/* the dot: a little smaller than the text's x-height on wide screens */
+.dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.popover {
+  z-index: 30;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--paper-deep);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.popoverTitle {
+  --signal: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  color: var(--signal);
+  font-weight: 800;
+}
+
+.popoverLine {
+  margin: 0.25rem 0 0;
+  color: var(--ink-soft);
+}
+
+.arrow {
+  fill: var(--card);
+}
+
+/* phones: the dot alone, right next to 로그인, on a 44px tap area that opens no menu (handoff 1-12) */
+@media (width <= 640px) {
+  .button {
+    position: relative;
+    padding: 0.25rem;
+  }
+
+  .button:hover,
+  .button[data-state='open'] {
+    background: none;
+  }
+
+  .label {
+    display: none;
+  }
+
+  .dot {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+
+  .button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}

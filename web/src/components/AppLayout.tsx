@@ -1,15 +1,30 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import { AuthHeaderAction } from '../features/auth/AuthHeaderAction'
 import { NoticeBar } from '../features/auth/NoticeContext'
+import { HeaderSignal } from '../features/lookupstatus/HeaderSignal'
+import { LookupStatusProvider } from '../features/lookupstatus/LookupStatusProvider'
 import { RegionImportDialog } from '../features/mylibrary/RegionImportDialog'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
+import { HeaderOpenProvider } from './HeaderOpen'
 import { ChevronDown } from './icons'
 import { HeaderMenu, PhoneMenu } from './HeaderMenu'
 import styles from './AppLayout.module.css'
 
 export function AppLayout() {
+  return (
+    // cycle 20: the lookup status is asked here, once for every screen (handoff 1-12); the header's pop-ups (menus,
+    // status popover) share one "who is open" (HeaderOpen)
+    <LookupStatusProvider>
+      <HeaderOpenProvider>
+        <Shell />
+      </HeaderOpenProvider>
+    </LookupStatusProvider>
+  )
+}
+
+function Shell() {
   const location = useLocation()
   return (
     <div className={styles.shell}>
@@ -27,13 +42,16 @@ export function AppLayout() {
           </div>
           {/* the same header on every screen, the terms and privacy pages too (cycle 21 spec R1-6, cycle 20) */}
           <div className={styles.end}>
-            {/* cycle 20 puts the lookup status dot here: left of 로그인 (spec R1-6) */}
             {/* phones: a small ▾ saying the row opens the menus (plan 20 review #7, user "로그인 왼쪽" 2026-10-17); a tap on
                 it goes through to the row's button */}
             <span className={styles.menuCaret} aria-hidden="true">
               <ChevronDown size={12} />
             </span>
-            <span className={styles.statusSlot} data-lookup-status-slot="" aria-hidden="true" />
+            {/* cycle 20: the lookup status light, left of 로그인 (spec R1-6); phones: ▾ · dot · 로그인, the dot right
+                next to 로그인 (mock-up approved 2026-10-17). Empty until the first answer */}
+            <span className={styles.statusSlot} data-lookup-status-slot="">
+              <HeaderSignal />
+            </span>
             <AuthHeaderAction />
           </div>
         </header>
