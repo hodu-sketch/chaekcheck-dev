@@ -3,7 +3,6 @@ import { Link } from 'react-router'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort } from '../../api/types'
 import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
-import { collectedRange } from './holdingView'
 import listStyles from './ResultList.module.css'
 import { SortSelect } from './SortSelect'
 import styles from './BookList.module.css'
@@ -77,12 +76,11 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
   }
   if (!books) return <p className={pageStyles.searching}>수집 목록에서 찾는 중…</p>
 
-  const range = collectedRange(books.last.collectedFrom, books.last.collectedTo)
   if (books.items.length === 0) {
     return (
       <div className={pageStyles.allEmpty}>
         <p className={pageStyles.allEmptyTitle}>
-          조건에 맞는 책이 수집 목록에 없어요{range ? ` (${range})` : ''}
+          조건에 맞는 책이 수집 목록에 없어요
         </p>
         <button type="button" className={pageStyles.directButton} onClick={onDirect}>
           도서관에서 직접 찾기

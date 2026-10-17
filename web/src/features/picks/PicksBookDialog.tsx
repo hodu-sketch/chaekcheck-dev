@@ -135,7 +135,7 @@ function BookBody({
             {[detail.authorDisplay, detail.publisher].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
           </p>
         )}
-        {/* [영상 보기] (R6-2): next to "책 검색 >>" on PC and tablets, on the line below on phones */}
+        {/* [영상 보기] (R6-2): next to "책 검색 >>" on PC and tablets, at the right end of the same line on phones */}
         <div className={styles.bookActions} data-phone={phone || undefined}>
           {!error && (
             <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>

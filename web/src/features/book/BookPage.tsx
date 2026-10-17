@@ -6,7 +6,7 @@ import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
 import { useLibraryScope } from '../search/useLibraryScope'
 import { loadPrefs, readVisit, savePrefs } from '../search/searchSettings'
-import { collectedRange, holdingBatchViews } from '../search/holdingView'
+import { holdingBatchViews } from '../search/holdingView'
 import { ResultList } from '../search/ResultList'
 import { useHoldings } from '../search/useHoldings'
 import styles from './BookPage.module.css'
@@ -123,8 +123,6 @@ function BookView({ bookId }: { bookId: string }) {
     )
   }
 
-  const dates = book.libraries.map((l) => l.collectedAt?.slice(0, 10) ?? null).filter((d): d is string => d !== null).sort()
-  const range = collectedRange(dates[0] ?? null, dates.at(-1) ?? null)
   const loadingBatch = holdings.state.batches.at(-1)
   const changeFilter = (next: ResultFilter) => {
     savePrefs({ filter: next })
@@ -139,9 +137,8 @@ function BookView({ bookId }: { bookId: string }) {
         <p className={styles.meta}>
           {[book.authorDisplay, book.publisher, book.publishedOn].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
         </p>
-        <p className={styles.collected}>
-          {range ? `${range} 수집 목록` : '수집 목록'} · 보유 도서관 {book.holdingLibraryCount}곳
-        </p>
+        {/* no collection dates (user 2026-10-17: "굳이 언제부터 언제까지 수집한거다 알려줄 필요 없다고 생각해") */}
+        <p className={styles.collected}>보유 도서관 {book.holdingLibraryCount}곳</p>
       </header>
       {book.holdingLibraryCount === 0 ? (
         <p className={styles.loading}>조건에 맞는 도서관이 없어요</p>

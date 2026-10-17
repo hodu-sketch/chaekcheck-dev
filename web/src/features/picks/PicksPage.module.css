@@ -164,9 +164,10 @@
   flex: 3 1 0;
 }
 
+/* the last block is as tall as the others; the source line comes one step further down, clear of the floating
+   button (user 2026-10-17: "아래에 메세지 보이는거 별로야 한 칸 더 내리면 나오던가") */
 .section:last-of-type {
-  min-height: calc(100dvh - var(--top) - var(--source-h) - var(--float-zone));
-  padding-bottom: 0;
+  min-height: calc(100dvh - var(--top));
 }
 
 .panel {
@@ -358,11 +359,11 @@
  * The page ends with it and the footer; the footer is the last scroll stop, showing the end of the last panel above.
  */
 .source {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* one paragraph, the terms link running on with the words (a flex row put the link in a column of its own) */
+  display: block;
   min-height: var(--source-h);
-  padding: 0 0.5rem;
+  padding-block: 0.8rem;
+  padding-inline: 0.5rem;
   color: var(--ink-faint);
   font-size: var(--text-xs);
   text-align: center;

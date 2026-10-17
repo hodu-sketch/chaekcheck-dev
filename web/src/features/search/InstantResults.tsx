@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
 import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
-import { collectedRange, holdingBatchViews } from './holdingView'
+import { holdingBatchViews } from './holdingView'
 import { ResultList } from './ResultList'
 import { SortSelect } from './SortSelect'
 import { useHoldings } from './useHoldings'
@@ -97,12 +97,11 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
   }
   if (!books) return <p className={styles.searching}>수집 목록에서 찾는 중…</p>
 
-  const range = collectedRange(books.last.collectedFrom, books.last.collectedTo)
   if (books.items.length === 0) {
     return (
       <div className={styles.allEmpty}>
         <p className={styles.allEmptyTitle}>
-          조건에 맞는 책이 수집 목록에 없어요{range ? ` (${range})` : ''}
+          조건에 맞는 책이 수집 목록에 없어요
         </p>
         <button type="button" className={styles.directButton} onClick={onDirect}>
           도서관에서 직접 찾기
