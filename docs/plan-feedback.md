@@ -4535,6 +4535,10 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - **19 반영 끝난 날: 2026-10-16** → 공개일(2026-10-18)은 그대로 둘 수 있음(plan 17 알림)
 - 지금 켜 둔 것: 원래 프로젝트 `db-ops`(5434) 컨테이너, 서비스 8080(원래 DB)·8081(db-ops), 둘 다 새 코드
 
+### 국가서지 TTL 다시 받음 (2026-10-18, plan 19 회고 결정 #3, 사용자 "국가서지는 받아")
+
+- plan 20 세션이 받아 둔 `book_ttl_20260807.zip`(1,102,432,587바이트, 2026-08-07판 = 저장된 원문 표 `book_ttl_20260807`과 같은 판)을 `data/nlk/ttl/book_ttl_20260807/`에 풂: TTL 20개, 7,724,898,413바이트, 29초. `docs/maintenance/3-import.md` 준비 표에 위치·날짜 적음. 가져오기 설정은 그대로(`stored-bibliography=true`); `ttl-path`로 돌릴지는 plan 결정 뒤(그때 `--chaekcheck.collection.import.ttl-path=../data/nlk/ttl/book_ttl_20260807`)
+
 # 사이클 21
 
 인계서: plan `docs/cycles/21-recommended-books/handoff.md` (추천도서: 이동진 추천도서 · 사서 추천도서 · 서울대 100선, 2026-10-16 승인). plan 21 세션 요청(2026-10-16): 0단계(API 시험)부터, 결과는 코드를 고치기 전에 이 절에 적고 사용자에게 알림.
