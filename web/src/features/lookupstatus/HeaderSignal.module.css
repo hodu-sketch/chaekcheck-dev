@@ -173,6 +173,13 @@
     background: none;
   }
 
+  /* a smaller dot on phones, about three quarters of the wide-screen one (user 2026-10-17: "모바일에서는 상태 동그라미의
+     크기를 좀 줄였으면 해"); the 44px tap area below stays the same */
+  .button .dot {
+    width: 0.42rem;
+    height: 0.42rem;
+  }
+
   .label {
     display: none;
   }
