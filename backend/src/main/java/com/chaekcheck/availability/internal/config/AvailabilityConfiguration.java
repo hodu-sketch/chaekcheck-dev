@@ -32,8 +32,13 @@ import com.chaekcheck.availability.internal.resolve.CaffeineDetailVerdictCache;
 import com.chaekcheck.availability.internal.resolve.DetailLookupResolver;
 import com.chaekcheck.availability.internal.resolve.DetailPageFetcher;
 import com.chaekcheck.availability.internal.resolve.DetailVerdictCache;
+import com.chaekcheck.availability.LookupHealth;
 import com.chaekcheck.availability.internal.search.BatchRunner;
 import com.chaekcheck.availability.internal.search.SearchSlots;
+import com.chaekcheck.availability.internal.state.DbErrorRecord;
+import com.chaekcheck.availability.internal.state.InMemoryLastTimeRecord;
+import com.chaekcheck.availability.internal.state.RefusalRecord;
+import com.chaekcheck.availability.internal.status.DefaultLookupHealth;
 import com.chaekcheck.availability.internal.title.BookKeyNormalizer;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.usagelog.UsageLog;
@@ -141,10 +146,36 @@ class AvailabilityConfiguration {
 		return new AvailabilityResolvers(new DetailLookupResolver(detailPageFetcher, Clock.systemUTC()));
 	}
 
+	// Memory state behind store interfaces (cycle 20, ADR-0133): chaekcheck.lookup.state-store picks the
+	// implementation; only "memory" exists, so each switch has one arm until a shared store is added.
+
+	/** When a search was last refused with 503 (spec R1: RED for 10s after). */
+	@Bean
+	RefusalRecord refusalRecord(LookupStateProperties state) {
+		return switch (state.stateStore()) {
+			case MEMORY -> new InMemoryLastTimeRecord();
+		};
+	}
+
+	/** When the API last failed on the database (overall review #9: GRAY for 30s after). */
+	@Bean
+	DbErrorRecord dbErrorRecord(LookupStateProperties state) {
+		return switch (state.stateStore()) {
+			case MEMORY -> new InMemoryLastTimeRecord();
+		};
+	}
+
+	/** The module's one public method besides REST: the root ApiExceptionHandler reports DB errors through it. */
+	@Bean
+	LookupHealth lookupHealth(DbErrorRecord dbErrorRecord, LookupOpsCounters counters) {
+		return new DefaultLookupHealth(dbErrorRecord, counters, Clock.systemUTC());
+	}
+
 	/** Caps the searches running at once, so the unbounded executor above never gets unbounded work. */
 	@Bean
-	SearchSlots searchSlots(AvailabilityProperties properties) {
-		return new SearchSlots(properties.maxConcurrentSearches());
+	SearchSlots searchSlots(AvailabilityProperties properties, RefusalRecord refusalRecord,
+			LookupOpsCounters counters) {
+		return new SearchSlots(properties.maxConcurrentSearches(), refusalRecord, counters, Clock.systemUTC());
 	}
 
 	/** Counters of the one-minute operations summary (cycle 20, ADR-0132). */
