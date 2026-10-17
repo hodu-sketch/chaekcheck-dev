@@ -45,9 +45,11 @@ public class LibraryPageFetcher {
 
 	private final ParseSlots parseSlots;
 
+	private final HostQueueBoard queueBoard;
+
 	public LibraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, HostThrottle throttle,
 			SiteFetcher siteFetcher, Duration requestDeadline, Clock clock, BookKeyNormalizer titleKeys,
-			ParseSlots parseSlots) {
+			ParseSlots parseSlots, HostQueueBoard queueBoard) {
 		adapters.forEach(adapter -> this.adapters.put(adapter.platform(), adapter));
 		this.cache = cache;
 		this.throttle = throttle;
@@ -56,6 +58,7 @@ public class LibraryPageFetcher {
 		this.clock = clock;
 		this.titleKeys = titleKeys;
 		this.parseSlots = parseSlots;
+		this.queueBoard = queueBoard;
 	}
 
 	/**
@@ -98,13 +101,14 @@ public class LibraryPageFetcher {
 		}
 		URI uri = adapter.searchUri(target.baseUrl(), query, page);
 		PageKey key = new PageKey(target.id(), query.field(), query.value(), page);
-		return cache.get(key, () -> load(adapter, uri, deadline))
+		return cache.get(key, () -> load(target.id(), adapter, uri, deadline))
 			.thenApply(lookup -> toPage(target, query, page, adapter, lookup))
 			.exceptionallyCompose(ex -> CompletableFuture.failedFuture(unwrap(ex)));
 	}
 
-	private FetchedPage load(PlatformAdapter adapter, URI uri, Instant deadline) {
-		SiteResponse response = throttle.run(uri, deadline, () -> siteFetcher.fetch(uri, deadline));
+	private FetchedPage load(long libraryId, PlatformAdapter adapter, URI uri, Instant deadline) {
+		SiteResponse response = throttled(queueBoard, throttle, libraryId, uri, deadline, clock,
+				() -> siteFetcher.fetch(uri, deadline));
 		if (!response.isSuccess()) {
 			// 3xx included: redirects are not followed (cycle 01 rule)
 			throw UpstreamException.error("status " + response.status() + " from " + HostThrottle.hostPort(uri)
@@ -146,6 +150,36 @@ public class LibraryPageFetcher {
 		return new LibraryPage(target.id(), query.value(), page, pageSize, parsed.totalCount(),
 				(long) page * pageSize < parsed.totalCount(), fetchedAt, lookup.hit(), age, loanRate,
 				adapter.librarySearchUri(target.baseUrl(), query, searchUri).toString(), items);
+	}
+
+	/**
+	 * The throttle call wrapped for the {@link HostQueueBoard} (cycle 20, overall review #3): the wait begins before
+	 * {@code throttle.run}, ends on the first line of the call, and again in {@code finally}; a TIMEOUT thrown while
+	 * the wait is still open is a throttle timeout, recorded for that host. Shared with {@code DetailPageFetcher}.
+	 */
+	public static <T> T throttled(HostQueueBoard board, HostThrottle throttle, long libraryId, URI uri,
+			Instant deadline, Clock clock, java.util.concurrent.Callable<T> call) {
+		String hostKey = SiteHostNames.hostOrNull(uri);
+		if (hostKey == null) {
+			// no readable host: the throttle itself fails this request (ERROR), nothing to queue
+			return throttle.run(uri, deadline, call);
+		}
+		HostQueueBoard.Wait wait = board.begin(HostQueueBoard.DEFAULT_LANE, hostKey, libraryId, clock.instant());
+		try {
+			return throttle.run(uri, deadline, () -> {
+				wait.end();
+				return call.call();
+			});
+		}
+		catch (UpstreamException ex) {
+			if (ex.kind() == UpstreamException.Kind.TIMEOUT && !wait.ended()) {
+				board.timedOut(HostQueueBoard.DEFAULT_LANE, hostKey, clock.instant());
+			}
+			throw ex;
+		}
+		finally {
+			wait.end();
+		}
 	}
 
 	private static UpstreamException unwrap(Throwable ex) {

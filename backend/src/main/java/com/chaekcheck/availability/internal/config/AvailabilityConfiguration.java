@@ -17,7 +17,9 @@ import com.chaekcheck.availability.internal.CacheStatistics;
 import com.chaekcheck.availability.internal.fetch.CaffeineSearchPageCache;
 import com.chaekcheck.availability.internal.fetch.DirectSiteFetcher;
 import com.chaekcheck.availability.internal.fetch.FetchServiceSiteFetcher;
+import com.chaekcheck.availability.internal.fetch.HostQueueBoard;
 import com.chaekcheck.availability.internal.fetch.HostRoutingSiteFetcher;
+import com.chaekcheck.availability.internal.fetch.InMemoryHostQueueBoard;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.InMemoryHostThrottle;
 import com.chaekcheck.availability.internal.fetch.LibraryPageFetcher;
@@ -113,11 +115,20 @@ class AvailabilityConfiguration {
 		return new ParseSlots(properties.parseSlots().max(), properties.parseSlots().maxWait());
 	}
 
+	/** Which libraries wait for a busy host (cycle 20, spec R4); the store is picked like the records below. */
+	@Bean
+	HostQueueBoard hostQueueBoard(LookupStateProperties state) {
+		return switch (state.stateStore()) {
+			case MEMORY -> new InMemoryHostQueueBoard();
+		};
+	}
+
 	@Bean
 	LibraryPageFetcher libraryPageFetcher(List<PlatformAdapter> adapters, SearchPageCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, AvailabilityProperties properties, ParseSlots parseSlots) {
+			SiteFetcher siteFetcher, AvailabilityProperties properties, ParseSlots parseSlots,
+			HostQueueBoard hostQueueBoard) {
 		return new LibraryPageFetcher(adapters, cache, throttle, siteFetcher, properties.requestDeadline(),
-				Clock.systemUTC(), new BookKeyNormalizer(), parseSlots);
+				Clock.systemUTC(), new BookKeyNormalizer(), parseSlots, hostQueueBoard);
 	}
 
 	@Bean
@@ -136,9 +147,9 @@ class AvailabilityConfiguration {
 	/** The one path detail pages are loaded on: portal blank verdicts and the holding stream. */
 	@Bean
 	DetailPageFetcher detailPageFetcher(List<PlatformAdapter> adapters, DetailVerdictCache detailVerdictCache,
-			HostThrottle throttle, SiteFetcher siteFetcher, ParseSlots parseSlots) {
+			HostThrottle throttle, SiteFetcher siteFetcher, ParseSlots parseSlots, HostQueueBoard hostQueueBoard) {
 		return new DetailPageFetcher(adapters, detailVerdictCache, throttle, siteFetcher, Clock.systemUTC(),
-				parseSlots);
+				parseSlots, hostQueueBoard);
 	}
 
 	@Bean

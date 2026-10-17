@@ -71,7 +71,7 @@ class ParseSlotsTests {
 		LibraryPageFetcher fetcher = new LibraryPageFetcher(List.of(adapter),
 				new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
 				new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), site, Duration.ofSeconds(10),
-				Clock.systemUTC(), new BookKeyNormalizer(), slots);
+				Clock.systemUTC(), new BookKeyNormalizer(), slots, new InMemoryHostQueueBoard());
 
 		List<CompletableFuture<LibraryPage>> first = new ArrayList<>();
 		for (int i = 1; i <= 8; i++) {

@@ -16,6 +16,7 @@ import com.chaekcheck.availability.internal.adapter.SiteVerdict;
 import com.chaekcheck.availability.internal.fetch.HostThrottle;
 import com.chaekcheck.availability.internal.fetch.LibraryPage;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.Availability;
+import com.chaekcheck.availability.internal.fetch.HostQueueBoard;
 import com.chaekcheck.availability.internal.fetch.LibraryPage.AvailabilityBasis;
 import com.chaekcheck.availability.internal.fetch.ParseSlots;
 import com.chaekcheck.availability.internal.fetch.SiteFetcher;
@@ -44,8 +45,8 @@ public class DetailLookupResolver {
 	}
 
 	public DetailLookupResolver(List<PlatformAdapter> adapters, DetailVerdictCache cache, HostThrottle throttle,
-			SiteFetcher siteFetcher, Clock clock, ParseSlots parseSlots) {
-		this(new DetailPageFetcher(adapters, cache, throttle, siteFetcher, clock, parseSlots), clock);
+			SiteFetcher siteFetcher, Clock clock, ParseSlots parseSlots, HostQueueBoard queueBoard) {
+		this(new DetailPageFetcher(adapters, cache, throttle, siteFetcher, clock, parseSlots, queueBoard), clock);
 	}
 
 	public CompletableFuture<Decision> lookup(SearchTarget target, LibraryPage.Item item, Instant deadline) {

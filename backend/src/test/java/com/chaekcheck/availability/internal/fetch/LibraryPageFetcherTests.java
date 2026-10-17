@@ -54,7 +54,7 @@ class LibraryPageFetcherTests {
 					new ElibPortalV1Adapter()),
 			new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
 			new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), client, DEADLINE, Clock.systemUTC(),
-			new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)));
+			new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)), new InMemoryHostQueueBoard());
 
 	@AfterEach
 	void close() {
@@ -82,7 +82,7 @@ class LibraryPageFetcherTests {
 		LibraryPageFetcher checked = new LibraryPageFetcher(List.of(adapter),
 				new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, executor, Ticker.systemTicker()),
 				new InMemoryHostThrottle(1, Duration.ZERO, Clock.systemUTC()), client, DEADLINE, Clock.systemUTC(),
-				new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)));
+				new BookKeyNormalizer(), new ParseSlots(8, Duration.ofSeconds(2)), new InMemoryHostQueueBoard());
 
 		LibraryPage page = checked.fetch(BUSAN, SearchQuery.of("사랑"), 1);
 		LibraryPage cached = checked.fetch(BUSAN, SearchQuery.of("사랑"), 1);
