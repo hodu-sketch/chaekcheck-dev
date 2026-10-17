@@ -5195,3 +5195,106 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 사용자 폰(Samsung Internet, `web-lan-5184`) 확인 끝: **"폰 ok"** (2026-10-17). 확인 중 받은 결정은 위 "사용자 결정" 절
 - main에 fast-forward: `262bb03`(1단계 + 사이클 21 회고 고침 + 저녁 결정 전부). 나가는 길(1-15)은 c20 브랜치에서 계속 만들고 따로 합침
 - 8080(원래 DB 5432)·8081(db-ops 5434)을 합친 main 코드로 다시 켬 → 켤 때 `usagelog/004`가 두 DB에 적용됨
+
+# 사이클 22 (사이클 20 안에서, 2026-10-17)
+
+인계서: plan `docs/current/handoff.md` **1-15 「나가는 길: 길 목록과 막힌 길」**(2026-10-17, plan 커밋 `2c0ea1f`). 기준: ADR-0130(ADR-0095·0094를 이어받음), 사이클 17 spec R13 · AC-8 · AC-9, `from-research-lookup-egress.md` #1~#4 · #9, `from-cycle-20-proxy-only.md`, `from-cycle-20-blocked-ip-resume.md`, plan `research/deploy/multi-source-ip.md` 7~9 · 11절. 사이클 20 worktree(`cycle-20-lookup-status`, c20 docker 5512/5513)에서 만들었고 커밋 머리는 `Cycle 22:`.
+
+## 범위 (plan 전달, 2026-10-17)
+
+- 사용자: "Webshare 20개 길, 막힌 길 처리, 이건 20dev에서 할 수 있자나" → 여기서 만든 것 다섯: ① 길 목록 설정(직접 1 + Webshare 한국 정적 20, 서버 공인 IP 여러 개도 프록시 항목으로 표현) — 본 서비스 직접 경로와 조회 서버 경로 둘 다 ② 길 설정 `all`/`proxy-only`/`direct-only` ③ (길, 사이트)마다 동시 1건 + 끝 뒤 1초, 교보 구독형 `*.dkyobobook.co.kr`은 길마다 묶어 3건, 지금 보낼 수 있는 길 먼저 ④ 막힌 길: 그 길·그 사이트만 멈춤, 10분 뒤 시험 1건, 실패면 두 배, 상한 7일, 사용자 요청은 시험에 안 씀, 모든 길이 막힌 사이트는 「확인 불가」 ⑤ 조회 기록(서버 로그 줄)에 길·업체, User-Agent 그대로
+- **여기서 만들지 않은 것(사이클 17에 남음)**: 업체 데이터 세기(80%·90%, 길마다 바이트, Webshare 사용량 API `stats/aggregate`와 API 키), 업체 쪽 오류(407·429·계정 문제)로 업체 길 전체 멈춤, CloudWatch → SNS 메일. 처음 요약 브리프에 있던 사용 기록(`usagelog`) 길 칸·Liquibase 변경도 1-15 #6에 따라 **만들지 않음**(조회 기록 = 서버 로그 줄)
+- 사용자 결정(plan webshare 세션, 2026-10-17, 전달 원문 "운영 IP Authorization, 로컬 Proxy Username/Password"): 운영(EC2)은 Webshare IP Authorization 그대로, 로컬 PC는 Webshare 대시보드 Proxy Settings → General의 Proxy Username / Password로 붙음(플랜이 허용 IP 1개뿐이라). → 길 설정에 아이디·비밀번호 한 쌍(모든 프록시 길 공통, 환경 변수·`.env`만, 로그에 안 씀, 운영 Parameter Store에는 넣지 않음)
+- 로컬 `.env`(git 무시): `data/c20/webshare-proxies.txt`(plan이 적어 둔 20개 주소, git 무시)로 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`를 채웠고, `…_PROXYUSERNAME`/`…_PROXYPASSWORD`는 **빈 값**으로 두었음(사용자가 붙여 넣음; dev는 값을 보지도 쓰지도 않음)
+
+## 단계별 커밋
+
+| 번호 | 커밋 | 한 일 |
+|---|---|---|
+| 22-1 | `0655bca` | 본 서비스: 길 모델·설정·길마다 클라이언트·길 고르기·(길, 사이트) 간격·막힌 길·다시 시험·상태 포트·요약 로그·시험 (`backend/` `./gradlew build` 1,100개 통과) |
+| 22-2 | `b9c3ef5` | 조회 서버: 같은 길 설정, 요청의 `lane`, 길마다 클라이언트, 응답에 `lane`, 시험 (`fetch-service/` `./gradlew build` 36개 통과) |
+| 22-3 | (이 커밋) | 기록: `docs/maintenance/settings-index.md` 1·2·4절, 이 절, 로컬 `bootRun` 확인 |
+
+## 정한 이름 (인계서 [안] → 실제)
+
+| 인계서 | 실제 |
+|---|---|
+| `chaekcheck.availability.egress.mode` | 그대로. 값 `all`(기본) / `proxy-only` / `direct-only` → enum `EgressMode` `ALL`/`PROXY_ONLY`/`DIRECT_ONLY`(Spring 느슨한 바인딩으로 `proxy-only` → `PROXY_ONLY`). 환경 변수 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE`. `application.yml`은 `${CHAEKCHECK_AVAILABILITY_EGRESS_MODE:all}`처럼 자리를 두어 **`../.env`도 읽음**(다른 비밀 값과 같은 방식; `.env`를 `spring.config.import`로 읽을 때는 대문자_이름이 속성에 저절로 맞지 않아 자리가 필요함) |
+| `chaekcheck.availability.egress.proxies` | 그대로. 쉼표로 이은 `주소:포트`, 빈 값이면 직접 길 하나. `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES` |
+| `chaekcheck.availability.egress.proxy-vendor` | 그대로, 기본 `webshare`. `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR` |
+| (추가, 사용자 결정) | `chaekcheck.availability.egress.proxy-username` / `proxy-password` → `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME` / `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD`. 한 쌍을 모든 프록시 길에 씀(Webshare 계정이 하나라 길마다 다른 값은 필요 없음 — 더 단순한 쪽을 고름). 둘 다 있을 때만 보냄 |
+| (추가) 막힌 길 숫자 | `chaekcheck.availability.egress.block.failures-to-block` 5 / `first-pause` 10m / `max-pause` 7d / `retest-check-interval` 30s / `retest-timeout` 20s → `CHAEKCHECK_AVAILABILITY_EGRESS_BLOCK_FAILURESTOBLOCK` 등 |
+| `chaekcheck.availability.kyobo.subscription-max-concurrency` | 그대로 3 (+ `subscription-host-suffix` `.dkyobobook.co.kr`) → `CHAEKCHECK_AVAILABILITY_KYOBO_SUBSCRIPTIONMAXCONCURRENCY` / `…_SUBSCRIPTIONHOSTSUFFIX` |
+| `host-max-concurrency` 1 / `host-min-interval` 1s | 이름 그대로, 뜻은 "한 길 · 한 사이트"(설정 색인에 적음) |
+| 길 번호 | `direct`, `proxy-01` … `proxy-20`(목록 순서, 두 자리). 번호·`toString()`·로그 어디에도 주소 없음. 잘못된 항목은 켤 때 "entry N is not host:port"로 멈춤(값은 메시지에 안 넣음) |
+| 조회 서버 | `fetch.egress.mode` / `proxies` / `proxy-vendor` / `proxy-username` / `proxy-password` → `FETCH_EGRESS_MODE` / `FETCH_EGRESS_PROXIES` / `FETCH_EGRESS_PROXYVENDOR` / `FETCH_EGRESS_PROXYUSERNAME` / `FETCH_EGRESS_PROXYPASSWORD`. 요청 칸 `lane`, 응답 칸 `lane` |
+| 새 파일 (`availability/internal/egress/`) | `EgressLane`(길 하나, `list(proxies, vendor)`), `EgressMode`(걸러냄, 남는 길이 없으면 `IllegalArgumentException` → 켜지지 않음), `EgressLanes`(인계서의 "`HostThrottle.run`이 길을 골라 넘김" 자리: 허용 길 − 그 사이트에서 멈춘 길 → `LaneThrottle` → 그 길의 `SiteFetcher`; 결과를 막힌 길·교보 느려짐·요약 카운터에 알림), `HostRules`(사이트 규칙: 기본 1건·1초, 교보 묶음 3건·간격 없음·느려지면 1건), `LaneThrottle` + `InMemoryLaneThrottle`((길, 사이트) 자리; 사이트마다 모니터 하나, 빈 길 중 **마지막에 쓴 길 다음부터** 골라 번갈아 씀), `BlockedLanes` + `InMemoryBlockedLanes`(막힌 길 표), `BlockedLaneRetest`(30초마다 시험 시각이 지난 줄에 시험 1건, 데몬 스레드), `BlockSignal`(막힘 신호 판정), `LaneCounters`(요약 로그용 분 단위 카운터), `DefaultEgressLaneStatus`(상태 포트 구현). `fetch/LaneSiteFetcher`(직접 모드: 길마다 JDK 클라이언트 + 밑줄 호스트 Apache 클라이언트 한 쌍). 조회 서버 `fetch/EgressLane`(같은 모양의 복사본 — 두 앱은 코드를 공유하지 않음) |
+| 없앤 것 | `fetch/HostThrottle` 인터페이스 → 열쇠 유틸(`key`·`hostPort`)만 남김, `InMemoryHostThrottle` 삭제(→ `InMemoryLaneThrottle`), `HostThrottleTests` → `LaneThrottleTests` |
+| `SiteFetcher` | `fetch(URI, Instant deadline, EgressLane lane)`. `SiteResponse.via` = 길 번호(전에는 `direct`/`direct-underscore`/조회 서버 번호; 조회 서버 번호는 `fetch-service via=` 로그 줄에 그대로) |
+| `HostQueueBoard.DEFAULT_LANE` | 값 `"direct"` → `"any"`("아무 길이나 기다림"). 기다리는 동안은 길이 안 정해졌고, 모든 길이 막힌 사이트는 기다리지 않고 바로 실패라 줄에 안 섬 |
+| 문제 코드 | 모든 길이 막힌 사이트: `UpstreamException.noLane` → ERROR, 코드 `no_lane_for_host`, HTTP(「더 보기」)로는 **502** `no_lane_for_host`(`parse_busy`의 503과 달리 서버가 바쁜 것이 아니라 사이트 쪽이 닫힌 것이라) → 스트림에서는 `library-failed` → 화면 「확인하지 못한 도서관」, 사용 기록 `FAILED`, 캐시 안 넣음 |
+
+## 막힘 판정과 교보 내리기 (dev가 정한 숫자, 모두 [안])
+
+- **막힘 신호** (`BlockSignal`): 응답이 아예 없음(연결 거절·연결 시간 초과·읽기/전체 시간 초과·연결 끊김 = `UpstreamException` TIMEOUT, 또는 원인에 `IOException`이 있는 ERROR) 또는 HTTP **403 · 407 · 429 · 503**. 407은 프록시가 우리를 거절한 것(허용 IP 아님·아이디 틀림)이라 넣음 — 로컬에서 비밀번호를 안 넣고 켜면 프록시 길이 사이트마다 5번 뒤 멈추고 직접 길이 계속 맡음(plan 요청 "우아하게 내려감"). 2xx·3xx·그 밖의 4xx/5xx·1MB 넘음·`parse_busy`(해석 자리 없음)는 신호가 아니고 **연속 수를 0으로** 되돌림
+- **멈춤**: 같은 (길, 사이트)에서 신호가 **5번 연달아**(`failures-to-block`) → 그 길만 그 사이트에서 멈춤. 시간 초과 한 번·1MB 한 번·해석 실패로는 안 멈춤(인계서 [안] 그대로). 진행 중이던 요청이 멈춘 뒤에 끝나도 더 세지 않음
+- **다시 시험**: 멈춘 뒤 10분 → 그 길·그 사이트의 자리(1건·1초) 안에서 **마지막으로 실패한 요청의 주소**로 GET 1건(인계서 "마지막으로 실패한 검색 첫 페이지 주소" — 상세 페이지 요청이 막힘을 일으켰으면 그 상세 주소가 될 수 있음 [안: 감수]). 2xx면 풂(막힘 신호가 아닌 404·500 등도 "사이트가 답함"이라 풂 [안]); 신호면 쉼 × 2, 상한 7일(10 → 20 → 40 → 80 → 160 → 320 → 640 → 1280 → 2560 → 5120분 → 7일). 자리를 `retest-timeout` 20초 안에 못 얻으면 아무것도 못 배운 것이라 신호와 같이 두 배(`result=no_slot`). 인계서의 "adapter가 해석하는 HTML"까지는 보지 않음(상태만) [안]
+- **교보 묶음 내리기** (`HostRules`): 그 길에서 교보 묶음 요청이 **3번 연달아 실패**하거나 **한 번이라도 10초 이상** 걸리면 그 길의 교보 묶음을 동시 1건으로; 10초 안 정상 응답 한 번이면 3건으로 되돌림. (수집기 참고값 평균 12초·5번 연달아보다 조금 더 민감하게: 서비스 마감이 8초라 10초 넘는 응답은 이미 쓸모가 없음.) 전체 시간 제한 15초 안이라 "느려짐"은 10~15초 응답만 잡힘
+- 메모리라 다시 켜면 표가 빔(인계서 [안: 감수] 그대로). `state-store=memory` 스위치 뒤에 `LaneThrottle`·`BlockedLanes` 구현을 둠(ADR-0133 방식)
+
+## 로그 줄 모양 (사이클 17 CloudWatch 경보가 읽을 것)
+
+| 언제 | 줄 (INFO, `lane_paused`·`lane_retest_capped`만 WARN) |
+|---|---|
+| 켤 때 | `egress lanes mode=ALL lanes=21 direct=1 proxies=20 vendor=webshare` (주소 없음; 조회 서버도 같은 줄) |
+| 요청마다 (직접 모드) | `upstream via=proxy-03 lane=proxy-03 vendor=webshare host=… path=… start=… end=… status=200 bytes=60329 userAgent="…"` — `bytes`는 받은 압축 바이트(사이클 17이 업체 데이터를 셀 자리). 밑줄 호스트 줄도 `via=direct-underscore lane=… vendor=…` |
+| 요청마다 (조회 서버 경유) | 본 서비스 `fetch-service via=fetch-1 lane=proxy-03 vendor=webshare host=… requestId=… status=200 bytes=…`; 조회 서버 `library host=… path=… requestId=… lane=proxy-03 vendor=webshare start=… end=… status=…` |
+| 상세 페이지 | `detail page host=… path=… detail=… via=proxy-03 lane=proxy-03` |
+| 멈춤 시작 | `lane_paused host=<사이트> lane=<길> vendor=<업체 또는 direct> pause=PT10M nextRetestAt=<ISO 시각>` (WARN) |
+| 시험 | 보낼 때 `lane_retest host= lane= vendor= result=sending afterPause=PT10M retests=0`; 또 막혔으면 `lane_retest host= lane= vendor= result=blocked pause=PT20M nextRetestAt=… retests=1`; 자리를 못 얻었으면 `result=no_slot …`; 7일에 닿으면 추가로 `lane_retest_capped host= lane= vendor= pause=PT168H nextRetestAt=… retests=…` (WARN) |
+| 풀림 | `lane_resumed host= lane= vendor=` |
+| 조회 서버가 모르는 길 | `rejected lane=proxy-99 requestId=…` |
+| 1분 요약 (`lookup ops:` 줄 뒤에 붙음) | `… pausedLanes=<멈춘 (길, 사이트) 쌍 수> … egressMode=ALL laneRequests=direct:40;proxy-01:39;… lanePauses=<이번 분 멈춤 시작> laneRetests=<이번 분 시험> laneResumes=<이번 분 풀림> pausedLaneList=proxy-01@ebook.busan.go.kr;…(최대 20쌍, 없으면 -)` — 인계서의 "길·사이트별 막힘 0/1"은 `pausedLaneList`(지금 상태)와 `lane_paused`/`lane_resumed`(변화)로, "시험 횟수"는 `laneRetests`와 `retests=`로 읽음. Actuator/Micrometer는 이 프로젝트에 없어 요약 로그 방식 |
+
+## 설계 위에 더한 세부 · 인계서와 다른 점
+
+- **고르기**: 허용 길 중 그 사이트에서 멈추지 않은 길을 `LaneThrottle`에 넘기고, 자리가 비고 간격이 지난 길 가운데 **그 사이트에서 마지막에 쓴 길의 다음**부터 고름(번갈아, AC-8). 모두 바쁘면 가장 먼저 비는 시각(또는 자리 반납 알림)까지 모니터에서 기다리고 마감이 먼저 오면 TIMEOUT(전과 같은 규칙). 공정성(FIFO)은 전의 `Semaphore(fair)`보다 약함 [안: 감수]
+- **교보 묶음 열쇠**: `*.dkyobobook.co.kr` 호스트는 길마다 열쇠 하나(`dkyobobook.co.kr`)로 묶어 셈(인계서 #3 "길마다 하나로 묶어") — `HostQueueBoard`의 `hostKey`는 그대로 호스트 이름
+- **`proxy-only`**: `EgressMode.allowed`가 직접 길을 목록에서 빼므로 사용자 요청도 시험도 직접 길로는 0건. 프록시가 모두 멈춘 사이트는 `no_lane_for_host`로 바로 실패(직접으로 안 넘어감). `proxy-only` + 빈 목록 → `EgressLanes` 생성자에서 `IllegalArgumentException` → 켜지지 않음(조회 서버도 `LibraryClient`에서 같음)
+- **조회 서버 경로**: 길 고르기·간격·막힌 길은 본 서비스가 하고 `FetchRequest(url, requestId, lane)`로 길 번호를 보냄. 조회 서버는 자기 길 설정에서 번호 → 프록시를 찾음(`lane` 없으면 `direct`; 모르는 번호·모드에서 뺀 길이면 `outcome=ERROR`, 응답 `lane=null`). `CONNECT_FAILED` 결과는 본 서비스에서 원인 `ConnectException`을 붙인 ERROR로 바꿔 막힘 신호로 셈(직접 경로의 연결 거절과 같게). 응답의 `lane`은 본 서비스가 `via`에 쓰고 로그에 남김. 두 앱의 길 목록이 어긋나면(조회 서버에 없는 번호) 그 요청만 실패하고 다른 길로 바꾸지 않음(ADR-0011: 길 선택은 한 곳)
+- **프록시 인증**: JDK 클라이언트는 `Authenticator`(프록시 요청에만 답함), Apache는 `CredentialsProvider`(그 프록시 `AuthScope`만). https 사이트는 프록시에 CONNECT 터널인데 JDK 25 `conf/net.properties`가 `jdk.http.auth.tunneling.disabledSchemes=Basic`으로 Basic을 막음(확인: `C:\Users\yujun\.jdks\jdk-25.0.4.1+1\conf\net.properties` 93행) → `backend/build.gradle`의 `bootRun` jvmArgs와 `test` systemProperty에 `-Djdk.http.auth.tunneling.disabledSchemes=`(빈 값)을 넣음(로컬 전용; 운영 jar는 IP 허용이라 필요 없음). 시험 `LaneSiteFetcherProxyTests`가 Basic을 요구하는 가짜 프록시로 http·https(CONNECT)·밑줄 호스트(Apache, CONNECT) 세 경로의 인증을 확인. 조회 서버는 Spring Boot 기본 `bootRun`에 이 옵션이 없음 — 로컬에서 조회 서버 + 인증 프록시 + https 조합을 쓰려면 `JAVA_TOOL_OPTIONS=-Djdk.http.auth.tunneling.disabledSchemes=`로 켜야 함 [확인 필요: 그 조합을 로컬에서 쓸 일이 있는지]
+- **직접 길의 프록시 차단**: 직접 길의 JDK 클라이언트는 `HttpClient.Builder.NO_PROXY`라 시스템 프록시 설정이 끼어들지 않음(인계서 #2). 서버 공인 IP 여러 개는 tinyproxy `Bind` 방식(프록시 항목)으로 표현 — `localAddress` 방식은 만들지 않음
+- **상태 포트** (`DefaultEgressLaneStatus`): `egressMode()` = 설정, `pausedLaneCount()` = 멈춘 (길, 사이트) **쌍** 수(인계서 [안: 길 수로 셀지] → 쌍으로; 한 길이 여러 사이트에서 멈추면 여러 번 셈), `vendorLanesPaused()` = 늘 `false`(사이클 17). 사이트 하나에서 모든 길이 막힌 것은 `NO_LANE`이 아님(그대로)
+- **사이클 17이 붙일 자리**: ① 업체 데이터: `upstream … bytes=`(압축 바이트)·`fetch-service … bytes=`(푼 바이트) 로그 줄, 또는 `EgressLanes.send`에서 `SiteResponse.body().length`를 길·업체별로 더하면 됨(지금은 세지 않음) ② 업체 길 전체 멈춤: `EgressLanes.open(host)`가 "허용 길 − 멈춘 길"을 돌려주는 한 곳이라 여기에 "업체 X 멈춤" 거름을 더하고 `DefaultEgressLaneStatus.vendorLanesPaused()`가 그 값을 읽으면 됨; 407·429 응답은 지금 `BlockSignal`이 사이트별 신호로만 봄 ③ 7일 상한 알림은 `lane_retest_capped` 줄
+- **가짜 프록시**: 로컬에서는 Webshare에 붙을 수 없어(허용 IP = EC2) 시험·로컬 확인은 `TestHttpProxy`(시험 소스, 절대 주소 GET 전달 + CONNECT 터널 + 선택적 Basic 요구, 받은 요청 줄 기록; `java …/TestHttpProxy.java 8871 8872`로 단독 실행도 됨)로 함. 실제 21길은 사이클 17 배포 때 EC2에서 확인 [확인 필요]
+
+## 시험 (인계서 1-15 시험 표와 대응)
+
+| 기준 | 시험 (모두 통과; 본 서비스 `./gradlew build` 1,100개 0 실패, 조회 서버 36개 0 실패, `ModularityTests` 그대로) |
+|---|---|
+| 17 AC-8 / R13-1 · #9 (번갈아, 기록) | `LaneSiteFetcherProxyTests.requestsAlternateBetweenTheDirectLaneAndTwoProxies`(가짜 도서관 + `TestHttpProxy` 둘 + 진짜 `LaneSiteFetcher`·`EgressLanes`: 6번 요청 → `direct, proxy-01, proxy-02, …`, 두 프록시가 2건씩 받음, `upstream … lane=` 줄이 길마다, 프록시 주소는 로그에 없음), `EgressLanesTests.requestsTakeTurns…`(가짜 fetcher). 조회 서버: `FetchLaneTests.EveryLane`(요청의 `lane` 대로 프록시가 받고 응답 `lane` 돌려줌, 로그 `lane=proxy-02 vendor=webshare`에 주소 없음) |
+| R13-3 (길마다 따로, 1건 · 1초) | `LaneThrottleTests` 7개: 길 3개 · 같은 사이트 3건 동시, 같은 길 둘째는 끝 + 간격 뒤, 다른 사이트는 서로 안 막음, 포트 달라도 한 자리(AC-18), 빈 길 번갈아, 마감 전 자리 없으면 TIMEOUT (실제 시간, 간격 300ms) |
+| ADR-0094 교보 3건 | `LaneThrottleTests.kyoboHostsArePooledAtThreePerLaneWithoutInterval`(x./y.dkyobobook 한 길에서 3건 동시 · 넷째는 첫 요청이 끝나자마자(간격 없음), 길 둘이면 6건 동시), `kyoboLaneDropsToOneAtATimeAfterFailuresInARow`(3번 연속 실패 → 1건, 정상 → 3건, 10초 응답 → 1건) |
+| 17 AC-9 / R13-4 | `EgressLanesTests.aLaneBlockedByOneHostPausesThereOnlyAndNoUserRequestGoesThroughIt`(proxy-01만 a.test에서 403: 5번 뒤 멈춤, 그 뒤 a.test는 다른 두 길, b.test는 proxy-01도 계속, `lane_paused` 줄에 주소 없음) |
+| 다시 시험 10분 · 두 배 · 7일 | `BlockedLanesTests.retestsDoubleThePauseUpToSevenDaysAndASuccessResumes`(가짜 시계, 12바퀴 10분 → … → 7일 상한, `capped`, 정상이면 풂), `EgressLanesTests.retestsRunOnTheLanesOwnSlot…`(가짜 시계 + `BlockedLaneRetest.retestDueNow()`: 9분 59초엔 안 가고 10분에 1건, 20분, 40분 … 사용자 요청은 멈춘 길로 0건, 풀리면 다시 씀, `lane_retest … result=blocked pause=PT20M`·`lane_resumed` 줄) |
+| 모든 길 막힌 사이트 | `EgressLanesTests.everyLanePausedOnAHostFailsAtOnceWithoutWaiting`(요청 0건 더 보내지 않고 `no_lane_for_host`, 다른 사이트는 정상) |
+| `proxy-only` · `direct-only` | `EgressLanesTests.proxyOnlyNeverUsesTheDirectLane…`(직접 길 0건, 시험 포함, 프록시 다 막혀도 `no_lane_for_host`), `directOnlySendsNothingThroughAProxy`, `EgressLaneTests.modeFiltersTheLanesAndRefusesAnEmptyResult`(`proxy-only` + 빈 목록 → 예외 → 켜지지 않음), `LaneSiteFetcherProxyTests.proxyOnlySendsNothingDirectly`(진짜 클라이언트). 조회 서버 `FetchLaneTests.ProxiesOnly`(`direct`·`lane` 없음 → ERROR, `proxy-01` → RESPONDED) |
+| 상태 포트 | `EgressLanesTests.statusPortReadsTheModeAndThePausedPairs`(`PROXY_ONLY`, `vendorLanesPaused=false`, 쌍 수 2), `LookupStatusServiceTests` 가짜 포트 표 그대로 통과 |
+| 로그 · 지표 | 위 줄 확인 + `LookupOpsSummaryLogTests`(`pausedLanes=1 … egressMode=ALL laneRequests=direct:1;proxy-01:2 lanePauses=1 … pausedLaneList=proxy-01@blocked.test`, 다음 분 0) |
+| 밑줄 호스트 | `LaneSiteFetcherProxyTests.proxyCredentialsAnswer…`(`hs_site.example.test` https를 프록시 CONNECT로, Basic 인증), 조회 서버 `FetchLaneTests.UnderscoreHostThroughTheProxy`(`hs_lib.example.test`가 프록시로 감 — Apache는 프록시 주소만 풀고 도서관 이름은 프록시 몫) |
+| 막힘 아닌 것 | `EgressLanesTests.oneTimeoutOrBodyTooLargeDoesNotPauseALane`(1MB 5번·`parse_busy` 5번·시간 초과 4번은 안 멈춤, 시간 초과 5번째에 멈춤), `BlockedLanesTests.anyOtherOutcomeStartsTheCountAgain` |
+| 프록시 인증 (사용자 결정) | `LaneSiteFetcherProxyTests.proxyCredentialsAnswerTheProxysChallengeOnHttpHttpsAndUnderscoreHosts`: 인증 없으면 407이 답, 있으면 http 200 · https(JDK CONNECT + Basic, `jdk.http.auth.tunneling.disabledSchemes=`) 200 · 밑줄 호스트(Apache CONNECT + Basic) 200 |
+| 고친 기존 시험 | `SiteFetcher` 3인자(`DirectSiteFetcherTests`·`UnderscoreHostSiteFetcherTests`·`HostRoutingSiteFetcherTests`·`FetchServiceSiteFetcherTests`(요청 본문 `"lane":"direct"`, `via`는 길)), `LibraryPageFetcher`/`DetailPageFetcher` 생성자(`TestLanes.direct(mock)`), `HostQueueBoardTests`(가짜 `LaneThrottle`), `LookupStatusControllerTests`(`EgressLanes` mock), `AdapterFixtures`(`Kyobo(50, 3, ".dkyobobook.co.kr")`, `EGRESS`) |
+
+## 로컬 bootRun 확인 (1-15 완료 기준, 2026-10-17 밤)
+
+- 시험용 프록시 둘: `java backend/src/test/java/com/chaekcheck/availability/internal/egress/TestHttpProxy.java 8871 8872`(JDK 25 단일 파일 실행, 인증 없음, 요청이 이름한 사이트로 그대로 전달). 서버는 8097(8094는 코디네이터의 c20 서버라 건드리지 않음), 환경 변수 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES=127.0.0.1:8871,127.0.0.1:8872`(실제 환경 변수가 `.env`의 Webshare 20개보다 이김)
+- `mode=all`: 켤 때 `egress lanes mode=ALL lanes=3 direct=1 proxies=2 vendor=webshare`. 실제 검색 3번(`/api/v1/ebook-searches/stream?title=사랑|여행|바다&libraryIds=60,61`, 묶음이 기본 도서관까지 돌아 호스트 6곳 × 3검색 = 요청 17건, 모두 200) → 같은 호스트의 1·2·3번째 요청이 `lane=direct` → `lane=proxy-01` → `lane=proxy-02` 순서로 남음(예: `elib.dobong.kr`), `bytes=`가 찍힘. 호스트마다 첫 요청은 직접 길(번갈아 고르기의 시작점이 "마지막에 쓴 길의 다음"이라) — 사이트마다 요청이 1건뿐인 검색에서는 길이 섞이지 않고, 같은 사이트에 요청이 이어질 때 번갈아 감 [안: 감수; 길을 호스트와 상관없이 돌리려면 시작점을 전역으로 바꾸면 됨]
+- `mode=proxy-only`: 켤 때 `egress lanes mode=PROXY_ONLY lanes=2 direct=0 proxies=2`. 검색 1번(`title=겨울&libraryIds=60`, 요청 5건, 모두 200) → `lane=direct` 줄 **0**, 모두 `lane=proxy-01`(한 호스트에 요청이 1건씩이라 다음 길로 안 넘어감)
+- 둘 다 `lane_paused`·`no_lane_for_host` 없음. 끝낸 뒤 서버·프록시 종료
+
+## 확인 필요 · 사용자가 정할 것
+
+- 로컬에서 Webshare 프록시 길을 실제로 쓰려면 `.env`의 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME` / `CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD`에 대시보드 값을 붙여 넣어야 함(빈 값이면 프록시 길은 407 → 사이트마다 5번 뒤 멈추고 직접 길만 남음; 빨리 보려면 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE=direct-only`)
+- 운영 compose의 공통 이름(`LOOKUP_EGRESS_*`)과 `prod.env` 값, Webshare 주소 비밀 값 넣기는 사이클 17
+- 막힘 숫자(5번 · 403/407/429/503 · 교보 3번/10초)는 [안]: 배포 뒤 `lane_paused` 줄 빈도를 보고 조정
