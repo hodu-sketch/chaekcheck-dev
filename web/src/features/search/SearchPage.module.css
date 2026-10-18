@@ -19,12 +19,19 @@
   padding-top: 2rem;
 }
 
-/* before a search: a larger, centered first screen */
+/* before a search: a larger, centered first screen. The headline, the search box and the scope row sit as one block a
+   little above the middle of the first screen (user 2026-10-18: "통으로 중간 정도의 위치에", then "이것 보다는 조금 더
+   위에"): the page fills the screen under the header and the block is centered with extra room below it */
+.page[data-state='start'] {
+  min-height: calc(100dvh - 9rem);
+  justify-content: center;
+}
+
 .page[data-state='start'] .searchArea {
   width: 100%;
   max-width: 52rem;
-  margin: 0 auto;
-  padding-top: 16vh;
+  margin: 0 auto 12vh;
+  padding-top: 0;
   gap: 1.4rem;
   align-items: center;
   text-align: center;
