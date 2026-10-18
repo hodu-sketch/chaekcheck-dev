@@ -5629,3 +5629,4 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 | 20 체크는 저장만 | 됨 |
 | 21 계정 읽는 동안·실패 | 됨 |
 - 배포: `release.sh 1.1.0` → 커밋 `c93c70a`, 태그 `v1.1.0`, EC2 backend·web 다시 띄움(db·cloudflared 그대로), GitHub 릴리스 v1.1.0. `https://chaekcheck.com/api/v1/version` = {"version":"1.1.0","commit":"c93c70a"} (2026-10-19 확인, 띄운 직후 몇십 초 502).
+- 배포 뒤 문구(2026-10-19, v1.1.1): [사는 곳·일하는 곳 고르기]와 안내 줄 [사는 곳 고르기] → [지역 설정]: "사는곳 일하는곳 고르기 말고 지역 설정이라고 문구 싹 바꿔서 Aws에 반영해줘".
