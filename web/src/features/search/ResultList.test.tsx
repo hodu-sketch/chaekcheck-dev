@@ -84,6 +84,29 @@ describe('확인하지 못한 도서관 group', () => {
     expect(screen.getByText('title-1-1')).toBeTruthy()
   })
 
+  // user request 2026-10-18: 바로 보기's button says what a tap does, what is left on a second line
+  it('says what "더 보기" does when a label is given', () => {
+    render(
+      <ResultList
+        batches={[view(1, [testRow({ libraryId: 1, rank: 1 })])]}
+        filter="all"
+        onFilterChange={vi.fn()}
+        libraries={LIBRARIES}
+        searchUrls={new Map()}
+        remaining={12}
+        loading={false}
+        loadingLibraries={0}
+        batchFailed={false}
+        onMore={vi.fn()}
+        moreLabel="결과 더 보기"
+        moreText="이 책들을 가진 도서관 12곳 남음"
+      />,
+    )
+    const more = screen.getByRole('button', { name: /결과 더 보기/ })
+    expect(more.textContent).toBe('결과 더 보기이 책들을 가진 도서관 12곳 남음')
+    expect(screen.queryByText(/남은 도서관 줄/)).toBeNull()
+  })
+
   it('draws no group when nothing failed', () => {
     render(
       <ResultList

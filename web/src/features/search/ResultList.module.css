@@ -192,6 +192,18 @@
   opacity: 0.8;
 }
 
+/* 바로 보기: what a tap does on the first line, what is left on a small second line */
+.moreTwoLines {
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.moreHint {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
 .loadingMore,
 .finished {
   display: inline-flex;

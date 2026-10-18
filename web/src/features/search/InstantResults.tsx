@@ -116,6 +116,8 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
   const views = holdingBatchViews(holdings.state, filter)
   const streaming = holdings.state.phase === 'streaming' || pageLoading
   const moreBooks = books.last.hasMore
+  // books on the next catalog page: one page at most, fewer at the end of the results
+  const nextBooks = Math.max(1, Math.min(books.last.pageSize, books.last.totalCount - books.items.length))
   const remaining = holdings.remaining + (moreBooks ? 1 : 0)
   const loadingBatch = holdings.state.batches.at(-1)
   const noHoldings = !streaming && holdings.state.order.length === 0
@@ -150,8 +152,13 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
           batchFailed={holdings.state.batchFailed || pageFailed}
           blocked={blocked}
           onMore={() => void loadMore()}
+          // the button says what a tap does (user request 2026-10-18): the next holdings of these books, or the next
+          // page of books once they are done
+          moreLabel={holdings.remaining > 0 ? '결과 더 보기' : `다음 책 ${nextBooks}권 보기`}
           moreText={
-            holdings.remaining > 0 ? `(남은 도서관 줄 ${holdings.remaining}개)` : moreBooks ? '(다음 책)' : undefined
+            holdings.remaining > 0
+              ? `이 책들을 가진 도서관 ${holdings.remaining}곳 남음`
+              : `검색된 책 중 ${books.items.length + 1}번째부터`
           }
           finishedText="찾은 책을 가진 도서관을 모두 조회했습니다"
         />

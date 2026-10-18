@@ -45,6 +45,11 @@ interface Props {
   onMore: () => void
   /** Text after "더 보기"; default "(남은 도서관 N곳)". */
   moreText?: string
+  /**
+   * The button's own words in place of "더 보기", saying what a tap does; `moreText` then goes on a small second line
+   * (바로 보기, user request 2026-10-18: "결과 더 보기" / "다음 책 N권 보기").
+   */
+  moreLabel?: string
   /** Text while a batch is open; default "도서관 N곳 조회 중". */
   loadingText?: string
   /** Text when nothing is left; default "모든 도서관을 조회했습니다". */
@@ -76,6 +81,7 @@ export function ResultList({
   blocked,
   onMore,
   moreText,
+  moreLabel,
   loadingText,
   finishedText,
   hideFilter,
@@ -188,9 +194,16 @@ export function ResultList({
                 더 찾지 못했어요. 다시 시도해 주세요.
               </p>
             )}
-            <button type="button" className={styles.moreButton} onClick={onMore}>
-              더 보기 <span className={styles.moreCount}>{moreText ?? `(남은 도서관 ${remaining}곳)`}</span>
-            </button>
+            {moreLabel ? (
+              <button type="button" className={`${styles.moreButton} ${styles.moreTwoLines}`} onClick={onMore}>
+                {moreLabel}
+                {moreText && <span className={styles.moreHint}>{moreText}</span>}
+              </button>
+            ) : (
+              <button type="button" className={styles.moreButton} onClick={onMore}>
+                더 보기 <span className={styles.moreCount}>{moreText ?? `(남은 도서관 ${remaining}곳)`}</span>
+              </button>
+            )}
           </>
         ) : (
           <p className={styles.finished}>{finishedText ?? '모든 도서관을 조회했습니다'}</p>
