@@ -646,8 +646,8 @@
 }
 
 .tag[data-tone='visit'] {
-  background: var(--reserve-soft);
-  color: var(--reserve);
+  background: var(--visit-soft);
+  color: var(--visit-strong);
 }
 
 .tag:hover,

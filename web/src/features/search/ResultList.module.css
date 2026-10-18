@@ -389,7 +389,7 @@
 
 /* "이 중 N곳은 가입하려면 도서관에 가야 해요 [그 N곳 빼기]", "방문 가입 도서관을 뺐어요 · [다시 넣기]" */
 .noteAside {
-  color: var(--reserve);
+  color: var(--visit);
   font-weight: 700;
 }
 
@@ -398,16 +398,15 @@
 }
 
 /*
- * R7: a search without regions or added libraries, above the groups. Green like the header light's green (#2c9860),
- * no ×.
+ * R7: a search without regions or added libraries, above the groups. A white card with a violet border like the
+ * notices (user 2026-10-19: "초록색 말고 흰색에 보라테두리로"), no ×.
  */
 .greenLine {
-  --green: #2c9860;
   margin-top: 0.9rem;
   padding: 0.75rem 1.1rem;
-  border: 1px solid var(--green);
+  border: 1px solid var(--brand);
   border-radius: var(--radius-md);
-  background: #effaf4;
+  background: var(--paper);
   color: var(--ink);
   font-size: var(--text-md);
   font-weight: 700;
@@ -416,7 +415,7 @@
 }
 
 .greenLine .linkButton {
-  color: #1f7a4b;
+  color: var(--brand-strong);
 }
 
 /* the list bottom's two buttons: 「결과 더 보기」 then 「전국에서 더 찾기」 */

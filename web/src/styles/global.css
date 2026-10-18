@@ -38,6 +38,10 @@
   --reserve: #b76a0a;
   --reserve-soft: #fff3e0;
   --reserve-faint: #fff9ef;
+  /* rose for 방문 가입 (the note and the tag) instead of amber (user 2026-10-19: "황토색은 다른 예쁜색으로", picked A 장미색) */
+  --visit: #d6336c;
+  --visit-strong: #c2255c;
+  --visit-soft: #fdebf1;
   /* a very light grey, a step darker than the canvas: the scope control box (user request 2026-10-05) */
   --tray: #eceff3;
   --fail: #d33d55;
