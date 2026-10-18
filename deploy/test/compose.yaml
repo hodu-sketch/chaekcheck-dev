@@ -56,6 +56,13 @@ services:
       CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
       CHAEKCHECK_USAGELOG_ENABLED: "false"
       FETCH_MODE: direct
+      # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
+      # proxy-only). Values from secrets.env, the same names as .env.example; the backend does not start without them.
+      CHAEKCHECK_AVAILABILITY_EGRESS_MODE: ${CHAEKCHECK_AVAILABILITY_EGRESS_MODE:-proxy-only}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES:?set the proxy list in secrets.env}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR:-webshare}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME:?set in secrets.env}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD:?set in secrets.env}
     networks:
       default:
         # deploy/nginx/local-test.conf sends /api to backend-host:8080
