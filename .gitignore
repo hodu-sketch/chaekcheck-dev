@@ -16,3 +16,7 @@ scripts/**/queue-by-ip.txt
 scripts/**/host-slots.txt
 __pycache__/
 *.bak-*
+
+# Server SSH keys and other local secret files (never committed)
+.secrets/
+*.pem
