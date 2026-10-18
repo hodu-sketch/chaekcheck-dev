@@ -1,4 +1,5 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ApiError } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
 import { useOptionalAuth } from '../auth/AuthContext'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
@@ -33,8 +34,16 @@ interface RegionContextValue {
   accountFailed: boolean
   notices: RegionNotice[]
   /**
-   * Saves the regions: in this browser before login, with `PUT /api/v1/me/regions` while signed in (rejects with the
-   * ApiError; the regions stay as they were).
+   * The last save to the account failed and the regions went back to the last saved value (cycle 22 D6); the screen
+   * says {@link REGION_SAVE_FAILED}. Cleared by the next `setRegions`.
+   */
+  saveFailed: boolean
+  /**
+   * Saves the regions at once, shown at once (cycle 22 D6, every check of the grid): in this browser before login;
+   * while signed in with `PUT /api/v1/me/regions`, one request at a time, and a value set while one is on the way is
+   * sent after it (only the latest). A failure puts back the last saved value and sets `saveFailed`; a 422
+   * `invalid_region` resolves the ids (`notices`) and saves the resolved ones. The promise settles when no request is
+   * left: it rejects with the error after a failure. Never starts a search.
    */
   setRegions: (regions: StoredRegions) => Promise<void>
   /** Re-checks the current ids (after an invalid_region answer). Resolves true when something changed. */
@@ -42,6 +51,14 @@ interface RegionContextValue {
 }
 
 const RegionContext = createContext<RegionContextValue | null>(null)
+
+/** What a failed save says (cycle 06 flow S2, cycle 22 문구표 "저장 실패"). */
+export const REGION_SAVE_FAILED = '저장하지 못했어요. 잠시 뒤 다시 해 주세요'
+
+interface Waiter {
+  resolve: () => void
+  reject: (error: unknown) => void
+}
 
 function regionsKey(regions: StoredRegions): string {
   return `${regions.residence.join(',')}|${regions.work.join(',')}`
@@ -62,12 +79,23 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   /** The source and server value the state was last loaded from; until it matches, the regions are not ready. */
   const [appliedKey, setAppliedKey] = useState<string | null>(null)
   const [notices, setNotices] = useState<RegionNotice[]>([])
+  const [saveFailed, setSaveFailed] = useState(false)
   const regionsRef = useRef(regions)
   useEffect(() => {
     regionsRef.current = regions
   }, [regions])
   /** The server value this browser has just saved: already checked, so not resolved again. */
   const savedKey = useRef<string | null>(null)
+  /** The value a failed save goes back to: the one loaded, or the last one saved (cycle 22 D6). */
+  const lastSaved = useRef<StoredRegions>(EMPTY_REGIONS)
+  /** The account save queue (D6): the value still to send (only the latest), and whether a request is on the way. */
+  const pending = useRef<StoredRegions | null>(null)
+  const running = useRef(false)
+  const waiters = useRef<Waiter[]>([])
+  const sourceRef = useRef(source)
+  useEffect(() => {
+    sourceRef.current = source
+  }, [source])
 
   // Load from the current source and check the ids once (spec 5.8, R6). The server's values are resolved for the
   // screen and the notices but never saved back (C19); only S2 and S11 save them.
@@ -77,6 +105,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     if (source !== 'account') savedKey.current = null
     setAppliedKey(loadKey)
     if (source === 'waiting') {
+      lastSaved.current = EMPTY_REGIONS
       setRegionsState(EMPTY_REGIONS)
       setNotices([])
       setReady(false)
@@ -85,13 +114,16 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     if (source === 'account' && serverRegions === null) {
       // reading the account's values: searches wait for them (cycle 22 D7; before: searched without regions, flow S1).
       // A failed read searches without regions; the screen says so (accountFailed).
+      lastSaved.current = EMPTY_REGIONS
       setRegionsState(EMPTY_REGIONS)
       setNotices([])
       setReady(accountFailed)
       return
     }
-    if (source === 'account' && savedKey.current === serverKey) return
+    // this browser's own saves (one on the way, or the last one): the screen already shows them
+    if (source === 'account' && (running.current || savedKey.current === serverKey)) return
     const initial = source === 'browser' ? loadRegions() : toStored(serverRegions!)
+    lastSaved.current = initial
     setRegionsState(initial)
     setNotices([])
     if (!hasRegions(initial)) {
@@ -105,6 +137,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         if (outcome.changed) {
           if (source === 'browser') saveRegions(outcome.regions)
+          lastSaved.current = outcome.regions
           setRegionsState(outcome.regions)
         }
         setNotices(outcome.notices)
@@ -122,23 +155,77 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   }, [loadKey])
 
   const saveToAccount = myLibrary?.saveRegions
-  const setRegions = useCallback(
-    async (next: StoredRegions) => {
-      if (source === 'account') {
-        if (!saveToAccount) return
-        const saved = toStored(await saveToAccount({ residenceRegionIds: next.residence, workRegionIds: next.work }))
+  const saveToAccountRef = useRef(saveToAccount)
+  useEffect(() => {
+    saveToAccountRef.current = saveToAccount
+  }, [saveToAccount])
+
+  /** Sends the queued value, then the one queued meanwhile, until none is left (D6: never two at once). */
+  const drain = useCallback(async () => {
+    running.current = true
+    let failure: unknown = null
+    let failed = false
+    while (pending.current) {
+      const value = pending.current
+      pending.current = null
+      const save = saveToAccountRef.current
+      try {
+        if (!save || sourceRef.current !== 'account') throw new Error('not signed in')
+        const saved = toStored(await save({ residenceRegionIds: value.residence, workRegionIds: value.work }))
         savedKey.current = regionsKey(saved)
-        setRegionsState(saved)
-        setReady(true)
+        lastSaved.current = saved
         reportRegions(saved)
-      } else {
-        if (source === 'browser') saveRegions(next)
+        // the server's form of the value, unless a newer one is already shown
+        if (!pending.current) setRegionsState(saved)
+      } catch (error) {
+        if (sourceRef.current === 'account' && error instanceof ApiError && error.problem.code === 'invalid_region') {
+          // regions changed since the tree was read (cycle 06): resolve them, say so, and save the resolved ones
+          const outcome = await resolveRegions(value).catch(() => null)
+          if (outcome?.changed) {
+            setNotices(outcome.notices)
+            if (!pending.current) {
+              pending.current = outcome.regions
+              setRegionsState(outcome.regions)
+            }
+            continue
+          }
+        }
+        pending.current = null
+        failed = true
+        failure = error
+        if (sourceRef.current === 'account') {
+          setRegionsState(lastSaved.current)
+          setSaveFailed(true)
+        }
+      }
+    }
+    running.current = false
+    const settled = waiters.current
+    waiters.current = []
+    settled.forEach((waiter) => (failed ? waiter.reject(failure) : waiter.resolve()))
+  }, [])
+
+  const setRegions = useCallback(
+    (next: StoredRegions): Promise<void> => {
+      setNotices([])
+      setSaveFailed(false)
+      if (source === 'waiting') return Promise.resolve()
+      if (source === 'browser') {
+        saveRegions(next)
+        lastSaved.current = next
         setRegionsState(next)
         reportRegions(next)
+        return Promise.resolve()
       }
-      setNotices([])
+      if (!saveToAccount) return Promise.resolve()
+      // shown at once; the queue sends it once the request on the way (if any) is back
+      setRegionsState(next)
+      pending.current = next
+      const done = new Promise<void>((resolve, reject) => waiters.current.push({ resolve, reject }))
+      if (!running.current) void drain()
+      return done
     },
-    [source, saveToAccount],
+    [source, saveToAccount, drain],
   )
 
   const resolveStoredRegions = useCallback(async () => {
@@ -159,8 +246,19 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   // between a new source or server value and the effect that loads it, the old regions must not be searched with
   const current = ready && appliedKey === loadKey
   const value = useMemo(
-    () => ({ regions, libraryIds, source, ready: current, accountFailed, notices, setRegions, resolveStoredRegions }),
-    [regions, libraryIds, source, current, accountFailed, notices, setRegions, resolveStoredRegions],
+    () => ({
+      regions,
+      libraryIds,
+      source,
+      ready: current,
+      // only together with ready, so the two never disagree for a render (the effect sets ready a step later)
+      accountFailed: accountFailed && current,
+      notices,
+      saveFailed,
+      setRegions,
+      resolveStoredRegions,
+    }),
+    [regions, libraryIds, source, current, accountFailed, notices, saveFailed, setRegions, resolveStoredRegions],
   )
   return <RegionContext value={value}>{children}</RegionContext>
 }

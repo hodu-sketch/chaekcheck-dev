@@ -1,0 +1,73 @@
+/* cycle 22 R9: the yellow one-line hint under the part that saved (flow S10 "노란 안내 한 줄") */
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  margin: 0;
+  padding: 0.5rem 0.4rem 0.5rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--reserve-faint);
+  border: 1px solid var(--reserve-soft);
+  color: var(--ink);
+  font-size: var(--text-md);
+}
+
+.text {
+  flex: 1 1 16rem;
+  min-width: 0;
+  word-break: keep-all;
+}
+
+/* Kakao design guide colors, as in the login dialog: #FEE500, label black at 85% */
+.login {
+  flex: none;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: #fee500;
+  color: rgb(0 0 0 / 0.85);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.close {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--reserve-soft);
+}
+
+.login:focus-visible,
+.close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* phones: at least a 44px touch area around × without moving anything */
+@media (width <= 640px) {
+  .close::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    translate: -50% -50%;
+  }
+}

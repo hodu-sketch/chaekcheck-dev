@@ -62,7 +62,7 @@
   display: inline-flex;
 }
 
-/* the shorter "누구나 가입 N곳은 늘 포함돼요" is for phones only (user request 2026-10-05) */
+/* the shorter "어디 살든 가입 N곳은 늘 포함돼요" is for phones only (user request 2026-10-05) */
 .narrow {
   display: none;
 }
@@ -92,10 +92,6 @@
 .sectionTitle {
   font-size: var(--text-lg);
   font-weight: 800;
-}
-
-.regions {
-  font-weight: 700;
 }
 
 .fold {
@@ -244,45 +240,66 @@
   outline-offset: 2px;
 }
 
-/* 지역 선택: each field, then the libraries it brings in, in one section (user requests 2026-10-05) */
+/*
+ * 지역 선택 (cycle 22 R11-1): a "사는 곳" row and an "일하는 곳" row, each its grid and then the libraries it brings in
+ * (user requests 2026-10-05), in one section
+ */
 .regionList {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1.4rem;
 }
 
-.regionField,
-.regionRow {
+.regionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.blockTitle {
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+/* the grid takes the section's full width (D11); on phones the whole screen width, below */
+.gridBleed {
+  min-width: 0;
+}
+
+/* [일하는 곳도 더하기]: the grid stays folded until pressed (flow "지역 격자 부품") */
+.addWork {
+  align-self: flex-start;
+  min-height: 2.5rem;
+  padding: 0.45rem 1rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addWork:hover {
+  border-color: var(--brand);
+}
+
+.addWork:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.regionField {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.regionField:last-child {
-  margin-bottom: 0.45rem;
-}
-
 .regionField > .names {
   margin-top: 0.25rem;
   padding-left: 0.2rem;
-}
-
-.regionLine {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.kind {
-  flex: none;
-  padding: 0 0.45rem;
-  border-radius: var(--radius-tag);
-  background: var(--brand-soft);
-  font-size: var(--text-xs);
-  font-weight: 800;
-  color: var(--brand-strong);
 }
 
 .autoLine {
@@ -308,37 +325,22 @@
     padding-inline: 0.85rem;
   }
 
-  /* "거주 서울 강서구 … 자동 23곳 ▸" on one line (user request 2026-10-05); the names still open under it */
-  .regionRow {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 0.5rem;
+  /*
+   * the region grid reaches the whole screen width (cycle 22 D11, R12-1): the 지역 선택 section loses the page gutter
+   * and its side border, the grid the section's side padding
+   */
+  .regionSection {
+    margin-inline: calc(-1 * var(--gutter));
+    border-inline: none;
+    border-radius: 0;
   }
 
-  /* region names break between words only ("서울 / 강서구", not "서울 강 / 서구") */
-  .regionLine {
-    flex: 1;
-    gap: 0.4rem;
-    word-break: keep-all;
-    overflow-wrap: normal;
+  .gridBleed {
+    margin-inline: -1.15rem;
   }
 
   .autoLine {
-    flex: none;
-    margin-left: auto;
-    padding-left: 0;
     font-size: var(--text-sm);
-    white-space: nowrap;
-  }
-
-  /* "거주"/"직장" is already at the start of the line */
-  .autoKind {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 }
 

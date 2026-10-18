@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
@@ -7,12 +7,14 @@ import { ChevronDown, ChevronUp } from '../../components/icons'
 import { InfoTip } from '../../components/InfoTip'
 import { LibraryLogo } from '../../components/LibraryLogo'
 import { classificationParts, classificationText } from '../../lib/libraryClassification'
-import { useRegions } from '../region/RegionContext'
-import { RegionModal } from '../region/RegionModal'
-import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
+import type { RegionNotice } from '../region/applyResolutions'
+import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
+import { RegionGrid, type RegionField as GridField } from '../region/RegionGrid'
+import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
 import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
 import { BrowserStorageError, LibraryLimitError } from './myLibraryErrors'
+import { SaveHint } from './SaveHint'
 import styles from './MyLibrariesPage.module.css'
 
 /** Wording [안 문구, 규칙 확정] (flow S10), except the two marked dev placeholders. */
@@ -48,18 +50,30 @@ export function MyLibrariesPage() {
 
 function MyLibraries() {
   const myLibrary = useMyLibrary()
-  const { regions, ready, setRegions, source } = useRegions()
-  const tree = useRegionTree()
-  const labels = useRegionLabels(tree.data)
-  const [editing, setEditing] = useState(false)
+  const { regions, ready, setRegions, source, notices, saveFailed } = useRegions()
+  /** A check was saved in this browser on this visit: the save hint may show (cycle 22 R9). */
+  const [guestSaved, setGuestSaved] = useState(false)
 
-  // the public list with the resolved region ids (ADR-0049)
+  // the public list with the resolved region ids (ADR-0049), asked again after every check (cycle 22 D6); the last
+  // answer stays on screen meanwhile so the grid is not replaced by "불러오는 중"
   const list = useQuery({
     queryKey: ['libraries', regions.residence.join(','), regions.work.join(',')],
     queryFn: ({ signal }) => fetchLibraries(regions.residence, regions.work, signal),
     enabled: myLibrary.status === 'ready' && ready,
     staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   })
+
+  /** A grid check or a chip's ×: saved at once, no search (cycle 22 D6, R11-1). */
+  const toggle = (field: GridField, id: number) => {
+    const current = regions[field]
+    const has = current.includes(id)
+    if (!has && current.length >= MAX_REGIONS_PER_FIELD) return
+    const next: StoredRegions = { ...regions, [field]: has ? current.filter((x) => x !== id) : [...current, id] }
+    // a failure is on screen (saveFailed), nothing else to do here
+    setRegions(next).catch(() => undefined)
+    if (source === 'browser') setGuestSaved(true)
+  }
 
   if (myLibrary.status === 'error' || list.isError) {
     return (
@@ -98,26 +112,16 @@ function MyLibraries() {
       {empty && <p className={styles.state}>{TEXT.empty}</p>}
 
       <RegionSection
-        residence={regions.residence}
-        work={regions.work}
+        regions={regions}
+        notices={notices}
+        saveFailed={saveFailed}
+        guestSaved={guestSaved}
+        onToggle={toggle}
         residenceAuto={rows.filter((row) => row.matchedBy.includes('RESIDENCE'))}
         workAuto={rows.filter((row) => row.matchedBy.includes('WORK'))}
-        labels={labels}
-        onEdit={() => setEditing(true)}
       />
       <ChosenSections rows={rows} />
       <BackLink />
-
-      <RegionModal
-        open={editing}
-        onOpenChange={setEditing}
-        regions={regions}
-        savedTo={source === 'account' ? 'account' : 'browser'}
-        onSave={async (next) => {
-          await setRegions(next)
-          setEditing(false)
-        }}
-      />
     </div>
   )
 }
@@ -136,7 +140,8 @@ function Heading() {
         내 도서관
         <InfoTip label="저장 안내" text={mode === 'account' ? SAVED_AT_ONCE.account : SAVED_AT_ONCE.browser} />
       </h1>
-      <p className={styles.lead}>"내 도서관" 스위치를 켜면 여기 있는 도서관에서 찾아요.</p>
+      {/* cycle 22 R11-2: there is no scope switch any more (ADR-0135) */}
+      <p className={styles.lead}>검색하면 여기 있는 도서관에서 먼저 찾아요</p>
     </header>
   )
 }
@@ -145,9 +150,9 @@ function OpenToAll({ rows }: { rows: LibraryEligibilityRow[] }) {
   return (
     <details className={styles.openToAll}>
       <summary>
-        {/* phones: a shorter line that does not wrap at 320px (user request 2026-10-05) */}
-        <span className={styles.wide}>누구나 가입하는 도서관 {rows.length}곳도 늘 내 도서관에 들어 있어요</span>
-        <span className={styles.narrow}>누구나 가입 {rows.length}곳은 늘 포함돼요</span>
+        {/* phones: a shorter line that does not wrap at 320px (user request 2026-10-05); cycle 22 R11-2 wording */}
+        <span className={styles.wide}>어디 살든 가입되는 도서관 {rows.length}곳도 늘 내 도서관에 들어 있어요</span>
+        <span className={styles.narrow}>어디 살든 가입 {rows.length}곳은 늘 포함돼요</span>
         {/* the same chevron as the header and the search form, down when it opens downward, up while open (user
             2026-10-17: "아래로 내려서 보여주는거니 아래향 화살표로 … 화살표랑 꺽쇠 섞여있는데") */}
         <span className={styles.caret} aria-hidden="true">
@@ -164,10 +169,20 @@ function OpenToAll({ rows }: { rows: LibraryEligibilityRow[] }) {
   )
 }
 
-function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+function Section({
+  title,
+  aside,
+  className,
+  children,
+}: {
+  title: string
+  aside?: ReactNode
+  className?: string
+  children: ReactNode
+}) {
   const id = useId()
   return (
-    <section className={styles.section} aria-labelledby={id}>
+    <section className={className ? `${styles.section} ${className}` : styles.section} aria-labelledby={id}>
       <div className={styles.sectionHead}>
         <h2 id={id} className={styles.sectionTitle}>
           {title}
@@ -180,52 +195,117 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
 }
 
 /**
- * "지역 선택": one [변경] for both fields (S2 has its own 거주/직장 tabs), and under each field the libraries it
- * brings in, "거주 지역으로 자동 N곳 ▸" on one line and folded (user requests 2026-10-05, in place of the design's
- * separate sections). Phones put it on the field's line as "자동 N곳 ▸" (user request 2026-10-05). Nothing to remove
- * there (spec R4).
+ * "지역 선택" (cycle 22 R11-1, flow S10): no [변경] and no dialog any more; a "사는 곳" row and an "일하는 곳" row, each
+ * the chips and the grid (`RegionGrid`), every check saved at once. The 일하는 곳 grid stays folded behind
+ * [일하는 곳도 더하기] until it is opened or has a region (flow "지역 격자 부품"). Under each grid the libraries it brings
+ * in, "거주 지역으로 자동 N곳 ▸", folded (user requests 2026-10-05). Nothing to remove there (spec R4). A failed save
+ * and, before login, the save hint (R9) under the rows.
  */
 function RegionSection({
-  residence,
-  work,
+  regions,
+  notices,
+  saveFailed,
+  guestSaved,
+  onToggle,
   residenceAuto,
   workAuto,
-  labels,
-  onEdit,
 }: {
-  residence: number[]
-  work: number[]
+  regions: StoredRegions
+  notices: RegionNotice[]
+  saveFailed: boolean
+  guestSaved: boolean
+  onToggle: (field: GridField, id: number) => void
   residenceAuto: LibraryEligibilityRow[]
   workAuto: LibraryEligibilityRow[]
-  labels: Map<number, string>
-  onEdit: () => void
 }) {
-  const names = (ids: number[]) =>
-    ids.length === 0 ? '고른 지역이 없어요' : ids.map((id) => labels.get(id) ?? '…').join(', ')
-  const regionLabels = { residence: names(residence), work: names(work) }
+  const [workOpen, setWorkOpen] = useState(false)
+  const showWork = workOpen || regions.work.length > 0
   return (
-    <Section
-      title="지역 선택"
-      aside={
-        <button type="button" className={styles.link} onClick={onEdit} aria-label="지역 선택 변경">
-          변경
-        </button>
-      }
-    >
+    <Section title="지역 선택" className={styles.regionSection}>
       <div className={styles.regionList}>
-        <RegionField kind="거주" regions={regionLabels.residence} rows={residenceAuto} />
-        <RegionField kind="직장" regions={regionLabels.work} rows={workAuto} />
+        <RegionRow
+          title="사는 곳"
+          field="residence"
+          value={regions.residence}
+          notices={notices}
+          onToggle={onToggle}
+          kind="거주"
+          rows={residenceAuto}
+        />
+        {showWork ? (
+          <RegionRow
+            title="일하는 곳"
+            field="work"
+            value={regions.work}
+            onToggle={(field, id) => {
+              // stays open when the last one is removed
+              setWorkOpen(true)
+              onToggle(field, id)
+            }}
+            kind="직장"
+            rows={workAuto}
+          />
+        ) : (
+          <div className={styles.regionBlock}>
+            <h3 className={styles.blockTitle}>일하는 곳</h3>
+            <button type="button" className={styles.addWork} onClick={() => setWorkOpen(true)}>
+              일하는 곳도 더하기
+            </button>
+          </div>
+        )}
       </div>
+      {saveFailed && (
+        <p className={styles.error} role="alert">
+          {REGION_SAVE_FAILED}
+        </p>
+      )}
+      <SaveHint saved={guestSaved} />
     </Section>
   )
 }
 
+/** One field: its title, the grid (chips on top), then "거주 지역으로 자동 N곳 ▸". */
+function RegionRow({
+  title,
+  field,
+  value,
+  notices,
+  onToggle,
+  kind,
+  rows,
+}: {
+  title: string
+  field: GridField
+  value: number[]
+  notices?: RegionNotice[]
+  onToggle: (field: GridField, id: number) => void
+  kind: string
+  rows: LibraryEligibilityRow[]
+}) {
+  const id = useId()
+  return (
+    <div className={styles.regionBlock} role="group" aria-labelledby={id}>
+      <h3 id={id} className={styles.blockTitle}>
+        {title}
+      </h3>
+      <div className={styles.gridBleed}>
+        <RegionGrid
+          field={field}
+          value={value}
+          onToggle={(regionId) => onToggle(field, regionId)}
+          full={value.length >= MAX_REGIONS_PER_FIELD}
+          notices={notices}
+        />
+      </div>
+      <RegionField kind={kind} rows={rows} />
+    </div>
+  )
+}
+
 /**
- * One field: "거주 서울 강서구", then "거주 지역으로 자동 N곳 ▸" under it, which opens to the names. On phones the
- * second part sits at the right end of the first line as "자동 N곳 ▸" (user request 2026-10-05); the names open
- * under the line either way.
+ * The libraries one field brings in: "거주 지역으로 자동 N곳 ▸", which opens to the names (user request 2026-10-05).
  */
-function RegionField({ kind, regions, rows }: { kind: string; regions: string; rows: LibraryEligibilityRow[] }) {
+function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow[] }) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const title = (
@@ -236,28 +316,22 @@ function RegionField({ kind, regions, rows }: { kind: string; regions: string; r
   )
   return (
     <div className={styles.regionField} role="group" aria-labelledby={`${id}-title`}>
-      <div className={styles.regionRow}>
-        <p className={styles.regionLine}>
-          <span className={styles.kind}>{kind}</span>
-          <span className={styles.regions}>{regions}</span>
-        </p>
-        {rows.length === 0 ? (
-          <p className={`${styles.muted} ${styles.autoLine}`}>{title} 없어요</p>
-        ) : (
-          <button
-            type="button"
-            className={`${styles.autoLine} ${styles.fold}`}
-            aria-expanded={open}
-            aria-controls={`${id}-names`}
-            onClick={() => setOpen((value) => !value)}
-          >
-            {title} {rows.length}곳
-            <span className={styles.caret} aria-hidden="true">
-              {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-            </span>
-          </button>
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <p className={`${styles.muted} ${styles.autoLine}`}>{title} 없어요</p>
+      ) : (
+        <button
+          type="button"
+          className={`${styles.autoLine} ${styles.fold}`}
+          aria-expanded={open}
+          aria-controls={`${id}-names`}
+          onClick={() => setOpen((value) => !value)}
+        >
+          {title} {rows.length}곳
+          <span className={styles.caret} aria-hidden="true">
+            {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+          </span>
+        </button>
+      )}
       {open && <NameList id={`${id}-names`} rows={rows} />}
     </div>
   )
