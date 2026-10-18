@@ -1,0 +1,76 @@
+# Cycle 17 test deployment on the EC2 server (not the public opening; plan 17 request 2026-10-18, way A: images are
+# built on the PC and loaded on the server). Smallest set that runs: db + backend + web (nginx). No monitoring.
+# Lives in /srv/chaekcheck next to secrets.env (DB_PASSWORD only, chmod 600, made on the server).
+# Start:  docker compose --env-file secrets.env up -d
+# Ports are bound to 127.0.0.1 only; look from the PC through an SSH tunnel (README.md).
+
+name: chaekcheck
+
+services:
+  db:
+    image: chaekcheck/postgres-bigm:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chaekcheck
+      POSTGRES_USER: chaekcheck
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in secrets.env}
+    # Same settings as the local compose.yaml defaults (cycle 08, ADR-0066). Measure again on this server.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_bigm
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=4MB
+    volumes:
+      - db-data:/var/lib/postgresql
+      # restore file (README.md 3), read only
+      - ./restore:/restore:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: chaekcheck/backend:test
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chaekcheck
+      DB_NAME: chaekcheck
+      DB_USERNAME: chaekcheck
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in secrets.env}
+      TZ: Asia/Seoul
+      # Small heap for the 2GB server (plan 17 request: about -Xmx640m)
+      JAVA_TOOL_OPTIONS: -Xmx640m -XX:+ExitOnOutOfMemoryError
+      # Test settings (plan 17 request): login, picks fetch and usage log off, library pages fetched directly
+      CHAEKCHECK_AUTH_ENABLED: "false"
+      CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
+      CHAEKCHECK_USAGELOG_ENABLED: "false"
+      FETCH_MODE: direct
+    networks:
+      default:
+        # deploy/nginx/local-test.conf sends /api to backend-host:8080
+        aliases:
+          - backend-host
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  web:
+    image: chaekcheck/web:test
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8088:8088"
+
+volumes:
+  db-data:
