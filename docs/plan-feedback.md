@@ -5508,3 +5508,25 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 
 - 18:12에 cloudflared를 띄워 chaekcheck.com을 열었으나 사용자가 "외부 배포하라고 한 적 없다" → cloudflared만 멈춤(지금 530). db·backend·web은 그대로이고 SSH 터널(localhost:8088)로만 봄. 다시 열 때는 사용자에게 먼저 확인. 그 전까지 서버는 `bin/up.sh db backend web`으로만 띄움(이름 없이 돌리면 cloudflared도 뜸)
 - 바로 보기 묶음 10(`holding-batch-size`), 확인 못 한 카드의 상세 페이지 링크는 위 커밋들과 plan 기록(plan f877813) 참고
+
+# 사이클 22
+
+첫 화면 사용성(지역 먼저 묻기 · 결과는 내 도서관부터 · 방문 가입 표시). 인계서: plan `docs/cycles/22-first-screen-usability/handoff.md`.
+
+## 시작
+
+- 시작 커밋 main `1234fe2`(v1.0.1). 작업 폴더 `../chaekcheck-dev-c22`, 브랜치 `cycle-22-first-screen`. 웹만 바뀌므로 docker·DB는 따로 두지 않고 웹 개발 서버가 main의 8080에 붙습니다. 포트: 웹 5191, 폰 LAN 5192(`.claude/launch.json` `c22-web-5191`, `c22-web-lan-5192`).
+- 사이클 20 2단계와의 앞뒤: 인계서대로 22가 먼저, 20 2단계가 22 위에서 rebase.
+- dev가 정할 [안] 화면(사용자 승인 2026-10-18 "이대로 진행", 그림으로 보여 드림): 격자 글자 1rem, 칸 높이 2.5rem 이상, 시도 열 7.5rem(폰 5.5rem), PC 상자 최대 40rem, 시군구 4칸 → 좁으면 3·2칸 / 일하는 곳만 있을 때 접힌 줄 "내 도서관: 일하는 곳 성남시 · N곳 ▾" / 폰 마이페이지 "어디 살든 가입 N곳은 늘 포함돼요" / 정렬 도움말은 인계서 문구 그대로.
+  - 이 프로젝트의 1rem은 데스크톱 약 19.6px, 폰 약 18.4px(뿌리 글자 크기)라 "16px·40px 이상"을 넘습니다. 그래서 40rem 상자는 약 784px이고, 인계서의 "약 640px"에서는 시군구가 3칸입니다.
+- nginx 요청 제한 확인(인계서 [확인 필요]): `deploy/nginx`에서 `PUT /api/v1/me/regions`는 `limit_req`가 없어 체크 연타로 429가 나지 않습니다. 다만 체크마다 나가는 `region_change`는 `/api/v1/usage-events`(IP별 분당 60, burst 20)를 지나므로, 아주 빨리 많이 체크하면 넘친 기록은 nginx가 204로 버립니다(화면 영향 없음, 기록 줄만 빠짐). EC2의 실제 nginx는 17 dev 세션 몫이라 거기서도 같은지는 보지 않았습니다.
+
+## 1단계 (커밋 `2e69237`)
+
+- `readScope(params)`(`S/readScope.ts`), 범위 스위치와 "전체 도서관" 삭제, `SearchPrefs`에서 `guestScope` 삭제·`DROPPED_PREFS`에 `guestScope`·`myScope`, 새 칸 `planCount {key,count} | null`·`openCount | null`·`saveHintClosed`. 지문은 `planCountKey()`(`source|residence|work|libraryIds|visit`, id 정렬), 보이기는 `shownPlanCount()`, `scope=all`이면 `planCountToKeep()`이 저장하지 않음.
+- 검색 당시 값: `useSearchedWith()` → `{searchedWith, retake, resolveAndRetake}`. 페이지를 열고 `RegionContext.ready`가 처음 참이 될 때, `search()`, 결과 안 단추에서 잡습니다. 같은 주소로 [검색]을 다시 누르면 지역·도서관이 스냅샷과 다를 때만 새로 찾고 같으면 요청이 없습니다. 뒤로·앞으로는 스냅샷을 다시 잡지 않습니다(그 주소를 마지막 스냅샷 값으로 찾음).
+- 인계서보다 더 잡는 때(보고): 새로 고침 없는 로그인·로그아웃으로 지역 출처가 바뀔 때, 실패한 계정 읽기가 [다시 시도]로 성공할 때, `invalid_region` 재확인으로 id가 바뀔 때. 앞의 둘은 그 사람의 지역으로 결과를 보이게 하려는 것이고, 셋째는 지금의 자동 재검색을 지키려는 것입니다.
+- `accountFailed`(이름 [안] 그대로). 계정을 읽는 동안 `ready=false`, 실패면 지역 없이 찾음.
+- 방문 빼기: 스위치는 `prefs.visit`만 저장, `search()`가 주소에 씀, 결과는 주소의 `visit`만 읽음(주소에 없으면 `any`).
+- `LibraryScopeToggle.module.css`는 `VisitToggle`도 쓰고 있어 `VisitToggle.module.css`로 이름만 바꿔 남김(3단계에서 `VisitToggle`과 함께 지움).
+- 시험: `npm run build` 통과, vitest 65파일 550개 통과.
