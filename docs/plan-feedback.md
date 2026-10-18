@@ -5444,3 +5444,9 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 사용 알림의 `visitKey`가 본문에 없을 때 헤더 `X-Visit-Key`도 봄(웹은 보내지 않음).
 - 처리방침은 자리 글 1판에 세 줄을 끼워 넣은 것(위 「처리방침 판 처리」); seed 전체 교체는 남은 일.
 - `LoginState`가 토큰 subject만 믿으므로 탈퇴 뒤 만료 토큰이 남은 브라우저의 기록에는 번호가 다시 들어갈 수 있음 [안: 감수] — 3단계 "맞춤 추천 끄기"와 함께 plan이 볼 것.
+
+### main 합치기와 실제 확인 (2026-10-18 오후, 사이클 20 세션)
+
+- main에 합침 `6b40067`(merge; `docs/plan-feedback.md`만 충돌 → 두 절 모두 둠). 워크트리 `c20log`·docker `chaekcheck-c20log` 지움
+- 1판 처리방침 changeset(`sitecontent-002-privacy-policy`)을 고쳤으므로 로컬 `db`·`db-ops`·`db-test`에서 그 판 줄과 `databasechangelog` 줄을 지운 뒤 8080·8081 다시 켬 → `sitecontent-002-privacy-policy` 다시 적용, `usagelog-005-visit-key-account-id` 적용(두 DB 모두 확인)
+- 실제 확인(원래 DB, 임시 서버 8099에 `CHAEKCHECK_USAGELOG_ENABLED=true` — 로컬 기본은 꺼짐이라 8080으로는 기록이 안 남음): `GET /api/v1/books/1449` + `X-Visit-Key: a1b2…8f90` → `book_view.visit_key`에 그 값, 틀린 형식(`short`) → 200 + NULL, `login_status=signed_out`·`account_id` NULL; `search_event`에 두 칸 없음. 웹 5173에서 책 창을 열면 `sessionStorage` `chaekcheck.visitKey`(32자)가 생기고 `/api/v1/books/{id}`에 실림. 확인용 줄 2개는 지움. **로그인한 회원의 `account_id`는 카카오 로그인이 필요해 단위 시험(`UsageLogWriteTests`·`LoginStatusReaderTests`)으로만 봄** — 공개 뒤 운영에서 첫 줄로 확인
