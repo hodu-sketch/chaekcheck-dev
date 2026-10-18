@@ -5383,3 +5383,15 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - plan 20에 알림: CONNECT 407 무챌린지 사실, 비표준 포트(442·8088) 사이트가 Webshare 길로 연결 시간 초과 → 직접 길 예외 목록을 둘지는 plan/사용자 결정
 - 비표준 포트 사이트(`:442`·`:8088`)가 Webshare 길로 연결 시간 초과하는 것: 사용자 결정 **"어짜피 기존 규칙으로 가니까 냅둬"** (2026-10-18, plan 20 전달; plan `multi-source-ip.md` 11절 c1de7b4) → 예외 목록 없이 막힌 길 규칙(5번 연속이면 그 길·그 사이트 10분부터 쉼)에 맡김. 코드 변경 없음
 - 운영 길 설정 [확정] (사용자 "프록시만 사용하도록 하고", 2026-10-18, plan f0b6d86): 운영 `prod.env`는 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE=proxy-only`(조회 서버도 같은 값). 코드 기본값 `all`은 로컬용 그대로. 뜻: EC2 자기 IP로는 도서관 요청도 막힌 길 다시 시험도 안 함, 비표준 포트 사이트(`:442`·`:8088`)는 운영에서 늘 「확인하지 못한 도서관」. 설정 색인 1절에 적음. TTL 위치는 하위 폴더 그대로(plan `reference-index.md`)
+
+# 17 dev에게: 배포 직전 sitecontent seed 교체 메모 (2026-10-18, 사이클 20 세션)
+
+사용자 결정(2026-10-18): seed 교체는 사이클 17 dev가 배포 직전 점검으로 함("17 dev에게 넘겨, 메모만 남겨줘"). 사이클 16 인계 "공개 전에 할 것": `PRE_DEPLOYMENT` 표지가 있는 동안 `sitecontent/002-sitecontent-seed.yaml`을 검토본으로 바꾼 뒤 표지를 없앰.
+
+- 바꿀 파일: `backend/src/main/resources/db/changelog/sitecontent/002-sitecontent-seed.yaml` (changeset 4개, 모두 1판). 기존 changeset을 고치는 것은 `PRE_DEPLOYMENT` 안이라 허용 — 고친 뒤 로컬 `db`·`db-test`·`db-ops`의 `sitecontent` 스키마와 `databasechangelog`의 `sitecontent-002-*` 줄을 지워 다시 적용(`CLAUDE.md` Liquibase 규칙)
+- 본문 출처(plan, 모두 승인본): `docs/cycles/16-notices-and-policies/drafts/` — `terms-of-service.md`, `privacy-policy.md`(8차: ADR-0134 문구 + AWS Korea LLC·Cloudflare 값 채움), `privacy-collection.md`(`consent_items` 4항목 목적/항목/보유 기간/거부할 권리 + 본문 한 줄 "위 정보만 받으며, 탈퇴하면 바로 지웁니다."), `about.md`(지금 seed와 같음). 파일 머리의 `<!-- … -->` 주석은 빼고 `-->` 다음 본문만. 처리방침 4절 담당 줄의 plan 주석 "[확정] (사용자: … research.md 9절"은 본문에서 뺌
+- 시행일: `effective_on` 2026-10-04 → **2026-10-18**(공개일, spec R2-3). 시험 기대값을 함께 고침: `SitecontentSchemaTests.seedHasVersionOneOfTheFourDocuments`(날짜·"검토 전 자리 글" 시작 검사·"## 처리하는 개인정보와 목적" 검사 → 새 본문 기준), `DocumentApiTests` 62~82행(`effectiveOn` 2026-10-04)
+- 가입 동의 기록: `auth/002`가 시험 계정 동의 판을 '1'로 둠 → 판 번호가 1 그대로라 바꿀 것 없음
+- ADR-0134 처리방침 1절 문구는 이 세션의 ADR-0134 작업이 지금 seed에 먼저 넣음(합칠 때 그대로) — 8차 초안에 이미 같은 문구가 있으니 전체 교체 때 덮어써도 같음
+- 첫 공지 「책첵을 시작했어요」(`drafts/notice-first.md`)는 seed가 아니라 공개일에 운영 SQL로 올림(`docs/maintenance/5-sitecontent.md` 1절). seed의 `notice`는 0줄 유지
+- 확인: `./gradlew build`, 웹 `/terms`·`/privacy`·`/about`·가입 화면 동의문 눈으로 확인, 처리방침 표가 목록으로 보이는지(remark-gfm 없음)
