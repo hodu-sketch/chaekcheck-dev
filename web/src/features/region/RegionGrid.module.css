@@ -288,36 +288,108 @@
 }
 
 /*
- * Phones (user 2026-10-19): two native select boxes stacked full width instead of the grid; RegionGrid renders only one of
- * the two pickers, so these rules need no media query.
+ * Phones (user 2026-10-19): [시도 ▾] [시군구 ▾] [+] instead of the grid, smaller chips. RegionGrid renders
+ * only one of the two pickers and marks the root with data-phone, so these rules need no media query.
  */
+
+/*
+ * The callers pull the box out to the screen edges on phones for the full-bleed grid (MyLibrariesPage .gridBleed -1.15rem,
+ * LibraryScopeLine sheet .gridBleed -1.1rem); the select mode gives that inset back, so chips, selects and lines line up
+ * with the "사는 곳"/"일하는 곳" headings. A caller may set --region-grid-inset to its own bleed.
+ */
+.root[data-phone] {
+  padding-inline: var(--region-grid-inset, 1.1rem);
+  box-sizing: border-box;
+}
+
+.root[data-phone] .chips {
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.root[data-phone] .chip {
+  min-height: 0;
+  gap: 0.1rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.6rem;
+  border-radius: var(--radius-tag);
+  font-size: var(--text-sm);
+}
+
+.root[data-phone] .chipRemove {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.root[data-phone] .notices {
+  font-size: var(--text-sm);
+}
+
 .selects {
   display: grid;
+  /* 시도 about 40%, 시군구 the rest, then the square + */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 2.25rem;
   gap: 0.5rem;
 }
 
-.selects .status {
-  padding: 1rem;
+.add {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  cursor: pointer;
 }
 
+/* touch screens may report hover too (cycle 10): only a fine pointer gets it */
+@media (pointer: fine) {
+  .add:hover:not(:disabled) {
+    background: var(--brand);
+    color: #fff;
+  }
+}
+
+.add:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.selects .status,
 .selects .limit {
+  grid-column: 1 / -1;
   margin: 0;
+  font-size: var(--text-sm);
+}
+
+.selects .status {
+  padding: 0.75rem 0;
+  text-align: left;
 }
 
 .select {
   width: 100%;
-  height: 2.75rem;
-  padding: 0 2.5rem 0 0.9rem;
+  min-width: 0;
+  height: 2.25rem;
+  padding: 0 1.9rem 0 0.7rem;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius-control);
   /* the violet chevron (var(--brand)) is drawn here, so every browser shows the same box */
   appearance: none;
   background: var(--card)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237a5cf2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-    no-repeat right 0.9rem center;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237a5cf2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 0.7rem center;
   color: var(--ink);
   font: inherit;
-  font-size: 1rem;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 

@@ -225,7 +225,7 @@ describe('RegionGrid on phones', () => {
     expect(onToggle).not.toHaveBeenCalled()
   })
 
-  it('picking a 시군구 calls onToggle, adds the chip and resets; picking the ✓ one again removes it', async () => {
+  it('picking a 시군구 only selects it; + adds it, the chip shows and the box resets', async () => {
     phone()
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     const onToggle = vi.fn()
@@ -233,29 +233,59 @@ describe('RegionGrid on phones', () => {
     const user = userEvent.setup()
 
     const sigungu = (await screen.findByRole('combobox', { name: '사는 곳 시군구' })) as HTMLSelectElement
-    await user.selectOptions(sigungu, '마포구')
+    const add = screen.getByRole('button', { name: '사는 곳 추가' }) as HTMLButtonElement
+    expect(add.disabled).toBe(true)
 
-    expect(onToggle).toHaveBeenCalledWith(1114)
+    await user.selectOptions(sigungu, '마포구')
+    expect(onToggle).not.toHaveBeenCalled()
+    expect(sigungu.value).toBe('1114')
+    expect(add.disabled).toBe(false)
+
+    await user.click(add)
+    expect(onToggle).toHaveBeenCalledExactlyOnceWith(1114)
     expect(sigungu.value).toBe('')
+    expect(add.disabled).toBe(true)
     expect(within(screen.getByRole('list', { name: '고른 사는 곳' })).getByText('서울 마포구')).toBeTruthy()
     expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '✓ 마포구', '중구'])
-
-    await user.selectOptions(sigungu, '✓ 마포구')
-    expect(onToggle).toHaveBeenLastCalledWith(1114)
-    expect(onToggle).toHaveBeenCalledTimes(2)
-    expect(sigungu.value).toBe('')
-    expect(screen.queryByRole('list', { name: '고른 사는 곳' })).toBeNull()
-    expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '마포구', '중구'])
   })
 
-  it('at the limit the not-chosen options are disabled and the limit line shows', async () => {
+  it('a chosen 시군구 shows ✓ and is disabled; the chip × removes it', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    const onToggle = vi.fn()
+    renderGrid({ initial: [1114], onToggle })
+    const user = userEvent.setup()
+
+    await screen.findByRole('combobox', { name: '사는 곳 시군구' })
+    expect((screen.getByRole('option', { name: '✓ 마포구' }) as HTMLOptionElement).disabled).toBe(true)
+    expect((screen.getByRole('option', { name: '중구' }) as HTMLOptionElement).disabled).toBe(false)
+
+    await user.click(screen.getByRole('button', { name: '서울 마포구 빼기' }))
+    expect(onToggle).toHaveBeenCalledWith(1114)
+    expect(screen.getByRole('option', { name: '마포구' })).toBeTruthy()
+  })
+
+  it('changing the 시도 drops the picked 시군구', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    renderGrid()
+    const user = userEvent.setup()
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: '사는 곳 시군구' }), '중구')
+    await user.selectOptions(screen.getByRole('combobox', { name: '사는 곳 시도' }), '세종')
+
+    expect((screen.getByRole('combobox', { name: '사는 곳 시군구' }) as HTMLSelectElement).value).toBe('')
+    expect((screen.getByRole('button', { name: '사는 곳 추가' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('at the limit the not-chosen options and + are disabled and the limit line shows', async () => {
     phone()
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     renderGrid({ initial: [1114], full: true })
 
     await screen.findByRole('combobox', { name: '사는 곳 시군구' })
     expect((screen.getByRole('option', { name: '중구' }) as HTMLOptionElement).disabled).toBe(true)
-    expect((screen.getByRole('option', { name: '✓ 마포구' }) as HTMLOptionElement).disabled).toBe(false)
+    expect((screen.getByRole('button', { name: '사는 곳 추가' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByText('최대 20곳이에요')).toBeTruthy()
   })
 

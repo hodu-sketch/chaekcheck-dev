@@ -42,7 +42,7 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
   const activeSido = tree.data?.find((s) => s.id === sidoId) ?? initialSido
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-phone={phone || undefined}>
       {value.length > 0 && (
         <ul className={styles.chips} aria-label={`고른 ${fieldLabel}`}>
           {value.map((id) => {
@@ -56,7 +56,7 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
                   onClick={() => onToggle(id)}
                   aria-label={`${label} 빼기`}
                 >
-                  <Cross size={12} />
+                  <Cross size={phone ? 10 : 12} />
                 </button>
               </li>
             )
@@ -137,8 +137,8 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
 }
 
 /**
- * Phones (user 2026-10-19): a 시도 select, then that 시도's 시군구 select. Picking a 시군구 toggles it at once and the box goes
- * back to "시군구 고르기"; chosen ones carry a leading ✓ and picking one again removes it, as the grid's cells do.
+ * Phones (user 2026-10-19): [시도 ▾] [시군구 ▾] [+]. Picking a 시군구 only selects it; + adds it (onToggle) and the box goes
+ * back to "시군구 고르기". Chosen ones carry a leading ✓ and cannot be picked (removing is the chip ×'s job).
  */
 function SelectPicker({
   fieldLabel,
@@ -157,13 +157,21 @@ function SelectPicker({
   onSelectSido: (id: number) => void
   onToggle: (id: number) => void
 }) {
+  const [picked, setPicked] = useState<number | null>(null)
+  // only a 시군구 of the shown 시도 that is not chosen yet can be added
+  const pending =
+    picked !== null && active.children.some((c) => c.id === picked) && !chosen.includes(picked) && !full ? picked : null
+
   return (
     <>
       <select
         className={styles.select}
         aria-label={`${fieldLabel} 시도`}
         value={active.id}
-        onChange={(e) => onSelectSido(Number(e.target.value))}
+        onChange={(e) => {
+          onSelectSido(Number(e.target.value))
+          setPicked(null)
+        }}
       >
         {sidos.map((sido) => (
           <option key={sido.id} value={sido.id}>
@@ -174,22 +182,34 @@ function SelectPicker({
       <select
         className={styles.select}
         aria-label={`${fieldLabel} 시군구`}
-        // always back to the placeholder: the choice shows as a chip, not in the box
-        value=""
-        onChange={(e) => {
-          if (e.target.value) onToggle(Number(e.target.value))
-        }}
+        value={pending ?? ''}
+        onChange={(e) => setPicked(e.target.value ? Number(e.target.value) : null)}
       >
         <option value="">시군구 고르기</option>
         {active.children.map((sigungu) => {
           const checked = chosen.includes(sigungu.id)
           return (
-            <option key={sigungu.id} value={sigungu.id} disabled={!checked && full}>
+            <option key={sigungu.id} value={sigungu.id} disabled={checked || full}>
               {checked ? `✓ ${sigungu.name}` : sigungu.name}
             </option>
           )
         })}
       </select>
+      <button
+        type="button"
+        className={styles.add}
+        aria-label={`${fieldLabel} 추가`}
+        disabled={pending === null}
+        onClick={() => {
+          if (pending === null) return
+          onToggle(pending)
+          setPicked(null)
+        }}
+      >
+        <svg width={14} height={14} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden focusable={false}>
+          <path d="M6 1.5v9M1.5 6h9" />
+        </svg>
+      </button>
       {full && <p className={styles.limit}>최대 {MAX_REGIONS_PER_FIELD}곳이에요</p>}
     </>
   )
