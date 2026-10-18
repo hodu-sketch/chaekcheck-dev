@@ -1,7 +1,7 @@
 # Cycle 17 test deployment on the EC2 server (not the public opening; plan 17 request 2026-10-18, way A: images are
 # built on the PC and loaded on the server). Smallest set that runs: db + backend + web (nginx). No monitoring.
 # Lives in /srv/chaekcheck next to secrets.env (DB_PASSWORD only, chmod 600, made on the server).
-# Start:  docker compose --env-file secrets.env up -d
+# Start:  docker compose --env-file secrets.env --env-file egress.env up -d
 # Ports are bound to 127.0.0.1 only; look from the PC through an SSH tunnel (README.md).
 
 name: chaekcheck
@@ -57,12 +57,12 @@ services:
       CHAEKCHECK_USAGELOG_ENABLED: "false"
       FETCH_MODE: direct
       # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
-      # proxy-only). Values from secrets.env, the same names as .env.example; the backend does not start without them.
-      CHAEKCHECK_AVAILABILITY_EGRESS_MODE: ${CHAEKCHECK_AVAILABILITY_EGRESS_MODE:-proxy-only}
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES:?set the proxy list in secrets.env}
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR:-webshare}
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME:?set in secrets.env}
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD:?set in secrets.env}
+      # proxy-only). Webshare allows this server by IP Authorization (52.64.117.112), so no proxy user or password:
+      # with one the backend would send Basic credentials first (plan 17 research). The list (host:port, comma
+      # separated) is in egress.env next to this file; the backend does not start without it.
+      CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES:?set the proxy list in egress.env}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: webshare
     networks:
       default:
         # deploy/nginx/local-test.conf sends /api to backend-host:8080
