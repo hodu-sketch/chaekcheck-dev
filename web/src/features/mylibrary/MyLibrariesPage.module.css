@@ -262,9 +262,11 @@
   font-weight: 800;
 }
 
-/* the grid takes the section's full width (D11); on phones the whole screen width, below */
+/* the grid takes the section's full width (D11); on phones the selects sit in the card's padding, so RegionGrid adds
+   no inset of its own here */
 .gridBleed {
   min-width: 0;
+  --region-grid-inset: 0;
 }
 
 /* [일하는 곳도 더하기]: the grid stays folded until pressed (flow "지역 격자 부품") */
