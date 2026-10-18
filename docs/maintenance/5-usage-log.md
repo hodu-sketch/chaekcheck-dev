@@ -18,10 +18,10 @@
 | 표 | 한 줄 | 주요 칸 |
 |---|---|---|
 | `search_event` | 검색 하나 | `kind`, 검색어 셋, 검색 방식, `scope`·`visit`, 지역·고른 도서관, `result_count` |
-| `book_view` | 책 페이지 하나(404는 없음) | `book_id`, 지역·고른 도서관 |
+| `book_view` | 책 페이지 하나(404는 없음) | `book_id`, 지역·고른 도서관, `account_id`·`visit_key` |
 | `search_more` | 더 보기 하나 | `kind`, `seq`, `library_id`, 검색 조건 칸 전부 |
-| `library_click` | 도서관 링크 누름 | `library_id`, `place`, `screen`, `book_id` |
-| `screen_event` | 화면 행동 | `kind`와 그 종류의 칸만 |
+| `library_click` | 도서관 링크 누름 | `library_id`, `place`, `screen`, `book_id`, `account_id`·`visit_key` |
+| `screen_event` | 화면 행동 | `kind`와 그 종류의 칸만, `account_id`·`visit_key` |
 | `library_response_daily` | (서울 날짜, 도서관, 출처)마다 하루 한 줄 | 결과별 수, `ok_ms_total`, `ok_ms_max` |
 | `rejected_event` | 받아들이지 않은 사용 알림 | `reason`, `raw_values`(2KB까지) |
 | `dropped_batch` | 버린 묶음 | `row_count`, `reason` |
@@ -56,6 +56,11 @@
 - `client_ip`
   - nginx가 넣은 `X-Real-IP`이고, 30일 뒤 비웁니다.
   - 배포에서 사용자 IP를 되살리는 설정(`real_ip_header`)은 사이클 17이 정합니다.
+- `account_id`·`visit_key` (ADR-0134, `usagelog/005`; `book_view`·`library_click`·`screen_event`에만, 검색 표 둘에는 없음)
+  - `account_id`: 로그인한 회원의 번호입니다(로그인 쿠키의 서명이 맞으면 만료됐어도). 비로그인·로그인 꺼짐이면 NULL, FK 없음, 색인 없음.
+  - `visit_key`: 브라우저 탭이 열릴 때 만든 32자 난수(`sessionStorage`, 쿠키 아님, 탭마다 다름)입니다. 책 상세 GET의 헤더 `X-Visit-Key`, 사용 알림 본문의 `visitKey`로 옵니다. 형식(영숫자 16~64자)이 틀리면 NULL로 두고 거절하지 않습니다.
+  - 탈퇴(`AccountDeleted`)하면 `usagelog`가 세 표의 그 회원 `account_id`를 NULL로 비웁니다(줄은 남김, `UsageLogAccountDeletedCleanup`, 로그인 켜짐일 때만 있는 listener). "맞춤 추천 끄기" 설정은 AI 추천 3단계에서 만듭니다.
+  - 운영 통계 SQL은 `account_id`를 읽지 않습니다. 같이 본 책 계산은 `visit_key`만 쓰고 `client_ip`를 읽지 않습니다.
 
 ### `library_click`
 
