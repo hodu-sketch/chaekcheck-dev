@@ -28,7 +28,7 @@ export const SCOPE_TEXT = {
   workShort: '재직',
   work: '일하는 곳',
   chosen: (count: number) => `직접 추가 ${count}곳`,
-  chosenHint: '상세검색이나 마이페이지에서 이름으로 더할 수 있어요',
+  chosenHint: '마이페이지에서 이름으로 더할 수 있어요',
   disabled: '꺼진 도서관',
   visitNone: '직접 가야 가입되는 도서관은 빼기',
   // under 직접 추가, apart from the 방문 가입 switch (user 2026-10-19: "가입조건 직접방문 거주 완전다른거인데 같이있어서
