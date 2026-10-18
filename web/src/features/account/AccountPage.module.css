@@ -15,6 +15,8 @@
 }
 
 .muted {
+  /* Korean lines break between words, not inside one (phones) */
+  word-break: keep-all;
   color: var(--ink-soft);
   font-size: var(--text-md);
 }
