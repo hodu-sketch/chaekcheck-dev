@@ -30,7 +30,7 @@
 .page[data-state='start'] .searchArea {
   width: 100%;
   max-width: 52rem;
-  margin: 0 auto 12vh;
+  margin: 0 auto 24vh;
   padding-top: 0;
   gap: 1.4rem;
   align-items: center;
