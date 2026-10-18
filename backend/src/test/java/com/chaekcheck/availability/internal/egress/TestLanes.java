@@ -20,7 +20,7 @@ public final class TestLanes {
 	public static EgressLanes of(EgressMode mode, List<EgressLane> lanes, HostRules rules, LaneThrottle throttle,
 			SiteFetcher siteFetcher, Clock clock) {
 		return new EgressLanes(mode, lanes, rules, throttle, new InMemoryBlockedLanes(5, Duration.ofMinutes(10), Duration.ofDays(7)),
-				siteFetcher, new LaneCounters(lanes), clock);
+				null, siteFetcher, new LaneCounters(lanes), clock);
 	}
 
 }

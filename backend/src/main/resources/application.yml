@@ -162,6 +162,11 @@ chaekcheck:
         retest-check-interval: 30s
         # one retest request, the lane's throttle wait included [안]
         retest-timeout: 20s
+        # An answer that took this long counts like no answer above (user decision 2026-10-18: "느린 것도 실패로
+        # 세줘"), so a proxy that is slow on a site stops being used there after the same failures-to-block in a row.
+        # Detail and search pages usually answer in 0.2-1.5s; the read timeout is 5s [안 3s].
+        # docs/maintenance/settings-index.md
+        slow-answer: 3s
     # 5s: some sites take 1-3s to connect (Gyeonggi education office, 2026-09-29); cycle 01 value was 3s (user decision 2026-09-29)
     connect-timeout: 5s
     read-timeout: 5s

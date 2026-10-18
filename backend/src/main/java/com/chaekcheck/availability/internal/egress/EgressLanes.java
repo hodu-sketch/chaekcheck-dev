@@ -48,6 +48,9 @@ public final class EgressLanes {
 
 	private final BlockedLanes blocked;
 
+	/** An answer that took this long counts like no answer for pausing the lane on that host; null = off */
+	private final Duration slowAnswer;
+
 	private final SiteFetcher siteFetcher;
 
 	private final LaneCounters counters;
@@ -57,16 +60,19 @@ public final class EgressLanes {
 	/**
 	 * @param allLanes every configured lane ({@link EgressLane#list}); {@code mode} picks the allowed ones and fails
 	 * when none is left ({@code proxy-only} with an empty proxy list stops the start)
+	 * @param slowAnswer an answer that took at least this long is a block signal like no answer (user decision
+	 * 2026-10-18: a proxy that is slow on a site stops being used there); null = only failures count
 	 * @param siteFetcher sends on the lane it is given (one client per lane behind it)
 	 */
 	public EgressLanes(EgressMode mode, List<EgressLane> allLanes, HostRules rules, LaneThrottle throttle,
-			BlockedLanes blocked, SiteFetcher siteFetcher, LaneCounters counters, Clock clock) {
+			BlockedLanes blocked, Duration slowAnswer, SiteFetcher siteFetcher, LaneCounters counters, Clock clock) {
 		this.mode = mode;
 		this.lanes = mode.allowed(allLanes);
 		this.vendor = lanes.stream().filter(lane -> !lane.isDirect()).map(EgressLane::vendor).findFirst().orElse("-");
 		this.rules = rules;
 		this.throttle = throttle;
 		this.blocked = blocked;
+		this.slowAnswer = slowAnswer;
 		this.siteFetcher = siteFetcher;
 		this.counters = counters;
 		this.clock = clock;
@@ -140,7 +146,7 @@ public final class EgressLanes {
 		counters.request(lane.id());
 		try {
 			SiteResponse response = siteFetcher.fetch(uri, deadline, lane);
-			ended(lane, host, uri, BlockSignal.of(response), !response.isSuccess(), start, retest);
+			ended(lane, host, uri, BlockSignal.of(response) || slow(start), !response.isSuccess(), start, retest);
 			return response.via() != null && response.via().equals(lane.id()) ? response
 					: new SiteResponse(response.status(), response.contentType(), response.location(), response.body(),
 							lane.id());
@@ -149,6 +155,11 @@ public final class EgressLanes {
 			ended(lane, host, uri, BlockSignal.of(ex), true, start, retest);
 			throw ex;
 		}
+	}
+
+	/** Whether a request that started at {@code start} took at least {@code slowAnswer}. */
+	private boolean slow(Instant start) {
+		return slowAnswer != null && Duration.between(start, clock.instant()).compareTo(slowAnswer) >= 0;
 	}
 
 	private void ended(EgressLane lane, String host, URI uri, boolean signal, boolean failed, Instant start,

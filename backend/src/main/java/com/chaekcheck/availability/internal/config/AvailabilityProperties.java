@@ -65,9 +65,11 @@ public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostM
 		 * @param maxPause the longest pause after doubling [확정 7d]
 		 * @param retestCheckInterval how often pauses that ran out are looked for [안 30s]
 		 * @param retestTimeout deadline of one retest request, throttle wait included [안 20s]
+		 * @param slowAnswer an answer that took at least this long counts as a block signal too (user decision
+		 * 2026-10-18: "느린 것도 실패로 세줘") [안 3s]
 		 */
 		public record Block(int failuresToBlock, Duration firstPause, Duration maxPause, Duration retestCheckInterval,
-				Duration retestTimeout) {
+				Duration retestTimeout, Duration slowAnswer) {
 		}
 
 	}

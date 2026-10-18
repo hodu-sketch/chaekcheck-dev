@@ -257,7 +257,7 @@ class LaneSiteFetcherProxyTests {
 		closing.add(fetcher);
 		return new EgressLanes(mode, laneList, new HostRules(1, Duration.ZERO, 3, ".dkyobobook.co.kr"),
 				new InMemoryLaneThrottle(Clock.systemUTC()),
-				new InMemoryBlockedLanes(5, Duration.ofMinutes(10), Duration.ofDays(7)), fetcher,
+				new InMemoryBlockedLanes(5, Duration.ofMinutes(10), Duration.ofDays(7)), null, fetcher,
 				new LaneCounters(laneList), Clock.systemUTC());
 	}
 

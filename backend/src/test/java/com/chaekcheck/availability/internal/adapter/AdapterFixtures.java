@@ -33,7 +33,7 @@ public final class AdapterFixtures {
 	public static final AvailabilityProperties.Egress EGRESS = new AvailabilityProperties.Egress(
 			com.chaekcheck.availability.internal.egress.EgressMode.ALL, "", "webshare", "", "",
 			new AvailabilityProperties.Egress.Block(5, Duration.ofMinutes(10), Duration.ofDays(7), Duration.ofSeconds(30),
-					Duration.ofSeconds(20)));
+					Duration.ofSeconds(20), Duration.ofSeconds(3)));
 
 	/** KYOBO record count 50 matches the cycle 01 fixtures (saved with recordCount=50). */
 	public static final AvailabilityProperties PROPERTIES = new AvailabilityProperties(Duration.ofMinutes(3), CACHES, 1,

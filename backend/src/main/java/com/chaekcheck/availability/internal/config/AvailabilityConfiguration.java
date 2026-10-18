@@ -133,7 +133,7 @@ class AvailabilityConfiguration {
 	EgressLanes egressLanes(AvailabilityProperties properties, HostRules hostRules, LaneThrottle laneThrottle,
 			BlockedLanes blockedLanes, SiteFetcher siteFetcher, LaneCounters laneCounters) {
 		return new EgressLanes(properties.egress().mode(), laneList(properties), hostRules, laneThrottle, blockedLanes,
-				siteFetcher, laneCounters, Clock.systemUTC());
+				properties.egress().block().slowAnswer(), siteFetcher, laneCounters, Clock.systemUTC());
 	}
 
 	/** Retests paused lanes: 10 min, doubling, 7 days at most. */

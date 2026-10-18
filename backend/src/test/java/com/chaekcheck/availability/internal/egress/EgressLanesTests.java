@@ -39,7 +39,13 @@ class EgressLanesTests {
 
 	static final List<EgressLane> LANES = EgressLane.list("10.0.0.1:6811,10.0.0.2:6699", "webshare");
 
+	/** An answer that takes this long counts like no answer (user decision 2026-10-18) */
+	static final Duration SLOW_ANSWER = Duration.ofSeconds(3);
+
 	MutableClock clock = new MutableClock(T0);
+
+	/** host -> lane id -> how long its answers take (the clock moves on while the site answers) */
+	final Map<String, Map<String, Duration>> answerTime = new ConcurrentHashMap<>();
 
 	/** host -> the lane ids whose requests to that host are refused with 403 */
 	final Map<String, List<String>> refusing = new ConcurrentHashMap<>();
@@ -51,6 +57,7 @@ class EgressLanesTests {
 
 	SiteFetcher site = (uri, deadline, lane) -> {
 		sent.computeIfAbsent(uri.getHost(), h -> new CopyOnWriteArrayList<>()).add(lane.id());
+		clock.advance(answerTime.getOrDefault(uri.getHost(), Map.of()).getOrDefault(lane.id(), Duration.ZERO));
 		boolean refused = refusing.getOrDefault(uri.getHost(), List.of()).contains(lane.id());
 		return new SiteResponse(refused ? 403 : 200, "text/html", null, new byte[] { 1 }, lane.id());
 	};
@@ -58,7 +65,7 @@ class EgressLanesTests {
 	EgressLanes lanes(EgressMode mode) {
 		return new EgressLanes(mode, LANES, new HostRules(1, Duration.ZERO, 3, ".dkyobobook.co.kr"),
 				new InMemoryLaneThrottle(clock), new InMemoryBlockedLanes(5, Duration.ofMinutes(10), Duration.ofDays(7)),
-				site, new LaneCounters(LANES), clock);
+				SLOW_ANSWER, site, new LaneCounters(LANES), clock);
 	}
 
 	@Test
@@ -103,6 +110,21 @@ class EgressLanesTests {
 		}
 		assertThat(sent.get("b.test")).contains("proxy-01");
 		assertThat(lanes.blocked().isPaused("proxy-01", "b.test", clock.instant())).isFalse();
+	}
+
+	// user decision 2026-10-18: a lane that answers a host slowly is paused there like one that does not answer
+	@Test
+	void slowAnswersPauseTheLaneOnThatHostAndAnswersUnderTheLimitDoNot(CapturedOutput output) {
+		EgressLanes lanes = lanes(EgressMode.PROXY_ONLY);
+		answerTime.put("a.test", Map.of("proxy-01", SLOW_ANSWER.plusMillis(500), "proxy-02", SLOW_ANSWER.minusMillis(500)));
+		for (int i = 0; i < 30; i++) {
+			assertThat(lanes.fetch(A, Instant.MAX).status()).isEqualTo(200);
+		}
+
+		assertThat(lanes.blocked().isPaused("proxy-01", "a.test", clock.instant())).isTrue();
+		assertThat(lanes.blocked().isPaused("proxy-02", "a.test", clock.instant())).isFalse();
+		assertThat(sent.get("a.test").stream().filter("proxy-01"::equals).count()).isEqualTo(5);
+		assertThat(output.getOut()).contains("lane_paused host=a.test lane=proxy-01 vendor=webshare");
 	}
 
 	@Test
@@ -219,7 +241,7 @@ class EgressLanesTests {
 	void oneTimeoutOrBodyTooLargeDoesNotPauseALane() {
 		EgressLanes lanes = new EgressLanes(EgressMode.ALL, List.of(EgressLane.DIRECT),
 				new HostRules(1, Duration.ZERO, 3, ".dkyobobook.co.kr"), new InMemoryLaneThrottle(clock),
-				new InMemoryBlockedLanes(5, Duration.ofMinutes(10), Duration.ofDays(7)), failing(uri -> {
+				new InMemoryBlockedLanes(5, Duration.ofMinutes(10), Duration.ofDays(7)), SLOW_ANSWER, failing(uri -> {
 					if (uri.getPath().endsWith("big")) {
 						throw UpstreamException.bodyTooLarge(uri, 1, 2, null);
 					}
