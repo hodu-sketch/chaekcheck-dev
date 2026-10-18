@@ -59,9 +59,10 @@ services:
       # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
       # proxy-only). Webshare allows this server by IP Authorization (52.64.117.112), so no proxy user or password:
       # with one the backend would send Basic credentials first (plan 17 research). The list (host:port, comma
-      # separated) is in egress.env next to this file; the backend does not start without it.
+      # separated) is WEBSHARE_PROXIES (Parameter Store /chaekcheck/prod/WEBSHARE_PROXIES through up.sh, or egress.env
+      # on the test server); the backend does not start without it.
       CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES:?set the proxy list in egress.env}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${WEBSHARE_PROXIES:?set WEBSHARE_PROXIES (egress.env, or Parameter Store through up.sh)}
       CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: webshare
     networks:
       default:

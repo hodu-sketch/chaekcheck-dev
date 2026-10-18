@@ -5491,3 +5491,9 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - nginx `/notices`, `/notices/{번호}`는 `chaekcheck-locations.conf`에 이미 있음(사이클 16). `X-Visit-Key`: nginx는 요청 헤더를 그대로 넘기고 막는 설정이 없음(이름에 밑줄이 없어 `underscores_in_headers`와 상관없음)
 - `npm audit`(2026-10-18): 높음 1건 `source-map-js` 1.2.1(GHSA-68fv-2mgg-jv7q). `jsdom`과 `vite`→`postcss`를 거쳐 들어오는 개발용 의존성이라, `npm audit --omit=dev`는 0건. `npm audit fix`는 하지 않음
 - `CHAEKCHECK_USAGELOG_ENABLED`를 공개일에 true로 하는 것은 운영 설정 몫. 시험 배포에서는 false
+
+## 나가는 길과 `up.sh` (같은 날 이어서)
+
+- 시험 배포를 처음 띄울 때 나가는 길 설정을 넣지 않아 `mode=ALL proxies=0`, 곧 **서버 자기 IP로 조회**했음(사용자가 발견). Webshare는 IP 인증(EC2 52.64.117.112)이라 아이디·비밀번호 없이 주소 목록만 넣으면 됨. 목록 20개를 서버 `egress.env`로 옮기고 `proxy-only`로 다시 띄움 → `mode=PROXY_ONLY lanes=20 direct=0 proxies=20`. 소년이 온다 스트림: 자기 IP 12곳 중 7곳 → 프록시 12곳 중 10곳 성공. 남은 2곳(62·73 시간 초과)은 PC에서도 실패
+- compose는 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`를 `${WEBSHARE_PROXIES}`에서 받음(plan 17 이름: Parameter Store `/chaekcheck/prod/WEBSHARE_PROXIES`)
+- 새 `deploy/prod/bin/up.sh`(ADR-0103·0104, design-delta "띄우기"): `secrets.env`가 손으로 둔 파일(첫 줄 표지 없음)이면 그대로 쓰고, 아니면 `/chaekcheck/prod/`를 EC2 역할로 읽어 이름 끝 = 변수 이름으로 `secrets.env`(600, 임시 파일 뒤 이동)에 씀. 필수 이름이 빠지거나 읽기가 실패하면 아무것도 쓰지 않고 멈춤. 값에 작은따옴표·줄바꿈이 있으면 멈춤(compose의 작은따옴표 값은 그대로 읽힘). `prod.env`가 있으면 함께 넘김. 필수 이름 [안]: `DB_PASSWORD WEBSHARE_PROXIES`(로그인·터널·사서추천을 켜는 compose가 생기면 더함, TODO). 가짜 `aws`·`docker`로 6가지(성공, 필수 빠짐, 읽기 실패, 따옴표, 손으로 둔 파일, `prod.env`) 확인. **실제 EC2에서는 아직 돌리지 않음**: 서버에 AWS CLI가 있는지, 역할에 `kms:Decrypt`가 필요한지 확인 못 함(이 세션에서 서버의 `aws` 호출이 권한에서 막힘)
