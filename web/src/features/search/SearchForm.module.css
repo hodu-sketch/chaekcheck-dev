@@ -477,6 +477,8 @@
  * controls (user 2026-10-19: big controls were too big).
  */
 .mine {
+  /* the region rows sit in the panel's padding: RegionGrid adds no inset of its own on phones */
+  --region-grid-inset: 0;
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.75rem 0.9rem;
