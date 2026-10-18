@@ -1,4 +1,4 @@
-import { Popover } from 'radix-ui'
+import { Dialog } from 'radix-ui'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { VisitFilter } from '../../api/types'
@@ -133,31 +133,35 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
 
   return (
     <div className={styles.root} data-centered={centered || undefined}>
-      <Popover.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
-        <Popover.Anchor className={styles.line}>
-          <Popover.Trigger
+      {/* a modal window in the middle of the screen (user 2026-10-19: "버튼 누르면 모달 창이 나와서 거기에서 고르도록") */}
+      <Dialog.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
+        <div className={styles.line}>
+          <Dialog.Trigger
             className={first ? styles.pick : styles.folded}
             aria-label={first ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
           >
             {first ? SCOPE_TEXT.pick : text}
             {!first && <Caret />}
-          </Popover.Trigger>
-        </Popover.Anchor>
-        <Popover.Portal>
-          <Popover.Content
+          </Dialog.Trigger>
+        </div>
+        <Dialog.Portal>
+          <Dialog.Overlay className={styles.overlay} />
+          <Dialog.Content
             className={styles.box}
-            side="bottom"
-            align={centered ? 'center' : 'start'}
-            sideOffset={8}
-            collisionPadding={16}
-            // never flipped above the line (it would cover the search box), as the ⚙ window on wider screens
-            avoidCollisions={false}
-            aria-label="찾을 도서관"
+            aria-describedby={undefined}
             onOpenAutoFocus={(event) => {
               // the 일하는 곳 row takes the focus itself (LibraryScopeBody)
               if (box === 'work') event.preventDefault()
             }}
           >
+            <div className={styles.boxHead}>
+              <Dialog.Title className={styles.boxTitle}>{SCOPE_TEXT.sheetTitle}</Dialog.Title>
+              <Dialog.Close className={styles.boxClose} aria-label="닫기">
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                  <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </Dialog.Close>
+            </div>
             {box !== null && (
               <LibraryScopeBody
                 key={box}
@@ -169,16 +173,12 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
                 onLeave={() => onBoxChange(null)}
               />
             )}
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
       {first && (
-        <p className={styles.pickNote}>
-          {SCOPE_TEXT.pickNote} ·{' '}
-          <button type="button" className={styles.linkButton} onClick={() => onBoxChange('work')}>
-            {SCOPE_TEXT.addWork}
-          </button>
-        </p>
+        // no [일하는 곳도 더하기] here (user 2026-10-19: "이건 pc/태블릿에 있으면 빼줘"); it is inside the box
+        <p className={styles.pickNote}>{SCOPE_TEXT.pickNote}</p>
       )}
     </div>
   )
@@ -211,6 +211,7 @@ export function LibraryScopeChip({ onOpen }: ChipProps) {
       <button
         type="button"
         className={styles.chip}
+        data-pick={text === null || undefined}
         onClick={onOpen}
         aria-haspopup="dialog"
         aria-label={text === null ? undefined : `${SCOPE_TEXT.mine}: ${text}`}

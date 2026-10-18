@@ -34,8 +34,6 @@ type Props = {
   onSettingsChange: (settings: SearchSettings) => void
   /** Phones: the settings open as a bottom sheet (without "찾을 도서관", which is the chip's own sheet). */
   settingsSheet?: boolean
-  /** Wider screens: the 방문 가입 빼기 switch in the settings window (cycle 22 R8-1). */
-  settingsVisit?: ReactNode
   /** Phones: the "내 도서관" chip, on its own line right under the title box (cycle 22 R2-1). */
   chip?: ReactNode
   /** Phones: the sort, at the right end of the "상세검색 · 설정" line (user request 2026-10-05). */
@@ -56,7 +54,6 @@ export function SearchForm({
   onSearch,
   onSettingsChange,
   settingsSheet = false,
-  settingsVisit,
   chip,
   lineEnd,
 }: Props) {
@@ -166,7 +163,6 @@ export function SearchForm({
           settings={settings}
           onChange={onSettingsChange}
           sheet={settingsSheet}
-          visitSwitch={settingsVisit}
         />
         {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>

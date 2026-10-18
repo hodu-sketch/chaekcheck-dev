@@ -10,7 +10,7 @@ import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
-import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, VisitSwitch, type BoxFocus } from './LibraryScopeLine'
+import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, type BoxFocus } from './LibraryScopeLine'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
@@ -286,7 +286,6 @@ export function SearchPage() {
           onSearch={search}
           onSettingsChange={changeSettings}
           settingsSheet={phone}
-          settingsVisit={phone ? undefined : <VisitSwitch visit={prefs.visit} onChange={changeVisit} />}
           chip={phone ? <LibraryScopeChip {...scopeCommon} onOpen={() => openPicker('residence')} /> : undefined}
           lineEnd={
             phone && bookQuery ? (

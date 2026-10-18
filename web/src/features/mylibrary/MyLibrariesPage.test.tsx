@@ -121,6 +121,22 @@ function renderPage() {
 
 const section = (name: string) => screen.getByRole('region', { name })
 
+/** The region picker (user 2026-10-19): [+] shows a 시도 and a 시군구 select; picking a 시군구 adds it at once. */
+async function openPicker(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, field: string) {
+  const add = (await within(row).findByRole('button', { name: `${field} 추가` })) as HTMLButtonElement
+  await waitFor(() => expect(add.disabled).toBe(false))
+  await user.click(add)
+}
+
+async function pickRegion(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, field: string, sigungu: string) {
+  await openPicker(user, row, field)
+  await user.selectOptions(within(row).getByRole('combobox', { name: `${field} 시도` }), '서울')
+  await user.selectOptions(within(row).getByRole('combobox', { name: `${field} 시군구` }), sigungu)
+}
+
+const sigunguOption = (row: HTMLElement, name: RegExp) =>
+  within(row).getByRole('option', { name }) as HTMLOptionElement
+
 async function ready() {
   renderPage()
   await screen.findByRole('region', { name: '직접 추가한 도서관' })
@@ -208,7 +224,7 @@ describe('S10 name search', () => {
     const box = screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' })
 
     await user.type(box, '서')
-    expect(screen.queryByRole('button', { name: /추가$/ })).toBeNull()
+    expect(within(section('직접 도서관 추가')).queryByRole('button', { name: /추가$/ })).toBeNull()
     expect(screen.queryByText('찾는 도서관이 없어요')).toBeNull()
 
     await user.clear(box)
@@ -446,16 +462,20 @@ describe('S10 long lists', () => {
 describe('S10 region grid (cycle 22)', () => {
   const putCalls = () => fake.calls.filter((call) => call.startsWith('PUT /api/v1/me/regions'))
 
-  it('has the new first sentence, no [변경] and no dialog, a grid per row', async () => {
+  it('has the new first sentence, no [변경] and no dialog, a picker per row', async () => {
     await ready()
+    const user = userEvent.setup()
 
     expect(screen.getByText('검색하면 여기 있는 도서관에서 먼저 찾아요')).toBeTruthy()
     expect(screen.queryByText(/스위치/)).toBeNull()
     expect(screen.queryByRole('button', { name: /변경/ })).toBeNull()
     expect(screen.queryByRole('dialog')).toBeNull()
     const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
-    expect((await within(residenceRow).findByRole('checkbox', { name: '마포구' }) as HTMLInputElement).checked).toBe(true)
-    expect(within(residenceRow).getByRole('list', { name: '사는 곳 시도' })).toBeTruthy()
+    await openPicker(user, residenceRow, '사는 곳')
+    expect(within(residenceRow).getByRole('combobox', { name: '사는 곳 시도' })).toBeTruthy()
+    const mapo = sigunguOption(residenceRow, /마포구/)
+    expect(mapo.textContent).toBe('✓ 마포구')
+    expect(mapo.disabled).toBe(true)
     expect(document.body.textContent).not.toContain('누구나 가입')
   })
 
@@ -464,15 +484,15 @@ describe('S10 region grid (cycle 22)', () => {
     const user = userEvent.setup()
     const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
 
-    await user.click(await within(residenceRow).findByRole('checkbox', { name: '중구' }))
+    await pickRegion(user, residenceRow, '사는 곳', '중구')
 
     await waitFor(() => expect(putCalls()).toEqual(['PUT /api/v1/me/regions {"residenceRegionIds":[1114,1102],"workRegionIds":[1102]}']))
     await waitFor(() =>
       expect(fake.calls).toContain('GET /api/v1/libraries?residenceRegionIds=1114%2C1102&workRegionIds=1102'),
     )
     expect(within(residenceRow).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구서울 중구')
-    // the grid stays while the list is asked again; no hint after login
-    expect(within(residenceRow).getByRole('checkbox', { name: '중구' })).toBeTruthy()
+    // the picker stays while the list is asked again; no hint after login
+    expect(within(residenceRow).getByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     expect(screen.queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
 
     // a chip's × removes it the same way
@@ -485,12 +505,16 @@ describe('S10 region grid (cycle 22)', () => {
     fake.regionsStatus = 500
     await ready()
     const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
+    const user = userEvent.setup()
 
-    await userEvent.setup().click(await within(residenceRow).findByRole('checkbox', { name: '중구' }))
+    await pickRegion(user, residenceRow, '사는 곳', '중구')
 
     expect((await screen.findByRole('alert')).textContent).toBe('저장하지 못했어요. 잠시 뒤 다시 해 주세요')
     expect(within(residenceRow).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구')
-    expect((within(residenceRow).getByRole('checkbox', { name: '중구' }) as HTMLInputElement).checked).toBe(false)
+    await openPicker(user, residenceRow, '사는 곳')
+    const jung = sigunguOption(residenceRow, /중구/)
+    expect(jung.textContent).toBe('중구')
+    expect(jung.disabled).toBe(false)
   })
 
   it('the 일하는 곳 grid is folded behind [일하는 곳도 더하기] while it has no region', async () => {
@@ -506,7 +530,7 @@ describe('S10 region grid (cycle 22)', () => {
     await user.click(within(regionSection).getByRole('button', { name: '일하는 곳도 더하기' }))
 
     const workRow = within(regionSection).getByRole('group', { name: '일하는 곳' })
-    expect(await within(workRow).findByRole('list', { name: '일하는 곳 시도' })).toBeTruthy()
+    expect(await within(workRow).findByRole('button', { name: '일하는 곳 추가' })).toBeTruthy()
     expect(within(regionSection).queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
   })
 
@@ -517,7 +541,7 @@ describe('S10 region grid (cycle 22)', () => {
     const regionSection = section('지역 선택')
     expect(within(regionSection).queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
 
-    await user.click(await within(regionSection).findByRole('checkbox', { name: '마포구' }))
+    await pickRegion(user, within(regionSection).getByRole('group', { name: '사는 곳' }), '사는 곳', '마포구')
 
     expect(JSON.parse(localStorage.getItem('chaekcheck.regions.v1')!)).toEqual({ residence: [1114], work: [] })
     expect(putCalls()).toEqual([])

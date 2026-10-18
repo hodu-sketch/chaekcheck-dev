@@ -85,27 +85,14 @@ describe('settings on phones and wider screens', () => {
   })
 })
 
-/** Cycle 22 R8-1: the wider window has the 방문 가입 빼기 row (on phones it is in the chip's "찾을 도서관" sheet). */
+/** User 2026-10-19: the 방문 가입 빼기 switch is only in the "찾을 도서관" box, not in the ⚙ window (cycle 22 R8-1 had it here). */
 describe('찾을 도서관 (cycle 22)', () => {
-
-  it('wider screens: one more row under the two groups, the 방문 가입 빼기 switch, and no regions', async () => {
-    render(
-      <SettingsPanel
-        settings={DEFAULT_SETTINGS}
-        onChange={vi.fn()}
-        visitSwitch={
-          <label>
-            <input type="checkbox" />
-            직접 가야 가입되는 도서관은 빼기
-          </label>
-        }
-      />,
-    )
+  it('wider screens: the window has the two groups only, no 방문 가입 빼기 switch and no regions', async () => {
+    render(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={vi.fn()} />)
     await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
     const window = screen.getByRole('dialog')
-    const visit = within(window).getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })
-    const direct = within(window).getByRole('radiogroup', { name: '도서관에서 직접 찾기' })
-    expect(direct.compareDocumentPosition(visit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(window).getByRole('radiogroup', { name: '도서관에서 직접 찾기' })).toBeTruthy()
+    expect(within(window).queryByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeNull()
     expect(within(window).queryByText(/사는 곳/)).toBeNull()
   })
 })

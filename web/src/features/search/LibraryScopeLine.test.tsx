@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { MemoryRouter } from 'react-router'
@@ -143,25 +143,17 @@ describe('a first visitor (R1-2)', () => {
     const button = await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' })
     expect(button.closest('div')!.textContent).toBe('사는 곳·일하는 곳 고르기')
     expect(screen.getByText(/^고르면 그 지역 기준으로 찾아요/).textContent).toBe(
-      '고르면 그 지역 기준으로 찾아요 · 안 고르면 어디 살든 가입되는 도서관에서 찾아요 · 일하는 곳도 더하기',
+      '고르면 그 지역 기준으로 찾아요 · 안 고르면 어디 살든 가입되는 도서관에서 찾아요',
     )
     expect(screen.queryByText(/어디서 빌리실 건가요/)).toBeNull()
   })
 
-  it('the button opens the box on the 사는 곳 grid; [일하는 곳도 더하기] opens it on the 일하는 곳 grid', async () => {
+  it('the button opens the box; no [일하는 곳도 더하기] beside it (user 2026-10-19)', async () => {
     const { user } = renderLine()
+    expect(screen.queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
     await user.click(await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' }))
     const opened = await box()
-    expect(await within(opened).findByRole('list', { name: '사는 곳 시도' })).toBeTruthy()
-    expect(within(opened).queryByRole('list', { name: '일하는 곳 시도' })).toBeNull()
-    await user.keyboard('{Escape}')
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-
-    await user.click(screen.getByRole('button', { name: '일하는 곳도 더하기' }))
-    const work = await box()
-    const workGroup = within(work).getByRole('group', { name: '일하는 곳' })
-    expect(await within(workGroup).findByRole('list', { name: '일하는 곳 시도' })).toBeTruthy()
-    await waitFor(() => expect(workGroup.contains(document.activeElement)).toBe(true))
+    expect(within(opened).getByRole('group', { name: '사는 곳' })).toBeTruthy()
   })
 })
 
@@ -234,7 +226,10 @@ describe('the box (R1-4)', () => {
     expect(openLine.compareDocumentPosition(visit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(within(opened).getByRole('group', { name: '가입 방법' }).contains(visit)).toBe(true)
 
-    await user.click(screen.getByText('outside'))
+    // a modal on wider screens (user 2026-10-19): the page under the overlay takes no pointer, so a press outside is
+    // sent directly (the way radix's outside-press listener sees it)
+    fireEvent.pointerDown(screen.getByText('outside'))
+    fireEvent.click(screen.getByText('outside'))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
     await user.click(await folded())
@@ -277,9 +272,13 @@ describe('the box (R1-4)', () => {
     const { user } = renderLine()
     await user.click(await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' }))
     const opened = await box()
-    await user.click(await within(opened).findByRole('checkbox', { name: '마포구' }))
-    expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!).residence).toEqual([1114])
     const residence = within(opened).getByRole('group', { name: '사는 곳' })
+    const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
+    await waitFor(() => expect(add.disabled).toBe(false))
+    await user.click(add)
+    await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시도' }), '서울')
+    await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시군구' }), '마포구')
+    expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!).residence).toEqual([1114])
     expect(within(residence).getByText(/^이 브라우저에만 저장됐어요/)).toBeTruthy()
     expect(within(within(opened).getByRole('group', { name: '일하는 곳' })).queryByText(/이 브라우저에만/)).toBeNull()
 

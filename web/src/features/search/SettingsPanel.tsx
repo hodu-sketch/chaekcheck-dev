@@ -13,8 +13,6 @@ type Props = {
    * box has its own sheet for that (user 2026-10-19; it was the sheet's first section, cycle 22 R2-1).
    */
   sheet?: boolean
-  /** Wider screens (cycle 22 R8-1): one more row in the small window, the 방문 가입 빼기 switch. */
-  visitSwitch?: ReactNode
 }
 
 type SectionKey = 'view' | 'direct'
@@ -32,7 +30,7 @@ export const PHONE_SETTINGS_SHEET = true
  * not grouped by book. 탈퇴 is on 마이페이지 > 계정 (user request 2026-10-18; it was a "계정" row here, cycle 05);
  * login and logout stay in the header.
  */
-export function SettingsPanel({ settings, onChange, sheet = false, visitSwitch }: Props) {
+export function SettingsPanel({ settings, onChange, sheet = false }: Props) {
   const [open, setOpen] = useState(false)
   // phones: one row per section that opens on a tap, all closed at first (user requests 2026-10-05)
   const [section, setSection] = useState<SectionKey | ''>('')
@@ -104,7 +102,6 @@ export function SettingsPanel({ settings, onChange, sheet = false, visitSwitch }
             <legend className={styles.legend}>도서관에서 직접 찾기</legend>
             {directOptions}
           </fieldset>
-          {visitSwitch && <div className={styles.group}>{visitSwitch}</div>}
         </>
       )}
     </>

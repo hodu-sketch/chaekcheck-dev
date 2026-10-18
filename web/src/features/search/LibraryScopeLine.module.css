@@ -1,6 +1,6 @@
 /*
  * Cycle 22 R1, R2 (ADR-0138): the "찾을 도서관" line under the search box, its box, and the phone chip. The controls
- * keep the look of the scope row before (the light grey tray, --control-height buttons with a thin line).
+ * keep the look of the scope row before (--control-height buttons with a thin line), without its grey tray.
  */
 .root {
   display: flex;
@@ -19,9 +19,7 @@
   align-items: center;
   gap: 0.5rem;
   align-self: flex-start;
-  padding: 0.5rem;
-  border-radius: var(--radius-md);
-  background: var(--tray);
+  /* no grey tray behind the button or the line (user 2026-10-19: "굳이 회색깔 배경 있을 필요 없어") */
 }
 
 .root[data-centered] .line,
@@ -63,25 +61,31 @@
   color: var(--ink);
 }
 
-/* a first visitor's [사는 곳·일하는 곳 고르기] (R1-2) */
-.pick {
+/*
+ * a first visitor's [사는 곳·일하는 곳 고르기] (R1-2), and the phone chip in that state: violet with white text on every
+ * width (user 2026-10-19: "보라 배경에 흰색 글자로")
+ */
+.pick,
+.chip[data-pick] {
   display: inline-flex;
   align-items: center;
   min-height: var(--control-height);
   padding: 0.3rem 1rem;
   border: 1px solid var(--brand);
   border-radius: var(--radius-control);
-  background: var(--brand-soft);
-  color: var(--brand-strong);
+  background: var(--brand);
+  color: #fff;
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 800;
   cursor: pointer;
-  transition: background-color 140ms, color 140ms;
+  transition: background-color 140ms;
 }
 
 .pick:hover,
-.pick[data-state='open'] {
+.pick[data-state='open'],
+.chip[data-pick]:hover {
+  border-color: var(--brand-strong);
   background: var(--brand-strong);
   color: #fff;
 }
@@ -100,6 +104,10 @@
   display: inline-flex;
   flex: none;
   color: var(--brand-strong);
+}
+
+.chip[data-pick] .caret {
+  color: #fff;
 }
 
 .folded[data-state='open'] .caret {
@@ -138,19 +146,67 @@
 }
 
 /* the box under the line (S1-box): floats over the results, at most 40rem wide (D11) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(27 26 36 / 0.45);
+}
+
+/* the 찾을 도서관 window on PC and tablets: in the middle of the screen, like the login window */
 .box {
-  z-index: 15;
-  width: min(40rem, calc(100vw - 2rem));
-  max-height: min(var(--radix-popover-content-available-height), 80dvh);
+  position: fixed;
+  z-index: 21;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(32rem, calc(100vw - 3rem));
+  max-height: min(40rem, calc(100dvh - 3rem));
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 1rem 1.1rem 1.05rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-md);
+  padding: 1.2rem 1.4rem 1.3rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
   background: var(--card);
   color: var(--ink);
   font-size: var(--text-md);
   text-align: left;
+}
+
+.boxHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+
+.boxTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+.boxClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.boxClose:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+.boxClose:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .body {

@@ -320,7 +320,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     await userEvent.setup().click(screen.getByRole('button', { name: '사는 곳·일하는 곳 고르기' }))
     const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
-    expect(await within(box).findByRole('list', { name: '사는 곳 시도' })).toBeTruthy()
+    expect(await within(box).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     // no names to read without added libraries (D4)
     expect(fake.libraryLists).toBe(0)
   })
@@ -445,7 +445,8 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
 
 /** User report 2026-10-14: words typed but not searched yet went away when a switch was pressed. */
 describe('typed words stay on the search screen', () => {
-  it('through 방문 가입 빼기 in the ⚙ window, and the next search keeps the sort', async () => {
+  // the switch is only in the 찾을 도서관 box since user 2026-10-19 (it was also in the ⚙ window)
+  it('through 방문 가입 빼기 in the 찾을 도서관 box, and the next search keeps the sort', async () => {
     renderSearch('/search?title=사랑&view=books&sort=newest')
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     const user = userEvent.setup()
@@ -453,8 +454,10 @@ describe('typed words stay on the search screen', () => {
 
     await user.clear(title)
     await user.type(title, '채식주의자')
-    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    await user.click(await foldedLine())
     await user.click(screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }))
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect((screen.getByRole('searchbox', { name: '책 제목' }) as HTMLInputElement).value).toBe('채식주의자')
 
     await user.click(searchButton())
