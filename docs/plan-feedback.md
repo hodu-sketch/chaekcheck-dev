@@ -5384,6 +5384,12 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 비표준 포트 사이트(`:442`·`:8088`)가 Webshare 길로 연결 시간 초과하는 것: 사용자 결정 **"어짜피 기존 규칙으로 가니까 냅둬"** (2026-10-18, plan 20 전달; plan `multi-source-ip.md` 11절 c1de7b4) → 예외 목록 없이 막힌 길 규칙(5번 연속이면 그 길·그 사이트 10분부터 쉼)에 맡김. 코드 변경 없음
 - 운영 길 설정 [확정] (사용자 "프록시만 사용하도록 하고", 2026-10-18, plan f0b6d86): 운영 `prod.env`는 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE=proxy-only`(조회 서버도 같은 값). 코드 기본값 `all`은 로컬용 그대로. 뜻: EC2 자기 IP로는 도서관 요청도 막힌 길 다시 시험도 안 함, 비표준 포트 사이트(`:442`·`:8088`)는 운영에서 늘 「확인하지 못한 도서관」. 설정 색인 1절에 적음. TTL 위치는 하위 폴더 그대로(plan `reference-index.md`)
 
+### 사이트마다 시작 길 흩뿌리기 (2026-10-18 오후, 사용자 "사이트마다 시작 길 다르게 흩뿌리는 거 해줘")
+
+- 본 것: 로컬을 `proxy-only`로 켜고 검색 1번 → 사이트마다 요청이 1건뿐이라 **모든 사이트의 첫 요청이 proxy-01**로 감(번갈아 고르기가 "사이트마다 마지막 길의 다음"이고 처음은 늘 0번이었음). 규칙(길×사이트 1건·1초)에는 맞지만 프록시 IP 하나에 몰림
+- 고침(`InMemoryLaneThrottle.acquire`): 사이트(풀 열쇠)의 첫 요청은 `floorMod(poolKey.hashCode(), 길 수)`번째 길부터 시작, 그 뒤는 전처럼 마지막 길의 다음부터 번갈아. 다시 켜면 같은 사이트는 같은 길에서 시작(해시가 고정). 막힌 길·`proxy-only`·교보 묶음 규칙은 그대로
+- 시험: `LaneThrottleTests.freeLanesTakeTurns`·`LaneSiteFetcherProxyTests.requestsAlternate…`·`EgressLanesTests.requestsTakeTurns…`는 "시작 길부터 차례대로 돎"으로 바꿈(시작 길 고정 기대 제거), 새 `LaneThrottleTests.differentSitesStartOnDifferentLanes`(사이트 30곳의 첫 길이 세 길 모두에 분포)
+
 # 17 dev에게: 배포 직전 sitecontent seed 교체 메모 (2026-10-18, 사이클 20 세션)
 
 사용자 결정(2026-10-18): seed 교체는 사이클 17 dev가 배포 직전 점검으로 함("17 dev에게 넘겨, 메모만 남겨줘"). 사이클 16 인계 "공개 전에 할 것": `PRE_DEPLOYMENT` 표지가 있는 동안 `sitecontent/002-sitecontent-seed.yaml`을 검토본으로 바꾼 뒤 표지를 없앰.

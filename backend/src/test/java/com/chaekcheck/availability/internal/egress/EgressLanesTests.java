@@ -69,7 +69,13 @@ class EgressLanesTests {
 			vias.add(lanes.fetch(A, Instant.MAX).via());
 		}
 
-		assertThat(vias).containsExactly("direct", "proxy-01", "proxy-02", "direct", "proxy-01", "proxy-02");
+		// the site's first lane comes from its name; after that the three lanes take turns in order
+		List<String> cycle = List.of("direct", "proxy-01", "proxy-02");
+		int first = cycle.indexOf(vias.get(0));
+		assertThat(first).isNotNegative();
+		for (int i = 0; i < vias.size(); i++) {
+			assertThat(vias.get(i)).isEqualTo(cycle.get((first + i) % cycle.size()));
+		}
 		assertThat(sent.get("a.test")).isEqualTo(vias);
 	}
 

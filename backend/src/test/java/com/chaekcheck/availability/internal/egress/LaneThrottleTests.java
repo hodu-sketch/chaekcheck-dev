@@ -86,7 +86,25 @@ class LaneThrottleTests {
 					lane -> lane.id()));
 		}
 
-		assertThat(lanes).containsExactly("direct", "proxy-01", "proxy-02", "direct", "proxy-01", "proxy-02");
+		// the starting lane comes from the site's name; from there the lanes take turns in order
+		List<String> cycle = List.of("direct", "proxy-01", "proxy-02");
+		int first = cycle.indexOf(lanes.get(0));
+		assertThat(first).isNotNegative();
+		for (int i = 0; i < lanes.size(); i++) {
+			assertThat(lanes.get(i)).isEqualTo(cycle.get((first + i) % cycle.size()));
+		}
+	}
+
+	@Test
+	void differentSitesStartOnDifferentLanes() { // user 2026-10-18: "사이트마다 시작 길 다르게 흩뿌리는 거"
+		HostRules noInterval = new HostRules(1, Duration.ZERO, 3, ".dkyobobook.co.kr");
+		java.util.Set<String> firstLanes = new java.util.HashSet<>();
+		for (int i = 0; i < 30; i++) {
+			String host = "site" + i + ".test";
+			firstLanes.add(throttle.run(THREE, URI.create("https://" + host + "/"), noInterval.forHost(host),
+					Instant.MAX, lane -> lane.id()));
+		}
+		assertThat(firstLanes).containsExactlyInAnyOrder("direct", "proxy-01", "proxy-02");
 	}
 
 	@Test

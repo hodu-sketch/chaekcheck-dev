@@ -64,7 +64,11 @@ public class InMemoryLaneThrottle implements LaneThrottle {
 			while (true) {
 				Instant now = clock.instant();
 				Instant earliestReady = null;
-				int start = 0;
+				// the first request of a site starts on a lane chosen from the site's name, so that one search over many
+				// sites spreads over the lanes instead of sending every site's first request through the same proxy
+				// (user 2026-10-18: "사이트마다 시작 길 다르게 흩뿌리는 거 해줘"); from then on the site takes turns from
+				// the lane it used last (17 AC-8 "번갈아")
+				int start = Math.floorMod(rule.poolKey().hashCode(), lanes.size());
 				if (pool.lastLane != null) {
 					for (int i = 0; i < lanes.size(); i++) {
 						if (lanes.get(i).id().equals(pool.lastLane)) {

@@ -121,7 +121,13 @@ class LaneSiteFetcherProxyTests {
 			vias.add(response.via());
 		}
 
-		assertThat(vias).containsExactly("direct", "proxy-01", "proxy-02", "direct", "proxy-01", "proxy-02");
+		// the site's first lane comes from its name; after that the three lanes take turns
+		List<String> cycle = List.of("direct", "proxy-01", "proxy-02");
+		int first = cycle.indexOf(vias.get(0));
+		assertThat(first).isNotNegative();
+		for (int i = 0; i < vias.size(); i++) {
+			assertThat(vias.get(i)).isEqualTo(cycle.get((first + i) % cycle.size()));
+		}
 		assertThat(proxy1.served).hasSize(2).allMatch(line -> line.startsWith("GET http://127.0.0.1:"));
 		assertThat(proxy2.served).hasSize(2);
 		assertThat(output.getOut()).contains("upstream via=proxy-01 lane=proxy-01 vendor=webshare")
