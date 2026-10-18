@@ -1,0 +1,86 @@
+# Cycle 17 first deployment on the EC2 server (plan 17, 2026-10-18). Same shape as deploy/test/compose.yaml:
+# db + backend + web (nginx), images built on the PC for arm64 and loaded with docker load. Not yet in it (later
+# steps of ADR-0103): cloudflared (TUNNEL_TOKEN), backups, login, picks fetch, usage log (on at the public opening).
+# Lives in /srv/chaekcheck with bin/up.sh, which writes secrets.env from Parameter Store /chaekcheck/prod/ and starts
+# it:  bin/up.sh [service ...]
+# Ports are bound to 127.0.0.1 only.
+
+name: chaekcheck
+
+services:
+  db:
+    image: chaekcheck/postgres-bigm:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chaekcheck
+      POSTGRES_USER: chaekcheck
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD missing (Parameter Store through up.sh)}
+    # Same settings as the local compose.yaml defaults (cycle 08, ADR-0066). Measure again on this server.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_bigm
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=4MB
+    volumes:
+      - db-data:/var/lib/postgresql
+      # restore file (deploy/test/README.md 6), read only
+      - ./restore:/restore:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: chaekcheck/backend:2026-10-18
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chaekcheck
+      DB_NAME: chaekcheck
+      DB_USERNAME: chaekcheck
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD missing (Parameter Store through up.sh)}
+      TZ: Asia/Seoul
+      # Small heap for the 2GB server (plan 17: about -Xmx640m)
+      JAVA_TOOL_OPTIONS: -Xmx640m -XX:+ExitOnOutOfMemoryError
+      # Off until the public opening steps (plan 17): login, picks fetch, usage log. FETCH_MODE direct = no fetch-service
+      CHAEKCHECK_AUTH_ENABLED: "false"
+      CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
+      CHAEKCHECK_USAGELOG_ENABLED: "false"
+      FETCH_MODE: direct
+      # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
+      # proxy-only). Webshare user and password (user decision 2026-10-18, the main way, sent preemptively on the first
+      # CONNECT); empty values fall back to Webshare's IP Authorization of this server (52.64.117.112). The names are
+      # the Parameter Store ones (/chaekcheck/prod/..., up.sh).
+      CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${WEBSHARE_PROXIES:?WEBSHARE_PROXIES missing (Parameter Store through up.sh)}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: webshare
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME: ${WEBSHARE_PROXY_USERNAME:-}
+      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD: ${WEBSHARE_PROXY_PASSWORD:-}
+    networks:
+      default:
+        # deploy/nginx/local-test.conf sends /api to backend-host:8080
+        aliases:
+          - backend-host
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  web:
+    image: chaekcheck/web:2026-10-18
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8088:8088"
+
+volumes:
+  db-data:
