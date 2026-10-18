@@ -5530,3 +5530,24 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 방문 빼기: 스위치는 `prefs.visit`만 저장, `search()`가 주소에 씀, 결과는 주소의 `visit`만 읽음(주소에 없으면 `any`).
 - `LibraryScopeToggle.module.css`는 `VisitToggle`도 쓰고 있어 `VisitToggle.module.css`로 이름만 바꿔 남김(3단계에서 `VisitToggle`과 함께 지움).
 - 시험: `npm run build` 통과, vitest 65파일 550개 통과.
+
+## 2단계 (커밋 `c6eb338`)
+
+- `RegionContext` 저장 차례: 체크하면 바로 화면에 반영, 로그인 전은 localStorage, 로그인 뒤는 `PUT /api/v1/me/regions`를 한 번에 하나씩(보내는 중에 바뀐 값은 마지막 것만 다음에). 실패하면 마지막 저장값으로 되돌리고 `saveFailed`(문구 `REGION_SAVE_FAILED`). `region_change`는 성공한 저장마다 지금 모양 그대로. 422 `invalid_region`은 해석 안내를 보이고 해석된 값을 자동으로 다시 저장(저장 단추가 없어져 지금 창의 동작에 가장 가까운 것). 저장은 검색하지 않음(시험 있음).
+- 1단계의 `accountFailed`가 `ready`와 한 렌더 어긋나던 것을 고침(`accountFailed`는 `ready`와 함께만 참).
+- `SaveHint`(`M/SaveHint.tsx`, `<SaveHint saved />`): 로그아웃 확인이 끝난 사람에게만, ×는 `saveHintClosed`. [카카오 로그인]은 머리말과 같은 로그인 창을 엶(서버가 주는 제공자 모두가 보임 — 인계서 "지금 머리말 로그인 흐름" 그대로).
+- 마이페이지: [변경]·내 지역 창 삭제, "사는 곳"·"일하는 곳" 줄(꼬리표 + `RegionGrid`), 일하는 곳은 [일하는 곳도 더하기] 전에는 접힘. 체크마다 목록을 다시 받을 때 화면이 "불러오는 중"으로 뒤집히지 않게 `keepPreviousData`. 폰은 지역 칸이 화면 끝까지. 옛 "거주 서울 강서구" 이름 줄은 꼬리표가 대신해 뺌.
+- 시험: vitest 68파일 584개 통과.
+
+## 4단계 (커밋 `ddadc75`)
+
+- `groupBatches`(`S/resultGroups.ts`, 커밋 `a519d41`)가 줄을 MINE·OPEN·OTHER·UNCHECKED로 나눔. ④는 사이클 20 코드(계획 순서 정렬·`uncheckedLibraries`) 그대로.
+- `GroupSection`(새), `ResultList`의 `grouped`(기본 true)·`tags`·`searchContext`(`ResultSearchContext`). `grouped=false`는 `BatchSection`을 그대로 남김(책 화면).
+- 결과 안 단추 넷은 `SearchPage`의 `searchAgain`: 주소를 바꾸고 `retake()` 뒤 이동. 이미 `scope=all`이면 [전국에서 찾기]·[전국에서 더 찾기]를 숨김. 다 조회한 뒤("모든 도서관을 조회했습니다")에도 [전국에서 더 찾기]를 보임.
+- 녹색 줄이 지역 체크 뒤 "[검색]을 눌러 다시 찾아 주세요"로 바뀌는 판단: 스냅샷에는 지역·도서관이 없는데 지금 `useRegions()`에는 있을 때.
+- "지금까지 N곳에서 … 찾지 못했습니다"는 ①②③에 보이는 줄이 없고 마지막 배치가 끝났고 남은 도서관이 있을 때 「결과 더 보기」 위에 한 번.
+- 방문 가입을 뺀 뒤: ②에 줄이 있으면 제목 작은 글 끝에 "· 방문 가입 도서관을 뺐어요 · [다시 넣기]", ②가 비면 그 줄만 따로(되돌리기 단추가 남도록).
+- 꼬리표: radix Popover, 누르면 열림·PC는 마우스를 올려도 열림. [직접 추가]는 지금의 보라 그대로 알약 모양, [방문 가입]은 「밀려요」와 같은 주황. 가입 정보 창 "누구나 가입" → "어디 살든 온라인 가입"(`OPEN_JOIN_TEXT`, 모든 화면).
+- `BookPage`·`usePicksPlan`은 이미 주소의 `visit`을 먼저 읽음(없을 때만 저장값) — 바꿀 것 없음.
+- [안] 이름: `GroupSection`, `ResultSearchContext`, `GROUP_TEXT`, `TAG_TEXT`, `OPEN_JOIN_TEXT`, `RegionBasis`, `regionPlace.ts`.
+- 시험: vitest 69파일 588개 통과.
