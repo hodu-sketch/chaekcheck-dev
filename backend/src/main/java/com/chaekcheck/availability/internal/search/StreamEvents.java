@@ -169,8 +169,13 @@ public final class StreamEvents {
 			Instant fetchedAt, boolean cached) {
 	}
 
-	/** @param problem same shape as an HTTP ProblemDetail body (title, status, detail, code) */
-	public record HoldingFailed(int batchNo, long holdingId, long bookId, long libraryId, Map<String, Object> problem) {
+	/**
+	 * @param problem same shape as an HTTP ProblemDetail body (title, status, detail, code)
+	 * @param detailUrl the holding's book page at the library, so the row still links there (user request 2026-10-18);
+	 * only the URL checked to be http(s) on the library's own host, null otherwise and for a missing holding
+	 */
+	public record HoldingFailed(int batchNo, long holdingId, long bookId, long libraryId, Map<String, Object> problem,
+			String detailUrl) {
 	}
 
 }

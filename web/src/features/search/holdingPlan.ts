@@ -105,7 +105,7 @@ function onEvent(
       return updateBatch(next, batchNo, (b) => ({ ...b, rows: [...b.rows, holdingRow(item, holdingId, bookId, libraryId)] }))
     }
     case 'holding-failed': {
-      const { holdingId, problem } = event.data
+      const { holdingId, problem, detailUrl } = event.data
       const entry = state.entries[holdingId]
       const next = mark(state, holdingId, 'Failed')
       if (!entry) return next
@@ -114,7 +114,10 @@ function onEvent(
       const gone = problem?.code === 'holding_not_found'
       return updateBatch(next, batchNo, (b) => ({
         ...b,
-        rows: [...b.rows, failedRow(holdingId, entry.bookId, entry.libraryId, books.get(entry.bookId), gone)],
+        rows: [
+          ...b.rows,
+          failedRow(holdingId, entry.bookId, entry.libraryId, books.get(entry.bookId), gone, gone ? null : (detailUrl ?? null)),
+        ],
       }))
     }
     case 'batch-done':
@@ -135,6 +138,7 @@ function failedRow(
   libraryId: number,
   book: BookItem | undefined,
   gone: boolean,
+  detailUrl: string | null,
 ): ResultRow {
   return {
     libraryId,
@@ -152,7 +156,8 @@ function failedRow(
     titleKey: `book:${bookId}`,
     availability: 'UNKNOWN',
     availabilityBasis: 'COUNT',
-    detailUrl: null,
+    // the book's page at the library even when its answer did not come (user request 2026-10-18)
+    detailUrl,
     failed: true,
     gone,
   }

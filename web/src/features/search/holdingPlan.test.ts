@@ -140,7 +140,33 @@ describe('holding plan (ADR-0030)', () => {
       name: 'holding-failed',
       data: { batchNo: 1, holdingId: 100, bookId: 10, libraryId: 1, problem: { title: 'Not Found', status: 404, code: 'holding_not_found' } },
     })
-    expect(state.batches[0].rows[0]).toMatchObject({ failed: true, gone: true })
+    expect(state.batches[0].rows[0]).toMatchObject({ failed: true, gone: true, detailUrl: null })
+  })
+
+  // user request 2026-10-18: a failed row keeps the book's page at the library the server sent, for the card link
+  it('keeps the detail page of a failed holding, none from an older server', () => {
+    let state = holdingsReducer(EMPTY_HOLDINGS, { type: 'batch-start', batchNo: 1 })
+    state = run(
+      state,
+      1,
+      targets,
+      {
+        name: 'holding-failed',
+        data: {
+          batchNo: 1,
+          holdingId: 100,
+          bookId: 10,
+          libraryId: 1,
+          problem: { title: 'Gateway Timeout', status: 504, code: 'upstream_timeout' },
+          detailUrl: 'https://lib1.test/d?100',
+        },
+      },
+      {
+        name: 'holding-failed',
+        data: { batchNo: 1, holdingId: 101, bookId: 10, libraryId: 2, problem: { title: 'Bad Gateway', status: 502, code: 'upstream_error' } },
+      },
+    )
+    expect(state.batches[0].rows.map((row) => row.detailUrl)).toEqual(['https://lib1.test/d?100', null])
   })
 
   it('a later book page adds its libraries and holdings after the earlier ones', () => {

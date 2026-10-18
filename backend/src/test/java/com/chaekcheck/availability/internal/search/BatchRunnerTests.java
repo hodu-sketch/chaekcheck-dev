@@ -269,8 +269,9 @@ class BatchRunnerTests {
 		await().atMost(Duration.ofSeconds(5)).until(() -> sink.completed);
 
 		assertThat(sink.dataOf(StreamEvents.HOLDING_FAILED)).map(StreamEvents.HoldingFailed.class::cast)
-			.extracting(StreamEvents.HoldingFailed::holdingId, failed -> failed.problem().get("code"))
-			.containsExactly(tuple(6L, "holding_not_found"), tuple(7L, "library_not_found"));
+			.extracting(StreamEvents.HoldingFailed::holdingId, failed -> failed.problem().get("code"),
+					StreamEvents.HoldingFailed::detailUrl)
+			.containsExactly(tuple(6L, "holding_not_found", null), tuple(7L, "library_not_found", null));
 	}
 
 	@Test
@@ -376,7 +377,11 @@ class BatchRunnerTests {
 		verify(detailPages, never()).fetch(any(), any(), any());
 		assertThat(sink.count(StreamEvents.HOLDING_REQUESTED)).isZero();
 		assertThat(sink.dataOf(StreamEvents.HOLDING_FAILED)).hasSize(2)
-			.allSatisfy(e -> assertThat(((StreamEvents.HoldingFailed) e).problem()).containsEntry("code", "upstream_error"));
+			.allSatisfy(e -> {
+				assertThat(((StreamEvents.HoldingFailed) e).problem()).containsEntry("code", "upstream_error");
+				// never a link to a page off the library's host or a script (user request 2026-10-18)
+				assertThat(((StreamEvents.HoldingFailed) e).detailUrl()).isNull();
+			});
 	}
 
 	@Test
@@ -403,8 +408,11 @@ class BatchRunnerTests {
 
 		runHoldings(runner(settings(20, 5, 400, 100)), ResultFilter.ALL, List.of(slow, cached));
 
-		assertThat(sink.dataOf(StreamEvents.HOLDING_FAILED)).singleElement()
-			.satisfies(e -> assertThat(((StreamEvents.HoldingFailed) e).problem()).containsEntry("code", "upstream_timeout"));
+		assertThat(sink.dataOf(StreamEvents.HOLDING_FAILED)).singleElement().satisfies(e -> {
+			assertThat(((StreamEvents.HoldingFailed) e).problem()).containsEntry("code", "upstream_timeout");
+			// the row still links to the book's page at the library (user request 2026-10-18)
+			assertThat(((StreamEvents.HoldingFailed) e).detailUrl()).isEqualTo("https://lib1.test/d");
+		});
 		assertThat(sink.dataOf(StreamEvents.HOLDING_RESULT)).singleElement().satisfies(e -> {
 			StreamEvents.HoldingResult result = (StreamEvents.HoldingResult) e;
 			assertThat(result.cached()).isTrue();

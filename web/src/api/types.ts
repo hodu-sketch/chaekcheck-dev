@@ -289,6 +289,9 @@ export interface HoldingResultEvent extends HoldingRef {
 export interface HoldingFailedEvent extends HoldingRef {
   batchNo: number
   problem: Problem
+  /** The book's page at the library, so the row still links there (user request 2026-10-18); none from an older
+   * server, null when the page may not be opened or the holding is gone. */
+  detailUrl?: string | null
 }
 
 export type HoldingStreamEvent =

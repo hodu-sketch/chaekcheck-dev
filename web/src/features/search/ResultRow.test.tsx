@@ -387,6 +387,14 @@ describe('unchecked rows and the queued mark (cycle 20)', () => {
     expect(screen.getByRole('article').getAttribute('data-group')).toBe('unchecked')
   })
 
+  // user request 2026-10-18: the card still opens the book's page at the library when its answer did not come
+  it('a failed row with the book page links the card there', () => {
+    const row = testRow({ libraryId: 2, rank: 1, failed: true, availability: 'UNKNOWN', detailUrl: 'https://lib.test/book/9' })
+    render(<ResultRow row={row} library={openLibrary} searchUrl={undefined} />)
+    expect(screen.getByText(LOOKUP_UNCHECKED)).toBeTruthy()
+    expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/9')
+  })
+
   it('marks a row still being checked and an unchecked row of a queued library, never an answered one (AC-5)', () => {
     lookup.queued = new Set([2])
     const { rerender } = render(

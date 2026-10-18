@@ -81,7 +81,7 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 	synchronized void notFound(MissingHolding missing) {
 		failed++;
 		send(StreamEvents.HOLDING_FAILED, new StreamEvents.HoldingFailed(batchNo, missing.holdingId(), 0, 0,
-				Problems.asMap(Problems.problem(HttpStatus.NOT_FOUND, missing.code(), missing.detail()))));
+				Problems.asMap(Problems.problem(HttpStatus.NOT_FOUND, missing.code(), missing.detail())), null));
 	}
 
 	@Override
@@ -119,7 +119,8 @@ class HoldingSession implements BatchRunner.LaunchSession<HoldingTask> {
 		log.info("batch={} holding={} library={} failed: {} {}", batchNo, task.holding().holdingId(),
 				task.holding().libraryId(), ex.kind(), ex.getMessage());
 		send(StreamEvents.HOLDING_FAILED, new StreamEvents.HoldingFailed(batchNo, task.holding().holdingId(),
-				task.holding().bookId(), task.holding().libraryId(), Problems.asMap(Problems.upstream(ex))));
+				task.holding().bookId(), task.holding().libraryId(), Problems.asMap(Problems.upstream(ex)),
+				task.detailUri() == null ? null : task.detailUri().toString()));
 		finishIfDone();
 	}
 
