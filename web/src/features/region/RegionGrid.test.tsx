@@ -171,3 +171,115 @@ describe('RegionGrid notices', () => {
     expect(screen.getByRole('list', { name: '고른 일하는 곳' })).toBeTruthy()
   })
 })
+
+describe('RegionGrid on phones', () => {
+  function phone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(width <= 640px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  }
+
+  function optionTexts(select: HTMLElement) {
+    return within(select)
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+  }
+
+  it('shows two select boxes instead of the grid', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    renderGrid()
+
+    const sido = (await screen.findByRole('combobox', { name: '사는 곳 시도' })) as HTMLSelectElement
+    expect(optionTexts(sido)).toEqual(['서울', '세종'])
+    expect(sido.value).toBe('11')
+    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '마포구', '중구'])
+    expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(screen.queryByRole('button', { name: '서울' })).toBeNull()
+  })
+
+  it('the 시도 select starts on the 시도 of the first chosen region', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    renderGrid({ initial: [3611] })
+
+    expect(((await screen.findByRole('combobox', { name: '사는 곳 시도' })) as HTMLSelectElement).value).toBe('36')
+    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '✓ 세종시'])
+  })
+
+  it('picking a 시도 lists its 시군구; Sejong picks none by itself', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    const onToggle = vi.fn()
+    renderGrid({ onToggle })
+    const user = userEvent.setup()
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: '사는 곳 시도' }), '세종')
+
+    const sigungu = screen.getByRole('combobox', { name: '사는 곳 시군구' }) as HTMLSelectElement
+    expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '세종시'])
+    expect(sigungu.value).toBe('')
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('picking a 시군구 calls onToggle, adds the chip and resets; picking the ✓ one again removes it', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    const onToggle = vi.fn()
+    renderGrid({ onToggle })
+    const user = userEvent.setup()
+
+    const sigungu = (await screen.findByRole('combobox', { name: '사는 곳 시군구' })) as HTMLSelectElement
+    await user.selectOptions(sigungu, '마포구')
+
+    expect(onToggle).toHaveBeenCalledWith(1114)
+    expect(sigungu.value).toBe('')
+    expect(within(screen.getByRole('list', { name: '고른 사는 곳' })).getByText('서울 마포구')).toBeTruthy()
+    expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '✓ 마포구', '중구'])
+
+    await user.selectOptions(sigungu, '✓ 마포구')
+    expect(onToggle).toHaveBeenLastCalledWith(1114)
+    expect(onToggle).toHaveBeenCalledTimes(2)
+    expect(sigungu.value).toBe('')
+    expect(screen.queryByRole('list', { name: '고른 사는 곳' })).toBeNull()
+    expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '마포구', '중구'])
+  })
+
+  it('at the limit the not-chosen options are disabled and the limit line shows', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    renderGrid({ initial: [1114], full: true })
+
+    await screen.findByRole('combobox', { name: '사는 곳 시군구' })
+    expect((screen.getByRole('option', { name: '중구' }) as HTMLOptionElement).disabled).toBe(true)
+    expect((screen.getByRole('option', { name: '✓ 마포구' }) as HTMLOptionElement).disabled).toBe(false)
+    expect(screen.getByText('최대 20곳이에요')).toBeTruthy()
+  })
+
+  it('no limit line below the limit', async () => {
+    phone()
+    stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
+    renderGrid({ initial: [1114] })
+
+    await screen.findByRole('combobox', { name: '사는 곳 시군구' })
+    expect((screen.getByRole('option', { name: '중구' }) as HTMLOptionElement).disabled).toBe(false)
+    expect(screen.queryByText('최대 20곳이에요')).toBeNull()
+  })
+
+  it('loading and failure lines are the same as on PC', async () => {
+    phone()
+    let fail = true
+    stubRegions(() => (fail ? new Response('{}', { status: 500 }) : new Response(JSON.stringify(TREE), { status: 200 })))
+    renderGrid()
+
+    expect(screen.getByText('불러오는 중…')).toBeTruthy()
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('지역 목록을 불러오지 못했어요 다시 시도')
+    fail = false
+    await userEvent.setup().click(within(alert).getByRole('button', { name: '다시 시도' }))
+    expect(await screen.findByRole('combobox', { name: '사는 곳 시도' })).toBeTruthy()
+  })
+})

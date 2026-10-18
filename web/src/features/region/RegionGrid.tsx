@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { SidoNode } from '../../api/types'
 import { Cross } from '../../components/icons'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import type { RegionNotice } from './applyResolutions'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from './regionStorage'
 import { useRegionLabels, useRegionTree } from './useRegionTree'
@@ -33,6 +34,8 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
   const labels = useRegionLabels(tree.data)
   const [sidoId, setSidoId] = useState<number | null>(null)
   const fieldLabel = FIELD_LABEL[field]
+  // phones: two native select boxes instead of the grid (user 2026-10-19); only one of the two renders
+  const phone = useMediaQuery('(width <= 640px)')
 
   // first open: the 시도 of the first chosen region, else the first one; never a 시군구 picked for the user (flow #5)
   const initialSido = tree.data?.find((s) => s.children.some((c) => c.id === value[0])) ?? tree.data?.[0] ?? null
@@ -68,7 +71,7 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
         </ul>
       )}
 
-      <div className={styles.picker}>
+      <div className={phone ? styles.selects : styles.picker}>
         {tree.isPending && <p className={styles.status}>불러오는 중…</p>}
         {tree.isError && (
           <p className={styles.status} role="alert">
@@ -78,7 +81,18 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
             </button>
           </p>
         )}
-        {tree.data && activeSido && (
+        {tree.data && activeSido && phone && (
+          <SelectPicker
+            fieldLabel={fieldLabel}
+            sidos={tree.data}
+            active={activeSido}
+            chosen={value}
+            full={full}
+            onSelectSido={setSidoId}
+            onToggle={onToggle}
+          />
+        )}
+        {tree.data && activeSido && !phone && (
           <>
             <SidoList
               label={`${fieldLabel} 시도`}
@@ -119,6 +133,65 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Phones (user 2026-10-19): a 시도 select, then that 시도's 시군구 select. Picking a 시군구 toggles it at once and the box goes
+ * back to "시군구 고르기"; chosen ones carry a leading ✓ and picking one again removes it, as the grid's cells do.
+ */
+function SelectPicker({
+  fieldLabel,
+  sidos,
+  active,
+  chosen,
+  full,
+  onSelectSido,
+  onToggle,
+}: {
+  fieldLabel: string
+  sidos: SidoNode[]
+  active: SidoNode
+  chosen: number[]
+  full: boolean
+  onSelectSido: (id: number) => void
+  onToggle: (id: number) => void
+}) {
+  return (
+    <>
+      <select
+        className={styles.select}
+        aria-label={`${fieldLabel} 시도`}
+        value={active.id}
+        onChange={(e) => onSelectSido(Number(e.target.value))}
+      >
+        {sidos.map((sido) => (
+          <option key={sido.id} value={sido.id}>
+            {sido.shortName ?? sido.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className={styles.select}
+        aria-label={`${fieldLabel} 시군구`}
+        // always back to the placeholder: the choice shows as a chip, not in the box
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onToggle(Number(e.target.value))
+        }}
+      >
+        <option value="">시군구 고르기</option>
+        {active.children.map((sigungu) => {
+          const checked = chosen.includes(sigungu.id)
+          return (
+            <option key={sigungu.id} value={sigungu.id} disabled={!checked && full}>
+              {checked ? `✓ ${sigungu.name}` : sigungu.name}
+            </option>
+          )
+        })}
+      </select>
+      {full && <p className={styles.limit}>최대 {MAX_REGIONS_PER_FIELD}곳이에요</p>}
+    </>
   )
 }
 
