@@ -288,7 +288,7 @@
 }
 
 /*
- * Phones (user 2026-10-19): [시도 ▾] [시군구 ▾] [+] instead of the grid, smaller chips. RegionGrid renders
+ * Phones (user 2026-10-19): instead of the grid, smaller chips ending in a +, which shows a 시도 and a 시군구 select. RegionGrid renders
  * only one of the two pickers and marks the root with data-phone, so these rules need no media query.
  */
 
@@ -300,11 +300,6 @@
 .root[data-phone] {
   padding-inline: var(--region-grid-inset, 1.1rem);
   box-sizing: border-box;
-}
-
-.root[data-phone] .chips {
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
 }
 
 .root[data-phone] .chip {
@@ -324,32 +319,31 @@
   font-size: var(--text-sm);
 }
 
-.selects {
-  display: grid;
-  /* 시도 about 40%, 시군구 the rest, then the square + */
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 2.25rem;
-  gap: 0.5rem;
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
 }
 
+/* the chips flow in the row, so the + comes right after the last one */
+.chipRow .chips {
+  display: contents;
+}
+
+/* the + (× while the selects are open): a chip-high square in the chips' violet */
 .add {
-  display: grid;
+  display: inline-grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 1.65rem;
+  height: 1.65rem;
   padding: 0;
   border: none;
-  border-radius: var(--radius-control);
-  background: var(--brand-soft);
-  color: var(--brand-strong);
+  border-radius: var(--radius-tag);
+  background: var(--borrow-soft);
+  color: var(--borrow);
   cursor: pointer;
-}
-
-/* touch screens may report hover too (cycle 10): only a fine pointer gets it */
-@media (pointer: fine) {
-  .add:hover:not(:disabled) {
-    background: var(--brand);
-    color: #fff;
-  }
 }
 
 .add:focus-visible {
@@ -360,6 +354,32 @@
 .add:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* at least a 44px touch area without moving anything (cycle 10 icon check) */
+.add {
+  position: relative;
+}
+
+.add::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  translate: -50% -50%;
+}
+
+.selects {
+  display: grid;
+  /* 시도 about 40%, 시군구 the rest */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 0.5rem;
+}
+
+.selects:empty {
+  display: none;
 }
 
 .selects .status,

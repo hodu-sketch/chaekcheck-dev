@@ -36,32 +36,54 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
   const fieldLabel = FIELD_LABEL[field]
   // phones: two native select boxes instead of the grid (user 2026-10-19); only one of the two renders
   const phone = useMediaQuery('(width <= 640px)')
+  // phones: the selects show only after + is pressed (user 2026-10-19)
+  const [adding, setAdding] = useState(false)
+  const selectsOpen = phone && adding && !full
 
   // first open: the 시도 of the first chosen region, else the first one; never a 시군구 picked for the user (flow #5)
   const initialSido = tree.data?.find((s) => s.children.some((c) => c.id === value[0])) ?? tree.data?.[0] ?? null
   const activeSido = tree.data?.find((s) => s.id === sidoId) ?? initialSido
 
+  const chips = value.length > 0 && (
+    <ul className={styles.chips} aria-label={`고른 ${fieldLabel}`}>
+      {value.map((id) => {
+        const label = labels.get(id) ?? `지역 ${id}`
+        return (
+          <li key={id} className={styles.chip}>
+            {label}
+            <button
+              type="button"
+              className={styles.chipRemove}
+              onClick={() => onToggle(id)}
+              aria-label={`${label} 빼기`}
+            >
+              <Cross size={phone ? 10 : 12} />
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
   return (
     <div className={styles.root} data-phone={phone || undefined}>
-      {value.length > 0 && (
-        <ul className={styles.chips} aria-label={`고른 ${fieldLabel}`}>
-          {value.map((id) => {
-            const label = labels.get(id) ?? `지역 ${id}`
-            return (
-              <li key={id} className={styles.chip}>
-                {label}
-                <button
-                  type="button"
-                  className={styles.chipRemove}
-                  onClick={() => onToggle(id)}
-                  aria-label={`${label} 빼기`}
-                >
-                  <Cross size={phone ? 10 : 12} />
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+      {phone ? (
+        <div className={styles.chipRow}>
+          {chips}
+          {/* + shows the selects, × (while open) hides them without adding */}
+          <button
+            type="button"
+            className={styles.add}
+            aria-label={`${fieldLabel} 추가`}
+            aria-expanded={selectsOpen}
+            disabled={full || !tree.data}
+            onClick={() => setAdding((open) => !open)}
+          >
+            {selectsOpen ? <Cross size={10} /> : <Plus />}
+          </button>
+        </div>
+      ) : (
+        chips
       )}
       {notices.length > 0 && (
         <ul className={styles.notices} role="status">
@@ -81,17 +103,20 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
             </button>
           </p>
         )}
-        {tree.data && activeSido && phone && (
+        {tree.data && activeSido && selectsOpen && (
           <SelectPicker
             fieldLabel={fieldLabel}
             sidos={tree.data}
             active={activeSido}
             chosen={value}
-            full={full}
             onSelectSido={setSidoId}
-            onToggle={onToggle}
+            onPick={(id) => {
+              onToggle(id)
+              setAdding(false)
+            }}
           />
         )}
+        {phone && full && <p className={styles.limit}>최대 {MAX_REGIONS_PER_FIELD}곳이에요</p>}
         {tree.data && activeSido && !phone && (
           <>
             <SidoList
@@ -137,41 +162,32 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
 }
 
 /**
- * Phones (user 2026-10-19): [시도 ▾] [시군구 ▾] [+]. Picking a 시군구 only selects it; + adds it (onToggle) and the box goes
- * back to "시군구 고르기". Chosen ones carry a leading ✓ and cannot be picked (removing is the chip ×'s job).
+ * Phones (user 2026-10-19), shown after the chips' + is pressed: a 시도 select and that 시도's 시군구 select side by side.
+ * Picking a 시군구 adds it at once and the selects hide again; chosen ones carry a leading ✓ and cannot be picked (removing
+ * is the chip ×'s job).
  */
 function SelectPicker({
   fieldLabel,
   sidos,
   active,
   chosen,
-  full,
   onSelectSido,
-  onToggle,
+  onPick,
 }: {
   fieldLabel: string
   sidos: SidoNode[]
   active: SidoNode
   chosen: number[]
-  full: boolean
   onSelectSido: (id: number) => void
-  onToggle: (id: number) => void
+  onPick: (id: number) => void
 }) {
-  const [picked, setPicked] = useState<number | null>(null)
-  // only a 시군구 of the shown 시도 that is not chosen yet can be added
-  const pending =
-    picked !== null && active.children.some((c) => c.id === picked) && !chosen.includes(picked) && !full ? picked : null
-
   return (
     <>
       <select
         className={styles.select}
         aria-label={`${fieldLabel} 시도`}
         value={active.id}
-        onChange={(e) => {
-          onSelectSido(Number(e.target.value))
-          setPicked(null)
-        }}
+        onChange={(e) => onSelectSido(Number(e.target.value))}
       >
         {sidos.map((sido) => (
           <option key={sido.id} value={sido.id}>
@@ -182,36 +198,41 @@ function SelectPicker({
       <select
         className={styles.select}
         aria-label={`${fieldLabel} 시군구`}
-        value={pending ?? ''}
-        onChange={(e) => setPicked(e.target.value ? Number(e.target.value) : null)}
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onPick(Number(e.target.value))
+        }}
       >
         <option value="">시군구 고르기</option>
         {active.children.map((sigungu) => {
           const checked = chosen.includes(sigungu.id)
           return (
-            <option key={sigungu.id} value={sigungu.id} disabled={checked || full}>
+            <option key={sigungu.id} value={sigungu.id} disabled={checked}>
               {checked ? `✓ ${sigungu.name}` : sigungu.name}
             </option>
           )
         })}
       </select>
-      <button
-        type="button"
-        className={styles.add}
-        aria-label={`${fieldLabel} 추가`}
-        disabled={pending === null}
-        onClick={() => {
-          if (pending === null) return
-          onToggle(pending)
-          setPicked(null)
-        }}
-      >
-        <svg width={14} height={14} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden focusable={false}>
-          <path d="M6 1.5v9M1.5 6h9" />
-        </svg>
-      </button>
-      {full && <p className={styles.limit}>최대 {MAX_REGIONS_PER_FIELD}곳이에요</p>}
     </>
+  )
+}
+
+/** The chips' + (drawn like components/icons, which has no plus). */
+function Plus() {
+  return (
+    <svg
+      width={10}
+      height={10}
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden
+      focusable={false}
+    >
+      <path d="M6 1.5v9M1.5 6h9" />
+    </svg>
   )
 }
 
