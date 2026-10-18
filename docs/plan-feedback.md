@@ -5551,3 +5551,18 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - `BookPage`·`usePicksPlan`은 이미 주소의 `visit`을 먼저 읽음(없을 때만 저장값) — 바꿀 것 없음.
 - [안] 이름: `GroupSection`, `ResultSearchContext`, `GROUP_TEXT`, `TAG_TEXT`, `OPEN_JOIN_TEXT`, `RegionBasis`, `regionPlace.ts`.
 - 시험: vitest 69파일 588개 통과.
+
+## 3단계 (커밋 `1f19100`, 격자 칸 수 고침 `b0b7b97`)
+
+- `S/LibraryScopeLine.tsx`: `LibraryScopeLine`(PC 줄 + 떠 있는 상자, radix Popover, 최대 40rem, 밖 누름·Esc로 닫힘), `LibraryScopeChip`(폰 칩), `LibraryScopeBody`(상자 몸체 = 폰 시트 "찾을 도서관" 칸), `VisitSwitch`, `scopeLineText()`, `SCOPE_TEXT`, `BoxFocus`. `SettingsPanel`에 `control`·`visitSwitch`, `SearchForm`에 `chip`·`settingsVisit`·`settingsControl`, `DirectResults`에 `onPlan(count)`. 알림의 "설정", `SearchError`의 `onEditRegions`, 녹색 줄 [사는 곳 고르기]는 모두 `openPicker()`(PC 상자, 폰 시트).
+- 지움: `VisitToggle`(+css), `ScopeSummary`(+css), `RegionSummary`, `RegionModal`(+css·test), `MyLibrarySummary`. 머리말 "내 도서관 관리"는 그대로.
+- 폰 시트 "찾을 도서관" 칸에도 방문 가입 스위치와 "어디 살든 가입되는 도서관 …곳은 늘 들어 있어요"를 둠(인계서의 "스위치 없음"은 전국 범위 스위치로 읽음 — flow S4·R2-1에 방문 칸이 있음).
+- "직접 추가 N곳"은 0곳이어도 보이고(안내 글과 함께), 이름은 둘까지 + "외 N곳". 계정을 읽는 동안 줄은 높이만 두고 글을 비워 처음 온 사람 단추가 깜빡이지 않게 함.
+- 격자: 40rem 상자에서 시군구 칸이 27.7rem이라 4칸 기준(28rem)에 조금 모자라 3칸으로 보였음 → 4칸 기준을 26rem으로(사용자 승인 "40rem 상자 4칸"에 맞춤).
+
+### 설계와 다른 점: "N곳"을 셀 수 있는 때 (보고, plan 결정 필요)
+
+- R3-3·R7-1은 "결과 화면에서는 첫 묶음 `targets.libraries[]`의 길이 = 계획 크기"로 적었지만, 그것은 **도서관에서 직접 찾기**(`/api/v1/ebook-searches/stream`)에서만 맞습니다. 기본 보기인 **바로 보기**(`/api/v1/book-availabilities/stream`)의 `targets.libraries`는 결과 책을 가진 계획 도서관만 담습니다. 잰 값(2026-10-18, 로컬 8080, 서울 강남구 거주, "데미안" 바로 보기 첫 묶음): `libraries` 23곳(그중 ELIGIBLE·직접 추가 12, OPEN 11) — 계획 68곳이 아님. 더 보기마다 늘어남.
+- 그래서 dev는 계획 전체를 아는 때만 수를 저장했습니다: `planCount`는 도서관에서 직접 찾기의 첫 `targets`에서(`scope=all`은 저장 안 함), `openCount`는 같은 직접 찾기가 지역·직접 추가 없이 `joinable`·`visit=any`일 때, 또는 상자·마이페이지가 지역 없이 받은 도서관 목록의 OPEN 수에서(지역이 있으면 ELIGIBLE로 바뀌는 곳이 있어 쓰지 않음).
+- 결과: 대부분의 사용자(바로 보기)는 접힌 줄에 "· 68곳"을 거의 보지 못하고, 녹색 줄은 수를 모르면 "어디 살든 가입되는 도서관에서 찾았어요"(수 없이, 상자의 "수를 모르면 수 없이" 규칙을 따름), 전국 표시도 수 없이 "전국에서 찾는 중"입니다. 바로 보기에서 수를 늘 보이려면 서버가 계획 크기를 실어야 하는데 이 사이클은 서버 변경이 없어 하지 않았습니다(백로그 후보: 바로 보기 스트림에 `planSize`).
+- 잰 값(인계서 요청) 가운데 "서울 강남구 거주 계획 길이 68곳"·"전국 약 376곳"은 직접 찾기로 화면 확인 때 잽니다.
