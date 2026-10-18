@@ -172,35 +172,27 @@ describe('a first visitor (R1-2)', () => {
 })
 
 describe('the folded line (R3)', () => {
-  it('adds only what differs from the default', () => {
-    expect(scopeLineText({ residence: '서울 강남구', work: null, chosen: 0, visit: 'any', planCount: null })).toBe(
-      '내 도서관: 서울 강남구',
-    )
-    expect(scopeLineText({ residence: '서울 강남구', work: '경기 성남시', chosen: 2, visit: 'none', planCount: 68 })).toBe(
-      '내 도서관: 서울 강남구 · 일하는 곳 경기 성남시 · 방문 가입 뺌 · 직접 추가 2 · 68곳',
-    )
-    // 일하는 곳 only (user approval): it leads the line
-    expect(scopeLineText({ residence: null, work: '경기 성남시', chosen: 0, visit: 'any', planCount: 12 })).toBe(
-      '내 도서관: 일하는 곳 경기 성남시 · 12곳',
-    )
-    expect(scopeLineText({ residence: null, work: null, chosen: 3, visit: 'any', planCount: null })).toBe(
-      '내 도서관: 직접 추가 3',
-    )
-    expect(scopeLineText({ residence: null, work: null, chosen: 0, visit: 'any', planCount: 39 })).toBeNull()
+  it('shows only the residence, short; work, 방문 가입 and the count are in the box (user 2026-10-19)', () => {
+    expect(scopeLineText({ residence: '서울 강남구', work: null, chosen: 0 })).toBe('거주 서울 강남구')
+    expect(scopeLineText({ residence: '서울 강남구', work: '경기 성남시', chosen: 2 })).toBe('거주 서울 강남구')
+    // without a residence the line names what there is
+    expect(scopeLineText({ residence: null, work: '경기 성남시', chosen: 0 })).toBe('일하는 곳 경기 성남시')
+    expect(scopeLineText({ residence: null, work: null, chosen: 3 })).toBe('직접 추가 3곳')
+    expect(scopeLineText({ residence: null, work: null, chosen: 0 })).toBeNull()
   })
 
   it('names this browser\'s regions, several of one 시도 joined by ·', async () => {
     guestRegions([1114, 1102], [4113])
     renderLine({ visit: 'none' })
     const line = await folded()
-    await waitFor(() => expect(line.textContent).toBe('내 도서관: 서울 마포구·중구 · 일하는 곳 경기 성남시 · 방문 가입 뺌'))
+    await waitFor(() => expect(line.textContent).toBe('거주 서울 마포구·중구'))
   })
 
   it('work only: "내 도서관: 일하는 곳 …"', async () => {
     guestRegions([], [4113])
     renderLine()
     const line = await folded()
-    await waitFor(() => expect(line.textContent).toBe('내 도서관: 일하는 곳 경기 성남시'))
+    await waitFor(() => expect(line.textContent).toBe('일하는 곳 경기 성남시'))
   })
 
   it('"N곳" only while the kept count was taken with the same inputs (D5)', async () => {
@@ -208,14 +200,14 @@ describe('the folded line (R3)', () => {
     const inputs = { source: 'browser' as const, residence: [1114], work: [], libraryIds: [], visit: 'any' as const }
     renderLine({ planCount: { key: planCountKey(inputs), count: 68 } })
     const line = await folded()
-    await waitFor(() => expect(line.textContent).toBe('내 도서관: 서울 마포구 · 68곳'))
+    await waitFor(() => expect(line.textContent).toBe('거주 서울 마포구'))
     cleanup()
 
     // another 방문 가입 빼기, another region, or the same regions taken after login: no number
     for (const other of [{ ...inputs, visit: 'none' as const }, { ...inputs, residence: [1102] }, { ...inputs, source: 'account' as const }]) {
       renderLine({ planCount: { key: planCountKey(other), count: 68 } })
       const plain = await folded()
-      await waitFor(() => expect(plain.textContent).toBe('내 도서관: 서울 마포구'))
+      await waitFor(() => expect(plain.textContent).toBe('거주 서울 마포구'))
       cleanup()
     }
   })
@@ -297,7 +289,7 @@ describe('the box (R1-4)', () => {
 
     await user.keyboard('{Escape}')
     const line = await folded()
-    await waitFor(() => expect(line.textContent).toBe('내 도서관: 서울 마포구'))
+    await waitFor(() => expect(line.textContent).toBe('거주 서울 마포구'))
   })
 })
 
@@ -330,7 +322,7 @@ describe('전국 and a failed account read', () => {
     fake.libraryIds = [12]
     await user.click(within(alert).getByRole('button', { name: '다시 시도' }))
     const line = await folded()
-    expect(line.textContent).toBe('내 도서관: 직접 추가 1')
+    expect(line.textContent).toBe('직접 추가 1곳')
   })
 })
 
@@ -373,6 +365,6 @@ describe('the phone chip (R2-1)', () => {
     guestRegions([1114])
     renderChip()
     const chip = await screen.findByRole('button', { name: /^내 도서관: / })
-    await waitFor(() => expect(chip.textContent).toBe('내 도서관: 서울 마포구'))
+    await waitFor(() => expect(chip.textContent).toBe('거주 서울 마포구'))
   })
 })

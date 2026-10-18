@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
-import { ApiError, fetchLibraries } from '../../api/client'
+import { fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
 import { BackLink } from '../../components/BackLink'
 import { ChevronDown, ChevronUp } from '../../components/icons'
@@ -14,21 +14,17 @@ import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStora
 import { savePrefs } from '../search/searchSettings'
 import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
-import { BrowserStorageError, LibraryLimitError } from './myLibraryErrors'
+import { LIBRARY_CHANGE_TEXT, libraryChangeMessage } from './myLibraryErrors'
 import { SaveHint } from './SaveHint'
 import styles from './MyLibrariesPage.module.css'
 
-/** Wording [안 문구, 규칙 확정] (flow S10), except the two marked dev placeholders. */
+/** Wording [안 문구, 규칙 확정] (flow S10); a failed add or remove says `libraryChangeMessage`. */
 const TEXT = {
-  limit: '직접 추가는 20곳까지예요. 하나를 빼면 추가할 수 있어요',
-  saveFailed: '저장하지 못했어요. 잠시 뒤 다시 해 주세요',
-  // dev placeholder (not in flow): the library was switched off or removed meanwhile
-  notFound: '지금은 추가할 수 없는 도서관이에요. 목록을 다시 확인해 주세요',
+  limit: LIBRARY_CHANGE_TEXT.limit,
   disabled: '지금은 쓸 수 없는 도서관이에요',
   empty: '지역을 고르거나 도서관을 추가하세요',
   // cycle 07 flow S10 [확정]
   noMatch: '찾는 도서관이 없어요',
-  browserBlocked: '이 브라우저에 저장하지 못했어요',
 }
 
 /**
@@ -434,21 +430,12 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
   const searching = [...nameKey(query)].length >= MIN_NAME_QUERY
   const matches = useMemo(() => findByName(rows, query), [rows, query])
 
-  const failure = (error: unknown) => {
-    if (error instanceof LibraryLimitError) return TEXT.limit
-    if (error instanceof BrowserStorageError) return TEXT.browserBlocked
-    if (error instanceof ApiError && error.problem.code === 'library_limit_reached') return TEXT.limit
-    if (error instanceof ApiError && error.problem.code === 'library_not_found') return TEXT.notFound
-    // 401 after the refresh: the browser is signed out and this screen shows the browser's list
-    return TEXT.saveFailed
-  }
-
   const add = async (id: number) => {
     setMessage(null)
     try {
       await addLibrary(id)
     } catch (error) {
-      setMessage(failure(error))
+      setMessage(libraryChangeMessage(error))
     }
   }
 
@@ -457,7 +444,7 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
     try {
       await removeLibrary(id)
     } catch (error) {
-      setMessage(failure(error))
+      setMessage(libraryChangeMessage(error))
     }
   }
 

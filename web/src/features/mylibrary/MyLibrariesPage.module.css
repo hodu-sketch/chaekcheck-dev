@@ -325,20 +325,6 @@
     padding-inline: 0.85rem;
   }
 
-  /*
-   * the region grid reaches the whole screen width (cycle 22 D11, R12-1): the 지역 선택 section loses the page gutter
-   * and its side border, the grid the section's side padding
-   */
-  .regionSection {
-    margin-inline: calc(-1 * var(--gutter));
-    border-inline: none;
-    border-radius: 0;
-  }
-
-  .gridBleed {
-    margin-inline: -1.15rem;
-  }
-
   .autoLine {
     font-size: var(--text-sm);
   }

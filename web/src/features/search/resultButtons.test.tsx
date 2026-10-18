@@ -249,13 +249,13 @@ describe('the plan size kept for the line', () => {
     })
   }
 
-  it('with regions: planCount, and the folded line shows "· N곳"', async () => {
+  it('with regions: planCount is kept (the folded line itself shows only the residence)', async () => {
     plan(3)
     localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence: [1168], work: [] }))
     renderSearch('/search?title=사랑&direct=on')
     const line = await screen.findByRole('button', { name: /^내 도서관: / })
-    await vi.waitFor(() => expect(line.textContent).toBe('내 도서관: 서울 강남구 · 3곳'))
-    expect(loadPrefs().planCount?.count).toBe(3)
+    await vi.waitFor(() => expect(line.textContent).toBe('거주 서울 강남구'))
+    await vi.waitFor(() => expect(loadPrefs().planCount?.count).toBe(3))
     expect(loadPrefs().openCount).toBeNull()
   })
 

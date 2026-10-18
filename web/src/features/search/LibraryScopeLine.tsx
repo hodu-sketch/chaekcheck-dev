@@ -1,8 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
 import { Popover } from 'radix-ui'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { fetchLibraries } from '../../api/client'
 import type { LibraryScope, VisitFilter } from '../../api/types'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { SaveHint } from '../mylibrary/SaveHint'
@@ -10,7 +8,8 @@ import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField } from '../region/RegionGrid'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
 import { useRegionPlace } from './regionPlace'
-import { shownPlanCount, type PlanCount } from './searchSettings'
+import type { PlanCount } from './searchSettings'
+import { useLibraryList } from './useLibraryList'
 import styles from './LibraryScopeLine.module.css'
 
 /** Which grid the box opens on: 사는 곳, or the 일하는 곳 row ([일하는 곳도 더하기], flow S1). */
@@ -23,6 +22,7 @@ export const SCOPE_TEXT = {
   addWork: '일하는 곳도 더하기',
   mine: '내 도서관',
   residence: '사는 곳',
+  residenceShort: '거주',
   work: '일하는 곳',
   chosen: (count: number) => `직접 추가 ${count}곳`,
   chosenHint: '상세검색이나 마이페이지에서 이름으로 더할 수 있어요',
@@ -49,45 +49,30 @@ export function scopeLineText({
   residence,
   work,
   chosen,
-  visit,
-  planCount,
 }: {
   /** The place names of the regions, `undefined` while they are being read; null = none chosen. */
   residence: string | null | undefined
   work: string | null | undefined
   chosen: number
-  visit: VisitFilter
-  planCount: number | null
 }): string | null {
   if (residence === null && work === null && chosen === 0) return null
-  const parts = [
-    residence !== null && (residence ?? '…'),
-    work !== null && `${SCOPE_TEXT.work} ${work ?? '…'}`,
-    visit === 'none' && '방문 가입 뺌',
-    chosen > 0 && `직접 추가 ${chosen}`,
-    planCount !== null && `${planCount}곳`,
-  ].filter((part): part is string => typeof part === 'string')
-  return `${SCOPE_TEXT.mine}: ${parts.join(' · ')}`
+  // only the residence, short: "거주 서울 강서구" (user 2026-10-19: "거주만 간단히 보이고 직장이랑 방문가입은 누르면
+  // 나오도록", "거주 고르면 이렇게"; no "내 도서관:" in front); 일하는 곳, 방문 가입 뺌, 직접 추가 and the count are in
+  // the box. Without a residence the line names what there is instead.
+  if (residence !== null) return `${SCOPE_TEXT.residenceShort} ${residence ?? '…'}`
+  if (work !== null) return `${SCOPE_TEXT.work} ${work ?? '…'}`
+  return `직접 추가 ${chosen}곳`
 }
 
-/**
- * The folded line's text for the current regions, added libraries and 방문 가입 빼기 (null for a first visitor). The
- * line shows what is saved now, so the kept count hides itself once one of them changes (R3-3).
- */
-function useScopeLineText(visit: VisitFilter, kept: PlanCount | null): string | null {
-  const { regions, libraryIds, source } = useRegions()
-  const planCount = shownPlanCount(
-    { planCount: kept },
-    { source, residence: regions.residence, work: regions.work, libraryIds, visit },
-  )
+/** The folded line's text for the current regions and added libraries (null for a first visitor). */
+function useScopeLineText(): string | null {
+  const { regions, libraryIds } = useRegions()
   const residencePlace = useRegionPlace(regions.residence)
   const workPlace = useRegionPlace(regions.work)
   return scopeLineText({
     residence: regions.residence.length === 0 ? null : (residencePlace ?? undefined),
     work: regions.work.length === 0 ? null : (workPlace ?? undefined),
     chosen: libraryIds.length,
-    visit,
-    planCount,
   })
 }
 
@@ -134,7 +119,7 @@ interface LineProps extends Common {
  */
 export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common }: LineProps) {
   const state = useLineState()
-  const text = useScopeLineText(common.visit, common.planCount)
+  const text = useScopeLineText()
   const first = text === null
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
@@ -150,7 +135,10 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
     <div className={styles.root} data-centered={centered || undefined}>
       <Popover.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
         <Popover.Anchor className={styles.line}>
-          <Popover.Trigger className={first ? styles.pick : styles.folded}>
+          <Popover.Trigger
+            className={first ? styles.pick : styles.folded}
+            aria-label={first ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
+          >
             {first ? SCOPE_TEXT.pick : text}
             {!first && <Caret />}
           </Popover.Trigger>
@@ -209,7 +197,7 @@ interface ChipProps extends Common {
  */
 export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
   const state = useLineState()
-  const text = useScopeLineText(common.visit, common.planCount)
+  const text = useScopeLineText()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
   if (state === 'failed') {
@@ -221,7 +209,13 @@ export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
   }
   return (
     <div className={styles.chipLine}>
-      <button type="button" className={styles.chip} onClick={onOpen} aria-haspopup="dialog">
+      <button
+        type="button"
+        className={styles.chip}
+        onClick={onOpen}
+        aria-haspopup="dialog"
+        aria-label={text === null ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
+      >
         {text ?? SCOPE_TEXT.pick}
         <Caret />
       </button>
@@ -395,12 +389,7 @@ export function LibraryScopeBody({
  * as `openCount` (R3-4). A library not in that list is switched off: "꺼진 도서관".
  */
 function ChosenPart({ ids, onOpenCount }: { ids: number[]; onOpenCount: (count: number) => void }) {
-  const list = useQuery({
-    queryKey: ['libraries', '', ''],
-    queryFn: ({ signal }) => fetchLibraries([], [], signal),
-    enabled: ids.length > 0,
-    staleTime: 5 * 60_000,
-  })
+  const list = useLibraryList(ids.length > 0)
   const rows = list.data
   const openRows = rows?.filter((row) => row.eligibility === 'OPEN').length
   const keepOpenCount = useRef(onOpenCount)

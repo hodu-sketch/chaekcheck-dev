@@ -159,7 +159,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
   it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
     renderSearch()
     const line = await foldedLine()
-    await waitFor(() => expect(line.textContent).toBe('내 도서관: 서울 마포구 · 일하는 곳 서울 중구 · 직접 추가 3'))
+    await waitFor(() => expect(line.textContent).toBe('거주 서울 마포구'))
     expect(fake.libraryLists).toBe(0)
 
     await userEvent.setup().click(line)
@@ -262,7 +262,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(screen.queryAllByRole('radio')).toEqual([])
-    await waitFor(async () => expect((await foldedLine()).textContent).toBe('내 도서관: 서울 마포구'))
+    await waitFor(async () => expect((await foldedLine()).textContent).toBe('거주 서울 마포구'))
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -289,7 +289,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     expect(fake.books).toHaveLength(1)
     expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('none')
     await user.keyboard('{Escape}')
-    await waitFor(async () => expect((await foldedLine()).textContent).toBe('내 도서관: 서울 마포구 · 방문 가입 뺌'))
+    await waitFor(async () => expect((await foldedLine()).textContent).toBe('거주 서울 마포구'))
 
     await user.click(searchButton())
     await waitFor(() => expect(fake.books).toHaveLength(2))
@@ -410,7 +410,7 @@ describe('phones: the chip and "찾을 도서관" in the settings sheet (cycle 2
     renderSearch()
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
-    const chip = await screen.findByRole('button', { name: /^내 도서관: 서울 마포구/ })
+    const chip = await screen.findByRole('button', { name: /^내 도서관: 거주 서울 마포구/ })
     expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
 
     const user = userEvent.setup()
