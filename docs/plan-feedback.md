@@ -5497,3 +5497,14 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 시험 배포를 처음 띄울 때 나가는 길 설정을 넣지 않아 `mode=ALL proxies=0`, 곧 **서버 자기 IP로 조회**했음(사용자가 발견). Webshare는 IP 인증(EC2 52.64.117.112)이라 아이디·비밀번호 없이 주소 목록만 넣으면 됨. 목록 20개를 서버 `egress.env`로 옮기고 `proxy-only`로 다시 띄움 → `mode=PROXY_ONLY lanes=20 direct=0 proxies=20`. 소년이 온다 스트림: 자기 IP 12곳 중 7곳 → 프록시 12곳 중 10곳 성공. 남은 2곳(62·73 시간 초과)은 PC에서도 실패
 - compose는 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`를 `${WEBSHARE_PROXIES}`에서 받음(plan 17 이름: Parameter Store `/chaekcheck/prod/WEBSHARE_PROXIES`)
 - 새 `deploy/prod/bin/up.sh`(ADR-0103·0104, design-delta "띄우기"): `secrets.env`가 손으로 둔 파일(첫 줄 표지 없음)이면 그대로 쓰고, 아니면 `/chaekcheck/prod/`를 EC2 역할로 읽어 이름 끝 = 변수 이름으로 `secrets.env`(600, 임시 파일 뒤 이동)에 씀. 필수 이름이 빠지거나 읽기가 실패하면 아무것도 쓰지 않고 멈춤. 값에 작은따옴표·줄바꿈이 있으면 멈춤(compose의 작은따옴표 값은 그대로 읽힘). `prod.env`가 있으면 함께 넘김. 필수 이름 [안]: `DB_PASSWORD WEBSHARE_PROXIES`(로그인·터널·사서추천을 켜는 compose가 생기면 더함, TODO). 가짜 `aws`·`docker`로 6가지(성공, 필수 빠짐, 읽기 실패, 따옴표, 손으로 둔 파일, `prod.env`) 확인. **실제 EC2에서는 아직 돌리지 않음**: 서버에 AWS CLI가 있는지, 역할에 `kms:Decrypt`가 필요한지 확인 못 함(이 세션에서 서버의 `aws` 호출이 권한에서 막힘)
+
+## 처리방침 1판 문구 두 곳 고침 (2026-10-18 저녁, 사용자 요청)
+
+- 사용자: "설정에 탈퇴가 없는데?", "이전 방침이 아직 없어서 빼는게 나을 것 같아" → 승인한 문구: §4 첫 줄 "…요청하거나, **로그인한 뒤** 설정의 「탈퇴」로 바로 지울 수 있습니다." / 끝 줄 "이 방침은 2026-10-18부터 적용됩니다. 바꿀 때는 공지사항으로 알립니다."(이전 방침·날짜 고르기 칸 문장 뺌). 탈퇴 버튼은 로그인했을 때만 검색 설정 창 "계정" 줄에 보임(`SettingsPanel.tsx`)
+- `PRE_DEPLOYMENT` 안이라 새 판 없이 `sitecontent-002-privacy-policy`(1판) 본문을 고침. 로컬 `db`·`db-ops`·`db-test`와 EC2 DB에서 그 판 줄과 `databasechangelog` 줄을 지운 뒤 다시 적용. plan `drafts/privacy-policy.md`도 같은 문구로 맞출 것
+- 시험: `SitecontentSchemaTests`가 새 두 문구를 확인. `./gradlew build` 통과
+
+## 외부 공개를 내림 (2026-10-18 18:47)
+
+- 18:12에 cloudflared를 띄워 chaekcheck.com을 열었으나 사용자가 "외부 배포하라고 한 적 없다" → cloudflared만 멈춤(지금 530). db·backend·web은 그대로이고 SSH 터널(localhost:8088)로만 봄. 다시 열 때는 사용자에게 먼저 확인. 그 전까지 서버는 `bin/up.sh db backend web`으로만 띄움(이름 없이 돌리면 cloudflared도 뜸)
+- 바로 보기 묶음 10(`holding-batch-size`), 확인 못 한 카드의 상세 페이지 링크는 위 커밋들과 plan 기록(plan f877813) 참고
