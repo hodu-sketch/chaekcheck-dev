@@ -21,6 +21,7 @@ import type {
   SiteDocument,
   VisitFilter,
 } from './types'
+import { visitKeyHeaders } from './visitKey'
 
 /** A non-2xx API response. `problem.code` says what went wrong. */
 export class ApiError extends Error {
@@ -50,8 +51,11 @@ export async function readProblem(response: Response): Promise<ApiError> {
   })
 }
 
-async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(url, { headers: { Accept: 'application/json, application/problem+json' }, signal })
+async function getJson<T>(url: string, signal?: AbortSignal, headers: Record<string, string> = {}): Promise<T> {
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json, application/problem+json', ...headers },
+    signal,
+  })
   if (!response.ok) throw await readProblem(response)
   return (await response.json()) as T
 }
@@ -163,7 +167,8 @@ export function fetchBook(bookId: string, plan: PlanParams, signal?: AbortSignal
   const search = new URLSearchParams()
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
-  return getJson(`/api/v1/books/${encodeURIComponent(bookId)}${suffix}`, signal)
+  // ADR-0134: the tab's visit key goes with the one request the server records as a book view
+  return getJson(`/api/v1/books/${encodeURIComponent(bookId)}${suffix}`, signal, visitKeyHeaders())
 }
 
 /**

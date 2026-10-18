@@ -1,9 +1,11 @@
 import { fetchCsrfToken, readCsrfCookie } from './auth'
 import type { PicksListKey } from './types'
+import { visitKey } from './visitKey'
 
 /**
  * Usage reports (cycle 15, ADR-0097): what the server does not see, sent to `POST /api/v1/usage-events` with
- * `fetch` keepalive so a report survives the page going away. The login state is never sent: the server reads it.
+ * `fetch` keepalive so a report survives the page going away. The login state is never sent: the server reads it. The tab's
+ * visit key goes in the body as `visitKey` (ADR-0134).
  * A report never shows anything, never throws and is never sent again after a failure (spec R2-7).
  */
 
@@ -40,7 +42,8 @@ export function sendUsageEvent(event: UsageEvent): void {
 }
 
 async function post(event: UsageEvent): Promise<void> {
-  const body = JSON.stringify(event)
+  const key = visitKey()
+  const body = JSON.stringify(key === null ? event : { ...event, visitKey: key })
   if (loginFeature === 'off') {
     await send(body, null)
     return
