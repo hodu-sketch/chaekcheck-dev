@@ -23,6 +23,7 @@ export const SCOPE_TEXT = {
   mine: '내 도서관',
   residence: '사는 곳',
   residenceShort: '거주',
+  workShort: '재직',
   work: '일하는 곳',
   chosen: (count: number) => `직접 추가 ${count}곳`,
   chosenHint: '상세검색이나 마이페이지에서 이름으로 더할 수 있어요',
@@ -56,11 +57,11 @@ export function scopeLineText({
   chosen: number
 }): string | null {
   if (residence === null && work === null && chosen === 0) return null
-  // only the residence, short: "거주 서울 강서구" (user 2026-10-19: "거주만 간단히 보이고 직장이랑 방문가입은 누르면
-  // 나오도록", "거주 고르면 이렇게"; no "내 도서관:" in front); 일하는 곳, 방문 가입 뺌, 직접 추가 and the count are in
-  // the box. Without a residence the line names what there is instead.
-  if (residence !== null) return `${SCOPE_TEXT.residenceShort} ${residence ?? '…'}`
-  if (work !== null) return `${SCOPE_TEXT.work} ${work ?? '…'}`
+  // only the residence, short: "서울 강서구 거주", or "서울 강서구 재직" with only a workplace (user 2026-10-19:
+  // "거주만 간단히 보이고 직장이랑 방문가입은 누르면 나오도록", "서울 강서구 거주 이게 더 자연스럽고 일할 땐 서울 강서구
+  // 재직"; no "내 도서관:" in front); 일하는 곳, 방문 가입 뺌, 직접 추가 and the count are in the box.
+  if (residence !== null) return `${residence ?? '…'} ${SCOPE_TEXT.residenceShort}`
+  if (work !== null) return `${work ?? '…'} ${SCOPE_TEXT.workShort}`
   return `직접 추가 ${chosen}곳`
 }
 
