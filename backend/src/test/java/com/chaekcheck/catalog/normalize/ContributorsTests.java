@@ -85,8 +85,48 @@ class ContributorsTests {
 			.isEqualTo(Contributors.parse("KBS 〈슈퍼차이나〉 제작팀 저").stream().map(Contributor::nameExact).toList());
 		assertThat(Contributors.stripMarks("채만식[蔡萬植]")).isEqualTo("채만식蔡萬植");
 		assertThat(Contributors.stripMarks("[트렌즈]지 특별취재팀")).isEqualTo("트렌즈지 특별취재팀");
-		assertThat(Contributors.stripMarks("Victor [pseud.] Appleton 저")).isEqualTo("Victor pseud. Appleton 저");
-		assertThat(Contributors.stripMarks("R.M.스웨글러 [원저] 이기춘 [공역] 저")).isEqualTo("R.M.스웨글러 원저 이기춘 공역");
+		assertThat(Contributors.stripMarks("마이니치신문 [간병 살인] 취재반")).isEqualTo("마이니치신문 간병 살인 취재반");
+		assertThat(Contributors.stripMarks("[Menon, ]")).isEqualTo("Menon,");
+	}
+
+	@Test
+	void originalAuthorAndAnnotatingTranslatorAreRoleWords() { // plan approval 2026-10-18: 원저 → AUTHOR, 역주 → TRANSLATOR
+		assertThat(Contributors.parse("이재선 역주")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("이재선", Role.TRANSLATOR));
+		assertThat(Contributors.parse("R.M.스웨글러 원저 이기춘 역")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("R.M.스웨글러 원저 이기춘", Role.TRANSLATOR)); // no comma: one item, as with other role words
+		assertThat(Contributors.parse("R.M.스웨글러 원저, 이기춘 역")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("R.M.스웨글러", Role.AUTHOR), tuple("이기춘", Role.TRANSLATOR));
+		assertThat(Contributors.stripMarks("R.M.스웨글러 [원저] 이기춘 [공역] 저")).isEqualTo("R.M.스웨글러 원저, 이기춘 공역");
+		assertThat(Contributors.parse("R.M.스웨글러 [원저] 이기춘,여정성 [공역] 저"))
+			.extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("R.M.스웨글러", Role.AUTHOR), tuple("이기춘", Role.TRANSLATOR),
+					tuple("여정성", Role.TRANSLATOR));
+		assertThat(Contributors.parse("장지연/신채호/박은식 [저] 이재선 [역주] 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("장지연", Role.UNKNOWN), tuple("신채호", Role.UNKNOWN), tuple("박은식", Role.AUTHOR),
+					tuple("이재선", Role.TRANSLATOR)); // the "/" pieces stay UNKNOWN (backlog)
+	}
+
+	@Test
+	void oldCatalogueNotesGo() { // plan approval 2026-10-18: pseud., from old catalog
+		assertThat(Contributors.stripMarks("Victor [pseud.] Appleton 저")).isEqualTo("Victor Appleton 저");
+		assertThat(Contributors.parse("Victor [pseud.] Appleton 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("Victor Appleton", Role.AUTHOR));
+		assertThat(Contributors.stripMarks("[pseud.] Carey Rockwell 저")).isEqualTo("Carey Rockwell 저");
+		assertThat(Contributors.stripMarks("Victor pseud. Appleton")).isEqualTo("Victor Appleton");
+		assertThat(Contributors.stripMarks("Oliver [Pseud.] Onions")).isEqualTo("Oliver Onions");
+		assertThat(Contributors.stripMarks("Abbot, Willis J[ohn], 1863-1934. [from old catalog]"))
+			.isEqualTo("Abbot, Willis John, 1863-1934.");
+		assertThat(Contributors.stripMarks("Beamer, Jacob, 1830- from old catalog")).isEqualTo("Beamer, Jacob, 1830-");
+		assertThat(Contributors.stripMarks("Bavaria. Landesamt. [From Old Catalog] [1900]")).isEqualTo("Bavaria. Landesamt. 1900");
+		assertThat(Contributors.stripMarks("[Cartier-Bresson, Mme. ] [from old catalog]")).isEqualTo("Cartier-Bresson, Mme.");
+		assertThat(Contributors.stripMarks("Bache, Louise Franklin, [from old catalog] joint author"))
+			.isEqualTo("Bache, Louise Franklin, joint author");
+		// a note word inside another word, and other bracketed names, keep their text
+		assertThat(Contributors.stripMarks("Pseudonymous Bosch")).isEqualTo("Pseudonymous Bosch");
+		assertThat(Contributors.stripMarks("KBS [슈퍼차이나] 제작팀")).isEqualTo("KBS 슈퍼차이나 제작팀");
+		assertThat(Contributors.stripMarks("채만식[蔡萬植]")).isEqualTo("채만식蔡萬植");
+		assertThat(Contributors.firstNameExact("Victor [pseud.] Appleton 저")).isEqualTo("victorappleton");
 	}
 
 	@Test
@@ -99,8 +139,6 @@ class ContributorsTests {
 			.containsExactly(tuple("최재천", Role.AUTHOR));
 		assertThat(Contributors.parse("<최재천 외 29명]> 저")).extracting(Contributor::name, Contributor::role)
 			.containsExactly(tuple("최재천", Role.AUTHOR));
-		assertThat(Contributors.stripMarks("[Cartier-Bresson, Mme. ] [from old catalog]"))
-			.isEqualTo("Cartier-Bresson, Mme. from old catalog");
 		assertThat(Contributors.parse("[]")).isEmpty();
 		assertThat(Contributors.stripMarks("[]")).isEmpty();
 	}

@@ -4574,6 +4574,25 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 - **빌드**: `./gradlew build`(TEST_PG_COMMAND, db-test) 통과(5분 7초, 1,109개 시험) — 로그 `../c19-brackets-build.log`. 첫 번째 돌림(`../c19-brackets-build.1.log`)은 이번 일과 무관한 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`(availability 모듈, 비동기 캐시 시각 시험) 하나가 실패했고 그대로 다시 돌리니 통과 — 8080·8081 서버가 켜진 채라 시간에 민감한 시험이 흔들린 것으로 봄
 - **남은 일**: 운영 반영은 따로 하지 않고 **사이클 17 배포 때 가져오기에 함께** 들어감(저자 정리가 바뀌므로 `rules-index.md`의 검색어 다듬기 규칙 순서 — 옛 서비스를 켠 채 내보내기 → 반영 → 새 코드로 다시 켜기 — 를 따름). 교보 화면 「북큐브」 줄 잘못 합침 약 0.2%(회고 결정 #4)는 원인이 달라 backlog 그대로, 건드리지 않음. plan: `spec.md` R1-2·ADR-0113·`rules-index`의 "`[ ]`는 그대로" 문구를 이 결정으로 고침
 
+### 원저·역주 역할 낱말, pseud./from old catalog 주기 떼기 (2026-10-18, plan 승인)
+
+- plan·사용자 승인(2026-10-18): 위 결과 승인(홀로 남은 뒤 역할 낱말 떼기 규칙 포함), 후속 두 가지. `;`·`/` 나누기는 plan backlog 그대로(건드리지 않음)
+- **역할 낱말**(`Contributors.ROLE_WORDS`): 「원저」 → AUTHOR(원저자. `Role`에 더 맞는 값이 없음 — 기존 「원작」은 OTHER이지만 원저는 글을 쓴 사람이라 AUTHOR로 둠), 「역주」 → TRANSLATOR(역주자). 역할 낱말이 늘면서 붙은 역할 보호 장치(`SEPARATE_ROLE`)도 두 낱말을 역할로 봄(붙은 역할 첫·둘째 낱말 목록은 그대로)
+- **주기 떼기**(`Contributors.NOTES`, `stripMarks` 맨 앞): `pseud.`·`from old catalog`(대소문자 무관, `[ ]` 있든 없든, 앞뒤 공백 정리, 낱말 안에서는 안 뗌 — 「Pseudonymous Bosch」 그대로). 사본 기준 `[pseud.]` 1,517줄, `[from old catalog]` 1,028줄
+- **시험**(`ContributorsTests` 25개 통과): 새로 `originalAuthorAndAnnotatingTranslatorAreRoleWords`, `oldCatalogueNotesGo`(괄호 있는 꼴·없는 꼴·대소문자·다른 괄호 이름은 유지·`firstNameExact`). `bracketedNameKeepsTheTextAndLosesTheBrackets`·`oddSquareBracketsGo`의 pseud./from old catalog 기대값을 옮김
+- **표본 전후**(일회용 `SampleCheck.java`)
+  - 「Victor [pseud.] Appleton 저」 → 「Victor Appleton 저」 → Victor Appleton:AUTHOR (전: 「Victor pseud. Appleton 저」)
+  - 「[pseud.] Carey Rockwell 저」 → 「Carey Rockwell 저」 → AUTHOR; 「Oliver [pseud.] Onions」 → 「Oliver Onions」
+  - 「Abbot, Willis J[ohn], 1863-1934. [from old catalog]」 → 「Abbot, Willis John, 1863-1934.」
+  - 「Bavaria. Landesamt fu?r Denkmalspflege. [from old catalog] [1900]」 → 「Bavaria. Landesamt fu?r Denkmalspflege. 1900」
+  - 「[Cartier-Bresson, Mme. ] [from old catalog]」 → 「Cartier-Bresson, Mme.」; 「[Bell, James Pinkney Pleasant] [from old catalog]」 → 「Bell, James Pinkney Pleasant」
+  - 「Bache, Elizabeth Du Bois. [from old catalog]; Bache, Louise Franklin, [from old catalog] joint autho」 → 「Bache, Elizabeth Du Bois. ; Bache, Louise Franklin, joint autho」(`;` 앞 공백 하나 남음, `;` 나누기는 backlog)
+  - 「R.M.스웨글러 [원저] 이기춘,여정성,박운아,성영애,임정 [공역] 저」 → 「R.M.스웨글러 원저, 이기춘,여정성,박운아,성영애,임정 공역」 → R.M.스웨글러:AUTHOR | 이기춘·여정성·박운아·성영애·임정:TRANSLATOR (전: 「R.M.스웨글러 원저 이기춘」 TRANSLATOR)
+  - 「장지연/신채호/박은식 [저] 이재선 [역주] 저」 → 「장지연/신채호/박은식 저, 이재선 역주」 → 장지연·신채호:UNKNOWN | 박은식:AUTHOR | 이재선:TRANSLATOR (전: 「이재선 역주」 AUTHOR; `/` 조각 UNKNOWN은 backlog)
+  - 「KBS [슈퍼차이나] 제작팀 저」·「채만식[蔡萬植]」은 그대로(「KBS 슈퍼차이나 제작팀」, 「채만식蔡萬植」)
+- **빌드**: `./gradlew build`(TEST_PG_COMMAND, db-test) 통과(4분 57초, 첫 돌림에 바로 통과) — 로그 `../c19-brackets-build-2.log`
+- `rules-index.md` "저자 기호 떼기" 줄에 주기 떼기와 원저·역주를 적음. 운영 반영은 앞 절과 같이 사이클 17 배포 때 가져오기에 함께
+
 # 사이클 21
 
 인계서: plan `docs/cycles/21-recommended-books/handoff.md` (추천도서: 이동진 추천도서 · 사서 추천도서 · 서울대 100선, 2026-10-16 승인). plan 21 세션 요청(2026-10-16): 0단계(API 시험)부터, 결과는 코드를 고치기 전에 이 절에 적고 사용자에게 알림.

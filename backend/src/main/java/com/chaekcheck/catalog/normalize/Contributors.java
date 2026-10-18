@@ -54,6 +54,9 @@ public final class Contributors {
 			Map.entry("글·그림", List.of(Role.AUTHOR, Role.ILLUSTRATOR)), Map.entry("편", List.of(Role.EDITOR)),
 			Map.entry("엮음", List.of(Role.EDITOR)), Map.entry("편저", List.of(Role.EDITOR)),
 			Map.entry("편역", List.of(Role.EDITOR)), Map.entry("엮은이", List.of(Role.EDITOR)),
+			// cycle 19 retro follow-up (plan approval 2026-10-18): "R.M.스웨글러 [원저]" (original author),
+			// "이재선 [역주]" (translator with notes)
+			Map.entry("원저", List.of(Role.AUTHOR)), Map.entry("역주", List.of(Role.TRANSLATOR)),
 			Map.entry("감수", List.of(Role.OTHER)), Map.entry("기획", List.of(Role.OTHER)),
 			Map.entry("사진", List.of(Role.OTHER)), Map.entry("원작", List.of(Role.OTHER)),
 			Map.entry("해설", List.of(Role.OTHER)), Map.entry("낭독", List.of(Role.OTHER)));
@@ -102,6 +105,14 @@ public final class Contributors {
 	 */
 	private static final Pattern TRAILING_LONE_ROLE = Pattern.compile("^(?:" + ROLE_ALTERNATION + ")\\s*$");
 
+	/**
+	 * Cataloguing notes of English old-catalogue records that are not part of a name ("Victor [pseud.] Appleton",
+	 * "Abbot, Willis John, 1863-1934. [from old catalog]"; 1,517 and 1,028 rows of the 2026-10-12 copy), with or
+	 * without their brackets, in any case. {@link #stripMarks} removes them (plan approval 2026-10-18).
+	 */
+	private static final Pattern NOTES = Pattern
+		.compile("(?i)(?<![A-Za-z])[\\[［]?\\s*(?:pseud\\.|from old catalog(?![A-Za-z]))\\s*[\\]］]?");
+
 	private static final Pattern SPACES = Pattern.compile("\\s{2,}");
 
 	/**
@@ -142,17 +153,17 @@ public final class Contributors {
 	 * behind become one. A role word in square brackets becomes the role word after a space ("존 버거 [지음]" → "존 버거
 	 * 지음"), followed by a comma when more text follows ("정도전[저]정병철[편]" → "정도전 저, 정병철 편"), and a lone
 	 * role word closing the text after it is dropped ("김삼웅 [편] 저" → "김삼웅 편"); other brackets lose only their
-	 * marks ("KBS [슈퍼차이나] 제작팀" → "KBS 슈퍼차이나 제작팀"). Text without marks comes back unchanged. Null stays
-	 * null.
+	 * marks ("KBS [슈퍼차이나] 제작팀" → "KBS 슈퍼차이나 제작팀"). The old-catalogue {@link #NOTES} go first ("Victor
+	 * [pseud.] Appleton 저" → "Victor Appleton 저"). Text without marks or notes comes back unchanged. Null stays null.
 	 */
 	public static String stripMarks(String raw) {
 		if (raw == null) {
 			return null;
 		}
-		if (!MARKS.matcher(raw).find()) {
+		if (!MARKS.matcher(raw).find() && !NOTES.matcher(raw).find()) {
 			return raw;
 		}
-		String text = MARKS.matcher(unbracketRoles(raw)).replaceAll("");
+		String text = MARKS.matcher(unbracketRoles(NOTES.matcher(raw).replaceAll(""))).replaceAll("");
 		return SPACES.matcher(text).replaceAll(" ").strip();
 	}
 
