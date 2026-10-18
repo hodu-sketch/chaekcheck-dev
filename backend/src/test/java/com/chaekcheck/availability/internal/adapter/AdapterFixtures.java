@@ -38,7 +38,7 @@ public final class AdapterFixtures {
 	/** KYOBO record count 50 matches the cycle 01 fixtures (saved with recordCount=50). */
 	public static final AvailabilityProperties PROPERTIES = new AvailabilityProperties(Duration.ofMinutes(3), CACHES, 1,
 			Duration.ofSeconds(1), Duration.ofSeconds(3), Duration.ofSeconds(5), Duration.ofSeconds(8),
-			new AvailabilityProperties.Batch(20, 5, Duration.ofSeconds(8), Duration.ofSeconds(3), 50),
+			new AvailabilityProperties.Batch(20, 5, Duration.ofSeconds(8), Duration.ofSeconds(3), 50, 10),
 			new AvailabilityProperties.Detail(Duration.ofSeconds(30)), new AvailabilityProperties.Kyobo(50, 3, ".dkyobobook.co.kr"),
 			new AvailabilityProperties.Yes24("title"), "chaekcheck/test", null, Duration.ofSeconds(15),
 			DataSize.ofMegabytes(4), 20, PARSE_SLOTS, LOOKUP_STATUS, OPS_SUMMARY, EGRESS);

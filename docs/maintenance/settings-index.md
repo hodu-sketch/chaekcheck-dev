@@ -11,7 +11,7 @@
 | 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
 |---|---|---|---|---|---|---|---|
 | 동시 검색 자리 | 40 | `chaekcheck.availability.max-concurrent-searches` | `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES` | 상태 불의 노랑(절반)·빨강(전부)은 이 값에서 계산되므로 따로 없음. 해석 자리 8과 함께 힙 어림(약 340MB) | 20 → 40: 검색 자리가 모자라 503이 나는 것보다 힙이 남음. 배포 뒤 1분 요약 로그(힙·503)로 60까지 올릴지 정함 | 사이클 20 전반 점검 #13, plan `settings-index.md` 3절 | 서비스 |
-| 바로 검색 결과 줄 상한 | 10 | `chaekcheck.availability.batch.row-limit` | `CHAEKCHECK_AVAILABILITY_BATCH_ROWLIMIT` | 책 화면 대출 상태(holding 묶음)에는 쓰지 않음(상한 없음, R15-1) | 검색 한 번이 쓰는 도서관 요청을 반으로 | ADR-0132, spec R15 | 서비스 |
+| 바로 검색 결과 줄 상한 | 10 | `chaekcheck.availability.batch.row-limit` | `CHAEKCHECK_AVAILABILITY_BATCH_ROWLIMIT` | 바로 보기·책 화면(holding 묶음)에는 쓰지 않음 — 그쪽은 묶음 크기 `holding-batch-size`(아래) | 검색 한 번이 쓰는 도서관 요청을 반으로 | ADR-0132, spec R15 | 서비스 |
 | 도서관 응답 본문 상한 (직접 호출) | 1MB (압축본도, 풀었을 때도) | `chaekcheck.availability.max-body-size` | `CHAEKCHECK_AVAILABILITY_MAXBODYSIZE` (운영 compose는 `${LOOKUP_MAX_BODY_MB}MB`로 넘김, 사이클 17) | 조회 서버 `fetch.max-body-size`, nginx `client_max_body_size`(2단계 올리기), 확장 `config.js`(2단계) — 모두 같은 1MB | 실제 가장 큰 응답 322KB(2026-10-05)의 약 3배. 넘으면 그 도서관만 실패하고 `body_too_large`로 기록 | 사이클 20 세 관점 검토 #7, 전반 점검 #6, ADR-0132 | 서비스 |
 | 메모리 상태 저장소 | `memory` (이 값만 받음; 다른 값이면 켤 때 멈춤) | `chaekcheck.lookup.state-store` | `CHAEKCHECK_LOOKUP_STATESTORE` | 없음 (Redis 구현·컨테이너는 나중에) | 상태 불 메모·마지막 DB 오류 시각·`HostQueueBoard`·`SearchSlots` 거절 시각을 저장소 인터페이스 뒤에 두고 이 값으로 구현을 고름 | ADR-0133, plan `research/maintenance/memory-state-and-redis.md` | 서비스 |
 | 책 기준 검색 기본 쪽 크기 | 10 (최대 20은 코드 상수 `BookParams.MAX_PAGE_SIZE` 그대로) | `chaekcheck.catalog.books.default-page-size` | `CHAEKCHECK_CATALOG_BOOKS_DEFAULTPAGESIZE` | 웹은 `pageSize`를 보내지 않음(검토 #30) | 첫 쪽 책 10권 → 대출 상태 조회가 10권 범위 | ADR-0132, spec R15, 세 관점 검토 #23·#30 | 서비스 |
@@ -48,7 +48,7 @@
 | 값 | 지금 값 | 어디 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 할 것 |
 |---|---|---|---|---|---|---|
 | 상태 묻는 간격 | 10초 | `VITE_LOOKUP_STATUS_POLL_SECONDS` (`web/src/api/lookupStatus.ts`) | 서버 상태 메모 1초(1절) | 탭이 보일 때만 묻고, 마지막 성공 뒤 30초(`LOOKUP_STATUS_STALE_MS`, 코드 상수)가 지나면 회색 | spec R1·R5, ADR-0118 | 웹 빌드 |
-| 책 화면 자동 이어 부르기 | 3묶음 | `VITE_HOLDING_AUTO_BATCHES` (`web/src/features/search/useHoldings.ts`) | holding 묶음 동시 5·마감 8초(서버) | 첫 묶음 포함 3묶음 뒤 「더 보기」 | spec R15-1, ADR-0132, 전반 점검 #7 | 웹 빌드 |
+| 바로 보기 묶음 크기 (사이클 17, 자동 이어 부르기를 대신함) | 10 | `chaekcheck.availability.batch.holding-batch-size` | 묶음 하나가 묻는 소장 줄 = 우리 DB 순서(책 순서, 그다음 도서관 순서)로 다음 10개. 필터와 상관없이 셈. 화면은 검색 한 번에 1묶음, 「더 보기」마다 1묶음(자동 이어 부르기 없음, `VITE_HOLDING_AUTO_BATCHES` 없앰) | 검색 한 번에 여는 상세 페이지를 10개 안팎으로(전에는 보이는 책의 도서관 전부, 3묶음 자동 → 책 한 권이 105곳이면 40곳 넘게) | 사용자 결정 2026-10-18("결과를 10개 정도 타겟", "db결과대로 이어서"), 사이클 20 R15-1을 바꿈 | 서비스 |
 
 ## 4. 코드 상수 (설정이 아닌 것)
 

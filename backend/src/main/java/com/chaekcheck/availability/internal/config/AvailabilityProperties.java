@@ -116,8 +116,11 @@ public record AvailabilityProperties(Duration cacheTtl, Caches caches, int hostM
 	 * @param deadline search pages must answer within this, from the batch start [확정 8s]
 	 * @param launchCutoff no new request when less than this is left before the deadline [안 3s]
 	 * @param maxCandidates candidates one "next batch" request may carry [안 50]
+	 * @param holdingBatchSize holdings one holding batch (바로 보기, book page) asks: the next ones in the catalog's
+	 * order, whatever the filter; the rest wait for "더 보기" (user decision 2026-10-18: about 10 results a search)
 	 */
-	public record Batch(int rowLimit, int parallelism, Duration deadline, Duration launchCutoff, int maxCandidates) {
+	public record Batch(int rowLimit, int parallelism, Duration deadline, Duration launchCutoff, int maxCandidates,
+			int holdingBatchSize) {
 	}
 
 	/**

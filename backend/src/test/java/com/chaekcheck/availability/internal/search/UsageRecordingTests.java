@@ -284,7 +284,7 @@ class UsageRecordingTests {
 	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,
 			long cutoffMillis) {
 		return new AvailabilityProperties.Batch(rowLimit, parallelism, Duration.ofMillis(deadlineMillis),
-				Duration.ofMillis(cutoffMillis), 50);
+				Duration.ofMillis(cutoffMillis), 50, 50);
 	}
 
 	private void answer(Candidate candidate, CompletableFuture<LibraryPage> page) {

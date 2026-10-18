@@ -222,6 +222,11 @@ chaekcheck:
       launch-cutoff: 3s
       # [안] candidates per "next batch" request
       max-candidates: 50
+      # 바로 보기 / book page: holdings one batch asks, the next ones in the catalog's order (books, then their
+      # libraries), any filter; the rest wait for "더 보기" [확정 10] (user decision 2026-10-18: "결과를 10개 정도
+      # 타겟", never hundreds; replaces cycle 20 R15-1's every holding of the visible books).
+      # docs/maintenance/settings-index.md
+      holding-batch-size: 10
     detail:
       # portal rows with a blank list verdict: detail pages are read until 30s after the batch start [확정 30s]
       deadline: 30s

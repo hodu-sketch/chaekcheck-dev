@@ -240,8 +240,11 @@ public class BatchRunner {
 
 	private void startHoldingBatch(SearchSlots.Slot slot, EventSink sink, ResultFilter filter, int batchNo,
 			List<HoldingTask> tasks, List<MissingHolding> notFound, StreamEvents.HoldingTargets targets) {
-		// no row limit for the book page (cycle 20, R15-1 [확정]): every holding of the visible books is asked, over
-		// several batches the web asks for; parallelism, deadline and launch cutoff stay
+		// A holding batch is the next holdingBatchSize holdings in the order given (the catalog's order of the books,
+		// then the plan's order of their libraries), cut before anything starts; the rest wait for "더 보기" (user
+		// decision 2026-10-18: about 10 results a search, never hundreds; replaces cycle 20 R15-1's "every holding of
+		// the visible books"). No row limit inside the batch, so the filter never makes it open more.
+		List<HoldingTask> batch = tasks.subList(0, Math.min(tasks.size(), settings.holdingBatchSize()));
 		HoldingSession session = new HoldingSession(sink, batchNo, filter, Integer.MAX_VALUE, slot::close);
 		releaseLater(slot);
 		if (targets != null) {
@@ -251,10 +254,10 @@ public class BatchRunner {
 		executor.execute(() -> {
 			Instant start = clock.instant();
 			Instant deadline = start.plus(settings.deadline());
-			StreamEvents.StopReason reason = runTasks(session, tasks, deadline,
+			StreamEvents.StopReason reason = runTasks(session, batch, deadline,
 					task -> startHolding(session, batchNo, task, deadline),
 					task -> notSent(task.target().id(), ResponseSource.HOLDING_FILL));
-			log.info("holding batch={} holdings={} requested={} stopReason={} startedAt={}", batchNo, tasks.size(),
+			log.info("holding batch={} holdings={} requested={} stopReason={} startedAt={}", batchNo, batch.size(),
 					session.requestedCount(), reason, start);
 		});
 	}

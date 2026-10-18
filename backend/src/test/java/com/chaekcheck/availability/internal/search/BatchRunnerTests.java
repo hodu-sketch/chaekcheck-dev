@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
@@ -384,6 +385,28 @@ class BatchRunnerTests {
 			});
 	}
 
+	// user decision 2026-10-18: a holding batch asks the first holdingBatchSize holdings in the order given, whatever
+	// the filter; the rest are not sent and stay for "더 보기"
+	@Test
+	void holdingBatchAsksTheFirstHoldingsUpToItsSizeWhateverTheFilter() {
+		List<HoldingTask> tasks = new java.util.ArrayList<>();
+		for (int i = 1; i <= 25; i++) {
+			HoldingTask task = HoldingTask.of(kyobo(i), holding(i, 1, "https://lib" + i + ".test/d"));
+			answerDetail(task, ParsedDetail.counted(1, 1, 0), Instant.now()); // none available
+			tasks.add(task);
+		}
+		AvailabilityProperties.Batch sized = new AvailabilityProperties.Batch(10, 5, Duration.ofMillis(8000),
+				Duration.ofMillis(3000), 50, 10);
+
+		runHoldings(runner(sized), ResultFilter.AVAILABLE, tasks);
+
+		verify(detailPages, times(10)).fetch(any(), any(), any());
+		assertThat(sink.dataOf(StreamEvents.HOLDING_REQUESTED))
+			.extracting(e -> ((StreamEvents.HoldingRequested) e).holdingId())
+			.containsExactlyInAnyOrder(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
+		assertThat(sink.batchDone().stopReason()).isEqualTo(StreamEvents.StopReason.CANDIDATES_EXHAUSTED);
+	}
+
 	@Test
 	void holdingsOnOneHostWaitAndOthersGoFirst() { // 바쁜 호스트 건너뛰기
 		HoldingTask a1 = HoldingTask.of(shared(1), holding(1, 1, "https://shared.test:8411/d?1"));
@@ -475,7 +498,7 @@ class BatchRunnerTests {
 	private static AvailabilityProperties.Batch settings(int rowLimit, int parallelism, long deadlineMillis,
 			long cutoffMillis) {
 		return new AvailabilityProperties.Batch(rowLimit, parallelism, Duration.ofMillis(deadlineMillis),
-				Duration.ofMillis(cutoffMillis), 50);
+				Duration.ofMillis(cutoffMillis), 50, 50);
 	}
 
 	private void answer(Candidate candidate, LibraryPage page) {

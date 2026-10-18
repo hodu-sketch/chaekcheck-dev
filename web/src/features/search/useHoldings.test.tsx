@@ -2,8 +2,7 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { holdingBatchStream, holdingStream } from '../../api/searchStream'
 import type { BookItem, HoldingStreamEvent, TargetLibrary } from '../../api/types'
-import { HOLDING_AUTO_BATCHES, useHoldings } from './useHoldings'
-import { MAX_CANDIDATES } from './useSearch'
+import { useHoldings } from './useHoldings'
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
 
@@ -80,6 +79,9 @@ function answers(holdingIds: number[], batchNo: number): HoldingStreamEvent[] {
   ]
 }
 
+/** The server asks this many holdings a batch (`holding-batch-size`), the first ones it is given. */
+const SERVER_BATCH = 10
+
 function mockStreams(total: number) {
   const ids = Array.from({ length: total }, (_, i) => i + 1)
   vi.mocked(holdingStream).mockImplementation(async (_params, onEvent) => {
@@ -94,10 +96,10 @@ function mockStreams(total: number) {
         holdings: ids.map((id) => ({ holdingId: id, bookId: BOOK.id, libraryId: id })),
       },
     })
-    for (const event of answers(ids.slice(0, MAX_CANDIDATES), 1)) onEvent(event)
+    for (const event of answers(ids.slice(0, SERVER_BATCH), 1)) onEvent(event)
   })
   vi.mocked(holdingBatchStream).mockImplementation(async (params, onEvent) => {
-    for (const event of answers(params.candidates, params.batchNo)) onEvent(event)
+    for (const event of answers(params.candidates.slice(0, SERVER_BATCH), params.batchNo)) onEvent(event)
   })
 }
 
@@ -110,66 +112,60 @@ const PLAN = {
   libraryIds: [],
 }
 
-/** Cycle 20 spec R15-1 (전반 점검 #7 [확정]): batches go on by themselves up to three per run, then "더 보기". */
-describe('holding batches that continue by themselves', () => {
+/** User decision 2026-10-18 (replaces cycle 20 R15-1's three batches): one batch per search, one per "더 보기". */
+describe('holding batches', () => {
   beforeEach(() => {
     vi.mocked(holdingStream).mockReset()
     vi.mocked(holdingBatchStream).mockReset()
   })
 
-  it('runs three batches, stops with holdings left, and "더 보기" runs up to three more (AC-36)', async () => {
-    expect(HOLDING_AUTO_BATCHES).toBe(3)
-    mockStreams(MAX_CANDIDATES * 7)
+  it('asks one batch for a search and never goes on by itself', async () => {
+    mockStreams(105)
     const { result } = renderHook(() => useHoldings())
     await act(async () => result.current.open([BOOK], PLAN))
     await act(async () => {})
 
     expect(holdingStream).toHaveBeenCalledTimes(1)
-    expect(holdingBatchStream).toHaveBeenCalledTimes(HOLDING_AUTO_BATCHES - 1)
+    expect(holdingBatchStream).not.toHaveBeenCalled()
     expect(result.current.state.phase).toBe('done')
-    expect(result.current.state.batches.map((b) => b.batchNo)).toEqual([1, 2, 3])
-    expect(result.current.remaining).toBe(MAX_CANDIDATES * 4)
+    expect(result.current.state.batches.flatMap((b) => b.rows)).toHaveLength(SERVER_BATCH)
+    expect(result.current.remaining).toBe(105 - SERVER_BATCH)
+  })
+
+  it('"더 보기" asks the next holdings in order, one batch each time', async () => {
+    mockStreams(25)
+    const { result } = renderHook(() => useHoldings())
+    await act(async () => result.current.open([BOOK], PLAN))
+    await act(async () => {})
 
     await act(async () => {
       expect(result.current.loadNext()).toBe(true)
     })
     await act(async () => {})
-    expect(holdingBatchStream).toHaveBeenCalledTimes(HOLDING_AUTO_BATCHES - 1 + HOLDING_AUTO_BATCHES)
-    expect(result.current.state.batches.map((b) => b.batchNo)).toEqual([1, 2, 3, 4, 5, 6])
-    expect(result.current.remaining).toBe(MAX_CANDIDATES)
-    expect(result.current.state.phase).toBe('done')
-  })
-
-  it('continues only while holdings are left (AC-28)', async () => {
-    mockStreams(MAX_CANDIDATES + 10)
-    const { result } = renderHook(() => useHoldings())
-    await act(async () => result.current.open([BOOK], PLAN))
-    await act(async () => {})
-
     expect(holdingBatchStream).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(holdingBatchStream).mock.calls[0][0].candidates).toHaveLength(10)
+    expect(vi.mocked(holdingBatchStream).mock.calls[0][0].candidates.slice(0, 3)).toEqual([11, 12, 13])
+    expect(result.current.remaining).toBe(5)
+
+    await act(async () => {
+      expect(result.current.loadNext()).toBe(true)
+    })
+    await act(async () => {})
+    expect(holdingBatchStream).toHaveBeenCalledTimes(2)
     expect(result.current.remaining).toBe(0)
-    expect(result.current.state.phase).toBe('done')
     expect(result.current.loadNext()).toBe(false)
   })
 
-  it('does not continue when nothing is left after the first batch (AC-28)', async () => {
-    mockStreams(3)
+  it('a batch that broke off leaves its holdings for "더 보기"', async () => {
+    mockStreams(25)
     const { result } = renderHook(() => useHoldings())
     await act(async () => result.current.open([BOOK], PLAN))
     await act(async () => {})
-    expect(holdingBatchStream).not.toHaveBeenCalled()
-    expect(result.current.remaining).toBe(0)
-  })
-
-  it('does not continue after a batch that broke off', async () => {
-    mockStreams(MAX_CANDIDATES * 3)
     vi.mocked(holdingBatchStream).mockRejectedValue(new Error('offline'))
-    const { result } = renderHook(() => useHoldings())
-    await act(async () => result.current.open([BOOK], PLAN))
+    await act(async () => {
+      result.current.loadNext()
+    })
     await act(async () => {})
-    expect(holdingBatchStream).toHaveBeenCalledTimes(1)
     expect(result.current.state.batchFailed).toBe(true)
-    expect(result.current.remaining).toBe(MAX_CANDIDATES * 2)
+    expect(result.current.remaining).toBe(15)
   })
 })
