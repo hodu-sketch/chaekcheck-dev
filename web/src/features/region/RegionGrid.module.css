@@ -1,31 +1,48 @@
 /*
- * The region grid out of the dialog, only bigger (cycle 22 R12, D11): text 1rem (at least 16px on every screen),
- * cells at least 2.5rem high, 100% of the box it sits in. Colors are the old region dialog's (removed in cycle 22 step 3).
+ * The region picker (cycle 22 R12; one mode on every width since user 2026-10-19): chips in a row ending in a +, which shows
+ * a 시도 and a 시군구 select. Colors are the old region dialog's (removed in cycle 22 step 3).
+ */
+
+/*
+ * The inset: on phones the "찾을 도서관" sheet pulls the box out to the screen edges (LibraryScopeLine .body[data-sheet]
+ * .gridBleed -1.1rem), so the picker gives that inset back and the chips, selects and lines line up with the
+ * "사는 곳"/"일하는 곳" headings. Wider screens show the box, which pulls nothing, so no inset there. A caller may set
+ * --region-grid-inset to its own bleed (MyLibrariesPage .gridBleed sets 0).
  */
 .root {
   width: 100%;
+  box-sizing: border-box;
   font-size: 1rem;
 }
 
-.chips {
+@media (width <= 640px) {
+  .root {
+    padding-inline: var(--region-grid-inset, 1.1rem);
+  }
+}
+
+.chipRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: 0 0 0.6rem;
-  padding: 0;
-  list-style: none;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+/* the chips flow in the row, so the + comes right after the last one */
+.chips {
+  display: contents;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  min-height: 2.25rem;
-  padding: 0.2rem 0.3rem 0.2rem 0.8rem;
+  gap: 0.1rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.6rem;
   border-radius: var(--radius-tag);
   background: var(--borrow-soft);
   color: var(--borrow);
-  font-size: 1rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -33,8 +50,8 @@
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -48,6 +65,17 @@
   background: rgb(94 63 224 / 0.14);
 }
 
+/* at least a 44px touch area around the chip's × without moving anything (cycle 10 icon check) */
+.chipRemove::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  translate: -50% -50%;
+}
+
 .notices {
   margin: 0 0 0.6rem;
   padding: 0.6rem 0.8rem;
@@ -55,285 +83,12 @@
   border-radius: var(--radius-sm);
   background: var(--paper-deep);
   color: var(--ink);
-  font-size: 1rem;
-}
-
-.picker {
-  display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr);
-  /* the box it sits in may set its own height; the two columns scroll on their own */
-  height: var(--region-grid-height, 26rem);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--card);
-}
-
-.status {
-  grid-column: 1 / -1;
-  align-self: center;
-  margin: 0;
-  padding: 2rem 1rem;
-  text-align: center;
-  color: var(--ink-soft);
-}
-
-.linkButton {
-  min-height: 2.5rem;
-  border: none;
-  background: none;
-  padding: 0 0.25rem;
-  color: var(--brand-strong);
-  font-size: 1rem;
-  font-weight: 800;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.sidoList {
-  margin: 0;
-  padding: 0.3rem 0;
-  list-style: none;
-  overflow-y: auto;
-  background: var(--paper);
-  border-right: 1px solid var(--rule);
-}
-
-.sido {
-  width: 100%;
-  min-height: 2.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem 0.6rem 0.35rem 0.9rem;
-  border: none;
-  background: transparent;
-  text-align: left;
-  font-size: 1rem;
-  cursor: pointer;
-  color: var(--ink-soft);
-  word-break: keep-all;
-}
-
-.sido:hover {
-  color: var(--ink);
-  background: var(--paper-deep);
-}
-
-.sido[aria-pressed='true'] {
-  font-weight: 700;
-  background: var(--card);
-  color: var(--brand-strong);
-}
-
-.sidoCount {
-  flex: none;
-  min-width: 1.4rem;
-  border-radius: var(--radius-tag);
-  background: var(--brand);
-  color: #fff;
-  font-size: var(--text-xs);
-  text-align: center;
-}
-
-.sigunguSet {
-  /* the column count follows this column's width, not the screen's */
-  container-type: inline-size;
-  min-width: 0;
-  margin: 0;
-  padding: 0.8rem 0.8rem 1rem;
-  border: none;
-  overflow-y: auto;
-}
-
-.sigunguLegend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.2rem 0.75rem;
-  float: left;
-  width: 100%;
-  margin-bottom: 0.6rem;
-  font-size: var(--text-lg);
-  font-weight: 800;
-}
-
-.limit {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--reserve);
-}
-
-/* 2 columns in a narrow box, 3 from 20rem, 4 from 26rem of this column (a 40rem box leaves about 27.7rem here, so it shows 4) */
-.sigunguGrid {
-  clear: both;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem;
-}
-
-@container (width >= 20rem) {
-  .sigunguGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@container (width >= 26rem) {
-  .sigunguGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.sigungu {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 2.5rem;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-control);
-  font-size: 1rem;
-  line-height: 1.3;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color 120ms, background-color 120ms;
-}
-
-.sigungu:hover {
-  border-color: var(--rule-strong);
-}
-
-.sigungu[data-checked] {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-  font-weight: 800;
-}
-
-.sigungu input {
-  flex: none;
-  margin: 0;
-  accent-color: var(--brand);
-}
-
-.sigungu:has(input:disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/*
- * Two columns (narrow boxes, phones): as the old region dialog on phones, the tile's color shows the choice and the drawn box
- * goes, so a four-letter name such as "동대문구" stays on one line; longer names take a whole row.
- */
-@container (width < 20rem) {
-  .sigungu {
-    justify-content: center;
-    gap: 0;
-    text-align: center;
-  }
-
-  .sigungu[data-long] {
-    grid-column: 1 / -1;
-  }
-
-  /* the box stays for keyboards and screen readers */
-  .sigungu input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .sigungu:has(input:focus-visible) {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-}
-
-/* phones: the whole screen width (the parent gives it no side padding), a shorter 시도 column */
-@media (width <= 640px) {
-  .picker {
-    grid-template-columns: 5.5rem minmax(0, 1fr);
-    height: var(--region-grid-height, 60dvh);
-  }
-
-  .sido {
-    padding-left: 0.65rem;
-    padding-right: 0.4rem;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-  }
-
-  .sidoList {
-    scrollbar-width: none;
-  }
-
-  .sigunguSet {
-    padding: 0.6rem 0.5rem 1rem;
-  }
-
-  /* at least a 44px touch area around the chip's × without moving anything (cycle 10 icon check) */
-  .chipRemove::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: max(100%, 44px);
-    height: max(100%, 44px);
-    translate: -50% -50%;
-  }
-}
-
-/*
- * Phones (user 2026-10-19): instead of the grid, smaller chips ending in a +, which shows a 시도 and a 시군구 select. RegionGrid renders
- * only one of the two pickers and marks the root with data-phone, so these rules need no media query.
- */
-
-/*
- * The callers pull the box out to the screen edges on phones for the full-bleed grid (MyLibrariesPage .gridBleed -1.15rem,
- * LibraryScopeLine sheet .gridBleed -1.1rem); the select mode gives that inset back, so chips, selects and lines line up
- * with the "사는 곳"/"일하는 곳" headings. A caller may set --region-grid-inset to its own bleed.
- */
-.root[data-phone] {
-  padding-inline: var(--region-grid-inset, 1.1rem);
-  box-sizing: border-box;
-}
-
-.root[data-phone] .chip {
-  min-height: 0;
-  gap: 0.1rem;
-  padding: 0.2rem 0.3rem 0.2rem 0.6rem;
-  border-radius: var(--radius-tag);
   font-size: var(--text-sm);
-}
-
-.root[data-phone] .chipRemove {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.root[data-phone] .notices {
-  font-size: var(--text-sm);
-}
-
-.chipRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
-}
-
-/* the chips flow in the row, so the + comes right after the last one */
-.chipRow .chips {
-  display: contents;
 }
 
 /* the + (× while the selects are open): a chip-high square in the chips' violet */
 .add {
+  position: relative;
   display: inline-grid;
   place-items: center;
   width: 1.65rem;
@@ -357,10 +112,6 @@
 }
 
 /* at least a 44px touch area without moving anything (cycle 10 icon check) */
-.add {
-  position: relative;
-}
-
 .add::after {
   content: '';
   position: absolute;
@@ -373,25 +124,43 @@
 
 .selects {
   display: grid;
-  /* 시도 about 40%, 시군구 the rest */
+  /* 시도 about 40%, 시군구 the rest; on a wide box the row stops at 28rem instead of stretching across it */
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   gap: 0.5rem;
+  max-width: 28rem;
 }
 
 .selects:empty {
   display: none;
 }
 
-.selects .status,
-.selects .limit {
+.status,
+.limit {
   grid-column: 1 / -1;
   margin: 0;
   font-size: var(--text-sm);
 }
 
-.selects .status {
+.status {
   padding: 0.75rem 0;
-  text-align: left;
+  color: var(--ink-soft);
+}
+
+.limit {
+  font-weight: 700;
+  color: var(--reserve);
+}
+
+.linkButton {
+  min-height: 2.5rem;
+  border: none;
+  background: none;
+  padding: 0 0.25rem;
+  color: var(--brand-strong);
+  font-size: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .select {
