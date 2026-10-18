@@ -23,7 +23,12 @@ import com.chaekcheck.availability.internal.UpstreamException;
 import com.chaekcheck.availability.internal.adapter.ParsedPage;
 import com.github.benmanes.caffeine.cache.Ticker;
 
-/** AC-16: 3 minutes after write, with a fake ticker. */
+/**
+ * AC-16: 3 minutes after write, with a fake ticker. The two time tests load on the calling thread: with the async
+ * executor Caffeine stamps the write time when the load's future completes, which can land after the test has already
+ * moved the fake clock, so the entry looked fresh and the test failed now and then (seen 2026-10-17/18 while other work
+ * kept the machine busy).
+ */
 class CaffeineSearchPageCacheTests {
 
 	static final PageKey KEY = new PageKey(2, SearchField.TITLE, "사랑", 1);
@@ -45,6 +50,7 @@ class CaffeineSearchPageCacheTests {
 
 	@Test
 	void sameKeyWithinThreeMinutesLoadsOnce() {
+		CaffeineSearchPageCache cache = sameThreadCache();
 		assertThat(cache.get(KEY, loader()).join().hit()).isFalse();
 		advance(Duration.ofMinutes(2).plusSeconds(59));
 		assertThat(cache.get(KEY, loader()).join().hit()).isTrue();
@@ -65,6 +71,7 @@ class CaffeineSearchPageCacheTests {
 
 	@Test
 	void loadsAgainAfterThreeMinutes() {
+		CaffeineSearchPageCache cache = sameThreadCache();
 		cache.get(KEY, loader()).join();
 		advance(Duration.ofMinutes(3).plusSeconds(1));
 
@@ -105,6 +112,11 @@ class CaffeineSearchPageCacheTests {
 
 		assertThat(lookups).allSatisfy(f -> assertThat(f.join().page()).isNotNull());
 		assertThat(loads).hasValue(1);
+	}
+
+	/** Loads run on the caller's thread, so the write time is stamped before the test advances the clock. */
+	private CaffeineSearchPageCache sameThreadCache() {
+		return new CaffeineSearchPageCache(Duration.ofMinutes(3), 1000, Runnable::run, ticker);
 	}
 
 	private Supplier<FetchedPage> loader() {

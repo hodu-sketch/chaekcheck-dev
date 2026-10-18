@@ -5395,3 +5395,4 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - ADR-0134 처리방침 1절 문구는 이 세션의 ADR-0134 작업이 지금 seed에 먼저 넣음(합칠 때 그대로) — 8차 초안에 이미 같은 문구가 있으니 전체 교체 때 덮어써도 같음
 - 첫 공지 「책첵을 시작했어요」(`drafts/notice-first.md`)는 seed가 아니라 공개일에 운영 SQL로 올림(`docs/maintenance/5-sitecontent.md` 1절). seed의 `notice`는 0줄 유지
 - 확인: `./gradlew build`, 웹 `/terms`·`/privacy`·`/about`·가입 화면 동의문 눈으로 확인, 처리방침 표가 목록으로 보이는지(remark-gfm 없음)
+- 흔들리던 시험 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`(사이클 21·20 빌드에서 각 1번 실패, 혼자 돌리면 통과) 고침(2026-10-18, 사용자 "3번도 해"): 비동기 executor로는 Caffeine이 로드 future가 끝날 때 쓰기 시각을 찍는데, 그 시점이 시험이 가짜 시계를 돌린 뒤로 밀리면 항목이 새것으로 보여 실패함. 시간 시험 둘(`sameKeyWithinThreeMinutesLoadsOnce`·`loadsAgainAfterThreeMinutes`)만 호출 스레드에서 로드하는 캐시(`Runnable::run`)를 쓰게 함. 서비스 코드 변경 없음. 3번 연속 통과
