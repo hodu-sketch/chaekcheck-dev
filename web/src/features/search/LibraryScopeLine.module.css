@@ -1,0 +1,319 @@
+/*
+ * Cycle 22 R1, R2 (ADR-0138): the "찾을 도서관" line under the search box, its box, and the phone chip. The controls
+ * keep the look of the scope row before (the light grey tray, --control-height buttons with a thin line).
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.root[data-centered] {
+  align-items: center;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--tray);
+}
+
+.root[data-centered] .line,
+.line[data-centered] {
+  align-self: center;
+  justify-content: center;
+}
+
+/* keeps the line's height while the account is read, with nothing in it */
+.line[data-waiting] {
+  min-height: calc(var(--control-height) + 1rem);
+  visibility: hidden;
+}
+
+.folded,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--control-height);
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: left;
+  word-break: keep-all;
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms;
+}
+
+.folded:hover,
+.folded[data-state='open'],
+.chip:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+/* a first visitor's [사는 곳·일하는 곳 고르기] (R1-2) */
+.pick {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.pick:hover,
+.pick[data-state='open'] {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.folded:focus-visible,
+.chip:focus-visible,
+.pick:focus-visible,
+.linkButton:focus-visible,
+.allButton:focus-visible,
+.addWork:focus-visible,
+.myPage:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.caret {
+  display: inline-flex;
+  flex: none;
+  color: var(--brand-strong);
+}
+
+.folded[data-state='open'] .caret {
+  transform: rotate(180deg);
+}
+
+.pickNote {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  word-break: keep-all;
+}
+
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* "전국에서 찾는 중 · N곳" [내 도서관만] (R1-5): amber like the reserve color */
+.all {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.allText {
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-tag);
+  background: var(--reserve-soft);
+  color: var(--reserve);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.allButton {
+  min-height: var(--control-height);
+  padding: 0 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.allButton:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.failed {
+  margin: 0;
+  padding: 0 0.4rem;
+  color: var(--fail);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.failed .linkButton {
+  color: inherit;
+}
+
+/* the box under the line (S1-box): floats over the results, at most 40rem wide (D11) */
+.box {
+  z-index: 15;
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: min(var(--radix-popover-content-available-height), 80dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.1rem 1.05rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--ink);
+  font-size: var(--text-md);
+  text-align: left;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.part + .part {
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.partTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 800;
+}
+
+/* phones: the grid takes the sheet's whole width (R2-2): the sheet's own inset, 1rem + the section's 0.1rem */
+.gridBleed {
+  min-width: 0;
+}
+
+.body[data-sheet] .gridBleed {
+  margin-inline: -1.1rem;
+}
+
+/* [일하는 곳도 더하기] as on the my page (the grid stays folded until pressed) */
+.addWork {
+  align-self: flex-start;
+  min-height: 2.5rem;
+  padding: 0.45rem 1rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addWork:hover {
+  border-color: var(--brand);
+}
+
+.error {
+  margin: 0;
+  color: var(--fail);
+  font-weight: 700;
+}
+
+.names {
+  margin: 0;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  word-break: keep-all;
+}
+
+.visit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  word-break: keep-all;
+}
+
+.visit input {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--brand-strong);
+}
+
+.myPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  border-radius: var(--radius-control);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.myPage:hover {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+/* phones (R2-1): the chip on its own line under the search box */
+.chipLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.chipLine[data-waiting] {
+  min-height: var(--control-height);
+  visibility: hidden;
+}
+
+.chip {
+  max-width: 100%;
+}

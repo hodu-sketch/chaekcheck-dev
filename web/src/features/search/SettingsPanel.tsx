@@ -8,15 +8,31 @@ type Props = {
   settings: SearchSettings
   /** Applied at once; with results the search runs again [안]. */
   onChange: (settings: SearchSettings) => void
-  /** Phones: "찾을 도서관" (scope, 방문 없이 가입, 내 도서관/내 지역) at the top of the panel (D안, user choice 2026-10-05). */
+  /**
+   * Phones: the "찾을 도서관" section at the top of the sheet (D안, user choice 2026-10-05; cycle 22 R2-1: the box's
+   * body). Its presence makes the panel the phone sheet.
+   */
   scopeSection?: ReactNode
-  /** Phones: what "찾을 도서관" is set to now, shown on its row while the row is closed (e.g. "내 도서관"). */
-  scopeValue?: string
+  /** Wider screens (cycle 22 R8-1): one more row in the small window, the 방문 가입 빼기 switch. */
+  visitSwitch?: ReactNode
   /** A dot on the button: the search scope is not the default, while it is folded in here. */
   marked?: boolean
+  /** Opened from outside (the phone chip, cycle 22 R2-1): the open state and the open section; else its own. */
+  control?: SettingsControl
+}
+
+/** The panel opened and its section set by the caller (the phone chip opens it on "찾을 도서관"). */
+export interface SettingsControl {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  section: SettingsSection
+  onSectionChange: (section: SettingsSection) => void
 }
 
 type SectionKey = 'scope' | 'view' | 'direct'
+
+/** The open section of the phone sheet; '' = all closed. */
+export type SettingsSection = SectionKey | ''
 
 /**
  * Phones: the settings open as a bottom sheet (cycle 08, flow.md 검토 #1). Set to false to go back to the small
@@ -31,12 +47,16 @@ export const PHONE_SETTINGS_SHEET = true
  * not grouped by book. 탈퇴 is on 마이페이지 > 계정 (user request 2026-10-18; it was a "계정" row here, cycle 05);
  * login and logout stay in the header.
  */
-export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, marked = false }: Props) {
-  const [open, setOpen] = useState(false)
+export function SettingsPanel({ settings, onChange, scopeSection, visitSwitch, marked = false, control }: Props) {
+  const [ownOpen, setOwnOpen] = useState(false)
   // phones (the scope folded in here): one row per section that opens on a tap, all closed at first (user requests
   // 2026-10-05)
   const sheet = scopeSection !== undefined
-  const [section, setSection] = useState<SectionKey | ''>('')
+  const [ownSection, setOwnSection] = useState<SettingsSection>('')
+  const open = control ? control.open : ownOpen
+  const setOpen = control ? control.onOpenChange : setOwnOpen
+  const section = control ? control.section : ownSection
+  const setSection = control ? control.onSectionChange : setOwnSection
 
   const viewOptions = (
     <RadioGroup.Root
@@ -86,11 +106,11 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
           type="single"
           collapsible
           value={section}
-          onValueChange={(value) => setSection(value as SectionKey | '')}
+          onValueChange={(value) => setSection(value as SettingsSection)}
           className={styles.sections}
         >
-          <Section value="scope" title="찾을 도서관" current={scopeValue}>
-            <div className={styles.scope}>{scopeSection}</div>
+          <Section value="scope" title="찾을 도서관">
+            {scopeSection}
           </Section>
           <Section value="view" title="보기 방식" current={settings.view === 'books' ? '책 먼저 고르기' : '바로 보기'}>
             {viewOptions}
@@ -109,6 +129,7 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
             <legend className={styles.legend}>도서관에서 직접 찾기</legend>
             {directOptions}
           </fieldset>
+          {visitSwitch && <div className={styles.group}>{visitSwitch}</div>}
         </>
       )}
     </>

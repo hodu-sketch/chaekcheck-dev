@@ -44,6 +44,11 @@ export interface ResultSearchContext {
   visit: VisitFilter
   /** After login the account's 내 도서관 could not be read (D7): no green line. */
   accountFailed: boolean
+  /**
+   * How many libraries the search planned, for the green line's {N} (R7-1); null when not known (바로 보기 names only
+   * the libraries holding the books found), and the line then goes without the number.
+   */
+  planCount: number | null
   /** Regions (or libraries) were saved since this search was made without any (R7-2): the green line asks for [검색]. */
   regionsPicked: boolean
   /** [전국에서 찾기], [전국에서 더 찾기]: the same search with `scope=all`. */
@@ -71,8 +76,8 @@ export const GROUP_TEXT = {
   otherNote: '그 지역에 살거나 일해야 가입돼요',
   searchAll: '전국에서 찾기',
   searchAllMore: '전국에서 더 찾기',
-  green: (libraries: number) =>
-    `사는 곳을 고르지 않아 어디 살든 가입되는 도서관 ${libraries}곳에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요`,
+  green: (libraries: number | null) =>
+    `사는 곳을 고르지 않아 어디 살든 가입되는 도서관${libraries === null ? '' : ` ${libraries}곳`}에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요`,
   pickRegions: '사는 곳 고르기',
 } as const
 
@@ -204,7 +209,6 @@ export function ResultList({
       {grouped ? (
         <Groups
           batches={batches}
-          libraries={libraries}
           libraryById={libraryById}
           searchUrls={searchUrls}
           screen={screen}
@@ -330,7 +334,6 @@ function regionBasisOf(context: ResultSearchContext | undefined): RegionBasis {
  */
 function Groups({
   batches,
-  libraries,
   libraryById,
   searchUrls,
   screen,
@@ -338,7 +341,6 @@ function Groups({
   context,
 }: {
   batches: BatchView[]
-  libraries: TargetLibrary[]
   libraryById: ReadonlyMap<number, TargetLibrary>
   searchUrls: ReadonlyMap<number, string>
   screen?: ClickScreen
@@ -382,7 +384,7 @@ function Groups({
             </>
           ) : (
             <>
-              {GROUP_TEXT.green(libraries.length)}{' '}
+              {GROUP_TEXT.green(context.planCount)}{' '}
               {linkButton(GROUP_TEXT.pickRegions, context.onPickRegions)}
             </>
           )}

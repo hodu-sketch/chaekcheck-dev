@@ -1,0 +1,433 @@
+import { useQuery } from '@tanstack/react-query'
+import { Popover } from 'radix-ui'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
+import { fetchLibraries } from '../../api/client'
+import type { LibraryScope, VisitFilter } from '../../api/types'
+import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
+import { SaveHint } from '../mylibrary/SaveHint'
+import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
+import { RegionGrid, type RegionField } from '../region/RegionGrid'
+import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
+import { useRegionPlace } from './regionPlace'
+import { shownPlanCount, type PlanCount } from './searchSettings'
+import styles from './LibraryScopeLine.module.css'
+
+/** Which grid the box opens on: 사는 곳, or the 일하는 곳 row ([일하는 곳도 더하기], flow S1). */
+export type BoxFocus = RegionField
+
+/** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
+export const SCOPE_TEXT = {
+  pick: '사는 곳·일하는 곳 고르기',
+  pickNote: '고르면 그 지역 기준으로 찾아요 · 안 고르면 어디 살든 가입되는 도서관에서 찾아요',
+  addWork: '일하는 곳도 더하기',
+  mine: '내 도서관',
+  residence: '사는 곳',
+  work: '일하는 곳',
+  chosen: (count: number) => `직접 추가 ${count}곳`,
+  chosenHint: '상세검색이나 마이페이지에서 이름으로 더할 수 있어요',
+  disabled: '꺼진 도서관',
+  visitNone: '직접 가야 가입되는 도서관은 빼기',
+  open: (count: number | null) =>
+    count === null ? '어디 살든 가입되는 도서관은 늘 들어 있어요' : `어디 살든 가입되는 도서관 ${count}곳은 늘 들어 있어요`,
+  myPage: '마이페이지에서 전체 보기',
+  all: (count: number | null) => (count === null ? '전국에서 찾는 중' : `전국에서 찾는 중 · ${count}곳`),
+  backToMine: '내 도서관만',
+  accountFailed: '내 도서관을 불러오지 못했어요',
+  retry: '다시 시도',
+} as const
+
+/** Names shown under "직접 추가 N곳" (R1-4 "이름 두어 개"); the rest as "외 N곳" [안]. */
+const CHOSEN_NAMES_SHOWN = 2
+
+/**
+ * The folded line's words without "▾" (R3): "내 도서관: 서울 강남구 · 일하는 곳 성남시 · 방문 가입 뺌 · 직접 추가 2 · 68곳". Only
+ * what differs from the default is added (R3-2); without 사는 곳 the 일하는 곳 leads ("내 도서관: 일하는 곳 성남시 …", user
+ * approval). "N곳" only when the stored count was taken with the same inputs (R3-3, D5). Null for a first visitor.
+ */
+export function scopeLineText({
+  residence,
+  work,
+  chosen,
+  visit,
+  planCount,
+}: {
+  /** The place names of the regions, `undefined` while they are being read; null = none chosen. */
+  residence: string | null | undefined
+  work: string | null | undefined
+  chosen: number
+  visit: VisitFilter
+  planCount: number | null
+}): string | null {
+  if (residence === null && work === null && chosen === 0) return null
+  const parts = [
+    residence !== null && (residence ?? '…'),
+    work !== null && `${SCOPE_TEXT.work} ${work ?? '…'}`,
+    visit === 'none' && '방문 가입 뺌',
+    chosen > 0 && `직접 추가 ${chosen}`,
+    planCount !== null && `${planCount}곳`,
+  ].filter((part): part is string => typeof part === 'string')
+  return `${SCOPE_TEXT.mine}: ${parts.join(' · ')}`
+}
+
+/**
+ * The folded line's text for the current regions, added libraries and 방문 가입 빼기 (null for a first visitor). The
+ * line shows what is saved now, so the kept count hides itself once one of them changes (R3-3).
+ */
+function useScopeLineText(visit: VisitFilter, kept: PlanCount | null): string | null {
+  const { regions, libraryIds, source } = useRegions()
+  const planCount = shownPlanCount(
+    { planCount: kept },
+    { source, residence: regions.residence, work: regions.work, libraryIds, visit },
+  )
+  const residencePlace = useRegionPlace(regions.residence)
+  const workPlace = useRegionPlace(regions.work)
+  return scopeLineText({
+    residence: regions.residence.length === 0 ? null : (residencePlace ?? undefined),
+    work: regions.work.length === 0 ? null : (workPlace ?? undefined),
+    chosen: libraryIds.length,
+    visit,
+    planCount,
+  })
+}
+
+/** What the line and the chip show, from the region source's state. */
+function useLineState(): 'waiting' | 'failed' | 'ready' {
+  const { source, ready, accountFailed } = useRegions()
+  if (accountFailed) return 'failed'
+  // while the login check runs or the account is read, the line keeps its place and says nothing yet
+  if (source === 'waiting' || (source === 'account' && !ready)) return 'waiting'
+  return 'ready'
+}
+
+interface Common {
+  /** 방문 가입 빼기 as stored for the next search (`prefs.visit`). */
+  visit: VisitFilter
+  onVisitChange: (visit: VisitFilter) => void
+  /** The plan count kept after the last search (D5); shown only while its fingerprint matches what is saved now. */
+  planCount: PlanCount | null
+  /** How many 어디 살든 가입 libraries there are, when known (D5 `openCount`). */
+  openCount: number | null
+  /** A new `openCount` was learnt (the box read the library list for the added libraries' names). */
+  onOpenCount: (count: number) => void
+  /** The search on screen (`readScope`): `all` adds "전국에서 찾는 중" and [내 도서관만] (R1-5, R4-2). */
+  scope: LibraryScope
+  /** The plan size of that 전국 search, when known. */
+  allCount: number | null
+  /** [내 도서관만]: the same search without `scope=all`. */
+  onSearchMine: () => void
+}
+
+interface LineProps extends Common {
+  /** The box is open, and on which grid; null = closed. */
+  box: BoxFocus | null
+  onBoxChange: (box: BoxFocus | null) => void
+  /** The centred first screen: the line and the box are centred under the search box. */
+  centered?: boolean
+}
+
+/**
+ * The "찾을 도서관" line under the search box on wider screens (cycle 22 R1, flow S1): a first visitor's
+ * [사는 곳·일하는 곳 고르기] with its small text, else the folded line "내 도서관: … ▾". Either opens the box (S1-box) that
+ * floats under it without pushing the list, closed by a click outside or Esc. A failed account read says so with
+ * [다시 시도] (D7). A `scope=all` search adds the amber "전국에서 찾는 중" and [내 도서관만] (R1-5).
+ */
+export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common }: LineProps) {
+  const state = useLineState()
+  const text = useScopeLineText(common.visit, common.planCount)
+  const first = text === null
+
+  if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
+  if (state === 'failed') {
+    return (
+      <div className={styles.line} data-centered={centered || undefined}>
+        <AccountFailed />
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.root} data-centered={centered || undefined}>
+      <Popover.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
+        <Popover.Anchor className={styles.line}>
+          <Popover.Trigger className={first ? styles.pick : styles.folded}>
+            {first ? SCOPE_TEXT.pick : text}
+            {!first && <Caret />}
+          </Popover.Trigger>
+          <AllMarker {...common} />
+        </Popover.Anchor>
+        <Popover.Portal>
+          <Popover.Content
+            className={styles.box}
+            side="bottom"
+            align={centered ? 'center' : 'start'}
+            sideOffset={8}
+            collisionPadding={16}
+            // never flipped above the line (it would cover the search box), as the ⚙ window on wider screens
+            avoidCollisions={false}
+            aria-label="찾을 도서관"
+            onOpenAutoFocus={(event) => {
+              // the 일하는 곳 row takes the focus itself (LibraryScopeBody)
+              if (box === 'work') event.preventDefault()
+            }}
+          >
+            {box !== null && (
+              <LibraryScopeBody
+                key={box}
+                focus={box}
+                visit={common.visit}
+                onVisitChange={common.onVisitChange}
+                openCount={common.openCount}
+                onOpenCount={common.onOpenCount}
+                onLeave={() => onBoxChange(null)}
+              />
+            )}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+      {first && (
+        <p className={styles.pickNote}>
+          {SCOPE_TEXT.pickNote} ·{' '}
+          <button type="button" className={styles.linkButton} onClick={() => onBoxChange('work')}>
+            {SCOPE_TEXT.addWork}
+          </button>
+        </p>
+      )}
+    </div>
+  )
+}
+
+interface ChipProps extends Common {
+  /** Opens the settings sheet with its "찾을 도서관" section open (R2-1). */
+  onOpen: () => void
+}
+
+/**
+ * Phones (R2-1): one chip under the search box, always there: "내 도서관: 서울 강남구 · 68곳 ▾", or "사는 곳·일하는 곳 고르기 ▾"
+ * for a first visitor. A tap opens the settings sheet on "찾을 도서관". The 전국 marker and the account failure as on
+ * wider screens.
+ */
+export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
+  const state = useLineState()
+  const text = useScopeLineText(common.visit, common.planCount)
+
+  if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
+  if (state === 'failed') {
+    return (
+      <div className={styles.chipLine}>
+        <AccountFailed />
+      </div>
+    )
+  }
+  return (
+    <div className={styles.chipLine}>
+      <button type="button" className={styles.chip} onClick={onOpen} aria-haspopup="dialog">
+        {text ?? SCOPE_TEXT.pick}
+        <Caret />
+      </button>
+      <AllMarker {...common} />
+    </div>
+  )
+}
+
+function Caret() {
+  return (
+    <span className={styles.caret} aria-hidden="true">
+      <svg width="10" height="7" viewBox="0 0 12 8">
+        <path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  )
+}
+
+/** "전국에서 찾는 중 · N곳" [내 도서관만] (R1-5, R4-2): only while a `scope=all` search is on screen. */
+function AllMarker({ scope, allCount, onSearchMine }: Pick<Common, 'scope' | 'allCount' | 'onSearchMine'>) {
+  if (scope !== 'all') return null
+  return (
+    <span className={styles.all}>
+      <span className={styles.allText}>{SCOPE_TEXT.all(allCount)}</span>
+      <button type="button" className={styles.allButton} onClick={onSearchMine}>
+        {SCOPE_TEXT.backToMine}
+      </button>
+    </span>
+  )
+}
+
+/** D7: the account's 내 도서관 could not be read; the search went without it. */
+function AccountFailed() {
+  const myLibrary = useOptionalMyLibrary()
+  return (
+    <p className={styles.failed} role="alert">
+      {SCOPE_TEXT.accountFailed}{' '}
+      {myLibrary && (
+        <button type="button" className={styles.linkButton} onClick={myLibrary.retry}>
+          {SCOPE_TEXT.retry}
+        </button>
+      )}
+    </p>
+  )
+}
+
+/** "직접 가야 가입되는 도서관은 빼기" (R8-1): the box, the phone sheet and the ⚙ window; only kept for the next search. */
+export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange: (visit: VisitFilter) => void }) {
+  return (
+    <label className={styles.visit}>
+      <input
+        type="checkbox"
+        checked={visit === 'none'}
+        onChange={(event) => onChange(event.target.checked ? 'none' : 'any')}
+      />
+      {SCOPE_TEXT.visitNone}
+    </label>
+  )
+}
+
+interface BodyProps {
+  focus: BoxFocus
+  visit: VisitFilter
+  onVisitChange: (visit: VisitFilter) => void
+  openCount: number | null
+  onOpenCount: (count: number) => void
+  /** [마이페이지에서 전체 보기] was pressed. */
+  onLeave?: () => void
+  /** Phones: inside the settings sheet, the grids take the screen's width. */
+  sheet?: boolean
+}
+
+/**
+ * The box's body (R1-4), also the phone sheet's "찾을 도서관" section (R2-1): 사는 곳 (chips + grid), 일하는 곳
+ * ([일하는 곳도 더하기] → chips + grid), 직접 추가 N곳 with names, 방문 가입 빼기, the 어디 살든 가입 line and
+ * [마이페이지에서 전체 보기]. A check only saves (R1-3): never a search. Before login the save hint shows under the part
+ * that saved (R9); a failed account save says so (cycle 06 wording).
+ */
+export function LibraryScopeBody({
+  focus,
+  visit,
+  onVisitChange,
+  openCount,
+  onOpenCount,
+  onLeave,
+  sheet = false,
+}: BodyProps) {
+  const { regions, setRegions, source, notices, saveFailed, libraryIds } = useRegions()
+  const [workOpen, setWorkOpen] = useState(focus === 'work')
+  const [saved, setSaved] = useState<RegionField | null>(null)
+  const workRef = useRef<HTMLDivElement>(null)
+  const residenceId = useId()
+  const workId = useId()
+
+  useEffect(() => {
+    if (focus !== 'work') return
+    const target = workRef.current?.querySelector<HTMLElement>('button, input:not([disabled])')
+    target?.focus()
+    workRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [focus])
+
+  const toggle = (field: RegionField, id: number) => {
+    const current = regions[field]
+    const has = current.includes(id)
+    if (!has && current.length >= MAX_REGIONS_PER_FIELD) return
+    const next: StoredRegions = { ...regions, [field]: has ? current.filter((x) => x !== id) : [...current, id] }
+    // a failure is on screen (saveFailed)
+    setRegions(next).catch(() => undefined)
+    setSaved(source === 'browser' ? field : null)
+  }
+
+  const grid = (field: RegionField) => (
+    <div className={sheet ? styles.gridBleed : undefined}>
+      <RegionGrid
+        field={field}
+        value={regions[field]}
+        onToggle={(id) => toggle(field, id)}
+        full={regions[field].length >= MAX_REGIONS_PER_FIELD}
+        notices={field === 'residence' ? notices : undefined}
+      />
+    </div>
+  )
+
+  return (
+    <div className={styles.body} data-sheet={sheet || undefined}>
+      <div className={styles.part} role="group" aria-labelledby={residenceId}>
+        <h3 id={residenceId} className={styles.partTitle}>
+          {SCOPE_TEXT.residence}
+        </h3>
+        {grid('residence')}
+        <SaveHint saved={saved === 'residence'} />
+      </div>
+
+      <div className={styles.part} role="group" aria-labelledby={workId} ref={workRef}>
+        <h3 id={workId} className={styles.partTitle}>
+          {SCOPE_TEXT.work}
+        </h3>
+        {workOpen || regions.work.length > 0 ? (
+          grid('work')
+        ) : (
+          <button type="button" className={styles.addWork} onClick={() => setWorkOpen(true)}>
+            {SCOPE_TEXT.addWork}
+          </button>
+        )}
+        <SaveHint saved={saved === 'work'} />
+      </div>
+
+      {saveFailed && (
+        <p className={styles.error} role="alert">
+          {REGION_SAVE_FAILED}
+        </p>
+      )}
+
+      <ChosenPart ids={libraryIds} onOpenCount={onOpenCount} />
+
+      <div className={styles.part}>
+        <VisitSwitch visit={visit} onChange={onVisitChange} />
+        <p className={styles.note}>{SCOPE_TEXT.open(openCount)}</p>
+      </div>
+
+      <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>
+        {SCOPE_TEXT.myPage}
+      </Link>
+    </div>
+  )
+}
+
+/**
+ * "직접 추가 N곳", a couple of names and how to add more (R1-4). The names come from `GET /api/v1/libraries` without
+ * regions, asked only when there are added libraries and kept for 5 minutes (D4); the count of its OPEN rows is kept
+ * as `openCount` (R3-4). A library not in that list is switched off: "꺼진 도서관".
+ */
+function ChosenPart({ ids, onOpenCount }: { ids: number[]; onOpenCount: (count: number) => void }) {
+  const list = useQuery({
+    queryKey: ['libraries', '', ''],
+    queryFn: ({ signal }) => fetchLibraries([], [], signal),
+    enabled: ids.length > 0,
+    staleTime: 5 * 60_000,
+  })
+  const rows = list.data
+  const openRows = rows?.filter((row) => row.eligibility === 'OPEN').length
+  const keepOpenCount = useRef(onOpenCount)
+  useEffect(() => {
+    keepOpenCount.current = onOpenCount
+  }, [onOpenCount])
+  useEffect(() => {
+    if (openRows !== undefined) keepOpenCount.current(openRows)
+  }, [openRows])
+
+  let names: ReactNode = null
+  if (ids.length > 0 && rows) {
+    const byId = new Map(rows.map((row) => [row.id, row.name]))
+    const shown = ids.slice(0, CHOSEN_NAMES_SHOWN).map((id) => byId.get(id) ?? SCOPE_TEXT.disabled)
+    const rest = ids.length - shown.length
+    names = (
+      <p className={styles.names}>
+        {shown.join(', ')}
+        {rest > 0 && ` 외 ${rest}곳`}
+      </p>
+    )
+  }
+  return (
+    <div className={styles.part}>
+      <h3 className={styles.partTitle}>{SCOPE_TEXT.chosen(ids.length)}</h3>
+      {names}
+      <p className={styles.note}>{SCOPE_TEXT.chosenHint}</p>
+    </div>
+  )
+}

@@ -156,3 +156,18 @@ describe('SearchForm (cycle 04 AC-1)', () => {
     expect((screen.getByRole('radio', { name: /책 먼저 고르기/ }) as HTMLButtonElement).disabled).toBe(true)
   })
 })
+
+/** Cycle 22 R2-1: on phones the "내 도서관" chip sits on its own line right under the title box. */
+describe('the phone chip', () => {
+  it('comes right after the title box, before 상세검색 and the settings', () => {
+    setup({ chip: <button type="button">내 도서관: 서울 강남구 · 68곳</button> })
+    const chip = screen.getByRole('button', { name: '내 도서관: 서울 강남구 · 68곳' })
+    expect(titleBox().compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(chip.compareDocumentPosition(moreButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('is not there without one (wider screens)', () => {
+    setup()
+    expect(screen.queryByRole('button', { name: /^내 도서관/ })).toBeNull()
+  })
+})

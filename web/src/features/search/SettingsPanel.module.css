@@ -150,28 +150,6 @@ legend.legend + * {
   background: var(--brand-strong);
 }
 
-/* "찾을 도서관": the switch fills the width; the other controls stack under it */
-.scope {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
-}
-
-.scope > :first-child {
-  width: 100%;
-}
-
-.scope > :first-child > * {
-  flex: 1;
-  justify-content: center;
-}
-
-.scope > * {
-  align-self: stretch;
-  justify-content: center;
-}
-
 /*
  * Phones (user requests 2026-10-05): a sheet the screen's width, like the sort list, as tall as its content and at
  * most down to the bottom of the screen; past that it scrolls inside, since the first screen itself does not scroll.

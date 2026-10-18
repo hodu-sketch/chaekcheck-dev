@@ -178,6 +178,7 @@ describe('result groups', () => {
       scope: 'joinable',
       visit: 'any',
       accountFailed: false,
+      planCount: 4,
       regionsPicked: false,
       onSearchAll: vi.fn(),
       onVisitNone: vi.fn(),
@@ -289,6 +290,13 @@ describe('result groups', () => {
       renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false, ...overrides }))
       expect(screen.queryByText(/사는 곳을 고르지 않아/)).toBeNull()
     }
+  })
+
+  it('the green line goes without the number when the plan size is not known (바로 보기)', () => {
+    renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false, planCount: null }))
+    expect(screen.getByRole('status').textContent).toBe(
+      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 사는 곳 고르기',
+    )
   })
 
   it('asks for [검색] once a region was checked after the search (R7-2)', () => {

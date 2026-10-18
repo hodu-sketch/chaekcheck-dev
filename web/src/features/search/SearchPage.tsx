@@ -1,19 +1,16 @@
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
-import { RegionModal } from '../region/RegionModal'
 import { hasRegions } from '../region/regionStorage'
-import { RegionSummary } from '../region/RegionSummary'
-import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
-import { MyLibrarySummary } from '../mylibrary/MyLibrarySummary'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
+import { LibraryScopeBody, LibraryScopeChip, LibraryScopeLine, VisitSwitch, type BoxFocus } from './LibraryScopeLine'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
@@ -22,19 +19,21 @@ import type { ResultSearchContext } from './ResultList'
 import {
   loadPrefs,
   loadSettings,
+  planCountToKeep,
   readVisit,
   resolveSettings,
   savePrefs,
+  shownPlanCount,
   writeVisit,
+  type PlanInputs,
   type SearchPrefs,
   saveSettings,
   writeSettings,
   type SearchSettings,
 } from './searchSettings'
+import type { SettingsSection } from './SettingsPanel'
 import { SortSelect } from './SortSelect'
 import { useSearchedWith } from './useSearchedWith'
-import { VisitToggle } from './VisitToggle'
-import scopeStyles from './ScopeSummary.module.css'
 import styles from './SearchPage.module.css'
 
 /**
@@ -61,12 +60,14 @@ export function SearchPage() {
     setPrefs((current) => ({ ...current, ...next }))
   }
 
-  const { regions, libraryIds, source, notices, setRegions, accountFailed } = useRegions()
+  const { regions, libraryIds, source, notices, accountFailed } = useRegions()
   const scope = readScope(params)
   const { searchedWith, retake, resolveAndRetake } = useSearchedWith()
-  // "내 도서관 관리" before login too (cycle 07 flow S1); only screens without the provider (tests) keep "내 지역"
-  const myLibrary = useOptionalMyLibrary()
-  const [modalOpen, setModalOpen] = useState(false)
+  // the "찾을 도서관" box under the line (wider screens) and the settings sheet on its section (phones), cycle 22 R1, R2
+  const [box, setBox] = useState<BoxFocus | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetSection, setSheetSection] = useState<SettingsSection>('')
+  const [sheetFocus, setSheetFocus] = useState<BoxFocus>('residence')
   // direct search: where the "N곳" button goes (user requests 2026-10-05): phones at the right end of the
   // "상세검색 · 설정" line, wider screens at the right end of the scope controls' row
   const [countSlot, setCountSlot] = useState<HTMLElement | null>(null)
@@ -112,6 +113,16 @@ export function SearchPage() {
   }, [params.toString(), settings.direct, hasSnapshot, scope, visit, residenceKey, workKey, libraryKey])
 
   const hasSearch = settings.direct ? directValid : bookQuery !== null
+  /** Opens the region choice: the box on wider screens, the settings sheet on "찾을 도서관" on phones (R1-4, R2-1, R7-1). */
+  const openPicker = (focus: BoxFocus = 'residence') => {
+    if (phone) {
+      setSheetFocus(focus)
+      setSheetSection('scope')
+      setSheetOpen(true)
+    } else {
+      setBox(focus)
+    }
+  }
   // 「전자책 검색」 (header menu 도서검색, user 2026-10-16, design A): `/search` before a search keeps the results'
   // layout, with the screen's name at the top left and a short note where the results will come
   const { pathname } = useLocation()
@@ -172,10 +183,37 @@ export function SearchPage() {
   }
   const searchedResidence = searchedWith?.residence ?? []
   const searchedWork = searchedWith?.work ?? []
+  /**
+   * The plan size of the search on screen, when it is known: only the direct search's first stream carries the whole
+   * plan (`targets.libraries`); 바로 보기's holding stream names only the libraries that hold the books found, and
+   * 책 먼저 고르기 has none.
+   */
+  const directKey = JSON.stringify([condition?.field, directQuery, scope, visit, residenceKey, workKey, libraryKey])
+  const [plan, setPlan] = useState<{ key: string; count: number } | null>(null)
+  const knownPlan = settings.direct && plan?.key === directKey ? plan.count : null
+  const searchedInputs: PlanInputs = {
+    source,
+    residence: searchedResidence,
+    work: searchedWork,
+    libraryIds: searchedWith?.libraryIds ?? [],
+    visit,
+  }
   const searchedMine =
     searchedResidence.length > 0 || searchedWork.length > 0 || (searchedWith?.libraryIds.length ?? 0) > 0
   const residencePlace = useRegionPlace(searchedResidence)
   const workPlace = useRegionPlace(searchedWork)
+  /**
+   * A whole plan is known (D5): kept as `planCount` for the folded line (not for `scope=all`), and, for a search
+   * without regions or added libraries and with the visit-only libraries in, as `openCount` (R3-4).
+   */
+  const keepPlan = (count: number) => {
+    setPlan({ key: directKey, count })
+    const next: Partial<SearchPrefs> = {}
+    const planCount = planCountToKeep(scope, searchedInputs, count)
+    if (planCount) next.planCount = planCount
+    if (scope === 'joinable' && !searchedMine && visit === 'any') next.openCount = count
+    if (Object.keys(next).length > 0) keepPrefs(next)
+  }
   const searchContext: ResultSearchContext = {
     hasMine: searchedMine,
     mineLabel: searchedResidence.length > 0 ? residencePlace : workPlace,
@@ -190,6 +228,12 @@ export function SearchPage() {
     scope,
     visit,
     accountFailed,
+    // R7-1 {N}: the whole plan when this search knows it, else the kept count for the same inputs, else the number of
+    // 어디 살든 가입 libraries (a search without regions plans those, unless the visit-only ones are left out)
+    planCount:
+      knownPlan ??
+      shownPlanCount(prefs, searchedInputs) ??
+      (scope === 'joinable' && visit === 'any' ? prefs.openCount : null),
     // R7-2: checked since a search made without any; the green line then asks for [검색]
     regionsPicked: !searchedMine && (hasRegions(regions) || libraryIds.length > 0),
     onSearchAll: () => searchAgain((address) => address.set('scope', 'all')),
@@ -201,8 +245,7 @@ export function SearchPage() {
       keepPrefs({ visit: 'any' })
       searchAgain((address) => writeVisit('any', address))
     },
-    // step 3 opens the region box here; until then today's region choice
-    onPickRegions: () => setModalOpen(true),
+    onPickRegions: () => openPicker('residence'),
   }
 
   const bookLinkSearch = new URLSearchParams()
@@ -210,23 +253,22 @@ export function SearchPage() {
   if (scope === 'all') bookLinkSearch.set('scope', 'all')
   writeVisit(visit, bookLinkSearch)
 
-  // only kept for the next search (cycle 22 step 1-4); the results go on reading the address
+  // only kept for the next search (cycle 22 step 1-4, R1-3); the results go on reading the address
   const changeVisit = (next: VisitFilter) => keepPrefs({ visit: next })
-  const visitToggle = <VisitToggle visit={prefs.visit} onChange={changeVisit} />
-  // in the settings panel a plain way on: S10 after login, S2 before (the summary pop-up is for wider screens)
-  const phoneMine = myLibrary ? (
-    <Link to="/my-libraries" className={scopeStyles.trigger}>
-      내 도서관 관리
-    </Link>
-  ) : (
-    <button type="button" className={scopeStyles.trigger} onClick={() => setModalOpen(true)}>
-      {hasRegions(regions) ? '내 지역 변경' : '내 지역 설정'}
-    </button>
-  )
+  const keepOpenCount = (count: number) => keepPrefs({ openCount: count })
+  const scopeCommon = {
+    visit: prefs.visit,
+    onVisitChange: changeVisit,
+    planCount: prefs.planCount,
+    openCount: prefs.openCount,
+    onOpenCount: keepOpenCount,
+    scope,
+    allCount: scope === 'all' ? knownPlan : null,
+    // [내 도서관만] (R4-2): the same search without scope=all
+    onSearchMine: () => searchAgain((address) => address.delete('scope')),
+  }
   // the dot on the settings button: not the default (joinable, visit-only libraries kept)
   const scopeChanged = scope === 'all' || prefs.visit === 'none'
-  // no scope switch any more (cycle 22 R4-1): the row names 내 도서관 until step 3 redraws it
-  const scopeValue = ['내 도서관', prefs.visit === 'none' && '방문 없이'].filter(Boolean).join(' · ')
 
   return (
     <div
@@ -254,14 +296,30 @@ export function SearchPage() {
           onSettingsChange={changeSettings}
           settingsScope={
             phone ? (
-              <>
-                {visitToggle}
-                {phoneMine}
-              </>
+              <LibraryScopeBody
+                key={sheetFocus}
+                focus={sheetFocus}
+                visit={prefs.visit}
+                onVisitChange={changeVisit}
+                openCount={prefs.openCount}
+                onOpenCount={keepOpenCount}
+                onLeave={() => setSheetOpen(false)}
+                sheet
+              />
             ) : undefined
           }
-          settingsScopeValue={phone ? scopeValue : undefined}
           settingsMarked={phone && scopeChanged}
+          settingsVisit={phone ? undefined : <VisitSwitch visit={prefs.visit} onChange={changeVisit} />}
+          settingsControl={{
+            open: sheetOpen,
+            onOpenChange: (open) => {
+              setSheetOpen(open)
+              if (!open) setSheetFocus('residence')
+            },
+            section: sheetSection,
+            onSectionChange: setSheetSection,
+          }}
+          chip={phone ? <LibraryScopeChip {...scopeCommon} onOpen={() => openPicker('residence')} /> : undefined}
           lineEnd={
             phone && bookQuery ? (
               <SortSelect value={bookQuery.sort} onChange={changeSort} />
@@ -273,13 +331,10 @@ export function SearchPage() {
             ) : undefined
           }
         />
-        {/* one line: what to search, then what "내 도서관"/"내 지역" holds behind a button (user request 2026-10-05) */}
+        {/* one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138) */}
         {!phone && (
           <div className={styles.scopeRow}>
-            <div className={styles.toggles}>
-              {visitToggle}
-              {myLibrary ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
-            </div>
+            <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} centered={!hasSearch && !ebookStart} />
             {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
           </div>
         )}
@@ -293,7 +348,7 @@ export function SearchPage() {
               {notice.kind === 'split' && (
                 <>
                   {' · '}
-                  <button type="button" className={styles.noticeAction} onClick={() => setModalOpen(true)}>
+                  <button type="button" className={styles.noticeAction} onClick={() => openPicker('residence')}>
                     설정
                   </button>
                 </>
@@ -320,7 +375,8 @@ export function SearchPage() {
           searchedWith={searchedWith}
           onInvalidRegion={onInvalidRegion}
           onFilterChange={changeFilter}
-          onEditRegions={() => setModalOpen(true)}
+          onEditRegions={() => openPicker('residence')}
+          onPlan={keepPlan}
           countSlot={countSlot}
           searchContext={searchContext}
         />
@@ -351,17 +407,6 @@ export function SearchPage() {
         </section>
       )}
 
-      <RegionModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        regions={regions}
-        savedTo={source === 'account' ? 'account' : 'browser'}
-        onSave={async (next) => {
-          // only saved: the next [검색] uses them (cycle 22 D6); a failed save keeps the modal open
-          await setRegions(next)
-          setModalOpen(false)
-        }}
-      />
     </div>
   )
 }

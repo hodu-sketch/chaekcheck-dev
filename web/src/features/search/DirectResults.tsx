@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { ApiError } from '../../api/client'
 import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrary, VisitFilter } from '../../api/types'
@@ -29,6 +29,8 @@ type Props = {
   onInvalidRegion: () => Promise<boolean>
   onFilterChange: (filter: ResultFilter) => void
   onEditRegions: () => void
+  /** The first stream's plan has come: its size (cycle 22 D5, R3-3), the whole plan unlike 바로 보기's. */
+  onPlan?: (count: number) => void
   /**
    * The place for the "N곳" button (the search page's, see `countSlot` there), which replaces the row of libraries on
    * every width (user requests 2026-10-05); null while that place is not there yet.
@@ -52,6 +54,7 @@ export function DirectResults({
   onInvalidRegion,
   onFilterChange,
   onEditRegions,
+  onPlan,
   countSlot,
   searchContext,
 }: Props) {
@@ -72,6 +75,13 @@ export function DirectResults({
   })
 
   const targets = useMemo(() => state.targets?.libraries ?? [], [state.targets])
+  const onPlanRef = useRef(onPlan)
+  useEffect(() => {
+    onPlanRef.current = onPlan
+  }, [onPlan])
+  useEffect(() => {
+    if (state.targets) onPlanRef.current?.(state.targets.libraries.length)
+  }, [state.targets])
   const view = useMemo(() => {
     const planIndex = new Map(targets.map((l, index) => [l.id, index]))
     const eligibility = new Map<number, Eligibility>(targets.map((l) => [l.id, l.eligibility]))

@@ -337,6 +337,17 @@
     flex-basis: 100%;
   }
 
+  /* the "내 도서관" chip on its own line under the title box (cycle 22 R2-1); centred on the first screen */
+  .chipSlot {
+    display: flex;
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .form[data-start] .chipSlot > * {
+    justify-content: center;
+  }
+
   /* the sort at the right end of this line (user request 2026-10-05) */
   .lineEnd {
     margin-left: auto;

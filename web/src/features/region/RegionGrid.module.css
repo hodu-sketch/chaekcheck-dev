@@ -1,6 +1,6 @@
 /*
  * The region grid out of the dialog, only bigger (cycle 22 R12, D11): text 1rem (at least 16px on every screen),
- * cells at least 2.5rem high, 100% of the box it sits in. Colors are RegionModal's.
+ * cells at least 2.5rem high, 100% of the box it sits in. Colors are the old region dialog's (removed in cycle 22 step 3).
  */
 .root {
   width: 100%;
@@ -224,7 +224,7 @@
 }
 
 /*
- * Two columns (narrow boxes, phones): as RegionModal on phones, the tile's color shows the choice and the drawn box
+ * Two columns (narrow boxes, phones): as the old region dialog on phones, the tile's color shows the choice and the drawn box
  * goes, so a four-letter name such as "동대문구" stays on one line; longer names take a whole row.
  */
 @container (width < 20rem) {

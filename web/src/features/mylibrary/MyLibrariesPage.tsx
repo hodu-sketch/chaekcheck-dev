@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useId, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
 import { BackLink } from '../../components/BackLink'
@@ -11,6 +11,7 @@ import type { RegionNotice } from '../region/applyResolutions'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField as GridField } from '../region/RegionGrid'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
+import { savePrefs } from '../search/searchSettings'
 import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
 import { BrowserStorageError, LibraryLimitError } from './myLibraryErrors'
@@ -63,6 +64,13 @@ function MyLibraries() {
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
   })
+  // the number of 어디 살든 가입 libraries, for the search screen's box (cycle 22 R3-4, D5 openCount): only from the list
+  // without regions, as a region rule that matches makes a nationwide library ELIGIBLE instead
+  const withoutRegions = regions.residence.length === 0 && regions.work.length === 0 && !list.isPlaceholderData
+  const openCount = withoutRegions ? list.data?.filter((row) => row.eligibility === 'OPEN').length : undefined
+  useEffect(() => {
+    if (openCount !== undefined) savePrefs({ openCount })
+  }, [openCount])
 
   /** A grid check or a chip's ×: saved at once, no search (cycle 22 D6, R11-1). */
   const toggle = (field: GridField, id: number) => {

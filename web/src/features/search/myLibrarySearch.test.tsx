@@ -35,6 +35,8 @@ interface Fake {
   /** Holds `GET /api/v1/me/libraries` until called. */
   holdLibraries: (() => void) | null
   books: URL[]
+  /** `GET /api/v1/libraries` calls (the box's names, D4). */
+  libraryLists: number
 }
 
 let fake: Fake
@@ -61,6 +63,15 @@ function fakeServer() {
         return fake.librariesStatus === 200
           ? json(200, { libraryIds: fake.libraryIds, max: 20 })
           : json(fake.librariesStatus, { code: 'internal_error' })
+      }
+      if (url === '/api/v1/libraries') {
+        fake.libraryLists += 1
+        return json(200, {
+          libraries: [
+            { id: 12, name: '마포구립 전자도서관', eligibility: 'ELIGIBLE', matchedBy: [] },
+            { id: 207, name: '울산동부도서관', eligibility: 'OPEN', matchedBy: [] },
+          ],
+        })
       }
       if (url.startsWith('/api/v1/books?')) {
         fake.books.push(new URL(url, 'http://localhost'))
@@ -128,6 +139,7 @@ beforeEach(() => {
     librariesStatus: 200,
     holdLibraries: null,
     books: [],
+    libraryLists: 0,
   }
   // S11 is answered for this account, so it does not show up here
   localStorage.setItem(REGION_IMPORT_KEY, '[7]')
@@ -140,37 +152,36 @@ afterEach(() => {
   localStorage.clear()
 })
 
-/** Opens the "내 도서관" panel behind its button on the switch line (user request 2026-10-05). */
-async function openMyLibrary() {
-  await userEvent.setup().click(await screen.findByRole('button', { name: '내 도서관 관리' }))
-}
+/** The folded "내 도서관: …" line (cycle 22 R3); its accessible name is its text. */
+const foldedLine = () => screen.findByRole('button', { name: /^내 도서관: / })
 
-describe('S1 "내 도서관" (behind "내 도서관 관리")', () => {
-  it('names the regions and the added libraries, with 관리 to S10', async () => {
+describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
+  it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
     renderSearch()
-    await openMyLibrary()
+    const line = await foldedLine()
+    await waitFor(() => expect(line.textContent).toBe('내 도서관: 서울 마포구 · 일하는 곳 서울 중구 · 직접 추가 3'))
+    expect(fake.libraryLists).toBe(0)
 
-    const panel = await screen.findByRole('dialog')
-    await waitFor(() => expect(panel.textContent).toContain('서울 마포구'))
-    expect(panel.textContent).toContain('직접 추가3곳')
-    expect(panel.textContent).toMatch(/^내 도서관/)
-    expect(panel.textContent).toContain('서울 중구')
-    expect(screen.getByRole('link', { name: '관리' }).getAttribute('href')).toBe('/my-libraries')
+    await userEvent.setup().click(line)
+    const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
+    expect(within(box).getByRole('heading', { name: '직접 추가 3곳' })).toBeTruthy()
+    expect(await within(box).findByText('마포구립 전자도서관, 울산동부도서관 외 1곳')).toBeTruthy()
+    expect(fake.libraryLists).toBe(1)
+    expect(within(box).getByRole('link', { name: '마이페이지에서 전체 보기' }).getAttribute('href')).toBe('/my-libraries')
   })
 
-  it('says so when it is empty', async () => {
+  it('empty after login: the first visitor button', async () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
-    await openMyLibrary()
 
-    expect(await screen.findByText(/내 도서관이 비어 있어요/)).toBeTruthy()
+    expect(await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^내 도서관: / })).toBeNull()
   })
 
   it('a failed read offers 다시 시도 and searches joinable without regions; a read that works searches again', async () => {
     fake.librariesStatus = 500
     renderSearch()
-    await openMyLibrary()
 
     expect(await screen.findByText(/내 도서관을 불러오지 못했어요/)).toBeTruthy()
     await waitFor(() => expect(fake.books.length).toBe(1))
@@ -185,20 +196,19 @@ describe('S1 "내 도서관" (behind "내 도서관 관리")', () => {
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
   })
 
-  it('shows 불러오는 중 and sends no search while reading, then one with 내 도서관 (cycle 22 D7)', async () => {
+  it('sends no search while reading and shows no first visitor button, then one with 내 도서관 (cycle 22 D7)', async () => {
     fake.holdLibraries = () => {}
     renderSearch()
-    await openMyLibrary()
-
-    expect(await screen.findByText('불러오는 중')).toBeTruthy()
     await act(async () => {})
     expect(fake.books).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: '사는 곳·일하는 곳 고르기' })).toBeNull()
 
     fake.holdLibraries!()
     await waitFor(() => expect(fake.books).toHaveLength(1))
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('libraryIds')).toBe('12,207,3')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
+    expect(await foldedLine()).toBeTruthy()
   })
 })
 
@@ -236,8 +246,7 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
-    await openMyLibrary()
-    await screen.findByText(/내 도서관이 비어 있어요/)
+    await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' })
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -246,14 +255,14 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
 })
 
 describe('before login (AC-14, cycle 07 flow S1)', () => {
-  it('no switch; the regions sit behind "내 도서관 관리"', async () => {
+  it("no switch; the folded line names this browser's regions", async () => {
     fake.signedIn = false
     localStorage.setItem('chaekcheck.regions.v1', JSON.stringify({ residence: [1114], work: [] }))
     renderSearch('/search?title=사랑&view=books&scope=joinable')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(screen.queryAllByRole('radio')).toEqual([])
-    expect(screen.getByRole('button', { name: /내 도서관 관리/ })).toBeTruthy()
+    await waitFor(async () => expect((await foldedLine()).textContent).toBe('내 도서관: 서울 마포구'))
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -268,15 +277,19 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     expect(lastBooks().searchParams.get('libraryIds')).toBe('281,300')
   })
 
-  it('방문 없이 가입 is only kept; [검색] writes it into the address, and the results read the address', async () => {
+  it('방문 가입 빼기 in the box is only kept; [검색] writes it into the address, and the results read the address', async () => {
     fake.signedIn = false
+    localStorage.setItem('chaekcheck.regions.v1', JSON.stringify({ residence: [1114], work: [] }))
     const first = renderSearch('/search?title=사랑&view=books')
     await waitFor(() => expect(fake.books).toHaveLength(1))
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /방문 없이 가입/ }))
+    await user.click(await foldedLine())
+    await user.click(screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }))
     await act(async () => {})
     expect(fake.books).toHaveLength(1)
     expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('none')
+    await user.keyboard('{Escape}')
+    await waitFor(async () => expect((await foldedLine()).textContent).toBe('내 도서관: 서울 마포구 · 방문 가입 뺌'))
 
     await user.click(searchButton())
     await waitFor(() => expect(fake.books).toHaveLength(2))
@@ -288,7 +301,10 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     renderSearch('/search?title=사랑&view=books')
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(lastBooks().searchParams.has('visit')).toBe(false)
-    expect(screen.getByRole('button', { name: /방문 없이 가입/ }).getAttribute('aria-pressed')).toBe('true')
+    await user.click(await foldedLine())
+    expect(
+      (screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }) as HTMLInputElement).checked,
+    ).toBe(true)
     cleanup()
 
     fake.books = []
@@ -297,12 +313,16 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     expect(lastBooks().searchParams.get('visit')).toBe('none')
   })
 
-  it('without regions or added libraries the button is "내 도서관 설정" and goes to S10', async () => {
+  it('without regions or added libraries: the first visitor button, which opens the box on 사는 곳', async () => {
     fake.signedIn = false
     renderSearch('/search?title=사랑&view=books')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
-    expect(screen.getByRole('link', { name: '내 도서관 설정' }).getAttribute('href')).toBe('/my-libraries')
+    await userEvent.setup().click(screen.getByRole('button', { name: '사는 곳·일하는 곳 고르기' }))
+    const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
+    expect(await within(box).findByRole('list', { name: '사는 곳 시도' })).toBeTruthy()
+    // no names to read without added libraries (D4)
+    expect(fake.libraryLists).toBe(0)
   })
 })
 
@@ -375,7 +395,7 @@ describe('검색 당시 값 (searchedWith)', () => {
   })
 })
 
-describe('phones: "찾을 도서관" inside the settings panel (D안, user choice 2026-10-05)', () => {
+describe('phones: the chip and "찾을 도서관" in the settings sheet (cycle 22 R2)', () => {
   function phoneScreen() {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
@@ -385,27 +405,26 @@ describe('phones: "찾을 도서관" inside the settings panel (D안, user choic
     }))
   }
 
-  it('hides the line and shows it in the settings panel, with 내 도서관 관리 to S10', async () => {
+  it('no line; the chip opens the sheet on "찾을 도서관", with the body of the box (no 전국 switch)', async () => {
     phoneScreen()
     renderSearch()
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
-    expect(screen.queryByRole('button', { name: '방문 없이 가입' })).toBeNull()
+    const chip = await screen.findByRole('button', { name: /^내 도서관: 서울 마포구/ })
     expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
 
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: '검색 설정' }))
-    // three rows that open on a tap (user request 2026-10-05), each saying what it is set to
-    const scopeRow = await screen.findByRole('button', { name: /^찾을 도서관/ })
-    const sheet = within(screen.getByRole('dialog'))
-    expect(scopeRow.textContent).toBe('찾을 도서관내 도서관')
+    await user.click(chip)
+    const sheet = within(await screen.findByRole('dialog', { name: '검색 설정' }))
+    const scopeRow = sheet.getByRole('button', { name: '찾을 도서관' })
+    expect(scopeRow.getAttribute('aria-expanded')).toBe('true')
     expect(sheet.getByRole('button', { name: /^보기 방식/ }).textContent).toBe('보기 방식책 먼저 고르기')
     expect(sheet.getByRole('button', { name: /^도서관에서 직접 찾기/ }).textContent).toBe('도서관에서 직접 찾기끔')
-    await user.click(scopeRow)
 
     expect(screen.queryAllByRole('radio', { name: /도서관/ })).toEqual([])
-    expect(screen.getByRole('button', { name: '방문 없이 가입' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '내 도서관 관리' }).getAttribute('href')).toBe('/my-libraries')
+    expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
+    expect(sheet.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeTruthy()
+    expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' }).getAttribute('href')).toBe('/my-libraries')
   })
 
   it('marks the settings button when the search is not the default', async () => {
@@ -418,7 +437,7 @@ describe('phones: "찾을 도서관" inside the settings panel (D안, user choic
 
 /** User report 2026-10-14: words typed but not searched yet went away when a switch was pressed. */
 describe('typed words stay on the search screen', () => {
-  it('through "방문 없이 가입", and the next search keeps the sort', async () => {
+  it('through 방문 가입 빼기 in the ⚙ window, and the next search keeps the sort', async () => {
     renderSearch('/search?title=사랑&view=books&sort=newest')
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     const user = userEvent.setup()
@@ -426,7 +445,8 @@ describe('typed words stay on the search screen', () => {
 
     await user.clear(title)
     await user.type(title, '채식주의자')
-    await user.click(screen.getByRole('button', { name: '방문 없이 가입' }))
+    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    await user.click(screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }))
     expect((screen.getByRole('searchbox', { name: '책 제목' }) as HTMLInputElement).value).toBe('채식주의자')
 
     await user.click(searchButton())

@@ -41,31 +41,7 @@
   justify-content: center;
 }
 
-/*
- * Scope switch, "방문 없이 가입" and the "내 도서관 관리"/"내 지역" button on one line, all --control-height tall (user
- * request 2026-10-05). Not drawn on phones: there they sit in the settings panel (D안, user choice 2026-10-05).
- */
-.toggles {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  /*
-   * the three controls in a box of their own, a very light grey so it does not read as a second search box (user
-   * requests 2026-10-05)
-   */
-  align-self: flex-start;
-  padding: 0.5rem;
-  border-radius: var(--radius-md);
-  background: var(--tray);
-}
-
-.page[data-state='start'] .toggles {
-  align-self: center;
-  justify-content: center;
-}
-
-/* the scope controls' box, then (direct search) the "N곳" button at the row's right end (user request 2026-10-05) */
+/* the "찾을 도서관" line (cycle 22 R1), then (direct search) the "N곳" button at the row's right end (user request 2026-10-05) */
 .scopeRow {
   display: flex;
   align-items: center;
