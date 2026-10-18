@@ -59,8 +59,8 @@ class DocumentApiTests {
 	void seedVersionOfTheTerms() {
 		assertThat(mvc.get().uri("/api/v1/documents/terms-of-service")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
 				{"key":"terms-of-service",
-				 "version":{"number":1,"effectiveOn":"2026-10-04","current":true,"changeSummary":null,"consentItems":null},
-				 "versions":[{"number":1,"effectiveOn":"2026-10-04","supersededOn":null}]}""");
+				 "version":{"number":1,"effectiveOn":"2026-10-18","current":true,"changeSummary":null,"consentItems":null},
+				 "versions":[{"number":1,"effectiveOn":"2026-10-18","supersededOn":null}]}""");
 	}
 
 	@Test
@@ -69,7 +69,7 @@ class DocumentApiTests {
 			.bodyJson()
 			.extractingPath("$.version.consentItems[*].label")
 			.asArray()
-			.containsExactly("목적", "항목", "보유·이용 기간", "거부할 권리와 불이익");
+			.containsExactly("목적", "항목", "보유 기간", "거부할 권리");
 	}
 
 	@Test
@@ -77,11 +77,11 @@ class DocumentApiTests {
 		data.documentVersion("ABOUT", 2, TODAY, "새 안내", null);
 
 		assertThat(mvc.get().uri("/api/v1/documents/about")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
-				{"version":{"number":2,"effectiveOn":"2026-10-14","current":true,"body":"새 안내"},
-				 "versions":[{"number":2,"effectiveOn":"2026-10-14","supersededOn":null},
-				             {"number":1,"effectiveOn":"2026-10-04","supersededOn":"2026-10-14"}]}""");
+				{"version":{"number":2,"effectiveOn":"2026-10-28","current":true,"body":"새 안내"},
+				 "versions":[{"number":2,"effectiveOn":"2026-10-28","supersededOn":null},
+				             {"number":1,"effectiveOn":"2026-10-18","supersededOn":"2026-10-28"}]}""");
 		assertThat(mvc.get().uri("/api/v1/documents/about?version=1")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
-				{"version":{"number":1,"effectiveOn":"2026-10-04","current":false}}""");
+				{"version":{"number":1,"effectiveOn":"2026-10-18","current":false}}""");
 	}
 
 	@Test
@@ -90,7 +90,7 @@ class DocumentApiTests {
 
 		assertThat(mvc.get().uri("/api/v1/documents/privacy-policy")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
 				{"version":{"number":1,"current":true},
-				 "versions":[{"number":1,"effectiveOn":"2026-10-04","supersededOn":null}]}""");
+				 "versions":[{"number":1,"effectiveOn":"2026-10-18","supersededOn":null}]}""");
 		assertNotFound("/api/v1/documents/privacy-policy?version=2", "version_not_found");
 	}
 

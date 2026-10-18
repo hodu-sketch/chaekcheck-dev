@@ -5463,3 +5463,31 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 고침: `AppLayout.module.css` `.main`에 `min-height: 100dvh` → 본문이 첫 화면을 채우고 바닥글은 그 아래(머리말 높이만큼 더 내려감). 폰 특례 중 `… > footer { margin-top: 0 }`(2026-10-05 "폰 첫 화면 스크롤 없음")는 지움, `.main` padding-bottom 1.5rem은 둠. 2026-10-05 결정을 바꾸는 것(사용자 승인)
 - 확인: 1280×800 바닥글 top 916(뷰포트 800) · 375×740 top 845(뷰포트 740) → 둘 다 스크롤해야 보임, 가로 스크롤 없음. 컴포넌트 시험 53 통과
 - 이어서(같은 날): "지금 빌릴 수 있는 전자도서관을 찾아 드려요랑 … 구성요소들 통으로 중간 정도의 위치에" → 목업 뒤 "이것 보다는 조금 더 위에" → `SearchPage.module.css` 첫 화면(`data-state='start'`): 페이지가 머리말 아래를 채우고(`min-height: calc(100dvh - 9rem)`) 제목·검색창·선택 줄 덩어리를 세로 가운데에 두되 아래 여백 `12vh`로 조금 위로(고정 `padding-top: 16vh` 대신). 측정: 덩어리 중심 1280×800 43%, 375×740 42% → "이것보다는 좀 위로 올려줘"로 아래 여백 24vh: 중심 37%·36%. 결과 화면·「전자책 검색」 화면은 그대로
+
+# 사이클 17: EC2 시험 배포와 sitecontent seed 교체 (2026-10-18, dev-cycle-17 세션)
+
+## EC2 시험 배포 (plan 17 요청, 방식 A: PC에서 빌드, EC2는 실행만)
+
+- 공개가 아니라 EC2에서 돌려 보는 확인용입니다. 파일과 순서는 `deploy/test/README.md`에 있습니다. 운영 포장(ADR-0103 전체)은 아닙니다
+- 새 파일: `backend/Dockerfile`(jar 복사만, RUN 없음, `eclipse-temurin:25-jre`), `deploy/test/web.Dockerfile`(nginx + `web/dist` + `local-test.conf`), `deploy/test/compose.yaml`(db + backend + web, 모두 `127.0.0.1`에만 엶)
+- 요청과 다른 점: JRE는 21이 아니라 **25**(Gradle toolchain이 Java 25). DB 이미지는 PC에 arm64 흉내 실행 환경(binfmt)이 없어 **EC2에서 직접 빌드**
+- DB 내용: PC `db`의 `pg_dump -Fc`(590MB). **회원·기록 표는 구조만 넣고 데이터는 뺌**(`auth` `mylibrary` `usagelog` `collection` `modulith`). 처음에는 통째 덤프를 하려 했으나 개인정보 때문에 권한에서 막혀 이렇게 함. EC2 복원은 `-j 2`, `maintenance_work_mem=256MB`로 9분 걸림. book 1,331,194 · holding 18,024,652 · library 2,669 · `databasechangelog` 80줄로 PC와 같고, `auth.account`는 0
+- `compose up`과 확인은 plan 17이 맡음
+- 계정 수(사용자 질문 "테스트로 가입된 사람 나뿐인가?"): PC `db`와 `db-ops`의 `auth.account`는 각각 1개뿐입니다. EC2는 회원 데이터 없이 0개로 시작합니다
+
+## sitecontent seed 교체 (`PRE_DEPLOYMENT` 안, 위 `# 17 dev에게` 메모대로)
+
+- `sitecontent/002-sitecontent-seed.yaml`의 네 문서를 plan `drafts/`의 최소판으로 바꿈(plan 3d84e39 기준, 시행일 모두 **2026-10-18**). 처리방침은 9차(§2 업체 이름·나라 호주·맡긴 일, §4 안전 조치), 서비스 안내에는 "문의:"와 "만든 사람:" 줄이 들어감. 약관과 수집 동의문(`consent_items` 4항목: 목적/항목/보유 기간/거부할 권리, 본문 한 줄)은 승인본 그대로. 각 파일 머리의 `<!-- -->` 주석과 처리방침 §4 담당 줄의 plan 주석은 뺌
+- 시험: `SitecontentSchemaTests`의 seed 검사를 새 본문 기준으로 바꿈(자리 글·주석·`[확정]`이 없는지, 업체·나라, ADR-0134 세 문구). 시험의 고정 오늘(`SitecontentTestData.TODAY`)을 2026-10-14에서 **2026-10-28**로 옮김(시행일 10-18보다 뒤여야 문서가 보임). 그래서 `DocumentApiTests`와 `NoticeApiTests`의 날짜를 같은 폭으로 옮기고, 동의 항목 이름을 새 이름으로 바꿈
+- `db-test`: `sitecontent-002-*` 4줄과 1판 4줄을 지움 → 시험이 다시 적용함. `./gradlew build` 통과
+- **`db`·`db-ops`는 아직 지우지 않음**: 8080·8081 서버가 다른 세션 것이라 그대로 둠. 새 코드로 다시 켜기 전에 각 DB에서 아래를 돌려야 함(돌리지 않으면 checksum 오류)
+
+        BEGIN; DELETE FROM sitecontent.document_version WHERE version_no = 1 AND document_key IN ('TERMS_OF_SERVICE','PRIVACY_COLLECTION','PRIVACY_POLICY','ABOUT'); DELETE FROM public.databasechangelog WHERE id LIKE 'sitecontent-002-%'; COMMIT;
+
+- EC2 시험 배포의 jar와 덤프는 **교체 전** 판입니다. 진짜 배포 때는 새 jar와, 위 처리를 한 `db`에서 새로 뜬 덤프로 다시 올립니다
+
+## 함께 본 것
+
+- nginx `/notices`, `/notices/{번호}`는 `chaekcheck-locations.conf`에 이미 있음(사이클 16). `X-Visit-Key`: nginx는 요청 헤더를 그대로 넘기고 막는 설정이 없음(이름에 밑줄이 없어 `underscores_in_headers`와 상관없음)
+- `npm audit`(2026-10-18): 높음 1건 `source-map-js` 1.2.1(GHSA-68fv-2mgg-jv7q). `jsdom`과 `vite`→`postcss`를 거쳐 들어오는 개발용 의존성이라, `npm audit --omit=dev`는 0건. `npm audit fix`는 하지 않음
+- `CHAEKCHECK_USAGELOG_ENABLED`를 공개일에 true로 하는 것은 운영 설정 몫. 시험 배포에서는 false

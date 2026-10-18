@@ -31,19 +31,26 @@ class SitecontentSchemaTests {
 		assertThat(jdbc.sql("""
 				SELECT document_key || ':' || version_no || ':' || effective_on FROM sitecontent.document_version
 				ORDER BY document_key""").query(String.class).list())
-			.containsExactly("ABOUT:1:2026-10-04", "PRIVACY_COLLECTION:1:2026-10-04", "PRIVACY_POLICY:1:2026-10-04",
-					"TERMS_OF_SERVICE:1:2026-10-04");
+			.containsExactly("ABOUT:1:2026-10-18", "PRIVACY_COLLECTION:1:2026-10-18", "PRIVACY_POLICY:1:2026-10-18",
+					"TERMS_OF_SERVICE:1:2026-10-18");
 		assertThat(jdbc.sql("""
 				SELECT jsonb_array_length(consent_items) FROM sitecontent.document_version
 				WHERE document_key = 'PRIVACY_COLLECTION'""").query(Integer.class).single()).isEqualTo(4);
-		assertThat(body("ABOUT")).contains("<chaekcheck9104@gmail.com>"); // AC-12
-		for (String key : new String[] { "TERMS_OF_SERVICE", "PRIVACY_POLICY", "PRIVACY_COLLECTION" }) {
-			assertThat(body(key)).as(key).startsWith("이 문서는 검토 전 자리 글입니다"); // R8-4
+		assertThat(body("ABOUT")).contains("<chaekcheck9104@gmail.com>", // AC-12
+				"<https://github.com/hodu-sketch/chaekcheck-about>");
+		// cycle 17: the approved drafts replaced the placeholders, without the plan notes
+		for (String key : new String[] { "TERMS_OF_SERVICE", "PRIVACY_POLICY", "PRIVACY_COLLECTION", "ABOUT" }) {
+			assertThat(body(key)).as(key).doesNotContain("검토 전 자리 글", "<!--", "[확정]", "[확인 필요]");
 		}
-		assertThat(body("PRIVACY_POLICY")).contains("## 처리하는 개인정보와 목적", "카카오 회원 식별 번호")
-			// ADR-0134 (first version, before the opening): the usage log names the member number
+		assertThat(body("TERMS_OF_SERVICE")).startsWith("## 1. 서비스").endsWith("이 약관은 2026-10-18부터 적용됩니다.");
+		assertThat(body("PRIVACY_COLLECTION")).isEqualTo("위 정보만 받으며, 탈퇴하면 바로 지웁니다.");
+		assertThat(body("PRIVACY_POLICY")).startsWith("## 1. 수집 항목, 목적, 보유 기간")
+			.contains("카카오 회원 식별 번호", "Amazon Web Services", "나라: 호주", "Cloudflare, Inc.",
+					"<chaekcheck9104@gmail.com>")
+			// ADR-0134: the usage log names the member number
 			.contains("서비스 이용 기록(로그인한 경우 회원 번호 포함)", "이용 통계, 운영과 보안, 책 추천",
 					"회원 번호는 탈퇴하면 바로 지움")
+			.endsWith("이전 방침은 위 날짜 고르기 칸에서 볼 수 있습니다.")
 			.doesNotContain("네이버");
 		assertThat(jdbc.sql("SELECT count(*) FROM sitecontent.notice").query(Integer.class).single()).isZero();
 	}

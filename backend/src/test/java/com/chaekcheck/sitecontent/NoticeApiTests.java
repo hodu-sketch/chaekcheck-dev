@@ -64,9 +64,9 @@ class NoticeApiTests {
 		long fresh = data.notice("새 공지", TODAY);
 
 		assertThat(mvc.get().uri("/api/v1/notices")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
-				{"pinned":[{"id":%d,"title":"고정 공지","postedOn":"2026-09-14"}],
-				 "items":[{"id":%d,"title":"새 공지","postedOn":"2026-10-14"},
-				          {"id":%d,"title":"옛 공지","postedOn":"2026-10-11"}],
+				{"pinned":[{"id":%d,"title":"고정 공지","postedOn":"2026-09-28"}],
+				 "items":[{"id":%d,"title":"새 공지","postedOn":"2026-10-28"},
+				          {"id":%d,"title":"옛 공지","postedOn":"2026-10-25"}],
 				 "page":1,"pageSize":10,"totalCount":2,"hasMore":false}""".formatted(pinned, fresh, old));
 	}
 
@@ -130,13 +130,13 @@ class NoticeApiTests {
 		data.noticeVersion(notice, 2, TODAY, "점검 안내(시간 바뀜)", "새 본문");
 
 		assertThat(mvc.get().uri("/api/v1/notices")).bodyJson().isStrictlyEqualTo("""
-				{"pinned":[],"items":[{"id":%d,"title":"점검 안내(시간 바뀜)","postedOn":"2026-10-13"}],
+				{"pinned":[],"items":[{"id":%d,"title":"점검 안내(시간 바뀜)","postedOn":"2026-10-27"}],
 				 "page":1,"pageSize":10,"totalCount":1,"hasMore":false}""".formatted(notice));
 		assertThat(mvc.get().uri("/api/v1/notices/" + notice)).hasStatusOk().bodyJson().isStrictlyEqualTo("""
-				{"id":%d,"title":"점검 안내(시간 바뀜)","postedOn":"2026-10-13","editedOn":"2026-10-14",
-				 "version":{"number":2,"effectiveOn":"2026-10-14","current":true,"body":"새 본문"},
-				 "versions":[{"number":2,"effectiveOn":"2026-10-14","supersededOn":null},
-				             {"number":1,"effectiveOn":"2026-10-13","supersededOn":"2026-10-14"}]}""".formatted(notice));
+				{"id":%d,"title":"점검 안내(시간 바뀜)","postedOn":"2026-10-27","editedOn":"2026-10-28",
+				 "version":{"number":2,"effectiveOn":"2026-10-28","current":true,"body":"새 본문"},
+				 "versions":[{"number":2,"effectiveOn":"2026-10-28","supersededOn":null},
+				             {"number":1,"effectiveOn":"2026-10-27","supersededOn":"2026-10-28"}]}""".formatted(notice));
 	}
 
 	@Test
@@ -148,8 +148,8 @@ class NoticeApiTests {
 		assertThat(mvc.get().uri("/api/v1/notices/" + notice + "?version=1")).hasStatusOk()
 			.bodyJson()
 			.isLenientlyEqualTo("""
-					{"title":"점검 안내","editedOn":"2026-10-14",
-					 "version":{"number":1,"effectiveOn":"2026-10-13","current":false,"body":"본문 점검 안내"}}""");
+					{"title":"점검 안내","editedOn":"2026-10-28",
+					 "version":{"number":1,"effectiveOn":"2026-10-27","current":false,"body":"본문 점검 안내"}}""");
 		assertNotFound("/api/v1/notices/" + notice + "?version=3", "version_not_found");
 		assertNotFound("/api/v1/notices/" + notice + "?version=9", "version_not_found");
 	}
@@ -159,7 +159,7 @@ class NoticeApiTests {
 		long notice = data.notice("공지", TODAY);
 
 		assertThat(mvc.get().uri("/api/v1/notices/" + notice)).bodyJson().isLenientlyEqualTo("""
-				{"postedOn":"2026-10-14","editedOn":null,"version":{"number":1,"current":true}}""");
+				{"postedOn":"2026-10-28","editedOn":null,"version":{"number":1,"current":true}}""");
 	}
 
 	@Test

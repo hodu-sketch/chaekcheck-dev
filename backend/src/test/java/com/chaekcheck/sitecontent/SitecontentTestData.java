@@ -11,8 +11,8 @@ import com.chaekcheck.sitecontent.internal.Today;
 /** Notices and document versions written in the test transaction, and a fixed "today" (Asia/Seoul). */
 final class SitecontentTestData {
 
-	/** The fixed today of these tests; the seed's version 1 took effect on 2026-10-04. */
-	static final LocalDate TODAY = LocalDate.parse("2026-10-14");
+	/** The fixed today of these tests, after the seed's version 1 (2026-10-18, the public opening day). */
+	static final LocalDate TODAY = LocalDate.parse("2026-10-28");
 
 	private final JdbcClient jdbc;
 
