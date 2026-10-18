@@ -4539,6 +4539,41 @@ handoff에 없던 일입니다. 사용자가 이번 사이클에서 하자고 �
 
 - plan 20 세션이 받아 둔 `book_ttl_20260807.zip`(1,102,432,587바이트, 2026-08-07판 = 저장된 원문 표 `book_ttl_20260807`과 같은 판)을 `data/nlk/ttl/book_ttl_20260807/`에 풂: TTL 20개, 7,724,898,413바이트, 29초. `docs/maintenance/3-import.md` 준비 표에 위치·날짜 적음. 가져오기 설정은 그대로(`stored-bibliography=true`); `ttl-path`로 돌릴지는 plan 결정 뒤(그때 `--chaekcheck.collection.import.ttl-path=../data/nlk/ttl/book_ttl_20260807`)
 
+### 저자 칸 [ ] 정리 (2026-10-18, plan 19 회고 결정 #5)
+
+- 사용자 승인(2026-10-18, plan 19 회고 결정 #5): 저자 칸의 `[ ]`를 정리함. **사이클 19 명세 R1-2 "`[ ]`는 그대로 둔다"는 이 결정으로 바뀜**(plan `spec.md` R1-2, ADR-0113 → plan 쪽 고침). 사이클 20 세션의 작은 일로 함(worktree 없이 main, 서버·DB는 건드리지 않음)
+- **셈**(수집 사본 `ebook-catalog-2026-10-12-0135.sqlite` `holding.author_raw`, 가져오기에서 건너뛰는 줄 포함, 일회용 스크립트): `[`나 `]`가 있는 표기 **4,122가지 · 8,165줄**(소장 26,144,897줄의 0.03%)
+  - (a) 괄호 안이 역할 낱말(`Contributors.ROLE_WORDS`): **229가지 · 587줄**. 안의 낱말: 저 271, 역 215, 공저 177, 편 111, 지음 29, 편역 15, 공역 10, 옮김 6, 편저 6, 공편 4, 감수 1. 많은 순: 「정도전[저]정병철[편]」 48, 「금장태, 고광직[공저]」 39, 「이만수 [저]」 26, 「송시열[저],서정기[역]」 23, 「강호감, 김은진, 노석구, 박현주, 손정우, 이희순[공저]」 13, 「고영[저],민경길[역]」 13, 「김영기 한선관 한희섭 김수환 전수진 [공저]」 13, 「김이섭, 김남연[공저]」 13, 「누가 알렉산더 베로니스 [지음] 남정우 [편역]」 13, 「리처드 엡스타인[저];김정호[역]」 13. **229가지 중 193가지(227줄)는 괄호 역할 뒤에 사이트의 칸 전체 「저」가 한 번 더 붙은 꼴**(「김삼웅 [편] 저」, 「K. 만하임 [저] 임석진 [역] 저」)
+  - (b) 괄호 안이 이름·이름의 일부: **3,852가지 · 7,462줄**. 많은 순: 「Victor [pseud.] Appleton 저」 717, 「채만식[蔡萬植]」 336, 「Victor [pseud.] Appleton」 170, 「KBS [부국의 조건] 제작팀」 143, 「Oliver [pseud.] Onions」 121, 「SOUNDSUM[사운드숨]」 114, 「JTBC [차이나는 클라스] 제작팀 저」 112, 「KBS [슈퍼차이나] 제작팀 저」 80, 「[pseud.] Carey Rockwell 저」 80, 「[트렌즈]지 특별취재팀」 80. 괄호 안 낱말: `pseud.` 1,517줄, `from old catalog` 1,028줄(둘 다 영문 옛 목록의 주기, 이름이 아님), 한자 이름(蔡萬植 358, 金九 51), 방송 제목(부국의 조건 203, 차이나는 클라스 156, 간병 살인 110, 벌거벗은 한국사 90, 슈퍼차이나 84 …), 연도(`[1963]` 꼴, 각 40~77줄)
+  - 둘 다: 2가지 · 2줄(「R.M.스웨글러 [원저] … [공역] 저」, 「장지연/신채호/박은식 [저] 이재선 [역주] 저」 — 원저·역주는 역할 낱말 목록에 없음)
+  - 그 밖(짝이 없는 괄호만): 39가지 · 114줄(「안중근 [安重根」 49, 「최재천 외 29명] 저」 15, 「<최재천 외 29명]> 저」 5, 잘린 영문 목록 줄). 여러 개 289가지 · 489줄, 맨 앞 82가지 · 542줄, 빈 괄호 0, 안에 공백 3가지(「[Menon, ]」 꼴), 전각 `［ ］` 0
+- **규칙**(`Contributors.stripMarks`, `MARKS`에 `[ ] ［ ］` 추가, 새 `BRACKET_ROLE`·`TRAILING_LONE_ROLE`): ① `[역할 낱말]`(안쪽 공백 허용)은 띄어 쓴 역할 낱말로 바꿈(「존 버거 [지음]」 → 「존 버거 지음」) — 그러면 `parse`가 이름 뒤 역할 낱말로 읽어 역할로 뗌. 뒤에 글이 더 있고 그 글이 `, ; /`로 시작하지 않으면 쉼표를 넣음(「정도전[저]정병철[편]」 → 「정도전 저, 정병철 편」 → 정도전 지은이, 정병철 엮은이). 마지막 괄호 역할 뒤에 역할 낱말 하나만 남으면 뗌(「김삼웅 [편] 저」 → 「김삼웅 편」; 위 193가지) ② 그 밖의 `[ ]`는 괄호만 뗌(「KBS [슈퍼차이나] 제작팀」 → 「KBS 슈퍼차이나 제작팀」, 「채만식[蔡萬植]」 → 「채만식蔡萬植」 — 《 》와 같은 방식). 짝 없는 괄호·빈 괄호도 글자만 뺌. `< >`·`〈 〉 「 」 《 》` 처리는 그대로. 저장 이름·비교 이름(`firstNameExact`)·저자 검색어(`BookQuery`)·책 표 저자 칸(`displayText`)이 모두 `stripMarks`를 거치므로 같이 바뀜. `rules-index.md` "저자 기호 떼기" 줄을 고침
+  - 수집기 쪽 Python은 바꾸지 않음: `scripts/crawl/recommended_lists.py`의 `[ ]`는 추천 목록 글에서 책 제목을 읽는 것이고 저자 역할 낱말 규칙을 공유하지 않음. `scripts/library/check_author_publisher_swap.py`는 자기 비교 키에서 `[ ]`와 괄호 역할 낱말을 이미 떼고 있어 방향이 같음
+- **시험**(`ContributorsTests` 23개 통과): 새로 `bracketedRoleWordIsTheRole`, `bracketedRoleWordFollowedByANameSplitsThePeople`, `loneRoleWordAfterBracketedRolesIsDropped`, `bracketedNameKeepsTheTextAndLosesTheBrackets`, `oddSquareBracketsGo`(빈 괄호, 안쪽 공백, 전각, 짝 없는 괄호, 괄호뿐인 글); `squareBracketsStay`는 지움. `firstNameExactUsesTheCleanName`·`displayTextSpacesStuckRoleWords`·`displayTextKeepsGuardedAndPlainTexts`·`displayTextOfADisplayTextIsTheSame`에 `[ ]` 예를 더함. `CatalogImporterTests` 기대값 「존 버거 [지음]」 → 「존 버거 지음」, 책 표 저자 칸 검사에 `[ ]` 추가. 꺾쇠·다른 괄호 시험은 그대로 통과
+- **표본 확인**(가져오기 없이 `build/classes` 위에서 일회용 `SampleCheck.java`, 원문 → `displayText` → 사람:역할)
+  - 「존 버거 [지음]」 → 「존 버거 지음」 → 존 버거:AUTHOR
+  - 「정도전[저]정병철[편]」 → 「정도전 저, 정병철 편」 → 정도전:AUTHOR | 정병철:EDITOR
+  - 「금장태, 고광직[공저]」 → 「금장태, 고광직 공저」 → 금장태:AUTHOR | 고광직:AUTHOR
+  - 「송시열[저],서정기[역]」 → 「송시열 저,서정기 역」 → 송시열:AUTHOR | 서정기:TRANSLATOR
+  - 「강호감, 김은진, 노석구, 박현주, 손정우, 이희순[공저]」 → 여섯 사람 모두 AUTHOR
+  - 「누가 알렉산더 베로니스 [지음] 남정우 [편역]」 → 「누가 알렉산더 베로니스 지음, 남정우 편역」 → AUTHOR | EDITOR
+  - 「송복 [편] 조희연 [역]」 → 「송복 편, 조희연 역」 → 송복:EDITOR | 조희연:TRANSLATOR
+  - 「김삼웅 [편] 저」 → 「김삼웅 편」 → 김삼웅:EDITOR
+  - 「K. 만하임 [저] 임석진 [역] 저」 → 「K. 만하임 저, 임석진 역」 → K. 만하임:AUTHOR | 임석진:TRANSLATOR
+  - 「나가오 마코토 외[공저] 미국 멀티미디어 랩[역] 저」 → 「나가오 마코토 외 공저, 미국 멀티미디어 랩 역」 → 나가오 마코토:AUTHOR | 미국 멀티미디어 랩:TRANSLATOR
+  - 「김달중·박상섭·황병무 [공편] 저」 → 「김달중·박상섭·황병무 공편」 → 한 사람 EDITOR(가운뎃점은 전처럼 나누지 않음)
+  - 「AN.화이트 헤드[저] 정연홍[역] 저」 → 「AN.화이트 헤드 저, 정연홍 역」 → AUTHOR | TRANSLATOR
+  - 「Victor [pseud.] Appleton 저」 → 「Victor pseud. Appleton 저」 → Victor pseud. Appleton:AUTHOR
+  - 「채만식[蔡萬植]」 → 「채만식蔡萬植」 → UNKNOWN (비교 이름 `채만식蔡萬植`)
+  - 「KBS [부국의 조건] 제작팀」 → 「KBS 부국의 조건 제작팀」; 「KBS [슈퍼차이나] 제작팀 저」 → 「KBS 슈퍼차이나 제작팀 저」 → KBS 슈퍼차이나 제작팀:AUTHOR (〈 〉 표기와 같은 비교 이름 → AC-5 남은 줄이 모임)
+  - 「JTBC [차이나는 클라스] 제작팀 저」, 「마이니치신문 [간병 살인] 취재반」, 「tvN STORY [벌거벗은 한국사] 제작팀」, 「[트렌즈]지 특별취재팀」 → 괄호만 빠짐
+  - 「SOUNDSUM[사운드숨]」 → 「SOUNDSUM사운드숨」; 「[pseud.] Carey Rockwell 저」 → 「pseud. Carey Rockwell 저」
+  - 「안중근 [安重根」 → 「안중근 安重根」; 「최재천 외 29명] 저」·「<최재천 외 29명]> 저」 → 「최재천 외 29명 저」 → 최재천:AUTHOR; 「[김준, AI」 → 「김준, AI」; 「[1963]」 → 「1963」
+  - 「[Cartier-Bresson, Mme. ] [from old catalog]」 → 「Cartier-Bresson, Mme. from old catalog」; 「Abbot, Willis J[ohn], 1863-1934. [from old catalog]」 → 「Abbot, Willis John, 1863-1934. from old catalog」; 「E. Lemancel (Firm : Paris, France)]」 → 괄호만 빠짐
+  - **미심쩍은 것(모두 전보다 나빠지지 않음, 이번 범위 밖)**: ① 「리처드 엡스타인[저];김정호[역]」 → 「리처드 엡스타인 저;김정호 역」 → `;`은 `parse`가 나누지 않아 한 사람 「리처드 엡스타인 저;김정호」 TRANSLATOR(전에는 UNKNOWN 한 사람). ② 「장지연/신채호/박은식 [저] 이재선 [역주] 저」 → 역주가 역할 낱말이 아니라 「이재선 역주」 AUTHOR, `/`로 나뉜 앞 사람 UNKNOWN. ③ 「R.M.스웨글러 [원저] 이기춘,… [공역] 저」 → 원저가 역할 낱말이 아니라 「R.M.스웨글러 원저 이기춘」 TRANSLATOR. ④ 「A.S. Neil [저] 김은산/한희경 [역] 저」 → 김은산 UNKNOWN(`/`로 나뉜 조각은 뒤 역할을 받지 않는 기존 동작). ⑤ `pseud.`·`from old catalog`(영문 옛 목록 주기, 2,500여 줄)는 이름 낱말로 남음(전에도 괄호째 이름에 있었음). 역할 낱말 목록에 원저·역주를 더할지, 주기 낱말을 뗄지는 plan 판단
+- **빌드**: `./gradlew build`(TEST_PG_COMMAND, db-test) 통과(5분 7초, 1,109개 시험) — 로그 `../c19-brackets-build.log`. 첫 번째 돌림(`../c19-brackets-build.1.log`)은 이번 일과 무관한 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`(availability 모듈, 비동기 캐시 시각 시험) 하나가 실패했고 그대로 다시 돌리니 통과 — 8080·8081 서버가 켜진 채라 시간에 민감한 시험이 흔들린 것으로 봄
+- **남은 일**: 운영 반영은 따로 하지 않고 **사이클 17 배포 때 가져오기에 함께** 들어감(저자 정리가 바뀌므로 `rules-index.md`의 검색어 다듬기 규칙 순서 — 옛 서비스를 켠 채 내보내기 → 반영 → 새 코드로 다시 켜기 — 를 따름). 교보 화면 「북큐브」 줄 잘못 합침 약 0.2%(회고 결정 #4)는 원인이 달라 backlog 그대로, 건드리지 않음. plan: `spec.md` R1-2·ADR-0113·`rules-index`의 "`[ ]`는 그대로" 문구를 이 결정으로 고침
+
 # 사이클 21
 
 인계서: plan `docs/cycles/21-recommended-books/handoff.md` (추천도서: 이동진 추천도서 · 사서 추천도서 · 서울대 100선, 2026-10-16 승인). plan 21 세션 요청(2026-10-16): 0단계(API 시험)부터, 결과는 코드를 고치기 전에 이 절에 적고 사용자에게 알림.

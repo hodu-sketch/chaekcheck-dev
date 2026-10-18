@@ -40,9 +40,69 @@ class ContributorsTests {
 	}
 
 	@Test
-	void squareBracketsStay() { // R1-2
-		assertThat(Contributors.stripMarks("존 버거 [지음]")).isEqualTo("존 버거 [지음]");
-		assertThat(Contributors.parse("존 버거 [지음]")).extracting(Contributor::name).containsExactly("존 버거 [지음]");
+	void bracketedRoleWordIsTheRole() { // cycle 19 retro decision #5 (replaces R1-2 "[ ] stays")
+		assertThat(Contributors.stripMarks("존 버거 [지음]")).isEqualTo("존 버거 지음");
+		assertThat(Contributors.parse("존 버거 [지음]")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("존 버거", Role.AUTHOR));
+		assertThat(Contributors.parse("금장태, 고광직[공저]")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("금장태", Role.AUTHOR), tuple("고광직", Role.AUTHOR));
+		assertThat(Contributors.parse("송시열[저],서정기[역]")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("송시열", Role.AUTHOR), tuple("서정기", Role.TRANSLATOR));
+	}
+
+	@Test
+	void loneRoleWordAfterBracketedRolesIsDropped() { // retro decision #5: "김삼웅 [편] 저" (193 of 231 texts)
+		assertThat(Contributors.stripMarks("김삼웅 [편] 저")).isEqualTo("김삼웅 편");
+		assertThat(Contributors.parse("김삼웅 [편] 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("김삼웅", Role.EDITOR));
+		assertThat(Contributors.stripMarks("K. 만하임 [저] 임석진 [역] 저")).isEqualTo("K. 만하임 저, 임석진 역");
+		assertThat(Contributors.parse("K. 만하임 [저] 임석진 [역] 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("K. 만하임", Role.AUTHOR), tuple("임석진", Role.TRANSLATOR));
+		assertThat(Contributors.parse("이만수 [저] 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("이만수", Role.AUTHOR));
+		// a role word with more after it is not the lone suffix
+		assertThat(Contributors.stripMarks("홍길동 [저] 김철수 역")).isEqualTo("홍길동 저, 김철수 역");
+	}
+
+	@Test
+	void bracketedRoleWordFollowedByANameSplitsThePeople() { // retro decision #5: "정도전[저]정병철[편]" (48 rows)
+		assertThat(Contributors.stripMarks("정도전[저]정병철[편]")).isEqualTo("정도전 저, 정병철 편");
+		assertThat(Contributors.parse("정도전[저]정병철[편]")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("정도전", Role.AUTHOR), tuple("정병철", Role.EDITOR));
+		assertThat(Contributors.parse("누가 알렉산더 베로니스 [지음] 남정우 [편역]"))
+			.extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("누가 알렉산더 베로니스", Role.AUTHOR), tuple("남정우", Role.EDITOR));
+		assertThat(Contributors.parse("송복 [편] 조희연 [역]")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("송복", Role.EDITOR), tuple("조희연", Role.TRANSLATOR));
+	}
+
+	@Test
+	void bracketedNameKeepsTheTextAndLosesTheBrackets() { // retro decision #5
+		assertThat(Contributors.stripMarks("KBS [슈퍼차이나] 제작팀")).isEqualTo("KBS 슈퍼차이나 제작팀");
+		assertThat(Contributors.parse("KBS [슈퍼차이나] 제작팀 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("KBS 슈퍼차이나 제작팀", Role.AUTHOR));
+		assertThat(Contributors.parse("KBS [슈퍼차이나] 제작팀 저")).extracting(Contributor::nameExact)
+			.isEqualTo(Contributors.parse("KBS 〈슈퍼차이나〉 제작팀 저").stream().map(Contributor::nameExact).toList());
+		assertThat(Contributors.stripMarks("채만식[蔡萬植]")).isEqualTo("채만식蔡萬植");
+		assertThat(Contributors.stripMarks("[트렌즈]지 특별취재팀")).isEqualTo("트렌즈지 특별취재팀");
+		assertThat(Contributors.stripMarks("Victor [pseud.] Appleton 저")).isEqualTo("Victor pseud. Appleton 저");
+		assertThat(Contributors.stripMarks("R.M.스웨글러 [원저] 이기춘 [공역] 저")).isEqualTo("R.M.스웨글러 원저 이기춘 공역");
+	}
+
+	@Test
+	void oddSquareBracketsGo() { // retro decision #5: empty, inner spaces, unpaired, full width, only brackets
+		assertThat(Contributors.stripMarks("홍길동 []")).isEqualTo("홍길동");
+		assertThat(Contributors.stripMarks("존 버거 [ 지음 ]")).isEqualTo("존 버거 지음");
+		assertThat(Contributors.stripMarks("존 버거 ［지음］")).isEqualTo("존 버거 지음");
+		assertThat(Contributors.stripMarks("안중근 [安重根")).isEqualTo("안중근 安重根");
+		assertThat(Contributors.parse("최재천 외 29명] 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("최재천", Role.AUTHOR));
+		assertThat(Contributors.parse("<최재천 외 29명]> 저")).extracting(Contributor::name, Contributor::role)
+			.containsExactly(tuple("최재천", Role.AUTHOR));
+		assertThat(Contributors.stripMarks("[Cartier-Bresson, Mme. ] [from old catalog]"))
+			.isEqualTo("Cartier-Bresson, Mme. from old catalog");
+		assertThat(Contributors.parse("[]")).isEmpty();
+		assertThat(Contributors.stripMarks("[]")).isEmpty();
 	}
 
 	@Test
@@ -60,7 +120,8 @@ class ContributorsTests {
 
 	@ParameterizedTest
 	@CsvSource(delimiter = '|', value = { "<김정은> 저|김정은", "＜모리세 시게토모＞ 저/이민연 역|모리세시게토모",
-			"루이스 캐럴 저이소연 역|루이스캐럴" })
+			"루이스 캐럴 저이소연 역|루이스캐럴", "존 버거 [지음]|존버거", "KBS [슈퍼차이나] 제작팀 저|kbs슈퍼차이나제작팀",
+			"정도전[저]정병철[편]|정도전" })
 	void firstNameExactUsesTheCleanName(String author, String name) { // sameText key and picks matching
 		assertThat(Contributors.firstNameExact(author)).isEqualTo(name);
 	}
@@ -115,14 +176,16 @@ class ContributorsTests {
 		assertThat(Contributors.displayText("마르틴 발트샤이트 글/발터 글라소프 그림"))
 			.isEqualTo("마르틴 발트샤이트 글/발터 글라소프 그림");
 		assertThat(Contributors.displayText("정이현 편혜영 저")).isEqualTo("정이현 편혜영 저");
-		assertThat(Contributors.displayText("존 버거 [지음]")).isEqualTo("존 버거 [지음]");
+		assertThat(Contributors.displayText("존 버거 [지음]")).isEqualTo("존 버거 지음");
+		assertThat(Contributors.displayText("정도전[저]정병철[편]")).isEqualTo("정도전 저, 정병철 편");
+		assertThat(Contributors.displayText("KBS [슈퍼차이나] 제작팀 저")).isEqualTo("KBS 슈퍼차이나 제작팀 저");
 		assertThat(Contributors.displayText(null)).isNull();
 	}
 
 	@Test
 	void displayTextOfADisplayTextIsTheSame() { // people are parsed from the raw text, never from the display text
 		for (String raw : new String[] { "밥 프록터 저이재경 역조성희 감수", "루이스 캐럴 저이소연 역", "<김정은>,<김지혜> 저",
-				"수잔 케인 지음, 다니엘라 저메인 역" }) {
+				"수잔 케인 지음, 다니엘라 저메인 역", "정도전[저]정병철[편]", "K. 만하임 [저] 임석진 [역] 저" }) {
 			String display = Contributors.displayText(raw);
 			assertThat(Contributors.displayText(display)).as(raw).isEqualTo(display);
 		}

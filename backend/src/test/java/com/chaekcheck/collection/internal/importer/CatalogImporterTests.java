@@ -408,7 +408,7 @@ class CatalogImporterTests {
 				// AC-6: (만화) is kept → two books
 				coded(p, 5, "E6", "(만화) 삼국지", "이문열", "가나", null, null, portal2);
 				coded(p, 1, "K6", "삼국지", "이문열", "가나", null, null, KYOBO_BASE);
-				// AC-17: a stuck role word is spaced in the author field; AC-4: [ ] stays
+				// AC-17: a stuck role word is spaced in the author field; AC-4 + retro decision #5: [ ] goes too
 				coded(p, 5, "E7", "앨리스", "루이스 캐럴 저이소연 역", "펭귄", null, null, portal2);
 				coded(p, 5, "E8", "풍경", "존 버거 [지음]", "열화당", null, null, portal2);
 				p.executeBatch();
@@ -435,8 +435,8 @@ class CatalogImporterTests {
 			.query(String.class).single()).isEqualTo("모리세 시게토모 / 율리시즈");
 		// AC-4, AC-17
 		List<String> authors = jdbc.sql("SELECT author_display FROM catalog.book").query(String.class).list();
-		assertThat(authors).noneMatch(a -> a != null && a.matches(".*[<>〈〉「」《》].*"));
-		assertThat(authors).contains("루이스 캐럴 저 이소연 역", "존 버거 [지음]");
+		assertThat(authors).noneMatch(a -> a != null && a.matches(".*[<>〈〉「」《》\\[\\]].*"));
+		assertThat(authors).contains("루이스 캐럴 저 이소연 역", "존 버거 지음");
 		assertThat(jdbc.sql("SELECT name || ':' || role FROM catalog.book_contributor c JOIN catalog.book b"
 				+ " ON b.id = c.book_id WHERE b.title = '앨리스' ORDER BY position").query(String.class).list())
 			.containsExactly("루이스 캐럴:AUTHOR", "이소연:TRANSLATOR");

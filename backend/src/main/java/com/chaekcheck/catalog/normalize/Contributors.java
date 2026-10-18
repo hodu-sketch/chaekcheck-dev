@@ -77,11 +77,30 @@ public final class Contributors {
 	private static final Pattern HANGUL = Pattern.compile("[가-힣]");
 
 	/**
-	 * Marks removed from author texts (R1-1, R1-2): angle brackets in every width ({@code < > ＜ ＞ ﹤ ﹥}, all
-	 * {@code < >} after NFKC) and the marks of {@code 〈 〉 「 」 《 》}, keeping the text inside. {@code [ ]} stays.
-	 * Rule: docs/maintenance/rules-index.md "저자 기호 떼기".
+	 * Marks removed from author texts (R1-1, R1-2, cycle 19 retro decision #5): angle brackets in every width
+	 * ({@code < > ＜ ＞ ﹤ ﹥}, all {@code < >} after NFKC), the marks of {@code 〈 〉 「 」 《 》} and square brackets
+	 * {@code [ ] ［ ］}, keeping the text inside ("KBS [슈퍼차이나] 제작팀" → "KBS 슈퍼차이나 제작팀"). A role word in
+	 * square brackets is handled first by {@link #BRACKET_ROLE}. Rule: docs/maintenance/rules-index.md "저자 기호 떼기".
 	 */
-	private static final Pattern MARKS = Pattern.compile("[<>＜＞﹤﹥〈〉〈〉「」｢｣《》]");
+	private static final Pattern MARKS = Pattern.compile("[<>＜＞﹤﹥〈〉〈〉「」｢｣《》\\[\\]［］]");
+
+	/**
+	 * A role word in square brackets ("존 버거 [지음]", "금장태, 고광직[공저]", "[ 지음 ]"; cycle 19 retro decision #5).
+	 * {@link #stripMarks} turns it into the role word after a space, and when more text follows ("정도전[저]정병철[편]")
+	 * a comma as well, so {@link #parse} reads it like a role word written after the names.
+	 */
+	private static final Pattern BRACKET_ROLE = Pattern
+		.compile("[\\[［]\\s*(" + ROLE_ALTERNATION + ")\\s*[\\]］]");
+
+	/** Characters after a bracketed role word that already separate the next person. */
+	private static final String SEPARATORS = ",;/";
+
+	/**
+	 * A lone role word closing the text after a bracketed role word ("김삼웅 [편] 저", "K. 만하임 [저] 임석진 [역] 저": the
+	 * site's field-wide "저" repeated after roles written per person; 193 of the 231 bracketed-role texts of the
+	 * 2026-10-12 copy). {@link #stripMarks} drops it.
+	 */
+	private static final Pattern TRAILING_LONE_ROLE = Pattern.compile("^(?:" + ROLE_ALTERNATION + ")\\s*$");
 
 	private static final Pattern SPACES = Pattern.compile("\\s{2,}");
 
@@ -119,18 +138,46 @@ public final class Contributors {
 	}
 
 	/**
-	 * Author text without the marks of {@link #MARKS} (ADR-0113); runs of spaces left behind become one. Text without
-	 * marks comes back unchanged. Null stays null.
+	 * Author text without the marks of {@link #MARKS} (ADR-0113, cycle 19 retro decision #5); runs of spaces left
+	 * behind become one. A role word in square brackets becomes the role word after a space ("존 버거 [지음]" → "존 버거
+	 * 지음"), followed by a comma when more text follows ("정도전[저]정병철[편]" → "정도전 저, 정병철 편"), and a lone
+	 * role word closing the text after it is dropped ("김삼웅 [편] 저" → "김삼웅 편"); other brackets lose only their
+	 * marks ("KBS [슈퍼차이나] 제작팀" → "KBS 슈퍼차이나 제작팀"). Text without marks comes back unchanged. Null stays
+	 * null.
 	 */
 	public static String stripMarks(String raw) {
 		if (raw == null) {
 			return null;
 		}
-		Matcher marks = MARKS.matcher(raw);
-		if (!marks.find()) {
+		if (!MARKS.matcher(raw).find()) {
 			return raw;
 		}
-		return SPACES.matcher(marks.replaceAll("")).replaceAll(" ").strip();
+		String text = MARKS.matcher(unbracketRoles(raw)).replaceAll("");
+		return SPACES.matcher(text).replaceAll(" ").strip();
+	}
+
+	/**
+	 * Each {@link #BRACKET_ROLE} replaced by its role word; a comma is added when more text follows, and a
+	 * {@link #TRAILING_LONE_ROLE} after the last one is dropped.
+	 */
+	private static String unbracketRoles(String raw) {
+		Matcher role = BRACKET_ROLE.matcher(raw);
+		StringBuilder out = new StringBuilder();
+		boolean cutTail = false;
+		while (role.find()) {
+			int next = role.end();
+			while (next < raw.length() && Character.isWhitespace(raw.charAt(next))) {
+				next++;
+			}
+			String rest = raw.substring(next);
+			cutTail = TRAILING_LONE_ROLE.matcher(rest).matches();
+			boolean more = !cutTail && !rest.isEmpty() && SEPARATORS.indexOf(rest.charAt(0)) < 0;
+			role.appendReplacement(out, Matcher.quoteReplacement(" " + role.group(1) + (more ? ", " : "")));
+		}
+		if (!cutTail) {
+			role.appendTail(out);
+		}
+		return out.toString();
 	}
 
 	/**
