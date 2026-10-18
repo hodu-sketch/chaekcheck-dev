@@ -336,3 +336,22 @@
 .chip {
   max-width: 100%;
 }
+
+/* "+ 어디 살든 가입되는 도서관 N곳도 늘 같이 찾아요" under 직접 추가: a soft violet note (user 2026-10-19) */
+.openNote {
+  margin: 0.15rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-md);
+  background: var(--brand-faint);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  word-break: keep-all;
+}
+
+/* between which libraries and how to join: a 0.5rem band across the whole box or sheet (both inset 1.1rem) */
+.band {
+  flex: none;
+  height: 0.5rem;
+  margin-inline: -1.1rem;
+  background: var(--paper-deep);
+}

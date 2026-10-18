@@ -31,8 +31,12 @@ export const SCOPE_TEXT = {
   chosenHint: '상세검색이나 마이페이지에서 이름으로 더할 수 있어요',
   disabled: '꺼진 도서관',
   visitNone: '직접 가야 가입되는 도서관은 빼기',
+  // under 직접 추가, apart from the 방문 가입 switch (user 2026-10-19: "가입조건 직접방문 거주 완전다른거인데 같이있어서
+  // 헷갈려, 분리필요")
   open: (count: number | null) =>
-    count === null ? '어디 살든 가입되는 도서관은 늘 들어 있어요' : `어디 살든 가입되는 도서관 ${count}곳은 늘 들어 있어요`,
+    count === null ? '+ 어디 살든 가입되는 도서관도 늘 같이 찾아요' : `+ 어디 살든 가입되는 도서관 ${count}곳도 늘 같이 찾아요`,
+  joinTitle: '가입 방법',
+  visitNote: '한 번은 도서관에 가야 가입되는 곳을 결과에서 뺍니다',
   myPage: '마이페이지에서 전체 보기',
   all: (count: number | null) => (count === null ? '전국에서 찾는 중' : `전국에서 찾는 중 · ${count}곳`),
   backToMine: '내 도서관만',
@@ -321,8 +325,8 @@ interface BodyProps {
 
 /**
  * The box's body (R1-4), also the phone "찾을 도서관" sheet (R2-1): 사는 곳 (chips + grid), 일하는 곳
- * ([일하는 곳도 더하기] → chips + grid), 직접 추가 N곳 with names, 방문 가입 빼기, the 어디 살든 가입 line and
- * [마이페이지에서 전체 보기]. A check only saves (R1-3): never a search. Before login the save hint shows under the part
+ * ([일하는 곳도 더하기] → chips + grid), 직접 추가 N곳 with names and the 어디 살든 가입 note, a thick band, "가입 방법"
+ * with 방문 가입 빼기, and [마이페이지에서 전체 보기] (order by the user, 2026-10-19). A check only saves (R1-3): never a search. Before login the save hint shows under the part
  * that saved (R9); a failed account save says so (cycle 06 wording).
  */
 export function LibraryScopeBody({
@@ -340,6 +344,7 @@ export function LibraryScopeBody({
   const workRef = useRef<HTMLDivElement>(null)
   const residenceId = useId()
   const workId = useId()
+  const joinId = useId()
 
   useEffect(() => {
     if (focus !== 'work') return
@@ -400,11 +405,17 @@ export function LibraryScopeBody({
         </p>
       )}
 
-      <ChosenPart ids={libraryIds} onOpenCount={onOpenCount} />
+      <ChosenPart ids={libraryIds} openCount={openCount} onOpenCount={onOpenCount} />
 
-      <div className={styles.part}>
+      {/* which libraries (above) and how one joins (below) are two things: a thick band between them (user 2026-10-19) */}
+      <div className={styles.band} aria-hidden="true" />
+
+      <div className={styles.part} role="group" aria-labelledby={joinId}>
+        <h3 id={joinId} className={styles.partTitle}>
+          {SCOPE_TEXT.joinTitle}
+        </h3>
         <VisitSwitch visit={visit} onChange={onVisitChange} />
-        <p className={styles.note}>{SCOPE_TEXT.open(openCount)}</p>
+        <p className={styles.note}>{SCOPE_TEXT.visitNote}</p>
       </div>
 
       <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>
@@ -419,7 +430,15 @@ export function LibraryScopeBody({
  * regions, asked only when there are added libraries and kept for 5 minutes (D4); the count of its OPEN rows is kept
  * as `openCount` (R3-4). A library not in that list is switched off: "꺼진 도서관".
  */
-function ChosenPart({ ids, onOpenCount }: { ids: number[]; onOpenCount: (count: number) => void }) {
+function ChosenPart({
+  ids,
+  openCount,
+  onOpenCount,
+}: {
+  ids: number[]
+  openCount: number | null
+  onOpenCount: (count: number) => void
+}) {
   const list = useLibraryList(ids.length > 0)
   const rows = list.data
   const openRows = rows?.filter((row) => row.eligibility === 'OPEN').length
@@ -448,6 +467,7 @@ function ChosenPart({ ids, onOpenCount }: { ids: number[]; onOpenCount: (count: 
       <h3 className={styles.partTitle}>{SCOPE_TEXT.chosen(ids.length)}</h3>
       {names}
       <p className={styles.note}>{SCOPE_TEXT.chosenHint}</p>
+      <p className={styles.openNote}>{SCOPE_TEXT.open(openCount)}</p>
     </div>
   )
 }

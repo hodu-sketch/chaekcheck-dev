@@ -228,15 +228,17 @@ describe('the box (R1-4)', () => {
       '일하는 곳도 더하기',
       '직접 추가 0곳',
       '상세검색이나 마이페이지에서 이름으로 더할 수 있어요',
-      '어디 살든 가입되는 도서관 39곳은 늘 들어 있어요',
+      '+ 어디 살든 가입되는 도서관 39곳도 늘 같이 찾아요',
+      '가입 방법',
+      '한 번은 도서관에 가야 가입되는 곳을 결과에서 뺍니다',
       '마이페이지에서 전체 보기',
     ]
     expect(parts.filter((text) => order.includes(text ?? ''))).toEqual(order)
+    // the 방문 가입 switch is in its own "가입 방법" part, after the 어디 살든 가입 note (user 2026-10-19)
     const visit = within(opened).getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })
-    const addWork = within(opened).getByRole('button', { name: '일하는 곳도 더하기' })
-    const openLine = within(opened).getByText(/늘 들어 있어요$/)
-    expect(addWork.compareDocumentPosition(visit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(visit.compareDocumentPosition(openLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const openLine = within(opened).getByText(/늘 같이 찾아요$/)
+    expect(openLine.compareDocumentPosition(visit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(opened).getByRole('group', { name: '가입 방법' }).contains(visit)).toBe(true)
 
     await user.click(screen.getByText('outside'))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -252,7 +254,7 @@ describe('the box (R1-4)', () => {
     const { user, onVisitChange } = renderLine()
     await user.click(await folded())
     const opened = await box()
-    expect(within(opened).getByText('어디 살든 가입되는 도서관은 늘 들어 있어요')).toBeTruthy()
+    expect(within(opened).getByText('+ 어디 살든 가입되는 도서관도 늘 같이 찾아요')).toBeTruthy()
     await user.click(within(opened).getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }))
     expect(onVisitChange).toHaveBeenCalledWith('none')
   })
@@ -421,7 +423,8 @@ describe('the phone "찾을 도서관" sheet', () => {
     expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
     expect(sheet.getByRole('heading', { name: '일하는 곳' })).toBeTruthy()
     expect(sheet.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeTruthy()
-    expect(sheet.getByText('어디 살든 가입되는 도서관 70곳은 늘 들어 있어요')).toBeTruthy()
+    expect(sheet.getByText('+ 어디 살든 가입되는 도서관 70곳도 늘 같이 찾아요')).toBeTruthy()
+    expect(sheet.getByRole('heading', { name: '가입 방법' })).toBeTruthy()
     expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' })).toBeTruthy()
     expect(sheet.queryByRole('radiogroup')).toBeNull()
 
