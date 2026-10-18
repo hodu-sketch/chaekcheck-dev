@@ -305,6 +305,7 @@ describe('phone menu', () => {
       '사서 추천도서',
       '서울대 100선',
       '내 도서관 관리',
+      '계정',
     ])
     expect(screen.getByTestId('menu-dim')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '메뉴 닫기' }))

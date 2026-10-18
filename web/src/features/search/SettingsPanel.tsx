@@ -1,8 +1,6 @@
 import { Accordion, Popover, RadioGroup } from 'radix-ui'
 import { useState, type ReactNode } from 'react'
 import { BottomSheet } from '../../components/BottomSheet'
-import { useOptionalAuth } from '../auth/AuthContext'
-import { WithdrawDialog } from '../auth/WithdrawDialog'
 import { DIRECT_REASON, type SearchSettings, type ViewMode } from './searchSettings'
 import styles from './SettingsPanel.module.css'
 
@@ -30,15 +28,11 @@ export const PHONE_SETTINGS_SHEET = true
 /**
  * S4 settings (flow.md): 보기 방식 and 도서관에서 직접 찾기, in a small window under ⚙ (a bottom sheet on phones). Kept in
  * this browser and in the address [확정]. With direct search on, 책 먼저 고르기 cannot be used [안]: site results are
- * not grouped by book. Signed in, a "계정" section holds only 탈퇴 (cycle 05 [확정]); login and logout stay in the
- * header.
+ * not grouped by book. 탈퇴 is on 마이페이지 > 계정 (user request 2026-10-18; it was a "계정" row here, cycle 05);
+ * login and logout stay in the header.
  */
 export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, marked = false }: Props) {
-  const auth = useOptionalAuth()
   const [open, setOpen] = useState(false)
-  const [withdrawOpen, setWithdrawOpen] = useState(false)
-  const signedIn = auth?.state.status === 'signed-in' ? auth.state : null
-  const provider = signedIn?.me.loginMethods[0]
   // phones (the scope folded in here): one row per section that opens on a tap, all closed at first (user requests
   // 2026-10-05)
   const sheet = scopeSection !== undefined
@@ -117,24 +111,6 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
           </fieldset>
         </>
       )}
-      {provider && (
-        // "계정" and 탈퇴 on one line, the button at the right like the other controls (user request 2026-10-05)
-        <div className={`${styles.group} ${styles.accountRow}`} role="group" aria-labelledby="settings-account">
-          <span id="settings-account" className={styles.legend}>
-            계정
-          </span>
-          <button
-            type="button"
-            className={styles.withdraw}
-            onClick={() => {
-              setOpen(false)
-              setWithdrawOpen(true)
-            }}
-          >
-            탈퇴
-          </button>
-        </div>
-      )}
     </>
   )
 
@@ -178,17 +154,6 @@ export function SettingsPanel({ settings, onChange, scopeSection, scopeValue, ma
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
-      )}
-      {provider && (
-        <WithdrawDialog
-          open={withdrawOpen}
-          onOpenChange={(next) => {
-            setWithdrawOpen(next)
-            // 그만두기 goes back to the settings (S4)
-            if (!next) setOpen(true)
-          }}
-          provider={provider}
-        />
       )}
     </>
   )

@@ -139,33 +139,6 @@ legend.legend + * {
   font-size: var(--text-xs);
 }
 
-.accountRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.accountRow .legend {
-  margin-bottom: 0;
-}
-
-.withdraw {
-  padding: 0.45rem 1rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--paper);
-  font: inherit;
-  font-size: var(--text-sm);
-  color: var(--fail);
-  cursor: pointer;
-}
-
-.withdraw:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
 /* the search scope is not the default while it is folded into this panel (phones, D안 2026-10-05) */
 .mark {
   position: absolute;

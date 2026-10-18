@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { AccountPage } from '../account/AccountPage'
 import { SettingsPanel } from '../search/SettingsPanel'
 import { DEFAULT_SETTINGS } from '../search/searchSettings'
 import { AuthProvider, useAuth } from './AuthContext'
@@ -61,34 +62,42 @@ function renderWith(ui: ReactNode, path: string) {
   )
 }
 
-describe('S4 account section', () => {
-  it('is not there before login', async () => {
-    const fetchMock = vi.fn(async () => json(401, { code: 'unauthorized' }))
-    vi.stubGlobal('fetch', fetchMock)
-    renderWith(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={() => {}} />, '/search')
+// user request 2026-10-18: 탈퇴 moved from the search settings to 마이페이지 > 계정 (/account)
+describe('마이페이지 > 계정', () => {
+  it('asks to log in before login, with no 탈퇴', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(401, { code: 'unauthorized' })))
+    renderWith(<AccountPage />, '/account')
 
-    await waitFor(() => expect(screen.getByTestId('where').dataset.auth).toBe('signed-out'))
-    await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
-    expect(screen.queryByText('계정')).toBeNull()
-    expect(screen.queryByRole('button', { name: '탈퇴' })).toBeNull()
+    expect(await screen.findByText('로그인하면 계정을 관리할 수 있어요')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '탈퇴하기' })).toBeNull()
   })
 
-  it('holds only 탈퇴 after login, which opens S7 with the provider in one line', async () => {
+  it('holds 탈퇴하기 after login, which opens S7 with the provider in one line only', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(200, ME)))
-    renderWith(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={() => {}} />, '/search')
+    renderWith(<AccountPage />, '/account')
     const user = userEvent.setup()
 
-    await waitFor(() => expect(screen.getByTestId('where').dataset.auth).toBe('signed-in'))
-    await user.click(screen.getByRole('button', { name: '검색 설정' }))
-    expect(screen.getByText('계정')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /로그인|로그아웃/ })).toBeNull()
-    await user.click(screen.getByRole('button', { name: '탈퇴' }))
+    expect(await screen.findByText('로그인되어 있어요')).toBeTruthy()
+    // no provider name on the page itself (C23)
+    expect(screen.queryByText(/네이버|카카오/)).toBeNull()
+    await user.click(screen.getByRole('button', { name: '탈퇴하기' }))
 
     expect(await screen.findByText('되돌릴 수 없어요.')).toBeTruthy()
     // cycle 06: the saved regions and libraries go too
     expect(screen.getByText('저장한 지역과 내 도서관')).toBeTruthy()
     expect(screen.getAllByText(/네이버/)).toHaveLength(1)
     expect(screen.getByText('네이버와 chaekcheck의 연결도 끊어요.')).toBeTruthy()
+  })
+
+  it('the search settings have no 계정 row any more, signed in too', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(200, ME)))
+    renderWith(<SettingsPanel settings={DEFAULT_SETTINGS} onChange={() => {}} />, '/search')
+
+    await waitFor(() => expect(screen.getByTestId('where').dataset.auth).toBe('signed-in'))
+    await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
+    expect(screen.queryByText('계정')).toBeNull()
+    expect(screen.queryByRole('button', { name: /탈퇴/ })).toBeNull()
   })
 })
 

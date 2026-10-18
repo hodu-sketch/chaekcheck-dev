@@ -5,7 +5,8 @@
 # privacy-collection.md, privacy-policy.md 9th, about.md), the body after each file's <!-- --> note; the plan note
 # on the privacy policy's section 4 contact line is left out. effective_on is the public opening day 2026-10-18.
 # The consent records keep version '1' (auth/002). Same day, user request: the privacy policy's withdrawal line says
-# "로그인한 뒤" and its last line no longer points at earlier versions (there are none yet).
+# "로그인한 뒤" and its last line no longer points at earlier versions (there are none yet); then 탈퇴 moved to
+# 마이페이지 > 계정, so the line names that place.
 # Bodies are dollar-quoted ($$...$$) and splitStatements: false, so semicolons in the text never split a statement.
 databaseChangeLog:
   - changeSet:
@@ -84,7 +85,7 @@ databaseChangeLog:
 
               ## 4. 권리, 안전 조치, 문의
 
-              - 내 정보의 열람·정정·삭제·처리정지를 아래로 요청하거나, 로그인한 뒤 설정의 「탈퇴」로 바로 지울 수 있습니다.
+              - 내 정보의 열람·정정·삭제·처리정지를 아래로 요청하거나, 로그인한 뒤 마이페이지 계정의 「탈퇴하기」로 바로 지울 수 있습니다.
               - 개인정보에 접근할 수 있는 사람을 제한하고, 주고받는 구간을 암호화하며, 비밀값을 암호화해 보관합니다.
               - 개인정보 보호 담당: 책첵 운영자, <chaekcheck9104@gmail.com>
 

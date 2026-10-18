@@ -50,7 +50,7 @@ class SitecontentSchemaTests {
 			// ADR-0134: the usage log names the member number
 			.contains("서비스 이용 기록(로그인한 경우 회원 번호 포함)", "이용 통계, 운영과 보안, 책 추천",
 					"회원 번호는 탈퇴하면 바로 지움")
-			.contains("로그인한 뒤 설정의 「탈퇴」로 바로 지울 수 있습니다.")
+			.contains("로그인한 뒤 마이페이지 계정의 「탈퇴하기」로 바로 지울 수 있습니다.")
 			.endsWith("바꿀 때는 공지사항으로 알립니다.")
 			.doesNotContain("네이버");
 		assertThat(jdbc.sql("SELECT count(*) FROM sitecontent.notice").query(Integer.class).single()).isZero();

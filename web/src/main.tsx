@@ -16,6 +16,7 @@ import { ErrorFallback } from './components/ErrorFallback'
 import { AboutPage } from './features/about/AboutPage'
 import { BookPage } from './features/book/BookPage'
 import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
+import { AccountPage } from './features/account/AccountPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
 import { NoticePage } from './features/notices/NoticePage'
 import { NoticesPage } from './features/notices/NoticesPage'
@@ -62,6 +63,8 @@ function App() {
                 <Route path="/notices/:noticeId" element={<NoticePage />} />
                 {/* open before login and with login off too (cycle 07, spec R3-6): saved in this browser then */}
                 <Route path="/my-libraries" element={<MyLibrariesPage />} />
+                {/* 마이페이지 > 계정 (user request 2026-10-18): 탈퇴 */}
+                <Route path="/account" element={<AccountPage />} />
                 <Route
                   path="/signup"
                   element={

@@ -27,7 +27,7 @@
 - 사용 알림 `POST /api/v1/usage-events`(사이클 15) [확정 한도]: IP마다 분당 60번, 한 번에 20번까지(`burst=20 nodelay` [안]). 넘으면 백엔드에 넘기지 않고 늘 같은 204(기록 안 됨)
 - 로봇 이름(사이클 15): User-Agent에 `bot`·`crawler`·`spider`(대소문자 무시)가 들면 도서관을 부르는 API에서 백엔드에 넘기기 전에 403. 화면 경로·책 목록 API는 막지 않음
 - `/robots.txt`(사이클 15, `web/public/robots.txt`): `Disallow: /api/`. `location /`이 `dist`의 파일로 내보냄
-- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`, `/about`, `/my-libraries`, `/picks`, `/notices`, `/notices/{번호}` → `index.html`
+- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`, `/about`, `/my-libraries`, `/account`, `/picks`, `/picks/{목록}`, `/notices`, `/notices/{번호}` → `index.html`
 - `/assets/` → 이름에 해시가 든 빌드 파일. 1년 캐시
 - 그 밖 → `dist`에 있는 파일만, 없으면 404
 

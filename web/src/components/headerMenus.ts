@@ -13,7 +13,15 @@ export const MENUS = [
       { to: '/picks/snu100', label: '서울대 100선' },
     ],
   },
-  { key: 'my', label: '마이페이지', items: [{ to: '/my-libraries', label: '내 도서관 관리' }] },
+  {
+    key: 'my',
+    label: '마이페이지',
+    // 계정 (user request 2026-10-18): 탈퇴 moved here from the search settings
+    items: [
+      { to: '/my-libraries', label: '내 도서관 관리' },
+      { to: '/account', label: '계정' },
+    ],
+  },
 ] as const
 
 export type Menu = (typeof MENUS)[number]
