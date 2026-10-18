@@ -10,7 +10,7 @@ import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
-import { LibraryScopeBody, LibraryScopeChip, LibraryScopeLine, VisitSwitch, type BoxFocus } from './LibraryScopeLine'
+import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, VisitSwitch, type BoxFocus } from './LibraryScopeLine'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
@@ -31,7 +31,6 @@ import {
   writeSettings,
   type SearchSettings,
 } from './searchSettings'
-import type { SettingsSection } from './SettingsPanel'
 import { SortSelect } from './SortSelect'
 import { useSearchedWith } from './useSearchedWith'
 import styles from './SearchPage.module.css'
@@ -63,10 +62,9 @@ export function SearchPage() {
   const { regions, libraryIds, source, notices, accountFailed } = useRegions()
   const scope = readScope(params)
   const { searchedWith, retake, resolveAndRetake } = useSearchedWith()
-  // the "찾을 도서관" box under the line (wider screens) and the settings sheet on its section (phones), cycle 22 R1, R2
+  // the "찾을 도서관" box under the line (wider screens) and the chip's "찾을 도서관" sheet (phones), cycle 22 R1, R2
   const [box, setBox] = useState<BoxFocus | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [sheetSection, setSheetSection] = useState<SettingsSection>('')
   const [sheetFocus, setSheetFocus] = useState<BoxFocus>('residence')
   // direct search: where the "N곳" button goes (user requests 2026-10-05): phones at the right end of the
   // "상세검색 · 설정" line, wider screens at the right end of the scope controls' row
@@ -113,11 +111,10 @@ export function SearchPage() {
   }, [params.toString(), settings.direct, hasSnapshot, scope, visit, residenceKey, workKey, libraryKey])
 
   const hasSearch = settings.direct ? directValid : bookQuery !== null
-  /** Opens the region choice: the box on wider screens, the settings sheet on "찾을 도서관" on phones (R1-4, R2-1, R7-1). */
+  /** Opens the region choice: the box on wider screens, the "찾을 도서관" sheet on phones (R1-4, R2-1, R7-1). */
   const openPicker = (focus: BoxFocus = 'residence') => {
     if (phone) {
       setSheetFocus(focus)
-      setSheetSection('scope')
       setSheetOpen(true)
     } else {
       setBox(focus)
@@ -267,8 +264,6 @@ export function SearchPage() {
     // [내 도서관만] (R4-2): the same search without scope=all
     onSearchMine: () => searchAgain((address) => address.delete('scope')),
   }
-  // the dot on the settings button: not the default (joinable, visit-only libraries kept)
-  const scopeChanged = scope === 'all' || prefs.visit === 'none'
 
   return (
     <div
@@ -294,31 +289,8 @@ export function SearchPage() {
           centered={!hasSearch && !ebookStart}
           onSearch={search}
           onSettingsChange={changeSettings}
-          settingsScope={
-            phone ? (
-              <LibraryScopeBody
-                key={sheetFocus}
-                focus={sheetFocus}
-                visit={prefs.visit}
-                onVisitChange={changeVisit}
-                openCount={prefs.openCount}
-                onOpenCount={keepOpenCount}
-                onLeave={() => setSheetOpen(false)}
-                sheet
-              />
-            ) : undefined
-          }
-          settingsMarked={phone && scopeChanged}
+          settingsSheet={phone}
           settingsVisit={phone ? undefined : <VisitSwitch visit={prefs.visit} onChange={changeVisit} />}
-          settingsControl={{
-            open: sheetOpen,
-            onOpenChange: (open) => {
-              setSheetOpen(open)
-              if (!open) setSheetFocus('residence')
-            },
-            section: sheetSection,
-            onSectionChange: setSheetSection,
-          }}
           chip={phone ? <LibraryScopeChip {...scopeCommon} onOpen={() => openPicker('residence')} /> : undefined}
           lineEnd={
             phone && bookQuery ? (
@@ -337,6 +309,21 @@ export function SearchPage() {
             <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} centered={!hasSearch && !ebookStart} />
             {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
           </div>
+        )}
+        {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
+        {phone && (
+          <LibraryScopeSheet
+            open={sheetOpen}
+            onOpenChange={(open) => {
+              setSheetOpen(open)
+              if (!open) setSheetFocus('residence')
+            }}
+            focus={sheetFocus}
+            visit={prefs.visit}
+            onVisitChange={changeVisit}
+            openCount={prefs.openCount}
+            onOpenCount={keepOpenCount}
+          />
         )}
       </section>
 

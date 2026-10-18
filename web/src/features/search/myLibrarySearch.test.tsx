@@ -395,7 +395,7 @@ describe('검색 당시 값 (searchedWith)', () => {
   })
 })
 
-describe('phones: the chip and "찾을 도서관" in the settings sheet (cycle 22 R2)', () => {
+describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, user 2026-10-19)', () => {
   function phoneScreen() {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
@@ -405,7 +405,7 @@ describe('phones: the chip and "찾을 도서관" in the settings sheet (cycle 2
     }))
   }
 
-  it('no line; the chip opens the sheet on "찾을 도서관", with the body of the box (no 전국 switch)', async () => {
+  it('no line; the chip opens its own "찾을 도서관" sheet with the body of the box only (no 전국 switch)', async () => {
     phoneScreen()
     renderSearch()
 
@@ -415,23 +415,31 @@ describe('phones: the chip and "찾을 도서관" in the settings sheet (cycle 2
 
     const user = userEvent.setup()
     await user.click(chip)
-    const sheet = within(await screen.findByRole('dialog', { name: '검색 설정' }))
-    const scopeRow = sheet.getByRole('button', { name: '찾을 도서관' })
-    expect(scopeRow.getAttribute('aria-expanded')).toBe('true')
-    expect(sheet.getByRole('button', { name: /^보기 방식/ }).textContent).toBe('보기 방식책 먼저 고르기')
-    expect(sheet.getByRole('button', { name: /^도서관에서 직접 찾기/ }).textContent).toBe('도서관에서 직접 찾기끔')
+    const sheet = within(await screen.findByRole('dialog', { name: '찾을 도서관' }))
+    expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
+    expect(sheet.queryByRole('button', { name: /^보기 방식/ })).toBeNull()
+    expect(sheet.queryByRole('button', { name: /^도서관에서 직접 찾기/ })).toBeNull()
+    expect(sheet.queryByRole('button', { name: '찾을 도서관' })).toBeNull()
 
     expect(screen.queryAllByRole('radio', { name: /도서관/ })).toEqual([])
     expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
     expect(sheet.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeTruthy()
     expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' }).getAttribute('href')).toBe('/my-libraries')
+
+    await user.click(sheet.getByRole('button', { name: '닫기' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
-  it('marks the settings button when the search is not the default', async () => {
+  it('the ⚙ sheet has no "찾을 도서관" and no 방문 가입 switch', async () => {
     phoneScreen()
-    renderSearch('/search?title=사랑&view=books&scope=all')
+    renderSearch()
 
-    expect(await screen.findByRole('button', { name: '검색 설정 (찾을 도서관 바꿈)' })).toBeTruthy()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: '검색 설정' }))
+    const sheet = within(await screen.findByRole('dialog', { name: '검색 설정' }))
+    expect(sheet.getByRole('button', { name: /^보기 방식/ }).textContent).toBe('보기 방식책 먼저 고르기')
+    expect(sheet.queryByText('찾을 도서관')).toBeNull()
+    expect(sheet.queryByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeNull()
   })
 })
 

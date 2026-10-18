@@ -11,7 +11,7 @@ import { MyLibraryProvider } from '../mylibrary/MyLibraryContext'
 import { REGION_IMPORT_KEY } from '../mylibrary/regionImport'
 import { RegionProvider } from '../region/RegionContext'
 import { REGION_STORAGE_KEY } from '../region/regionStorage'
-import { LibraryScopeChip, LibraryScopeLine, scopeLineText, type BoxFocus } from './LibraryScopeLine'
+import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, scopeLineText, type BoxFocus } from './LibraryScopeLine'
 import { planCountKey, type PlanCount } from './searchSettings'
 
 /**
@@ -366,5 +366,66 @@ describe('the phone chip (R2-1)', () => {
     renderChip()
     const chip = await screen.findByRole('button', { name: /^내 도서관: / })
     await waitFor(() => expect(chip.textContent).toBe('서울 마포구 거주'))
+  })
+})
+
+/** User 2026-10-19: the chip opens its own sheet with only "찾을 도서관", not the ⚙ sheet. */
+describe('the phone "찾을 도서관" sheet', () => {
+  function renderChipWithSheet() {
+    function Harness() {
+      const [open, setOpen] = useState(false)
+      const common = {
+        visit: 'any' as const,
+        onVisitChange: vi.fn(),
+        openCount: 70,
+        onOpenCount: vi.fn(),
+      }
+      return (
+        <>
+          <LibraryScopeChip
+            {...common}
+            planCount={null}
+            scope="joinable"
+            allCount={null}
+            onSearchMine={vi.fn()}
+            onOpen={() => setOpen(true)}
+          />
+          <LibraryScopeSheet {...common} open={open} onOpenChange={setOpen} focus="residence" />
+        </>
+      )
+    }
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <AuthProvider>
+          <NoticeProvider>
+            <MyLibraryProvider>
+              <RegionProvider>
+                <MemoryRouter>
+                  <Harness />
+                </MemoryRouter>
+              </RegionProvider>
+            </MyLibraryProvider>
+          </NoticeProvider>
+        </AuthProvider>
+      </QueryClientProvider>,
+    )
+    return userEvent.setup()
+  }
+
+  it('a dialog named "찾을 도서관" with the box body, a handle and ⓧ, and no other settings', async () => {
+    const user = renderChipWithSheet()
+    await user.click(await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' }))
+
+    const sheet = within(await box())
+    expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
+    expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
+    expect(sheet.getByRole('heading', { name: '일하는 곳' })).toBeTruthy()
+    expect(sheet.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeTruthy()
+    expect(sheet.getByText('어디 살든 가입되는 도서관 70곳은 늘 들어 있어요')).toBeTruthy()
+    expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' })).toBeTruthy()
+    expect(sheet.queryByRole('radiogroup')).toBeNull()
+
+    await user.click(sheet.getByRole('button', { name: '닫기' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })

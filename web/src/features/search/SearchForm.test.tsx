@@ -166,6 +166,14 @@ describe('the phone chip', () => {
     expect(chip.compareDocumentPosition(moreButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('the ⚙ sheet on phones has no "찾을 도서관" (the chip has its own sheet, user 2026-10-19)', async () => {
+    const { user } = setup({ settingsSheet: true, chip: <button type="button">사는 곳·일하는 곳 고르기</button> })
+    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    const sheet = screen.getByRole('dialog', { name: '검색 설정' })
+    expect(screen.getByTestId('sheet-handle')).toBeTruthy()
+    expect(sheet.textContent).not.toContain('찾을 도서관')
+  })
+
   it('is not there without one (wider screens)', () => {
     setup()
     expect(screen.queryByRole('button', { name: /^내 도서관/ })).toBeNull()

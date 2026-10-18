@@ -139,21 +139,11 @@ legend.legend + * {
   font-size: var(--text-xs);
 }
 
-/* the search scope is not the default while it is folded into this panel (phones, D안 2026-10-05) */
-.mark {
-  position: absolute;
-  top: 0.45rem;
-  right: 0.45rem;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: var(--brand-strong);
-}
-
 /*
  * Phones (user requests 2026-10-05): a sheet the screen's width, like the sort list, as tall as its content and at
  * most down to the bottom of the screen; past that it scrolls inside, since the first screen itself does not scroll.
- * Three rows, "찾을 도서관", "보기 방식" and "도서관에서 직접 찾기", each opening its controls on a tap (one at a time).
+ * Two rows, "보기 방식" and "도서관에서 직접 찾기", each opening its controls on a tap (one at a time); "찾을 도서관" is the
+ * chip's own sheet (user 2026-10-19).
  */
 .content[data-sheet] {
   width: calc(100vw - 24px);

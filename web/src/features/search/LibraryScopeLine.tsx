@@ -2,6 +2,7 @@ import { Popover } from 'radix-ui'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { LibraryScope, VisitFilter } from '../../api/types'
+import { BottomSheet } from '../../components/BottomSheet'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { SaveHint } from '../mylibrary/SaveHint'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
@@ -18,6 +19,7 @@ export type BoxFocus = RegionField
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
 export const SCOPE_TEXT = {
   pick: '사는 곳·일하는 곳 고르기',
+  sheetTitle: '찾을 도서관',
   pickNote: '고르면 그 지역 기준으로 찾아요 · 안 고르면 어디 살든 가입되는 도서관에서 찾아요',
   addWork: '일하는 곳도 더하기',
   mine: '내 도서관',
@@ -187,14 +189,14 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
 }
 
 interface ChipProps extends Common {
-  /** Opens the settings sheet with its "찾을 도서관" section open (R2-1). */
+  /** Opens the "찾을 도서관" sheet (`LibraryScopeSheet`). */
   onOpen: () => void
 }
 
 /**
- * Phones (R2-1): one chip under the search box, always there: "내 도서관: 서울 강남구 · 68곳 ▾", or "사는 곳·일하는 곳 고르기 ▾"
- * for a first visitor. A tap opens the settings sheet on "찾을 도서관". The 전국 marker and the account failure as on
- * wider screens.
+ * Phones (R2-1): one chip under the search box, always there: "서울 강서구 거주 ▾", or "사는 곳·일하는 곳 고르기 ▾" for a
+ * first visitor. A tap opens its own "찾을 도서관" sheet (user 2026-10-19; it opened the settings sheet before). The
+ * 전국 marker and the account failure as on wider screens.
  */
 export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
   const state = useLineState()
@@ -222,6 +224,31 @@ export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
       </button>
       <AllMarker {...common} />
     </div>
+  )
+}
+
+interface SheetProps extends Pick<Common, 'visit' | 'onVisitChange' | 'openCount' | 'onOpenCount'> {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Which grid the sheet opens on. */
+  focus: BoxFocus
+}
+
+/**
+ * Phones (user 2026-10-19: "사는 곳 일하는 곳 고르기는 그것만 있고 설정에는 없었으면 해"): the chip's own bottom sheet,
+ * "찾을 도서관" with the box's body only, the same shared sheet as ⚙ (handle, ⓧ, back, a tap outside).
+ */
+export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetProps) {
+  return (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={SCOPE_TEXT.sheetTitle} closeButton closeOnBack>
+      <div className={styles.sheet}>
+        {/* the sheet's name is read from its hidden title; this line only shows it */}
+        <h2 className={styles.sheetTitle} aria-hidden="true">
+          {SCOPE_TEXT.sheetTitle}
+        </h2>
+        <LibraryScopeBody key={focus} focus={focus} {...body} onLeave={() => onOpenChange(false)} sheet />
+      </div>
+    </BottomSheet>
   )
 }
 
@@ -263,7 +290,10 @@ function AccountFailed() {
   )
 }
 
-/** "직접 가야 가입되는 도서관은 빼기" (R8-1): the box, the phone sheet and the ⚙ window; only kept for the next search. */
+/**
+ * "직접 가야 가입되는 도서관은 빼기" (R8-1): the box, the phone "찾을 도서관" sheet and the ⚙ window on wider screens; only
+ * kept for the next search.
+ */
 export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange: (visit: VisitFilter) => void }) {
   return (
     <label className={styles.visit}>
@@ -285,12 +315,12 @@ interface BodyProps {
   onOpenCount: (count: number) => void
   /** [마이페이지에서 전체 보기] was pressed. */
   onLeave?: () => void
-  /** Phones: inside the settings sheet, the grids take the screen's width. */
+  /** Phones: inside the "찾을 도서관" sheet, the grids take the screen's width. */
   sheet?: boolean
 }
 
 /**
- * The box's body (R1-4), also the phone sheet's "찾을 도서관" section (R2-1): 사는 곳 (chips + grid), 일하는 곳
+ * The box's body (R1-4), also the phone "찾을 도서관" sheet (R2-1): 사는 곳 (chips + grid), 일하는 곳
  * ([일하는 곳도 더하기] → chips + grid), 직접 추가 N곳 with names, 방문 가입 빼기, the 어디 살든 가입 line and
  * [마이페이지에서 전체 보기]. A check only saves (R1-3): never a search. Before login the save hint shows under the part
  * that saved (R9); a failed account save says so (cycle 06 wording).

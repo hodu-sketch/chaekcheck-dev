@@ -224,6 +224,25 @@
   margin-inline: -1.1rem;
 }
 
+/*
+ * Phones (user 2026-10-19): the chip's own sheet, only "찾을 도서관". The title line and the 0.1rem inset as the
+ * settings sheet's section had, so the grid's bleed above stays the same.
+ */
+.sheet {
+  padding: 0 0.1rem 0.9rem;
+}
+
+.sheetTitle {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  margin: 0;
+  padding: 0.5rem 0;
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+
 /* [일하는 곳도 더하기] as on the my page (the grid stays folded until pressed) */
 .addWork {
   align-self: flex-start;

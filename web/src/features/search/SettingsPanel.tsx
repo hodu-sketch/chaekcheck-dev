@@ -9,30 +9,15 @@ type Props = {
   /** Applied at once; with results the search runs again [안]. */
   onChange: (settings: SearchSettings) => void
   /**
-   * Phones: the "찾을 도서관" section at the top of the sheet (D안, user choice 2026-10-05; cycle 22 R2-1: the box's
-   * body). Its presence makes the panel the phone sheet.
+   * Phones: the panel is a bottom sheet with one row per setting. "찾을 도서관" is not in it: the chip under the search
+   * box has its own sheet for that (user 2026-10-19; it was the sheet's first section, cycle 22 R2-1).
    */
-  scopeSection?: ReactNode
+  sheet?: boolean
   /** Wider screens (cycle 22 R8-1): one more row in the small window, the 방문 가입 빼기 switch. */
   visitSwitch?: ReactNode
-  /** A dot on the button: the search scope is not the default, while it is folded in here. */
-  marked?: boolean
-  /** Opened from outside (the phone chip, cycle 22 R2-1): the open state and the open section; else its own. */
-  control?: SettingsControl
 }
 
-/** The panel opened and its section set by the caller (the phone chip opens it on "찾을 도서관"). */
-export interface SettingsControl {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  section: SettingsSection
-  onSectionChange: (section: SettingsSection) => void
-}
-
-type SectionKey = 'scope' | 'view' | 'direct'
-
-/** The open section of the phone sheet; '' = all closed. */
-export type SettingsSection = SectionKey | ''
+type SectionKey = 'view' | 'direct'
 
 /**
  * Phones: the settings open as a bottom sheet (cycle 08, flow.md 검토 #1). Set to false to go back to the small
@@ -47,16 +32,10 @@ export const PHONE_SETTINGS_SHEET = true
  * not grouped by book. 탈퇴 is on 마이페이지 > 계정 (user request 2026-10-18; it was a "계정" row here, cycle 05);
  * login and logout stay in the header.
  */
-export function SettingsPanel({ settings, onChange, scopeSection, visitSwitch, marked = false, control }: Props) {
-  const [ownOpen, setOwnOpen] = useState(false)
-  // phones (the scope folded in here): one row per section that opens on a tap, all closed at first (user requests
-  // 2026-10-05)
-  const sheet = scopeSection !== undefined
-  const [ownSection, setOwnSection] = useState<SettingsSection>('')
-  const open = control ? control.open : ownOpen
-  const setOpen = control ? control.onOpenChange : setOwnOpen
-  const section = control ? control.section : ownSection
-  const setSection = control ? control.onSectionChange : setOwnSection
+export function SettingsPanel({ settings, onChange, sheet = false, visitSwitch }: Props) {
+  const [open, setOpen] = useState(false)
+  // phones: one row per section that opens on a tap, all closed at first (user requests 2026-10-05)
+  const [section, setSection] = useState<SectionKey | ''>('')
 
   const viewOptions = (
     <RadioGroup.Root
@@ -88,7 +67,6 @@ export function SettingsPanel({ settings, onChange, scopeSection, visitSwitch, m
 
   const trigger = (
     <>
-      {marked && <span className={styles.mark} aria-hidden="true" />}
       {/* two sliders with rounded-square knobs, to match the rounded-rectangle look (user request 2026-10-05) */}
       <svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
         <path d="M3 6.5h14M3 13.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -97,7 +75,7 @@ export function SettingsPanel({ settings, onChange, scopeSection, visitSwitch, m
       </svg>
     </>
   )
-  const triggerLabel = marked ? '검색 설정 (찾을 도서관 바꿈)' : '검색 설정'
+  const triggerLabel = '검색 설정'
 
   const body = (
     <>
@@ -106,12 +84,9 @@ export function SettingsPanel({ settings, onChange, scopeSection, visitSwitch, m
           type="single"
           collapsible
           value={section}
-          onValueChange={(value) => setSection(value as SettingsSection)}
+          onValueChange={(value) => setSection(value as SectionKey | '')}
           className={styles.sections}
         >
-          <Section value="scope" title="찾을 도서관">
-            {scopeSection}
-          </Section>
           <Section value="view" title="보기 방식" current={settings.view === 'books' ? '책 먼저 고르기' : '바로 보기'}>
             {viewOptions}
           </Section>

@@ -10,7 +10,7 @@ import {
   type BookSearchInput,
 } from './searchCondition'
 import { DIRECT_REASON, type SearchSettings } from './searchSettings'
-import { SettingsPanel, type SettingsControl } from './SettingsPanel'
+import { SettingsPanel } from './SettingsPanel'
 import styles from './SearchForm.module.css'
 import { ChevronDown, ChevronUp, MenuLines } from '../../components/icons'
 
@@ -32,13 +32,10 @@ type Props = {
   centered?: boolean
   onSearch: (input: BookSearchInput) => void
   onSettingsChange: (settings: SearchSettings) => void
-  /** Phones: the "찾을 도서관" section for the settings panel, and whether it differs from the default. */
-  settingsScope?: ReactNode
-  settingsMarked?: boolean
+  /** Phones: the settings open as a bottom sheet (without "찾을 도서관", which is the chip's own sheet). */
+  settingsSheet?: boolean
   /** Wider screens: the 방문 가입 빼기 switch in the settings window (cycle 22 R8-1). */
   settingsVisit?: ReactNode
-  /** The settings panel opened from outside (the phone chip, cycle 22 R2-1). */
-  settingsControl?: SettingsControl
   /** Phones: the "내 도서관" chip, on its own line right under the title box (cycle 22 R2-1). */
   chip?: ReactNode
   /** Phones: the sort, at the right end of the "상세검색 · 설정" line (user request 2026-10-05). */
@@ -58,10 +55,8 @@ export function SearchForm({
   centered = !hasResults,
   onSearch,
   onSettingsChange,
-  settingsScope,
-  settingsMarked,
+  settingsSheet = false,
   settingsVisit,
-  settingsControl,
   chip,
   lineEnd,
 }: Props) {
@@ -170,10 +165,8 @@ export function SearchForm({
         <SettingsPanel
           settings={settings}
           onChange={onSettingsChange}
-          scopeSection={settingsScope}
+          sheet={settingsSheet}
           visitSwitch={settingsVisit}
-          marked={settingsMarked}
-          control={settingsControl}
         />
         {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>
