@@ -40,7 +40,7 @@ services:
       retries: 10
 
   backend:
-    image: chaekcheck/backend:1.0.0
+    image: chaekcheck/backend:1.0.1
     restart: unless-stopped
     depends_on:
       db:
@@ -86,7 +86,7 @@ services:
       - "127.0.0.1:8080:8080"
 
   web:
-    image: chaekcheck/web:1.0.0
+    image: chaekcheck/web:1.0.1
     restart: unless-stopped
     depends_on:
       - backend

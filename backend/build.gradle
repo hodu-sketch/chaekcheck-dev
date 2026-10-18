@@ -7,7 +7,7 @@ plugins {
 group = 'com.chaekcheck'
 // Semantic version of the release (user decision 2026-10-18: v1.0.0 is the first public release); bump it with
 // deploy/prod/bin/release.sh, which tags the commit vX.Y.Z
-version = '1.0.0'
+version = '1.0.1'
 
 java {
 	toolchain {
