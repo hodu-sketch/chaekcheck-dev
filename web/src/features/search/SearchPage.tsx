@@ -12,7 +12,7 @@ import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
 import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, VisitSwitch, type BoxFocus } from './LibraryScopeLine'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
-import { SearchForm, type SearchOptions } from './SearchForm'
+import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
 import { useRegionPlace } from './regionPlace'
 import type { ResultSearchContext } from './ResultList'
@@ -136,7 +136,7 @@ export function SearchPage() {
    * Keeps filter, the sort and the settings; replaces the conditions. A new search is always `joinable` (D10) and
    * takes the stored 방문 없이 가입 and the current regions (the snapshot is taken again).
    */
-  const search = (next: BookSearchInput, { all }: SearchOptions) => {
+  const search = (next: BookSearchInput) => {
     const address = new URLSearchParams()
     writeFilter(filter, address)
     writeVisit(prefs.visit, address)
@@ -144,8 +144,6 @@ export function SearchPage() {
     // the sort is changed outside the form (the result list), so the address has the current one
     writeBookSearch({ ...next, sort: input?.sort ?? next.sort }, address)
     writeSettings(settings, address)
-    // the 상세검색 "전국에서 찾기" box: this search only (D10)
-    if (all) address.set('scope', 'all')
     navigate(`/search?${address}`)
   }
   const replaceParam = (name: string, value: string | null) => {
