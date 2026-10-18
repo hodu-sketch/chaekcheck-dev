@@ -6,11 +6,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProp
 import org.springframework.stereotype.Component;
 
 import com.chaekcheck.auth.ConditionalOnAuthEnabled;
-import com.chaekcheck.auth.LoginStatus;
+import com.chaekcheck.auth.LoginState;
 import com.chaekcheck.auth.LoginStatusReader;
 
 /**
- * Login off (the opposite of {@link ConditionalOnAuthEnabled}): always {@link LoginStatus#LOGIN_OFF}, without
+ * Login off (the opposite of {@link ConditionalOnAuthEnabled}): always {@link LoginState#LOGIN_OFF}, without
  * looking at any cookie (ADR-0102).
  */
 @Component
@@ -18,8 +18,8 @@ import com.chaekcheck.auth.LoginStatusReader;
 class LoginOffStatusReader implements LoginStatusReader {
 
 	@Override
-	public LoginStatus read(HttpServletRequest request) {
-		return LoginStatus.LOGIN_OFF;
+	public LoginState read(HttpServletRequest request) {
+		return LoginState.LOGIN_OFF;
 	}
 
 }

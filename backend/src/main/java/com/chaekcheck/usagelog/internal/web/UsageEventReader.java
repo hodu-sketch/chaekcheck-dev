@@ -10,12 +10,14 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import com.chaekcheck.usagelog.UsageRequest;
+import com.chaekcheck.usagelog.internal.VisitKeys;
 import com.chaekcheck.usagelog.internal.buffer.UsageRow;
 
 /**
  * Checks one usage report (design-delta "API", cycle 15 step 6) and turns it into a row, or into a
  * {@code rejected_event} row with the reason. Library numbers are checked later, once per write (plan C5).
- * Fields not listed are ignored. Picks category codes are not checked against a list: new codes may appear.
+ * Fields not listed are ignored. Picks category codes are not checked against a list: new codes may appear. The
+ * optional {@code visitKey} (ADR-0134) is kept when it has the right shape and silently dropped otherwise.
  */
 final class UsageEventReader {
 
@@ -59,17 +61,19 @@ final class UsageEventReader {
 				throw new Rejected("malformed");
 			}
 			JsonNode node = parse(body);
+			String visitKey = visitKey(node, request);
 			return switch (type(node)) {
 				case "library_click" -> new UsageRow.LibraryClick(request.receivedAt(), libraryId(node),
-						place(node), screen(node), optionalBookId(node), request.loginStatus(), request.clientIp(), raw);
-				case "picks_list_view" -> screen(request, raw, "picks_list_view", picksList(node), category(node), null,
-						null, null, null);
-				case "picks_book_view" -> screen(request, raw, "picks_book_view", picksList(node), category(node),
-						bookId(node), null, null, null);
-				case "region_change" -> screen(request, raw, "region_change", null, null, null,
+						place(node), screen(node), optionalBookId(node), request.loginStatus(), request.clientIp(),
+						request.accountId(), visitKey, raw);
+				case "picks_list_view" -> screen(request, visitKey, raw, "picks_list_view", picksList(node),
+						category(node), null, null, null, null);
+				case "picks_book_view" -> screen(request, visitKey, raw, "picks_book_view", picksList(node),
+						category(node), bookId(node), null, null, null);
+				case "region_change" -> screen(request, visitKey, raw, "region_change", null, null, null,
 						regionIds(node, "residenceRegionIds"), regionIds(node, "workRegionIds"), null);
-				case "my_library_add", "my_library_remove" -> screen(request, raw, type(node), null, null, null, null,
-						null, libraryId(node));
+				case "my_library_add", "my_library_remove" -> screen(request, visitKey, raw, type(node), null, null,
+						null, null, null, libraryId(node));
 				default -> throw new Rejected("unknown_type");
 			};
 		}
@@ -78,10 +82,25 @@ final class UsageEventReader {
 		}
 	}
 
-	private static UsageRow.ScreenEvent screen(UsageRequest request, String raw, String kind, String list,
-			String category, Long bookId, List<Long> residence, List<Long> work, Long libraryId) {
+	private static UsageRow.ScreenEvent screen(UsageRequest request, String visitKey, String raw, String kind,
+			String list, String category, Long bookId, List<Long> residence, List<Long> work, Long libraryId) {
 		return new UsageRow.ScreenEvent(request.receivedAt(), kind, list, category, bookId, residence, work,
-				libraryId, request.loginStatus(), request.clientIp(), raw);
+				libraryId, request.loginStatus(), request.clientIp(), request.accountId(), visitKey, raw);
+	}
+
+	/**
+	 * The tab's visit key (ADR-0134): the body field {@code visitKey} when it is a string of the right shape, else the
+	 * {@code X-Visit-Key} header the capture read, else null. Never a reason to reject the report.
+	 */
+	private static String visitKey(JsonNode node, UsageRequest request) {
+		JsonNode value = node.get(VisitKeys.FIELD);
+		if (value != null && value.isString()) {
+			String key = VisitKeys.normalize(value.asString());
+			if (key != null) {
+				return key;
+			}
+		}
+		return request.visitKey();
 	}
 
 	private JsonNode parse(byte[] body) {

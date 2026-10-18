@@ -31,7 +31,8 @@ import com.chaekcheck.auth.internal.account.AccountDeletion;
  */
 class AccountDeletedRepublishTests {
 
-	private static final String CLEANUP_LISTENER = "AccountDeletedCleanup";
+	// the usagelog module has its own AccountDeleted listener since ADR-0134 (UsageLogAccountDeletedCleanup)
+	private static final String CLEANUP_LISTENER = "mylibrary.internal.AccountDeletedCleanup";
 
 	private final List<ConfigurableApplicationContext> contexts = new ArrayList<>();
 

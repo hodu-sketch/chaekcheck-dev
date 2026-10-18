@@ -40,7 +40,7 @@ class AuthDisabledTests {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setCookies(new Cookie("access_token", "anything"));
 
-		assertThat(context.getBean(LoginStatusReader.class).read(request)).isEqualTo(LoginStatus.LOGIN_OFF);
+		assertThat(context.getBean(LoginStatusReader.class).read(request)).isEqualTo(LoginState.LOGIN_OFF);
 	}
 
 	@Test

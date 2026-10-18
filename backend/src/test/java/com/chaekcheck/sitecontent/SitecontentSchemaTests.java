@@ -41,6 +41,9 @@ class SitecontentSchemaTests {
 			assertThat(body(key)).as(key).startsWith("이 문서는 검토 전 자리 글입니다"); // R8-4
 		}
 		assertThat(body("PRIVACY_POLICY")).contains("## 처리하는 개인정보와 목적", "카카오 회원 식별 번호")
+			// ADR-0134 (first version, before the opening): the usage log names the member number
+			.contains("서비스 이용 기록(로그인한 경우 회원 번호 포함)", "이용 통계, 운영과 보안, 책 추천",
+					"회원 번호는 탈퇴하면 바로 지움")
 			.doesNotContain("네이버");
 		assertThat(jdbc.sql("SELECT count(*) FROM sitecontent.notice").query(Integer.class).single()).isZero();
 	}

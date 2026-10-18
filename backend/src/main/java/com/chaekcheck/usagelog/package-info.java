@@ -9,8 +9,11 @@
  * and no exception reaches the caller.
  * <p>
  * Off by default ({@code chaekcheck.usagelog.enabled}); robots ({@code bot}, {@code crawler}, {@code spider} in the
- * User-Agent) are not recorded. No member number, User-Agent or cookie value is kept. Depends on {@code library}
- * (enabled library ids of the usage reports) and {@code auth} ({@code LoginStatusReader}).
+ * User-Agent) are not recorded. No User-Agent or cookie value is kept. Since ADR-0134 the book view, library click
+ * and screen event rows carry the signed-in member's number ({@code account_id}, cleared on {@code AccountDeleted})
+ * and the browser tab's random visit key ({@code visit_key}); the search rows carry neither. Depends on
+ * {@code library} (enabled library ids of the usage reports) and {@code auth} ({@code LoginStatusReader},
+ * {@code AccountDeleted}).
  */
 @ApplicationModule(allowedDependencies = { "library", "auth" })
 package com.chaekcheck.usagelog;

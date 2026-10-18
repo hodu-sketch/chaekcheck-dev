@@ -126,3 +126,7 @@ databaseChangeLog:
   - include:
       file: usagelog/004-library-response-source-extension.yaml
       relativeToChangelogFile: true
+  # ADR-0134: visit key and account id
+  - include:
+      file: usagelog/005-visit-key-account-id.yaml
+      relativeToChangelogFile: true

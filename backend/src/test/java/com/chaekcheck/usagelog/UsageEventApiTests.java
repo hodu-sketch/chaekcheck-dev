@@ -91,6 +91,30 @@ class UsageEventApiTests {
 	}
 
 	@Test
+	void visitKeyIsKeptWhenWellFormedAndNullOtherwise() { // ADR-0134 (present, absent, wrong shape); login off: no member
+		String key = "a1b2c3d4e5f60718a1b2c3d4e5f60718";
+		post("{\"type\":\"library_click\",\"libraryId\":%d,\"place\":\"logo\",\"screen\":\"picks\",\"visitKey\":\"%s\"}"
+			.formatted(library, key));
+		post("{\"type\":\"library_click\",\"libraryId\":%d,\"place\":\"logo\",\"screen\":\"picks\"}".formatted(library));
+		post("{\"type\":\"library_click\",\"libraryId\":%d,\"place\":\"logo\",\"screen\":\"picks\",\"visitKey\":\"short\"}"
+			.formatted(library));
+		post("{\"type\":\"library_click\",\"libraryId\":%d,\"place\":\"logo\",\"screen\":\"picks\",\"visitKey\":12345}"
+			.formatted(library));
+		post("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"11\",\"visitKey\":\"%s\"}".formatted(key));
+		post("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"11\",\"visitKey\":\"%s\"}"
+			.formatted("a1b2c3d4-e5f6-0718-a1b2-c3d4e5f60718"));
+		flusher.flush();
+
+		assertThat(jdbc.sql("SELECT visit_key, account_id FROM usagelog.library_click ORDER BY id").query().listOfRows())
+			.extracting(r -> r.get("visit_key") + "|" + r.get("account_id"))
+			.containsExactly(key + "|null", "null|null", "null|null", "null|null");
+		assertThat(jdbc.sql("SELECT visit_key, account_id FROM usagelog.screen_event ORDER BY id").query().listOfRows())
+			.extracting(r -> r.get("visit_key") + "|" + r.get("account_id"))
+			.containsExactly(key + "|null", "null|null");
+		assertThat(UsageLogTestTables.count(jdbc, "rejected_event")).isZero();
+	}
+
+	@Test
 	void badReportsAreRejectedWithTheirReason() { // AC-10
 		long disabled = jdbc.sql("SELECT id FROM library.library WHERE NOT enabled ORDER BY id LIMIT 1")
 			.query(Long.class)

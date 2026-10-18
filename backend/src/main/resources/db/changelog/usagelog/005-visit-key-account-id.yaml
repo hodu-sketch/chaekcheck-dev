@@ -1,0 +1,36 @@
+# ADR-0134 (with cycle 20 stage 1): two columns for the AI recommendation material on the three tables that record
+# what a person opened or clicked. visit_key is the random value a browser tab makes when it opens (32 characters,
+# sessionStorage, not a cookie; header X-Visit-Key on the book page, body field visitKey of a usage report); a value of
+# the wrong shape is stored as NULL, never rejected. account_id is the signed-in member's number (NULL when signed out
+# or login off), with no foreign key: the usagelog module clears it itself when AccountDeleted arrives. search_event
+# and search_more get neither (search terms may be sensitive, and a recommendation does not need them). No index.
+# The 04:30 clean-up (IP 30 days, rows one year) is unchanged. CHECK constraints use sql changes as in usagelog/001.
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-005-visit-key-account-id
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.book_view
+                ADD COLUMN visit_key text
+                  CONSTRAINT book_view_visit_key_check
+                  CHECK (visit_key IS NULL OR (length(visit_key) BETWEEN 16 AND 64 AND visit_key ~ '^[A-Za-z0-9]+$')),
+                ADD COLUMN account_id bigint
+                  CONSTRAINT book_view_account_id_check CHECK (account_id > 0)
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.library_click
+                ADD COLUMN visit_key text
+                  CONSTRAINT library_click_visit_key_check
+                  CHECK (visit_key IS NULL OR (length(visit_key) BETWEEN 16 AND 64 AND visit_key ~ '^[A-Za-z0-9]+$')),
+                ADD COLUMN account_id bigint
+                  CONSTRAINT library_click_account_id_check CHECK (account_id > 0)
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.screen_event
+                ADD COLUMN visit_key text
+                  CONSTRAINT screen_event_visit_key_check
+                  CHECK (visit_key IS NULL OR (length(visit_key) BETWEEN 16 AND 64 AND visit_key ~ '^[A-Za-z0-9]+$')),
+                ADD COLUMN account_id bigint
+                  CONSTRAINT screen_event_account_id_check CHECK (account_id > 0)

@@ -3,6 +3,8 @@ package com.chaekcheck.usagelog;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,13 +29,65 @@ class UsageLogSchemaTests {
 	}
 
 	@Test
-	void noMemberNumberUserAgentOrCookieColumn() { // AC-12
+	void noUserAgentOrCookieColumnAndNoMemberNumberOnTheSearchTables() { // AC-12 as changed by ADR-0134
 		assertThat(jdbc.sql("""
 				SELECT count(*) FROM information_schema.columns
-				WHERE table_schema = 'usagelog'
-				  AND (column_name ~ '(user|account|member)' OR column_name ~ '(agent|cookie|token|session)')""")
+				WHERE table_schema = 'usagelog' AND column_name ~ '(user|agent|cookie|token|session)'""")
 			.query(Long.class)
 			.single()).isZero();
+		assertThat(jdbc.sql("""
+				SELECT count(*) FROM information_schema.columns
+				WHERE table_schema = 'usagelog' AND table_name IN ('search_event', 'search_more', 'rejected_event',
+				  'dropped_batch', 'library_response_daily')
+				  AND (column_name ~ '(account|member)' OR column_name = 'visit_key')""")
+			.query(Long.class)
+			.single()).isZero();
+	}
+
+	@Test
+	void memberNumberAndVisitKeyOnTheThreeActionTables() { // ADR-0134 (usagelog/005)
+		assertThat(jdbc.sql("""
+				SELECT table_name || '.' || column_name || ':' || data_type || ':' || is_nullable
+				FROM information_schema.columns
+				WHERE table_schema = 'usagelog' AND column_name IN ('account_id', 'visit_key')
+				ORDER BY 1""").query(String.class).list()).containsExactly("book_view.account_id:bigint:YES",
+					"book_view.visit_key:text:YES", "library_click.account_id:bigint:YES", "library_click.visit_key:text:YES",
+					"screen_event.account_id:bigint:YES", "screen_event.visit_key:text:YES");
+		// no index on either (ADR-0134)
+		assertThat(jdbc.sql("""
+				SELECT count(*) FROM pg_indexes
+				WHERE schemaname = 'usagelog' AND (indexdef ~ 'account_id' OR indexdef ~ 'visit_key')""")
+			.query(Long.class)
+			.single()).isZero();
+		String key = "a1b2c3d4e5f60718a1b2c3d4e5f60718";
+		for (String table : List.of("book_view", "library_click", "screen_event")) {
+			action(table, "'" + key + "'", "7");
+			action(table, "'ABCDEFGHIJKLMNOP'", "NULL");
+			action(table, "'" + "x".repeat(64) + "'", "NULL");
+			action(table, "NULL", "NULL");
+			violates(() -> action(table, "'tooshort'", "NULL"));
+			violates(() -> action(table, "'" + "x".repeat(65) + "'", "NULL"));
+			violates(() -> action(table, "'a1b2c3d4-e5f6-0718-a1b2-c3d4e5f60718'", "NULL"));
+			violates(() -> action(table, "'a1b2c3d4e5f60718a1b2c3d4e5f6071é'", "NULL"));
+			violates(() -> action(table, "NULL", "0"));
+			violates(() -> action(table, "NULL", "-1"));
+		}
+	}
+
+	private void action(String table, String visitKey, String accountId) {
+		String sql = switch (table) {
+			case "book_view" -> """
+					INSERT INTO usagelog.book_view (received_at, book_id, login_status, visit_key, account_id)
+					VALUES (now(), 345, 'signed_in', %s, %s)""";
+			case "library_click" -> """
+					INSERT INTO usagelog.library_click (received_at, library_id, place, screen, login_status, visit_key,
+					  account_id)
+					VALUES (now(), 12, 'logo', 'picks', 'signed_in', %s, %s)""";
+			default -> """
+					INSERT INTO usagelog.screen_event (received_at, kind, library_id, login_status, visit_key, account_id)
+					VALUES (now(), 'my_library_add', 12, 'signed_in', %s, %s)""";
+		};
+		jdbc.sql(sql.formatted(visitKey, accountId)).update();
 	}
 
 	@Test

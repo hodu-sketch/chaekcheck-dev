@@ -33,8 +33,8 @@ public class UsageLogWriter {
 
 	static final String INSERT_BOOK_VIEW = """
 			INSERT INTO usagelog.book_view (received_at, book_id, residence_region_ids, work_region_ids, library_ids,
-			  login_status, client_ip)
-			VALUES (?, ?, ?, ?, ?, ?, ?::inet)""";
+			  login_status, client_ip, account_id, visit_key)
+			VALUES (?, ?, ?, ?, ?, ?, ?::inet, ?, ?)""";
 
 	static final String INSERT_MORE = """
 			INSERT INTO usagelog.search_more (received_at, kind, seq, library_id, title, author, publisher, exact, roles,
@@ -42,13 +42,14 @@ public class UsageLogWriter {
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::inet)""";
 
 	static final String INSERT_CLICK = """
-			INSERT INTO usagelog.library_click (received_at, library_id, place, screen, book_id, login_status, client_ip)
-			VALUES (?, ?, ?, ?, ?, ?, ?::inet)""";
+			INSERT INTO usagelog.library_click (received_at, library_id, place, screen, book_id, login_status, client_ip,
+			  account_id, visit_key)
+			VALUES (?, ?, ?, ?, ?, ?, ?::inet, ?, ?)""";
 
 	static final String INSERT_SCREEN = """
 			INSERT INTO usagelog.screen_event (received_at, kind, picks_list, picks_category, book_id,
-			  residence_region_ids, work_region_ids, library_id, login_status, client_ip)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::inet)""";
+			  residence_region_ids, work_region_ids, library_id, login_status, client_ip, account_id, visit_key)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::inet, ?, ?)""";
 
 	static final String INSERT_REJECTED = """
 			INSERT INTO usagelog.rejected_event (received_at, client_ip, reason, raw_values)
@@ -120,7 +121,9 @@ public class UsageLogWriter {
 				ps.setArray(i++, bigints(ps, r.workRegionIds()));
 				ps.setArray(i++, bigints(ps, r.libraryIds()));
 				ps.setString(i++, text(r.loginStatus()));
-				ps.setString(i, text(r.clientIp()));
+				ps.setString(i++, text(r.clientIp()));
+				setLong(ps, i++, r.accountId());
+				ps.setString(i, text(r.visitKey()));
 			});
 			batch(INSERT_MORE, mores, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
@@ -138,7 +141,9 @@ public class UsageLogWriter {
 				ps.setString(i++, text(r.screen()));
 				setLong(ps, i++, r.bookId());
 				ps.setString(i++, text(r.loginStatus()));
-				ps.setString(i, text(r.clientIp()));
+				ps.setString(i++, text(r.clientIp()));
+				setLong(ps, i++, r.accountId());
+				ps.setString(i, text(r.visitKey()));
 			});
 			batch(INSERT_SCREEN, screens, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
@@ -150,7 +155,9 @@ public class UsageLogWriter {
 				ps.setArray(i++, r.workRegionIds() == null ? null : bigints(ps, r.workRegionIds()));
 				setLong(ps, i++, r.libraryId());
 				ps.setString(i++, text(r.loginStatus()));
-				ps.setString(i, text(r.clientIp()));
+				ps.setString(i++, text(r.clientIp()));
+				setLong(ps, i++, r.accountId());
+				ps.setString(i, text(r.visitKey()));
 			});
 			batch(INSERT_REJECTED, rejected, (ps, r) -> {
 				int i = time(ps, 1, r.receivedAt());
