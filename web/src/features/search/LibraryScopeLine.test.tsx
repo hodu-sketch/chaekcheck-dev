@@ -160,7 +160,7 @@ describe('a first visitor (R1-2)', () => {
 describe('the folded line (R3)', () => {
   it('shows only the residence, short; work, 방문 가입 and the count are in the box (user 2026-10-19)', () => {
     expect(scopeLineText({ residence: '서울 강남구', work: null, chosen: 0 })).toBe('서울 강남구 거주')
-    expect(scopeLineText({ residence: '서울 강남구', work: '경기 성남시', chosen: 2 })).toBe('서울 강남구 거주')
+    expect(scopeLineText({ residence: '서울 강남구', work: '경기 성남시', chosen: 2 })).toBe('서울 강남구 거주 · 경기 성남시 재직')
     // without a residence the line names what there is
     expect(scopeLineText({ residence: null, work: '경기 성남시', chosen: 0 })).toBe('경기 성남시 재직')
     expect(scopeLineText({ residence: null, work: null, chosen: 3 })).toBe('직접 추가 3곳')
@@ -171,7 +171,7 @@ describe('the folded line (R3)', () => {
     guestRegions([1114, 1102], [4113])
     renderLine({ visit: 'none' })
     const line = await folded()
-    await waitFor(() => expect(line.textContent).toBe('서울 마포구·중구 거주'))
+    await waitFor(() => expect(line.textContent).toBe('서울 마포구 거주 · 경기 성남시 재직'))
   })
 
   it('work only: "내 도서관: 일하는 곳 …"', async () => {

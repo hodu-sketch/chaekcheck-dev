@@ -61,19 +61,23 @@ export function scopeLineText({
   chosen: number
 }): string | null {
   if (residence === null && work === null && chosen === 0) return null
-  // only the residence, short: "서울 강서구 거주", or "서울 강서구 재직" with only a workplace (user 2026-10-19:
-  // "거주만 간단히 보이고 직장이랑 방문가입은 누르면 나오도록", "서울 강서구 거주 이게 더 자연스럽고 일할 땐 서울 강서구
-  // 재직"; no "내 도서관:" in front); 일하는 곳, 방문 가입 뺌, 직접 추가 and the count are in the box.
-  if (residence !== null) return `${residence ?? '…'} ${SCOPE_TEXT.residenceShort}`
-  if (work !== null) return `${work ?? '…'} ${SCOPE_TEXT.workShort}`
+  // the first residence and the first workplace, one each: "서울 강서구 거주 · 서울 강남구 재직" (user 2026-10-19:
+  // "거주 재직 앞의 것 1개씩만 보이도록, 두번째 거주 두번째 재직 노출 될 필요 없어"; no "내 도서관:" in front);
+  // 방문 가입 뺌, 직접 추가 and the count are in the box
+  const parts = [
+    residence !== null && `${residence ?? '…'} ${SCOPE_TEXT.residenceShort}`,
+    work !== null && `${work ?? '…'} ${SCOPE_TEXT.workShort}`,
+  ].filter((part): part is string => typeof part === 'string')
+  if (parts.length > 0) return parts.join(' · ')
   return `직접 추가 ${chosen}곳`
 }
 
 /** The folded line's text for the current regions and added libraries (null for a first visitor). */
 function useScopeLineText(): string | null {
   const { regions, libraryIds } = useRegions()
-  const residencePlace = useRegionPlace(regions.residence)
-  const workPlace = useRegionPlace(regions.work)
+  // only the first of each field is named on the line
+  const residencePlace = useRegionPlace(regions.residence.slice(0, 1))
+  const workPlace = useRegionPlace(regions.work.slice(0, 1))
   return scopeLineText({
     residence: regions.residence.length === 0 ? null : (residencePlace ?? undefined),
     work: regions.work.length === 0 ? null : (workPlace ?? undefined),

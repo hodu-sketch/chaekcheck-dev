@@ -159,7 +159,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
   it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
     renderSearch()
     const line = await foldedLine()
-    await waitFor(() => expect(line.textContent).toBe('서울 마포구 거주'))
+    await waitFor(() => expect(line.textContent).toBe('서울 마포구 거주 · 서울 중구 재직'))
     expect(fake.libraryLists).toBe(0)
 
     await userEvent.setup().click(line)
