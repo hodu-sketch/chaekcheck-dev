@@ -106,16 +106,17 @@
   max-width: var(--page-width);
   margin: 0 auto;
   padding: 0 var(--gutter) 4rem;
+  /* the body fills the first screen, so the footer sits below the fold and shows after a scroll, like Naver (user
+     2026-10-18 via plan 17: "바닥글을 첫 화면에서 숨기고 아래로 스크롤해야 보이게"; this replaces the 2026-10-05 rule
+     that kept the phone's first screen and the footer on one screen) */
+  min-height: 100dvh;
 }
 
 @media (width <= 640px) {
-  /* phones: the first screen (before a search) fits the screen with no scroll (user request 2026-10-05) */
+  /* phones: a shorter bottom padding on the first screen (before a search); the footer itself now stays below the
+     fold on every width (user 2026-10-18, replacing the 2026-10-05 "no scroll on the first screen" rule) */
   .shell:has([data-fits-screen]) .main {
     padding-bottom: 1.5rem;
-  }
-
-  .shell:has([data-fits-screen]) > footer {
-    margin-top: 0;
   }
 
   .header {

@@ -5456,3 +5456,9 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - main에 합침 `6b40067`(merge; `docs/plan-feedback.md`만 충돌 → 두 절 모두 둠). 워크트리 `c20log`·docker `chaekcheck-c20log` 지움
 - 1판 처리방침 changeset(`sitecontent-002-privacy-policy`)을 고쳤으므로 로컬 `db`·`db-ops`·`db-test`에서 그 판 줄과 `databasechangelog` 줄을 지운 뒤 8080·8081 다시 켬 → `sitecontent-002-privacy-policy` 다시 적용, `usagelog-005-visit-key-account-id` 적용(두 DB 모두 확인)
 - 실제 확인(원래 DB, 임시 서버 8099에 `CHAEKCHECK_USAGELOG_ENABLED=true` — 로컬 기본은 꺼짐이라 8080으로는 기록이 안 남음): `GET /api/v1/books/1449` + `X-Visit-Key: a1b2…8f90` → `book_view.visit_key`에 그 값, 틀린 형식(`short`) → 200 + NULL, `login_status=signed_out`·`account_id` NULL; `search_event`에 두 칸 없음. 웹 5173에서 책 창을 열면 `sessionStorage` `chaekcheck.visitKey`(32자)가 생기고 `/api/v1/books/{id}`에 실림. 확인용 줄 2개는 지움. **로그인한 회원의 `account_id`는 카카오 로그인이 필요해 단위 시험(`UsageLogWriteTests`·`LoginStatusReaderTests`)으로만 봄** — 공개 뒤 운영에서 첫 줄로 확인
+
+# 바닥글 첫 화면 아래로 (2026-10-18, 사용자 요청 → plan 17 전달, 사이클 20 세션)
+
+- 사용자: "바닥글을 첫 화면에서 숨기고 아래로 스크롤해야 보이게(네이버식)", 폰·PC 둘 다, 오늘 배포 반영 희망(plan `docs/backlog.md` d83c496). 목업 뒤 "여전한데?"로 승인
+- 고침: `AppLayout.module.css` `.main`에 `min-height: 100dvh` → 본문이 첫 화면을 채우고 바닥글은 그 아래(머리말 높이만큼 더 내려감). 폰 특례 중 `… > footer { margin-top: 0 }`(2026-10-05 "폰 첫 화면 스크롤 없음")는 지움, `.main` padding-bottom 1.5rem은 둠. 2026-10-05 결정을 바꾸는 것(사용자 승인)
+- 확인: 1280×800 바닥글 top 916(뷰포트 800) · 375×740 top 845(뷰포트 740) → 둘 다 스크롤해야 보임, 가로 스크롤 없음. 컴포넌트 시험 53 통과
