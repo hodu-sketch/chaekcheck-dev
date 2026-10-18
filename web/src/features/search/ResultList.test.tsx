@@ -276,10 +276,10 @@ describe('result groups', () => {
     const user = renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], searchContext)
     const line = screen.getByRole('status')
     expect(line.textContent).toBe(
-      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관 4곳에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 사는 곳 고르기',
+      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관 4곳에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 지역 설정',
     )
-    expect(within(line).getAllByRole('button').map((b) => b.textContent)).toEqual(['사는 곳 고르기'])
-    await user.click(within(line).getByRole('button', { name: '사는 곳 고르기' }))
+    expect(within(line).getAllByRole('button').map((b) => b.textContent)).toEqual(['지역 설정'])
+    await user.click(within(line).getByRole('button', { name: '지역 설정' }))
     expect(searchContext.onPickRegions).toHaveBeenCalledTimes(1)
     // above the first group
     const firstGroup = screen.getAllByRole('heading', { level: 2 })[0]
@@ -295,7 +295,7 @@ describe('result groups', () => {
   it('the green line goes without the number when the plan size is not known (바로 보기)', () => {
     renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false, planCount: null }))
     expect(screen.getByRole('status').textContent).toBe(
-      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 사는 곳 고르기',
+      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 지역 설정',
     )
   })
 

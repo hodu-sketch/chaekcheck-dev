@@ -175,7 +175,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     fake.libraryIds = []
     renderSearch()
 
-    expect(await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: '지역 설정' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /^내 도서관: / })).toBeNull()
   })
 
@@ -201,7 +201,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     renderSearch()
     await act(async () => {})
     expect(fake.books).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: '사는 곳·일하는 곳 고르기' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '지역 설정' })).toBeNull()
 
     fake.holdLibraries!()
     await waitFor(() => expect(fake.books).toHaveLength(1))
@@ -246,7 +246,7 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
-    await screen.findByRole('button', { name: '사는 곳·일하는 곳 고르기' })
+    await screen.findByRole('button', { name: '지역 설정' })
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -318,7 +318,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     renderSearch('/search?title=사랑&view=books')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
-    await userEvent.setup().click(screen.getByRole('button', { name: '사는 곳·일하는 곳 고르기' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: '지역 설정' }))
     const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
     expect(await within(box).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     // no names to read without added libraries (D4)

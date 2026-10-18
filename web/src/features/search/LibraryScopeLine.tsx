@@ -18,7 +18,7 @@ export type BoxFocus = RegionField
 
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
 export const SCOPE_TEXT = {
-  pick: '사는 곳·일하는 곳 고르기',
+  pick: '지역 설정',
   sheetTitle: '찾을 도서관',
   pickNote: '고르면 그 지역 기준으로 찾아요 · 안 고르면 어디 살든 가입되는 도서관에서 찾아요',
   addWork: '일하는 곳도 더하기',
@@ -116,7 +116,7 @@ interface LineProps extends Common {
 
 /**
  * The "찾을 도서관" line under the search box on wider screens (cycle 22 R1, flow S1): a first visitor's
- * [사는 곳·일하는 곳 고르기] with its small text, else the folded line "내 도서관: … ▾". Either opens the box (S1-box) that
+ * [지역 설정] with its small text, else the folded line "내 도서관: … ▾". Either opens the box (S1-box) that
  * floats under it without pushing the list, closed by a click outside or Esc. A failed account read says so with
  * [다시 시도] (D7). No 전국 marker beside it (user 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows
  * itself by the 「그 밖의 도서관」 group, and the next new search is 내 도서관 again (D10).
@@ -193,7 +193,7 @@ interface ChipProps extends Common {
 }
 
 /**
- * Phones (R2-1): one chip under the search box, always there: "서울 강서구 거주 ▾", or "사는 곳·일하는 곳 고르기 ▾" for a
+ * Phones (R2-1): one chip under the search box, always there: "서울 강서구 거주 ▾", or "지역 설정 ▾" for a
  * first visitor. A tap opens its own "찾을 도서관" sheet (user 2026-10-19; it opened the settings sheet before). The
  * account failure as on wider screens.
  */

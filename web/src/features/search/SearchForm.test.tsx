@@ -167,7 +167,7 @@ describe('the phone chip', () => {
   })
 
   it('the ⚙ sheet on phones has no "찾을 도서관" (the chip has its own sheet, user 2026-10-19)', async () => {
-    const { user } = setup({ settingsSheet: true, chip: <button type="button">사는 곳·일하는 곳 고르기</button> })
+    const { user } = setup({ settingsSheet: true, chip: <button type="button">지역 설정</button> })
     await user.click(screen.getByRole('button', { name: '검색 설정' }))
     const sheet = screen.getByRole('dialog', { name: '검색 설정' })
     expect(screen.getByTestId('sheet-handle')).toBeTruthy()

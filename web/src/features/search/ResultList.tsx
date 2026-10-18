@@ -59,7 +59,7 @@ export interface ResultSearchContext {
   onVisitNone: () => void
   /** [다시 넣기]: back to `visit` any. */
   onVisitBack: () => void
-  /** [사는 곳 고르기] of the green line: opens the region choice (saved only, R7-2). */
+  /** [지역 설정] of the green line: opens the region choice (saved only, R7-2). */
   onPickRegions: () => void
 }
 
@@ -96,7 +96,7 @@ export const GROUP_TEXT = {
   searchAllMore: '전국에서 더 찾기',
   green: (libraries: number | null) =>
     `사는 곳을 고르지 않아 어디 살든 가입되는 도서관${libraries === null ? '' : ` ${libraries}곳`}에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요`,
-  pickRegions: '사는 곳 고르기',
+  pickRegions: '지역 설정',
 } as const
 
 interface Props {
