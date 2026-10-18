@@ -49,7 +49,12 @@ describe('sendUsageEvent', () => {
     expect(post.keepalive).toBe(true)
     expect(post.credentials).toBe('same-origin')
     expect(post.headers['X-XSRF-TOKEN']).toBeUndefined()
-    expect(JSON.parse(post.body as string)).toEqual({ type: 'picks_list_view', list: 'librarian', category: '11' })
+    // ADR-0134: the tab's visit key rides in the body; nothing else is added
+    const body = JSON.parse(post.body as string) as Record<string, unknown>
+    expect(body.visitKey).toMatch(/^[0-9a-f]{32}$/)
+    expect(body.visitKey).toBe(sessionStorage.getItem('chaekcheck.visitKey'))
+    delete body.visitKey
+    expect(body).toEqual({ type: 'picks_list_view', list: 'librarian', category: '11' })
   })
 
   it('login on: the token from the cookie goes in the header', async () => {

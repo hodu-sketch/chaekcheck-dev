@@ -77,12 +77,13 @@ class UsageLogWriteTests {
 	@Test
 	void oneFlushWritesEveryTable() {
 		buffer.offer(new UsageRow.Search(AT, "catalog", CATALOG, 3, "signed_in", "203.0.113.7"));
-		buffer.offer(new UsageRow.BookView(AT, 345, List.of(1114L), List.of(), List.of(), "signed_out", null));
+		buffer.offer(new UsageRow.BookView(AT, 345, List.of(1114L), List.of(), List.of(), "signed_out", null, null,
+				"a1b2c3d4e5f60718a1b2c3d4e5f60718"));
 		buffer.offer(new UsageRow.More(AT, "catalog_next_page", 2, null, CATALOG, "login_off", "2001:db8::1"));
 		buffer.offer(new UsageRow.LibraryClick(AT, enabledLibrary, "result_card", "book_page", 345L, "signed_in",
-				"203.0.113.7", "{}"));
+				"203.0.113.7", 7L, "a1b2c3d4e5f60718a1b2c3d4e5f60718", "{}"));
 		buffer.offer(new UsageRow.ScreenEvent(AT, "region_change", null, null, null, List.of(1114L), List.of(1102L), null,
-				"signed_in", "203.0.113.7", "{}"));
+				"signed_in", "203.0.113.7", 7L, null, "{}"));
 		buffer.offer(new UsageRow.Rejected(AT, "203.0.113.7", "malformed", null));
 		buffer.addResponse(LocalDate.of(2026, 10, 14), enabledLibrary, ResponseSource.DIRECT_SEARCH,
 				ResponseResult.OK, 250);
@@ -109,6 +110,16 @@ class UsageLogWriteTests {
 			.isEqualTo(AT);
 		assertThat(jdbc.sql("SELECT host(client_ip) FROM usagelog.search_more").query(String.class).single())
 			.isEqualTo("2001:db8::1");
+		// ADR-0134: the member number and the visit key reach the three tables, NULL where absent
+		assertThat(jdbc.sql("SELECT account_id, visit_key FROM usagelog.book_view").query().singleRow())
+			.containsEntry("account_id", null)
+			.containsEntry("visit_key", "a1b2c3d4e5f60718a1b2c3d4e5f60718");
+		assertThat(jdbc.sql("SELECT account_id, visit_key FROM usagelog.library_click").query().singleRow())
+			.containsEntry("account_id", 7L)
+			.containsEntry("visit_key", "a1b2c3d4e5f60718a1b2c3d4e5f60718");
+		assertThat(jdbc.sql("SELECT account_id, visit_key FROM usagelog.screen_event").query().singleRow())
+			.containsEntry("account_id", 7L)
+			.containsEntry("visit_key", null);
 		assertThat(UsageLogTestTables.count(jdbc, "dropped_batch")).isZero();
 	}
 
@@ -161,7 +172,7 @@ class UsageLogWriteTests {
 		UsageLogFlusher flush = new UsageLogFlusher(buffer, failingOnce, libraryCatalog, Clock.systemUTC(),
 				Duration.ofHours(1), 100, false);
 		buffer.offer(new UsageRow.Search(AT, "catalog", CATALOG, 3, "signed_in", null));
-		buffer.offer(new UsageRow.BookView(AT, 345, List.of(), List.of(), List.of(), "signed_out", null));
+		buffer.offer(new UsageRow.BookView(AT, 345, List.of(), List.of(), List.of(), "signed_out", null, null, null));
 		buffer.addResponse(LocalDate.of(2026, 10, 14), enabledLibrary, ResponseSource.DIRECT_SEARCH,
 				ResponseResult.OK, 250);
 
@@ -204,13 +215,13 @@ class UsageLogWriteTests {
 			.query(Long.class)
 			.single();
 		buffer.offer(new UsageRow.LibraryClick(AT, enabledLibrary, "logo", "picks", null, "login_off", "203.0.113.7",
-				"{}"));
+				null, null, "{}"));
 		buffer.offer(new UsageRow.LibraryClick(AT, disabled, "logo", "picks", null, "login_off", "203.0.113.7",
-				"{\"libraryId\":" + disabled + "}"));
+				null, null, "{\"libraryId\":" + disabled + "}"));
 		buffer.offer(new UsageRow.LibraryClick(AT, 999_999_999L, "logo", "picks", null, "login_off", "203.0.113.7",
-				"{\"libraryId\":999999999}"));
+				null, null, "{\"libraryId\":999999999}"));
 		buffer.offer(new UsageRow.ScreenEvent(AT, "my_library_add", null, null, null, null, null, 999_999_999L,
-				"login_off", "203.0.113.7", "{\"libraryId\":999999999}"));
+				"login_off", "203.0.113.7", null, null, "{\"libraryId\":999999999}"));
 
 		flusher.flush();
 
@@ -225,7 +236,7 @@ class UsageLogWriteTests {
 
 	@Test
 	void usageLogApiQueuesForTheFlush() {
-		UsageRequest request = new UsageRequest(AT, "203.0.113.7", "signed_out", true);
+		UsageRequest request = new UsageRequest(AT, "203.0.113.7", "signed_out", null, null, true);
 		UsageLog usageLog = usageLogBean;
 		usageLog.recordSearch(request, SearchKind.CATALOG, CATALOG, 0);
 		usageLog.recordMore(request, MoreKind.LIBRARY_MORE, 2, enabledLibrary,

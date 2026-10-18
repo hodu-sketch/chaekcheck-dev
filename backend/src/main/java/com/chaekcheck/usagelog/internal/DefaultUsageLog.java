@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.chaekcheck.auth.LoginState;
 import com.chaekcheck.auth.LoginStatusReader;
 import com.chaekcheck.usagelog.SearchConditions;
 import com.chaekcheck.usagelog.UsageLog;
@@ -20,7 +21,8 @@ import com.chaekcheck.usagelog.internal.buffer.UsageRow;
 
 /**
  * Checks and queues; never waits and never throws (plan C2). Off: every call returns at once and the login status is
- * not even read (C4). Robots are not recorded (C7); library answers are counted whoever asked.
+ * not even read (C4). Robots are not recorded (C7); library answers are counted whoever asked. Since ADR-0134 the
+ * capture also takes the account number (login on, signed in) and the tab's {@code X-Visit-Key}.
  */
 public class DefaultUsageLog implements UsageLog {
 
@@ -58,8 +60,9 @@ public class DefaultUsageLog implements UsageLog {
 			if (RequestFacts.isRobot(request)) {
 				return UsageRequest.NOT_RECORDED;
 			}
-			return new UsageRequest(clock.instant(), RequestFacts.clientIp(request),
-					loginStatus.read(request).value(), true);
+			LoginState login = loginStatus.read(request);
+			return new UsageRequest(clock.instant(), RequestFacts.clientIp(request), login.status().value(),
+					login.accountId(), RequestFacts.visitKey(request), true);
 		}
 		catch (RuntimeException ex) {
 			log.warn("Usage log could not read the request: {}", ex.toString());
@@ -84,7 +87,8 @@ public class DefaultUsageLog implements UsageLog {
 		}
 		try {
 			offer(new UsageRow.BookView(request.receivedAt(), bookId, List.copyOf(residenceRegionIds),
-					List.copyOf(workRegionIds), List.copyOf(libraryIds), request.loginStatus(), request.clientIp()));
+					List.copyOf(workRegionIds), List.copyOf(libraryIds), request.loginStatus(), request.clientIp(),
+					request.accountId(), request.visitKey()));
 		}
 		catch (RuntimeException ex) {
 			log.warn("Usage log skipped a book view: {}", ex.toString());

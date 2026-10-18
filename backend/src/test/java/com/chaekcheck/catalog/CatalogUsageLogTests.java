@@ -156,15 +156,30 @@ class CatalogUsageLogTests {
 	}
 
 	@Test
-	void bookPageIsOneView() { // AC-17 part
-		assertThat(mvc.get().uri("/api/v1/books/" + book + "?residenceRegionIds=" + MAPO)).hasStatusOk();
+	void bookPageIsOneView() { // AC-17 part; ADR-0134: the tab's X-Visit-Key is kept, login off leaves no member
+		assertThat(mvc.get()
+			.uri("/api/v1/books/" + book + "?residenceRegionIds=" + MAPO)
+			.header("X-Visit-Key", "a1b2c3d4e5f60718a1b2c3d4e5f60718")).hasStatusOk();
 		flusher.flush();
 
 		assertThat(jdbc.sql("""
-				SELECT book_id, array_to_string(residence_region_ids, ',') AS residence, login_status
+				SELECT book_id, array_to_string(residence_region_ids, ',') AS residence, login_status, visit_key,
+				  account_id
 				FROM usagelog.book_view""").query().singleRow()).containsEntry("book_id", book)
 			.containsEntry("residence", String.valueOf(MAPO))
-			.containsEntry("login_status", "login_off");
+			.containsEntry("login_status", "login_off")
+			.containsEntry("visit_key", "a1b2c3d4e5f60718a1b2c3d4e5f60718")
+			.containsEntry("account_id", null);
+	}
+
+	@Test
+	void bookPageWithoutOrWithABadVisitKeyIsStillOneViewWithoutIt() { // ADR-0134 (absent, wrong shape)
+		assertThat(mvc.get().uri("/api/v1/books/" + book)).hasStatusOk();
+		assertThat(mvc.get().uri("/api/v1/books/" + book).header("X-Visit-Key", "not-a-key")).hasStatusOk();
+		flusher.flush();
+
+		assertThat(jdbc.sql("SELECT visit_key FROM usagelog.book_view ORDER BY id").query(String.class).list())
+			.containsExactly(null, null);
 	}
 
 }

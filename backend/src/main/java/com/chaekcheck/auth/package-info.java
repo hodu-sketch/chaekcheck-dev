@@ -12,7 +12,8 @@
  * {@code AccountDeleted}, {@code AccountPresence} (the account row lock, ADR-0051) and
  * {@code ConditionalOnAuthEnabled}.
  * <p>
- * Since cycle 15 {@code usagelog} also depends on it, only through {@code LoginStatusReader} and {@code LoginStatus}:
+ * Since cycle 15 {@code usagelog} also depends on it, only through {@code LoginStatusReader}, {@code LoginState} and
+ * {@code LoginStatus} (and since ADR-0134 {@code AccountDeleted} and {@code ConditionalOnAuthEnabled} too):
  * whether a request comes from a signed-in browser, for the usage log only (ADR-0102). The {@code access_token} cookie
  * path is {@code /api/v1} so that the cookie reaches the search APIs; it is still read as a login only on
  * {@code /api/v1/me/**}.

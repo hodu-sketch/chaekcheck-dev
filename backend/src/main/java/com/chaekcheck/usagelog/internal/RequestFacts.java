@@ -11,7 +11,8 @@ import org.springframework.http.HttpHeaders;
 
 /**
  * What the log reads from a request: the client IP that nginx put in {@code X-Real-IP} (ADR-0097) and whether the
- * User-Agent names a robot (spec R1-5). The User-Agent itself is never kept (AC-12).
+ * User-Agent names a robot (spec R1-5). The User-Agent itself is never kept (AC-12). Since ADR-0134 also the tab's
+ * {@code X-Visit-Key}.
  */
 public final class RequestFacts {
 
@@ -31,6 +32,11 @@ public final class RequestFacts {
 	public static boolean isRobot(HttpServletRequest request) {
 		String agent = request.getHeader(HttpHeaders.USER_AGENT);
 		return agent != null && ROBOT.matcher(agent.toLowerCase(Locale.ROOT)).find();
+	}
+
+	/** The {@code X-Visit-Key} value when it has the right shape (ADR-0134), otherwise null. */
+	public static String visitKey(HttpServletRequest request) {
+		return VisitKeys.normalize(request.getHeader(VisitKeys.HEADER));
 	}
 
 	/** The {@code X-Real-IP} value when it is an IPv4 or IPv6 address, otherwise null. Never looks up a name. */

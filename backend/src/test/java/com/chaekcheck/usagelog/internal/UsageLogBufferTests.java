@@ -12,7 +12,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import com.chaekcheck.auth.LoginStatus;
+import com.chaekcheck.auth.LoginState;
 import com.chaekcheck.usagelog.SearchConditions;
 import com.chaekcheck.usagelog.UsageLog.ResponseResult;
 import com.chaekcheck.usagelog.UsageLog.ResponseSource;
@@ -21,7 +21,10 @@ import com.chaekcheck.usagelog.UsageRequest;
 import com.chaekcheck.usagelog.internal.buffer.UsageBuffer;
 import com.chaekcheck.usagelog.internal.buffer.UsageRow;
 
-/** The in-memory side (cycle 15 step 3): queue limit, library answer counts, robots, off, IP reading. */
+/**
+ * The in-memory side (cycle 15 step 3): queue limit, library answer counts, robots, off, IP reading; ADR-0134: the
+ * member number and the visit key of a captured request (present, absent, wrong shape).
+ */
 class UsageLogBufferTests {
 
 	private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -76,7 +79,7 @@ class UsageLogBufferTests {
 	@Test
 	void robotsAreNotRecorded() { // AC-6 (unit)
 		UsageBuffer buffer = new UsageBuffer(10);
-		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginStatus.SIGNED_OUT, clock, SEOUL);
+		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginState.SIGNED_OUT, clock, SEOUL);
 
 		for (String agent : List.of("Mozilla/5.0 (compatible; Googlebot/2.1)", "SomeCrawler/1.0",
 				"Baiduspider", "BOT")) {
@@ -93,7 +96,7 @@ class UsageLogBufferTests {
 	@Test
 	void browsersAreRecordedWithTimeIpAndLoginStatus() {
 		UsageBuffer buffer = new UsageBuffer(10);
-		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginStatus.SIGNED_IN, clock, SEOUL);
+		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginState.signedIn(7L), clock, SEOUL);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14; SM-S921N) SamsungBrowser/26.0");
 		request.addHeader("X-Real-IP", "203.0.113.7");
@@ -102,6 +105,76 @@ class UsageLogBufferTests {
 
 		assertThat(buffer.drain().rows()).singleElement()
 			.isEqualTo(new UsageRow.Search(clock.instant(), "direct", CONDITIONS, null, "signed_in", "203.0.113.7"));
+	}
+
+	@Test
+	void bookViewKeepsTheMemberNumberAndTheVisitKey() { // ADR-0134 (present)
+		UsageBuffer buffer = new UsageBuffer(10);
+		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginState.signedIn(4242L), clock, SEOUL);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addHeader("X-Real-IP", "203.0.113.7");
+		request.addHeader("X-Visit-Key", "a1b2c3d4e5f60718a1b2c3d4e5f60718");
+
+		UsageRequest captured = usageLog.capture(request);
+		usageLog.recordBookView(captured, 345, List.of(1114L), List.of(), List.of());
+		usageLog.recordSearch(captured, SearchKind.DIRECT, CONDITIONS, 1);
+
+		assertThat(captured.accountId()).isEqualTo(4242L);
+		assertThat(captured.visitKey()).isEqualTo("a1b2c3d4e5f60718a1b2c3d4e5f60718");
+		assertThat(buffer.drain().rows()).containsExactly(
+				new UsageRow.BookView(clock.instant(), 345, List.of(1114L), List.of(), List.of(), "signed_in", "203.0.113.7",
+						4242L, "a1b2c3d4e5f60718a1b2c3d4e5f60718"),
+				// the search row has no place for either
+				new UsageRow.Search(clock.instant(), "direct", CONDITIONS, 1, "signed_in", "203.0.113.7"));
+	}
+
+	@Test
+	void signedOutWithoutAHeaderLeavesBothEmpty() { // ADR-0134 (absent)
+		UsageBuffer buffer = new UsageBuffer(10);
+		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginState.SIGNED_OUT, clock, SEOUL);
+
+		UsageRequest captured = usageLog.capture(new MockHttpServletRequest());
+		usageLog.recordBookView(captured, 345, List.of(), List.of(), List.of());
+
+		assertThat(captured.recorded()).isTrue();
+		assertThat(captured.accountId()).isNull();
+		assertThat(captured.visitKey()).isNull();
+		assertThat(buffer.drain().rows()).singleElement()
+			.isEqualTo(new UsageRow.BookView(clock.instant(), 345, List.of(), List.of(), List.of(), "signed_out", null, null,
+					null));
+	}
+
+	@Test
+	void visitKeyOfTheWrongShapeBecomesNullAndIsNeverRefused() { // ADR-0134 (malformed)
+		assertThat(visitKey("a1b2c3d4e5f60718a1b2c3d4e5f60718")).isEqualTo("a1b2c3d4e5f60718a1b2c3d4e5f60718");
+		assertThat(visitKey("ABCDEFGHIJKLMNOP")).isEqualTo("ABCDEFGHIJKLMNOP");
+		assertThat(visitKey("x".repeat(64))).isEqualTo("x".repeat(64));
+		assertThat(visitKey(null)).isNull();
+		assertThat(visitKey("")).isNull();
+		assertThat(visitKey("tooshort")).isNull();
+		assertThat(visitKey("x".repeat(65))).isNull();
+		assertThat(visitKey("a1b2c3d4-e5f6-0718-a1b2-c3d4e5f60718")).isNull();
+		assertThat(visitKey(" a1b2c3d4e5f60718a1b2c3d4e5f60718")).isNull();
+		assertThat(visitKey("a1b2c3d4e5f60718a1b2c3d4e5f6071é")).isNull();
+		assertThat(visitKey("a1b2c3d4e5f60718a1b2c3d4e5f6071\0")).isNull();
+
+		UsageBuffer buffer = new UsageBuffer(10);
+		DefaultUsageLog usageLog = new DefaultUsageLog(true, buffer, request -> LoginState.signedIn(7L), clock, SEOUL);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addHeader("X-Visit-Key", "not a key");
+		UsageRequest captured = usageLog.capture(request);
+
+		assertThat(captured.recorded()).isTrue();
+		assertThat(captured.visitKey()).isNull();
+		assertThat(captured.accountId()).isEqualTo(7L);
+	}
+
+	private static String visitKey(String header) {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		if (header != null) {
+			request.addHeader("X-Visit-Key", header);
+		}
+		return RequestFacts.visitKey(request);
 	}
 
 	@Test
@@ -125,7 +198,7 @@ class UsageLogBufferTests {
 		UsageBuffer buffer = new UsageBuffer(10);
 		// 2026-10-14 15:00:00 UTC is already the 15th in Seoul
 		Clock late = Clock.fixed(Instant.parse("2026-10-14T15:00:00Z"), ZoneOffset.UTC);
-		new DefaultUsageLog(true, buffer, request -> LoginStatus.LOGIN_OFF, late, SEOUL).recordLibraryResponse(3,
+		new DefaultUsageLog(true, buffer, request -> LoginState.LOGIN_OFF, late, SEOUL).recordLibraryResponse(3,
 				ResponseSource.HOLDING_FILL, ResponseResult.OK, 5);
 
 		assertThat(buffer.drain().responses()).containsOnlyKeys(

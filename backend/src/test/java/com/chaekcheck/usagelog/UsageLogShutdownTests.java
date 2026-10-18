@@ -33,7 +33,7 @@ class UsageLogShutdownTests {
 				"--server.port=0", "--chaekcheck.usagelog.enabled=true", "--chaekcheck.usagelog.flush-interval=1h");
 		try {
 			app.getBean(UsageLog.class)
-				.recordBookView(new UsageRequest(Instant.now(), null, "login_off", true), 4242, List.of(), List.of(),
+				.recordBookView(new UsageRequest(Instant.now(), null, "login_off", null, null, true), 4242, List.of(), List.of(),
 						List.of());
 			assertThat(count()).isZero();
 		}

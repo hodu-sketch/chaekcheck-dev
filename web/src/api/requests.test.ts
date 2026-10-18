@@ -93,6 +93,25 @@ describe('libraryIds (cycle 06): sent only when not empty', () => {
   })
 })
 
+describe('the book page GET carries the tab visit key (ADR-0134)', () => {
+  it('sends X-Visit-Key with the stored key, and only there', async () => {
+    sessionStorage.setItem('chaekcheck.visitKey', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345')
+    try {
+      const fetchMock = mockFetch()
+      const plan = { scope: 'joinable' as const, visit: 'any' as const, residenceRegionIds: [], workRegionIds: [], libraryIds: [] }
+      await fetchBook('3', plan).catch(() => {})
+      await fetchLibraries([], []).catch(() => {})
+
+      const [bookInit, librariesInit] = fetchMock.mock.calls.map(([, init]) => init as RequestInit)
+      expect((bookInit.headers as Record<string, string>)['X-Visit-Key']).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ012345')
+      expect((bookInit.headers as Record<string, string>).Accept).toContain('application/json')
+      expect((librariesInit.headers as Record<string, string>)['X-Visit-Key']).toBeUndefined()
+    } finally {
+      sessionStorage.clear()
+    }
+  })
+})
+
 describe('GET /api/v1/libraries', () => {
   it('sends only the filled region fields and returns the rows', async () => {
     const fetchMock = vi.fn(

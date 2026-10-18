@@ -5396,3 +5396,51 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 첫 공지 「책첵을 시작했어요」(`drafts/notice-first.md`)는 seed가 아니라 공개일에 운영 SQL로 올림(`docs/maintenance/5-sitecontent.md` 1절). seed의 `notice`는 0줄 유지
 - 확인: `./gradlew build`, 웹 `/terms`·`/privacy`·`/about`·가입 화면 동의문 눈으로 확인, 처리방침 표가 목록으로 보이는지(remark-gfm 없음)
 - 흔들리던 시험 `CaffeineSearchPageCacheTests.loadsAgainAfterThreeMinutes`(사이클 21·20 빌드에서 각 1번 실패, 혼자 돌리면 통과) 고침(2026-10-18, 사용자 "3번도 해"): 비동기 executor로는 Caffeine이 로드 future가 끝날 때 쓰기 시각을 찍는데, 그 시점이 시험이 가짜 시계를 돌린 뒤로 밀리면 항목이 새것으로 보여 실패함. 시간 시험 둘(`sameKeyWithinThreeMinutesLoadsOnce`·`loadsAgainAfterThreeMinutes`)만 호출 스레드에서 로드하는 캐시(`Runnable::run`)를 쓰게 함. 서비스 코드 변경 없음. 3번 연속 통과
+
+# 기록 변경 (ADR-0134, 사이클 20 1단계와 함께)
+
+인계서: plan `docs/current/handoff.md` **「함께 할 작은 일: AI 추천용 기록 변경 — 회원 번호·방문 번호 칸」**(2026-10-18), 근거 [ADR-0134](../../chaekcheck-plan/docs/adr/0134-usage-log-member-id-and-visit-key.md)(ADR-0096의 "회원 번호 안 남김·기록끼리 잇는 칸 없음"을 바꿈), 처리방침 문구 plan `drafts/privacy-policy.md` 7차. 추천 기능은 만들지 않고 기록만 바꿨습니다. 별도 worktree `../chaekcheck-dev-c20log`(branch `adr-0134-usage-log-columns`, docker `chaekcheck-c20log` 5522/5523)에서 만들었고 main 합치기는 조정자가 합니다.
+
+## 바꾼 것 (인계서 #6 표 → 실제)
+
+| 어디 | 무엇 |
+|---|---|
+| Liquibase `usagelog/005-visit-key-account-id.yaml` (새 파일, master 맨 끝 `usagelog/004` 다음, 주석 `# ADR-0134: visit key and account id`) | changeset **`usagelog-005-visit-key-account-id`** 하나(author `chaekcheck`): `book_view`·`library_click`·`screen_event`에 `visit_key text NULL`(CHECK `<표>_visit_key_check`: `length BETWEEN 16 AND 64 AND visit_key ~ '^[A-Za-z0-9]+$'`)과 `account_id bigint NULL`(CHECK `<표>_account_id_check`: `> 0`, FK 없음). `search_event`·`search_more`에는 없음, 색인 없음, 기존 changeset 안 고침 |
+| `auth/LoginState.java` (새 public record), `auth/LoginStatusReader.java`, `auth/internal/LoginOffStatusReader.java`, `auth/internal/security/SignatureLoginStatusReader.java`, `auth/package-info.java` | `LoginStatusReader.read` → **`LoginState(LoginStatus status, Long accountId)`** (아래 「`LoginStatus` 새 모양」) |
+| `usagelog/UsageRequest.java` | `UsageRequest(receivedAt, clientIp, loginStatus, **accountId**, **visitKey**, recorded)` |
+| `usagelog/internal/DefaultUsageLog.java`(`capture`), `internal/RequestFacts.java`(`visitKey(request)`), 새 `internal/VisitKeys.java`(형식 검사, 헤더·본문 칸 이름) | `capture`가 `LoginState`에서 회원 번호, 헤더 `X-Visit-Key`에서 방문 번호를 읽음. 형식이 틀리면 NULL, 거절 없음 |
+| `usagelog/internal/web/UsageEventReader.java` | 본문 `visitKey`(문자열·형식 맞을 때만, 틀리면 NULL). 본문에 없으면 `capture`가 읽은 헤더 값을 씀(웹은 본문만 보냄; 해가 없는 덤). `UsageEventController`는 고칠 것이 없었음(`capture` → `reader.read(body, …, usage)` 그대로) |
+| `usagelog/internal/buffer/UsageRow.java`, `internal/write/UsageLogWriter.java` | `BookView`·`LibraryClick`·`ScreenEvent` record에 `accountId`·`visitKey`, 세 INSERT에 `account_id, visit_key` |
+| 새 `usagelog/internal/UsageLogAccountDeletedCleanup.java` | `@ApplicationModuleListener`로 `AccountDeleted` → 세 표 `UPDATE … SET account_id = NULL WHERE account_id = ?`(줄은 남김, 멱등, `@ConditionalOnAuthEnabled`, 기록이 꺼져 있어도 돎). 인계서 이름 `AccountDeletedCleanup`은 `mylibrary`의 같은 이름 bean과 **bean 이름이 충돌**해(`ConflictingBeanDefinitionException`, Spring bean 이름은 앱 전체) `UsageLog` 접두를 붙임 |
+| `usagelog/package-info.java` | 모듈 설명(회원 번호·방문 번호, `AccountDeleted` 의존) |
+| web 새 `src/api/visitKey.ts`, `src/api/client.ts`(`fetchBook`), `src/api/usageEvents.ts` | 탭마다 처음 쓸 때 `crypto.randomUUID()`에서 하이픈을 뺀 32자를 `sessionStorage['chaekcheck.visitKey']`에 둠(쿠키 아님). 책 상세 GET `/api/v1/books/{id}`에 헤더 `X-Visit-Key`(`getJson`에 headers 인자 추가, 다른 GET에는 안 붙음), `POST /api/v1/usage-events` 본문에 `visitKey`. `sessionStorage`가 막히면 페이지 메모리 값으로 버티고, `randomUUID`가 없으면 아예 안 보냄 |
+| 처리방침 데이터 `sitecontent/002-sitecontent-seed.yaml` (`PRIVACY_POLICY` 1판) | 아래 「처리방침 판 처리」 |
+| `docs/maintenance/5-usage-log.md` | 2절 표·「공통 칸」에 두 칸, 탈퇴 비우기 |
+
+## `LoginStatus` 새 모양
+
+- enum `LoginStatus`(`SIGNED_IN`/`SIGNED_OUT`/`LOGIN_OFF`, `value()`가 저장 문자열)는 그대로 두고, 읽기 결과를 새 public record **`com.chaekcheck.auth.LoginState(LoginStatus status, Long accountId)`**로 바꿈 [안: dev]. 상수 `LoginState.SIGNED_OUT`·`LoginState.LOGIN_OFF`(둘 다 `accountId` null), `LoginState.signedIn(Long accountId)`. `accountId`는 `SIGNED_IN`일 때만 허용(compact constructor가 검사).
+- `SignatureLoginStatusReader`: ADR-0102 그대로 서명만 확인(만료돼도 `SIGNED_IN`)하고, 토큰 subject(`TokenService`가 넣는 회원 번호 문자열)가 1~18자리 양의 정수면 `accountId`, 아니면 `signedIn(null)`. 계정을 DB에서 찾지 않음 → 토큰 발급 뒤 탈퇴한 회원 번호가 올 수 있고, 그 줄은 `AccountDeleted` listener가 비움(탈퇴 이벤트가 먼저 처리된 뒤 만료 토큰으로 다시 오면 남을 수 있음 — [안: 감수], 3단계 "끄기" 설정과 함께 볼 것).
+- `LoginOffStatusReader`: `LoginState.LOGIN_OFF`.
+- `usagelog`가 `auth`에서 쓰는 공개 타입: `LoginStatusReader`·`LoginState`·`LoginStatus`·`AccountDeleted`·`AccountId`(이벤트 안)·`ConditionalOnAuthEnabled`. `ModularityTests` 통과.
+
+## 처리방침 판 처리
+
+- `PRE_DEPLOYMENT` 표식이 있고 배포 전이라 인계서 #5 "공개일 전이면 첫 판에"대로 **1판(`sitecontent-002-privacy-policy`, 2026-10-04)의 본문을 고쳤고 새 판·공지는 만들지 않았음**.
+- 지금 seed 1판은 검토 전 자리 글(spec R8-4 "이 문서는 검토 전 자리 글입니다"로 시작, 절 이름이 초안 7차와 다름: `## 처리하는 개인정보와 목적`·`## 보유·이용 기간`)이라 초안의 세 줄이 1:1로 맞는 자리가 없음 → 가장 가까운 자리에 초안 7차 문장을 **그대로** 넣음: `## 처리하는 개인정보와 목적` 끝에 목록 세 줄("**자동으로 수집되는 정보**: IP 주소, 브라우저 종류, 접속 기록, 서비스 이용 기록(로그인한 경우 회원 번호 포함), 부정 이용 기록" / "목적: 이용 통계, 운영과 보안, 책 추천" / "보유 기간: 1년 (IP 주소·부정 이용 기록 30일, 접속 기록 14일). 회원 번호는 탈퇴하면 바로 지움"), `## 보유·이용 기간` 문장 끝에 "자동으로 수집되는 정보는 위와 같고, 회원 번호는 탈퇴하면 바로 지웁니다." `SitecontentSchemaTests`가 세 문구를 확인.
+- **검토한 초안 전체로 seed를 바꾸는 일(인계서 "공개 전에 할 것")은 별도로 남아 있음** — 여기서 하지 않았음. 그때 이 세 줄은 초안 7차 1절에 이미 들어 있으니 따로 옮길 것 없음.
+- **합칠 때 주의**: 이미 적용된 changeset을 고친 것이라 main 폴더의 `db`(8080)·`db-ops`(8081)·`db-test`는 켤 때 `sitecontent-002-privacy-policy` **checksum 오류**로 멈춤. PRE_DEPLOYMENT 규칙대로 되돌리려면 그 DB마다 `DELETE FROM sitecontent.document_version WHERE document_key = 'PRIVACY_POLICY' AND version_no = 1; DELETE FROM public.databasechangelog WHERE id = 'sitecontent-002-privacy-policy';` 뒤 다시 켜면 그 changeset만 다시 들어감(다른 표는 건드리지 않음; `document_version`에 FK가 없음). 이 worktree의 5522/5523은 새 DB라 그냥 적용됐음.
+
+## 시험
+
+- 새로 더한 것: `LoginStatusReaderTests`(정상 `4242` · 만료 `7` · subject가 번호가 아니면 `signedIn(null)`), 새 `LoginOffStatusReaderTests`(꺼짐), `AuthDisabledTests`(`LoginState.LOGIN_OFF`), `UsageLogBufferTests`(있음·없음·형식 틀림 — `RequestFacts.visitKey` 11가지 값, 회원 번호 4242가 `BookView`에만 가고 `Search`에는 자리가 없음), `UsageEventApiTests.visitKeyIsKeptWhenWellFormedAndNullOtherwise`(본문 `visitKey` 있음·없음·`short`·숫자·하이픈 UUID → 줄은 모두 들어가고 `rejected_event` 0), `CatalogUsageLogTests`(책 GET에 `X-Visit-Key` → `book_view.visit_key`, 로그인 꺼짐이라 `account_id` NULL; 헤더 없음·`not-a-key`도 200과 줄 하나), `UsageLogWriteTests`(세 표에 두 칸이 써짐), `UsageLogSchemaTests`(세 표에만 두 칸·`YES` NULL 허용·색인 없음, CHECK 경계 16/64/영숫자/`> 0`, 검색 표·그 밖 표에 `account`/`member`/`visit_key` 칸 없음 — AC-12 시험은 "회원 번호 칸 없음"에서 "검색 표에 없음·User-Agent·쿠키 칸 없음"으로 바꿈), 새 `UsageLogAccountDeletedTests`(로그인 켜짐, db-test: 두 회원 줄을 넣고 `AccountDeleted` 발행 → 그 회원 `account_id`만 NULL, 줄 수 그대로, `visit_key` 남음, 다른 회원 그대로, 같은 이벤트 두 번째도 오류 없이 완료).
+- `backend` `./gradlew build`(TEST_PG_COMMAND로 `chaekcheck-c20log` db-test): 142개 클래스 **1,111개, 실패 0**(skipped 4는 기존). 첫 전체 빌드에서 둘이 깨져 고침: ① `mylibrary` `AccountDeletedRepublishTests`의 listener 찾기 `LIKE '%AccountDeletedCleanup%'`가 새 usagelog listener까지 두 줄 잡음 → `mylibrary.internal.AccountDeletedCleanup`으로 좁힘, ② 새 `UsageLogAccountDeletedTests`가 로그인 켜짐 context를 하나 더 만들어 db-test 100 연결을 넘김(`UsageLogShutdownTests`가 "too many clients") → `UsageEventCsrfTests`와 같이 `@DirtiesContext`로 클래스 뒤 닫음. 로그 `C:SERSYUJUNDOCUMENTSCLAUDEPROJECTSR0LOG-BUILD-2.LOG`
+- web: `npx vitest run` 62파일 **507개 통과**(새 `visitKey.test.ts` 4개, `requests.test.ts`에 헤더 1개, `usageEvents.test.ts` 본문 확인 고침), `npm run build` 통과, `oxlint` 경고는 기존 파일 것뿐.
+- 8098/5187 실제 켜기는 하지 않았음(이 worktree의 catalog DB가 비어 있음). "로그인한 채 책 창 → `book_view`에 `account_id`·`visit_key`, 같은 탭의 클릭이 같은 `visit_key`"는 합친 뒤 main 서버에서 조정자가 확인 [확인 필요].
+
+## 인계서와 다른 점·확인 필요
+
+- listener 이름 `AccountDeletedCleanup` → `UsageLogAccountDeletedCleanup`(bean 이름 충돌, 위).
+- 사용 알림의 `visitKey`가 본문에 없을 때 헤더 `X-Visit-Key`도 봄(웹은 보내지 않음).
+- 처리방침은 자리 글 1판에 세 줄을 끼워 넣은 것(위 「처리방침 판 처리」); seed 전체 교체는 남은 일.
+- `LoginState`가 토큰 subject만 믿으므로 탈퇴 뒤 만료 토큰이 남은 브라우저의 기록에는 번호가 다시 들어갈 수 있음 [안: 감수] — 3단계 "맞춤 추천 끄기"와 함께 plan이 볼 것.

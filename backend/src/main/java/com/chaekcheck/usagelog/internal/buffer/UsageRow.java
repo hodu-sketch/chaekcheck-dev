@@ -5,7 +5,10 @@ import java.util.List;
 
 import com.chaekcheck.usagelog.SearchConditions;
 
-/** One row waiting in memory for one of the usage log tables. */
+/**
+ * One row waiting in memory for one of the usage log tables. The book view, library click and screen event rows also
+ * carry the signed-in member's number and the tab's visit key, both nullable (ADR-0134); the search rows do not.
+ */
 public sealed interface UsageRow {
 
 	Instant receivedAt();
@@ -22,7 +25,8 @@ public sealed interface UsageRow {
 	}
 
 	record BookView(Instant receivedAt, long bookId, List<Long> residenceRegionIds, List<Long> workRegionIds,
-			List<Long> libraryIds, String loginStatus, String clientIp) implements UsageRow {
+			List<Long> libraryIds, String loginStatus, String clientIp, Long accountId, String visitKey)
+			implements UsageRow {
 	}
 
 	record More(Instant receivedAt, String kind, int seq, Long libraryId, SearchConditions conditions,
@@ -31,7 +35,7 @@ public sealed interface UsageRow {
 
 	/** A usage report naming a library; {@link #raw} is kept for {@code rejected_event} if the library is unknown. */
 	record LibraryClick(Instant receivedAt, Long libraryId, String place, String screen, Long bookId,
-			String loginStatus, String clientIp, String raw) implements NamesLibrary {
+			String loginStatus, String clientIp, Long accountId, String visitKey, String raw) implements NamesLibrary {
 	}
 
 	/**
@@ -41,7 +45,7 @@ public sealed interface UsageRow {
 	 */
 	record ScreenEvent(Instant receivedAt, String kind, String picksList, String picksCategory, Long bookId,
 			List<Long> residenceRegionIds, List<Long> workRegionIds, Long libraryId, String loginStatus,
-			String clientIp, String raw) implements NamesLibrary {
+			String clientIp, Long accountId, String visitKey, String raw) implements NamesLibrary {
 	}
 
 	/** @param rawValues JSON text, already cut to 2KB */
