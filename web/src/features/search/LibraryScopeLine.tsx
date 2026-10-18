@@ -1,7 +1,7 @@
 import { Popover } from 'radix-ui'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import type { LibraryScope, VisitFilter } from '../../api/types'
+import type { VisitFilter } from '../../api/types'
 import { BottomSheet } from '../../components/BottomSheet'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { SaveHint } from '../mylibrary/SaveHint'
@@ -38,8 +38,6 @@ export const SCOPE_TEXT = {
   joinTitle: '가입 방법',
   visitNote: '한 번은 도서관에 가야 가입되는 곳을 결과에서 뺍니다',
   myPage: '마이페이지에서 전체 보기',
-  all: (count: number | null) => (count === null ? '전국에서 찾는 중' : `전국에서 찾는 중 · ${count}곳`),
-  backToMine: '내 도서관만',
   accountFailed: '내 도서관을 불러오지 못했어요',
   retry: '다시 시도',
 } as const
@@ -102,12 +100,6 @@ interface Common {
   openCount: number | null
   /** A new `openCount` was learnt (the box read the library list for the added libraries' names). */
   onOpenCount: (count: number) => void
-  /** The search on screen (`readScope`): `all` adds "전국에서 찾는 중" and [내 도서관만] (R1-5, R4-2). */
-  scope: LibraryScope
-  /** The plan size of that 전국 search, when known. */
-  allCount: number | null
-  /** [내 도서관만]: the same search without `scope=all`. */
-  onSearchMine: () => void
 }
 
 interface LineProps extends Common {
@@ -122,7 +114,8 @@ interface LineProps extends Common {
  * The "찾을 도서관" line under the search box on wider screens (cycle 22 R1, flow S1): a first visitor's
  * [사는 곳·일하는 곳 고르기] with its small text, else the folded line "내 도서관: … ▾". Either opens the box (S1-box) that
  * floats under it without pushing the list, closed by a click outside or Esc. A failed account read says so with
- * [다시 시도] (D7). A `scope=all` search adds the amber "전국에서 찾는 중" and [내 도서관만] (R1-5).
+ * [다시 시도] (D7). No 전국 marker beside it (user 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows
+ * itself by the 「그 밖의 도서관」 group, and the next new search is 내 도서관 again (D10).
  */
 export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common }: LineProps) {
   const state = useLineState()
@@ -149,7 +142,6 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
             {first ? SCOPE_TEXT.pick : text}
             {!first && <Caret />}
           </Popover.Trigger>
-          <AllMarker {...common} />
         </Popover.Anchor>
         <Popover.Portal>
           <Popover.Content
@@ -200,9 +192,9 @@ interface ChipProps extends Common {
 /**
  * Phones (R2-1): one chip under the search box, always there: "서울 강서구 거주 ▾", or "사는 곳·일하는 곳 고르기 ▾" for a
  * first visitor. A tap opens its own "찾을 도서관" sheet (user 2026-10-19; it opened the settings sheet before). The
- * 전국 marker and the account failure as on wider screens.
+ * account failure as on wider screens.
  */
-export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
+export function LibraryScopeChip({ onOpen }: ChipProps) {
   const state = useLineState()
   const text = useScopeLineText()
 
@@ -226,7 +218,6 @@ export function LibraryScopeChip({ onOpen, ...common }: ChipProps) {
         {text ?? SCOPE_TEXT.pick}
         <Caret />
       </button>
-      <AllMarker {...common} />
     </div>
   )
 }
@@ -262,19 +253,6 @@ function Caret() {
       <svg width="10" height="7" viewBox="0 0 12 8">
         <path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-    </span>
-  )
-}
-
-/** "전국에서 찾는 중 · N곳" [내 도서관만] (R1-5, R4-2): only while a `scope=all` search is on screen. */
-function AllMarker({ scope, allCount, onSearchMine }: Pick<Common, 'scope' | 'allCount' | 'onSearchMine'>) {
-  if (scope !== 'all') return null
-  return (
-    <span className={styles.all}>
-      <span className={styles.allText}>{SCOPE_TEXT.all(allCount)}</span>
-      <button type="button" className={styles.allButton} onClick={onSearchMine}>
-        {SCOPE_TEXT.backToMine}
-      </button>
     </span>
   )
 }

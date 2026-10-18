@@ -259,10 +259,6 @@ export function SearchPage() {
     planCount: prefs.planCount,
     openCount: prefs.openCount,
     onOpenCount: keepOpenCount,
-    scope,
-    allCount: scope === 'all' ? knownPlan : null,
-    // [내 도서관만] (R4-2): the same search without scope=all
-    onSearchMine: () => searchAgain((address) => address.delete('scope')),
   }
 
   return (

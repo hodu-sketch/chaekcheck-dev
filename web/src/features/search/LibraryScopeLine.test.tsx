@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { LibraryScope, VisitFilter } from '../../api/types'
+import type { VisitFilter } from '../../api/types'
 import { AuthProvider } from '../auth/AuthContext'
 import { NoticeProvider } from '../auth/NoticeContext'
 import { MyLibraryProvider } from '../mylibrary/MyLibraryContext'
@@ -92,12 +92,9 @@ interface Options {
   visit?: VisitFilter
   planCount?: PlanCount | null
   openCount?: number | null
-  scope?: LibraryScope
-  allCount?: number | null
 }
 
 function renderLine(options: Options = {}) {
-  const onSearchMine = vi.fn()
   const onVisitChange = vi.fn()
   const onOpenCount = vi.fn()
   function Harness() {
@@ -110,9 +107,6 @@ function renderLine(options: Options = {}) {
           planCount={options.planCount ?? null}
           openCount={options.openCount ?? null}
           onOpenCount={onOpenCount}
-          scope={options.scope ?? 'joinable'}
-          allCount={options.allCount ?? null}
-          onSearchMine={onSearchMine}
           box={box}
           onBoxChange={setBox}
         />
@@ -135,7 +129,7 @@ function renderLine(options: Options = {}) {
       </AuthProvider>
     </QueryClientProvider>,
   )
-  return { user: userEvent.setup(), onSearchMine, onVisitChange, onOpenCount }
+  return { user: userEvent.setup(), onVisitChange, onOpenCount }
 }
 
 const guestRegions = (residence: number[], work: number[] = []) =>
@@ -296,16 +290,7 @@ describe('the box (R1-4)', () => {
 })
 
 describe('전국 and a failed account read', () => {
-  it('a scope=all search: the amber marker with its count and [내 도서관만] (R1-5, R4-2)', async () => {
-    guestRegions([1114])
-    const { user, onSearchMine } = renderLine({ scope: 'all', allCount: 376 })
-    await folded()
-    expect(screen.getByText('전국에서 찾는 중 · 376곳')).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: '내 도서관만' }))
-    expect(onSearchMine).toHaveBeenCalledTimes(1)
-  })
-
-  it('no marker for the usual search', async () => {
+  it('no 전국 marker and no [내 도서관만] (user 2026-10-19)', async () => {
     guestRegions([1114])
     renderLine()
     await folded()
@@ -343,9 +328,6 @@ describe('the phone chip (R2-1)', () => {
                   planCount={null}
                   openCount={null}
                   onOpenCount={vi.fn()}
-                  scope="joinable"
-                  allCount={null}
-                  onSearchMine={vi.fn()}
                   onOpen={onOpen}
                 />
               </RegionProvider>
@@ -387,9 +369,6 @@ describe('the phone "찾을 도서관" sheet', () => {
           <LibraryScopeChip
             {...common}
             planCount={null}
-            scope="joinable"
-            allCount={null}
-            onSearchMine={vi.fn()}
             onOpen={() => setOpen(true)}
           />
           <LibraryScopeSheet {...common} open={open} onOpenChange={setOpen} focus="residence" />

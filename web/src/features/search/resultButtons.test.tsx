@@ -188,7 +188,7 @@ afterEach(() => {
 })
 
 describe('buttons inside the results (cycle 22 R8-3)', () => {
-  it('[전국에서 더 찾기] searches again with scope=all at once; [내 도서관만] goes back', async () => {
+  it('[전국에서 더 찾기] searches again with scope=all at once; no marker beside the line (user 2026-10-19)', async () => {
     // 바로 보기 does not know its whole plan: the green line takes the kept number of 어디 살든 가입 libraries (R7-1)
     savePrefs({ openCount: 39 })
     const user = renderSearch()
@@ -199,13 +199,10 @@ describe('buttons inside the results (cycle 22 R8-3)', () => {
     await user.click(screen.getByRole('button', { name: '전국에서 더 찾기' }))
     await vi.waitFor(() => expect(lastStream().scope).toBe('all'))
     expect(lastBooks().scope).toBe('all')
-    // the green line is not for a 전국 search; the line says it is one (R1-5), without a number it does not know
+    // the green line is not for a 전국 search, and nothing says 전국 beside the line any more
     expect(screen.queryByText(/사는 곳을 고르지 않아/)).toBeNull()
-    expect(screen.getByText('전국에서 찾는 중')).toBeTruthy()
-
-    await user.click(screen.getByRole('button', { name: '내 도서관만' }))
-    await vi.waitFor(() => expect(lastStream().scope).toBe('joinable'))
     expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '내 도서관만' })).toBeNull()
   })
 
   it('[그 1곳 빼기] searches again with visit=none and keeps it; [다시 넣기] puts it back', async () => {
@@ -268,7 +265,7 @@ describe('the plan size kept for the line', () => {
 
     plan(376)
     renderSearch('/search?title=사랑&direct=on&scope=all')
-    expect(await screen.findByText('전국에서 찾는 중 · 376곳')).toBeTruthy()
+    await vi.waitFor(() => expect(vi.mocked(searchStream).mock.calls.at(-1)?.[0].scope).toBe('all'))
     expect(loadPrefs().planCount).toBeNull()
     expect(loadPrefs().openCount).toBeNull()
   })

@@ -90,7 +90,6 @@
 .chip:focus-visible,
 .pick:focus-visible,
 .linkButton:focus-visible,
-.allButton:focus-visible,
 .addWork:focus-visible,
 .myPage:focus-visible {
   outline: 2px solid var(--focus);
@@ -124,43 +123,6 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
-}
-
-/* "전국에서 찾는 중 · N곳" [내 도서관만] (R1-5): amber like the reserve color */
-.all {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.allText {
-  padding: 0.3rem 0.7rem;
-  border-radius: var(--radius-tag);
-  background: var(--reserve-soft);
-  color: var(--reserve);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.allButton {
-  min-height: var(--control-height);
-  padding: 0 0.85rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--card);
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.allButton:hover {
-  border-color: var(--ink-faint);
-  color: var(--ink);
 }
 
 .failed {
