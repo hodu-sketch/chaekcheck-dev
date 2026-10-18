@@ -5,7 +5,9 @@ plugins {
 }
 
 group = 'com.chaekcheck'
-version = '0.0.1-SNAPSHOT'
+// Semantic version of the release (user decision 2026-10-18: v1.0.0 is the first public release); bump it with
+// deploy/prod/bin/release.sh, which tags the commit vX.Y.Z
+version = '1.0.0'
 
 java {
 	toolchain {
@@ -66,6 +68,29 @@ dependencyManagement {
 	imports {
 		mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
 	}
+}
+
+// META-INF/build-info.properties: version and the short commit hash, read by GET /api/v1/version
+springBoot {
+	buildInfo {
+		properties {
+			additional = [commit: gitCommit()]
+		}
+	}
+}
+
+def gitCommit() {
+	try {
+		return providers.exec { commandLine 'git', 'rev-parse', '--short', 'HEAD' }.standardOutput.asText.get().trim()
+	}
+	catch (Exception ignored) {
+		return 'unknown'
+	}
+}
+
+// One jar name for every version, so backend/Dockerfile copies the same file
+tasks.named('bootJar') {
+	archiveFileName = 'chaekcheck.jar'
 }
 
 tasks.named('bootRun') {

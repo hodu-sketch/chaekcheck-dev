@@ -4,7 +4,7 @@
 FROM eclipse-temurin:25-jre
 
 WORKDIR /app
-COPY build/libs/chaekcheck-0.0.1-SNAPSHOT.jar app.jar
+COPY build/libs/chaekcheck.jar app.jar
 # No RUN step, so building for another architecture needs no emulation; a plain unused uid instead of useradd.
 USER 10001:10001
 
