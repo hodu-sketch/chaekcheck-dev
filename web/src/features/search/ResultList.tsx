@@ -51,6 +51,8 @@ export interface ResultSearchContext {
   planCount: number | null
   /** Regions (or libraries) were saved since this search was made without any (R7-2): the green line asks for [검색]. */
   regionsPicked: boolean
+  /** What was saved since, for that line: "서울 강서구" with its field, or the added libraries (user 2026-10-19). */
+  picked?: { field: 'residence' | 'work'; place: string } | { field: 'libraries' } | null
   /** [전국에서 찾기], [전국에서 더 찾기]: the same search with `scope=all`. */
   onSearchAll: () => void
   /** [그 N곳 빼기]: `visit=none`, kept for later searches too. */
@@ -62,7 +64,23 @@ export interface ResultSearchContext {
 }
 
 /** The texts of the grouped list (cycle 22 문구표) [확정]. */
+/** "로" after a vowel or ㄹ, else "으로" (서울 강서구로, 성남시로, … 외 2곳으로). */
+function ro(word: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  if (code < 0 || code > 11171) return '(으)로'
+  const final = code % 28
+  return final === 0 || final === 8 ? '로' : '으로'
+}
+
 export const GROUP_TEXT = {
+  // after a region was saved on a results screen made without any (user 2026-10-19: "~했으니 ~하고싶으면 검색 버튼
+  // 눌러주세요"), followed by "[검색]을 눌러 주세요"
+  pickedBefore: (picked: ResultSearchContext['picked']) => {
+    if (!picked) return '지역을 바꿨어요. 바뀐 지역으로 찾으려면 '
+    if (picked.field === 'libraries') return '직접 추가한 도서관이 생겼어요. 그 도서관부터 보려면 '
+    const field = picked.field === 'residence' ? '사는 곳' : '일하는 곳'
+    return `${field}을 ${picked.place}${ro(picked.place)} 골랐어요. 그 지역 도서관부터 보려면 `
+  },
   mine: '내 도서관에 있어요',
   mineEmpty: '내 도서관에는 없어요',
   mineNote: (place: string | null) => (place ? `${place}에서 가입할 수 있는 곳과 직접 추가한 곳` : '직접 추가한 곳'),
@@ -380,7 +398,8 @@ function Groups({
         <p className={styles.greenLine} role="status">
           {context.regionsPicked ? (
             <>
-              <b>[검색]</b>을 눌러 다시 찾아 주세요
+              {GROUP_TEXT.pickedBefore(context.picked ?? null)}
+              <b>[검색]</b>을 눌러 주세요
             </>
           ) : (
             <>

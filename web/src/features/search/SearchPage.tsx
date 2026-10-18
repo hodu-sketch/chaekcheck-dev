@@ -199,6 +199,9 @@ export function SearchPage() {
     searchedResidence.length > 0 || searchedWork.length > 0 || (searchedWith?.libraryIds.length ?? 0) > 0
   const residencePlace = useRegionPlace(searchedResidence)
   const workPlace = useRegionPlace(searchedWork)
+  // the places saved now, for the line that asks for [검색] after a region was picked (R7-2)
+  const nowResidencePlace = useRegionPlace(regions.residence)
+  const nowWorkPlace = useRegionPlace(regions.work)
   /**
    * A whole plan is known (D5): kept as `planCount` for the folded line (not for `scope=all`), and, for a search
    * without regions or added libraries and with the visit-only libraries in, as `openCount` (R3-4).
@@ -233,6 +236,14 @@ export function SearchPage() {
       (scope === 'joinable' && visit === 'any' ? prefs.openCount : null),
     // R7-2: checked since a search made without any; the green line then asks for [검색]
     regionsPicked: !searchedMine && (hasRegions(regions) || libraryIds.length > 0),
+    picked:
+      regions.residence.length > 0 && nowResidencePlace
+        ? { field: 'residence', place: nowResidencePlace }
+        : regions.work.length > 0 && nowWorkPlace
+          ? { field: 'work', place: nowWorkPlace }
+          : libraryIds.length > 0
+            ? { field: 'libraries' }
+            : null,
     onSearchAll: () => searchAgain((address) => address.set('scope', 'all')),
     onVisitNone: () => {
       keepPrefs({ visit: 'none' })

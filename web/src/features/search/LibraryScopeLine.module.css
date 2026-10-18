@@ -36,37 +36,18 @@
 
 .folded,
 .chip {
-  display: inline-flex;
-  align-items: center;
   gap: 0.4rem;
-  min-height: var(--control-height);
-  padding: 0.3rem 0.85rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--card);
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 700;
   text-align: left;
   word-break: keep-all;
-  cursor: pointer;
-  transition: border-color 140ms, color 140ms;
-}
-
-.folded:hover,
-.folded[data-state='open'],
-.chip:hover {
-  border-color: var(--ink-faint);
-  color: var(--ink);
 }
 
 /*
- * a first visitor's [사는 곳·일하는 곳 고르기] (R1-2), and the phone chip in that state: violet with white text on every
- * width (user 2026-10-19: "보라 배경에 흰색 글자로")
+ * a first visitor's [사는 곳·일하는 곳 고르기] (R1-2), the folded "서울 강남구 거주" line and the phone chip: violet with
+ * white text on every width (user 2026-10-19: "보라 배경에 흰색 글자로", "서울 강남구 거주 … 계속 보라색으로")
  */
 .pick,
-.chip[data-pick] {
+.folded,
+.chip {
   display: inline-flex;
   align-items: center;
   min-height: var(--control-height);
@@ -84,7 +65,9 @@
 
 .pick:hover,
 .pick[data-state='open'],
-.chip[data-pick]:hover {
+.folded:hover,
+.folded[data-state='open'],
+.chip:hover {
   border-color: var(--brand-strong);
   background: var(--brand-strong);
   color: #fff;
@@ -106,7 +89,8 @@
   color: var(--brand-strong);
 }
 
-.chip[data-pick] .caret {
+.folded .caret,
+.chip .caret {
   color: #fff;
 }
 
