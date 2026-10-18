@@ -1,5 +1,6 @@
 import { Popover } from 'radix-ui'
-import { useRef } from 'react'
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import type { JoinSurvey, TargetLibrary } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
 import { LibraryLogo } from '../../components/LibraryLogo'
@@ -9,6 +10,7 @@ import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
 import { useLookupStatus } from '../lookupstatus/LookupStatusProvider'
+import { libraryGroup } from './resultGroups'
 import { needsJoinCheck, type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
@@ -83,15 +85,39 @@ interface Props {
   searchUrl: string | undefined
   /** The screen showing this line, for the usage report of its links (cycle 15); none sends nothing. */
   screen?: ClickScreen
+  /**
+   * Cycle 22 R6 (ADR-0136): a pill after the library name ([직접 추가] / [내 지역] / [어디 살든 가입], plus amber
+   * [방문 가입]; a library of ③ gets its eligibility summary in grey), each opening a short note. Off on the screens
+   * without result groups (book page, picks).
+   */
+  tags?: boolean
+  /** Which of the user's regions [내 지역] stands for (D2): the side(s) the search was made with. */
+  regionBasis?: RegionBasis
 }
+
+/** The regions a search was made with, for the [내 지역] note (cycle 22 D2). */
+export type RegionBasis = 'residence' | 'work' | 'both'
+
+/** The notes of the pills (cycle 22 문구표 말풍선, R6-2, D1, D2) [확정]. */
+export const TAG_TEXT = {
+  open: '그 지역에 살지 않아도 온라인으로 가입할 수 있어요',
+  visit: (name: string) => `가입하려면 ${name}에 한 번 가야 해요`,
+  mine: { residence: '사는 곳으로', work: '일하는 곳으로', both: '사는 곳이나 일하는 곳으로' } as Record<RegionBasis, string>,
+  mineTail: ' 가입할 수 있어요',
+  chosen: '직접 추가한 도서관이에요',
+  howToJoin: '가입 방법 보기',
+  removeAtMyPage: '마이페이지에서 빼기',
+} as const
 
 /**
  * One book at one library: title / author · publisher / supplier / library + join condition / counts / state /
  * link. No description or cover. The state comes from the row's availability only (ADR-0019). No "구독형" tag by the
  * library name: the state already says "구독형 · 바로 대출" (user request 2026-10-05).
  */
-export function ResultRow({ row, library, searchUrl, screen }: Props) {
+export function ResultRow({ row, library, searchUrl, screen, tags = false, regionBasis = 'both' }: Props) {
   const phone = useMediaQuery('(width <= 640px)')
+  // controlled, so "가입 방법 보기" in a pill's note can open it (cycle 22 R6-2)
+  const [joinOpen, setJoinOpen] = useState(false)
   // a direct search has no book of ours; every other screen sends the row's book (spec R2-2)
   const click = screen ? { screen, bookId: screen === 'direct_results' ? undefined : row.bookId } : undefined
   const report = (place: Parameters<typeof libraryClick>[1]) => libraryClick(row.libraryId, place, click)
@@ -102,7 +128,7 @@ export function ResultRow({ row, library, searchUrl, screen }: Props) {
   const chosen = library?.chosen === true
   const joinCheck = !chosen && needsJoinCheck(library?.eligibility)
   const joinCondition =
-    library?.priorityGroup === 'OPEN' ? '누구나 가입' : (library?.eligibilitySummary ?? '가입 자격 확인 필요')
+    library?.priorityGroup === 'OPEN' ? OPEN_JOIN_TEXT : (library?.eligibilitySummary ?? '가입 자격 확인 필요')
   const joinMethod = library?.joinMethod ?? '-'
   const joinUrl = safeHttpUrl(library?.joinUrl)
   // no known join page yet: the library's e-library front page, where its sign-up guide can be found
@@ -223,7 +249,7 @@ export function ResultRow({ row, library, searchUrl, screen }: Props) {
         </div>
         <p className={styles.libraryName}>
           {/* the library name opens the join details on every width (user requests 2026-10-05; U-12 before) */}
-          <Popover.Root>
+          <Popover.Root open={joinOpen} onOpenChange={setJoinOpen}>
             <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>
               {libraryName}
             </Popover.Trigger>
@@ -241,7 +267,11 @@ export function ResultRow({ row, library, searchUrl, screen }: Props) {
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          {chosen && <span className={styles.chosen}>직접 추가</span>}
+          {tags && library ? (
+            <RowTags library={library} regionBasis={regionBasis} onJoin={() => setJoinOpen(true)} />
+          ) : (
+            chosen && <span className={styles.chosen}>직접 추가</span>
+          )}
           {queued && <QueuedTag />}
         </p>
         {classification && <p className={styles.classification}>{classification}</p>}
@@ -282,6 +312,176 @@ export function ResultRow({ row, library, searchUrl, screen }: Props) {
         </a>
       )}
     </article>
+  )
+}
+
+/**
+ * The join details' eligibility summary of a library joinable wherever one lives (cycle 22 R6-5, D9; "누구나 가입"
+ * before), on every screen.
+ */
+export const OPEN_JOIN_TEXT = '어디 살든 온라인 가입'
+
+/**
+ * The pills after the library name (cycle 22 R6-1): one of [직접 추가] / [내 지역] / [어디 살든 가입] by the library's
+ * group (D3'), plus [방문 가입] when the library has to be visited to join; a library of ③ shows its eligibility summary
+ * in grey instead, without a note.
+ */
+function RowTags({
+  library,
+  regionBasis,
+  onJoin,
+}: {
+  library: TargetLibrary
+  regionBasis: RegionBasis
+  onJoin: () => void
+}) {
+  const group = libraryGroup(library)
+  const join = (close: () => void) => (
+    <button
+      type="button"
+      className={styles.tagAction}
+      onClick={() => {
+        close()
+        onJoin()
+      }}
+    >
+      {TAG_TEXT.howToJoin}
+    </button>
+  )
+  return (
+    <>
+      {library.chosen ? (
+        <TagPill
+          label="직접 추가"
+          tone="chosen"
+          text={TAG_TEXT.chosen}
+          action={() => (
+            <Link to="/my-libraries" className={styles.tagAction}>
+              {TAG_TEXT.removeAtMyPage}
+            </Link>
+          )}
+        />
+      ) : group === 'MINE' ? (
+        <TagPill
+          label="내 지역"
+          tone="mine"
+          text={`${TAG_TEXT.mine[regionBasis]}${TAG_TEXT.mineTail}`}
+          action={join}
+          closesForJoin
+        />
+      ) : group === 'OPEN' ? (
+        <TagPill label="어디 살든 가입" tone="open" text={TAG_TEXT.open} action={join} closesForJoin />
+      ) : (
+        library.eligibilitySummary && <span className={styles.tagSummary}>{library.eligibilitySummary}</span>
+      )}
+      {library.visitRequired && (
+        <TagPill label="방문 가입" tone="visit" text={TAG_TEXT.visit(library.name)} action={join} closesForJoin />
+      )}
+    </>
+  )
+}
+
+/**
+ * One pill and its note (radix Popover, like the join details): a tap or click opens it; on a computer the mouse
+ * resting on it opens it too, and leaving the pill and the note closes it again unless it was clicked open. A click
+ * outside or Esc closes it.
+ */
+function TagPill({
+  label,
+  tone,
+  text,
+  action,
+  closesForJoin = false,
+}: {
+  label: string
+  tone: 'chosen' | 'mine' | 'open' | 'visit'
+  text: string
+  action: (close: () => void) => ReactNode
+  /** The action opens the join details: the focus is not given back to the pill, which would close them again. */
+  closesForJoin?: boolean
+}) {
+  const phone = useMediaQuery('(width <= 640px)')
+  const [open, setOpen] = useState(false)
+  // opened by the mouse resting on it (it closes when the mouse leaves), not by a click
+  const byHover = useRef(false)
+  const toJoin = useRef(false)
+  const closeTimer = useRef<number | undefined>(undefined)
+  const cancelClose = () => window.clearTimeout(closeTimer.current)
+  const scheduleClose = () => {
+    cancelClose()
+    closeTimer.current = window.setTimeout(() => {
+      if (!byHover.current) return
+      byHover.current = false
+      setOpen(false)
+    }, 150)
+  }
+  useEffect(() => () => window.clearTimeout(closeTimer.current), [])
+  // a computer's mouse only; a phone's tap (or a touch screen reporting hover) opens it by the click
+  const mouse = (event: PointerEvent) => event.pointerType === 'mouse' && !phone
+  const close = () => {
+    toJoin.current = closesForJoin
+    byHover.current = false
+    setOpen(false)
+  }
+
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        byHover.current = false
+        setOpen(next)
+      }}
+    >
+      <Popover.Trigger
+        className={styles.tag}
+        data-tone={tone}
+        onPointerEnter={(event) => {
+          if (!mouse(event)) return
+          cancelClose()
+          if (!open) {
+            byHover.current = true
+            setOpen(true)
+          }
+        }}
+        onPointerLeave={(event) => {
+          if (mouse(event)) scheduleClose()
+        }}
+        onClick={(event) => {
+          // a click on a note the mouse opened keeps it open (radix would toggle it shut)
+          if (open && byHover.current) {
+            event.preventDefault()
+            byHover.current = false
+          }
+        }}
+      >
+        {label}
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          className={styles.tagPopover}
+          side={phone ? 'bottom' : 'top'}
+          align="start"
+          sideOffset={6}
+          collisionPadding={12}
+          onPointerEnter={cancelClose}
+          onPointerLeave={(event) => {
+            if (mouse(event)) scheduleClose()
+          }}
+          onOpenAutoFocus={(event) => {
+            if (byHover.current) event.preventDefault()
+          }}
+          onCloseAutoFocus={(event) => {
+            if (toJoin.current) event.preventDefault()
+            toJoin.current = false
+          }}
+        >
+          <p className={styles.tagNote}>
+            {text} · {action(close)}
+          </p>
+          <Popover.Arrow className={styles.joinPopoverArrow} width={12} height={6} />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }
 

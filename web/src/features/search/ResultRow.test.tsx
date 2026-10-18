@@ -1,9 +1,18 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
 import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
-import { HOLDING_GONE, LOOKUP_UNCHECKED, MOBILE_SITE_NOTE, ResultRow, UncheckedLibraryLine } from './ResultRow'
+import {
+  HOLDING_GONE,
+  LOOKUP_UNCHECKED,
+  MOBILE_SITE_NOTE,
+  ResultRow,
+  TAG_TEXT,
+  UncheckedLibraryLine,
+  type RegionBasis,
+} from './ResultRow'
 import { testRow } from './testRows'
 
 // the header light's queued libraries (cycle 20), set per test
@@ -54,17 +63,18 @@ describe('join details behind "가입 정보"', () => {
   it('are not drawn until the button is pressed', () => {
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={openLibrary} searchUrl={undefined} />)
 
-    expect(screen.queryByText('누구나 가입')).toBeNull()
+    expect(screen.queryByText('어디 살든 온라인 가입')).toBeNull()
     expect(screen.queryByText(/도서관 홈페이지 가입 후 로그인/)).toBeNull()
     expect(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` })).toBeTruthy()
   })
 })
 
 describe('ResultRow join caution (C2-U-11)', () => {
-  it('shows the caution under "누구나 가입" without the "가입 자격 확인 필요" badge', async () => {
+  // cycle 22 R6-5, D9: "누구나 가입" is now "어디 살든 온라인 가입" on every screen
+  it('shows the caution under "어디 살든 온라인 가입" without the "가입 자격 확인 필요" badge', async () => {
     const popover = await renderOpen({ ...openLibrary, joinCaution: '회원증 발급은 고흥군 거주자·직장인만' })
 
-    expect(popover.textContent).toContain('누구나 가입')
+    expect(popover.textContent).toContain('어디 살든 온라인 가입')
     expect(popover.textContent).toContain('회원증 발급은 고흥군 거주자·직장인만')
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
@@ -231,7 +241,7 @@ describe('join notice of libraries found in the collected list', () => {
   it('a surveyed one shows the usual join details', async () => {
     const popover = await renderOpen({ ...collected, joinSurvey: 'SURVEYED', eligibility: 'OPEN', chosen: false })
 
-    expect(popover.textContent).toContain('누구나 가입')
+    expect(popover.textContent).toContain('어디 살든 온라인 가입')
     expect(screen.queryByRole('link', { name: /도서관 첫 화면/ })).toBeNull()
   })
 
@@ -430,5 +440,89 @@ describe('unchecked rows and the queued mark (cycle 20)', () => {
     expect(line.textContent).toContain(`${openLibrary.name} · ${LOOKUP_UNCHECKED}`)
     expect(line.textContent).toContain(QUEUED_LABEL)
     expect(screen.getByRole('link').getAttribute('href')).toBe('https://lib.example/')
+  })
+})
+
+/** Cycle 22 R6 (D1, D2, ADR-0136): the pills after the library name and their notes. */
+describe('pills after the library name', () => {
+  function renderTags(library: TargetLibrary, tags = true, regionBasis: RegionBasis = 'both') {
+    render(
+      <MemoryRouter>
+        <ResultRow
+          row={testRow({ libraryId: library.id, rank: 1 })}
+          library={library}
+          searchUrl={undefined}
+          tags={tags}
+          regionBasis={regionBasis}
+        />
+      </MemoryRouter>,
+    )
+    return userEvent.setup()
+  }
+  const mine: TargetLibrary = { ...openLibrary, priorityGroup: 'MY_SIGUNGU', eligibility: 'ELIGIBLE' }
+  const pill = (name: string) => screen.getByRole('button', { name })
+
+  it('[어디 살든 가입] opens its note; "가입 방법 보기" opens the join details', async () => {
+    const user = renderTags(openLibrary)
+    await user.click(pill('어디 살든 가입'))
+    const note = screen.getByRole('dialog')
+    expect(note.textContent).toBe(`${TAG_TEXT.open} · 가입 방법 보기`)
+    await user.click(within(note).getByRole('button', { name: '가입 방법 보기' }))
+    const join = screen.getByRole('dialog')
+    expect(join.textContent).toContain('어디 살든 온라인 가입')
+    expect(join.textContent).toContain('도서관 홈페이지 가입 후 로그인')
+  })
+
+  it('[방문 가입] in amber next to the group pill, naming the library', async () => {
+    const user = renderTags({ ...openLibrary, visitRequired: true })
+    expect(pill('어디 살든 가입')).toBeTruthy()
+    expect(pill('방문 가입').getAttribute('data-tone')).toBe('visit')
+    await user.click(pill('방문 가입'))
+    expect(screen.getByRole('dialog').textContent).toBe(
+      `가입하려면 ${openLibrary.name}에 한 번 가야 해요 · 가입 방법 보기`,
+    )
+  })
+
+  it.each([
+    ['residence', '사는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
+    ['work', '일하는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
+    ['both', '사는 곳이나 일하는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
+  ] as const)('[내 지역] says the side the search used (%s)', async (basis, text) => {
+    const user = renderTags(mine, true, basis)
+    await user.click(pill('내 지역'))
+    expect(screen.getByRole('dialog').textContent).toBe(text)
+  })
+
+  it('[직접 추가] leads to the my page, in place of the old mark', async () => {
+    const user = renderTags({ ...mine, chosen: true })
+    expect(screen.queryByRole('button', { name: '내 지역' })).toBeNull()
+    await user.click(pill('직접 추가'))
+    const note = screen.getByRole('dialog')
+    expect(note.textContent).toBe('직접 추가한 도서관이에요 · 마이페이지에서 빼기')
+    expect(within(note).getByRole('link', { name: '마이페이지에서 빼기' }).getAttribute('href')).toBe('/my-libraries')
+  })
+
+  it('③ shows the eligibility summary in grey, without a note', () => {
+    renderTags({ ...openLibrary, priorityGroup: 'QUALIFIED', eligibility: 'UNKNOWN', eligibilitySummary: '부산 거주·직장' })
+    expect(screen.getByText('부산 거주·직장').tagName).toBe('SPAN')
+    expect(screen.queryByRole('button', { name: /어디 살든 가입|내 지역|직접 추가/ })).toBeNull()
+  })
+
+  it('opens on a computer when the mouse rests on the pill, and closes when it leaves', async () => {
+    renderTags(openLibrary)
+    fireEvent.pointerEnter(pill('어디 살든 가입'), { pointerType: 'mouse' })
+    expect(screen.getByRole('dialog').textContent).toContain(TAG_TEXT.open)
+    fireEvent.pointerLeave(pill('어디 살든 가입'), { pointerType: 'mouse' })
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('tags=false draws no pills (book page, picks); a hand-added library keeps its old mark', () => {
+    renderTags({ ...openLibrary, visitRequired: true }, false)
+    expect(screen.queryByRole('button', { name: '어디 살든 가입' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '방문 가입' })).toBeNull()
+    cleanup()
+    renderTags({ ...mine, chosen: true }, false)
+    expect(screen.queryByRole('button', { name: '직접 추가' })).toBeNull()
+    expect(screen.getByText('직접 추가')).toBeTruthy()
   })
 })

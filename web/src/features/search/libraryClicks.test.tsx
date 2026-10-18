@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
 import { sendUsageEvent } from '../../api/usageEvents'
@@ -184,6 +185,30 @@ describe('other library links', () => {
       libraryId: 12,
       place: 'summary_bar',
       screen: 'direct_results',
+    })
+  })
+})
+
+/** Cycle 22 (handoff 하지 않는 것): the pills and their notes send nothing; the links they lead to report as before. */
+describe('pills', () => {
+  it('opening a pill note and "가입 방법 보기" send nothing; the join link inside still reports', async () => {
+    render(
+      <MemoryRouter>
+        <ResultRow row={row} library={{ ...library, visitRequired: true }} searchUrl={undefined} screen="catalog_results" tags />
+      </MemoryRouter>,
+    )
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: '방문 가입' }))
+    await user.click(screen.getByRole('button', { name: '가입 방법 보기' }))
+    expect(sendUsageEvent).not.toHaveBeenCalled()
+
+    expect(clickOpens(screen.getByRole('link', { name: /홈페이지 가입/ }))).toBe(true)
+    expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
+      type: 'library_click',
+      libraryId: 12,
+      place: 'join_link',
+      screen: 'catalog_results',
+      bookId: 345,
     })
   })
 })

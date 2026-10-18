@@ -17,6 +17,8 @@ import { InstantResults } from './InstantResults'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
+import { useRegionPlace } from './regionPlace'
+import type { ResultSearchContext } from './ResultList'
 import {
   loadPrefs,
   loadSettings,
@@ -59,7 +61,7 @@ export function SearchPage() {
     setPrefs((current) => ({ ...current, ...next }))
   }
 
-  const { regions, source, notices, setRegions } = useRegions()
+  const { regions, libraryIds, source, notices, setRegions, accountFailed } = useRegions()
   const scope = readScope(params)
   const { searchedWith, retake, resolveAndRetake } = useSearchedWith()
   // "내 도서관 관리" before login too (cycle 07 flow S1); only screens without the provider (tests) keep "내 지역"
@@ -159,6 +161,49 @@ export function SearchPage() {
   // the empty result's button: only the address changes, the stored setting stays [안]
   const goDirect = () => replaceParam('direct', 'on')
   const onInvalidRegion = resolveAndRetake
+
+  // The four buttons inside the results search again at once (cycle 22 R8-3, D10): the address changes and the
+  // snapshot is taken again, as with [검색].
+  const searchAgain = (change: (address: URLSearchParams) => void) => {
+    const address = new URLSearchParams(params)
+    change(address)
+    retake()
+    navigate(`/search?${address}`)
+  }
+  const searchedResidence = searchedWith?.residence ?? []
+  const searchedWork = searchedWith?.work ?? []
+  const searchedMine =
+    searchedResidence.length > 0 || searchedWork.length > 0 || (searchedWith?.libraryIds.length ?? 0) > 0
+  const residencePlace = useRegionPlace(searchedResidence)
+  const workPlace = useRegionPlace(searchedWork)
+  const searchContext: ResultSearchContext = {
+    hasMine: searchedMine,
+    mineLabel: searchedResidence.length > 0 ? residencePlace : workPlace,
+    regionBasis:
+      searchedResidence.length > 0 && searchedWork.length > 0
+        ? 'both'
+        : searchedWork.length > 0
+          ? 'work'
+          : searchedResidence.length > 0
+            ? 'residence'
+            : 'both',
+    scope,
+    visit,
+    accountFailed,
+    // R7-2: checked since a search made without any; the green line then asks for [검색]
+    regionsPicked: !searchedMine && (hasRegions(regions) || libraryIds.length > 0),
+    onSearchAll: () => searchAgain((address) => address.set('scope', 'all')),
+    onVisitNone: () => {
+      keepPrefs({ visit: 'none' })
+      searchAgain((address) => writeVisit('none', address))
+    },
+    onVisitBack: () => {
+      keepPrefs({ visit: 'any' })
+      searchAgain((address) => writeVisit('any', address))
+    },
+    // step 3 opens the region box here; until then today's region choice
+    onPickRegions: () => setModalOpen(true),
+  }
 
   const bookLinkSearch = new URLSearchParams()
   writeFilter(filter, bookLinkSearch)
@@ -277,6 +322,7 @@ export function SearchPage() {
           onFilterChange={changeFilter}
           onEditRegions={() => setModalOpen(true)}
           countSlot={countSlot}
+          searchContext={searchContext}
         />
       )}
       {bookQuery && (
@@ -299,6 +345,7 @@ export function SearchPage() {
               onSortChange={changeSort}
               onDirect={goDirect}
               onInvalidRegion={onInvalidRegion}
+              searchContext={searchContext}
             />
           )}
         </section>

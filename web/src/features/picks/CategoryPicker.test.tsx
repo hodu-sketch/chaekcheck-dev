@@ -64,7 +64,7 @@ describe('category list', () => {
     expect(screen.getByText('보통 2달에 한 번, 한 번에 8권(문학·인문·사회·자연 각 2권)을 추천해요. 테마 추천 때는 12권이에요')).toBeTruthy()
     expect(screen.getByText('신간이라 아직 전자책이 없는 책도 있어요')).toBeTruthy()
     expect(screen.getByText('흐린 책은 검색하는 도서관에 전자책이 없어요')).toBeTruthy()
-    expect(screen.getByText('있음/없음은 검색 화면에서 고른 지역·범위 기준이에요')).toBeTruthy()
+    expect(screen.getByText('있음/없음은 검색 화면에서 고른 지역 기준이에요')).toBeTruthy()
     expect(screen.getByText('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음')).toBeTruthy()
     expect(screen.queryByText(/종이책 순위|판매 순위/)).toBeNull()
     await user.click(help)

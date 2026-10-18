@@ -154,7 +154,10 @@ describe('picks book window', () => {
       '가 도서관',
     ])
     expect(within(dialog).queryByText(/외 \d+곳/)).toBeNull()
-    expect(within(dialog).queryByText('확인 중…')).toBeNull()
+    expect(within(dialog).queryByText('확인 중…')).toBeNull()    // no pills on this screen (cycle 22 D9); only the join details' wording changed
+    expect(within(dialog).queryByRole('button', { name: '어디 살든 가입' })).toBeNull()
+    await userEvent.setup().click(within(rows[0]).getByRole('button', { name: /가입 정보$/ }))
+    expect(screen.getByText('어디 살든 온라인 가입')).toBeTruthy()
   })
 
   it('none of the first three can lend it now: asks the next libraries until one can (user 2026-10-17)', async () => {

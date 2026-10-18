@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react'
 import { ToggleGroup } from 'radix-ui'
-import type { ResultFilter, TargetLibrary } from '../../api/types'
+import type { LibraryScope, ResultFilter, TargetLibrary, VisitFilter } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
 import { BatchSection } from './BatchSection'
 import { BLOCKED_TEXT, type Blocked } from './blocked'
-import { ResultRow, UncheckedLibraryLine } from './ResultRow'
+import { GroupSection } from './GroupSection'
+import { emptyResultText } from './resultFilter'
+import { groupBatches } from './resultGroups'
+import { ResultRow, UncheckedLibraryLine, type RegionBasis } from './ResultRow'
 import type { Batch } from './rowVerdict'
 import type { ResultRow as Row, SortedBatch } from './sortBatch'
 import styles from './ResultList.module.css'
@@ -26,6 +29,52 @@ export interface UncheckedLibrary {
 
 /** The title of the group of rows that could not be checked (cycle 20 handoff 1-13) [확정]. */
 export const UNCHECKED_GROUP_TITLE = '확인하지 못한 도서관'
+
+/**
+ * What a grouped result list knows about its search, and the buttons inside the results (cycle 22 R4-2, R5, R7, R8).
+ * The four buttons search again at once (R8-3): the caller changes the address and takes the snapshot again.
+ */
+export interface ResultSearchContext {
+  /** The search was made with regions or added libraries (the snapshot, D6): an empty ① says so (R5-4). */
+  hasMine: boolean
+  /** "서울 강남구" for ①'s small text (the regions the search was made with); null when it had added libraries only. */
+  mineLabel: string | null
+  regionBasis: RegionBasis
+  scope: LibraryScope
+  visit: VisitFilter
+  /** After login the account's 내 도서관 could not be read (D7): no green line. */
+  accountFailed: boolean
+  /** Regions (or libraries) were saved since this search was made without any (R7-2): the green line asks for [검색]. */
+  regionsPicked: boolean
+  /** [전국에서 찾기], [전국에서 더 찾기]: the same search with `scope=all`. */
+  onSearchAll: () => void
+  /** [그 N곳 빼기]: `visit=none`, kept for later searches too. */
+  onVisitNone: () => void
+  /** [다시 넣기]: back to `visit` any. */
+  onVisitBack: () => void
+  /** [사는 곳 고르기] of the green line: opens the region choice (saved only, R7-2). */
+  onPickRegions: () => void
+}
+
+/** The texts of the grouped list (cycle 22 문구표) [확정]. */
+export const GROUP_TEXT = {
+  mine: '내 도서관에 있어요',
+  mineEmpty: '내 도서관에는 없어요',
+  mineNote: (place: string | null) => (place ? `${place}에서 가입할 수 있는 곳과 직접 추가한 곳` : '직접 추가한 곳'),
+  open: '어디 살든 가입되는 도서관에 있어요',
+  openNote: '온라인으로 바로 가입할 수 있어요',
+  visitSome: (sites: number) => `이 중 ${sites}곳은 가입하려면 도서관에 가야 해요`,
+  visitRemove: (sites: number) => `그 ${sites}곳 빼기`,
+  visitRemoved: '방문 가입 도서관을 뺐어요',
+  visitBack: '다시 넣기',
+  other: '그 밖의 도서관에 있어요',
+  otherNote: '그 지역에 살거나 일해야 가입돼요',
+  searchAll: '전국에서 찾기',
+  searchAllMore: '전국에서 더 찾기',
+  green: (libraries: number) =>
+    `사는 곳을 고르지 않아 어디 살든 가입되는 도서관 ${libraries}곳에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요`,
+  pickRegions: '사는 곳 고르기',
+} as const
 
 interface Props {
   batches: BatchView[]
@@ -62,6 +111,15 @@ interface Props {
   screen?: ClickScreen
   /** Direct search (cycle 20): libraries that failed as a whole, one line each in 「확인하지 못한 도서관」. */
   uncheckedLibraries?: UncheckedLibrary[]
+  /**
+   * Cycle 22 (ADR-0136): the rows in result groups ① 내 도서관 ② 어디 살든 가입 ③ 그 밖 ④ 확인하지 못한 도서관. False keeps
+   * the batches as they arrived (the book page, AC-17).
+   */
+  grouped?: boolean
+  /** The pills after the library names (cycle 22 R6). */
+  tags?: boolean
+  /** Grouped lists of the search screen: the green line, the 전국 links and the 방문 가입 buttons. */
+  searchContext?: ResultSearchContext
 }
 
 /**
@@ -88,8 +146,12 @@ export function ResultList({
   toolbarEnd,
   screen,
   uncheckedLibraries = [],
+  grouped = true,
+  tags = false,
+  searchContext,
 }: Props) {
   const libraryById = new Map(libraries.map((l) => [l.id, l]))
+  const context = grouped ? searchContext : undefined
   // 「확인하지 못한 도서관」 (cycle 20 handoff 1-13 [확정], review #2): every batch's failed and UNKNOWN rows and the failed
   // libraries of a direct search, in plan order, as one group right above "더 보기"; shown in both filters
   const planIndex = new Map(libraries.map((l, index) => [l.id, index]))
@@ -139,7 +201,18 @@ export function ResultList({
         {toolbarEnd && <div className={styles.toolbarEnd}>{toolbarEnd}</div>}
       </div>
 
-      {batches.map((view, index) => (
+      {grouped ? (
+        <Groups
+          batches={batches}
+          libraries={libraries}
+          libraryById={libraryById}
+          searchUrls={searchUrls}
+          screen={screen}
+          tags={tags}
+          context={context}
+        />
+      ) : (
+        batches.map((view, index) => (
         <BatchSection
           key={view.batch.batchNo}
           batch={view.batch}
@@ -153,7 +226,8 @@ export function ResultList({
           searchUrls={searchUrls}
           screen={screen}
         />
-      ))}
+        ))
+      )}
 
       {unchecked.length > 0 && (
         <section className={styles.group} data-group="unchecked" aria-labelledby="unchecked-title">
@@ -169,6 +243,8 @@ export function ResultList({
                     library={libraryById.get(item.row.libraryId)}
                     searchUrl={searchUrls.get(item.row.libraryId)}
                     screen={screen}
+                    tags={tags}
+                    regionBasis={context?.regionBasis}
                   />
                 ) : (
                   item.library && (
@@ -182,6 +258,7 @@ export function ResultList({
       )}
 
       <div className={styles.bottom}>
+        {grouped && !loading && remaining > 0 && <NothingYet batches={batches} filter={filter} />}
         {loading ? (
           <p className={styles.loadingMore} role="status">
             <span className={styles.spinner} aria-hidden="true" />
@@ -194,21 +271,164 @@ export function ResultList({
                 더 찾지 못했어요. 다시 시도해 주세요.
               </p>
             )}
-            {moreLabel ? (
-              <button type="button" className={`${styles.moreButton} ${styles.moreTwoLines}`} onClick={onMore}>
-                {moreLabel}
-                {moreText && <span className={styles.moreHint}>{moreText}</span>}
-              </button>
-            ) : (
-              <button type="button" className={styles.moreButton} onClick={onMore}>
-                더 보기 <span className={styles.moreCount}>{moreText ?? `(남은 도서관 ${remaining}곳)`}</span>
-              </button>
-            )}
+            <div className={styles.bottomButtons}>
+              {moreLabel ? (
+                <button type="button" className={`${styles.moreButton} ${styles.moreTwoLines}`} onClick={onMore}>
+                  {moreLabel}
+                  {moreText && <span className={styles.moreHint}>{moreText}</span>}
+                </button>
+              ) : (
+                <button type="button" className={styles.moreButton} onClick={onMore}>
+                  더 보기 <span className={styles.moreCount}>{moreText ?? `(남은 도서관 ${remaining}곳)`}</span>
+                </button>
+              )}
+              <SearchAllMore context={context} />
+            </div>
           </>
         ) : (
-          <p className={styles.finished}>{finishedText ?? '모든 도서관을 조회했습니다'}</p>
+          <>
+            <p className={styles.finished}>{finishedText ?? '모든 도서관을 조회했습니다'}</p>
+            <SearchAllMore context={context} />
+          </>
         )}
       </div>
     </section>
+  )
+}
+
+/** [전국에서 더 찾기] at the list bottom (R4-2); not while the search already is 전국. */
+function SearchAllMore({ context }: { context: ResultSearchContext | undefined }) {
+  if (!context || context.scope === 'all') return null
+  return (
+    <button type="button" className={styles.allButton} onClick={context.onSearchAll}>
+      {GROUP_TEXT.searchAllMore}
+    </button>
+  )
+}
+
+/**
+ * "지금까지 N곳에서 … 찾지 못했습니다" (R5-3, D3): one line at the list bottom right above 「결과 더 보기」, while no row is
+ * shown yet in ①②③ and the last batch has answered; the batches no longer each have one.
+ */
+function NothingYet({ batches, filter }: { batches: BatchView[]; filter: ResultFilter }) {
+  const last = batches.at(-1)
+  if (!last || last.batch.status !== 'done') return null
+  const shown = batches.some((view) => view.sorted.available.length + view.sorted.reserve.length + view.sorted.pending.length > 0)
+  if (shown) return null
+  const text = emptyResultText(last.answeredSoFar, last.uncheckedSoFar ?? 0, filter)
+  return text ? <p className={styles.empty}>{text}</p> : null
+}
+
+function regionBasisOf(context: ResultSearchContext | undefined): RegionBasis {
+  return context?.regionBasis ?? 'both'
+}
+
+/**
+ * ① ② ③ of a grouped list (R5): ① first, then ② and ③, each only when it has rows; ① also when empty, as "내 도서관에는
+ * 없어요 (0)", once the first batch has answered a search made with regions or added libraries (R5-4). Above them the
+ * green line of a search made without any (R7).
+ */
+function Groups({
+  batches,
+  libraries,
+  libraryById,
+  searchUrls,
+  screen,
+  tags,
+  context,
+}: {
+  batches: BatchView[]
+  libraries: TargetLibrary[]
+  libraryById: ReadonlyMap<number, TargetLibrary>
+  searchUrls: ReadonlyMap<number, string>
+  screen?: ClickScreen
+  tags: boolean
+  context: ResultSearchContext | undefined
+}) {
+  const { groups, visitRequiredOpenSites } = groupBatches(batches, libraryById)
+  const [mine, open, other] = groups
+  const firstDone = batches[0]?.batch.status === 'done'
+  const regionBasis = regionBasisOf(context)
+  const common = { libraryById, searchUrls, screen, tags, regionBasis }
+  const linkButton = (label: string, onClick: () => void) => (
+    <button type="button" className={styles.linkButton} onClick={onClick}>
+      {label}
+    </button>
+  )
+  const visitRemoved = context?.visit === 'none'
+  const visitLine = context
+    ? visitRemoved
+      ? (
+          <span className={styles.noteAside}>
+            {GROUP_TEXT.visitRemoved} · {linkButton(GROUP_TEXT.visitBack, context.onVisitBack)}
+          </span>
+        )
+      : visitRequiredOpenSites > 0 && (
+          <span className={styles.noteAside}>
+            {GROUP_TEXT.visitSome(visitRequiredOpenSites)}{' '}
+            {linkButton(GROUP_TEXT.visitRemove(visitRequiredOpenSites), context.onVisitNone)}
+          </span>
+        )
+    : null
+  const green = context && !context.hasMine && context.scope !== 'all' && !context.accountFailed
+
+  return (
+    <>
+      {green && (
+        <p className={styles.greenLine} role="status">
+          {context.regionsPicked ? (
+            <>
+              <b>[검색]</b>을 눌러 다시 찾아 주세요
+            </>
+          ) : (
+            <>
+              {GROUP_TEXT.green(libraries.length)}{' '}
+              {linkButton(GROUP_TEXT.pickRegions, context.onPickRegions)}
+            </>
+          )}
+        </p>
+      )}
+
+      {mine.count > 0 ? (
+        <GroupSection
+          group={mine}
+          title={GROUP_TEXT.mine}
+          note={context && GROUP_TEXT.mineNote(context.mineLabel)}
+          {...common}
+        />
+      ) : (
+        context?.hasMine &&
+        firstDone && (
+          <GroupSection
+            group={mine}
+            title={GROUP_TEXT.mineEmpty}
+            note={context.scope !== 'all' && linkButton(GROUP_TEXT.searchAll, context.onSearchAll)}
+            muted
+            {...common}
+          />
+        )
+      )}
+
+      {open.count > 0 ? (
+        <GroupSection
+          group={open}
+          title={GROUP_TEXT.open}
+          note={
+            <>
+              {GROUP_TEXT.openNote}
+              {visitLine && <> · {visitLine}</>}
+            </>
+          }
+          {...common}
+        />
+      ) : (
+        visitRemoved &&
+        visitLine && <p className={styles.visitRemovedLine}>{visitLine}</p>
+      )}
+
+      {other.count > 0 && (
+        <GroupSection group={other} title={GROUP_TEXT.other} note={GROUP_TEXT.otherNote} {...common} />
+      )}
+    </>
   )
 }

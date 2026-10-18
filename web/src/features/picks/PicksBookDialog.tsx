@@ -241,6 +241,7 @@ function BookBody({
             library={libraries.get(row.libraryId)}
             searchUrl={undefined}
             screen="picks"
+            tags={false}
           />
         ))}
         {checking && (

@@ -145,6 +145,8 @@ function BookView({ bookId }: { bookId: string }) {
       ) : (
         <ResultList
           screen="book_page"
+          // no result groups or pills on the book page (cycle 22 D9, AC-17)
+          grouped={false}
           batches={holdingBatchViews(holdings.state, filter)}
           filter={filter}
           onFilterChange={changeFilter}

@@ -2,7 +2,11 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, fetchBook } from '../../api/client'
+import { holdingStream } from '../../api/searchStream'
+import type { HoldingStreamEvent, TargetLibrary } from '../../api/types'
 import { BookPage } from './BookPage'
+
+vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
 
 vi.mock('../../api/client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../api/client')>()),
@@ -63,5 +67,97 @@ describe('scope', () => {
   it('is all with scope=all in the address', async () => {
     renderAt('/books/5001?scope=all')
     await vi.waitFor(() => expect(plan().scope).toBe('all'))
+  })
+})
+
+/** Cycle 22 (D9, AC-17): the book page keeps its list as it was, without result groups or pills. */
+describe('holdings list', () => {
+  it('has no result groups and no pills', async () => {
+    const library: TargetLibrary = {
+      id: 1,
+      name: '가 도서관',
+      libraryType: 'EBOOK',
+      platformType: 'KYOBO_V1',
+      priorityGroup: 'OPEN',
+      deferred: false,
+      extraConditionText: null,
+      visitRequired: true,
+      eligibility: 'OPEN',
+      eligibilitySummary: null,
+      joinMethod: null,
+      joinUrl: null,
+      joinCaution: null,
+      joinNotice: null,
+      homepageUrl: null,
+      chosen: false,
+      joinSurvey: 'SURVEYED',
+      logoUrl: null,
+      mobileSiteDiffers: false,
+    }
+    vi.mocked(fetchBook).mockReset()
+    vi.mocked(fetchBook).mockResolvedValue({
+      id: 5001,
+      title: '책',
+      authorDisplay: null,
+      publisher: null,
+      publishedOn: null,
+      isbn13: null,
+      holdingLibraryCount: 1,
+      libraries: [],
+    })
+    vi.mocked(holdingStream).mockImplementation(async (_params, onEvent) => {
+      const events: HoldingStreamEvent[] = [
+        {
+          name: 'targets',
+          data: {
+            filter: 'all',
+            scope: 'joinable',
+            visit: 'any',
+            regionFilterApplied: false,
+            libraries: [library],
+            holdings: [{ holdingId: 101, bookId: 5001, libraryId: 1 }],
+          },
+        },
+        {
+          name: 'holding-result',
+          data: {
+            batchNo: 1,
+            holdingId: 101,
+            bookId: 5001,
+            libraryId: 1,
+            item: {
+              rank: 0,
+              title: '책',
+              author: null,
+              publisher: null,
+              supplier: null,
+              holdings: 1,
+              loaned: 0,
+              reservations: 0,
+              available: 1,
+              titleKey: 'book:5001',
+              availability: 'AVAILABLE',
+              availabilityBasis: 'COUNT',
+              detailUrl: null,
+            },
+            fetchedAt: '',
+            cached: false,
+          },
+        },
+        { name: 'done', data: { batchNo: 1 } },
+      ]
+      for (const event of events) onEvent(event)
+    })
+    render(
+      <MemoryRouter initialEntries={['/books/5001']}>
+        <Routes>
+          <Route path="/books/:bookId" element={<BookPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByRole('heading', { name: '지금 빌릴 수 있어요 (1)' })).toBeTruthy()
+    expect(screen.queryByText(/어디 살든 가입되는 도서관에 있어요/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '방문 가입' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
   })
 })

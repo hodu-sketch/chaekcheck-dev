@@ -337,3 +337,142 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
+
+/*
+ * cycle 22 (ADR-0136): result groups ① 내 도서관 ② 어디 살든 가입 ③ 그 밖. The group title is a step larger than its
+ * subsections ("지금 빌릴 수 있어요" …), with its count and a small grey text after it (on phones under it).
+ */
+.resultGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.resultGroupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  padding-top: 0.2rem;
+}
+
+.resultGroupTitle {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.resultGroupCount {
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.resultGroupNote {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.resultGroupNote::before {
+  content: '· ';
+  color: var(--ink-faint);
+}
+
+/* an empty ①: "내 도서관에는 없어요 (0) · [전국에서 찾기]" in grey */
+.resultGroup[data-muted] .resultGroupTitle {
+  color: var(--ink-soft);
+}
+
+/* the subsections inside a group: smaller titles */
+.resultGroup .groupTitle {
+  font-size: var(--text-sm);
+}
+
+/* "이 중 N곳은 가입하려면 도서관에 가야 해요 [그 N곳 빼기]", "방문 가입 도서관을 뺐어요 · [다시 넣기]" */
+.noteAside {
+  color: var(--reserve);
+  font-weight: 700;
+}
+
+.visitRemovedLine {
+  font-size: var(--text-sm);
+}
+
+/*
+ * R7: a search without regions or added libraries, above the groups. Green like the header light's green (#2c9860),
+ * no ×.
+ */
+.greenLine {
+  --green: #2c9860;
+  margin-top: 0.9rem;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--green);
+  border-radius: var(--radius-md);
+  background: #effaf4;
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.greenLine .linkButton {
+  color: #1f7a4b;
+}
+
+/* the list bottom's two buttons: 「결과 더 보기」 then 「전국에서 더 찾기」 */
+.bottomButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.allButton {
+  padding: 0.85rem 1.4rem;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms;
+}
+
+.allButton:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.allButton:focus-visible,
+.linkButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (width <= 640px) {
+  /* phones: the small text on its own line under the title */
+  .resultGroupHead {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .resultGroupNote::before {
+    content: none;
+  }
+
+  .greenLine {
+    margin-top: 0;
+    font-size: var(--text-sm);
+  }
+
+  .bottomButtons {
+    flex-direction: column;
+    align-self: stretch;
+  }
+
+  .allButton {
+    align-self: stretch;
+  }
+}

@@ -3,7 +3,7 @@ import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
 import { BLOCKED_TEXT, blockedBy, reportBlocked, type Blocked } from './blocked'
 import { holdingBatchViews } from './holdingView'
-import { ResultList } from './ResultList'
+import { ResultList, type ResultSearchContext } from './ResultList'
 import { SortSelect } from './SortSelect'
 import { useHoldings } from './useHoldings'
 import styles from './SearchPage.module.css'
@@ -18,6 +18,8 @@ type Props = {
   onDirect: () => void
   /** `invalid_region`: the stored regions are checked again; true when they changed (a new search follows). */
   onInvalidRegion: () => Promise<boolean>
+  /** The search's regions and the buttons inside the results (cycle 22 R5, R7, R8). */
+  searchContext?: ResultSearchContext
 }
 
 /**
@@ -25,7 +27,15 @@ type Props = {
  * them, asked on their detail pages in batches (ADR-0030). "더 보기" asks the holdings not asked yet; when the books
  * of this page are done, the next book page is fetched and its holdings are asked [안].
  */
-export function InstantResults({ query, filter, onFilterChange, onSortChange, onDirect, onInvalidRegion }: Props) {
+export function InstantResults({
+  query,
+  filter,
+  onFilterChange,
+  onSortChange,
+  onDirect,
+  onInvalidRegion,
+  searchContext,
+}: Props) {
   const holdings = useHoldings()
   const { open } = holdings
   const [books, setBooks] = useState<{ items: BookItem[]; last: BookPage } | null>(null)
@@ -139,6 +149,9 @@ export function InstantResults({ query, filter, onFilterChange, onSortChange, on
       ) : (
         <ResultList
           screen="catalog_results"
+          grouped
+          tags
+          searchContext={searchContext}
           batches={views}
           filter={filter}
           onFilterChange={onFilterChange}

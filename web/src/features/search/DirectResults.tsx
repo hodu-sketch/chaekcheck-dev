@@ -5,7 +5,7 @@ import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrar
 import { InfoTip } from '../../components/InfoTip'
 import { BLOCKED_TEXT, blockedBy } from './blocked'
 import { LibraryCountButton } from './LibrarySummaryBar'
-import { ResultList, type BatchView, type UncheckedLibrary } from './ResultList'
+import { ResultList, type BatchView, type ResultSearchContext, type UncheckedLibrary } from './ResultList'
 import listStyles from './ResultList.module.css'
 import { uncheckedText } from './resultFilter'
 import { DIRECT_REASON } from './searchSettings'
@@ -34,6 +34,8 @@ type Props = {
    * every width (user requests 2026-10-05); null while that place is not there yet.
    */
   countSlot: HTMLElement | null
+  /** The search's regions and the buttons inside the results (cycle 22 R5, R7, R8). */
+  searchContext?: ResultSearchContext
 }
 
 /**
@@ -51,6 +53,7 @@ export function DirectResults({
   onFilterChange,
   onEditRegions,
   countSlot,
+  searchContext,
 }: Props) {
   const regions = useMemo(
     () => ({ residence: searchedWith.residence, work: searchedWith.work }),
@@ -167,7 +170,10 @@ export function DirectResults({
             !firstBatchWaiting &&
             !noTargets && (
               <ResultList
-          screen="direct_results"
+                screen="direct_results"
+                grouped
+                tags
+                searchContext={searchContext}
                 batches={view.batches}
                 filter={filter}
                 onFilterChange={onFilterChange}
