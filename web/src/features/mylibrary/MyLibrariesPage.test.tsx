@@ -144,11 +144,11 @@ describe('S10 sections', () => {
     )
     expect(within(workRow).getByRole('list', { name: '고른 일하는 곳' }).textContent).toBe('서울 중구')
     expect(screen.queryByRole('region', { name: '지역으로 자동' })).toBeNull()
-    // a library both regions match is in both lists; "거주 지역으로 자동 2곳" is one line, folded
-    const byResidence = within(chosenRegions).getByRole('group', { name: '거주 지역으로 자동' })
-    const byWork = within(chosenRegions).getByRole('group', { name: '직장 지역으로 자동' })
-    const residenceToggle = within(byResidence).getByRole('button', { name: '거주 지역으로 자동 2곳' })
-    const workToggle = within(byWork).getByRole('button', { name: '직장 지역으로 자동 1곳' })
+    // a library both regions match is in both lists; "거주 2곳" is one line, folded
+    const byResidence = within(chosenRegions).getByRole('group', { name: '거주' })
+    const byWork = within(chosenRegions).getByRole('group', { name: '직장' })
+    const residenceToggle = within(byResidence).getByRole('button', { name: '거주 2곳' })
+    const workToggle = within(byWork).getByRole('button', { name: '직장 1곳' })
     expect(residenceToggle.getAttribute('aria-expanded')).toBe('false')
     expect(within(byResidence).queryByText('서울도서관 전자도서관')).toBeNull()
     const user = userEvent.setup()
@@ -159,9 +159,9 @@ describe('S10 sections', () => {
     expect(within(byWork).getByText('서울도서관 전자도서관')).toBeTruthy()
     // the order inside the section: 사는 곳, its list, 일하는 곳, its list
     const text = chosenRegions.textContent!
-    expect(text.indexOf('사는 곳')).toBeLessThan(text.indexOf('거주 지역으로 자동'))
-    expect(text.indexOf('거주 지역으로 자동')).toBeLessThan(text.indexOf('일하는 곳'))
-    expect(text.indexOf('일하는 곳')).toBeLessThan(text.indexOf('직장 지역으로 자동'))
+    expect(text.indexOf('사는 곳')).toBeLessThan(text.indexOf('거주 '))
+    expect(text.indexOf('거주 ')).toBeLessThan(text.indexOf('일하는 곳'))
+    expect(text.indexOf('일하는 곳')).toBeLessThan(text.indexOf('직장 '))
     expect(within(section('직접 추가한 도서관')).getByText('1/20')).toBeTruthy()
   })
 
@@ -250,8 +250,8 @@ describe('S10 library classification', () => {
     await ready()
     const user = userEvent.setup()
 
-    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주 지역으로 자동' })
-    await user.click(within(byResidence).getByRole('button', { name: /자동/ }))
+    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
+    await user.click(within(byResidence).getByRole('button', { name: /^거주 \d+곳/ }))
     const regionNames = within(byResidence).getAllByRole('listitem').map((item) => item.textContent)
     expect(regionNames).toContain('동대문구립도서관 · YES24 · 소장')
     expect(regionNames).toContain('동대문구립도서관 · 교보 · 구독')
@@ -427,8 +427,8 @@ describe('S10 long lists', () => {
     expect(names(openToAll)).toBe(25)
     expect(within(openToAll).queryByRole('button', { name: '더 보기' })).toBeNull()
 
-    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주 지역으로 자동' })
-    await user.click(within(byResidence).getByRole('button', { name: '거주 지역으로 자동 12곳' }))
+    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
+    await user.click(within(byResidence).getByRole('button', { name: '거주 12곳' }))
     expect(names(byResidence)).toBe(10)
     await user.click(within(byResidence).getByRole('button', { name: '더 보기' }))
     expect(names(byResidence)).toBe(12)

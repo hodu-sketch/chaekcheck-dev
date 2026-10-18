@@ -202,7 +202,7 @@ function Section({
  * "지역 선택" (cycle 22 R11-1, flow S10): no [변경] and no dialog any more; a "사는 곳" row and an "일하는 곳" row, each
  * the chips and the grid (`RegionGrid`), every check saved at once. The 일하는 곳 grid stays folded behind
  * [일하는 곳도 더하기] until it is opened or has a region (flow "지역 격자 부품"). Under each grid the libraries it brings
- * in, "거주 지역으로 자동 N곳 ▸", folded (user requests 2026-10-05). Nothing to remove there (spec R4). A failed save
+ * in, "거주 N곳 ▸", folded (user requests 2026-10-05). Nothing to remove there (spec R4). A failed save
  * and, before login, the save hint (R9) under the rows.
  */
 function RegionSection({
@@ -268,7 +268,7 @@ function RegionSection({
   )
 }
 
-/** One field: its title, the grid (chips on top), then "거주 지역으로 자동 N곳 ▸". */
+/** One field: its title, the grid (chips on top), then "거주 N곳 ▸". */
 function RegionRow({
   title,
   field,
@@ -307,21 +307,21 @@ function RegionRow({
 }
 
 /**
- * The libraries one field brings in: "거주 지역으로 자동 N곳 ▸", which opens to the names (user request 2026-10-05).
+ * The libraries one field brings in: "거주 N곳 ▸", which opens to the names (user request 2026-10-05).
  */
 function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow[] }) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const title = (
     <span id={`${id}-title`} className={styles.autoTitle}>
-      {/* the space outside: a trailing space inside would be dropped from the accessible name */}
-      <span className={styles.autoKind}>{kind} 지역으로</span> 자동
+      {/* just "거주" / "직장" (user 2026-10-19: "지역으로 자동 이런 말 빼줘") */}
+      <span className={styles.autoKind}>{kind}</span>
     </span>
   )
   return (
     <div className={styles.regionField} role="group" aria-labelledby={`${id}-title`}>
       {rows.length === 0 ? (
-        <p className={`${styles.muted} ${styles.autoLine}`}>{title} 없어요</p>
+        <p className={`${styles.muted} ${styles.autoLine}`}>{title} 0곳</p>
       ) : (
         <button
           type="button"
