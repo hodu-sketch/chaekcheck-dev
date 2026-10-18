@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router'
 import type { PlanParams } from '../../api/client'
 import { useRegions } from '../region/RegionContext'
 import { loadPrefs, readVisit } from '../search/searchSettings'
-import { useLibraryScope } from '../search/useLibraryScope'
+import { readScope } from '../search/readScope'
 
 /**
  * The plan of the librarian picks (cycle 10, AC-7): the same as the book screen's (`BookPage`), so 있음/없음 follows
@@ -13,7 +13,7 @@ import { useLibraryScope } from '../search/useLibraryScope'
 export function usePicksPlan(): { plan: PlanParams; ready: boolean; key: string } {
   const [params] = useSearchParams()
   const [prefs] = useState(() => loadPrefs())
-  const { scope } = useLibraryScope(params)
+  const scope = readScope(params)
   const visit = readVisit(params, prefs.visit)
   const { regions, libraryIds, ready } = useRegions()
   const residenceKey = regions.residence.join(',')

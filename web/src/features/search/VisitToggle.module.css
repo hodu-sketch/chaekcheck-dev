@@ -1,8 +1,9 @@
+/* the pill's frame (it was shared with the scope switch until cycle 22) */
 .scope {
   display: inline-flex;
   align-self: flex-start;
   box-sizing: border-box;
-  /* the same height as "방문 없이 가입" and the summary button (user request 2026-10-05) */
+  /* the same height as the summary button (user request 2026-10-05) */
   height: var(--control-height);
   padding: 0.2rem;
   /* white with a thin line, so it stands out from the light grey box around it (user request 2026-10-05) */
@@ -11,28 +12,7 @@
   background: var(--card);
 }
 
-.item {
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  padding: 0 0.9rem;
-  white-space: nowrap;
-  border: none;
-  border-radius: var(--radius-inner);
-  background: transparent;
-  color: var(--ink-soft);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  word-break: keep-all;
-  transition: background-color 140ms, color 140ms;
-}
-
-.item:hover {
-  color: var(--ink);
-}
-
-/* "방문 없이 가입": one pill that is pressed or not, next to the scope toggle */
+/* one pill that is pressed or not */
 .single {
   align-items: center;
   border: 1px solid var(--rule-strong);
@@ -74,38 +54,10 @@
   border-color: var(--brand-strong);
 }
 
-.item[data-state='on'] {
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-  font-weight: 800;
-}
-
-/* phones: one step smaller, like the Toss app's filter chips, so the switch and "내 도서관 관리" share a row */
+/* phones: one step smaller, like the Toss app's filter chips */
 @media (width <= 640px) {
-  .item {
-    padding: 0 0.6rem;
-    font-size: var(--text-xs);
-  }
-
   .single {
     padding: 0 0.7rem;
     font-size: var(--text-xs);
-  }
-}
-
-/* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
-@media (width <= 640px) {
-  .item {
-    position: relative;
-  }
-
-  .item::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: max(100%, 44px);
-    height: max(100%, 44px);
-    translate: -50% -50%;
   }
 }

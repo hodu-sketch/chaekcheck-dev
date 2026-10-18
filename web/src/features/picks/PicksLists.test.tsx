@@ -16,7 +16,6 @@ const REGIONS = {
 }
 vi.mock('../region/RegionContext', () => ({ useRegions: () => REGIONS }))
 vi.mock('../../api/usageEvents', () => ({ sendUsageEvent: vi.fn() }))
-vi.mock('../search/useLibraryScope', () => ({ useLibraryScope: () => ({ scope: 'joinable' }) }))
 
 const DETAIL: BookDetail = {
   id: 701,

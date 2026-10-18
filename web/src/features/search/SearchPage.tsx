@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
@@ -14,10 +14,9 @@ import { MyLibrarySummary } from '../mylibrary/MyLibrarySummary'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
-import { LibraryScopeToggle } from './LibraryScopeToggle'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
-import { joinableLabel, useLibraryScope } from './useLibraryScope'
+import { readScope } from './readScope'
 import {
   loadPrefs,
   loadSettings,
@@ -31,6 +30,7 @@ import {
   type SearchSettings,
 } from './searchSettings'
 import { SortSelect } from './SortSelect'
+import { useSearchedWith } from './useSearchedWith'
 import { VisitToggle } from './VisitToggle'
 import scopeStyles from './ScopeSummary.module.css'
 import styles from './SearchPage.module.css'
@@ -40,6 +40,8 @@ import styles from './SearchPage.module.css'
  * default: 바로 보기 (books, then their libraries' live availability) or 책 먼저 고르기 (books only). With
  * "도서관에서 직접 찾기" on, the cycle 03 site search runs with the first filled field. Conditions, filter, scope,
  * visit and the two settings are in the address (ADR-0033); only the settings are also kept in this browser [확정].
+ * Cycle 22 (D6): the search uses the regions and added libraries as they were when it was started (`searchedWith`);
+ * changing them, or 방문 없이 가입, only saves them until the next [검색].
  */
 export function SearchPage() {
   const [params, setParams] = useSearchParams()
@@ -50,14 +52,16 @@ export function SearchPage() {
   const [prefs, setPrefs] = useState<SearchPrefs>(() => loadPrefs())
   const input = readBookSearch(params)
   const filter = readFilter(params, prefs.filter)
-  const visit = readVisit(params, prefs.visit)
+  // the results read 방문 없이 가입 from the address only; the switch keeps it for the next search (cycle 22 step 1-4)
+  const visit = readVisit(params)
   const keepPrefs = (next: Partial<SearchPrefs>) => {
     savePrefs(next)
     setPrefs((current) => ({ ...current, ...next }))
   }
 
-  const { regions, libraryIds, source, ready, notices, setRegions, resolveStoredRegions } = useRegions()
-  const { scope, mine, change: changeScope, addressScope } = useLibraryScope(params, setParams)
+  const { regions, source, notices, setRegions } = useRegions()
+  const scope = readScope(params)
+  const { searchedWith, retake, resolveAndRetake } = useSearchedWith()
   // "내 도서관 관리" before login too (cycle 07 flow S1); only screens without the provider (tests) keep "내 지역"
   const myLibrary = useOptionalMyLibrary()
   const [modalOpen, setModalOpen] = useState(false)
@@ -73,11 +77,12 @@ export function SearchPage() {
   const directValid = settings.direct && condition !== null && checkQuery(directQuery) === null
 
   // catalog search: every filled field, normalized; nothing is sent while one of them is invalid
-  const residenceKey = regions.residence.join(',')
-  const workKey = regions.work.join(',')
-  const libraryKey = libraryIds.join(',')
+  const residenceKey = searchedWith?.residence.join(',') ?? ''
+  const workKey = searchedWith?.work.join(',') ?? ''
+  const libraryKey = searchedWith?.libraryIds.join(',') ?? ''
+  const hasSnapshot = searchedWith !== null
   const bookQuery = useMemo<BookQuery | null>(() => {
-    if (!input || settings.direct || !ready) return null
+    if (!input || settings.direct || !hasSnapshot) return null
     const normalized = {
       title: normalizeQuery(input.title),
       author: normalizeQuery(input.author),
@@ -96,13 +101,13 @@ export function SearchPage() {
       visit,
       residenceRegionIds: residenceKey ? residenceKey.split(',').map(Number) : [],
       workRegionIds: workKey ? workKey.split(',').map(Number) : [],
-      // sent with both switch values: the account's after login (AC-6), this browser's before (cycle 07, AC-18)
+      // the account's after login (AC-6), this browser's before (cycle 07, AC-18), as they were at the search
       libraryIds: libraryKey ? libraryKey.split(',').map(Number) : [],
       page: 1,
     }
     // the key string stands for the input object, which is new on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.toString(), settings.direct, ready, scope, visit, residenceKey, workKey, libraryKey])
+  }, [params.toString(), settings.direct, hasSnapshot, scope, visit, residenceKey, workKey, libraryKey])
 
   const hasSearch = settings.direct ? directValid : bookQuery !== null
   // 「전자책 검색」 (header menu 도서검색, user 2026-10-16, design A): `/search` before a search keeps the results'
@@ -117,12 +122,15 @@ export function SearchPage() {
     ? JSON.stringify([input.title, input.author, input.publisher, input.exact, input.roles])
     : ''
 
-  /** Keeps filter, scope, visit, the sort and the settings; replaces the conditions. */
+  /**
+   * Keeps filter, the sort and the settings; replaces the conditions. A new search is always `joinable` (D10) and
+   * takes the stored 방문 없이 가입 and the current regions (the snapshot is taken again).
+   */
   const search = (next: BookSearchInput) => {
     const address = new URLSearchParams()
     writeFilter(filter, address)
-    if (addressScope) address.set('scope', addressScope)
-    writeVisit(visit, address)
+    writeVisit(prefs.visit, address)
+    retake()
     // the sort is changed outside the form (the result list), so the address has the current one
     writeBookSearch({ ...next, sort: input?.sort ?? next.sort }, address)
     writeSettings(settings, address)
@@ -150,21 +158,16 @@ export function SearchPage() {
   }
   // the empty result's button: only the address changes, the stored setting stays [안]
   const goDirect = () => replaceParam('direct', 'on')
-  const onInvalidRegion = useCallback(() => resolveStoredRegions(), [resolveStoredRegions])
+  const onInvalidRegion = resolveAndRetake
 
   const bookLinkSearch = new URLSearchParams()
   writeFilter(filter, bookLinkSearch)
-  if (addressScope) bookLinkSearch.set('scope', addressScope)
+  if (scope === 'all') bookLinkSearch.set('scope', 'all')
   writeVisit(visit, bookLinkSearch)
 
-  const changeVisit = (next: VisitFilter) => {
-    keepPrefs({ visit: next })
-    replaceParam('visit', next === 'none' ? 'none' : null)
-  }
-  const scopeSwitch = (
-    <LibraryScopeToggle scope={scope} hasRegions={hasRegions(regions)} mine={mine} onChange={changeScope} />
-  )
-  const visitToggle = <VisitToggle visit={visit} onChange={changeVisit} />
+  // only kept for the next search (cycle 22 step 1-4); the results go on reading the address
+  const changeVisit = (next: VisitFilter) => keepPrefs({ visit: next })
+  const visitToggle = <VisitToggle visit={prefs.visit} onChange={changeVisit} />
   // in the settings panel a plain way on: S10 after login, S2 before (the summary pop-up is for wider screens)
   const phoneMine = myLibrary ? (
     <Link to="/my-libraries" className={scopeStyles.trigger}>
@@ -175,11 +178,10 @@ export function SearchPage() {
       {hasRegions(regions) ? '내 지역 변경' : '내 지역 설정'}
     </button>
   )
-  // the dot on the settings button: not the default scope (the joinable side, user request 2026-10-05)
-  const scopeChanged = scope !== 'joinable' || visit === 'none'
-  const scopeValue = [scope === 'all' ? '전체 도서관' : joinableLabel(hasRegions(regions), mine), visit === 'none' && '방문 없이']
-    .filter(Boolean)
-    .join(' · ')
+  // the dot on the settings button: not the default (joinable, visit-only libraries kept)
+  const scopeChanged = scope === 'all' || prefs.visit === 'none'
+  // no scope switch any more (cycle 22 R4-1): the row names 내 도서관 until step 3 redraws it
+  const scopeValue = ['내 도서관', prefs.visit === 'none' && '방문 없이'].filter(Boolean).join(' · ')
 
   return (
     <div
@@ -208,7 +210,6 @@ export function SearchPage() {
           settingsScope={
             phone ? (
               <>
-                {scopeSwitch}
                 {visitToggle}
                 {phoneMine}
               </>
@@ -231,7 +232,6 @@ export function SearchPage() {
         {!phone && (
           <div className={styles.scopeRow}>
             <div className={styles.toggles}>
-              {scopeSwitch}
               {visitToggle}
               {myLibrary ? <MyLibrarySummary /> : <RegionSummary regions={regions} onEdit={() => setModalOpen(true)} />}
             </div>
@@ -264,7 +264,7 @@ export function SearchPage() {
         </section>
       )}
 
-      {settings.direct && directValid && condition && (
+      {settings.direct && directValid && condition && searchedWith && (
         <DirectResults
           key={`${condition.field}:${directQuery}`}
           field={condition.field}
@@ -272,6 +272,8 @@ export function SearchPage() {
           filter={filter}
           scope={scope}
           visit={visit}
+          searchedWith={searchedWith}
+          onInvalidRegion={onInvalidRegion}
           onFilterChange={changeFilter}
           onEditRegions={() => setModalOpen(true)}
           countSlot={countSlot}
@@ -308,7 +310,7 @@ export function SearchPage() {
         regions={regions}
         savedTo={source === 'account' ? 'account' : 'browser'}
         onSave={async (next) => {
-          // same conditions search again with the new regions (flow.md S2); a failed save keeps the modal open
+          // only saved: the next [검색] uses them (cycle 22 D6); a failed save keeps the modal open
           await setRegions(next)
           setModalOpen(false)
         }}

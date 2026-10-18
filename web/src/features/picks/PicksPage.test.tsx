@@ -17,7 +17,6 @@ const REGIONS = {
 }
 vi.mock('../region/RegionContext', () => ({ useRegions: () => REGIONS }))
 vi.mock('../../api/usageEvents', () => ({ sendUsageEvent: vi.fn() }))
-vi.mock('../search/useLibraryScope', () => ({ useLibraryScope: () => ({ scope: 'joinable' }) }))
 
 const BOOK_DETAIL: BookDetail = {
   id: 5001,
@@ -182,6 +181,15 @@ describe('librarian picks (S13)', () => {
     expect(url.searchParams.get('residenceRegionIds')).toBe('1116')
     expect(url.searchParams.get('libraryIds')).toBe('12,34')
     expect(url.searchParams.has('visit')).toBe(false)
+  })
+
+  it('is joinable even when this browser kept the old 전체 switch (cycle 22 R4-1)', async () => {
+    localStorage.setItem('chaekcheck.searchSettings.v1', JSON.stringify({ guestScope: 'all', myScope: 'all' }))
+    const calls = stubFetch()
+    renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    expect(calls.find((c) => c.pathname === '/api/v1/picks/librarian')!.searchParams.get('scope')).toBe('joinable')
+    localStorage.clear()
   })
 
   it('shows the title when there is no cover or it does not load (AC-14)', async () => {

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '../auth/AuthContext'
 import { NoticeBar, NoticeProvider } from '../auth/NoticeContext'
 import { RegionProvider, useRegions } from '../region/RegionContext'
 import { REGION_STORAGE_KEY } from '../region/regionStorage'
+import { SearchPage } from '../search/SearchPage'
 import { MyLibraryProvider, useMyLibrary } from './MyLibraryContext'
 import { RegionImportDialog } from './RegionImportDialog'
 import { REGION_IMPORT_KEY } from './regionImport'
@@ -47,6 +48,10 @@ interface Fake {
   signedIn: boolean
   serverRegions: { residenceRegionIds: number[]; workRegionIds: number[] }
   putStatus: number
+  /** `GET /api/v1/me/libraries`: its status, and a hold until `release` is called (cycle 22 D7). */
+  librariesStatus: number
+  release: (() => void) | null
+  holdLibraries: boolean
   calls: Array<{ method: string; url: string; body?: unknown }>
 }
 
@@ -68,7 +73,15 @@ function fakeServer(fake: Fake) {
       fake.serverRegions = JSON.parse(init!.body as string)
       return json(200, fake.serverRegions)
     }
-    if (url === '/api/v1/me/libraries') return json(200, { libraryIds: [], max: 20 })
+    if (url === '/api/v1/me/libraries') {
+      if (fake.holdLibraries) await new Promise<void>((resolve) => (fake.release = resolve))
+      return fake.librariesStatus === 200
+        ? json(200, { libraryIds: [], max: 20 })
+        : json(fake.librariesStatus, { code: 'internal_error' })
+    }
+    if (url.startsWith('/api/v1/books?')) {
+      return json(200, { items: [], page: 1, pageSize: 20, totalCount: 0, hasMore: false, collectedFrom: null, collectedTo: null })
+    }
     if (url.startsWith('/api/v1/me/libraries/') && (method === 'PUT' || method === 'DELETE')) {
       return new Response(null, { status: 204 })
     }
@@ -90,13 +103,14 @@ function fakeServer(fake: Fake) {
 }
 
 function Probe() {
-  const { regions, source, ready, notices, setRegions } = useRegions()
+  const { regions, source, ready, accountFailed, notices, setRegions } = useRegions()
   const { signOut } = useAuth()
   const { addLibrary, removeLibrary } = useMyLibrary()
   return (
     <div>
       <p data-testid="source">{source}</p>
       <p data-testid="ready">{String(ready)}</p>
+      <p data-testid="accountFailed">{String(accountFailed)}</p>
       <p data-testid="regions">{JSON.stringify(regions)}</p>
       <ul>
         {notices.map((notice) => (
@@ -119,7 +133,7 @@ function Probe() {
   )
 }
 
-function renderApp() {
+function renderApp(search = false) {
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <AuthProvider>
@@ -127,8 +141,9 @@ function renderApp() {
           <MyLibraryProvider>
             <RegionProvider>
               {/* the notice bar follows the page, as in AppLayout */}
-              <MemoryRouter>
+              <MemoryRouter initialEntries={[search ? '/search?title=사랑&view=books' : '/']}>
                 <NoticeBar />
+                {search && <SearchPage />}
                 <Probe />
                 <RegionImportDialog />
               </MemoryRouter>
@@ -145,7 +160,15 @@ let fake: Fake
 
 beforeEach(() => {
   document.cookie = 'XSRF-TOKEN=csrf; path=/'
-  fake = { signedIn: false, serverRegions: { residenceRegionIds: [], workRegionIds: [] }, putStatus: 200, calls: [] }
+  fake = {
+    signedIn: false,
+    serverRegions: { residenceRegionIds: [], workRegionIds: [] },
+    putStatus: 200,
+    librariesStatus: 200,
+    release: null,
+    holdLibraries: false,
+    calls: [],
+  }
   fakeServer(fake)
 })
 
@@ -196,14 +219,42 @@ describe('signed in (C18)', () => {
     expect(setItem.mock.calls.filter(([key]) => key === REGION_STORAGE_KEY)).toEqual([])
   })
 
-  it('searches without regions while the saved values load, then uses them', async () => {
+  it('sends no search while the account loads, then one with its regions (cycle 22 D7)', async () => {
     fake.signedIn = true
     fake.serverRegions = { residenceRegionIds: [1114], workRegionIds: [] }
-    renderApp()
+    fake.holdLibraries = true
+    localStorage.setItem(REGION_IMPORT_KEY, '[7]')
+    renderApp(true)
+    const searches = () => fake.calls.filter((call) => call.url.startsWith('/api/v1/books?'))
 
     await waitFor(() => expect(text('source')).toBe('account'))
+    await waitFor(() => expect(fake.release).not.toBeNull())
+    await act(async () => {})
+    expect(text('ready')).toBe('false')
+    expect(text('accountFailed')).toBe('false')
+    expect(searches()).toEqual([])
+
+    act(() => fake.release!())
     await waitFor(() => expect(text('regions')).toBe('{"residence":[1114],"work":[]}'))
+    await waitFor(() => expect(searches()).toHaveLength(1))
     expect(text('ready')).toBe('true')
+    expect(new URL(searches()[0].url, 'http://localhost').searchParams.get('residenceRegionIds')).toBe('1114')
+  })
+
+  it('a failed account read is ready without regions and says accountFailed (cycle 22 D7)', async () => {
+    fake.signedIn = true
+    fake.serverRegions = { residenceRegionIds: [1114], workRegionIds: [] }
+    fake.librariesStatus = 500
+    localStorage.setItem(REGION_IMPORT_KEY, '[7]')
+    renderApp(true)
+
+    await waitFor(() => expect(text('accountFailed')).toBe('true'))
+    expect(text('ready')).toBe('true')
+    expect(text('regions')).toBe('{"residence":[],"work":[]}')
+    await waitFor(() => expect(fake.calls.filter((call) => call.url.startsWith('/api/v1/books?'))).toHaveLength(1))
+    const sent = new URL(fake.calls.find((call) => call.url.startsWith('/api/v1/books?'))!.url, 'http://localhost')
+    expect(sent.searchParams.get('scope')).toBe('joinable')
+    expect(sent.searchParams.has('residenceRegionIds')).toBe(false)
   })
 
   it('goes back to this browser after logout', async () => {

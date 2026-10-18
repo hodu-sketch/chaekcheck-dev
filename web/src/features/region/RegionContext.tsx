@@ -21,8 +21,16 @@ interface RegionContextValue {
    */
   libraryIds: number[]
   source: RegionSource
-  /** False while ids are being checked (at startup, after reading the server's); searches wait so they do not hit a 422. */
+  /**
+   * False while ids are being checked (at startup, after reading the server's) and, after login, while the account's
+   * 내 도서관 is being read (cycle 22 D7); searches wait so they do not hit a 422 or run without the account's regions.
+   */
   ready: boolean
+  /**
+   * After login, the account's 내 도서관 could not be read (cycle 22 D7): `ready` is true and searches go without
+   * regions or added libraries until it is read again.
+   */
+  accountFailed: boolean
   notices: RegionNotice[]
   /**
    * Saves the regions: in this browser before login, with `PUT /api/v1/me/regions` while signed in (rejects with the
@@ -47,6 +55,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
     authStatus === 'checking' ? 'waiting' : authStatus === 'signed-in' && myLibrary ? 'account' : 'browser'
   const serverRegions = source === 'account' && myLibrary?.status === 'ready' ? myLibrary.regions : null
   const serverKey = serverRegions ? regionsKey(toStored(serverRegions)) : null
+  const accountFailed = source === 'account' && myLibrary?.status === 'error'
 
   const [regions, setRegionsState] = useState<StoredRegions>(EMPTY_REGIONS)
   const [ready, setReady] = useState(false)
@@ -62,7 +71,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
 
   // Load from the current source and check the ids once (spec 5.8, R6). The server's values are resolved for the
   // screen and the notices but never saved back (C19); only S2 and S11 save them.
-  const loadKey = `${source}:${serverKey ?? ''}`
+  // while the account is read, its status (loading or error) stands in for the server's value
+  const loadKey = `${source}:${serverKey ?? (source === 'account' ? (myLibrary?.status ?? '') : '')}`
   useEffect(() => {
     if (source !== 'account') savedKey.current = null
     setAppliedKey(loadKey)
@@ -73,10 +83,11 @@ export function RegionProvider({ children }: { children: ReactNode }) {
       return
     }
     if (source === 'account' && serverRegions === null) {
-      // reading the account's values: search without regions meanwhile, do not block it [확정] (flow S1)
+      // reading the account's values: searches wait for them (cycle 22 D7; before: searched without regions, flow S1).
+      // A failed read searches without regions; the screen says so (accountFailed).
       setRegionsState(EMPTY_REGIONS)
       setNotices([])
-      setReady(true)
+      setReady(accountFailed)
       return
     }
     if (source === 'account' && savedKey.current === serverKey) return
@@ -148,8 +159,8 @@ export function RegionProvider({ children }: { children: ReactNode }) {
   // between a new source or server value and the effect that loads it, the old regions must not be searched with
   const current = ready && appliedKey === loadKey
   const value = useMemo(
-    () => ({ regions, libraryIds, source, ready: current, notices, setRegions, resolveStoredRegions }),
-    [regions, libraryIds, source, current, notices, setRegions, resolveStoredRegions],
+    () => ({ regions, libraryIds, source, ready: current, accountFailed, notices, setRegions, resolveStoredRegions }),
+    [regions, libraryIds, source, current, accountFailed, notices, setRegions, resolveStoredRegions],
   )
   return <RegionContext value={value}>{children}</RegionContext>
 }

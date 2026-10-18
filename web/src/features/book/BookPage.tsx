@@ -4,7 +4,7 @@ import { ApiError, fetchBook } from '../../api/client'
 import type { BookDetail, ResultFilter } from '../../api/types'
 import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
-import { useLibraryScope } from '../search/useLibraryScope'
+import { readScope } from '../search/readScope'
 import { loadPrefs, readVisit, savePrefs } from '../search/searchSettings'
 import { holdingBatchViews } from '../search/holdingView'
 import { ResultList } from '../search/ResultList'
@@ -21,7 +21,7 @@ export function BookPage() {
   const { bookId = '' } = useParams()
   const [params] = useSearchParams()
   const { regions, libraryIds, ready } = useRegions()
-  const { scope } = useLibraryScope(params)
+  const scope = readScope(params)
   // a new book, filter, plan, region set or added libraries start over from a fresh page state
   const key = `${bookId}?${params}|${regions.residence.join(',')}|${regions.work.join(',')}|${libraryIds.join(',')}|${scope}|${ready}`
   return <BookView key={key} bookId={bookId} />
@@ -33,7 +33,7 @@ function BookView({ bookId }: { bookId: string }) {
   // what the address leaves out comes from this browser's last choice (user request 2026-10-05)
   const [prefs] = useState(() => loadPrefs())
   const filter = readFilter(params, prefs.filter)
-  const { scope } = useLibraryScope(params)
+  const scope = readScope(params)
   const visit = readVisit(params, prefs.visit)
   const { regions, libraryIds, ready } = useRegions()
   const residenceKey = regions.residence.join(',')

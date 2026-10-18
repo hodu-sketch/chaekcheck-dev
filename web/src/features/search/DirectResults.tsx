@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import type { ApiError } from '../../api/client'
 import type { Eligibility, LibraryScope, ResultFilter, SearchField, TargetLibrary, VisitFilter } from '../../api/types'
 import { InfoTip } from '../../components/InfoTip'
-import { useRegions } from '../region/RegionContext'
 import { BLOCKED_TEXT, blockedBy } from './blocked'
 import { LibraryCountButton } from './LibrarySummaryBar'
 import { ResultList, type BatchView, type UncheckedLibrary } from './ResultList'
@@ -14,6 +13,7 @@ import { SortSelect } from './SortSelect'
 import { remainingLibraries } from './searchPlan'
 import { applyFilter, sortBatch } from './sortBatch'
 import { useSearch } from './useSearch'
+import type { SearchedWith } from './useSearchedWith'
 import styles from './SearchPage.module.css'
 
 type Props = {
@@ -23,6 +23,10 @@ type Props = {
   filter: ResultFilter
   scope: LibraryScope
   visit: VisitFilter
+  /** The regions and added libraries the search was started with (cycle 22 D6), not the ones saved since. */
+  searchedWith: SearchedWith
+  /** Re-checks the stored region ids after `invalid_region`; true when they changed (the snapshot follows). */
+  onInvalidRegion: () => Promise<boolean>
   onFilterChange: (filter: ResultFilter) => void
   onEditRegions: () => void
   /**
@@ -42,11 +46,16 @@ export function DirectResults({
   filter,
   scope,
   visit,
+  searchedWith,
+  onInvalidRegion,
   onFilterChange,
   onEditRegions,
   countSlot,
 }: Props) {
-  const { regions, libraryIds, ready, resolveStoredRegions } = useRegions()
+  const regions = useMemo(
+    () => ({ residence: searchedWith.residence, work: searchedWith.work }),
+    [searchedWith.residence, searchedWith.work],
+  )
   const { state, loadNextBatch, loadLibraryMore } = useSearch({
     field,
     query,
@@ -54,9 +63,9 @@ export function DirectResults({
     scope,
     visit,
     regions,
-    libraryIds,
-    regionsReady: ready,
-    resolveStoredRegions,
+    libraryIds: searchedWith.libraryIds,
+    regionsReady: true,
+    resolveStoredRegions: onInvalidRegion,
   })
 
   const targets = useMemo(() => state.targets?.libraries ?? [], [state.targets])
