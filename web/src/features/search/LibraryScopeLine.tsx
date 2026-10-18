@@ -145,7 +145,6 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
             aria-label={first ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
           >
             {first ? SCOPE_TEXT.pick : text}
-            {!first && <Caret />}
           </Dialog.Trigger>
         </div>
         <Dialog.Portal>
@@ -221,7 +220,6 @@ export function LibraryScopeChip({ onOpen }: ChipProps) {
         aria-label={text === null ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
       >
         {text ?? SCOPE_TEXT.pick}
-        <Caret />
       </button>
     </div>
   )
@@ -249,16 +247,6 @@ export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetP
         <LibraryScopeBody key={focus} focus={focus} {...body} onLeave={() => onOpenChange(false)} sheet />
       </div>
     </BottomSheet>
-  )
-}
-
-function Caret() {
-  return (
-    <span className={styles.caret} aria-hidden="true">
-      <svg width="10" height="7" viewBox="0 0 12 8">
-        <path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
   )
 }
 

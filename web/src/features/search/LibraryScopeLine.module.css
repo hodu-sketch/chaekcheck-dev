@@ -83,21 +83,6 @@
   outline-offset: 2px;
 }
 
-.caret {
-  display: inline-flex;
-  flex: none;
-  color: var(--brand-strong);
-}
-
-.folded .caret,
-.chip .caret {
-  color: #fff;
-}
-
-.folded[data-state='open'] .caret {
-  transform: rotate(180deg);
-}
-
 .pickNote {
   margin: 0;
   color: var(--ink-soft);
