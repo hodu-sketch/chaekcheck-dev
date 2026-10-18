@@ -40,7 +40,7 @@ services:
       retries: 10
 
   backend:
-    image: chaekcheck/backend:2026-10-18c
+    image: chaekcheck/backend:2026-10-18d
     restart: unless-stopped
     depends_on:
       db:
