@@ -5680,3 +5680,15 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 확인: main에서 웹 tsc·vitest(614개, 마이페이지 지역 줄 시험 1개가 전체 실행 때만 가끔 늦음 — 따로 돌리면 통과), 백엔드 test 통과. 내 PC `db`에 `lists` 모드: kaist 80줄 29권 맞춤.
 - v1.6.1(2026-10-20): KAIST 「AI대학」 주제 삭제("kaist 추천에서 AI대학 이건 빼자"). kaist.tsv 60줄, fields.tsv에서 `ai_college` 줄, 쓰지 않게 된 표지 1장, AI 요약 20줄을 뺌. 내 PC `lists` 모드: kaist 60줄 29권 맞춤.
 
+# 밤사이 묶음: KAIST 사서추천·노벨연구소·반영하기·지역 외는 방문 가입 (2026-10-20, 사용자 요청, v1.7.0)
+
+- 사용자: "이제 잘거니까 최대한 안 물어보고 니가 검증 꼼꼼히해서 기능적 화면 디자인적으로 어색한 부분이 없게 만들고 커밋푸시하고 aws에 반영하고". 이후에도 요청이 이어져 이 판에 함께 넣음. 바뀐 점 목록은 CHANGELOG v1.7.0.
+- **plan 판단 필요**:
+  - 새 가입 조건 칸 `library.visit_outside_region`(Liquibase `library-017`~`019`): 유효 방문 = `visit_required || (visit_outside_region && 지역 조건 불일치)`. 근거와 원문은 `docs/library-research/open-recheck-2026-10-20.md`, 규칙은 library-maintenance.md 4-10. 원문이 애매한 6곳은 14절(사용자 확인 목록).
+  - 추천 목록 키 `nobel`(Liquibase `picks-005`, `usagelog-007`), KAIST는 사서추천도서로 바뀌며 `year_book`(picks-004). 운영 반영은 배포 뒤 `lists` 모드(3-import.md 14절).
+  - 추천도서·책 화면에 검색 화면의 조건 칸과 「반영하기」(창이 열린 동안은 목록이 그 전 조건을 유지, 닫거나 반영하면 바로 다시 조회). 검색 결과가 없을 때는 반영하기 없음("메인에서 지역 설정의 반영하기는 아무 역할 없는거 아니야").
+  - AI 요약은 Haiku로 모든 목록(KAIST 2,453권 포함, 4-picks.md 8절). 응답이 커짐(KAIST 탭 약 1.1MB, gzip 전): 줄이려면 요약을 책 창에서 따로 받는 안.
+  - 표지: 판이 없어도 제목으로 이은 책은 그 판의 표지("다른 출판사의 표지자나 하지 마 / 같은 출판사의 표지로 하고", 4-picks.md 9절).
+- 사용자가 되돌린 것: 지역 시도·시군구를 버튼 목록이나 자체 드롭다운으로 바꾸는 안(폰 기본 선택창 그대로, "그냥 냅두자").
+- 서울도서관: 조사·기록만(library-maintenance.md 4-14, platforms.md 11, `scripts/library/probe_seoul_elib.py`). 자체 시스템이라 새 플랫폼 코드가 필요해 이 판 뒤에 따로(사용자 "aws배포 끝나고 배포해줘").
+- 확인: ux4에서 웹 tsc·vitest(70파일 625개), 백엔드 test, fetch-service test 통과. 내 PC `db`에 `lists` 모드(23 fields, 2,724 books), 화면에서 KAIST 표지·연도·6칩, 노벨 탭, 조건 칸·반영하기 확인(폰·태블릿·PC).
