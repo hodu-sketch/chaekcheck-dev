@@ -248,9 +248,42 @@
   translate: -50% -30%;
 }
 
+/*
+ * stacked so nothing runs past the window on phones with large text (user's phone, 2026-10-20): the name, the box,
+ * 완전 일치, then a full-width 적용
+ */
+.modal .windowForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.modal .windowLine {
+  display: contents;
+}
+
 .modal .windowInput {
+  order: 1;
+  flex: none;
+  height: var(--control-height);
+  width: 100%;
   min-width: 0;
   font-size: 16px;
+}
+
+.modal .check {
+  order: 2;
+}
+
+.modal .error {
+  order: 3;
+}
+
+.modal .apply {
+  order: 4;
+  flex: none;
+  width: 100%;
 }
 
 .modalClose {
