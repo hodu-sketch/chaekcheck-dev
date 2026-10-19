@@ -333,32 +333,21 @@
 /* phones: two columns, smaller covers, the chips in one row scrolling sideways */
 @media (width <= 640px) {
   /*
-   * the three tabs share the width and a long name wraps onto two lines (user 2026-10-20: "국립중앙도서관 사서 추천"
-   * would push the row past the screen)
+   * the list tabs in one row that swipes sideways, edge to edge like the chips (user 2026-10-20: "각 서울대 노벨연구소 이
+   * 목록은 폰에서는 좌우로 움직여서 목록 옮길 수 있게"); the chosen tab is scrolled into view
    */
   .tabs {
-    gap: 0.75rem;
-  }
-
-  .tab {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    font-size: var(--text-md);
-    line-height: 1.3;
-    text-align: center;
-    white-space: normal;
-    word-break: keep-all;
-  }
-
-  .tabs {
     gap: 1.25rem;
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    scroll-padding-inline: var(--gutter);
+    -webkit-overflow-scrolling: touch;
   }
 
   .tab {
+    flex: none;
     font-size: var(--text-md);
+    white-space: nowrap;
   }
 
   .chips {

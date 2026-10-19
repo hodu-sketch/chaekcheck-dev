@@ -40,6 +40,12 @@ export function PicksRoute() {
  * (AC-20).
  */
 export function PicksPage({ list }: { list: PicksList }) {
+  // phones: the tab row swipes; the chosen list's tab is brought into view (user 2026-10-20)
+  const tabsRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const current = tabsRef.current?.querySelector<HTMLElement>('[aria-current="page"]')
+    current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [list.key])
   const navigate = useNavigate()
   const phone = useMediaQuery(PHONE_QUERY)
   const { plan, ready, key } = usePicksPlan()
@@ -184,7 +190,7 @@ export function PicksPage({ list }: { list: PicksList }) {
   return (
     <div className={styles.page}>
       <h1 className="visually-hidden">{list.name}</h1>
-      <nav className={styles.tabs} aria-label="추천도서 목록">
+      <nav ref={tabsRef} className={styles.tabs} aria-label="추천도서 목록">
         {PICKS_TABS.map((tab) => (
           <NavLink key={tab.key} to={`/picks/${tab.key}`} className={styles.tab}>
             {/* the last two words stay together when a phone wraps the name ("KAIST / 사서 추천", user 2026-10-20) */}
