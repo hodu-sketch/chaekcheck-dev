@@ -248,29 +248,6 @@
   overflow-wrap: anywhere;
 }
 
-/* the pill sits at the bottom of the card, whatever the title's length */
-.pillRow {
-  display: block;
-  margin-top: auto;
-  padding-top: 0.8rem;
-}
-
-.pill {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: var(--paper-deep);
-  color: var(--ink-faint);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.pill[data-linked='true'] {
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-}
-
 .more {
   display: block;
   min-width: 12rem;
@@ -391,15 +368,6 @@
 
   .cardTitle {
     font-size: var(--text-sm);
-  }
-
-  .pillRow {
-    padding-top: 0.6rem;
-  }
-
-  .pill {
-    padding-inline: 0.5rem;
-    font-size: 0.72rem;
   }
 
   .skeleton {

@@ -128,10 +128,11 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     await screen.findByRole('region', { name: '전체' })
     const [first, second] = [card('전체', 1), card('전체', 2)]
     expect(first.getAttribute('data-linked')).toBe('true')
-    expect(within(first).getByText('전자책 있음')).toBeTruthy()
+    // no visible pill (user 2026-10-19); the border and the screen-reader name say it
+    expect(within(first).queryByText('전자책 있음')).toBeNull()
     expect(within(first).queryByText(/사서추천/)).toBeNull()
     expect(second.getAttribute('data-linked')).toBe('false')
-    expect(within(second).getByText('전자책 없음')).toBeTruthy()
+    expect(second.getAttribute('aria-label')).toMatch(/전자책 없음$/)
   })
 
   it('keeps the source and its licence in 추천 기준과 출처 보기 (R7-1)', async () => {
