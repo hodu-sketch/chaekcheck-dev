@@ -59,23 +59,23 @@ async function renderOpen(library: TargetLibrary) {
   return screen.getByRole('dialog')
 }
 
-describe('join details behind "가입 정보"', () => {
-  it('are not drawn until the button is pressed', () => {
+describe('join guide behind "가입 정보"', () => {
+  it('is not drawn until the button is pressed', () => {
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1 })} library={openLibrary} searchUrl={undefined} />)
 
-    expect(screen.queryByText('어디 살든 온라인 가입')).toBeNull()
+    expect(screen.queryByText('어디 살든 가입')).toBeNull()
     expect(screen.queryByText(/도서관 홈페이지 가입 후 로그인/)).toBeNull()
     expect(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` })).toBeTruthy()
   })
 })
 
 describe('ResultRow join caution (C2-U-11)', () => {
-  // cycle 22 R6-5, D9: "누구나 가입" is now "어디 살든 온라인 가입" on every screen
-  it('shows the caution under "어디 살든 온라인 가입" without the "가입 자격 확인 필요" badge', async () => {
+  // the join guide (user 2026-10-19): "어디 살든 가입" as the target, the caution as "유의" under the steps
+  it('shows the caution with "어디 살든 가입" without the "가입 자격 확인 필요" badge', async () => {
     const popover = await renderOpen({ ...openLibrary, joinCaution: '회원증 발급은 고흥군 거주자·직장인만' })
 
-    expect(popover.textContent).toContain('어디 살든 온라인 가입')
-    expect(popover.textContent).toContain('회원증 발급은 고흥군 거주자·직장인만')
+    expect(popover.textContent).toContain('어디 살든 가입')
+    expect(popover.textContent).toContain('유의 회원증 발급은 고흥군 거주자·직장인만')
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
 
@@ -84,7 +84,7 @@ describe('ResultRow join caution (C2-U-11)', () => {
 
     expect(popover.textContent).toContain('안내')
     expect(popover.textContent).toContain('시각장애인 이용 도서관')
-    expect(popover.textContent).not.toContain('주의')
+    expect(popover.textContent).not.toContain('유의')
   })
 
   it('a matching region with a 책이음 text is joinable; the text is only shown (AC-12)', async () => {
@@ -100,7 +100,7 @@ describe('ResultRow join caution (C2-U-11)', () => {
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
 
-  it("the same library without the user's region still needs a check (AC-12)", async () => {
+  it("the same library without the user's region shows its summary as the target (AC-12)", async () => {
     const library: TargetLibrary = {
       ...openLibrary,
       priorityGroup: 'NEEDS_CHECK',
@@ -114,8 +114,9 @@ describe('ResultRow join caution (C2-U-11)', () => {
 
     await userEvent.setup().click(screen.getByRole('button', { name: `${library.name} 가입 정보` }))
 
-    expect(screen.getByRole('dialog').textContent).toContain('가입 자격 확인 필요')
-    expect(screen.getByRole('dialog').textContent).toContain('서산시 거주·재직·재학')
+    const guide = screen.getByRole('dialog')
+    expect(guide.textContent).toContain('가입 대상서산시 거주·재직·재학')
+    expect(guide.textContent).toContain('책이음서비스 회원인 사람도')
   })
 
   it('shows the "방문 가입" tag for a visit-only library', async () => {
@@ -127,7 +128,7 @@ describe('ResultRow join caution (C2-U-11)', () => {
   it('shows no caution line when there is none', async () => {
     const popover = await renderOpen(openLibrary)
 
-    expect(popover.textContent).not.toContain('주의')
+    expect(popover.textContent).not.toContain('유의')
   })
 })
 
@@ -149,10 +150,11 @@ describe('a library added by hand (cycle 06, AC-5)', () => {
     expect(screen.queryByText('가입 자격 확인 필요')).toBeNull()
   })
 
-  it('shows its eligibility, extra condition, caution and how to join from the same button (user request 2026-10-05)', async () => {
+  it('shows "직접 추가한 도서관", the extra condition, caution and how to join from the same button', async () => {
     const popover = await renderOpen(chosenLibrary)
 
-    expect(popover.textContent).toContain('부산 거주')
+    expect(popover.textContent).toContain('가입 대상직접 추가한 도서관')
+    expect(popover.textContent).not.toContain('부산 거주')
     expect(popover.textContent).toContain('책이음 회원 가입 가능')
     expect(popover.textContent).toContain('회원증 발급은 부산 시민만')
     expect(popover.textContent).toContain('도서관 홈페이지 가입 후 로그인')
@@ -228,12 +230,12 @@ describe('join notice of libraries found in the collected list', () => {
     ['NOT_FOUND', '가입 조건을 찾지 못했어요. 도서관 사이트에서 확인해 주세요'],
     ['MEMBERS_ONLY', '학교·회사 같은 기관의 구성원용으로 보여요. 이용할 수 있는지는 그 기관에 확인해 주세요'],
     ['NOT_SURVEYED', '가입 정보를 아직 조사하지 않았어요'],
-  ] as const)('%s shows its notice and the front page link', async (joinSurvey, notice) => {
+  ] as const)('%s shows its notice and the front page as the official link', async (joinSurvey, notice) => {
     const popover = await renderOpen({ ...collected, joinSurvey })
 
     expect(popover.textContent).toContain(notice)
     expect(popover.textContent).not.toContain('가입 자격 확인 필요')
-    const link = screen.getByRole('link', { name: /도서관 첫 화면/ })
+    const link = within(popover).getByRole('link', { name: /공식 가입 안내 보기/ })
     expect(link.getAttribute('href')).toBe('https://gangdong.bookcube.biz/FxLibrary')
     expect(link.getAttribute('rel')).toBe('noopener noreferrer')
   })
@@ -241,8 +243,8 @@ describe('join notice of libraries found in the collected list', () => {
   it('a surveyed one shows the usual join details', async () => {
     const popover = await renderOpen({ ...collected, joinSurvey: 'SURVEYED', eligibility: 'OPEN', chosen: false })
 
-    expect(popover.textContent).toContain('어디 살든 온라인 가입')
-    expect(screen.queryByRole('link', { name: /도서관 첫 화면/ })).toBeNull()
+    expect(popover.textContent).toContain('어디 살든 가입')
+    expect(popover.textContent).not.toContain('가입 정보를 아직 조사하지 않았어요')
   })
 
   it('draws the name as text only', () => {
@@ -309,7 +311,7 @@ describe('phone site note', () => {
     expect(screen.queryByText(MOBILE_SITE_NOTE)).toBeNull()
   })
 
-  it('shows on a failed check too, and next to the front page link in the join details', async () => {
+  it('shows on a failed check too, and in the join guide sheet', async () => {
     phoneWidth(true)
     render(
       <ResultRow
@@ -321,7 +323,7 @@ describe('phone site note', () => {
     expect(screen.getAllByText(MOBILE_SITE_NOTE)).toHaveLength(1)
     await userEvent.setup().click(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` }))
     const popover = screen.getByRole('dialog')
-    expect(popover.textContent).toContain('도서관 첫 화면')
+    expect(popover.textContent).toContain('공식 가입 안내 보기')
     expect(popover.textContent).toContain(MOBILE_SITE_NOTE)
   })
 })
@@ -462,14 +464,14 @@ describe('pills after the library name', () => {
   const mine: TargetLibrary = { ...openLibrary, priorityGroup: 'MY_SIGUNGU', eligibility: 'ELIGIBLE' }
   const pill = (name: string) => screen.getByRole('button', { name })
 
-  it('[어디 살든 가입] opens its note; "가입 방법 보기" opens the join details', async () => {
+  it('[어디 살든 가입] opens its note; "가입 방법 보기" opens the join guide', async () => {
     const user = renderTags(openLibrary)
     await user.click(pill('어디 살든 가입'))
     const note = screen.getByRole('dialog')
     expect(note.textContent).toBe(`${TAG_TEXT.open} · 가입 방법 보기`)
     await user.click(within(note).getByRole('button', { name: '가입 방법 보기' }))
-    const join = screen.getByRole('dialog')
-    expect(join.textContent).toContain('어디 살든 온라인 가입')
+    const join = screen.getByRole('dialog', { name: `${openLibrary.name} 가입 안내` })
+    expect(join.textContent).toContain('어디 살든 가입')
     expect(join.textContent).toContain('도서관 홈페이지 가입 후 로그인')
   })
 

@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, fetchBook } from '../../api/client'
@@ -159,5 +160,11 @@ describe('holdings list', () => {
     expect(screen.queryByText(/어디 살든 가입되는 도서관에 있어요/)).toBeNull()
     expect(screen.queryByRole('button', { name: '방문 가입' })).toBeNull()
     expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
+
+    // the library name opens the join guide window here too (user 2026-10-19)
+    await userEvent.setup().click(screen.getByRole('button', { name: '가 도서관 가입 정보' }))
+    const guide = screen.getByRole('dialog', { name: '가 도서관 가입 안내' })
+    expect(guide.textContent).toContain('가입 대상어디 살든 가입방문 가입')
+    expect(guide.textContent).toContain('온라인 가입 후 도서관 방문')
   })
 })

@@ -11,7 +11,8 @@ import { useMediaQuery } from '../../lib/useMediaQuery'
 import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
 import { useLookupStatus } from '../lookupstatus/LookupStatusProvider'
 import { libraryGroup } from './resultGroups'
-import { needsJoinCheck, type ResultRow as Row } from './sortBatch'
+import { JoinGuide } from './JoinGuide'
+import { type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
 /** [확정] (cycle 08 handoff step 7-4): a holding that left the library's list (`holding_not_found`). */
@@ -116,30 +117,21 @@ export const TAG_TEXT = {
  */
 export function ResultRow({ row, library, searchUrl, screen, tags = false, regionBasis = 'both' }: Props) {
   const phone = useMediaQuery('(width <= 640px)')
-  // controlled, so "가입 방법 보기" in a pill's note can open it (cycle 22 R6-2)
+  // the join guide's window; "가입 방법 보기" in a pill's note opens it too (cycle 22 R6-2)
   const [joinOpen, setJoinOpen] = useState(false)
   // a direct search has no book of ours; every other screen sends the row's book (spec R2-2)
   const click = screen ? { screen, bookId: screen === 'direct_results' ? undefined : row.bookId } : undefined
   const report = (place: Parameters<typeof libraryClick>[1]) => libraryClick(row.libraryId, place, click)
   // the book's own page; the library search page only when the site gave no book link
   const href = safeHttpUrl(row.detailUrl) ?? safeHttpUrl(searchUrl)
-  // an extra condition (e.g. 책이음) next to a matching region is only extra text (AC-12, user decision 2026-09-29)
-  // added by hand (cycle 06, ADR-0050): "직접 추가" in place of the eligibility badge; the join details are the same
+  // added by hand (cycle 06, ADR-0050): "직접 추가" in place of the group pill
   const chosen = library?.chosen === true
-  const joinCheck = !chosen && needsJoinCheck(library?.eligibility)
-  const joinCondition =
-    library?.priorityGroup === 'OPEN' ? OPEN_JOIN_TEXT : (library?.eligibilitySummary ?? '가입 자격 확인 필요')
-  const joinMethod = library?.joinMethod ?? '-'
-  const joinUrl = safeHttpUrl(library?.joinUrl)
-  // no known join page yet: the library's e-library front page, where its sign-up guide can be found
-  const siteUrl = joinUrl ? undefined : siteOrigin(searchUrl)
   const libraryName = library?.name ?? '도서관'
   // cycle 09: "교보 · 소장" on the line after the name, outside the name button; none from an older server
   const classification = library ? classificationText(library) : null
   // a library from the collected list whose join rules were not found or not researched (cycle 07, R6): its notice
-  // instead
+  // in the join guide
   const surveyNotice = library ? SURVEY_NOTICE[library.joinSurvey] : undefined
-  const homepageUrl = safeHttpUrl(library?.homepageUrl)
   // cycle 08 R3: the site shows another page on phones; a note, never a blocked link (also when the check failed)
   const mobileNote = phone && library?.mobileSiteDiffers === true
   const state = row.failed ? (row.gone ? HOLDING_GONE : LOOKUP_UNCHECKED) : stateText(row)
@@ -153,77 +145,6 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
           ? 'unchecked'
           : 'reserve'
   const queued = useQueuedMark(row.libraryId, row.availability === 'PENDING', unchecked)
-
-  const conditionLines = surveyNotice ? (
-    <>
-      <p className={styles.surveyNotice}>{surveyNotice}</p>
-      {library?.joinMethod && <p className={styles.join}>가입: {library.joinMethod}</p>}
-      {library?.joinCaution && (
-        <p className={styles.caution}>
-          <span className={styles.cautionMark}>주의</span> {library.joinCaution}
-        </p>
-      )}
-      {homepageUrl && (
-        <p className={styles.join}>
-          <a
-            className={styles.joinLink}
-            href={homepageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            {...report('home_page')}
-          >
-            도서관 첫 화면
-            <span className="visually-hidden"> (새 창)</span>
-          </a>
-          {mobileNote && <span className={styles.mobileNote}>{MOBILE_SITE_NOTE}</span>}
-        </p>
-      )}
-    </>
-  ) : (
-    <>
-      {/* "가입 자격 확인 필요" is in here too, not next to the name (user request 2026-10-05) */}
-      {joinCheck && joinCondition !== '가입 자격 확인 필요' && (
-        <p>
-          <span className={styles.badge}>가입 자격 확인 필요</span>
-        </p>
-      )}
-      <p className={styles.condition}>
-        {joinCondition}
-        {library?.visitRequired && <span className={styles.visit}>방문 가입</span>}
-      </p>
-      {library?.extraConditionText && <p className={styles.extra}>{library.extraConditionText}</p>}
-      {library?.joinNotice && (
-        <p className={styles.notice}>
-          <span className={styles.noticeMark}>안내</span> {library.joinNotice}
-        </p>
-      )}
-      {library?.joinCaution && (
-        <p className={styles.caution}>
-          <span className={styles.cautionMark}>주의</span> {library.joinCaution}
-        </p>
-      )}
-      <p className={styles.join}>
-        가입:{' '}
-        {joinUrl ? (
-          <a className={styles.joinLink} href={joinUrl} target="_blank" rel="noopener noreferrer" {...report('join_link')}>
-            {joinMethod}
-            <span className="visually-hidden"> (새 창)</span>
-          </a>
-        ) : (
-          joinMethod
-        )}
-      </p>
-      {siteUrl && (
-        <p className={styles.join}>
-          <a className={styles.joinLink} href={siteUrl} target="_blank" rel="noopener noreferrer" {...report('join_guide')}>
-            전자도서관에서 가입 안내 보기
-            <span className="visually-hidden"> (새 창)</span>
-          </a>
-          {mobileNote && <span className={styles.mobileNote}>{MOBILE_SITE_NOTE}</span>}
-        </p>
-      )}
-    </>
-  )
 
   return (
     <article className={styles.row} data-group={group} data-link={href ? true : undefined}>
@@ -248,25 +169,35 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
           />
         </div>
         <p className={styles.libraryName}>
-          {/* the library name opens the join details on every width (user requests 2026-10-05; U-12 before) */}
-          <Popover.Root open={joinOpen} onOpenChange={setJoinOpen}>
-            <Popover.Trigger className={styles.libraryButton} aria-label={`${libraryName} 가입 정보`}>
-              {libraryName}
-            </Popover.Trigger>
-            <Popover.Portal>
-              {/* to the right of the name (user request 2026-10-05); below it on phones, where there is no room */}
-              <Popover.Content
-                className={styles.joinPopover}
-                side={phone ? 'bottom' : 'right'}
-                align="start"
-                sideOffset={phone ? 6 : 10}
-                collisionPadding={12}
+          {/*
+            The library name opens the join guide on every width (user 2026-10-19; a small popover before): a window
+            in the middle of the screen, the bottom sheet on phones.
+          */}
+          {library ? (
+            <>
+              <button
+                type="button"
+                className={styles.libraryButton}
+                aria-label={`${libraryName} 가입 정보`}
+                aria-haspopup="dialog"
+                data-open={joinOpen || undefined}
+                onClick={() => setJoinOpen(true)}
               >
-                <div className={styles.joinPopoverBody}>{conditionLines}</div>
-                <Popover.Arrow className={styles.joinPopoverArrow} width={12} height={6} />
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+                {libraryName}
+              </button>
+              <JoinGuide
+                open={joinOpen}
+                onOpenChange={setJoinOpen}
+                library={library}
+                bookUrl={href}
+                surveyNotice={surveyNotice}
+                mobileNote={mobileNote ? MOBILE_SITE_NOTE : undefined}
+                report={report}
+              />
+            </>
+          ) : (
+            <span>{libraryName}</span>
+          )}
           {tags && library ? (
             <RowTags library={library} regionBasis={regionBasis} onJoin={() => setJoinOpen(true)} />
           ) : (
@@ -286,9 +217,9 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
               {state} <span aria-hidden="true">ⓘ</span>
             </Popover.Trigger>
             <Popover.Portal>
-              <Popover.Content className={styles.joinPopover} side="bottom" align="end" sideOffset={6} collisionPadding={12}>
+              <Popover.Content className={styles.statePopover} side="bottom" align="end" sideOffset={6} collisionPadding={12}>
                 <p className={styles.note}>월 예산 소진 시 이용 불가</p>
-                <Popover.Arrow className={styles.joinPopoverArrow} width={12} height={6} />
+                <Popover.Arrow className={styles.popoverArrow} width={12} height={6} />
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
@@ -314,13 +245,6 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
     </article>
   )
 }
-
-/**
- * The join details' eligibility summary of a library joinable wherever one lives (cycle 22 R6-5, D9; "누구나 가입"
- * before), on every screen.
- */
-export const OPEN_JOIN_TEXT = '어디 살든 온라인 가입'
-
 /**
  * The pills after the library name (cycle 22 R6-1): one of [직접 추가] / [내 지역] / [어디 살든 가입] by the library's
  * group (D3'), plus [방문 가입] when the library has to be visited to join; a library of ③ shows its eligibility summary
@@ -382,7 +306,7 @@ function RowTags({
 }
 
 /**
- * One pill and its note (radix Popover, like the join details): a tap or click opens it; on a computer the mouse
+ * One pill and its note (radix Popover, like the subscription note): a tap or click opens it; on a computer the mouse
  * resting on it opens it too, and leaving the pill and the note closes it again unless it was clicked open. A click
  * outside or Esc closes it.
  */
@@ -397,7 +321,7 @@ function TagPill({
   tone: 'chosen' | 'mine' | 'open' | 'visit'
   text: string
   action: (close: () => void) => ReactNode
-  /** The action opens the join details: the focus is not given back to the pill, which would close them again. */
+  /** The action opens the join guide: the focus is not given back to the pill. */
   closesForJoin?: boolean
 }) {
   const phone = useMediaQuery('(width <= 640px)')
@@ -478,7 +402,7 @@ function TagPill({
           <p className={styles.tagNote}>
             {text} · {action(close)}
           </p>
-          <Popover.Arrow className={styles.joinPopoverArrow} width={12} height={6} />
+          <Popover.Arrow className={styles.popoverArrow} width={12} height={6} />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -491,12 +415,6 @@ const SURVEY_NOTICE: Record<JoinSurvey, string | undefined> = {
   NOT_FOUND: '가입 조건을 찾지 못했어요. 도서관 사이트에서 확인해 주세요',
   MEMBERS_ONLY: '학교·회사 같은 기관의 구성원용으로 보여요. 이용할 수 있는지는 그 기관에 확인해 주세요',
   NOT_SURVEYED: '가입 정보를 아직 조사하지 않았어요',
-}
-
-/** Scheme + host (+ port) of the library's search page, i.e. its e-library front page. */
-function siteOrigin(searchUrl: string | undefined): string | undefined {
-  const safe = safeHttpUrl(searchUrl)
-  return safe ? new URL(safe).origin + '/' : undefined
 }
 
 /**

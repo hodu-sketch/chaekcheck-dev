@@ -95,7 +95,8 @@ describe('result line links', () => {
     const { unmount } = render(<ResultRow row={row} library={library} searchUrl={undefined} screen="picks" />)
     expect(clickOpens(screen.getByRole('link', { name: /홈페이지/ }))).toBe(true)
     await openJoinDetails()
-    expect(clickOpens(screen.getByRole('link', { name: /홈페이지 가입/ }))).toBe(true)
+    // the join guide's official link reports as the old join link did (user 2026-10-19)
+    expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
     unmount()
 
     render(
@@ -107,7 +108,8 @@ describe('result line links', () => {
       />,
     )
     await openJoinDetails()
-    expect(clickOpens(screen.getByRole('link', { name: /가입 안내 보기/ }))).toBe(true)
+    // no join page: the front page in its place, as the old "전자도서관에서 가입 안내 보기"
+    expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
 
     expect(vi.mocked(sendUsageEvent).mock.calls.map(([event]) => event)).toEqual([
       { type: 'library_click', libraryId: 12, place: 'logo', screen: 'picks', bookId: 345 },
@@ -118,17 +120,39 @@ describe('result line links', () => {
 
   it('the front page of a library whose join rules were not found', async () => {
     render(
-      <ResultRow row={row} library={{ ...library, joinSurvey: 'NOT_FOUND' }} searchUrl={undefined} screen="book_page" />,
+      <ResultRow
+        row={row}
+        library={{ ...library, joinSurvey: 'NOT_FOUND', joinUrl: null }}
+        searchUrl={undefined}
+        screen="book_page"
+      />,
     )
     await openJoinDetails()
 
-    expect(clickOpens(screen.getByRole('link', { name: /도서관 첫 화면/ }))).toBe(true)
+    expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
 
     expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
       type: 'library_click',
       libraryId: 12,
       place: 'home_page',
       screen: 'book_page',
+      bookId: 345,
+    })
+  })
+
+  it('"이미 회원이에요 · 책 보기" in the join guide reports as the card', async () => {
+    render(<ResultRow row={row} library={library} searchUrl={undefined} screen="catalog_results" />)
+    await openJoinDetails()
+
+    const link = screen.getByRole('link', { name: /이미 회원이에요/ })
+    expect(link.getAttribute('href')).toBe('https://lib.example/book/1')
+    expect(clickOpens(link)).toBe(true)
+
+    expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
+      type: 'library_click',
+      libraryId: 12,
+      place: 'result_card',
+      screen: 'catalog_results',
       bookId: 345,
     })
   })
@@ -202,7 +226,7 @@ describe('pills', () => {
     await user.click(screen.getByRole('button', { name: '가입 방법 보기' }))
     expect(sendUsageEvent).not.toHaveBeenCalled()
 
-    expect(clickOpens(screen.getByRole('link', { name: /홈페이지 가입/ }))).toBe(true)
+    expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
     expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
       type: 'library_click',
       libraryId: 12,

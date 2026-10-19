@@ -97,97 +97,7 @@
   }
 }
 
-.badge {
-  padding: 0.1rem 0.55rem;
-  border-radius: var(--radius-tag);
-  background: var(--reserve-soft);
-  color: var(--reserve);
-  font-size: var(--text-xs);
-  font-weight: 800;
-}
-
-.condition {
-  margin-top: 0.15rem;
-  color: var(--ink-soft);
-}
-
-.visit {
-  margin-left: 0.45rem;
-  padding: 0.05rem 0.45rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-tag);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-/* conditions we cannot decide from regions, e.g. "책이음 회원 가입 가능" */
-.extra {
-  margin-top: 0.15rem;
-  font-size: var(--text-sm);
-  color: var(--reserve);
-}
-
-/* original text that may limit use although the library counts as joinable (C2-U-11) */
-.caution {
-  margin-top: 0.15rem;
-  font-size: var(--text-xs);
-  line-height: 1.45;
-  color: var(--ink-soft);
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-
-.cautionMark {
-  margin-right: 0.3rem;
-  padding: 0 0.35rem;
-  border: 1px solid var(--reserve);
-  border-radius: 4px;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--reserve);
-}
-
-/* who the library serves (e.g. braille library); neutral, no effect on eligibility or order */
-.notice {
-  margin-top: 0.15rem;
-  font-size: var(--text-xs);
-  line-height: 1.45;
-  color: var(--ink-soft);
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-
-.noticeMark {
-  margin-right: 0.3rem;
-  padding: 0 0.35rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: 4px;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-
-.join {
-  margin-top: 0.4rem;
-  font-size: var(--text-sm);
-  color: var(--ink-faint);
-}
-
-/* the library's own join page */
-.joinLink {
-  color: var(--brand-strong);
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.joinLink::after {
-  content: ' ↗';
-}
-
-/* join details: always shown on desktop/tablet; on mobile behind the "가입 정보" button (U-12) */
+/* the library name: opens the join guide (user 2026-10-19) */
 .libraryButton {
   /* inline, so a wrapped name ends with the caret right after its last word */
   display: inline;
@@ -202,7 +112,7 @@
 }
 
 .libraryButton:hover,
-.libraryButton[data-state='open'] {
+.libraryButton[data-open] {
   color: var(--brand-strong);
 }
 
@@ -212,7 +122,8 @@
   border-radius: 4px;
 }
 
-.joinPopover {
+/* the subscription state's note "월 예산 소진 시 이용 불가" */
+.statePopover {
   z-index: 10;
   max-width: min(18rem, calc(100vw - 2rem));
   padding: 0.7rem 0.9rem;
@@ -223,13 +134,7 @@
   color: var(--ink-soft);
 }
 
-.joinPopoverBody .condition {
-  margin-top: 0;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.joinPopoverArrow {
+.popoverArrow {
   fill: var(--card);
   stroke: var(--rule-strong);
 }
@@ -511,12 +416,6 @@
   color: #ffffff;
   font-size: var(--text-xs);
   font-weight: 800;
-}
-
-/* cycle 07: the join notice of a library whose join rules were not found or not researched (R6) */
-.surveyNotice {
-  font-weight: 700;
-  color: var(--ink);
 }
 
 /* the library's logo above its name (user request 2026-10-05) */
