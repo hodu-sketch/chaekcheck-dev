@@ -355,10 +355,8 @@ describe('the box (R1-4)', () => {
     const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
     await waitFor(() => expect(add.disabled).toBe(false))
     await user.click(add)
-    await user.click(within(residence).getByRole('combobox', { name: '사는 곳 시도' }))
-    await user.click(within(residence).getByRole('option', { name: '서울' }))
-    await user.click(within(residence).getByRole('combobox', { name: '사는 곳 시군구' }))
-    await user.click(within(residence).getByRole('option', { name: '마포구' }))
+    await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시도' }), '서울')
+    await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시군구' }), '마포구')
     expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!).residence).toEqual([1114])
     expect(within(residence).getByText(/^이 브라우저에만 저장됐어요/)).toBeTruthy()
     expect(within(within(opened).getByRole('group', { name: '일하는 곳' })).queryByText(/이 브라우저에만/)).toBeNull()
