@@ -1,5 +1,5 @@
-import type { PickBook, PicksListKey } from '../../api/types'
-import { HELP_LINES, monthLabel, sourceLine } from './picksText'
+import type { PicksListKey } from '../../api/types'
+import { HELP_LINES, sourceLine } from './picksText'
 
 /** The YouTube Terms of Service, linked from Lee Dong-jin's source line (cycle 21 spec R5-5) [확정]. */
 export const YOUTUBE_TERMS_URL = 'https://www.youtube.com/t/terms'
@@ -24,8 +24,6 @@ export interface PicksList {
   helpLines: readonly string[]
   /** The source line in "추천 기준과 출처 보기"; the YouTube terms link follows Lee Dong-jin's. */
   source: (fetchedAt: string | null) => string
-  /** S14's line under the title (R6-1, R6-2). */
-  pickLine: (book: PickBook, categoryName: string | null) => string
 }
 
 /** [확정] cycle 14: the librarian picks keep their words ("사서추천도서", AC-10). */
@@ -38,10 +36,6 @@ const LIBRARIAN: PicksList = {
   loadingText: '사서추천도서를 불러오는 중',
   helpLines: HELP_LINES,
   source: sourceLine,
-  pickLine: (book, categoryName) => {
-    const month = monthLabel(book.recommendedMonth)
-    return [month ? `${month} 사서추천` : '사서추천', categoryName].filter(Boolean).join(' · ')
-  },
 }
 
 const LEEDONGJIN: PicksList = {
@@ -57,13 +51,6 @@ const LEEDONGJIN: PicksList = {
     '“전자책 없음” 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 유튜브 「B tv 이동진의 파이아키아」 · 책첵은 이동진 평론가·파이아키아와 관계가 없어요',
-  pickLine: (book) => {
-    const month = monthLabel(book.recommendedMonth)
-    // just the month (user 2026-10-17: "이동진 평론가가 파이아키아에서 추천이라고 계속 공통 중복 메세지 뜨는데 그냥 2026년
-    // 6월 추천 이런것만 해줘 어짜피 영상보기 있으니까"; R6-2 was "이동진 평론가가 「파이아키아」 영상에서 추천 (…)")
-    const line = month ? `${month} 추천` : '추천'
-    return book.yearBook ? `${line} · ${book.yearBook} 올해의 책` : line
-  },
 }
 
 const SNU100: PicksList = {
@@ -79,21 +66,39 @@ const SNU100: PicksList = {
     '“전자책 없음” 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)',
-  pickLine: () => '서울대 권장도서 100선',
+}
+
+/** KAIST library's 스페셜도서 2026, four themes (user 2026-10-19: "이동진 추천 빼고 여기 넣어줘"; 4-picks.md 7절). */
+const KAIST: PicksList = {
+  key: 'kaist',
+  name: 'KAIST 추천도서',
+  tabLabel: 'KAIST 추천',
+  emptyText: '아직 KAIST 추천도서를 준비하고 있어요',
+  failedText: 'KAIST 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
+  loadingText: 'KAIST 추천도서를 불러오는 중',
+  helpLines: [
+    'KAIST 도서관 「스페셜도서」 2026의 네 주제 80권이에요: 자연이 우리에게 주는 메시지, AI가 우리에게 주는 메시지, 문화가 우리에게 주는 메시지, AI대학',
+    '책첵은 KAIST 도서관과 관계가 없어요',
+  ],
+  source: () => '출처: KAIST 도서관 소장자료검색 · Collections · 추천도서 · 스페셜도서(2026) · 책첵은 KAIST 도서관과 관계가 없어요',
 }
 
 export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
   librarian: LIBRARIAN,
   leedongjin: LEEDONGJIN,
   snu100: SNU100,
+  kaist: KAIST,
 }
 
-/** The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스트 추천 서울대 추천"). */
-export const PICKS_TABS: readonly PicksList[] = [LIBRARIAN, LEEDONGJIN, SNU100]
+/**
+ * The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천"). Lee Dong-jin's list is
+ * off the tabs ("이동진 추천 빼고"); its address still opens it.
+ */
+export const PICKS_TABS: readonly PicksList[] = [LIBRARIAN, KAIST, SNU100]
 
 /** The list an address names, or null for any other name. */
 export function picksList(key: string | undefined): PicksList | null {
-  return key === 'librarian' || key === 'leedongjin' || key === 'snu100' ? PICKS_LISTS[key] : null
+  return key === 'librarian' || key === 'leedongjin' || key === 'snu100' || key === 'kaist' ? PICKS_LISTS[key] : null
 }
 
 /** [영상 보기] (R6-2): the video's YouTube page, built from the id only; null when the id has another shape. */

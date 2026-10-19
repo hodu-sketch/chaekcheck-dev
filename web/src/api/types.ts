@@ -375,7 +375,7 @@ export interface MyLibraries {
 // ---- cycle 14: librarian picks; cycle 21: the three recommended lists (ADR-0126) ----
 
 /** The recommended lists, as `GET /api/v1/picks/{listKey}` names them. */
-export type PicksListKey = 'librarian' | 'leedongjin' | 'snu100'
+export type PicksListKey = 'librarian' | 'leedongjin' | 'snu100' | 'kaist'
 
 /** One book of `GET /api/v1/picks/{listKey}`. */
 export interface PickBook {

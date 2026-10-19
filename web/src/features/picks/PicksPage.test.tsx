@@ -106,7 +106,7 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     const tabs = within(screen.getByRole('navigation', { name: '추천도서 목록' })).getAllByRole('link')
     expect(tabs.map((tab) => [tab.textContent, tab.getAttribute('href')])).toEqual([
       ['사서 추천', '/picks/librarian'],
-      ['이동진 추천', '/picks/leedongjin'],
+      ['KAIST 추천', '/picks/kaist'],
       ['서울대 100선', '/picks/snu100'],
     ])
     expect(tabs[0].getAttribute('aria-current')).toBe('page')

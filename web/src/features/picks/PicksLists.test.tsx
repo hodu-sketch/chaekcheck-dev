@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { BookDetail, PickBook, Picks, PicksListKey } from '../../api/types'
 import { sendUsageEvent } from '../../api/usageEvents'
 import { PicksRoute } from './PicksPage'
-import { PICKS_LISTS, picksList, videoUrl, YOUTUBE_TERMS_URL } from './picksLists'
+import { picksList, videoUrl, YOUTUBE_TERMS_URL } from './picksLists'
 
 const REGIONS = {
   regions: { residence: [1116], work: [] },
@@ -138,24 +138,13 @@ afterEach(() => {
 
 /** Cycle 21 spec R5, R6, R7 (AC-4, AC-5, AC-8, AC-9, AC-15, AC-16). */
 describe('the lists words', () => {
-  it('names only the three lists', () => {
+  it('names only the four lists', () => {
+    expect(picksList('kaist')?.name).toBe('KAIST 추천도서')
     expect(picksList('leedongjin')?.name).toBe('이동진 추천도서')
     expect(picksList('snu100')?.name).toBe('서울대 100선')
     expect(picksList('librarian')?.name).toBe('사서 추천도서')
     expect(picksList('yes24')).toBeNull()
     expect(picksList(undefined)).toBeNull()
-  })
-
-  it('says where a book was recommended (R6-1, R6-2)', () => {
-    expect(PICKS_LISTS.leedongjin.pickLine(book({ recommendedMonth: '2026-03' }), '외국 소설')).toBe(
-      '2026년 3월 추천',
-    )
-    expect(PICKS_LISTS.leedongjin.pickLine(book({ recommendedMonth: '2025-12', yearBook: 2025 }), null)).toBe(
-      '2025년 12월 추천 · 2025 올해의 책',
-    )
-    // no field and no number (AC-8)
-    expect(PICKS_LISTS.snu100.pickLine(book({ tocNo: 3 }), '한국문학')).toBe('서울대 권장도서 100선')
-    expect(PICKS_LISTS.librarian.pickLine(book({ recommendedMonth: '2026-10' }), '문학')).toBe('2026년 10월 사서추천 · 문학')
   })
 
   it('builds the video address from the id only', () => {
