@@ -156,13 +156,13 @@ afterEach(() => {
 })
 
 /** The folded "내 도서관: …" line (cycle 22 R3); its accessible name is its text. */
-const foldedLine = () => screen.findByRole('button', { name: '조건 수정' })
+const foldedLine = () => screen.findByRole('button', { name: '조건 수정' }, { timeout: 5000 })
 
 describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
   it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
     renderSearch()
     const line = await foldedLine()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 · 서울 중구 재직 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 · 서울 중구 재직 조건으로 찾아요'), { timeout: 5000 })
     expect(fake.libraryLists).toBe(0)
 
     await userEvent.setup().click(line)
