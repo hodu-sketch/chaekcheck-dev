@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import styles from './AboutPage.module.css'
 
 const STEPS = [
@@ -42,14 +41,6 @@ export function AboutPage() {
           내가 사는 지역 밖에도 가입할 수 있는 전자도서관이 있어요. 책첵은 서로 다른 가입 조건을 정리하고, 여러
           전자도서관의 전자책을 한 번에 찾아 주는 서비스예요.
         </p>
-        <div className={styles.actions}>
-          <Link to="/" className={styles.primary}>
-            읽고 싶은 전자책 찾기
-          </Link>
-          <Link to="/my-libraries" className={styles.secondary}>
-            지역 설정
-          </Link>
-        </div>
       </section>
 
       <section className={styles.card} aria-labelledby="about-steps">

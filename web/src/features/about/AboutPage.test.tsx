@@ -20,13 +20,13 @@ function renderPage() {
 }
 
 describe('책첵이란? (/about, user 2026-10-19)', () => {
-  it('shows the headline, the lead and the two links', () => {
+  it('shows the headline and the lead, without buttons (user 2026-10-19)', () => {
     renderPage()
     expect(screen.getByText('책첵이란?')).toBeTruthy()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('도서관은 달라도,책 찾기는 한 번에.')
     expect(screen.getByText(/여러 전자도서관의 전자책을 한 번에 찾아 주는 서비스예요/)).toBeTruthy()
-    expect(screen.getByRole('link', { name: '읽고 싶은 전자책 찾기' }).getAttribute('href')).toBe('/')
-    expect(screen.getByRole('link', { name: '지역 설정' }).getAttribute('href')).toBe('/my-libraries')
+    expect(screen.queryByRole('link', { name: '읽고 싶은 전자책 찾기' })).toBeNull()
+    expect(screen.queryByRole('link', { name: '지역 설정' })).toBeNull()
   })
 
   it('lists the three steps in order', () => {
