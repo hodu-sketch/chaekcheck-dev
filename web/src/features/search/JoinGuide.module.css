@@ -252,6 +252,7 @@
 }
 
 .footerText {
+  word-break: keep-all;
   font-size: var(--text-xs);
   line-height: 1.5;
   color: var(--ink-soft);
