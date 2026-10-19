@@ -10,7 +10,7 @@
 
 | 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
 |---|---|---|---|---|---|---|---|
-| 동시 검색 자리 | 40 | `chaekcheck.availability.max-concurrent-searches` | `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES` | 상태 불의 노랑(절반)·빨강(전부)은 이 값에서 계산되므로 따로 없음. 해석 자리 8과 함께 힙 어림(약 340MB) | 20 → 40: 검색 자리가 모자라 503이 나는 것보다 힙이 남음. 배포 뒤 1분 요약 로그(힙·503)로 60까지 올릴지 정함 | 사이클 20 전반 점검 #13, plan `settings-index.md` 3절 | 서비스 |
+| 동시 검색 자리 | 60 | `chaekcheck.availability.max-concurrent-searches` | `CHAEKCHECK_AVAILABILITY_MAXCONCURRENTSEARCHES` | 상태 불의 노랑(절반)·빨강(전부)은 이 값에서 계산되므로 따로 없음. 해석 자리 8과 함께 힙 어림(약 340MB) | 20 → 40: 검색 자리가 모자라 503이 나는 것보다 힙이 남음. 배포 뒤 1분 요약 로그(힙·503)로 60까지 올릴지 정함 | 사이클 20 전반 점검 #13, plan `settings-index.md` 3절 | 서비스 · 40 → 60 (사용자 2026-10-19 "동시 검색 자리를 60으로", 상태 불 노랑 30·빨강 60) |
 | 바로 검색 결과 줄 상한 | 10 | `chaekcheck.availability.batch.row-limit` | `CHAEKCHECK_AVAILABILITY_BATCH_ROWLIMIT` | 바로 보기·책 화면(holding 묶음)에는 쓰지 않음 — 그쪽은 묶음 크기 `holding-batch-size`(아래) | 검색 한 번이 쓰는 도서관 요청을 반으로 | ADR-0132, spec R15 | 서비스 |
 | 도서관 응답 본문 상한 (직접 호출) | 1MB (압축본도, 풀었을 때도) | `chaekcheck.availability.max-body-size` | `CHAEKCHECK_AVAILABILITY_MAXBODYSIZE` (운영 compose는 `${LOOKUP_MAX_BODY_MB}MB`로 넘김, 사이클 17) | 조회 서버 `fetch.max-body-size`, nginx `client_max_body_size`(2단계 올리기), 확장 `config.js`(2단계) — 모두 같은 1MB | 실제 가장 큰 응답 322KB(2026-10-05)의 약 3배. 넘으면 그 도서관만 실패하고 `body_too_large`로 기록 | 사이클 20 세 관점 검토 #7, 전반 점검 #6, ADR-0132 | 서비스 |
 | 메모리 상태 저장소 | `memory` (이 값만 받음; 다른 값이면 켤 때 멈춤) | `chaekcheck.lookup.state-store` | `CHAEKCHECK_LOOKUP_STATESTORE` | 없음 (Redis 구현·컨테이너는 나중에) | 상태 불 메모·마지막 DB 오류 시각·`HostQueueBoard`·`SearchSlots` 거절 시각을 저장소 인터페이스 뒤에 두고 이 값으로 구현을 고름 | ADR-0133, plan `research/maintenance/memory-state-and-redis.md` | 서비스 |
