@@ -68,10 +68,10 @@ function lines(parts: readonly string[]) {
 }
 
 /**
- * 「이렇게 이용해 보세요」 (user 2026-10-19): the right column on PC, under the lead on tablets and phones; phones show
- * only the three titles.
+ * 「이렇게 이용해 보세요」 (user 2026-10-19): the right column on PC, under the lead on tablets; none on phones (user
+ * 2026-10-19).
  */
-function StartSteps({ details }: { details: boolean }) {
+function StartSteps() {
   const titleId = useId()
   return (
     <aside className={styles.steps} aria-labelledby={titleId}>
@@ -86,7 +86,7 @@ function StartSteps({ details }: { details: boolean }) {
             </span>
             <span className={styles.stepText}>
               <span className={styles.stepTitle}>{step.title}</span>
-              {details && <span className={styles.stepDetail}>{step.detail}</span>}
+              <span className={styles.stepDetail}>{step.detail}</span>
             </span>
           </li>
         ))}
@@ -361,7 +361,7 @@ export function SearchPage() {
               <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
               <p className={styles.lead}>{lines(phone ? START_TEXT.leadPhone : START_TEXT.lead)}</p>
             </div>
-            <StartSteps details={!phone} />
+            {!phone && <StartSteps />}
             <p className={styles.question}>{START_TEXT.question}</p>
           </>
         )}

@@ -21,8 +21,8 @@
 
 /*
  * Before a search (first screen redesign, user 2026-10-19): a left-aligned column with the eyebrow, the headline, the
- * lead, 「이렇게 이용해 보세요」, "어떤 책을 찾으세요?", the search box and the condition line, in this order (phones and
- * tablets). PC (> 1024px): the steps card is the right column beside the rest.
+ * lead, 「이렇게 이용해 보세요」, "어떤 책을 찾으세요?", the search box and the condition line, in this order (tablets;
+ * phones have no steps card, user 2026-10-19). PC (> 1024px): the steps card is the right column beside the rest.
  */
 .page[data-state='start'] .searchArea {
   width: 100%;
@@ -177,7 +177,7 @@
   }
 }
 
-/* phones: a smaller card with the titles only */
+/* phones: no steps card (user 2026-10-19), a little less room */
 @media (width <= 640px) {
   .page[data-state='start'] .searchArea {
     padding-top: 1.25rem;
@@ -190,32 +190,6 @@
   .lead,
   .question {
     font-size: var(--text-md);
-  }
-
-  .steps {
-    margin-bottom: 1.1rem;
-    padding: 0.8rem 0.85rem 0.7rem;
-    border-radius: var(--radius-md);
-    box-shadow: var(--card-shadow-soft);
-  }
-
-  .stepsTitle {
-    margin: 0 0 0.5rem 0.1rem;
-    font-size: var(--text-sm);
-  }
-
-  .stepList {
-    gap: 0.2rem;
-  }
-
-  .step {
-    align-items: center;
-    padding: 0.15rem 0.1rem;
-  }
-
-  .stepNumber {
-    width: 1.35rem;
-    height: 1.35rem;
   }
 }
 

@@ -513,7 +513,7 @@ describe('the first screen', () => {
     expect(fake.books).toHaveLength(0)
   })
 
-  it('phones: the shorter lead and the step titles only', async () => {
+  it('phones: the shorter lead and no steps card (user 2026-10-19)', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
       media: query,
@@ -526,11 +526,9 @@ describe('the first screen', () => {
       '가입할 수 있는 전자도서관을 찾고,전자책을 한 번에 검색해 드려요.',
     )
     expect(screen.queryByText(/^책첵은/)).toBeNull()
-    expect(steps()).toEqual(['1읽고 싶은 책 검색', '2가입 조건 확인', '3도서관에서 가입·대출'])
-    // the steps come before the question and the search box
+    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
+    expect(screen.queryByText('읽고 싶은 책 검색')).toBeNull()
     const question = screen.getByText('어떤 책을 찾으세요?')
-    const card = screen.getByRole('complementary', { name: '이렇게 이용해 보세요' })
-    expect(card.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(question.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
