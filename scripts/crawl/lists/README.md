@@ -1,6 +1,6 @@
 # 추천 목록 파일 (사이클 21)
 
-이동진 추천도서, 서울대 100선, KAIST 추천도서(스페셜도서 2026, 사용자 2026-10-19)의 목록입니다. 수집기 `scripts/crawl/recommended_lists.py`가 고치고, 사람이 확인 필요 줄을 옮기며, 가져오기 export가 반영 파일(`notes.listPart`)에 실어 운영 DB로 보냅니다. 절차는 [docs/maintenance/4-picks.md](../../../docs/maintenance/4-picks.md) 6절, 규칙 값은 [rules-index.md](../../../docs/maintenance/rules-index.md) 4절.
+이동진 추천도서, 서울대 100선, KAIST 사서추천도서(2026·2025·2024, 사용자 2026-10-20)의 목록입니다. 수집기 `scripts/crawl/recommended_lists.py`가 고치고, 사람이 확인 필요 줄을 옮기며, 가져오기 export가 반영 파일(`notes.listPart`)에 실어 운영 DB로 보냅니다. 절차는 [docs/maintenance/4-picks.md](../../../docs/maintenance/4-picks.md) 6절, 규칙 값은 [rules-index.md](../../../docs/maintenance/rules-index.md) 4절.
 
 - 모두 UTF-8, 탭으로 나눈 칸, 첫 줄은 칸 이름입니다. 빈 칸은 값 없음입니다. 칸 순서는 바꿔도 되고, 읽는 쪽이 모르는 칸(`note` 등)은 무시합니다
 - **영상 제목·설명은 어느 파일에도 두지 않습니다**(YouTube 약관, spec R4-5). 영상은 ID로만 적습니다
@@ -48,11 +48,12 @@
 
 | 칸 | 뜻 |
 |---|---|
-| `field` | 주제 코드(`fields.tsv`의 `kaist` 줄): `nature`·`ai`·`culture`·`ai_college` |
-| `position` | 주제 안 KAIST 페이지 순서(1부터, 주제 안에서 하나). 화면은 주제 순서, 그 안에서 이 순서 |
-| `title`·`author`·`publisher`·`isbn13` | KAIST 목록의 책(부제를 뗀 서명, 첫 저자). 수집 원본은 `data/recommended-lists/kaist/kaist-sc2026.tsv`(git 밖) |
+| `year` | 추천 해(2026·2025·2024). 화면은 최근 해부터 |
+| `field` | 분류 코드(`fields.tsv`의 `kaist` 줄): `literature`·`humanities`·`society`·`science`·`technology`·`arts`(주제 분류로 책첵이 정함, 4-picks.md 7-2) |
+| `position` | 그 해 KAIST 목록 순서(1부터, 해 안에서 하나) |
+| `title`·`author`·`publisher`·`isbn13` | KAIST 목록의 책(부제를 뗀 서명, 첫 저자). 수집 원본은 `data/recommended-lists/kaist/kaist-librarian.tsv`(git 밖) |
 | `cover_url`, `pinned_*`, `pinned_by` | `snu100.tsv`와 같음 |
-| `note` | KAIST 주제 이름과 추천번호 |
+| `note` | KAIST 추천 해와 추천번호 |
 
 ## `covers/` (export에 실림)
 

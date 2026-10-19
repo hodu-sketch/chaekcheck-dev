@@ -187,3 +187,15 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 수집기 `scripts/crawl/recommended_lists.py`가 `kaist.tsv`도 서울대처럼 고정 판·표지를 고름. 2026-10-19 첫 실행(`--skip-youtube`, 사본 `ebook-catalog-2026-10-12-0135.sqlite`): 고정 판 27/80, 표지 53장(`covers/`). 「AI대학」의 영문 원서는 우리 책 표에 거의 없음(제목 표지로 보임).
 - 화면: 탭 순서 사서 추천 → KAIST 추천 → 서울대 100선. 이동진 목록은 탭에서만 빼고(주소 `/picks/leedongjin`은 그대로), 자료는 지우지 않음.
 - 운영 반영: 책 표 가져오기 없이 목록만 넣는 `lists` 모드([3-import.md](3-import.md) 14절: PC 명령, EC2 일회용 컨테이너 명령). 폴더의 세 목록(이동진·서울대·KAIST)을 통째로 바꿔 넣으므로 목록 폴더 전체가 있어야 함. 2026-10-19 내 PC `db`에서 돌려 kaist 80줄 중 29권 맞춤(자연 10·AI 9·문화 10·AI대학 0). 목록 키 `kaist`는 새 Liquibase 변경으로 picks·usagelog 검사 제약에 더함.
+
+### 7-2. 사서추천도서로 바꿈 (2026-10-20)
+
+- 사용자: "카이스트말이야 몇 년도 추천인지 이 창에서 나오도록 하고 사서추천도서로 바꿔줘 그리고 분류는 너가 판단했을 때 적절하게 해줘 스페셜 도서는 결과가 너무 없어", "카이스트는 2026, 2025, 2024 다 해줘". 탭 이름은 "국립중앙도서관"·"KAIST"("사서 추천 다 빼고 국립중앙도서관 / KAIST 로 바꿔줘"). 위 「스페셜도서」(7절 앞부분)와 「AI대학」 빼기는 이것으로 대신함.
+- 출처: KAIST 도서관 소장자료검색 > Collections > 추천도서 > 「사서추천도서」 `https://library.kaist.ac.kr/search/ctlgSearch/collections/recommend.do` (`bookCl=2`, `bookTy=ad`). 그룹은 「국내도서」 하나(`bookTyLower=ad2`, 전체 15,120권), 해 목록 버튼은 2026 · 2025 · 2024 · 전체.
+- 읽는 길(2026-10-20 확인, 모두 GET, 로그인 없음)
+  - 해 목록: `/search/ctlgSearch/collections/recommendList.do?bookCl=2&bookTy=ad&bookTyLower=ad2&registDt=<해>&pageIndex=<쪽>` — 한 쪽 20권(추천 번호 `fn_recommendView('<번호>')`, 소장 번호 `fn_searchView('<bibctrlno>')`), 맨 위 권수
+  - 책 한 권: `/search/ctlgSearch/collections/recommendView.do?recomendBookNo=<번호>&bookCl=2&bookTy=ad` — 서명, 저자, 출판사, 출판년, ISBN(책소개는 저장하지 않음)
+- 수집(2026-10-20): 해 목록 125쪽 + 책 2,481쪽 = 2,606번, 같은 호스트 2초 간격(약 1시간 40분), UA "chaekcheck list check". 권수 2026 482 · 2025 979 · 2024 1,020 = 2,481권, ISBN 없는 책 2권, 두 해에 걸쳐 추천된 책 약 30권(해마다 한 줄씩 둠).
+- 분류(사용자: "분류는 너가 판단했을 때 적절하게"): 국립중앙도서관 ISBN 서지 API의 `SUBJECT`(KDC 주류)와 부가기호 끝 세 자리로 나눔 — 8 문학 · 1·2·7·9 인문 · 3 사회 · 4 과학 · 5(의학·요리 포함)와 000번대(컴퓨터·AI) 기술 · 6 예술. 서지에 주제가 없던 25권은 서명·저자로 손으로 정함(`fallback.json`). 결과: 문학 879 · 인문 651 · 사회 515 · 기술 187 · 과학 148 · 예술 101.
+- 목록 파일 `kaist.tsv`: 칸 `year, field, position, title, author, publisher, isbn13, cover_url, pinned_*, pinned_by, note`. `year`는 추천 해(DB `year_book`에 둠, Liquibase `picks-004-kaist-librarian-years`), `position`은 그 해 KAIST 목록 순서(최근 추천 먼저). 화면은 최근 해부터, 해 안은 KAIST 순서. 책 창에 "2025년 KAIST 사서추천" 한 줄.
+- 남긴 파일(git 밖, `data/recommended-lists/kaist/`): `kaist-librarian.tsv`(수집 원본), `subjects.tsv`(ISBN별 주제·부가기호), 스크립트 `collect.py`·`classify.py`·`build_list.py`, `fallback.json`.
