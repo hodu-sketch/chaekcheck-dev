@@ -13,9 +13,12 @@ snu100	foreign_lit	외국문학	2
 snu100	eastern_thought	동양사상	3
 snu100	western_thought	서양사상	4
 snu100	science_tech	과학기술	5
-kaist	nature	자연	1
-kaist	ai	AI	2
-kaist	culture	문화	3
+kaist	literature	문학	1
+kaist	humanities	인문	2
+kaist	society	사회	3
+kaist	science	과학	4
+kaist	technology	기술	5
+kaist	arts	예술	6
 nobel	ancient	고대·중세	1
 nobel	early_modern	근대	2
 nobel	modern	20세기	3

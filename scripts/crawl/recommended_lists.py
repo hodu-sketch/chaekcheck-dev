@@ -196,7 +196,10 @@ class Log:
     def line(self, text: str) -> None:
         stamp = dt.datetime.now().astimezone().isoformat(timespec='seconds')
         self.lines.append(text)
-        print(text)
+        try:
+            print(text)
+        except UnicodeEncodeError:  # a Windows console (cp949) and a title with a character it lacks (2026-10-20)
+            print(text.encode('ascii', 'replace').decode('ascii'))
         if self.path:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.path.open('a', encoding='utf-8') as f:
@@ -894,8 +897,8 @@ def fetch_covers(lists_dir: Path, rows: list[dict], chosen: dict[int, int], cata
             tried = 0  # at most `attempts` addresses of one source
             try:
                 urls = [u for u in by_source[source]() if u]
-            except CollectorFailure as ex:
-                log.line(f'cover: {source} lookup failed ({ex})')
+            except Exception as ex:  # noqa: BLE001 - one odd answer must not stop a 2,500-row run (2026-10-20)
+                log.line(f'cover: {source} lookup failed ({ex.__class__.__name__}: {ex})')
                 continue
             for url in urls:
                 if tried >= attempts:
