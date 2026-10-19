@@ -1,17 +1,17 @@
 # 추천 목록 파일 (사이클 21)
 
-이동진 추천도서와 서울대 100선의 목록입니다. 수집기 `scripts/crawl/recommended_lists.py`가 고치고, 사람이 확인 필요 줄을 옮기며, 가져오기 export가 반영 파일(`notes.listPart`)에 실어 운영 DB로 보냅니다. 절차는 [docs/maintenance/4-picks.md](../../../docs/maintenance/4-picks.md) 6절, 규칙 값은 [rules-index.md](../../../docs/maintenance/rules-index.md) 4절.
+이동진 추천도서, 서울대 100선, KAIST 추천도서(스페셜도서 2026, 사용자 2026-10-19)의 목록입니다. 수집기 `scripts/crawl/recommended_lists.py`가 고치고, 사람이 확인 필요 줄을 옮기며, 가져오기 export가 반영 파일(`notes.listPart`)에 실어 운영 DB로 보냅니다. 절차는 [docs/maintenance/4-picks.md](../../../docs/maintenance/4-picks.md) 6절, 규칙 값은 [rules-index.md](../../../docs/maintenance/rules-index.md) 4절.
 
 - 모두 UTF-8, 탭으로 나눈 칸, 첫 줄은 칸 이름입니다. 빈 칸은 값 없음입니다. 칸 순서는 바꿔도 되고, 읽는 쪽이 모르는 칸(`note` 등)은 무시합니다
 - **영상 제목·설명은 어느 파일에도 두지 않습니다**(YouTube 약관, spec R4-5). 영상은 ID로만 적습니다
-- export가 읽는 파일: `fields.tsv`, `leedongjin.tsv`, `snu100.tsv`, `covers/`(없으면 export가 멈춤). 값 검사는 DB와 같아서, 틀린 값은 "파일 line N: 칸 무엇"으로 멈춥니다
+- export와 `lists` 모드가 읽는 파일: `fields.tsv`, `leedongjin.tsv`, `snu100.tsv`, `kaist.tsv`, `covers/`(없으면 멈춤). 값 검사는 DB와 같아서, 틀린 값은 "파일 line N: 칸 무엇"으로 멈춥니다
 - 수집기만 읽는 파일: `subject_fields.tsv`, `collector_words.tsv`, `cover_sources.tsv`, `cover_hosts.tsv`, `cover_placeholders.tsv`, `leedongjin_pending.tsv`
 
 ## `fields.tsv` (export에 실림)
 
 | 칸 | 뜻 |
 |---|---|
-| `list` | `leedongjin` 또는 `snu100` (사서 추천도서 분야는 서버가 받으므로 여기 없음) |
+| `list` | `leedongjin`, `snu100` 또는 `kaist` (사서 추천도서 분야는 서버가 받으므로 여기 없음) |
 | `code` | 분야 코드, 1~20자, 목록 안에서 하나. 줄의 `field`가 이 값을 씀 |
 | `name` | 화면 분야 이름 |
 | `position` | 화면 순서(1부터, 목록 안에서 하나). 「전체」는 늘 맨 앞이라 여기 없음 |
@@ -43,6 +43,16 @@
 | `cover_title` | 표지를 찾을 제목. 목록 제목이 한 책의 이름이 아닐 때만(「근현대사 4부작 (…)」 → 「혁명의 시대」). 빈 값이면 `title`. 실리지 않음 |
 | `cover_url`, `pinned_*`, `pinned_by` | `leedongjin.tsv`와 같음. 「미국의 민주주의」·「페더랄리스트」는 `manual`(사용자 결정 2026-10-16) |
 | `note` | 메모. "조사 판(2026-10-15)에서 시작" = 처음 시작 판을 조사 문서의 판으로 넣었다는 뜻 |
+
+## `kaist.tsv` (실림, `pinned_by`·`note` 빼고)
+
+| 칸 | 뜻 |
+|---|---|
+| `field` | 주제 코드(`fields.tsv`의 `kaist` 줄): `nature`·`ai`·`culture`·`ai_college` |
+| `position` | 주제 안 KAIST 페이지 순서(1부터, 주제 안에서 하나). 화면은 주제 순서, 그 안에서 이 순서 |
+| `title`·`author`·`publisher`·`isbn13` | KAIST 목록의 책(부제를 뗀 서명, 첫 저자). 수집 원본은 `data/recommended-lists/kaist/kaist-sc2026.tsv`(git 밖) |
+| `cover_url`, `pinned_*`, `pinned_by` | `snu100.tsv`와 같음 |
+| `note` | KAIST 주제 이름과 추천번호 |
 
 ## `covers/` (export에 실림)
 
