@@ -4,6 +4,7 @@ import type { TargetLibrary } from '../../api/types'
 import type { ClickPlace } from '../../api/usageEvents'
 import { BottomSheet } from '../../components/BottomSheet'
 import type { libraryClick } from '../../lib/libraryClick'
+import { useLibraryLink } from '../../lib/libraryLink'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { JOIN_GUIDE_TEXT as T, joinPrepare, joinSteps, joinTarget, joinWay } from './joinGuideParts'
@@ -81,6 +82,9 @@ function JoinGuideBody({
   const official = joinUrl ?? safeHttpUrl(library.homepageUrl)
   // the join page reports as the old join link; the front page in its place as the old guide or front page link did
   const officialPlace: ClickPlace = joinUrl ? 'join_link' : library.joinSurvey === 'SURVEYED' ? 'join_guide' : 'home_page'
+  // a new tab on a computer, the same tab on touch screens (user 2026-10-19)
+  const link = useLibraryLink()
+  const newTabNote = link.newTab && <span className="visually-hidden"> (새 창)</span>
 
   return (
     <>
@@ -140,9 +144,9 @@ function JoinGuideBody({
         <p className={styles.note}>{T.changes}</p>
 
         {book && (
-          <a className={styles.member} href={book} target="_blank" rel="noopener noreferrer" {...report('result_card')}>
+          <a className={styles.member} href={book} {...link.props} {...report('result_card')}>
             {T.member} <span aria-hidden="true">↗</span>
-            <span className="visually-hidden"> (새 창)</span>
+            {newTabNote}
           </a>
         )}
         {mobileNote && <p className={styles.mobileNote}>{mobileNote}</p>}
@@ -155,9 +159,9 @@ function JoinGuideBody({
           {T.footer[1]}
         </p>
         {official && (
-          <a className={styles.official} href={official} target="_blank" rel="noopener noreferrer" {...report(officialPlace)}>
+          <a className={styles.official} href={official} {...link.props} {...report(officialPlace)}>
             {T.official} <span aria-hidden="true">↗</span>
-            <span className="visually-hidden"> (새 창)</span>
+            {newTabNote}
           </a>
         )}
       </div>

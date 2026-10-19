@@ -234,37 +234,31 @@
 }
 
 /*
- * The whole card is the link to the library's page (user request 2026-10-05, the "도서관에서 보기" button is gone):
- * the link covers the card, and the two buttons inside (library name, subscription state) sit above it.
+ * 「대여하기」 (user 2026-10-19, in place of the whole card being the link): under the counts in the right column on PC
+ * and tablets, full width at the bottom of the card on phones.
  */
-.row {
-  position: relative;
+.rent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--radius-control);
+  background: var(--brand-strong);
+  color: #ffffff;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.cardLink {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
+.rent:hover {
+  background: var(--brand);
 }
 
-.cardLink:focus-visible {
+.rent:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-}
-
-.libraryButton,
-.stateButton {
-  position: relative;
-  z-index: 1;
-}
-
-.row[data-link]:hover {
-  border-color: var(--brand);
-}
-
-.row[data-link]:active {
-  background: var(--paper-deep);
 }
 
 @media (width <= 1024px) {
@@ -406,6 +400,13 @@
     font-size: var(--text-xs);
   }
 
+  /* the bottom of the card, full width, a 44px touch row */
+  .rent {
+    order: 3;
+    flex-basis: 100%;
+    min-height: 44px;
+    margin-top: 0.25rem;
+  }
 }
 
 /* cycle 06: a library the user added by hand, in place of the eligibility badge ("직접 추가" [안 글자]) */
@@ -467,47 +468,29 @@
   }
 }
 
-/* cycle 20 (spec R4, review #5): 「지금 이 도서관 조회가 밀려요」, a small amber tag next to the library name */
-.queued {
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--radius-tag);
-  background: var(--reserve-soft);
-  color: var(--reserve);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* phones: under the name, on its own line */
-@media (width <= 640px) {
-  .queued {
-    flex-basis: 100%;
-    align-self: flex-start;
-    width: fit-content;
-    margin-top: 0.1rem;
-  }
-}
-
-/* cycle 20 (review #1): a direct search library that failed as a whole, one line without a book */
+/* cycle 20 (review #1): a direct search library that failed as a whole, one line without a book, 「대여하기」 at its end */
 .libraryLine {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   padding-block: 0.7rem;
 }
 
 .libraryLine .libraryName {
-  /* one running line of text (name, then the state), the tag after it */
+  /* one running line of text (name, then the state) */
   display: block;
   font-size: var(--text-md);
 }
 
-.libraryLine .queued {
-  margin-left: 0.5rem;
-}
-
 @media (width <= 640px) {
-  .libraryLine .queued {
-    display: block;
-    margin: 0.3rem 0 0;
+  .libraryLine {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .libraryLine .rent {
+    min-height: 44px;
   }
 }
 
@@ -522,7 +505,7 @@
 
 /*
  * cycle 22 R6 (ADR-0136): the pills after the library name, one shape for all ([직접 추가] keeps its solid violet,
- * [내 지역] and [어디 살든 가입] light violet, [방문 가입] amber like 「밀려요」); each opens its note
+ * [내 지역] and [어디 살든 가입] light violet, [방문 가입] amber); each opens its note
  */
 .tag {
   position: relative;

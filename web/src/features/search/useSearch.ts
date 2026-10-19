@@ -12,7 +12,7 @@ import type {
   VisitFilter,
 } from '../../api/types'
 import type { StoredRegions } from '../region/regionStorage'
-import { reportBlocked, type Blocked } from './blocked'
+import { blockedBy, type Blocked } from './blocked'
 import { applyRowVerdict, rowsOf, type Batch } from './rowVerdict'
 import {
   initialPlan,
@@ -269,8 +269,6 @@ export function useSearch({
           const changed = await resolveStoredRegions().catch(() => false)
           if (changed || controller.signal.aborted) return
         }
-        // a refused first stream (503) turns the header light red too (cycle 20 spec R2)
-        reportBlocked(apiError)
         dispatch({ type: 'error', error: apiError })
       },
     )
@@ -304,7 +302,7 @@ export function useSearch({
       (event) => dispatch({ type: 'event', batchNo, event }),
       controller.signal,
     ).catch((error: unknown) => {
-      if (!controller.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: reportBlocked(error) })
+      if (!controller.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: blockedBy(error) })
     })
   }, [state, usage])
 
@@ -322,7 +320,7 @@ export function useSearch({
         })
         dispatch({ type: 'more-done', page })
       } catch (error) {
-        dispatch({ type: 'more-failed', libraryId, blocked: reportBlocked(error) })
+        dispatch({ type: 'more-failed', libraryId, blocked: blockedBy(error) })
       }
     },
     [state.libraries, state.plan, state.field, state.query, state.filter, usage],

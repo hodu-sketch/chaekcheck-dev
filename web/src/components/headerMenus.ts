@@ -1,27 +1,11 @@
 /**
- * The header menus (cycle 21 spec R1, ADR-0127; user 2026-10-16: "폰이랑 pc랑 둘 다 탭에 도서검색 넣어줘"): the big
- * menus, each with its items.
+ * The header menus (cycle 21 spec R1, ADR-0127): three plain links, no sub-menus (user 2026-10-19). The picks lists
+ * (이동진/사서/서울대) are chosen inside the picks page; 내 도서관 and 계정 are one 마이페이지 at /my-libraries.
  */
 export const MENUS = [
-  { key: 'search', label: '도서검색', items: [{ to: '/search', label: '전자책 검색' }] },
-  {
-    key: 'picks',
-    label: '추천도서',
-    items: [
-      { to: '/picks/leedongjin', label: '이동진 추천도서' },
-      { to: '/picks/librarian', label: '사서 추천도서' },
-      { to: '/picks/snu100', label: '서울대 100선' },
-    ],
-  },
-  {
-    key: 'my',
-    label: '마이페이지',
-    // 계정 (user request 2026-10-18): 탈퇴 moved here from the search settings
-    items: [
-      { to: '/my-libraries', label: '내 도서관 관리' },
-      { to: '/account', label: '계정' },
-    ],
-  },
+  { key: 'search', label: '도서검색', to: '/search' },
+  { key: 'picks', label: '추천도서', to: '/picks' },
+  { key: 'my', label: '마이페이지', to: '/my-libraries' },
 ] as const
 
 export type Menu = (typeof MENUS)[number]
@@ -32,14 +16,14 @@ export type Menu = (typeof MENUS)[number]
  */
 export const ABOUT_LINK = { label: '책첵이란?', to: '/about' } as const
 
-/** Open after the pointer rests this long, close this long after it leaves (spec R1-3, NN/g) [확정]. */
-export const MENU_DELAY_MS = 500
-
-/** Whether the screen at {@code pathname} is one of the menu's items (underlined big menu). */
+/** Whether the screen at {@code pathname} belongs to the menu (underlined). */
 export function inMenu(pathname: string, menu: Menu) {
-  if (menu.key === 'search') return pathname === '/' || pathname === '/search' || pathname.startsWith('/books/')
-  return (
-    menu.items.some((item) => pathname === item.to || pathname.startsWith(item.to + '/')) ||
-    (menu.key === 'picks' && pathname === '/picks')
-  )
+  switch (menu.key) {
+    case 'search':
+      return pathname === '/' || pathname === '/search' || pathname.startsWith('/books/')
+    case 'picks':
+      return pathname === '/picks' || pathname.startsWith('/picks/')
+    case 'my':
+      return pathname === '/my-libraries' || pathname === '/account'
+  }
 }

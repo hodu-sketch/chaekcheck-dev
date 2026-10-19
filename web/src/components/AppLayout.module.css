@@ -111,32 +111,6 @@
   }
 }
 
-/* the cycle 20 light's place: empty (no width) before the first answer, then as wide as the dot and its text */
-.statusSlot {
-  display: inline-flex;
-  align-items: center;
-  min-height: 0.7rem;
-}
-
-/* the light sits a little further left than the mock-up on every width: more room between it and what follows (PC:
-   로그인; phones: the ▾, then 로그인) (user 2026-10-17: "폰이나 pc나 둘 다 상태 동그라미(메시지)가 좀 더 왼쪽으로") */
-.statusSlot:not(:empty) {
-  margin-right: calc(1.4 * var(--base-unscaled));
-}
-
-/* phones: a little less than on PC, still more than the mock-up (user 2026-10-17, after seeing it: "모바일은 검은 점이
-   이것보다는 조금 더 오른 쪽으로") */
-@media (width <= 640px) {
-  .statusSlot:not(:empty) {
-    margin-right: calc(0.7 * var(--base-unscaled));
-  }
-}
-
-/* phones only: the row's ▾ */
-.menuCaret {
-  display: none;
-}
-
 .main {
   flex: 1;
   width: 100%;
@@ -161,32 +135,16 @@
   }
 }
 
-/* phones: at least a 44px touch area around a small control, without moving anything (cycle 10 icon check) */
+/* phones: ☰, then the logo and 책첵이란? close to it; at least a 44px touch area around the small links (cycle 10 icon
+   check) */
 @media (width <= 640px) {
-  /* above the phone menu's row-wide button (HeaderMenu .menuButton), so the logo and 로그인 keep their own taps */
+  .start {
+    gap: calc(0.5 * var(--base-unscaled));
+  }
+
   .brand,
-  .about,
-  .end {
+  .about {
     position: relative;
-    z-index: 1;
-  }
-
-  /* .end lets taps through to the row's button (the ▾ and the room between) except on its own controls: 로그인 and
-     the cycle 20 dot (its 44px place opens no menu, plan 20 review #9, from-cycle-20-header-light.md "바뀜") */
-  .end {
-    pointer-events: none;
-  }
-
-  .end > * {
-    pointer-events: auto;
-  }
-
-  .end > .menuCaret {
-    display: inline-flex;
-    align-items: center;
-    pointer-events: none;
-    color: var(--ink-soft);
-    font-size: var(--text-sm);
   }
 
   .brand::after,

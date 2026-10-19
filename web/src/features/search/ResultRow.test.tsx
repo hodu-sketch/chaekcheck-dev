@@ -3,21 +3,17 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
-import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
 import {
   HOLDING_GONE,
   LOOKUP_UNCHECKED,
   MOBILE_SITE_NOTE,
+  RENT_LABEL,
   ResultRow,
   TAG_TEXT,
   UncheckedLibraryLine,
   type RegionBasis,
 } from './ResultRow'
 import { testRow } from './testRows'
-
-// the header light's queued libraries (cycle 20), set per test
-const lookup = { queued: new Set<number>() }
-vi.mock('../lookupstatus/LookupStatusProvider', () => ({ useLookupStatus: () => ({ view: null, queued: lookup.queued }) }))
 
 afterEach(cleanup)
 
@@ -185,29 +181,48 @@ describe('subscription rows (user request 2026-10-05)', () => {
 })
 
 
-describe('the card opens the library (user request 2026-10-05)', () => {
-  it('is one link to the book page, with no separate button', () => {
-    render(
-      <ResultRow
-        row={testRow({ libraryId: 2, rank: 1, detailUrl: 'https://www.ghlib.go.kr:446/book/1' })}
-        library={openLibrary}
-        searchUrl="https://www.ghlib.go.kr:446/search"
-      />,
-    )
+describe('「대여하기」 opens the library (user 2026-10-19)', () => {
+  const bookRow = () => testRow({ libraryId: 2, rank: 1, detailUrl: 'https://www.ghlib.go.kr:446/book/1' })
+
+  it('is the one link to the book page, in a new tab on a computer; the card itself is no link', () => {
+    render(<ResultRow row={bookRow()} library={openLibrary} searchUrl="https://www.ghlib.go.kr:446/search" />)
 
     const links = screen.getAllByRole('link')
     expect(links).toHaveLength(1)
+    expect(links[0].textContent).toContain(RENT_LABEL)
     expect(links[0].getAttribute('href')).toBe('https://www.ghlib.go.kr:446/book/1')
     expect(links[0].getAttribute('target')).toBe('_blank')
-    expect(links[0].textContent).toContain(`${openLibrary.name}에서 보기`)
+    expect(links[0].getAttribute('rel')).toBe('noopener noreferrer')
+    expect(screen.getByRole('link', { name: `${openLibrary.name}에서 대여하기 (새 창)` })).toBe(links[0])
+    // the button sits in the counts column, not over the card
+    expect(links[0].closest('article')).toBe(screen.getByRole('article'))
+    expect(screen.getByRole('article').querySelector(':scope > a')).toBeNull()
     // the library name still opens its join details, not the link
     expect(screen.getByRole('button', { name: `${openLibrary.name} 가입 정보` })).toBeTruthy()
   })
 
-  it('is not a link when the site gave no address', () => {
+  it('opens in the same tab on touch screens (pointer: coarse)', () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(pointer: coarse)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    try {
+      render(<ResultRow row={bookRow()} library={openLibrary} searchUrl={undefined} />)
+      const link = screen.getByRole('link', { name: `${openLibrary.name}에서 대여하기` })
+      expect(link.hasAttribute('target')).toBe(false)
+      expect(link.getAttribute('href')).toBe('https://www.ghlib.go.kr:446/book/1')
+    } finally {
+      delete (window as { matchMedia?: unknown }).matchMedia
+    }
+  })
+
+  it('is not there when the site gave no address', () => {
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1, detailUrl: null })} library={openLibrary} searchUrl={undefined} />)
 
     expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.queryByText(RENT_LABEL)).toBeNull()
   })
 })
 
@@ -274,7 +289,7 @@ describe('library logo on the card', () => {
     const logo = screen.getByRole('img', { name: openLibrary.name })
     expect(logo.getAttribute('src')).toBe('/library-logos/2.png')
     expect(logo.closest('a')?.getAttribute('href')).toBe('https://lib.test/main')
-    expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
+    expect(screen.getByRole('link', { name: /대여하기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
   })
 })
 
@@ -299,7 +314,7 @@ describe('phone site note', () => {
     const row = testRow({ libraryId: 2, rank: 1, detailUrl: 'https://lib.test/book/1' })
     render(<ResultRow row={row} library={{ ...openLibrary, mobileSiteDiffers: true }} searchUrl={undefined} />)
     expect(screen.getByText(MOBILE_SITE_NOTE)).toBeTruthy()
-    expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
+    expect(screen.getByRole('link', { name: /대여하기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
     cleanup()
 
     render(<ResultRow row={row} library={openLibrary} searchUrl={undefined} />)
@@ -386,12 +401,8 @@ describe('holding that left the list', () => {
   })
 })
 
-/** Cycle 20 handoff 1-13 [확정]: the failed row's text, and 「밀려요」 (spec R4, review #5, AC-5). */
-describe('unchecked rows and the queued mark (cycle 20)', () => {
-  afterEach(() => {
-    lookup.queued = new Set()
-  })
-
+/** Cycle 20 handoff 1-13 [확정]: the failed row's text; no 「밀려요」 since the status light went (user 2026-10-19). */
+describe('unchecked rows (cycle 20)', () => {
   it('a failed row says 「대출 정보를 확인하지 못했어요」 in the unchecked group', () => {
     render(<ResultRow row={testRow({ libraryId: 2, rank: 1, failed: true, availability: 'UNKNOWN' })} library={openLibrary} searchUrl={undefined} />)
     expect(screen.getByText(LOOKUP_UNCHECKED)).toBeTruthy()
@@ -404,44 +415,14 @@ describe('unchecked rows and the queued mark (cycle 20)', () => {
     const row = testRow({ libraryId: 2, rank: 1, failed: true, availability: 'UNKNOWN', detailUrl: 'https://lib.test/book/9' })
     render(<ResultRow row={row} library={openLibrary} searchUrl={undefined} />)
     expect(screen.getByText(LOOKUP_UNCHECKED)).toBeTruthy()
-    expect(screen.getByRole('link', { name: /에서 보기/ }).getAttribute('href')).toBe('https://lib.test/book/9')
+    expect(screen.getByRole('link', { name: /대여하기/ }).getAttribute('href')).toBe('https://lib.test/book/9')
   })
 
-  it('marks a row still being checked and an unchecked row of a queued library, never an answered one (AC-5)', () => {
-    lookup.queued = new Set([2])
-    const { rerender } = render(
-      <ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'PENDING' })} library={openLibrary} searchUrl={undefined} />,
-    )
-    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
-    rerender(<ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'AVAILABLE' })} library={openLibrary} searchUrl={undefined} />)
-    expect(screen.queryByText(QUEUED_LABEL)).toBeNull()
-    rerender(<ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'UNKNOWN', failed: true })} library={openLibrary} searchUrl={undefined} />)
-    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
-  })
-
-  it('does not mark a library that is not queued', () => {
-    lookup.queued = new Set([9])
-    render(<ResultRow row={testRow({ libraryId: 2, rank: 1, availability: 'PENDING' })} library={openLibrary} searchUrl={undefined} />)
-    expect(screen.queryByText(QUEUED_LABEL)).toBeNull()
-  })
-
-  it('keeps the mark on a failed row after the library left the queue, until the next search', () => {
-    lookup.queued = new Set([2])
-    const row = testRow({ libraryId: 2, rank: 1, availability: 'UNKNOWN', failed: true })
-    const { rerender } = render(<ResultRow row={row} library={openLibrary} searchUrl={undefined} />)
-    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
-    lookup.queued = new Set()
-    rerender(<ResultRow row={{ ...row }} library={openLibrary} searchUrl={undefined} />)
-    expect(screen.getByText(QUEUED_LABEL)).toBeTruthy()
-  })
-
-  it('a direct search library that failed is one line with the text and a link to its site (review #1)', () => {
-    lookup.queued = new Set([2])
+  it('a direct search library that failed is one line with the text and 「대여하기」 to its site (review #1)', () => {
     render(<UncheckedLibraryLine library={openLibrary} url="https://lib.example/" />)
     const line = screen.getByRole('article')
     expect(line.textContent).toContain(`${openLibrary.name} · ${LOOKUP_UNCHECKED}`)
-    expect(line.textContent).toContain(QUEUED_LABEL)
-    expect(screen.getByRole('link').getAttribute('href')).toBe('https://lib.example/')
+    expect(screen.getByRole('link', { name: /대여하기/ }).getAttribute('href')).toBe('https://lib.example/')
   })
 })
 

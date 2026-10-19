@@ -1,6 +1,7 @@
 import { Popover } from 'radix-ui'
 import type { TargetLibrary } from '../../api/types'
 import { libraryClick } from '../../lib/libraryClick'
+import { useLibraryLink } from '../../lib/libraryLink'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import type { LibraryResult } from './useSearch'
 import styles from './LibrarySummaryBar.module.css'
@@ -120,20 +121,20 @@ function LibraryCell({
   hasMore: boolean
   onMore: (libraryId: number) => void
 }) {
-  // the row's own front page: the e-library's main page for an e-library row
+  // the row's own front page: the e-library's main page for an e-library row; the same tab on touch screens
   const homepage = safeHttpUrl(library.homepageUrl)
+  const link = useLibraryLink()
   return (
     <>
       {homepage ? (
         <a
           className={`${styles.name} ${styles.nameLink}`}
           href={homepage}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...link.props}
           {...libraryClick(library.id, 'summary_bar', { screen: 'direct_results' })}
         >
           {library.name}
-          <span className="visually-hidden"> 전자도서관 첫 화면 (새 창)</span>
+          <span className="visually-hidden"> 전자도서관 첫 화면{link.newTab && ' (새 창)'}</span>
         </a>
       ) : (
         <span className={styles.name}>{library.name}</span>

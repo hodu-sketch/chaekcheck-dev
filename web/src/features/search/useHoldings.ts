@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { holdingBatchStream, holdingStream } from '../../api/searchStream'
 import type { BookItem, LibraryScope, ResultFilter, VisitFilter } from '../../api/types'
-import { reportBlocked } from './blocked'
+import { blockedBy } from './blocked'
 import {
   EMPTY_HOLDINGS,
   holdingsReducer,
@@ -70,7 +70,7 @@ export function useHoldings() {
       (event) => dispatch({ type: 'event', batchNo, event, books: books.current }),
       next.signal,
     ).catch((error: unknown) => {
-      if (!next.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: reportBlocked(error) })
+      if (!next.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: blockedBy(error) })
     })
   }, [])
 
@@ -85,7 +85,7 @@ export function useHoldings() {
       (event) => dispatch({ type: 'event', batchNo, event, books: books.current }),
       next.signal,
     ).catch((error: unknown) => {
-      if (!next.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: reportBlocked(error) })
+      if (!next.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: blockedBy(error) })
     })
   }, [])
 

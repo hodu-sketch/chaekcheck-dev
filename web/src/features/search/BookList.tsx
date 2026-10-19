@@ -3,7 +3,7 @@ import { ChevronRight } from '../../components/icons'
 import { Link } from 'react-router'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort } from '../../api/types'
-import { BLOCKED_TEXT, blockedBy, reportBlocked, type Blocked } from './blocked'
+import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
 import listStyles from './ResultList.module.css'
 import { SortSelect } from './SortSelect'
 import styles from './BookList.module.css'
@@ -45,8 +45,6 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
             retried = true
             if (await onInvalidRegion().catch(() => false)) return
           }
-          // a refused page (503) turns the header light red too (cycle 20 spec R2)
-          reportBlocked(apiError)
           setError(apiError)
         })
     void load()
@@ -63,7 +61,7 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
       setBooks({ items: [...books.items, ...page.items], last: page })
     } catch (failure) {
       setMoreFailed(true)
-      setMoreBlocked(reportBlocked(failure))
+      setMoreBlocked(blockedBy(failure))
     } finally {
       setLoadingMore(false)
     }

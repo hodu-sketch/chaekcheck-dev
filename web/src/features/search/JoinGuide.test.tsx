@@ -148,6 +148,24 @@ describe('join guide window', () => {
     expect(guide.textContent).toContain('가입과 대출은해당 도서관에서 진행해요.')
   })
 
+  it('opens both links in the same tab on touch screens (user 2026-10-19)', () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(pointer: coarse)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    const { guide } = renderGuide()
+
+    const member = within(guide).getByRole('link', { name: /이미 회원이에요 · 책 보기/ })
+    const official = within(guide).getByRole('link', { name: /공식 가입 안내 보기/ })
+    for (const link of [member, official]) {
+      expect(link.hasAttribute('target')).toBe(false)
+      expect(link.textContent).not.toContain('새 창')
+    }
+    expect(official.getAttribute('href')).toBe('https://lib.example/join')
+  })
+
   it('falls back to the front page, and leaves the links out without addresses', () => {
     const { report } = renderGuide({ joinUrl: null })
     expect(screen.getByRole('link', { name: /공식 가입 안내 보기/ }).getAttribute('href')).toBe('https://lib.example/')

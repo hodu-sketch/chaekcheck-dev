@@ -1,5 +1,4 @@
 import { ApiError } from '../../api/client'
-import { signalServerBusy } from '../lookupstatus/serverBusy'
 
 /**
  * Why a search was refused (cycle 08 R2, flow C): `too_many` = 429 from nginx (too many searches from one address),
@@ -21,12 +20,3 @@ export function blockedBy(error: unknown): Blocked | null {
   return null
 }
 
-/**
- * `blockedBy`, and a 503 also turns the header light red at once (cycle 20 spec R2, AC-3). Called where a failure is
- * caught, not while rendering, so the header's state change never happens inside another component's render.
- */
-export function reportBlocked(error: unknown): Blocked | null {
-  const blocked = blockedBy(error)
-  if (blocked === 'busy') signalServerBusy()
-  return blocked
-}

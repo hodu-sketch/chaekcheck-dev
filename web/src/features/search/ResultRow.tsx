@@ -6,10 +6,9 @@ import type { ClickScreen } from '../../api/usageEvents'
 import { LibraryLogo } from '../../components/LibraryLogo'
 import { libraryClick } from '../../lib/libraryClick'
 import { classificationText } from '../../lib/libraryClassification'
+import { useLibraryLink } from '../../lib/libraryLink'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
-import { QUEUED_LABEL } from '../lookupstatus/lookupStatusText'
-import { useLookupStatus } from '../lookupstatus/LookupStatusProvider'
 import { libraryGroup } from './resultGroups'
 import { JoinGuide } from './JoinGuide'
 import { type ResultRow as Row } from './sortBatch'
@@ -21,27 +20,40 @@ export const HOLDING_GONE = '이 도서관 목록에서 빠졌어요'
 /** [확정] (cycle 20 handoff 1-13): a row whose lookup failed; "확인 실패" before. */
 export const LOOKUP_UNCHECKED = '대출 정보를 확인하지 못했어요'
 
-/**
- * Whether the row carries 「지금 이 도서관 조회가 밀려요」 (cycle 20 spec R4, review #5 [확정]): only while the row is
- * still being checked, or in 「확인하지 못한 도서관」; never on a row that answered. A row that was marked when its lookup
- * failed keeps the mark until the next search (the row is unmounted then), whatever the later status answers say.
- */
-function useQueuedMark(libraryId: number, checking: boolean, unchecked: boolean): boolean {
-  const { queued } = useLookupStatus()
-  const kept = useRef(false)
-  const now = queued.has(libraryId)
-  if (unchecked && now) kept.current = true
-  return (unchecked && kept.current) || (checking && now)
-}
+/** The button's word (user 2026-10-19). */
+export const RENT_LABEL = '대여하기'
 
-/** The small amber tag 「지금 이 도서관 조회가 밀려요」: next to the name on wide screens, under it on phones. */
-function QueuedTag() {
-  return <span className={styles.queued}>{QUEUED_LABEL}</span>
+/**
+ * 「대여하기」 (user 2026-10-19): the one way from a result to the library's page (the whole card was the link before).
+ * A new tab on a computer, the same tab on touch screens (`useLibraryLink`). Its name says the library:
+ * "○○에서 대여하기".
+ */
+function RentLink({
+  href,
+  libraryName,
+  report,
+}: {
+  href: string
+  libraryName: string
+  report: ReturnType<typeof libraryClick>
+}) {
+  const { newTab, props } = useLibraryLink()
+  return (
+    <a
+      className={styles.rent}
+      href={href}
+      aria-label={`${libraryName}에서 ${RENT_LABEL}${newTab ? ' (새 창)' : ''}`}
+      {...props}
+      {...report}
+    >
+      {RENT_LABEL}
+    </a>
+  )
 }
 
 /**
  * A library of a direct search whose page could not be read (cycle 20 review #1 [확정]): one line, no book title,
- * 「○○도서관 · 대출 정보를 확인하지 못했어요」; the line opens the library's site when it is known.
+ * 「○○도서관 · 대출 정보를 확인하지 못했어요」; 「대여하기」 at its end opens the library's site when it is known.
  */
 export function UncheckedLibraryLine({
   library,
@@ -52,27 +64,15 @@ export function UncheckedLibraryLine({
   url: string | null
   screen?: ClickScreen
 }) {
-  const queued = useQueuedMark(library.id, false, true)
   const href = safeHttpUrl(url)
   const click = screen ? { screen } : undefined
   return (
-    <article className={`${styles.row} ${styles.libraryLine}`} data-group="unchecked" data-link={href ? true : undefined}>
+    <article className={`${styles.row} ${styles.libraryLine}`} data-group="unchecked">
       <p className={styles.libraryName}>
         <span className={styles.libraryLineName}>{library.name}</span>
         <span className={styles.libraryLineState}> · {LOOKUP_UNCHECKED}</span>
-        {queued && <QueuedTag />}
       </p>
-      {href && (
-        <a
-          className={styles.cardLink}
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          {...libraryClick(library.id, 'result_card', click)}
-        >
-          <span className="visually-hidden">{library.name}에서 보기 (새 창)</span>
-        </a>
-      )}
+      {href && <RentLink href={href} libraryName={library.name} report={libraryClick(library.id, 'result_card', click)} />}
     </article>
   )
 }
@@ -144,10 +144,9 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
         : unchecked
           ? 'unchecked'
           : 'reserve'
-  const queued = useQueuedMark(row.libraryId, row.availability === 'PENDING', unchecked)
 
   return (
-    <article className={styles.row} data-group={group} data-link={href ? true : undefined}>
+    <article className={styles.row} data-group={group}>
       <div className={styles.book}>
         <h3 className={styles.title}>{row.title}</h3>
         <p className={styles.meta}>
@@ -203,7 +202,6 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
           ) : (
             chosen && <span className={styles.chosen}>직접 추가</span>
           )}
-          {queued && <QueuedTag />}
         </p>
         {classification && <p className={styles.classification}>{classification}</p>}
         {mobileNote && <p className={styles.mobileNote}>{MOBILE_SITE_NOTE}</p>}
@@ -229,19 +227,9 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
         <div className={styles.stockLine}>
           <Counts row={row} />
         </div>
+        {/* the card itself no longer opens anything (user 2026-10-19): 「대여하기」 under the counts, full width on phones */}
+        {href && <RentLink href={href} libraryName={libraryName} report={report('result_card')} />}
       </div>
-
-      {/*
-        The whole card opens the library's page, no separate button (user request 2026-10-05). The link covers the card;
-        the library name and the subscription state stay above it and open their own notes.
-      */}
-      {href && (
-        <a className={styles.cardLink} href={href} target="_blank" rel="noopener noreferrer" {...report('result_card')}>
-          <span className="visually-hidden">
-            {libraryName}에서 보기 (새 창)
-          </span>
-        </a>
-      )}
     </article>
   )
 }

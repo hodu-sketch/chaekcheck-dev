@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
 import { sendUsageEvent } from '../../api/usageEvents'
 import { LibraryLogo } from '../../components/LibraryLogo'
@@ -9,7 +9,10 @@ import { LibrarySummaryBar } from './LibrarySummaryBar'
 import { ResultRow } from './ResultRow'
 import { testRow } from './testRows'
 
-/** Cycle 15 step 8: the six clicked places report themselves and still open their new tab (AC-7, AC-8). */
+/**
+ * Cycle 15 step 8: the six clicked places report themselves and still open their new tab (AC-7, AC-8); 「대여하기」 in
+ * place of the whole card since 2026-10-19, the same place `result_card`.
+ */
 
 vi.mock('../../api/usageEvents', () => ({ sendUsageEvent: vi.fn() }))
 
@@ -62,10 +65,10 @@ async function openJoinDetails() {
 }
 
 describe('result line links', () => {
-  it('the card on the book page sends the book (AC-8)', () => {
+  it('「대여하기」 on the book page sends the book (AC-8)', () => {
     render(<ResultRow row={row} library={library} searchUrl={undefined} screen="book_page" />)
 
-    expect(clickOpens(screen.getByRole('link', { name: /에서 보기/ }))).toBe(true)
+    expect(clickOpens(screen.getByRole('link', { name: /대여하기/ }))).toBe(true)
 
     expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
       type: 'library_click',
@@ -81,7 +84,7 @@ describe('result line links', () => {
       <ResultRow row={{ ...row, bookId: undefined }} library={library} searchUrl={undefined} screen="direct_results" />,
     )
 
-    clickOpens(screen.getByRole('link', { name: /에서 보기/ }))
+    clickOpens(screen.getByRole('link', { name: /대여하기/ }))
 
     expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
       type: 'library_click',
@@ -159,18 +162,25 @@ describe('result line links', () => {
 
   it('a middle-button click opens a tab too and counts; other buttons do not', () => {
     render(<ResultRow row={row} library={library} searchUrl={undefined} screen="book_page" />)
-    const card = screen.getByRole('link', { name: /에서 보기/ })
+    const rent = screen.getByRole('link', { name: /대여하기/ })
 
-    fireEvent(card, new MouseEvent('auxclick', { bubbles: true, button: 1 }))
-    fireEvent(card, new MouseEvent('auxclick', { bubbles: true, button: 2 }))
+    fireEvent(rent, new MouseEvent('auxclick', { bubbles: true, button: 1 }))
+    fireEvent(rent, new MouseEvent('auxclick', { bubbles: true, button: 2 }))
 
     expect(sendUsageEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('a click on the card itself opens nothing and sends nothing (user 2026-10-19)', () => {
+    render(<ResultRow row={row} library={library} searchUrl={undefined} screen="book_page" />)
+    fireEvent.click(screen.getByRole('article'))
+    fireEvent.click(screen.getByRole('heading', { name: row.title }))
+    expect(sendUsageEvent).not.toHaveBeenCalled()
   })
 
   it('without a screen nothing is sent', () => {
     render(<ResultRow row={row} library={library} searchUrl={undefined} />)
 
-    clickOpens(screen.getByRole('link', { name: /에서 보기/ }))
+    clickOpens(screen.getByRole('link', { name: /대여하기/ }))
 
     expect(sendUsageEvent).not.toHaveBeenCalled()
   })
@@ -210,6 +220,48 @@ describe('other library links', () => {
       place: 'summary_bar',
       screen: 'direct_results',
     })
+  })
+})
+
+/** Touch screens (user 2026-10-19): every library link opens in the same tab and still reports. */
+describe('on touch screens', () => {
+  beforeAll(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(pointer: coarse)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+  })
+  afterAll(() => {
+    delete (window as { matchMedia?: unknown }).matchMedia
+  })
+
+  function sameTab(link: HTMLElement): boolean {
+    expect(link.hasAttribute('target')).toBe(false)
+    expect(link.textContent).not.toContain('새 창')
+    return fireEvent.click(link)
+  }
+
+  it('「대여하기」, the logo, and both join guide links', async () => {
+    render(<ResultRow row={row} library={library} searchUrl={undefined} screen="catalog_results" />)
+    expect(sameTab(screen.getByRole('link', { name: /대여하기/ }))).toBe(true)
+    expect(sameTab(screen.getByRole('link', { name: /홈페이지/ }))).toBe(true)
+    await openJoinDetails()
+    expect(sameTab(screen.getByRole('link', { name: /이미 회원이에요/ }))).toBe(true)
+    expect(sameTab(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
+
+    expect(vi.mocked(sendUsageEvent).mock.calls.map(([event]) => (event as { place?: string }).place)).toEqual([
+      'result_card',
+      'logo',
+      'result_card',
+      'join_link',
+    ])
+  })
+
+  it('a library name in the summary bar', () => {
+    render(<LibrarySummaryBar libraries={[library]} results={{}} hasMore={() => false} onMore={vi.fn()} />)
+    expect(sameTab(screen.getByRole('link', { name: /고흥군립도서관/ }))).toBe(true)
   })
 })
 
