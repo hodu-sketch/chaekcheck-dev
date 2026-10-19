@@ -1,4 +1,5 @@
-import { Link, Outlet, useLocation } from 'react-router'
+import { useEffect } from 'react'
+import { Link, Outlet, useLocation, useNavigationType } from 'react-router'
 import { AuthHeaderAction } from '../features/auth/AuthHeaderAction'
 import { NoticeBar } from '../features/auth/NoticeContext'
 import { RegionImportDialog } from '../features/mylibrary/RegionImportDialog'
@@ -11,6 +12,12 @@ import styles from './AppLayout.module.css'
 
 export function AppLayout() {
   const location = useLocation()
+  const navigationType = useNavigationType()
+  // a new page starts at the top (user 2026-10-19: "스크롤 내린 채로 다른 탭 이동하면 … 안 그러게"); back/forward (POP)
+  // keeps the browser's own restore, and a page that restores its own place (picks) still does after this
+  useEffect(() => {
+    if (navigationType !== 'POP') window.scrollTo(0, 0)
+  }, [location.pathname, navigationType])
   return (
     <div className={styles.shell}>
       {/* data-app-header: screens with their own sticky bar read its height (cycle 10 S13) */}

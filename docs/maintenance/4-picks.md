@@ -165,3 +165,13 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 화면 `/picks/leedongjin`, `/picks/librarian`, `/picks/snu100`(`/picks`는 `/picks/librarian`으로 넘어감). 머리말 「추천도서」 메뉴
 - 반영 뒤 확인: `GET /api/v1/picks/<목록>`의 `categories[0].books` 수와 `bookId`가 있는 수(2026-10-16 c21 복사본: 서울대 87/100, 이동진 36/43, 사서 72/108)
 - DB에서: `SELECT list_key, count(*), count(book_id) FROM picks.list_book GROUP BY 1`
+
+## 7. KAIST 도서관 추천도서 (2026-10-19 사용자 요청, 수집 전)
+
+- 요청: "이동진 추천 빼고 여기 넣어줘" — 화면의 「이동진 추천」 탭 자리에 KAIST 도서관 목록을 넣음. 이동진 목록 자료(seed·파일)는 지우지 않고 화면에서만 뺄 예정.
+- 출처: https://library.kaist.ac.kr/search/ctlgSearch/collections/specialCollection.do (KAIST 도서관 > 소장자료검색 > Collections > 추천도서). 페이지 글: "사서추천도서, 스페셜도서, 독서문화위원회 추천도서를 확인할 수 있습니다."
+- 페이지 구성(2026-10-19 확인): 탭 「사서추천도서」 「스페셜도서」 「독서문화위원회」, 해마다 목록(2026 · 2025 · 2023 · 2022 · ~2021). 주소가 가리키는 「스페셜도서」 2026은 주제 4개 × 20권: 자연이 우리에게 주는 메시지(20) · AI가 우리에게 주는 메시지(20) · 문화가 우리에게 주는 메시지(20) · AI대학(20). 각 주제에 "검색결과 더보기"(전체 목록)와 "Holdings" 링크가 있음.
+- 정할 것(사용자에게 물음, 2026-10-19): 넣을 탭·해(추천: 「스페셜도서」 2026 네 주제 80권, 주제를 분류 칩으로), 화면 탭 이름(추천: "KAIST 추천").
+- 넣는 방법(6절과 같은 길): 목록 파일(제목·저자·출판사·ISBN·주제)을 만들고 `CuratedListTransfer`로 내보내기 → 운영에 적용. 맞추기는 5절·ADR-0124 규칙 그대로(ISBN → 제목+첫 저자+출판사).
+- 표지: KAIST 사이트 표지는 쓰지 않음(우리 책 목록 표지 또는 제목 표지). 목록 글(서명·저자)은 사실 정보로 보지만, 수집 전에 사이트 이용 조건·robots.txt를 확인해 이 절에 적을 것. 수집은 페이지를 몇 번만 읽는 정도로(도서관 트래픽 최소).
+- 수집하면 이 절에 수집 날짜, 읽은 주소, 권수, 맞춘 수, 남긴 파일 위치를 적음.
