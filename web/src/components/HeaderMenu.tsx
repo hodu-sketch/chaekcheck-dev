@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useHeaderOpen } from './HeaderOpen'
-import { MENU_DELAY_MS, MENUS, inMenu } from './headerMenus'
+import { LINKS, MENU_DELAY_MS, MENUS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
 
 /**
@@ -182,6 +182,21 @@ export function HeaderMenu() {
               </ul>
             </li>
           ))}
+          {/* plain links after the menus (책첵이란?, user 2026-10-19): no column; a click just goes there */}
+          {LINKS.map((link) => (
+            <li key={link.key} className={styles.big}>
+              <Link
+                to={link.to}
+                className={styles.bigLink}
+                data-big={link.key}
+                data-current={inMenu(pathname, link) ? '' : undefined}
+                aria-current={pathname === link.to ? 'page' : undefined}
+                onClick={() => setOpen(null)}
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
       {/* the full-width band behind the columns, as tall as the longest (data4library.kr, 2026-10-16) */}
@@ -264,6 +279,23 @@ export function PhoneMenu() {
                       </Link>
                     </li>
                   ))}
+                </ul>
+              </section>
+            ))}
+            {/* plain links: one item each, no title over it */}
+            {LINKS.map((link) => (
+              <section key={link.key} className={`${styles.drawerGroup} ${styles.drawerPlain}`}>
+                <ul className={styles.drawerList}>
+                  <li>
+                    <Link
+                      to={link.to}
+                      className={styles.drawerItem}
+                      aria-current={pathname === link.to ? 'page' : undefined}
+                      onClick={() => setOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
                 </ul>
               </section>
             ))}

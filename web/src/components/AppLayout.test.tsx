@@ -69,7 +69,7 @@ describe('header', () => {
     ])
     expect(nav.getByRole('link', { name: '추천도서' }).getAttribute('href')).toBe('/picks/leedongjin')
     expect(nav.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
-    expect(nav.getAllByRole('link', { name: '책첵이란?' }).map((a) => a.getAttribute('href'))).toEqual(['/about'])
+    expect(nav.getByRole('link', { name: '책첵이란?' }).getAttribute('href')).toBe('/about')
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: '사서추천도서' })).toBeNull()
     expect(screen.queryByText('전자도서관 대출 가능 확인')).toBeNull()
@@ -191,6 +191,15 @@ describe('header', () => {
     fireEvent.click(within(column('search')).getByRole('link', { name: '전자책 검색' }))
     expect(screen.getByTestId('where').textContent).toBe('/search')
     expect(column('search').hidden).toBe(true)
+  })
+
+  it('goes straight to /about on 책첵이란?, with no column (user 2026-10-19)', () => {
+    renderAt('/')
+    expect(wide().querySelector('[data-column="about"]')).toBeNull()
+    fireEvent.click(within(wide()).getByRole('link', { name: '책첵이란?' }))
+    expect(screen.getByTestId('where').textContent).toBe('/about')
+    expect(column('search').hidden).toBe(true)
+    expect(within(wide()).getByRole('link', { name: '책첵이란?' }).hasAttribute('data-current')).toBe(true)
   })
 
   it.each(['/', '/search', '/books/1'])('underlines 도서검색 on %s', (path) => { // user 2026-10-16
@@ -331,6 +340,14 @@ describe('phone menu', () => {
     expect(within(drawer).getByRole('link', { name: '사서 추천도서' }).getAttribute('aria-current')).toBe('page')
     fireEvent.click(within(drawer).getByRole('link', { name: '서울대 100선' }))
     expect(screen.getByTestId('where').textContent).toBe('/picks/snu100')
+    expect(screen.queryByTestId('menu-dim')).toBeNull()
+  })
+  it('has 책첵이란? as a plain item with no title over it, and goes to /about', () => {
+    renderAt('/')
+    const drawer = openPhone()
+    expect(within(drawer).getAllByRole('heading').map((h) => h.textContent)).toEqual(['도서검색', '추천도서', '마이페이지'])
+    fireEvent.click(within(drawer).getByRole('link', { name: '책첵이란?' }))
+    expect(screen.getByTestId('where').textContent).toBe('/about')
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 })

@@ -25,7 +25,8 @@ const QUESTIONS = [
 /**
  * `/about` "책첵이란?" (user decision 2026-10-19, with reference pictures): a static page, reached from the last header
  * menu and the footer. It replaced the S12 서비스 안내 screen, which drew the server's `about` document (cycle 16,
- * ADR-0098) and the join survey month; this page calls neither.
+ * ADR-0098) and the join survey month; this page calls neither. The document's attribution, logo statement, contact
+ * and maker lines are kept word for word in 출처와 문의 at the end.
  */
 export function AboutPage() {
   return (
@@ -91,6 +92,24 @@ export function AboutPage() {
         <p className={styles.text}>
           책 정보와 가입 조건은 각 도서관의 안내를 바탕으로 정리해요. 도서관의 운영 정책과 책의 대출 상태는 달라질 수
           있어요. 이용 전 공식 안내를 확인해 주세요.
+        </p>
+      </section>
+
+      {/* kept from the server's `about` document, same wording (the 공공누리 제1유형 attribution is required) */}
+      <section className={styles.notes} aria-labelledby="about-notes">
+        <h2 id="about-notes" className={styles.notesTitle}>
+          출처와 문의
+        </h2>
+        <p>사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)예요.</p>
+        <p>각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없습니다.</p>
+        <p>
+          문의: <a href="mailto:chaekcheck9104@gmail.com">chaekcheck9104@gmail.com</a>
+        </p>
+        <p>
+          만든 사람:{' '}
+          <a href="https://github.com/hodu-sketch/chaekcheck-about" target="_blank" rel="noreferrer">
+            https://github.com/hodu-sketch/chaekcheck-about
+          </a>
         </p>
       </section>
     </article>

@@ -208,6 +208,30 @@
   word-break: keep-all;
 }
 
+/* 출처와 문의: quiet small text under a hairline */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  word-break: keep-all;
+}
+
+.notesTitle {
+  margin-bottom: 0.15rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.notes a {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
 @media (width <= 640px) {
   .page {
     margin: 2rem auto 3rem;

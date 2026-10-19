@@ -22,17 +22,24 @@ export const MENUS = [
       { to: '/account', label: '계정' },
     ],
   },
-  // 책첵이란? (user 2026-10-19): the last menu, the static /about page
-  { key: 'about', label: '책첵이란?', items: [{ to: '/about', label: '책첵이란?' }] },
 ] as const
 
 export type Menu = (typeof MENUS)[number]
+
+/**
+ * Plain links after the menus, drawn as a big menu without a column on wide screens and as one item without a title
+ * in the phone menu (책첵이란? → the static /about page, user 2026-10-19).
+ */
+export const LINKS = [{ key: 'about', label: '책첵이란?', to: '/about' }] as const
+
+export type PlainLink = (typeof LINKS)[number]
 
 /** Open after the pointer rests this long, close this long after it leaves (spec R1-3, NN/g) [확정]. */
 export const MENU_DELAY_MS = 500
 
 /** Whether the screen at {@code pathname} is one of the menu's items (underlined big menu). */
-export function inMenu(pathname: string, menu: Menu) {
+export function inMenu(pathname: string, menu: Menu | PlainLink) {
+  if (!('items' in menu)) return pathname === menu.to
   if (menu.key === 'search') return pathname === '/' || pathname === '/search' || pathname.startsWith('/books/')
   return (
     menu.items.some((item) => pathname === item.to || pathname.startsWith(item.to + '/')) ||
