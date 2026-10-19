@@ -279,15 +279,15 @@ function RowTags({
           tone="mine"
           text={`${TAG_TEXT.mine[regionBasis]}${TAG_TEXT.mineTail}`}
           action={join}
-          closesForJoin
+          onPress={onJoin}
         />
       ) : group === 'OPEN' ? (
-        <TagPill label="어디 살든 가입" tone="open" text={TAG_TEXT.open} action={join} closesForJoin />
+        <TagPill label="어디 살든 가입" tone="open" text={TAG_TEXT.open} action={join} onPress={onJoin} />
       ) : (
         library.eligibilitySummary && <span className={styles.tagSummary}>{library.eligibilitySummary}</span>
       )}
       {library.visitRequired && (
-        <TagPill label="방문 가입" tone="visit" text={TAG_TEXT.visit(library.name)} action={join} closesForJoin />
+        <TagPill label="방문 가입" tone="visit" text={TAG_TEXT.visit(library.name)} action={join} onPress={onJoin} />
       )}
     </>
   )
@@ -296,21 +296,22 @@ function RowTags({
 /**
  * One pill and its note (radix Popover, like the subscription note): a tap or click opens it; on a computer the mouse
  * resting on it opens it too, and leaving the pill and the note closes it again unless it was clicked open. A click
- * outside or Esc closes it.
+ * outside or Esc closes it. A join pill ({@code onPress}) opens the join guide at once on a tap or click (user
+ * 2026-10-19: "어디 살든 가입 누르면 가입 방법 보기 안 눌러도 그냥 바로 가입방법 안내로"); the mouse resting on it still shows the note.
  */
 function TagPill({
   label,
   tone,
   text,
   action,
-  closesForJoin = false,
+  onPress,
 }: {
   label: string
   tone: 'chosen' | 'mine' | 'open' | 'visit'
   text: string
   action: (close: () => void) => ReactNode
-  /** The action opens the join guide: the focus is not given back to the pill. */
-  closesForJoin?: boolean
+  /** A tap or click opens the join guide at once, without the note; the focus is not given back to the pill. */
+  onPress?: () => void
 }) {
   const phone = useMediaQuery('(width <= 640px)')
   const [open, setOpen] = useState(false)
@@ -331,7 +332,7 @@ function TagPill({
   // a computer's mouse only; a phone's tap (or a touch screen reporting hover) opens it by the click
   const mouse = (event: PointerEvent) => event.pointerType === 'mouse' && !phone
   const close = () => {
-    toJoin.current = closesForJoin
+    toJoin.current = onPress !== undefined
     byHover.current = false
     setOpen(false)
   }
@@ -359,6 +360,12 @@ function TagPill({
           if (mouse(event)) scheduleClose()
         }}
         onClick={(event) => {
+          if (onPress) {
+            event.preventDefault()
+            close()
+            onPress()
+            return
+          }
           // a click on a note the mouse opened keeps it open (radix would toggle it shut)
           if (open && byHover.current) {
             event.preventDefault()

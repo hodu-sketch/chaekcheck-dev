@@ -445,12 +445,9 @@ describe('pills after the library name', () => {
   const mine: TargetLibrary = { ...openLibrary, priorityGroup: 'MY_SIGUNGU', eligibility: 'ELIGIBLE' }
   const pill = (name: string) => screen.getByRole('button', { name })
 
-  it('[어디 살든 가입] opens its note; "가입 방법 보기" opens the join guide', async () => {
+  it('[어디 살든 가입] opens the join guide at once on a click', async () => {
     const user = renderTags(openLibrary)
     await user.click(pill('어디 살든 가입'))
-    const note = screen.getByRole('dialog')
-    expect(note.textContent).toBe(`${TAG_TEXT.open} · 가입 방법 보기`)
-    await user.click(within(note).getByRole('button', { name: '가입 방법 보기' }))
     const join = screen.getByRole('dialog', { name: `${openLibrary.name} 가입 안내` })
     expect(join.textContent).toContain('어디 살든 가입')
     expect(join.textContent).toContain('도서관 홈페이지 가입 후 로그인')
@@ -460,10 +457,12 @@ describe('pills after the library name', () => {
     const user = renderTags({ ...openLibrary, visitRequired: true })
     expect(pill('어디 살든 가입')).toBeTruthy()
     expect(pill('방문 가입').getAttribute('data-tone')).toBe('visit')
-    await user.click(pill('방문 가입'))
+    fireEvent.pointerEnter(pill('방문 가입'), { pointerType: 'mouse' })
     expect(screen.getByRole('dialog').textContent).toBe(
       `가입하려면 ${openLibrary.name}에 한 번 가야 해요 · 가입 방법 보기`,
     )
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '가입 방법 보기' }))
+    expect(screen.getByRole('dialog', { name: `${openLibrary.name} 가입 안내` })).toBeTruthy()
   })
 
   it.each([
@@ -471,8 +470,8 @@ describe('pills after the library name', () => {
     ['work', '일하는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
     ['both', '사는 곳이나 일하는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
   ] as const)('[내 지역] says the side the search used (%s)', async (basis, text) => {
-    const user = renderTags(mine, true, basis)
-    await user.click(pill('내 지역'))
+    renderTags(mine, true, basis)
+    fireEvent.pointerEnter(pill('내 지역'), { pointerType: 'mouse' })
     expect(screen.getByRole('dialog').textContent).toBe(text)
   })
 
