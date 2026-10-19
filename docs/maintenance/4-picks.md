@@ -200,5 +200,5 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 목록 파일 `kaist.tsv`: 칸 `year, field, position, title, author, publisher, isbn13, cover_url, pinned_*, pinned_by, note`. `year`는 추천 해(DB `year_book`에 둠, Liquibase `picks-004-kaist-librarian-years`), `position`은 그 해 KAIST 목록 순서(최근 추천 먼저). 화면은 최근 해부터, 해 안은 KAIST 순서. 책 창에 "2025년 KAIST 사서추천" 한 줄.
 - 서명: KAIST 페이지는 서명 안의 `<…>`를 그대로 두어(예 "<카모메 식당>의 저자") 태그를 지운 글로 읽으면 깨짐 — 책 페이지의 `<div class="rd_txt_cont"><p>…</p>`를 그대로 읽음(깨졌던 2권: 9791156162940, 9791141108601). `kaist.tsv`의 서명은 부제(" : ", " = " 뒤)를 떼고 큰따옴표를 뺌(따옴표로 읽는 CSV 도구가 줄을 합치지 않게).
 - 수집기(2026-10-20, `--skip-youtube`, 사본 `ebook-catalog-2026-10-12-0135.sqlite`): 고정 판 1,677/2,481, 표지 2,310장(약 3시간, 첫 실행은 표지 찾기 한 곳의 예외와 콘솔 문자 코드(cp949)로 멈춰 수집기를 고침: 찾기 실패는 그 출처만 건너뜀, 콘솔에 못 쓰는 글자는 ?로). 스페셜도서 때의 표지 48장은 지움.
-- 내 PC `db`에 `lists` 모드(2026-10-20): kaist 2,481줄 중 1,707권 맞춤, 표지 2,249장 넣음(20 fields, 2,624 books). 운영 반영은 ux4와 함께 다음 배포 때(plan 세션이 함).
+- 내 PC `db`에 `lists` 모드(2026-10-20): kaist 2,481줄 중 1,707권 맞춤, 표지 2,249장 넣음(20 fields, 2,624 books). 운영 반영은 ux4와 함께 다음 배포(v1.7.0) 때 3-import.md 14절로.
 - 남긴 파일(git 밖, `data/recommended-lists/kaist/`): `kaist-librarian.tsv`(수집 원본), `subjects.tsv`(ISBN별 주제·부가기호), 스크립트 `collect.py`·`classify.py`·`build_list.py`, `fallback.json`.
