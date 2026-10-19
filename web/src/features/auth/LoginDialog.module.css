@@ -5,38 +5,144 @@
   background: rgb(27 26 36 / 0.45);
 }
 
+/* PC and tablets: a window about 26rem wide, × at the top right */
 .content {
   position: fixed;
   z-index: 21;
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  width: min(24rem, calc(100vw - 3rem));
+  width: min(26rem, calc(100vw - 3rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  padding: 1.6rem 1.6rem 1.2rem;
+  gap: 1.25rem;
+  padding: 1.75rem 1.6rem 1.25rem;
   background: var(--card);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
+  box-shadow: 0 18px 48px rgb(25 31 40 / 0.18);
 }
 
-.title {
+.close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--paper-deep);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* "책첵 로그인": small violet line on top */
+.eyebrow {
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--brand-strong);
+}
+
+/* the small rounded lavender square with the mark in --brand */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-top: 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.headline {
+  margin-top: 0.9rem;
   font-size: var(--text-xl);
   font-weight: 800;
+  line-height: 1.4;
   letter-spacing: -0.02em;
+  color: var(--ink);
+  word-break: keep-all;
 }
 
 .description {
+  margin-top: 0.55rem;
   font-size: var(--text-md);
+  line-height: 1.55;
   color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+.benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.check {
+  flex-shrink: 0;
+  color: var(--brand-strong);
+}
+
+/* "도서관 회원가입과는 별개예요.": a light grey rounded box */
+.separate {
+  align-self: stretch;
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--paper-deep);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+.separateTitle {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .buttons {
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  margin-top: 0.3rem;
 }
 
 /* Both buttons: full width, the height of Naver's official image (1472 x 224) at that width */
@@ -60,7 +166,8 @@
 
 .naver:focus-visible,
 .kakao:focus-visible,
-.close:focus-visible {
+.close:focus-visible,
+.skip:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -94,27 +201,40 @@
   color: rgb(0 0 0 / 0.85);
 }
 
+.signupNote {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* "로그인 없이 계속하기": a violet text button that only closes the window */
+.skip {
+  min-height: 44px;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--brand-strong);
+  cursor: pointer;
+}
+
+.skip:hover {
+  background: var(--brand-faint);
+}
+
 .error {
   font-size: var(--text-md);
   color: var(--fail);
-}
-
-.close {
-  align-self: center;
-  padding: 0.45rem 1.2rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--paper);
-  font: inherit;
-  font-size: var(--text-md);
-  color: var(--ink-soft);
-  cursor: pointer;
 }
 
 /* Phones: inside the shared bottom sheet (handle, ⓧ, back closes it), the same lines as the window */
 .sheet {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  padding: 0 0.6rem 0.6rem;
+  gap: 1.25rem;
+  padding: 0 0.6rem 0.4rem;
 }

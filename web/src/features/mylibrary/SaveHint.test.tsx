@@ -91,7 +91,7 @@ describe('SaveHint', () => {
     renderHint(true)
     await userEvent.setup().click(await screen.findByRole('button', { name: '카카오 로그인' }))
 
-    const dialog = await screen.findByRole('dialog', { name: '로그인' })
+    const dialog = await screen.findByRole('dialog', { name: '책첵 로그인' })
     expect(dialog).toBeTruthy()
   })
 

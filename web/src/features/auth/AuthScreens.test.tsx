@@ -102,9 +102,9 @@ describe('S5 login dialog', () => {
     const navigate = vi.fn()
     renderWith(<LoginDialog open onOpenChange={() => {}} navigate={navigate} />)
 
-    const kakao = await screen.findByRole('button', { name: '카카오 로그인' })
+    const kakao = await screen.findByRole('button', { name: '카카오로 계속하기' })
     expect(screen.queryByRole('button', { name: '네이버 로그인' })).toBeNull()
-    expect(screen.getByText('처음이면 회원가입을 먼저 진행해요')).toBeTruthy()
+    expect(screen.getByText('처음 이용하면 책첵 계정 가입으로 이어져요.')).toBeTruthy()
 
     await userEvent.setup().click(kakao)
 
@@ -122,8 +122,51 @@ describe('S5 login dialog', () => {
     )
     renderWith(<LoginDialog open onOpenChange={() => {}} navigate={vi.fn()} />)
 
-    expect(await screen.findByRole('button', { name: '네이버 로그인' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '카카오 로그인' })).toBeTruthy()
+    const naver = await screen.findByRole('button', { name: '네이버 로그인' })
+    const kakao = screen.getByRole('button', { name: '카카오로 계속하기' })
+    // Kakao first, Naver under it (user 2026-10-19)
+    expect(kakao.compareDocumentPosition(naver) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('is the redesigned window: eyebrow, headline, benefits, the membership note and × (user 2026-10-19)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => (url === '/api/v1/auth/providers' ? json(200, ['KAKAO']) : json(401, {}))),
+    )
+    renderWith(<LoginDialog open onOpenChange={() => {}} navigate={vi.fn()} />)
+    const dialog = screen.getByRole('dialog', { name: '책첵 로그인' })
+    expect(within(dialog).getByRole('heading', { name: /내 검색 설정을\s*다른 기기에서도 그대로\./ })).toBeTruthy()
+    expect(
+      within(dialog).getByText('책첵에 로그인하면 저장한 도서관과 지역 설정을 같은 계정으로 사용할 수 있어요.'),
+    ).toBeTruthy()
+    expect(within(dialog).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      '내가 정한 검색 범위 저장',
+      'PC와 휴대폰에서 같은 설정 사용',
+    ])
+    expect(within(dialog).getByText('도서관 회원가입과는 별개예요.')).toBeTruthy()
+    expect(within(dialog).getByText('전자책을 빌리려면 각 도서관의 가입·인증이 필요해요.')).toBeTruthy()
+    expect(within(dialog).getByRole('button', { name: '닫기' })).toBeTruthy()
+    expect(await within(dialog).findByRole('button', { name: '카카오로 계속하기' })).toBeTruthy()
+  })
+
+  it('"로그인 없이 계속하기" closes the window', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => (url === '/api/v1/auth/providers' ? json(200, ['KAKAO']) : json(401, {}))),
+    )
+    const onOpenChange = vi.fn()
+    const navigate = vi.fn()
+    renderWith(<LoginDialog open onOpenChange={onOpenChange} navigate={navigate} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: '로그인 없이 계속하기' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('says so when the providers cannot be read', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/v1/auth/providers' ? json(500, {}) : json(401, {}))))
+    renderWith(<LoginDialog open onOpenChange={() => {}} navigate={vi.fn()} />)
+    expect(await screen.findByText('지금은 로그인할 수 없어요. 잠시 뒤 다시 해 주세요')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '카카오로 계속하기' })).toBeNull()
   })
 })
 
@@ -146,9 +189,10 @@ describe('S5 login sheet on phones', () => {
       vi.fn(async (url: string) => (url === '/api/v1/auth/providers' ? json(200, ['KAKAO']) : json(401, {}))),
     )
     renderWith(<LoginSheet />)
-    const sheet = screen.getByRole('dialog', { name: '로그인' })
+    const sheet = screen.getByRole('dialog', { name: '책첵 로그인' })
     expect(within(sheet).getByTestId('sheet-handle')).toBeTruthy()
-    expect(await within(sheet).findByRole('button', { name: '카카오 로그인' })).toBeTruthy()
+    expect(await within(sheet).findByRole('button', { name: '카카오로 계속하기' })).toBeTruthy()
+    expect(within(sheet).getByRole('button', { name: '로그인 없이 계속하기' })).toBeTruthy()
     expect(within(sheet).queryByRole('button', { name: '닫기' })).toBeTruthy()
     expect(within(sheet).queryByText('닫기')).toBeNull()
 
