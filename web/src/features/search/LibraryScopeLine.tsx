@@ -100,19 +100,27 @@ export function scopeLineText({
   residence,
   work,
   chosen,
+  moreResidence = 0,
+  moreWork = 0,
 }: {
   /** The place names of the regions, `undefined` while they are being read; null = none chosen. */
   residence: string | null | undefined
   work: string | null | undefined
   chosen: number
+  /** How many more residences / workplaces than the named first one: "외 N곳". */
+  moreResidence?: number
+  moreWork?: number
 }): string | null {
   if (residence === null && work === null && chosen === 0) return null
   // the first residence and the first workplace, one each: "서울 강서구 거주 · 서울 강남구 재직" (user 2026-10-19:
   // "거주 재직 앞의 것 1개씩만 보이도록, 두번째 거주 두번째 재직 노출 될 필요 없어"; no "내 도서관:" in front);
   // 방문 가입 뺌, 직접 추가 and the count are in the box
+  // "외 N곳" after the first when there are more (user 2026-10-20: "거주나 직장 지역 조건 많이 할 때 외 1곳 이런거
+  // 추가해줘 없으니까 조건이 적용 안 된 것처럼 보인다")
+  const more = (count: number) => (count > 0 ? ` 외 ${count}곳` : '')
   const parts = [
-    residence !== null && `${residence ?? '…'} ${SCOPE_TEXT.residenceShort}`,
-    work !== null && `${work ?? '…'} ${SCOPE_TEXT.workShort}`,
+    residence !== null && `${residence ?? '…'}${more(moreResidence)} ${SCOPE_TEXT.residenceShort}`,
+    work !== null && `${work ?? '…'}${more(moreWork)} ${SCOPE_TEXT.workShort}`,
   ].filter((part): part is string => typeof part === 'string')
   if (parts.length > 0) return parts.join(' · ')
   return `직접 추가 ${chosen}곳`
@@ -128,6 +136,8 @@ function useScopeLineText(): string | null {
     residence: regions.residence.length === 0 ? null : (residencePlace ?? undefined),
     work: regions.work.length === 0 ? null : (workPlace ?? undefined),
     chosen: libraryIds.length,
+    moreResidence: Math.max(0, regions.residence.length - 1),
+    moreWork: Math.max(0, regions.work.length - 1),
   })
 }
 

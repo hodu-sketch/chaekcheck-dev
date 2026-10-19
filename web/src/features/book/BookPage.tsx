@@ -40,8 +40,8 @@ function BookView({ bookId }: { bookId: string }) {
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
   const libraryKey = libraryIds.join(',')
-  const residencePlace = useRegionPlace(regions.residence.slice(0, 1))
-  const workPlace = useRegionPlace(regions.work.slice(0, 1))
+  const residencePlace = useRegionPlace(regions.residence)
+  const workPlace = useRegionPlace(regions.work)
 
   const holdings = useHoldings()
   const { open } = holdings

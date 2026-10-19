@@ -234,13 +234,17 @@ describe('the folded line (R3)', () => {
     expect(scopeLineText({ residence: null, work: '경기 성남시', chosen: 0 })).toBe('경기 성남시 재직')
     expect(scopeLineText({ residence: null, work: null, chosen: 3 })).toBe('직접 추가 3곳')
     expect(scopeLineText({ residence: null, work: null, chosen: 0 })).toBeNull()
+    // "외 N곳" when there are more (user 2026-10-20)
+    expect(scopeLineText({ residence: '서울 강서구', work: '서울 중구', chosen: 0, moreResidence: 2, moreWork: 1 })).toBe(
+      '서울 강서구 외 2곳 거주 · 서울 중구 외 1곳 재직',
+    )
   })
 
   it('names this browser\'s regions, several of one 시도 joined by ·', async () => {
     guestRegions([1114, 1102], [4113])
     renderLine({ visit: 'none' })
     const line = await folded()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 · 경기 성남시 재직 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 외 1곳 거주 · 경기 성남시 재직 조건으로 찾아요'))
   })
 
   it('work only: "내 도서관: 일하는 곳 …"', async () => {
