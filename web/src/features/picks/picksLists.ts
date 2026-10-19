@@ -32,8 +32,9 @@ export interface PicksList {
 const LIBRARIAN: PicksList = {
   key: 'librarian',
   name: '사서 추천도서',
-  // told apart from KAIST's 사서추천도서 (user 2026-10-20: "기존의 "사서 추천"을 "국립중앙도서관 사서 추천" 으로 바꿔줘")
-  tabLabel: '국립중앙도서관 사서 추천',
+  // the library's name only (user 2026-10-20: "국립중앙도서관 사서 추천 / KAIST 사서 추천 여기서 사서 추천 다 빼고
+  // 국립중앙도서관 / KAIST 로 바꿔줘")
+  tabLabel: '국립중앙도서관',
   emptyText: '아직 사서추천도서를 준비하고 있어요',
   failedText: '사서추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: '사서추천도서를 불러오는 중',
@@ -79,8 +80,8 @@ const SNU100: PicksList = {
 const KAIST: PicksList = {
   key: 'kaist',
   name: 'KAIST 사서 추천도서',
-  // user 2026-10-20: "카이스트 추천 이걸 카이스트 사서 추천으로 바꿔줘"
-  tabLabel: 'KAIST 사서 추천',
+  // the library's name only (user 2026-10-20, as the 국립중앙도서관 tab)
+  tabLabel: 'KAIST',
   emptyText: '아직 KAIST 사서 추천도서를 준비하고 있어요',
   failedText: 'KAIST 사서 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: 'KAIST 사서 추천도서를 불러오는 중',

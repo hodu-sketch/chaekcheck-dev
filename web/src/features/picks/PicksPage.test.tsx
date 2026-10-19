@@ -105,8 +105,8 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
     const tabs = within(screen.getByRole('navigation', { name: '추천도서 목록' })).getAllByRole('link')
     expect(tabs.map((tab) => [tab.textContent?.replace(/ /g, ' '), tab.getAttribute('href')])).toEqual([
-      ['국립중앙도서관 사서 추천', '/picks/librarian'],
-      ['KAIST 사서 추천', '/picks/kaist'],
+      ['국립중앙도서관', '/picks/librarian'],
+      ['KAIST', '/picks/kaist'],
       ['서울대 100선', '/picks/snu100'],
     ])
     expect(tabs[0].getAttribute('aria-current')).toBe('page')
