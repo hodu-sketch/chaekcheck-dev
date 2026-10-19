@@ -62,7 +62,7 @@ describe('책첵이란? (/about, user 2026-10-19)', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("keeps the old document's attribution, logo statement, contact and maker lines (출처와 문의)", () => {
+  it("keeps the old document's attribution, logo statement, and contact lines (출처와 문의)", () => {
     renderPage()
     const notes = screen.getByRole('region', { name: '출처와 문의' })
     expect(within(notes).getByText('사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)예요.')).toBeTruthy()
@@ -72,9 +72,8 @@ describe('책첵이란? (/about, user 2026-10-19)', () => {
     expect(within(notes).getByRole('link', { name: 'chaekcheck9104@gmail.com' }).getAttribute('href')).toBe(
       'mailto:chaekcheck9104@gmail.com',
     )
-    expect(
-      within(notes).getByRole('link', { name: 'https://github.com/hodu-sketch/chaekcheck-about' }).getAttribute('href'),
-    ).toBe('https://github.com/hodu-sketch/chaekcheck-about')
+    // no 만든 사람 line (user 2026-10-20)
+    expect(within(notes).queryByText(/만든 사람/)).toBeNull()
     expect(document.body.textContent).not.toMatch(/조사한 내용입니다/)
   })
 })

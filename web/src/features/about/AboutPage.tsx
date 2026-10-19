@@ -93,12 +93,7 @@ export function AboutPage() {
         <p>
           문의: <a href="mailto:chaekcheck9104@gmail.com">chaekcheck9104@gmail.com</a>
         </p>
-        <p>
-          만든 사람:{' '}
-          <a href="https://github.com/hodu-sketch/chaekcheck-about" target="_blank" rel="noreferrer">
-            https://github.com/hodu-sketch/chaekcheck-about
-          </a>
-        </p>
+        {/* no 만든 사람 line (user 2026-10-20: "이거 빼줘") */}
       </section>
     </article>
   )
