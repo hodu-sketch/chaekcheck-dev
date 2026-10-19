@@ -347,10 +347,9 @@ export function SearchPage() {
   }
 
   // [반영하기] in the box and the sheet: the search on screen again with what is saved now, without [검색] (user
-  // 2026-10-20)
-  const applyScope = () => {
-    if (hasSearch) searchAgain((address) => writeVisit(prefs.visit, address))
-  }
+  // 2026-10-20); only with a search on screen, since a pick is saved at once and there is nothing else to apply (user
+  // 2026-10-20: "메인에서 지역 설정의 반영하기는 아무 역할 없는거 아니야")
+  const applyScope = () => searchAgain((address) => writeVisit(prefs.visit, address))
 
   return (
     <div
@@ -387,7 +386,12 @@ export function SearchPage() {
           beforeChips={
             phone ? undefined : (
               <div className={styles.scopeRow}>
-                <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} onApply={applyScope} />
+                <LibraryScopeLine
+                  {...scopeCommon}
+                  box={box}
+                  onBoxChange={setBox}
+                  onApply={hasSearch ? applyScope : undefined}
+                />
                 {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
               </div>
             )
@@ -416,7 +420,7 @@ export function SearchPage() {
             onVisitChange={changeVisit}
             openCount={prefs.openCount}
             onOpenCount={keepOpenCount}
-            onApply={applyScope}
+            onApply={hasSearch ? applyScope : undefined}
           />
         )}
       </section>
