@@ -207,7 +207,7 @@ describe('picks book window', () => {
     answerWithThreeHoldings()
     const onSearch = vi.fn()
     const user = renderDialog(onSearch)
-    const link = await screen.findByRole('link', { name: '다 도서관에서 보기 (새 창)' })
+    const link = await screen.findByRole('link', { name: '다 도서관에서 대여하기 (새 창)' })
     expect(link.getAttribute('href')).toBe('https://ebook.example.org/book/1')
     expect(link.getAttribute('target')).toBe('_blank')
     await user.click(screen.getByRole('button', { name: '책 검색' }))
