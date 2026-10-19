@@ -17,9 +17,13 @@ export interface ConditionPlan {
  * The condition card of the search screen on a screen that is not a search: the book page and the picks (user
  * 2026-10-20: "이 창에서도 지역 조건 수정할 수 있으면 좋겠어", "추천도서에도 지역설정 칸이 있었으면 해"). While the box or the
  * sheet is open the screen keeps the regions it was asked with (`plan`); closing it or [반영하기] uses what is saved
- * then, at once (`plan`, `visit`); an address that says another 「온라인에서 가입 가능한 곳만 보기」 is changed too.
+ * then, at once (`plan`, `visit`), with or without the [반영하기] button (`applyButton`); an address that says another 「온라인에서 가입 가능한 곳만 보기」 is changed too.
  */
-export function useConditionCard(): { condition: ReactNode; plan: ConditionPlan; visit: VisitFilter } {
+export function useConditionCard({ applyButton = true }: { applyButton?: boolean } = {}): {
+  condition: ReactNode
+  plan: ConditionPlan
+  visit: VisitFilter
+} {
   const [params, setParams] = useSearchParams()
   const { regions, libraryIds } = useRegions()
   const phone = useMediaQuery('(width <= 640px)')
@@ -72,7 +76,7 @@ export function useConditionCard(): { condition: ReactNode; plan: ConditionPlan;
         onVisitChange={changeVisit}
         openCount={openCount}
         onOpenCount={keepOpenCount}
-        onApply={apply}
+        onApply={applyButton ? apply : undefined}
       />
     </>
   ) : (
@@ -85,7 +89,7 @@ export function useConditionCard(): { condition: ReactNode; plan: ConditionPlan;
         setBox(next)
       }}
       // closing the box applies already; the button only closes it
-      onApply={() => undefined}
+      onApply={applyButton ? () => undefined : undefined}
     />
   )
   return { condition, plan: frozen?.plan ?? live, visit: frozen?.visit ?? visit }

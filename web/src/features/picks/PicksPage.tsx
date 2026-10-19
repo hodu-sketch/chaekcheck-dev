@@ -50,7 +50,8 @@ export function PicksPage({ list }: { list: PicksList }) {
   const navigate = useNavigate()
   const phone = useMediaQuery(PHONE_QUERY)
   // the condition card under the list tabs (user 2026-10-20: "추천도서에도 지역설정 칸이 있었으면 해", picked B)
-  const { condition, plan: asked, visit: askedVisit } = useConditionCard()
+  // no [반영하기] here (user 2026-10-20: "추천도서에서 지역 설정 반영하기 빼주라"); closing the window applies
+  const { condition, plan: asked, visit: askedVisit } = useConditionCard({ applyButton: false })
   const { plan, ready, key } = usePicksPlan(asked, askedVisit)
   const { resolveStoredRegions } = useRegions()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
