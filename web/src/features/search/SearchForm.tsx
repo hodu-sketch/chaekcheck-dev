@@ -32,6 +32,8 @@ type Props = {
   settingsSheet?: boolean
   /** Phones: the "내 도서관" chip, on its own line right under the title box (cycle 22 R2-1). */
   chip?: ReactNode
+  /** Wider screens: the condition card, between the title box and the narrowing chips as on phones (user 2026-10-20). */
+  beforeChips?: ReactNode
   /** Phones: the sort, at the right end of the settings line (user request 2026-10-05). */
   lineEnd?: ReactNode
 }
@@ -52,6 +54,7 @@ export function SearchForm({
   onSettingsChange,
   settingsSheet = false,
   chip,
+  beforeChips,
   lineEnd,
 }: Props) {
   const id = useId()
@@ -142,6 +145,7 @@ export function SearchForm({
           {field === 'title' ? problems[field] : `${FIELD_LABELS[field]}: ${problems[field]}`}
         </p>
       ))}
+      {beforeChips}
       {/* on /search from the start (user 2026-10-19: "이 검색 칸에는 처음부터 저자 출판사 제목 정확히가"); not on the first screen */}
       {!centered && (
         <NarrowChips input={input} searched={initial} direct={direct} beforeSearch={!hasResults} onNarrow={narrow} />

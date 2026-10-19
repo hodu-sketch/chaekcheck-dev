@@ -382,6 +382,16 @@ export function SearchPage() {
           onSettingsChange={changeSettings}
           settingsSheet={phone}
           chip={phone ? <LibraryScopeChip {...scopeCommon} onOpen={() => openPicker('residence')} /> : undefined}
+          // one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138);
+          // above the narrowing chips as on phones (user 2026-10-20: "폰 처럼 지역설정이 상세조건보다 위로")
+          beforeChips={
+            phone ? undefined : (
+              <div className={styles.scopeRow}>
+                <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} onApply={applyScope} />
+                {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
+              </div>
+            )
+          }
           lineEnd={
             // 바로 보기's sort is on the result tabs' line on phones too (user 2026-10-20)
             phone && settings.direct && directValid ? (
@@ -392,13 +402,6 @@ export function SearchPage() {
             ) : undefined
           }
         />
-        {/* one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138) */}
-        {!phone && (
-          <div className={styles.scopeRow}>
-            <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} onApply={applyScope} />
-            {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
-          </div>
-        )}
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && (
           <LibraryScopeSheet

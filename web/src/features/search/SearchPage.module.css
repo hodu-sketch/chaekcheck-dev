@@ -199,6 +199,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  /* under the title box, above the narrowing chips (user 2026-10-20) */
+  margin-top: 0.75rem;
 }
 
 /* three lines, broken where the user put them */
