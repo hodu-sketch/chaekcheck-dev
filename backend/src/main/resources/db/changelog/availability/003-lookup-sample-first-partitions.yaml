@@ -1,0 +1,8 @@
+# The month partitions for the current month and the next two, once at migration; OpsSampler keeps them ahead daily.
+databaseChangeLog:
+  - changeSet:
+      id: availability-003-lookup-sample-first-partitions
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: SELECT availability.lookup_sample_ensure_partitions(2)

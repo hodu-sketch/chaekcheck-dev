@@ -20,6 +20,10 @@ chaekcheck:
       # itself and brings a fake transport. No key: a test that needs one sets it.
       enabled: false
       api-key: ""
+  availability:
+    ops-sample:
+      # Off in tests: no 10-second rows in db-test; LookupSamplePartitionTests calls the store directly
+      enabled: false
   usagelog:
     # Off in tests, whatever ../.env says; a class that tests the log turns it on for itself (cycle 15)
     enabled: false

@@ -208,6 +208,17 @@ chaekcheck:
     # docs/maintenance/settings-index.md, field shape in docs/plan-feedback.md (# 사이클 20)
     ops-summary:
       interval: 1m
+    # The same numbers recorded in the DB, one row per 10 seconds, in availability.lookup_sample (user decision
+    # 2026-10-19 "B: DB에 저장", "파티션 잘 하고"): monthly partitions in Asia/Seoul months, made at start and daily
+    # (current + 2 months ahead); month partitions older than the retention are dropped daily. A DB error loses
+    # that row only (WARN at most once a minute). docs/maintenance/settings-index.md
+    ops-sample:
+      # false = nothing written (the test profile sets false)
+      enabled: true
+      # one row per this long [사용자 10s]
+      interval: 10s
+      # month partitions that end before now - retention are dropped [안 90d]
+      retention: 90d
     # Batch streams and "more" calls running at once; more get 503 server_busy at once (not queued).
     # 60 x parallelism 5 = at most 300 library requests in flight from batches, and the host throttle (1 per host)
     # still applies. 20 -> 40 [확정] (cycle 20 overall review #13), 40 -> 60 (user 2026-10-19: "동시 검색 자리를 60으로");

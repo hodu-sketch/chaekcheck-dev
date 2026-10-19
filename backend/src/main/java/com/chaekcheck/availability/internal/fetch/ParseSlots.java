@@ -34,6 +34,8 @@ public final class ParseSlots {
 
 	private final AtomicInteger maxInUseSeen = new AtomicInteger();
 
+	private final AtomicInteger sampleMaxInUseSeen = new AtomicInteger();
+
 	public ParseSlots(int max, Duration wait) {
 		if (max < 1) {
 			throw new IllegalArgumentException("parse-slots.max must be 1 or more: " + max);
@@ -63,6 +65,7 @@ public final class ParseSlots {
 		try {
 			int now = inUse.incrementAndGet();
 			maxInUseSeen.accumulateAndGet(now, Math::max);
+			sampleMaxInUseSeen.accumulateAndGet(now, Math::max);
 			return parse.get();
 		}
 		finally {
@@ -83,6 +86,11 @@ public final class ParseSlots {
 	/** The most pages parsed at once since the last call; starts again at zero (for the operations summary). */
 	public int drainMaxInUse() {
 		return maxInUseSeen.getAndSet(0);
+	}
+
+	/** As {@link #drainMaxInUse()}, but for the 10-second DB sample; the two maxima are kept apart. */
+	public int drainSampleMaxInUse() {
+		return sampleMaxInUseSeen.getAndSet(0);
 	}
 
 }

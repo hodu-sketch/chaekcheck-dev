@@ -130,3 +130,13 @@ databaseChangeLog:
   - include:
       file: usagelog/005-visit-key-account-id.yaml
       relativeToChangelogFile: true
+  # lookup state every 10 seconds, monthly partitions (user 2026-10-19 "B: DB에 저장", "파티션 잘 하고")
+  - include:
+      file: availability/001-lookup-sample-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: availability/002-lookup-sample-partitions.sql
+      relativeToChangelogFile: true
+  - include:
+      file: availability/003-lookup-sample-first-partitions.yaml
+      relativeToChangelogFile: true

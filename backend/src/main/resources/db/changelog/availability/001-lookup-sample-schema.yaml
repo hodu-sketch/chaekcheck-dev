@@ -1,0 +1,51 @@
+# availability module (user decision 2026-10-19 "B: DB에 저장", "파티션 잘 하고"): the lookup state recorded every
+# 10 seconds (chaekcheck.availability.ops-sample.interval), the same numbers as the one-minute "lookup ops:" summary
+# line but for each 10-second window. Written by OpsSampler, never read by the service (read by people with SQL).
+# Declarative range partitioning by sampled_at, one partition per month in Asia/Seoul month boundaries
+# (lookup_sample_y2026m10 = 2026-10-01 00:00 KST up to 2026-11-01 00:00 KST); the DEFAULT partition catches a row
+# whose month partition is missing, so an insert never fails. Partitions are made and dropped by the functions in
+# 002-lookup-sample-partitions.sql (daily and at startup: current + 2 months ahead, drop older than the retention).
+databaseChangeLog:
+  - changeSet:
+      id: availability-001-schema
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: CREATE SCHEMA IF NOT EXISTS availability
+
+  - changeSet:
+      id: availability-001-lookup-sample
+      author: chaekcheck
+      changes:
+        # Counts (refused, library_requests, body_too_large, db_errors, lane_*) and the *_max_in_use maxima are for
+        # the window that ended at sampled_at (window_ms long); the rest is the state at sampled_at.
+        # heap_max_mb NULL = the JVM reports no limit.
+        - sql:
+            splitStatements: false
+            sql: >-
+              CREATE TABLE availability.lookup_sample (
+                sampled_at timestamp with time zone NOT NULL,
+                window_ms integer NOT NULL,
+                slots_max integer NOT NULL,
+                slots_in_use integer NOT NULL,
+                slots_max_in_use integer NOT NULL,
+                refused integer NOT NULL,
+                library_requests integer NOT NULL,
+                body_too_large integer NOT NULL,
+                db_errors integer NOT NULL,
+                parse_max integer NOT NULL,
+                parse_in_use integer NOT NULL,
+                parse_max_in_use integer NOT NULL,
+                queued_libraries integer NOT NULL,
+                paused_lanes integer NOT NULL,
+                heap_used_mb integer NOT NULL,
+                heap_max_mb integer,
+                egress_mode text NOT NULL,
+                lane_requests integer NOT NULL,
+                lane_pauses integer NOT NULL,
+                lane_retests integer NOT NULL,
+                lane_resumes integer NOT NULL,
+                CONSTRAINT lookup_sample_pkey PRIMARY KEY (sampled_at)
+              ) PARTITION BY RANGE (sampled_at)
+        - sql:
+            sql: CREATE TABLE availability.lookup_sample_default PARTITION OF availability.lookup_sample DEFAULT
