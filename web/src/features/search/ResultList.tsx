@@ -43,7 +43,7 @@ export interface ResultSearchContext {
   regionBasis: RegionBasis
   scope: LibraryScope
   visit: VisitFilter
-  /** [전국에서 찾기], [전국에서 더 찾기]: the same search with `scope=all`. */
+  /** [전국에서 찾기]: the same search with `scope=all` ([전국에서 더 찾기] at the bottom taken out, user 2026-10-19: "빼자 불필요해"). */
   onSearchAll: () => void
   /** [온라인 가입만 보기]: `visit=none`, kept for later searches too. */
   onVisitNone: () => void
@@ -66,7 +66,6 @@ export const GROUP_TEXT = {
   other: '그 밖의 도서관에 있어요',
   otherNote: '그 지역에 살거나 일해야 가입돼요',
   searchAll: '전국에서 찾기',
-  searchAllMore: '전국에서 더 찾기',
 } as const
 
 interface Props {
@@ -274,27 +273,15 @@ export function ResultList({
                   더 보기 <span className={styles.moreCount}>{moreText ?? `(남은 도서관 ${remaining}곳)`}</span>
                 </button>
               )}
-              <SearchAllMore context={context} />
             </div>
           </>
         ) : (
           <>
             <p className={styles.finished}>{finishedText ?? '모든 도서관을 조회했습니다'}</p>
-            <SearchAllMore context={context} />
           </>
         )}
       </div>
     </section>
-  )
-}
-
-/** [전국에서 더 찾기] at the list bottom (R4-2); not while the search already is 전국. */
-function SearchAllMore({ context }: { context: ResultSearchContext | undefined }) {
-  if (!context || context.scope === 'all') return null
-  return (
-    <button type="button" className={styles.allButton} onClick={context.onSearchAll}>
-      {GROUP_TEXT.searchAllMore}
-    </button>
   )
 }
 

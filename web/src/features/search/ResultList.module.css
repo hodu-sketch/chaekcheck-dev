@@ -284,6 +284,11 @@
   cursor: pointer;
 }
 
+.linkButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 @media (width <= 640px) {
   /*
    * phones: no outer white panel, white cards on the grey canvas (user choice 2026-10-05: back to this after trying
@@ -409,29 +414,6 @@
   gap: 0.6rem;
 }
 
-.allButton {
-  padding: 0.85rem 1.4rem;
-  border: 1.5px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--card);
-  color: var(--ink-soft);
-  font-size: var(--text-md);
-  font-weight: 800;
-  cursor: pointer;
-  transition: border-color 140ms, color 140ms;
-}
-
-.allButton:hover {
-  border-color: var(--brand);
-  color: var(--brand-strong);
-}
-
-.allButton:focus-visible,
-.linkButton:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
 @media (width <= 640px) {
   /* phones: the small text on its own line under the title */
   .resultGroupHead {
@@ -448,7 +430,4 @@
     align-self: stretch;
   }
 
-  .allButton {
-    align-self: stretch;
-  }
 }

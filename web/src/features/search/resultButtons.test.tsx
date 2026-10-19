@@ -146,7 +146,6 @@ function renderSearch(address = '/search?title=사랑') {
 }
 
 const lastStream = () => vi.mocked(holdingStream).mock.calls.at(-1)![0]
-const lastBooks = () => vi.mocked(fetchBooks).mock.calls.at(-1)![0]
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {
@@ -190,23 +189,14 @@ afterEach(() => {
 })
 
 describe('buttons inside the results (cycle 22 R8-3)', () => {
-  it('[전국에서 더 찾기] searches again with scope=all at once; no marker beside the line (user 2026-10-19)', async () => {
+  it('has no [전국에서 더 찾기] (user 2026-10-19) and no 전국 marker beside the line', async () => {
     // 바로 보기 does not know its whole plan: the condition card takes the kept number of 어디 살든 가입 libraries (R7-1)
     savePrefs({ openCount: 39 })
-    const user = renderSearch()
+    renderSearch()
     await screen.findByText('지역 제한 없이 가입할 수 있는 도서관 39곳에서 찾았어요')
-    expect(screen.getByText('지역을 설정하면 그 지역 도서관부터 보여요')).toBeTruthy()
     expect(lastStream().scope).toBe('joinable')
+    expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
     expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
-
-    await user.click(await screen.findByRole('button', { name: '전국에서 더 찾기' }))
-    await vi.waitFor(() => expect(lastStream().scope).toBe('all'))
-    expect(lastBooks().scope).toBe('all')
-    // the card's "찾았어요" is not for a 전국 search, and nothing says 전국 beside the line any more
-    await vi.waitFor(() => expect(screen.queryByText(/에서 찾았어요/)).toBeNull())
-    expect(screen.getByText('지역 제한 없이 가입할 수 있는 도서관부터 찾아요')).toBeTruthy()
-    expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
-    expect(screen.queryByRole('button', { name: '내 도서관만' })).toBeNull()
   })
 
   it('[온라인 가입만 보기] searches again with visit=none and keeps it; [모두 보기] puts it back', async () => {

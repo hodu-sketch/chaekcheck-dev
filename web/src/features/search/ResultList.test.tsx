@@ -300,21 +300,18 @@ describe('result groups', () => {
     expect(removed.onVisitBack).toHaveBeenCalledTimes(1)
   })
 
-  it('says "지금까지 N곳에서 … 찾지 못했습니다" once at the bottom above 결과 더 보기, [전국에서 더 찾기] next to it', async () => {
+  it('says "지금까지 N곳에서 … 찾지 못했습니다" once at the bottom above 결과 더 보기, with no [전국에서 더 찾기]', () => {
     const searchContext = context()
-    const user = renderGrouped([groupedView(1, [], 'done', 5), groupedView(2, [], 'done', 9)], searchContext, {
+    renderGrouped([groupedView(1, [], 'done', 5), groupedView(2, [], 'done', 9)], searchContext, {
       remaining: 4,
     })
     const empty = screen.getAllByText(/찾지 못했습니다/)
     expect(empty.map((p) => p.textContent)).toEqual(['지금까지 9곳에서 이 제목을 찾지 못했습니다'])
     const more = screen.getByRole('button', { name: /더 보기/ })
     expect(empty[0].compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: '전국에서 더 찾기' }))
-    expect(searchContext.onSearchAll).toHaveBeenCalledTimes(1)
-
-    cleanup()
-    renderGrouped([groupedView(1, [testRow({ libraryId: 1, rank: 1 })])], context({ scope: 'all' }), { remaining: 4 })
+    // taken out (user 2026-10-19: "전국에서 더 찾기 … 빼자 불필요해")
     expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
+    expect(searchContext.onSearchAll).not.toHaveBeenCalled()
   })
 
   it('grouped=false keeps the batches as they came, with the divider and no groups or 전국 button', () => {
