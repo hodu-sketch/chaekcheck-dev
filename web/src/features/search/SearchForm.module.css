@@ -149,7 +149,10 @@
   }
 }
 
-/* 640px and below: the title box alone on the first line, then the settings button on the next (user request 2026-10-05) */
+/*
+ * 640px and below: the title box with the settings button on its right (user 2026-10-19: "모바일에서 설정 … 검색 우측에";
+ * it was on the next line since 2026-10-05), then the "내 도서관" chip and the sort on the next line
+ */
 @media (width <= 640px) {
   .topLine {
     flex-wrap: wrap;
@@ -157,24 +160,28 @@
   }
 
   .topLine .field {
-    flex-basis: 100%;
+    flex: 1 1 0;
   }
 
-  /* the "내 도서관" chip on its own line under the title box (cycle 22 R2-1); centred on the first screen */
+  /* the "내 도서관" chip under the title box (cycle 22 R2-1) */
   .chipSlot {
+    order: 1;
     display: flex;
-    flex-basis: 100%;
+    flex: 1 1 auto;
     min-width: 0;
   }
 
-  /* the sort at the right end of this line (user request 2026-10-05) */
+  /* the sort at the right end of the second line (user request 2026-10-05) */
   .lineEnd {
+    order: 2;
     margin-left: auto;
   }
 
-  /* the first screen: the settings button centered under the box (user request 2026-10-05) */
-  .form[data-start] .topLine {
-    justify-content: center;
+  /* the second line starts under the box: a full-width break before the chip and the sort */
+  .topLine:has(.chipSlot, .lineEnd)::after {
+    content: '';
+    order: 0;
+    flex-basis: 100%;
   }
 
   .field {
