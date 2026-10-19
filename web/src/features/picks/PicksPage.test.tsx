@@ -127,7 +127,7 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(within(first).getByText('전자책 연결 있음')).toBeTruthy()
     expect(within(first).getByText('2026년 10월 사서추천 · 문학')).toBeTruthy()
     expect(second.getAttribute('data-linked')).toBe('false')
-    expect(within(second).getByText('현재 범위에서 미연결')).toBeTruthy()
+    expect(within(second).getByText('전자책 없음')).toBeTruthy()
   })
 
   it('keeps the source and its licence in 추천 기준과 출처 보기 (R7-1)', async () => {
