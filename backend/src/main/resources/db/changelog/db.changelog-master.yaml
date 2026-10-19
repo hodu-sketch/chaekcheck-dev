@@ -140,3 +140,10 @@ databaseChangeLog:
   - include:
       file: availability/003-lookup-sample-first-partitions.yaml
       relativeToChangelogFile: true
+  # KAIST 스페셜도서 2026, a third imported recommended list (user 2026-10-19)
+  - include:
+      file: picks/003-kaist-list.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: usagelog/006-screen-event-picks-list-kaist.yaml
+      relativeToChangelogFile: true

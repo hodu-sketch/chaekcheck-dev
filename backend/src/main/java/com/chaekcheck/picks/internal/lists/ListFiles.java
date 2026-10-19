@@ -32,6 +32,12 @@ final class ListFiles {
 
 	static final String SNU100 = "snu100";
 
+	/** KAIST library's "스페셜도서 2026" (user 2026-10-19). */
+	static final String KAIST = "kaist";
+
+	/** The lists {@code fields.tsv} may name. */
+	static final Set<String> LISTS = Set.of(LEEDONGJIN, SNU100, KAIST);
+
 	private static final Pattern ISBN13 = Pattern.compile("97[89][0-9]{10}");
 
 	private static final Pattern VIDEO_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
@@ -55,8 +61,9 @@ final class ListFiles {
 	}
 
 	/**
-	 * One book row of {@code leedongjin.tsv} or {@code snu100.tsv}.
-	 * @param position Lee Dong-jin: order inside the month; SNU: the table-of-contents number
+	 * One book row of {@code leedongjin.tsv}, {@code snu100.tsv} or {@code kaist.tsv}.
+	 * @param position Lee Dong-jin: order inside the month; SNU: the table-of-contents number; KAIST: order inside the
+	 * field
 	 * @param month Lee Dong-jin only
 	 * @param tocNo SNU only
 	 * @param coverUrl the address the collector took the cover from, https; its file is
@@ -88,6 +95,7 @@ final class ListFiles {
 		fields.forEach(field -> codes.add(field.list() + "/" + field.code()));
 		List<Row> rows = new ArrayList<>(leedongjin(dir.resolve("leedongjin.tsv"), codes));
 		rows.addAll(snu100(dir.resolve("snu100.tsv"), codes));
+		rows.addAll(kaist(dir.resolve("kaist.tsv"), codes));
 		return new Lists(List.copyOf(fields), List.copyOf(rows));
 	}
 
@@ -97,8 +105,8 @@ final class ListFiles {
 		Set<String> places = new HashSet<>();
 		for (Line line : lines(file, "list", "code", "name", "position")) {
 			String list = line.required("list");
-			if (!list.equals(LEEDONGJIN) && !list.equals(SNU100)) {
-				throw line.wrong("list", "is not leedongjin or snu100");
+			if (!LISTS.contains(list)) {
+				throw line.wrong("list", "is not leedongjin, snu100 or kaist");
 			}
 			String code = line.required("code");
 			if (code.length() > 20) {
@@ -151,6 +159,24 @@ final class ListFiles {
 			rows.add(new Row(SNU100, line.number, field(line, SNU100, codes), tocNo, line.required("title"),
 					line.value("author"), null, null, null, null, null, tocNo, line.https("cover_url"), pinned(line),
 					null));
+		}
+		return rows;
+	}
+
+	/** KAIST (user 2026-10-19): position 1..n once per field; the row's own ISBN, publisher and cover as given. */
+	private static List<Row> kaist(Path file, Set<String> codes) {
+		List<Row> rows = new ArrayList<>();
+		Set<String> places = new HashSet<>();
+		for (Line line : lines(file, "field", "position", "title", "author", "publisher", "isbn13", "cover_url",
+				"pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by")) {
+			String field = field(line, KAIST, codes);
+			int position = line.number("position", 1, Short.MAX_VALUE);
+			if (!places.add(field + "/" + position)) {
+				throw line.wrong("position", "is there twice for " + field);
+			}
+			rows.add(new Row(KAIST, line.number, field, position, line.required("title"), line.value("author"),
+					line.value("publisher"), line.isbn("isbn13"), null, null, null, null, line.https("cover_url"),
+					pinned(line), null));
 		}
 		return rows;
 	}

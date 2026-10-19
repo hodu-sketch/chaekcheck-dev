@@ -41,7 +41,12 @@ class CuratedListTransferTests {
 			leedongjin\tforeign_fiction\t외국 소설\t1
 			leedongjin\tscience\t과학·의학\t2
 			snu100\tkorean_lit\t한국문학\t1
+			kaist\tnature\t자연\t1
+			kaist\tai\tAI\t2
 			""";
+
+	static final String KAIST_HEADER = "field\tposition\ttitle\tauthor\tpublisher\tisbn13\tcover_url\tpinned_title"
+			+ "\tpinned_author\tpinned_publisher\tpinned_isbn13\tpinned_by\tnote\n";
 
 	static final String LEEDONGJIN_HEADER = "month\tposition\tyear_book\tvideo_id\tfield\ttitle\tauthor\tpublisher\tisbn13"
 			+ "\tcover_url\tpinned_title\tpinned_author\tpinned_publisher\tpinned_isbn13\tpinned_by\tchecked_on\tnote\n";
@@ -119,7 +124,7 @@ class CuratedListTransferTests {
 		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER + "3\tkorean_lit\t구운몽\t\thttp://x.example/a.jpg\t\t\t\t\t\t\n");
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("cover_url");
 		write(FIELDS + "snu100\tkorean_lit\t또\t2\n", LEEDONGJIN_HEADER, SNU_HEADER);
-		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("fields.tsv line 5");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("fields.tsv line 7");
 		write(FIELDS, "month\tposition\n", SNU_HEADER);
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("no column");
 	}
@@ -173,8 +178,8 @@ class CuratedListTransferTests {
 		CuratedListTransfer.Replaced first = transfer.replace(json);
 		CuratedListTransfer.Replaced again = transfer.replace(json);
 
-		assertThat(first).isEqualTo(new CuratedListTransfer.Replaced(3, 2, 1, 1));
-		assertThat(again).isEqualTo(new CuratedListTransfer.Replaced(3, 2, 0, 0));
+		assertThat(first).isEqualTo(new CuratedListTransfer.Replaced(5, 2, 1, 1));
+		assertThat(again).isEqualTo(new CuratedListTransfer.Replaced(5, 2, 0, 0));
 		assertThat(jdbc.sql("""
 				SELECT list_key || ':' || field_code || ':' || position || ':' || title || ':' || coalesce(book_id, 0)
 				  || ':' || coalesce(to_char(recommended_month, 'YYYY-MM'), '-') || ':' || coalesce(video_id, '-')
@@ -193,10 +198,55 @@ class CuratedListTransferTests {
 		assertThatThrownBy(() -> transfer.replace("{\"x\":1}")).isInstanceOf(IllegalArgumentException.class);
 	}
 
+	@Test
+	void kaistFileChecks() throws IOException { // user 2026-10-19
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER,
+				KAIST_HEADER + "nature\t1\t가\t\t\t\t\t\t\t\t\t\t\n" + "nature\t1\t나\t\t\t\t\t\t\t\t\t\t\n");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("kaist.tsv line 3")
+			.hasMessageContaining("position");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "korean_lit\t1\t가\t\t\t\t\t\t\t\t\t\t\n");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("kaist.tsv line 2")
+			.hasMessageContaining("is not a kaist field");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "ai\t0\t가\t\t\t\t\t\t\t\t\t\t\n");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("position");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "ai\t1\t가\t\t\t97912\t\t\t\t\t\t\t\n");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("isbn13");
+		write(FIELDS.replace("kaist\tai", "kaistx\tai"), LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER);
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("fields.tsv line 6")
+			.hasMessageContaining("list");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, "field\ttitle\n");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("kaist.tsv line 1")
+			.hasMessageContaining("no column");
+	}
+
+	@Test
+	void kaistRowsMatchByTheirIsbnThenTitleAndAuthorAndKeepTheirPlaces() throws IOException { // user 2026-10-19
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER
+				+ "ai\t1\t맡겨진 소녀\t클레어 키건\t다산책방\t9799990000127\t\t\t\t\t\t\tKAIST 추천번호 1\n"
+				+ "nature\t2\t없는 책\t누구\t어디\t\t\t\t\t\t\t\t\n"
+				+ "nature\t1\t히스토리아 비테이\t\t\t\t\t히스토리아 비테이\t\t\t9799990000110\tmanual\t\n");
+
+		CuratedListTransfer.ListPart part = transfer.read(dir, lookup);
+
+		assertThat(part.counts()).containsEntry("kaist", new CuratedListTransfer.Counts(3, 2, 1));
+		transfer.replace(part.json());
+		assertThat(jdbc.sql("""
+				SELECT field_code || ':' || position || ':' || title || ':' || coalesce(book_id, 0) || ':'
+				  || coalesce(publisher, '-') || ':' || coalesce(isbn13, '-')
+				FROM picks.list_book WHERE list_key = 'kaist' ORDER BY field_code, position""").query(String.class).list())
+			.containsExactly("ai:1:맡겨진 소녀:920005:다산책방:9799990000127", "nature:1:히스토리아 비테이:920001:-:-",
+					"nature:2:없는 책:0:어디:-");
+	}
+
 	private void write(String fields, String leedongjin, String snu100) throws IOException {
+		write(fields, leedongjin, snu100, KAIST_HEADER);
+	}
+
+	private void write(String fields, String leedongjin, String snu100, String kaist) throws IOException {
 		Files.writeString(dir.resolve("fields.tsv"), fields, StandardCharsets.UTF_8);
 		Files.writeString(dir.resolve("leedongjin.tsv"), leedongjin, StandardCharsets.UTF_8);
 		Files.writeString(dir.resolve("snu100.tsv"), snu100, StandardCharsets.UTF_8);
+		Files.writeString(dir.resolve("kaist.tsv"), kaist, StandardCharsets.UTF_8);
 	}
 
 	private void cover(String url, byte[] jpeg) throws IOException {

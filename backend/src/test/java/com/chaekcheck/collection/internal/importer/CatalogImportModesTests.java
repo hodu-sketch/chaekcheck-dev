@@ -35,6 +35,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.TestPgCommand;
+import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.catalog.CatalogLoad.Manifest;
 import com.chaekcheck.collection.internal.libraryinsert.LibraryPart;
@@ -80,6 +81,9 @@ class CatalogImportModesTests {
 	@Autowired
 	CuratedListTransfer curatedLists;
 
+	@Autowired
+	BookLookup bookLookup;
+
 	/** One Lee Dong-jin row the export matches to "첫 책" by title and first author, one SNU row it cannot match. */
 	Path lists;
 
@@ -109,7 +113,8 @@ class CatalogImportModesTests {
 		}
 		lists = Files.createDirectories(dir.resolve("lists"));
 		Files.writeString(lists.resolve("fields.tsv"), tsv(List.of("list", "code", "name", "position"),
-				List.of("leedongjin", "f", "분야", "1"), List.of("snu100", "k", "한국문학", "1")), StandardCharsets.UTF_8);
+				List.of("leedongjin", "f", "분야", "1"), List.of("snu100", "k", "한국문학", "1"),
+				List.of("kaist", "ai", "AI", "1")), StandardCharsets.UTF_8);
 		Files.writeString(lists.resolve("leedongjin.tsv"), tsv(
 				List.of("month", "position", "year_book", "video_id", "field", "title", "author", "publisher", "isbn13",
 						"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by",
@@ -120,8 +125,13 @@ class CatalogImportModesTests {
 				List.of("toc_no", "field", "title", "author", "cover_url", "pinned_title", "pinned_author",
 						"pinned_publisher", "pinned_isbn13", "pinned_by"),
 				List.of("17", "k", "광장", "최인훈", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+		// KAIST (user 2026-10-19): no rows unless a test writes them
+		Files.writeString(lists.resolve("kaist.tsv"), tsv(KAIST_HEADER), StandardCharsets.UTF_8);
 		empty();
 	}
+
+	static final List<String> KAIST_HEADER = List.of("field", "position", "title", "author", "publisher", "isbn13",
+			"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by", "note");
 
 	@SafeVarargs
 	private static String tsv(List<String>... lines) {
@@ -138,7 +148,7 @@ class CatalogImportModesTests {
 		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot")
 			.update();
 		jdbc.sql("DELETE FROM collection.catalog_import WHERE source LIKE 'test-%'").update();
-		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100')").update();
+		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100', 'kaist')").update();
 		removeInsertedLibrary();
 	}
 
@@ -305,6 +315,52 @@ class CatalogImportModesTests {
 		assertThat(catalogLoad.hasWaitingExport()).isFalse();
 		assertThat(jdbc.sql("SELECT count(*) FROM catalog.book").query(Long.class).single()).isEqualTo(2);
 		assertThat(storedLists()).containsExactly("leedongjin:첫 책:첫 책", "snu100:광장:-");
+	}
+
+	/** Mode lists (user 2026-10-19): the lists matched to the catalog here and put in; no catalog change, no row. */
+	@Test
+	void listsModePutsInOnlyTheListsMatchedToTheLiveCatalog() throws Exception {
+		transfer().finish(exportAndKeep());
+		long imports = jdbc.sql("SELECT count(*) FROM collection.catalog_import").query(Long.class).single();
+		List<Long> books = jdbc.sql("SELECT id FROM catalog.book ORDER BY id").query(Long.class).list();
+		Files.writeString(lists.resolve("kaist.tsv"), tsv(KAIST_HEADER,
+				List.of("ai", "2", "없는 책", "누구", "", "", "", "", "", "", "", "", ""),
+				List.of("ai", "1", "둘째 책", "다", "라", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+		Files.writeString(lists.resolve("snu100.tsv"), Files.readString(lists.resolve("snu100.tsv"))
+				+ tsv(List.of("18", "k", "첫 책", "가", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+
+		CuratedListTransfer.Replaced replaced = transfer().listsOnly(bookLookup);
+
+		assertThat(replaced.books()).isEqualTo(5);
+		assertThat(jdbc.sql("""
+				SELECT l.field_code || ':' || l.position || ':' || l.title || ':' || coalesce(b.title, '-')
+				FROM picks.list_book l LEFT JOIN catalog.book b ON b.id = l.book_id
+				WHERE l.list_key = 'kaist' ORDER BY l.position""").query(String.class).list())
+			.containsExactly("ai:1:둘째 책:둘째 책", "ai:2:없는 책:-");
+		assertThat(storedLists()).containsExactlyInAnyOrder("leedongjin:첫 책:첫 책", "snu100:광장:-",
+				"snu100:첫 책:첫 책");
+		assertThat(jdbc.sql("SELECT id FROM catalog.book ORDER BY id").query(Long.class).list()).isEqualTo(books);
+		assertThat(jdbc.sql("SELECT count(*) FROM collection.catalog_import").query(Long.class).single())
+			.isEqualTo(imports);
+	}
+
+	@Test
+	void listsModeWithAWrongFileStopsAndKeepsTheListsBefore() throws Exception { // user 2026-10-19
+		transfer().finish(exportAndKeep());
+		Files.writeString(lists.resolve("kaist.tsv"), tsv(KAIST_HEADER,
+				List.of("ai", "1", "가", "", "", "", "", "", "", "", "", "", ""),
+				List.of("ai", "1", "나", "", "", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+
+		assertThatThrownBy(() -> transfer().listsOnly(bookLookup))
+			.isInstanceOf(CuratedListTransfer.ListFileException.class)
+			.hasMessageContaining("kaist.tsv line 3");
+		assertThat(storedLists()).containsExactly("leedongjin:첫 책:첫 책", "snu100:광장:-");
+	}
+
+	private Path exportAndKeep() throws Exception {
+		Path file = dir.resolve("export.dump");
+		transfer().export(sqlite, null, file, "compact");
+		return file;
 	}
 
 	/** Cycle 13 (ADR-0086, AC-7): the export carries the succeeded library-insert runs, the apply puts them in. */

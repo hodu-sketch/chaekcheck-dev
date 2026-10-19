@@ -253,3 +253,54 @@ COMMIT;
 ```
 
 `md5sum`이 NULL이면 다음 Liquibase 실행이 새 값으로 채웁니다.
+
+## 14. 추천 목록만 넣기: 모드 `lists` (사용자 2026-10-19)
+
+책 가져오기 없이 추천 목록(이동진·서울대·KAIST, 목록 파일 `scripts/crawl/lists/`)만 DB에 넣습니다. 목록 파일을 고쳤거나 새 목록(예: `kaist.tsv`)을 넣을 때, 다음 가져오기를 기다리지 않고 씁니다.
+
+- 하는 일: 목록 폴더 검사(`fields.tsv`·`leedongjin.tsv`·`snu100.tsv`·`kaist.tsv`, 없거나 틀리면 파일·줄·칸을 대고 멈춤) → 그 DB에 지금 있는 책 표(`catalog`)에 맞추기(export와 같은 규칙: 고정 판의 ISBN → 제목·첫 저자·출판사, 고정 판 없으면 그 줄의 ISBN → 제목·저자) → 트랜잭션 하나로 세 목록의 분야·책 줄을 통째로 바꾸고 표지를 더하고 안 쓰는 표지를 지움. 사서 추천 줄은 건드리지 않습니다
+- 건드리지 않는 것: 책 표(`catalog`), `catalog_next`, 가져오기 기록 줄(`collection.catalog_import`). 줄을 남기지 않고 로그에 냅니다: `recommended lists matched: {leedongjin=Counts[rows=…, matched=…, unmatched=…], …}`, 경고(30일 넘게 확인 안 한 영상, 표지 파일 없음), `recommended lists put in: Replaced[fields=…, books=…, coversAdded=…, coversDeleted=…]`
+- 폴더의 목록이 전부입니다: 세 목록 모두 폴더 내용으로 바뀝니다. 한 목록만 고쳤어도 폴더 전체(커밋한 판)를 씁니다
+- 실패하면(파일이 틀림, 잠금·DB 오류) 오류를 내고 끝나며(종료 코드 1) 전 목록이 그대로 남습니다
+- 화면: 떠 있는 서비스의 추천 캐시는 10분마다 다시 읽으므로(`chaekcheck.picks.cache.refresh-interval`) 10분 안에 바뀝니다. 새 목록 키(`kaist`)는 그 키를 아는 판(이 변경이 든 판)이 떠 있어야 보입니다
+
+### 14-1. 내 PC
+
+`backend/`에서. DB는 `../.env`(`DB_PORT` 기본 5432), 목록 폴더는 `chaekcheck.collection.import.lists-dir`(기본 `../scripts/crawl/lists`, `application-collection-import.yml`). 웹 서버 없이 끝나면 저절로 나갑니다.
+
+    ./gradlew bootRun --args='--spring.profiles.active=collection-import --chaekcheck.collection.import.mode=lists'
+
+- 다른 DB: `DB_PORT=5434 ./gradlew bootRun --args='…'`(`db-ops`), 다른 폴더: `--chaekcheck.collection.import.lists-dir=<폴더>`
+
+### 14-2. 운영 서버 (EC2)
+
+떠 있는 백엔드와 **같은 판의 이미지**를 한 번만 도는 컨테이너로 돌립니다(그 판의 Liquibase가 먼저 돌지만 이미 적용돼 할 일 없음). 이미지의 jar에는 SQLite 드라이버가 없지만 이 모드는 수집 사본을 열지 않습니다(14-3에서 jar로 확인).
+
+1. 내 PC(Git Bash, 저장소 맨 위): 목록 폴더(표지 `covers/` 포함)를 서버로 옮김
+
+        ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'rm -rf /srv/chaekcheck/lists'
+        scp -i .secrets/chaekcheck-key.pem -r scripts/crawl/lists ubuntu@52.64.117.112:/srv/chaekcheck/lists
+
+2. 서버(`/srv/chaekcheck`): `secrets.env`의 `DB_PASSWORD`를 괄호 안 셸에서만 읽어 넘김. `secrets.env`는 값이 작은따옴표로 싸여 있어(`up.sh`) `docker run --env-file`로 주면 따옴표까지 값이 되므로 쓰지 않습니다. `prod.env`(로그인·이용 기록 켜기)는 이 모드에 필요 없습니다(`collection-import`가 로그인을 끔). DB 주소·이름·사용자는 `compose.yaml`의 `backend`와 같습니다. `<판>` = `compose.yaml`의 `backend` `image:` 판
+
+        cd /srv/chaekcheck
+        ( set -a; . ./secrets.env; set +a
+          docker run --rm --network chaekcheck_default \
+            -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/chaekcheck \
+            -e DB_NAME=chaekcheck -e DB_USERNAME=chaekcheck -e DB_PASSWORD \
+            -e TZ=Asia/Seoul -e JAVA_TOOL_OPTIONS='-Xmx384m -XX:+ExitOnOutOfMemoryError' \
+            -v /srv/chaekcheck/lists:/lists:ro \
+            chaekcheck/backend:<판> \
+            --spring.profiles.active=collection-import \
+            --chaekcheck.collection.import.mode=lists \
+            --chaekcheck.collection.import.lists-dir=/lists )
+
+- [안] 네트워크 이름 `chaekcheck_default`: compose 프로젝트 이름 `chaekcheck`(`name:`)의 기본 네트워크. 서버에서 `docker network ls`로 확인
+- [안] 힙 `-Xmx384m`: 2GB 서버에서 백엔드(`-Xmx640m`)와 함께 돌 때의 값. 목록 80~수백 줄과 표지 몇십 장이라 충분할 것으로 봄, 서버에서 처음 돌릴 때 확인
+- [안] 컨테이너 사용자(uid 10001)가 `/srv/chaekcheck/lists`를 읽을 수 있어야 함(scp 기본 권한 644/755면 됨)
+- `docker compose run backend …`는 쓰지 않습니다: 서비스의 네트워크 별칭 `backend-host`가 붙으면 nginx의 `/api`가 이 컨테이너로 갈 수 있음 [안]
+
+### 14-3. 확인한 것 (2026-10-19, 내 PC `db`)
+
+- 운영 이미지와 같은 jar(`./gradlew bootJar`, SQLite 드라이버 없음)로 `backend/`에서 `java -jar build/libs/chaekcheck.jar --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=lists` → 종료 코드 0, 약 10초. Liquibase `picks-003-*`·`usagelog-006-*` 적용 뒤 `leedongjin` 43줄 중 36 맞춤, `snu100` 100줄 중 87, `kaist` 80줄 중 29(자연 10·AI 9·문화 10·AI대학 0, AI대학은 영문 원서). `Replaced[fields=18, books=223, coversAdded=53, coversDeleted=0]`
+- 시험: `CatalogImportModesTests`(`listsModePutsInOnlyTheListsMatchedToTheLiveCatalog`, `listsModeWithAWrongFileStopsAndKeepsTheListsBefore`), `CuratedListTransferTests`(KAIST 파일 검사·맞추기)

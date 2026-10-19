@@ -44,10 +44,11 @@ import tools.jackson.databind.json.JsonMapper;
  * the books fail after the library part was committed, the libraries stay; a new apply skips them.</li>
  * <li>{@code finish}: swap in the PC's waiting {@code catalog_next}; one row with the {@code export_id}.</li>
  * <li>{@code discard}: drop {@code catalog_next}; no row.</li>
+ * <li>{@code lists} (user 2026-10-19): only the recommended lists, matched to the live catalog; no row.</li>
  * </ul>
  * Since cycle 21 (ADR-0123, ADR-0124, manifest format 3) the notes also carry Lee Dong-jin's picks and the SNU 100
- * ({@code listPart}): the export checks the list files before it reads anything and matches them to the prepared
- * catalog; apply and finish put them in after the swap, in a transaction of their own. When only the lists fail, the
+ * (and KAIST's list since user 2026-10-19) ({@code listPart}): the export checks the list files before it reads
+ * anything and matches them to the prepared catalog; apply and finish put them in after the swap, in a transaction of their own. When only the lists fail, the
  * catalog stays swapped, the lists before stay, and the import row keeps the step {@code lists failed}.
  */
 class ImportTransfer {
@@ -291,6 +292,22 @@ class ImportTransfer {
 		catch (RuntimeException ex) {
 			log.error("the recommended lists were not put in; the catalog is swapped, the lists before stay", ex);
 		}
+	}
+
+	/**
+	 * Mode {@code lists} (user 2026-10-19): the list files checked, matched to the catalog now in this database
+	 * ({@code lookup}, the live {@link BookLookup}) and put in, in {@code replace}'s own transaction. No catalog table
+	 * and no import row is touched. A wrong file or a failed write stops the run with the error (the lists before
+	 * stay).
+	 */
+	CuratedListTransfer.Replaced listsOnly(BookLookup lookup) {
+		Instant started = clock.instant();
+		lists.check(listsDir);
+		CuratedListTransfer.ListPart part = lists.read(listsDir, lookup);
+		log.info("recommended lists matched: {} ({} warnings)", part.counts(), part.warnings().size());
+		CuratedListTransfer.Replaced replaced = lists.replace(part.json());
+		log.info("recommended lists put in: {} in {}", replaced, Duration.between(started, clock.instant()));
+		return replaced;
 	}
 
 	/** The list files before anything is read (in-place). */

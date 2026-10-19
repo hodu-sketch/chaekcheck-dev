@@ -7,19 +7,20 @@ import java.util.Map;
 import com.chaekcheck.catalog.BookLookup;
 
 /**
- * Lee Dong-jin's picks and the SNU 100 travel with the catalog import (ADR-0123, ADR-0124): the PC reads the list
- * files the collector keeps ({@code scripts/crawl/lists/}), matches each row's fixed edition to a book of the catalog
+ * Lee Dong-jin's picks, the SNU 100 and KAIST's 스페셜도서 2026 (user 2026-10-19) travel with the catalog import
+ * (ADR-0123, ADR-0124): the PC reads the list files the collector keeps ({@code scripts/crawl/lists/}), matches each row's fixed edition to a book of the catalog
  * being exported, and puts the result in the export's notes as {@code listPart}; the production apply, the PC's finish
  * and the in-place import write it with {@link #replace} after the catalog swap, in a short transaction of their own.
  * The librarian picks are not part of it: the server still fetches them (ADR-0122).
  * <p>
  * The import calls {@link #check} before it reads the collected copy (a list file that is wrong stops it before any
- * long work), {@link #read} once the new catalog is prepared, and {@link #replace} after the swap.
+ * long work), {@link #read} once the new catalog is prepared, and {@link #replace} after the swap. The import mode
+ * {@code lists} (user 2026-10-19) does only {@link #check}, {@link #read} with the live catalog and {@link #replace}.
  */
 public interface CuratedListTransfer {
 
 	/** The files every export needs in the lists folder (ADR-0123): without them the export stops. */
-	List<String> LIST_FILES = List.of("fields.tsv", "leedongjin.tsv", "snu100.tsv");
+	List<String> LIST_FILES = List.of("fields.tsv", "leedongjin.tsv", "snu100.tsv", "kaist.tsv");
 
 	/**
 	 * Reads and checks the list files without looking at any book.
@@ -38,7 +39,7 @@ public interface CuratedListTransfer {
 	ListPart read(Path listsDir, BookLookup lookup);
 
 	/**
-	 * Puts a {@link ListPart#json()} in place of the stored Lee Dong-jin and SNU rows and their fields, in one
+	 * Puts a {@link ListPart#json()} in place of the stored Lee Dong-jin, SNU and KAIST rows and their fields, in one
 	 * transaction under the lists' locks; adds the covers not stored yet and deletes the covers no list uses. The
 	 * librarian rows are not touched.
 	 * @throws IllegalArgumentException when the text is not a list part
@@ -47,7 +48,7 @@ public interface CuratedListTransfer {
 
 	/**
 	 * @param json the {@code listPart} the export keeps in its notes
-	 * @param counts per list ({@code leedongjin}, {@code snu100})
+	 * @param counts per list ({@code leedongjin}, {@code snu100}, {@code kaist})
 	 * @param warnings lines the import log keeps: rows not checked on YouTube for over 30 days, cover files missing
 	 */
 	record ListPart(String json, Map<String, Counts> counts, List<String> warnings) {

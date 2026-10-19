@@ -25,7 +25,7 @@ import com.chaekcheck.picks.internal.store.PicksStore;
 
 /**
  * The recommended lists' screens (plan cycle 14 design-delta "API"; cycle 21 ADR-0126: one address per list,
- * {@code librarian}, {@code leedongjin}, {@code snu100}, any other name 404 {@code list_not_found}). No login (R7-3), no
+ * {@code librarian}, {@code leedongjin}, {@code snu100}, and {@code kaist} since user 2026-10-19; any other name 404 {@code list_not_found}). No login (R7-3), no
  * library site or National Library request is made. The lists come from the shared cache; whether a book is in the user's plan libraries is worked out
  * per request and never cached (ADR-0090).
  */

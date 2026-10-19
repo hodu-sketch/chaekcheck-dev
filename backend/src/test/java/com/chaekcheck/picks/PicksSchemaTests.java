@@ -127,6 +127,21 @@ class PicksSchemaTests {
 	}
 
 	@Test
+	void kaistRulesHold() { // user 2026-10-19 (picks/003)
+		field("'kaist'", "'ai'", "'AI'", "1");
+		kaist("1", "'https://image.yes24.com/goods/1/M'");
+		kaist("2", "NULL");
+		violates(() -> kaist("2", "NULL")); // one book per place in a field
+		violates(() -> kaist("0", "NULL"));
+		violates(() -> kaist("3", "'http://x.example/a.jpg'"));
+		violates(() -> book("'kaist', 'ai', 4, '가', DATE '2026-06-01', NULL, NULL, NULL, NULL, NULL"));
+		violates(() -> book("'kaist', 'ai', 4, '가', NULL, 'lMx0zEd1qtY', NULL, NULL, NULL, NULL"));
+		violates(() -> book("'kaist', 'ai', 4, '가', NULL, NULL, 6, NULL, NULL, NULL"));
+		violates(() -> book("'kaist', 'ai', 4, '가', NULL, NULL, NULL, '8', NULL, NULL"));
+		violates(() -> book("'kaist', 'nature', 4, '가', NULL, NULL, NULL, NULL, NULL, NULL")); // no such field
+	}
+
+	@Test
 	void deletingAFieldDeletesItsBooks() {
 		fields();
 		snu100("8", "NULL");
@@ -235,6 +250,12 @@ class PicksSchemaTests {
 	private void snu100(String tocNo, String cover) {
 		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, toc_no, book_id, cover_source)"
 				+ " VALUES ('snu100', 'korean_lit', 1, '가', " + tocNo + ", NULL, " + cover + ")").update();
+	}
+
+	private void kaist(String position, String cover) {
+		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, isbn13, publisher, book_id,"
+				+ " cover_source) VALUES ('kaist', 'ai', " + position + ", '가', '9791190400657', '나', 12, " + cover
+				+ ")").update();
 	}
 
 	/** list, field, position, title, month, video, toc, source_no, book_id, registered_on */

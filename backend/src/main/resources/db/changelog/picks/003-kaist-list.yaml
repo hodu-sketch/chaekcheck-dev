@@ -1,0 +1,29 @@
+# KAIST library's "스페셜도서 2026" as a third imported list, list_key kaist (user 2026-10-19). 002 is applied in
+# production, so its checks are made again here with kaist added. kaist rows: field and position (1.. inside the
+# field, once each), the row's own ISBN and publisher, no month, video, year book or table-of-contents number.
+databaseChangeLog:
+  - changeSet:
+      id: picks-003-kaist-list-key
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: ALTER TABLE picks.list_field DROP CONSTRAINT list_field_list_key_check
+        - sql:
+            sql: >-
+              ALTER TABLE picks.list_field ADD CONSTRAINT list_field_list_key_check
+                CHECK (list_key IN ('librarian', 'leedongjin', 'snu100', 'kaist'))
+
+  - changeSet:
+      id: picks-003-kaist-rows
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE picks.list_book ADD CONSTRAINT list_book_kaist_check CHECK (list_key <> 'kaist' OR (
+                source_no IS NULL AND registered_on IS NULL AND recommended_month IS NULL AND video_id IS NULL
+                AND year_book IS NULL AND toc_no IS NULL
+                AND (cover_source IS NULL OR cover_source LIKE 'https://%')))
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX list_book_kaist_position_key ON picks.list_book (field_code, position)
+              WHERE list_key = 'kaist'

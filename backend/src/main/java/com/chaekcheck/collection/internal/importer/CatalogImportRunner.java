@@ -46,8 +46,8 @@ class CatalogImportRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(CatalogImportRunner.class);
 
-	/** The mode values (cycle 11, ADR-0078 [확정]). */
-	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard");
+	/** The mode values (cycle 11, ADR-0078 [확정]; {@code lists} user 2026-10-19). */
+	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard", "lists");
 
 	/** The ways to group books (cycle 11, ADR-0079 [확정]). */
 	static final Set<String> GROUPINGS = Set.of("objects", "compact", "sql");
@@ -59,7 +59,8 @@ class CatalogImportRunner {
 	 * @param placeholderDateLibraries collection ids whose dates before 1950 are placeholders (ADR-0054)
 	 * @param mode {@code in-place} (default: load and swap in this database), {@code export} (load into new tables
 	 * and write them into {@code file}), {@code apply} (load {@code file} here), {@code finish} (swap in the new tables
-	 * waiting for {@code file}) or {@code discard} (drop the new tables). docs/maintenance/3-import.md 13
+	 * waiting for {@code file}), {@code discard} (drop the new tables) or {@code lists} (only the recommended lists of
+	 * {@code listsDir}, matched to the catalog in this database; user 2026-10-19). docs/maintenance/3-import.md 13, 14
 	 * @param file the export file of {@code export}, {@code apply} and {@code finish}
 	 * @param grouping how the books are grouped (ADR-0079): {@code compact} (default since 2026-10-12, user decision
 	 * after the cycle 11 measurement), {@code objects} (one object per unit; called {@code current} until 2026-10-12) or
@@ -75,7 +76,8 @@ class CatalogImportRunner {
 	 * @param storedBibliography step ③ from the stored national bibliography records without the TTL files (cycle 19:
 	 * the TTL files were lost on 2026-10-15, user choice 2026-10-16); only without {@code ttl-path}
 	 * @param listsDir the recommended lists folder ({@code scripts/crawl/lists}, cycle 21 ADR-0128); {@code export}
-	 * and a real {@code in-place} stop before reading the collection DB when it or a list file is missing
+	 * and a real {@code in-place} stop before reading the collection DB when it or a list file is missing; {@code lists}
+	 * reads only it
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
@@ -151,6 +153,7 @@ class CatalogImportRunner {
 				case "apply" -> transfer.apply(settings.file());
 				case "finish" -> transfer.finish(settings.file());
 				case "discard" -> log.info("discarded: {}", transfer.discard());
+				case "lists" -> transfer.listsOnly(bookLookup);
 				default -> {
 					if (!settings.dryRun()) {
 						transfer.requireNoWaitingExport();

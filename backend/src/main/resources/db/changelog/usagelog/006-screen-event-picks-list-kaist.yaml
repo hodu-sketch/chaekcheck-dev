@@ -1,0 +1,13 @@
+# The KAIST list (user 2026-10-19) in the picks screen events. 003 is applied in production, so its check is made
+# again here with kaist added.
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-006-screen-event-picks-list-kaist
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: ALTER TABLE usagelog.screen_event DROP CONSTRAINT screen_event_picks_list_check
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.screen_event ADD CONSTRAINT screen_event_picks_list_check
+                CHECK (picks_list IN ('librarian', 'leedongjin', 'snu100', 'kaist'))
