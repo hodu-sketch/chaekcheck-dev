@@ -84,9 +84,10 @@ export const SCOPE_TEXT = {
   joinTitle: '가입 방법',
   visitNote: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
   myPage: '마이페이지에서 전체 보기',
-  // phones: the sheet's own button that puts the regions and the switch to use at once (user 2026-10-20: "검색 버튼
-  // 누르지 말고 폰은 지역 설정 아래에 반영하기 버튼 만들어서 눌러서 한번에 적용 가능했으면 해")
-  apply: '반영하기',
+  // a screen that is not a search (the book page) after the regions or the switch changed (user 2026-10-20: "여기 검색에도
+  // 다른 것들처럼 정보 바꼈으니까 검색 새로하라고하고 가능한 버튼 만들어줘"; no 반영하기 in the window any more)
+  changedBefore: '조건을 바꿨어요. 바뀐 조건으로 찾으려면 ',
+  searchAgain: '다시 찾기',
   accountFailed: '내 도서관을 불러오지 못했어요',
   retry: '다시 시도',
 } as const
@@ -167,14 +168,14 @@ interface Common {
   searched?: ScopeSearched | null
   /** A results screen whose search was made with the other 「온라인에서 가입 가능한 곳만 보기」 value. */
   visitChanged?: boolean
+  /** A screen that is not a search: its own line under the card instead (`SearchAgainHint`), or none. */
+  changedHint?: ReactNode
 }
 
 interface LineProps extends Common {
   /** The box is open, and on which grid; null = closed. */
   box: BoxFocus | null
   onBoxChange: (box: BoxFocus | null) => void
-  /** [반영하기] was pressed: the screen uses what is saved now (the box closes itself). */
-  onApply?: () => void
 }
 
 /**
@@ -185,6 +186,7 @@ interface LineProps extends Common {
 function useCondition(
   searched: ScopeSearched | null | undefined,
   visitChanged = false,
+  changedHint?: ReactNode,
 ): {
   line: string
   action: string
@@ -196,14 +198,28 @@ function useCondition(
     return {
       line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
       action: SCOPE_TEXT.pick,
-      hint: visitHint ?? (searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint),
+      hint: changedHint ?? visitHint ?? (searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint),
     }
   }
   return {
     line: SCOPE_TEXT.condition(text),
     action: SCOPE_TEXT.edit,
-    hint: searched?.regionsPicked ? <PressSearch before={SCOPE_TEXT.pickedBefore(searched.picked)} /> : visitHint,
+    hint:
+      changedHint ??
+      (searched?.regionsPicked ? <PressSearch before={SCOPE_TEXT.pickedBefore(searched.picked)} /> : visitHint),
   }
+}
+
+/** "조건을 바꿨어요. 바뀐 조건으로 찾으려면 [다시 찾기]": the book page's own search again, a button in the line. */
+export function SearchAgainHint({ onClick }: { onClick: () => void }) {
+  return (
+    <span role="status">
+      {SCOPE_TEXT.changedBefore}
+      <button type="button" className={styles.againButton} onClick={onClick}>
+        {SCOPE_TEXT.searchAgain}
+      </button>
+    </span>
+  )
 }
 
 /** "… [검색]을 눌러 주세요": the search on screen no longer matches what is saved. */
@@ -254,9 +270,9 @@ function ConditionCard({
  * 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows itself by the 「그 밖의 도서관」 group, and the next
  * new search is 내 도서관 again (D10).
  */
-export function LibraryScopeLine({ box, onBoxChange, onApply, ...common }: LineProps) {
+export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
-  const condition = useCondition(common.searched, common.visitChanged)
+  const condition = useCondition(common.searched, common.visitChanged, common.changedHint)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
@@ -300,27 +316,12 @@ export function LibraryScopeLine({ box, onBoxChange, onApply, ...common }: LineP
                 key={box}
                 focus={box}
                 visit={common.visit}
-                visitChanged={onApply ? false : common.visitChanged}
+                visitChanged={common.visitChanged}
                 onVisitChange={common.onVisitChange}
                 openCount={common.openCount}
                 onOpenCount={common.onOpenCount}
                 onLeave={() => onBoxChange(null)}
               />
-            )}
-            {/* PCs and tablets too (user 2026-10-20: "폰 말고도 pc도", "태블릿도") */}
-            {onApply && (
-              <div className={styles.applyBar} data-box>
-                <button
-                  type="button"
-                  className={styles.apply}
-                  onClick={() => {
-                    onBoxChange(null)
-                    onApply()
-                  }}
-                >
-                  {SCOPE_TEXT.apply}
-                </button>
-              </div>
             )}
           </Dialog.Content>
         </Dialog.Portal>
@@ -338,9 +339,9 @@ interface ChipProps extends Common {
  * Phones (R2-1): the same condition card under the search box, always there; its link opens its own "찾을 도서관"
  * sheet (user 2026-10-19; it opened the settings sheet before). The account failure as on wider screens.
  */
-export function LibraryScopeChip({ onOpen, searched, visitChanged }: ChipProps) {
+export function LibraryScopeChip({ onOpen, searched, visitChanged, changedHint }: ChipProps) {
   const state = useLineState()
-  const condition = useCondition(searched, visitChanged)
+  const condition = useCondition(searched, visitChanged, changedHint)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
@@ -373,15 +374,13 @@ interface SheetProps extends Pick<Common, 'visit' | 'visitChanged' | 'onVisitCha
   onOpenChange: (open: boolean) => void
   /** Which grid the sheet opens on. */
   focus: BoxFocus
-  /** [반영하기] was pressed: the screen uses what is saved now (the sheet closes itself). */
-  onApply?: () => void
 }
 
 /**
  * Phones (user 2026-10-19: "사는 곳 일하는 곳 고르기는 그것만 있고 설정에는 없었으면 해"): the chip's own bottom sheet,
  * "찾을 도서관" with the box's body only, the same shared sheet as ⚙ (handle, ⓧ, back, a tap outside).
  */
-export function LibraryScopeSheet({ open, onOpenChange, focus, onApply, ...body }: SheetProps) {
+export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={SCOPE_TEXT.sheetTitle} closeButton closeOnBack>
       <div className={styles.sheet}>
@@ -389,29 +388,7 @@ export function LibraryScopeSheet({ open, onOpenChange, focus, onApply, ...body 
         <h2 className={styles.sheetTitle} aria-hidden="true">
           {SCOPE_TEXT.sheetTitle}
         </h2>
-        <LibraryScopeBody
-          key={focus}
-          focus={focus}
-          {...body}
-          // the button does what the line asked [검색] for
-          visitChanged={onApply ? false : body.visitChanged}
-          onLeave={() => onOpenChange(false)}
-          sheet
-        />
-        {onApply && (
-          <div className={styles.applyBar}>
-            <button
-              type="button"
-              className={styles.apply}
-              onClick={() => {
-                onOpenChange(false)
-                onApply()
-              }}
-            >
-              {SCOPE_TEXT.apply}
-            </button>
-          </div>
-        )}
+        <LibraryScopeBody key={focus} focus={focus} {...body} onLeave={() => onOpenChange(false)} sheet />
       </div>
     </BottomSheet>
   )

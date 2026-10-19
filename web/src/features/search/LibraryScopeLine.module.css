@@ -253,44 +253,6 @@
   padding: 0 0.1rem 0.9rem;
 }
 
-/* phones: [반영하기] stays at the bottom of the sheet while its body scrolls (user 2026-10-20) */
-.applyBar {
-  position: sticky;
-  /* over the sheet's own bottom padding, edge to edge (.sheet 0.1rem + the sheet body's 1rem / 0.8rem) */
-  bottom: calc(-0.8rem - env(safe-area-inset-bottom));
-  margin: 0.9rem -1.1rem calc(-1.7rem - env(safe-area-inset-bottom));
-  padding: 0.75rem 1.1rem calc(0.8rem + env(safe-area-inset-bottom));
-  background: var(--card);
-  border-top: 1px solid var(--rule);
-}
-
-/* the box on wider screens: over its own bottom padding (1.3rem) and side padding (1.4rem) */
-.applyBar[data-box] {
-  bottom: -1.3rem;
-  margin: 1rem -1.4rem -1.3rem;
-  padding: 0.9rem 1.4rem 1.3rem;
-}
-
-.apply {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--control-height);
-  border: none;
-  border-radius: var(--radius-control);
-  background: var(--brand);
-  color: #fff;
-  font: inherit;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.apply:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
 .sheetTitle {
   display: flex;
   align-items: center;
@@ -492,3 +454,33 @@
   word-break: keep-all;
 }
 
+
+/* [다시 찾기] in the grey line under the card (the book page, user 2026-10-20) */
+.againButton {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* at least a 44px touch area without moving anything (cycle 10 icon check) */
+.againButton::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  translate: -50% -50%;
+}
+
+.againButton:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

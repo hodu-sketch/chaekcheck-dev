@@ -433,7 +433,7 @@ describe('the phone chip (R2-1)', () => {
 
 /** User 2026-10-19: the chip opens its own sheet with only "찾을 도서관", not the ⚙ sheet. */
 describe('the phone "찾을 도서관" sheet', () => {
-  function renderChipWithSheet(onApply?: () => void) {
+  function renderChipWithSheet() {
     function Harness() {
       const [open, setOpen] = useState(false)
       const common = {
@@ -449,7 +449,7 @@ describe('the phone "찾을 도서관" sheet', () => {
             planCount={null}
             onOpen={() => setOpen(true)}
           />
-          <LibraryScopeSheet {...common} open={open} onOpenChange={setOpen} focus="residence" onApply={onApply} />
+          <LibraryScopeSheet {...common} open={open} onOpenChange={setOpen} focus="residence" />
         </>
       )
     }
@@ -470,20 +470,6 @@ describe('the phone "찾을 도서관" sheet', () => {
     )
     return userEvent.setup()
   }
-
-  it('[반영하기] closes the sheet and applies (user 2026-10-20); without onApply there is no button', async () => {
-    const onApply = vi.fn()
-    const user = renderChipWithSheet(onApply)
-    await user.click(await screen.findByRole('button', { name: '지역 설정' }))
-    await user.click(within(await box()).getByRole('button', { name: '반영하기' }))
-    expect(onApply).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    cleanup()
-
-    const again = renderChipWithSheet()
-    await again.click(await screen.findByRole('button', { name: '지역 설정' }))
-    expect(within(await box()).queryByRole('button', { name: '반영하기' })).toBeNull()
-  })
 
   it('a dialog named "찾을 도서관" with the box body, a handle and ⓧ, and no other settings', async () => {
     const user = renderChipWithSheet()

@@ -25,7 +25,8 @@ export function BookPage() {
   const { ready } = useRegions()
   const scope = readScope(params)
   // the condition card as on the search screen (user 2026-10-20: "이 창에서도 지역 조건 수정할 수 있으면 좋겠어")
-  const { condition, plan, visit } = useConditionCard()
+  // a changed condition waits for [다시 찾기] under the card (user 2026-10-20)
+  const { condition, plan, visit } = useConditionCard({ apply: 'searchAgain' })
   // a new book, filter, plan, region set or added libraries start over from a fresh page state
   const key = `${bookId}?${params}|${plan.residence.join(',')}|${plan.work.join(',')}|${plan.libraryIds.join(',')}|${scope}|${visit}|${ready}`
   return <BookView key={key} bookId={bookId} plan={plan} visit={visit} condition={condition} />
