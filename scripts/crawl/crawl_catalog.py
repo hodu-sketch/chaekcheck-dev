@@ -4,6 +4,7 @@ Usage:
   python crawl_catalog.py init                 # (re)load the library list from chaekcheck-dev seed CSVs (read-only)
   python crawl_catalog.py full [--workers N] [--only ID,ID] [--limit-pages N]
   python crawl_catalog.py status
+  python crawl_catalog.py add-library --id N --name NAME --platform TYPE --base-url URL --source LABEL
   python crawl_catalog.py refill-pubdt --only ID   # read a library's list again in publish-date order (adds only)
 
 Rules (docs/research/ebook-catalog/crawl-method.md in chaekcheck-plan):
@@ -44,7 +45,7 @@ from bs4 import BeautifulSoup
 DISABLED_IDS = {59, 131}  # rules-index.md: DISABLED_IDS
 # Rows per list page, by platform.  rules-index.md: PAGE_SIZE
 PAGE_SIZE = {"KYOBO_V1": 500, "YES24_V1": 50, "YES24_V2": 10, "YES24_V3": 10, "KYOBO_SUBSCRIPTION_V1": 80,
-             "ELIB_PORTAL_V1": 100, "GANGNAM_V1": 20, "BOOKCUBE_FX": 100, "ALADIN_V1": 100}
+             "ELIB_PORTAL_V1": 100, "GANGNAM_V1": 20, "BOOKCUBE_FX": 100, "ALADIN_V1": 100, "SEOUL_ELIB_V1": 100}
 # rules-index.md: PAGE_SIZE_BY_HOST
 PAGE_SIZE_BY_HOST = {  # hosts that cut or time out on the default page size (2026-09-30)
     "ebook.jbe.go.kr": 100, "ebook.chilgok.go.kr": 100, "lib.goe.go.kr": 50}
@@ -61,6 +62,9 @@ SHARED_HOSTS = ("dkyobobook.co.kr", "bookcube.biz", "dasangng.co.kr", "aladinebo
 # Parallelism, chosen per run (--workers, --per-host, --gap). Defaults are the agreed politeness rule:
 # one request at a time per server, at least 1 s apart (cycle 01 spec 5.6); different servers run in parallel.
 MIN_GAP = 1.0          # seconds between requests to one host; rules-index.md: MIN_GAP
+# Hosts asked for a longer gap than MIN_GAP: 서울도서관 1.1 s (library-maintenance 2절 and 4-14, 2026-10-20).
+# rules-index.md: MIN_GAP_BY_HOST
+MIN_GAP_BY_HOST = {"elib.seoul.go.kr": 1.1}
 PER_HOST = 1           # requests in flight at once on one host; rules-index.md: PER_HOST
 MATCH_TOLERANCE = 0.01  # distinct items vs site total; rules-index.md: MATCH_TOLERANCE
 # Integrated portals (ELIB_PORTAL_V1) whose list rows show the publisher before the author in div.info
@@ -82,7 +86,7 @@ SEED_CSVS = ["003-library-cycle02.csv", "004-library.csv", "005-library-yes24.cs
 PILOTS = [(1, "서울 강서구 전자도서관", "YES24_V2", "https://ebook.gangseo.seoul.kr", None),
           (2, "고흥군립도서관 전자도서관", "KYOBO_V1", "https://www.ghlib.go.kr:446", None)]
 PLATFORMS = {"KYOBO_V1", "YES24_V1", "YES24_V2", "YES24_V3", "KYOBO_SUBSCRIPTION_V1", "ELIB_PORTAL_V1", "GANGNAM_V1",
-             "BOOKCUBE_FX", "ALADIN_V1"}
+             "BOOKCUBE_FX", "ALADIN_V1", "SEOUL_ELIB_V1"}
 # library.vendor values (same CHECK as the data folder's library-naming/apply_rename.py, 2026-10-12)
 VENDORS = ("KYOBO", "YES24", "BOOKCUBE", "ALADIN", "PORTAL", "IN_HOUSE")
 
@@ -322,6 +326,26 @@ def import_bookcube(con, probe_tsv, source="okbari-2026-09-30"):
     print(f"bookcube libraries added: {n}")
 
 
+def add_library(con, lib_id, name, platform, base_url, source, vendor=None):
+    """Add one site found by hand (e.g. 서울도서관, library-maintenance 4-14) under a chosen collection id, so the
+    rules files (scripts/library/rules/) can name that id before the crawl. Stops if the id or address is taken."""
+    if platform not in PLATFORMS:
+        raise SystemExit(f"unknown platform_type {platform}")
+    if vendor and vendor not in VENDORS:
+        raise SystemExit(f"unknown vendor {vendor}")
+    if lib_id <= OKBARI_ID_BASE:
+        raise SystemExit(f"collection ids of libraries found later start at {OKBARI_ID_BASE + 1}")
+    base = base_url.rstrip("/")
+    taken = con.execute("SELECT id, name, base_url FROM library WHERE id=? OR rtrim(base_url, '/')=?",
+                        (lib_id, base)).fetchone()
+    if taken:
+        raise SystemExit(f"already there: {taken}")
+    con.execute("INSERT INTO library (id, name, platform_type, base_url, host, source, vendor) VALUES (?,?,?,?,?,?,?)",
+                (lib_id, name, platform, base, host_key(base), source, vendor))
+    con.commit()
+    print(f"library added: {lib_id} {name} {platform} {base}")
+
+
 # ---------------------------------------------------------------- HTTP
 
 def ssl_context():
@@ -416,6 +440,11 @@ def fetch(url, host):
     return body
 
 
+def gap_for(host):
+    """MIN_GAP, or a host's own longer gap (MIN_GAP_BY_HOST)."""
+    return max(MIN_GAP, MIN_GAP_BY_HOST.get(host, 0.0))
+
+
 def slots_for(key):
     return 1 if key in _slots_off else HOST_SLOTS.get(key, PER_HOST)
 
@@ -428,7 +457,7 @@ def _fetch(url, host):
             sem = _slot_sems.setdefault(host, threading.BoundedSemaphore(n))
         with sem:
             with _host_locks[host]:
-                wait = _host_last[host] + MIN_GAP - time.monotonic()
+                wait = _host_last[host] + gap_for(host) - time.monotonic()
                 if wait > 0:
                     time.sleep(wait)
                 _host_last[host] = time.monotonic()
@@ -437,7 +466,7 @@ def _fetch(url, host):
                 return resp.read()
     # default: one at a time; the gap counts from the end of the previous request
     with _host_locks[host]:
-        wait = _host_last[host] + MIN_GAP - time.monotonic()
+        wait = _host_last[host] + gap_for(host) - time.monotonic()
         if wait > 0:
             time.sleep(wait)
         try:
@@ -850,6 +879,65 @@ def parse_aladin(body, root, nav, ebook_kind="전자책"):
     return int(total.group(1).replace(",", "")), items
 
 
+# 서울도서관 elib.seoul.go.kr (library-maintenance 4-14, maintenance/platforms.md 11): the site's own JSON.
+# The catalogue is the category lists, e-books (contentType EB) and audiobooks (TY03); category numbers differ.
+SEOUL_CONTENT_TYPES = (("EB", "전자책"), ("TY03", "오디오북"))
+# The overseas category lists only OverDrive titles (ownerCode OV), lent on OverDrive's own site: not read
+# (2026-10-20: 3,900 rows, all OV).
+SEOUL_SKIPPED_CATEGORIES = {"국외전자책"}
+SEOUL_SUPPLIERS = {"OD": "ECO", "BQ": "북큐브", "BX": "OPMS", "YE": "예스24", "YB": "Y2BOOKS", "CP": "컨텐츠포탈",
+                   "AL": "알라딘", "AD": "오디언", "OV": "오버드라이브"}  # ownerCode as r_detail.js names them
+
+
+def seoul_json(body):
+    import json
+    try:
+        return json.loads(body.decode("utf-8"))
+    except ValueError:
+        raise ValueError("SEOUL_ELIB: answer is not JSON (an error page?)") from None
+
+
+def seoul_segments(lib):
+    """[(section, major category)] for every category with books, e-books then audiobooks: 'EB-001', 'TY03-139'."""
+    segs = []
+    for content_type, _ in SEOUL_CONTENT_TYPES:
+        data = seoul_json(fetch_retry(f"{lib['base_url']}/api/category/main?contentType={content_type}", lib["host"]))
+        for c in data.get("ContentDataList") or []:
+            if int(c.get("contentCount") or 0) > 0 and c.get("categoryName") not in SEOUL_SKIPPED_CATEGORIES:
+                segs.append((f"{content_type}-{c['categoryNo']}", c["categoryNo"]))
+    if not segs:
+        raise ValueError("SEOUL_ELIB: no category with books")
+    return segs
+
+
+def parse_seoul(body, seg):
+    """One category page: {totalCount, ContentDataList}. OverDrive rows (ownerCode OV) are lent on OverDrive's own site,
+    not here: skipped, so they are not counted against the total either."""
+    data = seoul_json(body)
+    total = str(data.get("totalCount") or "")
+    if not total.isdigit():
+        raise ValueError("SEOUL_ELIB: totalCount missing")
+    kind = dict(SEOUL_CONTENT_TYPES)[seg[0].split("-")[0]]
+    items = []
+    for r in data.get("ContentDataList") or []:
+        key, title = (r.get("contentsKey") or "").strip(), (r.get("title") or "").strip()
+        if not key or not title:
+            skip("SEOUL_ELIB: row without contentsKey or title")
+            continue
+        if r.get("ownerCode") == "OV":
+            skip("SEOUL_ELIB: OverDrive (overseas) row")
+            continue
+        pub_raw = r.get("publishDate")
+        items.append(dict(
+            item_key=key, platform="SEOUL_ELIB", title=title, author_raw=(r.get("author") or "").strip() or None,
+            publisher=(r.get("publisher") or "").strip() or None, published_on=date_of(pub_raw), published_raw=pub_raw,
+            supplier=SEOUL_SUPPLIERS.get(r.get("ownerCode"), r.get("ownerCode")),
+            content_kind="오디오북" if r.get("contentsType") == "TY03" else kind, kind_source="SITE_LABEL",
+            category_code=seg[1], category_name=r.get("contentsTypeDesc"), cover_url=None,
+            detail_path=f"/contents/detail.do?no={key}"))
+    return int(total), items
+
+
 def portal_root(base):
     return base.split("?")[0].rstrip("/")
 
@@ -895,6 +983,8 @@ def segments(lib):
         return portal_segments(lib)
     if p.startswith("YES24"):
         return yes24_segments(lib)
+    if p == "SEOUL_ELIB_V1":
+        return seoul_segments(lib)
     return [("MAIN", None)]
 
 
@@ -924,6 +1014,9 @@ def page_url(lib, page, seg=("MAIN", None)):
         order = 1 if seg[1] == "pubdt" else 2  # 2 title, 1 publish date
         return (f"{root}/sub/sub.htm?nav_code={nav}&code=&order_list={order}&view_cate=&list_scale={PAGE_SIZE[p]}"
                 f"&search_item=&search_order=&view_level=1&startPage={(page - 1) * PAGE_SIZE[p]}")
+    if p == "SEOUL_ELIB_V1":
+        return (f"{base}/api/contents/catesearch?libCode=&majorCategory={seg[1]}&subCategory=&innerKeyword="
+                f"&orderOption=1&loanable=&currentCount={page}&pageCount={PAGE_SIZE[p]}")
     if seg[0] == "AUDIO":  # 10 rows (the newer layout on every YES24 site seen so far)
         return f"{base}/audiobook/?mode=total&sort=title&cate_id=&page_num={page}"
     view = f"&view={PAGE_SIZE[p]}" if p == "YES24_V1" else ""
@@ -965,6 +1058,9 @@ def parse(lib, body, seg=("MAIN", None)):
     elif p == "BOOKCUBE_FX":
         total, items = parse_bookcube(body, lib["base_url"])
         source = "SITE_LABEL"  # category_type/format of each product
+    elif p == "SEOUL_ELIB_V1":
+        total, items = parse_seoul(body, seg)
+        source = "SITE_LABEL"  # contentsType of each row
     else:
         if p == "YES24_V1" and seg[0] == "MAIN":
             total, items = parse_yes24_v1(body, lib["base_url"])
@@ -1153,7 +1249,7 @@ def crawl_library(con, lib, limit_pages=None, only_sections=None):
                                  site_total + (seg_total or 0) if multi else seg_total,
                                  seg[0] if resumable else None, site_total if resumable else None, run_id))
                     con.commit()
-                if not items:
+                if not items and not SKIPPED.rows:  # a page whose rows were all skipped is not empty
                     if pages is not None and page < pages:
                         raise ValueError(f"empty page {page} of {pages} ({seg[0]})")
                     break
@@ -1381,7 +1477,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", default="", help="data folder (default: $CHAEKCHECK_DATA or ../chaekcheck-data)")
     ap.add_argument("cmd", choices=["init", "full", "status", "import-bookcube", "import-probe", "backfill-types",
-                                    "invalidate", "refill-pubdt"])
+                                    "invalidate", "refill-pubdt", "add-library"])
     ap.add_argument("--source", default="okbari-2026-10-03", help="library.source label for import-probe")
     ap.add_argument("--reason", default="")
     ap.add_argument("--skip", nargs=2, metavar=("ID", "REASON"), help="do not crawl this library; REASON '' clears it")
@@ -1402,6 +1498,11 @@ def main():
     ap.add_argument("--shard", default="", help="i/n: this process takes every n-th host starting at i")
     ap.add_argument("--audio-pass", action="store_true", help="also fetch YES24 /audiobook/ lists not yet fetched")
     ap.add_argument("--set-count", nargs=2, metavar=("ID", "COUNT"), help="store a catalogue size seen on the site")
+    ap.add_argument("--id", type=int, help="add-library: the collection id (above 100000), as in the rules files")
+    ap.add_argument("--name", help="add-library: the library's name")
+    ap.add_argument("--platform", help="add-library: platform_type")
+    ap.add_argument("--base-url", help="add-library: the site root the crawler appends its paths to")
+    ap.add_argument("--vendor", default=None, help="add-library: vendor when it differs from the platform_type mapping")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     global PER_HOST, MIN_GAP
@@ -1430,6 +1531,10 @@ def main():
         import_bookcube(con, a.probe, a.source)
     elif a.cmd == "import-probe":
         import_probe(con, a.probe, a.source)
+    elif a.cmd == "add-library":
+        if not (a.id and a.name and a.platform and a.base_url):
+            ap.error("add-library needs --id, --name, --platform and --base-url")
+        add_library(con, a.id, a.name, a.platform, a.base_url, a.source, a.vendor)
     elif a.cmd == "invalidate":
         plats = [x for x in a.platforms.split(",") if x]
         ids = [r[0] for r in con.execute(

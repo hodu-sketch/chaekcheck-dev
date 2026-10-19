@@ -68,7 +68,7 @@ class LibraryInsertPlanner {
 	static final Map<String, Vendor> VENDORS = Map.of("KYOBO_V1", Vendor.KYOBO, "KYOBO_SUBSCRIPTION_V1",
 			Vendor.KYOBO, "YES24_V1", Vendor.YES24, "YES24_V2", Vendor.YES24, "YES24_V3", Vendor.YES24, "BOOKCUBE_FX",
 			Vendor.BOOKCUBE, "ALADIN_V1", Vendor.ALADIN, "ELIB_PORTAL_V1", Vendor.PORTAL, "GANGNAM_V1",
-			Vendor.IN_HOUSE);
+			Vendor.IN_HOUSE, "SEOUL_ELIB_V1", Vendor.IN_HOUSE);
 
 	/** Item keys of the copy, for the same-host check. */
 	interface Holdings {
@@ -299,6 +299,8 @@ class LibraryInsertPlanner {
 				yield volume != null && volume.totalVolume() != null && volume.totalVolume() == 0
 						&& volume.totalItem() > 0 ? LendingModel.SUBSCRIPTION : LendingModel.OWNED;
 			}
+			// owned (TY01) and subscription (TY02) titles on one site (library-maintenance 4-14)
+			case "SEOUL_ELIB_V1" -> LendingModel.MIXED;
 			default -> LendingModel.OWNED;
 		};
 	}

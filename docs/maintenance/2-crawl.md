@@ -36,12 +36,13 @@
 
 | 파일 | 역할 |
 |---|---|
-| `scripts/crawl/crawl_catalog.py` | 수집기. 도서관 목록 불러오기, 전체 수집, 이어 받기, 상태, 다시 받기 표시, 받지 않기 표시 |
+| `scripts/crawl/crawl_catalog.py` | 수집기. 도서관 목록 불러오기, 손으로 찾은 곳 넣기(`add-library`, 정한 번호로), 전체 수집, 이어 받기, 상태, 다시 받기 표시, 받지 않기 표시 |
 | `scripts/crawl/verify_detail_urls.py` | 도서관·종류마다 상세 URL 한 건을 열어 그 책 제목이 나오는지 확인 |
 | `scripts/library/discover/probe_other_platforms.py` | 북큐브·알라딘 기관 사이트를 한 번씩 호출해 열리는지·권수 확인 |
 | `scripts/library/discover/probe_kyobo_institutions.py`, `probe_yes24.py`, `probe_aladin.py` | 교보 기관·YES24·알라딘 사이트를 한 번씩 확인(열리는지, 화면 종류, 권수). 쓰는 순서는 [1-libraries.md](1-libraries.md) "수집 목록에서 도서관 찾기" (원문은 이 문서 8-1절) |
 | `scripts/library/probe_kyobo_limits.py`, `limits-daily.cmd` | 교보 구독형 사이트의 팝업·공지 제목과 날짜 확인. 절차는 [1-libraries.md](1-libraries.md) "구독 규칙·마감 확인" |
 | `scripts/crawl/resume.cmd` | 이어 받기 한 번 실행(두 개 동시 실행을 막음, `refill-pubdt`가 돌 때도). 데이터 폴더의 `queue-by-ip.txt`를 읽고 로그를 데이터 폴더 `logs\`에 씀. `host-slots.txt`는 있어도 읽지 않고 알림 한 줄만 냄 |
+| `scripts/crawl/test_parse_seoul.py` | 서울도서관 분류 목록 읽기(`parse_seoul`) 시험, 저장 JSON `testdata/seoul-catesearch-*.json`: `python -m unittest scripts/crawl/test_parse_seoul.py` |
 | `scripts/crawl/test_crawl_migrate.py` | `migrate`(표 구조 맞추기)를 작은 SQLite에 두 번 돌려 보는 시험: `python -m unittest scripts/crawl/test_crawl_migrate.py` |
 | `scripts/crawl/requirements.txt` | 실행 환경: Python 3.11+, `beautifulsoup4`, `lxml` |
 
@@ -249,12 +250,13 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 ## 7. 새 사이트·새 플랫폼 붙이는 순서
 
 0. 그 사이트를 서비스에 넣을 수 있는지(기존 adapter가 읽는지, 검색 API, 수량 칸, 권수, 가입 자격)는 먼저 [library-maintenance.md](../library-maintenance.md) 4-14 방법으로 조사·기록함(첫 사례: 서울도서관 2026-10-20, [platforms.md](platforms.md) 11절).
+   - **새 화면 종류(adapter)가 필요하면** (서울도서관 `SEOUL_ELIB_V1`이 본보기, 2026-10-20): `backend` `PlatformType` 값 + CHECK를 바꾸는 새 Liquibase changeset(`library/020-…` 참고, 적용된 001은 고치지 않음) + `availability/internal/adapter/` adapter(저장 응답으로 시험) + `AvailabilityResolvers` 판정 방식 + 넣기 명령 `LibraryInsertPlanner`의 `VENDORS`·`lendingModel` + 웹 `web/src/api/types.ts` `PlatformType` + 시험용 `TestTargets.vendorOf`, 그리고 아래 3번 수집기. 비교용 `scripts/library/build_library_seed.py`의 `VENDORS`·`lending_model_of`도 맞춤.
 1. **표본 한 곳을 브라우저와 스크립트로 모두 열어 봄.** 스크립트 요청이 막히면 여기서 멈추고 사용자에게 알림.
 2. [platforms.md](platforms.md)의 같은 플랫폼 절을 봄. 없으면 새 절을 만들고 다음을 채움: 알아보는 법(주소 모양), 검색 주소(제목·저자·출판사), **전체 목록 주소**(빈 검색, 공백 검색, 전체 목록 메뉴, XML 등), 한 쪽 최대 줄 수, 전체 건수 위치, 줄 선택자, 책 코드, 상세 URL, 오디오북 등 종류 구분, 문자 인코딩, 확인 날짜.
 3. `crawl_catalog.py`에 더함: `PLATFORMS`, `PAGE_SIZE`, `page_url`, `parse`(와 `parse_…` 함수), 필요하면 `segments`(목록이 여럿일 때). 상세 경로는 **목록의 링크를 그대로** 저장.
-4. 도서관 줄 넣기: dev seed에 있으면 `init`, 제3자 목록이면 `probe_other_platforms.py` → `import-bookcube`처럼 불러오는 함수를 만들어 `source`를 적음.
+4. 도서관 줄 넣기: dev seed에 있으면 `init`, 제3자 목록이면 `probe_other_platforms.py` → `import-bookcube`처럼 불러오는 함수를 만들어 `source`를 적음. 손으로 찾은 한 곳은 `add-library --id N --name … --platform … --base-url … --source …`(번호를 정해 규칙 파일 `public_join.tsv`·`library_kinds.tsv`·`final_origins.tsv`에 먼저 적을 수 있음, 서울도서관 102739).
 5. `full --only {한 곳} --limit-pages 2`로 시험 → 몇 줄을 DB에서 눈으로 확인 → `full --only {한 곳}` 끝까지 → 사이트 총 건수와 비교.
-6. `verify_detail_urls.py … {화면종류}`로 상세 URL 확인.
+6. `verify_detail_urls.py … {화면종류}`로 상세 URL 확인. 상세 화면 HTML에 제목이 없고 스크립트가 채우는 사이트(서울도서관)는 이 도구가 "제목 없음"으로 봄: adapter가 읽는 상세 JSON을 한 건 열어 확인하고 그 결과를 platforms.md에 적음.
 7. [platforms.md](platforms.md), 이 문서 1절 표(지금은 11절 진행 기록), plan `catalog-refresh.md` 변경 기록을 고침.
 
 ## 8. 순위 4: 웹러브 북스 나머지 기관 (2026-10-03 시작)

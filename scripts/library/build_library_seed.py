@@ -75,7 +75,7 @@ KINDS = MEMBERS_ONLY_KINDS | {'PUBLIC', 'UNKNOWN', 'TEST'}
 # platform_type -> vendor (ADR-0071; the values of the backend's library.Vendor)
 VENDORS = {'KYOBO_V1': 'KYOBO', 'KYOBO_SUBSCRIPTION_V1': 'KYOBO', 'YES24_V1': 'YES24', 'YES24_V2': 'YES24',
            'YES24_V3': 'YES24', 'BOOKCUBE_FX': 'BOOKCUBE', 'ALADIN_V1': 'ALADIN', 'ELIB_PORTAL_V1': 'PORTAL',
-           'GANGNAM_V1': 'IN_HOUSE'}
+           'GANGNAM_V1': 'IN_HOUSE', 'SEOUL_ELIB_V1': 'IN_HOUSE'}
 PROBE_MODELS = {'OWNED', 'MIXED', 'RENTAL'}
 JOIN_METHOD_UNKNOWN = '도서관 홈페이지의 회원가입 안내 확인'
 
@@ -239,6 +239,8 @@ def lending_model_of(platform, probe_model, volume):
         return probe_model or 'SUBSCRIPTION'
     if platform == 'BOOKCUBE_FX':
         return 'SUBSCRIPTION' if volume and volume[1] == 0 and volume[0] > 0 else 'OWNED'
+    if platform == 'SEOUL_ELIB_V1':  # owned and subscription titles on one site (library-maintenance 4-14)
+        return 'MIXED'
     return 'OWNED'
 
 

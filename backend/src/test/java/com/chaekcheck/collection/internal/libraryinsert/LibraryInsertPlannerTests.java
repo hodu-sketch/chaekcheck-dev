@@ -133,6 +133,8 @@ class LibraryInsertPlannerTests {
 		collected.add(new CollectedLibrary(100015, "업체 적힘", "YES24_V2", "http://moved.test", DONE, null,
 				"KYOBO"));
 		folder.kind(100015, "UNKNOWN").origin("http://moved.test", "https://moved.test:444");
+		collect(100016, "서울 자체", "SEOUL_ELIB_V1", "https://elib.seoul.test", DONE, null);
+		folder.kind(100016, "ORG").origin("https://elib.seoul.test");
 
 		Map<Long, NewLibrary> added = byCollectionId(plan(2675));
 
@@ -143,6 +145,8 @@ class LibraryInsertPlannerTests {
 		assertThat(added.get(100013L).lendingModel()).isEqualTo(LendingModel.OWNED);
 		assertThat(added.get(100014L).lendingModel()).isNull();
 		assertThat(added.get(100014L).vendor()).isEqualTo(Vendor.PORTAL);
+		assertThat(added.get(100016L)).extracting(NewLibrary::vendor, NewLibrary::lendingModel)
+			.containsExactly(Vendor.IN_HOUSE, LendingModel.MIXED); // owned and subscription titles, 4-14
 		NewLibrary moved = added.get(100015L);
 		assertThat(moved.vendor()).isEqualTo(Vendor.KYOBO);
 		assertThat(moved.lendingModel()).isEqualTo(LendingModel.OWNED);
@@ -151,7 +155,7 @@ class LibraryInsertPlannerTests {
 		assertThat(moved.joinSurvey()).isEqualTo(JoinSurvey.NOT_SURVEYED);
 		assertThat(added.get(100012L).joinSurvey()).isEqualTo(JoinSurvey.MEMBERS_ONLY);
 		assertThat(added.values()).extracting(NewLibrary::id).containsExactlyInAnyOrder(2675L, 2676L, 2677L, 2678L,
-				2679L, 2680L);
+				2679L, 2680L, 2681L);
 		assertThat(added.get(100010L).id()).isEqualTo(2675L);
 	}
 

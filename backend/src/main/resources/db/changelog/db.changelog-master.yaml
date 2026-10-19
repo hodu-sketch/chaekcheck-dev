@@ -169,3 +169,7 @@ databaseChangeLog:
   - include:
       file: usagelog/007-screen-event-picks-list-nobel.yaml
       relativeToChangelogFile: true
+  # 서울도서관 elib.seoul.go.kr as a new screen kind SEOUL_ELIB_V1 (user 2026-10-20, released after v1.7.0)
+  - include:
+      file: library/020-library-platform-seoul-elib.yaml
+      relativeToChangelogFile: true

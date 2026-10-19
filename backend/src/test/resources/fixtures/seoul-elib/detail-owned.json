@@ -1,0 +1,32 @@
+{
+ "Contents": [
+  {
+   "contentsKey": "CPP0000597973",
+   "title": "오직 두 사람",
+   "author": "김영하",
+   "publisher": "문학동네",
+   "publishDate": "2017-06-26",
+   "contentsType": "TY01",
+   "contentsTypeDesc": "전자책(소장형)",
+   "loanCnt": 685,
+   "ownerCode": "BX",
+   "recommendCnt": 35,
+   "reserveCnt": 489,
+   "myloanYn": "Y",
+   "loanKey": 66688175,
+   "contentsFileType": "1",
+   "isbn": "9788954646048",
+   "contentsCopys": 5,
+   "currentLoanCount": 5,
+   "currentResvCount": 1,
+   "reviewCount": 0,
+   "likeCount": 135,
+   "avgrate": 0.0,
+   "filesize": 0,
+   "likeYn": "N"
+  }
+ ],
+ "codeMessage": "OK",
+ "recommendYN": "N",
+ "statusCode": 200
+}

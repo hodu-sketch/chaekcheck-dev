@@ -1,0 +1,32 @@
+{
+ "Contents": [
+  {
+   "contentsKey": "573105",
+   "title": "All the Lovely Bad Ones",
+   "author": "Hahn, Mary Downing",
+   "publisher": "HMH Books",
+   "publishDate": "2011-05-05",
+   "contentsType": "TY02",
+   "contentsTypeDesc": "전자책(구독형)",
+   "loanCnt": 0,
+   "ownerCode": "OV",
+   "recommendCnt": 0,
+   "reserveCnt": 0,
+   "myloanYn": "N",
+   "loanKey": null,
+   "contentsFileType": "1",
+   "isbn": "9780547391670",
+   "contentsCopys": 1,
+   "currentLoanCount": 0,
+   "currentResvCount": 0,
+   "reviewCount": 0,
+   "likeCount": 0,
+   "avgrate": 0.0,
+   "filesize": 0,
+   "likeYn": "N"
+  }
+ ],
+ "codeMessage": "OK",
+ "recommendYN": "N",
+ "statusCode": 200
+}

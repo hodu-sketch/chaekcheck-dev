@@ -107,7 +107,7 @@
   - 전남도서관 자체 `jnlib.jeonnam-gwangju.go.kr/ebook`(옥과·전남도립), 충남교육청 `ebook.cne.go.kr`(같은 제품).
   - 울산 포털 `library.ulsan.go.kr/lib/elib`: 검색은 되지만 결과에 대출 수가 없음.
   - 대구 동구 `digital.donggu-lib.kr`: YES24 옛 ASP 화면(EUC-KR).
-  - 서울도서관 `elib.seoul.go.kr`. 2026-10-20 다시 확인: 자체 통합 화면, 검색은 로그인 없이 JSON API(`/api/contents/search`)로 되고 소장형은 보유·대출·예약 수가 있음(전자책 28,232·오디오북 1,453). 기존 adapter로는 못 읽어 새 화면 종류가 필요(개발). 사용자: 이번 릴리스 뒤에 배포, 지금은 조사·기록만(2026-10-20). 가입 자격(정회원 = 서울 거주·재직·재학, 온라인 비대면 자격확인)도 조사함. 원문·방법·다시 확인 도구: [`library-maintenance.md`](library-maintenance.md) 4-14, [`maintenance/platforms.md`](maintenance/platforms.md) 11절.
+  - 서울도서관 `elib.seoul.go.kr`. 2026-10-20 다시 확인: 자체 통합 화면, 검색은 로그인 없이 JSON API(`/api/contents/search`)로 되고 소장형은 보유·대출·예약 수가 있음(전자책 28,232·오디오북 1,453). 기존 adapter로는 못 읽어 새 화면 종류가 필요(개발). 사용자: 이번 릴리스 뒤에 배포, 지금은 조사·기록만(2026-10-20). 가입 자격(정회원 = 서울 거주·재직·재학, 온라인 비대면 자격확인)도 조사함. **같은 날 새 화면 종류 `SEOUL_ELIB_V1`(adapter·수집기)을 만듦**(브랜치 `claude/funny-hodgkin-043487`). 서비스에는 v1.7.0 뒤 수집·넣기 명령으로 들어감(4-14 "남은 일"). 들어가면 이 줄을 지움. 원문·방법·다시 확인 도구: [`library-maintenance.md`](library-maintenance.md) 4-14, [`maintenance/platforms.md`](maintenance/platforms.md) 11절.
   - 북큐브 4곳: 제주시통합, 한라 소장형, 완주, 사상.
 - **로그인해야 전자책 주소가 보이는 곳 8곳**: 포항, 고령, 레인보우영동(YES24), 광주동구, 서귀포, 정읍, 함평, 창원 jrebook. AI는 비밀번호를 넣지 않으므로 사람이 로그인해 주소를 알려 주면 4-7로 확인합니다.
 - **다른 날 다시 볼 곳**: 인천통합(`www.michuhollib.go.kr/ebook/` 연결 실패), 울주 교육청(`14.43.5.182:8089` 시간 초과), 성동구립영어도서관(교보 화면 "도서관 정보 조회에 실패").

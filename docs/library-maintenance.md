@@ -80,10 +80,11 @@
 | `YES24_V3` | YES24 지금 화면 모양인데 EUC-KR로 응답 | `/search/?src_key=..`(검색어 EUC-KR) | 보유·대출·예약 | **EUC-KR**. UTF-8 검색어는 늘 0건(2026-09-29 발견: 마포나루·김천·경주·구미) |
 | `ELIB_PORTAL_V1` | 지역·교육청 통합 포털 | `base_url`이 `…/elib`, 뒤에 `/module/elib/search/index.do` | 대출·예약, 판정 글(보유 없음) | UTF-8 |
 | `GANGNAM_V1` | 강남구 자체 시스템 | `/elibbook/book_info.asp` | 보유·대출·예약 | **EUC-KR** |
+| `SEOUL_ELIB_V1` | 서울도서관 자체 통합전자책(`elib.seoul.go.kr`, 2026-10-20) | `/api/contents/search?..` (JSON) | 소장형 보유·대출·예약, 구독형 없음(바로 대출) | UTF-8 JSON. 4-14, [`maintenance/platforms.md`](maintenance/platforms.md) 11절 |
 
 - 포털의 검색 메뉴 번호(`menu_idx`)는 보통 10입니다. 다른 번호를 쓰는 포털은 `base_url` 끝에 `?menu_idx=N`을 붙입니다(예: 강원교육청 `https://ebook.gwe.go.kr/elib?menu_idx=2`, 2026-09-29). adapter가 검색과 책 상세 페이지 모두 그 번호를 씁니다. 번호가 틀리면 사이트가 오류 화면(500이나 아주 짧은 화면)을 줍니다.
 
-- **이 표에 없는 화면**(다산, 서울도서관, 로그인이 필요한 사이트 등)은 adapter가 없어 넣을 수 없습니다. 목록에만 적어 두고 사용자에게 알립니다(개발 작업 필요). 넣을 수 있는지 조사하는 방법과 서울도서관 결과(2026-10-20)는 4-14.
+- **이 표에 없는 화면**(다산, 로그인이 필요한 사이트 등)은 adapter가 없어 넣을 수 없습니다. 목록에만 적어 두고 사용자에게 알립니다(개발 작업 필요). 넣을 수 있는지 조사하는 방법은 4-14. 첫 사례 서울도서관은 조사 뒤 새 화면 종류 `SEOUL_ELIB_V1`을 만듦(2026-10-20, 4-14 "판정").
 - 같은 업체의 새 화면이 나오면 다음 번호(`YES24_V3`)로 새 adapter를 만듭니다. 기존 이름은 바꾸지 않습니다(사용자 결정 2026-09-28).
 - 화면 종류를 가려내는 단서: `docs`가 아니라 plan 저장소의 `collection-method.md` 1·4-4절(주소 모양, 화면 세대).
 
@@ -147,7 +148,7 @@
 | `discover/probe_*.py` (옛 자리 `candidates/`, 2026-10-12 바꿈) | 수집 목록(웹러브 북스 기관 등)의 사이트를 한 번씩 확인해 수집 DB에 넣을 곳을 고름. 절차는 [`maintenance/1-libraries.md`](maintenance/1-libraries.md) "수집 목록에서 도서관 찾기" | 같은 문서 |
 | `check_code_spaces.py` | 수집 SQLite(읽기 전용)에서 화면 종류끼리 책 번호가 같은 체계인지 대조: 같은 번호의 제목이 같은 비율(4-11). 판단은 하지 않음 | `python scripts/library/check_code_spaces.py ../chaekcheck-data/ebook-catalog.sqlite` |
 | `check_author_publisher_swap.py` (2026-10-16, 사이클 19, plan ADR-0115) | 수집 SQLite(읽기 전용)에서 전자도서관 포털(`ELIB_PORTAL_V1`) 도서관마다 저자·출판사가 뒤바뀌었는지 판정: 줄마다 저자 칸 첫 이름이 다른 도서관(포털 빼고)에서 저자로 쓰인 수와 출판사로 쓰인 수를 견줌. 도서관마다 "바름 / 뒤바뀜 / 판단 못 함"과 줄 수. 문턱값(근거 3회, 줄 80%, 도서관 100줄·90%)과 판정 뜻은 `--help`. 2026-10-12 사본: 11·12·15 뒤바뀜(99.88~99.96%), 10·13·14·280 바름(0~0.33%), 191초. 가져오기가 `swap_before`로 멈출 때 쓰는 절차는 `maintenance/3-import.md` 12-1. 테스트: `python -m unittest scripts/library/test_check_author_publisher_swap.py` | `python scripts/library/check_author_publisher_swap.py <사본.sqlite> > data/<폴더>/swap-check.tsv` |
-| `probe_seoul_elib.py` (2026-10-20) | adapter가 없는 서울도서관 자체 전자책 사이트(`elib.seoul.go.kr`)를 다시 한 번 확인: robots.txt, 제목 검색 1건(JSON 칸·보유·대출·예약 수), 소장형 상세 1건, 분류별 권수(전자책·오디오북), 분류 목록 한 쪽(`pageCount`). 우리 User-Agent, 1.1초 간격, 요청 약 7건. 판단은 하지 않음. 견줄 값은 4-14 | `python scripts/library/probe_seoul_elib.py [--keyword 사랑] [--page-count 100]` |
+| `probe_seoul_elib.py` (2026-10-20) | 서울도서관 자체 전자책 사이트(`elib.seoul.go.kr`, `SEOUL_ELIB_V1`)를 다시 한 번 확인: robots.txt, 제목 검색 1건(JSON 칸·보유·대출·예약 수), 소장형 상세 1건, 분류별 권수(전자책·오디오북), 분류 목록 한 쪽(`pageCount`). 우리 User-Agent, 1.1초 간격, 요청 약 7건. 판단은 하지 않음. 견줄 값은 4-14 | `python scripts/library/probe_seoul_elib.py [--keyword 사랑] [--page-count 100]` |
 
 - 모두 **저장소 루트에서** 실행합니다. Java는 서비스와 같은 JDK 25(`C:\Users\yujun\.jdks\jdk-25.0.4.1+1\bin\java.exe`)를 씁니다. 다른 JDK나 curl은 TLS 결과가 다를 수 있습니다(예: 대구는 JDK에서만 설정이 필요, curl은 됨).
 - 입력 TSV: `이름<TAB>주소` 한 줄에 하나. 중간 결과(TSV·JSON)는 **저장소에 넣지 않고** 작업 폴더(임시 폴더)에 둡니다.
@@ -202,7 +203,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 - 광역시·도, 교육청이 여러 업체 전자책을 한 화면에 모은 포털을 운영합니다(`{포털}/elib`, 화면 종류 `ELIB_PORTAL_V1`). 옛 YES24·B2B 주소가 404나 오류 화면이면 **그 지역의 통합 포털로 옮겼는지 먼저** 봅니다.
 - 2026-09-28 확인: 부산 `library.busan.go.kr/elib`, 대구 `library.daegu.go.kr/elib`, 인천교육청 `lib.ice.go.kr/elib`, 경북교육청 `www.gbelib.kr/elib`, 전북교육청 `lib.jbe.go.kr/elib`, 경기교육청 `lib.goe.go.kr/elib`.
 - 포털의 "지역 전자도서관" 메뉴에 그 지역 전자도서관 목록이 있기도 합니다(예: 부산 https://library.busan.go.kr/elib/html.do?menu_idx=85, 11곳). 다른 시·도는 아직 찾지 않았습니다.
-- 비슷해 보이지만 다른 시스템인 곳(adapter 없음): 울산(로그인 필요), 경남교육청, 충남교육청 `ebook.cne.go.kr`, 광주교육청 `lib.jge.go.kr`, 서울도서관 `elib.seoul.go.kr/main`(자체 통합 화면·JSON API, 4-14), 제주 `www.jeju.go.kr/lib/elib.htm`, 강원교육청 `ebook.gwe.go.kr`.
+- 비슷해 보이지만 다른 시스템인 곳(adapter 없음): 울산(로그인 필요), 경남교육청, 충남교육청 `ebook.cne.go.kr`, 광주교육청 `lib.jge.go.kr`, 서울도서관 `elib.seoul.go.kr/main`(자체 통합 화면·JSON API, 4-14. 2026-10-20부터 `SEOUL_ELIB_V1`), 제주 `www.jeju.go.kr/lib/elib.htm`, 강원교육청 `ebook.gwe.go.kr`.
 
 ### 4-4. 제3자 목록 (참고용)
 
@@ -231,7 +232,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 | 북큐브 | `…/FxLibrary`, `*.bookcube.biz` | adapter 없음 |
 | 알라딘 | `*.aladinebook.co.kr`, `libasp.aladin.co.kr` | adapter 없음 |
 | 다산 | `*.dasangng.co.kr` | adapter 없음 |
-| 서울도서관 자체 | `elib.seoul.go.kr`, 검색 `/api/contents/search` (JSON) | adapter 없음 (4-14) |
+| 서울도서관 자체 | `elib.seoul.go.kr`, 검색 `/api/contents/search` (JSON) | `SEOUL_ELIB_V1` (2026-10-20, 4-14) |
 
 - 모양으로 나뉘지 않으면 사람이 열어 봅니다.
 - 결과를 못 읽으면 **먼저 응답 인코딩**을 봅니다. 2026-09-28에는 이걸 몰라 YES24 12곳을 "결과 못 읽음"으로 잘못 분류했다가 바로잡았습니다.
@@ -546,7 +547,9 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 - **권수** (`GET /api/category/main?contentType=EB|TY03`, 분류별 `contentCount` 합): 전자책 28,232(국외전자책 분류 3,900 포함 → 국내 24,332), 오디오북 1,453. 이용안내 원문 "소장형 : 9,320여 종 … 구독형 : 15,000여 종 … 오디오북 · 소장형 : 1,450여 종"과 맞음.
 - **전체 목록**: 분류별 `GET /api/contents/catesearch?libCode=&majorCategory=001&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount=1&pageCount=100` → `totalCount` 1187, `totalPage` 12, 100줄(`pageCount` 100 동작). 대분류 22개(전자책)·20개(오디오북)를 돌면 전체를 받을 수 있어 보임 [안].
 - **기존 adapter**: 읽지 못함. 1-3의 9종(`PlatformType.java`: 교보 2, YES24 3, 포털, 강남, 북큐브 `BOOKCUBE_FX`, 알라딘 `ALADIN_V1`) 모두 주소 모양(`/elibrary-front/…`, `/search/?src_key=`, `/elib/module/…`, `/FxLibrary`, `?nav_code=`)이 다르고, 이 사이트는 JSON API라 HTML 선택자로 읽는 adapter가 맞지 않음. 기존 주소 모양으로 보낼 검색이 없어 시험하지 않음.
-- **판정: 데이터만으로는 넣을 수 없음. 새 화면 종류(adapter)와 수집기 형식이 필요**(9절, 개발). 필요한 것: ① `PlatformType` 새 값(예 `SEOUL_LIB_V1`, 이름은 사이클에서 정함)과 `001` CHECK 변경(Liquibase 새 changeset), ② 검색 adapter: 위 JSON 검색(제목·저자·출판사), TY01은 `b2bCopys`−`currentLoanCount`로 판정·예약 `currentResvCount`, TY02는 구독형(바로 대출), TY03 오디오북 구분, `ownerCode` "OV"(국외, 대출은 OverDrive)는 빼거나 따로 표시, ③ 수집기 `crawl_catalog.py`에 분류별 `catesearch` 목록(2-crawl 7절), ④ 도서관 한 줄은 `lending_model` `MIXED`(소장+구독)로 보임 [안], 책 번호 `contentsKey`는 이 도서관 안에서만(4-11), ⑤ 넣기 명령(5절)·가입 자격(아래). 사용자 결정: 이번 릴리스 뒤에 배포(2026-10-20).
+- **판정: 데이터만으로는 넣을 수 없음. 새 화면 종류(adapter)와 수집기 형식이 필요**(9절, 개발) → 같은 날 만듦(아래 "만든 것"). 필요한 것: ① `PlatformType` 새 값(예 `SEOUL_LIB_V1`, 이름은 사이클에서 정함)과 `001` CHECK 변경(Liquibase 새 changeset), ② 검색 adapter: 위 JSON 검색(제목·저자·출판사), TY01은 `b2bCopys`−`currentLoanCount`로 판정·예약 `currentResvCount`, TY02는 구독형(바로 대출), TY03 오디오북 구분, `ownerCode` "OV"(국외, 대출은 OverDrive)는 빼거나 따로 표시, ③ 수집기 `crawl_catalog.py`에 분류별 `catesearch` 목록(2-crawl 7절), ④ 도서관 한 줄은 `lending_model` `MIXED`(소장+구독)로 보임 [안], 책 번호 `contentsKey`는 이 도서관 안에서만(4-11), ⑤ 넣기 명령(5절)·가입 자격(아래). 사용자 결정: 이번 릴리스 뒤에 배포(2026-10-20).
+- **만든 것 (2026-10-20, 같은 날 dev 세션, 브랜치 `claude/funny-hodgkin-043487`, 배포는 v1.7.0 뒤 사용자 결정):** 화면 종류 이름은 `SEOUL_ELIB_V1`(GANGNAM_V1처럼 자체 사이트 이름 + 세대). ① `PlatformType.SEOUL_ELIB_V1`, CHECK는 새 changeset `library/020-library-platform-seoul-elib.yaml`(001은 운영에 적용됨), ② adapter `SeoulElibV1Adapter`(TY01 수로 판정, TY02 구독형 바로 대출, TY03·OV 뺌, 상세는 `/api/contents/{no}`), ③ 수집기 `crawl_catalog.py` 분류별 목록(`seoul_segments`·`parse_seoul`, 1.1초 간격 `MIN_GAP_BY_HOST`)과 손으로 찾은 곳을 정한 번호로 넣는 `add-library`, ④ 넣기 명령이 업체 `IN_HOUSE`·대출 방식 `MIXED`로 정함, 규칙 파일에 수집 번호 102739 한 줄씩(`public_join.tsv` 가입 조사·`library_kinds.tsv` PUBLIC·`final_origins.tsv` 리다이렉트 없음: `/`만 `/main`으로 302, 검색 API는 그대로). 화면 방법은 [`maintenance/platforms.md`](maintenance/platforms.md) 11절.
+- **남은 일 (배포 때)**: 실제 수집 DB에 `add-library`(번호 102739) → `full --only 102739` → 사본 → `library-insert` 미리 보기·넣기 → 책 가져오기([`maintenance/1-libraries.md`](maintenance/1-libraries.md) "새 도서관 넣기", [`maintenance/3-import.md`](maintenance/3-import.md)). 순서와 명령은 [`maintenance/2-crawl.md`](maintenance/2-crawl.md) 7절과 platforms.md 11절 "수집기".
 - **가입 자격·방법** (4-8, 4-10). 출처: 회원증 발급 `https://lib.seoul.go.kr/rwww/html/ko/membership.jsp`, 비대면 자격확인 `https://lib.seoul.go.kr/memberJoin/onlineMembership`, 이용안내 `https://lib.seoul.go.kr/rwww/html/ko/eLibHome.jsp`. 원문 확인 `확인됨`.
   - 전자책 이용 대상: "서울도서관 정회원이면 누구나, 언제든지 온라인으로 책을 읽고 들을 수 있도록"(eLibHome). 회원별 이용 가능 서비스 표: 전자책(오디오북) 정회원 "이용가능", 준회원 "이용불가"(membership) → 4-8 규칙 2(정회원 발급 대상이 자격).
   - 정회원 발급 대상: "서울특별시에 주민등록이 되어 있는 사람", "서울특별시 소재 직장에 재직 중이거나 학교에 재학 중인 사람", "서울특별시에 거주 중인 국내거소신고자 및 외국인등록자". 준회원은 "대한민국 국민"(전자책 안 됨).
@@ -756,6 +759,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 | 2026-10-17 | **교보 대여·혼합형 공공도서관 11곳은 그대로 둠 (조사 없음, 사용자 결정).** 계기: 검색에 「국립세종도서관 교보 · 대여」 같은 줄이 보여 사용자가 "이 도서관들과 그 자료 제외하기로 한 거 아니야?"라고 물음. 확인: ADR-0067로 뺀 것은 2026-10-03에 새로 찾은 교보 구독형 대여·혼합 후보 230곳(+같은 사이트 2곳 = [library-left-out.md](library-left-out.md) A-1 232곳)과 그때 넣었던 회사·기관 11곳(2664~2674)이고, 232곳 주소는 서비스에 켜진 곳이 없음(겹치는 2곳 59 대구학생전자도서관·131 서구 통합도서관은 꺼짐·소장 0). 검색에 보이는 것은 처음부터 등록된 `KYOBO_SUBSCRIPTION_V1` 대여·혼합 공공도서관 11곳(7, 16, 37, 43, 63, 89, 121, 122, 129, 134, 158; 각 약 18만~24만 권, 모두 약 225만 줄)으로 ADR-0067 범위 밖. 사용자: "공공도서관 11곳은 그대로 둠" (2026-10-17) | 없음 (결정만, 확인 SQL은 서비스 DB `library.library`·`catalog.holding`) |
 | 2026-10-20 | **누구나 가입 39줄 재검증 (사용자 요청 2026-10-19 "누구나 가입 도서관들 싹 다 재검증해줘", 2026-10-20 "최대한 안 물어보고 니가 검증 꼼꼼히해서").** 계기: 동대문구립도서관은 홈페이지 가입이면 방문해야 하고 서울온은 서울시민만이라 「누구나」가 아님(사용자). 운영 DB의 RESIDENCE × NATIONWIDE 줄 39곳(기관 약 27)을 공식 페이지 원문으로 다시 봄(우리 User-Agent, 호스트당 1.1초 이상). 새 조건 **「지역 외는 방문 가입」**(`library.visit_outside_region`, 사용자 "\"지역 외는 방문 가입\" 이 조건 추가"): 지역 규칙에 맞는 사람은 온라인, 그 밖은 방문 — 동대문 61·230, 도봉 60, 은평 223(서울온), 광주통합 133·277(광주 5개 구 비대면 인증). 그 밖 고침: 울산동부 361 누구나 → 울산 거주·재직·재학+방문, 양주 94·창원 의창 148·387 방문 가입, 제주 한라 1109·2267 방문 끔(Lib-Homepass), 도봉 가입 글, 은평 가입 주소. 사용자가 판단을 맡겨 4-8·4-10 규칙대로 정했고, 원문끼리 어긋나거나 로그인 뒤라 못 본 곳은 14절에 더함 | `docs/library-research/open-recheck-2026-10-20.md`, `library/019-library-open-recheck.yaml`, visit_outside_region 변경 파일 |
 | 2026-10-20 | **서울도서관 조사 (사용자 요청 "서울도서관 … 이번 릴리스에 넣을 수 있는지", 같은 날 "이번 릴리스 뒤 배포, 조사·기록만").** 본 홈페이지 전자책 메뉴 → `https://elib.seoul.go.kr`(자체 통합 화면, 유통사 ECO·OPMS 등 섞임), robots.txt 두 호스트, 검색 JSON API·상세·분류 권수·분류 목록을 우리 User-Agent로 GET 약 20건(호스트당 1.2초 이상). 로그인 없이 검색됨, 소장형 보유·대출·예약 수 있음, 전자책 28,232(국외 3,900 포함)·오디오북 1,453. 기존 adapter로는 못 읽음 → 새 화면 종류 필요(개발, 이번 릴리스 뒤). 가입 자격: 정회원(서울 거주·재직·재학)만 전자책, 비대면 자격확인으로 온라인 가입 가능. 서비스 DB에 없음. 조사 방법을 4-14로 일반화 | 4-14, `scripts/library/probe_seoul_elib.py`, `maintenance/platforms.md` 11절, `library-site-issues.md` 7절 |
+| 2026-10-20 | **서울도서관 새 화면 종류 `SEOUL_ELIB_V1` (요청 세션: v1.7.0 준비 세션, 사용자 "이번 릴리스 뒤 배포", 지금은 별도 브랜치 `claude/funny-hodgkin-043487`, 배포·main 반영 안 함).** adapter(검색 JSON, TY01 수·TY02 구독형, TY03·OverDrive 뺌), CHECK changeset `library/020`, 넣기 명령 업체 `IN_HOUSE`·대출 방식 `MIXED`, 수집기 분류별 목록 + `add-library`, 규칙 파일에 수집 번호 102739(가입: 서울 거주·재직·재학, 방문 없이, `join_url` 회원증 발급 페이지). 시험용 응답 저장(검색·상세·분류 목록 GET 약 15건)과 시험 수집 2번(첫 번째는 국외전자책 분류에서 멈춤 → 고침, 두 번째 OK 25,785/25,785), 상세 화면 1건. 모두 우리 User-Agent, 1.1초 이상. **남은 일**: 배포 때 실제 수집 DB에 넣고 받기 → 넣기 명령 → 가져오기(4-14 "남은 일") | 4-14, `maintenance/platforms.md` 11절, `maintenance/2-crawl.md` 7절, `library/020-library-platform-seoul-elib.yaml`, `SeoulElibV1Adapter.java`, `scripts/crawl/test_parse_seoul.py` |
 
 ## 14. 사용자가 직접 확인할 목록 (원문이 애매해 판단을 미룬 것)
 
