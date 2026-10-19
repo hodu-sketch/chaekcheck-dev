@@ -187,7 +187,8 @@ export function PicksPage({ list }: { list: PicksList }) {
       <nav className={styles.tabs} aria-label="추천도서 목록">
         {PICKS_TABS.map((tab) => (
           <NavLink key={tab.key} to={`/picks/${tab.key}`} className={styles.tab}>
-            {tab.tabLabel}
+            {/* the last two words stay together when a phone wraps the name ("KAIST / 사서 추천", user 2026-10-20) */}
+            {tab.tabLabel.replace(/ (?=\S+$)/, ' ')}
           </NavLink>
         ))}
       </nav>

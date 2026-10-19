@@ -78,11 +78,12 @@ const SNU100: PicksList = {
  */
 const KAIST: PicksList = {
   key: 'kaist',
-  name: 'KAIST 추천도서',
-  tabLabel: 'KAIST 추천',
-  emptyText: '아직 KAIST 추천도서를 준비하고 있어요',
-  failedText: 'KAIST 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
-  loadingText: 'KAIST 추천도서를 불러오는 중',
+  name: 'KAIST 사서 추천도서',
+  // user 2026-10-20: "카이스트 추천 이걸 카이스트 사서 추천으로 바꿔줘"
+  tabLabel: 'KAIST 사서 추천',
+  emptyText: '아직 KAIST 사서 추천도서를 준비하고 있어요',
+  failedText: 'KAIST 사서 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
+  loadingText: 'KAIST 사서 추천도서를 불러오는 중',
   helpLines: [
     'KAIST 도서관 사서가 고른 「사서추천도서」 국내도서 2026·2025·2024년이에요. 최근 해부터 보여 드려요',
     '분류는 책의 주제에 따라 책첵이 나눴어요',
