@@ -60,7 +60,8 @@ const LEEDONGJIN: PicksList = {
 const SNU100: PicksList = {
   key: 'snu100',
   name: '서울대 100선',
-  tabLabel: '서울대 100선',
+  // just the name (user 2026-10-20: "서울대 100선도 그냥 서울대로 이름 바꿔줘")
+  tabLabel: '서울대',
   emptyText: '아직 서울대 100선을 준비하고 있어요',
   failedText: '서울대 100선을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: '서울대 100선을 불러오는 중',

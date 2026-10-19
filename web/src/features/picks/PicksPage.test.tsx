@@ -107,7 +107,7 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(tabs.map((tab) => [tab.textContent?.replace(/ /g, ' '), tab.getAttribute('href')])).toEqual([
       ['국립중앙도서관', '/picks/librarian'],
       ['KAIST', '/picks/kaist'],
-      ['서울대 100선', '/picks/snu100'],
+      ['서울대', '/picks/snu100'],
     ])
     expect(tabs[0].getAttribute('aria-current')).toBe('page')
     expect(screen.queryByText(/출처와 추천 기준을 함께/)).toBeNull()
