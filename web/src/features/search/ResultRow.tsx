@@ -156,10 +156,7 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false }: Pro
           <LibraryLogo
             name={libraryName}
             logoUrl={library?.logoUrl}
-            homepageUrl={library?.homepageUrl}
             size={20}
-            libraryId={row.libraryId}
-            click={click}
           />
         </div>
         <p className={styles.libraryName}>

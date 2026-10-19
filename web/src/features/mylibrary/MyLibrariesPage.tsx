@@ -346,9 +346,6 @@ function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow
   )
 }
 
-/** Logo clicks here are reported without a book (cycle 15). */
-const MY_LIBRARIES = { screen: 'my_libraries' } as const
-
 function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) {
   const [shown, setShown] = useState(PAGE)
   return (
@@ -359,10 +356,7 @@ function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) 
             <LibraryLogo
               name={row.name}
               logoUrl={row.logoUrl}
-              homepageUrl={row.homepageUrl}
               size={24}
-              libraryId={row.id}
-              click={MY_LIBRARIES}
             />
             <ClassifiedName row={row} />
           </li>
@@ -387,10 +381,7 @@ function LibraryName({ row, fallback }: { row: LibraryEligibilityRow | undefined
       <LibraryLogo
         name={row?.name ?? fallback}
         logoUrl={row?.logoUrl}
-        homepageUrl={row?.homepageUrl}
         size={24}
-        libraryId={row?.id}
-        click={MY_LIBRARIES}
       />
       {row ? <ClassifiedName row={row} /> : <span>{fallback}</span>}
     </span>

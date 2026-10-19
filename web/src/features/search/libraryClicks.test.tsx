@@ -94,9 +94,9 @@ describe('result line links', () => {
     })
   })
 
-  it('the logo, the join link and the join guide', async () => {
+  it('the join link and the join guide; the logo is no link (user 2026-10-19)', async () => {
     const { unmount } = render(<ResultRow row={row} library={library} searchUrl={undefined} screen="picks" />)
-    expect(clickOpens(screen.getByRole('link', { name: /홈페이지/ }))).toBe(true)
+    expect(screen.queryByRole('link', { name: /홈페이지/ })).toBeNull()
     await openJoinDetails()
     // the join guide's official link reports as the old join link did (user 2026-10-19)
     expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
@@ -115,7 +115,6 @@ describe('result line links', () => {
     expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
 
     expect(vi.mocked(sendUsageEvent).mock.calls.map(([event]) => event)).toEqual([
-      { type: 'library_click', libraryId: 12, place: 'logo', screen: 'picks', bookId: 345 },
       { type: 'library_click', libraryId: 12, place: 'join_link', screen: 'picks', bookId: 345 },
       { type: 'library_click', libraryId: 12, place: 'join_guide', screen: 'catalog_results', bookId: 345 },
     ])
@@ -187,26 +186,11 @@ describe('result line links', () => {
 })
 
 describe('other library links', () => {
-  it('a logo on 내 도서관 sends no book', () => {
-    render(
-      <LibraryLogo
-        name="고흥"
-        logoUrl="/library-logos/12.png"
-        homepageUrl="https://lib.example/"
-        size={24}
-        libraryId={12}
-        click={{ screen: 'my_libraries' }}
-      />,
-    )
+  it('a logo is a picture only: no link, nothing sent (user 2026-10-19)', () => {
+    render(<LibraryLogo name="고흥" logoUrl="/library-logos/12.png" size={24} />)
 
-    expect(clickOpens(screen.getByRole('link'))).toBe(true)
-
-    expect(sendUsageEvent).toHaveBeenCalledExactlyOnceWith({
-      type: 'library_click',
-      libraryId: 12,
-      place: 'logo',
-      screen: 'my_libraries',
-    })
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(sendUsageEvent).not.toHaveBeenCalled()
   })
 
   it('a library name in the summary bar', () => {
@@ -243,17 +227,15 @@ describe('on touch screens', () => {
     return fireEvent.click(link)
   }
 
-  it('「대여하기」, the logo, and both join guide links', async () => {
+  it('「대여하기」 and both join guide links', async () => {
     render(<ResultRow row={row} library={library} searchUrl={undefined} screen="catalog_results" />)
     expect(sameTab(screen.getByRole('link', { name: /대여하기/ }))).toBe(true)
-    expect(sameTab(screen.getByRole('link', { name: /홈페이지/ }))).toBe(true)
     await openJoinDetails()
     expect(sameTab(screen.getByRole('link', { name: /이미 회원이에요/ }))).toBe(true)
     expect(sameTab(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)
 
     expect(vi.mocked(sendUsageEvent).mock.calls.map(([event]) => (event as { place?: string }).place)).toEqual([
       'result_card',
-      'logo',
       'result_card',
       'join_link',
     ])

@@ -276,7 +276,7 @@ describe('join notice of libraries found in the collected list', () => {
 
 /** Cycle 07 (ADR-0059, AC-20): the logo before the name opens the library, not the book. */
 describe('library logo on the card', () => {
-  it('opens the library front page apart from the card link', () => {
+  it('shows the logo as a picture only, apart from 「대여하기」 (user 2026-10-19)', () => {
     render(
       <ResultRow
         row={testRow({ libraryId: 2, rank: 1, detailUrl: 'https://lib.test/book/1' })}
@@ -287,7 +287,7 @@ describe('library logo on the card', () => {
 
     const logo = screen.getByRole('img', { name: openLibrary.name })
     expect(logo.getAttribute('src')).toBe('/library-logos/2.png')
-    expect(logo.closest('a')?.getAttribute('href')).toBe('https://lib.test/main')
+    expect(logo.closest('a')).toBeNull()
     expect(screen.getByRole('link', { name: /대여하기/ }).getAttribute('href')).toBe('https://lib.test/book/1')
   })
 })
