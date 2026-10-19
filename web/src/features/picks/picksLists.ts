@@ -1,4 +1,4 @@
-import type { PicksListKey } from '../../api/types'
+import type { PickBook, PicksListKey } from '../../api/types'
 import { HELP_LINES, sourceLine } from './picksText'
 
 /** The YouTube Terms of Service, linked from Lee Dong-jin's source line (cycle 21 spec R5-5) [확정]. */
@@ -24,13 +24,16 @@ export interface PicksList {
   helpLines: readonly string[]
   /** The source line in "추천 기준과 출처 보기"; the YouTube terms link follows Lee Dong-jin's. */
   source: (fetchedAt: string | null) => string
+  /** The book windows' line of when the book was recommended ("2025년 KAIST 사서추천"), for KAIST only. */
+  yearLine?: (book: PickBook) => string | null
 }
 
 /** [확정] cycle 14: the librarian picks keep their words ("사서추천도서", AC-10). */
 const LIBRARIAN: PicksList = {
   key: 'librarian',
   name: '사서 추천도서',
-  tabLabel: '사서 추천',
+  // told apart from KAIST's 사서추천도서 (user 2026-10-20: "기존의 "사서 추천"을 "국립중앙도서관 사서 추천" 으로 바꿔줘")
+  tabLabel: '국립중앙도서관 사서 추천',
   emptyText: '아직 사서추천도서를 준비하고 있어요',
   failedText: '사서추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: '사서추천도서를 불러오는 중',
@@ -69,8 +72,9 @@ const SNU100: PicksList = {
 }
 
 /**
- * KAIST library's 스페셜도서 2026, three themes (user 2026-10-19: "이동진 추천 빼고 여기 넣어줘"; 「AI대학」 taken out:
- * "kaist 추천에서 AI대학 이건 빼자"; 4-picks.md 7절).
+ * KAIST library's 사서추천도서 of 2026, 2025 and 2024 (user 2026-10-19: "이동진 추천 빼고 여기 넣어줘"; 2026-10-20:
+ * "사서추천도서로 바꿔줘 … 스페셜 도서는 결과가 너무 없어", "2026, 2025, 2024 다 해줘", "몇 년도 추천인지 이 창에서
+ * 나오도록"); the fields by the book's subject (4-picks.md 7절).
  */
 const KAIST: PicksList = {
   key: 'kaist',
@@ -80,10 +84,12 @@ const KAIST: PicksList = {
   failedText: 'KAIST 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: 'KAIST 추천도서를 불러오는 중',
   helpLines: [
-    'KAIST 도서관 「스페셜도서」 2026의 세 주제 60권이에요: 자연이 우리에게 주는 메시지, AI가 우리에게 주는 메시지, 문화가 우리에게 주는 메시지',
+    'KAIST 도서관 사서가 고른 「사서추천도서」 국내도서 2026·2025·2024년이에요. 최근 해부터 보여 드려요',
+    '분류는 책의 주제에 따라 책첵이 나눴어요',
     '책첵은 KAIST 도서관과 관계가 없어요',
   ],
-  source: () => '출처: KAIST 도서관 소장자료검색 · Collections · 추천도서 · 스페셜도서(2026) · 책첵은 KAIST 도서관과 관계가 없어요',
+  source: () => '출처: KAIST 도서관 소장자료검색 · Collections · 추천도서 · 사서추천도서 · 책첵은 KAIST 도서관과 관계가 없어요',
+  yearLine: (book) => (book.yearBook ? `${book.yearBook}년 KAIST 사서추천` : null),
 }
 
 export const PICKS_LISTS: Record<PicksListKey, PicksList> = {

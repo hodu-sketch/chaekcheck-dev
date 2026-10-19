@@ -217,11 +217,13 @@ export function PicksPage({ list }: { list: PicksList }) {
         onClose={() => setSelected(null)}
         onSearch={openBook}
         phone={phone}
+        yearLine={selected ? (list.yearLine?.(selected) ?? null) : null}
       />
       <RequestNotice
         book={selected && !isLinked(selected) ? selected : null}
         onClose={() => setSelected(null)}
         phone={phone}
+        yearLine={selected ? (list.yearLine?.(selected) ?? null) : null}
       />
     </div>
   )

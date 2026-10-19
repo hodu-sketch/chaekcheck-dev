@@ -218,16 +218,17 @@ class PicksApiTests {
 	}
 
 	@Test
-	void kaistListIsInFieldOrderThenPosition() { // user 2026-10-19
+	void kaistListIsNewestYearFirstThenPosition() { // user 2026-10-19, years 2026-10-20
 		jdbc.sql("""
 				INSERT INTO picks.list_field (list_key, code, name, position)
 				VALUES ('kaist', 'ai', 'AI', 2), ('kaist', 'nature', '자연', 1)""").update();
 		data.ourBook(910021, "9791190400657", "뇌의 역습", null, planLibrary);
 		jdbc.sql("""
-				INSERT INTO picks.list_book (list_key, field_code, position, title, author, publisher, isbn13, book_id)
-				VALUES ('kaist', 'ai', 1, '에이아이 첫째', NULL, NULL, NULL, NULL),
-				  ('kaist', 'nature', 2, '뇌의 역습', '볼레', '착한책가게', '9791190400657', 910021),
-				  ('kaist', 'nature', 1, '지구 관찰자의 기후 노트', '이은지', '한길사', NULL, NULL)""").update();
+				INSERT INTO picks.list_book (list_key, field_code, position, title, author, publisher, isbn13, book_id,
+				  year_book)
+				VALUES ('kaist', 'ai', 1, '에이아이 첫째', NULL, NULL, NULL, NULL, 2025),
+				  ('kaist', 'nature', 2, '뇌의 역습', '볼레', '착한책가게', '9791190400657', 910021, 2026),
+				  ('kaist', 'nature', 1, '지구 관찰자의 기후 노트', '이은지', '한길사', NULL, NULL, 2026)""").update();
 		cache.refresh();
 
 		var kaist = assertThat(mvc.get().uri("/api/v1/picks/kaist")).hasStatusOk().bodyJson();
@@ -238,6 +239,7 @@ class PicksApiTests {
 		kaist.extractingPath("$.categories[0].books[*].bookId")
 			.isEqualTo(java.util.Arrays.asList(null, 910021, null));
 		kaist.extractingPath("$.categories[0].books[1].available").isEqualTo(true);
+		kaist.extractingPath("$.categories[0].books[*].yearBook").isEqualTo(List.of(2026, 2026, 2025));
 		kaist.extractingPath("$.categories[2].books[*].title").isEqualTo(List.of("에이아이 첫째"));
 	}
 

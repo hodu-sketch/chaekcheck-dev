@@ -45,7 +45,7 @@ import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
  * <p>
  * Order: librarian books by recommendation month, registration date (unknown last), then {@code recomNo} as text,
  * each latest first (cycle 14 R2, R4-2); Lee Dong-jin by month (latest first), then the order inside the month; SNU
- * by the table-of-contents number; KAIST by field order, then the position inside the field (user 2026-10-19).
+ * by the table-of-contents number; KAIST by the newest year, then its order inside the year (user 2026-10-20).
  * Fields: "전체" (every book), then {@code list_field} order; empty ones are left out.
  */
 @Component
@@ -57,7 +57,7 @@ public class PicksCache implements PicksChanged {
 
 	public static final String SNU100 = "snu100";
 
-	/** KAIST library's "스페셜도서 2026" (user 2026-10-19). */
+	/** KAIST library's 사서추천도서 2026·2025·2024 (user 2026-10-19, 2026-10-20). */
 	public static final String KAIST = "kaist";
 
 	/** The lists, as {@code GET /api/v1/picks/{listKey}} names them (ADR-0126; {@code kaist} user 2026-10-19). */
@@ -168,7 +168,7 @@ public class PicksCache implements PicksChanged {
 				ours = byIds(stored);
 			}
 			case KAIST -> {
-				stored.sort(kaistOrder(fields));
+				stored.sort(KAIST_ORDER);
 				ours = byIds(stored);
 			}
 			default -> {
@@ -197,15 +197,10 @@ public class PicksCache implements PicksChanged {
 		return new Snapshot(fetchedAt, List.copyOf(categories));
 	}
 
-	/** KAIST: the fields' display order (a code not among them last), then the position inside the field. */
-	private static Comparator<StoredBook> kaistOrder(List<Field> fields) {
-		Map<String, Integer> places = new HashMap<>();
-		for (int i = 0; i < fields.size(); i++) {
-			places.put(fields.get(i).code(), i);
-		}
-		return Comparator.<StoredBook>comparingInt(row -> places.getOrDefault(row.fieldCode(), Integer.MAX_VALUE))
-			.thenComparingInt(StoredBook::position);
-	}
+	/** KAIST: the newest recommendation year first, then KAIST's own order inside the year (user 2026-10-20). */
+	static final Comparator<StoredBook> KAIST_ORDER = Comparator
+		.comparing(StoredBook::yearBook, Comparator.nullsLast(Comparator.reverseOrder()))
+		.thenComparingInt(StoredBook::position);
 
 	private static Book book(String list, StoredBook row, Ours our) {
 		String shown = our == null ? row.title() : Objects.requireNonNullElse(ShownTitle.of(our.title()), row.title());
