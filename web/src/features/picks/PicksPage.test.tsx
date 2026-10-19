@@ -267,7 +267,8 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     // cycle 21 (ADR-0129): the shown name the list gives
     expect(await within(dialog).findByText('지은이 · 출판사')).toBeTruthy()
     expect(within(dialog).getByRole('heading', { name: '전체 1' })).toBeTruthy()
-    expect(within(dialog).queryByText(/사서추천/)).toBeNull()
+    // the month of the recommendation (user 2026-10-20)
+    expect(within(dialog).getByText('2026년 10월 국립중앙도서관 사서추천')).toBeTruthy()
     expect(within(dialog).queryByTestId('sheet-handle')).toBeNull()
     await user.click(within(dialog).getByRole('button', { name: '책 검색' }))
     expect(await screen.findByText('책 화면')).toBeTruthy()

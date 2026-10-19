@@ -140,9 +140,10 @@ afterEach(() => {
 describe('the lists words', () => {
   it('names only the four lists', () => {
     expect(picksList('kaist')?.name).toBe('KAIST 사서 추천도서')
-    // KAIST says the year in the book windows (user 2026-10-20); the other lists say nothing there
+    // KAIST says the year, 국립중앙도서관 the year and month in the book windows (user 2026-10-20)
     expect(picksList('kaist')?.yearLine?.(book({ yearBook: 2025 }))).toBe('2025년 KAIST 사서추천')
-    expect(picksList('librarian')?.yearLine).toBeUndefined()
+    expect(picksList('librarian')?.yearLine?.(book({ recommendedMonth: '2026-10' }))).toBe('2026년 10월 국립중앙도서관 사서추천')
+    expect(picksList('snu100')?.yearLine).toBeUndefined()
     expect(picksList('leedongjin')?.name).toBe('이동진 추천도서')
     expect(picksList('snu100')?.name).toBe('서울대 100선')
     expect(picksList('librarian')?.name).toBe('사서 추천도서')

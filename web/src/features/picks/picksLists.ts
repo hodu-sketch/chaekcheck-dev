@@ -1,5 +1,5 @@
 import type { PickBook, PicksListKey } from '../../api/types'
-import { HELP_LINES, sourceLine } from './picksText'
+import { HELP_LINES, monthLabel, sourceLine } from './picksText'
 
 /** The YouTube Terms of Service, linked from Lee Dong-jin's source line (cycle 21 spec R5-5) [확정]. */
 export const YOUTUBE_TERMS_URL = 'https://www.youtube.com/t/terms'
@@ -40,6 +40,12 @@ const LIBRARIAN: PicksList = {
   loadingText: '사서추천도서를 불러오는 중',
   helpLines: HELP_LINES,
   source: sourceLine,
+  // the month in the book windows like KAIST's year (user 2026-10-20: "카이스트는 연도 국립중앙도서관은 연도+월 이거
+  // 여기에 적혀있어야해")
+  yearLine: (book) => {
+    const month = monthLabel(book.recommendedMonth)
+    return month ? `${month} 국립중앙도서관 사서추천` : null
+  },
 }
 
 const LEEDONGJIN: PicksList = {
