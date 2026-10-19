@@ -274,7 +274,7 @@ describe('pills', () => {
       </MemoryRouter>,
     )
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: '방문 가입' }))
+    await user.click(screen.getByRole('button', { name: /어디 살든 가입|내 지역 가입/ }))
     expect(sendUsageEvent).not.toHaveBeenCalled()
 
     expect(clickOpens(screen.getByRole('link', { name: /공식 가입 안내 보기/ }))).toBe(true)

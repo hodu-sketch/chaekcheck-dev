@@ -452,23 +452,26 @@ describe('pills after the library name', () => {
     expect(join.textContent).toContain('도서관 홈페이지 가입 후 로그인')
   })
 
-  it('[방문 가입] in amber next to the group pill; a click opens the join guide', async () => {
+  it('[방문 가입] in amber next to the group pill, a plain label that opens nothing (user 2026-10-19)', async () => {
     const user = renderTags({ ...openLibrary, visitRequired: true })
     expect(pill('어디 살든 가입')).toBeTruthy()
-    expect(pill('방문 가입').getAttribute('data-tone')).toBe('visit')
-    await user.click(pill('방문 가입'))
-    expect(screen.getByRole('dialog', { name: `${openLibrary.name} 가입 안내` })).toBeTruthy()
+    const visit = screen.getByText('방문 가입')
+    expect(visit.tagName).toBe('SPAN')
+    expect(visit.getAttribute('data-tone')).toBe('visit')
+    await user.click(visit)
+    fireEvent.pointerEnter(visit, { pointerType: 'mouse' })
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('[내 지역] opens the join guide at once', async () => {
+  it('[내 지역 가입] opens the join guide at once', async () => {
     const user = renderTags(mine, true, 'both')
-    await user.click(pill('내 지역'))
+    await user.click(pill('내 지역 가입'))
     expect(screen.getByRole('dialog', { name: `${mine.name} 가입 안내` })).toBeTruthy()
   })
 
   it('[직접 추가] leads to the my page, in place of the old mark', async () => {
     const user = renderTags({ ...mine, chosen: true })
-    expect(screen.queryByRole('button', { name: '내 지역' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '내 지역 가입' })).toBeNull()
     await user.click(pill('직접 추가'))
     const note = screen.getByRole('dialog')
     expect(note.textContent).toBe('직접 추가한 도서관이에요 · 마이페이지에서 빼기')

@@ -343,6 +343,8 @@ export function SearchPage() {
     openCount: prefs.openCount,
     onOpenCount: keepOpenCount,
     searched: scopeSearched,
+    // the switch now differs from the search on screen (user 2026-10-19): ask for [검색]
+    visitChanged: hasSearch && prefs.visit !== visit,
   }
 
   return (
@@ -403,6 +405,7 @@ export function SearchPage() {
             }}
             focus={sheetFocus}
             visit={prefs.visit}
+            visitChanged={scopeCommon.visitChanged}
             onVisitChange={changeVisit}
             openCount={prefs.openCount}
             onOpenCount={keepOpenCount}

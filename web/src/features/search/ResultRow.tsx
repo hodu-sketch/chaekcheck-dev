@@ -249,13 +249,18 @@ function RowTags({ library, onJoin }: { library: TargetLibrary; onJoin: () => vo
           )}
         />
       ) : group === 'MINE' ? (
-        <TagPill label="내 지역" tone="mine" onPress={onJoin} />
+        <TagPill label="내 지역 가입" tone="mine" onPress={onJoin} />
       ) : group === 'OPEN' ? (
         <TagPill label="어디 살든 가입" tone="open" onPress={onJoin} />
       ) : (
         library.eligibilitySummary && <span className={styles.tagSummary}>{library.eligibilitySummary}</span>
       )}
-      {library.visitRequired && <TagPill label="방문 가입" tone="visit" onPress={onJoin} />}
+      {/* a plain label: nothing on a click or the mouse (user 2026-10-19: "방문 가입은 클릭해도 별다른 이벤트 없도록") */}
+      {library.visitRequired && (
+        <span className={styles.tag} data-tone="visit">
+          방문 가입
+        </span>
+      )}
     </>
   )
 }

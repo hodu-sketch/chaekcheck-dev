@@ -60,6 +60,9 @@ export const SCOPE_TEXT = {
     const field = picked.field === 'residence' ? '사는 곳' : '일하는 곳'
     return `${field}을 ${picked.place}${ro(picked.place)} 골랐어요. 그 지역 도서관부터 보려면 `
   },
+  // the 「온라인에서 가입 가능한 곳만 보기」 switch differs from the search on screen (user 2026-10-19: "이거 바꾸면 검색
+  // 조건이 달라지는 건데 검색 다시 하라는 문구 없어 추가해줘"), followed by "[검색]을 눌러 주세요"
+  visitChangedBefore: '가입 방법을 바꿨어요. 바뀐 조건으로 찾으려면 ',
   pressSearch: '[검색]',
   pressSearchAfter: '을 눌러 주세요',
   sheetTitle: '찾을 도서관',
@@ -149,6 +152,8 @@ interface Common {
   onOpenCount: (count: number) => void
   /** A results screen of a search made without regions or added libraries; null or absent elsewhere. */
   searched?: ScopeSearched | null
+  /** A results screen whose search was made with the other 「온라인에서 가입 가능한 곳만 보기」 value. */
+  visitChanged?: boolean
 }
 
 interface LineProps extends Common {
@@ -162,30 +167,39 @@ interface LineProps extends Common {
  * workplace (user 2026-10-19). On a results screen of a search made without any, the card says where it searched,
  * and once a region was saved since, the grey line asks for [검색] (the results' own line before).
  */
-function useCondition(searched: ScopeSearched | null | undefined): {
+function useCondition(
+  searched: ScopeSearched | null | undefined,
+  visitChanged = false,
+): {
   line: string
   action: string
   hint: ReactNode
 } {
   const text = useScopeLineText()
+  const visitHint = visitChanged ? <PressSearch before={SCOPE_TEXT.visitChangedBefore} /> : null
   if (text === null) {
     return {
       line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
       action: SCOPE_TEXT.pick,
-      hint: searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint,
+      hint: visitHint ?? (searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint),
     }
   }
   return {
     line: SCOPE_TEXT.condition(text),
     action: SCOPE_TEXT.edit,
-    hint: searched?.regionsPicked ? (
-      <span role="status">
-        {SCOPE_TEXT.pickedBefore(searched.picked)}
-        <b>{SCOPE_TEXT.pressSearch}</b>
-        {SCOPE_TEXT.pressSearchAfter}
-      </span>
-    ) : null,
+    hint: searched?.regionsPicked ? <PressSearch before={SCOPE_TEXT.pickedBefore(searched.picked)} /> : visitHint,
   }
+}
+
+/** "… [검색]을 눌러 주세요": the search on screen no longer matches what is saved. */
+function PressSearch({ before }: { before: string }) {
+  return (
+    <span role="status">
+      {before}
+      <b>{SCOPE_TEXT.pressSearch}</b>
+      {SCOPE_TEXT.pressSearchAfter}
+    </span>
+  )
 }
 
 /**
@@ -227,7 +241,7 @@ function ConditionCard({
  */
 export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
-  const condition = useCondition(common.searched)
+  const condition = useCondition(common.searched, common.visitChanged)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
@@ -271,6 +285,7 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
                 key={box}
                 focus={box}
                 visit={common.visit}
+                visitChanged={common.visitChanged}
                 onVisitChange={common.onVisitChange}
                 openCount={common.openCount}
                 onOpenCount={common.onOpenCount}
@@ -293,9 +308,9 @@ interface ChipProps extends Common {
  * Phones (R2-1): the same condition card under the search box, always there; its link opens its own "찾을 도서관"
  * sheet (user 2026-10-19; it opened the settings sheet before). The account failure as on wider screens.
  */
-export function LibraryScopeChip({ onOpen, searched }: ChipProps) {
+export function LibraryScopeChip({ onOpen, searched, visitChanged }: ChipProps) {
   const state = useLineState()
-  const condition = useCondition(searched)
+  const condition = useCondition(searched, visitChanged)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
@@ -323,7 +338,7 @@ export function LibraryScopeChip({ onOpen, searched }: ChipProps) {
   )
 }
 
-interface SheetProps extends Pick<Common, 'visit' | 'onVisitChange' | 'openCount' | 'onOpenCount'> {
+interface SheetProps extends Pick<Common, 'visit' | 'visitChanged' | 'onVisitChange' | 'openCount' | 'onOpenCount'> {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Which grid the sheet opens on. */
@@ -400,6 +415,8 @@ export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange:
 interface BodyProps {
   focus: BoxFocus
   visit: VisitFilter
+  /** The switch differs from the search on screen: "[검색]을 눌러 주세요" under it. */
+  visitChanged?: boolean
   onVisitChange: (visit: VisitFilter) => void
   openCount: number | null
   onOpenCount: (count: number) => void
@@ -418,6 +435,7 @@ interface BodyProps {
 export function LibraryScopeBody({
   focus,
   visit,
+  visitChanged = false,
   onVisitChange,
   openCount,
   onOpenCount,
@@ -501,6 +519,11 @@ export function LibraryScopeBody({
           {SCOPE_TEXT.joinTitle}
         </h3>
         <VisitSwitch visit={visit} onChange={onVisitChange} />
+        {visitChanged && (
+          <p className={styles.visitChanged}>
+            <PressSearch before={SCOPE_TEXT.visitChangedBefore} />
+          </p>
+        )}
       </div>
 
       <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>

@@ -444,3 +444,13 @@
   margin-inline: -1.1rem;
   background: var(--paper-deep);
 }
+
+/* under the 「온라인에서 가입 가능한 곳만 보기」 switch when it differs from the search on screen */
+.visitChanged {
+  margin: 0.5rem 0.15rem 0;
+  color: var(--brand-strong);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  word-break: keep-all;
+}
+

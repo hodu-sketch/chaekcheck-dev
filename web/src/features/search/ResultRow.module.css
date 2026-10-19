@@ -539,6 +539,15 @@
   box-shadow: inset 0 0 0 1px currentColor;
 }
 
+/* [방문 가입] is a plain label: no pointer, no ring on the mouse (user 2026-10-19) */
+span.tag {
+  cursor: default;
+}
+
+span.tag:hover {
+  box-shadow: none;
+}
+
 .tag:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
