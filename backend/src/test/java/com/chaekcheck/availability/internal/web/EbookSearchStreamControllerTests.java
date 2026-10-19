@@ -155,9 +155,9 @@ class EbookSearchStreamControllerTests {
 		assertThat(new String(result.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8))
 			.contains("\"libraries\":[{\"id\":12,")
 			.contains("\"homepageUrl\":null,\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false,"
-					+ "\"vendor\":\"KYOBO\",\"lendingModel\":\"OWNED\",\"orderNo\":2},{\"id\":2,")
+					+ "\"vendor\":\"KYOBO\",\"lendingModel\":\"OWNED\",\"orderNo\":2,\"visitOutsideRegion\":false},{\"id\":2,")
 			.contains("\"chosen\":false,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false,"
-					+ "\"vendor\":\"KYOBO\",\"lendingModel\":null,\"orderNo\":1}]");
+					+ "\"vendor\":\"KYOBO\",\"lendingModel\":null,\"orderNo\":1,\"visitOutsideRegion\":false}]");
 	}
 
 	@Test
@@ -191,14 +191,14 @@ class EbookSearchStreamControllerTests {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), true, t.joinSurvey(), t.lendingModel(), t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
-				t.orderNo());
+				t.orderNo(), false);
 	}
 
 	private static SearchTarget withSecondSite(SearchTarget t) {
 		return new SearchTarget(t.id(), t.name(), t.libraryType(), t.platformType(), t.baseUrl(), t.priorityGroup(),
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(),
-				t.joinSurvey(), LendingModel.OWNED, t.logoUrl(), t.mobileSiteDiffers(), t.vendor(), 2);
+				t.joinSurvey(), LendingModel.OWNED, t.logoUrl(), t.mobileSiteDiffers(), t.vendor(), 2, false);
 	}
 
 	/** The real catalog applies scope and visit (PlanOptions); the stub does the same on the given plan. */
@@ -212,7 +212,7 @@ class EbookSearchStreamControllerTests {
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), true, t.joinMethod(),
 				t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
 				t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
-				t.orderNo());
+				t.orderNo(), false);
 	}
 
 	@Test
@@ -252,7 +252,7 @@ class EbookSearchStreamControllerTests {
 				t.deferred(), eligibility, t.eligibilitySummary(), extraConditionText, t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
 				t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
-				t.orderNo());
+				t.orderNo(), false);
 	}
 
 	private static SearchTarget withCaution(SearchTarget t, String joinCaution) {
@@ -260,7 +260,7 @@ class EbookSearchStreamControllerTests {
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), joinCaution, t.joinNotice(), t.homepageUrl(), t.chosen(), t.joinSurvey(), t.lendingModel(),
 				t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
-				t.orderNo());
+				t.orderNo(), false);
 	}
 
 	@Test

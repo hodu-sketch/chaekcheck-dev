@@ -70,7 +70,16 @@ export interface TargetLibrary {
   eligibilitySummary: string | null
   /** Eligibility we cannot decide from regions, shown as text (e.g. 책이음 members). */
   extraConditionText: string | null
+  /**
+   * The user has to visit the library to join, for the regions of this search: a visit-only library, or a
+   * `visitOutsideRegion` one when the regions do not match its own (then the group is OPEN).
+   */
   visitRequired: boolean
+  /**
+   * Residents of the library's region join online, everyone else only by a visit (user 2026-10-20 "지역 외는 방문
+   * 가입"); with `visitRequired` the row shows 「지역 외는 방문 가입」. Missing while the server is older.
+   */
+  visitOutsideRegion?: boolean
   /** Null for a library whose join rules were not researched (cycle 07). */
   joinMethod: string | null
   /** The library's join or eligibility page; null when not known. */
@@ -341,7 +350,10 @@ export interface LibraryEligibilityRow {
   name: string
   eligibility: Eligibility
   matchedBy: RegionBasis[]
+  /** A visit is needed for the regions sent (as `TargetLibrary.visitRequired`). */
   visitRequired: boolean
+  /** As `TargetLibrary.visitOutsideRegion` (user 2026-10-20); missing while the server is older. */
+  visitOutsideRegion?: boolean
   /** The library has a join caution. */
   cautioned: boolean
   eligibilitySummary: string | null

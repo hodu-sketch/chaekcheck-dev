@@ -18,12 +18,17 @@ package com.chaekcheck.library;
  * @param mobileSiteDiffers the site's phone version shows another page; the web notes it on narrow screens (cycle 08)
  * @param vendor company of the site's system; with lendingModel and orderNo it tells same-name sites apart (ADR-0071)
  * @param orderNo 1, or 2 and up within the same (name, vendor, lendingModel) (ADR-0071)
+ * @param visitRequired whether this user has to visit the library to join: the library's own flag, or
+ * {@code visitOutsideRegion} when none of the user's regions matches its REGION rules (not ELIGIBLE). The visit filter
+ * and the visit order read this value.
+ * @param visitOutsideRegion the library's flag as stored: residents of its region join online, others only by a visit
+ * (user 2026-10-20 "지역 외는 방문 가입")
  */
 public record SearchTarget(long id, String name, LibraryType libraryType, PlatformType platformType, String baseUrl,
 		PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 		String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl, String joinCaution,
 		String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey, LendingModel lendingModel,
-		String logoUrl, boolean mobileSiteDiffers, Vendor vendor, int orderNo) {
+		String logoUrl, boolean mobileSiteDiffers, Vendor vendor, int orderNo, boolean visitOutsideRegion) {
 
 	/**
 	 * The user can join for sure: anyone may join, or one of the user's regions matches. An extra condition (e.g.

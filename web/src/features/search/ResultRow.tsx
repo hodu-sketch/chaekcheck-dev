@@ -11,6 +11,7 @@ import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { libraryGroup } from './resultGroups'
 import { JoinGuide } from './JoinGuide'
+import { visitLabel } from './joinGuideParts'
 import { type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
@@ -227,11 +228,14 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false }: Pro
 }
 /**
  * The pills after the library name (cycle 22 R6-1): one of [직접 추가] / [내 지역] / [어디 살든 가입] by the library's
- * group (D3'), plus [방문 가입] when the library has to be visited to join; a library of ③ shows its eligibility summary
+ * group (D3'), plus [방문 가입] when the library has to be visited to join ([지역 외는 방문 가입] when only users outside its
+ * region have to, user 2026-10-20); a library of ③ shows its eligibility summary
  * in grey instead, without a note.
  */
 function RowTags({ library, onJoin }: { library: TargetLibrary; onJoin: () => void }) {
   const group = libraryGroup(library)
+  // 「지역 외는 방문 가입」 in place of 「방문 가입」 for a user outside the library's online region (user 2026-10-20)
+  const visit = visitLabel(library)
   return (
     <>
       {library.chosen ? (
@@ -253,9 +257,9 @@ function RowTags({ library, onJoin }: { library: TargetLibrary; onJoin: () => vo
         library.eligibilitySummary && <span className={styles.tagSummary}>{library.eligibilitySummary}</span>
       )}
       {/* a plain label: nothing on a click or the mouse (user 2026-10-19: "방문 가입은 클릭해도 별다른 이벤트 없도록") */}
-      {library.visitRequired && (
+      {visit && (
         <span className={styles.tag} data-tone="visit">
-          방문 가입
+          {visit}
         </span>
       )}
     </>

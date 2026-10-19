@@ -7,7 +7,7 @@ import type { libraryClick } from '../../lib/libraryClick'
 import { useLibraryLink } from '../../lib/libraryLink'
 import { safeHttpUrl } from '../../lib/safeUrl'
 import { useMediaQuery } from '../../lib/useMediaQuery'
-import { JOIN_GUIDE_TEXT as T, joinPrepare, joinSteps, joinTarget, joinWay } from './joinGuideParts'
+import { JOIN_GUIDE_TEXT as T, joinPrepare, joinSteps, joinTarget, joinWay, visitLabel } from './joinGuideParts'
 import styles from './JoinGuide.module.css'
 
 interface Props {
@@ -76,6 +76,7 @@ function JoinGuideBody({
   children,
 }: Omit<Props, 'open' | 'onOpenChange'> & { children: ReactNode }) {
   const prepare = joinPrepare(library.joinMethod)
+  const visit = visitLabel(library)
   const steps = joinSteps(library.joinMethod)
   const book = safeHttpUrl(bookUrl)
   const joinUrl = safeHttpUrl(library.joinUrl)
@@ -97,7 +98,7 @@ function JoinGuideBody({
           <dt>{T.target}</dt>
           <dd>
             {joinTarget(library)}
-            {library.visitRequired && <span className={styles.visit}>{T.visit}</span>}
+            {visit && <span className={styles.visit}>{visit}</span>}
           </dd>
           <dt>{T.way}</dt>
           <dd>{joinWay(library)}</dd>

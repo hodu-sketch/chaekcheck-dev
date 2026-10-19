@@ -1,0 +1,68 @@
+# Re-check of the libraries marked 누구나 가입 (user 2026-10-19: "누구나 가입 도서관들 싹 다 재검증해줘"; 2026-10-20:
+# "최대한 안 물어보고 니가 검증 꼼꼼히해서"). Original texts and addresses: docs/library-research/open-recheck-2026-10-20.md.
+# The libraries where residents of a region join online and everyone else must visit are in the visit_outside_region
+# changeset; this one has the other corrections. Each row is guarded by its id so a database without it is not touched.
+databaseChangeLog:
+  - changeSet:
+      id: library-019-open-recheck
+      author: chaekcheck
+      changes:
+        # 울산동부도서관 (361): its e-library page says "자료대출회원 가입 후 이용 가능합니다", and the 대출회원증 is
+        # for 울산 residents and people working or studying in 울산, issued at the library desk (4-8 rule 2)
+        - sql:
+            sql: >-
+              DELETE FROM library.eligibility_rule WHERE library_id = 361 AND scope_type = 'NATIONWIDE'
+        - sql:
+            sql: >-
+              INSERT INTO library.eligibility_rule (library_id, basis, scope_type, scope_region_id)
+              SELECT 361, b.basis, 'REGION', 31 FROM (VALUES ('RESIDENCE'), ('WORK'), ('SCHOOL')) AS b (basis)
+              WHERE EXISTS (SELECT 1 FROM library.library WHERE id = 361)
+              ON CONFLICT DO NOTHING
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_required = true, eligibility_summary = '울산 거주·재직·재학',
+                join_method = '홈페이지 회원가입 → 자료실 방문해 대출회원증 발급(울산 거주자, 울산 소재 직장인·학생) → 전자책도서관 이용',
+                join_url = 'https://www.usdl.or.kr/pageCont.do?menuNo=5020000', updated_at = now()
+              WHERE id = 361
+        # 양주시도서관 (94): "회원가입 절차 / 홈페이지 회원가입 후 도서관 방문(구비서류 지참)"; no e-book member level
+        # in the source and the online application opens only after login (4-10 step 5 rule 4)
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_required = true,
+                join_method = '홈페이지 회원가입 후 도서관 방문(구비서류 지참)해 회원 등록', updated_at = now()
+              WHERE id = 94
+        # 창원시립 의창도서관 (148, 387): the card is issued only at the 종합자료실; both sites the same
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_required = true,
+                join_method = '누리집 회원가입 → 도서대출회원가입 신청(온라인 본인인증) → 자료실 방문(신분증)해 회원증 발급',
+                updated_at = now()
+              WHERE id IN (148, 387)
+        # 제주 한라 (1109, 2267): Lib-Homepass, "도서관 방문 없이 어디서나 도서대출 정회원 가입이 가능"
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_required = false,
+                join_method = '제주도 홈페이지 통합아이디(웹회원) → 도서관 회원가입 PC 본인확인 후 통합도서회원증 발급 또는 Lib-Homepass(비대면) → 나만의도서관에서 대출회원 인증',
+                updated_at = now()
+              WHERE id IN (1109, 2267)
+        # 도봉문화정보도서관 (60): the app is now 서울온, for Seoul residents only
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_method = '서울 거주자: 서울온 앱으로 방문 없이 회원증 / 그 밖: 홈페이지 가입 → 도서관 방문(신분증·증빙서류)해 회원증 발급',
+                updated_at = now()
+              WHERE id = 60
+        # 은평구립도서관 (223): the membership rules are on 회원구분, not on the e-book page
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_url = 'https://www.eplib.or.kr/intro/menu/10099/contents/40005/contents.do', updated_at = now()
+              WHERE id = 223
+        # 광주통합도서관 (133, 277): now 「지역 외는 방문 가입」 (018); the old caution said "원문에 지역 조건은 없음"
+        # and read as a contradiction next to it
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_method = '광주 거주자: 누리집 가입(준회원) → 광주시민 비대면 인증 / 그 밖: 도서관 방문해 본인확인 후 회원증 발급(정회원)',
+                join_caution = NULL, updated_at = now()
+              WHERE id IN (133, 277)

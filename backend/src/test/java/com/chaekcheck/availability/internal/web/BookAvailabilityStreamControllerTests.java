@@ -175,7 +175,7 @@ class BookAvailabilityStreamControllerTests {
 	void libraryIdsGoToThePlanAndChosenIsInTheTargets() { // cycle 06 AC-6 server side
 		SearchTarget chosen = new SearchTarget(12, "lib12", LibraryType.EBOOK, PlatformType.KYOBO_V1,
 				"https://chosen.test", PriorityGroup.QUALIFIED, false, Eligibility.UNKNOWN, null, null, false, "join",
-				null, null, null, null, true, JoinSurvey.SURVEYED, null, null, false, Vendor.KYOBO, 1);
+				null, null, null, null, true, JoinSurvey.SURVEYED, null, null, false, Vendor.KYOBO, 1, false);
 		given(batchRunner.plan(any(), any(), any())).willReturn(List.of(chosen, TestTargets.GOHEUNG));
 		given(catalogHoldings.holdingsOf(eq(List.of(10L)), any())).willReturn(List.of(holding(1, 10, 2), holding(2, 10, 12)));
 
@@ -188,7 +188,7 @@ class BookAvailabilityStreamControllerTests {
 				new PlanOptions(PlanOptions.Scope.JOINABLE, PlanOptions.Visit.ANY, Set.of(12L)));
 		assertThat(body(result)).contains("\"libraries\":[{\"id\":12,")
 			.contains("\"chosen\":true,\"joinSurvey\":\"SURVEYED\",\"logoUrl\":null,\"mobileSiteDiffers\":false,"
-					+ "\"vendor\":\"KYOBO\",\"lendingModel\":null,\"orderNo\":1},{\"id\":2,")
+					+ "\"vendor\":\"KYOBO\",\"lendingModel\":null,\"orderNo\":1,\"visitOutsideRegion\":false},{\"id\":2,")
 			.contains("\"holdings\":[{\"holdingId\":2,\"bookId\":10,\"libraryId\":12}");
 	}
 

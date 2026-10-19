@@ -56,17 +56,17 @@ class LibraryListTests {
 				{"libraries":[
 				  {"id":%d,"name":"테스트 누구나","eligibility":"OPEN","matchedBy":[],"visitRequired":false,
 				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false,
-				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1,"visitOutsideRegion":false},
 				  {"id":%d,"name":"테스트 서울","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":false,
 				   "cautioned":false,"eligibilitySummary":"서울 거주·재직·재학","joinSurvey":"SURVEYED","homepageUrl":null,
 				   "logoUrl":null,"mobileSiteDiffers":false,
-				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1,"visitOutsideRegion":false},
 				  {"id":%d,"name":"테스트 부산","eligibility":"UNKNOWN","matchedBy":[],"visitRequired":true,
 				   "cautioned":true,"eligibilitySummary":"부산 거주","joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false,
-				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1},
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1,"visitOutsideRegion":false},
 				  {"id":%d,"name":"테스트 미확인","eligibility":"UNVERIFIED","matchedBy":[],"visitRequired":false,
 				   "cautioned":false,"eligibilitySummary":null,"joinSurvey":"SURVEYED","homepageUrl":null,"logoUrl":null,"mobileSiteDiffers":false,
-				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1}
+				   "vendor":"KYOBO","lendingModel":"OWNED","orderNo":1,"visitOutsideRegion":false}
 				]}
 				""".formatted(open, seoulAll, busanResidence, unverified));
 	}
@@ -124,6 +124,27 @@ class LibraryListTests {
 					  {"id":%d,"matchedBy":[]}
 					]}
 					""".formatted(open, seoulAll, busanResidence, unverified));
+	}
+
+	/** "지역 외는 방문 가입" (user 2026-10-20): visitRequired follows the regions sent, the flag comes as stored. */
+	@Test
+	void visitOutsideRegionGivesTheVisitOfTheRegionsSent() {
+		rule(seoulAll, "RESIDENCE", "NATIONWIDE", null);
+		jdbc.sql("UPDATE library.library SET visit_outside_region = true WHERE id = ?").param(seoulAll).update();
+
+		assertThat(get("")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+				{"libraries":[{"id":%d},{"id":%d,"eligibility":"OPEN","visitRequired":true,"visitOutsideRegion":true},
+				  {"id":%d},{"id":%d}]}
+				""".formatted(open, seoulAll, busanResidence, unverified));
+		assertThat(get("?residenceRegionIds=" + MAPO)).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+				{"libraries":[{"id":%d},
+				  {"id":%d,"eligibility":"ELIGIBLE","visitRequired":false,"visitOutsideRegion":true},
+				  {"id":%d},{"id":%d}]}
+				""".formatted(open, seoulAll, busanResidence, unverified));
+		assertThat(get("?residenceRegionIds=" + HAEUNDAE)).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+				{"libraries":[{"id":%d},{"id":%d,"eligibility":"OPEN","visitRequired":true,"visitOutsideRegion":true},
+				  {"id":%d},{"id":%d}]}
+				""".formatted(open, seoulAll, busanResidence, unverified));
 	}
 
 	@Test

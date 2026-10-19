@@ -76,12 +76,15 @@ public final class StreamEvents {
 	 * {@code joinSurvey} picks the join notice of a candidate library (ADR-0053); {@code logoUrl} is null when the
 	 * library has no logo of its own (ADR-0059). {@code vendor}, {@code lendingModel} and {@code orderNo} are only
 	 * carried for the web to show after the name (ADR-0071, ADR-0076); the verdicts do not read them from here.
+	 * {@code visitRequired} is this search's visit (its regions); {@code visitOutsideRegion} is the library's flag, for
+	 * the web's 「지역 외는 방문 가입」 label (user 2026-10-20).
 	 */
 	public record Library(long id, String name, LibraryType libraryType, PlatformType platformType,
 			PriorityGroup priorityGroup, boolean deferred, Eligibility eligibility, String eligibilitySummary,
 			String extraConditionText, boolean visitRequired, String joinMethod, String joinUrl,
 			String joinCaution, String joinNotice, String homepageUrl, boolean chosen, JoinSurvey joinSurvey,
-			String logoUrl, boolean mobileSiteDiffers, Vendor vendor, LendingModel lendingModel, int orderNo) {
+			String logoUrl, boolean mobileSiteDiffers, Vendor vendor, LendingModel lendingModel, int orderNo,
+			boolean visitOutsideRegion) {
 
 		public static Library from(SearchTarget target) {
 			return new Library(target.id(), target.name(), target.libraryType(), target.platformType(),
@@ -89,7 +92,7 @@ public final class StreamEvents {
 					target.extraConditionText(), target.visitRequired(), target.joinMethod(), target.joinUrl(),
 					target.joinCaution(), target.joinNotice(), target.homepageUrl(), target.chosen(),
 					target.joinSurvey(), target.logoUrl(), target.mobileSiteDiffers(), target.vendor(),
-					target.lendingModel(), target.orderNo());
+					target.lendingModel(), target.orderNo(), target.visitOutsideRegion());
 		}
 
 	}

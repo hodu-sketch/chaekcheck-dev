@@ -40,6 +40,25 @@ class LibrarySchemaCycle08Tests {
 					2586L);
 	}
 
+	/** library/017 (user 2026-10-20 "지역 외는 방문 가입"): a boolean that is false unless set. */
+	@Test
+	void visitOutsideRegionIsANotNullBooleanDefaultingToFalse() {
+		assertThat(jdbc.sql("""
+				SELECT data_type || ' ' || is_nullable || ' ' || column_default FROM information_schema.columns
+				WHERE table_schema = 'library' AND table_name = 'library' AND column_name = 'visit_outside_region'""")
+			.query(String.class)
+			.single()).isEqualTo("boolean NO false");
+		long id = jdbc.sql("""
+				INSERT INTO library.library (name, platform_type, vendor, lending_model, base_url, join_method)
+				VALUES ('테스트 기본값', 'KYOBO_V1', 'KYOBO', 'OWNED', 'https://default.schema.test', 'test') RETURNING id""")
+			.query(Long.class)
+			.single();
+		assertThat(jdbc.sql("SELECT visit_outside_region FROM library.library WHERE id = ?")
+			.param(id)
+			.query(Boolean.class)
+			.single()).isFalse();
+	}
+
 	/** AC-5: the renamed bodies (library/013, labels removed by 014), same ids, the old names gone. */
 	@Test
 	void renamedLibrariesKeepTheirIds() {

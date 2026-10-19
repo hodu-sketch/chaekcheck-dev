@@ -31,7 +31,8 @@ class LibraryCatalogTests {
 	static final long GANGSEO = 1, GOHEUNG = 2;
 
 	static final long SEOUL = 11, JUNG_SEOUL = 1102, MAPO = 1114, BUSAN = 26, HAEUNDAE = 2609, GEUMJEONG = 2611,
-			SEJONG = 3601, GOYANG = 4110, CHUNGNAM = 44, CHEONAN = 4401, TEST_ABOLISHED = 9001;
+			SEJONG = 3601, GOYANG = 4110, CHUNGNAM = 44, CHEONAN = 4401, TEST_ABOLISHED = 9001, JONGNO = 1101,
+			MOKPO = 1201, GWANGJU_SEO = 1207;
 
 	@Autowired
 	LibraryCatalog catalog;
@@ -605,6 +606,200 @@ class LibraryCatalogTests {
 
 		private static PlanOptions chosen(PlanOptions.Scope scope, Long... ids) {
 			return new PlanOptions(scope, PlanOptions.Visit.ANY, Set.of(ids));
+		}
+
+	}
+
+	/**
+	 * "지역 외는 방문 가입" (user 2026-10-20): a library with its NATIONWIDE rule and REGION rules whose residents join
+	 * online, everyone else only by a visit. visitRequired is the visit of the regions sent.
+	 */
+	@Nested
+	class VisitOutsideRegion {
+
+		static final PlanOptions NO_VISIT = new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.NONE);
+
+		@Test
+		void withoutRegionsItIsOpenWithAVisitAfterTheOpenOnes() { // (a)
+			onlyTestLibraries();
+			long seoulOnline = outsideVisit("서울 외 방문", 100_000, SEOUL);
+			long open = library("누구나", 10);
+			nationwide(open);
+
+			assertThat(catalog.planSearch(Set.of(), Set.of()))
+				.extracting(SearchTarget::id, SearchTarget::priorityGroup, SearchTarget::eligibility,
+						SearchTarget::visitRequired, SearchTarget::visitOutsideRegion)
+				.containsExactly(tuple(open, PriorityGroup.OPEN, Eligibility.OPEN, false, false),
+						tuple(seoulOnline, PriorityGroup.OPEN, Eligibility.OPEN, true, true));
+		}
+
+		@Test
+		void withoutRegionsTheNoVisitFilterLeavesItOut() { // (b)
+			onlyTestLibraries();
+			outsideVisit("서울 외 방문", 10, SEOUL);
+			long open = library("누구나", 10);
+			nationwide(open);
+
+			assertThat(catalog.planSearch(Set.of(), Set.of(), NO_VISIT)).extracting(SearchTarget::id)
+				.containsExactly(open);
+		}
+
+		@Test
+		void aResidentOfTheRegionIsMineWithoutAVisitAndKeptByTheNoVisitFilter() { // (c)
+			onlyTestLibraries();
+			long seoulOnline = outsideVisit("서울 외 방문", 10, SEOUL);
+			long open = library("누구나", 100_000);
+			nationwide(open);
+
+			for (long residence : List.of(JONGNO, MAPO)) {
+				assertThat(catalog.planSearch(Set.of(residence), Set.of()))
+					.extracting(SearchTarget::id, SearchTarget::priorityGroup, SearchTarget::eligibility,
+							SearchTarget::visitRequired, SearchTarget::visitOutsideRegion)
+					.containsExactly(tuple(seoulOnline, PriorityGroup.MY_SIDO, Eligibility.ELIGIBLE, false, true),
+							tuple(open, PriorityGroup.OPEN, Eligibility.OPEN, false, false));
+				assertThat(catalog.planSearch(Set.of(residence), Set.of(), NO_VISIT)).extracting(SearchTarget::id)
+					.containsExactly(seoulOnline, open);
+			}
+		}
+
+		@Test
+		void aResidentElsewhereIsOpenWithAVisitAndLeftOutByTheNoVisitFilter() { // (d)
+			onlyTestLibraries();
+			long seoulOnline = outsideVisit("서울 외 방문", 100_000, SEOUL);
+			long open = library("누구나", 10);
+			nationwide(open);
+
+			assertThat(catalog.planSearch(Set.of(GOYANG), Set.of()))
+				.extracting(SearchTarget::id, SearchTarget::priorityGroup, SearchTarget::eligibility,
+						SearchTarget::visitRequired)
+				.containsExactly(tuple(open, PriorityGroup.OPEN, Eligibility.OPEN, false),
+						tuple(seoulOnline, PriorityGroup.OPEN, Eligibility.OPEN, true));
+			assertThat(catalog.planSearch(Set.of(GOYANG), Set.of(), NO_VISIT)).extracting(SearchTarget::id)
+				.containsExactly(open);
+		}
+
+		@Test
+		void aWorkRegionCountsOnlyForAWorkRule() {
+			onlyTestLibraries();
+			long residentsOnly = outsideVisit("서울 거주자만", 10, SEOUL);
+			long workersToo = outsideVisit("서울 재직자도", 20, SEOUL);
+			rule(workersToo, "WORK", SEOUL);
+
+			// living in Goyang, working in Seoul: the work rule matches like "내 지역", the residence rule does not
+			assertThat(catalog.planSearch(Set.of(GOYANG), Set.of(JUNG_SEOUL)))
+				.extracting(SearchTarget::id, SearchTarget::priorityGroup, SearchTarget::visitRequired)
+				.containsExactly(tuple(workersToo, PriorityGroup.MY_SIDO, false),
+						tuple(residentsOnly, PriorityGroup.OPEN, true));
+			assertThat(catalog.planSearch(Set.of(GOYANG), Set.of(JUNG_SEOUL), NO_VISIT)).extracting(SearchTarget::id)
+				.containsExactly(workersToo);
+			// a work region alone, without a residence
+			assertThat(catalog.planSearch(Set.of(), Set.of(JUNG_SEOUL), NO_VISIT)).extracting(SearchTarget::id)
+				.containsExactly(workersToo);
+		}
+
+		@Test
+		void sigunguRulesMatchOnlyTheirOwnSigungu() { // like 광주's five districts under SIDO 12
+			onlyTestLibraries();
+			long mapoOnline = outsideVisit("마포 외 방문", 10, MAPO);
+
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of()))
+				.extracting(SearchTarget::priorityGroup, SearchTarget::eligibility, SearchTarget::visitRequired)
+				.containsExactly(tuple(PriorityGroup.MY_SIGUNGU, Eligibility.ELIGIBLE, false));
+			// another district of the same SIDO is outside the region
+			assertThat(catalog.planSearch(Set.of(JUNG_SEOUL), Set.of()))
+				.extracting(SearchTarget::id, SearchTarget::priorityGroup, SearchTarget::visitRequired)
+				.containsExactly(tuple(mapoOnline, PriorityGroup.OPEN, true));
+			assertThat(catalog.planSearch(Set.of(JUNG_SEOUL), Set.of(), NO_VISIT)).isEmpty();
+		}
+
+		@Test
+		void aChosenOneStaysWithItsVisit() {
+			onlyTestLibraries();
+			long seoulOnline = outsideVisit("서울 외 방문", 10, SEOUL);
+			PlanOptions chosenNoVisit = new PlanOptions(PlanOptions.Scope.ALL, PlanOptions.Visit.NONE,
+					Set.of(seoulOnline));
+
+			assertThat(catalog.planSearch(Set.of(GOYANG), Set.of(), chosenNoVisit))
+				.extracting(SearchTarget::id, SearchTarget::chosen, SearchTarget::visitRequired)
+				.containsExactly(tuple(seoulOnline, true, true));
+			assertThat(catalog.planSearch(Set.of(MAPO), Set.of(), chosenNoVisit))
+				.extracting(SearchTarget::id, SearchTarget::chosen, SearchTarget::visitRequired)
+				.containsExactly(tuple(seoulOnline, true, false));
+		}
+
+		@Test
+		void theListAndTheSingleTargetCarryTheSameVisit() {
+			onlyTestLibraries();
+			long seoulOnline = outsideVisit("서울 외 방문", 10, SEOUL);
+
+			assertThat(catalog.eligibilityFor(Set.of(MAPO), Set.of()))
+				.filteredOn(row -> row.id() == seoulOnline)
+				.extracting(LibraryEligibility::eligibility, LibraryEligibility::visitRequired,
+						LibraryEligibility::visitOutsideRegion)
+				.containsExactly(tuple(Eligibility.ELIGIBLE, false, true));
+			assertThat(catalog.eligibilityFor(Set.of(GOYANG), Set.of()))
+				.filteredOn(row -> row.id() == seoulOnline)
+				.extracting(LibraryEligibility::eligibility, LibraryEligibility::visitRequired)
+				.containsExactly(tuple(Eligibility.OPEN, true));
+			assertThat(catalog.eligibilityFor(Set.of(), Set.of()))
+				.filteredOn(row -> row.id() == seoulOnline)
+				.extracting(LibraryEligibility::visitRequired)
+				.containsExactly(true);
+			// grouped as without regions
+			assertThat(catalog.findEnabledTarget(seoulOnline)).get()
+				.extracting(SearchTarget::priorityGroup, SearchTarget::visitRequired, SearchTarget::visitOutsideRegion)
+				.containsExactly(PriorityGroup.OPEN, true, true);
+		}
+
+		/** library/018 on the seed: Seoul residents through 서울온, 광주 residents by 비대면 인증; the others visit. */
+		@Test
+		void seededLibrariesFollowTheRegionsSent() {
+			assertThat(jdbc.sql("""
+					SELECT id FROM library.library WHERE visit_outside_region AND NOT visit_required ORDER BY id""")
+				.query(Long.class)
+				.list()).containsExactly(60L, 61L, 133L, 223L, 230L, 277L);
+			assertThat(jdbc.sql("""
+					SELECT library_id || ' ' || scope_type || ' ' || coalesce(scope_region_id::text, '-')
+					FROM library.eligibility_rule WHERE library_id IN (61, 277) AND basis = 'RESIDENCE'
+					ORDER BY library_id, scope_type, scope_region_id""")
+				.query(String.class)
+				.list()).containsExactly("61 NATIONWIDE -", "61 REGION 11", "277 NATIONWIDE -", "277 REGION 1206",
+						"277 REGION 1207", "277 REGION 1208", "277 REGION 1209", "277 REGION 1210");
+			assertThat(jdbc.sql("SELECT eligibility_summary FROM library.library WHERE id IN (61, 277) ORDER BY id")
+				.query(String.class)
+				.list()).containsExactly("서울 거주", "광주 거주");
+
+			List<Long> seeded = List.of(60L, 61L, 223L, 230L, 133L, 277L);
+			assertThat(seededOf(catalog.planSearch(Set.of(), Set.of()), seeded))
+				.allMatch(target -> target.priorityGroup() == PriorityGroup.OPEN && target.visitRequired())
+				.hasSize(6);
+			assertThat(seededOf(catalog.planSearch(Set.of(), Set.of(), NO_VISIT), seeded)).isEmpty();
+			assertThat(seededOf(catalog.planSearch(Set.of(MAPO), Set.of(), NO_VISIT), seeded))
+				.extracting(SearchTarget::id, SearchTarget::priorityGroup)
+				.containsExactlyInAnyOrder(tuple(60L, PriorityGroup.MY_SIDO), tuple(61L, PriorityGroup.MY_SIDO),
+						tuple(223L, PriorityGroup.MY_SIDO), tuple(230L, PriorityGroup.MY_SIDO));
+			assertThat(seededOf(catalog.planSearch(Set.of(GWANGJU_SEO), Set.of(), NO_VISIT), seeded))
+				.extracting(SearchTarget::id, SearchTarget::priorityGroup)
+				.containsExactlyInAnyOrder(tuple(133L, PriorityGroup.MY_SIGUNGU), tuple(277L, PriorityGroup.MY_SIGUNGU));
+			// 목포 is in the same SIDO 12 but not one of the old 광주 districts
+			assertThat(seededOf(catalog.planSearch(Set.of(MOKPO), Set.of()), seeded))
+				.filteredOn(target -> target.id() == 133L || target.id() == 277L)
+				.extracting(SearchTarget::priorityGroup, SearchTarget::visitRequired)
+				.containsOnly(tuple(PriorityGroup.OPEN, true));
+			assertThat(seededOf(catalog.planSearch(Set.of(MOKPO), Set.of(), NO_VISIT), seeded)).isEmpty();
+		}
+
+		private static List<SearchTarget> seededOf(List<SearchTarget> plan, List<Long> ids) {
+			return plan.stream().filter(target -> ids.contains(target.id())).toList();
+		}
+
+		/** NATIONWIDE plus a RESIDENCE rule for {@code regionId}, residents online and the others by a visit. */
+		private long outsideVisit(String name, Integer holdings, long regionId) {
+			long id = library(name, holdings);
+			nationwide(id);
+			rule(id, "RESIDENCE", regionId);
+			jdbc.sql("UPDATE library.library SET visit_outside_region = true WHERE id = ?").param(id).update();
+			return id;
 		}
 
 	}

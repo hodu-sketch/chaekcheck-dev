@@ -60,7 +60,7 @@ class HoldingTaskTests {
 				t.deferred(), t.eligibility(), t.eligibilitySummary(), t.extraConditionText(), t.visitRequired(),
 				t.joinMethod(), t.joinUrl(), t.joinCaution(), t.joinNotice(), t.homepageUrl(), t.chosen(),
 				t.joinSurvey(), model, t.logoUrl(), t.mobileSiteDiffers(), t.vendor(),
-				t.orderNo());
+				t.orderNo(), false);
 	}
 
 }

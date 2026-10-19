@@ -50,6 +50,13 @@ class Library {
 	@Column(name = "visit_required")
 	private boolean visitRequired;
 
+	/**
+	 * Residents of the library's REGION rules join online, everyone else (its NATIONWIDE rule) only by a visit; the
+	 * plan turns it into the visit of each user (user 2026-10-20 "지역 외는 방문 가입"). visitRequired stays false.
+	 */
+	@Column(name = "visit_outside_region")
+	private boolean visitOutsideRegion;
+
 	@Column(name = "join_method", columnDefinition = "text")
 	private String joinMethod;
 
@@ -156,6 +163,10 @@ class Library {
 
 	boolean isVisitRequired() {
 		return visitRequired;
+	}
+
+	boolean isVisitOutsideRegion() {
+		return visitOutsideRegion;
 	}
 
 	String getJoinMethod() {

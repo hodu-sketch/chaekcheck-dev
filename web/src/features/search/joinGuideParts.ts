@@ -14,6 +14,7 @@ export const JOIN_GUIDE_TEXT = {
   open: '어디 살든 가입',
   other: '가입 조건 확인 필요',
   visit: '방문 가입',
+  visitOutside: '지역 외는 방문 가입',
   online: '온라인 가입',
   onlineThenVisit: '온라인 가입 후 도서관 방문',
   noMethod: '도서관 홈페이지의 회원가입 안내를 확인해 주세요',
@@ -34,6 +35,16 @@ export function joinTarget(library: TargetLibrary): string {
     default:
       return library.eligibilitySummary ?? JOIN_GUIDE_TEXT.other
   }
+}
+
+/**
+ * The visit label of a library for this search, null without a visit: 「지역 외는 방문 가입」 when the library lets its
+ * region's residents join online and this user is outside it (user 2026-10-20), else 「방문 가입」. A user of the region
+ * gets `visitRequired` false from the server, so no label.
+ */
+export function visitLabel(library: TargetLibrary): string | null {
+  if (!library.visitRequired) return null
+  return library.visitOutsideRegion ? JOIN_GUIDE_TEXT.visitOutside : JOIN_GUIDE_TEXT.visit
 }
 
 /** "가입 방법": online only, or online and then one visit. */

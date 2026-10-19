@@ -154,12 +154,13 @@ describe('result groups', () => {
     rows: ReturnType<typeof testRow>[],
     status: 'done' | 'loading' = 'done',
     answered = 0,
+    libraries: TargetLibrary[] = GROUPED,
   ): BatchView {
     const context = {
-      planIndex: new Map(GROUPED.map((l, index) => [l.id, index])),
-      eligibility: new Map(GROUPED.map((l) => [l.id, l.eligibility])),
+      planIndex: new Map(libraries.map((l, index) => [l.id, index])),
+      eligibility: new Map(libraries.map((l) => [l.id, l.eligibility])),
       cautioned: new Set<number>(),
-      visitRequired: new Set(GROUPED.filter((l) => l.visitRequired).map((l) => l.id)),
+      visitRequired: new Set(libraries.filter((l) => l.visitRequired).map((l) => l.id)),
       loanRates: new Map<number, number | null>(),
       chosen: new Set<number>(),
     }
@@ -187,7 +188,7 @@ describe('result groups', () => {
   function renderGrouped(
     batches: BatchView[],
     searchContext?: ResultSearchContext,
-    extra: { remaining?: number; grouped?: boolean } = {},
+    extra: { remaining?: number; grouped?: boolean; libraries?: TargetLibrary[] } = {},
   ) {
     render(
       <MemoryRouter>
@@ -195,7 +196,7 @@ describe('result groups', () => {
           batches={batches}
           filter="all"
           onFilterChange={vi.fn()}
-          libraries={GROUPED}
+          libraries={extra.libraries ?? GROUPED}
           searchUrls={new Map()}
           remaining={extra.remaining ?? 0}
           loading={false}
@@ -298,6 +299,46 @@ describe('result groups', () => {
     expect(screen.queryByText(/곳은 가입하려면/)).toBeNull()
     await again.click(screen.getByRole('button', { name: '모두 보기' }))
     expect(removed.onVisitBack).toHaveBeenCalledTimes(1)
+  })
+
+  /** "지역 외는 방문 가입" (user 2026-10-20): the server's visitRequired already follows the user's regions. */
+  describe('a library whose region joins online and others visit', () => {
+    const outside: TargetLibrary = { ...library(5), visitRequired: true, visitOutsideRegion: true, eligibilitySummary: '서울 거주' }
+    const inside: TargetLibrary = {
+      ...outside,
+      priorityGroup: 'MY_SIDO',
+      eligibility: 'ELIGIBLE',
+      visitRequired: false,
+    }
+    const plainOpen = library(6)
+
+    it('outside the region: in ②, counted in "이 중 N곳은 가입하려면 도서관에 가야 해요", pill 「지역 외는 방문 가입」', () => {
+      const libraries = [outside, plainOpen]
+      renderGrouped(
+        [groupedView(1, [testRow({ libraryId: 5, rank: 1 }), testRow({ libraryId: 6, rank: 1 })], 'done', 0, libraries)],
+        context({ hasMine: false }),
+        { libraries },
+      )
+      const openGroup = screen.getByRole('region', { name: /어디 살든 가입되는 도서관에 있어요/ })
+      expect(within(openGroup).getByText(/이 중 1곳은 가입하려면 도서관에 가야 해요/)).toBeTruthy()
+      expect(within(openGroup).getByText('지역 외는 방문 가입')).toBeTruthy()
+      expect(within(openGroup).queryByText('방문 가입')).toBeNull()
+      expect(bookTitles(openGroup)).toHaveLength(2)
+    })
+
+    it('a user of the region: in ① with 「내 지역 가입」, nothing to count in ②', () => {
+      const libraries = [inside, plainOpen]
+      renderGrouped(
+        [groupedView(1, [testRow({ libraryId: 5, rank: 1 }), testRow({ libraryId: 6, rank: 1 })], 'done', 0, libraries)],
+        context(),
+        { libraries },
+      )
+      const mineGroup = screen.getByRole('region', { name: /내 도서관에 있어요/ })
+      expect(bookTitles(mineGroup)).toEqual(['title-5-1'])
+      expect(within(mineGroup).getByRole('button', { name: '내 지역 가입' })).toBeTruthy()
+      expect(screen.queryByText(/방문 가입/)).toBeNull()
+      expect(screen.queryByText(/곳은 가입하려면/)).toBeNull()
+    })
   })
 
   it('says "지금까지 N곳에서 … 찾지 못했습니다" once at the bottom above 결과 더 보기, with no [전국에서 더 찾기]', () => {

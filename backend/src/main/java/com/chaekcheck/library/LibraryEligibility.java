@@ -17,11 +17,13 @@ import java.util.List;
  * @param vendor company of the site's system (ADR-0071); the web shows it after the name (ADR-0076)
  * @param lendingModel every library but the integrated portals, null for the portals (ADR-0071)
  * @param orderNo 1, or 2 and up within the same (name, vendor, lendingModel) (ADR-0071)
+ * @param visitRequired whether these regions have to visit to join, as {@link SearchTarget#visitRequired()}
+ * @param visitOutsideRegion the library's flag as stored (user 2026-10-20 "지역 외는 방문 가입")
  */
 public record LibraryEligibility(long id, String name, Eligibility eligibility, List<RegionBasis> matchedBy,
 		boolean visitRequired, boolean cautioned, String eligibilitySummary, JoinSurvey joinSurvey,
 		String homepageUrl, String logoUrl, boolean mobileSiteDiffers, Vendor vendor, LendingModel lendingModel,
-		int orderNo) {
+		int orderNo, boolean visitOutsideRegion) {
 
 	public LibraryEligibility {
 		matchedBy = List.copyOf(matchedBy);

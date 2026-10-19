@@ -147,3 +147,14 @@ databaseChangeLog:
   - include:
       file: usagelog/006-screen-event-picks-list-kaist.yaml
       relativeToChangelogFile: true
+  # 지역 외는 방문 가입: residents of the region join online, others visit (user 2026-10-20)
+  - include:
+      file: library/017-library-visit-outside-region.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: library/018-library-visit-outside-region-seed.yaml
+      relativeToChangelogFile: true
+  # re-check of the 누구나 가입 libraries (user 2026-10-19/20)
+  - include:
+      file: library/019-library-open-recheck.yaml
+      relativeToChangelogFile: true

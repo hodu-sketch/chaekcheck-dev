@@ -1,0 +1,36 @@
+# The libraries of "지역 외는 방문 가입" (user 2026-10-20), stored until now as open to anyone without a visit (or, 133,
+# as visit-only). Each keeps its NATIONWIDE rule and gets the RESIDENCE rules of the region whose residents join online:
+#   Seoul (region 11), residents through 서울온 ("주민등록상 서울거주시민"), others visit:
+#     60 도봉문화정보도서관, 61 and 230 동대문구립도서관, 223 은평구립도서관
+#   광주 (the old 광주광역시 districts under SIDO 12: 1206 동구, 1207 서구, 1208 남구, 1209 북구, 1210 광산구), 광주시민
+#   비대면 인증 online, others visit: 133 and 277 전남광주통합특별시교육청 광주통합도서관 (133 was visit_required)
+# eligibility_summary is what the join guide shows as "가입 대상" to a user of the region (ELIGIBLE); users outside see
+# "어디 살든 가입" with 「지역 외는 방문 가입」 instead, so the summary names only the region, as the other rows do.
+# Rows are picked by id and the rules are inserted from the rows that exist, so a DB without one of them is unharmed.
+databaseChangeLog:
+  - changeSet:
+      id: library-018-visit-outside-region-seed
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_outside_region = true, eligibility_summary = '서울 거주',
+                updated_at = now()
+              WHERE id IN (60, 61, 223, 230)
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_outside_region = true, visit_required = false,
+                eligibility_summary = '광주 거주', updated_at = now()
+              WHERE id IN (133, 277)
+        - sql:
+            sql: >-
+              INSERT INTO library.eligibility_rule (library_id, basis, scope_type, scope_region_id)
+              SELECT l.id, 'RESIDENCE', 'REGION', 11 FROM library.library l WHERE l.id IN (60, 61, 223, 230)
+              ON CONFLICT ON CONSTRAINT eligibility_rule_scope_key DO NOTHING
+        - sql:
+            sql: >-
+              INSERT INTO library.eligibility_rule (library_id, basis, scope_type, scope_region_id)
+              SELECT l.id, 'RESIDENCE', 'REGION', r.region_id
+              FROM library.library l CROSS JOIN (VALUES (1206), (1207), (1208), (1209), (1210)) AS r (region_id)
+              WHERE l.id IN (133, 277)
+              ON CONFLICT ON CONSTRAINT eligibility_rule_scope_key DO NOTHING

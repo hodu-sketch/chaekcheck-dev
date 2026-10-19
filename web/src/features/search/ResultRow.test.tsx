@@ -463,6 +463,49 @@ describe('pills after the library name', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
+  /** "지역 외는 방문 가입" (user 2026-10-20): the server sends visitRequired for this user's regions. */
+  const seoulOnline: TargetLibrary = {
+    ...openLibrary,
+    id: 61,
+    name: '동대문구립도서관',
+    visitRequired: true,
+    visitOutsideRegion: true,
+    eligibilitySummary: '서울 거주',
+    joinMethod: '누리집 온라인 회원가입 → 도서관에서 회원카드 발급(서울시민은 서울온 앱으로 방문 없이 발급)',
+  }
+
+  it('a user outside the region: [어디 살든 가입] and the plain [지역 외는 방문 가입] instead of [방문 가입]', async () => {
+    const user = renderTags(seoulOnline)
+    expect(pill('어디 살든 가입')).toBeTruthy()
+    const visit = screen.getByText('지역 외는 방문 가입')
+    expect(visit.tagName).toBe('SPAN')
+    expect(visit.getAttribute('data-tone')).toBe('visit')
+    expect(screen.queryByText('방문 가입')).toBeNull()
+    await user.click(visit)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    // the summary is not drawn next to the OPEN pill
+    expect(screen.queryByText('서울 거주')).toBeNull()
+  })
+
+  it('a user of the region: [내 지역 가입] alone, no visit label', () => {
+    renderTags({ ...seoulOnline, priorityGroup: 'MY_SIDO', eligibility: 'ELIGIBLE', visitRequired: false })
+    expect(pill('내 지역 가입')).toBeTruthy()
+    expect(screen.queryByText(/방문 가입/)).toBeNull()
+  })
+
+  it('a hand-added one outside the region keeps [지역 외는 방문 가입] next to [직접 추가]', () => {
+    renderTags({ ...seoulOnline, chosen: true, priorityGroup: 'QUALIFIED', eligibility: 'UNKNOWN' })
+    expect(pill('직접 추가')).toBeTruthy()
+    expect(screen.getByText('지역 외는 방문 가입')).toBeTruthy()
+  })
+
+  it('an older server without the flag: a visit-only library keeps [방문 가입]', () => {
+    const { visitOutsideRegion: _, ...older } = seoulOnline
+    renderTags(older)
+    expect(screen.getByText('방문 가입')).toBeTruthy()
+    expect(screen.queryByText('지역 외는 방문 가입')).toBeNull()
+  })
+
   it('[내 지역 가입] opens the join guide at once', async () => {
     const user = renderTags(mine, true, 'both')
     await user.click(pill('내 지역 가입'))

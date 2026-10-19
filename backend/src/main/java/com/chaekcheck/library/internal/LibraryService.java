@@ -59,11 +59,13 @@ class LibraryService implements LibraryCatalog {
 	 * deferred last [확정], then libraries without a join caution first (user request 2026-09-29, C2-U-11), then
 	 * holdings count descending with unknown last, then id [안].
 	 */
-	private static final Comparator<Library> IN_GROUP = Comparator.comparing(Library::isVisitRequired)
-		.thenComparing(Library::isDeferred)
-		.thenComparing(library -> library.getJoinCaution() != null)
-		.thenComparing(Library::getHoldingsCount, Comparator.nullsLast(Comparator.reverseOrder()))
-		.thenComparing(Library::getId);
+	private static Comparator<Library> inGroup(Map<Long, Placement> placements) {
+		return Comparator.comparing((Library library) -> placements.get(library.getId()).visitRequired())
+			.thenComparing(Library::isDeferred)
+			.thenComparing(library -> library.getJoinCaution() != null)
+			.thenComparing(Library::getHoldingsCount, Comparator.nullsLast(Comparator.reverseOrder()))
+			.thenComparing(Library::getId);
+	}
 
 	/** Research states planned without the user adding the library (ADR-0053): the rest need a choice. */
 	private static final Set<JoinSurvey> PLANNED_WITHOUT_CHOICE = Arrays.stream(JoinSurvey.values())
@@ -116,6 +118,7 @@ class LibraryService implements LibraryCatalog {
 			if (placement == null) {
 				continue;
 			}
+			placement = placement.withVisit(library);
 			placements.put(library.getId(), placement);
 			if (isChosen) {
 				chosen.add(library);
@@ -126,9 +129,10 @@ class LibraryService implements LibraryCatalog {
 		}
 
 		// ADR-0050: the libraries the user added come first, in the usual in-group order, keeping their own group
+		Comparator<Library> inGroup = inGroup(placements);
 		List<SearchTarget> plan = new ArrayList<>();
 		chosen.stream()
-			.sorted(IN_GROUP)
+			.sorted(inGroup)
 			.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()), true)));
 
 		// ADR-0027: over all joinable groups, libraries without a visit come first (in group order), then the visit
@@ -139,8 +143,8 @@ class LibraryService implements LibraryCatalog {
 				if (JOINABLE.contains(group)) {
 					groups.getOrDefault(group, List.of())
 						.stream()
-						.filter(library -> library.isVisitRequired() == visit)
-						.sorted(IN_GROUP)
+						.filter(library -> placements.get(library.getId()).visitRequired() == visit)
+						.sorted(inGroup)
 						.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()), false)));
 				}
 			}
@@ -149,7 +153,7 @@ class LibraryService implements LibraryCatalog {
 			if (!JOINABLE.contains(group)) {
 				groups.getOrDefault(group, List.of())
 					.stream()
-					.sorted(IN_GROUP)
+					.sorted(inGroup)
 					.forEach(library -> plan.add(toTarget(library, placements.get(library.getId()), false)));
 			}
 		}
@@ -184,9 +188,10 @@ class LibraryService implements LibraryCatalog {
 			}
 			// unresearched libraries stay in the list as UNSURVEYED: the name search of S10 finds them
 			list.add(new LibraryEligibility(library.getId(), library.getName(), eligibility, matchedBy,
-					library.isVisitRequired(), library.getJoinCaution() != null, library.getEligibilitySummary(),
-					library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library), library.isMobileSiteDiffers(),
-					library.getVendor(), library.getLendingModel(), library.getOrderNo()));
+					visitRequired(library, eligibility), library.getJoinCaution() != null,
+					library.getEligibilitySummary(), library.getJoinSurvey(), library.getHomepageUrl(), logoUrl(library),
+					library.isMobileSiteDiffers(), library.getVendor(), library.getLendingModel(), library.getOrderNo(),
+					library.isVisitOutsideRegion()));
 		}
 		return list;
 	}
@@ -212,7 +217,8 @@ class LibraryService implements LibraryCatalog {
 	public Optional<SearchTarget> findEnabledTarget(long libraryId) {
 		return libraries.findById(libraryId).filter(Library::isEnabled).map(library -> {
 			List<EligibilityRule> libraryRules = rulesOf(List.of(library)).getOrDefault(libraryId, List.of());
-			return toTarget(library, place(library, libraryRules, false, UserRegions.NONE, UserRegions.NONE), false);
+			return toTarget(library,
+					place(library, libraryRules, false, UserRegions.NONE, UserRegions.NONE).withVisit(library), false);
 		});
 	}
 
@@ -275,10 +281,21 @@ class LibraryService implements LibraryCatalog {
 		return new SearchTarget(library.getId(), library.getName(), library.getLibraryType(),
 				library.getPlatformType(), library.getBaseUrl(), placement.group(), library.isDeferred(),
 				placement.eligibility(), library.getEligibilitySummary(), library.getExtraConditionText(),
-				library.isVisitRequired(), library.getJoinMethod(), library.getJoinUrl(), library.getJoinCaution(),
+				placement.visitRequired(), library.getJoinMethod(), library.getJoinUrl(), library.getJoinCaution(),
 				library.getJoinNotice(), library.getHomepageUrl(), chosen, library.getJoinSurvey(),
 				library.getLendingModel(), logoUrl(library), library.isMobileSiteDiffers(), library.getVendor(),
-				library.getOrderNo());
+				library.getOrderNo(), library.isVisitOutsideRegion());
+	}
+
+	/**
+	 * Whether a user of this eligibility has to visit to join (user 2026-10-20 "지역 외는 방문 가입"): always for a
+	 * visit-only library; for a {@code visitOutsideRegion} library unless one of the user's regions matches its REGION
+	 * rules, which is exactly ELIGIBLE (MY_SIGUNGU or MY_SIDO). Without regions, or with others, it is OPEN by its
+	 * NATIONWIDE rule and needs the visit, so the visit filter leaves it out like a visit-only library.
+	 */
+	private static boolean visitRequired(Library library, Eligibility eligibility) {
+		return library.isVisitRequired()
+				|| (library.isVisitOutsideRegion() && eligibility != Eligibility.ELIGIBLE);
 	}
 
 	/** Shown only when the library has its own logo and an operator has not taken it down (ADR-0059, AC-22). */
@@ -324,7 +341,17 @@ class LibraryService implements LibraryCatalog {
 
 	}
 
-	private record Placement(PriorityGroup group, Eligibility eligibility) {
+	/** @param visitRequired the visit of this user ({@link #visitRequired(Library, Eligibility)}), set by withVisit */
+	private record Placement(PriorityGroup group, Eligibility eligibility, boolean visitRequired) {
+
+		Placement(PriorityGroup group, Eligibility eligibility) {
+			this(group, eligibility, false);
+		}
+
+		Placement withVisit(Library library) {
+			return new Placement(group, eligibility, LibraryService.visitRequired(library, eligibility));
+		}
+
 	}
 
 }

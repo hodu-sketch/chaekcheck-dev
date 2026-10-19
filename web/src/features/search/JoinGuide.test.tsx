@@ -98,6 +98,42 @@ describe('join guide window', () => {
     expect(facts.textContent).toContain('온라인 가입 후 도서관 방문')
   })
 
+  describe('지역 외는 방문 가입 (user 2026-10-20)', () => {
+    const seoulOnline: Partial<TargetLibrary> = {
+      visitOutsideRegion: true,
+      eligibilitySummary: '서울 거주',
+      joinMethod: '누리집 온라인 회원가입 → 도서관에서 회원카드 발급(서울시민은 서울온 앱으로 방문 없이 발급)',
+    }
+
+    it('outside the region: "어디 살든 가입" with [지역 외는 방문 가입], the visit way and the method as stored', () => {
+      const { guide } = renderGuide({ ...seoulOnline, visitRequired: true })
+      const facts = guide.querySelector('dl')!
+
+      expect([...facts.querySelectorAll('dd')].map((dd) => dd.textContent)).toEqual([
+        '어디 살든 가입지역 외는 방문 가입',
+        '온라인 가입 후 도서관 방문',
+      ])
+      expect(within(facts).getByText('지역 외는 방문 가입').tagName).toBe('SPAN')
+      expect(within(facts).queryByText('방문 가입')).toBeNull()
+      expect(within(guide).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
+        '1누리집 온라인 회원가입',
+        '2도서관에서 회원카드 발급(서울시민은 서울온 앱으로 방문 없이 발급)',
+      ])
+    })
+
+    it('a user of the region: the region as the target, online, no visit label', () => {
+      const { guide } = renderGuide({
+        ...seoulOnline,
+        visitRequired: false,
+        priorityGroup: 'MY_SIDO',
+        eligibility: 'ELIGIBLE',
+      })
+      const facts = guide.querySelector('dl')!
+
+      expect([...facts.querySelectorAll('dd')].map((dd) => dd.textContent)).toEqual(['서울 거주', '온라인 가입'])
+    })
+  })
+
   it('numbers the steps of a method with "→"', () => {
     const { guide } = renderGuide()
 

@@ -1,0 +1,18 @@
+# "지역 외는 방문 가입" (user 2026-10-20): a library with its NATIONWIDE rule and REGION rules where a user whose regions
+# match one of the REGION rules joins online (e.g. Seoul residents through the 서울온 app) and everyone else only by a
+# visit. visit_required stays false for these; the plan turns the flag into each user's visit (LibraryService).
+databaseChangeLog:
+  - changeSet:
+      id: library-017-visit-outside-region
+      author: chaekcheck
+      changes:
+        - addColumn:
+            schemaName: library
+            tableName: library
+            columns:
+              - column:
+                  name: visit_outside_region
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
