@@ -248,6 +248,7 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 
 ## 7. 새 사이트·새 플랫폼 붙이는 순서
 
+0. 그 사이트를 서비스에 넣을 수 있는지(기존 adapter가 읽는지, 검색 API, 수량 칸, 권수, 가입 자격)는 먼저 [library-maintenance.md](../library-maintenance.md) 4-14 방법으로 조사·기록함(첫 사례: 서울도서관 2026-10-20, [platforms.md](platforms.md) 11절).
 1. **표본 한 곳을 브라우저와 스크립트로 모두 열어 봄.** 스크립트 요청이 막히면 여기서 멈추고 사용자에게 알림.
 2. [platforms.md](platforms.md)의 같은 플랫폼 절을 봄. 없으면 새 절을 만들고 다음을 채움: 알아보는 법(주소 모양), 검색 주소(제목·저자·출판사), **전체 목록 주소**(빈 검색, 공백 검색, 전체 목록 메뉴, XML 등), 한 쪽 최대 줄 수, 전체 건수 위치, 줄 선택자, 책 코드, 상세 URL, 오디오북 등 종류 구분, 문자 인코딩, 확인 날짜.
 3. `crawl_catalog.py`에 더함: `PLATFORMS`, `PAGE_SIZE`, `page_url`, `parse`(와 `parse_…` 함수), 필요하면 `segments`(목록이 여럿일 때). 상세 경로는 **목록의 링크를 그대로** 저장.
