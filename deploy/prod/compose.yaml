@@ -16,6 +16,9 @@ services:
       POSTGRES_DB: chaekcheck
       POSTGRES_USER: chaekcheck
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD missing (Parameter Store through up.sh)}
+      # Korean time everywhere on the server (user 2026-10-19: "싹 다 한국시간으로"); timestamps are timestamptz, so
+      # stored instants do not change, only how they are shown and logged
+      TZ: Asia/Seoul
     # Same settings as the local compose.yaml defaults (cycle 08, ADR-0066). Measure again on this server.
     command:
       - postgres
@@ -27,6 +30,10 @@ services:
       - effective_cache_size=768MB
       - -c
       - work_mem=4MB
+      - -c
+      - timezone=Asia/Seoul
+      - -c
+      - log_timezone=Asia/Seoul
     volumes:
       - db-data:/var/lib/postgresql
       # restore file (deploy/test/README.md 6), read only
@@ -97,6 +104,11 @@ services:
           - nginx
     ports:
       - "127.0.0.1:8088:80"
+    # Korean time in the nginx logs: the alpine image has no zone files, so it reads the server's (Asia/Seoul)
+    environment:
+      TZ: Asia/Seoul
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
 
   # Cloudflare Tunnel (ADR-0103): chaekcheck.com reaches nginx through an outbound connection, so the server opens no
   # port. Starting this service makes the site public. The token is TUNNEL_TOKEN in Parameter Store (raw eyJ... value).
@@ -108,6 +120,9 @@ services:
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN missing (Parameter Store through up.sh)}
+      TZ: Asia/Seoul
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
 
 volumes:
   db-data:

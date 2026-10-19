@@ -109,9 +109,16 @@
   accent-color: var(--brand-strong);
 }
 
-.required {
+.required,
+.requiredAll {
   color: var(--ink-faint);
   font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+/* "(모두 필수)" next to 모두 동의 only on phones, where the per-box "(필수)" is left out to keep each box on one line */
+.requiredAll {
+  display: none;
 }
 
 .more {
@@ -223,56 +230,181 @@
   outline-offset: 2px;
 }
 
-@media (width <= 640px) {
+/*
+ * wider than phones: one column as before, but the notice reads as four short lines and the spacing is tighter, so the
+ * whole page fits a small monitor without scrolling (user 2026-10-19: "작은 모니터에서 스크롤 내려야 하는데 안 내리도록",
+ * 안 B)
+ */
+@media (width > 640px) {
   .page {
-    margin-top: 1.5rem;
-    padding: 1.4rem 1.1rem;
+    width: min(48rem, 100%);
+    margin-top: 0.6rem;
+    gap: 0.7rem;
+    padding: 1.3rem 3rem 1.3rem;
   }
 
-  /* phones: each label above its text, so the label column does not squeeze the text */
-  .notice,
-  .notice tbody,
-  .notice tr,
-  .notice th,
-  .notice td {
-    display: block;
-    width: auto;
+  .title {
+    font-size: var(--text-xl);
   }
 
-  /* the border moves to the rows' box, so the caption stays a plain line above it */
+  .lead {
+    margin-top: -0.4rem;
+    font-size: var(--text-sm);
+  }
+
   .notice {
-    border: none;
-    border-radius: 0;
-    overflow: visible;
-    background: none;
-  }
-
-  .notice tbody {
-    overflow: hidden;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
   }
 
   .caption {
-    display: block;
+    padding-bottom: 0.35rem;
+    font-size: var(--text-sm);
+  }
+
+  .notice th,
+  .notice td {
+    padding: 0.15rem 1.2rem;
+    border-top: none;
+    background: none;
+    word-break: keep-all;
+  }
+
+  .notice tr:first-child > * {
+    padding-top: 0.6rem;
+  }
+
+  .notice tr:last-child > * {
+    padding-bottom: 0.6rem;
   }
 
   .notice th {
-    white-space: normal;
-    padding-bottom: 0.4rem;
+    width: 6.4rem;
+    padding-right: 0;
   }
 
   .notice td {
-    border-top: none;
-    padding-top: 0.5rem;
+    color: var(--ink-soft);
   }
 
-  .actions {
-    flex-direction: column-reverse;
+  .boxes {
+    font-size: var(--text-sm);
+  }
+
+  .allRow,
+  .row {
+    padding: 0.45rem 1.2rem;
+  }
+
+  /* 전문 보기 as a quiet text link, so the rows stay low and light */
+  .more {
+    padding: 0.1rem 0;
+    border: none;
+    background: none;
+    color: var(--brand-strong);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
   }
 
   .cancel,
   .submit {
-    width: 100%;
+    padding: 0.55rem 1.4rem;
+  }
+}
+
+/* phones: the whole page on one screen as well (user 2026-10-19: "폰도 한 화면에 다 차도록") */
+@media (width <= 640px) {
+  .page {
+    margin-top: 0.5rem;
+    gap: 0.65rem;
+    padding: 1rem 1.1rem 1.05rem;
+  }
+
+  .title {
+    font-size: var(--text-xl);
+  }
+
+  .lead {
+    margin-top: -0.35rem;
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+
+  .caption {
+    display: block;
+    padding: 0 0.85rem 0.25rem;
+    font-size: var(--text-sm);
+  }
+
+  /* like the table on PC: the label in its own column, the text wrapping under itself (user 2026-10-19: "표에 있는 것처럼") */
+  .notice {
+    display: block;
+    padding: 0.4rem 0;
+    font-size: var(--text-sm);
+  }
+
+  /* one grid for all four lines, so every text starts at the same place */
+  .notice tbody {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.2rem 0.6rem;
+    padding: 0 0.85rem;
+    line-height: 1.42;
+    word-break: keep-all;
+  }
+
+  .notice tr {
+    display: contents;
+  }
+
+  .notice th,
+  .notice td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    white-space: normal;
+  }
+
+  .notice td {
+    color: var(--ink-soft);
+  }
+
+  .boxes {
+    font-size: var(--text-sm);
+  }
+
+  .boxLabel .required {
+    display: none;
+  }
+
+  .requiredAll {
+    display: inline;
+  }
+
+  .allRow,
+  .row {
+    padding: 0.36rem 0.85rem;
+  }
+
+  .row {
+    flex-wrap: nowrap;
+  }
+
+  .more {
+    flex-shrink: 0;
+    padding: 0.1rem 0;
+    border: none;
+    background: none;
+    color: var(--brand-strong);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .cancel,
+  .submit {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 1rem;
   }
 }

@@ -164,7 +164,7 @@ export function SignupPage() {
       <h1 id="signup-title" className={styles.title}>
         가입 동의
       </h1>
-      <p className={styles.lead}>처음 로그인하셨네요. 아래 내용을 확인하고 동의하면 가입이 끝나요.</p>
+      {/* no lead sentence, so the page fits one screen with room around it (user 2026-10-19) */}
 
       {failed ? (
         <div className={styles.failed} role="alert">
@@ -192,7 +192,9 @@ export function SignupPage() {
       <div className={styles.boxes}>
         <label className={styles.allRow}>
           <input type="checkbox" checked={all} onChange={toggleAll} disabled={locked} />
-          <span>모두 동의</span>
+          <span>
+            모두 동의 <span className={styles.requiredAll}>(모두 필수)</span>
+          </span>
         </label>
         {BOXES.map((box) => (
           <div key={box.type} className={styles.row}>
