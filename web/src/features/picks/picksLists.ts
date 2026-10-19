@@ -141,7 +141,8 @@ export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
  * The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천"; 노벨연구소 last,
  * user 2026-10-20). Lee Dong-jin's list is off the tabs ("이동진 추천 빼고"); its address still opens it.
  */
-export const PICKS_TABS: readonly PicksList[] = [LIBRARIAN, KAIST, SNU100, NOBEL]
+// KAIST first (user 2026-10-20: "카이스트가 맨 앞에 오게 바꿔줘")
+export const PICKS_TABS: readonly PicksList[] = [KAIST, LIBRARIAN, SNU100, NOBEL]
 
 /** The list an address names, or null for any other name. */
 export function picksList(key: string | undefined): PicksList | null {
