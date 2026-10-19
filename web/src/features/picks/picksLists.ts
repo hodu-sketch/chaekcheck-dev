@@ -68,7 +68,10 @@ const SNU100: PicksList = {
   source: () => '출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)',
 }
 
-/** KAIST library's 스페셜도서 2026, four themes (user 2026-10-19: "이동진 추천 빼고 여기 넣어줘"; 4-picks.md 7절). */
+/**
+ * KAIST library's 스페셜도서 2026, three themes (user 2026-10-19: "이동진 추천 빼고 여기 넣어줘"; 「AI대학」 taken out:
+ * "kaist 추천에서 AI대학 이건 빼자"; 4-picks.md 7절).
+ */
 const KAIST: PicksList = {
   key: 'kaist',
   name: 'KAIST 추천도서',
@@ -77,7 +80,7 @@ const KAIST: PicksList = {
   failedText: 'KAIST 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: 'KAIST 추천도서를 불러오는 중',
   helpLines: [
-    'KAIST 도서관 「스페셜도서」 2026의 네 주제 80권이에요: 자연이 우리에게 주는 메시지, AI가 우리에게 주는 메시지, 문화가 우리에게 주는 메시지, AI대학',
+    'KAIST 도서관 「스페셜도서」 2026의 세 주제 60권이에요: 자연이 우리에게 주는 메시지, AI가 우리에게 주는 메시지, 문화가 우리에게 주는 메시지',
     '책첵은 KAIST 도서관과 관계가 없어요',
   ],
   source: () => '출처: KAIST 도서관 소장자료검색 · Collections · 추천도서 · 스페셜도서(2026) · 책첵은 KAIST 도서관과 관계가 없어요',
