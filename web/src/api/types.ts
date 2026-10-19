@@ -20,6 +20,7 @@ export type PlatformType =
   | 'GANGNAM_V1'
   | 'BOOKCUBE_FX'
   | 'ALADIN_V1'
+  | 'SEOUL_ELIB_V1'
 /** Cycle 09: the company that runs a library's e-book site, shown next to the name ("교보 · 소장"). */
 export type Vendor = 'KYOBO' | 'YES24' | 'BOOKCUBE' | 'ALADIN' | 'PORTAL' | 'IN_HOUSE'
 /** Cycle 09: how a site lends its books; null only for a portal. */

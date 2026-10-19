@@ -31,7 +31,7 @@
 | 강남구 `GANGNAM_V1` | `ebook.gangnam.go.kr/elibbook/*.asp` | `book_info.asp?search=title\|author\|publisher` | `book_category.asp` | 20 고정 | "N 건" | 줄마다 "eBook" 표시. 오디오북은 로그인 전용 별도 서비스 |
 | 북큐브 `FxLibrary` (+다산 `*.dasangng.co.kr`, `BookLive`) | 경로 `/FxLibrary…/` | `xml/productSearch/?keyword=&keyoption2=1\|2\|3` | `xml/productList/` (XML) | 100 | `<totalItem>` | `<format>`·`<category_type>` (오디오북 값은 못 봄) |
 | 알라딘 | `sub/sub.htm?nav_code=…`, `*.aladinebook.co.kr` | `code=search&search_item=title\|author` | `sub.htm?nav_code=…&view_level=1` | 100 | "총 N 건의 도서" | 사이트 단위(예: "경북도서관 오디오북"은 사이트 전체가 오디오북) |
-| 서울도서관 자체 (adapter 없음, 11절) | `elib.seoul.go.kr`, 화면은 스크립트가 JSON API로 채움 | `/api/contents/search?searchOption=1\|2\|3` (JSON) | 분류별 `/api/contents/catesearch` | 100 시험함 | `totalCount` | `contentType` EB / TY03 |
+| 서울도서관 자체 `SEOUL_ELIB_V1` (11절) | `elib.seoul.go.kr`, 화면은 스크립트가 JSON API로 채움 | `/api/contents/search?searchOption=1\|2\|3` (JSON) | 분류별 `/api/contents/catesearch` | 100 사용 | `totalCount` | 줄의 `contentsType` TY01·TY02 전자책 / TY03 오디오북 |
 
 ## 2. 교보 일반 `KYOBO_V1` [확정] (표본: 고흥 `https://www.ghlib.go.kr:446`)
 
@@ -150,6 +150,7 @@
 | 강남구 | `div.publish_ebook` 표시 | `SITE_LABEL` |
 | 북큐브 | `format`이 `aud` | `content_kind`=`book/aud`, `SITE_LABEL` |
 | 알라딘 | 사이트 단위 | — |
+| 서울도서관 `SEOUL_ELIB_V1` | 줄의 `contentsType`(TY03 = 오디오북), 분류도 전자책(EB)·오디오북(TY03)이 따로 | `content_kind`=`전자책`·`오디오북`, `section`=`EB-<분류>`·`TY03-<분류>`, `SITE_LABEL` |
 
 - 정리된 종류는 SQLite 뷰 `holding_typed.content_type`(EBOOK, AUDIOBOOK, VIDEO_BOOK, KIDS_BOOK, PAPER, UNKNOWN). 교보의 "오디오"와 "오디오북"은 둘 다 AUDIOBOOK으로 봄 [안]
 - 사이트가 전자책이라 했지만 제목에 "오디오북"이 있는 줄(예: "(본문 포함 e오디오북)", "영어 원서+오디오북")은 뷰 `kind_check_needed`에 모음(2026-09-30 기준 452줄). 전자책과 오디오가 함께 든 상품으로 보이며, 어떻게 보여 줄지는 사용자 결정 [확인 필요: 사용자에게 질문]
@@ -166,16 +167,30 @@
 | 인천교육청 포털 전체 목록 | 로그인 없이 가능한 목록 찾기 |
 | 포털 표지 파일 이름이 ISBN인지 | 표본 대조 |
 
-## 11. 서울도서관 자체 통합전자책 (adapter 없음, 조사만 2026-10-20) (`https://elib.seoul.go.kr`)
+## 11. 서울도서관 자체 통합전자책 `SEOUL_ELIB_V1` [확정] (2026-10-20 조사, 같은 날 adapter·수집기) (`https://elib.seoul.go.kr`)
 
-- 조사 방법·원문·가입 자격·판정: [`library-maintenance.md`](../library-maintenance.md) 4-14. 다시 확인: `python scripts/library/probe_seoul_elib.py` (저장소 루트, 요청 약 7건). adapter·수집기를 붙이는 순서는 [2-crawl.md](2-crawl.md) 7절.
-- 알아보는 법: 호스트 `elib.seoul.go.kr`, `/` → 302 `/main`. 화면 HTML에는 결과가 없고 `/resources/js/05_search/r_search2.js`(검색), `06_contents/r_list2.js`(분류 목록), `r_detail.js`(상세)가 JSON API를 부름. 응답 UTF-8. 로그인 없이 검색·목록·상세 JSON이 열림.
-- 검색: `GET /api/contents/search?libCode=&contentType={EB|TY03}&searchKeyword={검색어}&searchOption={1 서명|2 저자|3 출판사|4 전체}&sortOption={1 제목|2 저자|3 발행일|4 추천|5 대출}&innerSearchYN=N&innerKeyword=&currentCount={쪽, 1부터}&pageCount={줄 수}&loanable=&isTotal=false&showType=L&searchCombine=N` → `{totalCount, totalPage, ContentDataList[]}`(건수는 문자열). 빈 검색어는 404.
-- 전체 목록: 대분류 `GET /api/category/main?contentType={EB|TY03}` → `categoryNo`, `categoryName`, `contentCount`(소분류 `GET /api/category/sub?majorCategory=…&contentType=…`). 분류별 목록 `GET /api/contents/catesearch?libCode=&majorCategory={번호}&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount={쪽}&pageCount=100` (2026-10-20: 001 가정과생활 1,187권, 12쪽, `pageCount` 100 동작). 분류가 겹치는지는 아직 모름 [확인 필요]. 전자책 대분류 22개 합 28,232(그중 100 국외전자책 3,900, 021 VOD·099 Project Gutenberg 0), 오디오북 20개 합 1,453.
-- 줄 칸: `contentsKey`(책 번호, `PRD…`·`CPP…` 이 사이트만의 번호), `title`, `author`, `publisher`, `publishDate`, `isbn`, `contentsType`(TY01 소장, TY02 구독, TY03 오디오북), `contentsTypeDesc`, `ownerCode`(유통사: OD ECO, BQ 북큐브, BX OPMS, YE 예스24, YB Y2BOOKS, CP 컨텐츠포탈, AL 알라딘, AD 오디언, OV 오버드라이브 = 국외, 대출은 OverDrive 사이트), `contentsFileType`(1 EPUB, 2 PDF, 3 AUDIO), `b2bCopys`(보유), `currentLoanCount`(지금 대출), `currentResvCount`(지금 예약), `loanCnt`·`reserveCnt`(누적으로 보임), 표지 주소, 책 소개 `contentsInfo`(읽지도 저장하지도 않음, library-maintenance 2절).
-- 상세: 화면 `/contents/detail.do?no={contentsKey}`, JSON `GET /api/contents/{contentsKey}` → `Contents[0].contentsCopys`·`currentLoanCount`·`currentResvCount`. 상세 스크립트는 소장형(TY01)에만 수를 그림. 구독형(TY02)은 `b2bCopys` 1이어도 `currentLoanCount` 2인 줄이 있어 수량 제한 없음(이용안내 "대출 수 제한 없음").
-- 오디오북 구분: `contentType=TY03` 목록, 줄의 `contentsType`.
+- 조사 방법·원문·가입 자격·판정: [`library-maintenance.md`](../library-maintenance.md) 4-14. 다시 확인: `python scripts/library/probe_seoul_elib.py` (저장소 루트, 요청 약 7건). adapter·수집기를 붙인 순서는 [2-crawl.md](2-crawl.md) 7절 그대로.
+- 알아보는 법: 호스트 `elib.seoul.go.kr`, `/` → 302 `/main`. 화면 HTML에는 결과가 없고 `/resources/js/05_search/r_search2.js`(검색), `06_contents/r_list2.js`(분류 목록), `r_detail.js`(상세)가 JSON API를 부름. 응답 UTF-8 `application/json`. 로그인 없이 검색·목록·상세 JSON이 열림. 사람이 볼 검색 화면은 검색어를 주소에 남기지 않음(스크립트·`history.state`) → "도서관에서 보기"는 첫 화면 `/main`.
+- 검색: `GET /api/contents/search?libCode=&contentType={EB|TY03}&searchKeyword={검색어}&searchOption={1 서명|2 저자|3 출판사|4 전체}&sortOption={1 제목|2 저자|3 발행일|4 추천|5 대출}&innerSearchYN=N&innerKeyword=&currentCount={쪽, 1부터}&pageCount={줄 수}&loanable=&isTotal=false&showType=L&searchCombine=N` → `{totalCount, totalPage, ContentDataList[]}`(건수는 문자열). 결과 없음은 `totalCount` "0"과 빈 목록. 빈 검색어는 404(HTML). `contentType=EB` 결과에도 국외 OverDrive 줄(`ownerCode` OV)이 섞이고 `totalCount`에 들어감.
+- 전체 목록: 대분류 `GET /api/category/main?contentType={EB|TY03}` → `categoryNo`, `categoryName`, `contentCount`(소분류 `GET /api/category/sub?majorCategory=…&contentType=…`). 전자책과 오디오북의 분류 번호는 겹치지 않음(EB 001~019·021·099·100, TY03 131~162). 분류별 목록 `GET /api/contents/catesearch?libCode=&majorCategory={번호}&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount={쪽}&pageCount=100`(분류 번호 하나로 전자책·오디오북 모두, `majorCategory` 빈 값은 404). 전자책 대분류 22개 합 28,232(그중 100 국외전자책 3,900은 모두 OV, 021 VOD·099 Project Gutenberg 0), 오디오북 20개 합 1,453(2026-10-20). 분류가 겹치는지: 아래 시험 수집 결과.
+- 줄 칸: `contentsKey`(책 번호, `PRD…`·`CPP…`·숫자 등 이 사이트만의 번호, 상세 주소 `no=`에 그대로), `title`, `author`, `publisher`, `publishDate`, `isbn`, `contentsType`(TY01 소장, TY02 구독, TY03 오디오북), `contentsTypeDesc`("전자책(소장형)" 등), `ownerCode`(유통사: OD ECO, BQ 북큐브, BX OPMS, YE 예스24, YB Y2BOOKS, CP 컨텐츠포탈, AL 알라딘, AD 오디언, OV 오버드라이브 = 국외, 대출은 OverDrive 사이트), `contentsFileType`(1 EPUB, 2 PDF, 3 AUDIO), `b2bCopys`(보유, 검색 결과에만; 분류 목록 줄은 `copys`), `currentLoanCount`(지금 대출), `currentResvCount`(지금 예약), `loanCnt`·`reserveCnt`(누적으로 보임), 표지 주소, 책 소개 `contentsInfo`(읽지도 저장하지도 않음, library-maintenance 2절).
+- 상세: 화면 `/contents/detail.do?no={contentsKey}`, JSON `GET /api/contents/{contentsKey}` → `Contents[0].contentsCopys`·`currentLoanCount`·`currentResvCount`(`b2bCopys`는 null). 상세 스크립트는 소장형(TY01)에만 수를 그림. 구독형(TY02)은 `b2bCopys` 1이어도 `currentLoanCount` 2~5인 줄이 있어 수량 제한 없음(이용안내 "대출 수 제한 없음").
 - robots.txt(2026-10-20): `/EPUBViewer3/`, `/PDFViewer/`, `/epubs/`, `/pdf/`, `/wv3a/`만 막음.
+
+**서비스 adapter** (`backend/.../availability/internal/adapter/SeoulElibV1Adapter.java`, 시험 `SeoulElibV1AdapterTests` + 저장 JSON `src/test/resources/fixtures/seoul-elib/`)
+
+- 검색은 위 주소에 `contentType=EB`, `pageCount=10`, `searchOption` 1·2·3(제목·저자·출판사). JSON은 Jackson 3(`tools.jackson`).
+- 줄: TY01은 `b2bCopys`·`currentLoanCount`·`currentResvCount`로 보유·대출·예약(수가 없으면 화면이 바뀐 것으로 보고 오류), TY02는 수 없이 구독형(`SiteVerdict.SUBSCRIPTION` → "구독형 · 바로 대출"), TY03(오디오북)과 OV(국외 OverDrive) 줄은 뺌. 유통사 이름은 `ownerCode` 표(`r_detail.js`)로 바꿔 `supplier`에.
+- 판정: `SubscriptionResolver`(소장 줄은 수로, 구독 줄은 바로 대출). 책 상세는 `/contents/detail.do?no=` 주소를 `/api/contents/{no}`로 바꿔 읽음(`detailFetchUri`): TY01 수, TY02 구독형, OV·그 밖은 판단 불가.
+- 도서관 줄의 업체는 `IN_HOUSE`(자체), 대출 방식은 `MIXED`(소장+구독). 넣기 명령 `LibraryInsertPlanner`가 이 화면 종류에 그렇게 정함.
+
+**수집기** (`scripts/crawl/crawl_catalog.py` `seoul_segments`·`parse_seoul`, 시험 `python -m unittest scripts/crawl/test_parse_seoul.py`)
+
+- 목록 = 분류마다 하나(`segments`): `/api/category/main`을 EB·TY03 두 번 읽어 `contentCount`가 0보다 큰 분류만 `EB-001`처럼 `section`으로. 국외전자책 분류(`SEOUL_SKIPPED_CATEGORIES`, 100번 3,900줄이 모두 OV)는 읽지 않음. 다른 분류에 섞인 OV 줄은 건너뛰고, 줄이 모두 건너뛴 쪽은 빈 쪽으로 보지 않음(첫 시험 수집이 100번 1쪽에서 "empty page"로 멈춘 뒤 고침). 한 쪽 100줄(`PAGE_SIZE`). 분류가 여럿이라 이어 받기 없이 처음부터 다시 받음.
+- 줄 → `item_key`=`contentsKey`, `platform`=`SEOUL_ELIB`, `content_kind`=`전자책`(EB 분류)·`오디오북`(TY03 줄), `kind_source`=`SITE_LABEL`, `supplier`=유통사 이름, `category_code`=대분류 번호, `category_name`=`contentsTypeDesc`, `detail_path`=`/contents/detail.do?no={contentsKey}`. OV 줄은 건너뜀(`skip`, 사이트 총 건수에서도 뺌). 표지·소개는 받지 않음.
+- 호출 간격 1.1초(`MIN_GAP_BY_HOST`, [rules-index.md](rules-index.md)).
+- 수집 DB에 넣기: `python scripts/crawl/crawl_catalog.py add-library --id 102739 --name 서울도서관 --platform SEOUL_ELIB_V1 --base-url https://elib.seoul.go.kr --source library-maintenance-4-14` → `full --only 102739`. 번호 102739는 규칙 파일(`public_join.tsv`·`library_kinds.tsv`)에 적은 번호(2026-10-20 수집 DB 최대 102738 + 1). 그 번호가 이미 쓰였으면 명령이 멈추므로 새 번호로 규칙 파일 두 줄도 고침.
+- 시험 수집(2026-10-20, 시험용 데이터 폴더 `CHAEKCHECK_DATA`=scratchpad, 실제 수집 DB에는 아직 넣지 않음): `full --only 102739` **OK 25,785/25,785**(전자책 24,332 = 국내 분류 19개 합, 오디오북 1,453), 약 10분(쪽당 약 2초, 사이트 응답이 느림). 분류끼리 겹치는 책 없음(받은 줄 = 분류 합). 상세 주소는 모두 `https://elib.seoul.go.kr/contents/detail.do?no=…`. 상세 화면 HTML에는 제목이 없어(`<title>서울도서관 전자도서관</title>`, 스크립트가 채움) `verify_detail_urls.py`로는 확인되지 않음 → adapter가 읽는 `/api/contents/{no}`로 확인(`CPP0000597973` 「오직 두 사람」 5/5/1).
 
 ## 출처
 

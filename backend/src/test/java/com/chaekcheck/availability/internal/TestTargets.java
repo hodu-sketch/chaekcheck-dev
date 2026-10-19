@@ -32,7 +32,7 @@ public final class TestTargets {
 			case BOOKCUBE_FX -> Vendor.BOOKCUBE;
 			case ALADIN_V1 -> Vendor.ALADIN;
 			case ELIB_PORTAL_V1 -> Vendor.PORTAL;
-			case GANGNAM_V1 -> Vendor.IN_HOUSE;
+			case GANGNAM_V1, SEOUL_ELIB_V1 -> Vendor.IN_HOUSE;
 		};
 	}
 

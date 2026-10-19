@@ -1,0 +1,15 @@
+# 서울도서관's own integrated e-book site elib.seoul.go.kr as a new screen kind SEOUL_ELIB_V1 (user 2026-10-20:
+# research 서울도서관, build the adapter now, deploy after v1.7.0; docs/library-maintenance.md 4-14).
+# library-001 is applied in production, so the CHECK constraint is replaced here instead of edited there. The library
+# row itself comes from the library-insert command (docs/maintenance/1-libraries.md "새 도서관 넣기"), not a seed.
+databaseChangeLog:
+  - changeSet:
+      id: library-020-platform-seoul-elib
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE library.library DROP CONSTRAINT library_platform_type_check,
+                ADD CONSTRAINT library_platform_type_check CHECK (platform_type IN
+                  ('KYOBO_V1', 'KYOBO_SUBSCRIPTION_V1', 'YES24_V1', 'YES24_V2', 'YES24_V3', 'ELIB_PORTAL_V1',
+                   'GANGNAM_V1', 'BOOKCUBE_FX', 'ALADIN_V1', 'SEOUL_ELIB_V1'))

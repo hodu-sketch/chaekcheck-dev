@@ -44,6 +44,7 @@ class AvailabilityResolversTests {
 		assertThat(resolvers.forPlatform(PlatformType.ELIB_PORTAL_V1)).isInstanceOf(SiteListResolver.class);
 		assertThat(resolvers.forPlatform(PlatformType.ALADIN_V1)).isInstanceOf(CountResolver.class);
 		assertThat(resolvers.forPlatform(PlatformType.BOOKCUBE_FX)).isInstanceOf(SubscriptionResolver.class);
+		assertThat(resolvers.forPlatform(PlatformType.SEOUL_ELIB_V1)).isInstanceOf(SubscriptionResolver.class);
 	}
 
 	/** Cycle 07 (ADR-0056): owned rows on a subscription screen by count, rental rows as subscription. */
@@ -67,6 +68,10 @@ class AvailabilityResolversTests {
 		assertThat(resolvers.decideDetail(PlatformType.BOOKCUBE_FX,
 				new ParsedDetail(0, 0, 0, SiteVerdict.SUBSCRIPTION)))
 			.isEqualTo(new Decision(Availability.AVAILABLE, AvailabilityBasis.SUBSCRIPTION));
+		assertThat(resolvers.decideDetail(PlatformType.SEOUL_ELIB_V1, ParsedDetail.verdict(SiteVerdict.SUBSCRIPTION)))
+			.isEqualTo(new Decision(Availability.AVAILABLE, AvailabilityBasis.SUBSCRIPTION));
+		assertThat(resolvers.decideDetail(PlatformType.SEOUL_ELIB_V1, ParsedDetail.counted(5, 5, 1)))
+			.isEqualTo(new Decision(Availability.RESERVABLE, AvailabilityBasis.COUNT));
 		assertThat(resolvers.decideDetail(PlatformType.ALADIN_V1, ParsedDetail.counted(1, 1, 0)))
 			.isEqualTo(new Decision(Availability.RESERVABLE, AvailabilityBasis.COUNT));
 	}

@@ -1,0 +1,32 @@
+{
+ "Contents": [
+  {
+   "contentsKey": "PRD000127803",
+   "title": "불과 피 : 얼음과 불의 노래 외전",
+   "author": "지은이: 조지 R.R. 마틴 ;옮긴이: 김영하",
+   "publisher": "은행나무",
+   "publishDate": "2019-04-19",
+   "contentsType": "TY02",
+   "contentsTypeDesc": "전자책(구독형)",
+   "loanCnt": 411,
+   "ownerCode": "OD",
+   "recommendCnt": 18,
+   "reserveCnt": 0,
+   "myloanYn": "Y",
+   "loanKey": 66687029,
+   "contentsFileType": "1",
+   "isbn": "9791189982089",
+   "contentsCopys": 1,
+   "currentLoanCount": 5,
+   "currentResvCount": 0,
+   "reviewCount": 0,
+   "likeCount": 44,
+   "avgrate": 0.0,
+   "filesize": 0,
+   "likeYn": "N"
+  }
+ ],
+ "codeMessage": "OK",
+ "recommendYN": "N",
+ "statusCode": 200
+}

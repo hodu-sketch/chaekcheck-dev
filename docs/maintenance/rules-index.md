@@ -32,6 +32,7 @@
 | `BLOCKED_HOST_SUFFIX` | 절대 요청하지 않는 호스트 끝(`dkyobobook.co.kr`, 교보 구독형 서버가 우리 IP를 막음, 사이클 13 R1-6) | 요청 직전에 매번 확인함(코드) | 바꾸지 않습니다. 풀려면 사용자 결정이 필요합니다 |
 | `SHARED_HOSTS` | 여러 도서관을 한 서버로 서비스하는 호스팅(한 줄 세우기) | [2-crawl.md](2-crawl.md) 2-1절 | 상수를 고칩니다. 다음 수집부터 |
 | `MIN_GAP`, `PER_HOST` | 한 서버에 요청 사이 최소 1초, 동시 1개(호출 예의, 사이클 01 spec 5.6) | plan `crawl-method.md` | 바꾸려면 사용자 결정이 필요합니다 |
+| `MIN_GAP_BY_HOST` | `MIN_GAP`보다 길게 쉬는 호스트. 지금은 `elib.seoul.go.kr`(서울도서관) 1.1초: 조사 때 정한 간격([library-maintenance.md](../library-maintenance.md) 4-14, 2026-10-20). `--gap`이 더 길면 그 값 | 없음(약속한 값) | 상수를 고칩니다. 다음 수집부터 |
 | `MATCH_TOLERANCE` | 사이트 권수와 받은 줄 수의 허용 차(1%) | `python scripts/crawl/crawl_catalog.py status` | 상수를 고칩니다. 다음 수집부터 |
 
 ## 2. 규칙 파일 (`scripts/library/rules/`)

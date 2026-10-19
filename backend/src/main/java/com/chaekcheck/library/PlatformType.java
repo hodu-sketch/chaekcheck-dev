@@ -26,5 +26,10 @@ public enum PlatformType {
 	 */
 	BOOKCUBE_FX,
 	/** Aladin e-library site ({@code ?nav_code=}): counts read from the detail page's "보유현황" (ADR-0056). */
-	ALADIN_V1
+	ALADIN_V1,
+	/**
+	 * 서울도서관's own integrated e-book site ({@code elib.seoul.go.kr}), read through its JSON: owned titles with
+	 * counts, subscription titles without a limit (library-maintenance 4-14).
+	 */
+	SEOUL_ELIB_V1
 }

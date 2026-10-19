@@ -22,7 +22,7 @@ public class AvailabilityResolvers {
 			byPlatform.put(type, switch (type) {
 				case KYOBO_V1, YES24_V1, YES24_V2, YES24_V3, GANGNAM_V1, ALADIN_V1 -> count;
 				// rows with counts (owned titles) by count, the others as subscription (ADR-0056)
-				case KYOBO_SUBSCRIPTION_V1, BOOKCUBE_FX -> new SubscriptionResolver(count);
+				case KYOBO_SUBSCRIPTION_V1, BOOKCUBE_FX, SEOUL_ELIB_V1 -> new SubscriptionResolver(count);
 				case ELIB_PORTAL_V1 -> new SiteListResolver(detailLookup);
 			});
 		}
@@ -37,7 +37,7 @@ public class AvailabilityResolvers {
 	 * counts give AVAILABLE when holdings - loaned >= 1, else RESERVABLE (COUNT); counts replaced by a notice are
 	 * UNKNOWN; the portal's "대출 가능" / "예약 가능" are AVAILABLE / RESERVABLE (SITE_DETAIL), anything else UNKNOWN.
 	 * Subscription rows never read a page: {@link #subscription()}. A Bookcube rental title's detail is a subscription
-	 * too.
+	 * too, and so is a 서울도서관 subscription (TY02) title's.
 	 */
 	public AvailabilityResolver.Decision decideDetail(PlatformType type, ParsedDetail detail) {
 		if (detail.siteVerdict() == SiteVerdict.SUBSCRIPTION) {
