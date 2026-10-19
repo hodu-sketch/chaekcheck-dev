@@ -103,17 +103,17 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
     const tabs = within(screen.getByRole('navigation', { name: '추천도서 목록' })).getAllByRole('link')
     expect(tabs.map((tab) => [tab.textContent, tab.getAttribute('href')])).toEqual([
-      ['이동진 추천', '/picks/leedongjin'],
       ['사서 추천', '/picks/librarian'],
+      ['이동진 추천', '/picks/leedongjin'],
       ['서울대 100선', '/picks/snu100'],
     ])
-    expect(tabs[1].getAttribute('aria-current')).toBe('page')
-    expect(screen.getByText('사서 추천도서 · 출처와 추천 기준을 함께 확인하세요')).toBeTruthy()
+    expect(tabs[0].getAttribute('aria-current')).toBe('page')
+    expect(screen.queryByText(/출처와 추천 기준을 함께/)).toBeNull()
     expect(chips().map((chip) => chip.textContent)).toEqual(CATEGORIES.map((c) => c.name))
     expect(chips()[0].getAttribute('aria-pressed')).toBe('true')
     expect(numbers('전체')).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     expect(cards('전체')[0].getAttribute('aria-label')).toBe('전체 1, 전자책 있음')
-    expect(screen.getByText(/^전자책 연결 있음은 보유 정보를 찾았다는 뜻이에요/)).toBeTruthy()
+    expect(screen.getByText(/^전자책 있음은 보유 정보를 찾았다는 뜻이에요/)).toBeTruthy()
     // AC-15
     expect(document.body.textContent).not.toMatch(/인기 도서|순위|출판유통/)
   })
@@ -124,7 +124,7 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     await screen.findByRole('region', { name: '전체' })
     const [first, second] = cards('전체')
     expect(first.getAttribute('data-linked')).toBe('true')
-    expect(within(first).getByText('전자책 연결 있음')).toBeTruthy()
+    expect(within(first).getByText('전자책 있음')).toBeTruthy()
     expect(within(first).getByText('2026년 10월 사서추천 · 문학')).toBeTruthy()
     expect(second.getAttribute('data-linked')).toBe('false')
     expect(within(second).getByText('전자책 없음')).toBeTruthy()

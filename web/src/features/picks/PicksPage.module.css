@@ -54,12 +54,6 @@
   background: var(--brand);
 }
 
-.lead {
-  margin-top: 0.9rem;
-  color: var(--ink-faint);
-  font-size: var(--text-sm);
-  word-break: keep-all;
-}
 
 /* "▶ 추천 기준과 출처 보기": a native <details> in a white bordered row */
 .criteria {

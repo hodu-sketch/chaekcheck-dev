@@ -19,7 +19,7 @@ export function isLinked(book: PickBook): boolean {
 
 /**
  * One picked book (user 2026-10-19 redesign): a white card with the cover centred at the top (or the title in its
- * place), the title in up to two lines, a grey line, and a pill: "전자책 연결 있음" or "전자책 없음".
+ * place), the title in up to two lines, a grey line, and a pill: "전자책 있음" or "전자책 없음".
  * A tap opens S14, or S15 for a book that is not linked.
  */
 export function BookCard({ book, sub, onPick }: Props) {
@@ -36,7 +36,7 @@ export function BookCard({ book, sub, onPick }: Props) {
         {sub && <span className={styles.cardSub}>{sub}</span>}
         <span className={styles.pillRow}>
           <span className={styles.pill} data-linked={linked}>
-            {linked ? '전자책 연결 있음' : '전자책 없음'}
+            {linked ? '전자책 있음' : '전자책 없음'}
           </span>
         </span>
       </button>

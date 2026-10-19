@@ -180,7 +180,7 @@ export function PicksPage({ list }: { list: PicksList }) {
           )}
         </section>
         <p className={styles.footNote}>
-          전자책 연결 있음은 보유 정보를 찾았다는 뜻이에요. 책을 누르면 현재 대출 상태와 가입 조건을 볼 수 있어요.
+          전자책 있음은 보유 정보를 찾았다는 뜻이에요. 책을 누르면 현재 대출 상태와 가입 조건을 볼 수 있어요.
         </p>
       </>
     )
@@ -196,7 +196,6 @@ export function PicksPage({ list }: { list: PicksList }) {
           </NavLink>
         ))}
       </nav>
-      <p className={styles.lead}>{list.name} · 출처와 추천 기준을 함께 확인하세요</p>
       <details className={styles.criteria}>
         <summary className={styles.criteriaSummary}>추천 기준과 출처 보기</summary>
         <ul className={styles.helpList}>

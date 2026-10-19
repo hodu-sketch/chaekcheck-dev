@@ -88,8 +88,8 @@ export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
   snu100: SNU100,
 }
 
-/** The tabs in screen order (user 2026-10-19 reference picture). */
-export const PICKS_TABS: readonly PicksList[] = [LEEDONGJIN, LIBRARIAN, SNU100]
+/** The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스트 추천 서울대 추천"). */
+export const PICKS_TABS: readonly PicksList[] = [LIBRARIAN, LEEDONGJIN, SNU100]
 
 /** The list an address names, or null for any other name. */
 export function picksList(key: string | undefined): PicksList | null {
