@@ -84,18 +84,18 @@ class PicksApiTests {
 		assertThat(mvc.get().uri(URL)).hasStatusOk().bodyJson().isStrictlyEqualTo("""
 				{"list":"librarian","fetchedAt":"2026-10-12T05:00:41+09:00","categories":[
 				 {"code":"ALL","name":"전체","books":[
-				  {"id":"20260928084907621100","category":"425","title":"나","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null},
-				  {"id":"20260922163135829100","category":"11","title":"가","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null},
-				  {"id":"20260801000000000001","category":"1000","title":"라","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null},
-				  {"id":"20260801000000000000","category":"999","title":"다","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null}]},
+				  {"id":"20260928084907621100","category":"425","title":"나","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null},
+				  {"id":"20260922163135829100","category":"11","title":"가","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null},
+				  {"id":"20260801000000000001","category":"1000","title":"라","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null},
+				  {"id":"20260801000000000000","category":"999","title":"다","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null}]},
 				 {"code":"11","name":"문학","books":[
-				  {"id":"20260922163135829100","category":"11","title":"가","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null}]},
+				  {"id":"20260922163135829100","category":"11","title":"가","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null}]},
 				 {"code":"425","name":"테마","books":[
-				  {"id":"20260928084907621100","category":"425","title":"나","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null}]},
+				  {"id":"20260928084907621100","category":"425","title":"나","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-10","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null}]},
 				 {"code":"999","name":"새분야","books":[
-				  {"id":"20260801000000000000","category":"999","title":"다","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null}]},
+				  {"id":"20260801000000000000","category":"999","title":"다","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null}]},
 				 {"code":"1000","name":"기타","books":[
-				  {"id":"20260801000000000001","category":"1000","title":"라","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null}]}]}
+				  {"id":"20260801000000000001","category":"1000","title":"라","listTitle":null,"coverUrl":null,"bookId":null,"available":false,"recommendedMonth":"2026-08","yearBook":null,"videoId":null,"tocNo":null,"aiSummary":null}]}]}
 				""");
 	}
 
@@ -203,7 +203,7 @@ class PicksApiTests {
 				""".formatted("""
 				{"id":"%d","category":"science","title":"히스토리아 비테이","listTitle":null,"coverUrl":null,
 				 "bookId":910011,"available":true,"recommendedMonth":"2026-06","yearBook":null,"videoId":"lMx0zEd1qtY",
-				 "tocNo":null}""".formatted(rowId("leedongjin", "히스토리아 비테이"))));
+				 "tocNo":null,"aiSummary":null}""".formatted(rowId("leedongjin", "히스토리아 비테이"))));
 		var snu = assertThat(mvc.get().uri("/api/v1/picks/snu100")).hasStatusOk().bodyJson();
 		snu.extractingPath("$.categories[*].code").isEqualTo(List.of("ALL", "korean_lit", "foreign_lit"));
 		snu.extractingPath("$.categories[0].books[*].tocNo").isEqualTo(List.of(17, 23));

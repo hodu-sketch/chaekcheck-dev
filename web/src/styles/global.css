@@ -113,6 +113,15 @@
   box-sizing: border-box;
 }
 
+
+/*
+ * Thin rounded scrollbars without arrows, a soft grey on a clear track (user 2026-10-19: "이거 슬라이드바 디자인 이상해
+ * 예쁘게 고쳐줘" about the windows' bars); the page's own bar too, so they look alike
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c9ced6 transparent;
+}
 body {
   margin: 0;
   min-height: 100vh;

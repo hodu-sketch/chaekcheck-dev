@@ -107,7 +107,7 @@ class PicksController {
 		return new Picks.Book(book.id(), book.category(), book.title(), book.listTitle(),
 				book.coverId() == null ? null : COVER_PATH + book.coverId(), book.bookId(), available,
 				book.recommendedMonth() == null ? null : book.recommendedMonth().format(MONTH), book.yearBook(),
-				book.videoId(), book.tocNo());
+				book.videoId(), book.tocNo(), book.aiSummary());
 	}
 
 	/** An id that is not a positive number names no cover: 404 like a missing one. */
@@ -153,9 +153,11 @@ class PicksController {
 		 * @param yearBook the year of Lee Dong-jin's books of the year it was in, else null
 		 * @param videoId Lee Dong-jin's video, else null
 		 * @param tocNo the SNU table-of-contents number, else null
+		 * @param aiSummary a short AI-written summary of the book (the web says so behind an ⓘ), else null
 		 */
 		record Book(String id, String category, String title, String listTitle, String coverUrl, Long bookId,
-				boolean available, String recommendedMonth, Integer yearBook, String videoId, Integer tocNo) {
+				boolean available, String recommendedMonth, Integer yearBook, String videoId, Integer tocNo,
+				String aiSummary) {
 		}
 
 	}

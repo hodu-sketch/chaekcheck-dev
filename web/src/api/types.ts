@@ -401,6 +401,8 @@ export interface PickBook {
   videoId: string | null
   /** The SNU 100's table-of-contents number, else null. */
   tocNo: number | null
+  /** A short AI-written summary of the book (S14 shows it under 「AI 요약 ⓘ」), else null. Absent from older servers. */
+  aiSummary?: string | null
 }
 
 /** One field in display order: `ALL` first, then the list's fields. `name` is the name shown. */

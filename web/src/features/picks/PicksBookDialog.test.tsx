@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
 import { holdingStream } from '../../api/searchStream'
-import type { BookDetail, HoldingStreamEvent, LibraryItem, TargetLibrary } from '../../api/types'
-import { PicksBookDialog } from './PicksBookDialog'
+import type { BookDetail, HoldingStreamEvent, LibraryItem, PickBook, TargetLibrary } from '../../api/types'
+import { AI_SUMMARY_NOTE, PicksBookDialog } from './PicksBookDialog'
 import { testBooks } from './testPicks'
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
@@ -115,9 +115,9 @@ function answerWithThreeHoldings() {
   })
 }
 
-function renderDialog(onSearch = vi.fn()) {
+function renderDialog(onSearch = vi.fn(), book: PickBook = BOOK) {
   render(
-    <PicksBookDialog book={BOOK} plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />,
+    <PicksBookDialog book={book} plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />,
   )
   return userEvent.setup()
 }
@@ -129,6 +129,24 @@ beforeEach(() => {
 
 /** S14 (R6-1~R6-8, AC-8, AC-9, AC-21). */
 describe('picks book window', () => {
+  it('shows the AI summary under 「AI 요약」, whose ⓘ says an AI wrote it (안 B, user 2026-10-19)', async () => {
+    vi.mocked(fetchBook).mockResolvedValue(DETAIL)
+    answerWithThreeHoldings()
+    const user = renderDialog(vi.fn(), { ...BOOK, aiSummary: '옛 시가를 골라 엮은 선집이에요.' })
+    const dialog = screen.getByRole('dialog', { name: '소설 1 대출 정보' })
+    expect(within(dialog).getByText('옛 시가를 골라 엮은 선집이에요.')).toBeTruthy()
+    await user.click(within(dialog).getByRole('button', { name: 'AI 요약 안내' }))
+    expect(screen.getByText(AI_SUMMARY_NOTE)).toBeTruthy()
+    expect(document.body.textContent).not.toMatch(/Haiku|Claude/)
+  })
+
+  it('shows no AI summary when the book has none', () => {
+    vi.mocked(fetchBook).mockResolvedValue(DETAIL)
+    answerWithThreeHoldings()
+    renderDialog()
+    expect(screen.queryByRole('button', { name: 'AI 요약 안내' })).toBeNull()
+  })
+
   it('asks only the first three plan holdings and lists them borrowable first (AC-8)', async () => {
     vi.mocked(fetchBook).mockResolvedValue(DETAIL)
     answerWithThreeHoldings()

@@ -196,7 +196,7 @@ public class PicksCache implements PicksChanged {
 		YearMonth month = row.recommendedMonth() == null ? null : YearMonth.from(row.recommendedMonth());
 		return new Book(id, row.fieldCode(), month, shown, listTitle, row.coverId(),
 				our == null ? null : our.bookId(), our == null ? new long[0] : our.libraryIds(), row.yearBook(),
-				row.videoId(), row.tocNo());
+				row.videoId(), row.tocNo(), AiSummaries.DEFAULT.of(list, row.isbn13(), row.title()));
 	}
 
 	/** The books the import matched, read by id; a book gone from the catalog since then is no match. */
@@ -288,9 +288,11 @@ public class PicksCache implements PicksChanged {
 	 * @param coverId the stored cover, or null
 	 * @param bookId our book, or null
 	 * @param libraryIds {@code catalog.book.library_ids} of that book; empty without one
+	 * @param aiSummary the short AI-written summary ({@link AiSummaries}), or null
 	 */
 	public record Book(String id, String category, YearMonth recommendedMonth, String title, String listTitle,
-			Long coverId, Long bookId, long[] libraryIds, Integer yearBook, String videoId, Integer tocNo) {
+			Long coverId, Long bookId, long[] libraryIds, Integer yearBook, String videoId, Integer tocNo,
+			String aiSummary) {
 	}
 
 }
