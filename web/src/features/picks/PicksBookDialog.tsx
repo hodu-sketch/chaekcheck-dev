@@ -190,12 +190,7 @@ function BookBody({
     <div className={styles.book}>
       {head}
       {book.aiSummary && <AiSummary text={book.aiSummary} />}
-      {detail !== null && detail.holdingLibraryCount > 0 && (
-        // design A: what the lines are (R6-3); after more steps, how many were asked
-        <p className={styles.rowsLabel}>
-          {step === 0 ? '검색하는 도서관 중 앞의 3곳' : `검색하는 도서관 ${state.libraries.length}곳 중 3곳`}
-        </p>
-      )}
+      {/* no line naming the rows (user 2026-10-20: "추천 도서에서 "검색하는 도서관 중 앞의 3곳" 빼줘") */}
       <div className={styles.rows}>
         {rows.map((row) => (
           <ResultRow
@@ -229,7 +224,7 @@ export const AI_SUMMARY_NOTE = 'AI가 책 정보를 바탕으로 쓴 짧은 요�
 
 /**
  * 안 B (user 2026-10-19): a small violet 「AI 요약 ⓘ」 label, then the summary in darker words than the grey line under
- * it, above 「검색하는 도서관 중 앞의 3곳」. The ⓘ opens a short note.
+ * it, above the library rows. The ⓘ opens a short note.
  */
 function AiSummary({ text }: { text: string }) {
   return (

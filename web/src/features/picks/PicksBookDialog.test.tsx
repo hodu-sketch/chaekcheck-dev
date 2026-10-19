@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
@@ -206,7 +206,9 @@ describe('picks book window', () => {
     })
     renderDialog()
     const dialog = screen.getByRole('dialog', { name: '소설 1 대출 정보' })
-    expect(await within(dialog).findByText('검색하는 도서관 5곳 중 3곳')).toBeTruthy()
+    await waitFor(() => expect(vi.mocked(holdingStream).mock.calls).toHaveLength(2))
+    // no line naming the rows (user 2026-10-20)
+    expect(within(dialog).queryByText(/검색하는 도서관/)).toBeNull()
     expect(vi.mocked(holdingStream).mock.calls.map((call) => call[0].holdingLimit)).toEqual([3, 6])
     const rows = within(dialog).getAllByRole('article')
     expect(rows.map((row) => within(row).getByRole('button', { name: /가입 정보$/ }).textContent)).toEqual([
