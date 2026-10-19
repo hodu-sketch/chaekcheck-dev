@@ -45,7 +45,7 @@ class CuratedListTransferTests {
 			kaist\tai\tAI\t2
 			""";
 
-	static final String KAIST_HEADER = "field\tposition\ttitle\tauthor\tpublisher\tisbn13\tcover_url\tpinned_title"
+	static final String KAIST_HEADER = "year\tfield\tposition\ttitle\tauthor\tpublisher\tisbn13\tcover_url\tpinned_title"
 			+ "\tpinned_author\tpinned_publisher\tpinned_isbn13\tpinned_by\tnote\n";
 
 	static final String LEEDONGJIN_HEADER = "month\tposition\tyear_book\tvideo_id\tfield\ttitle\tauthor\tpublisher\tisbn13"
@@ -201,16 +201,18 @@ class CuratedListTransferTests {
 	@Test
 	void kaistFileChecks() throws IOException { // user 2026-10-19
 		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER,
-				KAIST_HEADER + "nature\t1\t가\t\t\t\t\t\t\t\t\t\t\n" + "nature\t1\t나\t\t\t\t\t\t\t\t\t\t\n");
+				KAIST_HEADER + "2026\tnature\t1\t가\t\t\t\t\t\t\t\t\t\t\n" + "2026\tai\t1\t나\t\t\t\t\t\t\t\t\t\t\n");
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("kaist.tsv line 3")
 			.hasMessageContaining("position");
-		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "korean_lit\t1\t가\t\t\t\t\t\t\t\t\t\t\n");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "2026\tkorean_lit\t1\t가\t\t\t\t\t\t\t\t\t\t\n");
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("kaist.tsv line 2")
 			.hasMessageContaining("is not a kaist field");
-		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "ai\t0\t가\t\t\t\t\t\t\t\t\t\t\n");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "2026\tai\t0\t가\t\t\t\t\t\t\t\t\t\t\n");
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("position");
-		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "ai\t1\t가\t\t\t97912\t\t\t\t\t\t\t\n");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "2026\tai\t1\t가\t\t\t97912\t\t\t\t\t\t\t\n");
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("isbn13");
+		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER + "\tai\t1\t가\t\t\t\t\t\t\t\t\t\t\n");
+		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("year"); // user 2026-10-20
 		write(FIELDS.replace("kaist\tai", "kaistx\tai"), LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER);
 		assertThatThrownBy(() -> transfer.check(dir)).hasMessageContaining("fields.tsv line 6")
 			.hasMessageContaining("list");
@@ -222,20 +224,20 @@ class CuratedListTransferTests {
 	@Test
 	void kaistRowsMatchByTheirIsbnThenTitleAndAuthorAndKeepTheirPlaces() throws IOException { // user 2026-10-19
 		write(FIELDS, LEEDONGJIN_HEADER, SNU_HEADER, KAIST_HEADER
-				+ "ai\t1\t맡겨진 소녀\t클레어 키건\t다산책방\t9799990000127\t\t\t\t\t\t\tKAIST 추천번호 1\n"
-				+ "nature\t2\t없는 책\t누구\t어디\t\t\t\t\t\t\t\t\n"
-				+ "nature\t1\t히스토리아 비테이\t\t\t\t\t히스토리아 비테이\t\t\t9799990000110\tmanual\t\n");
+				+ "2025\tai\t1\t맡겨진 소녀\t클레어 키건\t다산책방\t9799990000127\t\t\t\t\t\t\tKAIST 추천번호 1\n"
+				+ "2026\tnature\t2\t없는 책\t누구\t어디\t\t\t\t\t\t\t\t\n"
+				+ "2026\tnature\t1\t히스토리아 비테이\t\t\t\t\t히스토리아 비테이\t\t\t9799990000110\tmanual\t\n");
 
 		CuratedListTransfer.ListPart part = transfer.read(dir, lookup);
 
 		assertThat(part.counts()).containsEntry("kaist", new CuratedListTransfer.Counts(3, 2, 1));
 		transfer.replace(part.json());
 		assertThat(jdbc.sql("""
-				SELECT field_code || ':' || position || ':' || title || ':' || coalesce(book_id, 0) || ':'
+				SELECT year_book || ':' || field_code || ':' || position || ':' || title || ':' || coalesce(book_id, 0) || ':'
 				  || coalesce(publisher, '-') || ':' || coalesce(isbn13, '-')
-				FROM picks.list_book WHERE list_key = 'kaist' ORDER BY field_code, position""").query(String.class).list())
-			.containsExactly("ai:1:맡겨진 소녀:920005:다산책방:9799990000127", "nature:1:히스토리아 비테이:920001:-:-",
-					"nature:2:없는 책:0:어디:-");
+				FROM picks.list_book WHERE list_key = 'kaist' ORDER BY year_book, position""").query(String.class).list())
+			.containsExactly("2025:ai:1:맡겨진 소녀:920005:다산책방:9799990000127",
+					"2026:nature:1:히스토리아 비테이:920001:-:-", "2026:nature:2:없는 책:0:어디:-");
 	}
 
 	private void write(String fields, String leedongjin, String snu100) throws IOException {

@@ -127,11 +127,14 @@ class PicksSchemaTests {
 	}
 
 	@Test
-	void kaistRulesHold() { // user 2026-10-19 (picks/003)
+	void kaistRulesHold() { // user 2026-10-19 (picks/003), years 2026-10-20 (picks/004)
 		field("'kaist'", "'ai'", "'AI'", "1");
 		kaist("1", "'https://image.yes24.com/goods/1/M'");
 		kaist("2", "NULL");
-		violates(() -> kaist("2", "NULL")); // one book per place in a field
+		violates(() -> kaist("2", "NULL")); // one book per place in a year
+		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, year_book)"
+				+ " VALUES ('kaist', 'ai', 2, '다', 2025)").update(); // the same place in another year
+		violates(() -> book("'kaist', 'ai', 5, '가', NULL, NULL, NULL, NULL, NULL, NULL")); // no year
 		violates(() -> kaist("0", "NULL"));
 		violates(() -> kaist("3", "'http://x.example/a.jpg'"));
 		violates(() -> book("'kaist', 'ai', 4, '가', DATE '2026-06-01', NULL, NULL, NULL, NULL, NULL"));
@@ -254,8 +257,8 @@ class PicksSchemaTests {
 
 	private void kaist(String position, String cover) {
 		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, isbn13, publisher, book_id,"
-				+ " cover_source) VALUES ('kaist', 'ai', " + position + ", '가', '9791190400657', '나', 12, " + cover
-				+ ")").update();
+				+ " cover_source, year_book) VALUES ('kaist', 'ai', " + position + ", '가', '9791190400657', '나', 12, "
+				+ cover + ", 2026)").update();
 	}
 
 	/** list, field, position, title, month, video, toc, source_no, book_id, registered_on */

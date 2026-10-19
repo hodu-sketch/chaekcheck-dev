@@ -18,6 +18,8 @@ type Props = {
   /** [책 검색 >>]: the page keeps its place, then opens the book screen (S3). */
   onSearch: (bookId: number) => void
   phone: boolean
+  /** When the book was recommended ("2025년 KAIST 사서추천"), KAIST only (user 2026-10-20); else nothing. */
+  yearLine?: string | null
 }
 
 /**
@@ -26,7 +28,7 @@ type Props = {
  * library lines: only the first three plan holdings are asked (`holdingLimit=3`, user 2026-10-12), then sorted by
  * `pickLibraryRows`. The lines are S3's (`ResultRow`): a tap opens the library's book page in a new tab.
  */
-export function PicksBookDialog({ book, plan, onClose, onSearch, phone }: Props) {
+export function PicksBookDialog({ book, plan, onClose, onSearch, phone, yearLine = null }: Props) {
   return (
     <PicksWindow
       open={book !== null}
@@ -40,6 +42,7 @@ export function PicksBookDialog({ book, plan, onClose, onSearch, phone }: Props)
           key={book.bookId}
           book={book}
           bookId={book.bookId}
+          yearLine={yearLine}
           plan={plan}
           onSearch={onSearch}
           phone={phone}
@@ -63,12 +66,14 @@ export function VideoLink({ videoId }: { videoId: string | null }) {
 function BookBody({
   book,
   bookId,
+  yearLine,
   plan,
   onSearch,
   phone,
 }: {
   book: PickBook
   bookId: number
+  yearLine: string | null
   plan: PlanParams
   onSearch: (bookId: number) => void
   phone: boolean
@@ -134,6 +139,7 @@ function BookBody({
         {/* the shown name (cycle 21 R6-3): our title without edition marks. No "목록 이름" line (user 2026-10-17:
             "목록 이름 아예 다 빼줘 무의미한것 같아"; `listTitle` still comes from the API) */}
         <h2 className={styles.bookTitle}>{book.title}</h2>
+        {yearLine && <p className={styles.bookYear}>{yearLine}</p>}
         {detail && (
           <p className={styles.bookMeta}>
             {[detail.authorDisplay, detail.publisher].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}

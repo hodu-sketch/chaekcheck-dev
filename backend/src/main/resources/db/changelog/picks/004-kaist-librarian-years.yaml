@@ -1,0 +1,24 @@
+# KAIST's list is now its 사서추천도서 of 2026, 2025 and 2024 (user 2026-10-20: "사서추천도서로 바꿔줘", "2026, 2025,
+# 2024 다 해줘"; 스페셜도서 2026 before). A kaist row keeps its recommendation year in year_book, and its position is
+# KAIST's order inside that year. 003 is applied in production, so its check and index are made again here.
+databaseChangeLog:
+  - changeSet:
+      id: picks-004-kaist-librarian-years
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: DELETE FROM picks.list_book WHERE list_key = 'kaist'
+        - sql:
+            sql: ALTER TABLE picks.list_book DROP CONSTRAINT list_book_kaist_check
+        - sql:
+            sql: >-
+              ALTER TABLE picks.list_book ADD CONSTRAINT list_book_kaist_check CHECK (list_key <> 'kaist' OR (
+                source_no IS NULL AND registered_on IS NULL AND recommended_month IS NULL AND video_id IS NULL
+                AND toc_no IS NULL AND year_book IS NOT NULL
+                AND (cover_source IS NULL OR cover_source LIKE 'https://%')))
+        - sql:
+            sql: DROP INDEX picks.list_book_kaist_position_key
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX list_book_kaist_position_key ON picks.list_book (year_book, position)
+              WHERE list_key = 'kaist'

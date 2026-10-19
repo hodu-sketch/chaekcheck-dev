@@ -32,7 +32,7 @@ final class ListFiles {
 
 	static final String SNU100 = "snu100";
 
-	/** KAIST library's "스페셜도서 2026" (user 2026-10-19). */
+	/** KAIST library's 사서추천도서 2026·2025·2024 (user 2026-10-19, 2026-10-20; 스페셜도서 before). */
 	static final String KAIST = "kaist";
 
 	/** The lists {@code fields.tsv} may name. */
@@ -163,19 +163,24 @@ final class ListFiles {
 		return rows;
 	}
 
-	/** KAIST (user 2026-10-19): position 1..n once per field; the row's own ISBN, publisher and cover as given. */
+	/**
+	 * KAIST's 사서추천도서 (user 2026-10-20: "사서추천도서로 바꿔줘", "2026, 2025, 2024 다 해줘"): the recommendation
+	 * {@code year} (kept as {@code year_book}), position 1..n once per year (KAIST's own order), a field chosen by the
+	 * book's subject; the row's own ISBN, publisher and cover as given.
+	 */
 	private static List<Row> kaist(Path file, Set<String> codes) {
 		List<Row> rows = new ArrayList<>();
 		Set<String> places = new HashSet<>();
-		for (Line line : lines(file, "field", "position", "title", "author", "publisher", "isbn13", "cover_url",
-				"pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by")) {
+		for (Line line : lines(file, "year", "field", "position", "title", "author", "publisher", "isbn13",
+				"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by")) {
+			int year = line.number("year", 2000, 2100);
 			String field = field(line, KAIST, codes);
 			int position = line.number("position", 1, Short.MAX_VALUE);
-			if (!places.add(field + "/" + position)) {
-				throw line.wrong("position", "is there twice for " + field);
+			if (!places.add(year + "/" + position)) {
+				throw line.wrong("position", "is there twice for " + year);
 			}
 			rows.add(new Row(KAIST, line.number, field, position, line.required("title"), line.value("author"),
-					line.value("publisher"), line.isbn("isbn13"), null, null, null, null, line.https("cover_url"),
+					line.value("publisher"), line.isbn("isbn13"), null, year, null, null, line.https("cover_url"),
 					pinned(line), null));
 		}
 		return rows;

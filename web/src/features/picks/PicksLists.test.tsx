@@ -139,7 +139,10 @@ afterEach(() => {
 /** Cycle 21 spec R5, R6, R7 (AC-4, AC-5, AC-8, AC-9, AC-15, AC-16). */
 describe('the lists words', () => {
   it('names only the four lists', () => {
-    expect(picksList('kaist')?.name).toBe('KAIST 추천도서')
+    expect(picksList('kaist')?.name).toBe('KAIST 사서 추천도서')
+    // KAIST says the year in the book windows (user 2026-10-20); the other lists say nothing there
+    expect(picksList('kaist')?.yearLine?.(book({ yearBook: 2025 }))).toBe('2025년 KAIST 사서추천')
+    expect(picksList('librarian')?.yearLine).toBeUndefined()
     expect(picksList('leedongjin')?.name).toBe('이동진 추천도서')
     expect(picksList('snu100')?.name).toBe('서울대 100선')
     expect(picksList('librarian')?.name).toBe('사서 추천도서')

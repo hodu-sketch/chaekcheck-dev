@@ -147,6 +147,10 @@ databaseChangeLog:
   - include:
       file: usagelog/006-screen-event-picks-list-kaist.yaml
       relativeToChangelogFile: true
+  # KAIST 사서추천도서 2026·2025·2024 in place of 스페셜도서 (user 2026-10-20)
+  - include:
+      file: picks/004-kaist-librarian-years.yaml
+      relativeToChangelogFile: true
   # 지역 외는 방문 가입: residents of the region join online, others visit (user 2026-10-20)
   - include:
       file: library/017-library-visit-outside-region.yaml

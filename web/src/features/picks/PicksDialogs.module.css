@@ -274,3 +274,11 @@
   word-break: keep-all;
 }
 
+/* KAIST: when the book was recommended, under the title (user 2026-10-20: "몇 년도 추천인지 이 창에서 나오도록") */
+.bookYear {
+  margin: 0.15rem 0 0;
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+

@@ -130,7 +130,7 @@ class CatalogImportModesTests {
 		empty();
 	}
 
-	static final List<String> KAIST_HEADER = List.of("field", "position", "title", "author", "publisher", "isbn13",
+	static final List<String> KAIST_HEADER = List.of("year", "field", "position", "title", "author", "publisher", "isbn13",
 			"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by", "note");
 
 	@SafeVarargs
@@ -324,8 +324,8 @@ class CatalogImportModesTests {
 		long imports = jdbc.sql("SELECT count(*) FROM collection.catalog_import").query(Long.class).single();
 		List<Long> books = jdbc.sql("SELECT id FROM catalog.book ORDER BY id").query(Long.class).list();
 		Files.writeString(lists.resolve("kaist.tsv"), tsv(KAIST_HEADER,
-				List.of("ai", "2", "없는 책", "누구", "", "", "", "", "", "", "", "", ""),
-				List.of("ai", "1", "둘째 책", "다", "라", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+				List.of("2026", "ai", "2", "없는 책", "누구", "", "", "", "", "", "", "", "", ""),
+				List.of("2026", "ai", "1", "둘째 책", "다", "라", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
 		Files.writeString(lists.resolve("snu100.tsv"), Files.readString(lists.resolve("snu100.tsv"))
 				+ tsv(List.of("18", "k", "첫 책", "가", "", "", "", "", "", "")), StandardCharsets.UTF_8);
 
@@ -348,8 +348,8 @@ class CatalogImportModesTests {
 	void listsModeWithAWrongFileStopsAndKeepsTheListsBefore() throws Exception { // user 2026-10-19
 		transfer().finish(exportAndKeep());
 		Files.writeString(lists.resolve("kaist.tsv"), tsv(KAIST_HEADER,
-				List.of("ai", "1", "가", "", "", "", "", "", "", "", "", "", ""),
-				List.of("ai", "1", "나", "", "", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+				List.of("2026", "ai", "1", "가", "", "", "", "", "", "", "", "", "", ""),
+				List.of("2026", "ai", "1", "나", "", "", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
 
 		assertThatThrownBy(() -> transfer().listsOnly(bookLookup))
 			.isInstanceOf(CuratedListTransfer.ListFileException.class)

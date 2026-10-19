@@ -9,10 +9,12 @@ type Props = {
   book: PickBook | null
   onClose: () => void
   phone: boolean
+  /** When the book was recommended ("2025년 KAIST 사서추천"), KAIST only (user 2026-10-20). */
+  yearLine?: string | null
 }
 
 /** S15 (R6-9, AC-10): a faded book (no e-book in the searched libraries): its title, then where to ask for it. */
-export function RequestNotice({ book, onClose, phone }: Props) {
+export function RequestNotice({ book, onClose, phone, yearLine = null }: Props) {
   return (
     <PicksWindow
       open={book !== null}
@@ -30,6 +32,7 @@ export function RequestNotice({ book, onClose, phone }: Props) {
             </svg>
           </span>
           <p className={styles.noticeTitle}>{book.title}</p>
+          {yearLine && <p className={styles.bookYear}>{yearLine}</p>}
           <p className={styles.noticeText}>
             {REQUEST_LINES[0]}
             <br />
