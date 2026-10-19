@@ -19,6 +19,12 @@ const QUESTIONS = [
     q: '대출 가능인데 도서관에서 빌릴 수 없어요.',
     a: '책첵이 도서관 사이트를 확인한 때와 지금이 다를 수 있어요. 대출회원 인증이 필요하거나 대출 권수가 정해진 곳도 있으니 도서관 안내를 확인해 주세요.',
   },
+  // a question of Q&A, not a section of its own (user 2026-10-20: "정보는 어디에서 가져오나요? 이걸 대출 가능인데
+  // 도서관에서 빌릴 수 없어요 처럼 Q&A에 넣으라는거지")
+  {
+    q: '정보는 어디에서 가져오나요?',
+    a: '책 정보와 가입 조건은 각 도서관의 안내를 바탕으로 정리해요. 도서관의 운영 정책과 책의 대출 상태는 달라질 수 있어요. 이용 전 공식 안내를 확인해 주세요.',
+  },
 ]
 
 /**
@@ -64,26 +70,17 @@ export function AboutPage() {
 
       <section className={styles.section} aria-labelledby="about-faq">
         <h2 id="about-faq" className={styles.sectionTitle}>
-          처음 이용할 때 궁금한 점
+          {/* user 2026-10-20: "처음 이용할 때 궁금한 점 이거 Q&A 이걸로바꾸고 처음 거 그냥 펼쳐져있는데 기본 닫는걸로" */}
+          Q&amp;A
         </h2>
         <div className={styles.questions}>
-          {QUESTIONS.map((item, index) => (
-            <details key={item.q} className={styles.question} open={index === 0}>
+          {QUESTIONS.map((item) => (
+            <details key={item.q} className={styles.question}>
               <summary className={styles.summary}>{item.q}</summary>
               <p className={styles.answer}>{item.a}</p>
             </details>
           ))}
         </div>
-      </section>
-
-      <section className={styles.section} aria-labelledby="about-source">
-        <h2 id="about-source" className={styles.sectionTitle}>
-          정보는 어디에서 가져오나요?
-        </h2>
-        <p className={styles.text}>
-          책 정보와 가입 조건은 각 도서관의 안내를 바탕으로 정리해요. 도서관의 운영 정책과 책의 대출 상태는 달라질 수
-          있어요. 이용 전 공식 안내를 확인해 주세요.
-        </p>
       </section>
 
       {/* kept from the server's `about` document, same wording (the 공공누리 제1유형 attribution is required) */}

@@ -123,6 +123,7 @@
   padding: 1.1rem 1.5rem;
   font-size: var(--text-lg);
   font-weight: 800;
+  word-break: keep-all;
   cursor: pointer;
   list-style: none;
 }
@@ -155,12 +156,6 @@
 
 .answer {
   padding: 0 1.5rem 1.25rem;
-  font-size: var(--text-md);
-  color: var(--ink-soft);
-  word-break: keep-all;
-}
-
-.text {
   font-size: var(--text-md);
   color: var(--ink-soft);
   word-break: keep-all;

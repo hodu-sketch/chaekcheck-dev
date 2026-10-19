@@ -41,21 +41,23 @@ describe('책첵이란? (/about, user 2026-10-19)', () => {
     expect(steps.map((step) => step.querySelector('[aria-hidden]')?.textContent)).toEqual(['1', '2', '3'])
   })
 
-  it('has three questions, only the first open', () => {
+  it('has four questions under Q&A, all closed at first', () => {
     renderPage()
-    expect(screen.getByRole('heading', { name: '처음 이용할 때 궁금한 점' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Q&A' })).toBeTruthy()
     const details = [...document.querySelectorAll('details')]
     expect(details.map((d) => d.querySelector('summary')?.textContent)).toEqual([
       '다른 지역 도서관에도 가입할 수 있나요?',
       '책첵에 가입하면 전자책을 빌릴 수 있나요?',
       '대출 가능인데 도서관에서 빌릴 수 없어요.',
+      '정보는 어디에서 가져오나요?',
     ])
-    expect(details.map((d) => d.open)).toEqual([true, false, false])
+    expect(details.map((d) => d.open)).toEqual([false, false, false, false])
   })
 
   it('says where the information comes from and calls no server', () => {
     const fetchMock = renderPage()
-    expect(screen.getByRole('heading', { name: '정보는 어디에서 가져오나요?' })).toBeTruthy()
+    // the fourth question of Q&A (user 2026-10-20), not a heading
+    expect(screen.queryByRole('heading', { name: '정보는 어디에서 가져오나요?' })).toBeNull()
     expect(screen.getByText(/이용 전 공식 안내를 확인해 주세요/)).toBeTruthy()
     expect(fetchMock).not.toHaveBeenCalled()
   })
