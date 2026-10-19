@@ -204,7 +204,8 @@ function BookBody({
             library={libraries.get(row.libraryId)}
             searchUrl={undefined}
             screen="picks"
-            tags={false}
+            // the join-condition pills as on the results (user 2026-10-20: "추천도서 눌렀을 때도 가입조건 태그 다 보였으면")
+            tags
           />
         ))}
         {checking && (

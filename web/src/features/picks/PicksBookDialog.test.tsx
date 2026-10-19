@@ -170,8 +170,8 @@ describe('picks book window', () => {
     ])
     expect(within(dialog).queryByText(/외 \d+곳/)).toBeNull()
     expect(within(dialog).queryByText('확인 중…')).toBeNull()
-    // no pills on this screen (cycle 22 D9); the library name opens the same join guide window (user 2026-10-19)
-    expect(within(dialog).queryByRole('button', { name: '어디 살든 가입' })).toBeNull()
+    // the join pills as on the results (user 2026-10-20); the library name opens the join guide window too
+    expect(within(dialog).getAllByRole('button', { name: '어디 살든 가입' })).toHaveLength(3)
     await userEvent.setup().click(within(rows[0]).getByRole('button', { name: /가입 정보$/ }))
     const guide = screen.getByRole('dialog', { name: '다 도서관 가입 안내' })
     expect(guide.textContent).toContain('가입 대상어디 살든 가입')
