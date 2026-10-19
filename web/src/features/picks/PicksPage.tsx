@@ -196,6 +196,7 @@ export function PicksPage({ list }: { list: PicksList }) {
           </NavLink>
         ))}
       </nav>
+      {body}
       <details className={styles.criteria}>
         <summary className={styles.criteriaSummary}>추천 기준과 출처 보기</summary>
         <ul className={styles.helpList}>
@@ -215,7 +216,6 @@ export function PicksPage({ list }: { list: PicksList }) {
           </li>
         </ul>
       </details>
-      {body}
       <PicksBookDialog
         book={selected && isLinked(selected) ? selected : null}
         categoryName={selected ? nameOf(selected.category) : null}

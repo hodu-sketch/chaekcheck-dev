@@ -56,8 +56,9 @@
 
 
 /* "▶ 추천 기준과 출처 보기": a native <details> in a white bordered row */
+/* under the books (user 2026-10-19: "추천 기준과 출처 보기는 좀 아래로") */
 .criteria {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   background: var(--card);
@@ -205,6 +206,11 @@
   border-color: color-mix(in srgb, var(--brand) 35%, var(--card-border));
   box-shadow: var(--card-shadow);
   translate: 0 -2px;
+}
+
+.card[data-linked='true'] {
+  /* a book with an e-book has a violet border (user 2026-10-19) */
+  border-color: var(--brand);
 }
 
 .card:focus-visible {

@@ -128,9 +128,20 @@ function Body({ eyebrow, description }: { eyebrow: ReactNode; description: React
     <div className={styles.body}>
       {eyebrow}
       <span className={styles.mark} aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 22 22" focusable="false">
-          <rect x="3" y="3" width="16" height="16" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-          <rect x="7.5" y="7.5" width="7" height="7" rx="1.8" fill="currentColor" />
+        {/* an open book (user 2026-10-19 picked ① of five) */}
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          focusable="false"
+        >
+          <path d="M3 5.5c3-1.2 6-1.2 9 .8 3-2 6-2 9-.8V19c-3-1.2-6-1.2-9 .8-3-2-6-2-9-.8z" />
+          <path d="M12 6.3V19.8" />
         </svg>
       </span>
       <h2 className={styles.headline}>
