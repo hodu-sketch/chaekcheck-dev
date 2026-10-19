@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
@@ -60,12 +61,15 @@ function phoneWidth() {
 
 function renderPage() {
   render(
-    <MemoryRouter initialEntries={['/picks/librarian']}>
-      <Routes>
-        <Route path="/picks/:listKey" element={<PicksRoute />} />
-        <Route path="/books/:bookId" element={<p>책 화면</p>} />
-      </Routes>
-    </MemoryRouter>,
+    // the condition card reads the region names (user 2026-10-20)
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={['/picks/librarian']}>
+        <Routes>
+          <Route path="/picks/:listKey" element={<PicksRoute />} />
+          <Route path="/books/:bookId" element={<p>책 화면</p>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
   return userEvent.setup()
 }

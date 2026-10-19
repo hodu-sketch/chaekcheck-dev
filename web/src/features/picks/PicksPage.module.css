@@ -384,3 +384,8 @@
     height: 13.5rem;
   }
 }
+
+/* the condition card between the list tabs and the field chips (user 2026-10-20, B) */
+.condition {
+  margin-top: 1rem;
+}

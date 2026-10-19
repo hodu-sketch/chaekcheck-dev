@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import type { PlanParams } from '../../api/client'
+import type { VisitFilter } from '../../api/types'
 import { useRegions } from '../region/RegionContext'
+import type { ConditionPlan } from '../search/useConditionCard'
 import { loadPrefs, readVisit } from '../search/searchSettings'
 import { readScope } from '../search/readScope'
 
@@ -10,15 +12,19 @@ import { readScope } from '../search/readScope'
  * what was chosen on the search screen: this browser's regions and added libraries before login, the account's after
  * (AC-16). `ready` is false while region ids are being checked; the request waits for it.
  */
-export function usePicksPlan(): { plan: PlanParams; ready: boolean; key: string } {
+export function usePicksPlan(
+  asked?: ConditionPlan,
+  askedVisit?: VisitFilter,
+): { plan: PlanParams; ready: boolean; key: string } {
   const [params] = useSearchParams()
   const [prefs] = useState(() => loadPrefs())
   const scope = readScope(params)
-  const visit = readVisit(params, prefs.visit)
+  const visit = askedVisit ?? readVisit(params, prefs.visit)
   const { regions, libraryIds, ready } = useRegions()
-  const residenceKey = regions.residence.join(',')
-  const workKey = regions.work.join(',')
-  const libraryKey = libraryIds.join(',')
+  // the condition card's regions (kept while its box is open), else the saved ones
+  const residenceKey = (asked?.residence ?? regions.residence).join(',')
+  const workKey = (asked?.work ?? regions.work).join(',')
+  const libraryKey = (asked?.libraryIds ?? libraryIds).join(',')
   const key = `${scope}|${visit}|${residenceKey}|${workKey}|${libraryKey}`
   const plan = useMemo<PlanParams>(
     () => ({

@@ -1,17 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
-import type { BookDetail, ResultFilter } from '../../api/types'
+import type { BookDetail, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
 import { readScope } from '../search/readScope'
-import { loadPrefs, readVisit, savePrefs, writeVisit } from '../search/searchSettings'
+import { loadPrefs, savePrefs, writeVisit } from '../search/searchSettings'
 import { holdingBatchViews } from '../search/holdingView'
 import { ResultList, type ResultSearchContext } from '../search/ResultList'
 import { useRegionPlace } from '../search/regionPlace'
 import { useHoldings } from '../search/useHoldings'
-import { useMediaQuery } from '../../lib/useMediaQuery'
-import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, type BoxFocus } from '../search/LibraryScopeLine'
+import { useConditionCard, type ConditionPlan } from '../search/useConditionCard'
 import styles from './BookPage.module.css'
 import { ChevronLeft } from '../../components/icons'
 
@@ -22,96 +21,33 @@ import { ChevronLeft } from '../../components/icons'
  */
 export function BookPage() {
   const { bookId = '' } = useParams()
-  const [params, setParams] = useSearchParams()
-  const { regions, libraryIds, ready } = useRegions()
+  const [params] = useSearchParams()
+  const { ready } = useRegions()
   const scope = readScope(params)
-  const phone = useMediaQuery('(width <= 640px)')
   // the condition card as on the search screen (user 2026-10-20: "이 창에서도 지역 조건 수정할 수 있으면 좋겠어")
-  const [visitPref, setVisitPref] = useState(() => loadPrefs().visit)
-  const [openCount, setOpenCount] = useState(() => loadPrefs().openCount)
-  const [box, setBox] = useState<BoxFocus | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  // while the box or the sheet is open the list keeps the regions it was asked with; closing it (or [반영하기]) uses
-  // what is saved then, at once
-  const live: Plan = { residence: regions.residence, work: regions.work, libraryIds }
-  const [frozen, setFrozen] = useState<Plan | null>(null)
-  const plan = frozen ?? live
-
-  const changeVisit = (next: typeof visitPref) => {
-    savePrefs({ visit: next })
-    setVisitPref(next)
-  }
-  const keepOpenCount = (count: number) => {
-    savePrefs({ openCount: count })
-    setOpenCount(count)
-  }
-  const openPicker = (focus: BoxFocus) => {
-    setFrozen(live)
-    if (phone) setSheetOpen(true)
-    else setBox(focus)
-  }
-  const apply = () => {
-    setFrozen(null)
-    if (readVisit(params, visitPref) !== visitPref) setParams(writeVisit(visitPref, new URLSearchParams(params)))
-  }
-  const common = {
-    visit: visitPref,
-    onVisitChange: changeVisit,
-    planCount: null,
-    openCount,
-    onOpenCount: keepOpenCount,
-  }
-  const condition = phone ? (
-    <>
-      <LibraryScopeChip {...common} onOpen={() => openPicker('residence')} />
-      <LibraryScopeSheet
-        open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open)
-          if (!open) apply()
-        }}
-        focus="residence"
-        visit={visitPref}
-        onVisitChange={changeVisit}
-        openCount={openCount}
-        onOpenCount={keepOpenCount}
-        onApply={apply}
-      />
-    </>
-  ) : (
-    <LibraryScopeLine
-      {...common}
-      box={box}
-      onBoxChange={(next) => {
-        if (next === null) apply()
-        else setFrozen(live)
-        setBox(next)
-      }}
-      // closing the box applies already; the button only closes it
-      onApply={() => undefined}
-    />
-  )
-
+  const { condition, plan, visit } = useConditionCard()
   // a new book, filter, plan, region set or added libraries start over from a fresh page state
-  const key = `${bookId}?${params}|${plan.residence.join(',')}|${plan.work.join(',')}|${plan.libraryIds.join(',')}|${scope}|${ready}`
-  return <BookView key={key} bookId={bookId} plan={plan} condition={condition} />
+  const key = `${bookId}?${params}|${plan.residence.join(',')}|${plan.work.join(',')}|${plan.libraryIds.join(',')}|${scope}|${visit}|${ready}`
+  return <BookView key={key} bookId={bookId} plan={plan} visit={visit} condition={condition} />
 }
 
-/** The regions and added libraries the list is asked with. */
-interface Plan {
-  residence: number[]
-  work: number[]
-  libraryIds: number[]
-}
-
-function BookView({ bookId, plan: regions, condition }: { bookId: string; plan: Plan; condition: ReactNode }) {
+function BookView({
+  bookId,
+  plan: regions,
+  visit,
+  condition,
+}: {
+  bookId: string
+  plan: ConditionPlan
+  visit: VisitFilter
+  condition: ReactNode
+}) {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   // what the address leaves out comes from this browser's last choice (user request 2026-10-05)
   const [prefs] = useState(() => loadPrefs())
   const filter = readFilter(params, prefs.filter)
   const scope = readScope(params)
-  const visit = readVisit(params, prefs.visit)
   const { ready } = useRegions()
   const libraryIds = regions.libraryIds
   const residenceKey = regions.residence.join(',')

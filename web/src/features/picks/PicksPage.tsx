@@ -13,6 +13,7 @@ import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
 import { RequestNotice } from './RequestNotice'
 import { usePicksPlan } from './usePicksPlan'
+import { useConditionCard } from '../search/useConditionCard'
 import styles from './PicksPage.module.css'
 
 /** [안] (cycle 10 step 7-6): the phone layout and bottom sheets, the same width as the other screens' phone layout. */
@@ -48,7 +49,9 @@ export function PicksPage({ list }: { list: PicksList }) {
   }, [list.key])
   const navigate = useNavigate()
   const phone = useMediaQuery(PHONE_QUERY)
-  const { plan, ready, key } = usePicksPlan()
+  // the condition card under the list tabs (user 2026-10-20: "추천도서에도 지역설정 칸이 있었으면 해", picked B)
+  const { condition, plan: asked, visit: askedVisit } = useConditionCard()
+  const { plan, ready, key } = usePicksPlan(asked, askedVisit)
   const { resolveStoredRegions } = useRegions()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [saved] = useState(() => readPosition(list.key))
@@ -198,6 +201,7 @@ export function PicksPage({ list }: { list: PicksList }) {
           </NavLink>
         ))}
       </nav>
+      <div className={styles.condition}>{condition}</div>
       {body}
       <details className={styles.criteria}>
         <summary className={styles.criteriaSummary}>추천 기준과 출처 보기</summary>
