@@ -64,7 +64,8 @@ class CuratedLists implements CuratedListTransfer {
 	 */
 	static final int CHECK_DAYS = 30;
 
-	private static final List<String> LISTS = List.of(ListFiles.LEEDONGJIN, ListFiles.SNU100, ListFiles.KAIST);
+	private static final List<String> LISTS = List.of(ListFiles.LEEDONGJIN, ListFiles.SNU100, ListFiles.KAIST,
+			ListFiles.NOBEL);
 
 	private final JdbcClient jdbc;
 
@@ -284,8 +285,8 @@ class CuratedLists implements CuratedListTransfer {
 			throw new IllegalArgumentException("Not a list part: no fields or books");
 		}
 		LISTS.forEach(store::lockList);
-		jdbc.sql("DELETE FROM picks.list_book WHERE list_key IN ('leedongjin', 'snu100', 'kaist')").update();
-		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100', 'kaist')").update();
+		jdbc.sql("DELETE FROM picks.list_book WHERE list_key IN ('leedongjin', 'snu100', 'kaist', 'nobel')").update();
+		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100', 'kaist', 'nobel')").update();
 		for (PartField field : part.fields()) {
 			jdbc.sql("""
 					INSERT INTO picks.list_field (list_key, code, name, position)

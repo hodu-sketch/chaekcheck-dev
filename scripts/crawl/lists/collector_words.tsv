@@ -18,5 +18,7 @@ excluded_title	그림책	spec R3-3
 excluded_title	논술	spec R3-3
 excluded_title	공부가 되는	spec R3-3
 excluded_title	100분 고전	요약 시리즈 (spec R3-4)
+excluded_title	프랑스어판	원어판 (spec R3-3 원서와 같음; 노벨연구소 목록의 「운명론자 자크와 그의 주인」 고품격 프랑스어판, user 2026-10-20)
+excluded_title	독일어판	원어판 (spec R3-3 원서와 같음, user 2026-10-20)
 excluded_publisher	어린이	출판사 이름에 들면 뺌 (spec R3-4)
 excluded_name	번역AI	기여자 이름에 들면 뺌, 기계 번역 (spec R3-4)

@@ -1,0 +1,31 @@
+# The Bokklubben World Library, "노벨연구소 선정 최고의 책" (100 books chosen in 2002 by 100 writers for the Norwegian
+# Book Clubs and the Norwegian Nobel Institute), as a fifth list, list_key nobel (user 2026-10-20: "노벨연구소 선정
+# 최고의 책 이것도 추천도서에 추가해주라"). 003 is applied in production, so its check is made again here with nobel
+# added. nobel rows: field (era) and position (1.. inside the field, once each), the row's own ISBN and publisher, no
+# month, video, year book or table-of-contents number.
+databaseChangeLog:
+  - changeSet:
+      id: picks-005-nobel-list-key
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: ALTER TABLE picks.list_field DROP CONSTRAINT list_field_list_key_check
+        - sql:
+            sql: >-
+              ALTER TABLE picks.list_field ADD CONSTRAINT list_field_list_key_check
+                CHECK (list_key IN ('librarian', 'leedongjin', 'snu100', 'kaist', 'nobel'))
+
+  - changeSet:
+      id: picks-005-nobel-rows
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE picks.list_book ADD CONSTRAINT list_book_nobel_check CHECK (list_key <> 'nobel' OR (
+                source_no IS NULL AND registered_on IS NULL AND recommended_month IS NULL AND video_id IS NULL
+                AND year_book IS NULL AND toc_no IS NULL
+                AND (cover_source IS NULL OR cover_source LIKE 'https://%')))
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX list_book_nobel_position_key ON picks.list_book (field_code, position)
+              WHERE list_key = 'nobel'

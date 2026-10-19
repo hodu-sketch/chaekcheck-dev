@@ -258,7 +258,7 @@ COMMIT;
 
 책 가져오기 없이 추천 목록(이동진·서울대·KAIST, 목록 파일 `scripts/crawl/lists/`)만 DB에 넣습니다. 목록 파일을 고쳤거나 새 목록(예: `kaist.tsv`)을 넣을 때, 다음 가져오기를 기다리지 않고 씁니다.
 
-- 하는 일: 목록 폴더 검사(`fields.tsv`·`leedongjin.tsv`·`snu100.tsv`·`kaist.tsv`, 없거나 틀리면 파일·줄·칸을 대고 멈춤) → 그 DB에 지금 있는 책 표(`catalog`)에 맞추기(export와 같은 규칙: 고정 판의 ISBN → 제목·첫 저자·출판사, 고정 판 없으면 그 줄의 ISBN → 제목·저자) → 트랜잭션 하나로 세 목록의 분야·책 줄을 통째로 바꾸고 표지를 더하고 안 쓰는 표지를 지움. 사서 추천 줄은 건드리지 않습니다
+- 하는 일: 목록 폴더 검사(`fields.tsv`·`leedongjin.tsv`·`snu100.tsv`·`kaist.tsv`·`nobel.tsv`(사용자 2026-10-20), 없거나 틀리면 파일·줄·칸을 대고 멈춤) → 그 DB에 지금 있는 책 표(`catalog`)에 맞추기(export와 같은 규칙: 고정 판의 ISBN → 제목·첫 저자·출판사, 고정 판 없으면 그 줄의 ISBN → 제목·저자) → 트랜잭션 하나로 세 목록의 분야·책 줄을 통째로 바꾸고 표지를 더하고 안 쓰는 표지를 지움. 사서 추천 줄은 건드리지 않습니다
 - 건드리지 않는 것: 책 표(`catalog`), `catalog_next`, 가져오기 기록 줄(`collection.catalog_import`). 줄을 남기지 않고 로그에 냅니다: `recommended lists matched: {leedongjin=Counts[rows=…, matched=…, unmatched=…], …}`, 경고(30일 넘게 확인 안 한 영상, 표지 파일 없음), `recommended lists put in: Replaced[fields=…, books=…, coversAdded=…, coversDeleted=…]`
 - 폴더의 목록이 전부입니다: 세 목록 모두 폴더 내용으로 바뀝니다. 한 목록만 고쳤어도 폴더 전체(커밋한 판)를 씁니다
 - 실패하면(파일이 틀림, 잠금·DB 오류) 오류를 내고 끝나며(종료 코드 1) 전 목록이 그대로 남습니다

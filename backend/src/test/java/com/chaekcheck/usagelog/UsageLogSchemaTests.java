@@ -162,6 +162,7 @@ class UsageLogSchemaTests {
 		screen("'leedongjin'", "'picks_list_view'", "'korean_fiction'", "NULL", "NULL", "NULL", "NULL");
 		screen("'snu100'", "'picks_book_view'", "'korean_lit'", "345", "NULL", "NULL", "NULL");
 		screen("'kaist'", "'picks_list_view'", "'ai'", "NULL", "NULL", "NULL", "NULL"); // user 2026-10-19
+		screen("'nobel'", "'picks_book_view'", "'ancient'", "345", "NULL", "NULL", "NULL"); // user 2026-10-20
 		violates(() -> screen("NULL", "'picks_list_view'", "'11'", "NULL", "NULL", "NULL", "NULL"));
 		violates(() -> screen("NULL", "'picks_book_view'", "'11'", "345", "NULL", "NULL", "NULL"));
 		violates(() -> screen("'yes24'", "'picks_list_view'", "'11'", "NULL", "NULL", "NULL", "NULL"));

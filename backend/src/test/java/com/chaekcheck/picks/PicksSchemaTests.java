@@ -145,6 +145,24 @@ class PicksSchemaTests {
 	}
 
 	@Test
+	void nobelRulesHold() { // user 2026-10-20 (picks/005)
+		field("'nobel'", "'ancient'", "'고대·중세'", "1");
+		nobel("1", "'https://image.yes24.com/goods/1/M'");
+		nobel("2", "NULL");
+		violates(() -> nobel("2", "NULL")); // one book per place in a field
+		violates(() -> nobel("0", "NULL"));
+		violates(() -> nobel("3", "'http://x.example/a.jpg'"));
+		violates(() -> jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, year_book)"
+				+ " VALUES ('nobel', 'ancient', 4, '가', 2026)").update()); // no year
+		violates(() -> book("'nobel', 'ancient', 4, '가', DATE '2026-06-01', NULL, NULL, NULL, NULL, NULL"));
+		violates(() -> book("'nobel', 'ancient', 4, '가', NULL, 'lMx0zEd1qtY', NULL, NULL, NULL, NULL"));
+		violates(() -> book("'nobel', 'ancient', 4, '가', NULL, NULL, 6, NULL, NULL, NULL"));
+		violates(() -> book("'nobel', 'ancient', 4, '가', NULL, NULL, NULL, '8', NULL, NULL"));
+		violates(() -> book("'nobel', 'modern', 4, '가', NULL, NULL, NULL, NULL, NULL, NULL")); // no such field
+		violates(() -> field("'nobelx'", "'ancient'", "'고대·중세'", "1"));
+	}
+
+	@Test
 	void deletingAFieldDeletesItsBooks() {
 		fields();
 		snu100("8", "NULL");
@@ -259,6 +277,11 @@ class PicksSchemaTests {
 		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, isbn13, publisher, book_id,"
 				+ " cover_source, year_book) VALUES ('kaist', 'ai', " + position + ", '가', '9791190400657', '나', 12, "
 				+ cover + ", 2026)").update();
+	}
+
+	private void nobel(String position, String cover) {
+		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, author, book_id, cover_source)"
+				+ " VALUES ('nobel', 'ancient', " + position + ", '가', '나', 12, " + cover + ")").update();
 	}
 
 	/** list, field, position, title, month, video, toc, source_no, book_id, registered_on */

@@ -1,7 +1,9 @@
 """Recommended lists collector (cycle 21; ADR-0124, ADR-0128; plan design-delta "목록 파일", spec R3, R4).
 
 Keeps the list files in scripts/crawl/lists/ that the catalog export carries (fields.tsv, leedongjin.tsv, snu100.tsv,
-kaist.tsv, covers/). KAIST's list (user 2026-10-19) gets fixed editions and covers like the SNU 100. One run does, in order:
+kaist.tsv, nobel.tsv, covers/). KAIST's list (user 2026-10-19) and the Bokklubben World Library (nobel.tsv, user
+2026-10-20) get fixed editions and covers like the SNU 100; --lists names the lists a run works on (all by default).
+One run does, in order:
 
 1. YouTube (Lee Dong-jin): reads the 「이달의 책」 playlist and the channel's uploads from the first page to the last,
    with the YouTube Data API only (www.googleapis.com; no page of www.youtube.com is ever requested, spec R4-1). A
@@ -76,6 +78,12 @@ SNU_COLUMNS = ['toc_no', 'field', 'title', 'author', 'cover_url', 'pinned_title'
                'pinned_isbn13', 'pinned_by', 'note']
 KAIST_COLUMNS = ['field', 'position', 'title', 'author', 'publisher', 'isbn13', 'cover_url', 'pinned_title',
                  'pinned_author', 'pinned_publisher', 'pinned_isbn13', 'pinned_by', 'note']
+# the Bokklubben World Library, "노벨연구소 선정 최고의 책" (user 2026-10-20): KAIST's columns without its year
+NOBEL_COLUMNS = ['field', 'position', 'title', 'author', 'publisher', 'isbn13', 'cover_url', 'pinned_title',
+                 'pinned_author', 'pinned_publisher', 'pinned_isbn13', 'pinned_by', 'note']
+# the list files besides leedongjin.tsv and snu100.tsv; each may be missing
+OPTIONAL_LISTS = {'kaist': KAIST_COLUMNS, 'nobel': NOBEL_COLUMNS}
+LIST_NAMES = ('leedongjin', 'snu100', 'kaist', 'nobel')
 PENDING_COLUMNS = ['video_id', 'month', 'reason', 'title', 'author', 'isbn13', 'field_suggestion']
 
 BOOK_NAME = re.compile(r'\[([^\[\]]+)\]|《([^《》]+)》|〈([^〈〉]+)〉|『([^『』]+)』|🔖\s*([^\n]+)')
@@ -433,6 +441,17 @@ class Catalog:
             return same or found
         return found
 
+    def by_title_base(self, title: str) -> list[dict]:
+        """
+        Books whose title without its edition marks and volume is the given one (「한밤의 아이들. 1」 for 「한밤의
+        아이들」; user 2026-10-20, the Bokklubben list names a work, not an edition).
+        """
+        base = text_key(title_base(title))
+        if not base:
+            return []
+        found = self._books("b.main_title_norm LIKE %s", (base.replace('%', r'\%').replace('_', r'\_') + '%',))
+        return [b for b in found if text_key(title_base(b['title'])) == base]
+
     def same_book(self, anchor: dict) -> list[dict]:
         """
         Editions with the anchor's main title and one of its authors (all of them when it names none). Every volume
@@ -481,6 +500,10 @@ def choose_editions(rows: list[dict], catalog: Catalog, kinds: dict[int, bool], 
             # the list's own title and first author, as the export's last step matches (handoff 4-4 ④)
             author = text_key(re.split(r'[,·/;]', row['author'])[0])
             anchors = [b for b in catalog.by_title(row['title'], None) if author in b['authors']]
+            if not anchors:
+                # no book has the list's title as it is: the volumes of a set or a title with edition marks
+                # (「백년 동안의 고독 - 혜원세계문학 50 _ 1」; user 2026-10-20)
+                anchors = [b for b in catalog.by_title_base(row['title']) if author in b['authors']]
         if row.get('pinned_by') == 'manual':
             if anchors:
                 chosen[index] = choose(anchors, kinds)['id']
@@ -928,8 +951,18 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
 
     lee_header, lee = read_tsv(lists_dir / 'leedongjin.tsv')
     snu_header, snu = read_tsv(lists_dir / 'snu100.tsv')
-    kaist_path = lists_dir / 'kaist.tsv'
-    kaist_header, kaist = read_tsv(kaist_path) if kaist_path.exists() else ([], [])
+    optional = {}
+    for name in OPTIONAL_LISTS:
+        path = lists_dir / f'{name}.tsv'
+        optional[name] = read_tsv(path) if path.exists() else ([], [])
+    kaist = optional['kaist'][1]
+    nobel = optional['nobel'][1]
+    # the lists this run works on (user 2026-10-20: another session may be rebuilding one of them)
+    working = set(LIST_NAMES if not getattr(args, 'lists', None) else args.lists.split(','))
+    unknown = working - set(LIST_NAMES)
+    if unknown:
+        log.line(f'lists: {sorted(unknown)} unknown; nothing was asked or changed')
+        return 1
     _, pending = read_tsv(lists_dir / 'leedongjin_pending.tsv')
     _, subjects = read_tsv(lists_dir / 'subject_fields.tsv')
     subject_fields = {s['subject']: s['field_suggestion'] for s in subjects}
@@ -955,15 +988,18 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
     chosen_lee: dict[int, int] = {}
     chosen_snu: dict[int, int] = {}
     chosen_kaist: dict[int, int] = {}
+    chosen_nobel: dict[int, int] = {}
+    rows_of = {'leedongjin': lee, 'snu100': snu, 'kaist': kaist, 'nobel': nobel}
     if not args.skip_editions:
         try:
             catalog = catalog or Catalog.connect(env, args.db_port)
             kinds = catalog.kinds()
-            chosen_lee = choose_editions(lee, catalog, kinds, log)
-            chosen_snu = choose_editions(snu, catalog, kinds, log)
-            chosen_kaist = choose_editions(kaist, catalog, kinds, log)
-            log.line(f'editions: leedongjin {len(chosen_lee)}/{len(lee)}, snu100 {len(chosen_snu)}/{len(snu)}, '
-                     f'kaist {len(chosen_kaist)}/{len(kaist)}')
+            chosen = {name: choose_editions(rows_of[name], catalog, kinds, log) if name in working else {}
+                      for name in LIST_NAMES}
+            chosen_lee, chosen_snu = chosen['leedongjin'], chosen['snu100']
+            chosen_kaist, chosen_nobel = chosen['kaist'], chosen['nobel']
+            log.line('editions: ' + ', '.join(f'{name} {len(chosen[name])}/{len(rows_of[name])}'
+                                              for name in LIST_NAMES if name in working))
         except Exception as ex:  # a database that does not answer keeps the fixed editions as they were
             log.line(f'editions: database failed, the fixed editions stay as they were ({ex.__class__.__name__})')
             catalog = None
@@ -972,15 +1008,21 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
     if not args.skip_covers:
         if sqlite is None and args.sqlite:
             sqlite = sqlite3.connect(f'file:{Path(args.sqlite).as_posix()}?mode=ro', uri=True)
-        fetch_covers(lists_dir, lee, chosen_lee, catalog, sqlite, seoji, http, log, kakao)
-        fetch_covers(lists_dir, snu, chosen_snu, catalog, sqlite, seoji, http, log, kakao)
-        fetch_covers(lists_dir, kaist, chosen_kaist, catalog, sqlite, seoji, http, log, kakao)
-        log.line(f'covers: {remove_unused_covers(lists_dir, lee + snu + kaist)} unused files removed')
+        chosen_of = {'leedongjin': chosen_lee, 'snu100': chosen_snu, 'kaist': chosen_kaist, 'nobel': chosen_nobel}
+        for name in LIST_NAMES:
+            if name in working:
+                fetch_covers(lists_dir, rows_of[name], chosen_of[name], catalog, sqlite, seoji, http, log, kakao)
+        # every list's covers are kept, the ones this run did not work on too
+        log.line(f'covers: {remove_unused_covers(lists_dir, lee + snu + kaist + nobel)} unused files removed')
 
-    write_tsv(lists_dir / 'leedongjin.tsv', lee_header or LEEDONGJIN_COLUMNS, lee)
-    write_tsv(lists_dir / 'snu100.tsv', snu_header or SNU_COLUMNS, snu)
-    if kaist:
-        write_tsv(kaist_path, kaist_header or KAIST_COLUMNS, kaist)
+    if 'leedongjin' in working or not args.skip_youtube:
+        write_tsv(lists_dir / 'leedongjin.tsv', lee_header or LEEDONGJIN_COLUMNS, lee)
+    if 'snu100' in working:
+        write_tsv(lists_dir / 'snu100.tsv', snu_header or SNU_COLUMNS, snu)
+    for name, columns in OPTIONAL_LISTS.items():
+        header, rows = optional[name]
+        if rows and name in working:
+            write_tsv(lists_dir / f'{name}.tsv', header or columns, rows)
     if pending or (lists_dir / 'leedongjin_pending.tsv').exists():
         write_tsv(lists_dir / 'leedongjin_pending.tsv', PENDING_COLUMNS, pending)
     log.line(f"hosts asked: {sorted(set(http.hosts))}")
@@ -998,6 +1040,8 @@ def main(argv=None) -> int:
     parser.add_argument('--skip-youtube', action='store_true')
     parser.add_argument('--skip-editions', action='store_true')
     parser.add_argument('--skip-covers', action='store_true')
+    parser.add_argument('--lists', help='comma-separated lists to choose editions and covers for (default: all of '
+                        + ', '.join(LIST_NAMES) + '); the other list files are left as they are (user 2026-10-20)')
     return run(parser.parse_args(argv))
 
 

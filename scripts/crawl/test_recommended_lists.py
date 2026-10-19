@@ -217,6 +217,10 @@ class FakeCatalog:
     def by_title(self, title, publisher):
         return [b for b in self.books.values() if b['title'] == title]
 
+    def by_title_base(self, title):
+        base = rl.text_key(rl.title_base(title))
+        return [b for b in self.books.values() if rl.text_key(rl.title_base(b['title'])) == base]
+
     def same_book(self, anchor):
         base = rl.text_key(rl.title_base(anchor['title'])) if anchor.get('title') else anchor['main']
         found = [b for b in self.books.values() if b['main'] == anchor['main']
@@ -277,6 +281,44 @@ class EditionTests(unittest.TestCase):
         rows = [{'title': '광장', 'pinned_title': '없는 판', 'pinned_by': 'collector'}]
         self.assertEqual(rl.choose_editions(rows, FakeCatalog([]), self.kinds, rl.Log(None)), {})
         self.assertEqual(rows[0]['pinned_title'], '')
+
+
+    def test_a_work_title_finds_the_volumes_of_a_set(self):  # user 2026-10-20: the Bokklubben list names works
+        catalog = FakeCatalog([book(1, '한밤의 아이들. 1', authors=('살만루슈디',), libs=(1, 2)),
+                               book(2, '한밤의 아이들. 2', authors=('살만루슈디',), libs=(1, 2)),
+                               book(3, '한밤의 아이들', authors=('다른사람',), libs=(1, 2, 3))])
+        rows = [{'title': '한밤의 아이들', 'author': '살만 루슈디', 'pinned_by': ''}]
+        self.assertEqual(rl.choose_editions(rows, catalog, self.kinds, rl.Log(None)), {0: 1})
+        self.assertEqual((rows[0]['pinned_title'], rows[0]['pinned_by']), ('한밤의 아이들. 1', 'collector'))
+
+
+class ListChoiceTests(unittest.TestCase):
+    """--lists (user 2026-10-20): only the named lists' files are written."""
+
+    def test_only_the_named_list_is_written(self):
+        lists = ListsDir([lee_row('2026-06', 1, 'lMx0zEd1qtY', '히스토리아 비테이', field='science')])
+        self.addCleanup(lists.close)
+        nobel = {c: '' for c in rl.NOBEL_COLUMNS}
+        nobel.update(field='ancient', position='1', title='일리아스', author='호메로스')
+        rl.write_tsv(lists.path / 'nobel.tsv', rl.NOBEL_COLUMNS, [nobel])
+        kaist = {c: '' for c in rl.KAIST_COLUMNS}
+        kaist.update(field='nature', position='1', title='책', author='저자')
+        rl.write_tsv(lists.path / 'kaist.tsv', rl.KAIST_COLUMNS, [kaist])
+        crlf = (lists.path / 'kaist.tsv').read_bytes().replace(bytes([10]), bytes([13, 10]))
+        (lists.path / 'kaist.tsv').write_bytes(crlf)
+        before = {p.name: p.read_bytes() for p in lists.path.glob('*.tsv')}
+        status = rl.run(lists.args(skip_youtube=True, lists='nobel'), http_opener=Opener({}), sleep=lambda s: None)
+        self.assertEqual(status, 0)
+        after = {p.name: p.read_bytes() for p in lists.path.glob('*.tsv')}
+        for name in ('kaist.tsv', 'leedongjin.tsv', 'snu100.tsv'):
+            self.assertEqual(after[name], before[name], name)
+
+    def test_an_unknown_list_stops_before_anything(self):
+        lists = ListsDir([])
+        self.addCleanup(lists.close)
+        status = rl.run(lists.args(skip_youtube=True, lists='nobel,other'), http_opener=Opener({}),
+                        sleep=lambda s: None)
+        self.assertEqual(status, 1)
 
 
 class SameRuleAsJava(unittest.TestCase):

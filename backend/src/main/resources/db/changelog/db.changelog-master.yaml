@@ -162,3 +162,10 @@ databaseChangeLog:
   - include:
       file: library/019-library-open-recheck.yaml
       relativeToChangelogFile: true
+  # the Bokklubben World Library, "노벨연구소 선정 최고의 책", a fifth recommended list (user 2026-10-20)
+  - include:
+      file: picks/005-nobel-list.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: usagelog/007-screen-event-picks-list-nobel.yaml
+      relativeToChangelogFile: true

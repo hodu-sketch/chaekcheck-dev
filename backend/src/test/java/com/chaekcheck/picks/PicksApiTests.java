@@ -247,6 +247,32 @@ class PicksApiTests {
 		kaist.extractingPath("$.categories[2].books[*].title").isEqualTo(List.of("에이아이 첫째"));
 	}
 
+	@Test
+	void nobelListIsInFieldOrderThenTheListsOrder() { // user 2026-10-20
+		jdbc.sql("""
+				INSERT INTO picks.list_field (list_key, code, name, position)
+				VALUES ('nobel', 'modern', '20세기', 3), ('nobel', 'ancient', '고대·중세', 1),
+				  ('nobel', 'early_modern', '근대', 2)""").update();
+		data.ourBook(910031, "9791190400664", "돈키호테", null, planLibrary);
+		jdbc.sql("""
+				INSERT INTO picks.list_book (list_key, field_code, position, title, author, book_id)
+				VALUES ('nobel', 'modern', 1, '모든 것이 산산이 무너지다', '치누아 아체베', NULL),
+				  ('nobel', 'early_modern', 1, '돈키호테', '미겔 데 세르반테스', 910031),
+				  ('nobel', 'ancient', 2, '일리아스', '호메로스', NULL),
+				  ('nobel', 'ancient', 1, '신곡', '단테 알리기에리', NULL)""").update();
+		cache.refresh();
+
+		var nobel = assertThat(mvc.get().uri("/api/v1/picks/nobel")).hasStatusOk().bodyJson();
+		nobel.extractingPath("$.list").isEqualTo("nobel");
+		nobel.extractingPath("$.categories[*].code").isEqualTo(List.of("ALL", "ancient", "early_modern", "modern"));
+		nobel.extractingPath("$.categories[0].books[*].title")
+			.isEqualTo(List.of("신곡", "일리아스", "돈키호테", "모든 것이 산산이 무너지다"));
+		nobel.extractingPath("$.categories[0].books[*].bookId")
+			.isEqualTo(java.util.Arrays.asList(null, null, 910031, null));
+		nobel.extractingPath("$.categories[0].books[2].available").isEqualTo(true);
+		nobel.extractingPath("$.categories[3].books[*].title").isEqualTo(List.of("모든 것이 산산이 무너지다"));
+	}
+
 	private long rowId(String list, String title) {
 		return jdbc.sql("SELECT id FROM picks.list_book WHERE list_key = :list AND title = :title")
 			.param("list", list)

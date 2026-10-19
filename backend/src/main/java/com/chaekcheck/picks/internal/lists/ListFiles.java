@@ -35,8 +35,14 @@ final class ListFiles {
 	/** KAIST library's 사서추천도서 2026·2025·2024 (user 2026-10-19, 2026-10-20; 스페셜도서 before). */
 	static final String KAIST = "kaist";
 
+	/**
+	 * The Bokklubben World Library, the 100 books chosen in 2002 by 100 writers for the Norwegian Book Clubs and the
+	 * Norwegian Nobel Institute (user 2026-10-20: "노벨연구소 선정 최고의 책 이것도 추천도서에 추가해주라").
+	 */
+	static final String NOBEL = "nobel";
+
 	/** The lists {@code fields.tsv} may name. */
-	static final Set<String> LISTS = Set.of(LEEDONGJIN, SNU100, KAIST);
+	static final Set<String> LISTS = Set.of(LEEDONGJIN, SNU100, KAIST, NOBEL);
 
 	private static final Pattern ISBN13 = Pattern.compile("97[89][0-9]{10}");
 
@@ -61,9 +67,9 @@ final class ListFiles {
 	}
 
 	/**
-	 * One book row of {@code leedongjin.tsv}, {@code snu100.tsv} or {@code kaist.tsv}.
+	 * One book row of {@code leedongjin.tsv}, {@code snu100.tsv}, {@code kaist.tsv} or {@code nobel.tsv}.
 	 * @param position Lee Dong-jin: order inside the month; SNU: the table-of-contents number; KAIST: order inside the
-	 * field
+	 * year; nobel: order inside the field
 	 * @param month Lee Dong-jin only
 	 * @param tocNo SNU only
 	 * @param coverUrl the address the collector took the cover from, https; its file is
@@ -96,6 +102,7 @@ final class ListFiles {
 		List<Row> rows = new ArrayList<>(leedongjin(dir.resolve("leedongjin.tsv"), codes));
 		rows.addAll(snu100(dir.resolve("snu100.tsv"), codes));
 		rows.addAll(kaist(dir.resolve("kaist.tsv"), codes));
+		rows.addAll(nobel(dir.resolve("nobel.tsv"), codes));
 		return new Lists(List.copyOf(fields), List.copyOf(rows));
 	}
 
@@ -106,7 +113,7 @@ final class ListFiles {
 		for (Line line : lines(file, "list", "code", "name", "position")) {
 			String list = line.required("list");
 			if (!LISTS.contains(list)) {
-				throw line.wrong("list", "is not leedongjin, snu100 or kaist");
+				throw line.wrong("list", "is not leedongjin, snu100, kaist or nobel");
 			}
 			String code = line.required("code");
 			if (code.length() > 20) {
@@ -181,6 +188,27 @@ final class ListFiles {
 			}
 			rows.add(new Row(KAIST, line.number, field, position, line.required("title"), line.value("author"),
 					line.value("publisher"), line.isbn("isbn13"), null, year, null, null, line.https("cover_url"),
+					pinned(line), null));
+		}
+		return rows;
+	}
+
+	/**
+	 * The Bokklubben World Library (user 2026-10-20): a field by era, position 1..n once per field (the list's own
+	 * order); no year. Publisher and ISBN are usually empty: the collector fixes an edition by title and first author.
+	 */
+	private static List<Row> nobel(Path file, Set<String> codes) {
+		List<Row> rows = new ArrayList<>();
+		Set<String> places = new HashSet<>();
+		for (Line line : lines(file, "field", "position", "title", "author", "publisher", "isbn13", "cover_url",
+				"pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by")) {
+			String field = field(line, NOBEL, codes);
+			int position = line.number("position", 1, Short.MAX_VALUE);
+			if (!places.add(field + "/" + position)) {
+				throw line.wrong("position", "is there twice for " + field);
+			}
+			rows.add(new Row(NOBEL, line.number, field, position, line.required("title"), line.value("author"),
+					line.value("publisher"), line.isbn("isbn13"), null, null, null, null, line.https("cover_url"),
 					pinned(line), null));
 		}
 		return rows;

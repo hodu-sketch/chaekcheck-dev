@@ -114,7 +114,7 @@ class CatalogImportModesTests {
 		lists = Files.createDirectories(dir.resolve("lists"));
 		Files.writeString(lists.resolve("fields.tsv"), tsv(List.of("list", "code", "name", "position"),
 				List.of("leedongjin", "f", "분야", "1"), List.of("snu100", "k", "한국문학", "1"),
-				List.of("kaist", "ai", "AI", "1")), StandardCharsets.UTF_8);
+				List.of("kaist", "ai", "AI", "1"), List.of("nobel", "ancient", "고대·중세", "1")), StandardCharsets.UTF_8);
 		Files.writeString(lists.resolve("leedongjin.tsv"), tsv(
 				List.of("month", "position", "year_book", "video_id", "field", "title", "author", "publisher", "isbn13",
 						"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by",
@@ -127,10 +127,15 @@ class CatalogImportModesTests {
 				List.of("17", "k", "광장", "최인훈", "", "", "", "", "", "")), StandardCharsets.UTF_8);
 		// KAIST (user 2026-10-19): no rows unless a test writes them
 		Files.writeString(lists.resolve("kaist.tsv"), tsv(KAIST_HEADER), StandardCharsets.UTF_8);
+		// the Bokklubben World Library (user 2026-10-20): no rows unless a test writes them
+		Files.writeString(lists.resolve("nobel.tsv"), tsv(NOBEL_HEADER), StandardCharsets.UTF_8);
 		empty();
 	}
 
 	static final List<String> KAIST_HEADER = List.of("year", "field", "position", "title", "author", "publisher", "isbn13",
+			"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by", "note");
+
+	static final List<String> NOBEL_HEADER = List.of("field", "position", "title", "author", "publisher", "isbn13",
 			"cover_url", "pinned_title", "pinned_author", "pinned_publisher", "pinned_isbn13", "pinned_by", "note");
 
 	@SafeVarargs
@@ -148,7 +153,7 @@ class CatalogImportModesTests {
 		jdbc.sql("TRUNCATE catalog.book_contributor, catalog.holding, catalog.book, catalog.catalog_library_snapshot")
 			.update();
 		jdbc.sql("DELETE FROM collection.catalog_import WHERE source LIKE 'test-%'").update();
-		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100', 'kaist')").update();
+		jdbc.sql("DELETE FROM picks.list_field WHERE list_key IN ('leedongjin', 'snu100', 'kaist', 'nobel')").update();
 		removeInsertedLibrary();
 	}
 
@@ -328,10 +333,17 @@ class CatalogImportModesTests {
 				List.of("2026", "ai", "1", "둘째 책", "다", "라", "", "", "", "", "", "", "", "")), StandardCharsets.UTF_8);
 		Files.writeString(lists.resolve("snu100.tsv"), Files.readString(lists.resolve("snu100.tsv"))
 				+ tsv(List.of("18", "k", "첫 책", "가", "", "", "", "", "", "")), StandardCharsets.UTF_8);
+		Files.writeString(lists.resolve("nobel.tsv"), tsv(NOBEL_HEADER,
+				List.of("ancient", "1", "첫 책", "가", "", "", "", "", "", "", "", "", "Bokklubben")), StandardCharsets.UTF_8);
 
 		CuratedListTransfer.Replaced replaced = transfer().listsOnly(bookLookup);
 
-		assertThat(replaced.books()).isEqualTo(5);
+		assertThat(replaced.books()).isEqualTo(6);
+		assertThat(jdbc.sql("""
+				SELECT l.field_code || ':' || l.position || ':' || coalesce(b.title, '-')
+				FROM picks.list_book l LEFT JOIN catalog.book b ON b.id = l.book_id
+				WHERE l.list_key = 'nobel'""").query(String.class).list())
+			.containsExactly("ancient:1:첫 책");
 		assertThat(jdbc.sql("""
 				SELECT l.field_code || ':' || l.position || ':' || l.title || ':' || coalesce(b.title, '-')
 				FROM picks.list_book l LEFT JOIN catalog.book b ON b.id = l.book_id

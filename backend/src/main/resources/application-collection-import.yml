@@ -24,6 +24,7 @@ chaekcheck:
       # scripts/library/rules/README.md). Relative to backend/, where ./gradlew bootRun runs
       rules-dir: ../scripts/library/rules
       # Recommended lists the export carries (cycle 21, ADR-0123, ADR-0128): fields.tsv, leedongjin.tsv, snu100.tsv,
-      # kaist.tsv (user 2026-10-19) and covers/; export and in-place stop before the collection DB when the folder or a
-      # file is missing. Mode lists reads only this folder and the live catalog (user 2026-10-19)
+      # kaist.tsv (user 2026-10-19), nobel.tsv (user 2026-10-20) and covers/; export and in-place stop before the
+      # collection DB when the folder or a file is missing. Mode lists reads only this folder and the live catalog
+      # (user 2026-10-19)
       lists-dir: ../scripts/crawl/lists

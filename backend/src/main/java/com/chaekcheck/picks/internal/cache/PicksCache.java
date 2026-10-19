@@ -45,7 +45,8 @@ import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
  * <p>
  * Order: librarian books by recommendation month, registration date (unknown last), then {@code recomNo} as text,
  * each latest first (cycle 14 R2, R4-2); Lee Dong-jin by month (latest first), then the order inside the month; SNU
- * by the table-of-contents number; KAIST by the newest year, then its order inside the year (user 2026-10-20).
+ * by the table-of-contents number; KAIST by the newest year, then its order inside the year (user 2026-10-20); nobel by field order, then the
+ * list's order inside the field (user 2026-10-20).
  * Fields: "전체" (every book), then {@code list_field} order; empty ones are left out.
  */
 @Component
@@ -60,8 +61,14 @@ public class PicksCache implements PicksChanged {
 	/** KAIST library's 사서추천도서 2026·2025·2024 (user 2026-10-19, 2026-10-20). */
 	public static final String KAIST = "kaist";
 
-	/** The lists, as {@code GET /api/v1/picks/{listKey}} names them (ADR-0126; {@code kaist} user 2026-10-19). */
-	public static final List<String> LISTS = List.of(LIBRARIAN, LEEDONGJIN, SNU100, KAIST);
+	/** The Bokklubben World Library, "노벨연구소 선정 최고의 책" (user 2026-10-20). */
+	public static final String NOBEL = "nobel";
+
+	/**
+	 * The lists, as {@code GET /api/v1/picks/{listKey}} names them (ADR-0126; {@code kaist} user 2026-10-19,
+	 * {@code nobel} user 2026-10-20).
+	 */
+	public static final List<String> LISTS = List.of(LIBRARIAN, LEEDONGJIN, SNU100, KAIST, NOBEL);
 
 	static final String ALL_CODE = "ALL";
 
@@ -171,6 +178,10 @@ public class PicksCache implements PicksChanged {
 				stored.sort(KAIST_ORDER);
 				ours = byIds(stored);
 			}
+			case NOBEL -> {
+				stored.sort(fieldOrder(fields));
+				ours = byIds(stored);
+			}
 			default -> {
 				stored.sort(SNU100_ORDER);
 				ours = byIds(stored);
@@ -201,6 +212,16 @@ public class PicksCache implements PicksChanged {
 	static final Comparator<StoredBook> KAIST_ORDER = Comparator
 		.comparing(StoredBook::yearBook, Comparator.nullsLast(Comparator.reverseOrder()))
 		.thenComparingInt(StoredBook::position);
+
+	/** nobel: the fields' display order (a code not among them last), then the list's order inside the field. */
+	static Comparator<StoredBook> fieldOrder(List<Field> fields) {
+		Map<String, Integer> places = new HashMap<>();
+		for (int i = 0; i < fields.size(); i++) {
+			places.put(fields.get(i).code(), i);
+		}
+		return Comparator.<StoredBook>comparingInt(row -> places.getOrDefault(row.fieldCode(), Integer.MAX_VALUE))
+			.thenComparingInt(StoredBook::position);
+	}
 
 	private static Book book(String list, StoredBook row, Ours our) {
 		String shown = our == null ? row.title() : Objects.requireNonNullElse(ShownTitle.of(our.title()), row.title());

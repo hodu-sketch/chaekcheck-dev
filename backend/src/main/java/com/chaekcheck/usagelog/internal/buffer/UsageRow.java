@@ -40,7 +40,7 @@ public sealed interface UsageRow {
 
 	/**
 	 * A screen action; {@code libraryId} only for my_library_add/remove, {@code picksList} ({@code librarian},
-	 * {@code leedongjin}, {@code snu100}; cycle 21, ADR-0126; {@code kaist} user 2026-10-19) and {@code picksCategory} only for the picks kinds.
+	 * {@code leedongjin}, {@code snu100}; cycle 21, ADR-0126; {@code kaist} user 2026-10-19; {@code nobel} user 2026-10-20) and {@code picksCategory} only for the picks kinds.
 	 * {@link #raw} as in {@link LibraryClick}.
 	 */
 	record ScreenEvent(Instant receivedAt, String kind, String picksList, String picksCategory, Long bookId,

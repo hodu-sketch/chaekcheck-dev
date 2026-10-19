@@ -138,8 +138,15 @@ afterEach(() => {
 
 /** Cycle 21 spec R5, R6, R7 (AC-4, AC-5, AC-8, AC-9, AC-15, AC-16). */
 describe('the lists words', () => {
-  it('names only the four lists', () => {
+  it('names only the five lists', () => {
     expect(picksList('kaist')?.name).toBe('KAIST 사서 추천도서')
+    // user 2026-10-20: the Bokklubben World Library, 노벨연구소 on its tab
+    expect(picksList('nobel')?.name).toBe('노벨연구소 선정 최고의 책')
+    expect(picksList('nobel')?.tabLabel).toBe('노벨연구소')
+    expect(picksList('nobel')?.helpLines).toContain('책첵은 노벨연구소와 관계가 없어요')
+    expect(picksList('nobel')?.source(null)).toContain('Bokklubben World Library')
+    expect(picksList('nobel')?.yearLine).toBeUndefined()
+    expect(picksList('toString')).toBeNull()
     // KAIST says the year, 국립중앙도서관 the year and month in the book windows (user 2026-10-20)
     expect(picksList('kaist')?.yearLine?.(book({ yearBook: 2025 }))).toBe('2025년 KAIST 사서추천')
     expect(picksList('librarian')?.yearLine?.(book({ recommendedMonth: '2026-10' }))).toBe('2026년 10월 국립중앙도서관 사서추천')

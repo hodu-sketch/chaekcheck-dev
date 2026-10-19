@@ -101,22 +101,43 @@ const KAIST: PicksList = {
   yearLine: (book) => (book.yearBook ? `${book.yearBook}년 KAIST 사서추천` : null),
 }
 
+/**
+ * The Bokklubben World Library, the 100 books chosen in 2002 for the Norwegian Book Clubs and the Norwegian Nobel
+ * Institute (user 2026-10-20: "노벨연구소 선정 최고의 책 이것도 추천도서에 추가해주라 목록에는 노벨연구소만 보이게
+ * 해줘"); the fields by era (4-picks.md 9절).
+ */
+const NOBEL: PicksList = {
+  key: 'nobel',
+  name: '노벨연구소 선정 최고의 책',
+  tabLabel: '노벨연구소',
+  emptyText: '아직 노벨연구소 선정 최고의 책을 준비하고 있어요',
+  failedText: '노벨연구소 선정 최고의 책을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
+  loadingText: '노벨연구소 선정 최고의 책을 불러오는 중',
+  helpLines: [
+    '2002년 노르웨이 북클럽과 노르웨이 노벨연구소가 54개 나라 작가 100명에게 물어 고른 100권이에요',
+    '분류는 작품이 쓰인 시대에 따라 책첵이 나눴어요',
+    '책첵은 노벨연구소와 관계가 없어요',
+  ],
+  source: () => '출처: Bokklubben World Library (노르웨이 북클럽·노르웨이 노벨연구소, 2002) · 책첵은 노벨연구소와 관계가 없어요',
+}
+
 export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
   librarian: LIBRARIAN,
   leedongjin: LEEDONGJIN,
   snu100: SNU100,
   kaist: KAIST,
+  nobel: NOBEL,
 }
 
 /**
- * The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천"). Lee Dong-jin's list is
- * off the tabs ("이동진 추천 빼고"); its address still opens it.
+ * The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천"; 노벨연구소 last,
+ * user 2026-10-20). Lee Dong-jin's list is off the tabs ("이동진 추천 빼고"); its address still opens it.
  */
-export const PICKS_TABS: readonly PicksList[] = [LIBRARIAN, KAIST, SNU100]
+export const PICKS_TABS: readonly PicksList[] = [LIBRARIAN, KAIST, SNU100, NOBEL]
 
 /** The list an address names, or null for any other name. */
 export function picksList(key: string | undefined): PicksList | null {
-  return key === 'librarian' || key === 'leedongjin' || key === 'snu100' || key === 'kaist' ? PICKS_LISTS[key] : null
+  return key !== undefined && Object.hasOwn(PICKS_LISTS, key) ? PICKS_LISTS[key as PicksListKey] : null
 }
 
 /** [영상 보기] (R6-2): the video's YouTube page, built from the id only; null when the id has another shape. */

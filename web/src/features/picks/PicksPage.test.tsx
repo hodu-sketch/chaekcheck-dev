@@ -108,6 +108,7 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
       ['국립중앙도서관', '/picks/librarian'],
       ['KAIST', '/picks/kaist'],
       ['서울대', '/picks/snu100'],
+      ['노벨연구소', '/picks/nobel'],
     ])
     expect(tabs[0].getAttribute('aria-current')).toBe('page')
     expect(screen.queryByText(/출처와 추천 기준을 함께/)).toBeNull()
