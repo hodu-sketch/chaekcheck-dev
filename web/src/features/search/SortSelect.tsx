@@ -3,7 +3,9 @@ import { useState } from 'react'
 import type { BookSort } from '../../api/types'
 import { SORT_LABELS, SORTS } from './searchCondition'
 import styles from './SortSelect.module.css'
+import { BottomSheet } from '../../components/BottomSheet'
 import { CheckMark } from '../../components/icons'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 
 interface Props {
   value: BookSort
@@ -18,7 +20,87 @@ interface Props {
  * controls (user request 2026-10-05). The "?" that explains 기본 순서 is inside the list, under the orders (user request
  * 2026-10-05; a separate button beside the box before): it opens the explanation in place without closing the list.
  */
-export function SortSelect({ value, onChange, disabled = false, describedBy }: Props) {
+export function SortSelect(props: Props) {
+  const phone = useMediaQuery('(width <= 640px)')
+  return phone ? <SortSheet {...props} /> : <SortMenu {...props} />
+}
+
+function TriggerContent({ value }: { value: BookSort }) {
+  return (
+    <>
+      {/* no down arrow (user 2026-10-20: "기본 순서 옆에 아랫방향 꺽쇠?화살표 좀 빼") */}
+      {SORT_LABELS[value]}
+    </>
+  )
+}
+
+/**
+ * Phones (user 2026-10-20: "기본 순서 모바일에서 선택할 때 아이폰양식으로"): the orders in the shared bottom sheet, one big row
+ * each with a check on the chosen one; a tap chooses and closes. 「정렬 기준 보기」 opens the explanation in the sheet.
+ */
+function SortSheet({ value, onChange, disabled = false, describedBy }: Props) {
+  const [open, setOpen] = useState(false)
+  const [help, setHelp] = useState(false)
+  const change = (next: boolean) => {
+    setOpen(next)
+    if (!next) setHelp(false)
+  }
+  if (disabled) {
+    return (
+      <button type="button" className={styles.trigger} aria-label={`정렬: ${SORT_LABELS[value]}`} aria-describedby={describedBy} disabled>
+        <TriggerContent value={value} />
+      </button>
+    )
+  }
+  return (
+    <BottomSheet
+      open={open}
+      onOpenChange={change}
+      title="정렬"
+      trigger={<TriggerContent value={value} />}
+      triggerLabel={`정렬: ${SORT_LABELS[value]}`}
+      triggerClassName={styles.trigger}
+      closeOnBack
+    >
+      <div className={styles.sheet}>
+        <h2 className={styles.sheetTitle} aria-hidden="true">
+          정렬
+        </h2>
+        <div className={styles.sheetList} role="radiogroup" aria-label="정렬">
+          {SORTS.map((sort) => (
+            <button
+              key={sort}
+              type="button"
+              role="radio"
+              aria-checked={sort === value}
+              className={styles.sheetItem}
+              onClick={() => {
+                onChange?.(sort)
+                change(false)
+              }}
+            >
+              {SORT_LABELS[sort]}
+              {sort === value && (
+                <span className={styles.check} aria-hidden="true">
+                  <CheckMark />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <button type="button" className={styles.sheetHelp} aria-expanded={help} onClick={() => setHelp((now) => !now)}>
+          <span className={styles.helpMark} aria-hidden="true">
+            ?
+          </span>
+          정렬 기준 보기
+        </button>
+        {help && <SortHelp />}
+      </div>
+    </BottomSheet>
+  )
+}
+
+function SortMenu({ value, onChange, disabled = false, describedBy }: Props) {
   const [help, setHelp] = useState(false)
   return (
     <DropdownMenu.Root onOpenChange={(open) => !open && setHelp(false)}>
@@ -28,12 +110,7 @@ export function SortSelect({ value, onChange, disabled = false, describedBy }: P
         aria-describedby={describedBy}
         disabled={disabled}
       >
-        {SORT_LABELS[value]}
-        <span className={styles.icon} aria-hidden="true">
-          <svg width="12" height="8" viewBox="0 0 12 8">
-            <path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
+        <TriggerContent value={value} />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content

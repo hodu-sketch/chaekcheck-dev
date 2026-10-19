@@ -1,8 +1,9 @@
-import { Popover } from 'radix-ui'
+import { Dialog, Popover } from 'radix-ui'
 import { useId, useState, type FormEvent } from 'react'
 import type { BookRole } from '../../api/types'
 import { QUERY_MAX_LENGTH } from '../../lib/query'
 import { ChevronDown } from '../../components/icons'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { BOOK_ROLES, FIELD_LABELS, ROLE_LABELS, type BookSearchInput } from './searchCondition'
 import { DIRECT_REASON } from './searchSettings'
 import styles from './NarrowChips.module.css'
@@ -104,6 +105,7 @@ function FieldChip({
   const [draft, setDraft] = useState(value)
   const [draftExact, setDraftExact] = useState(exact)
   const [message, setMessage] = useState<string | undefined>()
+  const phone = useMediaQuery('(width <= 640px)')
 
   const changeOpen = (next: boolean) => {
     if (next) {
@@ -133,40 +135,24 @@ function FieldChip({
 
   const clear = () => onNarrow(withField('', false), field)
 
-  return (
-    <Popover.Root open={open} onOpenChange={changeOpen}>
-      <Popover.Anchor asChild>
-        <span className={styles.fieldChip} data-on={value ? true : undefined}>
-          <Popover.Trigger className={styles.chipMain} disabled={disabled}>
-            {value ? (
-              <>
-                {label}: {value}
-                {exact && <span className={styles.exactMark}> · 완전 일치</span>}
-              </>
-            ) : (
-              <>
-                {label}
-                <ChevronDown size={9} className={styles.caret} />
-              </>
-            )}
-          </Popover.Trigger>
-          {value && (
-            <button type="button" className={styles.clear} aria-label={`${label} 지우기`} disabled={disabled} onClick={clear}>
-              <span aria-hidden="true">×</span>
-            </button>
-          )}
-        </span>
-      </Popover.Anchor>
-      <Popover.Portal>
-        <Popover.Content
-          className={styles.window}
-          side="bottom"
-          align="start"
-          sideOffset={6}
-          collisionPadding={12}
-          aria-label={`${label}로 좁히기`}
-        >
-          <form className={styles.windowForm} onSubmit={apply} noValidate>
+  const chipText = value ? (
+    <>
+      {label}: {value}
+      {exact && <span className={styles.exactMark}> · 완전 일치</span>}
+    </>
+  ) : (
+    <>
+      {label}
+      <ChevronDown size={9} className={styles.caret} />
+    </>
+  )
+  const clearButton = value && (
+    <button type="button" className={styles.clear} aria-label={`${label} 지우기`} disabled={disabled} onClick={clear}>
+      <span aria-hidden="true">×</span>
+    </button>
+  )
+  const body = (
+    <form className={styles.windowForm} onSubmit={apply} noValidate>
             <label htmlFor={`${id}-box`} className={styles.windowLabel}>
               {label}
             </label>
@@ -200,6 +186,61 @@ function FieldChip({
               </p>
             )}
           </form>
+  )
+
+  // phones: a window in the middle of the screen (user 2026-10-20: "저자 출판사 검색 모바일에서 삑사리난거 수습해",
+  // then "저자 출판사 이거 가운데창 모달로 폰에서는"; the small window ran off the screen)
+  if (phone) {
+    return (
+      <>
+        <span className={styles.fieldChip} data-on={value ? true : undefined}>
+          <button
+            type="button"
+            className={styles.chipMain}
+            disabled={disabled}
+            aria-haspopup="dialog"
+            onClick={() => changeOpen(true)}
+          >
+            {chipText}
+          </button>
+          {clearButton}
+        </span>
+        <Dialog.Root open={open} onOpenChange={changeOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className={styles.modalOverlay} />
+            <Dialog.Content className={styles.modal} aria-describedby={undefined}>
+              <Dialog.Title className="visually-hidden">{`${label}로 좁히기`}</Dialog.Title>
+              <Dialog.Close className={styles.modalClose} aria-label="닫기">
+                <span aria-hidden="true">×</span>
+              </Dialog.Close>
+              {body}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      </>
+    )
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={changeOpen}>
+      <Popover.Anchor asChild>
+        <span className={styles.fieldChip} data-on={value ? true : undefined}>
+          <Popover.Trigger className={styles.chipMain} disabled={disabled}>
+            {chipText}
+          </Popover.Trigger>
+          {clearButton}
+        </span>
+      </Popover.Anchor>
+      <Popover.Portal>
+        <Popover.Content
+          className={styles.window}
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          collisionPadding={12}
+          aria-label={`${label}로 좁히기`}
+        >
+          {body}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

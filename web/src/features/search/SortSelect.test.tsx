@@ -12,7 +12,19 @@ beforeAll(() => {
   }
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  delete (window as { matchMedia?: unknown }).matchMedia
+})
+
+function phoneWidth() {
+  window.matchMedia = ((query: string) => ({
+    matches: query === '(width <= 640px)',
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  })) as unknown as typeof window.matchMedia
+}
 
 describe('SortSelect (user request 2026-10-05: the "?" is inside the list)', () => {
   it('lists the orders, then opens the 기본 순서 explanation in place without closing', async () => {
@@ -47,3 +59,25 @@ describe('SortSelect (user request 2026-10-05: the "?" is inside the list)', () 
     expect(onChange).toHaveBeenCalledWith('newest')
   })
 })
+
+describe('SortSelect on phones (user 2026-10-20: iPhone-like)', () => {
+  it('opens a bottom sheet of orders; a tap chooses and closes', async () => {
+    phoneWidth()
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<SortSelect value="default" onChange={onChange} />)
+    const trigger = screen.getByRole('button', { name: '정렬: 기본 순서' })
+    expect(trigger.querySelector('svg')).toBeNull()
+    await user.click(trigger)
+    const sheet = screen.getByRole('dialog', { name: '정렬' })
+    expect(screen.getByTestId('sheet-handle')).toBeTruthy()
+    const radios = screen.getAllByRole('radio')
+    expect(radios.map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false'])
+    await user.click(screen.getByRole('button', { name: /정렬 기준 보기/ }))
+    expect(sheet.textContent).toContain('기본 순서는 이렇게 정해요')
+    await user.click(radios[1])
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+

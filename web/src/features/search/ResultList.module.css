@@ -312,13 +312,20 @@
     gap: 1rem;
   }
 
-  /* phones: the sort on its own line above the tabs, so the tabs stay on the panel's line */
-  /* phones: the sort sits on the search line above (user request 2026-10-05); a toolbar left empty is not drawn */
-  .toolbarEnd {
+  /*
+   * phones: 바로 보기's sort on the tabs' line (user 2026-10-20: "기본순서 정렬 이칸을 지금 빌릴 수 있는 책만 전체가 있는
+   * 행으로"); the other screens' ends stay hidden (direct search keeps its line on the search box); a toolbar left
+   * empty is not drawn
+   */
+  .toolbarEnd:not([data-phone]) {
     display: none;
   }
 
-  .toolbar:has(> .toolbarEnd:only-child) {
+  .toolbarEnd[data-phone] {
+    padding: 0.35rem 0;
+  }
+
+  .toolbar:has(> .toolbarEnd:not([data-phone]):only-child) {
     display: none;
   }
 

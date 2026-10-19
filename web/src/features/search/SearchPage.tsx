@@ -37,7 +37,6 @@ import {
   writeSettings,
   type SearchSettings,
 } from './searchSettings'
-import { SortSelect } from './SortSelect'
 import { useSearchedWith } from './useSearchedWith'
 import styles from './SearchPage.module.css'
 
@@ -378,9 +377,8 @@ export function SearchPage() {
           settingsSheet={phone}
           chip={phone ? <LibraryScopeChip {...scopeCommon} onOpen={() => openPicker('residence')} /> : undefined}
           lineEnd={
-            phone && bookQuery ? (
-              <SortSelect value={bookQuery.sort} onChange={changeSort} />
-            ) : phone && settings.direct && directValid ? (
+            // 바로 보기's sort is on the result tabs' line on phones too (user 2026-10-20)
+            phone && settings.direct && directValid ? (
               <div className={styles.directLineEnd}>
                 <NoSort />
                 <div ref={setCountSlot} className={styles.countSlot} />

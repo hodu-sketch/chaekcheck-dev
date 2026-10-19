@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { EMPTY_INPUT } from './searchCondition'
@@ -261,3 +261,26 @@ describe('the phone chip', () => {
     expect(screen.queryByRole('button', { name: /^내 도서관/ })).toBeNull()
   })
 })
+
+describe('SearchForm: 저자·출판사 on phones (user 2026-10-20: a window in the middle)', () => {
+  afterEach(() => {
+    delete (window as { matchMedia?: unknown }).matchMedia
+  })
+
+  it('opens the field in a centered window that fits the screen, and narrows with 적용', async () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(width <= 640px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    const { user, onSearch } = results({ title: '사랑' })
+    await user.click(button('저자'))
+    const dialog = screen.getByRole('dialog', { name: '저자로 좁히기' })
+    await user.type(within(dialog).getByRole('searchbox', { name: '저자' }), '한강')
+    await user.click(within(dialog).getByRole('button', { name: '적용' }))
+    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '사랑', author: '한강' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+

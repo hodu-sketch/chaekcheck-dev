@@ -99,6 +99,8 @@ interface Props {
   hideFilter?: boolean
   /** Shown at the right end of the filter line: the sort (user request 2026-10-05). */
   toolbarEnd?: ReactNode
+  /** Phones too: the sort on the tabs' line (user 2026-10-20); otherwise phones hide this end. */
+  toolbarEndOnPhone?: boolean
   /** The screen, for the usage report of the result links (cycle 15). */
   screen?: ClickScreen
   /** Direct search (cycle 20): libraries that failed as a whole, one line each in 「확인하지 못한 도서관」. */
@@ -136,6 +138,7 @@ export function ResultList({
   finishedText,
   hideFilter,
   toolbarEnd,
+  toolbarEndOnPhone = false,
   screen,
   uncheckedLibraries = [],
   grouped = true,
@@ -190,7 +193,11 @@ export function ResultList({
           </ToggleGroup.Item>
         </ToggleGroup.Root>
       )}
-        {toolbarEnd && <div className={styles.toolbarEnd}>{toolbarEnd}</div>}
+        {toolbarEnd && (
+          <div className={styles.toolbarEnd} data-phone={toolbarEndOnPhone || undefined}>
+            {toolbarEnd}
+          </div>
+        )}
       </div>
 
       {grouped ? (

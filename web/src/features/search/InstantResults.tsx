@@ -154,6 +154,7 @@ export function InstantResults({
           filter={filter}
           onFilterChange={onFilterChange}
           toolbarEnd={<SortSelect value={query.sort} onChange={onSortChange} />}
+          toolbarEndOnPhone
           libraries={holdings.state.libraries}
           searchUrls={new Map()}
           remaining={remaining}
