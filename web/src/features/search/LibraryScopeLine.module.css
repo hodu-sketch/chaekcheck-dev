@@ -38,9 +38,12 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  min-height: var(--control-height);
-  padding: 0.6rem 0.95rem;
+  /* as wide as its words, not the column (user 2026-10-19: "이 보라 박스는 늘이지 말고 좀 FIT하게") */
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  gap: 1.25rem;
+  padding: 0.45rem 0.9rem;
   /* a violet card with white words (user 2026-10-19: "이거 박스 보라색으로 하고 글자가 흰색인 걸로 하자") */
   border: 1px solid var(--brand);
   border-radius: var(--radius-md);
