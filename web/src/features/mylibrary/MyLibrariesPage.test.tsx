@@ -550,3 +550,29 @@ describe('S10 region grid (cycle 22)', () => {
     expect(within(regionSection).queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
   })
 })
+
+/** One 마이페이지 (user 2026-10-19): the library part, then the account part, then 탈퇴하기 at the very bottom. */
+describe('마이페이지', () => {
+  it('is titled 마이페이지, with the account after the libraries and 탈퇴하기 last', async () => {
+    await ready()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/^마이페이지/)
+    const account = await screen.findByRole('region', { name: '계정' })
+    expect(within(account).getByText('로그인되어 있어요')).toBeTruthy()
+    const chosen = section('직접 추가한 도서관')
+    expect(chosen.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const withdraw = screen.getByRole('button', { name: '탈퇴하기' })
+    expect(account.contains(withdraw)).toBe(false)
+    const back = screen.getByRole('button', { name: /돌아가기/ })
+    expect(account.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(back.compareDocumentPosition(withdraw) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('before login: the library part, and a login prompt in place of the account, with no 탈퇴하기', async () => {
+    fake.signedIn = false
+    await ready()
+    const account = await screen.findByRole('region', { name: '계정' })
+    expect(within(account).getByText('로그인하면 계정을 관리할 수 있어요')).toBeTruthy()
+    expect(within(account).getByRole('button', { name: '로그인' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '탈퇴하기' })).toBeNull()
+  })
+})

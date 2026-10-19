@@ -12,6 +12,7 @@ import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField as GridField } from '../region/RegionGrid'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
 import { savePrefs } from '../search/searchSettings'
+import { AccountSection } from '../account/AccountSection'
 import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
 import { LIBRARY_CHANGE_TEXT, libraryChangeMessage } from './myLibraryErrors'
@@ -35,14 +36,27 @@ const TEXT = {
 const PAGE = 10
 
 /**
- * S10 `/my-libraries` (cycle 06 flow S10): the regions, the libraries they bring in, and the libraries added by hand.
- * Since cycle 07 also before login and with login off (spec R3-6): the same screen, saved in this browser, with no
- * notice line on top [확정]. While the login check runs it says "불러오는 중".
+ * S10 `/my-libraries`, titled 마이페이지 (user 2026-10-19: 내 도서관 관리 and 계정 are one page): the regions, the
+ * libraries they bring in and the libraries added by hand first, then the account part, with 탈퇴하기 far below
+ * everything. Since cycle 07 the library part also works before login and with login off (spec R3-6): the same
+ * screen, saved in this browser, with no notice line on top [확정]; the account part asks to log in then. While the
+ * login check runs the library part says "불러오는 중".
  */
 export function MyLibrariesPage() {
   const { mode } = useMyLibrary()
-  if (mode === 'waiting') return <p className={styles.page}>불러오는 중</p>
-  return <MyLibraries />
+  return (
+    <div className={styles.page}>
+      <Heading />
+      {mode === 'waiting' ? (
+        <p className={styles.state} role="status">
+          불러오는 중
+        </p>
+      ) : (
+        <MyLibraries />
+      )}
+      <AccountSection beforeWithdraw={<BackLink />} />
+    </div>
+  )
 }
 
 function MyLibraries() {
@@ -81,37 +95,30 @@ function MyLibraries() {
 
   if (myLibrary.status === 'error' || list.isError) {
     return (
-      <div className={styles.page}>
-        <Heading />
-        <p className={styles.state} role="alert">
-          내 도서관을 불러오지 못했어요{' '}
-          <button
-            type="button"
-            className={styles.link}
-            onClick={() => (myLibrary.status === 'error' ? myLibrary.retry() : void list.refetch())}
-          >
-            다시 시도
-          </button>
-        </p>
-      </div>
+      <p className={styles.state} role="alert">
+        내 도서관을 불러오지 못했어요{' '}
+        <button
+          type="button"
+          className={styles.link}
+          onClick={() => (myLibrary.status === 'error' ? myLibrary.retry() : void list.refetch())}
+        >
+          다시 시도
+        </button>
+      </p>
     )
   }
   if (myLibrary.status !== 'ready' || !list.data) {
     return (
-      <div className={styles.page}>
-        <Heading />
-        <p className={styles.state} role="status">
-          불러오는 중
-        </p>
-      </div>
+      <p className={styles.state} role="status">
+        불러오는 중
+      </p>
     )
   }
 
   const rows = list.data
   const empty = regions.residence.length === 0 && regions.work.length === 0 && myLibrary.libraryIds.length === 0
   return (
-    <div className={styles.page}>
-      <Heading />
+    <>
       <OpenToAll rows={rows.filter((row) => row.eligibility === 'OPEN')} />
       {empty && <p className={styles.state}>{TEXT.empty}</p>}
 
@@ -125,8 +132,7 @@ function MyLibraries() {
         workAuto={rows.filter((row) => row.matchedBy.includes('WORK'))}
       />
       <ChosenSections rows={rows} />
-      <BackLink />
-    </div>
+    </>
   )
 }
 
@@ -141,7 +147,7 @@ function Heading() {
   return (
     <header className={styles.head}>
       <h1 className={styles.title}>
-        내 도서관
+        마이페이지
         <InfoTip label="저장 안내" text={mode === 'account' ? SAVED_AT_ONCE.account : SAVED_AT_ONCE.browser} />
       </h1>
       {/* cycle 22 R11-2: there is no scope switch any more (ADR-0135) */}

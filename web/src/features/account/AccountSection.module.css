@@ -1,17 +1,17 @@
-/* 마이페이지 > 계정: one centred column like 내 도서관 관리 (MyLibrariesPage.module.css) */
-.page {
-  width: min(44rem, 100%);
-  margin: 0 auto;
+/* 마이페이지's 계정 part: a card like the my-library sections (MyLibrariesPage.module.css .section) */
+.section {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 0.5rem 0 2.5rem;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--card);
 }
 
 .title {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: 800;
-  letter-spacing: -0.02em;
 }
 
 .muted {
@@ -27,8 +27,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--rule);
+  font-size: var(--text-md);
 }
 
 .button {
@@ -42,11 +41,18 @@
   white-space: nowrap;
 }
 
-.button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+/* 탈퇴하기: far below the rest of the page (user 2026-10-19: "아주 많이 아래로 내리면 탈퇴하기") */
+.withdrawRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 28rem;
 }
 
 .withdraw {
   color: var(--fail);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

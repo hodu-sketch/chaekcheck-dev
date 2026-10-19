@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { AccountPage } from '../account/AccountPage'
+import { AccountSection } from '../account/AccountSection'
 import { SettingsPanel } from '../search/SettingsPanel'
 import { DEFAULT_SETTINGS } from '../search/searchSettings'
 import { AuthProvider, useAuth } from './AuthContext'
@@ -62,11 +62,11 @@ function renderWith(ui: ReactNode, path: string) {
   )
 }
 
-// user request 2026-10-18: 탈퇴 moved from the search settings to 마이페이지 > 계정 (/account)
-describe('마이페이지 > 계정', () => {
+// user request 2026-10-18: 탈퇴 moved from the search settings to 마이페이지; 2026-10-19: one 마이페이지 at /my-libraries
+describe('마이페이지 계정 part', () => {
   it('asks to log in before login, with no 탈퇴', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(401, { code: 'unauthorized' })))
-    renderWith(<AccountPage />, '/account')
+    renderWith(<AccountSection />, '/my-libraries')
 
     expect(await screen.findByText('로그인하면 계정을 관리할 수 있어요')).toBeTruthy()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
@@ -75,10 +75,13 @@ describe('마이페이지 > 계정', () => {
 
   it('holds 탈퇴하기 after login, which opens S7 with the provider in one line only', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(200, ME)))
-    renderWith(<AccountPage />, '/account')
+    renderWith(<AccountSection />, '/my-libraries')
     const user = userEvent.setup()
 
     expect(await screen.findByText('로그인되어 있어요')).toBeTruthy()
+    expect(screen.getByRole('region', { name: '계정' })).toBeTruthy()
+    // 탈퇴하기 sits after the account section, apart from it (user 2026-10-19)
+    expect(screen.getByRole('region', { name: '계정' }).contains(screen.getByRole('button', { name: '탈퇴하기' }))).toBe(false)
     // no provider name on the page itself (C23)
     expect(screen.queryByText(/네이버|카카오/)).toBeNull()
     await user.click(screen.getByRole('button', { name: '탈퇴하기' }))

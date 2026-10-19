@@ -16,7 +16,6 @@ import { ErrorFallback } from './components/ErrorFallback'
 import { AboutPage } from './features/about/AboutPage'
 import { BookPage } from './features/book/BookPage'
 import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
-import { AccountPage } from './features/account/AccountPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
 import { NoticePage } from './features/notices/NoticePage'
 import { NoticesPage } from './features/notices/NoticesPage'
@@ -61,10 +60,11 @@ function App() {
                 {/* cycle 16 (S16, S17): public, no login; reached from the footer only */}
                 <Route path="/notices" element={<NoticesPage />} />
                 <Route path="/notices/:noticeId" element={<NoticePage />} />
-                {/* open before login and with login off too (cycle 07, spec R3-6): saved in this browser then */}
+                {/* 마이페이지: open before login and with login off too (cycle 07, spec R3-6), saved in this browser
+                    then; the account part and 탈퇴 at its bottom (user 2026-10-19) */}
                 <Route path="/my-libraries" element={<MyLibrariesPage />} />
-                {/* 마이페이지 > 계정 (user request 2026-10-18): 탈퇴 */}
-                <Route path="/account" element={<AccountPage />} />
+                {/* the old 마이페이지 > 계정 address: one 마이페이지 now (user 2026-10-19) */}
+                <Route path="/account" element={<Navigate to="/my-libraries" replace />} />
                 <Route
                   path="/signup"
                   element={
