@@ -146,8 +146,10 @@ export function PicksPage({ list }: { list: PicksList }) {
   } else if (!current) {
     body = <p className={styles.empty}>{list.emptyText}</p>
   } else {
-    const books = current.books.slice(0, shown)
-    const left = current.books.length - books.length
+    // books with an e-book first, then the rest, each in the list's order (user 2026-10-19: "전자책이 있는 걸 위에 없는 걸 아래로")
+    const ordered = [...current.books.filter(isLinked), ...current.books.filter((book) => !isLinked(book))]
+    const books = ordered.slice(0, shown)
+    const left = ordered.length - books.length
     body = (
       <>
         <div className={styles.chips} role="group" aria-label="분류">
