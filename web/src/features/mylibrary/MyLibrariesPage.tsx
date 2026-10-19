@@ -161,8 +161,9 @@ function OpenToAll({ rows }: { rows: LibraryEligibilityRow[] }) {
     <details className={styles.openToAll}>
       <summary>
         {/* phones: a shorter line that does not wrap at 320px (user request 2026-10-05); cycle 22 R11-2 wording */}
-        <span className={styles.wide}>어디 살든 가입되는 도서관 {rows.length}곳도 늘 내 도서관에 들어 있어요</span>
-        <span className={styles.narrow}>어디 살든 가입 {rows.length}곳은 늘 포함돼요</span>
+        {/* no counts on this page (user 2026-10-19: "거주 1곳 직장 0곳 이런거 뜨는데 그냥 개수 다 없애줘") */}
+        <span className={styles.wide}>어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요</span>
+        <span className={styles.narrow}>어디 살든 가입 도서관은 늘 포함돼요</span>
         {/* the same chevron as the header and the search form, down when it opens downward, up while open (user
             2026-10-17: "아래로 내려서 보여주는거니 아래향 화살표로 … 화살표랑 꺽쇠 섞여있는데") */}
         <span className={styles.caret} aria-hidden="true">
@@ -208,7 +209,7 @@ function Section({
  * "지역 선택" (cycle 22 R11-1, flow S10): no [변경] and no dialog any more; a "사는 곳" row and an "일하는 곳" row, each
  * the chips and the grid (`RegionGrid`), every check saved at once. The 일하는 곳 grid stays folded behind
  * [일하는 곳도 더하기] until it is opened or has a region (flow "지역 격자 부품"). Under each grid the libraries it brings
- * in, "거주 N곳 ▸", folded (user requests 2026-10-05). Nothing to remove there (spec R4). A failed save
+ * in, "거주 ▾", folded (user requests 2026-10-05). Nothing to remove there (spec R4). A failed save
  * and, before login, the save hint (R9) under the rows.
  */
 function RegionSection({
@@ -274,7 +275,7 @@ function RegionSection({
   )
 }
 
-/** One field: its title, the grid (chips on top), then "거주 N곳 ▸". */
+/** One field: its title, the grid (chips on top), then "거주 ▾". */
 function RegionRow({
   title,
   field,
@@ -313,7 +314,8 @@ function RegionRow({
 }
 
 /**
- * The libraries one field brings in: "거주 N곳 ▸", which opens to the names (user request 2026-10-05).
+ * The libraries one field brings in: "거주 ▾", which opens to the names (user request 2026-10-05); no count and no
+ * line when the field brings none (user 2026-10-19: "개수 다 없애줘").
  */
 function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow[] }) {
   const id = useId()
@@ -324,24 +326,21 @@ function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow
       <span className={styles.autoKind}>{kind}</span>
     </span>
   )
+  if (rows.length === 0) return null
   return (
     <div className={styles.regionField} role="group" aria-labelledby={`${id}-title`}>
-      {rows.length === 0 ? (
-        <p className={`${styles.muted} ${styles.autoLine}`}>{title} 0곳</p>
-      ) : (
-        <button
-          type="button"
-          className={`${styles.autoLine} ${styles.fold}`}
-          aria-expanded={open}
-          aria-controls={`${id}-names`}
-          onClick={() => setOpen((value) => !value)}
-        >
-          {title} {rows.length}곳
-          <span className={styles.caret} aria-hidden="true">
-            {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          </span>
-        </button>
-      )}
+      <button
+        type="button"
+        className={`${styles.autoLine} ${styles.fold}`}
+        aria-expanded={open}
+        aria-controls={`${id}-names`}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {title}
+        <span className={styles.caret} aria-hidden="true">
+          {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        </span>
+      </button>
       {open && <NameList id={`${id}-names`} rows={rows} />}
     </div>
   )

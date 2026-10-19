@@ -149,8 +149,8 @@ describe('S10 sections', () => {
     expect(fake.calls[0]).toBe('GET /api/v1/libraries?residenceRegionIds=1114&workRegionIds=1102')
     // the long line on wider screens, the short one on phones (user request 2026-10-05)
     // cycle 22 R11-2 wording
-    expect(screen.getByText('어디 살든 가입되는 도서관 1곳도 늘 내 도서관에 들어 있어요')).toBeTruthy()
-    expect(screen.getByText('어디 살든 가입 1곳은 늘 포함돼요')).toBeTruthy()
+    expect(screen.getByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요')).toBeTruthy()
+    expect(screen.getByText('어디 살든 가입 도서관은 늘 포함돼요')).toBeTruthy()
     // 지역 선택: a 사는 곳 and an 일하는 곳 row, each its chips and grid, then its automatic list (cycle 22 R11-1)
     const chosenRegions = section('지역 선택')
     const residenceRow = within(chosenRegions).getByRole('group', { name: '사는 곳' })
@@ -163,8 +163,8 @@ describe('S10 sections', () => {
     // a library both regions match is in both lists; "거주 2곳" is one line, folded
     const byResidence = within(chosenRegions).getByRole('group', { name: '거주' })
     const byWork = within(chosenRegions).getByRole('group', { name: '직장' })
-    const residenceToggle = within(byResidence).getByRole('button', { name: '거주 2곳' })
-    const workToggle = within(byWork).getByRole('button', { name: '직장 1곳' })
+    const residenceToggle = within(byResidence).getByRole('button', { name: '거주' })
+    const workToggle = within(byWork).getByRole('button', { name: '직장' })
     expect(residenceToggle.getAttribute('aria-expanded')).toBe('false')
     expect(within(byResidence).queryByText('서울도서관 전자도서관')).toBeNull()
     const user = userEvent.setup()
@@ -175,9 +175,9 @@ describe('S10 sections', () => {
     expect(within(byWork).getByText('서울도서관 전자도서관')).toBeTruthy()
     // the order inside the section: 사는 곳, its list, 일하는 곳, its list
     const text = chosenRegions.textContent!
-    expect(text.indexOf('사는 곳')).toBeLessThan(text.indexOf('거주 '))
-    expect(text.indexOf('거주 ')).toBeLessThan(text.indexOf('일하는 곳'))
-    expect(text.indexOf('일하는 곳')).toBeLessThan(text.indexOf('직장 '))
+    expect(text.indexOf('사는 곳')).toBeLessThan(text.indexOf('거주'))
+    expect(text.indexOf('거주')).toBeLessThan(text.indexOf('일하는 곳'))
+    expect(text.indexOf('일하는 곳')).toBeLessThan(text.indexOf('직장'))
     expect(within(section('직접 추가한 도서관')).getByText('1/20')).toBeTruthy()
   })
 
@@ -267,7 +267,7 @@ describe('S10 library classification', () => {
     const user = userEvent.setup()
 
     const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
-    await user.click(within(byResidence).getByRole('button', { name: /^거주 \d+곳/ }))
+    await user.click(within(byResidence).getByRole('button', { name: '거주' }))
     const regionNames = within(byResidence).getAllByRole('listitem').map((item) => item.textContent)
     expect(regionNames).toContain('동대문구립도서관 · YES24 · 소장')
     expect(regionNames).toContain('동대문구립도서관 · 교보 · 구독')
@@ -434,8 +434,8 @@ describe('S10 long lists', () => {
     await ready()
     const user = userEvent.setup()
 
-    const openToAll = screen.getByText('어디 살든 가입되는 도서관 25곳도 늘 내 도서관에 들어 있어요').closest('details')!
-    await user.click(within(openToAll).getByText('어디 살든 가입되는 도서관 25곳도 늘 내 도서관에 들어 있어요'))
+    const openToAll = screen.getByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요').closest('details')!
+    await user.click(within(openToAll).getByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요'))
     expect(names(openToAll)).toBe(10)
     await user.click(within(openToAll).getByRole('button', { name: '더 보기' }))
     expect(names(openToAll)).toBe(20)
@@ -444,7 +444,7 @@ describe('S10 long lists', () => {
     expect(within(openToAll).queryByRole('button', { name: '더 보기' })).toBeNull()
 
     const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
-    await user.click(within(byResidence).getByRole('button', { name: '거주 12곳' }))
+    await user.click(within(byResidence).getByRole('button', { name: '거주' }))
     expect(names(byResidence)).toBe(10)
     await user.click(within(byResidence).getByRole('button', { name: '더 보기' }))
     expect(names(byResidence)).toBe(12)
