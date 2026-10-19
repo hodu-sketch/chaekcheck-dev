@@ -25,7 +25,7 @@ interface Props {
 
 /**
  * The region picker without a dialog (cycle 22 R12; on every width since user 2026-10-19): the chosen regions as chips in
- * a row ending in a small +, which shows a 시도 and a 시군구 select. The tree is read with `useRegionTree` (fetched once per
+ * a row ending in a small +, which shows the 시도 and 시군구 buttons. The tree is read with `useRegionTree` (fetched once per
  * visit, R12-3).
  */
 export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props) {
@@ -114,9 +114,10 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
 }
 
 /**
- * Shown after the chips' + is pressed: a 시도 select and that 시도's 시군구 select side by side.
- * Picking a 시군구 adds it at once and the selects hide again; chosen ones carry a leading ✓ and cannot be picked (removing
- * is the chip ×'s job).
+ * Shown after the chips' + is pressed: the 시도 as a row of buttons and that 시도's 시군구 as a grid of buttons, all on the
+ * screen (user 2026-10-20: the phone's own select list moved under the finger and a tap did not pick, "제대로 되게
+ * 바꿔줘"; two selects before). Picking a 시군구 adds it at once and the picker hides again; chosen ones carry a leading ✓
+ * and cannot be picked (removing is the chip ×'s job).
  */
 function SelectPicker({
   fieldLabel,
@@ -135,36 +136,35 @@ function SelectPicker({
 }) {
   return (
     <>
-      <select
-        className={styles.select}
-        aria-label={`${fieldLabel} 시도`}
-        value={active.id}
-        onChange={(e) => onSelectSido(Number(e.target.value))}
-      >
+      <div className={styles.sidos} role="group" aria-label={`${fieldLabel} 시도`}>
         {sidos.map((sido) => (
-          <option key={sido.id} value={sido.id}>
+          <button
+            key={sido.id}
+            type="button"
+            className={styles.sido}
+            aria-pressed={sido.id === active.id}
+            onClick={() => onSelectSido(sido.id)}
+          >
             {sido.shortName ?? sido.name}
-          </option>
+          </button>
         ))}
-      </select>
-      <select
-        className={styles.select}
-        aria-label={`${fieldLabel} 시군구`}
-        value=""
-        onChange={(e) => {
-          if (e.target.value) onPick(Number(e.target.value))
-        }}
-      >
-        <option value="">시군구 고르기</option>
+      </div>
+      <div className={styles.sigungus} role="group" aria-label={`${fieldLabel} 시군구`}>
         {active.children.map((sigungu) => {
           const checked = chosen.includes(sigungu.id)
           return (
-            <option key={sigungu.id} value={sigungu.id} disabled={checked}>
+            <button
+              key={sigungu.id}
+              type="button"
+              className={styles.sigungu}
+              disabled={checked}
+              onClick={() => onPick(sigungu.id)}
+            >
               {checked ? `✓ ${sigungu.name}` : sigungu.name}
-            </option>
+            </button>
           )
         })}
-      </select>
+      </div>
     </>
   )
 }

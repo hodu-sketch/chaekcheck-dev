@@ -121,7 +121,7 @@ function renderPage() {
 
 const section = (name: string) => screen.getByRole('region', { name })
 
-/** The region picker (user 2026-10-19): [+] shows a 시도 and a 시군구 select; picking a 시군구 adds it at once. */
+/** The region picker (user 2026-10-19): [+] shows the 시도 and 시군구 buttons; picking a 시군구 adds it at once. */
 async function openPicker(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, field: string) {
   const add = (await within(row).findByRole('button', { name: `${field} 추가` })) as HTMLButtonElement
   await waitFor(() => expect(add.disabled).toBe(false))
@@ -130,12 +130,12 @@ async function openPicker(user: ReturnType<typeof userEvent.setup>, row: HTMLEle
 
 async function pickRegion(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, field: string, sigungu: string) {
   await openPicker(user, row, field)
-  await user.selectOptions(within(row).getByRole('combobox', { name: `${field} 시도` }), '서울')
-  await user.selectOptions(within(row).getByRole('combobox', { name: `${field} 시군구` }), sigungu)
+  await user.click(within(within(row).getByRole('group', { name: `${field} 시도` })).getByRole('button', { name: '서울' }))
+  await user.click(within(within(row).getByRole('group', { name: `${field} 시군구` })).getByRole('button', { name: sigungu }))
 }
 
 const sigunguOption = (row: HTMLElement, name: RegExp) =>
-  within(row).getByRole('option', { name }) as HTMLOptionElement
+  within(within(row).getByRole('group', { name: '사는 곳 시군구' })).getByRole('button', { name }) as HTMLButtonElement
 
 async function ready() {
   renderPage()
@@ -472,7 +472,7 @@ describe('S10 region grid (cycle 22)', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
     await openPicker(user, residenceRow, '사는 곳')
-    expect(within(residenceRow).getByRole('combobox', { name: '사는 곳 시도' })).toBeTruthy()
+    expect(within(residenceRow).getByRole('group', { name: '사는 곳 시도' })).toBeTruthy()
     const mapo = sigunguOption(residenceRow, /마포구/)
     expect(mapo.textContent).toBe('✓ 마포구')
     expect(mapo.disabled).toBe(true)
