@@ -171,7 +171,14 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 요청: "이동진 추천 빼고 여기 넣어줘" — 화면의 「이동진 추천」 탭 자리에 KAIST 도서관 목록을 넣음. 이동진 목록 자료(seed·파일)는 지우지 않고 화면에서만 뺄 예정.
 - 출처: https://library.kaist.ac.kr/search/ctlgSearch/collections/specialCollection.do (KAIST 도서관 > 소장자료검색 > Collections > 추천도서). 페이지 글: "사서추천도서, 스페셜도서, 독서문화위원회 추천도서를 확인할 수 있습니다."
 - 페이지 구성(2026-10-19 확인): 탭 「사서추천도서」 「스페셜도서」 「독서문화위원회」, 해마다 목록(2026 · 2025 · 2023 · 2022 · ~2021). 주소가 가리키는 「스페셜도서」 2026은 주제 4개 × 20권: 자연이 우리에게 주는 메시지(20) · AI가 우리에게 주는 메시지(20) · 문화가 우리에게 주는 메시지(20) · AI대학(20). 각 주제에 "검색결과 더보기"(전체 목록)와 "Holdings" 링크가 있음.
-- 정할 것(사용자에게 물음, 2026-10-19): 넣을 탭·해(추천: 「스페셜도서」 2026 네 주제 80권, 주제를 분류 칩으로), 화면 탭 이름(추천: "KAIST 추천").
+- 사용자 결정(2026-10-19): 「스페셜도서」 2026 네 주제("스페셜도서 책"), 화면 탭 이름 "KAIST 추천", 탭 순서 사서 추천 → KAIST 추천 → 서울대 100선("사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천").
+- 이용 조건 확인(2026-10-19): `https://library.kaist.ac.kr/robots.txt`는 없음(404, 사이트 오류 페이지). 페이지 아래에 이용 약관 링크는 없고 "Copyright (C) 2019 KAIST Library All Rights Reserved"와 개인정보처리방침만 있음. 목록의 서명·저자·출판사·ISBN은 사실 정보로 보고 쓰고, 책 소개 글(교보문고 제공)과 표지 그림은 가져오지 않음.
+- 읽는 길(2026-10-19 확인, 모두 GET, 로그인 없음)
+  - 해 목록: `/search/ctlgSearch/collections/specialCollection.do?bookTy=sc2026` — 주제마다 앞 5권과 주제 코드(`fn_recommendList('sc15')` … `sc18`)
+  - 주제 전체: `/search/ctlgSearch/collections/specialCollectionList.do?bookCl=20&bookTy=sc2026&bookTyLower=<sc15~sc18>` — 20권의 추천 번호(`fn_recommendView('<번호>')`), 소장 번호(`fn_searchView('<bibctrlno>')`), 표지 alt의 서명
+  - 책 한 권: `/search/ctlgSearch/collections/recommendView.do?recomendBookNo=<번호>&bookCl=20&bookTy=sc2026` — 서명, 저자, 출판사, 출판년, ISBN, 가격, 책소개
+- 수집 방법: 해 목록 1번 + 주제 4번 + 책 80번 = 85번, 책 페이지는 2초 간격(약 3분). 스크립트는 내 PC 임시 폴더에서 돌렸고, 결과 표는 아래 파일로 남김.
 - 넣는 방법(6절과 같은 길): 목록 파일(제목·저자·출판사·ISBN·주제)을 만들고 `CuratedListTransfer`로 내보내기 → 운영에 적용. 맞추기는 5절·ADR-0124 규칙 그대로(ISBN → 제목+첫 저자+출판사).
 - 표지: KAIST 사이트 표지는 쓰지 않음(우리 책 목록 표지 또는 제목 표지). 목록 글(서명·저자)은 사실 정보로 보지만, 수집 전에 사이트 이용 조건·robots.txt를 확인해 이 절에 적을 것. 수집은 페이지를 몇 번만 읽는 정도로(도서관 트래픽 최소).
-- 수집하면 이 절에 수집 날짜, 읽은 주소, 권수, 맞춘 수, 남긴 파일 위치를 적음.
+- 수집 결과(2026-10-19): 85번 읽음, 80권(주제마다 20), 80권 모두 ISBN 있음. 내 PC 책 표와 ISBN이 같은 책 25권(25권 모두 소장 줄 있음, 제목·저자 맞추기 전). 「AI대학」 주제는 영문 원서가 많음(예 "Applied mathematics…", "Applied machine learning in…").
+- 남긴 파일(git 밖): `data/recommended-lists/kaist/kaist-sc2026.tsv`(칸: theme_code, theme, recomend_no, bibctrlno, title, author, publisher, year, isbn), 수집 스크립트 `data/recommended-lists/kaist/collect.py`(목록 HTML이 같은 폴더에 있어야 함). 운영에 넣는 길(목록 키 `kaist` 추가, 반영 방법)은 사용자 결정 뒤에 이 절에 적음.
