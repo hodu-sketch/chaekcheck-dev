@@ -121,6 +121,31 @@ export function PicksPage({ list }: { list: PicksList }) {
     return () => observer.disconnect()
   }, [])
 
+  // the title bar shows its translucent backdrop only while it is stuck under the header with covers under it
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    const title = titleRef.current
+    const header = document.querySelector<HTMLElement>('[data-app-header]')
+    if (!title) return
+    let frame = 0
+    const check = () => {
+      frame = 0
+      const stuck = window.scrollY > 0 && title.getBoundingClientRect().top <= (header?.offsetHeight ?? 0) + 1
+      title.toggleAttribute('data-stuck', stuck)
+    }
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(check)
+    }
+    check()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
   const result = loaded?.key === key ? loaded : null
   const data = result?.data ?? null
   const categories = data?.categories ?? []
@@ -366,7 +391,7 @@ export function PicksPage({ list }: { list: PicksList }) {
         Cycle 21: the list's name fixed at the top left under the app header on every width (user 2026-10-16, in place
         of flow #4 A/C). The category picker floats at the bottom centre and follows the category in view.
       */}
-      <h1 className={styles.listTitle} data-picks-title="">
+      <h1 ref={titleRef} className={styles.listTitle} data-picks-title="">
         {list.name}
       </h1>
       <div className={styles.blocks}>{body}</div>

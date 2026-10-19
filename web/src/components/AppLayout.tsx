@@ -10,6 +10,7 @@ import { Footer } from './Footer'
 import { HeaderOpenProvider } from './HeaderOpen'
 import { ChevronDown, ChevronUp } from './icons'
 import { HeaderMenu, PhoneMenu } from './HeaderMenu'
+import { ABOUT_LINK } from './headerMenus'
 import { useHeaderOpen } from './HeaderOpen'
 import styles from './AppLayout.module.css'
 
@@ -39,9 +40,20 @@ function Shell() {
           <div className={styles.start}>
             {/* the logo only goes to the main page, menus or not (user 2026-10-16, after using it: "좌상단 로고는 아래 탭
                 늘려서 보이는 거랑 관계 없이 그냥 메인으로 옮겨주는 걸로만 해") */}
-            <Link to="/" className={styles.brand}>
-              <span className={styles.wordmark}>책첵</span>
-            </Link>
+            <span className={styles.brandGroup}>
+              <Link to="/" className={styles.brand}>
+                <span className={styles.wordmark}>책첵</span>
+              </Link>
+              {/* 책첵이란? right next to the logo, quieter than the menus (user 2026-10-19) */}
+              <Link
+                to={ABOUT_LINK.to}
+                className={styles.about}
+                data-current={location.pathname === ABOUT_LINK.to ? '' : undefined}
+                aria-current={location.pathname === ABOUT_LINK.to ? 'page' : undefined}
+              >
+                {ABOUT_LINK.label}
+              </Link>
+            </span>
             <HeaderMenu />
           </div>
           {/* the same header on every screen, the terms and privacy pages too (cycle 21 spec R1-6, cycle 20) */}

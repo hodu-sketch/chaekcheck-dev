@@ -106,6 +106,12 @@
   word-break: keep-all;
 }
 
+/* "[검색]" of the line asking for a new search after a region was saved */
+.conditionHint b {
+  color: var(--ink-soft);
+  font-weight: 800;
+}
+
 .linkButton:focus-visible,
 .addWork:focus-visible,
 .myPage:focus-visible {

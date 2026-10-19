@@ -58,18 +58,17 @@ function column(name: string) {
 describe('header', () => {
   beforeEach(() => vi.useFakeTimers())
 
-  it('has the four big menus, no tagline and no old link', () => {
+  it('has the three big menus, no tagline and no old link', () => {
     renderAt('/')
     const nav = within(wide())
     expect(nav.getAllByRole('link').filter((a) => a.hasAttribute('data-big')).map((a) => a.textContent)).toEqual([
       '도서검색',
       '추천도서',
       '마이페이지',
-      '책첵이란?',
     ])
     expect(nav.getByRole('link', { name: '추천도서' }).getAttribute('href')).toBe('/picks/leedongjin')
     expect(nav.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
-    expect(nav.getByRole('link', { name: '책첵이란?' }).getAttribute('href')).toBe('/about')
+    expect(nav.queryByRole('link', { name: '책첵이란?' })).toBeNull()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: '사서추천도서' })).toBeNull()
     expect(screen.queryByText('전자도서관 대출 가능 확인')).toBeNull()
@@ -193,13 +192,19 @@ describe('header', () => {
     expect(column('search').hidden).toBe(true)
   })
 
-  it('goes straight to /about on 책첵이란?, with no column (user 2026-10-19)', () => {
+  it('has 책첵이란? right after the logo, out of the menus, going to /about (user 2026-10-19)', () => {
     renderAt('/')
-    expect(wide().querySelector('[data-column="about"]')).toBeNull()
-    fireEvent.click(within(wide()).getByRole('link', { name: '책첵이란?' }))
+    const header = () => within(screen.getByRole('banner'))
+    const about = header().getByRole('link', { name: '책첵이란?' })
+    const logo = screen.getByRole('link', { name: '책첵' })
+    expect(about.getAttribute('href')).toBe('/about')
+    expect(logo.nextElementSibling).toBe(about)
+    expect(wide().contains(about)).toBe(false)
+    expect(about.hasAttribute('data-current')).toBe(false)
+    fireEvent.click(about)
     expect(screen.getByTestId('where').textContent).toBe('/about')
-    expect(column('search').hidden).toBe(true)
-    expect(within(wide()).getByRole('link', { name: '책첵이란?' }).hasAttribute('data-current')).toBe(true)
+    expect(header().getByRole('link', { name: '책첵이란?' }).hasAttribute('data-current')).toBe(true)
+    expect(header().getByRole('link', { name: '책첵이란?' }).getAttribute('aria-current')).toBe('page')
   })
 
   it.each(['/', '/search', '/books/1'])('underlines 도서검색 on %s', (path) => { // user 2026-10-16
@@ -317,7 +322,6 @@ describe('phone menu', () => {
       '서울대 100선',
       '내 도서관 관리',
       '계정',
-      '책첵이란?',
     ])
     expect(screen.getByTestId('menu-dim')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '메뉴 닫기' }))
@@ -342,12 +346,10 @@ describe('phone menu', () => {
     expect(screen.getByTestId('where').textContent).toBe('/picks/snu100')
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
-  it('has 책첵이란? as a plain item with no title over it, and goes to /about', () => {
+  it('has no 책첵이란? in the drawer (it is next to the logo, user 2026-10-19)', () => {
     renderAt('/')
     const drawer = openPhone()
     expect(within(drawer).getAllByRole('heading').map((h) => h.textContent)).toEqual(['도서검색', '추천도서', '마이페이지'])
-    fireEvent.click(within(drawer).getByRole('link', { name: '책첵이란?' }))
-    expect(screen.getByTestId('where').textContent).toBe('/about')
-    expect(screen.queryByTestId('menu-dim')).toBeNull()
+    expect(within(drawer).queryByRole('link', { name: '책첵이란?' })).toBeNull()
   })
 })

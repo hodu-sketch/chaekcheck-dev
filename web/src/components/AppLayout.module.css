@@ -1,6 +1,9 @@
 .shell {
   display: flex;
   flex-direction: column;
+  /* full-width backdrops of sticky bars (the picks title) reach 100vw, a scrollbar's width past the page: cut, never a
+     side scroll (clip, not hidden: the sticky bars keep sticking) */
+  overflow-x: clip;
   min-height: 100vh;
   /* the visible height: with 100vh a phone's first screen scrolled by the browser bars' height */
   min-height: 100dvh;
@@ -42,6 +45,40 @@
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--brand-strong);
+}
+
+/* the logo and 책첵이란? close together; the menus keep their room after both */
+.brandGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: calc(0.7 * var(--base-unscaled));
+  flex-shrink: 0;
+}
+
+/* 책첵이란?: grey, smaller and lighter than the big menus (user 2026-10-19: "좀 더 회색으로") */
+.about {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+
+.about:hover,
+.about[data-current] {
+  color: var(--ink-soft);
+}
+
+.about[data-current] {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.about:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .start {
@@ -128,6 +165,7 @@
 @media (width <= 640px) {
   /* above the phone menu's row-wide button (HeaderMenu .menuButton), so the logo and 로그인 keep their own taps */
   .brand,
+  .about,
   .end {
     position: relative;
     z-index: 1;
@@ -151,7 +189,8 @@
     font-size: var(--text-sm);
   }
 
-  .brand::after {
+  .brand::after,
+  .about::after {
     content: '';
     position: absolute;
     top: 50%;

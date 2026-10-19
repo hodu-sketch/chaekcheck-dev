@@ -11,7 +11,15 @@ import { MyLibraryProvider } from '../mylibrary/MyLibraryContext'
 import { REGION_IMPORT_KEY } from '../mylibrary/regionImport'
 import { RegionProvider } from '../region/RegionContext'
 import { REGION_STORAGE_KEY } from '../region/regionStorage'
-import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, scopeLineText, type BoxFocus } from './LibraryScopeLine'
+import {
+  LibraryScopeChip,
+  LibraryScopeLine,
+  LibraryScopeSheet,
+  SCOPE_TEXT,
+  scopeLineText,
+  type BoxFocus,
+  type ScopeSearched,
+} from './LibraryScopeLine'
 import { planCountKey, type PlanCount } from './searchSettings'
 
 /** The condition line's words: the [조건 수정] button's description (first screen redesign, user 2026-10-19). */
@@ -94,6 +102,7 @@ interface Options {
   visit?: VisitFilter
   planCount?: PlanCount | null
   openCount?: number | null
+  searched?: ScopeSearched | null
 }
 
 function renderLine(options: Options = {}) {
@@ -109,6 +118,7 @@ function renderLine(options: Options = {}) {
           planCount={options.planCount ?? null}
           openCount={options.openCount ?? null}
           onOpenCount={onOpenCount}
+          searched={options.searched}
           box={box}
           onBoxChange={setBox}
         />
@@ -166,6 +176,53 @@ describe('a first visitor (R1-2)', () => {
     await user.click(await screen.findByRole('button', { name: '지역 설정' }))
     const opened = await box()
     expect(within(opened).getByRole('group', { name: '사는 곳' })).toBeTruthy()
+  })
+})
+
+describe('a results screen of a search made without regions (the line in the results before, user 2026-10-19)', () => {
+  const searched = (overrides: Partial<ScopeSearched> = {}): ScopeSearched => ({
+    planCount: 41,
+    regionsPicked: false,
+    picked: null,
+    ...overrides,
+  })
+
+  it('says where it searched, with the number when known, and what a region adds', async () => {
+    renderLine({ searched: searched() })
+    const button = await screen.findByRole('button', { name: '지역 설정' })
+    expect(conditionOf(button)).toBe('지역 제한 없이 가입할 수 있는 도서관 41곳에서 찾았어요')
+    expect(screen.getByText('지역을 설정하면 그 지역 도서관부터 보여요')).toBeTruthy()
+    cleanup()
+
+    renderLine({ searched: searched({ planCount: null }) })
+    expect(conditionOf(await screen.findByRole('button', { name: '지역 설정' }))).toBe(
+      '지역 제한 없이 가입할 수 있는 도서관에서 찾았어요',
+    )
+  })
+
+  it('a region saved since: the card shows it, and the grey line asks for [검색]', async () => {
+    guestRegions([1114])
+    renderLine({ searched: searched({ regionsPicked: true, picked: { field: 'residence', place: '서울 마포구' } }) })
+    const button = await folded()
+    await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구 거주 조건으로 찾아요'))
+    const hint = screen.getByRole('status')
+    expect(hint.textContent).toBe('사는 곳을 서울 마포구로 골랐어요. 그 지역 도서관부터 보려면 [검색]을 눌러 주세요')
+    expect(within(hint).getByText('[검색]').tagName).toBe('B')
+    expect(screen.getByTestId('scope-condition').contains(hint)).toBe(false)
+  })
+
+  it('the words of the [검색] line', () => {
+    expect(SCOPE_TEXT.pickedBefore({ field: 'residence', place: '서울 강서구' })).toBe(
+      '사는 곳을 서울 강서구로 골랐어요. 그 지역 도서관부터 보려면 ',
+    )
+    expect(SCOPE_TEXT.pickedBefore({ field: 'work', place: '서울 강남구 외 2곳' })).toBe(
+      '일하는 곳을 서울 강남구 외 2곳으로 골랐어요. 그 지역 도서관부터 보려면 ',
+    )
+    expect(SCOPE_TEXT.pickedBefore({ field: 'residence', place: '경기 성남시' })).toBe(
+      '사는 곳을 경기 성남시로 골랐어요. 그 지역 도서관부터 보려면 ',
+    )
+    expect(SCOPE_TEXT.pickedBefore({ field: 'libraries' })).toBe('직접 추가한 도서관이 생겼어요. 그 도서관부터 보려면 ')
+    expect(SCOPE_TEXT.pickedBefore(null)).toBe('지역을 바꿨어요. 바뀐 지역으로 찾으려면 ')
   })
 })
 

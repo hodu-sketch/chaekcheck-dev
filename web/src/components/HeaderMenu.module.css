@@ -202,11 +202,6 @@
   list-style: none;
 }
 
-/* a plain link (책첵이란?): no title over it, a little room under the rule instead */
-.drawerPlain {
-  padding-top: 0.4rem;
-}
-
 /* 44px touch rows */
 .drawerItem {
   display: flex;

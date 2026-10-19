@@ -562,11 +562,35 @@
   /* the words start at the panels' left edge, one line with the content (user 2026-10-16: "너무 좌측에 있는데 센터에서
      좌측으로", picture approved; YES24, Ridi, Kyobo list pages); the bar's background still spans the width */
   padding-inline-start: max(0px, (100% - var(--gw) - var(--panel-extra)) / 2);
-  background: var(--canvas);
+  /* no box of its own on the page's white and lavender glow (user 2026-10-19: "이 부분만 흰색이 된 거 수습하고 배경
+     통일해"); see ::before */
+  background: transparent;
   /* 1.2 times (user 2026-10-16: "이동진 추천도서 … 20프로 키우고") */
   font-size: calc(1.2 * var(--text-lg));
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+/*
+ * The bar's backdrop, from the left edge of the window to the right (the bar itself is only as wide as the page):
+ * nothing at rest, a translucent white with a blur while it is stuck over the covers scrolled under it (data-stuck,
+ * set by PicksPage). The shell clips what reaches past the window (the scrollbar's width).
+ */
+.listTitle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  z-index: -1;
+  background: transparent;
+  transition: background-color 160ms;
+}
+
+.listTitle[data-stuck]::before {
+  background: color-mix(in srgb, var(--canvas) 82%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 /* Lee Dong-jin's YouTube terms link in "기준 보기" (the source lives only there since 2026-10-17) */

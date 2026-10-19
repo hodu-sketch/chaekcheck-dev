@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
-import { GROUP_TEXT, ResultList, UNCHECKED_GROUP_TITLE, type BatchView, type ResultSearchContext } from './ResultList'
+import { ResultList, UNCHECKED_GROUP_TITLE, type BatchView, type ResultSearchContext } from './ResultList'
 import { LOOKUP_UNCHECKED } from './ResultRow'
 import { sortBatch } from './sortBatch'
 import { testRow } from './testRows'
@@ -177,13 +177,9 @@ describe('result groups', () => {
       regionBasis: 'residence',
       scope: 'joinable',
       visit: 'any',
-      accountFailed: false,
-      planCount: 4,
-      regionsPicked: false,
       onSearchAll: vi.fn(),
       onVisitNone: vi.fn(),
       onVisitBack: vi.fn(),
-      onPickRegions: vi.fn(),
       ...overrides,
     }
   }
@@ -271,37 +267,11 @@ describe('result groups', () => {
     expect(screen.queryByText(/내 도서관에는 없어요/)).toBeNull()
   })
 
-  it('shows the green line without regions or added libraries, not for 전국 or a failed account; no ×', async () => {
-    const searchContext = context({ hasMine: false })
-    const user = renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], searchContext)
-    const line = screen.getByRole('status')
-    expect(line.textContent).toBe(
-      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관 4곳에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 지역 설정',
-    )
-    expect(within(line).getAllByRole('button').map((b) => b.textContent)).toEqual(['지역 설정'])
-    await user.click(within(line).getByRole('button', { name: '지역 설정' }))
-    expect(searchContext.onPickRegions).toHaveBeenCalledTimes(1)
-    // above the first group
-    const firstGroup = screen.getAllByRole('heading', { level: 2 })[0]
-    expect(line.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-
-    for (const overrides of [{ scope: 'all' as const }, { accountFailed: true }, { hasMine: true }]) {
-      cleanup()
-      renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false, ...overrides }))
-      expect(screen.queryByText(/사는 곳을 고르지 않아/)).toBeNull()
-    }
-  })
-
-  it('the green line goes without the number when the plan size is not known (바로 보기)', () => {
-    renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false, planCount: null }))
-    expect(screen.getByRole('status').textContent).toBe(
-      '사는 곳을 고르지 않아 어디 살든 가입되는 도서관에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요 지역 설정',
-    )
-  })
-
-  it('asks for [검색] once a region was checked after the search (R7-2)', () => {
-    renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false, regionsPicked: true }))
-    expect(screen.getByRole('status').textContent).toBe('지역을 바꿨어요. 바뀐 지역으로 찾으려면 [검색]을 눌러 주세요')
+  it('has no line of its own above the groups for a search without regions (the condition card says it, user 2026-10-19)', () => {
+    renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false }))
+    expect(screen.queryByText(/사는 곳을 고르지 않아/)).toBeNull()
+    expect(screen.queryByText(/에서 찾았어요/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '지역 설정' })).toBeNull()
   })
 
   it('offers to remove the visit-only libraries shown in ②, then to put them back', async () => {
@@ -357,20 +327,5 @@ describe('result groups', () => {
     expect(screen.queryByText(/내 도서관에 있어요/)).toBeNull()
     expect(screen.queryByText(/어디 살든 가입되는/)).toBeNull()
     expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
-  })
-})
-
-describe('the line asking for [검색] after a region was picked (user 2026-10-19)', () => {
-  it('says what was picked and why to press [검색]', () => {
-    expect(GROUP_TEXT.pickedBefore({ field: 'residence', place: '서울 강서구' })).toBe(
-      '사는 곳을 서울 강서구로 골랐어요. 그 지역 도서관부터 보려면 ',
-    )
-    expect(GROUP_TEXT.pickedBefore({ field: 'work', place: '서울 강남구 외 2곳' })).toBe(
-      '일하는 곳을 서울 강남구 외 2곳으로 골랐어요. 그 지역 도서관부터 보려면 ',
-    )
-    expect(GROUP_TEXT.pickedBefore({ field: 'residence', place: '경기 성남시' })).toBe(
-      '사는 곳을 경기 성남시로 골랐어요. 그 지역 도서관부터 보려면 ',
-    )
-    expect(GROUP_TEXT.pickedBefore({ field: 'libraries' })).toBe('직접 추가한 도서관이 생겼어요. 그 도서관부터 보려면 ')
   })
 })

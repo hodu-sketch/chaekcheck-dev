@@ -31,7 +31,8 @@ export interface UncheckedLibrary {
 export const UNCHECKED_GROUP_TITLE = '확인하지 못한 도서관'
 
 /**
- * What a grouped result list knows about its search, and the buttons inside the results (cycle 22 R4-2, R5, R7, R8).
+ * What a grouped result list knows about its search, and the buttons inside the results (cycle 22 R4-2, R5, R8). The
+ * line R7 of a search made without regions is the condition card's above the list now (user 2026-10-19).
  * The four buttons search again at once (R8-3): the caller changes the address and takes the snapshot again.
  */
 export interface ResultSearchContext {
@@ -42,45 +43,16 @@ export interface ResultSearchContext {
   regionBasis: RegionBasis
   scope: LibraryScope
   visit: VisitFilter
-  /** After login the account's 내 도서관 could not be read (D7): no green line. */
-  accountFailed: boolean
-  /**
-   * How many libraries the search planned, for the green line's {N} (R7-1); null when not known (바로 보기 names only
-   * the libraries holding the books found), and the line then goes without the number.
-   */
-  planCount: number | null
-  /** Regions (or libraries) were saved since this search was made without any (R7-2): the green line asks for [검색]. */
-  regionsPicked: boolean
-  /** What was saved since, for that line: "서울 강서구" with its field, or the added libraries (user 2026-10-19). */
-  picked?: { field: 'residence' | 'work'; place: string } | { field: 'libraries' } | null
   /** [전국에서 찾기], [전국에서 더 찾기]: the same search with `scope=all`. */
   onSearchAll: () => void
   /** [온라인 가입만 보기]: `visit=none`, kept for later searches too. */
   onVisitNone: () => void
   /** [모두 보기]: back to `visit` any. */
   onVisitBack: () => void
-  /** [지역 설정] of the green line: opens the region choice (saved only, R7-2). */
-  onPickRegions: () => void
 }
 
 /** The texts of the grouped list (cycle 22 문구표) [확정]. */
-/** "로" after a vowel or ㄹ, else "으로" (서울 강서구로, 성남시로, … 외 2곳으로). */
-function ro(word: string): string {
-  const code = word.charCodeAt(word.length - 1) - 0xac00
-  if (code < 0 || code > 11171) return '(으)로'
-  const final = code % 28
-  return final === 0 || final === 8 ? '로' : '으로'
-}
-
 export const GROUP_TEXT = {
-  // after a region was saved on a results screen made without any (user 2026-10-19: "~했으니 ~하고싶으면 검색 버튼
-  // 눌러주세요"), followed by "[검색]을 눌러 주세요"
-  pickedBefore: (picked: ResultSearchContext['picked']) => {
-    if (!picked) return '지역을 바꿨어요. 바뀐 지역으로 찾으려면 '
-    if (picked.field === 'libraries') return '직접 추가한 도서관이 생겼어요. 그 도서관부터 보려면 '
-    const field = picked.field === 'residence' ? '사는 곳' : '일하는 곳'
-    return `${field}을 ${picked.place}${ro(picked.place)} 골랐어요. 그 지역 도서관부터 보려면 `
-  },
   mine: '내 도서관에 있어요',
   mineEmpty: '내 도서관에는 없어요',
   mineNote: (place: string | null) => (place ? `${place}에서 가입할 수 있는 곳과 직접 추가한 곳` : '직접 추가한 곳'),
@@ -95,9 +67,6 @@ export const GROUP_TEXT = {
   otherNote: '그 지역에 살거나 일해야 가입돼요',
   searchAll: '전국에서 찾기',
   searchAllMore: '전국에서 더 찾기',
-  green: (libraries: number | null) =>
-    `사는 곳을 고르지 않아 어디 살든 가입되는 도서관${libraries === null ? '' : ` ${libraries}곳`}에서 찾았어요. 사는 곳을 고르면 그 지역 도서관부터 보여요`,
-  pickRegions: '지역 설정',
 } as const
 
 interface Props {
@@ -142,7 +111,7 @@ interface Props {
   grouped?: boolean
   /** The pills after the library names (cycle 22 R6). */
   tags?: boolean
-  /** Grouped lists of the search screen: the green line, the 전국 links and the 방문 가입 buttons. */
+  /** Grouped lists of the search screen: the 전국 links and the 방문 가입 buttons. */
   searchContext?: ResultSearchContext
 }
 
@@ -348,8 +317,7 @@ function regionBasisOf(context: ResultSearchContext | undefined): RegionBasis {
 
 /**
  * ① ② ③ of a grouped list (R5): ① first, then ② and ③, each only when it has rows; ① also when empty, as "내 도서관에는
- * 없어요 (0)", once the first batch has answered a search made with regions or added libraries (R5-4). Above them the
- * green line of a search made without any (R7).
+ * 없어요 (0)", once the first batch has answered a search made with regions or added libraries (R5-4).
  */
 function Groups({
   batches,
@@ -391,26 +359,9 @@ function Groups({
           </span>
         )
     : null
-  const green = context && !context.hasMine && context.scope !== 'all' && !context.accountFailed
 
   return (
     <>
-      {green && (
-        <p className={styles.greenLine} role="status">
-          {context.regionsPicked ? (
-            <>
-              {GROUP_TEXT.pickedBefore(context.picked ?? null)}
-              <b>[검색]</b>을 눌러 주세요
-            </>
-          ) : (
-            <>
-              {GROUP_TEXT.green(context.planCount)}{' '}
-              {linkButton(GROUP_TEXT.pickRegions, context.onPickRegions)}
-            </>
-          )}
-        </p>
-      )}
-
       {mine.count > 0 ? (
         <GroupSection
           group={mine}

@@ -1,6 +1,6 @@
 /**
  * The header menus (cycle 21 spec R1, ADR-0127; user 2026-10-16: "폰이랑 pc랑 둘 다 탭에 도서검색 넣어줘"): the big
- * menus, each with its items (책첵이란? added 2026-10-19).
+ * menus, each with its items.
  */
 export const MENUS = [
   { key: 'search', label: '도서검색', items: [{ to: '/search', label: '전자책 검색' }] },
@@ -27,19 +27,16 @@ export const MENUS = [
 export type Menu = (typeof MENUS)[number]
 
 /**
- * Plain links after the menus, drawn as a big menu without a column on wide screens and as one item without a title
- * in the phone menu (책첵이란? → the static /about page, user 2026-10-19).
+ * 책첵이란? (the static /about page): a quiet grey link right next to the logo on every width, out of the menus and
+ * the phone menu (user 2026-10-19: "좀 더 회색으로 해서 좌상단 책첵 로고 바로 오른쪽에 오도록").
  */
-export const LINKS = [{ key: 'about', label: '책첵이란?', to: '/about' }] as const
-
-export type PlainLink = (typeof LINKS)[number]
+export const ABOUT_LINK = { label: '책첵이란?', to: '/about' } as const
 
 /** Open after the pointer rests this long, close this long after it leaves (spec R1-3, NN/g) [확정]. */
 export const MENU_DELAY_MS = 500
 
 /** Whether the screen at {@code pathname} is one of the menu's items (underlined big menu). */
-export function inMenu(pathname: string, menu: Menu | PlainLink) {
-  if (!('items' in menu)) return pathname === menu.to
+export function inMenu(pathname: string, menu: Menu) {
   if (menu.key === 'search') return pathname === '/' || pathname === '/search' || pathname.startsWith('/books/')
   return (
     menu.items.some((item) => pathname === item.to || pathname.startsWith(item.to + '/')) ||

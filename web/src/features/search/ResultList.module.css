@@ -400,27 +400,6 @@
   font-size: var(--text-sm);
 }
 
-/*
- * R7: a search without regions or added libraries, above the groups. A white card with a violet border like the
- * notices (user 2026-10-19: "초록색 말고 흰색에 보라테두리로"), no ×.
- */
-.greenLine {
-  margin-top: 0.9rem;
-  padding: 0.75rem 1.1rem;
-  border: 1px solid var(--brand);
-  border-radius: var(--radius-md);
-  background: var(--paper);
-  color: var(--ink);
-  font-size: var(--text-md);
-  font-weight: 700;
-  line-height: 1.5;
-  word-break: keep-all;
-}
-
-.greenLine .linkButton {
-  color: var(--brand-strong);
-}
-
 /* the list bottom's two buttons: 「결과 더 보기」 then 「전국에서 더 찾기」 */
 .bottomButtons {
   display: flex;
@@ -462,11 +441,6 @@
 
   .resultGroupNote::before {
     content: none;
-  }
-
-  .greenLine {
-    margin-top: 0;
-    font-size: var(--text-sm);
   }
 
   .bottomButtons {

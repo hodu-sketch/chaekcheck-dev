@@ -138,7 +138,7 @@
   }
 }
 
-/* PC: the steps card as the right column, beside the headline */
+/* PC: the steps card as the right column, beside the headline and the question */
 @media (width > 1024px) {
   .page[data-state='start'] .searchArea {
     display: grid;
@@ -167,10 +167,13 @@
     grid-row: 4;
   }
 
+  /* beside the eyebrow down to "어떤 책을 찾으세요?", its bottom just above the search box row (user 2026-10-19: "이 네모
+     위치를 맨 아래쪽이 검색칸 행 위에 오도록"); the search box, the condition card and its hint run below it */
   .page[data-state='start'] .steps {
     grid-column: 2;
-    grid-row: 1 / span 4;
-    margin: 4.2rem 0 0;
+    grid-row: 1 / span 2;
+    align-self: end;
+    margin: 0 0 0.6rem;
   }
 }
 

@@ -16,6 +16,29 @@ import styles from './LibraryScopeLine.module.css'
 /** Which grid the box opens on: 사는 곳, or the 일하는 곳 row ([일하는 곳도 더하기], flow S1). */
 export type BoxFocus = RegionField
 
+/** What was saved since a search made without regions or added libraries: a place with its field, or added libraries. */
+export type PickedSince = { field: 'residence' | 'work'; place: string } | { field: 'libraries' } | null
+
+/**
+ * The search on screen, for the condition card of a results screen (user 2026-10-19); only for a search made without
+ * regions or added libraries, not 전국 and not after a failed account read (the results' line R7 before).
+ */
+export interface ScopeSearched {
+  /** How many libraries the search planned (R7-1); null when not known, and the card goes without the number. */
+  planCount: number | null
+  /** Regions (or libraries) were saved since (R7-2): the grey line asks for [검색]. */
+  regionsPicked: boolean
+  picked: PickedSince
+}
+
+/** "로" after a vowel or ㄹ, else "으로" (서울 강서구로, 성남시로, … 외 2곳으로). */
+function ro(word: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  if (code < 0 || code > 11171) return '(으)로'
+  const final = code % 28
+  return final === 0 || final === 8 ? '로' : '으로'
+}
+
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
 export const SCOPE_TEXT = {
   pick: '지역 설정',
@@ -24,6 +47,21 @@ export const SCOPE_TEXT = {
   condition: (text: string) => `${text} 조건으로 찾아요`,
   edit: '조건 수정',
   conditionHint: '지역을 설정하면 내 지역 도서관까지 더 많이 찾아볼 수 있어요',
+  // a results screen of a search made without regions or added libraries (the results' own line before, user
+  // 2026-10-19: "이거 중복이라서 … 내용을 없애고 위에 좀 써줘"); {N} = the planned libraries, when known
+  conditionSearched: (count: number | null) =>
+    `지역 제한 없이 가입할 수 있는 도서관${count === null ? '' : ` ${count}곳`}에서 찾았어요`,
+  searchedHint: '지역을 설정하면 그 지역 도서관부터 보여요',
+  // after a region was saved on such a results screen (user 2026-10-19: "~했으니 ~하고싶으면 검색 버튼 눌러주세요"),
+  // followed by "[검색]을 눌러 주세요"
+  pickedBefore: (picked: PickedSince) => {
+    if (!picked) return '지역을 바꿨어요. 바뀐 지역으로 찾으려면 '
+    if (picked.field === 'libraries') return '직접 추가한 도서관이 생겼어요. 그 도서관부터 보려면 '
+    const field = picked.field === 'residence' ? '사는 곳' : '일하는 곳'
+    return `${field}을 ${picked.place}${ro(picked.place)} 골랐어요. 그 지역 도서관부터 보려면 `
+  },
+  pressSearch: '[검색]',
+  pressSearchAfter: '을 눌러 주세요',
   sheetTitle: '찾을 도서관',
   addWork: '일하는 곳도 더하기',
   mine: '내 도서관',
@@ -109,6 +147,8 @@ interface Common {
   openCount: number | null
   /** A new `openCount` was learnt (the box read the library list for the added libraries' names). */
   onOpenCount: (count: number) => void
+  /** A results screen of a search made without regions or added libraries; null or absent elsewhere. */
+  searched?: ScopeSearched | null
 }
 
 interface LineProps extends Common {
@@ -117,28 +157,51 @@ interface LineProps extends Common {
   onBoxChange: (box: BoxFocus | null) => void
 }
 
-/** The condition line's words and its link: none chosen, or the first residence and workplace (user 2026-10-19). */
-function useCondition(): { first: boolean; line: string; action: string } {
+/**
+ * The condition line's words, its link and the small grey line under it: none chosen, or the first residence and
+ * workplace (user 2026-10-19). On a results screen of a search made without any, the card says where it searched,
+ * and once a region was saved since, the grey line asks for [검색] (the results' own line before).
+ */
+function useCondition(searched: ScopeSearched | null | undefined): {
+  line: string
+  action: string
+  hint: ReactNode
+} {
   const text = useScopeLineText()
-  return text === null
-    ? { first: true, line: SCOPE_TEXT.conditionNone, action: SCOPE_TEXT.pick }
-    : { first: false, line: SCOPE_TEXT.condition(text), action: SCOPE_TEXT.edit }
+  if (text === null) {
+    return {
+      line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
+      action: SCOPE_TEXT.pick,
+      hint: searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint,
+    }
+  }
+  return {
+    line: SCOPE_TEXT.condition(text),
+    action: SCOPE_TEXT.edit,
+    hint: searched?.regionsPicked ? (
+      <span role="status">
+        {SCOPE_TEXT.pickedBefore(searched.picked)}
+        <b>{SCOPE_TEXT.pressSearch}</b>
+        {SCOPE_TEXT.pressSearchAfter}
+      </span>
+    ) : null,
+  }
 }
 
 /**
  * The condition line (first screen redesign, user 2026-10-19): a full-width white card with one bold line and a violet
- * link on the right ([지역 설정] or [조건 수정]); the link covers the whole card. Without regions a small grey line
- * under the card says what setting one adds.
+ * link on the right ([지역 설정] or [조건 수정]); the link covers the whole card. A small grey line under the card says
+ * what setting a region adds, or asks for [검색] after one was saved on a results screen.
  */
 function ConditionCard({
   textId,
   line,
-  first,
+  hint,
   children,
 }: {
   textId: string
   line: string
-  first: boolean
+  hint: ReactNode
   /** The link: a button whose accessible description is the line (`aria-describedby={textId}`). */
   children: ReactNode
 }) {
@@ -150,7 +213,7 @@ function ConditionCard({
         </p>
         {children}
       </div>
-      {first && <p className={styles.conditionHint}>{SCOPE_TEXT.conditionHint}</p>}
+      {hint && <p className={styles.conditionHint}>{hint}</p>}
     </div>
   )
 }
@@ -164,7 +227,7 @@ function ConditionCard({
  */
 export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
-  const condition = useCondition()
+  const condition = useCondition(common.searched)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
@@ -180,7 +243,7 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
     <div className={styles.root}>
       {/* a modal window in the middle of the screen (user 2026-10-19: "버튼 누르면 모달 창이 나와서 거기에서 고르도록") */}
       <Dialog.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
-        <ConditionCard textId={textId} line={condition.line} first={condition.first}>
+        <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
           <Dialog.Trigger className={styles.conditionAction} aria-describedby={textId}>
             {condition.action}
           </Dialog.Trigger>
@@ -230,9 +293,9 @@ interface ChipProps extends Common {
  * Phones (R2-1): the same condition card under the search box, always there; its link opens its own "찾을 도서관"
  * sheet (user 2026-10-19; it opened the settings sheet before). The account failure as on wider screens.
  */
-export function LibraryScopeChip({ onOpen }: ChipProps) {
+export function LibraryScopeChip({ onOpen, searched }: ChipProps) {
   const state = useLineState()
-  const condition = useCondition()
+  const condition = useCondition(searched)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
@@ -245,7 +308,7 @@ export function LibraryScopeChip({ onOpen }: ChipProps) {
   }
   return (
     <div className={styles.chipLine}>
-      <ConditionCard textId={textId} line={condition.line} first={condition.first}>
+      <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
         <button
           type="button"
           className={styles.conditionAction}

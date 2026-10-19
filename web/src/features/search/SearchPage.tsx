@@ -10,7 +10,13 @@ import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
-import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, type BoxFocus } from './LibraryScopeLine'
+import {
+  LibraryScopeChip,
+  LibraryScopeLine,
+  LibraryScopeSheet,
+  type BoxFocus,
+  type ScopeSearched,
+} from './LibraryScopeLine'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
@@ -255,7 +261,7 @@ export function SearchPage() {
     searchedResidence.length > 0 || searchedWork.length > 0 || (searchedWith?.libraryIds.length ?? 0) > 0
   const residencePlace = useRegionPlace(searchedResidence)
   const workPlace = useRegionPlace(searchedWork)
-  // the places saved now, for the line that asks for [검색] after a region was picked (R7-2)
+  // the places saved now, for the grey line that asks for [검색] after a region was picked (R7-2)
   const nowResidencePlace = useRegionPlace(regions.residence)
   const nowWorkPlace = useRegionPlace(regions.work)
   /**
@@ -283,23 +289,6 @@ export function SearchPage() {
             : 'both',
     scope,
     visit,
-    accountFailed,
-    // R7-1 {N}: the whole plan when this search knows it, else the kept count for the same inputs, else the number of
-    // 어디 살든 가입 libraries (a search without regions plans those, unless the visit-only ones are left out)
-    planCount:
-      knownPlan ??
-      shownPlanCount(prefs, searchedInputs) ??
-      (scope === 'joinable' && visit === 'any' ? prefs.openCount : null),
-    // R7-2: checked since a search made without any; the green line then asks for [검색]
-    regionsPicked: !searchedMine && (hasRegions(regions) || libraryIds.length > 0),
-    picked:
-      regions.residence.length > 0 && nowResidencePlace
-        ? { field: 'residence', place: nowResidencePlace }
-        : regions.work.length > 0 && nowWorkPlace
-          ? { field: 'work', place: nowWorkPlace }
-          : libraryIds.length > 0
-            ? { field: 'libraries' }
-            : null,
     onSearchAll: () => searchAgain((address) => address.set('scope', 'all')),
     onVisitNone: () => {
       keepPrefs({ visit: 'none' })
@@ -309,8 +298,35 @@ export function SearchPage() {
       keepPrefs({ visit: 'any' })
       searchAgain((address) => writeVisit('any', address))
     },
-    onPickRegions: () => openPicker('residence'),
   }
+  // the grouped results on screen (direct search, or 바로 보기), the ones that take `searchContext`
+  const groupedResults = (settings.direct && directValid && condition && searchedWith) || (bookQuery && settings.view !== 'books')
+  /**
+   * The condition card of a results screen of a search made without regions or added libraries, not 전국 and not after
+   * a failed account read (the results' own line R7 before, user 2026-10-19: "이거 중복이라서 … 위에 좀 써줘").
+   */
+  const scopeSearched: ScopeSearched | null =
+    groupedResults && !searchedMine && scope !== 'all' && !accountFailed
+      ? {
+          // R7-1 {N}: the whole plan when this search knows it, else the kept count for the same inputs, else the
+          // number of 어디 살든 가입 libraries (a search without regions plans those, unless the visit-only ones are
+          // left out)
+          planCount:
+            knownPlan ??
+            shownPlanCount(prefs, searchedInputs) ??
+            (scope === 'joinable' && visit === 'any' ? prefs.openCount : null),
+          // R7-2: checked since; the grey line under the card then asks for [검색]
+          regionsPicked: hasRegions(regions) || libraryIds.length > 0,
+          picked:
+            regions.residence.length > 0 && nowResidencePlace
+              ? { field: 'residence', place: nowResidencePlace }
+              : regions.work.length > 0 && nowWorkPlace
+                ? { field: 'work', place: nowWorkPlace }
+                : libraryIds.length > 0
+                  ? { field: 'libraries' }
+                  : null,
+        }
+      : null
 
   const bookLinkSearch = new URLSearchParams()
   writeFilter(filter, bookLinkSearch)
@@ -326,6 +342,7 @@ export function SearchPage() {
     planCount: prefs.planCount,
     openCount: prefs.openCount,
     onOpenCount: keepOpenCount,
+    searched: scopeSearched,
   }
 
   return (
