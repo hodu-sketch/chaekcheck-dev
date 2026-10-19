@@ -1,11 +1,18 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, fetchBook } from '../../api/client'
 import { holdingStream } from '../../api/searchStream'
 import type { HoldingStreamEvent, TargetLibrary } from '../../api/types'
 import { BookPage } from './BookPage'
+
+/** The place names of the regions are read through React Query. */
+function withQuery(children: ReactNode) {
+  return <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{children}</QueryClientProvider>
+}
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
 
@@ -25,12 +32,12 @@ describe('book that is not found', () => {
     vi.mocked(fetchBook).mockRejectedValue(
       new ApiError(404, { title: 'Not Found', status: 404, code: 'book_not_found' }),
     )
-    render(
+    render(withQuery(
       <MemoryRouter initialEntries={['/books/9999999']}>
         <Routes>
           <Route path="/books/:bookId" element={<BookPage />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>),
     )
     expect(await screen.findByText('책을 찾을 수 없어요')).toBeTruthy()
     expect(screen.getByText('도서관 목록을 새로 받으면서 빠진 책일 수 있어요. 다시 검색해 주세요.')).toBeTruthy()
@@ -45,12 +52,12 @@ describe('scope', () => {
   function renderAt(address: string) {
     vi.mocked(fetchBook).mockReset()
     vi.mocked(fetchBook).mockReturnValue(new Promise(() => {}))
-    render(
+    render(withQuery(
       <MemoryRouter initialEntries={[address]}>
         <Routes>
           <Route path="/books/:bookId" element={<BookPage />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>),
     )
   }
 
@@ -73,7 +80,7 @@ describe('scope', () => {
 
 /** Cycle 22 (D9, AC-17): the book page keeps its list as it was, without result groups or pills. */
 describe('holdings list', () => {
-  it('has no result groups and no pills', async () => {
+  it('has the result groups and pills of 바로 보기 (user 2026-10-19)', async () => {
     const library: TargetLibrary = {
       id: 1,
       name: '가 도서관',
@@ -149,16 +156,16 @@ describe('holdings list', () => {
       ]
       for (const event of events) onEvent(event)
     })
-    render(
+    render(withQuery(
       <MemoryRouter initialEntries={['/books/5001']}>
         <Routes>
           <Route path="/books/:bookId" element={<BookPage />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>),
     )
     expect(await screen.findByRole('heading', { name: '지금 빌릴 수 있어요 (1)' })).toBeTruthy()
-    expect(screen.queryByText(/어디 살든 가입되는 도서관에 있어요/)).toBeNull()
-    expect(screen.queryByRole('button', { name: '방문 가입' })).toBeNull()
+    expect(screen.getByText(/어디 살든 가입되는 도서관에 있어요/)).toBeTruthy()
+    expect(screen.getByText('방문 가입').getAttribute('data-tone')).toBe('visit')
     expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
 
     // the library name opens the join guide window here too (user 2026-10-19)

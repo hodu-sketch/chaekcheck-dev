@@ -5,9 +5,10 @@ import type { BookDetail, ResultFilter } from '../../api/types'
 import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
 import { readScope } from '../search/readScope'
-import { loadPrefs, readVisit, savePrefs } from '../search/searchSettings'
+import { loadPrefs, readVisit, savePrefs, writeVisit } from '../search/searchSettings'
 import { holdingBatchViews } from '../search/holdingView'
-import { ResultList } from '../search/ResultList'
+import { ResultList, type ResultSearchContext } from '../search/ResultList'
+import { useRegionPlace } from '../search/regionPlace'
 import { useHoldings } from '../search/useHoldings'
 import styles from './BookPage.module.css'
 import { ChevronLeft } from '../../components/icons'
@@ -39,6 +40,8 @@ function BookView({ bookId }: { bookId: string }) {
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
   const libraryKey = libraryIds.join(',')
+  const residencePlace = useRegionPlace(regions.residence.slice(0, 1))
+  const workPlace = useRegionPlace(regions.work.slice(0, 1))
 
   const holdings = useHoldings()
   const { open } = holdings
@@ -124,6 +127,28 @@ function BookView({ bookId }: { bookId: string }) {
   }
 
   const loadingBatch = holdings.state.batches.at(-1)
+  // the same groups' small texts and buttons as on 바로 보기 (user 2026-10-19), for this book's own address
+  const searchAgain = (change: (address: URLSearchParams) => void) => {
+    const address = new URLSearchParams(params)
+    change(address)
+    setParams(address)
+  }
+  const searchContext: ResultSearchContext = {
+    hasMine: residenceKey !== '' || workKey !== '' || libraryKey !== '',
+    mineLabel: residencePlace ?? workPlace,
+    regionBasis: residenceKey && workKey ? 'both' : workKey ? 'work' : residenceKey ? 'residence' : 'both',
+    scope,
+    visit,
+    onSearchAll: () => searchAgain((address) => address.set('scope', 'all')),
+    onVisitNone: () => {
+      savePrefs({ visit: 'none' })
+      searchAgain((address) => writeVisit('none', address))
+    },
+    onVisitBack: () => {
+      savePrefs({ visit: 'any' })
+      searchAgain((address) => writeVisit('any', address))
+    },
+  }
   const changeFilter = (next: ResultFilter) => {
     savePrefs({ filter: next })
     setParams(writeFilter(next, new URLSearchParams(params)), { replace: true })
@@ -145,8 +170,11 @@ function BookView({ bookId }: { bookId: string }) {
       ) : (
         <ResultList
           screen="book_page"
-          // no result groups or pills on the book page (cycle 22 D9, AC-17)
-          grouped={false}
+          // the groups and pills as on 바로 보기 (user 2026-10-19: "책 먼저 고르기 … 바로 보기일 때 보이는 걸로 맞춰줘",
+          // "방문 가입이 안 보여"; cycle 22 D9 left them out)
+          grouped
+          tags
+          searchContext={searchContext}
           batches={holdingBatchViews(holdings.state, filter)}
           filter={filter}
           onFilterChange={changeFilter}
