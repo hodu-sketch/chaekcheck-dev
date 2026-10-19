@@ -1,18 +1,11 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
-import type { BookRole, SearchField } from '../../api/types'
+import type { SearchField } from '../../api/types'
 import { checkQuery, normalizeQuery, QUERY_MAX_LENGTH, QUERY_MIN_LENGTH, type QueryProblem } from '../../lib/query'
-import {
-  BOOK_ROLES,
-  EMPTY_INPUT,
-  FIELD_LABELS,
-  filledFields,
-  ROLE_LABELS,
-  type BookSearchInput,
-} from './searchCondition'
-import { DIRECT_REASON, type SearchSettings } from './searchSettings'
+import { NarrowChips, type NarrowResult } from './NarrowChips'
+import { EMPTY_INPUT, FIELD_LABELS, filledFields, type BookSearchInput } from './searchCondition'
+import type { SearchSettings } from './searchSettings'
 import { SettingsPanel } from './SettingsPanel'
 import styles from './SearchForm.module.css'
-import { ChevronDown, ChevronUp, MenuLines } from '../../components/icons'
 
 const MESSAGES: Record<Exclude<QueryProblem, null>, string> = {
   too_short: `${QUERY_MIN_LENGTH}글자 이상 입력하세요`,
@@ -26,7 +19,7 @@ type Props = {
   /** Conditions from the address, or the empty form. */
   initial: BookSearchInput
   settings: SearchSettings
-  /** Results are shown: changing exact match or roles then searches again at once [안]. */
+  /** Results are shown: the narrowing chips are there, and each change searches again at once [안]. */
   hasResults: boolean
   /**
    * The first screen (`/` before a search): the box takes its column's width, with a filled violet [검색]; `/search`
@@ -39,15 +32,16 @@ type Props = {
   settingsSheet?: boolean
   /** Phones: the "내 도서관" chip, on its own line right under the title box (cycle 22 R2-1). */
   chip?: ReactNode
-  /** Phones: the sort, at the right end of the "상세검색 · 설정" line (user request 2026-10-05). */
+  /** Phones: the sort, at the right end of the settings line (user request 2026-10-05). */
   lineEnd?: ReactNode
 }
 
 /**
- * S1 search area (flow.md cycle 04): one title box with [검색], "상세검색" for author and publisher, a "완전 일치"
- * check per field, author roles, and ⚙ for S4. No condition dropdown [확정]. Empty fields are left out; at least one
- * is needed; each filled field must be 2 to 50 characters (cycle 01 rule). With "도서관에서 직접 찾기" on, what the
- * site search cannot use is dimmed with a short reason, and only the first filled field is searched.
+ * S1 search area (flow.md cycle 04; 상세검색 안 C, user 2026-10-19): one title box with [검색] and ⚙ for S4. Before a
+ * search that is all; with results, chips under the box narrow the search (author, publisher, 완전 일치, author
+ * roles) and search again at once. No condition dropdown [확정]. Empty fields are left out; at least one is needed;
+ * each filled field must be 2 to 50 characters (cycle 01 rule). With "도서관에서 직접 찾기" on, the chips are dimmed
+ * with a short reason, and only the first filled field is searched.
  */
 export function SearchForm({
   initial,
@@ -62,63 +56,44 @@ export function SearchForm({
 }: Props) {
   const id = useId()
   const [input, setInput] = useState<BookSearchInput>(initial)
-  // checks alone (from the address) do not open 상세검색 before a search
-  const [expanded, setExpanded] = useState(() =>
-    Boolean(initial.author || initial.publisher || (hasResults && (initial.exact.length || initial.roles.length))),
-  )
   const [problems, setProblems] = useState<Problems>(() => addressProblems(initial))
   const direct = settings.direct
 
-  const trySearch = (next: BookSearchInput) => {
-    const normalized: BookSearchInput = {
-      ...next,
-      title: normalizeQuery(next.title),
-      author: direct ? '' : normalizeQuery(next.author),
-      publisher: direct ? '' : normalizeQuery(next.publisher),
-    }
+  const normalize = (next: BookSearchInput): BookSearchInput => ({
+    ...next,
+    title: normalizeQuery(next.title),
+    author: direct ? '' : normalizeQuery(next.author),
+    publisher: direct ? '' : normalizeQuery(next.publisher),
+  })
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    const normalized = normalize(input)
     const found = check(normalized)
     setProblems(found)
     if (Object.keys(found).length === 0) onSearch(normalized)
   }
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    trySearch(input)
+  const setTitle = (text: string) => {
+    setInput((current) => ({ ...current, title: text }))
+    if (problems.title || problems.none) setProblems({})
   }
 
-  const setText = (field: SearchField, text: string) => {
-    setInput((current) => ({ ...current, [field]: text }))
-    if (problems[field] || problems.none) setProblems({})
-  }
-
-  // with results a changed option searches again right away [안]; before a search nothing is sent [안]
-  const setOption = (next: BookSearchInput) => {
+  // a chip change searches again at once [안]; a problem of the changed field is shown in its small window
+  const narrow = (next: BookSearchInput, field?: SearchField): NarrowResult => {
+    const normalized = normalize(next)
+    const found = check(normalized)
+    setProblems(found)
+    if (Object.keys(found).length > 0) return { done: false, message: field ? found[field] : undefined }
     setInput(next)
-    if (hasResults) trySearch(next)
+    onSearch(normalized)
+    return { done: true }
   }
-
-  const toggleExact = (field: SearchField, on: boolean) =>
-    setOption({ ...input, exact: on ? [...input.exact, field] : input.exact.filter((f) => f !== field) })
-  const toggleRole = (role: BookRole, on: boolean) =>
-    setOption({ ...input, roles: on ? [...input.roles, role] : input.roles.filter((r) => r !== role) })
 
   const errorId = (field: SearchField | 'none') => `${id}-${field}-error`
-  const fieldError = (field: SearchField) =>
-    problems[field] && (
-      <p id={errorId(field)} className={styles.error} role="alert">
-        {problems[field]}
-      </p>
-    )
-  const exactBox = (field: SearchField) => (
-    <label className={styles.check}>
-      <input
-        type="checkbox"
-        checked={input.exact.includes(field)}
-        disabled={direct}
-        onChange={(event) => toggleExact(field, event.target.checked)}
-      />
-      완전 일치<span className="visually-hidden"> ({FIELD_LABELS[field]})</span>
-    </label>
+  // with results the author and publisher problems are shown in their chip's window; before, under the box
+  const shownProblems = (['title', 'author', 'publisher'] as const).filter(
+    (field) => problems[field] && (field === 'title' || !hasResults),
   )
 
   return (
@@ -139,34 +114,14 @@ export function SearchForm({
             autoComplete="off"
             aria-invalid={problems.title ? true : undefined}
             aria-describedby={problems.title ? errorId('title') : problems.none ? errorId('none') : undefined}
-            onChange={(event) => setText('title', event.target.value)}
+            onChange={(event) => setTitle(event.target.value)}
           />
           <button type="submit" className={styles.submit}>
             검색
           </button>
         </div>
         {chip && <div className={styles.chipSlot}>{chip}</div>}
-        <button
-          type="button"
-          className={styles.moreButton}
-          aria-expanded={expanded}
-          aria-controls={`${id}-more`}
-          aria-label="상세검색"
-          onClick={() => setExpanded((open) => !open)}
-        >
-          <span className={styles.moreIcon} aria-hidden="true">
-            <MenuLines />
-          </span>
-          <span className={styles.moreLabel}>상세검색</span>
-          <span className={styles.caret} aria-hidden="true">
-            {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          </span>
-        </button>
-        <SettingsPanel
-          settings={settings}
-          onChange={onSettingsChange}
-          sheet={settingsSheet}
-        />
+        <SettingsPanel settings={settings} onChange={onSettingsChange} sheet={settingsSheet} />
         {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>
       {problems.none && (
@@ -174,70 +129,12 @@ export function SearchForm({
           {problems.none}
         </p>
       )}
-      {fieldError('title')}
-
-      {expanded && (
-        <div id={`${id}-more`} className={styles.more} data-direct={direct || undefined}>
-          {direct && <p className={styles.reason}>{DIRECT_REASON}</p>}
-          <div className={styles.row}>
-            <span className={styles.rowLabel}>제목</span>
-            {exactBox('title')}
-          </div>
-          <div className={styles.row}>
-            <label htmlFor={`${id}-author`} className={styles.rowLabel}>
-              저자
-            </label>
-            <input
-              id={`${id}-author`}
-              name="author"
-              type="search"
-              className={styles.smallInput}
-              value={input.author}
-              maxLength={QUERY_MAX_LENGTH}
-              disabled={direct}
-              autoComplete="off"
-              aria-invalid={problems.author ? true : undefined}
-              aria-describedby={problems.author ? errorId('author') : undefined}
-              onChange={(event) => setText('author', event.target.value)}
-            />
-            {exactBox('author')}
-            <span className={styles.roles} role="group" aria-label="저자 역할 더하기">
-              {BOOK_ROLES.map((role) => (
-                <label key={role} className={styles.check}>
-                  <input
-                    type="checkbox"
-                    checked={input.roles.includes(role)}
-                    disabled={direct}
-                    onChange={(event) => toggleRole(role, event.target.checked)}
-                  />
-                  {ROLE_LABELS[role]}
-                </label>
-              ))}
-            </span>
-          </div>
-          {fieldError('author')}
-          <div className={styles.row}>
-            <label htmlFor={`${id}-publisher`} className={styles.rowLabel}>
-              출판사
-            </label>
-            <input
-              id={`${id}-publisher`}
-              name="publisher"
-              type="search"
-              className={styles.smallInput}
-              value={input.publisher}
-              maxLength={QUERY_MAX_LENGTH}
-              disabled={direct}
-              autoComplete="off"
-              aria-invalid={problems.publisher ? true : undefined}
-              aria-describedby={problems.publisher ? errorId('publisher') : undefined}
-              onChange={(event) => setText('publisher', event.target.value)}
-            />
-            {exactBox('publisher')}
-          </div>
-          {fieldError('publisher')}
-        </div>
-      )}
+      {shownProblems.map((field) => (
+        <p key={field} id={errorId(field)} className={styles.error} role="alert">
+          {field === 'title' ? problems[field] : `${FIELD_LABELS[field]}: ${problems[field]}`}
+        </p>
+      ))}
+      {hasResults && <NarrowChips input={input} searched={initial} direct={direct} onNarrow={narrow} />}
     </form>
   )
 }

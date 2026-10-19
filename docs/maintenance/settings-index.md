@@ -17,7 +17,7 @@
 | 책 기준 검색 기본 쪽 크기 | 10 (최대 20은 코드 상수 `BookParams.MAX_PAGE_SIZE` 그대로) | `chaekcheck.catalog.books.default-page-size` | `CHAEKCHECK_CATALOG_BOOKS_DEFAULTPAGESIZE` | 웹은 `pageSize`를 보내지 않음(검토 #30) | 첫 쪽 책 10권 → 대출 상태 조회가 10권 범위 | ADR-0132, spec R15, 세 관점 검토 #23·#30 | 서비스 |
 | 해석 자리 수 | 8 | `chaekcheck.availability.parse-slots.max` | `CHAEKCHECK_AVAILABILITY_PARSESLOTS_MAX` | 동시 검색 자리 40(힙 어림), 2단계 확장 올리기도 같은 자리 | 1MB 쪽 해석 실측 7.4MB → 상한 없이 동시 해석하면 힙 512MB를 넘을 수 있음 | 사이클 20 전반 점검 #4, plan `settings-index.md` 6-1절 | 서비스 |
 | 해석 자리 기다림 | 2s | `chaekcheck.availability.parse-slots.max-wait` | `CHAEKCHECK_AVAILABILITY_PARSESLOTS_MAXWAIT` | — | 본문이 다 온 뒤 자리를 최대 2초 기다리고, 못 얻으면 그 도서관만 실패(`parse_busy`) | 전반 점검 #4 | 서비스 |
-| 상태 응답 메모 | 1s | `chaekcheck.availability.lookup-status.memo` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_MEMO` | 웹의 상태 묻는 간격 10초(`VITE_LOOKUP_STATUS_POLL_SECONDS`) | 같은 1초 안의 요청은 계산 한 번의 값을 받음 | spec 입력·출력 표, ADR-0118 | 서비스 |
+| 상태 응답 메모 | 1s | `chaekcheck.availability.lookup-status.memo` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_MEMO` | — (웹은 이제 상태를 묻지 않음: 헤더 상태 불과 10초 묻기는 사용자 결정 2026-10-19로 뺐음. `/api/v1/lookup-status`는 서버에 남음) | 같은 1초 안의 요청은 계산 한 번의 값을 받음 | spec 입력·출력 표, ADR-0118 | 서비스 |
 | 503 뒤 빨강 | 10s | `chaekcheck.availability.lookup-status.red-after-refusal` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_REDAFTERREFUSAL` | — | 최근 10초 안에 `server_busy`를 한 번이라도 냈으면 빨강 | spec R1 | 서비스 |
 | DB 오류면 회색 | 30s | `chaekcheck.availability.lookup-status.gray-after-db-error` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_GRAYAFTERDBERROR` | — | 최근 30초 안에 DB 오류(`DataAccessException`·`CannotCreateTransactionException`)가 있었으면 `GRAY`·`DB_ERROR`, 다른 모든 판정보다 앞섬 | 전반 점검 #9, 설계 검토 #4 | 서비스 |
 | 줄 선 도서관: 기다림을 세는 시간 | 10s | `chaekcheck.availability.lookup-status.queue-wait-window` | `CHAEKCHECK_AVAILABILITY_LOOKUPSTATUS_QUEUEWAITWINDOW` | 묶음 마감 `batch.deadline` 8s (10초 = 8초 + 2초; 마감을 바꾸면 함께) | 시작한 지 10초 지난 기다림은 세지 않아 짝이 어긋나도 「밀려요」가 저절로 사라짐 | 전반 점검 #3, spec R4 | 서비스 |
@@ -47,11 +47,10 @@
 
 ## 3. 웹 · 확장
 
-- 웹 값은 빌드 때 `VITE_*`, 확장 값은 `extension/config.js` 한 파일(2단계) — 둘 다 다시 빌드·다시 깔아야 바뀝니다. 웹은 `web/.env.local`에 적습니다(`.env.example` 없음).
+- 웹 값은 빌드 때 `VITE_*`, 확장 값은 `extension/config.js` 한 파일(2단계) — 둘 다 다시 빌드·다시 깔아야 바뀝니다. 웹은 `web/.env.local`에 적습니다(`.env.example` 없음). 웹의 상태 묻는 간격 `VITE_LOOKUP_STATUS_POLL_SECONDS`(`web/src/api/lookupStatus.ts`)는 헤더 상태 불과 함께 뺐습니다(사용자 결정 2026-10-19) — 이제 쓰지 않는 값입니다.
 
 | 값 | 지금 값 | 어디 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 할 것 |
 |---|---|---|---|---|---|---|
-| 상태 묻는 간격 | 10초 | `VITE_LOOKUP_STATUS_POLL_SECONDS` (`web/src/api/lookupStatus.ts`) | 서버 상태 메모 1초(1절) | 탭이 보일 때만 묻고, 마지막 성공 뒤 30초(`LOOKUP_STATUS_STALE_MS`, 코드 상수)가 지나면 회색 | spec R1·R5, ADR-0118 | 웹 빌드 |
 | 바로 보기 묶음 크기 (사이클 17, 자동 이어 부르기를 대신함) | 10 | `chaekcheck.availability.batch.holding-batch-size` | 묶음 하나가 묻는 소장 줄 = 우리 DB 순서(책 순서, 그다음 도서관 순서)로 다음 10개. 필터와 상관없이 셈. 화면은 검색 한 번에 1묶음, 「더 보기」마다 1묶음(자동 이어 부르기 없음, `VITE_HOLDING_AUTO_BATCHES` 없앰) | 검색 한 번에 여는 상세 페이지를 10개 안팎으로(전에는 보이는 책의 도서관 전부, 3묶음 자동 → 책 한 권이 105곳이면 40곳 넘게) | 사용자 결정 2026-10-18("결과를 10개 정도 타겟", "db결과대로 이어서"), 사이클 20 R15-1을 바꿈 | 서비스 |
 
 ## 4. 코드 상수 (설정이 아닌 것)

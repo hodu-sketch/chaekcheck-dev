@@ -32,115 +32,184 @@ function setup(props: Partial<Parameters<typeof SearchForm>[0]> = {}) {
   return { onSearch, onSettingsChange, user: userEvent.setup() }
 }
 
-const titleBox = () => screen.getByRole('searchbox', { name: '책 제목' })
-const moreButton = () => screen.getByRole('button', { name: '상세검색' })
-const box = (name: string) => screen.getByRole('searchbox', { name }) as HTMLInputElement
-const check = (name: string | RegExp) => screen.getByRole('checkbox', { name }) as HTMLInputElement
+/** A results screen of the given conditions. */
+function results(conditions: Partial<typeof EMPTY_INPUT>, props: Partial<Parameters<typeof SearchForm>[0]> = {}) {
+  return setup({ initial: { ...EMPTY_INPUT, ...conditions }, hasResults: true, ...props })
+}
 
-describe('SearchForm (cycle 04 AC-1)', () => {
-  it('shows one title box, "상세검색" and settings, and no condition dropdown', () => {
+const titleBox = () => screen.getByRole('searchbox', { name: '책 제목' })
+const button = (name: string | RegExp) => screen.getByRole('button', { name }) as HTMLButtonElement
+const searchButton = () => button('검색')
+const box = (name: string) => screen.getByRole('searchbox', { name }) as HTMLInputElement
+
+describe('SearchForm: the first screen (상세검색 안 C, user 2026-10-19)', () => {
+  it('shows one title box, [검색] and settings only: no 상세검색, no chips, no condition dropdown', () => {
     setup()
 
     expect(titleBox().getAttribute('placeholder')).toBe('책 제목을 입력하세요')
-    expect(moreButton().getAttribute('aria-expanded')).toBe('false')
-    expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
+    expect(searchButton()).toBeTruthy()
+    expect(button('검색 설정')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '상세검색' })).toBeNull()
+    expect(screen.queryByRole('group', { name: '검색 좁히기' })).toBeNull()
     expect(screen.queryByRole('combobox')).toBeNull()
     expect(screen.queryByRole('searchbox', { name: '저자' })).toBeNull()
   })
 
-  it('"상세검색" shows author and publisher; opening does not search [안]', async () => {
-    const { user, onSearch } = setup()
-
-    await user.click(moreButton())
-
-    expect(box('저자')).toBeTruthy()
-    expect(box('출판사')).toBeTruthy()
-    expect(check('옮긴이').checked).toBe(false)
-    expect(check('그림').checked).toBe(false)
-    expect(check('엮은이').checked).toBe(false)
-    expect(onSearch).not.toHaveBeenCalled()
-  })
-
-  it('searches every filled field, normalized; empty fields are left out', async () => {
+  it('searches the title, normalized', async () => {
     const { user, onSearch } = setup()
 
     await user.type(titleBox(), '  행동  ')
-    await user.click(moreButton())
-    await user.type(box('저자'), '새폴스키')
-    await user.click(check(/완전 일치.*저자/))
-    await user.click(check('옮긴이'))
-    await user.click(screen.getByRole('button', { name: '검색' }))
+    await user.click(searchButton())
 
-    expect(onSearch).toHaveBeenCalledWith({
-      title: '행동',
-      author: '새폴스키',
-      publisher: '',
-      exact: ['author'],
-      roles: ['translator'],
-      sort: 'default',
-    })
-  })
-
-  it('an author alone can be searched', async () => {
-    const { user, onSearch } = setup()
-
-    await user.click(moreButton())
-    await user.type(box('저자'), '김달')
-    await user.click(screen.getByRole('button', { name: '검색' }))
-
-    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '', author: '김달' }))
+    expect(onSearch).toHaveBeenCalledWith({ ...EMPTY_INPUT, title: '행동' })
   })
 
   it('no filled field: "검색어를 입력하세요" and nothing is sent', async () => {
     const { user, onSearch } = setup()
 
-    await user.click(screen.getByRole('button', { name: '검색' }))
+    await user.click(searchButton())
 
     expect(screen.getByRole('alert').textContent).toContain('검색어를 입력하세요')
     expect(onSearch).not.toHaveBeenCalled()
   })
 
-  it('a filled field shorter than 2 characters gets the cycle 01 message under it', async () => {
+  it('a title shorter than 2 characters gets the cycle 01 message', async () => {
     const { user, onSearch } = setup()
 
-    await user.type(titleBox(), '행동')
-    await user.click(moreButton())
+    await user.type(titleBox(), '행')
+    await user.click(searchButton())
+
+    expect(screen.getByRole('alert').textContent).toContain('2글자 이상 입력하세요')
+    expect(titleBox().getAttribute('aria-invalid')).toBe('true')
+    expect(onSearch).not.toHaveBeenCalled()
+  })
+
+  it('a too short author from the address is named under the box', () => {
+    setup({ initial: { ...EMPTY_INPUT, title: '행동', author: '김' } })
+
+    expect(screen.getByRole('alert').textContent).toBe('저자: 2글자 이상 입력하세요')
+  })
+})
+
+describe('SearchForm: the narrowing chips on the results', () => {
+  it('shows 저자, 출판사 and 제목 정확히; the roles only once an author is set', () => {
+    results({ title: '소년이 온다' })
+
+    expect(button('저자')).toBeTruthy()
+    expect(button('출판사')).toBeTruthy()
+    expect(button('제목 정확히').getAttribute('aria-pressed')).toBe('false')
+    expect(screen.queryByRole('button', { name: '옮긴이 포함' })).toBeNull()
+  })
+
+  it('저자 opens a small box; [적용] searches again at once with the author', async () => {
+    const { user, onSearch } = results({ title: '행동' })
+
+    await user.click(button('저자'))
+    expect(onSearch).not.toHaveBeenCalled()
+    await user.type(box('저자'), ' 새폴스키 ')
+    await user.click(screen.getByRole('checkbox', { name: '완전 일치' }))
+    await user.click(button('적용'))
+
+    expect(onSearch).toHaveBeenCalledWith({ ...EMPTY_INPUT, title: '행동', author: '새폴스키', exact: ['author'] })
+    expect(screen.queryByRole('searchbox', { name: '저자' })).toBeNull()
+  })
+
+  it('Enter in the small box applies it too, and does not submit the title search twice', async () => {
+    const { user, onSearch } = results({ title: '행동' })
+
+    await user.click(button('출판사'))
+    await user.type(box('출판사'), '문학동네{Enter}')
+
+    expect(onSearch).toHaveBeenCalledTimes(1)
+    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '행동', publisher: '문학동네' }))
+  })
+
+  it('a too short value stays in the small box with the message, nothing is sent', async () => {
+    const { user, onSearch } = results({ title: '행동' })
+
+    await user.click(button('출판사'))
     await user.type(box('출판사'), '문')
-    await user.click(screen.getByRole('button', { name: '검색' }))
+    await user.click(button('적용'))
 
     expect(screen.getByRole('alert').textContent).toContain('2글자 이상 입력하세요')
     expect(box('출판사').getAttribute('aria-invalid')).toBe('true')
     expect(onSearch).not.toHaveBeenCalled()
   })
 
-  it('opens with the address conditions; with results a changed check searches again [안]', async () => {
-    const initial = { ...EMPTY_INPUT, title: '행동', author: '새폴스키' }
-    const { user, onSearch } = setup({ initial, hasResults: true })
+  it('a set value is a filled chip "저자: 한강"; × clears it, with its roles, and searches again', async () => {
+    const { user, onSearch } = results({ title: '소년이 온다', author: '한강', exact: ['author'], roles: ['translator'] })
 
-    expect(moreButton().getAttribute('aria-expanded')).toBe('true')
-    await user.click(check(/완전 일치.*제목/))
+    expect(button(/^저자: 한강/)).toBeTruthy()
+    await user.click(button('저자 지우기'))
+
+    expect(onSearch).toHaveBeenCalledWith({ ...EMPTY_INPUT, title: '소년이 온다' })
+  })
+
+  it('the only field cannot be cleared: "검색어를 입력하세요" and nothing is sent', async () => {
+    const { user, onSearch } = results({ author: '김달' })
+
+    await user.click(button('저자 지우기'))
+
+    expect(screen.getByRole('alert').textContent).toContain('검색어를 입력하세요')
+    expect(onSearch).not.toHaveBeenCalled()
+  })
+
+  it('an author alone can be searched; 제목 정확히 is not shown without a title', () => {
+    results({ author: '김달' })
+
+    expect(button(/^저자: 김달/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '제목 정확히' })).toBeNull()
+  })
+
+  it('제목 정확히 is a toggle that searches again at once', async () => {
+    const { user, onSearch } = results({ title: '행동', author: '새폴스키' })
+
+    await user.click(button('제목 정확히'))
 
     expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '행동', author: '새폴스키', exact: ['title'] }))
   })
 
-  it('direct search dims what the site search cannot use, with the reason', async () => {
-    const { user, onSearch } = setup({ settings: { view: 'instant', direct: true } })
+  it('a role chip is a toggle that searches again at once; on, it is pressed', async () => {
+    const { user, onSearch } = results({ title: '행동', author: '새폴스키', roles: ['illustrator'] })
 
-    await user.click(moreButton())
+    expect(button('그림 포함').getAttribute('aria-pressed')).toBe('true')
+    await user.click(button('옮긴이 포함'))
 
-    expect(screen.getByText(DIRECT_REASON)).toBeTruthy()
-    expect(box('저자').disabled).toBe(true)
-    expect(check(/완전 일치.*제목/).disabled).toBe(true)
-    expect(check('옮긴이').disabled).toBe(true)
-    await user.type(titleBox(), '사랑')
-    await user.click(screen.getByRole('button', { name: '검색' }))
-    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '사랑', author: '' }))
+    expect(onSearch).toHaveBeenLastCalledWith(
+      expect.objectContaining({ author: '새폴스키', roles: ['illustrator', 'translator'] }),
+    )
+    await user.click(button('엮은이 포함'))
+    expect(onSearch).toHaveBeenLastCalledWith(expect.objectContaining({ roles: ['illustrator', 'translator', 'editor'] }))
   })
 
+  it('[검색] keeps the narrowing shown in the chips', async () => {
+    const { user, onSearch } = results({ title: '행동', publisher: '문학동네' })
+
+    await user.clear(titleBox())
+    await user.type(titleBox(), '사랑')
+    await user.click(searchButton())
+
+    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '사랑', publisher: '문학동네' }))
+  })
+
+  it('direct search dims the chips with the reason and searches the title only', async () => {
+    const { user, onSearch } = results({ title: '사랑', author: '김달' }, { settings: { view: 'instant', direct: true } })
+
+    expect(screen.getByText(DIRECT_REASON)).toBeTruthy()
+    expect(button(/^저자: 김달/).disabled).toBe(true)
+    expect(button('출판사').disabled).toBe(true)
+    expect(button('제목 정확히').disabled).toBe(true)
+    expect(button('옮긴이 포함').disabled).toBe(true)
+    await user.click(searchButton())
+    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '사랑', author: '' }))
+  })
+})
+
+describe('SearchForm: settings', () => {
   it('settings change at once', async () => {
     const { user, onSettingsChange } = setup()
 
-    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    await user.click(button('검색 설정'))
     await user.click(screen.getByRole('radio', { name: /책 먼저 고르기/ }))
     expect(onSettingsChange).toHaveBeenLastCalledWith({ view: 'books', direct: false })
 
@@ -151,7 +220,7 @@ describe('SearchForm (cycle 04 AC-1)', () => {
   it('with direct search on, 책 먼저 고르기 cannot be chosen [안]', async () => {
     const { user } = setup({ settings: { view: 'instant', direct: true } })
 
-    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    await user.click(button('검색 설정'))
 
     expect((screen.getByRole('radio', { name: /책 먼저 고르기/ }) as HTMLButtonElement).disabled).toBe(true)
   })
@@ -159,16 +228,16 @@ describe('SearchForm (cycle 04 AC-1)', () => {
 
 /** Cycle 22 R2-1: on phones the "내 도서관" chip sits on its own line right under the title box. */
 describe('the phone chip', () => {
-  it('comes right after the title box, before 상세검색 and the settings', () => {
+  it('comes right after the title box, before the settings', () => {
     setup({ chip: <button type="button">내 도서관: 서울 강남구 · 68곳</button> })
-    const chip = screen.getByRole('button', { name: '내 도서관: 서울 강남구 · 68곳' })
+    const chip = button('내 도서관: 서울 강남구 · 68곳')
     expect(titleBox().compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(chip.compareDocumentPosition(moreButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(chip.compareDocumentPosition(button('검색 설정')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('the ⚙ sheet on phones has no "찾을 도서관" (the chip has its own sheet, user 2026-10-19)', async () => {
     const { user } = setup({ settingsSheet: true, chip: <button type="button">지역 설정</button> })
-    await user.click(screen.getByRole('button', { name: '검색 설정' }))
+    await user.click(button('검색 설정'))
     const sheet = screen.getByRole('dialog', { name: '검색 설정' })
     expect(screen.getByTestId('sheet-handle')).toBeTruthy()
     expect(sheet.textContent).not.toContain('찾을 도서관')

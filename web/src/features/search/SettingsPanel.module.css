@@ -234,7 +234,7 @@ legend.legend + * {
   border-top: 1px solid var(--paper-deep);
 }
 
-/* phones: on the second line beside "상세검색", the same height (user request 2026-10-05) */
+/* phones: on the second line, the same height as the controls there (user request 2026-10-05) */
 @media (width <= 640px) {
   .trigger {
     width: var(--control-height);

@@ -83,7 +83,7 @@
 
 /*
  * The "N곳" button, as tall as the controls beside it (user requests 2026-10-05): the scope controls on wider screens,
- * "상세검색" and settings on phones.
+ * settings on phones.
  */
 .count {
   display: inline-flex;

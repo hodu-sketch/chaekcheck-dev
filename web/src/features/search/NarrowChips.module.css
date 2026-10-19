@@ -1,0 +1,228 @@
+/* 상세검색 안 C (user 2026-10-19): small pills under the search box on the results screen */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+/* like the app's other pills: white with the strong rule; on = filled violet with white text */
+.chip,
+.fieldChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: keep-all;
+  transition: background-color 140ms, border-color 140ms, color 140ms;
+}
+
+.chip {
+  padding: 0 0.8rem;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled),
+.fieldChip:not([data-on]):hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.chip[data-on],
+.fieldChip[data-on] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.chip[data-on]:hover:not(:disabled) {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.chip:focus-visible,
+.chipMain:focus-visible,
+.clear:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.chipMain,
+.clear {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chipMain {
+  gap: 0.3rem;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+}
+
+.fieldChip[data-on] .chipMain {
+  padding-right: 0.2rem;
+}
+
+.exactMark {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.caret {
+  flex: none;
+}
+
+.clear {
+  justify-content: center;
+  width: 1.8rem;
+  padding: 0 0.15rem 0 0;
+  border-radius: 999px;
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.clear:hover {
+  background: var(--brand-strong);
+}
+
+.chips[data-direct] .chip,
+.chips[data-direct] .fieldChip {
+  opacity: 0.45;
+}
+
+.chips button:disabled {
+  cursor: default;
+}
+
+.reason {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* the small window under 저자 / 출판사 (the same on phones; it keeps inside the screen) */
+.window {
+  z-index: 20;
+  width: min(19rem, calc(100vw - 2rem));
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--paper-deep);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+}
+
+.windowForm {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.windowLabel {
+  color: var(--ink);
+  font-weight: 800;
+  font-size: var(--text-md);
+}
+
+.windowLine {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.windowInput {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-height);
+  padding: 0 0.75rem;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  font-size: var(--text-md);
+  transition: border-color 140ms;
+}
+
+.windowInput:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.windowInput[aria-invalid] {
+  border-color: var(--fail);
+}
+
+.apply {
+  flex: none;
+  height: var(--control-height);
+  padding: 0 0.95rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--text-md);
+  cursor: pointer;
+}
+
+.apply:hover {
+  background: var(--brand-strong);
+}
+
+.apply:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-self: start;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.check input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--brand-strong);
+}
+
+.error {
+  margin: 0;
+  color: var(--fail);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+@media (width <= 640px) {
+  .chips {
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+  }
+
+  .chip,
+  .fieldChip {
+    font-size: var(--text-xs);
+  }
+
+  .chip,
+  .chipMain {
+    padding: 0 0.7rem;
+  }
+}

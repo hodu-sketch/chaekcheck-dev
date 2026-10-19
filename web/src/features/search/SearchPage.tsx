@@ -127,7 +127,7 @@ export function SearchPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetFocus, setSheetFocus] = useState<BoxFocus>('residence')
   // direct search: where the "N곳" button goes (user requests 2026-10-05): phones at the right end of the
-  // "상세검색 · 설정" line, wider screens at the right end of the scope controls' row
+  // settings line, wider screens at the right end of the scope controls' row
   const [countSlot, setCountSlot] = useState<HTMLElement | null>(null)
   // phones: the scope controls fold into the settings panel (D안, user choice 2026-10-05)
   const phone = useMediaQuery('(width <= 640px)')
@@ -188,7 +188,7 @@ export function SearchPage() {
   const start = !hasSearch && !ebookStart
 
   // The form starts again only when the search words in the address change (a search, back or forward). A switch,
-  // the filter, the sort or the settings leave what is being typed and the open 상세검색 as they are (user report
+  // the filter, the sort or the settings leave what is being typed and the narrowing being typed as they are (user report
   // 2026-10-14: the words typed went away on "방문 없이 가입").
   const formKey = input
     ? JSON.stringify([input.title, input.author, input.publisher, input.exact, input.roles])

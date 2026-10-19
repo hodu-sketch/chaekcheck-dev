@@ -379,7 +379,7 @@
   word-break: keep-all;
 }
 
-/* direct search: holds the "N곳" button (phones: on the "상세검색 · 설정" line; wider: the scope row's right end) */
+/* direct search: holds the "N곳" button (phones: on the settings line; wider: the scope row's right end) */
 .countSlot {
   display: flex;
   flex: none;

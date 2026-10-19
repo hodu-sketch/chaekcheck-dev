@@ -69,7 +69,7 @@
   font-size: var(--text-md);
 }
 
-/* Title box, then "상세검색" and ⚙ on the right (flow.md 배치 메모) */
+/* Title box, then ⚙ on the right (flow.md 배치 메모; 상세검색 is the chips under the box since 안 C, 2026-10-19) */
 .topLine {
   display: flex;
   align-items: center;
@@ -81,199 +81,15 @@
   min-width: 0;
 }
 
-.moreButton {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  height: var(--search-height);
-  min-width: var(--search-height);
-  padding: 0 1rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius-control);
-  background: var(--card);
-  color: var(--ink-soft);
-  font: inherit;
-  font-weight: 700;
-  font-size: var(--text-md);
-  cursor: pointer;
-  word-break: keep-all;
-  transition: background-color 140ms, color 140ms;
-}
-
-.moreButton:hover,
-.moreButton[aria-expanded='true'] {
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-}
-
-.moreButton:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.moreIcon {
-  display: none;
-}
-
-.caret {
-  /* the same width open and closed, so the line does not move when 상세검색 opens */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 0.8rem;
-}
-
-/* Author and publisher lines under the title box */
-.more {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 0.8rem;
-  padding: 0.9rem 1.1rem;
-  border: 1px solid var(--paper-deep);
-  border-radius: 18px;
-  background: var(--card);
-}
-
-.more[data-direct] .row,
-.more[data-direct] .check {
-  opacity: 0.45;
-}
-
-.reason {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.9rem;
-}
-
-.rowLabel {
-  flex: none;
-  width: 3.2rem;
-  color: var(--ink);
-  font-weight: 800;
-  font-size: var(--text-md);
-}
-
 /*
- * The author and publisher boxes look like the title box (user request 2026-10-09): its height, border, corners,
- * text size and the same left inset for the text (box padding 0.35rem + input 0.85rem).
- */
-.smallInput {
-  flex: 1 1 14rem;
-  min-width: 0;
-  max-width: 22rem;
-  height: var(--search-height);
-  padding: 0 1.2rem;
-  border: 1.5px solid var(--rule-strong);
-  border-radius: var(--radius-md);
-  background: var(--card);
-  font: inherit;
-  font-size: var(--text-lg);
-  transition: border-color 140ms;
-}
-
-.smallInput:focus-visible {
-  outline: none;
-  border-color: var(--brand);
-}
-
-.smallInput[aria-invalid] {
-  border-color: var(--fail);
-}
-
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  cursor: pointer;
-  word-break: keep-all;
-}
-
-.check input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--brand-strong);
-}
-
-.roles {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.8rem;
-  padding-left: 0.6rem;
-  border-left: 1px solid var(--paper-deep);
-}
-
-/*
- * Wider than phones: the 상세검색 rows share one set of columns (label, box, "완전 일치", roles), so the author and
- * publisher boxes are the same width and both "완전 일치" checks start at the same left edge (user request
- * 2026-10-05). The box is at most 22rem as before; the title row's check sits in the box column, right after "제목".
- */
-@media (width > 640px) {
-  .more {
-    /* the roles keep one line; the box gives way first */
-    grid-template-columns: 3.2rem minmax(0, 1fr) auto max-content;
-    column-gap: 0.9rem;
-  }
-
-  .more > * {
-    grid-column: 1 / -1;
-  }
-
-  .row {
-    display: grid;
-    grid-template-columns: subgrid;
-    align-items: center;
-    row-gap: 0.5rem;
-  }
-
-  .row > .rowLabel + .check {
-    grid-column: 2;
-    justify-self: start;
-  }
-
-  .smallInput {
-    max-width: none;
-  }
-
-  .roles {
-    justify-self: start;
-  }
-}
-
-/* tablet: the roles under the author box, as when they wrapped before (no room beside it) */
-@media (640px < width <= 1024px) {
-  .more {
-    grid-template-columns: 3.2rem minmax(0, 1fr) auto;
-  }
-
-  .roles {
-    grid-column: 2 / -1;
-    padding-left: 0;
-    border-left: none;
-  }
-}
-
-/*
- * Tablet and desktop: the search box at most --search-box-width (about Google's 686px), the buttons beside it. The
- * form is exactly as wide as that line (a grid of its three parts), so the 상세검색 panel under it lines up with the
- * box's left edge and the settings button's right edge (user request 2026-10-09); centered on the first screen.
+ * Tablet and desktop: the search box at most --search-box-width (about Google's 686px), ⚙ beside it. The form is
+ * exactly as wide as that line (a grid of its parts), so the chips and error lines under it line up with the box's
+ * left edge (user request 2026-10-09); the first screen's line takes its column's width.
  */
 @media (width > 640px) {
   .form {
     display: grid;
-    grid-template-columns: minmax(0, var(--search-box-width)) auto auto;
+    grid-template-columns: minmax(0, var(--search-box-width)) auto;
     column-gap: 0.6rem;
     width: fit-content;
     max-width: 100%;
@@ -283,10 +99,7 @@
     display: contents;
   }
 
-  /*
-   * the panel and the error lines take the line's width and never widen it: no width of their own (0), stretched to
-   * the line by min-width
-   */
+  /* the chips and the error lines take the line's width and never widen it: no width of their own (0), stretched */
   .form > :not(.topLine) {
     grid-column: 1 / -1;
     width: 0;
@@ -331,31 +144,12 @@
 
 @media (width > 640px) {
   .form[data-start] {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     width: 100%;
   }
 }
 
-/* 1024px and below: "상세검색" becomes an icon (flow.md) */
-@media (width <= 1024px) {
-  .moreLabel,
-  .caret {
-    display: none;
-  }
-
-  .moreIcon {
-    display: inline-flex;
-  }
-
-  .moreButton {
-    padding: 0;
-  }
-}
-
-/*
- * 640px and below: the title box alone on the first line, then "상세검색" (in words) and the settings button on the
- * next (user request 2026-10-05); one field per line, roles under the author box (flow.md)
- */
+/* 640px and below: the title box alone on the first line, then the settings button on the next (user request 2026-10-05) */
 @media (width <= 640px) {
   .topLine {
     flex-wrap: wrap;
@@ -378,28 +172,9 @@
     margin-left: auto;
   }
 
-  /* the first screen: "상세검색" and the settings button centered under the box (user request 2026-10-05) */
+  /* the first screen: the settings button centered under the box (user request 2026-10-05) */
   .form[data-start] .topLine {
     justify-content: center;
-  }
-
-  /* as wide as its words (user request 2026-10-05) */
-  .moreButton {
-    flex: none;
-    height: var(--control-height);
-    padding: 0 1rem;
-  }
-
-  .moreLabel {
-    display: inline;
-  }
-
-  .caret {
-    display: inline-flex;
-  }
-
-  .moreIcon {
-    display: none;
   }
 
   .field {
@@ -418,80 +193,5 @@
 
   .error {
     margin-left: 1.1rem;
-  }
-
-  .more {
-    padding: 0.8rem 0.7rem;
-  }
-
-  /*
-   * One line per field: label, box, "완전 일치", never wrapping at 320px (user request 2026-10-05). The label and the
-   * check are a step smaller so the box keeps its room. A grid shared by the rows (as on wider screens): the box
-   * column is minmax(0, 1fr), so the box gives way and nothing runs past the panel, even with a larger browser text
-   * size (phone report 2026-10-12: "완전 일치" ran out of the panel)
-   */
-  .more {
-    grid-template-columns: max-content minmax(0, 1fr) auto;
-    column-gap: 0.5rem;
-  }
-
-  .more > * {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-
-  .row {
-    display: grid;
-    grid-template-columns: subgrid;
-    align-items: center;
-    row-gap: 0.5rem;
-  }
-
-  .rowLabel {
-    width: auto;
-    font-size: var(--text-sm);
-    white-space: nowrap;
-  }
-
-  /* the title line has no box: its check right after "제목", as on wider screens (user request 2026-10-05) */
-  .row > .rowLabel + .check {
-    grid-column: 2;
-    justify-self: start;
-  }
-
-  /* the title box's inset on phones (0.3rem + 0.6rem) */
-  .smallInput {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    padding: 0 0.9rem;
-  }
-
-  .row > .check {
-    gap: 0.25rem;
-    font-size: var(--text-xs);
-    white-space: nowrap;
-  }
-
-  /* 옮긴이·그림·엮은이 start under the author box, not under "저자" (user request 2026-10-05) */
-  .roles {
-    grid-column: 2 / -1;
-    padding-left: 0;
-    border-left: none;
-  }
-
-  /* one step smaller like "완전 일치", so the three fit on one line at 320px */
-  .roles {
-    column-gap: 0.45rem;
-  }
-
-  .roles .check {
-    gap: 0.3rem;
-    font-size: var(--text-xs);
-  }
-
-  /* no default box margin, so the first box sits exactly at the author box's left edge */
-  .roles .check input {
-    margin: 0;
   }
 }
