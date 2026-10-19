@@ -42,9 +42,10 @@
 }
 
 /* 탈퇴하기: far below the rest of the page (user 2026-10-19: "아주 많이 아래로 내리면 탈퇴하기") */
+/* in the middle (user 2026-10-20: "탈퇴하기 버튼 가운데로") */
 .withdrawRow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 28rem;
 }
 
