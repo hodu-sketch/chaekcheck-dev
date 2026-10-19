@@ -43,12 +43,13 @@ const searchButton = () => button('검색')
 const box = (name: string) => screen.getByRole('searchbox', { name }) as HTMLInputElement
 
 describe('SearchForm: the first screen (상세검색 안 C, user 2026-10-19)', () => {
-  it('shows one title box, [검색] and settings only: no 상세검색, no chips, no condition dropdown', () => {
+  it('shows one title box and [검색] only: no settings, no 상세검색, no chips, no condition dropdown', () => {
     setup()
 
     expect(titleBox().getAttribute('placeholder')).toBe('책 제목을 입력하세요')
     expect(searchButton()).toBeTruthy()
-    expect(button('검색 설정')).toBeTruthy()
+    // no ⚙ on the first screen (user 2026-10-19)
+    expect(screen.queryByRole('button', { name: '검색 설정' })).toBeNull()
     expect(screen.queryByRole('button', { name: '상세검색' })).toBeNull()
     expect(screen.queryByRole('group', { name: '검색 좁히기' })).toBeNull()
     expect(screen.queryByRole('combobox')).toBeNull()
@@ -205,9 +206,21 @@ describe('SearchForm: the narrowing chips on the results', () => {
   })
 })
 
+describe('SearchForm: /search before a search (user 2026-10-19)', () => {
+  it('has the chips from the start; a chip only sets the condition and [검색] searches with it', async () => {
+    const { user, onSearch } = setup({ centered: false })
+    expect(button('검색 설정')).toBeTruthy()
+    await user.click(button('제목 정확히'))
+    expect(onSearch).not.toHaveBeenCalled()
+    await user.type(titleBox(), '사랑')
+    await user.click(searchButton())
+    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '사랑', exact: ['title'] }))
+  })
+})
+
 describe('SearchForm: settings', () => {
   it('settings change at once', async () => {
-    const { user, onSettingsChange } = setup()
+    const { user, onSettingsChange } = setup({ centered: false })
 
     await user.click(button('검색 설정'))
     await user.click(screen.getByRole('radio', { name: /책 먼저 고르기/ }))
@@ -218,7 +231,7 @@ describe('SearchForm: settings', () => {
   })
 
   it('with direct search on, 책 먼저 고르기 cannot be chosen [안]', async () => {
-    const { user } = setup({ settings: { view: 'instant', direct: true } })
+    const { user } = setup({ settings: { view: 'instant', direct: true }, centered: false })
 
     await user.click(button('검색 설정'))
 
@@ -229,14 +242,14 @@ describe('SearchForm: settings', () => {
 /** Cycle 22 R2-1: on phones the "내 도서관" chip sits on its own line right under the title box. */
 describe('the phone chip', () => {
   it('comes right after the title box, before the settings', () => {
-    setup({ chip: <button type="button">내 도서관: 서울 강남구 · 68곳</button> })
+    setup({ chip: <button type="button">내 도서관: 서울 강남구 · 68곳</button>, centered: false })
     const chip = button('내 도서관: 서울 강남구 · 68곳')
     expect(titleBox().compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(chip.compareDocumentPosition(button('검색 설정')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('the ⚙ sheet on phones has no "찾을 도서관" (the chip has its own sheet, user 2026-10-19)', async () => {
-    const { user } = setup({ settingsSheet: true, chip: <button type="button">지역 설정</button> })
+    const { user } = setup({ settingsSheet: true, chip: <button type="button">지역 설정</button>, centered: false })
     await user.click(button('검색 설정'))
     const sheet = screen.getByRole('dialog', { name: '검색 설정' })
     expect(screen.getByTestId('sheet-handle')).toBeTruthy()

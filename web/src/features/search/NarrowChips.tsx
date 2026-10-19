@@ -19,6 +19,8 @@ type Props = {
   searched: BookSearchInput
   /** "도서관에서 직접 찾기": the site search cannot use these, so they are dimmed with the reason. */
   direct: boolean
+  /** /search before a search: 제목 정확히 is there from the start, and a change only sets the condition. */
+  beforeSearch?: boolean
   /** Searches again at once with the changed conditions. */
   onNarrow: (next: BookSearchInput, field?: TextField) => NarrowResult
 }
@@ -31,7 +33,7 @@ const PLACEHOLDERS: Record<TextField, string> = { author: '예: 한강', publish
  * chip with ×. 제목 정확히 and the author roles (shown once an author is set; they only widen the author match) are
  * toggles. Every change searches again at once, with the same address parameters as before.
  */
-export function NarrowChips({ input, searched, direct, onNarrow }: Props) {
+export function NarrowChips({ input, searched, direct, beforeSearch = false, onNarrow }: Props) {
   const toggleExactTitle = () =>
     onNarrow({
       ...input,
@@ -48,7 +50,7 @@ export function NarrowChips({ input, searched, direct, onNarrow }: Props) {
     <div className={styles.chips} role="group" aria-label="검색 좁히기" data-direct={direct || undefined}>
       <FieldChip field="author" input={input} disabled={direct} onNarrow={onNarrow} />
       <FieldChip field="publisher" input={input} disabled={direct} onNarrow={onNarrow} />
-      {searched.title.trim() && (
+      {(beforeSearch || searched.title.trim()) && (
         <button
           type="button"
           className={styles.chip}

@@ -37,8 +37,8 @@ type Props = {
 }
 
 /**
- * S1 search area (flow.md cycle 04; 상세검색 안 C, user 2026-10-19): one title box with [검색] and ⚙ for S4. Before a
- * search that is all; with results, chips under the box narrow the search (author, publisher, 완전 일치, author
+ * S1 search area (flow.md cycle 04; 상세검색 안 C, user 2026-10-19): one title box with [검색] and ⚙ for S4. The first
+ * screen has the box only; /search has the chips from the start (they set conditions for [검색]); with results the chips narrow the search (author, publisher, 완전 일치, author
  * roles) and search again at once. No condition dropdown [확정]. Empty fields are left out; at least one is needed;
  * each filled field must be 2 to 50 characters (cycle 01 rule). With "도서관에서 직접 찾기" on, the chips are dimmed
  * with a short reason, and only the first filled field is searched.
@@ -79,9 +79,16 @@ export function SearchForm({
     if (problems.title || problems.none) setProblems({})
   }
 
-  // a chip change searches again at once [안]; a problem of the changed field is shown in its small window
+  // a chip change searches again at once [안]; a problem of the changed field is shown in its small window. Before a
+  // search (/search, user 2026-10-19) a chip only sets the condition; [검색] searches with it
   const narrow = (next: BookSearchInput, field?: SearchField): NarrowResult => {
     const normalized = normalize(next)
+    if (!hasResults) {
+      const problem = field && normalized[field] ? checkQuery(normalized[field]) : null
+      if (problem) return { done: false, message: MESSAGES[problem] }
+      setInput(next)
+      return { done: true }
+    }
     const found = check(normalized)
     setProblems(found)
     if (Object.keys(found).length > 0) return { done: false, message: field ? found[field] : undefined }
@@ -121,7 +128,8 @@ export function SearchForm({
           </button>
         </div>
         {chip && <div className={styles.chipSlot}>{chip}</div>}
-        <SettingsPanel settings={settings} onChange={onSettingsChange} sheet={settingsSheet} />
+        {/* none on the first screen (user 2026-10-19: "메인에서는 그냥 검색 설정도 빼자") */}
+        {!centered && <SettingsPanel settings={settings} onChange={onSettingsChange} sheet={settingsSheet} />}
         {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>
       {problems.none && (
@@ -134,7 +142,10 @@ export function SearchForm({
           {field === 'title' ? problems[field] : `${FIELD_LABELS[field]}: ${problems[field]}`}
         </p>
       ))}
-      {hasResults && <NarrowChips input={input} searched={initial} direct={direct} onNarrow={narrow} />}
+      {/* on /search from the start (user 2026-10-19: "이 검색 칸에는 처음부터 저자 출판사 제목 정확히가"); not on the first screen */}
+      {!centered && (
+        <NarrowChips input={input} searched={initial} direct={direct} beforeSearch={!hasResults} onNarrow={narrow} />
+      )}
     </form>
   )
 }
