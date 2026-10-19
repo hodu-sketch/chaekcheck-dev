@@ -1,6 +1,6 @@
 /**
- * The header menus (cycle 21 spec R1, ADR-0127; user 2026-10-16: "폰이랑 pc랑 둘 다 탭에 도서검색 넣어줘"): three big
- * menus, each with its items.
+ * The header menus (cycle 21 spec R1, ADR-0127; user 2026-10-16: "폰이랑 pc랑 둘 다 탭에 도서검색 넣어줘"): the big
+ * menus, each with its items (책첵이란? added 2026-10-19).
  */
 export const MENUS = [
   { key: 'search', label: '도서검색', items: [{ to: '/search', label: '전자책 검색' }] },
@@ -22,6 +22,8 @@ export const MENUS = [
       { to: '/account', label: '계정' },
     ],
   },
+  // 책첵이란? (user 2026-10-19): the last menu, the static /about page
+  { key: 'about', label: '책첵이란?', items: [{ to: '/about', label: '책첵이란?' }] },
 ] as const
 
 export type Menu = (typeof MENUS)[number]

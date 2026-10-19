@@ -39,11 +39,11 @@ describe('footer links (cycle 16, spec R6, AC-7)', () => {
     expect(await screen.findByRole('link', { name: '이용약관' })).toBeTruthy()
     expect(links()).toEqual([
       ['공지사항', '/notices'],
-      ['서비스 안내', '/about'],
+      ['책첵이란?', '/about'],
       ['이용약관', '/terms'],
       ['개인정보 처리방침', '/privacy'],
     ])
-    expect(screen.getByRole('navigation').textContent).toBe('공지사항·서비스 안내·이용약관·개인정보 처리방침')
+    expect(screen.getByRole('navigation').textContent).toBe('공지사항·책첵이란?·이용약관·개인정보 처리방침')
   })
 
   it('login off: only 이용약관 is left out; the privacy policy stays (ADR-0100)', async () => {
@@ -53,7 +53,7 @@ describe('footer links (cycle 16, spec R6, AC-7)', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(links()).toEqual([
       ['공지사항', '/notices'],
-      ['서비스 안내', '/about'],
+      ['책첵이란?', '/about'],
       ['개인정보 처리방침', '/privacy'],
     ])
   })

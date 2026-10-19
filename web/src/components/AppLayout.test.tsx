@@ -58,16 +58,18 @@ function column(name: string) {
 describe('header', () => {
   beforeEach(() => vi.useFakeTimers())
 
-  it('has the three big menus, no tagline and no old link', () => {
+  it('has the four big menus, no tagline and no old link', () => {
     renderAt('/')
     const nav = within(wide())
     expect(nav.getAllByRole('link').filter((a) => a.hasAttribute('data-big')).map((a) => a.textContent)).toEqual([
       '도서검색',
       '추천도서',
       '마이페이지',
+      '책첵이란?',
     ])
     expect(nav.getByRole('link', { name: '추천도서' }).getAttribute('href')).toBe('/picks/leedongjin')
     expect(nav.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
+    expect(nav.getAllByRole('link', { name: '책첵이란?' }).map((a) => a.getAttribute('href'))).toEqual(['/about'])
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: '사서추천도서' })).toBeNull()
     expect(screen.queryByText('전자도서관 대출 가능 확인')).toBeNull()
@@ -306,6 +308,7 @@ describe('phone menu', () => {
       '서울대 100선',
       '내 도서관 관리',
       '계정',
+      '책첵이란?',
     ])
     expect(screen.getByTestId('menu-dim')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '메뉴 닫기' }))

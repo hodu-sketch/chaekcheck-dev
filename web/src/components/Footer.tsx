@@ -4,16 +4,16 @@ import { useOptionalAuth } from '../features/auth/AuthContext'
 import styles from './Footer.module.css'
 
 /**
- * AC-12 (cycle 01): the data source line. Cycle 16 (spec R6, ADR-0100): one link line "공지사항 · 서비스 안내 ·
- * 이용약관 · 개인정보 처리방침". 이용약관 only while login is on; the privacy policy always. The contact e-mail is in
- * 서비스 안내, not here.
+ * AC-12 (cycle 01): the data source line. Cycle 16 (spec R6, ADR-0100): one link line "공지사항 · 책첵이란? ·
+ * 이용약관 · 개인정보 처리방침" (서비스 안내 became 책첵이란?, user 2026-10-19). 이용약관 only while login is on; the
+ * privacy policy always.
  */
 export function Footer() {
   const auth = useOptionalAuth()
   const showTerms = auth !== null && (auth.state.status === 'signed-in' || auth.state.status === 'signed-out')
   const links = [
     { to: '/notices', label: '공지사항' },
-    { to: '/about', label: '서비스 안내' },
+    { to: '/about', label: '책첵이란?' },
     ...(showTerms ? [{ to: '/terms', label: '이용약관' }] : []),
     { to: '/privacy', label: '개인정보 처리방침' },
   ]
