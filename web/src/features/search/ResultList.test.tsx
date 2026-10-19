@@ -318,15 +318,15 @@ describe('result groups', () => {
     )
     const openGroup = screen.getByRole('region', { name: /어디 살든 가입되는 도서관에 있어요/ })
     expect(within(openGroup).getByText(/이 중 1곳은 가입하려면 도서관에 가야 해요/)).toBeTruthy()
-    await user.click(within(openGroup).getByRole('button', { name: '그 1곳 빼기' }))
+    await user.click(within(openGroup).getByRole('button', { name: '온라인 가입만 보기' }))
     expect(searchContext.onVisitNone).toHaveBeenCalledTimes(1)
 
     cleanup()
     const removed = context({ visit: 'none' })
     const again = renderGrouped([groupedView(1, [testRow({ libraryId: 1, rank: 1 })])], removed)
-    expect(screen.getByText(/방문 가입 도서관을 뺐어요/)).toBeTruthy()
+    expect(screen.getByText(/온라인으로 가입할 수 있는 곳만 보는 중이에요/)).toBeTruthy()
     expect(screen.queryByText(/곳은 가입하려면/)).toBeNull()
-    await again.click(screen.getByRole('button', { name: '다시 넣기' }))
+    await again.click(screen.getByRole('button', { name: '모두 보기' }))
     expect(removed.onVisitBack).toHaveBeenCalledTimes(1)
   })
 

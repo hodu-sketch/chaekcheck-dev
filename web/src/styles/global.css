@@ -1,15 +1,19 @@
 /*
- * Visual direction: bright and current, in the manner of 토스증권 (user request 2026-10-05): a light grey canvas with
- * white rounded cards on it, a cool grey text scale, violet kept as the brand color. NanumBarunGothic throughout with
- * weight contrast (800 headings, 400 body). Flat cards: solid colors and hairline borders only, no gradients or
- * shadows (user preference 2026-09-27). Text is larger than before (user requests 2026-10-05: base 17px and 16px on
+ * Visual direction: bright and current, in the manner of 토스증권 (user request 2026-10-05): white rounded cards, a
+ * cool grey text scale, violet kept as the brand color. NanumBarunGothic throughout with weight contrast (800 headings,
+ * 400 body). Since the first screen redesign (user 2026-10-19) the page is white with a very soft lavender glow at the
+ * top, and the main cards (results, the condition line, the steps card) have a lavender border and a very soft violet
+ * shadow so they still read on white; everything else stays flat (user preference 2026-09-27). Text is larger than before (user requests 2026-10-05: base 17px and 16px on
  * phones, then 15% more except the header bar and the start headline; nothing under 0.8rem).
  * Color carries meaning: violet = can borrow now, amber = reserve and wait, red = failed.
  * Desktop styles are the default; narrower screens override them (tablet <= 1024px, mobile <= 640px).
  */
 :root {
-  /* surfaces: grey canvas, white cards (토스증권: #f4f5f8 page, white panels, grey scale #191f28/#4e5968/#8b95a1) */
-  --canvas: #f4f5f8;
+  /* surfaces: a white page (grey #f4f5f8 before; user 2026-10-19) with a lavender glow at the top, white cards */
+  --canvas: #ffffff;
+  --canvas-glow: #f7f3ff;
+  /* how far down the glow fades to white */
+  --canvas-glow-depth: 24rem;
   --paper: #ffffff;
   --paper-deep: #f2f4f6;
   /* a card inside a white panel (result lines) */
@@ -31,6 +35,10 @@
   --brand-faint: #f7f4ff;
   /* a greyed violet, much less saturated than --brand-soft: the 내 도서관 box (user request 2026-10-05) */
   --brand-mist: #ecebf2;
+  /* the main cards on the white page: a lavender border and a very soft violet shadow (user 2026-10-19) */
+  --card-border: #e6e1f7;
+  --card-shadow: 0 6px 20px rgb(94 63 224 / 0.07);
+  --card-shadow-soft: 0 2px 10px rgb(94 63 224 / 0.05);
 
   /* meaning */
   --borrow: var(--brand-strong);
@@ -110,7 +118,8 @@ body {
   min-height: 100vh;
   /* the visible height on phones, not the one with the browser bars hidden (user request 2026-10-05) */
   min-height: 100dvh;
-  background: var(--canvas);
+  /* white, with a very soft lavender glow at the top fading to white (user 2026-10-19) */
+  background: var(--canvas) linear-gradient(180deg, var(--canvas-glow) 0, var(--canvas) var(--canvas-glow-depth)) no-repeat;
 }
 
 h1,

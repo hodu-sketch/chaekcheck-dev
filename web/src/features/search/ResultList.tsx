@@ -55,9 +55,9 @@ export interface ResultSearchContext {
   picked?: { field: 'residence' | 'work'; place: string } | { field: 'libraries' } | null
   /** [전국에서 찾기], [전국에서 더 찾기]: the same search with `scope=all`. */
   onSearchAll: () => void
-  /** [그 N곳 빼기]: `visit=none`, kept for later searches too. */
+  /** [온라인 가입만 보기]: `visit=none`, kept for later searches too. */
   onVisitNone: () => void
-  /** [다시 넣기]: back to `visit` any. */
+  /** [모두 보기]: back to `visit` any. */
   onVisitBack: () => void
   /** [지역 설정] of the green line: opens the region choice (saved only, R7-2). */
   onPickRegions: () => void
@@ -87,9 +87,10 @@ export const GROUP_TEXT = {
   open: '어디 살든 가입되는 도서관에 있어요',
   openNote: '온라인으로 바로 가입할 수 있어요',
   visitSome: (sites: number) => `이 중 ${sites}곳은 가입하려면 도서관에 가야 해요`,
-  visitRemove: (sites: number) => `그 ${sites}곳 빼기`,
-  visitRemoved: '방문 가입 도서관을 뺐어요',
-  visitBack: '다시 넣기',
+  // the same switch as 「온라인에서 가입 가능한 곳만 보기」 in the 찾을 도서관 box (user 2026-10-19)
+  visitRemove: '온라인 가입만 보기',
+  visitRemoved: '온라인으로 가입할 수 있는 곳만 보는 중이에요',
+  visitBack: '모두 보기',
   other: '그 밖의 도서관에 있어요',
   otherNote: '그 지역에 살거나 일해야 가입돼요',
   searchAll: '전국에서 찾기',
@@ -386,7 +387,7 @@ function Groups({
       : visitRequiredOpenSites > 0 && (
           <span className={styles.noteAside}>
             {GROUP_TEXT.visitSome(visitRequiredOpenSites)}{' '}
-            {linkButton(GROUP_TEXT.visitRemove(visitRequiredOpenSites), context.onVisitNone)}
+            {linkButton(GROUP_TEXT.visitRemove, context.onVisitNone)}
           </span>
         )
     : null

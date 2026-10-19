@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
@@ -34,6 +34,60 @@ import {
 import { SortSelect } from './SortSelect'
 import { useSearchedWith } from './useSearchedWith'
 import styles from './SearchPage.module.css'
+
+/** The first screen's words (first screen redesign, user 2026-10-19). */
+export const START_TEXT = {
+  eyebrow: '전자책을 찾는 더 쉬운 방법',
+  headline: ['우리 동네 밖에도', '가입할 수 있는', '전자도서관이 있어요.'],
+  lead: ['책첵은 가입할 수 있는 전자도서관을 찾고,', '그곳의 전자책을 한 번에 검색해 드려요.'],
+  // phones: shorter
+  leadPhone: ['가입할 수 있는 전자도서관을 찾고,', '전자책을 한 번에 검색해 드려요.'],
+  question: '어떤 책을 찾으세요?',
+  stepsTitle: '이렇게 이용해 보세요',
+  steps: [
+    { title: '읽고 싶은 책 검색', detail: '여러 도서관의 책을 한 번에' },
+    { title: '가입 조건 확인', detail: '내가 이용할 수 있는지 확인' },
+    { title: '도서관에서 가입·대출', detail: '이미 회원이라면 바로 확인' },
+  ],
+} as const
+
+/** Lines joined by line breaks. */
+function lines(parts: readonly string[]) {
+  return parts.map((part, index) => (
+    <span key={part}>
+      {index > 0 && <br />}
+      {part}
+    </span>
+  ))
+}
+
+/**
+ * 「이렇게 이용해 보세요」 (user 2026-10-19): the right column on PC, under the lead on tablets and phones; phones show
+ * only the three titles.
+ */
+function StartSteps({ details }: { details: boolean }) {
+  const titleId = useId()
+  return (
+    <aside className={styles.steps} aria-labelledby={titleId}>
+      <h2 id={titleId} className={styles.stepsTitle}>
+        {START_TEXT.stepsTitle}
+      </h2>
+      <ol className={styles.stepList}>
+        {START_TEXT.steps.map((step, index) => (
+          <li key={step.title} className={styles.step}>
+            <span className={styles.stepNumber} aria-hidden="true">
+              {index + 1}
+            </span>
+            <span className={styles.stepText}>
+              <span className={styles.stepTitle}>{step.title}</span>
+              {details && <span className={styles.stepDetail}>{step.detail}</span>}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  )
+}
 
 /**
  * S1 (flow.md cycle 04): `/` before a search, `/search?title=…&author=…` with results. The catalog search is the
@@ -124,6 +178,8 @@ export function SearchPage() {
   // layout, with the screen's name at the top left and a short note where the results will come
   const { pathname } = useLocation()
   const ebookStart = !hasSearch && pathname === '/search'
+  // `/` before a search: the first screen with its headline and steps (user 2026-10-19)
+  const start = !hasSearch && !ebookStart
 
   // The form starts again only when the search words in the address change (a search, back or forward). A switch,
   // the filter, the sort or the settings leave what is being typed and the open 상세검색 as they are (user report
@@ -281,19 +337,23 @@ export function SearchPage() {
     >
       <section className={styles.searchArea}>
         {ebookStart && <h1 className={styles.screenTitle}>전자책 검색</h1>}
-        {!hasSearch && !ebookStart && (
-          <h1 className={styles.headline}>
-            <em>지금 빌릴 수 있는</em>
-            <br />
-            전자도서관을 찾아 드려요
-          </h1>
+        {start && (
+          <>
+            <div className={styles.intro}>
+              <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
+              <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
+              <p className={styles.lead}>{lines(phone ? START_TEXT.leadPhone : START_TEXT.lead)}</p>
+            </div>
+            <StartSteps details={!phone} />
+            <p className={styles.question}>{START_TEXT.question}</p>
+          </>
         )}
         <SearchForm
           key={formKey}
           initial={input ?? EMPTY_INPUT}
           settings={settings}
           hasResults={hasSearch}
-          centered={!hasSearch && !ebookStart}
+          centered={start}
           onSearch={search}
           onSettingsChange={changeSettings}
           settingsSheet={phone}
@@ -312,7 +372,7 @@ export function SearchPage() {
         {/* one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138) */}
         {!phone && (
           <div className={styles.scopeRow}>
-            <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} centered={!hasSearch && !ebookStart} />
+            <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} />
             {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
           </div>
         )}

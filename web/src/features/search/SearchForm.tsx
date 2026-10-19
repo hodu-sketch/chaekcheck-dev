@@ -28,7 +28,10 @@ type Props = {
   settings: SearchSettings
   /** Results are shown: changing exact match or roles then searches again at once [안]. */
   hasResults: boolean
-  /** The centred first screen (`/` before a search); `/search` before a search keeps the results' layout. */
+  /**
+   * The first screen (`/` before a search): the box takes its column's width, with a filled violet [검색]; `/search`
+   * before a search keeps the results' layout.
+   */
   centered?: boolean
   onSearch: (input: BookSearchInput) => void
   onSettingsChange: (settings: SearchSettings) => void

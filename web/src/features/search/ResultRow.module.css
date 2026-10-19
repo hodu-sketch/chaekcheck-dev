@@ -433,8 +433,10 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 0.7rem;
     padding: 0.9rem 0.75rem;
-    /* white on the grey canvas: no outer panel on phones */
+    /* white cards with a lavender border and a soft shadow on the white page: no outer panel on phones */
+    border-color: var(--card-border);
     background: var(--card);
+    box-shadow: var(--card-shadow-soft);
   }
 
   /*

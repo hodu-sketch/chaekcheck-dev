@@ -92,7 +92,7 @@ describe('찾을 도서관 (cycle 22)', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: '검색 설정' }))
     const window = screen.getByRole('dialog')
     expect(within(window).getByRole('radiogroup', { name: '도서관에서 직접 찾기' })).toBeTruthy()
-    expect(within(window).queryByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeNull()
+    expect(within(window).queryByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' })).toBeNull()
     expect(within(window).queryByText(/사는 곳/)).toBeNull()
   })
 })

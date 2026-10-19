@@ -11,6 +11,8 @@ import { RegionProvider, useRegions } from '../region/RegionContext'
 import { SearchPage } from './SearchPage'
 import { SETTINGS_STORAGE_KEY } from './searchSettings'
 
+/** The condition line's words: the [조건 수정] button's description (first screen redesign, user 2026-10-19). */
+const conditionOf = (button: HTMLElement) => document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent
 /**
  * Cycle 06 step 10 on the search screen with a fake server: the "내 도서관" line and what the book search sends before
  * and after login (AC-6, AC-7, AC-14). Cycle 22 step 1: no scope switch (R4-1), the search keeps the values it was
@@ -107,6 +109,7 @@ function renderSearch(address = '/search?title=사랑&view=books') {
             <RegionProvider>
               <MemoryRouter initialEntries={[address]}>
                 <Routes>
+                  <Route path="/" element={<SearchPage />} />
                   <Route path="/search" element={<SearchPage />} />
                 </Routes>
                 <Controls />
@@ -153,13 +156,13 @@ afterEach(() => {
 })
 
 /** The folded "내 도서관: …" line (cycle 22 R3); its accessible name is its text. */
-const foldedLine = () => screen.findByRole('button', { name: /^내 도서관: / })
+const foldedLine = () => screen.findByRole('button', { name: '조건 수정' })
 
 describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
   it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
     renderSearch()
     const line = await foldedLine()
-    await waitFor(() => expect(line.textContent).toBe('서울 마포구 거주 · 서울 중구 재직'))
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 · 서울 중구 재직 조건으로 찾아요'))
     expect(fake.libraryLists).toBe(0)
 
     await userEvent.setup().click(line)
@@ -176,7 +179,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     renderSearch()
 
     expect(await screen.findByRole('button', { name: '지역 설정' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /^내 도서관: / })).toBeNull()
+    expect(screen.queryByRole('button', { name: '조건 수정' })).toBeNull()
   })
 
   it('a failed read offers 다시 시도 and searches joinable without regions; a read that works searches again', async () => {
@@ -262,7 +265,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(screen.queryAllByRole('radio')).toEqual([])
-    await waitFor(async () => expect((await foldedLine()).textContent).toBe('서울 마포구 거주'))
+    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구 거주 조건으로 찾아요'))
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -284,12 +287,12 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     await waitFor(() => expect(fake.books).toHaveLength(1))
     const user = userEvent.setup()
     await user.click(await foldedLine())
-    await user.click(screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }))
+    await user.click(screen.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }))
     await act(async () => {})
     expect(fake.books).toHaveLength(1)
     expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('none')
     await user.keyboard('{Escape}')
-    await waitFor(async () => expect((await foldedLine()).textContent).toBe('서울 마포구 거주'))
+    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구 거주 조건으로 찾아요'))
 
     await user.click(searchButton())
     await waitFor(() => expect(fake.books).toHaveLength(2))
@@ -303,7 +306,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     expect(lastBooks().searchParams.has('visit')).toBe(false)
     await user.click(await foldedLine())
     expect(
-      (screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }) as HTMLInputElement).checked,
+      (screen.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }) as HTMLInputElement).checked,
     ).toBe(true)
     cleanup()
 
@@ -410,7 +413,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     renderSearch()
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
-    const chip = await screen.findByRole('button', { name: /^내 도서관: 서울 마포구 거주/ })
+    const chip = await screen.findByRole('button', { name: '조건 수정', description: /^서울 마포구 거주/ })
     expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
 
     const user = userEvent.setup()
@@ -423,7 +426,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
 
     expect(screen.queryAllByRole('radio', { name: /도서관/ })).toEqual([])
     expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
-    expect(sheet.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeTruthy()
+    expect(sheet.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' })).toBeTruthy()
     expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' }).getAttribute('href')).toBe('/my-libraries')
 
     await user.click(sheet.getByRole('button', { name: '닫기' }))
@@ -439,7 +442,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     const sheet = within(await screen.findByRole('dialog', { name: '검색 설정' }))
     expect(sheet.getByRole('button', { name: /^보기 방식/ }).textContent).toBe('보기 방식책 먼저 고르기')
     expect(sheet.queryByText('찾을 도서관')).toBeNull()
-    expect(sheet.queryByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' })).toBeNull()
+    expect(sheet.queryByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' })).toBeNull()
   })
 })
 
@@ -455,7 +458,7 @@ describe('typed words stay on the search screen', () => {
     await user.clear(title)
     await user.type(title, '채식주의자')
     await user.click(await foldedLine())
-    await user.click(screen.getByRole('checkbox', { name: '직접 가야 가입되는 도서관은 빼기' }))
+    await user.click(screen.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }))
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect((screen.getByRole('searchbox', { name: '책 제목' }) as HTMLInputElement).value).toBe('채식주의자')
@@ -474,7 +477,68 @@ describe('전자책 검색', () => {
     renderSearch('/search')
     expect(await screen.findByRole('heading', { level: 1, name: '전자책 검색' })).toBeTruthy()
     expect(screen.getByText('책 제목을 넣으면, 그 책을 지금 빌릴 수 있는 전자도서관을 여기에 보여 드려요')).toBeTruthy()
-    expect(screen.queryByText('전자도서관을 찾아 드려요')).toBeNull()
+    expect(screen.queryByText('전자도서관이 있어요.')).toBeNull()
+    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
     expect(fake.books).toHaveLength(0)
+  })
+})
+
+/** The first screen redesign (user 2026-10-19): `/` before a search. */
+describe('the first screen', () => {
+  const steps = () =>
+    within(screen.getByRole('complementary', { name: '이렇게 이용해 보세요' }))
+      .getAllByRole('listitem')
+      .map((item) => item.textContent)
+
+  it('wider screens: eyebrow, the three-line headline, the lead, the question, the steps with details; no search', async () => {
+    renderSearch('/')
+    const headline = await screen.findByRole('heading', { level: 1 })
+    expect(headline.textContent).toBe('우리 동네 밖에도가입할 수 있는전자도서관이 있어요.')
+    expect(headline.querySelectorAll('br')).toHaveLength(2)
+    expect(screen.getByText('전자책을 찾는 더 쉬운 방법')).toBeTruthy()
+    expect(screen.getByText(/^책첵은 가입할 수 있는 전자도서관을 찾고,/).closest('p')!.textContent).toBe(
+      '책첵은 가입할 수 있는 전자도서관을 찾고,그곳의 전자책을 한 번에 검색해 드려요.',
+    )
+    expect(screen.getByText('어떤 책을 찾으세요?')).toBeTruthy()
+    expect(steps()).toEqual([
+      '1읽고 싶은 책 검색여러 도서관의 책을 한 번에',
+      '2가입 조건 확인내가 이용할 수 있는지 확인',
+      '3도서관에서 가입·대출이미 회원이라면 바로 확인',
+    ])
+    expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
+    expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
+    // the condition line with this account's regions
+    const edit = await screen.findByRole('button', { name: '조건 수정' })
+    await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구 거주 · 서울 중구 재직 조건으로 찾아요'))
+    expect(fake.books).toHaveLength(0)
+  })
+
+  it('phones: the shorter lead and the step titles only', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    renderSearch('/')
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.getByText(/^가입할 수 있는 전자도서관을 찾고,/).closest('p')!.textContent).toBe(
+      '가입할 수 있는 전자도서관을 찾고,전자책을 한 번에 검색해 드려요.',
+    )
+    expect(screen.queryByText(/^책첵은/)).toBeNull()
+    expect(steps()).toEqual(['1읽고 싶은 책 검색', '2가입 조건 확인', '3도서관에서 가입·대출'])
+    // the steps come before the question and the search box
+    const question = screen.getByText('어떤 책을 찾으세요?')
+    const card = screen.getByRole('complementary', { name: '이렇게 이용해 보세요' })
+    expect(card.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(question.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('after a search: no headline and no steps card', async () => {
+    renderSearch('/search?title=사랑&view=books')
+    await screen.findByRole('button', { name: '조건 수정' })
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
+    expect(screen.queryByText('어떤 책을 찾으세요?')).toBeNull()
   })
 })

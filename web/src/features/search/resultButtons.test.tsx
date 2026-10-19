@@ -14,9 +14,11 @@ import { RegionProvider } from '../region/RegionContext'
 import { SearchPage } from './SearchPage'
 import { loadPrefs, savePrefs } from './searchSettings'
 
+/** The condition line's words: the [조건 수정] button's description (first screen redesign, user 2026-10-19). */
+const conditionOf = (button: HTMLElement) => document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent
 /**
  * Cycle 22 step 4 on the search screen: the buttons inside the results search again at once (R8-3, D10) — the 전국
- * links with `scope=all`, [그 N곳 빼기] with `visit=none` (also kept for later searches), [다시 넣기] back.
+ * links with `scope=all`, [온라인 가입만 보기] with `visit=none` (also kept for later searches), [모두 보기] back.
  */
 
 vi.mock('../../api/searchStream', () => ({
@@ -205,16 +207,16 @@ describe('buttons inside the results (cycle 22 R8-3)', () => {
     expect(screen.queryByRole('button', { name: '내 도서관만' })).toBeNull()
   })
 
-  it('[그 1곳 빼기] searches again with visit=none and keeps it; [다시 넣기] puts it back', async () => {
+  it('[온라인 가입만 보기] searches again with visit=none and keeps it; [모두 보기] puts it back', async () => {
     const user = renderSearch()
-    await user.click(await screen.findByRole('button', { name: '그 1곳 빼기' }))
+    await user.click(await screen.findByRole('button', { name: '온라인 가입만 보기' }))
     await vi.waitFor(() => expect(lastStream().visit).toBe('none'))
     expect(loadPrefs().visit).toBe('none')
 
-    await user.click(await screen.findByRole('button', { name: '다시 넣기' }))
+    await user.click(await screen.findByRole('button', { name: '모두 보기' }))
     await vi.waitFor(() => expect(lastStream().visit).toBe('any'))
     expect(loadPrefs().visit).toBe('any')
-    expect(await screen.findByRole('button', { name: '그 1곳 빼기' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: '온라인 가입만 보기' })).toBeTruthy()
   })
 
   it('an empty ① for a search with regions offers [전국에서 찾기], which searches with scope=all', async () => {
@@ -250,8 +252,8 @@ describe('the plan size kept for the line', () => {
     plan(3)
     localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence: [1168], work: [] }))
     renderSearch('/search?title=사랑&direct=on')
-    const line = await screen.findByRole('button', { name: /^내 도서관: / })
-    await vi.waitFor(() => expect(line.textContent).toBe('서울 강남구 거주'))
+    const line = await screen.findByRole('button', { name: '조건 수정' })
+    await vi.waitFor(() => expect(conditionOf(line)).toBe('서울 강남구 거주 조건으로 찾아요'))
     await vi.waitFor(() => expect(loadPrefs().planCount?.count).toBe(3))
     expect(loadPrefs().openCount).toBeNull()
   })

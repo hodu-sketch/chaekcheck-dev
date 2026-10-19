@@ -7,9 +7,11 @@
   flex-direction: column;
   gap: 1.8rem;
   padding: 0 1.5rem 0.4rem;
-  border: 1px solid var(--rule);
+  /* a lavender border and a soft shadow, so the panel still reads on the white page (user 2026-10-19) */
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card);
+  box-shadow: var(--card-shadow);
 }
 
 /* the filter tabs, and the sort at the right end of the same line */
@@ -293,6 +295,7 @@
     border: none;
     border-radius: 0;
     background: none;
+    box-shadow: none;
   }
 
   .toolbar {

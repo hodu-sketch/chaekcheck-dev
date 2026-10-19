@@ -19,8 +19,12 @@ export type BoxFocus = RegionField
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
 export const SCOPE_TEXT = {
   pick: '지역 설정',
+  // the condition line under the search box (first screen redesign, user 2026-10-19)
+  conditionNone: '지역 제한 없이 가입할 수 있는 도서관부터 찾아요',
+  condition: (text: string) => `${text} 조건으로 찾아요`,
+  edit: '조건 수정',
+  conditionHint: '지역을 설정하면 내 지역 도서관까지 더 많이 찾아볼 수 있어요',
   sheetTitle: '찾을 도서관',
-  pickNote: '고르면 그 지역 기준으로 찾아요 · 안 고르면 어디 살든 가입되는 도서관에서 찾아요',
   addWork: '일하는 곳도 더하기',
   mine: '내 도서관',
   residence: '사는 곳',
@@ -30,13 +34,14 @@ export const SCOPE_TEXT = {
   chosen: (count: number) => `직접 추가 ${count}곳`,
   chosenHint: '마이페이지에서 이름으로 더할 수 있어요',
   disabled: '꺼진 도서관',
-  visitNone: '직접 가야 가입되는 도서관은 빼기',
+  // a switch, on = visit=none (user 2026-10-19; "직접 가야 가입되는 도서관은 빼기" before)
+  visitNone: '온라인에서 가입 가능한 곳만 보기',
   // under 직접 추가, apart from the 방문 가입 switch (user 2026-10-19: "가입조건 직접방문 거주 완전다른거인데 같이있어서
   // 헷갈려, 분리필요")
   open: (count: number | null) =>
     count === null ? '+ 어디 살든 가입되는 도서관도 늘 같이 찾아요' : `+ 어디 살든 가입되는 도서관 ${count}곳도 늘 같이 찾아요`,
   joinTitle: '가입 방법',
-  visitNote: '한 번은 도서관에 가야 가입되는 곳을 결과에서 뺍니다',
+  visitNote: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
   myPage: '마이페이지에서 전체 보기',
   accountFailed: '내 도서관을 불러오지 못했어요',
   retry: '다시 시도',
@@ -110,43 +115,76 @@ interface LineProps extends Common {
   /** The box is open, and on which grid; null = closed. */
   box: BoxFocus | null
   onBoxChange: (box: BoxFocus | null) => void
-  /** The centred first screen: the line and the box are centred under the search box. */
-  centered?: boolean
+}
+
+/** The condition line's words and its link: none chosen, or the first residence and workplace (user 2026-10-19). */
+function useCondition(): { first: boolean; line: string; action: string } {
+  const text = useScopeLineText()
+  return text === null
+    ? { first: true, line: SCOPE_TEXT.conditionNone, action: SCOPE_TEXT.pick }
+    : { first: false, line: SCOPE_TEXT.condition(text), action: SCOPE_TEXT.edit }
 }
 
 /**
- * The "찾을 도서관" line under the search box on wider screens (cycle 22 R1, flow S1): a first visitor's
- * [지역 설정] with its small text, else the folded line "내 도서관: … ▾". Either opens the box (S1-box) that
- * floats under it without pushing the list, closed by a click outside or Esc. A failed account read says so with
- * [다시 시도] (D7). No 전국 marker beside it (user 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows
- * itself by the 「그 밖의 도서관」 group, and the next new search is 내 도서관 again (D10).
+ * The condition line (first screen redesign, user 2026-10-19): a full-width white card with one bold line and a violet
+ * link on the right ([지역 설정] or [조건 수정]); the link covers the whole card. Without regions a small grey line
+ * under the card says what setting one adds.
  */
-export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common }: LineProps) {
+function ConditionCard({
+  textId,
+  line,
+  first,
+  children,
+}: {
+  textId: string
+  line: string
+  first: boolean
+  /** The link: a button whose accessible description is the line (`aria-describedby={textId}`). */
+  children: ReactNode
+}) {
+  return (
+    <div className={styles.conditionWrap}>
+      <div className={styles.condition} data-testid="scope-condition">
+        <p id={textId} className={styles.conditionText}>
+          {line}
+        </p>
+        {children}
+      </div>
+      {first && <p className={styles.conditionHint}>{SCOPE_TEXT.conditionHint}</p>}
+    </div>
+  )
+}
+
+/**
+ * The "찾을 도서관" condition line under the search box on wider screens (cycle 22 R1, flow S1; a card since the first
+ * screen redesign, user 2026-10-19). Its link opens the box (S1-box), a modal in the middle of the screen, closed by a
+ * click outside or Esc. A failed account read says so with [다시 시도] (D7). No 전국 marker beside it (user
+ * 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows itself by the 「그 밖의 도서관」 group, and the next
+ * new search is 내 도서관 again (D10).
+ */
+export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
-  const text = useScopeLineText()
-  const first = text === null
+  const condition = useCondition()
+  const textId = useId()
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
   if (state === 'failed') {
     return (
-      <div className={styles.line} data-centered={centered || undefined}>
+      <div className={styles.line}>
         <AccountFailed />
       </div>
     )
   }
 
   return (
-    <div className={styles.root} data-centered={centered || undefined}>
+    <div className={styles.root}>
       {/* a modal window in the middle of the screen (user 2026-10-19: "버튼 누르면 모달 창이 나와서 거기에서 고르도록") */}
       <Dialog.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
-        <div className={styles.line}>
-          <Dialog.Trigger
-            className={first ? styles.pick : styles.folded}
-            aria-label={first ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
-          >
-            {first ? SCOPE_TEXT.pick : text}
+        <ConditionCard textId={textId} line={condition.line} first={condition.first}>
+          <Dialog.Trigger className={styles.conditionAction} aria-describedby={textId}>
+            {condition.action}
           </Dialog.Trigger>
-        </div>
+        </ConditionCard>
         <Dialog.Portal>
           <Dialog.Overlay className={styles.overlay} />
           <Dialog.Content
@@ -179,10 +217,6 @@ export function LibraryScopeLine({ box, onBoxChange, centered = false, ...common
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      {first && (
-        // no [일하는 곳도 더하기] here (user 2026-10-19: "이건 pc/태블릿에 있으면 빼줘"); it is inside the box
-        <p className={styles.pickNote}>{SCOPE_TEXT.pickNote}</p>
-      )}
     </div>
   )
 }
@@ -193,13 +227,13 @@ interface ChipProps extends Common {
 }
 
 /**
- * Phones (R2-1): one chip under the search box, always there: "서울 강서구 거주 ▾", or "지역 설정 ▾" for a
- * first visitor. A tap opens its own "찾을 도서관" sheet (user 2026-10-19; it opened the settings sheet before). The
- * account failure as on wider screens.
+ * Phones (R2-1): the same condition card under the search box, always there; its link opens its own "찾을 도서관"
+ * sheet (user 2026-10-19; it opened the settings sheet before). The account failure as on wider screens.
  */
 export function LibraryScopeChip({ onOpen }: ChipProps) {
   const state = useLineState()
-  const text = useScopeLineText()
+  const condition = useCondition()
+  const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
   if (state === 'failed') {
@@ -211,16 +245,17 @@ export function LibraryScopeChip({ onOpen }: ChipProps) {
   }
   return (
     <div className={styles.chipLine}>
-      <button
-        type="button"
-        className={styles.chip}
-        data-pick={text === null || undefined}
-        onClick={onOpen}
-        aria-haspopup="dialog"
-        aria-label={text === null ? undefined : `${SCOPE_TEXT.mine}: ${text}`}
-      >
-        {text ?? SCOPE_TEXT.pick}
-      </button>
+      <ConditionCard textId={textId} line={condition.line} first={condition.first}>
+        <button
+          type="button"
+          className={styles.conditionAction}
+          onClick={onOpen}
+          aria-haspopup="dialog"
+          aria-describedby={textId}
+        >
+          {condition.action}
+        </button>
+      </ConditionCard>
     </div>
   )
 }
@@ -266,18 +301,35 @@ function AccountFailed() {
 }
 
 /**
- * "직접 가야 가입되는 도서관은 빼기" (R8-1): the box, the phone "찾을 도서관" sheet and the ⚙ window on wider screens; only
- * kept for the next search.
+ * "온라인에서 가입 가능한 곳만 보기" (R8-1; a switch with its small line since user 2026-10-19, the checkbox "직접 가야
+ * 가입되는 도서관은 빼기" before): in the box and the phone "찾을 도서관" sheet; on = `visit=none`, only kept for the next
+ * search.
  */
 export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange: (visit: VisitFilter) => void }) {
+  const titleId = useId()
+  const noteId = useId()
   return (
     <label className={styles.visit}>
-      <input
-        type="checkbox"
-        checked={visit === 'none'}
-        onChange={(event) => onChange(event.target.checked ? 'none' : 'any')}
-      />
-      {SCOPE_TEXT.visitNone}
+      <span className={styles.switch}>
+        <input
+          type="checkbox"
+          role="switch"
+          className={styles.switchInput}
+          checked={visit === 'none'}
+          aria-labelledby={titleId}
+          aria-describedby={noteId}
+          onChange={(event) => onChange(event.target.checked ? 'none' : 'any')}
+        />
+        <span className={styles.switchTrack} aria-hidden="true" />
+      </span>
+      <span className={styles.visitText}>
+        <span id={titleId} className={styles.visitTitle}>
+          {SCOPE_TEXT.visitNone}
+        </span>
+        <span id={noteId} className={styles.visitNote}>
+          {SCOPE_TEXT.visitNote}
+        </span>
+      </span>
     </label>
   )
 }
@@ -297,7 +349,7 @@ interface BodyProps {
 /**
  * The box's body (R1-4), also the phone "찾을 도서관" sheet (R2-1): 사는 곳 (chips + grid), 일하는 곳
  * ([일하는 곳도 더하기] → chips + grid), 직접 추가 N곳 with names and the 어디 살든 가입 note, a thick band, "가입 방법"
- * with 방문 가입 빼기, and [마이페이지에서 전체 보기] (order by the user, 2026-10-19). A check only saves (R1-3): never a search. Before login the save hint shows under the part
+ * with 「온라인에서 가입 가능한 곳만 보기」, and [마이페이지에서 전체 보기] (order by the user, 2026-10-19). A check only saves (R1-3): never a search. Before login the save hint shows under the part
  * that saved (R9); a failed account save says so (cycle 06 wording).
  */
 export function LibraryScopeBody({
@@ -386,7 +438,6 @@ export function LibraryScopeBody({
           {SCOPE_TEXT.joinTitle}
         </h3>
         <VisitSwitch visit={visit} onChange={onVisitChange} />
-        <p className={styles.note}>{SCOPE_TEXT.visitNote}</p>
       </div>
 
       <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>

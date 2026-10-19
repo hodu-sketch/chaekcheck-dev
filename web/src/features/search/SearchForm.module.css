@@ -307,6 +307,35 @@
   }
 }
 
+/*
+ * The first screen (user 2026-10-19): the box with a violet border and a soft shadow, a filled violet [검색]; on wider
+ * screens the line takes its column's whole width
+ */
+.form[data-start] .field {
+  border-color: var(--brand);
+  box-shadow: 0 4px 14px rgb(94 63 224 / 0.08);
+}
+
+.form[data-start] .field[data-invalid] {
+  border-color: var(--fail);
+}
+
+.form[data-start] .submit {
+  background: var(--brand);
+  color: #fff;
+}
+
+.form[data-start] .submit:hover {
+  background: var(--brand-strong);
+}
+
+@media (width > 640px) {
+  .form[data-start] {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    width: 100%;
+  }
+}
+
 /* 1024px and below: "상세검색" becomes an icon (flow.md) */
 @media (width <= 1024px) {
   .moreLabel,
@@ -342,10 +371,6 @@
     display: flex;
     flex-basis: 100%;
     min-width: 0;
-  }
-
-  .form[data-start] .chipSlot > * {
-    justify-content: center;
   }
 
   /* the sort at the right end of this line (user request 2026-10-05) */
