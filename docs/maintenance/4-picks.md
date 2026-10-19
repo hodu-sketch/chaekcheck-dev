@@ -166,7 +166,7 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 반영 뒤 확인: `GET /api/v1/picks/<목록>`의 `categories[0].books` 수와 `bookId`가 있는 수(2026-10-16 c21 복사본: 서울대 87/100, 이동진 36/43, 사서 72/108)
 - DB에서: `SELECT list_key, count(*), count(book_id) FROM picks.list_book GROUP BY 1`
 
-## 7. KAIST 도서관 추천도서 (2026-10-19 사용자 요청, 수집 전)
+## 7. KAIST 도서관 추천도서 (2026-10-19 사용자 요청)
 
 - 요청: "이동진 추천 빼고 여기 넣어줘" — 화면의 「이동진 추천」 탭 자리에 KAIST 도서관 목록을 넣음. 이동진 목록 자료(seed·파일)는 지우지 않고 화면에서만 뺄 예정.
 - 출처: https://library.kaist.ac.kr/search/ctlgSearch/collections/specialCollection.do (KAIST 도서관 > 소장자료검색 > Collections > 추천도서). 페이지 글: "사서추천도서, 스페셜도서, 독서문화위원회 추천도서를 확인할 수 있습니다."
@@ -181,4 +181,9 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 넣는 방법(6절과 같은 길): 목록 파일(제목·저자·출판사·ISBN·주제)을 만들고 `CuratedListTransfer`로 내보내기 → 운영에 적용. 맞추기는 5절·ADR-0124 규칙 그대로(ISBN → 제목+첫 저자+출판사).
 - 표지: KAIST 사이트 표지는 쓰지 않음(우리 책 목록 표지 또는 제목 표지). 목록 글(서명·저자)은 사실 정보로 보지만, 수집 전에 사이트 이용 조건·robots.txt를 확인해 이 절에 적을 것. 수집은 페이지를 몇 번만 읽는 정도로(도서관 트래픽 최소).
 - 수집 결과(2026-10-19): 85번 읽음, 80권(주제마다 20), 80권 모두 ISBN 있음. 내 PC 책 표와 ISBN이 같은 책 25권(25권 모두 소장 줄 있음, 제목·저자 맞추기 전). 「AI대학」 주제는 영문 원서가 많음(예 "Applied mathematics…", "Applied machine learning in…").
-- 남긴 파일(git 밖): `data/recommended-lists/kaist/kaist-sc2026.tsv`(칸: theme_code, theme, recomend_no, bibctrlno, title, author, publisher, year, isbn), 수집 스크립트 `data/recommended-lists/kaist/collect.py`(목록 HTML이 같은 폴더에 있어야 함). 운영에 넣는 길(목록 키 `kaist` 추가, 반영 방법)은 사용자 결정 뒤에 이 절에 적음.
+- 남긴 파일(git 밖): `data/recommended-lists/kaist/kaist-sc2026.tsv`(칸: theme_code, theme, recomend_no, bibctrlno, title, author, publisher, year, isbn), 수집 스크립트 `data/recommended-lists/kaist/collect.py`(목록 HTML이 같은 폴더에 있어야 함). 운영에 넣는 길은 아래.
+- 사용자 결정(2026-10-19): "지금 화면 바뀐 것들은 먼저 v1.4.0으로 배포하고(이동진 탭은 잠시 그대로), KAIST 추천은 목록만 운영에 넣는 방법까지 만들어서 다음에 따로 배포".
+- 목록 파일 `scripts/crawl/lists/kaist.tsv`(80줄): 칸 `field, position, title, author, publisher, isbn13, cover_url, pinned_*, pinned_by, note`. `field`는 주제 코드 `nature`(자연이 우리에게 주는 메시지)·`ai`(AI가 우리에게 주는 메시지)·`culture`(문화가 우리에게 주는 메시지)·`ai_college`(AI대학), 화면 칩 이름은 짧게 자연·AI·문화·AI대학(`fields.tsv`의 `kaist` 줄). `title`은 KAIST 서명에서 부제(" : ", " = " 뒤)를 뗀 것, `author`는 첫 저자, `note`에 KAIST 주제와 추천번호.
+- 수집기 `scripts/crawl/recommended_lists.py`가 `kaist.tsv`도 서울대처럼 고정 판·표지를 고름. 2026-10-19 첫 실행(`--skip-youtube`, 사본 `ebook-catalog-2026-10-12-0135.sqlite`): 고정 판 27/80, 표지 53장(`covers/`). 「AI대학」의 영문 원서는 우리 책 표에 거의 없음(제목 표지로 보임).
+- 화면: 탭 순서 사서 추천 → KAIST 추천 → 서울대 100선. 이동진 목록은 탭에서만 빼고(주소 `/picks/leedongjin`은 그대로), 자료는 지우지 않음.
+- 운영 반영: 책 표 가져오기 없이 목록만 넣는 `lists` 모드([3-import.md](3-import.md)). 목록 키 `kaist`는 새 Liquibase 변경으로 picks·usagelog 검사 제약에 더함.
