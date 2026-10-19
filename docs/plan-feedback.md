@@ -5671,3 +5671,11 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 창 스크롤바를 얇게("슬라이드바 디자인 이상해 예쁘게").
 - 확인: main에서 웹 tsc·vitest(70파일 615개), 백엔드 test 통과.
 
+# KAIST 추천과 목록만 넣기 (2026-10-19, 사용자 요청, v1.6.0)
+
+- 사용자: "이동진 추천 빼고 여기 넣어줘 https://library.kaist.ac.kr/search/ctlgSearch/collections/specialCollection.do", "스페셜도서 책", "사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천", 그리고 "KAIST 추천은 목록만 운영에 넣는 방법까지 만들어서 다음에 따로 배포".
+- 수집·목록 파일·수집기·화면은 4-picks.md 7절. 탭 순서 사서 → KAIST → 서울대, 이동진은 탭에서만 뺌(주소·자료는 그대로).
+- **plan 판단 필요**: 목록 키 `kaist`(새 Liquibase 변경 `picks-003-kaist-list-key`, `picks-003-kaist-rows`, `usagelog-006-screen-event-picks-list-kaist`; 운영에 적용된 002·003은 고치지 않음)와 가져오기 모드 `lists`(3-import.md 14절). 사이클 21 ADR-0123은 목록이 책 표 가져오기 반영 파일에 실려 가는 길만 정했는데, `lists`는 지금 DB의 책 표에 맞춰 목록만 바꿔 넣음. 다음 책 표 가져오기 때도 목록은 그 반영 파일로 다시 실려 감.
+- 그 밖에 이 판에 함께: 도서관 로고 클릭 없앰("도서관 로고 클릭 이벤트 다 없애줘", 사용 기록 `logo` 클릭도 더는 안 생김), 결과 아래 「전국에서 더 찾기」 삭제("빼자 불필요해").
+- 확인: main에서 웹 tsc·vitest(614개, 마이페이지 지역 줄 시험 1개가 전체 실행 때만 가끔 늦음 — 따로 돌리면 통과), 백엔드 test 통과. 내 PC `db`에 `lists` 모드: kaist 80줄 29권 맞춤.
+
