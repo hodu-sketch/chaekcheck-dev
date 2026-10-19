@@ -1,7 +1,7 @@
 """Recommended lists collector (cycle 21; ADR-0124, ADR-0128; plan design-delta "목록 파일", spec R3, R4).
 
 Keeps the list files in scripts/crawl/lists/ that the catalog export carries (fields.tsv, leedongjin.tsv, snu100.tsv,
-covers/). One run does, in order:
+kaist.tsv, covers/). KAIST's list (user 2026-10-19) gets fixed editions and covers like the SNU 100. One run does, in order:
 
 1. YouTube (Lee Dong-jin): reads the 「이달의 책」 playlist and the channel's uploads from the first page to the last,
    with the YouTube Data API only (www.googleapis.com; no page of www.youtube.com is ever requested, spec R4-1). A
@@ -74,6 +74,8 @@ LEEDONGJIN_COLUMNS = ['month', 'position', 'year_book', 'video_id', 'field', 'ti
                       'checked_on', 'note']
 SNU_COLUMNS = ['toc_no', 'field', 'title', 'author', 'cover_url', 'pinned_title', 'pinned_author', 'pinned_publisher',
                'pinned_isbn13', 'pinned_by', 'note']
+KAIST_COLUMNS = ['field', 'position', 'title', 'author', 'publisher', 'isbn13', 'cover_url', 'pinned_title',
+                 'pinned_author', 'pinned_publisher', 'pinned_isbn13', 'pinned_by', 'note']
 PENDING_COLUMNS = ['video_id', 'month', 'reason', 'title', 'author', 'isbn13', 'field_suggestion']
 
 BOOK_NAME = re.compile(r'\[([^\[\]]+)\]|《([^《》]+)》|〈([^〈〉]+)〉|『([^『』]+)』|🔖\s*([^\n]+)')
@@ -926,6 +928,8 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
 
     lee_header, lee = read_tsv(lists_dir / 'leedongjin.tsv')
     snu_header, snu = read_tsv(lists_dir / 'snu100.tsv')
+    kaist_path = lists_dir / 'kaist.tsv'
+    kaist_header, kaist = read_tsv(kaist_path) if kaist_path.exists() else ([], [])
     _, pending = read_tsv(lists_dir / 'leedongjin_pending.tsv')
     _, subjects = read_tsv(lists_dir / 'subject_fields.tsv')
     subject_fields = {s['subject']: s['field_suggestion'] for s in subjects}
@@ -950,13 +954,16 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
 
     chosen_lee: dict[int, int] = {}
     chosen_snu: dict[int, int] = {}
+    chosen_kaist: dict[int, int] = {}
     if not args.skip_editions:
         try:
             catalog = catalog or Catalog.connect(env, args.db_port)
             kinds = catalog.kinds()
             chosen_lee = choose_editions(lee, catalog, kinds, log)
             chosen_snu = choose_editions(snu, catalog, kinds, log)
-            log.line(f'editions: leedongjin {len(chosen_lee)}/{len(lee)}, snu100 {len(chosen_snu)}/{len(snu)}')
+            chosen_kaist = choose_editions(kaist, catalog, kinds, log)
+            log.line(f'editions: leedongjin {len(chosen_lee)}/{len(lee)}, snu100 {len(chosen_snu)}/{len(snu)}, '
+                     f'kaist {len(chosen_kaist)}/{len(kaist)}')
         except Exception as ex:  # a database that does not answer keeps the fixed editions as they were
             log.line(f'editions: database failed, the fixed editions stay as they were ({ex.__class__.__name__})')
             catalog = None
@@ -967,10 +974,13 @@ def run(args, http_opener=None, catalog: Catalog | None = None, sqlite: sqlite3.
             sqlite = sqlite3.connect(f'file:{Path(args.sqlite).as_posix()}?mode=ro', uri=True)
         fetch_covers(lists_dir, lee, chosen_lee, catalog, sqlite, seoji, http, log, kakao)
         fetch_covers(lists_dir, snu, chosen_snu, catalog, sqlite, seoji, http, log, kakao)
-        log.line(f'covers: {remove_unused_covers(lists_dir, lee + snu)} unused files removed')
+        fetch_covers(lists_dir, kaist, chosen_kaist, catalog, sqlite, seoji, http, log, kakao)
+        log.line(f'covers: {remove_unused_covers(lists_dir, lee + snu + kaist)} unused files removed')
 
     write_tsv(lists_dir / 'leedongjin.tsv', lee_header or LEEDONGJIN_COLUMNS, lee)
     write_tsv(lists_dir / 'snu100.tsv', snu_header or SNU_COLUMNS, snu)
+    if kaist:
+        write_tsv(kaist_path, kaist_header or KAIST_COLUMNS, kaist)
     if pending or (lists_dir / 'leedongjin_pending.tsv').exists():
         write_tsv(lists_dir / 'leedongjin_pending.tsv', PENDING_COLUMNS, pending)
     log.line(f"hosts asked: {sorted(set(http.hosts))}")
