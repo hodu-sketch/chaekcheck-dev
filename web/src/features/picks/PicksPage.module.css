@@ -389,3 +389,8 @@
 .condition {
   margin-top: 1rem;
 }
+
+/* the source's address: long, so it may break anywhere (user 2026-10-20) */
+.sourceLink {
+  overflow-wrap: anywhere;
+}

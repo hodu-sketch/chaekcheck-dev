@@ -253,7 +253,12 @@ describe('SNU 100 screen', () => {
       '광장, 전자책 없음',
     ])
     // the source is only in 추천 기준과 출처 보기
-    expect(screen.getByText('출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)').closest('details')).not.toBeNull()
+    const source = screen.getByText(/^출처: 서울대학교 기초교육원 『권장도서 해제집』\(서울대학교출판문화원\)/, { selector: 'li' })
+    expect(source.closest('details')).not.toBeNull()
+    // the source's page (user 2026-10-20)
+    expect(within(source).getByRole('link').getAttribute('href')).toBe(
+      'https://www.snupress.com/book/category?md=view&goodsidx=2676',
+    )
   })
 
   it('shows our title with no list name line, and no field or number (AC-8; AC-16 line taken out 2026-10-17)', async () => {

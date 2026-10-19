@@ -211,6 +211,14 @@ export function PicksPage({ list }: { list: PicksList }) {
           ))}
           <li className={styles.source}>
             {list.source(data?.fetchedAt ?? null)}
+            {list.sourceUrl && (
+              <>
+                {' · '}
+                <a href={list.sourceUrl} target="_blank" rel="noopener noreferrer" className={styles.sourceLink}>
+                  {list.sourceUrl}
+                </a>
+              </>
+            )}
             {list.key === 'leedongjin' && (
               <>
                 {' · '}

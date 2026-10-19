@@ -24,6 +24,8 @@ export interface PicksList {
   helpLines: readonly string[]
   /** The source line in "추천 기준과 출처 보기"; the YouTube terms link follows Lee Dong-jin's. */
   source: (fetchedAt: string | null) => string
+  /** The source's own page, linked after the source line (user 2026-10-20: "추천도서 출처에 url넣어주라"). */
+  sourceUrl?: string
   /** The book windows' line of when the book was recommended ("2025년 KAIST 사서추천"), for KAIST only. */
   yearLine?: (book: PickBook) => string | null
 }
@@ -40,6 +42,7 @@ const LIBRARIAN: PicksList = {
   loadingText: '사서추천도서를 불러오는 중',
   helpLines: HELP_LINES,
   source: sourceLine,
+  sourceUrl: 'https://www.nl.go.kr/NL/contents/N20500000000.do',
   // the month in the book windows like KAIST's year (user 2026-10-20: "카이스트는 연도 국립중앙도서관은 연도+월 이거
   // 여기에 적혀있어야해")
   yearLine: (book) => {
@@ -77,6 +80,8 @@ const SNU100: PicksList = {
     '“전자책 없음” 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)',
+  // the book's page at the publisher (no page of the list itself was found, 2026-10-20)
+  sourceUrl: 'https://www.snupress.com/book/category?md=view&goodsidx=2676',
 }
 
 /**
@@ -97,7 +102,9 @@ const KAIST: PicksList = {
     '분류는 책의 주제에 따라 책첵이 나눴어요',
     '책첵은 KAIST 도서관과 관계가 없어요',
   ],
-  source: () => '출처: KAIST 도서관 소장자료검색 · Collections · 추천도서 · 사서추천도서 · 책첵은 KAIST 도서관과 관계가 없어요',
+  // "책첵은 … 관계가 없어요" is the line above already
+  source: () => '출처: KAIST 도서관 소장자료검색 · Collections · 추천도서 · 사서추천도서',
+  sourceUrl: 'https://library.kaist.ac.kr/search/ctlgSearch/collections/specialCollection.do',
   yearLine: (book) => (book.yearBook ? `${book.yearBook}년 KAIST 사서추천` : null),
 }
 
@@ -118,7 +125,8 @@ const NOBEL: PicksList = {
     '분류는 작품이 쓰인 시대에 따라 책첵이 나눴어요',
     '책첵은 노벨연구소와 관계가 없어요',
   ],
-  source: () => '출처: Bokklubben World Library (노르웨이 북클럽·노르웨이 노벨연구소, 2002) · 책첵은 노벨연구소와 관계가 없어요',
+  source: () => '출처: Bokklubben World Library (노르웨이 북클럽·노르웨이 노벨연구소, 2002)',
+  sourceUrl: 'https://en.wikipedia.org/wiki/Bokklubben_World_Library',
 }
 
 export const PICKS_LISTS: Record<PicksListKey, PicksList> = {

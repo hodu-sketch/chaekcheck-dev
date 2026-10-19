@@ -148,7 +148,11 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(summary.tagName).toBe('SUMMARY')
     const details = summary.closest('details')!
     expect(within(details).getByText('국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 12번(2년) 추천분이에요')).toBeTruthy()
-    expect(within(details).getByText('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음')).toBeTruthy()
+    const source = within(details).getByText(/^출처: 국립중앙도서관 사서추천도서 \(공공누리 제1유형\) · 10월 12일 받음 ·/, {
+      selector: 'li',
+    })
+    // the source's page (user 2026-10-20)
+    expect(within(source).getByRole('link').getAttribute('href')).toBe('https://www.nl.go.kr/NL/contents/N20500000000.do')
   })
 
   it('filters the grid with a chip and keeps the chip in this history entry', async () => {
