@@ -28,6 +28,10 @@ import com.chaekcheck.picks.internal.cache.PicksCache;
 @Transactional
 class PicksApiTests {
 
+	/** The shipped AI summary of 「히스토리아 비테이」 (picks/ai-summaries.tsv, found by its list and title). */
+	private static final String HISTORIA_SUMMARY = "팬데믹, 기후 변화, AI 같은 위기 앞에서 지구 생명의 역사를 돌아보며 해법을 찾는 생태학자 최재천의 책이에요.";
+
+
 	static final String URL = "/api/v1/picks/librarian";
 
 	@Autowired
@@ -203,7 +207,7 @@ class PicksApiTests {
 				""".formatted("""
 				{"id":"%d","category":"science","title":"히스토리아 비테이","listTitle":null,"coverUrl":null,
 				 "bookId":910011,"available":true,"recommendedMonth":"2026-06","yearBook":null,"videoId":"lMx0zEd1qtY",
-				 "tocNo":null,"aiSummary":null}""".formatted(rowId("leedongjin", "히스토리아 비테이"))));
+				 "tocNo":null,"aiSummary":"%s"}""".formatted(rowId("leedongjin", "히스토리아 비테이"), HISTORIA_SUMMARY)));
 		var snu = assertThat(mvc.get().uri("/api/v1/picks/snu100")).hasStatusOk().bodyJson();
 		snu.extractingPath("$.categories[*].code").isEqualTo(List.of("ALL", "korean_lit", "foreign_lit"));
 		snu.extractingPath("$.categories[0].books[*].tocNo").isEqualTo(List.of(17, 23));

@@ -39,7 +39,8 @@ class LibrarySeedTests {
 		assertThat(count("SELECT count(*) FROM collection.collection_link")).isEqualTo(REGISTERED + OTHERS);
 		assertThat(count("SELECT count(*) FROM collection.collection_link WHERE collection_library_id = library_id"))
 			.isEqualTo(REGISTERED);
-		assertThat(count("SELECT count(*) FROM library.eligibility_rule WHERE library_id > 280")).isEqualTo(253);
+		// 253 from the script; library-019 (2026-10-20) made 울산동부 361 울산 거주·재직·재학 in place of 누구나: +2
+		assertThat(count("SELECT count(*) FROM library.eligibility_rule WHERE library_id > 280")).isEqualTo(255);
 		assertThat(jdbc.sql("""
 				SELECT join_survey, count(*) FROM library.library WHERE id > 280 GROUP BY join_survey""")
 			.query((rs, n) -> Map.entry(rs.getString(1), rs.getLong(2)))
