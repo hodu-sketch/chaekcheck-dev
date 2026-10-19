@@ -248,17 +248,6 @@
   overflow-wrap: anywhere;
 }
 
-.cardSub {
-  display: block;
-  max-width: 100%;
-  margin-top: 0.25rem;
-  overflow: hidden;
-  color: var(--ink-faint);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 /* the pill sits at the bottom of the card, whatever the title's length */
 .pillRow {
   display: block;
@@ -311,17 +300,6 @@
 .moreCount {
   color: var(--ink-faint);
   font-weight: 500;
-}
-
-.footNote {
-  margin-top: 1.75rem;
-  padding: 0.85rem 1.1rem;
-  border-radius: var(--radius-md);
-  background: var(--paper-deep);
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-  word-break: keep-all;
 }
 
 .skeleton {

@@ -96,7 +96,7 @@ afterEach(() => {
 })
 
 describe('librarian picks (S13, redesign 2026-10-19)', () => {
-  it('shows the tabs, the grey line, the chips and every book of 전체 as cards (AC-1)', async () => {
+  it('shows the tabs, the chips and every book of 전체 as cards (AC-1)', async () => {
     stubFetch()
     renderPage()
     expect(await screen.findByRole('region', { name: '전체' })).toBeTruthy()
@@ -113,19 +113,20 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(chips()[0].getAttribute('aria-pressed')).toBe('true')
     expect(numbers('전체')).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     expect(cards('전체')[0].getAttribute('aria-label')).toBe('전체 1, 전자책 있음')
-    expect(screen.getByText(/^전자책 있음은 보유 정보를 찾았다는 뜻이에요/)).toBeTruthy()
+    // no grey lines (user 2026-10-19: "회색깔 설명 글 다 빼줘")
+    expect(screen.queryByText(/보유 정보를 찾았다는 뜻/)).toBeNull()
     // AC-15
     expect(document.body.textContent).not.toMatch(/인기 도서|순위|출판유통/)
   })
 
-  it('marks each card linked or not, with the recommendation line under the title (AC-6)', async () => {
+  it('marks each card linked or not, with no line under the title (AC-6)', async () => {
     stubFetch()
     renderPage()
     await screen.findByRole('region', { name: '전체' })
     const [first, second] = cards('전체')
     expect(first.getAttribute('data-linked')).toBe('true')
     expect(within(first).getByText('전자책 있음')).toBeTruthy()
-    expect(within(first).getByText('2026년 10월 사서추천 · 문학')).toBeTruthy()
+    expect(within(first).queryByText(/사서추천/)).toBeNull()
     expect(second.getAttribute('data-linked')).toBe('false')
     expect(within(second).getByText('전자책 없음')).toBeTruthy()
   })
@@ -262,8 +263,7 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     // cycle 21 (ADR-0129): the shown name the list gives
     expect(await within(dialog).findByText('지은이 · 출판사')).toBeTruthy()
     expect(within(dialog).getByRole('heading', { name: '전체 1' })).toBeTruthy()
-    // the book's field is 문학 (code 11), its month 2026-10
-    expect(within(dialog).getByText('2026년 10월 사서추천 · 문학')).toBeTruthy()
+    expect(within(dialog).queryByText(/사서추천/)).toBeNull()
     expect(within(dialog).queryByTestId('sheet-handle')).toBeNull()
     await user.click(within(dialog).getByRole('button', { name: '책 검색' }))
     expect(await screen.findByText('책 화면')).toBeTruthy()

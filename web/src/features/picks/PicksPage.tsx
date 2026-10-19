@@ -118,10 +118,6 @@ export function PicksPage({ list }: { list: PicksList }) {
     setChosen(code)
     setShown(MORE_STEP)
   }
-  const nameOf = (code: string) => categories.find((c) => c.code === code)?.name ?? null
-  // the grey line under the title: the field for the SNU 100 (its recommendation line is the same for every book)
-  const subOf = (book: PickBook) =>
-    list.key === 'snu100' ? (nameOf(book.category) ?? '') : list.pickLine(book, nameOf(book.category))
 
   const pick = (book: PickBook) => {
     savePosition(list.key, { scrollY: window.scrollY })
@@ -170,7 +166,7 @@ export function PicksPage({ list }: { list: PicksList }) {
         <section className={styles.results} aria-label={current.name}>
           <ol className={styles.grid} aria-label={`${current.name} ${current.books.length}권`}>
             {books.map((book) => (
-              <BookCard key={book.id} book={book} sub={subOf(book)} onPick={pick} />
+              <BookCard key={book.id} book={book} onPick={pick} />
             ))}
           </ol>
           {left > 0 && (
@@ -179,9 +175,6 @@ export function PicksPage({ list }: { list: PicksList }) {
             </button>
           )}
         </section>
-        <p className={styles.footNote}>
-          전자책 있음은 보유 정보를 찾았다는 뜻이에요. 책을 누르면 현재 대출 상태와 가입 조건을 볼 수 있어요.
-        </p>
       </>
     )
   }
@@ -218,18 +211,15 @@ export function PicksPage({ list }: { list: PicksList }) {
       </details>
       <PicksBookDialog
         book={selected && isLinked(selected) ? selected : null}
-        categoryName={selected ? nameOf(selected.category) : null}
         plan={plan}
         onClose={() => setSelected(null)}
         onSearch={openBook}
         phone={phone}
-        list={list}
       />
       <RequestNotice
         book={selected && !isLinked(selected) ? selected : null}
         onClose={() => setSelected(null)}
         phone={phone}
-        list={list}
       />
     </div>
   )

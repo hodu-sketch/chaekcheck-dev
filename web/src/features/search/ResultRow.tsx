@@ -1,5 +1,5 @@
 import { Popover } from 'radix-ui'
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { JoinSurvey, TargetLibrary } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
@@ -99,14 +99,9 @@ interface Props {
 /** The regions a search was made with, for the [내 지역] note (cycle 22 D2). */
 export type RegionBasis = 'residence' | 'work' | 'both'
 
-/** The notes of the pills (cycle 22 문구표 말풍선, R6-2, D1, D2) [확정]. */
+/** The note of [직접 추가] (cycle 22 문구표); the join pills open the join guide instead of a note (user 2026-10-19). */
 export const TAG_TEXT = {
-  open: '그 지역에 살지 않아도 온라인으로 가입할 수 있어요',
-  visit: (name: string) => `가입하려면 ${name}에 한 번 가야 해요`,
-  mine: { residence: '사는 곳으로', work: '일하는 곳으로', both: '사는 곳이나 일하는 곳으로' } as Record<RegionBasis, string>,
-  mineTail: ' 가입할 수 있어요',
   chosen: '직접 추가한 도서관이에요',
-  howToJoin: '가입 방법 보기',
   removeAtMyPage: '마이페이지에서 빼기',
 } as const
 
@@ -115,7 +110,7 @@ export const TAG_TEXT = {
  * link. No description or cover. The state comes from the row's availability only (ADR-0019). No "구독형" tag by the
  * library name: the state already says "구독형 · 바로 대출" (user request 2026-10-05).
  */
-export function ResultRow({ row, library, searchUrl, screen, tags = false, regionBasis = 'both' }: Props) {
+export function ResultRow({ row, library, searchUrl, screen, tags = false }: Props) {
   const phone = useMediaQuery('(width <= 640px)')
   // the join guide's window; "가입 방법 보기" in a pill's note opens it too (cycle 22 R6-2)
   const [joinOpen, setJoinOpen] = useState(false)
@@ -198,7 +193,7 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
             <span>{libraryName}</span>
           )}
           {tags && library ? (
-            <RowTags library={library} regionBasis={regionBasis} onJoin={() => setJoinOpen(true)} />
+            <RowTags library={library} onJoin={() => setJoinOpen(true)} />
           ) : (
             chosen && <span className={styles.chosen}>직접 추가</span>
           )}
@@ -238,28 +233,8 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false, regio
  * group (D3'), plus [방문 가입] when the library has to be visited to join; a library of ③ shows its eligibility summary
  * in grey instead, without a note.
  */
-function RowTags({
-  library,
-  regionBasis,
-  onJoin,
-}: {
-  library: TargetLibrary
-  regionBasis: RegionBasis
-  onJoin: () => void
-}) {
+function RowTags({ library, onJoin }: { library: TargetLibrary; onJoin: () => void }) {
   const group = libraryGroup(library)
-  const join = (close: () => void) => (
-    <button
-      type="button"
-      className={styles.tagAction}
-      onClick={() => {
-        close()
-        onJoin()
-      }}
-    >
-      {TAG_TEXT.howToJoin}
-    </button>
-  )
   return (
     <>
       {library.chosen ? (
@@ -274,30 +249,21 @@ function RowTags({
           )}
         />
       ) : group === 'MINE' ? (
-        <TagPill
-          label="내 지역"
-          tone="mine"
-          text={`${TAG_TEXT.mine[regionBasis]}${TAG_TEXT.mineTail}`}
-          action={join}
-          onPress={onJoin}
-        />
+        <TagPill label="내 지역" tone="mine" onPress={onJoin} />
       ) : group === 'OPEN' ? (
-        <TagPill label="어디 살든 가입" tone="open" text={TAG_TEXT.open} action={join} onPress={onJoin} />
+        <TagPill label="어디 살든 가입" tone="open" onPress={onJoin} />
       ) : (
         library.eligibilitySummary && <span className={styles.tagSummary}>{library.eligibilitySummary}</span>
       )}
-      {library.visitRequired && (
-        <TagPill label="방문 가입" tone="visit" text={TAG_TEXT.visit(library.name)} action={join} onPress={onJoin} />
-      )}
+      {library.visitRequired && <TagPill label="방문 가입" tone="visit" onPress={onJoin} />}
     </>
   )
 }
 
 /**
- * One pill and its note (radix Popover, like the subscription note): a tap or click opens it; on a computer the mouse
- * resting on it opens it too, and leaving the pill and the note closes it again unless it was clicked open. A click
- * outside or Esc closes it. A join pill ({@code onPress}) opens the join guide at once on a tap or click (user
- * 2026-10-19: "어디 살든 가입 누르면 가입 방법 보기 안 눌러도 그냥 바로 가입방법 안내로"); the mouse resting on it still shows the note.
+ * One pill. A join pill ({@code onPress}) is a plain button that opens the join guide (user 2026-10-19: "가입 방법 보기 안
+ * 눌러도 그냥 바로 가입방법 안내로"); the others open their note (radix Popover) on a tap or click. Nothing opens when the
+ * mouse rests on a pill (user 2026-10-19: "마우스 올리면 뭐 설명 뜨는데 다 없애줘"). A click outside or Esc closes the note.
  */
 function TagPill({
   label,
@@ -308,71 +274,23 @@ function TagPill({
 }: {
   label: string
   tone: 'chosen' | 'mine' | 'open' | 'visit'
-  text: string
-  action: (close: () => void) => ReactNode
-  /** A tap or click opens the join guide at once, without the note; the focus is not given back to the pill. */
+  text?: string
+  action?: (close: () => void) => ReactNode
+  /** A tap or click opens the join guide; the pill has no note. */
   onPress?: () => void
 }) {
   const phone = useMediaQuery('(width <= 640px)')
   const [open, setOpen] = useState(false)
-  // opened by the mouse resting on it (it closes when the mouse leaves), not by a click
-  const byHover = useRef(false)
-  const toJoin = useRef(false)
-  const closeTimer = useRef<number | undefined>(undefined)
-  const cancelClose = () => window.clearTimeout(closeTimer.current)
-  const scheduleClose = () => {
-    cancelClose()
-    closeTimer.current = window.setTimeout(() => {
-      if (!byHover.current) return
-      byHover.current = false
-      setOpen(false)
-    }, 150)
+  if (onPress) {
+    return (
+      <button type="button" className={styles.tag} data-tone={tone} onClick={onPress}>
+        {label}
+      </button>
+    )
   }
-  useEffect(() => () => window.clearTimeout(closeTimer.current), [])
-  // a computer's mouse only; a phone's tap (or a touch screen reporting hover) opens it by the click
-  const mouse = (event: PointerEvent) => event.pointerType === 'mouse' && !phone
-  const close = () => {
-    toJoin.current = onPress !== undefined
-    byHover.current = false
-    setOpen(false)
-  }
-
   return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(next) => {
-        byHover.current = false
-        setOpen(next)
-      }}
-    >
-      <Popover.Trigger
-        className={styles.tag}
-        data-tone={tone}
-        onPointerEnter={(event) => {
-          if (!mouse(event)) return
-          cancelClose()
-          if (!open) {
-            byHover.current = true
-            setOpen(true)
-          }
-        }}
-        onPointerLeave={(event) => {
-          if (mouse(event)) scheduleClose()
-        }}
-        onClick={(event) => {
-          if (onPress) {
-            event.preventDefault()
-            close()
-            onPress()
-            return
-          }
-          // a click on a note the mouse opened keeps it open (radix would toggle it shut)
-          if (open && byHover.current) {
-            event.preventDefault()
-            byHover.current = false
-          }
-        }}
-      >
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger className={styles.tag} data-tone={tone}>
         {label}
       </Popover.Trigger>
       <Popover.Portal>
@@ -382,20 +300,9 @@ function TagPill({
           align="start"
           sideOffset={6}
           collisionPadding={12}
-          onPointerEnter={cancelClose}
-          onPointerLeave={(event) => {
-            if (mouse(event)) scheduleClose()
-          }}
-          onOpenAutoFocus={(event) => {
-            if (byHover.current) event.preventDefault()
-          }}
-          onCloseAutoFocus={(event) => {
-            if (toJoin.current) event.preventDefault()
-            toJoin.current = false
-          }}
         >
           <p className={styles.tagNote}>
-            {text} · {action(close)}
+            {text} · {action?.(() => setOpen(false))}
           </p>
           <Popover.Arrow className={styles.popoverArrow} width={12} height={6} />
         </Popover.Content>

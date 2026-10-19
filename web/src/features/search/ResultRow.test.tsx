@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { TargetLibrary } from '../../api/types'
 import {
   HOLDING_GONE,
@@ -9,7 +9,6 @@ import {
   MOBILE_SITE_NOTE,
   RENT_LABEL,
   ResultRow,
-  TAG_TEXT,
   UncheckedLibraryLine,
   type RegionBasis,
 } from './ResultRow'
@@ -453,26 +452,18 @@ describe('pills after the library name', () => {
     expect(join.textContent).toContain('도서관 홈페이지 가입 후 로그인')
   })
 
-  it('[방문 가입] in amber next to the group pill, naming the library', async () => {
+  it('[방문 가입] in amber next to the group pill; a click opens the join guide', async () => {
     const user = renderTags({ ...openLibrary, visitRequired: true })
     expect(pill('어디 살든 가입')).toBeTruthy()
     expect(pill('방문 가입').getAttribute('data-tone')).toBe('visit')
-    fireEvent.pointerEnter(pill('방문 가입'), { pointerType: 'mouse' })
-    expect(screen.getByRole('dialog').textContent).toBe(
-      `가입하려면 ${openLibrary.name}에 한 번 가야 해요 · 가입 방법 보기`,
-    )
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '가입 방법 보기' }))
+    await user.click(pill('방문 가입'))
     expect(screen.getByRole('dialog', { name: `${openLibrary.name} 가입 안내` })).toBeTruthy()
   })
 
-  it.each([
-    ['residence', '사는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
-    ['work', '일하는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
-    ['both', '사는 곳이나 일하는 곳으로 가입할 수 있어요 · 가입 방법 보기'],
-  ] as const)('[내 지역] says the side the search used (%s)', async (basis, text) => {
-    renderTags(mine, true, basis)
-    fireEvent.pointerEnter(pill('내 지역'), { pointerType: 'mouse' })
-    expect(screen.getByRole('dialog').textContent).toBe(text)
+  it('[내 지역] opens the join guide at once', async () => {
+    const user = renderTags(mine, true, 'both')
+    await user.click(pill('내 지역'))
+    expect(screen.getByRole('dialog', { name: `${mine.name} 가입 안내` })).toBeTruthy()
   })
 
   it('[직접 추가] leads to the my page, in place of the old mark', async () => {
@@ -490,12 +481,10 @@ describe('pills after the library name', () => {
     expect(screen.queryByRole('button', { name: /어디 살든 가입|내 지역|직접 추가/ })).toBeNull()
   })
 
-  it('opens on a computer when the mouse rests on the pill, and closes when it leaves', async () => {
-    renderTags(openLibrary)
-    fireEvent.pointerEnter(pill('어디 살든 가입'), { pointerType: 'mouse' })
-    expect(screen.getByRole('dialog').textContent).toContain(TAG_TEXT.open)
-    fireEvent.pointerLeave(pill('어디 살든 가입'), { pointerType: 'mouse' })
-    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  it('opens nothing when the mouse rests on a pill (user 2026-10-19)', () => {
+    renderTags({ ...mine, chosen: true })
+    fireEvent.pointerEnter(pill('직접 추가'), { pointerType: 'mouse' })
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('tags=false draws no pills (book page, picks); a hand-added library keeps its old mark', () => {

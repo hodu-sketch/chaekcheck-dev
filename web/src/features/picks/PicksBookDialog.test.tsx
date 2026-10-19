@@ -6,7 +6,6 @@ import { holdingStream } from '../../api/searchStream'
 import type { BookDetail, HoldingStreamEvent, LibraryItem, TargetLibrary } from '../../api/types'
 import { PicksBookDialog } from './PicksBookDialog'
 import { testBooks } from './testPicks'
-import { PICKS_LISTS } from './picksLists'
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
 vi.mock('../../api/client', async (importOriginal) => ({
@@ -118,7 +117,7 @@ function answerWithThreeHoldings() {
 
 function renderDialog(onSearch = vi.fn()) {
   render(
-    <PicksBookDialog book={BOOK} categoryName="문학" plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} list={PICKS_LISTS.librarian} />,
+    <PicksBookDialog book={BOOK} plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />,
   )
   return userEvent.setup()
 }
@@ -137,10 +136,8 @@ describe('picks book window', () => {
     const dialog = screen.getByRole('dialog', { name: '소설 1 대출 정보' })
     expect(await within(dialog).findAllByRole('article')).toHaveLength(3)
     expect(within(dialog).getAllByText('지은이 · 출판사').length).toBeGreaterThan(0)
-    // the recommendation line under the title, above author and publisher; no rank (cycle 14)
-    const line = within(dialog).getByText('2026년 10월 사서추천 · 문학')
-    expect(line.previousElementSibling?.tagName).toBe('H2')
-    expect(line.nextElementSibling?.textContent).toBe('지은이 · 출판사')
+    // no recommendation line (user 2026-10-19: "2026년 10월 사서추천 이런거 문장 다 빼줘"); no rank (cycle 14)
+    expect(within(dialog).queryByText(/사서추천/)).toBeNull()
     expect(within(dialog).queryByText(/위$/)).toBeNull()
     expect(vi.mocked(fetchBook).mock.calls[0].slice(0, 2)).toEqual(['5001', PLAN])
     expect(vi.mocked(holdingStream).mock.calls[0][0]).toMatchObject({ bookIds: [5001], holdingLimit: 3, libraryIds: [12] })

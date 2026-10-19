@@ -35,13 +35,6 @@
 }
 
 
-/* the recommendation line right under the title, above author and publisher (cycle 14) */
-.bookPick {
-  color: var(--brand-strong);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
 .bookTitle {
   font-size: 1.35rem;
   font-weight: 800;

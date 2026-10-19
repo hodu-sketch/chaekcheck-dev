@@ -1,7 +1,6 @@
 import type { PickBook } from '../../api/types'
 import { REQUEST_LINES } from './picksText'
 import { VideoLink } from './PicksBookDialog'
-import type { PicksList } from './picksLists'
 import { PicksWindow } from './PicksWindow'
 import styles from './PicksDialogs.module.css'
 
@@ -10,12 +9,10 @@ type Props = {
   book: PickBook | null
   onClose: () => void
   phone: boolean
-  /** The list's line, as in S14 (cycle 21). */
-  list: PicksList
 }
 
 /** S15 (R6-9, AC-10): a faded book (no e-book in the searched libraries): its title, then where to ask for it. */
-export function RequestNotice({ book, onClose, phone, list }: Props) {
+export function RequestNotice({ book, onClose, phone }: Props) {
   return (
     <PicksWindow
       open={book !== null}
@@ -33,7 +30,6 @@ export function RequestNotice({ book, onClose, phone, list }: Props) {
             </svg>
           </span>
           <p className={styles.noticeTitle}>{book.title}</p>
-          {list.key !== 'librarian' && <p className={styles.bookPick}>{list.pickLine(book, null)}</p>}
           <p className={styles.noticeText}>
             {REQUEST_LINES[0]}
             <br />

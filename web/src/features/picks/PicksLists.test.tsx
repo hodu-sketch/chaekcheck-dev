@@ -197,7 +197,7 @@ describe('Lee Dong-jin screen', () => {
 
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('heading', { name: '히스토리아 비테이' })).toBeTruthy()
-    expect(within(dialog).getByText('2026년 6월 추천')).toBeTruthy()
+    expect(within(dialog).queryByText('2026년 6월 추천')).toBeNull()
     const video = within(dialog).getByRole('link', { name: '영상 보기' })
     expect(video.getAttribute('href')).toBe('https://www.youtube.com/watch?v=lMx0zEd1qtY')
     expect(video.getAttribute('target')).toBe('_blank')
@@ -218,7 +218,7 @@ describe('Lee Dong-jin screen', () => {
     await user.click(within(all).getByRole('button', { name: /맡겨진 소녀/ }))
 
     const dialog = screen.getByRole('dialog', { name: '전자책 신청 안내' })
-    expect(within(dialog).getByText('2025년 12월 추천 · 2025 올해의 책')).toBeTruthy()
+    expect(within(dialog).queryByText(/올해의 책/)).toBeNull()
     expect(within(dialog).getByRole('link', { name: '영상 보기' }).getAttribute('href')).toBe(
       'https://www.youtube.com/watch?v=6fhNgxzKaLE',
     )
@@ -262,7 +262,7 @@ describe('SNU 100 screen', () => {
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('heading', { name: '햄릿' })).toBeTruthy()
     expect(within(dialog).queryByText(/목록 이름/)).toBeNull()
-    expect(within(dialog).getByText('서울대 권장도서 100선')).toBeTruthy()
+    expect(within(dialog).queryByText('서울대 권장도서 100선')).toBeNull()
     expect(within(dialog).queryByText(/한국문학|외국문학|23/)).toBeNull()
     expect(within(dialog).queryByRole('link', { name: '영상 보기' })).toBeNull()
   })

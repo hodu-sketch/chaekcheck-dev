@@ -1,26 +1,22 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
 import type { BookDetail, PickBook } from '../../api/types'
 import { ResultRow } from '../search/ResultRow'
 import { useHoldings } from '../search/useHoldings'
 import { CoverImage } from './CoverImage'
 import { latestRowPerLibrary, pickLibraryRows, PICKS_HOLDING_STEPS } from './pickLibraryRows'
-import { videoUrl, type PicksList } from './picksLists'
+import { videoUrl } from './picksLists'
 import { PicksWindow } from './PicksWindow'
 import styles from './PicksDialogs.module.css'
 
 type Props = {
   /** The tapped book with an e-book in my libraries (`bookId` set); null keeps the window closed. */
   book: PickBook | null
-  /** The name of the book's field as the answer names it ("문학", or a new field's name). */
-  categoryName: string | null
   plan: PlanParams
   onClose: () => void
   /** [책 검색 >>]: the page keeps its place, then opens the book screen (S3). */
   onSearch: (bookId: number) => void
   phone: boolean
-  /** The list's line under the title (cycle 21 R6-1, R6-2). */
-  list: PicksList
 }
 
 /**
@@ -29,7 +25,7 @@ type Props = {
  * library lines: only the first three plan holdings are asked (`holdingLimit=3`, user 2026-10-12), then sorted by
  * `pickLibraryRows`. The lines are S3's (`ResultRow`): a tap opens the library's book page in a new tab.
  */
-export function PicksBookDialog({ book, categoryName, plan, onClose, onSearch, phone, list }: Props) {
+export function PicksBookDialog({ book, plan, onClose, onSearch, phone }: Props) {
   return (
     <PicksWindow
       open={book !== null}
@@ -42,11 +38,9 @@ export function PicksBookDialog({ book, categoryName, plan, onClose, onSearch, p
         <BookBody
           key={book.bookId}
           book={book}
-          categoryName={categoryName}
           bookId={book.bookId}
           plan={plan}
           onSearch={onSearch}
-          list={list}
           phone={phone}
         />
       )}
@@ -67,19 +61,15 @@ export function VideoLink({ videoId }: { videoId: string | null }) {
 
 function BookBody({
   book,
-  categoryName,
   bookId,
   plan,
   onSearch,
-  list,
   phone,
 }: {
   book: PickBook
-  categoryName: string | null
   bookId: number
   plan: PlanParams
   onSearch: (bookId: number) => void
-  list: PicksList
   phone: boolean
 }) {
   const holdings = useHoldings()
@@ -135,37 +125,6 @@ function BookBody({
   // adjusted while rendering (no effect): the next render opens the wider step, whose `targets` then name more libraries
   if (more) setStep(step + 1)
 
-  // phones: [영상 보기]'s right edge on the right end of the purple recommendation line's longest line, so the two
-  // purple texts share one vertical line (user 2026-10-17: "오른쪽 끝이긴 한데 세로선으로 안 맞잖아 위의 또다른 보라
-  // 글자랑 이거 정렬 맞추게 해줘"). The line wraps by words, so its box is wider than its text: measured, not CSS.
-  const pickRef = useRef<HTMLParagraphElement>(null)
-  const actionsRef = useRef<HTMLDivElement>(null)
-  const [actionsWidth, setActionsWidth] = useState<number | null>(null)
-  const hasVideo = videoUrl(book.videoId) !== null
-  useLayoutEffect(() => {
-    const pick = pickRef.current
-    const actions = actionsRef.current
-    if (!phone || !hasVideo || !pick || !actions) {
-      setActionsWidth(null)
-      return
-    }
-    const measure = () => {
-      const range = document.createRange()
-      range.selectNodeContents(pick)
-      const right = Math.max(...Array.from(range.getClientRects(), (r) => r.right))
-      // both on one line: when the purple line is shorter than that ("2026년 6월 추천", user 2026-10-17), [영상 보기]
-      // stays on the line of [책 검색 >>] at the right end of the text column instead of wrapping under it
-      const gap = parseFloat(getComputedStyle(actions).columnGap) || 0
-      const children = Array.from(actions.children, (child) => child.getBoundingClientRect().width)
-      const needed = children.reduce((sum, w) => sum + w, 0) + gap * Math.max(0, children.length - 1)
-      const width = right - actions.getBoundingClientRect().left
-      setActionsWidth(Number.isFinite(width) && width >= needed ? Math.round(width) : null)
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(pick)
-    return () => observer.disconnect()
-  }, [phone, hasVideo, detail, error])
 
   const head = (
     <div className={styles.bookHead}>
@@ -174,9 +133,6 @@ function BookBody({
         {/* the shown name (cycle 21 R6-3): our title without edition marks. No "목록 이름" line (user 2026-10-17:
             "목록 이름 아예 다 빼줘 무의미한것 같아"; `listTitle` still comes from the API) */}
         <h2 className={styles.bookTitle}>{book.title}</h2>
-        <p ref={pickRef} className={styles.bookPick}>
-          {list.pickLine(book, categoryName)}
-        </p>
         {detail && (
           <p className={styles.bookMeta}>
             {[detail.authorDisplay, detail.publisher].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
@@ -184,10 +140,9 @@ function BookBody({
         )}
         {/* [영상 보기] (R6-2): next to "책 검색 >>" on PC and tablets, at the right end of the same line on phones */}
         <div
-          ref={actionsRef}
           className={styles.bookActions}
           data-phone={phone || undefined}
-          style={actionsWidth !== null ? { width: actionsWidth, alignSelf: 'flex-start' } : undefined}
+         
         >
           {!error && (
             <button type="button" className={styles.searchButton} onClick={() => onSearch(bookId)}>
