@@ -80,10 +80,20 @@ describe('RegionGrid notices', () => {
 })
 
 describe('RegionGrid', () => {
-  function optionTexts(select: HTMLElement) {
-    return within(select)
+  const combo = (name: string) => screen.getByRole('combobox', { name })
+  /** Opens a dropdown, reads its lines and closes it again. */
+  async function optionTexts(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(combo(name))
+    const texts = within(screen.getByRole('listbox', { name }))
       .getAllByRole('option')
       .map((o) => o.textContent)
+    await user.click(combo(name))
+    return texts
+  }
+  /** Opens a dropdown and taps one line: picked at once, no 완료 (user 2026-10-20). */
+  async function choose(user: ReturnType<typeof userEvent.setup>, name: string, text: string) {
+    await user.click(combo(name))
+    await user.click(within(screen.getByRole('listbox', { name })).getByRole('option', { name: text }))
   }
 
   /** Waits for the list, then presses the field's +. */
@@ -109,10 +119,10 @@ describe('RegionGrid', () => {
 
     await user.click(add)
     expect(add.getAttribute('aria-expanded')).toBe('true')
-    const sido = screen.getByRole('combobox', { name: '사는 곳 시도' }) as HTMLSelectElement
-    expect(optionTexts(sido)).toEqual(['서울', '세종'])
-    expect(sido.value).toBe('11')
-    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '마포구', '중구'])
+    expect(combo('사는 곳 시도').textContent).toBe('서울')
+    expect(await optionTexts(user, '사는 곳 시도')).toEqual(['서울', '세종'])
+    expect(combo('사는 곳 시군구').textContent).toBe('시군구 고르기')
+    expect(await optionTexts(user, '사는 곳 시군구')).toEqual(['마포구', '중구'])
   })
 
   it('pressing it again (×) closes the selects without adding', async () => {
@@ -132,11 +142,13 @@ describe('RegionGrid', () => {
   it('the 시도 select starts on the 시도 of the first chosen region; chosen ones show ✓ and are disabled', async () => {
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     renderGrid({ initial: [3611] })
-    await openSelects(userEvent.setup())
+    const user = userEvent.setup()
+    await openSelects(user)
 
-    expect((screen.getByRole('combobox', { name: '사는 곳 시도' }) as HTMLSelectElement).value).toBe('36')
-    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '✓ 세종시'])
-    expect((screen.getByRole('option', { name: '✓ 세종시' }) as HTMLOptionElement).disabled).toBe(true)
+    expect(combo('사는 곳 시도').textContent).toBe('세종')
+    expect(await optionTexts(user, '사는 곳 시군구')).toEqual(['✓ 세종시'])
+    await user.click(combo('사는 곳 시군구'))
+    expect((screen.getByRole('option', { name: '✓ 세종시' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('picking a 시도 lists its 시군구; Sejong picks none by itself', async () => {
@@ -146,11 +158,11 @@ describe('RegionGrid', () => {
     const user = userEvent.setup()
     await openSelects(user)
 
-    await user.selectOptions(screen.getByRole('combobox', { name: '사는 곳 시도' }), '세종')
+    await choose(user, '사는 곳 시도', '세종')
 
-    const sigungu = screen.getByRole('combobox', { name: '사는 곳 시군구' }) as HTMLSelectElement
-    expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '세종시'])
-    expect(sigungu.value).toBe('')
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(combo('사는 곳 시도').textContent).toBe('세종')
+    expect(await optionTexts(user, '사는 곳 시군구')).toEqual(['세종시'])
     expect(onToggle).not.toHaveBeenCalled()
   })
 
@@ -161,7 +173,7 @@ describe('RegionGrid', () => {
     const user = userEvent.setup()
     const add = await openSelects(user)
 
-    await user.selectOptions(screen.getByRole('combobox', { name: '사는 곳 시군구' }), '마포구')
+    await choose(user, '사는 곳 시군구', '마포구')
 
     expect(onToggle).toHaveBeenCalledExactlyOnceWith(1114)
     expect(screen.queryByRole('combobox')).toBeNull()
@@ -170,8 +182,9 @@ describe('RegionGrid', () => {
 
     // opened again: the added one has ✓ and cannot be picked
     await user.click(add)
-    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '✓ 마포구', '중구'])
-    expect((screen.getByRole('option', { name: '✓ 마포구' }) as HTMLOptionElement).disabled).toBe(true)
+    expect(await optionTexts(user, '사는 곳 시군구')).toEqual(['✓ 마포구', '중구'])
+    await user.click(combo('사는 곳 시군구'))
+    expect((screen.getByRole('option', { name: '✓ 마포구' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('the chip × removes a region', async () => {

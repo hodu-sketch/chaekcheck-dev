@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { SidoNode } from '../../api/types'
 import { Cross } from '../../components/icons'
 import type { RegionNotice } from './applyResolutions'
@@ -114,9 +114,8 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
 }
 
 /**
- * Shown after the chips' + is pressed: a 시도 select and that 시도's 시군구 select side by side.
- * Picking a 시군구 adds it at once and the selects hide again; chosen ones carry a leading ✓ and cannot be picked (removing
- * is the chip ×'s job).
+ * Shown after the chips' + is pressed: a 시도 and that 시도's 시군구 dropdown side by side. Picking a 시군구 adds it at once
+ * and the dropdowns hide again; chosen ones carry a leading ✓ and cannot be picked (removing is the chip ×'s job).
  */
 function SelectPicker({
   fieldLabel,
@@ -135,37 +134,117 @@ function SelectPicker({
 }) {
   return (
     <>
-      <select
-        className={styles.select}
-        aria-label={`${fieldLabel} 시도`}
-        value={active.id}
-        onChange={(e) => onSelectSido(Number(e.target.value))}
-      >
-        {sidos.map((sido) => (
-          <option key={sido.id} value={sido.id}>
-            {sido.shortName ?? sido.name}
-          </option>
-        ))}
-      </select>
-      <select
-        className={styles.select}
-        aria-label={`${fieldLabel} 시군구`}
-        value=""
-        onChange={(e) => {
-          if (e.target.value) onPick(Number(e.target.value))
-        }}
-      >
-        <option value="">시군구 고르기</option>
-        {active.children.map((sigungu) => {
+      <PickList
+        label={`${fieldLabel} 시도`}
+        shown={active.shortName ?? active.name}
+        options={sidos.map((sido) => ({ id: sido.id, text: sido.shortName ?? sido.name, selected: sido.id === active.id }))}
+        onPick={onSelectSido}
+      />
+      <PickList
+        label={`${fieldLabel} 시군구`}
+        shown="시군구 고르기"
+        placeholder
+        options={active.children.map((sigungu) => {
           const checked = chosen.includes(sigungu.id)
-          return (
-            <option key={sigungu.id} value={sigungu.id} disabled={checked}>
-              {checked ? `✓ ${sigungu.name}` : sigungu.name}
-            </option>
-          )
+          return { id: sigungu.id, text: checked ? `✓ ${sigungu.name}` : sigungu.name, disabled: checked }
         })}
-      </select>
+        onPick={onPick}
+      />
     </>
+  )
+}
+
+interface PickOption {
+  id: number
+  text: string
+  selected?: boolean
+  disabled?: boolean
+}
+
+/**
+ * A dropdown drawn by the page instead of the browser's select (user 2026-10-20: on the phone the select's own list
+ * moved after a tap and needed its 완료 button; "안 누르고 되도록 하고싶어, 완료 버튼이 따로 없어야 해"): the same box with
+ * the violet chevron opens a list under it, and one tap on a line picks it and closes the list. A tap outside or Esc
+ * closes it without picking.
+ */
+function PickList({
+  label,
+  shown,
+  placeholder = false,
+  options,
+  onPick,
+}: {
+  label: string
+  shown: string
+  placeholder?: boolean
+  options: PickOption[]
+  onPick: (id: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const listId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const outside = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        // only the list closes, not the window around it
+        event.stopPropagation()
+        setOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape, true)
+    // the chosen line in the middle of the list, without moving the page
+    const list = listRef.current
+    const selected = list?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (list && selected) list.scrollTop = selected.offsetTop - (list.clientHeight - selected.offsetHeight) / 2
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape, true)
+    }
+  }, [open])
+
+  return (
+    <div className={styles.pick} ref={rootRef}>
+      <button
+        type="button"
+        className={styles.select}
+        role="combobox"
+        aria-label={label}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={open ? listId : undefined}
+        data-placeholder={placeholder || undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {shown}
+      </button>
+      {open && (
+        <div id={listId} ref={listRef} className={styles.list} role="listbox" aria-label={label}>
+          {options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="option"
+              className={styles.option}
+              aria-selected={option.selected ?? false}
+              disabled={option.disabled}
+              onClick={() => {
+                setOpen(false)
+                onPick(option.id)
+              }}
+            >
+              {option.text}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

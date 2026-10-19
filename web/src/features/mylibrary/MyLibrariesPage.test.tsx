@@ -130,12 +130,17 @@ async function openPicker(user: ReturnType<typeof userEvent.setup>, row: HTMLEle
 
 async function pickRegion(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, field: string, sigungu: string) {
   await openPicker(user, row, field)
-  await user.selectOptions(within(row).getByRole('combobox', { name: `${field} 시도` }), '서울')
-  await user.selectOptions(within(row).getByRole('combobox', { name: `${field} 시군구` }), sigungu)
+  await user.click(within(row).getByRole('combobox', { name: `${field} 시도` }))
+  await user.click(within(row).getByRole('option', { name: '서울' }))
+  await user.click(within(row).getByRole('combobox', { name: `${field} 시군구` }))
+  await user.click(within(row).getByRole('option', { name: sigungu }))
 }
 
-const sigunguOption = (row: HTMLElement, name: RegExp) =>
-  within(row).getByRole('option', { name }) as HTMLOptionElement
+/** Opens the 시군구 dropdown and finds a line in it. */
+async function sigunguOption(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, name: RegExp) {
+  await user.click(within(row).getByRole('combobox', { name: '사는 곳 시군구' }))
+  return within(row).getByRole('option', { name }) as HTMLButtonElement
+}
 
 async function ready() {
   renderPage()
@@ -473,7 +478,7 @@ describe('S10 region grid (cycle 22)', () => {
     const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
     await openPicker(user, residenceRow, '사는 곳')
     expect(within(residenceRow).getByRole('combobox', { name: '사는 곳 시도' })).toBeTruthy()
-    const mapo = sigunguOption(residenceRow, /마포구/)
+    const mapo = await sigunguOption(user, residenceRow, /마포구/)
     expect(mapo.textContent).toBe('✓ 마포구')
     expect(mapo.disabled).toBe(true)
     expect(document.body.textContent).not.toContain('누구나 가입')
@@ -512,7 +517,7 @@ describe('S10 region grid (cycle 22)', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('저장하지 못했어요. 잠시 뒤 다시 해 주세요')
     expect(within(residenceRow).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구')
     await openPicker(user, residenceRow, '사는 곳')
-    const jung = sigunguOption(residenceRow, /중구/)
+    const jung = await sigunguOption(user, residenceRow, /중구/)
     expect(jung.textContent).toBe('중구')
     expect(jung.disabled).toBe(false)
   })
