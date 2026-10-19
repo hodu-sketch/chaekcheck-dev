@@ -346,6 +346,12 @@ export function SearchPage() {
     visitChanged: hasSearch && prefs.visit !== visit,
   }
 
+  // [반영하기] in the box and the sheet: the search on screen again with what is saved now, without [검색] (user
+  // 2026-10-20)
+  const applyScope = () => {
+    if (hasSearch) searchAgain((address) => writeVisit(prefs.visit, address))
+  }
+
   return (
     <div
       className={styles.page}
@@ -389,7 +395,7 @@ export function SearchPage() {
         {/* one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138) */}
         {!phone && (
           <div className={styles.scopeRow}>
-            <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} />
+            <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} onApply={applyScope} />
             {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
           </div>
         )}
@@ -407,6 +413,7 @@ export function SearchPage() {
             onVisitChange={changeVisit}
             openCount={prefs.openCount}
             onOpenCount={keepOpenCount}
+            onApply={applyScope}
           />
         )}
       </section>

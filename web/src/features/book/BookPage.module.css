@@ -105,3 +105,8 @@
     padding: 1.1rem 1.1rem;
   }
 }
+
+/* the condition card under the book, as on the search screen (user 2026-10-20) */
+.condition {
+  margin-top: 1.2rem;
+}

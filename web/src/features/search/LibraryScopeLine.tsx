@@ -84,6 +84,9 @@ export const SCOPE_TEXT = {
   joinTitle: '가입 방법',
   visitNote: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
   myPage: '마이페이지에서 전체 보기',
+  // phones: the sheet's own button that puts the regions and the switch to use at once (user 2026-10-20: "검색 버튼
+  // 누르지 말고 폰은 지역 설정 아래에 반영하기 버튼 만들어서 눌러서 한번에 적용 가능했으면 해")
+  apply: '반영하기',
   accountFailed: '내 도서관을 불러오지 못했어요',
   retry: '다시 시도',
 } as const
@@ -170,6 +173,8 @@ interface LineProps extends Common {
   /** The box is open, and on which grid; null = closed. */
   box: BoxFocus | null
   onBoxChange: (box: BoxFocus | null) => void
+  /** [반영하기] was pressed: the screen uses what is saved now (the box closes itself). */
+  onApply?: () => void
 }
 
 /**
@@ -249,7 +254,7 @@ function ConditionCard({
  * 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows itself by the 「그 밖의 도서관」 group, and the next
  * new search is 내 도서관 again (D10).
  */
-export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
+export function LibraryScopeLine({ box, onBoxChange, onApply, ...common }: LineProps) {
   const state = useLineState()
   const condition = useCondition(common.searched, common.visitChanged)
   const textId = useId()
@@ -295,12 +300,27 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
                 key={box}
                 focus={box}
                 visit={common.visit}
-                visitChanged={common.visitChanged}
+                visitChanged={onApply ? false : common.visitChanged}
                 onVisitChange={common.onVisitChange}
                 openCount={common.openCount}
                 onOpenCount={common.onOpenCount}
                 onLeave={() => onBoxChange(null)}
               />
+            )}
+            {/* PCs and tablets too (user 2026-10-20: "폰 말고도 pc도", "태블릿도") */}
+            {onApply && (
+              <div className={styles.applyBar} data-box>
+                <button
+                  type="button"
+                  className={styles.apply}
+                  onClick={() => {
+                    onBoxChange(null)
+                    onApply()
+                  }}
+                >
+                  {SCOPE_TEXT.apply}
+                </button>
+              </div>
             )}
           </Dialog.Content>
         </Dialog.Portal>
@@ -353,13 +373,15 @@ interface SheetProps extends Pick<Common, 'visit' | 'visitChanged' | 'onVisitCha
   onOpenChange: (open: boolean) => void
   /** Which grid the sheet opens on. */
   focus: BoxFocus
+  /** [반영하기] was pressed: the screen uses what is saved now (the sheet closes itself). */
+  onApply?: () => void
 }
 
 /**
  * Phones (user 2026-10-19: "사는 곳 일하는 곳 고르기는 그것만 있고 설정에는 없었으면 해"): the chip's own bottom sheet,
  * "찾을 도서관" with the box's body only, the same shared sheet as ⚙ (handle, ⓧ, back, a tap outside).
  */
-export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetProps) {
+export function LibraryScopeSheet({ open, onOpenChange, focus, onApply, ...body }: SheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={SCOPE_TEXT.sheetTitle} closeButton closeOnBack>
       <div className={styles.sheet}>
@@ -367,7 +389,29 @@ export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetP
         <h2 className={styles.sheetTitle} aria-hidden="true">
           {SCOPE_TEXT.sheetTitle}
         </h2>
-        <LibraryScopeBody key={focus} focus={focus} {...body} onLeave={() => onOpenChange(false)} sheet />
+        <LibraryScopeBody
+          key={focus}
+          focus={focus}
+          {...body}
+          // the button does what the line asked [검색] for
+          visitChanged={onApply ? false : body.visitChanged}
+          onLeave={() => onOpenChange(false)}
+          sheet
+        />
+        {onApply && (
+          <div className={styles.applyBar}>
+            <button
+              type="button"
+              className={styles.apply}
+              onClick={() => {
+                onOpenChange(false)
+                onApply()
+              }}
+            >
+              {SCOPE_TEXT.apply}
+            </button>
+          </div>
+        )}
       </div>
     </BottomSheet>
   )

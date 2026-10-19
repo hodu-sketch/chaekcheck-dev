@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
 import type { BookDetail, ResultFilter } from '../../api/types'
@@ -10,6 +10,8 @@ import { holdingBatchViews } from '../search/holdingView'
 import { ResultList, type ResultSearchContext } from '../search/ResultList'
 import { useRegionPlace } from '../search/regionPlace'
 import { useHoldings } from '../search/useHoldings'
+import { useMediaQuery } from '../../lib/useMediaQuery'
+import { LibraryScopeChip, LibraryScopeLine, LibraryScopeSheet, type BoxFocus } from '../search/LibraryScopeLine'
 import styles from './BookPage.module.css'
 import { ChevronLeft } from '../../components/icons'
 
@@ -20,15 +22,89 @@ import { ChevronLeft } from '../../components/icons'
  */
 export function BookPage() {
   const { bookId = '' } = useParams()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const { regions, libraryIds, ready } = useRegions()
   const scope = readScope(params)
+  const phone = useMediaQuery('(width <= 640px)')
+  // the condition card as on the search screen (user 2026-10-20: "이 창에서도 지역 조건 수정할 수 있으면 좋겠어")
+  const [visitPref, setVisitPref] = useState(() => loadPrefs().visit)
+  const [openCount, setOpenCount] = useState(() => loadPrefs().openCount)
+  const [box, setBox] = useState<BoxFocus | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  // while the box or the sheet is open the list keeps the regions it was asked with; closing it (or [반영하기]) uses
+  // what is saved then, at once
+  const live: Plan = { residence: regions.residence, work: regions.work, libraryIds }
+  const [frozen, setFrozen] = useState<Plan | null>(null)
+  const plan = frozen ?? live
+
+  const changeVisit = (next: typeof visitPref) => {
+    savePrefs({ visit: next })
+    setVisitPref(next)
+  }
+  const keepOpenCount = (count: number) => {
+    savePrefs({ openCount: count })
+    setOpenCount(count)
+  }
+  const openPicker = (focus: BoxFocus) => {
+    setFrozen(live)
+    if (phone) setSheetOpen(true)
+    else setBox(focus)
+  }
+  const apply = () => {
+    setFrozen(null)
+    if (readVisit(params, visitPref) !== visitPref) setParams(writeVisit(visitPref, new URLSearchParams(params)))
+  }
+  const common = {
+    visit: visitPref,
+    onVisitChange: changeVisit,
+    planCount: null,
+    openCount,
+    onOpenCount: keepOpenCount,
+  }
+  const condition = phone ? (
+    <>
+      <LibraryScopeChip {...common} onOpen={() => openPicker('residence')} />
+      <LibraryScopeSheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open)
+          if (!open) apply()
+        }}
+        focus="residence"
+        visit={visitPref}
+        onVisitChange={changeVisit}
+        openCount={openCount}
+        onOpenCount={keepOpenCount}
+        onApply={apply}
+      />
+    </>
+  ) : (
+    <LibraryScopeLine
+      {...common}
+      box={box}
+      onBoxChange={(next) => {
+        if (next === null) apply()
+        else setFrozen(live)
+        setBox(next)
+      }}
+      // closing the box applies already; the button only closes it
+      onApply={() => undefined}
+    />
+  )
+
   // a new book, filter, plan, region set or added libraries start over from a fresh page state
-  const key = `${bookId}?${params}|${regions.residence.join(',')}|${regions.work.join(',')}|${libraryIds.join(',')}|${scope}|${ready}`
-  return <BookView key={key} bookId={bookId} />
+  const key = `${bookId}?${params}|${plan.residence.join(',')}|${plan.work.join(',')}|${plan.libraryIds.join(',')}|${scope}|${ready}`
+  return <BookView key={key} bookId={bookId} plan={plan} condition={condition} />
 }
 
-function BookView({ bookId }: { bookId: string }) {
+/** The regions and added libraries the list is asked with. */
+interface Plan {
+  residence: number[]
+  work: number[]
+  libraryIds: number[]
+}
+
+function BookView({ bookId, plan: regions, condition }: { bookId: string; plan: Plan; condition: ReactNode }) {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   // what the address leaves out comes from this browser's last choice (user request 2026-10-05)
@@ -36,7 +112,8 @@ function BookView({ bookId }: { bookId: string }) {
   const filter = readFilter(params, prefs.filter)
   const scope = readScope(params)
   const visit = readVisit(params, prefs.visit)
-  const { regions, libraryIds, ready } = useRegions()
+  const { ready } = useRegions()
+  const libraryIds = regions.libraryIds
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
   const libraryKey = libraryIds.join(',')
@@ -136,6 +213,7 @@ function BookView({ bookId }: { bookId: string }) {
   const searchContext: ResultSearchContext = {
     hasMine: residenceKey !== '' || workKey !== '' || libraryKey !== '',
     mineLabel: residencePlace ?? workPlace,
+    noMineNote: true,
     regionBasis: residenceKey && workKey ? 'both' : workKey ? 'work' : residenceKey ? 'residence' : 'both',
     scope,
     visit,
@@ -165,6 +243,7 @@ function BookView({ bookId }: { bookId: string }) {
         {/* no collection dates (user 2026-10-17: "굳이 언제부터 언제까지 수집한거다 알려줄 필요 없다고 생각해") */}
         <p className={styles.collected}>보유 도서관 {book.holdingLibraryCount}곳</p>
       </header>
+      <div className={styles.condition}>{condition}</div>
       {book.holdingLibraryCount === 0 ? (
         <p className={styles.loading}>조건에 맞는 도서관이 없어요</p>
       ) : (

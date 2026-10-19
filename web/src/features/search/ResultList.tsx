@@ -40,6 +40,8 @@ export interface ResultSearchContext {
   hasMine: boolean
   /** "서울 강남구" for ①'s small text (the regions the search was made with); null when it had added libraries only. */
   mineLabel: string | null
+  /** The condition card above already names the regions (the book page, user 2026-10-20): ①'s small text is left out. */
+  noMineNote?: boolean
   regionBasis: RegionBasis
   scope: LibraryScope
   visit: VisitFilter
@@ -360,7 +362,7 @@ function Groups({
         <GroupSection
           group={mine}
           title={GROUP_TEXT.mine}
-          note={context && GROUP_TEXT.mineNote(context.mineLabel)}
+          note={context && !context.noMineNote ? GROUP_TEXT.mineNote(context.mineLabel) : undefined}
           {...common}
         />
       ) : (
