@@ -344,6 +344,16 @@ export function SearchPage() {
     searched: scopeSearched,
     // the switch now differs from the search on screen (user 2026-10-19): ask for [검색]
     visitChanged: hasSearch && prefs.visit !== visit,
+    // the regions or added libraries differ from the ones the search on screen was made with (user 2026-10-20)
+    regionsChanged:
+      hasSearch &&
+      searchedWith !== null &&
+      !accountFailed &&
+      (searchedWith.residence.join(',') !== regions.residence.join(',') ||
+        searchedWith.work.join(',') !== regions.work.join(',') ||
+        searchedWith.libraryIds.join(',') !== libraryIds.join(',')),
+    // [검색] in the grey line: the search on screen again with what is saved now
+    onSearchAgain: () => searchAgain((address) => writeVisit(prefs.visit, address)),
   }
 
 

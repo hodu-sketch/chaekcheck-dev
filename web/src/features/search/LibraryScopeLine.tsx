@@ -170,6 +170,10 @@ interface Common {
   visitChanged?: boolean
   /** A screen that is not a search: its own line under the card instead (`SearchAgainHint`), or none. */
   changedHint?: ReactNode
+  /** A results screen whose regions or added libraries changed since its search (searched with some, too). */
+  regionsChanged?: boolean
+  /** Searches again with what is saved now: [검색] in the grey line becomes a button (user 2026-10-20). */
+  onSearchAgain?: () => void
 }
 
 interface LineProps extends Common {
@@ -187,13 +191,21 @@ function useCondition(
   searched: ScopeSearched | null | undefined,
   visitChanged = false,
   changedHint?: ReactNode,
+  regionsChanged = false,
+  onSearchAgain?: () => void,
 ): {
   line: string
   action: string
   hint: ReactNode
 } {
   const text = useScopeLineText()
-  const visitHint = visitChanged ? <PressSearch before={SCOPE_TEXT.visitChangedBefore} /> : null
+  // the regions changed since a search made with regions too (user 2026-10-20: "검색으로 눌러주세요 문구도 부활시켜"),
+  // before the switch's line
+  const visitHint = regionsChanged ? (
+    <PressSearch before={SCOPE_TEXT.pickedBefore(null)} onSearch={onSearchAgain} />
+  ) : visitChanged ? (
+    <PressSearch before={SCOPE_TEXT.visitChangedBefore} onSearch={onSearchAgain} />
+  ) : null
   if (text === null) {
     return {
       line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
@@ -206,7 +218,11 @@ function useCondition(
     action: SCOPE_TEXT.edit,
     hint:
       changedHint ??
-      (searched?.regionsPicked ? <PressSearch before={SCOPE_TEXT.pickedBefore(searched.picked)} /> : visitHint),
+      (searched?.regionsPicked ? (
+        <PressSearch before={SCOPE_TEXT.pickedBefore(searched.picked)} onSearch={onSearchAgain} />
+      ) : (
+        visitHint
+      )),
   }
 }
 
@@ -223,11 +239,18 @@ export function SearchAgainHint({ onClick }: { onClick: () => void }) {
 }
 
 /** "… [검색]을 눌러 주세요": the search on screen no longer matches what is saved. */
-function PressSearch({ before }: { before: string }) {
+function PressSearch({ before, onSearch }: { before: string; onSearch?: () => void }) {
   return (
     <span role="status">
       {before}
-      <b>{SCOPE_TEXT.pressSearch}</b>
+      {onSearch ? (
+        // the [검색] in the line searches too, so a phone need not scroll up to the button (user 2026-10-20)
+        <button type="button" className={styles.againButton} onClick={onSearch}>
+          {SCOPE_TEXT.pressSearch}
+        </button>
+      ) : (
+        <b>{SCOPE_TEXT.pressSearch}</b>
+      )}
       {SCOPE_TEXT.pressSearchAfter}
     </span>
   )
@@ -272,7 +295,13 @@ function ConditionCard({
  */
 export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
-  const condition = useCondition(common.searched, common.visitChanged, common.changedHint)
+  const condition = useCondition(
+    common.searched,
+    common.visitChanged,
+    common.changedHint,
+    common.regionsChanged,
+    common.onSearchAgain,
+  )
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
@@ -339,9 +368,16 @@ interface ChipProps extends Common {
  * Phones (R2-1): the same condition card under the search box, always there; its link opens its own "찾을 도서관"
  * sheet (user 2026-10-19; it opened the settings sheet before). The account failure as on wider screens.
  */
-export function LibraryScopeChip({ onOpen, searched, visitChanged, changedHint }: ChipProps) {
+export function LibraryScopeChip({
+  onOpen,
+  searched,
+  visitChanged,
+  changedHint,
+  regionsChanged,
+  onSearchAgain,
+}: ChipProps) {
   const state = useLineState()
-  const condition = useCondition(searched, visitChanged, changedHint)
+  const condition = useCondition(searched, visitChanged, changedHint, regionsChanged, onSearchAgain)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
