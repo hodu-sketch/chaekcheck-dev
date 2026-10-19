@@ -49,9 +49,8 @@
   padding: 0 1.2rem;
   border: none;
   border-radius: var(--radius-inner);
-  /* a filled violet [검색] on every screen (user 2026-10-19: "검색은 보라박스") */
-  background: var(--brand);
-  color: #fff;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
   font-weight: 800;
   font-size: var(--text-lg);
   cursor: pointer;
