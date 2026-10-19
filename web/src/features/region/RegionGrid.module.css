@@ -1,6 +1,6 @@
 /*
  * The region picker (cycle 22 R12; one mode on every width since user 2026-10-19): chips in a row ending in a +, which shows
- * the 시도 and 시군구 buttons. Colors are the old region dialog's (removed in cycle 22 step 3).
+ * a 시도 and a 시군구 select. Colors are the old region dialog's (removed in cycle 22 step 3).
  */
 
 /*
@@ -123,9 +123,11 @@
 }
 
 .selects {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  display: grid;
+  /* 시도 about 40%, 시군구 the rest; on a wide box the row stops at 28rem instead of stretching across it */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 0.5rem;
+  max-width: 28rem;
 }
 
 .selects:empty {
@@ -161,75 +163,26 @@
   cursor: pointer;
 }
 
-/* the 시도: small pills that wrap; the chosen one filled */
-.sidos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.sido {
-  min-height: 2.1rem;
-  padding: 0 0.75rem;
+.select {
+  width: 100%;
+  min-width: 0;
+  height: 2.25rem;
+  padding: 0 1.9rem 0 0.7rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.sido[aria-pressed='true'] {
-  border-color: var(--brand);
-  background: var(--brand);
-  color: #fff;
-}
-
-/* the 시군구 of that 시도: a grid of buttons, three a row on phones, four on wider screens */
-.sigungus {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.35rem;
-  padding: 0.6rem;
   border-radius: var(--radius-control);
-  background: var(--card-soft);
-  border: 1px solid var(--rule);
-}
-
-@media (width <= 640px) {
-  .sigungus {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.sigungu {
-  min-height: 2.4rem;
-  padding: 0.2rem 0.3rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-control);
-  background: var(--card);
+  /* the violet chevron (var(--brand)) is drawn here, so every browser shows the same box */
+  appearance: none;
+  background: var(--card)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237a5cf2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 0.7rem center;
   color: var(--ink);
   font: inherit;
   font-size: var(--text-sm);
-  word-break: keep-all;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 
-.sigungu:hover:not(:disabled) {
-  border-color: var(--brand);
-  color: var(--brand-strong);
-}
-
-.sigungu:disabled {
-  background: var(--brand-faint);
-  color: var(--brand-strong);
-  cursor: default;
-}
-
-.sido:focus-visible,
-.sigungu:focus-visible {
+.select:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }

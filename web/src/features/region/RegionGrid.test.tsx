@@ -80,15 +80,11 @@ describe('RegionGrid notices', () => {
 })
 
 describe('RegionGrid', () => {
-  function buttonTexts(group: HTMLElement) {
-    return within(group)
-      .getAllByRole('button')
+  function optionTexts(select: HTMLElement) {
+    return within(select)
+      .getAllByRole('option')
       .map((o) => o.textContent)
   }
-  const sidoGroup = () => screen.getByRole('group', { name: '사는 곳 시도' })
-  const sigunguGroup = () => screen.getByRole('group', { name: '사는 곳 시군구' })
-  const sidoButton = (name: string) => within(sidoGroup()).getByRole('button', { name })
-  const sigunguButton = (name: string) => within(sigunguGroup()).getByRole('button', { name }) as HTMLButtonElement
 
   /** Waits for the list, then presses the field's +. */
   async function openSelects(user: ReturnType<typeof userEvent.setup>) {
@@ -98,7 +94,7 @@ describe('RegionGrid', () => {
     return add
   }
 
-  it('at rest only the chips and + show; + opens the 시도 and 시군구 buttons', async () => {
+  it('at rest only the chips and + show; + opens the two selects', async () => {
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     renderGrid()
     const user = userEvent.setup()
@@ -107,18 +103,19 @@ describe('RegionGrid', () => {
     const add = await screen.findByRole('button', { name: '사는 곳 추가' })
     expect(screen.queryByRole('list', { name: '고른 사는 곳' })).toBeNull()
     await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false))
-    expect(screen.queryByRole('group', { name: '사는 곳 시도' })).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
     expect(screen.queryByRole('checkbox')).toBeNull()
     expect(screen.queryByRole('button', { name: '서울' })).toBeNull()
 
     await user.click(add)
     expect(add.getAttribute('aria-expanded')).toBe('true')
-    expect(buttonTexts(sidoGroup())).toEqual(['서울', '세종'])
-    expect(sidoButton('서울').getAttribute('aria-pressed')).toBe('true')
-    expect(buttonTexts(sigunguGroup())).toEqual(['마포구', '중구'])
+    const sido = screen.getByRole('combobox', { name: '사는 곳 시도' }) as HTMLSelectElement
+    expect(optionTexts(sido)).toEqual(['서울', '세종'])
+    expect(sido.value).toBe('11')
+    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '마포구', '중구'])
   })
 
-  it('pressing it again (×) closes the picker without adding', async () => {
+  it('pressing it again (×) closes the selects without adding', async () => {
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     const onToggle = vi.fn()
     renderGrid({ onToggle })
@@ -128,18 +125,18 @@ describe('RegionGrid', () => {
     await user.click(add)
 
     expect(add.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryByRole('group', { name: '사는 곳 시도' })).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
     expect(onToggle).not.toHaveBeenCalled()
   })
 
-  it('the 시도 starts on the 시도 of the first chosen region; chosen ones show ✓ and are disabled', async () => {
+  it('the 시도 select starts on the 시도 of the first chosen region; chosen ones show ✓ and are disabled', async () => {
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     renderGrid({ initial: [3611] })
     await openSelects(userEvent.setup())
 
-    expect(sidoButton('세종').getAttribute('aria-pressed')).toBe('true')
-    expect(buttonTexts(sigunguGroup())).toEqual(['✓ 세종시'])
-    expect(sigunguButton('✓ 세종시').disabled).toBe(true)
+    expect((screen.getByRole('combobox', { name: '사는 곳 시도' }) as HTMLSelectElement).value).toBe('36')
+    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '✓ 세종시'])
+    expect((screen.getByRole('option', { name: '✓ 세종시' }) as HTMLOptionElement).disabled).toBe(true)
   })
 
   it('picking a 시도 lists its 시군구; Sejong picks none by itself', async () => {
@@ -149,30 +146,32 @@ describe('RegionGrid', () => {
     const user = userEvent.setup()
     await openSelects(user)
 
-    await user.click(sidoButton('세종'))
+    await user.selectOptions(screen.getByRole('combobox', { name: '사는 곳 시도' }), '세종')
 
-    expect(buttonTexts(sigunguGroup())).toEqual(['세종시'])
+    const sigungu = screen.getByRole('combobox', { name: '사는 곳 시군구' }) as HTMLSelectElement
+    expect(optionTexts(sigungu)).toEqual(['시군구 고르기', '세종시'])
+    expect(sigungu.value).toBe('')
     expect(onToggle).not.toHaveBeenCalled()
   })
 
-  it('picking a 시군구 adds it at once, the chip shows and the picker hides again', async () => {
+  it('picking a 시군구 adds it at once, the chip shows and the selects hide again', async () => {
     stubRegions(() => new Response(JSON.stringify(TREE), { status: 200 }))
     const onToggle = vi.fn()
     renderGrid({ onToggle })
     const user = userEvent.setup()
     const add = await openSelects(user)
 
-    await user.click(sigunguButton('마포구'))
+    await user.selectOptions(screen.getByRole('combobox', { name: '사는 곳 시군구' }), '마포구')
 
     expect(onToggle).toHaveBeenCalledExactlyOnceWith(1114)
-    expect(screen.queryByRole('group', { name: '사는 곳 시군구' })).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
     expect(add.getAttribute('aria-expanded')).toBe('false')
     expect(within(screen.getByRole('list', { name: '고른 사는 곳' })).getByText('서울 마포구')).toBeTruthy()
 
     // opened again: the added one has ✓ and cannot be picked
     await user.click(add)
-    expect(buttonTexts(sigunguGroup())).toEqual(['✓ 마포구', '중구'])
-    expect(sigunguButton('✓ 마포구').disabled).toBe(true)
+    expect(optionTexts(screen.getByRole('combobox', { name: '사는 곳 시군구' }))).toEqual(['시군구 고르기', '✓ 마포구', '중구'])
+    expect((screen.getByRole('option', { name: '✓ 마포구' }) as HTMLOptionElement).disabled).toBe(true)
   })
 
   it('the chip × removes a region', async () => {
@@ -217,7 +216,7 @@ describe('RegionGrid', () => {
     const user = userEvent.setup()
     await user.click(within(alert).getByRole('button', { name: '다시 시도' }))
     await openSelects(user)
-    expect(sidoGroup()).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: '사는 곳 시도' })).toBeTruthy()
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
