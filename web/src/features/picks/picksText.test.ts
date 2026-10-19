@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardTitle, fetchedLabel, monthLabel, pageCount, safeCoverUrl, sourceLine } from './picksText'
+import { cardTitle, fetchedLabel, monthLabel, safeCoverUrl, sourceLine } from './picksText'
 
 describe('picks texts', () => {
   it('writes the month and the fetch day in Korean time', () => {
@@ -14,12 +14,6 @@ describe('picks texts', () => {
   it('builds the source line (R7-1)', () => {
     expect(sourceLine('2026-10-12T05:00:41+09:00')).toBe('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형) · 10월 12일 받음')
     expect(sourceLine(null)).toBe('출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형)')
-  })
-
-  it('counts the 9-book pages', () => {
-    expect(pageCount(52)).toBe(6)
-    expect(pageCount(10)).toBe(2)
-    expect(pageCount(9)).toBe(1)
   })
 
   it('shows the main title on a card without a cover', () => {

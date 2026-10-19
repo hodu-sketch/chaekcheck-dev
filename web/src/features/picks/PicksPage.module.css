@@ -1,286 +1,216 @@
 /*
- * S13 picks, design A (user choice 2026-10-12): each category in a white rounded panel sized to its 3 x 3 grid,
- * a large category title with "1 - 9 / 10" (cycle 14: no rank chips), soft grey ◀ ▶ beside the grid and page dots under it.
- * The panels are the app's flat cards, like the search results and the book page: white, hairline border, no shadow
- * (user 2026-10-12: "지금 '인기 도서 화면'의 것을 다른 카드들과 같이 해줘").
- *
- * No visible heading and no bar (user 2026-10-12: "아 뭘 해도 인기도서 전체 i 이게 너무 어색해", "이거 위에 있는거
- * 불필요하니까 없애고"): only [전체 ▾] floats, at the bottom centre on every width ("분류 … 폰 피씨 태블릿 모두 화면 아래에
- * 두는걸로해줘"; it was at the top for a while). Every block is as tall as the screen under the app header; its bottom
- * part is left free for the floating button and the panel sits in the middle of the rest, so the button never covers
- * the panel (dots and arrows included) when a block is at the top. --app-header is measured from the app header.
+ * S13 picks (user 2026-10-19 redesign, from the user's reference picture): on the page's white with its lavender glow
+ * (body), one centred column: the list tabs, a grey line, "추천 기준과 출처 보기", category chips, and a grid of white
+ * cards with the light lavender border (PC 4 columns, tablet 3, phones 2), then a light grey note.
  */
 .page {
-  /* the list's name bar under the app header (cycle 21) */
-  /* 0.75rem room above the name, so it does not sit right under the tabs (user 2026-10-16: "탭에서 너무 가까워서") */
-  --title-h: 3.5rem;
-  --top: calc(var(--app-header, 4.6rem) + var(--title-h));
-  /* the floating button's zone at the top of each block */
-  --float-zone: 4rem;
-  /* room for the source line under the last panel (up to two lines) */
-  --source-h: 2.8rem;
-  /* panel = grid + arrows, gaps and padding; panel height besides the grid (head, dots, padding, block margin) */
-  --panel-extra: 11rem;
-  /* cycle 21: +0.6rem for the doubled gap under the category title */
-  --panel-rest: 7.2rem;
-  --gw: min(
-    30rem,
-    100vw - 2 * var(--gutter) - var(--panel-extra),
-    (100dvh - var(--top) - var(--float-zone) - var(--source-h) - var(--panel-rest)) * 0.66
-  );
   width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding-top: 0.5rem;
 }
 
-/* the floating [전체 ▾]: bottom centre on every width, above the phone's home bar; only the pill floats */
-.floating {
-  position: fixed;
-  bottom: calc(0.9rem + env(safe-area-inset-bottom));
-  left: 50%;
-  z-index: 10;
-  translate: -50% 0;
+/* the three lists: words with a violet underline on the current one */
+.tabs {
+  display: flex;
+  gap: 1.75rem;
+  border-bottom: 1px solid var(--card-border);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-/*
- * [전체 ▾] (S13c): the app's white control, not a dark pill (user: "왜 갑자기 전체 이게 까만데 하얀 테마 유지해줘"),
- * as a rounded pill with a soft shadow so it reads as floating
- */
-.picker {
-  display: inline-flex;
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  flex: none;
+  padding: 0.7rem 0.1rem 0.75rem;
+  color: var(--ink-faint);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab[aria-current='page'] {
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.tab[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--brand);
+}
+
+.lead {
+  margin-top: 0.9rem;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+  word-break: keep-all;
+}
+
+/* "▶ 추천 기준과 출처 보기": a native <details> in a white bordered row */
+.criteria {
+  margin-top: 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.criteriaSummary {
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
-  height: 2.6rem;
-  padding: 0 1.05rem 0 1.25rem;
-  border: 1px solid var(--rule-strong);
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.criteriaSummary::-webkit-details-marker {
+  display: none;
+}
+
+.criteriaSummary::before {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border-block: 0.3rem solid transparent;
+  border-left: 0.45rem solid var(--brand);
+  transition: rotate 150ms;
+}
+
+.criteria[open] > .criteriaSummary::before {
+  rotate: 90deg;
+}
+
+.criteriaSummary:hover {
+  color: var(--ink);
+}
+
+.criteriaSummary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.helpList {
+  margin: 0;
+  padding: 0 1rem 0.9rem 2.2rem;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.helpList li + li {
+  margin-top: 0.2rem;
+}
+
+.source {
+  color: var(--ink-faint);
+}
+
+.helpList a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* category chips: wrap on wider screens, one scrolling row on phones */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.chip {
+  flex: none;
+  height: 2.2rem;
+  padding: 0 1rem;
+  border: 1px solid var(--card-border);
   border-radius: 999px;
   background: var(--card);
-  box-shadow: 0 4px 16px rgb(25 31 40 / 0.14);
-  color: var(--ink);
-  font-size: var(--text-md);
-  font-weight: 800;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.picker:hover,
-.picker[data-state='open'] {
+.chip:hover {
   border-color: var(--brand);
   color: var(--brand-strong);
 }
 
-.picker:focus-visible {
+.chip[aria-pressed='true'] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.chip:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
-.pickerMark {
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink-faint);
-}
-
-.pickPopover {
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  width: 13rem;
-  max-height: min(26rem, var(--radix-popover-content-available-height));
-  /* the rounded corners stay whole; only the list inside scrolls */
-  overflow: hidden;
-  padding: 0.35rem 0;
-  border: 1px solid var(--paper-deep);
-  border-radius: var(--radius-md);
-  background: var(--card);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
-}
-
-.pickList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pickItem {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  border-radius: var(--radius-inner);
-  background: none;
-  color: var(--ink-soft);
-  font-size: var(--text-md);
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-}
-
-.pickItem:hover {
-  background: var(--brand-faint);
-  color: var(--ink);
-}
-
-/* the category shown now: bold (flow.md S13c) */
-.pickItem[aria-current='true'] {
-  color: var(--brand-strong);
-  font-weight: 800;
-}
-
-.pickItem:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-}
-
-.helpList {
-  display: grid;
-  gap: 0.35rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-}
-
-/*
- * one category: as tall as the screen under the app header; the bottom part is the floating button's, the panel sits
- * in the middle of the rest. The last block is shorter by the source line and the button's zone, so at its place the
- * last panel, the source line and the button all fit one screen.
- */
-.section {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100dvh - var(--top));
-  /* the free room splits 1 : 3 above and below the panel: half the gap under the list's name of a centred panel
-     (user 2026-10-16: "이것과 카드 사이의 간격은 50프로 줄여") */
-  padding: 0.375rem 0 var(--float-zone);
-  scroll-margin-top: var(--top);
-}
-
-.section::before {
-  content: '';
-  flex: 1 1 0;
-}
-
-.section::after {
-  content: '';
-  flex: 3 1 0;
-}
-
-/* the last block is as tall as the others; the source line comes one step further down, clear of the floating
-   button (user 2026-10-17: "아래에 메세지 보이는거 별로야 한 칸 더 내리면 나오던가") */
-.section:last-of-type {
-  min-height: calc(100dvh - var(--top));
-}
-
-.panel {
-  width: fit-content;
-  margin: 0 auto;
-  padding: 1.15rem 1.5rem 1rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-}
-
-.cardHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  /* twice the room between the category title and the covers (user 2026-10-16: "2배는 더 키워줘") */
-  margin-bottom: 1.2rem;
-}
-
-.sectionTitle {
-  min-width: 0;
-  font-size: 1.55rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  word-break: keep-all;
-}
-
-.range {
-  flex: none;
-  color: var(--ink-faint);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.range b {
-  color: var(--brand-strong);
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.1rem;
+.results {
+  margin-top: 1.25rem;
 }
 
 .grid {
   display: grid;
-  flex: none;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  width: var(--gw);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.1rem;
   margin: 0;
   padding: 0;
   list-style: none;
-  touch-action: pan-y;
 }
 
 .cell {
+  display: flex;
   min-width: 0;
 }
 
-/* a blank cell on the last page: the same 2:3 space as a cover */
-.emptyCell {
-  display: block;
-  aspect-ratio: 2 / 3;
-}
-
-.arrow,
-.arrowSpace {
-  flex: none;
-  width: 2.9rem;
-  height: 2.9rem;
-}
-
-/* soft grey rounded squares (design A) */
-.arrow {
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
-  border-radius: 14px;
-  background: var(--paper-deep);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: background-color 140ms, color 140ms, transform 140ms;
-}
-
-.arrow:hover {
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-}
-
-.arrow:active {
-  transform: scale(0.94);
-}
-
-.arrow:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
 .card {
-  position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   width: 100%;
-  padding: 0;
-  border: none;
-  border-radius: 10px;
-  background: none;
+  padding: 1.1rem 1rem 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--card-shadow-soft);
+  color: var(--ink);
+  text-align: left;
   cursor: pointer;
+  transition:
+    box-shadow 150ms,
+    border-color 150ms,
+    translate 150ms;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--card-border));
+  box-shadow: var(--card-shadow);
+  translate: 0 -2px;
 }
 
 .card:focus-visible {
@@ -288,52 +218,129 @@
   outline-offset: 2px;
 }
 
-.cover {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px rgb(25 31 40 / 0.06);
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.card:hover .cover {
-  transform: translateY(-3px);
-}
-
-/* no e-book in the searched libraries: the cover faded, no words (R4-5) */
-.card[data-available='false'] .cover {
-  opacity: 0.32;
-  filter: grayscale(0.5);
-}
-
-.dots {
+/* the cover centred at the top, the same height on every card */
+.coverBox {
   display: flex;
   justify-content: center;
-  gap: 0.35rem;
-  margin-top: 0.8rem;
+  align-items: flex-end;
+  align-self: stretch;
+  height: 11rem;
+  margin-bottom: 0.9rem;
 }
 
-.dots i {
-  width: 0.4rem;
-  height: 0.4rem;
+.cover {
+  height: 100%;
+  width: auto;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgb(25 31 40 / 0.12);
+}
+
+.cardTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: var(--text-md);
+  font-weight: 800;
+  line-height: 1.4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.cardSub {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* the pill sits at the bottom of the card, whatever the title's length */
+.pillRow {
+  display: block;
+  margin-top: auto;
+  padding-top: 0.8rem;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: var(--rule-strong);
-  transition: width 200ms, background-color 200ms;
+  background: var(--paper-deep);
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.dots i[data-on='true'] {
-  width: 1.2rem;
-  background: var(--brand-strong);
+.pill[data-linked='true'] {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.more {
+  display: block;
+  min-width: 12rem;
+  height: var(--control-height);
+  margin: 1.5rem auto 0;
+  padding: 0 1.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--card-shadow-soft);
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.more:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.more:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.moreCount {
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
+.footNote {
+  margin-top: 1.75rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  word-break: keep-all;
 }
 
 .skeleton {
   display: block;
-  aspect-ratio: 2 / 3;
-  border-radius: 10px;
-  background: var(--track);
+  width: 100%;
+  height: 17rem;
+  border-radius: var(--radius-lg);
+  background: var(--paper-deep);
+  animation: pulse 1.4s ease-in-out infinite;
 }
 
-/* the same look as the search screen's notice line (S1) */
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
 .notice {
-  margin-top: 0.5rem;
+  margin-top: 1.25rem;
   padding: 0.75rem 1.1rem;
   border-radius: var(--radius-md);
   background: var(--fail-soft);
@@ -344,7 +351,7 @@
 }
 
 .empty {
-  margin-top: 0.5rem;
+  margin-top: 1.25rem;
   padding: 2.75rem 1.5rem;
   border-radius: var(--radius-lg);
   background: var(--paper-deep);
@@ -354,247 +361,70 @@
   word-break: keep-all;
 }
 
-/*
- * The source line right under the last panel (user 2026-10-12: "지금 이거 마지막 분류 이상해": no empty last screen).
- * The page ends with it and the footer; the footer is the last scroll stop, showing the end of the last panel above.
- */
-/* the app footer under this screen gets room at its bottom, so the floating button never covers its lines */
-:global(body):has(.floating) :global(footer) {
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .cover,
-  .arrow,
-  .dots i {
-    transition: none;
-  }
-
-  .card:hover .cover {
-    transform: none;
+  .card,
+  .card:hover {
+    translate: none;
   }
 }
 
-/* phones: the grid fills the panel, ◀ ▶ small over its edges */
-@media (width <= 640px) {
-  .page {
-    --float-zone: 3.6rem;
-    --source-h: 4rem;
-    --panel-rest: 7.2rem;
-    /*
-     * cycle 14 (user 2026-10-12: "폰에서 이미지가 너무 작은 느낌인데 조금 못 키우나?"): the source line's room is not
-     * taken from every block any more, only the last one needs it, so the covers grow (the last block may need a
-     * short scroll to show the source line)
-     */
-    --gw: min(100%, (100dvh - var(--top) - var(--float-zone) - var(--panel-rest)) * 0.66);
-  }
-
-  .picker {
-    height: 2.35rem;
-    padding: 0 0.9rem 0 1.05rem;
-  }
-
-  .panel {
-    width: auto;
-    padding: 1.15rem 0.55rem 1rem;
-  }
-
-  .cardHead {
-    margin-bottom: 1.6rem;
-    padding: 0 0.5rem;
-  }
-
-  .sectionTitle {
-    font-size: 1.3rem;
-  }
-
-  .pager {
-    position: relative;
-    gap: 0;
-  }
-
+/* tablets: three columns */
+@media (width <= 1024px) {
   .grid {
-    gap: 0.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* phones: two columns, smaller covers, the chips in one row scrolling sideways */
+@media (width <= 640px) {
+  .tabs {
+    gap: 1.25rem;
   }
 
-  .arrowSpace {
+  .tab {
+    font-size: var(--text-md);
+  }
+
+  .chips {
+    flex-wrap: nowrap;
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .chips::-webkit-scrollbar {
     display: none;
   }
 
-  .arrow {
-    position: absolute;
-    top: 50%;
-    z-index: 1;
-    /* at least 40px wide, white and lifted so it reads as floating over the cover (cycle 10 icon check) */
-    width: max(40px, 2.2rem);
-    height: 2.7rem;
-    translate: 0 -50%;
-    border-radius: 12px;
-    background: rgb(255 255 255 / 0.92);
-    box-shadow: 0 2px 10px rgb(25 31 40 / 0.16);
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
   }
 
-  .arrow:active {
-    transform: none;
+  .card {
+    padding: 0.85rem 0.75rem 0.85rem;
   }
 
-  .arrow[data-side='prev'] {
-    left: -0.35rem;
+  .coverBox {
+    height: 8.5rem;
+    margin-bottom: 0.7rem;
   }
 
-  .arrow[data-side='next'] {
-    right: -0.35rem;
-  }
-}
-
-/* "? 추천 기준 보기" at the end of the category list, like "정렬 기준 보기" in the sort menu (S13i) */
-.pickSeparator {
-  height: 1px;
-  margin: 0.35rem 0.2rem;
-  background: var(--rule);
-}
-
-.pickHelpItem {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: var(--text-sm);
-}
-
-.pickHelpItem[aria-expanded='true'] {
-  color: var(--brand-strong);
-}
-
-.pickHelpMark {
-  display: inline-grid;
-  place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-  font-size: var(--text-xs);
-  font-weight: 800;
-}
-
-.pickPopover .pickScroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  /* a thin scrollbar with the same room on both sides */
-  scrollbar-width: thin;
-  scrollbar-gutter: stable both-edges;
-  padding-inline: 0.2rem;
-}
-
-.pickPopover .pickSeparator,
-.pickPopover .pickHelpItem,
-.pickPopover .helpList {
-  flex: none;
-  margin-inline: 0.35rem;
-  width: auto;
-}
-
-.pickScroll + .pickSeparator + .pickHelpItem + .helpList {
-  padding: 0.3rem 0.75rem 0.6rem;
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  line-height: 1.55;
-}
-
-/* the list widens for the explanation while it is open */
-.pickPopover:has(.pickHelpItem[aria-expanded='true']) {
-  width: min(20rem, calc(100vw - 2rem));
-}
-
-/*
- * Touch screens only (the main pointer is a finger: `pointer: coarse`; not `hover: none`, which Samsung Internet does
- * not report), on this screen only: no vertical panning by the browser; a vertical swipe moves one category
- * (PicksPage), sideways swipes and pinch zoom stay (user 2026-10-12: "스크롤 바꿀때 폰 태블릿에서는 스크롤 없애고
- * 그냥 위아래 넘김 이벤트일때 알아서 딱 알맞은 위치에 이동하도록"). Zoomed in, the page scrolls normally again
- * (data-zoomed), so nothing is out of reach. Lists and sheets that scroll inside keep scrolling.
- */
-@media (pointer: coarse) {
-  :global(html):has(.page:not([data-zoomed])) {
-    touch-action: pan-x pinch-zoom;
+  .cardTitle {
+    font-size: var(--text-sm);
   }
 
-  /*
-   * Phone browsers float their own "back to top" button at the bottom centre (Samsung Internet: about 56-64px up, a
-   * 48px circle); the pill sits above it (user 2026-10-12: "아래 카테고리 아이콘이랑 윗 화살표 아이콘이랑 안 겹치게
-   * 조정좀 카테고리를 윗 화살표 아이콘보다 위로"), and the blocks leave that much room at the bottom
-   */
-  .page {
-    --float-zone: calc(76px + 2.6rem + 0.6rem);
+  .pillRow {
+    padding-top: 0.6rem;
   }
 
-  .floating {
-    bottom: calc(76px + env(safe-area-inset-bottom));
+  .pill {
+    padding-inline: 0.5rem;
+    font-size: 0.72rem;
   }
 
-  :global(body):has(.floating) :global(footer) {
-    padding-bottom: calc(76px + 3.4rem + env(safe-area-inset-bottom));
+  .skeleton {
+    height: 13.5rem;
   }
-}
-
-
-/* the narrowest phones: the source line wraps to four lines */
-@media (width <= 360px) {
-  .page {
-    --source-h: 5.3rem;
-  }
-}
-
-/*
- * Cycle 21 (user 2026-10-16: "좌상단에 고정으로 넣어놔 이건 pc도 마찬가지야"): the list's name in a bar fixed under the
- * app header, at the top left, on every width. The blocks are sized and scrolled under both (--top). No words under
- * the covers ("추천도서 각각에 날짜나 숫자 붙이지 마").
- */
-.listTitle {
-  position: sticky;
-  top: var(--app-header, 4.6rem);
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  height: var(--title-h);
-  margin: 0;
-  padding-top: 0.75rem;
-  /* the words start at the panels' left edge, one line with the content (user 2026-10-16: "너무 좌측에 있는데 센터에서
-     좌측으로", picture approved; YES24, Ridi, Kyobo list pages); the bar's background still spans the width */
-  padding-inline-start: max(0px, (100% - var(--gw) - var(--panel-extra)) / 2);
-  /* no box of its own on the page's white and lavender glow (user 2026-10-19: "이 부분만 흰색이 된 거 수습하고 배경
-     통일해"); see ::before */
-  background: transparent;
-  /* 1.2 times (user 2026-10-16: "이동진 추천도서 … 20프로 키우고") */
-  font-size: calc(1.2 * var(--text-lg));
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-/*
- * The bar's backdrop, from the left edge of the window to the right (the bar itself is only as wide as the page):
- * nothing at rest, a translucent white with a blur while it is stuck over the covers scrolled under it (data-stuck,
- * set by PicksPage). The shell clips what reaches past the window (the scrollbar's width).
- */
-.listTitle::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  left: calc(50% - 50vw);
-  width: 100vw;
-  z-index: -1;
-  background: transparent;
-  transition: background-color 160ms;
-}
-
-.listTitle[data-stuck]::before {
-  background: color-mix(in srgb, var(--canvas) 82%, transparent);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-
-/* Lee Dong-jin's YouTube terms link in "기준 보기" (the source lives only there since 2026-10-17) */
-.helpList a {
-  color: inherit;
-  text-decoration: underline;
 }

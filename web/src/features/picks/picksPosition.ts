@@ -6,9 +6,12 @@ function stateKey(list: string): string {
   return `chaekcheckPicks:${list}`
 }
 
-/** Where the picks screen was: each field's page (0 = books 1-9) and the scroll position (AC-20). */
+/** Where the picks screen was: the chosen category chip, how many books are shown, and the scroll position (AC-20). */
 export interface PicksPosition {
-  pages: Record<string, number>
+  /** The chosen category's code; '' = the list's first one (전체). */
+  category: string
+  /** How many books of that category are shown (grows by "더 보기"). */
+  shown: number
   scrollY: number
 }
 
@@ -22,9 +25,10 @@ export function readPosition(list: string): PicksPosition | null {
   if (typeof state !== 'object' || state === null) return null
   const saved = (state as Record<string, unknown>)[stateKey(list)]
   if (typeof saved !== 'object' || saved === null) return null
-  const { pages, scrollY } = saved as Partial<PicksPosition>
+  const { category, shown, scrollY } = saved as Partial<PicksPosition>
   return {
-    pages: typeof pages === 'object' && pages !== null ? pages : {},
+    category: typeof category === 'string' ? category : '',
+    shown: typeof shown === 'number' && shown > 0 ? shown : 0,
     scrollY: typeof scrollY === 'number' ? scrollY : 0,
   }
 }
@@ -32,6 +36,6 @@ export function readPosition(list: string): PicksPosition | null {
 export function savePosition(list: string, change: Partial<PicksPosition>): void {
   const state: unknown = window.history.state
   const current = typeof state === 'object' && state !== null ? (state as Record<string, unknown>) : {}
-  const saved = readPosition(list) ?? { pages: {}, scrollY: 0 }
+  const saved = readPosition(list) ?? { category: '', shown: 0, scrollY: 0 }
   window.history.replaceState({ ...current, [stateKey(list)]: { ...saved, ...change } }, '')
 }

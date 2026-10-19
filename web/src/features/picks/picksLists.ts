@@ -12,16 +12,17 @@ export interface PicksList {
   key: PicksListKey
   /** The list's name: the menu item and the heading (design A). */
   name: string
+  /** The tab's words at the top of the screen (user 2026-10-19 redesign). */
+  tabLabel: string
   /** While the list is not stored yet (R7-1). */
   emptyText: string
   /** When the screen's request failed (R7-1). */
   failedText: string
   /** For screen readers while loading. */
   loadingText: string
-  /** "? 기준 보기" in the field list (S13i), and its source line. */
-  helpLabel: string
+  /** "추천 기준과 출처 보기" (S13i): the criteria, then the source line. */
   helpLines: readonly string[]
-  /** Under the last field; the YouTube terms link follows Lee Dong-jin's. */
+  /** The source line in "추천 기준과 출처 보기"; the YouTube terms link follows Lee Dong-jin's. */
   source: (fetchedAt: string | null) => string
   /** S14's line under the title (R6-1, R6-2). */
   pickLine: (book: PickBook, categoryName: string | null) => string
@@ -31,10 +32,10 @@ export interface PicksList {
 const LIBRARIAN: PicksList = {
   key: 'librarian',
   name: '사서 추천도서',
+  tabLabel: '사서 추천',
   emptyText: '아직 사서추천도서를 준비하고 있어요',
   failedText: '사서추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: '사서추천도서를 불러오는 중',
-  helpLabel: '추천 기준 보기',
   helpLines: HELP_LINES,
   source: sourceLine,
   pickLine: (book, categoryName) => {
@@ -46,14 +47,14 @@ const LIBRARIAN: PicksList = {
 const LEEDONGJIN: PicksList = {
   key: 'leedongjin',
   name: '이동진 추천도서',
+  tabLabel: '이동진 추천',
   emptyText: '아직 이동진 추천도서를 준비하고 있어요',
   failedText: '이동진 추천도서를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: '이동진 추천도서를 불러오는 중',
-  helpLabel: '기준 보기',
   helpLines: [
     '이동진 평론가가 유튜브 「B tv 이동진의 파이아키아」에서 고른 이달의 책과 올해의 책이에요',
     '책첵은 이동진 평론가·파이아키아와 관계가 없어요',
-    '흐린 책은 검색하는 도서관에 전자책이 없어요',
+    '“현재 범위에서 미연결” 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 유튜브 「B tv 이동진의 파이아키아」 · 책첵은 이동진 평론가·파이아키아와 관계가 없어요',
   pickLine: (book) => {
@@ -68,14 +69,14 @@ const LEEDONGJIN: PicksList = {
 const SNU100: PicksList = {
   key: 'snu100',
   name: '서울대 100선',
+  tabLabel: '서울대 100선',
   emptyText: '아직 서울대 100선을 준비하고 있어요',
   failedText: '서울대 100선을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.',
   loadingText: '서울대 100선을 불러오는 중',
-  helpLabel: '기준 보기',
   helpLines: [
     '서울대학교 기초교육원이 펴낸 『권장도서 해제집』의 100권이에요',
     '판이 여러 개인 책은 가장 많은 도서관이 가진 판을 보여 드려요',
-    '흐린 책은 검색하는 도서관에 전자책이 없어요',
+    '“현재 범위에서 미연결” 책은 검색하는 도서관에 전자책이 없어요',
   ],
   source: () => '출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)',
   pickLine: () => '서울대 권장도서 100선',
@@ -86,6 +87,9 @@ export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
   leedongjin: LEEDONGJIN,
   snu100: SNU100,
 }
+
+/** The tabs in screen order (user 2026-10-19 reference picture). */
+export const PICKS_TABS: readonly PicksList[] = [LEEDONGJIN, LIBRARIAN, SNU100]
 
 /** The list an address names, or null for any other name. */
 export function picksList(key: string | undefined): PicksList | null {

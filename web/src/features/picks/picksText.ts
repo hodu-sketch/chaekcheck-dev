@@ -1,5 +1,8 @@
-/** Books per page of a category: a 3 x 3 grid (R4-1). */
-export const PAGE_SIZE = 9
+/**
+ * [안] (user 2026-10-19 redesign): books shown at first in the card grid, and how many more each "더 보기" adds
+ * (4 columns on PC: five rows).
+ */
+export const MORE_STEP = 20
 
 /** [확정] (cycle 14 R7-1): the source and its licence; the fetch day follows it. */
 export const SOURCE_TEXT = '출처: 국립중앙도서관 사서추천도서 (공공누리 제1유형)'
@@ -23,7 +26,7 @@ export const HELP_LINES = [
   '국립중앙도서관 사서가 고른 신간 추천 도서 중 최근 12번(2년) 추천분이에요',
   '보통 2달에 한 번, 한 번에 8권(문학·인문·사회·자연 각 2권)을 추천해요. 테마 추천 때는 12권이에요',
   '신간이라 아직 전자책이 없는 책도 있어요',
-  '흐린 책은 검색하는 도서관에 전자책이 없어요',
+  '“현재 범위에서 미연결” 책은 검색하는 도서관에 전자책이 없어요',
   '있음/없음은 검색 화면에서 고른 지역 기준이에요',
 ] as const
 
@@ -55,11 +58,6 @@ export function sourceLine(fetchedAt: string | null): string {
   return [SOURCE_TEXT, fetchedLabel(fetchedAt)].filter(Boolean).join(' · ')
 }
 
-/** How many 9-book pages a field has (10 books: 2, the last with 1). */
-export function pageCount(books: number): number {
-  return Math.max(1, Math.ceil(books / PAGE_SIZE))
-}
-
 /**
  * The title shown on a card without a cover: the part before the first " : " or " = " (librarian picks carry long
  * subtitles, "시간을 읽는 그림 : 수천 년 세계사를 담은 기록의 그림들"); the whole title when nothing is left.
@@ -72,9 +70,4 @@ export function cardTitle(title: string): string {
 /** Only our own cover address is used as an image source (C7); anything else shows the title. */
 export function safeCoverUrl(url: string | null): string | null {
   return url && /^\/api\/v1\/picks\/covers\/\d+$/.test(url) ? url : null
-}
-
-/** The id of a category's block, for moving the page to it (S13c). */
-export function sectionId(code: string): string {
-  return `picks-${code}`
 }

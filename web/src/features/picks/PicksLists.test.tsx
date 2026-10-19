@@ -167,7 +167,7 @@ describe('the lists words', () => {
 })
 
 describe('Lee Dong-jin screen', () => {
-  it('shows the list name, the latest first with no date under it, and the source with the terms link only in 기준 보기', async () => {
+  it('shows the list name, the latest first with no date under it, and the source with the terms link in 추천 기준과 출처 보기', async () => {
     const asked = stubFetch({ leedongjin: LEEDONGJIN })
     renderAt('/picks/leedongjin')
 
@@ -179,12 +179,9 @@ describe('Lee Dong-jin screen', () => {
     expect(cards[0].getAttribute('aria-label')).toBe('히스토리아 비테이, 전자책 있음')
     expect(within(all).queryByText('26.06')).toBeNull()
     // AC-9
-    // user 2026-10-17: no source line under the panels; it is in 기준 보기 with the terms link
-    expect(screen.queryByText(/^출처:/)).toBeNull()
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /^분류/ }))
-    await user.click(await screen.findByRole('button', { name: /기준 보기/ }))
-    const source = await screen.findByText(/^출처: 유튜브/, { selector: 'li' })
+    // user 2026-10-17: no source line under the grid; it is in 추천 기준과 출처 보기 with the terms link
+    const details = screen.getByText('추천 기준과 출처 보기').closest('details')!
+    const source = within(details).getByText(/^출처: 유튜브/, { selector: 'li' })
     expect(within(source).getByRole('link', { name: 'YouTube 서비스 약관' }).getAttribute('href')).toBe(YOUTUBE_TERMS_URL)
     await waitFor(() =>
       expect(vi.mocked(sendUsageEvent)).toHaveBeenCalledWith({ type: 'picks_list_view', list: 'leedongjin', category: 'ALL' }),
@@ -251,7 +248,8 @@ describe('SNU 100 screen', () => {
       '햄릿, 전자책 있음',
       '광장, 전자책 없음',
     ])
-    expect(screen.queryByText('출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)')).toBeNull()
+    // the source is only in 추천 기준과 출처 보기
+    expect(screen.getByText('출처: 서울대학교 기초교육원 『권장도서 해제집』(서울대학교출판문화원)').closest('details')).not.toBeNull()
   })
 
   it('shows our title with no list name line, and no field or number (AC-8; AC-16 line taken out 2026-10-17)', async () => {
