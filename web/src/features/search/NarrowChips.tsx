@@ -151,41 +151,64 @@ function FieldChip({
       <span aria-hidden="true">×</span>
     </button>
   )
-  const body = (
+  const box = (
+    <input
+      id={`${id}-box`}
+      type="search"
+      className={styles.windowInput}
+      value={draft}
+      maxLength={QUERY_MAX_LENGTH}
+      placeholder={PLACEHOLDERS[field]}
+      autoComplete="off"
+      aria-invalid={message ? true : undefined}
+      aria-describedby={message ? `${id}-error` : undefined}
+      onChange={(event) => {
+        setDraft(event.target.value)
+        setMessage(undefined)
+      }}
+    />
+  )
+  const applyButton = (
+    <button type="submit" className={styles.apply}>
+      적용
+    </button>
+  )
+  const exactBox = (
+    <label className={styles.check}>
+      <input type="checkbox" checked={draftExact} onChange={(event) => setDraftExact(event.target.checked)} />
+      완전 일치
+    </label>
+  )
+  const error = message && (
+    <p id={`${id}-error`} className={styles.error} role="alert">
+      {message}
+    </p>
+  )
+  const nameLabel = (
+    <label htmlFor={`${id}-box`} className={styles.windowLabel}>
+      {label}
+    </label>
+  )
+  // wider screens: the box and 적용 on one line; phones: one thing per row, 적용 last and full width (user 2026-10-20:
+  // "검색칸 좀 수습해줘 이상해" — the box was squashed on the user's phone)
+  const body = phone ? (
+    <form className={`${styles.windowForm} ${styles.stacked}`} onSubmit={apply} noValidate>
+      {nameLabel}
+      {box}
+      {exactBox}
+      {error}
+      {applyButton}
+    </form>
+  ) : (
     <form className={styles.windowForm} onSubmit={apply} noValidate>
-            <label htmlFor={`${id}-box`} className={styles.windowLabel}>
-              {label}
-            </label>
-            <div className={styles.windowLine}>
-              <input
-                id={`${id}-box`}
-                type="search"
-                className={styles.windowInput}
-                value={draft}
-                maxLength={QUERY_MAX_LENGTH}
-                placeholder={PLACEHOLDERS[field]}
-                autoComplete="off"
-                aria-invalid={message ? true : undefined}
-                aria-describedby={message ? `${id}-error` : undefined}
-                onChange={(event) => {
-                  setDraft(event.target.value)
-                  setMessage(undefined)
-                }}
-              />
-              <button type="submit" className={styles.apply}>
-                적용
-              </button>
-            </div>
-            <label className={styles.check}>
-              <input type="checkbox" checked={draftExact} onChange={(event) => setDraftExact(event.target.checked)} />
-              완전 일치
-            </label>
-            {message && (
-              <p id={`${id}-error`} className={styles.error} role="alert">
-                {message}
-              </p>
-            )}
-          </form>
+      {nameLabel}
+      <div className={styles.windowLine}>
+        {box}
+        {applyButton}
+      </div>
+      {exactBox}
+      {error}
+    </form>
   )
 
   // phones: a window in the middle of the screen (user 2026-10-20: "저자 출판사 검색 모바일에서 삑사리난거 수습해",
