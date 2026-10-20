@@ -12,8 +12,6 @@ import { exampleOf, pickExample, SearchPage } from './SearchPage'
 import { START_EXAMPLES } from './startExamples'
 import { SETTINGS_STORAGE_KEY } from './searchSettings'
 
-/** The condition line's words: the [조건 수정] button's description (first screen redesign, user 2026-10-19). */
-const conditionOf = (button: HTMLElement) => document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent
 /**
  * Cycle 06 step 10 on the search screen with a fake server: the "내 도서관" line and what the book search sends before
  * and after login (AC-6, AC-7, AC-14). Cycle 22 step 1: no scope switch (R4-1), the search keeps the values it was
@@ -438,7 +436,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     phoneScreen()
     renderSearch('/')
 
-    const chip = await screen.findByRole('button', { name: '지역을 선택해주세요', description: /^서울 마포구에 살아요/ })
+    const chip = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     const user = userEvent.setup()
     await user.click(chip)
     const sheet = within(await screen.findByRole('dialog', { name: '찾을 도서관' }))
@@ -539,8 +537,7 @@ describe('the first screen', () => {
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
-    const edit = await screen.findByRole('button', { name: '지역을 선택해주세요' })
-    await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'))
+    await screen.findByRole('button', { name: '지역을 선택해주세요' })
     // the lead names the person's own residence, not the random example (user 2026-10-20)
     await waitFor(() => expect(lead.textContent).toMatch(/^마포구에 살아도 /))
     // this account's 거주 has an example: the card of it, with its 직장 as the 재직 pill (user 2026-10-20; its numbers
@@ -562,8 +559,7 @@ describe('the first screen', () => {
   it('only work regions: a 재직 card of the workplace, and the lead says 일해도, no numbers (user 2026-10-20)', async () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [1102] }
     renderSearch('/')
-    const edit = await screen.findByRole('button', { name: '지역을 선택해주세요' })
-    await waitFor(() => expect(conditionOf(edit)).toBe('서울 중구에서 일해요'))
+    await screen.findByRole('button', { name: '지역을 선택해주세요' })
     const card = await screen.findByRole('complementary', { name: '서울 중구에서 일하면' })
     const lines = within(card)
       .getAllByRole('listitem')

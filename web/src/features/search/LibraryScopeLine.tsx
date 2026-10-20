@@ -40,7 +40,7 @@ export const SCOPE_TEXT = {
   conditionNone: '지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요',
   condition: (text: string) => text,
   // user 2026-10-20: "바꾸기 말고 지역 설정"
-  edit: '지역을 선택해주세요',
+  edit: '지역 설정',
   conditionHint: (count: number | null) =>
     `안 골라도 어디 살든 가입되는 도서관${count === null ? '' : ` ${count}곳`}에서 찾아요 · 일하는 곳도 더할 수 있어요`,
   // a results screen of a search made without regions or added libraries (the results' own line before, user
@@ -189,49 +189,6 @@ interface LineProps extends Common {
   onBoxChange: (box: BoxFocus | null) => void
 }
 
-/**
- * The condition line's words, its link and the small grey line under it: none chosen, or the first residence and
- * workplace (user 2026-10-19). On a results screen of a search made without any, the card says where it searched,
- * and once a region was saved since, the grey line asks for [검색] (the results' own line before).
- */
-function useCondition(
-  searched: ScopeSearched | null | undefined,
-  visitChanged = false,
-  changedHint?: ReactNode,
-  regionsChanged = false,
-  onSearchAgain?: () => void,
-): {
-  line: string
-  action: string
-  hint: ReactNode
-} {
-  const text = useScopeLineText()
-  // the regions changed since a search made with regions too (user 2026-10-20: "검색으로 눌러주세요 문구도 부활시켜"),
-  // before the switch's line
-  const visitHint = regionsChanged ? (
-    <PressSearch before={SCOPE_TEXT.pickedBefore(null)} onSearch={onSearchAgain} />
-  ) : visitChanged ? (
-    <PressSearch before={SCOPE_TEXT.visitChangedBefore} onSearch={onSearchAgain} />
-  ) : null
-  if (text === null) {
-    return {
-      line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
-      action: SCOPE_TEXT.pick,
-      hint: changedHint ?? visitHint ?? (searched ? SCOPE_TEXT.searchedHint : null),
-    }
-  }
-  return {
-    line: SCOPE_TEXT.condition(text),
-    action: SCOPE_TEXT.edit,
-    hint:
-      changedHint ??
-      (searched?.regionsPicked ? (
-        <PressSearch before={SCOPE_TEXT.pickedBefore(searched.picked)} onSearch={onSearchAgain} />
-      ) : (
-        visitHint
-      )),
-  }
-}
 
 /** "조건을 바꿨어요. 바뀐 조건으로 찾으려면 [다시 찾기]": the book page's own search again, a button in the line. */
 export function SearchAgainHint({ onClick }: { onClick: () => void }) {
@@ -263,35 +220,6 @@ function PressSearch({ before, onSearch }: { before: string; onSearch?: () => vo
   )
 }
 
-/**
- * The condition line (first screen redesign, user 2026-10-19): a full-width white card with one bold line and a violet
- * link on the right ([지역 설정] or [조건 수정]); the link covers the whole card. A small grey line under the card says
- * what setting a region adds, or asks for [검색] after one was saved on a results screen.
- */
-function ConditionCard({
-  textId,
-  line,
-  hint,
-  children,
-}: {
-  textId: string
-  line: string
-  hint: ReactNode
-  /** The link: a button whose accessible description is the line (`aria-describedby={textId}`). */
-  children: ReactNode
-}) {
-  return (
-    <div className={styles.conditionWrap}>
-      <div className={styles.condition} data-testid="scope-condition">
-        <p id={textId} className={styles.conditionText}>
-          {line}
-        </p>
-        {children}
-      </div>
-      {hint && <p className={styles.conditionHint}>{hint}</p>}
-    </div>
-  )
-}
 
 /**
  * The "찾을 도서관" condition line under the search box on wider screens (cycle 22 R1, flow S1; a card since the first
@@ -300,7 +228,7 @@ function ConditionCard({
  * 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows itself by the 「그 밖의 도서관」 group, and the next
  * new search is 내 도서관 again (D10).
  */
-export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
+export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
   const state = useLineState()
   const panelId = useId()
   // inline: Esc closes the box wherever the focus is (it is part of the page, not a window that holds the focus)
@@ -326,14 +254,6 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
     })
     return () => cancelAnimationFrame(frame)
   }, [inlineOpen])
-  const condition = useCondition(
-    common.searched,
-    common.visitChanged,
-    common.changedHint,
-    common.regionsChanged,
-    common.onSearchAgain,
-  )
-  const textId = useId()
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
   if (state === 'failed') {
@@ -355,18 +275,16 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   // the same day (ScopeNote)
   return (
     <div ref={rootRef} className={styles.root}>
-      <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
-        <button
-          type="button"
-          className={styles.conditionAction}
-          aria-describedby={textId}
-          aria-expanded={box !== null}
-          aria-controls={box !== null ? panelId : undefined}
-          onClick={() => onBoxChange(box === null ? 'residence' : null)}
-        >
-          {condition.action}
-        </button>
-      </ConditionCard>
+      {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해주세요") */}
+      <button
+        type="button"
+        className={styles.pickButton}
+        aria-expanded={box !== null}
+        aria-controls={box !== null ? panelId : undefined}
+        onClick={() => onBoxChange(box === null ? 'residence' : null)}
+      >
+        {SCOPE_TEXT.pick}
+      </button>
       {box !== null && (
         <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
           <button
@@ -395,15 +313,8 @@ interface ChipProps extends Common {
  */
 export function LibraryScopeChip({
   onOpen,
-  searched,
-  visitChanged,
-  changedHint,
-  regionsChanged,
-  onSearchAgain,
 }: ChipProps) {
   const state = useLineState()
-  const condition = useCondition(searched, visitChanged, changedHint, regionsChanged, onSearchAgain)
-  const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
   if (state === 'failed') {
@@ -415,17 +326,9 @@ export function LibraryScopeChip({
   }
   return (
     <div className={styles.chipLine}>
-      <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
-        <button
-          type="button"
-          className={styles.conditionAction}
-          onClick={onOpen}
-          aria-haspopup="dialog"
-          aria-describedby={textId}
-        >
-          {condition.action}
-        </button>
-      </ConditionCard>
+      <button type="button" className={styles.pickButton} onClick={onOpen} aria-haspopup="dialog">
+        {SCOPE_TEXT.pick}
+      </button>
     </div>
   )
 }
