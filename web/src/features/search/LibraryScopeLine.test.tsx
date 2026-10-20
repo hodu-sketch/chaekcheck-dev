@@ -158,6 +158,12 @@ describe('a first visitor (R1-2)', () => {
     renderLine()
     await screen.findByRole('button', { name: '지역을 선택해주세요' })
     expect(screen.queryByText(/에 살아요/)).toBeNull()
+    // what is picked, beside it; 「 …」 with two or more (user 2026-10-20)
+    expect(await screen.findByRole('button', { name: '마포구 거주' })).toBeTruthy()
+    cleanup()
+    guestRegions([1114], [1102])
+    renderLine()
+    expect(await screen.findByRole('button', { name: '마포구 거주 …' })).toBeTruthy()
   })
 
   it('the button opens the box under the card, no window; no [일하는 곳도 더하기] beside it (user 2026-10-19, 2026-10-20)', async () => {

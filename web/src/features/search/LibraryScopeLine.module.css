@@ -605,3 +605,35 @@
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* the region button and, right of it, what is picked (user 2026-10-20) */
+.pickRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pickedTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.4rem;
+  padding: 0 1rem;
+  border: 1.5px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pickedTag:hover {
+  background: var(--brand-faint);
+}
+
+.pickedTag:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

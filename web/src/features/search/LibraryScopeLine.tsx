@@ -6,6 +6,7 @@ import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { SaveHint } from '../mylibrary/SaveHint'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField } from '../region/RegionGrid'
+import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
 import type { StoredRegions } from '../region/regionStorage'
 import { ro } from './regionPlace'
 import { useRegionPlace } from './regionPlace'
@@ -276,15 +277,18 @@ export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
   return (
     <div ref={rootRef} className={styles.root}>
       {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해주세요") */}
-      <button
-        type="button"
-        className={styles.pickButton}
-        aria-expanded={box !== null}
-        aria-controls={box !== null ? panelId : undefined}
-        onClick={() => onBoxChange(box === null ? 'residence' : null)}
-      >
-        {SCOPE_TEXT.pick}
-      </button>
+      <div className={styles.pickRow}>
+        <button
+          type="button"
+          className={styles.pickButton}
+          aria-expanded={box !== null}
+          aria-controls={box !== null ? panelId : undefined}
+          onClick={() => onBoxChange(box === null ? 'residence' : null)}
+        >
+          {SCOPE_TEXT.pick}
+        </button>
+        <PickedTag onClick={() => onBoxChange(box === null ? 'residence' : null)} />
+      </div>
       {box !== null && (
         <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
           <button
@@ -326,10 +330,35 @@ export function LibraryScopeChip({
   }
   return (
     <div className={styles.chipLine}>
-      <button type="button" className={styles.pickButton} onClick={onOpen} aria-haspopup="dialog">
-        {SCOPE_TEXT.pick}
-      </button>
+      <div className={styles.pickRow}>
+        <button type="button" className={styles.pickButton} onClick={onOpen} aria-haspopup="dialog">
+          {SCOPE_TEXT.pick}
+        </button>
+        <PickedTag onClick={onOpen} />
+      </div>
     </div>
+  )
+}
+
+/**
+ * What is picked, beside the main page's region button: a white pill with a violet rim, 「강서구 거주」 for the first
+ * 거주 (else the first 직장, 「금천구 재직」), with 「 …」 when two regions or more are set; nothing before any (user
+ * 2026-10-20: "오른쪽에 흰 버튼 … 강서구 거주 이런것보이게 하고 2개 이상되면 .. 이거 추가해줘"). It opens the same box.
+ */
+function PickedTag({ onClick }: { onClick: () => void }) {
+  const { regions } = useRegions()
+  const labels = useRegionLabels(useRegionTree().data)
+  const residence = regions.residence[0]
+  const id = residence ?? regions.work[0]
+  const label = id === undefined ? undefined : labels.get(id)
+  if (label === undefined) return null
+  const place = label.split(' ').slice(1).join(' ') || label
+  const word = residence !== undefined ? SCOPE_TEXT.residenceShort : SCOPE_TEXT.workShort
+  const more = regions.residence.length + regions.work.length >= 2
+  return (
+    <button type="button" className={styles.pickedTag} onClick={onClick}>
+      {`${place} ${word}${more ? ' …' : ''}`}
+    </button>
   )
 }
 
