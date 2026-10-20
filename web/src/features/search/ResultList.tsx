@@ -66,6 +66,8 @@ export const GROUP_TEXT = {
   open: '어디 살든 가입되는 도서관에 있어요',
   openNote: '온라인으로 바로 가입할 수 있어요',
   visitSome: (sites: number) => `이 중 ${sites}곳은 가입하려면 도서관에 가야 해요`,
+  // the line above the groups while every way of joining is shown (the other side of visitRemoved)
+  visitAll: '직접 가서 가입하는 곳도 보는 중이에요',
   // the same switch as 「온라인에서 가입 가능한 곳만 보기」 in the 찾을 도서관 box (user 2026-10-19)
   visitRemove: '온라인 가입만 보기',
   visitRemoved: '온라인으로 가입할 수 있는 곳만 보는 중이에요',
@@ -360,19 +362,21 @@ function Groups({
   const visitRemoved = context?.visit === 'none'
   // 「온라인으로 가입할 수 있는 곳만 보는 중이에요」 covers every group, 내 도서관 too: one line above them (user
   // 2026-10-20: "원래 내 도서관도 방문가입 조건 따로있지않아?"); the 어디 살든 group keeps its 「이 중 N곳은 …」
-  const removedLine =
-    context && visitRemoved ? (
-      <p className={styles.visitRemovedLine}>
-        <span className={styles.noteAside}>
-          {GROUP_TEXT.visitRemoved} · {linkButton(GROUP_TEXT.visitBack, context.onVisitBack)}
-        </span>
-      </p>
-    ) : null
+  // both ways stay in that same place, so the switch back is where the switch was (user 2026-10-20: "누르니까 되돌리는
+  // 건 아래에나온다")
+  const removedLine = context ? (
+    <p className={styles.visitRemovedLine}>
+      <span className={styles.noteAside}>
+        {visitRemoved ? GROUP_TEXT.visitRemoved : GROUP_TEXT.visitAll} ·{' '}
+        {visitRemoved
+          ? linkButton(GROUP_TEXT.visitBack, context.onVisitBack)
+          : linkButton(GROUP_TEXT.visitRemove, context.onVisitNone)}
+      </span>
+    </p>
+  ) : null
   const visitLine =
     context && !visitRemoved && visitRequiredOpenSites > 0 ? (
-      <span className={styles.noteAside}>
-        {GROUP_TEXT.visitSome(visitRequiredOpenSites)} {linkButton(GROUP_TEXT.visitRemove, context.onVisitNone)}
-      </span>
+      <span className={styles.noteAside}>{GROUP_TEXT.visitSome(visitRequiredOpenSites)}</span>
     ) : null
 
   return (
