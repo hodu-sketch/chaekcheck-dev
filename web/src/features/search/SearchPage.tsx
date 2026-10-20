@@ -70,6 +70,7 @@ export const START_TEXT = {
   question: '전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
   // a region picked at random on every visit from START_EXAMPLES (user 2026-10-20: "한 100개 정도 해서 항상 랜덤값이
   // 뜨게", "예: 빼줘")
+  exampleFoot: '전자도서관에서 빌릴 수 있어요',
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
   // a card made from a workplace: the 거주 row asks for one
@@ -285,6 +286,8 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
           </li>
         ))}
       </ul>
+      {/* bottom right, small and soft (user 2026-10-20: "우하단에 … 전자도서관에서 빌릴 수 있어요") */}
+      <p className={styles.exampleFoot}>{START_TEXT.exampleFoot}</p>
     </aside>
   )
 }

@@ -516,3 +516,12 @@
     padding: 0.1rem 0.45rem;
   }
 }
+
+/* the example card's last line, bottom right: smaller and softer than the rows (user 2026-10-20) */
+.exampleFoot {
+  margin: 0.7rem 0 0;
+  /* a darker grey than the faint one (user 2026-10-20: "좀 더 진한 회색 글자로") */
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  text-align: right;
+}
