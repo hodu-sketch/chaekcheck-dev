@@ -36,22 +36,16 @@
   color: var(--brand-strong);
 }
 
-/* the 가입 방법 chip at the row's right end: 「온라인 가입만」 plain, 「방문 가입도」 in the 방문 가입 colour (user
-   2026-10-20: "이거 색 서로 바꿔줘") */
+/* the 가입 방법 chip at the row's right end: 「온라인 가입만」 in the 방문 가입 colour, 「방문 가입도」 plain (as first made;
+   a swap was undone the same day, user 2026-10-20: "원래 안이랬자나") */
 .onlineChip {
   margin-left: auto;
 }
 
-.onlineChip:not([data-on]) {
-  border-color: var(--visit-strong);
-  background: var(--visit-soft);
-  color: var(--visit-strong);
-}
-
 .onlineChip[data-on] {
-  border-color: var(--rule-strong) !important;
-  background: var(--card) !important;
-  color: var(--ink-soft) !important;
+  border-color: var(--visit-strong) !important;
+  background: var(--visit-soft) !important;
+  color: var(--visit-strong) !important;
 }
 
 .chip[data-on],
