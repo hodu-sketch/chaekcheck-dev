@@ -500,6 +500,15 @@ describe('전자책 검색', () => {
     expect(screen.queryByRole('complementary', { name: /에 살면$/ })).toBeNull()
     expect(fake.books).toHaveLength(0)
   })
+
+  it('has the 가입 방법 chip before a search too: it only sets the next search (user 2026-10-20)', async () => {
+    const user = userEvent.setup()
+    renderSearch('/search')
+    await user.click(await screen.findByRole('button', { name: '온라인 가입만' }))
+    expect(await screen.findByRole('button', { name: '방문 가입도' })).toBeTruthy()
+    expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('any')
+    expect(fake.books).toHaveLength(0)
+  })
 })
 
 /** The first screen (user 2026-10-20, ADR-0139, handoff 5-A-1·2, main screen (나)): `/` before a search. */

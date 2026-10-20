@@ -157,7 +157,7 @@ export function SearchForm({
           direct={direct}
           beforeSearch={!hasResults}
           onNarrow={narrow}
-          onlineOnly={hasResults ? onlineOnly : undefined}
+          onlineOnly={onlineOnly}
         />
       )}
     </form>
