@@ -642,7 +642,7 @@ export function LibraryScopeBody({
         <h3 id={workId} className={styles.partTitle}>
           {SCOPE_TEXT.work}
         </h3>
-        {workOpen || regions.work.length > 0 ? (
+        {compact || workOpen || regions.work.length > 0 ? (
           grid('work')
         ) : (
           <button type="button" className={styles.addWork} onClick={() => setWorkOpen(true)}>

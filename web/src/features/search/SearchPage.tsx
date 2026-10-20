@@ -47,6 +47,8 @@ export const START_TEXT = {
   eyebrow: '공공 전자도서관은 회원이면 무료예요',
   // user 2026-10-20: "읽고 싶은 전자책, / 사기 전에 빌릴 수 있는 전자도서관부터"
   headline: ['읽고 싶은 전자책,', '사기 전에', '빌릴 수 있는 전자도서관부터'],
+  // in the brand colour (user 2026-10-20: "빌릴 수 있는 이거 보라색처리")
+  headlineMark: '빌릴 수 있는',
   // two lines (user 2026-10-20: "강서구에 살아도 … 빌릴 수 있어요. / 저희가 … 찾아 드릴게요.")
   lead: [
     '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.',
@@ -68,13 +70,24 @@ export const START_TEXT = {
 } as const
 
 /** Lines joined by line breaks. */
-function lines(parts: readonly string[]) {
-  return parts.map((part, index) => (
-    <span key={part}>
-      {index > 0 && <br />}
-      {part}
-    </span>
-  ))
+function lines(parts: readonly string[], mark?: string) {
+  return parts.map((part, index) => {
+    const at = mark ? part.indexOf(mark) : -1
+    return (
+      <span key={part}>
+        {index > 0 && <br />}
+        {at < 0 || !mark ? (
+          part
+        ) : (
+          <>
+            {part.slice(0, at)}
+            <span className={styles.headlineMark}>{mark}</span>
+            {part.slice(at + mark.length)}
+          </>
+        )}
+      </span>
+    )
+  })
 }
 
 /**
@@ -404,7 +417,7 @@ export function SearchPage() {
           <>
             <div className={styles.intro}>
               <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
-              <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
+              <h1 className={styles.headline}>{lines(START_TEXT.headline, START_TEXT.headlineMark)}</h1>
               <p className={styles.lead}>
                 {lines(phone ? START_TEXT.leadPhone : START_TEXT.lead)}
                 {!phone && (

@@ -245,6 +245,38 @@
   word-break: keep-all;
 }
 
+.headlineMark {
+  color: var(--brand);
+}
+
+/* wider screens of little height (a small laptop): tighter, so the first screen with the region box opened fits
+   without a scroll (user 2026-10-20: "어지간한 작은 모니터에도 다 스크롤 없이") */
+@media (width > 1024px) and (height <= 860px) {
+  .page[data-state='start'] .searchArea {
+    padding-top: 1rem;
+  }
+
+  .page[data-state='start'] .headline {
+    margin: 0.2rem 0 0.5rem;
+    font-size: calc(2.1 * var(--base-unscaled));
+    line-height: 1.28;
+  }
+
+  .page[data-state='start'] .intro {
+    margin-bottom: 0.9rem;
+  }
+
+  .page[data-state='start'] .lead {
+    font-size: var(--text-md);
+    line-height: 1.5;
+  }
+
+  .page[data-state='start'] .question {
+    margin-bottom: 0.4rem;
+    font-size: var(--text-md);
+  }
+}
+
 .notices {
   display: flex;
   flex-direction: column;

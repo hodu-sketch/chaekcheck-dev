@@ -182,7 +182,7 @@
   position: relative;
   width: min(40rem, 100%);
   margin-top: 0.5rem;
-  padding: 0.9rem 1.2rem 1rem;
+  padding: 0.5rem 1rem 0.7rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -409,16 +409,52 @@
 
 .panelClose {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
+  top: 0.45rem;
+  right: 0.45rem;
 }
 
 .body[data-compact] {
-  gap: 0.7rem;
+  gap: 0;
+}
+
+/* one row a part: the title left, its controls right */
+.body[data-compact] .part {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.4rem;
+  padding: 0.45rem 2rem 0.45rem 0;
+}
+
+.body[data-compact] .part > * {
+  grid-column: 2;
+}
+
+.body[data-compact] .part > .partTitle {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  align-self: start;
+  padding-top: 0.3rem;
+  font-size: var(--text-md);
 }
 
 .body[data-compact] .part + .part {
-  padding-top: 0.7rem;
+  padding-top: 0.45rem;
+}
+
+.body[data-compact] .visit {
+  padding: 0.3rem 0;
+  border: none;
+  background: none;
+}
+
+.body[data-compact] .visitNote {
+  display: none;
+}
+
+.body[data-compact] .myPageLine {
+  margin-top: 0.35rem;
 }
 
 .myPageLine {
