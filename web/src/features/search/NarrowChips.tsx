@@ -30,6 +30,8 @@ type Props = {
 
 /** [확정] (user 2026-10-20). */
 const ONLINE_ONLY = '온라인 가입만'
+/** The chip while every way of joining is shown (user 2026-10-20: "구분이 안 돼 … 방문 가입도"). */
+const VISIT_TOO = '방문 가입도'
 
 const PLACEHOLDERS: Record<TextField, string> = { author: '예: 한강', publisher: '예: 창비' }
 
@@ -93,11 +95,10 @@ export function NarrowChips({ input, searched, direct, beforeSearch = false, onN
         <button
           type="button"
           className={`${styles.chip} ${styles.onlineChip}`}
-          aria-pressed={onlineOnly.on}
           data-on={onlineOnly.on || undefined}
           onClick={onlineOnly.onToggle}
         >
-          {ONLINE_ONLY}
+          {onlineOnly.on ? ONLINE_ONLY : VISIT_TOO}
         </button>
       )}
     </div>

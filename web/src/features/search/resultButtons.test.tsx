@@ -201,15 +201,14 @@ describe('buttons inside the results (cycle 22 R8-3)', () => {
     expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
   })
 
-  it('「온라인 가입만」 is a chip in the narrowing row: it searches again with visit=none and back (user 2026-10-20)', async () => {
+  it('the 가입 방법 chip in the narrowing row: 「방문 가입도」 ↔ 「온라인 가입만」, searching again (user 2026-10-20)', async () => {
     const user = renderSearch()
-    const chip = await screen.findByRole('button', { name: '온라인 가입만' })
-    expect(within(screen.getByRole('group', { name: '검색 좁히기' })).getByRole('button', { name: '온라인 가입만' })).toBe(chip)
-    expect(chip.getAttribute('aria-pressed')).toBe('false')
+    const chip = await screen.findByRole('button', { name: '방문 가입도' })
+    expect(within(screen.getByRole('group', { name: '검색 좁히기' })).getByRole('button', { name: '방문 가입도' })).toBe(chip)
     await user.click(chip)
     await vi.waitFor(() => expect(lastStream().visit).toBe('none'))
     expect(loadPrefs().visit).toBe('none')
-    await user.click(await screen.findByRole('button', { name: '온라인 가입만', pressed: true }))
+    await user.click(await screen.findByRole('button', { name: '온라인 가입만' }))
     await vi.waitFor(() => expect(lastStream().visit).toBe('any'))
     expect(loadPrefs().visit).toBe('any')
     expect(screen.queryByText(/곳만 보는 중이에요|곳도 보는 중이에요/)).toBeNull()
