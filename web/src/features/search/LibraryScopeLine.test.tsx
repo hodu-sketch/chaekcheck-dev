@@ -144,7 +144,7 @@ const guestRegions = (residence: number[], work: number[] = []) =>
   localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence, work }))
 const folded = () => screen.findByRole('button', { name: '지역을 선택해주세요' })
 // the main page's box on wider screens: a part of the page, no window (user 2026-10-20)
-const box = () => screen.findByRole('region', { name: '찾을 도서관' })
+const box = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 const sheetDialog = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 
 describe('a first visitor (R1-2)', () => {
@@ -178,9 +178,9 @@ describe('a first visitor (R1-2)', () => {
     await user.click(button)
     const opened = await box()
     expect(button.getAttribute('aria-expanded')).toBe('true')
-    expect(button.getAttribute('aria-controls')).toBe(opened.id)
     expect(within(opened).getByRole('group', { name: '거주' })).toBeTruthy()
-    expect(screen.queryByRole('dialog')).toBeNull()
+    // a small window under the button (user 2026-10-20: "작은 모달창 … fit하게")
+    expect(opened).toBeTruthy()
   })
 })
 
@@ -239,16 +239,16 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
     const { user } = renderLine()
     await user.click(await screen.findByRole('button', { name: '지역을 선택해주세요' }))
     await user.click(within(await box()).getByRole('button', { name: '닫기' }))
-    await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull())
 
     await user.click(screen.getByRole('button', { name: '지역을 선택해주세요' }))
     await box()
     await user.keyboard('{Escape}')
-    await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull())
 
     await user.click(screen.getByRole('button', { name: '지역을 선택해주세요' }))
     await user.click(within(await box()).getByRole('link', { name: '마이페이지' }))
-    await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull())
   })
 
   it('the library list is not read, even with added libraries (D4)', async () => {

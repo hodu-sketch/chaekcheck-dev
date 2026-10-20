@@ -173,7 +173,7 @@ const pickable = START_EXAMPLES.filter(
 )
 const noBox = () => {
   expect(screen.queryByRole('button', { name: /^지역 (선택|설정)$/ })).toBeNull()
-  expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
+  expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull()
 }
 
 describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
@@ -670,8 +670,7 @@ describe('the first screen', () => {
     const user = userEvent.setup()
     const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await user.click(button)
-    expect(screen.queryByRole('dialog')).toBeNull()
-    const panel = screen.getByRole('region', { name: '찾을 도서관' })
+    const panel = await screen.findByRole('dialog', { name: '찾을 도서관' })
     expect(button.getAttribute('aria-expanded')).toBe('true')
     expect(await within(panel).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     // only 거주 and a line to the my page (user 2026-10-20)
@@ -679,10 +678,10 @@ describe('the first screen', () => {
     expect(within(panel).queryByText(/^직접 추가/)).toBeNull()
     expect(within(panel).getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull()
     await user.click(button)
-    await user.click(within(screen.getByRole('region', { name: '찾을 도서관' })).getByRole('button', { name: '닫기' }))
-    expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
+    await user.click(within(screen.getByRole('dialog', { name: '찾을 도서관' })).getByRole('button', { name: '닫기' }))
+    expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull()
   })
 
   // the main page's button always opens the box, showing the first 거주 only; the rest stays (user 2026-10-20)
@@ -691,7 +690,7 @@ describe('the first screen', () => {
     const user = userEvent.setup()
     const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await user.click(button)
-    const panel = screen.getByRole('region', { name: '찾을 도서관' })
+    const panel = screen.getByRole('dialog', { name: '찾을 도서관' })
     const residence = within(panel).getByRole('group', { name: '거주' })
     await waitFor(() =>
       expect(within(residence).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구'),

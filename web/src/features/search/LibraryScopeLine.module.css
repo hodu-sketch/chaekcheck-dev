@@ -634,3 +634,19 @@
   color: var(--brand-strong);
   font-weight: 800;
 }
+
+/* the main page's small region window on PC and tablets: under the button, as wide as its content (the 저자 chip's
+   window look, user 2026-10-20) */
+.pickWindow {
+  position: relative;
+  z-index: 20;
+  width: max-content;
+  max-width: min(26rem, calc(100vw - 2rem));
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--paper-deep);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+  color: var(--ink);
+  font-size: var(--text-md);
+}

@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { Popover } from 'radix-ui'
+import { useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { VisitFilter } from '../../api/types'
 import { BottomSheet } from '../../components/BottomSheet'
@@ -232,30 +233,6 @@ function PressSearch({ before, onSearch }: { before: string; onSearch?: () => vo
  */
 export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
   const state = useLineState()
-  const panelId = useId()
-  // inline: Esc closes the box wherever the focus is (it is part of the page, not a window that holds the focus)
-  const inlineOpen = box !== null
-  useEffect(() => {
-    if (!inlineOpen) return
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onBoxChange(null)
-    }
-    document.addEventListener('keydown', escape)
-    return () => document.removeEventListener('keydown', escape)
-  }, [inlineOpen, onBoxChange])
-  // inline: when it opens, the page scrolls only as far as the whole box needs to be in view, the search box above it
-  // staying on screen where it fits (user 2026-10-20: "한 화면에서 다 보이도록")
-  const rootRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!inlineOpen) return
-    const frame = requestAnimationFrame(() => {
-      const bottom = rootRef.current?.getBoundingClientRect().bottom
-      if (bottom === undefined) return
-      const by = bottom + 16 - window.innerHeight
-      if (by > 0) window.scrollBy?.({ top: by })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [inlineOpen])
 
   if (state === 'waiting') return <div className={styles.line} aria-hidden="true" data-waiting />
   if (state === 'failed') {
@@ -272,37 +249,32 @@ export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
     </svg>
   )
 
-  // the main page on PC and tablets: the box opens under the card and pushes the page down, no window (user
-  // 2026-10-20: "메인에서만큼은 이거 누르면 모달창 말고 아래로 내려서 보이게 해줘"); the other screens have no box since
-  // the same day (ScopeNote)
+  // the main page on PC and tablets: a small window right under the button, as wide as it needs, like the 저자 chip's
+  // (user 2026-10-20: "이거 내리지 말고 작은 모달창 띄워줘", "이거처럼 fit하게"; it opened in the page before)
   return (
-    <div ref={rootRef} className={styles.root}>
-      {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해주세요") */}
-      <div className={styles.pickRow}>
-        <button
-          type="button"
-          className={styles.pickButton}
-          aria-expanded={box !== null}
-          aria-controls={box !== null ? panelId : undefined}
-          onClick={() => onBoxChange(box === null ? 'residence' : null)}
-        >
-          {SCOPE_TEXT.pick}
-        </button>
-        <PickedTag />
-      </div>
-      {box !== null && (
-        <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
-          <button
-            type="button"
-            className={`${styles.boxClose} ${styles.panelClose}`}
-            aria-label="닫기"
-            onClick={() => onBoxChange(null)}
+    <div className={styles.root}>
+      <Popover.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
+        {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해주세요") */}
+        <div className={styles.pickRow}>
+          <Popover.Trigger className={styles.pickButton}>{SCOPE_TEXT.pick}</Popover.Trigger>
+          <PickedTag />
+        </div>
+        <Popover.Portal>
+          <Popover.Content
+            className={styles.pickWindow}
+            side="bottom"
+            align="start"
+            sideOffset={6}
+            collisionPadding={12}
+            aria-label={SCOPE_TEXT.sheetTitle}
           >
-            {close}
-          </button>
-          <LibraryScopeBody onLeave={() => onBoxChange(null)} compact />
-        </section>
-      )}
+            <Popover.Close className={`${styles.boxClose} ${styles.panelClose}`} aria-label="닫기">
+              {close}
+            </Popover.Close>
+            <LibraryScopeBody onLeave={() => onBoxChange(null)} compact />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   )
 }

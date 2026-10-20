@@ -210,7 +210,8 @@
   /* the card's slot takes no height of its own, so a taller card (the names opened) never pushes the left side down
      (user 2026-10-20: "이거 늘리면 왼쪽 간격 벌어지는데 왼쪽은 변화 없도록"): bottom on the search row while it fits, else
      from the top down over the empty right side */
-  /* down to the search box row: the card's bottom on the search box's bottom (user 2026-10-20: "pc판 지금 엄청 이상한데") */
+  /* beside the whole left column, in its middle (user 2026-10-20: "좌와 비교했을 때 상대적인 위치에 … 지금보다는 위로";
+     its bottom on the search box's bottom before) */
   .page[data-state='start'] .stepsSlot {
     grid-column: 2;
     grid-row: 1 / span 4;
@@ -218,7 +219,7 @@
     contain: size;
     display: flex;
     flex-direction: column;
-    justify-content: safe flex-end;
+    justify-content: safe center;
   }
 
   .page[data-state='start'] .steps {
