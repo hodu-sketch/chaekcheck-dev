@@ -500,10 +500,10 @@ describe('the first screen', () => {
     expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
     const lead = screen.getByText(/에 살아도/).closest('p')!
     expect(lead.textContent).toMatch(
-      /^\S+에 살아도 .+ 전자도서관에서 전자책을 빌릴 수 있어요\.전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요\. 자세히 →$/,
+      /^\S+에 살아도 .+ 전자도서관에서 전자책을 빌릴 수 있어요\. 자세히 →$/,
     )
     expect(screen.getByRole('link', { name: '자세히 →' }).getAttribute('href')).toBe('/about')
-    expect(screen.getByText('어떤 책을 찾으세요?')).toBeTruthy()
+    expect(screen.getByText('전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.')).toBeTruthy()
     expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
@@ -561,9 +561,9 @@ describe('the first screen', () => {
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByText(/에 살아도/).closest('p')!.textContent).toMatch(/전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요\.$/)
+    expect(screen.getByText(/에 살아도/).closest('p')!.textContent).toMatch(/전자책을 빌릴 수 있어요\.$/)
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
-    const question = screen.getByText('어떤 책을 찾으세요?')
+    const question = screen.getByText('전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.')
     expect(question.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await waitFor(() => expect(example()).not.toBeNull())
     expect(screen.getByRole('search').compareDocumentPosition(example()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -572,7 +572,7 @@ describe('the first screen', () => {
     const shown = card.residence.slice(0, 3)
     expect(rows()).toEqual([
       `거주${shown.join('')}+ ${data.eligible - shown.length}`,
-      '재직일하는 곳',
+      '재직일하는 곳+',
       `상관없이${card.open.join('')}+ ${data.open - 3}`,
     ])
     vi.restoreAllMocks()
@@ -605,6 +605,6 @@ describe('the first screen', () => {
     await screen.findByRole('button', { name: '지역 설정' })
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
     expect(screen.queryByRole('complementary', { name: /에 살면$/ })).toBeNull()
-    expect(screen.queryByText('어떤 책을 찾으세요?')).toBeNull()
+    expect(screen.queryByText('전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.')).toBeNull()
   })
 })

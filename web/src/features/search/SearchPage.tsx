@@ -55,10 +55,11 @@ export const START_TEXT = {
   // 맞춰서 이 문구도 바꿔야지", "전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요")
   lead: (home: string, others: readonly string[]) => [
     `${home}에 살아도 ${others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
-    '전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
   ],
   more: '자세히 →',
-  question: '어떤 책을 찾으세요?',
+  // above the search box, the lead's second line moved here (user 2026-10-20: "어떤 책을 찾으세요? 이거 문구를 …
+  // 이걸로 바꾸고 원래 거 지워")
+  question: '전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
   // a region picked at random on every visit from START_EXAMPLES (user 2026-10-20: "한 100개 정도 해서 항상 랜덤값이
   // 뜨게", "예: 빼줘")
   exampleTitle: (place: string) => `${place}에 살면`,
@@ -67,6 +68,8 @@ export const START_TEXT = {
   workPill: '일하는 곳의 도서관',
   workPillPhone: '일하는 곳',
   workRest: '더하면',
+  // phones: 「일하는 곳 +」 (user 2026-10-20: "일하는 곳만 있는데 일하는 곳 + 이걸로")
+  workRestPhone: '+',
   open: '상관없이',
   rest: (count: number) => `+ ${count}곳`,
   restPhone: (count: number) => `+ ${count}`,
@@ -182,7 +185,7 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
       key: START_TEXT.work,
       tone: 'mine',
       pills: [phone ? START_TEXT.workPillPhone : START_TEXT.workPill],
-      rest: phone ? null : START_TEXT.workRest,
+      rest: phone ? START_TEXT.workRestPhone : START_TEXT.workRest,
     },
     { key: START_TEXT.open, tone: 'open', pills: card.open, rest: rest(card.openRest) },
   ]
