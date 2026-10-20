@@ -10,6 +10,14 @@
 
 서버: `ubuntu@52.64.117.112`(arm64), 폴더 `/srv/chaekcheck`, 키 `.secrets/chaekcheck-key.pem`(git에 없음).
 
+## 주소와 www (Cloudflare 대시보드, git 밖)
+
+대표 주소는 `chaekcheck.com`(www 없음). `www.chaekcheck.com`은 Cloudflare에서 바로 넘기고 서버까지 오지 않는다(사용자 요청 2026-10-20).
+
+- DNS: `www` A `192.0.2.1`(자리표시 주소), Proxied
+- Rules → Redirect Rules 「www to chaekcheck.com」: `*://www.chaekcheck.com/*` → `https://chaekcheck.com/${2}`, 301, 쿼리 문자열 유지
+- 확인: `curl -sI "https://www.chaekcheck.com/search?q=a"`가 `301`과 `location: https://chaekcheck.com/search?q=a`
+
 ## 버전 (사용자 결정 2026-10-18)
 
 - 유의적 버전 `vX.Y.Z`, 첫 공개가 `v1.0.0`. 바뀐 점은 저장소 맨 위 `CHANGELOG.md`
