@@ -50,7 +50,7 @@ describe('header', () => {
       ['추천도서', '/picks'],
       ['마이페이지', '/my-libraries'],
     ])
-    expect(nav.queryByRole('link', { name: '책첵이란?' })).toBeNull()
+    expect(nav.queryByRole('link', { name: '소개' })).toBeNull()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: '이동진 추천도서' })).toBeNull()
     expect(screen.queryByRole('link', { name: '계정' })).toBeNull()
@@ -74,7 +74,7 @@ describe('header', () => {
   it('has 책첵이란? after the menus, out of them, going to /about (user 2026-10-20)', () => {
     renderAt('/')
     const header = () => within(screen.getByRole('banner'))
-    const about = header().getByRole('link', { name: '책첵이란?' })
+    const about = header().getByRole('link', { name: '소개' })
     const logo = screen.getByRole('link', { name: '책첵' })
     expect(about.getAttribute('href')).toBe('/about')
     expect(wide().nextElementSibling).toBe(about)
@@ -83,8 +83,8 @@ describe('header', () => {
     expect(about.hasAttribute('data-current')).toBe(false)
     fireEvent.click(about)
     expect(screen.getByTestId('where').textContent).toBe('/about')
-    expect(header().getByRole('link', { name: '책첵이란?' }).hasAttribute('data-current')).toBe(true)
-    expect(header().getByRole('link', { name: '책첵이란?' }).getAttribute('aria-current')).toBe('page')
+    expect(header().getByRole('link', { name: '소개' }).hasAttribute('data-current')).toBe(true)
+    expect(header().getByRole('link', { name: '소개' }).getAttribute('aria-current')).toBe('page')
   })
 
   it.each([
@@ -143,7 +143,7 @@ describe('phone menu', () => {
     expect(button.querySelector('svg')).toBeTruthy()
     expect(button.compareDocumentPosition(logo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // the 책첵이란? link after the logo (the wide menus between are hidden on phones), 로그인 at the end
-    const about = screen.getByRole('link', { name: '책첵이란?' })
+    const about = screen.getByRole('link', { name: '소개' })
     expect(logo.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const login = screen.getByRole('button', { name: '로그인' })
     expect(logo.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -182,6 +182,6 @@ describe('phone menu', () => {
   it('has no 책첵이란? in the drawer (it is next to the logo, user 2026-10-19)', () => {
     renderAt('/')
     const drawer = openPhone()
-    expect(within(drawer).queryByRole('link', { name: '책첵이란?' })).toBeNull()
+    expect(within(drawer).queryByRole('link', { name: '소개' })).toBeNull()
   })
 })

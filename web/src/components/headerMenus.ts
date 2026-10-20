@@ -14,7 +14,8 @@ export type Menu = (typeof MENUS)[number]
  * 책첵이란? (the static /about page): a quiet grey link right next to the logo on every width, out of the menus and
  * the phone menu (user 2026-10-19: "좀 더 회색으로 해서 좌상단 책첵 로고 바로 오른쪽에 오도록").
  */
-export const ABOUT_LINK = { label: '책첵이란?', to: '/about' } as const
+// the header link reads 「소개」 (user 2026-10-20: "좌상단 책첵이란? 말고 '소개'로"); the page keeps its 책첵이란? title
+export const ABOUT_LINK = { label: '소개', to: '/about' } as const
 
 /** Whether the screen at {@code pathname} belongs to the menu (underlined). */
 export function inMenu(pathname: string, menu: Menu) {

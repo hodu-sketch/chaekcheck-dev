@@ -526,7 +526,16 @@ function AccountFailed() {
  * 가입되는 도서관은 빼기" before): in the box and the phone "찾을 도서관" sheet; on = `visit=none`, only kept for the next
  * search.
  */
-export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange: (visit: VisitFilter) => void }) {
+export function VisitSwitch({
+  visit,
+  onChange,
+  note = true,
+}: {
+  visit: VisitFilter
+  onChange: (visit: VisitFilter) => void
+  /** The grey line under the title (left out on the phone sheet, user 2026-10-20). */
+  note?: boolean
+}) {
   const titleId = useId()
   const noteId = useId()
   return (
@@ -538,7 +547,7 @@ export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange:
           className={styles.switchInput}
           checked={visit === 'none'}
           aria-labelledby={titleId}
-          aria-describedby={noteId}
+          aria-describedby={note ? noteId : undefined}
           onChange={(event) => onChange(event.target.checked ? 'none' : 'any')}
         />
         <span className={styles.switchTrack} aria-hidden="true" />
@@ -547,9 +556,11 @@ export function VisitSwitch({ visit, onChange }: { visit: VisitFilter; onChange:
         <span id={titleId} className={styles.visitTitle}>
           {SCOPE_TEXT.visitNone}
         </span>
-        <span id={noteId} className={styles.visitNote}>
-          {SCOPE_TEXT.visitNote}
-        </span>
+        {note && (
+          <span id={noteId} className={styles.visitNote}>
+            {SCOPE_TEXT.visitNote}
+          </span>
+        )}
       </span>
     </label>
   )
@@ -662,7 +673,8 @@ export function LibraryScopeBody({
 
       {!compact && (
         <>
-          <ChosenPart ids={libraryIds} openCount={openCount} onOpenCount={onOpenCount} />
+          {/* the phone sheet goes without the two grey notes (user 2026-10-20: "폰 지역 선택에서 … 빼주고") */}
+          <ChosenPart ids={libraryIds} openCount={openCount} onOpenCount={onOpenCount} openNote={!sheet} />
           {/* which libraries (above) and how one joins (below) are two things: a thick band between them (user
               2026-10-19) */}
           <div className={styles.band} aria-hidden="true" />
@@ -673,7 +685,7 @@ export function LibraryScopeBody({
         <h3 id={joinId} className={styles.partTitle}>
           {SCOPE_TEXT.joinTitle}
         </h3>
-        <VisitSwitch visit={visit} onChange={onVisitChange} />
+        <VisitSwitch visit={visit} onChange={onVisitChange} note={!sheet && !compact} />
         {visitChanged && (
           <p className={styles.visitChanged}>
             <PressSearch before={SCOPE_TEXT.visitChangedBefore} />
@@ -703,7 +715,9 @@ function ChosenPart({
   ids,
   openCount,
   onOpenCount,
+  openNote = true,
 }: {
+  openNote?: boolean
   ids: number[]
   openCount: number | null
   onOpenCount: (count: number) => void
@@ -736,7 +750,7 @@ function ChosenPart({
       <h3 className={styles.partTitle}>{SCOPE_TEXT.chosen(ids.length)}</h3>
       {names}
       <p className={styles.note}>{SCOPE_TEXT.chosenHint}</p>
-      <p className={styles.openNote}>{SCOPE_TEXT.open(openCount)}</p>
+      {openNote && <p className={styles.openNote}>{SCOPE_TEXT.open(openCount)}</p>}
     </div>
   )
 }

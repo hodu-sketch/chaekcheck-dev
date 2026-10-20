@@ -49,7 +49,7 @@ export const START_TEXT = {
   eyebrow: '공공 전자도서관은 무료로 빌릴 수 있어요',
   // user 2026-10-20: "읽고 싶은 전자책, / 사기 전에 빌릴 수 있는 전자도서관부터"
   headline: ['읽고 싶은 전자책,', '사기 전에', '빌릴 수 있는 전자도서관부터'],
-  // in the brand colour (user 2026-10-20: "빌릴 수 있는 이거 보라색처리")
+  // in the brand colour in the question above the search box, not in the headline (user 2026-10-20)
   headlineMark: '빌릴 수 있는',
   // two lines; the first names the example card's region and two of its pills (user 2026-10-20: "우측 박스에 있는 것에
   // 맞춰서 이 문구도 바꿔야지", "전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요")
@@ -506,7 +506,7 @@ export function SearchPage() {
           <>
             <div className={styles.intro}>
               <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
-              <h1 className={styles.headline}>{lines(START_TEXT.headline, START_TEXT.headlineMark)}</h1>
+              <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
               <p className={styles.lead}>
                 {lines(START_TEXT.lead(card.home, card.others))}
                 {!phone && (

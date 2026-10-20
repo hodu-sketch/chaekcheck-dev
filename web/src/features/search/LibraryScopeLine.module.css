@@ -182,7 +182,7 @@
   position: relative;
   width: min(40rem, 100%);
   margin-top: 0.5rem;
-  padding: 0.4rem 1rem 0.45rem;
+  padding: 0.75rem 1.1rem 0.65rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -409,82 +409,86 @@
 
 .panelClose {
   position: absolute;
-  top: 0.45rem;
-  right: 0.45rem;
+  top: 0.55rem;
+  right: 0.6rem;
 }
 
-/* two rows: 사는 곳 | 일하는 곳, then 가입 방법 | the my page line */
+/*
+ * The main page's box (user 2026-10-20: "디자이너가 되었다는 입장에서 정렬이나 구상이나 수습해줘"): two equal columns.
+ * Row 1: 사는 곳 | 일하는 곳, each a small grey title over its chips. Row 2 under a hairline: the switch on the left, the
+ * my page line on the right, both on the same middle line. The 가입 방법 title is read by screen readers only (the switch
+ * says it); ⓧ sits in the corner beside row 1.
+ */
 .body[data-compact] {
   display: grid;
-  grid-template-columns: minmax(min-content, 1fr) auto;
-  gap: 0;
-  padding-right: 1.6rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1.5rem;
+  row-gap: 0;
 }
 
 .body[data-compact] > :not(.part, .myPageLine) {
   grid-column: 1 / -1;
 }
 
+.body[data-compact] .part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0 0 0.75rem;
+}
+
 .body[data-compact] .part + .part {
+  padding-top: 0;
   border-top: none;
 }
 
+/* row 1, right: room for ⓧ */
 .body[data-compact] .part:nth-of-type(2) {
-  padding-left: 1rem;
-}
-
-.body[data-compact] .part:last-of-type,
-.body[data-compact] > .myPageLine {
-  border-top: 1px solid var(--rule);
-}
-
-/* one row a part: the title left, its controls right */
-.body[data-compact] .part {
-  display: grid;
-  grid-template-columns: 4.2rem minmax(0, 1fr);
-  align-items: center;
-  column-gap: 0.5rem;
-  row-gap: 0.4rem;
-  padding: 0.45rem 0;
-}
-
-.body[data-compact] .part > * {
-  grid-column: 2;
+  padding-right: 2rem;
 }
 
 .body[data-compact] .part > .partTitle {
-  grid-column: 1;
-  grid-row: 1;
-  font-size: var(--text-md);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
+/* row 2 */
+.body[data-compact] .part:last-of-type,
+.body[data-compact] > .myPageLine {
+  padding: 0.55rem 0 0;
+  border-top: 1px solid var(--rule);
+}
+
+.body[data-compact] .part:last-of-type > .partTitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 .body[data-compact] .visit {
-  padding: 0.3rem 0;
+  padding: 0;
   border: none;
   background: none;
 }
 
-.body[data-compact] .visitNote {
-  display: none;
+.body[data-compact] .visit:has(.switchInput:checked) {
+  background: none;
 }
 
 .body[data-compact] .visitTitle {
   white-space: nowrap;
-}
-
-/* the switch row keeps its words on one line, the my page line beside it */
-.body[data-compact] .part:last-of-type {
-  grid-template-columns: 4.2rem max-content;
+  font-size: var(--text-sm);
 }
 
 .body[data-compact] > .myPageLine {
-  align-self: stretch;
-  padding-left: 0.8rem;
-  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  white-space: nowrap;
 }
 
 .myPageLine {
