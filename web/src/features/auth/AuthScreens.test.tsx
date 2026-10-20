@@ -137,7 +137,9 @@ describe('S5 login dialog', () => {
     const dialog = screen.getByRole('dialog', { name: '책첵 로그인' })
     expect(within(dialog).getByRole('heading', { name: /내 검색 설정을\s*다른 기기에서도 그대로\./ })).toBeTruthy()
     expect(
-      within(dialog).getByText('책첵에 로그인하면 저장한 도서관과 지역 설정을 같은 계정으로 사용할 수 있어요.'),
+      within(dialog).getByText(
+        '로그인하면 거주·재직 지역과 직접 추가한 도서관이 계정에 저장돼 폰과 PC에서 똑같이 보여요. 로그인하지 않아도 모든 기능을 쓸 수 있어요.',
+      ),
     ).toBeTruthy()
     expect(within(dialog).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       '내가 정한 검색 범위 저장',

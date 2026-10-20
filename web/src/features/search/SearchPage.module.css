@@ -60,7 +60,7 @@
   font-weight: 800;
 }
 
-/* 「이렇게 이용해 보세요」: a white card with a lavender border and a soft shadow, numbers in violet circles */
+/* the example card 「예: 서울 강서구에 살면」 (ADR-0139 #2, where 「이렇게 이용해 보세요」 was): the same white card */
 .steps {
   margin: 0 0 1.5rem;
   padding: 1.3rem 1.45rem;
@@ -76,67 +76,92 @@
   font-weight: 800;
 }
 
-.stepList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.step {
-  display: flex;
-  gap: 0.65rem;
-}
 
-.stepNumber {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.45rem;
-  height: 1.45rem;
-  border-radius: 50%;
-  background: var(--brand);
-  color: #fff;
-  font-size: var(--text-xs);
-  font-weight: 800;
-  line-height: 1;
-}
 
-.stepText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
 
-.stepTitle {
-  font-size: var(--text-md);
-  font-weight: 800;
-  line-height: 1.45;
-  word-break: keep-all;
-}
 
-.stepDetail {
-  margin-top: 0.1rem;
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
-  word-break: keep-all;
-}
 
 .page[data-state='start'] .scopeRow {
   margin-top: 0.6rem;
 }
 
-/* tablets: the three steps side by side under the lead */
-@media (640px < width <= 1024px) {
-  .stepList {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-  }
+/* 「자세히 →」 after the lead (handoff 5-A-1) */
+.leadMore {
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
+
+.leadMore:hover {
+  text-decoration: underline;
+}
+
+.leadMore:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* the example rows: a key word, then pills (거주·재직 violet, 상관없이 green), then the rest in grey */
+.exampleRows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.exampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.exampleKey {
+  min-width: 4.2rem;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.examplePill {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.examplePill[data-tone='mine'] {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.examplePill[data-tone='open'] {
+  background: #e9f7ef;
+  color: #17663a;
+}
+
+.exampleRest {
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.exampleVisit {
+  margin: 0.8rem 0 0;
+  padding: 0.35rem 0.7rem;
+  border-left: 3px solid var(--visit);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--visit-soft);
+  color: var(--visit-strong);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
 
 /* PC: the steps card as the right column, beside the headline and the question */
 @media (width > 1024px) {

@@ -12,6 +12,7 @@ import { useMediaQuery } from '../../lib/useMediaQuery'
 import { libraryGroup } from './resultGroups'
 import { JoinGuide } from './JoinGuide'
 import { visitLabel } from './joinGuideParts'
+import type { TagPlace } from './regionPlace'
 import { type ResultRow as Row } from './sortBatch'
 import styles from './ResultRow.module.css'
 
@@ -95,6 +96,8 @@ interface Props {
   tags?: boolean
   /** Which of the user's regions [내 지역] stands for (D2): the side(s) the search was made with. */
   regionBasis?: RegionBasis
+  /** The 시군구 / 시도 words of [{강서구} 거주 가입] (handoff 5-A-5); none: [내 지역 가입]. */
+  tagPlace?: TagPlace
 }
 
 /** The regions a search was made with, for the [내 지역] note (cycle 22 D2). */
@@ -111,7 +114,7 @@ export const TAG_TEXT = {
  * link. No description or cover. The state comes from the row's availability only (ADR-0019). No "구독형" tag by the
  * library name: the state already says "구독형 · 바로 대출" (user request 2026-10-05).
  */
-export function ResultRow({ row, library, searchUrl, screen, tags = false }: Props) {
+export function ResultRow({ row, library, searchUrl, screen, tags = false, regionBasis = 'both', tagPlace }: Props) {
   const phone = useMediaQuery('(width <= 640px)')
   // the join guide's window; "가입 방법 보기" in a pill's note opens it too (cycle 22 R6-2)
   const [joinOpen, setJoinOpen] = useState(false)
@@ -191,7 +194,7 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false }: Pro
             <span>{libraryName}</span>
           )}
           {tags && library ? (
-            <RowTags library={library} onJoin={() => setJoinOpen(true)} />
+            <RowTags library={library} onJoin={() => setJoinOpen(true)} basis={regionBasis} place={tagPlace} />
           ) : (
             chosen && <span className={styles.chosen}>직접 추가</span>
           )}
@@ -232,7 +235,31 @@ export function ResultRow({ row, library, searchUrl, screen, tags = false }: Pro
  * region have to, user 2026-10-20); a library of ③ shows its eligibility summary
  * in grey instead, without a note.
  */
-function RowTags({ library, onJoin }: { library: TargetLibrary; onJoin: () => void }) {
+/**
+ * [내 지역 가입] says why one may join (user 2026-10-20, ADR-0139 #5, handoff 5-A-5): [{강서구} 거주 가입] for a library
+ * of the searched 시군구, [{서울} 거주 가입] of the 시도; "재직" when only workplaces were searched, "거주·재직" for both.
+ * Without a place word (several 시군구 or 시도, another 시도's library that takes them) it stays [내 지역 가입].
+ */
+export function mineTagLabel(library: TargetLibrary, basis: RegionBasis, place: TagPlace | undefined): string {
+  const word = basis === 'residence' ? '거주' : basis === 'work' ? '재직' : '거주·재직'
+  if (library.priorityGroup === 'MY_SIGUNGU' && place?.sigungu) return `${place.sigungu} ${word} 가입`
+  if ((library.priorityGroup === 'MY_SIGUNGU' || library.priorityGroup === 'MY_SIDO') && place?.sido) {
+    return `${place.sido} ${word} 가입`
+  }
+  return '내 지역 가입'
+}
+
+function RowTags({
+  library,
+  onJoin,
+  basis,
+  place,
+}: {
+  library: TargetLibrary
+  onJoin: () => void
+  basis: RegionBasis
+  place: TagPlace | undefined
+}) {
   const group = libraryGroup(library)
   // 「지역 외는 방문 가입」 in place of 「방문 가입」 for a user outside the library's online region (user 2026-10-20)
   const visit = visitLabel(library)
@@ -250,7 +277,7 @@ function RowTags({ library, onJoin }: { library: TargetLibrary; onJoin: () => vo
           )}
         />
       ) : group === 'MINE' ? (
-        <TagPill label="내 지역 가입" tone="mine" onPress={onJoin} />
+        <TagPill label={mineTagLabel(library, basis, place)} tone="mine" onPress={onJoin} />
       ) : group === 'OPEN' ? (
         <TagPill label="어디 살든 가입" tone="open" onPress={onJoin} />
       ) : (

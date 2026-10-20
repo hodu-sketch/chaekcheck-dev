@@ -156,13 +156,13 @@ afterEach(() => {
 })
 
 /** The folded "내 도서관: …" line (cycle 22 R3); its accessible name is its text. */
-const foldedLine = () => screen.findByRole('button', { name: '조건 수정' }, { timeout: 5000 })
+const foldedLine = () => screen.findByRole('button', { name: '바꾸기' }, { timeout: 5000 })
 
 describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
   it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
     renderSearch()
     const line = await foldedLine()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 · 서울 중구 재직 조건으로 찾아요'), { timeout: 5000 })
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'), { timeout: 5000 })
     expect(fake.libraryLists).toBe(0)
 
     await userEvent.setup().click(line)
@@ -178,8 +178,8 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     fake.libraryIds = []
     renderSearch()
 
-    expect(await screen.findByRole('button', { name: '지역 설정' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '조건 수정' })).toBeNull()
+    expect(await screen.findByRole('button', { name: '사는 곳 고르기' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '바꾸기' })).toBeNull()
   })
 
   it('a failed read offers 다시 시도 and searches joinable without regions; a read that works searches again', async () => {
@@ -204,7 +204,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     renderSearch()
     await act(async () => {})
     expect(fake.books).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: '지역 설정' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '사는 곳 고르기' })).toBeNull()
 
     fake.holdLibraries!()
     await waitFor(() => expect(fake.books).toHaveLength(1))
@@ -249,7 +249,7 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
-    await screen.findByRole('button', { name: '지역 설정' })
+    await screen.findByRole('button', { name: '사는 곳 고르기' })
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -265,7 +265,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(screen.queryAllByRole('radio')).toEqual([])
-    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구 거주 조건으로 찾아요'))
+    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구에 살아요'))
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -292,7 +292,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     expect(fake.books).toHaveLength(1)
     expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('none')
     await user.keyboard('{Escape}')
-    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구 거주 조건으로 찾아요'))
+    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구에 살아요'))
 
     await user.click(searchButton())
     await waitFor(() => expect(fake.books).toHaveLength(2))
@@ -321,7 +321,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     renderSearch('/search?title=사랑&view=books')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
-    await userEvent.setup().click(screen.getByRole('button', { name: '지역 설정' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: '사는 곳 고르기' }))
     const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
     expect(await within(box).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     // no names to read without added libraries (D4)
@@ -413,7 +413,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     renderSearch()
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
-    const chip = await screen.findByRole('button', { name: '조건 수정', description: /^서울 마포구 거주/ })
+    const chip = await screen.findByRole('button', { name: '바꾸기', description: /^서울 마포구에 살아요/ })
     expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
 
     const user = userEvent.setup()
@@ -477,66 +477,82 @@ describe('전자책 검색', () => {
     renderSearch('/search')
     expect(await screen.findByRole('heading', { level: 1, name: '전자책 검색' })).toBeTruthy()
     expect(screen.getByText('책 제목을 넣으면, 그 책을 지금 빌릴 수 있는 전자도서관을 여기에 보여 드려요')).toBeTruthy()
-    expect(screen.queryByText('전자도서관이 있어요.')).toBeNull()
-    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
+    expect(screen.queryByText('될까요? 아니요.')).toBeNull()
+    expect(screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })).toBeNull()
     expect(fake.books).toHaveLength(0)
   })
 })
 
-/** The first screen redesign (user 2026-10-19): `/` before a search. */
+/** The first screen (user 2026-10-20, ADR-0139, handoff 5-A-1·2, main screen (나)): `/` before a search. */
 describe('the first screen', () => {
-  const steps = () =>
-    within(screen.getByRole('complementary', { name: '이렇게 이용해 보세요' }))
+  const example = () => screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })
+  const rows = () =>
+    within(example()!)
       .getAllByRole('listitem')
       .map((item) => item.textContent)
 
-  it('wider screens: eyebrow, the three-line headline, the lead, the question, the steps with details; no search', async () => {
+  it('wider screens: eyebrow, the question headline, the three lines with 자세히, the question; no search', async () => {
     renderSearch('/')
     const headline = await screen.findByRole('heading', { level: 1 })
-    expect(headline.textContent).toBe('우리 동네 밖에도가입할 수 있는전자도서관이 있어요.')
-    expect(headline.querySelectorAll('br')).toHaveLength(2)
-    expect(screen.getByText('전자책을 찾는 더 쉬운 방법')).toBeTruthy()
-    expect(screen.getByText(/^책첵은 가입할 수 있는 전자도서관을 찾고,/).closest('p')!.textContent).toBe(
-      '책첵은 가입할 수 있는 전자도서관을 찾고,그곳의 전자책을 한 번에 검색해 드려요.',
+    expect(headline.textContent).toBe('우리 동네 도서관만될까요? 아니요.')
+    expect(headline.querySelectorAll('br')).toHaveLength(1)
+    expect(screen.getByText('공공 전자도서관은 회원이면 무료예요')).toBeTruthy()
+    expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
+      '강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요.조건은 도서관마다 달라요 — 거주, 재직, 또는 상관없이.' +
+        '책첵이 가입할 수 있는 도서관부터 찾아 드려요. 자세히 →',
     )
+    expect(screen.getByRole('link', { name: '자세히 →' }).getAttribute('href')).toBe('/about')
     expect(screen.getByText('어떤 책을 찾으세요?')).toBeTruthy()
-    expect(steps()).toEqual([
-      '1읽고 싶은 책 검색여러 도서관의 책을 한 번에',
-      '2가입 조건 확인내가 이용할 수 있는지 확인',
-      '3도서관에서 가입·대출이미 회원이라면 바로 확인',
-    ])
+    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
-    const edit = await screen.findByRole('button', { name: '조건 수정' })
-    await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구 거주 · 서울 중구 재직 조건으로 찾아요'))
+    const edit = await screen.findByRole('button', { name: '바꾸기' })
+    await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'))
+    // this account has regions: its own numbers take the example's place (5-A-2)
+    expect(example()).toBeNull()
     expect(fake.books).toHaveLength(0)
   })
 
-  it('phones: the shorter lead and no steps card (user 2026-10-19)', async () => {
+  it('without regions: the example card 거주 · 재직 · 상관없이 and the visit line', async () => {
+    fake.signedIn = false
+    renderSearch('/')
+    await screen.findByRole('heading', { level: 1 })
+    await waitFor(() => expect(example()).not.toBeNull())
+    expect(rows()).toEqual([
+      '거주강서구강동구송파구마포구+ 27곳',
+      '재직일하는 곳의 도서관더하면',
+      '상관없이고흥목포군산+ 35곳',
+    ])
+    expect(within(example()!).getByText('가야 하는 곳도 있어요 (방문 가입)')).toBeTruthy()
+  })
+
+  it('phones: the shorter lead; the example card after the search box, three pills a row', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
       media: query,
       addEventListener: () => {},
       removeEventListener: () => {},
     }))
+    fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByText(/^가입할 수 있는 전자도서관을 찾고,/).closest('p')!.textContent).toBe(
-      '가입할 수 있는 전자도서관을 찾고,전자책을 한 번에 검색해 드려요.',
+    expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
+      '강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요. 조건은 도서관마다 — 거주, 재직, 또는 상관없이.',
     )
-    expect(screen.queryByText(/^책첵은/)).toBeNull()
-    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
-    expect(screen.queryByText('읽고 싶은 책 검색')).toBeNull()
+    expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const question = screen.getByText('어떤 책을 찾으세요?')
     expect(question.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await waitFor(() => expect(example()).not.toBeNull())
+    expect(screen.getByRole('search').compareDocumentPosition(example()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(rows()).toEqual(['거주강서구강동구송파구+ 28', '재직일하는 곳', '상관없이고흥목포군산+ 35'])
   })
 
   it('after a search: no headline and no steps card', async () => {
     renderSearch('/search?title=사랑&view=books')
-    await screen.findByRole('button', { name: '조건 수정' })
+    await screen.findByRole('button', { name: '바꾸기' })
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
-    expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
+    expect(screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })).toBeNull()
     expect(screen.queryByText('어떤 책을 찾으세요?')).toBeNull()
   })
 })

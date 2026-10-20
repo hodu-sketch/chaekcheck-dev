@@ -22,3 +22,32 @@ export function useRegionPlace(ids: readonly number[]): string | null {
   const labels = useRegionLabels(tree.data)
   return regionPlaceText(ids, labels)
 }
+
+/** The place words of the result tags (handoff 5-A-5): the one 시군구 and the one 시도 the search's regions name, if so. */
+export interface TagPlace {
+  sigungu: string | null
+  sido: string | null
+}
+
+/**
+ * {@link TagPlace} for the regions a search was made with: the 시군구 name when they are one 시군구, the 시도 short
+ * name when they are all in one 시도; null where they differ (a library of "my 시군구" cannot say which one).
+ */
+export function tagPlaceOf(ids: readonly number[], labels: ReadonlyMap<number, string>): TagPlace {
+  const names = ids.map((id) => labels.get(id)).filter((name): name is string => name !== undefined)
+  if (names.length === 0 || names.length < ids.length) return { sigungu: null, sido: null }
+  const sidos = new Set(names.map((name) => name.split(' ')[0]))
+  const sido = sidos.size === 1 ? names[0].split(' ')[0] : null
+  const unique = new Set(names)
+  const only = unique.size === 1 ? names[0] : null
+  // "서울 강서구" → "강서구"; 세종 has no 시군구 of its own and is named alone
+  const sigungu = only === null ? null : only.includes(' ') ? only.slice(only.indexOf(' ') + 1) : only
+  return { sigungu, sido }
+}
+
+/** {@link tagPlaceOf} from the region tree. */
+export function useTagPlace(ids: readonly number[]): TagPlace {
+  const tree = useRegionTree()
+  const labels = useRegionLabels(tree.data)
+  return tagPlaceOf(ids, labels)
+}

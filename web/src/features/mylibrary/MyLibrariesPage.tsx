@@ -54,7 +54,8 @@ export function MyLibrariesPage() {
       ) : (
         <MyLibraries />
       )}
-      <AccountSection beforeWithdraw={<BackLink />} />
+      <AccountSection />
+      <BackLink />
     </div>
   )
 }

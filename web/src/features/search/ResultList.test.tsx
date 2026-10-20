@@ -256,7 +256,8 @@ describe('result groups', () => {
     const searchContext = context()
     const user = renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], searchContext)
     expect(groupTitles()).toEqual(['내 도서관에는 없어요 (0)', '어디 살든 가입되는 도서관에 있어요 (1)'])
-    await user.click(screen.getByRole('button', { name: '전국에서 찾기' }))
+    // the empty ①'s button (the list bottom has the same one, handoff 5-A-6)
+    await user.click(screen.getAllByRole('button', { name: '전국에서 찾기' })[0])
     expect(searchContext.onSearchAll).toHaveBeenCalledTimes(1)
   })
 
@@ -272,7 +273,7 @@ describe('result groups', () => {
     renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false }))
     expect(screen.queryByText(/사는 곳을 고르지 않아/)).toBeNull()
     expect(screen.queryByText(/에서 찾았어요/)).toBeNull()
-    expect(screen.queryByRole('button', { name: '지역 설정' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '사는 곳 고르기' })).toBeNull()
   })
 
   it('offers to remove the visit-only libraries shown in ②, then to put them back', async () => {

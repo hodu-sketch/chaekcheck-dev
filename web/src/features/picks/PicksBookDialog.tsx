@@ -2,7 +2,8 @@ import { Popover } from 'radix-ui'
 import { useEffect, useState } from 'react'
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
 import type { BookDetail, PickBook } from '../../api/types'
-import { ResultRow } from '../search/ResultRow'
+import { useTagPlace } from '../search/regionPlace'
+import { ResultRow, type RegionBasis } from '../search/ResultRow'
 import { useHoldings } from '../search/useHoldings'
 import { CoverImage } from './CoverImage'
 import { latestRowPerLibrary, pickLibraryRows, PICKS_HOLDING_STEPS } from './pickLibraryRows'
@@ -80,6 +81,11 @@ function BookBody({
 }) {
   const holdings = useHoldings()
   const { open } = holdings
+  // the [{강서구} 거주 가입] tags as on the results (handoff 5-A-5): the plan's regions
+  const residence = plan.residenceRegionIds
+  const work = plan.workRegionIds
+  const basis: RegionBasis = residence.length > 0 && work.length > 0 ? 'both' : work.length > 0 ? 'work' : 'residence'
+  const tagPlace = useTagPlace(basis === 'both' ? [...residence, ...work] : basis === 'work' ? work : residence)
   const [detail, setDetail] = useState<BookDetail | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   // which of PICKS_HOLDING_STEPS is asked now
@@ -201,6 +207,8 @@ function BookBody({
             screen="picks"
             // the join-condition pills as on the results (user 2026-10-20: "추천도서 눌렀을 때도 가입조건 태그 다 보였으면")
             tags
+            regionBasis={basis}
+            tagPlace={tagPlace}
           />
         ))}
         {checking && (

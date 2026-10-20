@@ -23,7 +23,9 @@ interface Props {
 export const LOGIN_TEXT = {
   eyebrow: '책첵 로그인',
   headline: ['내 검색 설정을', '다른 기기에서도 그대로.'],
-  description: '책첵에 로그인하면 저장한 도서관과 지역 설정을 같은 계정으로 사용할 수 있어요.',
+  // [확정] (user 2026-10-20, ADR-0139 #7): what logging in keeps, and that nothing needs it
+  description:
+    '로그인하면 거주·재직 지역과 직접 추가한 도서관이 계정에 저장돼 폰과 PC에서 똑같이 보여요. 로그인하지 않아도 모든 기능을 쓸 수 있어요.',
   benefits: ['내가 정한 검색 범위 저장', 'PC와 휴대폰에서 같은 설정 사용'],
   separateTitle: '도서관 회원가입과는 별개예요.',
   separateText: '전자책을 빌리려면 각 도서관의 가입·인증이 필요해요.',

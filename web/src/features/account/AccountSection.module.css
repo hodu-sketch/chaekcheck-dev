@@ -41,16 +41,33 @@
   white-space: nowrap;
 }
 
-/* 탈퇴하기: far below the rest of the page (user 2026-10-19: "아주 많이 아래로 내리면 탈퇴하기") */
-/* in the middle (user 2026-10-20: "탈퇴하기 버튼 가운데로") */
+/* 탈퇴하기: a small grey link at the bottom of the 계정 part, in the middle (user 2026-10-20, ADR-0139 #9; "탈퇴하기
+   버튼 가운데로") */
 .withdrawRow {
   display: flex;
   justify-content: center;
-  margin-top: 28rem;
+  margin-top: 1.2rem;
 }
 
 .withdraw {
-  color: var(--fail);
+  padding: 0.25rem 0.4rem;
+  border: none;
+  background: none;
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.withdraw:hover {
+  color: var(--ink-soft);
+}
+
+.withdraw:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .button:focus-visible {

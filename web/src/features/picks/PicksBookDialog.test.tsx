@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -117,7 +118,10 @@ function answerWithThreeHoldings() {
 
 function renderDialog(onSearch = vi.fn(), book: PickBook = BOOK) {
   render(
-    <PicksBookDialog book={book} plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />,
+    // the [{강서구} 거주 가입] tags read the region names (handoff 5-A-5)
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <PicksBookDialog book={book} plan={PLAN} onClose={vi.fn()} onSearch={onSearch} phone={false} />
+    </QueryClientProvider>,
   )
   return userEvent.setup()
 }

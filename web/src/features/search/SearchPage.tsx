@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from './resultFilter'
@@ -10,6 +10,7 @@ import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
+import { MyNumbers } from './MyNumbers'
 import {
   LibraryScopeChip,
   LibraryScopeLine,
@@ -20,7 +21,7 @@ import {
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
 import { readScope } from './readScope'
-import { useRegionPlace } from './regionPlace'
+import { useRegionPlace, useTagPlace } from './regionPlace'
 import type { ResultSearchContext } from './ResultList'
 import {
   loadPrefs,
@@ -41,19 +42,27 @@ import { useSearchedWith } from './useSearchedWith'
 import styles from './SearchPage.module.css'
 
 /** The first screen's words (first screen redesign, user 2026-10-19). */
+/** The first screen's head and example card [확정] (ADR-0139, handoff 5-A-1·2, main screen (나) 2026-10-20). */
 export const START_TEXT = {
-  eyebrow: '전자책을 찾는 더 쉬운 방법',
-  headline: ['우리 동네 밖에도', '가입할 수 있는', '전자도서관이 있어요.'],
-  lead: ['책첵은 가입할 수 있는 전자도서관을 찾고,', '그곳의 전자책을 한 번에 검색해 드려요.'],
-  // phones: shorter
-  leadPhone: ['가입할 수 있는 전자도서관을 찾고,', '전자책을 한 번에 검색해 드려요.'],
-  question: '어떤 책을 찾으세요?',
-  stepsTitle: '이렇게 이용해 보세요',
-  steps: [
-    { title: '읽고 싶은 책 검색', detail: '여러 도서관의 책을 한 번에' },
-    { title: '가입 조건 확인', detail: '내가 이용할 수 있는지 확인' },
-    { title: '도서관에서 가입·대출', detail: '이미 회원이라면 바로 확인' },
+  eyebrow: '공공 전자도서관은 회원이면 무료예요',
+  headline: ['우리 동네 도서관만', '될까요? 아니요.'],
+  lead: [
+    '강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요.',
+    '조건은 도서관마다 달라요 — 거주, 재직, 또는 상관없이.',
+    '책첵이 가입할 수 있는 도서관부터 찾아 드려요.',
   ],
+  more: '자세히 →',
+  // phones: the first two lines as one
+  leadPhone: ['강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요. 조건은 도서관마다 — 거주, 재직, 또는 상관없이.'],
+  question: '어떤 책을 찾으세요?',
+  // the numbers are the public API's on 2026-10-20 (서울 강서구: 31 by residence, 38 for anyone); change them here only
+  exampleTitle: '예: 서울 강서구에 살면',
+  exampleRows: [
+    { key: '거주', tone: 'mine', pills: ['강서구', '강동구', '송파구', '마포구'], rest: '+ 27곳', phoneRest: '+ 28' },
+    { key: '재직', tone: 'mine', pills: ['일하는 곳의 도서관'], rest: '더하면', phonePills: ['일하는 곳'] },
+    { key: '상관없이', tone: 'open', pills: ['고흥', '목포', '군산'], rest: '+ 35곳', phoneRest: '+ 35' },
+  ],
+  exampleVisit: '가야 하는 곳도 있어요 (방문 가입)',
 } as const
 
 /** Lines joined by line breaks. */
@@ -67,29 +76,43 @@ function lines(parts: readonly string[]) {
 }
 
 /**
- * 「이렇게 이용해 보세요」 (user 2026-10-19): the right column on PC, under the lead on tablets; none on phones (user
- * 2026-10-19).
+ * The example card where 「이렇게 이용해 보세요」 was (user 2026-10-20, ADR-0139 #2, handoff 5-A-2): "우리 동네만?"
+ * answered by a picture, three rows 거주 · 재직 · 상관없이 of pills for an example region. Phones show three pills a row.
+ * Someone who picked a region sees their own numbers here instead (5-A-4).
  */
-function StartSteps() {
+function StartExample({ phone }: { phone: boolean }) {
   const titleId = useId()
+  const { regions } = useRegions()
+  if (regions.residence.length + regions.work.length > 0) {
+    return (
+      <aside className={styles.steps}>
+        <MyNumbers residence={regions.residence} work={regions.work} />
+      </aside>
+    )
+  }
   return (
     <aside className={styles.steps} aria-labelledby={titleId}>
       <h2 id={titleId} className={styles.stepsTitle}>
-        {START_TEXT.stepsTitle}
+        {START_TEXT.exampleTitle}
       </h2>
-      <ol className={styles.stepList}>
-        {START_TEXT.steps.map((step, index) => (
-          <li key={step.title} className={styles.step}>
-            <span className={styles.stepNumber} aria-hidden="true">
-              {index + 1}
-            </span>
-            <span className={styles.stepText}>
-              <span className={styles.stepTitle}>{step.title}</span>
-              <span className={styles.stepDetail}>{step.detail}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
+      <ul className={styles.exampleRows}>
+        {START_TEXT.exampleRows.map((row) => {
+          const pills = phone ? ('phonePills' in row ? row.phonePills : row.pills.slice(0, 3)) : row.pills
+          const rest = phone ? ('phoneRest' in row ? row.phoneRest : null) : row.rest
+          return (
+            <li key={row.key} className={styles.exampleRow}>
+              <span className={styles.exampleKey}>{row.key}</span>
+              {pills.map((pill) => (
+                <span key={pill} className={styles.examplePill} data-tone={row.tone}>
+                  {pill}
+                </span>
+              ))}
+              {rest && <span className={styles.exampleRest}>{rest}</span>}
+            </li>
+          )
+        })}
+      </ul>
+      {!phone && <p className={styles.exampleVisit}>{START_TEXT.exampleVisit}</p>}
     </aside>
   )
 }
@@ -275,8 +298,17 @@ export function SearchPage() {
     if (scope === 'joinable' && !searchedMine && visit === 'any') next.openCount = count
     if (Object.keys(next).length > 0) keepPrefs(next)
   }
+  // the place words of the [{강서구} 거주 가입] tags: the searched residences, else workplaces, both when both
+  const tagPlace = useTagPlace(
+    searchedResidence.length > 0 && searchedWork.length > 0
+      ? [...searchedResidence, ...searchedWork]
+      : searchedResidence.length > 0
+        ? searchedResidence
+        : searchedWork,
+  )
   const searchContext: ResultSearchContext = {
     hasMine: searchedMine,
+    tagPlace,
     mineLabel: searchedResidence.length > 0 ? residencePlace : workPlace,
     regionBasis:
       searchedResidence.length > 0 && searchedWork.length > 0
@@ -361,8 +393,9 @@ export function SearchPage() {
     <div
       className={styles.page}
       data-state={hasSearch ? 'results' : ebookStart ? 'ebook' : 'start'}
-      // phones: the app layout fits this screen into the window (no scroll, user request 2026-10-05)
-      data-fits-screen={hasSearch ? undefined : true}
+      // phones: the app layout fits this screen into the window (no scroll, user request 2026-10-05); not the first
+      // screen since its example card sits below the fold (handoff 5-A-2)
+      data-fits-screen={hasSearch || start ? undefined : true}
     >
       <section className={styles.searchArea}>
         {ebookStart && <h1 className={styles.screenTitle}>전자책 검색</h1>}
@@ -371,9 +404,19 @@ export function SearchPage() {
             <div className={styles.intro}>
               <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
               <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
-              <p className={styles.lead}>{lines(phone ? START_TEXT.leadPhone : START_TEXT.lead)}</p>
+              <p className={styles.lead}>
+                {lines(phone ? START_TEXT.leadPhone : START_TEXT.lead)}
+                {!phone && (
+                  <>
+                    {' '}
+                    <Link to="/about" className={styles.leadMore}>
+                      {START_TEXT.more}
+                    </Link>
+                  </>
+                )}
+              </p>
             </div>
-            {!phone && <StartSteps />}
+            {!phone && <StartExample phone={false} />}
             <p className={styles.question}>{START_TEXT.question}</p>
           </>
         )}
@@ -423,6 +466,8 @@ export function SearchPage() {
             onOpenCount={keepOpenCount}
           />
         )}
+        {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}
+        {start && phone && <StartExample phone />}
       </section>
 
       {notices.length > 0 && (

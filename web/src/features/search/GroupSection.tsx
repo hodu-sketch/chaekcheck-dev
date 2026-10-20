@@ -3,6 +3,7 @@ import type { TargetLibrary } from '../../api/types'
 import type { ClickScreen } from '../../api/usageEvents'
 import type { ResultGroup } from './resultGroups'
 import { ResultRow, type RegionBasis } from './ResultRow'
+import type { TagPlace } from './regionPlace'
 import type { ResultRow as Row } from './sortBatch'
 import styles from './ResultList.module.css'
 
@@ -20,6 +21,8 @@ interface Props {
   screen?: ClickScreen
   tags: boolean
   regionBasis: RegionBasis
+  /** The place words of the [{강서구} 거주 가입] tags (handoff 5-A-5). */
+  tagPlace?: TagPlace
 }
 
 /**
@@ -28,7 +31,18 @@ interface Props {
  * batch's rows at the end (R5-3). There is no divider between batches any more. In place of `BatchSection` on the
  * screens with groups.
  */
-export function GroupSection({ group, title, note, muted = false, libraryById, searchUrls, screen, tags, regionBasis }: Props) {
+export function GroupSection({
+  group,
+  title,
+  note,
+  muted = false,
+  libraryById,
+  searchUrls,
+  screen,
+  tags,
+  regionBasis,
+  tagPlace,
+}: Props) {
   const id = useId()
   const renderRows = (rows: Row[]) => (
     <ol className={styles.rows}>
@@ -41,6 +55,7 @@ export function GroupSection({ group, title, note, muted = false, libraryById, s
             screen={screen}
             tags={tags}
             regionBasis={regionBasis}
+            tagPlace={tagPlace}
           />
         </li>
       ))}

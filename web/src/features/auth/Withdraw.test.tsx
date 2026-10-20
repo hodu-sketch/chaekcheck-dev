@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
@@ -80,8 +80,10 @@ describe('마이페이지 계정 part', () => {
 
     expect(await screen.findByText('로그인되어 있어요')).toBeTruthy()
     expect(screen.getByRole('region', { name: '계정' })).toBeTruthy()
-    // 탈퇴하기 sits after the account section, apart from it (user 2026-10-19)
-    expect(screen.getByRole('region', { name: '계정' }).contains(screen.getByRole('button', { name: '탈퇴하기' }))).toBe(false)
+    // a small link at the bottom of the 계정 part, with 로그아웃 beside the state (user 2026-10-20, ADR-0139 #9)
+    const account = screen.getByRole('region', { name: '계정' })
+    expect(account.contains(screen.getByRole('button', { name: '탈퇴하기' }))).toBe(true)
+    expect(within(account).getByRole('button', { name: '로그아웃' })).toBeTruthy()
     // no provider name on the page itself (C23)
     expect(screen.queryByText(/네이버|카카오/)).toBeNull()
     await user.click(screen.getByRole('button', { name: '탈퇴하기' }))

@@ -560,11 +560,11 @@ describe('마이페이지', () => {
     expect(within(account).getByText('로그인되어 있어요')).toBeTruthy()
     const chosen = section('직접 추가한 도서관')
     expect(chosen.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // 탈퇴하기 is a small link inside the 계정 part now; 돌아가기 after it (user 2026-10-20, ADR-0139 #9)
     const withdraw = screen.getByRole('button', { name: '탈퇴하기' })
-    expect(account.contains(withdraw)).toBe(false)
+    expect(account.contains(withdraw)).toBe(true)
     const back = screen.getByRole('button', { name: /돌아가기/ })
     expect(account.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(back.compareDocumentPosition(withdraw) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('before login: the library part, and a login prompt in place of the account, with no 탈퇴하기', async () => {

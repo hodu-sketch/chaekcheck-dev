@@ -10,6 +10,7 @@ import { groupBatches } from './resultGroups'
 import { ResultRow, UncheckedLibraryLine, type RegionBasis } from './ResultRow'
 import type { Batch } from './rowVerdict'
 import type { ResultRow as Row, SortedBatch } from './sortBatch'
+import type { TagPlace } from './regionPlace'
 import styles from './ResultList.module.css'
 
 export interface BatchView {
@@ -43,6 +44,8 @@ export interface ResultSearchContext {
   /** The condition card above already names the regions (the book page, user 2026-10-20): ①'s small text is left out. */
   noMineNote?: boolean
   regionBasis: RegionBasis
+  /** The 시군구 / 시도 words of the [{강서구} 거주 가입] tags, from the searched regions (handoff 5-A-5). */
+  tagPlace?: TagPlace
   scope: LibraryScope
   visit: VisitFilter
   /** [전국에서 찾기]: the same search with `scope=all` ([전국에서 더 찾기] at the bottom taken out, user 2026-10-19: "빼자 불필요해"). */
@@ -68,6 +71,8 @@ export const GROUP_TEXT = {
   other: '그 밖의 도서관에 있어요',
   otherNote: '그 지역에 살거나 일해야 가입돼요',
   searchAll: '전국에서 찾기',
+  // under 「더 보기」 (user 2026-10-20, ADR-0139 #6, handoff 5-A-6): what the search left out, no number
+  excluded: '가입 조건이 맞지 않는 도서관은 찾지 않았어요',
 } as const
 
 interface Props {
@@ -245,6 +250,7 @@ export function ResultList({
                     screen={screen}
                     tags={tags}
                     regionBasis={context?.regionBasis}
+                    tagPlace={context?.tagPlace}
                   />
                 ) : (
                   item.library && (
@@ -288,6 +294,15 @@ export function ResultList({
           <>
             <p className={styles.finished}>{finishedText ?? '모든 도서관을 조회했습니다'}</p>
           </>
+        )}
+        {/* a search with regions or added libraries looked only where one may join: say so, and offer 전국 for it */}
+        {!loading && context?.hasMine && context.scope !== 'all' && (
+          <p className={styles.excluded}>
+            {GROUP_TEXT.excluded} ·{' '}
+            <button type="button" className={styles.linkButton} onClick={context.onSearchAll}>
+              {GROUP_TEXT.searchAll}
+            </button>
+          </p>
         )}
       </div>
     </section>
@@ -334,7 +349,7 @@ function Groups({
   const [mine, open, other] = groups
   const firstDone = batches[0]?.batch.status === 'done'
   const regionBasis = regionBasisOf(context)
-  const common = { libraryById, searchUrls, screen, tags, regionBasis }
+  const common = { libraryById, searchUrls, screen, tags, regionBasis, tagPlace: context?.tagPlace }
   const linkButton = (label: string, onClick: () => void) => (
     <button type="button" className={styles.linkButton} onClick={onClick}>
       {label}

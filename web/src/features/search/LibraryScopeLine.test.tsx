@@ -146,17 +146,17 @@ function renderLine(options: Options = {}) {
 
 const guestRegions = (residence: number[], work: number[] = []) =>
   localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence, work }))
-const folded = () => screen.findByRole('button', { name: '조건 수정' })
+const folded = () => screen.findByRole('button', { name: '바꾸기' })
 const box = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 
 describe('a first visitor (R1-2)', () => {
-  it('the condition card with [지역 설정], and the small grey line under the card (user 2026-10-19)', async () => {
+  it('the condition card with [사는 곳 고르기], and the small grey line under the card (user 2026-10-20 words)', async () => {
     renderLine()
-    const button = await screen.findByRole('button', { name: '지역 설정' })
+    const button = await screen.findByRole('button', { name: '사는 곳 고르기' })
     const card = screen.getByTestId('scope-condition')
-    expect(card.textContent).toBe('지역 제한 없이 가입할 수 있는 도서관부터 찾아요지역 설정')
-    expect(conditionOf(button)).toBe('지역 제한 없이 가입할 수 있는 도서관부터 찾아요')
-    const hint = screen.getByText('지역을 설정하면 내 지역 도서관까지 더 많이 찾아볼 수 있어요')
+    expect(card.textContent).toBe('사는 곳을 알려 주시면 가입할 수 있는 도서관을 골라 드려요사는 곳 고르기')
+    expect(conditionOf(button)).toBe('사는 곳을 알려 주시면 가입할 수 있는 도서관을 골라 드려요')
+    const hint = screen.getByText('안 골라도 어디 살든 가입되는 도서관에서 찾아요 · 일하는 곳도 더할 수 있어요')
     expect(card.contains(hint)).toBe(false)
     expect(screen.queryByText(/어디서 빌리실 건가요/)).toBeNull()
   })
@@ -165,15 +165,15 @@ describe('a first visitor (R1-2)', () => {
     guestRegions([1114])
     renderLine()
     const button = await folded()
-    await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구 거주 조건으로 찾아요'))
-    expect(screen.getByTestId('scope-condition').textContent).toBe('서울 마포구 거주 조건으로 찾아요조건 수정')
-    expect(screen.queryByText(/지역을 설정하면/)).toBeNull()
+    await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구에 살아요'))
+    expect(screen.getByTestId('scope-condition').textContent).toBe('서울 마포구에 살아요바꾸기')
+    expect(screen.queryByText(/안 골라도/)).toBeNull()
   })
 
   it('the button opens the box; no [일하는 곳도 더하기] beside it (user 2026-10-19)', async () => {
     const { user } = renderLine()
     expect(screen.queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
-    await user.click(await screen.findByRole('button', { name: '지역 설정' }))
+    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
     const opened = await box()
     expect(within(opened).getByRole('group', { name: '사는 곳' })).toBeTruthy()
   })
@@ -189,14 +189,14 @@ describe('a results screen of a search made without regions (the line in the res
 
   it('says where it searched, with the number when known, and what a region adds', async () => {
     renderLine({ searched: searched() })
-    const button = await screen.findByRole('button', { name: '지역 설정' })
-    expect(conditionOf(button)).toBe('지역 제한 없이 가입할 수 있는 도서관 41곳에서 찾았어요')
-    expect(screen.getByText('지역을 설정하면 그 지역 도서관부터 보여요')).toBeTruthy()
+    const button = await screen.findByRole('button', { name: '사는 곳 고르기' })
+    expect(conditionOf(button)).toBe('어디 살든 가입되는 도서관 41곳에서 찾았어요')
+    expect(screen.getByText('사는 곳을 알려 주시면 그 지역 도서관도 보여요')).toBeTruthy()
     cleanup()
 
     renderLine({ searched: searched({ planCount: null }) })
-    expect(conditionOf(await screen.findByRole('button', { name: '지역 설정' }))).toBe(
-      '지역 제한 없이 가입할 수 있는 도서관에서 찾았어요',
+    expect(conditionOf(await screen.findByRole('button', { name: '사는 곳 고르기' }))).toBe(
+      '어디 살든 가입되는 도서관에서 찾았어요',
     )
   })
 
@@ -204,7 +204,7 @@ describe('a results screen of a search made without regions (the line in the res
     guestRegions([1114])
     renderLine({ searched: searched({ regionsPicked: true, picked: { field: 'residence', place: '서울 마포구' } }) })
     const button = await folded()
-    await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구 거주 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구에 살아요'))
     const hint = screen.getByRole('status')
     expect(hint.textContent).toBe('사는 곳을 서울 마포구로 골랐어요. 그 지역 도서관부터 보려면 [검색]을 눌러 주세요')
     expect(within(hint).getByText('[검색]').tagName).toBe('B')
@@ -228,15 +228,15 @@ describe('a results screen of a search made without regions (the line in the res
 
 describe('the folded line (R3)', () => {
   it('shows only the residence, short; work, 방문 가입 and the count are in the box (user 2026-10-19)', () => {
-    expect(scopeLineText({ residence: '서울 강남구', work: null, chosen: 0 })).toBe('서울 강남구 거주')
-    expect(scopeLineText({ residence: '서울 강남구', work: '경기 성남시', chosen: 2 })).toBe('서울 강남구 거주 · 경기 성남시 재직')
+    expect(scopeLineText({ residence: '서울 강남구', work: null, chosen: 0 })).toBe('서울 강남구에 살아요')
+    expect(scopeLineText({ residence: '서울 강남구', work: '경기 성남시', chosen: 2 })).toBe('서울 강남구에 살아요 · 경기 성남시에서 일해요')
     // without a residence the line names what there is
-    expect(scopeLineText({ residence: null, work: '경기 성남시', chosen: 0 })).toBe('경기 성남시 재직')
-    expect(scopeLineText({ residence: null, work: null, chosen: 3 })).toBe('직접 추가 3곳')
+    expect(scopeLineText({ residence: null, work: '경기 성남시', chosen: 0 })).toBe('경기 성남시에서 일해요')
+    expect(scopeLineText({ residence: null, work: null, chosen: 3 })).toBe('직접 추가한 도서관 3곳에서 찾아요')
     expect(scopeLineText({ residence: null, work: null, chosen: 0 })).toBeNull()
     // "외 N곳" when there are more (user 2026-10-20)
     expect(scopeLineText({ residence: '서울 강서구', work: '서울 중구', chosen: 0, moreResidence: 2, moreWork: 1 })).toBe(
-      '서울 강서구 외 2곳 거주 · 서울 중구 외 1곳 재직',
+      '서울 강서구 외 2곳에 살아요 · 서울 중구 외 1곳에서 일해요',
     )
   })
 
@@ -244,14 +244,14 @@ describe('the folded line (R3)', () => {
     guestRegions([1114, 1102], [4113])
     renderLine({ visit: 'none' })
     const line = await folded()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 외 1곳 거주 · 경기 성남시 재직 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 외 1곳에 살아요 · 경기 성남시에서 일해요'))
   })
 
   it('work only: "내 도서관: 일하는 곳 …"', async () => {
     guestRegions([], [4113])
     renderLine()
     const line = await folded()
-    await waitFor(() => expect(conditionOf(line)).toBe('경기 성남시 재직 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(line)).toBe('경기 성남시에서 일해요'))
   })
 
   it('"N곳" only while the kept count was taken with the same inputs (D5)', async () => {
@@ -259,14 +259,14 @@ describe('the folded line (R3)', () => {
     const inputs = { source: 'browser' as const, residence: [1114], work: [], libraryIds: [], visit: 'any' as const }
     renderLine({ planCount: { key: planCountKey(inputs), count: 68 } })
     const line = await folded()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구에 살아요'))
     cleanup()
 
     // another 방문 가입 빼기, another region, or the same regions taken after login: no number
     for (const other of [{ ...inputs, visit: 'none' as const }, { ...inputs, residence: [1102] }, { ...inputs, source: 'account' as const }]) {
       renderLine({ planCount: { key: planCountKey(other), count: 68 } })
       const plain = await folded()
-      await waitFor(() => expect(conditionOf(plain)).toBe('서울 마포구 거주 조건으로 찾아요'))
+      await waitFor(() => expect(conditionOf(plain)).toBe('서울 마포구에 살아요'))
       cleanup()
     }
   })
@@ -349,7 +349,7 @@ describe('the box (R1-4)', () => {
 
   it('before login a check is saved in this browser and the save hint shows under 사는 곳 (R9)', async () => {
     const { user } = renderLine()
-    await user.click(await screen.findByRole('button', { name: '지역 설정' }))
+    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
     const opened = await box()
     const residence = within(opened).getByRole('group', { name: '사는 곳' })
     const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
@@ -363,7 +363,7 @@ describe('the box (R1-4)', () => {
 
     await user.keyboard('{Escape}')
     const line = await folded()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구 거주 조건으로 찾아요'))
+    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구에 살아요'))
   })
 })
 
@@ -387,7 +387,7 @@ describe('전국 and a failed account read', () => {
     fake.libraryIds = [12]
     await user.click(within(alert).getByRole('button', { name: '다시 시도' }))
     const line = await folded()
-    expect(conditionOf(line)).toBe('직접 추가 1곳 조건으로 찾아요')
+    expect(conditionOf(line)).toBe('직접 추가한 도서관 1곳에서 찾아요')
   })
 })
 
@@ -419,15 +419,15 @@ describe('the phone chip (R2-1)', () => {
 
   it('a first visitor: "지역 설정", which opens the sheet', async () => {
     const { onOpen, user } = renderChip()
-    await user.click(await screen.findByRole('button', { name: '지역 설정' }))
+    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
   it('with regions: the words of the folded line', async () => {
     guestRegions([1114])
     renderChip()
-    const chip = await screen.findByRole('button', { name: '조건 수정' })
-    await waitFor(() => expect(conditionOf(chip)).toBe('서울 마포구 거주 조건으로 찾아요'))
+    const chip = await screen.findByRole('button', { name: '바꾸기' })
+    await waitFor(() => expect(conditionOf(chip)).toBe('서울 마포구에 살아요'))
   })
 })
 
@@ -473,7 +473,7 @@ describe('the phone "찾을 도서관" sheet', () => {
 
   it('a dialog named "찾을 도서관" with the box body, a handle and ⓧ, and no other settings', async () => {
     const user = renderChipWithSheet()
-    await user.click(await screen.findByRole('button', { name: '지역 설정' }))
+    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
 
     const sheet = within(await box())
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()

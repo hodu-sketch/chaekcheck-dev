@@ -8,7 +8,7 @@ import { readScope } from '../search/readScope'
 import { loadPrefs, savePrefs, writeVisit } from '../search/searchSettings'
 import { holdingBatchViews } from '../search/holdingView'
 import { ResultList, type ResultSearchContext } from '../search/ResultList'
-import { useRegionPlace } from '../search/regionPlace'
+import { useRegionPlace, useTagPlace } from '../search/regionPlace'
 import { useHoldings } from '../search/useHoldings'
 import { useConditionCard, type ConditionPlan } from '../search/useConditionCard'
 import styles from './BookPage.module.css'
@@ -56,6 +56,10 @@ function BookView({
   const libraryKey = libraryIds.join(',')
   const residencePlace = useRegionPlace(regions.residence)
   const workPlace = useRegionPlace(regions.work)
+  // the place words of the [{강서구} 거주 가입] tags (handoff 5-A-5)
+  const tagPlace = useTagPlace(
+    residenceKey && workKey ? [...regions.residence, ...regions.work] : residenceKey ? regions.residence : regions.work,
+  )
 
   const holdings = useHoldings()
   const { open } = holdings
@@ -148,6 +152,7 @@ function BookView({
     setParams(address)
   }
   const searchContext: ResultSearchContext = {
+    tagPlace,
     hasMine: residenceKey !== '' || workKey !== '' || libraryKey !== '',
     mineLabel: residencePlace ?? workPlace,
     noMineNote: true,

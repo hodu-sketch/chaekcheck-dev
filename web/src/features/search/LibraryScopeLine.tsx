@@ -8,6 +8,7 @@ import { SaveHint } from '../mylibrary/SaveHint'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField } from '../region/RegionGrid'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
+import { MyNumbers } from './MyNumbers'
 import { useRegionPlace } from './regionPlace'
 import type { PlanCount } from './searchSettings'
 import { useLibraryList } from './useLibraryList'
@@ -41,17 +42,20 @@ function ro(word: string): string {
 
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
 export const SCOPE_TEXT = {
-  pick: '지역 설정',
-  // the condition line under the search box (first screen redesign, user 2026-10-19)
-  conditionNone: '지역 제한 없이 가입할 수 있는 도서관부터 찾아요',
-  condition: (text: string) => `${text} 조건으로 찾아요`,
-  edit: '조건 수정',
-  conditionHint: '지역을 설정하면 내 지역 도서관까지 더 많이 찾아볼 수 있어요',
+  // no "조건·설정" words on the line (user 2026-10-20, ADR-0139 #3, handoff 5-A-3)
+  pick: '사는 곳 고르기',
+  conditionNone: '사는 곳을 알려 주시면 가입할 수 있는 도서관을 골라 드려요',
+  condition: (text: string) => text,
+  edit: '바꾸기',
+  conditionHint: (count: number | null) =>
+    `안 골라도 어디 살든 가입되는 도서관${count === null ? '' : ` ${count}곳`}에서 찾아요 · 일하는 곳도 더할 수 있어요`,
   // a results screen of a search made without regions or added libraries (the results' own line before, user
   // 2026-10-19: "이거 중복이라서 … 내용을 없애고 위에 좀 써줘"); {N} = the planned libraries, when known
   conditionSearched: (count: number | null) =>
-    `지역 제한 없이 가입할 수 있는 도서관${count === null ? '' : ` ${count}곳`}에서 찾았어요`,
-  searchedHint: '지역을 설정하면 그 지역 도서관부터 보여요',
+    `어디 살든 가입되는 도서관${count === null ? '' : ` ${count}곳`}에서 찾았어요`,
+  searchedHint: '사는 곳을 알려 주시면 그 지역 도서관도 보여요',
+  // the one line on top of the box and the phone sheet (ADR-0139 #3)
+  why: '왜 묻나요? 도서관마다 가입 조건이 달라서요.',
   // after a region was saved on such a results screen (user 2026-10-19: "~했으니 ~하고싶으면 검색 버튼 눌러주세요"),
   // followed by "[검색]을 눌러 주세요"
   pickedBefore: (picked: PickedSince) => {
@@ -122,12 +126,13 @@ export function scopeLineText({
   // "외 N곳" after the first when there are more (user 2026-10-20: "거주나 직장 지역 조건 많이 할 때 외 1곳 이런거
   // 추가해줘 없으니까 조건이 적용 안 된 것처럼 보인다")
   const more = (count: number) => (count > 0 ? ` 외 ${count}곳` : '')
+  // "{서울 강남구}에 살아요 · {성남시}에서 일해요" (user 2026-10-20, ADR-0139 #3: no 거주/재직 tail)
   const parts = [
-    residence !== null && `${residence ?? '…'}${more(moreResidence)} ${SCOPE_TEXT.residenceShort}`,
-    work !== null && `${work ?? '…'}${more(moreWork)} ${SCOPE_TEXT.workShort}`,
+    residence !== null && `${residence ?? '…'}${more(moreResidence)}에 살아요`,
+    work !== null && `${work ?? '…'}${more(moreWork)}에서 일해요`,
   ].filter((part): part is string => typeof part === 'string')
   if (parts.length > 0) return parts.join(' · ')
-  return `직접 추가 ${chosen}곳`
+  return `직접 추가한 도서관 ${chosen}곳에서 찾아요`
 }
 
 /** The folded line's text for the current regions and added libraries (null for a first visitor). */
@@ -193,6 +198,7 @@ function useCondition(
   changedHint?: ReactNode,
   regionsChanged = false,
   onSearchAgain?: () => void,
+  openCount: number | null = null,
 ): {
   line: string
   action: string
@@ -210,7 +216,7 @@ function useCondition(
     return {
       line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
       action: SCOPE_TEXT.pick,
-      hint: changedHint ?? visitHint ?? (searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint),
+      hint: changedHint ?? visitHint ?? (searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint(openCount)),
     }
   }
   return {
@@ -301,6 +307,7 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
     common.changedHint,
     common.regionsChanged,
     common.onSearchAgain,
+    common.openCount,
   )
   const textId = useId()
 
@@ -375,9 +382,10 @@ export function LibraryScopeChip({
   changedHint,
   regionsChanged,
   onSearchAgain,
+  openCount,
 }: ChipProps) {
   const state = useLineState()
-  const condition = useCondition(searched, visitChanged, changedHint, regionsChanged, onSearchAgain)
+  const condition = useCondition(searched, visitChanged, changedHint, regionsChanged, onSearchAgain, openCount)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
@@ -548,11 +556,15 @@ export function LibraryScopeBody({
 
   return (
     <div className={styles.body} data-sheet={sheet || undefined}>
+      {/* why we ask, one line (user 2026-10-20, ADR-0139 #3) */}
+      <p className={styles.why}>{SCOPE_TEXT.why}</p>
       <div className={styles.part} role="group" aria-labelledby={residenceId}>
         <h3 id={residenceId} className={styles.partTitle}>
           {SCOPE_TEXT.residence}
         </h3>
         {grid('residence')}
+        {/* the person's own numbers right under the grid, above the save hint (ADR-0139 #4, handoff 5-A-4) */}
+        <MyNumbers residence={regions.residence} work={regions.work} />
         <SaveHint saved={saved === 'residence'} />
       </div>
 

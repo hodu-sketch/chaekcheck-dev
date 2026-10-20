@@ -484,3 +484,19 @@
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* 「왜 묻나요? 도서관마다 가입 조건이 달라서요.」 on top of the box and the phone sheet (ADR-0139 #3) */
+.why {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--brand);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--brand-faint);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.body[data-sheet] .why {
+  margin-inline: 0;
+}
