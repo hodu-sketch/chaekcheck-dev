@@ -46,14 +46,16 @@ import styles from './SearchPage.module.css'
 export const START_TEXT = {
   eyebrow: '공공 전자도서관은 회원이면 무료예요',
   headline: ['우리 동네 도서관만', '될까요? 아니요.'],
+  // two lines (user 2026-10-20: "강서구에 살아도 … 빌릴 수 있어요. / 저희가 … 찾아 드릴게요.")
   lead: [
-    '강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요.',
-    '조건은 도서관마다 달라요 — 거주, 재직, 또는 상관없이.',
-    '책첵이 가입할 수 있는 도서관부터 찾아 드려요.',
+    '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.',
+    '저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
   ],
   more: '자세히 →',
-  // phones: the first two lines as one
-  leadPhone: ['강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요. 조건은 도서관마다 — 거주, 재직, 또는 상관없이.'],
+  leadPhone: [
+    '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.',
+    '저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
+  ],
   question: '어떤 책을 찾으세요?',
   // the numbers are the public API's on 2026-10-20 (서울 강서구: 31 by residence, 38 for anyone); change them here only
   exampleTitle: '예: 서울 강서구에 살면',
@@ -62,7 +64,6 @@ export const START_TEXT = {
     { key: '재직', tone: 'mine', pills: ['일하는 곳의 도서관'], rest: '더하면', phonePills: ['일하는 곳'] },
     { key: '상관없이', tone: 'open', pills: ['고흥', '목포', '군산'], rest: '+ 35곳', phoneRest: '+ 35' },
   ],
-  exampleVisit: '가야 하는 곳도 있어요 (방문 가입)',
 } as const
 
 /** Lines joined by line breaks. */
@@ -112,7 +113,6 @@ function StartExample({ phone }: { phone: boolean }) {
           )
         })}
       </ul>
-      {!phone && <p className={styles.exampleVisit}>{START_TEXT.exampleVisit}</p>}
     </aside>
   )
 }

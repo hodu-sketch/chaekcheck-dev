@@ -178,7 +178,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     fake.libraryIds = []
     renderSearch()
 
-    expect(await screen.findByRole('button', { name: '사는 곳 고르기' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: '지역 선택' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '바꾸기' })).toBeNull()
   })
 
@@ -204,7 +204,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     renderSearch()
     await act(async () => {})
     expect(fake.books).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: '사는 곳 고르기' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '지역 선택' })).toBeNull()
 
     fake.holdLibraries!()
     await waitFor(() => expect(fake.books).toHaveLength(1))
@@ -249,7 +249,7 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
-    await screen.findByRole('button', { name: '사는 곳 고르기' })
+    await screen.findByRole('button', { name: '지역 선택' })
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -321,7 +321,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     renderSearch('/search?title=사랑&view=books')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
-    await userEvent.setup().click(screen.getByRole('button', { name: '사는 곳 고르기' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: '지역 선택' }))
     const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
     expect(await within(box).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     // no names to read without added libraries (D4)
@@ -491,15 +491,14 @@ describe('the first screen', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent)
 
-  it('wider screens: eyebrow, the question headline, the three lines with 자세히, the question; no search', async () => {
+  it('wider screens: eyebrow, the question headline, the two lines with 자세히, the question; no search', async () => {
     renderSearch('/')
     const headline = await screen.findByRole('heading', { level: 1 })
     expect(headline.textContent).toBe('우리 동네 도서관만될까요? 아니요.')
     expect(headline.querySelectorAll('br')).toHaveLength(1)
     expect(screen.getByText('공공 전자도서관은 회원이면 무료예요')).toBeTruthy()
     expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
-      '강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요.조건은 도서관마다 달라요 — 거주, 재직, 또는 상관없이.' +
-        '책첵이 가입할 수 있는 도서관부터 찾아 드려요. 자세히 →',
+      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요. 자세히 →',
     )
     expect(screen.getByRole('link', { name: '자세히 →' }).getAttribute('href')).toBe('/about')
     expect(screen.getByText('어떤 책을 찾으세요?')).toBeTruthy()
@@ -514,7 +513,7 @@ describe('the first screen', () => {
     expect(fake.books).toHaveLength(0)
   })
 
-  it('without regions: the example card 거주 · 재직 · 상관없이 and the visit line', async () => {
+  it('without regions: the example card 거주 · 재직 · 상관없이, no visit line (user 2026-10-20)', async () => {
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
@@ -524,10 +523,10 @@ describe('the first screen', () => {
       '재직일하는 곳의 도서관더하면',
       '상관없이고흥목포군산+ 35곳',
     ])
-    expect(within(example()!).getByText('가야 하는 곳도 있어요 (방문 가입)')).toBeTruthy()
+    expect(within(example()!).queryByText(/방문 가입/)).toBeNull()
   })
 
-  it('phones: the shorter lead; the example card after the search box, three pills a row', async () => {
+  it('phones: the same two lines without 자세히; the example card after the search box, three pills a row', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
       media: query,
@@ -538,7 +537,7 @@ describe('the first screen', () => {
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
-      '강서구에 살아도 강동구·송파구 전자도서관에 가입할 수 있어요. 조건은 도서관마다 — 거주, 재직, 또는 상관없이.',
+      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
     )
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const question = screen.getByText('어떤 책을 찾으세요?')

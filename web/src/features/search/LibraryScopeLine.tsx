@@ -43,8 +43,9 @@ function ro(word: string): string {
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */
 export const SCOPE_TEXT = {
   // no "조건·설정" words on the line (user 2026-10-20, ADR-0139 #3, handoff 5-A-3)
-  pick: '사는 곳 고르기',
-  conditionNone: '사는 곳을 알려 주시면 가입할 수 있는 도서관을 골라 드려요',
+  // user 2026-10-20: "지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요 / 지역 선택"
+  pick: '지역 선택',
+  conditionNone: '지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요',
   condition: (text: string) => text,
   edit: '바꾸기',
   conditionHint: (count: number | null) =>
@@ -54,8 +55,6 @@ export const SCOPE_TEXT = {
   conditionSearched: (count: number | null) =>
     `어디 살든 가입되는 도서관${count === null ? '' : ` ${count}곳`}에서 찾았어요`,
   searchedHint: '사는 곳을 알려 주시면 그 지역 도서관도 보여요',
-  // the one line on top of the box and the phone sheet (ADR-0139 #3)
-  why: '왜 묻나요? 도서관마다 가입 조건이 달라서요.',
   // after a region was saved on such a results screen (user 2026-10-19: "~했으니 ~하고싶으면 검색 버튼 눌러주세요"),
   // followed by "[검색]을 눌러 주세요"
   pickedBefore: (picked: PickedSince) => {
@@ -198,7 +197,6 @@ function useCondition(
   changedHint?: ReactNode,
   regionsChanged = false,
   onSearchAgain?: () => void,
-  openCount: number | null = null,
 ): {
   line: string
   action: string
@@ -216,7 +214,7 @@ function useCondition(
     return {
       line: searched ? SCOPE_TEXT.conditionSearched(searched.planCount) : SCOPE_TEXT.conditionNone,
       action: SCOPE_TEXT.pick,
-      hint: changedHint ?? visitHint ?? (searched ? SCOPE_TEXT.searchedHint : SCOPE_TEXT.conditionHint(openCount)),
+      hint: changedHint ?? visitHint ?? (searched ? SCOPE_TEXT.searchedHint : null),
     }
   }
   return {
@@ -307,7 +305,6 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
     common.changedHint,
     common.regionsChanged,
     common.onSearchAgain,
-    common.openCount,
   )
   const textId = useId()
 
@@ -339,8 +336,9 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
               if (box === 'work') event.preventDefault()
             }}
           >
+            {/* no title on screen (user 2026-10-20: "찾을 도서관 … 이거 빼줘"); read by screen readers only */}
             <div className={styles.boxHead}>
-              <Dialog.Title className={styles.boxTitle}>{SCOPE_TEXT.sheetTitle}</Dialog.Title>
+              <Dialog.Title className="visually-hidden">{SCOPE_TEXT.sheetTitle}</Dialog.Title>
               <Dialog.Close className={styles.boxClose} aria-label="닫기">
                 <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
                   <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -382,10 +380,9 @@ export function LibraryScopeChip({
   changedHint,
   regionsChanged,
   onSearchAgain,
-  openCount,
 }: ChipProps) {
   const state = useLineState()
-  const condition = useCondition(searched, visitChanged, changedHint, regionsChanged, onSearchAgain, openCount)
+  const condition = useCondition(searched, visitChanged, changedHint, regionsChanged, onSearchAgain)
   const textId = useId()
 
   if (state === 'waiting') return <div className={styles.chipLine} aria-hidden="true" data-waiting />
@@ -428,10 +425,6 @@ export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetP
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={SCOPE_TEXT.sheetTitle} closeButton closeOnBack>
       <div className={styles.sheet}>
-        {/* the sheet's name is read from its hidden title; this line only shows it */}
-        <h2 className={styles.sheetTitle} aria-hidden="true">
-          {SCOPE_TEXT.sheetTitle}
-        </h2>
         <LibraryScopeBody key={focus} focus={focus} {...body} onLeave={() => onOpenChange(false)} sheet />
       </div>
     </BottomSheet>
@@ -556,8 +549,6 @@ export function LibraryScopeBody({
 
   return (
     <div className={styles.body} data-sheet={sheet || undefined}>
-      {/* why we ask, one line (user 2026-10-20, ADR-0139 #3) */}
-      <p className={styles.why}>{SCOPE_TEXT.why}</p>
       <div className={styles.part} role="group" aria-labelledby={residenceId}>
         <h3 id={residenceId} className={styles.partTitle}>
           {SCOPE_TEXT.residence}

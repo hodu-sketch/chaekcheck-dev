@@ -19,8 +19,9 @@ export const ABOUT_LINK = { label: '책첵이란?', to: '/about' } as const
 /** Whether the screen at {@code pathname} belongs to the menu (underlined). */
 export function inMenu(pathname: string, menu: Menu) {
   switch (menu.key) {
+    // not the main page: nothing is marked there (user 2026-10-20: "메인에서는 상단에 도서검색 보라색글자랑 보라색 줄 없이")
     case 'search':
-      return pathname === '/' || pathname === '/search' || pathname.startsWith('/books/')
+      return pathname === '/search' || pathname.startsWith('/books/')
     case 'picks':
       return pathname === '/picks' || pathname.startsWith('/picks/')
     case 'my':

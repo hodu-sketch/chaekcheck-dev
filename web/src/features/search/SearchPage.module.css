@@ -141,8 +141,9 @@
 }
 
 .examplePill[data-tone='open'] {
-  background: #e9f7ef;
-  color: #17663a;
+  /* yellow for 상관없이 (user 2026-10-20: "고흥 목포 군산 이거 박스 노란색으로 하고 글자 색도 맞춰줘") */
+  background: #fff4cc;
+  color: #8a5a00;
 }
 
 .exampleRest {
@@ -151,16 +152,6 @@
   font-weight: 700;
 }
 
-.exampleVisit {
-  margin: 0.8rem 0 0;
-  padding: 0.35rem 0.7rem;
-  border-left: 3px solid var(--visit);
-  border-radius: 0 var(--radius-control) var(--radius-control) 0;
-  background: var(--visit-soft);
-  color: var(--visit-strong);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
 
 
 /* PC: the steps card as the right column, beside the headline and the question */

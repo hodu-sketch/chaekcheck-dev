@@ -147,10 +147,9 @@ describe('S10 sections', () => {
     await ready()
 
     expect(fake.calls[0]).toBe('GET /api/v1/libraries?residenceRegionIds=1114&workRegionIds=1102')
-    // the long line on wider screens, the short one on phones (user request 2026-10-05)
-    // cycle 22 R11-2 wording
-    expect(screen.getByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요')).toBeTruthy()
-    expect(screen.getByText('어디 살든 가입 도서관은 늘 포함돼요')).toBeTruthy()
+    // no 어디 살든 가입 row on this page (user 2026-10-20: "마이페이지에서 이거 빼고")
+    expect(screen.queryByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요')).toBeNull()
+    expect(screen.queryByText('어디 살든 가입 도서관은 늘 포함돼요')).toBeNull()
     // 지역 선택: a 사는 곳 and an 일하는 곳 row, each its chips and grid, then its automatic list (cycle 22 R11-1)
     const chosenRegions = section('지역 선택')
     const residenceRow = within(chosenRegions).getByRole('group', { name: '사는 곳' })
@@ -273,9 +272,6 @@ describe('S10 library classification', () => {
     expect(regionNames).toContain('동대문구립도서관 · 교보 · 구독')
     // a library without the values keeps its name only
     expect(regionNames).toContain('마포구립 전자도서관')
-
-    await user.click(screen.getByText(/어디 살든 가입되는 도서관/))
-    expect(screen.getByText('경기도사이버도서관').parentElement!.textContent).toBe('경기도사이버도서관 · 통합 포털')
 
     await user.type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '동대문')
     const found = within(section('직접 도서관 추가'))
@@ -426,22 +422,13 @@ describe('S10 address', () => {
 describe('S10 long lists', () => {
   const names = (scope: HTMLElement) => within(scope).queryAllByRole('listitem').length
 
-  it('어디 살든 가입, a region and the name search show 10, then 10 more per "더 보기"', async () => {
+  it('a region and the name search show 10, then 10 more per "더 보기"', async () => {
     fake.libraries = [
       ...Array.from({ length: 25 }, (_, i) => lib(100 + i, `누구나 도서관 ${i + 1}`, 'OPEN')),
       ...Array.from({ length: 12 }, (_, i) => lib(200 + i, `마포 도서관 ${i + 1}`, 'ELIGIBLE', ['RESIDENCE'])),
     ]
     await ready()
     const user = userEvent.setup()
-
-    const openToAll = screen.getByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요').closest('details')!
-    await user.click(within(openToAll).getByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요'))
-    expect(names(openToAll)).toBe(10)
-    await user.click(within(openToAll).getByRole('button', { name: '더 보기' }))
-    expect(names(openToAll)).toBe(20)
-    await user.click(within(openToAll).getByRole('button', { name: '더 보기' }))
-    expect(names(openToAll)).toBe(25)
-    expect(within(openToAll).queryByRole('button', { name: '더 보기' })).toBeNull()
 
     const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
     await user.click(within(byResidence).getByRole('button', { name: '거주' }))

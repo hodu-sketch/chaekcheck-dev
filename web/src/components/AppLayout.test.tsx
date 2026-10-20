@@ -71,14 +71,15 @@ describe('header', () => {
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 
-  it('has 책첵이란? right after the logo, out of the menus, going to /about (user 2026-10-19)', () => {
+  it('has 책첵이란? after the menus, out of them, going to /about (user 2026-10-20)', () => {
     renderAt('/')
     const header = () => within(screen.getByRole('banner'))
     const about = header().getByRole('link', { name: '책첵이란?' })
     const logo = screen.getByRole('link', { name: '책첵' })
     expect(about.getAttribute('href')).toBe('/about')
-    expect(logo.nextElementSibling).toBe(about)
+    expect(wide().nextElementSibling).toBe(about)
     expect(wide().contains(about)).toBe(false)
+    expect(logo.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(about.hasAttribute('data-current')).toBe(false)
     fireEvent.click(about)
     expect(screen.getByTestId('where').textContent).toBe('/about')
@@ -87,7 +88,6 @@ describe('header', () => {
   })
 
   it.each([
-    ['/', '도서검색'],
     ['/search', '도서검색'],
     ['/books/1', '도서검색'],
     ['/picks/snu100', '추천도서'],
@@ -101,6 +101,12 @@ describe('header', () => {
       .map((a) => a.textContent)
     expect(current).toEqual([label])
     expect(within(wide()).getByRole('link', { name: label }).getAttribute('aria-current')).toBe('page')
+  })
+
+  it('marks no menu on the main page (user 2026-10-20)', () => {
+    renderAt('/')
+    expect(within(wide()).getAllByRole('link').filter((a) => a.hasAttribute('data-current'))).toEqual([])
+    expect(within(wide()).queryByRole('link', { current: 'page' })).toBeNull()
   })
 
   it.each(['/terms', '/privacy'])('is the same header on %s', (path) => { // AC-3; cycle 20 AC-1 (ADR-0121)
@@ -136,8 +142,9 @@ describe('phone menu', () => {
     expect(button.getAttribute('aria-expanded')).toBe('false')
     expect(button.querySelector('svg')).toBeTruthy()
     expect(button.compareDocumentPosition(logo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // the 책첵이란? link stays right of the logo, 로그인 at the end
-    expect(logo.nextElementSibling?.textContent).toBe('책첵이란?')
+    // the 책첵이란? link after the logo (the wide menus between are hidden on phones), 로그인 at the end
+    const about = screen.getByRole('link', { name: '책첵이란?' })
+    expect(logo.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const login = screen.getByRole('button', { name: '로그인' })
     expect(logo.compareDocumentPosition(login) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })

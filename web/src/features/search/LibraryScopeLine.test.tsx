@@ -150,14 +150,13 @@ const folded = () => screen.findByRole('button', { name: '바꾸기' })
 const box = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 
 describe('a first visitor (R1-2)', () => {
-  it('the condition card with [사는 곳 고르기], and the small grey line under the card (user 2026-10-20 words)', async () => {
+  it('the condition card with [지역 선택] and no grey line under it (user 2026-10-20 words)', async () => {
     renderLine()
-    const button = await screen.findByRole('button', { name: '사는 곳 고르기' })
+    const button = await screen.findByRole('button', { name: '지역 선택' })
     const card = screen.getByTestId('scope-condition')
-    expect(card.textContent).toBe('사는 곳을 알려 주시면 가입할 수 있는 도서관을 골라 드려요사는 곳 고르기')
-    expect(conditionOf(button)).toBe('사는 곳을 알려 주시면 가입할 수 있는 도서관을 골라 드려요')
-    const hint = screen.getByText('안 골라도 어디 살든 가입되는 도서관에서 찾아요 · 일하는 곳도 더할 수 있어요')
-    expect(card.contains(hint)).toBe(false)
+    expect(card.textContent).toBe('지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요지역 선택')
+    expect(conditionOf(button)).toBe('지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요')
+    expect(screen.queryByText(/안 골라도/)).toBeNull()
     expect(screen.queryByText(/어디서 빌리실 건가요/)).toBeNull()
   })
 
@@ -173,7 +172,7 @@ describe('a first visitor (R1-2)', () => {
   it('the button opens the box; no [일하는 곳도 더하기] beside it (user 2026-10-19)', async () => {
     const { user } = renderLine()
     expect(screen.queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
-    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
     const opened = await box()
     expect(within(opened).getByRole('group', { name: '사는 곳' })).toBeTruthy()
   })
@@ -189,13 +188,13 @@ describe('a results screen of a search made without regions (the line in the res
 
   it('says where it searched, with the number when known, and what a region adds', async () => {
     renderLine({ searched: searched() })
-    const button = await screen.findByRole('button', { name: '사는 곳 고르기' })
+    const button = await screen.findByRole('button', { name: '지역 선택' })
     expect(conditionOf(button)).toBe('어디 살든 가입되는 도서관 41곳에서 찾았어요')
     expect(screen.getByText('사는 곳을 알려 주시면 그 지역 도서관도 보여요')).toBeTruthy()
     cleanup()
 
     renderLine({ searched: searched({ planCount: null }) })
-    expect(conditionOf(await screen.findByRole('button', { name: '사는 곳 고르기' }))).toBe(
+    expect(conditionOf(await screen.findByRole('button', { name: '지역 선택' }))).toBe(
       '어디 살든 가입되는 도서관에서 찾았어요',
     )
   })
@@ -273,11 +272,12 @@ describe('the folded line (R3)', () => {
 })
 
 describe('the box (R1-4)', () => {
-  it('starts with the one line 왜 묻나요 (ADR-0139 #3)', async () => {
+  it('shows no title and no 왜 묻나요 line; the dialog keeps its name (user 2026-10-20)', async () => {
     const { user } = renderLine()
-    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
     const opened = await box()
-    expect(within(opened).getByText('왜 묻나요? 도서관마다 가입 조건이 달라서요.')).toBeTruthy()
+    expect(within(opened).queryByText(/왜 묻나요/)).toBeNull()
+    expect(within(opened).getByText('찾을 도서관').className).toContain('visually-hidden')
   })
 
   it('holds the parts in order and closes on a click outside and on Esc', async () => {
@@ -356,7 +356,7 @@ describe('the box (R1-4)', () => {
 
   it('before login a check is saved in this browser and the save hint shows under 사는 곳 (R9)', async () => {
     const { user } = renderLine()
-    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
     const opened = await box()
     const residence = within(opened).getByRole('group', { name: '사는 곳' })
     const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
@@ -426,7 +426,7 @@ describe('the phone chip (R2-1)', () => {
 
   it('a first visitor: "지역 설정", which opens the sheet', async () => {
     const { onOpen, user } = renderChip()
-    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
@@ -480,7 +480,7 @@ describe('the phone "찾을 도서관" sheet', () => {
 
   it('a dialog named "찾을 도서관" with the box body, a handle and ⓧ, and no other settings', async () => {
     const user = renderChipWithSheet()
-    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
 
     const sheet = within(await box())
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()

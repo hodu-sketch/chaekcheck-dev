@@ -120,7 +120,6 @@ function MyLibraries() {
   const empty = regions.residence.length === 0 && regions.work.length === 0 && myLibrary.libraryIds.length === 0
   return (
     <>
-      <OpenToAll rows={rows.filter((row) => row.eligibility === 'OPEN')} />
       {empty && <p className={styles.state}>{TEXT.empty}</p>}
 
       <RegionSection
@@ -154,30 +153,6 @@ function Heading() {
       {/* cycle 22 R11-2: there is no scope switch any more (ADR-0135) */}
       <p className={styles.lead}>검색하면 여기 있는 도서관에서 먼저 찾아요</p>
     </header>
-  )
-}
-
-function OpenToAll({ rows }: { rows: LibraryEligibilityRow[] }) {
-  return (
-    <details className={styles.openToAll}>
-      <summary>
-        {/* phones: a shorter line that does not wrap at 320px (user request 2026-10-05); cycle 22 R11-2 wording */}
-        {/* no counts on this page (user 2026-10-19: "거주 1곳 직장 0곳 이런거 뜨는데 그냥 개수 다 없애줘") */}
-        <span className={styles.wide}>어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요</span>
-        <span className={styles.narrow}>어디 살든 가입 도서관은 늘 포함돼요</span>
-        {/* the same chevron as the header and the search form, down when it opens downward, up while open (user
-            2026-10-17: "아래로 내려서 보여주는거니 아래향 화살표로 … 화살표랑 꺽쇠 섞여있는데") */}
-        <span className={styles.caret} aria-hidden="true">
-          <span className={styles.caretDown}>
-            <ChevronDown size={10} />
-          </span>
-          <span className={styles.caretUp}>
-            <ChevronUp size={10} />
-          </span>
-        </span>
-      </summary>
-      <NameList rows={rows} />
-    </details>
   )
 }
 

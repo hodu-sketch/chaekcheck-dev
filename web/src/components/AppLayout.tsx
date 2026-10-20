@@ -33,17 +33,17 @@ export function AppLayout() {
               <Link to="/" className={styles.brand}>
                 <span className={styles.wordmark}>책첵</span>
               </Link>
-              {/* 책첵이란? right next to the logo, quieter than the menus (user 2026-10-19) */}
-              <Link
-                to={ABOUT_LINK.to}
-                className={styles.about}
-                data-current={location.pathname === ABOUT_LINK.to ? '' : undefined}
-                aria-current={location.pathname === ABOUT_LINK.to ? 'page' : undefined}
-              >
-                {ABOUT_LINK.label}
-              </Link>
             </span>
             <HeaderMenu />
+            {/* 책첵이란? after the menus, quieter than them (user 2026-10-20: "책첵이란? 이거 마지막에 넣어줘") */}
+            <Link
+              to={ABOUT_LINK.to}
+              className={styles.about}
+              data-current={location.pathname === ABOUT_LINK.to ? '' : undefined}
+              aria-current={location.pathname === ABOUT_LINK.to ? 'page' : undefined}
+            >
+              {ABOUT_LINK.label}
+            </Link>
           </div>
           {/* the same header on every screen, the terms and privacy pages too (cycle 21 spec R1-6, cycle 20) */}
           <div className={styles.end}>
