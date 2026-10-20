@@ -122,7 +122,7 @@
 }
 
 .exampleKey {
-  min-width: 4.2rem;
+  min-width: 3.6rem;
   font-size: var(--text-sm);
   font-weight: 800;
 }
@@ -167,7 +167,7 @@
 @media (width > 1024px) {
   .page[data-state='start'] .searchArea {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 17rem;
+    grid-template-columns: minmax(0, 1fr) 23rem;
     column-gap: 3rem;
     align-items: start;
   }
