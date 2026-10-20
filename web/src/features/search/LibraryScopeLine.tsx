@@ -38,7 +38,8 @@ export const SCOPE_TEXT = {
   // no "조건·설정" words on the line (user 2026-10-20, ADR-0139 #3, handoff 5-A-3)
   // user 2026-10-20: "지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요 / 지역 선택"
   pick: '지역 선택',
-  conditionNone: '지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요',
+  // user 2026-10-20: "지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요"
+  conditionNone: '지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요',
   condition: (text: string) => text,
   // user 2026-10-20: "바꾸기 말고 지역 설정"
   edit: '지역 설정',

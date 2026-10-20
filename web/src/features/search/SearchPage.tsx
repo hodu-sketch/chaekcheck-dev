@@ -524,7 +524,8 @@ export function SearchPage() {
                 <StartExample phone={false} card={card} />
               </div>
             )}
-            <p className={styles.question}>{START_TEXT.question}</p>
+            {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
+            <p className={styles.question}>{lines([START_TEXT.question], START_TEXT.headlineMark)}</p>
           </>
         )}
         <SearchForm
