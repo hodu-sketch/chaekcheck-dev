@@ -239,7 +239,8 @@ describe('result groups', () => {
       `${UNCHECKED_GROUP_TITLE} (1)`,
     ])
     const mineGroup = screen.getByRole('region', { name: /내 도서관에 있어요/ })
-    expect(within(mineGroup).getByText('서울 강남구에서 가입할 수 있는 곳과 직접 추가한 곳')).toBeTruthy()
+    // one general line (user 2026-10-20)
+    expect(within(mineGroup).getByText('설정한 지역과 도서관으로 찾았어요')).toBeTruthy()
     expect(within(mineGroup).getByRole('heading', { name: '지금 빌릴 수 있어요 (1)' })).toBeTruthy()
     expect(within(mineGroup).getByRole('heading', { name: '예약하고 기다려요 (1)' })).toBeTruthy()
     expect(screen.getByText('그 지역에 살거나 일해야 가입돼요')).toBeTruthy()
