@@ -36,8 +36,8 @@ export interface ScopeSearched {
 export const SCOPE_TEXT = {
   // no "조건·설정" words on the line (user 2026-10-20, ADR-0139 #3, handoff 5-A-3)
   // user 2026-10-20: "지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요 / 지역 선택"
-  // both states (user 2026-10-20: "지역설정을 빼고 지역을 선택해주세요 이걸로")
-  pick: '지역을 선택해주세요',
+  // both states (user 2026-10-20: "지역설정을 빼고 지역을 선택해 주세요 이걸로")
+  pick: '지역을 선택해 주세요',
   // user 2026-10-20: "지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요"
   conditionNone: '지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요',
   condition: (text: string) => text,
@@ -254,7 +254,7 @@ export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
   return (
     <div className={styles.root}>
       <Popover.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
-        {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해주세요") */}
+        {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해 주세요") */}
         <div className={styles.pickRow}>
           <Popover.Trigger className={styles.pickButton}>{SCOPE_TEXT.pick}</Popover.Trigger>
           <PickedTag />

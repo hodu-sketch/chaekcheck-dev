@@ -613,7 +613,7 @@ export function SearchPage() {
             )}
             {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
             <p className={styles.question}>{lines([START_TEXT.question], START_TEXT.headlineMark)}</p>
-            {/* the region button between that line and the search box (user 2026-10-20: "지역을 선택해주세요 버튼이랑 검색
+            {/* the region button between that line and the search box (user 2026-10-20: "지역을 선택해 주세요 버튼이랑 검색
                 창 위치 바꿔줘", "찾아 드릴게요가 버튼보다 위에") */}
             <div className={styles.startPick}>
               {phone ? (
