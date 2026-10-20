@@ -26,6 +26,7 @@ import com.chaekcheck.catalog.TitleAuthor;
 import com.chaekcheck.catalog.TitleAuthorBook;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.picks.internal.PicksChanged;
+import com.chaekcheck.picks.internal.lists.CoverFiles;
 import com.chaekcheck.picks.internal.store.PicksStore;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
 
@@ -69,6 +70,9 @@ public class PicksCache implements PicksChanged {
 	 * {@code nobel} user 2026-10-20).
 	 */
 	public static final List<String> LISTS = List.of(LIBRARIAN, LEEDONGJIN, SNU100, KAIST, NOBEL);
+
+	/** The stored covers' address (the librarian list's), served by PicksController. */
+	public static final String COVER_API = "/api/v1/picks/covers/";
 
 	static final String ALL_CODE = "ALL";
 
@@ -228,9 +232,17 @@ public class PicksCache implements PicksChanged {
 		String listTitle = shown.equals(row.title()) ? null : row.title();
 		String id = list.equals(LIBRARIAN) ? row.sourceNo() : Long.toString(row.id());
 		YearMonth month = row.recommendedMonth() == null ? null : YearMonth.from(row.recommendedMonth());
-		return new Book(id, row.fieldCode(), month, shown, listTitle, row.coverId(),
+		return new Book(id, row.fieldCode(), month, shown, listTitle, coverPath(list, row),
 				our == null ? null : our.bookId(), our == null ? new long[0] : our.libraryIds(), row.yearBook(),
 				row.videoId(), row.tocNo(), AiSummaries.DEFAULT.of(list, row.isbn13(), row.title()));
+	}
+
+	/** The librarian list's covers are stored rows; the other lists' are files the web server serves (user 2026-10-20). */
+	private static String coverPath(String list, StoredBook row) {
+		if (list.equals(LIBRARIAN)) {
+			return row.coverId() == null ? null : COVER_API + row.coverId();
+		}
+		return row.coverSource() == null ? null : CoverFiles.path(row.coverSource());
 	}
 
 	/** The books the import matched, read by id; a book gone from the catalog since then is no match. */
@@ -319,13 +331,14 @@ public class PicksCache implements PicksChanged {
 	 * @param recommendedMonth librarian and Lee Dong-jin; null for SNU
 	 * @param title the shown name (ADR-0129)
 	 * @param listTitle the list's own title when it differs from {@code title}, else null
-	 * @param coverId the stored cover, or null
+	 * @param coverPath where the screen loads the cover: the stored cover (librarian) or the cover file (the other
+	 *     lists, {@link CoverFiles}); null without one
 	 * @param bookId our book, or null
 	 * @param libraryIds {@code catalog.book.library_ids} of that book; empty without one
 	 * @param aiSummary the short AI-written summary ({@link AiSummaries}), or null
 	 */
 	public record Book(String id, String category, YearMonth recommendedMonth, String title, String listTitle,
-			Long coverId, Long bookId, long[] libraryIds, Integer yearBook, String videoId, Integer tocNo,
+			String coverPath, Long bookId, long[] libraryIds, Integer yearBook, String videoId, Integer tocNo,
 			String aiSummary) {
 	}
 

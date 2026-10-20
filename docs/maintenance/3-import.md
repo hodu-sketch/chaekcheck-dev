@@ -281,6 +281,10 @@ COMMIT;
         ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'rm -rf /srv/chaekcheck/lists'
         scp -i .secrets/chaekcheck-key.pem -r scripts/crawl/lists ubuntu@52.64.117.112:/srv/chaekcheck/lists
 
+   그리고 표지를 nginx가 보내는 고정 폴더로 복사합니다(2026-10-20부터, 사용자 "이미지 말이야 자바가 아니라 앞에 있어야 하는 거 아니야?", 안 A). 표지는 DB(`picks.cover`)·반영 파일에 싣지 않고, nginx가 `/srv/chaekcheck/covers`(compose `web`의 볼륨 `/srv/covers`)를 `/covers/<sha1(url)>.jpg`로 보냅니다. 지운 줄의 옛 표지 파일은 남아도 됩니다(화면이 부르지 않음). `lists` 폴더는 위에서 지웠다 다시 만들기 때문에 볼륨으로 쓰지 않습니다(지우면 컨테이너가 지워진 폴더를 계속 봄).
+
+        ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'mkdir -p /srv/chaekcheck/covers && cp -a /srv/chaekcheck/lists/covers/. /srv/chaekcheck/covers/'
+
 2. 서버(`/srv/chaekcheck`): `secrets.env`의 `DB_PASSWORD`를 괄호 안 셸에서만 읽어 넘김. `secrets.env`는 값이 작은따옴표로 싸여 있어(`up.sh`) `docker run --env-file`로 주면 따옴표까지 값이 되므로 쓰지 않습니다. `prod.env`(로그인·이용 기록 켜기)는 이 모드에 필요 없습니다(`collection-import`가 로그인을 끔). DB 주소·이름·사용자는 `compose.yaml`의 `backend`와 같습니다. `<판>` = `compose.yaml`의 `backend` `image:` 판
 
         cd /srv/chaekcheck

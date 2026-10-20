@@ -35,7 +35,7 @@ class PicksController {
 	/** Covers never change under an id: browsers keep them 30 days [확정]. */
 	static final String COVER_CACHE_CONTROL = "public, max-age=2592000, immutable";
 
-	static final String COVER_PATH = "/api/v1/picks/covers/";
+	static final String COVER_PATH = PicksCache.COVER_API;
 
 	private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("yyyy-MM");
 
@@ -105,7 +105,7 @@ class PicksController {
 			}
 		}
 		return new Picks.Book(book.id(), book.category(), book.title(), book.listTitle(),
-				book.coverId() == null ? null : COVER_PATH + book.coverId(), book.bookId(), available,
+				book.coverPath(), book.bookId(), available,
 				book.recommendedMonth() == null ? null : book.recommendedMonth().format(MONTH), book.yearBook(),
 				book.videoId(), book.tocNo(), book.aiSummary());
 	}

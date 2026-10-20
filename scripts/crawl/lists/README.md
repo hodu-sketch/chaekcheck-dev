@@ -72,7 +72,7 @@ Bokklubben World Library(2002, 노르웨이 북클럽·노르웨이 노벨연구
 
 ## `covers/` (export에 실림)
 
-`<sha1(cover_url)>.jpg`: 수집기가 받아 폭 200px, JPEG 품질 0.8로 줄인 표지. 줄이 쓰지 않는 파일은 수집기가 지웁니다. 손으로 넣지 않습니다.
+`<sha1(cover_url)>.jpg`: 수집기가 받아 폭 200px, JPEG 품질 0.8로 줄인 표지. 2026-10-20부터 화면은 이 파일을 웹 서버에서 바로 받습니다(`/covers/…`, 운영은 `/srv/chaekcheck/covers`로 복사, [3-import.md](../../../docs/maintenance/3-import.md) 14-2). export에는 실리지 않습니다. 줄이 쓰지 않는 파일은 수집기가 지웁니다. 손으로 넣지 않습니다.
 
 ## `leedongjin_pending.tsv` (확인 필요, 수집기만)
 

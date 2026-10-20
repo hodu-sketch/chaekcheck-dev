@@ -185,17 +185,17 @@ class PicksCacheTests {
 				: recomNo.startsWith("202601") ? LocalDate.of(2026, 2, 1) : LocalDate.of(2026, 10, 1);
 		return new StoredBook(Long.parseLong(recomNo.substring(Math.max(0, recomNo.length() - 6))), code, 1, title,
 				author, isbn, month, null, null, null, recomNo, registered == null ? null : LocalDate.parse(registered),
-				null, null);
+				null, null, null);
 	}
 
 	private static StoredBook book(long id, String field, int position, String month, String title, Long bookId,
 			Integer yearBook) {
 		return new StoredBook(id, field, position, title, null, null, LocalDate.parse(month + "-01"), yearBook,
-				"vid" + id, null, null, null, bookId, null);
+				"vid" + id, null, null, null, bookId, null, null);
 	}
 
 	private static StoredBook snu(long id, String field, int tocNo, String title, Long bookId) {
-		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, null);
+		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, null, null);
 	}
 
 }

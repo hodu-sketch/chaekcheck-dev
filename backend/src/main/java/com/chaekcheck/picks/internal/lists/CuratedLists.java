@@ -1,6 +1,7 @@
 package com.chaekcheck.picks.internal.lists;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -100,7 +101,9 @@ class CuratedLists implements CuratedListTransfer {
 		Map<ListFiles.Row, Long> matched = match(lists.rows(), lookup);
 		List<String> warnings = new ArrayList<>();
 		LocalDate today = LocalDate.now(clock.withZone(zone));
-		Map<String, Map<String, Object>> covers = new LinkedHashMap<>();
+		// the covers stay files: the web server serves the lists folder's covers/ (user 2026-10-20: "이미지 말이야 자바가
+		// 아니라 앞에 있어야 하는 거 아니야?"); the part only names them, so the export no longer carries the images
+		Map<String, Boolean> covers = new HashMap<>();
 		List<Map<String, Object>> books = new ArrayList<>();
 		Map<String, int[]> counts = new LinkedHashMap<>();
 		LISTS.forEach(list -> counts.put(list, new int[2]));
@@ -111,12 +114,9 @@ class CuratedLists implements CuratedListTransfer {
 						+ (row.checkedOn() == null ? "ever" : row.checkedOn()) + " (over " + CHECK_DAYS + " days)");
 			}
 			String cover = row.coverUrl();
-			if (cover != null && !covers.containsKey(cover)) {
-				Optional<Map<String, Object>> file = coverFile(listsDir, cover);
-				if (file.isPresent()) {
-					covers.put(cover, file.get());
-				}
-				else {
+			if (cover != null) {
+				boolean file = covers.computeIfAbsent(cover, url -> isCoverFile(listsDir, url));
+				if (!file) {
 					warnings.add(row.list() + ".tsv line " + row.line() + ": no cover file for " + cover);
 					cover = null;
 				}
@@ -139,7 +139,8 @@ class CuratedLists implements CuratedListTransfer {
 		Map<String, Object> part = new LinkedHashMap<>();
 		part.put("fields", fields);
 		part.put("books", books);
-		part.put("covers", List.copyOf(covers.values()));
+		// kept empty so an app before this change still reads the part
+		part.put("covers", List.of());
 		Map<String, Object> countsJson = new LinkedHashMap<>();
 		result.forEach((list, count) -> countsJson.put(list,
 				Map.of("rows", count.rows(), "matched", count.matched(), "unmatched", count.unmatched())));
@@ -170,22 +171,15 @@ class CuratedLists implements CuratedListTransfer {
 		return book;
 	}
 
-	/** {@code covers/<sha1(url)>.jpg}, a JPEG; its time is when the collector made it. */
-	private static Optional<Map<String, Object>> coverFile(Path dir, String url) {
-		Path file = dir.resolve("covers").resolve(sha1(url) + ".jpg");
+	/** {@code covers/<sha1(url)>.jpg} is there and starts like a JPEG (only its first bytes are read). */
+	private static boolean isCoverFile(Path dir, String url) {
+		Path file = dir.resolve("covers").resolve(CoverFiles.fileName(url));
 		if (!Files.isRegularFile(file)) {
-			return Optional.empty();
+			return false;
 		}
-		try {
-			byte[] image = Files.readAllBytes(file);
-			if (image.length < 3 || (image[0] & 0xFF) != 0xFF || (image[1] & 0xFF) != 0xD8) {
-				return Optional.empty();
-			}
-			Map<String, Object> cover = new LinkedHashMap<>();
-			cover.put("sourceUrl", url);
-			cover.put("fetchedAt", Files.getLastModifiedTime(file).toInstant().truncatedTo(ChronoUnit.SECONDS).toString());
-			cover.put("jpegBase64", Base64.getEncoder().encodeToString(image));
-			return Optional.of(cover);
+		try (InputStream in = Files.newInputStream(file)) {
+			byte[] head = in.readNBytes(3);
+			return head.length == 3 && (head[0] & 0xFF) == 0xFF && (head[1] & 0xFF) == 0xD8;
 		}
 		catch (IOException ex) {
 			throw new UncheckedIOException("Cannot read " + file, ex);
@@ -323,18 +317,8 @@ class CuratedLists implements CuratedListTransfer {
 				.param("cover", book.coverUrl())
 				.update();
 		}
+		// a part from before the covers became files may still carry images: they are not stored any more
 		int added = 0;
-		for (PartCover cover : Objects.requireNonNullElse(part.covers(), List.<PartCover>of())) {
-			byte[] image = Base64.getDecoder().decode(cover.jpegBase64());
-			added += jdbc.sql("""
-					INSERT INTO picks.cover (source_url, content_type, image, byte_size, fetched_at)
-					VALUES (:url, 'image/jpeg', :image, :size, :at) ON CONFLICT (source_url) DO NOTHING""")
-				.param("url", cover.sourceUrl())
-				.param("image", image)
-				.param("size", image.length)
-				.param("at", Timestamp.from(Instant.parse(cover.fetchedAt())))
-				.update();
-		}
 		int deleted = store.deleteUnusedCovers();
 		log.info("recommended lists replaced: {} fields, {} books, {} covers added, {} unused covers deleted",
 				part.fields().size(), part.books().size(), added, deleted);

@@ -147,7 +147,7 @@ class PicksFetchTests {
 	}
 
 	@Test
-	void theFetchLeavesTheOtherListsAndTheirCovers() { // cycle 21 AC-10 (ADR-0122)
+	void theFetchLeavesTheOtherListsAndDropsTheirOldCoverRows() { // cycle 21 AC-10 (ADR-0122)
 		jdbc.sql("INSERT INTO picks.list_field (list_key, code, name, position) VALUES ('snu100', 'korean_lit', '한국문학', 1)")
 			.update();
 		jdbc.sql("""
@@ -164,8 +164,9 @@ class PicksFetchTests {
 				SELECT title || ':' || toc_no || ':' || book_id FROM picks.list_book WHERE list_key = 'snu100'""")
 			.query(String.class)
 			.list()).containsExactly("구운몽:3:77");
+		// the other lists' covers are files since 2026-10-20 (CoverFiles): an old row of theirs is cleaned up
 		assertThat(count("SELECT count(*) FROM picks.cover WHERE source_url = 'https://image.yes24.com/goods/3/M'"))
-			.isEqualTo(1);
+			.isZero();
 		// the new librarian covers only: the other list's cover was not requested
 		assertThat(nlk.requests()).extracting(URI::getHost).doesNotContain("image.yes24.com");
 		assertThat(count("SELECT count(*) FROM picks.list_book WHERE list_key = 'librarian'")).isEqualTo(108);

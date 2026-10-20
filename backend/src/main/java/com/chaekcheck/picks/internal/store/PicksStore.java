@@ -236,13 +236,15 @@ public class PicksStore {
 	}
 
 	/**
-	 * Deletes the covers no list uses (ADR-0091; every list since cycle 21).
+	 * Deletes the covers the librarian list does not use (ADR-0091). The other lists' covers are files served by the
+	 * web server since 2026-10-20 (CoverFiles), so their rows go too.
 	 * @return covers deleted
 	 */
 	public int deleteUnusedCovers() {
 		return jdbc.sql("""
 				DELETE FROM picks.cover c
-				WHERE NOT EXISTS (SELECT 1 FROM picks.list_book b WHERE b.cover_source = c.source_url)""").update();
+				WHERE NOT EXISTS (SELECT 1 FROM picks.list_book b
+				  WHERE b.list_key = 'librarian' AND b.cover_source = c.source_url)""").update();
 	}
 
 	/** The only change to a run after it is written: the covers' counts and the requests they took. */
@@ -265,11 +267,12 @@ public class PicksStore {
 			.list();
 	}
 
-	/** One list's stored rows with each book's stored cover id, in no particular order. */
+	/** One list's stored rows with each book's cover address and stored cover id, in no particular order. */
 	public List<StoredBook> books(String listKey) {
 		return jdbc.sql("""
 				SELECT b.id, b.field_code, b.position, b.title, b.author, b.isbn13, b.recommended_month, b.year_book,
-				  b.video_id, b.toc_no, b.source_no, b.registered_on, b.book_id, c.id AS cover_id
+				  b.video_id, b.toc_no, b.source_no, b.registered_on, b.book_id, b.cover_source,
+				  c.id AS cover_id
 				FROM picks.list_book b LEFT JOIN picks.cover c ON c.source_url = b.cover_source
 				WHERE b.list_key = :list""")
 			.param("list", listKey)
@@ -277,7 +280,7 @@ public class PicksStore {
 					rs.getString("title"), rs.getString("author"), rs.getString("isbn13"),
 					date(rs, "recommended_month"), rs.getObject("year_book", Integer.class), rs.getString("video_id"),
 					rs.getObject("toc_no", Integer.class), rs.getString("source_no"), date(rs, "registered_on"),
-					rs.getObject("book_id", Long.class), rs.getObject("cover_id", Long.class)))
+					rs.getObject("book_id", Long.class), rs.getString("cover_source"), rs.getObject("cover_id", Long.class)))
 			.list();
 	}
 
@@ -313,11 +316,12 @@ public class PicksStore {
 	/**
 	 * One {@code list_book} row (design-delta "데이터").
 	 * @param bookId the matched book of a Lee Dong-jin or SNU row; null for the librarian rows (matched by the cache)
-	 * @param coverId the stored cover, or null
+	 * @param coverSource the cover's source address, or null
+	 * @param coverId the stored cover (the librarian list's), or null
 	 */
 	public record StoredBook(long id, String fieldCode, int position, String title, String author, String isbn13,
 			LocalDate recommendedMonth, Integer yearBook, String videoId, Integer tocNo, String sourceNo,
-			LocalDate registeredOn, Long bookId, Long coverId) {
+			LocalDate registeredOn, Long bookId, String coverSource, Long coverId) {
 	}
 
 }

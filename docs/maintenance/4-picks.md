@@ -54,6 +54,10 @@ FROM picks.fetch_run ORDER BY started_at DESC LIMIT 10;
 
 ## 4. 표지
 
+- **2026-10-20부터 추천 목록(이동진·서울대·KAIST·노벨) 표지는 파일입니다** (사용자 "이미지 말이야 자바가 아니라 앞에 있어야 하는 거 아니야?", 안 A). 수집기가 만든 `scripts/crawl/lists/covers/<sha1(url)>.jpg`를 웹 서버가 `/covers/…`로 바로 보냅니다(운영 nginx: `/srv/chaekcheck/covers`, 개발: `web/vite.config.ts`의 미들웨어가 목록 폴더에서). API의 `coverUrl`은 `/covers/<파일>`(`picks.internal.lists.CoverFiles`)이고, 반영 파일·`lists` 모드는 표지 그림을 싣거나 DB에 넣지 않습니다(전에는 base64로 실어 반영 명령이 힙 512MB에서 멈춤, 2026-10-20). DB `picks.cover`에는 서버가 직접 받는 국립중앙도서관 사서추천 표지만 남고, 나머지 줄은 다음 정리(`deleteUnusedCovers`) 때 지워집니다.
+- 아래는 사서추천 표지(서버가 받음)와 옛 방식의 기록입니다.
+
+
 - `recomfilepath`를 https로 바꾼 뒤 호스트가 `www.nl.go.kr`이고 경로가 `/afile/`로 시작하는 것만 받습니다. redirect는 따르지 않습니다
 - 받는 크기 상한 5MB, 픽셀 수 상한 1,600만, `Content-Type`이 `image/`여야 함(아니면 실패로 셈). 받자마자 폭 200px JPEG(품질 0.8)로 줄여 `picks.cover`에 저장
 - 목록이 바뀐 받기(`changed=true`)에서만 받고, 저장 안 된 표지만 받습니다. 끝나면 지금 목록이 쓰지 않는 표지를 지웁니다

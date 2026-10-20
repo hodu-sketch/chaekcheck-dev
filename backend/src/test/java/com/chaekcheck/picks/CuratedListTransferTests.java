@@ -155,8 +155,9 @@ class CuratedListTransferTests {
 		// 920003 (스타북스) is held most but is another publisher: of the two 명현 editions the one held more
 		assertThat(part.json()).contains("\"bookId\":920001", "\"bookId\":920005", "\"bookId\":920004")
 			.doesNotContain("920003", "920002")
-			.contains("\"sourceUrl\":\"" + used + "\"")
-			.doesNotContain("unused.jpg", "missing.jpg\",\"fetchedAt");
+			// the covers stay files (user 2026-10-20): the part names the used one and carries no image
+			.contains("\"coverUrl\":\"" + used + "\"", "\"covers\":[]")
+			.doesNotContain("unused.jpg", "missing.jpg", "jpegBase64");
 		assertThat(part.warnings()).anySatisfy(w -> assertThat(w).contains("ZZuD0EDOfwY", "2026-09-01"))
 			.anySatisfy(w -> assertThat(w).contains("snu100.tsv line 3", "no cover file"))
 			.noneSatisfy(w -> assertThat(w).contains("lMx0zEd1qtY"));
@@ -165,7 +166,7 @@ class CuratedListTransferTests {
 	}
 
 	@Test
-	void replaceWritesTheTwoListsOnlyAndKeepsTheOtherCovers() throws IOException { // AC-10
+	void replaceWritesTheListsOnlyAndKeepsOnlyTheLibrarianCovers() throws IOException { // AC-10
 		data.run();
 		data.pick("1", "11", null, "2026-10", null, "가", null, null);
 		long librarianCover = data.cover("1", "https://www.nl.go.kr/afile/fileDownload/a");
@@ -183,7 +184,8 @@ class CuratedListTransferTests {
 		CuratedListTransfer.Replaced first = transfer.replace(json);
 		CuratedListTransfer.Replaced again = transfer.replace(json);
 
-		assertThat(first).isEqualTo(new CuratedListTransfer.Replaced(7, 2, 1, 1));
+		// no cover rows for the lists any more (their covers are files): the old list cover row goes, the librarian's stays
+		assertThat(first).isEqualTo(new CuratedListTransfer.Replaced(7, 2, 0, 1));
 		assertThat(again).isEqualTo(new CuratedListTransfer.Replaced(7, 2, 0, 0));
 		assertThat(jdbc.sql("""
 				SELECT list_key || ':' || field_code || ':' || position || ':' || title || ':' || coalesce(book_id, 0)
@@ -193,13 +195,12 @@ class CuratedListTransferTests {
 			.containsExactly("leedongjin:science:1:히스토리아 비테이:920001:2026-06:lMx0zEd1qtY:0:-",
 					"librarian:11:1:가:0:2026-10:-:0:-", "snu100:korean_lit:3:구운몽:920004:-:-:3:명현 global soft");
 		assertThat(jdbc.sql("SELECT source_url FROM picks.cover ORDER BY source_url").query(String.class).list())
-			.containsExactly(used, "https://www.nl.go.kr/afile/fileDownload/a");
+			.containsExactly("https://www.nl.go.kr/afile/fileDownload/a");
 		assertThat(jdbc.sql("SELECT id FROM picks.cover WHERE source_url LIKE '%afile%'").query(Long.class).single())
 			.isEqualTo(librarianCover);
-		assertThat(jdbc.sql("SELECT byte_size || ':' || content_type FROM picks.cover WHERE source_url = :url")
-			.param("url", used)
+		assertThat(jdbc.sql("SELECT cover_source FROM picks.list_book WHERE list_key = 'leedongjin'")
 			.query(String.class)
-			.single()).isEqualTo("4:image/jpeg");
+			.single()).isEqualTo(used);
 		assertThatThrownBy(() -> transfer.replace("{\"x\":1}")).isInstanceOf(IllegalArgumentException.class);
 	}
 
