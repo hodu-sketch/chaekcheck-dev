@@ -494,8 +494,8 @@ describe('the first screen', () => {
   it('wider screens: eyebrow, the question headline, the two lines with 자세히, the question; no search', async () => {
     renderSearch('/')
     const headline = await screen.findByRole('heading', { level: 1 })
-    expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에 빌릴 수 있는 전자도서관부터')
-    expect(headline.querySelectorAll('br')).toHaveLength(1)
+    expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에빌릴 수 있는 전자도서관부터')
+    expect(headline.querySelectorAll('br')).toHaveLength(2)
     expect(screen.getByText('공공 전자도서관은 회원이면 무료예요')).toBeTruthy()
     expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
       '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요. 자세히 →',
@@ -557,6 +557,11 @@ describe('the first screen', () => {
     const panel = screen.getByRole('region', { name: '찾을 도서관' })
     expect(button.getAttribute('aria-expanded')).toBe('true')
     expect(await within(panel).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
+    // one screen: no 직접 추가 part, a line to the my page instead (user 2026-10-20)
+    expect(within(panel).queryByText(/^직접 추가 \d+곳$/)).toBeNull()
+    expect(within(panel).getByRole('link', { name: '직접 추가한 도서관은 마이페이지에서 골라요 →' }).getAttribute('href')).toBe(
+      '/my-libraries',
+    )
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
     await user.click(button)

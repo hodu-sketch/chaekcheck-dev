@@ -176,11 +176,13 @@
   text-align: left;
 }
 
-/* the main page on PC and tablets: the same box under the condition card, in the page (user 2026-10-20) */
+/* the main page on PC and tablets: the same box under the condition card, in the page, tighter so it fits one screen
+   (user 2026-10-20) */
 .panel {
+  position: relative;
   width: min(40rem, 100%);
-  margin-top: 0.6rem;
-  padding: 1.2rem 1.4rem 1.3rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.2rem 1rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -403,6 +405,38 @@
   color: var(--brand-strong);
   font-weight: 800;
   text-decoration: none;
+}
+
+.panelClose {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+}
+
+.body[data-compact] {
+  gap: 0.7rem;
+}
+
+.body[data-compact] .part + .part {
+  padding-top: 0.7rem;
+}
+
+.myPageLine {
+  align-self: flex-start;
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.myPageLine:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.myPageLine:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .myPage:hover {

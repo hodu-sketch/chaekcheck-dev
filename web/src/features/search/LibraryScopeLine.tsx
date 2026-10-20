@@ -80,6 +80,8 @@ export const SCOPE_TEXT = {
   joinTitle: '가입 방법',
   visitNote: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
   myPage: '마이페이지에서 전체 보기',
+  // the main page's box, instead of the 직접 추가 part (user 2026-10-20: "직접추가 도서관은 마이페이지 가라")
+  chosenMyPage: '직접 추가한 도서관은 마이페이지에서 골라요 →',
   // a screen that is not a search (the book page) after the regions or the switch changed (user 2026-10-20: "여기 검색에도
   // 다른 것들처럼 정보 바꼈으니까 검색 새로하라고하고 가능한 버튼 만들어줘"; no 반영하기 in the window any more)
   changedBefore: '조건을 바꿨어요. 바뀐 조건으로 찾으려면 ',
@@ -361,12 +363,27 @@ export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }
         </ConditionCard>
         {box !== null && (
           <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
-            <div className={styles.boxHead}>
-              <button type="button" className={styles.boxClose} aria-label="닫기" onClick={() => onBoxChange(null)}>
-                {close}
-              </button>
-            </div>
-            {body}
+            <button
+              type="button"
+              className={`${styles.boxClose} ${styles.panelClose}`}
+              aria-label="닫기"
+              onClick={() => onBoxChange(null)}
+            >
+              {close}
+            </button>
+            {box !== null && (
+              <LibraryScopeBody
+                key={box}
+                focus={box}
+                visit={common.visit}
+                visitChanged={common.visitChanged}
+                onVisitChange={common.onVisitChange}
+                openCount={common.openCount}
+                onOpenCount={common.onOpenCount}
+                onLeave={() => onBoxChange(null)}
+                compact
+              />
+            )}
           </section>
         )}
       </div>
@@ -535,6 +552,11 @@ interface BodyProps {
   onLeave?: () => void
   /** Phones: inside the "찾을 도서관" sheet, the grids take the screen's width. */
   sheet?: boolean
+  /**
+   * The main page's box under the card: all on one screen (user 2026-10-20: "한 화면에서 다 보이도록 … 불필요한 거
+   * 빼고"): no numbers (the card beside shows them), no 직접 추가 part and band, only a line to the my page.
+   */
+  compact?: boolean
 }
 
 /**
@@ -552,6 +574,7 @@ export function LibraryScopeBody({
   onOpenCount,
   onLeave,
   sheet = false,
+  compact = false,
 }: BodyProps) {
   const { regions, setRegions, source, notices, saveFailed, libraryIds } = useRegions()
   const [workOpen, setWorkOpen] = useState(focus === 'work')
@@ -591,14 +614,14 @@ export function LibraryScopeBody({
   )
 
   return (
-    <div className={styles.body} data-sheet={sheet || undefined}>
+    <div className={styles.body} data-sheet={sheet || undefined} data-compact={compact || undefined}>
       <div className={styles.part} role="group" aria-labelledby={residenceId}>
         <h3 id={residenceId} className={styles.partTitle}>
           {SCOPE_TEXT.residence}
         </h3>
         {grid('residence')}
         {/* the person's own numbers right under the grid, above the save hint (ADR-0139 #4, handoff 5-A-4) */}
-        <MyNumbers residence={regions.residence} work={regions.work} />
+        {!compact && <MyNumbers residence={regions.residence} work={regions.work} />}
         <SaveHint saved={saved === 'residence'} />
       </div>
 
@@ -622,10 +645,14 @@ export function LibraryScopeBody({
         </p>
       )}
 
-      <ChosenPart ids={libraryIds} openCount={openCount} onOpenCount={onOpenCount} />
-
-      {/* which libraries (above) and how one joins (below) are two things: a thick band between them (user 2026-10-19) */}
-      <div className={styles.band} aria-hidden="true" />
+      {!compact && (
+        <>
+          <ChosenPart ids={libraryIds} openCount={openCount} onOpenCount={onOpenCount} />
+          {/* which libraries (above) and how one joins (below) are two things: a thick band between them (user
+              2026-10-19) */}
+          <div className={styles.band} aria-hidden="true" />
+        </>
+      )}
 
       <div className={styles.part} role="group" aria-labelledby={joinId}>
         <h3 id={joinId} className={styles.partTitle}>
@@ -639,9 +666,15 @@ export function LibraryScopeBody({
         )}
       </div>
 
-      <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>
-        {SCOPE_TEXT.myPage}
-      </Link>
+      {compact ? (
+        <Link to="/my-libraries" className={styles.myPageLine} onClick={onLeave}>
+          {SCOPE_TEXT.chosenMyPage}
+        </Link>
+      ) : (
+        <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>
+          {SCOPE_TEXT.myPage}
+        </Link>
+      )}
     </div>
   )
 }
