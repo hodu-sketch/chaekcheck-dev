@@ -451,3 +451,23 @@
   gap: 0.4rem;
   white-space: nowrap;
 }
+
+/* phones: the example card under the region line, a little apart and tighter (handoff 5-A-2) */
+@media (width <= 640px) {
+  .page[data-state='start'] .steps {
+    margin-top: 1.1rem;
+    padding: 1rem 1.05rem;
+  }
+
+  .exampleKey {
+    min-width: 3.4rem;
+  }
+
+  .exampleRow {
+    gap: 0.25rem;
+  }
+
+  .examplePill {
+    padding: 0.1rem 0.45rem;
+  }
+}
