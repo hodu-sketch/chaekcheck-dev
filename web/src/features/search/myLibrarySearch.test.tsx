@@ -498,7 +498,7 @@ describe('the first screen', () => {
   it('wider screens: eyebrow, the question headline, the two lines with 자세히, the question; no search', async () => {
     renderSearch('/')
     const headline = await screen.findByRole('heading', { level: 1 })
-    expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에빌릴 수 있는 전자도서관부터')
+    expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에전자도서관부터')
     expect(headline.querySelectorAll('br')).toHaveLength(2)
     expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
     const lead = screen.getByText(/에 살아도/).closest('p')!

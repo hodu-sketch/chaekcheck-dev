@@ -48,7 +48,8 @@ export const START_TEXT = {
   // user 2026-10-20: "공공 전자도서관은 무료로 빌릴 수 있어요"
   eyebrow: '공공 전자도서관은 무료로 빌릴 수 있어요',
   // user 2026-10-20: "읽고 싶은 전자책, / 사기 전에 빌릴 수 있는 전자도서관부터"
-  headline: ['읽고 싶은 전자책,', '사기 전에', '빌릴 수 있는 전자도서관부터'],
+  // without 빌릴 수 있는 (user 2026-10-20: "큰 글자 메인에서 빌릴 수 있는 이걸 빼달라니까")
+  headline: ['읽고 싶은 전자책,', '사기 전에', '전자도서관부터'],
   // in the brand colour in the question above the search box, not in the headline (user 2026-10-20)
   headlineMark: '빌릴 수 있는',
   // two lines; the first names the example card's region and two of its pills (user 2026-10-20: "우측 박스에 있는 것에
