@@ -62,7 +62,7 @@ export const GROUP_TEXT = {
   mineEmpty: '내 도서관에는 없어요',
   // one general line, no place and no 「직접 추가한 곳」 (user 2026-10-20: "뭉뚱그려서 설정된 지역 정보로 설정된 도서관
   // 정보로 결과다")
-  mineNote: (_place: string | null) => '설정한 지역과 도서관으로 찾았어요',
+  mineNote: (_place: string | null) => '마이페이지에서 설정한 지역과 도서관으로 찾았어요',
   open: '어디 살든 가입되는 도서관에 있어요',
   openNote: '온라인으로 바로 가입할 수 있어요',
   visitSome: (sites: number) => `이 중 ${sites}곳은 가입하려면 도서관에 가야 해요`,
