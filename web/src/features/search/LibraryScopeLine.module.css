@@ -626,16 +626,6 @@
   font: inherit;
   font-size: var(--text-md);
   font-weight: 800;
-  cursor: pointer;
-}
-
-.pickedTag:hover {
-  background: var(--brand-faint);
-}
-
-.pickedTag:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .pickedMore {

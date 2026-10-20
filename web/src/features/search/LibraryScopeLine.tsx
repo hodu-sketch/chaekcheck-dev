@@ -287,7 +287,7 @@ export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
         >
           {SCOPE_TEXT.pick}
         </button>
-        <PickedTag onClick={() => onBoxChange(box === null ? 'residence' : null)} />
+        <PickedTag />
       </div>
       {box !== null && (
         <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
@@ -334,7 +334,7 @@ export function LibraryScopeChip({
         <button type="button" className={styles.pickButton} onClick={onOpen} aria-haspopup="dialog">
           {SCOPE_TEXT.pick}
         </button>
-        <PickedTag onClick={onOpen} />
+        <PickedTag />
       </div>
     </div>
   )
@@ -343,9 +343,9 @@ export function LibraryScopeChip({
 /**
  * What is picked, beside the main page's region button: a white pill with a violet rim, 「강서구 거주」 for the first
  * 거주 (else the first 직장, 「금천구 재직」), and 「…」 right of it when two regions or more are set; nothing before any (user
- * 2026-10-20: "오른쪽에 흰 버튼 … 강서구 거주 이런것보이게 하고 2개 이상되면 .. 이거 추가해줘"). It opens the same box.
+ * 2026-10-20: "오른쪽에 흰 버튼 … 강서구 거주 이런것보이게 하고 2개 이상되면 .. 이거 추가해줘"). It only shows.
  */
-function PickedTag({ onClick }: { onClick: () => void }) {
+function PickedTag() {
   const { regions } = useRegions()
   const labels = useRegionLabels(useRegionTree().data)
   const residence = regions.residence[0]
@@ -357,9 +357,8 @@ function PickedTag({ onClick }: { onClick: () => void }) {
   const more = regions.residence.length + regions.work.length >= 2
   return (
     <>
-      <button type="button" className={styles.pickedTag} onClick={onClick}>
-        {`${place} ${word}`}
-      </button>
+      {/* shows only; a tap does nothing (user 2026-10-20: "이거 버튼 눌러도 이벤트 X") */}
+      <span className={styles.pickedTag}>{`${place} ${word}`}</span>
       {/* outside the pill, right of it (user 2026-10-20: ".. 이건 네모칸 밖에 우측에") */}
       {more && (
         <span className={styles.pickedMore} aria-label="외 더 있음">
