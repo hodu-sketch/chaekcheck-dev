@@ -621,6 +621,14 @@ export function SearchPage() {
                 {guessSettled && <StartExample phone={false} card={ownCard ?? card} />}
               </div>
             )}
+            {/* the region button above the search box (user 2026-10-20: "지역을 선택해주세요 버튼이랑 검색 창 위치 바꿔줘") */}
+            <div className={styles.startPick}>
+              {phone ? (
+                <LibraryScopeChip {...scopeCommon} onOpen={openPicker} />
+              ) : (
+                <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} />
+              )}
+            </div>
             {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
             <p className={styles.question}>{lines([START_TEXT.question], START_TEXT.headlineMark)}</p>
           </>
@@ -642,9 +650,7 @@ export function SearchPage() {
           onSettingsChange={changeSettings}
           settingsSheet={phone}
           chip={
-            !phone ? undefined : start ? (
-              <LibraryScopeChip {...scopeCommon} onOpen={openPicker} />
-            ) : (
+            !phone || start ? undefined : (
               <ScopeNote
                 regionsChanged={scopeCommon.regionsChanged}
                 visitChanged={scopeCommon.visitChanged}
@@ -655,21 +661,13 @@ export function SearchPage() {
           // one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138);
           // above the narrowing chips as on phones (user 2026-10-20: "폰 처럼 지역설정이 상세조건보다 위로")
           beforeChips={
-            phone ? undefined : (
+            phone || start ? undefined : (
               <div className={styles.scopeRow}>
-                {start ? (
-                  <LibraryScopeLine
-                    {...scopeCommon}
-                    box={box}
-                    onBoxChange={setBox}
-                  />
-                ) : (
-                  <ScopeNote
-                    regionsChanged={scopeCommon.regionsChanged}
-                    visitChanged={scopeCommon.visitChanged}
-                    onSearchAgain={scopeCommon.onSearchAgain}
-                  />
-                )}
+                <ScopeNote
+                  regionsChanged={scopeCommon.regionsChanged}
+                  visitChanged={scopeCommon.visitChanged}
+                  onSearchAgain={scopeCommon.onSearchAgain}
+                />
                 {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
               </div>
             )

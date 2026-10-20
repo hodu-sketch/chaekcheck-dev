@@ -97,6 +97,13 @@
   margin-top: 0.6rem;
 }
 
+/* the first screen's region button, above the question and the search box (user 2026-10-20) */
+.startPick {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
 /* 「자세히 →」 after the lead (handoff 5-A-1) */
 .leadMore {
   color: var(--brand-strong);
@@ -182,12 +189,16 @@
     grid-row: 1;
   }
 
-  .page[data-state='start'] .question {
+  .page[data-state='start'] .startPick {
     grid-row: 2;
   }
 
-  .page[data-state='start'] .searchArea > form {
+  .page[data-state='start'] .question {
     grid-row: 3;
+  }
+
+  .page[data-state='start'] .searchArea > form {
+    grid-row: 4;
   }
 
   .page[data-state='start'] .scopeRow {
@@ -201,7 +212,7 @@
      from the top down over the empty right side */
   .page[data-state='start'] .stepsSlot {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 3;
     align-self: stretch;
     contain: size;
     display: flex;
