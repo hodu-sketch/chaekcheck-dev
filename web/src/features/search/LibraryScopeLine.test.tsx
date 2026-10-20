@@ -166,8 +166,8 @@ describe('a first visitor (R1-2)', () => {
     guestRegions([1114], [1102])
     renderLine()
     expect(await screen.findByText('마포구 거주')).toBeTruthy()
-    // 「…」 outside the pill (user 2026-10-20)
-    expect(screen.getByText('…').tagName).toBe('SPAN')
+    // 「+」 outside the pill (user 2026-10-20)
+    expect(screen.getByLabelText('외 더 있음').textContent).toBe('+')
   })
 
   it('the button opens the box under the card, no window; no [일하는 곳도 더하기] beside it (user 2026-10-19, 2026-10-20)', async () => {

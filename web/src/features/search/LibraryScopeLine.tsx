@@ -359,10 +359,10 @@ function PickedTag() {
     <>
       {/* shows only; a tap does nothing (user 2026-10-20: "이거 버튼 눌러도 이벤트 X") */}
       <span className={styles.pickedTag}>{`${place} ${word}`}</span>
-      {/* outside the pill, right of it (user 2026-10-20: ".. 이건 네모칸 밖에 우측에") */}
+      {/* outside the pill, right of it, a 「+」 (user 2026-10-20: ".. 이건 네모칸 밖에 우측에", "... 말고 + 기호로") */}
       {more && (
         <span className={styles.pickedMore} aria-label="외 더 있음">
-          …
+          +
         </span>
       )}
     </>
