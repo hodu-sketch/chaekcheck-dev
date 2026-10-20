@@ -307,15 +307,18 @@ export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [inlineOpen, onBoxChange])
-  // inline: when it opens, the card goes to the top of the screen under the header so the whole box below it is in
-  // view, its parts still loading or not (user 2026-10-20: "한 화면에서 다 보이도록")
+  // inline: when it opens, the page scrolls only as far as the whole box needs to be in view, the search box above it
+  // staying on screen where it fits (user 2026-10-20: "한 화면에서 다 보이도록")
   const rootRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!inlineOpen || !rootRef.current) return
-    const root = rootRef.current
-    const header = document.querySelector('[data-app-header]')?.getBoundingClientRect().height ?? 0
-    const top = root.getBoundingClientRect().top + window.scrollY - header - 12
-    if (top > window.scrollY) window.scrollTo?.({ top })
+    if (!inlineOpen) return
+    const frame = requestAnimationFrame(() => {
+      const bottom = rootRef.current?.getBoundingClientRect().bottom
+      if (bottom === undefined) return
+      const by = bottom + 16 - window.innerHeight
+      if (by > 0) window.scrollBy?.({ top: by })
+    })
+    return () => cancelAnimationFrame(frame)
   }, [inlineOpen])
   const condition = useCondition(
     common.searched,
