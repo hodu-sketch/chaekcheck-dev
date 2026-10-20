@@ -498,8 +498,9 @@ describe('the first screen', () => {
     expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에빌릴 수 있는 전자도서관부터')
     expect(headline.querySelectorAll('br')).toHaveLength(2)
     expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
-    expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
-      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.빌릴 수 있는 전자도서관에서 찾아 드릴게요. 자세히 →',
+    const lead = screen.getByText(/에 살아도/).closest('p')!
+    expect(lead.textContent).toMatch(
+      /^\S+에 살아도 .+ 전자도서관에서 전자책을 빌릴 수 있어요\.전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요\. 자세히 →$/,
     )
     expect(screen.getByRole('link', { name: '자세히 →' }).getAttribute('href')).toBe('/about')
     expect(screen.getByText('어떤 책을 찾으세요?')).toBeTruthy()
@@ -514,35 +515,39 @@ describe('the first screen', () => {
     expect(fake.books).toHaveLength(0)
   })
 
-  it('without regions: the example card of a random region, 거주 · 재직 · 상관없이, no 예: (user 2026-10-20)', async () => {
+  it('without regions: a random region in the card and the lead, 거주 · 재직 · 상관없이, no 예: (user 2026-10-20)', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     await waitFor(() => expect(example()).not.toBeNull())
-    const first = START_EXAMPLES[0]
-    const card = pickExample(false, () => 0)
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${first.place}에 살면`)
+    const card = pickExample(() => 0)
+    const data = START_EXAMPLES.find((one) => one.place === card.place)!
+    expect(screen.getByText(/에 살아도/).textContent).toBe(
+      `${card.home}에 살아도 ${card.others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
+    )
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${card.place}에 살면`)
     expect(rows()).toEqual([
-      `거주${card.residence.join('')}+ ${first.eligible - 4}곳`,
+      `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
       '재직일하는 곳의 도서관더하면',
-      `상관없이${card.open.join('')}+ ${first.open - 3}곳`,
+      `상관없이${card.open.join('')}+ ${data.open - 3}곳`,
     ])
     expect(within(example()!).queryByText(/방문 가입/)).toBeNull()
     vi.restoreAllMocks()
   })
 
-  it('picks the own place first, then other places and open places at random; numbers from the list', () => {
-    expect(START_EXAMPLES.length).toBeGreaterThanOrEqual(100)
-    for (const one of START_EXAMPLES) expect(one.place).toMatch(/^\S+ \S+/)
-    const seoul = START_EXAMPLES.findIndex((one) => one.place === '서울 강동구')
-    const card = pickExample(false, () => (seoul + 0.5) / START_EXAMPLES.length)
-    expect(card.place).toBe('서울 강동구')
-    expect(card.residence[0]).toBe('강동구')
-    expect(new Set(card.residence).size).toBe(4)
-    expect(card.open).toHaveLength(3)
-    expect(card.residence.length + card.residenceRest).toBe(START_EXAMPLES[seoul].eligible)
-    expect(pickExample(true, () => (seoul + 0.5) / START_EXAMPLES.length).residence).toHaveLength(3)
+  it('picks a 시도, then a region with two places or more; the own place first, the rest at random', () => {
+    const sidos = new Set<string>()
+    for (let i = 0; i < 300; i += 1) {
+      const any = pickExample()
+      sidos.add(any.place.split(' ')[0])
+      expect(any.residence.length).toBeGreaterThanOrEqual(2)
+      expect(any.others.length).toBeGreaterThan(0)
+      expect(any.residence.slice(0, 3)).toEqual(expect.arrayContaining(any.others))
+      expect(any.residence.length + any.residenceRest).toBe(START_EXAMPLES.find((one) => one.place === any.place)!.eligible)
+    }
+    // more than 서울·경기·인천
+    expect(sidos.size).toBeGreaterThan(4)
   })
 
   it('phones: the same two lines without 자세히; the example card after the search box, three pills a row', async () => {
@@ -556,20 +561,19 @@ describe('the first screen', () => {
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
-      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
-    )
+    expect(screen.getByText(/에 살아도/).closest('p')!.textContent).toMatch(/전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요\.$/)
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const question = screen.getByText('어떤 책을 찾으세요?')
     expect(question.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await waitFor(() => expect(example()).not.toBeNull())
     expect(screen.getByRole('search').compareDocumentPosition(example()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const first = START_EXAMPLES[0]
-    const card = pickExample(true, () => 0)
+    const card = pickExample(() => 0)
+    const data = START_EXAMPLES.find((one) => one.place === card.place)!
+    const shown = card.residence.slice(0, 3)
     expect(rows()).toEqual([
-      `거주${card.residence.join('')}+ ${first.eligible - 3}`,
+      `거주${shown.join('')}+ ${data.eligible - shown.length}`,
       '재직일하는 곳',
-      `상관없이${card.open.join('')}+ ${first.open - 3}`,
+      `상관없이${card.open.join('')}+ ${data.open - 3}`,
     ])
     vi.restoreAllMocks()
   })

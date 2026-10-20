@@ -11,7 +11,7 @@ import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
 import { MyNumbers } from './MyNumbers'
-import { START_EXAMPLES } from './startExamples'
+import { START_EXAMPLES, type StartExample as StartExampleData } from './startExamples'
 import {
   LibraryScopeChip,
   LibraryScopeLine,
@@ -51,10 +51,13 @@ export const START_TEXT = {
   headline: ['읽고 싶은 전자책,', '사기 전에', '빌릴 수 있는 전자도서관부터'],
   // in the brand colour (user 2026-10-20: "빌릴 수 있는 이거 보라색처리")
   headlineMark: '빌릴 수 있는',
-  // two lines (user 2026-10-20: "강서구에 살아도 … 빌릴 수 있어요. / 빌릴 수 있는 전자도서관에서 찾아 드릴게요.")
-  lead: ['강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.', '빌릴 수 있는 전자도서관에서 찾아 드릴게요.'],
+  // two lines; the first names the example card's region and two of its pills (user 2026-10-20: "우측 박스에 있는 것에
+  // 맞춰서 이 문구도 바꿔야지", "전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요")
+  lead: (home: string, others: readonly string[]) => [
+    `${home}에 살아도 ${others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
+    '전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
+  ],
   more: '자세히 →',
-  leadPhone: ['강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.', '빌릴 수 있는 전자도서관에서 찾아 드릴게요.'],
   question: '어떤 책을 찾으세요?',
   // a region picked at random on every visit from START_EXAMPLES (user 2026-10-20: "한 100개 정도 해서 항상 랜덤값이
   // 뜨게", "예: 빼줘")
@@ -69,13 +72,17 @@ export const START_TEXT = {
   restPhone: (count: number) => `+ ${count}`,
 } as const
 
-/** Pills on a row: 4 for 거주 and 3 for 상관없이 on wider screens, 3 each on phones. */
+/** Pills on a row: 4 for 거주 on wider screens, 3 on phones; 3 for 상관없이. */
 const RESIDENCE_PILLS = 4
 const OPEN_PILLS = 3
 const PHONE_PILLS = 3
 
 export interface ExampleCard {
   place: string
+  /** The region's own 시군구 ("강서구"). */
+  home: string
+  /** Up to two other places, among the first pills (the lead names them). */
+  others: string[]
   residence: string[]
   residenceRest: number
   open: string[]
@@ -90,16 +97,38 @@ function sample<T>(items: readonly T[], count: number, random: () => number): T[
   return picked
 }
 
-/** One example at random: the region's own place first when it has one, the other pills at random. */
-export function pickExample(phone: boolean, random: () => number = Math.random): ExampleCard {
-  const example = START_EXAMPLES[Math.floor(random() * START_EXAMPLES.length)]
-  const ownName = example.place.split(' ').slice(1).join(' ')
-  const own = example.places[0] === ownName ? [ownName] : []
-  const residenceCount = phone ? PHONE_PILLS : RESIDENCE_PILLS
-  const residence = [...own, ...sample(example.places.slice(own.length), residenceCount - own.length, random)]
-  const open = sample(example.openPlaces, phone ? PHONE_PILLS : OPEN_PILLS, random)
+const homeOf = (place: string) => place.split(' ').slice(1).join(' ')
+
+/**
+ * The examples whose residence row names two places or more (so the lead names one besides the own), grouped by 시도:
+ * a 시도 is picked first, then a region in it, so the whole country comes up, not mostly 서울·경기 (user 2026-10-20:
+ * "전국 골고루이되 여러 지역이 거주 + 되는 걸로").
+ */
+const EXAMPLES_BY_SIDO = [
+  ...START_EXAMPLES.filter(
+    (one) => one.places.length >= 2 && one.places.some((place) => place !== homeOf(one.place)),
+  ).reduce((groups, one) => {
+    const sido = one.place.split(' ')[0]
+    groups.set(sido, [...(groups.get(sido) ?? []), one])
+    return groups
+  }, new Map<string, StartExampleData[]>()),
+].map(([, group]) => group)
+
+/**
+ * One example at random: the region's own place first when it has one, the other pills at random. Wider screens show
+ * four 거주 pills, phones the first three (own place and the two the lead names).
+ */
+export function pickExample(random: () => number = Math.random): ExampleCard {
+  const group = EXAMPLES_BY_SIDO[Math.floor(random() * EXAMPLES_BY_SIDO.length)]
+  const example = group[Math.floor(random() * group.length)]
+  const home = homeOf(example.place)
+  const own = example.places[0] === home ? [home] : []
+  const residence = [...own, ...sample(example.places.slice(own.length), RESIDENCE_PILLS - own.length, random)]
+  const open = sample(example.openPlaces, OPEN_PILLS, random)
   return {
     place: example.place,
+    home,
+    others: residence.filter((place) => place !== home).slice(0, 2),
     residence,
     residenceRest: example.eligible - residence.length,
     open,
@@ -133,11 +162,9 @@ function lines(parts: readonly string[], mark?: string) {
  * answered by a picture, three rows 거주 · 재직 · 상관없이 of pills for an example region. Phones show three pills a row.
  * Someone who picked a region sees their own numbers here instead (5-A-4).
  */
-function StartExample({ phone }: { phone: boolean }) {
+function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
   const titleId = useId()
   const { regions } = useRegions()
-  // picked once a visit (a phone turned or a resize keeps it)
-  const [card] = useState(() => pickExample(phone))
   const residence = phone ? card.residence.slice(0, PHONE_PILLS) : card.residence
   const rest = (count: number, extra = 0) => {
     const left = count + extra
@@ -199,6 +226,8 @@ function StartExample({ phone }: { phone: boolean }) {
 export function SearchPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
+  // the first screen's example region, once a visit; the lead and the card both use it (user 2026-10-20)
+  const [card] = useState(() => pickExample())
   const [stored, setStored] = useState<SearchSettings>(() => loadSettings())
   const settings = resolveSettings(params, stored)
   // what is kept in this browser fills only what the address leaves out (user request 2026-10-05)
@@ -476,7 +505,7 @@ export function SearchPage() {
               <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
               <h1 className={styles.headline}>{lines(START_TEXT.headline, START_TEXT.headlineMark)}</h1>
               <p className={styles.lead}>
-                {lines(phone ? START_TEXT.leadPhone : START_TEXT.lead)}
+                {lines(START_TEXT.lead(card.home, card.others))}
                 {!phone && (
                   <>
                     {' '}
@@ -489,7 +518,7 @@ export function SearchPage() {
             </div>
             {!phone && (
               <div className={styles.stepsSlot}>
-                <StartExample phone={false} />
+                <StartExample phone={false} card={card} />
               </div>
             )}
             <p className={styles.question}>{START_TEXT.question}</p>
@@ -542,7 +571,7 @@ export function SearchPage() {
           />
         )}
         {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}
-        {start && phone && <StartExample phone />}
+        {start && phone && <StartExample phone card={card} />}
       </section>
 
       {notices.length > 0 && (
