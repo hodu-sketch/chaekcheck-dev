@@ -45,10 +45,11 @@ const blocked: Storage = {
 }
 
 describe('loadPrefs / savePrefs', () => {
-  it('defaults to no visit filter, 지금 빌릴 수 있는 책만, no counts, the save hint not closed', () => {
+  // 「온라인에서 가입 가능한 곳만 보기」 on by default (user 2026-10-20); off only when 'any' was kept
+  it('defaults to 온라인 가입만 (visit none), 지금 빌릴 수 있는 책만, no counts, the save hint not closed', () => {
     expect(loadPrefs(memoryStorage())).toEqual(DEFAULT_PREFS)
     expect(DEFAULT_PREFS).toEqual({
-      visit: 'any',
+      visit: 'none',
       filter: 'available',
       planCount: null,
       openCount: null,
@@ -78,6 +79,8 @@ describe('loadPrefs / savePrefs', () => {
       [SETTINGS_STORAGE_KEY]: JSON.stringify({ visit: 'none', filter: 'some', openCount: 'many', saveHintClosed: 'yes' }),
     })
     expect(loadPrefs(odd)).toEqual({ ...DEFAULT_PREFS, visit: 'none' })
+    expect(loadPrefs(memoryStorage({ [SETTINGS_STORAGE_KEY]: JSON.stringify({ visit: 'any' }) })).visit).toBe('any')
+    expect(loadPrefs(memoryStorage({ [SETTINGS_STORAGE_KEY]: JSON.stringify({ visit: 'some' }) })).visit).toBe('none')
     expect(loadPrefs(memoryStorage({ [SETTINGS_STORAGE_KEY]: '{not json' }))).toEqual(DEFAULT_PREFS)
     expect(loadPrefs(memoryStorage({ [SETTINGS_STORAGE_KEY]: '[1,2]' }))).toEqual(DEFAULT_PREFS)
     expect(loadPrefs(blocked)).toEqual(DEFAULT_PREFS)

@@ -102,8 +102,9 @@ export interface PlanCount {
   count: number
 }
 
+// 「온라인에서 가입 가능한 곳만 보기」 on unless turned off (user 2026-10-20: "기본적으로 온라인 가입 가능한 곳에서 보기가 on")
 export const DEFAULT_PREFS: SearchPrefs = {
-  visit: 'any',
+  visit: 'none',
   filter: 'available',
   planCount: null,
   openCount: null,
@@ -140,7 +141,7 @@ export function loadPrefs(storage?: Storage): SearchPrefs {
       target.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(kept))
     }
     return {
-      visit: stored.visit === 'none' ? 'none' : 'any',
+      visit: stored.visit === 'any' ? 'any' : 'none',
       filter: stored.filter === 'all' ? 'all' : 'available',
       planCount: readPlanCount(stored.planCount),
       openCount: isCount(stored.openCount) ? stored.openCount : null,

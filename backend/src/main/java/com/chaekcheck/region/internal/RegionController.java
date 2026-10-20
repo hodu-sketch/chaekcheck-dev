@@ -6,10 +6,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,10 +27,31 @@ class RegionController {
 
 	private static final Pattern ID = Pattern.compile("[1-9][0-9]{0,17}");
 
+	/** The address nginx saw (deploy/nginx: {@code proxy_set_header X-Real-IP $remote_addr}). */
+	static final String REAL_IP = "X-Real-IP";
+
 	private final RegionService regionService;
 
-	RegionController(RegionService regionService) {
+	private final SidoByIp sidoByIp;
+
+	RegionController(RegionService regionService, SidoByIp sidoByIp) {
 		this.regionService = regionService;
+		this.sidoByIp = sidoByIp;
+	}
+
+	/** {@code sido} is a short name of {@link #regions()} ("부산"), or null. */
+	record SidoGuess(String sido) {
+	}
+
+	/**
+	 * The 시도 the visitor's address is in, for the first screen's example card only (user 2026-10-20: "예시 카드의
+	 * 시도만 IP로 고르기"); null when not known. The address is not kept or logged, and the answer is not cached.
+	 */
+	@GetMapping("/guess")
+	ResponseEntity<SidoGuess> guess(@RequestHeader(name = REAL_IP, required = false) String realIp) {
+		return ResponseEntity.ok()
+			.cacheControl(CacheControl.noStore())
+			.body(new SidoGuess(sidoByIp.sido(realIp).orElse(null)));
 	}
 
 	@GetMapping

@@ -2,7 +2,7 @@
 정도 해서 항상 랜덤값이 뜨게").
 
 For every 시군구 it asks the public library list (GET /api/v1/libraries?residenceRegionIds=...) of a running backend and
-keeps the regions whose residence libraries name two places or more (or one, with five libraries or more). A pill is the place in a library's name
+keeps every region (the random pick on the web takes those naming two places or more). A pill is the place in a library's name
 (강동구립도서관 -> 강동구); names shared by several 시도 (중구, 서구, ...) get the 시도 in front (인천 서구).
 Run it again after a catalog or library change:
 
@@ -17,9 +17,6 @@ from pathlib import Path
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else 'http://localhost:8095'
 OUT = Path(__file__).resolve().parents[2] / 'web/src/features/search/startExamples.ts'
-MIN_PLACES = 2
-# or one place when this many libraries are joined by living there
-MIN_ELIGIBLE_ONE_PLACE = 5
 
 
 def get(path):
@@ -58,8 +55,8 @@ def place(name, home_sido):
     return found
 
 
-def rows_for(region_id):
-    data = get(f'/api/v1/libraries?residenceRegionIds={region_id}')
+def rows_for(region_id, field='residenceRegionIds'):
+    data = get(f'/api/v1/libraries?{field}={region_id}')
     return data['libraries'] if isinstance(data, dict) else data
 
 
@@ -87,14 +84,27 @@ for s in tree:
             p = place(r['name'], None)
             if p and p not in open_places and p not in places:
                 open_places.append(p)
-        enough = len(places) >= MIN_PLACES or (len(places) == 1 and len(eligible) >= MIN_ELIGIBLE_ONE_PLACE)
-        if enough and len(open_places) >= 3:
+        # every region is kept: the card of someone who picked it uses it (user 2026-10-20: "거주지를 선택해도 아래 박스가
+        # 이 형태"); the random pick takes only regions with two places or more (web, EXAMPLES_BY_SIDO)
+        # the same for working there (user 2026-10-20: "재직 하나만 있으면 재직 정보로 어디어디 일하면")
+        work_eligible = [r for r in rows_for(c['id'], 'workRegionIds') if r['eligibility'] == 'ELIGIBLE']
+        work_places = []
+        for r in work_eligible:
+            p = place(r['name'], s['shortName'])
+            if p and p not in work_places:
+                work_places.append(p)
+        if own in work_places:
+            work_places.remove(own)
+            work_places.insert(0, own)
+        if len(open_places) >= 3:
             examples.append({
                 'place': f"{s['shortName']} {c['name']}",
                 'places': places,
                 'eligible': len(eligible),
                 'openPlaces': open_places,
                 'open': len(opened),
+                'workPlaces': work_places,
+                'workEligible': len(work_eligible),
             })
 
 lines = [
@@ -112,15 +122,19 @@ lines = [
     '  openPlaces: readonly string[]',
     '  /** Libraries anyone may join. */',
     '  open: number',
+    '  /** The same two for working there. */',
+    '  workPlaces: readonly string[]',
+    '  workEligible: number',
     '}',
     '',
     'export const START_EXAMPLES: readonly StartExample[] = [',
 ]
 for e in examples:
     lines.append(
-        '  { place: %s, places: %s, eligible: %d, openPlaces: %s, open: %d },'
+        '  { place: %s, places: %s, eligible: %d, openPlaces: %s, open: %d, workPlaces: %s, workEligible: %d },'
         % (json.dumps(e['place'], ensure_ascii=False), json.dumps(e['places'], ensure_ascii=False), e['eligible'],
-           json.dumps(e['openPlaces'], ensure_ascii=False), e['open'])
+           json.dumps(e['openPlaces'], ensure_ascii=False), e['open'],
+           json.dumps(e['workPlaces'], ensure_ascii=False), e['workEligible'])
     )
 lines += [']', '']
 OUT.write_text('\n'.join(lines), encoding='utf-8', newline='\n')

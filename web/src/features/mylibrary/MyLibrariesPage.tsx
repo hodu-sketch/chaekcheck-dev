@@ -3,7 +3,6 @@ import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
 import { BackLink } from '../../components/BackLink'
-import { ChevronDown, ChevronUp } from '../../components/icons'
 import { InfoTip } from '../../components/InfoTip'
 import { LibraryLogo } from '../../components/LibraryLogo'
 import { classificationParts, classificationText } from '../../lib/libraryClassification'
@@ -11,7 +10,8 @@ import type { RegionNotice } from '../region/applyResolutions'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField as GridField } from '../region/RegionGrid'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
-import { savePrefs } from '../search/searchSettings'
+import { VisitSwitch } from '../search/LibraryScopeLine'
+import { loadPrefs, savePrefs } from '../search/searchSettings'
 import { AccountSection } from '../account/AccountSection'
 import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
@@ -23,7 +23,6 @@ import styles from './MyLibrariesPage.module.css'
 const TEXT = {
   limit: LIBRARY_CHANGE_TEXT.limit,
   disabled: '지금은 쓸 수 없는 도서관이에요',
-  empty: '지역을 고르거나 도서관을 추가하세요',
   // cycle 07 flow S10 [확정]
   noMatch: '찾는 도서관이 없어요',
 }
@@ -117,11 +116,9 @@ function MyLibraries() {
   }
 
   const rows = list.data
-  const empty = regions.residence.length === 0 && regions.work.length === 0 && myLibrary.libraryIds.length === 0
   return (
     <>
-      {empty && <p className={styles.state}>{TEXT.empty}</p>}
-
+      {/* no 「지역을 고르거나 도서관을 추가하세요」 and no browser line (user 2026-10-20: "그냥 없는게 낫다") */}
       <RegionSection
         regions={regions}
         notices={notices}
@@ -132,6 +129,7 @@ function MyLibraries() {
         workAuto={rows.filter((row) => row.matchedBy.includes('WORK'))}
       />
       <ChosenSections rows={rows} />
+      <JoinSection />
     </>
   )
 }
@@ -153,6 +151,26 @@ function Heading() {
       {/* cycle 22 R11-2: there is no scope switch any more (ADR-0135) */}
       <p className={styles.lead}>검색하면 여기 있는 도서관에서 먼저 찾아요</p>
     </header>
+  )
+}
+
+/**
+ * 「온라인에서 가입 가능한 곳만 보기」, here since the search screens have no box (user 2026-10-20); on by default, kept in
+ * this browser for the next search.
+ */
+function JoinSection() {
+  const [visit, setVisit] = useState(() => loadPrefs().visit)
+  return (
+    // the switch's own box only, no 「가입 방법」 section around it (user 2026-10-20: "가입방법 박스로 감싸지말고")
+    <div className={styles.joinSwitch}>
+      <VisitSwitch
+        visit={visit}
+        onChange={(next) => {
+          savePrefs({ visit: next })
+          setVisit(next)
+        }}
+      />
+    </div>
   )
 }
 
@@ -188,6 +206,10 @@ function Section({
  * in, "거주 ▾", folded (user requests 2026-10-05). Nothing to remove there (spec R4). A failed save
  * and, before login, the save hint (R9) under the rows.
  */
+/**
+ * 거주 and 직장, each in its own box (user 2026-10-20: "거주랑 직장이랑 (지금 사는곳, 일하는 곳 되어 있는데 그냥 거주랑 직장으로
+ * 바꾸고) 네모 칸 분리해줘"); a failed save and the save hint under them.
+ */
 function RegionSection({
   regions,
   notices,
@@ -205,51 +227,41 @@ function RegionSection({
   residenceAuto: LibraryEligibilityRow[]
   workAuto: LibraryEligibilityRow[]
 }) {
-  const [workOpen, setWorkOpen] = useState(false)
-  const showWork = workOpen || regions.work.length > 0
   return (
-    <Section title="지역 선택" className={styles.regionSection}>
-      <div className={styles.regionList}>
+    <>
+      <Section title={REGION_TEXT.residence} className={styles.regionSection}>
         <RegionRow
-          title="사는 곳"
+          title={REGION_TEXT.residence}
           field="residence"
           value={regions.residence}
           notices={notices}
           onToggle={onToggle}
-          kind="거주"
+          kind={REGION_TEXT.residence}
           rows={residenceAuto}
         />
-        {showWork ? (
-          <RegionRow
-            title="일하는 곳"
-            field="work"
-            value={regions.work}
-            onToggle={(field, id) => {
-              // stays open when the last one is removed
-              setWorkOpen(true)
-              onToggle(field, id)
-            }}
-            kind="직장"
-            rows={workAuto}
-          />
-        ) : (
-          <div className={styles.regionBlock}>
-            <h3 className={styles.blockTitle}>일하는 곳</h3>
-            <button type="button" className={styles.addWork} onClick={() => setWorkOpen(true)}>
-              일하는 곳도 더하기
-            </button>
-          </div>
-        )}
-      </div>
+      </Section>
+      <Section title={REGION_TEXT.work} className={styles.regionSection}>
+        <RegionRow
+          title={REGION_TEXT.work}
+          field="work"
+          value={regions.work}
+          onToggle={onToggle}
+          kind={REGION_TEXT.work}
+          rows={workAuto}
+        />
+      </Section>
       {saveFailed && (
         <p className={styles.error} role="alert">
           {REGION_SAVE_FAILED}
         </p>
       )}
       <SaveHint saved={guestSaved} />
-    </Section>
+    </>
   )
 }
+
+/** The two region boxes' names [확정] (user 2026-10-20). */
+const REGION_TEXT = { residence: '거주', work: '직장' } as const
 
 /** One field: its title, the grid (chips on top), then "거주 ▾". */
 function RegionRow({
@@ -272,7 +284,8 @@ function RegionRow({
   const id = useId()
   return (
     <div className={styles.regionBlock} role="group" aria-labelledby={id}>
-      <h3 id={id} className={styles.blockTitle}>
+      {/* the box's own title says it; the group keeps the name for screen readers */}
+      <h3 id={id} className="visually-hidden">
         {title}
       </h3>
       <div className={styles.gridBleed}>
@@ -298,8 +311,9 @@ function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow
   const [open, setOpen] = useState(false)
   const title = (
     <span id={`${id}-title`} className={styles.autoTitle}>
-      {/* just "거주" / "직장" (user 2026-10-19: "지역으로 자동 이런 말 빼줘") */}
-      <span className={styles.autoKind}>{kind}</span>
+      {/* 「거주 조건으로 추가된 도서관 N개」 in the earlier letters, no chevron (user 2026-10-20: "거주 직장이랑 화살표말고",
+          "글자 디자인 전과 같이", "n개") */}
+      <span className={styles.autoKind}>{`${kind} 조건으로 추가된 도서관 ${rows.length}개`}</span>
     </span>
   )
   if (rows.length === 0) return null
@@ -313,35 +327,36 @@ function RegionField({ kind, rows }: { kind: string; rows: LibraryEligibilityRow
         onClick={() => setOpen((value) => !value)}
       >
         {title}
-        <span className={styles.caret} aria-hidden="true">
-          {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-        </span>
       </button>
-      {open && <NameList id={`${id}-names`} rows={rows} />}
+      {open && <NameList id={`${id}-names`} rows={rows} onFold={() => setOpen(false)} />}
     </div>
   )
 }
 
-function NameList({ id, rows }: { id?: string; rows: LibraryEligibilityRow[] }) {
+/** 10 names at a time; 「더 보기」 and, when it was opened from a line, 「접기」 beside it (user 2026-10-20). */
+function NameList({ id, rows, onFold }: { id?: string; rows: LibraryEligibilityRow[]; onFold?: () => void }) {
   const [shown, setShown] = useState(PAGE)
   return (
     <>
-      <ul id={id} className={styles.names}>
+      {/* names only, a plain list (user 2026-10-20: "그냥 도서관 목록으로 이름만"); logo cards before */}
+      <ul id={id} className={styles.nameList}>
         {rows.slice(0, shown).map((row) => (
-          <li key={row.id} className={styles.named}>
-            <LibraryLogo
-              name={row.name}
-              logoUrl={row.logoUrl}
-              size={24}
-            />
-            <ClassifiedName row={row} />
-          </li>
+          <li key={row.id}>{row.name}</li>
         ))}
       </ul>
-      {rows.length > shown && (
-        <button type="button" className={styles.more} onClick={() => setShown((n) => n + PAGE)}>
-          더 보기
-        </button>
+      {(rows.length > shown || onFold) && (
+        <div className={styles.listActions}>
+          {rows.length > shown && (
+            <button type="button" className={styles.more} onClick={() => setShown((n) => n + PAGE)}>
+              더 보기
+            </button>
+          )}
+          {onFold && (
+            <button type="button" className={styles.more} onClick={onFold}>
+              접기
+            </button>
+          )}
+        </div>
       )}
     </>
   )

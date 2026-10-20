@@ -98,7 +98,7 @@ describe('SearchForm: the narrowing chips on the results', () => {
 
     expect(button('저자')).toBeTruthy()
     expect(button('출판사')).toBeTruthy()
-    expect(button('제목 정확히').getAttribute('aria-pressed')).toBe('false')
+    expect(button('제목 일치').getAttribute('aria-pressed')).toBe('false')
     expect(screen.queryByRole('button', { name: '옮긴이 포함' })).toBeNull()
   })
 
@@ -159,13 +159,13 @@ describe('SearchForm: the narrowing chips on the results', () => {
     results({ author: '김달' })
 
     expect(button(/^저자: 김달/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '제목 정확히' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '제목 일치' })).toBeNull()
   })
 
   it('제목 정확히 is a toggle that searches again at once', async () => {
     const { user, onSearch } = results({ title: '행동', author: '새폴스키' })
 
-    await user.click(button('제목 정확히'))
+    await user.click(button('제목 일치'))
 
     expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '행동', author: '새폴스키', exact: ['title'] }))
   })
@@ -199,7 +199,7 @@ describe('SearchForm: the narrowing chips on the results', () => {
     expect(screen.getByText(DIRECT_REASON)).toBeTruthy()
     expect(button(/^저자: 김달/).disabled).toBe(true)
     expect(button('출판사').disabled).toBe(true)
-    expect(button('제목 정확히').disabled).toBe(true)
+    expect(button('제목 일치').disabled).toBe(true)
     expect(button('옮긴이 포함').disabled).toBe(true)
     await user.click(searchButton())
     expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ title: '사랑', author: '' }))
@@ -210,7 +210,7 @@ describe('SearchForm: /search before a search (user 2026-10-19)', () => {
   it('has the chips from the start; a chip only sets the condition and [검색] searches with it', async () => {
     const { user, onSearch } = setup({ centered: false })
     expect(button('검색 설정')).toBeTruthy()
-    await user.click(button('제목 정확히'))
+    await user.click(button('제목 일치'))
     expect(onSearch).not.toHaveBeenCalled()
     await user.type(titleBox(), '사랑')
     await user.click(searchButton())

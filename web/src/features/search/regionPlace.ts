@@ -31,6 +31,18 @@ export function useRegionPlace(ids: readonly number[]): string | null {
   return regionPlaceText(ids, labels)
 }
 
+/**
+ * The regions of the 「내 도서관」 group's small line, 거주 first then 직장: "서울 구로구", or "서울 구로구 외 N곳" with
+ * N 1 and up (user 2026-10-20: "직장도 정보 넣긴 했거든", "외 N곳 표기로 줄이고"); null for none or while the names load.
+ */
+export function useMineLabel(residence: readonly number[], work: readonly number[]): string | null {
+  const labels = useRegionLabels(useRegionTree().data)
+  const ids = [...new Set([...residence, ...work])]
+  const first = ids.length > 0 ? labels.get(ids[0]) : undefined
+  if (first === undefined) return null
+  return ids.length > 1 ? `${first} 외 ${ids.length - 1}곳` : first
+}
+
 /** The place words of the result tags (handoff 5-A-5): the one 시군구 and the one 시도 the search's regions name, if so. */
 export interface TagPlace {
   sigungu: string | null

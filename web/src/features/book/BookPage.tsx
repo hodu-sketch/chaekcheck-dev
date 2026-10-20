@@ -8,7 +8,7 @@ import { readScope } from '../search/readScope'
 import { loadPrefs, savePrefs, writeVisit } from '../search/searchSettings'
 import { holdingBatchViews } from '../search/holdingView'
 import { ResultList, type ResultSearchContext } from '../search/ResultList'
-import { useRegionPlace, useTagPlace } from '../search/regionPlace'
+import { useMineLabel, useTagPlace } from '../search/regionPlace'
 import { useHoldings } from '../search/useHoldings'
 import { useConditionCard, type ConditionPlan } from '../search/useConditionCard'
 import styles from './BookPage.module.css'
@@ -26,7 +26,7 @@ export function BookPage() {
   const scope = readScope(params)
   // the condition card as on the search screen (user 2026-10-20: "이 창에서도 지역 조건 수정할 수 있으면 좋겠어")
   // a changed condition waits for [다시 찾기] under the card (user 2026-10-20)
-  const { condition, plan, visit } = useConditionCard({ apply: 'searchAgain' })
+  const { condition, plan, visit } = useConditionCard()
   // a new book, filter, plan, region set or added libraries start over from a fresh page state
   const key = `${bookId}?${params}|${plan.residence.join(',')}|${plan.work.join(',')}|${plan.libraryIds.join(',')}|${scope}|${visit}|${ready}`
   return <BookView key={key} bookId={bookId} plan={plan} visit={visit} condition={condition} />
@@ -54,8 +54,7 @@ function BookView({
   const residenceKey = regions.residence.join(',')
   const workKey = regions.work.join(',')
   const libraryKey = libraryIds.join(',')
-  const residencePlace = useRegionPlace(regions.residence)
-  const workPlace = useRegionPlace(regions.work)
+  const mineLabel = useMineLabel(regions.residence, regions.work)
   // the place words of the [{강서구} 거주 가입] tags (handoff 5-A-5)
   const tagPlace = useTagPlace(
     residenceKey && workKey ? [...regions.residence, ...regions.work] : residenceKey ? regions.residence : regions.work,
@@ -154,7 +153,7 @@ function BookView({
   const searchContext: ResultSearchContext = {
     tagPlace,
     hasMine: residenceKey !== '' || workKey !== '' || libraryKey !== '',
-    mineLabel: residencePlace ?? workPlace,
+    mineLabel,
     noMineNote: true,
     regionBasis: residenceKey && workKey ? 'both' : workKey ? 'work' : residenceKey ? 'residence' : 'both',
     scope,

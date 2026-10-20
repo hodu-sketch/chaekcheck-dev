@@ -1,4 +1,3 @@
-import { Dialog } from 'radix-ui'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { VisitFilter } from '../../api/types'
@@ -7,12 +6,10 @@ import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { SaveHint } from '../mylibrary/SaveHint'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField } from '../region/RegionGrid'
-import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
-import { MyNumbers } from './MyNumbers'
+import type { StoredRegions } from '../region/regionStorage'
 import { ro } from './regionPlace'
 import { useRegionPlace } from './regionPlace'
 import type { PlanCount } from './searchSettings'
-import { useLibraryList } from './useLibraryList'
 import styles from './LibraryScopeLine.module.css'
 
 /** Which grid the box opens on: 사는 곳, or the 일하는 곳 row ([일하는 곳도 더하기], flow S1). */
@@ -66,7 +63,8 @@ export const SCOPE_TEXT = {
   sheetTitle: '찾을 도서관',
   addWork: '일하는 곳도 더하기',
   mine: '내 도서관',
-  residence: '사는 곳',
+  // user 2026-10-20: "사는 곳 말고 거주"
+  residence: '거주',
   residenceShort: '거주',
   workShort: '재직',
   work: '일하는 곳',
@@ -82,6 +80,16 @@ export const SCOPE_TEXT = {
   joinTitle: '가입 방법',
   visitNote: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
   myPage: '마이페이지에서 전체 보기',
+  // under the main page's one region (user 2026-10-20: "마이페이지에서 뭐 이것저것 더 설정할 수 있다 아래 깔아두고 또 밑줄
+  // 진한글자 해서 마이페이지로")
+  // in one sentence (user 2026-10-20: "이거 그냥 뭉뚱그려서 설명해줘")
+  moreBefore: '더 자세한 설정은 ',
+  myPageWord: '마이페이지',
+  moreAfter: '에서 할 수 있어요',
+  // the results, the book page and the picks have no region choice (user 2026-10-20: "검색창, 추천도서 창에서 지역
+  // 선택하는 거 싹 다 빼고 … 마이페이지 이동 링크")
+  noteNoneBefore: '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 자세히 찾으려면 ',
+  noteNoneAfter: '에서 지역을 골라 주세요',
   // the main page's box, instead of the 직접 추가 part (user 2026-10-20: "직접추가 도서관은 마이페이지 가라")
   chosenMyPage: '직접 추가는 마이페이지에서 →',
   // a screen that is not a search (the book page) after the regions or the switch changed (user 2026-10-20: "여기 검색에도
@@ -91,9 +99,6 @@ export const SCOPE_TEXT = {
   accountFailed: '내 도서관을 불러오지 못했어요',
   retry: '다시 시도',
 } as const
-
-/** Names shown under "직접 추가 N곳" (R1-4 "이름 두어 개"); the rest as "외 N곳" [안]. */
-const CHOSEN_NAMES_SHOWN = 2
 
 /**
  * The folded line's words without "▾" (R3): "내 도서관: 서울 강남구 · 일하는 곳 성남시 · 방문 가입 뺌 · 직접 추가 2 · 68곳". Only
@@ -181,8 +186,6 @@ interface LineProps extends Common {
   /** The box is open, and on which grid; null = closed. */
   box: BoxFocus | null
   onBoxChange: (box: BoxFocus | null) => void
-  /** The box opens under the card in the page instead of a window (the main page only, user 2026-10-20). */
-  inline?: boolean
 }
 
 /**
@@ -296,11 +299,11 @@ function ConditionCard({
  * 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows itself by the 「그 밖의 도서관」 group, and the next
  * new search is 내 도서관 again (D10).
  */
-export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }: LineProps) {
+export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
   const panelId = useId()
   // inline: Esc closes the box wherever the focus is (it is part of the page, not a window that holds the focus)
-  const inlineOpen = inline && box !== null
+  const inlineOpen = box !== null
   useEffect(() => {
     if (!inlineOpen) return
     const escape = (event: KeyboardEvent) => {
@@ -340,101 +343,42 @@ export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }
     )
   }
 
-  const body =
-    box !== null ? (
-      <LibraryScopeBody
-        key={box}
-        focus={box}
-        visit={common.visit}
-        visitChanged={common.visitChanged}
-        onVisitChange={common.onVisitChange}
-        openCount={common.openCount}
-        onOpenCount={common.onOpenCount}
-        onLeave={() => onBoxChange(null)}
-      />
-    ) : null
   const close = (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
       <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 
-  if (inline) {
-    // the main page on PC and tablets: the box opens under the card and pushes the page down, no window (user
-    // 2026-10-20: "메인에서만큼은 이거 누르면 모달창 말고 아래로 내려서 보이게 해줘"; other pages keep the window)
-    return (
-      <div ref={rootRef} className={styles.root}>
-        <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
+  // the main page on PC and tablets: the box opens under the card and pushes the page down, no window (user
+  // 2026-10-20: "메인에서만큼은 이거 누르면 모달창 말고 아래로 내려서 보이게 해줘"); the other screens have no box since
+  // the same day (ScopeNote)
+  return (
+    <div ref={rootRef} className={styles.root}>
+      <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
+        <button
+          type="button"
+          className={styles.conditionAction}
+          aria-describedby={textId}
+          aria-expanded={box !== null}
+          aria-controls={box !== null ? panelId : undefined}
+          onClick={() => onBoxChange(box === null ? 'residence' : null)}
+        >
+          {condition.action}
+        </button>
+      </ConditionCard>
+      {box !== null && (
+        <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
           <button
             type="button"
-            className={styles.conditionAction}
-            aria-describedby={textId}
-            aria-expanded={box !== null}
-            aria-controls={box !== null ? panelId : undefined}
-            onClick={() => onBoxChange(box === null ? 'residence' : null)}
+            className={`${styles.boxClose} ${styles.panelClose}`}
+            aria-label="닫기"
+            onClick={() => onBoxChange(null)}
           >
-            {condition.action}
+            {close}
           </button>
-        </ConditionCard>
-        {box !== null && (
-          <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
-            <button
-              type="button"
-              className={`${styles.boxClose} ${styles.panelClose}`}
-              aria-label="닫기"
-              onClick={() => onBoxChange(null)}
-            >
-              {close}
-            </button>
-            {box !== null && (
-              <LibraryScopeBody
-                key={box}
-                focus={box}
-                visit={common.visit}
-                visitChanged={common.visitChanged}
-                onVisitChange={common.onVisitChange}
-                openCount={common.openCount}
-                onOpenCount={common.onOpenCount}
-                onLeave={() => onBoxChange(null)}
-                compact
-              />
-            )}
-          </section>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className={styles.root}>
-      {/* a modal window in the middle of the screen (user 2026-10-19: "버튼 누르면 모달 창이 나와서 거기에서 고르도록") */}
-      <Dialog.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
-        <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
-          <Dialog.Trigger className={styles.conditionAction} aria-describedby={textId}>
-            {condition.action}
-          </Dialog.Trigger>
-        </ConditionCard>
-        <Dialog.Portal>
-          <Dialog.Overlay className={styles.overlay} />
-          <Dialog.Content
-            className={styles.box}
-            aria-describedby={undefined}
-            onOpenAutoFocus={(event) => {
-              // the 일하는 곳 row takes the focus itself (LibraryScopeBody)
-              if (box === 'work') event.preventDefault()
-            }}
-          >
-            {/* no title on screen (user 2026-10-20: "찾을 도서관 … 이거 빼줘"); read by screen readers only */}
-            <div className={styles.boxHead}>
-              <Dialog.Title className="visually-hidden">{SCOPE_TEXT.sheetTitle}</Dialog.Title>
-              <Dialog.Close className={styles.boxClose} aria-label="닫기">
-                {close}
-              </Dialog.Close>
-            </div>
-            {body}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          <LibraryScopeBody onLeave={() => onBoxChange(null)} compact />
+        </section>
+      )}
     </div>
   )
 }
@@ -485,22 +429,20 @@ export function LibraryScopeChip({
   )
 }
 
-interface SheetProps extends Pick<Common, 'visit' | 'visitChanged' | 'onVisitChange' | 'openCount' | 'onOpenCount'> {
+interface SheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Which grid the sheet opens on. */
-  focus: BoxFocus
 }
 
 /**
  * Phones (user 2026-10-19: "사는 곳 일하는 곳 고르기는 그것만 있고 설정에는 없었으면 해"): the chip's own bottom sheet,
  * "찾을 도서관" with the box's body only, the same shared sheet as ⚙ (handle, ⓧ, back, a tap outside).
  */
-export function LibraryScopeSheet({ open, onOpenChange, focus, ...body }: SheetProps) {
+export function LibraryScopeSheet({ open, onOpenChange }: SheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={SCOPE_TEXT.sheetTitle} closeButton closeOnBack>
       <div className={styles.sheet}>
-        <LibraryScopeBody key={focus} focus={focus} {...body} onLeave={() => onOpenChange(false)} sheet />
+        <LibraryScopeBody onLeave={() => onOpenChange(false)} sheet />
       </div>
     </BottomSheet>
   )
@@ -567,77 +509,38 @@ export function VisitSwitch({
 }
 
 interface BodyProps {
-  focus: BoxFocus
-  visit: VisitFilter
-  /** The switch differs from the search on screen: "[검색]을 눌러 주세요" under it. */
-  visitChanged?: boolean
-  onVisitChange: (visit: VisitFilter) => void
-  openCount: number | null
-  onOpenCount: (count: number) => void
-  /** [마이페이지에서 전체 보기] was pressed. */
+  /** The my page link was followed. */
   onLeave?: () => void
-  /** Phones: inside the "찾을 도서관" sheet, the grids take the screen's width. */
+  /** Phones: inside the "찾을 도서관" sheet, the grid takes the screen's width. */
   sheet?: boolean
-  /**
-   * The main page's box under the card: all on one screen (user 2026-10-20: "한 화면에서 다 보이도록 … 불필요한 거
-   * 빼고"): no numbers (the card beside shows them), no 직접 추가 part and band, only a line to the my page.
-   */
+  /** PC and tablets: the box under the card (no numbers, the card beside shows them). */
   compact?: boolean
 }
 
+/** Regions the main page's box takes (user 2026-10-20: one). */
+export const MAIN_REGIONS = 1
+
 /**
- * The box's body (R1-4), also the phone "찾을 도서관" sheet (R2-1): 사는 곳 (chips + grid), 일하는 곳
- * ([일하는 곳도 더하기] → chips + grid), 직접 추가 N곳 with names and the 어디 살든 가입 note, a thick band, "가입 방법"
- * with 「온라인에서 가입 가능한 곳만 보기」, and [마이페이지에서 전체 보기] (order by the user, 2026-10-19). A check only saves (R1-3): never a search. Before login the save hint shows under the part
- * that saved (R9); a failed account save says so (cycle 06 wording).
+ * The main page's box and phone sheet (user 2026-10-20: "메인에서 지역 선택은 지역 하나만 고를 수 있게 … 마이페이지에서 뭐
+ * 이것저것 더 설정할 수 있다 아래 깔아두고"): one 거주 (× first to pick another) and a line to the my page for the
+ * rest; no numbers (user 2026-10-20: "이거 빼줘", the card on the page has them). A check only saves, never a search.
  */
-export function LibraryScopeBody({
-  focus,
-  visit,
-  visitChanged = false,
-  onVisitChange,
-  openCount,
-  onOpenCount,
-  onLeave,
-  sheet = false,
-  compact = false,
-}: BodyProps) {
-  const { regions, setRegions, source, notices, saveFailed, libraryIds } = useRegions()
-  const [workOpen, setWorkOpen] = useState(focus === 'work')
-  const [saved, setSaved] = useState<RegionField | null>(null)
-  const workRef = useRef<HTMLDivElement>(null)
+export function LibraryScopeBody({ onLeave, sheet = false, compact = false }: BodyProps) {
+  const { regions, setRegions, source, notices, saveFailed } = useRegions()
+  const [saved, setSaved] = useState(false)
   const residenceId = useId()
-  const workId = useId()
-  const joinId = useId()
 
-  useEffect(() => {
-    if (focus !== 'work') return
-    const target = workRef.current?.querySelector<HTMLElement>('button, input:not([disabled])')
-    target?.focus()
-    workRef.current?.scrollIntoView?.({ block: 'nearest' })
-  }, [focus])
-
-  const toggle = (field: RegionField, id: number) => {
-    const current = regions[field]
-    const has = current.includes(id)
-    if (!has && current.length >= MAX_REGIONS_PER_FIELD) return
-    const next: StoredRegions = { ...regions, [field]: has ? current.filter((x) => x !== id) : [...current, id] }
+  // only the first 거주 is shown and changed here; the other regions, added libraries and settings stay as the my page
+  // set them (user 2026-10-20: "메인은 그냥 맨 앞에 거주 조건만 바꾸는 걸로 해줘 지역 도서관 설정을 어떻게 하든")
+  const first = regions.residence.slice(0, MAIN_REGIONS)
+  const toggle = (id: number) => {
+    const rest = regions.residence.slice(MAIN_REGIONS)
+    const residence = first.includes(id) ? rest : [id, ...rest.filter((x) => x !== id)]
+    const next: StoredRegions = { ...regions, residence }
     // a failure is on screen (saveFailed)
     setRegions(next).catch(() => undefined)
-    setSaved(source === 'browser' ? field : null)
+    setSaved(source === 'browser')
   }
-
-  const grid = (field: RegionField) => (
-    <div className={sheet ? styles.gridBleed : undefined}>
-      <RegionGrid
-        field={field}
-        value={regions[field]}
-        onToggle={(id) => toggle(field, id)}
-        full={regions[field].length >= MAX_REGIONS_PER_FIELD}
-        notices={field === 'residence' ? notices : undefined}
-      />
-    </div>
-  )
 
   return (
     <div className={styles.body} data-sheet={sheet || undefined} data-compact={compact || undefined}>
@@ -645,112 +548,82 @@ export function LibraryScopeBody({
         <h3 id={residenceId} className={styles.partTitle}>
           {SCOPE_TEXT.residence}
         </h3>
-        {grid('residence')}
-        {/* the person's own numbers right under the grid, above the save hint (ADR-0139 #4, handoff 5-A-4) */}
-        {!compact && <MyNumbers residence={regions.residence} work={regions.work} />}
-        <SaveHint saved={saved === 'residence'} />
+        <div className={sheet ? styles.gridBleed : undefined}>
+          <RegionGrid
+            field="residence"
+            value={first}
+            onToggle={toggle}
+            full={first.length >= MAIN_REGIONS}
+            notices={notices}
+            single
+          />
+        </div>
+        <SaveHint saved={saved} />
       </div>
-
-      <div className={styles.part} role="group" aria-labelledby={workId} ref={workRef}>
-        <h3 id={workId} className={styles.partTitle}>
-          {SCOPE_TEXT.work}
-        </h3>
-        {compact || workOpen || regions.work.length > 0 ? (
-          grid('work')
-        ) : (
-          <button type="button" className={styles.addWork} onClick={() => setWorkOpen(true)}>
-            {SCOPE_TEXT.addWork}
-          </button>
-        )}
-        <SaveHint saved={saved === 'work'} />
-      </div>
-
       {saveFailed && (
         <p className={styles.error} role="alert">
           {REGION_SAVE_FAILED}
         </p>
       )}
-
-      {!compact && (
-        <>
-          {/* the phone sheet goes without the two grey notes (user 2026-10-20: "폰 지역 선택에서 … 빼주고") */}
-          <ChosenPart ids={libraryIds} openCount={openCount} onOpenCount={onOpenCount} openNote={!sheet} />
-          {/* which libraries (above) and how one joins (below) are two things: a thick band between them (user
-              2026-10-19) */}
-          <div className={styles.band} aria-hidden="true" />
-        </>
-      )}
-
-      <div className={styles.part} role="group" aria-labelledby={joinId}>
-        <h3 id={joinId} className={styles.partTitle}>
-          {SCOPE_TEXT.joinTitle}
-        </h3>
-        <VisitSwitch visit={visit} onChange={onVisitChange} note={!sheet && !compact} />
-        {visitChanged && (
-          <p className={styles.visitChanged}>
-            <PressSearch before={SCOPE_TEXT.visitChangedBefore} />
-          </p>
-        )}
-      </div>
-
-      {compact ? (
-        <Link to="/my-libraries" className={styles.myPageLine} onClick={onLeave}>
-          {SCOPE_TEXT.chosenMyPage}
+      <p className={styles.moreLine}>
+        {SCOPE_TEXT.moreBefore}
+        <Link to="/my-libraries" className={styles.strongLink} onClick={onLeave}>
+          {SCOPE_TEXT.myPageWord}
         </Link>
-      ) : (
-        <Link to="/my-libraries" className={styles.myPage} onClick={onLeave}>
-          {SCOPE_TEXT.myPage}
-        </Link>
-      )}
+        {SCOPE_TEXT.moreAfter}
+      </p>
     </div>
   )
 }
 
 /**
- * "직접 추가 N곳", a couple of names and how to add more (R1-4). The names come from `GET /api/v1/libraries` without
- * regions, asked only when there are added libraries and kept for 5 minutes (D4); the count of its OPEN rows is kept
- * as `openCount` (R3-4). A library not in that list is switched off: "꺼진 도서관".
+ * The results, the book page and the picks (user 2026-10-20): what the search uses, no box. Without regions or added
+ * libraries it says only libraries anyone may join are searched and links the my page; otherwise nothing. On a results
+ * screen it asks for [검색] when the regions or the switch changed since its search.
  */
-function ChosenPart({
-  ids,
-  openCount,
-  onOpenCount,
-  openNote = true,
+export function ScopeNote({
+  regionsChanged = false,
+  visitChanged = false,
+  onSearchAgain,
 }: {
-  openNote?: boolean
-  ids: number[]
-  openCount: number | null
-  onOpenCount: (count: number) => void
+  regionsChanged?: boolean
+  visitChanged?: boolean
+  onSearchAgain?: () => void
 }) {
-  const list = useLibraryList(ids.length > 0)
-  const rows = list.data
-  const openRows = rows?.filter((row) => row.eligibility === 'OPEN').length
-  const keepOpenCount = useRef(onOpenCount)
-  useEffect(() => {
-    keepOpenCount.current = onOpenCount
-  }, [onOpenCount])
-  useEffect(() => {
-    if (openRows !== undefined) keepOpenCount.current(openRows)
-  }, [openRows])
-
-  let names: ReactNode = null
-  if (ids.length > 0 && rows) {
-    const byId = new Map(rows.map((row) => [row.id, row.name]))
-    const shown = ids.slice(0, CHOSEN_NAMES_SHOWN).map((id) => byId.get(id) ?? SCOPE_TEXT.disabled)
-    const rest = ids.length - shown.length
-    names = (
-      <p className={styles.names}>
-        {shown.join(', ')}
-        {rest > 0 && ` 외 ${rest}곳`}
-      </p>
+  const state = useLineState()
+  const text = useScopeLineText()
+  if (state === 'waiting') return <div className={styles.noteLine} aria-hidden="true" data-waiting />
+  if (state === 'failed') {
+    return (
+      <div className={styles.noteLine}>
+        <AccountFailed />
+      </div>
     )
   }
+  const hint = regionsChanged || visitChanged
+  // with regions or added libraries no line at all (user 2026-10-20: "서울 강남구에 살아요 · 마이페이지에서 바꿀 수
+  // 있어요 이거 문구 자체를 빼줘"), only the [검색] line when it applies
+  if (text !== null && !hint) return null
   return (
-    <div className={styles.part}>
-      <h3 className={styles.partTitle}>{SCOPE_TEXT.chosen(ids.length)}</h3>
-      {names}
-      <p className={styles.note}>{SCOPE_TEXT.chosenHint}</p>
-      {openNote && <p className={styles.openNote}>{SCOPE_TEXT.open(openCount)}</p>}
+    <div className={styles.noteLine}>
+      {text === null && (
+        <p className={styles.noteText}>
+          {SCOPE_TEXT.noteNoneBefore}
+          <Link to="/my-libraries" className={styles.strongLink}>
+            {SCOPE_TEXT.myPageWord}
+          </Link>
+          {SCOPE_TEXT.noteNoneAfter}
+        </p>
+      )}
+      {regionsChanged ? (
+        <p className={styles.conditionHint}>
+          <PressSearch before={SCOPE_TEXT.pickedBefore(null)} onSearch={onSearchAgain} />
+        </p>
+      ) : visitChanged ? (
+        <p className={styles.conditionHint}>
+          <PressSearch before={SCOPE_TEXT.visitChangedBefore} onSearch={onSearchAgain} />
+        </p>
+      ) : null}
     </div>
   )
 }

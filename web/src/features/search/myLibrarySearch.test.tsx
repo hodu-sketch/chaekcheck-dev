@@ -8,7 +8,7 @@ import { NoticeProvider } from '../auth/NoticeContext'
 import { MyLibraryProvider } from '../mylibrary/MyLibraryContext'
 import { REGION_IMPORT_KEY } from '../mylibrary/regionImport'
 import { RegionProvider, useRegions } from '../region/RegionContext'
-import { pickExample, SearchPage } from './SearchPage'
+import { exampleOf, pickExample, SearchPage } from './SearchPage'
 import { START_EXAMPLES } from './startExamples'
 import { SETTINGS_STORAGE_KEY } from './searchSettings'
 
@@ -40,6 +40,8 @@ interface Fake {
   books: URL[]
   /** `GET /api/v1/libraries` calls (the box's names, D4). */
   libraryLists: number
+  /** The 시도 `GET /api/v1/regions/guess` names for the visitor's address (the example card, user 2026-10-20). */
+  sido: string | null
 }
 
 let fake: Fake
@@ -51,6 +53,7 @@ function fakeServer() {
       if (url === '/api/v1/me') return fake.signedIn ? json(200, { id: 7, loginMethods: ['KAKAO'], consents: [] }) : json(401, {})
       if (url === '/api/v1/auth/refresh') return json(401, {})
       if (url === '/api/v1/regions') return json(200, TREE)
+      if (url === '/api/v1/regions/guess') return json(200, { sido: fake.sido })
       if (url.startsWith('/api/v1/regions/resolutions?ids=')) {
         const ids = url.split('=')[1].split(',').map(Number)
         return json(200, ids.map((id) => ({ id, status: 'ACTIVE', label: null, replacements: [] })))
@@ -101,7 +104,9 @@ function Controls() {
   )
 }
 
-function renderSearch(address = '/search?title=사랑&view=books') {
+// the address [검색] writes: visit=none, the switch being on by default (user 2026-10-20); the same address, so a
+// [검색] with nothing changed stays on it
+function renderSearch(address = '/search?visit=none&title=사랑&view=books') {
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <AuthProvider>
@@ -144,6 +149,7 @@ beforeEach(() => {
     holdLibraries: null,
     books: [],
     libraryLists: 0,
+    sido: null,
   }
   // S11 is answered for this account, so it does not show up here
   localStorage.setItem(REGION_IMPORT_KEY, '[7]')
@@ -156,31 +162,41 @@ afterEach(() => {
   localStorage.clear()
 })
 
-/** The folded "내 도서관: …" line (cycle 22 R3); its accessible name is its text. */
-const foldedLine = () => screen.findByRole('button', { name: '지역 설정' }, { timeout: 5000 })
+/**
+ * The results' line with the my page link (user 2026-10-20: "검색창, 추천도서 창에서 지역 선택하는 거 싹 다 빼고 … 마이페이지
+ * 이동 링크"); no region box there any more.
+ */
+const noteOf = async () =>
+  (await screen.findByRole('link', { name: '마이페이지' }, { timeout: 5000 })).closest('p')!.textContent
+const NOTE_NONE = '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 자세히 찾으려면 마이페이지에서 지역을 골라 주세요'
+/** The example regions the first screen may pick: two places or more, one besides the region's own. */
+const pickable = START_EXAMPLES.filter(
+  (one) => one.places.length >= 2 && one.places.some((place) => place !== one.place.split(' ').slice(1).join(' ')),
+)
+const noBox = () => {
+  expect(screen.queryByRole('button', { name: /^지역 (선택|설정)$/ })).toBeNull()
+  expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
+}
 
 describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
-  it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
+  // no line at all with regions (user 2026-10-20: "서울 강남구에 살아요 · 마이페이지에서 바꿀 수 있어요 이거 문구 자체를 빼줘")
+  it('with regions: no line, no box and no list read (user 2026-10-20)', async () => {
     renderSearch()
-    const line = await foldedLine()
-    await waitFor(() => expect(conditionOf(line)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'), { timeout: 5000 })
+    await waitFor(() => expect(fake.books).toHaveLength(1))
+    await act(async () => {})
+    expect(screen.queryByText(/에 살아요/)).toBeNull()
+    expect(screen.queryByRole('link', { name: '마이페이지' })).toBeNull()
+    noBox()
     expect(fake.libraryLists).toBe(0)
-
-    await userEvent.setup().click(line)
-    const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
-    expect(within(box).getByRole('heading', { name: '직접 추가 3곳' })).toBeTruthy()
-    expect(await within(box).findByText('마포구립 전자도서관, 울산동부도서관 외 1곳')).toBeTruthy()
-    expect(fake.libraryLists).toBe(1)
-    expect(within(box).getByRole('link', { name: '마이페이지에서 전체 보기' }).getAttribute('href')).toBe('/my-libraries')
   })
 
-  it('empty after login: the first visitor button', async () => {
+  it('empty after login: only libraries anyone may join, and the my page to pick a region', async () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
 
-    expect(await screen.findByRole('button', { name: '지역 선택' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '지역 설정' })).toBeNull()
+    await waitFor(async () => expect(await noteOf()).toBe(NOTE_NONE))
+    noBox()
   })
 
   it('a failed read offers 다시 시도 and searches joinable without regions; a read that works searches again', async () => {
@@ -200,19 +216,19 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
   })
 
-  it('sends no search while reading and shows no first visitor button, then one with 내 도서관 (cycle 22 D7)', async () => {
+  it('sends no search while reading and shows no line, then searches with 내 도서관 (cycle 22 D7)', async () => {
     fake.holdLibraries = () => {}
     renderSearch()
     await act(async () => {})
     expect(fake.books).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: '지역 선택' })).toBeNull()
+    expect(screen.queryByRole('link', { name: '마이페이지' })).toBeNull()
 
     fake.holdLibraries!()
     await waitFor(() => expect(fake.books).toHaveLength(1))
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('libraryIds')).toBe('12,207,3')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
-    expect(await foldedLine()).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '마이페이지' })).toBeNull()
   })
 })
 
@@ -250,7 +266,7 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [] }
     fake.libraryIds = []
     renderSearch()
-    await screen.findByRole('button', { name: '지역 선택' })
+    await waitFor(async () => expect(await noteOf()).toBe(NOTE_NONE))
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -259,14 +275,15 @@ describe('no scope switch (cycle 22 R4-1, AC-10)', () => {
 })
 
 describe('before login (AC-14, cycle 07 flow S1)', () => {
-  it("no switch; the folded line names this browser's regions", async () => {
+  it("no switch and no line; this browser's regions are sent", async () => {
     fake.signedIn = false
     localStorage.setItem('chaekcheck.regions.v1', JSON.stringify({ residence: [1114], work: [] }))
     renderSearch('/search?title=사랑&view=books&scope=joinable')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(screen.queryAllByRole('radio')).toEqual([])
-    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구에 살아요'))
+    expect(screen.queryByText(/에 살아요/)).toBeNull()
+    noBox()
     expect(lastBooks().searchParams.get('scope')).toBe('joinable')
     expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('1114')
     expect(lastBooks().searchParams.has('libraryIds')).toBe(false)
@@ -281,50 +298,39 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
     expect(lastBooks().searchParams.get('libraryIds')).toBe('281,300')
   })
 
-  it('방문 가입 빼기 in the box is only kept; [검색] writes it into the address, and the results read the address', async () => {
+  // the switch is on by default and on the my page since user 2026-10-20; the results read the address only
+  it('the results read 온라인 가입만 from the address; the kept switch differs: the line asks for [검색], which writes it', async () => {
     fake.signedIn = false
     localStorage.setItem('chaekcheck.regions.v1', JSON.stringify({ residence: [1114], work: [] }))
-    const first = renderSearch('/search?title=사랑&view=books')
-    await waitFor(() => expect(fake.books).toHaveLength(1))
-    const user = userEvent.setup()
-    await user.click(await foldedLine())
-    await user.click(screen.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }))
-    await act(async () => {})
-    expect(fake.books).toHaveLength(1)
-    expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('none')
-    await user.keyboard('{Escape}')
-    await waitFor(async () => expect(conditionOf(await foldedLine())).toBe('서울 마포구에 살아요'))
-
-    await user.click(searchButton())
-    await waitFor(() => expect(fake.books).toHaveLength(2))
-    expect(lastBooks().searchParams.get('visit')).toBe('none')
-    first.unmount()
-
-    // a new visit: the switch shows the kept choice, the address without visit searches without it until [검색]
-    fake.books = []
     renderSearch('/search?title=사랑&view=books')
-    await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
+    await waitFor(() => expect(fake.books).toHaveLength(1))
     expect(lastBooks().searchParams.has('visit')).toBe(false)
-    await user.click(await foldedLine())
-    expect(
-      (screen.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }) as HTMLInputElement).checked,
-    ).toBe(true)
+    expect(screen.queryByRole('switch')).toBeNull()
+    const hint = await screen.findByRole('status')
+    expect(hint.textContent).toBe('가입 방법을 바꿨어요. 바뀐 조건으로 찾으려면 [검색]을 눌러 주세요')
+
+    await userEvent.setup().click(within(hint).getByRole('button', { name: '[검색]' }))
+    await waitFor(() => expect(lastBooks().searchParams.get('visit')).toBe('none'))
+    await waitFor(() => expect(screen.queryByText(/가입 방법을 바꿨어요/)).toBeNull())
     cleanup()
 
+    // the switch turned off on the my page: an address with visit=none still searches with it
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ visit: 'any' }))
     fake.books = []
     renderSearch('/search?title=사랑&view=books&visit=none')
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     expect(lastBooks().searchParams.get('visit')).toBe('none')
+    expect((await screen.findByRole('status')).textContent).toMatch(/^가입 방법을 바꿨어요/)
   })
 
-  it('without regions or added libraries: the first visitor button, which opens the box on 사는 곳', async () => {
+  it('without regions or added libraries: no box, the line points to the my page', async () => {
     fake.signedIn = false
     renderSearch('/search?title=사랑&view=books')
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
-    await userEvent.setup().click(screen.getByRole('button', { name: '지역 선택' }))
-    const box = await screen.findByRole('dialog', { name: '찾을 도서관' })
-    expect(await within(box).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
+    await waitFor(async () => expect(await noteOf()).toBe(NOTE_NONE))
+    expect(screen.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
+    noBox()
     // no names to read without added libraries (D4)
     expect(fake.libraryLists).toBe(0)
   })
@@ -409,26 +415,39 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     }))
   }
 
-  it('no line; the chip opens its own "찾을 도서관" sheet with the body of the box only (no 전국 switch)', async () => {
+  // the results have no chip since user 2026-10-20: the line with the my page link under the search box
+  it('results: no chip and no sheet; the line with the my page link without regions', async () => {
     phoneScreen()
     renderSearch()
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
-    const chip = await screen.findByRole('button', { name: '지역 설정', description: /^서울 마포구에 살아요/ })
-    expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
+    await act(async () => {})
+    expect(screen.queryByRole('link', { name: '마이페이지' })).toBeNull()
+    cleanup()
 
+    fake.regions = { residenceRegionIds: [], workRegionIds: [] }
+    fake.libraryIds = []
+    renderSearch()
+    await waitFor(async () => expect(await noteOf()).toBe(NOTE_NONE))
+    expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
+    noBox()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('the main page: the chip opens its own "찾을 도서관" sheet with 거주 and the my page line only', async () => {
+    phoneScreen()
+    renderSearch('/')
+
+    const chip = await screen.findByRole('button', { name: '지역 설정', description: /^서울 마포구에 살아요/ })
     const user = userEvent.setup()
     await user.click(chip)
     const sheet = within(await screen.findByRole('dialog', { name: '찾을 도서관' }))
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
     expect(sheet.queryByRole('button', { name: /^보기 방식/ })).toBeNull()
-    expect(sheet.queryByRole('button', { name: /^도서관에서 직접 찾기/ })).toBeNull()
-    expect(sheet.queryByRole('button', { name: '찾을 도서관' })).toBeNull()
-
-    expect(screen.queryAllByRole('radio', { name: /도서관/ })).toEqual([])
-    expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
-    expect(sheet.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' })).toBeTruthy()
-    expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' }).getAttribute('href')).toBe('/my-libraries')
+    expect(sheet.getByRole('heading', { name: '거주' })).toBeTruthy()
+    expect(sheet.queryByRole('heading', { name: '일하는 곳' })).toBeNull()
+    expect(sheet.queryByRole('switch')).toBeNull()
+    expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
 
     await user.click(sheet.getByRole('button', { name: '닫기' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -449,25 +468,24 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
 
 /** User report 2026-10-14: words typed but not searched yet went away when a switch was pressed. */
 describe('typed words stay on the search screen', () => {
-  // the switch is only in the 찾을 도서관 box since user 2026-10-19 (it was also in the ⚙ window)
-  it('through 방문 가입 빼기 in the 찾을 도서관 box, and the next search keeps the sort', async () => {
-    renderSearch('/search?title=사랑&view=books&sort=newest')
+  // the switch is on the my page since user 2026-10-20; a region saved meanwhile leaves the words too
+  it('through a region saved meanwhile, and the next search keeps the sort', async () => {
+    renderSearch('/search?title=사랑&view=books&visit=none&sort=newest')
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     const user = userEvent.setup()
     const title = screen.getByRole('searchbox', { name: '책 제목' })
 
     await user.clear(title)
     await user.type(title, '채식주의자')
-    await user.click(await foldedLine())
-    await user.click(screen.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }))
-    await user.keyboard('{Escape}')
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await user.click(screen.getByRole('button', { name: 'save region' }))
+    await waitFor(() => expect(fake.regions.residenceRegionIds).toEqual([4110]))
     expect((screen.getByRole('searchbox', { name: '책 제목' }) as HTMLInputElement).value).toBe('채식주의자')
 
     await user.click(searchButton())
     await waitFor(() => expect(lastBooks().searchParams.get('title')).toBe('채식주의자'))
     expect(lastBooks().searchParams.get('sort')).toBe('newest')
     expect(lastBooks().searchParams.get('visit')).toBe('none')
+    expect(lastBooks().searchParams.get('residenceRegionIds')).toBe('4110')
   })
 })
 
@@ -514,9 +532,37 @@ describe('the first screen', () => {
     // the condition line with this account's regions
     const edit = await screen.findByRole('button', { name: '지역 설정' })
     await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'))
-    // this account has regions: its own numbers take the example's place (5-A-2)
-    expect(example()).toBeNull()
+    // the lead names the person's own residence, not the random example (user 2026-10-20)
+    await waitFor(() => expect(lead.textContent).toMatch(/^마포구에 살아도 /))
+    // this account's 거주 has an example: the card of it, with its 직장 as the 재직 pill (user 2026-10-20; its numbers
+    // before)
+    await waitFor(() => expect(example()).not.toBeNull())
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe('서울 마포구에 살면')
+    // 「일하는 곳」 even with a workplace set (user 2026-10-20: "그냥 일하는곳 + 로")
+    await waitFor(() => expect(rows()[1]).toBe('재직일하는 곳의 도서관더하면'))
+    expect(rows()[0]).toMatch(/^거주마포구/)
+    // the lead names two of the card's other places
+    const shown = within(example()!).getAllByRole('listitem')[0].textContent!
+    for (const other of lead.textContent!.replace(/^마포구에 살아도 /, '').split(' ')[0].split('·')) {
+      expect(shown).toContain(other)
+    }
     expect(fake.books).toHaveLength(0)
+  })
+
+  // MyNumbers only when the person's region has no example, or only workplaces are set (user 2026-10-20)
+  it('only work regions: a 재직 card of the workplace, and the lead says 일해도, no numbers (user 2026-10-20)', async () => {
+    fake.regions = { residenceRegionIds: [], workRegionIds: [1102] }
+    renderSearch('/')
+    const edit = await screen.findByRole('button', { name: '지역 설정' })
+    await waitFor(() => expect(conditionOf(edit)).toBe('서울 중구에서 일해요'))
+    const card = await screen.findByRole('complementary', { name: '서울 중구에서 일하면' })
+    const lines = within(card)
+      .getAllByRole('listitem')
+      .map((item) => item.textContent)
+    expect(lines[0]).toBe('거주사는 곳의 도서관더하면')
+    expect(lines[1]).toMatch(/^재직/)
+    expect(screen.getByText(/^중구에서 일해도 /)).toBeTruthy()
+    expect(screen.queryByText(/가입할 수 있는 도서관 \d+곳/)).toBeNull()
   })
 
   it('without regions: a random region in the card and the lead, 거주 · 재직 · 상관없이, no 예: (user 2026-10-20)', async () => {
@@ -525,7 +571,9 @@ describe('the first screen', () => {
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     await waitFor(() => expect(example()).not.toBeNull())
-    const card = pickExample(() => 0)
+    // no 시도 from the address: a 서울 example (user 2026-10-20: "대충 모르겠으면 서울쪽으로")
+    const card = pickExample(null, () => 0)
+    expect(card.place).toMatch(/^서울 /)
     const data = START_EXAMPLES.find((one) => one.place === card.place)!
     expect(screen.getByText(/에 살아도/).textContent).toBe(
       `${card.home}에 살아도 ${card.others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
@@ -540,18 +588,44 @@ describe('the first screen', () => {
     vi.restoreAllMocks()
   })
 
-  it('picks a 시도, then a region with two places or more; the own place first, the rest at random', () => {
-    const sidos = new Set<string>()
-    for (let i = 0; i < 300; i += 1) {
-      const any = pickExample()
-      sidos.add(any.place.split(' ')[0])
-      expect(any.residence.length).toBeGreaterThanOrEqual(2)
-      expect(any.others.length).toBeGreaterThan(0)
-      expect(any.residence.slice(0, 3)).toEqual(expect.arrayContaining(any.others))
-      expect(any.residence.length + any.residenceRest).toBe(START_EXAMPLES.find((one) => one.place === any.place)!.eligible)
+  // the visitor's 시도 first, 서울 when not known or without examples (user 2026-10-20)
+  it('picks a region of the given 시도 with two places or more; the own place first, the rest at random', () => {
+    const sidos = [...new Set(START_EXAMPLES.map((one) => one.place.split(' ')[0]))]
+    for (const sido of [...sidos, null, '없는곳']) {
+      for (let i = 0; i < 30; i += 1) {
+        const any = pickExample(sido)
+        const has = pickable.some((one) => one.place.split(' ')[0] === sido)
+        expect(any.place.split(' ')[0]).toBe(has ? sido : '서울')
+        expect(any.residence.length).toBeGreaterThanOrEqual(2)
+        expect(any.others.length).toBeGreaterThan(0)
+        expect(any.residence.slice(0, 3)).toEqual(expect.arrayContaining(any.others))
+        expect(any.residence.length + any.residenceRest).toBe(START_EXAMPLES.find((one) => one.place === any.place)!.eligible)
+      }
     }
-    // more than 서울·경기·인천
-    expect(sidos.size).toBeGreaterThan(4)
+  })
+
+  it('exampleOf: the example of a region, null for one without', () => {
+    const known = pickable[0]
+    expect(exampleOf(known.place, () => 0)?.place).toBe(known.place)
+    expect(exampleOf('없는 곳', () => 0)).toBeNull()
+  })
+
+  it('asks the 시도 of the address and shows an example of it', async () => {
+    const sido = pickable.map((one) => one.place.split(' ')[0]).find((one) => one !== '서울')!
+    fake.signedIn = false
+    fake.sido = sido
+    renderSearch('/')
+    await screen.findByRole('heading', { level: 1 })
+    await waitFor(() => expect(example()).not.toBeNull())
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(new RegExp(`^${sido} `))
+  })
+
+  it('a failed 시도 ask still shows a 서울 example', async () => {
+    fake.signedIn = false
+    vi.mocked(fetch).mockImplementationOnce(async () => json(500, {}))
+    renderSearch('/')
+    await waitFor(() => expect(example()).not.toBeNull())
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^서울 /)
   })
 
   it('phones: the same two lines without 자세히; the example card after the search box, three pills a row', async () => {
@@ -571,7 +645,7 @@ describe('the first screen', () => {
     expect(asked.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await waitFor(() => expect(example()).not.toBeNull())
     expect(screen.getByRole('search').compareDocumentPosition(example()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const card = pickExample(() => 0)
+    const card = pickExample(null, () => 0)
     const data = START_EXAMPLES.find((one) => one.place === card.place)!
     const shown = card.residence.slice(0, 3)
     expect(rows()).toEqual([
@@ -592,11 +666,10 @@ describe('the first screen', () => {
     const panel = screen.getByRole('region', { name: '찾을 도서관' })
     expect(button.getAttribute('aria-expanded')).toBe('true')
     expect(await within(panel).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
-    // one screen: no 직접 추가 part, a line to the my page instead (user 2026-10-20)
-    expect(within(panel).queryByText(/^직접 추가 \d+곳$/)).toBeNull()
-    expect(within(panel).getByRole('link', { name: '직접 추가는 마이페이지에서 →' }).getAttribute('href')).toBe(
-      '/my-libraries',
-    )
+    // only 거주 and a line to the my page (user 2026-10-20)
+    expect(within(panel).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['거주'])
+    expect(within(panel).queryByText(/^직접 추가/)).toBeNull()
+    expect(within(panel).getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
     await user.click(button)
@@ -604,9 +677,23 @@ describe('the first screen', () => {
     expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
   })
 
+  // the main page's button always opens the box, showing the first 거주 only; the rest stays (user 2026-10-20)
+  it('with work regions and added libraries: the box still opens and shows only the first 거주', async () => {
+    renderSearch('/')
+    const user = userEvent.setup()
+    const button = await screen.findByRole('button', { name: '지역 설정' })
+    await user.click(button)
+    const panel = screen.getByRole('region', { name: '찾을 도서관' })
+    const residence = within(panel).getByRole('group', { name: '거주' })
+    await waitFor(() =>
+      expect(within(residence).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구'),
+    )
+    expect(within(panel).queryByText('서울 중구')).toBeNull()
+  })
+
   it('after a search: no headline and no steps card', async () => {
     renderSearch('/search?title=사랑&view=books')
-    await screen.findByRole('button', { name: '지역 설정' })
+    await waitFor(() => expect(fake.books).toHaveLength(1))
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
     expect(screen.queryByRole('complementary', { name: /에 살면$/ })).toBeNull()
     expect(screen.queryByText((_, element) => element?.tagName === 'P' && element.textContent === QUESTION)).toBeNull()

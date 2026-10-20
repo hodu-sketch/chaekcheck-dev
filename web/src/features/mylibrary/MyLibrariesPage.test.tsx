@@ -8,6 +8,7 @@ import { NoticeProvider } from '../auth/NoticeContext'
 import { RegionProvider } from '../region/RegionContext'
 import { MyLibrariesPage } from './MyLibrariesPage'
 import { MyLibraryProvider } from './MyLibraryContext'
+import { loadPrefs, savePrefs } from '../search/searchSettings'
 
 /** S10 `/my-libraries` (cycle 06 step 12) against a fake server. */
 
@@ -120,6 +121,11 @@ function renderPage() {
 }
 
 const section = (name: string) => screen.getByRole('region', { name })
+/** 거주 and 직장, each its own box (user 2026-10-20; one "지역 선택" box with 사는 곳 / 일하는 곳 before). */
+const regionRow = (box: '거주' | '직장') => within(section(box)).getByRole('group', { name: box })
+/** The fold under a box (user 2026-10-20: 「거주 조건으로 추가된 도서관 N개」, no chevron; 「거주 ▾」 before). */
+const autoName = (box: '거주' | '직장') => new RegExp(`^${box} 조건으로 추가된 도서관 \\d+개$`)
+const autoGroup = (box: '거주' | '직장') => within(section(box)).getByRole('group', { name: autoName(box) })
 
 /** The region picker (user 2026-10-19): [+] shows a 시도 and a 시군구 select; picking a 시군구 adds it at once. */
 async function openPicker(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, field: string) {
@@ -150,20 +156,24 @@ describe('S10 sections', () => {
     // no 어디 살든 가입 row on this page (user 2026-10-20: "마이페이지에서 이거 빼고")
     expect(screen.queryByText('어디 살든 가입되는 도서관도 늘 내 도서관에 들어 있어요')).toBeNull()
     expect(screen.queryByText('어디 살든 가입 도서관은 늘 포함돼요')).toBeNull()
-    // 지역 선택: a 사는 곳 and an 일하는 곳 row, each its chips and grid, then its automatic list (cycle 22 R11-1)
-    const chosenRegions = section('지역 선택')
-    const residenceRow = within(chosenRegions).getByRole('group', { name: '사는 곳' })
-    const workRow = within(chosenRegions).getByRole('group', { name: '일하는 곳' })
+    // 거주 and 직장 boxes, each its chips and grid, then its automatic list (cycle 22 R11-1, user 2026-10-20)
+    expect(screen.queryByRole('region', { name: '지역 선택' })).toBeNull()
+    const residenceRow = regionRow('거주')
+    const workRow = regionRow('직장')
     await waitFor(() =>
       expect(within(residenceRow).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구'),
     )
     expect(within(workRow).getByRole('list', { name: '고른 일하는 곳' }).textContent).toBe('서울 중구')
     expect(screen.queryByRole('region', { name: '지역으로 자동' })).toBeNull()
-    // a library both regions match is in both lists; "거주 2곳" is one line, folded
-    const byResidence = within(chosenRegions).getByRole('group', { name: '거주' })
-    const byWork = within(chosenRegions).getByRole('group', { name: '직장' })
-    const residenceToggle = within(byResidence).getByRole('button', { name: '거주' })
-    const workToggle = within(byWork).getByRole('button', { name: '직장' })
+    // a library both regions match is in both lists; each list is one line, folded
+    const byResidence = autoGroup('거주')
+    const byWork = autoGroup('직장')
+    const residenceToggle = within(byResidence).getByRole('button', { name: autoName('거주') })
+    const workToggle = within(byWork).getByRole('button', { name: autoName('직장') })
+    // with the number of rows (user 2026-10-20: "n개")
+    expect(residenceToggle.textContent).toBe('거주 조건으로 추가된 도서관 2개')
+    expect(workToggle.textContent).toBe('직장 조건으로 추가된 도서관 1개')
+    expect(residenceToggle.querySelector('svg')).toBeNull()
     expect(residenceToggle.getAttribute('aria-expanded')).toBe('false')
     expect(within(byResidence).queryByText('서울도서관 전자도서관')).toBeNull()
     const user = userEvent.setup()
@@ -172,11 +182,15 @@ describe('S10 sections', () => {
     expect(residenceToggle.getAttribute('aria-expanded')).toBe('true')
     expect(within(byResidence).getByText('서울도서관 전자도서관')).toBeTruthy()
     expect(within(byWork).getByText('서울도서관 전자도서관')).toBeTruthy()
-    // the order inside the section: 사는 곳, its list, 일하는 곳, its list
-    const text = chosenRegions.textContent!
-    expect(text.indexOf('사는 곳')).toBeLessThan(text.indexOf('거주'))
-    expect(text.indexOf('거주')).toBeLessThan(text.indexOf('일하는 곳'))
-    expect(text.indexOf('일하는 곳')).toBeLessThan(text.indexOf('직장'))
+    // 「접기」 closes the list again; no 「더 보기」 with 10 or fewer (user 2026-10-20)
+    expect(within(byResidence).queryByRole('button', { name: '더 보기' })).toBeNull()
+    await user.click(within(byResidence).getByRole('button', { name: '접기' }))
+    expect(residenceToggle.getAttribute('aria-expanded')).toBe('false')
+    expect(within(byResidence).queryByText('서울도서관 전자도서관')).toBeNull()
+    // the order: 거주 with its list, then 직장 with its list
+    expect(section('거주').contains(byResidence)).toBe(true)
+    expect(section('직장').contains(byWork)).toBe(true)
+    expect(section('거주').compareDocumentPosition(section('직장')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(within(section('직접 추가한 도서관')).getByText('1/20')).toBeTruthy()
   })
 
@@ -261,17 +275,18 @@ describe('S10 library classification', () => {
     fake.libraryIds = [40, 42, 999]
   })
 
-  it('shows it in the region list, the name search and the added libraries', async () => {
+  // the region list is names only, no logo and no classification (user 2026-10-20)
+  it('shows it in the name search and the added libraries; the region list has the names only', async () => {
     await ready()
     const user = userEvent.setup()
 
-    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
-    await user.click(within(byResidence).getByRole('button', { name: '거주' }))
+    const byResidence = autoGroup('거주')
+    await user.click(within(byResidence).getByRole('button', { name: autoName('거주') }))
     const regionNames = within(byResidence).getAllByRole('listitem').map((item) => item.textContent)
-    expect(regionNames).toContain('동대문구립도서관 · YES24 · 소장')
-    expect(regionNames).toContain('동대문구립도서관 · 교보 · 구독')
-    // a library without the values keeps its name only
+    expect(regionNames.filter((name) => name === '동대문구립도서관')).toHaveLength(2)
     expect(regionNames).toContain('마포구립 전자도서관')
+    expect(regionNames.some((name) => name?.includes(' · '))).toBe(false)
+    expect(byResidence.querySelector('img')).toBeNull()
 
     await user.type(screen.getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '동대문')
     const found = within(section('직접 도서관 추가'))
@@ -430,11 +445,15 @@ describe('S10 long lists', () => {
     await ready()
     const user = userEvent.setup()
 
-    const byResidence = within(section('지역 선택')).getByRole('group', { name: '거주' })
-    await user.click(within(byResidence).getByRole('button', { name: '거주' }))
+    const byResidence = autoGroup('거주')
+    await user.click(within(byResidence).getByRole('button', { name: autoName('거주') }))
     expect(names(byResidence)).toBe(10)
     await user.click(within(byResidence).getByRole('button', { name: '더 보기' }))
     expect(names(byResidence)).toBe(12)
+    // 「접기」 beside 「더 보기」 (user 2026-10-20)
+    expect(within(byResidence).queryByRole('button', { name: '더 보기' })).toBeNull()
+    await user.click(within(byResidence).getByRole('button', { name: '접기' }))
+    expect(names(byResidence)).toBe(0)
 
     const add = section('직접 도서관 추가')
     await user.type(within(add).getByRole('searchbox', { name: '도서관 이름으로 찾기' }), '도서관')
@@ -457,7 +476,7 @@ describe('S10 region grid (cycle 22)', () => {
     expect(screen.queryByText(/스위치/)).toBeNull()
     expect(screen.queryByRole('button', { name: /변경/ })).toBeNull()
     expect(screen.queryByRole('dialog')).toBeNull()
-    const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
+    const residenceRow = regionRow('거주')
     await openPicker(user, residenceRow, '사는 곳')
     expect(within(residenceRow).getByRole('combobox', { name: '사는 곳 시도' })).toBeTruthy()
     const mapo = sigunguOption(residenceRow, /마포구/)
@@ -469,7 +488,7 @@ describe('S10 region grid (cycle 22)', () => {
   it('a check saves to the account at once and asks the list again with the new regions', async () => {
     await ready()
     const user = userEvent.setup()
-    const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
+    const residenceRow = regionRow('거주')
 
     await pickRegion(user, residenceRow, '사는 곳', '중구')
 
@@ -491,7 +510,7 @@ describe('S10 region grid (cycle 22)', () => {
   it('a failed save goes back and says so', async () => {
     fake.regionsStatus = 500
     await ready()
-    const residenceRow = within(section('지역 선택')).getByRole('group', { name: '사는 곳' })
+    const residenceRow = regionRow('거주')
     const user = userEvent.setup()
 
     await pickRegion(user, residenceRow, '사는 곳', '중구')
@@ -504,41 +523,76 @@ describe('S10 region grid (cycle 22)', () => {
     expect(jung.disabled).toBe(false)
   })
 
-  it('the 일하는 곳 grid is folded behind [일하는 곳도 더하기] while it has no region', async () => {
+  // the 직장 grid is always there, no [일하는 곳도 더하기] (user 2026-10-20)
+  it('the 직장 box shows its grid even with no region', async () => {
     fake.signedIn = false
     await ready()
-    const user = userEvent.setup()
-    const regionSection = section('지역 선택')
-
-    expect(within(regionSection).getByRole('group', { name: '사는 곳' })).toBeTruthy()
-    expect(within(regionSection).queryByRole('group', { name: '일하는 곳' })).toBeNull()
-    expect(within(regionSection).queryByText('직장 지역으로')).toBeNull()
-
-    await user.click(within(regionSection).getByRole('button', { name: '일하는 곳도 더하기' }))
-
-    const workRow = within(regionSection).getByRole('group', { name: '일하는 곳' })
-    expect(await within(workRow).findByRole('button', { name: '일하는 곳 추가' })).toBeTruthy()
-    expect(within(regionSection).queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
+    expect(await within(regionRow('직장')).findByRole('button', { name: '일하는 곳 추가' })).toBeTruthy()
   })
 
-  it('before login a check is kept in this browser, and the save hint shows under the rows until ×', async () => {
+  it('before login a check is kept in this browser, and the save hint shows under the boxes until ×', async () => {
     fake.signedIn = false
     await ready()
     const user = userEvent.setup()
-    const regionSection = section('지역 선택')
-    expect(within(regionSection).queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
+    expect(screen.queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
 
-    await pickRegion(user, within(regionSection).getByRole('group', { name: '사는 곳' }), '사는 곳', '마포구')
+    await pickRegion(user, regionRow('거주'), '사는 곳', '마포구')
 
     expect(JSON.parse(localStorage.getItem('chaekcheck.regions.v1')!)).toEqual({ residence: [1114], work: [] })
     expect(putCalls()).toEqual([])
-    expect(within(regionSection).getByText('이 브라우저에만 저장됐어요. 로그인하면 다른 기기에서도 그대로예요')).toBeTruthy()
-    await user.click(within(regionSection).getByRole('button', { name: '저장 안내 닫기' }))
-    expect(within(regionSection).queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
+    const hint = screen.getByText('이 브라우저에만 저장됐어요. 로그인하면 다른 기기에서도 그대로예요')
+    expect(section('직장').compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: '저장 안내 닫기' }))
+    expect(screen.queryByText(/이 브라우저에만 저장됐어요/)).toBeNull()
+  })
+
+  // no empty-state line and no browser line (user 2026-10-20: "그냥 없는게 낫다")
+  it('has no 「지역을 고르거나 도서관을 추가하세요」 and no browser line', async () => {
+    fake.signedIn = false
+    fake.libraryIds = []
+    await ready()
+    expect(screen.queryByText('지역을 고르거나 도서관을 추가하세요')).toBeNull()
+    expect(screen.queryByText(/로그인하지 않으면 이 브라우저에 저장돼요/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '브라우저에 저장된 정보 지우기' })).toBeNull()
   })
 })
 
-/** One 마이페이지 (user 2026-10-19): the library part, then the account part, then 탈퇴하기 at the very bottom. */
+/**
+ * 「온라인에서 가입 가능한 곳만 보기」 on the my page, since the search screens have no box (user 2026-10-20); on its own,
+ * no 「가입 방법」 section around it (user 2026-10-20: "가입방법 박스로 감싸지말고").
+ */
+describe('S10 the 온라인 가입 switch', () => {
+  const visitSwitch = () =>
+    screen.getByRole('switch', {
+      name: '온라인에서 가입 가능한 곳만 보기',
+      description: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
+    }) as HTMLInputElement
+
+  it('on by default, after the added libraries, outside any section; a change is kept for the next search', async () => {
+    await ready()
+    const user = userEvent.setup()
+    expect(screen.queryByRole('region', { name: '가입 방법' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: '가입 방법' })).toBeNull()
+    const visit = visitSwitch()
+    expect(visit.closest('section')).toBeNull()
+    expect(section('직접 추가한 도서관').compareDocumentPosition(visit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(visit.checked).toBe(true)
+
+    await user.click(visit)
+    expect(visit.checked).toBe(false)
+    expect(loadPrefs().visit).toBe('any')
+    await user.click(visit)
+    expect(loadPrefs().visit).toBe('none')
+  })
+
+  it('reads the kept choice', async () => {
+    savePrefs({ visit: 'any' })
+    await ready()
+    expect(visitSwitch().checked).toBe(false)
+  })
+})
+
 describe('마이페이지', () => {
   it('is titled 마이페이지, with the account after the libraries and 탈퇴하기 last', async () => {
     await ready()

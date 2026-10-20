@@ -14,8 +14,6 @@ import { RegionProvider } from '../region/RegionContext'
 import { SearchPage } from './SearchPage'
 import { loadPrefs, savePrefs } from './searchSettings'
 
-/** The condition line's words: the [조건 수정] button's description (first screen redesign, user 2026-10-19). */
-const conditionOf = (button: HTMLElement) => document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent
 /**
  * Cycle 22 step 4 on the search screen: the buttons inside the results search again at once (R8-3, D10) — the 전국
  * links with `scope=all`, [온라인 가입만 보기] with `visit=none` (also kept for later searches), [모두 보기] back.
@@ -190,10 +188,14 @@ afterEach(() => {
 
 describe('buttons inside the results (cycle 22 R8-3)', () => {
   it('has no [전국에서 더 찾기] (user 2026-10-19) and no 전국 marker beside the line', async () => {
-    // 바로 보기 does not know its whole plan: the condition card takes the kept number of 어디 살든 가입 libraries (R7-1)
+    // the results have no region box, only the line with the my page link (user 2026-10-20)
     savePrefs({ openCount: 39 })
     renderSearch()
-    await screen.findByText('어디 살든 가입되는 도서관 39곳에서 찾았어요')
+    const note = await screen.findByText(/^누구나 가입할 수 있는 도서관에서만 찾고 있어요/)
+    expect(note.textContent).toBe(
+      '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 자세히 찾으려면 마이페이지에서 지역을 골라 주세요',
+    )
+    expect(screen.queryByRole('button', { name: /지역 (선택|설정)/ })).toBeNull()
     expect(lastStream().scope).toBe('joinable')
     expect(screen.queryByRole('button', { name: '전국에서 더 찾기' })).toBeNull()
     expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
@@ -241,13 +243,14 @@ describe('the plan size kept for the line', () => {
     })
   }
 
-  it('with regions: planCount is kept (the folded line itself shows only the residence)', async () => {
+  // no line with regions (user 2026-10-20)
+  it('with regions: planCount is kept, and no line above the results', async () => {
     plan(3)
     localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence: [1168], work: [] }))
-    renderSearch('/search?title=사랑&direct=on')
-    const line = await screen.findByRole('button', { name: '지역 설정' })
-    await vi.waitFor(() => expect(conditionOf(line)).toBe('서울 강남구에 살아요'))
+    renderSearch('/search?title=사랑&direct=on&visit=none')
     await vi.waitFor(() => expect(loadPrefs().planCount?.count).toBe(3))
+    expect(screen.queryByText(/에 살아요/)).toBeNull()
+    expect(screen.queryByRole('link', { name: '마이페이지' })).toBeNull()
     expect(loadPrefs().openCount).toBeNull()
   })
 

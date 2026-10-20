@@ -209,7 +209,28 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(url.searchParams.get('scope')).toBe('joinable')
     expect(url.searchParams.get('residenceRegionIds')).toBe('1116')
     expect(url.searchParams.get('libraryIds')).toBe('12,34')
-    expect(url.searchParams.has('visit')).toBe(false)
+    // 「온라인에서 가입 가능한 곳만 보기」 on by default (user 2026-10-20)
+    expect(url.searchParams.get('visit')).toBe('none')
+  })
+
+  it('sends no visit when this browser kept the switch off', async () => {
+    localStorage.setItem('chaekcheck.searchSettings.v1', JSON.stringify({ visit: 'any' }))
+    const calls = stubFetch()
+    renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    expect(calls.find((c) => c.pathname === '/api/v1/picks/librarian')!.searchParams.has('visit')).toBe(false)
+    localStorage.clear()
+  })
+
+  // no region choice on the picks (user 2026-10-20: "검색창, 추천도서 창에서 지역 선택하는 거 싹 다 빼고"), and with
+  // regions no line either (user 2026-10-20: "이거 문구 자체를 빼줘")
+  it('has no region box, and with regions no line', async () => {
+    stubFetch()
+    renderPage()
+    await screen.findByRole('region', { name: '전체' })
+    expect(screen.queryByRole('button', { name: /지역 (선택|설정)/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: '마이페이지' })).toBeNull()
+    expect(screen.queryByText(/에 살아요/)).toBeNull()
   })
 
   it('is joinable even when this browser kept the old 전체 switch (cycle 22 R4-1)', async () => {

@@ -413,39 +413,14 @@
   right: 0.6rem;
 }
 
-/*
- * The main page's box (user 2026-10-20: "디자이너가 되었다는 입장에서 정렬이나 구상이나 수습해줘"): two equal columns.
- * Row 1: 사는 곳 | 일하는 곳, each a small grey title over its chips. Row 2 under a hairline: the switch on the left, the
- * my page line on the right, both on the same middle line. The 가입 방법 title is read by screen readers only (the switch
- * says it); ⓧ sits in the corner beside row 1.
- */
+/* The main page's box on PC (user 2026-10-20): 사는 곳 with its chip, then under a hairline the my page line. */
 .body[data-compact] {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  /* no gap, so row 2's hairline runs unbroken; the right column keeps its room by padding */
   gap: 0;
 }
 
-.body[data-compact] > :not(.part, .myPageLine) {
-  grid-column: 1 / -1;
-}
-
 .body[data-compact] .part {
-  display: flex;
-  flex-direction: column;
   gap: 0.4rem;
-  padding: 0 0 0.75rem;
-}
-
-.body[data-compact] .part + .part {
-  padding-top: 0;
-  border-top: none;
-}
-
-/* row 1, right: room for ⓧ */
-.body[data-compact] .part:nth-of-type(2) {
-  padding-right: 2rem;
-  padding-left: 1.5rem;
+  padding: 0 2rem 0.7rem 0;
 }
 
 .body[data-compact] .part > .partTitle {
@@ -454,42 +429,53 @@
   font-weight: 700;
 }
 
-/* row 2 */
-.body[data-compact] .part:last-of-type,
-.body[data-compact] > .myPageLine {
-  padding: 0.55rem 0 0;
+.body[data-compact] .moreLine {
+  padding-top: 0.55rem;
   border-top: 1px solid var(--rule);
 }
 
-.body[data-compact] .part:last-of-type > .partTitle {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.body[data-compact] .visit {
-  padding: 0;
-  border: none;
-  background: none;
-}
-
-.body[data-compact] .visit:has(.switchInput:checked) {
-  background: none;
-}
-
-.body[data-compact] .visitTitle {
-  white-space: nowrap;
+/* 「직장, 직접 추가 도서관, 가입 방법은 마이페이지에서 더 설정할 수 있어요」 under the main page's region */
+.moreLine {
+  margin: 0;
+  color: var(--ink-soft);
   font-size: var(--text-sm);
+  word-break: keep-all;
 }
 
-.body[data-compact] > .myPageLine {
+/* the my page link in a sentence: bold and underlined (user 2026-10-20: "밑줄 긋고 진하게") */
+.strongLink {
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.strongLink:hover {
+  color: var(--brand-strong);
+}
+
+.strongLink:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* the results, the book page and the picks: what is searched, a sentence with the my page link (no box) */
+.noteLine {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 1.5rem;
+}
+
+.noteText {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  word-break: keep-all;
 }
 
 .myPageLine {

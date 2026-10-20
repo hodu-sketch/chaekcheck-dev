@@ -4,7 +4,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.7rem;
+  /* closer to the box (user 2026-10-20: "위아래 간격들 좀 줄여주라") */
+  margin-top: 0.45rem;
 }
 
 /* like the app's other pills: white with the strong rule; on = filled violet with white text */

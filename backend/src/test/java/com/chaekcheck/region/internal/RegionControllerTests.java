@@ -32,6 +32,24 @@ class RegionControllerTests {
 	@MockitoBean
 	RegionService regionService;
 
+	@MockitoBean
+	SidoByIp sidoByIp;
+
+	@Test
+	void guessesTheSidoFromTheAddressNginxSaw() {
+		given(sidoByIp.sido("1.2.3.4")).willReturn(java.util.Optional.of("부산"));
+
+		assertThat(mvc.get().uri("/api/v1/regions/guess").header(RegionController.REAL_IP, "1.2.3.4")).hasStatusOk()
+			.hasHeader("Cache-Control", "no-store")
+			.bodyJson()
+			.isStrictlyEqualTo("""
+					{"sido":"부산"}
+					""");
+		assertThat(mvc.get().uri("/api/v1/regions/guess")).hasStatusOk().bodyJson().isStrictlyEqualTo("""
+				{"sido":null}
+				""");
+	}
+
 	@Test
 	void returnsTreeWithoutLegalDongCode() {
 		given(regionService.activeTree()).willReturn(List.of(new RegionService.SidoNode(11, "서울특별시", "서울",

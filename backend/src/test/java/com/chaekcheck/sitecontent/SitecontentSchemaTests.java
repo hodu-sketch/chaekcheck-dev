@@ -32,7 +32,13 @@ class SitecontentSchemaTests {
 				SELECT document_key || ':' || version_no || ':' || effective_on FROM sitecontent.document_version
 				ORDER BY document_key""").query(String.class).list())
 			.containsExactly("ABOUT:1:2026-10-18", "PRIVACY_COLLECTION:1:2026-10-18", "PRIVACY_POLICY:1:2026-10-18",
-					"TERMS_OF_SERVICE:1:2026-10-18");
+					"PRIVACY_POLICY:2:2026-10-20", "TERMS_OF_SERVICE:1:2026-10-18");
+		// 2026-10-20: version 2 adds the example card's 시도 by IP to the purposes, with a change summary
+		assertThat(jdbc.sql("""
+				SELECT body FROM sitecontent.document_version WHERE document_key = 'PRIVACY_POLICY' AND version_no = 2""")
+			.query(String.class)
+			.single()).contains("첫 화면 지역 예시(IP 주소로 시·도만 확인하고 따로 저장하지 않음)")
+			.endsWith("이 방침은 2026-10-20부터 적용됩니다. 바꿀 때는 공지사항으로 알립니다.");
 		assertThat(jdbc.sql("""
 				SELECT jsonb_array_length(consent_items) FROM sitecontent.document_version
 				WHERE document_key = 'PRIVACY_COLLECTION'""").query(Integer.class).single()).isEqualTo(4);

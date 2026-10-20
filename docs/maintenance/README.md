@@ -69,6 +69,11 @@
 
 - 운영자 화면 없이 Claude가 운영 SQL로 넣음(사이클 16). 사용자 확인 뒤, 한 트랜잭션, 판은 고치지 않고 새로 넣음. 절차와 SQL: [5-sitecontent.md](5-sitecontent.md)
 
+## 6-1. (몇 달에 한 번) 첫 화면 예시 지역 자료
+
+- 첫 화면 예시 카드는 방문자 IP로 시·도만 보고 그 시·도의 예시를 고름(2026-10-20 사용자 결정, 모르면 서울). 자료는 DB-IP 무료 「IP to City Lite」(CC BY 4.0, 소개 화면에 출처 표기)를 한국 줄만 줄인 `backend/src/main/resources/geo/kr-sido.csv.gz`. 새로 할 때: 그달 CSV(`dbip-city-lite-YYYY-MM.csv.gz`, https://db-ip.com/db/download/ip-to-city-lite)를 `data/geo/`에 받고 `python -X utf8 scripts/geo/build_kr_sido.py data/geo/dbip-city-lite-YYYY-MM.csv.gz` → 배포. 지역 이름이 바뀌어 스크립트가 멈추면 스크립트 안 `SIDO` 표를 고침
+- 예시 지역 목록 `web/src/features/search/startExamples.ts`는 `python -X utf8 scripts/web/gen_start_examples.py`(공개 도서관 목록 API로 만듦). 도서관·가입 조건이 바뀐 뒤 다시 돌림
+
 ## 7. 설정값 목록
 
 - 서비스·조회 서버의 운영 숫자(동시 검색 자리, 결과 줄 상한, 본문 상한, 해석 자리, 상태 불 시간, 요약 로그 간격 …)와 그 환경 변수 이름은 [settings-index.md](settings-index.md)에 한 줄씩 있습니다. 값을 바꾸거나 더할 때 그 표를 함께 고칩니다(사이클 20).

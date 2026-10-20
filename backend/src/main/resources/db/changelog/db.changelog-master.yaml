@@ -173,3 +173,7 @@ databaseChangeLog:
   - include:
       file: library/020-library-platform-seoul-elib.yaml
       relativeToChangelogFile: true
+  # 2026-10-20: privacy policy version 2 (the example card's 시도 by IP)
+  - include:
+      file: sitecontent/003-privacy-policy-v2.yaml
+      relativeToChangelogFile: true

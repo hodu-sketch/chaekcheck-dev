@@ -21,6 +21,11 @@ interface Props {
   full: boolean
   /** Resolution notes (`/regions/resolutions`, cycle 06), shown under the chips. */
   notices?: RegionNotice[]
+  /**
+   * One region only (the main page's box, user 2026-10-20): no + while one is chosen and no limit line; × first to pick
+   * another.
+   */
+  single?: boolean
 }
 
 /**
@@ -28,7 +33,7 @@ interface Props {
  * a row ending in a small +, which shows a 시도 and a 시군구 select. The tree is read with `useRegionTree` (fetched once per
  * visit, R12-3).
  */
-export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props) {
+export function RegionGrid({ field, value, onToggle, full, notices = [], single = false }: Props) {
   const tree = useRegionTree()
   const labels = useRegionLabels(tree.data)
   const [sidoId, setSidoId] = useState<number | null>(null)
@@ -65,16 +70,18 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
           </ul>
         )}
         {/* + shows the selects, × (while open) hides them without adding */}
-        <button
-          type="button"
-          className={styles.add}
-          aria-label={`${fieldLabel} 추가`}
-          aria-expanded={selectsOpen}
-          disabled={full || !tree.data}
-          onClick={() => setAdding((open) => !open)}
-        >
-          {selectsOpen ? <Cross size={10} /> : <Plus />}
-        </button>
+        {!(single && value.length > 0) && (
+          <button
+            type="button"
+            className={styles.add}
+            aria-label={`${fieldLabel} 추가`}
+            aria-expanded={selectsOpen}
+            disabled={full || !tree.data}
+            onClick={() => setAdding((open) => !open)}
+          >
+            {selectsOpen ? <Cross size={10} /> : <Plus />}
+          </button>
+        )}
       </div>
       {notices.length > 0 && (
         <ul className={styles.notices} role="status">
@@ -107,7 +114,7 @@ export function RegionGrid({ field, value, onToggle, full, notices = [] }: Props
             }}
           />
         )}
-        {full && <p className={styles.limit}>최대 {MAX_REGIONS_PER_FIELD}곳이에요</p>}
+        {full && !single && <p className={styles.limit}>최대 {MAX_REGIONS_PER_FIELD}곳이에요</p>}
       </div>
     </div>
   )

@@ -86,12 +86,13 @@ class DocumentApiTests {
 
 	@Test
 	void futureVersionIsNowhereBeforeItsDay() { // AC-4, AC-9
-		data.documentVersion("PRIVACY_POLICY", 2, TODAY.plusDays(1), "내일 판", "바뀐 점");
+		// the terms: the privacy policy has a seeded version 2 (2026-10-20, the example card's IP line)
+		data.documentVersion("TERMS_OF_SERVICE", 2, TODAY.plusDays(1), "내일 판", "바뀐 점");
 
-		assertThat(mvc.get().uri("/api/v1/documents/privacy-policy")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+		assertThat(mvc.get().uri("/api/v1/documents/terms-of-service")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
 				{"version":{"number":1,"current":true},
 				 "versions":[{"number":1,"effectiveOn":"2026-10-18","supersededOn":null}]}""");
-		assertNotFound("/api/v1/documents/privacy-policy?version=2", "version_not_found");
+		assertNotFound("/api/v1/documents/terms-of-service?version=2", "version_not_found");
 	}
 
 	@Test
@@ -107,9 +108,9 @@ class DocumentApiTests {
 
 	@Test
 	void changeSummaryIsGiven() { // AC-11
-		data.documentVersion("PRIVACY_POLICY", 2, TODAY, "새 처리방침", "- 위탁 업체를 더했어요");
+		data.documentVersion("TERMS_OF_SERVICE", 2, TODAY, "새 약관", "- 위탁 업체를 더했어요");
 
-		assertThat(mvc.get().uri("/api/v1/documents/privacy-policy")).hasStatusOk()
+		assertThat(mvc.get().uri("/api/v1/documents/terms-of-service")).hasStatusOk()
 			.bodyJson()
 			.extractingPath("$.version.changeSummary")
 			.isEqualTo("- 위탁 업체를 더했어요");

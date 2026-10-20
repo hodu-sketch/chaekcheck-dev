@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { MemoryRouter } from 'react-router'
@@ -147,7 +147,9 @@ function renderLine(options: Options = {}) {
 const guestRegions = (residence: number[], work: number[] = []) =>
   localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence, work }))
 const folded = () => screen.findByRole('button', { name: '지역 설정' })
-const box = () => screen.findByRole('dialog', { name: '찾을 도서관' })
+// the main page's box on wider screens: a part of the page, no window (user 2026-10-20)
+const box = () => screen.findByRole('region', { name: '찾을 도서관' })
+const sheetDialog = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 
 describe('a first visitor (R1-2)', () => {
   it('the condition card with [지역 선택] and no grey line under it (user 2026-10-20 words)', async () => {
@@ -169,12 +171,17 @@ describe('a first visitor (R1-2)', () => {
     expect(screen.queryByText(/안 골라도/)).toBeNull()
   })
 
-  it('the button opens the box; no [일하는 곳도 더하기] beside it (user 2026-10-19)', async () => {
+  it('the button opens the box under the card, no window; no [일하는 곳도 더하기] beside it (user 2026-10-19, 2026-10-20)', async () => {
     const { user } = renderLine()
     expect(screen.queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    const button = await screen.findByRole('button', { name: '지역 선택' })
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+    await user.click(button)
     const opened = await box()
-    expect(within(opened).getByRole('group', { name: '사는 곳' })).toBeTruthy()
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(button.getAttribute('aria-controls')).toBe(opened.id)
+    expect(within(opened).getByRole('group', { name: '거주' })).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 
@@ -271,82 +278,75 @@ describe('the folded line (R3)', () => {
   })
 })
 
-describe('the box (R1-4)', () => {
-  it('shows no title and no 왜 묻나요 line; the dialog keeps its name (user 2026-10-20)', async () => {
-    const { user } = renderLine()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
-    const opened = await box()
-    expect(within(opened).queryByText(/왜 묻나요/)).toBeNull()
-    expect(within(opened).getByText('찾을 도서관').className).toContain('visually-hidden')
-  })
-
-  it('holds the parts in order and closes on a click outside and on Esc', async () => {
+describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
+  it('holds only 거주 and the my page line: no 일하는 곳, 직접 추가, 가입 방법 or [마이페이지에서 전체 보기]', async () => {
     guestRegions([1114])
     const { user } = renderLine({ openCount: 39 })
     await user.click(await folded())
     const opened = await box()
-    const parts = Array.from(
-      opened.querySelectorAll('h3, input[type="checkbox"]:not([value]), p, a, button'),
-    ).map((element) => element.textContent)
-    const order = [
-      '사는 곳',
-      '일하는 곳',
-      '일하는 곳도 더하기',
-      '직접 추가 0곳',
-      '마이페이지에서 이름으로 더할 수 있어요',
-      '+ 어디 살든 가입되는 도서관 39곳도 늘 같이 찾아요',
-      '가입 방법',
-      '마이페이지에서 전체 보기',
-    ]
-    expect(parts.filter((text) => order.includes(text ?? ''))).toEqual(order)
-    // the 방문 가입 switch is in its own "가입 방법" part, after the 어디 살든 가입 note (user 2026-10-19)
-    const visit = within(opened).getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' })
-    const openLine = within(opened).getByText(/늘 같이 찾아요$/)
-    expect(openLine.compareDocumentPosition(visit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(within(opened).getByRole('group', { name: '가입 방법' }).contains(visit)).toBe(true)
-    // a switch with its small line (user 2026-10-19)
-    expect(
-      within(opened).getByRole('switch', {
-        name: '온라인에서 가입 가능한 곳만 보기',
-        description: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
-      }),
-    ).toBe(visit)
+    expect(within(opened).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['거주'])
+    expect(within(opened).queryByRole('group', { name: '일하는 곳' })).toBeNull()
+    expect(within(opened).queryByText(/직접 추가/)).toBeNull()
+    expect(within(opened).queryByText(/어디 살든 가입되는 도서관/)).toBeNull()
+    expect(within(opened).queryByRole('switch')).toBeNull()
+    expect(within(opened).queryByText('가입 방법')).toBeNull()
+    expect(within(opened).queryByRole('link', { name: '마이페이지에서 전체 보기' })).toBeNull()
+    // "더 자세한 설정은 [마이페이지]에서 할 수 있어요", the word a bold underlined link (user 2026-10-20)
+    expect(within(opened).getByText(/^더 자세한 설정은/).textContent).toBe('더 자세한 설정은 마이페이지에서 할 수 있어요')
+    const link = within(opened).getByRole('link', { name: '마이페이지' })
+    expect(link.getAttribute('href')).toBe('/my-libraries')
+    expect(link.className).toContain('strongLink')
+  })
 
-    // a modal on wider screens (user 2026-10-19): the page under the overlay takes no pointer, so a press outside is
-    // sent directly (the way radix's outside-press listener sees it)
-    fireEvent.pointerDown(screen.getByText('outside'))
-    fireEvent.click(screen.getByText('outside'))
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-
+  // one region: no + while one is chosen and no limit line; × first to pick another (user 2026-10-20)
+  it('takes one 거주: no + and no limit line while one is chosen, + again after ×', async () => {
+    guestRegions([1114])
+    const { user } = renderLine()
     await user.click(await folded())
+    const residence = within(await box()).getByRole('group', { name: '거주' })
+    await waitFor(() => expect(within(residence).getByText('서울 마포구')).toBeTruthy())
+    expect(within(residence).queryByRole('button', { name: '사는 곳 추가' })).toBeNull()
+    expect(within(residence).queryByText(/^최대 \d+곳이에요$/)).toBeNull()
+
+    await user.click(within(residence).getByRole('button', { name: '서울 마포구 빼기' }))
+    expect(await within(residence).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
+  })
+
+  // only the first 거주 is shown and changed; the rest stays as the my page set it (user 2026-10-20: "메인은 그냥 맨 앞에
+  // 거주 조건만 바꾸는 걸로 해줘")
+  it('shows and changes only the first 거주; further residences and the workplaces stay', async () => {
+    guestRegions([1114, 1102], [4113])
+    const { user } = renderLine()
+    await user.click(await folded())
+    const residence = within(await box()).getByRole('group', { name: '거주' })
+    const chips = within(residence).getByRole('list', { name: '고른 사는 곳' })
+    await waitFor(() => expect(within(chips).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      expect.stringContaining('서울 마포구'),
+    ]))
+    await user.click(within(residence).getByRole('button', { name: '서울 마포구 빼기' }))
+    expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!)).toMatchObject({ residence: [1102], work: [4113] })
+    // the one left moves up into the box
+    await waitFor(() => expect(within(residence).getByText('서울 중구')).toBeTruthy())
+  })
+
+  it('closes on ⓧ, on Esc and on the my page link', async () => {
+    const { user } = renderLine()
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(within(await box()).getByRole('button', { name: '닫기' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
+
+    await user.click(screen.getByRole('button', { name: '지역 선택' }))
     await box()
     await user.keyboard('{Escape}')
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
+
+    await user.click(screen.getByRole('button', { name: '지역 선택' }))
+    await user.click(within(await box()).getByRole('link', { name: '마이페이지' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
   })
 
-  it('the 어디 살든 가입 line goes without a number it does not know; the switch only reports the choice', async () => {
-    guestRegions([1114])
-    const { user, onVisitChange } = renderLine()
-    await user.click(await folded())
-    const opened = await box()
-    expect(within(opened).getByText('+ 어디 살든 가입되는 도서관도 늘 같이 찾아요')).toBeTruthy()
-    await user.click(within(opened).getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' }))
-    expect(onVisitChange).toHaveBeenCalledWith('none')
-  })
-
-  it('names the added libraries from the list without regions, read only for them; a missing one is 꺼진 도서관', async () => {
-    localStorage.setItem('chaekcheck.chosenLibraries.v1', JSON.stringify([999, 12, 207]))
-    const { user, onOpenCount } = renderLine()
-    await user.click(await folded())
-    const opened = await box()
-    expect(within(opened).getByRole('heading', { name: '직접 추가 3곳' })).toBeTruthy()
-    expect(await within(opened).findByText('꺼진 도서관, 마포구립 전자도서관 외 1곳')).toBeTruthy()
-    expect(fake.libraryLists).toBe(1)
-    // the list's OPEN rows are the number of 어디 살든 가입 libraries (R3-4)
-    expect(onOpenCount).toHaveBeenCalledWith(2)
-  })
-
-  it('without added libraries the list is not read (D4)', async () => {
+  it('the library list is not read, even with added libraries (D4)', async () => {
+    localStorage.setItem('chaekcheck.chosenLibraries.v1', JSON.stringify([12]))
     guestRegions([1114])
     const { user } = renderLine()
     await user.click(await folded())
@@ -354,11 +354,11 @@ describe('the box (R1-4)', () => {
     expect(fake.libraryLists).toBe(0)
   })
 
-  it('before login a check is saved in this browser and the save hint shows under 사는 곳 (R9)', async () => {
+  it('before login a check is saved in this browser and the save hint shows under 거주 (R9)', async () => {
     const { user } = renderLine()
     await user.click(await screen.findByRole('button', { name: '지역 선택' }))
     const opened = await box()
-    const residence = within(opened).getByRole('group', { name: '사는 곳' })
+    const residence = within(opened).getByRole('group', { name: '거주' })
     const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
     await waitFor(() => expect(add.disabled).toBe(false))
     await user.click(add)
@@ -366,7 +366,6 @@ describe('the box (R1-4)', () => {
     await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시군구' }), '마포구')
     expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!).residence).toEqual([1114])
     expect(within(residence).getByText(/^이 브라우저에만 저장됐어요/)).toBeTruthy()
-    expect(within(within(opened).getByRole('group', { name: '일하는 곳' })).queryByText(/이 브라우저에만/)).toBeNull()
 
     await user.keyboard('{Escape}')
     const line = await folded()
@@ -443,20 +442,17 @@ describe('the phone "찾을 도서관" sheet', () => {
   function renderChipWithSheet() {
     function Harness() {
       const [open, setOpen] = useState(false)
-      const common = {
-        visit: 'any' as const,
-        onVisitChange: vi.fn(),
-        openCount: 70,
-        onOpenCount: vi.fn(),
-      }
       return (
         <>
           <LibraryScopeChip
-            {...common}
+            visit="none"
+            onVisitChange={vi.fn()}
+            openCount={70}
+            onOpenCount={vi.fn()}
             planCount={null}
             onOpen={() => setOpen(true)}
           />
-          <LibraryScopeSheet {...common} open={open} onOpenChange={setOpen} focus="residence" />
+          <LibraryScopeSheet open={open} onOpenChange={setOpen} />
         </>
       )
     }
@@ -478,23 +474,30 @@ describe('the phone "찾을 도서관" sheet', () => {
     return userEvent.setup()
   }
 
-  it('a dialog named "찾을 도서관" with the box body, a handle and ⓧ, and no other settings', async () => {
+  // only 거주 and the my page line since user 2026-10-20 (no 일하는 곳, 가입 방법 or [마이페이지에서 전체 보기])
+  it('a dialog named "찾을 도서관" with 거주, a handle, ⓧ and the my page line, and no other settings', async () => {
     const user = renderChipWithSheet()
     await user.click(await screen.findByRole('button', { name: '지역 선택' }))
 
-    const sheet = within(await box())
+    const sheet = within(await sheetDialog())
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
-    expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
-    expect(sheet.getByRole('heading', { name: '일하는 곳' })).toBeTruthy()
-    expect(sheet.getByRole('switch', { name: '온라인에서 가입 가능한 곳만 보기' })).toBeTruthy()
-    // no grey notes on the phone sheet (user 2026-10-20)
+    expect(sheet.getByRole('heading', { name: '거주' })).toBeTruthy()
+    expect(sheet.queryByRole('heading', { name: '일하는 곳' })).toBeNull()
+    expect(sheet.queryByRole('switch')).toBeNull()
+    expect(sheet.queryByRole('heading', { name: '가입 방법' })).toBeNull()
     expect(sheet.queryByText(/어디 살든 가입되는 도서관/)).toBeNull()
-    expect(sheet.queryByText('도서관에 직접 가야 가입되는 곳은 결과에서 빼요')).toBeNull()
-    expect(sheet.getByRole('heading', { name: '가입 방법' })).toBeTruthy()
-    expect(sheet.getByRole('link', { name: '마이페이지에서 전체 보기' })).toBeTruthy()
+    expect(sheet.queryByRole('link', { name: '마이페이지에서 전체 보기' })).toBeNull()
+    expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
     expect(sheet.queryByRole('radiogroup')).toBeNull()
 
     await user.click(sheet.getByRole('button', { name: '닫기' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('the my page link closes the sheet', async () => {
+    const user = renderChipWithSheet()
+    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(within(await sheetDialog()).getByRole('link', { name: '마이페이지' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })

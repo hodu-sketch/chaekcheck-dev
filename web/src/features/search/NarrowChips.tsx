@@ -60,7 +60,8 @@ export function NarrowChips({ input, searched, direct, beforeSearch = false, onN
           disabled={direct}
           onClick={toggleExactTitle}
         >
-          제목 정확히
+          {/* user 2026-10-20: "제목 정확히 이걸 제목 일치" */}
+          제목 일치
         </button>
       )}
       {searched.author.trim() &&

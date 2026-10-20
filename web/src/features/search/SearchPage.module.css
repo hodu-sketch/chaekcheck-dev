@@ -4,6 +4,11 @@
   gap: 1.6rem;
 }
 
+/* results: the tabs closer to the search box and its chips (user 2026-10-20) */
+.page[data-state='results'] {
+  gap: 1rem;
+}
+
 /* with results, and 「전자책 검색」 before a search: one centered column of --content-width (user choice 2026-10-05) */
 .page[data-state='results'],
 .page[data-state='ebook'] {

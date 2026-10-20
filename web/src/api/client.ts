@@ -64,6 +64,11 @@ export function fetchRegions(signal?: AbortSignal): Promise<SidoNode[]> {
   return getJson('/api/v1/regions', signal)
 }
 
+/** The 시도 short name the visitor's address is in ("부산"), or null (user 2026-10-20: the example card only). */
+export function fetchSidoGuess(signal?: AbortSignal): Promise<{ sido: string | null }> {
+  return getJson('/api/v1/regions/guess', signal)
+}
+
 /** At most 20 ids per call (API limit). */
 export const MAX_RESOLUTION_IDS = 20
 

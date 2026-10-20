@@ -374,3 +374,24 @@
   font: inherit;
   cursor: pointer;
 }
+
+
+/* 「더 보기」 and 「접기」 side by side under a list (user 2026-10-20) */
+.listActions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* 「온라인에서 가입 가능한 곳만 보기」 on its own, between the sections */
+.joinSwitch {
+  display: flex;
+  flex-direction: column;
+}
+
+/* the libraries a region brings in: names only (user 2026-10-20) */
+.nameList {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+  line-height: 1.75;
+}
