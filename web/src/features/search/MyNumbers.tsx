@@ -20,6 +20,8 @@ export const NUMBERS_TEXT = {
   visit: (count: number) => `그중 가야 하는 곳 ${count}`,
   showNames: '이름 보기',
   more: (count: number) => `${count}곳 더 보기`,
+  // user 2026-10-20: "줄이기도 좀 있어줘"
+  fold: '접기',
 } as const
 
 export interface Counted {
@@ -107,11 +109,16 @@ export function MyNumbers({ residence, work }: { residence: readonly number[]; w
               <li key={`${index}-${name}`}>{name}</li>
             ))}
           </ul>
-          {names.length > shown && (
-            <button type="button" className={styles.link} onClick={() => setShown(shown + NAMES_STEP)}>
-              {NUMBERS_TEXT.more(Math.min(NAMES_STEP, names.length - shown))}
+          <p className={styles.actions}>
+            {names.length > shown && (
+              <button type="button" className={styles.link} onClick={() => setShown(shown + NAMES_STEP)}>
+                {NUMBERS_TEXT.more(Math.min(NAMES_STEP, names.length - shown))}
+              </button>
+            )}
+            <button type="button" className={styles.link} onClick={() => setShown(0)}>
+              {NUMBERS_TEXT.fold} ▴
             </button>
-          )}
+          </p>
         </>
       )}
     </section>

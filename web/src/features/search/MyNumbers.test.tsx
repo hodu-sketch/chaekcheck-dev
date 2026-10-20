@@ -55,6 +55,10 @@ describe('the numbers after a pick (handoff 5-A-4)', () => {
       '도서관 3',
       '도서관 4',
     ])
+    // 접기 goes back to the two names (user 2026-10-20: "줄이기도 좀 있어줘")
+    await userEvent.setup().click(screen.getByRole('button', { name: '접기 ▴' }))
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: '이름 보기 ▾' })).toBeTruthy()
   })
 
   it('asks again within 5 minutes only from the cache: no second request', async () => {

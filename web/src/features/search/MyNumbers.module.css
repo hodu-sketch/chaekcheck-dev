@@ -1,20 +1,17 @@
-/* The person's own numbers after a region is picked (ADR-0139 #4): a soft green box like the plan's picture */
+/* The person's own numbers after a region is picked (ADR-0139 #4): a white box (user 2026-10-20: "초록색깔 어색하니까
+   그냥 흰색으로") */
 .panel {
-  --ok: #17663a;
-  --ok-soft: #e9f7ef;
-  --ok-line: #bfe5cf;
-
   padding: 0.75rem 0.9rem;
-  border: 1px solid var(--ok-line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-control);
-  background: var(--ok-soft);
+  background: var(--card);
   color: var(--ink);
   font-size: var(--text-sm);
 }
 
 .headline {
   margin: 0 0 0.45rem;
-  color: var(--ok);
+  color: var(--ink);
   font-weight: 800;
 }
 
@@ -40,9 +37,9 @@
 }
 
 .pill[data-tone='open'] {
-  background: #fff;
-  color: var(--ok);
-  box-shadow: inset 0 0 0 1px var(--ok-line);
+  /* the yellow of the first screen's 상관없이 pills */
+  background: #fff4cc;
+  color: #8a5a00;
 }
 
 .pill[data-tone='visit'] {
@@ -71,6 +68,11 @@
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
 }
 
 .link:focus-visible {
