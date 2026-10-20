@@ -36,16 +36,27 @@
   color: var(--brand-strong);
 }
 
-/* the 가입 방법 chip at the row's right end: 「온라인 가입만」 in the 방문 가입 colour, 「방문 가입도」 plain (as first made;
-   a swap was undone the same day, user 2026-10-20: "원래 안이랬자나") */
+/*
+ * The 가입 방법 chip at the row's right end. The two looks swapped (user 2026-10-20: "온라인 가입만일 상태의 색조합이랑
+ * 방문 가입도일 때의 색조합이랑 바꾸라고"): 「방문 가입도」 has the pink 방문 가입 look, 「온라인 가입만」 the plain chip look.
+ * Fixed on hover too, so a tap on a phone (hover stays after it) never mixes in the violet hover colours.
+ */
 .onlineChip {
   margin-left: auto;
 }
 
-.onlineChip[data-on] {
+.onlineChip:not([data-on]),
+.onlineChip:not([data-on]):hover {
   border-color: var(--visit-strong) !important;
   background: var(--visit-soft) !important;
   color: var(--visit-strong) !important;
+}
+
+.onlineChip[data-on],
+.onlineChip[data-on]:hover {
+  border-color: var(--rule-strong) !important;
+  background: var(--card) !important;
+  color: var(--ink-soft) !important;
 }
 
 .chip[data-on],
