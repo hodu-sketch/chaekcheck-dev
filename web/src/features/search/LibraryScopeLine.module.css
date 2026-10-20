@@ -422,8 +422,8 @@
 .body[data-compact] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: 1.5rem;
-  row-gap: 0;
+  /* no gap, so row 2's hairline runs unbroken; the right column keeps its room by padding */
+  gap: 0;
 }
 
 .body[data-compact] > :not(.part, .myPageLine) {
@@ -445,6 +445,7 @@
 /* row 1, right: room for ⓧ */
 .body[data-compact] .part:nth-of-type(2) {
   padding-right: 2rem;
+  padding-left: 1.5rem;
 }
 
 .body[data-compact] .part > .partTitle {
