@@ -81,7 +81,7 @@ export const SCOPE_TEXT = {
   visitNote: '도서관에 직접 가야 가입되는 곳은 결과에서 빼요',
   myPage: '마이페이지에서 전체 보기',
   // the main page's box, instead of the 직접 추가 part (user 2026-10-20: "직접추가 도서관은 마이페이지 가라")
-  chosenMyPage: '직접 추가 도서관은 마이페이지에서 →',
+  chosenMyPage: '직접 추가는 마이페이지에서 →',
   // a screen that is not a search (the book page) after the regions or the switch changed (user 2026-10-20: "여기 검색에도
   // 다른 것들처럼 정보 바꼈으니까 검색 새로하라고하고 가능한 버튼 만들어줘"; no 반영하기 in the window any more)
   changedBefore: '조건을 바꿨어요. 바뀐 조건으로 찾으려면 ',

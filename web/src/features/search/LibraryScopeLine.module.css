@@ -182,7 +182,7 @@
   position: relative;
   width: min(40rem, 100%);
   margin-top: 0.5rem;
-  padding: 0.5rem 1rem 0.7rem;
+  padding: 0.4rem 1rem 0.45rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -416,7 +416,7 @@
 /* two rows: 사는 곳 | 일하는 곳, then 가입 방법 | the my page line */
 .body[data-compact] {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0;
   padding-right: 1.6rem;
 }
@@ -467,6 +467,10 @@
 
 .body[data-compact] .visitNote {
   display: none;
+}
+
+.body[data-compact] .visitTitle {
+  white-space: nowrap;
 }
 
 .body[data-compact] > .myPageLine {
