@@ -395,3 +395,11 @@
   color: var(--ink-soft);
   line-height: 1.75;
 }
+
+/* a section's small explanation under its title (직접 추가한 도서관, user 2026-10-20) */
+.sectionNote {
+  margin: -0.3rem 0 0.6rem;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  word-break: keep-all;
+}

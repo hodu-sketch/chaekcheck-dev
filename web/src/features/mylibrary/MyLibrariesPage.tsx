@@ -20,6 +20,9 @@ import { SaveHint } from './SaveHint'
 import styles from './MyLibrariesPage.module.css'
 
 /** Wording [안 문구, 규칙 확정] (flow S10); a failed add or remove says `libraryChangeMessage`. */
+/** Under 「직접 추가한 도서관」 [확정] (user 2026-10-20). */
+const ADDED_NOTE = '지역 조건이나 온라인 가입 여부와 상관없이 늘 함께 찾아요'
+
 const TEXT = {
   limit: LIBRARY_CHANGE_TEXT.limit,
   disabled: '지금은 쓸 수 없는 도서관이에요',
@@ -487,6 +490,8 @@ function ChosenSections({ rows }: { rows: LibraryEligibilityRow[] }) {
           </span>
         }
       >
+        {/* what an added library does (user 2026-10-20: "직접 추가한 도서관에 설명이라도 좀") */}
+        <p className={styles.sectionNote}>{ADDED_NOTE}</p>
         {message && (
           <p className={styles.error} role="alert">
             {message}
