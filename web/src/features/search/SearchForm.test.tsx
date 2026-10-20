@@ -71,6 +71,8 @@ describe('SearchForm: the first screen (상세검색 안 C, user 2026-10-19)', (
     await user.click(searchButton())
 
     expect(screen.getByRole('alert').textContent).toContain('검색어를 입력하세요')
+    // read out only; the red box shows it (user 2026-10-20)
+    expect(screen.getByRole('alert').className).toBe('visually-hidden')
     expect(onSearch).not.toHaveBeenCalled()
   })
 

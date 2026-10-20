@@ -138,8 +138,9 @@ export function SearchForm({
         {!centered && <SettingsPanel settings={settings} onChange={onSettingsChange} sheet={settingsSheet} />}
         {lineEnd && <div className={styles.lineEnd}>{lineEnd}</div>}
       </div>
+      {/* not on screen, only the red box (user 2026-10-20: "검색어를 입력하세요 문구 빼줘"); screen readers still hear it */}
       {problems.none && (
-        <p id={errorId('none')} className={styles.error} role="alert">
+        <p id={errorId('none')} className="visually-hidden" role="alert">
           {problems.none}
         </p>
       )}
