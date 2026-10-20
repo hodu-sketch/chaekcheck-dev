@@ -468,6 +468,8 @@
   width: 100%;
   min-width: 0;
   min-height: 1.5rem;
+  /* room above and below, apart from the search box and the chips (user 2026-10-20: "위아래로 간격 좀 두는") */
+  padding-block: 0.4rem;
 }
 
 .noteText {
