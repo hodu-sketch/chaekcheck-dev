@@ -559,7 +559,7 @@ describe('the first screen', () => {
     expect(await within(panel).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
     // one screen: no 직접 추가 part, a line to the my page instead (user 2026-10-20)
     expect(within(panel).queryByText(/^직접 추가 \d+곳$/)).toBeNull()
-    expect(within(panel).getByRole('link', { name: '직접 추가한 도서관은 마이페이지에서 골라요 →' }).getAttribute('href')).toBe(
+    expect(within(panel).getByRole('link', { name: '직접 추가 도서관은 마이페이지에서 →' }).getAttribute('href')).toBe(
       '/my-libraries',
     )
     await user.keyboard('{Escape}')

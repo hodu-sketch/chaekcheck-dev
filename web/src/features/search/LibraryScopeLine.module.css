@@ -413,18 +413,39 @@
   right: 0.45rem;
 }
 
+/* two rows: 사는 곳 | 일하는 곳, then 가입 방법 | the my page line */
 .body[data-compact] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
+  padding-right: 1.6rem;
+}
+
+.body[data-compact] > :not(.part, .myPageLine) {
+  grid-column: 1 / -1;
+}
+
+.body[data-compact] .part + .part {
+  border-top: none;
+}
+
+.body[data-compact] .part:nth-of-type(2) {
+  padding-left: 1rem;
+}
+
+.body[data-compact] .part:last-of-type,
+.body[data-compact] > .myPageLine {
+  border-top: 1px solid var(--rule);
 }
 
 /* one row a part: the title left, its controls right */
 .body[data-compact] .part {
   display: grid;
-  grid-template-columns: 4.6rem minmax(0, 1fr);
+  grid-template-columns: 4.2rem minmax(0, 1fr);
   align-items: center;
-  column-gap: 0.75rem;
+  column-gap: 0.5rem;
   row-gap: 0.4rem;
-  padding: 0.45rem 2rem 0.45rem 0;
+  padding: 0.45rem 0;
 }
 
 .body[data-compact] .part > * {
@@ -437,9 +458,6 @@
   font-size: var(--text-md);
 }
 
-.body[data-compact] .part + .part {
-  padding-top: 0.45rem;
-}
 
 .body[data-compact] .visit {
   padding: 0.3rem 0;
@@ -451,8 +469,11 @@
   display: none;
 }
 
-.body[data-compact] .myPageLine {
-  margin-top: 0.35rem;
+.body[data-compact] > .myPageLine {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .myPageLine {
