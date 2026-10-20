@@ -291,9 +291,8 @@ describe('result groups', () => {
     expect(screen.queryByRole('button', { name: '사는 곳 고르기' })).toBeNull()
   })
 
-  it('offers to remove the visit-only libraries shown in ②, then to put them back', async () => {
-    const searchContext = context()
-    const user = renderGrouped(
+  it('no 가입 방법 line above the groups and none in ② (user 2026-10-20)', () => {
+    renderGrouped(
       [
         groupedView(1, [
           testRow({ libraryId: 2, rank: 1 }),
@@ -301,23 +300,18 @@ describe('result groups', () => {
           testRow({ libraryId: 1, rank: 1 }),
         ]),
       ],
-      searchContext,
+      context(),
     )
     const openGroup = screen.getByRole('region', { name: /어디 살든 가입되는 도서관에 있어요/ })
-    expect(within(openGroup).getByText(/이 중 1곳은 가입하려면 도서관에 가야 해요/)).toBeTruthy()
-    // the switch is the line above the groups, in both states (user 2026-10-20)
-    expect(within(openGroup).queryByRole('button', { name: '온라인 가입만 보기' })).toBeNull()
-    expect(screen.getByText(/직접 가서 가입하는 곳도 보는 중이에요/)).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: '온라인 가입만 보기' }))
-    expect(searchContext.onVisitNone).toHaveBeenCalledTimes(1)
+    expect(within(openGroup).queryByText(/곳은 가입하려면|온라인으로 바로 가입할 수 있어요/)).toBeNull()
+    // no line about it above the groups either: the 「온라인 가입만」 chip by the search box says it (user 2026-10-20)
+    expect(screen.queryByText(/곳도 보는 중이에요/)).toBeNull()
 
     cleanup()
-    const removed = context({ visit: 'none' })
-    const again = renderGrouped([groupedView(1, [testRow({ libraryId: 1, rank: 1 })])], removed)
-    expect(screen.getByText(/온라인으로 가입할 수 있는 곳만 보는 중이에요/)).toBeTruthy()
+    renderGrouped([groupedView(1, [testRow({ libraryId: 1, rank: 1 })])], context({ visit: 'none' }))
+    expect(screen.queryByText(/곳만 보는 중이에요/)).toBeNull()
     expect(screen.queryByText(/곳은 가입하려면/)).toBeNull()
-    await again.click(screen.getByRole('button', { name: '모두 보기' }))
-    expect(removed.onVisitBack).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: '모두 보기' })).toBeNull()
   })
 
   /** "지역 외는 방문 가입" (user 2026-10-20): the server's visitRequired already follows the user's regions. */
@@ -331,7 +325,7 @@ describe('result groups', () => {
     }
     const plainOpen = library(6)
 
-    it('outside the region: in ②, counted in "이 중 N곳은 가입하려면 도서관에 가야 해요", pill 「지역 외는 방문 가입」', () => {
+    it('outside the region: in ②, pill 「지역 외는 방문 가입」 (no 「이 중 N곳은 …」 line since 2026-10-20)', () => {
       const libraries = [outside, plainOpen]
       renderGrouped(
         [groupedView(1, [testRow({ libraryId: 5, rank: 1 }), testRow({ libraryId: 6, rank: 1 })], 'done', 0, libraries)],
@@ -339,7 +333,7 @@ describe('result groups', () => {
         { libraries },
       )
       const openGroup = screen.getByRole('region', { name: /어디 살든 가입되는 도서관에 있어요/ })
-      expect(within(openGroup).getByText(/이 중 1곳은 가입하려면 도서관에 가야 해요/)).toBeTruthy()
+      expect(within(openGroup).queryByText(/곳은 가입하려면/)).toBeNull()
       expect(within(openGroup).getByText('지역 외는 방문 가입')).toBeTruthy()
       expect(within(openGroup).queryByText('방문 가입')).toBeNull()
       expect(bookTitles(openGroup)).toHaveLength(2)

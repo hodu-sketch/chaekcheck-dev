@@ -24,7 +24,12 @@ type Props = {
   beforeSearch?: boolean
   /** Searches again at once with the changed conditions. */
   onNarrow: (next: BookSearchInput, field?: TextField) => NarrowResult
+  /** 「온라인 가입만」 at the row's right end: on = `visit=none`; absent before a search. */
+  onlineOnly?: { on: boolean; onToggle: () => void }
 }
+
+/** [확정] (user 2026-10-20). */
+const ONLINE_ONLY = '온라인 가입만'
 
 const PLACEHOLDERS: Record<TextField, string> = { author: '예: 한강', publisher: '예: 창비' }
 
@@ -34,7 +39,7 @@ const PLACEHOLDERS: Record<TextField, string> = { author: '예: 한강', publish
  * chip with ×. 제목 정확히 and the author roles (shown once an author is set; they only widen the author match) are
  * toggles. Every change searches again at once, with the same address parameters as before.
  */
-export function NarrowChips({ input, searched, direct, beforeSearch = false, onNarrow }: Props) {
+export function NarrowChips({ input, searched, direct, beforeSearch = false, onNarrow, onlineOnly }: Props) {
   const toggleExactTitle = () =>
     onNarrow({
       ...input,
@@ -82,6 +87,19 @@ export function NarrowChips({ input, searched, direct, beforeSearch = false, onN
           )
         })}
       {direct && <p className={styles.reason}>{DIRECT_REASON}</p>}
+      {/* the 가입 방법 switch as a chip of the same shape, at the right end (user 2026-10-20: "제목일치 있는 행의 오른쪽에서
+          제목일치랑 같은 모양의 토글"); it searches again at once */}
+      {onlineOnly && (
+        <button
+          type="button"
+          className={`${styles.chip} ${styles.onlineChip}`}
+          aria-pressed={onlineOnly.on}
+          data-on={onlineOnly.on || undefined}
+          onClick={onlineOnly.onToggle}
+        >
+          {ONLINE_ONLY}
+        </button>
+      )}
     </div>
   )
 }

@@ -36,6 +36,17 @@
   color: var(--brand-strong);
 }
 
+/* 「온라인 가입만」: at the row's right end, in the 방문 가입 colour when on */
+.onlineChip {
+  margin-left: auto;
+}
+
+.onlineChip[data-on] {
+  border-color: var(--visit-strong) !important;
+  background: var(--visit-soft) !important;
+  color: var(--visit-strong) !important;
+}
+
 .chip[data-on],
 .fieldChip[data-on] {
   border-color: var(--brand);

@@ -349,7 +349,7 @@ function Groups({
   tags: boolean
   context: ResultSearchContext | undefined
 }) {
-  const { groups, visitRequiredOpenSites } = groupBatches(batches, libraryById)
+  const { groups } = groupBatches(batches, libraryById)
   const [mine, open, other] = groups
   const firstDone = batches[0]?.batch.status === 'done'
   const regionBasis = regionBasisOf(context)
@@ -359,29 +359,8 @@ function Groups({
       {label}
     </button>
   )
-  const visitRemoved = context?.visit === 'none'
-  // 「온라인으로 가입할 수 있는 곳만 보는 중이에요」 covers every group, 내 도서관 too: one line above them (user
-  // 2026-10-20: "원래 내 도서관도 방문가입 조건 따로있지않아?"); the 어디 살든 group keeps its 「이 중 N곳은 …」
-  // both ways stay in that same place, so the switch back is where the switch was (user 2026-10-20: "누르니까 되돌리는
-  // 건 아래에나온다")
-  const removedLine = context ? (
-    <p className={styles.visitRemovedLine}>
-      <span className={styles.noteAside}>
-        {visitRemoved ? GROUP_TEXT.visitRemoved : GROUP_TEXT.visitAll} ·{' '}
-        {visitRemoved
-          ? linkButton(GROUP_TEXT.visitBack, context.onVisitBack)
-          : linkButton(GROUP_TEXT.visitRemove, context.onVisitNone)}
-      </span>
-    </p>
-  ) : null
-  const visitLine =
-    context && !visitRemoved && visitRequiredOpenSites > 0 ? (
-      <span className={styles.noteAside}>{GROUP_TEXT.visitSome(visitRequiredOpenSites)}</span>
-    ) : null
-
   return (
     <>
-      {removedLine}
       {mine.count > 0 ? (
         <GroupSection
           group={mine}
@@ -406,12 +385,8 @@ function Groups({
         <GroupSection
           group={open}
           title={GROUP_TEXT.open}
-          note={
-            <>
-              {GROUP_TEXT.openNote}
-              {visitLine && <> · {visitLine}</>}
-            </>
-          }
+          // no small line in either 가입 방법 (user 2026-10-20: "온라인으로 바로 가입할 수 있어요 빼줘 가서 가입하는거
+          // 허용할때도 마찬가지")
           {...common}
         />
       ) : null}

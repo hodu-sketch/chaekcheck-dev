@@ -409,6 +409,8 @@
 }
 
 .visitRemovedLine {
+  /* close to the tabs above and the first group below (user 2026-10-20: "주변 글자 간격 좀 붙이고") */
+  margin: -0.8rem 0 -0.9rem;
   font-size: var(--text-sm);
 }
 

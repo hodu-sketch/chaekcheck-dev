@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -201,16 +201,18 @@ describe('buttons inside the results (cycle 22 R8-3)', () => {
     expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
   })
 
-  it('[온라인 가입만 보기] searches again with visit=none and keeps it; [모두 보기] puts it back', async () => {
+  it('「온라인 가입만」 is a chip in the narrowing row: it searches again with visit=none and back (user 2026-10-20)', async () => {
     const user = renderSearch()
-    await user.click(await screen.findByRole('button', { name: '온라인 가입만 보기' }))
+    const chip = await screen.findByRole('button', { name: '온라인 가입만' })
+    expect(within(screen.getByRole('group', { name: '검색 좁히기' })).getByRole('button', { name: '온라인 가입만' })).toBe(chip)
+    expect(chip.getAttribute('aria-pressed')).toBe('false')
+    await user.click(chip)
     await vi.waitFor(() => expect(lastStream().visit).toBe('none'))
     expect(loadPrefs().visit).toBe('none')
-
-    await user.click(await screen.findByRole('button', { name: '모두 보기' }))
+    await user.click(await screen.findByRole('button', { name: '온라인 가입만', pressed: true }))
     await vi.waitFor(() => expect(lastStream().visit).toBe('any'))
     expect(loadPrefs().visit).toBe('any')
-    expect(await screen.findByRole('button', { name: '온라인 가입만 보기' })).toBeTruthy()
+    expect(screen.queryByText(/곳만 보는 중이에요|곳도 보는 중이에요/)).toBeNull()
   })
 
   it('an empty ① for a search with regions offers [전국에서 찾기], which searches with scope=all', async () => {

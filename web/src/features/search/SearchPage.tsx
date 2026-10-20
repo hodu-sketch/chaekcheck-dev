@@ -503,6 +503,11 @@ export function SearchPage() {
         ? searchedResidence
         : searchedWork,
   )
+  // 「온라인 가입만」 on or off: kept for the next search, and this search again with it (user 2026-10-20)
+  const switchVisit = (next: VisitFilter) => {
+    keepPrefs({ visit: next })
+    searchAgain((address) => writeVisit(next, address))
+  }
   const searchContext: ResultSearchContext = {
     hasMine: searchedMine,
     tagPlace,
@@ -518,14 +523,8 @@ export function SearchPage() {
     scope,
     visit,
     onSearchAll: () => searchAgain((address) => address.set('scope', 'all')),
-    onVisitNone: () => {
-      keepPrefs({ visit: 'none' })
-      searchAgain((address) => writeVisit('none', address))
-    },
-    onVisitBack: () => {
-      keepPrefs({ visit: 'any' })
-      searchAgain((address) => writeVisit('any', address))
-    },
+    onVisitNone: () => switchVisit('none'),
+    onVisitBack: () => switchVisit('any'),
   }
   // the grouped results on screen (direct search, or 바로 보기), the ones that take `searchContext`
   const groupedResults = (settings.direct && directValid && condition && searchedWith) || (bookQuery && settings.view !== 'books')
@@ -623,6 +622,7 @@ export function SearchPage() {
           </>
         )}
         <SearchForm
+          onlineOnly={{ on: visit === 'none', onToggle: () => switchVisit(visit === 'none' ? 'any' : 'none') }}
           key={formKey}
           initial={input ?? EMPTY_INPUT}
           settings={settings}
