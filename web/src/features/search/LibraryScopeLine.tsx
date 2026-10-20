@@ -1,3 +1,4 @@
+import { Dialog } from 'radix-ui'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { VisitFilter } from '../../api/types'
@@ -294,18 +295,6 @@ function ConditionCard({
  */
 export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
   const state = useLineState()
-  const panelId = useId()
-  const titleId = useId()
-  // Esc closes the box wherever the focus is (it is part of the page now, not a window that holds the focus)
-  const open = box !== null
-  useEffect(() => {
-    if (!open) return
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onBoxChange(null)
-    }
-    document.addEventListener('keydown', escape)
-    return () => document.removeEventListener('keydown', escape)
-  }, [open, onBoxChange])
   const condition = useCondition(
     common.searched,
     common.visitChanged,
@@ -326,50 +315,46 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
 
   return (
     <div className={styles.root}>
-      <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
-        <button
-          type="button"
-          className={styles.conditionAction}
-          aria-describedby={textId}
-          aria-expanded={box !== null}
-          aria-controls={box !== null ? panelId : undefined}
-          onClick={() => onBoxChange(box === null ? 'residence' : null)}
-        >
-          {condition.action}
-        </button>
-      </ConditionCard>
-      {/* PC and tablets: the box opens under the card and pushes the page down, no window over the screen (user
-          2026-10-20: "지역 설정 pc에서는 밑에 내려서 하는 걸로 모달 창 빼고"; a modal in the middle before) */}
-      {box !== null && (
-        <div
-          id={panelId}
-          className={styles.box}
-          role="dialog"
-          aria-modal="false"
-          aria-labelledby={titleId}
-        >
-          <div className={styles.boxHead}>
-            <h2 id={titleId} className={styles.boxTitle}>
-              {SCOPE_TEXT.sheetTitle}
-            </h2>
-            <button type="button" className={styles.boxClose} aria-label="닫기" onClick={() => onBoxChange(null)}>
-              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-          <LibraryScopeBody
-            key={box}
-            focus={box}
-            visit={common.visit}
-            visitChanged={common.visitChanged}
-            onVisitChange={common.onVisitChange}
-            openCount={common.openCount}
-            onOpenCount={common.onOpenCount}
-            onLeave={() => onBoxChange(null)}
-          />
-        </div>
-      )}
+      {/* a modal window in the middle of the screen (user 2026-10-19: "버튼 누르면 모달 창이 나와서 거기에서 고르도록") */}
+      <Dialog.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
+        <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
+          <Dialog.Trigger className={styles.conditionAction} aria-describedby={textId}>
+            {condition.action}
+          </Dialog.Trigger>
+        </ConditionCard>
+        <Dialog.Portal>
+          <Dialog.Overlay className={styles.overlay} />
+          <Dialog.Content
+            className={styles.box}
+            aria-describedby={undefined}
+            onOpenAutoFocus={(event) => {
+              // the 일하는 곳 row takes the focus itself (LibraryScopeBody)
+              if (box === 'work') event.preventDefault()
+            }}
+          >
+            <div className={styles.boxHead}>
+              <Dialog.Title className={styles.boxTitle}>{SCOPE_TEXT.sheetTitle}</Dialog.Title>
+              <Dialog.Close className={styles.boxClose} aria-label="닫기">
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                  <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </Dialog.Close>
+            </div>
+            {box !== null && (
+              <LibraryScopeBody
+                key={box}
+                focus={box}
+                visit={common.visit}
+                visitChanged={common.visitChanged}
+                onVisitChange={common.onVisitChange}
+                openCount={common.openCount}
+                onOpenCount={common.onOpenCount}
+                onLeave={() => onBoxChange(null)}
+              />
+            )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }

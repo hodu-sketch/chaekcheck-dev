@@ -149,16 +149,28 @@
 }
 
 /* the box under the line (S1-box): floats over the results, at most 40rem wide (D11) */
-/* the 찾을 도서관 box on PC and tablets: under the condition card, in the page (user 2026-10-20: "밑에 내려서 하는 걸로
-   모달 창 빼고"; a window in the middle of the screen before) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(27 26 36 / 0.45);
+}
+
+/* the 찾을 도서관 window on PC and tablets: in the middle of the screen, like the login window */
 .box {
-  width: min(40rem, 100%);
-  margin-top: 0.6rem;
+  position: fixed;
+  z-index: 21;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(32rem, calc(100vw - 3rem));
+  max-height: min(40rem, calc(100dvh - 3rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1.2rem 1.4rem 1.3rem;
-  border: 1px solid var(--card-border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   background: var(--card);
-  box-shadow: var(--card-shadow);
   color: var(--ink);
   font-size: var(--text-md);
   text-align: left;

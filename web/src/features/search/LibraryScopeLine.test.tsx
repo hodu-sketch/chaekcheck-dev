@@ -273,7 +273,7 @@ describe('the folded line (R3)', () => {
 })
 
 describe('the box (R1-4)', () => {
-  it('holds the parts in order under the card and closes with ⓧ, the button again and Esc', async () => {
+  it('holds the parts in order and closes on a click outside and on Esc', async () => {
     guestRegions([1114])
     const { user } = renderLine({ openCount: 39 })
     await user.click(await folded())
@@ -305,17 +305,10 @@ describe('the box (R1-4)', () => {
       }),
     ).toBe(visit)
 
-    // under the card in the page on wider screens (user 2026-10-20: "밑에 내려서 하는 걸로 모달 창 빼고"): a press
-    // outside leaves it open; ⓧ, the card's button again and Esc close it
+    // a modal on wider screens (user 2026-10-19): the page under the overlay takes no pointer, so a press outside is
+    // sent directly (the way radix's outside-press listener sees it)
     fireEvent.pointerDown(screen.getByText('outside'))
     fireEvent.click(screen.getByText('outside'))
-    expect(screen.getByRole('dialog', { name: '찾을 도서관' })).toBeTruthy()
-    await user.click(within(opened).getByRole('button', { name: '닫기' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-
-    await user.click(await folded())
-    await box()
-    await user.click(await folded())
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
     await user.click(await folded())
