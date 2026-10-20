@@ -58,6 +58,7 @@
   color: var(--ink);
   font-size: var(--text-lg);
   font-weight: 800;
+  word-break: keep-all;
 }
 
 /* the example card 「예: 서울 강서구에 살면」 (ADR-0139 #2, where 「이렇게 이용해 보세요」 was): the same white card */
