@@ -629,7 +629,8 @@
 }
 
 .pickedMore {
-  margin-left: -0.2rem;
+  /* a little apart from the pill (user 2026-10-20: "버튼이랑 +이랑 거리 좀 띄워줘") */
+  margin-left: 0.2rem;
   color: var(--brand-strong);
   font-weight: 800;
 }
