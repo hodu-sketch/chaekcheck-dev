@@ -547,6 +547,23 @@ describe('the first screen', () => {
     expect(rows()).toEqual(['거주강서구강동구송파구+ 28', '재직일하는 곳', '상관없이고흥목포군산+ 35'])
   })
 
+  it('wider screens: the box opens under the card in the page, no window; ⓧ and Esc close it (user 2026-10-20)', async () => {
+    fake.signedIn = false
+    renderSearch('/')
+    const user = userEvent.setup()
+    const button = await screen.findByRole('button', { name: '지역 선택' })
+    await user.click(button)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const panel = screen.getByRole('region', { name: '찾을 도서관' })
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(await within(panel).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
+    await user.click(button)
+    await user.click(within(screen.getByRole('region', { name: '찾을 도서관' })).getByRole('button', { name: '닫기' }))
+    expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull()
+  })
+
   it('after a search: no headline and no steps card', async () => {
     renderSearch('/search?title=사랑&view=books')
     await screen.findByRole('button', { name: '바꾸기' })

@@ -176,6 +176,20 @@
   text-align: left;
 }
 
+/* the main page on PC and tablets: the same box under the condition card, in the page (user 2026-10-20) */
+.panel {
+  width: min(40rem, 100%);
+  margin-top: 0.6rem;
+  padding: 1.2rem 1.4rem 1.3rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  color: var(--ink);
+  font-size: var(--text-md);
+  text-align: left;
+}
+
 .boxHead {
   display: flex;
   align-items: center;

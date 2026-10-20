@@ -61,6 +61,11 @@
 }
 
 /* the example card 「예: 서울 강서구에 살면」 (ADR-0139 #2, where 「이렇게 이용해 보세요」 was): the same white card */
+/* wider screens: a grid item beside the headline (below); otherwise not a box at all */
+.stepsSlot {
+  display: contents;
+}
+
 .steps {
   margin: 0 0 1.5rem;
   padding: 1.3rem 1.45rem;
@@ -185,10 +190,21 @@
 
   /* beside the eyebrow down to "어떤 책을 찾으세요?", its bottom just above the search box row (user 2026-10-19: "이 네모
      위치를 맨 아래쪽이 검색칸 행 위에 오도록"); the search box, the condition card and its hint run below it */
-  .page[data-state='start'] .steps {
+  /* the card's slot takes no height of its own, so a taller card (the names opened) never pushes the left side down
+     (user 2026-10-20: "이거 늘리면 왼쪽 간격 벌어지는데 왼쪽은 변화 없도록"): bottom on the search row while it fits, else
+     from the top down over the empty right side */
+  .page[data-state='start'] .stepsSlot {
     grid-column: 2;
     grid-row: 1 / span 2;
-    align-self: end;
+    align-self: stretch;
+    contain: size;
+    display: flex;
+    flex-direction: column;
+    justify-content: safe flex-end;
+  }
+
+  .page[data-state='start'] .steps {
+    flex-shrink: 0;
     margin: 0 0 0.6rem;
   }
 }

@@ -417,7 +417,11 @@ export function SearchPage() {
                 )}
               </p>
             </div>
-            {!phone && <StartExample phone={false} />}
+            {!phone && (
+              <div className={styles.stepsSlot}>
+                <StartExample phone={false} />
+              </div>
+            )}
             <p className={styles.question}>{START_TEXT.question}</p>
           </>
         )}
@@ -436,7 +440,7 @@ export function SearchPage() {
           beforeChips={
             phone ? undefined : (
               <div className={styles.scopeRow}>
-                <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} />
+                <LibraryScopeLine {...scopeCommon} box={box} onBoxChange={setBox} inline={start} />
                 {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
               </div>
             )

@@ -177,6 +177,8 @@ interface LineProps extends Common {
   /** The box is open, and on which grid; null = closed. */
   box: BoxFocus | null
   onBoxChange: (box: BoxFocus | null) => void
+  /** The box opens under the card in the page instead of a window (the main page only, user 2026-10-20). */
+  inline?: boolean
 }
 
 /**
@@ -290,8 +292,19 @@ function ConditionCard({
  * 2026-10-19: "내도서관 전국에서 찾는중도 빼는게"); a 전국 search shows itself by the 「그 밖의 도서관」 group, and the next
  * new search is 내 도서관 again (D10).
  */
-export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
+export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }: LineProps) {
   const state = useLineState()
+  const panelId = useId()
+  // inline: Esc closes the box wherever the focus is (it is part of the page, not a window that holds the focus)
+  const inlineOpen = inline && box !== null
+  useEffect(() => {
+    if (!inlineOpen) return
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onBoxChange(null)
+    }
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [inlineOpen, onBoxChange])
   const condition = useCondition(
     common.searched,
     common.visitChanged,
@@ -306,6 +319,56 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
     return (
       <div className={styles.line}>
         <AccountFailed />
+      </div>
+    )
+  }
+
+  const body =
+    box !== null ? (
+      <LibraryScopeBody
+        key={box}
+        focus={box}
+        visit={common.visit}
+        visitChanged={common.visitChanged}
+        onVisitChange={common.onVisitChange}
+        openCount={common.openCount}
+        onOpenCount={common.onOpenCount}
+        onLeave={() => onBoxChange(null)}
+      />
+    ) : null
+  const close = (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+
+  if (inline) {
+    // the main page on PC and tablets: the box opens under the card and pushes the page down, no window (user
+    // 2026-10-20: "메인에서만큼은 이거 누르면 모달창 말고 아래로 내려서 보이게 해줘"; other pages keep the window)
+    return (
+      <div className={styles.root}>
+        <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
+          <button
+            type="button"
+            className={styles.conditionAction}
+            aria-describedby={textId}
+            aria-expanded={box !== null}
+            aria-controls={box !== null ? panelId : undefined}
+            onClick={() => onBoxChange(box === null ? 'residence' : null)}
+          >
+            {condition.action}
+          </button>
+        </ConditionCard>
+        {box !== null && (
+          <section id={panelId} className={styles.panel} aria-label={SCOPE_TEXT.sheetTitle}>
+            <div className={styles.boxHead}>
+              <button type="button" className={styles.boxClose} aria-label="닫기" onClick={() => onBoxChange(null)}>
+                {close}
+              </button>
+            </div>
+            {body}
+          </section>
+        )}
       </div>
     )
   }
@@ -333,23 +396,10 @@ export function LibraryScopeLine({ box, onBoxChange, ...common }: LineProps) {
             <div className={styles.boxHead}>
               <Dialog.Title className="visually-hidden">{SCOPE_TEXT.sheetTitle}</Dialog.Title>
               <Dialog.Close className={styles.boxClose} aria-label="닫기">
-                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
+                {close}
               </Dialog.Close>
             </div>
-            {box !== null && (
-              <LibraryScopeBody
-                key={box}
-                focus={box}
-                visit={common.visit}
-                visitChanged={common.visitChanged}
-                onVisitChange={common.onVisitChange}
-                openCount={common.openCount}
-                onOpenCount={common.onOpenCount}
-                onLeave={() => onBoxChange(null)}
-              />
-            )}
+            {body}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
