@@ -433,9 +433,7 @@
 
 .body[data-compact] .part > .partTitle {
   grid-column: 1;
-  grid-row: 1 / span 4;
-  align-self: start;
-  padding-top: 0.3rem;
+  grid-row: 1;
   font-size: var(--text-md);
 }
 
