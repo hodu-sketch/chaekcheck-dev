@@ -416,7 +416,7 @@
 /* two rows: 사는 곳 | 일하는 곳, then 가입 방법 | the my page line */
 .body[data-compact] {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(min-content, 1fr) auto;
   gap: 0;
   padding-right: 1.6rem;
 }
@@ -475,6 +475,8 @@
 
 .body[data-compact] > .myPageLine {
   align-self: stretch;
+  padding-left: 0.8rem;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: flex-end;
