@@ -546,7 +546,7 @@ describe('the first screen', () => {
     await waitFor(() => expect(example()).not.toBeNull())
     expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe('서울 마포구에 살면')
     // 「일하는 곳」 even with a workplace set (user 2026-10-20: "그냥 일하는곳 + 로")
-    await waitFor(() => expect(rows()[1]).toBe('재직일하는 곳의 도서관더하면'))
+    await waitFor(() => expect(rows()[1]).toBe('재직일하는 곳+'))
     expect(rows()[0]).toMatch(/^거주마포구/)
     // the lead names two of the card's other places
     const shown = within(example()!).getAllByRole('listitem')[0].textContent!
@@ -565,7 +565,7 @@ describe('the first screen', () => {
     const lines = within(card)
       .getAllByRole('listitem')
       .map((item) => item.textContent)
-    expect(lines[0]).toBe('거주사는 곳의 도서관더하면')
+    expect(lines[0]).toBe('거주사는 곳+')
     expect(lines[1]).toMatch(/^재직/)
     expect(screen.getByText(/^중구에서 일해도 /)).toBeTruthy()
     expect(screen.queryByText(/가입할 수 있는 도서관 \d+곳/)).toBeNull()
@@ -587,7 +587,7 @@ describe('the first screen', () => {
     expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${card.place}에 살면`)
     expect(rows()).toEqual([
       `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
-      '재직일하는 곳의 도서관더하면',
+      '재직일하는 곳+',
       `상관없이${card.open.join('')}+ ${data.open - 3}곳`,
     ])
     expect(within(example()!).queryByText(/방문 가입/)).toBeNull()

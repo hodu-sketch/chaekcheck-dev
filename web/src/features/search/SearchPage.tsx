@@ -74,15 +74,12 @@ export const START_TEXT = {
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
   // a card made from a workplace: the 거주 row asks for one
-  livePill: '사는 곳의 도서관',
-  livePillPhone: '사는 곳',
+  livePill: '사는 곳',
   residence: '거주',
   work: '재직',
-  workPill: '일하는 곳의 도서관',
-  workPillPhone: '일하는 곳',
-  workRest: '더하면',
-  // phones: 「일하는 곳 +」 (user 2026-10-20: "일하는 곳만 있는데 일하는 곳 + 이걸로")
-  workRestPhone: '+',
+  // 「일하는 곳 +」 on every width (user 2026-10-20: "일하는 곳만 있는데 일하는 곳 + 이걸로", PC too: "모바일 처럼 바꿔")
+  workPill: '일하는 곳',
+  workRest: '+',
   open: '상관없이',
   rest: (count: number) => `+ ${count}곳`,
   restPhone: (count: number) => `+ ${count}`,
@@ -249,8 +246,8 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
       ? {
           key: START_TEXT.residence,
           tone: 'mine',
-          pills: [phone ? START_TEXT.livePillPhone : START_TEXT.livePill],
-          rest: phone ? START_TEXT.workRestPhone : START_TEXT.workRest,
+          pills: [START_TEXT.livePill],
+          rest: START_TEXT.workRest,
         }
       : { key: START_TEXT.residence, ...placed },
     // always 「일하는 곳 +」 on a 거주 card: a workplace brings more than its own 시군구's library (user 2026-10-20:
@@ -260,8 +257,8 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
       : {
           key: START_TEXT.work,
           tone: 'mine',
-          pills: [phone ? START_TEXT.workPillPhone : START_TEXT.workPill],
-          rest: phone ? START_TEXT.workRestPhone : START_TEXT.workRest,
+          pills: [START_TEXT.workPill],
+          rest: START_TEXT.workRest,
         },
     { key: START_TEXT.open, tone: 'open', pills: card.open, rest: rest(card.openRest) },
   ]
