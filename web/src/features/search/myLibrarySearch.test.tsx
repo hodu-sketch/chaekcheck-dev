@@ -537,7 +537,7 @@ describe('the first screen', () => {
     // this account's 거주 has an example: the card of it, with its 직장 as the 재직 pill (user 2026-10-20; its numbers
     // before)
     await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe('서울 마포구에 살면')
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe('서울 마포구에 살면다음 전자도서관들에서 빌릴 수 있어요')
     // 「일하는 곳」 even with a workplace set (user 2026-10-20: "그냥 일하는곳 + 로")
     await waitFor(() => expect(rows()[1]).toBe('재직일하는 곳의 도서관더하면'))
     expect(rows()[0]).toMatch(/^거주마포구/)
@@ -578,7 +578,8 @@ describe('the first screen', () => {
     expect(screen.getByText(/에 살아도/).textContent).toBe(
       `${card.home}에 살아도 ${card.others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
     )
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${card.place}에 살면`)
+    // two lines (user 2026-10-20)
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${card.place}에 살면다음 전자도서관들에서 빌릴 수 있어요`)
     expect(rows()).toEqual([
       `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
       '재직일하는 곳의 도서관더하면',

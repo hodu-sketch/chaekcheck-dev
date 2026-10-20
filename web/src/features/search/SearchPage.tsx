@@ -72,6 +72,7 @@ export const START_TEXT = {
   // 뜨게", "예: 빼줘")
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
+  exampleSub: '다음 전자도서관들에서 빌릴 수 있어요',
   // a card made from a workplace: the 거주 row asks for one
   livePill: '사는 곳의 도서관',
   livePillPhone: '사는 곳',
@@ -268,8 +269,12 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
   // first 거주, else their first 직장 (a 재직 card), else the example
   return (
     <aside className={styles.steps} aria-labelledby={titleId}>
-      <h2 id={titleId} className={styles.stepsTitle}>
-        {START_TEXT.exampleTitle(card.place, card.basis)}
+      {/* two lines (user 2026-10-20: "서울 강서구에 살면 / 다음 전자도서관들에서 빌릴 수 있어요"); the card is named by the
+          first */}
+      <h2 className={styles.stepsTitle}>
+        <span id={titleId}>{START_TEXT.exampleTitle(card.place, card.basis)}</span>
+        <br />
+        {START_TEXT.exampleSub}
       </h2>
       <ul className={styles.exampleRows}>
         {rows.map((row) => (
