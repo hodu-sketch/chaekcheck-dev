@@ -273,6 +273,13 @@ describe('the folded line (R3)', () => {
 })
 
 describe('the box (R1-4)', () => {
+  it('starts with the one line 왜 묻나요 (ADR-0139 #3)', async () => {
+    const { user } = renderLine()
+    await user.click(await screen.findByRole('button', { name: '사는 곳 고르기' }))
+    const opened = await box()
+    expect(within(opened).getByText('왜 묻나요? 도서관마다 가입 조건이 달라서요.')).toBeTruthy()
+  })
+
   it('holds the parts in order and closes on a click outside and on Esc', async () => {
     guestRegions([1114])
     const { user } = renderLine({ openCount: 39 })

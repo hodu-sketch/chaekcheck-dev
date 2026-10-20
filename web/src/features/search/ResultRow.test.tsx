@@ -6,6 +6,7 @@ import type { TargetLibrary } from '../../api/types'
 import {
   HOLDING_GONE,
   LOOKUP_UNCHECKED,
+  mineTagLabel,
   MOBILE_SITE_NOTE,
   RENT_LABEL,
   ResultRow,
@@ -541,5 +542,23 @@ describe('pills after the library name', () => {
     renderTags({ ...mine, chosen: true }, false)
     expect(screen.queryByRole('button', { name: '직접 추가' })).toBeNull()
     expect(screen.getByText('직접 추가')).toBeTruthy()
+  })
+})
+
+describe('[{강서구} 거주 가입] (handoff 5-A-5)', () => {
+  const lib = (priorityGroup: TargetLibrary['priorityGroup']) => ({ priorityGroup }) as TargetLibrary
+
+  it('names the 시군구 for MY_SIGUNGU, the 시도 for MY_SIDO, the side the search was made with', () => {
+    const place = { sigungu: '강서구', sido: '서울' }
+    expect(mineTagLabel(lib('MY_SIGUNGU'), 'residence', place)).toBe('강서구 거주 가입')
+    expect(mineTagLabel(lib('MY_SIDO'), 'residence', place)).toBe('서울 거주 가입')
+    expect(mineTagLabel(lib('MY_SIDO'), 'work', place)).toBe('서울 재직 가입')
+    expect(mineTagLabel(lib('MY_SIDO'), 'both', place)).toBe('서울 거주·재직 가입')
+  })
+
+  it('keeps [내 지역 가입] without a place word', () => {
+    expect(mineTagLabel(lib('MY_SIGUNGU'), 'residence', { sigungu: null, sido: null })).toBe('내 지역 가입')
+    expect(mineTagLabel(lib('QUALIFIED'), 'residence', { sigungu: '강서구', sido: '서울' })).toBe('내 지역 가입')
+    expect(mineTagLabel(lib('MY_SIGUNGU'), 'residence', { sigungu: null, sido: '서울' })).toBe('서울 거주 가입')
   })
 })

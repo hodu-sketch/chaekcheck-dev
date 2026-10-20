@@ -261,6 +261,20 @@ describe('result groups', () => {
     expect(searchContext.onSearchAll).toHaveBeenCalledTimes(1)
   })
 
+  it('the list bottom says what was left out, with [전국에서 찾기], ① with results too (handoff 5-A-6)', async () => {
+    const searchContext = context()
+    const user = renderGrouped([groupedView(1, [testRow({ libraryId: 1, rank: 1 })])], searchContext)
+    const line = screen.getByText(/^가입 조건이 맞지 않는 도서관은 찾지 않았어요/)
+    await user.click(within(line).getByRole('button', { name: '전국에서 찾기' }))
+    expect(searchContext.onSearchAll).toHaveBeenCalledTimes(1)
+    cleanup()
+    renderGrouped([groupedView(1, [testRow({ libraryId: 1, rank: 1 })])], context({ scope: 'all' }))
+    expect(screen.queryByText(/가입 조건이 맞지 않는/)).toBeNull()
+    cleanup()
+    renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })])], context({ hasMine: false }))
+    expect(screen.queryByText(/가입 조건이 맞지 않는/)).toBeNull()
+  })
+
   it('draws no empty ① before the first batch is done, or for a search without regions or added libraries', () => {
     renderGrouped([groupedView(1, [testRow({ libraryId: 2, rank: 1 })], 'loading')], context())
     expect(screen.queryByText(/내 도서관에는 없어요/)).toBeNull()
