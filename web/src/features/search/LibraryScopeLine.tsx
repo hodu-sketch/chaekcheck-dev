@@ -90,8 +90,9 @@ export const SCOPE_TEXT = {
   moreAfter: '에서 할 수 있어요',
   // the results, the book page and the picks have no region choice (user 2026-10-20: "검색창, 추천도서 창에서 지역
   // 선택하는 거 싹 다 빼고 … 마이페이지 이동 링크")
-  noteNoneBefore: '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 자세히 찾으려면 ',
-  noteNoneAfter: '에서 지역을 골라 주세요',
+  // user 2026-10-20: "더 많은 도서관에서 찾으려면 마이페이지에서 지역과 도서관을 골라 주세요"
+  noteNoneBefore: '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 많은 도서관에서 찾으려면 ',
+  noteNoneAfter: '에서 지역과 도서관을 골라 주세요',
   // the main page's box, instead of the 직접 추가 part (user 2026-10-20: "직접추가 도서관은 마이페이지 가라")
   chosenMyPage: '직접 추가는 마이페이지에서 →',
   // a screen that is not a search (the book page) after the regions or the switch changed (user 2026-10-20: "여기 검색에도

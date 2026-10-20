@@ -166,7 +166,7 @@ afterEach(() => {
  */
 const noteOf = async () =>
   (await screen.findByRole('link', { name: '마이페이지' }, { timeout: 5000 })).closest('p')!.textContent
-const NOTE_NONE = '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 자세히 찾으려면 마이페이지에서 지역을 골라 주세요'
+const NOTE_NONE = '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 많은 도서관에서 찾으려면 마이페이지에서 지역과 도서관을 골라 주세요'
 /** The example regions the first screen may pick: two places or more, one besides the region's own. */
 const pickable = START_EXAMPLES.filter(
   (one) => one.places.length >= 2 && one.places.some((place) => place !== one.place.split(' ').slice(1).join(' ')),

@@ -193,7 +193,7 @@ describe('buttons inside the results (cycle 22 R8-3)', () => {
     renderSearch()
     const note = await screen.findByText(/^누구나 가입할 수 있는 도서관에서만 찾고 있어요/)
     expect(note.textContent).toBe(
-      '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 자세히 찾으려면 마이페이지에서 지역을 골라 주세요',
+      '누구나 가입할 수 있는 도서관에서만 찾고 있어요. 더 많은 도서관에서 찾으려면 마이페이지에서 지역과 도서관을 골라 주세요',
     )
     expect(screen.queryByRole('button', { name: /지역 (선택|설정)/ })).toBeNull()
     expect(lastStream().scope).toBe('joinable')
