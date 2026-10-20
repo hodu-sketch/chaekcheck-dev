@@ -17,7 +17,6 @@ export const NUMBERS_TEXT = {
   headline: (place: string, total: number) => `${place} → 가입할 수 있는 도서관 ${total}곳`,
   byRegion: (sido: string | null, basis: string, count: number) => `${sido ? `${sido} ` : ''}${basis}${ro(basis)} ${count}`,
   open: (count: number) => `어디 살든 ${count}`,
-  visit: (count: number) => `그중 가야 하는 곳 ${count}`,
   showNames: '이름 보기',
   more: (count: number) => `${count}곳 더 보기`,
   // user 2026-10-20: "줄이기도 좀 있어줘"
@@ -27,15 +26,13 @@ export const NUMBERS_TEXT = {
 export interface Counted {
   eligible: LibraryEligibilityRow[]
   open: LibraryEligibilityRow[]
-  visit: number
 }
 
-/** ELIGIBLE = joined by the regions, OPEN = 어디 살든; `visitRequired` is already for the regions sent. */
+/** ELIGIBLE = joined by the regions, OPEN = 어디 살든 (no 방문 가입 count, user 2026-10-20: "아예 빼줘"). */
 export function countRows(rows: readonly LibraryEligibilityRow[]): Counted {
   const eligible = rows.filter((row) => row.eligibility === 'ELIGIBLE')
   const open = rows.filter((row) => row.eligibility === 'OPEN')
-  const visit = [...eligible, ...open].filter((row) => row.visitRequired).length
-  return { eligible, open, visit }
+  return { eligible, open }
 }
 
 /** "거주" / "재직" / "거주·재직": the sides the regions are on (the words of ADR-0139 "거주 · 재직 · 상관없이"). */
@@ -46,7 +43,7 @@ export function basisWord(residence: readonly number[], work: readonly number[])
 
 /**
  * The person's own numbers right after they pick a region (user 2026-10-20, ADR-0139 #4, handoff 5-A-4): "서울 강서구 →
- * 가입할 수 있는 도서관 70곳" and the pills [서울 거주로 32] [어디 살든 38] [그중 가야 하는 곳 9], two names and
+ * 가입할 수 있는 도서관 70곳" and the pills [서울 거주로 32] [어디 살든 38] (the 방문 가입 pill taken out, user 2026-10-20), two names and
  * 「이름 보기」. The list is asked once for these regions and kept 5 minutes under the my page's key; the libraries'
  * own 시군구 is not in the answer, so the region side is one number ("서울 거주로"). Nothing shows while it loads or
  * when it fails.
@@ -83,11 +80,6 @@ export function MyNumbers({ residence, work }: { residence: readonly number[]; w
         <span className={styles.pill} data-tone="open">
           {NUMBERS_TEXT.open(counted.open.length)}
         </span>
-        {counted.visit > 0 && (
-          <span className={styles.pill} data-tone="visit">
-            {NUMBERS_TEXT.visit(counted.visit)}
-          </span>
-        )}
       </p>
       {shown === 0 ? (
         <p className={styles.names}>

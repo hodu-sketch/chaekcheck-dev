@@ -38,14 +38,14 @@ afterEach(() => {
 })
 
 describe('the numbers after a pick (handoff 5-A-4)', () => {
-  it('counts by region, 어디 살든 and the visits, with two names and 이름 보기', async () => {
+  it('counts by region and 어디 살든, no 방문 가입 pill, with two names and 이름 보기', async () => {
     const rows = [row(1, 'ELIGIBLE'), row(2, 'ELIGIBLE', true), row(3, 'OPEN'), row(4, 'OPEN', true), row(5, 'OTHER' as never)]
     const calls = serve(() => new Response(JSON.stringify({ libraries: rows }), { status: 200 }))
     renderNumbers()
     expect(await screen.findByText('서울 강서구 → 가입할 수 있는 도서관 4곳')).toBeTruthy()
     expect(screen.getByText('서울 거주로 2')).toBeTruthy()
     expect(screen.getByText('어디 살든 2')).toBeTruthy()
-    expect(screen.getByText('그중 가야 하는 곳 2')).toBeTruthy()
+    expect(screen.queryByText(/가야 하는 곳/)).toBeNull()
     // one request for these regions
     expect(calls.filter((url) => url.startsWith('/api/v1/libraries'))).toEqual(['/api/v1/libraries?residenceRegionIds=1116'])
     await userEvent.setup().click(screen.getByRole('button', { name: '이름 보기 ▾' }))
@@ -89,6 +89,6 @@ describe('the numbers after a pick (handoff 5-A-4)', () => {
     expect(NUMBERS_TEXT.byRegion('서울', '재직', 3)).toBe('서울 재직으로 3')
     expect(NUMBERS_TEXT.byRegion('서울', '거주·재직', 3)).toBe('서울 거주·재직으로 3')
     const counted = countRows([row(1, 'ELIGIBLE', true), row(2, 'UNKNOWN' as never, true)])
-    expect([counted.eligible.length, counted.open.length, counted.visit]).toEqual([1, 0, 1])
+    expect([counted.eligible.length, counted.open.length]).toEqual([1, 0])
   })
 })
