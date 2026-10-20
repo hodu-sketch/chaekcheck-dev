@@ -9,6 +9,7 @@ import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
 import { RegionGrid, type RegionField } from '../region/RegionGrid'
 import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStorage'
 import { MyNumbers } from './MyNumbers'
+import { ro } from './regionPlace'
 import { useRegionPlace } from './regionPlace'
 import type { PlanCount } from './searchSettings'
 import { useLibraryList } from './useLibraryList'
@@ -30,14 +31,6 @@ export interface ScopeSearched {
   /** Regions (or libraries) were saved since (R7-2): the grey line asks for [검색]. */
   regionsPicked: boolean
   picked: PickedSince
-}
-
-/** "로" after a vowel or ㄹ, else "으로" (서울 강서구로, 성남시로, … 외 2곳으로). */
-function ro(word: string): string {
-  const code = word.charCodeAt(word.length - 1) - 0xac00
-  if (code < 0 || code > 11171) return '(으)로'
-  const final = code % 28
-  return final === 0 || final === 8 ? '로' : '으로'
 }
 
 /** The texts of the "찾을 도서관" line, the box, the phone chip and the ⚙ switch (cycle 22 문구표) [확정]. */

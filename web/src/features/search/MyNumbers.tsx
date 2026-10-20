@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { fetchLibraries } from '../../api/client'
 import type { LibraryEligibilityRow } from '../../api/types'
 import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
-import { regionPlaceText } from './regionPlace'
+import { regionPlaceText, ro } from './regionPlace'
 import styles from './MyNumbers.module.css'
 
 /** Names shown under the pills before 「이름 보기」 [안: two]. */
@@ -15,7 +15,7 @@ const NAMES_STEP = 10
 /** [확정] (ADR-0139, handoff 5-A-4). */
 export const NUMBERS_TEXT = {
   headline: (place: string, total: number) => `${place} → 가입할 수 있는 도서관 ${total}곳`,
-  byRegion: (sido: string | null, basis: string, count: number) => `${sido ? `${sido} ` : ''}${basis}로 ${count}`,
+  byRegion: (sido: string | null, basis: string, count: number) => `${sido ? `${sido} ` : ''}${basis}${ro(basis)} ${count}`,
   open: (count: number) => `어디 살든 ${count}`,
   visit: (count: number) => `그중 가야 하는 곳 ${count}`,
   showNames: '이름 보기',

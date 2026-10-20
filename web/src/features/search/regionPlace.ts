@@ -1,5 +1,13 @@
 import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
 
+/** "로" after a vowel or ㄹ, else "으로" (서울 강서구로, 성남시로, … 외 2곳으로, 재직으로). */
+export function ro(word: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  if (code < 0 || code > 11171) return '(으)로'
+  const final = code % 28
+  return final === 0 || final === 8 ? '로' : '으로'
+}
+
 /**
  * A short name of some regions (cycle 22 문구표, like the folded line of step 3): "서울 강남구", two or three of one sido
  * "서울 강남구·서초구", of several sidos "서울 강남구·경기 성남시", four or more "서울 강남구 외 3곳". Null for none, or while

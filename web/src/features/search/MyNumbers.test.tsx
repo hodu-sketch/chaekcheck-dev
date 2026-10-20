@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LibraryEligibilityRow } from '../../api/types'
-import { basisWord, countRows, MyNumbers } from './MyNumbers'
+import { basisWord, countRows, MyNumbers, NUMBERS_TEXT } from './MyNumbers'
 
 const TREE = [{ id: 11, name: '서울특별시', shortName: '서울', children: [{ id: 1116, name: '강서구' }] }]
 
@@ -84,6 +84,10 @@ describe('the numbers after a pick (handoff 5-A-4)', () => {
     expect(basisWord([1], [])).toBe('거주')
     expect(basisWord([], [2])).toBe('재직')
     expect(basisWord([1], [2])).toBe('거주·재직')
+    // 로 / 으로 by the last letter (user 2026-10-20: "서울 재직로 말고 서울 재직으로")
+    expect(NUMBERS_TEXT.byRegion('서울', '거주', 3)).toBe('서울 거주로 3')
+    expect(NUMBERS_TEXT.byRegion('서울', '재직', 3)).toBe('서울 재직으로 3')
+    expect(NUMBERS_TEXT.byRegion('서울', '거주·재직', 3)).toBe('서울 거주·재직으로 3')
     const counted = countRows([row(1, 'ELIGIBLE', true), row(2, 'UNKNOWN' as never, true)])
     expect([counted.eligible.length, counted.open.length, counted.visit]).toEqual([1, 0, 1])
   })
