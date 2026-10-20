@@ -52,7 +52,7 @@ describe('the numbers after a pick (handoff 5-A-4)', () => {
     const rows = [row(1, 'ELIGIBLE'), row(2, 'ELIGIBLE', true), row(3, 'OPEN'), row(4, 'OPEN', true), row(5, 'OTHER' as never)]
     const calls = serve(() => new Response(JSON.stringify({ libraries: rows }), { status: 200 }))
     renderNumbers()
-    expect(await screen.findByText('서울 강서구 → 가입할 수 있는 도서관 4곳')).toBeTruthy()
+    expect(await screen.findByText('서울 강서구 → 빌릴 수 있는 도서관 4곳')).toBeTruthy()
     expect(screen.getByText('서울 거주로 2')).toBeTruthy()
     expect(screen.getByText('어디 살든 2')).toBeTruthy()
     expect(screen.queryByText(/가야 하는 곳/)).toBeNull()

@@ -14,7 +14,7 @@ const NAMES_STEP = 10
 
 /** [확정] (ADR-0139, handoff 5-A-4). */
 export const NUMBERS_TEXT = {
-  headline: (place: string, total: number) => `${place} → 가입할 수 있는 도서관 ${total}곳`,
+  headline: (place: string, total: number) => `${place} → 빌릴 수 있는 도서관 ${total}곳`,
   byRegion: (sido: string | null, basis: string, count: number) => `${sido ? `${sido} ` : ''}${basis}${ro(basis)} ${count}`,
   open: (count: number) => `어디 살든 ${count}`,
   showNames: '이름 보기',
