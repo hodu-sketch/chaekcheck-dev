@@ -342,7 +342,7 @@ export function LibraryScopeChip({
 
 /**
  * What is picked, beside the main page's region button: a white pill with a violet rim, 「강서구 거주」 for the first
- * 거주 (else the first 직장, 「금천구 재직」), with 「 …」 when two regions or more are set; nothing before any (user
+ * 거주 (else the first 직장, 「금천구 재직」), and 「…」 right of it when two regions or more are set; nothing before any (user
  * 2026-10-20: "오른쪽에 흰 버튼 … 강서구 거주 이런것보이게 하고 2개 이상되면 .. 이거 추가해줘"). It opens the same box.
  */
 function PickedTag({ onClick }: { onClick: () => void }) {
@@ -356,9 +356,17 @@ function PickedTag({ onClick }: { onClick: () => void }) {
   const word = residence !== undefined ? SCOPE_TEXT.residenceShort : SCOPE_TEXT.workShort
   const more = regions.residence.length + regions.work.length >= 2
   return (
-    <button type="button" className={styles.pickedTag} onClick={onClick}>
-      {`${place} ${word}${more ? ' …' : ''}`}
-    </button>
+    <>
+      <button type="button" className={styles.pickedTag} onClick={onClick}>
+        {`${place} ${word}`}
+      </button>
+      {/* outside the pill, right of it (user 2026-10-20: ".. 이건 네모칸 밖에 우측에") */}
+      {more && (
+        <span className={styles.pickedMore} aria-label="외 더 있음">
+          …
+        </span>
+      )}
+    </>
   )
 }
 

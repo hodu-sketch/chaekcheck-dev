@@ -637,3 +637,9 @@
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+.pickedMore {
+  margin-left: -0.2rem;
+  color: var(--brand-strong);
+  font-weight: 800;
+}
