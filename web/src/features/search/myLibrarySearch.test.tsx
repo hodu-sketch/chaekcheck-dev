@@ -8,7 +8,8 @@ import { NoticeProvider } from '../auth/NoticeContext'
 import { MyLibraryProvider } from '../mylibrary/MyLibraryContext'
 import { REGION_IMPORT_KEY } from '../mylibrary/regionImport'
 import { RegionProvider, useRegions } from '../region/RegionContext'
-import { SearchPage } from './SearchPage'
+import { pickExample, SearchPage } from './SearchPage'
+import { START_EXAMPLES } from './startExamples'
 import { SETTINGS_STORAGE_KEY } from './searchSettings'
 
 /** The condition line's words: the [조건 수정] button's description (first screen redesign, user 2026-10-19). */
@@ -156,7 +157,7 @@ afterEach(() => {
 })
 
 /** The folded "내 도서관: …" line (cycle 22 R3); its accessible name is its text. */
-const foldedLine = () => screen.findByRole('button', { name: '바꾸기' }, { timeout: 5000 })
+const foldedLine = () => screen.findByRole('button', { name: '지역 설정' }, { timeout: 5000 })
 
 describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
   it('names the regions and the added libraries; the box lists the added ones by name, read once', async () => {
@@ -179,7 +180,7 @@ describe('S1 "내 도서관" line (cycle 22 R1, R3)', () => {
     renderSearch()
 
     expect(await screen.findByRole('button', { name: '지역 선택' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '바꾸기' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '지역 설정' })).toBeNull()
   })
 
   it('a failed read offers 다시 시도 and searches joinable without regions; a read that works searches again', async () => {
@@ -413,7 +414,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     renderSearch()
 
     await waitFor(() => expect(lastBooks().searchParams.get('scope')).toBe('joinable'))
-    const chip = await screen.findByRole('button', { name: '바꾸기', description: /^서울 마포구에 살아요/ })
+    const chip = await screen.findByRole('button', { name: '지역 설정', description: /^서울 마포구에 살아요/ })
     expect(screen.getByRole('button', { name: '검색 설정' })).toBeTruthy()
 
     const user = userEvent.setup()
@@ -478,14 +479,14 @@ describe('전자책 검색', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '전자책 검색' })).toBeTruthy()
     expect(screen.getByText('책 제목을 넣으면, 그 책을 지금 빌릴 수 있는 전자도서관을 여기에 보여 드려요')).toBeTruthy()
     expect(screen.queryByText('사기 전에 빌릴 수 있는 전자도서관부터')).toBeNull()
-    expect(screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })).toBeNull()
+    expect(screen.queryByRole('complementary', { name: /에 살면$/ })).toBeNull()
     expect(fake.books).toHaveLength(0)
   })
 })
 
 /** The first screen (user 2026-10-20, ADR-0139, handoff 5-A-1·2, main screen (나)): `/` before a search. */
 describe('the first screen', () => {
-  const example = () => screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })
+  const example = () => screen.queryByRole('complementary', { name: /에 살면$/ })
   const rows = () =>
     within(example()!)
       .getAllByRole('listitem')
@@ -496,9 +497,9 @@ describe('the first screen', () => {
     const headline = await screen.findByRole('heading', { level: 1 })
     expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에빌릴 수 있는 전자도서관부터')
     expect(headline.querySelectorAll('br')).toHaveLength(2)
-    expect(screen.getByText('공공 전자도서관은 회원이면 무료예요')).toBeTruthy()
+    expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
     expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
-      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요. 자세히 →',
+      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.빌릴 수 있는 전자도서관에서 찾아 드릴게요. 자세히 →',
     )
     expect(screen.getByRole('link', { name: '자세히 →' }).getAttribute('href')).toBe('/about')
     expect(screen.getByText('어떤 책을 찾으세요?')).toBeTruthy()
@@ -506,27 +507,46 @@ describe('the first screen', () => {
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
-    const edit = await screen.findByRole('button', { name: '바꾸기' })
+    const edit = await screen.findByRole('button', { name: '지역 설정' })
     await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'))
     // this account has regions: its own numbers take the example's place (5-A-2)
     expect(example()).toBeNull()
     expect(fake.books).toHaveLength(0)
   })
 
-  it('without regions: the example card 거주 · 재직 · 상관없이, no visit line (user 2026-10-20)', async () => {
+  it('without regions: the example card of a random region, 거주 · 재직 · 상관없이, no 예: (user 2026-10-20)', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     await waitFor(() => expect(example()).not.toBeNull())
+    const first = START_EXAMPLES[0]
+    const card = pickExample(false, () => 0)
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${first.place}에 살면`)
     expect(rows()).toEqual([
-      '거주강서구강동구송파구마포구+ 27곳',
+      `거주${card.residence.join('')}+ ${first.eligible - 4}곳`,
       '재직일하는 곳의 도서관더하면',
-      '상관없이고흥목포군산+ 35곳',
+      `상관없이${card.open.join('')}+ ${first.open - 3}곳`,
     ])
     expect(within(example()!).queryByText(/방문 가입/)).toBeNull()
+    vi.restoreAllMocks()
+  })
+
+  it('picks the own place first, then other places and open places at random; numbers from the list', () => {
+    expect(START_EXAMPLES.length).toBeGreaterThanOrEqual(100)
+    for (const one of START_EXAMPLES) expect(one.place).toMatch(/^\S+ \S+/)
+    const seoul = START_EXAMPLES.findIndex((one) => one.place === '서울 강동구')
+    const card = pickExample(false, () => (seoul + 0.5) / START_EXAMPLES.length)
+    expect(card.place).toBe('서울 강동구')
+    expect(card.residence[0]).toBe('강동구')
+    expect(new Set(card.residence).size).toBe(4)
+    expect(card.open).toHaveLength(3)
+    expect(card.residence.length + card.residenceRest).toBe(START_EXAMPLES[seoul].eligible)
+    expect(pickExample(true, () => (seoul + 0.5) / START_EXAMPLES.length).residence).toHaveLength(3)
   })
 
   it('phones: the same two lines without 자세히; the example card after the search box, three pills a row', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
       media: query,
@@ -537,14 +557,21 @@ describe('the first screen', () => {
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
-      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
+      '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
     )
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const question = screen.getByText('어떤 책을 찾으세요?')
     expect(question.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await waitFor(() => expect(example()).not.toBeNull())
     expect(screen.getByRole('search').compareDocumentPosition(example()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(rows()).toEqual(['거주강서구강동구송파구+ 28', '재직일하는 곳', '상관없이고흥목포군산+ 35'])
+    const first = START_EXAMPLES[0]
+    const card = pickExample(true, () => 0)
+    expect(rows()).toEqual([
+      `거주${card.residence.join('')}+ ${first.eligible - 3}`,
+      '재직일하는 곳',
+      `상관없이${card.open.join('')}+ ${first.open - 3}`,
+    ])
+    vi.restoreAllMocks()
   })
 
   it('wider screens: the box opens under the card in the page, no window; ⓧ and Esc close it (user 2026-10-20)', async () => {
@@ -571,9 +598,9 @@ describe('the first screen', () => {
 
   it('after a search: no headline and no steps card', async () => {
     renderSearch('/search?title=사랑&view=books')
-    await screen.findByRole('button', { name: '바꾸기' })
+    await screen.findByRole('button', { name: '지역 설정' })
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
-    expect(screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })).toBeNull()
+    expect(screen.queryByRole('complementary', { name: /에 살면$/ })).toBeNull()
     expect(screen.queryByText('어떤 책을 찾으세요?')).toBeNull()
   })
 })

@@ -11,6 +11,7 @@ import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
 import { InstantResults } from './InstantResults'
 import { MyNumbers } from './MyNumbers'
+import { START_EXAMPLES } from './startExamples'
 import {
   LibraryScopeChip,
   LibraryScopeLine,
@@ -44,30 +45,67 @@ import styles from './SearchPage.module.css'
 /** The first screen's words (first screen redesign, user 2026-10-19). */
 /** The first screen's head and example card [확정] (ADR-0139, handoff 5-A-1·2, main screen (나) 2026-10-20). */
 export const START_TEXT = {
-  eyebrow: '공공 전자도서관은 회원이면 무료예요',
+  // user 2026-10-20: "공공 전자도서관은 무료로 빌릴 수 있어요"
+  eyebrow: '공공 전자도서관은 무료로 빌릴 수 있어요',
   // user 2026-10-20: "읽고 싶은 전자책, / 사기 전에 빌릴 수 있는 전자도서관부터"
   headline: ['읽고 싶은 전자책,', '사기 전에', '빌릴 수 있는 전자도서관부터'],
   // in the brand colour (user 2026-10-20: "빌릴 수 있는 이거 보라색처리")
   headlineMark: '빌릴 수 있는',
-  // two lines (user 2026-10-20: "강서구에 살아도 … 빌릴 수 있어요. / 저희가 … 찾아 드릴게요.")
-  lead: [
-    '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.',
-    '저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
-  ],
+  // two lines (user 2026-10-20: "강서구에 살아도 … 빌릴 수 있어요. / 빌릴 수 있는 전자도서관에서 찾아 드릴게요.")
+  lead: ['강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.', '빌릴 수 있는 전자도서관에서 찾아 드릴게요.'],
   more: '자세히 →',
-  leadPhone: [
-    '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.',
-    '저희가 전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
-  ],
+  leadPhone: ['강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.', '빌릴 수 있는 전자도서관에서 찾아 드릴게요.'],
   question: '어떤 책을 찾으세요?',
-  // the numbers are the public API's on 2026-10-20 (서울 강서구: 31 by residence, 38 for anyone); change them here only
-  exampleTitle: '예: 서울 강서구에 살면',
-  exampleRows: [
-    { key: '거주', tone: 'mine', pills: ['강서구', '강동구', '송파구', '마포구'], rest: '+ 27곳', phoneRest: '+ 28' },
-    { key: '재직', tone: 'mine', pills: ['일하는 곳의 도서관'], rest: '더하면', phonePills: ['일하는 곳'] },
-    { key: '상관없이', tone: 'open', pills: ['고흥', '목포', '군산'], rest: '+ 35곳', phoneRest: '+ 35' },
-  ],
+  // a region picked at random on every visit from START_EXAMPLES (user 2026-10-20: "한 100개 정도 해서 항상 랜덤값이
+  // 뜨게", "예: 빼줘")
+  exampleTitle: (place: string) => `${place}에 살면`,
+  residence: '거주',
+  work: '재직',
+  workPill: '일하는 곳의 도서관',
+  workPillPhone: '일하는 곳',
+  workRest: '더하면',
+  open: '상관없이',
+  rest: (count: number) => `+ ${count}곳`,
+  restPhone: (count: number) => `+ ${count}`,
 } as const
+
+/** Pills on a row: 4 for 거주 and 3 for 상관없이 on wider screens, 3 each on phones. */
+const RESIDENCE_PILLS = 4
+const OPEN_PILLS = 3
+const PHONE_PILLS = 3
+
+export interface ExampleCard {
+  place: string
+  residence: string[]
+  residenceRest: number
+  open: string[]
+  openRest: number
+}
+
+/** `count` items of `items` in a random order (all when fewer). */
+function sample<T>(items: readonly T[], count: number, random: () => number): T[] {
+  const pool = [...items]
+  const picked: T[] = []
+  while (picked.length < count && pool.length > 0) picked.push(pool.splice(Math.floor(random() * pool.length), 1)[0])
+  return picked
+}
+
+/** One example at random: the region's own place first when it has one, the other pills at random. */
+export function pickExample(phone: boolean, random: () => number = Math.random): ExampleCard {
+  const example = START_EXAMPLES[Math.floor(random() * START_EXAMPLES.length)]
+  const ownName = example.place.split(' ').slice(1).join(' ')
+  const own = example.places[0] === ownName ? [ownName] : []
+  const residenceCount = phone ? PHONE_PILLS : RESIDENCE_PILLS
+  const residence = [...own, ...sample(example.places.slice(own.length), residenceCount - own.length, random)]
+  const open = sample(example.openPlaces, phone ? PHONE_PILLS : OPEN_PILLS, random)
+  return {
+    place: example.place,
+    residence,
+    residenceRest: example.eligible - residence.length,
+    open,
+    openRest: example.open - open.length,
+  }
+}
 
 /** Lines joined by line breaks. */
 function lines(parts: readonly string[], mark?: string) {
@@ -98,6 +136,29 @@ function lines(parts: readonly string[], mark?: string) {
 function StartExample({ phone }: { phone: boolean }) {
   const titleId = useId()
   const { regions } = useRegions()
+  // picked once a visit (a phone turned or a resize keeps it)
+  const [card] = useState(() => pickExample(phone))
+  const residence = phone ? card.residence.slice(0, PHONE_PILLS) : card.residence
+  const rest = (count: number, extra = 0) => {
+    const left = count + extra
+    if (left <= 0) return null
+    return phone ? START_TEXT.restPhone(left) : START_TEXT.rest(left)
+  }
+  const rows = [
+    {
+      key: START_TEXT.residence,
+      tone: 'mine',
+      pills: residence,
+      rest: rest(card.residenceRest, card.residence.length - residence.length),
+    },
+    {
+      key: START_TEXT.work,
+      tone: 'mine',
+      pills: [phone ? START_TEXT.workPillPhone : START_TEXT.workPill],
+      rest: phone ? null : START_TEXT.workRest,
+    },
+    { key: START_TEXT.open, tone: 'open', pills: card.open, rest: rest(card.openRest) },
+  ]
   if (regions.residence.length + regions.work.length > 0) {
     return (
       <aside className={styles.steps}>
@@ -108,24 +169,20 @@ function StartExample({ phone }: { phone: boolean }) {
   return (
     <aside className={styles.steps} aria-labelledby={titleId}>
       <h2 id={titleId} className={styles.stepsTitle}>
-        {START_TEXT.exampleTitle}
+        {START_TEXT.exampleTitle(card.place)}
       </h2>
       <ul className={styles.exampleRows}>
-        {START_TEXT.exampleRows.map((row) => {
-          const pills = phone ? ('phonePills' in row ? row.phonePills : row.pills.slice(0, 3)) : row.pills
-          const rest = phone ? ('phoneRest' in row ? row.phoneRest : null) : row.rest
-          return (
-            <li key={row.key} className={styles.exampleRow}>
-              <span className={styles.exampleKey}>{row.key}</span>
-              {pills.map((pill) => (
-                <span key={pill} className={styles.examplePill} data-tone={row.tone}>
-                  {pill}
-                </span>
-              ))}
-              {rest && <span className={styles.exampleRest}>{rest}</span>}
-            </li>
-          )
-        })}
+        {rows.map((row) => (
+          <li key={row.key} className={styles.exampleRow}>
+            <span className={styles.exampleKey}>{row.key}</span>
+            {row.pills.map((pill) => (
+              <span key={pill} className={styles.examplePill} data-tone={row.tone}>
+                {pill}
+              </span>
+            ))}
+            {row.rest && <span className={styles.exampleRest}>{row.rest}</span>}
+          </li>
+        ))}
       </ul>
     </aside>
   )

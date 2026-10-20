@@ -146,7 +146,7 @@ function renderLine(options: Options = {}) {
 
 const guestRegions = (residence: number[], work: number[] = []) =>
   localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence, work }))
-const folded = () => screen.findByRole('button', { name: '바꾸기' })
+const folded = () => screen.findByRole('button', { name: '지역 설정' })
 const box = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 
 describe('a first visitor (R1-2)', () => {
@@ -165,7 +165,7 @@ describe('a first visitor (R1-2)', () => {
     renderLine()
     const button = await folded()
     await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구에 살아요'))
-    expect(screen.getByTestId('scope-condition').textContent).toBe('서울 마포구에 살아요바꾸기')
+    expect(screen.getByTestId('scope-condition').textContent).toBe('서울 마포구에 살아요지역 설정')
     expect(screen.queryByText(/안 골라도/)).toBeNull()
   })
 
@@ -433,7 +433,7 @@ describe('the phone chip (R2-1)', () => {
   it('with regions: the words of the folded line', async () => {
     guestRegions([1114])
     renderChip()
-    const chip = await screen.findByRole('button', { name: '바꾸기' })
+    const chip = await screen.findByRole('button', { name: '지역 설정' })
     await waitFor(() => expect(conditionOf(chip)).toBe('서울 마포구에 살아요'))
   })
 })

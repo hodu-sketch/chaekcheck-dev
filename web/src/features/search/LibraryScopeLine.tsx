@@ -40,7 +40,8 @@ export const SCOPE_TEXT = {
   pick: '지역 선택',
   conditionNone: '지역을 선택하시면 빌릴 수 있는 도서관에서 책을 더 찾아드려요',
   condition: (text: string) => text,
-  edit: '바꾸기',
+  // user 2026-10-20: "바꾸기 말고 지역 설정"
+  edit: '지역 설정',
   conditionHint: (count: number | null) =>
     `안 골라도 어디 살든 가입되는 도서관${count === null ? '' : ` ${count}곳`}에서 찾아요 · 일하는 곳도 더할 수 있어요`,
   // a results screen of a search made without regions or added libraries (the results' own line before, user

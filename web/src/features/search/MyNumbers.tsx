@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { fetchLibraries } from '../../api/client'
-import type { LibraryEligibilityRow } from '../../api/types'
+import type { LibraryEligibilityRow, RegionBasis } from '../../api/types'
 import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
 import { regionPlaceText, ro } from './regionPlace'
 import styles from './MyNumbers.module.css'
@@ -35,10 +35,15 @@ export function countRows(rows: readonly LibraryEligibilityRow[]): Counted {
   return { eligible, open }
 }
 
-/** "거주" / "재직" / "거주·재직": the sides the regions are on (the words of ADR-0139 "거주 · 재직 · 상관없이"). */
-export function basisWord(residence: readonly number[], work: readonly number[]): string {
-  if (residence.length > 0 && work.length > 0) return '거주·재직'
-  return work.length > 0 ? '재직' : '거주'
+/** Libraries joined by one side's regions (`matchedBy`). */
+export function countSide(rows: readonly LibraryEligibilityRow[], basis: RegionBasis): number {
+  return rows.filter((row) => row.eligibility === 'ELIGIBLE' && row.matchedBy.includes(basis)).length
+}
+
+/** The one 시도 of some regions ("서울"), or null for several or while the names are not known. */
+function sidoOf(ids: readonly number[], labels: ReadonlyMap<number, string>): string | null {
+  const sidos = new Set(ids.map((id) => labels.get(id)?.split(' ')[0]))
+  return sidos.size === 1 ? ([...sidos][0] ?? null) : null
 }
 
 /**
@@ -67,16 +72,24 @@ export function MyNumbers({ residence, work }: { residence: readonly number[]; w
 
   const counted = countRows(list.data)
   const total = counted.eligible.length + counted.open.length
-  const sidos = new Set(side.map((id) => labels.get(id)?.split(' ')[0]))
-  const sido = sidos.size === 1 ? ([...sidos][0] ?? null) : null
+  // one pill a side: "서울 거주로 32", "인천 재직으로 12"; a side with no library is left out (user 2026-10-20)
+  const sides = [
+    { basis: 'RESIDENCE' as const, word: '거주', ids: residence },
+    { basis: 'WORK' as const, word: '재직', ids: work },
+  ]
+    .filter((one) => one.ids.length > 0)
+    .map((one) => ({ ...one, count: countSide(list.data, one.basis) }))
+    .filter((one) => one.count > 0)
   const names = [...counted.eligible, ...counted.open].map((row) => row.name)
   return (
     <section className={styles.panel} aria-label={NUMBERS_TEXT.headline(place, total)}>
       <p className={styles.headline}>{NUMBERS_TEXT.headline(place, total)}</p>
       <p className={styles.pills}>
-        <span className={styles.pill} data-tone="mine">
-          {NUMBERS_TEXT.byRegion(sido, basisWord(residence, work), counted.eligible.length)}
-        </span>
+        {sides.map((one) => (
+          <span key={one.basis} className={styles.pill} data-tone="mine">
+            {NUMBERS_TEXT.byRegion(sidoOf(one.ids, labels), one.word, one.count)}
+          </span>
+        ))}
         <span className={styles.pill} data-tone="open">
           {NUMBERS_TEXT.open(counted.open.length)}
         </span>

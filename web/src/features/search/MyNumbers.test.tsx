@@ -3,12 +3,19 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LibraryEligibilityRow } from '../../api/types'
-import { basisWord, countRows, MyNumbers, NUMBERS_TEXT } from './MyNumbers'
+import { countRows, countSide, MyNumbers, NUMBERS_TEXT } from './MyNumbers'
 
-const TREE = [{ id: 11, name: '서울특별시', shortName: '서울', children: [{ id: 1116, name: '강서구' }] }]
+const TREE = [
+  { id: 11, name: '서울특별시', shortName: '서울', children: [{ id: 1116, name: '강서구' }] },
+  { id: 23, name: '인천광역시', shortName: '인천', children: [{ id: 2310, name: '강화군' }] },
+]
 
-const row = (id: number, eligibility: LibraryEligibilityRow['eligibility'], visitRequired = false) =>
-  ({ id, name: `도서관 ${id}`, eligibility, matchedBy: [], visitRequired }) as unknown as LibraryEligibilityRow
+const row = (
+  id: number,
+  eligibility: LibraryEligibilityRow['eligibility'],
+  visitRequired = false,
+  matchedBy: string[] = eligibility === 'ELIGIBLE' ? ['RESIDENCE'] : [],
+) => ({ id, name: `도서관 ${id}`, eligibility, matchedBy, visitRequired }) as unknown as LibraryEligibilityRow
 
 function serve(libraries: () => Response) {
   const calls: string[] = []
@@ -24,10 +31,13 @@ function serve(libraries: () => Response) {
   return calls
 }
 
-function renderNumbers(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+function renderNumbers(
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  work: number[] = [],
+) {
   return render(
     <QueryClientProvider client={client}>
-      <MyNumbers residence={[1116]} work={[]} />
+      <MyNumbers residence={[1116]} work={work} />
     </QueryClientProvider>,
   )
 }
@@ -80,14 +90,30 @@ describe('the numbers after a pick (handoff 5-A-4)', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('names the side: 거주 / 재직 / 거주·재직, and counts only joinable rows', () => {
-    expect(basisWord([1], [])).toBe('거주')
-    expect(basisWord([], [2])).toBe('재직')
-    expect(basisWord([1], [2])).toBe('거주·재직')
+  it('one pill a side with its 시도, a side without libraries left out (user 2026-10-20)', async () => {
+    const rows = [
+      row(1, 'ELIGIBLE', false, ['RESIDENCE']),
+      row(2, 'ELIGIBLE', false, ['RESIDENCE', 'WORK']),
+      row(3, 'ELIGIBLE', false, ['WORK']),
+      row(4, 'OPEN'),
+    ]
+    serve(() => new Response(JSON.stringify({ libraries: rows }), { status: 200 }))
+    renderNumbers(undefined, [2310])
+    expect(await screen.findByText('서울 거주로 2')).toBeTruthy()
+    expect(screen.getByText('인천 재직으로 2')).toBeTruthy()
+    cleanup()
+
+    serve(() => new Response(JSON.stringify({ libraries: [row(1, 'ELIGIBLE', false, ['RESIDENCE']), row(4, 'OPEN')] }), { status: 200 }))
+    renderNumbers(undefined, [2310])
+    expect(await screen.findByText('서울 거주로 1')).toBeTruthy()
+    expect(screen.queryByText(/재직으로/)).toBeNull()
+  })
+
+  it('counts a side and only joinable rows', () => {
+    expect(countSide([row(1, 'ELIGIBLE', false, ['WORK']), row(2, 'OPEN')], 'WORK')).toBe(1)
     // 로 / 으로 by the last letter (user 2026-10-20: "서울 재직로 말고 서울 재직으로")
     expect(NUMBERS_TEXT.byRegion('서울', '거주', 3)).toBe('서울 거주로 3')
     expect(NUMBERS_TEXT.byRegion('서울', '재직', 3)).toBe('서울 재직으로 3')
-    expect(NUMBERS_TEXT.byRegion('서울', '거주·재직', 3)).toBe('서울 거주·재직으로 3')
     const counted = countRows([row(1, 'ELIGIBLE', true), row(2, 'UNKNOWN' as never, true)])
     expect([counted.eligible.length, counted.open.length]).toEqual([1, 0])
   })

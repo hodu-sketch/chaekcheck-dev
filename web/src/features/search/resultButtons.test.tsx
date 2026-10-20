@@ -245,7 +245,7 @@ describe('the plan size kept for the line', () => {
     plan(3)
     localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence: [1168], work: [] }))
     renderSearch('/search?title=사랑&direct=on')
-    const line = await screen.findByRole('button', { name: '바꾸기' })
+    const line = await screen.findByRole('button', { name: '지역 설정' })
     await vi.waitFor(() => expect(conditionOf(line)).toBe('서울 강남구에 살아요'))
     await vi.waitFor(() => expect(loadPrefs().planCount?.count).toBe(3))
     expect(loadPrefs().openCount).toBeNull()
