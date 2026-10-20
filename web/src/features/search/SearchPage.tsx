@@ -45,7 +45,8 @@ import styles from './SearchPage.module.css'
 /** The first screen's head and example card [확정] (ADR-0139, handoff 5-A-1·2, main screen (나) 2026-10-20). */
 export const START_TEXT = {
   eyebrow: '공공 전자도서관은 회원이면 무료예요',
-  headline: ['우리 동네 도서관만', '될까요? 아니요.'],
+  // user 2026-10-20: "읽고 싶은 전자책, / 사기 전에 빌릴 수 있는 전자도서관부터"
+  headline: ['읽고 싶은 전자책,', '사기 전에 빌릴 수 있는 전자도서관부터'],
   // two lines (user 2026-10-20: "강서구에 살아도 … 빌릴 수 있어요. / 저희가 … 찾아 드릴게요.")
   lead: [
     '강서구에 살아도 강동구·송파구 전자도서관에서 전자책을 빌릴 수 있어요.',

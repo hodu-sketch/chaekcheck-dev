@@ -477,7 +477,7 @@ describe('전자책 검색', () => {
     renderSearch('/search')
     expect(await screen.findByRole('heading', { level: 1, name: '전자책 검색' })).toBeTruthy()
     expect(screen.getByText('책 제목을 넣으면, 그 책을 지금 빌릴 수 있는 전자도서관을 여기에 보여 드려요')).toBeTruthy()
-    expect(screen.queryByText('될까요? 아니요.')).toBeNull()
+    expect(screen.queryByText('사기 전에 빌릴 수 있는 전자도서관부터')).toBeNull()
     expect(screen.queryByRole('complementary', { name: '예: 서울 강서구에 살면' })).toBeNull()
     expect(fake.books).toHaveLength(0)
   })
@@ -494,7 +494,7 @@ describe('the first screen', () => {
   it('wider screens: eyebrow, the question headline, the two lines with 자세히, the question; no search', async () => {
     renderSearch('/')
     const headline = await screen.findByRole('heading', { level: 1 })
-    expect(headline.textContent).toBe('우리 동네 도서관만될까요? 아니요.')
+    expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에 빌릴 수 있는 전자도서관부터')
     expect(headline.querySelectorAll('br')).toHaveLength(1)
     expect(screen.getByText('공공 전자도서관은 회원이면 무료예요')).toBeTruthy()
     expect(screen.getByText(/^강서구에 살아도/).closest('p')!.textContent).toBe(
