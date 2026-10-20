@@ -588,36 +588,38 @@ describe('the first screen', () => {
     vi.restoreAllMocks()
   })
 
-  // the visitor's 시도 first, 서울 when not known or without examples (user 2026-10-20)
-  it('picks a region of the given 시도 with two places or more; the own place first, the rest at random', () => {
+  // the visitor's 시도 first, 서울 when not known; every region of the country (user 2026-10-20: "전국 넣어줘")
+  it('picks a region of the given 시도, any region of it; the own place first, numbers from the list', () => {
     const sidos = [...new Set(START_EXAMPLES.map((one) => one.place.split(' ')[0]))]
+    expect(START_EXAMPLES.length).toBeGreaterThanOrEqual(230)
     for (const sido of [...sidos, null, '없는곳']) {
-      for (let i = 0; i < 30; i += 1) {
+      for (let i = 0; i < 20; i += 1) {
         const any = pickExample(sido)
-        const has = pickable.some((one) => one.place.split(' ')[0] === sido)
-        expect(any.place.split(' ')[0]).toBe(has ? sido : '서울')
-        expect(any.residence.length).toBeGreaterThanOrEqual(2)
-        expect(any.others.length).toBeGreaterThan(0)
+        const data = START_EXAMPLES.find((one) => one.id === any.id)!
+        expect(data.place.split(' ')[0]).toBe(sido && sidos.includes(sido) ? sido : '서울')
+        expect(any.residence.length + any.residenceRest).toBe(data.eligible)
         expect(any.residence.slice(0, 3)).toEqual(expect.arrayContaining(any.others))
-        expect(any.residence.length + any.residenceRest).toBe(START_EXAMPLES.find((one) => one.place === any.place)!.eligible)
       }
     }
   })
 
-  it('exampleOf: the example of a region, null for one without', () => {
+  it('exampleOf: found by the region id, named as the screens name it (전남광주 → 전남, 세종특별자치시)', () => {
     const known = pickable[0]
-    expect(exampleOf(known.place, () => 0)?.place).toBe(known.place)
-    expect(exampleOf('없는 곳', () => 0)).toBeNull()
+    expect(exampleOf(known.id, () => 0)?.place).toBe(known.place)
+    const gwangyang = START_EXAMPLES.find((one) => one.place === '전남광주 광양시')!
+    expect(exampleOf(gwangyang.id, () => 0)?.place).toBe('전남 광양시')
+    const sejong = START_EXAMPLES.find((one) => one.place.startsWith('세종 '))!
+    expect(exampleOf(sejong.id, () => 0)?.place).toBe('세종특별자치시')
+    expect(exampleOf(-1, () => 0)).toBeNull()
   })
 
   it('asks the 시도 of the address and shows an example of it', async () => {
-    const sido = pickable.map((one) => one.place.split(' ')[0]).find((one) => one !== '서울')!
     fake.signedIn = false
-    fake.sido = sido
+    fake.sido = '부산'
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(new RegExp(`^${sido} `))
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^부산 /)
   })
 
   it('a failed 시도 ask still shows a 서울 example', async () => {

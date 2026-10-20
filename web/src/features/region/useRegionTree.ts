@@ -6,6 +6,11 @@ import type { SidoNode } from '../../api/types'
 /** SIDO short names shown differently from the server's (user 2026-10-19: "전남광주 전남으로 바꾸고"). */
 const SHORT_NAME_SHOWN: Record<string, string> = { 전남광주: '전남' }
 
+/** A server 시도 short name as the screens show it (전남광주 → 전남). */
+export function shownSidoName(shortName: string): string {
+  return SHORT_NAME_SHOWN[shortName] ?? shortName
+}
+
 /**
  * What the screens show of the tree: the short names above, and each SIDO's SIGUNGU in 가나다 order (user
  * 2026-10-19: "두번째단계는 가나다순으로"). The ids and the SIDO order stay as the server sends them.

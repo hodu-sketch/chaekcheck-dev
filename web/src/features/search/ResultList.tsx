@@ -356,23 +356,26 @@ function Groups({
     </button>
   )
   const visitRemoved = context?.visit === 'none'
-  const visitLine = context
-    ? visitRemoved
-      ? (
-          <span className={styles.noteAside}>
-            {GROUP_TEXT.visitRemoved} · {linkButton(GROUP_TEXT.visitBack, context.onVisitBack)}
-          </span>
-        )
-      : visitRequiredOpenSites > 0 && (
-          <span className={styles.noteAside}>
-            {GROUP_TEXT.visitSome(visitRequiredOpenSites)}{' '}
-            {linkButton(GROUP_TEXT.visitRemove, context.onVisitNone)}
-          </span>
-        )
-    : null
+  // 「온라인으로 가입할 수 있는 곳만 보는 중이에요」 covers every group, 내 도서관 too: one line above them (user
+  // 2026-10-20: "원래 내 도서관도 방문가입 조건 따로있지않아?"); the 어디 살든 group keeps its 「이 중 N곳은 …」
+  const removedLine =
+    context && visitRemoved ? (
+      <p className={styles.visitRemovedLine}>
+        <span className={styles.noteAside}>
+          {GROUP_TEXT.visitRemoved} · {linkButton(GROUP_TEXT.visitBack, context.onVisitBack)}
+        </span>
+      </p>
+    ) : null
+  const visitLine =
+    context && !visitRemoved && visitRequiredOpenSites > 0 ? (
+      <span className={styles.noteAside}>
+        {GROUP_TEXT.visitSome(visitRequiredOpenSites)} {linkButton(GROUP_TEXT.visitRemove, context.onVisitNone)}
+      </span>
+    ) : null
 
   return (
     <>
+      {removedLine}
       {mine.count > 0 ? (
         <GroupSection
           group={mine}
@@ -405,10 +408,7 @@ function Groups({
           }
           {...common}
         />
-      ) : (
-        visitRemoved &&
-        visitLine && <p className={styles.visitRemovedLine}>{visitLine}</p>
-      )}
+      ) : null}
 
       {other.count > 0 && (
         <GroupSection group={other} title={GROUP_TEXT.other} note={GROUP_TEXT.otherNote} {...common} />

@@ -7,7 +7,7 @@ import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
-import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
+import { shownSidoName, useRegionLabels, useRegionTree } from '../region/useRegionTree'
 import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
@@ -86,6 +86,7 @@ export const START_TEXT = {
   rest: (count: number) => `+ ${count}곳`,
   restPhone: (count: number) => `+ ${count}`,
   only: (count: number) => `${count}곳`,
+  none: '없어요',
 } as const
 
 /** Pills on a row: 4 for 거주 on wider screens, 3 on phones; 3 for 상관없이. */
@@ -94,6 +95,8 @@ const OPEN_PILLS = 3
 const PHONE_PILLS = 3
 
 export interface ExampleCard {
+  /** The region's id (START_EXAMPLES). */
+  id: number
   place: string
   /** The region's own 시군구 ("강서구"). */
   home: string
@@ -118,14 +121,11 @@ function sample<T>(items: readonly T[], count: number, random: () => number): T[
 const homeOf = (place: string) => place.split(' ').slice(1).join(' ')
 
 /**
- * The examples whose residence row names two places or more (so the lead names one besides the own), grouped by 시도:
- * a 시도 is picked first, then a region in it, so the whole country comes up, not mostly 서울·경기 (user 2026-10-20:
- * "전국 골고루이되 여러 지역이 거주 + 되는 걸로").
+ * Every region's example, grouped by the server's 시도 short name (the address guess names it the same way); all of
+ * the country (user 2026-10-20: "랜덤 지역 예시데이터 … 전국 넣어줘", two places or more before).
  */
 const EXAMPLES_BY_SIDO = [
-  ...START_EXAMPLES.filter(
-    (one) => one.places.length >= 2 && one.places.some((place) => place !== homeOf(one.place)),
-  ).reduce((groups, one) => {
+  ...START_EXAMPLES.reduce((groups, one) => {
     const sido = one.place.split(' ')[0]
     groups.set(sido, [...(groups.get(sido) ?? []), one])
     return groups
@@ -157,14 +157,17 @@ function seeded(seeds: readonly number[]): () => number {
 /** When the 시도 is not known or has no examples. */
 const FALLBACK_SIDO = '서울'
 
-/** The example of a region ("서울 강서구"), for the lead of someone who picked it; null when it has none. */
+/**
+ * The example of a region by its id, for the person who picked it; found by id since the screens name some 시도
+ * otherwise (전남 for the server's 전남광주, user 2026-10-20: "광양시는 왜이래"). Null for an id with none.
+ */
 export function exampleOf(
-  place: string,
+  id: number,
   random: () => number = Math.random,
   basis: 'residence' | 'work' = 'residence',
 ): ExampleCard | null {
   // every region has one since 2026-10-20 (a region whose libraries name no place has no pills, only the count)
-  const example = START_EXAMPLES.find((one) => one.place === place)
+  const example = START_EXAMPLES.find((one) => one.id === id)
   return example ? cardOf(example, random, basis) : null
 }
 
@@ -173,14 +176,19 @@ function cardOf(
   random: () => number,
   basis: 'residence' | 'work' = 'residence',
 ): ExampleCard {
-  const home = homeOf(example.place)
+  // 세종 has no 시군구 of its own: "세종특별자치시", as the region labels show it
+  const [sido, ...rest] = example.place.split(' ')
+  const place = rest.join(' ').endsWith('특별자치시') ? rest.join(' ') : [shownSidoName(sido), ...rest].join(' ')
+  const home = rest.join(' ')
   const places = basis === 'work' ? example.workPlaces : example.places
   const eligible = basis === 'work' ? example.workEligible : example.eligible
   const own = places[0] === home ? [home] : []
   const residence = [...own, ...sample(places.slice(own.length), RESIDENCE_PILLS - own.length, random)]
   const open = sample(example.openPlaces, OPEN_PILLS, random)
   return {
-    place: example.place,
+    id: example.id,
+    // as the screens name it ("전남 광양시")
+    place,
     home,
     others: residence.filter((place) => place !== home).slice(0, 2),
     basis,
@@ -222,7 +230,8 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
   const residence = phone ? card.residence.slice(0, PHONE_PILLS) : card.residence
   const rest = (count: number, extra = 0, alone = false) => {
     const left = count + extra
-    if (left <= 0) return null
+    // a region whose residents join no library of their own (제주 today): say so
+    if (left <= 0) return alone ? START_TEXT.none : null
     // no pill before it: just the count
     if (alone) return START_TEXT.only(left)
     return phone ? START_TEXT.restPhone(left) : START_TEXT.rest(left)
@@ -309,13 +318,14 @@ export function SearchPage() {
   const pickedId = pickedBasis === 'residence' ? picked.residence[0] : pickedBasis === 'work' ? picked.work[0] : null
   const pickedPlace = pickedId === null ? null : (labels.get(pickedId) ?? null)
   const ownCard = useMemo(
-    () => (pickedPlace === null || pickedBasis === null ? null : exampleOf(pickedPlace, seeded(seeds), pickedBasis)),
-    [pickedPlace, pickedBasis, seeds],
+    () => (pickedId === null || pickedBasis === null ? null : exampleOf(pickedId, seeded(seeds), pickedBasis)),
+    [pickedId, pickedBasis, seeds],
   )
   const lead = useMemo(() => {
     if (pickedBasis === null) return { home: card.home, others: card.others, basis: card.basis }
+    if (ownCard !== null) return { home: ownCard.home, others: ownCard.others, basis: pickedBasis }
     if (pickedPlace === null) return null
-    return { home: homeOf(pickedPlace), others: ownCard?.others ?? [], basis: pickedBasis }
+    return { home: homeOf(pickedPlace), others: [], basis: pickedBasis }
   }, [pickedBasis, pickedPlace, card, ownCard])
   const [stored, setStored] = useState<SearchSettings>(() => loadSettings())
   const settings = resolveSettings(params, stored)
