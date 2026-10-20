@@ -167,7 +167,7 @@
 @media (width > 1024px) {
   .page[data-state='start'] .searchArea {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 23rem;
+    grid-template-columns: minmax(0, 1fr) 25rem;
     column-gap: 3rem;
     align-items: start;
   }
