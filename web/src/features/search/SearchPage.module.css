@@ -189,11 +189,11 @@
     grid-row: 1;
   }
 
-  .page[data-state='start'] .startPick {
+  .page[data-state='start'] .question {
     grid-row: 2;
   }
 
-  .page[data-state='start'] .question {
+  .page[data-state='start'] .startPick {
     grid-row: 3;
   }
 
