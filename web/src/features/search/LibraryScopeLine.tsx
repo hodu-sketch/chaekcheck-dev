@@ -307,6 +307,16 @@ export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [inlineOpen, onBoxChange])
+  // inline: when it opens, the card goes to the top of the screen under the header so the whole box below it is in
+  // view, its parts still loading or not (user 2026-10-20: "한 화면에서 다 보이도록")
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!inlineOpen || !rootRef.current) return
+    const root = rootRef.current
+    const header = document.querySelector('[data-app-header]')?.getBoundingClientRect().height ?? 0
+    const top = root.getBoundingClientRect().top + window.scrollY - header - 12
+    if (top > window.scrollY) window.scrollTo?.({ top })
+  }, [inlineOpen])
   const condition = useCondition(
     common.searched,
     common.visitChanged,
@@ -348,7 +358,7 @@ export function LibraryScopeLine({ box, onBoxChange, inline = false, ...common }
     // the main page on PC and tablets: the box opens under the card and pushes the page down, no window (user
     // 2026-10-20: "메인에서만큼은 이거 누르면 모달창 말고 아래로 내려서 보이게 해줘"; other pages keep the window)
     return (
-      <div className={styles.root}>
+      <div ref={rootRef} className={styles.root}>
         <ConditionCard textId={textId} line={condition.line} hint={condition.hint}>
           <button
             type="button"
