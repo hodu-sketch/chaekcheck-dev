@@ -400,7 +400,10 @@ export interface PickBook {
   title: string
   /** The list's own title when it differs from `title` (S14 shows it on one line), else null. */
   listTitle: string | null
-  /** `/api/v1/picks/covers/{coverId}`, or null: the card shows the title instead (AC-14b). */
+  /**
+   * `/api/v1/picks/covers/{coverId}` (librarian) or `/covers/<sha1>.jpg` (the other lists' files, 2026-10-20), or null:
+   * the card shows the title instead (AC-14b).
+   */
   coverUrl: string | null
   /** Our book, also when no plan library holds it; null when none. */
   bookId: number | null

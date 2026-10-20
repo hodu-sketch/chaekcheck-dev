@@ -67,7 +67,10 @@ export function cardTitle(title: string): string {
   return main || title
 }
 
-/** Only our own cover address is used as an image source (C7); anything else shows the title. */
+/**
+ * Only our own cover addresses are used as an image source (C7): a stored cover (the librarian list) or a cover file the
+ * web server serves (the other lists, `/covers/<sha1>.jpg`, user 2026-10-20); anything else shows the title.
+ */
 export function safeCoverUrl(url: string | null): string | null {
-  return url && /^\/api\/v1\/picks\/covers\/\d+$/.test(url) ? url : null
+  return url && (/^\/api\/v1\/picks\/covers\/\d+$/.test(url) || /^\/covers\/[0-9a-f]{40}\.jpg$/.test(url)) ? url : null
 }
