@@ -71,15 +71,14 @@ describe('header', () => {
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 
-  it('has 책첵이란? after the menus, out of them, going to /about (user 2026-10-20)', () => {
+  it('has 소개 right after the logo, out of the menus, going to /about (user 2026-10-20)', () => {
     renderAt('/')
     const header = () => within(screen.getByRole('banner'))
     const about = header().getByRole('link', { name: '소개' })
     const logo = screen.getByRole('link', { name: '책첵' })
     expect(about.getAttribute('href')).toBe('/about')
-    expect(wide().nextElementSibling).toBe(about)
+    expect(logo.nextElementSibling).toBe(about)
     expect(wide().contains(about)).toBe(false)
-    expect(logo.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(about.hasAttribute('data-current')).toBe(false)
     fireEvent.click(about)
     expect(screen.getByTestId('where').textContent).toBe('/about')

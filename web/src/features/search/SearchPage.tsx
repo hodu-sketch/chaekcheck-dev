@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSidoGuess, type BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
@@ -606,14 +606,7 @@ export function SearchPage() {
               <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
               <p className={styles.lead}>
                 {lead && guessSettled && lines(START_TEXT.lead(lead.home, lead.others, lead.basis))}
-                {!phone && (
-                  <>
-                    {' '}
-                    <Link to="/about" className={styles.leadMore}>
-                      {START_TEXT.more}
-                    </Link>
-                  </>
-                )}
+                {/* no 「자세히 →」 (user 2026-10-20: "자세히 → 이거 빼줘 pc"); 소개 is in the header */}
               </p>
             </div>
             {!phone && (

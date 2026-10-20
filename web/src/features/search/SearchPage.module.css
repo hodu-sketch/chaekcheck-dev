@@ -210,9 +210,10 @@
   /* the card's slot takes no height of its own, so a taller card (the names opened) never pushes the left side down
      (user 2026-10-20: "이거 늘리면 왼쪽 간격 벌어지는데 왼쪽은 변화 없도록"): bottom on the search row while it fits, else
      from the top down over the empty right side */
+  /* down to the search box row: the card's bottom on the search box's bottom (user 2026-10-20: "pc판 지금 엄청 이상한데") */
   .page[data-state='start'] .stepsSlot {
     grid-column: 2;
-    grid-row: 1 / span 3;
+    grid-row: 1 / span 4;
     align-self: stretch;
     contain: size;
     display: flex;
@@ -222,7 +223,7 @@
 
   .page[data-state='start'] .steps {
     flex-shrink: 0;
-    margin: 0 0 0.6rem;
+    margin: 0;
   }
 }
 
@@ -535,4 +536,13 @@
   color: var(--ink-soft);
   font-size: var(--text-xs);
   text-align: right;
+}
+
+/* 「전자책 검색」 before a search on wider screens: the search box, its line and chips as wide as the note box under
+   them (user 2026-10-20: "이부분 … 박스 만치로 늘려줘") */
+@media (width > 640px) {
+  .page[data-state='ebook'] .searchArea > form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
 }

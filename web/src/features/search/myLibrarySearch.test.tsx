@@ -528,9 +528,10 @@ describe('the first screen', () => {
     expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
     const lead = screen.getByText(/에 살아도/).closest('p')!
     expect(lead.textContent).toMatch(
-      /^\S+에 살아도 .+ 전자도서관에서 전자책을 빌릴 수 있어요\. 자세히 →$/,
+      /^\S+에 살아도 .+ 전자도서관에서 전자책을 빌릴 수 있어요\.$/,
     )
-    expect(screen.getByRole('link', { name: '자세히 →' }).getAttribute('href')).toBe('/about')
+    // no 자세히 → (user 2026-10-20)
+    expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     // 빌릴 수 있는 in purple (user 2026-10-20)
     expect(question().querySelector('span span')?.textContent).toBe('빌릴 수 있는')
     expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
