@@ -473,6 +473,11 @@
   white-space: nowrap;
 }
 
+/* the switch row keeps its words on one line, the my page line beside it */
+.body[data-compact] .part:last-of-type {
+  grid-template-columns: 4.2rem max-content;
+}
+
 .body[data-compact] > .myPageLine {
   align-self: stretch;
   padding-left: 0.8rem;
