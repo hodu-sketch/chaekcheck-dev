@@ -7,7 +7,7 @@ import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
-import { shownSidoName, useRegionLabels, useRegionTree } from '../region/useRegionTree'
+import { shownPrefix, useRegionLabels, useRegionTree } from '../region/useRegionTree'
 import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
@@ -72,7 +72,6 @@ export const START_TEXT = {
   // 뜨게", "예: 빼줘")
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
-  exampleSub: '다음 전자도서관들에서 빌릴 수 있어요',
   // a card made from a workplace: the 거주 row asks for one
   livePill: '사는 곳의 도서관',
   livePillPhone: '사는 곳',
@@ -179,7 +178,7 @@ function cardOf(
 ): ExampleCard {
   // 세종 has no 시군구 of its own: "세종특별자치시", as the region labels show it
   const [sido, ...rest] = example.place.split(' ')
-  const place = rest.join(' ').endsWith('특별자치시') ? rest.join(' ') : [shownSidoName(sido), ...rest].join(' ')
+  const place = rest.join(' ').endsWith('특별자치시') ? rest.join(' ') : `${shownPrefix(sido, rest.join(' '))} ${rest.join(' ')}`
   const home = rest.join(' ')
   const places = basis === 'work' ? example.workPlaces : example.places
   const eligible = basis === 'work' ? example.workEligible : example.eligible
@@ -269,12 +268,9 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
   // first 거주, else their first 직장 (a 재직 card), else the example
   return (
     <aside className={styles.steps} aria-labelledby={titleId}>
-      {/* two lines (user 2026-10-20: "서울 강서구에 살면 / 다음 전자도서관들에서 빌릴 수 있어요"); the card is named by the
-          first */}
-      <h2 className={styles.stepsTitle}>
-        <span id={titleId}>{START_TEXT.exampleTitle(card.place, card.basis)}</span>
-        <br />
-        {START_TEXT.exampleSub}
+      {/* one line again (user 2026-10-20: "다음 전자도서관들에서 빌릴 수 있어요 이 문구도 없애줘") */}
+      <h2 id={titleId} className={styles.stepsTitle}>
+        {START_TEXT.exampleTitle(card.place, card.basis)}
       </h2>
       <ul className={styles.exampleRows}>
         {rows.map((row) => (

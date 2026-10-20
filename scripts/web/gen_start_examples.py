@@ -41,6 +41,15 @@ SIDO_ALIASES = {
 }
 # the 시도 as the screens name it (web useRegionTree SHORT_NAME_SHOWN)
 SIDO_SHOWN = {'전남광주': '전남'}
+# the former 광주광역시 구 keep 「광주」 in front (광주 남구, not 전남 남구): people still say it that way (user 2026-10-20);
+# web useRegionTree FORMER_GWANGJU does the same for the region names
+FORMER_GWANGJU = {'동구', '서구', '남구', '북구', '광산구'}
+
+
+def shown(sido, gu=None):
+    if sido == '전남광주' and gu in FORMER_GWANGJU:
+        return '광주'
+    return SIDO_SHOWN.get(sido, sido)
 
 
 def strip_sido(name):
@@ -59,11 +68,42 @@ def stem(gu):
     return word if len(word) >= 2 else None
 
 
+# libraries whose names hide or mislead the place (checked 2026-10-20): name start -> (시도 short name, 시군구)
+LIBRARY_PLACES = {
+    '선경도서관': ('경기', '수원시'),
+    '녹양도서관': ('경기', '의정부시'),
+    '성남중앙도서관': ('경기', '성남시'),
+    '성남수정도서관': ('경기', '성남시'),
+    '이진아기념도서관': ('서울', '서대문구'),
+    '여의샛강': ('서울', '영등포구'),
+    '화도진도서관': ('인천', '동구'),
+    '한밭도서관': ('대전', '중구'),
+    '월평도서관': ('대전', '서구'),
+    '레인보우영동도서관': ('충북', '영동군'),
+    '진영도서관': ('경남', '김해시'),
+    '부산남지도서관': ('경남', '창녕군'),
+    '마한교육문화회관': ('전북', '익산시'),
+}
+
+
+def named_place(name):
+    for start, where in LIBRARY_PLACES.items():
+        if name.startswith(start):
+            return where
+    return None
+
+
 def place(name, home_sido):
     """The place a library's name names: a 시군구 (its full name or its stem, 광양공공도서관 -> 광양시) of the library's own
     시도 when its name starts with one, else of the person's 시도; or that 시도 itself for a 시도-wide library
     (경상북도교육청 -> 경북). A name shared by several 시도 gets its 시도 in front when not the person's own. None when the
     name names no place."""
+    known = named_place(name)
+    if known:
+        sido, gu = known
+        if gu_names[gu] > 1 and sido != home_sido:
+            return f'{shown(sido, gu)} {gu}'
+        return gu
     lib_sido, rest = strip_sido(name)
     scope = lib_sido or home_sido
     found = None
@@ -81,7 +121,7 @@ def place(name, home_sido):
         return SIDO_SHOWN.get(lib_sido, lib_sido) if lib_sido else None
     gu = found[0]
     if gu_names[gu] > 1 and scope != home_sido:
-        return f'{SIDO_SHOWN.get(scope, scope)} {gu}'
+        return f'{shown(scope, gu)} {gu}'
     return gu
 
 
