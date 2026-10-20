@@ -499,13 +499,10 @@ describe('전자책 검색', () => {
     expect(fake.books).toHaveLength(0)
   })
 
-  it('has the 가입 방법 chip before a search too: it only sets the next search (user 2026-10-20)', async () => {
-    const user = userEvent.setup()
+  it('has no 가입 방법 chip before a search (user 2026-10-21: "온라인 가입만 이거 버튼 빼주라")', async () => {
     renderSearch('/search')
-    await user.click(await screen.findByRole('button', { name: '온라인 가입만' }))
-    expect(await screen.findByRole('button', { name: '방문 가입도' })).toBeTruthy()
-    expect(JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).visit).toBe('any')
-    expect(fake.books).toHaveLength(0)
+    expect(await screen.findByRole('button', { name: '제목 일치' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /온라인 가입만|방문 가입도/ })).toBeNull()
   })
 })
 

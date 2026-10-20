@@ -541,9 +541,10 @@
 }
 
 /* 「전자책 검색」 before a search on wider screens: the search box, its line and chips as wide as the note box under
-   them (user 2026-10-20: "이부분 … 박스 만치로 늘려줘") */
+   them (user 2026-10-20: "이부분 … 박스 만치로 늘려줘"); results the same (user 2026-10-21: "달라 맞춰줘 검색하기 전 기준으로") */
 @media (width > 640px) {
-  .page[data-state='ebook'] .searchArea > form {
+  .page[data-state='ebook'] .searchArea > form,
+  .page[data-state='results'] .searchArea > form {
     grid-template-columns: minmax(0, 1fr) auto;
     width: 100%;
   }

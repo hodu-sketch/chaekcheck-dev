@@ -201,17 +201,10 @@ describe('buttons inside the results (cycle 22 R8-3)', () => {
     expect(screen.queryByText(/전국에서 찾는 중/)).toBeNull()
   })
 
-  it('the 가입 방법 chip in the narrowing row: 「방문 가입도」 ↔ 「온라인 가입만」, searching again (user 2026-10-20)', async () => {
-    const user = renderSearch()
-    const chip = await screen.findByRole('button', { name: '방문 가입도' })
-    expect(within(screen.getByRole('group', { name: '검색 좁히기' })).getByRole('button', { name: '방문 가입도' })).toBe(chip)
-    await user.click(chip)
-    await vi.waitFor(() => expect(lastStream().visit).toBe('none'))
-    expect(loadPrefs().visit).toBe('none')
-    await user.click(await screen.findByRole('button', { name: '온라인 가입만' }))
-    await vi.waitFor(() => expect(lastStream().visit).toBe('any'))
-    expect(loadPrefs().visit).toBe('any')
-    expect(screen.queryByText(/곳만 보는 중이에요|곳도 보는 중이에요/)).toBeNull()
+  it('no 가입 방법 chip in the narrowing row (user 2026-10-21: "온라인 가입만 이거 버튼 빼주라")', async () => {
+    renderSearch()
+    const row = await screen.findByRole('group', { name: '검색 좁히기' })
+    expect(within(row).queryByRole('button', { name: /온라인 가입만|방문 가입도/ })).toBeNull()
   })
 
   it('an empty ① for a search with regions offers [전국에서 찾기], which searches with scope=all', async () => {

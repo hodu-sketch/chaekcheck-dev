@@ -625,13 +625,8 @@ export function SearchPage() {
           </>
         )}
         <SearchForm
-          // with results it searches again; on 「전자책 검색」 before a search it only sets the next search (user
-          // 2026-10-20: "여기서도 … 토글 해두고")
-          onlineOnly={
-            hasSearch
-              ? { on: visit === 'none', onToggle: () => switchVisit(visit === 'none' ? 'any' : 'none') }
-              : { on: prefs.visit === 'none', onToggle: () => keepPrefs({ visit: prefs.visit === 'none' ? 'any' : 'none' }) }
-          }
+          // no 「온라인 가입만」 chip by the search box any more (user 2026-10-21: "온라인 가입만 이거 버튼 빼주라"); the
+          // setting stays on the my page
           key={formKey}
           initial={input ?? EMPTY_INPUT}
           settings={settings}
