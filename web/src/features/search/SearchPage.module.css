@@ -222,9 +222,10 @@
     justify-content: safe center;
   }
 
+  /* a little below the middle (user 2026-10-20: "박스 지금 보다는 좀 더 아래로") */
   .page[data-state='start'] .steps {
     flex-shrink: 0;
-    margin: 0;
+    margin: 3rem 0 0;
   }
 }
 
