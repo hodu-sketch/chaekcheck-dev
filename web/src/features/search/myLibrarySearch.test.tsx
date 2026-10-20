@@ -438,7 +438,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     phoneScreen()
     renderSearch('/')
 
-    const chip = await screen.findByRole('button', { name: '지역 설정', description: /^서울 마포구에 살아요/ })
+    const chip = await screen.findByRole('button', { name: '지역을 선택해주세요', description: /^서울 마포구에 살아요/ })
     const user = userEvent.setup()
     await user.click(chip)
     const sheet = within(await screen.findByRole('dialog', { name: '찾을 도서관' }))
@@ -539,7 +539,7 @@ describe('the first screen', () => {
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
-    const edit = await screen.findByRole('button', { name: '지역 설정' })
+    const edit = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await waitFor(() => expect(conditionOf(edit)).toBe('서울 마포구에 살아요 · 서울 중구에서 일해요'))
     // the lead names the person's own residence, not the random example (user 2026-10-20)
     await waitFor(() => expect(lead.textContent).toMatch(/^마포구에 살아도 /))
@@ -562,7 +562,7 @@ describe('the first screen', () => {
   it('only work regions: a 재직 card of the workplace, and the lead says 일해도, no numbers (user 2026-10-20)', async () => {
     fake.regions = { residenceRegionIds: [], workRegionIds: [1102] }
     renderSearch('/')
-    const edit = await screen.findByRole('button', { name: '지역 설정' })
+    const edit = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await waitFor(() => expect(conditionOf(edit)).toBe('서울 중구에서 일해요'))
     const card = await screen.findByRole('complementary', { name: '서울 중구에서 일하면' })
     const lines = within(card)
@@ -671,7 +671,7 @@ describe('the first screen', () => {
     fake.signedIn = false
     renderSearch('/')
     const user = userEvent.setup()
-    const button = await screen.findByRole('button', { name: '지역 선택' })
+    const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await user.click(button)
     expect(screen.queryByRole('dialog')).toBeNull()
     const panel = screen.getByRole('region', { name: '찾을 도서관' })
@@ -692,7 +692,7 @@ describe('the first screen', () => {
   it('with work regions and added libraries: the box still opens and shows only the first 거주', async () => {
     renderSearch('/')
     const user = userEvent.setup()
-    const button = await screen.findByRole('button', { name: '지역 설정' })
+    const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await user.click(button)
     const panel = screen.getByRole('region', { name: '찾을 도서관' })
     const residence = within(panel).getByRole('group', { name: '거주' })

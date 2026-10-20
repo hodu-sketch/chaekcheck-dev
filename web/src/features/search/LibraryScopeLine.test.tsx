@@ -146,7 +146,7 @@ function renderLine(options: Options = {}) {
 
 const guestRegions = (residence: number[], work: number[] = []) =>
   localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence, work }))
-const folded = () => screen.findByRole('button', { name: '지역 설정' })
+const folded = () => screen.findByRole('button', { name: '지역을 선택해주세요' })
 // the main page's box on wider screens: a part of the page, no window (user 2026-10-20)
 const box = () => screen.findByRole('region', { name: '찾을 도서관' })
 const sheetDialog = () => screen.findByRole('dialog', { name: '찾을 도서관' })
@@ -154,9 +154,9 @@ const sheetDialog = () => screen.findByRole('dialog', { name: '찾을 도서관'
 describe('a first visitor (R1-2)', () => {
   it('the condition card with [지역 선택] and no grey line under it (user 2026-10-20 words)', async () => {
     renderLine()
-    const button = await screen.findByRole('button', { name: '지역 선택' })
+    const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     const card = screen.getByTestId('scope-condition')
-    expect(card.textContent).toBe('지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요지역 선택')
+    expect(card.textContent).toBe('지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요지역을 선택해주세요')
     expect(conditionOf(button)).toBe('지역을 선택하시면 빌릴 수 있는 전자도서관이 늘어나요')
     expect(screen.queryByText(/안 골라도/)).toBeNull()
     expect(screen.queryByText(/어디서 빌리실 건가요/)).toBeNull()
@@ -167,14 +167,14 @@ describe('a first visitor (R1-2)', () => {
     renderLine()
     const button = await folded()
     await waitFor(() => expect(conditionOf(button)).toBe('서울 마포구에 살아요'))
-    expect(screen.getByTestId('scope-condition').textContent).toBe('서울 마포구에 살아요지역 설정')
+    expect(screen.getByTestId('scope-condition').textContent).toBe('서울 마포구에 살아요지역을 선택해주세요')
     expect(screen.queryByText(/안 골라도/)).toBeNull()
   })
 
   it('the button opens the box under the card, no window; no [일하는 곳도 더하기] beside it (user 2026-10-19, 2026-10-20)', async () => {
     const { user } = renderLine()
     expect(screen.queryByRole('button', { name: '일하는 곳도 더하기' })).toBeNull()
-    const button = await screen.findByRole('button', { name: '지역 선택' })
+    const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     expect(button.getAttribute('aria-expanded')).toBe('false')
     await user.click(button)
     const opened = await box()
@@ -195,13 +195,13 @@ describe('a results screen of a search made without regions (the line in the res
 
   it('says where it searched, with the number when known, and what a region adds', async () => {
     renderLine({ searched: searched() })
-    const button = await screen.findByRole('button', { name: '지역 선택' })
+    const button = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     expect(conditionOf(button)).toBe('어디 살든 가입되는 도서관 41곳에서 찾았어요')
     expect(screen.getByText('사는 곳을 알려 주시면 그 지역 도서관도 보여요')).toBeTruthy()
     cleanup()
 
     renderLine({ searched: searched({ planCount: null }) })
-    expect(conditionOf(await screen.findByRole('button', { name: '지역 선택' }))).toBe(
+    expect(conditionOf(await screen.findByRole('button', { name: '지역을 선택해주세요' }))).toBe(
       '어디 살든 가입되는 도서관에서 찾았어요',
     )
   })
@@ -331,16 +331,16 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
 
   it('closes on ⓧ, on Esc and on the my page link', async () => {
     const { user } = renderLine()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(await screen.findByRole('button', { name: '지역을 선택해주세요' }))
     await user.click(within(await box()).getByRole('button', { name: '닫기' }))
     await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
 
-    await user.click(screen.getByRole('button', { name: '지역 선택' }))
+    await user.click(screen.getByRole('button', { name: '지역을 선택해주세요' }))
     await box()
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
 
-    await user.click(screen.getByRole('button', { name: '지역 선택' }))
+    await user.click(screen.getByRole('button', { name: '지역을 선택해주세요' }))
     await user.click(within(await box()).getByRole('link', { name: '마이페이지' }))
     await waitFor(() => expect(screen.queryByRole('region', { name: '찾을 도서관' })).toBeNull())
   })
@@ -356,7 +356,7 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
 
   it('before login a check is saved in this browser and the save hint shows under 거주 (R9)', async () => {
     const { user } = renderLine()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(await screen.findByRole('button', { name: '지역을 선택해주세요' }))
     const opened = await box()
     const residence = within(opened).getByRole('group', { name: '거주' })
     const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
@@ -425,14 +425,14 @@ describe('the phone chip (R2-1)', () => {
 
   it('a first visitor: "지역 설정", which opens the sheet', async () => {
     const { onOpen, user } = renderChip()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(await screen.findByRole('button', { name: '지역을 선택해주세요' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
   it('with regions: the words of the folded line', async () => {
     guestRegions([1114])
     renderChip()
-    const chip = await screen.findByRole('button', { name: '지역 설정' })
+    const chip = await screen.findByRole('button', { name: '지역을 선택해주세요' })
     await waitFor(() => expect(conditionOf(chip)).toBe('서울 마포구에 살아요'))
   })
 })
@@ -477,7 +477,7 @@ describe('the phone "찾을 도서관" sheet', () => {
   // only 거주 and the my page line since user 2026-10-20 (no 일하는 곳, 가입 방법 or [마이페이지에서 전체 보기])
   it('a dialog named "찾을 도서관" with 거주, a handle, ⓧ and the my page line, and no other settings', async () => {
     const user = renderChipWithSheet()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(await screen.findByRole('button', { name: '지역을 선택해주세요' }))
 
     const sheet = within(await sheetDialog())
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
@@ -496,7 +496,7 @@ describe('the phone "찾을 도서관" sheet', () => {
 
   it('the my page link closes the sheet', async () => {
     const user = renderChipWithSheet()
-    await user.click(await screen.findByRole('button', { name: '지역 선택' }))
+    await user.click(await screen.findByRole('button', { name: '지역을 선택해주세요' }))
     await user.click(within(await sheetDialog()).getByRole('link', { name: '마이페이지' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
