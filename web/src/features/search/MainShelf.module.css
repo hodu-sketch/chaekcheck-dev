@@ -1,5 +1,7 @@
 /* The first screen's shelf: a heading line, then six covers in a row (user 2026-10-22, design A) */
 .shelf {
+  /* a grid or flex item that never widens the column (its row scrolls sideways on phones) */
+  min-width: 0;
   margin: 1.3rem 0 1.6rem;
 }
 
@@ -81,10 +83,23 @@
   word-break: keep-all;
 }
 
+/* short laptop windows: smaller covers so the whole first screen still fits (user 2026-10-22) */
+@media (width > 1024px) and (height <= 820px) {
+  .shelf {
+    margin: 0.9rem 0 1.1rem;
+  }
+
+  .books {
+    grid-template-columns: repeat(6, minmax(0, 4.6rem));
+    justify-content: space-between;
+  }
+}
+
 /* phones: a row that scrolls sideways, about three and a half covers in view */
 @media (width <= 640px) {
   .books {
     display: flex;
+    max-width: 100%;
     overflow-x: auto;
     scroll-snap-type: x proximity;
     padding-bottom: 0.3rem;
