@@ -55,8 +55,8 @@ export const START_TEXT = {
   headline: ['읽고 싶은 전자책,', '사기 전에', '전자도서관부터'],
   // in the brand colour in the question above the search box, not in the headline (user 2026-10-20)
   headlineMark: '빌릴 수 있는',
-  // two lines (user 2026-10-22: "내가 사는 시·도의 / 다른 시·군·구 … 이렇게 개행")
-  leadFixed: ['내가 사는 시·도의', '다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.'],
+  // two lines (user 2026-10-22: "내가 사는 시·도의 다른 시·군·구 전자도서관에서도 / 전자책을 빌릴 수 있어요.")
+  leadFixed: ['내가 사는 시·도의 다른 시·군·구 전자도서관에서도', '전자책을 빌릴 수 있어요.'],
   more: '자세히 →',
   // above the search box, the lead's second line moved here (user 2026-10-20: "어떤 책을 찾으세요? 이거 문구를 …
   // 이걸로 바꾸고 원래 거 지워")

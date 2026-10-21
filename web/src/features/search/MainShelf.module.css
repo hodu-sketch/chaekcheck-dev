@@ -105,8 +105,18 @@
     padding-bottom: 0.3rem;
   }
 
+  /* smaller covers and one title line, so the 「왜 지역을」 line under the shelf stays in a phone's first window
+     (user 2026-10-22: "메인 아래에 i 잘리는데 안 잘리게") */
+  .shelf {
+    margin: 1rem 0 0.9rem;
+  }
+
   .books > li {
-    flex: 0 0 28%;
+    flex: 0 0 22%;
     scroll-snap-align: start;
+  }
+
+  .bookTitle {
+    -webkit-line-clamp: 1;
   }
 }
