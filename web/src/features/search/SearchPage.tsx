@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
+import { Dialog } from 'radix-ui'
 import { fetchSidoGuess, type BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from './resultFilter'
@@ -235,6 +236,53 @@ function lines(parts: readonly string[], mark?: string) {
  * answered by a picture, three rows 거주 · 재직 · 상관없이 of pills for an example region. Phones show three pills a row.
  * Someone who picked a region sees their own numbers here instead (5-A-4).
  */
+/** The answer's paragraphs, the bold parts in the brand colour. */
+function WhyAnswer() {
+  return (
+    <div className={styles.whyAnswer}>
+      {START_TEXT.whyAnswer.map((parts) => (
+        <p key={parts.join('')}>
+          {parts.map((part, index) => (index % 2 === 1 ? <strong key={part}>{part}</strong> : part))}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * 「전자도서관인데 왜 지역을 정해야 하나요?」 (user 2026-10-21): wider screens fold the answer open under the line; phones
+ * show it in a window in the middle of the screen ("모바일이면 모달로 보여주는걸로 해줘").
+ */
+function WhyRegion({ phone }: { phone: boolean }) {
+  if (!phone) {
+    return (
+      <details className={styles.whyRegion}>
+        <summary>{START_TEXT.whyQuestion}</summary>
+        <WhyAnswer />
+      </details>
+    )
+  }
+  return (
+    <Dialog.Root>
+      <div className={styles.whyRegion}>
+        <Dialog.Trigger className={styles.whyTrigger}>{START_TEXT.whyQuestion}</Dialog.Trigger>
+      </div>
+      <Dialog.Portal>
+        <Dialog.Overlay className={styles.whyOverlay} />
+        <Dialog.Content className={styles.whyDialog}>
+          <Dialog.Title className={styles.whyDialogTitle}>{START_TEXT.whyQuestion}</Dialog.Title>
+          <Dialog.Description asChild>
+            <div>
+              <WhyAnswer />
+            </div>
+          </Dialog.Description>
+          <Dialog.Close className={styles.whyDialogClose}>확인</Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
 function StartExample({ phone, card, isExample }: { phone: boolean; card: ExampleCard; isExample: boolean }) {
   const titleId = useId()
   const residence = phone ? card.residence.slice(0, PHONE_PILLS) : card.residence
@@ -519,18 +567,6 @@ export function SearchPage() {
         : searchedWork,
   )
   // 「온라인 가입만」 on or off: kept for the next search, and this search again with it (user 2026-10-20)
-  const whyRegion = (
-    <details className={styles.whyRegion}>
-      <summary>{START_TEXT.whyQuestion}</summary>
-      <div className={styles.whyAnswer}>
-        {START_TEXT.whyAnswer.map((parts) => (
-          <p key={parts.join('')}>
-            {parts.map((part, index) => (index % 2 === 1 ? <strong key={part}>{part}</strong> : part))}
-          </p>
-        ))}
-      </div>
-    </details>
-  )
   const switchVisit = (next: VisitFilter) => {
     keepPrefs({ visit: next })
     searchAgain((address) => writeVisit(next, address))
@@ -697,12 +733,12 @@ export function SearchPage() {
         {/* why a region (user 2026-10-21, a friend's question "전자도서관이면 굳이 지역 상관없지 않나요? 왜 설정해야 하는거에요?"):
             one folded line under the search box, shorter words ("글좀 더 줄일 수 없을까"); phones at the very bottom, under
             the card ("폰 기준으로 맨 아래에 둬") */}
-        {start && !phone && whyRegion}
+        {start && !phone && <WhyRegion phone={false} />}
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}
         {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}
         {start && phone && guessSettled && <StartExample phone card={ownCard ?? card} isExample={ownCard === null} />}
-        {start && phone && whyRegion}
+        {start && phone && <WhyRegion phone />}
       </section>
 
       {notices.length > 0 && (

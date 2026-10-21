@@ -413,6 +413,17 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     }))
   }
 
+  it('phones: 「전자도서관인데 왜 지역을 정해야 하나요?」 opens the answer in a window (user 2026-10-21)', async () => {
+    phoneScreen()
+    const user = userEvent.setup()
+    renderSearch('/')
+    await user.click(await screen.findByRole('button', { name: '전자도서관인데 왜 지역을 정해야 하나요?' }))
+    const dialog = await screen.findByRole('dialog', { name: '전자도서관인데 왜 지역을 정해야 하나요?' })
+    expect(dialog.querySelectorAll('p')).toHaveLength(4)
+    await user.click(within(dialog).getByRole('button', { name: '확인' }))
+    expect(screen.queryByRole('dialog', { name: '전자도서관인데 왜 지역을 정해야 하나요?' })).toBeNull()
+  })
+
   // the results have no chip since user 2026-10-20: the line with the my page link under the search box
   it('results: no chip and no sheet; the line with the my page link without regions', async () => {
     phoneScreen()
