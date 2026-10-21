@@ -606,3 +606,11 @@
   line-height: 1.6;
   word-break: keep-all;
 }
+
+/* phones: right under the example card, closer to it than the card's own bottom room (user 2026-10-21: "위 박스에 더
+   붙어서") */
+@media (width <= 640px) {
+  .steps + .whyRegion {
+    margin-top: -1.1rem;
+  }
+}
