@@ -703,7 +703,7 @@
   }
 
   .page[data-state='start'] .searchArea {
-    padding-top: 0.4rem;
+    padding-top: 1rem;
   }
 
   .page[data-state='start'] .headline {
@@ -740,6 +740,6 @@
   }
 
   .page[data-state='start'] .headline {
-    font-size: calc(1.5 * var(--base-unscaled));
+    font-size: calc(1.65 * var(--base-unscaled));
   }
 }
