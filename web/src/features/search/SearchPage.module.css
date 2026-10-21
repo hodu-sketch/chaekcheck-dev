@@ -180,8 +180,9 @@
   .page[data-state='start'] .searchArea {
     display: grid;
     /* one column since the card moved under the search box (user 2026-10-22: "검색창 아래에 둬줘 모바일 처럼") */
-    /* about as wide as the old left column, on the same left edge */
+    /* about as wide as the old left column, in the middle of the page (user 2026-10-22: "가운데에 컨텐츠가 오게") */
     grid-template-columns: minmax(0, 40rem);
+    justify-content: center;
     align-items: start;
   }
 
