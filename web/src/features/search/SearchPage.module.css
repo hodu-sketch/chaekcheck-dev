@@ -484,14 +484,15 @@
 /* phones: a compact headline over the 46px search line (Google/Naver mobile, user request 2026-10-09) */
 @media (width <= 640px) {
   .headline {
-    font-size: calc(1.6 * var(--base-unscaled));
+    /* bigger since the lead line went (user 2026-10-22: "읽고 싶은 전자책, … 이거 글자 크기 키워줘") */
+    font-size: calc(2 * var(--base-unscaled));
   }
 }
 
 /* 360px and narrower (iPhone SE 1st gen): a step smaller */
 @media (width <= 360px) {
   .headline {
-    font-size: calc(1.5 * var(--base-unscaled));
+    font-size: calc(1.8 * var(--base-unscaled));
   }
 }
 
