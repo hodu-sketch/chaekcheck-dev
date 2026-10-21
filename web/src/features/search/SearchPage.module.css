@@ -640,9 +640,16 @@
   text-align: left;
 }
 
+/* a small ⓘ after the words, as the site's other help marks (InfoTip: 마이페이지 제목, 정렬 없음; user 2026-10-21:
+   "ⓘ 이거 보통 뒤에 작게 붙이는 거 아니야?", "뒤에 작은 ⓘ로 바꿔줘") */
 .whyTrigger::after {
-  content: '›';
-  margin-left: 0.1rem;
+  content: 'ⓘ';
+  margin-left: 0.3rem;
+  color: var(--ink-faint);
+  font-size: var(--text-lg);
+  font-weight: 400;
+  line-height: 1;
+  vertical-align: -0.1em;
 }
 
 .whyTrigger:focus-visible {
