@@ -212,6 +212,10 @@
     grid-row: 4;
   }
 
+  .page[data-state='start'] .whyRegion {
+    grid-row: 5;
+  }
+
   /* beside the eyebrow down to "어떤 책을 찾으세요?", its bottom just above the search box row (user 2026-10-19: "이 네모
      위치를 맨 아래쪽이 검색칸 행 위에 오도록"); the search box, the condition card and its hint run below it */
   /* the card's slot takes no height of its own, so a taller card (the names opened) never pushes the left side down
@@ -555,4 +559,50 @@
     grid-template-columns: minmax(0, 1fr) auto;
     width: 100%;
   }
+}
+
+/* 「전자도서관인데 왜 지역을 정해야 하나요?」 under the first screen's search box: a small grey line that opens a short
+   answer (user 2026-10-21) */
+.whyRegion {
+  margin-top: 0.9rem;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.whyRegion > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.whyRegion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.whyRegion > summary::after {
+  content: '▾';
+  font-size: 0.7em;
+}
+
+.whyRegion[open] > summary::after {
+  content: '▴';
+}
+
+.whyRegion > summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.whyRegion > p {
+  margin: 0.5rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-control);
+  background: var(--brand-faint);
+  color: var(--ink);
+  line-height: 1.6;
+  word-break: keep-all;
 }

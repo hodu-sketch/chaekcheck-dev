@@ -70,6 +70,8 @@ export const SCOPE_TEXT = {
   residence: '거주',
   residenceShort: '거주',
   workShort: '재직',
+  // more regions than the one the button names (user 2026-10-21: "강서구 거주 외 1곳")
+  pickMore: (count: number) => `외 ${count}곳`,
   work: '일하는 곳',
   chosen: (count: number) => `직접 추가 ${count}곳`,
   chosenHint: '마이페이지에서 이름으로 더할 수 있어요',
@@ -256,8 +258,9 @@ export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
       <Popover.Root open={box !== null} onOpenChange={(open) => onBoxChange(open ? 'residence' : null)}>
         {/* one smaller violet button, no card with words (user 2026-10-20: "버튼을 통으로 바꾸라고 … 지역을 선택해 주세요") */}
         <div className={styles.pickRow}>
-          <Popover.Trigger className={styles.pickButton}>{SCOPE_TEXT.pick}</Popover.Trigger>
-          <PickedTag />
+          <Popover.Trigger className={styles.pickButton}>
+            <PickLabel />
+          </Popover.Trigger>
         </div>
         <Popover.Portal>
           <Popover.Content
@@ -305,38 +308,36 @@ export function LibraryScopeChip({
     <div className={styles.chipLine}>
       <div className={styles.pickRow}>
         <button type="button" className={styles.pickButton} onClick={onOpen} aria-haspopup="dialog">
-          {SCOPE_TEXT.pick}
+          <PickLabel />
         </button>
-        <PickedTag />
       </div>
     </div>
   )
 }
 
 /**
- * What is picked, beside the main page's region button: a white pill with a violet rim, 「강서구 거주」 for the first
- * 거주 (else the first 직장, 「금천구 재직」), and 「…」 right of it when two regions or more are set; nothing before any (user
- * 2026-10-20: "오른쪽에 흰 버튼 … 강서구 거주 이런것보이게 하고 2개 이상되면 .. 이거 추가해줘"). It only shows.
+ * The main page's region button names what is picked (user 2026-10-21, design A without 세모 or emoji): 「강서구 거주」
+ * for the first 거주 (else the first 직장, 「금천구 재직」) and 「외 1곳」 when more regions are set; 「지역을 선택해 주세요」 before
+ * any. It replaced the white pill and the 「+」 beside the button, which looked like an add button.
  */
-function PickedTag() {
+function PickLabel() {
   const { regions } = useRegions()
   const labels = useRegionLabels(useRegionTree().data)
   const residence = regions.residence[0]
   const id = residence ?? regions.work[0]
   const label = id === undefined ? undefined : labels.get(id)
-  if (label === undefined) return null
+  if (label === undefined) return <>{SCOPE_TEXT.pick}</>
   const place = label.split(' ').slice(1).join(' ') || label
   const word = residence !== undefined ? SCOPE_TEXT.residenceShort : SCOPE_TEXT.workShort
-  const more = regions.residence.length + regions.work.length >= 2
+  const others = regions.residence.length + regions.work.length - 1
   return (
     <>
-      {/* shows only; a tap does nothing (user 2026-10-20: "이거 버튼 눌러도 이벤트 X") */}
-      <span className={styles.pickedTag}>{`${place} ${word}`}</span>
-      {/* outside the pill, right of it, a 「+」 (user 2026-10-20: ".. 이건 네모칸 밖에 우측에", "... 말고 + 기호로") */}
-      {more && (
-        <span className={styles.pickedMore} aria-label="외 더 있음">
-          +
-        </span>
+      {`${place} ${word}`}
+      {others > 0 && (
+        <>
+          {' '}
+          <span className={styles.pickMore}>{SCOPE_TEXT.pickMore(others)}</span>
+        </>
       )}
     </>
   )

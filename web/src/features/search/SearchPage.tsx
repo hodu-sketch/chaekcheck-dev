@@ -73,6 +73,9 @@ export const START_TEXT = {
   exampleFoot: '전자도서관에서 빌릴 수 있어요',
   // before the person sets any 거주 or 직장 the card is only an example (user 2026-10-21: "만약에 서울 강서구에 살면")
   exampleIf: '만약에',
+  whyQuestion: '전자도서관인데 왜 지역을 정해야 하나요?',
+  whyAnswer:
+    '전자책도 그 도서관 회원만 빌릴 수 있고, 회원은 대부분 그 지역에 살거나 일하는 사람이에요. 지역을 정하면 가입할 수 있는 도서관에서 찾아 드려요.',
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
   // a card made from a workplace: the 거주 row asks for one
@@ -672,6 +675,14 @@ export function SearchPage() {
             ) : undefined
           }
         />
+        {/* why a region (user 2026-10-21, a friend's question "전자도서관이면 굳이 지역 상관없지 않나요? 왜 설정해야 하는거에요?"):
+            one folded line under the search box, shorter words ("글좀 더 줄일 수 없을까") */}
+        {start && (
+          <details className={styles.whyRegion}>
+            <summary>{START_TEXT.whyQuestion}</summary>
+            <p>{START_TEXT.whyAnswer}</p>
+          </details>
+        )}
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}
         {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}

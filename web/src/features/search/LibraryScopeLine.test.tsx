@@ -142,13 +142,14 @@ function renderLine(options: Options = {}) {
 
 const guestRegions = (residence: number[], work: number[] = []) =>
   localStorage.setItem(REGION_STORAGE_KEY, JSON.stringify({ residence, work }))
-const folded = () => screen.findByRole('button', { name: '지역을 선택해 주세요' })
+// the region button names the first region once one is picked (user 2026-10-21)
+const folded = () => screen.findByRole('button', { name: /^(지역을 선택해 주세요|.+ (거주|재직)( 외 \d+곳)?)$/ })
 // the main page's box on wider screens: a part of the page, no window (user 2026-10-20)
 const box = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 const sheetDialog = () => screen.findByRole('dialog', { name: '찾을 도서관' })
 
 describe('a first visitor (R1-2)', () => {
-  it('one violet button 「지역을 선택해 주세요」 with or without regions, no card words (user 2026-10-20)', async () => {
+  it('one violet button naming what is picked: 「지역을 선택해 주세요」, 「마포구 거주」, 「… 외 1곳」 (user 2026-10-21)', async () => {
     renderLine()
     await screen.findByRole('button', { name: '지역을 선택해 주세요' })
     expect(screen.queryByTestId('scope-condition')).toBeNull()
@@ -156,18 +157,18 @@ describe('a first visitor (R1-2)', () => {
     cleanup()
     guestRegions([1114])
     renderLine()
-    await screen.findByRole('button', { name: '지역을 선택해 주세요' })
+    await screen.findByRole('button', { name: '마포구 거주' })
     expect(screen.queryByText(/에 살아요/)).toBeNull()
-    // what is picked, beside it; 「 …」 with two or more (user 2026-10-20)
-    expect(await screen.findByText('마포구 거주')).toBeTruthy()
-    // shows only, not a button (user 2026-10-20)
-    expect(screen.queryByRole('button', { name: '마포구 거주' })).toBeNull()
     cleanup()
     guestRegions([1114], [1102])
     renderLine()
-    expect(await screen.findByText('마포구 거주')).toBeTruthy()
-    // 「+」 outside the pill (user 2026-10-20)
-    expect(screen.getByLabelText('외 더 있음').textContent).toBe('+')
+    await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
+    // no white pill and no 「+」 beside the button any more
+    expect(screen.queryByLabelText('외 더 있음')).toBeNull()
+    cleanup()
+    guestRegions([], [1102])
+    renderLine()
+    await screen.findByRole('button', { name: '중구 재직' })
   })
 
   it('the button opens the box under the card, no window; no [일하는 곳도 더하기] beside it (user 2026-10-19, 2026-10-20)', async () => {

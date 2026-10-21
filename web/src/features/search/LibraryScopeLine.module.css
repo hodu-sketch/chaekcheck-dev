@@ -614,27 +614,6 @@
   gap: 0.5rem;
 }
 
-.pickedTag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.4rem;
-  padding: 0 1rem;
-  border: 1.5px solid var(--brand);
-  border-radius: var(--radius-control);
-  background: var(--card);
-  color: var(--brand-strong);
-  font: inherit;
-  font-size: var(--text-md);
-  font-weight: 800;
-}
-
-.pickedMore {
-  /* a little apart from the pill (user 2026-10-20: "버튼이랑 +이랑 거리 좀 띄워줘") */
-  margin-left: 0.2rem;
-  color: var(--brand-strong);
-  font-weight: 800;
-}
-
 /* the main page's small region window on PC and tablets: under the button, as wide as its content (the 저자 chip's
    window look, user 2026-10-20) */
 .pickWindow {
@@ -649,4 +628,11 @@
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
   color: var(--ink);
   font-size: var(--text-md);
+}
+
+/* 「외 1곳」 inside the region button: lighter than the place (user 2026-10-21) */
+.pickMore {
+  margin-left: 0.15rem;
+  font-weight: 400;
+  opacity: 0.85;
 }
