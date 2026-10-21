@@ -71,6 +71,8 @@ export const START_TEXT = {
   // a region picked at random on every visit from START_EXAMPLES (user 2026-10-20: "한 100개 정도 해서 항상 랜덤값이
   // 뜨게", "예: 빼줘")
   exampleFoot: '전자도서관에서 빌릴 수 있어요',
+  // before the person sets any 거주 or 직장 the card is only an example (user 2026-10-21: "만약에 서울 강서구에 살면")
+  exampleIf: '만약에',
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
   // a card made from a workplace: the 거주 row asks for one
@@ -223,7 +225,7 @@ function lines(parts: readonly string[], mark?: string) {
  * answered by a picture, three rows 거주 · 재직 · 상관없이 of pills for an example region. Phones show three pills a row.
  * Someone who picked a region sees their own numbers here instead (5-A-4).
  */
-function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
+function StartExample({ phone, card, isExample }: { phone: boolean; card: ExampleCard; isExample: boolean }) {
   const titleId = useId()
   const residence = phone ? card.residence.slice(0, PHONE_PILLS) : card.residence
   const rest = (count: number, extra = 0, alone = false) => {
@@ -268,6 +270,8 @@ function StartExample({ phone, card }: { phone: boolean; card: ExampleCard }) {
     <aside className={styles.steps} aria-labelledby={titleId}>
       {/* one line again (user 2026-10-20: "다음 전자도서관들에서 빌릴 수 있어요 이 문구도 없애줘") */}
       <h2 id={titleId} className={styles.stepsTitle}>
+        {/* smaller and in the foot's grey (user 2026-10-21: "좀 작고 약간 회색 … 전자도서관에서 빌릴 수 있어요랑 같은 색") */}
+        {isExample && <span className={styles.stepsTitleIf}>{START_TEXT.exampleIf} </span>}
         {START_TEXT.exampleTitle(card.place, card.basis)}
       </h2>
       <ul className={styles.exampleRows}>
@@ -608,7 +612,7 @@ export function SearchPage() {
             </div>
             {!phone && (
               <div className={styles.stepsSlot}>
-                {guessSettled && <StartExample phone={false} card={ownCard ?? card} />}
+                {guessSettled && <StartExample phone={false} card={ownCard ?? card} isExample={ownCard === null} />}
               </div>
             )}
             {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
@@ -671,7 +675,7 @@ export function SearchPage() {
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}
         {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}
-        {start && phone && guessSettled && <StartExample phone card={ownCard ?? card} />}
+        {start && phone && guessSettled && <StartExample phone card={ownCard ?? card} isExample={ownCard === null} />}
       </section>
 
       {notices.length > 0 && (

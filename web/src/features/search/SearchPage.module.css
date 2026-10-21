@@ -87,6 +87,13 @@
   font-weight: 800;
 }
 
+/* 「만약에」 before the example's place: smaller, the foot's grey (user 2026-10-21) */
+.stepsTitleIf {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
 
 
 

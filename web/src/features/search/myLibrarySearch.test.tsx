@@ -581,7 +581,7 @@ describe('the first screen', () => {
     expect(screen.getByText(/에 살아도/).textContent).toBe(
       `${card.home}에 살아도 ${card.others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
     )
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`${card.place}에 살면`)
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`만약에 ${card.place}에 살면`)
     expect(rows()).toEqual([
       `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
       '재직일하는 곳+',
@@ -622,7 +622,7 @@ describe('the first screen', () => {
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
     await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^부산 /)
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^만약에 부산 /)
   })
 
   it('a failed 시도 ask still shows a 서울 example', async () => {
@@ -630,7 +630,7 @@ describe('the first screen', () => {
     vi.mocked(fetch).mockImplementationOnce(async () => json(500, {}))
     renderSearch('/')
     await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^서울 /)
+    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^만약에 서울 /)
   })
 
   it('phones: the same two lines without 자세히; the example card after the search box, three pills a row', async () => {
