@@ -24,7 +24,7 @@ function Controls() {
       <button type="button" onClick={() => showNotice('저장하지 않은 지역이 있어요')}>
         여기서 안내
       </button>
-      <button type="button" onClick={() => navigate('/my-libraries')}>
+      <button type="button" onClick={() => navigate('/mypage')}>
         다른 화면
       </button>
       <button type="button" onClick={() => navigate('/?title=사랑')}>

@@ -52,6 +52,7 @@ function fakeServer() {
       if (url === '/api/v1/auth/refresh') return json(401, {})
       if (url === '/api/v1/regions') return json(200, TREE)
       if (url === '/api/v1/regions/guess') return json(200, { sido: fake.sido })
+      if (url.startsWith('/api/v1/picks/shelf')) return json(200, SHELF)
       if (url.startsWith('/api/v1/regions/resolutions?ids=')) {
         const ids = url.split('=')[1].split(',').map(Number)
         return json(200, ids.map((id) => ({ id, status: 'ACTIVE', label: null, replacements: [] })))
@@ -166,6 +167,14 @@ afterEach(() => {
  */
 const noteOf = async () =>
   (await screen.findByRole('link', { name: '마이페이지' }, { timeout: 5000 })).closest('p')!.textContent
+/** The first screen's shelf (user 2026-10-22): one book per field. */
+const SHELF = {
+  list: 'kaist',
+  books: [
+    { id: 'k1', category: 'literature', title: '달러구트 꿈 백화점', listTitle: null, coverUrl: '/covers/a.jpg', bookId: 11, available: true, recommendedMonth: null, yearBook: 2026, videoId: null, tocNo: null, aiSummary: null },
+    { id: 'k2', category: 'science', title: '다가올 초대륙', listTitle: null, coverUrl: '/covers/b.jpg', bookId: 12, available: false, recommendedMonth: null, yearBook: 2026, videoId: null, tocNo: null, aiSummary: null },
+  ],
+}
 const NOTE_NONE = '누구나 빌릴 수 있는 도서관에서만 찾고 있어요. 더 많은 도서관에서 찾으려면 마이페이지에서 지역과 도서관을 골라 주세요'
 /** The example regions the first screen may pick: two places or more, one besides the region's own. */
 const pickable = START_EXAMPLES.filter(
@@ -327,7 +336,7 @@ describe('before login (AC-14, cycle 07 flow S1)', () => {
 
     await waitFor(() => expect(fake.books.length).toBeGreaterThan(0))
     await waitFor(async () => expect(await noteOf()).toBe(NOTE_NONE))
-    expect(screen.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
+    expect(screen.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
     noBox()
     // no names to read without added libraries (D4)
     expect(fake.libraryLists).toBe(0)
@@ -456,7 +465,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
     expect(sheet.queryByRole('heading', { name: '일하는 곳' })).toBeNull()
     expect(sheet.queryByRole('switch')).toBeNull()
-    expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
+    expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
 
     await user.click(sheet.getByRole('button', { name: '닫기' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -523,10 +532,6 @@ describe('the first screen', () => {
   // the line above the search box (its 빌릴 수 있는 in its own span)
   const question = () => screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === QUESTION)
   const example = () => screen.queryByRole('complementary', { name: /에 살면$/ })
-  const rows = () =>
-    within(example()!)
-      .getAllByRole('listitem')
-      .map((item) => item.textContent)
 
   it('wider screens: 「전자도서관인데 왜 지역을 정해야 하나요?」 opens the answer in a window too (user 2026-10-22)', async () => {
     const user = userEvent.setup()
@@ -557,50 +562,15 @@ describe('the first screen', () => {
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
     await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
-    // this account's 거주 has an example: the card of it, with its 직장 as the 재직 pill (user 2026-10-20; its numbers
-    // before)
-    await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe('서울 마포구에 살면')
-    // 「일하는 곳」 even with a workplace set (user 2026-10-20: "그냥 일하는곳 + 로")
-    await waitFor(() => expect(rows()[1]).toBe('재직일하는 곳+'))
-    expect(rows()[0]).toMatch(/^거주마포구/)
-    expect(fake.books).toHaveLength(0)
-  })
-
-  // MyNumbers only when the person's region has no example, or only workplaces are set (user 2026-10-20)
-  it('only work regions: a 재직 card of the workplace, and the lead says 일해도, no numbers (user 2026-10-20)', async () => {
-    fake.regions = { residenceRegionIds: [], workRegionIds: [1102] }
-    renderSearch('/')
-    await screen.findByRole('button', { name: '중구 재직' })
-    const card = await screen.findByRole('complementary', { name: '서울 중구에서 일하면' })
-    const lines = within(card)
-      .getAllByRole('listitem')
-      .map((item) => item.textContent)
-    expect(lines[0]).toBe('거주사는 곳+')
-    expect(lines[1]).toMatch(/^재직/)
-    expect(screen.getByText('다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
-    expect(screen.queryByText(/가입할 수 있는 도서관 \d+곳/)).toBeNull()
-  })
-
-  it('without regions: a random region in the card and the lead, 거주 · 재직 · 상관없이, no 예: (user 2026-10-20)', async () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0)
-    fake.signedIn = false
-    renderSearch('/')
-    await screen.findByRole('heading', { level: 1 })
-    await waitFor(() => expect(example()).not.toBeNull())
-    // no 시도 from the address: a 서울 example (user 2026-10-20: "대충 모르겠으면 서울쪽으로")
-    const card = pickExample(null, () => 0)
-    expect(card.place).toMatch(/^서울 /)
-    const data = START_EXAMPLES.find((one) => one.place === card.place)!
-    expect(screen.getByText('다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`만약에 ${card.place}에 살면`)
-    expect(rows()).toEqual([
-      `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
-      '재직일하는 곳+',
-      `상관없이${card.open.join('')}+ ${data.open - 3}곳`,
+    // the shelf of recommended books in place of the example card (user 2026-10-22)
+    const shelf = await screen.findByRole('region', { name: '이런 책도 무료로 빌려 보세요' })
+    expect(within(shelf).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
+      '달러구트 꿈 백화점',
+      '다가올 초대륙',
     ])
-    expect(within(example()!).queryByText(/방문 가입/)).toBeNull()
-    vi.restoreAllMocks()
+    expect(within(shelf).getByRole('link', { name: '추천도서 더 보기 →' }).getAttribute('href')).toBe('/picks/kaist')
+    expect(example()).toBeNull()
+    expect(fake.books).toHaveLength(0)
   })
 
   // the visitor's 시도 first, 서울 when not known; every region of the country (user 2026-10-20: "전국 넣어줘")
@@ -628,25 +598,7 @@ describe('the first screen', () => {
     expect(exampleOf(-1, () => 0)).toBeNull()
   })
 
-  it('asks the 시도 of the address and shows an example of it', async () => {
-    fake.signedIn = false
-    fake.sido = '부산'
-    renderSearch('/')
-    await screen.findByRole('heading', { level: 1 })
-    await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^만약에 부산 /)
-  })
-
-  it('a failed 시도 ask still shows a 서울 example', async () => {
-    fake.signedIn = false
-    vi.mocked(fetch).mockImplementationOnce(async () => json(500, {}))
-    renderSearch('/')
-    await waitFor(() => expect(example()).not.toBeNull())
-    expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toMatch(/^만약에 서울 /)
-  })
-
-  it('phones: the same two lines without 자세히; the example card after the search box, three pills a row', async () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0)
+  it('phones: the same two lines without 자세히; the shelf after the search box', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('640px'),
       media: query,
@@ -660,17 +612,8 @@ describe('the first screen', () => {
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const asked = question()
     expect(asked.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    await waitFor(() => expect(example()).not.toBeNull())
-    expect(screen.getByRole('search').compareDocumentPosition(example()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const card = pickExample(null, () => 0)
-    const data = START_EXAMPLES.find((one) => one.place === card.place)!
-    const shown = card.residence.slice(0, 3)
-    expect(rows()).toEqual([
-      `거주${shown.join('')}+ ${data.eligible - shown.length}`,
-      '재직일하는 곳+',
-      `상관없이${card.open.join('')}+ ${data.open - 3}`,
-    ])
-    vi.restoreAllMocks()
+    const shelf = await screen.findByRole('region', { name: '이런 책도 무료로 빌려 보세요' })
+    expect(screen.getByRole('search').compareDocumentPosition(shelf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('wider screens: the box opens under the card in the page, no window; ⓧ and Esc close it (user 2026-10-20)', async () => {
@@ -685,7 +628,7 @@ describe('the first screen', () => {
     // only 사는 곳 and a line to the my page (user 2026-10-20; the selects at once since 2026-10-21)
     expect(within(panel).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['사는 곳'])
     expect(within(panel).queryByText(/^직접 추가/)).toBeNull()
-    expect(within(panel).getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
+    expect(within(panel).getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: '찾을 도서관' })).toBeNull()
     await user.click(button)

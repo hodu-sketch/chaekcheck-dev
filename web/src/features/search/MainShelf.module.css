@@ -1,0 +1,97 @@
+/* The first screen's shelf: a heading line, then six covers in a row (user 2026-10-22, design A) */
+.shelf {
+  margin: 1.3rem 0 1.6rem;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+
+.more {
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.more:hover {
+  text-decoration: underline;
+}
+
+.books {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.book {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 7 / 10;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgb(40 20 90 / 0.18);
+  transition: transform 0.15s ease;
+}
+
+.book:hover .cover {
+  transform: translateY(-3px);
+}
+
+.book:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.bookTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: keep-all;
+}
+
+/* phones: a row that scrolls sideways, about three and a half covers in view */
+@media (width <= 640px) {
+  .books {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.3rem;
+  }
+
+  .books > li {
+    flex: 0 0 28%;
+    scroll-snap-align: start;
+  }
+}

@@ -10,7 +10,7 @@ import { MyLibrariesPage } from './MyLibrariesPage'
 import { MyLibraryProvider } from './MyLibraryContext'
 import { loadPrefs, savePrefs } from '../search/searchSettings'
 
-/** S10 `/my-libraries` (cycle 06 step 12) against a fake server. */
+/** S10 `/mypage` (cycle 06 step 12) against a fake server. */
 
 const TREE = [
   { id: 11, name: '서울특별시', shortName: '서울', children: [{ id: 1102, name: '중구' }, { id: 1114, name: '마포구' }] },
@@ -106,9 +106,9 @@ function renderPage() {
         <NoticeProvider>
           <MyLibraryProvider>
             <RegionProvider>
-              <MemoryRouter initialEntries={['/my-libraries']}>
+              <MemoryRouter initialEntries={['/mypage']}>
                 <Routes>
-                  <Route path="/my-libraries" element={<MyLibrariesPage />} />
+                  <Route path="/mypage" element={<MyLibrariesPage />} />
                   <Route path="/" element={<p>S1</p>} />
                 </Routes>
               </MemoryRouter>

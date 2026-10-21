@@ -38,7 +38,7 @@ const TEXT = {
 const PAGE = 10
 
 /**
- * S10 `/my-libraries`, titled 마이페이지 (user 2026-10-19: 내 도서관 관리 and 계정 are one page): the regions, the
+ * S10 `/mypage`, titled 마이페이지 (user 2026-10-19: 내 도서관 관리 and 계정 are one page): the regions, the
  * libraries they bring in and the libraries added by hand first, then the account part, with 탈퇴하기 far below
  * everything. Since cycle 07 the library part also works before login and with login off (spec R3-6): the same
  * screen, saved in this browser, with no notice line on top [확정]; the account part asks to log in then. While the

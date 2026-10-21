@@ -6,7 +6,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.random.RandomGenerator;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
 import com.chaekcheck.picks.internal.PicksProperties;
+import com.chaekcheck.picks.internal.cache.MainShelf;
 import com.chaekcheck.picks.internal.cache.PicksCache;
 import com.chaekcheck.picks.internal.store.PicksStore;
 
@@ -47,6 +50,8 @@ class PicksController {
 
 	private final ZoneId zone;
 
+	private final RandomGenerator random = RandomGenerator.getDefault();
+
 	PicksController(PicksCache cache, PicksStore store, LibraryCatalog libraryCatalog, PicksProperties properties) {
 		this.cache = cache;
 		this.store = store;
@@ -54,18 +59,26 @@ class PicksController {
 		this.zone = properties.fetch().zone();
 	}
 
+	/**
+	 * The first screen's shelf (user 2026-10-22): one KAIST book per field of its newest year, drawn from the field's
+	 * ten most held ({@link MainShelf}). A new draw on every request, so it is never cached.
+	 */
+	@GetMapping("/api/v1/picks/shelf")
+	ResponseEntity<Shelf> shelf(@RequestParam MultiValueMap<String, String> params) {
+		Set<Long> planIds = planIds(params);
+		List<Picks.Book> books = MainShelf.choose(cache.snapshot(PicksCache.KAIST), random)
+			.stream()
+			.map(book -> book(book, planIds))
+			.toList();
+		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Shelf(PicksCache.KAIST, books));
+	}
+
 	@GetMapping("/api/v1/picks/{listKey}")
 	Picks picks(@PathVariable String listKey, @RequestParam MultiValueMap<String, String> params) {
 		if (!PicksCache.LISTS.contains(listKey)) {
 			throw new ListNotFoundException();
 		}
-		PicksPlanParams read = new PicksPlanParams(params);
-		PlanOptions options = read.planOptions();
-		Set<Long> residence = read.regionIds("residenceRegionIds");
-		Set<Long> work = read.regionIds("workRegionIds");
-		List<SearchTarget> plan = libraryCatalog.planSearch(residence, work, options);
-		Set<Long> planIds = new HashSet<>();
-		plan.forEach(target -> planIds.add(target.id()));
+		Set<Long> planIds = planIds(params);
 
 		PicksCache.Snapshot snapshot = cache.snapshot(listKey);
 		if (snapshot.categories().isEmpty()) {
@@ -92,6 +105,18 @@ class PicksController {
 			.contentType(mediaType(cover.contentType()))
 			.header(HttpHeaders.CACHE_CONTROL, COVER_CACHE_CONTROL)
 			.body(cover.image());
+	}
+
+	/** The ids of the libraries the plan in the parameters searches (the same as a search's, ADR-0090). */
+	private Set<Long> planIds(MultiValueMap<String, String> params) {
+		PicksPlanParams read = new PicksPlanParams(params);
+		PlanOptions options = read.planOptions();
+		Set<Long> residence = read.regionIds("residenceRegionIds");
+		Set<Long> work = read.regionIds("workRegionIds");
+		List<SearchTarget> plan = libraryCatalog.planSearch(residence, work, options);
+		Set<Long> planIds = new HashSet<>();
+		plan.forEach(target -> planIds.add(target.id()));
+		return planIds;
 	}
 
 	private static Picks.Book book(PicksCache.Book book, Set<Long> planIds) {
@@ -135,6 +160,14 @@ class PicksController {
 	 * @param fetchedAt the latest successful fetch of the librarian picks, ISO 8601 with the Asia/Seoul offset; null
 	 * for the other lists and when nothing is stored
 	 */
+	/**
+	 * The first screen's shelf.
+	 * @param list the list the books are from (opens its book window)
+	 * @param books one per field, in the fields' order
+	 */
+	record Shelf(String list, List<Picks.Book> books) {
+	}
+
 	record Picks(String list, String fetchedAt, List<Category> categories) {
 
 		/** @param code {@code ALL} or the list's field code */

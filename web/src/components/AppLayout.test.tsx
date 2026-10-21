@@ -48,7 +48,7 @@ describe('header', () => {
     expect(nav.getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
       ['도서검색', '/search'],
       ['추천도서', '/picks'],
-      ['마이페이지', '/my-libraries'],
+      ['마이페이지', '/mypage'],
     ])
     expect(nav.queryByRole('link', { name: '소개' })).toBeNull()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
@@ -61,7 +61,7 @@ describe('header', () => {
   it('goes on a click', () => {
     renderAt('/')
     fireEvent.click(within(wide()).getByRole('link', { name: '마이페이지' }))
-    expect(screen.getByTestId('where').textContent).toBe('/my-libraries')
+    expect(screen.getByTestId('where').textContent).toBe('/mypage')
   })
 
   it('goes to the main page on the logo', () => { // user 2026-10-16
@@ -91,7 +91,7 @@ describe('header', () => {
     ['/books/1', '도서검색'],
     ['/picks/snu100', '추천도서'],
     ['/picks', '추천도서'],
-    ['/my-libraries', '마이페이지'],
+    ['/mypage', '마이페이지'],
   ])('underlines the menu of %s', (path, label) => {
     renderAt(path)
     const current = within(wide())
@@ -174,7 +174,7 @@ describe('phone menu', () => {
     const drawer = openPhone()
     expect(within(drawer).getByRole('link', { name: '추천도서' }).getAttribute('aria-current')).toBe('page')
     fireEvent.click(within(drawer).getByRole('link', { name: '마이페이지' }))
-    expect(screen.getByTestId('where').textContent).toBe('/my-libraries')
+    expect(screen.getByTestId('where').textContent).toBe('/mypage')
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 

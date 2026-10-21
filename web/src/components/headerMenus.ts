@@ -1,11 +1,11 @@
 /**
  * The header menus (cycle 21 spec R1, ADR-0127): three plain links, no sub-menus (user 2026-10-19). The picks lists
- * (이동진/사서/서울대) are chosen inside the picks page; 내 도서관 and 계정 are one 마이페이지 at /my-libraries.
+ * (이동진/사서/서울대) are chosen inside the picks page; 내 도서관 and 계정 are one 마이페이지 at /mypage.
  */
 export const MENUS = [
   { key: 'search', label: '도서검색', to: '/search' },
   { key: 'picks', label: '추천도서', to: '/picks' },
-  { key: 'my', label: '마이페이지', to: '/my-libraries' },
+  { key: 'my', label: '마이페이지', to: '/mypage' },
 ] as const
 
 export type Menu = (typeof MENUS)[number]
@@ -26,6 +26,6 @@ export function inMenu(pathname: string, menu: Menu) {
     case 'picks':
       return pathname === '/picks' || pathname.startsWith('/picks/')
     case 'my':
-      return pathname === '/my-libraries' || pathname === '/account'
+      return pathname === '/mypage' || pathname === '/account'
   }
 }

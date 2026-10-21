@@ -436,6 +436,12 @@ export interface Picks {
   categories: PickCategory[]
 }
 
+/** `GET /api/v1/picks/shelf`: one book per field, in the fields' order. */
+export interface PicksShelf {
+  list: PicksListKey
+  books: PickBook[]
+}
+
 // ---- cycle 13: join survey date (ADR-0093) ----
 
 /** `GET /api/v1/join-surveys/latest`: the newest join survey date of the library inserts; null before the first. */

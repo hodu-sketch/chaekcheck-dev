@@ -271,7 +271,7 @@ function RowTags({
           tone="chosen"
           text={TAG_TEXT.chosen}
           action={() => (
-            <Link to="/my-libraries" className={styles.tagAction}>
+            <Link to="/mypage" className={styles.tagAction}>
               {TAG_TEXT.removeAtMyPage}
             </Link>
           )}

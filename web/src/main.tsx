@@ -62,9 +62,11 @@ function App() {
                 <Route path="/notices/:noticeId" element={<NoticePage />} />
                 {/* 마이페이지: open before login and with login off too (cycle 07, spec R3-6), saved in this browser
                     then; the account part and 탈퇴 at its bottom (user 2026-10-19) */}
-                <Route path="/my-libraries" element={<MyLibrariesPage />} />
+                <Route path="/mypage" element={<MyLibrariesPage />} />
+                {/* the old address of 마이페이지 (user 2026-10-22: "마이페이지에 걸맞게 바꿔줘") */}
+                <Route path="/my-libraries" element={<Navigate to="/mypage" replace />} />
                 {/* the old 마이페이지 > 계정 address: one 마이페이지 now (user 2026-10-19) */}
-                <Route path="/account" element={<Navigate to="/my-libraries" replace />} />
+                <Route path="/account" element={<Navigate to="/mypage" replace />} />
                 <Route
                   path="/signup"
                   element={

@@ -201,7 +201,7 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
     // "더 자세한 설정은 [마이페이지]에서 할 수 있어요", the word a bold underlined link (user 2026-10-20)
     expect(within(opened).getByText(/^더 자세한 설정은/).textContent).toBe('더 자세한 설정은 마이페이지에서 할 수 있어요')
     const link = within(opened).getByRole('link', { name: '마이페이지' })
-    expect(link.getAttribute('href')).toBe('/my-libraries')
+    expect(link.getAttribute('href')).toBe('/mypage')
     expect(link.className).toContain('strongLink')
   })
 
@@ -381,7 +381,7 @@ describe('the phone "찾을 도서관" sheet', () => {
     expect(sheet.queryByRole('heading', { name: '가입 방법' })).toBeNull()
     expect(sheet.queryByText(/어디 살든 가입되는 도서관/)).toBeNull()
     expect(sheet.queryByRole('link', { name: '마이페이지에서 전체 보기' })).toBeNull()
-    expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
+    expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
     expect(sheet.queryByRole('radiogroup')).toBeNull()
 
     await user.click(sheet.getByRole('button', { name: '닫기' }))

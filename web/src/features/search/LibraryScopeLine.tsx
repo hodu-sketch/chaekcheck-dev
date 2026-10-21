@@ -485,7 +485,7 @@ export function LibraryScopeBody({ onLeave, sheet = false, compact = false }: Bo
       )}
       <p className={styles.moreLine}>
         {SCOPE_TEXT.moreBefore}
-        <Link to="/my-libraries" className={styles.strongLink} onClick={onLeave}>
+        <Link to="/mypage" className={styles.strongLink} onClick={onLeave}>
           {SCOPE_TEXT.myPageWord}
         </Link>
         {SCOPE_TEXT.moreAfter}
@@ -527,7 +527,7 @@ export function ScopeNote({
       {text === null && (
         <p className={styles.noteText}>
           {SCOPE_TEXT.noteNoneBefore}
-          <Link to="/my-libraries" className={styles.strongLink}>
+          <Link to="/mypage" className={styles.strongLink}>
             {SCOPE_TEXT.myPageWord}
           </Link>
           {SCOPE_TEXT.noteNoneAfter}

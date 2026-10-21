@@ -1,8 +1,7 @@
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { Dialog } from 'radix-ui'
-import { fetchSidoGuess, type BookQuery } from '../../api/client'
+import type { BookQuery } from '../../api/client'
 import type { BookSort, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
@@ -24,6 +23,7 @@ import {
 } from './LibraryScopeLine'
 import { EMPTY_INPUT, filledFields, readBookSearch, readCondition, writeBookSearch, type BookSearchInput } from './searchCondition'
 import { SearchForm } from './SearchForm'
+import { MainShelf } from './MainShelf'
 import { readScope } from './readScope'
 import { useMineLabel, useRegionPlace, useTagPlace } from './regionPlace'
 import type { ResultSearchContext } from './ResultList'
@@ -95,7 +95,6 @@ export const START_TEXT = {
 /** Pills on a row: 4 for 거주 on wider screens, 3 on phones; 3 for 상관없이. */
 const RESIDENCE_PILLS = 4
 const OPEN_PILLS = 3
-const PHONE_PILLS = 3
 
 export interface ExampleCard {
   /** The region's id (START_EXAMPLES). */
@@ -146,14 +145,6 @@ export function pickExample(sido: string | null, random: () => number = Math.ran
   return cardOf(group[Math.floor(random() * group.length)], random)
 }
 
-/** The 시도 ask waits this long at most; the card then shows a 서울 example. */
-const GUESS_TIMEOUT_MS = 1500
-
-/** Random numbers read in turn (the same picks on every render). */
-function seeded(seeds: readonly number[]): () => number {
-  let at = 0
-  return () => seeds[at++ % seeds.length]
-}
 
 /** When the 시도 is not known or has no examples. */
 const FALLBACK_SIDO = '서울'
@@ -265,105 +256,9 @@ function WhyRegion() {
   )
 }
 
-function StartExample({ phone, card, isExample }: { phone: boolean; card: ExampleCard; isExample: boolean }) {
-  const titleId = useId()
-  const residence = phone ? card.residence.slice(0, PHONE_PILLS) : card.residence
-  const rest = (count: number, extra = 0, alone = false) => {
-    const left = count + extra
-    // a region whose residents join no library of their own (제주 today): say so
-    if (left <= 0) return alone ? START_TEXT.none : null
-    // no pill before it: just the count
-    if (alone) return START_TEXT.only(left)
-    return phone ? START_TEXT.restPhone(left) : START_TEXT.rest(left)
-  }
-  const placed = {
-    tone: 'mine',
-    pills: residence,
-    rest: rest(card.residenceRest, card.residence.length - residence.length, residence.length === 0),
-  }
-  // 거주 wins over 직장 (user 2026-10-20: "둘 중엔 거주가 우위"); only a workplace: a 재직 card
-  const workCard = card.basis === 'work'
-  const rows = [
-    workCard
-      ? {
-          key: START_TEXT.residence,
-          tone: 'mine',
-          pills: [START_TEXT.livePill],
-          rest: START_TEXT.workRest,
-        }
-      : { key: START_TEXT.residence, ...placed },
-    // always 「일하는 곳 +」 on a 거주 card: a workplace brings more than its own 시군구's library (user 2026-10-20:
-    // "광진구에 일하면 광진구 전자도서관만 가입 가능해? … 그냥 일하는곳 + 로")
-    workCard
-      ? { key: START_TEXT.work, ...placed }
-      : {
-          key: START_TEXT.work,
-          tone: 'mine',
-          pills: [START_TEXT.workPill],
-          rest: START_TEXT.workRest,
-        },
-    { key: START_TEXT.open, tone: 'open', pills: card.open, rest: rest(card.openRest) },
-  ]
-  // always this card, never the numbers (user 2026-10-20: "어떤 경우에도 난 아래 박스 형태를 원하지 않아"): the person's
-  // first 거주, else their first 직장 (a 재직 card), else the example
-  return (
-    <aside className={styles.steps} aria-labelledby={titleId}>
-      {/* one line again (user 2026-10-20: "다음 전자도서관들에서 빌릴 수 있어요 이 문구도 없애줘") */}
-      <h2 id={titleId} className={styles.stepsTitle}>
-        {/* smaller and in the foot's grey (user 2026-10-21: "좀 작고 약간 회색 … 전자도서관에서 빌릴 수 있어요랑 같은 색") */}
-        {isExample && <span className={styles.stepsTitleIf}>{START_TEXT.exampleIf} </span>}
-        {START_TEXT.exampleTitle(card.place, card.basis)}
-      </h2>
-      <ul className={styles.exampleRows}>
-        {rows.map((row) => (
-          <li key={row.key} className={styles.exampleRow}>
-            <span className={styles.exampleKey}>{row.key}</span>
-            {row.pills.map((pill) => (
-              <span key={pill} className={styles.examplePill} data-tone={row.tone}>
-                {pill}
-              </span>
-            ))}
-            {row.rest && <span className={styles.exampleRest}>{row.rest}</span>}
-          </li>
-        ))}
-      </ul>
-      {/* bottom right, small and soft (user 2026-10-20: "우하단에 … 전자도서관에서 빌릴 수 있어요") */}
-      <p className={styles.exampleFoot}>{START_TEXT.exampleFoot}</p>
-    </aside>
-  )
-}
-
-/**
- * S1 (flow.md cycle 04): `/` before a search, `/search?title=…&author=…` with results. The catalog search is the
- * default: 바로 보기 (books, then their libraries' live availability) or 책 먼저 고르기 (books only). With
- * "도서관에서 직접 찾기" on, the cycle 03 site search runs with the first filled field. Conditions, filter, scope,
- * visit and the two settings are in the address (ADR-0033); only the settings are also kept in this browser [확정].
- * Cycle 22 (D6): the search uses the regions and added libraries as they were when it was started (`searchedWith`);
- * changing them, or 방문 없이 가입, only saves them until the next [검색].
- */
 export function SearchPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  // the first screen's example region, once a visit, in the visitor's 시도 by the address (user 2026-10-20); the lead
-  // and the card both use it. Fixed random numbers, so a new render keeps the same pick.
-  const [seeds] = useState(() => Array.from({ length: 16 }, () => Math.random()))
-  const guess = useQuery({
-    queryKey: ['sidoGuess'],
-    queryFn: ({ signal }) => fetchSidoGuess(AbortSignal.any([signal, AbortSignal.timeout(GUESS_TIMEOUT_MS)])),
-    staleTime: Infinity,
-    retry: false,
-  })
-  const guessSettled = guess.isSuccess || guess.isError
-  const card = useMemo(() => pickExample(guess.data?.sido ?? null, seeded(seeds)), [guess.data?.sido, seeds])
-  const { regions: picked } = useRegions()
-  // the person's first 거주, else first 직장 (거주 wins, user 2026-10-20), for the card
-  const pickedBasis: ExampleCard['basis'] | null =
-    picked.residence.length > 0 ? 'residence' : picked.work.length > 0 ? 'work' : null
-  const pickedId = pickedBasis === 'residence' ? picked.residence[0] : pickedBasis === 'work' ? picked.work[0] : null
-  const ownCard = useMemo(
-    () => (pickedId === null || pickedBasis === null ? null : exampleOf(pickedId, seeded(seeds), pickedBasis)),
-    [pickedId, pickedBasis, seeds],
-  )
   const [stored, setStored] = useState<SearchSettings>(() => loadSettings())
   const settings = resolveSettings(params, stored)
   // what is kept in this browser fills only what the address leaves out (user request 2026-10-05)
@@ -433,7 +328,7 @@ export function SearchPage() {
    * my page set (it changes the first 거주 only); elsewhere the my page (user 2026-10-20).
    */
   const openPicker = () => {
-    if (!start) navigate('/my-libraries')
+    if (!start) navigate('/mypage')
     else if (phone) setSheetOpen(true)
     else setBox('residence')
   }
@@ -702,9 +597,9 @@ export function SearchPage() {
         />
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}
-        {/* the card under the search box on every width, as on phones (user 2026-10-22: "이 박스 pc에서는 오른쪽에
-            있지만 … 검색창 아래에 둬줘 모바일 처럼"), then the why-region line (user 2026-10-21) */}
-        {start && guessSettled && <StartExample phone={phone} card={ownCard ?? card} isExample={ownCard === null} />}
+        {/* the shelf of recommended books under the search box, in place of the 「만약에 …에 살면」 card (user 2026-10-22),
+            then the why-region line (user 2026-10-21) */}
+        {start && <MainShelf phone={phone} />}
         {start && <WhyRegion />}
       </section>
 

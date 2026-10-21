@@ -62,11 +62,11 @@ function renderWith(ui: ReactNode, path: string) {
   )
 }
 
-// user request 2026-10-18: 탈퇴 moved from the search settings to 마이페이지; 2026-10-19: one 마이페이지 at /my-libraries
+// user request 2026-10-18: 탈퇴 moved from the search settings to 마이페이지; 2026-10-19: one 마이페이지 at /mypage
 describe('마이페이지 계정 part', () => {
   it('asks to log in before login, with no 탈퇴', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(401, { code: 'unauthorized' })))
-    renderWith(<AccountSection />, '/my-libraries')
+    renderWith(<AccountSection />, '/mypage')
 
     expect(await screen.findByText('로그인하면 계정을 관리할 수 있어요')).toBeTruthy()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
@@ -75,7 +75,7 @@ describe('마이페이지 계정 part', () => {
 
   it('holds 탈퇴하기 after login, which opens S7 with the provider in one line only', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json(200, ME)))
-    renderWith(<AccountSection />, '/my-libraries')
+    renderWith(<AccountSection />, '/mypage')
     const user = userEvent.setup()
 
     expect(await screen.findByText('로그인되어 있어요')).toBeTruthy()

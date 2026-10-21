@@ -12,6 +12,7 @@ import type {
   NoticeList,
   Picks,
   PicksListKey,
+  PicksShelf,
   Problem,
   RegionResolution,
   ResultFilter,
@@ -203,6 +204,17 @@ export function fetchPicks(list: PicksListKey, plan: PlanParams, signal?: AbortS
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
   return getJson(`/api/v1/picks/${list}${suffix}`, signal)
+}
+
+/**
+ * `GET /api/v1/picks/shelf` (user 2026-10-22): the first screen's shelf, one KAIST book per field of its newest year,
+ * drawn on every call from the field's ten most held. The same plan as the book search marks `available`.
+ */
+export function fetchPicksShelf(plan: PlanParams, signal?: AbortSignal): Promise<PicksShelf> {
+  const search = new URLSearchParams()
+  planParams(search, plan)
+  const suffix = search.size ? `?${search}` : ''
+  return getJson(`/api/v1/picks/shelf${suffix}`, signal)
 }
 
 /**

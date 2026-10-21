@@ -519,7 +519,7 @@ describe('pills after the library name', () => {
     await user.click(pill('직접 추가'))
     const note = screen.getByRole('dialog')
     expect(note.textContent).toBe('직접 추가한 도서관이에요 · 마이페이지에서 빼기')
-    expect(within(note).getByRole('link', { name: '마이페이지에서 빼기' }).getAttribute('href')).toBe('/my-libraries')
+    expect(within(note).getByRole('link', { name: '마이페이지에서 빼기' }).getAttribute('href')).toBe('/mypage')
   })
 
   it('③ shows the eligibility summary in grey, without a note', () => {
