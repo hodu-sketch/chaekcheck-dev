@@ -111,8 +111,9 @@
     margin: 1rem 0 0.9rem;
   }
 
+  /* the covers as big as before (user 2026-10-22: "모바일 기준 메인에서 책 크기 전처럼 키워줘") */
   .books > li {
-    flex: 0 0 22%;
+    flex: 0 0 28%;
     scroll-snap-align: start;
   }
 
