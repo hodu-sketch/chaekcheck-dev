@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate, useParams } from 'react-router'
+import { NavLink, useNavigate, useParams } from 'react-router'
 import { ApiError, fetchPicks } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
 import type { PickBook, Picks } from '../../api/types'
@@ -15,6 +15,7 @@ import { RequestNotice } from './RequestNotice'
 import { usePicksPlan } from './usePicksPlan'
 import { useConditionCard } from '../search/useConditionCard'
 import { ExampleCardView, useExampleCards } from '../search/ExampleCard'
+import { RegionPickButton } from '../search/LibraryScopeLine'
 import styles from './PicksPage.module.css'
 
 /** [안] (cycle 10 step 7-6): the phone layout and bottom sheets, the same width as the other screens' phone layout. */
@@ -23,17 +24,17 @@ export const PHONE_QUERY = '(width <= 640px)'
 /** At most this many example cards between the books (user 2026-10-22). */
 const EXAMPLE_MAX = 3
 
-/** [확정] (user 2026-10-22, design A). */
-export const EXAMPLE_CTA = '내 지역 정하기'
+/** Rows between two example cards (user 2026-10-22: "나타나는 간격 지금보다 2배로", four before). */
+const EXAMPLE_EVERY = 8
 
 /**
- * Which example card follows the book at `index`, or null: the first after three rows, the next ones every four rows
+ * Which example card follows the book at `index`, or null: the first after three rows, the next ones every eight rows
  * (user 2026-10-22: "스크롤을 좀 내린 다음에 나왔으면", the fourth row being out of the first window on a laptop).
  */
 export function exampleSlot(index: number, columns: number): number | null {
   const row = (index + 1) / columns
-  if (!Number.isInteger(row) || row < 3 || (row - 3) % 4 !== 0) return null
-  const slot = (row - 3) / 4
+  if (!Number.isInteger(row) || row < 3 || (row - 3) % EXAMPLE_EVERY !== 0) return null
+  const slot = (row - 3) / EXAMPLE_EVERY
   return slot < EXAMPLE_MAX ? slot : null
 }
 
@@ -73,7 +74,7 @@ export function PicksPage({ list }: { list: PicksList }) {
   const { plan, ready, key } = usePicksPlan(asked, askedVisit)
   const { resolveStoredRegions, regions, libraryIds, ready: regionsReady } = useRegions()
   // the 「만약에 …에 살면」 cards between the books, only for someone with no region and no added library (user
-  // 2026-10-22: "예시 카드는 추천도서에서 쓰일거잖아", "스크롤을 좀 내린 다음에"): after three rows, then every four
+  // 2026-10-22: "예시 카드는 추천도서에서 쓰일거잖아", "스크롤을 좀 내린 다음에"): after three rows, then every eight
   const tablet = useMediaQuery('(width <= 1024px)')
   const columns = phone ? 2 : tablet ? 3 : 4
   const noRegion =
@@ -211,9 +212,11 @@ export function PicksPage({ list }: { list: PicksList }) {
                   {example && (
                     <li className={styles.exampleSlot}>
                       <ExampleCardView phone={phone} card={example} className={styles.exampleCard} />
-                      <Link to="/mypage" className={styles.exampleCta}>
-                        {EXAMPLE_CTA}
-                      </Link>
+                      {/* the main page's region button and window (user 2026-10-22: "내 지역 정하기 이거 말고 그냥
+                          메인의 지역을 선택해 주세요랑 똑같은 걸로") */}
+                      <div className={styles.examplePick}>
+                        <RegionPickButton phone={phone} />
+                      </div>
                     </li>
                   )}
                 </Fragment>

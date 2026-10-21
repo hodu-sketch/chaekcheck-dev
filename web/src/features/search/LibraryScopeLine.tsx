@@ -190,7 +190,7 @@ interface Common {
   onSearchAgain?: () => void
 }
 
-interface LineProps extends Common {
+interface LineProps extends Partial<Common> {
   /** The box is open, and on which grid; null = closed. */
   box: BoxFocus | null
   onBoxChange: (box: BoxFocus | null) => void
@@ -284,7 +284,7 @@ export function LibraryScopeLine({ box, onBoxChange }: LineProps) {
   )
 }
 
-interface ChipProps extends Common {
+interface ChipProps extends Partial<Common> {
   /** Opens the "찾을 도서관" sheet (`LibraryScopeSheet`). */
   onOpen: () => void
 }
@@ -343,6 +343,23 @@ function PickLabel() {
       )}
     </>
   )
+}
+
+/**
+ * The main page's region button on its own (user 2026-10-22: "추천도서의 내 지역 정하기 이거 말고 그냥 메인의 지역을 선택해
+ * 주세요랑 똑같은 걸로"): the same violet button and window, a sheet on phones.
+ */
+export function RegionPickButton({ phone }: { phone: boolean }) {
+  const [open, setOpen] = useState(false)
+  if (phone) {
+    return (
+      <>
+        <LibraryScopeChip onOpen={() => setOpen(true)} />
+        <LibraryScopeSheet open={open} onOpenChange={setOpen} />
+      </>
+    )
+  }
+  return <LibraryScopeLine box={open ? 'residence' : null} onBoxChange={(box) => setOpen(box !== null)} />
 }
 
 interface SheetProps {
