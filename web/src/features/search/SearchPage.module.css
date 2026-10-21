@@ -739,7 +739,15 @@
     font-size: calc(var(--base-unscaled) * 0.9);
   }
 
+  .page[data-state='start'] .searchArea {
+    padding-top: 0.5rem;
+  }
+
   .page[data-state='start'] .headline {
-    font-size: calc(1.65 * var(--base-unscaled));
+    font-size: calc(1.55 * var(--base-unscaled));
+  }
+
+  .page[data-state='start'] .lead {
+    line-height: 1.4;
   }
 }
