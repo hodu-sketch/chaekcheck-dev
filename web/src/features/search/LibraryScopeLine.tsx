@@ -6,7 +6,7 @@ import { BottomSheet } from '../../components/BottomSheet'
 import { useOptionalMyLibrary } from '../mylibrary/MyLibraryContext'
 import { SaveHint } from '../mylibrary/SaveHint'
 import { REGION_SAVE_FAILED, useRegions } from '../region/RegionContext'
-import { RegionGrid, type RegionField } from '../region/RegionGrid'
+import { RegionSelect, type RegionField } from '../region/RegionGrid'
 import { useRegionLabels, useRegionTree } from '../region/useRegionTree'
 import type { StoredRegions } from '../region/regionStorage'
 import { ro } from './regionPlace'
@@ -68,6 +68,8 @@ export const SCOPE_TEXT = {
   mine: '내 도서관',
   // user 2026-10-20: "사는 곳 말고 거주"
   residence: '거주',
+  // the main page's box title (user 2026-10-21 design A)
+  livePlace: '사는 곳',
   residenceShort: '거주',
   workShort: '재직',
   // more regions than the one the button names (user 2026-10-21: "강서구 거주 외 1곳")
@@ -447,9 +449,9 @@ export function LibraryScopeBody({ onLeave, sheet = false, compact = false }: Bo
   // only the first 거주 is shown and changed here; the other regions, added libraries and settings stay as the my page
   // set them (user 2026-10-20: "메인은 그냥 맨 앞에 거주 조건만 바꾸는 걸로 해줘 지역 도서관 설정을 어떻게 하든")
   const first = regions.residence.slice(0, MAIN_REGIONS)
-  const toggle = (id: number) => {
+  const pick = (id: number) => {
     const rest = regions.residence.slice(MAIN_REGIONS)
-    const residence = first.includes(id) ? rest : [id, ...rest.filter((x) => x !== id)]
+    const residence = [id, ...rest.filter((x) => x !== id)]
     const next: StoredRegions = { ...regions, residence }
     // a failure is on screen (saveFailed)
     setRegions(next).catch(() => undefined)
@@ -460,17 +462,11 @@ export function LibraryScopeBody({ onLeave, sheet = false, compact = false }: Bo
     <div className={styles.body} data-sheet={sheet || undefined} data-compact={compact || undefined}>
       <div className={styles.part} role="group" aria-labelledby={residenceId}>
         <h3 id={residenceId} className={styles.partTitle}>
-          {SCOPE_TEXT.residence}
+          {SCOPE_TEXT.livePlace}
         </h3>
         <div className={sheet ? styles.gridBleed : undefined}>
-          <RegionGrid
-            field="residence"
-            value={first}
-            onToggle={toggle}
-            full={first.length >= MAIN_REGIONS}
-            notices={notices}
-            single
-          />
+          {/* the 시도 and 시군구 selects at once, no + (user 2026-10-21 design A) */}
+          <RegionSelect field="residence" value={first[0] ?? null} onPick={pick} notices={notices} />
         </div>
         <SaveHint saved={saved} />
       </div>

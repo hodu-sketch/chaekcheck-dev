@@ -179,7 +179,7 @@ describe('a first visitor (R1-2)', () => {
     await user.click(button)
     const opened = await box()
     expect(button.getAttribute('aria-expanded')).toBe('true')
-    expect(within(opened).getByRole('group', { name: '거주' })).toBeTruthy()
+    expect(within(opened).getByRole('group', { name: '사는 곳' })).toBeTruthy()
     // a small window under the button (user 2026-10-20: "작은 모달창 … fit하게")
     expect(opened).toBeTruthy()
   })
@@ -191,7 +191,7 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
     const { user } = renderLine({ openCount: 39 })
     await user.click(await folded())
     const opened = await box()
-    expect(within(opened).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['거주'])
+    expect(within(opened).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['사는 곳'])
     expect(within(opened).queryByRole('group', { name: '일하는 곳' })).toBeNull()
     expect(within(opened).queryByText(/직접 추가/)).toBeNull()
     expect(within(opened).queryByText(/어디 살든 가입되는 도서관/)).toBeNull()
@@ -205,35 +205,21 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
     expect(link.className).toContain('strongLink')
   })
 
-  // one region: no + while one is chosen and no limit line; × first to pick another (user 2026-10-20)
-  it('takes one 거주: no + and no limit line while one is chosen, + again after ×', async () => {
-    guestRegions([1114])
-    const { user } = renderLine()
-    await user.click(await folded())
-    const residence = within(await box()).getByRole('group', { name: '거주' })
-    await waitFor(() => expect(within(residence).getByText('서울 마포구')).toBeTruthy())
-    expect(within(residence).queryByRole('button', { name: '사는 곳 추가' })).toBeNull()
-    expect(within(residence).queryByText(/^최대 \d+곳이에요$/)).toBeNull()
-
-    await user.click(within(residence).getByRole('button', { name: '서울 마포구 빼기' }))
-    expect(await within(residence).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
-  })
-
-  // only the first 거주 is shown and changed; the rest stays as the my page set it (user 2026-10-20: "메인은 그냥 맨 앞에
-  // 거주 조건만 바꾸는 걸로 해줘")
-  it('shows and changes only the first 거주; further residences and the workplaces stay', async () => {
+  // the 시도 and 시군구 selects at once, no + and no chip; the chosen one shows in them and another replaces it (user
+  // 2026-10-21 design A). Only the first 거주 changes; the rest stays as the my page set it (user 2026-10-20)
+  it('shows the first 거주 in the selects, no + or chip; another 시군구 replaces it and the rest stays', async () => {
     guestRegions([1114, 1102], [4113])
     const { user } = renderLine()
     await user.click(await folded())
-    const residence = within(await box()).getByRole('group', { name: '거주' })
-    const chips = within(residence).getByRole('list', { name: '고른 사는 곳' })
-    await waitFor(() => expect(within(chips).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      expect.stringContaining('서울 마포구'),
-    ]))
-    await user.click(within(residence).getByRole('button', { name: '서울 마포구 빼기' }))
+    const residence = within(await box()).getByRole('group', { name: '사는 곳' })
+    const sigungu = (await within(residence).findByRole('combobox', { name: '사는 곳 시군구' })) as HTMLSelectElement
+    await waitFor(() => expect(sigungu.value).toBe('1114'))
+    expect((within(residence).getByRole('combobox', { name: '사는 곳 시도' }) as HTMLSelectElement).selectedOptions[0]
+      .textContent).toBe('서울')
+    expect(within(residence).queryByRole('button', { name: '사는 곳 추가' })).toBeNull()
+    expect(within(residence).queryByRole('list', { name: '고른 사는 곳' })).toBeNull()
+    await user.selectOptions(sigungu, '중구')
     expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!)).toMatchObject({ residence: [1102], work: [4113] })
-    // the one left moves up into the box
-    await waitFor(() => expect(within(residence).getByText('서울 중구')).toBeTruthy())
   })
 
   it('closes on ⓧ, on Esc and on the my page link', async () => {
@@ -265,11 +251,8 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
     const { user } = renderLine()
     await user.click(await screen.findByRole('button', { name: '지역을 선택해 주세요' }))
     const opened = await box()
-    const residence = within(opened).getByRole('group', { name: '거주' })
-    const add = (await within(residence).findByRole('button', { name: '사는 곳 추가' })) as HTMLButtonElement
-    await waitFor(() => expect(add.disabled).toBe(false))
-    await user.click(add)
-    await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시도' }), '서울')
+    const residence = within(opened).getByRole('group', { name: '사는 곳' })
+    await user.selectOptions(await within(residence).findByRole('combobox', { name: '사는 곳 시도' }), '서울')
     await user.selectOptions(within(residence).getByRole('combobox', { name: '사는 곳 시군구' }), '마포구')
     expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!).residence).toEqual([1114])
     expect(within(residence).getByText(/^이 브라우저에만 저장됐어요/)).toBeTruthy()
@@ -380,7 +363,7 @@ describe('the phone "찾을 도서관" sheet', () => {
 
     const sheet = within(await sheetDialog())
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
-    expect(sheet.getByRole('heading', { name: '거주' })).toBeTruthy()
+    expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
     expect(sheet.queryByRole('heading', { name: '일하는 곳' })).toBeNull()
     expect(sheet.queryByRole('switch')).toBeNull()
     expect(sheet.queryByRole('heading', { name: '가입 방법' })).toBeNull()

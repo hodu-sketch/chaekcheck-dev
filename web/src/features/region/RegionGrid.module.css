@@ -186,3 +186,10 @@
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* the main page's box: the chosen 시군구 in the brand colour (user 2026-10-21 design A) */
+.select[data-picked] {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+  font-weight: 800;
+}

@@ -194,3 +194,85 @@ function Plus() {
     </svg>
   )
 }
+
+/**
+ * One region picked straight in two selects, no chip and no + (the main page's box, user 2026-10-21 design A: "「+」
+ * 단계를 없애고 시·도 / 시·군·구 칸을 처음부터 보여 줌. 고른 뒤에도 같은 칸에서 바로 바꿈"). The 시군구 select shows the
+ * chosen one; picking another replaces it.
+ */
+export function RegionSelect({
+  field,
+  value,
+  onPick,
+  notices = [],
+}: {
+  field: RegionField
+  /** The chosen SIGUNGU id, or null. */
+  value: number | null
+  onPick: (id: number) => void
+  notices?: RegionNotice[]
+}) {
+  const tree = useRegionTree()
+  const [sidoId, setSidoId] = useState<number | null>(null)
+  const fieldLabel = FIELD_LABEL[field]
+  const valueSido = tree.data?.find((s) => s.children.some((c) => c.id === value)) ?? null
+  const active = tree.data?.find((s) => s.id === sidoId) ?? valueSido ?? tree.data?.[0] ?? null
+  const shown = active !== null && active.children.some((c) => c.id === value) ? String(value) : ''
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.selects}>
+        {tree.isPending && <p className={styles.status}>불러오는 중…</p>}
+        {tree.isError && (
+          <p className={styles.status} role="alert">
+            지역 목록을 불러오지 못했어요{' '}
+            <button type="button" className={styles.linkButton} onClick={() => tree.refetch()}>
+              다시 시도
+            </button>
+          </p>
+        )}
+        {tree.data && active && (
+          <>
+            <select
+              className={styles.select}
+              aria-label={`${fieldLabel} 시도`}
+              value={active.id}
+              onChange={(e) => setSidoId(Number(e.target.value))}
+            >
+              {tree.data.map((sido) => (
+                <option key={sido.id} value={sido.id}>
+                  {sido.shortName ?? sido.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className={styles.select}
+              aria-label={`${fieldLabel} 시군구`}
+              value={shown}
+              data-picked={shown !== '' || undefined}
+              onChange={(e) => {
+                if (e.target.value) onPick(Number(e.target.value))
+              }}
+            >
+              <option value="" disabled={shown !== ''}>
+                시·군·구 고르기
+              </option>
+              {active.children.map((sigungu) => (
+                <option key={sigungu.id} value={sigungu.id}>
+                  {sigungu.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+      </div>
+      {notices.length > 0 && (
+        <ul className={styles.notices} role="status">
+          {notices.map((notice) => (
+            <li key={notice.message}>{notice.message}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}

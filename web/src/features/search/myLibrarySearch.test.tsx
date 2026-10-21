@@ -442,7 +442,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     const sheet = within(await screen.findByRole('dialog', { name: '찾을 도서관' }))
     expect(sheet.getByTestId('sheet-handle')).toBeTruthy()
     expect(sheet.queryByRole('button', { name: /^보기 방식/ })).toBeNull()
-    expect(sheet.getByRole('heading', { name: '거주' })).toBeTruthy()
+    expect(sheet.getByRole('heading', { name: '사는 곳' })).toBeTruthy()
     expect(sheet.queryByRole('heading', { name: '일하는 곳' })).toBeNull()
     expect(sheet.queryByRole('switch')).toBeNull()
     expect(sheet.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
@@ -680,9 +680,9 @@ describe('the first screen', () => {
     await user.click(button)
     const panel = await screen.findByRole('dialog', { name: '찾을 도서관' })
     expect(button.getAttribute('aria-expanded')).toBe('true')
-    expect(await within(panel).findByRole('button', { name: '사는 곳 추가' })).toBeTruthy()
-    // only 거주 and a line to the my page (user 2026-10-20)
-    expect(within(panel).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['거주'])
+    expect(await within(panel).findByRole('combobox', { name: '사는 곳 시군구' })).toBeTruthy()
+    // only 사는 곳 and a line to the my page (user 2026-10-20; the selects at once since 2026-10-21)
+    expect(within(panel).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['사는 곳'])
     expect(within(panel).queryByText(/^직접 추가/)).toBeNull()
     expect(within(panel).getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/my-libraries')
     await user.keyboard('{Escape}')
@@ -699,11 +699,9 @@ describe('the first screen', () => {
     const button = await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
     await user.click(button)
     const panel = screen.getByRole('dialog', { name: '찾을 도서관' })
-    const residence = within(panel).getByRole('group', { name: '거주' })
-    await waitFor(() =>
-      expect(within(residence).getByRole('list', { name: '고른 사는 곳' }).textContent).toBe('서울 마포구'),
-    )
-    expect(within(panel).queryByText('서울 중구')).toBeNull()
+    const residence = within(panel).getByRole('group', { name: '사는 곳' })
+    const sigungu = (await within(residence).findByRole('combobox', { name: '사는 곳 시군구' })) as HTMLSelectElement
+    await waitFor(() => expect(sigungu.value).toBe('1114'))
   })
 
   it('after a search: no headline and no steps card', async () => {
