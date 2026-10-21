@@ -13,6 +13,8 @@ import styles from './MainShelf.module.css'
 export const SHELF_TEXT = {
   title: '이런 책도 무료로 빌려 보세요',
   more: '추천도서 더 보기 →',
+  // phones: shorter, so the heading stays on one line
+  morePhone: '더 보기 →',
 } as const
 
 /**
@@ -41,7 +43,7 @@ export function MainShelf({ phone }: { phone: boolean }) {
       <div className={styles.head}>
         <h2 className={styles.title}>{SHELF_TEXT.title}</h2>
         <Link to={`/picks/${shelf.data!.list}`} className={styles.more}>
-          {SHELF_TEXT.more}
+          {phone ? SHELF_TEXT.morePhone : SHELF_TEXT.more}
         </Link>
       </div>
       <ul className={styles.books}>
