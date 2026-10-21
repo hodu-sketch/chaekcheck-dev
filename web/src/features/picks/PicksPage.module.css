@@ -197,7 +197,8 @@
   box-shadow: var(--card-shadow-soft);
 }
 
-.exampleCard {
+/* stronger than the card's own .steps box: no second box inside the strip */
+.exampleSlot .exampleCard {
   flex: 1;
   min-width: 0;
   margin: 0;
