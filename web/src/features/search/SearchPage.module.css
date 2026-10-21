@@ -690,3 +690,56 @@
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/*
+ * The first screen on smaller monitors and laptops (user 2026-10-22: "좀 더 작은 크기의 모니터에서도 이 내용들이 스크롤
+ * 없이 다 한 창에 보였으면 해 … 노트북 포함"): the whole column down to the 「왜 지역을」 line fits a 1366×768 or
+ * 1280×720 screen's window (about 600–650px tall). Shorter windows use a smaller base size on this page only and a
+ * tighter card.
+ */
+@media (width > 1024px) and (height <= 760px) {
+  :root:has(.page[data-state='start']) {
+    font-size: var(--base-unscaled);
+  }
+
+  .page[data-state='start'] .searchArea {
+    padding-top: 0.4rem;
+  }
+
+  .page[data-state='start'] .headline {
+    margin: 0.1rem 0 0.3rem;
+    font-size: calc(1.75 * var(--base-unscaled));
+    line-height: 1.22;
+  }
+
+  .page[data-state='start'] .intro {
+    margin-bottom: 0.5rem;
+  }
+
+  .page[data-state='start'] .steps {
+    margin: 0.8rem 0 1.25rem;
+    padding: 0.85rem 1.2rem;
+  }
+
+  .page[data-state='start'] .stepsTitle {
+    margin-bottom: 0.5rem;
+  }
+
+  .page[data-state='start'] .exampleRows {
+    gap: 0.35rem;
+  }
+
+  .page[data-state='start'] .exampleFoot {
+    margin-top: 0.35rem;
+  }
+}
+
+@media (width > 1024px) and (height <= 660px) {
+  :root:has(.page[data-state='start']) {
+    font-size: calc(var(--base-unscaled) * 0.94);
+  }
+
+  .page[data-state='start'] .headline {
+    font-size: calc(1.55 * var(--base-unscaled));
+  }
+}
