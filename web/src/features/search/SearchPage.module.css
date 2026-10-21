@@ -180,7 +180,8 @@
   .page[data-state='start'] .searchArea {
     display: grid;
     /* one column since the card moved under the search box (user 2026-10-22: "검색창 아래에 둬줘 모바일 처럼") */
-    grid-template-columns: minmax(0, 1fr);
+    /* about as wide as the old left column, on the same left edge */
+    grid-template-columns: minmax(0, 40rem);
     align-items: start;
   }
 
@@ -210,6 +211,7 @@
 
   .page[data-state='start'] .steps {
     grid-row: 5;
+    margin: 1.25rem 0 1.7rem;
   }
 
   .page[data-state='start'] .whyRegion {
