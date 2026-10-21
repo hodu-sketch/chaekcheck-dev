@@ -8,7 +8,7 @@ import { readFilter, writeFilter } from './resultFilter'
 import { checkQuery, normalizeQuery } from '../../lib/query'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
-import { shownPrefix, useRegionLabels, useRegionTree } from '../region/useRegionTree'
+import { shownPrefix } from '../region/useRegionTree'
 import { hasRegions } from '../region/regionStorage'
 import { BookList } from './BookList'
 import { DirectResults, NoSort } from './DirectResults'
@@ -55,16 +55,7 @@ export const START_TEXT = {
   headline: ['읽고 싶은 전자책,', '사기 전에', '전자도서관부터'],
   // in the brand colour in the question above the search box, not in the headline (user 2026-10-20)
   headlineMark: '빌릴 수 있는',
-  // names the example card's region and two of its pills, or the person's own region when picked (user 2026-10-20:
-  // "우측 박스에 있는 것에 맞춰서 이 문구도 바꿔야지", "지금 위랑 아래랑 안 맞는데")
-  lead: (home: string, others: readonly string[], basis: 'residence' | 'work' = 'residence') => {
-    const where = basis === 'work' ? `${home}에서 일해도` : `${home}에 살아도`
-    return [
-      others.length > 0
-        ? `${where} ${others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`
-        : `${where} 다른 지역 전자도서관에서 전자책을 빌릴 수 있어요.`,
-    ]
-  },
+  leadFixed: '내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.',
   more: '자세히 →',
   // above the search box, the lead's second line moved here (user 2026-10-20: "어떤 책을 찾으세요? 이거 문구를 …
   // 이걸로 바꾸고 원래 거 지워")
@@ -128,8 +119,6 @@ function sample<T>(items: readonly T[], count: number, random: () => number): T[
   while (picked.length < count && pool.length > 0) picked.push(pool.splice(Math.floor(random() * pool.length), 1)[0])
   return picked
 }
-
-const homeOf = (place: string) => place.split(' ').slice(1).join(' ')
 
 /**
  * Every region's example, grouped by the server's 시도 short name (the address guess names it the same way); all of
@@ -250,18 +239,10 @@ function WhyAnswer() {
 }
 
 /**
- * 「전자도서관인데 왜 지역을 정해야 하나요?」 (user 2026-10-21): wider screens fold the answer open under the line; phones
- * show it in a window in the middle of the screen ("모바일이면 모달로 보여주는걸로 해줘").
+ * 「전자도서관인데 왜 지역을 정해야 하나요? ⓘ」 (user 2026-10-21): the answer in a window in the middle of the screen on
+ * every width ("모바일이면 모달로", 2026-10-22 "pc에서는 아래로 내리는 건데 모달로 바꾸고").
  */
-function WhyRegion({ phone }: { phone: boolean }) {
-  if (!phone) {
-    return (
-      <details className={styles.whyRegion}>
-        <summary>{START_TEXT.whyQuestion}</summary>
-        <WhyAnswer />
-      </details>
-    )
-  }
+function WhyRegion() {
   return (
     <Dialog.Root>
       <div className={styles.whyRegion}>
@@ -374,22 +355,14 @@ export function SearchPage() {
   const guessSettled = guess.isSuccess || guess.isError
   const card = useMemo(() => pickExample(guess.data?.sido ?? null, seeded(seeds)), [guess.data?.sido, seeds])
   const { regions: picked } = useRegions()
-  const labels = useRegionLabels(useRegionTree().data)
-  // the person's first 거주, else first 직장 (거주 wins, user 2026-10-20), for the card and the lead
+  // the person's first 거주, else first 직장 (거주 wins, user 2026-10-20), for the card
   const pickedBasis: ExampleCard['basis'] | null =
     picked.residence.length > 0 ? 'residence' : picked.work.length > 0 ? 'work' : null
   const pickedId = pickedBasis === 'residence' ? picked.residence[0] : pickedBasis === 'work' ? picked.work[0] : null
-  const pickedPlace = pickedId === null ? null : (labels.get(pickedId) ?? null)
   const ownCard = useMemo(
     () => (pickedId === null || pickedBasis === null ? null : exampleOf(pickedId, seeded(seeds), pickedBasis)),
     [pickedId, pickedBasis, seeds],
   )
-  const lead = useMemo(() => {
-    if (pickedBasis === null) return { home: card.home, others: card.others, basis: card.basis }
-    if (ownCard !== null) return { home: ownCard.home, others: ownCard.others, basis: pickedBasis }
-    if (pickedPlace === null) return null
-    return { home: homeOf(pickedPlace), others: [], basis: pickedBasis }
-  }, [pickedBasis, pickedPlace, card, ownCard])
   const [stored, setStored] = useState<SearchSettings>(() => loadSettings())
   const settings = resolveSettings(params, stored)
   // what is kept in this browser fills only what the address leaves out (user request 2026-10-05)
@@ -664,15 +637,11 @@ export function SearchPage() {
               <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
               <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
               <p className={styles.lead}>
-                {lead && guessSettled && lines(START_TEXT.lead(lead.home, lead.others, lead.basis))}
+                {/* one fixed line, no example region (user 2026-10-22: "양천구에 살아도 강동구·광진구 … 이걸로 바꿔줘") */}
+                {START_TEXT.leadFixed}
                 {/* no 「자세히 →」 (user 2026-10-20: "자세히 → 이거 빼줘 pc"); 소개 is in the header */}
               </p>
             </div>
-            {!phone && (
-              <div className={styles.stepsSlot}>
-                {guessSettled && <StartExample phone={false} card={ownCard ?? card} isExample={ownCard === null} />}
-              </div>
-            )}
             {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
             <p className={styles.question}>{lines([START_TEXT.question], START_TEXT.headlineMark)}</p>
             {/* the region button between that line and the search box (user 2026-10-20: "지역을 선택해 주세요 버튼이랑 검색
@@ -730,15 +699,12 @@ export function SearchPage() {
             ) : undefined
           }
         />
-        {/* why a region (user 2026-10-21, a friend's question "전자도서관이면 굳이 지역 상관없지 않나요? 왜 설정해야 하는거에요?"):
-            one folded line under the search box, shorter words ("글좀 더 줄일 수 없을까"); phones at the very bottom, under
-            the card ("폰 기준으로 맨 아래에 둬") */}
-        {start && !phone && <WhyRegion phone={false} />}
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}
-        {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}
-        {start && phone && guessSettled && <StartExample phone card={ownCard ?? card} isExample={ownCard === null} />}
-        {start && phone && <WhyRegion phone />}
+        {/* the card under the search box on every width, as on phones (user 2026-10-22: "이 박스 pc에서는 오른쪽에
+            있지만 … 검색창 아래에 둬줘 모바일 처럼"), then the why-region line (user 2026-10-21) */}
+        {start && guessSettled && <StartExample phone={phone} card={ownCard ?? card} isExample={ownCard === null} />}
+        {start && <WhyRegion />}
       </section>
 
       {notices.length > 0 && (

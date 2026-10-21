@@ -528,18 +528,15 @@ describe('the first screen', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent)
 
-  it('a folded 「전자도서관인데 왜 지역을 정해야 하나요?」 under the search box opens a short answer (user 2026-10-21)', async () => {
+  it('wider screens: 「전자도서관인데 왜 지역을 정해야 하나요?」 opens the answer in a window too (user 2026-10-22)', async () => {
     const user = userEvent.setup()
     renderSearch('/')
-    const summary = await screen.findByText('전자도서관인데 왜 지역을 정해야 하나요?')
-    const details = summary.closest('details')!
-    expect(details.open).toBe(false)
-    await user.click(summary)
-    expect(details.open).toBe(true)
-    expect(details.querySelector('p')?.textContent).toBe(
+    await user.click(await screen.findByRole('button', { name: '전자도서관인데 왜 지역을 정해야 하나요?' }))
+    const dialog = await screen.findByRole('dialog', { name: '전자도서관인데 왜 지역을 정해야 하나요?' })
+    expect(dialog.querySelector('p')?.textContent).toBe(
       '전자책도 그 도서관 회원만 빌릴 수 있어요. 그리고 대부분의 공공도서관은 그 지역에 살거나 일하는 사람만 회원으로 받아요.',
     )
-    expect(details.querySelectorAll('p')).toHaveLength(4)
+    expect(dialog.querySelectorAll('p')).toHaveLength(4)
   })
 
   it('wider screens: eyebrow, the question headline, the two lines with 자세히, the question; no search', async () => {
@@ -548,10 +545,8 @@ describe('the first screen', () => {
     expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에전자도서관부터')
     expect(headline.querySelectorAll('br')).toHaveLength(2)
     expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
-    const lead = screen.getByText(/에 살아도/).closest('p')!
-    expect(lead.textContent).toMatch(
-      /^\S+에 살아도 .+ 전자도서관에서 전자책을 빌릴 수 있어요\.$/,
-    )
+    // one fixed line (user 2026-10-22)
+    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     // no 자세히 → (user 2026-10-20)
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     // 빌릴 수 있는 in purple (user 2026-10-20)
@@ -561,8 +556,6 @@ describe('the first screen', () => {
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
     await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
-    // the lead names the person's own residence, not the random example (user 2026-10-20)
-    await waitFor(() => expect(lead.textContent).toMatch(/^마포구에 살아도 /))
     // this account's 거주 has an example: the card of it, with its 직장 as the 재직 pill (user 2026-10-20; its numbers
     // before)
     await waitFor(() => expect(example()).not.toBeNull())
@@ -570,11 +563,6 @@ describe('the first screen', () => {
     // 「일하는 곳」 even with a workplace set (user 2026-10-20: "그냥 일하는곳 + 로")
     await waitFor(() => expect(rows()[1]).toBe('재직일하는 곳+'))
     expect(rows()[0]).toMatch(/^거주마포구/)
-    // the lead names two of the card's other places
-    const shown = within(example()!).getAllByRole('listitem')[0].textContent!
-    for (const other of lead.textContent!.replace(/^마포구에 살아도 /, '').split(' ')[0].split('·')) {
-      expect(shown).toContain(other)
-    }
     expect(fake.books).toHaveLength(0)
   })
 
@@ -589,7 +577,7 @@ describe('the first screen', () => {
       .map((item) => item.textContent)
     expect(lines[0]).toBe('거주사는 곳+')
     expect(lines[1]).toMatch(/^재직/)
-    expect(screen.getByText(/^중구에서 일해도 /)).toBeTruthy()
+    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     expect(screen.queryByText(/가입할 수 있는 도서관 \d+곳/)).toBeNull()
   })
 
@@ -603,9 +591,7 @@ describe('the first screen', () => {
     const card = pickExample(null, () => 0)
     expect(card.place).toMatch(/^서울 /)
     const data = START_EXAMPLES.find((one) => one.place === card.place)!
-    expect(screen.getByText(/에 살아도/).textContent).toBe(
-      `${card.home}에 살아도 ${card.others.join('·')} 전자도서관에서 전자책을 빌릴 수 있어요.`,
-    )
+    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`만약에 ${card.place}에 살면`)
     expect(rows()).toEqual([
       `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
@@ -669,7 +655,7 @@ describe('the first screen', () => {
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByText(/에 살아도/).closest('p')!.textContent).toMatch(/전자책을 빌릴 수 있어요\.$/)
+    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const asked = question()
     expect(asked.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

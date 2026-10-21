@@ -67,10 +67,6 @@
 }
 
 /* the example card 「예: 서울 강서구에 살면」 (ADR-0139 #2, where 「이렇게 이용해 보세요」 was): the same white card */
-/* wider screens: a grid item beside the headline (below); otherwise not a box at all */
-.stepsSlot {
-  display: contents;
-}
 
 .steps {
   margin: 0 0 1.5rem;
@@ -183,8 +179,8 @@
 @media (width > 1024px) {
   .page[data-state='start'] .searchArea {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 25rem;
-    column-gap: 3rem;
+    /* one column since the card moved under the search box (user 2026-10-22: "검색창 아래에 둬줘 모바일 처럼") */
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
@@ -212,32 +208,14 @@
     grid-row: 4;
   }
 
-  .page[data-state='start'] .whyRegion {
+  .page[data-state='start'] .steps {
     grid-row: 5;
   }
 
-  /* beside the eyebrow down to "어떤 책을 찾으세요?", its bottom just above the search box row (user 2026-10-19: "이 네모
-     위치를 맨 아래쪽이 검색칸 행 위에 오도록"); the search box, the condition card and its hint run below it */
-  /* the card's slot takes no height of its own, so a taller card (the names opened) never pushes the left side down
-     (user 2026-10-20: "이거 늘리면 왼쪽 간격 벌어지는데 왼쪽은 변화 없도록"): bottom on the search row while it fits, else
-     from the top down over the empty right side */
-  /* beside the whole left column, in its middle (user 2026-10-20: "좌와 비교했을 때 상대적인 위치에 … 지금보다는 위로";
-     its bottom on the search box's bottom before) */
-  .page[data-state='start'] .stepsSlot {
-    grid-column: 2;
-    grid-row: 1 / span 4;
-    align-self: stretch;
-    contain: size;
-    display: flex;
-    flex-direction: column;
-    justify-content: safe center;
+  .page[data-state='start'] .whyRegion {
+    grid-row: 6;
   }
 
-  /* a little below the middle (user 2026-10-20: "박스 지금 보다는 좀 더 아래로") */
-  .page[data-state='start'] .steps {
-    flex-shrink: 0;
-    margin: 3rem 0 0;
-  }
 }
 
 /* phones: no steps card (user 2026-10-19), a little less room */
@@ -609,7 +587,8 @@
 }
 
 .whyAnswer > p {
-  margin: 0 0 0.35rem;
+  /* a little room between the sentences (user 2026-10-22: "각 문장 별로 간격을 좀 두게") */
+  margin: 0 0 0.85rem;
 }
 
 .whyAnswer > p:last-child {
@@ -623,10 +602,8 @@
 
 /* phones: right under the example card, closer to it than the card's own bottom room (user 2026-10-21: "위 박스에 더
    붙어서") */
-@media (width <= 640px) {
-  .steps + .whyRegion {
-    margin-top: -1.1rem;
-  }
+.steps + .whyRegion {
+  margin-top: -1.1rem;
 }
 
 /* phones: the line is a button that opens the answer in a window (user 2026-10-21) */
