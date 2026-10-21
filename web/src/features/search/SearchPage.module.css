@@ -645,7 +645,7 @@
 .whyTrigger::after {
   content: 'ⓘ';
   /* right after the words (user 2026-10-21: "ⓘ 옆의 글자랑 붙어줘 너무 떨어져있다") */
-  margin-left: 0.1rem;
+  margin-left: -0.2rem;
   color: var(--ink-faint);
   font-size: var(--text-lg);
   font-weight: 400;
