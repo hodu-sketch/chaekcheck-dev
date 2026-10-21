@@ -697,7 +697,7 @@
  * 1280×720 screen's window (about 600–650px tall). Shorter windows use a smaller base size on this page only and a
  * tighter card.
  */
-@media (width > 1024px) and (height <= 760px) {
+@media (width > 1024px) and (height <= 820px) {
   :root:has(.page[data-state='start']) {
     font-size: var(--base-unscaled);
   }
@@ -734,12 +734,12 @@
   }
 }
 
-@media (width > 1024px) and (height <= 660px) {
+@media (width > 1024px) and (height <= 680px) {
   :root:has(.page[data-state='start']) {
-    font-size: calc(var(--base-unscaled) * 0.94);
+    font-size: calc(var(--base-unscaled) * 0.9);
   }
 
   .page[data-state='start'] .headline {
-    font-size: calc(1.55 * var(--base-unscaled));
+    font-size: calc(1.5 * var(--base-unscaled));
   }
 }
