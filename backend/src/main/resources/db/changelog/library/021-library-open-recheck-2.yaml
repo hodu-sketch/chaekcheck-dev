@@ -1,0 +1,64 @@
+# Second re-check of the libraries marked 누구나 가입 (user 2026-10-21: "정회원이라고 하는데 정회원은 가야하는거아니야?
+# 이것말고도 누구나 가입 도서관들 하나하나 검증해줘"). Original texts and addresses:
+# docs/library-research/open-recheck-2026-10-21.md. Each row is guarded by its id so a database without it is not touched.
+databaseChangeLog:
+  - changeSet:
+      id: library-021-open-recheck-2
+      author: chaekcheck
+      changes:
+        # 김천시립도서관 (269, 313): FAQ "전자책은 도서관 회원증을 만드신 김천시립도서관 회원에 한하여", "회원증을 발급받을 수
+        # 있는 자격은 주민등록상 김천시 거주자 또는 김천시에서 재학·재직 중인 사람" → 김천 거주·재직·재학, 방문 (4-8 rule 2)
+        - sql:
+            sql: >-
+              DELETE FROM library.eligibility_rule WHERE library_id IN (269, 313) AND scope_type = 'NATIONWIDE'
+        - sql:
+            sql: >-
+              INSERT INTO library.eligibility_rule (library_id, basis, scope_type, scope_region_id)
+              SELECT l.id, b.basis, 'REGION', 4703
+              FROM library.library l CROSS JOIN (VALUES ('RESIDENCE'), ('WORK'), ('SCHOOL')) AS b (basis)
+              WHERE l.id IN (269, 313)
+              ON CONFLICT DO NOTHING
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_required = true, visit_outside_region = false,
+                eligibility_summary = '김천 거주·재직·재학', join_caution = NULL,
+                join_method = '홈페이지 회원가입 → 신분증(현주소 기재) 들고 도서관 방문해 회원증 발급(김천 거주·재직·재학자) → 홈페이지 계정으로 전자책 로그인',
+                join_url = 'https://www.gcl.go.kr/page/10049/10066.tc', updated_at = now()
+              WHERE id IN (269, 313)
+        # 광산구통합도서관 (40, 264): 회원증발급 "온라인신청 / 회원증 온라인 발급 신청", "홈페이지 회원가입 → 온라인 신청
+        # (1~2일소요) → 모바일 회원증 사용" — a way without a visit (4-10 step 5 rule 2); the form is behind the login
+        - sql:
+            sql: >-
+              UPDATE library.library SET visit_required = false,
+                join_method = '홈페이지 가입(본인인증) → 로그인 후 회원증 온라인 발급 신청(1~2일 소요) → 모바일 회원증으로 전자책(정회원). 또는 신분증 들고 자료실 방문해 회원증 발급',
+                join_caution = '온라인 발급 신청은 로그인 뒤 화면이라 신청 조건을 원문으로 확인하지 못함',
+                join_url = 'https://lib.gwangsan.go.kr/main/memberShip', updated_at = now()
+              WHERE id IN (40, 264)
+        # 금산군공공도서관 (267): 이용약관 "가입자의 주소지 제한 자격 조건은 없으나" settles yesterday's 거주 doubt
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_caution = '신분증 들고 방문해 회원증(도서대출회원번호)을 받아야 전자책 이용. 약관상 주소지 제한 없음',
+                join_url = 'https://library.geumsan.go.kr/0204/content/guide/?tab=0000000017', updated_at = now()
+              WHERE id = 267
+        # 강북문화정보도서관 (17): the member page "웹회원은 누구나 가입 가능(지역 구분 없음)", not the terms step
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_url = 'https://www.gblib.or.kr/gangbuk/contents/contents.do?gidx=150300',
+                join_caution = '스마트폰 앱 전자책은 도서대출회원(서울 거주·재직·재학)만. PC 전자책은 웹회원으로 이용',
+                updated_at = now()
+              WHERE id = 17
+        # 목포시통합도서관 (65): the e-book page has "대상 : 목포시통합도서관 정회원(홈페이지 가입자)"
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_url = 'https://www.mokpolib.or.kr/cms/bbs/dk_content.php?ht_id=search_05', updated_at = now()
+              WHERE id = 65
+        # 광주 남구 (233): the same caution as its other site 298
+        - sql:
+            sql: >-
+              UPDATE library.library SET
+                join_caution = '온라인 회원증이 전자책 이용대상 ''도서대출회원''에 해당하는지 원문에 직접 적혀 있지 않음',
+                updated_at = now()
+              WHERE id = 233

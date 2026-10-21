@@ -177,3 +177,7 @@ databaseChangeLog:
   - include:
       file: sitecontent/003-privacy-policy-v2.yaml
       relativeToChangelogFile: true
+  # second re-check of the 누구나 가입 libraries (user 2026-10-21): 김천 to its region, 광산 online card, join pages
+  - include:
+      file: library/021-library-open-recheck-2.yaml
+      relativeToChangelogFile: true
