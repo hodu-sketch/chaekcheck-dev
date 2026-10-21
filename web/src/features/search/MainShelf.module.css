@@ -117,3 +117,18 @@
     scroll-snap-align: start;
   }
 }
+
+/* shorter phones: smaller covers, one title line (the 「왜 지역을」 line stays in view) */
+@media (width <= 640px) and (height <= 700px) {
+  .shelf {
+    margin-top: 0.7rem;
+  }
+
+  .books > li {
+    flex-basis: 23%;
+  }
+
+  .bookTitle {
+    -webkit-line-clamp: 1;
+  }
+}

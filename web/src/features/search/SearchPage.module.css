@@ -761,3 +761,21 @@
     margin-top: 0.4rem;
   }
 }
+
+/* shorter phones (about 640–700px tall windows): a tighter first screen so the 「왜 지역을」 line stays in view
+   (user 2026-10-22: "이거 한 화면에 다 들어오게 조절하고") */
+@media (width <= 640px) and (height <= 700px) {
+  .page[data-state='start'] .searchArea {
+    padding-top: 0.6rem;
+  }
+
+  .page[data-state='start'] .headline {
+    margin: 0.2rem 0 0.4rem;
+    font-size: calc(1.75 * var(--base-unscaled));
+    line-height: 1.25;
+  }
+
+  .page[data-state='start'] .intro {
+    margin-bottom: 0.9rem;
+  }
+}
