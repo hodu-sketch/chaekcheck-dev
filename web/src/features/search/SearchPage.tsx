@@ -512,6 +512,12 @@ export function SearchPage() {
         : searchedWork,
   )
   // 「온라인 가입만」 on or off: kept for the next search, and this search again with it (user 2026-10-20)
+  const whyRegion = (
+    <details className={styles.whyRegion}>
+      <summary>{START_TEXT.whyQuestion}</summary>
+      <p>{START_TEXT.whyAnswer}</p>
+    </details>
+  )
   const switchVisit = (next: VisitFilter) => {
     keepPrefs({ visit: next })
     searchAgain((address) => writeVisit(next, address))
@@ -676,17 +682,14 @@ export function SearchPage() {
           }
         />
         {/* why a region (user 2026-10-21, a friend's question "전자도서관이면 굳이 지역 상관없지 않나요? 왜 설정해야 하는거에요?"):
-            one folded line under the search box, shorter words ("글좀 더 줄일 수 없을까") */}
-        {start && (
-          <details className={styles.whyRegion}>
-            <summary>{START_TEXT.whyQuestion}</summary>
-            <p>{START_TEXT.whyAnswer}</p>
-          </details>
-        )}
+            one folded line under the search box, shorter words ("글좀 더 줄일 수 없을까"); phones at the very bottom, under
+            the card ("폰 기준으로 맨 아래에 둬") */}
+        {start && !phone && whyRegion}
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}
         {/* phones: head → search box → region line → this card, below the fold (handoff 5-A-2) */}
         {start && phone && guessSettled && <StartExample phone card={ownCard ?? card} isExample={ownCard === null} />}
+        {start && phone && whyRegion}
       </section>
 
       {notices.length > 0 && (
