@@ -545,8 +545,9 @@ describe('the first screen', () => {
     expect(headline.textContent).toBe('읽고 싶은 전자책,사기 전에전자도서관부터')
     expect(headline.querySelectorAll('br')).toHaveLength(2)
     expect(screen.getByText('공공 전자도서관은 무료로 빌릴 수 있어요')).toBeTruthy()
-    // one fixed line (user 2026-10-22)
-    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
+    // one fixed lead in two lines (user 2026-10-22)
+    expect(screen.getByText('내가 사는 시·도의')).toBeTruthy()
+    expect(screen.getByText('다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     // no 자세히 → (user 2026-10-20)
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     // 빌릴 수 있는 in purple (user 2026-10-20)
@@ -577,7 +578,7 @@ describe('the first screen', () => {
       .map((item) => item.textContent)
     expect(lines[0]).toBe('거주사는 곳+')
     expect(lines[1]).toMatch(/^재직/)
-    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
+    expect(screen.getByText('다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     expect(screen.queryByText(/가입할 수 있는 도서관 \d+곳/)).toBeNull()
   })
 
@@ -591,7 +592,7 @@ describe('the first screen', () => {
     const card = pickExample(null, () => 0)
     expect(card.place).toMatch(/^서울 /)
     const data = START_EXAMPLES.find((one) => one.place === card.place)!
-    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
+    expect(screen.getByText('다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     expect(within(example()!).getByRole('heading', { level: 2 }).textContent).toBe(`만약에 ${card.place}에 살면`)
     expect(rows()).toEqual([
       `거주${card.residence.join('')}+ ${data.eligible - card.residence.length}곳`,
@@ -655,7 +656,7 @@ describe('the first screen', () => {
     fake.signedIn = false
     renderSearch('/')
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByText('내가 사는 시·도의 다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
+    expect(screen.getByText('다른 시·군·구 전자도서관에서도 전자책을 빌릴 수 있어요.')).toBeTruthy()
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     const asked = question()
     expect(asked.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
