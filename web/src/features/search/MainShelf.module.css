@@ -108,16 +108,12 @@
   /* smaller covers and one title line, so the 「왜 지역을」 line under the shelf stays in a phone's first window
      (user 2026-10-22: "메인 아래에 i 잘리는데 안 잘리게") */
   .shelf {
-    margin: 1rem 0 0.9rem;
+    margin: 1rem 0 0.2rem;
   }
 
   /* the covers as big as before (user 2026-10-22: "모바일 기준 메인에서 책 크기 전처럼 키워줘") */
   .books > li {
     flex: 0 0 28%;
     scroll-snap-align: start;
-  }
-
-  .bookTitle {
-    -webkit-line-clamp: 1;
   }
 }

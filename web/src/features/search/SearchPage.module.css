@@ -751,3 +751,11 @@
     line-height: 1.4;
   }
 }
+
+/* phones: the 「왜 지역을」 line close under the shelf, so the two-line book titles still leave it in the first window
+   (user 2026-10-22: "책 제목이 너무 잘려") */
+@media (width <= 640px) {
+  .page[data-state='start'] .whyRegion {
+    margin-top: 0.4rem;
+  }
+}
