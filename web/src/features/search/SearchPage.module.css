@@ -40,7 +40,8 @@
 .intro {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1.4rem;
+  /* a little more room since the lead line went (user 2026-10-22: "빠진자리 간격 너무 붙이진 마") */
+  margin-bottom: 1.8rem;
 }
 
 .eyebrow {
@@ -228,7 +229,7 @@
   }
 
   .intro {
-    margin-bottom: 1rem;
+    margin-bottom: 1.3rem;
   }
 
   .lead,
@@ -275,7 +276,7 @@
   }
 
   .page[data-state='start'] .intro {
-    margin-bottom: 0.7rem;
+    margin-bottom: 1.1rem;
   }
 
   .page[data-state='start'] .lead {
@@ -713,7 +714,7 @@
   }
 
   .page[data-state='start'] .intro {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.9rem;
   }
 
   .page[data-state='start'] .steps {

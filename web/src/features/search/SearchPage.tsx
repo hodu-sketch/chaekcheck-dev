@@ -55,8 +55,6 @@ export const START_TEXT = {
   headline: ['읽고 싶은 전자책,', '사기 전에', '전자도서관부터'],
   // in the brand colour in the question above the search box, not in the headline (user 2026-10-20)
   headlineMark: '빌릴 수 있는',
-  // two lines (user 2026-10-22: "내가 사는 시·도의 다른 시·군·구 전자도서관에서도 / 전자책을 빌릴 수 있어요.")
-  leadFixed: ['내가 사는 시·도의 다른 시·군·구 전자도서관에서도', '전자책을 빌릴 수 있어요.'],
   more: '자세히 →',
   // above the search box, the lead's second line moved here (user 2026-10-20: "어떤 책을 찾으세요? 이거 문구를 …
   // 이걸로 바꾸고 원래 거 지워")
@@ -532,11 +530,7 @@ export function SearchPage() {
             <div className={styles.intro}>
               <p className={styles.eyebrow}>{START_TEXT.eyebrow}</p>
               <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
-              <p className={styles.lead}>
-                {/* one fixed line, no example region (user 2026-10-22: "양천구에 살아도 강동구·광진구 … 이걸로 바꿔줘") */}
-                {lines(START_TEXT.leadFixed)}
-                {/* no 「자세히 →」 (user 2026-10-20: "자세히 → 이거 빼줘 pc"); 소개 is in the header */}
-              </p>
+              {/* no lead line under the headline (user 2026-10-22: "이거 메인에서 아예 빼주고"); 소개 is in the header */}
             </div>
             {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
             <p className={styles.question}>{lines([START_TEXT.question], START_TEXT.headlineMark)}</p>
