@@ -61,7 +61,8 @@
 
 .question {
   margin: 0 0 0.55rem;
-  color: var(--ink);
+  /* a dark grey; 빌릴 수 있는 keeps its violet (user 2026-10-22: "기존 보라색 제외하고 좀 진한 회색으로") */
+  color: var(--ink-soft);
   font-size: var(--text-lg);
   font-weight: 800;
   word-break: keep-all;
