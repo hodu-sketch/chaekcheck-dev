@@ -204,12 +204,15 @@ export function RegionSelect({
   field,
   value,
   onPick,
+  onClear,
   notices = [],
 }: {
   field: RegionField
   /** The chosen SIGUNGU id, or null. */
   value: number | null
   onPick: (id: number) => void
+  /** Takes the chosen one away (「지우기」 beside the selects, user 2026-10-21). */
+  onClear: () => void
   notices?: RegionNotice[]
 }) {
   const tree = useRegionTree()
@@ -221,7 +224,7 @@ export function RegionSelect({
 
   return (
     <div className={styles.root}>
-      <div className={styles.selects}>
+      <div className={styles.selects} data-clear={value !== null || undefined}>
         {tree.isPending && <p className={styles.status}>불러오는 중…</p>}
         {tree.isError && (
           <p className={styles.status} role="alert">
@@ -263,6 +266,19 @@ export function RegionSelect({
                 </option>
               ))}
             </select>
+            {/* only while one is chosen, a small grey link right of the selects (user 2026-10-21 design A) */}
+            {value !== null && (
+              <button
+                type="button"
+                className={styles.clear}
+                onClick={() => {
+                  setSidoId(null)
+                  onClear()
+                }}
+              >
+                지우기
+              </button>
+            )}
           </>
         )}
       </div>

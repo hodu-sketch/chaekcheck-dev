@@ -525,7 +525,10 @@ describe('the first screen', () => {
     expect(details.open).toBe(false)
     await user.click(summary)
     expect(details.open).toBe(true)
-    expect(within(details).getByText(/^전자책도 그 도서관 회원만 빌릴 수 있고/)).toBeTruthy()
+    expect(details.querySelector('p')?.textContent).toBe(
+      '전자책도 그 도서관 회원만 빌릴 수 있어요. 그리고 대부분의 공공도서관은 그 지역에 살거나 일하는 사람만 회원으로 받아요.',
+    )
+    expect(details.querySelectorAll('p')).toHaveLength(4)
   })
 
   it('wider screens: eyebrow, the question headline, the two lines with 자세히, the question; no search', async () => {

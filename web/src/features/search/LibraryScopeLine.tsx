@@ -449,14 +449,16 @@ export function LibraryScopeBody({ onLeave, sheet = false, compact = false }: Bo
   // only the first 거주 is shown and changed here; the other regions, added libraries and settings stay as the my page
   // set them (user 2026-10-20: "메인은 그냥 맨 앞에 거주 조건만 바꾸는 걸로 해줘 지역 도서관 설정을 어떻게 하든")
   const first = regions.residence.slice(0, MAIN_REGIONS)
-  const pick = (id: number) => {
-    const rest = regions.residence.slice(MAIN_REGIONS)
-    const residence = [id, ...rest.filter((x) => x !== id)]
+  const save = (residence: number[]) => {
     const next: StoredRegions = { ...regions, residence }
     // a failure is on screen (saveFailed)
     setRegions(next).catch(() => undefined)
     setSaved(source === 'browser')
   }
+  const rest = regions.residence.slice(MAIN_REGIONS)
+  // another 시군구 takes the first 거주's place; 「지우기」 takes it away and the next one moves up (user 2026-10-21)
+  const pick = (id: number) => save([id, ...rest.filter((x) => x !== id)])
+  const clear = () => save(rest)
 
   return (
     <div className={styles.body} data-sheet={sheet || undefined} data-compact={compact || undefined}>
@@ -466,7 +468,13 @@ export function LibraryScopeBody({ onLeave, sheet = false, compact = false }: Bo
         </h3>
         <div className={sheet ? styles.gridBleed : undefined}>
           {/* the 시도 and 시군구 selects at once, no + (user 2026-10-21 design A) */}
-          <RegionSelect field="residence" value={first[0] ?? null} onPick={pick} notices={notices} />
+          <RegionSelect
+            field="residence"
+            value={first[0] ?? null}
+            onPick={pick}
+            onClear={clear}
+            notices={notices}
+          />
         </div>
         <SaveHint saved={saved} />
       </div>

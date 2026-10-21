@@ -597,7 +597,7 @@
   border-radius: 4px;
 }
 
-.whyRegion > p {
+.whyAnswer {
   margin: 0.5rem 0 0;
   padding: 0.7rem 0.85rem;
   border-radius: var(--radius-control);
@@ -605,6 +605,19 @@
   color: var(--ink);
   line-height: 1.6;
   word-break: keep-all;
+}
+
+.whyAnswer > p {
+  margin: 0 0 0.35rem;
+}
+
+.whyAnswer > p:last-child {
+  margin: 0;
+}
+
+.whyAnswer strong {
+  color: var(--brand-strong);
+  font-weight: 800;
 }
 
 /* phones: right under the example card, closer to it than the card's own bottom room (user 2026-10-21: "위 박스에 더

@@ -222,6 +222,18 @@ describe('the box (R1-4; one 거주 only since user 2026-10-20)', () => {
     expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!)).toMatchObject({ residence: [1102], work: [4113] })
   })
 
+  // 「지우기」 beside the selects while one is chosen; the button names nothing again (user 2026-10-21 design A)
+  it('「지우기」 takes the first 거주 away and the button asks for a region again; the workplaces stay', async () => {
+    guestRegions([1114], [4113])
+    const { user } = renderLine()
+    await user.click(await screen.findByRole('button', { name: '마포구 거주 외 1곳' }))
+    const residence = within(await box()).getByRole('group', { name: '사는 곳' })
+    await user.click(await within(residence).findByRole('button', { name: '지우기' }))
+    expect(JSON.parse(localStorage.getItem(REGION_STORAGE_KEY)!)).toMatchObject({ residence: [], work: [4113] })
+    expect(within(residence).queryByRole('button', { name: '지우기' })).toBeNull()
+    expect((within(residence).getByRole('combobox', { name: '사는 곳 시군구' }) as HTMLSelectElement).value).toBe('')
+  })
+
   it('closes on ⓧ, on Esc and on the my page link', async () => {
     const { user } = renderLine()
     await user.click(await screen.findByRole('button', { name: '지역을 선택해 주세요' }))

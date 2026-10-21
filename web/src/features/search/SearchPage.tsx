@@ -74,8 +74,15 @@ export const START_TEXT = {
   // before the person sets any 거주 or 직장 the card is only an example (user 2026-10-21: "만약에 서울 강서구에 살면")
   exampleIf: '만약에',
   whyQuestion: '전자도서관인데 왜 지역을 정해야 하나요?',
-  whyAnswer:
-    '전자책도 그 도서관 회원만 빌릴 수 있고, 회원은 대부분 그 지역에 살거나 일하는 사람이에요. 지역을 정하면 가입할 수 있는 도서관에서 찾아 드려요.',
+  // the first, longer answer again (user 2026-10-21: "답변이 너무 짧은데 … 처음으로 돌리자"); [plain, bold, plain, …]
+  whyAnswer: [
+    ['전자책도 ', '그 도서관 회원만', ' 빌릴 수 있어요. 그리고 대부분의 공공도서관은 ', '그 지역에 살거나 일하는 사람', '만 회원으로 받아요.'],
+    // people think only their own 구's library takes them (user 2026-10-21: "서울 강서구 주민은 강서구는 되고 강동구가
+    // 안 되는 줄 알거든 … 이것도 추가해서 알려줄수없나")
+    ['내 구·시·군 도서관만 되는 게 아니에요. 서울에 살면 강서구뿐 아니라 ', '강동구 같은 다른 구 도서관', '에도 가입할 수 있는 곳이 많아요.'],
+    ['사는 곳(일하는 곳)을 알려 주시면 ', '내가 가입할 수 있는 전자도서관', '을 모두 찾아 드려요.'],
+    ['지역을 정하지 않으면 누구나 가입할 수 있는 몇몇 도서관에서만 찾아요.'],
+  ],
   exampleTitle: (place: string, basis: 'residence' | 'work' = 'residence') =>
     basis === 'work' ? `${place}에서 일하면` : `${place}에 살면`,
   // a card made from a workplace: the 거주 row asks for one
@@ -515,7 +522,13 @@ export function SearchPage() {
   const whyRegion = (
     <details className={styles.whyRegion}>
       <summary>{START_TEXT.whyQuestion}</summary>
-      <p>{START_TEXT.whyAnswer}</p>
+      <div className={styles.whyAnswer}>
+        {START_TEXT.whyAnswer.map((parts) => (
+          <p key={parts.join('')}>
+            {parts.map((part, index) => (index % 2 === 1 ? <strong key={part}>{part}</strong> : part))}
+          </p>
+        ))}
+      </div>
     </details>
   )
   const switchVisit = (next: VisitFilter) => {
