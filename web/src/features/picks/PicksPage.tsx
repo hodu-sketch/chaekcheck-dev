@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate, useParams } from 'react-router'
 import { ApiError, fetchPicks } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
@@ -7,36 +7,17 @@ import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { BookCard, isLinked } from './BookCard'
-import { EXAMPLE_PICK_NOTE, MORE_STEP } from './picksText'
+import { MORE_STEP } from './picksText'
 import { PICKS_TABS, picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
 import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
 import { RequestNotice } from './RequestNotice'
 import { usePicksPlan } from './usePicksPlan'
 import { useConditionCard } from '../search/useConditionCard'
-import { ExampleCardView, useExampleCards } from '../search/ExampleCard'
-import { RegionPickButton } from '../search/LibraryScopeLine'
 import styles from './PicksPage.module.css'
 
 /** [안] (cycle 10 step 7-6): the phone layout and bottom sheets, the same width as the other screens' phone layout. */
 export const PHONE_QUERY = '(width <= 640px)'
-
-/** At most this many example cards between the books (user 2026-10-22: "이 강요 창 한 번만 나타나게"; three before). */
-const EXAMPLE_MAX = 1
-
-/** Rows between two example cards (user 2026-10-22: "나타나는 간격 지금보다 2배로", four before). */
-const EXAMPLE_EVERY = 8
-
-/**
- * Which example card follows the book at `index`, or null: the first after three rows, the next ones every eight rows
- * (user 2026-10-22: "스크롤을 좀 내린 다음에 나왔으면", the fourth row being out of the first window on a laptop).
- */
-export function exampleSlot(index: number, columns: number): number | null {
-  const row = (index + 1) / columns
-  if (!Number.isInteger(row) || row < 3 || (row - 3) % EXAMPLE_EVERY !== 0) return null
-  const slot = (row - 3) / EXAMPLE_EVERY
-  return slot < EXAMPLE_MAX ? slot : null
-}
 
 /** [안] gray cards while loading: two rows of the PC grid. */
 const SKELETON_CARDS = 8
@@ -72,14 +53,7 @@ export function PicksPage({ list }: { list: PicksList }) {
   // no [반영하기] (user 2026-10-20: "추천도서에서 지역 설정 반영하기 빼주라"); closing the window applies
   const { condition, plan: asked, visit: askedVisit } = useConditionCard()
   const { plan, ready, key } = usePicksPlan(asked, askedVisit)
-  const { resolveStoredRegions, regions, libraryIds, ready: regionsReady } = useRegions()
-  // the 「만약에 …에 살면」 cards between the books, only for someone with no region and no added library (user
-  // 2026-10-22: "예시 카드는 추천도서에서 쓰일거잖아", "스크롤을 좀 내린 다음에"): after three rows, then every eight
-  const tablet = useMediaQuery('(width <= 1024px)')
-  const columns = phone ? 2 : tablet ? 3 : 4
-  const noRegion =
-    regionsReady && regions.residence.length === 0 && regions.work.length === 0 && libraryIds.length === 0
-  const examples = useExampleCards(EXAMPLE_MAX)
+  const { resolveStoredRegions } = useRegions()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [saved] = useState(() => readPosition(list.key))
   const [chosen, setChosen] = useState(saved?.category ?? '')
@@ -203,26 +177,9 @@ export function PicksPage({ list }: { list: PicksList }) {
         </div>
         <section className={styles.results} aria-label={current.name}>
           <ol className={styles.grid} aria-label={`${current.name} ${current.books.length}권`}>
-            {books.map((book, index) => {
-              const slot = exampleSlot(index, columns)
-              const example = noRegion && slot !== null ? examples[slot] : undefined
-              return (
-                <Fragment key={book.id}>
-                  <BookCard book={book} onPick={pick} />
-                  {example && (
-                    <li className={styles.exampleSlot}>
-                      <ExampleCardView phone={phone} card={example} className={styles.exampleCard} />
-                      {/* the main page's region button and window (user 2026-10-22: "내 지역 정하기 이거 말고 그냥
-                          메인의 지역을 선택해 주세요랑 똑같은 걸로") */}
-                      <div className={styles.examplePick}>
-                        <RegionPickButton phone={phone} />
-                        <p className={styles.examplePickNote}>{EXAMPLE_PICK_NOTE}</p>
-                      </div>
-                    </li>
-                  )}
-                </Fragment>
-              )
-            })}
+            {books.map((book) => (
+              <BookCard key={book.id} book={book} onPick={pick} />
+            ))}
           </ol>
           {left > 0 && (
             <button type="button" className={styles.more} onClick={() => setShown((n) => n + MORE_STEP)}>

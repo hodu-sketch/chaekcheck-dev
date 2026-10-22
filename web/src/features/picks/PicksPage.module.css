@@ -183,48 +183,6 @@
   min-width: 0;
 }
 
-/* the 「만약에 …에 살면」 card across the grid, the first screen's card laid on its side, with 「내 지역 정하기」 on the right
-   (user 2026-10-22, design A) */
-.exampleSlot {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  padding: 0.2rem 1.4rem 0.2rem 0;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  box-shadow: var(--card-shadow-soft);
-}
-
-/* stronger than the card's own .steps box: no second box inside the strip */
-.exampleSlot .exampleCard {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  border: none;
-  box-shadow: none;
-  background: none;
-}
-
-.examplePick {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 16rem;
-}
-
-/* under the button, small and grey (user 2026-10-22) */
-.examplePickNote {
-  margin: 0.45rem 0 0;
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
-  line-height: 1.45;
-  text-align: center;
-  word-break: keep-all;
-}
-
 .card {
   display: flex;
   flex-direction: column;
@@ -435,20 +393,4 @@
 /* the source's address: long, so it may break anywhere (user 2026-10-20) */
 .sourceLink {
   overflow-wrap: anywhere;
-}
-
-/* phones: the button under the card */
-@media (width <= 640px) {
-  .exampleSlot {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: 0 0 1rem;
-  }
-
-  /* in the middle under the card (user 2026-10-22: "지역을 선택해 주세요 이거 가운데에 두고") */
-  .examplePick {
-    align-self: center;
-    margin: 0 1rem;
-  }
 }
