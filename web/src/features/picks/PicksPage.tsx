@@ -7,7 +7,7 @@ import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { BookCard, isLinked } from './BookCard'
-import { MORE_STEP } from './picksText'
+import { EXAMPLE_PICK_NOTE, MORE_STEP } from './picksText'
 import { PICKS_TABS, picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
 import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
@@ -21,8 +21,8 @@ import styles from './PicksPage.module.css'
 /** [안] (cycle 10 step 7-6): the phone layout and bottom sheets, the same width as the other screens' phone layout. */
 export const PHONE_QUERY = '(width <= 640px)'
 
-/** At most this many example cards between the books (user 2026-10-22). */
-const EXAMPLE_MAX = 3
+/** At most this many example cards between the books (user 2026-10-22: "이 강요 창 한 번만 나타나게"; three before). */
+const EXAMPLE_MAX = 1
 
 /** Rows between two example cards (user 2026-10-22: "나타나는 간격 지금보다 2배로", four before). */
 const EXAMPLE_EVERY = 8
@@ -216,6 +216,7 @@ export function PicksPage({ list }: { list: PicksList }) {
                           메인의 지역을 선택해 주세요랑 똑같은 걸로") */}
                       <div className={styles.examplePick}>
                         <RegionPickButton phone={phone} />
+                        <p className={styles.examplePickNote}>{EXAMPLE_PICK_NOTE}</p>
                       </div>
                     </li>
                   )}

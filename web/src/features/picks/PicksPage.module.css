@@ -209,6 +209,20 @@
 
 .examplePick {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 16rem;
+}
+
+/* under the button, small and grey (user 2026-10-22) */
+.examplePickNote {
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  text-align: center;
+  word-break: keep-all;
 }
 
 .card {
@@ -432,7 +446,9 @@
     padding: 0 0 1rem;
   }
 
+  /* in the middle under the card (user 2026-10-22: "지역을 선택해 주세요 이거 가운데에 두고") */
   .examplePick {
+    align-self: center;
     margin: 0 1rem;
   }
 }
