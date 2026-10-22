@@ -351,15 +351,19 @@ function PickLabel() {
  */
 export function RegionPickButton({ phone }: { phone: boolean }) {
   const [open, setOpen] = useState(false)
-  if (phone) {
-    return (
-      <>
-        <LibraryScopeChip onOpen={() => setOpen(true)} />
-        <LibraryScopeSheet open={open} onOpenChange={setOpen} />
-      </>
-    )
-  }
-  return <LibraryScopeLine box={open ? 'residence' : null} onBoxChange={(box) => setOpen(box !== null)} />
+  // as wide as the button, so the place it sits in can centre it
+  return (
+    <div className={styles.pickAlone}>
+      {phone ? (
+        <>
+          <LibraryScopeChip onOpen={() => setOpen(true)} />
+          <LibraryScopeSheet open={open} onOpenChange={setOpen} />
+        </>
+      ) : (
+        <LibraryScopeLine box={open ? 'residence' : null} onBoxChange={(box) => setOpen(box !== null)} />
+      )}
+    </div>
+  )
 }
 
 interface SheetProps {

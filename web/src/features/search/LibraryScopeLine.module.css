@@ -636,3 +636,8 @@
   font-weight: 400;
   opacity: 0.85;
 }
+
+/* the region button on its own (picks): no wider than the button */
+.pickAlone {
+  display: inline-flex;
+}
