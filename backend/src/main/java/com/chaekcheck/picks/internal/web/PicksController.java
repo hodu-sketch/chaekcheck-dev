@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
@@ -66,7 +67,13 @@ class PicksController {
 	@GetMapping("/api/v1/picks/shelf")
 	ResponseEntity<Shelf> shelf(@RequestParam MultiValueMap<String, String> params) {
 		Set<Long> planIds = planIds(params);
-		List<Picks.Book> books = MainShelf.choose(cache.snapshot(PicksCache.KAIST), random)
+		// the libraries anyone may join: a book on the shelf is held by at least one of them (user 2026-10-22)
+		Set<Long> open = new HashSet<>();
+		libraryCatalog.planSearch(Set.of(), Set.of())
+			.stream()
+			.filter(target -> target.eligibility() == Eligibility.OPEN)
+			.forEach(target -> open.add(target.id()));
+		List<Picks.Book> books = MainShelf.choose(cache.snapshot(PicksCache.KAIST), open, random)
 			.stream()
 			.map(book -> book(book, planIds))
 			.toList();

@@ -5,11 +5,14 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -191,7 +194,13 @@ public class PicksCache implements PicksChanged {
 				ours = byIds(stored);
 			}
 		}
-		List<Book> books = stored.stream().map(row -> book(list, row, ours.get(row))).toList();
+		// the same book only once in a list, where it comes first in the list's order (user 2026-10-22: "각 추천도서 별로
+		// 중복인 거 다 없애주고"; KAIST's own lists repeat some books, 23 in 2026)
+		Set<String> seen = new HashSet<>();
+		List<Book> books = stored.stream()
+			.map(row -> book(list, row, ours.get(row)))
+			.filter(book -> seen.add(sameBookKey(book)))
+			.toList();
 
 		List<Category> categories = new ArrayList<>();
 		categories.add(new Category(ALL_CODE, ALL_NAME, books));
@@ -225,6 +234,15 @@ public class PicksCache implements PicksChanged {
 		}
 		return Comparator.<StoredBook>comparingInt(row -> places.getOrDefault(row.fieldCode(), Integer.MAX_VALUE))
 			.thenComparingInt(StoredBook::position);
+	}
+
+	/** Our book when matched, else the list's title and its letters only (no spaces or marks, lower case). */
+	static String sameBookKey(Book book) {
+		if (book.bookId() != null) {
+			return "book:" + book.bookId();
+		}
+		String title = book.listTitle() != null ? book.listTitle() : book.title();
+		return "title:" + title.replaceAll("[^\\p{L}\\p{N}]", "").toLowerCase(Locale.ROOT);
 	}
 
 	private static Book book(String list, StoredBook row, Ours our) {
