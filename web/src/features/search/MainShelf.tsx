@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { fetchPicksShelf } from '../../api/client'
+import { fetchPicksShelf, type PlanParams } from '../../api/client'
 import type { PickBook } from '../../api/types'
 import { CoverImage } from '../picks/CoverImage'
 import { PicksBookDialog } from '../picks/PicksBookDialog'
 import { picksList } from '../picks/picksLists'
 import { usePicksPlan } from '../picks/usePicksPlan'
 import styles from './MainShelf.module.css'
+
+/** The shelf's draw is the same for everyone (books a library anyone may join holds). */
+const NO_PLAN: PlanParams = { scope: 'joinable', visit: 'any', residenceRegionIds: [], workRegionIds: [], libraryIds: [] }
 
 /** [확정] (user 2026-10-22, design A). */
 export const SHELF_TEXT = {
@@ -23,12 +26,13 @@ export const SHELF_TEXT = {
  * cover opens the recommended books' book window as on the picks screen; nothing shows while it loads or when it fails.
  */
 export function MainShelf({ phone }: { phone: boolean }) {
-  const { plan, ready, key } = usePicksPlan()
+  // the book window still follows the regions; the shelf does not
+  const { plan } = usePicksPlan()
   const shelf = useQuery({
-    queryKey: ['picksShelf', key],
-    queryFn: ({ signal }) => fetchPicksShelf(plan, signal),
-    enabled: ready,
-    // one draw per visit of the page, not again on every focus
+    // one draw per visit, kept when a region is picked on the page (user 2026-10-22: "메인에서 지역 선택했다고 추천
+    // 도서 목록이 안 바꼈으면 해"); the draw does not depend on the regions, so no plan is sent
+    queryKey: ['picksShelf'],
+    queryFn: ({ signal }) => fetchPicksShelf(NO_PLAN, signal),
     staleTime: Infinity,
     retry: false,
   })
