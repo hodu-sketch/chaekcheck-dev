@@ -274,21 +274,3 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
-
-
-/* the region button and its note when nothing can be borrowed now and no region is set (user 2026-10-22) */
-.pickRegion {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 0.6rem;
-}
-
-.pickRegionNote {
-  margin: 0.45rem 0 0;
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
-  line-height: 1.45;
-  text-align: center;
-  word-break: keep-all;
-}

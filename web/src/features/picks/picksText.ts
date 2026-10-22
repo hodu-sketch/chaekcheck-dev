@@ -74,6 +74,3 @@ export function cardTitle(title: string): string {
 export function safeCoverUrl(url: string | null): string | null {
   return url && (/^\/api\/v1\/picks\/covers\/\d+$/.test(url) || /^\/covers\/[0-9a-f]{40}\.jpg$/.test(url)) ? url : null
 }
-
-/** [확정] (user 2026-10-22), small and grey under the region button (the picks' example card, the book window). */
-export const EXAMPLE_PICK_NOTE = '선택하시면 지역에 맞는 전자도서관의 대출 정보를 더 찾아 드릴게요'

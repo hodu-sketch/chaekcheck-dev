@@ -9,8 +9,6 @@ import { CoverImage } from './CoverImage'
 import { latestRowPerLibrary, pickLibraryRows, PICKS_HOLDING_STEPS } from './pickLibraryRows'
 import { videoUrl } from './picksLists'
 import { PicksWindow } from './PicksWindow'
-import { RegionPickButton } from '../search/LibraryScopeLine'
-import { EXAMPLE_PICK_NOTE } from './picksText'
 import styles from './PicksDialogs.module.css'
 
 type Props = {
@@ -224,20 +222,6 @@ function BookBody({
             {state.batchFailed ? '대출 정보를 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요.' : '조건에 맞는 도서관이 없어요'}
           </p>
         )}
-        {/* nobody's regions or libraries and nothing to borrow now (on loan or reservation only counts as nothing): the
-            main page's region button; a region picked here searches this window again at once (user 2026-10-22: "이런
-            경우에도 지역을 선택해 주세요 버튼이랑 아래 문구 넣어주고 여기서 수정하면 해당 창에서 바로 더 찾아줘") */}
-        {!checking &&
-          !state.batchFailed &&
-          plan.residenceRegionIds.length === 0 &&
-          plan.workRegionIds.length === 0 &&
-          plan.libraryIds.length === 0 &&
-          !rows.some((row) => row.availability === 'AVAILABLE') && (
-            <div className={styles.pickRegion}>
-              <RegionPickButton phone={phone} />
-              <p className={styles.pickRegionNote}>{EXAMPLE_PICK_NOTE}</p>
-            </div>
-          )}
       </div>
     </div>
   )
