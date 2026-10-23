@@ -46,11 +46,11 @@ describe('header', () => {
     renderAt('/')
     const nav = within(wide())
     expect(nav.getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+      ['소개', '/about'],
       ['도서검색', '/search'],
       ['추천도서', '/picks'],
       ['마이페이지', '/mypage'],
     ])
-    expect(nav.queryByRole('link', { name: '소개' })).toBeNull()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: '이동진 추천도서' })).toBeNull()
     expect(screen.queryByRole('link', { name: '계정' })).toBeNull()
@@ -71,22 +71,20 @@ describe('header', () => {
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 
-  it('has 소개 right after the logo, out of the menus, going to /about (user 2026-10-20)', () => {
+  it('has 소개 as the first menu, going to /about (user 2026-10-24)', () => {
     renderAt('/')
-    const header = () => within(screen.getByRole('banner'))
-    const about = header().getByRole('link', { name: '소개' })
-    const logo = screen.getByRole('link', { name: '책첵' })
+    const about = within(wide()).getAllByRole('link')[0]
+    expect(about.textContent).toBe('소개')
     expect(about.getAttribute('href')).toBe('/about')
-    expect(logo.nextElementSibling).toBe(about)
-    expect(wide().contains(about)).toBe(false)
     expect(about.hasAttribute('data-current')).toBe(false)
     fireEvent.click(about)
     expect(screen.getByTestId('where').textContent).toBe('/about')
-    expect(header().getByRole('link', { name: '소개' }).hasAttribute('data-current')).toBe(true)
-    expect(header().getByRole('link', { name: '소개' }).getAttribute('aria-current')).toBe('page')
+    expect(within(wide()).getByRole('link', { name: '소개' }).hasAttribute('data-current')).toBe(true)
+    expect(within(wide()).getByRole('link', { name: '소개' }).getAttribute('aria-current')).toBe('page')
   })
 
   it.each([
+    ['/about', '소개'],
     ['/search', '도서검색'],
     ['/books/1', '도서검색'],
     ['/picks/snu100', '추천도서'],
@@ -151,7 +149,7 @@ describe('phone menu', () => {
   it('opens the same three menus and closes from the same button (✕)', () => {
     renderAt('/')
     const drawer = openPhone()
-    expect(within(drawer).getAllByRole('link').map((a) => a.textContent)).toEqual(['도서검색', '추천도서', '마이페이지'])
+    expect(within(drawer).getAllByRole('link').map((a) => a.textContent)).toEqual(['소개', '도서검색', '추천도서', '마이페이지'])
     expect(screen.getByTestId('menu-dim')).toBeTruthy()
     const close = screen.getByRole('button', { name: '메뉴 닫기' })
     expect(close.getAttribute('aria-expanded')).toBe('true')
@@ -178,9 +176,11 @@ describe('phone menu', () => {
     expect(screen.queryByTestId('menu-dim')).toBeNull()
   })
 
-  it('has no 책첵이란? in the drawer (it is next to the logo, user 2026-10-19)', () => {
+  it('has 소개 first in the drawer too, going to /about (user 2026-10-24)', () => {
     renderAt('/')
     const drawer = openPhone()
-    expect(within(drawer).queryByRole('link', { name: '소개' })).toBeNull()
+    const about = within(drawer).getAllByRole('link')[0]
+    expect(about.textContent).toBe('소개')
+    expect(about.getAttribute('href')).toBe('/about')
   })
 })

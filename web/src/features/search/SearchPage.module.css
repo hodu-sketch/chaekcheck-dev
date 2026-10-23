@@ -51,6 +51,13 @@
   font-weight: 800;
 }
 
+/* PC: a little air between the eyebrow and the headline (user 2026-10-24: "여기 공간 좀 두기(PC)") */
+@media (width > 640px) {
+  .eyebrow {
+    margin-bottom: 0.6rem;
+  }
+}
+
 .lead {
   margin: 0;
   color: var(--ink-soft);

@@ -5888,3 +5888,11 @@ plan 요청(plan 세션 전달 2026-10-23 15:10, 사용자 결정 `easy/2026-10-
 - 15:15:21, `python -X utf8 scripts\crawl\crawl_catalog.py --data-dir <데이터 폴더> full --audio-pass --workers 40 --per-host 1 --gap 1.0 --queue-by-ip`(`--retry-failed` 없이 전체; `resume.cmd`가 아니라 직접, 이 세션과 독립된 프로세스), 로그 `chaekcheck-data\logs\crawl-full-2026-10-23_1515.log`. 교보 구독형 `*.dkyobobook.co.kr` 제외 그대로.
 - 수집 DB 크기 시작 전 17,360,576,512바이트(16.2GB, 15:07). 끝난 뒤 크기·업체별 소개 줄 수와 비율·평균 길이는 **수집이 끝난 뒤 이 절에 덧붙입니다**(아직 없음).
 - 표지 받기(`fetch-covers`)는 이 수집이 끝난 뒤 그대로 돌립니다(앞 절).
+
+# 머리말·메인 손질 (2026-10-24, 사용자 요청, 사이클 20 세션)
+
+- 사용자(2026-10-24): "1. 상단 바에 메뉴 글씨 좀 더 키우기(PC) 2. 여기 공간 좀 두기(PC) 메인에서 공공 전자도서관은 무료로 빌릴 수 있어요 3. 소개를 … 메인탭으로 첫번째에 박으라니까 저렇게 회색 작게 둘빠에"
+- 1: `HeaderMenu.module.css` `.bigLink` 글자 `--text-md`(0.93rem) → 1.07rem (PC·태블릿 큰 메뉴만; 폰 서랍은 그대로)
+- 2: `SearchPage.module.css` `.eyebrow`에 641px 이상에서 `margin-bottom: 0.6rem` — 「공공 전자도서관은 무료로 빌릴 수 있어요」와 큰 제목 사이 여백
+- 3: 「소개」를 로고 옆 작은 회색 링크에서 빼고 **첫 메뉴**로(`MENUS` 첫 항목 `about` → `/about`; `inMenu`는 `/about`에서 밑줄). 폰 ☰ 서랍에도 첫 줄. 2026-10-19/20의 "로고 옆 회색 링크" 결정을 바꿈. `ABOUT_LINK`·`.about` CSS 제거
+- 시험: `AppLayout.test`의 메뉴 목록·소개 자리·서랍 목록 기대값 갱신. vitest 639 통과, `npm run build` 통과. 1280·375 캡처로 확인

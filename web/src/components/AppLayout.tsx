@@ -7,7 +7,6 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorFallback } from './ErrorFallback'
 import { Footer } from './Footer'
 import { HeaderMenu, PhoneMenu } from './HeaderMenu'
-import { ABOUT_LINK } from './headerMenus'
 import styles from './AppLayout.module.css'
 
 export function AppLayout() {
@@ -33,16 +32,7 @@ export function AppLayout() {
               <Link to="/" className={styles.brand}>
                 <span className={styles.wordmark}>책첵</span>
               </Link>
-              {/* 소개 right next to the logo, quieter than the menus (user 2026-10-20: "좌상단 책첵 바로 오른쪽이어야지";
-                  after the menus for a while the same day) */}
-              <Link
-                to={ABOUT_LINK.to}
-                className={styles.about}
-                data-current={location.pathname === ABOUT_LINK.to ? '' : undefined}
-                aria-current={location.pathname === ABOUT_LINK.to ? 'page' : undefined}
-              >
-                {ABOUT_LINK.label}
-              </Link>
+              {/* 소개 moved into the menus as the first one (user 2026-10-24) */}
             </span>
             <HeaderMenu />
           </div>

@@ -56,31 +56,6 @@
 }
 
 /* 책첵이란?: grey, smaller and lighter than the big menus (user 2026-10-19: "좀 더 회색으로") */
-.about {
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--ink-faint);
-  text-decoration: none;
-}
-
-.about:hover,
-.about[data-current] {
-  color: var(--ink-soft);
-}
-
-.about[data-current] {
-  text-decoration: underline;
-  text-underline-offset: 0.3em;
-}
-
-.about:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
 .start {
   display: flex;
   align-items: center;
