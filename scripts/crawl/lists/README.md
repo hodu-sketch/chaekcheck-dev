@@ -6,6 +6,7 @@
 - **영상 제목·설명은 어느 파일에도 두지 않습니다**(YouTube 약관, spec R4-5). 영상은 ID로만 적습니다
 - export와 `lists` 모드가 읽는 파일: `fields.tsv`, `leedongjin.tsv`, `snu100.tsv`, `kaist.tsv`, `nobel.tsv`, `covers/`(없으면 멈춤). 값 검사는 DB와 같아서, 틀린 값은 "파일 line N: 칸 무엇"으로 멈춥니다
 - 수집기만 읽는 파일: `subject_fields.tsv`, `collector_words.tsv`, `cover_sources.tsv`, `cover_hosts.tsv`, `cover_placeholders.tsv`, `leedongjin_pending.tsv`
+- 표지 받기 `fetch-covers`(`scripts/crawl/fetch_covers.py`, 2026-10-23)만 읽는 파일: `fetch_cover_sources.tsv`, `fetch_cover_hosts.tsv`(`cover_placeholders.tsv`는 같이 읽음)
 
 ## `fields.tsv` (export에 실림)
 
@@ -93,4 +94,6 @@ Bokklubben World Library(2002, 노르웨이 북클럽·노르웨이 노벨연구
 | `collector_words.tsv` | `kind`, `word`, `note` | `year_book_title`(12월 업로드 제목 → 올해의 책 후보), `not_a_book`(책 이름이 아닌 채널 표지), `excluded_title`·`excluded_publisher`·`excluded_name`(고르지 않는 판). 모르는 `kind`면 수집기가 멈춤 |
 | `cover_sources.tsv` | `order`, `source`, `note` | 표지를 찾는 곳과 차례: `nlk_isbn`, `collected_preferred`, `collected_other`, `nlk_holdings`, `nlk_title`(뜻은 `note`와 4-picks.md 6-3). 수집기는 `kakao_book`도 알지만 차례에 넣지 않음(카카오 썸네일은 오래 저장하면 안 됨, 2026-10-17). 모르는 이름이면 수집기가 멈춤 |
 | `cover_hosts.tsv` | `order`, `host`, `note` | 수집 사본 표지 주소 가운데 먼저 시도할 호스트와 차례 |
-| `cover_placeholders.tsv` | `hash`, `source`, `note` | "표지 없음" 그림의 16x16 평균 해시(16진 64자리, 수집기 `image_hash`). 이 그림과 거의 같으면 표지로 쓰지 않음 |
+| `cover_placeholders.tsv` | `hash`, `source`, `note` | "표지 없음" 그림의 16x16 평균 해시(16진 64자리, 수집기 `image_hash`). 이 그림과 거의 같으면 표지로 쓰지 않음. 표지 받기 `fetch-covers`도 읽음 |
+| `fetch_cover_sources.tsv` | `order`, `source`, `note` | 표지 받기 `fetch-covers`의 출처 차례: `collected_preferred`, `collected_other`, `nlk_isbn`, `nlk_holdings`(plan 요청서 2026-10-23: 도서관 표지 먼저, 없으면 국립중앙도서관). 추천 목록의 `cover_sources.tsv`와 차례가 달라(그쪽은 ISBN 서지 먼저) 파일을 나눔. 모르는 이름이면 멈춤 |
+| `fetch_cover_hosts.tsv` | `order`, `host`, `note` | 표지 받기에서 먼저 받는 도서관 표지 서버와 차례(YES24 → 북큐브). `cover_hosts.tsv`의 교보 `dcontent.dkyobobook.co.kr`은 요청을 보내지 않는 서버라 여기 없음 |

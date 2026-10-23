@@ -1469,6 +1469,10 @@ def connect_read_only():
 
 
 def main():
+    if "fetch-covers" in sys.argv[1:]:
+        # book covers after the list crawl (plan request 2026-10-23): its own options, in fetch_covers.py
+        import fetch_covers
+        sys.exit(fetch_covers.main([x for x in sys.argv[1:] if x != "fetch-covers"]))
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument("--data-dir", default="")
     known, _ = pre.parse_known_args()
@@ -1477,7 +1481,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", default="", help="data folder (default: $CHAEKCHECK_DATA or ../chaekcheck-data)")
     ap.add_argument("cmd", choices=["init", "full", "status", "import-bookcube", "import-probe", "backfill-types",
-                                    "invalidate", "refill-pubdt", "add-library"])
+                                    "invalidate", "refill-pubdt", "add-library", "fetch-covers"])
     ap.add_argument("--source", default="okbari-2026-10-03", help="library.source label for import-probe")
     ap.add_argument("--reason", default="")
     ap.add_argument("--skip", nargs=2, metavar=("ID", "REASON"), help="do not crawl this library; REASON '' clears it")

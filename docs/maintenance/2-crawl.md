@@ -200,6 +200,7 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | `… status --skip {id} "{이유}"` | 그 도서관을 받지 않게 표시. 이유를 `""`로 주면 다시 받음 |
 | `… backfill-types` | 오디오북 표시·상세 URL을 모든 줄에 다시 계산(수집이 돌 때는 오래 막히므로 멈춘 뒤에) |
 | `… status` | 상태 요약. 수집 DB를 읽기 전용으로 엶(수집 중에도 됨) |
+| `… fetch-covers [--plan-only / --fetch-only / --status / --export]` | 표지 받기(2026-10-23, 12절). 목록 수집이 끝난 뒤 따로 |
 | `python -X utf8 scripts\crawl\verify_detail_urls.py [결과.tsv] [화면종류,…]` | 상세 URL 확인. **수집과 같은 서버를 동시에 치지 않게** 화면 종류를 골라서 |
 | `python -X utf8 scripts\library\discover\probe_other_platforms.py 입력.tsv 결과.tsv` | 기관 사이트 한 번씩 확인(입력: platform, name, url) |
 
@@ -376,3 +377,15 @@ WHERE h.is_audiobook = 1 AND h.removed_at IS NULL;
 |---|---|---|
 | 2026-10-12 | 갈아타기: 옛 `scripts\`와 `resume.cmd`를 `chaekcheck-data\_old-scripts-2026-10-12\`로 옮김(지우지 않음, 0-1절) | 데이터 폴더 맨 위에 `resume.cmd` 없음 |
 | 2026-10-12 19:29 | 여주대(수집 102084, YES24) 빈 곳 채우기를 dev 수집기로 시작: `refill-pubdt --only 102084` (plan 사이클 13 spec R1-5) | 22분 동안 약 980줄을 읽음. 10줄 한 쪽에 약 14초라 끝까지 약 30시간 걸릴 셈 → **사용자 결정으로 멈춤** ("여주대는 빼자", 2026-10-12). 102084의 줄 수는 83,756줄 그대로(빠진 책을 더하지 못함), 수집 DB `PRAGMA quick_check` = ok. 이 시험(AC-1)은 사이클 13에서 뺐습니다 |
+
+## 12. 표지 받기 `fetch-covers` (2026-10-23, 사이클 밖)
+
+plan 요청서 `../chaekcheck-plan/docs/research/ebook-catalog/to-dev-fetch-covers-2026-10-23.md`(근거 `crawl-method.md` 1절 "표지", `easy/2026-10-23-cover-collection-decisions.html`·`cover-source-decisions.html`). 코드 `scripts/crawl/fetch_covers.py`(`crawl_catalog.py fetch-covers`가 넘김), 규칙 파일 `scripts/crawl/lists/fetch_cover_sources.tsv`·`fetch_cover_hosts.tsv`, 설명 [`scripts/crawl/README.md`](../../scripts/crawl/README.md) "표지 받기". 규칙 값은 [rules-index.md](rules-index.md) 1절·4절. 첫 실행 보고는 `docs/plan-feedback.md` "# 표지 받기 (2026-10-23 요청)".
+
+- **언제**: 목록 수집(`full`)이 모두 끝난 뒤. 수집이 돌고 있으면 시작하지 않습니다(같은 서버를 두 곳에서 치므로). 가져오기와는 상관없이 돌려도 되지만, 계획(plan)은 **내 PC 서비스 DB의 지금 책**을 읽으므로 가져오기 뒤에 `--plan-only`를 한 번 더 돌리면 새 책이 더해지고 번호가 갱신됩니다(받은 표지는 그대로).
+- **순서**
+  1. `python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers --plan-only` — 책 134만 권의 소장 줄 1,800만을 읽어 후보를 정함(요청 없음, 서비스 DB SELECT만, 수집 DB 읽기 전용). 2026-10-23 측정: 1,340,875권 21분 21초, `covers.sqlite` 635MB.
+  2. `… fetch-covers --fetch-only --workers 32` — 받기. 로그 `logs\covers-<날짜>.log`에 1분마다 `progress:` 줄. 멈추려면 Ctrl+C(진행 중 요청만 끝내고 멈춤). 다시 같은 명령으로 이어 받음.
+  3. `… fetch-covers --status` — 출처별 장 수, 못 받은 책 수와 마지막 오류, 서버별 대기, 실행마다 걸린 시간, 디스크 크기. `--export`로 `covers\book-covers.tsv`.
+- **저장 꼴**: `chaekcheck-data\covers\covers.sqlite`의 `book_cover`(한 책 한 줄; `book_key`=ISBN 있으면 `isbn:<ISBN>`, 없으면 첫 소장 줄 `item:<수집 도서관 번호>:<책 코드>`; `book_id`는 계획할 때의 서비스 책 번호; `candidates` 후보 주소 JSON, 맨 끝 `nlk`=국립중앙도서관 조회; `status` PENDING/DONE/NONE; `source`·`cover_url`·`file`·`bytes`·`tried`·`last_error`), `run`(실행마다 시작·끝·요청 수·장 수), `meta`(계획 시각과 그때의 `catalog_import` 번호). 파일은 `covers\<sha1 앞 2자리>\<sha1(주소)>.jpg`(같은 주소는 한 파일, 폴더 256개로 나눔).
+- **문제별**: 한 서버가 50번 연달아 실패(404·빈 그림은 세지 않음)하면 로그 `host …: 50 failures in a row`를 내고 그 실행에서는 그 서버를 더 묻지 않음(책은 PENDING). 다음 실행에서 다시 시도. 못 받은 책(NONE)을 다시 물으려면 `--retry-none`. 새 "표지 없음" 그림을 보면 `scripts/crawl/lists/cover_placeholders.tsv`에 해시를 더하고(`recommended_lists.image_hash`) `--retry-none`.

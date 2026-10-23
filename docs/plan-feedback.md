@@ -5787,3 +5787,70 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 - 사용자: "이거 목포 누구나 가입 도서관 맞아? 정회원이라고 하는데 정회원은 가야하는거아니야? 이것말고도누구나 가입 도서관들 하나하나 검증해줘". 38줄(기관 25)을 공식 원문으로 다시 봄.
 - 목포: 원문 "대상 : 목포시통합도서관 정회원(홈페이지 가입자)" — 누구나 온라인 그대로.
 - 바뀐 것(`library-021`): 김천 269·313 누구나 → 김천 거주·재직·재학 + 방문 가입, 광산 40·264 방문 끔 + 주의, 금산 267·강북 17·목포 65 가입 주소·주의, 광주 남구 233 주의. 원문은 `docs/library-research/open-recheck-2026-10-21.md`, 기록은 `library-maintenance.md` 13·14절.
+
+
+# 표지 받기 (2026-10-23 요청)
+
+plan 요청서 `../chaekcheck-plan/docs/research/ebook-catalog/to-dev-fetch-covers-2026-10-23.md`(plan 세션이 2026-10-23 전달). 코드는 만들었고 작은 시험(8권)만 돌렸습니다. **실제 받기는 지금 도는 전체 목록 수집(2026-10-23 08:10 시작)이 끝난 뒤** 사용자가 띄웁니다(아래 "실행 명령"). 절차 원본: `docs/maintenance/2-crawl.md` 12절, 설명 `scripts/crawl/README.md` "표지 받기".
+
+## 명령과 저장 꼴 [안 → dev가 정함, plan 확인 요청]
+
+- 명령: `python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers` (`scripts/crawl/fetch_covers.py`가 실제 코드, `crawl_catalog.py`가 넘김). 두 단계: `--plan-only`(책마다 표지 주소 차례를 정함, 요청 없음) → `--fetch-only`(받음). 둘 다 안 주면 이어서. `--status`(출처별 장 수·못 받은 책·서버별 대기·실행 시간·디스크), `--export`(짝 표를 TSV로).
+- 책 번호를 어디서 읽나 [안]: **내 PC 서비스 DB `catalog.book`·`catalog.holding`·`collection.collection_link`를 SELECT만** 합니다(가져오기가 남기는 파일 대신. 책 ↔ 소장 줄 ↔ 수집 번호가 한 번에 나오고, 추천 목록 수집기 `recommended_lists.py`가 이미 같은 방법을 씀). 책의 소장 줄마다 수집 DB `holding.cover_url`을 읽어 후보를 만듭니다.
+- 짝 표 [안]: 데이터 폴더 `covers\covers.sqlite`(SQLite, git 밖)
+  - `book_cover` 한 책 한 줄: `book_key`, `book_id`(계획할 때의 서비스 책 번호), `isbn13`, `title`, `author`, `candidates`(후보 주소 JSON, 차례대로; 맨 끝 `nlk`는 국립중앙도서관 조회), `next_index`·`next_host`(다음에 물을 곳), `status`(`PENDING`/`DONE`/`NONE`), `source`(`collected_preferred`/`collected_other`/`nlk_isbn`/`nlk_holdings`), `cover_url`, `file`, `bytes`, `tried`(요청 수), `last_error`, `planned_at`, `fetched_at`
+  - `run`: 실행마다 시작·끝·요청 수·장 수·바이트. `meta`: 계획 시각과 그때의 `catalog_import` 번호(어느 가져오기의 책 번호인지)
+  - `--export` → `covers\book-covers.tsv`(book_id, book_key, isbn13, status, source, file, cover_url)
+- **책 열쇠 `book_key`** [안, 중요]: 가져오기마다 책 번호가 1부터 다시 매겨지므로(ADR-0031, `no-bookid` 규칙) 파일을 책 번호에 묶지 않았습니다. ISBN이 있으면 `isbn:<ISBN13>`, 없으면 그 책의 첫 소장 줄(`catalog.holding` id가 가장 작은 줄)의 `item:<수집 도서관 번호>:<책 코드>`. 가져오기 뒤 `--plan-only`를 다시 돌리면 같은 열쇠의 줄은 번호·제목만 갱신되고 받은 표지는 그대로입니다(시험 `test_second_run_leaves_done_books_alone_and_a_replan_only_renumbers`). ISBN 없는 책의 첫 소장 줄이 다음 수집에서 빠지면 그 책은 새 열쇠로 다시 받게 됩니다(드물다고 봄, [안]).
+- 파일 이름 [안]: `covers\<sha1 앞 두 자리>\<sha1(주소)>.jpg`. 사이클 21 추천 목록(`lists/covers/<sha1(url)>.jpg`)과 같은 규칙에 폴더 256개만 나눔(한 폴더에 130만 파일을 두지 않으려고). 같은 주소를 가진 책들은 파일 하나를 함께 가리킵니다(표에서 봄).
+- 규칙 파일(사이클 21 방식대로 코드 밖): `scripts/crawl/lists/fetch_cover_sources.tsv`(출처 차례 `collected_preferred` → `collected_other` → `nlk_isbn` → `nlk_holdings`), `fetch_cover_hosts.tsv`(`image.yes24.com` → `bookimg.bookcube.com`). 사이클 21의 `cover_sources.tsv`·`cover_hosts.tsv`는 차례가 달라(ISBN 서지 먼저, 교보 서버 포함) 그대로 쓰지 않고 파일을 나눴습니다 — 요청서 "같이 씀"과 다른 점. 표지 코드(`shrink`·`image_hash`·`Seoji`·`NlkHoldings`)와 빈 그림 해시 `cover_placeholders.tsv`는 그대로 가져다 씁니다. `docs/maintenance/rules-index.md` 1절·4절에 줄을 더했습니다.
+
+## 확정 사항이 코드에서 어떻게 지켜지나
+
+- 책 하나에 표지 한 장: 첫 성공에서 멈춤. 후보는 책마다 서로 다른 주소 6개까지(`MAX_COLLECTED`, [안]) + `nlk`.
+- 받는 차례 ①→②: 후보 차례가 YES24 → 북큐브 → 그 밖(수집 순서) → 국립중앙도서관(ISBN 서지 `TITLE_URL`은 ISBN이 있는 책만 → 소장자료 검색 `imageUrl` 3개까지; ISBN 없으면 제목+첫 저자의 성, 저자가 없으면 소장자료 검색은 건너뜀 — 사이클 21과 같음).
+- `*.dkyobobook.co.kr`: 계획 단계에서 후보에서 빼고, 요청 직전 `crawl_catalog.is_blocked_host`로 한 번 더 거름(시험 `test_blocked_host_is_never_requested_even_if_it_slipped_into_the_plan`). 교보 구독형에만 있는 책 등 수집 표지가 하나도 없는 책은 바로 국립중앙도서관으로.
+- 크기: `recommended_lists.shrink`(200px, JPEG 0.8). 5MB: `Content-Length`가 넘으면 읽지 않고, 없으면 5MB+1까지만 읽고 버림. 빈 그림: `cover_placeholders.tsv` 해시(국립중앙도서관 로고, 교보 "이미지 없음")로 건너뜀. 북큐브·YES24의 빈 그림은 아직 모름 — 돌려 보고 나오면 해시를 더하고 `--retry-none`.
+- 예절: 서버(IP)마다 동시 1건, 끝난 뒤 1초(`--gap`), 서버가 다르면 동시에(`--workers`, 기본 32; 줄이 657개라 32로도 동시에 32곳). IP는 `crawl_catalog.resolve`로 호스트마다 한 번. 국립중앙도서관은 `www.nl.go.kr`(API)와 `cover.nl.go.kr`(표지)를 **한 줄**로 묶고 조회 → 표지 사이도 1초. 한 서버가 50번 연달아 실패(404·빈 그림 제외)하면 그 실행에서는 더 묻지 않음(책은 대기로). 목록 수집(`full`·`refill-pubdt`)이 돌고 있으면 시작하지 않음(같은 서버를 두 프로세스가 치므로; 시험만 `--allow-with-crawl`).
+- 이어 받기: `DONE`·`NONE`은 다시 묻지 않음. Ctrl+C면 진행 중 요청만 끝내고 멈춤, 같은 명령으로 이어감. 못 받은 책은 `--retry-none`.
+- 서비스는 손대지 않음: `catalog`·`collection` 표·가져오기·반영 파일·화면 변경 없음. Java 변경 없음.
+- 시험: `python -m unittest scripts/crawl/test_fetch_covers.py` 16개(네트워크 없음: 후보 차례, 줄 세우기, 404·빈 그림·5MB·끝까지 없음, 이어 받기·번호 갱신, 국립중앙도서관 두 조회와 키 가림, 서버 끄기, `--max-books`, 교보 차단). 기존 `test_crawl_migrate.py`·`test_recommended_lists.py`도 통과.
+
+## 계획 단계 실제 수치 (2026-10-23 08:36~08:58, 요청 없음)
+
+| 항목 | 값 |
+|---|---|
+| 읽은 책 | 1,340,875권(`catalog_import` 14, 2026-10-20 가져오기), 소장 줄 1,800만 |
+| 걸린 시간 | 21분 21초(1,281초; 서비스 DB 정렬 약 5분 + 수집 DB 조회) |
+| `covers.sqlite` | 635MB(후보 주소 JSON 포함) |
+| 첫 후보가 북큐브 `bookimg.bookcube.com` | 310,362권 |
+| 첫 후보가 YES24 `image.yes24.com` | 200,510권 |
+| 첫 후보부터 국립중앙도서관(수집 표지가 하나도 없음: 교보 구독형만 가진 책 등) | 108,637권 |
+| 첫 후보가 그 밖 서버 | 721,358권, 서버 654곳(큰 곳: `ebook.pcu.ac.kr` 42.0천, `e-book.mju.ac.kr` 40.6천, `library.dongseo.ac.kr` 20.3천, `bu.bookcube.biz` 19.3천, `ebook.wsu.ac.kr` 18.0천, `www.bookrail.co.kr` 16.2천) |
+| 후보 수 분포 | 1개(국립중앙도서관뿐) 108,637 · 2개 454,876 · 3개 183,046 · 4개 106,582 · 5개 76,344 · 6개 50,852 · 7개(6개+nlk) 360,538 |
+| 후보에 YES24 / 북큐브 주소가 있는 책 | 200,517 / 378,219 |
+| ISBN 있는 책 | 283,779권(ISBN 서지 `TITLE_URL`을 물을 수 있는 책) |
+
+작은 시험(`--limit 30 --max-books 8 --workers 8 --allow-with-crawl`, 08:35): 8권 모두 받음(YES24 7, `elib.goe.go.kr` 1), 요청 8건, 7초, 평균 15.7KB(「이끼숲」 등 실제 표지 확인). 두 줄(YES24·경기도교육청)이라 1.2건/초.
+
+## 받기 예상 (실행 전 [추정])
+
+- 줄마다 1초 1건이므로 걸리는 시간은 **가장 긴 줄**이 정합니다: 북큐브 31만 건 ≈ 3.6일, YES24 20만 ≈ 2.3일, 국립중앙도서관은 10.9만 권 × 조회 2~4건 ≈ 3~5일 + 도서관 표지에 실패해 넘어오는 책. 나머지 654곳은 그 사이에 끝남. **전체 약 4~6일**(PC를 계속 켜 둠, 멈추면 이어 받기).
+- 디스크: 시험 평균 15.7KB × 134만 ≈ 20GB(plan 추정과 같음). `covers.sqlite` 0.6GB 별도.
+- 못 받을 책: 국립중앙도서관 `TITLE_URL`이 빈 비율(이동진 43권 중 40권)이 그대로면 ISBN 서지로는 거의 못 채우고 소장자료 검색이 관건. 수치는 돌린 뒤 `--status`로 이 절에 더합니다.
+
+## 실행 명령 (목록 수집이 끝난 뒤, 저장소 뿌리에서)
+
+```
+python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers --fetch-only --workers 32
+python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers --status
+```
+
+계획은 이미 되어 있음(위 표). 가져오기를 다시 한 뒤라면 `--plan-only`를 먼저 한 번 더(번호 갱신, 새 책 추가).
+
+## plan에 묻는 것
+
+1. 짝 표·파일 이름·책 열쇠(`book_key`) 꼴 [안] 확인.
+2. 후보 6개 상한(`MAX_COLLECTED`)과 서버 끄기 50번(`OFF_AFTER`), 소장자료 검색 표지 3개(`NLK_HOLDINGS_LIMIT`) [안] 확인.
+3. 사이클 21 규칙 파일을 그대로 쓰지 않고 `fetch_cover_*.tsv`로 나눈 것(요청서 "같이 씀"과 다름) 확인.
+4. 받기 결과 수치(출처별 장 수·못 받은 책·시간·디스크)는 실행 뒤 이 절에 덧붙입니다.

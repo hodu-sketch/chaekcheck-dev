@@ -32,6 +32,7 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
 |---|---|
 | `scripts/crawl/crawl_catalog.py` | 전체 목록 수집기. 수집 목록(웹러브 북스 기관 등)에서 찾은 도서관을 수집 DB에 넣는 `import-probe`·`import-bookcube`, 빈 곳 채우기 `refill-pubdt` 포함 |
 | `scripts/crawl/verify_detail_urls.py` | 도서관·종류마다 상세 URL 하나를 열어 그 책이 맞는지 확인 (수집과 동시에 돌리지 않음) |
+| `scripts/crawl/fetch_covers.py` | 표지 받기 `fetch-covers`(2026-10-23, plan 요청서 `to-dev-fetch-covers-2026-10-23.md`): 서비스 책 한 권에 표지 한 장을 200px JPEG로 데이터 폴더 `covers\`에 모음. 목록 수집이 끝난 뒤 따로 돌림(아래 "표지 받기"). 시험 `python -m unittest scripts/crawl/test_fetch_covers.py`(네트워크 없음) |
 | `scripts/crawl/resume.cmd` | 수집 이어 받기 (한 번에 하나만 돎) |
 | `scripts/crawl/test_crawl_migrate.py` | `migrate`·교보 구독형 서버 거르기·막힌 사이트 표시 시험(네트워크 없음): `python -m unittest scripts/crawl/test_crawl_migrate.py` |
 | `scripts/library/discover/probe_kyobo_institutions.py` | 수집 목록에서 도서관 찾기: 교보 기관 사이트 한 번씩 확인(열리는지, 일반·구독형, 운영 방식, 권수) |
@@ -47,6 +48,7 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
 | `queue-by-ip.txt` | 실행 설정(위 "이어 받기"). `host-slots.txt`는 남아 있어도 읽지 않음 |
 | `_old-scripts-2026-10-12/` | 갈아타기 전 옛 수집기·도구와 `resume.cmd` 보관(위 "갈아타기") |
 | `logs/crawl-*.log`, `crawl-*.log` | 수집 실행 로그 |
+| `covers/` | 표지 받기 결과: `covers.sqlite`(책 ↔ 파일 짝 표 `book_cover`, 실행 기록 `run`), `<xx>/<sha1(주소)>.jpg`(200px JPEG), `--export`가 쓰는 `book-covers.tsv`. 로그는 `logs/covers-*.log` |
 | `other-platforms/` | 수집 목록에서 도서관 찾기·마감 확인 결과 TSV와 팝업 그림(웹러브 북스 기관 목록, 확인 결과, `kyobo-limits-log.tsv`) |
 | `secrets/` | 국립중앙도서관 인증키(열거나 출력하지 않음) |
 
@@ -84,6 +86,9 @@ python -X utf8 scripts/crawl/crawl_catalog.py full --retry-failed --shard 0/4 # 
 python -X utf8 scripts/crawl/crawl_catalog.py full --only 9                   # 도서관 한 곳
 python -X utf8 scripts/crawl/crawl_catalog.py full --sections AUDIO           # YES24 오디오북 목록만
 python -X utf8 scripts/crawl/crawl_catalog.py refill-pubdt --only 102084        # 빈 곳 채우기: 출판일순으로 다시 읽어 빠진 책만 더함
+python -X utf8 scripts/crawl/crawl_catalog.py fetch-covers --plan-only          # 표지 받기 1단계: 책마다 표지 주소 차례를 정해 covers/covers.sqlite에 씀(요청 없음)
+python -X utf8 scripts/crawl/crawl_catalog.py fetch-covers --fetch-only          # 표지 받기 2단계: 목록 수집이 끝난 뒤. 이어 받기(여러 번 돌려도 됨)
+python -X utf8 scripts/crawl/crawl_catalog.py fetch-covers --status              # 받은 장 수(출처별)·못 받은 책·대기·실행 시간·디스크
 ```
 
 - `migrate`(표 구조 맞추기)는 따로 부르는 명령이 아닙니다. `status`를 뺀 모든 명령이 DB를 열 때 돌고, 없는 칸만 더합니다(`library.vendor`는 `ALTER TABLE library ADD COLUMN vendor TEXT CHECK (…)`, 이미 있으면 건너뜀). 두 번 돌아도 됩니다(`test_crawl_migrate.py`)
@@ -98,6 +103,17 @@ python -X utf8 scripts/crawl/crawl_catalog.py refill-pubdt --only 102084        
 - User-Agent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)`. 개인 연락처를 넣지 않음. 연락처는 서비스 주소나 공개 문의 주소가 생기면 넣음 [확정] (spec R1-8, `crawl_catalog.py`의 `USER_AGENT`)
 - 이어 받기: 목록이 하나인 도서관은 멈춘 쪽 다음부터 이어 받음. 오디오북이 있는 YES24는 읽던 목록과 쪽부터, 포털은 처음부터([`2-crawl.md`](../../docs/maintenance/2-crawl.md) 4절)
 - 성공 조건: 받은 서로 다른 책 수가 사이트 총 건수와 1% 안(건너뛴 줄 제외). 포털은 총 건수가 없어 빈 쪽까지 읽으면 성공
+
+## 표지 받기 `fetch-covers` (2026-10-23, 사이클 밖, plan 요청서 `../chaekcheck-plan/docs/research/ebook-catalog/to-dev-fetch-covers-2026-10-23.md`)
+
+목록 수집은 표지 **주소**만 저장합니다. `fetch-covers`는 그 뒤 따로 돌아 **서비스 책 한 권에 표지 한 장**을 받아 폭 200px JPEG 품질 0.8(ADR-0091)로 데이터 폴더 `covers\`에 모읍니다. 서비스 표·가져오기·반영 파일·화면은 바꾸지 않습니다(화면에 보이기는 출판사 권리 확인 뒤 따로 사이클). 절차와 실제 수치는 [`docs/maintenance/2-crawl.md`](../../docs/maintenance/2-crawl.md) 12절.
+
+- 두 단계: **plan**(내 PC 서비스 DB `catalog.book`·`catalog.holding`·`collection.collection_link`를 SELECT만 해서 책마다 소장 줄의 수집 DB `holding.cover_url`을 모아 차례를 정함, 요청 없음) → **fetch**(차례대로 받음). `--plan-only`·`--fetch-only`로 따로 돌릴 수 있고, 둘 다 없으면 이어서 합니다
+- 받는 차례(`lists/fetch_cover_sources.tsv`·`lists/fetch_cover_hosts.tsv`): ① 도서관 표지 `image.yes24.com` → `bookimg.bookcube.com` → 그 밖 서버(책마다 서로 다른 주소 6개까지) ② 없거나 모두 실패하면 국립중앙도서관 ISBN 서지 `TITLE_URL`(ISBN이 있는 책) → 소장자료 검색 `imageUrl`(`cover.nl.go.kr`, ISBN 없으면 제목+첫 저자의 성). **`*.dkyobobook.co.kr`에는 보내지 않음**(계획에서 빼고 요청 직전에도 거름, 사이클 13 R1-6). 표지 코드(`shrink`·`image_hash`·`Seoji`·`NlkHoldings`)와 빈 그림 해시 `cover_placeholders.tsv`는 사이클 21 `recommended_lists.py`의 것을 그대로 씀
+- 예절: 서버(IP)마다 한 번에 1건, 끝난 뒤 1초(`--gap`), 서버가 다르면 동시에(`--workers`, 기본 32). 국립중앙도서관은 API와 표지 서버를 **한 줄**로. 한 서버가 50번 연달아 실패하면 그 실행에서는 더 묻지 않고 그 책들은 대기로 남김. 목록 수집(`full`·`refill-pubdt`)이 돌고 있으면 시작하지 않음(같은 서버를 두 곳에서 치게 되므로; 작은 시험만 `--allow-with-crawl`)
+- 저장: `covers\covers.sqlite` 표 `book_cover`(책 열쇠 `book_key`, 그때의 `book_id`, ISBN, 후보 주소, 상태 `PENDING`/`DONE`/`NONE`, 출처, 주소, 파일, 바이트, 요청 수, 마지막 오류)와 파일 `covers\<sha1 앞 두 자리>\<sha1(주소)>.jpg`(같은 주소는 파일 하나). `book_key`는 ISBN이 있으면 `isbn:<ISBN>`, 없으면 첫 소장 줄의 `item:<수집 도서관 번호>:<책 코드>`라서, 가져오기가 책 번호를 다시 매겨도 plan을 다시 돌리면 번호만 갱신되고 받은 표지는 그대로입니다. `--export`는 `covers\book-covers.tsv`(book_id, book_key, isbn13, status, source, file, cover_url)를 씁니다
+- 이어 받기: `DONE`·`NONE`은 다시 묻지 않음. 멈추면(Ctrl+C) 진행 중 요청만 끝내고 나머지는 `PENDING` 그대로. `--retry-none`은 못 받은 책을 첫 주소부터 다시 물음. 시험: `--limit N`(앞 N권만 계획) `--max-books N`(N권 끝나면 멈춤)
+- 키: `.env`의 `CHAEKCHECK_PICKS_NLK_API_KEY`, 없으면 데이터 폴더 `secrets\nl-cert-key.txt`. 로그에 키를 쓰지 않음
 
 ## 범위와 상태 (2026-09-30)
 

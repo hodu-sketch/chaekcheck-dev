@@ -1,0 +1,5 @@
+order	source	note
+1	collected_preferred	수집 DB holding.cover_url 가운데 fetch_cover_hosts.tsv 서버(YES24 → 북큐브) (plan 요청서 to-dev-fetch-covers-2026-10-23.md ①)
+2	collected_other	수집 DB의 그 밖의 표지 주소(교보 구독형 *.dkyobobook.co.kr은 빼고) (①)
+3	nlk_isbn	국립중앙도서관 ISBN 서지 TITLE_URL, ISBN이 있는 책만 (②)
+4	nlk_holdings	국립중앙도서관 소장자료 검색 imageUrl(cover.nl.go.kr): ISBN, 없으면 제목 + 첫 저자의 성 (②)
