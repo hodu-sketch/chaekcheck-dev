@@ -180,6 +180,7 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | 교보 구독형 서버(`*.dkyobobook.co.kr`) | 받을 목록에서 빼고, 요청 직전에도 걸러 보내지 않음 (2026-10-12부터, 0-1절) |
 | 사이트가 막음(다시 시도 뒤에도 HTTP 403·시간 초과) | 그 도서관만 `crawl_skip` `blocked …`로 표시하고 나머지는 계속 (2026-10-12부터, 0-1절) |
 | 오디오북·상세 URL | `content_type`·`is_audiobook`·`kind_check`·`detail_url`은 SQLite 트리거가 채움(6·7절) |
+| 책 소개 (2026-10-23부터) | 목록 줄에 실려 오는 소개를 `holding.intro_raw`에 원문 그대로(태그만 벗김). 교보·YES24·북큐브·강남구만; 알라딘·포털·서울도서관 목록에는 없어 NULL. 상세 쪽은 열지 않음(요청 수 그대로). 서비스에는 넣지 않음([README](../../scripts/crawl/README.md) DB 구조) |
 
 ## 5. 명령 모음 (저장소 뿌리에서. 데이터 폴더가 기본값과 다르면 `--data-dir 경로`)
 
@@ -377,6 +378,7 @@ WHERE h.is_audiobook = 1 AND h.removed_at IS NULL;
 |---|---|---|
 | 2026-10-12 | 갈아타기: 옛 `scripts\`와 `resume.cmd`를 `chaekcheck-data\_old-scripts-2026-10-12\`로 옮김(지우지 않음, 0-1절) | 데이터 폴더 맨 위에 `resume.cmd` 없음 |
 | 2026-10-12 19:29 | 여주대(수집 102084, YES24) 빈 곳 채우기를 dev 수집기로 시작: `refill-pubdt --only 102084` (plan 사이클 13 spec R1-5) | 22분 동안 약 980줄을 읽음. 10줄 한 쪽에 약 14초라 끝까지 약 30시간 걸릴 셈 → **사용자 결정으로 멈춤** ("여주대는 빼자", 2026-10-12). 102084의 줄 수는 83,756줄 그대로(빠진 책을 더하지 못함), 수집 DB `PRAGMA quick_check` = ok. 이 시험(AC-1)은 사이클 13에서 뺐습니다 |
+| 2026-10-23 15:15 | 책 소개 `intro_raw` 저장(plan 요청, 사용자 결정 2026-10-23)으로 수집기를 고친 뒤 **전체 수집 다시 시작**(`full --audio-pass --workers 40 --per-host 1 --gap 1.0 --queue-by-ip`, `--retry-failed` 없이). 08:10 시작분은 plan이 15:07에 멈춤(성공 2,758·받는 중 47). 로그 `logs\crawl-full-2026-10-23_1515.log`. 끝나면 `fetch-covers`(12절) | 진행 중 |
 
 ## 12. 표지 받기 `fetch-covers` (2026-10-23, 사이클 밖)
 

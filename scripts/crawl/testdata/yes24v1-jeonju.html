@@ -1,0 +1,563 @@
+<!-- http://ebook.jeonju.go.kr:8095/search/?src_key=&srch_order=title&sort=title&view=50&page_num=1 fetched 2026-10-23, first 2 rows, scripts removed (test data for intro_raw) -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="ko">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<title>전자도서관</title>
+<link href="/include/css/common.css" rel="stylesheet" type="text/css"/>
+<link href="/include/css/content.css" rel="stylesheet" type="text/css"/>
+
+
+
+<!--<link href="/images/logo/nl_icon.ico" type="image/x-icon" rel="shortcut icon" />-->
+</head>
+<body>
+<!--
+<ul id="skipnavi">
+<li><a href="#container">본문 내용으로 바로가기</a></li>
+<li><a href="#gnb">주 메뉴로 바로가기</a></li>
+</ul>
+-->
+<div class="mbg" id="wrap">
+<!-- header -->
+<div id="headerwrap">
+<div id="header">
+<div id="topwrap">
+<h1 id="logo"><a href="/" title="홈으로 이동"><img alt="전자도서관" border="1/" src="/images/logo/logo_top.png"/></a></h1>
+<div id="topmn">
+<ul>
+<!--<li><a href="/member/login.asp" title="로그인 페이지로 이동합니다.">로그인</a></li>-->
+<!--<li><a href="/member/member_join.asp" title="회원가입 페이지로 이동합니다.">회원가입</a></li>-->
+<!--<li><a href="/help" title="이용안내 페이지로 이동합니다.">이용안내</a></li>-->
+<!-- <li><a href="https://www.gdlibrary.or.kr/intro/member/join.do" title="회원가입 페이지로 이동합니다.">회원가입</a></li> -->
+<!-- <li><a href="/sitemap/?code=4" title="사이트맵 페이지로 이동합니다.">사이트맵</a></li> -->
+</ul>
+</div>
+<div class="clear"></div>
+</div>
+<div id="topcontainer">
+<div id="topsearch">
+<h3><img alt="통합검색" src="/images/btn/mtit_topsearch.png"/></h3>
+<form action="/search" id="Search" method="get" name="SearchForm" onsubmit="return verifySearch(this);">
+<fieldset>
+<legend>통합검색영역</legend>
+<select class="search_key" name="srch_order">
+<option value="total">전체</option>
+<option selected="" value="title">서명</option>
+<option value="author">저자명</option>
+<option value="publisher">출판사명</option>
+</select>
+<input class="searchbox" id="src_key" name="src_key" type="text" value=""/>
+<div class="btn"><input alt="검색" class="searchbtn" src="/images/btn/btn_topsearch.png" title="검색" type="image"/></div>
+</fieldset>
+</form>
+<div class="clear"></div>
+<div class="popular">
+<span class="tit"><img alt="인기분야" src="/images/btn/mtit_popular.png"/></span>
+<span>문학, 비즈니스, 판타지, 소설, 한국문학</span>
+</div>
+</div>
+</div>
+<div id="gnb"><a name="gnb"></a>
+<ul class="m5">
+<li><a href="/ebook" title="전자책 페이지로 이동합니다.">전자책</a></li>
+<!--<li><a href="/booklearning"  title="VOD 페이지로 이동합니다.">VOD</a></li>-->
+<!-- <li><a href="/chyes_famous"  title="명사의 서재 페이지로 이동합니다.">명사의 서재</a></li> -->
+<li><a href="/chyes_article" title="칼럼 페이지로 이동합니다.">칼럼</a></li>
+<li><a href="/mylibrary" title="내서재 페이지로 이동합니다.">내서재</a></li>
+<li><a href="/help/?code=2" title="이용안내 페이지로 이동합니다.">이용안내</a></li>
+</ul>
+<div class="clear"></div>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+<div class="cbg" id="container">
+<a name="container"></a>
+<div id="snb"><a name="snb"></a>
+<div id="mycontent">
+<div id="mlogin">
+<form action="/action/login/login_action.asp" method="post" name="left_Login_Frm">
+<fieldset>
+<legend>로그인정보 입력 영역</legend>
+<input name="login" type="hidden" value="1"/>
+<input name="site_code" type="hidden" value="djcl"/>
+<input name="return_url" type="hidden" value="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;view=50&amp;page_num=1"/>
+<dl>
+<dt class="dpn"><label for="userid" style="display:none;">아이디</label></dt>
+<dd><input class="text" id="userid" name="user_id" type="text"/></dd>
+</dl>
+<dl>
+<dt class="dpn"><label for="passwd" style="display:none;">비밀번호</label></dt>
+<dd><input class="text" id="passwd" name="user_pw" type="password"/></dd>
+</dl>
+<div class="btn"><input alt="로그인" class="image" src="/images/btn/btn_login.png" title="로그인" type="image"/></div>
+<!-- <div class="txt">
+				<ul>
+					<li><a href="/member" title="회원가입 페이지로 이동합니다.">회원가입</a></li>
+				</ul>
+				<div class="clear"></div>
+			</div> -->
+</fieldset>
+</form>
+</div>
+<div id="mlibrary">
+<h3><img alt="내서재" src="/images/btn/mtit_mylibrary.png"/></h3>
+<div class="more">
+<a href="#" onclick="alert('로그인 후 이용 가능합니다.');" title="내서재 더보기(비 로그인시 로그인페이지로 이동합니다.)">
+<img alt="더보기" src="/images/btn/ico_more.png"/>
+</a>
+</div>
+<!-- <div class="msg">
+			<a href="" onclick="alert('로그인 후 이용 가능합니다.');" title="받은쪽지함 더보기(비 로그인시 로그인페이지로 이동합니다.)">받은쪽지함
+			</a>
+		</div> -->
+<div class="clear"></div>
+<!-- <div class="cont">
+			<p class="txt"><a href="https://www.gdlibrary.or.kr/intro/member/join.do"><u>도서관대출회원가입 후 이용가능</u></a></p>
+		</div> -->
+</div>
+</div>
+<div id="category">
+<h3><img alt="카테고리" src="/images/btn/mtit_category.png"/></h3>
+<div class="cont">
+<ul>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=001" title="인문／사회 카테고리 페이지로 이동합니다.">
+					인문／사회 (282)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=002" title="경제／경영 카테고리 페이지로 이동합니다.">
+					경제／경영 (311)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=003" title="문학 카테고리 페이지로 이동합니다.">
+					문학 (571)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=004" title="가정과생활 카테고리 페이지로 이동합니다.">
+					가정과생활 (197)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=005" title="장르문학 카테고리 페이지로 이동합니다.">
+					장르문학 (16)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=009" title="국어와외국어 카테고리 페이지로 이동합니다.">
+					국어와외국어 (7)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=010" title="대학교재 카테고리 페이지로 이동합니다.">
+					대학교재 (6)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=011" title="수험서／자격증 카테고리 페이지로 이동합니다.">
+					수험서／자격증 (1)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=012" title="어린이/청소년 카테고리 페이지로 이동합니다.">
+					어린이/청소년 (138)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=013" title="예술／대중문화 카테고리 페이지로 이동합니다.">
+					예술／대중문화 (26)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=014" title="자기관리 카테고리 페이지로 이동합니다.">
+					자기관리 (230)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=015" title="자연과과학 카테고리 페이지로 이동합니다.">
+					자연과과학 (6)
+				</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?code=category&amp;cate_id=023" title="컴퓨터와인터넷 카테고리 페이지로 이동합니다.">
+					컴퓨터와인터넷 (55)
+				</a>
+</li>
+<div class="clear"></div>
+</ul>
+</div>
+</div>
+<div id="sbnr">
+<ul>
+<li><a href="/help/?code=1" title="이용안내 페이지로 이동합니다."><img alt="이용안내" src="/images/btn/mbnr01.png"/></a></li>
+<li><a href="/help/?code=2" title="자료대출안내 페이지로 이동합니다."><img alt="자료대출안내" src="/images/btn/mbnr03.png"/></a></li>
+<!-- <li><a href="/help/?code=4" title="다운로드 페이지로 이동합니다."><img src="/images/btn/mbnr06.png" alt="다운로드"/></a></li> -->
+<li><a href="/help/?code=5" title="뷰어사용안내 페이지로 이동합니다."><img alt="뷰어사용안내" src="/images/btn/mbnr02.png"/></a></li>
+<li><a href="/help/?code=6" title="모바일이용안내 페이지로 이동합니다."><img alt="모바일이용안내" src="/images/btn/mbnr05.png"/></a></li>
+</ul>
+<div class="clear"></div>
+</div><div id="snblist">
+<h3><img alt="새로나온 책" src="/images/btn/stit_newlist.png"/></h3>
+<ul class="list">
+<li class="line">
+<div class="cover thumb1">
+<a href="/ebook/detail/?goods_id=117936863" title="아주 세속적인 지혜">
+<img alt="아주 세속적인 지혜" src="/images/bookimg/412872314.jpg"/>
+<span class="bg"></span>
+</a>
+</div>
+<div class="info">
+<p class="book_tit"><a href="/ebook/detail?goods_id=117936863" title="아주 세속적인 지혜">아주 세속적인 지혜</a></p>
+<ul class="book_txt">
+<li>&lt;발타자르 그라시안&gt; 저/&lt;강정선&gt; 역</li>
+<li>페이지2</li>
+</ul>
+</div>
+</li>
+<li class="line">
+<div class="cover thumb1">
+<a href="/ebook/detail/?goods_id=117709496" title="ChatGPT">
+<img alt="ChatGPT" src="/images/bookimg/L_1596122.jpg"/>
+<span class="bg"></span>
+</a>
+</div>
+<div class="info">
+<p class="book_tit"><a href="/ebook/detail?goods_id=117709496" title="ChatGPT">ChatGPT</a></p>
+<ul class="book_txt">
+<li>&lt;정보인&gt; 저</li>
+<li>다온길</li>
+</ul>
+</div>
+</li>
+<li class="line">
+<div class="cover thumb1">
+<a href="/ebook/detail/?goods_id=116466241" title="리뉴얼 병원 브랜딩 마케팅 실무">
+<img alt="리뉴얼 병원 브랜딩 마케팅 실무" src="/images/bookimg/401137230.jpg"/>
+<span class="bg"></span>
+</a>
+</div>
+<div class="info">
+<p class="book_tit"><a href="/ebook/detail?goods_id=116466241" title="리뉴얼 병원 브랜딩 마케팅 실무">리뉴얼 병원 브랜딩 마케팅 실무</a></p>
+<ul class="book_txt">
+<li>&lt;정혜연&gt; 저</li>
+<li>리즈앤북</li>
+</ul>
+</div>
+</li>
+<div class="clear"></div>
+</ul>
+<div class="more">
+<a href="/ebook/default.asp?code=new" title="새로나온 책 더보기">
+<img alt="더보기" src="/images/btn/ico_more.png"/>
+</a>
+</div>
+</div><div id="mnotice">
+<h3><img alt="공지사항" src="/images/btn/mtit_notice.png"/></h3>
+<ul>
+<li>등록된 게시글이 없습니다.</li>
+</ul>
+<div class="more"><a href="/board/?code=1" title="공지사항 더보기"><img alt="더보기" src="/images/btn/ico_more.png"/></a></div>
+</div>
+</div>
+<!-- content -->
+<div id="content">
+<div id="body_head">
+<h1>검색결과</h1>
+<div id="location">
+<ul>
+<li class="home"><a href="/" title="홈으로 이동">홈</a></li>
+<li class="end"><a href="/search/?src_key=" title="검색결과 이동">검색결과</a></li>
+</ul>
+</div>
+<div class="clear"></div>
+<div class="tabbox">
+<ul class="tab4">
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=001&amp;mode=&amp;view=50" title="인문／사회 카테고리 바로가기">
+				인문／사회<em>(251)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=002&amp;mode=&amp;view=50" title="경제／경영 카테고리 바로가기">
+				경제／경영<em>(295)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=003&amp;mode=&amp;view=50" title="문학 카테고리 바로가기">
+				문학<em>(420)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=004&amp;mode=&amp;view=50" title="가정과생활 카테고리 바로가기">
+				가정과생활<em>(192)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=005&amp;mode=&amp;view=50" title="장르문학 카테고리 바로가기">
+				장르문학<em>(10)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=009&amp;mode=&amp;view=50" title="국어와외국어 카테고리 바로가기">
+				국어와외국어<em>(7)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=010&amp;mode=&amp;view=50" title="대학교재 카테고리 바로가기">
+				대학교재<em>(6)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=011&amp;mode=&amp;view=50" title="수험서／자격증 카테고리 바로가기">
+				수험서／자격증<em>(1)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=012&amp;mode=&amp;view=50" title="어린이/청소년 카테고리 바로가기">
+				어린이/청소년<em>(116)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=013&amp;mode=&amp;view=50" title="예술／대중문화 카테고리 바로가기">
+				예술／대중문화<em>(20)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=014&amp;mode=&amp;view=50" title="자기관리 카테고리 바로가기">
+				자기관리<em>(219)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=015&amp;mode=&amp;view=50" title="자연과과학 카테고리 바로가기">
+				자연과과학<em>(6)</em>
+</a>
+</li>
+<li class="off">
+<a href="/search/?src_key=&amp;cate_id=023&amp;mode=&amp;view=50" title="컴퓨터와인터넷 카테고리 바로가기">
+				컴퓨터와인터넷<em>(55)</em>
+</a>
+</li>
+</ul>
+<div class="clear"></div>
+</div>
+<p class="graybg">검색어 "<b></b>"(으)로 검색한 결과입니다. </p>
+</div>
+<div id="body_content">
+<div class="list_info">
+<h2 class="dpn">전자책목록</h2>
+<div class="left totalpage" id="list_tab">전체 <em>1598</em>건 (<em>1</em>/32 페이지)</div>
+<div class="right">
+<form action="/search/#list_tab" id="listScaleForm" method="get" name="listScaleForm">
+<fieldset>
+<legend>전자책 목록 수 변경영역</legend>
+<input name="code" type="hidden" value=""/>
+<input name="mode" type="hidden" value=""/>
+<input name="cate_id" type="hidden" value=""/>
+<input name="src_key" type="hidden" value=""/>
+<input name="sort" type="hidden" value="title"/>
+<input name="srch_order" type="hidden" value="title"/>
+<label class="labelcss" for="list_scale" style="display:none;">표시할 목록의 수 변경하기</label>
+<select id="list_scale" name="view" title="표시할 목록의 수 변경하기">
+<option title="5개씩보기" value="5">5개씩보기</option>
+<option title="10개씩보기" value="10">10개씩보기</option>
+<option title="20개씩보기" value="20">20개씩보기</option>
+<option selected="" title="50개씩보기" value="50">50개씩보기</option>
+</select>
+<input class="sbtn" id="보기" name="temp" title="전자책 목록 수를 변경합니다." type="submit" value="보기"/>
+</fieldset>
+</form>
+</div>
+<div class="clear"></div>
+</div>
+<div class="sortview" id="sort_tab">
+<ul class="tab">
+<li class=""><a href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=lending&amp;cate_id=&amp;page_num=1&amp;view=50#list_tab" title="최다대출순으로 목록을 정렬합니다.(현재정렬)">최다대출순</a></li>
+<li class=""><a href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=reserve&amp;cate_id=&amp;page_num=1&amp;view=50#list_tab" title="최다예약순으로 목록을 정렬합니다.">최다예약순</a></li>
+<li class="on"><a href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=1&amp;view=50#list_tab" title="제목순으로 목록을 정렬합니다.">제목순</a></li>
+<li class=""><a href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=pubdt&amp;cate_id=&amp;page_num=1&amp;view=50#list_tab" title="출판일순으로 목록을 정렬합니다.">출판일순</a></li>
+<li class=""><a href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=now&amp;cate_id=&amp;page_num=1&amp;view=50#list_tab" title="대출가능한 도서 목록을 정렬합니다.">대출가능도서</a></li>
+</ul>
+<div class="view_type">
+<a class="ico_bg img_type" href="/search/?src_key=&amp;mode=image&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=1#list_tab" title="이미지형 보기 바로가기">이미지형 보기</a>
+</div>
+<div class="clear"></div>
+</div>
+<div id="booklist">
+<ul class="list">
+<li class="line">
+<div class="cover thumb2">
+<a href="/ebook/detail?goods_id=106208917" title="#킬러스타그램">
+<img alt="#킬러스타그램" src="/images/bookimg/L_1402808.jpg"/>
+<span class="bg"></span></a>
+</div>
+<div class="info">
+<span class="book_tit">
+<span class="book_kind">[문학]</span>
+<a href="/ebook/detail?goods_id=106208917" title="제목">#킬러스타그램</a>
+</span>
+<ul class="book_txt">
+<li title="저자">&lt;이갑수&gt; 저</li>
+<li title="출판사">시월이일</li>
+<li title="출간일">2022-01-12</li>
+<li title="공급사">YES24</li>
+</ul>
+<p class="book_note">대대로 사람을 죽이는 킬러 가족이 있다면?『편협의 완성』 이갑수 작가의 첫 장편소설!여기 한 가족이 있다. 요리를 좋...</p>
+<div class="rentinfo">
+						보유 <em>2</em>, 대출 <em>0</em>,
+						예약 <em>0</em>, 누적대출 <em>35</em>, 누적예약 <em>0</em>
+</div>
+</div>
+<div class="btnarea">
+<span class="btn_bg blue_v1">
+<a class="txt_blue_v12" href="#" onclick="alert('로그인 후 이용 가능합니다.'); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a>
+</span>
+</div>
+</li>
+<li class="line">
+<div class="cover thumb2">
+<a href="/ebook/detail?goods_id=116918743" title="(ENTP)블루베어의 7일간의 일본 여행기">
+<img alt="(ENTP)블루베어의 7일간의 일본 여행기" src="/images/bookimg/L_1576590.jpg"/>
+<span class="bg"></span></a>
+</div>
+<div class="info">
+<span class="book_tit">
+<span class="book_kind">[가정과생활]</span>
+<a href="/ebook/detail?goods_id=116918743" title="제목">(ENTP)블루베어의 7일간의 일본 여행기</a>
+</span>
+<ul class="book_txt">
+<li title="저자">&lt;블루베어&gt; 저</li>
+<li title="출판사">유페이퍼</li>
+<li title="출간일">2023-01-05</li>
+<li title="공급사">YES24</li>
+</ul>
+<p class="book_note">뼛속 ENTP인 블루베어의 코로나 이후 7일간 일본 관서 지방을 일주한 이야기.&lt;br /&gt;남들과 같은 방식...</p>
+<div class="rentinfo">
+						보유 <em>1</em>, 대출 <em>0</em>,
+						예약 <em>0</em>, 누적대출 <em>20</em>, 누적예약 <em>0</em>
+</div>
+</div>
+<div class="btnarea">
+<span class="btn_bg blue_v1">
+<a class="txt_blue_v12" href="#" onclick="alert('로그인 후 이용 가능합니다.'); return false;" title="대출하기(비 로그인시 로그인페이지로 이동합니다.)">대출하기</a>
+</span>
+</div>
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ul>
+<div class="clear"></div>
+</div>
+<div class="paging">
+<a class="on" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=1&amp;view=50#list_tab" title="11 페이지">1</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=2&amp;view=50#list_tab" title="11 페이지">2</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=3&amp;view=50#list_tab" title="11 페이지">3</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=4&amp;view=50#list_tab" title="11 페이지">4</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=5&amp;view=50#list_tab" title="11 페이지">5</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=6&amp;view=50#list_tab" title="11 페이지">6</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=7&amp;view=50#list_tab" title="11 페이지">7</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=8&amp;view=50#list_tab" title="11 페이지">8</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=9&amp;view=50#list_tab" title="11 페이지">9</a>
+<a class="off" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=10&amp;view=50#list_tab" title="11 페이지">10</a>
+<a class="next" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=11&amp;view=50#list_tab" title="다음 10페이지"><img alt="다음 10페이지" src="/images/btn/page_next.gif"/></a>
+<a class="next" href="/search/?src_key=&amp;mode=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=32&amp;view=50#list_tab" title="마지막 페이지"><img alt="끝 페이지" src="/images/btn/page_last.gif"/></a>
+</div>
+</div>
+<form action="/action/" method="post" name="action_form">
+<input name="goods_id" type="hidden"/>
+<input name="action_mode" type="hidden"/>
+<input name="content_sort" type="hidden" value="017"/>
+<input name="return_url" type="hidden" value="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;view=50&amp;page_num=1"/>
+</form>
+<!-- list -->
+</div>
+<!-- //content -->
+<div class="clear"></div>
+</div>
+<!-- //container -->
+<div id="footer">
+<div class="cont">
+<div id="flogo"><img alt="하단이미지" src="/images/logo/logo_bottom.png"/></div>
+<div class="fcopy">
+<!--<ul class="fmn">
+				<li class="fst"><a href="http://www.splib.or.kr/private.do" title="개인정보처리방침 페이지로 이동합니다."  target="_blank">개인정보처리방침</a></li>
+				<li><a href="/sitemap/?code=2" title="저작권보호방침 페이지로 이동합니다.">저작권보호방침</a></li>
+				<li><a href="/sitemap/?code=3" title="이메일무단수집거부 페이지로 이동합니다.">이메일무단수집거부</a></li>
+			</ul>-->
+<div id="copyright"> 
+				YES24 개발용 도서관 A&#160;&#160;서울시 영등포구 여의도동 일신빌딩 6층&#160;<br/>
+				Tel: 00-000-0000 &#160;&#160; <br/>
+				Copyright YES24 Library. All Rights Reserved
+			</div>
+</div>
+<div class="clear"></div>
+</div>
+</div>
+<!--<iframe title="kyobo" src="http://ebook.nls.go.kr:8084" frameborder=0 marginheight=0 marginwidth=0 leftmargin=0 topmargin=0 name="kyobo"  height=0 width=0></iframe>-->
+</div>
+<!-- 레이어팝업 : 반드시 body내에 위치시키고 작동여부를 검사할 것-->
+<!-- //레이어팝업 --></body>
+</html>

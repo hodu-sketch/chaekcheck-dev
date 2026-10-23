@@ -5854,3 +5854,37 @@ python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers --status
 2. 후보 6개 상한(`MAX_COLLECTED`)과 서버 끄기 50번(`OFF_AFTER`), 소장자료 검색 표지 3개(`NLK_HOLDINGS_LIMIT`) [안] 확인.
 3. 사이클 21 규칙 파일을 그대로 쓰지 않고 `fetch_cover_*.tsv`로 나눈 것(요청서 "같이 씀"과 다름) 확인.
 4. 받기 결과 수치(출처별 장 수·못 받은 책·시간·디스크)는 실행 뒤 이 절에 덧붙입니다.
+
+
+# 책 소개 저장 (2026-10-23 요청)
+
+plan 요청(plan 세션 전달 2026-10-23 15:10, 사용자 결정 `easy/2026-10-23-book-intro-decisions.html` #1 "나. 원문을 내 PC에만 저장", #2 "지금 수집을 멈추고 고쳐서 다시"; plan `crawl-method.md` 1절 "저장 범위"에 기록됨). 08:10에 시작한 전체 수집은 plan이 15:07에 멈췄고(마지막 상태: 성공 2,758, 받는 중 47, 실패 12, 불일치 2, 소장 줄 26,196,513), 고친 수집기로 **15:15:21 전체 수집을 다시 시작**했습니다.
+
+## 칸과 저장 규칙
+
+- **칸 이름 `holding.intro_raw`** (TEXT, NULL 허용). `SCHEMA`에 넣고 `migrate`가 없는 칸만 더함(두 번 돌아도 됨, 시험 `test_migrate_adds_the_column_and_save_writes_it`). 실제 수집 DB에는 15:15 수집기가 열면서 더해짐.
+- **목록 쪽에 실려 오는 소개만**, 원문 그대로. HTML 태그만 벗기고(`<br>`·`</p>` 같은 줄 끝 태그는 줄바꿈으로, 그 밖의 태그는 지움, 엔티티는 풀고, 빈 줄은 하나로), 줄바꿈은 둠(`clean_intro`). 이름을 감싼 `<이갑수>` 같은 꺾쇠는 태그가 아니라 그대로. 상세 쪽은 열지 않아 **요청 수는 전과 같음**.
+- 업체별(2026-10-23 목록 한 쪽씩 직접 확인):
+
+| 업체 | 목록의 소개 | 저장 | 비고 |
+|---|---|---|---|
+| 교보 일반(`KYOBO_V1`, 구독형 파서 같음) | `li.txt` | O | 사이트가 500자에서 자름(두 줄 다 정확히 500자). 문단 줄바꿈 있음 |
+| YES24 V1 | `p.book_note` | O | 사이트가 "..."으로 줄인 짧은 글(60~70자). 글 안의 `&lt;br /&gt;`는 줄바꿈으로 |
+| YES24 V2·V3 | `p.txt` | O | "..."으로 줄인 글(약 200자 / 약 70자) |
+| 북큐브(`BOOKCUBE_FX`) | `longExplain`, 없으면 `shortExplain` | O | 전체 글. `contents`(목차)는 저장 안 함(결정대로) |
+| 강남구(`GANGNAM_V1`) | `div.book_intro` | O | 전체 글 |
+| 알라딘(`ALADIN_V1`) | 없음 | NULL | 목록 줄에 제목·저자·출판사뿐 |
+| 통합 포털(`ELIB_PORTAL_V1`) | 없음 | NULL | 목록 줄에 소속도서관·공급사·대출 수뿐 |
+| 서울도서관(`SEOUL_ELIB_V1`) | 분류 목록 JSON에 없음 | NULL | `contentsInfo`는 검색 결과에만(platforms.md 11절) → 이번엔 안 함 |
+| 교보 구독형 서버 | — | — | 계속 보내지 않음 |
+
+- 교보 500자·YES24 "..." 잘림은 **사이트가 목록에 그렇게 실어 주는 것**이라 그대로입니다. 전체 글이 필요하면 상세 쪽을 열어야 하는데(약 130만 요청) 이번엔 하지 않기로 한 범위 밖 [plan 확인].
+- 다음 수집에서 줄이 다시 보이면 `intro_raw`는 그때 목록의 글로 덮어씁니다(다른 칸과 같음). 서비스 DB·가져오기(`CollectedCatalog`는 칸을 이름으로 읽어 새 칸은 무시)·반영 파일·화면은 바꾸지 않았습니다.
+- 시험: `python -m unittest scripts/crawl/test_parse_intro.py` 12개(2026-10-23 목록 한 쪽씩 앞 두 줄을 `testdata/`에 둠: `kyobo-ghlib.html`, `yes24v1-jeonju.html`, `yes24v2-gangseo.html`, `yes24v3-mapo.html`, `bookcube-kb.xml`, `gangnam.html`, 알라딘은 소개 없음 확인용 `aladin-seojeong.html`). 기존 수집기 시험 모두 통과.
+- 문서: `scripts/crawl/README.md` DB 구조, `docs/maintenance/platforms.md`(교보 `li.txt`·북큐브 `longExplain` 줄), `docs/maintenance/2-crawl.md` 4절 표·11절.
+
+## 수집 다시 시작
+
+- 15:15:21, `python -X utf8 scripts\crawl\crawl_catalog.py --data-dir <데이터 폴더> full --audio-pass --workers 40 --per-host 1 --gap 1.0 --queue-by-ip`(`--retry-failed` 없이 전체; `resume.cmd`가 아니라 직접, 이 세션과 독립된 프로세스), 로그 `chaekcheck-data\logs\crawl-full-2026-10-23_1515.log`. 교보 구독형 `*.dkyobobook.co.kr` 제외 그대로.
+- 수집 DB 크기 시작 전 17,360,576,512바이트(16.2GB, 15:07). 끝난 뒤 크기·업체별 소개 줄 수와 비율·평균 길이는 **수집이 끝난 뒤 이 절에 덧붙입니다**(아직 없음).
+- 표지 받기(`fetch-covers`)는 이 수집이 끝난 뒤 그대로 돌립니다(앞 절).

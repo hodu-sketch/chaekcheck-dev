@@ -44,7 +44,7 @@
   - `span.small` 종류(전자책·오디오북·오디오·동영상북·키즈북·학술논문), `span.store` 공급사
   - `li.tit a` 제목. `onclick="…fnContentClick(this, '{cttsDvsnCode}', '{brcd}', '{ctgrId}', '{sntnAuthCode}', …)"`
   - `li.writer` = `저자<span>출판사</span>출간일`
-  - `li.txt` 소개글(저장하지 않음), `p.use` "대출 : X/Y 예약 : Z"(X 대출 중, Y 보유)
+  - `li.txt` 소개글(2026-10-23부터 `holding.intro_raw`에 저장, 사이트가 500자에서 자른 그대로), `p.use` "대출 : X/Y 예약 : Z"(X 대출 중, Y 보유)
   - 표지 `div.img img[src]`(프로토콜 없는 `//…`)
 - 상세: `{base}/elibrary-front/content/contentView.ink?cttsDvsnCode=&brcd=&ctgrId=&sntnAuthCode=`. ISBN 없음. 파일 크기·형식(EPUB 등) 있음
 - 예외: 국회도서관(`ebook.nanet.go.kr:8089`)은 브라우저가 아닌 요청에는 머리글과 관계없이 빈 쪽(19바이트)을 줌. 브라우저로는 17,162권 확인. 자동 접근 차단으로 보고 우회하지 않음 (2026-10-01)
@@ -122,7 +122,7 @@
   - `<ProductListParam>`에 `<totalItem>`(종 수), `<totalVolume>`(권 수), `<page>`, `<itemCount>`
 - 검색: `{base}/xml/productSearch/?keyword={검색어}&keyoption2={0|1|2|3}` — 0 전체, 1 서명, 2 저자, 3 출판사(울산동부 "김" 저자 830건, "민음사" 출판사 10건 확인)
   - HTML 상세검색 폼에는 `name`(서명)·저자·출판사 칸이 따로 있음(`searchType=detail`) → 필드별 AND에 쓸 수 있음 [확인 필요]
-- `<Product>` 항목: `num`(북큐브 번호, 예 `F0003004`), `legacyCode`(교보식 `480…` 코드), `name`, `publisher`, `author`, `supplier`(예 "교보 전자책"), `category`, `category_type`, `publisherDate`, `buyDate`(도서관 구매일), 표지 4종, `longExplain`·`shortExplain`·`contents`(저장하지 않음), `volume`(보유 권수), `nowLendCount`, `nowReserveCount`, `format`(epub·pdf·xml·flash 확인), `isReservable`
+- `<Product>` 항목: `num`(북큐브 번호, 예 `F0003004`), `legacyCode`(교보식 `480…` 코드), `name`, `publisher`, `author`, `supplier`(예 "교보 전자책"), `category`, `category_type`, `publisherDate`, `buyDate`(도서관 구매일), 표지 4종, `longExplain`(2026-10-23부터 `holding.intro_raw`에 저장, 없으면 `shortExplain`)·`contents`(목차, 저장하지 않음), `volume`(보유 권수), `nowLendCount`, `nowReserveCount`, `format`(epub·pdf·xml·flash 확인), `isReservable`
 - HTML 화면: `/FxLibrary/product/list/`, 상세 `/FxLibrary/product/view/?num=`
 - 오디오북: `category_type`은 모두 `book`이고, **`format`이 `aud`이면 오디오북** [확정] (2026-10-01, 134곳 수집 결과 19,417줄). 다른 형식 값: epub, pdf, xml, `pdf/epub`, flash, image, kml, xdf, zip
 - 다산(`*.dasangng.co.kr`)은 북큐브네트웍스가 운영하는 같은 프로그램. XML도 같음(주왕산숲속 100건)

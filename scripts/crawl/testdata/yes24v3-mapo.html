@@ -1,0 +1,308 @@
+<!-- http://maponaru.mapo.go.kr/search/?src_key=&srch_order=title&sort=title&page_num=1 fetched 2026-10-23, first 2 rows, scripts removed (test data for intro_raw) -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, target-densitydpi=medium-dpi" name="viewport"/>
+<title>마포나루 메타버스도서관 전자책도서관</title>
+<link href="https://image.yes24.com/sysimage/renew/gnb/favicon_n.ico" rel="shortcut icon" type="image/x-icon"/>
+<link href="/include/css/all.css" rel="stylesheet"/>
+<link href="/include/css/animate.css" media="screen" rel="stylesheet"/>
+<link href="/include/css/content.css" rel="stylesheet" type="text/css"/>
+<link href="/include/css/jquery.mmenu.all.css" rel="stylesheet" type="text/css"/>
+
+
+
+
+
+
+
+
+
+</head>
+<body class="bbg">
+<div id="wrap">
+
+<header id="header">
+<div id="headerImg">
+</div>
+<!-- 상단 검색영역 -->
+<div class="top-wrap d_width">
+<a href="#menu">
+<span id="mo-menu"></span>
+</a>
+<div id="logo"><a href="/" title="홈으로 이동"><img alt="마포나루 메타버스도서관" src="/images/logo/logo[3].png"/></a></div>
+<form action="/search" id="Search" method="get" name="SearchForm" onsubmit="return verifySearch(this);">
+<div class="search-wrap form-inline">
+<select class="form-control" name="srch_order">
+<option value="total">통합검색</option>
+<option selected="" value="title">서명</option>
+<option value="author">저자</option>
+<option value="publisher">출판사</option>
+</select>
+<input class="form-control" id="src_key" name="src_key" placeholder="" type="text" value=""/><label for="" hidden="">검색</label>
+<a class="search-btn" href="#" onclick="verifySearch_btn(SearchForm);" title="검색 버튼"><i class="fa fa-search"></i></a>
+</div>
+</form>
+<div class="topmn wow fadeInRight delay5">
+<ul class="clearfix">
+<li class="login"><a href="https://mplib.mapo.go.kr/metalib/index.do">로그인</a></li>
+<!--
+				<li class="join"><a href="/member/?mode=join">회원가입</a></li>
+                <li class="notify"><a href="">알림</a></li>
+                <li class="edit"><a href="/member/?mode=modify">정보수정</a></li>
+	-->
+</ul>
+</div>
+</div>
+<!-- //상단 검색영역 -->
+<!-- 메뉴영역 -->
+
+<div id="gnbmn">
+<nav class="d_width" id="menu">
+<div class="mm-panels">
+<div class="mm-header top-link">
+<a href="https://mplib.mapo.go.kr/metalib/index.do">로그인</a>
+<!--				<a href="/member/?mode=join">회원가입</a> 
+					<a href="">알림</a>
+					<a href="/member/?mode=modify">정보수정</a> -->
+</div>
+
+<ul class="depth1 clearfix">
+<!--					<li><a href="/ebook/?mode=new" class="on">신간도서</a></li> -->
+<li><a class="btn-depth2" href="#" onclick="return false;">전자책</a>
+<div class="depth2">
+<ul>
+<li><a href="/ebook/?mode=new"><span>신간도서</span></a></li>
+<li><a href="/ebook/?mode=best"><span>인기도서</span></a></li>
+<li><a href="/ebook/?mode=recommend"><span>추천도서</span></a></li>
+<li><a href="/ebook/?mode=total"><span>전체도서</span></a></li>
+</ul>
+</div>
+</li>
+<li><a href="/booklearning/">동영상북</a></li>
+<!--					<li><a href="/audiobook/">오디오북</a></li>  -->
+<li><a href="/mylibrary/?mode=1">내서재</a></li>
+<li><a href="/chyes_article/">명사칼럼</a></li>
+<li><a class="btn-depth2" href="#" onclick="return false;">이용안내</a>
+<div class="depth2">
+<ul>
+<li><a href="/info/?mode=1"><span>이용방법</span></a></li>
+<li><a href="/info/?mode=2"><span>자료대출안내</span></a></li>
+<li><a href="/info/?mode=3"><span>어플안내</span></a></li>
+<li><a href="/info/?mode=4"><span>PC뷰어안내</span></a></li>
+</ul>
+</div>
+</li>
+<li><a href="javascript:popup_hope();" title="희망도서신청 페이지로 이동합니다.">희망도서신청</a></li>
+<li class="gnb-category"><a class="btn-depth2" href="#" onclick="return false;">카테고리</a>
+<div class="depth2 category-depth2">
+<ul>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=001" title="인문／사회 카테고리 페이지로 이동합니다.">
+<span>인문／사회</span> <em>(125)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=002" title="경제／경영 카테고리 페이지로 이동합니다.">
+<span>경제／경영</span> <em>(90)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=003" title="문학 카테고리 페이지로 이동합니다.">
+<span>문학</span> <em>(217)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=004" title="가정과생활 카테고리 페이지로 이동합니다.">
+<span>가정과생활</span> <em>(22)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=012" title="어린이/청소년 카테고리 페이지로 이동합니다.">
+<span>어린이/청소년</span> <em>(673)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=013" title="예술／대중문화 카테고리 페이지로 이동합니다.">
+<span>예술／대중문화</span> <em>(1)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=014" title="자기관리 카테고리 페이지로 이동합니다.">
+<span>자기관리</span> <em>(111)</em>
+</a>
+</li>
+<div class="clear"></div>
+<li>
+<a href="/ebook/?mode=category&amp;cate_id=015" title="자연과과학 카테고리 페이지로 이동합니다.">
+<span>자연과과학</span> <em>(13)</em>
+</a>
+</li>
+<div class="clear"></div>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</nav>
+</div>
+<!-- //메뉴영역 -->
+</header>
+<div class="sub-container d_width">
+<!-- 신간도서 콘텐츠 -->
+<div class="body-title">검색결과</div>
+<!-- 상단 슬라이드 박스 -->
+<div class="ebook-wrap">
+<div class="top">
+<div class="tab">
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=001&amp;mode=&amp;view=10" title=" 카테고리 바로가기">인문／사회(125)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=002&amp;mode=&amp;view=10" title=" 카테고리 바로가기">경제／경영(90)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=003&amp;mode=&amp;view=10" title=" 카테고리 바로가기">문학(217)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=004&amp;mode=&amp;view=10" title=" 카테고리 바로가기">가정과생활(22)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=012&amp;mode=&amp;view=10" title=" 카테고리 바로가기">어린이/청소년(673)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=013&amp;mode=&amp;view=10" title=" 카테고리 바로가기">예술／대중문화(1)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=014&amp;mode=&amp;view=10" title=" 카테고리 바로가기">자기관리(111)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=015&amp;mode=&amp;view=10" title=" 카테고리 바로가기">자연과과학(13)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=031&amp;mode=&amp;view=10" title=" 카테고리 바로가기">어린이(476)</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;cate_id=032&amp;mode=&amp;view=10" title=" 카테고리 바로가기">청소년(24)</a>
+</div>
+</div>
+</div>
+<!-- //상단 슬라이드 박스 -->
+
+<div class="sub-container d_width">
+<!-- 신간도서 콘텐츠 -->
+<div class="body-title2">검색어 "<b></b>"(으)로 검색한 결과입니다.</div>
+<div class="total">전체 <em>1752</em>건 ( 1 / 176 )</div>
+<div class="tab-list">
+<ul class="clearfix">
+<li><a class="on" href="/search/?src_key=&amp;srch_order=title&amp;mode=&amp;sort=title&amp;cate_id=&amp;page_num=1#list_tab">제목순</a></li>
+<li><a href="/search/?src_key=&amp;srch_order=title&amp;mode=&amp;sort=pubdt&amp;cate_id=&amp;page_num=1#list_tab">출판일순</a></li>
+<li><a href="/search/?src_key=&amp;srch_order=title&amp;mode=&amp;sort=now&amp;cate_id=&amp;page_num=1#list_tab">대출가능도서</a></li>
+</ul>
+</div>
+<!-- 도서리스트 -->
+<div class="ebook-list">
+<div class="bx clearfix"> <!-- 도서리스트 -->
+<a class="thumb" href="/ebook/detail?goods_id=8681569" title="100원이 필요해"><img alt="100원이 필요해" src="/images/bookimg/L_125544.jpg"/></a>
+<a class="btn-preview" href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=125544&amp;dm=yes24.com');" onfocus="this.blur();">미리보기</a> <!-- 도서미리보기 버튼 -->
+<div class="info">
+<p class="tit"><strong>[어린이/청소년]</strong> <a href="/ebook/detail?goods_id=8681569">100원이 필요해</a></p>
+<p class="writer">김선태</p>
+<p class="detail">
+<span>u-paper(유페이퍼)</span>
+<span>2013-03-28</span>
+<span>YES24</span>
+</p>
+<p class="txt">선생님들께 100원이 모자란다고 거짓말을 하고 늘 돈을 타가곤하는 아이가 교감선생님께도 100원을 빌려 가는데 이런 ...</p>
+<div class="stat">
+<ul class="clearfix">
+<li>보유 <strong>1</strong></li>
+<li>대출 <strong>0</strong></li>
+<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+</ul>
+</div>
+</div>
+<div class="btn-wrap">
+<a class="btn-d btn-main" href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/'; return false;" title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+</div>
+</div>
+<div class="bx clearfix"> <!-- 도서리스트 -->
+<a class="thumb" href="/ebook/detail?goods_id=64417250" title="10년 동안 적금밖에 모르던 39세 김 과장은 어떻게 1년 만에 부동산 천재가 됐을까?"><img alt="10년 동안 적금밖에 모르던 39세 김 과장은 어떻게 1년 만에 부동산 천재가 됐을까?" src="/images/bookimg/L_944430.jpg"/></a>
+<a class="btn-preview" href="javascript:openEBookPreview('http://epreview.yes24.com/preview/viewer/viewer.html?ebookcode=944430&amp;dm=yes24.com');" onfocus="this.blur();">미리보기</a> <!-- 도서미리보기 버튼 -->
+<div class="info">
+<p class="tit"><strong>[경제／경영]</strong> <a href="/ebook/detail?goods_id=64417250">10년 동안 적금밖에 모르던 39세 김 과장은 어떻게 1년 만에 부동산 천재가 됐을까?</a></p>
+<p class="writer">김재수(렘군) 저</p>
+<p class="detail">
+<span>비즈니스북스</span>
+<span>2018-09-06</span>
+<span>YES24</span>
+</p>
+<p class="txt">“10년 후에도 대한민국에 산다면 부동산 공부는 필수다!”빠숑, 청울림, 호빵 등 유명 투자자들이 인정한 숨은 고수 ...</p>
+<div class="stat">
+<ul class="clearfix">
+<li>보유 <strong>1</strong></li>
+<li>대출 <strong>0</strong></li>
+<li>예약 <strong>0</strong></li>
+<!--						<li>누적대출 <strong>2</strong></li>
+						<li>누적대출 <strong>2</strong></li> -->
+</ul>
+</div>
+</div>
+<div class="btn-wrap">
+<a class="btn-d btn-main" href="javascript:#" onclick="alert('로그인 후 이용 가능합니다.'); location.href='/'; return false;" title="도서상태(비 로그인시 로그인페이지로 이동합니다.)"><span>대출가능</span></a>
+</div>
+</div>
+
+
+
+
+
+
+
+
+</div>
+<!-- //도서리스트 -->
+<div class="board-paging">
+<a class="on" href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=1#list_tab">1</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=2#list_tab" title="2 페이지">2</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=3#list_tab" title="3 페이지">3</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=4#list_tab" title="4 페이지">4</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=5#list_tab" title="5 페이지">5</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=6#list_tab" title="6 페이지">6</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=7#list_tab" title="7 페이지">7</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=8#list_tab" title="8 페이지">8</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=9#list_tab" title="9 페이지">9</a>
+<a href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=10#list_tab" title="10 페이지">10</a>
+<a class="next" href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=11#list_tab" title="다음 페이지"></a>
+<a class="last" href="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;cate_id=&amp;page_num=176#list_tab" title="다음 10페이지"></a>
+</div>
+<!-- //신간도서 콘텐츠 -->
+</div>
+<form action="/action/" method="post" name="action_form">
+<input name="goods_id" type="hidden"/>
+<input name="action_mode" type="hidden"/>
+<input name="content_sort" type="hidden" value="017"/>
+<input name="return_url" type="hidden" value="/search/?src_key=&amp;srch_order=title&amp;sort=title&amp;page_num=1"/>
+</form>
+</div>
+<div id="maside">
+<p class="tit"><span>QUICK</span>SERVICE</p>
+<ul>
+<li><a class="ico ico1" href="/mylibrary?mode=1" title="대출현황 페이지로 이동합니다.">대출현황</a></li>
+<li><a class="ico ico2" href="/mylibrary?mode=2" title="예약현황 페이지로 이동합니다.">예약현황</a></li>
+<li><a class="ico ico3" href="/info/?mode=3" title="이용안내 페이지로 이동합니다.">모바일이용안내</a></li>
+</ul>
+<a class="top-btn" href="#header">TOP</a>
+</div>
+<div class="" id="maside-open">
+<a href="javascript:void(0);" onclick="mobile_aside();" title="메뉴 오픈"></a>
+</div>
+
+<footer>
+<div class="fmn">
+<div class="d_width">
+<ul class="clearfix">
+<li><a href="/pages/?mode=privacy" title="개인정보처리방침 페이지로 이동합니다.">개인정보처리방침</a></li>
+<li><a href="/pages/?mode=email" title="이메일무단수집거부 페이지로 이동합니다.">이메일무단수집거부</a></li>
+</ul>
+</div>
+</div>
+<div class="d_width" id="address">
+<p>(04176) 서울 마포구 마포대로 8&#160;호텔나루 1층&#160;마포나루 메타버스도서관 <span class="mlp20">TEL. 023-1531-629_</span><span class="mlp20">FAX. </span><span class="mlp20"></span></p>
+<p>COPYRIGHT ⓒ YES24. ALL RIGHTS RESERVED.</p>
+</div>
+</footer></div>
+<iframe frameborder="0" height="0" leftmargin="0" marginheight="0" marginwidth="0" name="process" title="process" topmargin="0" width="0"></iframe>
+</body>
+</html>

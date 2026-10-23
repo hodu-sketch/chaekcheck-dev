@@ -1,0 +1,524 @@
+<!-- https://ebook.gangnam.go.kr/elibbook/book_category.asp?page_num=1 fetched 2026-10-23, first 2 rows, scripts removed (test data for intro_raw) -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<meta content="https://library.gangnam.go.kr/include/image/common/og-image.png" property="og:image"/>
+<meta content="/include/image/common/og-image.png" property="og:image"/>
+<link href="/common/favicon.png" rel="icon" type="image/png"/>
+<link href="https://library.gangnam.go.kr/include/image/common/og-image.png" rel="shortcut icon" type="image/x-icon"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<title>강남구 전자도서관</title>
+<link href="/common/css/style.css" rel="stylesheet" type="text/css"/>
+
+
+
+
+<style>
+input[type="password"]{border:1px solid #e5e5e5;height:42px!important;padding:1px 10px;width:194px;  
+box-sizing: border-box; background: #fff}
+.shadow{position: fixed;left: 0;top: 0;background: rgba(0, 0, 0, 0.52);width: 100%;height: 100%;display: none;z-index:100}
+.noDataDiv{width:1200px;border-top:1px solid #dbdbdb ; border-bottom: 1px solid #dbdbdb; padding:40px 0 40px 0; text-align:center}
+.mon{color: var(--textColorHighlight); font-weight: 500}}
+
+</style>
+
+</head>
+<body>
+<div id="wrap">
+<div id="skip_nav"> <a href="#container">본문 바로가기</a> <a href="#gnb">대메뉴 바로가기</a> </div>
+<!-- header -->
+<div id="header">
+<div class="top_menu"><a href="/">홈</a><a href="/elibmem/mem_login.asp">로그인</a><a href="/elibmreg/mem_policy.asp">회원가입</a><a class="my_library" href="/elibmylib/mylib_info.asp">내서재</a> </div>
+<div class="gnb_wrap">
+<h1 class="logo"><a href="/"><span><img alt="강남구" src="/common/images/common/logo_new_2026.png" style="width:124px"/></span><span><img alt="강남구전자도서관GangnamGu eBook Library" src="/common/images/common/logo02.png"/></span></a></h1>
+<div class="gnb" id="gnb">
+<ul>
+<li class="mon"><a href="/elibbook/book_list.asp">소장전자책</a></li>
+<li class=""><a href="/elibcs/notice.asp">고객만족센터</a></li>
+<li class=""><a href="/gnnews/gn_recomd.asp">강남구 소식</a></li>
+<li class=""><a href="/elibinfo/lib_intro.asp">전자도서관 안내</a></li>
+</ul>
+</div>
+<div class="btn_wrap">
+<button class="btn_icn icn_menu" onclick="allM()" type="button">전체메뉴</button>
+<button class="btn_icn icn_search" onclick="Search_show()" type="button">검색</button>
+</div>
+<div style="display: none"> 전체메뉴</div>
+<div style="display: none"> 검색</div>
+</div>
+<div class="snb menu03">
+<ul>
+<li class="off"><a class="off" href="/elibbook/book_list.asp">새로들어온 전자책</a></li>
+<li class="off"><a class="off" href="/elibbook/book_best.asp">대출베스트</a></li>
+<li class="off"><a class="off" href="/elibbook/book_recom.asp">회원추천도서</a></li>
+<li class="on"><a class="on" href="/elibbook/book_category.asp">주제분류별 정보</a></li>
+<li class="off"><a class="off" href="/elibbook/book_search.asp">상세검색</a></li>
+</ul>
+</div>
+<div class="header_search_wrap" id="search" style="display:none"><form action="/elibbook/book_info.asp" method="get" name="simpleSearch" onsubmit="return simpleCheck(this)">
+<div class="header_search">
+<label class="hidden" for="">검색어입력</label>
+<select id="" name="search">
+<option value="title">도서명</option>
+<option value="author">저자</option>
+<option value="publisher">출판사</option>
+</select>
+<label class="hidden" for="strSearch">검색어입력</label>
+<input class="search_keyword" id="strSearch" name="strSearch" placeholder="검색어를 입력하세요" type="text" value=""/>
+<div class="btn_group">
+<button class="btn btn_icn icn_unity_search" title="검색" type="submit">검색</button>
+<button class="btn btn_icn icn_unity_filter" onclick="window.open('/elibbook/book_search.asp','_self')" title="상세검색" type="button">검색상세</button>
+</div>
+<button class="btn btn_icn icn_close" onclick="$('#search').hide()" title="닫기" type="button">닫기</button>
+</div></form>
+</div>
+<div class="all_menu" id="all_menu" style="display:none">
+<div class="all_menu_warp">
+<div class="menu on">
+<ul>
+<li><a href="/elibbook/book_list.asp">새로들어온 전자책</a></li>
+<li><a href="/elibbook/book_best.asp">대출베스트</a></li>
+<li><a href="/elibbook/book_recom.asp">회원추천도서</a></li>
+<li><a href="/elibbook/book_category.asp">주제분류별 정보</a></li>
+<li><a href="/elibbook/book_search.asp">상세검색</a></li>
+</ul>
+</div>
+<div class="menu">
+<ul>
+<li><a href="/elibcs/notice.asp">공지사항</a></li>
+<li><a href="/elibcs/faq.asp">자주하는 질문</a></li>
+<li><a href="/elibcs/qna.asp">1:1 문의</a></li>
+<li><a href="/elibcs/book_req_rules.asp">희망전자책 신청</a></li>
+</ul>
+</div>
+<div class="menu">
+<ul>
+<li><a href="/gnnews/gn_recomd.asp">강남구립도서관 추천도서</a></li>
+<li><a href="/gnnews/gn_event.asp">강남구립도서관 문화행사</a></li>
+<li><a href="/gnnews/gn_life.asp">강남아카이브</a></li>
+</ul>
+</div>
+<div class="menu">
+<ul>
+<li><a href="/elibinfo/lib_intro.asp">인사말</a></li>
+<li><a href="/elibinfo/lib_history.asp">연혁</a></li>
+<li><a href="/elibinfo/inf_use.asp">이용안내</a></li>
+<li><a href="/elibinfo/inf_book_statistic.asp">소장전자책 현황</a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<!-- //header -->
+<div id="container">
+<div class="wrapper">
+<div class="contents_header">
+<h2 class="title">주제분류별 정보</h2>
+<div class="location"><!--a class="home" href="">HOME</a> <a href="">고객만족센터</a> <a href="">공지사항</a-->
+<a class="home" href="/">home</a><!--a href="/elibbook/book_list.asp">소장전자책</a><a>주제분류별 정보</a-->
+<a href="/elibbook/book_list.asp">소장전자책</a><a>주제분류별 정보</a>
+</div>
+</div>
+<div class="contents book">
+<div class="book_filter table">
+<div class="filter_col">
+<button class="btn_filter" onclick="window.open('?branch=99','_self')" type="button">전체</button>&#160;
+			
+            <button class="btn_filter on" onclick="window.open('?branch=A1','_self')" type="button">소설</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=B1','_self')" type="button">시/에세이</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=C1','_self')" type="button">인문</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=D1','_self')" type="button">사회/정치</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=E1','_self')" type="button">경제/경영</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=F1','_self')" type="button">역사/문화</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=G1','_self')" type="button">자연과학/공학</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=H1','_self')" type="button">예술/대중문화</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=I1','_self')" type="button">가정생활</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=J1','_self')" type="button">건강/취미/여행</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=K1','_self')" type="button">자기계발</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=L1','_self')" type="button">종교</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=M1','_self')" type="button">국어/외국어</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=N1','_self')" type="button">IT/모바일</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=O1','_self')" type="button">청소년</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=P1','_self')" type="button">어린이</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=Q1','_self')" type="button">유아</button>&#160;
+            <button class="btn_filter" onclick="window.open('?branch=R1','_self')" type="button">다문화자료</button>&#160;
+          </div>
+</div>
+<div class="book_list">
+<div class="sub_filter">
+<h3 class="title">소설</h3>
+<ul>
+<li class="on"><a href="?branch=A1">전체<strong>&amp;nbsp6,273</strong></a></li>
+<li class=""><a href="?branch=A101">한국소설<strong>2,435</strong></a></li>
+<li class=""><a href="?branch=A102">한국근대소설<strong>2</strong></a></li>
+<li class=""><a href="?branch=A103">영미소설<strong>1,813</strong></a></li>
+<li class=""><a href="?branch=A104">아시아소설<strong>537</strong></a></li>
+<li class=""><a href="?branch=A105">유럽소설<strong>273</strong></a></li>
+<li class=""><a href="?branch=A106">기타 나라소설<strong>94</strong></a></li>
+<li class=""><a href="?branch=A107">로맨스/환타지/SF/공포 소설<strong>61</strong></a></li>
+<li class=""><a href="?branch=A108">고전문학<strong>791</strong></a></li>
+<li class=""><a href="?branch=A109">희곡/시나리오<strong>38</strong></a></li>
+<li class=""><a href="?branch=A110">문학이론/평론/창작<strong>229</strong></a></li>
+</ul>
+</div>
+<div class="list_header">
+<div>
+<div style="margin-right:10px"><strong>6,273</strong>건</div>
+<label class="stitle" for="required">대출가능한 책</label>
+<div class="toggle">
+<input class="hidden" id="required" onclick="goAvail('')" type="checkbox" value="on"/>
+<label class="label" for="required"> <span class="attr"></span> </label>
+</div>
+</div>
+<div>
+<label class="hidden" for="emaker">제작사</label>
+<select id="emaker" name="emaker" onchange="goMaker()">
+<option value="">eBook제작사</option>
+<option value="interpark">인터파크</option>
+<option value="SP000002">교보전자책</option>
+<option value="SP000006">웅진북센</option>
+<option value="SP000008">북레일</option>
+<option value="yes24">yes24</option>
+</select>
+<label class="hidden" for="otd">정렬</label>
+<select id="odt" name="odt" onchange="goOrder()">
+<option selected="" value="p">최신출판일순</option>
+<option value="t">도서명순</option>
+<option value="l_r">대출많은순</option>
+</select>
+</div>
+</div>
+<div class="book_list_body catalog">
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008456"><img alt="아코디언" border="0" src="/images/bookimg/submain/KB00/KB008456.gif" style="display: inline;"/></a></div>
+<div class="book_info">
+<div class="book_title"><a href="book_detail.asp?book_num=KB008456">아코디언</a></div>
+<div class="writer">천명관</div>
+<div class="publish_date">창비 · 2026-09-11</div>
+<div class="publish_ebook">eBook · 2026-10-15 </div>
+<div class="current"><strong> 교보전자책</strong></div>
+<div class="current"><span>보유 <strong>3</strong></span> <span>대출 <strong>3</strong> </span> <span>예약 <strong>10</strong></span> </div>
+<div class="book_intro">
+<div class="info_text" id="bi_brf0" style="display:">10년의 기다림을 깨고, 마침내 천명관의 거대한 서사가 다시 맹렬하게 펄떡이기 시작한다. 장편소설 『고래』(문학동네 2004)로 2023년 인터내셔널 부커상 최종후보에 오르며 전세계 문학계를 뜨겁게 달군 그가 새롭게 펼쳐 보이는 무대는 한국전쟁의 흙먼지가 채 가시지 않은 1950년대 서울이다. 가루눈이 날리는 삭막한 정류장, 해방촌 산자락의 움막, 미군 기지촌과 극장의 불빛이 어지럽게 교차하는 시대의 한복판. 천명관은 언제나처럼 이 거칠고 비루한 삶의 밑바닥에서 뜻밖의 빛을 기어코 포착해 낸다. 비극의 잔혹함과 희극의 온기, 시대의 폭력과 인간의 생명력을 한 화면 안에 불러 모으는 그의 서사는 독자를 단숨에 낯선 세계 한복판으로 끌고 가, 오래 마음을 붙드는 얼굴들과 마주하게 한다. 구상부터 집필까지 오랜 시간 공들여 완성한 천명관의 새로운 장편소설 『아코디언』은 첫 페이지부터 독자의 시선을 단단히 붙든다. 이 압도적인 이야기는 찌그러진 깡통 앞에 엎드린 소년 ‘동이’의 시선으로 서늘하고도 벅찬 막을 올린다. </div>
+</div>
+<div class="btn_group">
+<button class="more" onclick="bookinfo(0)" type="button"><img alt="더보기" id="bim0" src="/common/images/common/bbs_more.png" style="display:none"/><img alt="접기" id="bic0" src="/common/images/common/bbs_close.png" style="display:none"/></button>
+</div>
+</div>
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008456', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008380"><img alt="재이" border="0" src="/images/bookimg/submain/KB00/KB008380.gif" style="display: inline;"/></a></div>
+<div class="book_info">
+<div class="book_title"><a href="book_detail.asp?book_num=KB008380">재이</a></div>
+<div class="writer">조남주</div>
+<div class="publish_date">문학동네 · 2026-09-09</div>
+<div class="publish_ebook">eBook · 2026-10-15 </div>
+<div class="current"><strong> 교보전자책</strong></div>
+<div class="current"><span>보유 <strong>5</strong></span> <span>대출 <strong>5</strong> </span> <span>예약 <strong>10</strong></span> </div>
+<div class="book_intro">
+<div class="info_text" id="bi_brf1" style="display:">소설가 조남주의 신작 장편소설 『재이』를 문학동네에서 펴낸다. 한국 문학과 사회의 바로미터라 불러도 좋을 법한 감각으로 시대의 기분을 정확하게 포착하고, 또 그것을 소설로 지어 독자에게 건네온 그의 네번째 장편소설이다. 작가는 2016년 『82년생 김지영』을 통해 한 텍스트가 사회·문화 현상으로까지 자리하게끔 문학의 외연을 넓힌 것은 물론, 선보이는 작품마다 긴요하고도 적실한 사회적 화두를 던지며 풍성한 담론과 독자들의 치열한 후기를 생성해왔다. 『82년생 김지영』이 대한민국에서 여성으로 살아가는 곤경에 대한 핍진한 보고서였다면, 신작 『재이』는 서울의 한 달동네에서 한강 뷰 아파트로 계급 횡단한 한 여자가 써내려간 부와 가난의 포트폴리오다.
+소시민적 군상을 모티프로 인물을 향한 넉넉한 공감의 자리를 만들어두던 작가가 이번 신작에서는 입체적이다못해 파편적이고 심지어 분열증적인 인물 ‘재이’를 독자 앞에 내어놓는다. 동창들에게는 손절의 아이콘, 직장 동료에게는 상식이 모자란 사람, 부모에게는 혼자 잘 먹고 잘사는 야박한 딸, 남편에게는 의논도 상의도 겁도 없이 덜컥 집 계약서를 쓰는 여자 재이. 달과 가까운 달동네에서 나고 자라, 마찬가지로 달과 가까운 한강 뷰 초고층 아파트에 입성하기까지, 보금자리(Home)도 집(House)도 없었던 한 여자의 계급적 변천사이자, 지난 반세기 서울 부동산의 위상도, 무엇보다 보이는 것이 전부가 아닌 한 인간의 인생 역정이 지독하리만치 현실적이고, 외면하고 싶을 만큼 진솔하게 『재이』 속에 담겨 있다.
+
+나는 우범지대에 사는 모범생이다. 상식과 교양이 없는 명문대생이다. 성적이 뛰어나지 않은 장학생이다. 스펙이 뒤떨어지는 대기업 사원이다. 나는 사회에서 만난 동료들과 사고나 행동 체계가 달랐고, 동시에 내 가족은 내가 쓰는 어휘를 이해하지 못했다. 그리고 지금은 가난과 복지에 대해 말하는 부자가 되었다. 때로는 소외감을 느끼고 때로는 죄책감을 느꼈다. 일부러 그런 것도 아닌데 결과적으로 평생 주변을 속이며 살아온 셈이다. 그 혼란과 모순 속에서 나는 과감하고 가벼운 방식을 선택했다. 버리는 것. 다 두고 떠나는 것. 오류도, 수치도, 어차피 버리면 된다.(56~57쪽) </div>
+</div>
+<div class="btn_group">
+<button class="more" onclick="bookinfo(1)" type="button"><img alt="더보기" id="bim1" src="/common/images/common/bbs_more.png" style="display:none"/><img alt="접기" id="bic1" src="/common/images/common/bbs_close.png" style="display:none"/></button>
+</div>
+</div>
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008380', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008438"><img alt="빵충 사육 준수 사항" border="0" src="/images/bookimg/submain/KB00/KB008438.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008438', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008392"><img alt="서리꽃 1" border="0" src="/images/bookimg/submain/KB00/KB008392.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008392', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008393"><img alt="서리꽃 2" border="0" src="/images/bookimg/submain/KB00/KB008393.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_reserve" onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')" type="button">예약</button>
+<button class="list_btn list_interest" onclick="Proc('KB008393', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=Y195374404"><img alt="뒤틀린 사랑" border="0" src="/images/bookimg/YES24/710379356.jpg" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('Y195374404', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008457"><img alt="찌니주의보" border="0" src="/images/bookimg/submain/KB00/KB008457.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008457', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=Y195234654"><img alt="[단독] 지푸라기 왕관을 쓴 여자" border="0" src="/images/bookimg/YES24/708111713.jpg" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('Y195234654', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008387"><img alt="우리는 여름을 쓰기로 했다" border="0" src="/images/bookimg/submain/KB00/KB008387.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008387', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=Y194527086"><img alt="살" border="0" src="/images/bookimg/YES24/703244806.jpg" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('Y194527086', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008372"><img alt="더 크래쉬" border="0" src="/images/bookimg/submain/KB00/KB008372.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008372', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=Y195031340"><img alt="새들의 사회성" border="0" src="/images/bookimg/YES24/709832204.jpg" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('Y195031340', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008368"><img alt="기억의 무늬" border="0" src="/images/bookimg/submain/KB00/KB008368.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008368', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008444"><img alt="알파벳 퍼즐러즈" border="0" src="/images/bookimg/submain/KB00/KB008444.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008444', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008344"><img alt="주와 연" border="0" src="/images/bookimg/submain/KB00/KB008344.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008344', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008382"><img alt="더 트리스" border="0" src="/images/bookimg/submain/KB00/KB008382.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('KB008382', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=Y194487545"><img alt="신의 숨결에 날리는 깃털" border="0" src="/images/bookimg/YES24/706726390.jpg" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_reserve" onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')" type="button">예약</button>
+<button class="list_btn list_interest" onclick="Proc('Y194487545', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008366"><img alt="투명한 나선" border="0" src="/images/bookimg/submain/KB00/KB008366.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_reserve" onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')" type="button">예약</button>
+<button class="list_btn list_interest" onclick="Proc('KB008366', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=Y193852218"><img alt="윗집 부부" border="0" src="/images/bookimg/YES24/699757387.jpg" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_waiting" onclick="alert('이미 10권의 예약이 있습니다.')" type="button">예약불가</button>
+<button class="list_btn list_interest" onclick="Proc('Y193852218', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+<div class="book">
+<div class="list_info" style="width:1100px !important">
+<div class="book_frame"><a href="book_detail.asp?book_num=KB008332"><img alt="리치먼드힐의 이층 버스" border="0" src="/images/bookimg/submain/KB00/KB008332.gif" style="display: inline;"/></a></div>
+
+</div>
+<div class="btn_group">
+<button class="list_btn list_reserve" onclick="alert('로그인이 필요합니다.');window.open('/elibmem/mem_login.asp','_top')" type="button">예약</button>
+<button class="list_btn list_interest" onclick="Proc('KB008332', 'concern')" type="button">관심도서</button>
+</div>
+</div>
+</div>
+<!-- 페이지+버튼-->
+<div class="bbs_foot">
+<div class="paginate">
+<span class="btn"><a class="first" href="javascript:goPage(1)">First page</a></span>
+<span class="btn"><a class="prev" href="javascript:goPage(1)">Back page</a></span>
+<span class="num"><a class="on" href="javascript:goPage(1)">1</a></span>
+<span class="num"><a href="javascript:goPage(2)">2</a></span>
+<span class="num"><a href="javascript:goPage(3)">3</a></span>
+<span class="num"><a href="javascript:goPage(4)">4</a></span>
+<span class="num"><a href="javascript:goPage(5)">5</a></span>
+<span class="num"><a href="javascript:goPage(6)">6</a></span>
+<span class="num"><a href="javascript:goPage(7)">7</a></span>
+<span class="num"><a href="javascript:goPage(8)">8</a></span>
+<span class="num"><a href="javascript:goPage(9)">9</a></span>
+<span class="num"><a href="javascript:goPage(10)">10</a></span>
+<span class="btn"><a class="next" href="javascript:goPage(11)">Next page</a></span>
+<span class="btn"><a class="last" href="javascript:goPage(314)">Last page</a></span>
+</div>
+</div>
+<!-- 페이지+버튼-->
+<form name="pfrm">
+<input name="mode" type="hidden" value=""/>
+<input name="page_num" type="hidden" value="1"/>
+<input name="branch" type="hidden" value="A1"/>
+<input name="supply_code" type="hidden" value=""/>
+<input name="strSort" type="hidden" value="p"/>
+<input name="ldav" type="hidden" value=""/>
+</form>
+<form name="sfrm">
+<input name="mode" type="hidden" value=""/>
+<input name="list_num" type="hidden" value=""/>
+<input name="branch" type="hidden" value=""/>
+</form>
+<form name="book">
+<input name="book_num" type="hidden" value=""/>
+<input name="mode" type="hidden" value=""/>
+</form>
+<input id="ordertype2" type="hidden" value=""/>
+<!-- //페이징 -->
+</div><div class="shadow" id="shadow"></div>
+</div>
+<div class="goto_top"><a class="btn_icn gotop" href="" title="상단으로이동"><span class="icn icn_top"></span></a></div>
+</div>
+<div id="footer">
+<div class="wrapper">
+<div class="foot_menu">
+<ul>
+<li><a href="/elibinfo/lib_toc.asp">이용약관</a></li>
+<li><a href="/elibinfo/lib_privacy_policy.asp">개인정보보호정책</a></li>
+</ul>
+<div class="btn_wrap">
+<button onclick="window.open('/gnnews/gn_life.asp','_self')" type="button">강남라이프</button>
+<button class="link active" id="fms_btn" type="button"> FAMILY SITE 
+			<div class="dropdown" id="fms" style="display:none">
+<a href="http://library.gangnam.go.kr" target="_new">강남구통합도서관</a>
+<a href="http://www.onsori.or.kr" target="_new">온소리</a>
+<a href="javascript:goAudio()">오디오북</a> </div></button>
+</div>
+</div>
+<ul class="foot_cont">
+<li class="info">
+<div class="logo"><img alt="" src="/common/images/common/logo.png"/></div>
+<address>
+            서울특별시 강남구 학동로 426 강남구청
+            </address>
+<div>COPYRIGHT ⓒ  GANG NAM GU eBOOK LIBRARY All right reserved.</div>
+</li>
+<li class="foot_menu">
+<ul>
+<li class="menu">
+<div class="title">서비스</div>
+<ul>
+<li><a href="/elibcs/faq.asp">자주하는 질문</a></li>
+<li><a href="/elibcs/qna.asp">1:1 문의</a></li>
+<li><a href="/elibinfo/inf_viewer.asp">PC뷰어수동설치</a></li>
+<li><a href="/elibcs/book_req_rules.asp">희망전자책 신청</a></li>
+</ul>
+</li>
+<li class="menu">
+<div class="title">이용안내</div>
+<ul>
+<li><a href="/elibcs/notice.asp">공지사항</a></li>
+<li><a href="/elibmreg/mem_policy.asp">회원 가입 안내</a></li>
+<li><a href="/elibinfo/inf_use.asp">회원대출 안내</a></li>
+<li><a href="/elibinfo/inf_mobile.asp">어플리케이션 이용법</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="customer">
+<div class="title">강남구전자도서관   고객센터</div>
+<div class="call">1688-5991</div>
+<div class="time">평일<strong>09:00~18:00</strong>휴일<strong>09:00~12:00</strong></div>
+<button class="remote" onclick="window.open('http://helppc.net/elibcs','_new')" type="button"><span class="icn icn_monitor"></span>원격기술지원 요청</button>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -60,9 +60,10 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
   - 키: `(library_id, item_key)`. `item_key` = 교보 `brcd`, YES24 `goods_id`(오디오북은 `AUDIO:` 붙임), 포털 `EBK:`/`ADO:` + `book_idx`, 강남구 `book_num`
   - 상세페이지: `detail_url`(전체 URL, 트리거가 `library.base_url` + `detail_path`로 채움). 모든 줄에 있어야 함(사용자 결정 2026-09-30)
   - 사실 정보: `title`, `author_raw`(원문), `publisher`, `published_on`(날짜로 읽힌 것만), `published_raw`(원문), `supplier`, `category_code`/`category_name`, `cover_url`(주소만), `detail_path`, `branch_name`(포털의 소속도서관)
+  - 책 소개 `intro_raw`(2026-10-23부터, plan 요청·사용자 결정 `easy/2026-10-23-book-intro-decisions.html` #1): **목록 쪽에 이미 실려 오는 소개만** 원문 그대로(HTML 태그만 벗기고 줄바꿈은 둠, `clean_intro`). 교보 `li.txt`(사이트가 500자에서 자름), YES24 V1 `p.book_note`·V2/V3 `p.txt`(사이트가 "..."으로 줄인 글), 북큐브 `longExplain`(없으면 `shortExplain`; `contents` 목차는 저장 안 함), 강남구 `div.book_intro`. 알라딘·포털·서울도서관 목록에는 소개가 없어 NULL(상세 쪽을 더 열지 않음). 내 PC 수집 DB에만 두고 서비스 DB·가져오기·화면에는 넣지 않음. 시험 `python -m unittest scripts/crawl/test_parse_intro.py`
   - 종류: `content_kind`(사이트 표시 원문), `kind_source`(SITE_LABEL = 줄에 적혀 있음, SITE_SECTION = 어느 목록에서 왔는지로 정함), `section`(MAIN, AUDIO, EBK, ADO)
   - 날짜: `first_seen_at`(처음 본 시각), `last_seen_at`(마지막으로 본 시각), `removed_at`(성공한 전체 수집에서 안 보여 빠졌다고 본 시각. 지우지 않음), `last_run_id`
-  - 저장하지 않는 것: 책 소개·저자 소개·목차·서평, 보유·대출·예약 수 (사용자 결정 2026-09-30)
+  - 저장하지 않는 것: 저자 소개·목차·서평, 보유·대출·예약 수 (사용자 결정 2026-09-30; 책 소개는 2026-10-23부터 위처럼 저장)
   - 오디오북 표시(트리거가 자동으로 채움): `content_type`(EBOOK/AUDIOBOOK/VIDEO_BOOK/KIDS_BOOK/PAPER/UNKNOWN), `is_audiobook`(1/0/NULL), `kind_check`(TITLE_SAYS_AUDIO). 북큐브는 `content_kind`에 `category_type/format`(예 `book/epub`), `alt_code`에 교보식 `legacyCode`
 - 뷰 `holding_typed`(예전 뷰, 칸과 같은 값): `content_type` = EBOOK / AUDIOBOOK / VIDEO_BOOK / KIDS_BOOK / PAPER / UNKNOWN, `kind_check` = 제목에 "오디오북"이 있는데 사이트가 오디오북으로 표시하지 않은 줄
 - 뷰 `kind_check_needed`: 위 `kind_check` 줄 목록 (사람이 확인할 것)

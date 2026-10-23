@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS holding (
   category_name TEXT,               -- YES24 [분야]
   cover_url TEXT,
   detail_path TEXT,
+  intro_raw TEXT,                   -- book introduction as the LIST page carries it (2026-10-23; no detail page is read)
   first_seen_at TEXT NOT NULL,
   last_seen_at TEXT NOT NULL,
   removed_at TEXT,
@@ -187,7 +188,7 @@ def migrate(con):
     cols = {r[1] for r in con.execute("PRAGMA table_info(holding)")}
     for c, t in (("branch_name", "TEXT"), ("section", "TEXT"), ("kind_source", "TEXT"), ("content_type", "TEXT"),
                  ("is_audiobook", "INTEGER"), ("kind_check", "TEXT"), ("alt_code", "TEXT"),
-                 ("detail_url", "TEXT")):
+                 ("detail_url", "TEXT"), ("intro_raw", "TEXT")):  # intro_raw: plan request 2026-10-23
         if c not in cols:
             con.execute(f"ALTER TABLE holding ADD COLUMN {c} {t}")
     run_cols = {r[1] for r in con.execute("PRAGMA table_info(crawl_run)")}
@@ -556,6 +557,29 @@ def txt(el):
     return re.sub(r"\s+", " ", el.get_text(" ", strip=True)).strip() if el else None
 
 
+# an HTML tag (a name that starts with a letter): "<br />" written as text in a YES24 list, "<p>" in Bookcube CDATA;
+# "<이갑수>" around a name is not one
+HTML_TAG = re.compile(r"</?[A-Za-z][A-Za-z0-9]*(?:\s[^<>]*)?/?>")
+LINE_BREAK_TAG = re.compile(r"<(?:br|/p|/div|/li)\b[^<>]*>", re.I)
+
+
+def clean_intro(text):
+    """A book introduction's text as the list carries it: HTML tags stripped (br and block ends become line breaks),
+    entities decoded, line breaks kept, blank lines squeezed; None when nothing is left."""
+    if text is None:
+        return None
+    # entities first: a YES24 V1 list writes "&lt;br /&gt;" as text, meant as a line break
+    text = HTML_TAG.sub("", LINE_BREAK_TAG.sub("\n", html.unescape(text)))
+    lines = [re.sub(r"[ \t\xa0]+", " ", line).strip() for line in text.split("\n")]
+    return "\n".join(line for line in lines if line) or None
+
+
+def intro(el):
+    """A book introduction as the list page carries it (user decision 2026-10-23,
+    easy/2026-10-23-book-intro-decisions.html #1: the raw text, only on this PC): see clean_intro."""
+    return clean_intro(el.decode_contents()) if el is not None else None
+
+
 def date_of(raw):
     m = DATE.search(raw or "")
     if not m:
@@ -617,6 +641,7 @@ def parse_kyobo(body, base, prefix="/elibrary-front"):
         kind = li.select_one("span.small")
         items.append(dict(
             item_key=m.group(2), platform="KYOBO", title=txt(a), author_raw=author, publisher=publisher,
+            intro_raw=intro(li.select_one("li.txt")),
             published_on=date_of(pub_raw), published_raw=pub_raw, supplier=txt(li.select_one("span.store")),
             content_kind=txt(kind) or ('전자책' if m.group(1) == '001' else None), category_code=m.group(3),
             category_name=None,
@@ -664,6 +689,7 @@ def parse_yes24_v2(body, base, charset="utf-8"):
             publisher=txt(spans[0]) if spans else None, published_on=date_of(pub_raw), published_raw=pub_raw,
             supplier=txt(spans[2]) if len(spans) > 2 else None, category_code=None,
             category_name=category, cover_url=abs_url(base, img.get("src") if img else None),
+            intro_raw=intro(bx.select_one("p.txt")),
             detail_path=yes24_detail(a.get("href"))[0], content_kind=yes24_detail(a.get("href"))[1]))
     return total, items
 
@@ -695,7 +721,7 @@ def parse_yes24_v1(body, base):
             author_raw=re.sub(r"[<>]", "", author).strip() if author else None, publisher=field("출판사"),
             published_on=date_of(pub_raw), published_raw=pub_raw, supplier=field("공급사"),
             category_code=None, category_name=txt(kind).strip("[]") if kind else None,
-            cover_url=abs_url(base, img.get("src") if img else None),
+            cover_url=abs_url(base, img.get("src") if img else None), intro_raw=intro(li.select_one("p.book_note")),
             detail_path=yes24_detail(a.get("href"))[0], content_kind=yes24_detail(a.get("href"))[1]))
     return total, items
 
@@ -798,7 +824,8 @@ def parse_gangnam(body, base):
             supplier=txt(info.select_one("div.current strong")),
             content_kind=gangnam_kind(txt(info.select_one("div.publish_ebook"))), kind_source="SITE_LABEL",
             category_code=None,
-            category_name=None, cover_url=None, detail_path=f"/elibbook/book_detail.asp?book_num={m.group(1)}"))
+            category_name=None, cover_url=None, intro_raw=intro(info.select_one("div.book_intro")),
+            detail_path=f"/elibbook/book_detail.asp?book_num={m.group(1)}"))
     return total, items
 
 
@@ -836,6 +863,7 @@ def parse_bookcube(body, base):
             supplier=xml_field(block, "supplier"), content_kind=f"{ctype or '?'}/{fmt or '?'}",
             kind_source="SITE_LABEL", category_code=None, alt_code=xml_field(block, "legacyCode"),
             category_name=xml_field(block, "category"), cover_url=xml_field(block, "listImage"),
+            intro_raw=clean_intro(xml_field(block, "longExplain") or xml_field(block, "shortExplain")),
             detail_path=f"/product/view/?num={num}"))
     return int(total.group(1)), items
 
@@ -1088,7 +1116,8 @@ def parse(lib, body, seg=("MAIN", None)):
 
 db_lock = threading.Lock()
 COLS = ["item_key", "platform", "title", "author_raw", "publisher", "published_on", "published_raw", "supplier",
-        "content_kind", "category_code", "category_name", "cover_url", "detail_path", "branch_name", "section", "kind_source", "alt_code"]
+        "content_kind", "category_code", "category_name", "cover_url", "detail_path", "branch_name", "section", "kind_source", "alt_code",
+        "intro_raw"]  # intro_raw: the list page's book introduction (2026-10-23); None where the list has none
 
 
 def save(con, lib_id, run_id, items, at):

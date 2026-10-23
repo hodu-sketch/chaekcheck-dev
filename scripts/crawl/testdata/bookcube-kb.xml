@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Products>
+<ProductListParam>
+<keyword><![CDATA[]]></keyword>
+<keyoption></keyoption>
+<keyoption2></keyoption2>
+<SortList>
+<sort id="1" value="제목" /><sort id="2" value="출판일" /><sort id="3" value="구매일" /></SortList>
+<sort>1</sort>
+<page>1</page>
+<totalItem>5538</totalItem>
+<totalVolume>13009</totalVolume>
+<itemCount>100</itemCount>
+<pageCount>10</pageCount>
+<CategoryList>
+</CategoryList>
+<category></category>
+<itemdv>1</itemdv>
+</ProductListParam>
+
+
+<!-- https://kbsmalllibrary.bookcube.biz/FxLibrary/xml/productList/?itemCount=100&page=1&sort=1 fetched 2026-10-23, first 2 products (test data for intro_raw) -->
+<Product>
+<num>190700059</num>
+<legacyCode>190700059</legacyCode>
+<name><![CDATA[(20일 안에 끝내는 코딩) 파이썬아 반가워!]]></name>
+<publisher><![CDATA[다락원]]></publisher>
+<author><![CDATA[곽문기]]></author>
+<supplier><![CDATA[(주)북큐브네트웍스]]></supplier>
+<category><![CDATA[어린이/4-6학년]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2019-07-01</publisherDate>
+<buyDate>2020-04-16</buyDate>
+<listImage><![CDATA[https://bookimg.bookcube.com/58/1907/190700059.jpg]]></listImage>
+<detailImage><![CDATA[https://bookimg.bookcube.com/150/1907/190700059.jpg]]></detailImage>
+<largeImage><![CDATA[]]></largeImage>
+<thumbnailImage><![CDATA[]]></thumbnailImage>
+<longExplain><![CDATA[소프트웨어 교육 왜 해야 할까요? 
+2019년부터 초등학교에서 17시간 이상의 소프트웨어 교육이 시작됩니다.
+앞으로 다가올 4차 산업 혁명 시대에는 컴퓨터가 되어 문제를 생각하는 ‘컴퓨팅 사고력’과 그 문제를 해결하는 방법인 ‘문제 해결 능력’이 필요합니다. 소프트웨어 교육을 통해 미래 사회의 필수 경쟁력인 컴퓨팅 사고력과 문제 해결 능력을 키울 수 있습니다.]]></longExplain>
+<shortExplain><![CDATA[소프트웨어 교육 왜 해야 할까요? 
+2019년부터 초등학교에서 17시간 이상의 소프트웨어 교육이 시작됩니다.
+앞으로 다가올 4차 산업 혁명 시대에는 컴퓨터가 되어 문제를 생각하는 ‘컴퓨팅 사고력’과 그 문제를 해결하는 방법인 ‘문제 해결 능력’이 필요합니다. 소프트웨어 교육을 통해 미래 사회의 필수 경쟁력인 컴퓨팅 사고력과 문제 해결 능력을 키울 수 있습니다.]]></shortExplain>
+<contents><![CDATA[1장. 파이썬아 반가워!
+1일째 파이썬을 배우기 전에 - 12
+2일째 파이썬이 뭐예요? - 16
+
+2장. 엔트리와 엔트리파이선
+3일째 안녕? 엔트리 - 24
+4일째 엔트리파이선, 블록 코딩에서 텍스트 코딩으로 - 28
+5일째 꽃송이 만들기 - 34
+6일째 무당벌레의 하루 - 40
+7일째 덧셈 퀴즈 - 46
+8일째 오늘의 할 일 - 52
+
+3장. 파이썬 시작하기
+9일째 파이썬 여행 준비하기 - 62
+10일째 파이썬 무작정 시작하기 - 68
+11일째 데이터 타입 - 74
+12일째 거북이로 그림 그리기 - 84
+13일째 프로그램의 흐름 제어하기 - 92
+14일째 나를 아끼는 프로그래밍 - 100
+15일째 내장 함수 활용하기 - 108
+16일째 유용한 모듈 활용하기 - 120
+
+4장. 파이썬으로 게임 만들기
+17일째 지능형 챗봇 - 138
+18일째 가위바위보 - 146
+19일째 숫자 야구 게임 - 154
+20일째 거북이 조정하기 - 162
+
+부록
+?연습 문제 정답 - 172
+?파이썬 용어 및 핵심 정리 - 188
+?비주얼 스튜디오 코디로 작업하기 - 194
+?엔트리 블록 설명 모음 - 198]]></contents>
+<point>0</point><volume><![CDATA[1]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[pdf]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+<Terminals>
+<Terminal groupNum="smartphone" groupName="스마트폰"><modelNum>IPHONE</modelNum>
+<name><![CDATA[아이폰]]></name>
+</Terminal>
+<Terminal groupNum="tablet" groupName="태블릿및기타"><modelNum>IPOD</modelNum>
+<name><![CDATA[아이팟]]></name>
+</Terminal>
+<Terminal groupNum="tablet" groupName="태블릿및기타"><modelNum>IPAD</modelNum>
+<name><![CDATA[아이패드]]></name>
+</Terminal>
+<Terminal groupNum="smartphone" groupName="스마트폰"><modelNum>ANDROID</modelNum>
+<name><![CDATA[안드로이드]]></name>
+</Terminal>
+</Terminals>
+</Product>
+<Product>
+<num>150602404</num>
+<legacyCode>150602404</legacyCode>
+<name><![CDATA[(김홍도)금강사군첩(金剛四君帖)1]]></name>
+<publisher><![CDATA[한국저작권위원회]]></publisher>
+<author><![CDATA[한국저작권위원회]]></author>
+<supplier><![CDATA[(주)북큐브네트웍스]]></supplier>
+<category><![CDATA[예술/대중문화/미술]]></category>
+<category_type><![CDATA[book]]></category_type>
+<publisherDate>2015-06-22</publisherDate>
+<buyDate>2019-01-01</buyDate>
+<listImage><![CDATA[https://bookimg.bookcube.com/58/1506/150602404.jpg]]></listImage>
+<detailImage><![CDATA[https://bookimg.bookcube.com/150/1506/150602404.jpg]]></detailImage>
+<largeImage><![CDATA[]]></largeImage>
+<thumbnailImage><![CDATA[]]></thumbnailImage>
+<longExplain><![CDATA[(김홍도)금강사군첩(金剛四君帖)1]]></longExplain>
+<shortExplain><![CDATA[(김홍도)금강사군첩(金剛四君帖)1]]></shortExplain>
+<contents><![CDATA[]]></contents>
+<point>0</point><volume><![CDATA[5]]></volume>
+<nowLendCount><![CDATA[0]]></nowLendCount>
+<nowReserveCount><![CDATA[0]]></nowReserveCount>
+<format><![CDATA[pdf]]></format>
+<isReservable><![CDATA[true]]></isReservable>
+<isMaxLendLimit><![CDATA[true]]></isMaxLendLimit>
+<Terminals>
+<Terminal groupNum="smartphone" groupName="스마트폰"><modelNum>IPHONE</modelNum>
+<name><![CDATA[아이폰]]></name>
+</Terminal>
+<Terminal groupNum="tablet" groupName="태블릿및기타"><modelNum>IPOD</modelNum>
+<name><![CDATA[아이팟]]></name>
+</Terminal>
+<Terminal groupNum="tablet" groupName="태블릿및기타"><modelNum>IPAD</modelNum>
+<name><![CDATA[아이패드]]></name>
+</Terminal>
+<Terminal groupNum="smartphone" groupName="스마트폰"><modelNum>ANDROID</modelNum>
+<name><![CDATA[안드로이드]]></name>
+</Terminal>
+</Terminals>
+</Product>
+
+</Products>
