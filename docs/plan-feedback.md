@@ -5916,3 +5916,61 @@ plan 사이클 23 클라우드 세션 `chaekcheck-plan-b0`의 부탁(교보 인�
 - 이웃 600권 중 인기 책: 상위 100 기준 11권(1.8%), 상위 400 기준 33권(5.5%). 인기 이웃이 있는 기준 책 6/30, 14/30
 - 요청 예절: 한 번에 한 요청, 2초 간격, 돌고 있는 수집이 쓰는 서버 41곳은 막음(`scripts/crawl/probe_popular.py`)
 
+# 사이클 24
+
+plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude/compassionate-lovelace-mzvp4f`, 커밋 `6040160`). dev 클라우드 세션, 브랜치 `claude/awesome-carson-8416jq`, 시작 커밋 `adba2d3`(2026-10-24). 사이클 23과 나란히 만듭니다(23 dev와 누가 먼저 main에 합칠지는 아직 정하지 않음).
+
+## 0단계 대조 (2026-10-24, 코드 변경 없음)
+
+읽은 것: dev `CLAUDE.md`, 스킬 `spring-modulith`·`postgres-patterns`·`jpa-patterns`·`api-design`, `.claude/rules/java`, 아래 표의 코드.
+
+### 스킬·관례 대조 (1번)
+
+| 관례 | dev 지금 | design-delta | 판정 |
+|---|---|---|---|
+| 모듈 공개 API 자리 | 모듈 루트 패키지에 공개 형식, 구현은 `internal/...` (예: `picks.CuratedListTransfer`, `usagelog.UsageLog`) | `picks/ListedBooks.java` + `internal/...`, `aisearch/AiSearchBookTexts.java` + `internal/...` | 맞음 |
+| `allowedDependencies` | `package-info.java`의 `@ApplicationModule(allowedDependencies = …)`. `ModularityTests`가 의존을 **정확히** 적어 둠 | `aisearch` → `picks`, `library`, `usagelog`; `collection` → `aisearch` 추가 | 맞음. 다만 `ModularityTests` 두 시험을 고쳐야 함(아래 다름 3) |
+| 표·색인·CHECK 이름 | `<표>_<칸>_check`, `<표>_pkey`, `<표>_<칸>_bigm`/`_brin`, CHECK·IDENTITY는 YAML 안 `sql` 변경으로 | `search_book_search_text_bigm` 등 | 맞음 |
+| `updated_at` | ADR-0068: `updated_at` 칸이 있는 표는 같은 changeset 묶음에 `BEFORE UPDATE` 트리거(`<스키마>.set_updated_at()`, formatted SQL, `runOnChange:true`) | `daily_usage.updated_at` | **다름 5** |
+| ProblemDetail 코드 | 모듈마다 `internal/web/<모듈>Errors`(`@RestControllerAdvice`)가 `code`를 붙임. `validation_error`, `invalid_query`, `invalid_region`, `not_found`, nginx 429 `too_many_requests` | 같은 코드 + 새 `ai_search_paused` | 맞음 |
+| SSE | `SseEmitter`, `event:` kebab-case + JSON `data:`, 스트림 열기 전 검증, `produces` 없음, `Cache-Control: no-cache`, `X-Accel-Buffering: no` | 같음 | 맞음(#3) |
+
+### 확인 항목 15개 (2번)
+
+| # | 항목 | 판정 | 내용 |
+|---|---|---|---|
+| 1 | `PicksCache` 모양 | 맞음(모양 다름) | 목록마다 `Snapshot(fetchedAt, categories)`이고 첫 분류 「전체」에 책 전부. 책 `Book(id, category, recommendedMonth, title=ShownTitle, listTitle, coverPath, bookId, libraryIds, …, aiSummary)`. 시작 때·10분마다·사서 목록이 바뀔 때 다시 읽고, 목록 안 같은 책은 이미 한 줄. **`author` 칸이 없음** → 다름 1 |
+| 2 | 넣기 명령에서 `loadFromDb()` | 맞음(방법 보고) | 넣기는 `ApplicationRunner`라 `ApplicationReadyEvent`(캐시 첫 채우기)보다 먼저 돌고 끝에 `System.exit` → 캐시가 빔(검토 지적 #6 그대로). `PicksCache`를 고치지 않고 같은 패키지의 **새 파일**이 `new PicksCache(store, bookLookup, libraries)`를 만들어 `refresh()`를 부르면 서버와 같은 코드로 같은 책·같은 제목을 얻음. `refresh()`는 실패한 목록을 조용히 비워 두므로, `PicksStore`에 줄이 있는데 사본이 빈 목록이 있으면 실패로 보고 넣기를 거부함 [안] |
+| 3 | SSE 컨트롤러 관례 | 맞음 | `EbookSearchStreamController`: 검증을 모두 끝낸 뒤 `SseEmitter(시간 + 5초 여유)`를 엶, `produces` 없음, `X-Accel-Buffering: no`. 일은 `Executors.newVirtualThreadPerTaskExecutor()`에서, 서버 전체 동시 수는 `SearchSlots`(Semaphore, 60)로 막고 넘으면 503 `server_busy` + `Retry-After: 5`. Tomcat 요청 스레드는 일반 스레드(`spring.threads.virtual` 설정 없음) |
+| 4 | 웹 스트림 읽기 함수 | 다름(작게) | `web/src/api/searchStream.ts`의 `readStream`은 내보내지 않는 함수이고 GET만 함(`fetch(url, {headers, signal})`). 파서 `SseParser`(`api/sseParser.ts`)는 그대로 씀. `readStream`에 `method`·`body`·헤더를 받게 넓혀 내보내고, 기존 네 스트림은 그대로 GET [안] |
+| 5 | CSRF | 맞음(웹 일 있음) | 로그인 켜짐이면 `csrf.spa()`로 **모든 POST**가 토큰을 요구(웹훅만 뺌). `usage-events`도 예외가 아니고, 웹이 `X-XSRF-TOKEN`을 붙이고 403 `csrf_invalid`면 토큰을 받아 한 번 더 보냄(`api/usageEvents.ts`). AI 찾기 POST도 같은 방식으로: 서버는 바꿀 것 없음, 웹은 `usageEvents.ts`의 CSRF 처리를 같이 씀 |
+| 6 | 실제 사용자 IP | 맞음(읽는 곳 다름) | 운영 `deploy/nginx/ec2-tunnel.conf`: `set_real_ip_from` 사설망 + `real_ip_header CF-Connecting-IP` → `proxy_set_header X-Real-IP $remote_addr`. 앱은 `usagelog.internal.RequestFacts`가 `X-Real-IP`를 IP 모양일 때만 읽음. **`UsageRequest.clientIp()`는 `usagelog.enabled=false`면 비어 있어(`NOT_RECORDED`) 횟수 제한에 못 씀** → `aisearch`가 `X-Real-IP`를 직접 읽음(`RegionController`도 직접 읽음). 23 브랜치 ADR-0140 규칙은 dev에 없음 |
+| 7 | nginx | 다름(1곳) | `deploy/prod/nginx/prod.conf`는 **없음**. 운영은 `ec2-tunnel.conf` + 공통 `chaekcheck-locations.conf`. 공통의 `location ~ ^/api/v1/.+/stream$`이 `/api/v1/ai-searches/stream`에 이미 맞음: `proxy_buffering off`, `proxy_read_timeout 120s`(21초보다 김), gzip은 `application/json`·`problem+json`만이라 스트림은 압축 안 함. `log_format`을 따로 두지 않아 기본 `combined`(요청 줄만, 본문 없음). **화면 경로 정규식에 `ai-search`가 없어** 운영에서 `/ai-search`를 새로 고치면 404 → 더해야 함 |
+| 8 | `usagelog` | 다름 | 꺼짐 기본(`CHAEKCHECK_USAGELOG_ENABLED`, 운영은 켬). 정리 04:30: IP 30일 뒤 지움, 그 밖의 줄은 **받은 지 1년 뒤** 지움. 정리 코드는 모든 표를 **`received_at`** 칸으로 지움(설계는 `occurred_at`) → 다름 4. 기록은 메모리에 쌓아 5초마다 한 트랜잭션으로 씀 |
+| 9 | 웹이 "AI 꺼짐"을 아는 길 | 없음 → 안 | 설정 API·빌드 값 없음. 로그인도 "꺼지면 주소가 404"로 알림(`/api/v1/me`, `/api/v1/auth/providers`). 안: `GET /api/v1/ai-searches/status` → 켜짐 200 `{}`, 꺼짐 404 `not_found`. 웹은 첫 화면에서 한 번 묻고(`staleTime: Infinity`), 답을 받기 전에는 AI 탭을 보이되 404면 숨기고 직접 탭을 엶. 스트림 POST가 404를 받아도 같은 처리 [안] |
+| 10 | `planSearch`와 계획 칸 | 맞음 | `LibraryCatalog.planSearch(residenceIds, workIds, PlanOptions(scope, visit, libraryIds))` → `List<SearchTarget>`. 값 `scope` all\|joinable, `visit` any\|none. `picks`가 같은 방법으로 계획 도서관 id 집합을 만들고 `libraryIds`와 겹치는지 봄. AI 찾기는 같은 칸을 JSON 본문 배열로 받음(GET 쉼표 글자 대신) |
+| 11 | pg_bigm 스키마 | 맞음 | `CREATE EXTENSION pg_bigm WITH SCHEMA public`(catalog/001). 연산자 클래스가 `public`에 있어 `aisearch` 표에도 `gin_bigm_ops`로 씀 |
+| 12 | 외부 HTTP 시험 | 맞음 | 새 라이브러리 없이 JDK `com.sun.net.httpserver.HttpServer`로 가짜 서버(`NlkClientTests`, `DirectSiteFetcherTests`). `HttpNlkTransport`가 JDK `HttpClient` 예. 시험은 `db-test`(PostgreSQL 18 + pg_bigm, 5433)를 씀 |
+| 13 | ADR-0142 AI 요약 배치 | 다름 | 스크립트·API 키가 저장소에 **없음**. `docs/maintenance/4-picks.md` 8절: Claude Code 세션 안에서 **Haiku 하위 에이전트**에게 시켰고, 소개 글은 PC 수집 DB가 아니라 **카카오 책 검색 API `contents`**(PC 임시 폴더에만). 결과는 빌드 리소스 `picks/ai-summaries.tsv`. 2단계는 PC 수집 DB의 `holding.intro_raw`를 쓰므로 새 PC 도구가 필요하고, Haiku를 무엇으로 부를지(API 키 / 하위 에이전트) 정해야 함 |
+| 14 | `collection` 넣기 모드 | 맞음 | `CatalogImportRunner.MODES`(`in-place`, `export`, `apply`, `finish`, `discard`, `lists`)와 `switch`. 새 모드는 `MODES`·`Settings`(파일 칸 `bookTextsFile`)·`switch` 한 줄씩. 23 브랜치가 이 파일을 고치면 합칠 때 겹칠 수 있음 |
+| 15 | 책 수 | PC 필요 | 문서 값(4-picks.md 8절, 2026-10-20): 사서 108 + 이동진 43 + 서울대 100 + KAIST 2,453 + 노벨 100 = **약 2,804권**(목록 안 중복 제거 뒤, 목록끼리 겹침은 미확인). 우리 책과 맞춰진 수는 DB가 있어야 함(dev DB·운영). `intro_raw` 수는 2026-10-23 다시 시작한 전체 수집이 끝나야 셀 수 있음(PC) |
+
+### 설계와 다른 점 (코드 쓰기 전에 사용자 확인)
+
+1. **`ListedBook.author`**: `PicksCache.Book`에 저자가 없음. `PicksCache`를 고치지 않으려고, 새 구현이 `PicksStore.books(list)`의 목록 저자(`list_book.author`, 사서 목록은 API 저자)를 같은 줄에 붙임. 우리 책(`catalog`)의 저자가 아니라 **목록에 적힌 저자**임 [안: 이름만 바뀌는 수준이 아니라 값의 출처라 알림]
+2. **`loadFromDb()`**: 위 #2 방법(새 파일이 새 `PicksCache`를 만들어 `refresh()`). 실패한 목록이 있으면 거부
+3. **`ModularityTests`**: `picksDependsOnCatalogAndLibraryOnly`("picks를 쓰는 모듈은 collection뿐")와 `collectionUsesLibraryAndLibraryNotCollection`(의존을 정확히 비교)이 `aisearch`를 넣으면 깨짐 → 두 시험에 `aisearch`를 더하고 `aisearch` 의존 시험을 새로 둠
+4. **`usagelog.ai_search_event.occurred_at` → `received_at`**: 칸 목록은 [확정](결정 #7)이지만, `usagelog`의 모든 표와 정리 코드가 `received_at`(요청을 받은 시각, `UsageRequest.receivedAt`)을 씀. 이름만 바꾸고 뜻은 같음. 보관은 지금 규칙 그대로 **1년**(IP가 없으니 30일 지우기는 해당 없음)
+5. **`aisearch.daily_usage.updated_at`**: ADR-0068대로 `aisearch.set_updated_at()` 트리거를 함께 둠(formatted SQL). 앱은 이 칸을 쓰지 않음
+6. **IP는 `aisearch`가 `X-Real-IP`를 직접 읽음**(위 #6). `usagelog`가 꺼져 있어도 횟수 제한이 동작해야 하므로
+7. **nginx 화면 경로에 `ai-search` 추가**(`chaekcheck-locations.conf`), 인계서가 적은 `deploy/prod/nginx/prod.conf`는 없음. 스트림 버퍼링·시간·gzip은 지금 설정으로 이미 맞아 고칠 것 없음
+8. **운영 `deploy/prod/compose.yaml`**: backend 환경 변수를 하나씩 적는 방식이라 `prod.env`만으로는 안 들어감 → `CHAEKCHECK_AISEARCH_ENABLED`와 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}`를 compose에 더함
+9. **웹 꺼짐 확인**: 위 #9 안(`GET /api/v1/ai-searches/status`)
+10. **서버 동시 상한·스레드**: 지금 검색처럼 가상 스레드 실행기 + Semaphore 하나로 만들고 넘으면 503(`ai_search_paused`와 다른 코드, 안: `server_busy` 그대로). 값은 사용자가 정할 때까지 넣지 않음 → 사용자에게 질문
+
+### 이 클라우드 세션에서 하는 것·못 하는 것
+
+- 할 수 있음: `dockerd`가 뜸(2026-10-24 확인). Java 25. 웹은 Node 22뿐이라(`package.json` `engines` ≥ 24) Node 24를 설치해야 함 [확인 필요]
+- 시험 DB 이미지(`docker/postgres-bigm`) 만들기에서 `apt-get`이 실패함(컨테이너 안에서 프록시를 못 씀, 2026-10-24). 3단계 전에 고침(빌드 인자로 프록시 전달 등, 저장소 파일은 안 바꿈)
+- 못 함(사용자 노트북): 0단계 #13 수집 DB 쪽·#15 `intro_raw` 수와 맞춰진 수, 2단계 찾기용 한 줄 PC 배치. 그 전까지 3단계 뒤는 제목·저자만으로 시험
+- 곁에서 본 것: `backend/src/main/resources/db/changelog/PRE_DEPLOYMENT`가 운영 배포(v1.9.10) 뒤에도 남아 있음. 이번에는 새 changeset만 더하므로 영향 없음
