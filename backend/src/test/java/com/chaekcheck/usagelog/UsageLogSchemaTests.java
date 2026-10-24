@@ -20,25 +20,29 @@ class UsageLogSchemaTests {
 	@Autowired
 	JdbcClient jdbc;
 
+	/** Eight tables of cycle 15 and cycle 24's {@code ai_search_event} (ADR-0152). */
 	@Test
-	void eightTables() {
+	void nineTables() {
 		assertThat(jdbc.sql("SELECT table_name FROM information_schema.tables WHERE table_schema = 'usagelog'")
 			.query(String.class)
 			.list()).containsExactlyInAnyOrder("search_event", "book_view", "search_more", "library_click",
-					"screen_event", "library_response_daily", "rejected_event", "dropped_batch");
+					"screen_event", "library_response_daily", "rejected_event", "dropped_batch", "ai_search_event");
 	}
 
 	@Test
 	void noUserAgentOrCookieColumnAndNoMemberNumberOnTheSearchTables() { // AC-12 as changed by ADR-0134
+		// ai_search_event's input_tokens and output_tokens count the model's tokens (cycle 24 decision #7 [확정]),
+		// not a login or session token
 		assertThat(jdbc.sql("""
 				SELECT count(*) FROM information_schema.columns
-				WHERE table_schema = 'usagelog' AND column_name ~ '(user|agent|cookie|token|session)'""")
+				WHERE table_schema = 'usagelog' AND column_name ~ '(user|agent|cookie|token|session)'
+				  AND NOT (table_name = 'ai_search_event' AND column_name IN ('input_tokens', 'output_tokens'))""")
 			.query(Long.class)
 			.single()).isZero();
 		assertThat(jdbc.sql("""
 				SELECT count(*) FROM information_schema.columns
 				WHERE table_schema = 'usagelog' AND table_name IN ('search_event', 'search_more', 'rejected_event',
-				  'dropped_batch', 'library_response_daily')
+				  'dropped_batch', 'library_response_daily', 'ai_search_event')
 				  AND (column_name ~ '(account|member)' OR column_name = 'visit_key')""")
 			.query(Long.class)
 			.single()).isZero();

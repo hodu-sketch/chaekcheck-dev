@@ -37,6 +37,9 @@ public class UsageLogCleanup {
 	static final List<String> IP_TABLES = List.of("search_event", "book_view", "search_more", "library_click",
 			"screen_event");
 
+	/** Tables with a {@code received_at} and no IP: deleted after {@link #KEPT} too (cycle 24 {@code ai_search_event}). */
+	static final List<String> NO_IP_TABLES = List.of("ai_search_event");
+
 	private final JdbcTemplate jdbc;
 
 	private final UsageLogProperties properties;
@@ -86,7 +89,7 @@ public class UsageLogCleanup {
 				DELETE FROM usagelog.rejected_event WHERE id IN (
 				  SELECT id FROM usagelog.rejected_event WHERE received_at < ? LIMIT ?)""", rejectedBefore, batch);
 		long rowsDeleted = 0;
-		for (String table : IP_TABLES) {
+		for (String table : java.util.stream.Stream.concat(IP_TABLES.stream(), NO_IP_TABLES.stream()).toList()) {
 			rowsDeleted += inPieces("""
 					DELETE FROM usagelog.%1$s WHERE id IN (
 					  SELECT id FROM usagelog.%1$s WHERE received_at < ? LIMIT ?)""".formatted(table), rowsBefore,

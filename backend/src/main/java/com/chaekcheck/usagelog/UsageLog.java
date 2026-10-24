@@ -38,6 +38,49 @@ public interface UsageLog {
 	 */
 	void recordLibraryResponse(long libraryId, ResponseSource source, ResponseResult result, long elapsedMs);
 
+	/**
+	 * One AI book search (cycle 24, ADR-0152), at the request's receive time. The row has no question text, IP, visit
+	 * key or member number; like the other rows it is kept only when logging is on and the request is not a robot.
+	 */
+	void recordAiSearch(UsageRequest request, AiSearchRecord record);
+
+	/**
+	 * What one AI search did (design decision #7 [확정]).
+	 * @param elapsedMs from the request to the end of the answer
+	 * @param turnNo the question's number in its conversation, 1 to 20, counted by the web
+	 * @param keywordResult the first model call
+	 * @param titleLike the first call took the question for a title or an author
+	 * @param pickResult how the answer ended
+	 * @param candidateCount books given to the second call (0 when it was not called)
+	 * @param pickedBookIds the books shown, in order, at most 8
+	 * @param inputTokens both calls together
+	 * @param outputTokens both calls together
+	 */
+	record AiSearchRecord(int elapsedMs, int turnNo, KeywordResult keywordResult, boolean titleLike,
+			PickResult pickResult, int candidateCount, List<Long> pickedBookIds, int inputTokens, int outputTokens) {
+
+		public AiSearchRecord {
+			pickedBookIds = List.copyOf(pickedBookIds);
+		}
+
+	}
+
+	enum KeywordResult {
+
+		OK, FAILED, TIMEOUT
+
+	}
+
+	/**
+	 * {@code SKIPPED}: the second call was not made for a reason other than no match (for example the user left
+	 * before it).
+	 */
+	enum PickResult {
+
+		OK, NO_MATCH, NO_TEXT, PARTIAL, SKIPPED
+
+	}
+
 	enum SearchKind {
 
 		CATALOG, DIRECT

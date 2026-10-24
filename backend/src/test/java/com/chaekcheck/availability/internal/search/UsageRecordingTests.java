@@ -371,6 +371,10 @@ class UsageRecordingTests {
 			answers.add(libraryId + " " + source + " " + result);
 		}
 
+		@Override
+		public void recordAiSearch(UsageRequest request, AiSearchRecord record) {
+		}
+
 	}
 
 }

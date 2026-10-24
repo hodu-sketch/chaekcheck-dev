@@ -55,6 +55,11 @@ public class UsageLogWriter {
 			INSERT INTO usagelog.rejected_event (received_at, client_ip, reason, raw_values)
 			VALUES (?, ?::inet, ?, ?::jsonb)""";
 
+	static final String INSERT_AI_SEARCH = """
+			INSERT INTO usagelog.ai_search_event (received_at, elapsed_ms, turn_no, keyword_result, title_like,
+			  pick_result, candidate_count, picked_book_ids, input_tokens, output_tokens)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
+
 	static final String INSERT_DROPPED = """
 			INSERT INTO usagelog.dropped_batch (dropped_at, row_count, reason) VALUES (?, ?, ?)""";
 
@@ -93,6 +98,7 @@ public class UsageLogWriter {
 		List<UsageRow.LibraryClick> clicks = new ArrayList<>();
 		List<UsageRow.ScreenEvent> screens = new ArrayList<>();
 		List<UsageRow.Rejected> rejected = new ArrayList<>();
+		List<UsageRow.AiSearch> aiSearches = new ArrayList<>();
 		for (UsageRow row : rows) {
 			switch (row) {
 				case UsageRow.Search r -> searches.add(r);
@@ -101,6 +107,7 @@ public class UsageLogWriter {
 				case UsageRow.LibraryClick r -> clicks.add(r);
 				case UsageRow.ScreenEvent r -> screens.add(r);
 				case UsageRow.Rejected r -> rejected.add(r);
+				case UsageRow.AiSearch r -> aiSearches.add(r);
 			}
 		}
 		List<Map.Entry<ResponseKey, ResponseTotals>> answers = new ArrayList<>(responses.entrySet());
@@ -164,6 +171,18 @@ public class UsageLogWriter {
 				ps.setString(i++, text(r.clientIp()));
 				ps.setString(i++, text(r.reason()));
 				ps.setString(i, text(r.rawValues()));
+			});
+			batch(INSERT_AI_SEARCH, aiSearches, (ps, r) -> {
+				int i = time(ps, 1, r.receivedAt());
+				ps.setInt(i++, r.elapsedMs());
+				ps.setInt(i++, r.turnNo());
+				ps.setString(i++, text(r.keywordResult()));
+				ps.setBoolean(i++, r.titleLike());
+				ps.setString(i++, text(r.pickResult()));
+				ps.setInt(i++, r.candidateCount());
+				ps.setArray(i++, bigints(ps, r.pickedBookIds()));
+				ps.setInt(i++, r.inputTokens());
+				ps.setInt(i, r.outputTokens());
 			});
 			batch(UPSERT_RESPONSE, answers, (ps, e) -> {
 				ResponseKey key = e.getKey();

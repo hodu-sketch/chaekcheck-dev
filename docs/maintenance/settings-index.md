@@ -46,6 +46,15 @@
 | 모델 | `claude-haiku-5-5` | `…llm.anthropic.model` | `CHAEKCHECK_AISEARCH_LLM_ANTHROPIC_MODEL` | 가격 값(7단계) | [확정] | design-delta | 서비스 |
 | API 주소 / 판 | `https://api.anthropic.com` / `2026-10-21` | `…llm.anthropic.base-url` / `…version` | `…_BASEURL` / `…_VERSION` | — | 공식 문서로 확인(2026-10-24, https://platform.claude.com/docs/en/api/versioning: 최신 판). 이 판에서 `temperature`류를 보내면 400 → 보내지 않음 | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
 | effort | `low` | `…llm.anthropic.effort` | `…_EFFORT` | — | 1단계 측정: thinking은 끄지 않고 effort만 낮춤(1차 최대 2.4초, 2차 최대 6.5~8.2초) [안] | 같음 | 서비스 |
+| 기능 켜기 | `false` | `chaekcheck.aisearch.enabled` | **`CHAEKCHECK_AISEARCH_ENABLED`** | 웹 AI 탭(꺼짐 확인 `GET /api/v1/ai-searches/status`, 8·9단계), 운영 compose(0단계 다름 8) | 운영에서 키를 넣고 처리방침 새 판이 시행된 뒤 켬 | design-delta, 인계서 11단계 | 서비스 |
+| 날짜 기준 | Asia/Seoul | `chaekcheck.aisearch.zone` | `CHAEKCHECK_AISEARCH_ZONE` | `daily_usage.day` | 하루 100번·하루 $2의 날짜 | design-delta | 서비스 |
+| 1차 / 2차 시간 | 5s / 15s | `…keyword-timeout` / `…pick-timeout` | `CHAEKCHECK_AISEARCH_KEYWORDTIMEOUT` / `…_PICKTIMEOUT` | nginx `proxy_read_timeout` 120s(21초보다 김) | [확정] 처음 값. 1단계 최대 2.41s / 8.20s | spec R6-3 | 서비스 |
+| 1차 / 2차 `max_tokens` | 512 / 2048 | `…keyword-max-tokens` / `…pick-max-tokens` | `…_KEYWORDMAXTOKENS` / `…_PICKMAXTOKENS` | 끊긴 호출의 비용 셈(출력을 이 값으로) | 1단계 출력 최대 285 / 1,490 [안] | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
+| 동시 AI 찾기 | 20 | `…max-concurrent` | `CHAEKCHECK_AISEARCH_MAXCONCURRENT` | 검색 자리 60과 따로 | 넘으면 스트림 전 503 `server_busy` | 사용자 2026-10-24 (0단계 다름 10) | 서비스 |
+| 같은 IP 1분 / 하루 | 10 / 100 | `…rate.per-minute` / `…rate.per-day` | `CHAEKCHECK_AISEARCH_RATE_PERMINUTE` / `…_PERDAY` | 메모리(`InMemoryAiSearchQuota`), 재시작하면 처음부터 | [확정]. `Retry-After`: 1분이면 가장 오래된 것이 빠질 때까지, 하루면 서울 자정까지 [안] | spec R7-1, ADR-0152 | 서비스 |
+| 하루 비용 상한 | US$2 | `…budget.daily-usd` | `CHAEKCHECK_AISEARCH_BUDGET_DAILYUSD` | `aisearch.daily_usage.cost_micro_usd`(백만분의 1달러, 올림) | [확정]. 시작할 때만 봄 | spec R8-1 | 서비스 |
+| 가격 | 입력 0.10 / 출력 0.50 (100만 토큰당 US$) | `…price.input-per-mtok` / `…output-per-mtok` | `…_PRICE_INPUTPERMTOK` / `…_OUTPUTPERMTOK` | 모델 | [확정] 10만 토큰 이하 요청 | design-delta | 서비스 |
+| 크기 | 30권 / 8권 / 앞 대화 5 / 질문 200자 / 카드 글 300자 | `…limits.candidates` / `picks` / `history-turns` / `question-max-length` / `card-text-max-chars` | `…_LIMITS_CANDIDATES` 등 | 웹 20번 상한·200자 `maxLength`(9·10단계), 찾기용 한 줄 300자는 DB CHECK·`AiSearchBookTexts.LINE_MAX_CHARS` | [확정] | 설계 결정 #8, spec | 서비스 |
 | 연결 시간 | 3초 | 코드 상수 (`LlmConfiguration`) | — | 1차 5초 | 3초 안에 연결이 안 되면 5초 안의 1차도 끝나지 않음 [안] | — | 서비스 |
 
 ## 2. 조회 서버 (`fetch-service/src/main/resources/application.yml`)

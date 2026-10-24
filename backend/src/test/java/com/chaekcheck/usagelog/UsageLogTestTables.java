@@ -8,7 +8,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 public final class UsageLogTestTables {
 
 	public static final List<String> TABLES = List.of("search_event", "book_view", "search_more", "library_click",
-			"screen_event", "library_response_daily", "rejected_event", "dropped_batch");
+			"screen_event", "library_response_daily", "rejected_event", "dropped_batch", "ai_search_event");
 
 	private UsageLogTestTables() {
 	}

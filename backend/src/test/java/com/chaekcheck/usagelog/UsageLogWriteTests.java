@@ -253,4 +253,39 @@ class UsageLogWriteTests {
 			.containsEntry("filter", null);
 	}
 
+	/**
+	 * Cycle 24 (ADR-0152): an AI search row has the counts and the shown books only; the request's IP, visit key and
+	 * member number are not written anywhere.
+	 */
+	@Test
+	void anAiSearchKeepsNoIpVisitKeyOrMember() {
+		UsageRequest request = new UsageRequest(AT, "203.0.113.7", "signed_in", 42L, "0123456789abcdef0123456789abcdef",
+				true);
+		usageLogBean.recordAiSearch(request, new UsageLog.AiSearchRecord(3_210, 2, UsageLog.KeywordResult.TIMEOUT, true,
+				UsageLog.PickResult.NO_TEXT, 30, List.of(11L, 12L), 2_700, 900));
+		usageLogBean.recordAiSearch(UsageRequest.NOT_RECORDED, new UsageLog.AiSearchRecord(1, 1,
+				UsageLog.KeywordResult.OK, false, UsageLog.PickResult.OK, 0, List.of(), 0, 0));
+
+		flusher.flush();
+
+		assertThat(jdbc.sql("""
+				SELECT received_at, elapsed_ms, turn_no, keyword_result, title_like, pick_result, candidate_count,
+				  picked_book_ids::text AS books, input_tokens, output_tokens FROM usagelog.ai_search_event""")
+			.query()
+			.singleRow())
+			.containsEntry("elapsed_ms", 3_210)
+			.containsEntry("turn_no", 2)
+			.containsEntry("keyword_result", "timeout")
+			.containsEntry("title_like", true)
+			.containsEntry("pick_result", "no_text")
+			.containsEntry("candidate_count", 30)
+			.containsEntry("books", "{11,12}")
+			.containsEntry("input_tokens", 2_700)
+			.containsEntry("output_tokens", 900);
+		assertThat(jdbc.sql("""
+				SELECT column_name FROM information_schema.columns
+				WHERE table_schema = 'usagelog' AND table_name = 'ai_search_event'""").query(String.class).list())
+			.doesNotContain("client_ip", "visit_key", "account_id", "question");
+	}
+
 }

@@ -2,7 +2,8 @@
  * Usage log (cycle 15; plan ADR-0096, ADR-0097, ADR-0102): what people search, open and click, and how each library
  * site answered, kept in the {@code usagelog} schema for deciding what to build next. Nothing reads it in the service.
  * <p>
- * {@code catalog} and {@code availability} call {@link com.chaekcheck.usagelog.UsageLog} directly (no events); the web
+ * {@code catalog}, {@code availability} and, since cycle 24, {@code aisearch} ({@code recordAiSearch}: no question text,
+ * IP, visit key or member number, ADR-0152) call {@link com.chaekcheck.usagelog.UsageLog} directly (no events); the web
  * reports what the server does not see to {@code POST /api/v1/usage-events}. Rows wait in memory (at most 10,000) and
  * are written every 5 seconds in one transaction with asynchronous commit; a failed batch is dropped and noted in
  * {@code dropped_batch}. <strong>Logging never holds up or breaks a search</strong>: every call only checks and queues,

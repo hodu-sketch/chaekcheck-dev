@@ -319,6 +319,39 @@ chaekcheck:
       # The shared cache of the picks is read again this often [확정 10m]
       refresh-interval: 10m
   aisearch:
+    # AI book search (cycle 24, ADR-0150~0153). Off by default: switched on in production after the key is in the
+    # secrets and the privacy policy version is in force (CHAEKCHECK_AISEARCH_ENABLED). Off: the address answers 404
+    # and the web hides the AI tab. Values: plan docs/settings-index.md 10절, docs/maintenance/settings-index.md 1-1절
+    enabled: ${CHAEKCHECK_AISEARCH_ENABLED:false}
+    # the day of the daily limits and of daily_usage
+    zone: Asia/Seoul
+    # 1st call (keywords) and the whole 2nd call (choice and text) [확정 처음 값]; step 1 maxima 2.4 s and 8.2 s
+    keyword-timeout: 5s
+    pick-timeout: 15s
+    # step 1 (2026-10-24): 1st output at most 285 tokens, 2nd at most 1,490 [안]
+    keyword-max-tokens: 512
+    pick-max-tokens: 2048
+    # AI searches running at once on this server, apart from the 60 search slots (user 2026-10-24); more: 503
+    # server_busy before the stream opens
+    max-concurrent: 20
+    rate:
+      # one IP, follow-up questions too [확정]
+      per-minute: 10
+      per-day: 100
+    budget:
+      # checked when a search starts [확정]
+      daily-usd: 2
+    price:
+      # US$ per million tokens, prompts of 100k tokens or fewer [확정] (platform.claude.com pricing, 2026-10-24)
+      input-per-mtok: 0.10
+      output-per-mtok: 0.50
+    limits:
+      # books given to the 2nd call / books in one answer / earlier turns sent / question / card text [확정]
+      candidates: 30
+      picks: 8
+      history-turns: 5
+      question-max-length: 200
+      card-text-max-chars: 300
     llm:
       anthropic:
         # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only

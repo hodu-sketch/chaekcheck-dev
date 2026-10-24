@@ -188,3 +188,7 @@ databaseChangeLog:
   - include:
       file: aisearch/002-updated-at-trigger.sql
       relativeToChangelogFile: true
+  # cycle 24: the AI search's usage rows (ADR-0152); file number decided again when cycle 23 is merged
+  - include:
+      file: usagelog/008-ai-search-event.yaml
+      relativeToChangelogFile: true

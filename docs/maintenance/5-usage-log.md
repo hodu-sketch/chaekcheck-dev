@@ -13,7 +13,7 @@
   - 04:30 정리와 요청마다 남는 서버 로그 줄은 그대로입니다.
 - 정상 종료(`SIGTERM`)하면 메모리에 남은 기록을 쓰고 끝납니다. 강제 종료하면 최대 5초 분량이 사라질 수 있습니다.
 
-## 2. 표 여덟 (schema `usagelog`)
+## 2. 표 아홉 (schema `usagelog`)
 
 | 표 | 한 줄 | 주요 칸 |
 |---|---|---|
@@ -25,6 +25,7 @@
 | `library_response_daily` | (서울 날짜, 도서관, 출처)마다 하루 한 줄 | 결과별 수, `ok_ms_total`, `ok_ms_max` |
 | `rejected_event` | 받아들이지 않은 사용 알림 | `reason`, `raw_values`(2KB까지) |
 | `dropped_batch` | 버린 묶음 | `row_count`, `reason` |
+| `ai_search_event` | AI 책 찾기 하나(사이클 24, ADR-0152). **질문 글·IP·`visit_key`·`account_id` 없음** | `received_at`, `elapsed_ms`, `turn_no`(1~20, 웹이 셈), `keyword_result`(ok·failed·timeout), `title_like`, `pick_result`(ok·no_match·no_text·partial·skipped), `candidate_count`, `picked_book_ids`(최대 8), `input_tokens`·`output_tokens`(1·2차 합) |
 
 ### `search_event`
 
@@ -127,7 +128,7 @@
 - 순서는 다음과 같습니다.
   1. 다섯 기록 표에서 30일 지난 줄의 `client_ip`를 비웁니다.
   2. `rejected_event`에서 30일 지난 줄을 지웁니다.
-  3. 다섯 기록 표와 `dropped_batch`에서 1년 지난 줄을 지웁니다(받은 시각 기준).
+  3. 다섯 기록 표, `ai_search_event`(IP 칸이 없어 1번은 해당 없음, 사이클 24)와 `dropped_batch`에서 1년 지난 줄을 지웁니다(받은 시각 기준).
   4. `library_response_daily`에서 1년 지난 날을 지웁니다.
 - 한 번에 1만 줄씩 처리합니다(`chaekcheck.usagelog.cleanup.batch-size`).
 - 기록이 꺼져 있어도 정리는 돕니다.

@@ -1,0 +1,30 @@
+# Cycle 24 (ADR-0152, design decision #7): one row per AI book search, without the question text, the IP, the visit
+# key or the member number. received_at like every usagelog table (the design's occurred_at; user 2026-10-24
+# "그래"), so the clean-up deletes the rows after one year like the others. The file number is the next one now; when
+# cycle 23 is merged it may move to the next free number, the changeSet id stays (handoff "사이클 23과 나란히").
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-ai-search-event
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE usagelog.ai_search_event (
+                id bigint GENERATED ALWAYS AS IDENTITY CONSTRAINT ai_search_event_pkey PRIMARY KEY,
+                received_at timestamp with time zone NOT NULL,
+                elapsed_ms integer NOT NULL CONSTRAINT ai_search_event_elapsed_ms_check CHECK (elapsed_ms >= 0),
+                turn_no smallint NOT NULL CONSTRAINT ai_search_event_turn_no_check CHECK (turn_no BETWEEN 1 AND 20),
+                keyword_result text NOT NULL CONSTRAINT ai_search_event_keyword_result_check
+                  CHECK (keyword_result IN ('ok', 'failed', 'timeout')),
+                title_like boolean NOT NULL,
+                pick_result text NOT NULL CONSTRAINT ai_search_event_pick_result_check
+                  CHECK (pick_result IN ('ok', 'no_match', 'no_text', 'partial', 'skipped')),
+                candidate_count smallint NOT NULL
+                  CONSTRAINT ai_search_event_candidate_count_check CHECK (candidate_count >= 0),
+                picked_book_ids bigint[] NOT NULL DEFAULT '{}'
+                  CONSTRAINT ai_search_event_picked_book_ids_check CHECK (cardinality(picked_book_ids) <= 8),
+                input_tokens integer NOT NULL CONSTRAINT ai_search_event_input_tokens_check CHECK (input_tokens >= 0),
+                output_tokens integer NOT NULL CONSTRAINT ai_search_event_output_tokens_check CHECK (output_tokens >= 0)
+              )
+        - sql:
+            sql: CREATE INDEX ai_search_event_received_at_brin ON usagelog.ai_search_event USING brin (received_at)

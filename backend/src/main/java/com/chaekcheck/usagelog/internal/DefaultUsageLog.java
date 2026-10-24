@@ -117,6 +117,21 @@ public class DefaultUsageLog implements UsageLog {
 		}
 	}
 
+	@Override
+	public void recordAiSearch(UsageRequest request, AiSearchRecord record) {
+		if (request == null || !request.recorded() || record == null) {
+			return;
+		}
+		try {
+			offer(new UsageRow.AiSearch(request.receivedAt(), Math.max(0, record.elapsedMs()), record.turnNo(),
+					name(record.keywordResult()), record.titleLike(), name(record.pickResult()),
+					record.candidateCount(), record.pickedBookIds(), record.inputTokens(), record.outputTokens()));
+		}
+		catch (RuntimeException ex) {
+			log.warn("Usage log skipped an AI search: {}", ex.toString());
+		}
+	}
+
 	/** Rows from the usage report address (already checked). */
 	public void offerReport(UsageRow row) {
 		if (enabled) {

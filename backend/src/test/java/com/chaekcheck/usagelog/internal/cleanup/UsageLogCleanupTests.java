@@ -59,13 +59,17 @@ class UsageLogCleanupTests {
 			.param(LocalDate.of(2025, 10, 14))
 			.update();
 
+		aiSearch(NOW.minus(Duration.ofDays(366)));
+		aiSearch(NOW.minus(Duration.ofDays(364)));
+
 		UsageLogCleanup.Result result = cleanup.run();
 
 		assertThat(ids("book_view")).containsExactly(kept).doesNotContain(old);
+		assertThat(UsageLogTestTables.count(jdbc, "ai_search_event")).isEqualTo(1);
 		assertThat(UsageLogTestTables.count(jdbc, "dropped_batch")).isZero();
 		assertThat(jdbc.sql("SELECT day FROM usagelog.library_response_daily").query(LocalDate.class).list())
 			.containsExactly(LocalDate.of(2025, 10, 14));
-		assertThat(result.rowsDeleted()).isEqualTo(3);
+		assertThat(result.rowsDeleted()).isEqualTo(4);
 	}
 
 	@Test
@@ -136,6 +140,16 @@ class UsageLogCleanupTests {
 			.query(String.class)
 			.optional()
 			.orElse(null);
+	}
+
+	/** Cycle 24: an AI search row (no IP), kept one year like the others. */
+	private void aiSearch(Instant at) {
+		jdbc.sql("""
+				INSERT INTO usagelog.ai_search_event (received_at, elapsed_ms, turn_no, keyword_result, title_like,
+				  pick_result, candidate_count, input_tokens, output_tokens)
+				VALUES (?, 1, 1, 'ok', false, 'ok', 0, 0, 0)""")
+			.param(Timestamp.from(at))
+			.update();
 	}
 
 }

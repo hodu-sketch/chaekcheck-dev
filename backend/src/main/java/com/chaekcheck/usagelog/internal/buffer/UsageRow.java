@@ -48,6 +48,12 @@ public sealed interface UsageRow {
 			String clientIp, Long accountId, String visitKey, String raw) implements NamesLibrary {
 	}
 
+	/** One AI book search (cycle 24): no IP, no visit key, no member number, no question text. */
+	record AiSearch(Instant receivedAt, int elapsedMs, int turnNo, String keywordResult, boolean titleLike,
+			String pickResult, int candidateCount, List<Long> pickedBookIds, int inputTokens, int outputTokens)
+			implements UsageRow {
+	}
+
 	/** @param rawValues JSON text, already cut to 2KB */
 	record Rejected(Instant receivedAt, String clientIp, String reason, String rawValues) implements UsageRow {
 	}
