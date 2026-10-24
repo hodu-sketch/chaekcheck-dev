@@ -27,14 +27,13 @@ export const AI_TEXT = {
 } as const
 
 /**
- * The example chips (user 2026-10-24: four topics of this month's news and best sellers, each checked to answer with
- * listed books; dev docs/plan-feedback.md `# 사이클 24` "8단계 뒤 사용자 결정"). Fixed for now; a refresh from the news is
- * asked of plan.
+ * The example chips (user 2026-10-24: topics of this month's news and best sellers, each checked to answer with listed
+ * books; the 프로젝트 헤일메리 chip taken out the same day, "프로젝트헤일리는 빼줘"; dev docs/plan-feedback.md `# 사이클 24`
+ * "8단계 뒤 사용자 결정"). Fixed for now; a refresh from the news is asked of plan.
  */
 export const EXAMPLE_QUESTIONS = [
   '요즘 경제 흐름을 쉽게 알려 주는 책',
   '흔들리는 마음을 다잡는 철학 책',
-  '프로젝트 헤일메리처럼 빠져드는 SF 소설',
   '쌀쌀한 가을밤에 읽기 좋은 소설',
 ] as const
 

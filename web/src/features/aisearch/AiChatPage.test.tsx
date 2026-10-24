@@ -12,7 +12,7 @@ import { TURNS_MAX } from './aiSearchText'
 vi.mock('../region/RegionContext', () => ({
   useRegions: () => ({ regions: { residence: [1116], work: [] }, libraryIds: [12], source: 'browser' }),
 }))
-vi.mock('../search/regionPlace', () => ({ useMineLabel: () => '마포구' }))
+vi.mock('../search/regionPlace', () => ({ useMineLabel: () => '마포구', useTagPlace: () => null }))
 vi.mock('../../api/aiSearch', () => ({ aiSearchStream: vi.fn() }))
 
 const stream = vi.mocked(aiSearchStream)
@@ -72,7 +72,7 @@ describe('AiChatPage (cycle 24 step 10)', () => {
 
     expect(await screen.findByText('별과 우주를 다뤄요')).toBeTruthy()
     expect(screen.getByText('우주 이야기 책이에요')).toBeTruthy()
-    expect(screen.getByRole('link', { name: /코스모스/ }).getAttribute('href')).toBe('/books/7')
+    expect(screen.getByRole('button', { name: '코스모스' })).toBeTruthy()
     expect(screen.getByText('내 도서관 2곳')).toBeTruthy()
     const body = stream.mock.calls[0][0] as AiSearchBody
     expect(body).toMatchObject({ question: '우주 책', turnNo: 1, history: [], residenceRegionIds: [1116], libraryIds: [12] })
@@ -128,7 +128,7 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     answers({ name: 'card', data: CARD }, { name: 'error', data: { code: 'llm_failed' } })
     setup()
     expect(await screen.findByText('지금은 설명을 쓰지 못했어요')).toBeTruthy()
-    expect(screen.getByRole('link', { name: /코스모스/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '코스모스' })).toBeTruthy()
   })
 
   it('says to wait on 429 and to use the direct search when paused', async () => {
@@ -171,5 +171,15 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     await waitFor(() => expect(stream).toHaveBeenCalledTimes(1))
     await user.type(screen.getByRole('textbox', { name: '이어서 묻기' }), '더 쉬운 것{Enter}')
     expect(loadChat().turns).toHaveLength(1)
+  })
+
+  it('opens the recommended books\' book window from a card (user 2026-10-24)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })))
+    startWithQuestion('우주 책')
+    answers(...okAnswer)
+    const user = setup()
+    await user.click(await screen.findByRole('button', { name: '코스모스' }))
+    expect(await screen.findByRole('dialog', { name: '코스모스 대출 정보' })).toBeTruthy()
+    vi.unstubAllGlobals()
   })
 })

@@ -1,12 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
 import { ApiError } from '../../api/client'
+import type { PickBook } from '../../api/types'
+import { useMediaQuery } from '../../lib/useMediaQuery'
+import { PicksBookDialog } from '../picks/PicksBookDialog'
+import { PHONE_QUERY } from '../picks/PicksPage'
+import { usePicksPlan } from '../picks/usePicksPlan'
 import { useRegions } from '../region/RegionContext'
 import { useMineLabel } from '../search/regionPlace'
 import { loadPrefs } from '../search/searchSettings'
-import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnState } from './aiChatStore'
+import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnCard, type AiTurnState } from './aiChatStore'
 import { AI_TEXT, EXAMPLE_QUESTIONS, HISTORY_SENT, QUESTION_MAX, QUESTION_MIN, TURNS_MAX } from './aiSearchText'
 import type { SearchTabState } from './SearchTabs'
 import styles from './AiChatPage.module.css'
@@ -26,6 +31,10 @@ export function AiChatPage() {
   const [draft, setDraft] = useState('')
   const [tooShort, setTooShort] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  // a card opens the recommended books' book window (user 2026-10-24 "추천 도서창에서 눌렀을 때처럼 모달")
+  const [opened, setOpened] = useState<PickBook | null>(null)
+  const { plan } = usePicksPlan()
+  const phone = useMediaQuery(PHONE_QUERY)
   const newChatRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => saveChat(chat), [chat])
@@ -155,6 +164,7 @@ export function AiChatPage() {
                 }))
               }
               onExample={ask}
+              onOpen={(card) => setOpened(pickBookOf(card))}
               onDirect={(title) =>
                 title
                   ? navigate(`/search?title=${encodeURIComponent(title)}`)
@@ -165,6 +175,13 @@ export function AiChatPage() {
         ))}
       </ol>
       <div ref={endRef} />
+      <PicksBookDialog
+        book={opened}
+        plan={plan}
+        onClose={() => setOpened(null)}
+        onSearch={(bookId) => navigate(`/books/${bookId}`)}
+        phone={phone}
+      />
 
       <div className={styles.composer}>
         {full ? (
@@ -214,10 +231,11 @@ type AnswerProps = {
   busy: boolean
   onRetry: () => void
   onExample: (question: string) => void
+  onOpen: (card: AiTurnCard) => void
   onDirect: (title: string | null) => void
 }
 
-function Answer({ turn, busy, onRetry, onExample, onDirect }: AnswerProps) {
+function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProps) {
   const notice = noticeOf(turn)
   return (
     <div className={styles.answer}>
@@ -240,13 +258,14 @@ function Answer({ turn, busy, onRetry, onExample, onDirect }: AnswerProps) {
         <ul className={styles.cards}>
           {turn.cards.map((card) => (
             <li key={card.bookId} className={styles.card}>
-              <Link
-                to={`/books/${card.bookId}`}
+              <button
+                type="button"
                 className={styles.cardLink}
                 aria-labelledby={`ai-card-${turn.id}-${card.bookId}`}
+                onClick={() => onOpen(card)}
               >
                 {card.coverUrl ? (
-                  <img className={styles.cover} src={card.coverUrl} alt="" loading="lazy" width="96" height="140" />
+                  <img className={styles.cover} src={card.coverUrl} alt="" loading="lazy" width="120" height="174" />
                 ) : (
                   <span className={styles.cover} aria-hidden="true" />
                 )}
@@ -258,7 +277,7 @@ function Answer({ turn, busy, onRetry, onExample, onDirect }: AnswerProps) {
                   <span className={styles.cardCount}>{AI_TEXT.myLibraries(card.myLibraryCount)}</span>
                   {card.text && <span className={styles.cardText}>{card.text}</span>}
                 </span>
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
@@ -310,6 +329,23 @@ function noticeOf(turn: AiTurnState): { text: string; action?: 'retry' | 'direct
       return { text: AI_TEXT.failed, action: 'retry' }
     default:
       return null
+  }
+}
+
+/** The book window's book for an AI card: our book, no list of its own (no year, video or AI summary line). */
+function pickBookOf(card: AiTurnCard): PickBook {
+  return {
+    id: String(card.bookId),
+    category: '',
+    title: card.title,
+    listTitle: null,
+    coverUrl: card.coverUrl,
+    bookId: card.bookId,
+    available: card.myLibraryCount > 0,
+    recommendedMonth: null,
+    yearBook: null,
+    videoId: null,
+    tocNo: null,
   }
 }
 
