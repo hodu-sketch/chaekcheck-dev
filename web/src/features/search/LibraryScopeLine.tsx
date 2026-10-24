@@ -70,8 +70,6 @@ export const SCOPE_TEXT = {
   residence: '거주',
   // the main page's box title (user 2026-10-21 design A)
   livePlace: '사는 곳',
-  residenceShort: '거주',
-  workShort: '재직',
   // more regions than the one the button names (user 2026-10-21: "강서구 거주 외 1곳")
   pickMore: (count: number) => `외 ${count}곳`,
   work: '일하는 곳',
@@ -318,23 +316,22 @@ export function LibraryScopeChip({
 }
 
 /**
- * The main page's region button names what is picked (user 2026-10-21, design A without 세모 or emoji): 「강서구 거주」
- * for the first 거주 (else the first 직장, 「금천구 재직」) and 「외 1곳」 when more regions are set; 「지역을 선택해 주세요」 before
- * any. It replaced the white pill and the 「+」 beside the button, which looked like an add button.
+ * The main page's region button names the first 거주 region by its name only, 「강서구」, with 「외 1곳」 when more 거주
+ * regions are set; 「지역을 선택해 주세요」 before any. 직장 regions are not named here at all (user 2026-10-24: "그냥 지역명만
+ * 나오게 해주라", "거주만 나오고 재직은 아예 메인에 안 나오게"; before: 「강서구 거주」, else 「금천구 재직」). It replaced the
+ * white pill and the 「+」 beside the button, which looked like an add button (user 2026-10-21).
  */
 function PickLabel() {
   const { regions } = useRegions()
   const labels = useRegionLabels(useRegionTree().data)
   const residence = regions.residence[0]
-  const id = residence ?? regions.work[0]
-  const label = id === undefined ? undefined : labels.get(id)
+  const label = residence === undefined ? undefined : labels.get(residence)
   if (label === undefined) return <>{SCOPE_TEXT.pick}</>
   const place = label.split(' ').slice(1).join(' ') || label
-  const word = residence !== undefined ? SCOPE_TEXT.residenceShort : SCOPE_TEXT.workShort
-  const others = regions.residence.length + regions.work.length - 1
+  const others = regions.residence.length - 1
   return (
     <>
-      {`${place} ${word}`}
+      {place}
       {others > 0 && (
         <>
           {' '}

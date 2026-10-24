@@ -458,7 +458,7 @@ describe('phones: the chip and its own "찾을 도서관" sheet (cycle 22 R2, us
     phoneScreen()
     renderSearch('/')
 
-    const chip = await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
+    const chip = await screen.findByRole('button', { name: '마포구' })
     const user = userEvent.setup()
     await user.click(chip)
     const sheet = within(await screen.findByRole('dialog', { name: '찾을 도서관' }))
@@ -562,7 +562,7 @@ describe('the first screen', () => {
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
     // the condition line with this account's regions
-    await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
+    await screen.findByRole('button', { name: '마포구' })
     // the shelf of recommended books in place of the example card (user 2026-10-22)
     const shelf = await screen.findByRole('region', { name: '이런 책도 무료로 빌려 보세요' })
     expect(within(shelf).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
@@ -641,7 +641,7 @@ describe('the first screen', () => {
   it('with work regions and added libraries: the box still opens and shows only the first 거주', async () => {
     renderSearch('/')
     const user = userEvent.setup()
-    const button = await screen.findByRole('button', { name: '마포구 거주 외 1곳' })
+    const button = await screen.findByRole('button', { name: '마포구' })
     await user.click(button)
     const panel = screen.getByRole('dialog', { name: '찾을 도서관' })
     const residence = within(panel).getByRole('group', { name: '사는 곳' })
