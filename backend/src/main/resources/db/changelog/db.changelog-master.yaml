@@ -192,3 +192,11 @@ databaseChangeLog:
   - include:
       file: usagelog/008-ai-search-event.yaml
       relativeToChangelogFile: true
+  # cycle 23: for-you tab (ADR-0148, ADR-0149). The usagelog change (picks_list for_you) comes after cycle 24's
+  # usagelog-ai-search-event once cycle 24 is on main.
+  - include:
+      file: foryou/001-for-you.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: picks/006-tag-dictionary-and-book-tag.yaml
+      relativeToChangelogFile: true
