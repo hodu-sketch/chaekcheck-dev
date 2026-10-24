@@ -6025,7 +6025,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 - 도구: `scripts/aisearch/prototype_haiku.py`(빌드·CI 밖, 표준 라이브러리만, raw HTTP로 6단계 `AnthropicLlmClient`와 같은 모양). 결과 원본: `scripts/aisearch/results/2026-10-24-run1/`(질문 글 없음, 번호만)
 - **Haiku에 준 책**: 사용자 결정(2026-10-24, "응 이렇게 해줘"): ① 지금은 저장소 목록 파일(`scripts/crawl/lists/` kaist·leedongjin·nobel·snu100 + `picks/ai-summaries.tsv`의 사서 목록)의 제목·저자 2,738권, 책 번호는 임시(줄 차례) ② 지금 도는 수집을 반영한 뒤 2단계 TSV의 `book_id`를 **반영 뒤 DB 번호**로 뽑음 ③ 그 TSV(실제 번호·제목·저자·한 줄)로 1단계를 다시 돌림. 사용자 "이해가 안 가는게 지금 돌리는 수집 사이클은 나중에 반영할건데" → 번호는 반영 뒤에 뽑기로 정리. 이번 실행은 한 줄 없음, 사서 목록 108권은 저자 없음, 우리 책과 맞춰지지 않은 줄도 섞임
-- **용어**: 사용자 "후보 도서관 표현 쓰지 말라고"(2026-10-24). 사용자에게 쓰는 글에서는 "후보"를 쓰지 않음(책 쪽도 "Haiku에 줄 책"으로 부름). 코드·설계 이름(`CandidateQuery`, `candidates.max`)은 설계 그대로
+- **용어**: 사용자 "후보 도서관 표현 쓰지 말라고"(2026-10-24). 이 규칙은 **"후보 도서관"이라는 말**에만 해당합니다(plan 사이클 13 회고 결정 #13). dev 세션이 처음에 책 쪽 "후보"까지 넓혀 읽었고, 사용자가 바로잡음: "근데 지금 나는 '후보 도서관' 표현을 쓰지 말라고 했고"(2026-10-24). 설계의 "후보 30권"·`CandidateQuery`·`candidates.max`는 그대로 씀. 답 글(사용자 화면)에 "후보"를 쓰지 않게 한 2차 지시문 고침은 이와 따로 사용자가 승인한 것("그래")
 - 질문: `llm-test-set.md` 1절 20개 + 21 "채식주의자"(제목만) + 22 "이 중에 소설만"(앞 대화 2번) + 23 "더 짧은 걸로"(앞 대화 16번). 낱말 맞추기는 서버 안과 같은 규칙(NFKC·소문자·빈칸 지움, 2자 이상, 8개, 맞은 낱말 수 → 번호 순, 30권). 계획 도서관 수는 없음
 - 설정 셋: `default`(thinking 생략 = adaptive, effort 기본 medium) / `low`(adaptive, `output_config.effort: low`) / `off`(`thinking: {type: disabled}` + effort low). 1차 `max_tokens` 1024, 2차 4096
 
