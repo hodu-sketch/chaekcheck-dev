@@ -318,6 +318,20 @@ chaekcheck:
     cache:
       # The shared cache of the picks is read again this often [확정 10m]
       refresh-interval: 10m
+  aisearch:
+    llm:
+      anthropic:
+        # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only
+        # (Parameter Store /chaekcheck/prod/CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY, cycle 17 way), never in a file of the
+        # repository, never logged. Empty: every call fails and the search takes its fallback way (keywords from the
+        # question, books without text). docs/maintenance/settings-index.md
+        api-key: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:}
+        model: claude-haiku-5-5
+        base-url: https://api.anthropic.com
+        # https://platform.claude.com/docs/en/api/versioning (checked 2026-10-24: the latest version)
+        version: "2026-10-21"
+        # output_config.effort; step 1 (2026-10-24): low keeps both calls fast with thinking left on [안]
+        effort: low
   usagelog:
     # Usage log (cycle 15, ADR-0096, ADR-0097). Off by default [확정]: off at the first deployment, switched on at the
     # public opening day when the privacy policy says so (../.env or the environment: CHAEKCHECK_USAGELOG_ENABLED).

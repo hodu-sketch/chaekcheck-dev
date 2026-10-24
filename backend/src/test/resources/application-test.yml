@@ -9,6 +9,11 @@ spring:
       maximum-pool-size: 4
 
 chaekcheck:
+  aisearch:
+    llm:
+      anthropic:
+        # Tests never call the real API, even when the session has a key in the environment
+        api-key: ""
   auth:
     # Tests set login on per class; the local ../.env (which may switch login on or offer kakao only while trying a
     # provider) must not change them. Real environment variables still win over these.

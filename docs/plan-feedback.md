@@ -6157,3 +6157,16 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 | bigm 색인을 쓰게 함(BitmapOr 6개 → Hash Join) | 18.9 ms | 1,577 |
 
 - 정리: 2,738권에서는 **색인이 빠르게 하지 않음**(플래너도 고르지 않음). 흉내 낸 한 줄이 같은 낱말 30개로 만들어져 맞는 줄이 많은(58%) 나쁜 경우라, 실제 한 줄에서는 더 적게 맞을 것 [추론]. 색인은 설계대로 두되(목록이 커질 때·대상이 적을 때 플래너가 씀) 1차 5초에 비하면 무시할 크기. 2단계 한 줄을 넣은 뒤 같은 쿼리로 다시 잼
+
+## 6단계: `LlmClient`와 `AnthropicLlmClient` (2026-10-24)
+
+- 새 파일: `aisearch/internal/llm/LlmClient.java`(경계: `complete`·`stream`, `LlmCall(system, messages, jsonSchema, maxTokens)`, `Usage(input, output, outputKnown)`, `Failure`, `LlmException`), `AnthropicProperties.java`, `AnthropicLlmClient.java`, `LlmConfiguration.java`. 설정은 `application.yml` `chaekcheck.aisearch.llm.anthropic`, 시험 프로필은 키를 늘 비움. dev 설정 목록 `docs/maintenance/settings-index.md` 1-1절
+- 설계(architect 결정 6) 위에 정한 것 [안: dev]
+  - `Failure`에 **`NOT_CONFIGURED`**를 더함(키가 비면 아무것도 보내지 않고 이 값으로 실패 → 흐름이 대신하는 길로)
+  - `stream`도 `Result(text, usage, stopReason)`를 돌려주고, 글 조각은 부른 스레드에서 차례대로 `Consumer<String>`에 넘김. 끊기면 `LlmException.usage()`에 그때까지 센 토큰(출력을 모르면 `outputKnown=false` → 7단계가 `max_tokens`로 셈)
+  - 시간: 호출 전체 한 시간. 머리까지는 `sendAsync(...).get(시간)`, 스트림 본문은 가상 스레드가 남은 시간 뒤 본문을 닫아 읽기를 끝냄. 연결 3초(코드 상수)
+  - 오류 갈래: 429·529·`overloaded_error`(응답이든 스트림 이벤트든) → `OVERLOADED`, 그 밖의 거절·연결 오류·`message_stop` 없이 끝난 스트림 → `HTTP_ERROR`, 시간 → `TIMEOUT`, 보통 호출의 `stop_reason`이 `end_turn`이 아니거나 JSON이 아님 → `BAD_OUTPUT`
+  - 요청: `model`·`max_tokens`·`system`·`messages`·`output_config{effort, format{type: json_schema, schema}}`(·`stream`). `thinking`은 보내지 않음(기본 adaptive). 머리 `x-api-key`·`anthropic-version`·`content-type`
+  - 로그: 실패만 WARN 한 줄(갈래, 상태, 오류 type, `request-id`). 오류 본문의 `message`는 읽지 않음(질문 글이 되돌아올 수 있어서)
+- 시험(가짜 HTTP 서버, 통과 8개): 요청 머리·본문 모양(`thinking`·`temperature` 없음), 보통 답, `max_tokens`에서 끊김 → `BAD_OUTPUT`과 토큰, 스트림 조각 차례와 `usage`(시작·끝), 429 / 529 / 500 / 스트림 `overloaded_error`, 머리를 늦게 주는 서버·본문을 늦게 끝내는 서버 둘 다 시간 안에 `TIMEOUT`, 끊긴 스트림 → `HTTP_ERROR`와 그때까지 토큰, 빈 키면 요청 0건, 로그·예외에 키·질문·지시문 없음
+- 실제 호출(빌드에서는 꺼진 `AnthropicLlmLiveTests`, `CHAEKCHECK_AISEARCH_LIVE=1`일 때만, 2026-10-24): 보통 2,384 ms 토큰 434/119, 스트림 1,045 ms 조각 22개 토큰 434/107, 둘 다 `end_turn`

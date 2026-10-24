@@ -38,6 +38,16 @@
 | 막힌 길: 첫 쉼 / 상한 (사이클 webshare) | 10m / 7d | `chaekcheck.availability.egress.block.first-pause` / `max-pause` | `CHAEKCHECK_AVAILABILITY_EGRESS_BLOCK_FIRSTPAUSE` / `CHAEKCHECK_AVAILABILITY_EGRESS_BLOCK_MAXPAUSE` | — | 10분 뒤 시험 요청 1건(그 길의 1건·1초 자리 안에서), 정상(2xx)이면 풂, 또 막혔으면 쉼 두 배(10 → 20 → 40 …), 상한 7일 | 사용자 승인 2026-10-15 ("상한은 일주일로 가자") | 서비스 |
 | 막힌 길: 시험 확인 간격 / 시험 마감 (사이클 webshare) | 30s / 20s | `chaekcheck.availability.egress.block.retest-check-interval` / `retest-timeout` | `CHAEKCHECK_AVAILABILITY_EGRESS_BLOCK_RETESTCHECKINTERVAL` / `CHAEKCHECK_AVAILABILITY_EGRESS_BLOCK_RETESTTIMEOUT` | — | 다음 시험 시각이 지난 (길, 사이트) 줄을 30초마다 찾아 시험 1건을 보냄; 시험 한 건의 마감(자리 기다림 포함) 20초 [안] | 인계 1-15 #4 | 서비스 |
 
+### 1-1. AI 책 찾기 (사이클 24, `chaekcheck.aisearch`)
+
+| 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
+|---|---|---|---|---|---|---|---|
+| Anthropic API 키 | 빈 값(로컬·시험), 운영은 비밀 값 | `chaekcheck.aisearch.llm.anthropic.api-key` | **`CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`**(`application.yml`의 `${…}` 자리; 규칙대로 만든 이름 `…_LLM_ANTHROPIC_APIKEY`도 됨) | 운영 Parameter Store `/chaekcheck/prod/CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY` → `up.sh` → compose(0단계 다름 8) | 비면 모든 호출이 `NOT_CONFIGURED`로 실패하고 대신하는 길로 감. 로그·예외·`toString`에 나오지 않음. 시험 프로필은 늘 빈 값 | design-delta "외부 연동", ADR-0150 | 서비스 |
+| 모델 | `claude-haiku-5-5` | `…llm.anthropic.model` | `CHAEKCHECK_AISEARCH_LLM_ANTHROPIC_MODEL` | 가격 값(7단계) | [확정] | design-delta | 서비스 |
+| API 주소 / 판 | `https://api.anthropic.com` / `2026-10-21` | `…llm.anthropic.base-url` / `…version` | `…_BASEURL` / `…_VERSION` | — | 공식 문서로 확인(2026-10-24, https://platform.claude.com/docs/en/api/versioning: 최신 판). 이 판에서 `temperature`류를 보내면 400 → 보내지 않음 | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
+| effort | `low` | `…llm.anthropic.effort` | `…_EFFORT` | — | 1단계 측정: thinking은 끄지 않고 effort만 낮춤(1차 최대 2.4초, 2차 최대 6.5~8.2초) [안] | 같음 | 서비스 |
+| 연결 시간 | 3초 | 코드 상수 (`LlmConfiguration`) | — | 1차 5초 | 3초 안에 연결이 안 되면 5초 안의 1차도 끝나지 않음 [안] | — | 서비스 |
+
 ## 2. 조회 서버 (`fetch-service/src/main/resources/application.yml`)
 
 | 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
