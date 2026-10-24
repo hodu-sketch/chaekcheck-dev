@@ -6304,3 +6304,9 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
   > 사이클 23 설계 결정 #7(사용자 승인 2026-10-24, ADR-0149 결정 3): PC Haiku 배치는 **책 한 권당 한 번 호출**로 탭 추천 글(23, kind `for_you_blurb`)·꼬리표(23, kind `tags`)·찾기용 한 줄(24, kind `search_line`)을 함께 만듭니다. 입력은 **대상 책 목록 파일**이고 다음부터는 새 책만 더 돌립니다(23 대상: 기본 목록 책 + 추천목록 책 약 2,800권 + 보유 많은 3만 권). 결과는 `book-texts.tsv` 한 파일에 kind별로 담아 `book-texts` 모드 한 번으로 넣습니다. 24 dev 브랜치의 2단계 배치("(가) 한 권씩 바로 호출, 요청 파일 `custom_id`=`book_id`")는 이 결정에 맞춰 한 스크립트로 합쳐야 합니다(23 설계는 Message Batches).
 
 - 알린 날·받은 답: (사용자 전달 뒤 적음)
+
+## 사용자 답 (2026-10-24, 0단계 뒤)
+
+- 시작점: **"24가 main에 들어갈 때까지 기다림"**. 그동안 24와 겹치지 않는 부분(`catalog` 카드 칸·소장 키 역조회·`workKeys`, `availability.RankedListings`, `foryou` 표·만들기·API, `picks` 꼬리표 표)만 main 위 이 브랜치에서 만듦. `ListedBooks`·`book-texts`·`usagelog` CHECK(`for_you`)는 24가 main에 들어간 뒤 그 위에 kind·칸만 더함
+- 출판 연도: **"대표 출판일 그대로"** — `catalog.book.published_on`(소장 줄 출판일 다수결)의 해
+- 사용 알림 `category`: **"all / base / similar"** — 목록 보기 `all`, 책 보기는 카드가 온 곳 `base`·`similar`
