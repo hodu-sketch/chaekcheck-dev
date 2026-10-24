@@ -30,8 +30,8 @@ function Where() {
 }
 
 /** The direct form of the page, reduced to its box: the leading menu, then the title box. */
-const directForm = (leading: ReactNode) => (
-  <div>
+const directForm = (leading: ReactNode, hidden: boolean) => (
+  <div hidden={hidden}>
     {leading}
     <input aria-label="책 제목" />
   </div>

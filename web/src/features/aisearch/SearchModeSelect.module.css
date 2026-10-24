@@ -1,9 +1,12 @@
-/* inside the search box, at its left end, with a thin line before the text box */
+/* inside the search box, at its left end, with a thin line before the text box; one width for AI and 직접, so the box
+   does not move when the choice changes (user 2026-10-24) */
 .trigger {
   display: inline-flex;
   flex: none;
   align-items: center;
+  justify-content: space-between;
   gap: 0.35rem;
+  width: 4.9rem;
   height: calc(100% - 0.7rem);
   padding: 0 0.7rem 0 0.75rem;
   border: none;

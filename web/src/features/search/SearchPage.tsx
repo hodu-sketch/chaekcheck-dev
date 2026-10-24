@@ -550,9 +550,10 @@ export function SearchPage() {
             every screen, so the form stays mounted when the first search starts */}
         <SearchTabs
           showTabs={start}
-          direct={(leading) => (
+          direct={(leading, hidden) => (
             <SearchForm
               leading={leading}
+              hidden={hidden}
               // no 「온라인 가입만」 chip by the search box any more (user 2026-10-21: "온라인 가입만 이거 버튼 빼주라"); the
               // setting stays on the my page
               key={formKey}

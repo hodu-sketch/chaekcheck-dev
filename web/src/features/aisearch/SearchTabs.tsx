@@ -12,9 +12,10 @@ export type SearchTabState = { searchTab?: SearchTab }
 type Props = {
   /**
    * The direct search form, the same element on every screen. `leading` goes at the left end of its box: the AI/직접
-   * menu on the first screen, nothing elsewhere.
+   * menu on the first screen, nothing elsewhere. `hidden` while AI is chosen. The form is returned without a wrapper:
+   * the page's layout rules place it as a direct child of its search area.
    */
-  direct: (leading: ReactNode) => ReactNode
+  direct: (leading: ReactNode, hidden: boolean) => ReactNode
   /** The first screen offers both ways; the results screen shows the direct search only. */
   showTabs: boolean
 }
@@ -36,21 +37,19 @@ export function SearchTabs({ direct, showTabs }: Props) {
   const choose = (next: SearchMode) => {
     setMode(next)
     // the chosen way's text box takes the focus once it shows
-    requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`#search-way-${next} input`)?.focus())
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>(`[data-search-way="${next}"] input`)?.focus())
   }
 
   const menu = both ? <SearchModeSelect value={shown} onChange={choose} /> : null
 
   return (
-    <div>
+    <>
       {both && (
-        <div id="search-way-ai" hidden={shown !== 'ai'}>
+        <div data-search-way="ai" hidden={shown !== 'ai'}>
           <AiSearchTab leading={menu} />
         </div>
       )}
-      <div id="search-way-direct" hidden={shown !== 'direct'}>
-        {direct(shown === 'direct' ? menu : null)}
-      </div>
-    </div>
+      {direct(shown === 'direct' ? menu : null, shown !== 'direct')}
+    </>
   )
 }

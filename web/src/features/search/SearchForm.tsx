@@ -40,6 +40,8 @@ type Props = {
   lineEnd?: ReactNode
   /** The first screen: the AI/직접 menu at the left end of the box (cycle 24, user 2026-10-24). */
   leading?: ReactNode
+  /** The first screen with AI chosen: the form stays mounted (and keeps its text) but is not shown. */
+  hidden?: boolean
 }
 
 /**
@@ -62,6 +64,7 @@ export function SearchForm({
   beforeChips,
   lineEnd,
   leading,
+  hidden = false,
 }: Props) {
   const id = useId()
   const [input, setInput] = useState<BookSearchInput>(initial)
@@ -113,7 +116,17 @@ export function SearchForm({
   )
 
   return (
-    <form className={styles.form} data-start={centered ? true : undefined} onSubmit={handleSubmit} role="search" noValidate>
+    <form
+      className={styles.form}
+      data-start={centered ? true : undefined}
+      // the first screen's AI/직접 ways (cycle 24): a direct child of the page's search area, so its layout rules apply
+      data-search-way="direct"
+      hidden={hidden}
+      style={hidden ? { display: 'none' } : undefined}
+      onSubmit={handleSubmit}
+      role="search"
+      noValidate
+    >
       <div className={styles.topLine}>
         <div className={styles.field} data-invalid={problems.title || problems.none ? true : undefined}>
           {leading}
