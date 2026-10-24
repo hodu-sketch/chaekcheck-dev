@@ -6142,3 +6142,18 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - 세 실행 모두 JSON·칸 차례 ○, 30권 밖 번호 0. 결과 원본 `scripts/aisearch/results/2026-10-24-run2/`·`run3/`
 - 남은 "목록"은 모두 맞는 책이 적을 때의 머리말("목록에는 조선 시대 … 책이 거의 없어")이고 카드 글에는 없음. 지시문을 더 바꿔도 줄지 않아 멈춤. 지금 지시문은 run3(`scripts/aisearch/prototype_haiku.py` `PICK_SYSTEM`). 이 말을 그대로 둘지, 6·8단계에서 한 줄이 들어간 뒤 다시 손볼지는 사용자에게 물음
 - 2차 출력 최대가 1,490으로 늘었으나 제안한 2차 `max_tokens` 2048 안
+
+## 5단계: 낱말 맞추기 `CandidateQuery` (2026-10-24)
+
+- 새 파일: `aisearch/internal/match/CandidateQuery.java`, `PlanTargets.java`, 시험 `CandidateQueryTests`(db-test 6개, 통과). 설계와 다른 점 없음
+- `PlanTargets.of(listedBooks, planLibraries, excluded)`: `ListedBooks.current()`의 책마다 `countHeldBy`로 계획 도서관 수를 세고(메모리) 1곳 이상만 남김(R3-3), 보여 준 책 빼기(R11-4)도 여기서. 이 파일부터 `aisearch → picks` 의존이 생김(허용 안)
+- `CandidateQuery.find(keywords, targets, limit)`: design-delta 모양 그대로(`JOIN unnest(CAST(:ids AS bigint[]), CAST(:counts AS integer[]))`, 낱말마다 `LIKE … ESCAPE '\'` 1점, `ORDER BY score DESC, plan_count DESC, book_id LIMIT`). SQL 글에는 만든 매개변수 이름만 넣고 낱말은 묶어 보냄. 낱말은 `SearchText.tidy` → 2자 이상 → 같은 것 한 번 → 앞 8개, `\` `%` `_`는 escape. 낱말이나 대상이 없으면 쿼리 없이 빈 목록. `limit`(30)은 8단계 설정에서 넘김
+- 시험: 점수 → 계획 도서관 수 → 번호 순, 40권 동점에서 계획 도서관이 많은 책이 30권 안에 남음(검토 지적 #5), 계획 0곳 제외, `%`·`_` escape, 낱말 정리·2자 미만 버림·8개, `PlanTargets`
+- **속도 측정** (`EXPLAIN ANALYZE`, 이 클라우드의 PostgreSQL 18.6 + pg_bigm, `chaekcheck_local`): 저장소 목록 파일 2,738권 + 흉내 낸 한 줄(낱말 30개를 섞은 150자, `search_text` 평균 79자) 모두를 대상으로, 낱말 6개(1단계 질문 1번의 낱말)
+
+| 경로 | 실행 시간 | 맞은 줄 |
+|---|---|---|
+| 기본(플래너가 고름: `unnest` → PK 색인 중첩 반복, 줄마다 `LIKE`) | 15.6 ~ 18.6 ms | 1,577 |
+| bigm 색인을 쓰게 함(BitmapOr 6개 → Hash Join) | 18.9 ms | 1,577 |
+
+- 정리: 2,738권에서는 **색인이 빠르게 하지 않음**(플래너도 고르지 않음). 흉내 낸 한 줄이 같은 낱말 30개로 만들어져 맞는 줄이 많은(58%) 나쁜 경우라, 실제 한 줄에서는 더 적게 맞을 것 [추론]. 색인은 설계대로 두되(목록이 커질 때·대상이 적을 때 플래너가 씀) 1차 5초에 비하면 무시할 크기. 2단계 한 줄을 넣은 뒤 같은 쿼리로 다시 잼
