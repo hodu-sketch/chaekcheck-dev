@@ -89,8 +89,9 @@ public class DailyBudget {
 	/**
 	 * One model call. When the call broke before the model told its output, the output is counted as
 	 * {@code maxTokens} (handoff step 7-2 [안]).
+	 * @return the output tokens counted
 	 */
-	public void addCall(Usage usage, int maxTokens) {
+	public long addCall(Usage usage, int maxTokens) {
 		long output = usage.outputKnown() ? usage.outputTokens() : Math.max(usage.outputTokens(), maxTokens);
 		jdbc.sql("""
 				INSERT INTO aisearch.daily_usage AS d (day, llm_call_count, input_tokens, output_tokens, cost_micro_usd)
@@ -104,6 +105,7 @@ public class DailyBudget {
 			.param("output", output)
 			.param("cost", costMicroUsd(usage.inputTokens(), output))
 			.update();
+		return output;
 	}
 
 	/** Millionths of a US dollar for the tokens, rounded up. */

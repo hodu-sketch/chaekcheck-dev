@@ -1,8 +1,11 @@
 package com.chaekcheck.aisearch.internal.match;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -76,6 +79,22 @@ public class CandidateQuery {
 			statement = statement.param("k" + i, "%" + escapeLike(words.get(i)) + "%");
 		}
 		return statement.query((rs, n) -> new Candidate(rs.getLong(1), rs.getInt(2), rs.getInt(3))).list();
+	}
+
+	/** The search lines of the given books (books without one are left out); one query. */
+	public Map<Long, String> lines(Collection<Long> bookIds) {
+		if (bookIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, String> lines = new HashMap<>();
+		jdbc.sql("""
+				SELECT book_id, line FROM aisearch.search_book
+				WHERE book_id = ANY(CAST(:ids AS bigint[])) AND line IS NOT NULL""")
+			.param("ids", bookIds.toArray(Long[]::new))
+			.query(rs -> {
+				lines.put(rs.getLong(1), rs.getString(2));
+			});
+		return lines;
 	}
 
 	/**
