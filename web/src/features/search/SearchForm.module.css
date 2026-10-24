@@ -145,6 +145,8 @@
 @media (width > 640px) {
   .form[data-start] {
     grid-template-columns: minmax(0, 1fr) auto;
+    /* no ⚙ on the first screen: no gap for its empty column, so the AI chips under the box end where the box ends */
+    column-gap: 0;
     width: 100%;
   }
 }

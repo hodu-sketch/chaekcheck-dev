@@ -42,6 +42,8 @@ type Props = {
   leading?: ReactNode
   /** The first screen with AI chosen: the form stays mounted (and keeps its text) but is not shown. */
   hidden?: boolean
+  /** The first screen: the AI search's example chips under the box (cycle 24, user 2026-10-24). */
+  below?: ReactNode
 }
 
 /**
@@ -65,6 +67,7 @@ export function SearchForm({
   lineEnd,
   leading,
   hidden = false,
+  below,
 }: Props) {
   const id = useId()
   const [input, setInput] = useState<BookSearchInput>(initial)
@@ -166,6 +169,7 @@ export function SearchForm({
           {field === 'title' ? problems[field] : `${FIELD_LABELS[field]}: ${problems[field]}`}
         </p>
       ))}
+      {below}
       {beforeChips}
       {/* on /search from the start (user 2026-10-19: "이 검색 칸에는 처음부터 저자 출판사 제목 정확히가"); not on the first screen */}
       {!centered && (

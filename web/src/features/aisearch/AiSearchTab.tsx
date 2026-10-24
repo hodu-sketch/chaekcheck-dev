@@ -1,7 +1,8 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { startWithQuestion } from './aiChatStore'
-import { AI_TEXT, EXAMPLE_QUESTIONS, QUESTION_MAX, QUESTION_MIN } from './aiSearchText'
+import { AI_TEXT, QUESTION_MAX, QUESTION_MIN } from './aiSearchText'
+import { ExampleChips } from './ExampleChips'
 import styles from './AiSearchTab.module.css'
 
 /**
@@ -62,15 +63,7 @@ export function AiSearchTab({ leading }: { leading?: ReactNode }) {
           {AI_TEXT.tooShort}
         </p>
       )}
-      <ul className={styles.chips} aria-label="예시 질문">
-        {EXAMPLE_QUESTIONS.map((question) => (
-          <li key={question}>
-            <button type="button" className={styles.chip} onClick={() => start(question)}>
-              {question}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <ExampleChips />
     </form>
   )
 }

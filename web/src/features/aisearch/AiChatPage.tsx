@@ -213,7 +213,10 @@ export function AiChatPage() {
               title={AI_TEXT.newChat}
               onClick={newChat}
             >
-              <span aria-hidden="true">+</span>
+              {/* a drawn plus, centred in the circle (the "+" glyph sat off centre, user 2026-10-24) */}
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
             </button>
             <label htmlFor="ai-follow-up" className="visually-hidden">
               이어서 묻기

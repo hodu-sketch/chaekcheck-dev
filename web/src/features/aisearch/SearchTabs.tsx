@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { AiSearchTab } from './AiSearchTab'
+import { ExampleChips } from './ExampleChips'
 import { SearchModeSelect, type SearchMode } from './SearchModeSelect'
 import { useAiStatus } from './useAiStatus'
 
@@ -12,10 +13,11 @@ export type SearchTabState = { searchTab?: SearchTab }
 type Props = {
   /**
    * The direct search form, the same element on every screen. `leading` goes at the left end of its box: the AI/직접
-   * menu on the first screen, nothing elsewhere. `hidden` while AI is chosen. The form is returned without a wrapper:
+   * menu on the first screen, nothing elsewhere. `below` goes under the box: the example chips on the first screen
+   * (user 2026-10-24: "ai 검색이 아니더라도 이건 놔주라"). `hidden` while AI is chosen. The form is returned without a wrapper:
    * the page's layout rules place it as a direct child of its search area.
    */
-  direct: (leading: ReactNode, hidden: boolean) => ReactNode
+  direct: (leading: ReactNode, below: ReactNode, hidden: boolean) => ReactNode
   /** The first screen offers both ways; the results screen shows the direct search only. */
   showTabs: boolean
 }
@@ -49,7 +51,7 @@ export function SearchTabs({ direct, showTabs }: Props) {
           <AiSearchTab leading={menu} />
         </div>
       )}
-      {direct(shown === 'direct' ? menu : null, shown !== 'direct')}
+      {direct(shown === 'direct' ? menu : null, both ? <ExampleChips /> : null, shown !== 'direct')}
     </>
   )
 }

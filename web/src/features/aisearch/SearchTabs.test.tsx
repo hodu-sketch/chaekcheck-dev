@@ -30,10 +30,11 @@ function Where() {
 }
 
 /** The direct form of the page, reduced to its box: the leading menu, then the title box. */
-const directForm = (leading: ReactNode, hidden: boolean) => (
+const directForm = (leading: ReactNode, below: ReactNode, hidden: boolean) => (
   <div hidden={hidden}>
     {leading}
     <input aria-label="책 제목" />
+    {below}
   </div>
 )
 
@@ -106,7 +107,7 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
 
   it('searches a chip at once', async () => {
     const user = setup()
-    await user.click(screen.getByRole('button', { name: EXAMPLE_QUESTIONS[0] }))
+    await user.click(screen.getAllByRole('button', { name: EXAMPLE_QUESTIONS[0] }).filter(shown)[0])
     expect(screen.getByTestId('where').textContent).toBe('/ai-search')
     expect(loadChat().turns[0].question).toBe(EXAMPLE_QUESTIONS[0])
   })
@@ -127,5 +128,15 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
     setup(200, { state: { searchTab: 'direct' } })
     expect(shown(titleBox())).toBe(true)
     expect(screen.getAllByRole('button', { name: '찾는 방법: 직접' }).filter(shown)).toHaveLength(1)
+  })
+
+  it('keeps the example chips under the direct box, where a chip still asks the AI (user 2026-10-24)', async () => {
+    const user = setup()
+    await choose(user, 'AI', '직접')
+    const chip = screen.getAllByRole('button', { name: EXAMPLE_QUESTIONS[1] }).filter(shown)
+    expect(chip).toHaveLength(1)
+    await user.click(chip[0])
+    expect(screen.getByTestId('where').textContent).toBe('/ai-search')
+    expect(loadChat().turns[0].question).toBe(EXAMPLE_QUESTIONS[1])
   })
 })

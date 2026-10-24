@@ -312,10 +312,8 @@
   border: 1px solid var(--rule-strong);
   border-radius: 999px;
   background: var(--card);
+  padding: 0;
   color: var(--ink-soft);
-  font-size: 1.5rem;
-  font-weight: 400;
-  line-height: 1;
   cursor: pointer;
 }
 
