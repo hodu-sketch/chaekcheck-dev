@@ -5966,7 +5966,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 7. **nginx 화면 경로에 `ai-search` 추가**(`chaekcheck-locations.conf`), 인계서가 적은 `deploy/prod/nginx/prod.conf`는 없음. 스트림 버퍼링·시간·gzip은 지금 설정으로 이미 맞아 고칠 것 없음
 8. **운영 `deploy/prod/compose.yaml`**: backend 환경 변수를 하나씩 적는 방식이라 `prod.env`만으로는 안 들어감 → `CHAEKCHECK_AISEARCH_ENABLED`와 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}`를 compose에 더함
 9. **웹 꺼짐 확인**: 위 #9 안(`GET /api/v1/ai-searches/status`)
-10. **서버 동시 상한·스레드**: 지금 검색처럼 가상 스레드 실행기 + Semaphore 하나로 만들고 넘으면 503(`ai_search_paused`와 다른 코드, 안: `server_busy` 그대로). 값은 사용자가 정할 때까지 넣지 않음 → 사용자에게 질문
+10. **서버 동시 상한·스레드**: 지금 검색의 60자리와 **따로** 하나 둠(사용자 선택 "(나) 따로 상한 하나 … 이걸로 하자", 2026-10-24; 도서관 요청이 없으므로 나누지 않음). 가상 스레드 실행기 + 전용 Semaphore, 처음 값 **20**(사용자가 고른 안에 적힌 값). 꽉 차면 스트림을 열기 전에 503 `server_busy` + `Retry-After` [안: 코드·초], 화면 문구는 횟수 초과와 같은 "잠시 뒤에 다시 써 주세요" [안]. 설정 `chaekcheck.aisearch.max-concurrent` [안: 이름]
 
 ### 이 클라우드 세션에서 하는 것·못 하는 것
 
