@@ -4,20 +4,16 @@ import { startWithQuestion } from './aiChatStore'
 import { AI_TEXT, EXAMPLE_QUESTIONS, QUESTION_MAX, QUESTION_MIN } from './aiSearchText'
 import styles from './AiSearchTab.module.css'
 
-type Props = {
-  /** The text typed, kept by the first screen while the tabs change (R1-3). */
-  text: string
-  onTextChange: (text: string) => void
-}
-
 /**
  * S1 "AI" tab (cycle 24 step 9): a sentence box with [찾기] and the example chips (a chip searches at once). No
  * 상세검색 and no ⚙ [확정]. A question under 2 characters is not sent; the box takes at most 200. Searching puts the
- * question in this tab's conversation and opens `/ai-search`; the address never holds it (R2-2 [확정]).
+ * question in this tab's conversation and opens `/ai-search`; the address never holds it (R2-2 [확정]). The text stays
+ * while the tabs change because the hidden tab stays mounted (R1-3).
  */
-export function AiSearchTab({ text, onTextChange }: Props) {
+export function AiSearchTab() {
   const id = useId()
   const navigate = useNavigate()
+  const [text, setText] = useState('')
   const [tooShort, setTooShort] = useState(false)
 
   const start = (question: string) => {
@@ -52,7 +48,7 @@ export function AiSearchTab({ text, onTextChange }: Props) {
           aria-invalid={tooShort ? true : undefined}
           aria-describedby={tooShort ? `${id}-error` : undefined}
           onChange={(event) => {
-            onTextChange(event.target.value)
+            setText(event.target.value)
             if (tooShort) setTooShort(false)
           }}
         />

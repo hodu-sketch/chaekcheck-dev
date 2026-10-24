@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
@@ -32,19 +33,25 @@ function answers(...events: AiStreamEvent[]) {
   })
 }
 
+
+let client: QueryClient
+
 function Where() {
   const location = useLocation()
-  return <p data-testid="where">{location.pathname + location.search}</p>
+  return <p data-testid="where">{location.pathname + location.search + JSON.stringify(location.state ?? null)}</p>
 }
 
 function setup() {
+  client = new QueryClient()
   render(
-    <MemoryRouter initialEntries={['/ai-search']}>
-      <Routes>
-        <Route path="/ai-search" element={<AiChatPage />} />
-        <Route path="*" element={<Where />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/ai-search']}>
+        <Routes>
+          <Route path="/ai-search" element={<AiChatPage />} />
+          <Route path="*" element={<Where />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
   return userEvent.setup()
 }
@@ -135,7 +142,7 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     setup()
     expect(await screen.findByText('오늘은 AI 책 찾기를 쉬어요. 직접 찾기를 써 주세요')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '직접 찾기로' }))
-    expect(screen.getByTestId('where').textContent).toBe('/')
+    expect(screen.getByTestId('where').textContent).toBe('/{"searchTab":"direct"}')
   })
 
   it('offers the guessed title in the direct search', async () => {
@@ -144,6 +151,23 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     const user = setup()
     expect(await screen.findByText(/「토지」을\(를\) 찾으시나요\?/)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '직접 찾기에서 보기' }))
-    expect(screen.getByTestId('where').textContent).toBe('/search?title=%ED%86%A0%EC%A7%80')
+    expect(screen.getByTestId('where').textContent).toBe('/search?title=%ED%86%A0%EC%A7%80null')
+  })
+
+  it('hides the AI tab for this page load when the AI search was turned off', async () => {
+    startWithQuestion('우주 책')
+    stream.mockRejectedValueOnce(new ApiError(404, { title: 'Not Found', status: 404, code: 'not_found' }))
+    setup()
+    expect(await screen.findByText('오늘은 AI 책 찾기를 쉬어요. 직접 찾기를 써 주세요')).toBeTruthy()
+    expect(client.getQueryData(['ai-search-status'])).toBe('off')
+  })
+
+  it('does not add a question while an answer is still coming', async () => {
+    startWithQuestion('우주 책')
+    stream.mockImplementation(() => new Promise(() => {}))
+    const user = setup()
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(1))
+    await user.type(screen.getByRole('textbox', { name: '이어서 묻기' }), '더 쉬운 것{Enter}')
+    expect(loadChat().turns).toHaveLength(1)
   })
 })

@@ -26,4 +26,9 @@ describe('aiChatStore (cycle 24 step 10, R11-6)', () => {
     sessionStorage.setItem('chaekcheck.aiChat', '{not json')
     expect(loadChat()).toEqual(EMPTY_CHAT)
   })
+
+  it('starts a new conversation from a store of another shape', () => {
+    sessionStorage.setItem('chaekcheck.aiChat', JSON.stringify({ turns: [{ id: 'a', question: '옛 모양' }] }))
+    expect(loadChat()).toEqual(EMPTY_CHAT)
+  })
 })

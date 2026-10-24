@@ -37,7 +37,8 @@ export function loadChat(storage: Storage | undefined = safeSession()): AiChat {
     const raw = storage?.getItem(KEY)
     if (!raw) return EMPTY_CHAT
     const parsed = JSON.parse(raw) as AiChat
-    if (!Array.isArray(parsed.turns)) return EMPTY_CHAT
+    // a store of another shape (an older page, a hand edit) starts a new conversation instead of breaking the page
+    if (!Array.isArray(parsed.turns) || !parsed.turns.every(isTurn)) return EMPTY_CHAT
     // an answer that was streaming when the page went away is not resumed: it shows the connection notice. A question
     // still waiting (the first screen's) is sent when the chat screen opens.
     return {
@@ -77,6 +78,19 @@ export function addQuestion(chat: AiChat, question: string): AiChat {
 /** The first screen's question: a new conversation unless one is open, then the chat screen opens. */
 export function startWithQuestion(question: string, storage: Storage | undefined = safeSession()): void {
   saveChat(addQuestion(loadChat(storage), question), storage)
+}
+
+function isTurn(turn: unknown): turn is AiTurnState {
+  if (typeof turn !== 'object' || turn === null) return false
+  const t = turn as Partial<AiTurnState>
+  return (
+    typeof t.id === 'string' &&
+    typeof t.question === 'string' &&
+    typeof t.state === 'string' &&
+    typeof t.head === 'string' &&
+    Array.isArray(t.cards) &&
+    t.cards.every((card) => typeof card?.bookId === 'number' && typeof card.title === 'string' && typeof card.text === 'string')
+  )
 }
 
 function safeSession(): Storage | undefined {

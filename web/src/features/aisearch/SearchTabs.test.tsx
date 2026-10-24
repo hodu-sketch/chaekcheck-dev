@@ -19,7 +19,7 @@ function Where() {
   return <p data-testid="where">{location.pathname + location.search}</p>
 }
 
-function setup(statusCode = 200) {
+function setup(statusCode = 200, { showTabs = true, state }: { showTabs?: boolean; state?: unknown } = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => new Response(statusCode === 200 ? '{}' : '', { status: statusCode })),
@@ -27,9 +27,9 @@ function setup(statusCode = 200) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={[{ pathname: '/', state }]}>
         <Routes>
-          <Route path="/" element={<SearchTabs direct={<input aria-label="책 제목" />} />} />
+          <Route path="/" element={<SearchTabs showTabs={showTabs} direct={<input aria-label="책 제목" />} />} />
           <Route path="/ai-search" element={<Where />} />
         </Routes>
       </MemoryRouter>
@@ -89,5 +89,16 @@ describe('SearchTabs (cycle 24 step 9)', () => {
     setup(404)
     await waitFor(() => expect(screen.queryByRole('tab')).toBeNull())
     expect(screen.getByRole('textbox', { name: '책 제목' })).toBeTruthy()
+  })
+
+  it('shows the direct search only on the results screen, keeping the same form element', async () => {
+    setup(200, { showTabs: false })
+    expect(screen.queryByRole('tab')).toBeNull()
+    expect(screen.getByRole('textbox', { name: '책 제목' })).toBeTruthy()
+  })
+
+  it('opens on the direct tab when the chat sends the user there', () => {
+    setup(200, { state: { searchTab: 'direct' } })
+    expect(screen.getByRole('tab', { name: '직접' }).getAttribute('aria-selected')).toBe('true')
   })
 })
