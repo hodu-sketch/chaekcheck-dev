@@ -1,0 +1,24 @@
+q	variant	k_t_end	k_in	k_out	k_thinking	notBook	titleLike	refersToShown	keywords	cand	p_t_first_text	p_t_end	p_in	p_out	p_thinking	json_ok	order_ok	picks	out_of_range	dup	text_len_max	cost_usd
+1	default	1.84	919	71	0	False	False	False	과학|교양|가벼운|입문|대중과학|짧은|읽기 쉬운	30	4.076	6.75	1888	825	1	True	True	6	[]	0	69	0.000728
+2	default	1.477	915	81	0	False	False	False	잠들기 전|짧은 글|가벼운 읽을거리|수필|에세이|위로|힐링|편안한	7	2.128	4.666	1035	696	1	True	True	5	[]	0	88	0.000583
+3	default	1.302	919	59	0	False	False	False	에세이|위로|힐링|마음|치유|산문	30	1.356	3.801	1787	448	0	True	True	5	[]	0	69	0.000524
+4	default	1.254	914	72	0	False	False	False	웃긴|소설|유머|코미디|기분 전환|가벼운|재미|희곡	24	3.564	6.115	1732	1149	1	True	True	3	[]	0	131	0.000875
+5	default	1.313	918	76	0	False	False	False	아동|초등 고학년|어린이 소설|청소년 입문|함께 읽기|가족|성장	8	3.505	4.448	1095	698	1	True	True	1	[]	0	113	0.000589
+6	default	1.067	913	72	0	False	False	False	건강|건강관리|질병예방|노년|부모님|실용|생활습관|웰니스	4	1.259	2.656	1032	282	0	True	True	2	[]	0	94	0.000371
+7	default	1.028	917	72	0	False	False	False	경제|입문|경제학 입문|처음|초보|쉬운 경제|기초 경제	30	3.968	7.63	1877	1285	1	True	True	7	[]	0	97	0.000958
+8	default	1.059	915	63	0	False	False	False	철학|입문|쉬운 철학|교양|철학 입문서	30	3.525	6.319	2053	1047	1	True	True	6	[]	0	77	0.000852
+9	default	1.184	923	69	0	False	False	False	조선|역사|이야기|역사 서술|대중 역사|교양|조선시대	30	2.48	2.769	1878	382	1	True	True	0	[]	0	0	0.000506
+10	default	0.785	909	73	0	False	False	False	기후 위기|기후변화|환경|지구온난화|과학|탄소|에너지|생태	30	2.367	3.343	2099	548	1	True	True	1	[]	0	130	0.000611
+11	default	2.174	911	285	1	False	False	False	성장 소설|성장|소설|청소년|자아 찾기|자아 성찰|독일 문학	16	5.192	6.565	1424	1136	1	True	True	2	[]	0	122	0.000944
+12	default	0.98	909	60	0	False	False	False	추리|추리소설|반전|미스터리|스릴러	6	3.13	5.475	1016	985	1	True	True	3	[]	0	131	0.000715
+13	default	1.079	906	68	0	False	False	False	SF|과학소설|한국 SF|단편집|단편소설|한국 소설	1	2.705	2.846	818	354	1	True	True	0	[]	0	0	0.000384
+14	default	1.059	918	98	0	False	False	False	글쓰기|문장력|글쓰기 기술|직장인|업무 글쓰기|비즈니스 글쓰기|문서 작성|커뮤니케이션	11	0.612	2.385	1186	346	0	True	True	3	[]	0	78	0.000433
+15	default	1.278	914	67	0	False	False	False	요리|레시피|1인분|자취|혼밥|간단요리|요리책	10	3.359	5.706	1151	911	1	True	True	4	[]	0	80	0.000696
+16	default	1.765	920	65	0	False	False	False	소설|단편|짧은 소설|단편소설|입문|가벼운	23	3.65	6.528	1691	1067	1	True	True	5	[]	0	84	0.000827
+17	default	1.462	924	65	0	False	False	False	인문학|에세이|여행|가벼운 교양|입문|교양서	30	2.399	5.786	1892	1087	1	True	True	6	[]	0	97	0.000858
+18	default	1.49	907	59	0	False	False	False	재미|흥미|베스트셀러|소설|인기	22	2.706	5.707	1700	876	1	True	True	5	[]	0	96	0.000728
+19	default	0.843	908	76	0	False	False	False	양자역학|물리학|대학원|교재|전문서|양자 물리|고급	7	2.165	2.352	1062	253	1	True	True	0	[]	0	0	0.000362
+20	default	1.076	911	39	0	True	False	False		0	None	None	None	None	None	None	None	None	None	None	None	0.000111
+21	default	0.99	902	71	0	False	True	False	채식주의자|한강|장편소설|소설|인간|폭력|연작	30	0.634	1.532	1781	192	0	True	True	1	[]	0	108	0.0004
+22	default	1.488	1002	60	0	False	False	True	소설|장편소설|이야기|픽션	30	2.96	3.218	1988	466	1	True	True	0	[]	0	0	0.000562
+23	default	0.906	1013	64	0	False	False	True	단편소설|짧은 소설|소설|단편|빠른 독서	16	3.442	5.811	1505	1058	1	True	True	5	[]	0	80	0.000812
