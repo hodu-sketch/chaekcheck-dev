@@ -5992,4 +5992,15 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 - 사용자 선택: **(가) PC 스크립트 + API 키, 한 권씩 바로 호출**(Message Batches API는 쓰지 않음). 사용자 "(가)로 하되 구현을 나중에 따로 llm을 돌렸을 때(vast.ai등)는 batch가 더 캐싱 등으로 유리하다면 batch를 준비할까하는데"
 - 근거로 본 값: Batches API는 Haiku 5.5 입력 $0.05·출력 $0.25(반값), "most batches completing within 1 hour", 최대 24시간, 요청·답을 최대 29일 보관 [확정] (https://platform.claude.com/docs/en/build-with-claude/batch-processing , 2026-10-24). 2,800권 어림 (가) 약 $0.4 / (나) 약 $0.2 [안: 토큰 수 어림]
-- 나중 자체 LLM(vast.ai vLLM 등)을 위한 준비 [안]: 스크립트를 ① 요청 파일 만들기(책마다 한 줄 JSONL, `custom_id`=`book_id`, 고정 지시문을 맨 앞·책마다 다른 부분을 뒤에) ② 보내기(이번에는 Anthropic 바로 호출만)로 나눔. vLLM의 Automatic Prefix Caching은 같은 앞부분을 다시 계산하지 않음 [확정] (https://github.com/vllm-project/vllm/blob/main/docs/features/automatic_prefix_caching.md , 2026-10-24), 그래서 고정 지시문을 앞에 두는 순서가 그때 유리함. vLLM 보내기(동시 N개)·일괄 파일 실행은 그때 보내기 쪽만 더함. vLLM 일괄 파일 명령의 형식 [확인 필요: vLLM 공식 문서, 이 환경에서 docs.vllm.ai가 열리지 않음]
+- 나중 자체 LLM(vast.ai vLLM 등)을 위한 준비 [안]: 스크립트를 ① 요청 파일 만들기(책마다 한 줄 JSONL, `custom_id`=`book_id`, 고정 지시문을 맨 앞·책마다 다른 부분을 뒤에) ② 보내기(이번에는 Anthropic 바로 호출만) ③ 결과 → TSV로 나눔. vLLM 보내기(동시 N개)나 `vllm run-batch`는 그때 ②에만 더함
+
+#### 자체 LLM 조사 (2026-10-24, 하위 에이전트 넷이 병렬로; docs.vast.ai·docs.vllm.ai는 이 환경에서 열리지 않아 각 공식 GitHub 원본을 읽음)
+
+| 항목 | 확인한 것 | 출처 |
+|---|---|---|
+| vast.ai 요금 | GPU는 실행 중일 때 **초 단위**("You pay by the second for compute and continuously for storage"). "Loading" 중에는 GPU 요금 없음. 디스크는 멈춰도 계속(지워야 멈춤). 네트워크는 오가는 바이트마다, 상태와 상관없이. 값은 기계마다 다름(마켓). 토큰·배치 할인 항목은 문서에 없음. Interruptible은 "Often 50%+ cheaper"지만 입찰에 지면 멈춤, Reserved는 선불로 "Up to 50% off" [확정] | github.com/vast-ai/docs (커밋 6261497, 2026-10-21) = docs.vast.ai `guides/pricing`, `guides/reference/billing`, `guides/reference/faq/rental-types` |
+| vLLM 동시 요청 | 연속 배칭 있음("Continuous batching of incoming requests"). 함께 도는 수 상한 `max_num_seqs`·`max_num_batched_tokens`(기본값은 GPU 메모리에 따라 다름, main 코드 기준). 처리량 측정의 기본은 "`--request-rate=inf --max-concurrency=<limit>`", 동시 수는 서버가 켤 때 알려 주는 최대치의 "80-90%" [확정] | vllm-project/vllm main: `README.md`, `docs/configuration/optimization.md`, `docs/benchmarking/cli.md`, `vllm/engine/arg_utils.py` |
+| vLLM 앞부분 캐싱(APC) | 생성 모델이면 **기본 켜짐**(`enable_prefix_caching: bool = True`; 기능 문서는 아직 "Set enable_prefix_caching=True"라고만 씀). 16토큰 블록마다 앞부분까지 넣은 해시로 맞추고 "We only cache full blocks" → 맨 앞부터 같아야 함. 줄어드는 것은 입력 처리(prefill)뿐, 글 쓰기(decode)는 그대로. LRU로 밀려남 [확정]. 채팅 형식에도 템플릿을 적용한 토큰에 같은 규칙 [추론] | `vllm/config/cache.py`, `vllm/config/model.py`, `docs/design/prefix_caching.md`, `docs/features/automatic_prefix_caching.md` |
+| vLLM 일괄 실행 | `vllm run-batch -i INPUT.jsonl -o OUTPUT.jsonl --model …`. 입력은 OpenAI Batch API JSONL(`custom_id`·`method`=POST·`url`·`body`), `/v1/chat/completions` 지원, 출력에 `custom_id` 유지·입력 순서. Python `LLM.chat()`에 대화 목록을 한꺼번에도 됨. 구조화 출력은 Python에서 `StructuredOutputsParams(json=…)` [확정]; `run-batch`에 JSON 스키마를 함께 쓰는 공식 예시는 못 찾음 [확인 필요: 그때 실제로 돌려 봄] | `vllm/entrypoints/cli/run_batch.py`, `vllm/entrypoints/launchers/run_batch.py`, `docs/serving/offline_inference.md`, `docs/features/structured_outputs.md` |
+
+- 정리: 자체 LLM은 **빨리 끝낼수록 싸고**(초 단위 GPU 요금), 빨리 끝내는 길은 ① 동시에 많이 보내기 ② 고정 지시문을 맨 앞에(APC 기본 켜짐). 그래서 ① 요청 파일을 **OpenAI Batch JSONL 모양**(`custom_id`=`book_id`, `body`=chat 요청)으로 만들어 두면 Anthropic 바로 호출(지금)·`vllm run-batch`·vLLM 서버 동시 보내기에 모두 그대로 씀 [안]. 반값 할인은 Anthropic Batches API에만 있음
