@@ -31,17 +31,34 @@ class ModularityTests {
 		}
 	}
 
-	/** Cycle 14 (ADR-0089): picks uses catalog and library only, and no module uses picks. */
+	/**
+	 * Cycle 14 (ADR-0089): picks uses catalog and library only. Cycle 21 (ADR-0123): collection uses picks
+	 * (CuratedListTransfer); cycle 24 (ADR-0150): aisearch uses picks (ListedBooks). No other module uses picks, and
+	 * picks knows neither of them.
+	 */
 	@Test
 	void picksDependsOnCatalogAndLibraryOnly() {
 		assertThat(dependenciesOf("picks")).containsExactlyInAnyOrder("catalog", "library");
 		assertThat(modules.getModuleByName("popular")).isEmpty();
-		// cycle 21 (ADR-0123): only collection uses picks (CuratedListTransfer), and picks does not know collection
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
-			.filter(name -> !name.equals("picks") && !name.equals("collection"))
+			.filter(name -> !List.of("picks", "collection", "aisearch").contains(name))
 			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("picks"));
-		assertThat(dependenciesOf("picks")).doesNotContain("collection");
+		assertThat(dependenciesOf("picks")).doesNotContain("collection", "aisearch");
+	}
+
+	/**
+	 * Cycle 24 (ADR-0150, ADR-0151): aisearch may use picks, library and usagelog only; only collection uses aisearch
+	 * (AiSearchBookTexts for the book-texts mode), and aisearch does not know collection (no cycle).
+	 */
+	@Test
+	void aisearchUsesPicksLibraryAndUsagelogOnly() {
+		assertThat(dependenciesOf("aisearch")).isSubsetOf("picks", "library", "usagelog");
+		modules.stream()
+			.map(module -> module.getIdentifier().toString())
+			.filter(name -> !List.of("aisearch", "collection").contains(name))
+			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("aisearch"));
+		assertThat(dependenciesOf("aisearch")).doesNotContain("collection");
 	}
 
 	/** Cycle 16 (ADR-0098, ADR-0099): sitecontent depends on no module, and only auth depends on it. */
@@ -56,11 +73,12 @@ class ModularityTests {
 
 	/**
 	 * Cycle 13 (ADR-0083, ADR-0093): collection adds libraries through library's LibraryRegistry, never the other way;
-	 * collection uses catalog and library, and since cycle 21 picks for the recommended lists (ADR-0123).
+	 * collection uses catalog and library, since cycle 21 picks for the recommended lists (ADR-0123) and since cycle 24
+	 * aisearch for the book-texts mode (ADR-0151).
 	 */
 	@Test
 	void collectionUsesLibraryAndLibraryNotCollection() {
-		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks");
+		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "aisearch");
 		assertThat(dependenciesOf("library")).doesNotContain("collection");
 	}
 

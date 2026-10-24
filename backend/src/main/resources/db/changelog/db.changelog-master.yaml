@@ -181,3 +181,10 @@ databaseChangeLog:
   - include:
       file: library/021-library-open-recheck-2.yaml
       relativeToChangelogFile: true
+  # cycle 24: AI book search (ADR-0150, ADR-0151, ADR-0152), the aisearch schema
+  - include:
+      file: aisearch/001-aisearch-schema.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: aisearch/002-updated-at-trigger.sql
+      relativeToChangelogFile: true

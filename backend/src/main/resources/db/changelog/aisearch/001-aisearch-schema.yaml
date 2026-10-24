@@ -1,0 +1,57 @@
+# aisearch module (cycle 24, ADR-0150, ADR-0151, ADR-0152): the AI book search.
+# search_book: a copy of the recommended-list books (title and author from picks' ListedBooks when the book-texts
+# import ran) with the search line made on the PC; the keyword match runs on search_text (pg_bigm, which catalog/001
+# installs in public). book_id is a catalog.book id without a foreign key (module boundaries, the same rule as
+# ADR-0124). The line, its source and its date are there together or not at all. The table is replaced as a whole by
+# AiSearchBookTexts.replace in one transaction.
+# daily_usage: one row per Asia/Seoul day for the daily cost cap (ADR-0152); updated_at is set by the trigger in
+# aisearch/002 (ADR-0068). CHECK constraints are not available in Liquibase OSS YAML, so the tables use sql changes.
+databaseChangeLog:
+  - changeSet:
+      id: aisearch-001-schema
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: CREATE SCHEMA aisearch
+
+  - changeSet:
+      id: aisearch-001-search-book
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE aisearch.search_book (
+                book_id bigint NOT NULL CONSTRAINT search_book_book_id_check CHECK (book_id >= 1),
+                title text NOT NULL,
+                author text,
+                line text CONSTRAINT search_book_line_check CHECK (char_length(line) BETWEEN 1 AND 300),
+                line_source text CONSTRAINT search_book_line_source_check CHECK (line_source IN ('intro', 'bibliographic')),
+                line_made_on date,
+                search_text text NOT NULL,
+                imported_at timestamp with time zone NOT NULL DEFAULT now(),
+                CONSTRAINT search_book_pkey PRIMARY KEY (book_id),
+                CONSTRAINT search_book_line_parts_check
+                  CHECK ((line IS NULL) = (line_source IS NULL) AND (line IS NULL) = (line_made_on IS NULL))
+              )
+        - sql:
+            sql: CREATE INDEX search_book_search_text_bigm ON aisearch.search_book USING gin (search_text gin_bigm_ops)
+
+  - changeSet:
+      id: aisearch-001-daily-usage
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE aisearch.daily_usage (
+                day date NOT NULL,
+                request_count integer NOT NULL DEFAULT 0 CONSTRAINT daily_usage_request_count_check CHECK (request_count >= 0),
+                llm_call_count integer NOT NULL DEFAULT 0 CONSTRAINT daily_usage_llm_call_count_check CHECK (llm_call_count >= 0),
+                input_tokens bigint NOT NULL DEFAULT 0 CONSTRAINT daily_usage_input_tokens_check CHECK (input_tokens >= 0),
+                output_tokens bigint NOT NULL DEFAULT 0 CONSTRAINT daily_usage_output_tokens_check CHECK (output_tokens >= 0),
+                cost_micro_usd bigint NOT NULL DEFAULT 0 CONSTRAINT daily_usage_cost_micro_usd_check CHECK (cost_micro_usd >= 0),
+                rate_limited_count integer NOT NULL DEFAULT 0
+                  CONSTRAINT daily_usage_rate_limited_count_check CHECK (rate_limited_count >= 0),
+                paused_count integer NOT NULL DEFAULT 0 CONSTRAINT daily_usage_paused_count_check CHECK (paused_count >= 0),
+                updated_at timestamp with time zone NOT NULL DEFAULT now(),
+                CONSTRAINT daily_usage_pkey PRIMARY KEY (day)
+              )

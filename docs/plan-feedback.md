@@ -6110,3 +6110,35 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 | 하루 $2로 묻는 수 | 약 4,000번(low 평균) | 한 줄이 들어가면 2차 입력이 늘어 다시 셈 |
 
 - 1차 지시문 전체(dev 초안)와 두 스키마, 2차 지시문은 `scripts/aisearch/prototype_haiku.py`의 `KEYWORD_SYSTEM`·`KEYWORD_SCHEMA`·`PICK_SYSTEM`·`PICK_SCHEMA`. 2차 지시문은 `llm-test-set.md` 3절 초안에 인계서가 말한 두 가지(후보 줄 `번호. 제목: … / 저자: … / 한 줄: …`, 맨 앞 `head`)와 "억지로 고르지 않는다", 이어 묻기 한 줄을 더함
+
+### 1단계 뒤 사용자 결정 (2026-10-24)
+
+- 묻은 것: ① 2차 지시문에서 "후보 목록"을 "아래 책 목록"으로 바꾸고 "답 글에 '후보'·'목록'·번호를 쓰지 않는다"를 더함 ② `usagelog.ai_search_event`의 칸 `occurred_at`을 `usagelog`의 다른 표와 같은 `received_at`으로(뜻은 같음, 결정 #7 [확정] 칸 이름을 바꿈)
+- 사용자 답: "그래" → 둘 다 승인 [확정]. ①은 6·8단계 지시문과 프로토타입에, ②는 7단계 changelog에 반영. plan `design-delta.md` "데이터"의 `occurred_at`은 plan이 다음 회고에서 고침
+
+## 4단계: `aisearch` 뼈대 + 표 + `book-texts` 넣기 명령 (2026-10-24)
+
+- 새 파일: `aisearch/package-info.java`(`allowedDependencies = {"picks","library","usagelog"}`, 지금은 아무 모듈도 쓰지 않음 — 5~8단계에서 씀), 공개 `aisearch/AiSearchBookTexts.java`, 구현 `aisearch/internal/books/JdbcAiSearchBookTexts.java`, 글 정리 `aisearch/internal/match/SearchText.java`, `collection/internal/booktexts/BookTextsFile.java`·`BookTextsImport.java`, changelog `aisearch/001-aisearch-schema.yaml`·`aisearch/002-updated-at-trigger.sql`(master 맨 끝), 운영 문서 `docs/maintenance/6-aisearch.md`
+- 고친 기존 파일: `CatalogImportRunner`(`MODES`에 `book-texts`, `Settings.bookTextsFile`, 검사 한 줄, `switch` 한 줄, bean 인자 둘), `collection/package-info.java`(의존 `aisearch` 더함), `ModularityTests`(아래), `CatalogImportSettingsTests`(생성자 인자 하나), `docs/maintenance/README.md`·`4-picks.md` 링크
+- 표: design-delta "데이터" 그대로. 더한 것 [안]: `search_book_line_parts_check`(한 줄·출처·날짜가 함께 있거나 함께 없음), `daily_usage` 수 칸마다 `>= 0` CHECK, `daily_usage.updated_at` 트리거(0단계 다름 5, ADR-0068)
+- 정한 세부 [안: dev]
+  - `AiSearchBookTexts.replace(books, lines)`: 목록 책과 한 줄을 따로 받아 `aisearch`가 맞춤 → `Result(stored, withLine, linesNotListed)`(설계의 "넣은 수, 한 줄이 있는 수, 목록에 없는 번호 수"). 목록 책 0권·같은 책 두 번·같은 책의 한 줄 두 개·1~300자 밖은 `IllegalArgumentException`(아무것도 바꾸지 않음)
+  - `search_text` = 제목·저자·한 줄을 각각 NFKC → 소문자 → 빈칸 지운 뒤 **빈칸 하나로 이음**. 낱말도 같은 정리로 빈칸이 없으므로 제목 끝과 저자 앞을 이어 맞추는 일이 없음
+  - TSV 문제(칸 수 ≠ 5 = 글 안 탭·줄바꿈, 300자 넘음, 빈 글, 번호·출처·날짜 틀림, 같은 책 두 줄)는 **파일 전체를 거절**하고 줄 번호를 보여 줌(인계서 "거절합니다"를 파일 단위로 읽음). 모르는 `kind`는 칸 수만 보고 건너뛰며 종류별 수를 셈
+  - 넣기 차례: 파일 검사 → `ListedBooks.loadFromDb()` → 0권이면 `IllegalStateException`(표 그대로) → `replace`
+- `ModularityTests`(0단계 다름 3): `picksDependsOnCatalogAndLibraryOnly`에 `aisearch`를 picks를 써도 되는 모듈로 더함, `collectionUsesLibraryAndLibraryNotCollection`에 `aisearch` 더함, 새 `aisearchUsesPicksLibraryAndUsagelogOnly`(그 셋의 부분 집합, `aisearch`를 쓰는 모듈은 `collection`뿐, 고리 없음)
+- 시험(모두 통과): `SearchTextTests` 2, `AiSearchBookTextsTests` 6(db-test: 정상·목록 밖 줄 건너뜀·다시 넣으면 바뀜·0권이면 그대로·두 번 거절·300자 레코드와 DB CHECK 둘 다·트리거 있음), `BookTextsFileTests` 5(BOM·CRLF·모르는 kind·탭·줄바꿈·300/301자·칸마다 줄 번호·머리줄), `BookTextsImportTests` 3(가짜: 정상·0권 거부·파일 거절이면 DB 안 읽음), `BookTextsImportDbTests` 1(진짜 `ListedBooks`로 넣고 다시 넣음), `ModularityTests`, `CatalogImportSettingsTests`, `ListedBooksTests`
+- 실제 명령: 빈 로컬 DB(`chaekcheck_local`)에서 `bootRun --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=book-texts …` → "No recommended-list book is matched to our books in this database; the search books were kept"로 멈춤(프로필 연결 확인). **2단계 TSV를 dev DB에 넣어 수를 보는 일은 2단계 뒤**(PC 수집 DB와 반영 뒤 DB가 필요, 이 클라우드에 없음)
+- 코드 검토(java-reviewer, 2026-10-24) 뒤 고친 것: ① 이미 한 줄이 든 표에 한 줄 0개 파일이면 `IllegalStateException`으로 거부(머리줄만 있거나 다른 kind만 있는 파일로 한 줄을 모두 잃지 않게; 처음 제목·저자만 넣기는 그대로 됨) [안] ② 목록 밖 줄이 있으면 WARN ③ 빈칸만 있는 한 줄 거부 ④ `SearchText`가 폭 없는 글자(`\p{Cf}`: U+200B, BOM 등)도 지움 ⑤ TSV 빈 줄은 "a blank row"로 알림 ⑥ 바깥 트랜잭션 없이 도는 시험 `AiSearchBookTextsRollbackTests`(지운 뒤 DB에서 실패하면 앞 줄이 남음). 고치지 않은 것: 목록 책의 빈 제목 오류 맥락(레코드 메시지에 책 번호가 이미 있음)
+
+### 1단계 다시 잼: 지시문 고침 뒤 (2026-10-24, `low` 설정, 질문 23개)
+
+| 실행 | 바꾼 것 | 2차 22번 중 답 글에 "후보" | "목록" | 2차 끝 평균 / 최대 | 2차 출력 평균 / 최대 | 비용 합 |
+|---|---|---|---|---|---|---|
+| run1 | (처음) 입력 이름 "후보" | 15 | 들어 있음 | 3.42 / 6.52 | 475 / 934 | $0.0116 |
+| run2 | 승인안: "아래 책 목록" + "답 글에 '후보'·'목록'·번호를 쓰지 않는다" | 0 | 4 | 3.60 / 7.60 | 496 / 1,204 | $0.0120 |
+| run3 | 입력 이름 "고를 수 있는 책", "아래 책들", "맞는 책이 없을 때도 사용자 쪽에서 말한다" | 0 | 4 | 3.22 / 8.20 | 472 / 1,490 | $0.0118 |
+
+- 세 실행 모두 JSON·칸 차례 ○, 30권 밖 번호 0. 결과 원본 `scripts/aisearch/results/2026-10-24-run2/`·`run3/`
+- 남은 "목록"은 모두 맞는 책이 적을 때의 머리말("목록에는 조선 시대 … 책이 거의 없어")이고 카드 글에는 없음. 지시문을 더 바꿔도 줄지 않아 멈춤. 지금 지시문은 run3(`scripts/aisearch/prototype_haiku.py` `PICK_SYSTEM`). 이 말을 그대로 둘지, 6·8단계에서 한 줄이 들어간 뒤 다시 손볼지는 사용자에게 물음
+- 2차 출력 최대가 1,490으로 늘었으나 제안한 2차 `max_tokens` 2048 안

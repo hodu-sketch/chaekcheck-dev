@@ -10,9 +10,11 @@
  * ({@code LibraryRegistry.listAll()}) from {@code library}; it never reads {@code library}'s tables. Since cycle 21
  * (ADR-0123) the import also carries Lee Dong-jin's picks and the SNU 100 through {@code picks}'
  * {@code CuratedListTransfer}: checked and matched on the PC, put in after the swap; {@code picks} does not know this
- * module.
+ * module. Since cycle 24 (ADR-0151) the mode {@code book-texts} puts the AI search's lines in through {@code aisearch}'s
+ * {@code AiSearchBookTexts}, with every listed book read by {@code picks}' {@code ListedBooks.loadFromDb()};
+ * {@code aisearch} does not know this module.
  */
-@ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks" })
+@ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks", "aisearch" })
 package com.chaekcheck.collection;
 
 import org.springframework.modulith.ApplicationModule;

@@ -22,11 +22,14 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import com.chaekcheck.aisearch.AiSearchBookTexts;
 import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.CatalogLoad;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryRegistry;
+import com.chaekcheck.collection.internal.booktexts.BookTextsImport;
 import com.chaekcheck.picks.CuratedListTransfer;
+import com.chaekcheck.picks.ListedBooks;
 import com.sun.management.OperatingSystemMXBean;
 
 /**
@@ -46,8 +49,11 @@ class CatalogImportRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(CatalogImportRunner.class);
 
-	/** The mode values (cycle 11, ADR-0078 [확정]; {@code lists} user 2026-10-19). */
-	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard", "lists");
+	/**
+	 * The mode values (cycle 11, ADR-0078 [확정]; {@code lists} user 2026-10-19; {@code book-texts} cycle 24,
+	 * ADR-0151).
+	 */
+	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard", "lists", "book-texts");
 
 	/** The ways to group books (cycle 11, ADR-0079 [확정]). */
 	static final Set<String> GROUPINGS = Set.of("objects", "compact", "sql");
@@ -78,11 +84,13 @@ class CatalogImportRunner {
 	 * @param listsDir the recommended lists folder ({@code scripts/crawl/lists}, cycle 21 ADR-0128); {@code export}
 	 * and a real {@code in-place} stop before reading the collection DB when it or a list file is missing; {@code lists}
 	 * reads only it
+	 * @param bookTextsFile the TSV of mode {@code book-texts} (cycle 24, ADR-0151): the AI search's lines, put in with
+	 * every listed book of this database; docs/maintenance/6-aisearch.md
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
 			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir,
-			boolean storedBibliography, Path listsDir) {
+			boolean storedBibliography, Path listsDir, Path bookTextsFile) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
@@ -112,6 +120,9 @@ class CatalogImportRunner {
 			if ((mode.equals("export") || mode.equals("apply") || mode.equals("finish")) && file == null) {
 				throw new IllegalStateException("Set chaekcheck.collection.import.file for mode " + mode);
 			}
+			if (mode.equals("book-texts") && bookTextsFile == null) {
+				throw new IllegalStateException("Set chaekcheck.collection.import.book-texts-file for mode book-texts");
+			}
 			if (storedBibliography && ttlPath != null) {
 				throw new IllegalStateException("Set either ttl-path or stored-bibliography, not both");
 			}
@@ -130,7 +141,8 @@ class CatalogImportRunner {
 	ApplicationRunner collectionImport(LibraryCatalog libraryCatalog, LibraryRegistry libraryRegistry,
 			CatalogLoad catalogLoad, JdbcClient jdbc, DataSource dataSource,
 			PlatformTransactionManager transactionManager, Settings settings, ConfigurableApplicationContext context,
-			CuratedListTransfer curatedLists, BookLookup bookLookup) {
+			CuratedListTransfer curatedLists, BookLookup bookLookup, ListedBooks listedBooks,
+			AiSearchBookTexts bookTexts) {
 		return (ApplicationArguments args) -> {
 			settings.check();
 			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
@@ -154,6 +166,7 @@ class CatalogImportRunner {
 				case "finish" -> transfer.finish(settings.file());
 				case "discard" -> log.info("discarded: {}", transfer.discard());
 				case "lists" -> transfer.listsOnly(bookLookup);
+				case "book-texts" -> new BookTextsImport(listedBooks, bookTexts).run(settings.bookTextsFile());
 				default -> {
 					if (!settings.dryRun()) {
 						transfer.requireNoWaitingExport();

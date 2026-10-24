@@ -238,4 +238,5 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - AI 책 찾기(`aisearch`)는 추천도서 목록 책을 `picks`의 공개 API `ListedBooks`로 읽습니다. 저자는 캐시에 없어서 이미 맞춘 `bookId`로 우리 책의 `catalog.book.author_display`를 따로 읽습니다(사용자 2026-10-24 "우리 쪽 db랑 싱크가 맞춰야 하니까").
 - 낱말 맞추기는 `aisearch.search_book` **사본**(목록 책 전부의 제목·저자 + 찾기용 한 줄)에서 합니다. 사본은 `book-texts` 넣기 명령을 돌릴 때만 바뀝니다. 그래서 **아래 일 뒤에는 `book-texts`를 다시 돌려야** 새 책이 AI 찾기에 나오고 제목·저자가 맞습니다(사이클 24를 배포한 뒤부터).
   - 가져오기 바꿔 끼우기([3-import.md](3-import.md) 8·13절), 목록만 넣기(`lists` 모드, 3-import.md 14절), 사서추천도서 월 받기(2절), 책 맞춤 규칙 변경(5절)
+  - 돌리는 법: [6-aisearch.md](6-aisearch.md)
 - **후속 작업 24-F1**(`docs/plan-feedback.md` `# 사이클 24` "후속 작업 24-F1"): 사이클 23을 합치거나 맞춤을 고칠 때, 캐시가 우리 책 저자를 직접 들게 하고 따로 읽기를 없앰. 사본을 맞추는 방법(자동 / 경고 / 손으로)은 사용자 결정. 코드에서는 `TODO(24-F1)`을 찾으면 됩니다.

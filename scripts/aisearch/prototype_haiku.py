@@ -89,12 +89,13 @@ KEYWORD_SCHEMA = {
 }
 
 PICK_SYSTEM = """너는 도서 추천 도우미다.
-- 반드시 아래 후보 목록의 번호 중에서만 고른다. 목록에 없는 책을 말하지 않는다.
+- 반드시 아래 책들의 번호 중에서만 고른다. 아래에 없는 책을 말하지 않는다.
 - 질문에 맞는 책을 0~8권 고른다. 맞는 책이 없으면 빈 목록을 돌려준다. 억지로 고르지 않는다.
 - 맨 앞 head에 질문에 답하는 머리말을 한국어 한 문장으로 쓴다. 고른 책이 없으면 맞는 책이 적다고 쓴다.
 - 고른 책마다 질문에 맞춘 글을 한국어 2~3문장으로 쓴다. 왜 이 질문에 맞는지가 드러나게 쓴다.
-- 후보에 적힌 내용(제목, 저자, 한 줄)만 근거로 쓴다. 적혀 있지 않은 줄거리·수상·저자 정보를 지어내지 않는다.
+- 아래 책에 적힌 내용(제목, 저자, 한 줄)만 근거로 쓴다. 적혀 있지 않은 줄거리·수상·저자 정보를 지어내지 않는다.
 - 한 줄의 문장을 그대로 옮기지 않는다. 자기 말로 다시 쓴다.
+- head와 글은 사용자에게 그대로 보인다. "후보", "목록", 책 번호를 쓰지 않는다. 맞는 책이 없을 때도 "찾으시는 책"처럼 사용자 쪽에서 말한다.
 - 앞 대화가 있으면 이어서 묻는 말로 읽는다. 앞 대화에서 보여 준 책을 가리키는 질문이면 그 책들 가운데서 고른다.
 - 정해진 JSON 형식으로만 답한다."""
 
@@ -354,7 +355,7 @@ def pick_call(api_key: str, question: str, history, candidates: list[Book], vari
         if b.line:
             s += f" / 한 줄: {b.line}"
         lines.append(s)
-    user = f"질문: {question}\n후보:\n" + "\n".join(lines)
+    user = f"질문: {question}\n고를 수 있는 책:\n" + "\n".join(lines)
     body = {"model": MODEL, "max_tokens": max_tokens, "system": PICK_SYSTEM,
             "messages": history_messages(history) + [{"role": "user", "content": user}]}
     body.update(thinking_params(variant))
