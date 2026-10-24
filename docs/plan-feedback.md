@@ -6015,6 +6015,12 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - 시험: `CacheListedBooksTests` 8(단위: 합치기·저자·다시 만들기·실패 뒤 1분·빈 캐시·`loadFromDb` 같음·캐시 없이·목록 실패 거부), `ListedBooksTests` 2(db-test: 서버 사본과 `loadFromDb`가 같은 책·제목·저자, 우리 책 없는 줄 빠짐), `BookAuthorsTests` 2. `ModularityTests` 통과(`aisearch`가 생기는 4단계에서 고침)
 - 빌드: `./gradlew build` 1,188개 중 **3개 실패 — 이 변경 전에도 같은 3개가 매번 실패**(이 클라우드 환경, 변경을 빼고 두 번 확인): `LaneThrottleTests` 2개("no free lane … before the deadline"), `CatalogTransferTests.brokenFileKeepsTheCatalog`. 원인은 보지 않음(이 사이클 밖). 이 환경의 시험 DB는 Docker 대신 소스로 빌드한 PostgreSQL 18.6 + pg_bigm(`docs/cycle24-session-handoff.md` 2절)
 
+## plan에 알림: AI 조사 문서의 책 수 68만 → 약 162만 (2026-10-24)
+
+- plan `docs/research/ai-recommend/infra-cost.md`·`industry.md`·`overview.md`의 "68만 권"은 2026-10-03 가져오기(등록 도서관 275곳만) 값 680,689입니다(dev `docs/maintenance/3-import.md` 5절). 지금 운영에 들어간 판(2026-10-12)은 도서관 2,656곳, 묶기 전 7,666,094줄 → **묶은 뒤 1,619,668권**입니다. 두 값 모두 여러 도서관의 같은 책을 한 권으로 묶은 뒤의 수입니다. 2026-10-23에 다시 시작한 전체 수집이 끝나면 또 바뀔 수 있습니다
+- 다시 계산한 어림(책 하나 입력 약 700·출력 약 200토큰 가정, 토큰 수 [안]): 꼬리표·찾기용 한 줄을 서비스 책 전체로 돌리면 Haiku 배치 약 $138, 바로 호출 약 $275, vast.ai 3090/4090 약 $14~35·약 90시간. 임베딩 크기·시간 어림(68만 × 1024차원 등)도 약 2.4배
+- Max 요금제의 매달 API 크레딧(Max 5x $100, Max 20x $200, Claude API에 쓰고 Claude Code에는 못 씀, 이월 없음 [확정] https://platform.claude.com/docs/en/about-claude/api-credits-for-subscribers , 2026-10-24)으로 Haiku 배치를 돌릴 수 있음. 162만 권 어림 $138은 Max 20x 한 달 안, Max 5x는 두 달에 나누거나 소개 원문이 있는 책만. 소개 원문은 목록 줄에 소개를 싣는 업체(교보·YES24·북큐브·강남구)에서만 모여 실제로는 더 적을 것(수집이 끝난 뒤 노트북에서 셈)
+- 사용자 제안(2026-10-24): "실제 운영 질문에는 API를 사용하고 미리 세팅해 두는 거 (태그, 메모(근데 메모를 하는 게 더 나았나?), 임베딩벡터)에는 vast.ai를 사용하는 건?" — 2026-10-17 결정 #3("vast.ai는 일괄 작업에만, 서지만 올림")과 같은 방향. 남은 사용자 결정: 소개 원문을 vast.ai 호스트에 올려도 되는지(vast.ai 보안 문서에 "호스트가 데이터를 볼 수 없다"는 문장 없음, plan `infra-cost.md` 1절). 원문·메모 비교는 아직 안 함
 ## 1단계: Haiku 5.5 프로토타입 첫 실행 (2026-10-24)
 
 - 도구: `scripts/aisearch/prototype_haiku.py`(빌드·CI 밖, 표준 라이브러리만, raw HTTP로 6단계 `AnthropicLlmClient`와 같은 모양). 결과 원본: `scripts/aisearch/results/2026-10-24-run1/`(질문 글 없음, 번호만)
