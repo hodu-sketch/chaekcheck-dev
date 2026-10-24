@@ -289,6 +289,55 @@ chaekcheck:
       read-timeout: 7s
       # TODO(확인 필요): how long a fetch server that refused a connection or answered 503 is skipped
       rest-duration: 30s
+  # 「나에게 맞는 책」 tab (cycle 23, ADR-0147~0149). docs/maintenance/settings-index.md
+  foryou:
+    build:
+      # Default on; off in tests and in the collection-import profile (CHAEKCHECK_FORYOU_BUILD_ENABLED)
+      enabled: ${CHAEKCHECK_FORYOU_BUILD_ENABLED:true}
+      # Daily build, Spring cron [안 03:30]: apart from auth.cleanup (04:00) and the picks fetch (05:00); the handoff
+      # proposed 04:00. At start a build runs when today has no succeeded build.
+      cron: "0 30 3 * * *"
+      zone: Asia/Seoul
+      # runs older than this are deleted, the last succeeded run is kept [확정 30일]
+      keep: 30d
+      # base list size (R2-4) [확정 40]
+      base-size: 40
+      # the memory copy reads the last succeeded build again this often (like the picks cache) [안 10m]
+      refresh-interval: 10m
+      # a site or feed matching less than this is left out for the day [확정 0.9]
+      min-match-rate: 0.9
+    sources:
+      kyobo-elib:
+        enabled: ${CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_ENABLED:true}
+        # 서초 반포·연천·도봉·부천 [확정 sites]. TODO(확인 필요): their library.id values, checkpoint B
+        library-ids: ${CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_LIBRARYIDS:}
+        # rows per site [확정 100]
+        top: 100
+      yes24-elib:
+        enabled: ${CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_ENABLED:true}
+        # 국립세종·성남 [확정 sites]. TODO(확인 필요): their library.id values, checkpoint B
+        library-ids: ${CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_LIBRARYIDS:}
+        top: 100
+      # TODO(확인 필요): range and format checked on the user's PC first (step 0 #7); off until then
+      kpipa-rank:
+        enabled: false
+      kpipa-200:
+        enabled: false
+      klwave:
+        enabled: false
+    score:
+      # recent demand = on loan + 2 x reservations [확정]
+      reservation-weight: 2
+      # publish-year distance bands and boosts [확정 values, tuned at checkpoint C (R2-3a)]
+      year-bands: 3,6,10
+      year-boosts: 1.5,1.0,0.6,0.3
+      # no publish year [안]
+      unknown-year-boost: 1.0
+      kpipa-rank-weight: 1.5
+      # the 200 list, books the sales rank lacks [안]
+      kpipa-200-weight: 1.0
+      # [안]
+      klwave-weight: 0.3
   picks:
     fetch:
       # Fetching the librarian picks of the National Library of Korea (plan cycle 14, ADR-0089, ADR-0092). Default

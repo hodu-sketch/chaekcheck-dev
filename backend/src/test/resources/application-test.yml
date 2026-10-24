@@ -19,6 +19,10 @@ chaekcheck:
     # provider) must not change them. Real environment variables still win over these.
     enabled: false
     providers: naver,kakao
+  # Tests never build the for-you list on their own; a class that tests the build calls it (cycle 23)
+  foryou:
+    build:
+      enabled: false
   picks:
     fetch:
       # Tests never call the real API or covers (plan cycle 14 C3). A class that tests the fetch turns it on for
