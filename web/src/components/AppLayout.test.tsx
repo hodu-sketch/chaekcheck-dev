@@ -184,3 +184,14 @@ describe('phone menu', () => {
     expect(about.getAttribute('href')).toBe('/about')
   })
 })
+
+/** Cycle 24: no footer under the AI search conversation, whose box sits at the bottom (user 2026-10-24). */
+describe('footer', () => {
+  it('is on the pages but not on /ai-search', () => {
+    renderAt('/')
+    expect(screen.getByRole('contentinfo')).toBeTruthy()
+    cleanup()
+    renderAt('/ai-search')
+    expect(screen.queryByRole('contentinfo')).toBeNull()
+  })
+})

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
 import { ApiError } from '../../api/client'
@@ -128,6 +128,21 @@ export function AiChatPage() {
     ask(draft)
   }
 
+  // Enter sends, Shift+Enter starts a new line (user 2026-10-24); Enter that ends a Korean syllable only ends it
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
+    event.preventDefault()
+    ask(draft)
+  }
+
+  const boxRef = useRef<HTMLTextAreaElement>(null)
+  const nearLimit = draft.length >= QUESTION_MAX - 20
+
+  // the box grows with its lines, up to the CSS max height, and goes back to one line once sent
+  useEffect(() => {
+    if (draft === '' && boxRef.current) boxRef.current.style.height = ''
+  }, [draft])
+
   const newChat = () => {
     requests.current.forEach((controller) => controller.abort())
     requests.current.clear()
@@ -138,10 +153,8 @@ export function AiChatPage() {
   return (
     <div className={styles.page}>
       <h1 className="visually-hidden">AI 책 찾기</h1>
+      {/* [새 대화] moved to the [+] at the left of the box below (user 2026-10-24, "CHATGPT처럼") */}
       <div className={styles.topBar}>
-        <button type="button" className={styles.newChat} onClick={newChat}>
-          {AI_TEXT.newChat}
-        </button>
         <p className={styles.notice}>{AI_TEXT.notice}</p>
         {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
       </div>
@@ -193,27 +206,48 @@ export function AiChatPage() {
           </div>
         ) : (
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
+            <button
+              type="button"
+              className={styles.plus}
+              aria-label={AI_TEXT.newChat}
+              title={AI_TEXT.newChat}
+              onClick={newChat}
+            >
+              <span aria-hidden="true">+</span>
+            </button>
             <label htmlFor="ai-follow-up" className="visually-hidden">
               이어서 묻기
             </label>
-            <input
+            <textarea
+              ref={boxRef}
               id="ai-follow-up"
               className={styles.input}
+              rows={1}
               value={draft}
+              // the box takes no more than the limit, typed or pasted (user 2026-10-24: "제한 글자 수 넘어가면 못 하게")
               maxLength={QUESTION_MAX}
               // no hint once the conversation has started (user 2026-10-24: "이어서 물어보세요는 문구 빼주라")
               placeholder={chat.turns.length === 0 ? AI_TEXT.placeholder : undefined}
               autoComplete="off"
               aria-invalid={tooShort ? true : undefined}
-              aria-describedby={tooShort ? 'ai-follow-up-error' : undefined}
+              aria-describedby={[tooShort ? 'ai-follow-up-error' : '', nearLimit ? 'ai-follow-up-count' : '']
+                .filter(Boolean)
+                .join(' ') || undefined}
               onChange={(event) => {
                 setDraft(event.target.value)
                 setTooShort(false)
+                grow(event.target)
               }}
+              onKeyDown={handleKeyDown}
             />
             <button type="submit" className={styles.send} disabled={busy}>
               {AI_TEXT.send}
             </button>
+            {nearLimit && (
+              <p id="ai-follow-up-count" className={styles.count}>
+                {draft.length}/{QUESTION_MAX}
+              </p>
+            )}
             {tooShort && (
               <p id="ai-follow-up-error" className={styles.error} role="alert">
                 {AI_TEXT.tooShort}
@@ -330,6 +364,11 @@ function noticeOf(turn: AiTurnState): { text: string; action?: 'retry' | 'direct
     default:
       return null
   }
+}
+
+function grow(box: HTMLTextAreaElement) {
+  box.style.height = 'auto'
+  box.style.height = `${box.scrollHeight}px`
 }
 
 /** The book window's book for an AI card: our book with the lists' AI summary, no year or video line. */

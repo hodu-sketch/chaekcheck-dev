@@ -52,7 +52,8 @@ export function AppLayout() {
           <Outlet />
         </ErrorBoundary>
       </main>
-      <Footer />
+      {/* none on the AI search conversation, whose box sits at the bottom (user 2026-10-24: "아예 빼줘") */}
+      {location.pathname !== '/ai-search' && <Footer />}
       <RegionImportDialog />
     </div>
   )

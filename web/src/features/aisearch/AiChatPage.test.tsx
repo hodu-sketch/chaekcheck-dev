@@ -209,4 +209,29 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     expect(await within(dialog).findByText('우주의 역사를 쉽게 풀어 쓴 교양서예요.')).toBeTruthy()
     vi.unstubAllGlobals()
   })
+
+  it('sends with Enter, starts a new line with Shift+Enter and takes 200 characters at most (user 2026-10-24)', async () => {
+    startWithQuestion('우주 책')
+    answers(...okAnswer)
+    const user = setup()
+    await screen.findByText('별과 우주를 다뤄요')
+    const box = screen.getByRole('textbox', { name: '이어서 묻기' }) as HTMLTextAreaElement
+    expect(box.maxLength).toBe(200)
+
+    await user.type(box, '소설만{Shift>}{Enter}{/Shift}짧은 걸로')
+    expect(box.value).toBe('소설만\n짧은 걸로')
+    await user.type(box, '{Enter}')
+
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(2))
+    expect(stream.mock.calls[1][0].question).toBe('소설만\n짧은 걸로')
+  })
+
+  it('starts a new conversation with the [+] at the left of the box', async () => {
+    startWithQuestion('우주 책')
+    answers(...okAnswer)
+    const user = setup()
+    await screen.findByText('별과 우주를 다뤄요')
+    await user.click(screen.getByRole('button', { name: '새 대화' }))
+    expect(screen.queryByText('우주 책')).toBeNull()
+  })
 })

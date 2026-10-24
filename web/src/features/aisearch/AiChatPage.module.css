@@ -272,7 +272,7 @@
 .full {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.5rem;
   max-width: 52rem;
   margin: 0 auto;
@@ -284,15 +284,57 @@
   font-weight: 700;
 }
 
+/* one line at first, growing with Shift+Enter lines up to about six (user 2026-10-24) */
 .input {
   flex: 1;
   min-width: 0;
-  height: 3rem;
-  padding: 0 0.95rem;
+  min-height: 3rem;
+  max-height: 10rem;
+  padding: 0.7rem 0.95rem;
   border: 1.5px solid var(--rule-strong);
   border-radius: var(--radius-md);
   background: var(--card);
+  color: var(--ink);
+  font: inherit;
   font-size: var(--text-md);
+  line-height: 1.45;
+  resize: none;
+  overflow-y: auto;
+}
+
+/* [+] new conversation, at the left of the box as in ChatGPT (user 2026-10-24) */
+.plus {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.plus:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.plus:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.count {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  text-align: right;
 }
 
 .input:focus {
