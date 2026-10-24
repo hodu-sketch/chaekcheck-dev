@@ -33,6 +33,9 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
 | `scripts/crawl/crawl_catalog.py` | 전체 목록 수집기. 수집 목록(웹러브 북스 기관 등)에서 찾은 도서관을 수집 DB에 넣는 `import-probe`·`import-bookcube`, 빈 곳 채우기 `refill-pubdt` 포함 |
 | `scripts/crawl/verify_detail_urls.py` | 도서관·종류마다 상세 URL 하나를 열어 그 책이 맞는지 확인 (수집과 동시에 돌리지 않음) |
 | `scripts/crawl/fetch_covers.py` | 표지 받기 `fetch-covers`(2026-10-23, plan 요청서 `to-dev-fetch-covers-2026-10-23.md`): 서비스 책 한 권에 표지 한 장을 200px JPEG로 데이터 폴더 `covers\`에 모음. 목록 수집이 끝난 뒤 따로 돌림(아래 "표지 받기"). 시험 `python -m unittest scripts/crawl/test_fetch_covers.py`(네트워크 없음) |
+| `scripts/crawl/test_fetch_covers.py`, `test_parse_intro.py` | 표지 받기 시험(가짜 응답, 서버 줄·건너뛰기·느린 서버·이어 받기), 책 소개 읽기 시험(저장 목록 쪽 `testdata/kyobo-ghlib.html` 등): `python -m unittest scripts/crawl/test_fetch_covers.py scripts/crawl/test_parse_intro.py` |
+| `scripts/crawl/probe_popular.py` | 사이클 23 사전 시험(2026-10-24): 교보 일반 인기순(`orderByKey=loanNmvl`)·YES24 V1 대출순(`sort=lending`)을 몇 쪽 받아 우리 책 번호로 맞춤. 한 번에 1건, 2초 간격, 목록 수집이 쓰는 서버는 보내지 않음. 결과 `data/cycle23-pretest/` |
+| `scripts/crawl/probe_embeddings.py` | 사이클 23 사전 시험: KURE-v1 임베딩 속도·이웃·인기 겹침. 데이터 폴더 venv로 실행: `<데이터 폴더>\ml\venv\Scripts\python.exe -X utf8 scripts/crawl/probe_embeddings.py`. 사이트 요청 없음 |
 | `scripts/crawl/resume.cmd` | 수집 이어 받기 (한 번에 하나만 돎) |
 | `scripts/crawl/test_crawl_migrate.py` | `migrate`·교보 구독형 서버 거르기·막힌 사이트 표시 시험(네트워크 없음): `python -m unittest scripts/crawl/test_crawl_migrate.py` |
 | `scripts/library/discover/probe_kyobo_institutions.py` | 수집 목록에서 도서관 찾기: 교보 기관 사이트 한 번씩 확인(열리는지, 일반·구독형, 운영 방식, 권수) |
@@ -49,6 +52,7 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
 | `_old-scripts-2026-10-12/` | 갈아타기 전 옛 수집기·도구와 `resume.cmd` 보관(위 "갈아타기") |
 | `logs/crawl-*.log`, `crawl-*.log` | 수집 실행 로그 |
 | `covers/` | 표지 받기 결과: `covers.sqlite`(책 ↔ 파일 짝 표 `book_cover`, 실행 기록 `run`), `<xx>/<sha1(주소)>.jpg`(200px JPEG), `--export`가 쓰는 `book-covers.tsv`. 로그는 `logs/covers-*.log` |
+| `ml/` | 임베딩 시험 도구(2026-10-24): `venv/`(Python venv, torch CPU·sentence-transformers), `hf/`(Hugging Face 모델 `nlpai-lab/KURE-v1`, MIT), `pool-30000.npy`·`.ids.json`(보유 도서관 많은 3만 권 벡터). 지워도 `probe_embeddings.py`가 다시 만듦 |
 | `other-platforms/` | 수집 목록에서 도서관 찾기·마감 확인 결과 TSV와 팝업 그림(웹러브 북스 기관 목록, 확인 결과, `kyobo-limits-log.tsv`) |
 | `secrets/` | 국립중앙도서관 인증키(열거나 출력하지 않음) |
 

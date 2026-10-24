@@ -38,6 +38,7 @@
 
 절차: [2-crawl.md](2-crawl.md).
 
+0. **지금 도는 일과 남은 일**(전체 수집·표지 받기, 2026-10-24~): [2-crawl.md](2-crawl.md) 0-0절을 먼저 봅니다
 1. `scripts\crawl\resume.cmd` 실행(2026-10-12부터 이것만, 2-crawl 0-1절). 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
 2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 교보 구독형 서버(`*.dkyobobook.co.kr`)에는 요청을 보내지 않고, 그 서버용이던 `host-slots.txt`는 사이클 13부터 읽지 않음 (2-crawl 0-1·2-1절)
 3. 상태 보기: `python -X utf8 scripts\crawl\crawl_catalog.py status`, 로그 데이터 폴더 `logs\crawl-*.log` (2-crawl 3·5절)
