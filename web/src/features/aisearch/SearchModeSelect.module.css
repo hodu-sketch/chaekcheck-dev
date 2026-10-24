@@ -1,0 +1,70 @@
+/* inside the search box, at its left end, with a thin line before the text box */
+.trigger {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  height: calc(100% - 0.7rem);
+  padding: 0 0.7rem 0 0.75rem;
+  border: none;
+  border-right: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  color: var(--brand);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-inner);
+}
+
+.chevron {
+  color: var(--ink-faint);
+}
+
+.content {
+  z-index: 15;
+  min-width: 7rem;
+  padding: 0.35rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-inner);
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.item[data-highlighted] {
+  background: var(--paper-deep);
+}
+
+.item[data-state='checked'] {
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+}

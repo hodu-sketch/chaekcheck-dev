@@ -550,52 +550,53 @@ export function SearchPage() {
             every screen, so the form stays mounted when the first search starts */}
         <SearchTabs
           showTabs={start}
-          direct={
-          <SearchForm
-            // no 「온라인 가입만」 chip by the search box any more (user 2026-10-21: "온라인 가입만 이거 버튼 빼주라"); the
-            // setting stays on the my page
-            key={formKey}
-            initial={input ?? EMPTY_INPUT}
-            settings={settings}
-            hasResults={hasSearch}
-            centered={start}
-            onSearch={search}
-            onSettingsChange={changeSettings}
-            settingsSheet={phone}
-            chip={
-              !phone || start ? undefined : (
-                <ScopeNote
-                  regionsChanged={scopeCommon.regionsChanged}
-                  visitChanged={scopeCommon.visitChanged}
-                  onSearchAgain={scopeCommon.onSearchAgain}
-                />
-              )
-            }
-            // one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138);
-            // above the narrowing chips as on phones (user 2026-10-20: "폰 처럼 지역설정이 상세조건보다 위로")
-            beforeChips={
-              phone || start ? undefined : (
-                <div className={styles.scopeRow}>
+          direct={(leading) => (
+            <SearchForm
+              leading={leading}
+              // no 「온라인 가입만」 chip by the search box any more (user 2026-10-21: "온라인 가입만 이거 버튼 빼주라"); the
+              // setting stays on the my page
+              key={formKey}
+              initial={input ?? EMPTY_INPUT}
+              settings={settings}
+              hasResults={hasSearch}
+              centered={start}
+              onSearch={search}
+              onSettingsChange={changeSettings}
+              settingsSheet={phone}
+              chip={
+                !phone || start ? undefined : (
                   <ScopeNote
                     regionsChanged={scopeCommon.regionsChanged}
                     visitChanged={scopeCommon.visitChanged}
                     onSearchAgain={scopeCommon.onSearchAgain}
                   />
-                  {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
-                </div>
-              )
-            }
-            lineEnd={
-              // 바로 보기's sort is on the result tabs' line on phones too (user 2026-10-20)
-              phone && settings.direct && directValid ? (
-                <div className={styles.directLineEnd}>
-                  <NoSort />
-                  <div ref={setCountSlot} className={styles.countSlot} />
-                </div>
-              ) : undefined
-            }
-          />
-          }
+                )
+              }
+              // one line under the search box: what the search uses, and the box to change it (cycle 22 R1, ADR-0138);
+              // above the narrowing chips as on phones (user 2026-10-20: "폰 처럼 지역설정이 상세조건보다 위로")
+              beforeChips={
+                phone || start ? undefined : (
+                  <div className={styles.scopeRow}>
+                    <ScopeNote
+                      regionsChanged={scopeCommon.regionsChanged}
+                      visitChanged={scopeCommon.visitChanged}
+                      onSearchAgain={scopeCommon.onSearchAgain}
+                    />
+                    {settings.direct && directValid && <div ref={setCountSlot} className={styles.countSlot} />}
+                  </div>
+                )
+              }
+              lineEnd={
+                // 바로 보기's sort is on the result tabs' line on phones too (user 2026-10-20)
+                phone && settings.direct && directValid ? (
+                  <div className={styles.directLineEnd}>
+                    <NoSort />
+                    <div ref={setCountSlot} className={styles.countSlot} />
+                  </div>
+                ) : undefined
+              }
+            />
+          )}
         />
         {/* phones: the chip's own sheet, only "찾을 도서관" (user 2026-10-19) */}
         {phone && start && <LibraryScopeSheet open={sheetOpen} onOpenChange={setSheetOpen} />}

@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { startWithQuestion } from './aiChatStore'
 import { AI_TEXT, EXAMPLE_QUESTIONS, QUESTION_MAX, QUESTION_MIN } from './aiSearchText'
@@ -10,7 +10,7 @@ import styles from './AiSearchTab.module.css'
  * question in this tab's conversation and opens `/ai-search`; the address never holds it (R2-2 [확정]). The text stays
  * while the tabs change because the hidden tab stays mounted (R1-3).
  */
-export function AiSearchTab() {
+export function AiSearchTab({ leading }: { leading?: ReactNode }) {
   const id = useId()
   const navigate = useNavigate()
   const [text, setText] = useState('')
@@ -34,6 +34,7 @@ export function AiSearchTab() {
   return (
     <form className={styles.form} role="search" aria-label="AI 책 찾기" onSubmit={handleSubmit} noValidate>
       <div className={styles.field} data-invalid={tooShort ? true : undefined}>
+        {leading}
         <label htmlFor={`${id}-question`} className="visually-hidden">
           찾는 책을 문장으로
         </label>

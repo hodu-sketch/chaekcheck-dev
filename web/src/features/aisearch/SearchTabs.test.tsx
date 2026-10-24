@@ -1,11 +1,21 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadChat } from './aiChatStore'
 import { EXAMPLE_QUESTIONS, QUESTION_MAX } from './aiSearchText'
 import { SearchTabs } from './SearchTabs'
+
+beforeAll(() => {
+  // Radix positions menus with ResizeObserver, which jsdom does not have
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+})
 
 afterEach(() => {
   cleanup()
@@ -19,6 +29,14 @@ function Where() {
   return <p data-testid="where">{location.pathname + location.search}</p>
 }
 
+/** The direct form of the page, reduced to its box: the leading menu, then the title box. */
+const directForm = (leading: ReactNode) => (
+  <div>
+    {leading}
+    <input aria-label="책 제목" />
+  </div>
+)
+
 function setup(statusCode = 200, { showTabs = true, state }: { showTabs?: boolean; state?: unknown } = {}) {
   vi.stubGlobal(
     'fetch',
@@ -29,7 +47,7 @@ function setup(statusCode = 200, { showTabs = true, state }: { showTabs?: boolea
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[{ pathname: '/', state }]}>
         <Routes>
-          <Route path="/" element={<SearchTabs showTabs={showTabs} direct={<input aria-label="책 제목" />} />} />
+          <Route path="/" element={<SearchTabs showTabs={showTabs} direct={directForm} />} />
           <Route path="/ai-search" element={<Where />} />
         </Routes>
       </MemoryRouter>
@@ -38,27 +56,35 @@ function setup(statusCode = 200, { showTabs = true, state }: { showTabs?: boolea
   return userEvent.setup()
 }
 
-const aiBox = () => screen.getByRole('searchbox', { name: '찾는 책을 문장으로' }) as HTMLInputElement
+const aiBox = () => screen.getByLabelText('찾는 책을 문장으로') as HTMLInputElement
+const titleBox = () => screen.getByLabelText('책 제목') as HTMLInputElement
+const shown = (element: HTMLElement) => !element.closest('[hidden]')
 
-describe('SearchTabs (cycle 24 step 9)', () => {
-  it('opens on the AI tab, on the left', () => {
+async function choose(user: ReturnType<typeof userEvent.setup>, from: string, to: string) {
+  const triggers = screen.getAllByRole('button', { name: `찾는 방법: ${from}` }).filter(shown)
+  await user.click(triggers[0])
+  await user.click(screen.getByRole('menuitemradio', { name: to }))
+}
+
+describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
+  it('opens on AI, its menu at the left end of the AI box', () => {
     setup()
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['AI', '직접'])
-    expect(tabs[0].getAttribute('aria-selected')).toBe('true')
-    expect(aiBox()).toBeTruthy()
+    expect(shown(aiBox())).toBe(true)
+    expect(shown(titleBox())).toBe(false)
+    const trigger = screen.getAllByRole('button', { name: '찾는 방법: AI' }).filter(shown)[0]
+    expect(trigger.parentElement?.contains(aiBox())).toBe(true)
   })
 
-  it('switches to the direct search and keeps each tab text', async () => {
+  it('switches to the direct search and back, keeping each text', async () => {
     const user = setup()
     await user.type(aiBox(), '과학책')
-    await user.click(screen.getByRole('tab', { name: '직접' }))
-    const title = screen.getByRole('textbox', { name: '책 제목' }) as HTMLInputElement
-    expect(title.closest('[role=tabpanel]')?.hasAttribute('hidden')).toBe(false)
-    await user.type(title, '토지')
-    await user.click(screen.getByRole('tab', { name: 'AI' }))
+    await choose(user, 'AI', '직접')
+    expect(shown(titleBox())).toBe(true)
+    expect(screen.getAllByRole('button', { name: '찾는 방법: 직접' }).filter(shown)).toHaveLength(1)
+    await user.type(titleBox(), '토지')
+    await choose(user, '직접', 'AI')
     expect(aiBox().value).toBe('과학책')
-    expect(title.value).toBe('토지')
+    expect(titleBox().value).toBe('토지')
   })
 
   it('does not send a question under two characters and caps the box at 200', async () => {
@@ -85,20 +111,21 @@ describe('SearchTabs (cycle 24 step 9)', () => {
     expect(loadChat().turns[0].question).toBe(EXAMPLE_QUESTIONS[0])
   })
 
-  it('shows only the direct search when the AI search is off', async () => {
+  it('shows only the direct search, without the menu, when the AI search is off', async () => {
     setup(404)
-    await waitFor(() => expect(screen.queryByRole('tab')).toBeNull())
-    expect(screen.getByRole('textbox', { name: '책 제목' })).toBeTruthy()
+    await waitFor(() => expect(screen.queryByRole('button', { name: /찾는 방법/ })).toBeNull())
+    expect(shown(titleBox())).toBe(true)
   })
 
-  it('shows the direct search only on the results screen, keeping the same form element', async () => {
+  it('shows the direct search only on the results screen', () => {
     setup(200, { showTabs: false })
-    expect(screen.queryByRole('tab')).toBeNull()
-    expect(screen.getByRole('textbox', { name: '책 제목' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /찾는 방법/ })).toBeNull()
+    expect(shown(titleBox())).toBe(true)
   })
 
-  it('opens on the direct tab when the chat sends the user there', () => {
+  it('opens on the direct search when the chat sends the user there', () => {
     setup(200, { state: { searchTab: 'direct' } })
-    expect(screen.getByRole('tab', { name: '직접' }).getAttribute('aria-selected')).toBe('true')
+    expect(shown(titleBox())).toBe(true)
+    expect(screen.getAllByRole('button', { name: '찾는 방법: 직접' }).filter(shown)).toHaveLength(1)
   })
 })

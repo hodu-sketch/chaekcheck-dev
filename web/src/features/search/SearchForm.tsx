@@ -38,6 +38,8 @@ type Props = {
   beforeChips?: ReactNode
   /** Phones: the sort, at the right end of the settings line (user request 2026-10-05). */
   lineEnd?: ReactNode
+  /** The first screen: the AI/직접 menu at the left end of the box (cycle 24, user 2026-10-24). */
+  leading?: ReactNode
 }
 
 /**
@@ -59,6 +61,7 @@ export function SearchForm({
   chip,
   beforeChips,
   lineEnd,
+  leading,
 }: Props) {
   const id = useId()
   const [input, setInput] = useState<BookSearchInput>(initial)
@@ -113,6 +116,7 @@ export function SearchForm({
     <form className={styles.form} data-start={centered ? true : undefined} onSubmit={handleSubmit} role="search" noValidate>
       <div className={styles.topLine}>
         <div className={styles.field} data-invalid={problems.title || problems.none ? true : undefined}>
+          {leading}
           <label htmlFor={`${id}-title`} className="visually-hidden">
             책 제목
           </label>
