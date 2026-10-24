@@ -1,4 +1,3 @@
-import { DropdownMenu } from 'radix-ui'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useAiStatus } from '../features/aisearch/useAiStatus'
@@ -12,52 +11,79 @@ function useSearchItems() {
 }
 
 /**
- * Wide screens (641px and up): the menus right of the logo, plain links (user 2026-10-19) but 도서검색, a button that
- * opens AI 검색 and 직접 검색 under it (user 2026-10-24). The menu of the screen is underlined.
+ * Wide screens (641px and up): the menus right of the logo, plain links (user 2026-10-19) but 도서검색, which opens AI
+ * 검색 and 직접 검색 under it. Open, a band as wide as the page comes down under the header with a shadow and the two
+ * ways in a column under 도서검색, as the earlier menus did (user 2026-10-24: "탭 전체 자체가 아래로 내려오고
+ * 그림자처리 있게 이전 버전이 그랬자나 참고해서"). 도서검색 again, a press elsewhere, Esc or a new screen closes it. The
+ * menu of the screen is underlined.
  */
 export function HeaderMenu() {
   const { pathname } = useLocation()
   const searchItems = useSearchItems()
+  // open on the screen it was opened on: a new screen closes it
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const open = openAt === pathname
+  const root = useRef<HTMLElement>(null)
+  const columnId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node | null)) setOpenAt(null)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setOpenAt(null)
+      root.current?.querySelector<HTMLButtonElement>('[data-big="search"]')?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   return (
-    <nav className={styles.wide} aria-label="주 메뉴">
+    <nav ref={root} className={styles.wide} aria-label="주 메뉴">
       <ul className={styles.bigList}>
         {MENUS.map((menu) => {
           const current = inMenu(pathname, menu)
           if (menu.key === 'search' && searchItems.length > 1) {
             return (
               <li key={menu.key} className={styles.big}>
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger
-                    className={styles.bigLink}
-                    data-big={menu.key}
-                    data-current={current ? '' : undefined}
-                  >
-                    {menu.label}
-                    <ChevronDown className={styles.chevron} />
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Portal>
-                    <DropdownMenu.Content
-                      className={styles.subMenu}
-                      side="bottom"
-                      align="start"
-                      sideOffset={4}
-                      // the chosen screen opens: no focus ring left on 도서검색
-                      onCloseAutoFocus={(event) => event.preventDefault()}
-                    >
-                      {searchItems.map((item) => (
-                        <DropdownMenu.Item key={item.key} asChild>
-                          <Link
-                            to={item.to}
-                            className={styles.subItem}
-                            aria-current={pathname === item.to ? 'page' : undefined}
-                          >
-                            {item.label}
-                          </Link>
-                        </DropdownMenu.Item>
-                      ))}
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </DropdownMenu.Root>
+                <button
+                  type="button"
+                  className={styles.bigLink}
+                  data-big={menu.key}
+                  data-current={current ? '' : undefined}
+                  aria-expanded={open}
+                  aria-controls={columnId}
+                  onClick={() => setOpenAt(open ? null : pathname)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'ArrowDown') return
+                    event.preventDefault()
+                    setOpenAt(pathname)
+                    requestAnimationFrame(() => document.querySelector<HTMLAnchorElement>(`#${CSS.escape(columnId)} a`)?.focus())
+                  }}
+                >
+                  {menu.label}
+                  <ChevronDown className={styles.chevron} />
+                </button>
+                <ul id={columnId} className={styles.column} hidden={!open}>
+                  {searchItems.map((item) => (
+                    <li key={item.key}>
+                      <Link
+                        to={item.to}
+                        className={styles.item}
+                        aria-current={pathname === item.to ? 'page' : undefined}
+                        onClick={() => setOpenAt(null)}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </li>
             )
           }
@@ -76,6 +102,8 @@ export function HeaderMenu() {
           )
         })}
       </ul>
+      {/* the full-width band behind the column, with a shadow (the earlier menus' data4library.kr look, 2026-10-16) */}
+      <div className={styles.band} hidden={!open} aria-hidden="true" />
     </nav>
   )
 }

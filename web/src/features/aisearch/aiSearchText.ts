@@ -26,7 +26,6 @@ export const AI_TEXT = {
   tooLong: '새 대화를 시작해 주세요', // R11-3
   newChat: '새 대화',
   send: '보내기',
-  summary: (place: string) => `내 도서관: ${place}`, // [안] flow S30
 } as const
 
 /**

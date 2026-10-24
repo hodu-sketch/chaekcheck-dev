@@ -63,20 +63,8 @@
   list-style: none;
 }
 
-.page[data-empty] .place {
-  order: 4;
-  align-self: center;
-}
-
 .page[data-empty] .turns {
   display: none;
-}
-
-.place {
-  align-self: flex-end;
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
 }
 
 .turns {

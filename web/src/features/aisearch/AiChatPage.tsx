@@ -10,7 +10,6 @@ import { PHONE_QUERY } from '../picks/PicksPage'
 import { usePicksPlan } from '../picks/usePicksPlan'
 import { useRegions } from '../region/RegionContext'
 import { SCOPE_TEXT } from '../search/LibraryScopeLine'
-import { useMineLabel } from '../search/regionPlace'
 import { loadPrefs } from '../search/searchSettings'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnCard, type AiTurnState } from './aiChatStore'
 import {
@@ -35,7 +34,6 @@ export function AiChatPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { regions, libraryIds, source } = useRegions()
-  const place = useMineLabel(regions.residence, regions.work)
   const noRegion =
     source !== 'waiting' && regions.residence.length === 0 && regions.work.length === 0 && libraryIds.length === 0
   const [chat, setChat] = useState<AiChat>(() => loadChat())
@@ -167,7 +165,7 @@ export function AiChatPage() {
       {chat.turns.length === 0 && <h1 className={styles.emptyTitle}>{AI_TEXT.emptyTitle}</h1>}
       {chat.turns.length > 0 && <h1 className="visually-hidden">AI 책 찾기</h1>}
       {/* [새 대화] moved to the [+] at the left of the box below (user 2026-10-24, "CHATGPT처럼") */}
-      {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
+      {/* no 「내 도서관: …」 line (user 2026-10-24: "여기서 내 도서관: 강서구 정보 빼") */}
 
       {chat.turns.length === 0 && (
         // a new conversation (the menu's AI 검색, the [+]): the example questions in the empty page (user 2026-10-24)

@@ -55,16 +55,28 @@ describe('header', () => {
   it('has the menus as plain links but 도서검색, which opens AI 검색 and 직접 검색 (user 2026-10-24)', async () => {
     renderAt('/')
     const nav = within(wide())
-    expect(nav.getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+    expect(
+      nav
+        .getAllByRole('link')
+        .filter((a) => !a.closest('[hidden]'))
+        .map((a) => [a.textContent, a.getAttribute('href')]),
+    ).toEqual([
       ['소개', '/about'],
       ['추천도서', '/picks'],
       ['마이페이지', '/mypage'],
     ])
-    await userEvent.setup().click(nav.getByRole('button', { name: '도서검색' }))
-    expect(screen.getAllByRole('menuitem').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+    // a press opens the band under the header with the two ways (user 2026-10-24)
+    const search = nav.getByRole('button', { name: '도서검색' })
+    expect(search.getAttribute('aria-expanded')).toBe('false')
+    await userEvent.setup().click(search)
+    expect(search.getAttribute('aria-expanded')).toBe('true')
+    const column = document.getElementById(search.getAttribute('aria-controls') ?? '') as HTMLElement
+    expect(within(column).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
       ['AI 검색', '/ai-search'],
       ['직접 검색', '/search'],
     ])
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(search.getAttribute('aria-expanded')).toBe('false')
     cleanup()
     // the AI search off: 도서검색 is the direct search's link as before
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })))
