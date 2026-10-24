@@ -5987,3 +5987,9 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 | 할 일 | 1. 캐시 책 줄이 우리 책 저자(`catalog.book.author_display`)를 맞출 때 함께 들게 하고, `ListedBooks`의 따로 읽기(`BookAuthors`)를 없앰 2. 맞춤이 바뀌는 일(가져오기 바꿔 끼우기, `lists` 모드, 사서 목록 월 받기, 23의 캐시 변경) 뒤에 `aisearch.search_book` 사본이 어긋나지 않게 할 방법을 정함(자동 다시 넣기 / 어긋남 경고 / 지금처럼 손으로) → **사용자 결정 필요**(결정 #3을 바꾸는 일) 3. 23의 꼬리표·탭 추천 글을 `ListedBook`과 `book-texts`(`kind`)에 더함(design-delta "사이클 23과 겹치는 곳") |
 | 완료 확인 | `ListedBooks.current()`와 `loadFromDb()`의 모든 책에서 `title`·`author`가 `catalog.book`의 값과 같음(시험) / `aisearch.search_book`의 `book_id`가 모두 지금 목록 책이고 제목·저자가 같음(넣기 뒤 확인 쿼리, 4-picks.md 10절) / `ModularityTests` 통과 |
 | 코드 표시 | `ListedBooks` 구현과 `BookAuthors`에 `TODO(24-F1)` 주석을 달아 이 절을 가리킴(3단계에서) |
+
+### 2단계 배치 방식 (2026-10-24)
+
+- 사용자 선택: **(가) PC 스크립트 + API 키, 한 권씩 바로 호출**(Message Batches API는 쓰지 않음). 사용자 "(가)로 하되 구현을 나중에 따로 llm을 돌렸을 때(vast.ai등)는 batch가 더 캐싱 등으로 유리하다면 batch를 준비할까하는데"
+- 근거로 본 값: Batches API는 Haiku 5.5 입력 $0.05·출력 $0.25(반값), "most batches completing within 1 hour", 최대 24시간, 요청·답을 최대 29일 보관 [확정] (https://platform.claude.com/docs/en/build-with-claude/batch-processing , 2026-10-24). 2,800권 어림 (가) 약 $0.4 / (나) 약 $0.2 [안: 토큰 수 어림]
+- 나중 자체 LLM(vast.ai vLLM 등)을 위한 준비 [안]: 스크립트를 ① 요청 파일 만들기(책마다 한 줄 JSONL, `custom_id`=`book_id`, 고정 지시문을 맨 앞·책마다 다른 부분을 뒤에) ② 보내기(이번에는 Anthropic 바로 호출만)로 나눔. vLLM의 Automatic Prefix Caching은 같은 앞부분을 다시 계산하지 않음 [확정] (https://github.com/vllm-project/vllm/blob/main/docs/features/automatic_prefix_caching.md , 2026-10-24), 그래서 고정 지시문을 앞에 두는 순서가 그때 유리함. vLLM 보내기(동시 N개)·일괄 파일 실행은 그때 보내기 쪽만 더함. vLLM 일괄 파일 명령의 형식 [확인 필요: vLLM 공식 문서, 이 환경에서 docs.vllm.ai가 열리지 않음]
