@@ -1,13 +1,12 @@
-/* the chips: always one line, swiped sideways when they do not fit (user 2026-10-24 "무조건 한 줄로 나오도록 하고 폰처럼
-   넘기기") */
+/* the chips: one line, only the ones that fit whole (user 2026-10-24: "내용이 잘라지지 않은 선에서 적당히 넣어줘"; a
+   sideways scroll before, which a mouse could not move). They wrap here and ExampleChips hides the ones that went to a
+   second line. */
 .chips {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.45rem;
   margin: 0.6rem 0 0;
   padding: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
   list-style: none;
 }
 
@@ -39,9 +38,3 @@
   outline-offset: 2px;
 }
 
-@media (width <= 640px) {
-  .chips {
-    margin-right: calc(-1 * var(--page-gutter, 1rem));
-    padding-right: var(--page-gutter, 1rem);
-  }
-}

@@ -5,6 +5,9 @@ export const AI_TEXT = {
   tabAi: 'AI', // [확정] R1-1
   tabDirect: '직접', // [확정] R1-1
   placeholder: '어떤 책을 찾으세요? 예: 잠들기 전에 조금씩 읽을 과학책', // [안] flow S1
+  // the title of an empty conversation, over the box in the middle as ChatGPT's new chat (user 2026-10-24: "정정해")
+  emptyTitle: '어떤 책을 찾으세요?',
+  emptyPlaceholder: '예: 잠들기 전에 조금씩 읽을 과학책',
   find: '찾기',
   tooShort: '두 글자 이상 써 주세요', // AC-16
   notice: '책 설명은 AI가 질문에 맞춰 썼어요. 실제 내용과 다를 수 있어요', // [확정] R9-2
@@ -56,9 +59,12 @@ export function pickExamples(count = EXAMPLES_SHOWN, random: () => number = Math
 
 let shown: string[] | null = null
 
-/** The examples of this page load: drawn once, so the AI box, the direct box and the chat show the same three. */
+/**
+ * The examples of this page load, all of them in an order drawn once, so the AI box, the direct box and the chat show
+ * the same ones: the first {@link EXAMPLES_SHOWN}, or on one line the first that fit whole.
+ */
 export function shownExamples(): string[] {
-  shown ??= pickExamples()
+  shown ??= pickExamples(EXAMPLE_QUESTIONS.length)
   return shown
 }
 

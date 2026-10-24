@@ -26,15 +26,50 @@
   color: var(--brand-strong);
 }
 
-/* the empty conversation: the example questions in the middle of the page */
+/* the empty conversation, as ChatGPT's new chat (user 2026-10-24): the title, the box and the examples together in the
+   middle of the screen; the box drops to the bottom once the first question is asked */
+.page[data-empty] {
+  justify-content: center;
+  gap: 1rem;
+  /* the screen under the header (no footer on this page) */
+  min-height: calc(100dvh - 4.25rem);
+  padding-bottom: 4rem;
+}
+
+.emptyTitle {
+  order: 1;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  text-align: center;
+}
+
+.page[data-empty] .composer {
+  position: static;
+  order: 2;
+  padding: 0;
+  background: none;
+}
+
 .startExamples {
+  order: 3;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.5rem;
-  margin: 28vh 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.page[data-empty] .place {
+  order: 4;
+  align-self: center;
+}
+
+.page[data-empty] .turns {
+  display: none;
 }
 
 .place {
@@ -214,12 +249,11 @@
 
 .examples {
   display: flex;
-  flex-wrap: nowrap;
+  /* the whole questions, on more lines when needed (user 2026-10-24: "내용이 잘라지지 않은 선에서") */
+  flex-wrap: wrap;
   gap: 0.45rem;
   margin: 0.6rem 0 0;
   padding: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
   list-style: none;
 }
 
@@ -322,6 +356,18 @@
   resize: none;
   overflow-y: auto;
   outline: none;
+}
+
+/* the rounded box shows the focus; no second ring on the text area inside it */
+.input:focus-visible {
+  outline: none;
+}
+
+/* the hint stays on one line in the one-line box (phones cut it with …) */
+.input:placeholder-shown {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* [+] new conversation, inside the box at its left as in ChatGPT (user 2026-10-24) */

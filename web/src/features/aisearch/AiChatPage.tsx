@@ -13,7 +13,15 @@ import { SCOPE_TEXT } from '../search/LibraryScopeLine'
 import { useMineLabel } from '../search/regionPlace'
 import { loadPrefs } from '../search/searchSettings'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnCard, type AiTurnState } from './aiChatStore'
-import { AI_TEXT, HISTORY_SENT, QUESTION_MAX, QUESTION_MIN, shownExamples, TURNS_MAX } from './aiSearchText'
+import {
+  AI_TEXT,
+  EXAMPLES_SHOWN,
+  HISTORY_SENT,
+  QUESTION_MAX,
+  QUESTION_MIN,
+  shownExamples,
+  TURNS_MAX,
+} from './aiSearchText'
 import type { SearchTabState } from './SearchTabs'
 import styles from './AiChatPage.module.css'
 
@@ -154,15 +162,19 @@ export function AiChatPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <h1 className="visually-hidden">AI 책 찾기</h1>
+    // an empty conversation lays out as ChatGPT's new chat: title, the box in the middle, the examples under it
+    <div className={styles.page} data-empty={chat.turns.length === 0 || undefined}>
+      {chat.turns.length === 0 && <h1 className={styles.emptyTitle}>{AI_TEXT.emptyTitle}</h1>}
+      {chat.turns.length > 0 && <h1 className="visually-hidden">AI 책 찾기</h1>}
       {/* [새 대화] moved to the [+] at the left of the box below (user 2026-10-24, "CHATGPT처럼") */}
       {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
 
       {chat.turns.length === 0 && (
         // a new conversation (the menu's AI 검색, the [+]): the example questions in the empty page (user 2026-10-24)
         <ul className={styles.startExamples} aria-label="예시 질문">
-          {shownExamples().map((question) => (
+          {shownExamples()
+            .slice(0, EXAMPLES_SHOWN)
+            .map((question) => (
             <li key={question}>
               <button type="button" className={styles.example} onClick={() => ask(question)}>
                 {question}
@@ -254,7 +266,7 @@ export function AiChatPage() {
               // the box takes no more than the limit, typed or pasted (user 2026-10-24: "제한 글자 수 넘어가면 못 하게")
               maxLength={QUESTION_MAX}
               // no hint once the conversation has started (user 2026-10-24: "이어서 물어보세요는 문구 빼주라")
-              placeholder={chat.turns.length === 0 ? AI_TEXT.placeholder : undefined}
+              placeholder={chat.turns.length === 0 ? AI_TEXT.emptyPlaceholder : undefined}
               autoComplete="off"
               aria-invalid={tooShort ? true : undefined}
               aria-describedby={[tooShort ? 'ai-follow-up-error' : '', nearLimit ? 'ai-follow-up-count' : '']
@@ -366,7 +378,7 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProp
         <div className={styles.noMatch}>
           <p>{AI_TEXT.noMatch}</p>
           <ul className={styles.examples} aria-label="예시 질문">
-            {shownExamples().map((question) => (
+            {shownExamples().slice(0, EXAMPLES_SHOWN).map((question) => (
               <li key={question}>
                 <button type="button" className={styles.example} onClick={() => onExample(question)}>
                   {question}

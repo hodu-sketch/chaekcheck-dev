@@ -143,7 +143,9 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
   it('shows three of the example questions, the same three under both boxes (user 2026-10-24)', () => {
     setup()
     const lists = screen.getAllByRole('list', { name: '예시 질문', hidden: true })
-    const texts = lists.map((list) => [...list.querySelectorAll('button')].map((button) => button.textContent))
+    const texts = lists.map((list) =>
+      [...list.querySelectorAll('li:not([hidden]) button')].map((button) => button.textContent),
+    )
     expect(texts[0]).toHaveLength(3)
     expect(texts[1]).toEqual(texts[0])
     expect(texts[0].every((text) => (EXAMPLE_QUESTIONS as readonly (string | null)[]).includes(text))).toBe(true)
