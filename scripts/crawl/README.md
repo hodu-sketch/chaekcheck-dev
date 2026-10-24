@@ -36,6 +36,8 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
 | `scripts/crawl/test_fetch_covers.py`, `test_parse_intro.py` | 표지 받기 시험(가짜 응답, 서버 줄·건너뛰기·느린 서버·이어 받기), 책 소개 읽기 시험(저장 목록 쪽 `testdata/kyobo-ghlib.html` 등): `python -m unittest scripts/crawl/test_fetch_covers.py scripts/crawl/test_parse_intro.py` |
 | `scripts/crawl/probe_popular.py` | 사이클 23 사전 시험(2026-10-24): 교보 일반 인기순(`orderByKey=loanNmvl`)·YES24 V1 대출순(`sort=lending`)을 몇 쪽 받아 우리 책 번호로 맞춤. 한 번에 1건, 2초 간격, 목록 수집이 쓰는 서버는 보내지 않음. 결과 `data/cycle23-pretest/` |
 | `scripts/crawl/probe_embeddings.py` | 사이클 23 사전 시험: KURE-v1 임베딩 속도·이웃·인기 겹침. 데이터 폴더 venv로 실행: `<데이터 폴더>\ml\venv\Scripts\python.exe -X utf8 scripts/crawl/probe_embeddings.py`. 사이트 요청 없음 |
+| `scripts/crawl/probe_intro.py` | 사이클 23 소개 시험(2026-10-24): 서비스 책마다 목록 소개 유무 세기(`count`, 요청 없음), 소개 없는 50권을 국립중앙도서관 ISBN 서지에 묻기(`nlk`, 표지 받기를 멈춘 뒤에만). 소개 원문은 데이터 폴더 `ml\intro-books.tsv`에만 |
+| `scripts/crawl/cover_scope.py` | 「나에게 맞는 책」 탭 표지(2026-10-24): 범위(추천목록·3만 권·인기 상위 100) 세기 `count`, 표지 받기 앞 차례로 `prioritize`(표지 받기를 다시 띄워야 먹음), 운영용 폴더와 `book-texts` 연결 파일 `export` → 데이터 폴더 `covers-export\` |
 | `scripts/crawl/resume.cmd` | 수집 이어 받기 (한 번에 하나만 돎) |
 | `scripts/crawl/test_crawl_migrate.py` | `migrate`·교보 구독형 서버 거르기·막힌 사이트 표시 시험(네트워크 없음): `python -m unittest scripts/crawl/test_crawl_migrate.py` |
 | `scripts/library/discover/probe_kyobo_institutions.py` | 수집 목록에서 도서관 찾기: 교보 기관 사이트 한 번씩 확인(열리는지, 일반·구독형, 운영 방식, 권수) |

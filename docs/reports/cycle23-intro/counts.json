@@ -1,0 +1,90 @@
+{
+ "checked_at": "2026-10-24T20:23:24+09:00",
+ "crawl_started": "2026-10-23T15:15",
+ "libraries_recrawled": 1243,
+ "all": {
+  "A": 893999,
+  "B": 180287,
+  "C": 266589
+ },
+ "pool": {
+  "A": 26356,
+  "B": 2772,
+  "C": 864
+ },
+ "seconds": 1560,
+ "c_platforms_top": [
+  [
+   "KYOBO_SUBSCRIPTION_V1",
+   91351
+  ],
+  [
+   "BOOKCUBE_FX",
+   75079
+  ],
+  [
+   "KYOBO_V1",
+   43371
+  ],
+  [
+   "ALADIN_V1",
+   14064
+  ],
+  [
+   "SEOUL_ELIB_V1",
+   9872
+  ],
+  [
+   "BOOKCUBE_FX + KYOBO_V1",
+   7479
+  ],
+  [
+   "ELIB_PORTAL_V1",
+   6864
+  ],
+  [
+   "YES24_V2",
+   4408
+  ],
+  [
+   "KYOBO_SUBSCRIPTION_V1 + KYOBO_V1",
+   3705
+  ],
+  [
+   "ALADIN_V1 + BOOKCUBE_FX",
+   1218
+  ],
+  [
+   "YES24_V3",
+   1098
+  ],
+  [
+   "YES24_V2 + YES24_V3",
+   995
+  ],
+  [
+   "BOOKCUBE_FX + KYOBO_SUBSCRIPTION_V1",
+   939
+  ],
+  [
+   "ALADIN_V1 + KYOBO_SUBSCRIPTION_V1",
+   695
+  ],
+  [
+   "BOOKCUBE_FX + KYOBO_SUBSCRIPTION_V1 + KYOBO_V1",
+   541
+  ]
+ ],
+ "c_only_in_libraries_not_yet_recrawled": 137727,
+ "intro_texts_kept": 29933,
+ "kept_by_kind": {
+  "pool": 29128,
+  "seed": 30,
+  "sample": 775
+ },
+ "targets_by_kind": {
+  "pool": 29992,
+  "seed": 30,
+  "sample": 952
+ }
+}

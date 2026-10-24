@@ -31,6 +31,7 @@
   4. 가져오기를 한 뒤에는 `fetch-covers --plan-only` → `--fetch-only`를 다시 돌려 새 책의 표지를 받습니다(받은 표지는 건너뜀) [확정] (plan 전달 2026-10-24)
 - 결정이 이미 난 것 (다시 묻지 않음): 책 소개는 목록에 실린 만큼만, 잘림(교보 500자, YES24 "...")은 그대로이고 상세 쪽은 열지 않음 (사용자 2026-10-24). 교보 구독형 `*.dkyobobook.co.kr`에는 계속 보내지 않음(사이클 13 R1-6).
 - 사이클 23 사전 시험(인기순·KURE-v1 임베딩, 2026-10-24)은 끝났습니다: [`docs/reports/cycle23-pretest-2026-10-24.md`](../reports/cycle23-pretest-2026-10-24.md). 임베딩 도구는 데이터 폴더 `ml\`(venv 1.2GB, 모델 2.2GB, 3만 권 벡터 118MB)에 있습니다.
+- 사이클 23 소개 시험과 탭 표지(2026-10-24~25)도 끝났습니다: [`docs/reports/cycle23-intro-test-2026-10-25.md`](../reports/cycle23-intro-test-2026-10-25.md). 표지 받기에는 **우선순위**(`book_cover.priority`, `cover_scope.py prioritize`)가 있어 탭 범위 책을 서버마다 먼저 받습니다. 운영용 탭 표지 폴더는 데이터 폴더 `covers-export\`(가져오기를 다시 하면 `fetch-covers --plan-only` 뒤 `cover_scope.py export`로 다시 만듦)
 
 ## 0. 읽는 순서
 

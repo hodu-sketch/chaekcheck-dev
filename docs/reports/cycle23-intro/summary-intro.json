@@ -1,0 +1,278 @@
+{
+ "model": "nlpai-lab/KURE-v1",
+ "torch": "2.14.1+cpu",
+ "threads": 12,
+ "gpu": false,
+ "intro": true,
+ "intro_chars": 300,
+ "intros_loaded": 29933,
+ "load_seconds": 7.0,
+ "dimension": 1024,
+ "sample_with_intro": 801,
+ "sample_books": 979,
+ "sample_seconds": 475.0,
+ "books": 1340875,
+ "all_books_hours": 180.7,
+ "sample_text_examples": [
+  "이끼숲 · 천선란 · 자이언트북스 · 2023 / (소개 원문은 git에 두지 않음)",
+  "파과 · 구병모 · 위즈덤하우스 · 2018 / (소개 원문은 git에 두지 않음)",
+  "버려야 보인다 · 윌리엄 폴 영 · 카시오페아 · 2015 / (소개 원문은 git에 두지 않음)"
+ ],
+ "mean_chars": 214.5,
+ "pool": 30000,
+ "pool_min_libraries": 73,
+ "pool_with_intro": 29136,
+ "pool_seconds": 16059.4,
+ "seeds_with_intro": 30,
+ "popular_top100": 460,
+ "popular_top400": 1823,
+ "popular_top100_in_pool": 272,
+ "popular_top400_in_pool": 951,
+ "per_seed": [
+  {
+   "list": "kaist",
+   "seed_id": 11027,
+   "seed": "세상 끝의 살인 · 아라키 아카네 저자, 이규원 번역 · 북스피어 · 2023",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 1
+  },
+  {
+   "list": "kaist",
+   "seed_id": 780835,
+   "seed": "해마 · 나혜원 · 사유와공감 · 2025",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "kaist",
+   "seed_id": 927,
+   "seed": "작은 땅의 야수들 · 김주혜 · 다산책방 · 2022",
+   "seed_intro": true,
+   "in_top100": 2,
+   "in_top400": 3
+  },
+  {
+   "list": "kaist",
+   "seed_id": 10298,
+   "seed": "대화를 한다는 것 · 피에르 쌍소 · 드림셀러 · 2025",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "kaist",
+   "seed_id": 944179,
+   "seed": "서울 오아시스 · 김채원 저자 · 문학과지성사 · 2025",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 1
+  },
+  {
+   "list": "kaist",
+   "seed_id": 31249,
+   "seed": "7~9세 독립보다 중요한 것은 없습니다 · 이서윤 · 아울북 · 2023",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 1
+  },
+  {
+   "list": "kaist",
+   "seed_id": 17954,
+   "seed": "하나의 세포로부터 · 벤 스탠거 · 웅진지식하우스 · 2024",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "kaist",
+   "seed_id": 239847,
+   "seed": "대구 · 마크 쿨란스키 · 알에이치코리아 · 2025",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 1
+  },
+  {
+   "list": "snu100",
+   "seed_id": 181740,
+   "seed": "다산문선 · 정약용 · 두산동아 · 2010",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 1
+  },
+  {
+   "list": "snu100",
+   "seed_id": 2819,
+   "seed": "에밀 · 장 자크 루소 저/이환 편 · 돋을새김 · 2015",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 1
+  },
+  {
+   "list": "snu100",
+   "seed_id": 119393,
+   "seed": "삼국유사 · 일연 · 매월당 · 2011",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "snu100",
+   "seed_id": 25205,
+   "seed": "당시삼백수. 1 · 손수 · 올재클래식스 · 2019",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "snu100",
+   "seed_id": 77452,
+   "seed": "신곡 · 단테 알리기에리 · 스타북스 · 2019",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "snu100",
+   "seed_id": 123061,
+   "seed": "인간의 조건 · 앙드레 말로 · 지식을만드는지식 · 2013",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 2
+  },
+  {
+   "list": "snu100",
+   "seed_id": 4771,
+   "seed": "우파니샤드 · 김영 · 씨아이알 · 2025",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 1
+  },
+  {
+   "list": "snu100",
+   "seed_id": 450534,
+   "seed": "연암집 · 박지원 · 지식을만드는지식 · 2009",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 1
+  },
+  {
+   "list": "nobel",
+   "seed_id": 134579,
+   "seed": "파우스트 · 요한 볼프강 폰 괴테 · 일송북 · 2010",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 2
+  },
+  {
+   "list": "nobel",
+   "seed_id": 60631,
+   "seed": "에드거 앨런 포 단편선 · 에드거 앨런 포 저/김석희 역 · 열린책들 · 2021",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "nobel",
+   "seed_id": 1052918,
+   "seed": "천일야화 (The Thousand and One NightsI) · 작자 미상 지음 · 유페이퍼 · 2016",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "nobel",
+   "seed_id": 103200,
+   "seed": "위대한 유산 · 찰스 디킨스 · 지경사 · 2007",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 1
+  },
+  {
+   "list": "nobel",
+   "seed_id": 31534,
+   "seed": "캔터베리 이야기 · 제프리 초서 · 현대지성 · 2017",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "nobel",
+   "seed_id": 147532,
+   "seed": "햄릿 · 윌리엄 셰익스피어 · 스타북스 · 2020",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 4
+  },
+  {
+   "list": "nobel",
+   "seed_id": 38493,
+   "seed": "특성 없는 남자 1 · 로베르트 무질 · 문학동네 · 2023",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 1
+  },
+  {
+   "list": "librarian",
+   "seed_id": 3337,
+   "seed": "믿을 수 있을 만큼의 진실 · 김유나 · 창비 · 2026",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 3
+  },
+  {
+   "list": "librarian",
+   "seed_id": 6842,
+   "seed": "숨 쉬는 것들은 어떻게든 진화한다 · 마들렌 치게 · 흐름출판 · 2024",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "librarian",
+   "seed_id": 21929,
+   "seed": "쇼펜하우어의 고독한 행복 · 아르투어 쇼펜하우어 · 열림원 · 2024",
+   "seed_intro": true,
+   "in_top100": 1,
+   "in_top400": 2
+  },
+  {
+   "list": "librarian",
+   "seed_id": 4598,
+   "seed": "소멸하지 않는 도시 · 경신원 · 투래빗 · 2025",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "librarian",
+   "seed_id": 280,
+   "seed": "최재천의 희망 수업 · 최재천 · 샘터(샘터사) · 2025",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  },
+  {
+   "list": "librarian",
+   "seed_id": 605830,
+   "seed": "위대한 관찰 · 조르주 빅토르 르그로 · 휴머니스트 · 2024",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 2
+  },
+  {
+   "list": "librarian",
+   "seed_id": 172234,
+   "seed": "AI 시대 창의적 인간 · 이시한 · 알에이치코리아 · 2025",
+   "seed_intro": true,
+   "in_top100": 0,
+   "in_top400": 0
+  }
+ ],
+ "neighbours": 600,
+ "neighbours_in_top100": 10,
+ "neighbours_in_top400": 28,
+ "seeds_with_any_top100": 9,
+ "seeds_with_any_top400": 17
+}

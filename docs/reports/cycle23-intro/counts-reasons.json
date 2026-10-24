@@ -1,0 +1,84 @@
+{
+ "checked_at": "2026-10-24T21:15:30+09:00",
+ "crawl_started": "2026-10-23T15:15",
+ "libraries_recrawled": 1244,
+ "libraries_never_asked": 1593,
+ "all": {
+  "A": 918790,
+  "B": 155507,
+  "C": 266578
+ },
+ "pool": {
+  "A": 26359,
+  "B": 2769,
+  "C": 864
+ },
+ "c_reason": {
+  "every asked library done, the list has no intro": 104594,
+  "only libraries never asked (*.dkyobobook.co.kr, crawl_skip)": 96307,
+  "a library still waiting for the running crawl": 65677
+ },
+ "c_platforms_top": [
+  [
+   "KYOBO_SUBSCRIPTION_V1",
+   91351
+  ],
+  [
+   "BOOKCUBE_FX",
+   75079
+  ],
+  [
+   "KYOBO_V1",
+   43371
+  ],
+  [
+   "ALADIN_V1",
+   14064
+  ],
+  [
+   "SEOUL_ELIB_V1",
+   9872
+  ],
+  [
+   "BOOKCUBE_FX + KYOBO_V1",
+   7479
+  ],
+  [
+   "ELIB_PORTAL_V1",
+   6864
+  ],
+  [
+   "YES24_V2",
+   4397
+  ],
+  [
+   "KYOBO_SUBSCRIPTION_V1 + KYOBO_V1",
+   3705
+  ],
+  [
+   "ALADIN_V1 + BOOKCUBE_FX",
+   1218
+  ],
+  [
+   "YES24_V3",
+   1098
+  ],
+  [
+   "YES24_V2 + YES24_V3",
+   995
+  ],
+  [
+   "BOOKCUBE_FX + KYOBO_SUBSCRIPTION_V1",
+   939
+  ],
+  [
+   "ALADIN_V1 + KYOBO_SUBSCRIPTION_V1",
+   695
+  ],
+  [
+   "BOOKCUBE_FX + KYOBO_SUBSCRIPTION_V1 + KYOBO_V1",
+   541
+  ]
+ ],
+ "seconds": 3083
+}

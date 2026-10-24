@@ -1,0 +1,411 @@
+{
+ "checked_at": "2026-10-24T20:28:57+09:00",
+ "books": 50,
+ "requests": 51,
+ "with_isbn": 4,
+ "found_in_bibliography": 23,
+ "with_intro_url": 1,
+ "filled": 0,
+ "median_chars": 0,
+ "rows": [
+  {
+   "book_id": "1221504",
+   "how": "title+author",
+   "found": true,
+   "publish": "20241217",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "590815",
+   "how": "title+author",
+   "found": true,
+   "publish": "20250517",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "377094",
+   "how": "title+author",
+   "found": true,
+   "publish": "20251117",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1295990",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1523428",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1442753",
+   "how": "isbn",
+   "found": true,
+   "publish": "20161104",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1384566",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "675803",
+   "how": "isbn",
+   "found": true,
+   "publish": "20160915",
+   "BOOK_INTRODUCTION_URL": true,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0,
+   "intro_is_picture": true,
+   "note": "BOOK_INTRODUCTION_URL answered a JPEG (scanned page), not text"
+  },
+  {
+   "book_id": "761736",
+   "how": "isbn",
+   "found": true,
+   "publish": "20130510",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1157934",
+   "how": "title+author",
+   "found": true,
+   "publish": "20201218",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1551818",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "364780",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "789076",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1560226",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "410301",
+   "how": "title+author",
+   "found": true,
+   "publish": "20180105",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "636749",
+   "how": "title+author",
+   "found": true,
+   "publish": "20260807",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "597736",
+   "how": "title+author",
+   "found": true,
+   "publish": "20250422",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1669859",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1520052",
+   "how": "title+author",
+   "found": true,
+   "publish": "20200522",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "389681",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1534400",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1386618",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "539163",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "774038",
+   "how": "title+author",
+   "found": true,
+   "publish": "20250923",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "462766",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1403537",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "740204",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "783384",
+   "how": "title+author",
+   "found": true,
+   "publish": "20230304",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1390187",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1402828",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1181877",
+   "how": "title+author",
+   "found": true,
+   "publish": "20250613",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1304646",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "597614",
+   "how": "title+author",
+   "found": true,
+   "publish": "20260116",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1612591",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "748113",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1648314",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1554933",
+   "how": "title+author",
+   "found": true,
+   "publish": "20110831",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "726379",
+   "how": "title+author",
+   "found": true,
+   "publish": "20220723",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "753358",
+   "how": "title+author",
+   "found": true,
+   "publish": "20241115",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "749499",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1315745",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "765297",
+   "how": "isbn",
+   "found": true,
+   "publish": "20140728",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "652487",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "587733",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "623031",
+   "how": "title+author",
+   "found": true,
+   "publish": "20260323",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1527718",
+   "how": "title+author",
+   "found": true,
+   "publish": "20170830",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "471613",
+   "how": "title+author",
+   "found": true,
+   "publish": "20260506",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1174183",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1180880",
+   "how": "title+author",
+   "found": true,
+   "publish": "20070716",
+   "BOOK_INTRODUCTION_URL": false,
+   "BOOK_SUMMARY_URL": false,
+   "intro_chars": 0
+  },
+  {
+   "book_id": "1330245",
+   "how": "title+author",
+   "found": false,
+   "publish": "",
+   "intro_chars": 0
+  }
+ ],
+ "intro_is_picture": 1
+}

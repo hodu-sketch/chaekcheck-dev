@@ -1,0 +1,101 @@
+{
+ "checked_at": "2026-10-25T01:02:26+09:00",
+ "planned_from": "catalog_import 14 at 2026-10-20T01:27:03.706409+00:00 (1340875 books)",
+ "sizes": {
+  "lists": 1905,
+  "pool": 30000,
+  "popular": 460
+ },
+ "union": {
+  "have": 29588,
+  "not yet (pending)": 859,
+  "none: no library cover address, NLK had none": 672,
+  "none: every address failed": 2
+ },
+ "lists": {
+  "have": 1880,
+  "not yet (pending)": 9,
+  "none: no library cover address, NLK had none": 15,
+  "none: every address failed": 1
+ },
+ "pool": {
+  "have": 28498,
+  "not yet (pending)": 845,
+  "none: no library cover address, NLK had none": 657
+ },
+ "popular": {
+  "have": 451,
+  "not yet (pending)": 8,
+  "none: every address failed": 1
+ },
+ "by_source": {
+  "collected_preferred": {
+   "covers": 23940,
+   "avg_kb": 11.4
+  },
+  "collected_other": {
+   "covers": 5619,
+   "avg_kb": 11.8
+  },
+  "nlk_holdings": {
+   "covers": 24,
+   "avg_kb": 12.0
+  },
+  "nlk_isbn": {
+   "covers": 5,
+   "avg_kb": 8.5
+  }
+ },
+ "distinct_files": 29586,
+ "files_mb": 331.0,
+ "by_host_top": [
+  [
+   "image.yes24.com",
+   19091
+  ],
+  [
+   "bookimg.bookcube.com",
+   4849
+  ],
+  [
+   "ebook.suwonlib.go.kr",
+   1192
+  ],
+  [
+   "lebook.pohang.go.kr",
+   836
+  ],
+  [
+   "elib.goe.go.kr",
+   575
+  ],
+  [
+   "ebook.jbe.go.kr",
+   482
+  ],
+  [
+   "lib.dangjin.go.kr",
+   318
+  ],
+  [
+   "elib.dobong.kr",
+   278
+  ],
+  [
+   "libebook.suncheon.go.kr",
+   271
+  ],
+  [
+   "ebook.jne.go.kr",
+   215
+  ],
+  [
+   "ebook.sdlib.or.kr",
+   215
+  ],
+  [
+   "www.ghlib.go.kr",
+   195
+  ]
+ ]
+}

@@ -347,6 +347,19 @@ class PlanAndFetchTests(unittest.TestCase):
         self.assertEqual(fc.SLOW_AFTER, result['done'])
         self.assertEqual(5, result['pending'])
 
+    def test_priority_books_are_asked_first_on_their_server(self):
+        self.collected.executemany("INSERT INTO holding (library_id, item_key, platform, title, cover_url, first_seen_at, "
+                                   "last_seen_at, last_run_id) VALUES (1, ?, 'X', 't', ?, '', '', 1)",
+                                   [(f'P{i}', f'{YES24}?p{i}') for i in range(1, 6)])
+        self.plan([(i, None, f'책{i}', None, [(1, f'P{i}')]) for i in range(1, 6)], nlk=False)
+        con = fc.open_covers_db(self.covers_path)
+        con.execute('UPDATE book_cover SET priority = 1 WHERE book_id = 4')
+        con.commit()
+        con.close()
+        opener = FakeOpener({YES24: FakeResponse(200, png())})
+        self.fetch(opener, workers=1, max_books=1)
+        self.assertEqual([f'{YES24}?p4'], opener.urls)
+
     def test_max_books_stops_a_trial_and_export_lists_the_pairs(self):
         self.collected.executemany("INSERT INTO holding (library_id, item_key, platform, title, cover_url, first_seen_at, "
                                    "last_seen_at, last_run_id) VALUES (1, ?, 'X', 't', ?, '', '', 1)",

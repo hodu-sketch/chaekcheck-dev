@@ -205,6 +205,12 @@ def open_covers_db(path: Path) -> sqlite3.Connection:
     con.execute('PRAGMA journal_mode=WAL')
     con.execute('PRAGMA busy_timeout=120000')
     con.executescript(SCHEMA)
+    # priority (2026-10-24, plan cycle 23): books a server is asked for first (cover_scope.py prioritize)
+    if 'priority' not in {r[1] for r in con.execute('PRAGMA table_info(book_cover)')}:
+        con.execute('ALTER TABLE book_cover ADD COLUMN priority INTEGER NOT NULL DEFAULT 0')
+        con.commit()
+    con.execute('CREATE INDEX IF NOT EXISTS book_cover_next_priority '
+                'ON book_cover(status, next_host, priority DESC, book_id)')
     return con
 
 
@@ -583,7 +589,7 @@ class Fetcher:
                     return
                 row = con.execute("""SELECT book_key, book_id, isbn13, title, author, candidates, next_index, tried
                                      FROM book_cover WHERE status = 'PENDING' AND next_host = ?
-                                     ORDER BY book_id LIMIT 1""", (host,)).fetchone()
+                                     ORDER BY priority DESC, book_id LIMIT 1""", (host,)).fetchone()
                 if row is None:
                     self.dispatcher.vanished(host)
                     continue
