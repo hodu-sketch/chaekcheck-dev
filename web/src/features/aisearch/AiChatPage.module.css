@@ -359,8 +359,7 @@
 
 .count,
 .error,
-.notice,
-.scopeNote {
+.notice {
   margin: 0.35rem 0.9rem 0;
   font-size: var(--text-xs);
 }
@@ -375,10 +374,11 @@
   font-weight: 700;
 }
 
-/* the line about where it looks when no region is chosen, as under the direct search box (user 2026-10-24) */
+/* the line about where it looks when no region is chosen, under the latest answer (user 2026-10-24) */
 .scopeNote {
+  margin: 0;
   color: var(--ink-soft);
-  text-align: center;
+  font-size: var(--text-sm);
 }
 
 .scopeNote a {

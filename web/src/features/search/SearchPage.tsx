@@ -54,12 +54,7 @@ export const START_TEXT = {
   // user 2026-10-20: "읽고 싶은 전자책, / 사기 전에 빌릴 수 있는 전자도서관부터"
   // without 빌릴 수 있는 (user 2026-10-20: "큰 글자 메인에서 빌릴 수 있는 이걸 빼달라니까")
   headline: ['읽고 싶은 전자책,', '사기 전에', '전자도서관부터'],
-  // in the brand colour in the question above the search box, not in the headline (user 2026-10-20)
-  headlineMark: '빌릴 수 있는',
   more: '자세히 →',
-  // above the search box, the lead's second line moved here (user 2026-10-20: "어떤 책을 찾으세요? 이거 문구를 …
-  // 이걸로 바꾸고 원래 거 지워")
-  question: '전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.',
   // a region picked at random on every visit from START_EXAMPLES (user 2026-10-20: "한 100개 정도 해서 항상 랜덤값이
   // 뜨게", "예: 빼줘")
   exampleFoot: '전자도서관에서 빌릴 수 있어요',
@@ -191,24 +186,13 @@ function cardOf(
 }
 
 /** Lines joined by line breaks. */
-function lines(parts: readonly string[], mark?: string) {
-  return parts.map((part, index) => {
-    const at = mark ? part.indexOf(mark) : -1
-    return (
-      <span key={part}>
-        {index > 0 && <br />}
-        {at < 0 || !mark ? (
-          part
-        ) : (
-          <>
-            {part.slice(0, at)}
-            <span className={styles.headlineMark}>{mark}</span>
-            {part.slice(at + mark.length)}
-          </>
-        )}
-      </span>
-    )
-  })
+function lines(parts: readonly string[]) {
+  return parts.map((part, index) => (
+    <span key={part}>
+      {index > 0 && <br />}
+      {part}
+    </span>
+  ))
 }
 
 /**
@@ -533,8 +517,8 @@ export function SearchPage() {
               <h1 className={styles.headline}>{lines(START_TEXT.headline)}</h1>
               {/* no lead line under the headline (user 2026-10-22: "이거 메인에서 아예 빼주고"); 소개 is in the header */}
             </div>
-            {/* 빌릴 수 있는 in purple here too (user 2026-10-20) */}
-            <p className={styles.question}>{lines([START_TEXT.question], START_TEXT.headlineMark)}</p>
+            {/* no 「전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.」 line above the region button any more (user
+                2026-10-24: "메인에서 이 문구 빼주라") */}
             {/* the region button between that line and the search box (user 2026-10-20: "지역을 선택해 주세요 버튼이랑 검색
                 창 위치 바꿔줘", "찾아 드릴게요가 버튼보다 위에") */}
             <div className={styles.startPick}>

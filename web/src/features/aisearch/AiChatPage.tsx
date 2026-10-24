@@ -160,7 +160,7 @@ export function AiChatPage() {
       {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
 
       <ol className={styles.turns}>
-        {chat.turns.map((turn) => (
+        {chat.turns.map((turn, index) => (
           <li key={turn.id} className={styles.turn} aria-busy={turn.state === 'streaming' || undefined}>
             <p className={styles.question}>{turn.question}</p>
             <Answer
@@ -184,6 +184,15 @@ export function AiChatPage() {
                   : navigate('/', { state: { searchTab: 'direct' } satisfies SearchTabState })
               }
             />
+            {/* no region or library chosen: the direct search's line, under the latest answer (user 2026-10-24:
+                "검색창 아래가 아니라 AI응답 아래에") */}
+            {noRegion && index === chat.turns.length - 1 && turn.state !== 'waiting' && turn.state !== 'streaming' && (
+              <p className={styles.scopeNote}>
+                {SCOPE_TEXT.noteNoneBefore}
+                <Link to="/mypage">{SCOPE_TEXT.myPageWord}</Link>
+                {SCOPE_TEXT.noteNoneAfter}
+              </p>
+            )}
           </li>
         ))}
       </ol>
@@ -274,14 +283,6 @@ export function AiChatPage() {
         {!full && tooShort && (
           <p id="ai-follow-up-error" className={styles.error} role="alert">
             {AI_TEXT.tooShort}
-          </p>
-        )}
-        {noRegion && (
-          // no region or library chosen: the same line as under the direct search box (user 2026-10-24)
-          <p className={styles.scopeNote}>
-            {SCOPE_TEXT.noteNoneBefore}
-            <Link to="/mypage">{SCOPE_TEXT.myPageWord}</Link>
-            {SCOPE_TEXT.noteNoneAfter}
           </p>
         )}
         {/* R9-2's AI line, moved from the top to under the box (user 2026-10-24: "맨 위에 있어서 어색해") */}

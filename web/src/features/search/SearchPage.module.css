@@ -67,15 +67,6 @@
   word-break: keep-all;
 }
 
-.question {
-  margin: 0 0 0.55rem;
-  /* a dark grey; 빌릴 수 있는 keeps its violet (user 2026-10-22: "기존 보라색 제외하고 좀 진한 회색으로") */
-  color: var(--ink-soft);
-  font-size: var(--text-lg);
-  font-weight: 800;
-  word-break: keep-all;
-}
-
 /* the example card 「예: 서울 강서구에 살면」 (ADR-0139 #2, where 「이렇게 이용해 보세요」 was): the same white card */
 
 .steps {
@@ -110,7 +101,7 @@
   margin-top: 0.6rem;
 }
 
-/* the first screen's region button, above the question and the search box (user 2026-10-20) */
+/* the first screen's region button, above the search box (user 2026-10-20) */
 .startPick {
   display: flex;
   flex-direction: column;
@@ -185,7 +176,7 @@
 
 
 
-/* PC: the steps card as the right column, beside the headline and the question */
+/* PC: the steps card as the right column, beside the headline */
 @media (width > 1024px) {
   .page[data-state='start'] .searchArea {
     display: grid;
@@ -204,26 +195,28 @@
     grid-row: 1;
   }
 
-  .page[data-state='start'] .question {
-    grid-row: 2;
-  }
-
+  /* rows renumbered when the line above the region button went (user 2026-10-24): an empty row 2 drew the shelf into it */
   .page[data-state='start'] .startPick {
-    grid-row: 3;
+    grid-row: 2;
   }
 
   .page[data-state='start'] .searchArea > form,
   .page[data-state='start'] .searchArea > [data-search-way] {
-    grid-row: 4;
+    grid-row: 3;
   }
 
   .page[data-state='start'] .scopeRow {
-    grid-row: 4;
+    grid-row: 3;
   }
 
   .page[data-state='start'] .steps {
-    grid-row: 5;
+    grid-row: 4;
     margin: 1.25rem 0 1.7rem;
+  }
+
+  /* the recommended books' shelf (MainShelf) */
+  .page[data-state='start'] .searchArea > section {
+    grid-row: 5;
   }
 
   .page[data-state='start'] .whyRegion {
@@ -252,8 +245,7 @@
     margin-bottom: 1.3rem;
   }
 
-  .lead,
-  .question {
+  .lead {
     font-size: var(--text-md);
   }
 }
@@ -278,10 +270,6 @@
   word-break: keep-all;
 }
 
-.headlineMark {
-  color: var(--brand);
-}
-
 /* wider screens of little height (a small laptop): tighter, so the first screen with the region box opened fits
    without a scroll (user 2026-10-20: "어지간한 작은 모니터에도 다 스크롤 없이") */
 @media (width > 1024px) and (height <= 860px) {
@@ -302,11 +290,6 @@
   .page[data-state='start'] .lead {
     font-size: var(--text-md);
     line-height: 1.5;
-  }
-
-  .page[data-state='start'] .question {
-    margin-bottom: 0.4rem;
-    font-size: var(--text-md);
   }
 }
 

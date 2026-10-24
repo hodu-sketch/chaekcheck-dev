@@ -236,13 +236,18 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     expect(screen.queryByText('우주 책')).toBeNull()
   })
 
-  it('says where it looks when no region is chosen, under the box (user 2026-10-24)', () => {
+  it('says where it looks when no region is chosen, under the latest answer (user 2026-10-24)', async () => {
+    startWithQuestion('우주 책')
+    answers(...okAnswer)
     setup()
+    await screen.findByText('별과 우주를 다뤄요')
     expect(screen.queryByText(/누구나 빌릴 수 있는 도서관에서만 찾고 있어요/)).toBeNull()
     cleanup()
     regionState.current = { regions: { residence: [], work: [] }, libraryIds: [], source: 'browser' }
     setup()
-    expect(screen.getByText(/누구나 빌릴 수 있는 도서관에서만 찾고 있어요/)).toBeTruthy()
+    const note = await screen.findByText(/누구나 빌릴 수 있는 도서관에서만 찾고 있어요/)
+    // after the answer's cards, inside the turn
+    expect(screen.getByText('별과 우주를 다뤄요').compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
   })
 })

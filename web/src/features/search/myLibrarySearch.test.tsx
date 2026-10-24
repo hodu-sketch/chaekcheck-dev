@@ -530,9 +530,8 @@ describe('전자책 검색', () => {
 
 /** The first screen (user 2026-10-20, ADR-0139, handoff 5-A-1·2, main screen (나)): `/` before a search. */
 describe('the first screen', () => {
+  // the line above the region button, taken off the main page (user 2026-10-24: "메인에서 이 문구 빼주라")
   const QUESTION = '전자책을 빌릴 수 있는 전자도서관에서 찾아 드릴게요.'
-  // the line above the search box (its 빌릴 수 있는 in its own span)
-  const question = () => screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === QUESTION)
   const example = () => screen.queryByRole('complementary', { name: /에 살면$/ })
 
   it('wider screens: 「전자도서관인데 왜 지역을 정해야 하나요?」 opens the answer in a window too (user 2026-10-22)', async () => {
@@ -557,7 +556,7 @@ describe('the first screen', () => {
     // no 자세히 → (user 2026-10-20)
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
     // 빌릴 수 있는 in purple (user 2026-10-20)
-    expect(question().querySelector('span span')?.textContent).toBe('빌릴 수 있는')
+    expect(screen.queryByText(/찾아 드릴게요/)).toBeNull()
     expect(screen.queryByRole('complementary', { name: '이렇게 이용해 보세요' })).toBeNull()
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy()
     expect(screen.getByRole('search').hasAttribute('data-start')).toBe(true)
@@ -611,8 +610,7 @@ describe('the first screen', () => {
     await screen.findByRole('heading', { level: 1 })
     expect(screen.queryByText(/시·군·구 전자도서관에서도/)).toBeNull()
     expect(screen.queryByRole('link', { name: '자세히 →' })).toBeNull()
-    const asked = question()
-    expect(asked.compareDocumentPosition(screen.getByRole('search')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByText(/찾아 드릴게요/)).toBeNull()
     const shelf = await screen.findByRole('region', { name: '이런 책도 무료로 빌려 보세요' })
     expect(screen.getByRole('search').compareDocumentPosition(shelf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
