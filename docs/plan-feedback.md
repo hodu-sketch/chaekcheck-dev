@@ -6263,3 +6263,44 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 다른 출처: 카카오는 약관(운영정책 제5조 제30호 등) 때문에 호출 안 함, 도서관 정보나루는 키 없음, 국립중앙도서관 ISBN 서지는 50권 중 23권 찾았으나 글 소개 0권(1권은 스캔 JPEG)
 - KURE-v1에 소개 앞 300자를 넣으면 이웃이 주제 쪽으로 바뀜(「신곡」·「햄릿」·「하나의 세포로부터」 등). 시간은 1,000권 475초로 4.8배, 전체 약 181시간. 인기 이웃 비율은 그대로 낮음
 - 탭 표지: 범위 31,121권 중 29,588권(95.1%)에 표지. 범위를 표지 받기 앞 차례로 당김(`book_cover.priority`). 운영용 폴더 `chaekcheck-data\covers-export\`(29,586장, 331.0MB)와 `book-texts-cover_file.tsv`를 `scripts/crawl/cover_scope.py export`로 만듦. 운영 반영은 사이클 23 개발 때
+
+# 사이클 23
+
+「나에게 맞는 책」(추천도서 탭 맨 앞, `/picks/for-you`). 인계서 plan `docs/cycles/23-for-you-picks/handoff.md`(plan main `18133c3`), 기준 설계 같은 폴더 `design-delta.md`(ADR-0147·0148·0149). dev 클라우드 세션 `사이클 23 「나에게 맞는 책」 개발`.
+
+## 시작 상태 (2026-10-24)
+
+- 작업 폴더 `/home/user/chaekcheck-dev`(클라우드 컨테이너), 브랜치 `claude/cycle-23-for-you-picks-kzjabw`, 시작 커밋 = dev main 끝 `adba2d3`(plan이 읽은 기준과 같음)
+- docker 프로젝트·포트: 이 컨테이너 안에서만 시험 DB 컨테이너 `db-test`(5433) 하나. 다른 사이클의 docker 프로젝트는 건드리지 않음(이 컨테이너에는 없음)
+  - `docker/postgres-bigm` 이미지는 여기서 만들 수 없음(Debian apt·GitHub 압축 파일이 프록시에서 403). 대신 공식 `postgres:18` + **pg_bigm `v1.2-20250903`을 upstream 소스(git)에서 이 컨테이너 안에서 빌드**해 넣은 로컬 이미지로 같은 이름을 씀. 저장소 파일은 그대로
+  - Gradle: Maven Central이 이 IP에 429를 줘서, 저장소 밖 `~/.gradle/init.d/`에 Google의 Maven Central 사본을 먼저 보는 설정을 둠(사이클 24 세션과 같은 방법)
+- **사이클 24는 dev main에 없음.** 그러나 24 dev 브랜치 `claude/awesome-carson-8416jq`(`bdec6b0`, 2026-10-24)에 서버 4~8단계와 웹 9~10단계가 들어가 있고, 거기서 `picks.ListedBooks`(`current()`·`loadFromDb()`)와 `collection` `book-texts` 모드(`BookTextsFile`·`BookTextsImport`), `usagelog/008-ai-search-event.yaml`을 **이미 만들었음** → 아래 "0단계 8"과 "사용자에게 묻는 것"
+- `PRE_DEPLOYMENT` 표지 파일이 main에 아직 있음(운영 배포는 끝났음). 인계서대로 기존 changeset은 고치지 않고 새 파일로만 더함. 표지를 지울지는 plan이 정할 일로 남김
+
+## 0단계 결과 (체크포인트 A)
+
+| # | 확인 | 결과 | 멈춤? |
+|---|---|---|---|
+| 1 | 프록시 나가는 길이 main에 있는지 | **있음.** `chaekcheck.availability.egress.mode`(`all`·`proxy-only`·`direct-only`, 환경 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE`)와 `egress.proxies`(`host:port` 쉼표, 환경 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`), `proxy-username`·`proxy-password`, `block.*`. 코드 `availability/internal/egress/EgressLanes`가 길 고르기·길마다 호스트 간격(`LaneThrottle`, 호스트당 1건·1초)·막힌 길 쉬기를 함. `proxy-only`는 바로 나가는 길을 절대 쓰지 않음. 운영은 `deploy/prod/compose.yaml`이 `WEBSHARE_PROXIES`를 넘김 | 아니요 |
+| 2 | 교보 일반·YES24 V1 인기순 화면을 지금 어댑터로 읽는지 | **읽음(파서는 그대로, URL과 소장 키만 더함).** 교보 일반 `contentList.ink`는 검색 화면과 같은 짜임(`div.book_resultTxt` "총 N개", `ul.book_resultList > li`, `li.tit a[onclick=fnContentClick(…)]`, `li.writer`, `p.use` "대출 : X/Y 예약 : Z"). 사전 시험 파서(`scripts/crawl/probe_popular.py` `kyobo_rows`)가 지금 `KyoboV1ScreenAdapter.parse`와 같은 선택자로 1,600줄을 읽음. YES24 V1 대출순은 검색 화면 그 자체(`/search/?src_key=&sort=lending`)라 `Yes24V1Adapter.parse` 그대로. 읽는 칸: 제목·저자·출판사·대출 중·예약·보유, 소장 키(교보 `brcd` = `fnContentClick` 둘째 값, YES24 `goods_id`)는 지금 `detailPath` 안에 있어 꺼내기만 하면 됨. **ISBN은 화면에 없음**(소장 키로 맞추므로 필요 없음, 3번). 쪽 크기: 교보는 `recordCount=80`이 사이트 최대(100은 오류 화면, 사전 시험), YES24 V1은 `view=50`까지. → 앞 100권 = 사이트마다 2쪽(교보 80+20, YES24 50+50), 여섯 곳 12건. 저장본 HTML은 git 밖(`data/cycle23-pretest/`, 수집 PC)이라 이 세션에 없음 → 파서 시험은 지금 어댑터 시험 짜임으로 만든 HTML로 하고, 체크포인트 B에서 실제 화면으로 다시 봄 | 아니요 |
+| 3 | 목록 줄 → 책 번호 | 사전 시험은 `(그 도서관의 수집 번호, 소장 키)`로 `catalog.holding.item_key`를 찾음(2,590/2,600). 운영 `catalog.holding`에 **`UNIQUE (library_id, item_key)`**가 있어 같은 색인으로 바로 찾을 수 있음. 공개 API는 아직 없음 → 2단계에서 `catalog`에 "(도서관 번호, 소장 키) → 책 번호" [안: `BookLookup.byHoldingKeys`]를 더함. 못 맞춘 줄만 ISBN이 없으므로 제목+첫 저자(`byTitleAndAuthor`)로 한 번 더 [안] | 아니요 |
+| 4 | `BookLookup`의 저자·출판사·출판 연도 | `IdBook`은 지금 `bookId, title, publisherNorm, libraryIds`뿐. 표 `catalog.book`에는 `author_display`, `publisher`, `published_on`이 있음 → 카드용으로 더함. **`published_on`의 뜻: 같은 책 묶음에 든 소장 줄들의 출판일 가운데 가장 많이 나온 날(같으면 이른 날)** (`collection/internal/importer/SqlGrouping` `grp_date` 다수결). 소장 줄의 날짜는 전자도서관 화면에 적힌 출판일(대개 전자책이 나온 날)이라 "대표 출판일"이고 "가장 이른 소장 날짜"는 아님. 연도 가산은 이 해로 셈 [안] — 사용자 확인 필요 | 아니요 |
+| 5 | 운영 디스크·DB 여유 | 이 세션에서 운영 서버를 볼 수 없어 기록으로만: 2026-10-20 서울도서관 반영 때 정리 뒤 EC2 여유 **12GB**, 책 표 반영 중 최저 **3.9GB**(이 절 위 "서울도서관 연결"). 이웃 약 0.2GB(`full` 바꿔 끼울 때 잠깐 0.4GB) + 표지 약 0.3GB를 더하면 다음 책 표 반영 때 최저 여유가 약 3.4GB로 줄어듦 [추론]. 반영 전(11단계) 실제 `df`로 다시 봄 | 아니요 |
+| 6 | 사용 알림 `category` | **필수.** 서버 `UsageEventReader.category()`가 없으면 `invalid_value`로 거절하고, 표 CHECK도 `picks_list_view`·`picks_book_view`에 `picks_category IS NOT NULL`. 값은 자유 글자(목록 검사 없음, 최대 길이만). [안]: 목록 보기 `category: "all"`, 책 보기는 그 카드가 온 곳 `"base"`(기본 목록) / `"similar"`(개인 추천). CHECK는 그대로 두고 `picks_list`만 넓힘 | 아니요 |
+| 7 | 출판유통·KLWAVE가 프록시 길을 따르는지 | 나가는 길은 `availability` 안쪽이라 `foryou`가 직접 쓸 수 없음(모듈 경계). **따르게 할 수는 있음**: `foryou`의 작은 HTTP 클라이언트가 같은 환경 값(`CHAEKCHECK_AVAILABILITY_EGRESS_MODE`·`…PROXIES`·`…PROXYUSERNAME`·`…PROXYPASSWORD`)을 자기 설정 키로 받아, `proxy-only`이면 첫 프록시(또는 차례로)로만 보냄 [안]. 접근 시험·응답 모양은 이 클라우드 컨테이너가 운영과 다른 길이라 하지 않음. 받을 범위·형식은 사용자 PC 원문 확인 전이라 **세 출처(`kpipa_rank`·`kpipa_200`·`klwave`)는 `enabled=false`로 두고 어댑터 자리만 만듦** | 아니요 |
+| 8 | 24 상태 | 위 "시작 상태". 24 브랜치의 `ListedBook(bookId, title, author, coverPath, libraryIds, listKeys)`, `Snapshot(builtAt, books)`, `loadFromDb()`는 저장된 목록이 비면 `ListsNotReadException`. `book-texts`는 머리줄 `kind\tbook_id\tsource\tmade_on\ttext`, 지금 `search_line`만, 모르는 kind는 건너뛰고 수 보고. **dev에서 먼저 만든 쪽은 24.** 23은 그 위에 kind 셋(`for_you_blurb`·`tags`·`cover_file`)과 `ListedBook.tags` 칸만 더하는 것이 인계서 뜻에 맞음 | 아니요(사용자에게 시작점을 물음) |
+| 9 | 기준 빌드 | 웹: `npm ci`·`npm run build` 통과, vitest **639/639** 통과(이 컨테이너 Node 22). 백엔드 `./gradlew build`: 1,176개 중 실패 2개만 남음 — `LaneThrottleTests.sameLaneKeepsTheIntervalWhileOtherSitesDoNotWait`·`sameHostNameOnDifferentPortsSharesOneSlot`("no free lane … before the deadline", 시간에 기대는 시험, 24 세션도 이 환경에서 같은 실패를 적음). 처음 실패한 `CatalogTransferTests`·`CatalogImportModesTests` 23개는 PG 도구 길(`TEST_PG_COMMAND=docker,exec,-i,…,db-test`)을 주자 모두 통과 → 환경 탓. 이후 단계의 "빌드 통과"는 이 두 시험을 뺀 기준으로 봄 | 아니요 |
+| C3 | 새벽 받기를 조회 통계와 섞지 않음 | 섞이지 않게 할 수 있음. `library_response_daily`는 `BatchRunner`·`LibraryEbookController`(사용자 조회)만 씀. 조회 상태 불의 "기다림"은 `HostQueueBoard`에서 오는데, `RankedListings`는 이것을 거치지 않고 `EgressLanes.fetch`(길마다 호스트 간격은 그대로)를 바로 부르면 됨. 검색 쪽 캐시(`SearchPageCache`)도 쓰지 않음. 다만 길 요청 수(`LaneCounters` → 1분 요약 줄·`availability.lookup_sample`)에는 새벽 12건이 들어감(길마다 센 값이라 나눌 수 없음, 사람이 읽는 운영 수치) — 그대로 둘지 plan 판단 | 아니요 |
+| C4 | 개인 추천 주소가 nginx 기록에 회원 번호와 남는지 | 회원 번호는 남지 않음: `deploy/nginx`에 `log_format`이 없어 이미지 기본(접속 주소·요청 줄·상태·Referer·UA·`X-Forwarded-For`)이고, 로그인은 쿠키라 기록에 없음. 다만 **요청 줄(책 번호)과 접속 IP·UA는 남음**. 서비스 쪽은 요청 주소를 로그에 쓰지 않음 | 보고만 |
+
+- `*.dkyobobook.co.kr`: 지금 설정 `availability.kyobo.subscription-host-suffix: .dkyobobook.co.kr`이 있음. `RankedListings`는 요청 직전 이 호스트면 보내지 않음(3단계 시험으로 확인)
+- 덧붙임: 새벽 만들기 시각 [안] 04:00은 이미 `auth.cleanup.cron` 04:00(가벼운 정리)과 같은 시각. 겹쳐도 문제는 없지만 03:30 [안]을 제안함(사서 받기 05:00과도 떨어짐)
+- 덧붙임: 24 세션 기록에 이 환경에서 원래 실패하는 시험 3개(`LaneThrottleTests` 둘, `CatalogTransferTests.brokenFileKeepsTheCatalog`)가 적혀 있음 → 기준 빌드에서 같은지 봄
+
+## 24와의 일
+
+- 24 plan 세션(`chaekcheck-plan-cycle-24 AI`)에 설계 결정 #7을 세션 메시지로 보내려 했으나 **거절됨**("신뢰된 기기 증명 필요", 2026-10-24). 사용자가 직접 붙여 넣을 글:
+
+  > 사이클 23 설계 결정 #7(사용자 승인 2026-10-24, ADR-0149 결정 3): PC Haiku 배치는 **책 한 권당 한 번 호출**로 탭 추천 글(23, kind `for_you_blurb`)·꼬리표(23, kind `tags`)·찾기용 한 줄(24, kind `search_line`)을 함께 만듭니다. 입력은 **대상 책 목록 파일**이고 다음부터는 새 책만 더 돌립니다(23 대상: 기본 목록 책 + 추천목록 책 약 2,800권 + 보유 많은 3만 권). 결과는 `book-texts.tsv` 한 파일에 kind별로 담아 `book-texts` 모드 한 번으로 넣습니다. 24 dev 브랜치의 2단계 배치("(가) 한 권씩 바로 호출, 요청 파일 `custom_id`=`book_id`")는 이 결정에 맞춰 한 스크립트로 합쳐야 합니다(23 설계는 Message Batches).
+
+- 알린 날·받은 답: (사용자 전달 뒤 적음)
