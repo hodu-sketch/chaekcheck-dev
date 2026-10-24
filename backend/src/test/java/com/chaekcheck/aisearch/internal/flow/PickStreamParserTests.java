@@ -99,6 +99,17 @@ class PickStreamParserTests {
 	}
 
 	@Test
+	void aSurrogateWithoutItsPairBecomesTheReplacementCharacter() {
+		Recorder recorder = new Recorder();
+		PickStreamParser parser = new PickStreamParser(recorder);
+
+		parser.feed("{\"head\":\"a\\ud83dB\\ude00c\\ud83d\",\"picks\":[{\"no\":1,\"text\":\"\\ud83d");
+		parser.feed("\\ude00 ok\"}]}");
+
+		assertThat(recorder.joined()).containsExactly("head:a\uFFFDB\uFFFDc\uFFFD", "no:1", "text:😀 ok", "end");
+	}
+
+	@Test
 	void notJsonIsRefused() {
 		assertThatThrownBy(() -> new PickStreamParser(new Recorder()).feed("{\"head\" \"x\"}"))
 			.isInstanceOf(IllegalStateException.class);

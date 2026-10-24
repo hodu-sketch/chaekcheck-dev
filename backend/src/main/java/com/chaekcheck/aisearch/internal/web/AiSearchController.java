@@ -18,7 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -102,13 +101,20 @@ class AiSearchController {
 	}
 
 	@PostMapping("/api/v1/ai-searches/stream")
-	ResponseEntity<SseEmitter> stream(@RequestBody(required = false) String body, HttpServletRequest request) {
+	ResponseEntity<SseEmitter> stream(HttpServletRequest request) {
 		long started = System.nanoTime();
 		if (!properties.enabled()) {
 			throw new OffException();
 		}
+		// the IP's limits first, before any work for the request (step 8 security review); a refused or wrong request
+		// is counted too
+		AiSearchQuota.Decision decision = quota.tryAcquire(ClientIp.quotaKey(ClientIp.of(request)));
+		if (!decision.allowed()) {
+			budget.countRateLimited();
+			throw new RateLimitedException(decision.retryAfterSeconds());
+		}
 		UsageRequest usage = usageLog.capture(request);
-		AiSearchRequest parsed = read(body, request);
+		AiSearchRequest parsed = read(request);
 		String question = question(parsed.question());
 		int turnNo = turnNo(parsed.turnNo());
 		List<AiSearchFlow.Turn> history = history(parsed.history());
@@ -118,11 +124,6 @@ class AiSearchController {
 		PlanOptions options = new PlanOptions(scope(parsed.scope()), visit(parsed.visit()), chosen);
 		List<SearchTarget> plan = libraries.planSearch(residence, work, options);
 
-		AiSearchQuota.Decision decision = quota.tryAcquire(ClientIp.of(request));
-		if (!decision.allowed()) {
-			budget.countRateLimited();
-			throw new RateLimitedException(decision.retryAfterSeconds());
-		}
 		if (!budget.allowsStart()) {
 			budget.countPaused();
 			throw new PausedException();
@@ -163,11 +164,20 @@ class AiSearchController {
 			.body(emitter);
 	}
 
-	private AiSearchRequest read(String body, HttpServletRequest request) {
-		if (request.getContentLengthLong() > MAX_BODY_CHARS || body == null || body.isBlank()
-				|| body.length() > MAX_BODY_CHARS) {
+	/** Reads at most {@value #MAX_BODY_CHARS} bytes, whether or not the request says its length (chunked bodies too). */
+	private AiSearchRequest read(HttpServletRequest request) {
+		byte[] bytes;
+		try {
+			bytes = request.getContentLengthLong() > MAX_BODY_CHARS ? null
+					: request.getInputStream().readNBytes(MAX_BODY_CHARS + 1);
+		}
+		catch (java.io.IOException e) {
+			throw new InvalidRequestException("body", "invalid_format", "the body could not be read");
+		}
+		if (bytes == null || bytes.length == 0 || bytes.length > MAX_BODY_CHARS) {
 			throw new InvalidRequestException("body", "invalid_format", "a JSON object of at most 16KB is needed");
 		}
+		String body = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
 		try {
 			AiSearchRequest parsed = json.readValue(body, AiSearchRequest.class);
 			if (parsed == null) {
@@ -185,7 +195,7 @@ class AiSearchController {
 		if (raw == null) {
 			throw new InvalidRequestException("question", "required", "question is required");
 		}
-		String question = raw.strip();
+		String question = com.chaekcheck.aisearch.internal.flow.WholeText.of(raw.strip());
 		int length = question.codePointCount(0, question.length());
 		if (length < 2 || length > properties.limits().questionMaxLength()) {
 			throw new InvalidQueryException();
@@ -286,6 +296,11 @@ class AiSearchController {
 				gone.set(true);
 				return false;
 			}
+		}
+
+		@Override
+		public boolean gone() {
+			return gone.get();
 		}
 
 		@Override

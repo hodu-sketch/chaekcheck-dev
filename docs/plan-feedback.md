@@ -6180,3 +6180,34 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - `pick_result` `skipped`의 실제 뜻 [안]: 2차를 "맞는 책 없음" 말고 다른 까닭으로 부르지 않음(예: 1차 뒤 사용자가 떠남). 8단계에서 쓰는 곳을 정함
 - 정한 세부 [안: dev]: `Retry-After`는 1분 제한이면 창에서 가장 오래된 것이 빠질 때까지 올림 초(최소 1), 하루 제한이면 서울 자정까지(둘 다 넘으면 하루 쪽). IP가 없으면(로컬) 한 칸을 함께 씀. 지난 날의 IP는 1,000번 부를 때마다 지움. 비용은 `입력 × 0.10 + 출력 × 0.50`(백만분의 1달러, 올림), 출력을 모르는 끊긴 호출은 `max_tokens`로 셈. `daily_usage`는 날짜 줄 UPSERT, `updated_at`은 트리거
 - 시험(통과): `InMemoryAiSearchQuotaTests` 5(1분 11번째·40초 뒤 풀림, 하루 101번째·서울 자정 풀림, 재시작하면 처음부터, 지난 날 IP 지움, IP 없음), `DailyBudgetTests` 3(db-test: 비용 계산, 상한 뒤 시작 거부·재시작해도 비용 이어짐·다음 날 0, 끊긴 호출·거절 수), `UsageLogWriteTests` 새 1(칸, IP·방문·회원 칸 없음, 기록 꺼진 요청은 안 씀), `UsageLogCleanupTests`(1년 뒤 지움), `ModularityTests`
+
+## 8단계: `AiSearchFlow`, `PickStreamParser`, 컨트롤러 (2026-10-24)
+
+- 새 파일(`aisearch/internal/`): `flow/PickStreamParser`·`AiSearchFlow`·`Prompts`·`AiSearchEvents`·`AiSearchSink`, `web/AiSearchController`·`AiSearchErrors`·`AiSearchSlots`·`ClientIp`·`AiSearchRequest`, `config/AiSearchExecutorConfiguration`. 고친 것: `CandidateQuery.lines(ids)`(2차 입력의 한 줄), `DailyBudget.addCall`이 센 출력 토큰을 돌려줌
+- 주소 [안]: `POST /api/v1/ai-searches/stream`, **`GET /api/v1/ai-searches/status`**(켜짐 200 `{}`, 꺼짐 404 `not_found`; 0단계 #9 안). 스트림 전 검사 차례: 꺼짐 404 → 본문(16KB, JSON) 400 `validation_error` → 질문 2~200자 400 `invalid_query` → `turnNo` 1~20·`history` 5·한 턴 `bookIds` 8·지역·도서관 번호·`scope`·`visit` 400 `validation_error` → `planSearch` 422 `invalid_region` → IP 429 `too_many_requests` + `Retry-After` → 하루 비용 503 `ai_search_paused` → AI 자리 20 503 `server_busy` + `Retry-After: 5` → 스트림
+- 정한 세부 [안: dev]
+  - 본문은 문자열로 받아 앱의 JSON mapper로 읽음: 잘못된 JSON의 메시지(본문을 인용할 수 있음)를 응답·로그에 넘기지 않으려고. `scope`·`visit`이 없으면 `all`·`any`
+  - 이벤트 `card`의 `no` = 답 안에서 카드 차례(1부터), `coverUrl` = `ListedBook.coverPath`(design-delta 이름, 3단계 메모대로)
+  - `title-guess`: 1차 `title`이 질문 글 안에 있으면 그 말, 아니면 질문 전체(ADR-0153)
+  - 이어 묻기: 앞 대화의 `bookIds`는 지금 목록 책만 남기고(목록 밖 번호는 조용히 버림) 제목으로 바꿔 넣음(R11-9). `refersToShown`이면 마지막 턴 책 가운데 계획 도서관에 있는 책을 앞에 두고 나머지를 낱말로 채움(30권까지), 아니면 앞 대화에서 보여 준 책을 모두 뺌
+  - 사용자가 떠나면(보내기 실패·emitter 오류·시간 초과) 그 뒤 이벤트를 보내지 않고 2차 스트림을 `CANCELLED`로 끊음. 기록 `pick_result`는 카드가 있었으면 `partial`, 없었으면 **`skipped`**(7단계 메모의 뜻)
+  - 2차 답의 JSON이 끝나지 않았으면(`max_tokens` 등) 실패와 같게 봄. 2차를 부르기 전에 키가 비면(`NOT_CONFIGURED`) 실패로 보고 앞 8권 글 없이
+  - 검색마다 INFO 한 줄 `ai search: keyword …, pick …, candidates …, cards …, … ms, tokens …/…`(질문 글 없음)
+- 시험(통과): `PickStreamParserTests` 6(한 번에·한 글자씩·모든 자리에서 둘로·무작위 200번 같은 결과, 번호는 끝난 뒤에만, 반쪽 서로게이트를 넘기지 않음, JSON 아님 거절), `AiSearchFlowTests` 12(db-test에서 시험 스레드로: 이벤트 차례, 후보 밖·중복·0번은 카드·글 모두 안 나감(AC-4·18), 1차 실패 → 질문 낱말(AC-6), 2차 실패 → 앞 8권 `no_text`(AC-6), 카드 뒤 끊김 → `partial`, `notBook` → 2차 없음(AC-5), 제목 줄(AC-15), 300자·8장, 이어 묻기(AC-13), 사용자가 떠남, 계획 도서관 없는 책 0권, 모델에 회원 번호·IP·도서관 번호 없음(R4-4)), `AiSearchControllerTests` 8 + `AiSearchOffTests` 1(MockMvc: 스트림 머리·`done`, 로그에 질문 없음(AC-7), 2자·200자(AC-16), 잘못된 본문, 422, 1분 넘음 429(AC-8), 비용 상한 503(AC-9), 자리 다 참 503, 꺼짐 404)
+- **실제 Haiku로 서버 흐름 전체**(빌드에서 꺼진 `AiSearchFlowLiveTests`, `CHAEKCHECK_AISEARCH_LIVE=1`, 저장소 목록 2,738권, 2026-10-24)
+
+| 질문 | 걸린 시간 | 결과 | 카드 | 토큰(입력/출력) |
+|---|---|---|---|---|
+| 잠들기 전에 조금씩 읽을 과학책 | 4,817 ms | ok | 2 | 2,905 / 357 |
+| 채식주의자 | 3,719 ms | ok (`titleLike`) | 1 | 2,810 / 252 |
+| 오늘 점심 뭐 먹지 | 1,173 ms | no_match (2차 없음) | 0 | 911 / 39 |
+- 코드 검토(java-reviewer + security-reviewer, 8단계) 뒤 고친 것
+  - **IP 횟수를 맨 먼저** 셈(본문 읽기·`planSearch`보다 앞; 잘못된 요청도 한 번으로 셈). 그래서 검사 차례는 꺼짐 404 → IP 429 → 본문·질문·지역 → 비용 503 → 자리 503 [안]. `server_busy`·`ai_search_paused`도 IP 한 번을 씀(감수)
+  - 본문은 `@RequestBody` 없이 입력 흐름에서 **16KB까지만** 읽음(길이를 안 밝힌 chunked 본문도). nginx에도 `location = /api/v1/ai-searches/stream` + `client_max_body_size 16k`(`deploy/nginx/chaekcheck-locations.conf`, `nginx -t` 통과)
+  - IPv6는 **/64로 묶어** 셈(`ClientIp.quotaKey`)
+  - 429·503 거절 수는 메모리에 모아 **10초마다 한 번** `daily_usage`에 씀(거절 폭주가 줄마다 DB를 쓰지 않게)
+  - 짝 없는 서로게이트는 U+FFFD로 바꿔 보냄(파서, `title-guess`, 질문)
+  - 이용 기록이 실패해도 스트림은 닫힘(`finally` 안 `try`), 사용자가 떠난 것을 보낼 글이 없어도 바로 알아채 2차를 끊음(`AiSearchSink.gone()`)
+  - `base-url`은 https만(시험용 127.0.0.1·localhost http만 예외), 키가 다른 곳으로 가지 않게
+  - 그대로 둔 것: 비용 상한은 시작 때만 봄(설계 감수), 카드를 보내지 못해도 `shown`에 셈(작음). **웹(10단계)은 머리말·카드 글·제목 줄을 HTML이 아닌 글자로만 그림**(보안 검토 #7, 10단계에서 지킴)
+- 0단계 다름 7·8 반영: nginx 화면 경로에 `ai-search`, 운영 `deploy/prod/compose.yaml`에 `CHAEKCHECK_AISEARCH_ENABLED`(기본 false)·`CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`, `prod.env`에 `CHAEKCHECK_AISEARCH_ENABLED=false`와 켜는 차례 메모, `up.sh` 주석(키는 `/chaekcheck/prod/` 아래면 이미 읽힘, 필수 목록에는 넣지 않음)

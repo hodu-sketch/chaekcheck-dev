@@ -24,6 +24,22 @@ final class ClientIp {
 	private ClientIp() {
 	}
 
+	/**
+	 * What the IP limits count by: an IPv4 address as it is, an IPv6 address by its /64 (one household or one phone
+	 * network usually has a whole /64, step 8 security review), null as it is.
+	 */
+	static String quotaKey(String ip) {
+		if (ip == null || ip.indexOf(':') < 0) {
+			return ip;
+		}
+		// getHostAddress writes every one of the eight groups
+		String[] groups = ip.split(":", -1);
+		if (groups.length < 4) {
+			return ip;
+		}
+		return groups[0] + ":" + groups[1] + ":" + groups[2] + ":" + groups[3] + "::/64";
+	}
+
 	/** The address, or null when the header is missing or not an IP literal. */
 	static String of(HttpServletRequest request) {
 		String value = request.getHeader(REAL_IP);

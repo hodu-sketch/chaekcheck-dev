@@ -129,7 +129,7 @@ public class AiSearchFlow {
 
 		final AiSearchSink sink;
 
-		boolean gone;
+		volatile boolean gone;
 
 		long inputTokens;
 
@@ -150,7 +150,8 @@ public class AiSearchFlow {
 		}
 
 		boolean send(String event, Object data) {
-			if (gone) {
+			if (gone || sink.gone()) {
+				gone = true;
 				return false;
 			}
 			if (!sink.send(event, data)) {
@@ -171,15 +172,23 @@ public class AiSearchFlow {
 			run.send(AiSearchEvents.ERROR, new AiSearchEvents.Error("internal_error"));
 		}
 		finally {
-			int elapsedMs = (int) Math.min(Integer.MAX_VALUE, Duration.ofNanos(System.nanoTime() - input.startedNanos()).toMillis());
-			usageLog.recordAiSearch(input.usage(),
-					new AiSearchRecord(elapsedMs, input.turnNo(), run.keywordResult, run.titleLike, run.pickResult,
-							run.candidateCount, run.shown, (int) Math.min(Integer.MAX_VALUE, run.inputTokens),
-							(int) Math.min(Integer.MAX_VALUE, run.outputTokens)));
-			log.info("ai search: keyword {}, pick {}, candidates {}, cards {}, {} ms, tokens {}/{}{}",
-					run.keywordResult, run.pickResult, run.candidateCount, run.shown.size(), elapsedMs, run.inputTokens,
-					run.outputTokens, run.gone ? ", client gone" : "");
-			sink.complete();
+			try {
+				int elapsedMs = (int) Math.min(Integer.MAX_VALUE,
+						Duration.ofNanos(System.nanoTime() - input.startedNanos()).toMillis());
+				usageLog.recordAiSearch(input.usage(),
+						new AiSearchRecord(elapsedMs, input.turnNo(), run.keywordResult, run.titleLike, run.pickResult,
+								run.candidateCount, run.shown, (int) Math.min(Integer.MAX_VALUE, run.inputTokens),
+								(int) Math.min(Integer.MAX_VALUE, run.outputTokens)));
+				log.info("ai search: keyword {}, pick {}, candidates {}, cards {}, {} ms, tokens {}/{}{}",
+						run.keywordResult, run.pickResult, run.candidateCount, run.shown.size(), elapsedMs,
+						run.inputTokens, run.outputTokens, run.gone ? ", client gone" : "");
+			}
+			catch (RuntimeException e) {
+				log.warn("ai search: the usage row was not kept: {}", e.getClass().getName());
+			}
+			finally {
+				sink.complete();
+			}
 		}
 	}
 
@@ -193,7 +202,12 @@ public class AiSearchFlow {
 		Set<Long> shownBefore = new HashSet<>();
 		List<Long> lastShown = List.of();
 		for (Turn turn : input.history()) {
-			List<Long> known = turn.bookIds().stream().filter(listed::containsKey).distinct().limit(properties.limits().picks()).toList();
+			List<Long> known = turn.bookIds()
+				.stream()
+				.filter(listed::containsKey)
+				.distinct()
+				.limit(properties.limits().picks())
+				.toList();
 			history.add(new ShownTurn(turn.question(), known.stream().map(id -> listed.get(id).title()).toList()));
 			shownBefore.addAll(known);
 			lastShown = known;
@@ -205,7 +219,8 @@ public class AiSearchFlow {
 		if (plan.titleLike() && !plan.title().isBlank()) {
 			String title = plan.title().strip();
 			// only words of the question go into the button, else the whole question (ADR-0153)
-			run.send(AiSearchEvents.TITLE_GUESS, new TitleGuess(input.question().contains(title) ? title : input.question()));
+			run.send(AiSearchEvents.TITLE_GUESS,
+					new TitleGuess(WholeText.of(input.question().contains(title) ? title : input.question())));
 		}
 		if (plan.notBook()) {
 			finish(run, PickResult.NO_MATCH, "no_match");
@@ -329,7 +344,8 @@ public class AiSearchFlow {
 		boolean failed = false;
 		try {
 			Result result = llm.stream(call, properties.pickTimeout(), piece -> {
-				if (run.gone) {
+				if (run.gone || run.sink.gone()) {
+					run.gone = true;
 					throw new ClientGone();
 				}
 				parser.feed(piece);

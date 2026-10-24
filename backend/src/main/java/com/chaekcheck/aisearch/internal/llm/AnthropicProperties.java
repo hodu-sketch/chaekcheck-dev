@@ -24,6 +24,11 @@ public record AnthropicProperties(String apiKey, String model, URI baseUrl, Stri
 		baseUrl = baseUrl == null ? URI.create("https://api.anthropic.com") : baseUrl;
 		version = version == null || version.isBlank() ? "2026-10-21" : version;
 		effort = effort == null ? "" : effort.strip();
+		// the key goes to this address: https only, plain http only to this machine (tests) (step 8 security review)
+		boolean loopback = "localhost".equals(baseUrl.getHost()) || "127.0.0.1".equals(baseUrl.getHost());
+		if (!"https".equals(baseUrl.getScheme()) && !("http".equals(baseUrl.getScheme()) && loopback)) {
+			throw new IllegalArgumentException("chaekcheck.aisearch.llm.anthropic.base-url must be an https address");
+		}
 	}
 
 	boolean hasKey() {

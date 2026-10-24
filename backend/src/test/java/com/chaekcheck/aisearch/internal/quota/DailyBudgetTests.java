@@ -69,6 +69,7 @@ class DailyBudgetTests {
 		budget.countRateLimited();
 		budget.countPaused();
 		budget.countPaused();
+		budget.flushRefusals();
 
 		assertThat(row(LocalDate.of(2026, 10, 24))).isEqualTo("0|1|1800|2048|1204|1|2");
 	}

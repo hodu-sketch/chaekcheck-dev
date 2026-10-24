@@ -5,9 +5,14 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import jakarta.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
@@ -25,7 +30,7 @@ public class DailyBudget {
 	/** The counted columns; only these names go into the statement. */
 	enum Count {
 
-		REQUEST("request_count"), RATE_LIMITED("rate_limited_count"), PAUSED("paused_count");
+		REQUEST("request_count");
 
 		final String column;
 
@@ -36,6 +41,10 @@ public class DailyBudget {
 	}
 
 	private final JdbcClient jdbc;
+
+	private final AtomicInteger rateLimited = new AtomicInteger();
+
+	private final AtomicInteger paused = new AtomicInteger();
 
 	private final long dailyMicroUsd;
 
@@ -76,14 +85,36 @@ public class DailyBudget {
 		add(Count.REQUEST);
 	}
 
-	/** One search refused by the IP limits (HTTP 429). */
+	/**
+	 * One search refused by the IP limits (HTTP 429): counted in memory and written by {@link #flushRefusals} (step 8
+	 * security review: a flood of refusals must not write a row each).
+	 */
 	public void countRateLimited() {
-		add(Count.RATE_LIMITED);
+		rateLimited.incrementAndGet();
 	}
 
-	/** One search refused by the cost cap (HTTP 503). */
+	/** One search refused by the cost cap (HTTP 503), counted like {@link #countRateLimited}. */
 	public void countPaused() {
-		add(Count.PAUSED);
+		paused.incrementAndGet();
+	}
+
+	/** Writes the refusals counted since the last time, every 10 seconds and when the server stops. */
+	@Scheduled(fixedDelay = 10, timeUnit = TimeUnit.SECONDS)
+	@PreDestroy
+	public void flushRefusals() {
+		int limited = rateLimited.getAndSet(0);
+		int rested = paused.getAndSet(0);
+		if (limited == 0 && rested == 0) {
+			return;
+		}
+		jdbc.sql("""
+				INSERT INTO aisearch.daily_usage AS d (day, rate_limited_count, paused_count) VALUES (:day, :limited, :paused)
+				ON CONFLICT (day) DO UPDATE SET rate_limited_count = d.rate_limited_count + EXCLUDED.rate_limited_count,
+				  paused_count = d.paused_count + EXCLUDED.paused_count""")
+			.param("day", today())
+			.param("limited", limited)
+			.param("paused", rested)
+			.update();
 	}
 
 	/**

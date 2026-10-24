@@ -66,6 +66,9 @@ class AiSearchControllerTests {
 	@Autowired
 	AiSearchSlots slots;
 
+	@Autowired
+	com.chaekcheck.aisearch.internal.quota.DailyBudget budget;
+
 	/** The quota lives as long as the context: every request takes a new IP unless it means to share one. */
 	private static final java.util.concurrent.atomic.AtomicInteger IPS = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -116,6 +119,22 @@ class AiSearchControllerTests {
 	}
 
 	@Test
+	void aBodyOverSixteenKilobytesIsRefusedEvenWithoutItsLength() {
+		String big = body(QUESTION, 1, "[]").replace("}", ",\"pad\":\"" + "가".repeat(6_000) + "\"}");
+		assertProblem(post(big, nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
+	}
+
+	@Test
+	void ipv6AddressesOfOneSlash64ShareTheirCount() {
+		int n = IPS.incrementAndGet();
+		String prefix = "2001:db8:" + Integer.toHexString(n) + ":1:";
+		for (int i = 1; i <= 3; i++) {
+			assertThat(post(body(QUESTION, 1, "[]"), prefix + i)).hasStatusOk();
+		}
+		assertProblem(post(body(QUESTION, 1, "[]"), prefix + "ffff"), HttpStatus.TOO_MANY_REQUESTS, "too_many_requests");
+	}
+
+	@Test
 	void anUnknownRegionIs422() {
 		assertProblem(post("{\"question\":\"" + QUESTION + "\",\"turnNo\":1,\"residenceRegionIds\":[999999999]}", nextIp()),
 				HttpStatus.UNPROCESSABLE_CONTENT, "invalid_region");
@@ -133,6 +152,7 @@ class AiSearchControllerTests {
 		assertProblem(fourth, HttpStatus.TOO_MANY_REQUESTS, "too_many_requests");
 		assertThat(Long.parseLong(fourth.getResponse().getHeader("Retry-After"))).isBetween(1L, 60L);
 		assertThat(post(body(QUESTION, 1, "[]"), nextIp())).hasStatusOk();
+		budget.flushRefusals();
 		assertThat(jdbc.sql("SELECT rate_limited_count FROM aisearch.daily_usage").query(Integer.class).single())
 			.isEqualTo(1);
 	}
@@ -144,6 +164,7 @@ class AiSearchControllerTests {
 			.update();
 
 		assertProblem(post(body(QUESTION, 1, "[]"), nextIp()), HttpStatus.SERVICE_UNAVAILABLE, "ai_search_paused");
+		budget.flushRefusals();
 		assertThat(jdbc.sql("SELECT paused_count FROM aisearch.daily_usage").query(Integer.class).single()).isEqualTo(1);
 	}
 

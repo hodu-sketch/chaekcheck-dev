@@ -9,7 +9,7 @@ import java.util.Deque;
  * in that order (structured outputs). A small push-down reader, fed the text pieces in order: tells the head's text as
  * it comes, a pick's number once the number has ended (so it can be checked before any of its text is shown), the
  * pick's text as it comes, and the end of each pick. Escapes ({@code \"}, {@code \\uXXXX}, surrogate pairs) may be split
- * over pieces. Anything that is not JSON throws {@link IllegalStateException}. Not thread-safe; one per answer.
+ * over pieces; a surrogate without its pair becomes U+FFFD. Anything that is not JSON throws {@link IllegalStateException}. Not thread-safe; one per answer.
  */
 public final class PickStreamParser {
 
@@ -49,6 +49,9 @@ public final class PickStreamParser {
 		}
 
 	}
+
+	/** Stands for a surrogate without its pair, so only whole characters are handed on. */
+	static final char REPLACEMENT = '\uFFFD';
 
 	private final Listener listener;
 
@@ -268,14 +271,20 @@ public final class PickStreamParser {
 			return;
 		}
 		if (pendingHigh != 0) {
-			out.append(pendingHigh);
+			if (Character.isLowSurrogate(c)) {
+				out.append(pendingHigh).append(c);
+				pendingHigh = 0;
+				return;
+			}
+			// a high surrogate without its pair is never handed on
+			out.append(REPLACEMENT);
 			pendingHigh = 0;
 		}
 		if (Character.isHighSurrogate(c)) {
 			pendingHigh = c;
 		}
 		else {
-			out.append(c);
+			out.append(Character.isLowSurrogate(c) ? REPLACEMENT : c);
 		}
 	}
 
@@ -287,7 +296,7 @@ public final class PickStreamParser {
 			return;
 		}
 		if (pendingHigh != 0) {
-			out.append(pendingHigh);
+			out.append(REPLACEMENT);
 			pendingHigh = 0;
 		}
 		flush();

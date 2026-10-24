@@ -66,6 +66,11 @@ services:
       CHAEKCHECK_AUTH_ENABLED: ${CHAEKCHECK_AUTH_ENABLED:-false}
       CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
       CHAEKCHECK_USAGELOG_ENABLED: ${CHAEKCHECK_USAGELOG_ENABLED:-false}
+      # AI book search (cycle 24, ADR-0150): off until the privacy policy version naming Anthropic is in force and the
+      # key is in Parameter Store (/chaekcheck/prod/CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY, read by up.sh). An empty key
+      # with the search on gives the fallback answers (books without text).
+      CHAEKCHECK_AISEARCH_ENABLED: ${CHAEKCHECK_AISEARCH_ENABLED:-false}
+      CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}
       FETCH_MODE: direct
       # Login (Kakao only, cycle 05/16). Keys from Parameter Store; needed only when login is on.
       AUTH_PROVIDERS: kakao

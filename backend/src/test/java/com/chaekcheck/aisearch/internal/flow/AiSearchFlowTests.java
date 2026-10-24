@@ -268,6 +268,37 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aFailingUsageLogStillEndsTheStream() {
+		llm.then(Answer.ok("{\"notBook\":true,\"titleLike\":false,\"title\":\"\",\"refersToShown\":false,\"keywords\":[]}",
+				1, 1));
+		RecordingLog failing = new RecordingLog() {
+
+			@Override
+			public void recordAiSearch(UsageRequest request, AiSearchRecord record) {
+				throw new IllegalStateException("full");
+			}
+
+		};
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), failing, properties,
+				json);
+
+		broken.run(input(QUESTION, List.of()), sink);
+
+		assertThat(sink.completed).isTrue();
+		assertThat(sink.names()).containsExactly("done");
+	}
+
+	@Test
+	void aTitleGuessNeverHoldsHalfACharacter() {
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"\\ud83d\",\"refersToShown\":false,"
+				+ "\"keywords\":[]}", 1, 1));
+
+		run("웃는 책 😀", List.of());
+
+		assertThat(sink.of(TitleGuess.class).getFirst().title()).isEqualTo("\uFFFD");
+	}
+
+	@Test
 	void noBookHeldByThePlanEndsWithoutTheSecondCall() {
 		llm.then(keywords("과학"));
 
@@ -300,7 +331,11 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		ListedBooks books = new ListedBooks() {
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), usageLog, properties, json);
+	}
+
+	private ListedBooks listedBooks() {
+		return new ListedBooks() {
 
 			@Override
 			public Snapshot current() {
@@ -313,7 +348,6 @@ class AiSearchFlowTests {
 			}
 
 		};
-		return new AiSearchFlow(llm, candidates, budget, books, usageLog, properties, json);
 	}
 
 	private static Answer keywords(String... words) {
@@ -365,7 +399,7 @@ class AiSearchFlowTests {
 
 	}
 
-	static final class RecordingLog implements UsageLog {
+	static class RecordingLog implements UsageLog {
 
 		final List<AiSearchRecord> records = new ArrayList<>();
 
