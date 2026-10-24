@@ -1,3 +1,4 @@
+import { AiChatPage } from './features/aisearch/AiChatPage'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -40,6 +41,8 @@ function App() {
                 <Route path="/" element={<SearchPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/books/:bookId" element={<BookPage />} />
+                {/* cycle 24 (S30): the AI book search conversation; the question is never in the address (ADR-0152) */}
+                <Route path="/ai-search" element={<AiChatPage />} />
                 {/* cycle 10, 14 (S13 librarian picks): public, no login (R7-3); cycle 21: one screen per list
                     (ADR-0126), the old address goes to the librarian picks. TODO(cycle 21 step 9-2/9-3): the
                     screen still reads the old API whatever the list */}

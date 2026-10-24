@@ -1,0 +1,113 @@
+.form {
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: var(--search-height);
+  padding: 0 0.35rem;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  transition: border-color 140ms;
+}
+
+.field:focus-within {
+  border-color: var(--brand);
+}
+
+.field[data-invalid] {
+  border-color: var(--fail);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0 0 0.85rem;
+  border: none;
+  background: transparent;
+  font-size: var(--text-lg);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--ink-faint);
+}
+
+.submit {
+  height: calc(var(--search-height) - 0.85rem);
+  padding: 0 1.1rem;
+  border: none;
+  border-radius: var(--radius-inner);
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--text-md);
+  cursor: pointer;
+  transition: background-color 140ms;
+}
+
+.submit:hover {
+  background: var(--brand-strong);
+}
+
+.error {
+  margin: 0.6rem 0 0 1rem;
+  color: var(--fail);
+  font-weight: 700;
+  font-size: var(--text-md);
+}
+
+/* the chips: one line that wraps on wide screens, sideways on phones [안] */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--brand-faint);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms, background-color 140ms;
+}
+
+.chip:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+  background: var(--brand-soft);
+}
+
+.chip:focus-visible,
+.submit:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (width <= 640px) {
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-right: calc(-1 * var(--page-gutter, 1rem));
+    padding-right: var(--page-gutter, 1rem);
+  }
+
+  .chips li {
+    flex: none;
+  }
+
+  .input {
+    font-size: var(--text-md);
+  }
+}

@@ -50,6 +50,8 @@ function fakeServer() {
     vi.fn(async (url: string, init?: RequestInit) => {
       if (url === '/api/v1/me') return fake.signedIn ? json(200, { id: 7, loginMethods: ['KAKAO'], consents: [] }) : json(401, {})
       if (url === '/api/v1/auth/refresh') return json(401, {})
+      // the AI search off: this file checks the direct search (cycle 24 tabs in features/aisearch/SearchTabs.test.tsx)
+      if (url === '/api/v1/ai-searches/status') return json(404, {})
       if (url === '/api/v1/regions') return json(200, TREE)
       if (url === '/api/v1/regions/guess') return json(200, { sido: fake.sido })
       if (url.startsWith('/api/v1/picks/shelf')) return json(200, SHELF)

@@ -1,0 +1,309 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router'
+import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
+import { ApiError } from '../../api/client'
+import { useRegions } from '../region/RegionContext'
+import { useMineLabel } from '../search/regionPlace'
+import { loadPrefs } from '../search/searchSettings'
+import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnState } from './aiChatStore'
+import { AI_TEXT, EXAMPLE_QUESTIONS, HISTORY_SENT, QUESTION_MAX, QUESTION_MIN, TURNS_MAX } from './aiSearchText'
+import styles from './AiChatPage.module.css'
+
+/**
+ * S30 `/ai-search` (cycle 24 step 10, flow S30): the conversation, questions on the right, answers on the left as a
+ * head line and book cards that fill in as the answer streams. The conversation lives in this tab only (R11-6); every
+ * question sends itself, the last 5 turns (question and shown books) and the plan values, in the body (ADR-0152). All
+ * the model's text is shown as plain text, never as markup (step 8 security review #7).
+ */
+export function AiChatPage() {
+  const navigate = useNavigate()
+  const { regions, libraryIds, source } = useRegions()
+  const place = useMineLabel(regions.residence, regions.work)
+  const [chat, setChat] = useState<AiChat>(() => loadChat())
+  const [draft, setDraft] = useState('')
+  const [tooShort, setTooShort] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  const update = (id: string, change: (turn: AiTurnState) => AiTurnState) => {
+    setChat((current) => {
+      const next = { turns: current.turns.map((turn) => (turn.id === id ? change(turn) : turn)) }
+      saveChat(next)
+      return next
+    })
+  }
+
+  const waiting = chat.turns.find((turn) => turn.state === 'waiting')
+  const busy = chat.turns.some((turn) => turn.state === 'waiting' || turn.state === 'streaming')
+
+  // one request per turn; leaving the page stops the ones still open
+  const requests = useRef(new Map<string, AbortController>())
+  useEffect(() => {
+    const open = requests.current
+    return () => {
+      open.forEach((controller) => controller.abort())
+      open.clear()
+    }
+  }, [])
+
+  // the waiting question is sent once the regions are known
+  useEffect(() => {
+    if (!waiting || source === 'waiting' || requests.current.has(waiting.id)) return
+    const controller = new AbortController()
+    requests.current.set(waiting.id, controller)
+    const index = chat.turns.findIndex((turn) => turn.id === waiting.id)
+    const earlier = chat.turns
+      .slice(0, index)
+      .filter((turn) => turn.state === 'done')
+      .slice(-HISTORY_SENT)
+      .map((turn) => ({ question: turn.question, bookIds: turn.cards.map((card) => card.bookId) }))
+    const body: AiSearchBody = {
+      question: waiting.question,
+      turnNo: Math.min(index + 1, TURNS_MAX),
+      history: earlier,
+      residenceRegionIds: regions.residence,
+      workRegionIds: regions.work,
+      libraryIds,
+      scope: 'joinable',
+      visit: loadPrefs().visit,
+    }
+    const id = waiting.id
+    update(id, (turn) => ({ ...turn, state: 'streaming' }))
+    aiSearchStream(body, (event) => update(id, (turn) => apply(turn, event)), controller.signal)
+      .catch((error) => {
+        if (controller.signal.aborted) return
+        update(id, (turn) => ({ ...turn, state: refusal(error) }))
+      })
+      .finally(() => requests.current.delete(id))
+    // the request is for this waiting turn only; regions read once when it starts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting?.id, source])
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView?.({ block: 'end' })
+  }, [chat.turns.length])
+
+  const ask = (question: string) => {
+    const trimmed = question.trim()
+    if ([...trimmed].length < QUESTION_MIN) {
+      setTooShort(true)
+      return
+    }
+    setChat((current) => {
+      const next = addQuestion(current, trimmed)
+      saveChat(next)
+      return next
+    })
+    setDraft('')
+    setTooShort(false)
+  }
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!busy) ask(draft)
+  }
+
+  const newChat = () => {
+    requests.current.forEach((controller) => controller.abort())
+    requests.current.clear()
+    saveChat(EMPTY_CHAT)
+    setChat(EMPTY_CHAT)
+    setDraft('')
+  }
+
+  const full = chat.turns.length >= TURNS_MAX
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.topBar}>
+        <button type="button" className={styles.newChat} onClick={newChat}>
+          {AI_TEXT.newChat}
+        </button>
+        <p className={styles.notice}>{AI_TEXT.notice}</p>
+        {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
+      </div>
+
+      <ol className={styles.turns} aria-live="polite">
+        {chat.turns.map((turn) => (
+          <li key={turn.id} className={styles.turn}>
+            <p className={styles.question}>{turn.question}</p>
+            <Answer
+              turn={turn}
+              onRetry={() => update(turn.id, (current) => ({ ...current, state: 'waiting', head: '', cards: [] }))}
+              onExample={ask}
+              onDirect={(title) => navigate(title ? `/search?title=${encodeURIComponent(title)}` : '/')}
+            />
+          </li>
+        ))}
+      </ol>
+      <div ref={endRef} />
+
+      <div className={styles.composer}>
+        {full ? (
+          <div className={styles.full} role="status">
+            <p>{AI_TEXT.tooLong}</p>
+            <button type="button" className={styles.newChat} onClick={newChat}>
+              {AI_TEXT.newChat}
+            </button>
+          </div>
+        ) : (
+          <form className={styles.form} onSubmit={handleSubmit} noValidate>
+            <label htmlFor="ai-follow-up" className="visually-hidden">
+              이어서 묻기
+            </label>
+            <input
+              id="ai-follow-up"
+              className={styles.input}
+              value={draft}
+              maxLength={QUESTION_MAX}
+              placeholder={chat.turns.length === 0 ? AI_TEXT.placeholder : AI_TEXT.followUp}
+              autoComplete="off"
+              aria-invalid={tooShort ? true : undefined}
+              onChange={(event) => {
+                setDraft(event.target.value)
+                setTooShort(false)
+              }}
+            />
+            <button type="submit" className={styles.send} disabled={busy}>
+              {AI_TEXT.send}
+            </button>
+            {tooShort && (
+              <p className={styles.error} role="alert">
+                {AI_TEXT.tooShort}
+              </p>
+            )}
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+type AnswerProps = {
+  turn: AiTurnState
+  onRetry: () => void
+  onExample: (question: string) => void
+  onDirect: (title: string | null) => void
+}
+
+function Answer({ turn, onRetry, onExample, onDirect }: AnswerProps) {
+  const notice = noticeOf(turn)
+  return (
+    <div className={styles.answer}>
+      {turn.titleGuess && (
+        <p className={styles.titleGuess}>
+          {AI_TEXT.titleGuess(turn.titleGuess)}{' '}
+          <button type="button" className={styles.linkButton} onClick={() => onDirect(turn.titleGuess)}>
+            {AI_TEXT.titleGuessButton}
+          </button>
+        </p>
+      )}
+      {(turn.state === 'waiting' || (turn.state === 'streaming' && !turn.head && turn.cards.length === 0)) && (
+        <p className={styles.loading} role="status">
+          {AI_TEXT.loading}
+        </p>
+      )}
+      {turn.head && turn.result !== 'no_match' && <p className={styles.head}>{turn.head}</p>}
+      {turn.result === 'no_text' && <p className={styles.head}>{AI_TEXT.noText}</p>}
+      {turn.cards.length > 0 && (
+        <ul className={styles.cards}>
+          {turn.cards.map((card) => (
+            <li key={card.bookId} className={styles.card}>
+              <Link to={`/books/${card.bookId}`} className={styles.cardLink}>
+                {card.coverUrl ? (
+                  <img className={styles.cover} src={card.coverUrl} alt="" loading="lazy" width="96" height="140" />
+                ) : (
+                  <span className={styles.cover} aria-hidden="true" />
+                )}
+                <span className={styles.cardBody}>
+                  <span className={styles.cardTitle}>{card.title}</span>
+                  {card.author && <span className={styles.cardAuthor}>{card.author}</span>}
+                  <span className={styles.cardCount}>{AI_TEXT.myLibraries(card.myLibraryCount)}</span>
+                  {card.text && <span className={styles.cardText}>{card.text}</span>}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {turn.result === 'partial' && <p className={styles.soft}>{AI_TEXT.noText}</p>}
+      {turn.result === 'no_match' && (
+        <div className={styles.noMatch}>
+          <p>{AI_TEXT.noMatch}</p>
+          <ul className={styles.examples} aria-label="예시 질문">
+            {EXAMPLE_QUESTIONS.map((question) => (
+              <li key={question}>
+                <button type="button" className={styles.example} onClick={() => onExample(question)}>
+                  {question}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {notice && (
+        <div className={styles.alert} role="status">
+          <p>{notice.text}</p>
+          {notice.action === 'retry' && (
+            <button type="button" className={styles.linkButton} onClick={onRetry}>
+              {AI_TEXT.retry}
+            </button>
+          )}
+          {notice.action === 'direct' && (
+            <button type="button" className={styles.linkButton} onClick={() => onDirect(null)}>
+              {AI_TEXT.toDirect}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function noticeOf(turn: AiTurnState): { text: string; action?: 'retry' | 'direct' } | null {
+  switch (turn.state) {
+    case 'too_many':
+    case 'busy':
+      return { text: AI_TEXT.tooMany }
+    case 'paused':
+      return { text: AI_TEXT.paused, action: 'direct' }
+    case 'connection':
+      return { text: AI_TEXT.connection, action: 'retry' }
+    case 'failed':
+      return { text: AI_TEXT.failed, action: 'retry' }
+    default:
+      return null
+  }
+}
+
+/** One stream event into the turn. */
+export function apply(turn: AiTurnState, event: AiStreamEvent): AiTurnState {
+  switch (event.name) {
+    case 'title-guess':
+      return { ...turn, titleGuess: event.data.title }
+    case 'head-delta':
+      return { ...turn, head: turn.head + event.data.text }
+    case 'card':
+      return { ...turn, cards: [...turn.cards, { ...event.data, text: '' }] }
+    case 'card-delta':
+      return {
+        ...turn,
+        cards: turn.cards.map((card) =>
+          card.bookId === event.data.bookId ? { ...card, text: card.text + event.data.text } : card,
+        ),
+      }
+    case 'done':
+      return { ...turn, state: 'done', result: event.data.result }
+    case 'error':
+      return { ...turn, state: turn.cards.length > 0 ? 'done' : 'failed', result: turn.cards.length > 0 ? 'partial' : null }
+  }
+}
+
+function refusal(error: unknown): AiTurnState['state'] {
+  if (error instanceof ApiError) {
+    if (error.status === 429) return 'too_many'
+    if (error.status === 503) return error.problem.code === 'ai_search_paused' ? 'paused' : 'busy'
+    if (error.status === 404) return 'paused'
+    return 'failed'
+  }
+  return 'connection'
+}
