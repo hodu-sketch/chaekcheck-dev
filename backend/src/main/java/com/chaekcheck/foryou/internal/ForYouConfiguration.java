@@ -35,9 +35,15 @@ class ForYouConfiguration {
 		return new ForYouSnapshot(store);
 	}
 
+	/** TODO(cycle 24 merge): an adapter over picks' ListedBooks. */
+	@Bean
+	ListedSource listedSource() {
+		return ListedSource.NONE;
+	}
+
 	@Bean
 	ForYouBuild forYouBuild(RankedListings rankedListings, BookCards bookCards, BookLookup bookLookup, ForYouStore store,
-			ForYouProperties properties, ForYouSnapshot snapshot) {
+			ForYouProperties properties, ForYouSnapshot snapshot, ListedSource listedSource) {
 		ForYouProperties.Sources sources = properties.sources();
 		List<PopularSource> popular = new ArrayList<>();
 		if (sources.kyoboElib().enabled()) {
@@ -52,7 +58,7 @@ class ForYouConfiguration {
 		if (sources.kpipaRank().enabled() || sources.kpipa200().enabled() || sources.klwave().enabled()) {
 			log.warn("foryou: kpipa_rank / kpipa_200 / klwave are switched on but have no reader yet; they are skipped");
 		}
-		return new ForYouBuild(popular, bookCards, bookLookup, ListedSource.NONE, store, properties, snapshot::refresh,
+		return new ForYouBuild(popular, bookCards, bookLookup, listedSource, store, properties, snapshot::refresh,
 				Clock.systemUTC());
 	}
 

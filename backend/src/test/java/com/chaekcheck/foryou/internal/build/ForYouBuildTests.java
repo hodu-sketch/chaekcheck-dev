@@ -95,8 +95,8 @@ class ForYouBuildTests {
 	@Test
 	void editionsJoinAndBothListsComeFirst() {
 		reads.add(site("kyobo_elib", 31, row(1, "a1", 2, 0), row(2, "a2", 1, 1), row(3, "a3", 10, 0)));
-		listed.add(new ListedRef(930001, List.of("kaist"), new long[] { 1, 2 }));
-		listed.add(new ListedRef(930004, List.of("snu100"), new long[] { 1, 2, 3, 4, 5 }));
+		listed.add(new ListedRef(930001, List.of("kaist"), new long[] { 1, 2 }, List.of()));
+		listed.add(new ListedRef(930004, List.of("snu100"), new long[] { 1, 2, 3, 4, 5 }, List.of()));
 
 		build.build();
 
@@ -140,7 +140,7 @@ class ForYouBuildTests {
 	@Test
 	void everyPopularSourceFailingStillBuildsTheListedBooks() {
 		reads.add(new SourceRead("kyobo_elib", 31L, null, List.of(), "upstream_error"));
-		listed.add(new ListedRef(930004, List.of("snu100"), new long[] { 1 }));
+		listed.add(new ListedRef(930004, List.of("snu100"), new long[] { 1 }, List.of()));
 
 		build.build();
 
@@ -150,7 +150,7 @@ class ForYouBuildTests {
 
 	@Test
 	void anExceptionFailsTheBuildAndTheListBeforeStays() {
-		listed.add(new ListedRef(930004, List.of("snu100"), new long[] { 1 }));
+		listed.add(new ListedRef(930004, List.of("snu100"), new long[] { 1 }, List.of()));
 		build.build();
 		ForYouBuild broken = new ForYouBuild(List.of(() -> {
 			throw new IllegalStateException("boom");

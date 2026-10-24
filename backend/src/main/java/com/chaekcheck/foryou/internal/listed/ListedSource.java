@@ -2,6 +2,8 @@ package com.chaekcheck.foryou.internal.listed;
 
 import java.util.List;
 
+import com.chaekcheck.picks.BookTagTransfer.Tag;
+
 /**
  * The books on the recommended lists, for the base list's order (R2-4) and the card footers (R3-2).
  * <p>
@@ -17,8 +19,9 @@ public interface ListedSource {
 	/**
 	 * @param listKeys the lists the book is on ({@code librarian}, {@code kaist}, …)
 	 * @param libraryIds {@code catalog.book.library_ids} of the book
+	 * @param tags the tags a card shows ({@code BookTagTransfer.forCard}), empty when none
 	 */
-	record ListedRef(long bookId, List<String> listKeys, long[] libraryIds) {
+	record ListedRef(long bookId, List<String> listKeys, long[] libraryIds, List<Tag> tags) {
 	}
 
 }

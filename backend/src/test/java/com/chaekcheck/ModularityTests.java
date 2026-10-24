@@ -33,8 +33,9 @@ class ModularityTests {
 
 	/**
 	 * Cycle 14 (ADR-0089): picks uses catalog and library only. Cycle 21 (ADR-0123): collection uses picks
-	 * (CuratedListTransfer); cycle 24 (ADR-0150): aisearch uses picks (ListedBooks). No other module uses picks, and
-	 * picks knows neither of them.
+	 * (CuratedListTransfer); cycle 24 (ADR-0150): aisearch uses picks (ListedBooks); cycle 23 (ADR-0149): foryou too
+	 * (listed books, card tags). No other module uses picks, and
+	 * picks knows none of them.
 	 */
 	@Test
 	void picksDependsOnCatalogAndLibraryOnly() {
@@ -42,9 +43,9 @@ class ModularityTests {
 		assertThat(modules.getModuleByName("popular")).isEmpty();
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
-			.filter(name -> !List.of("picks", "collection", "aisearch").contains(name))
+			.filter(name -> !List.of("picks", "collection", "aisearch", "foryou").contains(name))
 			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("picks"));
-		assertThat(dependenciesOf("picks")).doesNotContain("collection", "aisearch");
+		assertThat(dependenciesOf("picks")).doesNotContain("collection", "aisearch", "foryou");
 	}
 
 	/**
@@ -93,6 +94,18 @@ class ModularityTests {
 		assertThat(dependenciesOf("availability")).contains("usagelog");
 		assertThat(dependenciesOf("auth")).doesNotContain("usagelog");
 		assertThat(dependenciesOf("library")).doesNotContain("usagelog");
+	}
+
+	/**
+	 * Cycle 23 (ADR-0149): foryou uses catalog, library, picks and availability only, and none of them knows foryou.
+	 * picks is allowed but used only once cycle 24's ListedBooks is on main.
+	 */
+	@Test
+	void foryouUsesItsFourModulesAndNoneUsesIt() {
+		assertThat(List.of("catalog", "library", "picks", "availability")).containsAll(dependenciesOf("foryou"));
+		for (String used : List.of("catalog", "library", "picks", "availability")) {
+			assertThat(dependenciesOf(used)).as(used).doesNotContain("foryou");
+		}
 	}
 
 	private List<String> dependenciesOf(String module) {
