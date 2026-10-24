@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
 import { ApiError } from '../../api/client'
 import type { PickBook } from '../../api/types'
@@ -9,6 +9,7 @@ import { PicksBookDialog } from '../picks/PicksBookDialog'
 import { PHONE_QUERY } from '../picks/PicksPage'
 import { usePicksPlan } from '../picks/usePicksPlan'
 import { useRegions } from '../region/RegionContext'
+import { SCOPE_TEXT } from '../search/LibraryScopeLine'
 import { useMineLabel } from '../search/regionPlace'
 import { loadPrefs } from '../search/searchSettings'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnCard, type AiTurnState } from './aiChatStore'
@@ -27,6 +28,8 @@ export function AiChatPage() {
   const queryClient = useQueryClient()
   const { regions, libraryIds, source } = useRegions()
   const place = useMineLabel(regions.residence, regions.work)
+  const noRegion =
+    source !== 'waiting' && regions.residence.length === 0 && regions.work.length === 0 && libraryIds.length === 0
   const [chat, setChat] = useState<AiChat>(() => loadChat())
   const [draft, setDraft] = useState('')
   const [tooShort, setTooShort] = useState(false)
@@ -154,10 +157,7 @@ export function AiChatPage() {
     <div className={styles.page}>
       <h1 className="visually-hidden">AI 책 찾기</h1>
       {/* [새 대화] moved to the [+] at the left of the box below (user 2026-10-24, "CHATGPT처럼") */}
-      <div className={styles.topBar}>
-        <p className={styles.notice}>{AI_TEXT.notice}</p>
-        {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
-      </div>
+      {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
 
       <ol className={styles.turns}>
         {chat.turns.map((turn) => (
@@ -196,7 +196,10 @@ export function AiChatPage() {
         phone={phone}
       />
 
+      {/* laid out after ChatGPT (user 2026-10-24: "크기/비율 반응형을 chatgpt를 참고"): one rounded box with [+] and the
+          round send button inside it, the AI notice in small grey under it */}
       <div className={styles.composer}>
+        <div className={styles.composerInner}>
         {full ? (
           <div className={styles.full} role="status">
             <p>{AI_TEXT.tooLong}</p>
@@ -243,21 +246,47 @@ export function AiChatPage() {
               }}
               onKeyDown={handleKeyDown}
             />
-            <button type="submit" className={styles.send} disabled={busy}>
-              {AI_TEXT.send}
+            <button
+              type="submit"
+              className={styles.send}
+              aria-label={AI_TEXT.send}
+              title={AI_TEXT.send}
+              disabled={busy || draft.trim() === ''}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path
+                  d="M9 15V3M4 8l5-5 5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
-            {nearLimit && (
-              <p id="ai-follow-up-count" className={styles.count}>
-                {draft.length}/{QUESTION_MAX}
-              </p>
-            )}
-            {tooShort && (
-              <p id="ai-follow-up-error" className={styles.error} role="alert">
-                {AI_TEXT.tooShort}
-              </p>
-            )}
           </form>
         )}
+        {!full && nearLimit && (
+          <p id="ai-follow-up-count" className={styles.count}>
+            {draft.length}/{QUESTION_MAX}
+          </p>
+        )}
+        {!full && tooShort && (
+          <p id="ai-follow-up-error" className={styles.error} role="alert">
+            {AI_TEXT.tooShort}
+          </p>
+        )}
+        {noRegion && (
+          // no region or library chosen: the same line as under the direct search box (user 2026-10-24)
+          <p className={styles.scopeNote}>
+            {SCOPE_TEXT.noteNoneBefore}
+            <Link to="/mypage">{SCOPE_TEXT.myPageWord}</Link>
+            {SCOPE_TEXT.noteNoneAfter}
+          </p>
+        )}
+        {/* R9-2's AI line, moved from the top to under the box (user 2026-10-24: "맨 위에 있어서 어색해") */}
+        <p className={styles.notice}>{AI_TEXT.notice}</p>
+        </div>
       </div>
     </div>
   )

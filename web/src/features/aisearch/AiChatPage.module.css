@@ -2,23 +2,12 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 52rem;
+  /* ChatGPT's reading width (about 768px), the same for the box below */
+  max-width: 48rem;
   margin: 0 auto;
-  padding: 0.5rem 0 7rem;
+  padding: 0.5rem 0 10rem;
 }
 
-.topBar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.9rem;
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--rule);
-  background: var(--canvas);
-}
 
 .newChat {
   min-height: 2.25rem;
@@ -37,16 +26,11 @@
   color: var(--brand-strong);
 }
 
-.notice,
 .place {
+  align-self: flex-end;
   margin: 0;
-  color: var(--ink-faint);
-  font-size: var(--text-xs);
-}
-
-.place {
-  margin-left: auto;
   color: var(--ink-soft);
+  font-size: var(--text-xs);
 }
 
 .turns {
@@ -64,15 +48,15 @@
   gap: 0.8rem;
 }
 
-/* my question on the right */
+/* my question on the right, a soft bubble as in ChatGPT (user 2026-10-24) */
 .question {
   align-self: flex-end;
-  max-width: 80%;
+  max-width: 70%;
   margin: 0;
-  padding: 0.65rem 0.95rem;
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
-  background: var(--brand);
-  color: #fff;
+  padding: 0.7rem 1.1rem;
+  border-radius: 1.5rem;
+  background: var(--brand-soft);
+  color: var(--ink);
   font-size: var(--text-md);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -256,26 +240,53 @@
   cursor: pointer;
 }
 
-/* the box at the bottom stays */
+/* the box at the bottom, after ChatGPT (user 2026-10-24): the conversation's width, one rounded box with [+] and the round
+   send button inside, a fade above it instead of a ruled bar */
 .composer {
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   z-index: 3;
-  padding: 0.7rem var(--page-gutter, 1rem) calc(0.7rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--rule);
-  background: var(--canvas);
+  padding: 1.2rem var(--page-gutter, 1rem) calc(0.5rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent, var(--canvas) 1.2rem);
 }
 
-.form,
+.composerInner {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 1.75rem;
+  background: var(--card);
+  box-shadow: 0 2px 12px rgb(20 16 40 / 8%);
+  transition: border-color 140ms;
+}
+
+.form:focus-within {
+  border-color: var(--brand);
+}
+
+.form:has(.input[aria-invalid]) {
+  border-color: var(--fail);
+}
+
 .full {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.5rem;
-  max-width: 52rem;
-  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 1.75rem;
+  background: var(--card);
 }
 
 .full p {
@@ -288,71 +299,51 @@
 .input {
   flex: 1;
   min-width: 0;
-  min-height: 3rem;
+  min-height: 2.5rem;
   max-height: 10rem;
-  padding: 0.7rem 0.95rem;
-  border: 1.5px solid var(--rule-strong);
-  border-radius: var(--radius-md);
-  background: var(--card);
+  padding: 0.5rem 0.3rem;
+  border: none;
+  background: transparent;
   color: var(--ink);
   font: inherit;
   font-size: var(--text-md);
-  line-height: 1.45;
+  line-height: 1.5;
   resize: none;
   overflow-y: auto;
-}
-
-/* [+] new conversation, at the left of the box as in ChatGPT (user 2026-10-24) */
-.plus {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: 999px;
-  background: var(--card);
-  padding: 0;
-  color: var(--ink-soft);
-  cursor: pointer;
-}
-
-.plus:hover {
-  border-color: var(--brand);
-  color: var(--brand-strong);
-}
-
-.plus:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.count {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--ink-faint);
-  font-size: var(--text-xs);
-  text-align: right;
-}
-
-.input:focus {
-  border-color: var(--brand);
   outline: none;
 }
 
-.input[aria-invalid] {
-  border-color: var(--fail);
+/* [+] new conversation, inside the box at its left as in ChatGPT (user 2026-10-24) */
+.plus,
+.send {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.plus {
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.plus:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
 }
 
 .send {
-  height: 3rem;
-  padding: 0 1.2rem;
-  border: none;
-  border-radius: var(--radius-md);
   background: var(--brand);
   color: #fff;
-  font-weight: 800;
-  cursor: pointer;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--brand-strong);
 }
 
 .send:disabled {
@@ -360,12 +351,46 @@
   cursor: default;
 }
 
+.plus:focus-visible,
+.send:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.count,
+.error,
+.notice,
+.scopeNote {
+  margin: 0.35rem 0.9rem 0;
+  font-size: var(--text-xs);
+}
+
+.count {
+  color: var(--ink-faint);
+  text-align: right;
+}
+
 .error {
-  flex-basis: 100%;
-  margin: 0;
   color: var(--fail);
   font-weight: 700;
-  font-size: var(--text-sm);
+}
+
+/* the line about where it looks when no region is chosen, as under the direct search box (user 2026-10-24) */
+.scopeNote {
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.scopeNote a {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* R9-2's AI line in small grey under the box, as ChatGPT's note (user 2026-10-24) */
+.notice {
+  color: var(--ink-faint);
+  text-align: center;
 }
 
 @media (width <= 640px) {
@@ -375,11 +400,7 @@
   }
 
   .question {
-    max-width: 92%;
-  }
-
-  .place {
-    margin-left: 0;
+    max-width: 85%;
   }
 
   /* 16px keeps phones from zooming into the box */

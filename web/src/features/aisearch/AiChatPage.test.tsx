@@ -9,9 +9,9 @@ import { AiChatPage } from './AiChatPage'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, startWithQuestion, type AiChat } from './aiChatStore'
 import { TURNS_MAX } from './aiSearchText'
 
-vi.mock('../region/RegionContext', () => ({
-  useRegions: () => ({ regions: { residence: [1116], work: [] }, libraryIds: [12], source: 'browser' }),
-}))
+const MAPO = { regions: { residence: [1116], work: [] as number[] }, libraryIds: [12], source: 'browser' }
+const regionState = vi.hoisted(() => ({ current: null as unknown }))
+vi.mock('../region/RegionContext', () => ({ useRegions: () => regionState.current }))
 vi.mock('../search/regionPlace', () => ({ useMineLabel: () => '마포구', useTagPlace: () => null }))
 vi.mock('../../api/aiSearch', () => ({ aiSearchStream: vi.fn() }))
 
@@ -20,6 +20,7 @@ const stream = vi.mocked(aiSearchStream)
 afterEach(cleanup)
 
 beforeEach(() => {
+  regionState.current = MAPO
   sessionStorage.clear()
   stream.mockReset()
 })
@@ -233,5 +234,15 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     await screen.findByText('별과 우주를 다뤄요')
     await user.click(screen.getByRole('button', { name: '새 대화' }))
     expect(screen.queryByText('우주 책')).toBeNull()
+  })
+
+  it('says where it looks when no region is chosen, under the box (user 2026-10-24)', () => {
+    setup()
+    expect(screen.queryByText(/누구나 빌릴 수 있는 도서관에서만 찾고 있어요/)).toBeNull()
+    cleanup()
+    regionState.current = { regions: { residence: [], work: [] }, libraryIds: [], source: 'browser' }
+    setup()
+    expect(screen.getByText(/누구나 빌릴 수 있는 도서관에서만 찾고 있어요/)).toBeTruthy()
+    expect(screen.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
   })
 })
