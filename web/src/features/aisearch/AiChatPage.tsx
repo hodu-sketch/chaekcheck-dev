@@ -159,6 +159,18 @@ export function AiChatPage() {
       {/* [새 대화] moved to the [+] at the left of the box below (user 2026-10-24, "CHATGPT처럼") */}
       {place && <p className={styles.place}>{AI_TEXT.summary(place)}</p>}
 
+      {chat.turns.length === 0 && (
+        // a new conversation (the menu's AI 검색, the [+]): the example questions in the empty page (user 2026-10-24)
+        <ul className={styles.startExamples} aria-label="예시 질문">
+          {shownExamples().map((question) => (
+            <li key={question}>
+              <button type="button" className={styles.example} onClick={() => ask(question)}>
+                {question}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <ol className={styles.turns}>
         {chat.turns.map((turn, index) => (
           <li key={turn.id} className={styles.turn} aria-busy={turn.state === 'streaming' || undefined}>

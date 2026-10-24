@@ -26,6 +26,17 @@
   color: var(--brand-strong);
 }
 
+/* the empty conversation: the example questions in the middle of the page */
+.startExamples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 28vh 0 0;
+  padding: 0;
+  list-style: none;
+}
+
 .place {
   align-self: flex-end;
   margin: 0;

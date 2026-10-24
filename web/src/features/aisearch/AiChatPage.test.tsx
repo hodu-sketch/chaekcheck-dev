@@ -7,7 +7,7 @@ import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api
 import { ApiError } from '../../api/client'
 import { AiChatPage } from './AiChatPage'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, startWithQuestion, type AiChat } from './aiChatStore'
-import { TURNS_MAX } from './aiSearchText'
+import { shownExamples, TURNS_MAX } from './aiSearchText'
 
 const MAPO = { regions: { residence: [1116], work: [] as number[] }, libraryIds: [12], source: 'browser' }
 const regionState = vi.hoisted(() => ({ current: null as unknown }))
@@ -249,5 +249,14 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     // after the answer's cards, inside the turn
     expect(screen.getByText('별과 우주를 다뤄요').compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByRole('link', { name: '마이페이지' }).getAttribute('href')).toBe('/mypage')
+  })
+
+  it('offers the example questions on an empty conversation, asked at once (user 2026-10-24)', async () => {
+    answers(...okAnswer)
+    const user = setup()
+    await user.click(screen.getByRole('button', { name: shownExamples()[0] }))
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(1))
+    expect(stream.mock.calls[0][0].question).toBe(shownExamples()[0])
+    expect(screen.queryByRole('list', { name: '예시 질문' })).toBeNull()
   })
 })

@@ -42,6 +42,47 @@
   color: var(--brand-strong);
 }
 
+/* 도서검색 is a button that opens its two ways (user 2026-10-24) */
+button.bigLink {
+  gap: 0.3rem;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.chevron {
+  color: var(--ink-faint);
+}
+
+.subMenu {
+  z-index: 20;
+  min-width: 9rem;
+  padding: 0.35rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 8px 24px rgb(25 31 40 / 0.12);
+}
+
+.subItem {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-inner);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  outline: none;
+}
+
+.subItem[data-highlighted] {
+  background: var(--paper-deep);
+}
+
+.subItem[aria-current='page'] {
+  color: var(--brand-strong);
+}
+
 /* the screen is in this menu: underline (handoff 9-1) */
 .bigLink[data-current] {
   color: var(--brand-strong);
@@ -119,6 +160,26 @@
   font-weight: 700;
   color: var(--ink-soft);
   text-decoration: none;
+}
+
+/* 도서검색 in the drawer: a heading over its two ways (user 2026-10-24) */
+.drawerGroup {
+  margin: 0;
+  padding: 0.7rem 0 0.1rem;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.drawerSub {
+  margin: 0;
+  padding: 0 0 0 0.75rem;
+  list-style: none;
+}
+
+.drawerItem[data-sub] {
+  min-height: 44px;
+  font-size: var(--text-md);
 }
 
 .drawerItem[data-current] {
