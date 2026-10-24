@@ -85,6 +85,8 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     const user = setup()
     await screen.findByText('별과 우주를 다뤄요')
 
+    // no hint in the box once the conversation has started (user 2026-10-24)
+    expect(screen.getByRole('textbox', { name: '이어서 묻기' }).hasAttribute('placeholder')).toBe(false)
     await user.type(screen.getByRole('textbox', { name: '이어서 묻기' }), '더 쉬운 것')
     await user.click(screen.getByRole('button', { name: '보내기' }))
 

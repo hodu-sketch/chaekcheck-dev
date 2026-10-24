@@ -22,7 +22,6 @@ export const AI_TEXT = {
   titleGuessButton: '직접 찾기에서 보기',
   tooLong: '새 대화를 시작해 주세요', // R11-3
   newChat: '새 대화',
-  followUp: '이어서 물어보세요. 예: 이 중에 소설만', // [안] flow S30
   send: '보내기',
   summary: (place: string) => `내 도서관: ${place}`, // [안] flow S30
 } as const

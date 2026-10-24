@@ -184,7 +184,8 @@ export function AiChatPage() {
               className={styles.input}
               value={draft}
               maxLength={QUESTION_MAX}
-              placeholder={chat.turns.length === 0 ? AI_TEXT.placeholder : AI_TEXT.followUp}
+              // no hint once the conversation has started (user 2026-10-24: "이어서 물어보세요는 문구 빼주라")
+              placeholder={chat.turns.length === 0 ? AI_TEXT.placeholder : undefined}
               autoComplete="off"
               aria-invalid={tooShort ? true : undefined}
               aria-describedby={tooShort ? 'ai-follow-up-error' : undefined}
