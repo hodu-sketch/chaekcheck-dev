@@ -5957,7 +5957,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 ### 설계와 다른 점 (코드 쓰기 전에 사용자 확인)
 
-1. **`ListedBook.author`**: `PicksCache.Book`에 저자가 없음. **우리 책 DB의 저자로 맞춤**(사용자 "우리 책 db의 것으로 맞추려고 해줘", 2026-10-24): `catalog.book.author_display`(책 화면·검색 결과가 쓰는 같은 글)를 `bookId`로 읽는 `catalog` 공개 API를 **새 파일**로 더함 (`catalog/BookAuthors.java` + `catalog/internal/` 구현 [안: 이름]). `IdBook`·`BookLookup`은 고치지 않음(23과 겹치지 않게). `picks → catalog` 의존은 이미 있음
+1. **`ListedBook.author`**: `PicksCache.Book`에 저자가 없음(추천도서 화면이 저자를 쓰지 않아 캐시를 만들 때 버림). **이번에는 우리 책 DB에서 가져옴**(사용자 "일단 지금만 db에 가져오고 왜냐면 우리 쪽 db랑 싱크가 맞춰야 하니까", 2026-10-24): 이미 맞춘 `bookId`로 `catalog.book.author_display`(책 화면·검색 결과와 같은 글)를 읽는 `catalog` 공개 API를 **새 파일**로 더함 (`catalog/BookAuthors.java` + `catalog/internal/` 구현 [안: 이름]). `IdBook`·`BookLookup`·`PicksCache`는 고치지 않음(23과 겹치지 않게). 캐시가 저자를 직접 들게 하는 일은 **후속 작업 24-F1**(아래)
 2. **`loadFromDb()`**: 위 #2 방법(새 파일이 새 `PicksCache`를 만들어 `refresh()`). 실패한 목록이 있으면 거부
 3. **`ModularityTests`**: `picksDependsOnCatalogAndLibraryOnly`("picks를 쓰는 모듈은 collection뿐")와 `collectionUsesLibraryAndLibraryNotCollection`(의존을 정확히 비교)이 `aisearch`를 넣으면 깨짐 → 두 시험에 `aisearch`를 더하고 `aisearch` 의존 시험을 새로 둠
 4. **`usagelog.ai_search_event.occurred_at` → `received_at`**: 칸 목록은 [확정](결정 #7)이지만, `usagelog`의 모든 표와 정리 코드가 `received_at`(요청을 받은 시각, `UsageRequest.receivedAt`)을 씀. 이름만 바꾸고 뜻은 같음. 보관은 지금 규칙 그대로 **1년**(IP가 없으니 30일 지우기는 해당 없음)
@@ -5974,3 +5974,16 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - 시험 DB 이미지(`docker/postgres-bigm`) 만들기에서 `apt-get`이 실패함(컨테이너 안에서 프록시를 못 씀, 2026-10-24). 3단계 전에 고침(빌드 인자로 프록시 전달 등, 저장소 파일은 안 바꿈)
 - 못 함(사용자 노트북): 0단계 #13 수집 DB 쪽·#15 `intro_raw` 수와 맞춰진 수, 2단계 찾기용 한 줄 PC 배치. 그 전까지 3단계 뒤는 제목·저자만으로 시험
 - 곁에서 본 것: `backend/src/main/resources/db/changelog/PRE_DEPLOYMENT`가 운영 배포(v1.9.10) 뒤에도 남아 있음. 이번에는 새 changeset만 더하므로 영향 없음
+
+### 후속 작업 24-F1: AI 찾기에 맞춘 책 맞춤 (놓치면 안 됨)
+
+- 요청: 사용자 "책 맞춤 작업을 AI 찾기 맞춤형으로 할 때 하도록 다른 AI가 하도록 문서와 작업을 구조적이고 절대 놓치지 않게 해줘" (2026-10-24)
+- **plan에 부탁**: 다음에 `picks` 캐시나 책 맞춤을 고치는 사이클(사이클 23을 main에 합칠 때 포함)의 인계서에 이 항목을 넣어 주세요. dev 쪽 안내는 `docs/maintenance/4-picks.md` 10절에 같은 내용으로 둠
+
+| 칸 | 내용 |
+|---|---|
+| 언제 시작 | 다음 중 하나가 생길 때: ① 사이클 23(`PicksCache`를 고침)을 main에 합침 ② 추천도서 책 맞춤 규칙(ISBN·제목+첫 저자, `BookChoice`)을 바꿈 ③ AI 찾기 후보·글의 품질 때문에 맞춤을 다시 봄 |
+| 지금 상태 (사이클 24) | 캐시(`PicksCache.Book`)에 저자가 없어 `ListedBooks`가 `bookId`로 `catalog`(`BookAuthors`)를 한 번 더 읽음. AI 찾기의 낱말 맞추기는 `aisearch.search_book` **사본**(제목·저자·한 줄)을 쓰고, 이 사본은 `book-texts` 넣기 명령을 돌릴 때만 바뀜(결정 #3, ADR-0151에서 감수) |
+| 할 일 | 1. 캐시 책 줄이 우리 책 저자(`catalog.book.author_display`)를 맞출 때 함께 들게 하고, `ListedBooks`의 따로 읽기(`BookAuthors`)를 없앰 2. 맞춤이 바뀌는 일(가져오기 바꿔 끼우기, `lists` 모드, 사서 목록 월 받기, 23의 캐시 변경) 뒤에 `aisearch.search_book` 사본이 어긋나지 않게 할 방법을 정함(자동 다시 넣기 / 어긋남 경고 / 지금처럼 손으로) → **사용자 결정 필요**(결정 #3을 바꾸는 일) 3. 23의 꼬리표·탭 추천 글을 `ListedBook`과 `book-texts`(`kind`)에 더함(design-delta "사이클 23과 겹치는 곳") |
+| 완료 확인 | `ListedBooks.current()`와 `loadFromDb()`의 모든 책에서 `title`·`author`가 `catalog.book`의 값과 같음(시험) / `aisearch.search_book`의 `book_id`가 모두 지금 목록 책이고 제목·저자가 같음(넣기 뒤 확인 쿼리, 4-picks.md 10절) / `ModularityTests` 통과 |
+| 코드 표시 | `ListedBooks` 구현과 `BookAuthors`에 `TODO(24-F1)` 주석을 달아 이 절을 가리킴(3단계에서) |
