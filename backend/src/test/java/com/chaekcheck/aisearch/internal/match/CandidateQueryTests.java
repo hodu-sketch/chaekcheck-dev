@@ -77,13 +77,18 @@ class CandidateQueryTests {
 	}
 
 	@Test
-	void percentAndUnderscoreMatchOnlyThemselves() {
+	void wildcardsBackslashesAndQuotesMatchOnlyThemselves() {
 		store(List.of(new Book(1, "100% 실화", null), new Book(2, "100점 실화", null), new Book(3, "a_b", null),
 				new Book(4, "axb", null)), List.of());
 		List<Target> all = List.of(new Target(1, 1), new Target(2, 1), new Target(3, 1), new Target(4, 1));
 
 		assertThat(query.find(List.of("100%"), all, 30)).extracting(Candidate::bookId).containsExactly(1L);
 		assertThat(query.find(List.of("a_b"), all, 30)).extracting(Candidate::bookId).containsExactly(3L);
+
+		store(List.of(new Book(1, "a\\b", null), new Book(2, "ab", null), new Book(3, "it's", null)), List.of());
+		List<Target> three = List.of(new Target(1, 1), new Target(2, 1), new Target(3, 1));
+		assertThat(query.find(List.of("a\\b"), three, 30)).extracting(Candidate::bookId).containsExactly(1L);
+		assertThat(query.find(List.of("it's"), three, 30)).extracting(Candidate::bookId).containsExactly(3L);
 	}
 
 	@Test

@@ -91,7 +91,9 @@ public interface LlmClient {
 		/** The model service is busy (HTTP 429, 529, or an {@code overloaded_error} event). */
 		OVERLOADED,
 		/** The answer cannot be used as it is (cut at {@code max_tokens}, a refusal, not readable). */
-		BAD_OUTPUT
+		BAD_OUTPUT,
+		/** The caller's text consumer threw (for example the user left); the stream was closed. */
+		CANCELLED
 
 	}
 

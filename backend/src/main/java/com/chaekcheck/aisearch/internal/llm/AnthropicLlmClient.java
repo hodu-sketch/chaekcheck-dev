@@ -96,17 +96,14 @@ public final class AnthropicLlmClient implements LlmClient {
 		long deadline = System.nanoTime() + timeout.toNanos();
 		HttpRequest request = request(call, true, timeout);
 		HttpResponse<InputStream> response = await(http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()),
-				timeout);
+				Duration.ofNanos(Math.max(1, deadline - System.nanoTime())));
 		String requestId = requestId(response);
 		InputStream in = response.body();
-		if (response.statusCode() != 200) {
-			String errorBody = readSome(in);
-			throw refused(response.statusCode(), errorBody, requestId);
-		}
 		AtomicBoolean finished = new AtomicBoolean();
 		AtomicBoolean timedOut = new AtomicBoolean();
-		// the whole call has one time: close the body when it runs out, which ends the blocking read below
-		Thread closer = Thread.ofVirtual().unstarted(() -> {
+		// the whole call has one time: close the body when it runs out, which ends a blocking read (an error body
+		// included); a consumer that blocks in onText is not interrupted, the next read ends instead
+		Thread closer = Thread.ofVirtual().start(() -> {
 			try {
 				long left = deadline - System.nanoTime();
 				if (left > 0) {
@@ -121,76 +118,133 @@ public final class AnthropicLlmClient implements LlmClient {
 				Thread.currentThread().interrupt();
 			}
 		});
-		closer.start();
-		StringBuilder text = new StringBuilder();
-		int inputTokens = 0;
-		int outputTokens = 0;
-		boolean outputKnown = false;
-		String stopReason = "";
-		boolean stopped = false;
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (!line.startsWith("data:")) {
-					continue;
+		try {
+			if (response.statusCode() != 200) {
+				String errorBody = readSome(in);
+				if (timedOut.get()) {
+					throw failure(Failure.TIMEOUT, Usage.NONE, "error body over its time", requestId);
 				}
-				JsonNode event = json.readTree(line.substring(5).strip());
-				switch (event.path("type").asString("")) {
-					case "message_start" -> inputTokens = event.path("message").path("usage").path("input_tokens").asInt(0);
-					case "content_block_delta" -> {
-						JsonNode delta = event.path("delta");
-						if ("text_delta".equals(delta.path("type").asString(""))) {
-							String piece = delta.path("text").asString("");
-							text.append(piece);
-							onText.accept(piece);
-						}
-					}
-					case "message_delta" -> {
-						JsonNode usage = event.path("usage");
-						if (usage.has("output_tokens")) {
-							outputTokens = usage.path("output_tokens").asInt(0);
-							outputKnown = true;
-						}
-						String reason = event.path("delta").path("stop_reason").asString("");
-						if (!reason.isEmpty()) {
-							stopReason = reason;
-						}
-					}
-					case "message_stop" -> stopped = true;
-					case "error" -> {
-						String type = event.path("error").path("type").asString("");
-						throw failure("overloaded_error".equals(type) ? Failure.OVERLOADED : Failure.HTTP_ERROR,
-								new Usage(inputTokens, outputTokens, outputKnown), "stream error " + type, requestId);
-					}
-					default -> {
-						// ping, content_block_start, content_block_stop: nothing to do
-					}
-				}
-				if (stopped) {
-					break;
-				}
+				throw refused(response.statusCode(), errorBody, requestId);
 			}
-		}
-		catch (IOException | JacksonException e) {
-			Usage soFar = new Usage(inputTokens, outputTokens, outputKnown);
-			if (timedOut.get()) {
-				throw failure(Failure.TIMEOUT, soFar, "stream over its time", requestId);
-			}
-			throw failure(e instanceof JacksonException ? Failure.BAD_OUTPUT : Failure.HTTP_ERROR, soFar,
-					"stream broke: " + e.getClass().getSimpleName(), requestId);
+			return readEvents(in, onText, timedOut, requestId);
 		}
 		finally {
 			finished.set(true);
 			closer.interrupt();
+			closeQuietly(in);
 		}
-		Usage counted = new Usage(inputTokens, outputTokens, outputKnown);
-		if (!stopped) {
-			throw failure(timedOut.get() ? Failure.TIMEOUT : Failure.HTTP_ERROR, counted, "stream ended before message_stop",
-					requestId);
+	}
+
+	/** The event loop of {@link #stream}: server-sent events, {@code data:} lines joined until a blank line. */
+	private Result readEvents(InputStream in, Consumer<String> onText, AtomicBoolean timedOut, String requestId) {
+		StreamState state = new StreamState();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+			StringBuilder data = new StringBuilder();
+			String line;
+			while (!state.stopped && (line = reader.readLine()) != null) {
+				if (line.isEmpty()) {
+					dispatch(data, state, onText, requestId);
+				}
+				else if (line.startsWith("data:")) {
+					if (!data.isEmpty()) {
+						data.append('\n');
+					}
+					data.append(line.substring(line.startsWith("data: ") ? 6 : 5));
+				}
+				// "event:", "id:", "retry:" and ":" comment lines: the JSON's own type is used instead
+			}
+			if (!state.stopped) {
+				dispatch(data, state, onText, requestId);
+			}
 		}
-		log.debug("anthropic stream: stop {}, tokens {}/{}, request {}", stopReason, counted.inputTokens(),
-				counted.outputTokens(), requestId);
-		return new Result(text.toString(), counted, stopReason);
+		catch (IOException e) {
+			if (timedOut.get()) {
+				throw failure(Failure.TIMEOUT, state.usage(), "stream over its time", requestId);
+			}
+			throw failure(Failure.HTTP_ERROR, state.usage(), "stream broke: " + e.getClass().getSimpleName(), requestId);
+		}
+		if (!state.stopped) {
+			throw failure(timedOut.get() ? Failure.TIMEOUT : Failure.HTTP_ERROR, state.usage(),
+					"stream ended before message_stop", requestId);
+		}
+		log.debug("anthropic stream: stop {}, tokens {}/{}, request {}", state.stopReason, state.inputTokens,
+				state.outputTokens, requestId);
+		return new Result(state.text.toString(), state.usage(), state.stopReason);
+	}
+
+	private void dispatch(StringBuilder data, StreamState state, Consumer<String> onText, String requestId) {
+		String payload = data.toString().strip();
+		data.setLength(0);
+		if (payload.isEmpty() || payload.equals("[DONE]")) {
+			return;
+		}
+		JsonNode event;
+		try {
+			event = json.readTree(payload);
+		}
+		catch (JacksonException e) {
+			// an event we cannot read: only the text and the usage matter, which are checked at the end
+			log.debug("anthropic stream: an unreadable event skipped, request {}", requestId);
+			return;
+		}
+		switch (event.path("type").asString("")) {
+			case "message_start" -> state.inputTokens = event.path("message").path("usage").path("input_tokens").asInt(0);
+			case "content_block_delta" -> {
+				JsonNode delta = event.path("delta");
+				if ("text_delta".equals(delta.path("type").asString(""))) {
+					String piece = delta.path("text").asString("");
+					state.text.append(piece);
+					try {
+						onText.accept(piece);
+					}
+					catch (RuntimeException e) {
+						throw failure(Failure.CANCELLED, state.usage(),
+								"the reader stopped: " + e.getClass().getSimpleName(), requestId);
+					}
+				}
+			}
+			case "message_delta" -> {
+				JsonNode usage = event.path("usage");
+				if (usage.has("output_tokens")) {
+					state.outputTokens = usage.path("output_tokens").asInt(0);
+					state.outputKnown = true;
+				}
+				String reason = event.path("delta").path("stop_reason").asString("");
+				if (!reason.isEmpty()) {
+					state.stopReason = reason;
+				}
+			}
+			case "message_stop" -> state.stopped = true;
+			case "error" -> {
+				String type = event.path("error").path("type").asString("");
+				throw failure("overloaded_error".equals(type) ? Failure.OVERLOADED : Failure.HTTP_ERROR, state.usage(),
+						"stream error " + type, requestId);
+			}
+			default -> {
+				// ping, content_block_start, content_block_stop: nothing to do
+			}
+		}
+	}
+
+	/** What the stream told so far. */
+	private static final class StreamState {
+
+		final StringBuilder text = new StringBuilder();
+
+		int inputTokens;
+
+		int outputTokens;
+
+		boolean outputKnown;
+
+		String stopReason = "";
+
+		boolean stopped;
+
+		Usage usage() {
+			return new Usage(inputTokens, outputTokens, outputKnown);
+		}
+
 	}
 
 	private HttpRequest request(LlmCall call, boolean stream, Duration timeout) {
@@ -211,7 +265,12 @@ public final class AnthropicLlmClient implements LlmClient {
 		}
 		ObjectNode format = output.putObject("format");
 		format.put("type", "json_schema");
-		format.set("schema", json.readTree(call.jsonSchema()));
+		try {
+			format.set("schema", json.readTree(call.jsonSchema()));
+		}
+		catch (JacksonException e) {
+			throw new IllegalArgumentException("the call's JSON schema is not JSON");
+		}
 		if (stream) {
 			body.put("stream", true);
 		}

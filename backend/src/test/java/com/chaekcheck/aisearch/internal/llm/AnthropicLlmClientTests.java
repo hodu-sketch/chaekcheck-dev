@@ -243,6 +243,61 @@ class AnthropicLlmClientTests {
 	}
 
 	@Test
+	void readsWindowsLineEndsCommentsJoinedDataLinesAndSkipsUnreadableEvents() {
+		handler = exchange -> {
+			start(exchange);
+			raw(exchange, ": a comment\r\nevent: message_start\r\n"
+					+ "data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":11}}}\r\n\r\n");
+			raw(exchange, "event: ping\ndata: not json\n\n");
+			raw(exchange, "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\ndata: "
+					+ "\"delta\":{\"type\":\"text_delta\",\"text\":\"{}\"}}\n\n");
+			raw(exchange, "data:\n\n");
+			raw(exchange, "data: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},"
+					+ "\"usage\":{\"output_tokens\":2}}\r\n\r\ndata: {\"type\":\"message_stop\"}\r\n\r\n");
+		};
+
+		Result result = client(KEY).stream(CALL, Duration.ofSeconds(5), piece -> {
+		});
+
+		assertThat(result.text()).isEqualTo("{}");
+		assertThat(result.usage()).isEqualTo(new Usage(11, 2, true));
+	}
+
+	@Test
+	void anErrorBodyThatStallsStillEndsInTime() {
+		handler = exchange -> {
+			exchange.getResponseHeaders().add("content-type", "application/json");
+			exchange.sendResponseHeaders(500, 0);
+			exchange.getResponseBody().write("{\"type\":".getBytes(StandardCharsets.UTF_8));
+			exchange.getResponseBody().flush();
+			Thread.sleep(3_000);
+		};
+		long started = System.nanoTime();
+
+		assertFailure(() -> client(KEY).stream(CALL, Duration.ofMillis(500), piece -> {
+		}), Failure.TIMEOUT);
+		assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofMillis(2_000));
+	}
+
+	@Test
+	void aReaderThatStopsCancelsTheStreamWithTheUsageSoFar() {
+		handler = exchange -> {
+			start(exchange);
+			event(exchange, "message_start", "{\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":21}}}");
+			event(exchange, "content_block_delta",
+					"{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"{\"}}");
+			Thread.sleep(3_000);
+		};
+
+		assertThatThrownBy(() -> client(KEY).stream(CALL, Duration.ofSeconds(5), piece -> {
+			throw new IllegalStateException("the user left");
+		})).isInstanceOfSatisfying(LlmException.class, e -> {
+			assertThat(e.failure()).isEqualTo(Failure.CANCELLED);
+			assertThat(e.usage()).isEqualTo(new Usage(21, 0, false));
+		});
+	}
+
+	@Test
 	void anEmptyKeySendsNothing() {
 		handler = exchange -> reply(exchange, 200, "application/json", "{}");
 
@@ -286,6 +341,12 @@ class AnthropicLlmClientTests {
 	private static void start(HttpExchange exchange) throws IOException {
 		exchange.getResponseHeaders().add("content-type", "text/event-stream");
 		exchange.sendResponseHeaders(200, 0);
+	}
+
+	private static void raw(HttpExchange exchange, String text) throws IOException {
+		OutputStream out = exchange.getResponseBody();
+		out.write(text.getBytes(StandardCharsets.UTF_8));
+		out.flush();
 	}
 
 	private static void event(HttpExchange exchange, String name, String data) throws IOException {
