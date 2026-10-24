@@ -88,6 +88,7 @@ export function ForYouPage() {
         if (failure instanceof ApiError && failure.problem.code === 'invalid_region' && !retried) {
           retried = true
           if (await resolveStoredRegions().catch(() => false)) return
+          if (controller.signal.aborted) return
         }
         setBaseLoad({ key, data: null, failed: true })
       }
@@ -147,8 +148,12 @@ export function ForYouPage() {
   const openBook = (bookId: number) => navigate(`/books/${bookId}`, { replace: onWindowEntry() })
   const closeDialog = () => {
     setChanging(false)
-    setPages(1)
-    setRecord(readRecord())
+    const next = readRecord()
+    // only a change of the base books or the books to show again asks again and starts from the first 20
+    if (next.base.map((b) => b.bookId).join(',') !== baseIds.join(',') || next.reshow.join(',') !== record.reshow.join(',')) {
+      setPages(1)
+      setRecord(next)
+    }
   }
 
   let body
@@ -158,7 +163,10 @@ export function ForYouPage() {
     body = (
       <p className={picksStyles.notice} role="alert">
         {FOR_YOU_TEXT.baseFailed}{' '}
-        <button type="button" className={styles.retry} onClick={() => setBaseTry((n) => n + 1)}>
+        <button type="button" className={styles.retry} onClick={() => {
+            setBaseLoad(null)
+            setBaseTry((n) => n + 1)
+          }}>
           {FOR_YOU_TEXT.retry}
         </button>
       </p>
@@ -207,7 +215,10 @@ export function ForYouPage() {
       {record.base.length > 0 && similarResult?.failed && (
         <p className={styles.baseLine} role="alert">
           {FOR_YOU_TEXT.similarFailed}{' '}
-          <button type="button" className={styles.retry} onClick={() => setSimilarTry((n) => n + 1)}>
+          <button type="button" className={styles.retry} onClick={() => {
+            setSimilarLoad(null)
+            setSimilarTry((n) => n + 1)
+          }}>
             {FOR_YOU_TEXT.retry}
           </button>
         </p>

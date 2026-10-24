@@ -92,7 +92,7 @@ public class ForYouStore {
 	}
 
 	private void finish(long runId, String status, String note, Instant at) {
-		jdbc.sql("UPDATE foryou.build_run SET status = ?, note = ?, finished_at = ? WHERE id = ?")
+		jdbc.sql("UPDATE foryou.build_run SET status = ?, note = ?, finished_at = ? WHERE id = ? AND status = 'running'")
 			.params(status, note, Timestamp.from(at), runId)
 			.update();
 	}

@@ -167,6 +167,33 @@ class ForYouBuildTests {
 	}
 
 	@Test
+	void aFailureAfterTheBuildIsStoredKeepsItSucceeded() {
+		reads.add(site("kyobo_elib", 31, row(1, "a3", 1, 0)));
+		ForYouBuild failingAfter = new ForYouBuild(List.of(() -> List.copyOf(reads)), bookCards, bookLookup,
+				ListedSource.NONE, store, properties(), () -> {
+					throw new IllegalStateException("snapshot read failed");
+				}, Clock.fixed(NOW, ZoneOffset.UTC));
+
+		failingAfter.build();
+
+		assertThat(status()).isEqualTo("succeeded");
+		assertThat(entries()).containsExactly("930003:true");
+	}
+
+	@Test
+	void oddRowsNeverFailTheBuild() {
+		reads.add(site("kyobo_elib", 31, row(1, "a3", 1, 0), new SourceRow(0, "순위 없는 책", null, null, null, "a1", -2, -1),
+				new SourceRow(3, null, null, null, null, "a2", 1, 0)));
+
+		build.build();
+
+		assertThat(status()).isEqualTo("succeeded");
+		assertThat(jdbc.sql("SELECT rank || ':' || loans_now || ':' || reservations FROM foryou.popular_row ORDER BY rank")
+			.query(String.class)
+			.list()).containsExactlyInAnyOrder("1:0:0", "1:1:0");
+	}
+
+	@Test
 	void startFailsALeftRunningRunAndBuildsOnce() {
 		store.start(TODAY, NOW.minusSeconds(600));
 

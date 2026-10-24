@@ -87,6 +87,9 @@ public class ForYouBuild {
 		LocalDate today = today();
 		long runId = store.start(today, clock.instant());
 		StringJoiner note = new StringJoiner("\n");
+		Map<Long, BookCard> cards = new HashMap<>();
+		Map<Long, ScoreParts> parts;
+		List<Entry> entries;
 		try {
 			List<MatchedRow> all = new ArrayList<>();
 			List<MatchedRow> kept = new ArrayList<>();
@@ -106,7 +109,6 @@ public class ForYouBuild {
 			kept.stream().filter(row -> row.bookId() != null).forEach(row -> ids.add(row.bookId()));
 			listed.forEach(ref -> ids.add(ref.bookId()));
 			Map<Long, Long> workKeys = bookCards.workKeys(ids);
-			Map<Long, BookCard> cards = new HashMap<>();
 			bookCards.cards(new HashSet<>(workKeys.values())).forEach(card -> cards.put(card.bookId(), card));
 			Map<Long, Integer> years = new HashMap<>();
 			cards.forEach((id, card) -> {
@@ -114,7 +116,7 @@ public class ForYouBuild {
 					years.put(id, card.publishedYear());
 				}
 			});
-			Map<Long, ScoreParts> parts = Scoring.score(kept, workKeys, years, today.getYear(), properties.score());
+			parts = Scoring.score(kept, workKeys, years, today.getYear(), properties.score());
 			Map<Long, Double> totals = new LinkedHashMap<>();
 			parts.forEach((work, part) -> {
 				if (cards.containsKey(work)) {
@@ -128,7 +130,7 @@ public class ForYouBuild {
 					listedWorks.put(work, cards.get(work).libraryIds().length);
 				}
 			}
-			List<Entry> entries = BaseOrder.order(totals, listedWorks, properties.build().baseSize());
+			entries = BaseOrder.order(totals, listedWorks, properties.build().baseSize());
 			Map<Long, Double> stored = new HashMap<>();
 			totals.forEach((work, total) -> {
 				if (total > 0) {
@@ -138,6 +140,15 @@ public class ForYouBuild {
 			note.add("base=" + entries.size() + " popular=" + entries.stream().filter(Entry::fromPopular).count()
 					+ " listed=" + listedWorks.size() + " scored=" + stored.size());
 			store.succeed(runId, all, stored, entries, note.toString(), clock.instant());
+		}
+		catch (RuntimeException ex) {
+			note.add("failed: " + ex);
+			log.error("foryou build {} failed, the list before stays", runId, ex);
+			store.fail(runId, note.toString(), clock.instant());
+			return;
+		}
+		// the build is stored: what follows only logs when it fails, it never marks the build failed
+		try {
 			log.info("foryou build {} succeeded: {}", runId, note.toString().replace('\n', ';'));
 			logTop(entries, parts, cards);
 			afterSuccess.run();
@@ -147,9 +158,7 @@ public class ForYouBuild {
 			}
 		}
 		catch (RuntimeException ex) {
-			note.add("failed: " + ex);
-			log.error("foryou build {} failed, the list before stays", runId, ex);
-			store.fail(runId, note.toString(), clock.instant());
+			log.warn("foryou build {} succeeded, but the steps after it failed: {}", runId, ex.toString());
 		}
 	}
 
@@ -174,7 +183,7 @@ public class ForYouBuild {
 	 * ISBN-13, then title and first author (the most held book when several match) [안].
 	 */
 	List<MatchedRow> match(SourceRead read) {
-		List<SourceRow> rows = read.rows();
+		List<SourceRow> rows = clean(read.rows());
 		Map<HoldingKey, Long> byHolding = read.siteLibraryId() == null ? Map.of()
 				: bookCards.byHoldingKeys(rows.stream()
 					.filter(row -> row.itemKey() != null)
@@ -205,6 +214,23 @@ public class ForYouBuild {
 			matched.add(new MatchedRow(read.source(), read.siteLibraryId(), read.period(), row, bookId));
 		}
 		return matched;
+	}
+
+	/**
+	 * A row the tables cannot keep (no title) is dropped; a rank below 1 and negative counts are made 1 and 0, so one odd
+	 * row never fails the day's build.
+	 */
+	private static List<SourceRow> clean(List<SourceRow> rows) {
+		List<SourceRow> clean = new ArrayList<>(rows.size());
+		for (SourceRow row : rows) {
+			if (row.title() == null || row.title().isBlank()) {
+				continue;
+			}
+			clean.add(new SourceRow(Math.max(1, row.rank()), row.title(), row.author(), row.publisher(), row.isbn13(),
+					row.itemKey(), row.loansNow() == null ? null : Math.max(0, row.loansNow()),
+					row.reservations() == null ? null : Math.max(0, row.reservations())));
+		}
+		return clean;
 	}
 
 	private static Long found(SourceRead read, SourceRow row, Map<HoldingKey, Long> byHolding, Map<String, Long> byIsbn) {

@@ -343,3 +343,7 @@
     translate: none;
   }
 }
+
+.dialogTitle:focus {
+  outline: none;
+}

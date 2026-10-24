@@ -98,7 +98,14 @@ class JdbcBookCards implements BookCards {
 		// editions join when the main title is the same and a name is shared; a name chain joins them all
 		Map<String, Long> firstWithTitleAndName = new HashMap<>();
 		for (Edition edition : editions.values()) {
+			if (edition.mainTitle() == null || edition.mainTitle().isBlank()) {
+				// no main title to compare: the edition stays a work of its own
+				continue;
+			}
 			for (String name : edition.names()) {
+				if (name == null || name.isBlank()) {
+					continue;
+				}
 				Long other = firstWithTitleAndName.putIfAbsent(edition.mainTitle() + '\u0000' + name, edition.id());
 				if (other != null) {
 					groups.join(edition.id(), other);

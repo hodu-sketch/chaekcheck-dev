@@ -55,7 +55,11 @@ export function readViewed(now: number = Date.now()): ViewedBook[] {
   try {
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return trim(parsed.filter(isViewedBook), now)
+    // a time more than a day ahead of this clock (a clock that was set wrong) counts as now, so it still ages out
+    const books = parsed
+      .filter(isViewedBook)
+      .map((book) => (book.lastAt > now + DAY ? { ...book, lastAt: now } : book))
+    return trim(books, now)
   } catch {
     return []
   }
@@ -101,7 +105,8 @@ function mark(bookId: number, title: string | null, what: Mark, now: number): vo
     found[what] = true
     found.lastAt = now
     if (title) found.title = title
-  } else {
+  } else if (title) {
+    // a library press without an opened book first (should not happen) adds nothing: every record has its title
     books.push({
       bookId,
       title: title ?? '',

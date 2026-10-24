@@ -51,7 +51,10 @@ class JdbcForYouTransfer implements ForYouTransfer {
 				long count;
 				try {
 					count = copy(connection, "foryou.book_neighbour_next", rows, computedOn);
+					execute(connection, "ANALYZE foryou.book_neighbour_next");
 					connection.setAutoCommit(false);
+					// the swap waits for readers at most this long rather than queueing every new reader behind it [안]
+					execute(connection, "SET LOCAL lock_timeout = '10s'");
 					execute(connection, "LOCK TABLE foryou.book_neighbour IN ACCESS EXCLUSIVE MODE");
 					execute(connection, "DROP TABLE foryou.book_neighbour");
 					execute(connection, "ALTER TABLE foryou.book_neighbour_next RENAME TO book_neighbour");
@@ -59,11 +62,16 @@ class JdbcForYouTransfer implements ForYouTransfer {
 					connection.commit();
 				}
 				catch (SQLException | RuntimeException ex) {
-					if (!connection.getAutoCommit()) {
-						connection.rollback();
-						connection.setAutoCommit(true);
+					try {
+						if (!connection.getAutoCommit()) {
+							connection.rollback();
+							connection.setAutoCommit(true);
+						}
+						execute(connection, "DROP TABLE IF EXISTS foryou.book_neighbour_next");
 					}
-					execute(connection, "DROP TABLE IF EXISTS foryou.book_neighbour_next");
+					catch (SQLException cleanup) {
+						ex.addSuppressed(cleanup);
+					}
 					throw ex;
 				}
 				log.info("foryou neighbours swapped in: {} rows", count);
@@ -89,7 +97,8 @@ class JdbcForYouTransfer implements ForYouTransfer {
 						ON COMMIT DROP""");
 				long count = copy(connection, "book_neighbour_add", rows, computedOn);
 				execute(connection, """
-						INSERT INTO foryou.book_neighbour SELECT * FROM book_neighbour_add
+						INSERT INTO foryou.book_neighbour
+						SELECT DISTINCT ON (book_id) * FROM book_neighbour_add ORDER BY book_id
 						ON CONFLICT (book_id) DO UPDATE SET neighbour_ids = EXCLUDED.neighbour_ids,
 						  computed_on = EXCLUDED.computed_on""");
 				connection.commit();

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { FOR_YOU_TEXT } from './forYouText'
 import { PicksWindow } from './PicksWindow'
 import { baseBooks, clearViewed, readViewed, recentBooks, removeFromBase } from './viewedBooks'
@@ -25,10 +25,12 @@ export function BaseBooksDialog({ onClose, phone }: Props) {
   // shown only while open: the record is read when the window opens and after each change in it
   const [view, setView] = useState(readView)
   const { recent, base } = view
+  // after [빼기] the pressed row is gone: focus goes to the window's title, so a keyboard keeps its place
+  const titleRef = useRef<HTMLHeadingElement>(null)
   return (
     <PicksWindow open onOpenChange={(next) => !next && onClose()} title={FOR_YOU_TEXT.dialogTitle} phone={phone} size="small">
       <div className={styles.dialog}>
-        <h2 className={styles.dialogTitle}>{FOR_YOU_TEXT.dialogTitle}</h2>
+        <h2 ref={titleRef} tabIndex={-1} className={styles.dialogTitle}>{FOR_YOU_TEXT.dialogTitle}</h2>
         <ol className={styles.recentList}>
           {recent.map((book) => (
             <li key={book.bookId} className={styles.recentRow}>
@@ -43,6 +45,7 @@ export function BaseBooksDialog({ onClose, phone }: Props) {
                 onClick={() => {
                   removeFromBase(book.bookId)
                   setView(readView())
+                  titleRef.current?.focus()
                 }}
               >
                 {FOR_YOU_TEXT.remove}

@@ -53,6 +53,7 @@ describe('viewedBooks (cycle 23 R5, R6-1b, R6-4)', () => {
   })
 
   it('[빼기] keeps a book out of the base books for 30 days', () => {
+    recordOpened(1, 'A', NOW)
     recordLibraryClicked(1, NOW)
     recordOpened(2, 'B', NOW)
     recordOpened(3, 'C', NOW)
@@ -68,16 +69,30 @@ describe('viewedBooks (cycle 23 R5, R6-1b, R6-4)', () => {
   })
 
   it('shows a book again only after 3 days, without a library pressed, not as a base book, not removed', () => {
-    for (let id = 1; id <= 3; id++) recordLibraryClicked(id, NOW)
-    recordOpened(10, 'old enough', NOW - 4 * DAY)
-    recordOpened(11, 'too new', NOW - 2 * DAY)
-    recordOpened(12, 'pressed', NOW - 5 * DAY)
-    recordLibraryClicked(12, NOW - 5 * DAY)
+    // in time order, as a browser records them
     recordOpened(13, 'removed', NOW - 6 * DAY)
     removeFromBase(13, NOW - 6 * DAY + 1)
+    recordOpened(12, 'pressed', NOW - 5 * DAY)
+    recordLibraryClicked(12, NOW - 5 * DAY)
+    recordOpened(10, 'old enough', NOW - 4 * DAY)
+    recordOpened(11, 'too new', NOW - 2 * DAY)
+    for (let id = 1; id <= 3; id++) {
+      recordOpened(id, `pressed ${id}`, NOW)
+      recordLibraryClicked(id, NOW)
+    }
 
     // 12 is a base book by points too, so the conditions are checked with the three pressed books on top
     expect(reshowBooks(readViewed(NOW), NOW).map((book) => book.bookId)).toEqual([10])
+  })
+
+  it('a library press without an opened book adds nothing; a time set far ahead counts as now', () => {
+    recordLibraryClicked(9, NOW)
+    expect(readViewed(NOW)).toEqual([])
+    localStorage.setItem(
+      VIEWED_BOOKS_KEY,
+      JSON.stringify([{ bookId: 1, title: 'A', opened: true, dwelled: false, libraryClicked: false, lastAt: NOW + 400 * DAY, removedUntil: null }]),
+    )
+    expect(readViewed(NOW)[0].lastAt).toBe(NOW)
   })
 
   it('reads a broken record as empty and clears everything', () => {

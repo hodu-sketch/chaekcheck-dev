@@ -100,9 +100,31 @@ class ForYouController {
 				candidates.add((long) neighbour);
 			}
 		}
-		base.forEach(candidates::remove);
-		Map<Long, ListedRef> listed = listed();
+		// scores are kept on the build's representative edition of each work: a neighbour that is another edition of a
+		// scored work counts as the scored one, two editions of one work show once, the base books' works are left out
 		Map<Long, Double> scores = snapshot.current().map(LastBuild::scores).orElse(Map.of());
+		Set<Long> known = new HashSet<>(candidates);
+		known.addAll(base);
+		known.addAll(scores.keySet());
+		Map<Long, Long> works = bookCards.workKeys(known);
+		Map<Long, Long> scoredOfWork = new HashMap<>();
+		scores.forEach((bookId, score) -> {
+			Long work = works.get(bookId);
+			if (work != null) {
+				scoredOfWork.merge(work, bookId, (a, b) -> scores.get(a) >= scores.get(b) ? a : b);
+			}
+		});
+		Set<Long> baseWorks = new HashSet<>();
+		base.forEach(id -> baseWorks.add(works.getOrDefault(id, id)));
+		Set<Long> represented = new LinkedHashSet<>();
+		for (long candidate : candidates) {
+			long work = works.getOrDefault(candidate, candidate);
+			if (!baseWorks.contains(work)) {
+				represented.add(scoredOfWork.getOrDefault(work, work));
+			}
+		}
+		candidates = represented;
+		Map<Long, ListedRef> listed = listed();
 		List<Card> books = new ArrayList<>(cards(List.copyOf(candidates), planIds, listed));
 		books.sort(Comparator.<Card>comparingInt(card -> scores.containsKey(card.bookId()) ? 0 : 1)
 			.thenComparing(card -> -scores.getOrDefault(card.bookId(), 0.0))

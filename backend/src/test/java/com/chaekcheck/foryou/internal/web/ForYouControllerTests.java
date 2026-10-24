@@ -139,6 +139,24 @@ class ForYouControllerTests {
 	}
 
 	@Test
+	void aNeighbourThatIsAnotherEditionCountsAsTheScoredEdition() {
+		// 940006 is another edition of 「넷째 책」 (same main title and author), held by fewer libraries
+		book(940006, "넷째 책", "{" + notJoinable + "}", "가");
+		jdbc.sql("INSERT INTO foryou.book_neighbour VALUES (940003, ARRAY[940006, 940002], DATE '2026-10-24')").update();
+		build(new long[] { 940004 }, new double[] { 9 });
+
+		assertThat(mvc.get().uri(SIMILAR + "?baseBookIds=940003")).hasStatusOk()
+			.bodyJson()
+			.extractingPath("$.books[*].bookId")
+			.isEqualTo(List.of(940004, 940002));
+		// a base book's other edition is not a pick either
+		jdbc.sql("INSERT INTO foryou.book_neighbour VALUES (940004, ARRAY[940006, 940003], DATE '2026-10-24')").update();
+		assertThat(mvc.get().uri(SIMILAR + "?baseBookIds=940004")).bodyJson()
+			.extractingPath("$.books[*].bookId")
+			.isEqualTo(List.of(940003));
+	}
+
+	@Test
 	void validationCodes() {
 		invalid(SIMILAR, "baseBookIds", "required");
 		invalid(SIMILAR + "?baseBookIds=1,2,3,4", "baseBookIds", "too_many");

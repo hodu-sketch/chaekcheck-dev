@@ -24,6 +24,14 @@ public record ForYouProperties(Build build, Sources sources, Score score) {
 	 */
 	public record Build(boolean enabled, String cron, ZoneId zone, Duration keep, int baseSize,
 			Duration refreshInterval, double minMatchRate) {
+
+		/** {@code foryou.base_entry.position} allows 1 to 40. */
+		public Build {
+			if (baseSize < 1 || baseSize > 40) {
+				throw new IllegalArgumentException("chaekcheck.foryou.build.base-size must be 1 to 40: " + baseSize);
+			}
+		}
+
 	}
 
 	/** One switch per source (ADR-0147). */
