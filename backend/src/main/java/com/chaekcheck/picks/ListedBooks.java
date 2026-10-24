@@ -49,13 +49,20 @@ public interface ListedBooks {
 	 * @param coverPath where the screen loads the cover (a path on this site), or null
 	 * @param libraryIds {@code catalog.book.library_ids} of the book
 	 * @param listKeys the lists the book is on ({@code librarian}, {@code leedongjin}, …)
+	 * @param aiSummary the lists' short AI-written summary of the book (the one S14 shows), or null
 	 */
 	record ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
-			List<String> listKeys) {
+			List<String> listKeys, String aiSummary) {
 
 		public ListedBook {
 			libraryIds = libraryIds.clone();
 			listKeys = List.copyOf(listKeys);
+		}
+
+		/** A book without an AI summary. */
+		public ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
+				List<String> listKeys) {
+			this(bookId, title, author, coverPath, libraryIds, listKeys, null);
 		}
 
 		@Override

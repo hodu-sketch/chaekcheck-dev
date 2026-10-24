@@ -136,6 +136,9 @@ class CacheListedBooks implements ListedBooks {
 				if (row.cover == null) {
 					row.cover = book.coverPath();
 				}
+				if (row.aiSummary == null) {
+					row.aiSummary = book.aiSummary();
+				}
 			}
 		}
 		return List.copyOf(byBook.values());
@@ -144,12 +147,14 @@ class CacheListedBooks implements ListedBooks {
 	private Snapshot snapshot(List<Merged> merged, Function<Long, String> author) {
 		List<ListedBook> books = merged.stream()
 			.map(row -> new ListedBook(row.bookId, row.title, author.apply(row.bookId), row.cover, row.libraryIds,
-					row.listKeys))
+					row.listKeys, row.aiSummary))
 			.toList();
 		return new Snapshot(clock.instant(), books);
 	}
 
-	/** A book while the lists are merged: the first list's title, every list key, the first cover found. */
+	/**
+	 * A book while the lists are merged: the first list's title, every list key, the first cover and AI summary found.
+	 */
 	static final class Merged {
 
 		final long bookId;
@@ -161,6 +166,8 @@ class CacheListedBooks implements ListedBooks {
 		final List<String> listKeys = new ArrayList<>();
 
 		String cover;
+
+		String aiSummary;
 
 		Merged(long bookId, String title, long[] libraryIds) {
 			this.bookId = bookId;

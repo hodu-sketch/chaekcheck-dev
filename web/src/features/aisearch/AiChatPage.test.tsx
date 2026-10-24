@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -24,7 +24,15 @@ beforeEach(() => {
   stream.mockReset()
 })
 
-const CARD = { no: 1, bookId: 7, title: '코스모스', author: '칼 세이건', coverUrl: null, myLibraryCount: 2 }
+const CARD = {
+  no: 1,
+  bookId: 7,
+  title: '코스모스',
+  author: '칼 세이건',
+  coverUrl: null,
+  myLibraryCount: 2,
+  aiSummary: '우주의 역사를 쉽게 풀어 쓴 교양서예요.',
+}
 
 /** The model answers with these events, then the call returns. */
 function answers(...events: AiStreamEvent[]) {
@@ -174,12 +182,31 @@ describe('AiChatPage (cycle 24 step 10)', () => {
   })
 
   it('opens the recommended books\' book window from a card (user 2026-10-24)', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })))
+    const detail = {
+      id: 7,
+      title: '코스모스',
+      authorDisplay: '칼 세이건',
+      publisher: '사이언스북스',
+      publishedOn: '2006-12-20',
+      isbn13: '9788983711892',
+      holdingLibraryCount: 0,
+      libraries: [],
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) =>
+        String(input).startsWith('/api/v1/books/7')
+          ? new Response(JSON.stringify(detail), { status: 200, headers: { 'Content-Type': 'application/json' } })
+          : new Response('{}', { status: 400 }),
+      ),
+    )
     startWithQuestion('우주 책')
     answers(...okAnswer)
     const user = setup()
     await user.click(await screen.findByRole('button', { name: '코스모스' }))
-    expect(await screen.findByRole('dialog', { name: '코스모스 대출 정보' })).toBeTruthy()
+    const dialog = await screen.findByRole('dialog', { name: '코스모스 대출 정보' })
+    // the recommended lists' AI summary, as in the picks book window (user 2026-10-24)
+    expect(await within(dialog).findByText('우주의 역사를 쉽게 풀어 쓴 교양서예요.')).toBeTruthy()
     vi.unstubAllGlobals()
   })
 })

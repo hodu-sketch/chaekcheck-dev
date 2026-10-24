@@ -31,6 +31,8 @@ export type AiCard = {
   author: string | null
   coverUrl: string | null
   myLibraryCount: number
+  /** The recommended lists' AI summary of the book, shown in the book window (user 2026-10-24); null when none. */
+  aiSummary?: string | null
 }
 
 export type AiDoneResult = 'ok' | 'no_match' | 'no_text' | 'partial'

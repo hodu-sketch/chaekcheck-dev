@@ -316,7 +316,7 @@ public class AiSearchFlow {
 				ListedBook book = listed.get(bookId);
 				run.shown.add(bookId);
 				run.send(AiSearchEvents.CARD, new Card(run.shown.size(), bookId, book.title(), book.author(),
-						book.coverPath(), planCount.getOrDefault(bookId, 0)));
+						book.coverPath(), planCount.getOrDefault(bookId, 0), book.aiSummary()));
 				current[0] = bookId;
 				currentChars[0] = 0;
 			}
@@ -370,7 +370,7 @@ public class AiSearchFlow {
 				ListedBook book = listed.get(bookId);
 				run.shown.add(bookId);
 				run.send(AiSearchEvents.CARD, new Card(run.shown.size(), bookId, book.title(), book.author(),
-						book.coverPath(), planCount.getOrDefault(bookId, 0)));
+						book.coverPath(), planCount.getOrDefault(bookId, 0), book.aiSummary()));
 			}
 			finish(run, PickResult.NO_TEXT, "no_text");
 		}

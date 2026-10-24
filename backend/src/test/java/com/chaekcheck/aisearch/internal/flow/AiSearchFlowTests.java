@@ -89,7 +89,7 @@ class AiSearchFlowTests {
 			// held by 101 (plan), 102 (plan) or 999 (not in the plan) in turn
 			long library = i % 3 == 0 ? 999 : 100 + i % 3;
 			listed.add(new ListedBook(i, "과학 이야기 " + i, "저자 " + i, "/covers/" + i + ".jpg", new long[] { library },
-					List.of("kaist")));
+					List.of("kaist"), "과학 이야기 " + i + "의 AI 요약"));
 			stored.add(new Book(i, "과학 이야기 " + i, "저자 " + i));
 		}
 		listed.add(new ListedBook(20, "토지", "박경리", null, new long[] { 101, 102 }, List.of("leedongjin")));
@@ -113,6 +113,8 @@ class AiSearchFlowTests {
 		assertThat(sink.of(CardDelta.class)).extracting(CardDelta::bookId).containsExactly(second, second, cards.get(1).bookId());
 		assertThat(cards.getFirst().myLibraryCount()).isEqualTo(1);
 		assertThat(cards.getFirst().coverUrl()).startsWith("/covers/");
+		// the lists' AI summary rides on the card for the book window (user 2026-10-24)
+		assertThat(cards.getFirst().aiSummary()).isEqualTo(cards.getFirst().title() + "의 AI 요약");
 		Done done = sink.last(Done.class);
 		assertThat(done.result()).isEqualTo("ok");
 		assertThat(done.bookIds()).containsExactly(cards.get(0).bookId(), cards.get(1).bookId());

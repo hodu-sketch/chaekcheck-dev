@@ -29,8 +29,13 @@ public final class AiSearchEvents {
 	public record Text(String text) {
 	}
 
-	/** @param no the card's place in the answer, from 1 */
-	public record Card(int no, long bookId, String title, String author, String coverUrl, int myLibraryCount) {
+	/**
+	 * @param no the card's place in the answer, from 1
+	 * @param aiSummary the recommended lists' AI summary of the book, shown in the book window the card opens (user
+	 * 2026-10-24), or null
+	 */
+	public record Card(int no, long bookId, String title, String author, String coverUrl, int myLibraryCount,
+			String aiSummary) {
 	}
 
 	public record CardDelta(long bookId, String text) {

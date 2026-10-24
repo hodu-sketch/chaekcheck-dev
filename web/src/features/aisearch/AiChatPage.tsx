@@ -332,7 +332,7 @@ function noticeOf(turn: AiTurnState): { text: string; action?: 'retry' | 'direct
   }
 }
 
-/** The book window's book for an AI card: our book, no list of its own (no year, video or AI summary line). */
+/** The book window's book for an AI card: our book with the lists' AI summary, no year or video line. */
 function pickBookOf(card: AiTurnCard): PickBook {
   return {
     id: String(card.bookId),
@@ -346,6 +346,7 @@ function pickBookOf(card: AiTurnCard): PickBook {
     yearBook: null,
     videoId: null,
     tocNo: null,
+    aiSummary: card.aiSummary ?? null,
   }
 }
 
