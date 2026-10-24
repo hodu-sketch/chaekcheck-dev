@@ -255,6 +255,16 @@ chaekcheck:
       # Environment: CHAEKCHECK_AVAILABILITY_KYOBO_SUBSCRIPTIONMAXCONCURRENCY. docs/maintenance/settings-index.md
       subscription-max-concurrency: 3
       subscription-host-suffix: .dkyobobook.co.kr
+    # Popular-order pages for the for-you build (cycle 23, ADR-0148), same lanes and host interval as the lookups.
+    # docs/maintenance/settings-index.md
+    ranked:
+      # KYOBO recordCount: 80 is the sites' largest (pretest 2026-10-24) [안]. TODO(확인 필요): checkpoint B checks an
+      # 80-row page stays under max-body-size
+      kyobo-page-size: 80
+      # YES24 V1 view: 5/10/20/50 offered [안]
+      yes24-page-size: 50
+      # one page, the lane's host-interval wait included [안]
+      request-deadline: 20s
     yes24:
       # "now" is a filter on the site (only books available now), so title order is used (user decision 2026-09-27)
       sort: title
