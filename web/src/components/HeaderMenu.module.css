@@ -1,7 +1,6 @@
 /*
- * Header menus (cycle 21 spec R1, ADR-0127; plain links since 2026-10-19, 도서검색 opens a column again since
- * 2026-10-24). The column, the band and the phone drawer are placed against the sticky header bar (AppLayout
- * .headerBar, the nearest positioned box): every box between stays static, so the column keeps its place under 도서검색.
+ * Header menus (cycle 21 spec R1, ADR-0127; plain links since 2026-10-19). The phone drawer is placed against the
+ * sticky header bar (AppLayout .headerBar, the nearest positioned box).
  */
 
 .wide {
@@ -41,69 +40,6 @@
 
 .bigLink:hover {
   color: var(--brand-strong);
-}
-
-/* 도서검색 is a button that opens its two ways (user 2026-10-24) */
-button.bigLink {
-  gap: 0.3rem;
-  border: 0;
-  background: none;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.column {
-  position: absolute;
-  top: 100%;
-  z-index: 2;
-  margin: 0;
-  padding: 0.9rem 0 1.1rem;
-  list-style: none;
-}
-
-.column[hidden],
-.band[hidden] {
-  display: none;
-}
-
-.item {
-  display: block;
-  /* the items' words start where 도서검색 starts */
-  padding: 0.4rem 0.375rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: var(--ink-soft);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.item:hover {
-  color: var(--brand-strong);
-}
-
-.item:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-  border-radius: 4px;
-}
-
-.item[aria-current='page'] {
-  font-weight: 800;
-  color: var(--ink);
-}
-
-/* as tall as the two ways, the page's width, a shadow under it */
-.band {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  height: calc(0.9rem + 1.1rem + 2 * (0.8rem + 1.5rem));
-  background: var(--paper);
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule-strong);
-  box-shadow: 0 10px 24px rgb(25 31 40 / 0.12);
 }
 
 /* the screen is in this menu: underline (handoff 9-1) */
@@ -183,26 +119,6 @@ button.bigLink {
   font-weight: 700;
   color: var(--ink-soft);
   text-decoration: none;
-}
-
-/* 도서검색 in the drawer: a heading over its two ways (user 2026-10-24) */
-.drawerGroup {
-  margin: 0;
-  padding: 0.7rem 0 0.1rem;
-  color: var(--ink-faint);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.drawerSub {
-  margin: 0;
-  padding: 0 0 0 0.75rem;
-  list-style: none;
-}
-
-.drawerItem[data-sub] {
-  min-height: 44px;
-  font-size: var(--text-md);
 }
 
 .drawerItem[data-current] {

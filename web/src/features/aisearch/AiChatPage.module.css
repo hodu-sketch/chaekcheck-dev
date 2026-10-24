@@ -37,12 +37,12 @@
   pointer-events: none;
 }
 
-/* wide screens: out of the conversation's column, at the page's right edge under the header */
+/* wide screens: just right of the conversation's column (48rem in the middle), under the header (user 2026-10-24:
+   "너무 우측인데 적당히 우측으로"; the page's right edge before) */
 @media (width > 1100px) {
   .chatBar {
     position: fixed;
-    right: 1.5rem;
-    left: auto;
+    left: calc(50% + 24rem + 1rem);
     padding-top: 0.75rem;
   }
 }

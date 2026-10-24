@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppLayout } from './AppLayout'
@@ -52,36 +51,21 @@ function wide() {
 
 /** Cycle 21 spec R1 (ADR-0127); plain menus without sub-menus (user 2026-10-19); cycle 14 AC-15 (no tagline). */
 describe('header', () => {
-  it('has the menus as plain links but 도서검색, which opens AI 검색 and 직접 검색 (user 2026-10-24)', async () => {
+  it('has the menus as plain links: 소개 · AI 검색 · 직접 검색 · 추천도서 · 마이페이지 (user 2026-10-24)', async () => {
     renderAt('/')
     const nav = within(wide())
-    expect(
-      nav
-        .getAllByRole('link')
-        .filter((a) => !a.closest('[hidden]'))
-        .map((a) => [a.textContent, a.getAttribute('href')]),
-    ).toEqual([
+    expect(nav.getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
       ['소개', '/about'],
+      ['AI 검색', '/ai-search'],
+      ['직접 검색', '/search'],
       ['추천도서', '/picks'],
       ['마이페이지', '/mypage'],
     ])
-    // a press opens the band under the header with the two ways (user 2026-10-24)
-    const search = nav.getByRole('button', { name: '도서검색' })
-    expect(search.getAttribute('aria-expanded')).toBe('false')
-    await userEvent.setup().click(search)
-    expect(search.getAttribute('aria-expanded')).toBe('true')
-    const column = document.getElementById(search.getAttribute('aria-controls') ?? '') as HTMLElement
-    expect(within(column).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
-      ['AI 검색', '/ai-search'],
-      ['직접 검색', '/search'],
-    ])
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(search.getAttribute('aria-expanded')).toBe('false')
     cleanup()
-    // the AI search off: 도서검색 is the direct search's link as before
+    // the AI search off: no AI 검색
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })))
     renderAt('/')
-    expect(await within(wide()).findByRole('link', { name: '도서검색' })).toBeTruthy()
+    await waitFor(() => expect(within(wide()).queryByRole('link', { name: 'AI 검색' })).toBeNull())
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: '이동진 추천도서' })).toBeNull()
     expect(screen.queryByRole('link', { name: '계정' })).toBeNull()
@@ -116,20 +100,20 @@ describe('header', () => {
 
   it.each([
     ['/about', '소개'],
-    ['/search', '도서검색'],
-    ['/books/1', '도서검색'],
-    ['/ai-search', '도서검색'],
+    ['/search', '직접 검색'],
+    ['/books/1', '직접 검색'],
+    ['/ai-search', 'AI 검색'],
     ['/picks/snu100', '추천도서'],
     ['/picks', '추천도서'],
     ['/mypage', '마이페이지'],
   ])('underlines the menu of %s', (path, label) => {
     renderAt(path)
-    const current = [...wide().querySelectorAll('[data-current]')].map((a) => a.textContent)
+    const current = within(wide())
+      .getAllByRole('link')
+      .filter((a) => a.hasAttribute('data-current'))
+      .map((a) => a.textContent)
     expect(current).toEqual([label])
-    // 도서검색 is the button of its two ways; the others are links of their page
-    if (label !== '도서검색') {
-      expect(within(wide()).getByRole('link', { name: label }).getAttribute('aria-current')).toBe('page')
-    }
+    expect(within(wide()).getByRole('link', { name: label }).getAttribute('aria-current')).toBe('page')
   })
 
   it('marks no menu on the main page (user 2026-10-20)', () => {
@@ -183,7 +167,6 @@ describe('phone menu', () => {
   it('opens the same three menus and closes from the same button (✕)', () => {
     renderAt('/')
     const drawer = openPhone()
-    // 도서검색 as a heading over AI 검색 and 직접 검색 (user 2026-10-24)
     expect(within(drawer).getAllByRole('link').map((a) => a.textContent)).toEqual([
       '소개',
       'AI 검색',
@@ -191,7 +174,6 @@ describe('phone menu', () => {
       '추천도서',
       '마이페이지',
     ])
-    expect(within(drawer).getByText('도서검색')).toBeTruthy()
     expect(screen.getByTestId('menu-dim')).toBeTruthy()
     const close = screen.getByRole('button', { name: '메뉴 닫기' })
     expect(close.getAttribute('aria-expanded')).toBe('true')

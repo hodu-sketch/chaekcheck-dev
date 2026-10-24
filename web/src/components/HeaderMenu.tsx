@@ -2,91 +2,27 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useAiStatus } from '../features/aisearch/useAiStatus'
 import { Cross, MenuLines } from './icons'
-import { MENUS, SEARCH_ITEMS, inMenu } from './headerMenus'
+import { MENUS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
 
-/** 도서검색's ways: both while the AI search is on (or not known yet), else the direct search only. */
-function useSearchItems() {
-  return useAiStatus() === 'off' ? SEARCH_ITEMS.filter((item) => item.key === 'direct') : SEARCH_ITEMS
+/** The menus to show: AI 검색 only while the AI search is on (or not known yet). */
+function useMenus() {
+  const off = useAiStatus() === 'off'
+  return off ? MENUS.filter((menu) => menu.key !== 'ai') : MENUS
 }
 
 /**
- * Wide screens (641px and up): the menus right of the logo, plain links (user 2026-10-19) but 도서검색, which opens AI
- * 검색 and 직접 검색 under it. Open, a band as wide as the page comes down under the header with a shadow and the two
- * ways in a column under 도서검색, as the earlier menus did (user 2026-10-24: "탭 전체 자체가 아래로 내려오고
- * 그림자처리 있게 이전 버전이 그랬자나 참고해서"). 도서검색 again, a press elsewhere, Esc or a new screen closes it. The
- * menu of the screen is underlined.
+ * Wide screens (641px and up): the menus right of the logo, each a plain link with no sub-menu (user 2026-10-19;
+ * 2026-10-24: 소개 · AI 검색 · 직접 검색 · 추천도서 · 마이페이지). The menu of the screen is underlined.
  */
 export function HeaderMenu() {
   const { pathname } = useLocation()
-  const searchItems = useSearchItems()
-  // open on the screen it was opened on: a new screen closes it
-  const [openAt, setOpenAt] = useState<string | null>(null)
-  const open = openAt === pathname
-  const root = useRef<HTMLElement>(null)
-  const columnId = useId()
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node | null)) setOpenAt(null)
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      setOpenAt(null)
-      root.current?.querySelector<HTMLButtonElement>('[data-big="search"]')?.focus()
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
+  const menus = useMenus()
   return (
-    <nav ref={root} className={styles.wide} aria-label="주 메뉴">
+    <nav className={styles.wide} aria-label="주 메뉴">
       <ul className={styles.bigList}>
-        {MENUS.map((menu) => {
+        {menus.map((menu) => {
           const current = inMenu(pathname, menu)
-          if (menu.key === 'search' && searchItems.length > 1) {
-            return (
-              <li key={menu.key} className={styles.big}>
-                <button
-                  type="button"
-                  className={styles.bigLink}
-                  data-big={menu.key}
-                  data-current={current ? '' : undefined}
-                  aria-expanded={open}
-                  aria-controls={columnId}
-                  onClick={() => setOpenAt(open ? null : pathname)}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'ArrowDown') return
-                    event.preventDefault()
-                    setOpenAt(pathname)
-                    requestAnimationFrame(() => document.querySelector<HTMLAnchorElement>(`#${CSS.escape(columnId)} a`)?.focus())
-                  }}
-                >
-                  {/* no down arrow after it (user 2026-10-24: "도서검색 다음에 아랫 방향 꺽쇄 빼") */}
-                  {menu.label}
-                </button>
-                <ul id={columnId} className={styles.column} hidden={!open}>
-                  {searchItems.map((item) => (
-                    <li key={item.key}>
-                      <Link
-                        to={item.to}
-                        className={styles.item}
-                        aria-current={pathname === item.to ? 'page' : undefined}
-                        onClick={() => setOpenAt(null)}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            )
-          }
           return (
             <li key={menu.key} className={styles.big}>
               <Link
@@ -102,8 +38,6 @@ export function HeaderMenu() {
           )
         })}
       </ul>
-      {/* the full-width band behind the column, with a shadow (the earlier menus' data4library.kr look, 2026-10-16) */}
-      <div className={styles.band} hidden={!open} aria-hidden="true" />
     </nav>
   )
 }
@@ -116,7 +50,7 @@ export function HeaderMenu() {
  */
 export function PhoneMenu() {
   const { pathname } = useLocation()
-  const searchItems = useSearchItems()
+  const menus = useMenus()
   // where it was opened and the header's bottom then (the darkening starts there); a new screen closes it
   const [opened, setOpened] = useState<{ at: string; top: number } | null>(null)
   const open = opened?.at === pathname
@@ -163,32 +97,8 @@ export function PhoneMenu() {
           />
           <nav id={drawerId} className={styles.drawer} aria-label="주 메뉴">
             <ul className={styles.drawerList}>
-              {MENUS.map((menu) => {
+              {menus.map((menu) => {
                 const current = inMenu(pathname, menu)
-                if (menu.key === 'search' && searchItems.length > 1) {
-                  // 도서검색 as a heading over its two ways (user 2026-10-24)
-                  return (
-                    <li key={menu.key}>
-                      <p className={styles.drawerGroup}>{menu.label}</p>
-                      <ul className={styles.drawerSub}>
-                        {searchItems.map((item) => (
-                          <li key={item.key}>
-                            <Link
-                              to={item.to}
-                              className={styles.drawerItem}
-                              data-sub=""
-                              data-current={pathname === item.to ? '' : undefined}
-                              aria-current={pathname === item.to ? 'page' : undefined}
-                              onClick={() => setOpen(false)}
-                            >
-                              {item.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  )
-                }
                 return (
                   <li key={menu.key}>
                     <Link
