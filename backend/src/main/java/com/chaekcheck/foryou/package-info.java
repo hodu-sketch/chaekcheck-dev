@@ -5,6 +5,9 @@
  * browser saw, from neighbours the crawl PC computed (KURE-v1). Tab blurbs and cover file keys come from the PC
  * through the {@code collection} import.
  * <p>
+ * Public Java type: {@link com.chaekcheck.foryou.ForYouTransfer}, through which the {@code collection} import loads
+ * neighbours, tab blurbs and cover file keys.
+ * <p>
  * Owns the {@code foryou} schema. Depends on {@code catalog} ({@code BookCards}: card fields, holding keys, editions of
  * a work; {@code BookLookup}: ISBN and title matching), {@code library} (the user's plan), {@code picks} (the listed
  * books and their tags) and {@code availability} (popular-order pages). No events; other modules are joined by
