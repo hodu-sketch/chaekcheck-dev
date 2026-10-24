@@ -75,9 +75,12 @@ export function addQuestion(chat: AiChat, question: string): AiChat {
   return { turns: [...chat.turns, turn] }
 }
 
-/** The first screen's question: a new conversation unless one is open, then the chat screen opens. */
+/**
+ * The first screen's question always starts a new conversation (user 2026-10-24 "새 대화로 시작"): the earlier one is
+ * dropped and not sent as history. Follow-ups are asked in the chat screen's own box.
+ */
 export function startWithQuestion(question: string, storage: Storage | undefined = safeSession()): void {
-  saveChat(addQuestion(loadChat(storage), question), storage)
+  saveChat(addQuestion(EMPTY_CHAT, question), storage)
 }
 
 function isTurn(turn: unknown): turn is AiTurnState {

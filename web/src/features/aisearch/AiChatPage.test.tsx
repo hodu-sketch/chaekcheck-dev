@@ -76,7 +76,7 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     expect(screen.getByText('내 도서관 2곳')).toBeTruthy()
     const body = stream.mock.calls[0][0] as AiSearchBody
     expect(body).toMatchObject({ question: '우주 책', turnNo: 1, history: [], residenceRegionIds: [1116], libraryIds: [12] })
-    expect(loadChat().turns[0].state).toBe('done')
+    await waitFor(() => expect(loadChat().turns[0].state).toBe('done'))
   })
 
   it('sends a follow-up with the earlier turn and its books', async () => {

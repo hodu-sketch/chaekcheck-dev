@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { addQuestion, EMPTY_CHAT, loadChat, saveChat } from './aiChatStore'
+import { addQuestion, EMPTY_CHAT, loadChat, saveChat, startWithQuestion } from './aiChatStore'
 
 beforeEach(() => sessionStorage.clear())
 
@@ -30,5 +30,11 @@ describe('aiChatStore (cycle 24 step 10, R11-6)', () => {
   it('starts a new conversation from a store of another shape', () => {
     sessionStorage.setItem('chaekcheck.aiChat', JSON.stringify({ turns: [{ id: 'a', question: '옛 모양' }] }))
     expect(loadChat()).toEqual(EMPTY_CHAT)
+  })
+
+  it('starts a new conversation with a first screen question (user 2026-10-24)', () => {
+    saveChat(addQuestion(EMPTY_CHAT, '앞 대화 질문'))
+    startWithQuestion('주식 관련 도서')
+    expect(loadChat().turns.map((turn) => turn.question)).toEqual(['주식 관련 도서'])
   })
 })

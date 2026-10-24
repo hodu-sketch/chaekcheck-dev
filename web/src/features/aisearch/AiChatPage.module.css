@@ -116,18 +116,14 @@
   font-size: var(--text-sm);
 }
 
-/* the first book large, then two a line (AC-11; phones one a line) */
+/* one book a line, every card as large as the first was (user 2026-10-24 "도서 결과는 모두 이렇게 한 행에 한 책이었으면 해") */
 .cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.card:first-child {
-  grid-column: 1 / -1;
 }
 
 .cardLink {
@@ -156,16 +152,11 @@
 
 .cover {
   flex: none;
-  width: 4.5rem;
-  height: 6.5rem;
+  width: 6rem;
+  height: 8.75rem;
   border-radius: var(--radius-tag);
   background: var(--paper-deep);
   object-fit: cover;
-}
-
-.card:first-child .cover {
-  width: 6rem;
-  height: 8.75rem;
 }
 
 .cardBody {
@@ -178,12 +169,8 @@
 .cardTitle {
   color: var(--ink);
   font-weight: 800;
-  font-size: var(--text-lg);
-  line-height: 1.35;
-}
-
-.card:first-child .cardTitle {
   font-size: var(--text-xl);
+  line-height: 1.35;
 }
 
 .cardAuthor {
@@ -331,10 +318,6 @@
 }
 
 @media (width <= 640px) {
-  .cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .question {
     max-width: 92%;
   }
