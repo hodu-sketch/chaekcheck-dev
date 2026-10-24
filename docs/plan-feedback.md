@@ -6004,3 +6004,13 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 | vLLM 일괄 실행 | `vllm run-batch -i INPUT.jsonl -o OUTPUT.jsonl --model …`. 입력은 OpenAI Batch API JSONL(`custom_id`·`method`=POST·`url`·`body`), `/v1/chat/completions` 지원, 출력에 `custom_id` 유지·입력 순서. Python `LLM.chat()`에 대화 목록을 한꺼번에도 됨. 구조화 출력은 Python에서 `StructuredOutputsParams(json=…)` [확정]; `run-batch`에 JSON 스키마를 함께 쓰는 공식 예시는 못 찾음 [확인 필요: 그때 실제로 돌려 봄] | `vllm/entrypoints/cli/run_batch.py`, `vllm/entrypoints/launchers/run_batch.py`, `docs/serving/offline_inference.md`, `docs/features/structured_outputs.md` |
 
 - 정리: 자체 LLM은 **빨리 끝낼수록 싸고**(초 단위 GPU 요금), 빨리 끝내는 길은 ① 동시에 많이 보내기 ② 고정 지시문을 맨 앞에(APC 기본 켜짐). 그래서 ① 요청 파일을 **OpenAI Batch JSONL 모양**(`custom_id`=`book_id`, `body`=chat 요청)으로 만들어 두면 Anthropic 바로 호출(지금)·`vllm run-batch`·vLLM 서버 동시 보내기에 모두 그대로 씀 [안]. 반값 할인은 Anthropic Batches API에만 있음
+
+## 3단계: `picks`의 `ListedBooks` (2026-10-24)
+
+- 새 파일만: `catalog/BookAuthors.java`(공개) + `catalog/internal/JdbcBookAuthors.java`, `picks/ListedBooks.java`(공개) + `picks/internal/cache/CacheListedBooks.java`. 기존 파일은 `catalog/package-info.java` 주석 한 곳. **`picks` 기존 파일은 고치지 않음** → `picks/package-info.java`의 공개 형식 설명에 `ListedBooks`가 아직 없음(23과 합칠 때 함께 고침)
+- 모양(이름 [안]): `Snapshot(builtAt, books)`, `ListedBook(bookId, title, author, coverPath, libraryIds, listKeys)` + `countHeldBy(Set<Long>)`(계획 도서관 수를 배열 복사 없이). design-delta의 `coverUrl`을 dev 관례(`PicksCache.Book.coverPath`)에 맞춰 **`coverPath`로 바꿈**. `author`는 우리 책의 `author_display`(사용자 결정)
+- 차례·합치기: `PicksCache.LISTS` 차례(librarian → leedongjin → snu100 → kaist → nobel), 목록 안은 그 목록 차례. 같은 책은 한 줄, `listKeys`에 모든 목록, 표지는 처음 찾은 것
+- **인계서와 다른 점**: `current()`는 "DB 호출 없음"이 아니라 **캐시 사본이 바뀌었을 때(10분마다) 저자를 읽는 쿼리 1번**. 저자 읽기가 실패하면 새 책 목록에 앞서 알던 저자를 붙여 쓰고, 1분에 한 번만 다시 시도(경고는 한 번) [안: 1분] — 리뷰(java-reviewer)가 "실패하면 요청마다 DB를 다시 부름"을 짚어 고침
+- `loadFromDb()`: 같은 패키지에서 새 `PicksCache`를 만들어 `refresh()`(서버와 같은 코드라 같은 책·같은 제목). 저장된 줄이 있는데 빈 목록이 있으면 `ListsNotReadException`, DB가 아예 실패하면 그 예외 그대로
+- 시험: `CacheListedBooksTests` 8(단위: 합치기·저자·다시 만들기·실패 뒤 1분·빈 캐시·`loadFromDb` 같음·캐시 없이·목록 실패 거부), `ListedBooksTests` 2(db-test: 서버 사본과 `loadFromDb`가 같은 책·제목·저자, 우리 책 없는 줄 빠짐), `BookAuthorsTests` 2. `ModularityTests` 통과(`aisearch`가 생기는 4단계에서 고침)
+- 빌드: `./gradlew build` 1,188개 중 **3개 실패 — 이 변경 전에도 같은 3개가 매번 실패**(이 클라우드 환경, 변경을 빼고 두 번 확인): `LaneThrottleTests` 2개("no free lane … before the deadline"), `CatalogTransferTests.brokenFileKeepsTheCatalog`. 원인은 보지 않음(이 사이클 밖). 이 환경의 시험 DB는 Docker 대신 소스로 빌드한 PostgreSQL 18.6 + pg_bigm(`docs/cycle24-session-handoff.md` 2절)

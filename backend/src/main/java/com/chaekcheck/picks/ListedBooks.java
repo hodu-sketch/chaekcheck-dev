@@ -1,0 +1,88 @@
+package com.chaekcheck.picks;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Public API of the picks module for the AI book search (cycle 24, ADR-0150): every book on the recommended lists that
+ * is matched to one of our books, once. Rows without our book are left out; a book on several lists is one row with
+ * every list key, in the order of {@code PicksCache.LISTS} and then each list's own order. The title is the shown
+ * name (ADR-0129) and the author is our book's ({@code catalog.book.author_display}, user 2026-10-24), so both are the
+ * same as on the book page.
+ * <p>
+ * TODO(24-F1): the cache keeps no author, so the author is read from catalog once per cache refresh. When the picks
+ * cache or the book matching changes (cycle 23 merge included), let the cache carry it (dev docs/plan-feedback.md
+ * "후속 작업 24-F1").
+ */
+public interface ListedBooks {
+
+	/**
+	 * The listed books of the server's shared cache. Built again only after the cache was read again (one catalog
+	 * query per cache refresh for the authors; after a failed read, at most one try a minute); otherwise no database
+	 * call. Empty until the cache is filled.
+	 */
+	Snapshot current();
+
+	/**
+	 * The listed books read from the database now, the same way the cache reads them, without the cache: for the
+	 * import commands, which run before the cache is filled (cycle 24 design review #6).
+	 * @throws ListsNotReadException when a list that has stored rows came back empty (its read failed), so that no
+	 *     caller takes a set missing whole lists; a failing database read otherwise throws as it is
+	 */
+	Snapshot loadFromDb();
+
+	/** @param builtAt when this set was made */
+	record Snapshot(Instant builtAt, List<ListedBook> books) {
+
+		public Snapshot {
+			books = List.copyOf(books);
+		}
+
+	}
+
+	/**
+	 * Not meant for {@code equals}: {@code libraryIds} is an array.
+	 * @param bookId our book ({@code catalog.book.id})
+	 * @param title the shown name (ADR-0129)
+	 * @param author our book's author text, or null
+	 * @param coverPath where the screen loads the cover (a path on this site), or null
+	 * @param libraryIds {@code catalog.book.library_ids} of the book
+	 * @param listKeys the lists the book is on ({@code librarian}, {@code leedongjin}, …)
+	 */
+	record ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
+			List<String> listKeys) {
+
+		public ListedBook {
+			libraryIds = libraryIds.clone();
+			listKeys = List.copyOf(listKeys);
+		}
+
+		@Override
+		public long[] libraryIds() {
+			return libraryIds.clone();
+		}
+
+		/** How many of the given libraries hold the book, without copying the ids. */
+		public int countHeldBy(Set<Long> libraries) {
+			int count = 0;
+			for (long libraryId : libraryIds) {
+				if (libraries.contains(libraryId)) {
+					count++;
+				}
+			}
+			return count;
+		}
+
+	}
+
+	/** A list with stored rows could not be read; nothing was returned. */
+	final class ListsNotReadException extends RuntimeException {
+
+		public ListsNotReadException(List<String> lists) {
+			super("Recommended lists could not be read: " + lists);
+		}
+
+	}
+
+}
