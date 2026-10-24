@@ -53,12 +53,17 @@
   $env:__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS = '.trycloudflare.com'
   Start-Process powershell -ArgumentList '-NoExit', '-Command', "Set-Location '$wt'; npm --prefix web run dev -- --port 5175 --strictPort"
 
-  $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
-  if (-not $cf) {
-    winget install --id Cloudflare.cloudflared -e --accept-source-agreements --accept-package-agreements
-    $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
+  # cloudflared from its GitHub release into the user folder (no winget on this laptop, 2026-10-24)
+  $cfPath = (Get-Command cloudflared -ErrorAction SilentlyContinue).Source
+  if (-not $cfPath) {
+    $cfPath = "$env:USERPROFILE\cloudflared\cloudflared.exe"
+    if (-not (Test-Path $cfPath)) {
+      $ProgressPreference = 'SilentlyContinue'
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      New-Item -ItemType Directory -Force (Split-Path $cfPath) | Out-Null
+      Invoke-WebRequest 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe' -OutFile $cfPath
+    }
   }
-  $cfPath = if ($cf) { $cf.Source } else { "${env:ProgramFiles(x86)}\cloudflared\cloudflared.exe" }
   Start-Process powershell -ArgumentList '-NoExit', '-Command', "& '$cfPath' tunnel --url http://localhost:5175"
 
   Write-Host ''
