@@ -5,6 +5,9 @@
  * {@link com.chaekcheck.picks.CuratedListTransfer}: the {@code collection} import carries Lee Dong-jin's picks and the
  * SNU 100 through it (ADR-0123); the librarian picks are still fetched here.
  * <p>
+ * Since cycle 23 (ADR-0149) also the tag dictionary and the listed books' tags ({@code picks.tag_dictionary},
+ * {@code picks.book_tag}), carried by the import through {@link com.chaekcheck.picks.BookTagTransfer}.
+ * <p>
  * Responsibilities: fetching the list with one Open API request ({@code saseoApi.do}) on its own single-thread
  * executor, decided daily at 05:00 Asia/Seoul and at start-up: Mondays, every day after a failure until one succeeds,
  * and catching up a missed week (ADR-0092); storing it in the {@code picks} schema with {@code JdbcClient}; fetching
