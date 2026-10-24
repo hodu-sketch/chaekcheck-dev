@@ -29,15 +29,14 @@ export const AI_TEXT = {
 } as const
 
 /**
- * The example questions (user 2026-10-24: these eight, "메인에 ai검색문구 이 중에서 랜덤으로 3개 정도 나오게 해줘"; the
- * four of the morning, from this month's news, were replaced). A refresh from the news is asked of plan.
+ * The example questions (user 2026-10-24: eight given, "메인에 ai검색문구 이 중에서 랜덤으로 3개 정도 나오게 해줘", then
+ * 「한국사와 역사 속 미스터리」 taken out, "이건 추천 목록 중에서는 빼주라"; the four of the morning were replaced). A refresh from the news is asked of plan.
  */
 export const EXAMPLE_QUESTIONS = [
   'AI 시대의 인간성, 철학과 기술에 대한 성찰',
   '미래 소비 트렌드와 경제적 자산 관리',
   '세네카와 쇼펜하우어의 철학',
   '뇌과학과 인공지능으로 인간의 생각을 이해',
-  '한국사와 역사 속 미스터리',
   '반전과 추리가 돋보이는 최신 미스터리 소설',
   '인간관계와 삶의 고민을 위로하는 심리 에세이',
   '고전 문학과 철학을 현대적인 관점에서 읽기',

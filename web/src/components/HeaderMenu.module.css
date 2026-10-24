@@ -52,10 +52,6 @@ button.bigLink {
   cursor: pointer;
 }
 
-.chevron {
-  color: var(--ink-faint);
-}
-
 .column {
   position: absolute;
   top: 100%;

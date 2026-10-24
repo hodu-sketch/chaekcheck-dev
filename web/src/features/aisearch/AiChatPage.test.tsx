@@ -227,13 +227,14 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     expect(stream.mock.calls[1][0].question).toBe('소설만\n짧은 걸로')
   })
 
-  it('starts a new conversation with the [+] at the left of the box', async () => {
+  it('starts a new conversation with [새 대화] at the top right, none on an empty one (user 2026-10-24)', async () => {
     startWithQuestion('우주 책')
     answers(...okAnswer)
     const user = setup()
     await screen.findByText('별과 우주를 다뤄요')
     await user.click(screen.getByRole('button', { name: '새 대화' }))
     expect(screen.queryByText('우주 책')).toBeNull()
+    expect(screen.queryByRole('button', { name: '새 대화' })).toBeNull()
   })
 
   it('says where it looks when no region is chosen, under the latest answer (user 2026-10-24)', async () => {

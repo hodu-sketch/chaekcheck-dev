@@ -40,6 +40,11 @@ export function AiChatPage() {
   const [draft, setDraft] = useState('')
   const [tooShort, setTooShort] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  // the sticky header's height, so the [새 대화] bar sticks right under it
+  const [headerHeight, setHeaderHeight] = useState(0)
+  useEffect(() => {
+    setHeaderHeight(document.querySelector('[data-app-header]')?.getBoundingClientRect().height ?? 0)
+  }, [])
   // a card opens the recommended books' book window (user 2026-10-24 "추천 도서창에서 눌렀을 때처럼 모달")
   const [opened, setOpened] = useState<PickBook | null>(null)
   const { plan } = usePicksPlan()
@@ -181,6 +186,24 @@ export function AiChatPage() {
           ))}
         </ul>
       )}
+      {chat.turns.length > 0 && (
+        // [새 대화] at the top right, kept under the header while the conversation scrolls, as ChatGPT's new chat
+        // (user 2026-10-24: the [+] in the box moved here, "대화 화면 오른쪽 위 단추")
+        <div className={styles.chatBar} style={{ top: headerHeight }}>
+          <button type="button" className={styles.newChatTop} onClick={newChat}>
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <path
+                d="M10.5 2.5l3 3L6 13H3v-3zM9 4l3 3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {AI_TEXT.newChat}
+          </button>
+        </div>
+      )}
       <ol className={styles.turns}>
         {chat.turns.map((turn, index) => (
           <li key={turn.id} className={styles.turn} aria-busy={turn.state === 'streaming' || undefined}>
@@ -240,18 +263,6 @@ export function AiChatPage() {
           </div>
         ) : (
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
-            <button
-              type="button"
-              className={styles.plus}
-              aria-label={AI_TEXT.newChat}
-              title={AI_TEXT.newChat}
-              onClick={newChat}
-            >
-              {/* a drawn plus, centred in the circle (the "+" glyph sat off centre, user 2026-10-24) */}
-              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
             <label htmlFor="ai-follow-up" className="visually-hidden">
               이어서 묻기
             </label>

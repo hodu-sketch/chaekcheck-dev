@@ -26,6 +26,40 @@
   color: var(--brand-strong);
 }
 
+/* [새 대화] at the top right, sticky under the header; the bar itself lets clicks through */
+.chatBar {
+  position: sticky;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -2.25rem;
+  padding-top: 0.5rem;
+  pointer-events: none;
+}
+
+.newChatTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 2px 8px rgb(20 16 40 / 8%);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.newChatTop:hover {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
 /* the empty conversation, as ChatGPT's new chat (user 2026-10-24): the title, the box and the examples together in the
    middle of the screen; the box drops to the bottom once the first question is asked */
 .page[data-empty] {
@@ -358,8 +392,7 @@
   text-overflow: ellipsis;
 }
 
-/* [+] new conversation, inside the box at its left as in ChatGPT (user 2026-10-24) */
-.plus,
+/* the round send button inside the box at its right */
 .send {
   display: inline-grid;
   flex: none;
@@ -369,22 +402,9 @@
   padding: 0;
   border: none;
   border-radius: 999px;
-  cursor: pointer;
-}
-
-.plus {
-  background: transparent;
-  color: var(--ink-soft);
-}
-
-.plus:hover {
-  background: var(--paper-deep);
-  color: var(--ink);
-}
-
-.send {
   background: var(--brand);
   color: #fff;
+  cursor: pointer;
 }
 
 .send:hover:not(:disabled) {
@@ -396,8 +416,8 @@
   cursor: default;
 }
 
-.plus:focus-visible,
-.send:focus-visible {
+.send:focus-visible,
+.newChatTop:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useAiStatus } from '../features/aisearch/useAiStatus'
-import { ChevronDown, Cross, MenuLines } from './icons'
+import { Cross, MenuLines } from './icons'
 import { MENUS, SEARCH_ITEMS, inMenu } from './headerMenus'
 import styles from './HeaderMenu.module.css'
 
@@ -67,8 +67,8 @@ export function HeaderMenu() {
                     requestAnimationFrame(() => document.querySelector<HTMLAnchorElement>(`#${CSS.escape(columnId)} a`)?.focus())
                   }}
                 >
+                  {/* no down arrow after it (user 2026-10-24: "도서검색 다음에 아랫 방향 꺽쇄 빼") */}
                   {menu.label}
-                  <ChevronDown className={styles.chevron} />
                 </button>
                 <ul id={columnId} className={styles.column} hidden={!open}>
                   {searchItems.map((item) => (
