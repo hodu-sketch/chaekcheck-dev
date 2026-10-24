@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadChat } from './aiChatStore'
-import { EXAMPLE_QUESTIONS, QUESTION_MAX } from './aiSearchText'
+import { EXAMPLE_QUESTIONS, pickExamples, QUESTION_MAX, shownExamples } from './aiSearchText'
 import { SearchTabs } from './SearchTabs'
 
 beforeAll(() => {
@@ -107,9 +107,9 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
 
   it('searches a chip at once', async () => {
     const user = setup()
-    await user.click(screen.getAllByRole('button', { name: EXAMPLE_QUESTIONS[0] }).filter(shown)[0])
+    await user.click(screen.getAllByRole('button', { name: shownExamples()[0] }).filter(shown)[0])
     expect(screen.getByTestId('where').textContent).toBe('/ai-search')
-    expect(loadChat().turns[0].question).toBe(EXAMPLE_QUESTIONS[0])
+    expect(loadChat().turns[0].question).toBe(shownExamples()[0])
   })
 
   it('shows only the direct search, without the menu, when the AI search is off', async () => {
@@ -133,10 +133,25 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
   it('keeps the example chips under the direct box, where a chip still asks the AI (user 2026-10-24)', async () => {
     const user = setup()
     await choose(user, 'AI', '직접')
-    const chip = screen.getAllByRole('button', { name: EXAMPLE_QUESTIONS[1] }).filter(shown)
+    const chip = screen.getAllByRole('button', { name: shownExamples()[1] }).filter(shown)
     expect(chip).toHaveLength(1)
     await user.click(chip[0])
     expect(screen.getByTestId('where').textContent).toBe('/ai-search')
-    expect(loadChat().turns[0].question).toBe(EXAMPLE_QUESTIONS[1])
+    expect(loadChat().turns[0].question).toBe(shownExamples()[1])
+  })
+
+  it('shows three of the example questions, the same three under both boxes (user 2026-10-24)', () => {
+    setup()
+    const lists = screen.getAllByRole('list', { name: '예시 질문', hidden: true })
+    const texts = lists.map((list) => [...list.querySelectorAll('button')].map((button) => button.textContent))
+    expect(texts[0]).toHaveLength(3)
+    expect(texts[1]).toEqual(texts[0])
+    expect(texts[0].every((text) => (EXAMPLE_QUESTIONS as readonly (string | null)[]).includes(text))).toBe(true)
+  })
+
+  it('draws different questions in a random order', () => {
+    expect(pickExamples(3, () => 0)).toEqual([EXAMPLE_QUESTIONS[1], EXAMPLE_QUESTIONS[2], EXAMPLE_QUESTIONS[3]])
+    const all = pickExamples(EXAMPLE_QUESTIONS.length)
+    expect(new Set(all).size).toBe(EXAMPLE_QUESTIONS.length)
   })
 })

@@ -27,15 +27,40 @@ export const AI_TEXT = {
 } as const
 
 /**
- * The example chips (user 2026-10-24: topics of this month's news and best sellers, each checked to answer with listed
- * books; the 프로젝트 헤일메리 chip taken out the same day, "프로젝트헤일리는 빼줘"; dev docs/plan-feedback.md `# 사이클 24`
- * "8단계 뒤 사용자 결정"). Fixed for now; a refresh from the news is asked of plan.
+ * The example questions (user 2026-10-24: these eight, "메인에 ai검색문구 이 중에서 랜덤으로 3개 정도 나오게 해줘"; the
+ * four of the morning, from this month's news, were replaced). A refresh from the news is asked of plan.
  */
 export const EXAMPLE_QUESTIONS = [
-  '요즘 경제 흐름을 쉽게 알려 주는 책',
-  '흔들리는 마음을 다잡는 철학 책',
-  '쌀쌀한 가을밤에 읽기 좋은 소설',
+  'AI 시대의 인간성, 철학과 기술에 대한 성찰',
+  '미래 소비 트렌드와 경제적 자산 관리',
+  '세네카와 쇼펜하우어의 철학',
+  '뇌과학과 인공지능으로 인간의 생각을 이해',
+  '한국사와 역사 속 미스터리',
+  '반전과 추리가 돋보이는 최신 미스터리 소설',
+  '인간관계와 삶의 고민을 위로하는 심리 에세이',
+  '고전 문학과 철학을 현대적인 관점에서 읽기',
 ] as const
+
+/** How many example chips show at once (user 2026-10-24: "3개 정도"). */
+export const EXAMPLES_SHOWN = 3
+
+/** `count` different questions in a random order. */
+export function pickExamples(count = EXAMPLES_SHOWN, random: () => number = Math.random): string[] {
+  const pool: string[] = [...EXAMPLE_QUESTIONS]
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  return pool.slice(0, count)
+}
+
+let shown: string[] | null = null
+
+/** The examples of this page load: drawn once, so the AI box, the direct box and the chat show the same three. */
+export function shownExamples(): string[] {
+  shown ??= pickExamples()
+  return shown
+}
 
 /** Question length (design decision #8 [확정]), the same as the server. */
 export const QUESTION_MIN = 2

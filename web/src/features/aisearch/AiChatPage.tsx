@@ -13,7 +13,7 @@ import { SCOPE_TEXT } from '../search/LibraryScopeLine'
 import { useMineLabel } from '../search/regionPlace'
 import { loadPrefs } from '../search/searchSettings'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, type AiChat, type AiTurnCard, type AiTurnState } from './aiChatStore'
-import { AI_TEXT, EXAMPLE_QUESTIONS, HISTORY_SENT, QUESTION_MAX, QUESTION_MIN, TURNS_MAX } from './aiSearchText'
+import { AI_TEXT, HISTORY_SENT, QUESTION_MAX, QUESTION_MIN, shownExamples, TURNS_MAX } from './aiSearchText'
 import type { SearchTabState } from './SearchTabs'
 import styles from './AiChatPage.module.css'
 
@@ -354,7 +354,7 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProp
         <div className={styles.noMatch}>
           <p>{AI_TEXT.noMatch}</p>
           <ul className={styles.examples} aria-label="예시 질문">
-            {EXAMPLE_QUESTIONS.map((question) => (
+            {shownExamples().map((question) => (
               <li key={question}>
                 <button type="button" className={styles.example} onClick={() => onExample(question)}>
                   {question}
