@@ -384,7 +384,7 @@ WHERE h.is_audiobook = 1 AND h.removed_at IS NULL;
 
 plan 요청서 `../chaekcheck-plan/docs/research/ebook-catalog/to-dev-fetch-covers-2026-10-23.md`(근거 `crawl-method.md` 1절 "표지", `easy/2026-10-23-cover-collection-decisions.html`·`cover-source-decisions.html`). 코드 `scripts/crawl/fetch_covers.py`(`crawl_catalog.py fetch-covers`가 넘김), 규칙 파일 `scripts/crawl/lists/fetch_cover_sources.tsv`·`fetch_cover_hosts.tsv`, 설명 [`scripts/crawl/README.md`](../../scripts/crawl/README.md) "표지 받기". 규칙 값은 [rules-index.md](rules-index.md) 1절·4절. 첫 실행 보고는 `docs/plan-feedback.md` "# 표지 받기 (2026-10-23 요청)".
 
-- **언제**: 목록 수집(`full`)이 모두 끝난 뒤. 수집이 돌고 있으면 시작하지 않습니다(같은 서버를 두 곳에서 치므로). 가져오기와는 상관없이 돌려도 되지만, 계획(plan)은 **내 PC 서비스 DB의 지금 책**을 읽으므로 가져오기 뒤에 `--plan-only`를 한 번 더 돌리면 새 책이 더해지고 번호가 갱신됩니다(받은 표지는 그대로).
+- **언제**: 언제든. 목록 수집(`full`)이 돌고 있으면 그 수집이 아직 쓰는 서버(IP)는 건너뛰고 10분마다 다시 확인합니다(같은 서버에 두 프로그램이 동시에 보내지 않게, 사용자 결정 2026-10-24). 건너뛴 책은 수집이 끝난 뒤 `--fetch-only`를 한 번 더 돌려 받습니다. 계획(plan)은 **내 PC 서비스 DB의 지금 책**을 읽으므로 가져오기 뒤에 `--plan-only`를 한 번 더 돌리면 새 책이 더해지고 번호가 갱신됩니다(받은 표지는 그대로).
 - **순서**
   1. `python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers --plan-only` — 책 134만 권의 소장 줄 1,800만을 읽어 후보를 정함(요청 없음, 서비스 DB SELECT만, 수집 DB 읽기 전용). 2026-10-23 측정: 1,340,875권 21분 21초, `covers.sqlite` 635MB.
   2. `… fetch-covers --fetch-only --workers 32` — 받기. 로그 `logs\covers-<날짜>.log`에 1분마다 `progress:` 줄. 멈추려면 Ctrl+C(진행 중 요청만 끝내고 멈춤). 다시 같은 명령으로 이어 받음.

@@ -58,6 +58,9 @@ GAP = 1.0                     # seconds between requests to one server (the craw
 TIMEOUT = 30
 NLK_HOLDINGS_LIMIT = 3        # rules-index.md: 표지 서버 끄기 — cover.nl.go.kr addresses tried per book, at most
 OFF_AFTER = 50                # rules-index.md: 표지 서버 끄기 — failures in a row that stop asking a server this run
+SLOW = 12.0                   # rules-index.md: 표지 서버 끄기 — seconds (moving average) that stop asking a slow server
+SLOW_AFTER = 30               # requests on a server before SLOW is judged (the crawl's SPLIT_SLOW rule)
+BUSY_RECHECK = 600            # seconds between checks of the servers a running list crawl still uses
 SOURCES = ('collected_preferred', 'collected_other', 'nlk_isbn', 'nlk_holdings')
 
 SCHEMA = """
@@ -338,6 +341,7 @@ class Dispatcher:
         self.busy: set[str] = set()
         self.next_ok: dict[str, float] = {}
         self.off: set[str] = set()
+        self.paused: set[str] = set()  # servers a running list crawl still uses (checked again, may be freed)
         self.cond = threading.Condition()
         self.stopped = False
 
@@ -354,7 +358,7 @@ class Dispatcher:
                     if n <= 0:
                         continue
                     key = self.key_of(host)
-                    if key in self.off:
+                    if key in self.off or key in self.paused:
                         continue
                     left = True
                     if key in self.busy:
@@ -390,6 +394,13 @@ class Dispatcher:
         with self.cond:
             self.off.add(self.key_of(host))
             self.cond.notify_all()
+
+    def pause(self, keys: set[str]) -> int:
+        """The servers not asked now (a running crawl uses them); returns the pending books waiting on them."""
+        with self.cond:
+            self.paused = set(keys)
+            self.cond.notify_all()
+            return sum(n for h, n in self.pending.items() if n > 0 and self.key_of(h) in self.paused)
 
     def stop(self) -> None:
         with self.cond:
@@ -467,7 +478,8 @@ class Fetcher:
     """The fetch step: workers take hosts from the Dispatcher and try one book's next address each."""
 
     def __init__(self, data_dir: Path, covers_path: Path, http: Http, log: Log, nlk_key: str, rules: rl.Rules,
-                 gap: float = GAP, sleep=time.sleep, max_books: int | None = None, retry_none: bool = False):
+                 gap: float = GAP, sleep=time.sleep, max_books: int | None = None, retry_none: bool = False,
+                 busy_source=None):
         self.data_dir = data_dir
         self.covers_path = covers_path
         self.http = http
@@ -480,6 +492,8 @@ class Fetcher:
         self.stats = {'done': 0, 'none': 0, 'bytes': 0, 'moved': 0}
         self.by_source: dict[str, int] = {}
         self.failures: dict[str, int] = {}  # host -> consecutive failures
+        self.timing: dict[str, tuple[float, int]] = {}  # queue key -> (moving average seconds, requests)
+        self.busy_source = busy_source  # () -> IPs a running list crawl still uses; None = no crawl
         self.lock = threading.Lock()
         self.dispatcher: Dispatcher | None = None
         if retry_none:
@@ -507,11 +521,12 @@ class Fetcher:
         keys = {queue_key_of(h) for h in pending}  # DNS once per host, before the threads start
         self.log.line(f'fetch: {len(keys)} servers (queues), {workers} workers')
         self.dispatcher = Dispatcher(pending, gap=self.gap)
+        self.refresh_busy()
         threads = [threading.Thread(target=self.worker, name=f'cover-{i}', daemon=True) for i in range(workers)]
         for t in threads:
             t.start()
         started = time.monotonic()
-        last_report = started
+        last_report = last_busy = started
         try:
             while any(t.is_alive() for t in threads):
                 for t in threads:
@@ -519,6 +534,9 @@ class Fetcher:
                 if time.monotonic() - last_report >= 60:
                     last_report = time.monotonic()
                     self.report(started)
+                if self.busy_source and time.monotonic() - last_busy >= BUSY_RECHECK:
+                    last_busy = time.monotonic()
+                    self.refresh_busy()
         except KeyboardInterrupt:
             self.log.line('fetch: stopping (Ctrl+C); the request in flight finishes, the rest stays PENDING')
             self.dispatcher.stop()
@@ -527,6 +545,25 @@ class Fetcher:
         self.report(started)
         return dict(self.stats, elapsed=time.monotonic() - started, requests=self.http.requests,
                     by_source=dict(self.by_source), pending=self.dispatcher.pending_total())
+
+    def refresh_busy(self) -> None:
+        """Pauses the servers (IPs) a running list crawl still uses, so no server gets two requests at once (user
+        2026-10-24: "조회 아이피 시간간격 1초 지키고 여러개 한다고 어기지 마")."""
+        if not self.busy_source:
+            return
+        try:
+            ips = self.busy_source()
+        except Exception as ex:  # noqa: BLE001 - without the list, keep the servers paused as they were
+            self.log.line(f'busy servers: check failed ({ex.__class__.__name__}); the paused ones stay paused')
+            return
+        if not ips and self.dispatcher.paused:
+            self.log.line('busy servers: the list crawl has finished; every server is asked')
+        waiting = self.dispatcher.pause(ips)
+        if ips:
+            self.log.line(f'busy servers: {len(ips)} servers the list crawl still uses are skipped '
+                          f'({waiting} books wait on them); checked again in {BUSY_RECHECK // 60} min')
+        else:
+            self.busy_source = None
 
     def report(self, started: float) -> None:
         elapsed = max(1.0, time.monotonic() - started)
@@ -574,10 +611,12 @@ class Fetcher:
         url = candidates[index]
         if url == NLK:
             return self.process_nlk(con, row)
+        asked = time.monotonic()
         try:
             outcome, picture = self.take_picture(url)
         except cc.BlockedHost as ex:
             outcome, picture = str(ex), None
+        self.note_timing(host, time.monotonic() - asked)
         if picture:
             source = 'collected_preferred' if host_of(url) in order()[0] else 'collected_other'
             self.finish_done(con, book_key_, url, source, picture, tried + 1)
@@ -698,6 +737,19 @@ class Fetcher:
             self.stats['bytes'] += len(picture)
             self.by_source[source] = self.by_source.get(source, 0) + 1
 
+    def note_timing(self, host: str, seconds: float) -> None:
+        """A server answering slower than SLOW on average (after SLOW_AFTER requests) is not asked again this run."""
+        key = queue_key_of(host)
+        with self.lock:
+            avg, n = self.timing.get(key, (0.0, 0))
+            n += 1
+            avg = seconds if n == 1 else avg * 0.9 + seconds * 0.1
+            self.timing[key] = (avg, n)
+        if n >= SLOW_AFTER and avg > SLOW and key not in self.dispatcher.off:
+            self.log.line(f'host {host} ({key}): {avg:.1f}s on average; not asked again in this run (its books stay '
+                          f'PENDING)')
+            self.dispatcher.turn_off(host)
+
     def note_failure(self, host: str, failed: bool) -> None:
         """OFF_AFTER failures in a row on one host (not 404s or "no image" pictures) stop asking it in this run."""
         with self.lock:
@@ -780,6 +832,44 @@ def crawl_running() -> bool:
         return False
 
 
+def crawl_started() -> str | None:
+    """Start time (YYYY-MM-DDTHH:MM, local) of a running `crawl_catalog.py full`, or None when no crawl runs."""
+    if sys.platform != 'win32':
+        return None
+    script = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like "
+              "'*crawl_catalog.py*' -and $_.CommandLine -like '* full*' } | Sort-Object CreationDate | "
+              "Select-Object -First 1 | ForEach-Object { $_.CreationDate.ToString('yyyy-MM-ddTHH:mm') }")
+    out = subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True, text=True, timeout=60)
+    return out.stdout.strip() or None
+
+
+def busy_ips(db: Path | None = None) -> set[str]:
+    """
+    IPs a running list crawl still has libraries on (no run of theirs finished since that crawl started, not skipped,
+    not on a never-asked server); empty when no crawl runs.
+    """
+    import socket
+    started = crawl_started()
+    if not started:
+        return set()
+    con = sqlite3.connect(f'file:{(db or cc.DB).as_posix()}?mode=ro', uri=True, timeout=120)
+    try:
+        finished = {r[0] for r in con.execute("SELECT library_id FROM crawl_run WHERE started_at >= ? AND status IN "
+                                              "('SUCCEEDED', 'FAILED', 'MISMATCH')", (started,))}
+        libraries = con.execute('SELECT id, base_url, crawl_skip FROM library').fetchall()
+    finally:
+        con.close()
+    ips = set()
+    for lib_id, url, skip in libraries:
+        if skip or cc.is_blocked_host(url) or lib_id in finished:
+            continue
+        try:
+            ips.add(socket.gethostbyname(urllib.parse.urlsplit(url).hostname))
+        except (OSError, UnicodeError):
+            pass
+    return ips
+
+
 def nlk_key_of(env: dict[str, str], data_dir: Path) -> str:
     """The National Library of Korea key: the dev .env (CHAEKCHECK_PICKS_NLK_API_KEY), else the data folder's secret."""
     key = env.get('CHAEKCHECK_PICKS_NLK_API_KEY', '').strip()
@@ -808,8 +898,6 @@ def main(argv=None) -> int:
     parser.add_argument('--retry-none', action='store_true', help='ask again for the books that got no cover')
     parser.add_argument('--status', action='store_true', help='counts and sizes of the covers folder, no request')
     parser.add_argument('--export', action='store_true', help='write <data>/covers/book-covers.tsv (book id, key, file)')
-    parser.add_argument('--allow-with-crawl', action='store_true',
-                        help='start although a list crawl (full / refill-pubdt) is running (they share the servers)')
     args = parser.parse_args(argv)
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -831,10 +919,13 @@ def main(argv=None) -> int:
     env = rl.read_env(Path(args.env))
     nlk_key = nlk_key_of(env, data_dir)
     http = Http(log, [nlk_key])
-    if not args.plan_only and not args.allow_with_crawl and crawl_running():
-        log.line('a list crawl (crawl_catalog.py full / refill-pubdt) is running: not started, the servers are shared. '
-                 'Run after it, or pass --allow-with-crawl for a small trial')
-        return 1
+    busy_source = None
+    if not args.plan_only and crawl_running():
+        # user 2026-10-24: covers while the list crawl runs, on the servers it does not use
+        log.line('a list crawl is running: the servers (IPs) it still uses are skipped and checked again every '
+                 f'{BUSY_RECHECK // 60} min')
+        db = Path(args.sqlite) if args.sqlite else data_dir / 'ebook-catalog.sqlite'
+        busy_source = lambda: busy_ips(db)  # noqa: E731
     try:
         rules = rl.load_rules(LISTS_DIR)
         order()
@@ -865,7 +956,7 @@ def main(argv=None) -> int:
     covers.commit()
     covers.close()
     fetcher = Fetcher(data_dir, covers_path, http, log, nlk_key, rules, gap=args.gap, max_books=args.max_books,
-                      retry_none=args.retry_none)
+                      retry_none=args.retry_none, busy_source=busy_source)
     result = fetcher.run(max(1, args.workers))
     covers = open_covers_db(covers_path)
     covers.execute('UPDATE run SET finished_at = ?, requests = ?, done = ?, none = ?, bytes = ? WHERE id = ?',

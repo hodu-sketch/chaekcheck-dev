@@ -31,7 +31,7 @@
 | `BIG_SUBSCRIPTION_MIN` | 교보 구독형 공용 묶음(약 20만 권)으로 보고 건너뛰는 사이트 권수 기준(`--include-big-subscription`이면 받음) | [2-crawl.md](2-crawl.md) | 상수를 고칩니다. 다음 수집부터 |
 | `BLOCKED_HOST_SUFFIX` | 절대 요청하지 않는 호스트 끝(`dkyobobook.co.kr`, 교보 구독형 서버가 우리 IP를 막음, 사이클 13 R1-6) | 요청 직전에 매번 확인함(코드) | 바꾸지 않습니다. 풀려면 사용자 결정이 필요합니다 |
 | 표지 후보 수 (`fetch_covers.py` `MAX_COLLECTED`) | 표지 받기에서 책 하나에 시도하는 수집 표지 주소 수(6; 그 뒤 국립중앙도서관). 책마다 요청을 끝없이 보내지 않기 위한 상한 | `--status`의 NONE 마지막 오류에 주소가 모자라 끝난 책이 많으면 올림 | 상수를 고치고 `--retry-none`. 시험 `test_at_most_max_collected_addresses_and_nlk_still_last` |
-| 표지 서버 끄기 (`fetch_covers.py` `OFF_AFTER`, `NLK_HOLDINGS_LIMIT`) | 한 서버가 50번 연달아 실패(404·빈 그림 제외)하면 그 실행에서 더 묻지 않음(책은 PENDING); 국립중앙도서관 소장자료 검색의 표지는 책마다 3개까지 | 로그 `host …: 50 failures in a row` | 상수를 고칩니다. 다음 실행부터 |
+| 표지 서버 끄기 (`fetch_covers.py` `OFF_AFTER`, `SLOW`·`SLOW_AFTER`, `NLK_HOLDINGS_LIMIT`, `BUSY_RECHECK`) | 한 서버가 50번 연달아 실패(404·빈 그림 제외)하거나 평균 응답이 12초를 넘으면(30건 뒤, 수집기 `SPLIT_SLOW`와 같은 값) 그 실행에서 더 묻지 않음(책은 PENDING); 국립중앙도서관 소장자료 검색의 표지는 책마다 3개까지; 목록 수집이 돌면 그 수집이 아직 쓰는 서버(IP)는 건너뛰고 600초마다 다시 확인(사용자 2026-10-24) | 로그 `host …: 50 failures in a row`, `… on average; not asked again`, `busy servers: …`. 시험 `test_a_slow_server_is_left_for_this_run`, `test_servers_the_list_crawl_uses_are_not_asked` | 상수를 고칩니다. 다음 실행부터 |
 | `SHARED_HOSTS` | 여러 도서관을 한 서버로 서비스하는 호스팅(한 줄 세우기) | [2-crawl.md](2-crawl.md) 2-1절 | 상수를 고칩니다. 다음 수집부터 |
 | `MIN_GAP`, `PER_HOST` | 한 서버에 요청 사이 최소 1초, 동시 1개(호출 예의, 사이클 01 spec 5.6) | plan `crawl-method.md` | 바꾸려면 사용자 결정이 필요합니다 |
 | `MIN_GAP_BY_HOST` | `MIN_GAP`보다 길게 쉬는 호스트. 지금은 `elib.seoul.go.kr`(서울도서관) 1.1초: 조사 때 정한 간격([library-maintenance.md](../library-maintenance.md) 4-14, 2026-10-20). `--gap`이 더 길면 그 값 | 없음(약속한 값) | 상수를 고칩니다. 다음 수집부터 |

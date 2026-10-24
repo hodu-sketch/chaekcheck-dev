@@ -152,6 +152,15 @@ class DispatcherTests(unittest.TestCase):
         d.done('b.example', None)
         self.assertIsNone(d.take())
 
+    def test_a_paused_server_waits_and_is_asked_once_freed(self):
+        d = fc.Dispatcher({'a.example': 1, 'b.example': 1}, key_of=lambda h: h, gap=0.0)
+        self.assertEqual(1, d.pause({'a.example'}), 'one book waits on the paused server')
+        self.assertEqual('b.example', d.take())
+        d.done('b.example', None)
+        self.assertIsNone(d.take(), 'only the paused server is left: this run ends, its book stays pending')
+        self.assertEqual(0, d.pause(set()))
+        self.assertEqual('a.example', d.take())
+
     def test_a_book_moved_to_another_host_is_handed_out_and_an_off_server_is_left(self):
         d = fc.Dispatcher({'a.example': 1}, key_of=lambda h: h, gap=0.0)
         self.assertEqual('a.example', d.take())
@@ -314,6 +323,29 @@ class PlanAndFetchTests(unittest.TestCase):
         self.assertEqual(fc.OFF_AFTER, len(opener.urls))
         self.assertEqual(5, result['pending'])
         self.assertEqual(fc.OFF_AFTER, result['none'])
+
+    def test_servers_the_list_crawl_uses_are_not_asked(self):
+        self.plan([(1, None, '하나', None, [(1, 'A')]), (2, None, '둘', None, [(3, 'C')])], nlk=False)
+        opener = FakeOpener({YES24: FakeResponse(200, png()), OTHER: FakeResponse(200, png())})
+        busy = {fc.queue_key_of('contents.dasangng.co.kr')}
+        result, _ = self.fetch(opener, workers=2, busy_source=lambda: busy)
+        self.assertEqual([YES24], opener.urls, 'the busy server got no request')
+        self.assertEqual(1, result['pending'])
+        self.assertEqual('PENDING', self.rows()['item:3:C'][2])
+
+    def test_a_slow_server_is_left_for_this_run(self):
+        books = [(i, None, f'책{i}', None, [(1, f'S{i}')]) for i in range(fc.SLOW_AFTER + 5)]
+        self.collected.executemany("INSERT INTO holding (library_id, item_key, platform, title, cover_url, first_seen_at, "
+                                   "last_seen_at, last_run_id) VALUES (1, ?, 'X', 't', ?, '', '', 1)",
+                                   [(f'S{i}', f'{YES24}?s{i}') for i in range(fc.SLOW_AFTER + 5)])
+        self.plan(books, nlk=False)
+        http = fc.Http(self.log, [], opener=FakeOpener({YES24: FakeResponse(200, png())}))
+        fetcher = fc.Fetcher(self.data, self.covers_path, http, self.log, '', rules_with(), gap=0.0, sleep=lambda s: None)
+        real = fetcher.note_timing  # every answer is noted as slower than SLOW
+        fetcher.note_timing = lambda host, seconds: real(host, fc.SLOW + 1)
+        result = fetcher.run(1)
+        self.assertEqual(fc.SLOW_AFTER, result['done'])
+        self.assertEqual(5, result['pending'])
 
     def test_max_books_stops_a_trial_and_export_lists_the_pairs(self):
         self.collected.executemany("INSERT INTO holding (library_id, item_key, platform, title, cover_url, first_seen_at, "

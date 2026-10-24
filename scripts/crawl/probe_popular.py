@@ -37,36 +37,10 @@ COLUMNS = ['site', 'collection_library_id', 'platform', 'order', 'rank', 'item_k
            'published', 'holdings', 'loans_now', 'reservations', 'loans_total', 'book_id', 'match']
 
 
-def crawl_started() -> str | None:
-    """Start time (YYYY-MM-DDTHH:MM, local) of a running `crawl_catalog.py full`, or None when no crawl runs."""
-    import subprocess
-    script = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like "
-              "'*crawl_catalog.py*' -and $_.CommandLine -like '* full*' } | Sort-Object CreationDate | "
-              "Select-Object -First 1 | ForEach-Object { $_.CreationDate.ToString('yyyy-MM-ddTHH:mm') }")
-    out = subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True, text=True, timeout=60)
-    return out.stdout.strip() or None
-
-
 def busy_ips() -> set[str]:
-    """IPs the running list crawl still has libraries on (none finished since that crawl started): never asked here."""
-    import socket
-    import sqlite3
-    from urllib.parse import urlsplit
-    started = crawl_started()
-    if not started:
-        return set()
-    con = sqlite3.connect(f'file:{cc.DB.as_posix()}?mode=ro', uri=True, timeout=120)
-    finished = {r[0] for r in con.execute("SELECT library_id FROM crawl_run WHERE started_at >= ? AND status IN "
-                                          "('SUCCEEDED', 'FAILED', 'MISMATCH')", (started,))}
-    ips = set()
-    for lib_id, url, skip in con.execute('SELECT id, base_url, crawl_skip FROM library'):
-        if skip or cc.is_blocked_host(url) or lib_id in finished:
-            continue
-        try:
-            ips.add(socket.gethostbyname(urlsplit(url).hostname))
-        except OSError:
-            pass
-    return ips
+    """IPs the running list crawl still uses: never asked here (fetch_covers.busy_ips)."""
+    import fetch_covers
+    return fetch_covers.busy_ips()
 
 
 class Fetch:
