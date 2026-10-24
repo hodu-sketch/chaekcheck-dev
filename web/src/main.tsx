@@ -20,6 +20,7 @@ import { MyLibrariesPage } from './features/mylibrary/MyLibrariesPage'
 import { MyLibraryProvider } from './features/mylibrary/MyLibraryContext'
 import { NoticePage } from './features/notices/NoticePage'
 import { NoticesPage } from './features/notices/NoticesPage'
+import { ForYouPage } from './features/picks/ForYouPage'
 import { PicksRoute } from './features/picks/PicksPage'
 import { RegionProvider } from './features/region/RegionContext'
 import { SearchPage } from './features/search/SearchPage'
@@ -46,7 +47,9 @@ function App() {
                 {/* cycle 10, 14 (S13 librarian picks): public, no login (R7-3); cycle 21: one screen per list
                     (ADR-0126), the old address goes to the librarian picks. TODO(cycle 21 step 9-2/9-3): the
                     screen still reads the old API whatever the list */}
-                <Route path="/picks" element={<Navigate to="/picks/kaist" replace />} />
+                <Route path="/picks" element={<Navigate to="/picks/for-you" replace />} />
+                {/* cycle 23 (R1-1, R1-2): 「나에게 맞는 책」 is the first tab and /picks opens it */}
+                <Route path="/picks/for-you" element={<ForYouPage />} />
                 <Route path="/picks/:listKey" element={<PicksRoute />} />
                 <Route path="/auth/complete" element={<AuthCompletePage />} />
                 <Route path="/about" element={<AboutPage />} />

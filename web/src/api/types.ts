@@ -523,3 +523,45 @@ export interface SiteDocument {
 
 /** The 404 codes of the notice and document APIs. */
 export type SiteContentNotFound = 'notice_not_found' | 'document_not_found' | 'version_not_found'
+
+// ---- cycle 23: 「나에게 맞는 책」 (design-delta API, ADR-0149) ----
+
+/** One tag on a for-you card (R9-5): shown, not pressable. */
+export interface ForYouTag {
+  code: string
+  axis: 'mood' | 'subject' | 'audience'
+  name: string
+}
+
+/** One for-you card. Scores and source names are never sent (R3-2). */
+export interface ForYouCard {
+  bookId: number
+  title: string
+  author: string | null
+  publisher: string | null
+  /** `/covers/<sha1>.jpg`, or null for the title-letter cover */
+  coverUrl: string | null
+  /** the tab blurb (R8), or null */
+  blurb: string | null
+  /** 2-3 tags of a listed book, else empty */
+  tags: ForYouTag[]
+  /** how many plan libraries hold the book (≥ 1) */
+  planLibraryCount: number
+  /** the recommended lists the book is on (keys); the screen writes the tab names */
+  lists: PicksListKey[]
+  /** the first author's key, for "no three of one author in a row" (AC-8), or null */
+  authorKey: string | null
+}
+
+/** `GET /api/v1/for-you/books`: `builtOn` null before the first build (then the listed books only). */
+export interface ForYouBooks {
+  builtOn: string | null
+  books: ForYouCard[]
+}
+
+/** `GET /api/v1/for-you/similar-books`. */
+export interface ForYouSimilar {
+  baseBooks: { bookId: number; title: string }[]
+  books: ForYouCard[]
+  reshowBooks: ForYouCard[]
+}

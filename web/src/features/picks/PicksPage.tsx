@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { ApiError, fetchPicks } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
 import type { PickBook, Picks } from '../../api/types'
@@ -8,7 +8,8 @@ import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { BookCard, isLinked } from './BookCard'
 import { MORE_STEP } from './picksText'
-import { PICKS_TABS, picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
+import { picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
+import { PicksTabs } from './PicksTabs'
 import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
 import { RequestNotice } from './RequestNotice'
@@ -41,12 +42,6 @@ export function PicksRoute() {
  * (AC-20).
  */
 export function PicksPage({ list }: { list: PicksList }) {
-  // phones: the tab row swipes; the chosen list's tab is brought into view (user 2026-10-20)
-  const tabsRef = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const current = tabsRef.current?.querySelector<HTMLElement>('[aria-current="page"]')
-    current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
-  }, [list.key])
   const navigate = useNavigate()
   const phone = useMediaQuery(PHONE_QUERY)
   // the condition card under the list tabs (user 2026-10-20: "추천도서에도 지역설정 칸이 있었으면 해", picked B)
@@ -194,14 +189,7 @@ export function PicksPage({ list }: { list: PicksList }) {
   return (
     <div className={styles.page}>
       <h1 className="visually-hidden">{list.name}</h1>
-      <nav ref={tabsRef} className={styles.tabs} aria-label="추천도서 목록">
-        {PICKS_TABS.map((tab) => (
-          <NavLink key={tab.key} to={`/picks/${tab.key}`} className={styles.tab}>
-            {/* the last two words stay together when a phone wraps the name ("KAIST / 사서 추천", user 2026-10-20) */}
-            {tab.tabLabel.replace(/ (?=\S+$)/, ' ')}
-          </NavLink>
-        ))}
-      </nav>
+      <PicksTabs current={list.key} />
       <div className={styles.condition}>{condition}</div>
       {body}
       <details className={styles.criteria}>

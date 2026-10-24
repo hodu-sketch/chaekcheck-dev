@@ -16,8 +16,8 @@ export type ClickScreen = 'direct_results' | 'catalog_results' | 'book_page' | '
 
 export type UsageEvent =
   | { type: 'library_click'; libraryId: number; place: ClickPlace; screen: ClickScreen; bookId?: number }
-  | { type: 'picks_list_view'; list: PicksListKey; category: string }
-  | { type: 'picks_book_view'; list: PicksListKey; category: string; bookId: number }
+  | { type: 'picks_list_view'; list: PicksListKey | 'for_you'; category: string }
+  | { type: 'picks_book_view'; list: PicksListKey | 'for_you'; category: string; bookId: number }
   | { type: 'region_change'; residenceRegionIds: number[]; workRegionIds: number[] }
   | { type: 'my_library_add' | 'my_library_remove'; libraryId: number }
 
