@@ -309,14 +309,15 @@ chaekcheck:
     sources:
       kyobo-elib:
         enabled: ${CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_ENABLED:true}
-        # 서초 반포·연천·도봉·부천 [확정 sites]. TODO(확인 필요): their library.id values, checkpoint B
-        library-ids: ${CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_LIBRARYIDS:}
+        # 서초구립반포 79, 연천군 99, 도봉문화정보 60, 부천시립 73 [확정 sites] (library seed 004 and the pretest's
+        # collection_link: the same ids)
+        library-ids: ${CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_LIBRARYIDS:79,99,60,73}
         # rows per site [확정 100]
         top: 100
       yes24-elib:
         enabled: ${CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_ENABLED:true}
-        # 국립세종·성남 [확정 sites]. TODO(확인 필요): their library.id values, checkpoint B
-        library-ids: ${CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_LIBRARYIDS:}
+        # 국립세종도서관(YES24) 263, 성남시도서관사업소 229 [확정 sites] (library seed 005, the same in the pretest)
+        library-ids: ${CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_LIBRARYIDS:263,229}
         top: 100
       # TODO(확인 필요): range and format checked on the user's PC first (step 0 #7); off until then
       kpipa-rank:

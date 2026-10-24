@@ -6310,3 +6310,74 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 시작점: **"24가 main에 들어갈 때까지 기다림"**. 그동안 24와 겹치지 않는 부분(`catalog` 카드 칸·소장 키 역조회·`workKeys`, `availability.RankedListings`, `foryou` 표·만들기·API, `picks` 꼬리표 표)만 main 위 이 브랜치에서 만듦. `ListedBooks`·`book-texts`·`usagelog` CHECK(`for_you`)는 24가 main에 들어간 뒤 그 위에 kind·칸만 더함
 - 출판 연도: **"대표 출판일 그대로"** — `catalog.book.published_on`(소장 줄 출판일 다수결)의 해
 - 사용 알림 `category`: **"all / base / similar"** — 목록 보기 `all`, 책 보기는 카드가 온 곳 `base`·`similar`
+
+## 만든 것 (2026-10-24, 브랜치 `claude/cycle-23-for-you-picks-kzjabw`, 24와 겹치지 않는 부분)
+
+| 단계 | 상태 | 커밋 |
+|---|---|---|
+| 1 Liquibase | `foryou/001-for-you.yaml`(표 일곱, CHECK 시험), `picks/006-tag-dictionary-and-book-tag.yaml`. **`usagelog`(`picks_list`에 `for_you`)는 24의 `usagelog-ai-search-event` 다음이어야 하므로 24가 main에 들어간 뒤** | `7d284e7` |
+| 2 `catalog` | 새 공개 타입 `BookCards`: `cards`(첫 저자 표시·출판사·출판 연도·첫 저자 `name_exact`·`library_ids`), `byHoldingKeys`((도서관, 소장 키) → 책, `holding_library_item_key` 색인), `workKeys`(본제목 정리값 같고 AUTHOR·UNKNOWN 이름 공유, 이름 사슬은 합집합, 대표 = 소장 많은 판 → 작은 번호) | `cd264f2` |
+| 3 `availability` | 새 공개 타입 `RankedListings.fetch(libraryId, LOANS, page)`(`SiteRankedListings`): 교보 일반 `contentList.ink?…orderByKey=loanNmvl&recordCount=80`, YES24 V1 `/search/?src_key=&sort=lending&view=50`. 지금 어댑터 파서 그대로, 소장 키는 `detailPath`의 `brcd`·`goods_id`. 다른 화면은 요청 없이 `unsupported_screen`, `*.dkyobobook.co.kr`은 요청 없이 `blocked_host` | `967ef9b` |
+| 4 `picks` (꼬리표 몫) | `BookTagTransfer`(사전 upsert·빠진 코드 `active=false`, 꼬리표 통째로 바꾸기·사전 밖 코드 수), `BookTagTransfer.forCard`(느낌 1 + 주제 1~2, `audience`는 카드에 안 보임 [안]). **`ListedBooks`·`ListedBook.tags`는 24가 main에 들어간 뒤** | `591fb73` |
+| 5 새벽 만들기 | `foryou` 모듈: 출처(사이트마다 앞 100권) → 맞추기 → 빼기(0줄·90% 미만) → 판 모으기 → 점수 → R2-4 → 저장·메모리 사본, 켤 때 `running` → `failed`, 30일 정리(마지막 succeeded 남김), 매일 03:30 [안] | `ef66bd8` |
+| 6 API | `GET /api/v1/for-you/books`, `/api/v1/for-you/similar-books`(검증 코드 넷, 정렬, 점수·출처 칸 없음) | `6918396` |
+| 7 (`foryou` 몫) | `ForYouTransfer`: 이웃 `full`(COPY → `book_neighbour_next` → 한 트랜잭션에서 바꿔 끼움, 도중 실패면 옛 표 그대로), `add`(upsert), 탭 글·표지 upsert, 이웃 줄 규칙. **`collection` 모드(`neighbours`·`tag-dictionary`, `book-texts` kind 셋)는 24의 `CatalogImportRunner`·`BookTextsImport` 위에 붙이므로 24가 main에 들어간 뒤** | `1057138` |
+| 9 웹 | 탭 맨 앞 `/picks/for-you`(`/picks`·머리 메뉴도), `viewedBooks.ts`, `useBookVisit`(열기·보이는 동안 10초), 도서관 누름(`libraryClick`), `forYouOrder.ts`, S18 `ForYouPage`, S19 `BaseBooksDialog`, 사용 알림 `list: 'for_you'`, 탭 줄을 `PicksTabs`로 뺌 | `afa75bc` |
+| 8 `usagelog` | 24 뒤 (위 1단계와 같이) | — |
+| 10 수집 PC | 인계서대로 수집 세션 몫(KURE-v1 이웃, Haiku 배치, 사전 TSV, 표지 옮기기). 넣는 파일 모양은 `docs/maintenance/7-foryou.md` 2절 | — |
+
+- 빌드: 단계마다 `./gradlew build`(이 환경에서 원래 실패하는 `LaneThrottleTests` 시간 시험 1~2개만 실패, 0단계 9), `ModularityTests`·`DocumentationTests` 통과. 웹 `npm run build`·vitest 661/661·oxlint 새 경고 없음
+- 화면: 이 컨테이너의 Playwright(브라우저에서 API를 가짜로 답함)로 1440·768·375 확인, 가로 스크롤 없음, 맨 위 한 권은 PC 표지 왼쪽·태블릿·폰 표지 위, 두 칸 그대로, 폰 S19 아래 시트, 폰 기준 책 줄 두 줄. 사용자 화면 확인·실제 폰 확인은 아직(체크포인트 D)
+- 인기 사이트 `library_id` (체크포인트 B 보고 항목): 교보 일반 서초구립반포 **79**, 연천군 **99**, 도봉문화정보 **60**, 부천시립 **73** / YES24 V1 국립세종도서관(YES24) **263**, 성남시도서관사업소 **229**. seed `library/004`·`005`와 사전 시험 `popular-top100.tsv`의 번호, `collection_link`(같은 번호)가 일치 → `application.yml` 기본값
+- 측정: 이웃 1,340,875줄 × 20(가짜 값) COPY 약 4.6초, 표 219MB(클라우드 시험 DB). 운영 바꿔 끼울 때 잠깐 약 0.44GB
+
+## 설계와 다르게 한 것·[안]으로 정한 것 (사용자에게 알림)
+
+1. **[안] 이름 바꿈**: `BookLookup`을 넓히지 않고 `catalog`에 새 공개 타입 `BookCards`를 둠(24가 `catalog`에 `BookAuthors`를 더해 같은 파일을 덜 건드리려고). `workKeys`는 `BookCards.workKeys`, 소장 키 역조회는 `BookCards.byHoldingKeys`
+2. **[안] 판 모으기 범위**: 그날 맞춘 책(과 추천목록 책) 안에서만 묶고 대표를 고름. 카탈로그 전체의 다른 판(인기 목록에 없는 판)은 보지 않음
+3. **[안] 맞추기**: 인기순 화면에는 ISBN이 없음 → (그 도서관, 소장 키) → ISBN(출판유통용) → 제목+첫 저자(여럿이면 소장 많은 책)
+4. **[안] 빼기 단위**: "한 출처가 0줄·90% 미만이면 그 출처만 뺌"을 **사이트마다** 적용(교보 일반 4곳은 4단위). 실패한 사이트는 그날 빠진다는 인계서 C2와 맞춤. note도 `kyobo_elib:79 …`처럼 사이트마다
+5. **[안] 인기 점수가 있는 책 = 점수 > 0**: 앞 100권에 들었어도 지금 대출·예약이 0이고 다른 출처도 없으면 R2-4 ①·②의 "인기" 쪽에 넣지 않고 `book_score`에도 저장하지 않음(개인 추천 "점수 책 먼저"도 같은 기준)
+6. **[안] 출판 연도 없는 책의 가산 1.0**
+7. **[안] 만들기 시각 03:30**(인계서 안 04:00은 `auth.cleanup` 04:00과 같은 시각)
+8. **[안] 카드 칸**: `authorKey`를 `similar-books`뿐 아니라 `books`에도 실음(웹의 같은 저자 규칙에 같은 칸을 씀)
+9. **[안] 다시 보여 주기**: 20권마다 8·16번째 자리에 **끼워 넣음**(그 20권이 22권이 됨). 기본 목록과 겹치는 책은 개인 추천 60권 전체 기준으로 기본 목록에서 뺌. 같은 저자 규칙은 개인 추천에만
+10. **[안] 꼬리말**: "KAIST·서울대 외 1 추천목록에 있어요", 기준 책 줄의 조사(과/와)는 마지막 글자 받침으로
+11. **설계와 다름 (24 뒤 고침)**: 이 탭에서 연 S14 책 창은 아직 **연도 줄·AI 요약을 보이지 않음**. 인계서는 "추천목록 책에만, 지금 규칙 그대로 [확정]"인데, 그 값(추천 연도·`aiSummary`)이 `picks` 캐시에만 있고 for-you 카드에는 없음. 24의 `ListedBooks`가 main에 들어오면 그 칸을 더해 지금 규칙대로 보이게 할 안 — 사용자 확인 필요
+12. **C3 일부**: 새벽 요청은 조회 상태 불·`library_response_daily`에는 안 들어가지만, 길마다 센 요청 수(1분 요약 줄·`availability.lookup_sample`)에는 하루 12건 들어감
+13. 사용 알림 `list=for_you`는 서버 `usagelog` 단계(24 뒤)와 같이 나가야 함 — 그 전 서버는 `rejected_event`로 받음. 운영 반영은 한 번이므로 문제 없음
+14. 사이클 24 plan 세션에 결정 #7을 알리는 세션 메시지가 거절됨(위 "24와의 일"). 사용자 전달 필요
+
+## 24가 main에 들어간 뒤 할 일 (이 브랜치를 rebase하고)
+
+- `ListedSource`를 `ListedBooks.current()` 어댑터로 바꾸고 `ListedBook`에 `tags`(nullable) 칸, 카드 꼬리말·꼬리표·S14 연도 줄·AI 요약
+- `collection`: `neighbours`·`tag-dictionary` 모드, `book-texts`에 kind `for_you_blurb`·`tags`·`cover_file`, `collection/package-info.java`에 `foryou`, `ModularityTests`(`collection → foryou`)
+- `usagelog/00N-picks-list-for-you.yaml`(24 다음 번호)과 `UsageEventReader.PICKS_LISTS`에 `for_you`, `UsageLogSchemaTests`
+- Liquibase master 끝 차례 정리, 파일 번호 확정
+
+## 체크포인트 상태
+
+- A: 위 0단계 결과, 멈춤 조건 없음
+- B·C: **내 PC에서**(운영 꼴 DB·나가는 길·수집 중인 서버 피하기 필요) — 절차 `docs/maintenance/7-foryou.md` 1절. C의 상위 40권은 만들기 로그의 `foryou base position=…` 40줄로 표를 만듦. 추천목록 책은 24 뒤라, 그 전 C는 인기 출처만의 모양
+- D·E: 아직
+
+## AC 확인표 (지금까지)
+
+| AC | 상태 |
+|---|---|
+| AC-1·16 | vitest(탭 차례·주소·머리 메뉴) + Playwright 세 폭 |
+| AC-2 | vitest(기록 없음 → 기준 책 줄 없음, `similar-books` 0건) |
+| AC-3 | vitest(카드 꼬리말·"외 N") + 컨트롤러 시험(`lists`) — 실데이터는 24 뒤 |
+| AC-4 | 만들기 시험(①이 앞, 40권) |
+| AC-5 | 컨트롤러 시험(계획 도서관으로 거르기, 범위 바꾸면 N과 책이 바뀜) |
+| AC-6 | 컨트롤러 시험(점수 책 → 계획 수 → 번호) + vitest(기준 책 차례·보낸 번호) |
+| AC-7 | 남음(브라우저 둘, 사용자 화면 확인) |
+| AC-8 | vitest(`limitAuthorRuns`) |
+| AC-9 | vitest(AI 줄 한 번) |
+| AC-10 | `BookTagTransfer` 시험 + vitest(꼬리표 누름 무반응) |
+| AC-11 | 카드는 자르지 않음(CSS 줄 제한 없음) — SQL 확인은 반영 뒤 |
+| AC-12 | vitest(`list: 'for_you'`, `category` all·base·similar) — 서버 쪽은 24 뒤 |
+| AC-13 | Playwright 1440·768·375, 실제 폰은 남음 |
+| AC-14 | vitest(개인 추천 실패 줄·다시 시도) |
+| AC-15 | vitest(S19 빼기·모두 지우기) |
+| AC-17 | vitest(8·16번째, 20권마다 ≤2) + `viewedBooks` 시험(3일·도서관 누름·빼기) |
