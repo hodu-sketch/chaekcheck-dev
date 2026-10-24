@@ -38,7 +38,7 @@
    /opt/pg18/bin/psql -h localhost -p 5433 -U postgres -c "CREATE ROLE chaekcheck LOGIN PASSWORD '<로컬 시험용 아무 값>' SUPERUSER" -c "CREATE DATABASE chaekcheck_test OWNER chaekcheck"
    ```
    저장소 맨 위 `.env`(git 무시됨)에 `TEST_DB_NAME=chaekcheck_test`, `TEST_DB_USERNAME=chaekcheck`, `TEST_DB_PASSWORD=<위 값>`, `TEST_DB_PORT=5433`
-4. **백엔드 빌드**: `gradlew`에 실행 권한이 없어 `bash ./gradlew build --no-daemon`. 내보내기·반영 시험용으로 `export TEST_PG_COMMAND="env,PATH=/opt/pg18/bin:/usr/bin:/bin,PGHOST=localhost,PGPORT=5433,PGPASSWORD=<위 값>"`. Maven Central이 가끔 429를 주면 잠깐 뒤 다시
+4. **백엔드 빌드**: `gradlew`에 실행 권한이 없어 `bash ./gradlew build --no-daemon`. 내보내기·반영 시험용으로 `export TEST_PG_COMMAND="env,PATH=/opt/pg18/bin:/usr/bin:/bin,PGHOST=localhost,PGPORT=5433,PGPASSWORD=<위 값>"`. Maven Central이 가끔 429를 주면 잠깐 뒤 다시. 429가 계속되면(2026-10-24 두 번째 세션: 한 시간 넘게 계속, Gradle은 "Could not find"로 보임) 저장소 파일은 그대로 두고 이 환경에만 `~/.gradle/init.d/central-mirror.gradle`을 두어 Google의 Maven Central 사본 `https://maven-central.storage-download.googleapis.com/maven2/`을 먼저 보게 하고 `--refresh-dependencies`로 다시 돌림(그때 1,188개 중 같은 3개만 실패)
 5. **이 환경에서 원래 실패하는 시험 3개**(앞 세션 변경을 빼도 매번 실패, 2026-10-24): `LaneThrottleTests.sameLaneKeepsTheIntervalWhileOtherSitesDoNotWait`, `LaneThrottleTests.sameHostNameOnDifferentPortsSharesOneSlot`("no free lane … before the deadline"), `CatalogTransferTests.brokenFileKeepsTheCatalog`. 원인은 아직 안 봄
 6. **웹**: 이 환경은 Node 22, `web/package.json`은 Node 24 이상 → 9·10단계 전에 Node 24 준비
 7. `dockerd`는 직접 띄워야 함(`dockerd > /tmp/dockerd.log 2>&1 &`). 컨테이너 안에서는 프록시를 못 써서 이미지 빌드에 쓰기 어려움
