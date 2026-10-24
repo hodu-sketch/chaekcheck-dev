@@ -5957,7 +5957,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 ### 설계와 다른 점 (코드 쓰기 전에 사용자 확인)
 
-1. **`ListedBook.author`**: `PicksCache.Book`에 저자가 없음. `PicksCache`를 고치지 않으려고, 새 구현이 `PicksStore.books(list)`의 목록 저자(`list_book.author`, 사서 목록은 API 저자)를 같은 줄에 붙임. 우리 책(`catalog`)의 저자가 아니라 **목록에 적힌 저자**임 [안: 이름만 바뀌는 수준이 아니라 값의 출처라 알림]
+1. **`ListedBook.author`**: `PicksCache.Book`에 저자가 없음. **우리 책 DB의 저자로 맞춤**(사용자 "우리 책 db의 것으로 맞추려고 해줘", 2026-10-24): `catalog.book.author_display`(책 화면·검색 결과가 쓰는 같은 글)를 `bookId`로 읽는 `catalog` 공개 API를 **새 파일**로 더함 (`catalog/BookAuthors.java` + `catalog/internal/` 구현 [안: 이름]). `IdBook`·`BookLookup`은 고치지 않음(23과 겹치지 않게). `picks → catalog` 의존은 이미 있음
 2. **`loadFromDb()`**: 위 #2 방법(새 파일이 새 `PicksCache`를 만들어 `refresh()`). 실패한 목록이 있으면 거부
 3. **`ModularityTests`**: `picksDependsOnCatalogAndLibraryOnly`("picks를 쓰는 모듈은 collection뿐")와 `collectionUsesLibraryAndLibraryNotCollection`(의존을 정확히 비교)이 `aisearch`를 넣으면 깨짐 → 두 시험에 `aisearch`를 더하고 `aisearch` 의존 시험을 새로 둠
 4. **`usagelog.ai_search_event.occurred_at` → `received_at`**: 칸 목록은 [확정](결정 #7)이지만, `usagelog`의 모든 표와 정리 코드가 `received_at`(요청을 받은 시각, `UsageRequest.receivedAt`)을 씀. 이름만 바꾸고 뜻은 같음. 보관은 지금 규칙 그대로 **1년**(IP가 없으니 30일 지우기는 해당 없음)
