@@ -13,11 +13,11 @@ def load(p): return [json.loads(l) for l in open(p, encoding='utf-8') if l.strip
 test = [r for k in range(25, 31) for r in load(os.path.join(SP, 'qgen', f'q-{k:02d}.jsonl'))]
 seen = {r['q'] for r in test}
 base = [r for k in range(1, 25) for r in load(os.path.join(SP, 'qgen', f'q-{k:02d}.jsonl')) if r['q'] not in seen]
-extra = [r for k in range(31, 61) for r in load(os.path.join(SP, 'qgen', f'q-{k:02d}.jsonl')) if r['q'] not in seen]
+extra = [r for k in range(31, 71) for r in load(os.path.join(SP, 'qgen', f'q-{k:02d}.jsonl')) if r['q'] not in seen]
 z = np.load(os.path.join(HERE, 'kure-split.npz')); Vb, Vte = z['tr'], z['te']
 cache = os.path.join(HERE, 'kure-new.npz')
-if os.path.exists(cache) and np.load(cache)['v'].shape[0] == len(extra):
-    Ve = np.load(cache)['v']
+if os.path.exists(cache) and np.load(cache)['v'].shape[0] >= len(extra):
+    Ve = np.load(cache)['v'][:len(extra)]
 else:
     from sentence_transformers import SentenceTransformer
     Ve = SentenceTransformer("nlpai-lab/KURE-v1", device="cpu").encode([r['q'] for r in extra], normalize_embeddings=True, batch_size=32)
@@ -35,7 +35,7 @@ def lr(X, Yt):
         P = np.zeros((len(A), Yt.shape[1])); P[:, keep] = m.predict_proba(A); return P
     return f
 out = {}
-for add in (0, 1000, 2000, len(extra)):
+for add in (0, 1000, 2000, 2994, len(extra)):
     rows = base + extra[:add]; V = np.vstack([Vb, Ve[:add]]) if add else Vb
     dev = np.array([2300 < r['seed'] <= 2400 for r in rows])
     line = []
