@@ -838,36 +838,60 @@ def crawl_running() -> bool:
         return False
 
 
-def crawl_started() -> str | None:
-    """Start time (YYYY-MM-DDTHH:MM, local) of a running `crawl_catalog.py full`, or None when no crawl runs."""
+def running_crawl() -> tuple[str, set[int] | None] | None:
+    """
+    (start time YYYY-MM-DDTHH:MM local, the ids of its `--only`, or None for every library) of a running
+    `crawl_catalog.py full`; None when no crawl runs.
+    """
     if sys.platform != 'win32':
         return None
     script = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like "
               "'*crawl_catalog.py*' -and $_.CommandLine -like '* full*' } | Sort-Object CreationDate | "
-              "Select-Object -First 1 | ForEach-Object { $_.CreationDate.ToString('yyyy-MM-ddTHH:mm') }")
+              "Select-Object -First 1 | ForEach-Object { $_.CreationDate.ToString('yyyy-MM-ddTHH:mm') + \"`t\" + "
+              "$_.CommandLine }")
     out = subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True, text=True, timeout=60)
-    return out.stdout.strip() or None
+    line = out.stdout.strip()
+    if not line:
+        return None
+    started, _, command = line.partition('\t')
+    only = None
+    words = command.split()
+    if '--only' in words and words.index('--only') + 1 < len(words):
+        only = {int(x) for x in words[words.index('--only') + 1].strip('"').split(',') if x.isdigit()}
+    return started, only
+
+
+def crawl_started() -> str | None:
+    """Start time (YYYY-MM-DDTHH:MM, local) of a running `crawl_catalog.py full`, or None when no crawl runs."""
+    running = running_crawl()
+    return running[0] if running else None
 
 
 def busy_ips(db: Path | None = None) -> set[str]:
     """
-    IPs a running list crawl still has libraries on (no run of theirs finished since that crawl started, not skipped,
-    not on a never-asked server); empty when no crawl runs.
+    IPs a running list crawl still has libraries on: the libraries it takes (its `--only`, else every one not skipped
+    and not on a never-asked server) whose latest run has not ended since that crawl started. A run the crawl resumed
+    (started by an earlier crawl) counts by its end time (2026-10-25: counting by start time kept 41 finished servers
+    paused). Empty when no crawl runs.
     """
     import socket
-    started = crawl_started()
-    if not started:
+    running = running_crawl()
+    if not running:
         return set()
+    started, only = running
     con = sqlite3.connect(f'file:{(db or cc.DB).as_posix()}?mode=ro', uri=True, timeout=120)
     try:
-        finished = {r[0] for r in con.execute("SELECT library_id FROM crawl_run WHERE started_at >= ? AND status IN "
-                                              "('SUCCEEDED', 'FAILED', 'MISMATCH')", (started,))}
+        finished = {r[0] for r in con.execute(
+            "SELECT library_id FROM crawl_run WHERE status IN ('SUCCEEDED', 'FAILED', 'MISMATCH') "
+            "AND (started_at >= ? OR finished_at >= ?)", (started, started))}
         libraries = con.execute('SELECT id, base_url, crawl_skip FROM library').fetchall()
     finally:
         con.close()
     ips = set()
     for lib_id, url, skip in libraries:
-        if skip or cc.is_blocked_host(url) or lib_id in finished:
+        if only is not None and lib_id not in only:
+            continue
+        if (skip and only is None) or cc.is_blocked_host(url) or lib_id in finished:
             continue
         try:
             ips.add(socket.gethostbyname(urllib.parse.urlsplit(url).hostname))
