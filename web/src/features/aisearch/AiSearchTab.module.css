@@ -69,4 +69,9 @@
   .input {
     font-size: var(--text-md);
   }
+
+  /* narrower sides so 「어떤 책을 찾으세요?」 shows whole on a phone (user 2026-10-25) */
+  .submit {
+    padding: 0 0.75rem;
+  }
 }
