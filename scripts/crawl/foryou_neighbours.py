@@ -14,7 +14,8 @@ Run with the data folder's venv (torch CPU, sentence-transformers):
   intro test saved (<data>/ml/pool-30000-intro.npy, same text rule, intros as collected by 2026-10-24 20:23); a book in
   both keeps the vector made now. The saved ids must still be our books (the same catalog import).
 - Neighbours: the 20 nearest by cosine among the same books, the book itself and other editions or volumes of its own
-  title (main_title_norm) left out. Books with no neighbour left get no row.
+  work left out (the same main_title_norm, or the same work_key with the same first author), and one edition of each
+  work among them (same_work). Books with no neighbour left get no row.
 - Writes <data>/ml/foryou/neighbours.tsv (first line "# export_id=<latest SUCCEEDED catalog_import.export_id>", rows
   "book_id<TAB>n1,n2,...", the collection import mode neighbours reads it) and neighbours-review.tsv (titles and
   cosines for people to read). The intro text stays in the data folder (outside git).
@@ -22,9 +23,11 @@ Run with the data folder's venv (torch CPU, sentence-transformers):
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -52,6 +55,49 @@ def text_of(title, author, publisher, published) -> str:
     if published:
         parts.append(str(published)[:4])
     return ' · '.join(p for p in parts if p)
+
+
+_BRACKETS = re.compile(r'[(\[〈<《「『【{].*?[)\]〉>》」』】}]')
+_TAIL_NUMBER = re.compile(r'(?:[\s.,·:\-]*제?\d+\s*(?:권|부|편|화)?|[\s.,·:\-]+[ivx]+)$', re.IGNORECASE)
+_ROLES = re.compile(r'\s*(지음|저|글|그림|엮음|편저|편|옮김|역|번역|감수|원작)\.?$')
+
+
+@functools.lru_cache(maxsize=None)
+def work_key(title: str | None) -> str:
+    """
+    The title with its edition and volume marks taken off (user 2026-10-25: other editions and volumes of the same
+    book stay among the neighbours): anything in brackets, a subtitle after ':' or ' - ', and a volume number at the
+    end ("토지. 2(1부 2권)" → "토지", "마션 (THE MARTIAN)" → "마션", "달러구트 꿈 백화점 2" → "달러구트꿈백화점"); then
+    lower case without spaces or marks. A title that would come out empty (a number alone, as "1984") keeps its letters.
+    """
+    text = (title or '').strip()
+    bare = _BRACKETS.sub(' ', text)
+    bare = re.split(r'\s*:\s*|\s+-\s+', bare)[0]
+    for _ in range(2):  # "토지. 2. 3" or "1부 2권"
+        bare = _TAIL_NUMBER.sub('', bare.strip())
+    key = re.sub(r'[\W_]+', '', bare).lower()
+    return key or re.sub(r'[\W_]+', '', text).lower()
+
+
+@functools.lru_cache(maxsize=None)
+def first_author(author: str | None) -> str:
+    """
+    The first name of an author line, without its role or a name in brackets ("앤디 위어 지음, 박아람 옮김" → "앤디위어",
+    "셰익스피어(William Shakespeare)" → "셰익스피어").
+    """
+    first = _BRACKETS.sub(' ', re.split(r'[,;/|]', author or '')[0]).strip()
+    return re.sub(r'[\W_]+', '', _ROLES.sub('', first)).lower()
+
+
+def same_work(a: tuple, b: tuple) -> bool:
+    """
+    Two books (id, title, author_display, …) are one work when their work keys are the same and their first authors
+    agree (one name inside the other, as "셰익스피어" in "윌리엄셰익스피어"), or one of them has no author.
+    """
+    if work_key(a[1]) != work_key(b[1]):
+        return False
+    x, y = first_author(a[2]), first_author(b[2])
+    return not x or not y or x in y or y in x
 
 
 def main() -> int:
@@ -147,8 +193,10 @@ def main() -> int:
             picked = []
             for j in np.argsort(-block[k]):
                 n = books[j]
-                if n[0] == b[0] or (b[5] and n[5] == b[5]):
-                    continue  # the book itself and other editions or volumes of the same title
+                if n[0] == b[0] or (b[5] and n[5] == b[5]) or same_work(n, b):
+                    continue  # the book itself and other editions or volumes of the same work
+                if any(same_work(n, p) for p, _ in picked):
+                    continue  # one edition of each work among the neighbours
                 picked.append((n, float(block[k][j])))
                 if len(picked) == NEIGHBOURS:
                     break
