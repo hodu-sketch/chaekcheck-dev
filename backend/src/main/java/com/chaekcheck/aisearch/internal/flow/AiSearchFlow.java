@@ -219,8 +219,10 @@ public class AiSearchFlow {
 		if (plan.titleLike() && !plan.title().isBlank()) {
 			String title = plan.title().strip();
 			// only words of the question go into the button, else the whole question (ADR-0153)
-			run.send(AiSearchEvents.TITLE_GUESS,
-					new TitleGuess(WholeText.of(input.question().contains(title) ? title : input.question())));
+			String guess = input.question().contains(title) ? title : input.question();
+			if (TitleMatch.close(guess, books)) {
+				run.send(AiSearchEvents.TITLE_GUESS, new TitleGuess(WholeText.of(guess)));
+			}
 		}
 		if (plan.notBook()) {
 			finish(run, PickResult.NO_MATCH, "no_match");

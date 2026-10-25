@@ -292,12 +292,24 @@ class AiSearchFlowTests {
 
 	@Test
 	void aTitleGuessNeverHoldsHalfACharacter() {
-		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"\\ud83d\",\"refersToShown\":false,"
+		listed.add(new ListedBook(30, "웃는 책", "저자 30", null, new long[] { 101 }, List.of("kaist")));
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"웃는 책 \\ud83d\",\"refersToShown\":false,"
 				+ "\"keywords\":[]}", 1, 1));
 
 		run("웃는 책 😀", List.of());
 
-		assertThat(sink.of(TitleGuess.class).getFirst().title()).isEqualTo("\uFFFD");
+		assertThat(sink.of(TitleGuess.class).getFirst().title()).isEqualTo("웃는 책 \uFFFD");
+	}
+
+	@Test
+	void aTopicSentenceTakenForATitleSendsNoTitleLine() { // issue 2-1 (나)
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"세네카와 쇼펜하우어의 철학\","
+				+ "\"refersToShown\":false,\"keywords\":[\"세네카\",\"쇼펜하우어\",\"철학\"]}", 1, 1));
+
+		run("세네카와 쇼펜하우어의 철학", List.of());
+
+		assertThat(sink.of(TitleGuess.class)).isEmpty();
+		assertThat(sink.last(Done.class).result()).isEqualTo("no_match");
 	}
 
 	@Test

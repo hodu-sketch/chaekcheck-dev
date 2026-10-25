@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
 import { ApiError } from '../../api/client'
@@ -319,7 +319,15 @@ export function AiChatPage() {
           </p>
         )}
         {/* R9-2's AI line, moved from the top to under the box (user 2026-10-24: "맨 위에 있어서 어색해") */}
-        <p className={styles.notice}>{AI_TEXT.notice}</p>
+        <p className={styles.notice}>
+          {/* one line when it fits, else broken between the two sentences (user 2026-10-25) */}
+          {AI_TEXT.notice.split('. ').map((sentence, i, all) => (
+            <Fragment key={i}>
+              {i > 0 && ' '}
+              <span className={styles.noticePart}>{i < all.length - 1 ? `${sentence}.` : sentence}</span>
+            </Fragment>
+          ))}
+        </p>
         </div>
       </div>
     </div>
@@ -375,8 +383,8 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProp
                   </span>
                   {card.author && <span className={styles.cardAuthor}>{card.author}</span>}
                   <span className={styles.cardCount}>{AI_TEXT.myLibraries(card.myLibraryCount)}</span>
-                  {card.text && <span className={styles.cardText}>{card.text}</span>}
                 </span>
+                {card.text && <span className={styles.cardText}>{card.text}</span>}
               </button>
             </li>
           ))}

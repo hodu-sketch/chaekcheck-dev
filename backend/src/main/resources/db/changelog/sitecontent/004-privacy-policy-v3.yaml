@@ -1,0 +1,57 @@
+# sitecontent: version 3 of the privacy policy (user 2026-10-25 "이대로 올려"): the AI book search's questions go to
+# Anthropic, PBC (USA) to be handled; a line in part 1 and an entrustee in part 2. Anthropic's 30 days / 2 years from its
+# privacy centre article "How long do you store my organization's data?" (dated 2026-07-01). The notice the policy
+# promises is put in on the server by hand (docs/maintenance/5-sitecontent.md 1), as for version 2.
+databaseChangeLog:
+  - changeSet:
+      id: sitecontent-004-privacy-policy-v3
+      author: chaekcheck
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |-
+              INSERT INTO sitecontent.document_version (document_key, version_no, effective_on, body, change_summary)
+              VALUES ('PRIVACY_POLICY', 3, DATE '2026-10-25', $$## 1. 수집 항목, 목적, 보유 기간
+
+              - **가입한 경우**: 카카오 회원 식별 번호, 거주·직장 지역, 직접 추가한 도서관
+                - 목적: 로그인 유지, 도서관 찾기
+                - 보유 기간: 탈퇴 또는 마지막 로그인 뒤 1년
+              - **자동으로 수집되는 정보**: IP 주소, 브라우저 종류, 접속 기록, 서비스 이용 기록(로그인한 경우 회원 번호 포함), 부정 이용 기록
+                - 목적: 이용 통계, 운영과 보안, 책 추천, 첫 화면 지역 예시(IP 주소로 시·도만 확인하고 따로 저장하지 않음)
+                - 보유 기간: 1년 (IP 주소·부정 이용 기록 30일, 접속 기록 14일). 회원 번호는 탈퇴하면 바로 지움
+              - **AI 책 찾기를 쓴 경우**: 질문 글, 앞 대화(앞 질문과 보여 준 책 제목)
+                - 목적: 질문에 맞는 책 찾기
+                - 보유 기간: 책첵 서버에는 남기지 않음(대화는 내 브라우저 탭에만 있고 탭을 닫으면 지워짐). 이용 기록에는 질문 글 없이 보여 준 책 번호만 남음
+
+              기간이 지나거나 탈퇴하면 바로 지웁니다. 지운 정보는 백업에 7일 동안 남았다가 지워집니다. 개인정보를 제3자에게 제공하지 않습니다.
+
+              ## 2. 처리 위탁과 국외 이전
+
+              - **Amazon Web Services**
+                - 맡긴 일: 서버·데이터 보관
+                - 나라: 호주
+                - 보유 기간: 위 1과 같음
+              - **Cloudflare, Inc.**
+                - 맡긴 일: 웹 요청 전달·보안
+                - 나라: 미국 및 Cloudflare 네트워크가 있는 나라
+                - 옮기는 항목과 방법: IP 주소, 요청 정보 / 접속할 때 네트워크로 전송
+                - 보유 기간: 업무에 필요한 기간 동안 보관하고, 기간이 지나면 지웁니다
+              - **Anthropic, PBC**
+                - 맡긴 일: AI 책 찾기 질문 처리
+                - 나라: 미국
+                - 옮기는 항목과 방법: 질문 글, 앞 대화 / AI 책 찾기를 쓸 때 네트워크로 전송 (회원 번호·IP 주소·지역은 보내지 않음)
+                - 보유 기간: 받은 날부터 30일 안에 지움(이용 정책 위반으로 판단되면 최대 2년)
+
+              국외 이전이나 개인정보에 관한 문의는 아래 4절의 담당자에게 하면 됩니다. 국외 이전을 원하지 않으면 서비스를 쓰지 않으면 됩니다(거부하면 접속·가입할 수 없습니다). AI 책 찾기의 국외 이전을 원하지 않으면 AI 검색을 쓰지 않으면 됩니다(직접 검색은 그대로 쓸 수 있습니다). 질문에 이름·연락처 같은 개인정보는 적지 마세요.
+
+              ## 3. 쿠키
+
+              로그인 유지와 로그인 상태 확인용 쿠키, 요청 위조를 막는 보안 쿠키를 씁니다. 이 밖의 기록용 쿠키는 쓰지 않습니다. 브라우저에서 막을 수 있으며, 막으면 로그인을 쓸 수 없습니다.
+
+              ## 4. 권리, 안전 조치, 문의
+
+              - 내 정보의 열람·정정·삭제·처리정지를 아래로 요청하거나, 로그인한 뒤 마이페이지 계정의 「탈퇴하기」로 바로 지울 수 있습니다.
+              - 개인정보에 접근할 수 있는 사람을 제한하고, 주고받는 구간을 암호화하며, 비밀값을 암호화해 보관합니다.
+              - 개인정보 보호 담당: 책첵 운영자, <chaekcheck9104@gmail.com>
+
+              이 방침은 2026-10-25부터 적용됩니다. 바꿀 때는 공지사항으로 알립니다.$$, $$AI 책 찾기 질문을 Anthropic(미국)에 맡겨 처리하는 내용을 더했습니다.$$)

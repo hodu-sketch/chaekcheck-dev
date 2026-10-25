@@ -6255,6 +6255,15 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - **「새 대화」 자리 다시**: 사용자 "너무 우측인데 적당히 우측으로 해줘"(2026-10-24) → 넓은 화면에서 화면 오른쪽 끝 대신 대화 칸 바로 오른쪽(1rem 띄움)
 - **plan에 부탁 (새 기능)**: 칩을 뉴스로 자동 갱신 — 사용자 선택 "자동 갱신도 설계"(2026-10-24). 이번 dev에서는 만들지 않고 위 4개를 웹 문구로 고정함. 다음 plan 사이클에서 설계(뉴스 출처·이용 조건, 주기, 칩이 목록 책 답을 내는지 확인하는 방법, 비용)
 
+## 배포 v1.10.0: AI 검색 켬 (2026-10-25, 로컬 세션)
+
+사용자 "이어서 하고 aws에 올려줘". 결정(2026-10-25):
+- **AI 검색을 이번 배포에서 켬**, 책 찾기용 한 줄은 **임시로 추천도서 AI 요약**("넣어줘. 전체 수집 정리 이후에 새로 넣을거고") — **설계와 다름**(원래는 수집 반영 DB의 소개 원문으로 2단계 배치). 파일은 운영 API `GET /api/v1/picks/{list}`의 `bookId`·`aiSummary`로 만들어 운영 책 번호 그대로(1,911권, `source=bibliographic`, `made_on=2026-10-25`, `data/aisearch/search-lines-temp-2026-10-25.tsv`, git 밖). 넣기는 서버에서 `docker compose run --rm backend`에 `collection-import`·`book-texts` 인자(같은 이미지·같은 DB 설정, 비밀값을 PC로 가져오지 않음)
+- **2-1만 지금 반영**(제목 착각): (가) `Prompts.KEYWORD_SYSTEM`에 주제 문장 예와 "확신 없으면 false" (나) `TitleMatch`: 제목 추측(질문 글자 그대로 또는 질문 전체)이 목록 책 제목과 같거나 제목 앞부분 절반 이상, 제목 + 그 책 저자 일부, 저자 일부일 때만 `title-guess`를 보냄(띄어쓰기·기호·대소문자 무시, 2글자 이상). 목록에 없는 책 제목은 버튼이 안 나옴(감수). 2-2~2-5는 사용자가 이번에 고르지 않음 → 남음
+- **처리방침 3판**(`sitecontent/004-privacy-policy-v3.yaml`, 시행 2026-10-25): 1절 「AI 책 찾기를 쓴 경우」, 2절 Anthropic, PBC(미국, 30일·위반 판단 시 최대 2년 — Anthropic Privacy Center "How long do you store my organization's data?" 2026-07-01판, https://privacy.claude.com/en/articles/7996866), 거부 문장. 사용자 "이대로 올려". 공지는 2판처럼 운영 DB에 손으로(5-sitecontent.md 1절)
+- 폰 AI 카드: 책 설명을 표지 아래 별도 행(같은 네모 안), 아래 안내는 넓으면 한 줄·좁으면 두 문장으로 나눔(사용자 2026-10-25)
+- Anthropic Console 월 한도: 묻지 않음(서버 하루 $2 상한만). 남은 일
+
 # 사이클 23 소개 시험과 탭 표지 (2026-10-24~25 요청)
 
 plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.md`, 탭 표지 메시지). 보고서: [`docs/reports/cycle23-intro-test-2026-10-25.md`](reports/cycle23-intro-test-2026-10-25.md), 표 `docs/reports/cycle23-intro/`.

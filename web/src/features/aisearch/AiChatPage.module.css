@@ -189,7 +189,10 @@
 }
 
 .cardLink {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-content: start;
   width: 100%;
   font: inherit;
   text-align: left;
@@ -217,7 +220,7 @@
 }
 
 .cover {
-  flex: none;
+  grid-row: 1 / span 2;
   width: 7.5rem;
   height: 10.9rem;
   border-radius: var(--radius-tag);
@@ -255,6 +258,7 @@
 }
 
 .cardText {
+  grid-column: 2;
   margin-top: 0.3rem;
   color: var(--ink);
   font-size: var(--text-md);
@@ -468,10 +472,22 @@
   text-align: center;
 }
 
+/* each sentence stays whole on a line when the two do not fit together */
+.noticePart {
+  display: inline-block;
+}
+
 @media (width <= 640px) {
   .cover {
+    grid-row: 1;
     width: 6rem;
     height: 8.75rem;
+  }
+
+  /* the AI text on its own row under the cover, in the same box (user 2026-10-25) */
+  .cardText {
+    grid-column: 1 / -1;
+    margin-top: 0.1rem;
   }
 
   .question {

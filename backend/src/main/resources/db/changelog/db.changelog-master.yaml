@@ -192,3 +192,7 @@ databaseChangeLog:
   - include:
       file: usagelog/008-ai-search-event.yaml
       relativeToChangelogFile: true
+  # 2026-10-25: privacy policy version 3 (the AI search's questions to Anthropic)
+  - include:
+      file: sitecontent/004-privacy-policy-v3.yaml
+      relativeToChangelogFile: true
