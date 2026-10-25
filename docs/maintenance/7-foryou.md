@@ -38,9 +38,58 @@ ORDER BY platform_type, name;
 
 ## 2. 넣기 (수동, 수집 PC 결과)
 
-- 사이클 24가 main에 들어간 뒤 `collection` 넣기 모드로 붙입니다(`neighbours`·`tag-dictionary` 새 모드, `book-texts`에 kind `for_you_blurb`·`tags`·`cover_file`). 그 전에는 `foryou.ForYouTransfer`·`picks.BookTagTransfer`만 있습니다.
-- 파일 모양 [안] (design-delta "넣는 명령")
-  - `neighbours.tsv`: 첫 줄 `# export_id=<서비스 내보내기 번호>`, 줄마다 `book_id<TAB>이웃1,이웃2,…`(가까운 차례, 1~20개, 자기 자신·중복 없음, 번호 ≤ 2,147,483,647). `full`은 새 표에 COPY 뒤 바꿔 끼우기, `add`는 upsert
-  - `tag-dictionary.tsv`: `code<TAB>axis<TAB>name<TAB>thema_code`. 파일에 없는 코드는 `active=false`
-  - `book-texts.tsv`: `kind<TAB>book_id<TAB>source<TAB>made_on<TAB>text`. `for_you_blurb`(1~300자), `tags`(코드 쉼표 목록, 그 책의 꼬리표를 통째로 바꿈), `cover_file`(sha1 40자, 파일은 운영 `/srv/chaekcheck/covers/<sha1>.jpg`, nginx `^/covers/[0-9a-f]{40}\.jpg$`가 이미 보냄)
+- `collection` 넣기 명령(프로필 `collection-import`)의 모드로 넣습니다(사이클 23 인계 3-3): 새 모드 `neighbours`·`tag-dictionary`, `book-texts`에 kind `for_you_blurb`·`tags`·`cover_file`. 코드: `collection/internal/foryou/`, `collection/internal/booktexts/`. 서버를 켤 필요 없이 명령이 끝나면 나갑니다. 화면에는 메모리 사본을 다시 읽은 뒤(`refresh-interval` 10분) 나옵니다.
+- 차례: **꼬리표 사전 → book-texts(꼬리표·글·표지) → 이웃**. 사전에 없는 꼬리표 코드는 건너뛰므로 사전을 먼저 넣습니다.
+- 모든 모드: 파일 전체를 먼저 검사하고, 문제가 하나라도 있으면 줄 번호와 함께(처음 20개) 거부하고 아무것도 넣지 않습니다. UTF-8, BOM과 Windows 줄 끝(`\r\n`)은 받습니다.
+
+`backend/`에서(운영은 운영 DB 환경 변수로, 사이클 17 방식, [6-aisearch.md](6-aisearch.md) 3절과 같음):
+
+### 2-1. 꼬리표 사전 (`tag-dictionary`)
+
+```
+./gradlew bootRun --args='--spring.profiles.active=collection-import
+  --chaekcheck.collection.import.mode=tag-dictionary
+  --chaekcheck.collection.import.tag-dictionary-file=<TSV 경로>'
+```
+
+- 파일 [안]: 머리줄 `code<TAB>axis<TAB>name<TAB>thema_code`, 한 줄에 꼬리표 하나. `code`는 영문·숫자·`_` 1~20자, `axis`는 `mood`·`subject`·`audience`, `name`은 비울 수 없음, `thema_code`는 비우면 없음(NULL). 같은 코드 두 줄은 거부
+- 파일이 사전 전체입니다: 파일에 없는 코드는 `active=false`(지우지 않음, 이미 붙은 꼬리표는 남고 카드에는 안 나옴). **줄이 없는 파일은 거부**(모든 코드를 끄지 않게)
+- 로그: `tag-dictionary: codes N, made inactive M`. M > 0이면 WARN 한 줄. 꺼진 코드 보기: `SELECT code, name FROM picks.tag_dictionary WHERE NOT active ORDER BY code;`
+
+### 2-2. 탭 글·꼬리표·표지 (`book-texts`의 kind)
+
+```
+./gradlew bootRun --args='--spring.profiles.active=collection-import
+  --chaekcheck.collection.import.mode=book-texts
+  --chaekcheck.collection.import.book-texts-file=<TSV 경로>'
+```
+
+- 파일은 [6-aisearch.md](6-aisearch.md) 2절과 같은 `kind<TAB>book_id<TAB>source<TAB>made_on<TAB>text`. 사이클 23 kind:
+  - `for_you_blurb`: `text` 1~300자(PC는 80~150자, R8-4), `made_on` 날짜. 그 책의 글을 덮어씀(upsert)
+  - `tags`: `text` = 코드 쉼표 목록(앞뒤 빈칸은 떼고 중복은 하나로, 비우면 그 책의 꼬리표를 모두 뗌), `made_on` 날짜. 그 책의 꼬리표를 통째로 바꿈. 사전에 없는 코드는 건너뛰고 수를 셈(WARN)
+  - `cover_file`: `text` = 표지 파일 sha1(소문자 16진 40자), `made_on`은 읽지 않음(비워도 됨). 파일은 운영 `/srv/chaekcheck/covers/<sha1>.jpg`에 먼저 둠(nginx `^/covers/[0-9a-f]{40}\.jpg$`가 이미 보냄)
+  - 세 kind는 `source`를 읽지 않습니다(비워도 됨). 한 책에 kind마다 한 줄
+- `search_line`은 사이클 24 그대로입니다. 단, **`search_line` 없이 사이클 23 kind만 있는 파일은 AI 찾기 표(`aisearch.search_book`)를 건드리지 않고 목록 책도 읽지 않습니다**(사이클 24 규칙대로라면 한 줄이 든 표에서 거부되거나, 비어 있으면 목록 책만 다시 넣음). `search_line`이 한 줄이라도 있으면 사이클 24와 같이 목록 책 전부를 바꿔 넣습니다
+- 한 파일의 모든 kind를 한 트랜잭션에서 넣습니다(하나가 실패하면 모두 그대로)
+- 로그: 사이클 24 줄(또는 `no search line: the AI search's books were left as they are`) 다음에 `book-texts for you: blurbs N, books with tags replaced N, tag codes not in the dictionary N, covers N`
+
+### 2-3. 이웃 (`neighbours`)
+
+```
+./gradlew bootRun --args='--spring.profiles.active=collection-import
+  --chaekcheck.collection.import.mode=neighbours
+  --chaekcheck.collection.import.neighbours-load=full
+  --chaekcheck.collection.import.neighbours-file=<파일 경로>'
+```
+
+- `neighbours-load`: `full`(새 표 `foryou.book_neighbour_next`에 COPY → 짧은 트랜잭션에서 바꿔 끼우기, 실패하면 앞 표 그대로) | `add`(파일의 책만 upsert, 한 트랜잭션). **기본값 없음**(빠뜨려서 표 전체를 바꾸는 일이 없게)
+- 파일 [안]: 첫 줄 `# export_id=<UUID>`, 줄마다 `book_id<TAB>이웃1,이웃2,…`(가까운 차례, 1~20개, 자기 자신·중복 없음, 번호 ≤ 2,147,483,647, 한 책 한 줄). 책 줄이 없으면 거부
+- `export_id`는 PC가 이웃을 계산한 카탈로그의 내보내기 번호(UUID)입니다: 이 DB의 **마지막 SUCCEEDED** `collection.catalog_import.export_id`(`apply`·`finish`가 남김, `in-place`는 NULL)와 다르면 파일을 읽기 전에 거부합니다(책 번호가 다를 수 있음). 번호가 같다는 것을 알 때만 `--chaekcheck.collection.import.force=true`를 붙입니다(WARN 한 줄). `force`는 이 모드에서만 받습니다
+  ```sql
+  SELECT export_id, imported_at FROM collection.catalog_import
+  WHERE status = 'SUCCEEDED' ORDER BY imported_at DESC, id DESC LIMIT 1;
+  ```
+- `computed_on`은 돌린 날(Asia/Seoul)입니다. 파일에는 날짜가 없습니다
+- 약 134만 줄: 파일을 한 번 읽어 검사(줄을 메모리에 두지 않음)한 뒤 다시 읽으며 넣습니다
+- 로그: `neighbours full: rows N, export <UUID>, computed_on YYYY-MM-DD`
 - 크기·시간(2026-10-24, 클라우드 시험 DB, 가짜 이웃 1,340,875줄 × 20): COPY 약 4.6초, 표 219MB. 운영에서는 바꿔 끼우는 동안 잠깐 두 벌(약 0.44GB)

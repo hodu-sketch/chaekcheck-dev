@@ -75,12 +75,15 @@ class ModularityTests {
 	/**
 	 * Cycle 13 (ADR-0083, ADR-0093): collection adds libraries through library's LibraryRegistry, never the other way;
 	 * collection uses catalog and library, since cycle 21 picks for the recommended lists (ADR-0123) and since cycle 24
-	 * aisearch for the book-texts mode (ADR-0151).
+	 * aisearch for the book-texts mode (ADR-0151) and since cycle 23 step 3-3 foryou for the neighbours mode and the
+	 * for-you kinds of book-texts (ADR-0149); foryou does not know collection.
 	 */
 	@Test
 	void collectionUsesLibraryAndLibraryNotCollection() {
-		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "aisearch");
+		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "aisearch",
+				"foryou");
 		assertThat(dependenciesOf("library")).doesNotContain("collection");
+		assertThat(dependenciesOf("foryou")).doesNotContain("collection");
 	}
 
 	/**
