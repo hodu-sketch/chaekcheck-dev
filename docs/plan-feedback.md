@@ -6397,6 +6397,17 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
   - 서버 여유: 잴 때 사용 가능 메모리 740~940MB, 스왑 568MB 쓰는 중 → 백엔드 안에 넣으면 남는 여유가 300~400MB [추론]. 서버 파일 562MB는 그대로 둠(필요 없으면 `rm -rf /srv/chaekcheck/kure-test`)
 - 남은 것: Java에서 돌리는 길(ONNX Runtime Java + 토크나이저), pgvector 이미지, 하이브리드 전후 비교
 
+## v1.15.0: 질문 벡터(임베딩 서버)·기준 책 이웃·소개 없는 책 빼기 (2026-10-25)
+
+사용자: "micro 한 대를 임베딩 전용으로 두자, 서로 다른 곳에서 소통하나 서버에 직접 임베딩하나 이걸 선택으로서 가능하게 구현해줘" → "v1.15.0 배포하고 임베딩 서버 방식으로 벡터 켜고, 소개 없는 3,712권 빼는 넣기도 돌려줘". **설계(ADR-0150·0151: 후보는 낱말 맞추기) 변경**이라 plan 회고에서 기록 필요.
+
+- 코드: 평가 세션의 c0fc25e(백엔드 안 int8 KURE + RRF + 기준 책 이웃) 위에 `chaekcheck.aisearch.vector.encoder: local|remote`(`KureQuestionVectors` = 책 벡터 + `OnnxQuestionEncoder`/`RemoteQuestionEncoder`), 새 앱 `embed-service/`(Spring Boot, `POST /api/v1/embed`, `X-Embed-Token`), `book-texts`의 `search_exclude` 줄
+- 임베딩 서버: micro EC2 `chaekcheck-embed`(t4g.micro, 무료 플랜 크레딧), 사설 172.31.45.141:8090, 보안 그룹은 운영 서버에서만. 토큰은 사용자가 CloudShell에서 Parameter Store에 넣음(무작위, 아무도 보지 않음), 임베딩 서버에는 운영 서버 권한으로 읽어 옮김. 자세히 `docs/maintenance/6-aisearch.md` 7-1
+- 배포 전 확인: 백엔드 전체 시험(접속 수 부족 4개는 따로 다시 돌려 통과), `AiSearchEvalReplayTests` 후보가 c0fc25e 때와 바이트까지 같음(벡터 켬·끔), 운영 서버→임베딩 서버 46~59ms
+- 배포: v1.15.0(1d98107) backend·web. 시작 로그 `ai search vectors on (REMOTE): 30937 books x 1024`. 넣기 `book-texts-30k-exclude-2026-10-25.tsv` → `listed books 1911, most held 30000 (25316 not listed, 3712 excluded), stored 27227, with line 27227`
+- 운영 확인: 「번아웃이 왔을 때 읽을 책」 소진·무기력 책 8장, 「아몬드 같은 성장 소설」 청소년 성장 소설 8장(`named book`), 로그 `candidates 30 (vector 60)`. 운영 백엔드 374MB(모델 없음), 임베딩 컨테이너 484MB
+- 운영 서버 임시 컨테이너 전후 비교(29개 질문, 실제 Haiku, 섞기 30·30의 시험판): 카드 196→202장, 끊긴 답 1→0. 과학책·잠들기 전·조선 이야기·짧은 소설은 나아지고 「미래 소비 트렌드」 5→1장
+
 # 사이클 23
 
 「나에게 맞는 책」(추천도서 탭 맨 앞, `/picks/for-you`). 인계서 plan `docs/cycles/23-for-you-picks/handoff.md`(plan main `18133c3`), 기준 설계 같은 폴더 `design-delta.md`(ADR-0147·0148·0149). dev 클라우드 세션 `사이클 23 「나에게 맞는 책」 개발`.
