@@ -96,3 +96,20 @@ FROM aisearch.search_book;
 - 두 쪽의 모델 코드는 같습니다(백엔드 `OnnxQuestionEncoder` = `embed-service`의 `QueryEncoder`). 고칠 때 함께 고치고, 두 쪽 모델 시험(`KureQuestionVectorsModelTests`, `QueryEncoderModelTests`, `AISEARCH_MODEL_DIR`)이 `parity.json`과 맞는지 봅니다
 - 이 PC에서 잰 값(2026-10-25, `-Xmx128m`): 올리기 1.9초, 질문 하나 40~60ms, 프로세스 약 565MB
 
+#### 임베딩 서버 (micro EC2, 2026-10-25)
+
+| 항목 | 값 |
+|---|---|
+| 인스턴스 | `chaekcheck-embed` `i-098cd64ff48a14550`, t4g.micro(ARM, 메모리 904MB + 스왑 1GB), Ubuntu 24.04, 16GB gp3, ap-southeast-2b(운영과 같은 서브넷 `subnet-0e10283f90a669274`) |
+| 주소 | 사설 `172.31.45.141`(백엔드가 쓰는 주소, 멈췄다 켜도 그대로), 공인 `13.211.237.221`(SSH용, 멈췄다 켜면 바뀜) |
+| 보안 그룹 | `chaekcheck-embed` `sg-01e9e764c2cf06b25`: 8090은 운영 서버 보안 그룹 `sg-0f424434c56c5d021`에서만, 22는 관리 PC IP에서만(IP가 바뀌면 이 규칙을 고침) |
+| SSH | 운영과 같은 키: `ssh -i .secrets/chaekcheck-key.pem ubuntu@13.211.237.221` |
+| 비용 | 무료 플랜 크레딧에서 나감(계정은 무료 플랜, 2026-10-25 남은 크레딧 $197.96) |
+| 파일 | `/srv/embed/model/`(모델 폴더, `parity.json` 포함), `/srv/embed/embed.env`(chmod 600, `EMBED_TOKEN=`) |
+| 컨테이너 | `docker run -d --name embed --restart unless-stopped -p 8090:8090 --env-file /srv/embed/embed.env -e EMBED_MODEL_DIR=/model -e JAVA_TOOL_OPTIONS="-Xmx128m -XX:+ExitOnOutOfMemoryError" -e TZ=Asia/Seoul -v /srv/embed/model:/model:ro --memory=750m chaekcheck/embed:0.1.0` |
+| 이미지 | PC에서 `embed-service/`의 `./gradlew bootJar` 뒤 WSL `docker buildx build --platform linux/arm64 -t chaekcheck/embed:X.Y.Z --load .` → `docker save | gzip` → scp → `docker load` |
+
+- 잰 값(2026-10-25): 모델 올리기 4.3초, 컨테이너 435~456MB, 질문 하나 60~68ms(첫 번째 1.9초), 운영 서버→임베딩 서버 3~5ms. 운영 서버에서 `curl http://172.31.45.141:8090/api/v1/health` → `{"ready":true}`, 토큰 없이 `/api/v1/embed` → 401, 인터넷에서는 막힘
+- **토큰**: Parameter Store `/chaekcheck/prod/CHAEKCHECK_AISEARCH_EMBED_TOKEN`(SecureString, 무작위 값)을 사람이 넣음. 운영은 `up.sh`가 secrets.env로 읽고, 임베딩 서버는 같은 값을 `/srv/embed/embed.env`의 `EMBED_TOKEN=`에 넣고 `docker rm -f embed` 뒤 위 명령으로 다시 띄움. 토큰이 비어 있으면 모든 요청이 401이고, 백엔드는 낱말만으로 검색함
+- 운영에서 켜기(prod.env): `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`, 운영 모델 폴더에는 `book-vectors.bin`만. 서버 안으로 바꾸려면 `ENCODER=local`과 모델 파일 셋을 더 둠
+
