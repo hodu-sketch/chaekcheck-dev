@@ -6633,3 +6633,12 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 운영 이웃: export_id 같음(가져오기 14), `neighbours full` 30,937줄(computed_on 2026-10-25)
 - 24 쪽: 공개 API `foryou.BookNeighbours.of(Collection<Long>)`, AI 검색 이어서 묻기에 앞 책 이웃을 후보로
 - 운영에 아직 없는 것: 탭 표지(`covers-export` + `cover_file`), 탭 추천 글(`for_you_blurb`, API 키 대기) → 사용자 승인 뒤 23에서. "AI가 골랐어요" 줄은 글·꼬리표 없이 보임
+
+### 운영 탭 표지 (2026-10-25 11:2x~11:31, 사용자 "운영에 탭 표지 넣어줘 … 디스크 여유를 먼저 확인해줘")
+
+- 넣기 전 운영 디스크: `/` 29G 중 8.4G 여유(71%), `/srv/chaekcheck/covers` 34M·2,472장. docker 이미지 정리 가능분 3.2GB. 메모리 1.8GB 중 사용 가능 765MB
+- 그림: `covers-export`의 jpg 29,586장을 tar 하나(370MB, sha256 b65b79b0…)로 묶어 올리고 `/srv/chaekcheck/covers`에 풂(덮어써도 같은 이름 = 같은 그림). 뒤: 30,961장(1,097장은 이미 있던 이름), 411M, 디스크 여유 7.9G
+  - 주의: 처음에 `/tmp`로 올리다 실패 — **운영 `/tmp`는 메모리 tmpfs(918M)**라 큰 파일을 두면 서버 메모리를 먹음. 바로 지우고 `/srv/chaekcheck/`로 올림. 앞으로 큰 파일은 `/srv/chaekcheck/` 아래로
+- 연결: `/srv/chaekcheck/book-texts/c23-cover_file.tsv`(29,588줄), 운영 export_id `d09d649f…`가 파일의 가져오기 14와 같음을 확인 뒤 6-aisearch.md 2절 꼴의 `docker compose run --rm --no-deps … book-texts`로 넣음 → `covers 29588`, `no search line: the AI search's books were left as they are`(`aisearch.search_book` 1,911 그대로)
+- 확인: `https://chaekcheck.com/api/v1/for-you/books` 1,831권 중 표지 있음 1,806, 표지 주소 200 image/jpeg
+- 다음 책 표 반영 때 디스크: 10-20 반영은 여유 12GB에서 최저 3.9GB까지 내려감(약 8GB를 잠깐 씀) → 지금 7.9GB면 다음 반영에서 거의 0까지 내려갈 수 있음 [추론]. 반영 전에 정리(안 쓰는 docker 이미지 3.2GB) 또는 디스크 늘리기가 필요
