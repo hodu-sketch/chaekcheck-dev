@@ -8,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
 import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
+import com.chaekcheck.foryou.BookNeighbours;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
 import com.chaekcheck.usagelog.UsageLog;
@@ -70,6 +72,8 @@ public class AiSearchFlow {
 
 	private final SearchBooks searchBooks;
 
+	private final BookNeighbours neighbours;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -77,12 +81,14 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			SearchBooks searchBooks, UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
+			SearchBooks searchBooks, BookNeighbours neighbours, UsageLog usageLog, AiSearchProperties properties,
+			JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
 		this.listedBooks = listedBooks;
 		this.searchBooks = searchBooks;
+		this.neighbours = neighbours;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -125,6 +131,12 @@ public class AiSearchFlow {
 	 * topic fits, some of the conditions may not). A lower pick sends neither card nor text.
 	 */
 	static final int MIN_FIT = 2;
+
+	/**
+	 * Neighbours of the books shown before that a follow-up question pointing at them gets as candidates, at most
+	 * (user 2026-10-25 "이어서 묻기에 앞 책의 이웃을 후보로", [안] 12).
+	 */
+	static final int MAX_NEIGHBOUR_CANDIDATES = 12;
 
 	/** Thrown into the model client when the client is gone; ends the stream as {@code CANCELLED}. */
 	private static final class ClientGone extends RuntimeException {
@@ -245,11 +257,23 @@ public class AiSearchFlow {
 		int max = properties.limits().candidates();
 		LinkedHashSet<Long> chosen = new LinkedHashSet<>();
 		if (refers) {
-			Map<Long, Integer> counts = candidates.planCounts(lastShown, input.planLibraryIds());
+			// the plan library counts of the books shown last and of their neighbours, in one query
+			Map<Long, List<Long>> found = neighbours.of(lastShown);
+			Set<Long> asked = new LinkedHashSet<>(lastShown);
+			found.values().forEach(asked::addAll);
+			Map<Long, Integer> counts = candidates.planCounts(asked, input.planLibraryIds());
 			lastShown.stream().filter(counts::containsKey).limit(max).forEach(id -> {
 				chosen.add(id);
 				planCount.put(id, counts.get(id));
 			});
+			for (long bookId : nearby(lastShown, found, shownBefore,
+					id -> counts.containsKey(id) && known.containsKey(id))) {
+				if (chosen.size() >= max) {
+					break;
+				}
+				chosen.add(bookId);
+				planCount.put(bookId, counts.get(bookId));
+			}
 		}
 		Set<Long> excluded = refers ? Set.copyOf(chosen) : shownBefore;
 		for (Candidate candidate : candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
@@ -274,6 +298,34 @@ public class AiSearchFlow {
 			.toList();
 		run.candidateCount = ids.size();
 		picks(input, history, ids, choices, known, listed, planCount, run);
+	}
+
+	/**
+	 * The neighbours of the books shown last that the plan libraries hold and that were not shown before, the nearest
+	 * of each book first, then the second nearest of each, and so on; at most {@value #MAX_NEIGHBOUR_CANDIDATES}.
+	 */
+	private static List<Long> nearby(List<Long> lastShown, Map<Long, List<Long>> found, Set<Long> shownBefore,
+			Predicate<Long> held) {
+		List<Long> nearby = new ArrayList<>();
+		Set<Long> taken = new HashSet<>(shownBefore);
+		for (int rank = 0; nearby.size() < MAX_NEIGHBOUR_CANDIDATES; rank++) {
+			boolean more = false;
+			for (long shown : lastShown) {
+				List<Long> ids = found.getOrDefault(shown, List.of());
+				if (rank >= ids.size()) {
+					continue;
+				}
+				more = true;
+				long id = ids.get(rank);
+				if (held.test(id) && taken.add(id) && nearby.size() < MAX_NEIGHBOUR_CANDIDATES) {
+					nearby.add(id);
+				}
+			}
+			if (!more) {
+				break;
+			}
+		}
+		return nearby;
 	}
 
 	private KeywordPlan keywords(String question, List<ShownTurn> history, Run run) {

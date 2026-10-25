@@ -4,6 +4,8 @@ import type {
   BookRole,
   BookSort,
   DocumentKey,
+  ForYouBooks,
+  ForYouSimilar,
   LatestJoinSurvey,
   LibraryEligibilityRow,
   LibraryPage,
@@ -215,6 +217,31 @@ export function fetchPicksShelf(plan: PlanParams, signal?: AbortSignal): Promise
   planParams(search, plan)
   const suffix = search.size ? `?${search}` : ''
   return getJson(`/api/v1/picks/shelf${suffix}`, signal)
+}
+
+/** `GET /api/v1/for-you/books` (cycle 23): today's base list, only books a plan library holds. */
+export function fetchForYouBooks(plan: PlanParams, signal?: AbortSignal): Promise<ForYouBooks> {
+  const search = new URLSearchParams()
+  planParams(search, plan)
+  const suffix = search.size ? `?${search}` : ''
+  return getJson(`/api/v1/for-you/books${suffix}`, signal)
+}
+
+/**
+ * `GET /api/v1/for-you/similar-books` (cycle 23): the neighbours of up to three base books and up to six books to show
+ * again. Only these ids leave the browser; the record of seen books stays in it (R5-1).
+ */
+export function fetchForYouSimilar(
+  baseBookIds: number[],
+  reshowBookIds: number[],
+  plan: PlanParams,
+  signal?: AbortSignal,
+): Promise<ForYouSimilar> {
+  const search = new URLSearchParams()
+  search.set('baseBookIds', baseBookIds.join(','))
+  if (reshowBookIds.length) search.set('reshowBookIds', reshowBookIds.join(','))
+  planParams(search, plan)
+  return getJson(`/api/v1/for-you/similar-books?${search}`, signal)
 }
 
 /**

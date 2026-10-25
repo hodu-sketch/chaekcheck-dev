@@ -72,6 +72,8 @@ class UsageEventApiTests {
 	void screenActionsAreOneRowEach() { // AC-23 (server part)
 		post("{\"type\":\"picks_list_view\",\"list\":\"librarian\",\"category\":\"11\"}");
 		post("{\"type\":\"picks_book_view\",\"list\":\"snu100\",\"category\":\"korean_lit\",\"bookId\":345}");
+		// cycle 23: the 「나에게 맞는 책」 tab, its card from the personal picks
+		post("{\"type\":\"picks_book_view\",\"list\":\"for_you\",\"category\":\"similar\",\"bookId\":345}");
 		post("{\"type\":\"region_change\",\"residenceRegionIds\":[1114],\"workRegionIds\":[]}");
 		post("{\"type\":\"my_library_add\",\"libraryId\":%d}".formatted(library));
 		post("{\"type\":\"my_library_remove\",\"libraryId\":%d}".formatted(library));
@@ -80,11 +82,12 @@ class UsageEventApiTests {
 		assertThat(jdbc.sql("""
 				SELECT kind, picks_list, picks_category, book_id, array_to_string(residence_region_ids, ',') AS residence,
 				  array_to_string(work_region_ids, ',') AS work, library_id
-				FROM usagelog.screen_event ORDER BY id""").query().listOfRows()).hasSize(5)
+				FROM usagelog.screen_event ORDER BY id""").query().listOfRows()).hasSize(6)
 			.extracting(r -> r.get("kind") + "|" + r.get("picks_list") + "|" + r.get("picks_category") + "|"
 					+ r.get("book_id") + "|" + r.get("residence") + "|" + r.get("work") + "|" + r.get("library_id"))
 			.containsExactly("picks_list_view|librarian|11|null|null|null|null",
 					"picks_book_view|snu100|korean_lit|345|null|null|null",
+					"picks_book_view|for_you|similar|345|null|null|null",
 					"region_change|null|null|null|1114||null", "my_library_add|null|null|null|null|null|" + library,
 					"my_library_remove|null|null|null|null|null|" + library);
 		assertThat(UsageLogTestTables.count(jdbc, "rejected_event")).isZero();

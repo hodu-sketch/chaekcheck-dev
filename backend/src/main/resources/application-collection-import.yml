@@ -11,6 +11,10 @@ chaekcheck:
   # login on in .env the import did not start).
   auth:
     enabled: false
+  # The import never builds the for-you list (cycle 23)
+  foryou:
+    build:
+      enabled: false
   # The import never fetches the librarian picks
   picks:
     fetch:

@@ -3,6 +3,7 @@ package com.chaekcheck.collection.internal.importer;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.ZoneId;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -21,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.aisearch.AiSearchBookTexts;
 import com.chaekcheck.catalog.BookLookup;
@@ -29,6 +31,10 @@ import com.chaekcheck.catalog.MostHeldBooks;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.LibraryRegistry;
 import com.chaekcheck.collection.internal.booktexts.BookTextsImport;
+import com.chaekcheck.collection.internal.foryou.NeighboursImport;
+import com.chaekcheck.collection.internal.foryou.TagDictionaryImport;
+import com.chaekcheck.foryou.ForYouTransfer;
+import com.chaekcheck.picks.BookTagTransfer;
 import com.chaekcheck.picks.CuratedListTransfer;
 import com.chaekcheck.picks.ListedBooks;
 import com.sun.management.OperatingSystemMXBean;
@@ -52,9 +58,13 @@ class CatalogImportRunner {
 
 	/**
 	 * The mode values (cycle 11, ADR-0078 [확정]; {@code lists} user 2026-10-19; {@code book-texts} cycle 24,
-	 * ADR-0151).
+	 * ADR-0151; {@code neighbours} and {@code tag-dictionary} cycle 23 step 3-3, ADR-0149).
 	 */
-	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard", "lists", "book-texts");
+	static final Set<String> MODES = Set.of("in-place", "export", "apply", "finish", "discard", "lists", "book-texts",
+			"neighbours", "tag-dictionary");
+
+	/** The day {@code neighbours} writes as {@code computed_on} is the service's day. */
+	private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
 	/** The ways to group books (cycle 11, ADR-0079 [확정]). */
 	static final Set<String> GROUPINGS = Set.of("objects", "compact", "sql");
@@ -67,7 +77,9 @@ class CatalogImportRunner {
 	 * @param mode {@code in-place} (default: load and swap in this database), {@code export} (load into new tables
 	 * and write them into {@code file}), {@code apply} (load {@code file} here), {@code finish} (swap in the new tables
 	 * waiting for {@code file}), {@code discard} (drop the new tables) or {@code lists} (only the recommended lists of
-	 * {@code listsDir}, matched to the catalog in this database; user 2026-10-19). docs/maintenance/3-import.md 13, 14
+	 * {@code listsDir}, matched to the catalog in this database; user 2026-10-19). docs/maintenance/3-import.md 13, 14.
+	 * The text modes {@code book-texts} (cycle 24), {@code neighbours} and {@code tag-dictionary} (cycle 23) touch no
+	 * catalog table
 	 * @param file the export file of {@code export}, {@code apply} and {@code finish}
 	 * @param grouping how the books are grouped (ADR-0079): {@code compact} (default since 2026-10-12, user decision
 	 * after the cycle 11 measurement), {@code objects} (one object per unit; called {@code current} until 2026-10-12) or
@@ -86,14 +98,23 @@ class CatalogImportRunner {
 	 * and a real {@code in-place} stop before reading the collection DB when it or a list file is missing; {@code lists}
 	 * reads only it
 	 * @param bookTextsFile the TSV of mode {@code book-texts} (cycle 24, ADR-0151): the AI search's lines, put in with
-	 * every listed book of this database; docs/maintenance/6-aisearch.md
+	 * every listed book of this database; docs/maintenance/6-aisearch.md. Since cycle 23 step 3-3 (ADR-0149) also the
+	 * for-you tab's blurbs, tags and cover file keys; docs/maintenance/7-foryou.md 2
+	 * @param neighboursFile the file of mode {@code neighbours} (cycle 23, ADR-0149): {@code # export_id=…}, then
+	 * {@code book_id\tn1,n2,…}
+	 * @param neighboursLoad mode {@code neighbours}' {@code full} (swap the whole table in) or {@code add} (upsert); no
+	 * default, so a full swap is never made by leaving it out
+	 * @param tagDictionaryFile the TSV of mode {@code tag-dictionary} (cycle 23, ADR-0149 decision #9)
+	 * @param force mode {@code neighbours} only: put the file in although its {@code export_id} is not the one of this
+	 * database's latest succeeded catalog import
 	 * @param bookTextsTopBooks how many of the books held by the most libraries mode {@code book-texts} adds to the
 	 * listed books (user 2026-10-25: 30,000; 0 = listed books only)
 	 */
 	@ConfigurationProperties("chaekcheck.collection.import")
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
 			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir,
-			boolean storedBibliography, Path listsDir, Path bookTextsFile, Integer bookTextsTopBooks) {
+			boolean storedBibliography, Path listsDir, Path bookTextsFile, Path neighboursFile, String neighboursLoad,
+			Path tagDictionaryFile, boolean force, Integer bookTextsTopBooks) {
 
 		Settings {
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
@@ -130,6 +151,22 @@ class CatalogImportRunner {
 				throw new IllegalStateException(
 						"Set chaekcheck.collection.import.book-texts-top-books (0 or more) for mode book-texts");
 			}
+			if (mode.equals("neighbours")) {
+				if (neighboursFile == null) {
+					throw new IllegalStateException("Set chaekcheck.collection.import.neighbours-file for mode neighbours");
+				}
+				if (neighboursLoad == null || !NeighboursImport.LOADS.contains(neighboursLoad)) {
+					throw new IllegalStateException("Set chaekcheck.collection.import.neighbours-load to one of "
+							+ NeighboursImport.LOADS + " for mode neighbours: " + neighboursLoad);
+				}
+			}
+			if (mode.equals("tag-dictionary") && tagDictionaryFile == null) {
+				throw new IllegalStateException(
+						"Set chaekcheck.collection.import.tag-dictionary-file for mode tag-dictionary");
+			}
+			if (force && !mode.equals("neighbours")) {
+				throw new IllegalStateException("force is a setting of mode neighbours only; mode " + mode + " has none");
+			}
 			if (storedBibliography && ttlPath != null) {
 				throw new IllegalStateException("Set either ttl-path or stored-bibliography, not both");
 			}
@@ -149,7 +186,7 @@ class CatalogImportRunner {
 			CatalogLoad catalogLoad, JdbcClient jdbc, DataSource dataSource,
 			PlatformTransactionManager transactionManager, Settings settings, ConfigurableApplicationContext context,
 			CuratedListTransfer curatedLists, BookLookup bookLookup, ListedBooks listedBooks,
-			AiSearchBookTexts bookTexts, MostHeldBooks mostHeldBooks) {
+			AiSearchBookTexts bookTexts, ForYouTransfer forYou, BookTagTransfer bookTags, MostHeldBooks mostHeldBooks) {
 		return (ApplicationArguments args) -> {
 			settings.check();
 			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
@@ -173,9 +210,12 @@ class CatalogImportRunner {
 				case "finish" -> transfer.finish(settings.file());
 				case "discard" -> log.info("discarded: {}", transfer.discard());
 				case "lists" -> transfer.listsOnly(bookLookup);
-				case "book-texts" -> new BookTextsImport(listedBooks, mostHeldBooks, settings.bookTextsTopBooks(),
-						bookTexts)
+				case "book-texts" -> new BookTextsImport(listedBooks, mostHeldBooks, settings.bookTextsTopBooks(), bookTexts,
+						forYou, bookTags, new TransactionTemplate(transactionManager))
 					.run(settings.bookTextsFile());
+				case "neighbours" -> new NeighboursImport(jdbc, forYou, Clock.system(SERVICE_ZONE))
+					.run(settings.neighboursFile(), settings.neighboursLoad(), settings.force());
+				case "tag-dictionary" -> new TagDictionaryImport(bookTags).run(settings.tagDictionaryFile());
 				default -> {
 					if (!settings.dryRun()) {
 						transfer.requireNoWaitingExport();

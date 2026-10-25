@@ -1,0 +1,32 @@
+# Cycle 23 (ADR-0149): the tag dictionary as a table (decision #9, people confirm it) and the tags of the listed books
+# (R9-1). A code left out of a new dictionary file is kept with active = false, never deleted, so book_tag needs no
+# index on tag_code for the foreign key check.
+databaseChangeLog:
+  - changeSet:
+      id: picks-006-tag-dictionary
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE picks.tag_dictionary (
+                code text CONSTRAINT tag_dictionary_pkey PRIMARY KEY
+                  CONSTRAINT tag_dictionary_code_check CHECK (code ~ '^[A-Za-z0-9_]{1,20}$'),
+                axis text NOT NULL CONSTRAINT tag_dictionary_axis_check CHECK (axis IN ('mood', 'subject', 'audience')),
+                name text NOT NULL,
+                thema_code text,
+                active boolean NOT NULL DEFAULT true
+              )
+
+  - changeSet:
+      id: picks-006-book-tag
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE picks.book_tag (
+                book_id bigint NOT NULL,
+                tag_code text NOT NULL
+                  CONSTRAINT book_tag_tag_code_fkey REFERENCES picks.tag_dictionary (code),
+                made_on date NOT NULL,
+                CONSTRAINT book_tag_pkey PRIMARY KEY (book_id, tag_code)
+              )

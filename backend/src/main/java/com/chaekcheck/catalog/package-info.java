@@ -8,6 +8,9 @@
  * lists against the prepared tables through {@link com.chaekcheck.catalog.CatalogLoad#preparedLookup()}. Since cycle 24
  * {@link com.chaekcheck.catalog.BookAuthors} gives picks our books' author text for the AI book search.
  * <p>
+ * The 「나에게 맞는 책」 tab (cycle 23, ADR-0149): {@link com.chaekcheck.catalog.BookCards} gives the foryou module the
+ * card fields, our book of a holding a library site lists, and the representative edition of a work.
+ * <p>
  * Separate import (cycle 11, ADR-0078): {@link com.chaekcheck.catalog.CatalogLoad} also exports the new tables as one
  * file on the PC and applies that file on the production database.
  */

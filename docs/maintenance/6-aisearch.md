@@ -12,7 +12,7 @@
 ## 2. 파일
 
 - UTF-8 TSV, 머리줄 `kind	book_id	source	made_on	text` [안]. BOM과 Windows 줄 끝(`\r\n`)은 받습니다
-- `kind`: 이번에는 `search_line`만 읽습니다. 다른 값(사이클 23의 글 등)은 건너뛰고 종류별 수를 로그에 남깁니다
+- `kind`: 이 문서는 `search_line`입니다. 사이클 23의 `for_you_blurb`·`tags`·`cover_file`은 [7-foryou.md](7-foryou.md) 2-2절(그 kind만 있는 파일은 `search_book`을 건드리지 않음). 다른 값은 건너뛰고 종류별 수를 로그에 남깁니다
 - `book_id`: 우리 책 번호(`catalog.book.id`). **수집을 반영한 뒤의 DB 번호**로 뽑습니다(사용자 결정 2026-10-24, `plan-feedback.md` `# 사이클 24` "1단계")
 - `source`: `intro`(소개 원문으로 만듦) | `bibliographic`(서지만으로 만듦). `made_on`: `YYYY-MM-DD`
 - `text`: 1~300자. 탭·줄바꿈 없음

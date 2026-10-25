@@ -1,0 +1,13 @@
+# Cycle 23 (ADR-0148): the 「나에게 맞는 책」 tab for_you in the picks screen events (category all, base or similar).
+# 007 is applied in production, so its check is made again here with for_you added.
+databaseChangeLog:
+  - changeSet:
+      id: usagelog-009-screen-event-picks-list-for-you
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: ALTER TABLE usagelog.screen_event DROP CONSTRAINT screen_event_picks_list_check
+        - sql:
+            sql: >-
+              ALTER TABLE usagelog.screen_event ADD CONSTRAINT screen_event_picks_list_check
+                CHECK (picks_list IN ('librarian', 'leedongjin', 'snu100', 'kaist', 'nobel', 'for_you'))

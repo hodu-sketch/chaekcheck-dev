@@ -6281,6 +6281,15 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
   - 비용: 이 비교 전부(약 120요청) 합쳐 그날 `daily_usage` 약 $0.1 이하
 - 임베딩(사용자 "이것도 같이 해줘, 23dev한테 임베딩 물어보고"): 23 세션 답 — 이웃 `foryou.book_neighbour(book_id, neighbour_ids int[] 1~20, computed_on)` 30,937권(추천목록 1,911권 포함)은 **로컬 DB에만**, 23 브랜치는 main 미합침, foryou에 공개 읽기 API 없음(aisearch가 표를 직접 읽으면 모듈 규칙 위반), 벡터는 PC 파일에만(1024차원 KURE-v1, pgvector 계획 없음), 작은 모델·ONNX 측정 없음, 꼬리표 사전은 아직 없음. → 이번 배포에 넣지 않음. 필요한 결정: (가) 이어서 묻기에 앞 책의 이웃을 후보로 더하기 = 23 합침 + 운영 `neighbours` 넣기 + foryou 읽기 API (나) 질문 벡터 = 서버에서 돌릴 작은 모델 또는 외부 임베딩 API를 정하고 책 벡터를 그 모델로 다시 만듦(pgvector 또는 메모리)
 
+## 이웃을 AI 검색에 + 사이클 23 합침 (2026-10-25, v1.11.0)
+
+사용자: "임베딩은 (가) 이웃부터: 23 합치기·운영 neighbours 넣기·foryou 읽기 API를 준비해서 이어서 묻기에 앞 책의 이웃을 후보로 더해줘". 23 세션 답: 코드는 e78c7c4로 push 끝, 체크포인트 D(사용자 폰 확인) 중, 운영 반영은 사용자 승인 뒤 한 번 → 사용자에게 물음: "수집 끄고 배포 (추천)".
+- 합침: `origin/claude/cycle-23-for-you-picks-kzjabw`(e78c7c4)를 main에 merge. 겹침은 master changelog 끝 한 곳(sitecontent/004 다음에 foryou/001, picks/006, usagelog/009). 23의 `spring.test.context.cache.maxSize=20`으로 db-test "too many clients"가 사라짐. 시험: 백엔드 전체 통과, 웹 vitest 696/696, 웹 빌드
+- 운영 `CHAEKCHECK_FORYOU_BUILD_ENABLED=false`(compose에 전달 줄을 새로 둠, 기본 false): 서버 켤 때·03:30 인기순 받기 안 함, 탭은 추천목록 책만. 켜려면 prod.env true + up.sh
+- 공개 API `com.chaekcheck.foryou.BookNeighbours.of(Collection<Long>)` → `Map<Long, List<Long>>`(가까운 차례), 구현 `JdbcBookNeighbours`가 `BookTexts.neighbours`를 감쌈. aisearch `allowedDependencies`에 foryou, `ModularityTests` 고침
+- `AiSearchFlow`: `refersToShown`이고 앞 책이 있으면 후보 = 앞 책 → 그 책들의 이웃(각 책의 1순위부터 돌아가며, 계획 도서관이 가진 목록 책만, 앞에서 보여 준 책 제외, 최대 `MAX_NEIGHBOUR_CANDIDATES` 12 [안]) → 낱말 후보. 23 세션이 권한 `of(ids, limit)` 대신 limit 없는 꼴로 둠(호출 쪽에서 자름)
+- 운영 이웃: 운영 최신 가져오기 14번 export_id `d09d649f…`가 `neighbours.tsv` 첫 줄과 같음 → force 없이 `neighbours-load=full`
+
 # 사이클 23 소개 시험과 탭 표지 (2026-10-24~25 요청)
 
 plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.md`, 탭 표지 메시지). 보고서: [`docs/reports/cycle23-intro-test-2026-10-25.md`](reports/cycle23-intro-test-2026-10-25.md), 표 `docs/reports/cycle23-intro/`.
@@ -6342,3 +6351,220 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 운영 반영: 배포 + `aisearch-003` 적용 직후 위 파일로 `book-texts`(서버 명령은 6-aisearch.md 3절, `-e CHAEKCHECK_AUTH_ENABLED=false` 등 그대로). **배포는 사용자 결정 전 하지 않음**
 - 3만 권 표지(위 결정 필요), 수집 반영 뒤 번호가 바뀌면 한 줄 다시 만들기, 목록 책 한 줄도 소개 원문으로 바꿀지(지금은 AI 요약 임시)
 - 사이클 23과 합칠 때: `BookTextsImport`·`BookTextsFile`(23이 kind 추가), `CatalogImportRunner`, `CatalogImportSettingsTests` 겹침. 23 세션에 알림(이 세션 메시지)
+# 사이클 23
+
+「나에게 맞는 책」(추천도서 탭 맨 앞, `/picks/for-you`). 인계서 plan `docs/cycles/23-for-you-picks/handoff.md`(plan main `18133c3`), 기준 설계 같은 폴더 `design-delta.md`(ADR-0147·0148·0149). dev 클라우드 세션 `사이클 23 「나에게 맞는 책」 개발`.
+
+## 시작 상태 (2026-10-24)
+
+- 작업 폴더 `/home/user/chaekcheck-dev`(클라우드 컨테이너), 브랜치 `claude/cycle-23-for-you-picks-kzjabw`, 시작 커밋 = dev main 끝 `adba2d3`(plan이 읽은 기준과 같음)
+- docker 프로젝트·포트: 이 컨테이너 안에서만 시험 DB 컨테이너 `db-test`(5433) 하나. 다른 사이클의 docker 프로젝트는 건드리지 않음(이 컨테이너에는 없음)
+  - `docker/postgres-bigm` 이미지는 여기서 만들 수 없음(Debian apt·GitHub 압축 파일이 프록시에서 403). 대신 공식 `postgres:18` + **pg_bigm `v1.2-20250903`을 upstream 소스(git)에서 이 컨테이너 안에서 빌드**해 넣은 로컬 이미지로 같은 이름을 씀. 저장소 파일은 그대로
+  - Gradle: Maven Central이 이 IP에 429를 줘서, 저장소 밖 `~/.gradle/init.d/`에 Google의 Maven Central 사본을 먼저 보는 설정을 둠(사이클 24 세션과 같은 방법)
+- **사이클 24는 dev main에 없음.** 그러나 24 dev 브랜치 `claude/awesome-carson-8416jq`(`bdec6b0`, 2026-10-24)에 서버 4~8단계와 웹 9~10단계가 들어가 있고, 거기서 `picks.ListedBooks`(`current()`·`loadFromDb()`)와 `collection` `book-texts` 모드(`BookTextsFile`·`BookTextsImport`), `usagelog/008-ai-search-event.yaml`을 **이미 만들었음** → 아래 "0단계 8"과 "사용자에게 묻는 것"
+- `PRE_DEPLOYMENT` 표지 파일이 main에 아직 있음(운영 배포는 끝났음). 인계서대로 기존 changeset은 고치지 않고 새 파일로만 더함. 표지를 지울지는 plan이 정할 일로 남김
+
+## 0단계 결과 (체크포인트 A)
+
+| # | 확인 | 결과 | 멈춤? |
+|---|---|---|---|
+| 1 | 프록시 나가는 길이 main에 있는지 | **있음.** `chaekcheck.availability.egress.mode`(`all`·`proxy-only`·`direct-only`, 환경 `CHAEKCHECK_AVAILABILITY_EGRESS_MODE`)와 `egress.proxies`(`host:port` 쉼표, 환경 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`), `proxy-username`·`proxy-password`, `block.*`. 코드 `availability/internal/egress/EgressLanes`가 길 고르기·길마다 호스트 간격(`LaneThrottle`, 호스트당 1건·1초)·막힌 길 쉬기를 함. `proxy-only`는 바로 나가는 길을 절대 쓰지 않음. 운영은 `deploy/prod/compose.yaml`이 `WEBSHARE_PROXIES`를 넘김 | 아니요 |
+| 2 | 교보 일반·YES24 V1 인기순 화면을 지금 어댑터로 읽는지 | **읽음(파서는 그대로, URL과 소장 키만 더함).** 교보 일반 `contentList.ink`는 검색 화면과 같은 짜임(`div.book_resultTxt` "총 N개", `ul.book_resultList > li`, `li.tit a[onclick=fnContentClick(…)]`, `li.writer`, `p.use` "대출 : X/Y 예약 : Z"). 사전 시험 파서(`scripts/crawl/probe_popular.py` `kyobo_rows`)가 지금 `KyoboV1ScreenAdapter.parse`와 같은 선택자로 1,600줄을 읽음. YES24 V1 대출순은 검색 화면 그 자체(`/search/?src_key=&sort=lending`)라 `Yes24V1Adapter.parse` 그대로. 읽는 칸: 제목·저자·출판사·대출 중·예약·보유, 소장 키(교보 `brcd` = `fnContentClick` 둘째 값, YES24 `goods_id`)는 지금 `detailPath` 안에 있어 꺼내기만 하면 됨. **ISBN은 화면에 없음**(소장 키로 맞추므로 필요 없음, 3번). 쪽 크기: 교보는 `recordCount=80`이 사이트 최대(100은 오류 화면, 사전 시험), YES24 V1은 `view=50`까지. → 앞 100권 = 사이트마다 2쪽(교보 80+20, YES24 50+50), 여섯 곳 12건. 저장본 HTML은 git 밖(`data/cycle23-pretest/`, 수집 PC)이라 이 세션에 없음 → 파서 시험은 지금 어댑터 시험 짜임으로 만든 HTML로 하고, 체크포인트 B에서 실제 화면으로 다시 봄 | 아니요 |
+| 3 | 목록 줄 → 책 번호 | 사전 시험은 `(그 도서관의 수집 번호, 소장 키)`로 `catalog.holding.item_key`를 찾음(2,590/2,600). 운영 `catalog.holding`에 **`UNIQUE (library_id, item_key)`**가 있어 같은 색인으로 바로 찾을 수 있음. 공개 API는 아직 없음 → 2단계에서 `catalog`에 "(도서관 번호, 소장 키) → 책 번호" [안: `BookLookup.byHoldingKeys`]를 더함. 못 맞춘 줄만 ISBN이 없으므로 제목+첫 저자(`byTitleAndAuthor`)로 한 번 더 [안] | 아니요 |
+| 4 | `BookLookup`의 저자·출판사·출판 연도 | `IdBook`은 지금 `bookId, title, publisherNorm, libraryIds`뿐. 표 `catalog.book`에는 `author_display`, `publisher`, `published_on`이 있음 → 카드용으로 더함. **`published_on`의 뜻: 같은 책 묶음에 든 소장 줄들의 출판일 가운데 가장 많이 나온 날(같으면 이른 날)** (`collection/internal/importer/SqlGrouping` `grp_date` 다수결). 소장 줄의 날짜는 전자도서관 화면에 적힌 출판일(대개 전자책이 나온 날)이라 "대표 출판일"이고 "가장 이른 소장 날짜"는 아님. 연도 가산은 이 해로 셈 [안] — 사용자 확인 필요 | 아니요 |
+| 5 | 운영 디스크·DB 여유 | 이 세션에서 운영 서버를 볼 수 없어 기록으로만: 2026-10-20 서울도서관 반영 때 정리 뒤 EC2 여유 **12GB**, 책 표 반영 중 최저 **3.9GB**(이 절 위 "서울도서관 연결"). 이웃 약 0.2GB(`full` 바꿔 끼울 때 잠깐 0.4GB) + 표지 약 0.3GB를 더하면 다음 책 표 반영 때 최저 여유가 약 3.4GB로 줄어듦 [추론]. 반영 전(11단계) 실제 `df`로 다시 봄 | 아니요 |
+| 6 | 사용 알림 `category` | **필수.** 서버 `UsageEventReader.category()`가 없으면 `invalid_value`로 거절하고, 표 CHECK도 `picks_list_view`·`picks_book_view`에 `picks_category IS NOT NULL`. 값은 자유 글자(목록 검사 없음, 최대 길이만). [안]: 목록 보기 `category: "all"`, 책 보기는 그 카드가 온 곳 `"base"`(기본 목록) / `"similar"`(개인 추천). CHECK는 그대로 두고 `picks_list`만 넓힘 | 아니요 |
+| 7 | 출판유통·KLWAVE가 프록시 길을 따르는지 | 나가는 길은 `availability` 안쪽이라 `foryou`가 직접 쓸 수 없음(모듈 경계). **따르게 할 수는 있음**: `foryou`의 작은 HTTP 클라이언트가 같은 환경 값(`CHAEKCHECK_AVAILABILITY_EGRESS_MODE`·`…PROXIES`·`…PROXYUSERNAME`·`…PROXYPASSWORD`)을 자기 설정 키로 받아, `proxy-only`이면 첫 프록시(또는 차례로)로만 보냄 [안]. 접근 시험·응답 모양은 이 클라우드 컨테이너가 운영과 다른 길이라 하지 않음. 받을 범위·형식은 사용자 PC 원문 확인 전이라 **세 출처(`kpipa_rank`·`kpipa_200`·`klwave`)는 `enabled=false`로 두고 어댑터 자리만 만듦** | 아니요 |
+| 8 | 24 상태 | 위 "시작 상태". 24 브랜치의 `ListedBook(bookId, title, author, coverPath, libraryIds, listKeys)`, `Snapshot(builtAt, books)`, `loadFromDb()`는 저장된 목록이 비면 `ListsNotReadException`. `book-texts`는 머리줄 `kind\tbook_id\tsource\tmade_on\ttext`, 지금 `search_line`만, 모르는 kind는 건너뛰고 수 보고. **dev에서 먼저 만든 쪽은 24.** 23은 그 위에 kind 셋(`for_you_blurb`·`tags`·`cover_file`)과 `ListedBook.tags` 칸만 더하는 것이 인계서 뜻에 맞음 | 아니요(사용자에게 시작점을 물음) |
+| 9 | 기준 빌드 | 웹: `npm ci`·`npm run build` 통과, vitest **639/639** 통과(이 컨테이너 Node 22). 백엔드 `./gradlew build`: 1,176개 중 실패 2개만 남음 — `LaneThrottleTests.sameLaneKeepsTheIntervalWhileOtherSitesDoNotWait`·`sameHostNameOnDifferentPortsSharesOneSlot`("no free lane … before the deadline", 시간에 기대는 시험, 24 세션도 이 환경에서 같은 실패를 적음). 처음 실패한 `CatalogTransferTests`·`CatalogImportModesTests` 23개는 PG 도구 길(`TEST_PG_COMMAND=docker,exec,-i,…,db-test`)을 주자 모두 통과 → 환경 탓. 이후 단계의 "빌드 통과"는 이 두 시험을 뺀 기준으로 봄 | 아니요 |
+| C3 | 새벽 받기를 조회 통계와 섞지 않음 | 섞이지 않게 할 수 있음. `library_response_daily`는 `BatchRunner`·`LibraryEbookController`(사용자 조회)만 씀. 조회 상태 불의 "기다림"은 `HostQueueBoard`에서 오는데, `RankedListings`는 이것을 거치지 않고 `EgressLanes.fetch`(길마다 호스트 간격은 그대로)를 바로 부르면 됨. 검색 쪽 캐시(`SearchPageCache`)도 쓰지 않음. 다만 길 요청 수(`LaneCounters` → 1분 요약 줄·`availability.lookup_sample`)에는 새벽 12건이 들어감(길마다 센 값이라 나눌 수 없음, 사람이 읽는 운영 수치) — 그대로 둘지 plan 판단 | 아니요 |
+| C4 | 개인 추천 주소가 nginx 기록에 회원 번호와 남는지 | 회원 번호는 남지 않음: `deploy/nginx`에 `log_format`이 없어 이미지 기본(접속 주소·요청 줄·상태·Referer·UA·`X-Forwarded-For`)이고, 로그인은 쿠키라 기록에 없음. 다만 **요청 줄(책 번호)과 접속 IP·UA는 남음**. 서비스 쪽은 요청 주소를 로그에 쓰지 않음 | 보고만 |
+
+- `*.dkyobobook.co.kr`: 지금 설정 `availability.kyobo.subscription-host-suffix: .dkyobobook.co.kr`이 있음. `RankedListings`는 요청 직전 이 호스트면 보내지 않음(3단계 시험으로 확인)
+- 덧붙임: 새벽 만들기 시각 [안] 04:00은 이미 `auth.cleanup.cron` 04:00(가벼운 정리)과 같은 시각. 겹쳐도 문제는 없지만 03:30 [안]을 제안함(사서 받기 05:00과도 떨어짐)
+- 덧붙임: 24 세션 기록에 이 환경에서 원래 실패하는 시험 3개(`LaneThrottleTests` 둘, `CatalogTransferTests.brokenFileKeepsTheCatalog`)가 적혀 있음 → 기준 빌드에서 같은지 봄
+
+## 24와의 일
+
+- 24 plan 세션(`chaekcheck-plan-cycle-24 AI`)에 설계 결정 #7을 세션 메시지로 보내려 했으나 **거절됨**("신뢰된 기기 증명 필요", 2026-10-24). 사용자가 직접 붙여 넣을 글:
+
+  > 사이클 23 설계 결정 #7(사용자 승인 2026-10-24, ADR-0149 결정 3): PC Haiku 배치는 **책 한 권당 한 번 호출**로 탭 추천 글(23, kind `for_you_blurb`)·꼬리표(23, kind `tags`)·찾기용 한 줄(24, kind `search_line`)을 함께 만듭니다. 입력은 **대상 책 목록 파일**이고 다음부터는 새 책만 더 돌립니다(23 대상: 기본 목록 책 + 추천목록 책 약 2,800권 + 보유 많은 3만 권). 결과는 `book-texts.tsv` 한 파일에 kind별로 담아 `book-texts` 모드 한 번으로 넣습니다. 24 dev 브랜치의 2단계 배치("(가) 한 권씩 바로 호출, 요청 파일 `custom_id`=`book_id`")는 이 결정에 맞춰 한 스크립트로 합쳐야 합니다(23 설계는 Message Batches).
+
+- 알린 날·받은 답: (사용자 전달 뒤 적음)
+
+## 사용자 답 (2026-10-24, 0단계 뒤)
+
+- 시작점: **"24가 main에 들어갈 때까지 기다림"**. 그동안 24와 겹치지 않는 부분(`catalog` 카드 칸·소장 키 역조회·`workKeys`, `availability.RankedListings`, `foryou` 표·만들기·API, `picks` 꼬리표 표)만 main 위 이 브랜치에서 만듦. `ListedBooks`·`book-texts`·`usagelog` CHECK(`for_you`)는 24가 main에 들어간 뒤 그 위에 kind·칸만 더함
+- 출판 연도: **"대표 출판일 그대로"** — `catalog.book.published_on`(소장 줄 출판일 다수결)의 해
+- 사용 알림 `category`: **"all / base / similar"** — 목록 보기 `all`, 책 보기는 카드가 온 곳 `base`·`similar`
+
+## 만든 것 (2026-10-24, 브랜치 `claude/cycle-23-for-you-picks-kzjabw`, 24와 겹치지 않는 부분)
+
+| 단계 | 상태 | 커밋 |
+|---|---|---|
+| 1 Liquibase | `foryou/001-for-you.yaml`(표 일곱, CHECK 시험), `picks/006-tag-dictionary-and-book-tag.yaml`. **`usagelog`(`picks_list`에 `for_you`)는 24의 `usagelog-ai-search-event` 다음이어야 하므로 24가 main에 들어간 뒤** | `7d284e7` |
+| 2 `catalog` | 새 공개 타입 `BookCards`: `cards`(첫 저자 표시·출판사·출판 연도·첫 저자 `name_exact`·`library_ids`), `byHoldingKeys`((도서관, 소장 키) → 책, `holding_library_item_key` 색인), `workKeys`(본제목 정리값 같고 AUTHOR·UNKNOWN 이름 공유, 이름 사슬은 합집합, 대표 = 소장 많은 판 → 작은 번호) | `cd264f2` |
+| 3 `availability` | 새 공개 타입 `RankedListings.fetch(libraryId, LOANS, page)`(`SiteRankedListings`): 교보 일반 `contentList.ink?…orderByKey=loanNmvl&recordCount=80`, YES24 V1 `/search/?src_key=&sort=lending&view=50`. 지금 어댑터 파서 그대로, 소장 키는 `detailPath`의 `brcd`·`goods_id`. 다른 화면은 요청 없이 `unsupported_screen`, `*.dkyobobook.co.kr`은 요청 없이 `blocked_host` | `967ef9b` |
+| 4 `picks` (꼬리표 몫) | `BookTagTransfer`(사전 upsert·빠진 코드 `active=false`, 꼬리표 통째로 바꾸기·사전 밖 코드 수), `BookTagTransfer.forCard`(느낌 1 + 주제 1~2, `audience`는 카드에 안 보임 [안]). **`ListedBooks`·`ListedBook.tags`는 24가 main에 들어간 뒤** | `591fb73` |
+| 5 새벽 만들기 | `foryou` 모듈: 출처(사이트마다 앞 100권) → 맞추기 → 빼기(0줄·90% 미만) → 판 모으기 → 점수 → R2-4 → 저장·메모리 사본, 켤 때 `running` → `failed`, 30일 정리(마지막 succeeded 남김), 매일 03:30 [안] | `ef66bd8` |
+| 6 API | `GET /api/v1/for-you/books`, `/api/v1/for-you/similar-books`(검증 코드 넷, 정렬, 점수·출처 칸 없음) | `6918396` |
+| 7 (`foryou` 몫) | `ForYouTransfer`: 이웃 `full`(COPY → `book_neighbour_next` → 한 트랜잭션에서 바꿔 끼움, 도중 실패면 옛 표 그대로), `add`(upsert), 탭 글·표지 upsert, 이웃 줄 규칙. **`collection` 모드(`neighbours`·`tag-dictionary`, `book-texts` kind 셋)는 24의 `CatalogImportRunner`·`BookTextsImport` 위에 붙이므로 24가 main에 들어간 뒤** | `1057138` |
+| 9 웹 | 탭 맨 앞 `/picks/for-you`(`/picks`·머리 메뉴도), `viewedBooks.ts`, `useBookVisit`(열기·보이는 동안 10초), 도서관 누름(`libraryClick`), `forYouOrder.ts`, S18 `ForYouPage`, S19 `BaseBooksDialog`, 사용 알림 `list: 'for_you'`, 탭 줄을 `PicksTabs`로 뺌 | `afa75bc` |
+| 8 `usagelog` | 24 뒤 (위 1단계와 같이) | — |
+| 10 수집 PC | 인계서대로 수집 세션 몫(KURE-v1 이웃, Haiku 배치, 사전 TSV, 표지 옮기기). 넣는 파일 모양은 `docs/maintenance/7-foryou.md` 2절 | — |
+
+- 빌드: 단계마다 `./gradlew build`(이 환경에서 원래 실패하는 `LaneThrottleTests` 시간 시험 1~2개만 실패, 0단계 9), `ModularityTests`·`DocumentationTests` 통과. 웹 `npm run build`·vitest 661/661·oxlint 새 경고 없음
+- 화면: 이 컨테이너의 Playwright(브라우저에서 API를 가짜로 답함)로 1440·768·375 확인, 가로 스크롤 없음, 맨 위 한 권은 PC 표지 왼쪽·태블릿·폰 표지 위, 두 칸 그대로, 폰 S19 아래 시트, 폰 기준 책 줄 두 줄. 사용자 화면 확인·실제 폰 확인은 아직(체크포인트 D)
+- 인기 사이트 `library_id` (체크포인트 B 보고 항목): 교보 일반 서초구립반포 **79**, 연천군 **99**, 도봉문화정보 **60**, 부천시립 **73** / YES24 V1 국립세종도서관(YES24) **263**, 성남시도서관사업소 **229**. seed `library/004`·`005`와 사전 시험 `popular-top100.tsv`의 번호, `collection_link`(같은 번호)가 일치 → `application.yml` 기본값
+- 측정: 이웃 1,340,875줄 × 20(가짜 값) COPY 약 4.6초, 표 219MB(클라우드 시험 DB). 운영 바꿔 끼울 때 잠깐 약 0.44GB
+
+## 설계와 다르게 한 것·[안]으로 정한 것 (사용자에게 알림)
+
+1. **[안] 이름 바꿈**: `BookLookup`을 넓히지 않고 `catalog`에 새 공개 타입 `BookCards`를 둠(24가 `catalog`에 `BookAuthors`를 더해 같은 파일을 덜 건드리려고). `workKeys`는 `BookCards.workKeys`, 소장 키 역조회는 `BookCards.byHoldingKeys`
+2. **[안] 판 모으기 범위**: 그날 맞춘 책(과 추천목록 책) 안에서만 묶고 대표를 고름. 카탈로그 전체의 다른 판(인기 목록에 없는 판)은 보지 않음
+3. **[안] 맞추기**: 인기순 화면에는 ISBN이 없음 → (그 도서관, 소장 키) → ISBN(출판유통용) → 제목+첫 저자(여럿이면 소장 많은 책)
+4. **[안] 빼기 단위**: "한 출처가 0줄·90% 미만이면 그 출처만 뺌"을 **사이트마다** 적용(교보 일반 4곳은 4단위). 실패한 사이트는 그날 빠진다는 인계서 C2와 맞춤. note도 `kyobo_elib:79 …`처럼 사이트마다
+5. **[안] 인기 점수가 있는 책 = 점수 > 0**: 앞 100권에 들었어도 지금 대출·예약이 0이고 다른 출처도 없으면 R2-4 ①·②의 "인기" 쪽에 넣지 않고 `book_score`에도 저장하지 않음(개인 추천 "점수 책 먼저"도 같은 기준)
+6. **[안] 출판 연도 없는 책의 가산 1.0**
+7. **[안] 만들기 시각 03:30**(인계서 안 04:00은 `auth.cleanup` 04:00과 같은 시각)
+8. **[안] 카드 칸**: `authorKey`를 `similar-books`뿐 아니라 `books`에도 실음(웹의 같은 저자 규칙에 같은 칸을 씀)
+9. **[안] 다시 보여 주기**: 20권마다 8·16번째 자리에 **끼워 넣음**(그 20권이 22권이 됨). 기본 목록과 겹치는 책은 개인 추천 60권 전체 기준으로 기본 목록에서 뺌. 같은 저자 규칙은 개인 추천에만
+10. **[안] 꼬리말**: "KAIST·서울대 외 1 추천목록에 있어요", 기준 책 줄의 조사(과/와)는 마지막 글자 받침으로
+11. **설계와 다름 (24 뒤 고침)**: 이 탭에서 연 S14 책 창은 아직 **연도 줄·AI 요약을 보이지 않음**. 인계서는 "추천목록 책에만, 지금 규칙 그대로 [확정]"인데, 그 값(추천 연도·`aiSummary`)이 `picks` 캐시에만 있고 for-you 카드에는 없음. 24의 `ListedBooks`가 main에 들어오면 그 칸을 더해 지금 규칙대로 보이게 할 안 — 사용자 확인 필요
+12. **C3 일부**: 새벽 요청은 조회 상태 불·`library_response_daily`에는 안 들어가지만, 길마다 센 요청 수(1분 요약 줄·`availability.lookup_sample`)에는 하루 12건 들어감
+13. 사용 알림 `list=for_you`는 서버 `usagelog` 단계(24 뒤)와 같이 나가야 함 — 그 전 서버는 `rejected_event`로 받음. 운영 반영은 한 번이므로 문제 없음
+14. 사이클 24 plan 세션에 결정 #7을 알리는 세션 메시지가 거절됨(위 "24와의 일"). 사용자 전달 필요
+
+## 24가 main에 들어간 뒤 할 일 (이 브랜치를 rebase하고)
+
+- `ListedSource`를 `ListedBooks.current()` 어댑터로 바꾸고 `ListedBook`에 `tags`(nullable) 칸, 카드 꼬리말·꼬리표·S14 연도 줄·AI 요약
+- `collection`: `neighbours`·`tag-dictionary` 모드, `book-texts`에 kind `for_you_blurb`·`tags`·`cover_file`, `collection/package-info.java`에 `foryou`, `ModularityTests`(`collection → foryou`)
+- `usagelog/00N-picks-list-for-you.yaml`(24 다음 번호)과 `UsageEventReader.PICKS_LISTS`에 `for_you`, `UsageLogSchemaTests`
+- Liquibase master 끝 차례 정리, 파일 번호 확정
+
+## 체크포인트 상태
+
+- A: 위 0단계 결과, 멈춤 조건 없음
+- B·C: **내 PC에서**(운영 꼴 DB·나가는 길·수집 중인 서버 피하기 필요) — 절차 `docs/maintenance/7-foryou.md` 1절. C의 상위 40권은 만들기 로그의 `foryou base position=…` 40줄로 표를 만듦. 추천목록 책은 24 뒤라, 그 전 C는 인기 출처만의 모양
+- D·E: 아직
+
+## AC 확인표 (지금까지)
+
+| AC | 상태 |
+|---|---|
+| AC-1·16 | vitest(탭 차례·주소·머리 메뉴) + Playwright 세 폭 |
+| AC-2 | vitest(기록 없음 → 기준 책 줄 없음, `similar-books` 0건) |
+| AC-3 | vitest(카드 꼬리말·"외 N") + 컨트롤러 시험(`lists`) — 실데이터는 24 뒤 |
+| AC-4 | 만들기 시험(①이 앞, 40권) |
+| AC-5 | 컨트롤러 시험(계획 도서관으로 거르기, 범위 바꾸면 N과 책이 바뀜) |
+| AC-6 | 컨트롤러 시험(점수 책 → 계획 수 → 번호) + vitest(기준 책 차례·보낸 번호) |
+| AC-7 | 남음(브라우저 둘, 사용자 화면 확인) |
+| AC-8 | vitest(`limitAuthorRuns`) |
+| AC-9 | vitest(AI 줄 한 번) |
+| AC-10 | `BookTagTransfer` 시험 + vitest(꼬리표 누름 무반응) |
+| AC-11 | 카드는 자르지 않음(CSS 줄 제한 없음) — SQL 확인은 반영 뒤 |
+| AC-12 | vitest(`list: 'for_you'`, `category` all·base·similar) — 서버 쪽은 24 뒤 |
+| AC-13 | Playwright 1440·768·375, 실제 폰은 남음 |
+| AC-14 | vitest(개인 추천 실패 줄·다시 시도) |
+| AC-15 | vitest(S19 빼기·모두 지우기) |
+| AC-17 | vitest(8·16번째, 20권마다 ≤2) + `viewedBooks` 시험(3일·도서관 누름·빼기) |
+
+## 코드 검토 반영 (2026-10-24, java-reviewer·react-reviewer)
+
+- 고침: 저장이 끝난 만들기를 뒤 단계(로그·사본·정리) 실패가 `failed`로 바꾸던 것(뒤 단계는 로그만, `finish`는 `running`일 때만) / 이웃이 대표 판이 아닌 다른 판이면 점수를 못 찾던 것(그 작품의 점수 판으로 바꾸고 판 하나만, 기준 책의 다른 판도 뺌) / 이상한 원본 줄 하나(제목 없음·순위 0·음수)가 그날 만들기를 실패시키던 것 / `base-size`는 1~40만 받음 / 바꿔 끼우기 전 `ANALYZE`, `lock_timeout` 10초 [안] / 본제목·이름이 빈 판은 묶지 않음 / `add`에서 같은 책 줄이 두 번이면 하나만 / S19 [빼기] 뒤 초점, 다시 시도 때 기다림 표시, 지역 다시 읽은 뒤 취소 확인, 제목 없는 기록을 만들지 않음, 하루 넘게 앞선 시각은 지금으로, S19를 닫아도 바뀐 게 없으면 "더 보기" 자리를 유지
+- 확인할 것(반영 전): 운영에서 넣기 명령과 서비스가 **같은 DB 역할**인지. `full` 바꿔 끼우기가 새 표를 만들므로 다른 역할이면 서비스 역할이 새 표를 못 읽음(GRANT를 다시 줘야 함)
+- 24 뒤 `ListedSource` 어댑터는 `ListedBooks.current()`(캐시 사본)를 쓰므로 요청마다 DB를 읽지 않음
+
+## 사용자 답 (2026-10-24, 설계와 다른 점 확인)
+
+- 이 탭에서 연 S14의 연도 줄·AI 요약: **"24 뒤에 붙임"** — 24의 `ListedBooks`가 main에 들어오면 그 칸을 더해 추천목록 책일 때 지금 규칙대로 보임. 그 전까지는 이 탭에서 연 창에만 두 줄이 없음
+- 출처 빼기 단위: **"사이트마다"** (지금 구현 그대로)
+- 인기 책 기준: **"점수 > 0만 인기"** (지금 구현 그대로)
+- 새벽 만들기 시각: **"03:30"** (지금 구현 그대로)
+
+## 로컬 PC 세션 (2026-10-25)
+
+- 이 브랜치를 dev main `d90c30d`(사이클 24 들어감) 위로 rebase. 충돌: master changelog(24의 aisearch·usagelog 008 다음에 23), `ModularityTests`(picks를 쓰는 모듈에 `foryou`), 머리 메뉴(24의 「AI 검색 · 직접 검색」 그대로, 추천도서 주소만 `/picks/for-you`), `settings-index.md`(23 줄은 1절 표 끝, 24는 1-1절)
+- 3-3 첫 부분: `picks.ListedBook`에 `tags`(카드 꼬리표, `CardTags`가 캐시를 다시 읽을 때 한 번 읽음)·`recommendedMonth`(국립중앙도서관 목록의 달)·`yearBook`(KAIST 해), `ListedSource.of(ListedBooks.current())`. for-you 카드에 `aiSummary`·`recommendedMonth`·`yearBook` 칸을 더해 이 탭에서 연 S14에 연도 줄·AI 요약을 목록 탭과 같은 규칙으로 보임(목록이 여럿이면 `PicksCache.LISTS` 차례에서 연도 줄이 있는 첫 목록) [안]. **설계 카드 칸에 셋을 더한 것** — 사용자 답 "24 뒤에 붙임"(2026-10-24)을 하려면 카드에 값이 있어야 함
+- `usagelog/009-screen-event-picks-list-for-you.yaml`(24의 008 다음), `UsageEventReader.PICKS_LISTS`에 `for_you`
+- 시험 환경: 23·24가 한 브랜치에 모이자 시험 컨텍스트가 늘어 `db-test`가 "too many clients"(기본 캐시 32 × 풀 4 = 128 > 100) → `backend/src/test/resources/spring.properties`에 `spring.test.context.cache.maxSize=20`. 같은 날 `db-test`에 다른 세션이 넣은 `sitecontent` `PRIVACY_POLICY:3:2026-10-25` 줄이 있어 `SitecontentSchemaTests`가 실패함(이 브랜치에 그 changeset 없음, 건드리지 않음)
+
+### 체크포인트 B (2026-10-25 09:31, 로컬 PC)
+
+- 조건: 로컬 `db` = 운영 꼴(`catalog_import` 14, 1,340,875권), 나가는 길 `proxy-only`(Webshare 20길), 서버 8091(`chaekcheck.picks.fetch.enabled=false`로 다른 요청은 끔), 켤 때 만들기 1회
+- 돌고 있는 수집(서버 41곳)·표지 받기(서버 54곳)와 여섯 사이트의 IP가 겹치지 않음을 먼저 확인(`fetch_covers.busy_ips()`, 표지 대기 호스트 IP). `*.dkyobobook.co.kr` 요청 없음
+- `build_run` 1: succeeded, 09:31:24 → 09:31:56 (**32초**)
+
+| 사이트 | rows | matched | 결과 |
+|---|---|---|---|
+| 교보 일반 79 서초구립반포 | 100 | 100 | kept |
+| 교보 일반 99 연천군 | 100 | 100 | kept |
+| 교보 일반 60 도봉문화정보 | 100 | 100 | kept |
+| 교보 일반 73 부천시립 (`:444`) | 0 | 0 | left_out (upstream_timeout) |
+| YES24 V1 263 국립세종 | 0 | 0 | left_out (upstream_timeout) |
+| YES24 V1 229 성남시 | 100 | 100 | kept |
+
+- 끝 줄: `base=40 popular=30 listed=1911 scored=168`
+- `ranked_list_failed` 2건: 73·263 첫 쪽 `SocketTimeoutException: Read timed out`(프록시 길, 재시도 없음). 성공한 네 곳은 2쪽씩 → 요청 약 10건
+- 교보 80줄 쪽이 본문 상한 1MB에 걸린 곳 없음(`kyobo-page-size` 80 그대로)
+- 73·263이 다음 만들기에서도 시간 초과면 마감(`ranked.request-deadline` 20s)이나 사이트 교체를 봄 — 이틀 연속 0줄이면 `to-dev-popular-list-check.md` 1절 5번대로 plan에 알림
+
+### 체크포인트 C 상위 40권 (2026-10-25 만들기 1, 지금 가중치)
+
+- 지금 켜진 출처는 도서관 인기순뿐이라 점수 = 수요 점수(대출 중 + 2 × 예약, 가장 큰 값 100) × 연도 가산(3·6·10년 → 1.5·1.0·0.6·0.3). ① = 인기 점수 > 0이면서 추천목록 책(판 묶기 전 `picks.list_book.book_id` 기준으로 표시)
+- 21번부터는 R2-4대로 인기 책과 추천목록 책이 번갈아 나옴(추천목록 쪽은 점수 0)
+
+| # | 책 | 출판 연도 | 점수 | 지금 수요(대출+2×예약) | 수요 점수 | 연도 가산 | 추천목록 | ① |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 아주 희미한 빛으로도 | 2023 | 40.0 | 16 | 26.7 | 1.5 | 이동진 | ① |
+| 2 | 달러구트 꿈 백화점 | 2020 | 36.7 | 22 | 36.7 | 1.0 | KAIST | ① |
+| 3 | 이기적 유전자(40주년 기념판) | 2019 | 36.0 | 36 | 60.0 | 0.6 | 서울대 | ① |
+| 4 | 두 사람의 인터내셔널 | 2024 | 20.0 | 8 | 13.3 | 1.5 | KAIST, 이동진 | ① |
+| 5 | 이중 하나는 거짓말 | 2024 | 15.0 | 6 | 10.0 | 1.5 | KAIST | ① |
+| 6 | 여행의 이유 | 2019 | 13.0 | 13 | 21.7 | 0.6 | KAIST | ① |
+| 7 | 나는 메트로폴리탄 미술관의 경비원입니다 | 2023 | 12.5 | 5 | 8.3 | 1.5 | 이동진 | ① |
+| 8 | 흰 | 2018 | 11.0 | 11 | 18.3 | 0.6 | KAIST | ① |
+| 9 | 마션 | 2015 | 9.0 | 18 | 30.0 | 0.3 | KAIST | ① |
+| 10 | 이처럼 사소한 것들 | 2024 | 7.5 | 3 | 5.0 | 1.5 | KAIST | ① |
+| 11 | 토지. 1(1부 1권) | 2012 | 7.5 | 15 | 25.0 | 0.3 | 서울대 | ① |
+| 12 | 사라진 것들 | 2024 | 7.5 | 3 | 5.0 | 1.5 | KAIST | ① |
+| 13 | 천 개의 파랑 | 2020 | 6.7 | 4 | 6.7 | 1.0 | KAIST | ① |
+| 14 | 데일 카네기 인간관계론 | 2019 | 4.0 | 4 | 6.7 | 0.6 | KAIST | ① |
+| 15 | 목소리를 드릴게요 | 2020 | 3.3 | 2 | 3.3 | 1.0 | KAIST | ① |
+| 16 | 서랍에 저녁을 넣어 두었다 | 2020 | 3.3 | 2 | 3.3 | 1.0 | KAIST | ① |
+| 17 | 김약국의 딸들 | 2013 | 1.5 | 3 | 5.0 | 0.3 | KAIST | ① |
+| 18 | 화폐전쟁 | 2008 | 1.5 | 3 | 5.0 | 0.3 | KAIST | ① |
+| 19 | 나는 나를 파괴할 권리가 있다 | 2010 | 1.0 | 2 | 3.3 | 0.3 | KAIST | ① |
+| 20 | 오만과 편견 | 2010 | 1.0 | 2 | 3.3 | 0.3 | 노벨 | ① |
+| 21 | 세이노의 가르침 | 2023 | 82.5 | 33 | 55.0 | 1.5 |  |  |
+| 22 | 역사의 쓸모 | 2019 | 0.0 | 0 | 0.0 | 0.0 | KAIST |  |
+| 23 | 아주 작은 습관의 힘 | 2019 | 60.0 | 60 | 100.0 | 0.6 |  |  |
+| 24 | 바다가 들리는 편의점 | 2023 | 0.0 | 0 | 0.0 | 0.0 | KAIST |  |
+| 25 | 도시와 그 불확실한 벽 | 2023 | 57.5 | 23 | 38.3 | 1.5 |  |  |
+| 26 | 나의 돈키호테 | 2024 | 0.0 | 0 | 0.0 | 0.0 | KAIST |  |
+| 27 | 마흔에 읽는 쇼펜하우어 | 2023 | 50.0 | 20 | 33.3 | 1.5 |  |  |
+| 28 | 편안함의 습격 | 2025 | 0.0 | 0 | 0.0 | 0.0 | KAIST, 이동진 |  |
+| 29 | 내면소통 | 2023 | 50.0 | 20 | 33.3 | 1.5 |  |  |
+| 30 | 경험의 멸종 | 2025 | 0.0 | 0 | 0.0 | 0.0 | 이동진 |  |
+| 31 | 프로젝트 헤일메리 | 2021 | 50.0 | 30 | 50.0 | 1.0 |  |  |
+| 32 | 구운몽 | 2010 | 0.0 | 0 | 0.0 | 0.0 | 서울대 |  |
+| 33 | 불편한 편의점 | 2021 | 35.0 | 21 | 35.0 | 1.0 |  |  |
+| 34 | 나는 왜 남들보다 쉽게 지칠까 | 2024 | 0.0 | 0 | 0.0 | 0.0 | KAIST |  |
+| 35 | 부자의 그릇 | 2020 | 33.3 | 20 | 33.3 | 1.0 |  |  |
+| 36 | 인간문제 | 2010 | 0.0 | 0 | 0.0 | 0.0 | 서울대 |  |
+| 37 | 파과 | 2018 | 31.0 | 31 | 51.7 | 0.6 |  |  |
+| 38 | 장미와 나이프 | 2025 | 0.0 | 0 | 0.0 | 0.0 | KAIST |  |
+| 39 | 바깥은 여름 | 2017 | 31.0 | 31 | 51.7 | 0.6 |  |  |
+| 40 | 행동하지 않으면 인생은 바뀌지 않는다 | 2024 | 0.0 | 0 | 0.0 | 0.0 | KAIST |  |
+
+- 가중치 (사용자 답 2026-10-25 "오래된 책은 밀리도록 해줘", "기존 그대로 가라고"): **지금 값 그대로 확정** — 예약 2, 연도 구간 3·6·10년 → 가산 1.5·1.0·0.6·0.3(10년 넘으면 0.3배로 밀림), 연도 없음 1.0. `chaekcheck.foryou.score.*` 바꾸지 않음
+
+### 10단계 1차: 이웃 (2026-10-25, 사용자 "일단 추천도서에 있는 것들 자료만으로도", "그것도 넣어줘")
+
+- **설계와 다름(사용자 결정)**: 전체 1,340,875권 이웃(결정 #8)·꼬리표(사전 확정 필요)는 뒤로 미루고, 1차는 추천목록 책 + 오늘 점수 책(2,007권, 소개 1,969권) + 보유 많은 3만 권(소개 시험이 저장한 벡터 `ml/pool-30000-intro.npy`, 소개는 2026-10-24 20:23까지 수집분)의 합 **30,937권** 안에서만 이웃을 고름. 입력 = 서지 + 가장 긴 목록 소개 앞 300자 [안: plan이 정할 소개 범위 전의 값]
+- 스크립트 `scripts/crawl/foryou_neighbours.py [--with-pool]`, 결과 데이터 폴더 `ml/foryou/`(`neighbours.tsv`, `neighbours-review.tsv`, `summary.json`). 2,007권 새 계산 1,473초(빌드와 CPU를 나눠 씀), 3만 권은 다시 계산 없음, 이웃 고르기 약 2분
+- 로컬 `db`에 `neighbours full`: 30,937줄, 0.6초, export `d09d649f-…`(가져오기 14). 8091 서버의 `similar-books`가 새 이웃으로 20권을 줌(기준 「하나의 세포로부터」 → 생명 과학·세균·미생물 책)
+- 눈으로 본 것(이웃 1~5): 「아주 희미한 빛으로도」 → 밝은 밤·내게 무해한 사람(최은영·한국 소설), 「하나의 세포로부터」 → 생물학 책, 「신곡」·「햄릿」 → 단테·셰익스피어 책, 「에밀」 → 교육 책, 「세이노의 가르침」 → 부·투자 책. 「대구」·「캔터베리 이야기」는 여전히 엉뚱함
+- 고침 (사용자 "같은 책 다른 판·권이 이웃에 남는 것 지금 고쳐줘", 2026-10-25): 이웃을 고를 때 **같은 작품**(`work_key` 같음 = 괄호·부제·끝 권 번호를 뗀 제목 + 첫 저자가 겹침, 저자 괄호 이름도 뗌)을 기준 책에서 빼고, 이웃 안에서도 작품마다 한 판만 남김(`scripts/crawl/foryou_neighbours.py` `same_work`, 시험 `test_foryou_neighbours.py`). 다시 고르고 로컬 `db`에 `neighbours full` 30,937줄
+  - 뒤: 「마션」 → 아르테미스·프로젝트 헤일메리·영화 마션의 과학적 진실 / 「토지. 1」 → 다른 박경리 책·한국 소설 / 「달러구트 꿈 백화점」 → 비가 오면 열리는 상점·꿈을 굽는 빵집 / 「아주 희미한 빛으로도」 → 「밝은 밤」 한 번만 / 「햄릿(Hamlet)」 → 셰익스피어 4대 비극·리어 왕·오셀로
+  - 못 잡는 것: 제목이 다른 말로 된 같은 작품(「〈셰익스피어 걸작선〉 Hamlet」, 「Emile」)과 저자 표기가 아주 다른 판
