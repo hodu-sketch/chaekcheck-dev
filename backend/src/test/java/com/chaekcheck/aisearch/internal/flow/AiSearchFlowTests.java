@@ -34,6 +34,7 @@ import com.chaekcheck.aisearch.internal.llm.LlmClient.LlmCall;
 import com.chaekcheck.aisearch.internal.llm.LlmClient.Message;
 import com.chaekcheck.aisearch.internal.llm.LlmClient.Usage;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery;
+import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
@@ -80,21 +81,54 @@ class AiSearchFlowTests {
 
 	final List<ListedBook> listed = new ArrayList<>();
 
+	/** The search books: the listed ones and, like the most held books, ones on no list. */
+	final List<Book> stored = new ArrayList<>();
+
+	final List<Line> lines = new ArrayList<>();
+
 	final Sink sink = new Sink();
 
 	@BeforeEach
 	void books() {
-		List<Book> stored = new ArrayList<>();
 		for (int i = 1; i <= 12; i++) {
 			// held by 101 (plan), 102 (plan) or 999 (not in the plan) in turn
 			long library = i % 3 == 0 ? 999 : 100 + i % 3;
 			listed.add(new ListedBook(i, "과학 이야기 " + i, "저자 " + i, "/covers/" + i + ".jpg", new long[] { library },
 					List.of("kaist"), "과학 이야기 " + i + "의 AI 요약"));
-			stored.add(new Book(i, "과학 이야기 " + i, "저자 " + i));
+			stored.add(new Book(i, "과학 이야기 " + i, "저자 " + i, new long[] { library }));
 		}
 		listed.add(new ListedBook(20, "토지", "박경리", null, new long[] { 101, 102 }, List.of("leedongjin")));
-		stored.add(new Book(20, "토지", "박경리"));
-		texts.replace(stored, List.of(new Line(20, Source.INTRO, LocalDate.of(2026, 10, 24), "한 집안의 이야기를 그린 대하소설")));
+		stored.add(new Book(20, "토지", "박경리", new long[] { 101, 102 }));
+		lines.add(new Line(20, Source.INTRO, LocalDate.of(2026, 10, 24), "한 집안의 이야기를 그린 대하소설"));
+		texts.replace(stored, lines);
+	}
+
+	/** Adds a listed book to the lists and the search books. */
+	private void addListed(ListedBook book) {
+		listed.add(book);
+		stored.add(new Book(book.bookId(), book.title(), book.author(), book.libraryIds()));
+		texts.replace(stored, lines);
+	}
+
+	@Test
+	void aBookOnNoListIsAnsweredWithoutCoverAndSummary() { // user 2026-10-25: the most held books
+		stored.add(new Book(500, "우주 과학 교양", "칼 세이건", new long[] { 101, 102, 103 }));
+		lines.add(new Line(500, Source.INTRO, LocalDate.of(2026, 10, 25), "별과 은하를 쉽게 풀어 쓴 천문학 교양서"));
+		texts.replace(stored, lines);
+		llm.then(keywords("천문학"))
+			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"별 이야기\"}]}"), 1, 1));
+
+		run(QUESTION, List.of());
+
+		Card card = sink.of(Card.class).getFirst();
+		assertThat(card.bookId()).isEqualTo(500);
+		assertThat(card.title()).isEqualTo("우주 과학 교양");
+		assertThat(card.author()).isEqualTo("칼 세이건");
+		assertThat(card.myLibraryCount()).isEqualTo(2);
+		assertThat(card.coverUrl()).isNull();
+		assertThat(card.aiSummary()).isNull();
+		// the second call saw the stored line
+		assertThat(llm.calls.get(1).messages().getLast().text()).contains("별과 은하를 쉽게 풀어 쓴 천문학 교양서");
 	}
 
 	@Test
@@ -281,7 +315,8 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), failing,
+				properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -292,7 +327,7 @@ class AiSearchFlowTests {
 
 	@Test
 	void aTitleGuessNeverHoldsHalfACharacter() {
-		listed.add(new ListedBook(30, "웃는 책", "저자 30", null, new long[] { 101 }, List.of("kaist")));
+		addListed(new ListedBook(30, "웃는 책", "저자 30", null, new long[] { 101 }, List.of("kaist")));
 		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"웃는 책 \\ud83d\",\"refersToShown\":false,"
 				+ "\"keywords\":[]}", 1, 1));
 
@@ -345,7 +380,8 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), usageLog, properties, json);
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), usageLog, properties,
+				json);
 	}
 
 	private ListedBooks listedBooks() {

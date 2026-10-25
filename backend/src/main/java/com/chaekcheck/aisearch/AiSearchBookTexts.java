@@ -13,9 +13,11 @@ public interface AiSearchBookTexts {
 	int LINE_MAX_CHARS = 300;
 
 	/**
-	 * Replaces every row of {@code aisearch.search_book} in one transaction: one row per listed book, with its line
+	 * Replaces every row of {@code aisearch.search_book} in one transaction: one row per given book, with its line
 	 * when {@code lines} has one (else no line). Lines for books that are not in {@code books} are skipped and counted.
-	 * @param books every listed book ({@code ListedBooks.loadFromDb()}), each book once; never empty
+	 * @param books every book the AI search answers with: the listed books ({@code ListedBooks.loadFromDb()}) and the
+	 *     books held by the most libraries ({@code catalog.MostHeldBooks}, user 2026-10-25), each book once; never
+	 *     empty
 	 * @param lines the search lines, each book at most once
 	 * @throws IllegalArgumentException when {@code books} is empty, a book or a line's book comes twice, or a line is
 	 *     blank or longer than {@value #LINE_MAX_CHARS} characters; nothing is changed
@@ -26,16 +28,30 @@ public interface AiSearchBookTexts {
 	Result replace(List<Book> books, List<Line> lines);
 
 	/**
+	 * Not meant for {@code equals}: {@code libraryIds} is an array.
 	 * @param bookId our book ({@code catalog.book.id})
 	 * @param title the shown name, copied as it is now
 	 * @param author our book's author text, or null
+	 * @param libraryIds the libraries holding the book ({@code catalog.book.library_ids}), copied as they are now; the
+	 *     keyword match counts the user's plan libraries among them
 	 */
-	record Book(long bookId, String title, String author) {
+	record Book(long bookId, String title, String author, long[] libraryIds) {
 
 		public Book {
 			if (bookId < 1 || title == null || title.isBlank()) {
 				throw new IllegalArgumentException("a book needs an id and a title: " + bookId);
 			}
+			libraryIds = libraryIds == null ? new long[0] : libraryIds.clone();
+		}
+
+		/** A book held by no library: stored, but never matched (tests). */
+		public Book(long bookId, String title, String author) {
+			this(bookId, title, author, new long[0]);
+		}
+
+		@Override
+		public long[] libraryIds() {
+			return libraryIds.clone();
 		}
 
 	}
@@ -93,9 +109,9 @@ public interface AiSearchBookTexts {
 	}
 
 	/**
-	 * @param stored rows written (every listed book)
+	 * @param stored rows written (every given book)
 	 * @param withLine of those, rows with a line
-	 * @param linesNotListed lines skipped because their book is not listed
+	 * @param linesNotListed lines skipped because their book is not among the given books
 	 */
 	record Result(int stored, int withLine, int linesNotListed) {
 	}

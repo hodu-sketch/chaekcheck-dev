@@ -28,3 +28,7 @@ chaekcheck:
       # collection DB when the folder or a file is missing. Mode lists reads only this folder and the live catalog
       # (user 2026-10-19)
       lists-dir: ../scripts/crawl/lists
+      # Mode book-texts: the AI search answers from the listed books and this many books held by the most libraries
+      # (user 2026-10-25: "보유량 많은 3만 권"; the same choice as cycle 23's pool). 0 = listed books only.
+      # docs/maintenance/6-aisearch.md
+      book-texts-top-books: 30000

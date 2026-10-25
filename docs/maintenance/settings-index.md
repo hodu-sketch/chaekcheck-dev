@@ -43,6 +43,7 @@
 | 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
 |---|---|---|---|---|---|---|---|
 | Anthropic API 키 | 빈 값(로컬·시험), 운영은 비밀 값 | `chaekcheck.aisearch.llm.anthropic.api-key` | **`CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`**(`application.yml`의 `${…}` 자리; 규칙대로 만든 이름 `…_LLM_ANTHROPIC_APIKEY`도 됨) | 운영 Parameter Store `/chaekcheck/prod/CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY` → `up.sh` → compose(0단계 다름 8) | 비면 모든 호출이 `NOT_CONFIGURED`로 실패하고 대신하는 길로 감. 로그·예외·`toString`에 나오지 않음. 시험 프로필은 늘 빈 값 | design-delta "외부 연동", ADR-0150 | 서비스 |
+| AI 찾기 책 수(목록 책 밖) | `30000` | `chaekcheck.collection.import.book-texts-top-books`(`application-collection-import.yml`) | `CHAEKCHECK_COLLECTION_IMPORT_BOOKTEXTSTOPBOOKS` | `book-texts` 넣기 때만 읽음(서버 설정 아님). 사이클 23 3만 권 풀(`probe_embeddings.py` `POOL`)과 같은 수여야 같은 책 | 사용자 2026-10-25 "보유량 많은 3만 권". 0이면 목록 책만 | 이 dev 결정(plan 기록 필요) | 넣기 다시 돌림 |
 | 모델 | `claude-haiku-5-5` | `…llm.anthropic.model` | `CHAEKCHECK_AISEARCH_LLM_ANTHROPIC_MODEL` | 가격 값(7단계) | [확정] | design-delta | 서비스 |
 | API 주소 / 판 | `https://api.anthropic.com` / `2026-10-21` | `…llm.anthropic.base-url` / `…version` | `…_BASEURL` / `…_VERSION` | — | 공식 문서로 확인(2026-10-24, https://platform.claude.com/docs/en/api/versioning: 최신 판). 이 판에서 `temperature`류를 보내면 400 → 보내지 않음 | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
 | effort | `low` | `…llm.anthropic.effort` | `…_EFFORT` | — | 1단계 측정: thinking은 끄지 않고 effort만 낮춤(1차 최대 2.4초, 2차 최대 6.5~8.2초) [안] | 같음 | 서비스 |

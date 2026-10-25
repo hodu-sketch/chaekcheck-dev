@@ -18,6 +18,8 @@ import com.chaekcheck.aisearch.AiSearchBookTexts;
 import com.chaekcheck.aisearch.AiSearchBookTexts.Book;
 import com.chaekcheck.aisearch.AiSearchBookTexts.Line;
 import com.chaekcheck.aisearch.AiSearchBookTexts.Result;
+import com.chaekcheck.catalog.MostHeldBooks;
+import com.chaekcheck.catalog.MostHeldBooks.HeldBook;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
 import com.chaekcheck.picks.ListedBooks.Snapshot;
@@ -34,11 +36,13 @@ class BookTextsImportTests {
 
 	private final FakeTexts texts = new FakeTexts();
 
+	private final FakeHeld held = new FakeHeld(List.of());
+
 	@Test
 	void everyListedBookGoesInWithTheFileLines() throws Exception {
 		FakeListed listed = new FakeListed(List.of(book(11, "코스모스", "칼 세이건 지음"), book(12, "토지", null)));
 
-		BookTextsImport.Report report = new BookTextsImport(listed, texts).run(file("""
+		BookTextsImport.Report report = new BookTextsImport(listed, held, 0, texts).run(file("""
 				kind\tbook_id\tsource\tmade_on\ttext
 				search_line\t11\tintro\t2026-10-24\t우주를 다룬 교양서
 				for_you_blurb\t11\tintro\t2026-10-24\t23의 글
@@ -53,8 +57,29 @@ class BookTextsImportTests {
 	}
 
 	@Test
+	void theMostHeldBooksFollowTheListedOnesOnceEachWithTheirLibraries() throws Exception {
+		FakeListed listed = new FakeListed(List.of(book(11, "코스모스 (shown)", "칼 세이건 지음")));
+		FakeHeld top = new FakeHeld(List.of(new HeldBook(30, "불편한 편의점", "김호연", new long[] { 1, 2, 3 }),
+				new HeldBook(11, "코스모스 (catalog)", "칼 세이건", new long[] { 1, 2 }),
+				new HeldBook(31, "작별인사", null, new long[] { 4 })));
+
+		BookTextsImport.Report report = new BookTextsImport(listed, top, 3, texts).run(file("""
+				kind\tbook_id\tsource\tmade_on\ttext
+				search_line\t30\tintro\t2026-10-25\t편의점에서 만난 사람들의 따뜻한 이야기
+				"""));
+
+		assertThat(top.asked).containsExactly(3);
+		assertThat(texts.books).extracting(Book::bookId, Book::title)
+			.containsExactly(tuple(11L, "코스모스 (shown)"), tuple(30L, "불편한 편의점"), tuple(31L, "작별인사"));
+		assertThat(texts.books.get(1).libraryIds()).containsExactly(1, 2, 3);
+		assertThat(texts.books.getFirst().libraryIds()).containsExactly(1);
+		assertThat(report.listed()).isEqualTo(1);
+		assertThat(report.topOnly()).isEqualTo(2);
+	}
+
+	@Test
 	void noListedBookRefusesAndKeepsTheSearchBooks() throws Exception {
-		BookTextsImport command = new BookTextsImport(new FakeListed(List.of()), texts);
+		BookTextsImport command = new BookTextsImport(new FakeListed(List.of()), held, 30_000, texts);
 		Path file = file("kind\tbook_id\tsource\tmade_on\ttext\nsearch_line\t11\tintro\t2026-10-24\t가\n");
 
 		assertThatThrownBy(() -> command.run(file)).isInstanceOf(IllegalStateException.class)
@@ -67,7 +92,7 @@ class BookTextsImportTests {
 		FakeListed listed = new FakeListed(List.of(book(11, "코스모스", null)));
 		Path file = file("kind\tbook_id\tsource\tmade_on\ttext\nsearch_line\t11\tintro\t2026-10-24\t앞\t뒤\n");
 
-		assertThatThrownBy(() -> new BookTextsImport(listed, texts).run(file))
+		assertThatThrownBy(() -> new BookTextsImport(listed, held, 30_000, texts).run(file))
 			.isInstanceOf(BookTextsFile.RefusedException.class);
 		assertThat(listed.reads).isZero();
 		assertThat(texts.calls).isZero();
@@ -102,6 +127,24 @@ class BookTextsImportTests {
 		public Snapshot loadFromDb() {
 			reads++;
 			return new Snapshot(Instant.EPOCH, books);
+		}
+
+	}
+
+	private static final class FakeHeld implements MostHeldBooks {
+
+		private final List<HeldBook> books;
+
+		final List<Integer> asked = new ArrayList<>();
+
+		FakeHeld(List<HeldBook> books) {
+			this.books = books;
+		}
+
+		@Override
+		public List<HeldBook> top(int count) {
+			asked.add(count);
+			return books.subList(0, Math.min(count, books.size()));
 		}
 
 	}

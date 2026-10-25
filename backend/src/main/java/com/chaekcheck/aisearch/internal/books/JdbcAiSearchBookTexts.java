@@ -2,6 +2,7 @@ package com.chaekcheck.aisearch.internal.books;
 
 import java.sql.Date;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,8 +25,9 @@ class JdbcAiSearchBookTexts implements AiSearchBookTexts {
 	private static final Logger log = LoggerFactory.getLogger(JdbcAiSearchBookTexts.class);
 
 	private static final String INSERT = """
-			INSERT INTO aisearch.search_book (book_id, title, author, line, line_source, line_made_on, search_text)
-			VALUES (?, ?, ?, ?, ?, ?, ?)""";
+			INSERT INTO aisearch.search_book
+			  (book_id, title, author, line, line_source, line_made_on, search_text, library_ids)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)""";
 
 	private final JdbcTemplate jdbc;
 
@@ -37,7 +39,7 @@ class JdbcAiSearchBookTexts implements AiSearchBookTexts {
 	@Transactional
 	public Result replace(List<Book> books, List<Line> lines) {
 		if (books.isEmpty()) {
-			throw new IllegalArgumentException("no listed books: the search books are kept as they are");
+			throw new IllegalArgumentException("no books: the search books are kept as they are");
 		}
 		Set<Long> listed = new HashSet<>();
 		for (Book book : books) {
@@ -82,12 +84,14 @@ class JdbcAiSearchBookTexts implements AiSearchBookTexts {
 				statement.setDate(6, Date.valueOf(line.madeOn()));
 			}
 			statement.setString(7, SearchText.ofBook(book.title(), book.author(), line == null ? null : line.text()));
+			statement.setArray(8, statement.getConnection()
+				.createArrayOf("bigint", Arrays.stream(book.libraryIds()).boxed().toArray(Long[]::new)));
 		});
 		Result result = new Result(books.size(), withLine[0], notListed);
 		log.info("search books replaced: deleted {}, stored {}, with line {}, lines not listed {}", deleted,
 				result.stored(), result.withLine(), result.linesNotListed());
 		if (notListed > 0) {
-			log.warn("{} search lines are for books not on the lists now: was the file made from another database?",
+			log.warn("{} search lines are for books not searched now: was the file made from another database?",
 					notListed);
 		}
 		return result;

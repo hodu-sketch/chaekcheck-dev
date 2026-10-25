@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -30,6 +31,7 @@ import com.chaekcheck.aisearch.internal.flow.AiSearchFlowTests.Sink;
 import com.chaekcheck.aisearch.internal.llm.AnthropicLlmClient;
 import com.chaekcheck.aisearch.internal.llm.AnthropicProperties;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery;
+import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
@@ -47,6 +49,9 @@ import com.chaekcheck.usagelog.UsageRequest;
 @SpringBootTest
 @Transactional
 class AiSearchFlowLiveTests {
+
+	@Autowired
+	JdbcClient jdbc;
 
 	@Autowired
 	CandidateQuery candidates;
@@ -74,7 +79,7 @@ class AiSearchFlowLiveTests {
 			long id = Long.parseLong(cells[0]);
 			String author = cells[2].isBlank() ? null : cells[2];
 			listed.add(new ListedBook(id, cells[1], author, null, new long[] { 1 }, List.of("test")));
-			stored.add(new Book(id, cells[1], author));
+			stored.add(new Book(id, cells[1], author, new long[] { 1 }));
 		}
 		texts.replace(stored, List.of());
 		ListedBooks books = new ListedBooks() {
@@ -94,7 +99,7 @@ class AiSearchFlowLiveTests {
 				new AnthropicProperties(System.getenv("CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY"), null, null, null, "low"),
 				HttpClient.newHttpClient(), json);
 		RecordingLog log = new RecordingLog();
-		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, log, properties, json);
+		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, new SearchBooks(jdbc), log, properties, json);
 		UsageRequest request = new UsageRequest(Instant.now(), null, "login_off", null, null, true);
 
 		for (String question : List.of("잠들기 전에 조금씩 읽을 과학책", "채식주의자", "오늘 점심 뭐 먹지")) {

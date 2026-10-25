@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chaekcheck.aisearch.AiSearchBookTexts;
+import com.chaekcheck.catalog.MostHeldBooks;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.PicksTestData;
 
@@ -41,6 +42,9 @@ class BookTextsImportDbTests {
 	@Autowired
 	AiSearchBookTexts bookTexts;
 
+	@Autowired
+	MostHeldBooks mostHeldBooks;
+
 	@Test
 	void putsInEveryListedBookAndTheFileLines() throws Exception {
 		PicksTestData data = new PicksTestData(jdbc);
@@ -54,7 +58,7 @@ class BookTextsImportDbTests {
 				ON CONFLICT (list_key, code) DO NOTHING""").update();
 		leedongjin(1, "토지", 930_001L);
 		leedongjin(2, "코스모스", 930_002L);
-		BookTextsImport command = new BookTextsImport(listedBooks, bookTexts);
+		BookTextsImport command = new BookTextsImport(listedBooks, mostHeldBooks, 0, bookTexts);
 
 		BookTextsImport.Report first = command.run(file("""
 				kind\tbook_id\tsource\tmade_on\ttext

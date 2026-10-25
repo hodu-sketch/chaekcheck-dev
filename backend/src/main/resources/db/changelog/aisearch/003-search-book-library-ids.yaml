@@ -1,0 +1,12 @@
+# AI search over the most held books too (user 2026-10-25: "보유량 많은 3만 권 기준으로도 같은 흐름으로"): the book-texts
+# import now copies each book's catalog.book.library_ids next to its title and author, so that the keyword match
+# counts the user's plan libraries in SQL (user choice "넣기 때 search_book 사본에") instead of keeping about 31,000
+# library id arrays in the server's memory. Rows put in before this change get an empty array and match nothing until
+# the book-texts import runs again (docs/maintenance/6-aisearch.md).
+databaseChangeLog:
+  - changeSet:
+      id: aisearch-003-search-book-library-ids
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: ALTER TABLE aisearch.search_book ADD COLUMN library_ids bigint[] NOT NULL DEFAULT '{}'

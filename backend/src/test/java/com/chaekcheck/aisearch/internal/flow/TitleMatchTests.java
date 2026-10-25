@@ -6,12 +6,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.chaekcheck.picks.ListedBooks.ListedBook;
+import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 
 /** {@link TitleMatch}: titles, title and author, authors pass; topic sentences and short words do not (issue 2-1). */
 class TitleMatchTests {
 
-	static final List<ListedBook> BOOKS = List.of(book("채식주의자", "한강 지음"), book("토지", "박경리"),
+	static final List<SearchBook> BOOKS = List.of(book("채식주의자", "한강 지음"), book("토지", "박경리"),
 			book("철학은 날씨를 바꾼다", "김이진"), book("사랑의 기술", "에리히 프롬"));
 
 	@Test
@@ -32,8 +32,8 @@ class TitleMatchTests {
 		assertThat(TitleMatch.close("", BOOKS)).isFalse();
 	}
 
-	private static ListedBook book(String title, String author) {
-		return new ListedBook(1, title, author, null, new long[] { 101 }, List.of("kaist"));
+	private static SearchBook book(String title, String author) {
+		return new SearchBook(1, title, author);
 	}
 
 }

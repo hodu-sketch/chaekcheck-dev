@@ -12,6 +12,8 @@ public final class SearchText {
 
 	private static final Pattern SPACES = Pattern.compile("[\\s\\p{Cf}]+", Pattern.UNICODE_CHARACTER_CLASS);
 
+	private static final Pattern NOT_LETTER = Pattern.compile("[^\\p{L}\\p{N}]+");
+
 	private SearchText() {
 	}
 
@@ -22,6 +24,11 @@ public final class SearchText {
 		}
 		String folded = Normalizer.normalize(text, Normalizer.Form.NFKC).toLowerCase(Locale.ROOT);
 		return SPACES.matcher(folded).replaceAll("");
+	}
+
+	/** {@link #tidy} with every sign left out too: letters and digits only (the title line check, issue 2-1). */
+	public static String letters(String text) {
+		return NOT_LETTER.matcher(tidy(text)).replaceAll("");
 	}
 
 	/**

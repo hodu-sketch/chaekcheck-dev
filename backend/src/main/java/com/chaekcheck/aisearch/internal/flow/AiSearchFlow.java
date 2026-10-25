@@ -33,8 +33,8 @@ import com.chaekcheck.aisearch.internal.llm.LlmClient.Result;
 import com.chaekcheck.aisearch.internal.llm.LlmClient.Usage;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
-import com.chaekcheck.aisearch.internal.match.PlanTargets;
-import com.chaekcheck.aisearch.internal.match.PlanTargets.Target;
+import com.chaekcheck.aisearch.internal.match.SearchBooks;
+import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
@@ -46,12 +46,14 @@ import com.chaekcheck.usagelog.UsageRequest;
 
 /**
  * One AI search after the checks (cycle 24 handoff step 8-2, design-delta "주요 흐름"): the first call turns the question
- * into keywords (or the question's own words when it fails, spec R6-1), the keyword match picks at most 30 listed
- * books the plan libraries hold, the second call streams the head, then each pick's number and text. A pick's card
+ * into keywords (or the question's own words when it fails, spec R6-1), the keyword match picks at most 30 search
+ * books (the listed books and the books held by the most libraries, user 2026-10-25) the plan libraries hold, the second call streams the head, then each pick's number and text. A pick's card
  * goes out only after its number is checked (in range, not seen, at most 8; ADR-0153): a refused number sends neither
  * card nor text. A card's text stops at 300 characters. The second call failing before any card sends the first 8
  * books without text ({@code no_text}); failing after one sends {@code partial}. The day's cost and one usage row are
- * written at the end. Neither the question nor the history is logged.
+ * written at the end. Neither the question nor the history is logged. Titles and authors come from the search books;
+ * a listed book's card adds its list cover and AI summary (the other books have neither yet: their covers wait for
+ * cycle 23's, user 2026-10-25).
  */
 @Component
 public class AiSearchFlow {
@@ -66,6 +68,8 @@ public class AiSearchFlow {
 
 	private final ListedBooks listedBooks;
 
+	private final SearchBooks searchBooks;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -73,11 +77,12 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
+			SearchBooks searchBooks, UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
 		this.listedBooks = listedBooks;
+		this.searchBooks = searchBooks;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -193,24 +198,24 @@ public class AiSearchFlow {
 	}
 
 	private void answer(Input input, Run run) {
+		Map<Long, SearchBook> known = searchBooks.byId();
 		Map<Long, ListedBook> listed = new HashMap<>();
-		List<ListedBook> books = listedBooks.current().books();
-		for (ListedBook book : books) {
+		for (ListedBook book : listedBooks.current().books()) {
 			listed.put(book.bookId(), book);
 		}
 		List<ShownTurn> history = new ArrayList<>();
 		Set<Long> shownBefore = new HashSet<>();
 		List<Long> lastShown = List.of();
 		for (Turn turn : input.history()) {
-			List<Long> known = turn.bookIds()
+			List<Long> shown = turn.bookIds()
 				.stream()
-				.filter(listed::containsKey)
+				.filter(known::containsKey)
 				.distinct()
 				.limit(properties.limits().picks())
 				.toList();
-			history.add(new ShownTurn(turn.question(), known.stream().map(id -> listed.get(id).title()).toList()));
-			shownBefore.addAll(known);
-			lastShown = known;
+			history.add(new ShownTurn(turn.question(), shown.stream().map(id -> known.get(id).title()).toList()));
+			shownBefore.addAll(shown);
+			lastShown = shown;
 		}
 
 		KeywordPlan plan = keywords(input.question(), history, run);
@@ -220,7 +225,7 @@ public class AiSearchFlow {
 			String title = plan.title().strip();
 			// only words of the question go into the button, else the whole question (ADR-0153)
 			String guess = input.question().contains(title) ? title : input.question();
-			if (TitleMatch.close(guess, books)) {
+			if (TitleMatch.close(guess, searchBooks.books())) {
 				run.send(AiSearchEvents.TITLE_GUESS, new TitleGuess(WholeText.of(guess)));
 			}
 		}
@@ -230,19 +235,24 @@ public class AiSearchFlow {
 		}
 
 		boolean refers = plan.refersToShown() && !lastShown.isEmpty();
-		List<Target> targets = PlanTargets.of(books, input.planLibraryIds(), refers ? Set.of() : shownBefore);
 		Map<Long, Integer> planCount = new HashMap<>();
-		for (Target target : targets) {
-			planCount.put(target.bookId(), target.planCount());
-		}
 		int max = properties.limits().candidates();
 		LinkedHashSet<Long> chosen = new LinkedHashSet<>();
 		if (refers) {
-			lastShown.stream().filter(planCount::containsKey).limit(max).forEach(chosen::add);
+			Map<Long, Integer> counts = candidates.planCounts(lastShown, input.planLibraryIds());
+			lastShown.stream().filter(counts::containsKey).limit(max).forEach(id -> {
+				chosen.add(id);
+				planCount.put(id, counts.get(id));
+			});
 		}
-		List<Target> rest = targets.stream().filter(target -> !chosen.contains(target.bookId())).toList();
-		for (Candidate candidate : candidates.find(plan.keywords(), rest, max - chosen.size())) {
-			chosen.add(candidate.bookId());
+		Set<Long> excluded = refers ? Set.copyOf(chosen) : shownBefore;
+		for (Candidate candidate : candidates.find(plan.keywords(), input.planLibraryIds(), excluded,
+				max - chosen.size())) {
+			// a book the import put in after this request's snapshot is left out
+			if (known.containsKey(candidate.bookId())) {
+				chosen.add(candidate.bookId());
+				planCount.put(candidate.bookId(), candidate.planCount());
+			}
 		}
 		if (chosen.isEmpty()) {
 			finish(run, PickResult.NO_MATCH, "no_match");
@@ -254,10 +264,10 @@ public class AiSearchFlow {
 		List<Long> ids = List.copyOf(chosen);
 		Map<Long, String> lines = candidates.lines(ids);
 		List<Choice> choices = ids.stream()
-			.map(id -> new Choice(listed.get(id).title(), listed.get(id).author(), lines.get(id)))
+			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id)))
 			.toList();
 		run.candidateCount = ids.size();
-		picks(input, history, ids, choices, listed, planCount, run);
+		picks(input, history, ids, choices, known, listed, planCount, run);
 	}
 
 	private KeywordPlan keywords(String question, List<ShownTurn> history, Run run) {
@@ -295,7 +305,7 @@ public class AiSearchFlow {
 	}
 
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices,
-			Map<Long, ListedBook> listed, Map<Long, Integer> planCount, Run run) {
+			Map<Long, SearchBook> known, Map<Long, ListedBook> listed, Map<Long, Integer> planCount, Run run) {
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
@@ -315,10 +325,8 @@ public class AiSearchFlow {
 					return;
 				}
 				long bookId = ids.get((int) no - 1);
-				ListedBook book = listed.get(bookId);
 				run.shown.add(bookId);
-				run.send(AiSearchEvents.CARD, new Card(run.shown.size(), bookId, book.title(), book.author(),
-						book.coverPath(), planCount.getOrDefault(bookId, 0), book.aiSummary()));
+				run.send(AiSearchEvents.CARD, card(run.shown.size(), bookId, known, listed, planCount));
 				current[0] = bookId;
 				currentChars[0] = 0;
 			}
@@ -369,10 +377,8 @@ public class AiSearchFlow {
 			// spec R6-2: the first books without text
 			for (int i = 0; i < Math.min(maxPicks, ids.size()); i++) {
 				long bookId = ids.get(i);
-				ListedBook book = listed.get(bookId);
 				run.shown.add(bookId);
-				run.send(AiSearchEvents.CARD, new Card(run.shown.size(), bookId, book.title(), book.author(),
-						book.coverPath(), planCount.getOrDefault(bookId, 0), book.aiSummary()));
+				run.send(AiSearchEvents.CARD, card(run.shown.size(), bookId, known, listed, planCount));
 			}
 			finish(run, PickResult.NO_TEXT, "no_text");
 		}
@@ -385,6 +391,15 @@ public class AiSearchFlow {
 		else {
 			finish(run, PickResult.OK, "ok");
 		}
+	}
+
+	/** A card: title and author of the search book, cover and AI summary only for a listed book. */
+	private static Card card(int no, long bookId, Map<Long, SearchBook> known, Map<Long, ListedBook> listed,
+			Map<Long, Integer> planCount) {
+		SearchBook book = known.get(bookId);
+		ListedBook onList = listed.get(bookId);
+		return new Card(no, bookId, book.title(), book.author(), onList == null ? null : onList.coverPath(),
+				planCount.getOrDefault(bookId, 0), onList == null ? null : onList.aiSummary());
 	}
 
 	private void count(Run run, Usage usage, int maxTokens) {

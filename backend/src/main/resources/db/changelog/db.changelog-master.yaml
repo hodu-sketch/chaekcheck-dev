@@ -196,3 +196,7 @@ databaseChangeLog:
   - include:
       file: sitecontent/004-privacy-policy-v3.yaml
       relativeToChangelogFile: true
+  # 2026-10-25: the AI search also over the books held by the most libraries (library ids copied in search_book)
+  - include:
+      file: aisearch/003-search-book-library-ids.yaml
+      relativeToChangelogFile: true
