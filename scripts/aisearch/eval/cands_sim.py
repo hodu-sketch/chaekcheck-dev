@@ -12,7 +12,7 @@ import sys
 
 sys.argv = [sys.argv[0]]
 HERE = os.environ.get("AISEARCH_EVAL_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", "aisearch-eval")
-exec(open(os.path.join(HERE, "cands.py"), encoding="utf-8").read().split("questions = json.load")[0])
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "cands.py"), encoding="utf-8").read().split("questions = json.load")[0])
 
 kw = {x["id"]: x["out"] for x in json.load(open(os.path.join(HERE, "kw-base.json"), encoding="utf-8"))}
 kw.update({x["id"]: x["out"] for x in json.load(open(os.path.join(HERE, "kw-sim.json"), encoding="utf-8"))})

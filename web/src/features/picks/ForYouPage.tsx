@@ -37,7 +37,7 @@ function readRecord() {
 }
 
 /**
- * S18 「나에게 맞는 책」 (`/picks/for-you`, cycle 23): the AI line, the base books' line when this browser saw books,
+ * S18 「나에게 맞는 책」 (`/picks/for-you`, cycle 23; no AI line since 2026-10-25, user "빼줘"): the base books' line when this browser saw books,
  * one wide card, then two cards a row: the personal picks (20 at a time, "비슷한 책 더 보기"), then the base list.
  * The base list and the personal picks are asked at the same time; the personal picks only when there are base books
  * (AC-2), and only the base books and the books to show again leave the browser (R5-1).
@@ -210,7 +210,6 @@ export function ForYouPage() {
       <h1 className="visually-hidden">책첵 추천</h1>
       <PicksTabs current="for-you" />
       <div className={picksStyles.condition}>{condition}</div>
-      <p className={styles.aiLine}>{FOR_YOU_TEXT.aiLine}</p>
       {record.base.length > 0 && similarResult?.failed && (
         <p className={styles.baseLine} role="alert">
           {FOR_YOU_TEXT.similarFailed}{' '}

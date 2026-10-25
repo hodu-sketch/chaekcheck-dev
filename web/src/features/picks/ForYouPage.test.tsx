@@ -123,11 +123,11 @@ describe('S18 for-you (cycle 23)', () => {
     expect(tabs[0].getAttribute('aria-current')).toBe('page')
   })
 
-  it('without a record: the AI line once, no base books line, the base list only, no personal request (AC-2, AC-9)', async () => {
+  it('without a record: no AI line, no base books line, the base list only, no personal request (AC-2, AC-9)', async () => {
     const calls = stubFetch()
     renderAt()
     await screen.findByRole('region', { name: '책첵 추천 목록' })
-    expect(screen.getAllByText('책 소개 글과 꼬리표는 AI가 골랐어요')).toHaveLength(1)
+    expect(screen.queryByText('책 소개 글과 꼬리표는 AI가 골랐어요')).toBeNull()
     expect(screen.queryByText(/최근 본 책 .*비슷한 책/)).toBeNull()
     expect(cardTitles()).toEqual(['책 1', '책 2', '책 3'])
     expect(similarCalls(calls)).toHaveLength(0)

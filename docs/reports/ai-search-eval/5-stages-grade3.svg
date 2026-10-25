@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="216" viewBox="0 0 720 216" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="216" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">단계별 '아주 맞는 카드' 비율 (질문 50개)</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">1단계 LLM 검색어 → 낱말 검색</text>
+<rect x="230" y="60" width="227.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="465.0" y="75" font-size="14" font-weight="400" fill="#1f1d2b">40%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">1+2단계 + 벡터 섞기</text>
+<rect x="230" y="94" width="295.1" height="22" rx="4" fill="#c9c2ee"/>
+<text x="533.1" y="109" font-size="14" font-weight="400" fill="#1f1d2b">52%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">1+3단계 + LLM 재평가 (지금 운영)</text>
+<rect x="230" y="128" width="351.9" height="22" rx="4" fill="#c9c2ee"/>
+<text x="589.9" y="143" font-size="14" font-weight="400" fill="#1f1d2b">62%</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">1+2+3단계 (브랜치)</text>
+<rect x="230" y="162" width="420.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="658.0" y="177" font-size="14" font-weight="700" fill="#1f1d2b">74%</text>
+</svg>
