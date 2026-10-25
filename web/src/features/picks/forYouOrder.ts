@@ -85,6 +85,31 @@ export function mixFields(cards: ForYouCard[]): ForYouCard[] {
 }
 
 /**
+ * Once in a while a book of a field this browser has not looked at (user 2026-10-25: "자신이 읽던 것과 아닌 것들도 가끔
+ * 들어가야 해 아주 가끔"): from the 10th place on, one such book every this many places [안].
+ */
+export const SURPRISE_EVERY = 15
+export const SURPRISE_FIRST = 10
+
+/**
+ * Moves up, at the 10th place and then every 15th, the next book whose field group this browser never looked at; only
+ * once the field mix has stopped (three or more seen books) and only books with a known group count. The order of the
+ * rest stays; nothing is added or dropped.
+ */
+export function withSurprises(cards: ForYouCard[], lookedGroups: ReadonlySet<string>, seenCount: number): ForYouCard[] {
+  if (seenCount < MIX_FIELDS_BELOW_SEEN || lookedGroups.size === 0) return cards
+  const out = [...cards]
+  for (let place = SURPRISE_FIRST - 1; place < out.length; place += SURPRISE_EVERY) {
+    const from = out.findIndex(
+      (card, index) => index >= place && card.fieldGroup != null && !lookedGroups.has(card.fieldGroup),
+    )
+    if (from === -1) break
+    if (from > place) out.splice(place, 0, out.splice(from, 1)[0])
+  }
+  return out
+}
+
+/**
  * Keeps the order but moves a book back when it would be the third of its author in a row; books without an author
  * key never count as one author.
  */

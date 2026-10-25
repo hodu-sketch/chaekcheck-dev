@@ -1,7 +1,6 @@
 /*
- * S18 「책첵 추천」 (cycle 23 flow, 배치 메모): the picks screen's column and tabs; one wide card at the top, then two
- * cards a row (phones: one). Every card puts its cover on the left and the words on the right, the summary in larger
- * letters (user 2026-10-25: "책 표지를 다 왼쪽으로 두고 오른쪽에 적당히 큰 글자로 ai요약 적어줘").
+ * S18 「책첵 추천」: its own lines (the AI line, the failure line) and S19. The chips, the grid of cards and the more
+ * button are the list tabs' (PicksPage.module.css), as on KAIST (user 2026-10-25: "카이스트 추천과 같은 디자인으로").
  */
 
 .aiLine {
@@ -37,165 +36,6 @@
 .retry:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-}
-
-.results {
-  margin-top: 1rem;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.baseGrid {
-  margin-top: 0.9rem;
-}
-
-/* the base list's own heading, after the personal picks */
-.baseHeading {
-  margin: 2.2rem 0 0;
-  padding-top: 1.4rem;
-  border-top: 1px solid var(--rule);
-  font-size: var(--text-xl);
-  font-weight: 800;
-  word-break: keep-all;
-}
-
-.cell {
-  display: flex;
-  min-width: 0;
-}
-
-.topCell {
-  display: flex;
-  grid-column: 1 / -1;
-  min-width: 0;
-}
-
-.card {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 1.1rem;
-  width: 100%;
-  padding: 1.1rem 1rem 1rem;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  box-shadow: var(--card-shadow-soft);
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    box-shadow 150ms,
-    border-color 150ms,
-    translate 150ms;
-}
-
-.card:hover {
-  border-color: color-mix(in srgb, var(--brand) 35%, var(--card-border));
-  box-shadow: var(--card-shadow);
-  translate: 0 -2px;
-}
-
-.card:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* the wide card: a larger cover, more room */
-.card[data-wide] {
-  gap: 1.6rem;
-  padding: 1.4rem 1.6rem;
-  background: linear-gradient(135deg, var(--brand-faint), var(--card) 60%);
-}
-
-.coverBox {
-  display: flex;
-  flex: none;
-  align-items: flex-start;
-  height: 10rem;
-}
-
-.card[data-wide] .coverBox {
-  flex: none;
-  height: 15rem;
-}
-
-.cover {
-  height: 100%;
-  width: auto;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgb(25 31 40 / 0.12);
-}
-
-.text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.title {
-  font-size: var(--text-md);
-  font-weight: 800;
-  line-height: 1.4;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-}
-
-.card[data-wide] .title {
-  font-size: var(--text-xl);
-}
-
-.meta {
-  color: var(--ink-faint);
-  font-size: var(--text-sm);
-}
-
-/* the words whole, never cut (AC-11), in larger letters */
-.blurb {
-  margin-top: 0.2rem;
-  color: var(--ink);
-  font-size: var(--text-lg);
-  line-height: 1.65;
-  word-break: keep-all;
-}
-
-/* tags: plain labels, nothing happens on a press (AC-10) */
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.tag {
-  padding: 0.12rem 0.55rem;
-  border-radius: 999px;
-  background: var(--brand-mist);
-  color: var(--ink-soft);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
-.tag[data-axis='mood'] {
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-}
-
-.held {
-  color: var(--brand-strong);
-  font-size: var(--text-sm);
-  font-weight: 800;
-}
-
-.topSkeleton {
-  height: 17rem;
 }
 
 .myPageLink {
@@ -287,45 +127,11 @@
   outline-offset: 2px;
 }
 
-/* phones: one card a row, still cover left and words right */
+/* phones: the personal picks' failure line folds into two lines */
 @media (width <= 640px) {
-  .grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.7rem;
-  }
-
-  .card {
-    gap: 0.9rem;
-    padding: 0.9rem 0.8rem;
-  }
-
-  .coverBox {
-    height: 7.5rem;
-  }
-
-  .card[data-wide] {
-    gap: 1rem;
-    padding: 1rem;
-  }
-
-  .card[data-wide] .coverBox {
-    height: 9.5rem;
-  }
-
-  /* the personal picks' failure line folds into two lines */
   .baseLine {
     flex-direction: column;
     align-items: flex-start;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: none;
-  }
-
-  .card:hover {
-    translate: none;
   }
 }
 

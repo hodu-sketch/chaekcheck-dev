@@ -7,10 +7,12 @@ import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { useConditionCard } from '../search/useConditionCard'
-import { ForYouCard } from './ForYouCard'
+import { BookCard } from './BookCard'
+import { cardsFor, chipsFor } from './forYouChips'
 import { pickBook, yearLineOf } from './forYouBook'
-import { layOut } from './forYouOrder'
+import { layOut, MAX_PERSONAL, PAGE_SIZE, withSurprises } from './forYouOrder'
 import { FOR_YOU_TEXT } from './forYouText'
+import { MORE_STEP } from './picksText'
 import { PHONE_QUERY } from './PicksPage'
 import { PicksBookDialog } from './PicksBookDialog'
 import { PicksTabs } from './PicksTabs'
@@ -30,6 +32,7 @@ function readRecord() {
     base: baseBooks(viewed, now),
     reshow: reshowBooks(viewed, now).map((book) => book.bookId),
     seen: new Set(viewed.map((book) => book.bookId)),
+    viewed,
   }
 }
 
@@ -53,7 +56,8 @@ export function ForYouPage() {
   const [similarTry, setSimilarTry] = useState(0)
   const [baseLoad, setBaseLoad] = useState<BaseLoad | null>(null)
   const [similarLoad, setSimilarLoad] = useState<SimilarLoad | null>(null)
-  const [pages, setPages] = useState(1)
+  const [chip, setChip] = useState('all')
+  const [shown, setShown] = useState(MORE_STEP)
   const [selected, setSelected] = useState<Card | null>(null)
 
   useEffect(() => {
@@ -101,7 +105,15 @@ export function ForYouPage() {
     similarResult?.data?.books ?? [],
     similarResult?.data?.reshowBooks ?? [],
     record.seen,
-    pages,
+    MAX_PERSONAL / PAGE_SIZE,
+  )
+  // one list, as on the list tabs: the personal picks (all of them) first, then the base list
+  // now and then a book of a field this browser never looked at (user 2026-10-25)
+  const lookedGroups = new Set(record.viewed.flatMap((book) => (book.fieldGroup ? [book.fieldGroup] : [])))
+  const all = withSurprises(
+    layout.top ? [layout.top, ...layout.personal, ...layout.base] : [],
+    lookedGroups,
+    record.seen.size,
   )
   const personalIds = useMemo(() => {
     const ids = new Set<number>()
@@ -109,6 +121,8 @@ export function ForYouPage() {
     for (const card of similarResult?.data?.reshowBooks ?? []) ids.add(card.bookId)
     return ids
   }, [similarResult])
+  const chips = chipsFor(all, personalIds, record.viewed)
+  const currentChip = chips.some((c) => c.code === chip) ? chip : 'all'
 
   // one usage report when the tab's list is shown (R11-1, category "all")
   const reported = useRef(false)
@@ -144,7 +158,7 @@ export function ForYouPage() {
         </button>
       </p>
     )
-  } else if (layout.top === null) {
+  } else if (all.length === 0) {
     body = (
       <div className={picksStyles.empty}>
         <p>{FOR_YOU_TEXT.noneInMyLibraries}</p>
@@ -154,39 +168,40 @@ export function ForYouPage() {
       </div>
     )
   } else {
+    const inChip = cardsFor(currentChip, all, personalIds)
+    const books = inChip.slice(0, shown)
+    const left = inChip.length - books.length
     body = (
-      <section className={styles.results} aria-label="책첵 추천 목록">
-        <ol className={styles.grid}>
-          <ForYouCard card={layout.top} wide onPick={pick} />
-          {layout.personal.map((card, i) => (
-            <ForYouCard
-              key={`p-${card.bookId}`}
-              card={card}
-              onPick={pick}
-              // an odd last card takes the whole row, so no empty place is left before the base list
-              full={i === layout.personal.length - 1 && layout.personal.length % 2 === 1}
-            />
+      <>
+        <div className={picksStyles.chips} role="group" aria-label="분류">
+          {chips.map((chip) => (
+            <button
+              key={chip.code}
+              type="button"
+              className={picksStyles.chip}
+              aria-pressed={chip.code === currentChip}
+              onClick={() => {
+                setChip(chip.code)
+                setShown(MORE_STEP)
+              }}
+            >
+              {chip.name}
+            </button>
           ))}
-        </ol>
-        {layout.hasMore && (
-          <button type="button" className={picksStyles.more} onClick={() => setPages((n) => n + 1)}>
-            {FOR_YOU_TEXT.more}
-          </button>
-        )}
-        {/* only after personal picks: without them the whole list is the base list */}
-        {layout.base.length > 0 && personalIds.has(layout.top.bookId) && (
-          <h2 className={styles.baseHeading}>
-            {baseResult.data?.builtOn ? FOR_YOU_TEXT.baseHeadingPopular : FOR_YOU_TEXT.baseHeadingListed}
-          </h2>
-        )}
-        {layout.base.length > 0 && (
-          <ol className={`${styles.grid} ${styles.baseGrid}`}>
-            {layout.base.map((card) => (
-              <ForYouCard key={`b-${card.bookId}`} card={card} onPick={pick} />
+        </div>
+        <section className={picksStyles.results} aria-label="책첵 추천 목록">
+          <ol className={picksStyles.grid}>
+            {books.map((card) => (
+              <BookCard key={card.bookId} book={pickBook(card)} onPick={() => pick(card)} />
             ))}
           </ol>
-        )}
-      </section>
+          {left > 0 && (
+            <button type="button" className={picksStyles.more} onClick={() => setShown((n) => n + MORE_STEP)}>
+              더 보기 <span className={picksStyles.moreCount}>({Math.min(left, MORE_STEP)}권)</span>
+            </button>
+          )}
+        </section>
+      </>
     )
   }
 
@@ -228,19 +243,16 @@ export function ForYouPage() {
   )
 }
 
-/** Loading (flow S18): the wide card's place, then two cards a row. */
+/** Loading: the chips' place, then the grid of cards as on the list tabs. */
 function LoadingCards() {
   return (
-    <section className={styles.results} aria-busy="true">
+    <section className={picksStyles.results} aria-busy="true">
       <p className="visually-hidden" role="status">
         {FOR_YOU_TEXT.loading}
       </p>
-      <ol className={styles.grid} aria-hidden="true">
-        <li className={styles.topCell}>
-          <span className={`${picksStyles.skeleton} ${styles.topSkeleton}`} data-testid="skeleton-card" />
-        </li>
-        {[0, 1, 2, 3].map((index) => (
-          <li key={index} className={styles.cell}>
+      <ol className={picksStyles.grid} aria-hidden="true">
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+          <li key={index} className={picksStyles.cell}>
             <span className={picksStyles.skeleton} data-testid="skeleton-card" />
           </li>
         ))}
