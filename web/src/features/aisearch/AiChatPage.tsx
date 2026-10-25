@@ -397,6 +397,16 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProp
         </p>
       )}
       {turn.head && turn.result !== 'no_match' && <p className={styles.head}>{turn.head}</p>}
+      {turn.result === 'site' && turn.head && (
+        <>
+          <p className={styles.siteLinkLine}>
+            <Link className={styles.siteLink} to="/about">
+              {AI_TEXT.siteLink}
+            </Link>
+          </p>
+          <p className={styles.soft}>{AI_TEXT.siteNote}</p>
+        </>
+      )}
       {turn.result === 'no_text' && <p className={styles.head}>{AI_TEXT.noText}</p>}
       {turn.cards.length > 0 && (
         <ul className={styles.cards}>

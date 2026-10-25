@@ -90,14 +90,8 @@ export function AboutPage() {
         </h2>
         <p>사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)예요.</p>
         <p>각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없습니다.</p>
-        {/* CC BY 4.0 attribution of the IP list behind the first screen's example region (user 2026-10-20) */}
-        <p>
-          첫 화면 지역 예시의 IP 위치 정보:{' '}
-          <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">
-            IP Geolocation by DB-IP
-          </a>{' '}
-          (CC BY 4.0)
-        </p>
+        {/* no IP attribution line: the first screen no longer picks the example region by IP (user 2026-10-26
+            "아이피정보는 지금 안 쓰니까 운영에서 제외") */}
         <p>
           문의: <a href="mailto:chaekcheck9104@gmail.com">chaekcheck9104@gmail.com</a>
         </p>

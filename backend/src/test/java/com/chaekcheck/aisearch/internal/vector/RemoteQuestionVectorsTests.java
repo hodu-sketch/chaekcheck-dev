@@ -124,6 +124,21 @@ class RemoteQuestionVectorsTests {
 	}
 
 	@Test
+	void theTextsOfOneSearchCountAsOneLookup() throws Exception { // ML first call, user 2026-10-26
+		try (KureQuestionVectors vectors = vectors(TOKEN, Duration.ofSeconds(2))) {
+			assertThat(vectors.vectors(List.of("지금", "앞", "앞 지금")).get(5, TimeUnit.SECONDS)).hasSize(3);
+			status = 500;
+			// three texts fail at once: one failure, the breaker (2 to open) stays closed
+			assertThatThrownBy(() -> vectors.vectors(List.of("지금", "앞", "앞 지금")).get(5, TimeUnit.SECONDS));
+			assertThat(vectors.circuit()).isEqualTo(CircuitBreaker.State.CLOSED);
+			assertThatThrownBy(() -> vectors.vectors(List.of("지금")).get(5, TimeUnit.SECONDS));
+			assertThat(vectors.circuit()).isEqualTo(CircuitBreaker.State.OPEN);
+			assertThatThrownBy(() -> vectors.vectors(List.of("지금")).get(1, TimeUnit.SECONDS))
+				.hasCauseInstanceOf(QuestionVectors.Unavailable.class);
+		}
+	}
+
+	@Test
 	void noAddressLeavesTheVectorsOff() {
 		AiSearchProperties.Remote none = new AiSearchProperties.Remote("", TOKEN, Duration.ofSeconds(1));
 		try (KureQuestionVectors vectors = new KureQuestionVectors(properties(none), JsonMapper.builder().build())) {
@@ -144,7 +159,8 @@ class RemoteQuestionVectorsTests {
 				new AiSearchProperties.Price(java.math.BigDecimal.ONE, java.math.BigDecimal.ONE),
 				new AiSearchProperties.Limits(30, 8, 5, 200, 300),
 				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
-						AiSearchProperties.Encoder.REMOTE, remote, 2, Duration.ofMillis(300)));
+						AiSearchProperties.Encoder.REMOTE, remote, 2, Duration.ofMillis(300)),
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.HAIKU, 0.004, 512));
 	}
 
 	/** Three books in 2 dimensions: 10 along x, 20 along y, 30 between them (the model files are not needed). */

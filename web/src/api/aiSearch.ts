@@ -36,7 +36,8 @@ export type AiCard = {
   aiSummary?: string | null
 }
 
-export type AiDoneResult = 'ok' | 'no_match' | 'no_text' | 'partial'
+// site: the head answered a question about 책첵 from the site's own text, no book (ML first call, user 2026-10-26)
+export type AiDoneResult = 'ok' | 'no_match' | 'no_text' | 'partial' | 'site'
 
 export type AiStreamEvent =
   | { name: 'title-guess'; data: { title: string } }

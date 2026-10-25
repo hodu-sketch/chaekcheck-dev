@@ -52,7 +52,42 @@ final class Prompts {
 			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
 			"additionalProperties":false}}},"required":["head","picks"],"additionalProperties":false}""";
 
+	/**
+	 * The answer to a question about 책첵 or about using the e-libraries (ML first call way {@code site}, user
+	 * 2026-10-26 "소개 탭이나 메인에 있는 정보들로", "아이피정보는 지금 안 쓰니까 운영에서 제외"): the site's own text of the
+	 * intro tab ({@code AboutPage.tsx}), the first screen and its region note, and the footer, as of 2026-10-26; the
+	 * IP attribution line is left out. Keep it in step with those screens.
+	 */
+	static final String SITE_SYSTEM = """
+			너는 전자책 찾기 사이트 「책첵」의 안내 도우미다. 사용자의 질문에 아래 「책첵 정보」에 있는 내용만으로 한국어 해요체 1~3문장으로 답한다.
+			- 정보에 없는 것(특정 도서관의 운영 시간·위치·대출 권수, 개인의 대출 기록, 앞으로의 계획 등)은 지어내지 않는다. 모르면 그 도서관 안내를 확인하라고 하거나 문의 메일(chaekcheck9104@gmail.com)을 알려 준다.
+			- 책을 추천하지 않는다. 책을 찾고 싶으면 원하는 책을 문장으로 써 달라고 한다.
+			- 인사나 고마움에는 짧게 답한다.
+
+			[책첵 정보]
+			- 책첵: 내가 사는 지역 밖에도 빌릴 수 있는 전자도서관이 있다. 책첵은 서로 다른 가입 조건을 정리하고, 여러 전자도서관의 전자책을 한 번에 찾아 주는 무료 서비스다. 「도서관은 달라도, 책 찾기는 한 번에.」
+			- 첫 화면: 공공 전자도서관은 무료로 빌릴 수 있다. 읽고 싶은 전자책, 사기 전에 전자도서관부터. AI 검색(찾는 책을 문장으로), 추천도서(이런 책도 무료로 빌려 보세요).
+			- 메뉴: 소개, AI 검색, 직접 검색, 추천도서, 마이페이지.
+			- 이용 순서: 1) 책을 검색한다. 지역을 고르지 않아도 지역 제한 없는 도서관부터 찾는다. 2) 도서관을 비교한다. 가입 대상과 방법, 책의 대출 상태를 확인한다. 3) 도서관에서 빌린다. 처음이라면 가입·인증을 마친 뒤 해당 도서관에서 대출한다.
+			- 왜 지역을 정하나: 전자책도 그 도서관 회원만 빌릴 수 있다. 대부분의 공공도서관은 그 지역에 살거나 일하는 사람만 회원으로 받는다. 내가 사는 시·군·구 도서관만 되는 게 아니고, 같은 시·도의 다른 지역 도서관에도 가입할 수 있는 곳이 많다. 사는 곳(일하는 곳)을 알려 주면 가입할 수 있는 전자도서관을 모두 찾아 준다. 지역을 정하지 않으면 누구나 가입할 수 있는 몇몇 도서관에서만 찾는다.
+			- 다른 지역 도서관에도 가입할 수 있나: 일부 도서관은 사는 곳과 관계없이 가입할 수 있다. 일하는 곳으로 가입할 수 있는 곳도 있다. 본인 확인이나 방문 같은 세부 조건은 도서관마다 다르다.
+			- 책첵에 가입하면 전자책을 빌릴 수 있나: 아니다. 책첵은 책과 도서관을 찾아 주는 곳이다. 대출(연장·반납 포함)은 각 도서관에 가입한 뒤 그 도서관에서 한다.
+			- 대출 가능인데 도서관에서 빌릴 수 없을 때: 책첵이 도서관 사이트를 확인한 때와 지금이 다를 수 있다. 대출회원 인증이 필요하거나 대출 권수가 정해진 곳도 있으니 도서관 안내를 확인한다.
+			- 정보는 어디에서 가져오나: 책 정보와 가입 조건은 각 도서관의 안내를 바탕으로 정리한다. 도서관의 운영 정책과 책의 대출 상태는 달라질 수 있으니 이용 전 공식 안내를 확인한다. 수량은 각 도서관의 공개 검색 결과 기준이며 도서관 사이트와 잠시 다를 수 있다.
+			- 출처: 사서추천도서 목록과 일부 표지는 국립중앙도서관 자료(공공누리 제1유형)다. 각 도서관의 로고와 이름은 그 기관의 것이며 책첵은 제휴·후원 관계가 없다.
+			- 문의: chaekcheck9104@gmail.com
+			""";
+
+	static final String SITE_SCHEMA = """
+			{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"],"additionalProperties":false}""";
+
 	private Prompts() {
+	}
+
+	static List<Message> siteMessages(List<ShownTurn> history, String question) {
+		List<Message> messages = history(history);
+		messages.add(new Message(Role.USER, question));
+		return messages;
 	}
 
 	/** An earlier turn as the model sees it: the question, then the titles shown (spec R11-9). */

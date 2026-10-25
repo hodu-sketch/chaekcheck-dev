@@ -178,6 +178,22 @@
   font-size: var(--text-sm);
 }
 
+/* the way to the intro tab under an answer about 책첵 (user 2026-10-26, mockup approved) */
+.siteLinkLine {
+  margin: 0;
+}
+
+.siteLink {
+  color: var(--brand-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.siteLink:hover,
+.siteLink:focus-visible {
+  text-decoration: underline;
+}
+
 /* one book a line, every card as large as the first was (user 2026-10-24 "도서 결과는 모두 이렇게 한 행에 한 책이었으면 해") */
 .cards {
   display: grid;

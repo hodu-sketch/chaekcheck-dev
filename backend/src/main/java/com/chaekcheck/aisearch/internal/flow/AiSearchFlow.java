@@ -23,6 +23,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
+import com.chaekcheck.aisearch.internal.firstcall.MlFirstCall;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Card;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.CardDelta;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Done;
@@ -62,7 +63,10 @@ import com.chaekcheck.usagelog.UsageRequest;
  * books without text ({@code no_text}); failing after one sends {@code partial}. The day's cost and one usage row are
  * written at the end. Neither the question nor the history is logged. Titles and authors come from the search books;
  * a listed book's card adds its list cover and AI summary; a card without a list cover takes the tab cover (cycle 23's,
- * user 2026-10-25), and the other books have no AI summary yet.
+ * user 2026-10-25), and the other books have no AI summary yet. With {@code first-call.mode: ml} the first step asks no
+ * model ({@link MlFirstCall}, user 2026-10-26): the way, the words and the shelves come from the question vector, the
+ * vector candidates from the question's (or, for a follow-up, the earlier and this question's joined) vector, and the
+ * shared shelves reorder the mix; a question about 책첵 is answered from the site's own text.
  */
 @Component
 public class AiSearchFlow {
@@ -87,6 +91,8 @@ public class AiSearchFlow {
 
 	private final QuestionVectors vectors;
 
+	private final MlFirstCall mlFirstCall;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -95,7 +101,8 @@ public class AiSearchFlow {
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
 			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, BookBlurbs blurbs,
-			QuestionVectors vectors, UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
+			QuestionVectors vectors, MlFirstCall mlFirstCall, UsageLog usageLog, AiSearchProperties properties,
+			JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
@@ -105,6 +112,7 @@ public class AiSearchFlow {
 		this.covers = covers;
 		this.blurbs = blurbs;
 		this.vectors = vectors;
+		this.mlFirstCall = mlFirstCall;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -194,6 +202,12 @@ public class AiSearchFlow {
 		/** Whether the question named a book whose neighbours went first. */
 		boolean named;
 
+		/** The ML first call's way, or null when Haiku made the first step. */
+		MlFirstCall.Route mlRoute;
+
+		/** Whether the ML first call took a follow-up as a new topic. */
+		boolean newTopic;
+
 		final List<Long> shown = new ArrayList<>();
 
 		Run(AiSearchSink sink) {
@@ -230,7 +244,8 @@ public class AiSearchFlow {
 						new AiSearchRecord(elapsedMs, input.turnNo(), run.keywordResult, run.titleLike, run.pickResult,
 								run.candidateCount, run.shown, (int) Math.min(Integer.MAX_VALUE, run.inputTokens),
 								(int) Math.min(Integer.MAX_VALUE, run.outputTokens)));
-				log.info("ai search: keyword {}, pick {}, candidates {} (vector {}{}), cards {}, {} ms, tokens {}/{}{}",
+				log.info("ai search: first {}, keyword {}, pick {}, candidates {} (vector {}{}), cards {}, {} ms, tokens {}/{}{}",
+							run.mlRoute == null ? "haiku" : "ml " + run.mlRoute + (run.newTopic ? " new topic" : ""),
 						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
 						run.named ? ", named book" : "", run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
 						run.gone ? ", client gone" : "");
@@ -246,9 +261,13 @@ public class AiSearchFlow {
 
 	private void answer(Input input, Run run) {
 		AiSearchProperties.Vector vectorSettings = properties.vector();
-		// the question vector is made while the first call runs; only the question goes in, never the history
-		CompletableFuture<List<Long>> nearest = vectors.on()
-				? vectors.nearest(input.question(), vectorSettings.vectorDepth() * 2) : null;
+		String earlierQuestion = input.history().isEmpty() ? null : input.history().getLast().question();
+		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
+				&& vectors.on() ? mlStep(input.question(), earlierQuestion, vectorSettings) : null;
+		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
+		// first step above sends the earlier question too)
+		CompletableFuture<List<Long>> nearest = mlStep != null ? CompletableFuture.completedFuture(mlStep.nearest())
+				: vectors.on() ? vectors.nearest(input.question(), vectorSettings.vectorDepth() * 2) : null;
 		Map<Long, SearchBook> known = searchBooks.byId();
 		Map<Long, ListedBook> listed = new HashMap<>();
 		for (ListedBook book : listedBooks.current().books()) {
@@ -269,7 +288,22 @@ public class AiSearchFlow {
 			lastShown = shown;
 		}
 
-		KeywordPlan plan = keywords(input.question(), history, run);
+		KeywordPlan plan;
+		if (mlStep != null) {
+			MlFirstCall.Plan ml = mlStep.plan();
+			run.mlRoute = ml.route();
+			run.newTopic = ml.newTopic();
+			if (ml.route() == MlFirstCall.Route.SITE) {
+				site(input, history, run);
+				return;
+			}
+			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK, ml.route() == MlFirstCall.Route.TITLE_LIKE,
+					ml.route() == MlFirstCall.Route.TITLE_LIKE ? input.question() : "",
+					ml.route() == MlFirstCall.Route.REFERS_SHOWN, ml.keywords(), List.of(), KeywordResult.OK);
+		}
+		else {
+			plan = keywords(input.question(), history, run);
+		}
 		run.keywordResult = plan.result();
 		run.titleLike = plan.titleLike();
 		if (plan.titleLike() && !plan.title().isBlank()) {
@@ -349,7 +383,11 @@ public class AiSearchFlow {
 					vectorSettings);
 			run.vectorCount = vectorIds.size();
 			// one edition of a title: the mix brings the same book from both lists under different ids
-			for (long bookId : Fusion.rrf(keywordIds, vectorIds, vectorSettings.rrfK())) {
+			List<Long> mixed = mlStep == null ? Fusion.rrf(keywordIds, vectorIds, vectorSettings.rrfK())
+					: Fusion.rrf(keywordIds, vectorIds, vectorSettings.rrfK(),
+							id -> mlFirstCall.bonus(id, mlStep.plan().shelves()),
+							id -> mlFirstCall.rulesOut(id, mlStep.plan().shelves()));
+			for (long bookId : mixed) {
 				if (chosen.size() >= max) {
 					break;
 				}
@@ -453,6 +491,77 @@ public class AiSearchFlow {
 		List<Long> held = keep.stream().filter(counts::containsKey).limit(settings.vectorDepth()).toList();
 		held.forEach(id -> planCount.put(id, counts.get(id)));
 		return held;
+	}
+
+	/** The ML first call's plan and the vector candidates of its search vector. */
+	private record MlStep(MlFirstCall.Plan plan, List<Long> nearest) {
+	}
+
+	/**
+	 * The ML first step: the question's vector (and for a follow-up the earlier question's and the two joined, at the
+	 * same time), the plan from them, the nearest books of the search vector. Null when a vector fails or comes later
+	 * than {@code maxWait}: the search then asks Haiku.
+	 */
+	private MlStep mlStep(String question, String earlierQuestion, AiSearchProperties.Vector settings) {
+		// the earlier question goes to the encoder too (this process or the embedding server, never logged)
+		List<String> texts = earlierQuestion == null ? List.of(question)
+				: List.of(question, earlierQuestion, earlierQuestion + " " + question);
+		CompletableFuture<List<float[]>> lookup = vectors.vectors(texts);
+		try {
+			List<float[]> found = lookup.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
+			float[] vector = found.get(0);
+			MlFirstCall.Plan plan = mlFirstCall.plan(question, vector, earlierQuestion,
+					earlierQuestion == null ? null : found.get(1));
+			float[] search = plan.joinedVector() ? found.get(2) : vector;
+			return new MlStep(plan, vectors.nearest(search, settings.vectorDepth() * 2));
+		}
+		catch (TimeoutException e) {
+			lookup.cancel(true);
+			log.info("ai search: the question vector was late, haiku makes the first step");
+		}
+		catch (ExecutionException e) {
+			if (!(e.getCause() instanceof QuestionVectors.Unavailable)) {
+				log.warn("ai search: the question vector failed ({}), haiku makes the first step",
+						e.getCause().getClass().getName());
+			}
+		}
+		catch (InterruptedException e) {
+			lookup.cancel(true);
+			Thread.currentThread().interrupt();
+		}
+		catch (RuntimeException e) {
+			log.warn("ai search: the ml first call failed ({}), haiku makes the first step", e.getClass().getName());
+		}
+		return null;
+	}
+
+	/**
+	 * A question about 책첵 or about using the e-libraries (ML way {@code site}, user 2026-10-26): one call answers
+	 * from the site's own text ({@link Prompts#SITE_SYSTEM}); the answer goes out as the head and the search ends as
+	 * {@code site}. Failing, it ends as {@code no_match} like a question that is not about books.
+	 */
+	private void site(Input input, List<ShownTurn> history, Run run) {
+		LlmCall call = new LlmCall(Prompts.SITE_SYSTEM, Prompts.siteMessages(history, input.question()),
+				Prompts.SITE_SCHEMA, properties.firstCall().siteMaxTokens());
+		try {
+			Result result = llm.complete(call, properties.pickTimeout());
+			count(run, result.usage(), call.maxTokens());
+			String answer = json.readTree(result.text()).path("answer").asString("").strip();
+			if (!answer.isEmpty()) {
+				run.send(AiSearchEvents.HEAD_DELTA, new Text(answer));
+				finish(run, PickResult.SKIPPED, "site");
+				return;
+			}
+		}
+		catch (LlmException e) {
+			if (e.failure() != Failure.NOT_CONFIGURED) {
+				count(run, e.usage(), call.maxTokens());
+			}
+		}
+		catch (JacksonException e) {
+			log.warn("ai search: the site answer was not the schema's");
+		}
+		finish(run, PickResult.NO_MATCH, "no_match");
 	}
 
 	private KeywordPlan keywords(String question, List<ShownTurn> history, Run run) {

@@ -19,6 +19,30 @@ public interface QuestionVectors {
 	 */
 	CompletableFuture<List<Long>> nearest(String question, int limit);
 
+	/**
+	 * The texts' normalised vectors in the same order, for the ML first call (user 2026-10-26): the question, and for a
+	 * follow-up the earlier question and the two joined. One lookup for the circuit breaker however many texts.
+	 * Completes exceptionally with {@link Unavailable} when off or while the encoder is not asked, otherwise when a
+	 * run fails.
+	 */
+	default CompletableFuture<List<float[]>> vectors(List<String> texts) {
+		return CompletableFuture.failedFuture(new Unavailable());
+	}
+
+	/** The vectors are off or the encoder is not asked for a while: nothing failed this time. */
+	final class Unavailable extends IllegalStateException {
+
+		public Unavailable() {
+			super("question vectors are off or not asked", null);
+		}
+
+	}
+
+	/** The ids of the {@code limit} book vectors nearest the given vector, nearest first; empty when off. */
+	default List<Long> nearest(float[] vector, int limit) {
+		return List.of();
+	}
+
 	/** Off: what a search without the model folder uses. */
 	QuestionVectors OFF = new QuestionVectors() {
 

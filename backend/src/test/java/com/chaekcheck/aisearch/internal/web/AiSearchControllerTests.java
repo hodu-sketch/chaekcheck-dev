@@ -97,7 +97,7 @@ class AiSearchControllerTests {
 		assertThat(result).hasHeader("X-Accel-Buffering", "no");
 		assertThat(new String(result.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8))
 			.contains("event:done\ndata:{\"result\":\"no_match\",\"bookIds\":[]}");
-		assertThat(output.getAll()).contains("ai search: keyword FAILED").doesNotContain(QUESTION);
+		assertThat(output.getAll()).contains("ai search: first haiku, keyword FAILED").doesNotContain(QUESTION);
 		assertThat(jdbc.sql("SELECT request_count FROM aisearch.daily_usage").query(Integer.class).single()).isEqualTo(1);
 	}
 
