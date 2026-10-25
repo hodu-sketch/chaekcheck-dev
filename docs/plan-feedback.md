@@ -6663,3 +6663,9 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 시험: 이 브랜치 백엔드 `./gradlew build` 통과(1,291개), 웹 build·vitest 통과. 중간에 다른 세션의 Gradle 시험이 `db-test`를 함께 써서 한 번 "too many clients"로 실패 → 끝난 뒤 다시 돌려 통과
 - 이동진 안내 전부 빼기(사용자 "이동진 안내는 전부 빼 논란이 있대", 2026-10-25): 웹 `HIDDEN_LISTS = ['leedongjin']` — `/picks/leedongjin`은 「책첵 추천」으로 넘어가고, 카드 꼬리말에도 이름이 안 나옴. 목록 책 자체는 추천목록 책으로 계속 셈(기본 목록·AI 검색 후보). 서버 API·데이터는 그대로
 - 카드 꼬리말 "○○ 추천목록에 있어요"를 모두 뺌(사용자 "여기 목록에서 어디어디 추천도서에 있어요 문구 다 빼", 2026-10-25) — 명세 R3-2·AC-3과 다름. 사용자 확인: "이동진 추천 책을 빼라는 게 아니야" → 책은 그대로, 안내 문구만 뺌
+
+### v1.13.0 운영 반영 (2026-10-25, 사용자 "운영에 올려줘")
+
+- 배포 폴더 `chaekcheck-dev-rel`의 main(24 세션의 안 올린 커밋 5e15198 "첫 화면 짧은 예시" 포함, 그 세션 동의)에 이 브랜치를 합치고 `release.sh 1.13.0 backend web`(SSH 키는 `CHAEKCHECK_SSH_KEY`로 dev `.secrets`를 가리킴) → **v1.13.0**(a191649), GitHub 릴리스. 서버 이미지 1.13.0·1.12.2만 남음, 디스크 여유 11G
+- 확인: `/api/v1/version` 1.13.0, 탭 「책첵 추천」, 카드 꼬리말·이동진 글자 없음, 표지 1,336장 보임, `/picks/leedongjin` → `/picks/for-you`, `similar-books` 기준 책 6권 200, 카드 `fieldGroup`(literature 682·humanities 479·society 353·science 241 …)
+- 운영에 아직 없는 것: 탭 추천 글(Haiku 배치, API 키 대기), 꼬리표(사전 없음), 새벽 인기순 받기(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`)
