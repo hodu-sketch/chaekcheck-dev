@@ -134,6 +134,33 @@ class BookTextsImportTests {
 	}
 
 	@Test
+	void excludedMostHeldBooksAreLeftOutButListedOnesStay() throws Exception { // 2026-10-25, books without an intro
+		FakeListed listed = new FakeListed(List.of(book(11, "코스모스", null)));
+		FakeHeld top = new FakeHeld(List.of(new HeldBook(30, "불편한 편의점", "김호연", new long[] { 1 }),
+				new HeldBook(11, "코스모스", null, new long[] { 1 }), new HeldBook(31, "작별인사", null, new long[] { 4 })));
+
+		BookTextsImport.Report report = new BookTextsImport(listed, top, 3, texts, forYou, tags,
+				TransactionOperations.withoutTransaction())
+			.run(file("""
+				kind	book_id	source	made_on	text
+				search_line	30	intro	2026-10-25	편의점에서 만난 사람들의 따뜻한 이야기
+				search_exclude	31			empty_intro
+				search_exclude	11			no_intro
+				"""));
+
+		assertThat(texts.books).extracting(Book::bookId).containsExactly(11L, 30L);
+		assertThat(report.topOnly()).isEqualTo(1);
+		assertThat(report.excluded()).isEqualTo(1);
+	}
+
+	@Test
+	void anExcludedBookNeedsItsReason() {
+		assertThatThrownBy(() -> BookTextsFile.parse(List.of("kind	book_id	source	made_on	text",
+				"search_exclude	31			"))).isInstanceOf(BookTextsFile.RefusedException.class)
+			.hasMessageContaining("reason");
+	}
+
+	@Test
 	void noListedBookRefusesAndKeepsTheSearchBooks() throws Exception {
 		BookTextsImport command = command(new FakeListed(List.of()));
 		Path file = file("kind\tbook_id\tsource\tmade_on\ttext\nsearch_line\t11\tintro\t2026-10-24\t가\n"

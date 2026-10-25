@@ -26,7 +26,9 @@ import com.chaekcheck.picks.ListedBooks.Snapshot;
  * The {@code book-texts} import mode (cycle 24 handoff step 4-3, ADR-0151): reads the file, then the listed books from
  * the database ({@link ListedBooks#loadFromDb()}: this command runs before any cache is filled) and the books held by
  * the most libraries ({@link MostHeldBooks}, user 2026-10-25: "보유량 많은 3만 권"), then replaces the AI search's books
- * with both (a book in both once, as listed: the shown name) and the file's search lines. Each book's library ids are
+ * with both (a book in both once, as listed: the shown name) and the file's search lines. A most held book named by
+ * a {@code search_exclude} row is left out (2026-10-25, books without a usable intro); a listed book never is, and
+ * the place is not filled with the next most held book. Each book's library ids are
  * copied too. No listed book refuses the import and keeps the table as it is. Nothing else of the catalog is touched.
  * <p>
  * Cycle 23 step 3-3 (ADR-0149): the file's {@code for_you_blurb} and {@code cover_file} rows are upserted through
@@ -79,13 +81,14 @@ public final class BookTextsImport {
 	 * @param covers {@code cover_file} rows written
 	 * @param listed the listed books put in the AI search (0 when it was left alone)
 	 * @param topOnly the most held books put in that are not listed
+	 * @param excluded the most held books left out by {@code search_exclude} rows
 	 */
 	public record Report(int fileRows, int linesRead, Map<String, Integer> skippedKinds, Result result, int blurbs,
-			int tagBooks, int tagCodesSkipped, int covers, int listed, int topOnly) {
+			int tagBooks, int tagCodesSkipped, int covers, int listed, int topOnly, int excluded) {
 	}
 
 	/** The books the AI search answers with: the listed books first, then the most held ones not listed. */
-	private record SearchBooks(List<Book> books, int listed, int topOnly) {
+	private record SearchBooks(List<Book> books, int listed, int topOnly, int excluded) {
 	}
 
 	/**
@@ -95,7 +98,7 @@ public final class BookTextsImport {
 	public Report run(Path file) {
 		BookTextsFile.Contents contents = BookTextsFile.read(file);
 		boolean replaceSearch = !contents.lines().isEmpty() || !contents.hasForYouKinds();
-		SearchBooks search = replaceSearch ? searchBooks() : new SearchBooks(List.of(), 0, 0);
+		SearchBooks search = replaceSearch ? searchBooks(contents.excluded()) : new SearchBooks(List.of(), 0, 0, 0);
 		Report report = transaction.execute(status -> {
 			Result result = replaceSearch ? bookTexts.replace(search.books(), contents.lines()) : null;
 			int blurbs = contents.blurbs().isEmpty() ? 0 : forYou.upsertBlurbs(contents.blurbs());
@@ -105,14 +108,14 @@ public final class BookTextsImport {
 			}
 			int covers = contents.covers().isEmpty() ? 0 : forYou.upsertCovers(contents.covers());
 			return new Report(contents.rows(), contents.lines().size(), contents.skippedKinds(), result, blurbs,
-					contents.tags().size(), skippedCodes, covers, search.listed(), search.topOnly());
+					contents.tags().size(), skippedCodes, covers, search.listed(), search.topOnly(), search.excluded());
 		});
 		Result result = report.result();
 		if (result != null) {
 			log.info("book-texts: file rows {}, search lines {}, other kinds skipped {}, listed books {}, most held {} "
-					+ "({} not listed), stored {}, with line {}, lines for books not stored {}", report.fileRows(),
-					report.linesRead(), report.skippedKinds(), report.listed(), topBooks, report.topOnly(),
-					result.stored(), result.withLine(), result.linesNotListed());
+					+ "({} not listed, {} excluded), stored {}, with line {}, lines for books not stored {}",
+					report.fileRows(), report.linesRead(), report.skippedKinds(), report.listed(), topBooks,
+					report.topOnly(), report.excluded(), result.stored(), result.withLine(), result.linesNotListed());
 		}
 		else {
 			log.info("book-texts: file rows {}, no search line: the AI search's books were left as they are, other "
@@ -129,7 +132,7 @@ public final class BookTextsImport {
 		return report;
 	}
 
-	private SearchBooks searchBooks() {
+	private SearchBooks searchBooks(Set<Long> excludedIds) {
 		Snapshot snapshot = listedBooks.loadFromDb();
 		if (snapshot.books().isEmpty()) {
 			throw new IllegalStateException(
@@ -142,13 +145,17 @@ public final class BookTextsImport {
 			books.add(new Book(book.bookId(), book.title(), book.author(), book.libraryIds()));
 		}
 		int topOnly = 0;
+		int excluded = 0;
 		for (HeldBook book : mostHeldBooks.top(topBooks)) {
-			if (seen.add(book.bookId())) {
+			if (!seen.contains(book.bookId()) && excludedIds.contains(book.bookId())) {
+				excluded++;
+			}
+			else if (seen.add(book.bookId())) {
 				books.add(new Book(book.bookId(), book.title(), book.author(), book.libraryIds()));
 				topOnly++;
 			}
 		}
-		return new SearchBooks(books, snapshot.books().size(), topOnly);
+		return new SearchBooks(books, snapshot.books().size(), topOnly, excluded);
 	}
 
 }

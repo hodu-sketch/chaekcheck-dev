@@ -28,7 +28,9 @@ import com.chaekcheck.foryou.ForYouTransfer.Cover;
  * 23 step 3-3 (ADR-0149, design-delta "넣는 명령") also {@code for_you_blurb} (1 to {@value #BLURB_MAX_CHARS}
  * characters), {@code tags} (a comma list of tag codes, empty for none; the book's tags are replaced) and
  * {@code cover_file} (the cover's sha1, 40 lower-case hex digits). Those three do not read {@code source}, and
- * {@code cover_file} does not read {@code made_on}. Other kinds are skipped and counted. A row with a tab or a line
+ * {@code cover_file} does not read {@code made_on}. Since 2026-10-25 also {@code search_exclude} (user "소개 없는 책
+ * 빼기"): a most held book left out of the AI search, the text its reason (1 or more characters; {@code source} and
+ * {@code made_on} not read). Other kinds are skipped and counted. A row with a tab or a line
  * break in its text has the wrong number of columns, and a text over {@value AiSearchBookTexts#LINE_MAX_CHARS}
  * characters is refused: then the whole file is refused, with every problem's row number, and nothing is put in. One
  * row per book and kind. A byte order mark and Windows line ends are accepted.
@@ -45,7 +47,9 @@ public final class BookTextsFile {
 
 	static final String COVER_FILE = "cover_file";
 
-	private static final List<String> KINDS = List.of(SEARCH_LINE, FOR_YOU_BLURB, TAGS, COVER_FILE);
+	static final String SEARCH_EXCLUDE = "search_exclude";
+
+	private static final List<String> KINDS = List.of(SEARCH_LINE, FOR_YOU_BLURB, TAGS, COVER_FILE, SEARCH_EXCLUDE);
 
 	/** {@code foryou.book_blurb}'s CHECK (cycle 23; the PC keeps 80-150, R8-4). */
 	static final int BLURB_MAX_CHARS = 300;
@@ -69,17 +73,19 @@ public final class BookTextsFile {
 	 * @param blurbs the {@code for_you_blurb} rows (cycle 23)
 	 * @param tags the {@code tags} rows (cycle 23)
 	 * @param covers the {@code cover_file} rows (cycle 23)
+	 * @param excluded the {@code search_exclude} book ids (2026-10-25)
 	 * @param skippedKinds the rows of other kinds, by kind
 	 * @param rows the data rows read
 	 */
 	public record Contents(List<Line> lines, List<Blurb> blurbs, List<BookTags> tags, List<Cover> covers,
-			Map<String, Integer> skippedKinds, int rows) {
+			Set<Long> excluded, Map<String, Integer> skippedKinds, int rows) {
 
 		public Contents {
 			lines = List.copyOf(lines);
 			blurbs = List.copyOf(blurbs);
 			tags = List.copyOf(tags);
 			covers = List.copyOf(covers);
+			excluded = Set.copyOf(excluded);
 			skippedKinds = Map.copyOf(skippedKinds);
 		}
 
@@ -129,6 +135,7 @@ public final class BookTextsFile {
 		List<Blurb> blurbs = new ArrayList<>();
 		List<BookTags> tags = new ArrayList<>();
 		List<Cover> covers = new ArrayList<>();
+		Set<Long> excluded = new LinkedHashSet<>();
 		Map<String, Integer> skipped = new TreeMap<>();
 		Map<String, Set<Long>> seen = new TreeMap<>();
 		for (int i = 1; i < rows.size(); i++) {
@@ -195,6 +202,15 @@ public final class BookTextsFile {
 							tags.add(new BookTags(bookId, List.copyOf(codes), madeOn));
 						}
 					}
+					case SEARCH_EXCLUDE -> {
+						checkBookId(bookId);
+						if (text.isBlank()) {
+							problems.add("row " + rowNo + ": an excluded book needs its reason in text, book " + bookId);
+						}
+						else if (once(seen, kind, bookId, rowNo, problems)) {
+							excluded.add(bookId);
+						}
+					}
 					default -> { // COVER_FILE
 						checkBookId(bookId);
 						if (!COVER_KEY.matcher(text).matches()) {
@@ -220,7 +236,7 @@ public final class BookTextsFile {
 			throw new RefusedException("The book-texts file was refused, " + problems.size() + " problem(s), nothing put in:\n"
 					+ String.join("\n", problems.subList(0, Math.min(PROBLEMS_SHOWN, problems.size()))));
 		}
-		return new Contents(lines, blurbs, tags, covers, skipped, rows.size() - 1);
+		return new Contents(lines, blurbs, tags, covers, excluded, skipped, rows.size() - 1);
 	}
 
 	/** Whether this is the book's first row of the kind; a second one is a problem. */
