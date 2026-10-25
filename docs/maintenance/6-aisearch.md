@@ -73,10 +73,26 @@ FROM aisearch.search_book;
   - `kure-query-int8-ext.onnx` + `kure-query-int8-ext.data`: KURE-v1을 낱말표 88,446조각으로 자르고 ONNX int8(채널별)로 줄인 질문 모델(사이클 24 원래 세션, `plan-feedback.md` 기록). 원래 모델과 벡터 닮음 0.988
   - `tokenizer-cut.json`: 같은 88,446조각 토크나이저(DJL이 읽음)
   - `book-vectors.bin`: `scripts/aisearch/make_book_vectors.py OUT.bin --ml <chaekcheck-data\ml>` — 이웃을 만들 때의 책 벡터(`foryouectors.npy` + `pool-30000-intro.npy`, 30,937권)를 줄마다 int8로(최악 코사인 0.99975, 30.6MB)
-  - `parity.json`(선택): Python으로 만든 질문 벡터 5개. `AISEARCH_MODEL_DIR=<폴더> ./gradlew test --tests '*OnnxQuestionVectorsModelTests'`가 Java 벡터와 비교(내적 0.999 넘음, 2026-10-25)
+  - `parity.json`(선택): Python으로 만든 질문 벡터 5개. `AISEARCH_MODEL_DIR=<폴더> ./gradlew test --tests '*KureQuestionVectorsModelTests'`가 Java 벡터와 비교(내적 0.999 넘음, 2026-10-25)
 - 올리기: `scp -r`로 폴더째 `/srv/chaekcheck/aisearch-model/`에(**`/tmp` 말고**, 운영 `/tmp`는 메모리). 그다음 prod.env를 켜고 배포하면 백엔드 시작 로그에 `ai search vectors on: 30937 books x 1024, loaded in … ms`. 실패하면 `ai search vectors off: <이유>`이고 검색은 낱말만으로 그대로 됨
 - 한 번의 검색 로그: `ai search: … candidates 30 (vector N[, named book]) …` — N은 섞인 벡터 후보 수(0이면 꺼짐·늦음·실패)
 - 메모리: 서버에서 잰 값(원래 세션, 2026-10-25) 프로세스 약 450MB(대부분 모델 파일 mmap), 질문 하나 중간 106ms(2스레드). 힙(-Xmx640m) 밖이라 켠 뒤 `free -m`·`docker stats`로 여유를 봄
 - **책 번호**: 벡터 파일의 번호는 이웃을 만든 가져오기(14번)의 번호입니다. 수집을 반영해 `catalog` 번호가 바뀌면 이웃·찾기용 한 줄과 함께 다시 만들어야 합니다(맞지 않는 번호의 책은 후보에서 빠질 뿐 오류는 없음)
 - 다시 재기: 보고서 7절 도구 + `AiSearchEvalReplayTests`(`AISEARCH_EVAL_DIR`·`AISEARCH_MODEL_DIR`): 운영 `AiSearchFlow`로 평가 질문 57개를 돌려 2차 호출에 가는 후보를 `replay-on.json`/`replay-off.json`에 씀
+
+### 7-1. 질문 벡터를 만드는 곳: 서버 안(local) 또는 임베딩 서버(remote)
+
+사용자 요청(2026-10-25): "micro 한 대를 임베딩 전용으로 두자. 서로 다른 곳에서 소통하나 서버에 직접 임베딩하나 이걸 선택으로서 가능하게". `CHAEKCHECK_AISEARCH_VECTOR_ENCODER`(prod.env)로 고릅니다. 책 벡터(`book-vectors.bin`, 31MB)는 어느 쪽이든 백엔드 메모리에 있고, 바뀌는 것은 질문 한 줄을 벡터로 바꾸는 곳뿐입니다.
+
+| | `local`(기본) | `remote` |
+|---|---|---|
+| 질문 → 벡터 | 백엔드 안 ONNX Runtime(`OnnxQuestionEncoder`) | 임베딩 서버 `POST /api/v1/embed`(`RemoteQuestionEncoder`) |
+| 운영 서버 메모리 | 약 +450MB(모델 mmap) | 약 +31MB(책 벡터만) |
+| 모델 폴더(운영) | 모델·토크나이저·책 벡터 | `book-vectors.bin`만 있어도 됨 |
+| 더 필요한 것 | — | `CHAEKCHECK_AISEARCH_EMBED_URL`(임베딩 서버 사설 주소), `CHAEKCHECK_AISEARCH_EMBED_TOKEN`(Parameter Store) |
+| 실패하면 | 그 검색은 낱말만 | 시간 넘김(1.5초)·오류·401이면 그 검색은 낱말만 |
+
+- 임베딩 서버: `embed-service/`(Spring Boot, DB 없음, 포트 8090). 모델 폴더는 운영과 같은 파일(`kure-query-int8-ext.onnx`·`.data`, `tokenizer-cut.json`)을 `EMBED_MODEL_DIR`로. 토큰 `EMBED_TOKEN`이 비면 모든 요청을 401로 거절. 글은 로그에 남기지 않음. `GET /api/v1/health` → `{"ready":true}`
+- 두 쪽의 모델 코드는 같습니다(백엔드 `OnnxQuestionEncoder` = `embed-service`의 `QueryEncoder`). 고칠 때 함께 고치고, 두 쪽 모델 시험(`KureQuestionVectorsModelTests`, `QueryEncoderModelTests`, `AISEARCH_MODEL_DIR`)이 `parity.json`과 맞는지 봅니다
+- 이 PC에서 잰 값(2026-10-25, `-Xmx128m`): 올리기 1.9초, 질문 하나 40~60ms, 프로세스 약 565MB
 

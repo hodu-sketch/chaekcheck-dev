@@ -73,7 +73,19 @@
 | 질문 벡터 켜기 | `false` | `chaekcheck.aisearch.vector.enabled` | **`CHAEKCHECK_AISEARCH_VECTOR_ENABLED`** | 운영 compose → `prod.env` | 켜면 1차와 동시에 질문 벡터(int8 KURE-v1)를 만들어 낱말 후보와 섞음. 모델 폴더가 없거나 읽기에 실패하면 경고 한 줄 뒤 꺼진 채로 감 | 사용자 2026-10-25, `docs/reports/ai-search-eval-2026-10-25.md` | 서비스 |
 | 모델 폴더 | 빈 값 | `…vector.model-dir` | **`CHAEKCHECK_AISEARCH_MODEL_DIR`** | 운영 `/models/aisearch`(= 서버 `/srv/chaekcheck/aisearch-model`, 읽기만) | `kure-query-int8-ext.onnx`·`.data`, `tokenizer-cut.json`, `book-vectors.bin`. 만드는 법 `6-aisearch.md` 7절 | 같음 | 서비스 |
 | 벡터 섞기 | 2스레드 / 낱말 50 / 벡터 60 / RRF k 60 / 기다림 2초 | `…vector.threads` / `keyword-depth` / `vector-depth` / `rrf-k` / `max-wait` | `…_VECTOR_THREADS` 등 | `AiSearchFlow`, `Fusion` | [안] 보고서 H와 같은 값. 1차가 끝난 뒤 2초 안에 벡터가 없으면 낱말만 | 같음 | 서비스 |
+| 질문 벡터 만드는 곳 | `local` | `…vector.encoder` | **`CHAEKCHECK_AISEARCH_VECTOR_ENCODER`** | 운영 compose → `prod.env` | `local` = 백엔드 안 모델(약 +450MB), `remote` = 임베딩 서버(`embed-service/`, micro EC2). 책 벡터는 어느 쪽이든 백엔드에 | 사용자 2026-10-25 "선택으로서 가능하게", `6-aisearch.md` 7-1 | 서비스 |
+| 임베딩 서버 주소·토큰·시간 | 빈 값 / 빈 값 / 1.5초 | `…vector.remote.url` / `token` / `timeout` | **`CHAEKCHECK_AISEARCH_EMBED_URL`** / **`CHAEKCHECK_AISEARCH_EMBED_TOKEN`**(비밀, Parameter Store) / — | `embed-service`의 `EMBED_TOKEN`(같은 값) | `remote`일 때만. 1.5초 안에 답이 없거나 오류면 그 검색은 낱말만 [안] | 같음 | 서비스 |
 | 기준 책 이웃 | 20권 | 코드 상수 (`AiSearchFlow.MAX_NAMED_NEIGHBOURS`) | — | `NamedBook`, `foryou.book_neighbour` | 「○○ 같은/비슷/처럼/류의/풍의」 바로 앞의 책 제목을 찾으면 그 책의 이웃을 먼저(벡터를 꺼도 돎) [안] 보고서 S | 같음 | 서비스 |
+
+## 1-2. 임베딩 서버 (`embed-service/src/main/resources/application.yml`)
+
+| 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
+|---|---|---|---|---|---|---|---|
+| 포트 | 8090 | `server.port` | `PORT` | 백엔드 `CHAEKCHECK_AISEARCH_EMBED_URL`, 보안 그룹 | 운영 서버에서만 들어옴(보안 그룹) | 사용자 2026-10-25 | 임베딩 서버 |
+| 모델 폴더 | 빈 값 | `embed.model-dir` | `EMBED_MODEL_DIR` | 백엔드 모델 폴더와 같은 파일 | 비거나 파일이 없으면 떠 있지만 503(`model_not_ready`) | 같음 | 임베딩 서버 |
+| 스레드 / 동시 실행 | 2 / 2 | `embed.threads` / `embed.max-concurrent` | `EMBED_THREADS` / — | — | 2코어 기준 [안] | 같음 | 임베딩 서버 |
+| 토큰 | 빈 값 | `embed.token` | `EMBED_TOKEN` (비밀) | 백엔드 `CHAEKCHECK_AISEARCH_EMBED_TOKEN` | 비면 모두 401 | 같음 | 임베딩 서버 |
+| 글 길이 | 1000자 | `embed.max-chars` | — | 질문 200자 | 넘으면 400 | 같음 | 임베딩 서버 |
 
 ## 2. 조회 서버 (`fetch-service/src/main/resources/application.yml`)
 

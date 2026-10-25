@@ -1,0 +1,44 @@
+// Embedding service (user 2026-10-25 "micro 한 대를 임베딩 전용으로 두자"): turns an AI search question into its int8
+// KURE-v1 vector for the main service (chaekcheck.aisearch.vector.encoder: remote). Separate deployment unit, not a
+// Spring Modulith module, no database.
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.1'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.chaekcheck'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	// the same versions as the main service (backend/build.gradle); both jars carry their native libraries for
+	// linux-x86_64 and linux-aarch64 (Maven Central 2026-10-25; MIT and Apache License 2.0)
+	set('onnxruntimeVersion', '1.31.0')
+	set('djlTokenizersVersion', '0.38.0')
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation "com.microsoft.onnxruntime:onnxruntime:${onnxruntimeVersion}"
+	implementation "ai.djl.huggingface:tokenizers:${djlTokenizersVersion}"
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+tasks.named('bootJar') {
+	archiveFileName = 'chaekcheck-embed.jar'
+}

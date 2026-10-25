@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: chaekcheck-embed
+  mvc:
+    problemdetails:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 5s
+
+server:
+  port: ${PORT:8090}
+  shutdown: graceful
+
+embed:
+  # the folder with kure-query-int8-ext.onnx (+ .data) and tokenizer-cut.json, the same files as the main service's
+  # model folder (docs/maintenance/6-aisearch.md 7절)
+  model-dir: ${EMBED_MODEL_DIR:}
+  # threads of one model run (2: 106 ms a question on the 2-core server, 2026-10-25)
+  threads: ${EMBED_THREADS:2}
+  # runs at once; more wait (a run holds its thread in native code)
+  max-concurrent: 2
+  # the shared secret the main service sends as X-Embed-Token (Parameter Store /chaekcheck/prod/
+  # CHAEKCHECK_AISEARCH_EMBED_TOKEN); empty: every request is refused
+  token: ${EMBED_TOKEN:}
+  # longest text taken, in characters (a question is at most 200)
+  max-chars: 1000
