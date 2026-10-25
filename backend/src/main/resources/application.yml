@@ -329,7 +329,7 @@ chaekcheck:
     score:
       # recent demand = on loan + 2 x reservations [확정]
       reservation-weight: 2
-      # publish-year distance bands and boosts [확정 values, tuned at checkpoint C (R2-3a)]
+      # publish-year distance bands and boosts [확정; checkpoint C 2026-10-25 kept them: "오래된 책은 밀리도록 해줘"]
       year-bands: 3,6,10
       year-boosts: 1.5,1.0,0.6,0.3
       # no publish year [안]
