@@ -169,7 +169,8 @@ class ForYouController {
 			cards.add(new Card(id, card.title(), card.author(), card.publisher(),
 					cover == null ? null : "/covers/" + cover + ".jpg", blurbs.get(id),
 					ref == null ? List.of() : ref.tags(), planCount, ref == null ? List.of() : ref.listKeys(),
-					card.authorKey(), ref == null ? null : ref.aiSummary(), month, ref == null ? null : ref.yearBook()));
+					card.authorKey(), ref == null ? null : ref.aiSummary(), month, ref == null ? null : ref.yearBook(),
+					ref == null ? null : ref.fieldGroup()));
 		}
 		return cards;
 	}
@@ -213,10 +214,11 @@ class ForYouController {
 	 * @param aiSummary the lists' AI summary S14 shows for a listed book (user 2026-10-24: "24 뒤에 붙임"), or null
 	 * @param recommendedMonth {@code YYYY-MM}, the librarian list's month for S14's year line, or null
 	 * @param yearBook the KAIST list's year for S14's year line, or null
+	 * @param fieldGroup the field group of a listed book ({@code picks.FieldGroups}), else null (the screen: other)
 	 */
 	record Card(long bookId, String title, String author, String publisher, String coverUrl, String blurb,
 			List<Tag> tags, int planLibraryCount, List<String> lists, String authorKey, String aiSummary,
-			String recommendedMonth, Integer yearBook) {
+			String recommendedMonth, Integer yearBook, String fieldGroup) {
 	}
 
 }

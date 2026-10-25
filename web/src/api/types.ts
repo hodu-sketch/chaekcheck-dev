@@ -557,6 +557,8 @@ export interface ForYouCard {
   recommendedMonth?: string | null
   /** the KAIST list's year for S14's year line, else null */
   yearBook?: number | null
+  /** literature, humanities, society, science, arts or other for a listed book, else null (other) */
+  fieldGroup?: string | null
 }
 
 /** `GET /api/v1/for-you/books`: `builtOn` null before the first build (then the listed books only). */

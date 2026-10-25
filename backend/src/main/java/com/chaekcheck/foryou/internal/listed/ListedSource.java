@@ -20,7 +20,7 @@ public interface ListedSource {
 			.stream()
 			.map(book -> new ListedRef(book.bookId(), book.listKeys(), book.libraryIds(),
 					book.tags() == null ? List.of() : book.tags(), book.aiSummary(), book.recommendedMonth(),
-					book.yearBook()))
+					book.yearBook(), book.fieldGroup()))
 			.toList();
 	}
 
@@ -31,13 +31,14 @@ public interface ListedSource {
 	 * @param aiSummary the lists' AI summary S14 shows, or null
 	 * @param recommendedMonth the librarian list's month for S14's year line, or null
 	 * @param yearBook the KAIST list's year for S14's year line, or null
+	 * @param fieldGroup the book's field group ({@code picks.FieldGroups}), or null
 	 */
 	record ListedRef(long bookId, List<String> listKeys, long[] libraryIds, List<Tag> tags, String aiSummary,
-			YearMonth recommendedMonth, Integer yearBook) {
+			YearMonth recommendedMonth, Integer yearBook, String fieldGroup) {
 
-		/** A book without S14's AI summary and year line. */
+		/** A book without S14's AI summary, year line or field group. */
 		public ListedRef(long bookId, List<String> listKeys, long[] libraryIds, List<Tag> tags) {
-			this(bookId, listKeys, libraryIds, tags, null, null, null);
+			this(bookId, listKeys, libraryIds, tags, null, null, null, null);
 		}
 
 	}

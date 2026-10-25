@@ -86,7 +86,7 @@ class ForYouControllerTests {
 	void beforeAnyBuildTheListedBooksComeByHeldLibraries() {
 		listed.add(new ListedRef(940003, List.of("kaist"), new long[] { joinable }, List.of()));
 		listed.add(new ListedRef(940001, List.of("snu100", "kaist"), new long[] { joinable, notJoinable },
-				List.of(new Tag("m01", "mood", "잔잔한")), "목록의 AI 요약", null, 2025));
+				List.of(new Tag("m01", "mood", "잔잔한")), "목록의 AI 요약", null, 2025, "literature"));
 		snapshot.refresh();
 
 		assertThat(mvc.get().uri(BOOKS)).hasStatusOk().bodyJson().isLenientlyEqualTo("""
@@ -94,9 +94,10 @@ class ForYouControllerTests {
 				  {"bookId": 940001, "title": "첫 책", "author": "가 지음", "publisher": "출판사",
 				   "coverUrl": "/covers/0123456789abcdef0123456789abcdef01234567.jpg", "blurb": "잔잔한 이야기예요.",
 				   "tags": [{"code": "m01", "axis": "mood", "name": "잔잔한"}], "planLibraryCount": 2,
-				   "lists": ["snu100", "kaist"], "aiSummary": "목록의 AI 요약", "recommendedMonth": null, "yearBook": 2025},
+				   "lists": ["snu100", "kaist"], "aiSummary": "목록의 AI 요약", "recommendedMonth": null, "yearBook": 2025,
+				   "fieldGroup": "literature"},
 				  {"bookId": 940003, "coverUrl": null, "blurb": null, "tags": [], "planLibraryCount": 1, "lists": ["kaist"],
-				   "aiSummary": null, "yearBook": null}
+				   "aiSummary": null, "yearBook": null, "fieldGroup": null}
 				]}""");
 	}
 

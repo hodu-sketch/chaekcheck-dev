@@ -56,10 +56,12 @@ public interface ListedBooks {
 	 * @param recommendedMonth the month of the librarian list's pick, for the book window's year line (cycle 23), or
 	 *     null when the book is not on that list
 	 * @param yearBook the KAIST list's year, for the book window's year line (cycle 23), or null when not on it
+	 * @param fieldGroup one of {@link FieldGroups#ALL}, from the first list's field ({@link FieldGroups#of}), for
+	 *     mixing the fields while a browser has seen few books (user 2026-10-25); null when no list gives one
 	 */
 	record ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
 			List<String> listKeys, String aiSummary, List<BookTagTransfer.Tag> tags, YearMonth recommendedMonth,
-			Integer yearBook) {
+			Integer yearBook, String fieldGroup) {
 
 		public ListedBook {
 			libraryIds = libraryIds.clone();
@@ -70,13 +72,13 @@ public interface ListedBooks {
 		/** A book without tags or year line. */
 		public ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
 				List<String> listKeys, String aiSummary) {
-			this(bookId, title, author, coverPath, libraryIds, listKeys, aiSummary, null, null, null);
+			this(bookId, title, author, coverPath, libraryIds, listKeys, aiSummary, null, null, null, null);
 		}
 
 		/** A book without an AI summary or tags. */
 		public ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
 				List<String> listKeys) {
-			this(bookId, title, author, coverPath, libraryIds, listKeys, null, null, null, null);
+			this(bookId, title, author, coverPath, libraryIds, listKeys, null, null, null, null, null);
 		}
 
 		@Override

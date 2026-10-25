@@ -31,9 +31,14 @@ export function myLibrariesText(count: number): string {
   return `내 도서관 ${count}곳`
 }
 
+/** Lists the footer never names (user 2026-10-25: "이동진 추천도서 목록에 있어요 이거 문구는 빼줘"). */
+const NOT_IN_FOOTER: readonly PicksListKey[] = ['leedongjin']
+
 /** "○○ 추천목록에 있어요" with the tab names; past two, the first two and "외 N" (R3-2, AC-3). */
 export function listsFooter(lists: readonly PicksListKey[]): string | null {
-  const names = lists.filter((key) => Object.hasOwn(PICKS_LISTS, key)).map((key) => PICKS_LISTS[key].tabLabel)
+  const names = lists
+    .filter((key) => Object.hasOwn(PICKS_LISTS, key) && !NOT_IN_FOOTER.includes(key))
+    .map((key) => PICKS_LISTS[key].tabLabel)
   if (names.length === 0) return null
   const shown = names.slice(0, 2).join('·')
   const rest = names.length - 2

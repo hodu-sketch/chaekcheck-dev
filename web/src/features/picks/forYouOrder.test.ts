@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ForYouCard } from '../../api/types'
-import { layOut, limitAuthorRuns } from './forYouOrder'
+import { layOut, limitAuthorRuns, mixFields } from './forYouOrder'
 
 function card(bookId: number, authorKey: string | null = `a${bookId}`): ForYouCard {
   return {
@@ -83,5 +83,27 @@ describe('forYouOrder (cycle 23 decision #4, R6)', () => {
     const similar = Array.from({ length: 70 }, (_, i) => card(100 + i))
     const out = layOut([], similar, [], new Set(), 5)
     expect(out.personal.length + 1).toBe(60)
+  })
+})
+
+describe('field mix while few books are seen (user 2026-10-25)', () => {
+  const inGroup = (bookId: number, fieldGroup: string | null) => ({ ...card(bookId), fieldGroup })
+
+  it('takes one book of each group in turn, the first book first', () => {
+    const cards = [inGroup(1, 'literature'), inGroup(2, 'literature'), inGroup(3, 'literature'), inGroup(4, 'science'),
+      inGroup(5, null), inGroup(6, 'science'), inGroup(7, 'arts')]
+    expect(ids(mixFields(cards))).toEqual([1, 4, 5, 7, 2, 6, 3])
+  })
+
+  it('mixes the base list and the personal picks below three seen books, not from three on', () => {
+    const base = [inGroup(1, 'literature'), inGroup(2, 'literature'), inGroup(3, 'science')]
+    const similar = [inGroup(10, 'literature'), inGroup(11, 'literature'), inGroup(12, 'society')]
+    const few = layOut(base, similar, [], new Set([90, 91]), 1)
+    expect(ids([few.top!, ...few.personal])).toEqual([10, 12, 11])
+    expect(ids(few.base)).toEqual([1, 3, 2])
+
+    const many = layOut(base, similar, [], new Set([90, 91, 92]), 1)
+    expect(ids([many.top!, ...many.personal])).toEqual([10, 11, 12])
+    expect(ids(many.base)).toEqual([1, 2, 3])
   })
 })

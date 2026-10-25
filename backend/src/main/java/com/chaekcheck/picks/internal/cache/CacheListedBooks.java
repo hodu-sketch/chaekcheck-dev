@@ -18,6 +18,7 @@ import com.chaekcheck.catalog.BookAuthors;
 import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.picks.BookTagTransfer.Tag;
+import com.chaekcheck.picks.FieldGroups;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.internal.tags.CardTags;
 import com.chaekcheck.picks.internal.store.PicksStore;
@@ -156,6 +157,9 @@ class CacheListedBooks implements ListedBooks {
 				if (list.equals(PicksCache.KAIST) && row.yearBook == null) {
 					row.yearBook = book.yearBook();
 				}
+				if (row.fieldGroup == null) {
+					row.fieldGroup = FieldGroups.of(list, book.category());
+				}
 			}
 		}
 		return List.copyOf(byBook.values());
@@ -165,14 +169,14 @@ class CacheListedBooks implements ListedBooks {
 		List<ListedBook> books = merged.stream()
 			.map(row -> new ListedBook(row.bookId, row.title, extras.authors().get(row.bookId), row.cover,
 					row.libraryIds, row.listKeys, row.aiSummary, extras.tags().get(row.bookId), row.recommendedMonth,
-					row.yearBook))
+					row.yearBook, row.fieldGroup))
 			.toList();
 		return new Snapshot(clock.instant(), books);
 	}
 
 	/**
 	 * A book while the lists are merged: the first list's title, every list key, the first cover and AI summary found,
-	 * the librarian list's month and KAIST's year.
+	 * the librarian list's month and KAIST's year, the first list's field group.
 	 */
 	static final class Merged {
 
@@ -191,6 +195,8 @@ class CacheListedBooks implements ListedBooks {
 		YearMonth recommendedMonth;
 
 		Integer yearBook;
+
+		String fieldGroup;
 
 		Merged(long bookId, String title, long[] libraryIds) {
 			this.bookId = bookId;
