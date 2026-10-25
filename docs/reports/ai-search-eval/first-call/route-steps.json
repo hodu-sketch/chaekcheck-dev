@@ -1,0 +1,152 @@
+{
+ "400": {
+  "MLP": {
+   "not_book": 0.89,
+   "title_like": 0.86,
+   "refers_shown": 0.9499999999999998,
+   "book": 0.9066666666666667,
+   "all": 0.9016666666666667,
+   "blocked_real": 6.0,
+   "tau": 0.3,
+   "all_runs": [
+    0.9025,
+    0.9025,
+    0.9
+   ]
+  },
+  "LR": {
+   "not_book": 0.85,
+   "title_like": 0.86,
+   "refers_shown": 0.87,
+   "book": 0.95,
+   "all": 0.8825,
+   "blocked_real": 2,
+   "tau": 0.3
+  }
+ },
+ "800": {
+  "MLP": {
+   "not_book": 0.92,
+   "title_like": 0.8866666666666667,
+   "refers_shown": 0.9633333333333333,
+   "book": 0.93,
+   "all": 0.9250000000000002,
+   "blocked_real": 4.0,
+   "tau": 0.3,
+   "all_runs": [
+    0.925,
+    0.92,
+    0.93
+   ]
+  },
+  "LR": {
+   "not_book": 0.9,
+   "title_like": 0.89,
+   "refers_shown": 0.94,
+   "book": 0.94,
+   "all": 0.9175,
+   "blocked_real": 4,
+   "tau": 0.3
+  }
+ },
+ "1200": {
+  "MLP": {
+   "not_book": 0.9333333333333332,
+   "title_like": 0.9233333333333333,
+   "refers_shown": 0.9733333333333333,
+   "book": 0.91,
+   "all": 0.935,
+   "blocked_real": 2.0,
+   "tau": 0.3,
+   "all_runs": [
+    0.935,
+    0.9325,
+    0.9375
+   ]
+  },
+  "LR": {
+   "not_book": 0.93,
+   "title_like": 0.92,
+   "refers_shown": 0.97,
+   "book": 0.93,
+   "all": 0.9375,
+   "blocked_real": 2,
+   "tau": 0.3
+  }
+ },
+ "1600": {
+  "MLP": {
+   "not_book": 0.9233333333333333,
+   "title_like": 0.9499999999999998,
+   "refers_shown": 0.9899999999999999,
+   "book": 0.9133333333333334,
+   "all": 0.9441666666666667,
+   "blocked_real": 2.0,
+   "tau": 0.3,
+   "all_runs": [
+    0.94,
+    0.95,
+    0.9425
+   ]
+  },
+  "LR": {
+   "not_book": 0.93,
+   "title_like": 0.93,
+   "refers_shown": 0.97,
+   "book": 0.92,
+   "all": 0.9375,
+   "blocked_real": 1,
+   "tau": 0.3
+  }
+ },
+ "2000": {
+  "MLP": {
+   "not_book": 0.91,
+   "title_like": 0.9233333333333333,
+   "refers_shown": 0.9966666666666667,
+   "book": 0.9566666666666667,
+   "all": 0.9466666666666667,
+   "blocked_real": 2.0,
+   "tau": 0.9,
+   "all_runs": [
+    0.94,
+    0.9475,
+    0.9525
+   ]
+  },
+  "LR": {
+   "not_book": 0.92,
+   "title_like": 0.91,
+   "refers_shown": 0.97,
+   "book": 0.97,
+   "all": 0.9425,
+   "blocked_real": 2,
+   "tau": 0.5499999999999999
+  }
+ },
+ "2400": {
+  "MLP": {
+   "not_book": 0.9166666666666666,
+   "title_like": 0.93,
+   "refers_shown": 1.0,
+   "book": 0.9700000000000001,
+   "all": 0.9541666666666666,
+   "blocked_real": 1.6666666666666667,
+   "tau": 0.9,
+   "all_runs": [
+    0.955,
+    0.96,
+    0.9475
+   ]
+  },
+  "LR": {
+   "not_book": 0.93,
+   "title_like": 0.92,
+   "refers_shown": 0.97,
+   "book": 0.94,
+   "all": 0.94,
+   "blocked_real": 2,
+   "tau": 0.49999999999999994
+  }
+ }
+}
