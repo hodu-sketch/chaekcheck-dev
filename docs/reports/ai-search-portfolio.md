@@ -10,6 +10,7 @@
 | [첫 실험 보고서](ai-search-eval-2026-10-25.md) | 재는 방법(질문 57개, 채점 기준, 지표 뜻), 섞기·「○○ 같은 책」·지시문·흔들림 |
 | [임베딩 시험 보고서](ai-search-embedding-2026-10-25.md) | 질문 임베딩 모델을 2.2GB → 385MB로 줄여 서버(ARM 2코어, 2GB)에 올리기 |
 | [1차 호출 보고서](ai-search-first-call-models-2026-10-25.md) | 1차 AI 호출을 TF-IDF · KURE+분류기 · Cross-Encoder로 바꿀 수 있나, Haiku와 비교 |
+| [넣은 것과 뺀 것](ai-search-ml-first-call-decisions-2026-10-26.md) | 1차를 ML로 바꾸며 시도한 것마다 전 → 후 숫자와 결정 |
 | 그림 | [`ai-search-eval/`](ai-search-eval/) 의 `1-…7-….svg` |
 | 다시 돌리는 도구 | [`scripts/aisearch/eval/`](../../scripts/aisearch/eval/) (방법은 첫 보고서 7절, 개선 보고서 7절) |
 
@@ -71,7 +72,7 @@
 | 상세 사전으로 운영 27,227권 전체 프로필 | 빠짐 0, 사전 밖 값 0, 큰 칸 KDC 일치 77% | Haiku 하위 에이전트 171묶음 | [개선 보고서 6-4절](ai-search-improvement-2026-10-25.md) |
 | 칸을 후보 순위에 더하기 + 분명한 조건 거르기 (PFx, 2차 AI까지) | 아주 맞음 71 → 74%, 틀린 카드 0.47 → 0.39, 조건 질문 75 → 91% | 2차 입력 그대로, 서버 1ms 안쪽 | [개선 보고서 6-4절](ai-search-improvement-2026-10-25.md) |
 
-## 5. 1차 AI 호출을 작은 모델로 — [1차 호출 보고서](ai-search-first-call-models-2026-10-25.md)
+## 5. 1차 AI 호출을 작은 모델로 — [1차 호출 보고서](ai-search-first-call-models-2026-10-25.md) · [넣은 것과 뺀 것](ai-search-ml-first-call-decisions-2026-10-26.md)
 
 Sonnet이 만든 질문 3,000개(학습 2,306 / 시험 600)로, 1차 호출의 「고르기」 칸을 LLM 없이 맞힐 수 있는지.
 
