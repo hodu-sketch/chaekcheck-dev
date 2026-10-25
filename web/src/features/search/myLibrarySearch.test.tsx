@@ -568,7 +568,7 @@ describe('the first screen', () => {
       '달러구트 꿈 백화점',
       '다가올 초대륙',
     ])
-    expect(within(shelf).getByRole('link', { name: '추천도서 더 보기 →' }).getAttribute('href')).toBe('/picks/kaist')
+    expect(within(shelf).getByRole('link', { name: '추천도서 더 보기 →' }).getAttribute('href')).toBe('/picks/for-you')
     expect(example()).toBeNull()
     expect(fake.books).toHaveLength(0)
   })

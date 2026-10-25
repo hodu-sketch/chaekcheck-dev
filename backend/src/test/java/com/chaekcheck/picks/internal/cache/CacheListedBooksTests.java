@@ -76,6 +76,14 @@ class CacheListedBooksTests {
 		given(cardTags.byIds(any())).willReturn(Map.of(100L, List.of(new Tag("m03", "mood", "잔잔한"))));
 	}
 
+	/** The first list's field group (user 2026-10-25): 이동진 science, 서울대 한국문학. */
+	@Test
+	void theFirstListsFieldGivesTheGroup() {
+		cache.refresh();
+
+		assertThat(listed.current().books()).extracting(ListedBook::fieldGroup).containsExactly("science", "literature");
+	}
+
 	/** Cycle 23 (R9-5): the card tags come with the book, none for a book without tags. */
 	@Test
 	void theCardTagsComeWithTheBook() {

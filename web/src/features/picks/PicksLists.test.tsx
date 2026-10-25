@@ -1,12 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { BookDetail, PickBook, Picks, PicksListKey } from '../../api/types'
 import { sendUsageEvent } from '../../api/usageEvents'
 import { PicksRoute } from './PicksPage'
-import { picksList, videoUrl, YOUTUBE_TERMS_URL } from './picksLists'
+import { picksList, videoUrl } from './picksLists'
 
 const REGIONS = {
   regions: { residence: [1116], work: [] },
@@ -112,6 +112,7 @@ function renderAt(path: string) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/picks/:listKey" element={<PicksRoute />} />
+          <Route path="/picks/for-you" element={<p>책첵 추천 화면</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -155,7 +156,8 @@ describe('the lists words', () => {
     expect(picksList('kaist')?.yearLine?.(book({ yearBook: 2025 }))).toBe('2025년 KAIST 사서추천')
     expect(picksList('librarian')?.yearLine?.(book({ recommendedMonth: '2026-10' }))).toBe('2026년 10월 국립중앙도서관 사서추천')
     expect(picksList('snu100')?.yearLine).toBeUndefined()
-    expect(picksList('leedongjin')?.name).toBe('이동진 추천도서')
+    // hidden from the screen since 2026-10-25
+    expect(picksList('leedongjin')).toBeNull()
     expect(picksList('snu100')?.name).toBe('서울대 100선')
     expect(picksList('librarian')?.name).toBe('사서 추천도서')
     expect(picksList('yes24')).toBeNull()
@@ -170,73 +172,12 @@ describe('the lists words', () => {
   })
 })
 
-describe('Lee Dong-jin screen', () => {
-  it('shows the list name, the latest first with no date under it, and the source with the terms link in 추천 기준과 출처 보기', async () => {
+describe('Lee Dong-jin (hidden, user 2026-10-25: "이동진 안내는 전부 빼 논란이 있대")', () => {
+  it('its address goes to 책첵 추천 and asks nothing', async () => {
     const asked = stubFetch({ leedongjin: LEEDONGJIN })
     renderAt('/picks/leedongjin')
-
-    const all = await screen.findByRole('region', { name: '전체' })
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('이동진 추천도서')
-    expect(asked).toContain('/api/v1/picks/leedongjin')
-    const cards = within(all).getAllByRole('button', { name: /전자책/ })
-    // user 2026-10-16: "추천도서 각각에 날짜나 숫자 붙이지 마"
-    expect(cards[0].getAttribute('aria-label')).toBe('히스토리아 비테이, 전자책 있음')
-    expect(within(all).queryByText('26.06')).toBeNull()
-    // AC-9
-    // user 2026-10-17: no source line under the grid; it is in 추천 기준과 출처 보기 with the terms link
-    const details = screen.getByText('추천 기준과 출처 보기').closest('details')!
-    const source = within(details).getByText(/^출처: 유튜브/, { selector: 'li' })
-    expect(within(source).getByRole('link', { name: 'YouTube 서비스 약관' }).getAttribute('href')).toBe(YOUTUBE_TERMS_URL)
-    await waitFor(() =>
-      expect(vi.mocked(sendUsageEvent)).toHaveBeenCalledWith({ type: 'picks_list_view', list: 'leedongjin', category: 'ALL' }),
-    )
-  })
-
-  it('opens the book window with the recommendation line and [영상 보기] in a new tab (AC-8)', async () => {
-    stubFetch({ leedongjin: LEEDONGJIN })
-    const user = renderAt('/picks/leedongjin')
-    const all = await screen.findByRole('region', { name: '전체' })
-
-    await user.click(within(all).getByRole('button', { name: /히스토리아 비테이/ }))
-
-    const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByRole('heading', { name: '히스토리아 비테이' })).toBeTruthy()
-    expect(within(dialog).queryByText('2026년 6월 추천')).toBeNull()
-    const video = within(dialog).getByRole('link', { name: '영상 보기' })
-    expect(video.getAttribute('href')).toBe('https://www.youtube.com/watch?v=lMx0zEd1qtY')
-    expect(video.getAttribute('target')).toBe('_blank')
-    expect(video.getAttribute('rel')).toContain('noopener')
-    expect(vi.mocked(sendUsageEvent)).toHaveBeenCalledWith({
-      type: 'picks_book_view',
-      list: 'leedongjin',
-      category: 'science',
-      bookId: 701,
-    })
-  })
-
-  it('keeps [영상 보기] and the year line in the request notice of a book with no e-book (R6-2)', async () => {
-    stubFetch({ leedongjin: LEEDONGJIN })
-    const user = renderAt('/picks/leedongjin')
-    const all = await screen.findByRole('region', { name: '전체' })
-
-    await user.click(within(all).getByRole('button', { name: /맡겨진 소녀/ }))
-
-    const dialog = screen.getByRole('dialog', { name: '전자책 신청 안내' })
-    expect(within(dialog).queryByText(/올해의 책/)).toBeNull()
-    expect(within(dialog).getByRole('link', { name: '영상 보기' }).getAttribute('href')).toBe(
-      'https://www.youtube.com/watch?v=6fhNgxzKaLE',
-    )
-  })
-
-  it('says the list is not ready, or did not load, in its own words (R7-1)', async () => {
-    stubFetch({ leedongjin: { list: 'leedongjin', fetchedAt: null, categories: [] } })
-    renderAt('/picks/leedongjin')
-    expect(await screen.findByText('아직 이동진 추천도서를 준비하고 있어요')).toBeTruthy()
-    cleanup()
-
-    stubFetch({})
-    renderAt('/picks/snu100')
-    expect((await screen.findByRole('alert')).textContent).toBe('서울대 100선을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.')
+    expect(await screen.findByText('책첵 추천 화면')).toBeTruthy()
+    expect(asked).toEqual([])
   })
 })
 

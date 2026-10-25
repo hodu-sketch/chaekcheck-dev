@@ -228,7 +228,7 @@ export function fetchForYouBooks(plan: PlanParams, signal?: AbortSignal): Promis
 }
 
 /**
- * `GET /api/v1/for-you/similar-books` (cycle 23): the neighbours of up to three base books and up to six books to show
+ * `GET /api/v1/for-you/similar-books` (cycle 23): the neighbours of up to six base books and up to six books to show
  * again. Only these ids leave the browser; the record of seen books stays in it (R5-1).
  */
 export function fetchForYouSimilar(

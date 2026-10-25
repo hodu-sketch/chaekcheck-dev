@@ -5,9 +5,10 @@ import { MemoryRouter, Navigate, Route, Routes } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BookDetail, ForYouCard } from '../../api/types'
 import { sendUsageEvent } from '../../api/usageEvents'
+import { BaseBooksDialog } from './BaseBooksDialog'
 import { ForYouPage } from './ForYouPage'
 import { DWELL_MS, useBookVisit } from './useBookVisit'
-import { points, readViewed, recordLibraryClicked, recordOpened } from './viewedBooks'
+import { baseBooks, points, readViewed, recordLibraryClicked, recordOpened } from './viewedBooks'
 
 const REGIONS = {
   regions: { residence: [1116], work: [] },
@@ -92,7 +93,7 @@ function renderAt(path = '/picks/for-you') {
 }
 
 const similarCalls = (calls: URL[]) => calls.filter((url) => url.pathname === '/api/v1/for-you/similar-books')
-const cardButtons = () => within(screen.getByRole('region', { name: '나에게 맞는 책 목록' })).getAllByRole('button')
+const cardButtons = () => within(screen.getByRole('region', { name: '책첵 추천 목록' })).getAllByRole('button')
 const cardTitles = () => cardButtons().map((button) => button.querySelector('span[class*="title"]')?.textContent)
 
 beforeAll(() => {
@@ -117,14 +118,14 @@ describe('S18 for-you (cycle 23)', () => {
     stubFetch()
     renderAt('/picks')
     const tabs = within(await screen.findByRole('navigation', { name: '추천도서 목록' })).getAllByRole('link')
-    expect(tabs[0].textContent?.replace(/\u00a0/g, ' ')).toBe('나에게 맞는 책')
+    expect(tabs[0].textContent?.replace(/\u00a0/g, ' ')).toBe('책첵 추천')
     expect(tabs[0].getAttribute('aria-current')).toBe('page')
   })
 
   it('without a record: the AI line once, no base books line, the base list only, no personal request (AC-2, AC-9)', async () => {
     const calls = stubFetch()
     renderAt()
-    await screen.findByRole('region', { name: '나에게 맞는 책 목록' })
+    await screen.findByRole('region', { name: '책첵 추천 목록' })
     expect(screen.getAllByText('책 소개 글과 꼬리표는 AI가 골랐어요')).toHaveLength(1)
     expect(screen.queryByText(/최근 본 책 .*비슷한 책/)).toBeNull()
     expect(cardTitles()).toEqual(['책 1', '책 2', '책 3'])
@@ -151,9 +152,12 @@ describe('S18 for-you (cycle 23)', () => {
         }),
     })
     const user = renderAt()
-    await screen.findByRole('region', { name: '나에게 맞는 책 목록' })
+    await screen.findByRole('region', { name: '책첵 추천 목록' })
     const [first, second] = cardButtons()
-    expect(first.textContent).toContain('KAIST·서울대 외 1 추천목록에 있어요')
+    // no list footer on the cards (user 2026-10-25)
+    expect(first.textContent).not.toContain('추천목록에 있어요')
+    // no personal picks: the whole list is the base list, no heading between its cards
+    expect(screen.queryByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeNull()
     expect(first.textContent).toContain('잔잔하게 읽히는 이야기예요.')
     expect(within(first).getByText('잔잔한')).toBeTruthy()
     expect(first.textContent).toContain('내 도서관 2곳')
@@ -165,23 +169,31 @@ describe('S18 for-you (cycle 23)', () => {
     expect(within(first).queryAllByRole('button')).toHaveLength(0)
   })
 
-  it('with base books: the line, personal picks first, the base list after them, sent ids only', async () => {
+  it('with base books: personal picks first, the base list after them, sent ids only; the line is on 마이페이지', async () => {
     const now = Date.now()
     recordOpened(501, '고래', now)
     recordLibraryClicked(501, now)
     recordOpened(502, '파과', now - 1000)
+    recordOpened(505, '흰', now - 2000)
+    recordOpened(506, '토지', now - 3000)
+    recordOpened(507, '채식주의자', now - 4000)
     recordOpened(503, '아몬드', now - 5 * DAY)
     recordOpened(504, '옛 책', now - 6 * DAY)
     const calls = stubFetch({
       similar: () => json({ baseBooks: [], books: [card(10), card(2)], reshowBooks: [] }),
     })
     renderAt()
-    await screen.findByRole('region', { name: '나에게 맞는 책 목록' })
-    expect(screen.getByText('최근 본 책 고래·파과·아몬드와 비슷한 책')).toBeTruthy()
+    await screen.findByRole('region', { name: '책첵 추천 목록' })
+    // the base books' line and [기준 책 바꾸기] moved to 마이페이지 (user 2026-10-25)
+    expect(screen.queryByText(/최근 본 책 .*비슷한 책/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '기준 책 바꾸기' })).toBeNull()
     // 2 is a personal pick and in the base list: once, with the personal picks
     expect(cardTitles()).toEqual(['책 10', '책 2', '책 1', '책 3'])
+    // after the personal picks the base list has its own heading (user 2026-10-25)
+    expect(screen.getByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeTruthy()
     const [similar] = similarCalls(calls)
-    expect(similar.searchParams.get('baseBookIds')).toBe('501,502,503')
+    // six base books since 2026-10-25 ("기준 책이 너무 작아")
+    expect(similar.searchParams.get('baseBookIds')).toBe('501,502,505,506,507,503')
     expect(similar.searchParams.get('reshowBookIds')).toBe('504')
   })
 
@@ -223,35 +235,26 @@ describe('S18 for-you (cycle 23)', () => {
     recordOpened(501, '고래')
     stubFetch({ similar: () => json({ baseBooks: [], books: [card(10)], reshowBooks: [] }) })
     const user = renderAt()
-    await screen.findByRole('region', { name: '나에게 맞는 책 목록' })
+    await screen.findByRole('region', { name: '책첵 추천 목록' })
     await user.click(cardButtons()[0])
     expect(sendUsageEvent).toHaveBeenCalledWith({ type: 'picks_book_view', list: 'for_you', category: 'similar', bookId: 10 })
     expect(vi.mocked(sendUsageEvent).mock.calls.every(([event]) => ['picks_list_view', 'picks_book_view'].includes(event.type))).toBe(true)
   })
 
-  it('S19: [빼기] brings up the next book, clearing the record leaves the base list only (AC-15)', async () => {
+  it('S19: [빼기] brings up the next book, clearing the record leaves no base book (AC-15)', async () => {
     const now = Date.now()
     recordOpened(501, '고래', now)
     recordOpened(502, '파과', now - 1000)
     recordOpened(503, '아몬드', now - 2000)
     recordOpened(504, '소년이 온다', now - 3000)
-    const calls = stubFetch()
-    const user = renderAt()
-    await screen.findByText('최근 본 책 고래·파과·아몬드와 비슷한 책')
-    await user.click(screen.getByRole('button', { name: '기준 책 바꾸기' }))
+    const user = userEvent.setup()
+    render(<BaseBooksDialog phone={false} onClose={() => {}} />)
     const dialog = await screen.findByRole('dialog')
     await user.click(within(dialog).getByRole('button', { name: '고래 빼기' }))
     expect(within(dialog).queryByText('고래')).toBeNull()
-    await user.keyboard('{Escape}')
-    await screen.findByText('최근 본 책 파과·아몬드·소년이 온다와 비슷한 책')
-    await waitFor(() => expect(similarCalls(calls).at(-1)?.searchParams.get('baseBookIds')).toBe('502,503,504'))
-
-    await user.click(screen.getByRole('button', { name: '기준 책 바꾸기' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '최근 본 책 기록 모두 지우기' }))
-    await waitFor(() => expect(screen.queryByText(/최근 본 책 .*비슷한 책/)).toBeNull())
+    expect(baseBooks(readViewed(), Date.now()).map((book) => book.bookId)).toEqual([502, 503, 504])
+    await user.click(within(dialog).getByRole('button', { name: '최근 본 책 기록 모두 지우기' }))
     expect(readViewed()).toEqual([])
-    // only the personal picks were asked of the server for these changes
-    expect(calls.filter((url) => url.pathname.startsWith('/api/v1/usage')).length).toBe(0)
   })
 })
 

@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Navigate, useNavigate, useParams } from 'react-router'
 import { ApiError, fetchPicks } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
-import type { PickBook, Picks } from '../../api/types'
+import type { PickBook, Picks, PicksListKey } from '../../api/types'
 import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { BookCard, isLinked } from './BookCard'
 import { MORE_STEP } from './picksText'
-import { picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
+import { HIDDEN_LISTS, picksList, YOUTUBE_TERMS_URL, type PicksList } from './picksLists'
 import { PicksTabs } from './PicksTabs'
 import { PicksBookDialog } from './PicksBookDialog'
 import { readPosition, savePosition } from './picksPosition'
@@ -30,8 +30,11 @@ type Loaded = { key: string; data: Picks | null; failed: boolean }
  * place. Another name shows nothing, as any address the app does not know [안].
  */
 export function PicksRoute() {
-  const list = picksList(useParams().listKey)
-  return list ? <PicksPage key={list.key} list={list} /> : null
+  const key = useParams().listKey
+  const list = picksList(key)
+  if (list) return <PicksPage key={list.key} list={list} />
+  // a hidden list's address (이동진, user 2026-10-25) goes to 「책첵 추천」
+  return key && HIDDEN_LISTS.includes(key as PicksListKey) ? <Navigate to="/picks/for-you" replace /> : null
 }
 
 /**

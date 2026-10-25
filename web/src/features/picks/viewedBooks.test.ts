@@ -42,14 +42,23 @@ describe('viewedBooks (cycle 23 R5, R6-1b, R6-4)', () => {
     expect(books.some((book) => book.bookId === 100)).toBe(false)
   })
 
-  it('picks the three base books by points, the more recent first on equal points', () => {
+  it('picks the base books by points, the more recent first on equal points', () => {
     recordOpened(1, 'A', NOW - 5000)
     recordOpened(2, 'B', NOW - 4000)
     recordOpened(3, 'C', NOW - 3000)
     recordOpened(4, 'D', NOW - 2000)
     recordDwelled(1, 'A', NOW - 6000)
 
-    expect(baseBooks(readViewed(NOW), NOW).map((book) => book.bookId)).toEqual([1, 4, 3])
+    expect(baseBooks(readViewed(NOW), NOW).map((book) => book.bookId)).toEqual([1, 4, 3, 2])
+  })
+
+  it('takes six base books, two of one field at most, then fills up by points (user 2026-10-25)', () => {
+    for (let id = 1; id <= 4; id++) recordOpened(id, `문학 ${id}`, NOW - id * 1000, 'literature')
+    recordOpened(5, '과학', NOW - 5000, 'science')
+    recordOpened(6, '모름', NOW - 6000)
+    recordOpened(7, '인문', NOW - 7000, 'humanities')
+
+    expect(baseBooks(readViewed(NOW), NOW).map((book) => book.bookId)).toEqual([1, 2, 3, 5, 6, 7])
   })
 
   it('[빼기] keeps a book out of the base books for 30 days', () => {
@@ -76,12 +85,12 @@ describe('viewedBooks (cycle 23 R5, R6-1b, R6-4)', () => {
     recordLibraryClicked(12, NOW - 5 * DAY)
     recordOpened(10, 'old enough', NOW - 4 * DAY)
     recordOpened(11, 'too new', NOW - 2 * DAY)
-    for (let id = 1; id <= 3; id++) {
+    for (let id = 1; id <= 6; id++) {
       recordOpened(id, `pressed ${id}`, NOW)
       recordLibraryClicked(id, NOW)
     }
 
-    // 12 is a base book by points too, so the conditions are checked with the three pressed books on top
+    // 12 is a base book by points too, so the conditions are checked with the six pressed books on top
     expect(reshowBooks(readViewed(NOW), NOW).map((book) => book.bookId)).toEqual([10])
   })
 

@@ -7,6 +7,11 @@ export const MAX_PERSONAL = 60
 export const SAME_AUTHOR_RUN = 2
 /** [확정] R6-1b: in each 20, books shown again at about the 8th and 16th places (AC-17). */
 export const RESHOW_PLACES = [8, 16] as const
+/**
+ * While this browser has seen fewer books than this, the base list and the personal picks take the field groups in
+ * turn (user 2026-10-25: "처음에 본 책들이 많아지지 않은 이상 처음에는 다양한 분야의 책을 골고루 섞어줘", 3 [안] approved).
+ */
+export const MIX_FIELDS_BELOW_SEEN = 3
 
 export interface ForYouLayout {
   /** the one wide card at the top: the first personal pick, else the first base book (R6-2) */
@@ -22,7 +27,7 @@ export interface ForYouLayout {
 /**
  * The browser's part of the personal picks (decision #4): drop seen books, no three of one author in a row, 20 at a
  * time with up to two seen books mixed in at the 8th and 16th places of each 20, the base list after them with books
- * already shown above left out (R6-2).
+ * already shown above left out (R6-2). With few seen books both lists take the field groups in turn first.
  * @param pages how many 20s are open ("비슷한 책 더 보기" adds one)
  */
 export function layOut(
@@ -32,7 +37,9 @@ export function layOut(
   seen: ReadonlySet<number>,
   pages: number,
 ): ForYouLayout {
-  const fresh = limitAuthorRuns(similar.filter((card) => !seen.has(card.bookId))).slice(0, MAX_PERSONAL)
+  const mix = seen.size < MIX_FIELDS_BELOW_SEEN
+  const unseen = similar.filter((card) => !seen.has(card.bookId))
+  const fresh = limitAuthorRuns(mix ? mixFields(unseen) : unseen).slice(0, MAX_PERSONAL)
   const chunks: ForYouCard[][] = []
   const shownAgain = reshow.filter((card) => !fresh.some((other) => other.bookId === card.bookId))
   let next = 0
@@ -47,11 +54,34 @@ export function layOut(
   }
   const open = chunks.slice(0, Math.max(1, pages)).flat()
   const inPersonal = new Set(chunks.flat().map((card) => card.bookId))
-  const rest = base.filter((card) => !inPersonal.has(card.bookId))
+  const left = base.filter((card) => !inPersonal.has(card.bookId))
+  const rest = mix ? mixFields(left) : left
   if (open.length > 0) {
     return { top: open[0], personal: open.slice(1), hasMore: chunks.length > Math.max(1, pages), base: rest }
   }
   return { top: rest[0] ?? null, personal: [], hasMore: false, base: rest.slice(1) }
+}
+
+/**
+ * One book of each field group in turn, each group in its own order and the groups in the order their first book came
+ * (so the first book stays first); books without a group count as one group, other.
+ */
+export function mixFields(cards: ForYouCard[]): ForYouCard[] {
+  const groups = new Map<string, ForYouCard[]>()
+  for (const card of cards) {
+    const group = card.fieldGroup ?? 'other'
+    const list = groups.get(group)
+    if (list) list.push(card)
+    else groups.set(group, [card])
+  }
+  const queues = [...groups.values()]
+  const mixed: ForYouCard[] = []
+  for (let i = 0; mixed.length < cards.length; i++) {
+    for (const queue of queues) {
+      if (i < queue.length) mixed.push(queue[i])
+    }
+  }
+  return mixed
 }
 
 /**

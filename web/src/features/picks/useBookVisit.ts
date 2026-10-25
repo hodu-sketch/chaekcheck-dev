@@ -9,10 +9,14 @@ export const DWELL_MS = 10_000
  * shows the book, and kept open after 10 seconds while the page is visible (time on another tab does not count).
  * Nothing is sent to the server (R5-7).
  */
-export function useBookVisit(bookId: number | null | undefined, title: string | null | undefined): void {
+export function useBookVisit(
+  bookId: number | null | undefined,
+  title: string | null | undefined,
+  fieldGroup?: string | null,
+): void {
   useEffect(() => {
     if (bookId == null || !title) return
-    recordOpened(bookId, title)
+    recordOpened(bookId, title, Date.now(), fieldGroup)
     let spent = 0
     let startedAt: number | null = null
     let timer: number | undefined
@@ -37,5 +41,5 @@ export function useBookVisit(bookId: number | null | undefined, title: string | 
       stop()
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [bookId, title])
+  }, [bookId, title, fieldGroup])
 }

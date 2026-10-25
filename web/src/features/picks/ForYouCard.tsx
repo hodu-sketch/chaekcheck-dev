@@ -1,25 +1,29 @@
 import type { ForYouCard as Card } from '../../api/types'
 import { CoverImage } from './CoverImage'
-import { listsFooter, myLibrariesText } from './forYouText'
+import { myLibrariesText } from './forYouText'
 import styles from './ForYouPage.module.css'
 
 type Props = {
   card: Card
   /** the one card across the whole row at the top (R1-3) */
   wide?: boolean
+  /** a card of the usual size that takes the whole row (an odd last personal pick) */
+  full?: boolean
   onPick: (card: Card) => void
 }
 
 /**
- * One card of 「나에게 맞는 책」 (R3-1, R3-2, R9-5): cover (or the title in its place), title, author · publisher, the
- * blurb whole (never cut, AC-11), 2-3 tags that do nothing when pressed, "내 도서관 N곳", and the lists' footer for a
- * listed book. A tap opens S14. No AI mark on the card (AC-9).
+ * One card of 「책첵 추천」 (R3-1, R9-5): cover (or the title in its place) on the left, then title, author ·
+ * publisher, the tab blurb whole (never cut, AC-11) or, without one, the lists' AI summary (user 2026-10-25: "오른쪽에
+ * 적당히 큰 글자로 ai요약"; spec R8-1 keeps the two apart, so the blurb wins when there is one), 2-3 tags that do
+ * nothing when pressed, and "내 도서관 N곳". No "○○ 추천목록에 있어요" footer (R3-2) since the user's "여기 목록에서
+ * 어디어디 추천도서에 있어요 문구 다 빼" (2026-10-25). A tap opens S14. No AI mark on the card (AC-9).
  */
-export function ForYouCard({ card, wide = false, onPick }: Props) {
+export function ForYouCard({ card, wide = false, full = false, onPick }: Props) {
   const meta = [card.author, card.publisher].filter(Boolean).join(' · ')
-  const footer = listsFooter(card.lists)
+  const words = card.blurb ?? card.aiSummary ?? null
   return (
-    <li className={wide ? styles.topCell : styles.cell}>
+    <li className={wide || full ? styles.topCell : styles.cell}>
       <button type="button" className={styles.card} data-wide={wide || undefined} onClick={() => onPick(card)}>
         <span className={styles.coverBox}>
           <CoverImage className={styles.cover} url={card.coverUrl} title={card.title} />
@@ -27,7 +31,7 @@ export function ForYouCard({ card, wide = false, onPick }: Props) {
         <span className={styles.text}>
           <span className={styles.title}>{card.title}</span>
           {meta && <span className={styles.meta}>{meta}</span>}
-          {card.blurb && <span className={styles.blurb}>{card.blurb}</span>}
+          {words && <span className={styles.blurb}>{words}</span>}
           {card.tags.length > 0 && (
             <span className={styles.tags}>
               {card.tags.map((tag) => (
@@ -38,7 +42,6 @@ export function ForYouCard({ card, wide = false, onPick }: Props) {
             </span>
           )}
           <span className={styles.held}>{myLibrariesText(card.planLibraryCount)}</span>
-          {footer && <span className={styles.footer}>{footer}</span>}
         </span>
       </button>
     </li>

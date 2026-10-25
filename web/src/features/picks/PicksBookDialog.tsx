@@ -83,7 +83,7 @@ function BookBody({
   const holdings = useHoldings()
   const { open } = holdings
   // 「나에게 맞는 책」 (cycle 23 R5-3): opening the window and keeping it 10 seconds count in this browser
-  useBookVisit(bookId, book.title)
+  useBookVisit(bookId, book.title, book.fieldGroup)
   // the [{강서구} 거주 가입] tags as on the results (handoff 5-A-5): the plan's regions
   const residence = plan.residenceRegionIds
   const work = plan.workRegionIds

@@ -109,8 +109,8 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
     const tabs = within(screen.getByRole('navigation', { name: '추천도서 목록' })).getAllByRole('link')
     expect(tabs.map((tab) => [tab.textContent?.replace(/ /g, ' '), tab.getAttribute('href')])).toEqual([
-      // 「나에게 맞는 책」 first (cycle 23 R1-1, AC-1), then KAIST (user 2026-10-20)
-      ['나에게 맞는 책', '/picks/for-you'],
+      // 「책첵 추천」 first (cycle 23 R1-1, AC-1), then KAIST (user 2026-10-20)
+      ['책첵 추천', '/picks/for-you'],
       ['KAIST', '/picks/kaist'],
       ['국립중앙도서관', '/picks/librarian'],
       ['서울대', '/picks/snu100'],
