@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="216" viewBox="0 0 720 216" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="216" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">단계별 질문 하나에 보이는 틀린 카드</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">1단계</text>
+<rect x="230" y="60" width="420.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="658.0" y="75" font-size="14" font-weight="400" fill="#1f1d2b">2.04장</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">1+2단계</text>
+<rect x="230" y="94" width="304.7" height="22" rx="4" fill="#c9c2ee"/>
+<text x="542.7" y="109" font-size="14" font-weight="400" fill="#1f1d2b">1.48장</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">1+3단계 (지금 운영)</text>
+<rect x="230" y="128" width="119.4" height="22" rx="4" fill="#c9c2ee"/>
+<text x="357.4" y="143" font-size="14" font-weight="400" fill="#1f1d2b">0.58장</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">1+2+3단계 (브랜치)</text>
+<rect x="230" y="162" width="70.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="308.0" y="177" font-size="14" font-weight="700" fill="#1f1d2b">0.34장</text>
+</svg>

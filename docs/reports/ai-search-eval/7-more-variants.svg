@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="386" viewBox="0 0 720 386" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="386" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">추가 개선안: '아주 맞음' 비율 (질문 57개, 기준 P)</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">P 기준 (섞기+기준 책 이웃)</text>
+<rect x="230" y="60" width="408.5" height="22" rx="4" fill="#6b4fe0"/>
+<text x="646.5" y="75" font-size="14" font-weight="700" fill="#1f1d2b">71%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">RRF k=20</text>
+<rect x="230" y="94" width="420.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="658.0" y="109" font-size="14" font-weight="400" fill="#1f1d2b">73%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">저자 2권까지</text>
+<rect x="230" y="128" width="414.2" height="22" rx="4" fill="#c9c2ee"/>
+<text x="652.2" y="143" font-size="14" font-weight="400" fill="#1f1d2b">72%</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">질문+검색어 벡터</text>
+<rect x="230" y="162" width="414.2" height="22" rx="4" fill="#c9c2ee"/>
+<text x="652.2" y="177" font-size="14" font-weight="400" fill="#1f1d2b">72%</text>
+<text x="218" y="211" font-size="14" text-anchor="end" fill="#33313f">BM25 소개 원문</text>
+<rect x="230" y="196" width="414.2" height="22" rx="4" fill="#c9c2ee"/>
+<text x="652.2" y="211" font-size="14" font-weight="400" fill="#1f1d2b">72%</text>
+<text x="218" y="245" font-size="14" text-anchor="end" fill="#33313f">부정어 빼기</text>
+<rect x="230" y="230" width="402.7" height="22" rx="4" fill="#c9c2ee"/>
+<text x="640.7" y="245" font-size="14" font-weight="400" fill="#1f1d2b">70%</text>
+<text x="218" y="279" font-size="14" text-anchor="end" fill="#33313f">구조화 1차 답</text>
+<rect x="230" y="264" width="397.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="635.0" y="279" font-size="14" font-weight="400" fill="#1f1d2b">69%</text>
+<text x="218" y="313" font-size="14" text-anchor="end" fill="#33313f">가상 소개(HyDE)</text>
+<rect x="230" y="298" width="385.5" height="22" rx="4" fill="#c9c2ee"/>
+<text x="623.5" y="313" font-size="14" font-weight="400" fill="#1f1d2b">67%</text>
+<text x="218" y="347" font-size="14" text-anchor="end" fill="#33313f">후보 20권</text>
+<rect x="230" y="332" width="368.2" height="22" rx="4" fill="#c9c2ee"/>
+<text x="606.2" y="347" font-size="14" font-weight="400" fill="#1f1d2b">64%</text>
+</svg>
