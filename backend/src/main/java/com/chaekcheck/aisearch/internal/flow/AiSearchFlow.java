@@ -42,6 +42,7 @@ import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.aisearch.internal.vector.QuestionVectors;
+import com.chaekcheck.foryou.BookBlurbs;
 import com.chaekcheck.foryou.BookCovers;
 import com.chaekcheck.foryou.BookNeighbours;
 import com.chaekcheck.picks.ListedBooks;
@@ -82,6 +83,8 @@ public class AiSearchFlow {
 
 	private final BookCovers covers;
 
+	private final BookBlurbs blurbs;
+
 	private final QuestionVectors vectors;
 
 	private final UsageLog usageLog;
@@ -91,8 +94,8 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, QuestionVectors vectors,
-			UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
+			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, BookBlurbs blurbs,
+			QuestionVectors vectors, UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
@@ -100,6 +103,7 @@ public class AiSearchFlow {
 		this.searchBooks = searchBooks;
 		this.neighbours = neighbours;
 		this.covers = covers;
+		this.blurbs = blurbs;
 		this.vectors = vectors;
 		this.usageLog = usageLog;
 		this.properties = properties;
@@ -368,7 +372,8 @@ public class AiSearchFlow {
 			.toList();
 		run.candidateCount = ids.size();
 		Map<Long, String> tabCovers = covers.of(ids);
-		picks(input, history, ids, choices, new Cards(known, listed, tabCovers, planCount), run);
+		Map<Long, String> tabBlurbs = blurbs.of(ids);
+		picks(input, history, ids, choices, new Cards(known, listed, tabCovers, tabBlurbs, planCount), run);
 	}
 
 	/**
@@ -593,11 +598,11 @@ public class AiSearchFlow {
 	}
 
 	/**
-	 * What a card is made from: title and author of the search book; the list cover, else the tab cover; the AI summary
-	 * only for a listed book.
+	 * What a card is made from: title and author of the search book; the list cover, else the tab cover; the list's AI
+	 * summary, else the tab blurb (user 2026-10-25).
 	 */
 	private record Cards(Map<Long, SearchBook> known, Map<Long, ListedBook> listed, Map<Long, String> tabCovers,
-			Map<Long, Integer> planCount) {
+			Map<Long, String> tabBlurbs, Map<Long, Integer> planCount) {
 
 		Card card(int no, long bookId) {
 			SearchBook book = known.get(bookId);
@@ -606,8 +611,11 @@ public class AiSearchFlow {
 			if (cover == null) {
 				cover = tabCovers.get(bookId);
 			}
-			return new Card(no, bookId, book.title(), book.author(), cover, planCount.getOrDefault(bookId, 0),
-					onList == null ? null : onList.aiSummary());
+			String summary = onList == null ? null : onList.aiSummary();
+			if (summary == null || summary.isBlank()) {
+				summary = tabBlurbs.get(bookId);
+			}
+			return new Card(no, bookId, book.title(), book.author(), cover, planCount.getOrDefault(bookId, 0), summary);
 		}
 
 	}
