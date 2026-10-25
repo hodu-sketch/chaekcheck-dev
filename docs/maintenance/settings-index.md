@@ -77,6 +77,9 @@
 | 임베딩 서버 주소·토큰·시간 | 빈 값 / 빈 값 / 1.5초 | `…vector.remote.url` / `token` / `timeout` | **`CHAEKCHECK_AISEARCH_EMBED_URL`** / **`CHAEKCHECK_AISEARCH_EMBED_TOKEN`**(비밀, Parameter Store) / — | `embed-service`의 `EMBED_TOKEN`(같은 값) | `remote`일 때만. 1.5초 안에 답이 없거나 오류면 그 검색은 낱말만 [안] | 같음 | 서비스 |
 | 임베딩 장애 차단 | 연속 실패 3번 / 30초 | `…vector.failures-to-open` / `open-for` | — | `CircuitBreaker`, `KureQuestionVectors` | 질문 벡터가 3번 연달아 실패(시간 넘김·오류·401)하면 30초 동안 묻지 않고 그 검색들은 바로 낱말만으로. 30초 뒤 한 번 시험해 되면 다시 씀. 열릴 때·닫힐 때 로그 한 줄 [안] | 사용자 2026-10-25 "임베딩 서버 장애 차단" | 서비스 |
 | 기준 책 이웃 | 20권 | 코드 상수 (`AiSearchFlow.MAX_NAMED_NEIGHBOURS`) | — | `NamedBook`, `foryou.book_neighbour` | 「○○ 같은/비슷/처럼/류의/풍의」 바로 앞의 책 제목을 찾으면 그 책의 이웃을 먼저(벡터를 꺼도 돎) [안] 보고서 S | 같음 | 서비스 |
+| 1차 호출 방식 | `haiku` | `chaekcheck.aisearch.first-call.mode` | **`CHAEKCHECK_AISEARCH_FIRST_CALL`** | 운영 compose → `prod.env`, 모델 폴더의 `first-call-model.bin`·`book-profiles.tsv` | `ml` = 질문 벡터 위 작은 신경망(5갈래 + 칸)과 질문 낱말, 1차 모델 호출 없음. 질문 벡터가 꺼졌거나 파일이 없으면 `haiku`로 감 | 사용자 2026-10-26, `docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`, `6-aisearch.md` 8절 | 서비스 |
+| 칸 보너스 | 0.004 | `…first-call.shelf-bonus` | — | `Fusion`, `MlFirstCall` | ML 1차에서 질문과 같은 칸 하나마다 RRF 합에 더함(PFx로 잰 값) [안] | `docs/reports/ai-search-improvement-2026-10-25.md` 6-4 | 서비스 |
+| 책첵 질문 답 상한 | 512 | `…first-call.site-max-tokens` | — | `Prompts.SITE_SYSTEM` | 책첵 질문에 답하는 Haiku 한 번의 출력 상한 [안] | 사용자 2026-10-26 | 서비스 |
 
 ## 1-2. 임베딩 서버 (`embed-service/src/main/resources/application.yml`)
 

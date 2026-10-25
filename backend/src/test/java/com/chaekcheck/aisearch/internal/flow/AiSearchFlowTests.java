@@ -23,6 +23,7 @@ import com.chaekcheck.aisearch.AiSearchBookTexts.Book;
 import com.chaekcheck.aisearch.AiSearchBookTexts.Line;
 import com.chaekcheck.aisearch.AiSearchBookTexts.Source;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
+import com.chaekcheck.aisearch.internal.firstcall.MlFirstCall;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Card;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.CardDelta;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Done;
@@ -122,6 +123,120 @@ class AiSearchFlowTests {
 	/** The question vectors the flow gets; off unless a test sets them. */
 	com.chaekcheck.aisearch.internal.vector.QuestionVectors questionVectors =
 			com.chaekcheck.aisearch.internal.vector.QuestionVectors.OFF;
+
+	/** The ML first call the flow gets; off unless a test sets it. */
+	MlFirstCall mlFirstCall = MlFirstCall.off();
+
+	/** The settings the flow gets: the application's, or with the ML first call on. */
+	AiSearchProperties flowProperties;
+
+	/** The texts the ML first call turned into vectors, in order. */
+	final List<String> encoded = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+	/**
+	 * The ML first call on (user 2026-10-26) with the tiny model: the texts become the given vectors (a text not given
+	 * fails), and the nearest books of any vector are {@code nearest}.
+	 */
+	void mlOn(java.util.Map<String, float[]> vectorOf, List<Long> nearest) {
+		mlFirstCall = com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.create();
+		flowProperties = new AiSearchProperties(properties.enabled(), properties.zone(), properties.keywordTimeout(),
+				properties.pickTimeout(), properties.keywordMaxTokens(), properties.pickMaxTokens(),
+				properties.maxConcurrent(), properties.rate(), properties.budget(), properties.price(),
+				properties.limits(), properties.vector(),
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512));
+		questionVectors = new com.chaekcheck.aisearch.internal.vector.QuestionVectors() {
+
+			@Override
+			public boolean on() {
+				return true;
+			}
+
+			@Override
+			public java.util.concurrent.CompletableFuture<List<Long>> nearest(String question, int limit) {
+				return java.util.concurrent.CompletableFuture.completedFuture(nearest);
+			}
+
+			@Override
+			public java.util.concurrent.CompletableFuture<List<float[]>> vectors(List<String> texts) {
+				encoded.addAll(texts);
+				if (!vectorOf.keySet().containsAll(texts)) {
+					return java.util.concurrent.CompletableFuture.failedFuture(new IllegalStateException("no vector"));
+				}
+				return java.util.concurrent.CompletableFuture.completedFuture(texts.stream().map(vectorOf::get).toList());
+			}
+
+			@Override
+			public List<Long> nearest(float[] vector, int limit) {
+				return nearest;
+			}
+
+		};
+	}
+
+	@Test
+	void withTheMlFirstCallABookQuestionMakesOnlyTheSecondCall() { // user 2026-10-26
+		mlOn(java.util.Map.of("과학 책 추천해줘", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.BOOK),
+				List.of(2L, 5L, 7L));
+		llm.then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"맞는 책\"}]}", 1, 1));
+
+		run("과학 책 추천해줘", List.of());
+
+		assertThat(llm.calls).hasSize(1);
+		assertThat(llm.calls.getFirst().system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+		assertThat(usageLog.records.getFirst().keywordResult()).isEqualTo(UsageLog.KeywordResult.OK);
+	}
+
+	@Test
+	void withTheMlFirstCallAQuestionAbout책첵IsAnsweredFromTheSiteText() { // user 2026-10-26
+		mlOn(java.util.Map.of("책첵은 무료야?", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.SITE), List.of());
+		llm.then(Answer.ok("{\"answer\":\"네, 책첵은 무료예요.\"}", 300, 20));
+
+		run("책첵은 무료야?", List.of());
+
+		assertThat(llm.calls).hasSize(1);
+		assertThat(llm.calls.getFirst().system()).isEqualTo(Prompts.SITE_SYSTEM).contains("무료").doesNotContain("DB-IP");
+		assertThat(sink.names()).containsExactly("head-delta", "done");
+		assertThat(sink.of(Text.class).getFirst().text()).isEqualTo("네, 책첵은 무료예요.");
+		assertThat(sink.last(Done.class).result()).isEqualTo("site");
+		assertThat(sink.last(Done.class).bookIds()).isEmpty();
+	}
+
+	@Test
+	void withTheMlFirstCallNotABookQuestionAsksNoModel() { // user 2026-10-26
+		mlOn(java.util.Map.of("오늘 점심 뭐 먹지", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.NOT_BOOK),
+				List.of());
+
+		run("오늘 점심 뭐 먹지", List.of());
+
+		assertThat(llm.calls).isEmpty();
+		assertThat(sink.last(Done.class).result()).isEqualTo("no_match");
+	}
+
+	@Test
+	void withTheMlFirstCallAFollowUpSearchesWithTheEarlierQuestionJoined() { // M4, user 2026-10-26
+		float[] book = com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.BOOK;
+		mlOn(java.util.Map.of("더 쉬운 걸로", book, "우주 과학 책", book, "우주 과학 책 더 쉬운 걸로", book), List.of(2L, 7L));
+		llm.then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("더 쉬운 걸로", List.of(new AiSearchFlow.Turn("우주 과학 책", List.of(1L, 4L))));
+
+		assertThat(encoded).containsExactlyInAnyOrder("더 쉬운 걸로", "우주 과학 책", "우주 과학 책 더 쉬운 걸로");
+		assertThat(llm.calls).hasSize(1);
+		// the second call still gets the earlier turn
+		assertThat(llm.calls.getFirst().messages().getFirst().text()).isEqualTo("우주 과학 책");
+	}
+
+	@Test
+	void withTheMlFirstCallAFailedVectorAsksHaikuAsBefore() { // user 2026-10-26
+		mlOn(java.util.Map.of(), List.of());
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run(QUESTION, List.of());
+
+		assertThat(llm.calls).hasSize(2);
+		assertThat(llm.calls.getFirst().system()).isEqualTo(Prompts.KEYWORD_SYSTEM);
+	}
 
 	/** Vectors that are on and answer with {@code nearest}. */
 	static com.chaekcheck.aisearch.internal.vector.QuestionVectors vectorsGiving(
@@ -499,7 +614,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, MlFirstCall.off(), failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -563,7 +678,8 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, usageLog, properties, json);
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, mlFirstCall, usageLog,
+				flowProperties == null ? properties : flowProperties, json);
 	}
 
 	private ListedBooks listedBooks() {

@@ -116,3 +116,26 @@ FROM aisearch.search_book;
 - **토큰**: Parameter Store `/chaekcheck/prod/CHAEKCHECK_AISEARCH_EMBED_TOKEN`(SecureString, 무작위 값)을 사람이 넣음. 운영은 `up.sh`가 secrets.env로 읽고, 임베딩 서버는 같은 값을 `/srv/embed/embed.env`의 `EMBED_TOKEN=`에 넣고 `docker rm -f embed` 뒤 위 명령으로 다시 띄움. 토큰이 비어 있으면 모든 요청이 401이고, 백엔드는 낱말만으로 검색함
 - 운영에서 켜기(prod.env): `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`, 운영 모델 폴더에는 `book-vectors.bin`만. 서버 안으로 바꾸려면 `ENCODER=local`과 모델 파일 셋을 더 둠
 
+
+## 8. ML 1차 호출 (2026-10-26)
+
+- 사용자 결정(2026-10-26): "1차를 5갈래 MLP로 바꿔요(M4 방식)", "이어 묻는 질문도 ML로 하기 → 넣음", "책첵 질문에 사이트 정보로 답하게 해요", "설정으로 켜고 끌 수 있게". 잰 숫자와 넣고 뺀 것: [`docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`](../reports/ai-search-ml-first-call-decisions-2026-10-26.md)
+- **켜기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(prod.env). 기본 `haiku`(지금까지와 같음). 질문 벡터가 켜져 있어야 하고(7절) 모델 폴더에 아래 두 파일이 더 있어야 함. 없으면 시작 로그 `ai search first call: haiku, the ml one is off: <이유>`이고 지금처럼 Haiku. 켜지면 `ai search first call: ml, 27227 book profiles`
+- **되돌리기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=haiku`로 바꾸고 다시 켬. 파일은 그대로 둬도 됨
+- 모델 폴더에 더할 파일(PC `chaekcheck-data\ml\aisearch-model\first-call-2026-10-26\`, 약 27MB)
+  - `first-call-model.bin`(25MB): 길 5갈래(책 찾기 아님 · 제목만 · 앞 책 가리킴 · 책첵 질문 · 보통 질문) + 칸 머리 11개(큰 칸·작은 칸·장르·형식·빼 달라는 큰 칸·작은 칸·장르·소설인지·나라·대상·수준). 각 머리는 KURE 벡터 1024 → 512(ReLU) → 칸
+  - `book-profiles.tsv`(1.6MB): 책 27,227권의 상세 사전 칸(번호 = 책 벡터와 같은 가져오기 번호. 수집으로 `catalog` 번호가 바뀌면 책 벡터와 함께 다시 만듦)
+  - 만들기: `scripts/aisearch/eval/export_first_call.py OUT_DIR`(평가 데이터 `data/aisearch-eval-2026-10-25/`의 `qgen/`·`route/`와 `clf/`의 벡터가 있는 폴더 배치에서 돌림; 칸 머리를 학습하고, 운영과 같은 int8 질문 모델로 다시 재서 `first-call-check.json`에 남김). 2026-10-26 값: 길 나누기 fp32 94.3% → int8 94.2%, 큰 칸 F1 0.899 → 0.903
+  - 확인: `fixture_first_call.py OUT_DIR`가 질문 12개의 기대값을 `first-call-fixture.json`에 쓰고, `AISEARCH_FIRST_CALL_DIR=<폴더> ./gradlew test --tests '*FirstCallModelFileTests'`가 Java 계산과 비교(확률 차 1e-4 안, 2026-10-26 통과)
+- **한 검색에서 하는 일**(`AiSearchFlow`, `MlFirstCall`)
+  - 질문을 벡터로(이어 묻는 질문이면 앞 질문, 「앞 질문 + 지금 질문」도 동시에, 임베딩 서버에 3번) → 길과 칸 → 낱말은 질문 낱말 그대로(`QuestionWords`)
+  - 책 찾기 아님: 지금처럼 「맞는 책을 찾지 못했어요」(모델 호출 없음)
+  - 책첵 질문: Haiku 한 번(`Prompts.SITE_SYSTEM`, 소개 탭·첫 화면·바닥글 글, IP 줄 뺌)이 1~3문장으로 답 → 웹은 답과 「책첵이란? 자세히 보기 →」(`/about`). 이 글들을 바꾸면 `SITE_SYSTEM`도 함께 고침
+  - 제목만: 지금처럼 「직접 찾기에서 보기」 줄(TitleMatch가 맞으면) 뒤 보통 검색
+  - 앞 책 가리킴: 지금처럼 앞에 보인 책 + 이웃
+  - 보통 질문: 낱말 50위 + 벡터 60위를 RRF로 섞고, 질문과 같은 칸 하나마다 0.004를 더하고(`shelf-bonus`), 빼 달라는 칸·「소설 말고」에 걸리는 책은 뒤로 → 30권 → 2차 Haiku
+  - 이어 묻는 질문: 앞 질문의 낱말·「앞 + 지금」 벡터·칸을 이어받고 지금 질문의 칸으로 덮어씀. 지금 질문만으로 큰 칸이 정해지고 앞 질문과 다르면 새 주제로 보고 앞 질문을 버림. 2차 Haiku에는 앞 대화를 지금처럼 제목만 보냄
+  - 질문 벡터가 실패하거나 `max-wait`(2초)를 넘기면 그 검색은 Haiku 1차로 감(로그 `haiku makes the first step`)
+- 로그 한 줄: `ai search: first ml BOOK[ new topic], keyword OK, pick …` (Haiku면 `first haiku`)
+- 사용 기록(`usagelog.ai_search_event`): ML 1차는 `keyword_result = ok`로, 책첵 질문 답은 `pick_result = skipped`·카드 0으로 남음(칸을 늘리지 않음. 따로 세려면 plan에 기록할 일)
+- 메모리: 모델 25MB + 프로필 약 10MB가 힙에. 질문 하나 계산은 1ms 안쪽

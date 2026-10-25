@@ -18,11 +18,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param pickMaxTokens the second call's cap (step 1: 2048 [안]; 3072 since v1.12.1, user 2026-10-25)
  * @param maxConcurrent AI searches running at once on this server (20, user 2026-10-24)
  * @param vector the question vector candidates mixed with the keyword ones (user 2026-10-25)
+ * @param firstCall who makes the first step, Haiku or the small networks (user 2026-10-26)
  */
 @ConfigurationProperties("chaekcheck.aisearch")
 public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordTimeout, Duration pickTimeout,
 		int keywordMaxTokens, int pickMaxTokens, int maxConcurrent, Rate rate, Budget budget, Price price,
-		Limits limits, Vector vector) {
+		Limits limits, Vector vector, FirstCall firstCall) {
 
 	public AiSearchProperties {
 		Objects.requireNonNull(zone, "chaekcheck.aisearch.zone");
@@ -33,6 +34,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 		Objects.requireNonNull(price, "chaekcheck.aisearch.price");
 		Objects.requireNonNull(limits, "chaekcheck.aisearch.limits");
 		Objects.requireNonNull(vector, "chaekcheck.aisearch.vector");
+		Objects.requireNonNull(firstCall, "chaekcheck.aisearch.first-call");
 	}
 
 	/** Searches from one IP (10 a minute, 100 a day [확정], follow-up questions too). */
@@ -111,6 +113,34 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 			token = token == null ? "" : token;
 		}
 
+	}
+
+	/**
+	 * The first step of a search (user 2026-10-26 "1차를 5갈래 MLP로 바꿔요(M4 방식)", measured in
+	 * docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md): {@link FirstCallMode#HAIKU} asks Haiku for the way
+	 * and the keywords as before; {@link FirstCallMode#ML} takes the way (not a book question, a title, the books shown
+	 * before, a question about 책첵, a book question) and the asked shelves from small networks over the question vector,
+	 * the keywords from the question's own words, and asks no model. ML needs the vectors on and
+	 * {@code first-call-model.bin} and {@code book-profiles.tsv} in {@code vector.model-dir}; without them, or when the
+	 * question vector fails or is late, the search uses Haiku.
+	 * @param mode haiku by default
+	 * @param shelfBonus added to a candidate's fusion sum for each shelf it shares with the question (0.004 [안], PFx)
+	 * @param siteMaxTokens the cap of the call answering a question about 책첵 (512 [안])
+	 */
+	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens) {
+
+		public FirstCall {
+			Objects.requireNonNull(mode, "chaekcheck.aisearch.first-call.mode");
+		}
+
+	}
+
+	/** Who makes the first step. */
+	public enum FirstCallMode {
+		/** The first Haiku call. */
+		HAIKU,
+		/** The small networks over the question vector, no model call. */
+		ML
 	}
 
 }

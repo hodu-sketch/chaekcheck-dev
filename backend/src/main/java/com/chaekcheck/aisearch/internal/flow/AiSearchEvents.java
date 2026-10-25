@@ -41,7 +41,10 @@ public final class AiSearchEvents {
 	public record CardDelta(long bookId, String text) {
 	}
 
-	/** @param result {@code ok}, {@code no_match}, {@code no_text} or {@code partial} */
+	/**
+	 * @param result {@code ok}, {@code no_match}, {@code no_text}, {@code partial}, or {@code site}: the head answered a
+	 * question about 책첵 and no book comes (ML first call, user 2026-10-26)
+	 */
 	public record Done(String result, List<Long> bookIds) {
 
 		public Done {

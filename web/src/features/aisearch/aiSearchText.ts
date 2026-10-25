@@ -26,6 +26,9 @@ export const AI_TEXT = {
   tooLong: '새 대화를 시작해 주세요', // R11-3
   newChat: '새 대화',
   send: '보내기',
+  // a question about 책첵 answered from the intro tab and the first screen (user 2026-10-26, mockup approved)
+  siteLink: '책첵이란? 자세히 보기 →',
+  siteNote: '답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.',
 } as const
 
 /**

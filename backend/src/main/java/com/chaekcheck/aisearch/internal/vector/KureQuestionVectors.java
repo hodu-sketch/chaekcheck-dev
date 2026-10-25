@@ -94,20 +94,56 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 		if (!on() || !breaker.allow()) {
 			return CompletableFuture.completedFuture(List.of());
 		}
-		return CompletableFuture.supplyAsync(() -> books.nearest(encoder.encode(question), limit), pool)
-			.whenComplete((found, error) -> {
-				if (error == null) {
-					if (breaker.success() == CircuitBreaker.Change.CLOSED) {
-						log.info("ai search vectors: the encoder answers again; {} search(es) went without vectors",
-								breaker.takeSkipped());
-					}
+		return encoded(question).thenApply(vector -> books.nearest(vector, limit));
+	}
+
+	@Override
+	public CompletableFuture<List<float[]>> vectors(List<String> texts) {
+		if (!on() || !breaker.allow()) {
+			return CompletableFuture.failedFuture(new Unavailable());
+		}
+		List<CompletableFuture<float[]>> runs = texts.stream()
+			.map(text -> CompletableFuture.supplyAsync(() -> encoder.encode(text), pool))
+			.toList();
+		CompletableFuture<List<float[]>> all = CompletableFuture.allOf(runs.toArray(CompletableFuture[]::new))
+			.thenApply(done -> runs.stream().map(CompletableFuture::join).toList());
+		CompletableFuture<List<float[]>> result = counted(all);
+		// a caller that gives up (cancels) stops the runs not started yet
+		result.whenComplete((found, error) -> {
+			if (error instanceof java.util.concurrent.CancellationException) {
+				runs.forEach(run -> run.cancel(true));
+			}
+		});
+		return result;
+	}
+
+	@Override
+	public List<Long> nearest(float[] vector, int limit) {
+		return on() ? books.nearest(vector, limit) : List.of();
+	}
+
+	private CompletableFuture<float[]> encoded(String text) {
+		return counted(CompletableFuture.supplyAsync(() -> encoder.encode(text), pool));
+	}
+
+	/**
+	 * One lookup's result for the circuit breaker; runs given up as too slow count as a failure (and a half-open trial
+	 * always ends one way or the other).
+	 */
+	private <T> CompletableFuture<T> counted(CompletableFuture<T> lookup) {
+		return lookup.whenComplete((found, error) -> {
+			if (error == null) {
+				if (breaker.success() == CircuitBreaker.Change.CLOSED) {
+					log.info("ai search vectors: the encoder answers again; {} search(es) went without vectors",
+							breaker.takeSkipped());
 				}
-				else if (breaker.failure() == CircuitBreaker.Change.OPENED) {
-					Throwable cause = error.getCause() == null ? error : error.getCause();
-					log.warn("ai search vectors: the encoder failed ({}), not asked for {} s", cause.getMessage(),
-							openForSeconds);
-				}
-			});
+			}
+			else if (breaker.failure() == CircuitBreaker.Change.OPENED) {
+				Throwable cause = error.getCause() == null ? error : error.getCause();
+				log.warn("ai search vectors: the encoder failed ({}), not asked for {} s", cause.getMessage(),
+						openForSeconds);
+			}
+		});
 	}
 
 	/** The breaker's state (tests). */

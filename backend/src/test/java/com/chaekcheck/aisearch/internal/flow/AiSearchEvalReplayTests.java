@@ -120,7 +120,7 @@ class AiSearchEvalReplayTests {
 				new AiSearchProperties.Limits(properties.limits().candidates(), properties.limits().candidates(),
 						properties.limits().historyTurns(), properties.limits().questionMaxLength(),
 						properties.limits().cardTextMaxChars()),
-				settings);
+				settings, properties.firstCall());
 		// every candidate becomes a card, in the order the second call got them, so the ids can be read back
 		StringBuilder all = new StringBuilder("{\"head\":\"\",\"picks\":[");
 		for (int no = 1; no <= properties.limits().candidates(); no++) {
@@ -144,7 +144,7 @@ class AiSearchEvalReplayTests {
 						}
 					});
 					return found;
-				}, ids -> Map.of(), ids -> Map.of(), questionVectors, new AiSearchFlowTests.RecordingLog(), on, json);
+				}, ids -> Map.of(), ids -> Map.of(), questionVectors, com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), new AiSearchFlowTests.RecordingLog(), on, json);
 				flow.run(new AiSearchFlow.Input(question.get("q").asString(), 1, List.of(), plan,
 						new UsageRequest(Instant.now(), null, "login_off", null, null, true), System.nanoTime()),
 						sink);

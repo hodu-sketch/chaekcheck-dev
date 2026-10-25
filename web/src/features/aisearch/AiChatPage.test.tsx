@@ -176,6 +176,17 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     expect(screen.getByTestId('where').textContent).toBe('/{"searchTab":"direct"}')
   })
 
+  it('shows an answer about 책첵 with the way to the intro tab and no examples (user 2026-10-26)', async () => {
+    startWithQuestion('책첵은 무료야?')
+    answers({ name: 'head-delta', data: { text: '네, 책첵은 무료예요.' } }, { name: 'done', data: { result: 'site', bookIds: [] } })
+    const user = setup()
+    expect(await screen.findByText('네, 책첵은 무료예요.')).toBeTruthy()
+    expect(screen.getByText('답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.')).toBeTruthy()
+    expect(screen.queryByText('맞는 책을 찾지 못했어요. 다른 말로 써 보시겠어요?')).toBeNull()
+    await user.click(screen.getByRole('link', { name: '책첵이란? 자세히 보기 →' }))
+    expect(screen.getByTestId('where').textContent).toContain('/about')
+  })
+
   it('offers the guessed title in the direct search', async () => {
     startWithQuestion('토지 있어?')
     answers({ name: 'title-guess', data: { title: '토지' } }, { name: 'done', data: { result: 'ok', bookIds: [] } })

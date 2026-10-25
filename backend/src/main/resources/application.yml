@@ -436,6 +436,16 @@ chaekcheck:
       # keywords alone at once, then one lookup tries again (user 2026-10-25 "임베딩 서버 장애 차단") [안]
       failures-to-open: 3
       open-for: 30s
+    first-call:
+      # who makes the first step (user 2026-10-26, docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md):
+      # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
+      # the question's own words), no model call. ml needs the vectors on and first-call-model.bin and
+      # book-profiles.tsv in model-dir; without them, or with the question vector late or failed, Haiku is asked
+      mode: ${CHAEKCHECK_AISEARCH_FIRST_CALL:haiku}
+      # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]
+      shelf-bonus: 0.004
+      # the cap of the call that answers a question about 책첵 from the intro and first-screen text [안]
+      site-max-tokens: 512
     llm:
       anthropic:
         # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only

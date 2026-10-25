@@ -6290,6 +6290,44 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - `AiSearchFlow`: `refersToShown`이고 앞 책이 있으면 후보 = 앞 책 → 그 책들의 이웃(각 책의 1순위부터 돌아가며, 계획 도서관이 가진 목록 책만, 앞에서 보여 준 책 제외, 최대 `MAX_NEIGHBOUR_CANDIDATES` 12 [안]) → 낱말 후보. 23 세션이 권한 `of(ids, limit)` 대신 limit 없는 꼴로 둠(호출 쪽에서 자름)
 - 운영 이웃: 운영 최신 가져오기 14번 export_id `d09d649f…`가 `neighbours.tsv` 첫 줄과 같음 → force 없이 `neighbours-load=full`
 
+
+## 1차 호출을 ML로 (2026-10-26, 사이클 24 곁 세션, 브랜치 `claude/aisearch-ml-first-call`)
+
+**plan에 기록할 것: 설계 변경입니다(ADR 필요).** ADR-0150~0153의 「1차 Haiku 호출이 길과 검색어를 정한다」를 설정으로 바꿀 수 있게 했습니다. 잰 숫자와 넣고 뺀 것은 [`docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`](reports/ai-search-ml-first-call-decisions-2026-10-26.md), 운영 방법은 [`docs/maintenance/6-aisearch.md`](maintenance/6-aisearch.md) 8절.
+
+### 사용자 발언 (그대로)
+
+- "M(질문 낱말 그대로)가 그냥 mlp만 하는거 맞지? 그럼 그걸로 운영 바꾸려고하는데 메모리 모자라면 임베딩 벡터 계산하는 ec2로"
+- "나는 1차는 다 ml로 2차만 하이코로 갔으며하는데"
+- "이어 묻는 질문도 ML로 하기 → 넣음"
+- "그러면 지금 우리 사이트 책첵에 대해 물어보는 경우도 그에 맞게 답해두도록 하자 소개 탭이나 메인에 있는 정보들로 말이야 아 소개 탭의 아이피정보는 지금 안 쓰니까 운영에서 제외하고 그 아이피 제외한 정보들로 우리 사이트 책첵에 대해서 물으면 답해주도록하자"
+- "그러면 ml에서 분류를 더 해야 할 것 같은데... 하이쿠에게 책첵 사이트 정보도 줘야하니"
+- (시안 확인 뒤) "ML 전환 때 함께: 1차를 ML로 바꿀 때 5갈래 분류기와 같이 만들어요."
+- "시작: 새 작업 공간에서 만들고, 설정으로 켜고 끌 수 있게 해요. 1차를 5갈래 MLP로 바꿔요(M4 방식). 책첵 질문에 사이트 정보로 답하게 해요. 소개 탭의 IP 줄을 빼요. 설계가 바뀌는 거라 chaekcheck-plan에 기록이 필요하고, 배포는 24 세션으로 넘겨요. 하자"
+- 「필요할 때만 앞 대화 보내기」에 대해 "이걸로 생각해보자 다양한 경우의수들 있으니까 니가 정리해서 결과 잘 알려줘" → 재 보니 이득 없어 넣지 않음(보고서 3-2 #21)
+
+### 만든 것
+
+- 설정 `chaekcheck.aisearch.first-call.mode`(`CHAEKCHECK_AISEARCH_FIRST_CALL`, 기본 `haiku`), `shelf-bonus` 0.004 [안], `site-max-tokens` 512 [안]. `deploy/prod/prod.env`는 `ml`(파일이 없으면 Haiku로 감)
+- `aisearch.internal.firstcall`: `FirstCallModel`(파일 `first-call-model.bin`, 머리 12개: 길 5갈래 + 칸 11), `BookProfiles`(`book-profiles.tsv`, 27,227권), `Shelves`(칸 맞춤·빼기·이어받기·새 주제 규칙), `QuestionWords`(질문 낱말, 평가 `cands_e2e.words`와 같음), `MlFirstCall`
+- `AiSearchFlow`: ML이면 1차 Haiku를 부르지 않음. 길: 책 찾기 아님 → `no_match` / 책첵 질문 → Haiku 한 번(`Prompts.SITE_SYSTEM`)이 머리말로 답, `done` 결과 `site` / 제목만 → 제목 줄 + 보통 검색 / 앞 책 가리킴 → 지금 길 / 보통 → RRF + 칸 보너스 + 뺄 책 뒤로(PFx). 이어 묻는 질문은 앞 질문을 이어받음(M4). 질문 벡터가 실패·2초 넘김이면 그 검색은 Haiku
+- `QuestionVectors`: `vector(text)`, `nearest(vector, limit)` 더함(임베딩 서버 그대로)
+- 웹: 결과 `site`면 답 + 「책첵이란? 자세히 보기 →」(`/about`) + 「답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.」(시안 승인 2026-10-26). 소개 탭 「출처와 문의」의 IP 위치 정보 줄 뺌
+- 시험: `FirstCallTests`(파일 읽기·계산·칸·낱말·계획), `FirstCallModelFileTests`(실제 모델 파일, `AISEARCH_FIRST_CALL_DIR`, numpy와 확률 차 1e-4 안), `AiSearchFlowTests` ML 5개(보통 질문은 2차 한 번만, 책첵 질문 답, 책 찾기 아님은 모델 호출 0, 이어 묻는 질문은 앞+지금 벡터, 벡터 실패면 Haiku), 웹 `AiChatPage`·`AboutPage`
+- 운영 벡터(int8)로 다시 잼: 길 나누기 fp32 94.3% → int8 94.2%, 큰 칸 F1 0.899 → 0.903, 작은 칸 0.874 → 0.870 (`first-call-check.json`)
+
+### 설계와 다르게 한 것·[안]
+
+- 1차 Haiku를 설정으로 끌 수 있게 함(ADR 필요). 2차 Haiku와 앞 대화 보내기(최대 5턴, 제목만)는 그대로
+- 새 길 「책첵 질문」과 그 답(새 Haiku 호출, 새 `done` 결과 `site`). 사이트 글은 `Prompts.SITE_SYSTEM`에 직접 적음: 소개 탭·첫 화면·바닥글이 바뀌면 함께 고쳐야 함
+- 사용 기록 칸은 늘리지 않음: ML 1차는 `keyword_result = ok`, 책첵 답은 `pick_result = skipped`·카드 0. ML/Haiku와 책첵 질문을 따로 세려면 `usagelog` 칸이 필요(plan 결정)
+- 소개 탭 IP 줄만 뺌. 쓰이지 않는 `GET /api/v1/regions/guess`·`SidoByIp`·`fetchSidoGuess`와 DB-IP 파일은 그대로 둠(지울지 plan 결정)
+- 질문 낱말이 「에세이」를 「에세」로 자르는 것은 평가 때와 같게 둠(낱말 맞춤은 부분 일치라 결과가 같음)
+
+### 배포 (24 세션에 넘김)
+
+- 모델 폴더에 `first-call-model.bin`·`book-profiles.tsv`를 더 올림(PC `chaekcheck-data\ml\aisearch-model\`, 서버 `/srv/chaekcheck/aisearch-model/`), prod.env `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`, 배포 뒤 시작 로그 `ai search first call: ml, 27227 book profiles`와 검색 로그 `first ml …` 확인
+
 # 사이클 23 소개 시험과 탭 표지 (2026-10-24~25 요청)
 
 plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.md`, 탭 표지 메시지). 보고서: [`docs/reports/cycle23-intro-test-2026-10-25.md`](reports/cycle23-intro-test-2026-10-25.md), 표 `docs/reports/cycle23-intro/`.
