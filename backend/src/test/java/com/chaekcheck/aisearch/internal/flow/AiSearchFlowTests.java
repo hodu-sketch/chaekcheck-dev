@@ -82,6 +82,19 @@ class AiSearchFlowTests {
 
 	final Sink sink = new Sink();
 
+	/** The neighbours the fake {@code foryou} knows, by book. */
+	final java.util.Map<Long, List<Long>> neighbourMap = new java.util.HashMap<>();
+
+	final com.chaekcheck.foryou.BookNeighbours neighbours = ids -> {
+		java.util.Map<Long, List<Long>> found = new java.util.HashMap<>();
+		ids.forEach(id -> {
+			if (neighbourMap.containsKey(id)) {
+				found.put(id, neighbourMap.get(id));
+			}
+		});
+		return found;
+	};
+
 	@BeforeEach
 	void books() {
 		List<Book> stored = new ArrayList<>();
@@ -284,6 +297,25 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aFollowUpAboutTheBooksShownAlsoGetsTheirNeighbours() { // user 2026-10-25, neighbours from foryou
+		// 20's neighbours: 3 (held by 999 only, not in the plan), 4, 1 (shown before), 5; 1's: 7
+		neighbourMap.put(20L, List.of(3L, 4L, 1L, 5L));
+		neighbourMap.put(1L, List.of(7L));
+		AiSearchFlow.Turn earlier = new AiSearchFlow.Turn("과학책 추천해줘", List.of(20L, 1L));
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":false,\"title\":\"\",\"refersToShown\":true,"
+				+ "\"keywords\":[]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("두 번째 책 비슷한 것", List.of(earlier));
+
+		String sent = llm.calls.get(1).messages().getLast().text();
+		// the shown books, then the nearest of each (3 is not held, so 7), then the next (4), then 5; the shown 1 is not
+		// taken again
+		assertThat(sent).contains("1. 제목: 토지", "2. 제목: 과학 이야기 1 /", "3. 제목: 과학 이야기 7 /", "4. 제목: 과학 이야기 4 /",
+				"5. 제목: 과학 이야기 5 /")
+			.doesNotContain("과학 이야기 3 /");
+	}
+
+	@Test
 	void aClientThatLeavesStopsTheStreamAndNoDoneIsSent() {
 		llm.then(keywords("과학"))
 			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"앞\"}", ",{\"no\":2,\"fit\":3,\"text\":\"뒤\"}]}"), 1, 1));
@@ -307,7 +339,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), neighbours, failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -371,7 +403,7 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), usageLog, properties, json);
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), neighbours, usageLog, properties, json);
 	}
 
 	private ListedBooks listedBooks() {

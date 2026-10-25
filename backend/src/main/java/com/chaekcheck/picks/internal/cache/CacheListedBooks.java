@@ -3,11 +3,11 @@ package com.chaekcheck.picks.internal.cache;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +17,9 @@ import org.springframework.stereotype.Component;
 import com.chaekcheck.catalog.BookAuthors;
 import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.picks.BookTagTransfer.Tag;
 import com.chaekcheck.picks.ListedBooks;
+import com.chaekcheck.picks.internal.tags.CardTags;
 import com.chaekcheck.picks.internal.store.PicksStore;
 
 /**
@@ -26,9 +28,10 @@ import com.chaekcheck.picks.internal.store.PicksStore;
  * cache of its own, so both give the same books and the same shown names.
  * <p>
  * The set is built again only when one of the copies was swapped (every cache refresh swaps them), with one catalog
- * query for the authors. If that query fails, the new books are used with the authors known before (none for a book
- * not seen before), a warning is logged once, and the query is tried again at most once a minute
- * ({@link #AUTHOR_RETRY}), so a database outage does not add a query to every request.
+ * query for the authors and one picks query for the card tags (cycle 23). If either fails, the new books are used
+ * with the authors and tags known before (none for a book not seen before), a warning is logged once, and the queries
+ * are tried again at most once a minute ({@link #AUTHOR_RETRY}), so a database outage does not add a query to every
+ * request.
  * <p>
  * TODO(24-F1): read the author from the cache once it carries one (dev docs/plan-feedback.md "후속 작업 24-F1").
  */
@@ -50,23 +53,26 @@ class CacheListedBooks implements ListedBooks {
 
 	private final BookAuthors authors;
 
+	private final CardTags cardTags;
+
 	private final Clock clock;
 
 	private Built built;
 
 	@Autowired
 	CacheListedBooks(PicksCache cache, PicksStore store, BookLookup bookLookup, LibraryCatalog libraries,
-			BookAuthors authors) {
-		this(cache, store, bookLookup, libraries, authors, Clock.systemUTC());
+			BookAuthors authors, CardTags cardTags) {
+		this(cache, store, bookLookup, libraries, authors, cardTags, Clock.systemUTC());
 	}
 
 	CacheListedBooks(PicksCache cache, PicksStore store, BookLookup bookLookup, LibraryCatalog libraries,
-			BookAuthors authors, Clock clock) {
+			BookAuthors authors, CardTags cardTags, Clock clock) {
 		this.cache = cache;
 		this.store = store;
 		this.bookLookup = bookLookup;
 		this.libraries = libraries;
 		this.authors = authors;
+		this.cardTags = cardTags;
 		this.clock = clock;
 	}
 
@@ -79,16 +85,16 @@ class CacheListedBooks implements ListedBooks {
 		}
 		List<Merged> merged = merge(copies);
 		try {
-			Map<Long, String> found = authors.byIds(merged.stream().map(Merged::bookId).toList());
-			built = new Built(copies, snapshot(merged, found::get), found, null);
+			Extras found = extras(merged);
+			built = new Built(copies, snapshot(merged, found), found, null);
 		}
 		catch (RuntimeException ex) {
-			Map<Long, String> known = built == null ? Map.of() : built.authors();
+			Extras known = built == null ? Extras.NONE : built.extras();
 			if (built == null || built.retryAt() == null) {
-				log.warn("listed books: reading the authors failed, the authors known before are used: {}",
+				log.warn("listed books: reading the authors or tags failed, the ones known before are used: {}",
 						ex.toString());
 			}
-			built = new Built(copies, snapshot(merged, known::get), known, clock.instant().plus(AUTHOR_RETRY));
+			built = new Built(copies, snapshot(merged, known), known, clock.instant().plus(AUTHOR_RETRY));
 		}
 		return built.snapshot();
 	}
@@ -107,8 +113,12 @@ class CacheListedBooks implements ListedBooks {
 			throw new ListsNotReadException(unread);
 		}
 		List<Merged> merged = merge(copies(own));
-		Map<Long, String> found = authors.byIds(merged.stream().map(Merged::bookId).toList());
-		return snapshot(merged, found::get);
+		return snapshot(merged, extras(merged));
+	}
+
+	private Extras extras(List<Merged> merged) {
+		List<Long> ids = merged.stream().map(Merged::bookId).toList();
+		return new Extras(authors.byIds(ids), cardTags.byIds(ids));
 	}
 
 	private static List<PicksCache.Snapshot> copies(PicksCache cache) {
@@ -139,21 +149,30 @@ class CacheListedBooks implements ListedBooks {
 				if (row.aiSummary == null) {
 					row.aiSummary = book.aiSummary();
 				}
+				// the book windows' year lines (cycle 23): the librarian list's month, KAIST's year
+				if (list.equals(PicksCache.LIBRARIAN) && row.recommendedMonth == null) {
+					row.recommendedMonth = book.recommendedMonth();
+				}
+				if (list.equals(PicksCache.KAIST) && row.yearBook == null) {
+					row.yearBook = book.yearBook();
+				}
 			}
 		}
 		return List.copyOf(byBook.values());
 	}
 
-	private Snapshot snapshot(List<Merged> merged, Function<Long, String> author) {
+	private Snapshot snapshot(List<Merged> merged, Extras extras) {
 		List<ListedBook> books = merged.stream()
-			.map(row -> new ListedBook(row.bookId, row.title, author.apply(row.bookId), row.cover, row.libraryIds,
-					row.listKeys, row.aiSummary))
+			.map(row -> new ListedBook(row.bookId, row.title, extras.authors().get(row.bookId), row.cover,
+					row.libraryIds, row.listKeys, row.aiSummary, extras.tags().get(row.bookId), row.recommendedMonth,
+					row.yearBook))
 			.toList();
 		return new Snapshot(clock.instant(), books);
 	}
 
 	/**
-	 * A book while the lists are merged: the first list's title, every list key, the first cover and AI summary found.
+	 * A book while the lists are merged: the first list's title, every list key, the first cover and AI summary found,
+	 * the librarian list's month and KAIST's year.
 	 */
 	static final class Merged {
 
@@ -169,6 +188,10 @@ class CacheListedBooks implements ListedBooks {
 
 		String aiSummary;
 
+		YearMonth recommendedMonth;
+
+		Integer yearBook;
+
 		Merged(long bookId, String title, long[] libraryIds) {
 			this.bookId = bookId;
 			this.title = title;
@@ -181,12 +204,18 @@ class CacheListedBooks implements ListedBooks {
 
 	}
 
+	/** Our books' authors and card tags, read once per set. */
+	private record Extras(Map<Long, String> authors, Map<Long, List<Tag>> tags) {
+
+		static final Extras NONE = new Extras(Map.of(), Map.of());
+
+	}
+
 	/**
-	 * The set, the copies it was built from (the copies are swapped whole, so identity tells a refresh), the authors it
-	 * used, and when to read the authors again after a failed read (null when they were read).
+	 * The set, the copies it was built from (the copies are swapped whole, so identity tells a refresh), the authors
+	 * and tags it used, and when to read them again after a failed read (null when they were read).
 	 */
-	private record Built(List<PicksCache.Snapshot> copies, Snapshot snapshot, Map<Long, String> authors,
-			Instant retryAt) {
+	private record Built(List<PicksCache.Snapshot> copies, Snapshot snapshot, Extras extras, Instant retryAt) {
 
 		boolean sameCopies(List<PicksCache.Snapshot> now) {
 			for (int i = 0; i < now.size(); i++) {

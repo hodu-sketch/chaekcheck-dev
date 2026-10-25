@@ -10,7 +10,7 @@ export const MENUS = [
   // shown only while the AI search is on (status 200)
   { key: 'ai', label: 'AI 검색', to: '/ai-search' },
   { key: 'search', label: '직접 검색', to: '/search' },
-  { key: 'picks', label: '추천도서', to: '/picks' },
+  { key: 'picks', label: '추천도서', to: '/picks/for-you' },
   { key: 'my', label: '마이페이지', to: '/mypage' },
 ] as const
 

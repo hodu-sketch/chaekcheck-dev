@@ -188,11 +188,21 @@ databaseChangeLog:
   - include:
       file: aisearch/002-updated-at-trigger.sql
       relativeToChangelogFile: true
-  # cycle 24: the AI search's usage rows (ADR-0152); file number decided again when cycle 23 is merged
+  # cycle 24: the AI search's usage rows (ADR-0152)
   - include:
       file: usagelog/008-ai-search-event.yaml
       relativeToChangelogFile: true
   # 2026-10-25: privacy policy version 3 (the AI search's questions to Anthropic)
   - include:
       file: sitecontent/004-privacy-policy-v3.yaml
+      relativeToChangelogFile: true
+  # cycle 23: for-you tab (ADR-0148, ADR-0149), after cycle 24's usagelog 008
+  - include:
+      file: foryou/001-for-you.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: picks/006-tag-dictionary-and-book-tag.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: usagelog/009-screen-event-picks-list-for-you.yaml
       relativeToChangelogFile: true

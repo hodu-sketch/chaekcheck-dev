@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
+import { useBookVisit } from '../picks/useBookVisit'
 import type { BookDetail, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from '../search/resultFilter'
 import { useRegions } from '../region/RegionContext'
@@ -64,6 +65,8 @@ function BookView({
   const { open } = holdings
   const [book, setBook] = useState<BookDetail | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
+  // 「나에게 맞는 책」 (cycle 23 R5-3): opening the book screen and staying 10 seconds count in this browser
+  useBookVisit(book?.id, book?.title)
 
   useEffect(() => {
     if (!ready) return

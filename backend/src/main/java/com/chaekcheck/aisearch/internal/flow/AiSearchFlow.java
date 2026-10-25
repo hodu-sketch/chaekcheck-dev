@@ -36,6 +36,7 @@ import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
 import com.chaekcheck.aisearch.internal.match.PlanTargets;
 import com.chaekcheck.aisearch.internal.match.PlanTargets.Target;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
+import com.chaekcheck.foryou.BookNeighbours;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
 import com.chaekcheck.usagelog.UsageLog;
@@ -66,6 +67,8 @@ public class AiSearchFlow {
 
 	private final ListedBooks listedBooks;
 
+	private final BookNeighbours neighbours;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -73,11 +76,12 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
+			BookNeighbours neighbours, UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
 		this.listedBooks = listedBooks;
+		this.neighbours = neighbours;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -120,6 +124,12 @@ public class AiSearchFlow {
 	 * topic fits, some of the conditions may not). A lower pick sends neither card nor text.
 	 */
 	static final int MIN_FIT = 2;
+
+	/**
+	 * Neighbours of the books shown before that a follow-up question pointing at them gets as candidates, at most
+	 * (user 2026-10-25 "이어서 묻기에 앞 책의 이웃을 후보로", [안] 12).
+	 */
+	static final int MAX_NEIGHBOUR_CANDIDATES = 12;
 
 	/** Thrown into the model client when the client is gone; ends the stream as {@code CANCELLED}. */
 	private static final class ClientGone extends RuntimeException {
@@ -245,6 +255,12 @@ public class AiSearchFlow {
 		LinkedHashSet<Long> chosen = new LinkedHashSet<>();
 		if (refers) {
 			lastShown.stream().filter(planCount::containsKey).limit(max).forEach(chosen::add);
+			for (long bookId : nearby(lastShown, shownBefore, planCount.keySet())) {
+				if (chosen.size() >= max) {
+					break;
+				}
+				chosen.add(bookId);
+			}
 		}
 		List<Target> rest = targets.stream().filter(target -> !chosen.contains(target.bookId())).toList();
 		for (Candidate candidate : candidates.find(plan.keywords(), plan.core(), rest, max - chosen.size())) {
@@ -264,6 +280,34 @@ public class AiSearchFlow {
 			.toList();
 		run.candidateCount = ids.size();
 		picks(input, history, ids, choices, listed, planCount, run);
+	}
+
+	/**
+	 * The neighbours of the books shown last that the plan libraries hold and that were not shown before, the nearest
+	 * of each book first, then the second nearest of each, and so on; at most {@value #MAX_NEIGHBOUR_CANDIDATES}.
+	 */
+	private List<Long> nearby(List<Long> lastShown, Set<Long> shownBefore, Set<Long> held) {
+		Map<Long, List<Long>> found = neighbours.of(lastShown);
+		List<Long> nearby = new ArrayList<>();
+		Set<Long> taken = new HashSet<>(shownBefore);
+		for (int rank = 0; nearby.size() < MAX_NEIGHBOUR_CANDIDATES; rank++) {
+			boolean more = false;
+			for (long shown : lastShown) {
+				List<Long> ids = found.getOrDefault(shown, List.of());
+				if (rank >= ids.size()) {
+					continue;
+				}
+				more = true;
+				long id = ids.get(rank);
+				if (held.contains(id) && taken.add(id) && nearby.size() < MAX_NEIGHBOUR_CANDIDATES) {
+					nearby.add(id);
+				}
+			}
+			if (!more) {
+				break;
+			}
+		}
+		return nearby;
 	}
 
 	private KeywordPlan keywords(String question, List<ShownTurn> history, Run run) {

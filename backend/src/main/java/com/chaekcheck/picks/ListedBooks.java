@@ -1,6 +1,7 @@
 package com.chaekcheck.picks;
 
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
 
@@ -50,19 +51,32 @@ public interface ListedBooks {
 	 * @param libraryIds {@code catalog.book.library_ids} of the book
 	 * @param listKeys the lists the book is on ({@code librarian}, {@code leedongjin}, …)
 	 * @param aiSummary the lists' short AI-written summary of the book (the one S14 shows), or null
+	 * @param tags the tags a card shows ({@link BookTagTransfer#forCard}, active codes only, cycle 23 R9-5), or null
+	 *     when the book has none or they could not be read
+	 * @param recommendedMonth the month of the librarian list's pick, for the book window's year line (cycle 23), or
+	 *     null when the book is not on that list
+	 * @param yearBook the KAIST list's year, for the book window's year line (cycle 23), or null when not on it
 	 */
 	record ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
-			List<String> listKeys, String aiSummary) {
+			List<String> listKeys, String aiSummary, List<BookTagTransfer.Tag> tags, YearMonth recommendedMonth,
+			Integer yearBook) {
 
 		public ListedBook {
 			libraryIds = libraryIds.clone();
 			listKeys = List.copyOf(listKeys);
+			tags = tags == null || tags.isEmpty() ? null : List.copyOf(tags);
 		}
 
-		/** A book without an AI summary. */
+		/** A book without tags or year line. */
+		public ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
+				List<String> listKeys, String aiSummary) {
+			this(bookId, title, author, coverPath, libraryIds, listKeys, aiSummary, null, null, null);
+		}
+
+		/** A book without an AI summary or tags. */
 		public ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
 				List<String> listKeys) {
-			this(bookId, title, author, coverPath, libraryIds, listKeys, null);
+			this(bookId, title, author, coverPath, libraryIds, listKeys, null, null, null, null);
 		}
 
 		@Override

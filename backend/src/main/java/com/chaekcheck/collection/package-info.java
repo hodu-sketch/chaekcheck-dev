@@ -12,9 +12,14 @@
  * {@code CuratedListTransfer}: checked and matched on the PC, put in after the swap; {@code picks} does not know this
  * module. Since cycle 24 (ADR-0151) the mode {@code book-texts} puts the AI search's lines in through {@code aisearch}'s
  * {@code AiSearchBookTexts}, with every listed book read by {@code picks}' {@code ListedBooks.loadFromDb()};
- * {@code aisearch} does not know this module.
+ * {@code aisearch} does not know this module. Since cycle 23 step 3-3 (ADR-0149) the crawl PC's for-you data goes in
+ * the same way: the new modes {@code neighbours} (book neighbours, {@code full} or {@code add}, checked against the
+ * latest import's {@code export_id}) through {@code foryou}'s {@code ForYouTransfer} and {@code tag-dictionary}
+ * through {@code picks}' {@code BookTagTransfer}, and {@code book-texts}' kinds {@code for_you_blurb},
+ * {@code cover_file} (to {@code foryou}) and {@code tags} (to {@code picks}); {@code foryou} does not know this module.
  */
-@ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks", "aisearch" })
+@ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks", "aisearch",
+		"foryou" })
 package com.chaekcheck.collection;
 
 import org.springframework.modulith.ApplicationModule;

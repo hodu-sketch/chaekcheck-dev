@@ -50,12 +50,12 @@ class CatalogImportSettingsTests {
 
 	private static Settings settings(boolean dryRun, boolean excludeAddedLaterLibraries) {
 		return new Settings(Path.of("collection.sqlite"), null, dryRun, null, null, null, null,
-				null, excludeAddedLaterLibraries, null, false, null, null);
+				null, excludeAddedLaterLibraries, null, false, null, null, null, null, null, false);
 	}
 
 	private static Settings settings(String mode, Path file, String grouping) {
 		return new Settings(Path.of("collected.sqlite"), null, false, null, mode, file, grouping, null, false, null, false,
-				null, null);
+				null, null, null, null, null, false);
 	}
 
 	@Test
@@ -71,7 +71,7 @@ class CatalogImportSettingsTests {
 	void rulesDirIsTheRulesFolderByDefault() { // cycle 19
 		assertThat(settings(null, null, null).rulesDir()).isEqualTo(Path.of("../scripts/library/rules"));
 		Settings set = new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false,
-				Path.of("rules"), false, null, null);
+				Path.of("rules"), false, null, null, null, null, null, false);
 		assertThat(set.rulesDir()).isEqualTo(Path.of("rules"));
 		assertThat(settings("export", Path.of("f"), null).readsCollection()).isTrue();
 		assertThat(settings(null, null, null).readsCollection()).isTrue();
@@ -84,14 +84,36 @@ class CatalogImportSettingsTests {
 	void listsDirIsTheListsFolderByDefault() { // cycle 21
 		assertThat(settings(null, null, null).listsDir()).isEqualTo(Path.of("../scripts/crawl/lists"));
 		assertThat(new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false, null, false,
-				Path.of("lists"), null).listsDir()).isEqualTo(Path.of("lists"));
+				Path.of("lists"), null, null, null, null, false).listsDir()).isEqualTo(Path.of("lists"));
 	}
 
 	@Test
 	void storedBibliographyOnlyWithoutATtlPath() { // cycle 19
-		new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false, null, true, null, null).check();
+		new Settings(Path.of("c.sqlite"), null, false, null, null, null, null, null, false, null, true, null, null, null,
+				null, null, false).check();
 		assertThatThrownBy(() -> new Settings(Path.of("c.sqlite"), Path.of("ttl"), false, null, null, null, null, null,
-				false, null, true, null, null).check()).hasMessageContaining("stored-bibliography");
+				false, null, true, null, null, null, null, null, false).check()).hasMessageContaining("stored-bibliography");
+	}
+
+	@Test
+	void theForYouModesNeedTheirFileAndNeighboursALoad() { // cycle 23 step 3-3
+		new Settings(null, null, false, null, "neighbours", null, null, null, false, null, false, null, null,
+				Path.of("n.tsv"), "full", null, false).check();
+		new Settings(null, null, false, null, "neighbours", null, null, null, false, null, false, null, null,
+				Path.of("n.tsv"), "add", null, true).check();
+		new Settings(null, null, false, null, "tag-dictionary", null, null, null, false, null, false, null, null, null,
+				null, Path.of("t.tsv"), false).check();
+		assertThatThrownBy(() -> new Settings(null, null, false, null, "neighbours", null, null, null, false, null, false,
+				null, null, null, "full", null, false).check()).hasMessageContaining("neighbours-file");
+		// no default load: leaving it out never swaps the whole table
+		assertThatThrownBy(() -> new Settings(null, null, false, null, "neighbours", null, null, null, false, null, false,
+				null, null, Path.of("n.tsv"), null, null, false).check()).hasMessageContaining("neighbours-load");
+		assertThatThrownBy(() -> new Settings(null, null, false, null, "neighbours", null, null, null, false, null, false,
+				null, null, Path.of("n.tsv"), "replace", null, false).check()).hasMessageContaining("neighbours-load");
+		assertThatThrownBy(() -> new Settings(null, null, false, null, "tag-dictionary", null, null, null, false, null,
+				false, null, null, null, null, null, false).check()).hasMessageContaining("tag-dictionary-file");
+		assertThatThrownBy(() -> new Settings(null, null, false, null, "tag-dictionary", null, null, null, false, null,
+				false, null, null, null, null, Path.of("t.tsv"), true).check()).hasMessageContaining("force");
 	}
 
 	@Test

@@ -27,12 +27,14 @@ import com.chaekcheck.catalog.BookAuthors;
 import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.IdBook;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.picks.BookTagTransfer.Tag;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
 import com.chaekcheck.picks.internal.lists.CoverFiles;
 import com.chaekcheck.picks.internal.store.PicksStore;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredField;
+import com.chaekcheck.picks.internal.tags.CardTags;
 
 /**
  * The listed books of the AI book search (cycle 24 handoff step 3): rows without our book left out, one row per book
@@ -49,11 +51,13 @@ class CacheListedBooksTests {
 
 	final BookAuthors authors = mock(BookAuthors.class);
 
+	final CardTags cardTags = mock(CardTags.class);
+
 	final PicksCache cache = new PicksCache(store, lookup, libraries);
 
 	final MovableClock clock = new MovableClock();
 
-	final CacheListedBooks listed = new CacheListedBooks(cache, store, lookup, libraries, authors, clock);
+	final CacheListedBooks listed = new CacheListedBooks(cache, store, lookup, libraries, authors, cardTags, clock);
 
 	@BeforeEach
 	void stored() {
@@ -69,6 +73,16 @@ class CacheListedBooksTests {
 		given(lookup.byIds(any())).willReturn(List.of(new IdBook(100, "코스모스 (개정판)", "", new long[] { 1, 2 }),
 				new IdBook(200, "토지", "", new long[] { 3 })));
 		given(authors.byIds(any())).willReturn(Map.of(100L, "칼 세이건", 200L, "박경리"));
+		given(cardTags.byIds(any())).willReturn(Map.of(100L, List.of(new Tag("m03", "mood", "잔잔한"))));
+	}
+
+	/** Cycle 23 (R9-5): the card tags come with the book, none for a book without tags. */
+	@Test
+	void theCardTagsComeWithTheBook() {
+		cache.refresh();
+
+		assertThat(listed.current().books()).extracting(ListedBook::tags)
+			.containsExactly(List.of(new Tag("m03", "mood", "잔잔한")), null);
 	}
 
 	@Test

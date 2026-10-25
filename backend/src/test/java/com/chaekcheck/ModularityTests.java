@@ -33,8 +33,9 @@ class ModularityTests {
 
 	/**
 	 * Cycle 14 (ADR-0089): picks uses catalog and library only. Cycle 21 (ADR-0123): collection uses picks
-	 * (CuratedListTransfer); cycle 24 (ADR-0150): aisearch uses picks (ListedBooks). No other module uses picks, and
-	 * picks knows neither of them.
+	 * (CuratedListTransfer); cycle 24 (ADR-0150): aisearch uses picks (ListedBooks); cycle 23 (ADR-0149): foryou too
+	 * (listed books, card tags). No other module uses picks, and
+	 * picks knows none of them.
 	 */
 	@Test
 	void picksDependsOnCatalogAndLibraryOnly() {
@@ -42,18 +43,19 @@ class ModularityTests {
 		assertThat(modules.getModuleByName("popular")).isEmpty();
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
-			.filter(name -> !List.of("picks", "collection", "aisearch").contains(name))
+			.filter(name -> !List.of("picks", "collection", "aisearch", "foryou").contains(name))
 			.forEach(name -> assertThat(dependenciesOf(name)).as(name).doesNotContain("picks"));
-		assertThat(dependenciesOf("picks")).doesNotContain("collection", "aisearch");
+		assertThat(dependenciesOf("picks")).doesNotContain("collection", "aisearch", "foryou");
 	}
 
 	/**
-	 * Cycle 24 (ADR-0150, ADR-0151): aisearch may use picks, library and usagelog only; only collection uses aisearch
+	 * Cycle 24 (ADR-0150, ADR-0151): aisearch may use picks, library and usagelog only (and foryou's BookNeighbours,
+	 * user 2026-10-25); only collection uses aisearch
 	 * (AiSearchBookTexts for the book-texts mode), and aisearch does not know collection (no cycle).
 	 */
 	@Test
 	void aisearchUsesPicksLibraryAndUsagelogOnly() {
-		assertThat(dependenciesOf("aisearch")).isSubsetOf("picks", "library", "usagelog");
+		assertThat(dependenciesOf("aisearch")).isSubsetOf("picks", "library", "usagelog", "foryou");
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
 			.filter(name -> !List.of("aisearch", "collection").contains(name))
@@ -74,12 +76,15 @@ class ModularityTests {
 	/**
 	 * Cycle 13 (ADR-0083, ADR-0093): collection adds libraries through library's LibraryRegistry, never the other way;
 	 * collection uses catalog and library, since cycle 21 picks for the recommended lists (ADR-0123) and since cycle 24
-	 * aisearch for the book-texts mode (ADR-0151).
+	 * aisearch for the book-texts mode (ADR-0151) and since cycle 23 step 3-3 foryou for the neighbours mode and the
+	 * for-you kinds of book-texts (ADR-0149); foryou does not know collection.
 	 */
 	@Test
 	void collectionUsesLibraryAndLibraryNotCollection() {
-		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "aisearch");
+		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "aisearch",
+				"foryou");
 		assertThat(dependenciesOf("library")).doesNotContain("collection");
+		assertThat(dependenciesOf("foryou")).doesNotContain("collection");
 	}
 
 	/**
@@ -93,6 +98,18 @@ class ModularityTests {
 		assertThat(dependenciesOf("availability")).contains("usagelog");
 		assertThat(dependenciesOf("auth")).doesNotContain("usagelog");
 		assertThat(dependenciesOf("library")).doesNotContain("usagelog");
+	}
+
+	/**
+	 * Cycle 23 (ADR-0149): foryou uses catalog, library, picks and availability only, and none of them knows foryou.
+	 * picks is allowed but used only once cycle 24's ListedBooks is on main.
+	 */
+	@Test
+	void foryouUsesItsFourModulesAndNoneUsesIt() {
+		assertThat(List.of("catalog", "library", "picks", "availability")).containsAll(dependenciesOf("foryou"));
+		for (String used : List.of("catalog", "library", "picks", "availability")) {
+			assertThat(dependenciesOf(used)).as(used).doesNotContain("foryou");
+		}
 	}
 
 	private List<String> dependenciesOf(String module) {

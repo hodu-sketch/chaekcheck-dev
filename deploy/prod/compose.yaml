@@ -71,6 +71,9 @@ services:
       # with the search on gives the fallback answers (books without text).
       CHAEKCHECK_AISEARCH_ENABLED: ${CHAEKCHECK_AISEARCH_ENABLED:-false}
       CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}
+      # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
+      # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only
+      CHAEKCHECK_FORYOU_BUILD_ENABLED: ${CHAEKCHECK_FORYOU_BUILD_ENABLED:-false}
       FETCH_MODE: direct
       # Login (Kakao only, cycle 05/16). Keys from Parameter Store; needed only when login is on.
       AUTH_PROVIDERS: kakao

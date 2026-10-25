@@ -58,7 +58,8 @@ describe('header', () => {
       ['소개', '/about'],
       ['AI 검색', '/ai-search'],
       ['직접 검색', '/search'],
-      ['추천도서', '/picks'],
+      // cycle 23 (AC-16): the first tab, 「나에게 맞는 책」
+      ['추천도서', '/picks/for-you'],
       ['마이페이지', '/mypage'],
     ])
     cleanup()

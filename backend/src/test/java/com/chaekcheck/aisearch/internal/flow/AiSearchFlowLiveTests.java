@@ -94,7 +94,7 @@ class AiSearchFlowLiveTests {
 				new AnthropicProperties(System.getenv("CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY"), null, null, null, "low"),
 				HttpClient.newHttpClient(), json);
 		RecordingLog log = new RecordingLog();
-		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, log, properties, json);
+		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, ids -> java.util.Map.of(), log, properties, json);
 		UsageRequest request = new UsageRequest(Instant.now(), null, "login_off", null, null, true);
 
 		for (String question : List.of("잠들기 전에 조금씩 읽을 과학책", "채식주의자", "오늘 점심 뭐 먹지")) {

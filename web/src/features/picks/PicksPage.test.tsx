@@ -109,13 +109,14 @@ describe('librarian picks (S13, redesign 2026-10-19)', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('사서 추천도서')
     const tabs = within(screen.getByRole('navigation', { name: '추천도서 목록' })).getAllByRole('link')
     expect(tabs.map((tab) => [tab.textContent?.replace(/ /g, ' '), tab.getAttribute('href')])).toEqual([
-      // KAIST first (user 2026-10-20)
+      // 「나에게 맞는 책」 first (cycle 23 R1-1, AC-1), then KAIST (user 2026-10-20)
+      ['나에게 맞는 책', '/picks/for-you'],
       ['KAIST', '/picks/kaist'],
       ['국립중앙도서관', '/picks/librarian'],
       ['서울대', '/picks/snu100'],
       ['노벨연구소', '/picks/nobel'],
     ])
-    expect(tabs[1].getAttribute('aria-current')).toBe('page')
+    expect(tabs[2].getAttribute('aria-current')).toBe('page')
     expect(screen.queryByText(/출처와 추천 기준을 함께/)).toBeNull()
     expect(chips().map((chip) => chip.textContent)).toEqual(CATEGORIES.map((c) => c.name))
     expect(chips()[0].getAttribute('aria-pressed')).toBe('true')

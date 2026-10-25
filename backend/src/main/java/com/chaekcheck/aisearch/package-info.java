@@ -10,9 +10,10 @@
  * <p>
  * Allowed dependencies (design-delta "모듈"): {@code picks} ({@code ListedBooks}), {@code library}
  * ({@code LibraryCatalog.planSearch}) and {@code usagelog} ({@code UsageLog}), used from the search flow (handoff
- * steps 5 to 8). No events.
+ * steps 5 to 8), and {@code foryou} ({@code BookNeighbours}: a follow-up question about the books shown also gets
+ * their neighbours as candidates, user 2026-10-25). No events.
  */
-@ApplicationModule(allowedDependencies = { "picks", "library", "usagelog" })
+@ApplicationModule(allowedDependencies = { "picks", "library", "usagelog", "foryou" })
 package com.chaekcheck.aisearch;
 
 import org.springframework.modulith.ApplicationModule;
