@@ -139,14 +139,19 @@ export const PICKS_LISTS: Record<PicksListKey, PicksList> = {
 
 /**
  * The tabs in screen order (user 2026-10-19: "사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천"; 노벨연구소 last,
- * user 2026-10-20). Lee Dong-jin's list is off the tabs ("이동진 추천 빼고"); its address still opens it.
+ * user 2026-10-20). Lee Dong-jin's list is off the tabs ("이동진 추천 빼고") and, since 2026-10-25, off the screen
+ * altogether ("이동진 안내는 전부 빼 논란이 있대"): its address goes to 「책첵 추천」 and no footer names it.
  */
 // KAIST first (user 2026-10-20: "카이스트가 맨 앞에 오게 바꿔줘")
 export const PICKS_TABS: readonly PicksList[] = [KAIST, LIBRARIAN, SNU100, NOBEL]
 
-/** The list an address names, or null for any other name. */
+/** Lists the screen never shows or names (user 2026-10-25). Their books still count as listed books. */
+export const HIDDEN_LISTS: readonly PicksListKey[] = ['leedongjin']
+
+/** The list an address names, or null for any other name or a hidden list. */
 export function picksList(key: string | undefined): PicksList | null {
-  return key !== undefined && Object.hasOwn(PICKS_LISTS, key) ? PICKS_LISTS[key as PicksListKey] : null
+  if (key === undefined || !Object.hasOwn(PICKS_LISTS, key) || HIDDEN_LISTS.includes(key as PicksListKey)) return null
+  return PICKS_LISTS[key as PicksListKey]
 }
 
 /** [영상 보기] (R6-2): the video's YouTube page, built from the id only; null when the id has another shape. */
