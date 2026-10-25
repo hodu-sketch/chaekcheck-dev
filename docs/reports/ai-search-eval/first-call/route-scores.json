@@ -1,0 +1,118 @@
+{
+ "Haiku (운영 1차)": {
+  "acc": {
+   "not_book": 1.0,
+   "title_like": 0.97,
+   "refers_shown": 0.94,
+   "book": 1.0
+  },
+  "all": 0.9775,
+  "blocked_real_questions": 6,
+  "missing": 0,
+  "errors": [
+   [
+    [
+     "refers_shown",
+     "not_book"
+    ],
+    6
+   ],
+   [
+    [
+     "title_like",
+     "book"
+    ],
+    3
+   ]
+  ]
+ },
+ "LR": {
+  "acc": {
+   "not_book": 0.14,
+   "title_like": 0.17,
+   "refers_shown": 0.18,
+   "book": 0.99
+  },
+  "all": 0.37,
+  "blocked_real_questions": 0,
+  "missing": 0,
+  "errors": [
+   [
+    [
+     "not_book",
+     "book"
+    ],
+    86
+   ],
+   [
+    [
+     "title_like",
+     "book"
+    ],
+    83
+   ],
+   [
+    [
+     "refers_shown",
+     "book"
+    ],
+    82
+   ],
+   [
+    [
+     "book",
+     "title_like"
+    ],
+    1
+   ]
+  ]
+ },
+ "MLP": {
+  "acc": {
+   "not_book": 0.32,
+   "title_like": 0.54,
+   "refers_shown": 0.49,
+   "book": 0.99
+  },
+  "all": 0.585,
+  "blocked_real_questions": 1,
+  "missing": 0,
+  "errors": [
+   [
+    [
+     "not_book",
+     "book"
+    ],
+    68
+   ],
+   [
+    [
+     "refers_shown",
+     "book"
+    ],
+    51
+   ],
+   [
+    [
+     "title_like",
+     "book"
+    ],
+    45
+   ],
+   [
+    [
+     "title_like",
+     "not_book"
+    ],
+    1
+   ],
+   [
+    [
+     "book",
+     "title_like"
+    ],
+    1
+   ]
+  ]
+ }
+}
