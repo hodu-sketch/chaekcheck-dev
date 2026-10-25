@@ -110,6 +110,28 @@ class AiSearchFlowTests {
 		return found;
 	};
 
+	/** The question vectors the flow gets; off unless a test sets them. */
+	com.chaekcheck.aisearch.internal.vector.QuestionVectors questionVectors =
+			com.chaekcheck.aisearch.internal.vector.QuestionVectors.OFF;
+
+	/** Vectors that are on and answer with {@code nearest}. */
+	static com.chaekcheck.aisearch.internal.vector.QuestionVectors vectorsGiving(
+			java.util.concurrent.CompletableFuture<List<Long>> nearest) {
+		return new com.chaekcheck.aisearch.internal.vector.QuestionVectors() {
+
+			@Override
+			public boolean on() {
+				return true;
+			}
+
+			@Override
+			public java.util.concurrent.CompletableFuture<List<Long>> nearest(String question, int limit) {
+				return nearest;
+			}
+
+		};
+	}
+
 	@BeforeEach
 	void books() {
 		for (int i = 1; i <= 12; i++) {
@@ -364,6 +386,48 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aQuestionNamingABookGetsItsNeighboursFirst() { // user 2026-10-25, report 3-3
+		// 토지's neighbours: 3 (held by 999 only, not in the plan), 4, 5, then 20 itself would never come
+		neighbourMap.put(20L, List.of(3L, 4L, 5L));
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("토지 같은 소설", List.of());
+
+		String sent = llm.calls.get(1).messages().getLast().text();
+		assertThat(sent).contains("1. 제목: 과학 이야기 4 /", "2. 제목: 과학 이야기 5 /", "3. 제목: 과학 이야기 1 /")
+			.doesNotContain("과학 이야기 3 /", "제목: 토지 /");
+	}
+
+	@Test
+	void theQuestionVectorsAreMixedWithTheKeywordsByRank() { // user 2026-10-25, report H
+		stored.add(new Book(500, "우주 교양", "칼 세이건", new long[] { 101 }));
+		stored.add(new Book(501, "먼 별", "저자", new long[] { 999 }));
+		texts.replace(stored, lines);
+		// 501 is held by no plan library; 7 is in both lists, so it comes first; 1 and 500 tie, the keyword one first
+		questionVectors = vectorsGiving(java.util.concurrent.CompletableFuture.completedFuture(List.of(501L, 500L, 7L)));
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run(QUESTION, List.of());
+
+		String sent = llm.calls.get(1).messages().getLast().text();
+		assertThat(sent).contains("1. 제목: 과학 이야기 7 /", "2. 제목: 과학 이야기 1 /", "3. 제목: 우주 교양 /",
+				"4. 제목: 과학 이야기 2 /")
+			.doesNotContain("먼 별");
+	}
+
+	@Test
+	void aFailingQuestionVectorLeavesTheKeywordsAlone() {
+		questionVectors = vectorsGiving(java.util.concurrent.CompletableFuture.failedFuture(new IllegalStateException("x")));
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run(QUESTION, List.of());
+
+		assertThat(llm.calls.get(1).messages().getLast().text()).contains("1. 제목: 과학 이야기 1 /",
+				"2. 제목: 과학 이야기 2 /");
+		assertThat(sink.names()).contains("done");
+	}
+
+	@Test
 	void aFollowUpAboutTheBooksShownAlsoGetsTheirNeighbours() { // user 2026-10-25, neighbours from foryou
 		// 20's neighbours: 3 (held by 999 only, not in the plan), 4, 1 (shown before), 5; 1's: 7
 		neighbourMap.put(20L, List.of(3L, 4L, 1L, 5L));
@@ -406,7 +470,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, questionVectors, failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -470,7 +534,7 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, usageLog, properties, json);
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, questionVectors, usageLog, properties, json);
 	}
 
 	private ListedBooks listedBooks() {

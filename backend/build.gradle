@@ -25,6 +25,11 @@ ext {
 	set('jsoupVersion', '1.23.2')
 	// Collection import only (Maven Central latest 2026-09-30, Apache License 2.0)
 	set('sqliteJdbcVersion', '3.53.4.0')
+	// AI search question vectors (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md): the int8 KURE-v1
+	// query model runs in this process (Maven Central 2026-10-25; MIT and Apache License 2.0). Both jars carry their
+	// native libraries for linux-aarch64 (the server) and win-x86_64 (this PC)
+	set('onnxruntimeVersion', '1.31.0')
+	set('djlTokenizersVersion', '0.38.0')
 }
 
 configurations {
@@ -54,6 +59,8 @@ dependencies {
 	implementation 'org.apache.httpcomponents.client5:httpclient5'
 	// implementation: the catalog load writes with the driver's CopyManager (PostgreSQL COPY)
 	implementation 'org.postgresql:postgresql'
+	implementation "com.microsoft.onnxruntime:onnxruntime:${onnxruntimeVersion}"
+	implementation "ai.djl.huggingface:tokenizers:${djlTokenizersVersion}"
 	collectionImport "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
 	testRuntimeOnly "org.xerial:sqlite-jdbc:${sqliteJdbcVersion}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'

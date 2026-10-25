@@ -413,6 +413,17 @@ chaekcheck:
       history-turns: 5
       question-max-length: 200
       card-text-max-chars: 300
+    vector:
+      # question vectors mixed with the keyword candidates (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md:
+      # "아주 맞는 카드" 62% -> 76% at the same 30 candidates). Off by default; on in production when the model folder
+      # is mounted (CHAEKCHECK_AISEARCH_VECTOR_ENABLED, CHAEKCHECK_AISEARCH_MODEL_DIR). Values [안] from the report's H
+      enabled: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:false}
+      model-dir: ${CHAEKCHECK_AISEARCH_MODEL_DIR:}
+      threads: 2
+      keyword-depth: 50
+      vector-depth: 60
+      rrf-k: 60
+      max-wait: 2s
     llm:
       anthropic:
         # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only

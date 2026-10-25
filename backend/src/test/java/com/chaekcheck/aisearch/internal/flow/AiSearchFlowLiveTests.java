@@ -99,7 +99,8 @@ class AiSearchFlowLiveTests {
 				new AnthropicProperties(System.getenv("CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY"), null, null, null, "low"),
 				HttpClient.newHttpClient(), json);
 		RecordingLog log = new RecordingLog();
-		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, new SearchBooks(jdbc), ids -> java.util.Map.of(), ids -> java.util.Map.of(), log,
+		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, new SearchBooks(jdbc), ids -> java.util.Map.of(), ids -> java.util.Map.of(),
+				com.chaekcheck.aisearch.internal.vector.QuestionVectors.OFF, log,
 				properties, json);
 		UsageRequest request = new UsageRequest(Instant.now(), null, "login_off", null, null, true);
 

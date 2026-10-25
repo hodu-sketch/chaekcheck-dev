@@ -71,6 +71,13 @@ services:
       # with the search on gives the fallback answers (books without text).
       CHAEKCHECK_AISEARCH_ENABLED: ${CHAEKCHECK_AISEARCH_ENABLED:-false}
       CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}
+      # AI search question vectors (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md): the int8 KURE-v1 model
+      # and the book vectors from the PC in /srv/chaekcheck/aisearch-model (docs/maintenance/6-aisearch.md 7절), about
+      # 450 MB outside the heap, most of it the model file read by mmap. Off until turned on in prod.env; a missing
+      # folder leaves it off with one warning. DJL puts its tokenizer library under DJL_CACHE_DIR (the user has no home)
+      CHAEKCHECK_AISEARCH_VECTOR_ENABLED: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:-false}
+      CHAEKCHECK_AISEARCH_MODEL_DIR: /models/aisearch
+      DJL_CACHE_DIR: /tmp/djl
       # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
       # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only
       CHAEKCHECK_FORYOU_BUILD_ENABLED: ${CHAEKCHECK_FORYOU_BUILD_ENABLED:-false}
@@ -92,6 +99,8 @@ services:
       CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: webshare
       CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME: ${WEBSHARE_PROXY_USERNAME:-}
       CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD: ${WEBSHARE_PROXY_PASSWORD:-}
+    volumes:
+      - /srv/chaekcheck/aisearch-model:/models/aisearch:ro
     networks:
       default:
         # deploy/nginx/ec2-tunnel.conf sends /api to backend-host:8080

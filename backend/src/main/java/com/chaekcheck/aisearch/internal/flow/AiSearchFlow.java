@@ -8,6 +8,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
@@ -37,6 +41,7 @@ import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
 import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
+import com.chaekcheck.aisearch.internal.vector.QuestionVectors;
 import com.chaekcheck.foryou.BookCovers;
 import com.chaekcheck.foryou.BookNeighbours;
 import com.chaekcheck.picks.ListedBooks;
@@ -77,6 +82,8 @@ public class AiSearchFlow {
 
 	private final BookCovers covers;
 
+	private final QuestionVectors vectors;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -84,8 +91,8 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, UsageLog usageLog,
-			AiSearchProperties properties, JsonMapper json) {
+			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, QuestionVectors vectors,
+			UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
@@ -93,6 +100,7 @@ public class AiSearchFlow {
 		this.searchBooks = searchBooks;
 		this.neighbours = neighbours;
 		this.covers = covers;
+		this.vectors = vectors;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -142,6 +150,12 @@ public class AiSearchFlow {
 	 */
 	static final int MAX_NEIGHBOUR_CANDIDATES = 12;
 
+	/**
+	 * Neighbours of the book a "○○ 같은 책" question names that go first among the candidates, at most (user 2026-10-25,
+	 * docs/reports/ai-search-eval-2026-10-25.md 3-3, [안] 20 as measured).
+	 */
+	static final int MAX_NAMED_NEIGHBOURS = 20;
+
 	/** Thrown into the model client when the client is gone; ends the stream as {@code CANCELLED}. */
 	private static final class ClientGone extends RuntimeException {
 
@@ -169,6 +183,12 @@ public class AiSearchFlow {
 		PickResult pickResult = PickResult.SKIPPED;
 
 		int candidateCount;
+
+		/** Vector candidates mixed in (0: none, off or late). */
+		int vectorCount;
+
+		/** Whether the question named a book whose neighbours went first. */
+		boolean named;
 
 		final List<Long> shown = new ArrayList<>();
 
@@ -206,9 +226,10 @@ public class AiSearchFlow {
 						new AiSearchRecord(elapsedMs, input.turnNo(), run.keywordResult, run.titleLike, run.pickResult,
 								run.candidateCount, run.shown, (int) Math.min(Integer.MAX_VALUE, run.inputTokens),
 								(int) Math.min(Integer.MAX_VALUE, run.outputTokens)));
-				log.info("ai search: keyword {}, pick {}, candidates {}, cards {}, {} ms, tokens {}/{}{}",
-						run.keywordResult, run.pickResult, run.candidateCount, run.shown.size(), elapsedMs,
-						run.inputTokens, run.outputTokens, run.gone ? ", client gone" : "");
+				log.info("ai search: keyword {}, pick {}, candidates {} (vector {}{}), cards {}, {} ms, tokens {}/{}{}",
+						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
+						run.named ? ", named book" : "", run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
+						run.gone ? ", client gone" : "");
 			}
 			catch (RuntimeException e) {
 				log.warn("ai search: the usage row was not kept: {}", e.getClass().getName());
@@ -220,6 +241,10 @@ public class AiSearchFlow {
 	}
 
 	private void answer(Input input, Run run) {
+		AiSearchProperties.Vector vectorSettings = properties.vector();
+		// the question vector is made while the first call runs; only the question goes in, never the history
+		CompletableFuture<List<Long>> nearest = vectors.on()
+				? vectors.nearest(input.question(), vectorSettings.vectorDepth() * 2) : null;
 		Map<Long, SearchBook> known = searchBooks.byId();
 		Map<Long, ListedBook> listed = new HashMap<>();
 		for (ListedBook book : listedBooks.current().books()) {
@@ -279,13 +304,54 @@ public class AiSearchFlow {
 				planCount.put(bookId, counts.get(bookId));
 			}
 		}
-		Set<Long> excluded = refers ? Set.copyOf(chosen) : shownBefore;
-		for (Candidate candidate : candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
-				max - chosen.size())) {
-			// a book the import put in after this request's snapshot is left out
-			if (known.containsKey(candidate.bookId())) {
-				chosen.add(candidate.bookId());
-				planCount.put(candidate.bookId(), candidate.planCount());
+		Set<String> titles = new HashSet<>();
+		if (!refers) {
+			NamedBook named = NamedBook.find(input.question(), searchBooks.books());
+			if (named != null) {
+				run.named = true;
+				List<Long> near = namedNeighbours(named, known, shownBefore);
+				Map<Long, Integer> counts = candidates.planCounts(near, input.planLibraryIds());
+				for (long bookId : near) {
+					if (chosen.size() < max && counts.containsKey(bookId) && titles.add(known.get(bookId).titleKey())) {
+						chosen.add(bookId);
+						planCount.put(bookId, counts.get(bookId));
+					}
+				}
+			}
+		}
+		Set<Long> excluded = new HashSet<>(refers ? Set.of() : shownBefore);
+		excluded.addAll(chosen);
+		boolean mix = nearest != null && !refers;
+		List<Candidate> found = candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
+				mix ? Math.max(vectorSettings.keywordDepth(), max) : max - chosen.size());
+		if (!mix) {
+			for (Candidate candidate : found) {
+				// a book the import put in after this request's snapshot is left out
+				if (known.containsKey(candidate.bookId())) {
+					chosen.add(candidate.bookId());
+					planCount.put(candidate.bookId(), candidate.planCount());
+				}
+			}
+		}
+		else {
+			List<Long> keywordIds = new ArrayList<>();
+			for (Candidate candidate : found) {
+				if (known.containsKey(candidate.bookId())) {
+					keywordIds.add(candidate.bookId());
+					planCount.put(candidate.bookId(), candidate.planCount());
+				}
+			}
+			List<Long> vectorIds = vectorCandidates(nearest, known, excluded, input.planLibraryIds(), planCount,
+					vectorSettings);
+			run.vectorCount = vectorIds.size();
+			// one edition of a title: the mix brings the same book from both lists under different ids
+			for (long bookId : Fusion.rrf(keywordIds, vectorIds, vectorSettings.rrfK())) {
+				if (chosen.size() >= max) {
+					break;
+				}
+				if (titles.add(known.get(bookId).titleKey())) {
+					chosen.add(bookId);
+				}
 			}
 		}
 		if (chosen.isEmpty()) {
@@ -331,6 +397,57 @@ public class AiSearchFlow {
 			}
 		}
 		return nearby;
+	}
+
+	/**
+	 * The neighbours of the named book's editions, the first edition's nearest first; not an edition, not a book whose
+	 * title holds the named title (its other volumes come from the keywords), not shown before; at most
+	 * {@value #MAX_NAMED_NEIGHBOURS}.
+	 */
+	private List<Long> namedNeighbours(NamedBook named, Map<Long, SearchBook> known, Set<Long> shownBefore) {
+		Map<Long, List<Long>> found = neighbours.of(named.editions());
+		LinkedHashSet<Long> near = new LinkedHashSet<>();
+		for (long edition : named.editions()) {
+			for (long bookId : found.getOrDefault(edition, List.of())) {
+				SearchBook book = known.get(bookId);
+				if (near.size() < MAX_NAMED_NEIGHBOURS && book != null && !named.editions().contains(bookId)
+						&& !shownBefore.contains(bookId) && !NamedBook.key(book.title()).contains(named.key())) {
+					near.add(bookId);
+				}
+			}
+		}
+		return List.copyOf(near);
+	}
+
+	/**
+	 * The question vector's nearest books the plan libraries hold, not excluded, at most {@code vectorDepth}, their
+	 * plan library counts put in {@code planCount}. Empty when the vector is late (over {@code maxWait}) or failed: the
+	 * search goes on with keywords.
+	 */
+	private List<Long> vectorCandidates(CompletableFuture<List<Long>> nearest, Map<Long, SearchBook> known,
+			Set<Long> excluded, Set<Long> planLibraryIds, Map<Long, Integer> planCount,
+			AiSearchProperties.Vector settings) {
+		List<Long> near;
+		try {
+			near = nearest.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
+		}
+		catch (TimeoutException e) {
+			log.info("ai search: the question vector was late");
+			return List.of();
+		}
+		catch (ExecutionException e) {
+			log.warn("ai search: the question vector failed: {}", e.getCause().getClass().getName());
+			return List.of();
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return List.of();
+		}
+		List<Long> keep = near.stream().filter(known::containsKey).filter(id -> !excluded.contains(id)).toList();
+		Map<Long, Integer> counts = candidates.planCounts(keep, planLibraryIds);
+		List<Long> held = keep.stream().filter(counts::containsKey).limit(settings.vectorDepth()).toList();
+		held.forEach(id -> planCount.put(id, counts.get(id)));
+		return held;
 	}
 
 	private KeywordPlan keywords(String question, List<ShownTurn> history, Run run) {

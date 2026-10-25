@@ -70,6 +70,10 @@
 | 가격 | 입력 0.10 / 출력 0.50 (100만 토큰당 US$) | `…price.input-per-mtok` / `…output-per-mtok` | `…_PRICE_INPUTPERMTOK` / `…_OUTPUTPERMTOK` | 모델 | [확정] 10만 토큰 이하 요청 | design-delta | 서비스 |
 | 크기 | 30권 / 8권 / 앞 대화 5 / 질문 200자 / 카드 글 300자 | `…limits.candidates` / `picks` / `history-turns` / `question-max-length` / `card-text-max-chars` | `…_LIMITS_CANDIDATES` 등 | 웹 20번 상한·200자 `maxLength`(9·10단계), 찾기용 한 줄 300자는 DB CHECK·`AiSearchBookTexts.LINE_MAX_CHARS` | [확정] | 설계 결정 #8, spec | 서비스 |
 | 연결 시간 | 3초 | 코드 상수 (`LlmConfiguration`) | — | 1차 5초 | 3초 안에 연결이 안 되면 5초 안의 1차도 끝나지 않음 [안] | — | 서비스 |
+| 질문 벡터 켜기 | `false` | `chaekcheck.aisearch.vector.enabled` | **`CHAEKCHECK_AISEARCH_VECTOR_ENABLED`** | 운영 compose → `prod.env` | 켜면 1차와 동시에 질문 벡터(int8 KURE-v1)를 만들어 낱말 후보와 섞음. 모델 폴더가 없거나 읽기에 실패하면 경고 한 줄 뒤 꺼진 채로 감 | 사용자 2026-10-25, `docs/reports/ai-search-eval-2026-10-25.md` | 서비스 |
+| 모델 폴더 | 빈 값 | `…vector.model-dir` | **`CHAEKCHECK_AISEARCH_MODEL_DIR`** | 운영 `/models/aisearch`(= 서버 `/srv/chaekcheck/aisearch-model`, 읽기만) | `kure-query-int8-ext.onnx`·`.data`, `tokenizer-cut.json`, `book-vectors.bin`. 만드는 법 `6-aisearch.md` 7절 | 같음 | 서비스 |
+| 벡터 섞기 | 2스레드 / 낱말 50 / 벡터 60 / RRF k 60 / 기다림 2초 | `…vector.threads` / `keyword-depth` / `vector-depth` / `rrf-k` / `max-wait` | `…_VECTOR_THREADS` 등 | `AiSearchFlow`, `Fusion` | [안] 보고서 H와 같은 값. 1차가 끝난 뒤 2초 안에 벡터가 없으면 낱말만 | 같음 | 서비스 |
+| 기준 책 이웃 | 20권 | 코드 상수 (`AiSearchFlow.MAX_NAMED_NEIGHBOURS`) | — | `NamedBook`, `foryou.book_neighbour` | 「○○ 같은/비슷/처럼/류의/풍의」 바로 앞의 책 제목을 찾으면 그 책의 이웃을 먼저(벡터를 꺼도 돎) [안] 보고서 S | 같음 | 서비스 |
 
 ## 2. 조회 서버 (`fetch-service/src/main/resources/application.yml`)
 
