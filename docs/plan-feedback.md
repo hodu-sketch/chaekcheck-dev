@@ -6350,7 +6350,13 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 
 - 운영 반영: 배포 + `aisearch-003` 적용 직후 위 파일로 `book-texts`(서버 명령은 6-aisearch.md 3절, `-e CHAEKCHECK_AUTH_ENABLED=false` 등 그대로). **배포는 사용자 결정 전 하지 않음**
 - 3만 권 표지(위 결정 필요), 수집 반영 뒤 번호가 바뀌면 한 줄 다시 만들기, 목록 책 한 줄도 소개 원문으로 바꿀지(지금은 AI 요약 임시)
-- 사이클 23과 합칠 때: `BookTextsImport`·`BookTextsFile`(23이 kind 추가), `CatalogImportRunner`, `CatalogImportSettingsTests` 겹침. 23 세션에 알림(이 세션 메시지)
+- ~~사이클 23과 합칠 때 겹침~~ → main v1.11.1(사이클 23 합침, 6444047)을 이 브랜치에 합쳐 맞춤(아래)
+
+## main v1.11.1 합침 (2026-10-25)
+
+- 사이클 23(foryou, picks 006, usagelog 009)과 AI 검색 이웃 후보(`BookNeighbours`, `MAX_NEIGHBOUR_CANDIDATES` 12)가 main에 들어와 이 브랜치에 합침(커밋 fce0ac1). changelog는 main 차례 뒤에 `aisearch-003`
+- `BookTextsImport`: 23의 kind(for_you_blurb·tags·cover_file, 한 트랜잭션, search_line 없는 파일은 search_book을 안 건드림)와 3만 권 더하기를 함께. `CatalogImportRunner.Settings` 맨 끝에 `bookTextsTopBooks`
+- 이어 묻기의 이웃 후보: main은 이웃이 계획 도서관에 있는지를 목록 책 캐시로 봤으나, 이 브랜치는 **앞 책과 그 이웃의 계획 도서관 수를 SQL 한 번에 세고**(`CandidateQuery.planCounts`), `search_book`에 있는 책만 남김. 운영 `foryou.book_neighbour` 30,937권이 3만 권 범위와 같은 집합이라 **목록 밖 책의 이웃도 카드로 나옴**
 # 사이클 23
 
 「나에게 맞는 책」(추천도서 탭 맨 앞, `/picks/for-you`). 인계서 plan `docs/cycles/23-for-you-picks/handoff.md`(plan main `18133c3`), 기준 설계 같은 폴더 `design-delta.md`(ADR-0147·0148·0149). dev 클라우드 세션 `사이클 23 「나에게 맞는 책」 개발`.
@@ -6568,3 +6574,4 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 고침 (사용자 "같은 책 다른 판·권이 이웃에 남는 것 지금 고쳐줘", 2026-10-25): 이웃을 고를 때 **같은 작품**(`work_key` 같음 = 괄호·부제·끝 권 번호를 뗀 제목 + 첫 저자가 겹침, 저자 괄호 이름도 뗌)을 기준 책에서 빼고, 이웃 안에서도 작품마다 한 판만 남김(`scripts/crawl/foryou_neighbours.py` `same_work`, 시험 `test_foryou_neighbours.py`). 다시 고르고 로컬 `db`에 `neighbours full` 30,937줄
   - 뒤: 「마션」 → 아르테미스·프로젝트 헤일메리·영화 마션의 과학적 진실 / 「토지. 1」 → 다른 박경리 책·한국 소설 / 「달러구트 꿈 백화점」 → 비가 오면 열리는 상점·꿈을 굽는 빵집 / 「아주 희미한 빛으로도」 → 「밝은 밤」 한 번만 / 「햄릿(Hamlet)」 → 셰익스피어 4대 비극·리어 왕·오셀로
   - 못 잡는 것: 제목이 다른 말로 된 같은 작품(「〈셰익스피어 걸작선〉 Hamlet」, 「Emile」)과 저자 표기가 아주 다른 판
+- 합친 뒤 시험: 백엔드 전체 통과(실패 0), 로컬 확인: 「반전이 있는 추리 소설」 ok 8장(앞의 `partial`은 다시 나지 않음) → 「이것들이랑 비슷한 책 더」 ok 8장, 앞 답과 겹치지 않는 3만 권 추리 소설(「11문자 살인사건」, 「백광」 등)
