@@ -6669,3 +6669,10 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 배포 폴더 `chaekcheck-dev-rel`의 main(24 세션의 안 올린 커밋 5e15198 "첫 화면 짧은 예시" 포함, 그 세션 동의)에 이 브랜치를 합치고 `release.sh 1.13.0 backend web`(SSH 키는 `CHAEKCHECK_SSH_KEY`로 dev `.secrets`를 가리킴) → **v1.13.0**(a191649), GitHub 릴리스. 서버 이미지 1.13.0·1.12.2만 남음, 디스크 여유 11G
 - 확인: `/api/v1/version` 1.13.0, 탭 「책첵 추천」, 카드 꼬리말·이동진 글자 없음, 표지 1,336장 보임, `/picks/leedongjin` → `/picks/for-you`, `similar-books` 기준 책 6권 200, 카드 `fieldGroup`(literature 682·humanities 479·society 353·science 241 …)
 - 운영에 아직 없는 것: 탭 추천 글(Haiku 배치, API 키 대기), 꼬리표(사전 없음), 새벽 인기순 받기(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`)
+
+### 3만 권 카드 요약 (2026-10-25, 사용자 "Ai 요약 추가되는 3만권은 하라고했더니 왜 없어", "니 세션에서 하라고 이야기했자나")
+
+- 원인: 이 세션은 3만 권을 이웃(임베딩)에만 넣었고, 탭 추천 글은 추천목록 책만 준비한 채 API 키를 기다림 → 3만 권 카드는 글 없이 나옴
+- 한 일(키 없이): AI 검색 3만 권 세션이 Haiku로 만든 한 줄(`aisearch.search_book.line`, `line_source = 'intro'` 25,187권, 평균 103자, 추천목록 책 0권)을 `book-texts` kind `for_you_blurb`(source `aisearch-line`)로 **로컬** `foryou.book_blurb`에 넣음 → 개인 추천 카드 59/59에 요약이 보임. 추천목록 책은 그대로 자기 AI 요약
+- 말투: 이 한 줄은 해라체("…경영서다")라 추천목록 책 AI 요약(해요체)과 섞임. 명세 R8-4(해요체 80~150자)와 다름
+- 운영: 같은 25,187줄이 운영 DB에도 있음(`foryou.book_blurb` 0). 운영에 넣는 것은 사용자 승인 대기
