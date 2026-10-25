@@ -106,6 +106,7 @@ FROM aisearch.search_book;
 | 주소 | 사설 `172.31.45.141`(백엔드가 쓰는 주소, 멈췄다 켜도 그대로), 공인 `13.211.237.221`(SSH용, 멈췄다 켜면 바뀜) |
 | 보안 그룹 | `chaekcheck-embed` `sg-01e9e764c2cf06b25`: 8090은 운영 서버 보안 그룹 `sg-0f424434c56c5d021`에서만, 22는 관리 PC IP에서만(IP가 바뀌면 이 규칙을 고침) |
 | SSH | 운영과 같은 키: `ssh -i .secrets/chaekcheck-key.pem ubuntu@13.211.237.221` |
+| 복구 | 하드웨어 문제는 AWS 자동 복구(`MaintenanceOptions.AutoRecovery = default`, 켜짐). 서버 안이 멈춰 상태 검사(`StatusCheckFailed_Instance`)가 3분 연속 실패하면 CloudWatch 알람 `chaekcheck-embed-reboot-on-instance-check`가 재부팅(2026-10-25). 컨테이너는 `--restart unless-stopped`라 재부팅 뒤 저절로 뜸. 알림 메일은 아직 없음 |
 | 비용 | 무료 플랜 크레딧에서 나감(계정은 무료 플랜, 2026-10-25 남은 크레딧 $197.96) |
 | 파일 | `/srv/embed/model/`(모델 폴더, `parity.json` 포함), `/srv/embed/embed.env`(chmod 600, `EMBED_TOKEN=`) |
 | 컨테이너 | `docker run -d --name embed --restart unless-stopped -p 8090:8090 --env-file /srv/embed/embed.env -e EMBED_MODEL_DIR=/model -e JAVA_TOOL_OPTIONS="-Xmx128m -XX:+ExitOnOutOfMemoryError" -e TZ=Asia/Seoul -v /srv/embed/model:/model:ro --memory=750m chaekcheck/embed:0.1.0` |

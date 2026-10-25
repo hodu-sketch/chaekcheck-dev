@@ -6410,6 +6410,8 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 
 - v1.15.2(c0b35c2, 2026-10-25, 사용자 "추천도서에는 다 ai요약이 있는데 여기에서도"): AI 검색 카드의 요약을 추천목록 AI 요약 → 없으면 「책첵 추천」 탭 요약(`foryou.BookBlurbs`, `foryou.book_blurb`)으로. 운영 확인: 「소프트웨어 아키텍트가 되고 싶은 개발자를 위한 책」 카드 6장 모두 요약 있음(「개발자에서 아키텍트로」 89675 포함)
 
+- v1.15.3(aba4f19, 2026-10-25, 사용자 "임베딩 서버 장애 차단부터 넣어줘"): `CircuitBreaker` — 질문 벡터가 3번 연달아 실패하면 30초 동안 임베딩 서버를 묻지 않고 그 검색은 바로 낱말만, 30초 뒤 한 번 시험. 운영 시험: 임베딩 컨테이너를 멈추고 질문 5개 → 모두 카드 나옴, 3번째 실패 뒤 `not asked for 30 s`, 4·5번째는 묻지 않음. 다시 켜고 35초 뒤 `the encoder answers again; 2 search(es) went without vectors`, `vector 60`. micro 서버에 재부팅 알람(`chaekcheck-embed-reboot-on-instance-check`)을 더함(자동 복구는 기본으로 켜짐)
+
 # 사이클 23
 
 「나에게 맞는 책」(추천도서 탭 맨 앞, `/picks/for-you`). 인계서 plan `docs/cycles/23-for-you-picks/handoff.md`(plan main `18133c3`), 기준 설계 같은 폴더 `design-delta.md`(ADR-0147·0148·0149). dev 클라우드 세션 `사이클 23 「나에게 맞는 책」 개발`.
