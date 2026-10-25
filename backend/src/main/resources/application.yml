@@ -432,6 +432,10 @@ chaekcheck:
         # secret (Parameter Store /chaekcheck/prod/CHAEKCHECK_AISEARCH_EMBED_TOKEN), sent as X-Embed-Token
         token: ${CHAEKCHECK_AISEARCH_EMBED_TOKEN:}
         timeout: 1500ms
+      # after 3 failed lookups in a row (timeout, error, 401) the encoder is not asked for 30 s; the searches use
+      # keywords alone at once, then one lookup tries again (user 2026-10-25 "임베딩 서버 장애 차단") [안]
+      failures-to-open: 3
+      open-for: 30s
     llm:
       anthropic:
         # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only

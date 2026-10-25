@@ -92,6 +92,7 @@ FROM aisearch.search_book;
 | 모델 폴더(운영) | 모델·토크나이저·책 벡터 | `book-vectors.bin`만 있어도 됨 |
 | 더 필요한 것 | — | `CHAEKCHECK_AISEARCH_EMBED_URL`(임베딩 서버 사설 주소), `CHAEKCHECK_AISEARCH_EMBED_TOKEN`(Parameter Store) |
 | 실패하면 | 그 검색은 낱말만 | 시간 넘김(1.5초)·오류·401이면 그 검색은 낱말만 |
+| 계속 실패하면 | (같음) | 3번 연달아 실패하면 30초 동안 묻지 않음(서킷 브레이커, v1.15.3): 그동안 검색은 기다림 없이 낱말만. 로그 `ai search vectors: the encoder failed (…), not asked for 30 s` → 되살아나면 `the encoder answers again; N search(es) went without vectors` |
 
 - 임베딩 서버: `embed-service/`(Spring Boot, DB 없음, 포트 8090). 모델 폴더는 운영과 같은 파일(`kure-query-int8-ext.onnx`·`.data`, `tokenizer-cut.json`)을 `EMBED_MODEL_DIR`로. 토큰 `EMBED_TOKEN`이 비면 모든 요청을 401로 거절. 글은 로그에 남기지 않음. `GET /api/v1/health` → `{"ready":true}`
 - 두 쪽의 모델 코드는 같습니다(백엔드 `OnnxQuestionEncoder` = `embed-service`의 `QueryEncoder`). 고칠 때 함께 고치고, 두 쪽 모델 시험(`KureQuestionVectorsModelTests`, `QueryEncoderModelTests`, `AISEARCH_MODEL_DIR`)이 `parity.json`과 맞는지 봅니다

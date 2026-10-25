@@ -21,7 +21,8 @@ import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
  * ({@link OnnxQuestionEncoder}) or on the embedding server ({@link RemoteQuestionEncoder}). The work runs off the
  * searches' own threads: a small pool for the model (a run holds its thread in native code), virtual threads for the
  * remote requests. Any file missing or failing to load leaves the vectors off with one warning; the search goes on
- * with keywords.
+ * with keywords. A {@link CircuitBreaker} stops asking a failing encoder for a while (one log line when it opens and
+ * when it closes, with the searches that went without vectors meanwhile).
  */
 @Component
 class KureQuestionVectors implements QuestionVectors, AutoCloseable {
@@ -33,6 +34,10 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 	private final BookVectorFile books;
 
 	private final ExecutorService pool;
+
+	private final CircuitBreaker breaker;
+
+	private final long openForSeconds;
 
 	KureQuestionVectors(AiSearchProperties properties, JsonMapper json) {
 		AiSearchProperties.Vector settings = properties.vector();
@@ -75,6 +80,8 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 		this.encoder = encoder;
 		this.books = books;
 		this.pool = pool;
+		this.breaker = new CircuitBreaker(Math.max(1, settings.failuresToOpen()), settings.openFor(), System::nanoTime);
+		this.openForSeconds = settings.openFor().toSeconds();
 	}
 
 	@Override
@@ -84,10 +91,28 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 
 	@Override
 	public CompletableFuture<List<Long>> nearest(String question, int limit) {
-		if (!on()) {
+		if (!on() || !breaker.allow()) {
 			return CompletableFuture.completedFuture(List.of());
 		}
-		return CompletableFuture.supplyAsync(() -> books.nearest(encoder.encode(question), limit), pool);
+		return CompletableFuture.supplyAsync(() -> books.nearest(encoder.encode(question), limit), pool)
+			.whenComplete((found, error) -> {
+				if (error == null) {
+					if (breaker.success() == CircuitBreaker.Change.CLOSED) {
+						log.info("ai search vectors: the encoder answers again; {} search(es) went without vectors",
+								breaker.takeSkipped());
+					}
+				}
+				else if (breaker.failure() == CircuitBreaker.Change.OPENED) {
+					Throwable cause = error.getCause() == null ? error : error.getCause();
+					log.warn("ai search vectors: the encoder failed ({}), not asked for {} s", cause.getMessage(),
+							openForSeconds);
+				}
+			});
+	}
+
+	/** The breaker's state (tests). */
+	CircuitBreaker.State circuit() {
+		return breaker.state();
 	}
 
 	/** The question's normalised vector (tests). */

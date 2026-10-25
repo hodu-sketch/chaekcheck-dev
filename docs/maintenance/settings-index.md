@@ -75,6 +75,7 @@
 | 벡터 섞기 | 2스레드 / 낱말 50 / 벡터 60 / RRF k 60 / 기다림 2초 | `…vector.threads` / `keyword-depth` / `vector-depth` / `rrf-k` / `max-wait` | `…_VECTOR_THREADS` 등 | `AiSearchFlow`, `Fusion` | [안] 보고서 H와 같은 값. 1차가 끝난 뒤 2초 안에 벡터가 없으면 낱말만 | 같음 | 서비스 |
 | 질문 벡터 만드는 곳 | `local` | `…vector.encoder` | **`CHAEKCHECK_AISEARCH_VECTOR_ENCODER`** | 운영 compose → `prod.env` | `local` = 백엔드 안 모델(약 +450MB), `remote` = 임베딩 서버(`embed-service/`, micro EC2). 책 벡터는 어느 쪽이든 백엔드에 | 사용자 2026-10-25 "선택으로서 가능하게", `6-aisearch.md` 7-1 | 서비스 |
 | 임베딩 서버 주소·토큰·시간 | 빈 값 / 빈 값 / 1.5초 | `…vector.remote.url` / `token` / `timeout` | **`CHAEKCHECK_AISEARCH_EMBED_URL`** / **`CHAEKCHECK_AISEARCH_EMBED_TOKEN`**(비밀, Parameter Store) / — | `embed-service`의 `EMBED_TOKEN`(같은 값) | `remote`일 때만. 1.5초 안에 답이 없거나 오류면 그 검색은 낱말만 [안] | 같음 | 서비스 |
+| 임베딩 장애 차단 | 연속 실패 3번 / 30초 | `…vector.failures-to-open` / `open-for` | — | `CircuitBreaker`, `KureQuestionVectors` | 질문 벡터가 3번 연달아 실패(시간 넘김·오류·401)하면 30초 동안 묻지 않고 그 검색들은 바로 낱말만으로. 30초 뒤 한 번 시험해 되면 다시 씀. 열릴 때·닫힐 때 로그 한 줄 [안] | 사용자 2026-10-25 "임베딩 서버 장애 차단" | 서비스 |
 | 기준 책 이웃 | 20권 | 코드 상수 (`AiSearchFlow.MAX_NAMED_NEIGHBOURS`) | — | `NamedBook`, `foryou.book_neighbour` | 「○○ 같은/비슷/처럼/류의/풍의」 바로 앞의 책 제목을 찾으면 그 책의 이웃을 먼저(벡터를 꺼도 돎) [안] 보고서 S | 같음 | 서비스 |
 
 ## 1-2. 임베딩 서버 (`embed-service/src/main/resources/application.yml`)

@@ -56,7 +56,8 @@ class KureQuestionVectorsModelTests {
 				new AiSearchProperties.Price(java.math.BigDecimal.ONE, java.math.BigDecimal.ONE),
 				new AiSearchProperties.Limits(30, 8, 5, 200, 300),
 				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
-						AiSearchProperties.Encoder.LOCAL, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2))));
+						AiSearchProperties.Encoder.LOCAL, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2)), 3,
+						Duration.ofSeconds(30)));
 	}
 
 }

@@ -72,12 +72,16 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * 임베딩하나 이걸 선택으로서 가능하게"): {@link Encoder#LOCAL} in this process, {@link Encoder#REMOTE} on the
 	 * embedding server ({@code embed-service/}); the book vectors stay in this process either way
 	 * @param remote the embedding server, for {@link Encoder#REMOTE}
+	 * @param failuresToOpen failed lookups in a row after which the encoder is not asked for {@code openFor} (user
+	 * 2026-10-25 "임베딩 서버 장애 차단"); the searches meanwhile use keywords alone at once
+	 * @param openFor how long the encoder is not asked; then one lookup tries it again
 	 */
 	public record Vector(boolean enabled, String modelDir, int threads, int keywordDepth, int vectorDepth, int rrfK,
-			Duration maxWait, Encoder encoder, Remote remote) {
+			Duration maxWait, Encoder encoder, Remote remote, int failuresToOpen, Duration openFor) {
 
 		public Vector {
 			Objects.requireNonNull(maxWait, "chaekcheck.aisearch.vector.max-wait");
+			Objects.requireNonNull(openFor, "chaekcheck.aisearch.vector.open-for");
 			Objects.requireNonNull(encoder, "chaekcheck.aisearch.vector.encoder");
 			Objects.requireNonNull(remote, "chaekcheck.aisearch.vector.remote");
 			modelDir = modelDir == null ? "" : modelDir;

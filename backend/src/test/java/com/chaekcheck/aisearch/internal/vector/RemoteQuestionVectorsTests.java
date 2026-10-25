@@ -104,6 +104,26 @@ class RemoteQuestionVectorsTests {
 	}
 
 	@Test
+	void aFailingServerIsNotAskedForAWhileThenTriedAgain() throws Exception { // user 2026-10-25
+		status = 500;
+		try (KureQuestionVectors vectors = vectors(TOKEN, Duration.ofSeconds(2))) {
+			for (int i = 0; i < 2; i++) {
+				assertThatThrownBy(() -> vectors.nearest("질문", 2).get(5, TimeUnit.SECONDS));
+			}
+			assertThat(vectors.circuit()).isEqualTo(CircuitBreaker.State.OPEN);
+			int asked = bodies.size();
+			// open: answered at once with no vector, the server not asked
+			assertThat(vectors.nearest("질문", 2).get(1, TimeUnit.SECONDS)).isEmpty();
+			assertThat(bodies).hasSize(asked);
+			// after the open time one lookup tries again; the server is back, so it closes
+			status = 200;
+			Thread.sleep(400);
+			assertThat(vectors.nearest("질문", 2).get(5, TimeUnit.SECONDS)).containsExactly(20L, 30L);
+			assertThat(vectors.circuit()).isEqualTo(CircuitBreaker.State.CLOSED);
+		}
+	}
+
+	@Test
 	void noAddressLeavesTheVectorsOff() {
 		AiSearchProperties.Remote none = new AiSearchProperties.Remote("", TOKEN, Duration.ofSeconds(1));
 		try (KureQuestionVectors vectors = new KureQuestionVectors(properties(none), JsonMapper.builder().build())) {
@@ -124,7 +144,7 @@ class RemoteQuestionVectorsTests {
 				new AiSearchProperties.Price(java.math.BigDecimal.ONE, java.math.BigDecimal.ONE),
 				new AiSearchProperties.Limits(30, 8, 5, 200, 300),
 				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
-						AiSearchProperties.Encoder.REMOTE, remote));
+						AiSearchProperties.Encoder.REMOTE, remote, 2, Duration.ofMillis(300)));
 	}
 
 	/** Three books in 2 dimensions: 10 along x, 20 along y, 30 between them (the model files are not needed). */
