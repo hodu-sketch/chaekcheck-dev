@@ -1,0 +1,13 @@
+{
+ "notBook": 1.0,
+ "titleLike": 1.0,
+ "refersToShown": 1.0,
+ "wants_exclusion": 0.9824561403508771,
+ "fiction": 1.0,
+ "audience": 0.8947368421052632,
+ "level": 0.9473684210526315,
+ "field": 0.9322033898305084,
+ "subfield": 0.8333333333333334,
+ "genre": 0.9,
+ "mood": 0.8
+}

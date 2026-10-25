@@ -1,0 +1,80 @@
+{
+ "TF-IDF|test": {
+  "notBook": 0.9866666666666667,
+  "titleLike": 0.9733333333333334,
+  "refersToShown": 0.9966666666666667,
+  "wants_exclusion": 0.9366666666666666,
+  "fiction": 0.8633333333333333,
+  "audience": 0.8466666666666667,
+  "level": 0.8566666666666667,
+  "field": 0.7369542066027689,
+  "subfield": 0.3817292006525285,
+  "genre": 0.2857142857142857,
+  "mood": 0.7265625
+ },
+ "TF-IDF|ev": {
+  "notBook": 1.0,
+  "titleLike": 0.9824561403508771,
+  "refersToShown": 1.0,
+  "wants_exclusion": 0.9824561403508771,
+  "fiction": 0.7017543859649122,
+  "audience": 0.8947368421052632,
+  "level": 0.9298245614035088,
+  "field": 0.7096774193548387,
+  "subfield": 0.37735849056603776,
+  "genre": 0.42857142857142855,
+  "mood": 0.42105263157894735
+ },
+ "KURE|test": {
+  "notBook": 0.9916666666666667,
+  "titleLike": 0.9833333333333333,
+  "refersToShown": 0.9983333333333333,
+  "wants_exclusion": 0.9316666666666666,
+  "fiction": 0.89,
+  "audience": 0.865,
+  "level": 0.87,
+  "field": 0.8487712665406427,
+  "subfield": 0.48615384615384616,
+  "genre": 0.2545454545454545,
+  "mood": 0.6748971193415638
+ },
+ "KURE|ev": {
+  "notBook": 1.0,
+  "titleLike": 1.0,
+  "refersToShown": 1.0,
+  "wants_exclusion": 1.0,
+  "fiction": 0.8596491228070176,
+  "audience": 0.8947368421052632,
+  "level": 0.9298245614035088,
+  "field": 0.7692307692307693,
+  "subfield": 0.49122807017543857,
+  "genre": 0.3076923076923077,
+  "mood": 0.5714285714285714
+ },
+ "always most common|test": {
+  "notBook": 0.9733333333333334,
+  "titleLike": 0.97,
+  "refersToShown": 0.985,
+  "wants_exclusion": 0.825,
+  "fiction": 0.7633333333333333,
+  "audience": 0.7066666666666667,
+  "level": 0.7583333333333333,
+  "field": 0.0,
+  "subfield": 0.0,
+  "genre": 0.0,
+  "mood": 0.0
+ },
+ "always most common|ev": {
+  "notBook": 1.0,
+  "titleLike": 1.0,
+  "refersToShown": 1.0,
+  "wants_exclusion": 0.9473684210526315,
+  "fiction": 0.6666666666666666,
+  "audience": 0.8947368421052632,
+  "level": 0.8421052631578947,
+  "field": 0.0,
+  "subfield": 0.0,
+  "genre": 0.0,
+  "mood": 0.0
+ }
+}
