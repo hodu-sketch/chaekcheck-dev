@@ -1,0 +1,12 @@
+profiles: current 1597 detailed 1597
+1. KDC agreement
+   big shelf  current : 80% (1019/1269)
+   big shelf  detailed: 80% (1002/1258)
+   small shelf detailed: 83% (258/312)
+   country    detailed: 97% (353/363)
+   country given when KDC says literature of a known country: 95% (363/383)
+
+2. shelf matching inside P's 30 candidates, first 8 (exact per question / wrong per question)
+   all 57 (57 questions): no shelves 3.77 / 1.98, current 3.79 / 1.72, detailed 4.02 / 1.67
+   with a facet (current) (53 questions): no shelves 3.83 / 2.02, current 3.85 / 1.74, detailed 4.09 / 1.68
+   with a narrow facet (detailed: subfield/genre/country/audience/level/form) (37 questions): no shelves 4.11 / 1.76, current 4.14 / 1.41, detailed 4.35 / 1.38
