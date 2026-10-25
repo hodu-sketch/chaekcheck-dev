@@ -1,5 +1,3 @@
-import type { PicksListKey } from '../../api/types'
-import { HIDDEN_LISTS, PICKS_LISTS } from './picksLists'
 
 /** The words of 「책첵 추천」 (first 「나에게 맞는 책」), all [확정] (cycle 23 handoff 문구표). */
 export const FOR_YOU_TEXT = {
@@ -33,16 +31,4 @@ export const FOR_YOU_TEXT = {
 /** 「내 도서관 N곳」 (R4-1). */
 export function myLibrariesText(count: number): string {
   return `내 도서관 ${count}곳`
-}
-
-/** "○○ 추천목록에 있어요" with the tab names; past two, the first two and "외 N" (R3-2, AC-3). */
-export function listsFooter(lists: readonly PicksListKey[]): string | null {
-  const names = lists
-    // hidden lists are never named (user 2026-10-25: "이동진 추천도서 목록에 있어요 이거 문구는 빼줘")
-    .filter((key) => Object.hasOwn(PICKS_LISTS, key) && !HIDDEN_LISTS.includes(key))
-    .map((key) => PICKS_LISTS[key].tabLabel)
-  if (names.length === 0) return null
-  const shown = names.slice(0, 2).join('·')
-  const rest = names.length - 2
-  return `${shown}${rest > 0 ? ` 외 ${rest}` : ''} 추천목록에 있어요`
 }

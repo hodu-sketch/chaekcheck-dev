@@ -194,14 +194,6 @@
   font-weight: 800;
 }
 
-.footer {
-  padding-top: 0.45rem;
-  border-top: 1px dashed var(--card-border);
-  color: var(--ink-faint);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
 .topSkeleton {
   height: 17rem;
 }

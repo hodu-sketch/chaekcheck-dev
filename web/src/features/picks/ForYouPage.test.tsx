@@ -154,7 +154,8 @@ describe('S18 for-you (cycle 23)', () => {
     const user = renderAt()
     await screen.findByRole('region', { name: '책첵 추천 목록' })
     const [first, second] = cardButtons()
-    expect(first.textContent).toContain('KAIST·서울대 외 1 추천목록에 있어요')
+    // no list footer on the cards (user 2026-10-25)
+    expect(first.textContent).not.toContain('추천목록에 있어요')
     // no personal picks: the whole list is the base list, no heading between its cards
     expect(screen.queryByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeNull()
     expect(first.textContent).toContain('잔잔하게 읽히는 이야기예요.')
