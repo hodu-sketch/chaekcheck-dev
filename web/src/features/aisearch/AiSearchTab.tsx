@@ -1,13 +1,14 @@
 import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { startWithQuestion } from './aiChatStore'
-import { AI_TEXT, QUESTION_MAX, QUESTION_MIN, shownExamples } from './aiSearchText'
+import { AI_TEXT, QUESTION_MAX, QUESTION_MIN, shownExamples, shownShortExamples } from './aiSearchText'
 import styles from './AiSearchTab.module.css'
 
 /**
  * S1 "AI" tab (cycle 24 step 9): a sentence box with [찾기]. No 상세검색 and no ⚙ [확정]. The example chips gave way to
  * an example question in the box's placeholder (user 2026-10-25: "아래 질문 고르는 거 빼고 … 안 건들고 그냥 검색 누르면
- * 그 질문들 검색되게"): the first of this page load's drawn examples that fits the box whole, else 「어떤 책을 찾으세요?」;
+ * 그 질문들 검색되게"): the first of this page load's drawn examples that fits the box whole, else the first short
+ * one that does (phones, user 2026-10-25), else 「어떤 책을 찾으세요?」;
  * [찾기] on an empty box asks the example shown. A question under 2 characters is not sent; the box takes at most 200. Searching puts the
  * question in this tab's conversation and opens `/ai-search`; the address never holds it (R2-2 [확정]). The text stays
  * while the tabs change because the hidden tab stays mounted (R1-3).
@@ -32,7 +33,8 @@ export function AiSearchTab({ leading }: { leading?: ReactNode }) {
       const context = document.createElement('canvas').getContext('2d')
       if (!context) return
       context.font = style.font
-      setExample(shownExamples().find((question) => context.measureText(question).width <= room) ?? null)
+      const fits = (question: string) => context.measureText(question).width <= room
+      setExample(shownExamples().find(fits) ?? shownShortExamples().find(fits) ?? null)
     }
     fit()
     if (typeof ResizeObserver === 'undefined') return

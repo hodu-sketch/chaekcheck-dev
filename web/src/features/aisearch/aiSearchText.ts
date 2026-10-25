@@ -42,12 +42,30 @@ export const EXAMPLE_QUESTIONS = [
   '고전 문학과 철학을 현대적인 관점에서 읽기',
 ] as const
 
+/**
+ * Short examples for the first screen's box when none of the above fits whole, as on most phones (user 2026-10-25:
+ * "폰 예시도 짧은 예시 넣어줘"); about 130px at the phone's size, under the 159px a 375px phone leaves.
+ */
+export const SHORT_EXAMPLE_QUESTIONS = [
+  'AI 시대의 철학',
+  '쉽게 읽는 경제',
+  '고전 다시 읽기',
+  '뇌과학 입문서',
+  '반전 있는 추리소설',
+  '위로가 되는 에세이',
+  '잠들기 전 과학책',
+] as const
+
 /** How many example chips show at once (user 2026-10-24: "3개 정도"). */
 export const EXAMPLES_SHOWN = 3
 
-/** `count` different questions in a random order. */
-export function pickExamples(count = EXAMPLES_SHOWN, random: () => number = Math.random): string[] {
-  const pool: string[] = [...EXAMPLE_QUESTIONS]
+/** `count` different questions of `from` in a random order. */
+export function pickExamples(
+  count = EXAMPLES_SHOWN,
+  random: () => number = Math.random,
+  from: readonly string[] = EXAMPLE_QUESTIONS,
+): string[] {
+  const pool: string[] = [...from]
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1))
     ;[pool[i], pool[j]] = [pool[j], pool[i]]
@@ -56,6 +74,7 @@ export function pickExamples(count = EXAMPLES_SHOWN, random: () => number = Math
 }
 
 let shown: string[] | null = null
+let shownShort: string[] | null = null
 
 /**
  * The examples of this page load, all of them in an order drawn once, so the first screen's box and the chat agree: the
@@ -64,6 +83,12 @@ let shown: string[] | null = null
 export function shownExamples(): string[] {
   shown ??= pickExamples(EXAMPLE_QUESTIONS.length)
   return shown
+}
+
+/** The short examples of this page load, in an order drawn once. */
+export function shownShortExamples(): string[] {
+  shownShort ??= pickExamples(SHORT_EXAMPLE_QUESTIONS.length, Math.random, SHORT_EXAMPLE_QUESTIONS)
+  return shownShort
 }
 
 /** Question length (design decision #8 [확정]), the same as the server. */

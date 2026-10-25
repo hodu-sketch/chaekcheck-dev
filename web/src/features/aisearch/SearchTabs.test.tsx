@@ -5,7 +5,14 @@ import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadChat } from './aiChatStore'
-import { EXAMPLE_QUESTIONS, pickExamples, QUESTION_MAX, shownExamples } from './aiSearchText'
+import {
+  EXAMPLE_QUESTIONS,
+  pickExamples,
+  QUESTION_MAX,
+  SHORT_EXAMPLE_QUESTIONS,
+  shownExamples,
+  shownShortExamples,
+} from './aiSearchText'
 import { SearchTabs } from './SearchTabs'
 
 beforeAll(() => {
@@ -149,5 +156,6 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
     expect(pickExamples(3, () => 0)).toEqual([EXAMPLE_QUESTIONS[1], EXAMPLE_QUESTIONS[2], EXAMPLE_QUESTIONS[3]])
     const all = pickExamples(EXAMPLE_QUESTIONS.length)
     expect(new Set(all).size).toBe(EXAMPLE_QUESTIONS.length)
+    expect(new Set(shownShortExamples())).toEqual(new Set(SHORT_EXAMPLE_QUESTIONS))
   })
 })
