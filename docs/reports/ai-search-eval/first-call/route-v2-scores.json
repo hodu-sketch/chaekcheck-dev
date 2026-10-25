@@ -1,0 +1,38 @@
+{
+ "MLP": {
+  "tau": 0.6499999999999999,
+  "all": 0.945,
+  "not_book": 0.9,
+  "title_like": 0.95,
+  "refers_shown": 1.0,
+  "book": 0.93,
+  "blocked_real": 2
+ },
+ "MLP+title": {
+  "tau": 0.6499999999999999,
+  "all": 0.87,
+  "not_book": 0.9,
+  "title_like": 0.63,
+  "refers_shown": 1.0,
+  "book": 0.95,
+  "blocked_real": 2
+ },
+ "LR": {
+  "tau": 0.5499999999999999,
+  "all": 0.935,
+  "not_book": 0.92,
+  "title_like": 0.9,
+  "refers_shown": 0.97,
+  "book": 0.95,
+  "blocked_real": 1
+ },
+ "LR+title": {
+  "tau": 0.5499999999999999,
+  "all": 0.865,
+  "not_book": 0.92,
+  "title_like": 0.6,
+  "refers_shown": 0.97,
+  "book": 0.97,
+  "blocked_real": 1
+ }
+}
