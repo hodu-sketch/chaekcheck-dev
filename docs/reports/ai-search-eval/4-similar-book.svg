@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="216" viewBox="0 0 720 216" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="216" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">'○○ 같은 책' 질문 9개: '아주 맞음' 비율</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">A 지금</text>
+<rect x="230" y="60" width="220.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="458.0" y="75" font-size="14" font-weight="400" fill="#1f1d2b">22%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">H 낱말+벡터</text>
+<rect x="230" y="94" width="350.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="588.0" y="109" font-size="14" font-weight="400" fill="#1f1d2b">35%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">SH 기준 책 이웃+섞기</text>
+<rect x="230" y="128" width="360.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="598.0" y="143" font-size="14" font-weight="400" fill="#1f1d2b">36%</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">S 기준 책 이웃+낱말</text>
+<rect x="230" y="162" width="420.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="658.0" y="177" font-size="14" font-weight="700" fill="#1f1d2b">42%</text>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="182" viewBox="0 0 720 182" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="182" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">뜻 맞추기 질문 7개: 보이는 카드 중 맞음 비율</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">A 지금</text>
+<rect x="230" y="60" width="344.4" height="22" rx="4" fill="#c9c2ee"/>
+<text x="582.4" y="75" font-size="14" font-weight="400" fill="#1f1d2b">82%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">C 낱말 50권</text>
+<rect x="230" y="94" width="369.6" height="22" rx="4" fill="#c9c2ee"/>
+<text x="607.6" y="109" font-size="14" font-weight="400" fill="#1f1d2b">88%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">H 낱말+벡터 30권</text>
+<rect x="230" y="128" width="420.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="658.0" y="143" font-size="14" font-weight="700" fill="#1f1d2b">100%</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="250" viewBox="0 0 720 250" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="250" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">보이는 카드 중 '아주 맞음'(3점) 비율</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">A 지금 (낱말 30)</text>
+<rect x="230" y="60" width="333.8" height="22" rx="4" fill="#c9c2ee"/>
+<text x="571.8" y="75" font-size="14" font-weight="400" fill="#1f1d2b">62%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">F 부정어 빼기</text>
+<rect x="230" y="94" width="344.6" height="22" rx="4" fill="#c9c2ee"/>
+<text x="582.6" y="109" font-size="14" font-weight="400" fill="#1f1d2b">64%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">C 낱말 50권</text>
+<rect x="230" y="128" width="387.7" height="22" rx="4" fill="#c9c2ee"/>
+<text x="625.7" y="143" font-size="14" font-weight="400" fill="#1f1d2b">72%</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">H 낱말+벡터 30권</text>
+<rect x="230" y="162" width="409.2" height="22" rx="4" fill="#6b4fe0"/>
+<text x="647.2" y="177" font-size="14" font-weight="700" fill="#1f1d2b">76%</text>
+<text x="218" y="211" font-size="14" text-anchor="end" fill="#33313f">I 낱말+벡터 40권</text>
+<rect x="230" y="196" width="420.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="658.0" y="211" font-size="14" font-weight="400" fill="#1f1d2b">78%</text>
+</svg>

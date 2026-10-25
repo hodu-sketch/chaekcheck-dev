@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="148" viewBox="0 0 720 148" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="148" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">질문 하나에 보이는 틀린 카드 (0~1점, 두 번 돌린 평균)</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">A 지금 (낱말 30)</text>
+<rect x="230" y="60" width="420.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="658.0" y="75" font-size="14" font-weight="400" fill="#1f1d2b">0.58장</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">H 낱말+벡터 30권</text>
+<rect x="230" y="94" width="188.3" height="22" rx="4" fill="#6b4fe0"/>
+<text x="426.3" y="109" font-size="14" font-weight="700" fill="#1f1d2b">0.26장</text>
+</svg>
