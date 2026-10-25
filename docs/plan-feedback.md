@@ -6625,3 +6625,11 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 
 - 사이클 24 세션(chaekcheck-dev-cycle-24-AI)에 3만 권 임베딩·탭 표지 준비를 알림. 24 쪽 사용자 결정(그 세션이 전한 말): "임베딩은 (가) 이웃부터: 23 합치기·운영 neighbours 넣기·foryou 읽기 API를 준비해서 이어서 묻기에 앞 책의 이웃을 후보로 더해줘" → 24가 `foryou.BookNeighbours`(공개 읽기)를 만들 예정. 23은 "운영 반영은 사용자 승인 뒤 한 번"을 알림
 - 3만 권 세션(브랜치 `claude/ai-search-30k-be7780`)과 겹침: `BookTextsImport`·`CatalogImportRunner.Settings`·관련 시험. 나중에 들어가는 쪽이 맞춤. 그 세션이 로컬 `db`에 `aisearch-003`을 적용하고 `search_book`을 30,939권으로 바꿈
+
+### 운영 반영 (2026-10-25, 사이클 24 세션이 함)
+
+- 사이클 24 세션이 사용자 승인("수집 끄고 배포 (추천)")으로 이 브랜치 `e78c7c4`를 main에 합쳐 배포: **v1.11.0**(merge `ed6c7d9`), **v1.11.1**(nginx SPA 규칙 `picks/[a-z0-9-]+`, `/picks/for-you` 직접 열기 404 고침). 이 브랜치는 그 뒤 main(`6444047`) 위로 rebase
+- 운영 설정: `CHAEKCHECK_FORYOU_BUILD_ENABLED=false`(compose 전달 줄·prod.env) → 새벽 인기순 받기 안 돎, 기본 목록은 추천목록 책만
+- 운영 이웃: export_id 같음(가져오기 14), `neighbours full` 30,937줄(computed_on 2026-10-25)
+- 24 쪽: 공개 API `foryou.BookNeighbours.of(Collection<Long>)`, AI 검색 이어서 묻기에 앞 책 이웃을 후보로
+- 운영에 아직 없는 것: 탭 표지(`covers-export` + `cover_file`), 탭 추천 글(`for_you_blurb`, API 키 대기) → 사용자 승인 뒤 23에서. "AI가 골랐어요" 줄은 글·꼬리표 없이 보임
