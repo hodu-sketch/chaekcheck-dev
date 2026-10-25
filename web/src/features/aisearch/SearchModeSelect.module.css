@@ -20,6 +20,15 @@
   cursor: pointer;
 }
 
+/* phones: a narrower menu leaves the text box room for its whole placeholder (user 2026-10-25) */
+@media (width <= 640px) {
+  .trigger {
+    gap: 0.2rem;
+    width: 3.9rem;
+    padding: 0 0.35rem 0 0.55rem;
+  }
+}
+
 .trigger:hover {
   color: var(--brand);
 }

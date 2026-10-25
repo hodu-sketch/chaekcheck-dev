@@ -5,7 +5,7 @@ import java.util.Deque;
 
 /**
  * Reads the second call's JSON while it streams (cycle 24 handoff step 8-1, ADR-0153): the answer follows the schema
- * {@code {"head": string, "picks": [{"no": integer, "text": string}, …]}} with every field required, so the fields come
+ * {@code {"head": string, "picks": [{"no": integer, "fit": integer, "text": string}, …]}} with every field required, so the fields come
  * in that order (structured outputs). A small push-down reader, fed the text pieces in order: tells the head's text as
  * it comes, a pick's number once the number has ended (so it can be checked before any of its text is shown), the
  * pick's text as it comes, and the end of each pick. Escapes ({@code \"}, {@code \\uXXXX}, surrogate pairs) may be split
@@ -19,6 +19,10 @@ public final class PickStreamParser {
 		void headText(String text);
 
 		void pickNo(long no);
+
+		/** How well the pick fits the question, 0 to 3, after its number and before its text (cycle 24 1단계). */
+		default void pickFit(long fit) {
+		}
 
 		void pickText(String text);
 
@@ -315,6 +319,16 @@ public final class PickStreamParser {
 				throw bad("a pick number that is not a whole number");
 			}
 			listener.pickNo(no);
+		}
+		else if (frame != null && frame.object && inPick() && "fit".equals(frame.key)) {
+			long fit;
+			try {
+				fit = Long.parseLong(number.toString());
+			}
+			catch (NumberFormatException e) {
+				throw bad("a fit that is not a whole number");
+			}
+			listener.pickFit(fit);
 		}
 		afterValue();
 	}

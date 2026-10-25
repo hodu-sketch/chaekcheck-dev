@@ -14,7 +14,8 @@ import org.springframework.stereotype.Component;
 /**
  * The keyword match (cycle 24 handoff step 5, design-delta "낱말 맞추기", ADR-0151): which of the search books held by
  * at least one of the user's plan libraries (spec R3-3) hold the keywords in {@code aisearch.search_book.search_text}.
- * One point per keyword found; ordered by points, then by how many plan libraries hold the book, then by book id, and
+ * One point per keyword found; ordered by core words found (since v1.10.2), points, then by how many plan libraries hold
+ * the book, then by book id, and
  * cut after the order (design review #5: cutting first would drop tied books by id). Since 2026-10-25 the plan library
  * count is made in SQL from the {@code library_ids} the import copied (user choice "넣기 때 search_book 사본에"), for the
  * listed books and the books held by the most libraries alike (user choice "한 풀, 구분 없음").
@@ -24,6 +25,9 @@ public class CandidateQuery {
 
 	/** Keywords used at most (design-delta [안]); the rest are dropped. */
 	public static final int MAX_KEYWORDS = 8;
+
+	/** Core words used at most (cycle 24 1단계 [안], the first call is asked for 1 to 4). */
+	public static final int MAX_CORE_WORDS = 4;
 
 	/** Shortest keyword after tidying, in characters (design-delta [안]); pg_bigm needs two for its index. */
 	public static final int MIN_KEYWORD_CHARS = 2;
@@ -51,28 +55,48 @@ public class CandidateQuery {
 	 * @param excluded books not to answer with (shown before, spec R11-4, or already chosen)
 	 */
 	public List<Candidate> find(List<String> keywords, Set<Long> planLibraries, Set<Long> excluded, int limit) {
-		List<String> words = usableKeywords(keywords);
+		return find(keywords, List.of(), planLibraries, excluded, limit);
+	}
+
+	/**
+	 * As {@link #find(List, Set, Set, int)}, with the question's core words (cycle 24 1단계, user 2026-10-25: a diet
+	 * question brought an anticancer diet book on 식단 alone). Books holding more core words come first, then the usual
+	 * order; books without one still fill the rest (only ruling them out left a children's question with parenting
+	 * books alone, the 2026-10-25 comparison), and the second call's fit weeds out what does not fit.
+	 */
+	public List<Candidate> find(List<String> keywords, List<String> core, Set<Long> planLibraries, Set<Long> excluded,
+			int limit) {
+		// the core words come on top of the eight keywords, so they never push a keyword out
+		List<String> coreWords = usableKeywords(core).stream().limit(MAX_CORE_WORDS).toList();
+		LinkedHashSet<String> joined = new LinkedHashSet<>(coreWords);
+		joined.addAll(usableKeywords(keywords));
+		List<String> words = List.copyOf(joined);
 		if (words.isEmpty() || planLibraries.isEmpty() || limit < 1) {
 			return List.of();
 		}
 		List<String> score = new ArrayList<>();
 		List<String> any = new ArrayList<>();
+		List<String> coreScore = new ArrayList<>();
 		for (int i = 0; i < words.size(); i++) {
 			// only generated parameter names go into the text; the keywords are bound
 			String like = "s.search_text LIKE :k" + i + " ESCAPE '\\'";
 			score.add("(" + like + ")::int");
 			any.add(like);
+			if (coreWords.contains(words.get(i))) {
+				coreScore.add("(" + like + ")::int");
+			}
 		}
+		String coreSum = coreScore.isEmpty() ? "0" : String.join(" + ", coreScore);
 		JdbcClient.StatementSpec statement = jdbc.sql("""
 				SELECT book_id, score, plan_count FROM (
-				  SELECT s.book_id, %s AS score, %s AS plan_count
+				  SELECT s.book_id, %s AS score, %s AS plan_count, %s AS core_score
 				  FROM aisearch.search_book s
 				  WHERE (%s)
 				    AND s.library_ids && CAST(:plan AS bigint[])
 				    AND NOT (s.book_id = ANY(CAST(:excluded AS bigint[])))
 				) m
-				ORDER BY score DESC, plan_count DESC, book_id
-				LIMIT :limit""".formatted(String.join(" + ", score), PLAN_COUNT, String.join(" OR ", any)))
+				ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
+				LIMIT :limit""".formatted(String.join(" + ", score), PLAN_COUNT, coreSum, String.join(" OR ", any)))
 			.param("plan", planLibraries.toArray(Long[]::new))
 			.param("excluded", excluded.toArray(Long[]::new))
 			.param("limit", limit);
