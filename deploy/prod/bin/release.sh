@@ -8,7 +8,9 @@
 # 2. Writes X.Y.Z into backend/build.gradle, web/package.json and the image lines of deploy/prod/compose.yaml,
 #    commits "Release vX.Y.Z" and tags it vX.Y.Z (annotated). The jar's build-info then carries that commit.
 # 3. Builds the jar and web/dist, then arm64 images (WSL docker buildx) tagged X.Y.Z and sha-<commit>.
-# 4. Copies the images and compose.yaml to the server, loads them and runs bin/up.sh there.
+# 4. Copies the images and compose.yaml to the server, loads them and runs bin/up.sh there. Then removes the server's
+#    older chaekcheck/backend and chaekcheck/web images, keeping this version and the one before it (the newest other
+#    vX.Y.Z tag) for going back (user 2026-10-25); an image a container still uses is kept, and dangling layers go.
 # 5. Pushes main and the tag, and makes the GitHub release with that CHANGELOG part (gh).
 # A failure stops the script; what is done stays done (see deploy/prod/README.md "실패하면").
 set -euo pipefail
@@ -27,6 +29,23 @@ REMOTE_DIR=/srv/chaekcheck
 WSL_ROOT="$(pwd | sed -E 's#^/([a-zA-Z])/#/mnt/\L\1/#')"
 
 stop() { echo "release.sh: $*" >&2; exit 1; }
+
+# The server-side cleanup of step 4 for versions $1 (now) and $2 (before): image ids to keep are those two versions'
+# backend and web images and every image a container (running or stopped) uses; other chaekcheck/backend and
+# chaekcheck/web tags are removed one by one (the last tag of an image deletes it), then dangling layers.
+prune_script() {
+	cat <<SH
+keep=\$( { for repo in chaekcheck/backend chaekcheck/web; do for version in $1 $2; do
+  docker image inspect --format '{{.Id}}' \$repo:\$version 2>/dev/null; done; done
+  docker ps -aq | xargs -r docker inspect --format '{{.Image}}'; } | sort -u)
+docker image ls --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -E '^chaekcheck/(backend|web):' \
+  | while read -r ref id; do
+    if ! printf '%s\n' "\$keep" | grep -qx "\$id"; then docker rmi "\$ref" >/dev/null && echo "   removed \$ref"; fi
+  done
+docker image prune -f >/dev/null
+df -h / | tail -1
+SH
+}
 
 [[ "$(git branch --show-current)" == main ]] || stop "not on main"
 [[ -z "$(git status --porcelain)" ]] || stop "uncommitted changes; commit or stash them first"
@@ -64,6 +83,11 @@ scp -q -i "$KEY" deploy/prod/compose.yaml "$SERVER:$REMOTE_DIR/compose.yaml"
 scp -q -i "$KEY" deploy/prod/bin/up.sh "$SERVER:$REMOTE_DIR/bin/up.sh"
 ssh -i "$KEY" "$SERVER" "cd $REMOTE_DIR && gunzip -c images-$VERSION.tar.gz | docker load >/dev/null \
   && rm -f images-$VERSION.tar.gz && chmod +x bin/up.sh && bin/up.sh $*"
+
+# the version before this one, kept on the server for going back
+PREVIOUS="$(git tag --list 'v*' --sort=-v:refname | grep -vx "$TAG" | head -1 | sed 's/^v//')"
+echo "   server images: keep $VERSION and ${PREVIOUS:-none}, remove older"
+ssh -i "$KEY" "$SERVER" "$(prune_script "$VERSION" "$PREVIOUS")"
 
 echo "== 5/5 push and GitHub release"
 git push -q origin main "$TAG"

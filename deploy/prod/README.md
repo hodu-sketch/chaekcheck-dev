@@ -48,3 +48,7 @@
 
 - `bin/up.sh`를 서비스 이름 없이 돌리면 cloudflared도 떠서 **공개**된다. 비공개로 둘 때는 `bin/up.sh db backend web`, 터널만 내릴 때는 서버에서 `docker compose --env-file secrets.env --env-file prod.env stop cloudflared`
 - 서버 디스크(29GB)에 이미지가 쌓이니 가끔 `docker image prune`으로 쓰지 않는 이미지를 지운다
+
+## 서버 이미지 정리 (2026-10-25)
+
+`release.sh` 4단계 끝에서 서버의 `chaekcheck/backend`·`chaekcheck/web` 이미지 중 **이번 판과 바로 앞 판**(가장 최근의 다른 `vX.Y.Z` 태그)만 남기고 지웁니다(사용자 2026-10-25). 컨테이너(멈춘 것 포함)가 쓰는 이미지는 남기고, 태그를 하나씩 지운 뒤 매달린 층을 `docker image prune -f`로 지웁니다. 되돌리기는 앞 판까지만 이미지가 서버에 있습니다(더 옛 판은 PC에서 다시 빌드·전송). 끝에 `df -h /`를 보여 줍니다.
