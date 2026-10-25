@@ -94,7 +94,8 @@ function renderAt(path = '/picks/for-you') {
 
 const similarCalls = (calls: URL[]) => calls.filter((url) => url.pathname === '/api/v1/for-you/similar-books')
 const cardButtons = () => within(screen.getByRole('region', { name: '책첵 추천 목록' })).getAllByRole('button')
-const cardTitles = () => cardButtons().map((button) => button.querySelector('span[class*="title"]')?.textContent)
+// the list tabs' card says "<title>, 전자책 있음" to screen readers
+const cardTitles = () => cardButtons().map((button) => button.getAttribute('aria-label')?.split(', 전자책')[0])
 
 beforeAll(() => {
   globalThis.ResizeObserver ??= class {
@@ -133,40 +134,36 @@ describe('S18 for-you (cycle 23)', () => {
     expect(sendUsageEvent).toHaveBeenCalledWith({ type: 'picks_list_view', list: 'for_you', category: 'all' })
   })
 
-  it('cards: the footer only for listed books with "외 N", tags only when given, no AI mark (AC-3, AC-10)', async () => {
+  it('looks like the list tabs: chips over a grid of covers, a chip shows its books (user 2026-10-25)', async () => {
     stubFetch({
       books: () =>
         json({
           builtOn: '2026-10-26',
-          books: [
-            card(1, {
-              lists: ['kaist', 'snu100', 'nobel'],
-              blurb: '잔잔하게 읽히는 이야기예요.',
-              tags: [
-                { code: 'm1', axis: 'mood', name: '잔잔한' },
-                { code: 's1', axis: 'subject', name: '소설' },
-              ],
-            }),
-            card(2),
-          ],
+          books: [card(1, { fieldGroup: 'science', lists: ['kaist'] }), card(2, { fieldGroup: 'literature' }), card(3)],
         }),
     })
     const user = renderAt()
     await screen.findByRole('region', { name: '책첵 추천 목록' })
-    const [first, second] = cardButtons()
-    // no list footer on the cards (user 2026-10-25)
-    expect(first.textContent).not.toContain('추천목록에 있어요')
-    // no personal picks: the whole list is the base list, no heading between its cards
-    expect(screen.queryByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeNull()
-    expect(first.textContent).toContain('잔잔하게 읽히는 이야기예요.')
-    expect(within(first).getByText('잔잔한')).toBeTruthy()
-    expect(first.textContent).toContain('내 도서관 2곳')
-    expect(second.textContent).not.toContain('추천목록에 있어요')
-    expect(second.textContent).not.toContain('잔잔한')
-    expect(screen.queryByText(/AI 추천/)).toBeNull()
-    // a tag does nothing: it is not a button of its own
-    await user.click(within(first).getByText('잔잔한'))
-    expect(within(first).queryAllByRole('button')).toHaveLength(0)
+    const chips = within(screen.getByRole('group', { name: '분류' })).getAllByRole('button')
+    // only the chips with books; no list footer on the cards
+    expect(chips.map((chip) => chip.textContent)).toEqual(['전체', '소설·에세이', '과학·기술'])
+    expect(cardTitles()).toEqual(['책 1', '책 2', '책 3'])
+    expect(screen.queryByText(/추천목록에 있어요/)).toBeNull()
+    await user.click(screen.getByRole('button', { name: '과학·기술' }))
+    expect(cardTitles()).toEqual(['책 1'])
+  })
+
+  it('shows each person the fields they looked at most first (user 2026-10-25)', async () => {
+    const now = Date.now()
+    recordOpened(601, '물리', now, 'science')
+    stubFetch({
+      books: () => json({ builtOn: null, books: [card(1, { fieldGroup: 'literature' }), card(2, { fieldGroup: 'science' })] }),
+      similar: () => json({ baseBooks: [], books: [], reshowBooks: [] }),
+    })
+    renderAt()
+    await screen.findByRole('region', { name: '책첵 추천 목록' })
+    const chips = within(screen.getByRole('group', { name: '분류' })).getAllByRole('button')
+    expect(chips.map((chip) => chip.textContent)).toEqual(['전체', '과학·기술', '소설·에세이'])
   })
 
   it('with base books: personal picks first, the base list after them, sent ids only; the line is on 마이페이지', async () => {
@@ -189,8 +186,8 @@ describe('S18 for-you (cycle 23)', () => {
     expect(screen.queryByRole('button', { name: '기준 책 바꾸기' })).toBeNull()
     // 2 is a personal pick and in the base list: once, with the personal picks
     expect(cardTitles()).toEqual(['책 10', '책 2', '책 1', '책 3'])
-    // after the personal picks the base list has its own heading (user 2026-10-25)
-    expect(screen.getByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeTruthy()
+    // one list as on the list tabs; the personal picks have their own chip (user 2026-10-25)
+    expect(screen.getByRole('button', { name: '최근 본 책과 비슷한' })).toBeTruthy()
     const [similar] = similarCalls(calls)
     // six base books since 2026-10-25 ("기준 책이 너무 작아")
     expect(similar.searchParams.get('baseBookIds')).toBe('501,502,505,506,507,503')

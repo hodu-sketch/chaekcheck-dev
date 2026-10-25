@@ -121,6 +121,18 @@ class ForYouControllerTests {
 		assertThat(body).doesNotContain("score", "source", "kyobo", "88");
 	}
 
+	/** A book off the lists takes the field group most of its listed neighbours have (user 2026-10-25, chips). */
+	@Test
+	void aBookOffTheListsGetsItsListedNeighboursFieldGroup() {
+		listed.add(new ListedRef(940001, List.of("kaist"), new long[] { joinable }, List.of(), null, null, null, "science"));
+		listed.add(new ListedRef(940003, List.of("kaist"), new long[] { joinable }, List.of(), null, null, null, "science"));
+		jdbc.sql("INSERT INTO foryou.book_neighbour VALUES (940001, ARRAY[940004], DATE '2026-10-25'),"
+				+ " (940004, ARRAY[940001, 940003, 940005], DATE '2026-10-25')").update();
+
+		assertThat(mvc.get().uri(SIMILAR + "?baseBookIds=940001")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+				{"books": [{"bookId": 940004, "fieldGroup": "science"}]}""");
+	}
+
 	@Test
 	void similarBooksScoredFirstThenPlanLibrariesThenId() { // AC-6 server part
 		jdbc.sql("INSERT INTO foryou.book_neighbour VALUES (940001, ARRAY[940003, 940002, 940004, 940005, 999999],"

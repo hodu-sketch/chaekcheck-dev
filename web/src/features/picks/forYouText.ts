@@ -3,7 +3,6 @@
 export const FOR_YOU_TEXT = {
   aiLine: '책 소개 글과 꼬리표는 AI가 골랐어요',
   changeBase: '기준 책 바꾸기',
-  more: '비슷한 책 더 보기',
   similarFailed: '비슷한 책을 불러오지 못했어요',
   baseFailed: '추천 책을 불러오지 못했어요',
   retry: '다시 시도',
@@ -15,10 +14,6 @@ export const FOR_YOU_TEXT = {
   /** [안] S19's title and its mark on the current base books */
   dialogTitle: '기준 책 바꾸기',
   baseMark: '기준 책',
-  /** [안] over the base list (user 2026-10-25: "기본 도서를 아래에 고대로 보여주는 건 너무 성의가 없지 않아"; no field
-   * names, "굳이 분야를 보여줘야 하나?"); the build's popular books only when a build ran */
-  baseHeadingPopular: '요즘 많이 빌리는 책과 추천목록 책',
-  baseHeadingListed: '대학·도서관 추천목록에서 고른 책',
   /** [안] screen readers while loading */
   loading: '추천 책을 불러오는 중',
   helpLines: [

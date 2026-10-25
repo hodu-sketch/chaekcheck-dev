@@ -2,6 +2,7 @@ package com.chaekcheck.foryou.internal.web;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +39,9 @@ import com.chaekcheck.picks.BookTagTransfer.Tag;
 class ForYouController {
 
 	static final int MAX_SIMILAR = 60;
+
+	/** Listed neighbours that must agree before a book off the lists gets their field group [안]. */
+	static final int MIN_GROUP_VOTES = 2;
 
 	private final ForYouSnapshot snapshot;
 
@@ -147,6 +151,7 @@ class ForYouController {
 		bookCards.cards(ids).forEach(card -> found.put(card.bookId(), card));
 		Map<Long, String> blurbs = bookTexts.blurbs(found.keySet());
 		Map<Long, String> covers = bookTexts.coverKeys(found.keySet());
+		Map<Long, String> guessed = guessFieldGroups(found.keySet(), listed);
 		List<Card> cards = new ArrayList<>(ids.size());
 		Set<Long> added = new HashSet<>();
 		for (long id : ids) {
@@ -170,9 +175,34 @@ class ForYouController {
 					cover == null ? null : "/covers/" + cover + ".jpg", blurbs.get(id),
 					ref == null ? List.of() : ref.tags(), planCount, ref == null ? List.of() : ref.listKeys(),
 					card.authorKey(), ref == null ? null : ref.aiSummary(), month, ref == null ? null : ref.yearBook(),
-					ref == null ? null : ref.fieldGroup()));
+					ref != null && ref.fieldGroup() != null ? ref.fieldGroup() : guessed.get(id)));
 		}
 		return cards;
+	}
+
+	/**
+	 * The field group of a book off the lists, guessed from its neighbours (user 2026-10-25: the 책첵 추천 chips by field
+	 * for every book): the group most of its listed neighbours have, when at least {@value #MIN_GROUP_VOTES} agree and
+	 * no other group has as many. Books on a list keep their own group; nothing is guessed for them.
+	 */
+	private Map<Long, String> guessFieldGroups(Collection<Long> ids, Map<Long, ListedRef> listed) {
+		List<Long> off = ids.stream().filter(id -> !listed.containsKey(id)).toList();
+		Map<Long, String> guessed = new HashMap<>();
+		bookTexts.neighbours(off).forEach((id, neighbours) -> {
+			Map<String, Integer> votes = new HashMap<>();
+			for (int neighbour : neighbours) {
+				ListedRef ref = listed.get((long) neighbour);
+				if (ref != null && ref.fieldGroup() != null) {
+					votes.merge(ref.fieldGroup(), 1, Integer::sum);
+				}
+			}
+			int best = votes.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+			List<String> top = votes.entrySet().stream().filter(e -> e.getValue() == best).map(Map.Entry::getKey).toList();
+			if (best >= MIN_GROUP_VOTES && top.size() == 1) {
+				guessed.put(id, top.getFirst());
+			}
+		});
+		return guessed;
 	}
 
 	private Map<Long, ListedRef> listed() {
