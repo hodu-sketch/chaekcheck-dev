@@ -6,8 +6,9 @@
  * through the {@code collection} import.
  * <p>
  * Public Java types: {@link com.chaekcheck.foryou.ForYouTransfer}, through which the {@code collection} import loads
- * neighbours, tab blurbs and cover file keys, and {@link com.chaekcheck.foryou.BookNeighbours}, through which the
- * {@code aisearch} module reads neighbours (user 2026-10-25).
+ * neighbours, tab blurbs and cover file keys, and {@link com.chaekcheck.foryou.BookNeighbours} and
+ * {@link com.chaekcheck.foryou.BookCovers}, through which the {@code aisearch} module reads neighbours and tab covers
+ * (user 2026-10-25).
  * <p>
  * Owns the {@code foryou} schema. Depends on {@code catalog} ({@code BookCards}: card fields, holding keys, editions of
  * a work; {@code BookLookup}: ISBN and title matching), {@code library} (the user's plan), {@code picks} (the listed

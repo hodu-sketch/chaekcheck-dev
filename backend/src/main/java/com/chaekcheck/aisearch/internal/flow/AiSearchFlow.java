@@ -37,6 +37,7 @@ import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
 import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
+import com.chaekcheck.foryou.BookCovers;
 import com.chaekcheck.foryou.BookNeighbours;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
@@ -54,8 +55,8 @@ import com.chaekcheck.usagelog.UsageRequest;
  * card nor text. A card's text stops at 300 characters. The second call failing before any card sends the first 8
  * books without text ({@code no_text}); failing after one sends {@code partial}. The day's cost and one usage row are
  * written at the end. Neither the question nor the history is logged. Titles and authors come from the search books;
- * a listed book's card adds its list cover and AI summary (the other books have neither yet: their covers wait for
- * cycle 23's, user 2026-10-25).
+ * a listed book's card adds its list cover and AI summary; a card without a list cover takes the tab cover (cycle 23's,
+ * user 2026-10-25), and the other books have no AI summary yet.
  */
 @Component
 public class AiSearchFlow {
@@ -74,6 +75,8 @@ public class AiSearchFlow {
 
 	private final BookNeighbours neighbours;
 
+	private final BookCovers covers;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -81,14 +84,15 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			SearchBooks searchBooks, BookNeighbours neighbours, UsageLog usageLog, AiSearchProperties properties,
-			JsonMapper json) {
+			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, UsageLog usageLog,
+			AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
 		this.listedBooks = listedBooks;
 		this.searchBooks = searchBooks;
 		this.neighbours = neighbours;
+		this.covers = covers;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -297,7 +301,8 @@ public class AiSearchFlow {
 			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id)))
 			.toList();
 		run.candidateCount = ids.size();
-		picks(input, history, ids, choices, known, listed, planCount, run);
+		Map<Long, String> tabCovers = covers.of(ids);
+		picks(input, history, ids, choices, new Cards(known, listed, tabCovers, planCount), run);
 	}
 
 	/**
@@ -368,8 +373,8 @@ public class AiSearchFlow {
 		return new KeywordPlan(false, false, "", false, List.of(question.split("\\s+")), List.of(), failed);
 	}
 
-	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices,
-			Map<Long, SearchBook> known, Map<Long, ListedBook> listed, Map<Long, Integer> planCount, Run run) {
+	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
+			Run run) {
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
@@ -402,7 +407,7 @@ public class AiSearchFlow {
 					return;
 				}
 				run.shown.add(bookId);
-				run.send(AiSearchEvents.CARD, card(run.shown.size(), bookId, known, listed, planCount));
+				run.send(AiSearchEvents.CARD, cards.card(run.shown.size(), bookId));
 				current[0] = bookId;
 				currentChars[0] = 0;
 			}
@@ -455,7 +460,7 @@ public class AiSearchFlow {
 			for (int i = 0; i < Math.min(maxPicks, ids.size()); i++) {
 				long bookId = ids.get(i);
 				run.shown.add(bookId);
-				run.send(AiSearchEvents.CARD, card(run.shown.size(), bookId, known, listed, planCount));
+				run.send(AiSearchEvents.CARD, cards.card(run.shown.size(), bookId));
 			}
 			finish(run, PickResult.NO_TEXT, "no_text");
 		}
@@ -470,13 +475,24 @@ public class AiSearchFlow {
 		}
 	}
 
-	/** A card: title and author of the search book, cover and AI summary only for a listed book. */
-	private static Card card(int no, long bookId, Map<Long, SearchBook> known, Map<Long, ListedBook> listed,
+	/**
+	 * What a card is made from: title and author of the search book; the list cover, else the tab cover; the AI summary
+	 * only for a listed book.
+	 */
+	private record Cards(Map<Long, SearchBook> known, Map<Long, ListedBook> listed, Map<Long, String> tabCovers,
 			Map<Long, Integer> planCount) {
-		SearchBook book = known.get(bookId);
-		ListedBook onList = listed.get(bookId);
-		return new Card(no, bookId, book.title(), book.author(), onList == null ? null : onList.coverPath(),
-				planCount.getOrDefault(bookId, 0), onList == null ? null : onList.aiSummary());
+
+		Card card(int no, long bookId) {
+			SearchBook book = known.get(bookId);
+			ListedBook onList = listed.get(bookId);
+			String cover = onList == null ? null : onList.coverPath();
+			if (cover == null) {
+				cover = tabCovers.get(bookId);
+			}
+			return new Card(no, bookId, book.title(), book.author(), cover, planCount.getOrDefault(bookId, 0),
+					onList == null ? null : onList.aiSummary());
+		}
+
 	}
 
 	private void count(Run run, Usage usage, int maxTokens) {

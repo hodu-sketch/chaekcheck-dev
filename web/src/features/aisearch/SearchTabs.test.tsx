@@ -105,11 +105,26 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
     expect(loadChat().turns.map((turn) => turn.question)).toEqual(['잠들기 전에 읽을 과학책'])
   })
 
-  it('searches a chip at once', async () => {
+  it('shows an example question in the box and asks it when the box is left empty (user 2026-10-25)', async () => {
     const user = setup()
-    await user.click(screen.getAllByRole('button', { name: shownExamples()[0] }).filter(shown)[0])
+    expect(aiBox().placeholder).toBe(shownExamples()[0])
+    await user.click(screen.getByRole('button', { name: '찾기' }))
     expect(screen.getByTestId('where').textContent).toBe('/ai-search')
     expect(loadChat().turns[0].question).toBe(shownExamples()[0])
+  })
+
+  it('asks what was typed rather than the example', async () => {
+    const user = setup()
+    await user.type(aiBox(), '토지')
+    await user.click(screen.getByRole('button', { name: '찾기' }))
+    expect(loadChat().turns[0].question).toBe('토지')
+  })
+
+  it('has no example chips on the first screen (user 2026-10-25)', async () => {
+    const user = setup()
+    expect(screen.queryByRole('list', { name: '예시 질문', hidden: true })).toBeNull()
+    await choose(user, 'AI', '직접')
+    expect(screen.queryByRole('list', { name: '예시 질문', hidden: true })).toBeNull()
   })
 
   it('shows only the direct search, without the menu, when the AI search is off', async () => {
@@ -128,27 +143,6 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
     setup(200, { state: { searchTab: 'direct' } })
     expect(shown(titleBox())).toBe(true)
     expect(screen.getAllByRole('button', { name: '찾는 방법: 직접' }).filter(shown)).toHaveLength(1)
-  })
-
-  it('keeps the example chips under the direct box, where a chip still asks the AI (user 2026-10-24)', async () => {
-    const user = setup()
-    await choose(user, 'AI', '직접')
-    const chip = screen.getAllByRole('button', { name: shownExamples()[1] }).filter(shown)
-    expect(chip).toHaveLength(1)
-    await user.click(chip[0])
-    expect(screen.getByTestId('where').textContent).toBe('/ai-search')
-    expect(loadChat().turns[0].question).toBe(shownExamples()[1])
-  })
-
-  it('shows three of the example questions, the same three under both boxes (user 2026-10-24)', () => {
-    setup()
-    const lists = screen.getAllByRole('list', { name: '예시 질문', hidden: true })
-    const texts = lists.map((list) =>
-      [...list.querySelectorAll('li:not([hidden]) button')].map((button) => button.textContent),
-    )
-    expect(texts[0]).toHaveLength(3)
-    expect(texts[1]).toEqual(texts[0])
-    expect(texts[0].every((text) => (EXAMPLE_QUESTIONS as readonly (string | null)[]).includes(text))).toBe(true)
   })
 
   it('draws different questions in a random order', () => {
