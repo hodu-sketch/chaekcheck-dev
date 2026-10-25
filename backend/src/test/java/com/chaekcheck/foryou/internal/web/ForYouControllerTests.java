@@ -134,7 +134,7 @@ class ForYouControllerTests {
 	}
 
 	@Test
-	void similarBooksScoredFirstThenPlanLibrariesThenId() { // AC-6 server part
+	void similarBooksByClosenessTheBaseBooksTakingTurns() { // AC-6 server part, order since 2026-10-25
 		jdbc.sql("INSERT INTO foryou.book_neighbour VALUES (940001, ARRAY[940003, 940002, 940004, 940005, 999999],"
 				+ " DATE '2026-10-24'), (940003, ARRAY[940001, 940004], DATE '2026-10-24')").update();
 		build(new long[] { 940002 }, new double[] { 5 });

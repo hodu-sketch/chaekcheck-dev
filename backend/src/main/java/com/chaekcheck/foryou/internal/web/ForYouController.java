@@ -87,9 +87,9 @@ class ForYouController {
 	}
 
 	/**
-	 * The neighbours of the base books (≤ 20 each), without the base books and books outside the plan: books with a
-	 * score in the last succeeded build first, by score, then by plan libraries, then by id; at most 60. Unknown ids are
-	 * left out quietly.
+	 * The neighbours of the base books (≤ 20 each), without the base books and books outside the plan, at most 60.
+	 * Since 2026-10-25 (user "순서 고치기 하고", cycle 23 offline scores) by closeness, the base books taking turns
+	 * ({@link SimilarOrder}); before, build score, then plan libraries, then id. Unknown ids are left out quietly.
 	 */
 	@GetMapping("/api/v1/for-you/similar-books")
 	SimilarBooks similarBooks(@RequestParam MultiValueMap<String, String> params) {
@@ -98,12 +98,7 @@ class ForYouController {
 		List<Long> reshow = read.reshowBookIds();
 		Set<Long> planIds = planIds(read);
 		Map<Long, int[]> neighbours = bookTexts.neighbours(base);
-		Set<Long> candidates = new LinkedHashSet<>();
-		for (long bookId : base) {
-			for (int neighbour : neighbours.getOrDefault(bookId, new int[0])) {
-				candidates.add((long) neighbour);
-			}
-		}
+		Set<Long> candidates = new LinkedHashSet<>(SimilarOrder.byCloseness(base, neighbours));
 		// scores are kept on the build's representative edition of each work: a neighbour that is another edition of a
 		// scored work counts as the scored one, two editions of one work show once, the base books' works are left out
 		Map<Long, Double> scores = snapshot.current().map(LastBuild::scores).orElse(Map.of());
@@ -129,11 +124,7 @@ class ForYouController {
 		}
 		candidates = represented;
 		Map<Long, ListedRef> listed = listed();
-		List<Card> books = new ArrayList<>(cards(List.copyOf(candidates), planIds, listed));
-		books.sort(Comparator.<Card>comparingInt(card -> scores.containsKey(card.bookId()) ? 0 : 1)
-			.thenComparing(card -> -scores.getOrDefault(card.bookId(), 0.0))
-			.thenComparing(card -> -card.planLibraryCount())
-			.thenComparingLong(Card::bookId));
+		List<Card> books = cards(List.copyOf(candidates), planIds, listed);
 		Map<Long, String> titles = new HashMap<>();
 		bookCards.cards(base).forEach(card -> titles.put(card.bookId(), card.title()));
 		List<BaseBook> baseBooks = base.stream()
