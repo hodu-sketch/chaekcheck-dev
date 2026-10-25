@@ -6263,6 +6263,11 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - **처리방침 3판**(`sitecontent/004-privacy-policy-v3.yaml`, 시행 2026-10-25): 1절 「AI 책 찾기를 쓴 경우」, 2절 Anthropic, PBC(미국, 30일·위반 판단 시 최대 2년 — Anthropic Privacy Center "How long do you store my organization's data?" 2026-07-01판, https://privacy.claude.com/en/articles/7996866), 거부 문장. 사용자 "이대로 올려". 공지는 2판처럼 운영 DB에 손으로(5-sitecontent.md 1절)
 - 폰 AI 카드: 책 설명을 표지 아래 별도 행(같은 네모 안), 아래 안내는 넓으면 한 줄·좁으면 두 문장으로 나눔(사용자 2026-10-25)
 - Anthropic Console 월 한도: 묻지 않음(서버 하루 $2 상한만). 남은 일
+- **배포 결과**: `release.sh 1.10.0` → `{"version":"1.10.0","commit":"25d031b"}`. 운영 DB에 `aisearch-001/002`, `usagelog-ai-search-event`, `sitecontent-004` 적용. API 키는 사용자가 Parameter Store에 SecureString으로 넣음(up.sh "13 values"). `prod.env`는 서버에 따로 복사(release.sh가 옮기지 않음, 앞 파일 `prod.env.bak-1.9.10`)
+- 운영 `book-texts`: 서버에서 `docker compose … run --rm --no-deps -v /srv/chaekcheck/book-texts:/book-texts:ro -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false backend --spring.profiles.active=collection-import …`. **로그인을 끄지 않으면 `securityFilterChain`이 `HttpSecurity` 없음으로 뜨지 않음**(이 모드는 웹 서버가 아님). 로그: `file rows 1911, search lines 1911, listed books 1911, with line 1911, lines for books not listed 0`
+- 공지 3번 「개인정보 처리방침이 바뀌었어요」(2026-10-25) 운영 DB에 손으로
+- 운영 확인(폰 375px): 첫 화면 AI 메뉴·예시 칩 → `/ai-search` 「미래 소비 트렌드와 경제적 자산 관리」 머리말 + 카드(「퓨처 노멀」 등), 설명이 표지 아래 행, 안내 두 줄. `aisearch.daily_usage` 1요청·2호출·입력 4,599·출력 572토큰·$0.000747
+- 남은 것: 폰 첫 화면 AI 검색창이 좁아 「어떤 책을 찾으세」까지만 보임(사용자에게 알림), 2-2~2-5, 수집 반영 뒤 2단계 한 줄로 바꿔 넣기, 1단계 두 번째 실행, Console 월 한도
 
 # 사이클 23 소개 시험과 탭 표지 (2026-10-24~25 요청)
 
