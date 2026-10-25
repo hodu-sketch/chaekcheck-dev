@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ApiError, fetchForYouBooks, fetchForYouSimilar } from '../../api/client'
 import { sendUsageEvent } from '../../api/usageEvents'
-import type { ForYouBooks, ForYouCard as Card, ForYouSimilar, PickBook } from '../../api/types'
+import type { ForYouBooks, ForYouCard as Card, ForYouSimilar } from '../../api/types'
 import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { useConditionCard } from '../search/useConditionCard'
 import { BaseBooksDialog } from './BaseBooksDialog'
 import { ForYouCard } from './ForYouCard'
+import { pickBook, yearLineOf } from './forYouBook'
 import { layOut } from './forYouOrder'
 import { baseLine, FOR_YOU_TEXT } from './forYouText'
 import { PHONE_QUERY } from './PicksPage'
@@ -30,23 +31,6 @@ function readRecord() {
     base: baseBooks(viewed, now),
     reshow: reshowBooks(viewed, now).map((book) => book.bookId),
     seen: new Set(viewed.map((book) => book.bookId)),
-  }
-}
-
-/** S14 takes a picks book; a for-you card is one with its plan library known to hold it. */
-function pickBook(card: Card): PickBook {
-  return {
-    id: String(card.bookId),
-    category: 'for_you',
-    title: card.title,
-    listTitle: null,
-    coverUrl: card.coverUrl,
-    bookId: card.bookId,
-    available: true,
-    recommendedMonth: null,
-    yearBook: null,
-    videoId: null,
-    tocNo: null,
   }
 }
 
@@ -249,6 +233,7 @@ export function ForYouPage() {
         onClose={() => setSelected(null)}
         onSearch={openBook}
         phone={phone}
+        yearLine={selected ? yearLineOf(selected) : null}
       />
       {changing && <BaseBooksDialog onClose={closeDialog} phone={phone} />}
     </div>

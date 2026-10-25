@@ -21,6 +21,7 @@ import com.chaekcheck.foryou.internal.listed.ListedSource;
 import com.chaekcheck.foryou.internal.source.PopularSource;
 import com.chaekcheck.foryou.internal.source.SiteListSource;
 import com.chaekcheck.foryou.internal.store.ForYouStore;
+import com.chaekcheck.picks.ListedBooks;
 
 /** Beans of the foryou module (cycle 23). */
 @Configuration(proxyBeanMethods = false)
@@ -35,10 +36,9 @@ class ForYouConfiguration {
 		return new ForYouSnapshot(store);
 	}
 
-	/** TODO(cycle 24 merge): an adapter over picks' ListedBooks. */
 	@Bean
-	ListedSource listedSource() {
-		return ListedSource.NONE;
+	ListedSource listedSource(ListedBooks listedBooks) {
+		return ListedSource.of(listedBooks);
 	}
 
 	@Bean

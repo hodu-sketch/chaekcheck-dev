@@ -551,6 +551,12 @@ export interface ForYouCard {
   lists: PicksListKey[]
   /** the first author's key, for "no three of one author in a row" (AC-8), or null */
   authorKey: string | null
+  /** a listed book's AI summary for S14, else null */
+  aiSummary?: string | null
+  /** `YYYY-MM`, the 국립중앙도서관 list's month for S14's year line, else null */
+  recommendedMonth?: string | null
+  /** the KAIST list's year for S14's year line, else null */
+  yearBook?: number | null
 }
 
 /** `GET /api/v1/for-you/books`: `builtOn` null before the first build (then the listed books only). */

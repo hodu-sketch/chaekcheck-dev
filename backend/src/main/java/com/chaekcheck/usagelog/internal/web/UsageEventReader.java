@@ -28,10 +28,11 @@ final class UsageEventReader {
 	static final int MAX_CATEGORY_LENGTH = 20;
 
 	/**
-	 * The recommended lists (ADR-0126; {@code kaist} user 2026-10-19, {@code nobel} user 2026-10-20), as
+	 * The recommended lists (ADR-0126; {@code kaist} user 2026-10-19, {@code nobel} user 2026-10-20) and the
+	 * 「나에게 맞는 책」 tab {@code for_you} (cycle 23), as
 	 * {@code screen_event.picks_list} allows.
 	 */
-	static final Set<String> PICKS_LISTS = Set.of("librarian", "leedongjin", "snu100", "kaist", "nobel");
+	static final Set<String> PICKS_LISTS = Set.of("librarian", "leedongjin", "snu100", "kaist", "nobel", "for_you");
 
 	static final Set<String> PLACES = Set.of("result_card", "join_link", "join_guide", "home_page", "logo",
 			"summary_bar");

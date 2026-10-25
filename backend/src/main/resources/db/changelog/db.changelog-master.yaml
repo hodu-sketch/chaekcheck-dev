@@ -188,15 +188,17 @@ databaseChangeLog:
   - include:
       file: aisearch/002-updated-at-trigger.sql
       relativeToChangelogFile: true
-  # cycle 24: the AI search's usage rows (ADR-0152); file number decided again when cycle 23 is merged
+  # cycle 24: the AI search's usage rows (ADR-0152)
   - include:
       file: usagelog/008-ai-search-event.yaml
       relativeToChangelogFile: true
-  # cycle 23: for-you tab (ADR-0148, ADR-0149). The usagelog change (picks_list for_you) comes after cycle 24's
-  # usagelog-ai-search-event once cycle 24 is on main.
+  # cycle 23: for-you tab (ADR-0148, ADR-0149), after cycle 24's usagelog 008
   - include:
       file: foryou/001-for-you.yaml
       relativeToChangelogFile: true
   - include:
       file: picks/006-tag-dictionary-and-book-tag.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: usagelog/009-screen-event-picks-list-for-you.yaml
       relativeToChangelogFile: true

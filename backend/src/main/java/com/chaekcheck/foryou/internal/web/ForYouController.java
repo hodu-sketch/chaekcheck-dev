@@ -165,10 +165,11 @@ class ForYouController {
 			}
 			ListedRef ref = listed.get(id);
 			String cover = covers.get(id);
+			String month = ref == null || ref.recommendedMonth() == null ? null : ref.recommendedMonth().toString();
 			cards.add(new Card(id, card.title(), card.author(), card.publisher(),
 					cover == null ? null : "/covers/" + cover + ".jpg", blurbs.get(id),
 					ref == null ? List.of() : ref.tags(), planCount, ref == null ? List.of() : ref.listKeys(),
-					card.authorKey()));
+					card.authorKey(), ref == null ? null : ref.aiSummary(), month, ref == null ? null : ref.yearBook()));
 		}
 		return cards;
 	}
@@ -209,9 +210,13 @@ class ForYouController {
 	 * @param planLibraryCount how many of the plan's libraries hold the book (≥ 1)
 	 * @param lists the recommended lists the book is on (keys only; the web writes the tab names)
 	 * @param authorKey the first author's {@code name_exact}, for "no three of one author in a row" (AC-8), or null
+	 * @param aiSummary the lists' AI summary S14 shows for a listed book (user 2026-10-24: "24 뒤에 붙임"), or null
+	 * @param recommendedMonth {@code YYYY-MM}, the librarian list's month for S14's year line, or null
+	 * @param yearBook the KAIST list's year for S14's year line, or null
 	 */
 	record Card(long bookId, String title, String author, String publisher, String coverUrl, String blurb,
-			List<Tag> tags, int planLibraryCount, List<String> lists, String authorKey) {
+			List<Tag> tags, int planLibraryCount, List<String> lists, String authorKey, String aiSummary,
+			String recommendedMonth, Integer yearBook) {
 	}
 
 }
