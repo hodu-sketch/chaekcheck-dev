@@ -100,8 +100,8 @@ class AiSearchFlowTests {
 	@Test
 	void theAnswerStreamsHeadThenEachCheckedCardAndItsText() {
 		llm.then(keywords("과학"))
-			.then(Answer.pieces(List.of("{\"head\":\"잠들기 전", "에 좋아요\",\"picks\":[{\"no\":2,\"text\":\"짧", "아요\"},",
-					"{\"no\":1,\"text\":\"쉬워요\"}]}"), 1800, 400));
+			.then(Answer.pieces(List.of("{\"head\":\"잠들기 전", "에 좋아요\",\"picks\":[{\"no\":2,\"fit\":3,\"text\":\"짧", "아요\"},",
+					"{\"no\":1,\"fit\":3,\"text\":\"쉬워요\"}]}"), 1800, 400));
 
 		run(QUESTION, List.of());
 
@@ -129,10 +129,36 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aPickWithALowFitSendsNeitherCardNorText() { // cycle 24 1단계
+		llm.then(keywords("과학"))
+			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":1,\"text\":\"주제가 다른 책\"},",
+					"{\"no\":2,\"fit\":2,\"text\":\"맞는 책\"}]}"), 1, 1));
+
+		run(QUESTION, List.of());
+
+		assertThat(sink.of(Card.class)).hasSize(1);
+		assertThat(sink.of(CardDelta.class)).extracting(CardDelta::text).containsExactly("맞는 책");
+		assertThat(sink.last(Done.class).bookIds()).hasSize(1);
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
+	void booksWithTheCoreWordsComeFirst() { // cycle 24 1단계
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":false,\"title\":\"\",\"refersToShown\":false,"
+				+ "\"keywords\":[\"과학\",\"이야기\"],\"core\":[\"대하소설\"]}", 1, 1))
+			.then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("대하소설 이야기", List.of());
+
+		// 토지 holds 대하소설 (its line) and comes first, before the twelve 과학 이야기 books
+		assertThat(llm.calls.get(1).messages().getLast().text()).contains("1. 제목: 토지");
+	}
+
+	@Test
 	void aNumberOutsideTheBooksOrSeenBeforeSendsNeitherCardNorText() { // AC-4, AC-18
 		llm.then(keywords("과학"))
-			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":99,\"text\":\"버릴 글\"},",
-					"{\"no\":1,\"text\":\"좋은 글\"},{\"no\":1,\"text\":\"중복 글\"},{\"no\":0,\"text\":\"영 글\"}]}"), 1, 1));
+			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":99,\"fit\":3,\"text\":\"버릴 글\"},",
+					"{\"no\":1,\"fit\":3,\"text\":\"좋은 글\"},{\"no\":1,\"fit\":3,\"text\":\"중복 글\"},{\"no\":0,\"fit\":3,\"text\":\"영 글\"}]}"), 1, 1));
 
 		run(QUESTION, List.of());
 
@@ -146,7 +172,7 @@ class AiSearchFlowTests {
 	@Test
 	void aFailedFirstCallUsesTheQuestionsWords() { // AC-6 first half
 		llm.then(Answer.failAfter(List.of(), Failure.TIMEOUT, new Usage(900, 0, false)))
-			.then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"좋아요\"}]}", 1, 1));
+			.then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"좋아요\"}]}", 1, 1));
 
 		run("과학 이야기를 찾아요", List.of());
 
@@ -172,7 +198,7 @@ class AiSearchFlowTests {
 	@Test
 	void aStreamThatBreaksAfterACardEndsPartial() { // AC-18
 		llm.then(keywords("과학"))
-			.then(Answer.failAfter(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"앞 글\"},{\"no\":2,\"te"),
+			.then(Answer.failAfter(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"앞 글\"},{\"no\":2,\"fit\":3,\"te"),
 					Failure.HTTP_ERROR, new Usage(1800, 0, false)));
 
 		run(QUESTION, List.of());
@@ -197,7 +223,7 @@ class AiSearchFlowTests {
 	void aTitleComesFirstAsATitleLineAndTheUsualAnswerFollows() { // AC-15
 		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"토지\",\"refersToShown\":false,"
 				+ "\"keywords\":[\"토지\",\"대하소설\"]}", 900, 60))
-			.then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"찾으시던 책이에요\"}]}", 1, 1));
+			.then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"찾으시던 책이에요\"}]}", 1, 1));
 
 		run("토지", List.of());
 
@@ -216,10 +242,10 @@ class AiSearchFlowTests {
 
 	@Test
 	void aCardTextStopsAtThreeHundredCharactersAndAtMostEightCardsCome() {
-		StringBuilder picks = new StringBuilder("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"" + "가".repeat(250));
-		picks.append("\"},{\"no\":2,\"text\":\"").append("나".repeat(200)).append("\",\"x\":0}");
+		StringBuilder picks = new StringBuilder("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"" + "가".repeat(250));
+		picks.append("\"},{\"no\":2,\"fit\":3,\"text\":\"").append("나".repeat(200)).append("\",\"x\":0}");
 		for (int no = 3; no <= 10; no++) {
-			picks.append(",{\"no\":").append(no).append(",\"text\":\"글\"}");
+			picks.append(",{\"no\":").append(no).append(",\"fit\":3,\"text\":\"글\"}");
 		}
 		picks.append("]}");
 		llm.then(keywords("과학", "토지")).then(Answer.pieces(List.of(picks.substring(0, 200), picks.substring(200)), 1, 1));
@@ -240,7 +266,7 @@ class AiSearchFlowTests {
 	void aFollowUpThatPointsAtTheLastBooksStartsFromThemAndOtherwiseLeavesThemOut() { // AC-13
 		AiSearchFlow.Turn earlier = new AiSearchFlow.Turn("과학책 추천해줘", List.of(20L, 1L, 777L));
 		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":false,\"title\":\"\",\"refersToShown\":true,"
-				+ "\"keywords\":[\"소설\"]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"소설\"}]}", 1, 1));
+				+ "\"keywords\":[\"소설\"]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"소설\"}]}", 1, 1));
 
 		run("이 중에 소설만", List.of(earlier));
 
@@ -260,7 +286,7 @@ class AiSearchFlowTests {
 	@Test
 	void aClientThatLeavesStopsTheStreamAndNoDoneIsSent() {
 		llm.then(keywords("과학"))
-			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"text\":\"앞\"}", ",{\"no\":2,\"text\":\"뒤\"}]}"), 1, 1));
+			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"앞\"}", ",{\"no\":2,\"fit\":3,\"text\":\"뒤\"}]}"), 1, 1));
 		sink.goneAfter = 2;
 
 		run(QUESTION, List.of());

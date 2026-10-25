@@ -24,6 +24,9 @@ public class CandidateQuery {
 	/** Keywords used at most (design-delta [안]); the rest are dropped. */
 	public static final int MAX_KEYWORDS = 8;
 
+	/** Core words used at most (cycle 24 1단계 [안], the first call is asked for 1 to 4). */
+	public static final int MAX_CORE_WORDS = 4;
+
 	/** Shortest keyword after tidying, in characters (design-delta [안]); pg_bigm needs two for its index. */
 	public static final int MIN_KEYWORD_CHARS = 2;
 
@@ -46,7 +49,21 @@ public class CandidateQuery {
 	 * no usable keyword or no target gives an empty list without a query.
 	 */
 	public List<Candidate> find(List<String> keywords, List<PlanTargets.Target> targets, int limit) {
-		List<String> words = usableKeywords(keywords);
+		return find(keywords, List.of(), targets, limit);
+	}
+
+	/**
+	 * As {@link #find(List, List, int)}, with the question's core words (cycle 24 1단계, user 2026-10-25: a diet
+	 * question brought an anticancer diet book on 식단 alone). Books holding more core words come first, then the usual
+	 * order; books without one still fill the rest (only ruling them out left a children's question with parenting
+	 * books alone, the 2026-10-25 comparison), and the second call's fit weeds out what does not fit.
+	 */
+	public List<Candidate> find(List<String> keywords, List<String> core, List<PlanTargets.Target> targets, int limit) {
+		// the core words come on top of the eight keywords, so they never push a keyword out
+		List<String> coreWords = usableKeywords(core).stream().limit(MAX_CORE_WORDS).toList();
+		LinkedHashSet<String> joined = new LinkedHashSet<>(coreWords);
+		joined.addAll(usableKeywords(keywords));
+		List<String> words = List.copyOf(joined);
 		List<PlanTargets.Target> held = targets.stream().filter(target -> target.planCount() >= 1).toList();
 		if (words.isEmpty() || held.isEmpty() || limit < 1) {
 			return List.of();
@@ -59,19 +76,24 @@ public class CandidateQuery {
 		}
 		List<String> score = new ArrayList<>();
 		List<String> any = new ArrayList<>();
+		List<String> coreScore = new ArrayList<>();
 		for (int i = 0; i < words.size(); i++) {
 			// only generated parameter names go into the text; the keywords are bound
 			String like = "s.search_text LIKE :k" + i + " ESCAPE '\\'";
 			score.add("(" + like + ")::int");
 			any.add(like);
+			if (coreWords.contains(words.get(i))) {
+				coreScore.add("(" + like + ")::int");
+			}
 		}
+		String coreSum = coreScore.isEmpty() ? "0" : String.join(" + ", coreScore);
 		JdbcClient.StatementSpec statement = jdbc.sql("""
-				SELECT s.book_id, %s AS score, e.plan_count
+				SELECT s.book_id, %s AS score, e.plan_count, %s AS core_score
 				FROM aisearch.search_book s
 				JOIN unnest(CAST(:ids AS bigint[]), CAST(:counts AS integer[])) AS e(book_id, plan_count) USING (book_id)
 				WHERE %s
-				ORDER BY score DESC, e.plan_count DESC, s.book_id
-				LIMIT :limit""".formatted(String.join(" + ", score), String.join(" OR ", any)))
+				ORDER BY core_score DESC, score DESC, e.plan_count DESC, s.book_id
+				LIMIT :limit""".formatted(String.join(" + ", score), coreSum, String.join(" OR ", any)))
 			.param("ids", ids)
 			.param("counts", counts)
 			.param("limit", limit);

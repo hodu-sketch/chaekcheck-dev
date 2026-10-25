@@ -23,18 +23,23 @@ final class Prompts {
 			- title: titleLike가 true일 때 그 제목(또는 저자)을 사용자가 쓴 글에 있는 글자 그대로 적는다. 아니면 빈 문자열.
 			- refersToShown: 앞 대화에서 보여 준 책을 가리키는 말이면 true (예: "이 중에 소설만", "더 짧은 걸로", "두 번째 책 비슷한 것"). 아니면 false.
 			- keywords: 책 제목·저자·소개 한 줄에서 찾을 한국어 낱말 1~8개. 명사나 짧은 명사구로, 조사 없이. 주제(과학, 경제), 장르(소설, 에세이, 추리), 분위기(위로, 웃긴), 읽는 사람(아이, 입문)처럼 책 소개에 적힐 법한 말을 고른다. 같은 뜻의 다른 표현도 넣는다(예: "SF", "과학소설"). notBook이면 빈 배열.
-			- 앞 대화가 있으면 이번 글을 그 맥락에서 읽되, keywords는 이번 글의 뜻으로 고른다.""";
+			- core: 질문의 중심 주제, 곧 책이 꼭 다뤄야 하는 것을 나타내는 낱말 1~4개. 같은 뜻의 다른 표현도 넣는다. keywords와 겹쳐도 된다. 예: "다이어트 관련해서 식단을 자세히 다룬 책" → ["다이어트", "체중 감량", "살빼기"] (식단·레시피는 keywords에만). "가을밤에 읽기 좋은 소설" → ["소설"]. 중심 주제를 알 수 없거나 notBook이면 빈 배열.
+			- 앞 대화가 있으면 이번 글을 그 맥락에서 읽되, keywords와 core는 이번 글의 뜻으로 고른다.""";
 
 	static final String KEYWORD_SCHEMA = """
 			{"type":"object","properties":{"notBook":{"type":"boolean"},"titleLike":{"type":"boolean"},
-			"title":{"type":"string"},"refersToShown":{"type":"boolean"},"keywords":{"type":"array","items":{"type":"string"}}},
-			"required":["notBook","titleLike","title","refersToShown","keywords"],"additionalProperties":false}""";
+			"title":{"type":"string"},"refersToShown":{"type":"boolean"},"keywords":{"type":"array","items":{"type":"string"}},
+			"core":{"type":"array","items":{"type":"string"}}},
+			"required":["notBook","titleLike","title","refersToShown","keywords","core"],"additionalProperties":false}""";
 
 	static final String PICK_SYSTEM = """
 			너는 도서 추천 도우미다.
 			- 반드시 아래 책들의 번호 중에서만 고른다. 아래에 없는 책을 말하지 않는다.
 			- 질문에 맞는 책을 0~8권 고른다. 맞는 책이 없으면 빈 목록을 돌려준다. 억지로 고르지 않는다.
 			- 맨 앞 head에 질문에 답하는 머리말을 한국어 한 문장으로 쓴다. 고른 책이 없으면 맞는 책이 적다고 쓴다.
+			- 고른 책마다 fit에 질문에 맞는 정도를 0~3으로 매긴다. 3: 중심 주제와 조건이 다 맞음. 2: 중심 주제는 맞고 조건(자세함, 쉬움, 분량 같은 것)은 덜 맞거나 알 수 없음. 1: 관련은 있지만 중심 주제가 다름. 0: 맞지 않음.
+			- 중심 주제가 맞으면 조건을 확인할 수 없어도 2다. 예: 다이어트 식단을 자세히 다룬 책을 찾을 때 식단을 자세히 다루는지 알 수 없는 다이어트 책은 2. 중심 주제가 다르면 조건 일부가 맞아도 1 이하다. 예: 다이어트 식단 책을 찾는데 항암 식단 책은 1, 아이와 함께 읽을 책을 찾는데 부모가 읽는 육아서는 1.
+			- fit이 2 이상인 책만 고른다. 중심 주제가 맞는 책은 조건을 책 정보로 확인할 수 없어도 빼지 말고 fit 2로 넣는다. head는 고른 책에 맞춰 쓴다.
 			- 고른 책마다 질문에 맞춘 글을 한국어 2~3문장으로 쓴다. 왜 이 질문에 맞는지가 드러나게 쓴다.
 			- 아래 책에 적힌 내용(제목, 저자, 한 줄)만 근거로 쓴다. 적혀 있지 않은 줄거리·수상·저자 정보를 지어내지 않는다.
 			- 한 줄의 문장을 그대로 옮기지 않는다. 자기 말로 다시 쓴다.
@@ -44,7 +49,7 @@ final class Prompts {
 
 	static final String PICK_SCHEMA = """
 			{"type":"object","properties":{"head":{"type":"string"},"picks":{"type":"array","items":{"type":"object",
-			"properties":{"no":{"type":"integer"},"text":{"type":"string"}},"required":["no","text"],
+			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
 			"additionalProperties":false}}},"required":["head","picks"],"additionalProperties":false}""";
 
 	private Prompts() {

@@ -112,8 +112,14 @@ public class AiSearchFlow {
 
 	/** What the first call said (or the fallback). */
 	record KeywordPlan(boolean notBook, boolean titleLike, String title, boolean refersToShown, List<String> keywords,
-			KeywordResult result) {
+			List<String> core, KeywordResult result) {
 	}
+
+	/**
+	 * The lowest fit the second call may give a pick that is shown (cycle 24 1단계 [안], user 2026-10-25: 2 = the core
+	 * topic fits, some of the conditions may not). A lower pick sends neither card nor text.
+	 */
+	static final int MIN_FIT = 2;
 
 	/** Thrown into the model client when the client is gone; ends the stream as {@code CANCELLED}. */
 	private static final class ClientGone extends RuntimeException {
@@ -241,7 +247,7 @@ public class AiSearchFlow {
 			lastShown.stream().filter(planCount::containsKey).limit(max).forEach(chosen::add);
 		}
 		List<Target> rest = targets.stream().filter(target -> !chosen.contains(target.bookId())).toList();
-		for (Candidate candidate : candidates.find(plan.keywords(), rest, max - chosen.size())) {
+		for (Candidate candidate : candidates.find(plan.keywords(), plan.core(), rest, max - chosen.size())) {
 			chosen.add(candidate.bookId());
 		}
 		if (chosen.isEmpty()) {
@@ -274,11 +280,17 @@ public class AiSearchFlow {
 					keywords.add(keyword.asString());
 				}
 			}
+			List<String> core = new ArrayList<>();
+			for (JsonNode word : answer.path("core")) {
+				if (word.isString()) {
+					core.add(word.asString());
+				}
+			}
 			if (!answer.path("notBook").isBoolean() || !answer.path("keywords").isArray()) {
 				throw new IllegalStateException("the keyword answer has not the schema's fields");
 			}
 			return new KeywordPlan(answer.path("notBook").asBoolean(), answer.path("titleLike").asBoolean(false),
-					answer.path("title").asString(""), answer.path("refersToShown").asBoolean(false), keywords,
+					answer.path("title").asString(""), answer.path("refersToShown").asBoolean(false), keywords, core,
 					KeywordResult.OK);
 		}
 		catch (LlmException e) {
@@ -291,7 +303,7 @@ public class AiSearchFlow {
 			failed = KeywordResult.FAILED;
 		}
 		// spec R6-1: the question's own words, nothing on the screen tells
-		return new KeywordPlan(false, false, "", false, List.of(question.split("\\s+")), failed);
+		return new KeywordPlan(false, false, "", false, List.of(question.split("\\s+")), List.of(), failed);
 	}
 
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices,
@@ -300,6 +312,7 @@ public class AiSearchFlow {
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
 		long[] current = { -1 };
+		long[] pending = { -1 };
 		int[] currentChars = { 0 };
 		PickStreamParser parser = new PickStreamParser(new PickStreamParser.Listener() {
 
@@ -311,10 +324,21 @@ public class AiSearchFlow {
 			@Override
 			public void pickNo(long no) {
 				current[0] = -1;
+				pending[0] = -1;
 				if (run.shown.size() >= maxPicks || no < 1 || no > ids.size() || !seen.add(no)) {
 					return;
 				}
-				long bookId = ids.get((int) no - 1);
+				// the card waits for the pick's fit
+				pending[0] = ids.get((int) no - 1);
+			}
+
+			@Override
+			public void pickFit(long fit) {
+				long bookId = pending[0];
+				pending[0] = -1;
+				if (bookId < 0 || fit < MIN_FIT) {
+					return;
+				}
 				ListedBook book = listed.get(bookId);
 				run.shown.add(bookId);
 				run.send(AiSearchEvents.CARD, new Card(run.shown.size(), bookId, book.title(), book.author(),
@@ -338,6 +362,7 @@ public class AiSearchFlow {
 			@Override
 			public void pickEnd() {
 				current[0] = -1;
+				pending[0] = -1;
 			}
 
 		});

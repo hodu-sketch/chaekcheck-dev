@@ -50,6 +50,18 @@ class CandidateQueryTests {
 	}
 
 	@Test
+	void booksHoldingCoreWordsComeFirstAndTheRestStill() { // cycle 24 1단계
+		store(List.of(new Book(1, "다이어트 식단", null), new Book(2, "기적의 항암 식단", null), new Book(3, "살빼기 레시피", null)),
+				List.of());
+		List<Target> all = List.of(new Target(1, 1), new Target(2, 9), new Target(3, 1));
+
+		assertThat(query.find(List.of("식단", "레시피"), List.of("다이어트", "살빼기"), all, 30)).extracting(Candidate::bookId)
+			.containsExactly(1L, 3L, 2L);
+		assertThat(query.find(List.of("식단", "레시피"), List.of("다이어트", "살빼기"), all, 2)).extracting(Candidate::bookId)
+			.containsExactly(1L, 3L);
+	}
+
+	@Test
 	void tiesAreCutAfterTheOrderNotByBookIdFirst() {
 		List<Book> books = new ArrayList<>();
 		List<Target> targets = new ArrayList<>();
