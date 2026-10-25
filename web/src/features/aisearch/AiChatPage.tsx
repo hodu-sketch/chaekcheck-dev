@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Fragment, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
+import { aiSearchStream, fetchAiLibraryCounts, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
 import { ApiError } from '../../api/client'
 import type { PickBook } from '../../api/types'
 import { useMediaQuery } from '../../lib/useMediaQuery'
@@ -114,6 +114,42 @@ export function AiChatPage() {
         if (requests.current.get(id) === controller) requests.current.delete(id)
       })
   }
+
+  // the cards' 내 도서관 counts follow the plan as it is now (user 2026-10-25: a region set elsewhere after the answer):
+  // only the books already shown are counted again, with no new search; again whenever the plan changes
+  const visit = loadPrefs().visit
+  const planKey = JSON.stringify([regions.residence, regions.work, libraryIds, visit])
+  useEffect(() => {
+    if (source === 'waiting' || busy) return
+    const bookIds = [...new Set(chat.turns.flatMap((turn) => turn.cards.map((card) => card.bookId)))]
+    if (bookIds.length === 0) return
+    const controller = new AbortController()
+    const body = {
+      bookIds,
+      residenceRegionIds: regions.residence,
+      workRegionIds: regions.work,
+      libraryIds,
+      scope: 'joinable' as const,
+      visit,
+    }
+    fetchAiLibraryCounts(body, controller.signal)
+      .then((counts) =>
+        setChat((current) => ({
+          turns: current.turns.map((turn) => ({
+            ...turn,
+            cards: turn.cards.map((card) => {
+              const count = counts[String(card.bookId)]
+              return count === undefined || count === card.myLibraryCount ? card : { ...card, myLibraryCount: count }
+            }),
+          })),
+        })),
+      )
+      // the counts of the answer stay
+      .catch(() => {})
+    return () => controller.abort()
+    // the plan and the end of a search start it; the books are read when it starts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planKey, source, busy])
 
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end' })

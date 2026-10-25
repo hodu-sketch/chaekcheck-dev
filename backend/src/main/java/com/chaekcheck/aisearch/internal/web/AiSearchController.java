@@ -2,6 +2,7 @@ package com.chaekcheck.aisearch.internal.web;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 import com.chaekcheck.aisearch.internal.flow.AiSearchFlow;
 import com.chaekcheck.aisearch.internal.flow.AiSearchSink;
+import com.chaekcheck.aisearch.internal.match.CandidateQuery;
 import com.chaekcheck.aisearch.internal.quota.AiSearchQuota;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.aisearch.internal.web.AiSearchErrors.BusyException;
@@ -50,12 +52,18 @@ import com.chaekcheck.usagelog.UsageRequest;
  * {@code server_busy} + {@code Retry-After}. Then the search runs on a virtual thread and streams. {@code GET
  * /api/v1/ai-searches/status}: 200 {@code {}} when on, 404 when off (step 0 #9). With login on, the POST needs the CSRF
  * header like {@code POST /api/v1/usage-events} (step 0 #5). The question never reaches a log or an error message.
+ * {@code POST /api/v1/ai-searches/library-counts}: how many of the plan's libraries hold each book the conversation
+ * already showed, so the cards follow a region changed after the answer (user 2026-10-25: "이미 검색된 도서에 한해서");
+ * no AI call, so neither the IP's limits nor the day's cost count it.
  */
 @RestController
 class AiSearchController {
 
 	/** A body larger than this is not a question (design-delta sizes: 200 + 5 × 200 characters and ids) [안]. */
 	static final int MAX_BODY_CHARS = 16 * 1024;
+
+	/** Books one count request may ask about: every card of a full conversation (20 turns of at most 8). */
+	static final int MAX_COUNT_BOOKS = 160;
 
 	/** Slack after the last possible event for the final events to be written. */
 	static final Duration EMITTER_GRACE = Duration.ofSeconds(10);
@@ -72,6 +80,8 @@ class AiSearchController {
 
 	private final LibraryCatalog libraries;
 
+	private final CandidateQuery candidates;
+
 	private final UsageLog usageLog;
 
 	private final JsonMapper json;
@@ -79,7 +89,7 @@ class AiSearchController {
 	private final ExecutorService executor;
 
 	AiSearchController(AiSearchProperties properties, AiSearchFlow flow, AiSearchQuota quota, DailyBudget budget,
-			AiSearchSlots slots, LibraryCatalog libraries, UsageLog usageLog, JsonMapper json,
+			AiSearchSlots slots, LibraryCatalog libraries, CandidateQuery candidates, UsageLog usageLog, JsonMapper json,
 			@Qualifier("aiSearchExecutor") ExecutorService executor) {
 		this.properties = properties;
 		this.flow = flow;
@@ -87,6 +97,7 @@ class AiSearchController {
 		this.budget = budget;
 		this.slots = slots;
 		this.libraries = libraries;
+		this.candidates = candidates;
 		this.usageLog = usageLog;
 		this.json = json;
 		this.executor = executor;
@@ -98,6 +109,28 @@ class AiSearchController {
 			throw new OffException();
 		}
 		return ResponseEntity.ok().cacheControl(CacheControl.noCache()).body(Map.of());
+	}
+
+	@PostMapping("/api/v1/ai-searches/library-counts")
+	ResponseEntity<Map<String, Object>> libraryCounts(HttpServletRequest request) {
+		if (!properties.enabled()) {
+			throw new OffException();
+		}
+		LibraryCountsRequest parsed = read(request, LibraryCountsRequest.class);
+		Set<Long> bookIds = ids("bookIds", parsed.bookIds());
+		if (bookIds.size() > MAX_COUNT_BOOKS) {
+			throw new InvalidRequestException("bookIds", "too_many", "bookIds holds at most " + MAX_COUNT_BOOKS + " ids");
+		}
+		Set<Long> residence = ids("residenceRegionIds", parsed.residenceRegionIds());
+		Set<Long> work = ids("workRegionIds", parsed.workRegionIds());
+		Set<Long> chosen = ids("libraryIds", parsed.libraryIds());
+		PlanOptions options = new PlanOptions(scope(parsed.scope()), visit(parsed.visit()), chosen);
+		Set<Long> planLibraries = new LinkedHashSet<>();
+		libraries.planSearch(residence, work, options).forEach(target -> planLibraries.add(target.id()));
+		Map<Long, Integer> found = candidates.planCounts(bookIds, planLibraries);
+		Map<Long, Integer> counts = new LinkedHashMap<>();
+		bookIds.forEach(id -> counts.put(id, found.getOrDefault(id, 0)));
+		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(Map.of("counts", counts));
 	}
 
 	@PostMapping("/api/v1/ai-searches/stream")
@@ -114,7 +147,7 @@ class AiSearchController {
 			throw new RateLimitedException(decision.retryAfterSeconds());
 		}
 		UsageRequest usage = usageLog.capture(request);
-		AiSearchRequest parsed = read(request);
+		AiSearchRequest parsed = read(request, AiSearchRequest.class);
 		String question = question(parsed.question());
 		int turnNo = turnNo(parsed.turnNo());
 		List<AiSearchFlow.Turn> history = history(parsed.history());
@@ -165,7 +198,7 @@ class AiSearchController {
 	}
 
 	/** Reads at most {@value #MAX_BODY_CHARS} bytes, whether or not the request says its length (chunked bodies too). */
-	private AiSearchRequest read(HttpServletRequest request) {
+	private <T> T read(HttpServletRequest request, Class<T> type) {
 		byte[] bytes;
 		try {
 			bytes = request.getContentLengthLong() > MAX_BODY_CHARS ? null
@@ -179,7 +212,7 @@ class AiSearchController {
 		}
 		String body = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
 		try {
-			AiSearchRequest parsed = json.readValue(body, AiSearchRequest.class);
+			T parsed = json.readValue(body, type);
 			if (parsed == null) {
 				throw new InvalidRequestException("body", "invalid_format", "a JSON object is needed");
 			}

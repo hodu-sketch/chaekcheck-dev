@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { aiSearchStream, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
+import { aiSearchStream, fetchAiLibraryCounts, type AiSearchBody, type AiStreamEvent } from '../../api/aiSearch'
 import { ApiError } from '../../api/client'
 import { AiChatPage } from './AiChatPage'
 import { addQuestion, EMPTY_CHAT, loadChat, saveChat, startWithQuestion, type AiChat } from './aiChatStore'
@@ -13,9 +13,10 @@ const MAPO = { regions: { residence: [1116], work: [] as number[] }, libraryIds:
 const regionState = vi.hoisted(() => ({ current: null as unknown }))
 vi.mock('../region/RegionContext', () => ({ useRegions: () => regionState.current }))
 vi.mock('../search/regionPlace', () => ({ useMineLabel: () => '마포구', useTagPlace: () => null }))
-vi.mock('../../api/aiSearch', () => ({ aiSearchStream: vi.fn() }))
+vi.mock('../../api/aiSearch', () => ({ aiSearchStream: vi.fn(), fetchAiLibraryCounts: vi.fn() }))
 
 const stream = vi.mocked(aiSearchStream)
+const counts = vi.mocked(fetchAiLibraryCounts)
 
 afterEach(cleanup)
 
@@ -23,6 +24,8 @@ beforeEach(() => {
   regionState.current = MAPO
   sessionStorage.clear()
   stream.mockReset()
+  counts.mockReset()
+  counts.mockResolvedValue({})
 })
 
 const CARD = {
@@ -121,6 +124,23 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     await user.click(screen.getByRole('button', { name: '새 대화' }))
     expect(screen.queryByText('우주 책')).toBeNull()
     expect(loadChat().turns).toHaveLength(0)
+  })
+
+  it('counts the plan libraries again for the books shown, with no new search (user 2026-10-25)', async () => {
+    startWithQuestion('우주 책')
+    answers(...okAnswer)
+    setup()
+    expect(await screen.findByText('내 도서관 2곳')).toBeTruthy()
+    cleanup()
+
+    // the region was changed on another page: the page counts again when it comes back
+    regionState.current = { ...MAPO, regions: { residence: [1116, 1117], work: [] } }
+    counts.mockResolvedValue({ '7': 5 })
+    setup()
+    expect(await screen.findByText('내 도서관 5곳')).toBeTruthy()
+    expect(counts.mock.calls.at(-1)![0]).toMatchObject({ bookIds: [7], residenceRegionIds: [1116, 1117], libraryIds: [12] })
+    expect(stream).toHaveBeenCalledTimes(1)
+    expect(loadChat().turns[0].cards[0].myLibraryCount).toBe(5)
   })
 
   it('asks for a new chat after twenty questions', () => {

@@ -67,6 +67,12 @@ class AiSearchControllerTests {
 	AiSearchSlots slots;
 
 	@Autowired
+	com.chaekcheck.library.LibraryCatalog libraryCatalog;
+
+	@Autowired
+	com.chaekcheck.aisearch.AiSearchBookTexts bookTexts;
+
+	@Autowired
 	com.chaekcheck.aisearch.internal.quota.DailyBudget budget;
 
 	/** The quota lives as long as the context: every request takes a new IP unless it means to share one. */
@@ -184,6 +190,49 @@ class AiSearchControllerTests {
 				slots.release();
 			}
 		}
+	}
+
+	@Test
+	@org.springframework.transaction.annotation.Transactional
+	void theCountsFollowThePlanForTheBooksAlreadyShown() { // user 2026-10-25: a region changed after the answer
+		long library = libraryCatalog
+			.planSearch(java.util.Set.of(), java.util.Set.of(),
+					new com.chaekcheck.library.PlanOptions(com.chaekcheck.library.PlanOptions.Scope.JOINABLE,
+							com.chaekcheck.library.PlanOptions.Visit.ANY))
+			.getFirst()
+			.id();
+		bookTexts.replace(java.util.List.of(new com.chaekcheck.aisearch.AiSearchBookTexts.Book(1, "가", null,
+				new long[] { library, 999_999_999 }), new com.chaekcheck.aisearch.AiSearchBookTexts.Book(2, "나", null,
+						new long[] { 999_999_999 })), java.util.List.of());
+
+		MvcTestResult counts = countsPost("{\"bookIds\":[1,2,3],\"scope\":\"joinable\"}");
+
+		assertThat(counts).hasStatusOk().bodyJson().isEqualTo("{\"counts\":{\"1\":1,\"2\":0,\"3\":0}}");
+		assertThat(countsPost("{\"bookIds\":[1],\"libraryIds\":[" + library + "]}")).hasStatusOk()
+			.bodyJson()
+			.extractingPath("$.counts.1")
+			.isEqualTo(1);
+	}
+
+	@Test
+	void theCountsTakeAtMost160BooksAndKnownRegions() {
+		StringBuilder ids = new StringBuilder("1");
+		for (int i = 2; i <= 161; i++) {
+			ids.append(',').append(i);
+		}
+		assertProblem(countsPost("{\"bookIds\":[" + ids + "]}"), HttpStatus.BAD_REQUEST, "validation_error");
+		assertProblem(countsPost("{\"bookIds\":[1],\"residenceRegionIds\":[999999999]}"),
+				HttpStatus.UNPROCESSABLE_CONTENT, "invalid_region");
+		assertProblem(countsPost("{\"bookIds\":[0]}"), HttpStatus.BAD_REQUEST, "validation_error");
+	}
+
+	private MvcTestResult countsPost(String json) {
+		return mvc.post()
+			.uri("/api/v1/ai-searches/library-counts")
+			.contentType(MediaType.APPLICATION_JSON)
+			.header("X-Real-IP", nextIp())
+			.content(json)
+			.exchange();
 	}
 
 	private MvcTestResult post(String json, String ip) {

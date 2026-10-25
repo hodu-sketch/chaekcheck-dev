@@ -6,7 +6,8 @@ import type { LibraryScope, VisitFilter } from './types'
 /**
  * The AI book search (cycle 24, ADR-0150~0153): `GET /api/v1/ai-searches/status` (200 on, 404 off) and
  * `POST /api/v1/ai-searches/stream`. The question goes in the body only, never in the address (ADR-0152). Its own
- * POST reader on the shared `SseParser` (the GET reader of `searchStream.ts` stays as it is).
+ * POST reader on the shared `SseParser` (the GET reader of `searchStream.ts` stays as it is). `POST
+ * /api/v1/ai-searches/library-counts` counts the plan's libraries again for the books already shown.
  */
 
 export type AiTurn = { question: string; bookIds: number[] }
@@ -48,6 +49,7 @@ export type AiStreamEvent =
 const EVENT_NAMES = new Set(['title-guess', 'head-delta', 'card', 'card-delta', 'done', 'error'])
 
 const STREAM_URL = '/api/v1/ai-searches/stream'
+const COUNTS_URL = '/api/v1/ai-searches/library-counts'
 const CSRF_HEADER = 'X-XSRF-TOKEN'
 
 /** Whether the AI search is on (status 200) or off (404); other failures count as unknown and keep the AI tab. */
@@ -68,11 +70,7 @@ export async function aiSearchStream(
   signal: AbortSignal,
 ): Promise<void> {
   const text = JSON.stringify(body)
-  let response = await send(text, readCsrfCookie(), signal)
-  if (await isCsrfRejection(response)) {
-    await fetchCsrfToken()
-    response = await send(text, readCsrfCookie(), signal)
-  }
+  const response = await post(STREAM_URL, 'text/event-stream, application/problem+json', text, signal)
   if (!response.ok) throw await readProblem(response)
   if (!response.body) throw new Error('Stream has no body')
 
@@ -93,13 +91,30 @@ export async function aiSearchStream(
   }
 }
 
-function send(body: string, token: string | null, signal: AbortSignal): Promise<Response> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'text/event-stream, application/problem+json',
-  }
+export type AiCountsBody = Omit<AiSearchBody, 'question' | 'turnNo' | 'history'> & { bookIds: number[] }
+
+/**
+ * How many of the plan's libraries hold each of the given books, by book id (user 2026-10-25: the cards follow a
+ * region set after the answer). No AI call.
+ */
+export async function fetchAiLibraryCounts(body: AiCountsBody, signal: AbortSignal): Promise<Record<string, number>> {
+  const response = await post(COUNTS_URL, 'application/json, application/problem+json', JSON.stringify(body), signal)
+  if (!response.ok) throw await readProblem(response)
+  return ((await response.json()) as { counts: Record<string, number> }).counts
+}
+
+/** A POST with the CSRF header, sent once more with a fresh token when the first is refused for it. */
+async function post(url: string, accept: string, body: string, signal: AbortSignal): Promise<Response> {
+  const response = await send(url, accept, body, readCsrfCookie(), signal)
+  if (!(await isCsrfRejection(response))) return response
+  await fetchCsrfToken()
+  return send(url, accept, body, readCsrfCookie(), signal)
+}
+
+function send(url: string, accept: string, body: string, token: string | null, signal: AbortSignal): Promise<Response> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: accept }
   if (token !== null) headers[CSRF_HEADER] = token
-  return fetch(STREAM_URL, { method: 'POST', credentials: 'same-origin', headers, body, signal })
+  return fetch(url, { method: 'POST', credentials: 'same-origin', headers, body, signal })
 }
 
 async function isCsrfRejection(response: Response): Promise<boolean> {
