@@ -6613,3 +6613,15 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - S14(이 탭에서 연 책 창): 「달러구트 꿈 백화점」에 연도 줄 "2026년 KAIST 사서추천"과 AI 요약이 보임. **책 창은 대출 조회를 보냄** — 이번에 3건(ebook.issl.go.kr·ebook.gunsan.go.kr·ebook.mokpolib.or.kr, 프록시 길), 셋 다 돌고 있는 수집·표지 받기 서버가 아님을 뒤에 확인. 그 뒤 책 창은 더 열지 않음
 - 본 것: 1차에는 탭 글·꼬리표가 없는데도 "책 소개 글과 꼬리표는 AI가 골랐어요" 줄이 늘 보임 → 글·꼬리표가 하나도 없을 때 숨길지 사용자에게 물음
 - 남음: 사용자 화면 확인, 사용자 폰(Samsung Internet) 확인
+
+### 탭 추천 글 1차 (2026-10-25, 사용자 "각각 ai 요약 글 haiku batch로 … 원래 추천도서에 있는 거")
+
+- 스크립트 `scripts/crawl/foryou_blurbs.py`(prepare → submit → collect, 시험 `test_foryou_blurbs.py`). 대상: `picks.list_book.book_id` 1,859권 중 `foryou.book_blurb`가 없는 책(지금 모두), 소개 원문 있음 1,822·없음 37(서지만, 모르면 NONE). 규칙 R8-4를 검사해 어긋난 글은 버리고 다음 prepare에서 그 책만 다시 씀. 결과 `ml/foryou/book-texts-for_you_blurb.tsv` → `book-texts` 넣기
+- **설계와 다름**: 결정 #7(한 권당 한 번 호출로 탭 글·꼬리표·찾기 한 줄)과 달리 이번은 탭 글만. 꼬리표는 사전이 없고, 찾기 한 줄은 24(3만 권 세션)가 정할 일
+- 막힘: 이 PC `.env`에 Anthropic API 키가 없어 submit 전. 사용자에게 키를 `.env`에 넣어 달라고 함
+- 사용자 질문 "현재 AI가 안 고르는 거 아니야?": 맞음 — 1차 글·꼬리표가 들어가기 전에는 "책 소개 글과 꼬리표는 AI가 골랐어요" 줄이 사실과 다름. 글이 들어간 뒤 문구를 화면 시안으로 정하기로 함
+
+### 24와의 일 (2026-10-25)
+
+- 사이클 24 세션(chaekcheck-dev-cycle-24-AI)에 3만 권 임베딩·탭 표지 준비를 알림. 24 쪽 사용자 결정(그 세션이 전한 말): "임베딩은 (가) 이웃부터: 23 합치기·운영 neighbours 넣기·foryou 읽기 API를 준비해서 이어서 묻기에 앞 책의 이웃을 후보로 더해줘" → 24가 `foryou.BookNeighbours`(공개 읽기)를 만들 예정. 23은 "운영 반영은 사용자 승인 뒤 한 번"을 알림
+- 3만 권 세션(브랜치 `claude/ai-search-30k-be7780`)과 겹침: `BookTextsImport`·`CatalogImportRunner.Settings`·관련 시험. 나중에 들어가는 쪽이 맞춤. 그 세션이 로컬 `db`에 `aisearch-003`을 적용하고 `search_book`을 30,939권으로 바꿈
