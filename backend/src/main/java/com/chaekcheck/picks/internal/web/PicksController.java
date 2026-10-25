@@ -22,6 +22,7 @@ import com.chaekcheck.library.Eligibility;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
+import com.chaekcheck.picks.FieldGroups;
 import com.chaekcheck.picks.internal.PicksProperties;
 import com.chaekcheck.picks.internal.cache.MainShelf;
 import com.chaekcheck.picks.internal.cache.PicksCache;
@@ -75,7 +76,7 @@ class PicksController {
 			.forEach(target -> open.add(target.id()));
 		List<Picks.Book> books = MainShelf.choose(cache.snapshot(PicksCache.KAIST), open, random)
 			.stream()
-			.map(book -> book(book, planIds))
+			.map(book -> book(PicksCache.KAIST, book, planIds))
 			.toList();
 		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Shelf(PicksCache.KAIST, books));
 	}
@@ -94,7 +95,7 @@ class PicksController {
 		List<Picks.Category> categories = snapshot.categories()
 			.stream()
 			.map(category -> new Picks.Category(category.code(), category.name(),
-					category.books().stream().map(book -> book(book, planIds)).toList()))
+					category.books().stream().map(book -> book(listKey, book, planIds)).toList()))
 			.toList();
 		String fetchedAt = snapshot.fetchedAt() == null ? null
 				: snapshot.fetchedAt()
@@ -126,7 +127,7 @@ class PicksController {
 		return planIds;
 	}
 
-	private static Picks.Book book(PicksCache.Book book, Set<Long> planIds) {
+	private static Picks.Book book(String listKey, PicksCache.Book book, Set<Long> planIds) {
 		boolean available = false;
 		if (book.bookId() != null) {
 			for (long libraryId : book.libraryIds()) {
@@ -139,7 +140,7 @@ class PicksController {
 		return new Picks.Book(book.id(), book.category(), book.title(), book.listTitle(),
 				book.coverPath(), book.bookId(), available,
 				book.recommendedMonth() == null ? null : book.recommendedMonth().format(MONTH), book.yearBook(),
-				book.videoId(), book.tocNo(), book.aiSummary());
+				book.videoId(), book.tocNo(), book.aiSummary(), FieldGroups.of(listKey, book.category()));
 	}
 
 	/** An id that is not a positive number names no cover: 404 like a missing one. */
@@ -194,10 +195,12 @@ class PicksController {
 		 * @param videoId Lee Dong-jin's video, else null
 		 * @param tocNo the SNU table-of-contents number, else null
 		 * @param aiSummary a short AI-written summary of the book (the web says so behind an ⓘ), else null
+		 * @param fieldGroup the field's group ({@code FieldGroups}), kept with the books a browser looked at so its
+		 *     「책첵 추천」 base books spread over the fields (user 2026-10-25); null for an unknown field
 		 */
 		record Book(String id, String category, String title, String listTitle, String coverUrl, Long bookId,
 				boolean available, String recommendedMonth, Integer yearBook, String videoId, Integer tocNo,
-				String aiSummary) {
+				String aiSummary, String fieldGroup) {
 		}
 
 	}

@@ -19,6 +19,7 @@ export function pickBook(card: Card): PickBook {
     videoId: null,
     tocNo: null,
     aiSummary: card.aiSummary ?? null,
+    fieldGroup: card.fieldGroup ?? null,
   }
 }
 

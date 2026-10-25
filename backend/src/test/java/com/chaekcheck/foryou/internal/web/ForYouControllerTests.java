@@ -161,7 +161,7 @@ class ForYouControllerTests {
 	@Test
 	void validationCodes() {
 		invalid(SIMILAR, "baseBookIds", "required");
-		invalid(SIMILAR + "?baseBookIds=1,2,3,4", "baseBookIds", "too_many");
+		invalid(SIMILAR + "?baseBookIds=1,2,3,4,5,6,7", "baseBookIds", "too_many");
 		invalid(SIMILAR + "?baseBookIds=1,1", "baseBookIds", "duplicate");
 		invalid(SIMILAR + "?baseBookIds=1&baseBookIds=2", "baseBookIds", "duplicate");
 		invalid(SIMILAR + "?baseBookIds=a", "baseBookIds", "invalid_format");

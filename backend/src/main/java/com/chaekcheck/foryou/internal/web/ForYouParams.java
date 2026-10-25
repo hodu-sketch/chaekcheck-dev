@@ -23,7 +23,8 @@ final class ForYouParams {
 
 	static final int MAX_LIBRARY_IDS = 20;
 
-	static final int MAX_BASE_BOOKS = 3;
+	/** Base books (spec R5-5 had 3; user 2026-10-25: "기준 책이 너무 작아" → 6). */
+	static final int MAX_BASE_BOOKS = 6;
 
 	static final int MAX_RESHOW_BOOKS = 6;
 

@@ -419,6 +419,8 @@ export interface PickBook {
   tocNo: number | null
   /** A short AI-written summary of the book (S14 shows it under 「AI 요약 ⓘ」), else null. Absent from older servers. */
   aiSummary?: string | null
+  /** the field's group (literature, humanities, …), kept with the books this browser looked at; null when unknown */
+  fieldGroup?: string | null
 }
 
 /** One field in display order: `ALL` first, then the list's fields. `name` is the name shown. */

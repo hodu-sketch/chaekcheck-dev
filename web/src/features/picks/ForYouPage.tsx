@@ -158,14 +158,26 @@ export function ForYouPage() {
       <section className={styles.results} aria-label="책첵 추천 목록">
         <ol className={styles.grid}>
           <ForYouCard card={layout.top} wide onPick={pick} />
-          {layout.personal.map((card) => (
-            <ForYouCard key={`p-${card.bookId}`} card={card} onPick={pick} />
+          {layout.personal.map((card, i) => (
+            <ForYouCard
+              key={`p-${card.bookId}`}
+              card={card}
+              onPick={pick}
+              // an odd last card takes the whole row, so no empty place is left before the base list
+              full={i === layout.personal.length - 1 && layout.personal.length % 2 === 1}
+            />
           ))}
         </ol>
         {layout.hasMore && (
           <button type="button" className={picksStyles.more} onClick={() => setPages((n) => n + 1)}>
             {FOR_YOU_TEXT.more}
           </button>
+        )}
+        {/* only after personal picks: without them the whole list is the base list */}
+        {layout.base.length > 0 && personalIds.has(layout.top.bookId) && (
+          <h2 className={styles.baseHeading}>
+            {baseResult.data?.builtOn ? FOR_YOU_TEXT.baseHeadingPopular : FOR_YOU_TEXT.baseHeadingListed}
+          </h2>
         )}
         {layout.base.length > 0 && (
           <ol className={`${styles.grid} ${styles.baseGrid}`}>

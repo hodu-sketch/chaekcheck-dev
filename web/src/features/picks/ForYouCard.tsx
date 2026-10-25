@@ -7,6 +7,8 @@ type Props = {
   card: Card
   /** the one card across the whole row at the top (R1-3) */
   wide?: boolean
+  /** a card of the usual size that takes the whole row (an odd last personal pick) */
+  full?: boolean
   onPick: (card: Card) => void
 }
 
@@ -16,12 +18,12 @@ type Props = {
  * 적당히 큰 글자로 ai요약"; spec R8-1 keeps the two apart, so the blurb wins when there is one), 2-3 tags that do nothing when pressed, "내 도서관 N곳", and the lists' footer for a
  * listed book. A tap opens S14. No AI mark on the card (AC-9).
  */
-export function ForYouCard({ card, wide = false, onPick }: Props) {
+export function ForYouCard({ card, wide = false, full = false, onPick }: Props) {
   const meta = [card.author, card.publisher].filter(Boolean).join(' · ')
   const footer = listsFooter(card.lists)
   const words = card.blurb ?? card.aiSummary ?? null
   return (
-    <li className={wide ? styles.topCell : styles.cell}>
+    <li className={wide || full ? styles.topCell : styles.cell}>
       <button type="button" className={styles.card} data-wide={wide || undefined} onClick={() => onPick(card)}>
         <span className={styles.coverBox}>
           <CoverImage className={styles.cover} url={card.coverUrl} title={card.title} />

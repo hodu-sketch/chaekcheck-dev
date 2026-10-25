@@ -155,6 +155,8 @@ describe('S18 for-you (cycle 23)', () => {
     await screen.findByRole('region', { name: '책첵 추천 목록' })
     const [first, second] = cardButtons()
     expect(first.textContent).toContain('KAIST·서울대 외 1 추천목록에 있어요')
+    // no personal picks: the whole list is the base list, no heading between its cards
+    expect(screen.queryByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeNull()
     expect(first.textContent).toContain('잔잔하게 읽히는 이야기예요.')
     expect(within(first).getByText('잔잔한')).toBeTruthy()
     expect(first.textContent).toContain('내 도서관 2곳')
@@ -171,6 +173,9 @@ describe('S18 for-you (cycle 23)', () => {
     recordOpened(501, '고래', now)
     recordLibraryClicked(501, now)
     recordOpened(502, '파과', now - 1000)
+    recordOpened(505, '흰', now - 2000)
+    recordOpened(506, '토지', now - 3000)
+    recordOpened(507, '채식주의자', now - 4000)
     recordOpened(503, '아몬드', now - 5 * DAY)
     recordOpened(504, '옛 책', now - 6 * DAY)
     const calls = stubFetch({
@@ -183,8 +188,11 @@ describe('S18 for-you (cycle 23)', () => {
     expect(screen.queryByRole('button', { name: '기준 책 바꾸기' })).toBeNull()
     // 2 is a personal pick and in the base list: once, with the personal picks
     expect(cardTitles()).toEqual(['책 10', '책 2', '책 1', '책 3'])
+    // after the personal picks the base list has its own heading (user 2026-10-25)
+    expect(screen.getByRole('heading', { name: '요즘 많이 빌리는 책과 추천목록 책' })).toBeTruthy()
     const [similar] = similarCalls(calls)
-    expect(similar.searchParams.get('baseBookIds')).toBe('501,502,503')
+    // six base books since 2026-10-25 ("기준 책이 너무 작아")
+    expect(similar.searchParams.get('baseBookIds')).toBe('501,502,505,506,507,503')
     expect(similar.searchParams.get('reshowBookIds')).toBe('504')
   })
 

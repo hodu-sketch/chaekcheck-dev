@@ -15,8 +15,10 @@ const DAY = 24 * 60 * 60 * 1000
 export const KEEP_DAYS = 30
 /** [확정] R5-5 */
 export const MAX_BOOKS = 200
-/** [확정] R5-5: base books */
-export const BASE_COUNT = 3
+/** Base books: 3 in spec R5-5; 6 since the user's "기준 책이 너무 작아" (2026-10-25) */
+export const BASE_COUNT = 6
+/** At most this many base books of one field group, so they spread over the fields (user 2026-10-25) [안] */
+export const BASE_PER_FIELD = 2
 /** [확정] R6-1b: a seen book may come back after this many days */
 export const RESHOW_AFTER_DAYS = 3
 /** [확정] design-delta API: at most 6 books to show again are sent */
@@ -37,6 +39,8 @@ export interface ViewedBook {
   lastAt: number
   /** until then the book is not a base book (S19 [빼기]); null when never removed */
   removedUntil: number | null
+  /** the book's field group when the screen knew it (a recommended-list book), else absent or null */
+  fieldGroup?: string | null
 }
 
 export function points(book: ViewedBook): number {
@@ -85,7 +89,8 @@ function isViewedBook(value: unknown): value is ViewedBook {
     typeof book.libraryClicked === 'boolean' &&
     typeof book.lastAt === 'number' &&
     Number.isFinite(book.lastAt) &&
-    (book.removedUntil === null || (typeof book.removedUntil === 'number' && Number.isFinite(book.removedUntil)))
+    (book.removedUntil === null || (typeof book.removedUntil === 'number' && Number.isFinite(book.removedUntil))) &&
+    (book.fieldGroup === undefined || book.fieldGroup === null || typeof book.fieldGroup === 'string')
   )
 }
 
@@ -98,13 +103,14 @@ function trim(books: ViewedBook[], now: number): ViewedBook[] {
 
 type Mark = 'opened' | 'dwelled' | 'libraryClicked'
 
-function mark(bookId: number, title: string | null, what: Mark, now: number): void {
+function mark(bookId: number, title: string | null, what: Mark, now: number, fieldGroup?: string | null): void {
   const books = readViewed(now)
   const found = books.find((book) => book.bookId === bookId)
   if (found) {
     found[what] = true
     found.lastAt = now
     if (title) found.title = title
+    if (fieldGroup) found.fieldGroup = fieldGroup
   } else if (title) {
     // a library press without an opened book first (should not happen) adds nothing: every record has its title
     books.push({
@@ -115,14 +121,15 @@ function mark(bookId: number, title: string | null, what: Mark, now: number): vo
       libraryClicked: what === 'libraryClicked',
       lastAt: now,
       removedUntil: null,
+      ...(fieldGroup ? { fieldGroup } : {}),
     })
   }
   writeViewed(trim(books, now))
 }
 
-/** The book screen or a picks book window opened the book (R5-3). */
-export function recordOpened(bookId: number, title: string, now: number = Date.now()): void {
-  mark(bookId, title, 'opened', now)
+/** The book screen or a picks book window opened the book (R5-3), with its field group when the screen knows it. */
+export function recordOpened(bookId: number, title: string, now: number = Date.now(), fieldGroup?: string | null): void {
+  mark(bookId, title, 'opened', now, fieldGroup)
 }
 
 /** The book screen or window stayed visible 10 seconds (R5-4). */
@@ -149,9 +156,29 @@ export function recentBooks(books: ViewedBook[], now: number = Date.now()): View
   return books.filter((book) => !removed(book, now)).sort(byPoints).slice(0, DIALOG_COUNT)
 }
 
-/** The base books: the top 3 by points, the more recent first on equal points, removed ones left out (R5-5). */
+/**
+ * The base books: by points, the more recent first on equal points, removed ones left out (R5-5), six of them with at
+ * most two of one field group; books of an unknown field count as one group. Fewer than six that way: the next by
+ * points fill up.
+ */
 export function baseBooks(books: ViewedBook[], now: number = Date.now()): ViewedBook[] {
-  return recentBooks(books, now).slice(0, BASE_COUNT)
+  const candidates = recentBooks(books, now)
+  const picked: ViewedBook[] = []
+  const perGroup = new Map<string, number>()
+  for (const book of candidates) {
+    if (picked.length === BASE_COUNT) break
+    const group = book.fieldGroup ?? 'other'
+    const count = perGroup.get(group) ?? 0
+    if (count < BASE_PER_FIELD) {
+      picked.push(book)
+      perGroup.set(group, count + 1)
+    }
+  }
+  for (const book of candidates) {
+    if (picked.length === BASE_COUNT) break
+    if (!picked.includes(book)) picked.push(book)
+  }
+  return picked.sort(byPoints)
 }
 
 /**
