@@ -1,18 +1,23 @@
 import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { startWithQuestion } from './aiChatStore'
-import { AI_TEXT, QUESTION_MAX, QUESTION_MIN, shownExamples, shownShortExamples } from './aiSearchText'
+import { AI_TEXT, QUESTION_MAX, QUESTION_MIN, shownAllExamples, shownExamples } from './aiSearchText'
 import styles from './AiSearchTab.module.css'
 
 /**
  * S1 "AI" tab (cycle 24 step 9): a sentence box with [찾기]. No 상세검색 and no ⚙ [확정]. The example chips gave way to
  * an example question in the box's placeholder (user 2026-10-25: "아래 질문 고르는 거 빼고 … 안 건들고 그냥 검색 누르면
- * 그 질문들 검색되게"): the first of this page load's drawn examples that fits the box whole, else the first short
- * one that does (phones, user 2026-10-25), else 「어떤 책을 찾으세요?」;
+ * 그 질문들 검색되게"): the first of this page load's drawn examples that fits the box whole; when fewer than two of
+ * them fit (phones), the first that fits of all examples, short ones too, so a refresh still changes it (user
+ * 2026-10-25: "새로고침을 해도 안 바뀌는데"); none fitting gives 「어떤 책을 찾으세요?」. Measured again once the web
+ * font is in: measured with the fallback font, a long example looked as if it fitted and was cut.
  * [찾기] on an empty box asks the example shown. A question under 2 characters is not sent; the box takes at most 200. Searching puts the
  * question in this tab's conversation and opens `/ai-search`; the address never holds it (R2-2 [확정]). The text stays
  * while the tabs change because the hidden tab stays mounted (R1-3).
  */
+/** Room kept free after an example in the box, in CSS pixels. */
+const FIT_SPARE_PX = 12
+
 export function AiSearchTab({ leading }: { leading?: ReactNode }) {
   const id = useId()
   const navigate = useNavigate()
@@ -21,8 +26,8 @@ export function AiSearchTab({ leading }: { leading?: ReactNode }) {
   const [example, setExample] = useState<string | null>(() => shownExamples()[0] ?? null)
   const input = useRef<HTMLInputElement>(null)
 
-  // the example that fits whole, again whenever the box's width changes; a box not laid out (hidden, or jsdom) keeps
-  // the one it has
+  // the example that fits whole, again when the web font is in and whenever the box's width changes; a box not laid
+  // out (hidden, or jsdom) keeps the one it has
   useLayoutEffect(() => {
     const box = input.current
     if (!box) return
@@ -33,10 +38,13 @@ export function AiSearchTab({ leading }: { leading?: ReactNode }) {
       const context = document.createElement('canvas').getContext('2d')
       if (!context) return
       context.font = style.font
-      const fits = (question: string) => context.measureText(question).width <= room
-      setExample(shownExamples().find(fits) ?? shownShortExamples().find(fits) ?? null)
+      // a little to spare: a phone drew 「세네카와 쇼펜하우어의 철학」 cut where the canvas measured it as just fitting
+      const fits = (question: string) => context.measureText(question).width <= room - FIT_SPARE_PX
+      const long = shownExamples().filter(fits)
+      setExample(long.length >= 2 ? long[0] : (shownAllExamples().find(fits) ?? null))
     }
     fit()
+    document.fonts?.load(getComputedStyle(box).font, '가').then(fit, () => {})
     if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(fit)
     observer.observe(box)

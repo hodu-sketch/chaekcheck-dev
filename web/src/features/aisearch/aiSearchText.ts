@@ -74,7 +74,7 @@ export function pickExamples(
 }
 
 let shown: string[] | null = null
-let shownShort: string[] | null = null
+let shownAll: string[] | null = null
 
 /**
  * The examples of this page load, all of them in an order drawn once, so the first screen's box and the chat agree: the
@@ -85,10 +85,11 @@ export function shownExamples(): string[] {
   return shown
 }
 
-/** The short examples of this page load, in an order drawn once. */
-export function shownShortExamples(): string[] {
-  shownShort ??= pickExamples(SHORT_EXAMPLE_QUESTIONS.length, Math.random, SHORT_EXAMPLE_QUESTIONS)
-  return shownShort
+/** All examples, long and short, in an order drawn once per page load (the phone's box, user 2026-10-25). */
+export function shownAllExamples(): string[] {
+  const all = [...EXAMPLE_QUESTIONS, ...SHORT_EXAMPLE_QUESTIONS]
+  shownAll ??= pickExamples(all.length, Math.random, all)
+  return shownAll
 }
 
 /** Question length (design decision #8 [확정]), the same as the server. */

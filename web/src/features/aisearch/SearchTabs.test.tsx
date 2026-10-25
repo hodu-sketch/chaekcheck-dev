@@ -11,7 +11,7 @@ import {
   QUESTION_MAX,
   SHORT_EXAMPLE_QUESTIONS,
   shownExamples,
-  shownShortExamples,
+  shownAllExamples,
 } from './aiSearchText'
 import { SearchTabs } from './SearchTabs'
 
@@ -156,6 +156,6 @@ describe('SearchTabs: the AI/직접 menu in the box (user 2026-10-24)', () => {
     expect(pickExamples(3, () => 0)).toEqual([EXAMPLE_QUESTIONS[1], EXAMPLE_QUESTIONS[2], EXAMPLE_QUESTIONS[3]])
     const all = pickExamples(EXAMPLE_QUESTIONS.length)
     expect(new Set(all).size).toBe(EXAMPLE_QUESTIONS.length)
-    expect(new Set(shownShortExamples())).toEqual(new Set(SHORT_EXAMPLE_QUESTIONS))
+    expect(new Set(shownAllExamples())).toEqual(new Set([...EXAMPLE_QUESTIONS, ...SHORT_EXAMPLE_QUESTIONS]))
   })
 })
