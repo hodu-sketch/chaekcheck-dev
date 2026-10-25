@@ -25,6 +25,11 @@ describe('forYouBook', () => {
     expect(pickBook(card({})).aiSummary).toBeNull()
   })
 
+  it('brings the tab blurb when the book has no lists summary, the lists summary first', () => {
+    expect(pickBook(card({ blurb: '해요체 요약이에요.' })).aiSummary).toBe('해요체 요약이에요.')
+    expect(pickBook(card({ blurb: '소개', aiSummary: '목록 요약' })).aiSummary).toBe('목록 요약')
+  })
+
   it('takes the year line of the first list that has one', () => {
     expect(yearLineOf(card({ lists: ['snu100', 'kaist'], yearBook: 2025 }))).toBe('2025년 KAIST 사서추천')
     expect(yearLineOf(card({ lists: ['librarian', 'kaist'], recommendedMonth: '2025-07', yearBook: 2024 }))).toBe(

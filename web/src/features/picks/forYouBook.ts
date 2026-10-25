@@ -3,7 +3,8 @@ import { PICKS_LISTS } from './picksLists'
 
 /**
  * S14 takes a picks book; a for-you card is one with its plan library known to hold it. A listed book brings the
- * lists' AI summary and its year line's month or year as on its list's tab (user 2026-10-24: "24 뒤에 붙임").
+ * lists' AI summary and its year line's month or year as on its list's tab (user 2026-10-24: "24 뒤에 붙임"); any other
+ * book brings its tab blurb as the summary (the 3만 권 Haiku summaries, user 2026-10-25 "왜 안보여").
  */
 export function pickBook(card: Card): PickBook {
   return {
@@ -18,7 +19,7 @@ export function pickBook(card: Card): PickBook {
     yearBook: card.yearBook ?? null,
     videoId: null,
     tocNo: null,
-    aiSummary: card.aiSummary ?? null,
+    aiSummary: card.aiSummary ?? card.blurb ?? null,
     fieldGroup: card.fieldGroup ?? null,
   }
 }
