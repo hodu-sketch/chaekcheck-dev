@@ -6357,6 +6357,17 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 사이클 23(foryou, picks 006, usagelog 009)과 AI 검색 이웃 후보(`BookNeighbours`, `MAX_NEIGHBOUR_CANDIDATES` 12)가 main에 들어와 이 브랜치에 합침(커밋 fce0ac1). changelog는 main 차례 뒤에 `aisearch-003`
 - `BookTextsImport`: 23의 kind(for_you_blurb·tags·cover_file, 한 트랜잭션, search_line 없는 파일은 search_book을 안 건드림)와 3만 권 더하기를 함께. `CatalogImportRunner.Settings` 맨 끝에 `bookTextsTopBooks`
 - 이어 묻기의 이웃 후보: main은 이웃이 계획 도서관에 있는지를 목록 책 캐시로 봤으나, 이 브랜치는 **앞 책과 그 이웃의 계획 도서관 수를 SQL 한 번에 세고**(`CandidateQuery.planCounts`), `search_book`에 있는 책만 남김. 운영 `foryou.book_neighbour` 30,937권이 3만 권 범위와 같은 집합이라 **목록 밖 책의 이웃도 카드로 나옴**
+## v1.12.2~v1.13.2 화면·표지·지역 (2026-10-25)
+
+- v1.12.2: AI 카드에 목록 표지가 없으면 탭 표지(`foryou.BookCovers`, `foryou.book_cover`)를 씀. 첫 화면 예시 칩을 빼고 검색창 안내 글에 예시 하나, 빈 칸 [찾기]는 그 예시로 찾음(사용자 시안 승인)
+- v1.13.0(사이클 23 배포에 실음)·v1.13.1: 폰처럼 긴 예시가 안 들어가면 짧은 예시(`SHORT_EXAMPLE_QUESTIONS` 7개). 웹 글꼴을 받은 뒤 다시 재고 12px 여유, 긴 예시가 2개 미만 들어가면 긴·짧은 예시를 섞어 고름(새로고침마다 바뀌게)
+- v1.13.2: `POST /api/v1/ai-searches/library-counts`(책 id 160개까지, AI 호출 없음) — 답 뒤에 지역·도서관을 바꾸면 이미 나온 카드의 「내 도서관 N곳」만 다시 셈(사용자 "이미 검색된 도서에 한해서, 도서 추가로 검색할 필요는 없고")
+
+## 보완 거리 (사용자 "나중에 보완용으로 넣어두고", 2026-10-25)
+
+- **부정어**: 지금은 규칙이 없음. 1차 호출이 「소설 말고」의 「소설」을 keywords에 넣을 수 있고, 낱말 맞추기는 부정을 모르므로 뺄 책이 후보 자리를 차지함 → 2차 호출이 원문을 보고 fit을 낮춰 거르는 데 기댐(책 수가 줄 수 있음, 드물게 샘) [추론, 재지 않음]. 고칠 안: 1차에 `exclude` 칸(말고·빼고·~아닌·~없는 뒤의 말, keywords·core에 넣지 않음), 낱말 맞추기에서 exclude 낱말이 든 책을 뒤로(순서만), 2차에 「빼 달라는 조건에 맞는 책은 fit 0」, 비교 질문에 부정어 5~6개 더해 전후 비교
+- **질문 임베딩(벡터 검색)**: 사용자가 먼저 보기로 함(아래 조사)
+
 # 사이클 23
 
 「나에게 맞는 책」(추천도서 탭 맨 앞, `/picks/for-you`). 인계서 plan `docs/cycles/23-for-you-picks/handoff.md`(plan main `18133c3`), 기준 설계 같은 폴더 `design-delta.md`(ADR-0147·0148·0149). dev 클라우드 세션 `사이클 23 「나에게 맞는 책」 개발`.
