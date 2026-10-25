@@ -1,7 +1,6 @@
 
 /** The words of 「책첵 추천」 (first 「나에게 맞는 책」), all [확정] (cycle 23 handoff 문구표). */
 export const FOR_YOU_TEXT = {
-  aiLine: '책 소개 글과 꼬리표는 AI가 골랐어요',
   changeBase: '기준 책 바꾸기',
   similarFailed: '비슷한 책을 불러오지 못했어요',
   baseFailed: '추천 책을 불러오지 못했어요',

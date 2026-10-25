@@ -1,13 +1,7 @@
 /*
- * S18 「책첵 추천」: its own lines (the AI line, the failure line) and S19. The chips, the grid of cards and the more
+ * S18 「책첵 추천」: its own lines (the failure line) and S19. The chips, the grid of cards and the more
  * button are the list tabs' (PicksPage.module.css), as on KAIST (user 2026-10-25: "카이스트 추천과 같은 디자인으로").
  */
-
-.aiLine {
-  margin: 1rem 0 0;
-  color: var(--ink-faint);
-  font-size: var(--text-sm);
-}
 
 .baseLine {
   display: flex;
