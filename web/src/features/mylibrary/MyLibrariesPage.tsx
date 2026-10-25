@@ -13,6 +13,11 @@ import { MAX_REGIONS_PER_FIELD, type StoredRegions } from '../region/regionStora
 import { VisitSwitch } from '../search/LibraryScopeLine'
 import { loadPrefs, savePrefs } from '../search/searchSettings'
 import { AccountSection } from '../account/AccountSection'
+import { BaseBooksDialog } from '../picks/BaseBooksDialog'
+import { FOR_YOU_TEXT } from '../picks/forYouText'
+import { PHONE_QUERY } from '../picks/PicksPage'
+import { baseBooks, readViewed } from '../picks/viewedBooks'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { findByName, MIN_NAME_QUERY, nameKey } from './libraryNames'
 import { useMyLibrary } from './MyLibraryContext'
 import { LIBRARY_CHANGE_TEXT, libraryChangeMessage } from './myLibraryErrors'
@@ -37,6 +42,9 @@ const TEXT = {
  */
 const PAGE = 10
 
+/** [안] the section's title (user 2026-10-25 mock-up) */
+const FOR_YOU_BASE_TEXT = { title: '책첵 추천 기준 책' }
+
 /**
  * S10 `/mypage`, titled 마이페이지 (user 2026-10-19: 내 도서관 관리 and 계정 are one page): the regions, the
  * libraries they bring in and the libraries added by hand first, then the account part, with 탈퇴하기 far below
@@ -56,10 +64,46 @@ export function MyLibrariesPage() {
       ) : (
         <MyLibraries />
       )}
+      <ForYouBase />
       <AccountSection />
       <BackLink />
     </div>
   )
+}
+
+/**
+ * 「책첵 추천」's base books (S19 moved here from the tab, user 2026-10-25: "이거 마이페이지로 넣어줘"): the books this
+ * browser looked at that the personal picks start from, and [기준 책 바꾸기]. Nothing while there are none.
+ */
+function ForYouBase() {
+  const phone = useMediaQuery(PHONE_QUERY)
+  const [titles, setTitles] = useState(readBaseTitles)
+  const [changing, setChanging] = useState(false)
+  if (titles.length === 0 && !changing) return null
+  return (
+    <Section title={FOR_YOU_BASE_TEXT.title}>
+      {titles.length > 0 && <p className={styles.forYouBase}>최근 본 책 {titles.join('·')}</p>}
+      <button type="button" className={styles.forYouChange} onClick={() => setChanging(true)}>
+        {FOR_YOU_TEXT.changeBase}
+      </button>
+      {changing && (
+        <BaseBooksDialog
+          phone={phone}
+          onClose={() => {
+            setChanging(false)
+            setTitles(readBaseTitles())
+          }}
+        />
+      )}
+    </Section>
+  )
+}
+
+function readBaseTitles(): string[] {
+  const now = Date.now()
+  return baseBooks(readViewed(now), now)
+    .map((book) => book.title)
+    .filter(Boolean)
 }
 
 function MyLibraries() {

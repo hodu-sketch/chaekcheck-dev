@@ -1,7 +1,7 @@
 import type { PicksListKey } from '../../api/types'
 import { PICKS_LISTS } from './picksLists'
 
-/** The words of 「나에게 맞는 책」, all [확정] (cycle 23 handoff 문구표). */
+/** The words of 「책첵 추천」 (first 「나에게 맞는 책」), all [확정] (cycle 23 handoff 문구표). */
 export const FOR_YOU_TEXT = {
   aiLine: '책 소개 글과 꼬리표는 AI가 골랐어요',
   changeBase: '기준 책 바꾸기',
@@ -38,18 +38,4 @@ export function listsFooter(lists: readonly PicksListKey[]): string | null {
   const shown = names.slice(0, 2).join('·')
   const rest = names.length - 2
   return `${shown}${rest > 0 ? ` 외 ${rest}` : ''} 추천목록에 있어요`
-}
-
-/** "최근 본 책 ○○·○○·○○과 비슷한 책": 과 after a closed syllable, 와 otherwise. */
-export function baseLine(titles: readonly string[]): string {
-  const joined = titles.join('·')
-  return `최근 본 책 ${joined}${withParticle(joined)} 비슷한 책`
-}
-
-function withParticle(text: string): string {
-  const last = text.trim().at(-1) ?? ''
-  const code = last.charCodeAt(0)
-  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 === 0 ? '와' : '과'
-  // not Hangul (a Latin letter or a digit at the end): 과 reads for most
-  return '과'
 }

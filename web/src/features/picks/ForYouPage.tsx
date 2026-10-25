@@ -7,11 +7,10 @@ import { onWindowEntry } from '../../lib/useBackToClose'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useRegions } from '../region/RegionContext'
 import { useConditionCard } from '../search/useConditionCard'
-import { BaseBooksDialog } from './BaseBooksDialog'
 import { ForYouCard } from './ForYouCard'
 import { pickBook, yearLineOf } from './forYouBook'
 import { layOut } from './forYouOrder'
-import { baseLine, FOR_YOU_TEXT } from './forYouText'
+import { FOR_YOU_TEXT } from './forYouText'
 import { PHONE_QUERY } from './PicksPage'
 import { PicksBookDialog } from './PicksBookDialog'
 import { PicksTabs } from './PicksTabs'
@@ -46,8 +45,8 @@ export function ForYouPage() {
   const { condition, plan: asked, visit: askedVisit } = useConditionCard()
   const { plan, ready, key } = usePicksPlan(asked, askedVisit)
   const { resolveStoredRegions } = useRegions()
-  // the record is read when the screen opens and again after S19; books opened from here change it only for later
-  const [record, setRecord] = useState(readRecord)
+  // the record is read when the screen opens (S19 is on 마이페이지 since 2026-10-25); books opened here change it for later
+  const [record] = useState(readRecord)
   const baseIds = record.base.map((book) => book.bookId)
   const similarKey = `${key}|${baseIds.join(',')}|${record.reshow.join(',')}`
   const [baseTry, setBaseTry] = useState(0)
@@ -56,7 +55,6 @@ export function ForYouPage() {
   const [similarLoad, setSimilarLoad] = useState<SimilarLoad | null>(null)
   const [pages, setPages] = useState(1)
   const [selected, setSelected] = useState<Card | null>(null)
-  const [changing, setChanging] = useState(false)
 
   useEffect(() => {
     if (!ready) return
@@ -130,15 +128,6 @@ export function ForYouPage() {
     })
   }
   const openBook = (bookId: number) => navigate(`/books/${bookId}`, { replace: onWindowEntry() })
-  const closeDialog = () => {
-    setChanging(false)
-    const next = readRecord()
-    // only a change of the base books or the books to show again asks again and starts from the first 20
-    if (next.base.map((b) => b.bookId).join(',') !== baseIds.join(',') || next.reshow.join(',') !== record.reshow.join(',')) {
-      setPages(1)
-      setRecord(next)
-    }
-  }
 
   let body
   if (!baseResult || (similarWaiting && !baseResult.failed)) {
@@ -166,7 +155,7 @@ export function ForYouPage() {
     )
   } else {
     body = (
-      <section className={styles.results} aria-label="나에게 맞는 책 목록">
+      <section className={styles.results} aria-label="책첵 추천 목록">
         <ol className={styles.grid}>
           <ForYouCard card={layout.top} wide onPick={pick} />
           {layout.personal.map((card) => (
@@ -189,10 +178,9 @@ export function ForYouPage() {
     )
   }
 
-  const baseTitles = record.base.map((book) => book.title).filter(Boolean)
   return (
     <div className={picksStyles.page}>
-      <h1 className="visually-hidden">나에게 맞는 책</h1>
+      <h1 className="visually-hidden">책첵 추천</h1>
       <PicksTabs current="for-you" />
       <div className={picksStyles.condition}>{condition}</div>
       <p className={styles.aiLine}>{FOR_YOU_TEXT.aiLine}</p>
@@ -204,17 +192,6 @@ export function ForYouPage() {
             setSimilarTry((n) => n + 1)
           }}>
             {FOR_YOU_TEXT.retry}
-          </button>
-        </p>
-      )}
-      {record.base.length > 0 && !similarResult?.failed && (
-        <p className={styles.baseLine}>
-          <span className={styles.baseTitles}>{baseLine(baseTitles)}</span>
-          <span className={styles.baseSep} aria-hidden="true">
-            {' · '}
-          </span>
-          <button type="button" className={styles.changeBase} onClick={() => setChanging(true)}>
-            {FOR_YOU_TEXT.changeBase}
           </button>
         </p>
       )}
@@ -235,7 +212,6 @@ export function ForYouPage() {
         phone={phone}
         yearLine={selected ? yearLineOf(selected) : null}
       />
-      {changing && <BaseBooksDialog onClose={closeDialog} phone={phone} />}
     </div>
   )
 }

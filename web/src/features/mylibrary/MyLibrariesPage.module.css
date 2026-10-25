@@ -403,3 +403,30 @@
   font-size: var(--text-sm);
   word-break: keep-all;
 }
+
+/* 「책첵 추천」 base books (moved from the tab, user 2026-10-25) */
+.forYouBase {
+  margin: 0 0 0.6rem;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.forYouChange {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.forYouChange:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

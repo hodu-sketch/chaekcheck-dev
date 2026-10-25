@@ -46,7 +46,8 @@ export function MainShelf({ phone }: { phone: boolean }) {
     <section className={styles.shelf} aria-label={SHELF_TEXT.title}>
       <div className={styles.head}>
         <h2 className={styles.title}>{SHELF_TEXT.title}</h2>
-        <Link to={`/picks/${shelf.data!.list}`} className={styles.more}>
+        {/* to 「책첵 추천」, not the shelf's list (user 2026-10-25: "메인에서 추천 도서 더보기로 하면 책첵 추천으로") */}
+        <Link to="/picks/for-you" className={styles.more}>
           {phone ? SHELF_TEXT.morePhone : SHELF_TEXT.more}
         </Link>
       </div>

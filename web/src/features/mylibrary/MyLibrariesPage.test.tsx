@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { recordOpened } from '../picks/viewedBooks'
 import { AuthProvider } from '../auth/AuthContext'
 import { NoticeProvider } from '../auth/NoticeContext'
 import { RegionProvider } from '../region/RegionContext'
@@ -210,6 +211,28 @@ describe('S10 sections', () => {
 
     expect(screen.getByText('<b>꺾쇠</b> 도서관')).toBeTruthy()
     expect(document.querySelector('b')).toBeNull()
+  })
+})
+
+describe('S10 책첵 추천 base books (user 2026-10-25)', () => {
+  it('shows the base books and opens [기준 책 바꾸기]; nothing without them', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('region', { name: '거주' })
+    expect(screen.queryByRole('region', { name: '책첵 추천 기준 책' })).toBeNull()
+    cleanup()
+
+    const now = Date.now()
+    recordOpened(501, '고래', now)
+    recordOpened(502, '파과', now - 1000)
+    renderPage()
+    const box = await screen.findByRole('region', { name: '책첵 추천 기준 책' })
+    expect(within(box).getByText('최근 본 책 고래·파과')).toBeTruthy()
+    await user.click(within(box).getByRole('button', { name: '기준 책 바꾸기' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: '고래 빼기' }))
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(within(box).getByText('최근 본 책 파과')).toBeTruthy())
   })
 })
 
