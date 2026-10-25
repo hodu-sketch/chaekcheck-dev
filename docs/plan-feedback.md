@@ -6293,6 +6293,8 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 ## 1차 호출을 ML로 (2026-10-26, 사이클 24 곁 세션, 브랜치 `claude/aisearch-ml-first-call`)
 
+**운영 반영 v1.16.0**(8dd6679c, 2026-10-26, 원래 24 세션, 사용자 "테스트가 통과한 뒤 배포까지 이어서해"): 최신 main(v1.15.3)에 합쳐 백엔드 `./gradlew build`·웹 vitest 705·빌드 통과 뒤 배포. 모델 파일 `first-call-model.bin`·`book-profiles.tsv`를 `/srv/chaekcheck/aisearch-model/`에(해시 일치). 시작 로그 `ai search first call: ml, 27227 book profiles`. 운영 확인: 「번아웃이 왔을 때 읽을 책」 `first ml BOOK` 카드 8장(7.0초, 토큰 5947/1003), 「책첵은 무료야?」 `first ml SITE` 소개 글로 답(2.7초, done `site`), 이어 묻기 「이 중에 더 쉬운 거」 `REFERS_SHOWN` 7장, 「오늘 점심 뭐 먹지」 `NOT_BOOK` 0.17초·토큰 0. 소개 탭에 IP 글자 없음. 백엔드 467MB
+
 **plan에 기록할 것: 설계 변경입니다(ADR 필요).** ADR-0150~0153의 「1차 Haiku 호출이 길과 검색어를 정한다」를 설정으로 바꿀 수 있게 했습니다. 잰 숫자와 넣고 뺀 것은 [`docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`](reports/ai-search-ml-first-call-decisions-2026-10-26.md), 운영 방법은 [`docs/maintenance/6-aisearch.md`](maintenance/6-aisearch.md) 8절.
 
 ### 사용자 발언 (그대로)
