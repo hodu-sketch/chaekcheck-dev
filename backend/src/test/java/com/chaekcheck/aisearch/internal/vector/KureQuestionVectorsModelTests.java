@@ -16,17 +16,17 @@ import tools.jackson.databind.json.JsonMapper;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 
 /**
- * {@link OnnxQuestionVectors} with the real model folder (only when {@code AISEARCH_MODEL_DIR} names it; the files are
+ * {@link KureQuestionVectors} with the real model folder (only when {@code AISEARCH_MODEL_DIR} names it; the files are
  * about 420 MB and not in the repository): the question vectors match the ones Python's onnxruntime and tokenizers made
  * with the same files ({@code parity.json}), and the nearest books come back.
  */
 @EnabledIfEnvironmentVariable(named = "AISEARCH_MODEL_DIR", matches = ".+")
-class OnnxQuestionVectorsModelTests {
+class KureQuestionVectorsModelTests {
 
 	@Test
 	void theQuestionVectorsAreThePythonOnes() throws Exception {
 		Path dir = Path.of(System.getenv("AISEARCH_MODEL_DIR"));
-		try (OnnxQuestionVectors vectors = new OnnxQuestionVectors(properties(dir))) {
+		try (KureQuestionVectors vectors = new KureQuestionVectors(properties(dir), JsonMapper.builder().build())) {
 			assertThat(vectors.on()).isTrue();
 			JsonNode parity = JsonMapper.builder().build().readTree(Files.readString(dir.resolve("parity.json")));
 			for (JsonNode item : parity) {
@@ -44,7 +44,7 @@ class OnnxQuestionVectorsModelTests {
 
 	@Test
 	void aMissingFolderLeavesTheVectorsOff() {
-		try (OnnxQuestionVectors vectors = new OnnxQuestionVectors(properties(Path.of("no-such-folder")))) {
+		try (KureQuestionVectors vectors = new KureQuestionVectors(properties(Path.of("no-such-folder")), JsonMapper.builder().build())) {
 			assertThat(vectors.on()).isFalse();
 		}
 	}
@@ -55,7 +55,8 @@ class OnnxQuestionVectorsModelTests {
 				new AiSearchProperties.Budget(java.math.BigDecimal.TWO),
 				new AiSearchProperties.Price(java.math.BigDecimal.ONE, java.math.BigDecimal.ONE),
 				new AiSearchProperties.Limits(30, 8, 5, 200, 300),
-				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2)));
+				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
+						AiSearchProperties.Encoder.LOCAL, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2))));
 	}
 
 }

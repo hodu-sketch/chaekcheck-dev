@@ -112,7 +112,8 @@ class AiSearchEvalReplayTests {
 			}
 		}
 		AiSearchProperties.Vector settings = new AiSearchProperties.Vector(vectorsOn, System.getenv("AISEARCH_MODEL_DIR"),
-				2, 50, 60, 60, java.time.Duration.ofSeconds(30));
+				2, 50, 60, 60, java.time.Duration.ofSeconds(30), AiSearchProperties.Encoder.LOCAL,
+				new AiSearchProperties.Remote("", "", java.time.Duration.ofSeconds(2)));
 		AiSearchProperties on = new AiSearchProperties(true, properties.zone(), properties.keywordTimeout(),
 				properties.pickTimeout(), properties.keywordMaxTokens(), properties.pickMaxTokens(),
 				properties.maxConcurrent(), properties.rate(), properties.budget(), properties.price(),
@@ -127,7 +128,7 @@ class AiSearchEvalReplayTests {
 		}
 		String allPicks = all.append("]}").toString();
 		Map<String, List<Long>> out = new LinkedHashMap<>();
-		try (var vectors = new com.chaekcheck.aisearch.internal.vector.OnnxQuestionVectorsAccess(on).open()) {
+		try (var vectors = new com.chaekcheck.aisearch.internal.vector.KureQuestionVectorsAccess(on).open()) {
 			QuestionVectors questionVectors = vectors.get();
 			assertThat(questionVectors.on()).isEqualTo(vectorsOn);
 			for (JsonNode question : json.readTree(Files.readString(eval.resolve("eval_questions.json")))) {

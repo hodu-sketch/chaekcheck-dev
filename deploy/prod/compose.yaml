@@ -77,6 +77,11 @@ services:
       # folder leaves it off with one warning. DJL puts its tokenizer library under DJL_CACHE_DIR (the user has no home)
       CHAEKCHECK_AISEARCH_VECTOR_ENABLED: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:-false}
       CHAEKCHECK_AISEARCH_MODEL_DIR: /models/aisearch
+      # local = the model in this container; remote = the embedding server (embed-service/ on the micro EC2, its private
+      # address in prod.env, the token from Parameter Store); with remote the folder needs book-vectors.bin only
+      CHAEKCHECK_AISEARCH_VECTOR_ENCODER: ${CHAEKCHECK_AISEARCH_VECTOR_ENCODER:-local}
+      CHAEKCHECK_AISEARCH_EMBED_URL: ${CHAEKCHECK_AISEARCH_EMBED_URL:-}
+      CHAEKCHECK_AISEARCH_EMBED_TOKEN: ${CHAEKCHECK_AISEARCH_EMBED_TOKEN:-}
       DJL_CACHE_DIR: /tmp/djl
       # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
       # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only

@@ -61,20 +61,50 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * {@code Limits.candidates} of the mix go to the second call. Off, or with a model file missing, the keyword
 	 * candidates alone are used as before.
 	 * @param enabled off by default
-	 * @param modelDir the folder with {@code kure-query-int8-ext.onnx} (+ {@code .data}), {@code tokenizer-cut.json}
-	 * and {@code book-vectors.bin}
+	 * @param modelDir the folder with {@code book-vectors.bin}, and for {@link Encoder#LOCAL} also
+	 * {@code kure-query-int8-ext.onnx} (+ {@code .data}) and {@code tokenizer-cut.json}
 	 * @param threads threads of one question's model run (2: 106 ms on the server, 2026-10-25)
 	 * @param keywordDepth keyword candidates taken into the mix (50 [안], the report's H)
 	 * @param vectorDepth vector candidates taken into the mix (60 [안])
 	 * @param rrfK the fusion constant (60 [안], the usual value)
 	 * @param maxWait how long the search waits for the question vector after the first call; later, keywords alone
+	 * @param encoder where the question becomes a vector (user 2026-10-25 "서로 다른 곳에서 소통하나 서버에 직접
+	 * 임베딩하나 이걸 선택으로서 가능하게"): {@link Encoder#LOCAL} in this process, {@link Encoder#REMOTE} on the
+	 * embedding server ({@code embed-service/}); the book vectors stay in this process either way
+	 * @param remote the embedding server, for {@link Encoder#REMOTE}
 	 */
 	public record Vector(boolean enabled, String modelDir, int threads, int keywordDepth, int vectorDepth, int rrfK,
-			Duration maxWait) {
+			Duration maxWait, Encoder encoder, Remote remote) {
 
 		public Vector {
 			Objects.requireNonNull(maxWait, "chaekcheck.aisearch.vector.max-wait");
+			Objects.requireNonNull(encoder, "chaekcheck.aisearch.vector.encoder");
+			Objects.requireNonNull(remote, "chaekcheck.aisearch.vector.remote");
 			modelDir = modelDir == null ? "" : modelDir;
+		}
+
+	}
+
+	/** Where the question becomes a vector. */
+	public enum Encoder {
+		/** The int8 KURE-v1 model in this process (about 450 MB on the server). */
+		LOCAL,
+		/** The embedding server over HTTP; this process holds the book vectors only. */
+		REMOTE
+	}
+
+	/**
+	 * The embedding server ({@code embed-service/}, user 2026-10-25 "micro 한 대를 임베딩 전용으로 두자").
+	 * @param url its address, e.g. {@code http://10.0.1.23:8090}; reached inside the VPC only
+	 * @param token sent as {@code X-Embed-Token}; a secret (Parameter Store), never logged
+	 * @param timeout the whole request; later, the search goes on with keywords alone
+	 */
+	public record Remote(String url, String token, Duration timeout) {
+
+		public Remote {
+			Objects.requireNonNull(timeout, "chaekcheck.aisearch.vector.remote.timeout");
+			url = url == null ? "" : url;
+			token = token == null ? "" : token;
 		}
 
 	}
