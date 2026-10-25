@@ -6386,7 +6386,12 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 - 낱말표 자르기: 25만 조각 → 한글·라틴·숫자·흔한 기호 조각 88,446개(토크나이저는 그대로, id 표로 바꾸고 잘린 조각은 `<unk>`). float32에서 결과가 완전히 같음(손실 없음). 우리 책 소개 3만 개가 쓰는 조각은 13,326개
 - int8과 원래의 차이는 거의 같은 점수인 책끼리 순서가 바뀌는 정도(「세네카와 쇼펜하우어」 1·2위 자리바꿈, 「우울할 때 시집」 1~3위 순서 등)
 - optimum은 ml venv의 transformers를 5.20→4.57로 내려 사이클 23 도구를 깰 수 있어 설치하지 않음. onnx·onnxruntime만 설치하고 `torch.onnx.export` + `onnxruntime.quantization.quantize_dynamic`로 같은 일을 함. 파일: `chaekcheck-data/ml/kure-onnx/`(int8 모델, `id_map.npy`)
-- 남은 것: 운영 서버(ARM 2코어, 2GB)에서 메모리·시간 재기, Java에서 돌리는 길(ONNX Runtime Java + 토크나이저), pgvector 이미지, 하이브리드 전후 비교
+- 운영 서버에서 잼(2026-10-25, 사용자 "운영 서비스는 건드리지 말고"): `/srv/chaekcheck/kure-test/`에 올리고 `python:3.12-slim` 임시 컨테이너(`--memory=700m --memory-swap=700m --cpu-shares=256`)로 질문 28개
+  - 첫 시도는 700MB에 걸려 강제 종료(운영 컨테이너 영향 없음). 원인 둘: 원본 토크나이저(25만 조각)가 **283MB**, 모델 한 파일(protobuf)을 읽으며 무게를 한 번 더 복사
+  - 고침: 토크나이저도 88,446조각으로 자름(`tokenizer-cut.json` 3.2MB, 질문 33개 모두 원래와 같은 조각, 다른 것은 ×·● 같은 잘린 기호뿐 — 원래도 `<unk>`), 무게를 바깥 파일(`kure-query-int8-ext.data`)로 빼 mmap으로 읽음
+  - 결과(2스레드): 올리기 1.0초, 프로세스 메모리 **약 450MB**(그 대부분이 모델 파일 mmap이라 메모리가 모자라면 OS가 비울 수 있는 몫), 질문 하나 **중간 106ms·최대 182ms**, 4개 동시 481ms, 원래 모델과 벡터 닮음 0.988(PC와 같음). 1스레드는 201ms
+  - 서버 여유: 잴 때 사용 가능 메모리 740~940MB, 스왑 568MB 쓰는 중 → 백엔드 안에 넣으면 남는 여유가 300~400MB [추론]. 서버 파일 562MB는 그대로 둠(필요 없으면 `rm -rf /srv/chaekcheck/kure-test`)
+- 남은 것: Java에서 돌리는 길(ONNX Runtime Java + 토크나이저), pgvector 이미지, 하이브리드 전후 비교
 
 # 사이클 23
 
