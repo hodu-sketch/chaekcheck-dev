@@ -63,7 +63,7 @@
 | 기능 켜기 | `false` | `chaekcheck.aisearch.enabled` | **`CHAEKCHECK_AISEARCH_ENABLED`** | 웹 AI 탭(꺼짐 확인 `GET /api/v1/ai-searches/status`, 8·9단계), 운영 compose(0단계 다름 8) | 운영에서 키를 넣고 처리방침 새 판이 시행된 뒤 켬 | design-delta, 인계서 11단계 | 서비스 |
 | 날짜 기준 | Asia/Seoul | `chaekcheck.aisearch.zone` | `CHAEKCHECK_AISEARCH_ZONE` | `daily_usage.day` | 하루 100번·하루 $2의 날짜 | design-delta | 서비스 |
 | 1차 / 2차 시간 | 5s / 15s | `…keyword-timeout` / `…pick-timeout` | `CHAEKCHECK_AISEARCH_KEYWORDTIMEOUT` / `…_PICKTIMEOUT` | nginx `proxy_read_timeout` 120s(21초보다 김) | [확정] 처음 값. 1단계 최대 2.41s / 8.20s | spec R6-3 | 서비스 |
-| 1차 / 2차 `max_tokens` | 512 / 2048 | `…keyword-max-tokens` / `…pick-max-tokens` | `…_KEYWORDMAXTOKENS` / `…_PICKMAXTOKENS` | 끊긴 호출의 비용 셈(출력을 이 값으로) | 1단계 출력 최대 285 / 1,490 [안] | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
+| 1차 / 2차 `max_tokens` | 512 / 3072 | `…keyword-max-tokens` / `…pick-max-tokens` | `…_KEYWORDMAXTOKENS` / `…_PICKMAXTOKENS` | 끊긴 호출의 비용 셈(출력을 이 값으로) | 1단계 출력 최대 285 / 1,490 [안]. 2차는 v1.12.1에서 3072(사용자 2026-10-25: 3만 권으로 2,143토큰 답이 2048에서 끊김) | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
 | 동시 AI 찾기 | 20 | `…max-concurrent` | `CHAEKCHECK_AISEARCH_MAXCONCURRENT` | 검색 자리 60과 따로 | 넘으면 스트림 전 503 `server_busy` | 사용자 2026-10-24 (0단계 다름 10) | 서비스 |
 | 같은 IP 1분 / 하루 | 10 / 100 | `…rate.per-minute` / `…rate.per-day` | `CHAEKCHECK_AISEARCH_RATE_PERMINUTE` / `…_PERDAY` | 메모리(`InMemoryAiSearchQuota`), 재시작하면 처음부터 | [확정]. `Retry-After`: 1분이면 가장 오래된 것이 빠질 때까지, 하루면 서울 자정까지 [안] | spec R7-1, ADR-0152 | 서비스 |
 | 하루 비용 상한 | US$2 | `…budget.daily-usd` | `CHAEKCHECK_AISEARCH_BUDGET_DAILYUSD` | `aisearch.daily_usage.cost_micro_usd`(백만분의 1달러, 올림) | [확정]. 시작할 때만 봄 | spec R8-1 | 서비스 |

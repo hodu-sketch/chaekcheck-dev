@@ -15,7 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param keywordTimeout the first call (5 s [확정])
  * @param pickTimeout the whole second call (15 s [확정])
  * @param keywordMaxTokens the first call's cap (step 1: 512 [안])
- * @param pickMaxTokens the second call's cap (step 1: 2048 [안])
+ * @param pickMaxTokens the second call's cap (step 1: 2048 [안]; 3072 since v1.12.1, user 2026-10-25)
  * @param maxConcurrent AI searches running at once on this server (20, user 2026-10-24)
  */
 @ConfigurationProperties("chaekcheck.aisearch")
