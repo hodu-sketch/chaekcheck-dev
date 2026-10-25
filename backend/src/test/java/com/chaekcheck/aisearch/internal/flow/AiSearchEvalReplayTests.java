@@ -144,7 +144,7 @@ class AiSearchEvalReplayTests {
 						}
 					});
 					return found;
-				}, ids -> Map.of(), questionVectors, new AiSearchFlowTests.RecordingLog(), on, json);
+				}, ids -> Map.of(), ids -> Map.of(), questionVectors, new AiSearchFlowTests.RecordingLog(), on, json);
 				flow.run(new AiSearchFlow.Input(question.get("q").asString(), 1, List.of(), plan,
 						new UsageRequest(Instant.now(), null, "login_off", null, null, true), System.nanoTime()),
 						sink);

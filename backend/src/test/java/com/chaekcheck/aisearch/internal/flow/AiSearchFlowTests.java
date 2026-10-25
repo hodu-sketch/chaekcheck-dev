@@ -104,6 +104,15 @@ class AiSearchFlowTests {
 	/** The tab covers the fake {@code foryou} knows, by book. */
 	final java.util.Map<Long, String> tabCovers = new java.util.HashMap<>();
 
+	/** The tab blurbs the fake {@code foryou} knows, by book. */
+	final java.util.Map<Long, String> tabBlurbs = new java.util.HashMap<>();
+
+	final com.chaekcheck.foryou.BookBlurbs blurbs = ids -> {
+		java.util.Map<Long, String> found = new java.util.HashMap<>();
+		ids.stream().filter(tabBlurbs::containsKey).forEach(id -> found.put(id, tabBlurbs.get(id)));
+		return found;
+	};
+
 	final com.chaekcheck.foryou.BookCovers covers = ids -> {
 		java.util.Map<Long, String> found = new java.util.HashMap<>();
 		ids.stream().filter(tabCovers::containsKey).forEach(id -> found.put(id, tabCovers.get(id)));
@@ -197,6 +206,26 @@ class AiSearchFlowTests {
 				default -> assertThat(cover).isEqualTo("/covers/" + bookId + ".jpg"); // the list cover stays
 			}
 		});
+	}
+
+	@Test
+	void aCardWithoutAListSummaryTakesTheTabBlurb() { // user 2026-10-25, tab blurbs from foryou
+		stored.add(new Book(500, "우주 과학 교양", "칼 세이건", new long[] { 101, 102 }));
+		texts.replace(stored, lines);
+		tabBlurbs.put(500L, "별과 은하를 쉽게 풀어 쓴 교양서예요.");
+		tabBlurbs.put(20L, "한 집안의 이야기를 그린 대하소설이에요.");
+		tabBlurbs.put(1L, "쓰이지 않을 탭 요약");
+		llm.then(keywords("과학", "토지", "우주"))
+			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"},"
+					+ "{\"no\":2,\"fit\":3,\"text\":\"나\"},{\"no\":3,\"fit\":3,\"text\":\"다\"}]}"), 1, 1));
+
+		run(QUESTION, List.of());
+
+		java.util.Map<Long, String> shown = new java.util.HashMap<>();
+		sink.of(Card.class).forEach(card -> shown.put(card.bookId(), card.aiSummary()));
+		assertThat(shown).containsEntry(500L, "별과 은하를 쉽게 풀어 쓴 교양서예요.")
+			.containsEntry(20L, "한 집안의 이야기를 그린 대하소설이에요.")
+			.containsEntry(1L, "과학 이야기 1의 AI 요약"); // the list's summary stays
 	}
 
 	@Test
@@ -470,7 +499,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, questionVectors, failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -534,7 +563,7 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, questionVectors, usageLog, properties, json);
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, usageLog, properties, json);
 	}
 
 	private ListedBooks listedBooks() {
