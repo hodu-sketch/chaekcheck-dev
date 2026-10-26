@@ -126,13 +126,29 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * @param mode haiku by default
 	 * @param shelfBonus added to a candidate's fusion sum for each shelf it shares with the question (0.004 [안], PFx)
 	 * @param siteMaxTokens the cap of the call answering a question about 책첵 (512 [안])
+	 * @param followUp how a follow-up question is tied to the earlier one (user 2026-10-26 "A·B를 다 잰 다음에 한 번에
+	 * 바꾸자")
 	 */
-	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens) {
+	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens, FollowUp followUp) {
 
 		public FirstCall {
 			Objects.requireNonNull(mode, "chaekcheck.aisearch.first-call.mode");
+			followUp = followUp == null ? FollowUp.RULE : followUp;
 		}
 
+	}
+
+	/** How the ML first call ties a follow-up question to the earlier one. */
+	public enum FollowUp {
+		/** Takes the earlier question over unless this one names another big shelf (v1.16.0). */
+		RULE,
+		/** As RULE, but a new topic only when the two questions joined lose the earlier big shelf too. */
+		STRICT,
+		/**
+		 * The relation network ({@code follow-up-model.bin}): within the books shown, one of them, the same topic
+		 * further, a moved sub-topic, a reaction, a new topic, or not a book search.
+		 */
+		RELATION
 	}
 
 	/** Who makes the first step. */

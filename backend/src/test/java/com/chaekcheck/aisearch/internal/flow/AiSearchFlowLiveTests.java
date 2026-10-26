@@ -102,7 +102,7 @@ class AiSearchFlowLiveTests {
 		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, new SearchBooks(jdbc), ids -> java.util.Map.of(), ids -> java.util.Map.of(),
 				ids -> java.util.Map.of(),
 				com.chaekcheck.aisearch.internal.vector.QuestionVectors.OFF,
-				com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), log,
+				com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), AiSearchFlowTests.years(java.util.Map.of()), log,
 				properties, json);
 		UsageRequest request = new UsageRequest(Instant.now(), null, "login_off", null, null, true);
 

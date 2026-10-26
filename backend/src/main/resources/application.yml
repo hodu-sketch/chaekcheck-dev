@@ -446,6 +446,11 @@ chaekcheck:
       shelf-bonus: 0.004
       # the cap of the call that answers a question about 책첵 from the intro and first-screen text [안]
       site-max-tokens: 512
+      # how a follow-up is tied to the earlier question (user 2026-10-26 "A·B를 다 잰 다음에 한 번에 바꾸자", decisions
+      # 3-4: relation 75.4% vs rule 72.2%): rule = a new topic when this question
+      # alone names another big shelf (v1.16.0); strict = only when the two joined lose it too; relation = the
+      # relation network follow-up-model.bin in model-dir (rule without the file)
+      follow-up: ${CHAEKCHECK_AISEARCH_FOLLOW_UP:relation}
     llm:
       anthropic:
         # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only

@@ -78,6 +78,7 @@
 | 임베딩 장애 차단 | 연속 실패 3번 / 30초 | `…vector.failures-to-open` / `open-for` | — | `CircuitBreaker`, `KureQuestionVectors` | 질문 벡터가 3번 연달아 실패(시간 넘김·오류·401)하면 30초 동안 묻지 않고 그 검색들은 바로 낱말만으로. 30초 뒤 한 번 시험해 되면 다시 씀. 열릴 때·닫힐 때 로그 한 줄 [안] | 사용자 2026-10-25 "임베딩 서버 장애 차단" | 서비스 |
 | 기준 책 이웃 | 20권 | 코드 상수 (`AiSearchFlow.MAX_NAMED_NEIGHBOURS`) | — | `NamedBook`, `foryou.book_neighbour` | 「○○ 같은/비슷/처럼/류의/풍의」 바로 앞의 책 제목을 찾으면 그 책의 이웃을 먼저(벡터를 꺼도 돎) [안] 보고서 S | 같음 | 서비스 |
 | 1차 호출 방식 | `haiku` | `chaekcheck.aisearch.first-call.mode` | **`CHAEKCHECK_AISEARCH_FIRST_CALL`** | 운영 compose → `prod.env`, 모델 폴더의 `first-call-model.bin`·`book-profiles.tsv` | `ml` = 질문 벡터 위 작은 신경망(5갈래 + 칸)과 질문 낱말, 1차 모델 호출 없음. 질문 벡터가 꺼졌거나 파일이 없으면 `haiku`로 감 | 사용자 2026-10-26, `docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`, `6-aisearch.md` 8절 | 서비스 |
+| 이어 묻는 질문 방식 | `relation` | `…first-call.follow-up` | **`CHAEKCHECK_AISEARCH_FOLLOW_UP`** | 운영 compose → `prod.env`, 모델 폴더의 `follow-up-model.bin` | ML 1차에서 이어 묻는 질문을 앞 질문과 묶는 방법. `relation` = 관계 분류기 7가지(파일이 없으면 `rule`), `rule` = v1.16.0의 새 주제 규칙, `strict` = 규칙 + 「앞 + 지금」 확인 | 사용자 2026-10-26 "A·B를 다 잰 다음에 한 번에 바꾸자", 결정 기록 3-4 | 서비스 |
 | 칸 보너스 | 0.004 | `…first-call.shelf-bonus` | — | `Fusion`, `MlFirstCall` | ML 1차에서 질문과 같은 칸 하나마다 RRF 합에 더함(PFx로 잰 값) [안] | `docs/reports/ai-search-improvement-2026-10-25.md` 6-4 | 서비스 |
 | 책첵 질문 답 상한 | 512 | `…first-call.site-max-tokens` | — | `Prompts.SITE_SYSTEM` | 책첵 질문에 답하는 Haiku 한 번의 출력 상한 [안] | 사용자 2026-10-26 | 서비스 |
 

@@ -130,20 +130,20 @@ class FirstCallTests {
 	void thePlanJoinsAFollowUpWithTheEarlierQuestionUnlessItIsANewTopic() {
 		MlFirstCall ml = TinyFirstCall.create();
 
-		MlFirstCall.Plan first = ml.plan("과학 책 추천", TinyFirstCall.BOOK, null, null);
+		MlFirstCall.Plan first = ml.plan("과학 책 추천", TinyFirstCall.BOOK, null, null, null);
 		assertThat(first.route()).isEqualTo(MlFirstCall.Route.BOOK);
 		assertThat(first.keywords()).containsExactly("과학");
 		assertThat(first.shelves().field()).containsExactly("과학");
 		assertThat(first.joinedVector()).isFalse();
 
 		// the follow-up names no big shelf: it takes the earlier question's words, vector and shelves
-		MlFirstCall.Plan easier = ml.plan("더 쉬운 걸로", TinyFirstCall.SITE, "우주 과학 책", TinyFirstCall.BOOK);
+		MlFirstCall.Plan easier = ml.plan("더 쉬운 걸로", TinyFirstCall.SITE, "우주 과학 책", TinyFirstCall.BOOK, null);
 		assertThat(easier.route()).isEqualTo(MlFirstCall.Route.SITE);
 		assertThat(easier.keywords()).containsExactly("쉬운", "우주", "과학");
 		assertThat(easier.joinedVector()).isTrue();
 		assertThat(easier.shelves().field()).containsExactly("과학");
 
-		assertThat(ml.plan("오늘 점심 뭐 먹지", TinyFirstCall.NOT_BOOK, null, null).route())
+		assertThat(ml.plan("오늘 점심 뭐 먹지", TinyFirstCall.NOT_BOOK, null, null, null).route())
 			.isEqualTo(MlFirstCall.Route.NOT_BOOK);
 		assertThat(ml.bonus(2, first.shelves())).isEqualTo(0.004);
 		assertThat(ml.bonus(5, first.shelves())).isZero();

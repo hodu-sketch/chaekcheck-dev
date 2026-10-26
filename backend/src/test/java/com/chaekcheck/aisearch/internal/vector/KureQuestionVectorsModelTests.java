@@ -58,7 +58,7 @@ class KureQuestionVectorsModelTests {
 				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
 						AiSearchProperties.Encoder.LOCAL, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2)), 3,
 						Duration.ofSeconds(30)),
-				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.HAIKU, 0.004, 512));
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.HAIKU, 0.004, 512, null));
 	}
 
 }

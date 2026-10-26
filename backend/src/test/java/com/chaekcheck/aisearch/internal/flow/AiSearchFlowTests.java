@@ -124,6 +124,47 @@ class AiSearchFlowTests {
 	com.chaekcheck.aisearch.internal.vector.QuestionVectors questionVectors =
 			com.chaekcheck.aisearch.internal.vector.QuestionVectors.OFF;
 
+	/** The publish years the fake catalog knows, by book. */
+	final java.util.Map<Long, Integer> publishYears = new java.util.HashMap<>();
+
+	/** A catalog that knows only the publish years given. */
+	static com.chaekcheck.catalog.BookCards years(java.util.Map<Long, Integer> byBook) {
+		return new com.chaekcheck.catalog.BookCards() {
+
+			@Override
+			public List<BookCard> cards(java.util.Collection<Long> bookIds) {
+				return bookIds.stream()
+					.filter(byBook::containsKey)
+					.map(id -> new BookCard(id, "", null, null, byBook.get(id), null, new long[0]))
+					.toList();
+			}
+
+			@Override
+			public java.util.Map<HoldingKey, Long> byHoldingKeys(java.util.Collection<HoldingKey> keys) {
+				return java.util.Map.of();
+			}
+
+			@Override
+			public java.util.Map<Long, Long> workKeys(java.util.Collection<Long> bookIds) {
+				return java.util.Map.of();
+			}
+
+		};
+	}
+
+	@Test
+	void theSecondCallGetsThisYearAndEachBooksPublishYear() { // user 2026-10-26 "출간시기도"
+		publishYears.put(20L, 2019);
+		llm.then(keywords("토지")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("최근에 나온 대하소설", List.of());
+
+		String message = llm.calls.get(1).messages().getLast().text();
+		assertThat(message).startsWith("올해: " + java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue() + "년\n질문: ");
+		assertThat(message).contains("제목: 토지 / 저자: 박경리 / 출간: 2019년 / 한 줄: ");
+		assertThat(Prompts.PICK_SYSTEM).contains("확인하기 어려워요").contains("최근에 나온 책을 먼저");
+	}
+
 	/** The ML first call the flow gets; off unless a test sets it. */
 	MlFirstCall mlFirstCall = MlFirstCall.off();
 
@@ -143,7 +184,7 @@ class AiSearchFlowTests {
 				properties.pickTimeout(), properties.keywordMaxTokens(), properties.pickMaxTokens(),
 				properties.maxConcurrent(), properties.rate(), properties.budget(), properties.price(),
 				properties.limits(), properties.vector(),
-				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512));
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null));
 		questionVectors = new com.chaekcheck.aisearch.internal.vector.QuestionVectors() {
 
 			@Override
@@ -614,7 +655,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, MlFirstCall.off(), failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, MlFirstCall.off(), years(publishYears), failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -678,7 +719,7 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, mlFirstCall, usageLog,
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, mlFirstCall, years(publishYears), usageLog,
 				flowProperties == null ? properties : flowProperties, json);
 	}
 
