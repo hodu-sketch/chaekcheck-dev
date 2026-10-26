@@ -19,6 +19,7 @@ Run from the repository root (any python with psycopg for prepare/kdc; the data 
   <venv>/python -X utf8 scripts/aisearch/build_100k.py requests  # request files per kind (no API call)
   <venv>/python -X utf8 scripts/aisearch/build_100k.py submit    # sends the batches (costs money)
   <venv>/python -X utf8 scripts/aisearch/build_100k.py collect   # waits, checks, writes the files
+  <venv>/python -X utf8 scripts/aisearch/build_100k.py retry     # asks again for the dropped books (then collect)
   python -X utf8 scripts/aisearch/build_100k.py profiles-tsv   # book-profiles.tsv for the first-call model folder
 
 Files (data folder, outside git): aisearch/100k/ targets.tsv, left-out-no-intro.tsv, bands.json, nlk-kdc.tsv,
@@ -81,6 +82,17 @@ BLURB_SYSTEM = """당신은 전자도서관 책 추천 탭에 들어갈 짧은 �
 - 주어진 정보만으로 책 내용을 알 수 없으면 추측하지 말고 NONE 한 단어만 씁니다.
 - 글만 씁니다. 따옴표, 머리말, 설명을 붙이지 않습니다."""
 BLURB_MIN, BLURB_MAX, COPY_RUN = 80, 150, 8
+# retry round (2026-10-26): at effort low most first answers ended in 합니다체 ("~책입니다."), which R8-4 drops; the books
+# dropped for a checkable rule are asked again with the ending spelled out (the first round's rules unchanged)
+BLURB_RETRY_RULE = """
+- 모든 문장을 해요체 '~요'로 끝냅니다(예: ~책이에요, ~담았어요, ~어울려요). '~입니다', '~합니다', '~다.'로 끝내지 않습니다.
+- 공백 포함 150자를 넘기지 않습니다. 소개 원문의 낱말을 길게 이어서 옮기지 않습니다.
+- 띄어쓰기를 빼고 보아 소개 원문과 8글자 넘게 똑같이 이어지는 부분이 없어야 합니다. 긴 이름·용어·문구는 줄이거나 \
+다른 말로 바꿔 씁니다."""
+# (the last rule was added for the second retry round, 2026-10-26: 11,587 blurbs of the first retry copied 8+ characters)
+RETRY_REASONS = {'search_line': {'stop_max_tokens', 'bad_json', 'length'},
+                 'for_you_blurb': {'not_haeyo', 'copied', 'length', 'banned_word', 'stop_max_tokens', 'shape'},
+                 'profile': {'stop_max_tokens', 'bad_json'}}
 BANNED = re.compile(r'AI|인공지능|최고의|감동적|꼭 읽어야|베스트셀러|필독')
 
 # ---- profile: profile-RULES-detailed.md as a system prompt, taxonomy2.json as enums
@@ -310,14 +322,16 @@ def client():
     return anthropic.Anthropic(api_key=key)
 
 
-def params(kind: str, user: str) -> dict:
+def params(kind: str, user: str, retry: bool = False) -> dict:
     if kind == 'search_line':
-        return dict(model=MODEL, max_tokens=400, system=LINE_SYSTEM, messages=[{'role': 'user', 'content': user}],
+        return dict(model=MODEL, max_tokens=1200 if retry else 400, system=LINE_SYSTEM,
+                    messages=[{'role': 'user', 'content': user}],
                     output_config={'effort': 'low', 'format': {'type': 'json_schema', 'schema': LINE_SCHEMA}})
     if kind == 'for_you_blurb':
-        return dict(model=MODEL, max_tokens=2000, system=BLURB_SYSTEM, messages=[{'role': 'user', 'content': user}],
-                    output_config={'effort': 'low'})
-    return dict(model=MODEL, max_tokens=1500,
+        return dict(model=MODEL, max_tokens=4000 if retry else 2000,
+                    system=BLURB_SYSTEM + (BLURB_RETRY_RULE if retry else ''),
+                    messages=[{'role': 'user', 'content': user}], output_config={'effort': 'low'})
+    return dict(model=MODEL, max_tokens=3000 if retry else 1500,
                 system=[{'type': 'text', 'text': PROFILE_SYSTEM, 'cache_control': {'type': 'ephemeral'}}],
                 messages=[{'role': 'user', 'content': user}],
                 output_config={'effort': 'low', 'format': {'type': 'json_schema', 'schema': PROFILE_SCHEMA}})
@@ -343,6 +357,32 @@ def submit() -> int:
                                       'submitted_at': dt.datetime.now().isoformat(timespec='seconds')})
             record_path.write_text(json.dumps(record, indent=1))
             print(f'{kind} part {part}: batch {batch.id}, {len(chunk)} requests', flush=True)
+    return 0
+
+
+def retry() -> int:
+    """Asks again for the books the last collect dropped for a reason in RETRY_REASONS (retry parts in batches.json)."""
+    from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
+    from anthropic.types.messages.batch_create_params import Request
+    c = client()
+    record_path = OUT / 'batches.json'
+    record = json.loads(record_path.read_text())
+    round_no = 1 + max((int(str(b['part']).split('-')[0][5:]) for b in record['batches']
+                        if str(b['part']).startswith('retry')), default=0)
+    for kind in KINDS:
+        wanted = {int(r['book_id']) for r in read_tsv(OUT / f'dropped-{kind}.tsv') if r['reason'] in RETRY_REASONS[kind]}
+        rows = [json.loads(line) for line in (OUT / f'requests-{kind}.jsonl').read_text(encoding='utf-8').splitlines()]
+        rows = [r for r in rows if r['book_id'] in wanted]
+        for part, start in enumerate(range(0, len(rows), CHUNK)):
+            chunk = rows[start:start + CHUNK]
+            reqs = [Request(custom_id=f"{kind.replace('_', '-')}-{r['book_id']}",
+                            params=MessageCreateParamsNonStreaming(**params(kind, r['user'], retry=True))) for r in chunk]
+            batch = c.messages.batches.create(requests=reqs)
+            record['batches'].append({'kind': kind, 'part': f'retry{round_no}-{part}', 'id': batch.id,
+                                      'requests': len(chunk),
+                                      'submitted_at': dt.datetime.now().isoformat(timespec='seconds')})
+            record_path.write_text(json.dumps(record, indent=1))
+            print(f'{kind} retry{round_no}-{part}: batch {batch.id}, {len(chunk)} requests', flush=True)
     return 0
 
 
@@ -402,67 +442,89 @@ def collect() -> int:
         time.sleep(120)
     intros = {int(r['book_id']): r['intro'] for r in read_tsv(ML / 'intro-books-100k.tsv')}
     made_on = dt.date.today().isoformat()
-    out = {k: [] for k in KINDS}
-    dropped = {k: {} for k in KINDS}
+    ok = {k: {} for k in KINDS}            # book -> output line, the first answer that passes
+    last_fail = {k: {} for k in KINDS}     # book -> why its last answer did not pass
+    fixed_counts = {}
     failed = {k: {} for k in KINDS}
-    tokens = {k: [0, 0] for k in KINDS}
-    no_content = []
+    usage = {k: [0, 0, 0, 0] for k in KINDS}   # input, cache read, cache write, output
     for b in record['batches']:
         kind = b['kind']
         for result in c.messages.batches.results(b['id']):
             book_id = int(result.custom_id.rsplit('-', 1)[1])
             if result.result.type != 'succeeded':
                 failed[kind][result.result.type] = failed[kind].get(result.result.type, 0) + 1
+                last_fail[kind].setdefault(book_id, result.result.type)
                 continue
             msg = result.result.message
-            tokens[kind][0] += msg.usage.input_tokens + (msg.usage.cache_read_input_tokens or 0) + \
-                (msg.usage.cache_creation_input_tokens or 0)
-            tokens[kind][1] += msg.usage.output_tokens
+            u = usage[kind]
+            u[0] += msg.usage.input_tokens
+            u[1] += msg.usage.cache_read_input_tokens or 0
+            u[2] += msg.usage.cache_creation_input_tokens or 0
+            u[3] += msg.usage.output_tokens
+            if book_id in ok[kind]:
+                continue
             text = next((x.text for x in msg.content if x.type == 'text'), '').strip()
-            why = None
+            why, line = None, None
             if msg.stop_reason != 'end_turn':
                 why = f'stop_{msg.stop_reason}'
             elif kind == 'search_line':
                 try:
-                    line = clean(json.loads(text)['line'])
+                    found = clean(json.loads(text)['line'])
                 except (ValueError, KeyError):
-                    line, why = '', 'bad_json'
-                if not why and line in ('-', ''):
+                    found, why = '', 'bad_json'
+                if not why and found in ('-', ''):
                     why = 'no_content'
-                    no_content.append(book_id)
-                elif not why and len(line) > 300:
+                elif not why and len(found) > 300:
                     why = 'length'
                 if not why:
-                    out[kind].append(f'search_line\t{book_id}\tintro\t{made_on}\t{line}')
+                    line = f'search_line\t{book_id}\tintro\t{made_on}\t{found}'
             elif kind == 'for_you_blurb':
                 why = check_blurb(text, intros.get(book_id, ''))
                 if not why:
-                    out[kind].append(f'for_you_blurb\t{book_id}\thaiku-batch:{b["id"]}\t{made_on}\t{text}')
+                    line = f'for_you_blurb\t{book_id}\thaiku-batch:{b["id"]}\t{made_on}\t{text}'
             else:
                 try:
                     profile, fixed = check_profile(json.loads(text))
                     for f in fixed:
-                        dropped[kind][f'fixed_{f}'] = dropped[kind].get(f'fixed_{f}', 0) + 1
-                    out[kind].append(json.dumps({'id': book_id, **profile}, ensure_ascii=False))
+                        fixed_counts[f] = fixed_counts.get(f, 0) + 1
+                    line = json.dumps({'id': book_id, **profile}, ensure_ascii=False)
                 except (ValueError, KeyError, TypeError):
                     why = 'bad_json'
-            if why:
-                dropped[kind][why] = dropped[kind].get(why, 0) + 1
+            if line:
+                ok[kind][book_id] = line
+                last_fail[kind].pop(book_id, None)
+            else:
+                last_fail[kind][book_id] = why
     with (OUT / 'search-lines.tsv').open('w', encoding='utf-8', newline='\n') as f:
-        f.write('kind\tbook_id\tsource\tmade_on\ttext\n' + ''.join(line + '\n' for line in sorted(
-            out['search_line'], key=lambda s: int(s.split('\t')[1]))))
+        f.write('kind\tbook_id\tsource\tmade_on\ttext\n' + ''.join(ok['search_line'][i] + '\n'
+                                                                  for i in sorted(ok['search_line'])))
     (ML / 'foryou').mkdir(parents=True, exist_ok=True)
     with (ML / 'foryou' / 'book-texts-for_you_blurb-100k.tsv').open('w', encoding='utf-8', newline='\n') as f:
-        f.write('kind\tbook_id\tsource\tmade_on\ttext\n' + ''.join(line + '\n' for line in sorted(
-            out['for_you_blurb'], key=lambda s: int(s.split('\t')[1]))))
+        f.write('kind\tbook_id\tsource\tmade_on\ttext\n' + ''.join(ok['for_you_blurb'][i] + '\n'
+                                                                  for i in sorted(ok['for_you_blurb'])))
     with (OUT / 'profiles-detailed.jsonl').open('w', encoding='utf-8', newline='\n') as f:
-        f.write(''.join(line + '\n' for line in sorted(out['profile'], key=lambda s: json.loads(s)['id'])))
-    (OUT / 'search-line-no-content.tsv').write_text('book_id\n' + ''.join(f'{i}\n' for i in sorted(no_content)),
+        f.write(''.join(ok['profile'][i] + '\n' for i in sorted(ok['profile'])))
+    dropped = {}
+    for kind in KINDS:
+        rows = sorted((i, why) for i, why in last_fail[kind].items() if i not in ok[kind])
+        dropped[kind] = {}
+        for _, why in rows:
+            dropped[kind][why] = dropped[kind].get(why, 0) + 1
+        (OUT / f'dropped-{kind}.tsv').write_text('book_id\treason\n' + ''.join(f'{i}\t{w}\n' for i, w in rows),
+                                                  encoding='utf-8')
+    no_content = sorted(i for i, why in last_fail['search_line'].items()
+                        if why == 'no_content' and i not in ok['search_line'])
+    (OUT / 'search-line-no-content.tsv').write_text('book_id\n' + ''.join(f'{i}\n' for i in no_content),
                                                      encoding='utf-8')
-    report = {'made_at': dt.datetime.now().isoformat(timespec='seconds'),
-              'kept': {k: len(v) for k, v in out.items()}, 'dropped': dropped, 'failed': failed,
-              'tokens': {k: {'input': v[0], 'output': v[1]} for k, v in tokens.items()},
-              'cost_usd': round(sum(v[0] / 1e6 * PRICE_IN + v[1] / 1e6 * PRICE_OUT for v in tokens.values()), 2)}
+    # batch prices: input and output half price; cache reads 10% and cache writes 125% of the input price
+    cost = sum(u[0] * PRICE_IN + u[1] * PRICE_IN * 0.1 + u[2] * PRICE_IN * 1.25 + u[3] * PRICE_OUT
+               for u in usage.values()) / 1e6
+    report = {'made_at': dt.datetime.now().isoformat(timespec='seconds'), 'batches': len(record['batches']),
+              'kept': {k: len(v) for k, v in ok.items()}, 'dropped': dropped, 'profile_fixed': fixed_counts,
+              'failed': failed,
+              'tokens': {k: {'input': u[0], 'cache_read': u[1], 'cache_write': u[2], 'output': u[3]}
+                         for k, u in usage.items()},
+              'cost_usd': round(cost, 2)}
     (OUT / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False, indent=1))
     return 0
@@ -531,6 +593,7 @@ def book_texts() -> int:
 def main() -> int:
     sys.stdout.reconfigure(encoding='utf-8')
     steps = {'prepare': prepare, 'kdc': kdc, 'requests': requests_, 'submit': submit, 'collect': collect,
+             'retry': retry,
              'profiles-tsv': profiles_tsv, 'book-texts': book_texts}
     step = sys.argv[1] if len(sys.argv) > 1 else ''
     if step not in steps:
