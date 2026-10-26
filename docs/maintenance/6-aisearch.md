@@ -206,6 +206,6 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 
 - changeset `aisearch-004-search-book-slim`: `library_ids` integer[](가장 큰 번호 2,681), `line`·`search_text` `COLLATE "C"`. 둘 다 사람에게 정렬해 보이지 않고 LIKE + pg_bigm으로만 찾으므로 결과는 같음. 표를 다시 쓰므로 운영 시작 때 몇 초(로컬 4.6초 + ANALYZE 6초) 걸림
 - `JdbcAiSearchBookTexts.compact()`: book-texts 넣기가 끝난 뒤(트랜잭션 밖) `VACUUM (FULL, ANALYZE)`. 트랜잭션 안이면 건너뛰고, 실패하면 경고만(책은 이미 들어가 있음). 로그 `search books compacted in N ms`
-- 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`dbtest2.py`, 결과는 이 절)
+- 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
 - **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
 

@@ -1,0 +1,53 @@
+{
+ "plan_libraries": 25,
+ "now (real table, after the 2026-10-26 import)": {
+  "size": {
+   "heap": 136.0,
+   "index": 51.4,
+   "total": 188.3
+  },
+  "q": {
+   "common 소설": 140.2,
+   "two 기후 위기": 39.5,
+   "four 다이어트 식단 레시피 건강": 12.1,
+   "counts30": 0.4
+  }
+ },
+ "changeset_ms": 4627,
+ "analyze_after_ms": 6154,
+ "after changeset": {
+  "size": {
+   "heap": 75.4,
+   "index": 38.4,
+   "total": 115.0
+  },
+  "q": {
+   "common 소설": 137.6,
+   "two 기후 위기": 38.6,
+   "four 다이어트 식단 레시피 건강": 11.5,
+   "counts30": 0.3
+  }
+ },
+ "import_replace_ms": 10265,
+ "after import (no compaction)": {
+  "size": {
+   "heap": 149.0,
+   "index": 65.1,
+   "total": 216.5
+  }
+ },
+ "vacuum_full_analyze_ms": 10282,
+ "after import + compact": {
+  "size": {
+   "heap": 73.6,
+   "index": 38.3,
+   "total": 113.1
+  },
+  "q": {
+   "common 소설": 140.5,
+   "two 기후 위기": 34.2,
+   "four 다이어트 식단 레시피 건강": 40.9,
+   "counts30": 0.3
+  }
+ }
+}
