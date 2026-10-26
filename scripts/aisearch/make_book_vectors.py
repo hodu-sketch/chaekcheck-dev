@@ -9,8 +9,8 @@ memory (AiSearchVectors):
     scales count x float32     row i = int8 row i x scales[i]
     rows   count x dim int8
 
-usage: make_book_vectors.py OUT.bin [--ml DIR]   (DIR: the data folder's ml\\, default next to this repository)
-The rows of foryou\\vectors.npy (books made with the neighbours) win over pool-30000-intro.npy for the same book.
+usage: make_book_vectors.py OUT.bin [--ml DIR] [--pool pool-30000-intro|pool-100000-intro]   (DIR: the data folder's ml\\, default next to this repository)
+The rows of foryou\\vectors.npy (books made with the neighbours) win over the pool vectors for the same book.
 Prints the count, the file size and how far int8 is from float32 (worst cosine)."""
 import argparse
 import json
@@ -23,11 +23,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("out")
 parser.add_argument("--ml", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
                                                  "chaekcheck-data", "ml"))
+parser.add_argument("--pool", default="pool-30000-intro",
+                    help="the pool vectors in DIR (pool-100000-intro: the 100,000 books, scripts/aisearch/build_100k_vectors.py)")
 args = parser.parse_args()
 
 ids, rows = [], []
 seen = set()
-for name in (os.path.join("foryou", "vectors"), "pool-30000-intro"):
+for name in (os.path.join("foryou", "vectors"), args.pool):
     part_ids = json.load(open(os.path.join(args.ml, name + ".ids.json")))
     part = np.load(os.path.join(args.ml, name + ".npy")).astype(np.float32)
     for i, book_id in enumerate(part_ids):
