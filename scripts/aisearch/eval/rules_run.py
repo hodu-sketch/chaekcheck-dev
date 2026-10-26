@@ -126,7 +126,8 @@ def checks(case, steps, lines):
     for s in shown:
         for x in s['cards']:
             line = lines.get(x['bookId'], '') or ''
-            if any(line[i:i + 13] in x['text'] for i in range(0, max(0, len(line) - 12))):
+            # 20 characters in a row from the book's line (13 caught common endings like 「~을 다룬 책이에요」)
+            if any(line[i:i + 20] in x['text'] for i in range(0, max(0, len(line) - 19))):
                 copied += 1
     invite = [any(w in s['ask']['question'] for w in INVITE) for s in steps if s['ask']]
     return {'asked': asked, 'ok_ask': None if c['expect_ask'] is None else asked == c['expect_ask'],
@@ -173,7 +174,7 @@ def score():
         steps = [s for label in labels for v in runs[label].values() for s in v['steps']]
         ft = sorted(s['firstText'] for s in steps if s['firstText'] is not None)
         print(f"{way}: 금지 표현 {sum(e['banned'] for e in ex)}, 책 번호 {sum(e['number'] for e in ex)}, 묻지 않은 연도 {sum(e['year'] for e in ex)}, "
-              f"한 줄 베낌 카드 {sum(e['copied'] for e in ex)}, 직접 적으라는 말 {sum(inv)}/{len(inv)}, "
+              f"한 줄 20자 베낌 카드 {sum(e['copied'] for e in ex)}/{sum(len(s['cards']) for label in labels for v in runs[label].values() for s in v['steps'] if not s['ask'])}, 직접 적으라는 말 {sum(inv)}/{len(inv)}, "
               f"첫 글 중간 {ft[len(ft) // 2]:.1f}s 느린10% {ft[int(0.9 * (len(ft) - 1))]:.1f}s, 출력 토큰 중간 {sorted(s['out'] or 0 for s in steps)[len(steps) // 2]}")
 
 
