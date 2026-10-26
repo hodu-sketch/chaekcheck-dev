@@ -50,7 +50,14 @@ def ask(port, log, q, history):
     for c in cards:
         c['text'] = texts.get(c['bookId'], '')
     return {'q': q, 'firstText': seen, 'wall': round(time.time() - t0, 2), 'result': result, 'head': head, 'cards': cards,
-            'ask': asked, 'ms': int(g[1]) if g else None, 'in': int(g[2]) if g else None, 'out': int(g[3]) if g else None}
+            'ask': asked, 'ms': int(g[1]) if g else None, 'in': int(g[2]) if g else None, 'out': int(g[3]) if g else None,
+            'steps': steps_of(g[4]) if g else {}, 'early': bool(g and 'early keyword' in g[4])}
+
+
+def steps_of(rest):
+    """The step times of the log line (ms from the request's start), e.g. {'encode': 146, ..., 'llm-first': 1910}."""
+    m = re.search(r'steps (.*)$', rest)
+    return {k: int(v) for k, v in (x.split('=') for x in m.group(1).split())} if m else {}
 
 
 class Log:

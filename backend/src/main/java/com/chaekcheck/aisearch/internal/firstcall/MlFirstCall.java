@@ -173,6 +173,11 @@ public class MlFirstCall {
 		return plan(question, vector, earlierQuestion, earlierVector, joinedVector, false);
 	}
 
+	/** The keywords the plan of a first question (no earlier question) searches with. */
+	public static List<String> firstKeywords(String question) {
+		return QuestionWords.of(question);
+	}
+
 	/**
 	 * @param pointsBack the question points back at several earlier questions and {@code earlierQuestion} holds them
 	 * joined: whatever the relation network says, the search goes on from all of them (a continue), since a new topic

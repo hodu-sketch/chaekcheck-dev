@@ -391,6 +391,22 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aFailedTabCoverReadLeavesTheCardsWithoutTabCovers() { // covers are read while the call runs (2026-10-27)
+		com.chaekcheck.foryou.BookCovers failing = ids -> {
+			throw new IllegalStateException("down");
+		};
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
+				1, 1));
+
+		new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, failing, blurbs,
+				questionVectors, mlFirstCall, years(publishYears), pick, usageLog, properties, json)
+			.run(input(QUESTION, List.of()), sink);
+
+		assertThat(sink.of(Card.class)).hasSize(1);
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
 	void aCardWithoutAListSummaryTakesTheTabBlurb() { // user 2026-10-25, tab blurbs from foryou
 		stored.add(new Book(500, "우주 과학 교양", "칼 세이건", new long[] { 101, 102 }));
 		texts.replace(stored, lines);
@@ -532,7 +548,7 @@ class AiSearchFlowTests {
 				"\"choices\":[\"그림 그리는 법\",\"명화 감상\",\" \"]},\"head\":\"무시\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
 				1000, 60));
 
-		run(QUESTION, List.of());
+		run("과학 그림책", List.of());
 
 		assertThat(sink.names()).containsExactly("ask", "done");
 		AiSearchEvents.Ask ask = sink.of(AiSearchEvents.Ask.class).getFirst();
@@ -584,9 +600,35 @@ class AiSearchFlowTests {
 		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"ask\":{\"question\":\"\",\"choices\":[]},",
 				"\"head\":\"좋아요\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"), 1000, 60));
 
-		run(QUESTION, List.of());
+		run("과학 그림책", List.of());
 
 		assertThat(sink.names()).containsExactly("head-delta", "card", "card-delta", "done");
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
+	void withAskBackALongFirstQuestionGoesWithoutTheAskField() { // user 2026-10-27, 응답 시간 4안
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"좋아요\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
+				1000, 60));
+
+		run(QUESTION, List.of());
+
+		assertThat(AiSearchFlow.words(QUESTION)).isGreaterThan(AiSearchFlow.ASK_QUESTION_WORDS);
+		assertThat(llm.calls.getLast().system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(llm.calls.getLast().jsonSchema()).isEqualTo(Prompts.PICK_SCHEMA);
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
+	void withAskBackALongFollowUpMayStillBeAskedBack() { // user 2026-10-27, 응답 시간 4안
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"ask\":{\"question\":\"\",\"choices\":[]},",
+				"\"head\":\"좋아요\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"), 1000, 60));
+
+		run("이번엔 잠들기 전에 읽을 만한 가벼운 걸로", List.of(new AiSearchFlow.Turn("과학책 추천해줘", List.of(20L, 1L))));
+
+		assertThat(llm.calls.getLast().system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
 		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
 	}
 
