@@ -89,6 +89,16 @@ public record Shelves(List<String> field, List<String> subfield, Boolean fiction
 	}
 
 	/**
+	 * A moved sub-topic ("식단 말고 운동 쪽은?"): this question's shelves, the earlier big shelf when this one gives none;
+	 * the left-out shelves of both.
+	 */
+	Shelves keepingFieldOf(Shelves earlier) {
+		return new Shelves(field.isEmpty() ? earlier.field : field, subfield, fiction, genre, country, audience, level,
+				form, union(earlier.excludeField, excludeField), union(earlier.excludeSubfield, excludeSubfield),
+				union(earlier.excludeGenre, excludeGenre));
+	}
+
+	/**
 	 * The new-topic rule (M4): this question alone names a big shelf and none of it is the earlier question's, so the
 	 * earlier question is dropped.
 	 */

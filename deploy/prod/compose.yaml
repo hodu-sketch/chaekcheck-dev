@@ -85,6 +85,8 @@ services:
       # the first step (user 2026-10-26): haiku = the first Haiku call; ml = small networks over the question vector
       # (needs first-call-model.bin and book-profiles.tsv in the model folder; without them Haiku as before)
       CHAEKCHECK_AISEARCH_FIRST_CALL: ${CHAEKCHECK_AISEARCH_FIRST_CALL:-haiku}
+      # how an ml follow-up is tied to the earlier question: relation (follow-up-model.bin; rule without it), rule, strict
+      CHAEKCHECK_AISEARCH_FOLLOW_UP: ${CHAEKCHECK_AISEARCH_FOLLOW_UP:-relation}
       DJL_CACHE_DIR: /tmp/djl
       # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
       # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only

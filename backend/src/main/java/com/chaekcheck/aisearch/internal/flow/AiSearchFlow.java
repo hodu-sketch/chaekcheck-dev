@@ -43,6 +43,7 @@ import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.aisearch.internal.vector.QuestionVectors;
+import com.chaekcheck.catalog.BookCards;
 import com.chaekcheck.foryou.BookBlurbs;
 import com.chaekcheck.foryou.BookCovers;
 import com.chaekcheck.foryou.BookNeighbours;
@@ -93,6 +94,8 @@ public class AiSearchFlow {
 
 	private final MlFirstCall mlFirstCall;
 
+	private final BookCards bookCards;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -101,8 +104,8 @@ public class AiSearchFlow {
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
 			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, BookBlurbs blurbs,
-			QuestionVectors vectors, MlFirstCall mlFirstCall, UsageLog usageLog, AiSearchProperties properties,
-			JsonMapper json) {
+			QuestionVectors vectors, MlFirstCall mlFirstCall, BookCards bookCards, UsageLog usageLog,
+			AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
@@ -113,6 +116,7 @@ public class AiSearchFlow {
 		this.blurbs = blurbs;
 		this.vectors = vectors;
 		this.mlFirstCall = mlFirstCall;
+		this.bookCards = bookCards;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -208,6 +212,9 @@ public class AiSearchFlow {
 		/** Whether the ML first call took a follow-up as a new topic. */
 		boolean newTopic;
 
+		/** The ML first call's relation of a follow-up to the earlier question ("first" on the first turn). */
+		String relation;
+
 		final List<Long> shown = new ArrayList<>();
 
 		Run(AiSearchSink sink) {
@@ -245,7 +252,7 @@ public class AiSearchFlow {
 								run.candidateCount, run.shown, (int) Math.min(Integer.MAX_VALUE, run.inputTokens),
 								(int) Math.min(Integer.MAX_VALUE, run.outputTokens)));
 				log.info("ai search: first {}, keyword {}, pick {}, candidates {} (vector {}{}), cards {}, {} ms, tokens {}/{}{}",
-							run.mlRoute == null ? "haiku" : "ml " + run.mlRoute + (run.newTopic ? " new topic" : ""),
+							run.mlRoute == null ? "haiku" : "ml " + run.mlRoute + " " + run.relation,
 						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
 						run.named ? ", named book" : "", run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
 						run.gone ? ", client gone" : "");
@@ -293,6 +300,7 @@ public class AiSearchFlow {
 			MlFirstCall.Plan ml = mlStep.plan();
 			run.mlRoute = ml.route();
 			run.newTopic = ml.newTopic();
+			run.relation = ml.relation();
 			if (ml.route() == MlFirstCall.Route.SITE) {
 				site(input, history, run);
 				return;
@@ -405,8 +413,9 @@ public class AiSearchFlow {
 		}
 		List<Long> ids = List.copyOf(chosen);
 		Map<Long, String> lines = candidates.lines(ids);
+		Map<Long, Integer> years = publishYears(ids);
 		List<Choice> choices = ids.stream()
-			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id)))
+			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id), years.get(id)))
 			.toList();
 		run.candidateCount = ids.size();
 		Map<Long, String> tabCovers = covers.of(ids);
@@ -493,6 +502,22 @@ public class AiSearchFlow {
 		return held;
 	}
 
+	/** The candidates' publish years from the catalog, one query; none when the catalog fails (the search goes on). */
+	private Map<Long, Integer> publishYears(List<Long> ids) {
+		Map<Long, Integer> years = new HashMap<>();
+		try {
+			for (BookCards.BookCard card : bookCards.cards(ids)) {
+				if (card.publishedYear() != null) {
+					years.put(card.bookId(), card.publishedYear());
+				}
+			}
+		}
+		catch (RuntimeException e) {
+			log.warn("ai search: the publish years were not read: {}", e.getClass().getName());
+		}
+		return years;
+	}
+
 	/** The ML first call's plan and the vector candidates of its search vector. */
 	private record MlStep(MlFirstCall.Plan plan, List<Long> nearest) {
 	}
@@ -511,7 +536,7 @@ public class AiSearchFlow {
 			List<float[]> found = lookup.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
 			float[] vector = found.get(0);
 			MlFirstCall.Plan plan = mlFirstCall.plan(question, vector, earlierQuestion,
-					earlierQuestion == null ? null : found.get(1));
+					earlierQuestion == null ? null : found.get(1), earlierQuestion == null ? null : found.get(2));
 			float[] search = plan.joinedVector() ? found.get(2) : vector;
 			return new MlStep(plan, vectors.nearest(search, settings.vectorDepth() * 2));
 		}

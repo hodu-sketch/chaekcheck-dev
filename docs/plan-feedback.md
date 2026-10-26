@@ -6330,6 +6330,17 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 - 모델 폴더에 `first-call-model.bin`·`book-profiles.tsv`를 더 올림(PC `chaekcheck-data\ml\aisearch-model\`, 서버 `/srv/chaekcheck/aisearch-model/`), prod.env `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`, 배포 뒤 시작 로그 `ai search first call: ml, 27227 book profiles`와 검색 로그 `first ml …` 확인
 
+### 이어 묻는 질문·짧은 질문·2차 프롬프트 고치기 (2026-10-26, 같은 곁 세션, 브랜치 `claude/aisearch-follow-up`)
+
+- 사용자가 v1.16.0에서 찾음: 「판타지인데」 → 「좀 슬프고 서정적인거」가 이어지지 않음, 카드에 「책 정보만으로는 알기 어려워요」, 「최근도서」에 「출간 시기 확인 어려워요」. 사용자 "A·B를 다 잰 다음에 한 번에 바꾸자", "이것도 개선하자 출간시기도"
+- 잰 숫자: [결정 기록 3-4](reports/ai-search-ml-first-call-decisions-2026-10-26.md). 짧은 장르 질문 74 → 97.3%(라우터 B), 이어 묻는 질문 대화 80개 맞음 rule 72.2 → relation **75.4%**(continue 64 → 79%)
+- **plan에 기록할 것**
+  - 설계 변경: 이어 묻는 질문을 관계 분류기(7가지)로 나눔. 설정 `chaekcheck.aisearch.first-call.follow-up`(`CHAEKCHECK_AISEARCH_FOLLOW_UP`, 기본 `relation`, `rule`·`strict`로 되돌림). 모델 폴더에 `follow-up-model.bin`(8MB)이 더 생김
+  - 모듈 의존 더함: `aisearch` → `catalog`(`BookCards`로 후보의 출간 연도를 2차 Haiku에). `package-info.java` `allowedDependencies`와 `ModularityTests`를 고침
+  - 2차 프롬프트(`PICK_SYSTEM`): 머리말·글에 책 정보의 한계를 쓰지 않음, 출간 연도를 「최근」 조건에 씀. 사용자 메시지 첫 줄이 「올해: YYYY년」, 책마다 「/ 출간: YYYY년」
+  - 남은 결정: 「고마워」 같은 잡담에 지금 고정 문구(「맞는 책을 찾지 못했어요」) 대신 Haiku가 짧게 답할지(곁 세션 추천: Haiku 답, 화면 시안 먼저). 이번에는 바꾸지 않음
+- 배포(24 세션에 넘김): 모델 폴더에 `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`의 `first-call-model.bin`(바꿈)·`follow-up-model.bin`(새로), prod.env `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`. 배포 뒤 시작 로그 `follow-ups by relation`, 이어 묻는 검색 로그 `first ml BOOK continue` 확인
+
 # 사이클 23 소개 시험과 탭 표지 (2026-10-24~25 요청)
 
 plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.md`, 탭 표지 메시지). 보고서: [`docs/reports/cycle23-intro-test-2026-10-25.md`](reports/cycle23-intro-test-2026-10-25.md), 표 `docs/reports/cycle23-intro/`.
