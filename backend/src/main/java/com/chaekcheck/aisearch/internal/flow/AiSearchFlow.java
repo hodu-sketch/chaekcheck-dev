@@ -281,7 +281,7 @@ public class AiSearchFlow {
 			listed.put(book.bookId(), book);
 		}
 		List<ShownTurn> history = new ArrayList<>();
-		Set<Long> shownBefore = new HashSet<>();
+		Set<Long> shownBefore = new LinkedHashSet<>();
 		List<Long> lastShown = List.of();
 		for (Turn turn : input.history()) {
 			List<Long> shown = turn.bookIds()
@@ -336,8 +336,17 @@ public class AiSearchFlow {
 			Map<Long, List<Long>> found = neighbours.of(lastShown);
 			Set<Long> asked = new LinkedHashSet<>(lastShown);
 			found.values().forEach(asked::addAll);
+			// the books of the turns before the last one too, after it: "위에 말한 두 개" can point at two earlier
+			// questions, and the last turn alone held only one of them (user 2026-10-26)
+			List<Long> earlierShown = new ArrayList<>(shownBefore);
+			earlierShown.removeAll(lastShown);
+			asked.addAll(earlierShown);
 			Map<Long, Integer> counts = candidates.planCounts(asked, input.planLibraryIds());
 			lastShown.stream().filter(counts::containsKey).limit(max).forEach(id -> {
+				chosen.add(id);
+				planCount.put(id, counts.get(id));
+			});
+			earlierShown.stream().filter(counts::containsKey).limit(Math.max(0, max - chosen.size())).forEach(id -> {
 				chosen.add(id);
 				planCount.put(id, counts.get(id));
 			});
