@@ -8,6 +8,7 @@
 - [1차 AI 호출을 작은 모델로 바꿀 수 있나](ai-search-first-call-models-2026-10-25.md) — TF-IDF · KURE+분류기 · Cross-Encoder · Haiku, 질문 3,000개
 - [1차 AI 호출을 ML로: 넣은 것과 뺀 것](ai-search-ml-first-call-decisions-2026-10-26.md) — 시도마다 전 → 후 숫자와 결정(넣음/뺌), 길 나누기·이어 묻는 질문
 - [AI 검색 질문 임베딩 시험](ai-search-embedding-2026-10-25.md) — 임베딩 모델 2.2GB → 385MB, 서버 메모리·시간
+- [2차를 에이전트로: 만들고 재 보니](ai-search-agent-2026-10-26.md) — 도구(다시 찾기·되묻기)를 쓰는 Haiku vs 한 번의 호출, 질문 72개 두 번씩, 기준선이 바뀌어 다시 잰 이야기 (켜지 않음)
 - 그림·결과 파일: [`ai-search-eval/`](ai-search-eval/), 도구: [`scripts/aisearch/eval/`](../../scripts/aisearch/eval/)
 
 ## 사이클 23 (책첵 추천)
