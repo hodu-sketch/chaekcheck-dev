@@ -60,7 +60,16 @@ def text_of(title, author, publisher, published) -> str:
 
 
 _BRACKETS = re.compile(r'[(\[〈<《「『【{].*?[)\]〉>》」』】}]')
-_TAIL_NUMBER = re.compile(r'(?:[\s.,·:\-]*제?\d+\s*(?:권|부|편|화)?|[\s.,·:\-]+[ivx]+)$', re.IGNORECASE)
+_TAIL_NUMBER = re.compile(r'(?:[\s.,·:\-]*vol(?:ume)?\.?\s*\d+\.?|[\s.,·:\-]*제?\d+\s*(?:권|부|편|화)?|[\s.,·:\-]+[ivx]+)$',
+                          re.IGNORECASE)
+# a year edition's year at the start or the end ("2025 한국이 열광할 세계 트렌드", "트렌드 코리아 2026"; user 2026-10-26)
+_YEAR = re.compile(r'^(?:19|20)\d{2}\s+|\s+(?:19|20)\d{2}\s*(?:년판|년)?$')
+# a shorter title inside a longer one, or a shared ending, counts for one work only from this many letters on
+_CONTAINED = 3
+_SHARED_END = 4
+# ... and an ending counts only with this many letters of the beginning shared too ("그리스신화이야기" and
+# "로마신화이야기" stay two books)
+_SHARED_START = 2
 _ROLES = re.compile(r'\s*(지음|저|글|그림|엮음|편저|편|옮김|역|번역|감수|원작)\.?$')
 
 
@@ -74,7 +83,8 @@ def work_key(title: str | None) -> str:
     """
     text = (title or '').strip()
     bare = _BRACKETS.sub(' ', text)
-    bare = re.split(r'\s*:\s*|\s+-\s+', bare)[0]
+    bare = re.split(r'\s*:\s*|\s+-\s*|\s*-\s+', bare)[0]  # "삼국지(20)-두 영웅의 대결" too (2026-10-26)
+    bare = _YEAR.sub('', bare.strip())
     for _ in range(2):  # "토지. 2. 3" or "1부 2권"
         bare = _TAIL_NUMBER.sub('', bare.strip())
     key = re.sub(r'[\W_]+', '', bare).lower()
@@ -94,12 +104,23 @@ def first_author(author: str | None) -> str:
 def same_work(a: tuple, b: tuple) -> bool:
     """
     Two books (id, title, author_display, …) are one work when their work keys are the same and their first authors
-    agree (one name inside the other, as "셰익스피어" in "윌리엄셰익스피어"), or one of them has no author.
+    agree (one name inside the other, as "셰익스피어" in "윌리엄셰익스피어"), or one of them has no author. Since
+    2026-10-26 (100,000 books, user "③을 고치고 이웃 표를 다시 계산"), also when both have an author, the authors agree,
+    and one key holds the other ({_CONTAINED}+ letters: "명상록" in "초역명상록") or the keys end alike ({_SHARED_END}+
+    letters, with {_SHARED_START}+ letters of the beginning too: "라만차돈키호테" and "라만차의비범한이달고돈키호테").
     """
-    if work_key(a[1]) != work_key(b[1]):
-        return False
+    ka, kb = work_key(a[1]), work_key(b[1])
     x, y = first_author(a[2]), first_author(b[2])
-    return not x or not y or x in y or y in x
+    authors_agree = not x or not y or x in y or y in x
+    if ka == kb:
+        return authors_agree
+    if not (x and y and authors_agree):
+        return False
+    short, long_ = sorted((ka, kb), key=len)
+    if len(short) >= _CONTAINED and short in long_:
+        return True
+    return (len(os.path.commonprefix([ka[::-1], kb[::-1]])) >= _SHARED_END
+            and len(os.path.commonprefix([ka, kb])) >= _SHARED_START)
 
 
 def main() -> int:
