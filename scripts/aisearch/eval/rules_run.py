@@ -16,7 +16,8 @@ CASES = SUITE['cases'] + [{'id': 'q%02d' % x['id'], 'rule': 'clear', 'turns': [x
 LINE = re.compile(r'ai search: first .*?cards (\d+), (\d+) ms, tokens (\d+)/(\d+)(.*)$')
 BANNED = ['책 정보만으로는', '알기 어려', '확인하기 어려', '알 수 없어', '정보가 없', '후보', '목록']
 TIME_WORDS = ['최근', '요즘', '신간', '최신', '이후', '년대', '나온', '올해']
-YEAR = re.compile(r'(19|20)\d\d년|올해|최신')
+# the publish time brought up unasked (P12); years of what a book is about are fine
+YEAR = re.compile(r'(19|20)\d\d년(에)?\s*(나온|출간|발간|기준)|올해|최신|신작')
 NUMBER = re.compile(r'\d+\s*번(?!째)')
 INVITE = ['적어', '말씀', '알려', '써 주', '쓰셔도', '입력']
 XSRF = str(uuid.uuid4()); N = [0]; IP0 = 100 + int(time.time()) % 100
