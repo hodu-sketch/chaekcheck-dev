@@ -10,7 +10,8 @@ import type { LibraryScope, VisitFilter } from './types'
  * /api/v1/ai-searches/library-counts` counts the plan's libraries again for the books already shown.
  */
 
-export type AiTurn = { question: string; bookIds: number[] }
+/** An earlier turn; an ask-back turn sends its question and choices so the next question is read as its answer (2026-10-27). */
+export type AiTurn = { question: string; bookIds: number[]; askQuestion?: string; askChoices?: string[] }
 
 export interface AiSearchBody {
   question: string

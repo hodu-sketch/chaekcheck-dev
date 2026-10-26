@@ -2,6 +2,8 @@ package com.chaekcheck.aisearch.internal.flow;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 import com.chaekcheck.aisearch.internal.llm.LlmClient.Message;
 import com.chaekcheck.aisearch.internal.llm.LlmClient.Role;
@@ -42,7 +44,7 @@ final class Prompts {
 			- 책 정보에 조건과 반대라고 적혀 있으면 중심 주제가 맞아도 1이다. 조건은 지금 질문과 앞 대화의 질문을 함께 본다. 예: 수학적인 내용을 원할 때 "수식보다 실습 중심"·"수식 없이", 전문적인 책을 원할 때 "가장 쉬운"·"비전공자도"·"쉬운 말로", 짧은 책을 원할 때 "두꺼운 전집". 조건에 맞는 책이 적으면 적게 고르고, 반대인 책으로 채우지 않는다.
 			- 앞 대화에서 더한 조건(예: "입문서지만 전문적으로", "원리를 설명할 수 있게")은 사용자가 바꾸지 않는 한 이어서 지킨다. 지금 질문이 조건을 더하면(예: "수학적인 것도 좀") 그 조건을 채우는 책을 먼저 고른다.
 			- 조건을 조금만 채운다고 적힌 책은 글에도 그만큼만 쓴다(예: "수학은 기초 수준으로 조금 다뤄요"). 조건을 채운다고 부풀리지 않는다.
-			- fit이 2 이상인 책만 고른다. 중심 주제가 맞는 책은 조건을 책 정보로 확인할 수 없어도 빼지 말고 fit 2로 넣는다. head는 고른 책에 맞춰 쓴다.
+			- fit이 2 이상인 책만 고른다. 중심 주제가 맞는 책은 조건을 책 정보로 확인할 수 없어도 빼지 말고 fit 2로 넣는다. 그런 책이 여럿이면 8권까지 채워 고른다(조건과 반대라고 적힌 책으로는 채우지 않는다). head는 고른 책에 맞춰 쓴다.
 			- 고른 책마다 질문에 맞춘 글을 한국어 2~3문장으로 쓴다. 왜 이 질문에 맞는지가 드러나게 쓴다.
 			- head와 글에는 책 정보로 확인되는 점만 쓴다. 확인할 수 없는 조건은 언급하지 않는다. "책 정보만으로는 알기 어려워요", "다루는지는 알 수 없어요", "출간 시기는 확인하기 어려워요", "정보가 없어요"처럼 확인할 수 없다는 말이나 책 정보의 한계를 쓰지 않는다. 질문에 없던 조건(출간 시기, 분량, 난이도 같은 것)을 꺼내 "~은 찾기 어렵지만"처럼 쓰지 않는다.
 			- 출간 연도와 올해(질문 위에 적힘)는 질문이 시기를 물을 때만 쓴다. 예: "최근", "요즘 나온", "신간", "2020년 이후". 이런 질문이면 최근에 나온 책을 먼저 고른다. 시기를 묻지 않았으면 head와 글에 출간 연도, 올해, "최신", "최근 흐름" 같은 말을 쓰지 않는다.
@@ -62,10 +64,13 @@ final class Prompts {
 	 * rules above and an {@code ask} field first in the JSON, so the stream knows before the head whether it asks.
 	 */
 	static final String PICK_ASK_SYSTEM = PICK_SYSTEM.replace("- 정해진 JSON 형식으로만 답한다.", """
-			- 맨 앞 ask는 되묻기다. 질문이 서로 다른 뜻으로 읽혀 고를 책이 크게 달라질 때만 쓴다. 예: 낱말 하나뿐이라 뜻이 여럿인 질문(「그림」: 그림 그리기 책인지 명화 감상 책인지 그림책인지, 「llm인가」), 앞에서 보여 준 책과 다른 책을 원하는데 어느 쪽인지 모를 때(「아니 그런 거 말고」), 「음...」처럼 무엇을 찾는지 알 수 없을 때. 이때 question에 짧게 되묻는 말을 한국어 해요체 한 문장으로, choices에 고를 답 2~4개를 짧은 명사구로 쓰고(예: 「그림 그리는 법을 알려 주는 책」), head는 빈 글, picks는 빈 목록으로 둔다.
-			- 앞 질문들의 주제를 합치거나 섞어 달라는 말(「둘이 합쳐진 거」, 「두 개 섞은 느낌」, 「둘 다」, 「앞의 두 개」)에는 되묻지 않는다. 앞 대화의 질문 글에서 두 주제를 찾아 함께 다룬 책을 고른다.
-			- 흔한 뜻이 분명하거나(「파이썬」은 파이썬 프로그래밍, 「고양이」는 고양이 책, 「양봉 입문서」는 꿀벌 기르기), 조건이 몇 가지 빠졌을 뿐이면 되묻지 않는다. 책으로 나올 법하지 않은 뜻은 고를 답에 넣지 않는다. 이때 question은 빈 글, choices는 빈 목록으로 두고 위 규칙대로 고른다. 앞에서 되물은 답을 사용자가 골랐으면 다시 되묻지 않는다.
+			- 맨 앞 ask는 되묻기다. 질문만으로는 고를 책의 갈래가 크게 달라질 때만 쓴다. (가) 낱말 하나뿐이고 뜻이 여럿인 질문(「그림」: 그리는 법·명화 감상·그림책, 「llm인가」), (나) 앞에서 보여 준 책과 다른 책을 원하는데 어느 쪽인지 모를 때(「아니 그런 거 말고」), (다) 「음...」처럼 무엇을 찾는지 알 수 없을 때. 질문 아래 「후보 분야」가 있으면 참고한다: 여러 분야로 고르게 갈리고 질문만으로 어느 쪽인지 알 수 없으면 되묻고, 한 분야에 몰려 있으면 되묻지 않고 그 분야로 고른다.
+			- 되물을 때: question에 어느 쪽을 찾는지 묻는 말을 한국어 해요체 한두 문장으로 쓰고, 고를 답 말고 원하는 것이 따로 있으면 직접 적어 달라는 뜻을 그 질문에 맞게 자연스럽게 덧붙인다. choices에 고를 답 2~4개를 짧은 명사구로 쓴다(예: 「그림 그리는 법을 알려 주는 책」). 책으로 나올 법한 뜻만 넣는다. head는 빈 글, picks는 빈 목록으로 둔다.
+			- 되묻지 않을 때는 question을 빈 글, choices를 빈 목록으로 두고 위 규칙대로 고른다. 다음에는 되묻지 않는다: 흔한 뜻이 하나로 모이는 말(「파이썬」은 파이썬 프로그래밍, 「고양이」는 고양이 책, 「양봉 입문서」는 꿀벌 기르기), 조건 몇 가지만 빠진 질문, 앞 질문들의 주제를 합치거나 섞어 달라는 말(「둘이 합쳐진 거」, 「둘 다」: 앞 질문 글의 두 주제를 함께 다룬 책을 고른다), 앞 대화에 「되물은 말」이 있은 바로 다음 질문(그 되물음에 대한 답이다: 앞 질문과 합쳐 읽고 고른다).
 			- 정해진 JSON 형식으로만 답한다.""");
+
+	/** Big shelves shown in the 「후보 분야」 line at most. */
+	static final int MAX_SHELVES = 6;
 
 	static final String PICK_ASK_SCHEMA = """
 			{"type":"object","properties":{"ask":{"type":"object","properties":{"question":{"type":"string"},
@@ -124,7 +129,16 @@ final class Prompts {
 	}
 
 	/** An earlier turn as the model sees it: the question, then the titles shown (spec R11-9). */
-	record ShownTurn(String question, List<String> titles) {
+	/**
+	 * @param askedBack the ask-back that turn showed instead of books, or null (user 2026-10-27)
+	 * @param askChoices its choices
+	 */
+	record ShownTurn(String question, List<String> titles, String askedBack, List<String> askChoices) {
+
+		ShownTurn(String question, List<String> titles) {
+			this(question, titles, null, List.of());
+		}
+
 	}
 
 	/** A book as the second call sees it. */
@@ -143,11 +157,25 @@ final class Prompts {
 
 	/** @param thisYear for "최근" and the like (user 2026-10-26 "출간시기도") */
 	static List<Message> pickMessages(List<ShownTurn> history, String question, List<Choice> choices, int thisYear) {
+		return pickMessages(history, question, choices, thisYear, Map.of());
+	}
+
+	/**
+	 * @param shelves the candidates' big shelves, most first, for the ask-back on a short question (「후보 분야」, user
+	 *     2026-10-27); empty sends no line
+	 */
+	static List<Message> pickMessages(List<ShownTurn> history, String question, List<Choice> choices, int thisYear,
+			Map<String, Integer> shelves) {
 		StringBuilder user = new StringBuilder("올해: ").append(thisYear)
 			.append("년\n질문: ")
 			.append(question)
 			.append("\n고를 수 있는 책:");
 		appendChoices(user, choices);
+		if (!shelves.isEmpty()) {
+			StringJoiner line = new StringJoiner(", ", "\n후보 분야: ", "");
+			shelves.entrySet().stream().limit(MAX_SHELVES).forEach(e -> line.add(e.getKey() + " " + e.getValue() + "권"));
+			user.append(line);
+		}
 		List<Message> messages = history(history);
 		messages.add(new Message(Role.USER, user.toString()));
 		return messages;
@@ -175,6 +203,12 @@ final class Prompts {
 		List<Message> messages = new ArrayList<>();
 		for (ShownTurn turn : history) {
 			messages.add(new Message(Role.USER, turn.question()));
+			if (turn.askedBack() != null) {
+				// the ask-back that turn showed: the next question answers it (user 2026-10-27)
+				messages.add(new Message(Role.ASSISTANT, "되물은 말: " + turn.askedBack()
+						+ (turn.askChoices().isEmpty() ? "" : "\n고를 답: " + String.join(" / ", turn.askChoices()))));
+				continue;
+			}
 			StringBuilder shown = new StringBuilder("보여 준 책:");
 			if (turn.titles().isEmpty()) {
 				shown.append("\n(없음)");

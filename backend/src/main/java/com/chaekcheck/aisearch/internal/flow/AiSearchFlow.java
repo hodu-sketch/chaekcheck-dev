@@ -145,11 +145,19 @@ public class AiSearchFlow {
 
 	}
 
-	/** An earlier question and the books its answer showed (at most 8). */
-	public record Turn(String question, List<Long> bookIds) {
+	/**
+	 * An earlier question and the books its answer showed (at most 8), or the ask-back it showed instead (user
+	 * 2026-10-27: a typed answer to it joins that question).
+	 */
+	public record Turn(String question, List<Long> bookIds, String askedBack, List<String> askChoices) {
 
 		public Turn {
 			bookIds = List.copyOf(bookIds);
+			askChoices = askChoices == null ? List.of() : List.copyOf(askChoices);
+		}
+
+		public Turn(String question, List<Long> bookIds) {
+			this(question, bookIds, null, List.of());
 		}
 
 	}
@@ -169,6 +177,9 @@ public class AiSearchFlow {
 	static final int MAX_ASK_CHOICES = 4;
 
 	static final int MAX_ASK_CHOICE_CHARS = 40;
+
+	/** A question of at most this many words gets the 「후보 분야」 line with ask-back on (user 2026-10-27) [안]. */
+	static final int SHORT_QUESTION_WORDS = 2;
 
 	/**
 	 * Neighbours of the books shown before that a follow-up question pointing at them gets as candidates, at most
@@ -295,7 +306,11 @@ public class AiSearchFlow {
 		AiSearchProperties.Vector vectorSettings = properties.vector();
 		String earlierQuestion = input.history().isEmpty() ? null
 				: EarlierTopics.of(input.question(), input.history().stream().map(Turn::question).toList());
-		boolean pointsBack = earlierQuestion != null && !earlierQuestion.equals(input.history().getLast().question());
+		// a question after an ask-back is its answer, typed or a choice: it always joins the asked question (user
+		// 2026-10-27), as a question pointing back at earlier topics does
+		boolean answersAsk = !input.history().isEmpty() && input.history().getLast().askedBack() != null;
+		boolean pointsBack = earlierQuestion != null
+				&& (answersAsk || !earlierQuestion.equals(input.history().getLast().question()));
 		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
 				&& vectors.on() ? mlStep(input.question(), earlierQuestion, pointsBack, vectorSettings, run) : null;
 		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
@@ -317,7 +332,8 @@ public class AiSearchFlow {
 				.distinct()
 				.limit(properties.limits().picks())
 				.toList();
-			history.add(new ShownTurn(turn.question(), shown.stream().map(id -> known.get(id).title()).toList()));
+			history.add(new ShownTurn(turn.question(), shown.stream().map(id -> known.get(id).title()).toList(),
+					turn.askedBack(), turn.askChoices()));
 			shownBefore.addAll(shown);
 			lastShown = shown;
 		}
@@ -703,6 +719,12 @@ public class AiSearchFlow {
 	 * One word of at least two letters, not counting Hangul jamo (「ㅋㅋ」) or marks: a topic like 「엄마」 or 「AI」 the
 	 * first step may call not a book request (user 2026-10-26).
 	 */
+	/** The words of a question, split at spaces. */
+	static int words(String question) {
+		String text = question.strip();
+		return text.isEmpty() ? 0 : text.split("\\s+").length;
+	}
+
 	static boolean oneWordTopic(String question) {
 		String word = question.strip();
 		if (word.isEmpty() || word.chars().anyMatch(Character::isWhitespace)) {
@@ -720,9 +742,12 @@ public class AiSearchFlow {
 		long[] current = { -1 };
 		long[] pending = { -1 };
 		int[] currentChars = { 0 };
-		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) is never asked back: the earlier questions
-		// say what it means (user 2026-10-26, 2 wrong asks in the test)
+		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) or answering an ask-back is never asked
+		// back: the earlier questions say what it means (user 2026-10-26, 2 wrong asks in the test; 2026-10-27)
 		boolean askBack = pick.askBack() && !pointsBack;
+		// a short question gets the candidates' big shelves, so the call sees whether they split (「사진」, user 2026-10-27)
+		Map<String, Integer> shelves = askBack && words(input.question()) <= SHORT_QUESTION_WORDS
+				? mlFirstCall.shelfCounts(ids) : Map.of();
 		// the ask-back question and choices when the call asks instead of picking (pick.ask-back, user 2026-10-26)
 		StringBuilder askQuestion = new StringBuilder();
 		List<String> askChoices = new ArrayList<>();
@@ -793,7 +818,9 @@ public class AiSearchFlow {
 
 		});
 		LlmCall call = new LlmCall(askBack ? Prompts.PICK_ASK_SYSTEM : Prompts.PICK_SYSTEM,
-				Prompts.pickMessages(history, input.question(), choices), askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
+				Prompts.pickMessages(history, input.question(), choices,
+						java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue(), shelves),
+				askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
 				properties.pickMaxTokens());
 		boolean failed = false;
 		try {

@@ -130,7 +130,9 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     expect(stream.mock.calls[1][0]).toMatchObject({
       question: 'LLM의 원리를 다룬 책',
       turnNo: 2,
-      history: [{ question: 'llm인가', bookIds: [] }],
+      history: [
+        { question: 'llm인가', bookIds: [], askQuestion: '어느 쪽을 찾으세요?', askChoices: ['LLM의 원리를 다룬 책', 'LLM 활용법'] },
+      ],
     })
     // the earlier question's buttons are answered now
     await screen.findByText('별과 우주를 다뤄요')
