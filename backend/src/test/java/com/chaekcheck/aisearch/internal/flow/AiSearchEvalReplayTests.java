@@ -144,7 +144,7 @@ class AiSearchEvalReplayTests {
 						}
 					});
 					return found;
-				}, ids -> Map.of(), ids -> Map.of(), questionVectors, com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), AiSearchFlowTests.years(Map.of()), new AiSearchFlowTests.RecordingLog(), on, json);
+				}, ids -> Map.of(), ids -> Map.of(), questionVectors, com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), AiSearchFlowTests.years(Map.of()), new com.chaekcheck.aisearch.internal.config.PickProperties(false), new AiSearchFlowTests.RecordingLog(), on, json);
 				flow.run(new AiSearchFlow.Input(question.get("q").asString(), 1, List.of(), plan,
 						new UsageRequest(Instant.now(), null, "login_off", null, null, true), System.nanoTime()),
 						sink);

@@ -20,6 +20,9 @@ public final class AiSearchEvents {
 
 	public static final String ERROR = "error";
 
+	/** The second step's agent asks the user back (user 2026-10-26; {@code pick.mode: agent} only). */
+	public static final String ASK = "ask";
+
 	private AiSearchEvents() {
 	}
 
@@ -43,7 +46,8 @@ public final class AiSearchEvents {
 
 	/**
 	 * @param result {@code ok}, {@code no_match}, {@code no_text}, {@code partial}, or {@code site}: the head answered a
-	 * question about 책첵 and no book comes (ML first call, user 2026-10-26)
+	 * question about 책첵 and no book comes (ML first call, user 2026-10-26), or {@code asked}: the agent asked back
+	 * ({@code ask} event) and no book comes
 	 */
 	public record Done(String result, List<Long> bookIds) {
 
@@ -54,6 +58,15 @@ public final class AiSearchEvents {
 	}
 
 	public record Error(String code) {
+	}
+
+	/** @param choices 2 to 4 short answers, shown as buttons; a click asks the choice as the next question */
+	public record Ask(String question, List<String> choices) {
+
+		public Ask {
+			choices = List.copyOf(choices);
+		}
+
 	}
 
 }

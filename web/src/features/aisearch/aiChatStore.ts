@@ -1,4 +1,4 @@
-import type { AiCard, AiDoneResult } from '../../api/aiSearch'
+import type { AiAsk, AiCard, AiDoneResult } from '../../api/aiSearch'
 
 /**
  * The conversation of this browser tab (R11-6 [확정]: sessionStorage, kept on reload, gone with the tab; never sent to
@@ -24,6 +24,8 @@ export type AiTurnState = {
   head: string
   cards: AiTurnCard[]
   result: AiDoneResult | null
+  /** The agent asked back instead of answering (user 2026-10-26); absent in turns kept before it. */
+  ask?: AiAsk | null
 }
 
 export type AiChat = { turns: AiTurnState[] }
@@ -71,6 +73,7 @@ export function addQuestion(chat: AiChat, question: string): AiChat {
     head: '',
     cards: [],
     result: null,
+    ask: null,
   }
   return { turns: [...chat.turns, turn] }
 }

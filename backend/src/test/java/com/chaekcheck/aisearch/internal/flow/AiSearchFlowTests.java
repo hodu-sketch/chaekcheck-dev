@@ -168,6 +168,9 @@ class AiSearchFlowTests {
 	/** The ML first call the flow gets; off unless a test sets it. */
 	MlFirstCall mlFirstCall = MlFirstCall.off();
 
+	/** The second step: the single call unless a test sets the agent. */
+	com.chaekcheck.aisearch.internal.config.PickProperties pick = new com.chaekcheck.aisearch.internal.config.PickProperties(false);
+
 	/** The settings the flow gets: the application's, or with the ML first call on. */
 	AiSearchProperties flowProperties;
 
@@ -252,6 +255,29 @@ class AiSearchFlowTests {
 
 		assertThat(llm.calls).isEmpty();
 		assertThat(sink.last(Done.class).result()).isEqualTo("no_match");
+	}
+
+	@Test
+	void withAskBackOneWordTheMlCallsNotABookGoesToTheSecondCall() { // user 2026-10-26 「엄마」, 「AI」
+		mlOn(java.util.Map.of("엄마", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.NOT_BOOK), List.of(2L, 7L));
+		askBackOn();
+		llm.then(Answer.ok("{\"ask\":{\"question\":\"어떤 엄마 책이에요?\",\"choices\":[\"육아\",\"모녀 관계\"]},"
+				+ "\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("엄마", List.of());
+
+		assertThat(llm.calls).hasSize(1);
+		assertThat(llm.calls.getFirst().system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
+		assertThat(sink.of(AiSearchEvents.Ask.class).getFirst().question()).isEqualTo("어떤 엄마 책이에요?");
+	}
+
+	@Test
+	void oneWordTopicsAreWordsOfTwoLettersOrMore() {
+		assertThat(AiSearchFlow.oneWordTopic("엄마")).isTrue();
+		assertThat(AiSearchFlow.oneWordTopic(" AI ")).isTrue();
+		assertThat(AiSearchFlow.oneWordTopic("음...")).isFalse();
+		assertThat(AiSearchFlow.oneWordTopic("ㅋㅋㅋ")).isFalse();
+		assertThat(AiSearchFlow.oneWordTopic("음 뭐 읽지")).isFalse();
 	}
 
 	@Test
@@ -384,6 +410,11 @@ class AiSearchFlowTests {
 			.containsEntry(1L, "과학 이야기 1의 AI 요약"); // the list's summary stays
 	}
 
+	/** The single call that may ask back (user 2026-10-26). */
+	private void askBackOn() {
+		pick = new com.chaekcheck.aisearch.internal.config.PickProperties(true);
+	}
+
 	@Test
 	void theAnswerStreamsHeadThenEachCheckedCardAndItsText() {
 		llm.then(keywords("과학"))
@@ -492,6 +523,50 @@ class AiSearchFlowTests {
 
 		assertThat(sink.of(Card.class)).hasSize(2);
 		assertThat(sink.last(Done.class).result()).isEqualTo("partial");
+	}
+
+	@Test
+	void withAskBackTheSingleCallAsksInsteadOfPicking() { // user 2026-10-26: ask-back in the single call
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"ask\":{\"question\":\"어느 쪽이에요?\",",
+				"\"choices\":[\"그림 그리는 법\",\"명화 감상\",\" \"]},\"head\":\"무시\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
+				1000, 60));
+
+		run(QUESTION, List.of());
+
+		assertThat(sink.names()).containsExactly("ask", "done");
+		AiSearchEvents.Ask ask = sink.of(AiSearchEvents.Ask.class).getFirst();
+		assertThat(ask.question()).isEqualTo("어느 쪽이에요?");
+		assertThat(ask.choices()).containsExactly("그림 그리는 법", "명화 감상");
+		assertThat(sink.last(Done.class).result()).isEqualTo("asked");
+		assertThat(llm.calls.getLast().system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
+	}
+
+	@Test
+	void withAskBackAnEmptyAskStreamsTheAnswerAsBefore() {
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"ask\":{\"question\":\"\",\"choices\":[]},",
+				"\"head\":\"좋아요\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"), 1000, 60));
+
+		run(QUESTION, List.of());
+
+		assertThat(sink.names()).containsExactly("head-delta", "card", "card-delta", "done");
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
+	void withAskBackANotBookQuestionGetsTheFixedAskWithThreeExamples() {
+		askBackOn();
+		llm.then(Answer.ok("{\"notBook\":true,\"titleLike\":false,\"title\":\"\",\"refersToShown\":false,\"keywords\":[]}",
+				900, 40));
+
+		run("음 뭐 읽지", List.of());
+
+		assertThat(sink.names()).containsExactly("ask", "done");
+		AiSearchEvents.Ask ask = sink.of(AiSearchEvents.Ask.class).getFirst();
+		assertThat(ask.question()).isEqualTo(Prompts.NOT_BOOK_ASK);
+		assertThat(ask.choices()).hasSize(3).doesNotHaveDuplicates().allMatch(Prompts.NOT_BOOK_CHOICES::contains);
+		assertThat(llm.calls).hasSize(1);
 	}
 
 	@Test
@@ -669,7 +744,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, MlFirstCall.off(), years(publishYears), failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, MlFirstCall.off(), years(publishYears), pick, failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -733,7 +808,7 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, mlFirstCall, years(publishYears), usageLog,
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, mlFirstCall, years(publishYears), pick, usageLog,
 				flowProperties == null ? properties : flowProperties, json);
 	}
 

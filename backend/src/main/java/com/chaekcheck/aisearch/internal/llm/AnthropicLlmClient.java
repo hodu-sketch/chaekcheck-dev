@@ -81,7 +81,7 @@ public final class AnthropicLlmClient implements LlmClient {
 			}
 		}
 		JsonNode usage = body.path("usage");
-		Usage counted = new Usage(usage.path("input_tokens").asInt(0), usage.path("output_tokens").asInt(0), true);
+		Usage counted = new Usage(inputTokens(usage), usage.path("output_tokens").asInt(0), true);
 		String stopReason = body.path("stop_reason").asString("");
 		log.debug("anthropic call: status 200, stop {}, tokens {}/{}, {} ms, request {}", stopReason,
 				counted.inputTokens(), counted.outputTokens(), elapsedMs(started), requestId(response));
@@ -188,7 +188,7 @@ public final class AnthropicLlmClient implements LlmClient {
 			return;
 		}
 		switch (event.path("type").asString("")) {
-			case "message_start" -> state.inputTokens = event.path("message").path("usage").path("input_tokens").asInt(0);
+			case "message_start" -> state.inputTokens = inputTokens(event.path("message").path("usage"));
 			case "content_block_delta" -> {
 				JsonNode delta = event.path("delta");
 				if ("text_delta".equals(delta.path("type").asString(""))) {
@@ -247,6 +247,12 @@ public final class AnthropicLlmClient implements LlmClient {
 
 	}
 
+	/** The input tokens with the cached ones (read or written), so the day's budget counts them all. */
+	private static int inputTokens(JsonNode usage) {
+		return usage.path("input_tokens").asInt(0) + usage.path("cache_read_input_tokens").asInt(0)
+				+ usage.path("cache_creation_input_tokens").asInt(0);
+	}
+
 	private HttpRequest request(LlmCall call, boolean stream, Duration timeout) {
 		if (!properties.hasKey()) {
 			throw new LlmException(Failure.NOT_CONFIGURED, Usage.NONE, "no API key");
@@ -254,7 +260,21 @@ public final class AnthropicLlmClient implements LlmClient {
 		ObjectNode body = json.createObjectNode();
 		body.put("model", properties.model());
 		body.put("max_tokens", call.maxTokens());
-		body.put("system", call.system());
+		if (properties.cacheSystem()) {
+			// the system prompt is the same on every call: cached (user 2026-10-26 「캐싱 이런거 안되나」)
+			body.putArray("system")
+				.addObject()
+				.put("type", "text")
+				.put("text", call.system())
+				.putObject("cache_control")
+				.put("type", "ephemeral");
+		}
+		else {
+			body.put("system", call.system());
+		}
+		if (!properties.thinking().isEmpty()) {
+			body.putObject("thinking").put("type", properties.thinking());
+		}
 		ArrayNode turns = body.putArray("messages");
 		for (Message message : call.messages()) {
 			turns.addObject().put("role", message.role().wire()).put("content", message.text());

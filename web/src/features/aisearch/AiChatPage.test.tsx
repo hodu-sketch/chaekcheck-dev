@@ -110,6 +110,37 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     })
   })
 
+  it('shows the agent asking back with buttons; a click asks that answer next (user 2026-10-26)', async () => {
+    startWithQuestion('llm인가')
+    answers(
+      { name: 'ask', data: { question: '어느 쪽을 찾으세요?', choices: ['LLM의 원리를 다룬 책', 'LLM 활용법'] } },
+      { name: 'done', data: { result: 'asked', bookIds: [] } },
+    )
+    const user = setup()
+
+    expect(await screen.findByText('어느 쪽을 찾으세요?')).toBeTruthy()
+    const choices = within(screen.getByRole('list', { name: '고를 답' })).getAllByRole('button')
+    expect(choices.map((button) => button.textContent)).toEqual(['LLM의 원리를 다룬 책', 'LLM 활용법'])
+    expect(screen.queryByText(/맞는 책을 찾지 못했어요/)).toBeNull()
+
+    answers(...okAnswer)
+    await user.click(choices[0])
+
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(2))
+    expect(stream.mock.calls[1][0]).toMatchObject({
+      question: 'LLM의 원리를 다룬 책',
+      turnNo: 2,
+      history: [{ question: 'llm인가', bookIds: [] }],
+    })
+    // the earlier question's buttons are answered now
+    await screen.findByText('별과 우주를 다뤄요')
+    expect(
+      within(screen.getByRole('list', { name: '고를 답' }))
+        .getAllByRole('button')
+        .every((button) => (button as HTMLButtonElement).disabled),
+    ).toBe(true)
+  })
+
   it('keeps the conversation across a reload and a new chat clears it', async () => {
     startWithQuestion('우주 책')
     answers(...okAnswer)
