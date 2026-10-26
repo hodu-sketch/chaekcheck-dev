@@ -51,7 +51,7 @@ def ask(port, log, q, history):
         c['text'] = texts.get(c['bookId'], '')
     return {'q': q, 'firstText': seen, 'wall': round(time.time() - t0, 2), 'result': result, 'head': head, 'cards': cards,
             'ask': asked, 'ms': int(g[1]) if g else None, 'in': int(g[2]) if g else None, 'out': int(g[3]) if g else None,
-            'steps': steps_of(g[4]) if g else {}, 'early': bool(g and 'early keyword' in g[4])}
+            'steps': steps_of(g[4]) if g else {}, 'early': bool(g and 'early keyword' in g[5])}
 
 
 def steps_of(rest):
@@ -67,7 +67,7 @@ class Log:
     def lines(self):
         with open(self.path, 'rb') as f:
             f.seek(self.pos); data = f.read(); self.pos = f.tell()
-        return [m.groups() for m in (LINE.search(l) for l in data.decode('utf-8', 'replace').splitlines()) if m]
+        return [m.groups() + (m.string,) for m in (LINE.search(l) for l in data.decode('utf-8', 'replace').splitlines()) if m]
 
 
 def turn_of(q, step):
