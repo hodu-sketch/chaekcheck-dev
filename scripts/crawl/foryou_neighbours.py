@@ -23,6 +23,7 @@ Run with the data folder's venv (torch CPU, sentence-transformers):
 from __future__ import annotations
 
 import argparse
+import itertools
 import functools
 import hashlib
 import json
@@ -39,6 +40,7 @@ ML = DATA / 'ml'
 os.environ.setdefault('HF_HOME', str(ML / 'hf'))
 MODEL = 'nlpai-lab/KURE-v1'
 NEIGHBOURS = 20
+SHORTLIST = 200  # nearest candidates looked at first for each book (2026-10-26, 80,000 books)
 
 
 def env() -> dict[str, str]:
@@ -105,6 +107,8 @@ def main() -> int:
     parser.add_argument('--intro-chars', type=int, default=300)
     parser.add_argument('--out', default=str(ML / 'foryou'))
     parser.add_argument('--with-pool', action='store_true')
+    # user 2026-10-26 "10만권으로 늘릴 예정이야": the collect PC's pool-100000-intro (80,549 books with an intro)
+    parser.add_argument('--pool', default='pool-30000-intro', help='saved pool vectors in <data>/ml, without .npy')
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding='utf-8')
     out = Path(args.out)
@@ -170,8 +174,8 @@ def main() -> int:
 
     pool_added = 0
     if args.with_pool:
-        pool_ids = json.loads((ML / 'pool-30000-intro.ids.json').read_text())
-        pool_vectors = np.load(ML / 'pool-30000-intro.npy')
+        pool_ids = json.loads((ML / f'{args.pool}.ids.json').read_text())
+        pool_vectors = np.load(ML / f'{args.pool}.npy')
         known = set(ids)
         keep = [i for i, book_id in enumerate(pool_ids) if book_id not in known]
         extra_ids = [pool_ids[i] for i in keep]
@@ -188,15 +192,22 @@ def main() -> int:
     rows, review = [], []
     for start in range(0, len(books), 1000):  # 1,000 rows at a time: the whole matrix of 31,000 books is ~4 GB
         block = vectors[start:start + 1000] @ vectors.T
+        # the nearest SHORTLIST of each row in order (enough for 20 after editions are left out), the whole row only
+        # when they are not; a full sort of 80,000 books per row took too long
+        near = np.argpartition(-block, SHORTLIST, axis=1)[:, :SHORTLIST]
+        if start % 10000 == 0:
+            print(f'neighbours {start}/{len(books)}', flush=True)
         for k in range(block.shape[0]):
             b = books[start + k]
             picked = []
-            for j in np.argsort(-block[k]):
+            for j in itertools.chain(near[k][np.argsort(-block[k][near[k]])], np.argsort(-block[k])):
                 n = books[j]
                 if n[0] == b[0] or (b[5] and n[5] == b[5]) or same_work(n, b):
                     continue  # the book itself and other editions or volumes of the same work
                 if any(same_work(n, p) for p, _ in picked):
                     continue  # one edition of each work among the neighbours
+                if any(p[0] == n[0] for p, _ in picked):
+                    continue  # the whole row after the shortlist sees them again
                 picked.append((n, float(block[k][j])))
                 if len(picked) == NEIGHBOURS:
                     break
