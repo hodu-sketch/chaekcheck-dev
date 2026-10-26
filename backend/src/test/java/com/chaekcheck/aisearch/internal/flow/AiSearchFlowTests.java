@@ -543,6 +543,19 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void withAskBackAQuestionJoiningEarlierTopicsIsNeverAskedBack() { // user 2026-10-26: 2 wrong asks in the test
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
+				1000, 60));
+
+		run("위에 말한 두 개 섞은 느낌", List.of(new AiSearchFlow.Turn("판타지 소설", List.of()),
+				new AiSearchFlow.Turn("추리 소설", List.of())));
+
+		assertThat(llm.calls.getLast().system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
 	void withAskBackAnEmptyAskStreamsTheAnswerAsBefore() {
 		askBackOn();
 		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"ask\":{\"question\":\"\",\"choices\":[]},",

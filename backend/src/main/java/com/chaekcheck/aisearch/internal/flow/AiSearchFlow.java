@@ -484,7 +484,7 @@ public class AiSearchFlow {
 		Map<Long, String> tabBlurbs = new HashMap<>(blurbs.of(ids));
 		Cards cards = new Cards(known, listed, tabCovers, tabBlurbs, planCount);
 		run.mark("cards");
-		picks(input, history, ids, choices, cards, run);
+		picks(input, history, ids, choices, cards, pointsBack, run);
 	}
 
 	/**
@@ -713,14 +713,16 @@ public class AiSearchFlow {
 	}
 
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
-			Run run) {
+			boolean pointsBack, Run run) {
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
 		long[] current = { -1 };
 		long[] pending = { -1 };
 		int[] currentChars = { 0 };
-		boolean askBack = pick.askBack();
+		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) is never asked back: the earlier questions
+		// say what it means (user 2026-10-26, 2 wrong asks in the test)
+		boolean askBack = pick.askBack() && !pointsBack;
 		// the ask-back question and choices when the call asks instead of picking (pick.ask-back, user 2026-10-26)
 		StringBuilder askQuestion = new StringBuilder();
 		List<String> askChoices = new ArrayList<>();
