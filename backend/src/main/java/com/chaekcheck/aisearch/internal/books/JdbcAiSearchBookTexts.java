@@ -11,9 +11,11 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.chaekcheck.aisearch.AiSearchBookTexts;
 import com.chaekcheck.aisearch.internal.match.SearchText;
@@ -99,9 +101,20 @@ class JdbcAiSearchBookTexts implements AiSearchBookTexts {
 
 	@Override
 	public void compact() {
+		if (TransactionSynchronizationManager.isActualTransactionActive()) {
+			// VACUUM cannot run in a transaction (the import calls this after its own); the space stays until next time
+			log.info("search books not compacted: called inside a transaction");
+			return;
+		}
 		long started = System.nanoTime();
-		jdbc.execute("VACUUM (FULL, ANALYZE) aisearch.search_book");
-		log.info("search books compacted in {} ms", (System.nanoTime() - started) / 1_000_000);
+		try {
+			jdbc.execute("VACUUM (FULL, ANALYZE) aisearch.search_book");
+			log.info("search books compacted in {} ms", (System.nanoTime() - started) / 1_000_000);
+		}
+		catch (DataAccessException e) {
+			// the books are in already; only the space of the replaced rows stays
+			log.warn("search books not compacted: {}", e.getClass().getName());
+		}
 	}
 
 }
