@@ -166,6 +166,16 @@ public class MlFirstCall {
 	 */
 	public Plan plan(String question, float[] vector, String earlierQuestion, float[] earlierVector,
 			float[] joinedVector) {
+		return plan(question, vector, earlierQuestion, earlierVector, joinedVector, false);
+	}
+
+	/**
+	 * @param pointsBack the question points back at several earlier questions and {@code earlierQuestion} holds them
+	 * joined: whatever the relation network says, the search goes on from all of them (a continue), since a new topic
+	 * or the shown books alone drop what the question asks to combine (user 2026-10-26, 「앞 주제 둘 합치기」)
+	 */
+	public Plan plan(String question, float[] vector, String earlierQuestion, float[] earlierVector,
+			float[] joinedVector, boolean pointsBack) {
 		Route route = Route.valueOf(model.route(vector).toUpperCase(Locale.ROOT));
 		Shelves own = shelves(vector);
 		List<String> ownWords = QuestionWords.of(question);
@@ -178,6 +188,9 @@ public class MlFirstCall {
 		List<String> joinedWords = List.copyOf(words);
 		if (followUpModel != null && joinedVector != null) {
 			String relation = followUpModel.label("relation", features(vector, earlierVector, joinedVector));
+			if (pointsBack && !relation.equals("none")) {
+				return new Plan(Route.BOOK, joinedWords, true, false, own.over(earlier), relation + " joined");
+			}
 			return switch (relation) {
 				case "refers", "ask_one" -> new Plan(Route.REFERS_SHOWN, joinedWords, true, false, own.over(earlier),
 						relation);

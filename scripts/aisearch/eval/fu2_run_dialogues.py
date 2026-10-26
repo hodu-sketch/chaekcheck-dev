@@ -27,7 +27,12 @@ def ask(q, history, turn):
     cards = [d for n, d in ev if n == 'card']
     head = ''.join(d['text'] for n, d in ev if n == 'head-delta')
     done = [d for n, d in ev if n == 'done']
-    return {'cards': [{'bookId': c['bookId'], 'title': c['title'], 'author': c.get('author'), 'summary': c.get('aiSummary')} for c in cards],
+    # the pick text of each card comes in card-delta events (fixed 2026-10-26: before, only the card's blurb was kept)
+    texts = {}
+    for n, d in ev:
+        if n == 'card-delta': texts[d['bookId']] = texts.get(d['bookId'], '') + d['text']
+    return {'cards': [{'bookId': c['bookId'], 'title': c['title'], 'author': c.get('author'), 'summary': c.get('aiSummary'),
+                       'text': texts.get(c['bookId'], '')} for c in cards],
             'head': head, 'result': done[-1]['result'] if done else None}
 D = dialogues()
 if sys.argv[1] == 'single':
