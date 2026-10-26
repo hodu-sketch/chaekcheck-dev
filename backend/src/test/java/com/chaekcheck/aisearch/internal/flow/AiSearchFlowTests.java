@@ -632,6 +632,20 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aFollowUpPointingBackAlsoGetsTheBooksOfTheTurnsBeforeTheLast() { // user 2026-10-26 "위에 언급한 두 개"
+		AiSearchFlow.Turn first = new AiSearchFlow.Turn("과학책 추천해줘", List.of(1L, 2L));
+		AiSearchFlow.Turn last = new AiSearchFlow.Turn("소설은", List.of(20L));
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":false,\"title\":\"\",\"refersToShown\":true,"
+				+ "\"keywords\":[]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		run("위에 말한 두 개에 관한 책", List.of(first, last));
+
+		// the last turn's book first, then the earlier turn's books in their order
+		assertThat(llm.calls.get(1).messages().getLast().text()).contains("1. 제목: 토지", "2. 제목: 과학 이야기 1 /",
+				"3. 제목: 과학 이야기 2 /");
+	}
+
+	@Test
 	void aClientThatLeavesStopsTheStreamAndNoDoneIsSent() {
 		llm.then(keywords("과학"))
 			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"앞\"}", ",{\"no\":2,\"fit\":3,\"text\":\"뒤\"}]}"), 1, 1));
