@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>추천도서 검색 노출 안</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1f2328; --sub:#5f6368; --link:#1a0dab; --url:#202124; --bad:#c5221f; --good:#188038; --line:#dadce0; --tag:#eef2ff; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+  main { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+  .lead { color: var(--sub); margin: 0 0 1.5rem; line-height: 1.6; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: .75rem; padding: 1.1rem 1.2rem 1.2rem; margin-bottom: 1.1rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .6rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .pill { font-size:.75rem; padding:.15rem .5rem; border-radius:999px; background:var(--tag); color:#3730a3; }
+  .pill.rec { background:#e6f4ea; color:var(--good); }
+  .pill.now { background:#fce8e6; color:var(--bad); }
+  .serp { border:1px solid var(--line); border-radius:.6rem; padding:.8rem 1rem; margin:.6rem 0; background:#fff; }
+  .serp .site { display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--url); }
+  .serp .fav { width:1.6rem; height:1.6rem; border-radius:50%; background:#5b4bdb; color:#fff; display:grid; place-items:center; font-size:.8rem; font-weight:700; }
+  .serp .crumb { color:var(--sub); font-size:.8rem; }
+  .serp .title { color:var(--link); font-size:1.15rem; margin:.35rem 0 .2rem; }
+  .serp .title.bad { color:var(--bad); }
+  .serp .snip { color:#4d5156; font-size:.9rem; line-height:1.5; }
+  .serp.gone { color:var(--sub); font-size:.9rem; text-align:center; border-style:dashed; }
+  ul { margin:.4rem 0 0; padding-left:1.2rem; line-height:1.7; }
+  .cols { display:grid; grid-template-columns: 1fr 1fr; gap:.8rem; }
+  .cols div { font-size:.88rem; }
+  .cols b { display:block; margin-bottom:.2rem; }
+  .plus { color:var(--good); } .minus { color:var(--bad); }
+  @media (max-width: 40rem) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>추천도서 화면이 구글에 오류 문구로 뜨는 문제</h1>
+  <p class="lead">검색 결과 상자는 모양을 보이려는 예시이고, 실제 문구는 구글이 정합니다.<br>원인: robots.txt가 <code>/api/</code> 전체를 막아 구글봇이 추천도서 목록 API(<code>/api/v1/picks/…</code>)를 못 부름 → 화면이 「…를 불러오지 못했어요」로 그려짐 → 모든 화면 제목이 똑같이 「책첵」이라 구글이 그 오류 문구를 제목으로 씀.</p>
+
+  <section>
+    <h2>지금 <span class="pill now">문제</span></h2>
+    <div class="serp">
+      <div class="site"><span class="fav">책</span><div>chaekcheck.com<div class="crumb">https://chaekcheck.com › picks › snu100</div></div></div>
+      <div class="title bad">서울대 100선을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.</div>
+      <div class="snip">서울대학교 기초교육원이 펴낸 『권장도서 해제집』의 100권이에요 · 판이 여러 개인 책은 …</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>안 A · 목록 API만 구글에 열고, 화면마다 제목 달기 <span class="pill rec">추천</span></h2>
+    <div class="serp">
+      <div class="site"><span class="fav">책</span><div>chaekcheck.com<div class="crumb">https://chaekcheck.com › picks › snu100</div></div></div>
+      <div class="title">서울대 권장도서 100선 전자책 - 책첵</div>
+      <div class="snip">서울대학교 기초교육원이 펴낸 『권장도서 해제집』의 100권이에요. 데미안, 코스모스, 토지 … 내 지역 전자도서관에서 빌릴 수 있는지 한 번에 확인해요.</div>
+    </div>
+    <ul>
+      <li>robots.txt에 <code>Allow: /api/v1/picks/</code> 한 줄(나머지 <code>/api/</code>는 계속 막음). 추천목록 API는 우리 DB만 읽고 도서관 사이트를 부르지 않아 부담이 작음</li>
+      <li>화면마다 브라우저 탭 제목을 붙임: 「KAIST 사서추천도서 - 책첵」, 「서울대 권장도서 100선 - 책첵」, 「소개 - 책첵」 등</li>
+    </ul>
+    <div class="cols">
+      <div><b class="plus">좋은 점</b>검색 결과에 진짜 목록 내용이 뜸. 탭 제목도 사람에게 더 알기 쉬움</div>
+      <div><b class="minus">아쉬운 점</b>사이클 15 결정(검색엔진은 API를 읽지 않음)을 추천목록만 바꿈 → plan 기록 필요. 구글이 다시 가져가기까지 며칠~몇 주</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>안 B · 불러오기에 실패한 화면은 검색에서 빼기 <span class="pill">작게</span></h2>
+    <div class="serp gone">추천도서 화면은 검색 결과에 나오지 않음 (첫 화면·소개·검색은 그대로)</div>
+    <ul>
+      <li>목록을 못 불러오면 화면에 <code>noindex</code> 표시를 넣고, 탭 제목은 오류 문구 대신 목록 이름으로</li>
+    </ul>
+    <div class="cols">
+      <div><b class="plus">좋은 점</b>API·robots는 그대로. 오류 문구가 검색에 다시 안 뜸</div>
+      <div><b class="minus">아쉬운 점</b>구글은 늘 실패하므로 추천도서 화면 전부가 검색에서 사라짐</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>안 C · 추천도서 화면을 미리 만든 HTML로 내보내기 <span class="pill">크게</span></h2>
+    <div class="serp">
+      <div class="site"><span class="fav">책</span><div>chaekcheck.com<div class="crumb">https://chaekcheck.com › picks › kaist</div></div></div>
+      <div class="title">KAIST 사서추천도서 2026 전자책 - 책첵</div>
+      <div class="snip">KAIST 도서관 사서가 고른 국내도서 2026·2025·2024년 목록. 경영, 과학, 문학 … 분야별로 …</div>
+    </div>
+    <ul>
+      <li>목록이 바뀔 때 서버가 책 목록이 든 HTML을 만들어 nginx가 그대로 줌(구글이 자바스크립트를 안 돌려도 됨)</li>
+    </ul>
+    <div class="cols">
+      <div><b class="plus">좋은 점</b>robots 그대로. 검색엔진 모두(네이버 등)에 가장 확실</div>
+      <div><b class="minus">아쉬운 점</b>만들 것이 많음(빌드·배포 흐름, 화면과 같은 내용 유지)</div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
