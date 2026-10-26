@@ -6,7 +6,7 @@ import glob, json, os, sys
 
 OUT = os.environ.get('AGENT_EVAL_OUT', r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\agent')
 HERE = os.path.dirname(os.path.abspath(__file__))
-QS = json.load(open(os.path.join(HERE, 'agent_questions.json'), encoding='utf-8'))
+QS = json.load(open(os.environ.get('AGENT_QS', os.path.join(HERE, 'agent_questions.json')), encoding='utf-8'))
 CLEAR = {'k%02d' % x['id']: x['q'] for x in json.load(open(os.path.join(os.path.dirname(OUT), 'eval_questions.json'), encoding='utf-8'))}
 WANT, CONTEXT = {}, {}
 for x in QS['vague']: WANT[x['id']] = x['want']; CONTEXT[x['id']] = []

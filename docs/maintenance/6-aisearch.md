@@ -168,7 +168,15 @@ FROM aisearch.search_book;
 - 구간별(2026-10-26): 1~3만 위 소개 26,425 / 표지 28,602, 3만~5만 위 17,760 / 19,648, 5만~10만 위 32,789 / 46,716(표지는 fetch-covers DONE, 그 뒤로 더 늘어남)
 - **책 번호가 바뀌면**(수집을 반영한 가져오기) 대상부터 다시 만듭니다: prepare가 새 번호로 대상을 뽑고, 이미 만든 글은 책 번호로만 건너뛰므로 번호가 바뀐 뒤에는 `requests`의 건너뛰기 기준(`done_ids`)을 새 번호에 맞춰야 함
 
-## 10. 2차 에이전트 시제품 (2026-10-26, main에 없음)
+## 10. 되묻기, Haiku 생각 끄기, 지시문 캐시 (v1.17.0, 2026-10-27)
 
-- 도구(`answer`·`search_again`·`ask_user`)를 쓰는 2차와 「되묻기만 한 번의 호출에」는 브랜치 `claude/aisearch-agent`(16e04785, v1.16.3 위)에만 있음. 사용자 결정 2026-10-26: 에이전트는 켜지 않고 문서만 main에
-- 잰 값과 다시 꺼낼 조건: [에이전트 보고서](../reports/ai-search-agent-2026-10-26.md) 8절·10절. 설정·코드 설명은 그 브랜치의 이 파일 10절
+사용자 결정(2026-10-26): "AGENT도 쓰긴 할건데 되묻기만 하는 걸로", "되묻기 + 생각 끄기 + 캐시로 배포해줘". 도구 루프 에이전트(`search_again` 등)는 브랜치 `claude/aisearch-agent`에만 있음. 잰 값: [에이전트 보고서](../reports/ai-search-agent-2026-10-26.md) 10·11절.
+
+- **되묻기** `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`(prod.env): 2차 고르기가 `PICK_ASK_SYSTEM`·`PICK_ASK_SCHEMA`(JSON 맨 앞 `ask` {question, choices})를 씀. question이 비어 있지 않으면 머리말·카드 없이 `ask` 이벤트와 done `asked`(usagelog `SKIPPED`), 고를 답 4개·40자까지. 웹은 되묻는 말을 머리말 자리에, 답을 버튼으로(누르면 그 글로 이어 물음)
+  - 앞 질문들을 합치는 질문(`EarlierTopics`: 「두 개」, 「둘 다」, 「섞은」…)은 되묻기 칸 없는 `PICK_SYSTEM`을 씀
+  - 1차 ML이 「책 찾기 아님」: 한 낱말(글자 2개 이상, 「ㅋㅋ」 빼고 — 「엄마」, 「AI」)이면 보통 질문처럼 2차로, 아니면 AI 호출 없이 `Prompts.NOT_BOOK_ASK` + `NOT_BOOK_CHOICES` 10개 중 3개 [안]
+  - 로그 끝 `, ask single-ask` / `not-book-ask` / `one-word`
+- **생각 끄기** `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`: 모든 JSON 호출(2차, 책첵 질문 답, Haiku 1차)에 `thinking: {type: disabled}`. 비우면 모델 기본(Haiku 5.5는 생각 켬). Haiku 5.5는 effort `high` 이하에서만 끌 수 있음(지금 `low`)
+- **지시문 캐시** `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`: system을 `cache_control: ephemeral` 블록으로. 사용량의 캐시 읽기·쓰기 토큰도 입력으로 세어 하루 예산은 보수적으로 셈
+- **단계별 시간 로그**: 검색 한 줄 끝 `, steps encode=… ml=… nearest=… neighbours=… keyword=… vector=… mix=… cards=… llm-first=… llm-done=…`(요청 시작부터 ms). `llm-first`가 Haiku 첫 글자
+- **되돌리기**: prod.env에서 셋을 지우거나 `false`/빈 값으로 두고 `bin/up.sh` — 코드는 그대로 둬도 v1.16.3과 같은 동작

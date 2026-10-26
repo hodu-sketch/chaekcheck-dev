@@ -60,6 +60,8 @@
 | 모델 | `claude-haiku-5-5` | `…llm.anthropic.model` | `CHAEKCHECK_AISEARCH_LLM_ANTHROPIC_MODEL` | 가격 값(7단계) | [확정] | design-delta | 서비스 |
 | API 주소 / 판 | `https://api.anthropic.com` / `2026-10-21` | `…llm.anthropic.base-url` / `…version` | `…_BASEURL` / `…_VERSION` | — | 공식 문서로 확인(2026-10-24, https://platform.claude.com/docs/en/api/versioning: 최신 판). 이 판에서 `temperature`류를 보내면 400 → 보내지 않음 | `plan-feedback.md` `# 사이클 24` "1단계" | 서비스 |
 | effort | `low` | `…llm.anthropic.effort` | `…_EFFORT` | — | 1단계 측정: thinking은 끄지 않고 effort만 낮춤(1차 최대 2.4초, 2차 최대 6.5~8.2초) [안] | 같음 | 서비스 |
+| 생각(thinking) / 지시문 캐시 | 빈 값(모델 기본=켬) / `false`; **운영 `disabled` / `true`(v1.17.0)** | `…llm.anthropic.thinking` / `…cache-system` | **`CHAEKCHECK_AISEARCH_LLM_THINKING`** / **`CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM`** | 운영 compose → `prod.env` | 끄면 첫 글 4.4 → 1.7초, 부정어·조건 그대로, 카드 6.7 → 5.8장(6-aisearch 10절) [안] | 사용자 2026-10-26 「되묻기 + 생각 끄기 + 캐시로 배포해줘」 | 서비스 |
+| 되묻기 | `false`; **운영 `true`(v1.17.0)** | `chaekcheck.aisearch.pick.ask-back` | **`CHAEKCHECK_AISEARCH_PICK_ASK_BACK`** | 운영 compose → `prod.env`, 웹 되묻기 버튼 | 2차가 애매하면 버튼으로 되묻고, 「책 찾기 아님」은 고정 되묻기(문구·예시 [안]) | 같음 | 서비스 |
 | 기능 켜기 | `false` | `chaekcheck.aisearch.enabled` | **`CHAEKCHECK_AISEARCH_ENABLED`** | 웹 AI 탭(꺼짐 확인 `GET /api/v1/ai-searches/status`, 8·9단계), 운영 compose(0단계 다름 8) | 운영에서 키를 넣고 처리방침 새 판이 시행된 뒤 켬 | design-delta, 인계서 11단계 | 서비스 |
 | 날짜 기준 | Asia/Seoul | `chaekcheck.aisearch.zone` | `CHAEKCHECK_AISEARCH_ZONE` | `daily_usage.day` | 하루 100번·하루 $2의 날짜 | design-delta | 서비스 |
 | 1차 / 2차 시간 | 5s / 15s | `…keyword-timeout` / `…pick-timeout` | `CHAEKCHECK_AISEARCH_KEYWORDTIMEOUT` / `…_PICKTIMEOUT` | nginx `proxy_read_timeout` 120s(21초보다 김) | [확정] 처음 값. 1단계 최대 2.41s / 8.20s | spec R6-3 | 서비스 |
