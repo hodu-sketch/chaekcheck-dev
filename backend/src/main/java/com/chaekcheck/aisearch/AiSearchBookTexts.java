@@ -28,6 +28,14 @@ public interface AiSearchBookTexts {
 	Result replace(List<Book> books, List<Line> lines);
 
 	/**
+	 * Rewrites the search books' table without the space the replaced rows left (user 2026-10-27: after a replace the
+	 * file held about 1.5 times the data, and a keyword on every book reads it all). Outside any transaction; it locks
+	 * the table while it runs, so the AI search waits that long.
+	 */
+	default void compact() {
+	}
+
+	/**
 	 * Not meant for {@code equals}: {@code libraryIds} is an array.
 	 * @param bookId our book ({@code catalog.book.id})
 	 * @param title the shown name, copied as it is now

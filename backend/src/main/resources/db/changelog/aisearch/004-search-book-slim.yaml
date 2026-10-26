@@ -1,0 +1,20 @@
+# The search books' table made smaller and its statistics fast (user 2026-10-27, 비효율 1·2):
+# - library_ids as 4-byte integers: it was the widest column, 42 of about 90 MB at 76,759 books and 79 libraries a book,
+#   read by every keyword search. Library ids are small (largest 2,681 on 2026-10-27).
+# - line and search_text in the "C" collation: under the database's en_US.utf8, ANALYZE of these long Korean texts took
+#   about 200 s each (local 2026-10-27; in production the autoanalyze after the 100k import ended 15 minutes after it);
+#   in "C" 1 s. Neither is sorted for people: the keyword match is LIKE with pg_bigm, the same in any collation.
+# The type changes rewrite the table, so this also drops the space left by the last import.
+databaseChangeLog:
+  - changeSet:
+      id: aisearch-004-search-book-slim
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE aisearch.search_book
+                ALTER COLUMN library_ids DROP DEFAULT,
+                ALTER COLUMN library_ids TYPE integer[] USING library_ids::integer[],
+                ALTER COLUMN library_ids SET DEFAULT '{}'::integer[],
+                ALTER COLUMN line TYPE text COLLATE "C",
+                ALTER COLUMN search_text TYPE text COLLATE "C"

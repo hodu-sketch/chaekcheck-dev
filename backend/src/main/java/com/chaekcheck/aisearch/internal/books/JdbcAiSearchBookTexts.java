@@ -85,7 +85,7 @@ class JdbcAiSearchBookTexts implements AiSearchBookTexts {
 			}
 			statement.setString(7, SearchText.ofBook(book.title(), book.author(), line == null ? null : line.text()));
 			statement.setArray(8, statement.getConnection()
-				.createArrayOf("bigint", Arrays.stream(book.libraryIds()).boxed().toArray(Long[]::new)));
+				.createArrayOf("integer", Arrays.stream(book.libraryIds()).mapToObj(Math::toIntExact).toArray(Integer[]::new)));
 		});
 		Result result = new Result(books.size(), withLine[0], notListed);
 		log.info("search books replaced: deleted {}, stored {}, with line {}, lines not listed {}", deleted,
@@ -95,6 +95,13 @@ class JdbcAiSearchBookTexts implements AiSearchBookTexts {
 					notListed);
 		}
 		return result;
+	}
+
+	@Override
+	public void compact() {
+		long started = System.nanoTime();
+		jdbc.execute("VACUUM (FULL, ANALYZE) aisearch.search_book");
+		log.info("search books compacted in {} ms", (System.nanoTime() - started) / 1_000_000);
 	}
 
 }
