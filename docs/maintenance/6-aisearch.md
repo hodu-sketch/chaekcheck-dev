@@ -202,10 +202,10 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 | `library_ids` | bigint[] 42MB | **integer[] 25MB** |
 | ANALYZE(`line`·`search_text` 칸) | 각 약 200초(DB 정렬 규칙 `en_US.utf8`로 긴 한국어를 정렬) | **`C` 정렬 규칙 1초** |
 | 넣기 뒤 | 지운 줄 자리가 남음(넣은 직후 216MB), 자동 ANALYZE가 몇 분~15분 CPU(운영 2026-10-26: 21:58 넣기, 22:13 끝) | 넣기 끝에 `VACUUM (FULL, ANALYZE)` **10초**(그동안 AI 검색이 기다림) |
-| 낱말 검색 「소설」 / 「기후 위기」 / 30권 도서관 수 | 140 / 40 / 0.4ms | 138 / 39 / 0.3ms — **거의 그대로**(표가 메모리에 있고 LIKE 계산이 시간을 정함) |
+| 낱말 검색 「소설」 / 「기후 위기」 / 「다이어트 식단 레시피 건강」 / 30권 도서관 수 | 140 / 40 / 12 / 0.4ms | 바꾼 직후 138 / 39 / 12 / 0.3ms, 넣기 + 정리 뒤 141 / 34 / **41** / 0.3ms — 빨라지지 않음(표가 메모리에 있고 LIKE 계산이 시간을 정함). 네 낱말은 정리 뒤 실행 계획이 바뀌어 느려짐(정리만 한 bigint 표에서도 41ms) → 운영 로그 `keyword` 단계로 지켜볼 것 |
 
 - changeset `aisearch-004-search-book-slim`: `library_ids` integer[](가장 큰 번호 2,681), `line`·`search_text` `COLLATE "C"`. 둘 다 사람에게 정렬해 보이지 않고 LIKE + pg_bigm으로만 찾으므로 결과는 같음. 표를 다시 쓰므로 운영 시작 때 몇 초(로컬 4.6초 + ANALYZE 6초) 걸림
 - `JdbcAiSearchBookTexts.compact()`: book-texts 넣기가 끝난 뒤(트랜잭션 밖) `VACUUM (FULL, ANALYZE)`. 트랜잭션 안이면 건너뛰고, 실패하면 경고만(책은 이미 들어가 있음). 로그 `search books compacted in N ms`
-- 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
+- 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-first-test-2026-10-27.json`](../reports/ai-search-eval/search-book-first-test-2026-10-27.json)(칸 크기 42 → 25MB 포함), [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
 - **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
 
