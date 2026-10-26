@@ -6340,7 +6340,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
   - 설계 변경: 이어 묻는 질문을 관계 분류기(7가지)로 나눔. 설정 `chaekcheck.aisearch.first-call.follow-up`(`CHAEKCHECK_AISEARCH_FOLLOW_UP`, 기본 `relation`, `rule`·`strict`로 되돌림). 모델 폴더에 `follow-up-model.bin`(8MB)이 더 생김
   - 모듈 의존 더함: `aisearch` → `catalog`(`BookCards`로 후보의 출간 연도를 2차 Haiku에). `package-info.java` `allowedDependencies`와 `ModularityTests`를 고침
   - 2차 프롬프트(`PICK_SYSTEM`): 머리말·글에 책 정보의 한계를 쓰지 않음, 출간 연도를 「최근」 조건에 씀. 사용자 메시지 첫 줄이 「올해: YYYY년」, 책마다 「/ 출간: YYYY년」
-  - 남은 결정: 「고마워」 같은 잡담에 지금 고정 문구(「맞는 책을 찾지 못했어요」) 대신 Haiku가 짧게 답할지(곁 세션 추천: Haiku 답, 화면 시안 먼저). 이번에는 바꾸지 않음
+  - 결정(사용자 2026-10-26 "잡담 답은 지금 고정 문구 그대로 두자"): 「고마워」 같은 잡담은 지금처럼 고정 문구(「맞는 책을 찾지 못했어요」), 모델 호출 없음
 - 배포(24 세션에 넘김): 모델 폴더에 `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`의 `first-call-model.bin`(바꿈)·`follow-up-model.bin`(새로), prod.env `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`. 배포 뒤 시작 로그 `follow-ups by relation`, 이어 묻는 검색 로그 `first ml BOOK continue` 확인
 
 # 사이클 23 소개 시험과 탭 표지 (2026-10-24~25 요청)
