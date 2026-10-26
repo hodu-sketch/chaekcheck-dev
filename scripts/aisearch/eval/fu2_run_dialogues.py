@@ -30,6 +30,16 @@ def ask(q, history, turn):
     return {'cards': [{'bookId': c['bookId'], 'title': c['title'], 'author': c.get('author'), 'summary': c.get('aiSummary')} for c in cards],
             'head': head, 'result': done[-1]['result'] if done else None}
 D = dialogues()
+if sys.argv[1] == 'single':
+    # speed and tokens of the first step (user 2026-10-26 "빠진 측정"): the 57 eval questions once, first turn only
+    import time
+    label = sys.argv[2]; Q = json.load(open(os.path.join(HERE, '..', '..', 'eval_questions.json'), encoding='utf-8')) if len(sys.argv) < 4 else json.load(open(sys.argv[3], encoding='utf-8'))
+    out = {}
+    for x in Q:
+        t = time.time(); r = ask(x['q'], [], 1); r['ms'] = int((time.time() - t) * 1000); out[str(x['id'])] = r
+        print(label, x['id'], r['result'], len(r['cards']), r['ms'], flush=True)
+    json.dump(out, open(os.path.join(HERE, f'single-{label}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
+    sys.exit()
 if sys.argv[1] == 'turn1':
     out = {}
     for x in D:
@@ -40,4 +50,5 @@ else:
     for x in D:
         hist = [{'question': x['q1'], 'bookIds': [c['bookId'] for c in T1[x['id']]['cards']]}]
         out[x['id']] = ask(x['q2'], hist, 2); print(mode, x['id'], out[x['id']]['result'], len(out[x['id']]['cards']), flush=True)
-    json.dump(out, open(os.path.join(HERE, f'turn2-{mode}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
+    run = '' if len(sys.argv) < 4 else '-' + sys.argv[3]  # repeat runs (r2, r3) for the spread
+    json.dump(out, open(os.path.join(HERE, f'turn2-{mode}{run}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=0)

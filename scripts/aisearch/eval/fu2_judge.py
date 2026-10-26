@@ -5,8 +5,8 @@ import glob, json, os, sys
 from collections import defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 T = json.load(open(os.path.join(HERE, 'turn1.json'), encoding='utf-8')); D = T['dialogues']; T1 = T['turn1']
-MODES = ['rule', 'strict', 'relation']
-T2 = {m: json.load(open(os.path.join(HERE, f'turn2-{m}.json'), encoding='utf-8')) for m in MODES if os.path.exists(os.path.join(HERE, f'turn2-{m}.json'))}
+# every turn2-<mode>[-rN].json; repeat runs reuse the verdicts already given to the same (dialogue, book) pair
+T2 = {os.path.basename(p)[6:-5]: json.load(open(p, encoding='utf-8')) for p in sorted(glob.glob(os.path.join(HERE, 'turn2-*.json')))}
 jp = os.path.join(HERE, 'judged.json'); J = json.load(open(jp, encoding='utf-8')) if os.path.exists(jp) else {}
 for p in glob.glob(os.path.join(HERE, 'jd', 'out-*.json')): J.update(json.load(open(p, encoding='utf-8')))
 json.dump(J, open(jp, 'w', encoding='utf-8'), ensure_ascii=False)
