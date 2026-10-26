@@ -2,6 +2,7 @@ package com.chaekcheck.aisearch.internal.flow;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -23,6 +24,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
+import com.chaekcheck.aisearch.internal.config.PickProperties;
 import com.chaekcheck.aisearch.internal.firstcall.MlFirstCall;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Card;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.CardDelta;
@@ -96,6 +98,8 @@ public class AiSearchFlow {
 
 	private final BookCards bookCards;
 
+	private final PickProperties pick;
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -104,8 +108,8 @@ public class AiSearchFlow {
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
 			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, BookBlurbs blurbs,
-			QuestionVectors vectors, MlFirstCall mlFirstCall, BookCards bookCards, UsageLog usageLog,
-			AiSearchProperties properties, JsonMapper json) {
+			QuestionVectors vectors, MlFirstCall mlFirstCall, BookCards bookCards, PickProperties pick,
+			UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
 		this.candidates = candidates;
 		this.budget = budget;
@@ -117,6 +121,7 @@ public class AiSearchFlow {
 		this.vectors = vectors;
 		this.mlFirstCall = mlFirstCall;
 		this.bookCards = bookCards;
+		this.pick = pick;
 		this.usageLog = usageLog;
 		this.properties = properties;
 		this.json = json;
@@ -159,6 +164,11 @@ public class AiSearchFlow {
 	 * topic fits, some of the conditions may not). A lower pick sends neither card nor text.
 	 */
 	static final int MIN_FIT = 2;
+
+	/** An ask-back shows at most this many choices, each at most this long (user 2026-10-26 mock-up: 2 to 4 pills) [안]. */
+	static final int MAX_ASK_CHOICES = 4;
+
+	static final int MAX_ASK_CHOICE_CHARS = 40;
 
 	/**
 	 * Neighbours of the books shown before that a follow-up question pointing at them gets as candidates, at most
@@ -215,10 +225,24 @@ public class AiSearchFlow {
 		/** The ML first call's relation of a follow-up to the earlier question ("first" on the first turn). */
 		String relation;
 
+		/** How the ask-back went (single-ask, not-book-ask, one-word), or null (user 2026-10-26). */
+		String ask;
+
 		final List<Long> shown = new ArrayList<>();
 
-		Run(AiSearchSink sink) {
+		/** When each step ended, ms from the request's start, for the log line (user 2026-10-26 「각 로직들 하나하나」). */
+		final StringBuilder steps = new StringBuilder();
+
+		final long startedNanos;
+
+		Run(AiSearchSink sink, long startedNanos) {
 			this.sink = sink;
+			this.startedNanos = startedNanos;
+		}
+
+		void mark(String step) {
+			steps.append(steps.isEmpty() ? "" : " ").append(step).append('=')
+				.append((System.nanoTime() - startedNanos) / 1_000_000);
 		}
 
 		boolean send(String event, Object data) {
@@ -235,7 +259,7 @@ public class AiSearchFlow {
 	}
 
 	public void run(Input input, AiSearchSink sink) {
-		Run run = new Run(sink);
+		Run run = new Run(sink, input.startedNanos());
 		try {
 			answer(input, run);
 		}
@@ -255,7 +279,8 @@ public class AiSearchFlow {
 							run.mlRoute == null ? "haiku" : "ml " + run.mlRoute + " " + run.relation,
 						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
 						run.named ? ", named book" : "", run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
-						run.gone ? ", client gone" : "");
+						(run.ask == null ? "" : ", ask " + run.ask) + (run.gone ? ", client gone" : "")
+								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
 			catch (RuntimeException e) {
 				log.warn("ai search: the usage row was not kept: {}", e.getClass().getName());
@@ -272,7 +297,7 @@ public class AiSearchFlow {
 				: EarlierTopics.of(input.question(), input.history().stream().map(Turn::question).toList());
 		boolean pointsBack = earlierQuestion != null && !earlierQuestion.equals(input.history().getLast().question());
 		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
-				&& vectors.on() ? mlStep(input.question(), earlierQuestion, pointsBack, vectorSettings) : null;
+				&& vectors.on() ? mlStep(input.question(), earlierQuestion, pointsBack, vectorSettings, run) : null;
 		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
 		// first step above sends the earlier question too)
 		CompletableFuture<List<Long>> nearest = mlStep != null ? CompletableFuture.completedFuture(mlStep.nearest())
@@ -307,9 +332,18 @@ public class AiSearchFlow {
 				site(input, history, run);
 				return;
 			}
-			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK, ml.route() == MlFirstCall.Route.TITLE_LIKE,
+			// one word the first step calls not a book request (「엄마」, 「AI」): with ask-back the second call reads it and asks
+			// back if need be, rather than the fixed ask-back (user 2026-10-26)
+			boolean oneWordTopic = ml.route() == MlFirstCall.Route.NOT_BOOK && pick.askBack()
+					&& oneWordTopic(input.question());
+			if (oneWordTopic) {
+				run.ask = "one-word";
+			}
+			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK && !oneWordTopic,
+					ml.route() == MlFirstCall.Route.TITLE_LIKE,
 					ml.route() == MlFirstCall.Route.TITLE_LIKE ? input.question() : "",
-					ml.route() == MlFirstCall.Route.REFERS_SHOWN, ml.keywords(), List.of(), KeywordResult.OK);
+					ml.route() == MlFirstCall.Route.REFERS_SHOWN,
+					oneWordTopic ? List.of(input.question().strip()) : ml.keywords(), List.of(), KeywordResult.OK);
 		}
 		else {
 			plan = keywords(input.question(), history, run);
@@ -325,6 +359,15 @@ public class AiSearchFlow {
 			}
 		}
 		if (plan.notBook()) {
+			if (pick.askBack()) {
+				// not a book request (「음 뭐 읽지」): a fixed ask-back with three drawn examples, no AI call (user 2026-10-26)
+				List<String> examples = new ArrayList<>(Prompts.NOT_BOOK_CHOICES);
+				Collections.shuffle(examples);
+				run.ask = "not-book-ask";
+				run.send(AiSearchEvents.ASK, new AiSearchEvents.Ask(Prompts.NOT_BOOK_ASK, List.copyOf(examples.subList(0, 3))));
+				finish(run, PickResult.SKIPPED, "asked");
+				return;
+			}
 			finish(run, PickResult.NO_MATCH, "no_match");
 			return;
 		}
@@ -379,12 +422,14 @@ public class AiSearchFlow {
 		// a question combining earlier topics may get the books shown for them again (EarlierTopics), and so may one
 		// adding a condition (continue: 「수학적인 것도 좀」 narrows the list, and a shown book may meet it; user
 		// 2026-10-26); 「다른 거」 (feedback) and new topics still leave them out
+		run.mark("neighbours");
 		boolean narrows = mlStep != null && "continue".equals(mlStep.plan().relation());
 		Set<Long> excluded = new HashSet<>(refers || pointsBack || narrows ? Set.of() : shownBefore);
 		excluded.addAll(chosen);
 		boolean mix = nearest != null && !refers;
 		List<Candidate> found = candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
 				mix ? Math.max(vectorSettings.keywordDepth(), max) : max - chosen.size());
+		run.mark("keyword");
 		if (!mix) {
 			for (Candidate candidate : found) {
 				// a book the import put in after this request's snapshot is left out
@@ -405,6 +450,7 @@ public class AiSearchFlow {
 			List<Long> vectorIds = vectorCandidates(nearest, known, excluded, input.planLibraryIds(), planCount,
 					vectorSettings);
 			run.vectorCount = vectorIds.size();
+			run.mark("vector");
 			// one edition of a title: the mix brings the same book from both lists under different ids
 			List<Long> mixed = mlStep == null ? Fusion.rrf(keywordIds, vectorIds, vectorSettings.rrfK())
 					: Fusion.rrf(keywordIds, vectorIds, vectorSettings.rrfK(),
@@ -419,6 +465,7 @@ public class AiSearchFlow {
 				}
 			}
 		}
+		run.mark("mix");
 		if (chosen.isEmpty()) {
 			finish(run, PickResult.NO_MATCH, "no_match");
 			return;
@@ -433,9 +480,11 @@ public class AiSearchFlow {
 			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id), years.get(id)))
 			.toList();
 		run.candidateCount = ids.size();
-		Map<Long, String> tabCovers = covers.of(ids);
-		Map<Long, String> tabBlurbs = blurbs.of(ids);
-		picks(input, history, ids, choices, new Cards(known, listed, tabCovers, tabBlurbs, planCount), run);
+		Map<Long, String> tabCovers = new HashMap<>(covers.of(ids));
+		Map<Long, String> tabBlurbs = new HashMap<>(blurbs.of(ids));
+		Cards cards = new Cards(known, listed, tabCovers, tabBlurbs, planCount);
+		run.mark("cards");
+		picks(input, history, ids, choices, cards, pointsBack, run);
 	}
 
 	/**
@@ -543,19 +592,23 @@ public class AiSearchFlow {
 	 * than {@code maxWait}: the search then asks Haiku.
 	 */
 	private MlStep mlStep(String question, String earlierQuestion, boolean pointsBack,
-			AiSearchProperties.Vector settings) {
+			AiSearchProperties.Vector settings, Run run) {
 		// the earlier question goes to the encoder too (this process or the embedding server, never logged)
 		List<String> texts = earlierQuestion == null ? List.of(question)
 				: List.of(question, earlierQuestion, earlierQuestion + " " + question);
 		CompletableFuture<List<float[]>> lookup = vectors.vectors(texts);
 		try {
 			List<float[]> found = lookup.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
+			run.mark("encode");
 			float[] vector = found.get(0);
 			MlFirstCall.Plan plan = mlFirstCall.plan(question, vector, earlierQuestion,
 					earlierQuestion == null ? null : found.get(1), earlierQuestion == null ? null : found.get(2),
 					pointsBack);
+			run.mark("ml");
 			float[] search = plan.joinedVector() ? found.get(2) : vector;
-			return new MlStep(plan, vectors.nearest(search, settings.vectorDepth() * 2));
+			List<Long> nearestBooks = vectors.nearest(search, settings.vectorDepth() * 2);
+			run.mark("nearest");
+			return new MlStep(plan, nearestBooks);
 		}
 		catch (TimeoutException e) {
 			lookup.cancel(true);
@@ -646,26 +699,61 @@ public class AiSearchFlow {
 		return new KeywordPlan(false, false, "", false, List.of(question.split("\\s+")), List.of(), failed);
 	}
 
+	/**
+	 * One word of at least two letters, not counting Hangul jamo (「ㅋㅋ」) or marks: a topic like 「엄마」 or 「AI」 the
+	 * first step may call not a book request (user 2026-10-26).
+	 */
+	static boolean oneWordTopic(String question) {
+		String word = question.strip();
+		if (word.isEmpty() || word.chars().anyMatch(Character::isWhitespace)) {
+			return false;
+		}
+		long letters = word.codePoints().filter(Character::isLetter).filter(c -> c < 0x3131 || c > 0x318E).count();
+		return letters >= 2;
+	}
+
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
-			Run run) {
+			boolean pointsBack, Run run) {
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
 		long[] current = { -1 };
 		long[] pending = { -1 };
 		int[] currentChars = { 0 };
+		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) is never asked back: the earlier questions
+		// say what it means (user 2026-10-26, 2 wrong asks in the test)
+		boolean askBack = pick.askBack() && !pointsBack;
+		// the ask-back question and choices when the call asks instead of picking (pick.ask-back, user 2026-10-26)
+		StringBuilder askQuestion = new StringBuilder();
+		List<String> askChoices = new ArrayList<>();
 		PickStreamParser parser = new PickStreamParser(new PickStreamParser.Listener() {
 
 			@Override
+			public void askQuestion(String question) {
+				askQuestion.append(question.strip());
+			}
+
+			@Override
+			public void askChoice(String choice) {
+				String text = choice.strip();
+				if (!askQuestion.isEmpty() && !text.isEmpty() && askChoices.size() < MAX_ASK_CHOICES) {
+					askChoices.add(text.codePointCount(0, text.length()) <= MAX_ASK_CHOICE_CHARS ? text
+							: text.substring(0, text.offsetByCodePoints(0, MAX_ASK_CHOICE_CHARS)));
+				}
+			}
+
+			@Override
 			public void headText(String text) {
-				run.send(AiSearchEvents.HEAD_DELTA, new Text(text));
+				if (askQuestion.isEmpty()) {
+					run.send(AiSearchEvents.HEAD_DELTA, new Text(text));
+				}
 			}
 
 			@Override
 			public void pickNo(long no) {
 				current[0] = -1;
 				pending[0] = -1;
-				if (run.shown.size() >= maxPicks || no < 1 || no > ids.size() || !seen.add(no)) {
+				if (!askQuestion.isEmpty() || run.shown.size() >= maxPicks || no < 1 || no > ids.size() || !seen.add(no)) {
 					return;
 				}
 				// the card waits for the pick's fit
@@ -704,17 +792,24 @@ public class AiSearchFlow {
 			}
 
 		});
-		LlmCall call = new LlmCall(Prompts.PICK_SYSTEM, Prompts.pickMessages(history, input.question(), choices),
-				Prompts.PICK_SCHEMA, properties.pickMaxTokens());
+		LlmCall call = new LlmCall(askBack ? Prompts.PICK_ASK_SYSTEM : Prompts.PICK_SYSTEM,
+				Prompts.pickMessages(history, input.question(), choices), askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
+				properties.pickMaxTokens());
 		boolean failed = false;
 		try {
+			boolean[] first = { true };
 			Result result = llm.stream(call, properties.pickTimeout(), piece -> {
 				if (run.gone || run.sink.gone()) {
 					run.gone = true;
 					throw new ClientGone();
 				}
+				if (first[0]) {
+					first[0] = false;
+					run.mark("llm-first");
+				}
 				parser.feed(piece);
 			});
+			run.mark("llm-done");
 			count(run, result.usage(), call.maxTokens());
 			failed = !parser.complete();
 		}
@@ -728,7 +823,12 @@ public class AiSearchFlow {
 			run.pickResult = run.shown.isEmpty() ? PickResult.SKIPPED : PickResult.PARTIAL;
 			return;
 		}
-		if (failed && run.shown.isEmpty()) {
+		if (!failed && !askQuestion.isEmpty()) {
+			run.ask = "single-ask";
+			run.send(AiSearchEvents.ASK, new AiSearchEvents.Ask(askQuestion.toString(), List.copyOf(askChoices)));
+			finish(run, PickResult.SKIPPED, "asked");
+		}
+		else if (failed && run.shown.isEmpty()) {
 			// spec R6-2: the first books without text
 			for (int i = 0; i < Math.min(maxPicks, ids.size()); i++) {
 				long bookId = ids.get(i);

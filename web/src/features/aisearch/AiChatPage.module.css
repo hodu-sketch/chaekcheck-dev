@@ -515,3 +515,58 @@
     font-size: 16px;
   }
 }
+
+/* the agent asking back (user 2026-10-26 mock-up): violet-bordered pills, stronger than the example chips; one per row
+   on phones so a long answer is not cut */
+.askChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.askChoice {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.95rem;
+  border: 1.5px solid var(--brand);
+  border-radius: 999px;
+  background: var(--brand-faint);
+  color: var(--brand-strong);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.askChoice:hover:not(:disabled),
+.askChoice:focus-visible {
+  background: var(--brand-soft);
+}
+
+.askChoice:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.askHint {
+  margin: 0.6rem 0 0;
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+}
+
+@media (width <= 640px) {
+  .askChoices {
+    flex-direction: column;
+  }
+
+  .askChoice {
+    width: 100%;
+    border-radius: var(--radius-inner);
+  }
+
+  .askHintMore {
+    display: none;
+  }
+}

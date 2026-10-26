@@ -255,9 +255,11 @@ export function AiChatPage() {
                   head: '',
                   cards: [],
                   result: null,
+                  ask: null,
                 }))
               }
               onExample={ask}
+              isLast={index === chat.turns.length - 1}
               onOpen={(card) => setOpened(pickBookOf(card))}
               onDirect={(title) =>
                 title
@@ -377,9 +379,11 @@ type AnswerProps = {
   onExample: (question: string) => void
   onOpen: (card: AiTurnCard) => void
   onDirect: (title: string | null) => void
+  /** Only the latest turn's ask-back buttons can be clicked; earlier ones are answered already. */
+  isLast?: boolean
 }
 
-function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProps) {
+function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = true }: AnswerProps) {
   const notice = noticeOf(turn)
   return (
     <div className={styles.answer}>
@@ -405,6 +409,33 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen }: AnswerProp
             </Link>
           </p>
           <p className={styles.soft}>{AI_TEXT.siteNote}</p>
+        </>
+      )}
+      {turn.ask && (
+        // the agent asked back (user 2026-10-26 mock-up): its question in the head's place, the answers as buttons; a
+        // click asks the answer as the next question
+        <>
+          <p className={styles.head}>{turn.ask.question}</p>
+          <ul className={styles.askChoices} aria-label="고를 답">
+            {turn.ask.choices.map((choice) => (
+              <li key={choice}>
+                <button
+                  type="button"
+                  className={styles.askChoice}
+                  disabled={busy || !isLast}
+                  onClick={() => onExample(choice)}
+                >
+                  {choice}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {isLast && (
+            <p className={styles.askHint}>
+              {AI_TEXT.askHint}
+              <span className={styles.askHintMore}>{AI_TEXT.askHintMore}</span>
+            </p>
+          )}
         </>
       )}
       {turn.result === 'no_text' && <p className={styles.head}>{AI_TEXT.noText}</p>}
@@ -526,6 +557,8 @@ export function apply(turn: AiTurnState, event: AiStreamEvent): AiTurnState {
           card.bookId === event.data.bookId ? { ...card, text: card.text + event.data.text } : card,
         ),
       }
+    case 'ask':
+      return { ...turn, ask: event.data }
     case 'done':
       return { ...turn, state: 'done', result: event.data.result }
     case 'error':

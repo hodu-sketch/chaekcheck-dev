@@ -314,13 +314,31 @@ class AnthropicLlmClientTests {
 
 		assertThatThrownBy(() -> client(KEY).complete(CALL, Duration.ofSeconds(5)))
 			.satisfies(e -> assertThat(e.getMessage()).doesNotContain(KEY, QUESTION));
-		assertThat(new AnthropicProperties(KEY, null, null, null, null).toString()).doesNotContain(KEY);
+		assertThat(new AnthropicProperties(KEY, null, null, null, null, null, false).toString()).doesNotContain(KEY);
 		assertThat(output.getAll()).contains("anthropic call failed").doesNotContain(KEY, QUESTION, "지시문");
+	}
+
+	@Test
+	void withThinkingOffAndTheSystemCachedTheRequestSaysSoAndCachedTokensCount() { // user 2026-10-26
+		handler = exchange -> reply(exchange, 200, "application/json", """
+				{"type":"message","content":[{"type":"text","text":"{\\"head\\":\\"좋아요\\"}"}],"stop_reason":"end_turn",
+				 "usage":{"input_tokens":100,"cache_read_input_tokens":800,"cache_creation_input_tokens":10,"output_tokens":65}}""");
+		AnthropicProperties properties = new AnthropicProperties(KEY, null,
+				URI.create("http://127.0.0.1:" + server.getAddress().getPort()), null, "low", "disabled", true);
+
+		Result result = new AnthropicLlmClient(properties, HttpClient.newHttpClient(), json).complete(CALL,
+				Duration.ofSeconds(5));
+
+		assertThat(result.usage()).isEqualTo(new Usage(910, 65, true));
+		JsonNode body = seen.get().body();
+		assertThat(body.path("thinking").path("type").asString()).isEqualTo("disabled");
+		assertThat(body.path("system").get(0).path("text").asString()).isEqualTo("지시문");
+		assertThat(body.path("system").get(0).path("cache_control").path("type").asString()).isEqualTo("ephemeral");
 	}
 
 	private AnthropicLlmClient client(String key) {
 		AnthropicProperties properties = new AnthropicProperties(key, null,
-				URI.create("http://127.0.0.1:" + server.getAddress().getPort()), null, "low");
+				URI.create("http://127.0.0.1:" + server.getAddress().getPort()), null, "low", null, false);
 		return new AnthropicLlmClient(properties, HttpClient.newHttpClient(), json);
 	}
 

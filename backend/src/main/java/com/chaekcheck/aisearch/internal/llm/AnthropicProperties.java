@@ -14,9 +14,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param baseUrl the API root
  * @param version the {@code anthropic-version} header
  * @param effort {@code output_config.effort} for every call (cycle 24 step 1: {@code low} [안]); empty sends none
+ * @param thinking {@code thinking.type} for the JSON calls: empty sends none (the model's default, adaptive on Haiku
+ *     5.5), {@code disabled} or {@code adaptive} (user 2026-10-26: the time to the first text) [안]
+ * @param cacheSystem the system prompt marked for prompt caching ({@code cache_control} ephemeral) [안]
  */
 @ConfigurationProperties("chaekcheck.aisearch.llm.anthropic")
-public record AnthropicProperties(String apiKey, String model, URI baseUrl, String version, String effort) {
+public record AnthropicProperties(String apiKey, String model, URI baseUrl, String version, String effort,
+		String thinking, boolean cacheSystem) {
 
 	public AnthropicProperties {
 		apiKey = apiKey == null ? "" : apiKey.strip();
@@ -24,6 +28,10 @@ public record AnthropicProperties(String apiKey, String model, URI baseUrl, Stri
 		baseUrl = baseUrl == null ? URI.create("https://api.anthropic.com") : baseUrl;
 		version = version == null || version.isBlank() ? "2026-10-21" : version;
 		effort = effort == null ? "" : effort.strip();
+		thinking = thinking == null ? "" : thinking.strip();
+		if (!thinking.isEmpty() && !"disabled".equals(thinking) && !"adaptive".equals(thinking)) {
+			throw new IllegalArgumentException("chaekcheck.aisearch.llm.anthropic.thinking must be empty, disabled or adaptive");
+		}
 		// the key goes to this address: https only, plain http only to this machine (tests) (step 8 security review)
 		boolean loopback = "localhost".equals(baseUrl.getHost()) || "127.0.0.1".equals(baseUrl.getHost());
 		if (!"https".equals(baseUrl.getScheme()) && !("http".equals(baseUrl.getScheme()) && loopback)) {
@@ -39,7 +47,8 @@ public record AnthropicProperties(String apiKey, String model, URI baseUrl, Stri
 	@Override
 	public String toString() {
 		return "AnthropicProperties[apiKey=" + (hasKey() ? "(set)" : "(empty)") + ", model=" + model + ", baseUrl="
-				+ baseUrl + ", version=" + version + ", effort=" + effort + "]";
+				+ baseUrl + ", version=" + version + ", effort=" + effort + ", thinking=" + thinking + ", cacheSystem="
+				+ cacheSystem + "]";
 	}
 
 }

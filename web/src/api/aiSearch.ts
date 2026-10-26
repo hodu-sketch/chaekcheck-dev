@@ -37,17 +37,21 @@ export type AiCard = {
 }
 
 // site: the head answered a question about 책첵 from the site's own text, no book (ML first call, user 2026-10-26)
-export type AiDoneResult = 'ok' | 'no_match' | 'no_text' | 'partial' | 'site'
+export type AiDoneResult = 'ok' | 'no_match' | 'no_text' | 'partial' | 'site' | 'asked'
+
+/** The second step's agent asking back (user 2026-10-26): a short question and 2 to 4 answers to click. */
+export type AiAsk = { question: string; choices: string[] }
 
 export type AiStreamEvent =
   | { name: 'title-guess'; data: { title: string } }
   | { name: 'head-delta'; data: { text: string } }
   | { name: 'card'; data: AiCard }
   | { name: 'card-delta'; data: { bookId: number; text: string } }
+  | { name: 'ask'; data: AiAsk }
   | { name: 'done'; data: { result: AiDoneResult; bookIds: number[] } }
   | { name: 'error'; data: { code: string } }
 
-const EVENT_NAMES = new Set(['title-guess', 'head-delta', 'card', 'card-delta', 'done', 'error'])
+const EVENT_NAMES = new Set(['title-guess', 'head-delta', 'card', 'card-delta', 'ask', 'done', 'error'])
 
 const STREAM_URL = '/api/v1/ai-searches/stream'
 const COUNTS_URL = '/api/v1/ai-searches/library-counts'

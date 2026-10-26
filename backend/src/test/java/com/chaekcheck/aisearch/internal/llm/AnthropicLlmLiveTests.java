@@ -34,7 +34,7 @@ class AnthropicLlmLiveTests {
 			"additionalProperties":false}}},"required":["head","picks"],"additionalProperties":false}""";
 
 	private final LlmClient client = new AnthropicLlmClient(
-			new AnthropicProperties(System.getenv("CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY"), null, null, null, "low"),
+			new AnthropicProperties(System.getenv("CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY"), null, null, null, "low", null, false),
 			HttpClient.newHttpClient(), JsonMapper.builder().build());
 
 	private final LlmCall call = new LlmCall("고를 수 있는 책 가운데 질문에 맞는 책을 0~2권 고르고 한 문장씩 쓴다. JSON으로만 답한다.",

@@ -58,6 +58,34 @@ final class Prompts {
 			"additionalProperties":false}}},"required":["head","picks"],"additionalProperties":false}""";
 
 	/**
+	 * The pick call that may ask back (user 2026-10-26 「되묻기만 기존 한 번의 호출에」, after the agent's test): the pick
+	 * rules above and an {@code ask} field first in the JSON, so the stream knows before the head whether it asks.
+	 */
+	static final String PICK_ASK_SYSTEM = PICK_SYSTEM.replace("- 정해진 JSON 형식으로만 답한다.", """
+			- 맨 앞 ask는 되묻기다. 질문이 서로 다른 뜻으로 읽혀 고를 책이 크게 달라질 때만 쓴다. 예: 낱말 하나뿐이라 뜻이 여럿인 질문(「그림」: 그림 그리기 책인지 명화 감상 책인지 그림책인지, 「llm인가」), 앞에서 보여 준 책과 다른 책을 원하는데 어느 쪽인지 모를 때(「아니 그런 거 말고」), 「음...」처럼 무엇을 찾는지 알 수 없을 때. 이때 question에 짧게 되묻는 말을 한국어 해요체 한 문장으로, choices에 고를 답 2~4개를 짧은 명사구로 쓰고(예: 「그림 그리는 법을 알려 주는 책」), head는 빈 글, picks는 빈 목록으로 둔다.
+			- 앞 질문들의 주제를 합치거나 섞어 달라는 말(「둘이 합쳐진 거」, 「두 개 섞은 느낌」, 「둘 다」, 「앞의 두 개」)에는 되묻지 않는다. 앞 대화의 질문 글에서 두 주제를 찾아 함께 다룬 책을 고른다.
+			- 흔한 뜻이 분명하거나(「파이썬」은 파이썬 프로그래밍, 「고양이」는 고양이 책, 「양봉 입문서」는 꿀벌 기르기), 조건이 몇 가지 빠졌을 뿐이면 되묻지 않는다. 책으로 나올 법하지 않은 뜻은 고를 답에 넣지 않는다. 이때 question은 빈 글, choices는 빈 목록으로 두고 위 규칙대로 고른다. 앞에서 되물은 답을 사용자가 골랐으면 다시 되묻지 않는다.
+			- 정해진 JSON 형식으로만 답한다.""");
+
+	static final String PICK_ASK_SCHEMA = """
+			{"type":"object","properties":{"ask":{"type":"object","properties":{"question":{"type":"string"},
+			"choices":{"type":"array","items":{"type":"string"}}},"required":["question","choices"],"additionalProperties":false},
+			"head":{"type":"string"},"picks":{"type":"array","items":{"type":"object",
+			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
+			"additionalProperties":false}}},"required":["ask","head","picks"],"additionalProperties":false}""";
+
+	/**
+	 * The fixed ask-back for a question that is not a book request (「음 뭐 읽지」, 「날씨 어때」), with no AI call
+	 * (user 2026-10-26 「음... 이런거에 대응가능한거지?」). Wording and examples [안].
+	 */
+	static final String NOT_BOOK_ASK = "어떤 책을 찾으세요? 이렇게 물어보셔도 돼요.";
+
+	/** Three of these are drawn for {@link #NOT_BOOK_ASK} [안]. */
+	static final List<String> NOT_BOOK_CHOICES = List.of("요즘 많이 읽는 소설", "마음이 편해지는 에세이", "출근길에 가볍게 읽을 책",
+			"잠들기 전에 읽기 좋은 책", "처음 읽는 경제 교양서", "웃기고 가벼운 소설", "반전이 있는 추리 소설", "아이와 함께 읽을 그림책",
+			"생각이 깊어지는 인문학 책", "쉽게 읽는 과학책");
+
+	/**
 	 * The answer to a question about 책첵 or about using the e-libraries (ML first call way {@code site}, user
 	 * 2026-10-26 "소개 탭이나 메인에 있는 정보들로", "아이피정보는 지금 안 쓰니까 운영에서 제외"): the site's own text of the
 	 * intro tab ({@code AboutPage.tsx}), the first screen and its region note, and the footer, as of 2026-10-26; the
@@ -119,6 +147,13 @@ final class Prompts {
 			.append("년\n질문: ")
 			.append(question)
 			.append("\n고를 수 있는 책:");
+		appendChoices(user, choices);
+		List<Message> messages = history(history);
+		messages.add(new Message(Role.USER, user.toString()));
+		return messages;
+	}
+
+	private static void appendChoices(StringBuilder user, List<Choice> choices) {
 		for (int i = 0; i < choices.size(); i++) {
 			Choice choice = choices.get(i);
 			user.append('\n')
@@ -134,9 +169,6 @@ final class Prompts {
 				user.append(" / 한 줄: ").append(choice.line());
 			}
 		}
-		List<Message> messages = history(history);
-		messages.add(new Message(Role.USER, user.toString()));
-		return messages;
 	}
 
 	private static List<Message> history(List<ShownTurn> history) {

@@ -120,6 +120,31 @@ class PickStreamParserTests {
 	}
 
 	/** Records the events; text pieces of one string are joined in {@link #joined}. */
+	@Test
+	void anAskBackFirstIsToldWholeAtEverySplit() { // user 2026-10-26: ask-back in the single call
+		String answer = """
+				{"ask":{"question":"어떤 \\"그림\\" 책을 찾으세요?","choices":["그림 그리는 법","명화 감상 😀"]},"head":"","picks":[]}""";
+		for (int cut = 0; cut <= answer.length(); cut++) {
+			Recorder recorder = new Recorder();
+			PickStreamParser parser = new PickStreamParser(recorder);
+			parser.feed(answer.substring(0, cut));
+			parser.feed(answer.substring(cut));
+			assertThat(recorder.raw).as("cut at %d", cut)
+				.containsExactly("ask:어떤 \"그림\" 책을 찾으세요?", "choice:그림 그리는 법", "choice:명화 감상 😀");
+			assertThat(parser.complete()).isTrue();
+		}
+	}
+
+	@Test
+	void anEmptyAskIsToldAndTheHeadAndPicksStillStream() {
+		Recorder recorder = new Recorder();
+		PickStreamParser parser = new PickStreamParser(recorder);
+
+		parser.feed("{\"ask\":{\"question\":\"\",\"choices\":[]},\"head\":\"좋아요\",\"picks\":[{\"no\":2,\"fit\":3,\"text\":\"가\"}]}");
+
+		assertThat(recorder.joined()).containsExactly("ask:", "head:좋아요", "no:2", "text:가", "end");
+	}
+
 	static final class Recorder implements PickStreamParser.Listener {
 
 		final List<String> raw = new ArrayList<>();
@@ -142,6 +167,16 @@ class PickStreamParserTests {
 		@Override
 		public void pickEnd() {
 			raw.add("end");
+		}
+
+		@Override
+		public void askQuestion(String question) {
+			raw.add("ask:" + question);
+		}
+
+		@Override
+		public void askChoice(String choice) {
+			raw.add("choice:" + choice);
 		}
 
 		List<String> joined() {

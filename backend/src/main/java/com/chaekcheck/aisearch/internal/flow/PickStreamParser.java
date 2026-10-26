@@ -28,6 +28,14 @@ public final class PickStreamParser {
 
 		void pickEnd();
 
+		/** The ask-back question, whole, when the answer has an {@code ask} field (it comes first). */
+		default void askQuestion(String question) {
+		}
+
+		/** One ask-back choice, whole. */
+		default void askChoice(String choice) {
+		}
+
 	}
 
 	private enum Mode {
@@ -38,7 +46,7 @@ public final class PickStreamParser {
 
 	private enum Target {
 
-		NONE, HEAD, TEXT
+		NONE, HEAD, TEXT, ASK_QUESTION, ASK_CHOICE
 
 	}
 
@@ -73,6 +81,9 @@ public final class PickStreamParser {
 	private final StringBuilder out = new StringBuilder();
 
 	private final StringBuilder number = new StringBuilder();
+
+	/** The ask-back string being read; it is handed on whole. */
+	private final StringBuilder ask = new StringBuilder();
 
 	private final StringBuilder hex = new StringBuilder();
 
@@ -245,8 +256,14 @@ public final class PickStreamParser {
 
 	private Target targetOfValue() {
 		Frame frame = stack.peek();
+		if (inAskChoices()) {
+			return Target.ASK_CHOICE;
+		}
 		if (frame == null || !frame.object) {
 			return Target.NONE;
+		}
+		if (stack.size() == 2 && "question".equals(frame.key) && "ask".equals(stack.peekLast().key)) {
+			return Target.ASK_QUESTION;
 		}
 		if (stack.size() == 1 && "head".equals(frame.key)) {
 			return Target.HEAD;
@@ -255,6 +272,16 @@ public final class PickStreamParser {
 			return Target.TEXT;
 		}
 		return Target.NONE;
+	}
+
+	/** The top frame is the {@code choices} array of the outer object's {@code ask}. */
+	private boolean inAskChoices() {
+		if (stack.size() != 3) {
+			return false;
+		}
+		Frame[] frames = stack.toArray(new Frame[0]);
+		return !frames[0].object && frames[1].object && "choices".equals(frames[1].key) && frames[2].object
+				&& "ask".equals(frames[2].key);
 	}
 
 	/** The top frame is an object in the {@code picks} array of the outer object. */
@@ -304,6 +331,13 @@ public final class PickStreamParser {
 			pendingHigh = 0;
 		}
 		flush();
+		if (target == Target.ASK_QUESTION) {
+			listener.askQuestion(ask.toString());
+		}
+		else if (target == Target.ASK_CHOICE) {
+			listener.askChoice(ask.toString());
+		}
+		ask.setLength(0);
 		target = Target.NONE;
 		afterValue();
 	}
@@ -358,6 +392,9 @@ public final class PickStreamParser {
 		}
 		else if (target == Target.TEXT) {
 			listener.pickText(text);
+		}
+		else {
+			ask.append(text);
 		}
 	}
 
