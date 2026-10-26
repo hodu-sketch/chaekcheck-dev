@@ -33,7 +33,7 @@ public class CandidateQuery {
 	public static final int MIN_KEYWORD_CHARS = 2;
 
 	private static final String PLAN_COUNT = """
-			(SELECT count(*) FROM unnest(s.library_ids) AS l(id) WHERE l.id = ANY(CAST(:plan AS bigint[])))::int""";
+			(SELECT count(*) FROM unnest(s.library_ids) AS l(id) WHERE l.id = ANY(CAST(:plan AS integer[])))::int""";
 
 	private final JdbcClient jdbc;
 
@@ -92,7 +92,7 @@ public class CandidateQuery {
 				  SELECT s.book_id, %s AS score, %s AS plan_count, %s AS core_score
 				  FROM aisearch.search_book s
 				  WHERE (%s)
-				    AND s.library_ids && CAST(:plan AS bigint[])
+				    AND s.library_ids && CAST(:plan AS integer[])
 				    AND NOT (s.book_id = ANY(CAST(:excluded AS bigint[])))
 				) m
 				ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
@@ -117,7 +117,7 @@ public class CandidateQuery {
 		Map<Long, Integer> counts = new HashMap<>();
 		jdbc.sql("""
 				SELECT s.book_id, %s AS plan_count FROM aisearch.search_book s
-				WHERE s.book_id = ANY(CAST(:ids AS bigint[])) AND s.library_ids && CAST(:plan AS bigint[])"""
+				WHERE s.book_id = ANY(CAST(:ids AS bigint[])) AND s.library_ids && CAST(:plan AS integer[])"""
 			.formatted(PLAN_COUNT))
 			.param("ids", bookIds.toArray(Long[]::new))
 			.param("plan", planLibraries.toArray(Long[]::new))

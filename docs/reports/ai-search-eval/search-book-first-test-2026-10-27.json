@@ -1,0 +1,74 @@
+{
+ "plan_libraries": 25,
+ "now": {
+  "size": {
+   "heap": 136.0,
+   "index": 51.4,
+   "total": 188.3
+  },
+  "library_ids_mb": 42.0,
+  "q": {
+   "common": 118.3,
+   "two": 39.9,
+   "four": 13.0,
+   "counts30": 0.4
+  }
+ },
+ "alter_ms": 3227,
+ "compact": {
+  "size": {
+   "heap": 92.9,
+   "index": 39.0,
+   "total": 132.4
+  },
+  "library_ids_mb": 42.0,
+  "q": {
+   "common": 119.0,
+   "two": 37.5,
+   "four": 40.9,
+   "counts30": 0.4
+  }
+ },
+ "slim": {
+  "size": {
+   "heap": 75.6,
+   "index": 38.4,
+   "total": 115.1
+  },
+  "library_ids_mb": 25.0,
+  "q": {
+   "common": 105.9,
+   "two": 33.3,
+   "four": 13.2,
+   "counts30": 0.4
+  }
+ },
+ "replace_ms": 11386,
+ "slim_after_replace": {
+  "size": {
+   "heap": 149.1,
+   "index": 65.1,
+   "total": 216.7
+  },
+  "q": {
+   "common": 139.0,
+   "two": 36.6,
+   "four": 16.3,
+   "counts30": 0.3
+  }
+ },
+ "vacuum_full_ms": 405067,
+ "slim_after_vacuum": {
+  "size": {
+   "heap": 73.6,
+   "index": 38.3,
+   "total": 113.1
+  },
+  "q": {
+   "common": 133.6,
+   "two": 11.1,
+   "four": 40.0,
+   "counts30": 0.4
+  }
+ }
+}

@@ -168,7 +168,7 @@ FROM aisearch.search_book;
 - 구간별(2026-10-26): 1~3만 위 소개 26,425 / 표지 28,602, 3만~5만 위 17,760 / 19,648, 5만~10만 위 32,789 / 46,716(표지는 fetch-covers DONE, 그 뒤로 더 늘어남)
 - **책 번호가 바뀌면**(수집을 반영한 가져오기) 대상부터 다시 만듭니다: prepare가 새 번호로 대상을 뽑고, 이미 만든 글은 책 번호로만 건너뛰므로 번호가 바뀐 뒤에는 `requests`의 건너뛰기 기준(`done_ids`)을 새 번호에 맞춰야 함
 
-## 10. 되묻기, Haiku 생각 끄기, 지시문 캐시 (v1.17.0, 2026-10-27)
+## 10. 되묻기, Haiku 생각 끄기, 프롬프트 캐싱 (v1.17.0, 2026-10-27)
 
 사용자 결정(2026-10-26): "AGENT도 쓰긴 할건데 되묻기만 하는 걸로", "되묻기 + 생각 끄기 + 캐시로 배포해줘". 도구 루프 에이전트(`search_again` 등)는 브랜치 `claude/aisearch-agent`에만 있음. 잰 값: [에이전트 보고서](../reports/ai-search-agent-2026-10-26.md) 10·11절.
 
@@ -177,6 +177,35 @@ FROM aisearch.search_book;
   - 1차 ML이 「책 찾기 아님」: 한 낱말(글자 2개 이상, 「ㅋㅋ」 빼고 — 「엄마」, 「AI」)이면 보통 질문처럼 2차로, 아니면 AI 호출 없이 `Prompts.NOT_BOOK_ASK` + `NOT_BOOK_CHOICES` 10개 중 3개 [안]
   - 로그 끝 `, ask single-ask` / `not-book-ask` / `one-word`
 - **생각 끄기** `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`: 모든 JSON 호출(2차, 책첵 질문 답, Haiku 1차)에 `thinking: {type: disabled}`. 비우면 모델 기본(Haiku 5.5는 생각 켬). Haiku 5.5는 effort `high` 이하에서만 끌 수 있음(지금 `low`)
-- **지시문 캐시** `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`: system을 `cache_control: ephemeral` 블록으로. 사용량의 캐시 읽기·쓰기 토큰도 입력으로 세어 하루 예산은 보수적으로 셈
+- **프롬프트 캐싱** `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`: system을 `cache_control: ephemeral` 블록으로. 사용량의 캐시 읽기·쓰기 토큰도 입력으로 세어 하루 예산은 보수적으로 셈
 - **단계별 시간 로그**: 검색 한 줄 끝 `, steps encode=… ml=… nearest=… neighbours=… keyword=… vector=… mix=… cards=… llm-first=… llm-done=…`(요청 시작부터 ms). `llm-first`가 Haiku 첫 글자
 - **되돌리기**: prod.env에서 셋을 지우거나 `false`/빈 값으로 두고 `bin/up.sh` — 코드는 그대로 둬도 v1.16.3과 같은 동작
+
+### 10-1. 되묻기 v2 (2026-10-27, 다음 배포)
+
+v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버튼 대신 직접 쓴 답(「그림」 → 「인상주의」)을 찾음. 규칙을 모두 모아 부딪히는 곳을 찾고 80문항 규칙 시험을 만들어 고침: [규칙 점검](../reports/ai-search-rules-2026-10-27.md).
+
+- **8권까지 채우기**(P9): 맞는 책이 여럿이면 8권까지(조건과 반대인 책으로는 안 채움). 생각 끄기 뒤 줄어든 카드 수 보충
+- **「후보 분야」 줄**(C4): 되묻기가 켜 있고 질문이 2낱말 이하(`AiSearchFlow.SHORT_QUESTION_WORDS` [안])면 후보 30권의 큰 분야 수(`MlFirstCall.shelfCounts`, 많은 순 6개)를 책 목록 아래 「후보 분야: 예술·취미(비소설) 9권, …」로 붙임
+- **되묻는 말**(A2): 고를 답 말고 원하는 게 있으면 직접 적어 달라는 뜻을 질문에 맞게 덧붙임
+- **되묻기에 직접 답하기**(P16·C3): 웹이 앞 대화의 되묻기 턴에 `askQuestion`·`askChoices`를 실어 보냄(`AiSearchRequest.HistoryTurn`, 고를 답 4개까지). 백엔드는 그 다음 질문을 늘 앞 질문과 이어 붙여 찾고(`EarlierTopics`의 합치기와 같은 길), 되묻지 않고, Haiku에게 앞 대화를 「되물은 말: … / 고를 답: …」으로 보여 줌. 그 뜻은 `PICK_SYSTEM`(P16)에 적힘
+- 규칙 시험(80문항 두 번): 카드 맞음 76 → 92%, 틀린 카드 1.29 → 0.39장, 애매한 한 낱말 되묻기 3/32 → 30/32, 직접 답한 뒤 맞음 48 → 96%. 대가: 흔한 취미·기술 낱말(강아지, 요가, 캠핑…)에도 되물음 20번 중 9번
+- 다시 재기: `scripts/aisearch/eval/rules_run.py <이름> <로그>`(로컬 백엔드), `prep` → Sonnet 하위 에이전트가 `rules-JUDGE_RULES.md`대로 채점 → `score`
+
+## 11. search_book 줄이기 (aisearch-004, 2026-10-27, 다음 배포)
+
+사용자 요청(2026-10-27): 넣기 뒤 빈 공간(비효율 1), `library_ids`가 가장 큰 칸(비효율 2). 재 보니 더 큰 문제가 따로 있었음: **글 칸의 ANALYZE가 칸마다 약 200초**.
+
+| | 바꾸기 전 | 바꾼 뒤 |
+|---|---|---|
+| 표 + 인덱스(76,759권, 로컬) | 188MB(표 136 + 인덱스 51) | **115MB**(표 75 + 인덱스 38) |
+| `library_ids` | bigint[] 42MB | **integer[] 25MB** |
+| ANALYZE(`line`·`search_text` 칸) | 각 약 200초(DB 정렬 규칙 `en_US.utf8`로 긴 한국어를 정렬) | **`C` 정렬 규칙 1초** |
+| 넣기 뒤 | 지운 줄 자리가 남음(넣은 직후 216MB), 자동 ANALYZE가 몇 분~15분 CPU(운영 2026-10-26: 21:58 넣기, 22:13 끝) | 넣기 끝에 `VACUUM (FULL, ANALYZE)` **10초**(그동안 AI 검색이 기다림) |
+| 낱말 검색 「소설」 / 「기후 위기」 / 「다이어트 식단 레시피 건강」 / 30권 도서관 수 | 140 / 40 / 12 / 0.4ms | 바꾼 직후 138 / 39 / 12 / 0.3ms, 넣기 + 정리 뒤 141 / 34 / **41** / 0.3ms — 빨라지지 않음(표가 메모리에 있고 LIKE 계산이 시간을 정함). 네 낱말은 정리 뒤 실행 계획이 바뀌어 느려짐(정리만 한 bigint 표에서도 41ms) → 운영 로그 `keyword` 단계로 지켜볼 것 |
+
+- changeset `aisearch-004-search-book-slim`: `library_ids` integer[](가장 큰 번호 2,681), `line`·`search_text` `COLLATE "C"`. 둘 다 사람에게 정렬해 보이지 않고 LIKE + pg_bigm으로만 찾으므로 결과는 같음. 표를 다시 쓰므로 운영 시작 때 몇 초(로컬 4.6초 + ANALYZE 6초) 걸림
+- `JdbcAiSearchBookTexts.compact()`: book-texts 넣기가 끝난 뒤(트랜잭션 밖) `VACUUM (FULL, ANALYZE)`. 트랜잭션 안이면 건너뛰고, 실패하면 경고만(책은 이미 들어가 있음). 로그 `search books compacted in N ms`
+- 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-first-test-2026-10-27.json`](../reports/ai-search-eval/search-book-first-test-2026-10-27.json)(칸 크기 42 → 25MB 포함), [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
+- **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
+

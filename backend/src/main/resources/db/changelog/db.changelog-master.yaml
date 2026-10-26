@@ -210,3 +210,7 @@ databaseChangeLog:
   - include:
       file: aisearch/003-search-book-library-ids.yaml
       relativeToChangelogFile: true
+  # 2026-10-27: the search books smaller (integer library ids) and their texts in the "C" collation (fast ANALYZE)
+  - include:
+      file: aisearch/004-search-book-slim.yaml
+      relativeToChangelogFile: true

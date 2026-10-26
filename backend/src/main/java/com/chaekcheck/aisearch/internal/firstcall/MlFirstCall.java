@@ -2,9 +2,13 @@ package com.chaekcheck.aisearch.internal.firstcall;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,6 +232,32 @@ public class MlFirstCall {
 	/** What the book's shared shelves add to its fusion sum. */
 	public double bonus(long bookId, Shelves shelves) {
 		return shelfBonus * shelves.matches(profiles.of(bookId));
+	}
+
+	/**
+	 * How many of the books have each big shelf (field, and fiction or not), most first; books without a profile are
+	 * left out, and nothing when the profiles are not loaded (the ask-back's 「후보 분야」 line, user 2026-10-27).
+	 */
+	public LinkedHashMap<String, Integer> shelfCounts(Collection<Long> bookIds) {
+		Map<String, Integer> counts = new HashMap<>();
+		if (profiles != null) {
+			for (long bookId : bookIds) {
+				BookProfiles.Profile profile = profiles.of(bookId);
+				if (profile == null || profile.field() == null || profile.field().isBlank()) {
+					continue;
+				}
+				String shelf = profile.field()
+						+ (profile.fiction() == null ? "" : profile.fiction() ? "(소설)" : "(비소설)");
+				counts.merge(shelf, 1, Integer::sum);
+			}
+		}
+		LinkedHashMap<String, Integer> sorted = new LinkedHashMap<>();
+		counts.entrySet()
+			.stream()
+			.sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+				.thenComparing(Map.Entry.comparingByKey()))
+			.forEach(e -> sorted.put(e.getKey(), e.getValue()));
+		return sorted;
 	}
 
 	/** Whether the question rules the book out (it goes after the others). */

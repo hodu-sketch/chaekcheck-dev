@@ -122,6 +122,11 @@ class AiSearchControllerTests {
 				HttpStatus.BAD_REQUEST, "validation_error");
 		assertProblem(post("{\"question\":\"" + QUESTION + "\",\"turnNo\":1,\"scope\":\"some\"}", nextIp()),
 				HttpStatus.BAD_REQUEST, "validation_error");
+		// an earlier ask-back goes back with its turn (user 2026-10-27); at most four choices
+		assertThat(post(body(QUESTION, 2, "[{\"question\":\"그림\",\"bookIds\":[],\"askQuestion\":\"어떤 그림 책이에요?\","
+				+ "\"askChoices\":[\"그리는 법\",\"명화 감상\"]}]"), nextIp())).hasStatusOk();
+		assertProblem(post(body(QUESTION, 2, "[{\"question\":\"그림\",\"bookIds\":[],\"askQuestion\":\"어느 쪽?\","
+				+ "\"askChoices\":[\"가\",\"나\",\"다\",\"라\",\"마\"]}]"), nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
 	}
 
 	@Test

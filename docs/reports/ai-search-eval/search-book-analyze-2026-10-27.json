@@ -1,0 +1,19 @@
+{
+ "_": "ANALYZE of each search_book column on a copy (local, 76,759 books, database collation en_US.utf8), ms",
+ "book_id": 459,
+ "author": 1683,
+ "title": 4906,
+ "line": 202229,
+ "search_text": 205548,
+ "line_source": 464,
+ "search_text in the C collation": 1135,
+ "whole table ANALYZE": 406160,
+ "ANALYZE without library_ids": 400675,
+ "library_ids only": 535,
+ "VACUUM without ANALYZE": 581,
+ "VACUUM (FULL, ANALYZE) before the C collation": 419018,
+ "pg_bigm GIN index build": 3166,
+ "production": "import 2026-10-26 21:58 (last_autovacuum 21:58:59), last_autoanalyze 22:13:41",
+ "largest library id": 2681,
+ "library_ids sizes": "bigint[] 42.0 MB, integer[] 25.0 MB (search-book-first-test-2026-10-27.json, library_ids_mb)"
+}

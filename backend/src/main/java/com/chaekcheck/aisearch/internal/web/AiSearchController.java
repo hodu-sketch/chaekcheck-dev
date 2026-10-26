@@ -62,6 +62,9 @@ class AiSearchController {
 	/** A body larger than this is not a question (design-delta sizes: 200 + 5 × 200 characters and ids) [안]. */
 	static final int MAX_BODY_CHARS = 16 * 1024;
 
+	/** An earlier ask-back's choices at most (the pick call sends 2 to 4). */
+	private static final int MAX_ASK_CHOICES = 4;
+
 	/** Books one count request may ask about: every card of a full conversation (20 turns of at most 8). */
 	static final int MAX_COUNT_BOOKS = 160;
 
@@ -264,7 +267,16 @@ class AiSearchController {
 				throw new InvalidRequestException("history.bookIds", "invalid_format",
 						"each earlier turn has at most " + properties.limits().picks() + " book ids");
 			}
-			turns.add(new AiSearchFlow.Turn(question, bookIds));
+			String asked = turn.askQuestion() == null ? null : turn.askQuestion().strip();
+			List<String> choices = turn.askChoices() == null ? List.of() : turn.askChoices();
+			if (asked != null && (asked.codePointCount(0, asked.length()) > properties.limits().questionMaxLength()
+					|| choices.size() > MAX_ASK_CHOICES || choices.stream()
+						.anyMatch(c -> c == null || c.codePointCount(0, c.length()) > properties.limits().questionMaxLength()))) {
+				throw new InvalidRequestException("history.askQuestion", "invalid_format",
+						"an earlier ask-back is one question and at most " + MAX_ASK_CHOICES + " choices");
+			}
+			turns.add(new AiSearchFlow.Turn(question, bookIds, asked == null || asked.isEmpty() ? null : asked,
+					asked == null || asked.isEmpty() ? List.of() : choices.stream().map(String::strip).toList()));
 		}
 		return turns;
 	}

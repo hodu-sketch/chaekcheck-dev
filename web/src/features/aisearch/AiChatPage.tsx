@@ -90,7 +90,11 @@ export function AiChatPage() {
       .slice(0, index)
       .filter((turn) => turn.state === 'done')
       .slice(-HISTORY_SENT)
-      .map((turn) => ({ question: turn.question, bookIds: turn.cards.map((card) => card.bookId) }))
+      .map((turn) =>
+        turn.ask
+          ? { question: turn.question, bookIds: [], askQuestion: turn.ask.question, askChoices: turn.ask.choices }
+          : { question: turn.question, bookIds: turn.cards.map((card) => card.bookId) },
+      )
     const body: AiSearchBody = {
       question: turn.question,
       turnNo: Math.min(index + 1, TURNS_MAX),

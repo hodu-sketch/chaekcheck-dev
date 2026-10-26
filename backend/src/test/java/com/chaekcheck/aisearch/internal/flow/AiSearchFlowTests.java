@@ -543,6 +543,29 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void anAnswerToAnAskBackIsNotAskedBackAndTheCallSeesTheAskBack() { // user 2026-10-27
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
+				1000, 60));
+
+		run("인상주의", List.of(new AiSearchFlow.Turn("그림", List.of(), "어떤 그림 책을 찾으세요?", List.of("그리는 법", "명화 감상"))));
+
+		LlmCall call = llm.calls.getLast();
+		assertThat(call.system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(call.messages().get(1).text()).isEqualTo("되물은 말: 어떤 그림 책을 찾으세요?\n고를 답: 그리는 법 / 명화 감상");
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
+	@Test
+	void theShelvesLineGoesUnderTheBooksWhenGiven() {
+		String text = Prompts.pickMessages(List.of(), "사진", List.of(new Prompts.Choice("가", "나", "한 줄", 2020)), 2026,
+				new java.util.LinkedHashMap<>(java.util.Map.of("예술·취미(비소설)", 9))).getLast().text();
+
+		assertThat(text).endsWith("\n후보 분야: 예술·취미(비소설) 9권");
+		assertThat(AiSearchFlow.words(" 사진  책 ")).isEqualTo(2);
+	}
+
+	@Test
 	void withAskBackAQuestionJoiningEarlierTopicsIsNeverAskedBack() { // user 2026-10-26: 2 wrong asks in the test
 		askBackOn();
 		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),

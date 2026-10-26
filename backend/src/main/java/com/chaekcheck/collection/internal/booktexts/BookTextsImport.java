@@ -112,6 +112,8 @@ public final class BookTextsImport {
 		});
 		Result result = report.result();
 		if (result != null) {
+			// the replaced rows' space goes (user 2026-10-27), after the transaction: VACUUM cannot run in one
+			bookTexts.compact();
 			log.info("book-texts: file rows {}, search lines {}, other kinds skipped {}, listed books {}, most held {} "
 					+ "({} not listed, {} excluded), stored {}, with line {}, lines for books not stored {}",
 					report.fileRows(), report.linesRead(), report.skippedKinds(), report.listed(), topBooks,
