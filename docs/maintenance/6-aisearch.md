@@ -154,7 +154,7 @@ FROM aisearch.search_book;
   - `for_you_blurb`(AI 요약): `scripts/crawl/foryou_blurbs.py` SYSTEM과 R8-4 검사. **첫 판은 합니다체가 많아**(51,798건 중 31,382건이 「~입니다.」) 걸린 책만 해요체 끝·150자·8자 베낌 규칙을 더 적은 지시문(`BLURB_RETRY_RULE`)으로 두 번 다시 보냄 → 43,227권. 못 만든 책은 `dropped-for_you_blurb.tsv`(베낌 5,557, NONE 2,153, 길이 596, 금지어 244: 「인공지능」을 다루는 책도 금지어 검사에 걸림, 기타 21)
   - `profile`: `eval/profile-RULES-detailed.md`를 시스템 프롬프트로, `docs/reports/ai-search-eval/taxonomy2.json` 값을 JSON 형식의 enum으로. 50,324권. 사전 밖 `subfield` 379개는 빈칸으로 고침
   - 비용(응답 토큰 × 배치 가격, 캐시 반영) 34.34달러: 첫 판 21.0, 다시 보내기 두 번 13.3
-- 벡터: KURE-v1 CPU, 6절 3만 권과 같은 글(제목 · 저자 · 출판사 · 연도 + 다음 줄 소개 앞 300자). 3만 권 벡터는 그대로 두고 새 50,549권만(초당 약 1.75권, 약 8시간) → `ml\pool-100000-intro.npy/.ids.json` → `book-vectors.bin`
+- 벡터: KURE-v1 CPU, 6절 3만 권과 같은 글(제목 · 저자 · 출판사 · 연도 + 다음 줄 소개 앞 300자). 3만 권 벡터는 그대로 두고 새 50,549권만(2026-10-26 12:04~19:31, 초당 약 1.75~1.9권) → `ml\pool-100000-intro.npy/.ids.json` 80,549권 → `book-vectors.bin` 81,078권(추천목록 책 벡터 포함), 80.1MB, int8 최악 코사인 0.99975
 - 결과 파일(데이터 폴더, git 밖)
 
 | 파일 | 내용 |
