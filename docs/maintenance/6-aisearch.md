@@ -141,3 +141,28 @@ FROM aisearch.search_book;
 - 2차 Haiku에는 후보마다 출간 연도(`catalog`의 `BookCards`, 한 번에 읽음)와 질문 위에 올해를 줌 → 「최근」, 「요즘 나온」, 「신간」에 씀. 카드 머리말·글에는 「책 정보만으로는 알기 어려워요」 같은 책 정보의 한계를 쓰지 않게 함(사용자 2026-10-26). 연도·올해·「최신」은 질문이 시기를 물을 때만 쓰고, 질문에 없던 조건을 꺼내 「~은 찾기 어렵지만」처럼 쓰지 않게 함. 「위에 말한 두 개」처럼 앞 질문들의 주제를 가리키면 그 주제에 맞는 책만(사용자 2026-10-26 「이거 따로 프롬프트 좀 고쳐줘」)
 - 사용 기록(`usagelog.ai_search_event`): ML 1차는 `keyword_result = ok`로, 책첵 질문 답은 `pick_result = skipped`·카드 0으로 남음(칸을 늘리지 않음. 따로 세려면 plan에 기록할 일)
 - 메모리: 모델 25MB + 프로필 약 10MB가 힙에. 질문 하나 계산은 1ms 안쪽
+
+## 9. 보유 도서관 많은 10만 권 (2026-10-26)
+
+- 사용자 요청(2026-10-26): "지금 서비스되는 도서 좀 늘리게 도서관 보유량 많은 거 순으로 10만권까지 임베딩 벡터", "그 책들도 … 하이쿠 배치로 ai요약", "cycle 24 참고해서 프로필 만드는 것도 추가", "어지간한 작업은 하이쿠 배치로 … api써서", "소개글 없는 건 따로 빼줘". 수집 PC 세션이 만들고, 이웃 표·표지·운영 넣기는 사이클 23·24 세션이 맡음(2026-10-26 세션끼리 정함)
+- 대상: `catalog.book ORDER BY cardinality(library_ids) DESC, id LIMIT 100000`(6절과 같은 식, 마지막 책 보유 36곳; 5만 권이면 52곳). 가져오기 14번 번호. 소개(수집 DB `holding.intro_raw`, 책의 소장 줄 가운데 가장 긴 것)가 **50자 이상인 76,974권만** 만들고, 나머지 23,026권은 모든 단계에서 빼고 `left-out-no-intro.tsv`에 둠
+- 코드(main): `scripts/aisearch/build_100k.py`(prepare → kdc → requests → submit → collect → retry → collect → book-texts → profiles-tsv), `scripts/aisearch/build_100k_vectors.py`(벡터, 2,000권씩 나눠 저장·이어 하기, `join`), `scripts/aisearch/make_book_vectors.py --pool pool-100000-intro`. 키는 `.env`의 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`, 데이터 폴더 venv의 `anthropic` SDK
+- 도서관 사이트 요청은 없음: 소개는 수집 DB(읽기만), KDC·대상은 PC의 국가서지 TTL(`scripts/aisearch/eval/nlk_kdc.py`, ISBN 있는 58,103권 중 50,939권), 책은 PC 서비스 DB(SELECT만)
+- Haiku 5.5 Message Batches(effort low, 1만 건씩), 지시문은 3만 권 때 그대로:
+  - `search_line`: `make_search_lines.py`의 SYSTEM + 에이전트 RULES.md의 "내용 없으면 -" 규칙, JSON 형식. 49,726권(내용 없음 `-` 696권은 `search_exclude`로)
+  - `for_you_blurb`(AI 요약): `scripts/crawl/foryou_blurbs.py` SYSTEM과 R8-4 검사. **첫 판은 합니다체가 많아**(51,798건 중 31,382건이 「~입니다.」) 걸린 책만 해요체 끝·150자·8자 베낌 규칙을 더 적은 지시문(`BLURB_RETRY_RULE`)으로 두 번 다시 보냄 → 43,227권. 못 만든 책은 `dropped-for_you_blurb.tsv`(베낌 5,557, NONE 2,153, 길이 596, 금지어 244: 「인공지능」을 다루는 책도 금지어 검사에 걸림, 기타 21)
+  - `profile`: `eval/profile-RULES-detailed.md`를 시스템 프롬프트로, `docs/reports/ai-search-eval/taxonomy2.json` 값을 JSON 형식의 enum으로. 50,324권. 사전 밖 `subfield` 379개는 빈칸으로 고침
+  - 비용(응답 토큰 × 배치 가격, 캐시 반영) 34.34달러: 첫 판 21.0, 다시 보내기 두 번 13.3
+- 벡터: KURE-v1 CPU, 6절 3만 권과 같은 글(제목 · 저자 · 출판사 · 연도 + 다음 줄 소개 앞 300자). 3만 권 벡터는 그대로 두고 새 50,549권만(초당 약 1.75권, 약 8시간) → `ml\pool-100000-intro.npy/.ids.json` → `book-vectors.bin`
+- 결과 파일(데이터 폴더, git 밖)
+
+| 파일 | 내용 |
+|---|---|
+| `aisearch\100k\book-texts-100k-exclude-2026-10-26.tsv` | AI 검색 넣기 파일 100,531줄 = 30k 파일 30,939줄 그대로 + 새 `search_line` 49,532 + 새 `search_exclude` 20,060. 넣을 때 `--chaekcheck.collection.import.book-texts-top-books=100000` |
+| `ml\foryou\book-texts-for_you_blurb-100k.tsv` | 새 AI 요약 43,227권(`foryou.book_blurb`에 없던 책만). [7-foryou.md](7-foryou.md) 2-2절로 넣음 |
+| `aisearch\100k\book-profiles.tsv` | 1차 ML용 프로필 77,551권(기존 27,227 + 새 50,324, `export_first_call.py` 형식) |
+| `aisearch\100k\book-vectors.bin` | 10만 권 책 벡터(7절 형식). 운영 백엔드가 힙에 통째로 읽으므로 올리기 전에 메모리를 잼(24 세션) |
+| `aisearch\100k\targets.tsv`, `left-out-no-intro.tsv`, `bands.json`, `report.json`, `dropped-*.tsv` | 대상, 뺀 책, 구간별 소개·표지 수, 배치 결과 |
+
+- 구간별(2026-10-26): 1~3만 위 소개 26,425 / 표지 28,602, 3만~5만 위 17,760 / 19,648, 5만~10만 위 32,789 / 46,716(표지는 fetch-covers DONE, 그 뒤로 더 늘어남)
+- **책 번호가 바뀌면**(수집을 반영한 가져오기) 대상부터 다시 만듭니다: prepare가 새 번호로 대상을 뽑고, 이미 만든 글은 책 번호로만 건너뛰므로 번호가 바뀐 뒤에는 `requests`의 건너뛰기 기준(`done_ids`)을 새 번호에 맞춰야 함

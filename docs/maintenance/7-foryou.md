@@ -73,6 +73,8 @@ ORDER BY platform_type, name;
 - 한 파일의 모든 kind를 한 트랜잭션에서 넣습니다(하나가 실패하면 모두 그대로)
 - 로그: 사이클 24 줄(또는 `no search line: the AI search's books were left as they are`) 다음에 `book-texts for you: blurbs N, books with tags replaced N, tag codes not in the dictionary N, covers N`
 
+- 10만 권 AI 요약(2026-10-26, 새 43,227권): `chaekcheck-data\ml\foryou\book-texts-for_you_blurb-100k.tsv`. 만든 방법과 못 만든 책은 [6-aisearch.md](6-aisearch.md) 9절
+
 ### 2-3. 이웃 (`neighbours`)
 
 ```
