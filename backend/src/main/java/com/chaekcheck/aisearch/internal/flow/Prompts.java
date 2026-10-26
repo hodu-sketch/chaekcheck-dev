@@ -41,6 +41,8 @@ final class Prompts {
 			- 중심 주제가 맞으면 조건을 확인할 수 없어도 2다. 예: 다이어트 식단을 자세히 다룬 책을 찾을 때 식단을 자세히 다루는지 알 수 없는 다이어트 책은 2. 중심 주제가 다르면 조건 일부가 맞아도 1 이하다. 예: 다이어트 식단 책을 찾는데 항암 식단 책은 1, 아이와 함께 읽을 책을 찾는데 부모가 읽는 육아서는 1.
 			- fit이 2 이상인 책만 고른다. 중심 주제가 맞는 책은 조건을 책 정보로 확인할 수 없어도 빼지 말고 fit 2로 넣는다. head는 고른 책에 맞춰 쓴다.
 			- 고른 책마다 질문에 맞춘 글을 한국어 2~3문장으로 쓴다. 왜 이 질문에 맞는지가 드러나게 쓴다.
+			- head와 글에는 책 정보로 확인되는 점만 쓴다. 확인할 수 없는 조건은 언급하지 않는다. "책 정보만으로는 알기 어려워요", "다루는지는 알 수 없어요", "출간 시기는 확인하기 어려워요", "정보가 없어요"처럼 확인할 수 없다는 말이나 책 정보의 한계를 쓰지 않는다.
+			- 책에 출간 연도가 적혀 있으면 "최근", "요즘 나온", "신간" 같은 조건에 쓴다. 올해는 질문 위에 적혀 있다. 이런 조건이면 최근에 나온 책을 먼저 고른다.
 			- 아래 책에 적힌 내용(제목, 저자, 한 줄)만 근거로 쓴다. 적혀 있지 않은 줄거리·수상·저자 정보를 지어내지 않는다.
 			- 한 줄의 문장을 그대로 옮기지 않는다. 자기 말로 다시 쓴다.
 			- head와 글은 사용자에게 그대로 보인다. "후보", "목록", 책 번호를 쓰지 않는다. 맞는 책이 없을 때도 "찾으시는 책"처럼 사용자 쪽에서 말한다.
@@ -95,7 +97,7 @@ final class Prompts {
 	}
 
 	/** A book as the second call sees it. */
-	record Choice(String title, String author, String line) {
+	record Choice(String title, String author, String line, Integer year) {
 	}
 
 	static List<Message> keywordMessages(List<ShownTurn> history, String question) {
@@ -105,7 +107,15 @@ final class Prompts {
 	}
 
 	static List<Message> pickMessages(List<ShownTurn> history, String question, List<Choice> choices) {
-		StringBuilder user = new StringBuilder("질문: ").append(question).append("\n고를 수 있는 책:");
+		return pickMessages(history, question, choices, java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue());
+	}
+
+	/** @param thisYear for "최근" and the like (user 2026-10-26 "출간시기도") */
+	static List<Message> pickMessages(List<ShownTurn> history, String question, List<Choice> choices, int thisYear) {
+		StringBuilder user = new StringBuilder("올해: ").append(thisYear)
+			.append("년\n질문: ")
+			.append(question)
+			.append("\n고를 수 있는 책:");
 		for (int i = 0; i < choices.size(); i++) {
 			Choice choice = choices.get(i);
 			user.append('\n')
@@ -114,6 +124,9 @@ final class Prompts {
 				.append(choice.title())
 				.append(" / 저자: ")
 				.append(choice.author() == null || choice.author().isBlank() ? "(모름)" : choice.author());
+			if (choice.year() != null) {
+				user.append(" / 출간: ").append(choice.year()).append("년");
+			}
 			if (choice.line() != null && !choice.line().isBlank()) {
 				user.append(" / 한 줄: ").append(choice.line());
 			}

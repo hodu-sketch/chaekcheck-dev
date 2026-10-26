@@ -51,7 +51,8 @@ public class MlFirstCall {
 	 * not a new topic)
 	 * @param newTopic whether a follow-up dropped the earlier question
 	 */
-	public record Plan(Route route, List<String> keywords, boolean joinedVector, boolean newTopic, Shelves shelves) {
+	public record Plan(Route route, List<String> keywords, boolean joinedVector, boolean newTopic, Shelves shelves,
+			String relation) {
 
 		public Plan {
 			keywords = List.copyOf(keywords);
@@ -65,10 +66,21 @@ public class MlFirstCall {
 
 	private final double shelfBonus;
 
+	/** The relation network of follow-ups, or null (then the rule). */
+	private final FirstCallModel followUpModel;
+
+	private final AiSearchProperties.FollowUp followUp;
+
+	/** The relations, the follow-up model's labels in this order. */
+	static final List<String> RELATIONS = List.of("refers", "ask_one", "continue", "shift", "feedback", "new", "none");
+
+	static final String FOLLOW_UP_NAME = "follow-up-model.bin";
+
 	@Autowired
 	public MlFirstCall(AiSearchProperties properties, JsonMapper json) {
 		FirstCallModel model = null;
 		BookProfiles profiles = null;
+		FirstCallModel followUpModel = null;
 		if (properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML) {
 			try {
 				if (!properties.vector().enabled()) {
@@ -92,24 +104,48 @@ public class MlFirstCall {
 					model.head(name);
 				}
 				profiles = BookProfiles.read(dir.resolve(BookProfiles.NAME));
-				log.info("ai search first call: ml, {} book profiles", profiles.count());
+				if (properties.firstCall().followUp() == AiSearchProperties.FollowUp.RELATION) {
+					Path file = dir.resolve(FOLLOW_UP_NAME);
+					if (Files.isRegularFile(file)) {
+						followUpModel = FirstCallModel.read(file, json);
+						if (!followUpModel.head("relation").labels().equals(RELATIONS)
+								|| followUpModel.dim() != 4 * model.dim()) {
+							throw new IllegalStateException("the follow-up model's relations or size are not as expected");
+						}
+					}
+					else {
+						log.warn("ai search first call: no {}, follow-ups by the rule", FOLLOW_UP_NAME);
+					}
+				}
+				log.info("ai search first call: ml, {} book profiles, follow-ups by {}", profiles.count(),
+						followUpModel != null ? "relation" : properties.firstCall().followUp() == AiSearchProperties.FollowUp.STRICT ? "strict rule" : "rule");
 			}
 			catch (Exception e) {
 				log.warn("ai search first call: haiku, the ml one is off: {}",
 						e.getMessage() == null ? e.getClass().getName() : e.getMessage());
 				model = null;
 				profiles = null;
+				followUpModel = null;
 			}
 		}
 		this.model = model;
 		this.profiles = profiles;
 		this.shelfBonus = properties.firstCall().shelfBonus();
+		this.followUpModel = followUpModel;
+		this.followUp = properties.firstCall().followUp();
 	}
 
 	MlFirstCall(FirstCallModel model, BookProfiles profiles, double shelfBonus) {
+		this(model, profiles, shelfBonus, null, AiSearchProperties.FollowUp.RULE);
+	}
+
+	MlFirstCall(FirstCallModel model, BookProfiles profiles, double shelfBonus, FirstCallModel followUpModel,
+			AiSearchProperties.FollowUp followUp) {
 		this.model = model;
 		this.profiles = profiles;
 		this.shelfBonus = shelfBonus;
+		this.followUpModel = followUpModel;
+		this.followUp = followUp;
 	}
 
 	/** Off: the searches ask Haiku (tests, and where the files are not mounted). */
@@ -126,20 +162,54 @@ public class MlFirstCall {
 	 * @param vector the question's vector
 	 * @param earlierQuestion the last earlier question, or null on the first turn
 	 * @param earlierVector its vector, or null
+	 * @param joinedVector the vector of the earlier question and this one joined, or null
 	 */
-	public Plan plan(String question, float[] vector, String earlierQuestion, float[] earlierVector) {
+	public Plan plan(String question, float[] vector, String earlierQuestion, float[] earlierVector,
+			float[] joinedVector) {
 		Route route = Route.valueOf(model.route(vector).toUpperCase(Locale.ROOT));
 		Shelves own = shelves(vector);
+		List<String> ownWords = QuestionWords.of(question);
 		if (earlierQuestion == null || earlierVector == null) {
-			return new Plan(route, QuestionWords.of(question), false, false, own);
+			return new Plan(route, ownWords, false, false, own, "first");
 		}
 		Shelves earlier = shelves(earlierVector);
-		if (own.newTopicAfter(earlier)) {
-			return new Plan(route, QuestionWords.of(question), false, true, own);
-		}
-		LinkedHashSet<String> words = new LinkedHashSet<>(QuestionWords.of(question));
+		LinkedHashSet<String> words = new LinkedHashSet<>(ownWords);
 		words.addAll(QuestionWords.of(earlierQuestion));
-		return new Plan(route, List.copyOf(words), true, false, own.over(earlier));
+		List<String> joinedWords = List.copyOf(words);
+		if (followUpModel != null && joinedVector != null) {
+			String relation = followUpModel.label("relation", features(vector, earlierVector, joinedVector));
+			return switch (relation) {
+				case "refers", "ask_one" -> new Plan(Route.REFERS_SHOWN, joinedWords, true, false, own.over(earlier),
+						relation);
+				case "continue", "feedback" -> new Plan(Route.BOOK, joinedWords, true, false, own.over(earlier),
+						relation);
+				case "shift" -> new Plan(Route.BOOK, ownWords, true, false, own.keepingFieldOf(earlier), relation);
+				case "new" -> new Plan(route == Route.REFERS_SHOWN ? Route.BOOK : route, ownWords, false, true, own,
+						relation);
+				// not a book search: the way network tells a question about 책첵, a title or other talk apart
+				default -> new Plan(route == Route.BOOK || route == Route.REFERS_SHOWN ? Route.NOT_BOOK : route,
+						ownWords, false, true, own, relation);
+			};
+		}
+		boolean newTopic = own.newTopicAfter(earlier) && (followUp != AiSearchProperties.FollowUp.STRICT
+				|| joinedVector == null || shelves(joinedVector).newTopicAfter(earlier));
+		if (newTopic) {
+			return new Plan(route, ownWords, false, true, own, "rule new");
+		}
+		return new Plan(route, joinedWords, true, false, own.over(earlier), "rule continue");
+	}
+
+	/** The follow-up network's input: this question's, the earlier one's, the joined vector and this x earlier. */
+	static float[] features(float[] vector, float[] earlier, float[] joined) {
+		int d = vector.length;
+		float[] f = new float[4 * d];
+		System.arraycopy(vector, 0, f, 0, d);
+		System.arraycopy(earlier, 0, f, d, d);
+		System.arraycopy(joined, 0, f, 2 * d, d);
+		for (int i = 0; i < d; i++) {
+			f[3 * d + i] = vector[i] * earlier[i];
+		}
+		return f;
 	}
 
 	/** What the book's shared shelves add to its fusion sum. */

@@ -50,12 +50,13 @@ class ModularityTests {
 
 	/**
 	 * Cycle 24 (ADR-0150, ADR-0151): aisearch may use picks, library and usagelog only (and foryou's BookNeighbours,
-	 * user 2026-10-25); only collection uses aisearch
+	 * user 2026-10-25, and catalog's BookCards for the candidates' publish year, user 2026-10-26); only collection uses
+	 * aisearch
 	 * (AiSearchBookTexts for the book-texts mode), and aisearch does not know collection (no cycle).
 	 */
 	@Test
 	void aisearchUsesPicksLibraryAndUsagelogOnly() {
-		assertThat(dependenciesOf("aisearch")).isSubsetOf("picks", "library", "usagelog", "foryou");
+		assertThat(dependenciesOf("aisearch")).isSubsetOf("picks", "library", "usagelog", "foryou", "catalog");
 		modules.stream()
 			.map(module -> module.getIdentifier().toString())
 			.filter(name -> !List.of("aisearch", "collection").contains(name))

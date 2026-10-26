@@ -122,10 +122,11 @@ FROM aisearch.search_book;
 - 사용자 결정(2026-10-26): "1차를 5갈래 MLP로 바꿔요(M4 방식)", "이어 묻는 질문도 ML로 하기 → 넣음", "책첵 질문에 사이트 정보로 답하게 해요", "설정으로 켜고 끌 수 있게". 잰 숫자와 넣고 뺀 것: [`docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`](../reports/ai-search-ml-first-call-decisions-2026-10-26.md)
 - **켜기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(prod.env). 기본 `haiku`(지금까지와 같음). 질문 벡터가 켜져 있어야 하고(7절) 모델 폴더에 아래 두 파일이 더 있어야 함. 없으면 시작 로그 `ai search first call: haiku, the ml one is off: <이유>`이고 지금처럼 Haiku. 켜지면 `ai search first call: ml, 27227 book profiles`
 - **되돌리기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=haiku`로 바꾸고 다시 켬. 파일은 그대로 둬도 됨
-- 모델 폴더에 더할 파일(PC `chaekcheck-data\ml\aisearch-model\first-call-2026-10-26\`, 약 27MB)
-  - `first-call-model.bin`(25MB): 길 5갈래(책 찾기 아님 · 제목만 · 앞 책 가리킴 · 책첵 질문 · 보통 질문) + 칸 머리 11개(큰 칸·작은 칸·장르·형식·빼 달라는 큰 칸·작은 칸·장르·소설인지·나라·대상·수준). 각 머리는 KURE 벡터 1024 → 512(ReLU) → 칸
+- 모델 폴더에 더할 파일(PC `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`, 약 35MB. v1.16.0은 `first-call-2026-10-26\`)
+  - `first-call-model.bin`(25MB, v2 = 짧은 장르 질문 300개를 더한 라우터 B): 길 5갈래(책 찾기 아님 · 제목만 · 앞 책 가리킴 · 책첵 질문 · 보통 질문) + 칸 머리 11개(큰 칸·작은 칸·장르·형식·빼 달라는 큰 칸·작은 칸·장르·소설인지·나라·대상·수준). 각 머리는 KURE 벡터 1024 → 512(ReLU) → 칸
   - `book-profiles.tsv`(1.6MB): 책 27,227권의 상세 사전 칸(번호 = 책 벡터와 같은 가져오기 번호. 수집으로 `catalog` 번호가 바뀌면 책 벡터와 함께 다시 만듦)
   - 만들기: `scripts/aisearch/eval/export_first_call.py OUT_DIR`(평가 데이터 `data/aisearch-eval-2026-10-25/`의 `qgen/`·`route/`와 `clf/`의 벡터가 있는 폴더 배치에서 돌림; 칸 머리를 학습하고, 운영과 같은 int8 질문 모델로 다시 재서 `first-call-check.json`에 남김). 2026-10-26 값: 길 나누기 fp32 94.3% → int8 94.2%, 큰 칸 F1 0.899 → 0.903
+  - `follow-up-model.bin`(8MB): 이어 묻는 질문의 관계 7가지(refers · ask_one · continue · shift · feedback · new · none). 입력 4,096 = 지금 질문 · 앞 질문 · 「앞 + 지금」 벡터와 앞·지금 벡터의 곱 → 512(ReLU) → 7. 만들기 `scripts/aisearch/eval/rel_train.py`(학습 쌍 `data/aisearch-eval-2026-10-25/rel/`) 뒤 `export_follow_up.py OUT_DIR`. 시험 700쌍 96.4%
   - 확인: `fixture_first_call.py OUT_DIR`가 질문 12개의 기대값을 `first-call-fixture.json`에 쓰고, `AISEARCH_FIRST_CALL_DIR=<폴더> ./gradlew test --tests '*FirstCallModelFileTests'`가 Java 계산과 비교(확률 차 1e-4 안, 2026-10-26 통과)
 - **한 검색에서 하는 일**(`AiSearchFlow`, `MlFirstCall`)
   - 질문을 벡터로(이어 묻는 질문이면 앞 질문, 「앞 질문 + 지금 질문」도 동시에, 임베딩 서버에 3번) → 길과 칸 → 낱말은 질문 낱말 그대로(`QuestionWords`)
@@ -134,8 +135,9 @@ FROM aisearch.search_book;
   - 제목만: 지금처럼 「직접 찾기에서 보기」 줄(TitleMatch가 맞으면) 뒤 보통 검색
   - 앞 책 가리킴: 지금처럼 앞에 보인 책 + 이웃
   - 보통 질문: 낱말 50위 + 벡터 60위를 RRF로 섞고, 질문과 같은 칸 하나마다 0.004를 더하고(`shelf-bonus`), 빼 달라는 칸·「소설 말고」에 걸리는 책은 뒤로 → 30권 → 2차 Haiku
-  - 이어 묻는 질문: 앞 질문의 낱말·「앞 + 지금」 벡터·칸을 이어받고 지금 질문의 칸으로 덮어씀. 지금 질문만으로 큰 칸이 정해지고 앞 질문과 다르면 새 주제로 보고 앞 질문을 버림. 2차 Haiku에는 앞 대화를 지금처럼 제목만 보냄
+  - 이어 묻는 질문(설정 `CHAEKCHECK_AISEARCH_FOLLOW_UP`, 기본 `relation`): 관계 분류기가 7가지로 나눔 → refers·ask_one은 앞 책 안에서, continue·feedback은 앞 질문의 낱말·「앞 + 지금」 벡터·칸을 이어받고 지금 질문의 칸으로 덮어씀, shift는 지금 낱말 + 「앞 + 지금」 벡터 + 앞 질문의 큰 칸만, new는 지금 질문만, none은 막음(길 나누기가 책첵 질문이면 그 답). 시작 로그 `follow-ups by relation`. `rule`(v1.16.0)은 지금 질문만으로 큰 칸이 정해지고 앞과 다르면 앞 질문을 버림, `strict`는 「앞 + 지금」의 칸도 다를 때만. 2차 Haiku에는 앞 대화를 늘 제목만 보냄. 잰 값: [결정 기록 3-4](../reports/ai-search-ml-first-call-decisions-2026-10-26.md) (대화 80개, 맞음 relation 75.4% / rule 72.2% / strict 73.3%)
   - 질문 벡터가 실패하거나 `max-wait`(2초)를 넘기면 그 검색은 Haiku 1차로 감(로그 `haiku makes the first step`)
-- 로그 한 줄: `ai search: first ml BOOK[ new topic], keyword OK, pick …` (Haiku면 `first haiku`)
+- 로그 한 줄: `ai search: first ml BOOK continue, keyword OK, pick …`(길 다음에 이어 묻는 관계, 첫 질문은 관계 없음; Haiku면 `first haiku`)
+- 2차 Haiku에는 후보마다 출간 연도(`catalog`의 `BookCards`, 한 번에 읽음)와 질문 위에 올해를 줌 → 「최근」, 「요즘 나온」, 「신간」에 씀. 카드 머리말·글에는 「책 정보만으로는 알기 어려워요」 같은 책 정보의 한계를 쓰지 않게 함(사용자 2026-10-26)
 - 사용 기록(`usagelog.ai_search_event`): ML 1차는 `keyword_result = ok`로, 책첵 질문 답은 `pick_result = skipped`·카드 0으로 남음(칸을 늘리지 않음. 따로 세려면 plan에 기록할 일)
 - 메모리: 모델 25MB + 프로필 약 10MB가 힙에. 질문 하나 계산은 1ms 안쪽
