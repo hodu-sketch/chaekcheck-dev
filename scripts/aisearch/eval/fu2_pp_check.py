@@ -24,7 +24,7 @@ for r in range(reps):
     for q in TIME:
         out['time'].setdefault(q, []).append(ask(q, [], 1))
 json.dump(out, open(os.path.join(HERE, f'pp-{label}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
-def says_year(a): return bool(YEAR.search(a['head'] + ' '.join(c.get('summary') or '' for c in a['cards'])))
+def says_year(a): return bool(YEAR.search(a['head'] + ' '.join(c.get('text') or '' for c in a['cards'])))
 nt = [a for v in out['no_time'].values() for a in v]; t = [a for v in out['time'].values() for a in v]
 print(label, 'no time asked, year/최신 said: %d/%d' % (sum(map(says_year, nt)), len(nt)),
       '| time asked, year used: %d/%d' % (sum(map(says_year, t)), len(t)))

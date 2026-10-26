@@ -268,9 +268,11 @@ public class AiSearchFlow {
 
 	private void answer(Input input, Run run) {
 		AiSearchProperties.Vector vectorSettings = properties.vector();
-		String earlierQuestion = input.history().isEmpty() ? null : input.history().getLast().question();
+		String earlierQuestion = input.history().isEmpty() ? null
+				: EarlierTopics.of(input.question(), input.history().stream().map(Turn::question).toList());
+		boolean pointsBack = earlierQuestion != null && !earlierQuestion.equals(input.history().getLast().question());
 		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
-				&& vectors.on() ? mlStep(input.question(), earlierQuestion, vectorSettings) : null;
+				&& vectors.on() ? mlStep(input.question(), earlierQuestion, pointsBack, vectorSettings) : null;
 		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
 		// first step above sends the earlier question too)
 		CompletableFuture<List<Long>> nearest = mlStep != null ? CompletableFuture.completedFuture(mlStep.nearest())
@@ -374,7 +376,11 @@ public class AiSearchFlow {
 				}
 			}
 		}
-		Set<Long> excluded = new HashSet<>(refers ? Set.of() : shownBefore);
+		// a question combining earlier topics may get the books shown for them again (EarlierTopics), and so may one
+		// adding a condition (continue: 「수학적인 것도 좀」 narrows the list, and a shown book may meet it; user
+		// 2026-10-26); 「다른 거」 (feedback) and new topics still leave them out
+		boolean narrows = mlStep != null && "continue".equals(mlStep.plan().relation());
+		Set<Long> excluded = new HashSet<>(refers || pointsBack || narrows ? Set.of() : shownBefore);
 		excluded.addAll(chosen);
 		boolean mix = nearest != null && !refers;
 		List<Candidate> found = candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
@@ -536,7 +542,8 @@ public class AiSearchFlow {
 	 * same time), the plan from them, the nearest books of the search vector. Null when a vector fails or comes later
 	 * than {@code maxWait}: the search then asks Haiku.
 	 */
-	private MlStep mlStep(String question, String earlierQuestion, AiSearchProperties.Vector settings) {
+	private MlStep mlStep(String question, String earlierQuestion, boolean pointsBack,
+			AiSearchProperties.Vector settings) {
 		// the earlier question goes to the encoder too (this process or the embedding server, never logged)
 		List<String> texts = earlierQuestion == null ? List.of(question)
 				: List.of(question, earlierQuestion, earlierQuestion + " " + question);
@@ -545,7 +552,8 @@ public class AiSearchFlow {
 			List<float[]> found = lookup.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
 			float[] vector = found.get(0);
 			MlFirstCall.Plan plan = mlFirstCall.plan(question, vector, earlierQuestion,
-					earlierQuestion == null ? null : found.get(1), earlierQuestion == null ? null : found.get(2));
+					earlierQuestion == null ? null : found.get(1), earlierQuestion == null ? null : found.get(2),
+					pointsBack);
 			float[] search = plan.joinedVector() ? found.get(2) : vector;
 			return new MlStep(plan, vectors.nearest(search, settings.vectorDepth() * 2));
 		}
