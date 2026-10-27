@@ -219,3 +219,13 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-first-test-2026-10-27.json`](../reports/ai-search-eval/search-book-first-test-2026-10-27.json)(칸 크기 42 → 25MB 포함), [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
 - **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
 
+## 12. 첫 글 시간 줄이기 (2026-10-27, 다음 배포)
+
+사용자 요청(2026-10-27): Haiku가 첫 응답을 하기까지의 시간 줄이기. SSE라 첫 글 시간이 중요. 자세한 숫자: [첫 글 시간](../reports/ai-search-latency-2026-10-27.md).
+
+- **1안 낱말 검색을 질문 벡터와 같이**: 첫 질문(앞 대화 없음)이면 `MlFirstCall.firstKeywords(질문)`으로 낱말 검색을 가상 스레드에서 바로 시작. 계획의 낱말이 같고, 핵심 낱말이 없고, 뺄 책이 없고, 벡터와 섞을 때만 그 결과를 씀(아니면 전처럼 다시 찾음 — 후보는 같음). 로그 한 줄에 `, early keyword`(괄호 안)
+- **2안 표지·요약은 Haiku를 부른 뒤에**: `Cards`가 표지·AI 요약을 `CompletableFuture`로 받고 첫 카드 때 기다림. 읽기가 실패하면 경고(`the tab covers were not read`)와 함께 표지·요약 없이 카드만
+- **4안 되묻기 형식은 짧은 질문·이어지는 질문에만**: `AiSearchFlow.ASK_QUESTION_WORDS`(4 [안]) 낱말 이하 첫 질문이나 앞 대화가 있는 질문만 `PICK_ASK_SYSTEM`·`PICK_ASK_SCHEMA`, 5낱말 이상 첫 질문은 `PICK_SYSTEM`·`PICK_SCHEMA`
+- 규칙 시험(80문항, v1.18.0과 번갈아 두 번씩, 로컬): 5낱말 이상 첫 질문 첫 글 1.68 → 1.43초(느린 10% 2.15 → 1.75초), 전체 1.84 → 1.69초, 카드 맞음 91 → 92%, 되묻기 기대대로 146 → 148/156
+- 다시 재기: 위 규칙 시험을 두 판으로 돌린 뒤 `python scripts/aisearch/eval/timing_compare.py <기준> <비교>`(로그의 `steps`를 단계별로 비교). Haiku만 따로: `ttft_probe.py`, `ttft_probe2.py`
+- 운영에서 볼 것: 로그 `steps`의 `keyword`가 `neighbours`와 거의 같고(이미 끝남), `cards → llm-first`가 줄었는지

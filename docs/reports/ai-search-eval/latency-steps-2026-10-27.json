@@ -1,0 +1,366 @@
+{
+ "t-base": {
+  "all": {
+   "requests": 213,
+   "first text (client, ms)": [
+    1840,
+    2610,
+    213
+   ],
+   "llm-first (server, ms)": [
+    1523,
+    1977,
+    209
+   ],
+   "cards (server, ms)": [
+    358,
+    507,
+    209
+   ],
+   "encode": [
+    39,
+    73,
+    209
+   ],
+   "ml step (encode..nearest)": [
+    280,
+    315,
+    209
+   ],
+   "keyword (neighbours..keyword)": [
+    32,
+    179,
+    209
+   ],
+   "covers etc. (mix..cards)": [
+    8,
+    24,
+    209
+   ],
+   "haiku first token (cards..llm-first)": [
+    1149,
+    1561,
+    209
+   ],
+   "keyword search already done": "4/209",
+   "asked back": "61/213"
+  },
+  "이어지는 질문": {
+   "requests": 53,
+   "first text (client, ms)": [
+    1760,
+    2180,
+    53
+   ],
+   "llm-first (server, ms)": [
+    1661,
+    2112,
+    53
+   ],
+   "cards (server, ms)": [
+    432,
+    533,
+    53
+   ],
+   "encode": [
+    67,
+    85,
+    53
+   ],
+   "ml step (encode..nearest)": [
+    307,
+    337,
+    53
+   ],
+   "keyword (neighbours..keyword)": [
+    85,
+    182,
+    53
+   ],
+   "covers etc. (mix..cards)": [
+    9,
+    19,
+    53
+   ],
+   "haiku first token (cards..llm-first)": [
+    1221,
+    1687,
+    53
+   ],
+   "keyword search already done": "0/53",
+   "asked back": "0/53"
+  },
+  "첫 질문 4낱말 이하": {
+   "requests": 120,
+   "first text (client, ms)": [
+    2060,
+    2650,
+    120
+   ],
+   "llm-first (server, ms)": [
+    1471,
+    1872,
+    116
+   ],
+   "cards (server, ms)": [
+    327,
+    451,
+    116
+   ],
+   "encode": [
+    36,
+    42,
+    116
+   ],
+   "ml step (encode..nearest)": [
+    266,
+    293,
+    116
+   ],
+   "keyword (neighbours..keyword)": [
+    16,
+    144,
+    116
+   ],
+   "covers etc. (mix..cards)": [
+    8,
+    27,
+    116
+   ],
+   "haiku first token (cards..llm-first)": [
+    1146,
+    1530,
+    116
+   ],
+   "keyword search already done": "4/116",
+   "asked back": "61/120"
+  },
+  "첫 질문 5낱말 이상": {
+   "requests": 40,
+   "first text (client, ms)": [
+    1680,
+    2150,
+    40
+   ],
+   "llm-first (server, ms)": [
+    1535,
+    2043,
+    40
+   ],
+   "cards (server, ms)": [
+    417,
+    535,
+    40
+   ],
+   "encode": [
+    40,
+    44,
+    40
+   ],
+   "ml step (encode..nearest)": [
+    281,
+    298,
+    40
+   ],
+   "keyword (neighbours..keyword)": [
+    102,
+    222,
+    40
+   ],
+   "covers etc. (mix..cards)": [
+    6,
+    15,
+    40
+   ],
+   "haiku first token (cards..llm-first)": [
+    1060,
+    1583,
+    40
+   ],
+   "keyword search already done": "0/40",
+   "asked back": "0/40"
+  }
+ },
+ "t-fast": {
+  "all": {
+   "requests": 211,
+   "first text (client, ms)": [
+    1690,
+    2640,
+    211
+   ],
+   "llm-first (server, ms)": [
+    1473,
+    1953,
+    207
+   ],
+   "cards (server, ms)": [
+    317,
+    462,
+    207
+   ],
+   "encode": [
+    40,
+    67,
+    207
+   ],
+   "ml step (encode..nearest)": [
+    287,
+    309,
+    207
+   ],
+   "keyword (neighbours..keyword)": [
+    0,
+    126,
+    207
+   ],
+   "covers etc. (mix..cards)": [
+    4,
+    16,
+    207
+   ],
+   "haiku first token (cards..llm-first)": [
+    1136,
+    1565,
+    207
+   ],
+   "keyword search already done": "144/207",
+   "asked back": "59/211"
+  },
+  "이어지는 질문": {
+   "requests": 51,
+   "first text (client, ms)": [
+    1620,
+    2070,
+    51
+   ],
+   "llm-first (server, ms)": [
+    1572,
+    2001,
+    51
+   ],
+   "cards (server, ms)": [
+    393,
+    519,
+    51
+   ],
+   "encode": [
+    61,
+    79,
+    51
+   ],
+   "ml step (encode..nearest)": [
+    301,
+    326,
+    51
+   ],
+   "keyword (neighbours..keyword)": [
+    69,
+    185,
+    51
+   ],
+   "covers etc. (mix..cards)": [
+    5,
+    16,
+    51
+   ],
+   "haiku first token (cards..llm-first)": [
+    1122,
+    1498,
+    51
+   ],
+   "keyword search already done": "0/51",
+   "asked back": "0/51"
+  },
+  "첫 질문 4낱말 이하": {
+   "requests": 120,
+   "first text (client, ms)": [
+    1885,
+    2840,
+    120
+   ],
+   "llm-first (server, ms)": [
+    1460,
+    1930,
+    116
+   ],
+   "cards (server, ms)": [
+    302,
+    346,
+    116
+   ],
+   "encode": [
+    37,
+    43,
+    116
+   ],
+   "ml step (encode..nearest)": [
+    275,
+    296,
+    116
+   ],
+   "keyword (neighbours..keyword)": [
+    0,
+    0,
+    116
+   ],
+   "covers etc. (mix..cards)": [
+    4,
+    21,
+    116
+   ],
+   "haiku first token (cards..llm-first)": [
+    1150,
+    1610,
+    116
+   ],
+   "keyword search already done": "108/116",
+   "asked back": "59/120"
+  },
+  "첫 질문 5낱말 이상": {
+   "requests": 40,
+   "first text (client, ms)": [
+    1430,
+    1750,
+    40
+   ],
+   "llm-first (server, ms)": [
+    1409,
+    1735,
+    40
+   ],
+   "cards (server, ms)": [
+    316,
+    345,
+    40
+   ],
+   "encode": [
+    43,
+    48,
+    40
+   ],
+   "ml step (encode..nearest)": [
+    288,
+    299,
+    40
+   ],
+   "keyword (neighbours..keyword)": [
+    0,
+    0,
+    40
+   ],
+   "covers etc. (mix..cards)": [
+    5,
+    13,
+    40
+   ],
+   "haiku first token (cards..llm-first)": [
+    1088,
+    1417,
+    40
+   ],
+   "keyword search already done": "36/40",
+   "asked back": "0/40"
+  }
+ }
+}

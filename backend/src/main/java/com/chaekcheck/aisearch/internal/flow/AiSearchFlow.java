@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,6 +185,16 @@ public class AiSearchFlow {
 	static final int SHORT_QUESTION_WORDS = 2;
 
 	/**
+	 * A first question of at most this many words may be asked back; a longer one goes to the call without the ask
+	 * field, which the call wrote (empty) before the head (user 2026-10-27, 응답 시간 4안: the head 0.05 s later, its
+	 * slowest tenth 0.6 s; the longest question the rule test saw asked back had 4 words) [안].
+	 */
+	static final int ASK_QUESTION_WORDS = 4;
+
+	/** Reads that run beside the search on a virtual thread each (the early keyword search, covers and blurbs). */
+	private static final Executor BESIDE = task -> Thread.ofVirtual().start(task);
+
+	/**
 	 * Neighbours of the books shown before that a follow-up question pointing at them gets as candidates, at most
 	 * (user 2026-10-25 "이어서 묻기에 앞 책의 이웃을 후보로", [안] 12).
 	 */
@@ -226,6 +239,9 @@ public class AiSearchFlow {
 
 		/** Whether the question named a book whose neighbours went first. */
 		boolean named;
+
+		/** Whether the keyword search run beside the ML step was taken (user 2026-10-27, 응답 시간 1안). */
+		boolean earlyKeywords;
 
 		/** The ML first call's way, or null when Haiku made the first step. */
 		MlFirstCall.Route mlRoute;
@@ -289,7 +305,7 @@ public class AiSearchFlow {
 				log.info("ai search: first {}, keyword {}, pick {}, candidates {} (vector {}{}), cards {}, {} ms, tokens {}/{}{}",
 							run.mlRoute == null ? "haiku" : "ml " + run.mlRoute + " " + run.relation,
 						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
-						run.named ? ", named book" : "", run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
+						(run.named ? ", named book" : "") + (run.earlyKeywords ? ", early keyword" : ""), run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
 						(run.ask == null ? "" : ", ask " + run.ask) + (run.gone ? ", client gone" : "")
 								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
@@ -311,6 +327,12 @@ public class AiSearchFlow {
 		boolean answersAsk = !input.history().isEmpty() && input.history().getLast().askedBack() != null;
 		boolean pointsBack = earlierQuestion != null
 				&& (answersAsk || !earlierQuestion.equals(input.history().getLast().question()));
+		// a first question's keyword search needs only its words: it runs while the vectors and the ML step do, and is
+		// taken when the plan searches with the same words and leaves nothing out (user 2026-10-27, 응답 시간 1안)
+		List<String> earlyWords = input.history().isEmpty() ? MlFirstCall.firstKeywords(input.question()) : List.of();
+		int keywordLimit = Math.max(vectorSettings.keywordDepth(), properties.limits().candidates());
+		CompletableFuture<List<Candidate>> earlyKeywords = earlyWords.isEmpty() ? null
+				: beside(() -> candidates.find(earlyWords, List.of(), input.planLibraryIds(), Set.of(), keywordLimit));
 		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
 				&& vectors.on() ? mlStep(input.question(), earlierQuestion, pointsBack, vectorSettings, run) : null;
 		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
@@ -443,8 +465,13 @@ public class AiSearchFlow {
 		Set<Long> excluded = new HashSet<>(refers || pointsBack || narrows ? Set.of() : shownBefore);
 		excluded.addAll(chosen);
 		boolean mix = nearest != null && !refers;
-		List<Candidate> found = candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
-				mix ? Math.max(vectorSettings.keywordDepth(), max) : max - chosen.size());
+		List<Candidate> found = earlyKeywords != null && mix && excluded.isEmpty() && plan.core().isEmpty()
+				&& plan.keywords().equals(earlyWords) ? joined(earlyKeywords) : null;
+		run.earlyKeywords = found != null;
+		if (found == null) {
+			found = candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
+					mix ? keywordLimit : max - chosen.size());
+		}
 		run.mark("keyword");
 		if (!mix) {
 			for (Candidate candidate : found) {
@@ -496,9 +523,9 @@ public class AiSearchFlow {
 			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id), years.get(id)))
 			.toList();
 		run.candidateCount = ids.size();
-		Map<Long, String> tabCovers = new HashMap<>(covers.of(ids));
-		Map<Long, String> tabBlurbs = new HashMap<>(blurbs.of(ids));
-		Cards cards = new Cards(known, listed, tabCovers, tabBlurbs, planCount);
+		// covers and blurbs go on cards only, not to the call: they are read while it runs (user 2026-10-27, 응답 시간
+		// 2안), and the first card waits for them if need be
+		Cards cards = new Cards(known, listed, beside(() -> covers.of(ids)), beside(() -> blurbs.of(ids)), planCount);
 		run.mark("cards");
 		picks(input, history, ids, choices, cards, pointsBack, run);
 	}
@@ -596,6 +623,22 @@ public class AiSearchFlow {
 			log.warn("ai search: the publish years were not read: {}", e.getClass().getName());
 		}
 		return years;
+	}
+
+	/** Starts a read beside the search. */
+	private static <T> CompletableFuture<T> beside(Supplier<T> read) {
+		return CompletableFuture.supplyAsync(read, BESIDE);
+	}
+
+	/** The early keyword search's books, or null when it failed (the search then queries again). */
+	private static List<Candidate> joined(CompletableFuture<List<Candidate>> early) {
+		try {
+			return early.join();
+		}
+		catch (CompletionException e) {
+			log.warn("ai search: the early keyword search failed ({})", e.getCause().getClass().getName());
+			return null;
+		}
 	}
 
 	/** The ML first call's plan and the vector candidates of its search vector. */
@@ -744,7 +787,9 @@ public class AiSearchFlow {
 		int[] currentChars = { 0 };
 		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) or answering an ask-back is never asked
 		// back: the earlier questions say what it means (user 2026-10-26, 2 wrong asks in the test; 2026-10-27)
-		boolean askBack = pick.askBack() && !pointsBack;
+		// a long first question is clear enough to pick from at once (ASK_QUESTION_WORDS)
+		boolean askBack = pick.askBack() && !pointsBack
+				&& (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS);
 		// a short question gets the candidates' big shelves, so the call sees whether they split (「사진」, user 2026-10-27)
 		Map<String, Integer> shelves = askBack && words(input.question()) <= SHORT_QUESTION_WORDS
 				? mlFirstCall.shelfCounts(ids) : Map.of();
@@ -877,21 +922,34 @@ public class AiSearchFlow {
 
 	/**
 	 * What a card is made from: title and author of the search book; the list cover, else the tab cover; the list's AI
-	 * summary, else the tab blurb (user 2026-10-25).
+	 * summary, else the tab blurb (user 2026-10-25). The tab covers and blurbs are still being read while the call
+	 * runs; a failed read leaves the cards without them.
 	 */
-	private record Cards(Map<Long, SearchBook> known, Map<Long, ListedBook> listed, Map<Long, String> tabCovers,
-			Map<Long, String> tabBlurbs, Map<Long, Integer> planCount) {
+	private record Cards(Map<Long, SearchBook> known, Map<Long, ListedBook> listed,
+			CompletableFuture<Map<Long, String>> tabCovers, CompletableFuture<Map<Long, String>> tabBlurbs,
+			Map<Long, Integer> planCount) {
+
+		Cards {
+			tabCovers = tabCovers.exceptionally(e -> read("covers", e));
+			tabBlurbs = tabBlurbs.exceptionally(e -> read("blurbs", e));
+		}
+
+		private static Map<Long, String> read(String what, Throwable e) {
+			log.warn("ai search: the tab {} were not read ({})", what,
+					(e instanceof CompletionException && e.getCause() != null ? e.getCause() : e).getClass().getName());
+			return Map.of();
+		}
 
 		Card card(int no, long bookId) {
 			SearchBook book = known.get(bookId);
 			ListedBook onList = listed.get(bookId);
 			String cover = onList == null ? null : onList.coverPath();
 			if (cover == null) {
-				cover = tabCovers.get(bookId);
+				cover = tabCovers.join().get(bookId);
 			}
 			String summary = onList == null ? null : onList.aiSummary();
 			if (summary == null || summary.isBlank()) {
-				summary = tabBlurbs.get(bookId);
+				summary = tabBlurbs.join().get(bookId);
 			}
 			return new Card(no, bookId, book.title(), book.author(), cover, planCount.getOrDefault(bookId, 0), summary);
 		}

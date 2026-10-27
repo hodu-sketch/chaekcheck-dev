@@ -87,6 +87,7 @@
 | 앞 책의 이웃 후보 | 12권 | 코드 상수 (`AiSearchFlow.MAX_NEIGHBOUR_CANDIDATES`) | — | `foryou.book_neighbour` | 앞에 보인 책을 가리키는 이어 묻기에 그 책들의 이웃을 후보로 더하는 최대 수 [안] | 사용자 2026-10-25 "이어서 묻기에 앞 책의 이웃을 후보로" | 서비스 |
 | 되묻기 고를 답 | 4개 / 40자 | 코드 상수 (`AiSearchFlow.MAX_ASK_CHOICES` / `MAX_ASK_CHOICE_CHARS`) | — | `AiSearchController.MAX_ASK_CHOICES`(앞 대화로 받는 고를 답 4개), 웹 되묻기 버튼 | 2~4개 버튼(목업) [안] | 사용자 2026-10-26 목업 | 서비스 |
 | 「후보 분야」 줄을 붙이는 짧은 질문 | 2낱말 이하 | 코드 상수 (`AiSearchFlow.SHORT_QUESTION_WORDS`) | — | `MlFirstCall.shelfCounts`(많은 순 6개, `Prompts.MAX_SHELVES`) | 되묻기가 켜 있을 때 짧은 질문의 2차에 후보 30권의 큰 분야 수를 줌(v1.18.0) [안] | 사용자 2026-10-27, `6-aisearch.md` 10-1절 | 서비스 |
+| 되묻기 형식을 쓰는 첫 질문 | 4낱말 이하(이어지는 질문은 늘) | 코드 상수 (`AiSearchFlow.ASK_QUESTION_WORDS`) | — | — | 5낱말 이상 첫 질문은 되묻기 칸 없는 형식으로 바로 답(첫 글 시간, v1.19.0) [안] | 사용자 2026-10-27, `6-aisearch.md` 12절 | 서비스 |
 | 「책 찾기 아님」 예시 질문 | 10개 중 3개 | 코드 상수 (`Prompts.NOT_BOOK_ASK` / `NOT_BOOK_CHOICES`) | — | 되묻기 켜기(`pick.ask-back`) | AI 호출 없이 고정 되묻기와 예시 버튼 3개(문구·예시 [안]) | 사용자 2026-10-26 | 서비스 |
 
 ## 1-2. 임베딩 서버 (`embed-service/src/main/resources/application.yml`)
