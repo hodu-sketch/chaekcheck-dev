@@ -224,9 +224,7 @@ def nlk(data: Path) -> int:
                 if url and not intro:
                     status, body = get(rl.https(url) if url.startswith('http://') else url)
                     if status == 200 and body:
-                        if body[:3] == b'ÿØÿ' or body[:8] == b'PNG
-
-' or body[:4] == b'%PDF':
+                        if body[:3] == b'\xff\xd8\xff' or body[:8] == b'\x89PNG\r\n\x1a\n' or body[:4] == b'%PDF':
                             fields['intro_is_picture'] = True  # a scanned page (seen 2026-10-24: JPEG), not text
                         else:
                             intro = cc.clean_intro(body.decode('utf-8', 'replace')) or ''
