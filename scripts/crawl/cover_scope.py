@@ -7,7 +7,9 @@
 
 The range (all read-only: the PC's PostgreSQL SELECT, the data folder's files):
   lists    the recommended lists' books (picks.list_book.book_id; the NLK librarian picks by ISBN)
-  pool     the 30,000 books held by the most libraries (<data>/ml/pool-30000.ids.json, the cycle 23 pre-test's pool)
+  pool     the 30,000 books held by the most libraries (<data>/ml/pool-30000.ids.json, the cycle 23 pre-test's pool);
+           --pool pool-100000-intro takes the collect PC's 100,000-book range instead (user 2026-10-26 "10만권으로
+           늘릴 예정이야": the 80,549 books with an intro)
   popular  the top 100 of each popular list of the pre-test (Kyobo general 4 sites, YES24 V1 2 sites;
            data/cycle23-pretest/popular.tsv)
 
@@ -34,6 +36,9 @@ import recommended_lists as rl  # noqa: E402
 
 REPO = rl.ROOT
 
+# the pool's ids file in <data>/ml, without .ids.json (--pool)
+POOL = 'pool-30000'
+
 
 def scope(data: Path) -> dict[str, set[int]]:
     import psycopg
@@ -48,7 +53,7 @@ def scope(data: Path) -> dict[str, set[int]]:
                    WHERE lb.book_id IS NULL ORDER BY lb.id, cardinality(b.library_ids) DESC""")
     lists |= {r[0] for r in cur.fetchall()}
     db.close()
-    pool = {int(i) for i in json.loads((data / 'ml' / 'pool-30000.ids.json').read_text())}
+    pool = {int(i) for i in json.loads((data / 'ml' / f'{POOL}.ids.json').read_text())}
     _, rows = rl.read_tsv(REPO / 'data' / 'cycle23-pretest' / 'popular.tsv')
     popular = {int(r['book_id']) for r in rows if r['book_id'] and int(r['rank']) <= 100}
     return {'lists': lists, 'pool': pool, 'popular': popular}
@@ -162,7 +167,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('step', choices=['count', 'prioritize', 'export'])
     parser.add_argument('--data-dir', default='')
+    parser.add_argument('--pool', default=POOL)
     args = parser.parse_args()
+    globals()['POOL'] = args.pool
     sys.stdout.reconfigure(encoding='utf-8')
     data = Path(args.data_dir) if args.data_dir else cc.ROOT
     return {'count': count, 'prioritize': prioritize, 'export': export}[args.step](data)

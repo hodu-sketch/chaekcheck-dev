@@ -482,7 +482,15 @@ class BlockedHost(RuntimeError):
     """A request to a server we never call (BLOCKED_HOST_SUFFIX)."""
 
 
+# --allow-kyobo-institution-server (user 2026-10-27: "구독/대여혼합형만 먼저 수집 진행", "구독을 먼저 수집해", "1초 간격 잘
+# 지켜서"): the KYOBO institution server answered again (2026-10-27, one request, 200 in 1.1 s), so a run may ask it again,
+# one request at a time with MIN_GAP like every server. Off by default: R1-6 stays the rule for every other run.
+ALLOW_BLOCKED_HOST = False
+
+
 def is_blocked_host(url):
+    if ALLOW_BLOCKED_HOST:
+        return False
     host = (urlsplit(url).hostname or "").lower()
     return host == BLOCKED_HOST_SUFFIX or host.endswith("." + BLOCKED_HOST_SUFFIX)
 
@@ -1525,6 +1533,8 @@ def main():
     ap.add_argument("--limit-pages", type=int, default=None)
     ap.add_argument("--platforms", default="", help="comma-separated platform_type values")
     ap.add_argument("--retry-failed", action="store_true", help="only libraries whose latest run did not succeed")
+    ap.add_argument("--allow-kyobo-institution-server", action="store_true",
+                    help="ask *.dkyobobook.co.kr in this run (user decision 2026-10-27); one request at a time, --gap apart")
     ap.add_argument("--include-big-subscription", action="store_true",
                     help="no effect since cycle 13: those sites are all on *.dkyobobook.co.kr, which is never requested")
     ap.add_argument("--sections", default="", help="only these lists, e.g. AUDIO (no removal outside them)")
@@ -1542,6 +1552,13 @@ def main():
     PER_HOST, MIN_GAP = max(1, a.per_host), max(0.0, a.gap)
     global QUEUE_BY_IP
     QUEUE_BY_IP = a.queue_by_ip
+    global ALLOW_BLOCKED_HOST
+    ALLOW_BLOCKED_HOST = a.allow_kyobo_institution_server
+    if ALLOW_BLOCKED_HOST:
+        if PER_HOST != 1 or HOST_SLOTS or a.host_slots:
+            ap.error("--allow-kyobo-institution-server needs --per-host 1 and no --host-slots (one request at a time)")
+        log("KYOBO institution server (*.dkyobobook.co.kr) allowed in this run: one request at a time, "
+            f"{MIN_GAP}s gap (user decision 2026-10-27)")
     for part in filter(None, a.host_slots.split(",")):
         k, _, n = part.partition("=")
         HOST_SLOTS[k.strip()] = max(1, int(n))

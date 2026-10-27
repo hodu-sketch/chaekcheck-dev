@@ -104,5 +104,17 @@ class BlockedSiteTests(unittest.TestCase):
         self.assertIsNone(skips[2])
 
 
+class AllowKyoboInstitutionServerTests(unittest.TestCase):
+    def test_off_by_default_and_on_only_while_set(self):
+        url = "https://sejonglib.dkyobobook.co.kr/content/contentList.ink"
+        self.assertTrue(c.is_blocked_host(url))
+        c.ALLOW_BLOCKED_HOST = True
+        try:
+            self.assertFalse(c.is_blocked_host(url))
+        finally:
+            c.ALLOW_BLOCKED_HOST = False
+        self.assertTrue(c.is_blocked_host(url))
+
+
 if __name__ == "__main__":
     unittest.main()

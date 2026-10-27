@@ -385,10 +385,13 @@ chaekcheck:
     enabled: ${CHAEKCHECK_AISEARCH_ENABLED:false}
     # the day of the daily limits and of daily_usage
     zone: Asia/Seoul
-    # 1st call (keywords) and the whole 2nd call (choice and text) [확정 처음 값]; step 1 maxima 2.4 s and 8.2 s
+    # 1st call (keywords) and the whole 2nd call (choice and text) [확정 처음 값]; step 1 maxima 2.4 s and 8.2 s.
+    # The 1st call's values count only for the Haiku first step (first-call.mode haiku, or the fallback when the
+    # question vector fails)
     keyword-timeout: 5s
     pick-timeout: 15s
-    # step 1 (2026-10-24): 1st output at most 285 tokens, 2nd at most 1,490 [안]. The 2nd rose to 3072 (user 2026-10-25):
+    # step 1 (2026-10-24): 1st output at most 285 tokens (Haiku first step only), 2nd at most 1,490 [안]. The 2nd rose
+    # to 3072 (user 2026-10-25):
     # with the 30,000 most held books the cards' texts grew and an answer of 2,143 tokens was cut at 2048
     keyword-max-tokens: 512
     pick-max-tokens: 3072
@@ -454,7 +457,8 @@ chaekcheck:
     pick:
       # the pick call may ask back with choices instead of picking, a question the first step calls not a book request
       # gets a fixed ask-back with examples, and one word it calls so goes to the pick call (user 2026-10-26 「되묻기만
-      # 기존 한 번의 호출에」, docs/reports/ai-search-agent-2026-10-26.md 10절). Off until released [안]
+      # 기존 한 번의 호출에」, docs/reports/ai-search-agent-2026-10-26.md 10절). Off by default; production turns it on
+      # since v1.17.0 (CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true) [안]
       ask-back: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:false}
     llm:
       anthropic:
@@ -467,7 +471,8 @@ chaekcheck:
         base-url: https://api.anthropic.com
         # https://platform.claude.com/docs/en/api/versioning (checked 2026-10-24: the latest version)
         version: "2026-10-21"
-        # output_config.effort; step 1 (2026-10-24): low keeps both calls fast with thinking left on [안]
+        # output_config.effort; step 1 (2026-10-24): low keeps the calls fast; production also turns thinking off
+        # (thinking below, v1.17.0) [안]
         effort: low
         # thinking.type for the JSON calls (user 2026-10-26: the time to the first text is mostly Haiku thinking):
         # empty = the model's default (adaptive), disabled, adaptive [안]
