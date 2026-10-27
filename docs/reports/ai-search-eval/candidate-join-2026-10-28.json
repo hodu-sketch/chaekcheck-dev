@@ -1,0 +1,769 @@
+{
+ "plan_libraries": "524,818,158,63,134,129,7,43,121,277,140,276,275,278,16,122,786,37,89,263,495,751,843,915,439",
+ "sizes_bytes": {
+  "catalog.book heap": 470614016,
+  "catalog.book total": 910016512,
+  "search_book heap": 77774848,
+  "search_book total": 119242752
+ },
+ "rows": [
+  {
+   "q": "소설 말고 위로가 되는 책",
+   "words": [
+    "소설",
+    "위로"
+   ],
+   "A_warm": {
+    "median_ms": 91.86,
+    "max_ms": 110.7,
+    "blocks": 11789,
+    "read": 8103
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 72.92,
+    "max_ms": 83.64,
+    "blocks": 12037,
+    "read": 6553
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 139.009,
+    "hit": 2151,
+    "read": 9638
+   },
+   "B_cold": {
+    "ms": 349.376,
+    "hit": 1577,
+    "read": 10460
+   }
+  },
+  {
+   "q": "자기계발서 말고 마음이 편해지는 에세이",
+   "words": [
+    "자기계발서",
+    "마음",
+    "편해지",
+    "에세"
+   ],
+   "A_warm": {
+    "median_ms": 79.37,
+    "max_ms": 98.64,
+    "blocks": 9247,
+    "read": 8255
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 93.13,
+    "max_ms": 110.03,
+    "blocks": 19200,
+    "read": 11208
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 199.592,
+    "hit": 917,
+    "read": 8330
+   },
+   "B_cold": {
+    "ms": 792.781,
+    "hit": 7587,
+    "read": 11613
+   }
+  },
+  {
+   "q": "수식 없이 읽는 물리학 책",
+   "words": [
+    "수식",
+    "물리학"
+   ],
+   "A_warm": {
+    "median_ms": 3.92,
+    "max_ms": 4.4,
+    "blocks": 371,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 5.43,
+    "max_ms": 5.95,
+    "blocks": 1556,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 23.01,
+    "hit": 49,
+    "read": 322
+   },
+   "B_cold": {
+    "ms": 104.54,
+    "hit": 717,
+    "read": 839
+   }
+  },
+  {
+   "q": "번역서 말고 한국 작가가 쓴 경제 책",
+   "words": [
+    "번역서",
+    "한국",
+    "작가",
+    "경제"
+   ],
+   "A_warm": {
+    "median_ms": 27.14,
+    "max_ms": 29.46,
+    "blocks": 6982,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 31.02,
+    "max_ms": 33.37,
+    "blocks": 9741,
+    "read": 2
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 233.838,
+    "hit": 554,
+    "read": 6428
+   },
+   "B_cold": {
+    "ms": 414.456,
+    "hit": 2173,
+    "read": 7568
+   }
+  },
+  {
+   "q": "공포 말고 따뜻한 판타지 소설",
+   "words": [
+    "공포",
+    "따뜻한",
+    "판타지",
+    "소설"
+   ],
+   "A_warm": {
+    "median_ms": 28.74,
+    "max_ms": 32.78,
+    "blocks": 7973,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 27.36,
+    "max_ms": 29.73,
+    "blocks": 7517,
+    "read": 2
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 213.746,
+    "hit": 659,
+    "read": 7314
+   },
+   "B_cold": {
+    "ms": 208.213,
+    "hit": 183,
+    "read": 7338
+   }
+  },
+  {
+   "q": "어린이책 말고 어른이 보는 그림책",
+   "words": [
+    "어린이책",
+    "어른",
+    "그림책"
+   ],
+   "A_warm": {
+    "median_ms": 25.11,
+    "max_ms": 30.02,
+    "blocks": 2204,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 12.93,
+    "max_ms": 14.31,
+    "blocks": 2504,
+    "read": 1
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 123.772,
+    "hit": 138,
+    "read": 2066
+   },
+   "B_cold": {
+    "ms": 138.529,
+    "hit": 266,
+    "read": 2238
+   }
+  },
+  {
+   "q": "출근길 지하철에서 가볍게 읽을 과학책",
+   "words": [
+    "출근길",
+    "지하철",
+    "가볍게",
+    "과학책"
+   ],
+   "A_warm": {
+    "median_ms": 19.81,
+    "max_ms": 24.79,
+    "blocks": 1578,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 28.54,
+    "max_ms": 34.75,
+    "blocks": 7963,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 94.21,
+    "hit": 93,
+    "read": 1485
+   },
+   "B_cold": {
+    "ms": 471.296,
+    "hit": 4277,
+    "read": 3686
+   }
+  },
+  {
+   "q": "기분 전환이 되는 웃긴 소설",
+   "words": [
+    "기분",
+    "전환",
+    "웃긴",
+    "소설"
+   ],
+   "A_warm": {
+    "median_ms": 25.17,
+    "max_ms": 28.89,
+    "blocks": 7565,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 102.43,
+    "max_ms": 124.87,
+    "blocks": 9814,
+    "read": 1774
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 213.122,
+    "hit": 657,
+    "read": 6908
+   },
+   "B_cold": {
+    "ms": 155.374,
+    "hit": 196,
+    "read": 9618
+   }
+  },
+  {
+   "q": "경제를 처음 공부하는 사람을 위한 책",
+   "words": [
+    "경제",
+    "공부하"
+   ],
+   "A_warm": {
+    "median_ms": 42.12,
+    "max_ms": 44.19,
+    "blocks": 4058,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 64.77,
+    "max_ms": 68.04,
+    "blocks": 20801,
+    "read": 640
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 221.136,
+    "hit": 598,
+    "read": 3540
+   },
+   "B_cold": {
+    "ms": 1053.596,
+    "hit": 12671,
+    "read": 8130
+   }
+  },
+  {
+   "q": "회사에서 글쓰기 실력을 늘리는 책",
+   "words": [
+    "회사",
+    "글쓰기",
+    "실력",
+    "늘리"
+   ],
+   "A_warm": {
+    "median_ms": 34.58,
+    "max_ms": 37.1,
+    "blocks": 2637,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 12.35,
+    "max_ms": 13.11,
+    "blocks": 2831,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 128.044,
+    "hit": 139,
+    "read": 2498
+   },
+   "B_cold": {
+    "ms": 144.929,
+    "hit": 195,
+    "read": 2636
+   }
+  },
+  {
+   "q": "여행 가서 읽을, 너무 무겁지 않은 인문학 책",
+   "words": [
+    "여행",
+    "가서",
+    "너무",
+    "무겁지",
+    "인문학"
+   ],
+   "A_warm": {
+    "median_ms": 15.96,
+    "max_ms": 18.07,
+    "blocks": 4553,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 17.81,
+    "max_ms": 21.41,
+    "blocks": 4473,
+    "read": 2
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 188.731,
+    "hit": 470,
+    "read": 4123
+   },
+   "B_cold": {
+    "ms": 218.575,
+    "hit": 247,
+    "read": 4226
+   }
+  },
+  {
+   "q": "미래 소비 트렌드와 경제적 자산 관리",
+   "words": [
+    "미래",
+    "소비",
+    "트렌드",
+    "경제적",
+    "자산",
+    "관리"
+   ],
+   "A_warm": {
+    "median_ms": 25.21,
+    "max_ms": 27.24,
+    "blocks": 5576,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 29.75,
+    "max_ms": 33.99,
+    "blocks": 7491,
+    "read": 1
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 231.609,
+    "hit": 616,
+    "read": 4960
+   },
+   "B_cold": {
+    "ms": 383.404,
+    "hit": 1621,
+    "read": 5870
+   }
+  },
+  {
+   "q": "사진",
+   "words": [
+    "사진"
+   ],
+   "A_warm": {
+    "median_ms": 12.85,
+    "max_ms": 14.42,
+    "blocks": 1265,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 17.91,
+    "max_ms": 18.77,
+    "blocks": 6721,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 68.486,
+    "hit": 37,
+    "read": 1228
+   },
+   "B_cold": {
+    "ms": 366.968,
+    "hit": 3667,
+    "read": 3054
+   }
+  },
+  {
+   "q": "음악",
+   "words": [
+    "음악"
+   ],
+   "A_warm": {
+    "median_ms": 6.24,
+    "max_ms": 7.43,
+    "blocks": 705,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 11.64,
+    "max_ms": 13.54,
+    "blocks": 3435,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 43.876,
+    "hit": 41,
+    "read": 664
+   },
+   "B_cold": {
+    "ms": 232.842,
+    "hit": 1704,
+    "read": 1731
+   }
+  },
+  {
+   "q": "바다",
+   "words": [
+    "바다"
+   ],
+   "A_warm": {
+    "median_ms": 4.17,
+    "max_ms": 4.73,
+    "blocks": 569,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 6.6,
+    "max_ms": 7.21,
+    "blocks": 2673,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 33.864,
+    "hit": 46,
+    "read": 523
+   },
+   "B_cold": {
+    "ms": 164.071,
+    "hit": 1263,
+    "read": 1410
+   }
+  },
+  {
+   "q": "게임",
+   "words": [
+    "게임"
+   ],
+   "A_warm": {
+    "median_ms": 5.12,
+    "max_ms": 5.31,
+    "blocks": 599,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 6.92,
+    "max_ms": 7.63,
+    "blocks": 2822,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 36.455,
+    "hit": 41,
+    "read": 558
+   },
+   "B_cold": {
+    "ms": 180.251,
+    "hit": 1344,
+    "read": 1478
+   }
+  },
+  {
+   "q": "커피",
+   "words": [
+    "커피"
+   ],
+   "A_warm": {
+    "median_ms": 2.25,
+    "max_ms": 2.55,
+    "blocks": 224,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 3.08,
+    "max_ms": 3.49,
+    "blocks": 1096,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 16.881,
+    "hit": 7,
+    "read": 217
+   },
+   "B_cold": {
+    "ms": 77.764,
+    "hit": 476,
+    "read": 620
+   }
+  },
+  {
+   "q": "로마",
+   "words": [
+    "로마"
+   ],
+   "A_warm": {
+    "median_ms": 6.92,
+    "max_ms": 7.62,
+    "blocks": 804,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 11.48,
+    "max_ms": 12.45,
+    "blocks": 3689,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 42.146,
+    "hit": 92,
+    "read": 712
+   },
+   "B_cold": {
+    "ms": 227.438,
+    "hit": 1838,
+    "read": 1851
+   }
+  },
+  {
+   "q": "전쟁",
+   "words": [
+    "전쟁"
+   ],
+   "A_warm": {
+    "median_ms": 16.28,
+    "max_ms": 18.85,
+    "blocks": 1835,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 22.03,
+    "max_ms": 26.68,
+    "blocks": 8479,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 117.585,
+    "hit": 371,
+    "read": 1464
+   },
+   "B_cold": {
+    "ms": 438.68,
+    "hit": 4947,
+    "read": 3532
+   }
+  },
+  {
+   "q": "엄마",
+   "words": [
+    "엄마"
+   ],
+   "A_warm": {
+    "median_ms": 11.73,
+    "max_ms": 14.4,
+    "blocks": 1280,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 18.11,
+    "max_ms": 21.69,
+    "blocks": 6688,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 76.514,
+    "hit": 37,
+    "read": 1243
+   },
+   "B_cold": {
+    "ms": 381.423,
+    "hit": 3627,
+    "read": 3061
+   }
+  },
+  {
+   "q": "자바스크립트",
+   "words": [
+    "자바스크립트"
+   ],
+   "A_warm": {
+    "median_ms": 0.48,
+    "max_ms": 0.59,
+    "blocks": 61,
+    "read": 0
+   },
+   "A_count": 39,
+   "B_warm": {
+    "median_ms": 0.72,
+    "max_ms": 0.85,
+    "blocks": 217,
+    "read": 0
+   },
+   "B_count": 39,
+   "A_cold": {
+    "ms": 6.674,
+    "hit": 11,
+    "read": 50
+   },
+   "B_cold": {
+    "ms": 15.419,
+    "hit": 91,
+    "read": 126
+   }
+  },
+  {
+   "q": "주식 투자",
+   "words": [
+    "주식",
+    "투자"
+   ],
+   "A_warm": {
+    "median_ms": 15.8,
+    "max_ms": 20.05,
+    "blocks": 2782,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 20.81,
+    "max_ms": 22.59,
+    "blocks": 6365,
+    "read": 1
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 147.867,
+    "hit": 401,
+    "read": 2381
+   },
+   "B_cold": {
+    "ms": 335.412,
+    "hit": 2650,
+    "read": 3715
+   }
+  },
+  {
+   "q": "다이어트",
+   "words": [
+    "다이어트"
+   ],
+   "A_warm": {
+    "median_ms": 5.08,
+    "max_ms": 5.59,
+    "blocks": 524,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 6.67,
+    "max_ms": 7.35,
+    "blocks": 2283,
+    "read": 0
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 31.959,
+    "hit": 63,
+    "read": 461
+   },
+   "B_cold": {
+    "ms": 151.013,
+    "hit": 1084,
+    "read": 1199
+   }
+  },
+  {
+   "q": "영어 회화",
+   "words": [
+    "영어",
+    "회화"
+   ],
+   "A_warm": {
+    "median_ms": 19.66,
+    "max_ms": 21.28,
+    "blocks": 1977,
+    "read": 0
+   },
+   "A_count": 50,
+   "B_warm": {
+    "median_ms": 13.71,
+    "max_ms": 14.88,
+    "blocks": 4177,
+    "read": 2
+   },
+   "B_count": 50,
+   "A_cold": {
+    "ms": 93.845,
+    "hit": 58,
+    "read": 1919
+   },
+   "B_cold": {
+    "ms": 248.595,
+    "hit": 1431,
+    "read": 2742
+   }
+  }
+ ],
+ "plan_text": {
+  "A": "Limit  (cost=11451.33..11472.53 rows=50 width=20) (actual time=161.258..163.709 rows=50.00 loops=1)\n  Buffers: shared hit=4054 read=7735\n  ->  Incremental Sort  (cost=11451.33..17855.80 rows=15107 width=20) (actual time=161.256..163.703 rows=50.00 loops=1)\n        Sort Key: ((((s.search_text ~~ '%소설%'::text))::integer + ((s.search_text ~~ '%위로%'::text))::integer)) DESC, (((SubPlan 1))::integer) DESC, s.book_id\n        Presorted Key: ((((s.search_text ~~ '%소설%'::text))::integer + ((s.search_text ~~ '%위로%'::text))::integer))\n        Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 29kB  Peak Memory: 29kB\n        Pre-sorted Groups: 1  Sort Method: top-N heapsort  Average Memory: 29kB  Peak Memory: 29kB\n        Buffers: shared hit=4054 read=7735\n        ->  Gather Merge  (cost=11450.94..17175.99 rows=15107 width=20) (actual time=156.251..163.551 rows=592.00 loops=1)\n              Workers Planned: 2\n              Workers Launched: 2\n              Buffers: shared hit=4051 read=7735\n              ->  Sort  (cost=10450.92..10466.65 rows=6295 width=606) (actual time=153.740..153.782 rows=240.00 loops=3)\n                    Sort Key: ((((s.search_text ~~ '%소설%'::text))::integer + ((s.search_text ~~ '%위로%'::text))::integer)) DESC\n                    Sort Method: quicksort  Memory: 3256kB\n                    Buffers: shared hit=4021 read=7735\n                    Worker 0:  Sort Method: quicksort  Memory: 3184kB\n                    Worker 1:  Sort Method: quicksort  Memory: 3230kB\n                    ->  Parallel Seq Scan on search_book s  (cost=0.00..10053.70 rows=6295 width=606) (actual time=0.474..149.362 rows=5260.33 loops=3)\n                          Filter: ((book_id <> ALL ('{}'::bigint[])) AND (library_ids && '{524,818,158,63,134,129,7,43,121,277,140,276,275,278,16,122,786,37,89,263,495,751,843,915,439}'::integer[]) AND ((search_text ~~ '%소설%'::text) OR (search_text ~~ '%위로%'::text)))\n                          Rows Removed by Filter: 20326\n                          Buffers: shared hit=3947 read=7735\n              SubPlan 1\n                ->  Aggregate  (cost=0.24..0.25 rows=1 width=8) (actual time=0.007..0.007 rows=1.00 loops=592)\n                      Buffers: shared hit=30\n                      ->  Function Scan on unnest l  (cost=0.07..0.21 rows=9 width=0) (actual time=0.004..0.007 rows=10.41 loops=592)\n                            Filter: (id = ANY ('{524,818,158,63,134,129,7,43,121,277,140,276,275,278,16,122,786,37,89,263,495,751,843,915,439}'::integer[]))\n                            Rows Removed by Filter: 65\n                            Buffers: shared hit=30\nPlanning:\n  Buffers: shared hit=170 read=4\nPlanning Time: 1.293 ms\nExecution Time: 163.915 ms\n",
+  "B": "Limit  (cost=11376.96..11656.17 rows=50 width=20) (actual time=236.092..238.137 rows=50.00 loops=1)\n  Buffers: shared hit=3778 read=8259\n  ->  Incremental Sort  (cost=11376.96..92480.95 rows=14524 width=20) (actual time=236.091..238.132 rows=50.00 loops=1)\n        Sort Key: ((((s.search_text ~~ '%소설%'::text))::integer + ((s.search_text ~~ '%위로%'::text))::integer)) DESC, (((SubPlan 1))::integer) DESC, s.book_id\n        Presorted Key: ((((s.search_text ~~ '%소설%'::text))::integer + ((s.search_text ~~ '%위로%'::text))::integer))\n        Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 29kB  Peak Memory: 29kB\n        Pre-sorted Groups: 1  Sort Method: top-N heapsort  Average Memory: 30kB  Peak Memory: 30kB\n        Buffers: shared hit=3778 read=8259\n        ->  Nested Loop  (cost=11371.41..91827.37 rows=14524 width=20) (actual time=62.804..237.774 rows=592.00 loops=1)\n              Buffers: shared hit=3772 read=8259\n              ->  Gather Merge  (cost=11370.98..13130.44 rows=15107 width=280) (actual time=59.853..62.438 rows=606.00 loops=1)\n                    Workers Planned: 2\n                    Workers Launched: 2\n                    Buffers: shared hit=2118 read=7450\n                    ->  Sort  (cost=10370.96..10386.70 rows=6295 width=280) (actual time=57.761..57.828 rows=320.33 loops=3)\n                          Sort Key: ((((s.search_text ~~ '%소설%'::text))::integer + ((s.search_text ~~ '%위로%'::text))::integer)) DESC\n                          Sort Method: quicksort  Memory: 1820kB\n                          Buffers: shared hit=2118 read=7450\n                          Worker 0:  Sort Method: quicksort  Memory: 1714kB\n                          Worker 1:  Sort Method: quicksort  Memory: 1801kB\n                          ->  Parallel Seq Scan on search_book s  (cost=0.00..9973.74 rows=6295 width=280) (actual time=0.207..55.881 rows=5472.67 loops=3)\n                                Filter: ((book_id <> ALL ('{}'::bigint[])) AND ((search_text ~~ '%소설%'::text) OR (search_text ~~ '%위로%'::text)))\n                                Rows Removed by Filter: 20114\n                                Buffers: shared hit=2044 read=7450\n              ->  Index Scan using book_pkey on book c  (cost=0.43..4.96 rows=1 width=130) (actual time=0.273..0.273 rows=0.98 loops=606)\n                    Index Cond: (id = s.book_id)\n                    Filter: (library_ids && '{524,818,158,63,134,129,7,43,121,277,140,276,275,278,16,122,786,37,89,263,495,751,843,915,439}'::bigint[])\n                    Rows Removed by Filter: 0\n                    Index Searches: 606\n                    Buffers: shared hit=1646 read=809\n              SubPlan 1\n                ->  Aggregate  (cost=0.24..0.25 rows=1 width=8) (actual time=0.013..0.013 rows=1.00 loops=592)\n                      Buffers: shared hit=8\n                      ->  Function Scan on unnest l  (cost=0.07..0.21 rows=9 width=0) (actual time=0.007..0.011 rows=10.41 loops=592)\n                            Filter: (id = ANY ('{524,818,158,63,134,129,7,43,121,277,140,276,275,278,16,122,786,37,89,263,495,751,843,915,439}'::bigint[]))\n                            Rows Removed by Filter: 65\n                            Buffers: shared hit=8\nPlanning:\n  Buffers: shared hit=383\nPlanning Time: 0.991 ms\nExecution Time: 238.272 ms\n"
+ }
+}
