@@ -3,14 +3,14 @@
 - 사이클 24(plan ADR-0151). AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `aisearch.search_book`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, v1.17.0~, 9절)입니다. 이 표는 이 명령으로만 바뀝니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
-## 0. 지금 운영 (2026-10-27, v1.18.0)
+## 0. 지금 운영 (2026-10-28, v1.19.0)
 
 - 켠 것(`deploy/prod/prod.env`): `CHAEKCHECK_AISEARCH_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`(임베딩 서버 `172.31.45.141:8090`, 7-1절), `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(8절), `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`, `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`, `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`, `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`(10절). effort는 `low`
 - 코드 기본값은 다릅니다(`application.yml`: 1차 `haiku`, 되묻기 `false`, 벡터 꺼짐, 생각은 모델 기본). 운영이 prod.env로 켭니다. 값 목록은 [settings-index.md](settings-index.md) 1-1절
 - 한 검색: 1차(길 5갈래 + 칸 11개)는 질문 벡터 위의 작은 MLP(8절, 모델 호출 없음). 벡터가 늦거나 실패하면 그 검색만 Haiku 1차. 2차는 Haiku 한 번(후보 30권 → 최대 8권과 카드 글, 되묻기 칸)
 - 모델 폴더: 서버 `/srv/chaekcheck/aisearch-model`(PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`): `first-call-model.bin`, `follow-up-model.bin`, `book-vectors.bin`, `book-profiles.tsv`, `kure-query-int8-ext.onnx`, `tokenizer-cut.json`
 - 책 수: AI 검색 책(`search_book`) 76,759권, 책 벡터 81,078권, 프로필 77,551권(10만 권 판, 9절)
-- 어디에 무엇: 넣기 1~5절, 3만 권 6절, 질문 벡터·임베딩 서버 7절, ML 1차·이어 묻기 8절, 10만 권 9절, 되묻기·생각 끄기·캐시 10절, 표 줄이기 11절
+- 어디에 무엇: 넣기 1~5절, 3만 권 6절, 질문 벡터·임베딩 서버 7절, ML 1차·이어 묻기 8절, 10만 권 9절, 되묻기·생각 끄기·캐시 10절, 표 줄이기 11절, 첫 글 시간 12절
 
 ## 1. 언제 돌리나
 
@@ -219,7 +219,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-first-test-2026-10-27.json`](../reports/ai-search-eval/search-book-first-test-2026-10-27.json)(칸 크기 42 → 25MB 포함), [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
 - **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
 
-## 12. 첫 글 시간 줄이기 (2026-10-27, 다음 배포)
+## 12. 첫 글 시간 줄이기 (v1.19.0, 2026-10-27)
 
 사용자 요청(2026-10-27): Haiku가 첫 응답을 하기까지의 시간 줄이기. SSE라 첫 글 시간이 중요. 자세한 숫자: [첫 글 시간](../reports/ai-search-latency-2026-10-27.md).
 
@@ -229,3 +229,4 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 규칙 시험(80문항, v1.18.0과 번갈아 두 번씩, 로컬): 5낱말 이상 첫 질문 첫 글 1.68 → 1.43초(느린 10% 2.15 → 1.75초), 전체 1.84 → 1.69초, 카드 맞음 91 → 92%, 되묻기 기대대로 146 → 148/156
 - 다시 재기: 위 규칙 시험을 두 판으로 돌린 뒤 `python scripts/aisearch/eval/timing_compare.py <기준> <비교>`(로그의 `steps`를 단계별로 비교). Haiku만 따로: `ttft_probe.py`, `ttft_probe2.py`
 - 운영에서 볼 것: 로그 `steps`의 `keyword`가 `neighbours`와 거의 같고(이미 끝남), `cards → llm-first`가 줄었는지
+- 운영(배포 전후 같은 첫 질문 24개): 5낱말 이상 첫 질문 첫 글 2.63 → 2.06~2.25초, `early keyword` 24/24. 다시 재기: `python scripts/aisearch/eval/prod_timing.py <이름>`(한 IP 분당 10번 제한이라 7초 간격)

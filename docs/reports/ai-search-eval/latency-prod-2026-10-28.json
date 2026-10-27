@@ -1,0 +1,2909 @@
+{
+ "v1.18.0": {
+  "label": "v1.18.0",
+  "start": "2026-10-27T14:54:09.312840+00:00",
+  "rows": [
+   {
+    "q": "소설 말고 위로가 되는 책",
+    "words": 5,
+    "firstText": 4.078,
+    "wall": 6.81,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 6263,
+     "early": false,
+     "steps": {
+      "encode": 1148,
+      "ml": 1156,
+      "nearest": 1311,
+      "neighbours": 1660,
+      "keyword": 1998,
+      "vector": 2014,
+      "mix": 2016,
+      "cards": 2174,
+      "llm-first": 3394,
+      "llm-done": 6260
+     }
+    }
+   },
+   {
+    "q": "사진",
+    "words": 1,
+    "firstText": 3.027,
+    "wall": 3.029,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2258,
+     "early": false,
+     "steps": {
+      "encode": 94,
+      "ml": 101,
+      "nearest": 203,
+      "neighbours": 205,
+      "keyword": 238,
+      "vector": 243,
+      "mix": 244,
+      "cards": 377,
+      "llm-first": 1514,
+      "llm-done": 2255
+     }
+    }
+   },
+   {
+    "q": "자기계발서 말고 마음이 편해지는 에세이",
+    "words": 5,
+    "firstText": 2.757,
+    "wall": 5.768,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 5014,
+     "early": false,
+     "steps": {
+      "encode": 153,
+      "ml": 159,
+      "nearest": 256,
+      "neighbours": 257,
+      "keyword": 680,
+      "vector": 686,
+      "mix": 686,
+      "cards": 813,
+      "llm-first": 1959,
+      "llm-done": 5012
+     }
+    }
+   },
+   {
+    "q": "음악",
+    "words": 1,
+    "firstText": 2.099,
+    "wall": 8.34,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 7862,
+     "early": false,
+     "steps": {
+      "encode": 95,
+      "ml": 101,
+      "nearest": 198,
+      "neighbours": 198,
+      "keyword": 215,
+      "vector": 221,
+      "mix": 222,
+      "cards": 346,
+      "llm-first": 1448,
+      "llm-done": 7859
+     }
+    }
+   },
+   {
+    "q": "수식 없이 읽는 물리학 책",
+    "words": 5,
+    "firstText": 2.608,
+    "wall": 5.051,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4276,
+     "early": false,
+     "steps": {
+      "encode": 119,
+      "ml": 126,
+      "nearest": 227,
+      "neighbours": 227,
+      "keyword": 241,
+      "vector": 245,
+      "mix": 246,
+      "cards": 336,
+      "llm-first": 1675,
+      "llm-done": 4273
+     }
+    }
+   },
+   {
+    "q": "바다",
+    "words": 1,
+    "firstText": 2.997,
+    "wall": 3.008,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2444,
+     "early": false,
+     "steps": {
+      "encode": 76,
+      "ml": 83,
+      "nearest": 180,
+      "neighbours": 267,
+      "keyword": 279,
+      "vector": 283,
+      "mix": 283,
+      "cards": 380,
+      "llm-first": 1641,
+      "llm-done": 2442
+     }
+    }
+   },
+   {
+    "q": "번역서 말고 한국 작가가 쓴 경제 책",
+    "words": 7,
+    "firstText": 2.808,
+    "wall": 5.19,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4361,
+     "early": false,
+     "steps": {
+      "encode": 125,
+      "ml": 131,
+      "nearest": 228,
+      "neighbours": 229,
+      "keyword": 471,
+      "vector": 475,
+      "mix": 476,
+      "cards": 567,
+      "llm-first": 1813,
+      "llm-done": 4359
+     }
+    }
+   },
+   {
+    "q": "게임",
+    "words": 1,
+    "firstText": 2.687,
+    "wall": 2.688,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2055,
+     "early": false,
+     "steps": {
+      "encode": 170,
+      "ml": 176,
+      "nearest": 275,
+      "neighbours": 276,
+      "keyword": 291,
+      "vector": 294,
+      "mix": 295,
+      "cards": 391,
+      "llm-first": 1298,
+      "llm-done": 2053
+     }
+    }
+   },
+   {
+    "q": "공포 말고 따뜻한 판타지 소설",
+    "words": 5,
+    "firstText": 2.678,
+    "wall": 5.169,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4651,
+     "early": false,
+     "steps": {
+      "encode": 106,
+      "ml": 112,
+      "nearest": 209,
+      "neighbours": 209,
+      "keyword": 527,
+      "vector": 531,
+      "mix": 532,
+      "cards": 615,
+      "llm-first": 2018,
+      "llm-done": 4649
+     }
+    }
+   },
+   {
+    "q": "커피",
+    "words": 1,
+    "firstText": 3.2,
+    "wall": 3.201,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2418,
+     "early": false,
+     "steps": {
+      "encode": 68,
+      "ml": 75,
+      "nearest": 171,
+      "neighbours": 177,
+      "keyword": 186,
+      "vector": 219,
+      "mix": 220,
+      "cards": 303,
+      "llm-first": 1472,
+      "llm-done": 2412
+     }
+    }
+   },
+   {
+    "q": "어린이책 말고 어른이 보는 그림책",
+    "words": 5,
+    "firstText": 1.878,
+    "wall": 3.749,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3419,
+     "early": false,
+     "steps": {
+      "encode": 110,
+      "ml": 116,
+      "nearest": 215,
+      "neighbours": 216,
+      "keyword": 284,
+      "vector": 318,
+      "mix": 319,
+      "cards": 417,
+      "llm-first": 1306,
+      "llm-done": 3416
+     }
+    }
+   },
+   {
+    "q": "로마",
+    "words": 1,
+    "firstText": 3.037,
+    "wall": 3.038,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2706,
+     "early": false,
+     "steps": {
+      "encode": 60,
+      "ml": 67,
+      "nearest": 164,
+      "neighbours": 234,
+      "keyword": 251,
+      "vector": 284,
+      "mix": 284,
+      "cards": 360,
+      "llm-first": 1919,
+      "llm-done": 2703
+     }
+    }
+   },
+   {
+    "q": "출근길 지하철에서 가볍게 읽을 과학책",
+    "words": 5,
+    "firstText": 2.768,
+    "wall": 5.199,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4443,
+     "early": false,
+     "steps": {
+      "encode": 116,
+      "ml": 124,
+      "nearest": 233,
+      "neighbours": 234,
+      "keyword": 285,
+      "vector": 326,
+      "mix": 327,
+      "cards": 401,
+      "llm-first": 1840,
+      "llm-done": 4440
+     }
+    }
+   },
+   {
+    "q": "전쟁",
+    "words": 1,
+    "firstText": 3.11,
+    "wall": 3.11,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2328,
+     "early": false,
+     "steps": {
+      "encode": 63,
+      "ml": 69,
+      "nearest": 166,
+      "neighbours": 166,
+      "keyword": 203,
+      "vector": 237,
+      "mix": 237,
+      "cards": 309,
+      "llm-first": 1181,
+      "llm-done": 2325
+     }
+    }
+   },
+   {
+    "q": "기분 전환이 되는 웃긴 소설",
+    "words": 5,
+    "firstText": 2.318,
+    "wall": 4.687,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4181,
+     "early": false,
+     "steps": {
+      "encode": 98,
+      "ml": 105,
+      "nearest": 201,
+      "neighbours": 202,
+      "keyword": 488,
+      "vector": 525,
+      "mix": 526,
+      "cards": 595,
+      "llm-first": 1490,
+      "llm-done": 4178
+     }
+    }
+   },
+   {
+    "q": "엄마",
+    "words": 1,
+    "firstText": 3.189,
+    "wall": 3.189,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2749,
+     "early": false,
+     "steps": {
+      "encode": 66,
+      "ml": 73,
+      "nearest": 173,
+      "neighbours": 175,
+      "keyword": 205,
+      "vector": 239,
+      "mix": 240,
+      "cards": 301,
+      "llm-first": 1655,
+      "llm-done": 2747
+     }
+    }
+   },
+   {
+    "q": "경제를 처음 공부하는 사람을 위한 책",
+    "words": 6,
+    "firstText": 1.967,
+    "wall": 4.529,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4109,
+     "early": false,
+     "steps": {
+      "encode": 135,
+      "ml": 141,
+      "nearest": 238,
+      "neighbours": 239,
+      "keyword": 341,
+      "vector": 389,
+      "mix": 390,
+      "cards": 470,
+      "llm-first": 1404,
+      "llm-done": 4092
+     }
+    }
+   },
+   {
+    "q": "자바스크립트",
+    "words": 1,
+    "firstText": 2.768,
+    "wall": 5.329,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4454,
+     "early": false,
+     "steps": {
+      "encode": 164,
+      "ml": 170,
+      "nearest": 266,
+      "neighbours": 334,
+      "keyword": 350,
+      "vector": 353,
+      "mix": 354,
+      "cards": 439,
+      "llm-first": 1754,
+      "llm-done": 4450
+     }
+    }
+   },
+   {
+    "q": "회사에서 글쓰기 실력을 늘리는 책",
+    "words": 5,
+    "firstText": 2.308,
+    "wall": 4.93,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4146,
+     "early": false,
+     "steps": {
+      "encode": 105,
+      "ml": 111,
+      "nearest": 209,
+      "neighbours": 229,
+      "keyword": 320,
+      "vector": 324,
+      "mix": 324,
+      "cards": 387,
+      "llm-first": 1375,
+      "llm-done": 4143
+     }
+    }
+   },
+   {
+    "q": "주식 투자",
+    "words": 2,
+    "firstText": 2.238,
+    "wall": 5.109,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4632,
+     "early": false,
+     "steps": {
+      "encode": 68,
+      "ml": 74,
+      "nearest": 171,
+      "neighbours": 171,
+      "keyword": 247,
+      "vector": 251,
+      "mix": 251,
+      "cards": 306,
+      "llm-first": 1716,
+      "llm-done": 4630
+     }
+    }
+   },
+   {
+    "q": "여행 가서 읽을, 너무 무겁지 않은 인문학 책",
+    "words": 8,
+    "firstText": 2.166,
+    "wall": 4.858,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4419,
+     "early": false,
+     "steps": {
+      "encode": 132,
+      "ml": 139,
+      "nearest": 236,
+      "neighbours": 236,
+      "keyword": 384,
+      "vector": 388,
+      "mix": 389,
+      "cards": 456,
+      "llm-first": 1548,
+      "llm-done": 4416
+     }
+    }
+   },
+   {
+    "q": "다이어트",
+    "words": 1,
+    "firstText": 2.109,
+    "wall": 5.179,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4398,
+     "early": false,
+     "steps": {
+      "encode": 62,
+      "ml": 68,
+      "nearest": 165,
+      "neighbours": 165,
+      "keyword": 181,
+      "vector": 185,
+      "mix": 185,
+      "cards": 229,
+      "llm-first": 1278,
+      "llm-done": 4396
+     }
+    }
+   },
+   {
+    "q": "미래 소비 트렌드와 경제적 자산 관리",
+    "words": 6,
+    "firstText": 2.649,
+    "wall": 4.21,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3691,
+     "early": false,
+     "steps": {
+      "encode": 96,
+      "ml": 103,
+      "nearest": 199,
+      "neighbours": 280,
+      "keyword": 485,
+      "vector": 489,
+      "mix": 489,
+      "cards": 540,
+      "llm-first": 1979,
+      "llm-done": 3689
+     }
+    }
+   },
+   {
+    "q": "영어 회화",
+    "words": 2,
+    "firstText": 2.139,
+    "wall": 4.828,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4302,
+     "early": false,
+     "steps": {
+      "encode": 66,
+      "ml": 72,
+      "nearest": 169,
+      "neighbours": 169,
+      "keyword": 217,
+      "vector": 220,
+      "mix": 220,
+      "cards": 263,
+      "llm-first": 1561,
+      "llm-done": 4299
+     }
+    }
+   }
+  ],
+  "server_lines": [
+   {
+    "ms": 6263,
+    "early": false,
+    "steps": {
+     "encode": 1148,
+     "ml": 1156,
+     "nearest": 1311,
+     "neighbours": 1660,
+     "keyword": 1998,
+     "vector": 2014,
+     "mix": 2016,
+     "cards": 2174,
+     "llm-first": 3394,
+     "llm-done": 6260
+    }
+   },
+   {
+    "ms": 2258,
+    "early": false,
+    "steps": {
+     "encode": 94,
+     "ml": 101,
+     "nearest": 203,
+     "neighbours": 205,
+     "keyword": 238,
+     "vector": 243,
+     "mix": 244,
+     "cards": 377,
+     "llm-first": 1514,
+     "llm-done": 2255
+    }
+   },
+   {
+    "ms": 5014,
+    "early": false,
+    "steps": {
+     "encode": 153,
+     "ml": 159,
+     "nearest": 256,
+     "neighbours": 257,
+     "keyword": 680,
+     "vector": 686,
+     "mix": 686,
+     "cards": 813,
+     "llm-first": 1959,
+     "llm-done": 5012
+    }
+   },
+   {
+    "ms": 7862,
+    "early": false,
+    "steps": {
+     "encode": 95,
+     "ml": 101,
+     "nearest": 198,
+     "neighbours": 198,
+     "keyword": 215,
+     "vector": 221,
+     "mix": 222,
+     "cards": 346,
+     "llm-first": 1448,
+     "llm-done": 7859
+    }
+   },
+   {
+    "ms": 4276,
+    "early": false,
+    "steps": {
+     "encode": 119,
+     "ml": 126,
+     "nearest": 227,
+     "neighbours": 227,
+     "keyword": 241,
+     "vector": 245,
+     "mix": 246,
+     "cards": 336,
+     "llm-first": 1675,
+     "llm-done": 4273
+    }
+   },
+   {
+    "ms": 2444,
+    "early": false,
+    "steps": {
+     "encode": 76,
+     "ml": 83,
+     "nearest": 180,
+     "neighbours": 267,
+     "keyword": 279,
+     "vector": 283,
+     "mix": 283,
+     "cards": 380,
+     "llm-first": 1641,
+     "llm-done": 2442
+    }
+   },
+   {
+    "ms": 4361,
+    "early": false,
+    "steps": {
+     "encode": 125,
+     "ml": 131,
+     "nearest": 228,
+     "neighbours": 229,
+     "keyword": 471,
+     "vector": 475,
+     "mix": 476,
+     "cards": 567,
+     "llm-first": 1813,
+     "llm-done": 4359
+    }
+   },
+   {
+    "ms": 2055,
+    "early": false,
+    "steps": {
+     "encode": 170,
+     "ml": 176,
+     "nearest": 275,
+     "neighbours": 276,
+     "keyword": 291,
+     "vector": 294,
+     "mix": 295,
+     "cards": 391,
+     "llm-first": 1298,
+     "llm-done": 2053
+    }
+   },
+   {
+    "ms": 4651,
+    "early": false,
+    "steps": {
+     "encode": 106,
+     "ml": 112,
+     "nearest": 209,
+     "neighbours": 209,
+     "keyword": 527,
+     "vector": 531,
+     "mix": 532,
+     "cards": 615,
+     "llm-first": 2018,
+     "llm-done": 4649
+    }
+   },
+   {
+    "ms": 2418,
+    "early": false,
+    "steps": {
+     "encode": 68,
+     "ml": 75,
+     "nearest": 171,
+     "neighbours": 177,
+     "keyword": 186,
+     "vector": 219,
+     "mix": 220,
+     "cards": 303,
+     "llm-first": 1472,
+     "llm-done": 2412
+    }
+   },
+   {
+    "ms": 3419,
+    "early": false,
+    "steps": {
+     "encode": 110,
+     "ml": 116,
+     "nearest": 215,
+     "neighbours": 216,
+     "keyword": 284,
+     "vector": 318,
+     "mix": 319,
+     "cards": 417,
+     "llm-first": 1306,
+     "llm-done": 3416
+    }
+   },
+   {
+    "ms": 2706,
+    "early": false,
+    "steps": {
+     "encode": 60,
+     "ml": 67,
+     "nearest": 164,
+     "neighbours": 234,
+     "keyword": 251,
+     "vector": 284,
+     "mix": 284,
+     "cards": 360,
+     "llm-first": 1919,
+     "llm-done": 2703
+    }
+   },
+   {
+    "ms": 4443,
+    "early": false,
+    "steps": {
+     "encode": 116,
+     "ml": 124,
+     "nearest": 233,
+     "neighbours": 234,
+     "keyword": 285,
+     "vector": 326,
+     "mix": 327,
+     "cards": 401,
+     "llm-first": 1840,
+     "llm-done": 4440
+    }
+   },
+   {
+    "ms": 2328,
+    "early": false,
+    "steps": {
+     "encode": 63,
+     "ml": 69,
+     "nearest": 166,
+     "neighbours": 166,
+     "keyword": 203,
+     "vector": 237,
+     "mix": 237,
+     "cards": 309,
+     "llm-first": 1181,
+     "llm-done": 2325
+    }
+   },
+   {
+    "ms": 4181,
+    "early": false,
+    "steps": {
+     "encode": 98,
+     "ml": 105,
+     "nearest": 201,
+     "neighbours": 202,
+     "keyword": 488,
+     "vector": 525,
+     "mix": 526,
+     "cards": 595,
+     "llm-first": 1490,
+     "llm-done": 4178
+    }
+   },
+   {
+    "ms": 2749,
+    "early": false,
+    "steps": {
+     "encode": 66,
+     "ml": 73,
+     "nearest": 173,
+     "neighbours": 175,
+     "keyword": 205,
+     "vector": 239,
+     "mix": 240,
+     "cards": 301,
+     "llm-first": 1655,
+     "llm-done": 2747
+    }
+   },
+   {
+    "ms": 4109,
+    "early": false,
+    "steps": {
+     "encode": 135,
+     "ml": 141,
+     "nearest": 238,
+     "neighbours": 239,
+     "keyword": 341,
+     "vector": 389,
+     "mix": 390,
+     "cards": 470,
+     "llm-first": 1404,
+     "llm-done": 4092
+    }
+   },
+   {
+    "ms": 4454,
+    "early": false,
+    "steps": {
+     "encode": 164,
+     "ml": 170,
+     "nearest": 266,
+     "neighbours": 334,
+     "keyword": 350,
+     "vector": 353,
+     "mix": 354,
+     "cards": 439,
+     "llm-first": 1754,
+     "llm-done": 4450
+    }
+   },
+   {
+    "ms": 4146,
+    "early": false,
+    "steps": {
+     "encode": 105,
+     "ml": 111,
+     "nearest": 209,
+     "neighbours": 229,
+     "keyword": 320,
+     "vector": 324,
+     "mix": 324,
+     "cards": 387,
+     "llm-first": 1375,
+     "llm-done": 4143
+    }
+   },
+   {
+    "ms": 4632,
+    "early": false,
+    "steps": {
+     "encode": 68,
+     "ml": 74,
+     "nearest": 171,
+     "neighbours": 171,
+     "keyword": 247,
+     "vector": 251,
+     "mix": 251,
+     "cards": 306,
+     "llm-first": 1716,
+     "llm-done": 4630
+    }
+   },
+   {
+    "ms": 4419,
+    "early": false,
+    "steps": {
+     "encode": 132,
+     "ml": 139,
+     "nearest": 236,
+     "neighbours": 236,
+     "keyword": 384,
+     "vector": 388,
+     "mix": 389,
+     "cards": 456,
+     "llm-first": 1548,
+     "llm-done": 4416
+    }
+   },
+   {
+    "ms": 4398,
+    "early": false,
+    "steps": {
+     "encode": 62,
+     "ml": 68,
+     "nearest": 165,
+     "neighbours": 165,
+     "keyword": 181,
+     "vector": 185,
+     "mix": 185,
+     "cards": 229,
+     "llm-first": 1278,
+     "llm-done": 4396
+    }
+   },
+   {
+    "ms": 3691,
+    "early": false,
+    "steps": {
+     "encode": 96,
+     "ml": 103,
+     "nearest": 199,
+     "neighbours": 280,
+     "keyword": 485,
+     "vector": 489,
+     "mix": 489,
+     "cards": 540,
+     "llm-first": 1979,
+     "llm-done": 3689
+    }
+   },
+   {
+    "ms": 4302,
+    "early": false,
+    "steps": {
+     "encode": 66,
+     "ml": 72,
+     "nearest": 169,
+     "neighbours": 169,
+     "keyword": 217,
+     "vector": 220,
+     "mix": 220,
+     "cards": 263,
+     "llm-first": 1561,
+     "llm-done": 4299
+    }
+   }
+  ],
+  "matched": true
+ },
+ "v1.19.0": {
+  "label": "v1.19.0",
+  "start": "2026-10-27T15:03:23.333003+00:00",
+  "rows": [
+   {
+    "q": "소설 말고 위로가 되는 책",
+    "words": 5,
+    "firstText": 4.214,
+    "wall": 7.145,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 6344,
+     "early": true,
+     "steps": {
+      "encode": 568,
+      "ml": 692,
+      "nearest": 873,
+      "neighbours": 1872,
+      "keyword": 1872,
+      "vector": 1891,
+      "mix": 1896,
+      "cards": 1966,
+      "llm-first": 3427,
+      "llm-done": 6333
+     }
+    }
+   },
+   {
+    "q": "사진",
+    "words": 1,
+    "firstText": 3.739,
+    "wall": 3.741,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 3229,
+     "early": true,
+     "steps": {
+      "encode": 131,
+      "ml": 137,
+      "nearest": 264,
+      "neighbours": 266,
+      "keyword": 266,
+      "vector": 272,
+      "mix": 273,
+      "cards": 319,
+      "llm-first": 2417,
+      "llm-done": 3221
+     }
+    }
+   },
+   {
+    "q": "자기계발서 말고 마음이 편해지는 에세이",
+    "words": 5,
+    "firstText": 2.177,
+    "wall": 5.098,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4568,
+     "early": true,
+     "steps": {
+      "encode": 127,
+      "ml": 144,
+      "nearest": 260,
+      "neighbours": 261,
+      "keyword": 485,
+      "vector": 493,
+      "mix": 494,
+      "cards": 547,
+      "llm-first": 1653,
+      "llm-done": 4564
+     }
+    }
+   },
+   {
+    "q": "음악",
+    "words": 1,
+    "firstText": 2.458,
+    "wall": 4.268,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3400,
+     "early": true,
+     "steps": {
+      "encode": 109,
+      "ml": 116,
+      "nearest": 213,
+      "neighbours": 214,
+      "keyword": 214,
+      "vector": 219,
+      "mix": 220,
+      "cards": 264,
+      "llm-first": 1447,
+      "llm-done": 3397
+     }
+    }
+   },
+   {
+    "q": "수식 없이 읽는 물리학 책",
+    "words": 5,
+    "firstText": 1.72,
+    "wall": 4.29,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3825,
+     "early": true,
+     "steps": {
+      "encode": 100,
+      "ml": 106,
+      "nearest": 203,
+      "neighbours": 204,
+      "keyword": 204,
+      "vector": 209,
+      "mix": 210,
+      "cards": 250,
+      "llm-first": 1250,
+      "llm-done": 3822
+     }
+    }
+   },
+   {
+    "q": "바다",
+    "words": 1,
+    "firstText": 3.228,
+    "wall": 3.229,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2389,
+     "early": true,
+     "steps": {
+      "encode": 80,
+      "ml": 87,
+      "nearest": 184,
+      "neighbours": 190,
+      "keyword": 191,
+      "vector": 194,
+      "mix": 195,
+      "cards": 238,
+      "llm-first": 1565,
+      "llm-done": 2386
+     }
+    }
+   },
+   {
+    "q": "번역서 말고 한국 작가가 쓴 경제 책",
+    "words": 7,
+    "firstText": 2.117,
+    "wall": 5.028,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4480,
+     "early": true,
+     "steps": {
+      "encode": 108,
+      "ml": 122,
+      "nearest": 238,
+      "neighbours": 335,
+      "keyword": 335,
+      "vector": 355,
+      "mix": 356,
+      "cards": 413,
+      "llm-first": 1567,
+      "llm-done": 4467
+     }
+    }
+   },
+   {
+    "q": "게임",
+    "words": 1,
+    "firstText": 2.558,
+    "wall": 2.559,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2129,
+     "early": true,
+     "steps": {
+      "encode": 75,
+      "ml": 81,
+      "nearest": 184,
+      "neighbours": 185,
+      "keyword": 185,
+      "vector": 189,
+      "mix": 190,
+      "cards": 230,
+      "llm-first": 1111,
+      "llm-done": 2125
+     }
+    }
+   },
+   {
+    "q": "공포 말고 따뜻한 판타지 소설",
+    "words": 5,
+    "firstText": 2.259,
+    "wall": 4.449,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3933,
+     "early": true,
+     "steps": {
+      "encode": 128,
+      "ml": 143,
+      "nearest": 354,
+      "neighbours": 356,
+      "keyword": 393,
+      "vector": 397,
+      "mix": 398,
+      "cards": 432,
+      "llm-first": 1746,
+      "llm-done": 3929
+     }
+    }
+   },
+   {
+    "q": "커피",
+    "words": 1,
+    "firstText": 3.188,
+    "wall": 3.19,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2273,
+     "early": true,
+     "steps": {
+      "encode": 70,
+      "ml": 76,
+      "nearest": 180,
+      "neighbours": 182,
+      "keyword": 182,
+      "vector": 186,
+      "mix": 187,
+      "cards": 228,
+      "llm-first": 1464,
+      "llm-done": 2270
+     }
+    }
+   },
+   {
+    "q": "어린이책 말고 어른이 보는 그림책",
+    "words": 5,
+    "firstText": 2.205,
+    "wall": 4.927,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4187,
+     "early": true,
+     "steps": {
+      "encode": 135,
+      "ml": 143,
+      "nearest": 254,
+      "neighbours": 254,
+      "keyword": 254,
+      "vector": 290,
+      "mix": 291,
+      "cards": 332,
+      "llm-first": 1469,
+      "llm-done": 4184
+     }
+    }
+   },
+   {
+    "q": "로마",
+    "words": 1,
+    "firstText": 2.958,
+    "wall": 2.959,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2166,
+     "early": true,
+     "steps": {
+      "encode": 68,
+      "ml": 74,
+      "nearest": 171,
+      "neighbours": 172,
+      "keyword": 172,
+      "vector": 205,
+      "mix": 206,
+      "cards": 250,
+      "llm-first": 1463,
+      "llm-done": 2163
+     }
+    }
+   },
+   {
+    "q": "출근길 지하철에서 가볍게 읽을 과학책",
+    "words": 5,
+    "firstText": 2.596,
+    "wall": 5.697,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4841,
+     "early": true,
+     "steps": {
+      "encode": 97,
+      "ml": 106,
+      "nearest": 203,
+      "neighbours": 269,
+      "keyword": 269,
+      "vector": 306,
+      "mix": 306,
+      "cards": 343,
+      "llm-first": 1745,
+      "llm-done": 4839
+     }
+    }
+   },
+   {
+    "q": "전쟁",
+    "words": 1,
+    "firstText": 2.959,
+    "wall": 2.96,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2579,
+     "early": true,
+     "steps": {
+      "encode": 72,
+      "ml": 79,
+      "nearest": 182,
+      "neighbours": 182,
+      "keyword": 182,
+      "vector": 216,
+      "mix": 217,
+      "cards": 249,
+      "llm-first": 1320,
+      "llm-done": 2573
+     }
+    }
+   },
+   {
+    "q": "기분 전환이 되는 웃긴 소설",
+    "words": 5,
+    "firstText": 1.647,
+    "wall": 4.088,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3696,
+     "early": true,
+     "steps": {
+      "encode": 86,
+      "ml": 93,
+      "nearest": 190,
+      "neighbours": 191,
+      "keyword": 337,
+      "vector": 375,
+      "mix": 376,
+      "cards": 410,
+      "llm-first": 1266,
+      "llm-done": 3693
+     }
+    }
+   },
+   {
+    "q": "엄마",
+    "words": 1,
+    "firstText": 2.778,
+    "wall": 2.779,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2375,
+     "early": true,
+     "steps": {
+      "encode": 64,
+      "ml": 70,
+      "nearest": 167,
+      "neighbours": 170,
+      "keyword": 170,
+      "vector": 205,
+      "mix": 206,
+      "cards": 237,
+      "llm-first": 1487,
+      "llm-done": 2372
+     }
+    }
+   },
+   {
+    "q": "경제를 처음 공부하는 사람을 위한 책",
+    "words": 6,
+    "firstText": 2.559,
+    "wall": 5.338,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4872,
+     "early": true,
+     "steps": {
+      "encode": 88,
+      "ml": 101,
+      "nearest": 251,
+      "neighbours": 251,
+      "keyword": 251,
+      "vector": 299,
+      "mix": 300,
+      "cards": 339,
+      "llm-first": 2100,
+      "llm-done": 4870
+     }
+    }
+   },
+   {
+    "q": "자바스크립트",
+    "words": 1,
+    "firstText": 2.47,
+    "wall": 5.549,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4705,
+     "early": true,
+     "steps": {
+      "encode": 73,
+      "ml": 79,
+      "nearest": 176,
+      "neighbours": 177,
+      "keyword": 177,
+      "vector": 203,
+      "mix": 204,
+      "cards": 253,
+      "llm-first": 1482,
+      "llm-done": 4702
+     }
+    }
+   },
+   {
+    "q": "회사에서 글쓰기 실력을 늘리는 책",
+    "words": 5,
+    "firstText": 2.559,
+    "wall": 5.639,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 5263,
+     "early": true,
+     "steps": {
+      "encode": 123,
+      "ml": 129,
+      "nearest": 226,
+      "neighbours": 291,
+      "keyword": 291,
+      "vector": 335,
+      "mix": 335,
+      "cards": 368,
+      "llm-first": 2180,
+      "llm-done": 5260
+     }
+    }
+   },
+   {
+    "q": "주식 투자",
+    "words": 2,
+    "firstText": 2.579,
+    "wall": 5.13,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4592,
+     "early": true,
+     "steps": {
+      "encode": 57,
+      "ml": 64,
+      "nearest": 162,
+      "neighbours": 163,
+      "keyword": 163,
+      "vector": 199,
+      "mix": 200,
+      "cards": 231,
+      "llm-first": 1568,
+      "llm-done": 4588
+     }
+    }
+   },
+   {
+    "q": "여행 가서 읽을, 너무 무겁지 않은 인문학 책",
+    "words": 8,
+    "firstText": 2.232,
+    "wall": 4.749,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4255,
+     "early": true,
+     "steps": {
+      "encode": 105,
+      "ml": 113,
+      "nearest": 214,
+      "neighbours": 215,
+      "keyword": 215,
+      "vector": 264,
+      "mix": 265,
+      "cards": 307,
+      "llm-first": 1736,
+      "llm-done": 4251
+     }
+    }
+   },
+   {
+    "q": "다이어트",
+    "words": 1,
+    "firstText": 2.8,
+    "wall": 5.57,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4770,
+     "early": true,
+     "steps": {
+      "encode": 57,
+      "ml": 63,
+      "nearest": 160,
+      "neighbours": 161,
+      "keyword": 161,
+      "vector": 205,
+      "mix": 206,
+      "cards": 235,
+      "llm-first": 1960,
+      "llm-done": 4768
+     }
+    }
+   },
+   {
+    "q": "미래 소비 트렌드와 경제적 자산 관리",
+    "words": 6,
+    "firstText": 2.428,
+    "wall": 4.177,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3700,
+     "early": true,
+     "steps": {
+      "encode": 90,
+      "ml": 97,
+      "nearest": 199,
+      "neighbours": 215,
+      "keyword": 229,
+      "vector": 279,
+      "mix": 279,
+      "cards": 307,
+      "llm-first": 1957,
+      "llm-done": 3698
+     }
+    }
+   },
+   {
+    "q": "영어 회화",
+    "words": 2,
+    "firstText": 2.939,
+    "wall": 5.899,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 5116,
+     "early": true,
+     "steps": {
+      "encode": 69,
+      "ml": 75,
+      "nearest": 172,
+      "neighbours": 234,
+      "keyword": 234,
+      "vector": 263,
+      "mix": 264,
+      "cards": 297,
+      "llm-first": 2107,
+      "llm-done": 5112
+     }
+    }
+   }
+  ],
+  "server_lines": [
+   {
+    "ms": 6344,
+    "early": true,
+    "steps": {
+     "encode": 568,
+     "ml": 692,
+     "nearest": 873,
+     "neighbours": 1872,
+     "keyword": 1872,
+     "vector": 1891,
+     "mix": 1896,
+     "cards": 1966,
+     "llm-first": 3427,
+     "llm-done": 6333
+    }
+   },
+   {
+    "ms": 3229,
+    "early": true,
+    "steps": {
+     "encode": 131,
+     "ml": 137,
+     "nearest": 264,
+     "neighbours": 266,
+     "keyword": 266,
+     "vector": 272,
+     "mix": 273,
+     "cards": 319,
+     "llm-first": 2417,
+     "llm-done": 3221
+    }
+   },
+   {
+    "ms": 4568,
+    "early": true,
+    "steps": {
+     "encode": 127,
+     "ml": 144,
+     "nearest": 260,
+     "neighbours": 261,
+     "keyword": 485,
+     "vector": 493,
+     "mix": 494,
+     "cards": 547,
+     "llm-first": 1653,
+     "llm-done": 4564
+    }
+   },
+   {
+    "ms": 3400,
+    "early": true,
+    "steps": {
+     "encode": 109,
+     "ml": 116,
+     "nearest": 213,
+     "neighbours": 214,
+     "keyword": 214,
+     "vector": 219,
+     "mix": 220,
+     "cards": 264,
+     "llm-first": 1447,
+     "llm-done": 3397
+    }
+   },
+   {
+    "ms": 3825,
+    "early": true,
+    "steps": {
+     "encode": 100,
+     "ml": 106,
+     "nearest": 203,
+     "neighbours": 204,
+     "keyword": 204,
+     "vector": 209,
+     "mix": 210,
+     "cards": 250,
+     "llm-first": 1250,
+     "llm-done": 3822
+    }
+   },
+   {
+    "ms": 2389,
+    "early": true,
+    "steps": {
+     "encode": 80,
+     "ml": 87,
+     "nearest": 184,
+     "neighbours": 190,
+     "keyword": 191,
+     "vector": 194,
+     "mix": 195,
+     "cards": 238,
+     "llm-first": 1565,
+     "llm-done": 2386
+    }
+   },
+   {
+    "ms": 4480,
+    "early": true,
+    "steps": {
+     "encode": 108,
+     "ml": 122,
+     "nearest": 238,
+     "neighbours": 335,
+     "keyword": 335,
+     "vector": 355,
+     "mix": 356,
+     "cards": 413,
+     "llm-first": 1567,
+     "llm-done": 4467
+    }
+   },
+   {
+    "ms": 2129,
+    "early": true,
+    "steps": {
+     "encode": 75,
+     "ml": 81,
+     "nearest": 184,
+     "neighbours": 185,
+     "keyword": 185,
+     "vector": 189,
+     "mix": 190,
+     "cards": 230,
+     "llm-first": 1111,
+     "llm-done": 2125
+    }
+   },
+   {
+    "ms": 3933,
+    "early": true,
+    "steps": {
+     "encode": 128,
+     "ml": 143,
+     "nearest": 354,
+     "neighbours": 356,
+     "keyword": 393,
+     "vector": 397,
+     "mix": 398,
+     "cards": 432,
+     "llm-first": 1746,
+     "llm-done": 3929
+    }
+   },
+   {
+    "ms": 2273,
+    "early": true,
+    "steps": {
+     "encode": 70,
+     "ml": 76,
+     "nearest": 180,
+     "neighbours": 182,
+     "keyword": 182,
+     "vector": 186,
+     "mix": 187,
+     "cards": 228,
+     "llm-first": 1464,
+     "llm-done": 2270
+    }
+   },
+   {
+    "ms": 4187,
+    "early": true,
+    "steps": {
+     "encode": 135,
+     "ml": 143,
+     "nearest": 254,
+     "neighbours": 254,
+     "keyword": 254,
+     "vector": 290,
+     "mix": 291,
+     "cards": 332,
+     "llm-first": 1469,
+     "llm-done": 4184
+    }
+   },
+   {
+    "ms": 2166,
+    "early": true,
+    "steps": {
+     "encode": 68,
+     "ml": 74,
+     "nearest": 171,
+     "neighbours": 172,
+     "keyword": 172,
+     "vector": 205,
+     "mix": 206,
+     "cards": 250,
+     "llm-first": 1463,
+     "llm-done": 2163
+    }
+   },
+   {
+    "ms": 4841,
+    "early": true,
+    "steps": {
+     "encode": 97,
+     "ml": 106,
+     "nearest": 203,
+     "neighbours": 269,
+     "keyword": 269,
+     "vector": 306,
+     "mix": 306,
+     "cards": 343,
+     "llm-first": 1745,
+     "llm-done": 4839
+    }
+   },
+   {
+    "ms": 2579,
+    "early": true,
+    "steps": {
+     "encode": 72,
+     "ml": 79,
+     "nearest": 182,
+     "neighbours": 182,
+     "keyword": 182,
+     "vector": 216,
+     "mix": 217,
+     "cards": 249,
+     "llm-first": 1320,
+     "llm-done": 2573
+    }
+   },
+   {
+    "ms": 3696,
+    "early": true,
+    "steps": {
+     "encode": 86,
+     "ml": 93,
+     "nearest": 190,
+     "neighbours": 191,
+     "keyword": 337,
+     "vector": 375,
+     "mix": 376,
+     "cards": 410,
+     "llm-first": 1266,
+     "llm-done": 3693
+    }
+   },
+   {
+    "ms": 2375,
+    "early": true,
+    "steps": {
+     "encode": 64,
+     "ml": 70,
+     "nearest": 167,
+     "neighbours": 170,
+     "keyword": 170,
+     "vector": 205,
+     "mix": 206,
+     "cards": 237,
+     "llm-first": 1487,
+     "llm-done": 2372
+    }
+   },
+   {
+    "ms": 4872,
+    "early": true,
+    "steps": {
+     "encode": 88,
+     "ml": 101,
+     "nearest": 251,
+     "neighbours": 251,
+     "keyword": 251,
+     "vector": 299,
+     "mix": 300,
+     "cards": 339,
+     "llm-first": 2100,
+     "llm-done": 4870
+    }
+   },
+   {
+    "ms": 4705,
+    "early": true,
+    "steps": {
+     "encode": 73,
+     "ml": 79,
+     "nearest": 176,
+     "neighbours": 177,
+     "keyword": 177,
+     "vector": 203,
+     "mix": 204,
+     "cards": 253,
+     "llm-first": 1482,
+     "llm-done": 4702
+    }
+   },
+   {
+    "ms": 5263,
+    "early": true,
+    "steps": {
+     "encode": 123,
+     "ml": 129,
+     "nearest": 226,
+     "neighbours": 291,
+     "keyword": 291,
+     "vector": 335,
+     "mix": 335,
+     "cards": 368,
+     "llm-first": 2180,
+     "llm-done": 5260
+    }
+   },
+   {
+    "ms": 4592,
+    "early": true,
+    "steps": {
+     "encode": 57,
+     "ml": 64,
+     "nearest": 162,
+     "neighbours": 163,
+     "keyword": 163,
+     "vector": 199,
+     "mix": 200,
+     "cards": 231,
+     "llm-first": 1568,
+     "llm-done": 4588
+    }
+   },
+   {
+    "ms": 4255,
+    "early": true,
+    "steps": {
+     "encode": 105,
+     "ml": 113,
+     "nearest": 214,
+     "neighbours": 215,
+     "keyword": 215,
+     "vector": 264,
+     "mix": 265,
+     "cards": 307,
+     "llm-first": 1736,
+     "llm-done": 4251
+    }
+   },
+   {
+    "ms": 4770,
+    "early": true,
+    "steps": {
+     "encode": 57,
+     "ml": 63,
+     "nearest": 160,
+     "neighbours": 161,
+     "keyword": 161,
+     "vector": 205,
+     "mix": 206,
+     "cards": 235,
+     "llm-first": 1960,
+     "llm-done": 4768
+    }
+   },
+   {
+    "ms": 3700,
+    "early": true,
+    "steps": {
+     "encode": 90,
+     "ml": 97,
+     "nearest": 199,
+     "neighbours": 215,
+     "keyword": 229,
+     "vector": 279,
+     "mix": 279,
+     "cards": 307,
+     "llm-first": 1957,
+     "llm-done": 3698
+    }
+   },
+   {
+    "ms": 5116,
+    "early": true,
+    "steps": {
+     "encode": 69,
+     "ml": 75,
+     "nearest": 172,
+     "neighbours": 234,
+     "keyword": 234,
+     "vector": 263,
+     "mix": 264,
+     "cards": 297,
+     "llm-first": 2107,
+     "llm-done": 5112
+    }
+   }
+  ],
+  "matched": true
+ },
+ "v1.19.0-r2": {
+  "label": "v1.19.0-r2",
+  "start": "2026-10-27T15:08:29.769505+00:00",
+  "rows": [
+   {
+    "q": "소설 말고 위로가 되는 책",
+    "words": 5,
+    "firstText": 1.977,
+    "wall": 4.678,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4163,
+     "early": true,
+     "steps": {
+      "encode": 94,
+      "ml": 101,
+      "nearest": 201,
+      "neighbours": 201,
+      "keyword": 368,
+      "vector": 410,
+      "mix": 410,
+      "cards": 413,
+      "llm-first": 1465,
+      "llm-done": 4160
+     }
+    }
+   },
+   {
+    "q": "사진",
+    "words": 1,
+    "firstText": 2.538,
+    "wall": 2.539,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 1696,
+     "early": true,
+     "steps": {
+      "encode": 103,
+      "ml": 110,
+      "nearest": 207,
+      "neighbours": 207,
+      "keyword": 207,
+      "vector": 223,
+      "mix": 224,
+      "cards": 227,
+      "llm-first": 1281,
+      "llm-done": 1693
+     }
+    }
+   },
+   {
+    "q": "자기계발서 말고 마음이 편해지는 에세이",
+    "words": 5,
+    "firstText": 2.078,
+    "wall": 4.75,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4204,
+     "early": true,
+     "steps": {
+      "encode": 94,
+      "ml": 101,
+      "nearest": 198,
+      "neighbours": 273,
+      "keyword": 448,
+      "vector": 454,
+      "mix": 454,
+      "cards": 459,
+      "llm-first": 1528,
+      "llm-done": 4201
+     }
+    }
+   },
+   {
+    "q": "음악",
+    "words": 1,
+    "firstText": 1.849,
+    "wall": 3.638,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3246,
+     "early": true,
+     "steps": {
+      "encode": 59,
+      "ml": 66,
+      "nearest": 163,
+      "neighbours": 163,
+      "keyword": 163,
+      "vector": 200,
+      "mix": 201,
+      "cards": 206,
+      "llm-first": 1333,
+      "llm-done": 3243
+     }
+    }
+   },
+   {
+    "q": "수식 없이 읽는 물리학 책",
+    "words": 5,
+    "firstText": 2.452,
+    "wall": 5.777,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4848,
+     "early": true,
+     "steps": {
+      "encode": 100,
+      "ml": 112,
+      "nearest": 248,
+      "neighbours": 249,
+      "keyword": 249,
+      "vector": 292,
+      "mix": 293,
+      "cards": 296,
+      "llm-first": 1522,
+      "llm-done": 4844
+     }
+    }
+   },
+   {
+    "q": "바다",
+    "words": 1,
+    "firstText": 3.022,
+    "wall": 3.032,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2217,
+     "early": true,
+     "steps": {
+      "encode": 66,
+      "ml": 73,
+      "nearest": 170,
+      "neighbours": 172,
+      "keyword": 172,
+      "vector": 202,
+      "mix": 203,
+      "cards": 207,
+      "llm-first": 1403,
+      "llm-done": 2215
+     }
+    }
+   },
+   {
+    "q": "번역서 말고 한국 작가가 쓴 경제 책",
+    "words": 7,
+    "firstText": 2.124,
+    "wall": 4.759,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4251,
+     "early": true,
+     "steps": {
+      "encode": 90,
+      "ml": 96,
+      "nearest": 194,
+      "neighbours": 197,
+      "keyword": 291,
+      "vector": 335,
+      "mix": 336,
+      "cards": 339,
+      "llm-first": 1608,
+      "llm-done": 4248
+     }
+    }
+   },
+   {
+    "q": "게임",
+    "words": 1,
+    "firstText": 2.568,
+    "wall": 2.57,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2042,
+     "early": true,
+     "steps": {
+      "encode": 65,
+      "ml": 72,
+      "nearest": 169,
+      "neighbours": 170,
+      "keyword": 171,
+      "vector": 201,
+      "mix": 203,
+      "cards": 206,
+      "llm-first": 1124,
+      "llm-done": 2039
+     }
+    }
+   },
+   {
+    "q": "공포 말고 따뜻한 판타지 소설",
+    "words": 5,
+    "firstText": 1.955,
+    "wall": 4.157,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3700,
+     "early": true,
+     "steps": {
+      "encode": 79,
+      "ml": 87,
+      "nearest": 190,
+      "neighbours": 264,
+      "keyword": 350,
+      "vector": 356,
+      "mix": 357,
+      "cards": 363,
+      "llm-first": 1504,
+      "llm-done": 3697
+     }
+    }
+   },
+   {
+    "q": "커피",
+    "words": 1,
+    "firstText": 3.179,
+    "wall": 3.18,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2379,
+     "early": true,
+     "steps": {
+      "encode": 62,
+      "ml": 69,
+      "nearest": 166,
+      "neighbours": 168,
+      "keyword": 168,
+      "vector": 201,
+      "mix": 201,
+      "cards": 206,
+      "llm-first": 1403,
+      "llm-done": 2377
+     }
+    }
+   },
+   {
+    "q": "어린이책 말고 어른이 보는 그림책",
+    "words": 5,
+    "firstText": 2.078,
+    "wall": 4.909,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4121,
+     "early": true,
+     "steps": {
+      "encode": 79,
+      "ml": 86,
+      "nearest": 183,
+      "neighbours": 184,
+      "keyword": 184,
+      "vector": 218,
+      "mix": 219,
+      "cards": 222,
+      "llm-first": 1293,
+      "llm-done": 4117
+     }
+    }
+   },
+   {
+    "q": "로마",
+    "words": 1,
+    "firstText": 2.608,
+    "wall": 2.609,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2075,
+     "early": true,
+     "steps": {
+      "encode": 61,
+      "ml": 67,
+      "nearest": 164,
+      "neighbours": 165,
+      "keyword": 165,
+      "vector": 198,
+      "mix": 198,
+      "cards": 202,
+      "llm-first": 1337,
+      "llm-done": 2073
+     }
+    }
+   },
+   {
+    "q": "출근길 지하철에서 가볍게 읽을 과학책",
+    "words": 5,
+    "firstText": 1.838,
+    "wall": 4.959,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4564,
+     "early": true,
+     "steps": {
+      "encode": 96,
+      "ml": 102,
+      "nearest": 199,
+      "neighbours": 199,
+      "keyword": 200,
+      "vector": 236,
+      "mix": 237,
+      "cards": 240,
+      "llm-first": 1450,
+      "llm-done": 4558
+     }
+    }
+   },
+   {
+    "q": "전쟁",
+    "words": 1,
+    "firstText": 2.58,
+    "wall": 2.58,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2132,
+     "early": true,
+     "steps": {
+      "encode": 68,
+      "ml": 75,
+      "nearest": 171,
+      "neighbours": 172,
+      "keyword": 172,
+      "vector": 206,
+      "mix": 206,
+      "cards": 210,
+      "llm-first": 1094,
+      "llm-done": 2127
+     }
+    }
+   },
+   {
+    "q": "기분 전환이 되는 웃긴 소설",
+    "words": 5,
+    "firstText": 1.727,
+    "wall": 4.888,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4381,
+     "early": true,
+     "steps": {
+      "encode": 78,
+      "ml": 84,
+      "nearest": 184,
+      "neighbours": 254,
+      "keyword": 341,
+      "vector": 345,
+      "mix": 346,
+      "cards": 349,
+      "llm-first": 1222,
+      "llm-done": 4378
+     }
+    }
+   },
+   {
+    "q": "엄마",
+    "words": 1,
+    "firstText": 3.429,
+    "wall": 3.43,
+    "ask": true,
+    "result": "asked",
+    "server": {
+     "ms": 2647,
+     "early": true,
+     "steps": {
+      "encode": 53,
+      "ml": 59,
+      "nearest": 158,
+      "neighbours": 159,
+      "keyword": 159,
+      "vector": 193,
+      "mix": 194,
+      "cards": 197,
+      "llm-first": 1495,
+      "llm-done": 2644
+     }
+    }
+   },
+   {
+    "q": "경제를 처음 공부하는 사람을 위한 책",
+    "words": 6,
+    "firstText": 2.218,
+    "wall": 4.598,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3770,
+     "early": true,
+     "steps": {
+      "encode": 74,
+      "ml": 82,
+      "nearest": 180,
+      "neighbours": 180,
+      "keyword": 180,
+      "vector": 228,
+      "mix": 228,
+      "cards": 232,
+      "llm-first": 1385,
+      "llm-done": 3767
+     }
+    }
+   },
+   {
+    "q": "자바스크립트",
+    "words": 1,
+    "firstText": 2.398,
+    "wall": 4.09,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3336,
+     "early": true,
+     "steps": {
+      "encode": 62,
+      "ml": 68,
+      "nearest": 165,
+      "neighbours": 165,
+      "keyword": 165,
+      "vector": 192,
+      "mix": 192,
+      "cards": 196,
+      "llm-first": 1493,
+      "llm-done": 3333
+     }
+    }
+   },
+   {
+    "q": "회사에서 글쓰기 실력을 늘리는 책",
+    "words": 5,
+    "firstText": 2.088,
+    "wall": 4.688,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4235,
+     "early": true,
+     "steps": {
+      "encode": 80,
+      "ml": 92,
+      "nearest": 190,
+      "neighbours": 191,
+      "keyword": 191,
+      "vector": 234,
+      "mix": 235,
+      "cards": 238,
+      "llm-first": 1634,
+      "llm-done": 4233
+     }
+    }
+   },
+   {
+    "q": "주식 투자",
+    "words": 2,
+    "firstText": 2.017,
+    "wall": 4.838,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 4342,
+     "early": true,
+     "steps": {
+      "encode": 53,
+      "ml": 60,
+      "nearest": 156,
+      "neighbours": 157,
+      "keyword": 157,
+      "vector": 193,
+      "mix": 194,
+      "cards": 198,
+      "llm-first": 1385,
+      "llm-done": 4340
+     }
+    }
+   },
+   {
+    "q": "여행 가서 읽을, 너무 무겁지 않은 인문학 책",
+    "words": 8,
+    "firstText": 2.01,
+    "wall": 4.239,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3398,
+     "early": true,
+     "steps": {
+      "encode": 96,
+      "ml": 102,
+      "nearest": 199,
+      "neighbours": 269,
+      "keyword": 269,
+      "vector": 306,
+      "mix": 306,
+      "cards": 308,
+      "llm-first": 1173,
+      "llm-done": 3396
+     }
+    }
+   },
+   {
+    "q": "다이어트",
+    "words": 1,
+    "firstText": 1.938,
+    "wall": 3.731,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3248,
+     "early": true,
+     "steps": {
+      "encode": 56,
+      "ml": 62,
+      "nearest": 159,
+      "neighbours": 160,
+      "keyword": 160,
+      "vector": 204,
+      "mix": 204,
+      "cards": 207,
+      "llm-first": 1213,
+      "llm-done": 3246
+     }
+    }
+   },
+   {
+    "q": "미래 소비 트렌드와 경제적 자산 관리",
+    "words": 6,
+    "firstText": 2.047,
+    "wall": 3.983,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 3217,
+     "early": true,
+     "steps": {
+      "encode": 85,
+      "ml": 92,
+      "nearest": 191,
+      "neighbours": 211,
+      "keyword": 224,
+      "vector": 274,
+      "mix": 275,
+      "cards": 279,
+      "llm-first": 1285,
+      "llm-done": 3215
+     }
+    }
+   },
+   {
+    "q": "영어 회화",
+    "words": 2,
+    "firstText": 2.033,
+    "wall": 9.254,
+    "ask": false,
+    "result": "ok",
+    "server": {
+     "ms": 8743,
+     "early": true,
+     "steps": {
+      "encode": 61,
+      "ml": 67,
+      "nearest": 164,
+      "neighbours": 165,
+      "keyword": 165,
+      "vector": 195,
+      "mix": 195,
+      "cards": 200,
+      "llm-first": 1394,
+      "llm-done": 8741
+     }
+    }
+   }
+  ],
+  "server_lines": [
+   {
+    "ms": 4163,
+    "early": true,
+    "steps": {
+     "encode": 94,
+     "ml": 101,
+     "nearest": 201,
+     "neighbours": 201,
+     "keyword": 368,
+     "vector": 410,
+     "mix": 410,
+     "cards": 413,
+     "llm-first": 1465,
+     "llm-done": 4160
+    }
+   },
+   {
+    "ms": 1696,
+    "early": true,
+    "steps": {
+     "encode": 103,
+     "ml": 110,
+     "nearest": 207,
+     "neighbours": 207,
+     "keyword": 207,
+     "vector": 223,
+     "mix": 224,
+     "cards": 227,
+     "llm-first": 1281,
+     "llm-done": 1693
+    }
+   },
+   {
+    "ms": 4204,
+    "early": true,
+    "steps": {
+     "encode": 94,
+     "ml": 101,
+     "nearest": 198,
+     "neighbours": 273,
+     "keyword": 448,
+     "vector": 454,
+     "mix": 454,
+     "cards": 459,
+     "llm-first": 1528,
+     "llm-done": 4201
+    }
+   },
+   {
+    "ms": 3246,
+    "early": true,
+    "steps": {
+     "encode": 59,
+     "ml": 66,
+     "nearest": 163,
+     "neighbours": 163,
+     "keyword": 163,
+     "vector": 200,
+     "mix": 201,
+     "cards": 206,
+     "llm-first": 1333,
+     "llm-done": 3243
+    }
+   },
+   {
+    "ms": 4848,
+    "early": true,
+    "steps": {
+     "encode": 100,
+     "ml": 112,
+     "nearest": 248,
+     "neighbours": 249,
+     "keyword": 249,
+     "vector": 292,
+     "mix": 293,
+     "cards": 296,
+     "llm-first": 1522,
+     "llm-done": 4844
+    }
+   },
+   {
+    "ms": 2217,
+    "early": true,
+    "steps": {
+     "encode": 66,
+     "ml": 73,
+     "nearest": 170,
+     "neighbours": 172,
+     "keyword": 172,
+     "vector": 202,
+     "mix": 203,
+     "cards": 207,
+     "llm-first": 1403,
+     "llm-done": 2215
+    }
+   },
+   {
+    "ms": 4251,
+    "early": true,
+    "steps": {
+     "encode": 90,
+     "ml": 96,
+     "nearest": 194,
+     "neighbours": 197,
+     "keyword": 291,
+     "vector": 335,
+     "mix": 336,
+     "cards": 339,
+     "llm-first": 1608,
+     "llm-done": 4248
+    }
+   },
+   {
+    "ms": 2042,
+    "early": true,
+    "steps": {
+     "encode": 65,
+     "ml": 72,
+     "nearest": 169,
+     "neighbours": 170,
+     "keyword": 171,
+     "vector": 201,
+     "mix": 203,
+     "cards": 206,
+     "llm-first": 1124,
+     "llm-done": 2039
+    }
+   },
+   {
+    "ms": 3700,
+    "early": true,
+    "steps": {
+     "encode": 79,
+     "ml": 87,
+     "nearest": 190,
+     "neighbours": 264,
+     "keyword": 350,
+     "vector": 356,
+     "mix": 357,
+     "cards": 363,
+     "llm-first": 1504,
+     "llm-done": 3697
+    }
+   },
+   {
+    "ms": 2379,
+    "early": true,
+    "steps": {
+     "encode": 62,
+     "ml": 69,
+     "nearest": 166,
+     "neighbours": 168,
+     "keyword": 168,
+     "vector": 201,
+     "mix": 201,
+     "cards": 206,
+     "llm-first": 1403,
+     "llm-done": 2377
+    }
+   },
+   {
+    "ms": 4121,
+    "early": true,
+    "steps": {
+     "encode": 79,
+     "ml": 86,
+     "nearest": 183,
+     "neighbours": 184,
+     "keyword": 184,
+     "vector": 218,
+     "mix": 219,
+     "cards": 222,
+     "llm-first": 1293,
+     "llm-done": 4117
+    }
+   },
+   {
+    "ms": 2075,
+    "early": true,
+    "steps": {
+     "encode": 61,
+     "ml": 67,
+     "nearest": 164,
+     "neighbours": 165,
+     "keyword": 165,
+     "vector": 198,
+     "mix": 198,
+     "cards": 202,
+     "llm-first": 1337,
+     "llm-done": 2073
+    }
+   },
+   {
+    "ms": 4564,
+    "early": true,
+    "steps": {
+     "encode": 96,
+     "ml": 102,
+     "nearest": 199,
+     "neighbours": 199,
+     "keyword": 200,
+     "vector": 236,
+     "mix": 237,
+     "cards": 240,
+     "llm-first": 1450,
+     "llm-done": 4558
+    }
+   },
+   {
+    "ms": 2132,
+    "early": true,
+    "steps": {
+     "encode": 68,
+     "ml": 75,
+     "nearest": 171,
+     "neighbours": 172,
+     "keyword": 172,
+     "vector": 206,
+     "mix": 206,
+     "cards": 210,
+     "llm-first": 1094,
+     "llm-done": 2127
+    }
+   },
+   {
+    "ms": 4381,
+    "early": true,
+    "steps": {
+     "encode": 78,
+     "ml": 84,
+     "nearest": 184,
+     "neighbours": 254,
+     "keyword": 341,
+     "vector": 345,
+     "mix": 346,
+     "cards": 349,
+     "llm-first": 1222,
+     "llm-done": 4378
+    }
+   },
+   {
+    "ms": 2647,
+    "early": true,
+    "steps": {
+     "encode": 53,
+     "ml": 59,
+     "nearest": 158,
+     "neighbours": 159,
+     "keyword": 159,
+     "vector": 193,
+     "mix": 194,
+     "cards": 197,
+     "llm-first": 1495,
+     "llm-done": 2644
+    }
+   },
+   {
+    "ms": 3770,
+    "early": true,
+    "steps": {
+     "encode": 74,
+     "ml": 82,
+     "nearest": 180,
+     "neighbours": 180,
+     "keyword": 180,
+     "vector": 228,
+     "mix": 228,
+     "cards": 232,
+     "llm-first": 1385,
+     "llm-done": 3767
+    }
+   },
+   {
+    "ms": 3336,
+    "early": true,
+    "steps": {
+     "encode": 62,
+     "ml": 68,
+     "nearest": 165,
+     "neighbours": 165,
+     "keyword": 165,
+     "vector": 192,
+     "mix": 192,
+     "cards": 196,
+     "llm-first": 1493,
+     "llm-done": 3333
+    }
+   },
+   {
+    "ms": 4235,
+    "early": true,
+    "steps": {
+     "encode": 80,
+     "ml": 92,
+     "nearest": 190,
+     "neighbours": 191,
+     "keyword": 191,
+     "vector": 234,
+     "mix": 235,
+     "cards": 238,
+     "llm-first": 1634,
+     "llm-done": 4233
+    }
+   },
+   {
+    "ms": 4342,
+    "early": true,
+    "steps": {
+     "encode": 53,
+     "ml": 60,
+     "nearest": 156,
+     "neighbours": 157,
+     "keyword": 157,
+     "vector": 193,
+     "mix": 194,
+     "cards": 198,
+     "llm-first": 1385,
+     "llm-done": 4340
+    }
+   },
+   {
+    "ms": 3398,
+    "early": true,
+    "steps": {
+     "encode": 96,
+     "ml": 102,
+     "nearest": 199,
+     "neighbours": 269,
+     "keyword": 269,
+     "vector": 306,
+     "mix": 306,
+     "cards": 308,
+     "llm-first": 1173,
+     "llm-done": 3396
+    }
+   },
+   {
+    "ms": 3248,
+    "early": true,
+    "steps": {
+     "encode": 56,
+     "ml": 62,
+     "nearest": 159,
+     "neighbours": 160,
+     "keyword": 160,
+     "vector": 204,
+     "mix": 204,
+     "cards": 207,
+     "llm-first": 1213,
+     "llm-done": 3246
+    }
+   },
+   {
+    "ms": 3217,
+    "early": true,
+    "steps": {
+     "encode": 85,
+     "ml": 92,
+     "nearest": 191,
+     "neighbours": 211,
+     "keyword": 224,
+     "vector": 274,
+     "mix": 275,
+     "cards": 279,
+     "llm-first": 1285,
+     "llm-done": 3215
+    }
+   },
+   {
+    "ms": 8743,
+    "early": true,
+    "steps": {
+     "encode": 61,
+     "ml": 67,
+     "nearest": 164,
+     "neighbours": 165,
+     "keyword": 165,
+     "vector": 195,
+     "mix": 195,
+     "cards": 200,
+     "llm-first": 1394,
+     "llm-done": 8741
+    }
+   }
+  ],
+  "matched": true
+ }
+}
