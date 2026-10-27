@@ -3,7 +3,7 @@
 | 파일 | 하는 일 |
 |---|---|
 | `compose.yaml` | db + backend + web(nginx, `deploy/nginx/ec2-tunnel.conf`) + cloudflared. 포트는 서버 안(127.0.0.1)에만, 바깥은 Cloudflare Tunnel로만 |
-| `prod.env` | 비밀이 아닌 설정(공개 주소, 로그인·이용 기록 켜기) |
+| `prod.env` | 비밀이 아닌 설정(공개 주소, 로그인·이용 기록 켜기, AI 검색 스위치: 켜기·질문 벡터·1차 ML·이어 묻기·되묻기·생각 끄기·캐시, 「나에게 맞는 책」 만들기 `CHAEKCHECK_FORYOU_BUILD_ENABLED`). AI 검색 값은 `docs/maintenance/6-aisearch.md` 0절 |
 | `bin/up.sh` | 서버에서 띄우기. Parameter Store `/chaekcheck/prod/`를 EC2 역할로 읽어 `secrets.env`(600)를 쓰고 compose up. 손으로 둔 `secrets.env`가 있으면 그것을 씀 |
 | `bin/release.sh` | PC에서 한 버전을 배포(아래) |
 | `web.Dockerfile` | 화면 이미지 |

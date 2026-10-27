@@ -6328,7 +6328,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 - 소개 탭 IP 줄만 뺌. 쓰이지 않는 `GET /api/v1/regions/guess`·`SidoByIp`·`fetchSidoGuess`와 DB-IP 파일은 그대로 둠(지울지 plan 결정)
 - 질문 낱말이 「에세이」를 「에세」로 자르는 것은 평가 때와 같게 둠(낱말 맞춤은 부분 일치라 결과가 같음)
 
-### 배포 (24 세션에 넘김)
+### 배포 (24 세션에 넘김) (→ v1.16.0으로 운영 반영)
 
 - 모델 폴더에 `first-call-model.bin`·`book-profiles.tsv`를 더 올림(PC `chaekcheck-data\ml\aisearch-model\`, 서버 `/srv/chaekcheck/aisearch-model/`), prod.env `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`, 배포 뒤 시작 로그 `ai search first call: ml, 27227 book profiles`와 검색 로그 `first ml …` 확인
 
@@ -6341,9 +6341,9 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
   - 모듈 의존 더함: `aisearch` → `catalog`(`BookCards`로 후보의 출간 연도를 2차 Haiku에). `package-info.java` `allowedDependencies`와 `ModularityTests`를 고침
   - 2차 프롬프트(`PICK_SYSTEM`): 머리말·글에 책 정보의 한계를 쓰지 않음, 출간 연도를 「최근」 조건에 씀. 사용자 메시지 첫 줄이 「올해: YYYY년」, 책마다 「/ 출간: YYYY년」
   - 결정(사용자 2026-10-26 "잡담 답은 지금 고정 문구 그대로 두자"): 「고마워」 같은 잡담은 지금처럼 고정 문구(「맞는 책을 찾지 못했어요」), 모델 호출 없음
-- 배포(24 세션에 넘김): 모델 폴더에 `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`의 `first-call-model.bin`(바꿈)·`follow-up-model.bin`(새로), prod.env `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`. 배포 뒤 시작 로그 `follow-ups by relation`, 이어 묻는 검색 로그 `first ml BOOK continue` 확인
+- 배포(24 세션에 넘김) (→ v1.16.1로 운영 반영): 모델 폴더에 `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`의 `first-call-model.bin`(바꿈)·`follow-up-model.bin`(새로), prod.env `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`. 배포 뒤 시작 로그 `follow-ups by relation`, 이어 묻는 검색 로그 `first ml BOOK continue` 확인
 
-### 3번 이어지는 대화: 앞 주제 둘 합치기, 더한 조건 지키기 (2026-10-26, 같은 곁 세션, 브랜치 `claude/aisearch-combine`)
+### 3번 이어지는 대화: 앞 주제 둘 합치기, 더한 조건 지키기 (2026-10-26, 같은 곁 세션, 브랜치 `claude/aisearch-combine`) **운영 반영 v1.16.3**(2026-10-26)
 
 - 사용자: "이거 이어서 하고"(「위에 말한 두 개」, 「판타지 → 추리 → 두 개 섞은 느낌」), 「수학적인 것도 좀」에 「수식보다 실습 중심」 책이 나옴 → "수학적인 것이 없으면 제외, 조금 있으면 조금 있다고", "이런 것들도 합해서 보강해줘"
 - 설계 변경(plan에 기록할 것): 앞 질문 여러 개를 가리키는 말이 있으면 1차가 앞 질문 둘(또는 전부)을 이어 씀(신호 말 규칙 `EarlierTopics`, 모델 아님). 그런 질문과 조건을 더하는 continue는 앞에서 보인 책도 후보에 다시 넣음. 2차 `PICK_SYSTEM`에 합치기·반대 조건·앞 조건 지키기 줄
@@ -6485,7 +6485,7 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 
 ### 2차 에이전트 시제품 (2026-10-26, 원래 24 세션, 브랜치 `claude/aisearch-agent`, 꺼짐)
 
-**plan에 기록할 것: 설계 변경(ADR 필요)** — 2차를 한 번의 고르기 대신 도구를 쓰는 Haiku로(설정 `CHAEKCHECK_AISEARCH_PICK_MODE`, 기본 `single`). **코드는 브랜치에만, main에는 문서만**(사용자 2026-10-26 「에이전트는 끄고 문서만 main에」). 운영 방법은 브랜치의 `docs/maintenance/6-aisearch.md` 10절.
+**plan에 기록할 것: 설계 변경(ADR 필요)** — 2차를 한 번의 고르기 대신 도구를 쓰는 Haiku로(설정 `CHAEKCHECK_AISEARCH_PICK_MODE`, 기본 `single`). **코드는 브랜치에만, main에는 문서만**(사용자 2026-10-26 「에이전트는 끄고 문서만 main에」). 운영 방법은 브랜치 `claude/aisearch-agent`의 `docs/maintenance/6-aisearch.md` 10절(main의 10절은 v1.17.0 되묻기 절).
 
 - 사용자 결정: 계획 순서(1 기준 측정 → 2 이 시제품, 새 작업 공간·설정 뒤·화면은 시안 먼저 → 3 새 시험 세트로 전후 비교), "이거 개발하기 전에 안을 나한테 줘"(안을 보여 드림), "그냥 0권일 경우에 하는건?"(search_again은 맞는 책 0권일 때만), "그렇게 진행하자"
 - 로컬 확인(8097, 실제 Haiku, ML 1차·벡터 local, 이어 묻기 rule — PC 모델 폴더에 follow-up 모델 없음): 「잠들기 전 과학책」 첫 요청은 에이전트 턴이 15초(pick-timeout)를 넘겨 single로 넘어감(26.6초) — 차가운 시작으로 보임 [추론], 이후 answer 6~13초. 「llm인가」(앞: ai agent·인공지능) → `ask_user` 되묻기 + 답 3개(3.8초). 「위에 언급한 두 개에 관한 책」(되묻기 뒤) → answer 1장(AI 에이전트와 LLM을 함께 다룬 책). 「판타지 → 추리 → 두 개 섞은 느낌」 → 4장(운영 v1.16.2는 1장). 「1990년대 한국 PC통신 문화」 → `search_again>answer` 0장, 입력 토큰 21,288(두 턴). 「양자역학 대학원 교재」·「고양이 사진집」은 answer

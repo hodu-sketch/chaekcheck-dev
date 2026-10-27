@@ -29,8 +29,9 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * {@link LlmClient} for the Anthropic Messages API with the JDK {@code HttpClient} (cycle 24 handoff step 6, design
- * decision #5: no SDK). Structured output through {@code output_config.format} ({@code json_schema}); thinking is left
- * to the model's default (adaptive) and the depth is set with {@code output_config.effort} (step 1 measurement). The
+ * decision #5: no SDK). Structured output through {@code output_config.format} ({@code json_schema}); thinking follows
+ * {@code chaekcheck.aisearch.llm.anthropic.thinking} (empty = the model's default, adaptive; production disabled since
+ * v1.17.0) and the depth is set with {@code output_config.effort} (step 1 measurement). The
  * stream's server-sent events are read line by line: the input tokens come with {@code message_start}, the output
  * tokens with the last {@code message_delta} (cumulative), text with {@code content_block_delta}/{@code text_delta}.
  * Logs carry the status, the error type and the request id only; never the key, the instructions or the

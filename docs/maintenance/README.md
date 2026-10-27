@@ -14,7 +14,7 @@
 | ① 도서관 수집 | 수집 목록에서 찾기 → 확인 → 수집 → **넣기**(넣기 명령 `library-insert`: 미리 보기 → 보고서 → 넣기, 같은 사이트·같은 호스트 거르기 포함) → 구독 규칙·마감 확인. 등록 도서관 확인(새 곳, 바뀐 주소, 꺼진 곳, 가입 자격, 책 번호 체계)도 여기 | [안] 월 1회 + 운영 로그 신호가 있을 때 | [1-libraries.md](1-libraries.md) | `docs/research/collection/1-libraries.md` | 찾기·확인 `scripts/library/discover/probe_*.py`, 넣기 `backend/`에서 `./gradlew bootRun` 프로필 `library-insert`(규칙 `scripts/library/rules/`), 등록 도서관 확인 `scripts/library/`(`CheckKyoboSites.java` …), 마감 확인 `scripts/library/probe_kyobo_limits.py` |
 | ② 책 수집 | 도서관마다 전자책 목록 받기 | 주 1회 전체 + 매일 신간 [확정] (plan `crawl-method.md` 2절). **신간 수집 명령은 아직 없음** → 지금은 전체만 | [2-crawl.md](2-crawl.md), 플랫폼별 방법 [platforms.md](platforms.md) | `docs/research/collection/2-books.md` | `scripts\crawl\resume.cmd` (`scripts/crawl/crawl_catalog.py`). 2026-10-12부터 이것만 돌림(옛 코드는 `chaekcheck-data\_old-scripts-2026-10-12\`에 보관) |
 | 가져오기 | ②의 결과(수집 DB 사본)를 서비스 DB 책 표로 (정리·같은 책 묶기·`book.library_ids`) | [안] ② 전체 수집이 끝날 때마다 | [3-import.md](3-import.md) | `docs/research/collection/2-books.md` 6절 | `backend/`에서 `./gradlew bootRun` 프로필 `collection-import` |
-| AI 찾기 한 줄 넣기 | 추천도서 목록 책 사본과 PC에서 만든 찾기용 한 줄을 `aisearch.search_book`에 (사이클 24) | 새 한 줄 파일이 나올 때, 목록 책이 바뀐 뒤 | [6-aisearch.md](6-aisearch.md) | plan `docs/cycles/24-ai-book-search/` | `backend/`에서 `./gradlew bootRun` 프로필 `collection-import`, `mode=book-texts` |
+| AI 찾기 한 줄 넣기 | 추천도서 목록 책과 보유 도서관 많은 10만 권 판(운영 76,759권) 사본, PC에서 만든 찾기용 한 줄을 `aisearch.search_book`에 (사이클 24). 운영 넣기는 `--chaekcheck.collection.import.book-texts-top-books=100000`을 꼭 붙임 | 새 한 줄 파일이 나올 때, 목록 책이 바뀐 뒤 | [6-aisearch.md](6-aisearch.md) | plan `docs/cycles/24-ai-book-search/` | `backend/`에서 `./gradlew bootRun` 프로필 `collection-import`, `mode=book-texts` |
 | (자동) 서비스 | 사용자가 책을 찾으면 서비스 DB에서 찾고, 도서관 상세 페이지로 대출 상태를 실시간 조회 | 늘 | 아래 4절 | — | 서비스(`catalog`, `availability` 모듈) |
 
 ① → ② → 가져오기 순서로 이어집니다. ①에서 도서관이 바뀌면 ②에서 그 도서관을 받고, 가져오기를 다시 해야 서비스 검색에 반영됩니다. 자동 단계는 사람이 돌리지 않지만, 거기서 나는 오류(상세 페이지를 못 읽음)가 ①을 할 신호가 됩니다.
@@ -72,6 +72,11 @@
 - 매일 03:30과 켤 때 기본 목록 40권을 만듦(교보 일반 4곳·YES24 V1 2곳 인기순, 추천목록). 절차·볼 곳·넣기: [7-foryou.md](7-foryou.md)
 - 유지보수에서 볼 것: `foryou.build_run`의 최근 `succeeded`, `note`의 사이트별 줄 수(이틀 연속 0이면 그 출처를 끄고 plan에 알림)
 
+## 5-2. (자동) AI 책 찾기 (사이클 24)
+
+- 사용자가 문장으로 물으면 질문 벡터(임베딩 서버) + 1차 ML + 2차 Haiku로 책을 고름. 지금 운영 설정과 모델 폴더: [6-aisearch.md](6-aisearch.md) 0절
+- 유지보수에서 볼 것: 임베딩 서버 `GET http://172.31.45.141:8090/api/v1/health`가 `{"ready":true}`(운영 서버에서, 7-1절), 백엔드 시작 로그 `ai search vectors on (REMOTE): … books`·`ai search first call: ml, … book profiles`(7·8절), 검색 로그 `ai search: …`의 `vector N`(0이면 벡터 꺼짐·늦음·실패)과 `encoder failed`·`haiku makes the first step` 줄
+
 ## 6. (필요할 때) 공지·서비스 안내·약관 글
 
 - 운영자 화면 없이 Claude가 운영 SQL로 넣음(사이클 16). 사용자 확인 뒤, 한 트랜잭션, 판은 고치지 않고 새로 넣음. 절차와 SQL: [5-sitecontent.md](5-sitecontent.md)
@@ -90,6 +95,6 @@
 - [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 수정(6절, 새 도서관은 넣기 명령), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 수집 목록에서 도서관 찾기 → 수집 → 넣기 명령(`library-insert` 미리 보기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → 넣기) → 구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] ②: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 가져오기: 사본 만들기 → dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
-- [ ] AI 책 찾기 사본(사이클 24 배포 뒤): 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음([4-picks.md](4-picks.md) 10절, 후속 작업 24-F1)
+- [ ] AI 책 찾기 사본: 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음(`book-texts-top-books=100000`, [4-picks.md](4-picks.md) 10절, 후속 작업 24-F1). 가져오기 뒤에는 책 번호가 바뀌므로 책 벡터·프로필·이웃도 다시 만듦([6-aisearch.md](6-aisearch.md) 7·8·9절)
 - [ ] 4단계: 서비스 로그에서 상세 페이지 읽기 실패가 늘었는지
 - [ ] 5단계: `picks.fetch_run`에 최근 7일 안의 `SUCCEEDED`가 있는지, `FAILED`면 `failure_reason`([4-picks.md](4-picks.md) 3절)

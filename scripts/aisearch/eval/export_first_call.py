@@ -1,4 +1,5 @@
-"""The ML first call for production (user 2026-10-26 "1차를 5갈래 MLP로 바꿔요(M4 방식)"):
+"""The ML first call for production as of v1.16.0 (superseded in v1.16.1: production's first-call-model.bin is made by
+export_first_call2.py with ROUTE_PT=route5b-mlp.pt) (user 2026-10-26 "1차를 5갈래 MLP로 바꿔요(M4 방식)"):
 1. trains the shelf heads as predict_eval.py does (all 6,298 shelf questions, threshold per slot on dev) and takes the
    5-way router of route5.py (route/route5-mlp.pt, 600 per class);
 2. checks them on production's question vectors (int8 KURE-v1, kure-query-int8-ext.onnx as the backend runs it)

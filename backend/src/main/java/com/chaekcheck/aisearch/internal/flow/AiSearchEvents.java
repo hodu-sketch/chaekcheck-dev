@@ -20,7 +20,10 @@ public final class AiSearchEvents {
 
 	public static final String ERROR = "error";
 
-	/** The second step's agent asks the user back (user 2026-10-26; {@code pick.mode: agent} only). */
+	/**
+	 * The search asks the user back instead of answering (user 2026-10-26, {@code pick.ask-back}): the pick call's ask, or
+	 * the fixed ask for a question that is not a book request.
+	 */
 	public static final String ASK = "ask";
 
 	private AiSearchEvents() {
