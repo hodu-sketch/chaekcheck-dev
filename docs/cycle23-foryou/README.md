@@ -22,6 +22,7 @@
 │   └─ 6-ml-method.md              I-05·I-06·I-10~I-14의 자료·모델·시험 설계와 데이터 점검 숫자
 └─ 보여 주기
     ├─ 7-portfolio.md              한 장 요약(숫자는 3에서)
+    ├─ 8-methods-explained.md      원리·수학·코드·라이브러리 해설(학습용, 남에게 설명하기)
     ├─ portfolio-page.html         공개용 페이지 원본(https://claude.ai/artifact/HEoeTqicrZSPMh3qyVYmfp)
     └─ figures/                    그림 6장(scripts/foryou/eval/make_charts.py)
 ```
@@ -56,6 +57,7 @@
 | 언제 무엇이 바뀌었나, 지금은 어느 판인가 | 4-history.md 1절 |
 | 앞으로 할 것과 그 상태 | 5-improvements.md 1절 |
 | 머신러닝은 어떻게 쓸 건가 | 6-ml-method.md |
+| 코사인·nDCG·로지스틱 회귀·HDBSCAN 같은 원리와 수식, 실제 코드, 남에게 설명하는 말 | 8-methods-explained.md |
 | AI 검색 쪽의 지금 상태 | [`docs/aisearch/1-how-it-works.md`](../aisearch/1-how-it-works.md), 색인 [`docs/aisearch/README.md`](../aisearch/README.md) (이 폴더 밖, 사이클 24) |
 
 ## 4. 처음 읽는 차례
