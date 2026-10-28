@@ -193,6 +193,8 @@ AI 검색은 「○○ 같은 책」(최대 20권)과 이어 묻기(최대 12권
 - 운영 지표: 책 창의 도서관 누름에 책첵 추천 구분, 칩 누름, 브라우저별 A/B
 - 요약 없는 12,666권 채우기
 
+머신러닝 보강의 방법·이유·시험 설계와 데이터 점검 숫자: [`foryou-ml-method-2026-10-28.md`](foryou-ml-method-2026-10-28.md)
+
 ## 10. 다시 돌리기
 
 - 이웃: `<data>/ml/venv/Scripts/python.exe -X utf8 scripts/crawl/foryou_neighbours.py --with-pool --pool pool-100000-intro --out <data>/ml/foryou-100k` → 운영 넣기는 [`docs/maintenance/7-foryou.md`](../maintenance/7-foryou.md) 2절
