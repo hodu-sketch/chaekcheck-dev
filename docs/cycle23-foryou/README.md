@@ -56,7 +56,7 @@
 | 언제 무엇이 바뀌었나, 지금은 어느 판인가 | 4-history.md 1절 |
 | 앞으로 할 것과 그 상태 | 5-improvements.md 1절 |
 | 머신러닝은 어떻게 쓸 건가 | 6-ml-method.md |
-| AI 검색 쪽의 지금 상태 | `docs/maintenance/6-aisearch.md` 0절 (이 폴더 밖, 사이클 24) |
+| AI 검색 쪽의 지금 상태 | [`docs/aisearch/1-how-it-works.md`](../aisearch/1-how-it-works.md), 색인 [`docs/aisearch/README.md`](../aisearch/README.md) (이 폴더 밖, 사이클 24) |
 
 ## 4. 처음 읽는 차례
 처음이면 7-portfolio.md(한 장) → 1-how-it-works.md 0절(그림) → 4-history.md 1절(지금 판) → 5-improvements.md 1절(할 일).
