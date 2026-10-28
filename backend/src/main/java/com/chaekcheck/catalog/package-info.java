@@ -11,6 +11,14 @@
  * The 「나에게 맞는 책」 tab (cycle 23, ADR-0149): {@link com.chaekcheck.catalog.BookCards} gives the foryou module the
  * card fields, our book of a holding a library site lists, and the representative edition of a work.
  * <p>
+ * The book descriptions in one place (cycle 26, ADR-0161): the 책첵 summary, an edition's cover, the book profile, the
+ * AI search's line and keyword text, and the tags ({@code catalog.book_summary}, {@code book_cover},
+ * {@code book_profile}, {@code book_search}, {@code tag_dictionary}, {@code book_tag}). Other modules read them through
+ * {@link com.chaekcheck.catalog.BookTexts}, {@link com.chaekcheck.catalog.CoverUrls} (the covers are on CloudFront,
+ * ADR-0163), {@link com.chaekcheck.catalog.BookProfiles} and {@link com.chaekcheck.catalog.AiSearchIndex}; only the
+ * {@code collection} import writes them, through {@link com.chaekcheck.catalog.BookTextsTransfer}. The rows are kept by
+ * book id without a foreign key; the catalog swap deletes those of book ids the new catalog no longer has (ADR-0162).
+ * <p>
  * Separate import (cycle 11, ADR-0078): {@link com.chaekcheck.catalog.CatalogLoad} also exports the new tables as one
  * file on the PC and applies that file on the production database.
  */

@@ -7073,6 +7073,20 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 시험 `BookDescriptionSchemaTests`(8개): CHECK마다 맞는 줄과 틀린 줄, `gin_bigm_ops` 색인과 "C" collation, `description_deleted_count` 칸, **복사 changeset의 SQL을 changelog 파일에서 읽어 옛 표에 넣은 줄을 그대로 옮기는지**(빈 DB 0줄도).
 - **4단계 1번을 같이 함**: 새 표가 `catalog`에 생기자 다시 가져오기 시험 25개가 깨짐(인계서 함정 0-1 그대로, `catalog_next`에 없는 표의 제약을 만들려 함). `JdbcCatalogLoad.createIndexesAndConstraints`의 두 질의를 `t.relname = ANY (TABLES)`로 거름. 2단계만 따로 main에 들어가면 안 되는 묶음이라 같은 커밋에 넣음.
 - `./gradlew build` 통과(4분 16초).
+
+## 3단계 (2026-10-28)
+
+- 새 공개 타입(`catalog` 바로 아래), 구현은 `catalog/internal/texts/`:
+  - `BookTexts`: `summaries`, `coverUrls`(그 판의 표지만), `listCoverUrls`, `tags`(활성 코드만), 그리고 카드 꼬리표 고르기 `forCard`와 `Tag`(지금 `picks.BookTagTransfer`의 것을 옮김, 6단계에서 picks가 이걸 씀).
+  - **`listCoverUrls` 모양을 바꿈** [안]: `Map<listRowKey, bookId>` 대신 `listCoverUrls(Collection<Long> bookIds) → Map<bookId, 주소>`. 줄마다 다른 것은 책 번호뿐이라 picks가 줄 → 책 번호로 찾음. 차례는 ADR-0164: 그 판 표지 → 같은 작품(본제목 정리값 같고 AUTHOR·UNKNOWN `name_exact` 하나 이상 같음; 이름 사슬은 따지지 않음) 다른 판 중 `published_on` 최신 → `cardinality(library_ids)` 많은 판 → id 작은 판. 한 질의(LATERAL), `book_main_title_norm_exact`("C") 색인을 씀.
+  - `CoverUrls.of(fileKey)`: 설정 `chaekcheck.covers.base-url`(`CoverSettings`, 끝 `/` 지움, `https://`만 받음, 비면 null). `application.yml`에 빈 값과 `TODO(확인 필요)`, 운영은 `CHAEKCHECK_COVERS_BASEURL`.
+  - `BookProfiles`: `all()`(같은 낱말·같은 목록은 한 객체를 나눠 씀), `version()`(줄 수).
+  - `AiSearchIndex`: `find`, `planCounts`, `lines`, `books`, `version`, `compact` — `CandidateQuery`·`SearchBooks`의 SQL에서 표 이름만 바꿈. **`find`는 정리된 낱말과 그중 핵심 낱말 집합을 받음**(낱말 고르기 `usableKeywords`·최대 8개 규칙은 aisearch에 남김). `books()`의 제목·저자는 `catalog.book.title`·`author_display`.
+  - `BookTextsTransfer`: `upsertSummaries`, `upsertCovers`, `replaceTags`, `replaceTagDictionary`, `replaceProfiles`(빈 목록·같은 책 두 번 거절), `replaceSearchBooks(bookIds, lines)`(제목·저자·도서관을 `catalog.book`에서 읽음, 없는 책은 건너뛰고 `notInCatalog`로 셈). 줄 `Line`·`Source`, 요약 `Summary` 등은 레코드에서 길이·꼴을 먼저 검사.
+  - **`SearchText`를 `catalog` 공개 클래스로 옮김** [안]: `search_text`를 이제 `catalog`가 만들고 aisearch 낱말도 같은 규칙이어야 해서. aisearch 쪽 사본은 aisearch를 바꾸는 단계에서 지우고 `catalog.SearchText`를 씀.
+- 이름 겹침: `picks/internal/fetch/CoverUrls.java`, `aisearch/internal/firstcall/BookProfiles.java`는 그대로 둠(패키지가 달라 컴파일 문제 없음). 그 파일을 바꾸는 단계에서 정리.
+- 시험: `AiSearchIndexTests` 8개(옛 `CandidateQueryTests` 경우 + `catalog.book`에서 온 찾기 글·도서관, 빈 줄 파일 거절), `BookTextsTests` 7개(요약·표지, `CoverUrls`, 꼬리표 활성만·모르는 코드 셈, `forCard`, **AC-9** 줄 표지 차례: 같은 날 두 판 중 소장 많은 판, 번역자로만 같은 이름·다른 저자는 다른 작품, 표지 없으면 빈 값, 프로필 바꾸기·나눠 쓰기), `ModularityTests` 통과.
 5. **AI 검색 전후 비교**: dev 24 몫. v1.19.0 값이 "전" 기준이라 배포 1 직전 알림은 하고, 측정은 배포 1 직후에 dev 24가 함.
 6. **기준 빌드**: 웹 `npm run build` 통과, vitest 79파일 706개 통과. 백엔드 `./gradlew build` 통과(6분 53초, `ModularityTests`·`DocumentationTests` 포함).
 
+- `./gradlew build` 통과(4분 17초).

@@ -120,6 +120,11 @@ chaekcheck:
       # GET /api/v1/books page size when pageSize is not sent; the maximum stays 20 (BookParams.MAX_PAGE_SIZE).
       # 20 -> 10 [확정] (cycle 20 ADR-0132, spec R15). docs/maintenance/settings-index.md
       default-page-size: 10
+  covers:
+    # The covers' CloudFront address (cycle 26, ADR-0163): pictures are <base-url>/covers/<sha1>.jpg. Empty gives no
+    # cover address. TODO(확인 필요): the default *.cloudfront.net address once step 1 made it; production sets
+    # CHAEKCHECK_COVERS_BASEURL. docs/maintenance/settings-index.md
+    base-url: ""
   availability:
     cache-ttl: 3m
     # cycle 08 (ADR-0066): one limit per cache, statistics logged. 1,000 each as before [안] until step 9 measures them.
