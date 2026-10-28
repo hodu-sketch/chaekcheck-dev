@@ -66,6 +66,13 @@ class JdbcCatalogLoad implements CatalogLoad {
 	/** Children first: the order in which the old tables can be dropped. */
 	static final List<String> TABLES = List.of("book_contributor", "holding", "catalog_library_snapshot", "book");
 
+	/**
+	 * The book description tables kept by book id without a foreign key (cycle 26, ADR-0162); the swap deletes their rows
+	 * of book ids the new tables do not have. {@code tag_dictionary} has no book id.
+	 */
+	static final List<String> DESCRIPTION_TABLES = List.of("book_summary", "book_cover", "book_profile", "book_search",
+			"book_tag");
+
 	static final String NEXT = "catalog_next";
 
 	/** The one-row table of an export (cycle 11, ADR-0078); only in {@code catalog_next}, never in Liquibase. */
@@ -106,8 +113,8 @@ class JdbcCatalogLoad implements CatalogLoad {
 			Counts counts = prepare(connection, loader, steps);
 			index(connection, steps);
 			analyze(connection, steps);
-			swap(connection, steps, List.of());
-			return counts.result(steps);
+			long deleted = swap(connection, steps, List.of());
+			return counts.result(steps).withDescriptionsDeleted(deleted);
 		});
 	}
 
@@ -194,8 +201,8 @@ class JdbcCatalogLoad implements CatalogLoad {
 			}
 			index(connection, steps);
 			analyze(connection, steps);
-			swap(connection, steps, List.of());
-			return restoredResult(connection, steps);
+			long deleted = swap(connection, steps, List.of());
+			return restoredResult(connection, steps).withDescriptionsDeleted(deleted);
 		});
 	}
 
@@ -216,8 +223,8 @@ class JdbcCatalogLoad implements CatalogLoad {
 			dropIndexesAndConstraints(connection);
 			index(connection, steps);
 			analyze(connection, steps);
-			swap(connection, steps, List.of("DROP TABLE " + MANIFEST));
-			return restoredResult(connection, steps);
+			long deleted = swap(connection, steps, List.of("DROP TABLE " + MANIFEST));
+			return restoredResult(connection, steps).withDescriptionsDeleted(deleted);
 		});
 	}
 
@@ -481,12 +488,14 @@ class JdbcCatalogLoad implements CatalogLoad {
 	/**
 	 * Step {@code swap}.
 	 * @param first statements run first in the swap's transaction (the finish drops {@code load_manifest} there)
+	 * @return the book description rows deleted
 	 */
-	private void swap(Connection connection, Map<String, Duration> steps, List<String> first)
+	private long swap(Connection connection, Map<String, Duration> steps, List<String> first)
 			throws SQLException, InterruptedException {
 		long started = System.nanoTime();
-		swap(connection, first);
+		long deleted = swap(connection, first);
 		steps.put("swap", since(started));
+		return deleted;
 	}
 
 	/** The four tables in {@code catalog_next}, without indexes or constraints, filled in book id order. */
@@ -602,9 +611,11 @@ class JdbcCatalogLoad implements CatalogLoad {
 	/**
 	 * Drops the old tables and moves the new ones into {@code catalog} in one transaction. The DROP needs an exclusive
 	 * lock on tables the search is reading; {@code lock_timeout} keeps the wait short, and the swap is tried again
-	 * after a rest (ADR-0065).
+	 * after a rest (ADR-0065). Before the DROP, in the same transaction, the book descriptions of book ids the new
+	 * tables do not have are deleted (ADR-0162: they keep no foreign key); a rollback brings them back too.
+	 * @return the description rows deleted
 	 */
-	private void swap(Connection connection, List<String> first) throws SQLException, InterruptedException {
+	private long swap(Connection connection, List<String> first) throws SQLException, InterruptedException {
 		List<String> outside = outsideForeignKeys(connection);
 		if (!outside.isEmpty()) {
 			throw new NotSwappedException("outside_foreign_key",
@@ -618,13 +629,22 @@ class JdbcCatalogLoad implements CatalogLoad {
 					for (String sql : first) {
 						statement.execute(sql);
 					}
+					long deleted = 0;
+					Map<String, Integer> deletedByTable = new LinkedHashMap<>();
+					for (String table : DESCRIPTION_TABLES) {
+						int rows = statement.executeUpdate("DELETE FROM catalog." + table + " d WHERE NOT EXISTS (SELECT 1 FROM "
+								+ NEXT + ".book b WHERE b.id = d.book_id)");
+						deletedByTable.put(table, rows);
+						deleted += rows;
+					}
 					statement.execute("DROP TABLE " + String.join(", ", TABLES.stream().map(t -> "catalog." + t).toList()));
 					for (String table : TABLES) {
 						statement.execute("ALTER TABLE " + NEXT + "." + table + " SET SCHEMA catalog");
 					}
 					statement.execute("DROP SCHEMA " + NEXT);
 					connection.commit();
-					return;
+					log.info("catalog swap: book descriptions of dropped book ids deleted {}", deletedByTable);
+					return deleted;
 				}
 				catch (SQLException ex) {
 					connection.rollback();

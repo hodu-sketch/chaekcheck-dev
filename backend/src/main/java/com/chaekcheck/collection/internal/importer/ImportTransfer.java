@@ -231,6 +231,7 @@ class ImportTransfer {
 		}
 		report.steps.putAll(result.steps());
 		report.steps.put("apply", Duration.between(started, clock.instant()));
+		report.descriptionsDeleted = result.descriptionsDeleted();
 		replaceLists(notes, report);
 		records.insertApplied(notes.source(), clock.instant(), report, manifest.exportId(), manifest.exportedAt(), null,
 				null);
@@ -248,6 +249,7 @@ class ImportTransfer {
 		ImportReport report = notes.report();
 		report.steps.putAll(result.steps());
 		report.steps.put("finish", Duration.between(started, clock.instant()));
+		report.descriptionsDeleted = result.descriptionsDeleted();
 		replaceLists(notes, report);
 		records.insertApplied(notes.source(), clock.instant(), report, manifest.exportId(), manifest.exportedAt(), null,
 				null);

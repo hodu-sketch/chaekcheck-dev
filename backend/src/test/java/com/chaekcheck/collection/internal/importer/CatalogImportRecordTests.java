@@ -79,6 +79,22 @@ class CatalogImportRecordTests {
 	}
 
 	@Test
+	void deletedDescriptionsAreKeptOnSucceededRowsOnly() { // cycle 26 step 4
+		ImportReport report = new ImportReport();
+		report.descriptionsDeleted = 7L;
+		ImportRecords records = new ImportRecords(jdbc);
+		records.insert("test-d.sqlite", Instant.now(), report);
+		records.insertFailed("test-f.sqlite", Instant.now(), report, "error", "x");
+		records.insert("test-n.sqlite", Instant.now(), new ImportReport());
+
+		assertThat(jdbc.sql("""
+				SELECT source || '=' || coalesce(description_deleted_count::text, 'null') FROM collection.catalog_import
+				WHERE source IN ('test-d.sqlite', 'test-f.sqlite', 'test-n.sqlite') ORDER BY source""")
+			.query(String.class)
+			.list()).containsExactly("test-d.sqlite=7", "test-f.sqlite=null", "test-n.sqlite=null");
+	}
+
+	@Test
 	void exportIdWithoutTimeIsRefused() {
 		assertThatThrownBy(() -> jdbc.sql("""
 				INSERT INTO collection.catalog_import (source, imported_at, book_count, holding_count, skipped_count,

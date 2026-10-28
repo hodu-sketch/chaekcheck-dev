@@ -121,6 +121,12 @@ final class ImportReport {
 	long droppedBookIds;
 
 	/**
+	 * Book description rows this database's swap deleted for book ids no book has now (cycle 26, ADR-0162), kept as
+	 * {@code description_deleted_count}; null when this database swapped nothing (an export, a failed load).
+	 */
+	Long descriptionsDeleted;
+
+	/**
 	 * Time of each step in order (cycle 08 handoff step 1), kept as {@code step_seconds}: {@code read} (first pass),
 	 * {@code group} (codes), {@code nb} (national bibliography records read), {@code normalize} (their keys),
 	 * {@code same_text}, the steps of {@link com.chaekcheck.catalog.CatalogLoad.Result#steps()}, then {@code load}

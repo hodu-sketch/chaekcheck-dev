@@ -1,6 +1,7 @@
 package com.chaekcheck.collection.internal.importer;
 
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
@@ -50,10 +51,11 @@ final class ImportRecords {
 				INSERT INTO collection.catalog_import (source, imported_at, book_count, holding_count, skipped_count,
 				  registered_library_count, other_library_count, skipped_by_reason, kept_book_id_count,
 				  new_book_id_count, dropped_book_id_count, collected_from, collected_to, step_seconds, status,
-				  failure_reason, failure_detail, export_id, exported_at)
+				  failure_reason, failure_detail, export_id, exported_at, description_deleted_count)
 				VALUES (:source, :importedAt, :books, :holdings, :skipped, :registered, :others,
 				  CAST(:byReason AS jsonb), :kept, :added, :dropped, :collectedFrom, :collectedTo,
-				  CAST(:stepSeconds AS jsonb), :status, :failureReason, :failureDetail, :exportId, :exportedAt)""")
+				  CAST(:stepSeconds AS jsonb), :status, :failureReason, :failureDetail, :exportId, :exportedAt,
+				  :descriptionsDeleted)""")
 			.param("source", source)
 			.param("importedAt", Timestamp.from(importedAt))
 			.param("books", report.books)
@@ -74,6 +76,7 @@ final class ImportRecords {
 					: failureDetail.substring(0, Math.min(failureDetail.length(), 1000)))
 			.param("exportId", exportId)
 			.param("exportedAt", timestamp(exportedAt))
+			.param("descriptionsDeleted", failureReason == null ? report.descriptionsDeleted : null, Types.INTEGER)
 			.update();
 	}
 

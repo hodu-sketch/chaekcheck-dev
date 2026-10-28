@@ -229,6 +229,7 @@ class CatalogImporter {
 			report.steps.put("load", Duration.between(start, clock.instant()));
 			report.noteHeap();
 			if (!prepareOnly) {
+				report.descriptionsDeleted = result.descriptionsDeleted();
 				records.insert(source, clock.instant(), report);
 			}
 			log.info("{}", report);

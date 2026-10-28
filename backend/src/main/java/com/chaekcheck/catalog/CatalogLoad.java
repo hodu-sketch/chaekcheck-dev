@@ -204,12 +204,25 @@ public interface CatalogLoad {
 	 * {@code holdings_copy}, {@code match} (book and holding ids), {@code write} (the new tables), {@code index}
 	 * (indexes and constraints), {@code analyze} ({@code VACUUM (ANALYZE)}) and {@code swap} (the search waits
 	 * only during this, lock waits included)
+	 * @param descriptionsDeleted book description rows (summary, cover, profile, search, tag) the swap deleted because
+	 * the new catalog no longer has their book id (cycle 26, ADR-0162); 0 when nothing was swapped
 	 */
 	record Result(long books, long contributors, long holdings, long librarySnapshots, long keptBookIds,
-			long newBookIds, long droppedBookIds, Map<String, Duration> steps) {
+			long newBookIds, long droppedBookIds, Map<String, Duration> steps, long descriptionsDeleted) {
 
 		public Result {
 			steps = Collections.unmodifiableMap(new LinkedHashMap<>(steps));
+		}
+
+		public Result(long books, long contributors, long holdings, long librarySnapshots, long keptBookIds,
+				long newBookIds, long droppedBookIds, Map<String, Duration> steps) {
+			this(books, contributors, holdings, librarySnapshots, keptBookIds, newBookIds, droppedBookIds, steps, 0);
+		}
+
+		/** This result with the swap's deleted description count. */
+		public Result withDescriptionsDeleted(long deleted) {
+			return new Result(books, contributors, holdings, librarySnapshots, keptBookIds, newBookIds, droppedBookIds,
+					steps, deleted);
 		}
 
 	}

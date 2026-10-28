@@ -7090,3 +7090,13 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 6. **기준 빌드**: 웹 `npm run build` 통과, vitest 79파일 706개 통과. 백엔드 `./gradlew build` 통과(6분 53초, `ModularityTests`·`DocumentationTests` 포함).
 
 - `./gradlew build` 통과(4분 17초).
+
+## 4단계 (2026-10-28)
+
+- 1번(제약·색인을 책 목록 표 넷으로만 거르기)은 2단계에서 함.
+- 2번: `JdbcCatalogLoad.swap`에서 `first` 다음, DROP 앞, 같은 트랜잭션·같은 `SET LOCAL lock_timeout`으로 `DELETE FROM catalog.<표> d WHERE NOT EXISTS (SELECT 1 FROM catalog_next.book b WHERE b.id = d.book_id)` 다섯 번(`book_summary`, `book_cover`, `book_profile`, `book_search`, `book_tag`). `replaceAll`(PC), `apply`(운영), `finishPrepared`(PC) 모두 이 한 곳을 지남. 잠금을 못 잡아 ROLLBACK하면 지운 것도 되돌아감(시험).
+- 3번: 표별 수는 로그(`catalog swap: book descriptions of dropped book ids deleted {book_summary=…}`), 합은 `CatalogLoad.Result.descriptionsDeleted` → `collection.catalog_import.description_deleted_count`. **성공한 줄에만 적고, 실패한 줄과 바꿔 끼우지 않은 줄(내보내기)은 NULL** [안]. 운영 `apply` 줄은 운영 DB가 지운 수, PC `finish` 줄은 PC DB가 지운 수.
+- 4번: 기준값 해시(`Manifests.baseline`)는 이미 `TABLES` 넷으로만 셈. 2단계 뒤 내보내기·적용 시험(`CatalogTransferTests`)이 그대로 통과해 영향 없음.
+- **실행 계획**(시험 DB, `work_mem` 4MB 기본, `book_cover` 134.5만 줄·`catalog_next.book` 134만 줄·지울 줄 5,000): `Hash Anti Join`(두 표 Seq Scan, 해시 16 batch), **612ms**. 다른 표는 7~8만 줄이라 더 짧음 [추론]. 이 DELETE는 줄 잠금만 잡아 검색을 막지 않고, 검색이 멈추는 것은 지금처럼 DROP 단계뿐. 운영 꼴 복사본에서 다시 재는 것은 9단계.
+- 시험: `CatalogSwapDescriptionsTests` 3개(**AC-6** 두 책 합침 → 남은 번호의 다섯 줄 그대로·버려진 번호 0줄·지운 수 5, 사라진 책, 잠금 시간 넘김 시 하나도 안 지움), `CatalogImportRecordTests`에 지운 수 기록 1개.
+- `./gradlew build` 통과(4분 5초).
