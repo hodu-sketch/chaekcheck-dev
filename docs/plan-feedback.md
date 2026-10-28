@@ -7242,3 +7242,6 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 # 수집 User-Agent를 일반 브라우저 값으로 (2026-10-29, 사용자 결정)
 
 - 사용자: "수집 규칙 수정하고 저거 빼줘", "그냥 일반 사용자처럼 보이게 해줘". `chaekcheck-crawler/0.1 (catalog survey)`를 빼고 일반 윈도 크롬 값으로 바꿈. plan에 기록할 것: spec R1-8(연락처는 서비스 주소가 생기면 넣음)과 `crawl-method.md`의 User-Agent 규칙 변경. 1초 간격·IP당 한 요청은 그대로
+- **다시 가져오기 한 번(복사본, 같은 사본 `ebook-catalog-2026-10-20-0835.sqlite`, `stored-bibliography`, `-Xmx4g`)**: 39분 16초, 깨지지 않음. 책 1,340,875권 kept 1,340,875 / new 0 / dropped 0. `step_seconds`: `holdings_read` 10분 54초, `match` 1분 46초, `write` 2분 32초, `index` 1분 51초(새 설명 표는 건너뜀, 로그에 설명 표 `ALTER`·`CREATE INDEX` 0줄), `analyze` 42초, **`swap` 1.06초**(설명 표 DELETE 다섯 번 포함, 지운 줄 0. 사이클 08 기록의 swap 0.13~0.33초보다 약 0.7초 늚 = 표지 2.9만·요약 6.8만·찾기 7.7만 줄 anti-join; 운영은 표지 8만 줄이라 비슷 [추론]). 이 시간 동안 검색이 멈추는 것은 DROP 잠금뿐이고 DELETE는 줄 잠금만. `catalog_import` 15번 `description_deleted_count = 0`, 설명 표 줄 수·제약 38개 그대로.
+- 같은 사본이라 지운 줄이 0이었음. 실제로 번호가 바뀌는 가져오기(새 수집 사본)의 지운 수와 시간은 다음 가져오기 때 운영에서 처음 보임. 134만 줄 표지 표 DELETE는 4단계에서 0.6초(5,000줄 지움, 시험 DB).
+- changeset 고친 뒤와 main 합친 뒤 `./gradlew build` 통과(5분 34초).
