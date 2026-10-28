@@ -5,7 +5,7 @@
 
 ## 0. 지금 운영 (2026-10-28)
 
-- 탭 이름은 **「책첵 추천」**(`/picks/for-you`). 구조·숫자·결정의 모음은 [`docs/reports/foryou-portfolio.md`](../reports/foryou-portfolio.md)
+- 탭 이름은 **「책첵 추천」**(`/picks/for-you`). 구조·숫자·결정의 모음은 [`docs/cycle23-foryou/README.md`](../cycle23-foryou/README.md)(사이클 23 문서 색인)
 - **새벽 만들기는 운영에서 꺼져 있음**(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`): 기본 목록은 추천목록 책을 보유 도서관 많은 순으로(아래 1절은 켤 때의 설명)
 - 개인 추천 순서: 이웃 순위대로 기준 책을 돌아가며(`SimilarOrder.byCloseness`, v1.15.1). 새벽 점수로 다시 줄 세우지 않음
 - 자료(2026-10-26 10만 권 판, 가져오기 14번 export d09d649f): `book_neighbour` 81,080행 · `book_cover` 80,091 · `book_blurb` 68,414. 계산·넣기는 2절, PC 파일은 데이터 폴더 `ml/foryou-100k/`

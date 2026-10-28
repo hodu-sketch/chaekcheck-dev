@@ -9,7 +9,7 @@ Run with the data folder's venv (torch CPU, sentence-transformers):
 - Books: picks.list_book.book_id (every list) + foryou.book_score.book_id (the latest build's scored books).
 - Text: "제목 · 저자 · 출판사 · 연도", then on the next line the first --intro-chars characters of the longest list intro
   of the book's holdings (holding.intro_raw of the collected DB, as probe_intro.py picks it); without an intro the line
-  alone (cycle 23 intro test, docs/reports/cycle23-intro-test-2026-10-25.md).
+  alone (cycle 23 intro test, docs/cycle23-foryou/experiments/2026-10-25-intro-test.md).
 - --with-pool (user 2026-10-25: "그것도 넣어줘"): the 30,000 books held by the most libraries join with the vectors the
   intro test saved (<data>/ml/pool-30000-intro.npy, same text rule, intros as collected by 2026-10-24 20:23); a book in
   both keeps the vector made now. The saved ids must still be our books (the same catalog import).
