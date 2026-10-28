@@ -422,7 +422,7 @@ chaekcheck:
       question-max-length: 200
       card-text-max-chars: 300
     vector:
-      # question vectors mixed with the keyword candidates (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md:
+      # question vectors mixed with the keyword candidates (user 2026-10-25, docs/aisearch/reports/2026-10-25-eval.md:
       # "아주 맞는 카드" 62% -> 76% at the same 30 candidates). Off by default; on in production when the model folder
       # is mounted (CHAEKCHECK_AISEARCH_VECTOR_ENABLED, CHAEKCHECK_AISEARCH_MODEL_DIR). Values [안] from the report's H
       enabled: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:false}
@@ -445,7 +445,7 @@ chaekcheck:
       failures-to-open: 3
       open-for: 30s
     first-call:
-      # who makes the first step (user 2026-10-26, docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md):
+      # who makes the first step (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
       # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
       # the question's own words), no model call. ml needs the vectors on and first-call-model.bin and
       # book-profiles.tsv in model-dir; without them, or with the question vector late or failed, Haiku is asked
@@ -462,7 +462,7 @@ chaekcheck:
     pick:
       # the pick call may ask back with choices instead of picking, a question the first step calls not a book request
       # gets a fixed ask-back with examples, and one word it calls so goes to the pick call (user 2026-10-26 「되묻기만
-      # 기존 한 번의 호출에」, docs/reports/ai-search-agent-2026-10-26.md 10절). Off by default; production turns it on
+      # 기존 한 번의 호출에」, docs/aisearch/reports/2026-10-26-agent.md 10절). Off by default; production turns it on
       # since v1.17.0 (CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true) [안]
       ask-back: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:false}
     llm:

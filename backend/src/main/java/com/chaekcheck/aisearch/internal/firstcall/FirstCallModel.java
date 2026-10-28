@@ -17,7 +17,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The small networks of the ML first call (user 2026-10-26, docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md):
+ * The small networks of the ML first call (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
  * every head takes the question's normalised KURE-v1 vector, one hidden layer with ReLU, then its outputs. The file
  * {@code first-call-model.bin} that {@code scripts/aisearch/eval/export_first_call.py} writes, little-endian:
  * {@code "CCFC1\n"}, the JSON header's length (int32), the UTF-8 JSON header (dim, hidden, heads with name, kind,

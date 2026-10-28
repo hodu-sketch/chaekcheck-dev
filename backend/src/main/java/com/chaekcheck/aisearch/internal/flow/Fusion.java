@@ -9,10 +9,10 @@ import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 
 /**
- * Reciprocal rank fusion of the keyword and the vector candidates (docs/reports/ai-search-eval-2026-10-25.md, H): a
+ * Reciprocal rank fusion of the keyword and the vector candidates (docs/aisearch/reports/2026-10-25-eval.md, H): a
  * book scores 1 / (k + rank) in each list it is in (rank from 1), the sum orders the mix, ties by keyword rank first,
  * then vector rank, then book id. The ML first call adds a shelf bonus to the sum and puts the books the question rules
- * out at the end (PFx, docs/reports/ai-search-improvement-2026-10-25.md 6-4).
+ * out at the end (PFx, docs/aisearch/reports/2026-10-25-improvement.md 6-4).
  */
 final class Fusion {
 

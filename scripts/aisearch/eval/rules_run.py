@@ -1,4 +1,4 @@
-"""AI search 2nd-step rule test (docs/reports/ai-search-rules-2026-10-27.md): runs rules_suite.json against a local
+"""AI search 2nd-step rule test (docs/aisearch/reports/2026-10-27-rules.md): runs rules_suite.json against a local
 backend and keeps every answer with its head and card texts.
   python rules_run.py <label> <backend log> [port]     -> <out>/run-<label>.json
   python rules_run.py score                            -> the rule-by-rule table of every run in <out>

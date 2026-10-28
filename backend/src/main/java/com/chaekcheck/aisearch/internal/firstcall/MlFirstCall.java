@@ -21,7 +21,7 @@ import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 
 /**
  * The ML first call (user 2026-10-26 "1차를 5갈래 MLP로 바꿔요(M4 방식)", "이어 묻는 질문도 ML로 하기 → 넣음";
- * docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md): from the question vector, the way (5 ways, 94.6% on
+ * docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md): from the question vector, the way (5 ways, 94.6% on
  * the 600 test questions) and the asked shelves (MLP heads, F1 close to Haiku's but for the genre); the keywords are the
  * question's own words. A follow-up question takes the earlier question's words, joined vector and shelves, its own
  * shelves put over them (M4), unless it names a big shelf the earlier one does not (a new topic: the earlier question

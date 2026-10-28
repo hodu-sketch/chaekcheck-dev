@@ -1,4 +1,4 @@
-"""AI search first-text timing on production (docs/reports/ai-search-latency-2026-10-27.md 6절): the same 24 first
+"""AI search first-text timing on production (docs/aisearch/reports/2026-10-27-latency.md 6절): the same 24 first
 questions (12 of 5 words or more, 12 of 4 or fewer) one at a time, 7 s apart (rate 10 a minute per IP), then the server's
 log lines of that window (the steps) over SSH.
   python prod_timing.py <label>      -> <out>/prod-<label>.json"""

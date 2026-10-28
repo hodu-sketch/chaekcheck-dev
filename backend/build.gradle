@@ -25,7 +25,7 @@ ext {
 	set('jsoupVersion', '1.23.2')
 	// Collection import only (Maven Central latest 2026-09-30, Apache License 2.0)
 	set('sqliteJdbcVersion', '3.53.4.0')
-	// AI search question vectors (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md): the int8 KURE-v1
+	// AI search question vectors (user 2026-10-25, docs/aisearch/reports/2026-10-25-eval.md): the int8 KURE-v1
 	// query model runs in this process (Maven Central 2026-10-25; MIT and Apache License 2.0). Both jars carry their
 	// native libraries for linux-aarch64 (the server) and win-x86_64 (this PC)
 	set('onnxruntimeVersion', '1.31.0')

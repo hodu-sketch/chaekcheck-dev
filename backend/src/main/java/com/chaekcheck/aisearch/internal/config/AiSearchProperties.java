@@ -57,7 +57,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	}
 
 	/**
-	 * Question vectors (user 2026-10-25 "운영 코드로 해줘", measured in docs/reports/ai-search-eval-2026-10-25.md):
+	 * Question vectors (user 2026-10-25 "운영 코드로 해줘", measured in docs/aisearch/reports/2026-10-25-eval.md):
 	 * the int8 KURE-v1 query model turns the question into a vector while the first call runs, the nearest book
 	 * vectors the plan libraries hold are mixed with the keyword candidates by reciprocal rank fusion, and the first
 	 * {@code Limits.candidates} of the mix go to the second call. Off, or with a model file missing, the keyword
@@ -117,7 +117,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 
 	/**
 	 * The first step of a search (user 2026-10-26 "1차를 5갈래 MLP로 바꿔요(M4 방식)", measured in
-	 * docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md): {@link FirstCallMode#HAIKU} asks Haiku for the way
+	 * docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md): {@link FirstCallMode#HAIKU} asks Haiku for the way
 	 * and the keywords as before; {@link FirstCallMode#ML} takes the way (not a book question, a title, the books shown
 	 * before, a question about 책첵, a book question) and the asked shelves from small networks over the question vector,
 	 * the keywords from the question's own words, and asks no model. ML needs the vectors on and
