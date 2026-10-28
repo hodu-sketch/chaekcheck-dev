@@ -7111,3 +7111,17 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - **PC 쪽 영향(주의)**: 배포 1 뒤로는 `book-texts` 파일 첫 줄에 `# export_id=`가 없으면 거절됨. 파일을 만드는 PC 스크립트(`build_100k.py` 흐름 등, dev 23·24 몫)와 `6-aisearch.md`·`7-foryou.md` 명령 예는 14단계 문서 고칠 때와 dev 23·24 알림에 넣음.
 - 시험: `BookTextsFileTests`(줄 번호 하나씩 밀림, 첫 줄 검사 추가), `BookTextsImportTests`(가짜 `BookTextsTransfer`·`AiSearchIndex`, **AC-5** 다른 `export_id` 거절 → `force`로 넣음, 가져오기 기록 없는 DB 거절), `BookTextsImportDbTests`(`catalog` 표에 들어감, 다른 `export_id`는 0줄, 찾기 제목이 `catalog.book.title`, `book-profiles` 거절·넣기·되읽기), `BookProfilesFileTests`, `CatalogImportSettingsTests`(새 설정·`force` 범위), `TagDictionary*`는 `catalog` 표로.
 - `./gradlew build` 통과(4분 7초).
+
+## 1단계 결과 (2026-10-28, 사용자 집 PC에서 `aws login`)
+
+- 관리 작업은 사용자 콘솔 로그인의 단기 자격(`aws login --profile chaekcheck-admin`, 계정 135274608857, `AccountFullAccessRole`)으로 `scripts/covers/setup-aws.ps1`을 돌림. 오래 가는 관리자 키는 만들지 않음.
+- **만든 것**
+  - S3 버킷 `chaekcheck-covers-135274608857`(ap-southeast-2, 공개 접근 네 가지 모두 막음, 객체 소유 기본값)
+  - CloudFront 배포 `E1RZWZ6VBX38DX`, 도메인 **`d1bdzw8sfjph5d.cloudfront.net`**, OAC `chaekcheck-covers-135274608857-oac`(sigv4), https만, GET/HEAD, 관리형 CachingOptimized, `PriceClass_200`. 만든 뒤 약 100초에 Deployed
+  - 버킷 정책: `cloudfront.amazonaws.com`의 `s3:GetObject`, 조건 `AWS:SourceArn` = 그 배포만
+  - IAM 사용자 `chaekcheck-covers-uploader`, 인라인 정책 `covers-upload`(`s3:PutObject` 버킷/*, `s3:ListBucket` 버킷). 키는 PC 자격 증명 파일의 프로필 `chaekcheck-covers`에만(화면·저장소·이 문서에 없음)
+  - 비밀 아닌 값은 dev `data/covers-aws.json`(git 밖)
+- **확인**: 업로드 키로 올리기·목록 됨, 읽기는 403. S3 주소 직접 열기 403. CloudFront 주소 200, `cache-control: public, max-age=604800`, `x-cache: Miss from cloudfront`. 시험 파일 `check/test.txt`는 `covers/` 밖이라 AC-11 세기에 들지 않음(관리자 로그인으로 지울 수 있음).
+- **올리기**: 운영 `/srv/chaekcheck/covers`를 tar 한 개로 PC에 받음(976MB, 81,451장, 모두 `^[0-9a-f]{40}\.jpg$`). `picks.cover` 108줄은 `scripts/covers/extract_picks_covers.py`로 `sha1(source_url).jpg`로 꺼냄(모두 `image/jpeg`, 운영 폴더 이름과 겹침 0). 둘 다 `aws s3 sync … --cache-control "public, max-age=604800" --content-type image/jpeg`로 `covers/`에.
+- AWS CLI는 `aws login`(2.39.0)이 있어서 PC에서 단기 자격을 받을 수 있음([확인 필요] #9). 다만 업로드는 사람 없이 돌아야 해서 IAM 사용자 키로 함.
+- 1단계 뒤 할 일(수집 세션 몫, dev `2-crawl.md` 0-0절): 새 표지는 PC가 이 버킷 `covers/`에 올림. 프로필 `chaekcheck-covers`.

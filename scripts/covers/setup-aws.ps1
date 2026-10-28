@@ -126,7 +126,10 @@ Invoke-Aws @('iam', 'put-user-policy', '--user-name', $UploaderName, '--policy-n
 	'--policy-document', $userPolicy) | Out-Null
 
 $keys = (Invoke-Aws @('iam', 'list-access-keys', '--user-name', $UploaderName)).AccessKeyMetadata
+$ErrorActionPreference = 'Continue'
+# empty, with a message on stderr, while the profile does not exist yet
 $configured = & $Aws configure get aws_access_key_id --profile $UploadProfile 2>$null
+$ErrorActionPreference = 'Stop'
 if (-not ($keys | Where-Object { $_.AccessKeyId -eq $configured })) {
 	if (@($keys).Count -ge 2) { throw "$UploaderName already has two keys and none is in profile $UploadProfile" }
 	$key = (Invoke-Aws @('iam', 'create-access-key', '--user-name', $UploaderName)).AccessKey
