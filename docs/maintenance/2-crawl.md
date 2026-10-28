@@ -7,7 +7,7 @@
 - **진행 상태와 진행 표도 옮겨 옴 (2026-10-12, 사이클 13 인계서 1단계 7)**: plan `docs/research/ebook-catalog/crawl-runbook.md` 1·8절을 이 문서 1절·8절로 옮겼습니다(2026-10-12 복사, 내용은 그대로, 경로와 도서관 이름만 고침). 같은 문서 2·3절은 2026-10-04에 이미 이 문서 2절·2-1절로 옮겨 와 있어 다시 옮기지 않았고, 3절 끝의 "배포용 사본" 한 줄만 1절에 더했습니다 [확정] (사용자 승인, 2026-10-12, plan `docs/cycles/13-crawler-to-dev/easy/2026-10-12-where-to-crawl.html`). 앞으로 진행 숫자는 이 문서에 적습니다.
 - plan에 남는 것: 결정 기록(`crawl-runbook.md`), 원칙 `crawl-method.md`, 조사 `research.md`, 규칙 근거 `catalog-refresh.md`·`same-book-isbn.md`·`search-and-normalization.md` (모두 plan `docs/research/ebook-catalog/`).
 - 수집 DB(`ebook-catalog.sqlite`) 표·칸 설명: [`scripts/crawl/README.md`](../../scripts/crawl/README.md) (2026-10-05 수집기와 함께 옮김, ADR-0047 B).
-- 요청 머리글(User-Agent)에 개인 연락처를 넣지 않습니다(plan `crawl-method.md`). 연락처는 서비스 주소나 공개 문의 주소가 생기면 넣습니다 [확정] (사용자 선택, 2026-10-12, plan 사이클 13 spec R1-8). 그때 `crawl_catalog.py`의 `USER_AGENT`를 고칩니다.
+- 요청 머리글(User-Agent)은 일반 윈도 크롬과 같은 값을 보냅니다. 수집기 이름과 연락처는 넣지 않습니다 [확정] (사용자 결정 2026-10-29: "수집 규칙 수정하고 저거 빼줘", "그냥 일반 사용자처럼 보이게 해줘". plan 사이클 13 spec R1-8의 "연락처는 서비스 주소가 생기면 넣음"(2026-10-12)을 바꿈). 값은 `crawl_catalog.py`의 `USER_AGENT`. 1초 간격·IP당 한 요청 규칙은 그대로입니다.
 - 도서관 목록 이름 [확정] (사용자, 2026-10-04): **등록 도서관**(서비스 DB, dev seed, 278곳) / **수집 목록에서 찾은 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스에서 찾음, 2,738곳). 수집기는 둘 다 받습니다. 자세히는 [1-libraries.md](1-libraries.md).
 - 옮긴 뒤 plan 수집 세션에서 바뀐 것(2-1절 서버별 동시 요청 수, 4절 이어 받기·다른 정렬로 채우기·알려진 빈틈, 6절 알라딘·YES24 오디오북·0권)은 plan `crawl-runbook.md` 4절 "dev에 반영할 것"에서 더했습니다(2026-10-04, ADR-0047 요청서 D).
 
@@ -88,7 +88,7 @@
   - 데이터 폴더의 `host-slots.txt`(그 서버에 동시 4건)는 읽지 않습니다. 파일이 있으면 `resume.cmd`가 "host-slots.txt is ignored since cycle 13" 한 줄을 냅니다. `--host-slots` 인자 자체는 남아 있습니다(2-1절).
 - **사이트가 막으면 그 도서관만 받지 않음** [확정] (plan spec R1-7): 다시 시도를 모두 해도 HTTP 403이거나 시간 초과면 그 도서관에 `crawl_skip` `blocked {날짜}: HTTP 403 (clear: --skip {id} '')`(또는 `time-out`)을 적고 다른 도서관은 계속 받습니다. 로그 `site blocks us (…); marked not crawled`. 다시 받으려면 사이트를 확인한 뒤 `status --skip {id} ""`(5-1절). `full`과 `refill-pubdt` 모두 같습니다.
 - **robots.txt는 기록만 하고 수집은 합니다** [확정] (사용자 선택, 2026-10-12, plan spec R1-7). 실제로 막히면(위) 그 도서관만 받지 않습니다. 수집기는 지금 robots.txt를 읽지 않으므로, 기록할 일이 생기면 사람이 이 문서나 [platforms.md](platforms.md)에 적습니다.
-- **User-Agent 연락처**는 서비스 주소나 공개 문의 주소가 생기면 넣습니다 [확정] (plan spec R1-8). 지금 값은 [`scripts/crawl/README.md`](../../scripts/crawl/README.md) "실행".
+- **User-Agent**는 일반 브라우저 값, 수집기 이름·연락처 없음 [확정] (사용자 2026-10-29, plan spec R1-8을 바꿈). 지금 값은 [`scripts/crawl/README.md`](../../scripts/crawl/README.md) "실행".
 - **두 벌 실행 검사**: `resume.cmd`는 `crawl_catalog.py … full`이나 `crawl_catalog.py … refill-pubdt`, 옛 `refill_pubdt.py`가 돌고 있으면 시작하지 않습니다("crawl_catalog.py is already running. Not starting a second copy."). 옛 복사본에서 띄운 것도 찾습니다. `refill-pubdt`를 손으로 띄울 때는 수집이 돌고 있지 않은지 먼저 봅니다(명령 자체는 검사하지 않음).
 
 ## 1. 지금 상태 (2026-10-03 04:19, 순위 1~3 끝남)

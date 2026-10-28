@@ -8,7 +8,7 @@ Usage:
   python crawl_catalog.py refill-pubdt --only ID   # read a library's list again in publish-date order (adds only)
 
 Rules (docs/research/ebook-catalog/crawl-method.md in chaekcheck-plan):
-- one request at a time per host, at least 1 s apart; identifying User-Agent
+- one request at a time per host, at least 1 s apart; ordinary browser User-Agent
 - facts only: no blurbs, no loan/hold counts; cover image URL only
 - every row keeps first_seen_at / last_seen_at / removed_at; every run is recorded in crawl_run
 - rows are marked removed only after a successful full run
@@ -92,7 +92,7 @@ VENDORS = ("KYOBO", "YES24", "BOOKCUBE", "ALADIN", "PORTAL", "IN_HOUSE")
 
 # The KYOBO subscription sites serve a mobile page without the total unless the agent looks like a desktop browser.
 # Identifies the project only; a contact address is added when the service has a public one.
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"  # an ordinary desktop Chrome (user 2026-10-29)
 TIMEOUT = 90
 RETRIES = 3
 RETRY_WAIT = 30
