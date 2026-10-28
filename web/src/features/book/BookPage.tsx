@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
+import { AiSummary } from '../picks/AiSummary'
+import { CoverImage } from '../picks/CoverImage'
 import { useBookVisit } from '../picks/useBookVisit'
 import type { BookDetail, ResultFilter, VisitFilter } from '../../api/types'
 import { readFilter, writeFilter } from '../search/resultFilter'
@@ -180,12 +182,20 @@ function BookView({
     <div className={styles.page}>
       {back}
       <header className={styles.book}>
-        <h1 className={styles.title}>{book.title}</h1>
-        <p className={styles.meta}>
-          {[book.authorDisplay, book.publisher, book.publishedOn].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
-        </p>
-        {/* no collection dates (user 2026-10-17: "굳이 언제부터 언제까지 수집한거다 알려줄 필요 없다고 생각해") */}
-        <p className={styles.collected}>보유 도서관 {book.holdingLibraryCount}곳</p>
+        {/* cycle 26 (flow S2): the edition's cover on the left; without one the words start at the left edge */}
+        <div className={styles.head}>
+          {book.coverUrl && <CoverImage className={styles.cover} url={book.coverUrl} title={book.title} />}
+          <div className={styles.headText}>
+            <h1 className={styles.title}>{book.title}</h1>
+            <p className={styles.meta}>
+              {[book.authorDisplay, book.publisher, book.publishedOn].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
+            </p>
+            {/* no collection dates (user 2026-10-17: "굳이 언제부터 언제까지 수집한거다 알려줄 필요 없다고 생각해") */}
+            <p className={styles.collected}>보유 도서관 {book.holdingLibraryCount}곳</p>
+          </div>
+        </div>
+        {/* the whole 책첵 summary, not cut; no box without one (cycle 26 AC-2, AC-3) */}
+        {book.summary && <AiSummary className={styles.summary} text={book.summary} />}
       </header>
       <div className={styles.condition}>{condition}</div>
       {book.holdingLibraryCount === 0 ? (

@@ -264,6 +264,10 @@ export interface BookDetail {
   publishedOn: string | null
   isbn13: string | null
   holdingLibraryCount: number
+  /** The edition's cover on CloudFront (cycle 26), or null. */
+  coverUrl: string | null
+  /** The 책첵 summary (cycle 26), never cut, or null. */
+  summary: string | null
   /** Plan libraries holding the book, in plan order, with when their list was collected. */
   libraries: Array<{ libraryId: number; collectedAt: string | null }>
 }
@@ -543,7 +547,7 @@ export interface ForYouCard {
   publisher: string | null
   /** `/covers/<sha1>.jpg`, or null for the title-letter cover */
   coverUrl: string | null
-  /** the tab blurb (R8), or null */
+  /** the 책첵 summary (cycle 26; the lists' book window shows the same one), or null */
   blurb: string | null
   /** 2-3 tags of a listed book, else empty */
   tags: ForYouTag[]
@@ -553,8 +557,6 @@ export interface ForYouCard {
   lists: PicksListKey[]
   /** the first author's key, for "no three of one author in a row" (AC-8), or null */
   authorKey: string | null
-  /** a listed book's AI summary for S14, else null */
-  aiSummary?: string | null
   /** `YYYY-MM`, the 국립중앙도서관 list's month for S14's year line, else null */
   recommendedMonth?: string | null
   /** the KAIST list's year for S14's year line, else null */

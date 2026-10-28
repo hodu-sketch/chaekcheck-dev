@@ -68,9 +68,22 @@ export function cardTitle(title: string): string {
 }
 
 /**
- * Only our own cover addresses are used as an image source (C7): a stored cover (the librarian list) or a cover file the
- * web server serves (the other lists, `/covers/<sha1>.jpg`, user 2026-10-20); anything else shows the title.
+ * The covers' CloudFront address (cycle 26, ADR-0163): the default domain of the covers' distribution, or
+ * `VITE_COVERS_BASE_URL` at build time. The CSP's img-src names the same host (deploy/nginx/security-headers.conf).
+ */
+export const COVERS_BASE_URL: string = import.meta.env.VITE_COVERS_BASE_URL ?? 'https://d1bdzw8sfjph5d.cloudfront.net'
+
+const CLOUDFRONT_COVER = new RegExp(`^${COVERS_BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/covers/[0-9a-f]{40}\\.jpg$`)
+
+/**
+ * Only our own cover addresses are used as an image source (C7): a cover on our CloudFront host
+ * (`<base>/covers/<sha1>.jpg`, cycle 26), or until deploy 2 the old ones a page may still hold, a stored cover (the
+ * librarian list) or a cover file the web server serves (`/covers/<sha1>.jpg`, user 2026-10-20); anything else shows
+ * the title.
  */
 export function safeCoverUrl(url: string | null): string | null {
-  return url && (/^\/api\/v1\/picks\/covers\/\d+$/.test(url) || /^\/covers\/[0-9a-f]{40}\.jpg$/.test(url)) ? url : null
+  return url &&
+    (CLOUDFRONT_COVER.test(url) || /^\/api\/v1\/picks\/covers\/\d+$/.test(url) || /^\/covers\/[0-9a-f]{40}\.jpg$/.test(url))
+    ? url
+    : null
 }

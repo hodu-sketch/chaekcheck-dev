@@ -7169,3 +7169,13 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
   - `aisearch.internal.match.SearchText`는 `catalog.SearchText`에 넘기는 얇은 이름만 남김(규칙은 한 곳).
   - `AiSearchBookTexts`·`JdbcAiSearchBookTexts` 지움. `aisearch`는 이제 공개 Java 타입 없음. **`aisearch/package-info.java`의 `"foryou"`는 뺄 수 없음**: `BookNeighbours`(이어 묻는 질문의 이웃 후보)를 아직 씀(인계서 "dev 24: foryou 뺌"은 표지·요약만 보면 맞지만 이웃이 남음).
 - 시험: `TestSearchBooks`(시험용: `catalog.book` 줄을 쓰고 `BookTextsTransfer.replaceSearchBooks`, 흐름 시험용 가짜 `BookTexts`), aisearch 시험 다섯 개를 거기로. `AiSearchBookTextsTests`·`RollbackTests`는 `AiSearchIndexTests`·`BookTextsImportDbTests`가 대신해 지움. `AiSearchFlowTests` 두 개는 새 규칙(카드 요약 = 책첵 요약 하나)으로 기대값을 바꿈. `ForYouControllerTests`(요약·표지 `catalog`에서, CloudFront 주소, `aiSummary` 칸 없음), `ForYouTransferTests`(이웃만).
+
+## 8단계 (2026-10-29)
+
+- `web/src/api/types.ts`: `BookDetail`에 `coverUrl`, `summary`. 책첵 추천 카드 타입에서 `aiSummary` 없앰(서버와 같이).
+- `forYouBook.ts`: 책 창 요약 = 카드 `blurb`(책첵 요약 하나).
+- `picksText.ts` `safeCoverUrl`: `^<COVERS_BASE_URL>/covers/[0-9a-f]{40}\.jpg$` 더 받음(옛 두 모양은 배포 2까지). **웹 빌드 설정 이름 `VITE_COVERS_BASE_URL`** [안], 없으면 `https://d1bdzw8sfjph5d.cloudfront.net`(`COVERS_BASE_URL`).
+- CSP `deploy/nginx/security-headers.conf`: `img-src 'self' data: https://d1bdzw8sfjph5d.cloudfront.net`. nginx `/covers/`는 배포 2까지.
+- 책 상세(flow S2, 범위 결정 #5 그림대로): 머리 왼쪽 표지(`CoverImage`, PC 7.5rem·폰 5rem), 오른쪽 지금 글 그대로, 아래 가는 줄 다음 「AI 요약 ⓘ」 + 요약 전체. 요약 없으면 칸 없음, 표지 없으면 글이 왼쪽부터, 그림 오류·우리 주소가 아니면 제목 글자 표지. **「AI 요약 ⓘ」 조각은 책 창과 함께 씀**(`features/picks/AiSummary.tsx`로 꺼냄, [안] dev가 정함).
+- 시험: vitest 79파일 709개(책 상세 네 상태, `safeCoverUrl` CloudFront 받음·http·다른 호스트·점 대신 다른 글자·확장자·키 꼴·뒤에 붙은 것 거절, 옛 경로 받음, 카드 요약), `npm run build` 통과.
+- 화면: c26 웹 개발 서버(5201)에서 책 정보 응답만 바꿔 넣어 1440·768·375 확인(표지는 실제 CloudFront 그림, 글은 예시). 사용자 확인과 실제 폰(Samsung Internet) 확인은 아직.

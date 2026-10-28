@@ -31,6 +31,17 @@ describe('picks texts', () => {
       '/covers/7f2abb2f74006f006d47b182ecb398a9febfd23d.jpg',
     )
     expect(safeCoverUrl('/covers/../secrets.jpg')).toBeNull()
+    // cycle 26: covers on our CloudFront host, nothing else there
+    const key = '7f2abb2f74006f006d47b182ecb398a9febfd23d'
+    expect(safeCoverUrl(`https://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.jpg`)).toBe(
+      `https://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.jpg`,
+    )
+    expect(safeCoverUrl(`http://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.jpg`)).toBeNull()
+    expect(safeCoverUrl(`https://evil.cloudfront.net/covers/${key}.jpg`)).toBeNull()
+    expect(safeCoverUrl(`https://d1bdzw8sfjph5dXcloudfront.net/covers/${key}.jpg`)).toBeNull()
+    expect(safeCoverUrl(`https://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.png`)).toBeNull()
+    expect(safeCoverUrl('https://d1bdzw8sfjph5d.cloudfront.net/covers/ABC.jpg')).toBeNull()
+    expect(safeCoverUrl(`https://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.jpg?x=1`)).toBeNull()
     expect(safeCoverUrl('https://example.com/a.jpg')).toBeNull()
     expect(safeCoverUrl('javascript:alert(1)')).toBeNull()
     expect(safeCoverUrl(null)).toBeNull()

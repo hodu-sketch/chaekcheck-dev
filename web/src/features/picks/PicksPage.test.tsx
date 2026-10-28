@@ -27,6 +27,8 @@ const BOOK_DETAIL: BookDetail = {
   publishedOn: '2026-01-01',
   isbn13: '9780000000001',
   holdingLibraryCount: 2,
+  coverUrl: null,
+  summary: null,
   libraries: [],
 }
 

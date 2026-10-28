@@ -2,9 +2,9 @@ import type { ForYouCard as Card, PickBook } from '../../api/types'
 import { PICKS_LISTS } from './picksLists'
 
 /**
- * S14 takes a picks book; a for-you card is one with its plan library known to hold it. A listed book brings the
- * lists' AI summary and its year line's month or year as on its list's tab (user 2026-10-24: "24 뒤에 붙임"); any other
- * book brings its tab blurb as the summary (the 3만 권 Haiku summaries, user 2026-10-25 "왜 안보여").
+ * S14 takes a picks book; a for-you card is one with its plan library known to hold it. A listed book brings its year
+ * line's month or year as on its list's tab (user 2026-10-24: "24 뒤에 붙임"). The summary is the card's 책첵 summary
+ * (`blurb`), the same one the lists show (cycle 26: one summary kind, the card has no `aiSummary` any more).
  */
 export function pickBook(card: Card): PickBook {
   return {
@@ -19,7 +19,7 @@ export function pickBook(card: Card): PickBook {
     yearBook: card.yearBook ?? null,
     videoId: null,
     tocNo: null,
-    aiSummary: card.aiSummary ?? card.blurb ?? null,
+    aiSummary: card.blurb ?? null,
     fieldGroup: card.fieldGroup ?? null,
   }
 }

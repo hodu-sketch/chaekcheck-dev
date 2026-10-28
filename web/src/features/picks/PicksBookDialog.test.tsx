@@ -5,7 +5,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { ApiError, fetchBook, type PlanParams } from '../../api/client'
 import { holdingStream } from '../../api/searchStream'
 import type { BookDetail, HoldingStreamEvent, LibraryItem, PickBook, TargetLibrary } from '../../api/types'
-import { AI_SUMMARY_NOTE, PicksBookDialog } from './PicksBookDialog'
+import { AI_SUMMARY_NOTE } from './AiSummary'
+import { PicksBookDialog } from './PicksBookDialog'
 import { testBooks } from './testPicks'
 
 vi.mock('../../api/searchStream', () => ({ holdingStream: vi.fn(), holdingBatchStream: vi.fn() }))
@@ -35,6 +36,8 @@ const DETAIL: BookDetail = {
   publishedOn: '2026-01-01',
   isbn13: '9780000000001',
   holdingLibraryCount: 5,
+  coverUrl: null,
+  summary: null,
   libraries: [],
 }
 

@@ -111,6 +111,8 @@ describe('holdings list', () => {
       publishedOn: null,
       isbn13: null,
       holdingLibraryCount: 1,
+      coverUrl: null,
+      summary: null,
       libraries: [],
     })
     vi.mocked(holdingStream).mockImplementation(async (_params, onEvent) => {
@@ -173,5 +175,67 @@ describe('holdings list', () => {
     const guide = screen.getByRole('dialog', { name: '가 도서관 가입 안내' })
     expect(guide.textContent).toContain('가입 대상어디 살든 가입방문 가입')
     expect(guide.textContent).toContain('온라인 가입 후 도서관 방문')
+  })
+})
+
+/** Cycle 26 (flow S2, AC-2, AC-3): the edition's cover and the whole 책첵 summary under the book's words. */
+describe('cover and summary', () => {
+  const KEY = '7f2abb2f74006f006d47b182ecb398a9febfd23d'
+  const SUMMARY = '사람의 행동이 뇌와 호르몬, 문화에서 어떻게 생기는지 차근차근 따라가는 책이에요. '.repeat(3).trim()
+
+  function renderBook(coverUrl: string | null, summary: string | null) {
+    vi.mocked(fetchBook).mockReset()
+    vi.mocked(fetchBook).mockResolvedValue({
+      id: 7001,
+      title: '행동',
+      authorDisplay: '새폴스키',
+      publisher: '문학동네',
+      publishedOn: '2023-04-18',
+      isbn13: null,
+      holdingLibraryCount: 0,
+      coverUrl,
+      summary,
+      libraries: [],
+    })
+    return render(withQuery(
+      <MemoryRouter initialEntries={['/books/7001']}>
+        <Routes>
+          <Route path="/books/:bookId" element={<BookPage />} />
+        </Routes>
+      </MemoryRouter>),
+    )
+  }
+
+  it('shows the cover and the whole summary with its AI label', async () => {
+    const { container } = renderBook(`https://d1bdzw8sfjph5d.cloudfront.net/covers/${KEY}.jpg`, SUMMARY)
+
+    expect(await screen.findByRole('heading', { name: '행동' })).toBeTruthy()
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(
+      `https://d1bdzw8sfjph5d.cloudfront.net/covers/${KEY}.jpg`,
+    )
+    expect(screen.getByRole('button', { name: 'AI 요약 안내' })).toBeTruthy()
+    // never cut
+    expect(screen.getByText(SUMMARY)).toBeTruthy()
+  })
+
+  it('has neither box without a cover or a summary', async () => {
+    const { container } = renderBook(null, null)
+
+    expect(await screen.findByRole('heading', { name: '행동' })).toBeTruthy()
+    expect(container.querySelector('[data-cover]')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'AI 요약 안내' })).toBeNull()
+  })
+
+  it('shows the summary without a cover', async () => {
+    const { container } = renderBook(null, SUMMARY)
+
+    expect(await screen.findByText(SUMMARY)).toBeTruthy()
+    expect(container.querySelector('[data-cover]')).toBeNull()
+  })
+
+  it('shows the title letters when the cover does not load or is not ours', async () => {
+    renderBook('https://example.com/covers/a.jpg', null)
+
+    expect(await screen.findByTestId('title-cover')).toBeTruthy()
   })
 })
