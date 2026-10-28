@@ -107,7 +107,7 @@ python -X utf8 scripts/crawl/crawl_catalog.py fetch-covers --status             
 - `status`는 수집 DB를 읽기 전용으로 열어 표 구조를 고치지 않습니다(옮길 때 바꿈. 다른 명령은 전처럼 열면서 표 구조를 맞춤)
 - dev seed CSV는 이 저장소의 `backend/src/main/resources/db/changelog/library/`에서 읽습니다(옮기기 전에는 절대 경로)
 - 호출 예의: 같은 호스트는 한 번에 1건, 1초 이상 간격. 서버가 다르면 병렬(사용자 결정 2026-10-03). 공용 호스팅은 하위 주소가 달라도 한 서버(`host_key`). `--shard`는 호스트를 나누므로 여러 프로세스를 동시에 돌려도 한 호스트에 몰리지 않음
-- User-Agent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)`. 개인 연락처를 넣지 않음. 연락처는 서비스 주소나 공개 문의 주소가 생기면 넣음 [확정] (spec R1-8, `crawl_catalog.py`의 `USER_AGENT`)
+- User-Agent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36`. 일반 윈도 크롬과 같은 값(사용자 결정 2026-10-29: "그냥 일반 사용자처럼 보이게 해줘"). 수집기 이름(`chaekcheck-crawler`)과 연락처는 넣지 않음 [확정] (spec R1-8을 바꿈, `crawl_catalog.py`의 `USER_AGENT`). 2026-10-29 이전 값은 `Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)`
 - 이어 받기: 목록이 하나인 도서관은 멈춘 쪽 다음부터 이어 받음. 오디오북이 있는 YES24는 읽던 목록과 쪽부터, 포털은 처음부터([`2-crawl.md`](../../docs/maintenance/2-crawl.md) 4절)
 - 성공 조건: 받은 서로 다른 책 수가 사이트 총 건수와 1% 안(건너뛴 줄 제외). 포털은 총 건수가 없어 빈 쪽까지 읽으면 성공
 

@@ -14,7 +14,7 @@
 |---|---|---|
 | 같은 호스트 동시 요청 | 1건, 요청 사이 1초 이상. 예외: 사용자가 정한 줄만 `--host-slots`로 동시 N건, 요청 시작 사이 1초 이상(지금 교보 대여·혼합형 103.182.126.192 = 4, [2-crawl.md](2-crawl.md) 2-1절) | [확정] (사이클 01 spec 5.6), 예외 [확정] (사용자, 2026-10-04) |
 | 같은 서버를 쓰는 여러 사이트 | 공용 호스팅 `*.dkyobobook.co.kr`, `*.bookcube.biz`, `*.dasangng.co.kr`, `*.aladinebook.co.kr`, `*.yes24library.com`, `*.libworks.co.kr`, `*.hongjicns.co.kr`은 각각 한 서버로 보고 한 줄로 세움. `ebook.jne.go.kr`·`ebook.jbe.go.kr`·`elib.gyeongnam.go.kr`처럼 포트만 다른 사이트도 같은 호스트. 서버가 다르면 병렬 | [확정] (사용자, 2026-10-03) |
-| User-Agent | `Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)`. 개인 연락처는 넣지 않음. 앞의 `Mozilla/5.0 (Windows…)`가 없으면 교보 구독형이 모바일 화면(전체 건수 없음)을 보냄 | 문자열 [안], 모바일 화면 [확정] |
+| User-Agent | `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36`. 일반 윈도 크롬과 같은 값(사용자 결정 2026-10-29: "그냥 일반 사용자처럼 보이게 해줘"). 수집기 이름(`chaekcheck-crawler`)과 연락처는 넣지 않음. 이전 값 `Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)`. 앞의 `Mozilla/5.0 (Windows…)`가 없으면 교보 구독형이 모바일 화면(전체 건수 없음)을 보냄 | 문자열 [확정], 모바일 화면 [확정] |
 | TLS | 인증서 체인이 불완전하거나 옛 RSA 키 교환만 되는 도서관이 많음(dev ADR-0022). 공개 목록 조회에 한해 검증을 끄고 `SECLEVEL=0`으로 호출 | [확정] (현상), 처리 방법 [안] |
 | 문자 인코딩 | UTF-8과 EUC-KR이 섞여 있음. 검색어도 그 사이트 인코딩으로 보내야 하는 곳이 있음(YES24 V1·V3, 강남구) | [확정] |
 | 종류 표시 | 사이트가 줄마다 종류를 적으면 `SITE_LABEL`, 어느 목록에서 왔는지로 정하면 `SITE_SECTION`으로 구분해 저장 | [안] |
