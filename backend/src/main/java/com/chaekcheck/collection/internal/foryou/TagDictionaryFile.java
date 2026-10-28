@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import com.chaekcheck.picks.BookTagTransfer.DictionaryRow;
+import com.chaekcheck.catalog.BookTextsTransfer.DictionaryRow;
 
 /**
  * The {@code tag-dictionary} file (cycle 23 step 3-3, ADR-0149 decision #9, design-delta "넣는 명령" [안]): UTF-8 TSV,

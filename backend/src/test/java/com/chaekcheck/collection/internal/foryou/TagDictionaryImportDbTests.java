@@ -15,7 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chaekcheck.picks.BookTagTransfer;
+import com.chaekcheck.catalog.BookTextsTransfer;
 
 /**
  * The {@code tag-dictionary} mode against db-test (cycle 23 step 3-3): the file's codes are put in or changed, a code
@@ -32,7 +32,7 @@ class TagDictionaryImportDbTests {
 	JdbcClient jdbc;
 
 	@Autowired
-	BookTagTransfer bookTags;
+	BookTextsTransfer bookTags;
 
 	@Test
 	void putsInTheFileAndMakesLeftOutCodesInactive() throws Exception {
@@ -61,7 +61,7 @@ class TagDictionaryImportDbTests {
 	private List<String> dictionary() {
 		return jdbc.sql("""
 				SELECT code || ':' || axis || ':' || name || ':' || coalesce(thema_code, '') || ':' || active
-				FROM picks.tag_dictionary ORDER BY code""")
+				FROM catalog.tag_dictionary ORDER BY code""")
 			.query(String.class)
 			.list();
 	}

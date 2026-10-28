@@ -14,13 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
-import com.chaekcheck.aisearch.AiSearchBookTexts;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Line;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Source;
-import com.chaekcheck.foryou.ForYouTransfer.Blurb;
-import com.chaekcheck.foryou.ForYouTransfer.Cover;
+import com.chaekcheck.catalog.BookTextsTransfer;
+import com.chaekcheck.catalog.BookTextsTransfer.Cover;
+import com.chaekcheck.catalog.BookTextsTransfer.Line;
+import com.chaekcheck.catalog.BookTextsTransfer.Source;
+import com.chaekcheck.catalog.BookTextsTransfer.Summary;
 
 /**
  * The {@code book-texts} file (cycle 24, ADR-0151, design-delta "넣는 파일" [안]): UTF-8 TSV, header
@@ -31,9 +32,12 @@ import com.chaekcheck.foryou.ForYouTransfer.Cover;
  * {@code cover_file} does not read {@code made_on}. Since 2026-10-25 also {@code search_exclude} (user "소개 없는 책
  * 빼기"): a most held book left out of the AI search, the text its reason (1 or more characters; {@code source} and
  * {@code made_on} not read). Other kinds are skipped and counted. A row with a tab or a line
- * break in its text has the wrong number of columns, and a text over {@value AiSearchBookTexts#LINE_MAX_CHARS}
+ * break in its text has the wrong number of columns, and a text over {@value BookTextsTransfer#TEXT_MAX_CHARS}
  * characters is refused: then the whole file is refused, with every problem's row number, and nothing is put in. One
  * row per book and kind. A byte order mark and Windows line ends are accepted.
+ * <p>
+ * Since cycle 26 (ADR-0162) the header comes after a first row {@code # export_id=<uuid>} ({@link ExportIds}); the
+ * blurbs are the 책첵 summaries of {@code catalog.book_summary} and every kind is written into {@code catalog}.
  */
 public final class BookTextsFile {
 
@@ -51,13 +55,13 @@ public final class BookTextsFile {
 
 	private static final List<String> KINDS = List.of(SEARCH_LINE, FOR_YOU_BLURB, TAGS, COVER_FILE, SEARCH_EXCLUDE);
 
-	/** {@code foryou.book_blurb}'s CHECK (cycle 23; the PC keeps 80-150, R8-4). */
+	/** {@code catalog.book_summary}'s CHECK (cycle 23; the PC keeps 80-150, R8-4). */
 	static final int BLURB_MAX_CHARS = 300;
 
-	/** {@code picks.tag_dictionary}'s code CHECK. */
+	/** {@code catalog.tag_dictionary}'s code CHECK. */
 	static final Pattern TAG_CODE = Pattern.compile("[A-Za-z0-9_]{1,20}");
 
-	/** {@code foryou.book_cover}'s file_key CHECK. */
+	/** {@code catalog.book_cover}'s file_key CHECK. */
 	static final Pattern COVER_KEY = Pattern.compile("[0-9a-f]{40}");
 
 	private static final int COLUMNS = 5;
@@ -69,15 +73,16 @@ public final class BookTextsFile {
 	}
 
 	/**
+	 * @param exportId the first row's export id
 	 * @param lines the search lines, in file order
-	 * @param blurbs the {@code for_you_blurb} rows (cycle 23)
+	 * @param blurbs the {@code for_you_blurb} rows (cycle 23): the 책첵 summaries
 	 * @param tags the {@code tags} rows (cycle 23)
 	 * @param covers the {@code cover_file} rows (cycle 23)
 	 * @param excluded the {@code search_exclude} book ids (2026-10-25)
 	 * @param skippedKinds the rows of other kinds, by kind
 	 * @param rows the data rows read
 	 */
-	public record Contents(List<Line> lines, List<Blurb> blurbs, List<BookTags> tags, List<Cover> covers,
+	public record Contents(UUID exportId, List<Line> lines, List<Summary> blurbs, List<BookTags> tags, List<Cover> covers,
 			Set<Long> excluded, Map<String, Integer> skippedKinds, int rows) {
 
 		public Contents {
@@ -127,18 +132,19 @@ public final class BookTextsFile {
 	}
 
 	static Contents parse(List<String> rows) {
-		if (rows.isEmpty() || !HEADER.equals(clean(rows.getFirst()).replaceFirst("^\\uFEFF", ""))) {
-			throw new RefusedException("The first row must be the header " + HEADER.replace("\t", "\\t"));
+		UUID exportId = ExportIds.parse(rows.isEmpty() ? null : clean(rows.getFirst()));
+		if (rows.size() < 2 || !HEADER.equals(clean(rows.get(1)))) {
+			throw new RefusedException("The second row must be the header " + HEADER.replace("\t", "\\t"));
 		}
 		List<String> problems = new ArrayList<>();
 		List<Line> lines = new ArrayList<>();
-		List<Blurb> blurbs = new ArrayList<>();
+		List<Summary> blurbs = new ArrayList<>();
 		List<BookTags> tags = new ArrayList<>();
 		List<Cover> covers = new ArrayList<>();
 		Set<Long> excluded = new LinkedHashSet<>();
 		Map<String, Integer> skipped = new TreeMap<>();
 		Map<String, Set<Long>> seen = new TreeMap<>();
-		for (int i = 1; i < rows.size(); i++) {
+		for (int i = 2; i < rows.size(); i++) {
 			int rowNo = i + 1;
 			String row = clean(rows.get(i));
 			if (row.isBlank()) {
@@ -175,7 +181,7 @@ public final class BookTextsFile {
 									+ " characters, book " + bookId + " has " + length);
 						}
 						else if (once(seen, kind, bookId, rowNo, problems)) {
-							blurbs.add(new Blurb(bookId, text, madeOn));
+							blurbs.add(new Summary(bookId, text, madeOn));
 						}
 					}
 					case TAGS -> {
@@ -236,7 +242,7 @@ public final class BookTextsFile {
 			throw new RefusedException("The book-texts file was refused, " + problems.size() + " problem(s), nothing put in:\n"
 					+ String.join("\n", problems.subList(0, Math.min(PROBLEMS_SHOWN, problems.size()))));
 		}
-		return new Contents(lines, blurbs, tags, covers, excluded, skipped, rows.size() - 1);
+		return new Contents(exportId, lines, blurbs, tags, covers, excluded, skipped, rows.size() - 2);
 	}
 
 	/** Whether this is the book's first row of the kind; a second one is a problem. */

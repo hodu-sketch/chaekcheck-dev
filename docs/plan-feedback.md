@@ -7100,3 +7100,14 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - **실행 계획**(시험 DB, `work_mem` 4MB 기본, `book_cover` 134.5만 줄·`catalog_next.book` 134만 줄·지울 줄 5,000): `Hash Anti Join`(두 표 Seq Scan, 해시 16 batch), **612ms**. 다른 표는 7~8만 줄이라 더 짧음 [추론]. 이 DELETE는 줄 잠금만 잡아 검색을 막지 않고, 검색이 멈추는 것은 지금처럼 DROP 단계뿐. 운영 꼴 복사본에서 다시 재는 것은 9단계.
 - 시험: `CatalogSwapDescriptionsTests` 3개(**AC-6** 두 책 합침 → 남은 번호의 다섯 줄 그대로·버려진 번호 0줄·지운 수 5, 사라진 책, 잠금 시간 넘김 시 하나도 안 지움), `CatalogImportRecordTests`에 지운 수 기록 1개.
 - `./gradlew build` 통과(4분 5초).
+
+## 5단계 (2026-10-28)
+
+- `book-texts`: 종류마다 `catalog.BookTextsTransfer`로 씀(`for_you_blurb` → `upsertSummaries`, `cover_file` → `upsertCovers`, `tags` → `replaceTags`, `search_line` → `replaceSearchBooks`). 찾기 대상은 그대로(`ListedBooks.loadFromDb()` 전부 + `MostHeldBooks.top(N)` − `search_exclude`), 넘기는 것은 책 번호뿐이고 제목·저자·도서관은 `catalog.book`에서. 끝나면 `AiSearchIndex.compact()`. 파일 전체를 먼저 검사하는 규칙 그대로.
+- **`export_id` 검사**: `book-texts` 파일은 이제 **첫 줄 `# export_id=<uuid>`, 둘째 줄 헤더**. `book-profiles`는 첫 줄 다음 바로 9칸 줄(지금 PC 파일처럼 헤더 없음). 마지막 SUCCEEDED 가져오기의 `export_id`와 다르거나 그 DB에 없으면 아무것도 쓰기 전에 거절, `force=true`면 넣고 경고(`neighbours`와 같은 설정 하나, 이제 `neighbours`·`book-texts`·`book-profiles`에서 받음). 검사 코드는 `collection/internal/booktexts/ExportIds`(`neighbours` 쪽 코드는 23 영역이라 그대로 둠).
+- `tag-dictionary` → `BookTextsTransfer.replaceTagDictionary`.
+- 새 모드 `book-profiles`(`chaekcheck.collection.import.book-profiles-file`): 형식 오류는 줄 번호와 함께 파일 전체 거절, 통과하면 `replaceProfiles`(전체 바꿈), 끝에 "restart the server for the AI search to read them" 로그.
+- `collection`이 더는 `aisearch`를 쓰지 않음(`ModularityTests`가 확인). `allowedDependencies`의 `"aisearch"`는 인계서대로 배포 2에서 뺌. `ModularityTests`의 기대값은 지금 고침.
+- **PC 쪽 영향(주의)**: 배포 1 뒤로는 `book-texts` 파일 첫 줄에 `# export_id=`가 없으면 거절됨. 파일을 만드는 PC 스크립트(`build_100k.py` 흐름 등, dev 23·24 몫)와 `6-aisearch.md`·`7-foryou.md` 명령 예는 14단계 문서 고칠 때와 dev 23·24 알림에 넣음.
+- 시험: `BookTextsFileTests`(줄 번호 하나씩 밀림, 첫 줄 검사 추가), `BookTextsImportTests`(가짜 `BookTextsTransfer`·`AiSearchIndex`, **AC-5** 다른 `export_id` 거절 → `force`로 넣음, 가져오기 기록 없는 DB 거절), `BookTextsImportDbTests`(`catalog` 표에 들어감, 다른 `export_id`는 0줄, 찾기 제목이 `catalog.book.title`, `book-profiles` 거절·넣기·되읽기), `BookProfilesFileTests`, `CatalogImportSettingsTests`(새 설정·`force` 범위), `TagDictionary*`는 `catalog` 표로.
+- `./gradlew build` 통과(4분 7초).

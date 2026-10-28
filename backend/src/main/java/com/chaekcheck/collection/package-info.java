@@ -17,6 +17,12 @@
  * latest import's {@code export_id}) through {@code foryou}'s {@code ForYouTransfer} and {@code tag-dictionary}
  * through {@code picks}' {@code BookTagTransfer}, and {@code book-texts}' kinds {@code for_you_blurb},
  * {@code cover_file} (to {@code foryou}) and {@code tags} (to {@code picks}); {@code foryou} does not know this module.
+ * Since cycle 26 (ADR-0161, ADR-0162) every book description is written into {@code catalog} through
+ * {@code BookTextsTransfer}: {@code book-texts} (summaries, covers, tags, search lines), {@code tag-dictionary} and the
+ * new mode {@code book-profiles}. The {@code book-texts} and {@code book-profiles} files start with the catalog
+ * {@code export_id} their book ids are from and are refused for another one unless {@code force}, as
+ * {@code neighbours}. Only {@code neighbours} still goes to {@code foryou}; {@code aisearch} is no longer used and
+ * leaves the allowed dependencies at deploy 2 (cycle 26 C1).
  */
 @ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks", "aisearch",
 		"foryou" })

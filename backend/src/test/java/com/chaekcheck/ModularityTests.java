@@ -82,8 +82,9 @@ class ModularityTests {
 	 */
 	@Test
 	void collectionUsesLibraryAndLibraryNotCollection() {
-		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "aisearch",
-				"foryou");
+		// cycle 26: the book texts go to catalog, so collection no longer uses aisearch (removed from the allowed
+		// dependencies at deploy 2)
+		assertThat(dependenciesOf("collection")).containsExactlyInAnyOrder("catalog", "library", "picks", "foryou");
 		assertThat(dependenciesOf("library")).doesNotContain("collection");
 		assertThat(dependenciesOf("foryou")).doesNotContain("collection");
 	}

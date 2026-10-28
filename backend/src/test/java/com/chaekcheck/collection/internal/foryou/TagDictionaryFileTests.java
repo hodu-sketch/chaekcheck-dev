@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.chaekcheck.picks.BookTagTransfer.DictionaryRow;
+import com.chaekcheck.catalog.BookTextsTransfer.DictionaryRow;
 
 /** {@link TagDictionaryFile} (cycle 23 step 3-3): the header, the table's rules with row numbers, no empty file. */
 class TagDictionaryFileTests {
