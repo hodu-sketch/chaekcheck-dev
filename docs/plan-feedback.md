@@ -7058,6 +7058,21 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
    - 합계 **1,633줄 / 2,793줄(58%)**에서 배포 1 뒤 요약이 사라짐. 요약이 남는 책은 1,128권. 783권은 배포 1 전에 PC 배치(`for_you_blurb`)로 채우면 줄일 수 있음 → plan이 사용자에게 물을 것(배포 1 전 채울지, 그대로 갈지). 책 번호 목록은 이 세션 scratchpad에 있음, 필요하면 다시 뽑음.
    - 참고: `picks.list_book`은 2,832줄(책 번호 없는 줄 916, 서로 다른 책 1,859)로 API 줄 수와 다름. API는 캐시가 ISBN으로 더 이어 주고 같은 책 줄을 합친 결과라 화면 기준인 API 수를 씀.
 - 1단계용 참고: 운영 `/srv/chaekcheck/covers` 81,451장, 1.1GB. 루트 디스크 29G 중 9.2G 남음.
+
+## 1단계 준비 (2026-10-28, 사용자 "CLI로 만들기. 지금 밖이라서 너가 알아서 해줘")
+
+- AWS CLI v2(2.39.0)를 PC에 관리자 권한 없이 풀어 둠: dev `data/tools/awscli/Amazon/AWSCLIV2/aws.exe`(git 밖). AppData는 Claude 앱 폴더로 돌려져(MSIX) 그 아래에는 못 풂.
+- 스크립트 `scripts/covers/setup-aws.ps1`: 시드니 비공개 버킷 `chaekcheck-covers-<계정번호>` [안](공개 접근 모두 막음), OAC(sigv4), CloudFront 배포(기본 도메인, https만, GET/HEAD, 관리형 CachingOptimized, `PriceClass_200`), 그 배포만 읽는 버킷 정책, IAM 사용자 `chaekcheck-covers-uploader` [안](그 버킷 `s3:PutObject`·`s3:ListBucket`만). 업로드 키는 화면에 찍지 않고 PC 자격 증명 파일의 프로필 `chaekcheck-covers`에 바로 넣음(C2). 비밀 아닌 값(버킷, 배포 id, 도메인)은 `data/covers-aws.json`. 다시 돌려도 있는 것은 건너뜀.
+- **[확인 필요] #9 결과**: AWS CLI v2에 `aws login`(콘솔 로그인으로 단기 자격 증명과 갱신 토큰을 받음, `--remote`면 다른 기기 브라우저에서 로그인하고 코드를 붙여 넣음)이 있음(`aws login help`, 2.39.0). 관리 작업(버킷·배포 만들기)은 이걸로 하고 오래 가는 관리자 키는 만들지 않음. 업로드는 수집 세션이 사람 없이 돌려야 해서 인계서대로 IAM 사용자 키로 함(단기 자격으로 하려면 사람이 그때마다 로그인해야 함).
+- 막힌 것: 관리자 로그인(`aws login`)은 사용자가 해야 함. 사용자가 밖이라 아직 못 만듦.
+
+## 2단계 (2026-10-28)
+
+- `catalog/002-book-descriptions.yaml`, `collection/007-description-deleted-count.yaml`, master 끝에 include 둘. changeset id는 `catalog-002-book-summary`·`-book-cover`·`-book-profile`·`-book-search`·`-tag-dictionary`·`-book-tag`·`-copy-old-tables`, `collection-007-description-deleted-count`.
+- 인계서에 없던 것 [안]: 여섯 표 모두 `book_id >= 1` CHECK(옛 `search_book`과 같게). `book_profile`의 `genres`·`forms`는 `NOT NULL DEFAULT '{}'`(파일의 빈 칸 = 빈 목록), 나머지 칸은 NULL 허용. `book_search.line_source`의 `('intro', 'bibliographic')` CHECK는 옛 표 그대로. 복사 뒤 `ANALYZE` 새 표 넷.
+- 시험 `BookDescriptionSchemaTests`(8개): CHECK마다 맞는 줄과 틀린 줄, `gin_bigm_ops` 색인과 "C" collation, `description_deleted_count` 칸, **복사 changeset의 SQL을 changelog 파일에서 읽어 옛 표에 넣은 줄을 그대로 옮기는지**(빈 DB 0줄도).
+- **4단계 1번을 같이 함**: 새 표가 `catalog`에 생기자 다시 가져오기 시험 25개가 깨짐(인계서 함정 0-1 그대로, `catalog_next`에 없는 표의 제약을 만들려 함). `JdbcCatalogLoad.createIndexesAndConstraints`의 두 질의를 `t.relname = ANY (TABLES)`로 거름. 2단계만 따로 main에 들어가면 안 되는 묶음이라 같은 커밋에 넣음.
+- `./gradlew build` 통과(4분 16초).
 5. **AI 검색 전후 비교**: dev 24 몫. v1.19.0 값이 "전" 기준이라 배포 1 직전 알림은 하고, 측정은 배포 1 직후에 dev 24가 함.
 6. **기준 빌드**: 웹 `npm run build` 통과, vitest 79파일 706개 통과. 백엔드 `./gradlew build` 통과(6분 53초, `ModularityTests`·`DocumentationTests` 포함).
 

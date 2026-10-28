@@ -1,0 +1,142 @@
+# Cycle 26 deploy 1 (ADR-0161, ADR-0165, ADR-0166): the book descriptions in one place, the catalog module.
+# - book_summary: the 책첵 summary (polite style, 1-300 characters, one kind; nobody cuts it).
+# - book_cover: the cover file of an edition; the image is <covers base url>/covers/<file_key>.jpg on CloudFront
+#   (ADR-0163).
+# - book_profile: the book profile the AI search's first call reads once at start; no vocabulary CHECK (the PC's
+#   dictionary changes without a schema change).
+# - book_search: the AI search's line and keyword text. library_ids is the one copy of catalog.book data kept here
+#   (ADR-0160: the candidate query reads only this table, cold 106 vs 230 ms joined, plan-feedback "# 사이클 26 질의
+#   속도"). Indexes as aisearch.search_book had them, so the queries change only the table name.
+# - tag_dictionary, book_tag: the tag rules of picks/006 as they were.
+# The description tables have no foreign key to catalog.book (ADR-0162): the catalog swap deletes the rows of book ids
+# the new catalog no longer has, inside its own transaction.
+# The last changeset copies the old tables once (ADR-0166): the old ones stay until deploy 2 drops them. The lists'
+# summary file (picks/ai-summaries.tsv) is not copied. search_book's title and author are left behind (they come from
+# catalog.book); its search_text is copied as it is and made again from catalog.book.title at the next book-texts.
+# CHECK constraints use sql changes (Liquibase OSS YAML has no CHECK).
+databaseChangeLog:
+  - changeSet:
+      id: catalog-002-book-summary
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE catalog.book_summary (
+                book_id bigint CONSTRAINT book_summary_pkey PRIMARY KEY
+                  CONSTRAINT book_summary_book_id_check CHECK (book_id >= 1),
+                summary text NOT NULL
+                  CONSTRAINT book_summary_summary_check CHECK (char_length(summary) BETWEEN 1 AND 300),
+                made_on date NOT NULL
+              )
+
+  - changeSet:
+      id: catalog-002-book-cover
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE catalog.book_cover (
+                book_id bigint CONSTRAINT book_cover_pkey PRIMARY KEY
+                  CONSTRAINT book_cover_book_id_check CHECK (book_id >= 1),
+                file_key text NOT NULL CONSTRAINT book_cover_file_key_check CHECK (file_key ~ '^[0-9a-f]{40}$')
+              )
+
+  - changeSet:
+      id: catalog-002-book-profile
+      author: chaekcheck
+      changes:
+        # The nine cells of the PC's book-profiles file; an empty cell is null, an empty list is '{}'
+        - sql:
+            sql: >-
+              CREATE TABLE catalog.book_profile (
+                book_id bigint CONSTRAINT book_profile_pkey PRIMARY KEY
+                  CONSTRAINT book_profile_book_id_check CHECK (book_id >= 1),
+                field text,
+                subfield text,
+                fiction boolean,
+                genres text[] NOT NULL DEFAULT '{}',
+                country text,
+                audience text,
+                level text,
+                forms text[] NOT NULL DEFAULT '{}'
+              )
+
+  - changeSet:
+      id: catalog-002-book-search
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE catalog.book_search (
+                book_id bigint CONSTRAINT book_search_pkey PRIMARY KEY
+                  CONSTRAINT book_search_book_id_check CHECK (book_id >= 1),
+                line text COLLATE "C" CONSTRAINT book_search_line_check CHECK (char_length(line) BETWEEN 1 AND 300),
+                line_source text CONSTRAINT book_search_line_source_check CHECK (line_source IN ('intro', 'bibliographic')),
+                line_made_on date,
+                search_text text COLLATE "C" NOT NULL,
+                library_ids integer[] NOT NULL DEFAULT '{}'::integer[],
+                imported_at timestamp with time zone NOT NULL DEFAULT now(),
+                CONSTRAINT book_search_line_parts_check
+                  CHECK ((line IS NULL) = (line_source IS NULL) AND (line IS NULL) = (line_made_on IS NULL))
+              )
+        - sql:
+            sql: CREATE INDEX book_search_search_text_bigm ON catalog.book_search USING gin (search_text gin_bigm_ops)
+
+  - changeSet:
+      id: catalog-002-tag-dictionary
+      author: chaekcheck
+      changes:
+        # A code left out of a new dictionary file is kept with active = false, never deleted
+        - sql:
+            sql: >-
+              CREATE TABLE catalog.tag_dictionary (
+                code text CONSTRAINT tag_dictionary_pkey PRIMARY KEY
+                  CONSTRAINT tag_dictionary_code_check CHECK (code ~ '^[A-Za-z0-9_]{1,20}$'),
+                axis text NOT NULL CONSTRAINT tag_dictionary_axis_check CHECK (axis IN ('mood', 'subject', 'audience')),
+                name text NOT NULL,
+                thema_code text,
+                active boolean NOT NULL DEFAULT true
+              )
+
+  - changeSet:
+      id: catalog-002-book-tag
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              CREATE TABLE catalog.book_tag (
+                book_id bigint NOT NULL CONSTRAINT book_tag_book_id_check CHECK (book_id >= 1),
+                tag_code text NOT NULL
+                  CONSTRAINT book_tag_tag_code_fkey REFERENCES catalog.tag_dictionary (code),
+                made_on date NOT NULL,
+                CONSTRAINT book_tag_pkey PRIMARY KEY (book_id, tag_code)
+              )
+
+  - changeSet:
+      id: catalog-002-copy-old-tables
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO catalog.book_summary (book_id, summary, made_on)
+                SELECT book_id, blurb, made_on FROM foryou.book_blurb
+        - sql:
+            sql: >-
+              INSERT INTO catalog.book_cover (book_id, file_key)
+                SELECT book_id, file_key FROM foryou.book_cover
+        - sql:
+            sql: >-
+              INSERT INTO catalog.tag_dictionary (code, axis, name, thema_code, active)
+                SELECT code, axis, name, thema_code, active FROM picks.tag_dictionary
+        - sql:
+            sql: >-
+              INSERT INTO catalog.book_tag (book_id, tag_code, made_on)
+                SELECT book_id, tag_code, made_on FROM picks.book_tag
+        - sql:
+            sql: >-
+              INSERT INTO catalog.book_search
+                  (book_id, line, line_source, line_made_on, search_text, library_ids, imported_at)
+                SELECT book_id, line, line_source, line_made_on, search_text, library_ids, imported_at
+                FROM aisearch.search_book
+        - sql:
+            sql: ANALYZE catalog.book_summary, catalog.book_cover, catalog.book_tag, catalog.book_search

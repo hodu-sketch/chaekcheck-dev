@@ -1,0 +1,13 @@
+# Cycle 26 (ADR-0162): how many description rows (catalog book_summary, book_cover, book_profile, book_search,
+# book_tag) the catalog swap deleted because the new catalog no longer has their book id. Null on imports before this
+# change.
+databaseChangeLog:
+  - changeSet:
+      id: collection-007-description-deleted-count
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE collection.catalog_import
+                ADD COLUMN description_deleted_count integer
+                  CONSTRAINT catalog_import_description_deleted_count_check CHECK (description_deleted_count >= 0)

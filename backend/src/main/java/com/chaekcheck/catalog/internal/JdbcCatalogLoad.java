@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -544,41 +545,49 @@ class JdbcCatalogLoad implements CatalogLoad {
 	/**
 	 * Every index and constraint of the {@code catalog} tables, made again on the {@code catalog_next} tables under
 	 * the same names: primary keys and unique constraints first, then checks, then the foreign keys (they need the
-	 * primary key), then the other indexes. NOT NULL constraints came with the tables.
+	 * primary key), then the other indexes. NOT NULL constraints came with the tables. Only the book list tables
+	 * ({@link #TABLES}): the book description tables in {@code catalog} stay where they are (cycle 26, ADR-0161).
 	 */
 	static void createIndexesAndConstraints(Connection connection) throws SQLException {
 		List<String> statements = new ArrayList<>();
-		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery("""
+		Array tables = connection.createArrayOf("text", TABLES.toArray());
+		try (PreparedStatement query = connection.prepareStatement("""
 				SELECT t.relname, c.conname, pg_get_constraintdef(c.oid)
 				FROM pg_constraint c
 				JOIN pg_class t ON t.oid = c.conrelid
 				JOIN pg_namespace n ON n.oid = t.relnamespace
-				WHERE n.nspname = 'catalog' AND c.contype IN ('p', 'u', 'x', 'c', 'f')
+				WHERE n.nspname = 'catalog' AND t.relname = ANY (?) AND c.contype IN ('p', 'u', 'x', 'c', 'f')
 				ORDER BY CASE c.contype WHEN 'p' THEN 0 WHEN 'u' THEN 1 WHEN 'x' THEN 1 WHEN 'c' THEN 2 ELSE 3 END,
 				  t.relname, c.conname""")) {
-			while (rs.next()) {
-				String definition = rs.getString(3).replace("REFERENCES catalog.", "REFERENCES " + NEXT + ".");
-				statements.add("ALTER TABLE " + NEXT + "." + rs.getString(1) + " ADD CONSTRAINT " + rs.getString(2) + " "
-						+ definition);
+			query.setArray(1, tables);
+			try (ResultSet rs = query.executeQuery()) {
+				while (rs.next()) {
+					String definition = rs.getString(3).replace("REFERENCES catalog.", "REFERENCES " + NEXT + ".");
+					statements.add("ALTER TABLE " + NEXT + "." + rs.getString(1) + " ADD CONSTRAINT " + rs.getString(2)
+							+ " " + definition);
+				}
 			}
 		}
-		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery("""
+		try (PreparedStatement query = connection.prepareStatement("""
 				SELECT pg_get_indexdef(i.indexrelid)
 				FROM pg_index i
 				JOIN pg_class t ON t.oid = i.indrelid
 				JOIN pg_namespace n ON n.oid = t.relnamespace
 				JOIN pg_class x ON x.oid = i.indexrelid
-				WHERE n.nspname = 'catalog'
+				WHERE n.nspname = 'catalog' AND t.relname = ANY (?)
 				  AND NOT EXISTS (SELECT 1 FROM pg_constraint c
 				    WHERE c.conindid = i.indexrelid AND c.contype IN ('p', 'u', 'x'))
 				ORDER BY t.relname, x.relname""")) {
-			while (rs.next()) {
-				String definition = rs.getString(1);
-				String moved = definition.replaceFirst(" ON catalog\\.", " ON " + NEXT + ".");
-				if (moved.equals(definition)) {
-					throw new IllegalStateException("Cannot move the index definition: " + definition);
+			query.setArray(1, tables);
+			try (ResultSet rs = query.executeQuery()) {
+				while (rs.next()) {
+					String definition = rs.getString(1);
+					String moved = definition.replaceFirst(" ON catalog\\.", " ON " + NEXT + ".");
+					if (moved.equals(definition)) {
+						throw new IllegalStateException("Cannot move the index definition: " + definition);
+					}
+					statements.add(moved);
 				}
-				statements.add(moved);
 			}
 		}
 		try (Statement statement = connection.createStatement()) {

@@ -214,3 +214,10 @@ databaseChangeLog:
   - include:
       file: aisearch/004-search-book-slim.yaml
       relativeToChangelogFile: true
+  # 2026-10-28: the book descriptions in one place, catalog (cycle 26 deploy 1; the old tables copied once)
+  - include:
+      file: catalog/002-book-descriptions.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: collection/007-description-deleted-count.yaml
+      relativeToChangelogFile: true
