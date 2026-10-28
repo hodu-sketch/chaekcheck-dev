@@ -7122,3 +7122,10 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 # 수집 User-Agent를 일반 브라우저 값으로 (2026-10-29, 사용자 결정)
 
 - 사용자: "수집 규칙 수정하고 저거 빼줘", "그냥 일반 사용자처럼 보이게 해줘". `chaekcheck-crawler/0.1 (catalog survey)`를 빼고 일반 윈도 크롬 값으로 바꿈. plan에 기록할 것: spec R1-8(연락처는 서비스 주소가 생기면 넣음)과 `crawl-method.md`의 User-Agent 규칙 변경. 1초 간격·IP당 한 요청은 그대로
+
+### [바로잡음] 문턱 시험의 계획 도서관·「바로 대출」 정의 (2026-10-29)
+
+- 틀린 점 ①: 「모든 도서관(기본 범위)」을 운영 도서관 목록 2,643곳 전부로 쟀음. 실제 계획은 `LibraryRepository.findPlannable`: `library.enabled = true`이고 `join_survey`가 `SURVEYED`·`NOT_FOUND`인 곳(지금 **377곳**) + 사용자가 직접 더한 곳. `MEMBERS_ONLY`(2,232)·`NOT_SURVEYED`(34)는 직접 더했을 때만. 가입 가능 범위(`scope=joinable`)는 그중 지역 자격이 `OPEN`·`ELIGIBLE`인 곳 — 앞 측정의 가입 가능 범위 숫자는 이 규칙과 같아 **그대로 맞음**
+- 틀린 점 ②: 「구독형 도서관 1,199곳, 추천 대상 87%를 구독형이 가짐」은 계획에 들지 않는 `MEMBERS_ONLY` 사이트를 포함한 수. 계획 가능 377곳 중 `platform_type = KYOBO_SUBSCRIPTION_V1`은 22곳(그중 `lending_model` RENTAL 9·SUBSCRIPTION 5·MIXED 2·OWNED 6), `BOOKCUBE_FX` SUBSCRIPTION 3곳. 「바로 대출」은 `lending_model IN ('SUBSCRIPTION','RENTAL')`(17곳)로 보는 것이 맞음(교보 구독형 화면이라도 OWNED는 소장형) [확인 필요: RENTAL(교보 「대여」)이 동시 대출 무제한인지]
+- 다시 잰 값(`scripts/foryou/eval/threshold_eval2.py`, 「바로 대출」 = lending_model 기준): 가입 가능 범위 T=1 47.5% → **T=3 60.1%**(1곳뿐 10.7% → 0%, 원래 자리 9.5 → 12.2, 판정은 앞 실행 그대로 유효), 기본 범위(377곳) 바로 대출 47.8% → T=3 48.4%, 평균 내 도서관 28.3 → 28.6, 1곳뿐 0.8% → 0% — **기본 범위에서는 문턱이 거의 아무것도 바꾸지 않음**(앞에서 말한 「기본 범위 91%」는 틀림, 실제 약 48%)
+- 결정(문턱 3)은 그대로 유효. 구현은 「바로 대출」을 `lending_model` 기준으로
