@@ -7290,3 +7290,14 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 틀린 점 ②: 「구독형 도서관 1,199곳, 추천 대상 87%를 구독형이 가짐」은 계획에 들지 않는 `MEMBERS_ONLY` 사이트를 포함한 수. 계획 가능 377곳 중 `platform_type = KYOBO_SUBSCRIPTION_V1`은 22곳(그중 `lending_model` RENTAL 9·SUBSCRIPTION 5·MIXED 2·OWNED 6), `BOOKCUBE_FX` SUBSCRIPTION 3곳. 「바로 대출」은 `lending_model IN ('SUBSCRIPTION','RENTAL')`(17곳)로 보는 것이 맞음(교보 구독형 화면이라도 OWNED는 소장형) [확인 필요: RENTAL(교보 「대여」)이 동시 대출 무제한인지]
 - 다시 잰 값(`scripts/foryou/eval/threshold_eval2.py`, 「바로 대출」 = lending_model 기준): 가입 가능 범위 T=1 47.5% → **T=3 60.1%**(1곳뿐 10.7% → 0%, 원래 자리 9.5 → 12.2, 판정은 앞 실행 그대로 유효), 기본 범위(377곳) 바로 대출 47.8% → T=3 48.4%, 평균 내 도서관 28.3 → 28.6, 1곳뿐 0.8% → 0% — **기본 범위에서는 문턱이 거의 아무것도 바꾸지 않음**(앞에서 말한 「기본 범위 91%」는 틀림, 실제 약 48%)
 - 결정(문턱 3)은 그대로 유효. 구현은 「바로 대출」을 `lending_model` 기준으로
+
+## 10단계 배포 1 (2026-10-29, v1.20.0, 사용자 "날짜 고치고 배포")
+
+- 배포 전: 실제 폰 확인에서 본 출판일 끊김을 고침(저자·출판사·날짜를 한 덩어리씩, 날짜는 통째로 다음 줄). main을 다시 합침(문서만). CHANGELOG `## v1.20.0`. c26 브랜치를 main으로 올리고(`6ce01df9`), `chaekcheck-dev-rel`에서 `release.sh 1.20.0`(커밋 `7ae1aa83`, 태그 v1.20.0). dev 24에 직전·직후, dev 23·plan에 직후 알림.
+- **운영 Liquibase**: `catalog-002-copy-old-tables` **7.7초**(PC 연습 4.2초), 서버 시작 28.3초. `Rows affected: 226038`.
+- **AC-4(운영)**: `book_blurb`↔`book_summary` 69,188 = 69,188(글자까지 69,188), `foryou.book_cover`↔`book_cover` 80,091 = 80,091, `picks.book_tag` 0 = 0, `tag_dictionary` 0 = 0, `search_book`↔`book_search` 76,759 = 76,759(찾기 글·도서관·한 줄 76,759). 고아 0(0단계)이라 다 복사됨.
+- 운영 DB 8,288MB, 루트 디스크 20G 사용 / 9.0G 남음.
+- 시작 로그 `ai search first call: ml, 77551 book profiles from book-profiles.tsv (catalog.book_profile is empty), follow-ups by relation`(파일로 이어 감, 12단계에서 표로 바뀜).
+- 화면·API(운영): 책 상세 「불편한 편의점」 표지(CloudFront)·「AI 요약 ⓘ」; KAIST 목록 표지 2,274줄 모두 CloudFront(옛 주소 0), 화면에서 차례로 뜸(lazy), CSP `img-src … https://d1bdzw8sfjph5d.cloudfront.net` 적용, CSP 그림 오류 없음(콘솔의 cloudflareinsights 스크립트 차단과 비로그인 401은 전부터 있던 것); 책첵 추천 1,831권 중 표지 1,813 CloudFront·요약 1,823, 카드에 `aiSummary` 칸 없음.
+- 추천목록 요약: 2,793줄 중 1,946줄(빠진 847 = 책 번호 없는 838 + 못 만든 9권, 0단계 4번 예측과 같음).
+- 남은 AC: AC-1(같은 책 네 곳 글자 비교, AI 검색 카드 포함)·AC-7·12(dev 24 전후 비교)·AC-11(11단계 뒤).
