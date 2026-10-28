@@ -6345,7 +6345,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 **운영 반영 v1.16.0**(8dd6679c, 2026-10-26, 원래 24 세션, 사용자 "테스트가 통과한 뒤 배포까지 이어서해"): 최신 main(v1.15.3)에 합쳐 백엔드 `./gradlew build`·웹 vitest 705·빌드 통과 뒤 배포. 모델 파일 `first-call-model.bin`·`book-profiles.tsv`를 `/srv/chaekcheck/aisearch-model/`에(해시 일치). 시작 로그 `ai search first call: ml, 27227 book profiles`. 운영 확인: 「번아웃이 왔을 때 읽을 책」 `first ml BOOK` 카드 8장(7.0초, 토큰 5947/1003), 「책첵은 무료야?」 `first ml SITE` 소개 글로 답(2.7초, done `site`), 이어 묻기 「이 중에 더 쉬운 거」 `REFERS_SHOWN` 7장, 「오늘 점심 뭐 먹지」 `NOT_BOOK` 0.17초·토큰 0. 소개 탭에 IP 글자 없음. 백엔드 467MB
 
-**plan에 기록할 것: 설계 변경입니다(ADR 필요).** ADR-0150~0153의 「1차 Haiku 호출이 길과 검색어를 정한다」를 설정으로 바꿀 수 있게 했습니다. 잰 숫자와 넣고 뺀 것은 [`docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`](reports/ai-search-ml-first-call-decisions-2026-10-26.md), 운영 방법은 [`docs/maintenance/6-aisearch.md`](maintenance/6-aisearch.md) 8절.
+**plan에 기록할 것: 설계 변경입니다(ADR 필요).** ADR-0150~0153의 「1차 Haiku 호출이 길과 검색어를 정한다」를 설정으로 바꿀 수 있게 했습니다. 잰 숫자와 넣고 뺀 것은 [`docs/reports/ai-search-ml-first-call-decisions-2026-10-26.md`](aisearch/reports/2026-10-26-ml-first-call-decisions.md), 운영 방법은 [`docs/maintenance/6-aisearch.md`](maintenance/6-aisearch.md) 8절.
 
 ### 사용자 발언 (그대로)
 
@@ -6383,7 +6383,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 ### 이어 묻는 질문·짧은 질문·2차 프롬프트 고치기 (2026-10-26, 같은 곁 세션, 브랜치 `claude/aisearch-follow-up`)
 
 - 사용자가 v1.16.0에서 찾음: 「판타지인데」 → 「좀 슬프고 서정적인거」가 이어지지 않음, 카드에 「책 정보만으로는 알기 어려워요」, 「최근도서」에 「출간 시기 확인 어려워요」. 사용자 "A·B를 다 잰 다음에 한 번에 바꾸자", "이것도 개선하자 출간시기도"
-- 잰 숫자: [결정 기록 3-4](reports/ai-search-ml-first-call-decisions-2026-10-26.md). 짧은 장르 질문 74 → 97.3%(라우터 B), 이어 묻는 질문 대화 80개 맞음 rule 72.2 → relation **75.4%**(continue 64 → 79%). 3번씩 다시 돌린 평균(결정 기록 3-5)은 74.3 → 76.2%로 전체 차이는 흔들림 안, continue 67 → 76%·빈 답 13 → 8개는 흔들림 넘음
+- 잰 숫자: [결정 기록 3-4](aisearch/reports/2026-10-26-ml-first-call-decisions.md). 짧은 장르 질문 74 → 97.3%(라우터 B), 이어 묻는 질문 대화 80개 맞음 rule 72.2 → relation **75.4%**(continue 64 → 79%). 3번씩 다시 돌린 평균(결정 기록 3-5)은 74.3 → 76.2%로 전체 차이는 흔들림 안, continue 67 → 76%·빈 답 13 → 8개는 흔들림 넘음
 - **plan에 기록할 것**
   - 설계 변경: 이어 묻는 질문을 관계 분류기(7가지)로 나눔. 설정 `chaekcheck.aisearch.first-call.follow-up`(`CHAEKCHECK_AISEARCH_FOLLOW_UP`, 기본 `relation`, `rule`·`strict`로 되돌림). 모델 폴더에 `follow-up-model.bin`(8MB)이 더 생김
   - 모듈 의존 더함: `aisearch` → `catalog`(`BookCards`로 후보의 출간 연도를 2차 Haiku에). `package-info.java` `allowedDependencies`와 `ModularityTests`를 고침
@@ -6395,7 +6395,7 @@ plan 인계서 `docs/cycles/24-ai-book-search/handoff.md`(plan 브랜치 `claude
 
 - 사용자: "이거 이어서 하고"(「위에 말한 두 개」, 「판타지 → 추리 → 두 개 섞은 느낌」), 「수학적인 것도 좀」에 「수식보다 실습 중심」 책이 나옴 → "수학적인 것이 없으면 제외, 조금 있으면 조금 있다고", "이런 것들도 합해서 보강해줘"
 - 설계 변경(plan에 기록할 것): 앞 질문 여러 개를 가리키는 말이 있으면 1차가 앞 질문 둘(또는 전부)을 이어 씀(신호 말 규칙 `EarlierTopics`, 모델 아님). 그런 질문과 조건을 더하는 continue는 앞에서 보인 책도 후보에 다시 넣음. 2차 `PICK_SYSTEM`에 합치기·반대 조건·앞 조건 지키기 줄
-- 잰 숫자: [결정 기록 3-6](reports/ai-search-ml-first-call-decisions-2026-10-26.md). 3번 이어지는 대화 50개: 합치기 카드 0장 12 → 1 / 25, 마지막 질문만 잇기 맞음 85 → 92%, 보인 책 가리키기 69 → 87%. 이어 묻는 대화 80개 맞음 75~77% → 79.6%
+- 잰 숫자: [결정 기록 3-6](aisearch/reports/2026-10-26-ml-first-call-decisions.md). 3번 이어지는 대화 50개: 합치기 카드 0장 12 → 1 / 25, 마지막 질문만 잇기 맞음 85 → 92%, 보인 책 가리키기 69 → 87%. 이어 묻는 대화 80개 맞음 75~77% → 79.6%
 - 로컬 시험 서버만 하루 비용 한도를 $5로 올림(사용자 2026-10-26 승인, 운영·파일 값은 $2 그대로)
 
 ### 2차 프롬프트: 묻지 않은 시기, 「위에 말한 두 개」 (2026-10-26, 같은 곁 세션, 브랜치 `claude/aisearch-pick-prompt`)
@@ -6486,12 +6486,12 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 
 - **부정어**: 지금은 규칙이 없음. 1차 호출이 「소설 말고」의 「소설」을 keywords에 넣을 수 있고, 낱말 맞추기는 부정을 모르므로 뺄 책이 후보 자리를 차지함 → 2차 호출이 원문을 보고 fit을 낮춰 거르는 데 기댐(책 수가 줄 수 있음, 드물게 샘) [추론, 재지 않음]. 고칠 안: 1차에 `exclude` 칸(말고·빼고·~아닌·~없는 뒤의 말, keywords·core에 넣지 않음), 낱말 맞추기에서 exclude 낱말이 든 책을 뒤로(순서만), 2차에 「빼 달라는 조건에 맞는 책은 fit 0」, 비교 질문에 부정어 5~6개 더해 전후 비교
 - **질문 임베딩(벡터 검색)**: 사용자가 먼저 보기로 함(아래 조사)
-- **강화 방법 수치 비교** (사용자 "AI검색을 강화할 방법 … '숫자'를 얻고 싶어", 포트폴리오용, 2026-10-25): 보고서 [`reports/ai-search-eval-2026-10-25.md`](reports/ai-search-eval-2026-10-25.md). 질문 57개 재현·Sonnet 채점 4,870쌍. 낱말+벡터 섞기(후보 30 그대로) 「아주 맞는 카드」 62%→76%·틀린 카드 −55%, 「○○ 같은 책」은 기준 책 이웃 먼저 22%→42%. 2차 지시문 고침·부정어 빼기·같은 제목 한 권만은 흔들림(±2%p) 안
-- **모든 수치 비교 모음** (사용자 "수치 비교한 것도 포트폴리오용으로 … 전부 다 기록해놔 그리고 찾기 쉽게 링크하고", 2026-10-25): [`reports/ai-search-portfolio.md`](reports/ai-search-portfolio.md) — 단계별·넣은 것·버린 것·책 쪽 데이터·분류 사전 비교를 표 하나씩, 줄마다 자세한 보고서 절로 링크. 보고서 목록은 [`reports/README.md`](reports/README.md)
+- **강화 방법 수치 비교** (사용자 "AI검색을 강화할 방법 … '숫자'를 얻고 싶어", 포트폴리오용, 2026-10-25): 보고서 [`reports/ai-search-eval-2026-10-25.md`](aisearch/reports/2026-10-25-eval.md). 질문 57개 재현·Sonnet 채점 4,870쌍. 낱말+벡터 섞기(후보 30 그대로) 「아주 맞는 카드」 62%→76%·틀린 카드 −55%, 「○○ 같은 책」은 기준 책 이웃 먼저 22%→42%. 2차 지시문 고침·부정어 빼기·같은 제목 한 권만은 흔들림(±2%p) 안
+- **모든 수치 비교 모음** (사용자 "수치 비교한 것도 포트폴리오용으로 … 전부 다 기록해놔 그리고 찾기 쉽게 링크하고", 2026-10-25): [`reports/ai-search-portfolio.md`](aisearch/4-portfolio.md) — 단계별·넣은 것·버린 것·책 쪽 데이터·분류 사전 비교를 표 하나씩, 줄마다 자세한 보고서 절로 링크. 보고서 목록은 [`reports/README.md`](reports/README.md)
 
 ### 질문 임베딩 조사 (2026-10-25, 이 PC, 28개 비교 질문)
 
-보고서: [`docs/reports/ai-search-embedding-2026-10-25.md`](reports/ai-search-embedding-2026-10-25.md)
+보고서: [`docs/reports/ai-search-embedding-2026-10-25.md`](aisearch/reports/2026-10-25-embedding.md)
 
 - 책 벡터: 사이클 23 KURE-v1(1024차원, 서지 + 소개 300자) `ml/pool-30000-intro.npy` + `ml/foryou/vectors.npy` → AI 검색 3만 939권 중 30,907권에 있음. 다른 모델의 질문 벡터와는 비교할 수 없어 질문도 KURE-v1이어야 함
 - 벡터만으로 찾기: 주제·분위기(다이어트 식단, 위로 에세이, 경제 입문, 1인 요리, 육아서)는 좋고, 장르·나라·조건(「한국 SF」→ 1위 「삼체」, 「웃긴 소설」, 「짧은 소설」, 「대학원 교재」)은 약함, 같은 책의 판이 겹침 → 낱말 후보와 섞는 하이브리드(RRF)가 맞음 [안]

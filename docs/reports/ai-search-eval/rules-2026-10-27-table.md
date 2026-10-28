@@ -1,6 +1,6 @@
 # 규칙 시험 표 (2026-10-27)
 
-`python scripts/aisearch/eval/rules_run.py score` 출력. base = v1.17.0(운영), v2low·v2med = 되묻기 v2(effort low·medium), v3 = v2 + 「뜻이 하나인 이름은 되묻지 않기」·연도 규칙(되돌림). 각 2번, 80문항. 설명은 [규칙 점검](../ai-search-rules-2026-10-27.md) 4절.
+`python scripts/aisearch/eval/rules_run.py score` 출력. base = v1.17.0(운영), v2low·v2med = 되묻기 v2(effort low·medium), v3 = v2 + 「뜻이 하나인 이름은 되묻지 않기」·연도 규칙(되돌림). 각 2번, 80문항. 설명은 [규칙 점검](../../aisearch/reports/2026-10-27-rules.md) 4절.
 
 | 규칙 묶음 | 수 | base | v2low | v2med | v3 |
 |---|---|---|---|---|---|
