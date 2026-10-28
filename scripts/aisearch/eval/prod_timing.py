@@ -1,4 +1,4 @@
-"""AI search first-text timing on production (docs/aisearch/reports/2026-10-27-latency.md 6절): the same 24 first
+"""AI search first-text timing and the cards (book id, title, author) on production (docs/aisearch/reports/2026-10-27-latency.md 6절): the same 24 first
 questions (12 of 5 words or more, 12 of 4 or fewer) one at a time, 7 s apart (rate 10 a minute per IP), then the server's
 log lines of that window (the steps) over SSH.
   python prod_timing.py <label>      -> <out>/prod-<label>.json"""
@@ -21,7 +21,7 @@ def ask(q):
     req = urllib.request.Request('https://chaekcheck.com/api/v1/ai-searches/stream', body,
                                  {'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf, 'Cookie': 'XSRF-TOKEN=' + xsrf,
                                   'User-Agent': 'chaekcheck-latency-check'})
-    t0, first, name, asked, result = time.time(), None, None, False, None
+    t0, first, name, asked, result, cards, head = time.time(), None, None, False, None, [], ''
     with urllib.request.urlopen(req, timeout=60) as r:
         for raw in r:
             line = raw.decode('utf-8').rstrip('\r\n')
@@ -31,8 +31,12 @@ def ask(q):
                 if first is None and name in ('head-delta', 'card', 'ask'):
                     first = round(time.time() - t0, 3)
                 if name == 'ask': asked = True
+                if name == 'card':
+                    d = json.loads(line[5:]); cards.append({'bookId': d['bookId'], 'title': d['title'], 'author': d.get('author')})
+                if name == 'head-delta': head += json.loads(line[5:])['text']
                 if name == 'done': result = json.loads(line[5:])['result']
-    return {'q': q, 'words': len(q.split()), 'firstText': first, 'wall': round(time.time() - t0, 3), 'ask': asked, 'result': result}
+    return {'q': q, 'words': len(q.split()), 'firstText': first, 'wall': round(time.time() - t0, 3), 'ask': asked, 'result': result, 'head': head,
+            'cards': cards}
 
 
 def main(label):
