@@ -9,6 +9,7 @@
   - 버전마다 바꾼 것 → [2-versions.md](2-versions.md) v1.15.0·v1.16.0·v1.16.1
   - 파일을 만들고 서버에 올리는 명령 → [../maintenance/6-aisearch.md](../maintenance/6-aisearch.md) 7·8절
   - 포트폴리오용 전후 숫자 모음 → [4-portfolio.md](4-portfolio.md) 5절
+  - 원리·수식·실제 코드를 처음부터 공부하기 → [5-ml-study.md](5-ml-study.md)
 - 모델 파일: git 밖 `chaekcheck-data\ml\aisearch-model-100k\`(서버 `/srv/chaekcheck/aisearch-model`과 같은 파일, 폴더 README). 두 모델 파일은 `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`과 바이트까지 같음(2026-10-29 `cmp`로 확인). 색인은 `chaekcheck-data\ml\README.md`.
 
 **판 이름** (같은 이름이 다른 판을 가리키지 않게)
@@ -99,7 +100,7 @@ nn.Sequential(nn.Linear(1024, 512), nn.ReLU(), nn.Dropout(0.3), nn.Linear(512, n
 
 ## 6. 학습 데이터: LLM이 만든 정답
 
-- 질문과 정답 모두 Claude Sonnet이 만든 **합성 데이터**: 칸 학습 질문 6,298개, 길 나누기 갈래당 600개, 짧은 장르·분위기 질문 300개, 관계 쌍 7 × 400(new 399). 시험 질문은 따로 쓰고 학습과 겹치지 않게 막았다(칸: 학습 1~24묶음에서 시험과 같은 질문을 뺌, 시험 25~30묶음 600개 / 길 나누기: `avoid.txt` / 관계: 시험 쌍의 첫 질문은 학습에 없음).
+- 질문과 정답 모두 Claude Sonnet이 만든 **합성 데이터**: 칸 학습 질문 6,298개, 길 나누기 갈래당 600개, 짧은 장르·분위기 질문 300개, 관계 쌍 7 × 400(new 399). 시험 질문은 따로 쓰고 학습과 겹치지 않게 막았다(칸: 학습 1~24·31~70묶음에서 시험과 같은 질문을 뺀 6,298개(묶음 24의 98개를 dev로 문턱을 고른 뒤 6,298개 전부로 다시 학습), 시험 25~30묶음 600개 / 길 나누기: `avoid.txt` / 관계: 시험 쌍의 첫 질문은 학습에 없음).
 - 큰 모델(LLM)의 판단을 작은 모델에 옮긴 셈이라 넓게는 **증류**에 가깝지만, 확률(soft label)이 아니라 정답 하나(hard label)를 배웠으므로 「LLM 라벨로 학습」이 정확한 말.
 - 학습량 곡선(작은 칸 99개 F1, 로지스틱 / MLP): 2,306개 79.2 / 78.5% → 4,306개 80.6 / 84.2% → 6,298개 81.6 / **86.5%**. 적을 때는 비슷하고, 많아질수록 용량이 큰 MLP가 앞선다([1차 호출 보고서 5-3절](reports/2026-10-25-first-call-models.md)).
 

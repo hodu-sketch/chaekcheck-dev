@@ -18,6 +18,7 @@ AI 책 찾기(주소 `/ai`, API `POST /api/v1/ai-searches/stream`)는 사이클 
 | 지금 · 설정 | [../maintenance/settings-index.md](../maintenance/settings-index.md) 1-1절 | AI 검색 설정·코드 상수의 이름, 기본값, 운영 값, 근거 | — |
 | **변화** | [2-versions.md](2-versions.md) | v1.10.0~v1.19.0과 데이터 넣기(3만 권, 10만 권)마다 바꾼 것·이유·전후 숫자·그 뒤, 재 보고 내지 않은 것 | 실험 방법의 자세한 내용(→ 보고서) |
 | **결과·설명** | [4-portfolio.md](4-portfolio.md) | 모든 전후 비교 숫자를 한곳에(포트폴리오용) | 동작 설명(→ 1-how-it-works) |
+| 결과·설명 | [5-ml-study.md](5-ml-study.md) | ML을 남에게 설명할 수 있게 처음부터: 벡터·코사인, Transformer 임베딩, int8 양자화, 로지스틱 회귀, MLP, softmax·sigmoid, 교차 엔트로피, 역전파·AdamW, 드롭아웃, F1·문턱, TF-IDF, RRF를 수식과 **실제 코드**로, 라이브러리 표, 설명용 답 | 점수 표 전부(→ 3-ml-models) |
 | 결과·설명 | [3-ml-models.md](3-ml-models.md) | 1차 단계의 ML: KURE-v1 임베딩과 MLP 헤드 13개, 학습 데이터, 문턱, 기준선, 클래스 불균형 | 운영에서 그 출력을 쓰는 곳(→ 1-how-it-works 4-3·4-9) |
 | **근거 (날짜별 실험)** | [reports/](reports/) | 그날 무엇을 왜 어떻게 쟀고 결과가 무엇이었는지. 그때 기록이라 지금과 다른 곳은 각 문서 맨 위 상자에 적음 | 지금 동작(→ 1-how-it-works) |
 | **원본 숫자** | [../reports/ai-search-eval/](../reports/ai-search-eval/) | 보고서 표의 원본 파일(JSON·표·그림). 스크립트가 이 경로를 읽어 옮기지 않음 | — |
@@ -27,6 +28,7 @@ AI 책 찾기(주소 `/ai`, API `POST /api/v1/ai-searches/stream`)는 사이클 
 | 궁금한 것 | 볼 곳 |
 |---|---|
 | 질문이 1,024개 숫자가 되는 과정, 어디서 도나 | [1-how-it-works 4-2](1-how-it-works.md#4-2-질문-벡터-encode), 운영은 [6-aisearch 7-1](../maintenance/6-aisearch.md) |
+| ML 원리를 공부하고 남에게 설명하고 싶다 | [5-ml-study](5-ml-study.md) |
 | 「책 찾기 아님」·「제목만」 같은 길은 누가 어떻게 정하나 | [1-how-it-works 4-3](1-how-it-works.md#4-3-ml-1차-ml), 모델 학습은 [3-ml-models](3-ml-models.md) |
 | 낱말 검색 SQL과 점수 | [1-how-it-works 4-7](1-how-it-works.md#4-7-낱말-후보-keyword) |
 | 벡터 검색과 낱말 검색을 한 목록으로 만드는 식(RRF) | [1-how-it-works 4-8·4-9](1-how-it-works.md#4-9-합치기-mix) |
