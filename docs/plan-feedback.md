@@ -7062,7 +7062,6 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
   - 크기 감: v1.19.0부터 낱말 검색은 질문 벡터·ML 1차(운영 약 0.2초)와 같이 돌아서, 그 안에 끝나는 몇십 ms는 첫 글 시간에 거의 안 보임. cold의 0.2~1초는 그대로 첫 글을 늦춤(운영 첫 글 약 2.1~2.9초).
 - 원본: dev `docs/reports/ai-search-eval/candidate-join-2026-10-28.json`(질문마다 warm·cold 값, 두 질의의 EXPLAIN 글), 도구 `scripts/aisearch/eval/candidate_join_timing.py`.
 
-<<<<<<< HEAD
 # 사이클 26
 
 책 설명 한 곳에 모으기(plan `docs/cycles/26-book-descriptions/handoff.md`, plan main 5c161b5에서 인계, 2026-10-28).
@@ -7218,7 +7217,7 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - **AC-4(복사본)**: `book_blurb`↔`book_summary` 68,414 = 68,414(글자까지 같음 68,414), `foryou.book_cover`↔`book_cover` 29,588 = 29,588, `picks.book_tag` 0 = 0, `tag_dictionary` 0 = 0, `search_book`↔`book_search` 76,759 = 76,759(찾기 글·도서관·한 줄 같음 76,759).
 - **디스크**: 새 표 여섯 합 136MB(`book_search` 109MB, `book_summary` 23MB, `book_cover` 3.2MB). 운영은 표지 줄이 많아 약 +5MB [추론] → 약 140MB(설계 어림 110~150MB 안).
 - 켠 서버(8096)로 확인: 책 상세에 `coverUrl`(CloudFront)·`summary`, KAIST 목록 2,442줄 중 표지 2,274줄 모두 CloudFront 주소(옛 주소 0), 요약 997줄(PC는 774권 채우기 전), 검색 결과 항목에 두 칸 없음.
-=======
+
 # 사이클 26 (dev 24 몫, 2026-10-28)
 
 - **`build_100k.py` → catalog용 두 파일** (plan 26 요청, 사용자 "진행해" — plan 세션에서): `profiles-tsv`·`book-texts`가 파일을 둘씩 씀. 지금 쓰는 그대로의 파일과, 첫 줄이 `# export_id=d09d649f-feb6-44ad-8f92-687dcee85243`(PC DB 마지막 SUCCEEDED 가져오기 14번 = 운영 14번)인 `<이름>-export.tsv`. `book-profiles-export.tsv` 77,551줄(9칸, 첫 줄을 뺀 내용은 운영 모델 폴더 파일과 md5 같음), `book-texts-100k-exclude-2026-10-28-export.tsv` 143,758줄(`search_line` 76,759 · `search_exclude` 23,772 · `for_you_blurb` 43,227; 앞 둘은 운영 `search_book`과 같은 수). 파일은 `chaekcheck-data/aisearch/100k/`. **지금 넣기 명령은 첫 줄이 헤더가 아니면 파일 전체를 거절**(`BookTextsFile`: "The first row must be the header"), 백엔드의 `BookProfiles`도 9칸이 아닌 줄에서 멈추므로, 26 배포 1까지는 첫 줄 없는 파일을 씀. 26의 `export_id` 검사·`book-profiles` 모드가 들어가면 `-export.tsv`를 씀.
@@ -7243,4 +7242,3 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 # 수집 User-Agent를 일반 브라우저 값으로 (2026-10-29, 사용자 결정)
 
 - 사용자: "수집 규칙 수정하고 저거 빼줘", "그냥 일반 사용자처럼 보이게 해줘". `chaekcheck-crawler/0.1 (catalog survey)`를 빼고 일반 윈도 크롬 값으로 바꿈. plan에 기록할 것: spec R1-8(연락처는 서비스 주소가 생기면 넣음)과 `crawl-method.md`의 User-Agent 규칙 변경. 1초 간격·IP당 한 요청은 그대로
->>>>>>> origin/main

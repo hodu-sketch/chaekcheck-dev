@@ -1,9 +1,5 @@
 # AI 책 찾기 운영: 넣기·모델 파일·임베딩 서버·설정·로그
 
-<<<<<<< HEAD
-- 사이클 24(plan ADR-0151). AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `aisearch.search_book`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, v1.17.0~, 9절)입니다. 이 표는 이 명령으로만 바뀝니다.
-- **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). `aisearch.search_book`은 배포 2에서 지웁니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
-=======
 > **이 문서가 답하는 것**: AI 책 찾기(사이클 24, plan ADR-0151)를 운영하는 데 필요한 것 — 찾기용 한 줄 넣기(`book-texts`) 명령과 확인 SQL, 서버의 모델 폴더와 파일 만들기, 임베딩 서버(EC2) 정보와 띄우기 명령, 켜고 끄는 설정(prod.env), 시작·검색 로그 줄, 그때 잰 운영 숫자, 다시 재는 스크립트.
 >
 > **답하지 않는 것**:
@@ -13,7 +9,7 @@
 > - 실험 숫자의 자세한 방법 → [../aisearch/4-portfolio.md](../aisearch/4-portfolio.md)와 [../aisearch/reports/](../aisearch/reports/)
 
 - AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `aisearch.search_book`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, 2026-10-26 21:59~, CHANGELOG는 v1.17.0 줄, 9절)입니다. 이 표는 `book-texts` 명령으로만 바뀝니다.
->>>>>>> origin/main
+- **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). `aisearch.search_book`은 배포 2에서 지웁니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
 ## 0. 지금 운영 (2026-10-28, v1.19.0)
