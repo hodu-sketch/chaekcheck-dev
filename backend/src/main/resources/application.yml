@@ -122,9 +122,9 @@ chaekcheck:
       default-page-size: 10
   covers:
     # The covers' CloudFront address (cycle 26, ADR-0163): pictures are <base-url>/covers/<sha1>.jpg. Empty gives no
-    # cover address. TODO(확인 필요): the default *.cloudfront.net address once step 1 made it; production sets
-    # CHAEKCHECK_COVERS_BASEURL. docs/maintenance/settings-index.md
-    base-url: ""
+    # cover address. The default domain of distribution E1RZWZ6VBX38DX (bucket chaekcheck-covers-135274608857, made
+    # 2026-10-28, cycle 26 step 1); CHAEKCHECK_COVERS_BASEURL overrides it. docs/maintenance/settings-index.md
+    base-url: https://d1bdzw8sfjph5d.cloudfront.net
   availability:
     cache-ttl: 3m
     # cycle 08 (ADR-0066): one limit per cache, statistics logged. 1,000 each as before [안] until step 9 measures them.

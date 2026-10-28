@@ -7125,3 +7125,13 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - **올리기**: 운영 `/srv/chaekcheck/covers`를 tar 한 개로 PC에 받음(976MB, 81,451장, 모두 `^[0-9a-f]{40}\.jpg$`). `picks.cover` 108줄은 `scripts/covers/extract_picks_covers.py`로 `sha1(source_url).jpg`로 꺼냄(모두 `image/jpeg`, 운영 폴더 이름과 겹침 0). 둘 다 `aws s3 sync … --cache-control "public, max-age=604800" --content-type image/jpeg`로 `covers/`에.
 - AWS CLI는 `aws login`(2.39.0)이 있어서 PC에서 단기 자격을 받을 수 있음([확인 필요] #9). 다만 업로드는 사람 없이 돌아야 해서 IAM 사용자 키로 함.
 - 1단계 뒤 할 일(수집 세션 몫, dev `2-crawl.md` 0-0절): 새 표지는 PC가 이 버킷 `covers/`에 올림. 프로필 `chaekcheck-covers`.
+
+## 0단계 4번 후속: 추천목록 책 요약 채우기 (2026-10-28, 사용자 "그래", plan을 거쳐 · 넣기 사용자 "승인")
+
+- 대상: 0단계 4번의 783권(운영 API에서 요약이 보이지만 `foryou.book_blurb`가 없는 책 번호). PC DB의 마지막 가져오기 `export_id`가 운영과 같아서(`d09d649f-…`) 책 번호를 그대로 씀.
+- 만들기: `scripts/crawl/list_summaries_c26.py prepare`(입력은 `foryou_blurbs.py`와 같음: 서지 한 줄 + 보유본 중 가장 긴 소개 원문 앞 1,500자) → Haiku 서브에이전트 8개가 100권씩(API 키 없음, 추가 비용 0) → `collect`가 `foryou_blurbs.check`(R8-4: 해요체, 80~150자, 금지어, 원문 8자 연속 금지)로 다시 검사. 소개 원문 있음 748, 없음 35.
+- 소개 원문이 그 책이 아닌 경우를 찾음: 황금알 출판사 판 5권(`미들마치`, `율리시스`, `돈키호테`, `아이네이스`, `죄와 벌`)에 같은 영어 학습법 홍보문, 6권에 "도서 소개가 없습니다" 자리표시문, 그 밖에 에이전트가 짚은 엉뚱한 원문 2건(`팔레스타인 100년 전쟁`, `페더럴리스트`, 원문을 쓰지 않고 썼음). 학습서처럼 쓰인 2권과 첫 판 NONE 14권, 모두 16권을 원문 없이 "작품을 확실히 알 때만" 다시 쓰게 함 → 고전 7권 살림.
+- **결과: 774권 만듦, 9권 못 만듦**(내용을 알 수 없음: 천 개의 파랑, 내 책상 위의 비밀, 무언화, 빛의 혁명과 반혁명 사이, 사서 심경, 잃어도 이뤄냈으니까, 보여주기, 결정적 그림, 당신에게 분명 좋은 일만 생길 거예요). 다시 보낸 규칙 위반 0.
+- **운영에 넣음**: `/srv/chaekcheck/book-texts/book-texts-list-summaries-2026-10-28.tsv`(지금 형식, 첫 줄 없음)를 운영 백엔드 이미지의 `book-texts`로(6-aisearch.md 3절 명령). 로그 `blurbs 774`, `no search line: the AI search's books were left as they are`. `foryou.book_blurb` 68,414 → **69,188**, `aisearch.search_book` 76,759 그대로. 배포 1의 한 번 복사로 `catalog.book_summary`에 함께 옮겨짐.
+- 그래서 배포 1 뒤 요약이 사라지는 추천목록 줄은 1,633 → **책 번호 없는 838줄 + 9권의 줄**(줄 수는 배포 1 직전 API로 다시 셈).
+- 데이터: dev `data/c26/summaries/`(입력 조각, 답, `report.json`, 넣은 TSV). git 밖.
