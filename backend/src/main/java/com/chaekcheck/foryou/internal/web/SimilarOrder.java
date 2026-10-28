@@ -1,5 +1,6 @@
 package com.chaekcheck.foryou.internal.web;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,40 @@ import java.util.Set;
  */
 final class SimilarOrder {
 
+	/**
+	 * A pick passes when at least this many plan libraries hold it (user 2026-10-29 "문턱 3으로": books held by too few
+	 * libraries are likely all on loan; cycle 23 threshold test, joinable plans: available now 48 → 61%, one-library
+	 * picks 11% → 0%, blind judge unchanged).
+	 */
+	static final int MIN_PLAN_LIBRARIES = 3;
+
 	private SimilarOrder() {
+	}
+
+	/**
+	 * The picks that pass first, each part in its order: a pick passes when a plan library that lends without a copy
+	 * limit holds it ({@code instantLibraryIds}: lending model SUBSCRIPTION or RENTAL) or at least
+	 * {@value #MIN_PLAN_LIBRARIES} plan libraries hold it. The others follow, so they only show when too few pass.
+	 * @param libraryIds each pick's holding library ids ({@code catalog.book.library_ids}); a pick without an entry
+	 * never passes
+	 */
+	static List<Long> availableFirst(List<Long> picks, Map<Long, long[]> libraryIds, Set<Long> planIds,
+			Set<Long> instantLibraryIds) {
+		List<Long> passed = new ArrayList<>(picks.size());
+		List<Long> rest = new ArrayList<>();
+		for (long pick : picks) {
+			int inPlan = 0;
+			boolean instant = false;
+			for (long libraryId : libraryIds.getOrDefault(pick, new long[0])) {
+				if (planIds.contains(libraryId)) {
+					inPlan++;
+					instant |= instantLibraryIds.contains(libraryId);
+				}
+			}
+			(instant || inPlan >= MIN_PLAN_LIBRARIES ? passed : rest).add(pick);
+		}
+		passed.addAll(rest);
+		return passed;
 	}
 
 	/**

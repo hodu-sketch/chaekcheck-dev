@@ -24,6 +24,7 @@ import com.chaekcheck.foryou.internal.listed.ListedSource;
 import com.chaekcheck.foryou.internal.listed.ListedSource.ListedRef;
 import com.chaekcheck.foryou.internal.store.BookTexts;
 import com.chaekcheck.foryou.internal.store.ForYouStore.LastBuild;
+import com.chaekcheck.library.LendingModel;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
@@ -93,14 +94,17 @@ class ForYouController {
 	/**
 	 * The neighbours of the base books (≤ 20 each), without the base books and books outside the plan, at most 60.
 	 * Since 2026-10-25 (user "순서 고치기 하고", cycle 23 offline scores) by closeness, the base books taking turns
-	 * ({@link SimilarOrder}); before, build score, then plan libraries, then id. Unknown ids are left out quietly.
+	 * ({@link SimilarOrder}); before, build score, then plan libraries, then id. Since 2026-10-29 (user "문턱 3으로")
+	 * the picks held by at least three plan libraries or by a plan library lending without a copy limit come first
+	 * ({@link SimilarOrder#availableFirst}). Unknown ids are left out quietly.
 	 */
 	@GetMapping("/api/v1/for-you/similar-books")
 	SimilarBooks similarBooks(@RequestParam MultiValueMap<String, String> params) {
 		ForYouParams read = new ForYouParams(params);
 		List<Long> base = read.baseBookIds();
 		List<Long> reshow = read.reshowBookIds();
-		Set<Long> planIds = planIds(read);
+		List<SearchTarget> plan = planTargets(read);
+		Set<Long> planIds = idsOf(plan);
 		Map<Long, int[]> neighbours = bookTexts.neighbours(base);
 		Set<Long> candidates = new LinkedHashSet<>(SimilarOrder.byCloseness(base, neighbours));
 		// scores are kept on the build's representative edition of each work: a neighbour that is another edition of a
@@ -128,7 +132,7 @@ class ForYouController {
 		}
 		candidates = represented;
 		Map<Long, ListedRef> listed = listed();
-		List<Card> books = cards(List.copyOf(candidates), planIds, listed);
+		List<Card> books = availableFirst(cards(List.copyOf(candidates), planIds, listed), plan, planIds);
 		Map<Long, String> titles = new HashMap<>();
 		bookCards.cards(base).forEach(card -> titles.put(card.bookId(), card.title()));
 		List<BaseBook> baseBooks = base.stream()
@@ -138,6 +142,27 @@ class ForYouController {
 		List<Long> shownAgain = reshow.stream().filter(id -> !base.contains(id)).toList();
 		return new SimilarBooks(baseBooks, books.subList(0, Math.min(MAX_SIMILAR, books.size())),
 				cards(shownAgain, planIds, listed));
+	}
+
+	/**
+	 * The cards with the picks that pass the threshold first ({@link SimilarOrder#availableFirst}, user 2026-10-29
+	 * "문턱 3으로"): instant lending = a plan library with lending model SUBSCRIPTION or RENTAL.
+	 */
+	private List<Card> availableFirst(List<Card> cards, List<SearchTarget> plan, Set<Long> planIds) {
+		Set<Long> instant = new HashSet<>();
+		for (SearchTarget target : plan) {
+			if (target.lendingModel() == LendingModel.SUBSCRIPTION || target.lendingModel() == LendingModel.RENTAL) {
+				instant.add(target.id());
+			}
+		}
+		Map<Long, Card> byId = new HashMap<>();
+		cards.forEach(card -> byId.put(card.bookId(), card));
+		Map<Long, long[]> libraryIds = new HashMap<>();
+		bookCards.cards(byId.keySet()).forEach(card -> libraryIds.put(card.bookId(), card.libraryIds()));
+		return SimilarOrder.availableFirst(cards.stream().map(Card::bookId).toList(), libraryIds, planIds, instant)
+			.stream()
+			.map(byId::get)
+			.toList();
 	}
 
 	/** Cards in the given order, books outside the plan and unknown books left out. */
@@ -207,14 +232,21 @@ class ForYouController {
 
 	/** The ids of the libraries the plan in the parameters searches (as the picks API counts them). */
 	private Set<Long> planIds(ForYouParams read) {
+		return idsOf(planTargets(read));
+	}
+
+	/** The libraries the plan in the parameters searches (as the picks API counts them). */
+	private List<SearchTarget> planTargets(ForYouParams read) {
 		PlanOptions options = read.planOptions();
 		Set<Long> residence = read.regionIds("residenceRegionIds");
 		Set<Long> work = read.regionIds("workRegionIds");
-		Set<Long> planIds = new HashSet<>();
-		for (SearchTarget target : libraryCatalog.planSearch(residence, work, options)) {
-			planIds.add(target.id());
-		}
-		return planIds;
+		return libraryCatalog.planSearch(residence, work, options);
+	}
+
+	private static Set<Long> idsOf(List<SearchTarget> targets) {
+		Set<Long> ids = new HashSet<>();
+		targets.forEach(target -> ids.add(target.id()));
+		return ids;
 	}
 
 	/** @param builtOn the build's day (Asia/Seoul), null before the first build */

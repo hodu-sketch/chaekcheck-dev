@@ -340,17 +340,30 @@ ok = [r for r in rows if r[2] or r[1] >= T]                   # 문턱 T
 top = (ok + [r for r in rows if not (r[2] or r[1] >= T)])[:20]
 ```
 
-**서버 구현 예시 코드(저장소에 없음, I-01)** — `ForYouController.similarBooks`의 카드 뒤:
+**서버 코드(I-01, 2026-10-29 구현, 운영 배포 전)** — `backend/.../foryou/internal/web/SimilarOrder.java`:
 ```java
-// instantIds: 계획 도서관 중 library.library.lending_model IN ('SUBSCRIPTION','RENTAL')인 도서관 번호
-List<Card> passed = new ArrayList<>(), rest = new ArrayList<>();
-for (Card card : books) {
-    boolean instant = holdsAny(card, planIds, instantIds);   // card의 library_ids ∩ planIds ∩ instantIds ≠ ∅
-    (instant || card.planLibraryCount() >= 3 ? passed : rest).add(card);
+static final int MIN_PLAN_LIBRARIES = 3;
+
+static List<Long> availableFirst(List<Long> picks, Map<Long, long[]> libraryIds, Set<Long> planIds,
+        Set<Long> instantLibraryIds) {
+    List<Long> passed = new ArrayList<>(picks.size());
+    List<Long> rest = new ArrayList<>();
+    for (long pick : picks) {
+        int inPlan = 0;
+        boolean instant = false;
+        for (long libraryId : libraryIds.getOrDefault(pick, new long[0])) {   // catalog.book.library_ids
+            if (planIds.contains(libraryId)) {
+                inPlan++;
+                instant |= instantLibraryIds.contains(libraryId);
+            }
+        }
+        (instant || inPlan >= MIN_PLAN_LIBRARIES ? passed : rest).add(pick);
+    }
+    passed.addAll(rest);            // 통과한 책이 모자랄 때만 뒤에서 보임
+    return passed;
 }
-passed.addAll(rest);                                          // 통과한 책이 모자랄 때만 뒤에서 채워짐
-books = passed.subList(0, Math.min(MAX_SIMILAR, passed.size()));
 ```
+`ForYouController`는 계획 도서관(`SearchTarget`) 중 `lendingModel`이 `SUBSCRIPTION`·`RENTAL`인 것을 `instantLibraryIds`로 넘김. 시간 복잡도는 (후보 수 × 책당 소장 도서관 수), 후보 ≤ 120권이라 무시할 만함. 두 목록으로 나눠 이어 붙이는 것은 **안정 분할(stable partition)** — 각 부분 안의 원래 차례(유사도 순)를 그대로 지킴.
 
 ---
 

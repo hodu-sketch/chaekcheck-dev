@@ -7290,3 +7290,9 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 틀린 점 ②: 「구독형 도서관 1,199곳, 추천 대상 87%를 구독형이 가짐」은 계획에 들지 않는 `MEMBERS_ONLY` 사이트를 포함한 수. 계획 가능 377곳 중 `platform_type = KYOBO_SUBSCRIPTION_V1`은 22곳(그중 `lending_model` RENTAL 9·SUBSCRIPTION 5·MIXED 2·OWNED 6), `BOOKCUBE_FX` SUBSCRIPTION 3곳. 「바로 대출」은 `lending_model IN ('SUBSCRIPTION','RENTAL')`(17곳)로 보는 것이 맞음(교보 구독형 화면이라도 OWNED는 소장형) [확인 필요: RENTAL(교보 「대여」)이 동시 대출 무제한인지]
 - 다시 잰 값(`scripts/foryou/eval/threshold_eval2.py`, 「바로 대출」 = lending_model 기준): 가입 가능 범위 T=1 47.5% → **T=3 60.1%**(1곳뿐 10.7% → 0%, 원래 자리 9.5 → 12.2, 판정은 앞 실행 그대로 유효), 기본 범위(377곳) 바로 대출 47.8% → T=3 48.4%, 평균 내 도서관 28.3 → 28.6, 1곳뿐 0.8% → 0% — **기본 범위에서는 문턱이 거의 아무것도 바꾸지 않음**(앞에서 말한 「기본 범위 91%」는 틀림, 실제 약 48%)
 - 결정(문턱 3)은 그대로 유효. 구현은 「바로 대출」을 `lending_model` 기준으로
+
+### 문턱 3 구현 (2026-10-29, 사용자 "문턱 3으로", 사이클 26 배포 1 v1.20.0 뒤)
+
+- `SimilarOrder.availableFirst`(`MIN_PLAN_LIBRARIES = 3`) + `ForYouController.availableFirst`: 계획 도서관 `SearchTarget.lendingModel`이 `SUBSCRIPTION`·`RENTAL`이면 바로 대출 도서관. 책의 `catalog.book.library_ids` 중 계획 도서관이 3곳 이상이거나 바로 대출 도서관이 있으면 앞, 나머지는 차례 그대로 뒤. 응답 칸은 그대로(새 칸 없음)
+- 설계 AC-5(계획 도서관 1곳 이상)와 다름: 1곳·2곳 책은 빠지지 않고 뒤로 감(통과한 책이 60권에 못 미칠 때만 보임) — plan AC 고칠 것
+- 백엔드 `./gradlew build`, 웹 `npm run build`·vitest 709 통과. **운영 배포 전**(사용자 승인 대기). 다른 세션이 main에서 배포하면 같이 나가므로 승인 전에는 main에 합치지 않음

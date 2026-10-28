@@ -9,9 +9,9 @@
 | 운영 표 | 행 | 만든 곳 | 1절 |
 |---|---|---|---|
 | `foryou.book_neighbour` (`book_id`, `neighbour_ids integer[]` ≤ 20, `computed_on`) | 81,080 | 이 PC, `scripts/crawl/foryou_neighbours.py` | 2·3 |
-| `foryou.book_blurb` (`book_id`, `blurb` 1~300자, `made_on`) | 68,414 | Haiku(2묶음) | 4 |
-| `foryou.book_cover` (`book_id`, `file_key` = sha1 40자) | 80,091 | 수집 PC 표지 받기 결과 재사용 | 5 |
-| 운영 파일 `/srv/chaekcheck/covers/<sha1>.jpg` | 81,451개 | 같음 | 5 |
+| 요약: `foryou.book_blurb` → v1.20.0부터 `catalog.book_summary`(`book_id`, `summary`, `made_on`, 사이클 26이 복사) | 68,414(10-26 넣음) | Haiku(2묶음) | 4 |
+| 표지 연결: `foryou.book_cover` → v1.20.0부터 `catalog.book_cover`(`book_id`, `file_key` = sha1 40자) | 80,091(10-26 넣음) | 수집 PC 표지 받기 결과 재사용 | 5 |
+| 표지 그림 | 10-26 운영 `/srv/chaekcheck/covers/` 81,451개 → v1.20.0부터 CloudFront(`chaekcheck.covers.base-url`, 위치는 plan `docs/cycles/26-book-descriptions/`) | 같음 | 5 |
 | 분야 묶음 | 표 없음, 요청마다 계산 | [1-how-it-works.md](1-how-it-works.md) 7절 | — |
 | `picks.tag_dictionary`, `picks.book_tag` | 0 | 만들지 않음 | — |
 
@@ -86,7 +86,7 @@ AI 검색은 같은 규칙의 벡터를 따로 int8로 바꾼 `book-vectors.bin`
 
 - 공통: 운영 `docker compose --env-file secrets.env --env-file prod.env run --rm --no-deps -v /srv/chaekcheck/book-texts:/book-texts:ro -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false -e CHAEKCHECK_FORYOU_BUILD_ENABLED=false backend --spring.profiles.active=collection-import …` (파일은 먼저 `/srv/chaekcheck/book-texts/`에)
 - **이웃**: `--chaekcheck.collection.import.mode=neighbours --chaekcheck.collection.import.neighbours-load=full --chaekcheck.collection.import.neighbours-file=/book-texts/<파일>`. 파일 첫 줄 `export_id`가 운영 `collection.catalog_import`의 마지막 SUCCEEDED와 다르면 거부. `full`은 `foryou.book_neighbour_next`에 COPY한 뒤 짧은 트랜잭션에서 표를 바꿔 끼움
-- **요약·표지**: `--chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일>`. 파일: 첫 줄 `kind<TAB>book_id<TAB>source<TAB>made_on<TAB>text`, `for_you_blurb` → `foryou.book_blurb` upsert, `cover_file` → `foryou.book_cover` upsert, `tags` → `picks.book_tag`. `search_line` 줄이 없는 파일은 AI 검색 표(`aisearch.search_book`)를 건드리지 않음. 한 트랜잭션
+- **요약·표지**: `--chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일>`. 파일: 첫 줄 `kind<TAB>book_id<TAB>source<TAB>made_on<TAB>text`, `for_you_blurb` → (10-26까지 `foryou.book_blurb`, v1.20.0부터 `catalog.book_summary`) upsert, `cover_file` → (`foryou.book_cover` → `catalog.book_cover`) upsert, `tags` → 꼬리표. **v1.20.0부터 book-texts·neighbours 파일 모두 맨 첫 줄에 `# export_id=<UUID>`가 있어야 함**(사이클 26). `search_line` 줄이 없는 파일은 AI 검색 표(`aisearch.search_book`)를 건드리지 않음. 한 트랜잭션
 - 2026-10-26 넣은 파일: `neighbours-100k-2026-10-26.tsv`, `book-texts-cover_file-100k.tsv`(80,091줄), `book-texts-for_you_blurb-100k.tsv`(43,227줄)
 
 ## 7. 다시 만들 때 주의

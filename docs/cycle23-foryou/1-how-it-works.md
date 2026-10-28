@@ -1,8 +1,8 @@
-# 1. 책첵 추천은 지금 어떻게 동작하나 (운영 v1.19.0, 2026-10-29 기준)
+# 1. 책첵 추천은 지금 어떻게 동작하나 (운영 v1.20.0, 2026-10-29 기준)
 
 - **이 문서가 답하는 것**: 사용자가 「책첵 추천」 탭(`/picks/for-you`)을 열었을 때 브라우저·서버가 **어떤 자료를 어디서 읽어, 어떤 계산으로, 어떤 형식의 결과를** 만드는지. 코드 위치와 표·칸 이름까지.
 - **답하지 않는 것**: 이웃 표·요약·표지를 PC에서 어떻게 만드나 → [2-data.md](2-data.md). 왜 이렇게 정했고 숫자가 얼마였나 → [3-evaluation.md](3-evaluation.md). 언제 무엇이 바뀌었나 → [4-history.md](4-history.md). 앞으로 바꿀 것 → [5-improvements.md](5-improvements.md).
-- 사이클 26(책 설명을 `catalog`로 옮김) 배포 뒤에는 11절의 표·API가 바뀝니다.
+- 사이클 26 배포 1(v1.20.0, 2026-10-29)로 요약·표지·꼬리표를 `catalog` 표에서 읽습니다. 문턱 3(4절 5번)은 코드만 있고 **운영 배포 전**입니다.
 
 ## 0. 한눈에
 
@@ -55,7 +55,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 ## 3. 서버: 기본 목록 `GET /api/v1/for-you/books` (`foryou/internal/web/ForYouController.books`)
 
 1. 계획 도서관 집합 `planIds`를 구함(2절)
-2. 추천목록 책 `listed`: `ListedSource.listed()` → `picks`의 추천목록 캐시(`CacheListedBooks.merge`). 목록 차례 `librarian, leedongjin, snu100, kaist, nobel`로 각 목록의 책을 돌며 우리 책 번호(`picks.list_book.book_id`)가 있는 책만 한 줄로 합침. 책마다 `listKeys`(실린 목록들), `libraryIds`(`catalog.book.library_ids`), `aiSummary`(빌드에 실린 파일 `picks/ai-summaries.tsv`, ISBN 또는 목록+제목으로 찾음), `recommendedMonth`(사서추천 달), `yearBook`(KAIST 연도), `fieldGroup`(처음 실린 목록의 분야 → 7절 표)
+2. 추천목록 책 `listed`: `ListedSource.listed()` → `picks`의 추천목록 캐시(`CacheListedBooks.merge`). 목록 차례 `librarian, leedongjin, snu100, kaist, nobel`로 각 목록의 책을 돌며 우리 책 번호(`picks.list_book.book_id`)가 있는 책만 한 줄로 합침. 책마다 `listKeys`(실린 목록들), `libraryIds`(`catalog.book.library_ids`), `recommendedMonth`(사서추천 달), `yearBook`(KAIST 연도), `fieldGroup`(처음 실린 목록의 분야 → 7절 표)
 3. 차례
    - 새벽 만들기가 성공한 날이 있으면 `foryou.base_entry`의 `position` 순
    - **운영은 새벽 만들기가 꺼져 있어(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`) 이쪽**: `listed`를 `libraryIds` 개수(전체 도서관 기준 보유 수) 내림차순, 같으면 `book_id` 오름차순
@@ -69,8 +69,9 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 2. **순서 만들기**(`SimilarOrder.byCloseness`, v1.15.1부터): 순위 0부터 19까지, 순위마다 기준 책을 요청 차례대로 돌며 그 순위의 이웃을 넣음(이미 있으면 건너뜀). 즉 [기준1의 1위, 기준2의 1위, …, 기준1의 2위, 기준2의 2위, …]
 3. 같은 작품 정리: `BookCards.workKeys`(`catalog/internal/JdbcBookCards`) — `catalog.book.main_title_norm`이 같고 `catalog.book_contributor.name_exact`(역할 `AUTHOR`·`UNKNOWN`)를 하나라도 나누는 판끼리 한 작품(이름 사슬로 이어지면 모두 한 작품), 대표 판 = `cardinality(library_ids)`가 가장 큰 판(같으면 작은 번호). 후보를 대표 판 번호로 바꾸고, 기준 책과 같은 작품은 뺌. (새벽 점수가 있으면 점수 있는 판을 대표로 씀 — 운영에는 점수가 없음)
 4. 카드 만들기(6절): 계획 도서관 0곳·모르는 번호는 조용히 뺌
-5. 앞에서 최대 60권(`MAX_SIMILAR`)
-6. `reshowBookIds` 중 기준 책이 아닌 것도 카드로(`reshowBooks`)
+5. **문턱**(`SimilarOrder.availableFirst`, 사용자 2026-10-29 「문턱 3으로」, **운영 배포 전**): 계획 도서관 목록(`LibraryCatalog.planSearch`의 `SearchTarget`) 중 `lendingModel`이 `SUBSCRIPTION`·`RENTAL`인 곳을 「바로 대출 도서관」으로 둠. 책마다 `catalog.book.library_ids ∩ 계획 도서관` 수를 세어 **3 이상(`MIN_PLAN_LIBRARIES`)이거나 그중 바로 대출 도서관이 있으면 통과**. 통과한 책을 차례 그대로 앞에, 못 넘은 책을 차례 그대로 뒤에(통과한 책이 60권에 못 미칠 때만 보임)
+6. 앞에서 최대 60권(`MAX_SIMILAR`)
+7. `reshowBookIds` 중 기준 책이 아닌 것도 카드로(`reshowBooks`)
 
 응답: `{baseBooks: [{bookId, title}], books: [카드 ≤ 60], reshowBooks: [카드]}`
 
@@ -86,10 +87,9 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 | `bookId`, `title`, `author`, `publisher` | | `catalog.book.id`, `title`, `author_display`, `publisher` (`BookCards.cards`) |
 | `authorKey` | 첫 저자 이름 | `catalog.book_contributor`에서 역할 `AUTHOR`·`UNKNOWN`, `position` 가장 앞의 `name_exact` |
 | `planLibraryCount` | 계획 도서관 중 가진 곳 수 | `catalog.book.library_ids ∩ planIds` |
-| `coverUrl` | `/covers/<file_key>.jpg` 또는 null | `foryou.book_cover.file_key`(sha1 40자). 파일은 운영 `/srv/chaekcheck/covers/`, nginx가 그대로 보냄 |
-| `blurb` | 해요체 한두 문장 또는 null | `foryou.book_blurb.blurb` |
-| `aiSummary` | 추천목록 요약 또는 null | 추천목록 책만, `picks/ai-summaries.tsv` |
-| `lists`, `tags`, `recommendedMonth`, `yearBook` | | 추천목록 책만(3절 2번). `tags`는 `picks.book_tag`(지금 0행) |
+| `coverUrl` | CloudFront 완성 주소 `<chaekcheck.covers.base-url>/covers/<file_key>.jpg` 또는 null | `catalog.book_cover.file_key`(sha1 40자), 공개 API `catalog.BookTexts.coverUrls` → `CoverUrls.of` (v1.20.0부터, 전에는 `/covers/…`를 운영 nginx가 보냄) |
+| `blurb` | 요약 한 종류(해요체 한두 문장) 또는 null | `catalog.book_summary.summary`, `catalog.BookTexts.summaries` (v1.20.0부터. 전에는 `foryou.book_blurb`와 추천목록 요약 `aiSummary` 둘이었음) |
+| `lists`, `tags`, `recommendedMonth`, `yearBook` | | 추천목록 책만(3절 2번). `tags`는 `catalog.book_tag`(지금 0행) |
 | `fieldGroup` | 6묶음 중 하나 또는 null | 7절 |
 
 ## 7. 분야 묶음 `fieldGroup`
@@ -130,7 +130,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 
 ## 10. 책 창과 기록
 
-- 표지를 누르면 책 창(`PicksBookDialog`)이 열리고 `GET /api/v1/books/{bookId}?{계획}`을 부름 → 계획 도서관별 소장과 대출 상태(도서관 사이트에 실제 조회, `availability` 모듈). 「AI 요약」 칸은 `aiSummary`가 있으면 그것, 없으면 `blurb`(v1.14.2, `forYouBook.ts` `pickBook`)
+- 표지를 누르면 책 창(`PicksBookDialog`)이 열리고 `GET /api/v1/books/{bookId}?{계획}`을 부름 → 계획 도서관별 소장과 대출 상태(도서관 사이트에 실제 조회, `availability` 모듈). 「AI 요약」 칸은 카드의 `blurb`(v1.20.0부터 요약 한 종류, `forYouBook.ts` `pickBook`)
 - 서버 이용 기록(`usagelog`, ADR-0134, 1년 보관, IP 30일): `GET /api/v1/books/{id}`는 `book_view` 한 줄. 탭 목록을 처음 받으면 `screen_event`(`kind = picks_list_view`, `picks_list = for_you`, `picks_category = all`), 카드를 누르면 `screen_event`(`kind = picks_book_view`, `picks_category = similar`(서버 개인 추천 또는 다시 보여 줄 책에 든 책) 또는 `base`, `book_id`), 도서관 줄을 누르면 `library_click`(`screen = picks` — 추천도서 탭 전체가 같은 값). 줄마다 `visit_key`(탭을 열 때 `sessionStorage`에 만든 32자 난수)와 로그인했으면 `account_id`
 - 책첵 추천은 이 서버 기록을 읽지 않음
 
@@ -139,6 +139,6 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 | 것 | 상태 |
 |---|---|
 | 새벽 만들기(`foryou.build_run`, `popular_row`, `book_score`, `base_entry`) | 운영에서 꺼짐 → 기본 목록은 3절 3번, 새벽 점수 없음. 켤 때의 동작은 [`docs/maintenance/7-foryou.md`](../maintenance/7-foryou.md) 1절 |
-| 꼬리표(`picks.tag_dictionary`, `picks.book_tag`) | 0행 |
-| 사이클 26 배포 1 | `foryou.book_blurb`·`book_cover`, `picks.book_tag`·`tag_dictionary`, `picks/ai-summaries.tsv`가 `catalog` 표로 옮겨지고 카드의 `aiSummary`가 없어짐(요약 하나), 표지 주소가 CloudFront로. plan `docs/cycles/26-book-descriptions/to-dev23-24.md` 3절 |
-| 문턱 3 (결정됨, 26 뒤) | 개인 추천에서 계획 도서관 3곳 미만이고 바로 대출 도서관도 없는 책을 뺌 → [5-improvements.md](5-improvements.md) I-01 |
+| 꼬리표(`catalog.tag_dictionary`, `catalog.book_tag`) | 0행 |
+| 사이클 26 배포 2 | 옛 표(`foryou.book_blurb`·`book_cover`, `picks.book_tag`·`tag_dictionary`)를 지움. plan `docs/cycles/26-book-descriptions/to-dev23-24.md` 3절 |
+| 문턱 3 | 코드·시험 끝(4절 5번), 운영 배포 전 → [5-improvements.md](5-improvements.md) I-01 |
