@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="192" viewBox="0 0 720 192" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="192" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">추천 20권 중 흔한 책(보유 상위 10%) 비율 — 낮을수록 덜 뻔함</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">보유 많은 순</text>
+<rect x="230" y="60" width="174.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="412.0" y="75" font-size="14" font-weight="400" fill="#1f1d2b">43.5%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">유사도 순 (채택)</text>
+<rect x="230" y="94" width="42.8" height="22" rx="4" fill="#6b4fe0"/>
+<text x="280.8" y="109" font-size="14" font-weight="700" fill="#1f1d2b">10.7%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">무작위</text>
+<rect x="230" y="128" width="40.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="278.0" y="143" font-size="14" font-weight="400" fill="#1f1d2b">10%</text>
+<text x="20" y="180" font-size="12" fill="#33313f">가상 사용자 1,000명, 3만 권, 2026-10-25</text>
+</svg>

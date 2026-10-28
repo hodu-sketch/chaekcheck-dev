@@ -15,6 +15,7 @@
 
 ## 사이클 23 (책첵 추천)
 
+- **[책첵 추천 개발·개선 기록 (포트폴리오용)](foryou-portfolio.md)** — 지금 운영 구조, 순서 방식 9가지·3만 대 10만·같은 작품 규칙의 전후 숫자, 평가 방법과 한계. 여기서 시작. 그림 [`foryou-eval/`](foryou-eval/), 도구 [`scripts/foryou/eval/`](../../scripts/foryou/eval/)
 - [사이클 23 사전 시험](cycle23-pretest-2026-10-24.md)
 - [사이클 23 소개 시험과 탭 표지](cycle23-intro-test-2026-10-25.md)
 

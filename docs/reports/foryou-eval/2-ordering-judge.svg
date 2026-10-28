@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="226" viewBox="0 0 720 226" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="226" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">AI 판정 「잘 맞는다」(4~5점) 비율 — 순서 방식</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">보유 많은 순</text>
+<rect x="230" y="60" width="246.4" height="22" rx="4" fill="#c9c2ee"/>
+<text x="484.4" y="75" font-size="14" font-weight="400" fill="#1f1d2b">61.6%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">유사도 순 (채택)</text>
+<rect x="230" y="94" width="280.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="518.0" y="109" font-size="14" font-weight="700" fill="#1f1d2b">70%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">유사도 + 겹침 줄이기(MMR)</text>
+<rect x="230" y="128" width="217.6" height="22" rx="4" fill="#c9c2ee"/>
+<text x="455.6" y="143" font-size="14" font-weight="400" fill="#1f1d2b">54.4%</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">유사도 + 겹침 + 분야 비율</text>
+<rect x="230" y="162" width="257.6" height="22" rx="4" fill="#c9c2ee"/>
+<text x="495.6" y="177" font-size="14" font-weight="400" fill="#1f1d2b">64.4%</text>
+<text x="20" y="214" font-size="12" fill="#33313f">3만 권, Haiku 판정 1,000쌍(사용자 50명 × 1·5·10·15·20번째, 방식 가림), 2026-10-25</text>
+</svg>

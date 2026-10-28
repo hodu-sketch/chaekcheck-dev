@@ -3,6 +3,15 @@
 - 기준: plan `docs/cycles/23-for-you-picks/handoff.md`, `design-delta.md`(ADR-0147·0148·0149). 설정 값은 [settings-index.md](settings-index.md) "사이클 23" 줄.
 - 모듈 `foryou`(`backend/src/main/java/com/chaekcheck/foryou/`), 스키마 `foryou`, 꼬리표·사전은 `picks.tag_dictionary`·`picks.book_tag`.
 
+## 0. 지금 운영 (2026-10-28)
+
+- 탭 이름은 **「책첵 추천」**(`/picks/for-you`). 구조·숫자·결정의 모음은 [`docs/reports/foryou-portfolio.md`](../reports/foryou-portfolio.md)
+- **새벽 만들기는 운영에서 꺼져 있음**(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`): 기본 목록은 추천목록 책을 보유 도서관 많은 순으로(아래 1절은 켤 때의 설명)
+- 개인 추천 순서: 이웃 순위대로 기준 책을 돌아가며(`SimilarOrder.byCloseness`, v1.15.1). 새벽 점수로 다시 줄 세우지 않음
+- 자료(2026-10-26 10만 권 판, 가져오기 14번 export d09d649f): `book_neighbour` 81,080행 · `book_cover` 80,091 · `book_blurb` 68,414. 계산·넣기는 2절, PC 파일은 데이터 폴더 `ml/foryou-100k/`
+- AI 검색도 같은 이웃 표를 씀(`BookNeighbours`, 「○○ 같은 책」·이어 묻기). 이웃 표 범위를 바꾸면 AI 검색 범위(`aisearch.search_book`)와 맞출 것 — 안 맞추면 AI 검색이 쓸 수 있는 이웃이 줄어듦(2026-10-26: 19.85 → 9.47권)
+- 사이클 26에서 요약·표지·꼬리표가 `catalog`로 옮겨 감(plan `docs/cycles/26-book-descriptions/`)
+
 ## 1. 새벽 만들기 (자동)
 
 - 매일 03:30(Asia/Seoul)과 서버를 켤 때(오늘 succeeded가 없으면) 만듭니다. 켤 때는 먼저 남아 있던 `running`을 `failed`로 바꿉니다.

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="158" viewBox="0 0 720 158" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="158" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">추천에 같은 작품(다른 판·권)이 섞인 쌍 — 250쌍 중</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">규칙 강화 전</text>
+<rect x="230" y="60" width="366.7" height="22" rx="4" fill="#c9c2ee"/>
+<text x="604.7" y="75" font-size="14" font-weight="400" fill="#1f1d2b">11쌍</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">규칙 강화 후</text>
+<rect x="230" y="94" width="166.7" height="22" rx="4" fill="#6b4fe0"/>
+<text x="404.7" y="109" font-size="14" font-weight="700" fill="#1f1d2b">5쌍</text>
+<text x="20" y="146" font-size="12" fill="#33313f">10만 권, Haiku 「같은 작품」 판정, 같은 판정 실행 안 비교, 2026-10-26</text>
+</svg>
