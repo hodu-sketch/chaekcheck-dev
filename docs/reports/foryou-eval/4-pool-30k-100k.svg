@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="158" viewBox="0 0 720 158" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="158" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">AI 판정 「잘 맞는다」(4~5점) 비율 — 대상 책 범위</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">3만 권</text>
+<rect x="230" y="60" width="246.4" height="22" rx="4" fill="#c9c2ee"/>
+<text x="484.4" y="75" font-size="14" font-weight="400" fill="#1f1d2b">61.6%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">10만 권 (채택)</text>
+<rect x="230" y="94" width="275.2" height="22" rx="4" fill="#6b4fe0"/>
+<text x="513.2" y="109" font-size="14" font-weight="700" fill="#1f1d2b">68.8%</text>
+<text x="20" y="146" font-size="12" fill="#33313f">유사도 순, 같은 사용자 50명 각 250쌍을 섞어 방식 가림, 2026-10-26</text>
+</svg>

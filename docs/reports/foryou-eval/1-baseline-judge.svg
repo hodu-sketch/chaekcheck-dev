@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="192" viewBox="0 0 720 192" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="192" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">AI 판정 「잘 맞는다」(4~5점) 비율 — 기준 점수</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">보유 도서관 많은 순 (그때 운영)</text>
+<rect x="230" y="60" width="220.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="458.0" y="75" font-size="14" font-weight="400" fill="#1f1d2b">55%</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">유사도 순</text>
+<rect x="230" y="94" width="320.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="558.0" y="109" font-size="14" font-weight="700" fill="#1f1d2b">80%</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">무작위 (바닥선)</text>
+<rect x="230" y="128" width="4.0" height="22" rx="4" fill="#c9c2ee"/>
+<text x="242.0" y="143" font-size="14" font-weight="400" fill="#1f1d2b">1%</text>
+<text x="20" y="180" font-size="12" fill="#33313f">3만 권, Haiku 판정 600쌍(방식 가림), 2026-10-25</text>
+</svg>

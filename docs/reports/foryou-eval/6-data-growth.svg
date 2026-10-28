@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="294" viewBox="0 0 720 294" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+<rect width="720" height="294" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="700" fill="#1f1d2b">책첵 추천 자료 — 3만 권 판 → 10만 권 판(운영)</text>
+<text x="218" y="75" font-size="14" text-anchor="end" fill="#33313f">이웃 표 3만 판</text>
+<rect x="230" y="60" width="137.5" height="22" rx="4" fill="#c9c2ee"/>
+<text x="375.5" y="75" font-size="14" font-weight="400" fill="#1f1d2b">30,937권</text>
+<text x="218" y="109" font-size="14" text-anchor="end" fill="#33313f">이웃 표 10만 판</text>
+<rect x="230" y="94" width="360.4" height="22" rx="4" fill="#6b4fe0"/>
+<text x="598.4" y="109" font-size="14" font-weight="700" fill="#1f1d2b">81,080권</text>
+<text x="218" y="143" font-size="14" text-anchor="end" fill="#33313f">표지 3만 판</text>
+<rect x="230" y="128" width="131.5" height="22" rx="4" fill="#c9c2ee"/>
+<text x="369.5" y="143" font-size="14" font-weight="400" fill="#1f1d2b">29,588권</text>
+<text x="218" y="177" font-size="14" text-anchor="end" fill="#33313f">표지 10만 판</text>
+<rect x="230" y="162" width="356.0" height="22" rx="4" fill="#6b4fe0"/>
+<text x="594.0" y="177" font-size="14" font-weight="700" fill="#1f1d2b">80,091권</text>
+<text x="218" y="211" font-size="14" text-anchor="end" fill="#33313f">요약 3만 판</text>
+<rect x="230" y="196" width="111.9" height="22" rx="4" fill="#c9c2ee"/>
+<text x="349.9" y="211" font-size="14" font-weight="400" fill="#1f1d2b">25,187권</text>
+<text x="218" y="245" font-size="14" text-anchor="end" fill="#33313f">요약 10만 판</text>
+<rect x="230" y="230" width="304.1" height="22" rx="4" fill="#6b4fe0"/>
+<text x="542.1" y="245" font-size="14" font-weight="700" fill="#1f1d2b">68,414권</text>
+<text x="20" y="282" font-size="12" fill="#33313f">운영 DB에서 센 수, 2026-10-25 / 2026-10-26</text>
+</svg>

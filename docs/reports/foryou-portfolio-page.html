@@ -1,0 +1,333 @@
+<title>책첵 추천 설계 노트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column like a library catalog card file — each section opens with a call-number style label */
+:root {
+  --paper: #f6f7f9;
+  --card: #ffffff;
+  --ink: #1b2330;
+  --muted: #5b6676;
+  --rule: #d9dee6;
+  --accent: #1f4e8c;      /* catalog ink blue */
+  --stamp: #b4462f;       /* return-date stamp red, used once per figure */
+  --accent-soft: #e4ecf7;
+  --stamp-soft: #f6e4df;
+  --bar-base: #c3ccd8;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12161d; --card: #1a2029; --ink: #e6eaf0; --muted: #9aa5b5; --rule: #2c3542;
+    --accent: #8fb4ec; --stamp: #e7896f; --accent-soft: #1f2c40; --stamp-soft: #3a2420; --bar-base: #3a4554;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12161d; --card: #1a2029; --ink: #e6eaf0; --muted: #9aa5b5; --rule: #2c3542;
+  --accent: #8fb4ec; --stamp: #e7896f; --accent-soft: #1f2c40; --stamp-soft: #3a2420; --bar-base: #3a4554;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--font-body);
+  font-size: 16px; line-height: 1.75; word-break: keep-all;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 80px;
+}
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 24px; font-weight: 700; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; }
+section { display: grid; gap: 18px; }
+.callno {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; color: var(--accent);
+  display: flex; gap: 10px; align-items: center;
+}
+.callno::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.lede { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.meta { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+header { display: grid; gap: 16px; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.fact { background: var(--card); padding: 14px 16px; display: grid; gap: 2px; min-width: 0; }
+.fact b { font-family: var(--font-mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.fact span { font-size: 13px; color: var(--muted); }
+@media (max-width: 620px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+ul.plain { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 600; color: var(--muted); font-size: 13px; background: var(--paper); }
+td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.now { color: var(--stamp); font-weight: 500; }
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.figure figcaption { font-size: 13px; color: var(--muted); }
+figure { margin: 0; }
+.diagram { overflow-x: auto; }
+.diagram svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.diagram text { font-family: var(--font-body); }
+.bars { display: grid; gap: 18px; }
+.bar-group { display: grid; gap: 6px; }
+.bar-group h3 { font-size: 14px; }
+.bar-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 4em; gap: 10px; align-items: center; font-size: 13px; }
+.bar-track { height: 14px; background: var(--paper); border-radius: 2px; overflow: hidden; }
+.bar { height: 100%; background: var(--bar-base); }
+.bar.now { background: var(--stamp); }
+.bar.sim { background: var(--accent); }
+.bar-row .v { font-family: var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.note { border-left: 3px solid var(--stamp); background: var(--stamp-soft); padding: 14px 16px; border-radius: 0 6px 6px 0; display: grid; gap: 6px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 620px) { .two { grid-template-columns: 1fr; } }
+.panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 18px; display: grid; gap: 8px; min-width: 0; }
+code { font-family: var(--font-mono); font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; }
+ol.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 16px; }
+</style>
+
+<main>
+  <header>
+    <div class="callno">CHAEKCHECK · CYCLE 23 · 설계 노트</div>
+    <h1>책첵 추천: 로그인 없이도 되는 개인 도서 추천</h1>
+    <p class="lede">전자도서관 책을 한 번에 찾아 주는 서비스 「책첵」에 개인 추천 탭을 붙인 기록입니다. 로그인하지 않아도, 서버의 열람 기록을 읽지 않고 브라우저가 기억한 몇 권만으로 추천을 만들고, 그 품질을 숫자로 잰 과정까지 정리했습니다.</p>
+    <p class="meta">Java 25 · Spring Boot 4 (Spring Modulith) · PostgreSQL 18 · React 19 · KURE-v1 임베딩 · Claude Haiku</p>
+    <div class="facts" role="list">
+      <div class="fact" role="listitem"><b>81,080</b><span>추천 대상 책 (이웃 표)</span></div>
+      <div class="fact" role="listitem"><b>1,024</b><span>벡터 차원 (KURE-v1)</span></div>
+      <div class="fact" role="listitem"><b>68,414</b><span>AI로 쓴 해요체 요약</span></div>
+      <div class="fact" role="listitem"><b>6</b><span>서버로 보내는 기준 책 수(최대)</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="callno">01 · 문제와 제약</div>
+    <h2>왜 흔한 추천 방식을 그대로 쓸 수 없었나</h2>
+    <p>대부분의 추천 서비스는 "이 책을 본 사람들이 저 책도 봤다"는 행동 기록(협업 필터링)에 기댑니다. 책첵에는 그 방식을 막는 조건이 세 가지 있었습니다.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>제약</th><th>결과로 정한 설계</th></tr></thead>
+        <tbody>
+          <tr><td>로그인 없이도 써야 함. 로그인한 회원의 이용 기록은 서버에 남지만(회원 번호, 1년) 추천에는 아직 쓰지 않음</td><td>열람 기록은 브라우저 <code>localStorage</code>에만. 서버에는 기준 책 번호 6개와 다시 보여 줄 책 번호 6개만 보냄</td></tr>
+          <tr><td>공개 초기라 사용자 행동 데이터가 적음</td><td>행동 대신 <b>책 내용</b>으로 비슷함을 계산(내용 기반 추천)</td></tr>
+          <tr><td>운영 서버가 작음(백엔드 힙 384MB)</td><td>임베딩과 이웃 계산은 PC에서 미리 하고, 서버는 결과 표만 읽음</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="callno">02 · 구조</div>
+    <h2>미리 계산하는 쪽과 그때그때 고르는 쪽</h2>
+    <p>무거운 일은 오프라인에서 한 번, 가벼운 일은 요청마다 합니다. 서버는 "어떤 책의 이웃 20권"이라는 표만 알고, 누가 무엇을 봤는지는 모릅니다.</p>
+    <figure class="figure">
+      <div class="diagram">
+        <svg viewBox="0 0 720 400" role="img" aria-label="오프라인 계산, 서버, 브라우저로 나뉜 추천 흐름">
+          <g font-size="13">
+            <text x="20" y="26" fill="var(--accent)" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1">OFFLINE · PC</text>
+            <rect x="20" y="38" width="160" height="58" rx="5" fill="var(--card)" stroke="var(--rule)"/>
+            <text x="34" y="62" fill="var(--ink)" font-weight="600">서지 + 소개 앞 300자</text>
+            <text x="34" y="82" fill="var(--muted)" font-size="12">책 30,937권</text>
+            <rect x="200" y="38" width="150" height="58" rx="5" fill="var(--card)" stroke="var(--rule)"/>
+            <text x="214" y="62" fill="var(--ink)" font-weight="600">KURE-v1 임베딩</text>
+            <text x="214" y="82" fill="var(--muted)" font-size="12">1,024차원, CPU</text>
+            <rect x="370" y="38" width="160" height="58" rx="5" fill="var(--card)" stroke="var(--rule)"/>
+            <text x="384" y="62" fill="var(--ink)" font-weight="600">코사인 이웃 20권</text>
+            <text x="384" y="82" fill="var(--muted)" font-size="12">같은 책 다른 판·권 제거</text>
+            <rect x="550" y="38" width="150" height="58" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="564" y="62" fill="var(--ink)" font-weight="600">이웃 표 넣기</text>
+            <text x="564" y="82" fill="var(--muted)" font-size="12">book_neighbour</text>
+            <path d="M180 67 H196 M350 67 H366 M530 67 H546" stroke="var(--muted)" stroke-width="1.5" fill="none"/>
+
+            <text x="20" y="148" fill="var(--accent)" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1">BROWSER</text>
+            <rect x="20" y="160" width="200" height="74" rx="5" fill="var(--card)" stroke="var(--rule)"/>
+            <text x="34" y="184" fill="var(--ink)" font-weight="600">본 책 기록 (30일, 200권)</text>
+            <text x="34" y="204" fill="var(--muted)" font-size="12">열기 1 · 10초 머묾 2</text>
+            <text x="34" y="222" fill="var(--muted)" font-size="12">도서관 누름 3점</text>
+            <rect x="240" y="160" width="190" height="74" rx="5" fill="var(--card)" stroke="var(--rule)"/>
+            <text x="254" y="184" fill="var(--ink)" font-weight="600">기준 책 6권</text>
+            <text x="254" y="204" fill="var(--muted)" font-size="12">점수 순, 한 분야 최대 2권</text>
+            <text x="254" y="222" fill="var(--muted)" font-size="12">번호만 서버로</text>
+            <path d="M220 197 H236" stroke="var(--muted)" stroke-width="1.5" fill="none"/>
+
+            <text x="460" y="148" fill="var(--accent)" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1">SERVER · SPRING</text>
+            <rect x="460" y="160" width="240" height="74" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="474" y="184" fill="var(--ink)" font-weight="600">이웃 합치기 → 최대 60권</text>
+            <text x="474" y="204" fill="var(--muted)" font-size="12">대표 판 하나로, 기준 책 빼기</text>
+            <text x="474" y="222" fill="var(--muted)" font-size="12">내 도서관에 있는 책만</text>
+            <path d="M430 197 H456" stroke="var(--muted)" stroke-width="1.5" fill="none"/>
+            <path d="M625 96 V156" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+
+            <text x="20" y="282" fill="var(--accent)" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1">BROWSER · 화면에 늘어놓기</text>
+            <rect x="20" y="294" width="680" height="88" rx="5" fill="var(--card)" stroke="var(--rule)"/>
+            <text x="34" y="320" fill="var(--ink)" font-weight="600">본 책 빼기 · 같은 저자 3연속 금지 · 본 지 3일 지난 책 다시 보여 주기(20권 중 8·16번째)</text>
+            <text x="34" y="344" fill="var(--ink)" font-weight="600">본 책이 3권 미만이면 분야를 돌아가며 섞기 · 15권마다 한 권, 안 본 분야의 책</text>
+            <text x="34" y="368" fill="var(--muted)" font-size="12">분류 칩은 그 사람 목록에 책이 있는 분야만, 많이 본 분야부터</text>
+            <path d="M580 234 V290" stroke="var(--muted)" stroke-width="1.5" fill="none"/>
+          </g>
+        </svg>
+      </div>
+      <figcaption>점선은 미리 계산한 표를 서버가 읽는다는 뜻입니다. 열람 기록은 브라우저 상자 안에서만 움직입니다.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="callno">03 · 결정</div>
+    <h2>설계에서 고른 것들</h2>
+    <div class="two">
+      <div class="panel">
+        <h3>어떤 글을 벡터로 만들까</h3>
+        <p>제목·저자·출판사만으로는 「코스모스」가 우주 책인지 꽃 책인지 모릅니다. 서지에 책 소개글 앞 300자를 붙여 한 덩어리로 임베딩했습니다. 소개가 없는 책은 서지만으로 만들고, 그 차이는 이웃 품질 검사에서 따로 봅니다.</p>
+      </div>
+      <div class="panel">
+        <h3>같은 책을 이웃에서 빼기</h3>
+        <p>내용으로 비슷함을 재면 「토지 1권」 옆에는 「토지 2권」이 붙기 쉽습니다. 괄호·부제·권 번호를 떼어 낸 제목과 첫 저자가 같으면 같은 작품으로 봅니다. 「셰익스피어(William Shakespeare)」처럼 괄호 속 원어 이름도 걸러 냅니다.</p>
+      </div>
+      <div class="panel">
+        <h3>처음 온 사람 (콜드 스타트)</h3>
+        <p>본 책이 없으면 개인 추천을 아예 묻지 않고 기본 목록만 보여 줍니다. 본 책이 3권 미만이면 여섯 분야를 한 권씩 돌아가며 섞어, 한 번의 클릭이 화면 전체를 한 분야로 바꾸지 않게 했습니다.</p>
+      </div>
+      <div class="panel">
+        <h3>질리지 않게</h3>
+        <p>기준 책을 한 분야에서 최대 2권만 고르고, 15권마다 한 번도 안 본 분야의 책을 한 권 앞으로 당깁니다. 사용자 요청인 "아주 가끔, 내가 읽던 것과 다른 책"을 숫자 두 개로 옮긴 것입니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="callno">04 · AI로 만든 글</div>
+    <h2>요약 25,187권을 에이전트로 다시 쓰기</h2>
+    <p>카드에 붙는 한두 문장 요약은 Claude Haiku 하위 에이전트 26개가 1,000권씩 나눠 썼습니다. 결과는 바로 넣지 않고 스크립트로 한 번 걸렀습니다.</p>
+    <ul class="plain">
+      <li>해요체로 끝나는가, 40~200자인가, 칸 나눔 문자가 섞이지 않았는가</li>
+      <li>"최고의", "필독", "베스트셀러" 같은 칭찬 말이 없는가: 책을 고르는 사람에게 광고처럼 읽히지 않게</li>
+      <li>걸린 9권은 사람이 직접 고쳐 쓰고, 25,187권 모두 해요체로 끝나는지 운영 DB에서 다시 셈</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="callno">05 · 평가</div>
+    <h2>추천이 좋은지 숫자로 재기</h2>
+    <p>사용자 기록이 쌓이기 전에도 비교할 수 있도록 세 가지 오프라인 시험을 만들었습니다. 같은 시험을 고치기 전과 후에 돌리면, 바꾼 것이 정말 나아졌는지 알 수 있습니다.</p>
+    <ol class="steps">
+      <li><b>맞힘 시험</b>: 사람이 고른 추천목록(KAIST·서울대 권장도서의 한 분야, 22묶음)에서 3권을 "본 책"으로 두고, 같은 묶음의 나머지가 추천 20권 안에 나오는지 220번 봅니다.</li>
+      <li><b>가상 사용자</b>: 서로 다른 분야의 책 3~6권을 본 1,000명에게 추천을 만들어 분야가 얼마나 고른지, 흔한 책이 얼마나 섞이는지, 몇 권의 책이 한 번이라도 나오는지 셉니다.</li>
+      <li><b>AI 판정</b>: (본 책, 추천 책) 600쌍을 어느 방식이 만들었는지 가린 채 Haiku 에이전트가 1~5점을 줍니다.</li>
+    </ol>
+    <p>비교 대상은 셋입니다. <b>지금 운영</b>(이웃을 보유 도서관 많은 순으로), <b>유사도 순</b>(이웃 순위대로), 그리고 바닥선으로 쓰는 <b>무작위</b>입니다.</p>
+
+    <figure class="figure">
+      <div class="legend" aria-hidden="true">
+        <span><i style="background: var(--stamp)"></i>지금 운영</span>
+        <span><i style="background: var(--accent)"></i>유사도 순</span>
+        <span><i style="background: var(--bar-base)"></i>무작위</span>
+      </div>
+      <div class="bars">
+        <div class="bar-group">
+          <h3>맞힌 비율 Hit@20</h3>
+          <div class="bar-row"><span>지금 운영</span><div class="bar-track"><div class="bar now" style="width: 16.8%"></div></div><span class="v">16.8%</span></div>
+          <div class="bar-row"><span>유사도 순</span><div class="bar-track"><div class="bar sim" style="width: 31.8%"></div></div><span class="v">31.8%</span></div>
+          <div class="bar-row"><span>무작위</span><div class="bar-track"><div class="bar" style="width: 2.7%"></div></div><span class="v">2.7%</span></div>
+        </div>
+        <div class="bar-group">
+          <h3>AI 판정 4~5점 비율</h3>
+          <div class="bar-row"><span>지금 운영</span><div class="bar-track"><div class="bar now" style="width: 55%"></div></div><span class="v">55%</span></div>
+          <div class="bar-row"><span>유사도 순</span><div class="bar-track"><div class="bar sim" style="width: 80%"></div></div><span class="v">80%</span></div>
+          <div class="bar-row"><span>무작위</span><div class="bar-track"><div class="bar" style="width: 1%"></div></div><span class="v">1%</span></div>
+        </div>
+        <div class="bar-group">
+          <h3>보유 상위 10% 흔한 책 비율 (낮을수록 덜 뻔함)</h3>
+          <div class="bar-row"><span>지금 운영</span><div class="bar-track"><div class="bar now" style="width: 43.5%"></div></div><span class="v">43.5%</span></div>
+          <div class="bar-row"><span>유사도 순</span><div class="bar-track"><div class="bar sim" style="width: 10.7%"></div></div><span class="v">10.7%</span></div>
+          <div class="bar-row"><span>무작위</span><div class="bar-track"><div class="bar" style="width: 10%"></div></div><span class="v">10.0%</span></div>
+        </div>
+      </div>
+      <figcaption>막대는 모두 0~100% 같은 눈금입니다. 2026-10-25 로컬 DB 기준.</figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>지표</th><th class="num">지금 운영</th><th class="num">유사도 순</th><th class="num">무작위</th></tr></thead>
+        <tbody>
+          <tr><td>Hit@20 (20권 안에 한 권이라도 맞힘)</td><td class="num now">16.8%</td><td class="num">31.8%</td><td class="num">2.7%</td></tr>
+          <tr><td>Precision@20</td><td class="num now">0.93%</td><td class="num">2.30%</td><td class="num">0.16%</td></tr>
+          <tr><td>nDCG@20 (맞힌 책이 위에 있을수록 높음)</td><td class="num now">0.016</td><td class="num">0.026</td><td class="num">0.002</td></tr>
+          <tr><td>AI 판정 평균 (1~5)</td><td class="num now">3.59</td><td class="num">4.10</td><td class="num">1.37</td></tr>
+          <tr><td>AI 판정 1~2점 비율</td><td class="num now">19%</td><td class="num">10.5%</td><td class="num">93.5%</td></tr>
+          <tr><td>분야 고르기 (정규화 엔트로피, 0~1)</td><td class="num now">0.69</td><td class="num">0.77</td><td class="num">0.46</td></tr>
+          <tr><td>추천 책 평균 보유 도서관 수</td><td class="num now">263</td><td class="num">144</td><td class="num">140</td></tr>
+          <tr><td>1,000명에게 한 번이라도 나온 책</td><td class="num now">4,217</td><td class="num">5,943</td><td class="num">14,789</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="meta">이웃 표 자체: 같은 분야 이웃 69.6% · 같은 책 다른 판·권 0% · 가까운 5권 중 같은 저자 20.9% · 요약 81.4% · 표지 95.1% · 꼬리표 0%</p>
+
+    <div class="note">
+      <h3>측정으로 찾은 것</h3>
+      <p>운영에서는 인기 점수를 만드는 새벽 작업이 꺼져 있어서, 서버가 이웃을 "얼마나 비슷한가"가 아니라 "몇 개 도서관이 가졌는가" 순으로만 늘어놓고 있었습니다. 코드를 읽어서는 잘 보이지 않던 문제가 숫자로는 바로 드러났습니다. 순서만 유사도 순으로 바꿔도 맞힘이 약 2배, AI 판정의 좋음 비율이 55%에서 80%가 되고, 흔한 책 비율은 무작위 수준으로 내려갑니다. 이 순서는 v1.15.1로 운영에 들어갔습니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="callno">06 · 고친 것</div>
+    <h2>순서, 범위, 같은 작품: 하나씩 재고 고르기</h2>
+    <p>세 번 모두 같은 시험으로 쟀고, 방식을 가린 Haiku 판정으로 다시 확인했습니다. 판정은 실행마다 0.1~0.3점 흔들려서, 같은 실행 안의 숫자끼리만 비교합니다.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>순서 방식 (3만 권, 판정 1,000쌍)</th><th class="num">AI 판정 평균</th><th class="num">4~5점</th><th class="num">같은 저자</th><th class="num">흔한 책</th></tr></thead>
+        <tbody>
+          <tr><td>보유 많은 순 (그때 운영)</td><td class="num now">3.75</td><td class="num now">61.6%</td><td class="num">15.5%</td><td class="num">43.5%</td></tr>
+          <tr><td><b>유사도 순 (채택)</b></td><td class="num"><b>3.90</b></td><td class="num"><b>70.0%</b></td><td class="num">18.5%</td><td class="num">10.7%</td></tr>
+          <tr><td>유사도 + 겹침 줄이기(MMR)</td><td class="num">3.60</td><td class="num">54.4%</td><td class="num">0%</td><td class="num">9.4%</td></tr>
+          <tr><td>유사도 + 겹침 + 분야 비율</td><td class="num">3.81</td><td class="num">64.4%</td><td class="num">0%</td><td class="num">9.3%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="plain">
+      <li><b>겹침 줄이기는 오히려 나빴습니다.</b> 같은 저자를 0%로 만들지만 덜 맞는 책을 앞으로 올려 판정이 그때 운영보다도 낮았습니다.</li>
+      <li><b>분야 비율의 높은 맞힘(53.6%)은 치우침이었습니다.</b> 맞힘 시험의 정답이 추천목록 책뿐인데, 분야를 아는 책이 곧 추천목록 책이라 그쪽을 앞으로 당겼을 뿐입니다. 모르는 분야를 통과시키자 35.9%로 내려왔습니다.</li>
+    </ul>
+    <div class="two">
+      <div class="panel">
+        <h3>대상 3만 → 10만 권</h3>
+        <p>판정 평균 <b>3.58 → 3.76</b>, 4~5점 <b>61.6 → 68.8%</b>. 맞힘 시험 점수는 31.8 → 15.5%로 내려갔는데, 후보가 늘어 목록 밖의 좋은 책이 정답 자리를 차지했기 때문입니다. 지표가 틀리는 지점을 판정으로 바로잡았습니다.</p>
+      </div>
+      <div class="panel">
+        <h3>같은 작품 규칙</h3>
+        <p>벡터로는 같은 작품을 못 가립니다(같은 작품 쌍도 코사인 0.68~0.78). 권 번호·연도판·대시 뒤 부제·같은 저자의 다른 제목을 규칙으로 더하자, 추천에 섞인 같은 작품이 <b>250쌍 중 11 → 5</b>로 줄고 판정은 그대로였습니다.</p>
+      </div>
+    </div>
+    <p class="meta">10만 권 판 운영 자료: 이웃 30,937 → 81,080권 · 표지 29,588 → 80,091 · 요약 25,187 → 68,414. AI 검색도 같은 이웃 표를 써서, 범위를 함께 맞추자 AI 검색이 쓸 수 있는 이웃이 책마다 9.47 → 19.82권으로 돌아왔습니다.</p>
+  </section>
+
+  <section>
+    <div class="callno">07 · 한계</div>
+    <h2>이 숫자를 믿을 수 있는 범위</h2>
+    <ul class="plain">
+      <li>맞힘 시험의 정답은 "같은 추천목록의 같은 분야"입니다. 사람이 고른 목록이라 믿을 만하지만, 목록 밖의 좋은 추천은 맞힌 것으로 세지 못합니다. 그래서 Precision 절대값은 작고, 방식끼리 비교할 때만 의미가 있습니다.</li>
+      <li>AI 판정은 모델 하나의 눈입니다. 판정 600쌍 중 절반가량은 한쪽 책의 소개가 없어 제목과 저자만으로 판단했습니다.</li>
+      <li>모든 도서관을 계획에 넣고 쟀습니다. 실제 사용자는 자기 지역 도서관만 보므로 후보가 더 적습니다.</li>
+      <li>오프라인 점수는 실제 클릭을 대신하지 못합니다. 운영 사용 기록(책 열기, 도서관 누름)과 함께 봐야 합니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="callno">08 · 다음</div>
+    <h2>강화 계획</h2>
+    <ol class="steps">
+      <li><b>책 설명을 한 곳에 (사이클 26)</b>: 요약·표지·꼬리표·책 프로필을 catalog 모듈 한 곳으로 모으고, 다른 모듈은 공개 API로만 읽습니다. 화면마다 다르던 요약이 하나가 됩니다.</li>
+      <li><b>책 벡터 하나로</b>: 책첵 추천과 AI 검색이 따로 들고 있는 벡터를 한 벌로 합칩니다.</li>
+      <li><b>프로필을 지도학습으로</b>: Haiku가 만든 책 프로필 7.7만 권을 정답으로 벡터 위에 칸별 분류기를 학습하고, 확신이 낮은 책만 Haiku에 보냅니다. 비어 있는 「마음·자기계발」 칩과 목록 밖 책의 분야를 채웁니다.</li>
+      <li><b>비지도학습</b>: 이웃 분야·교차 예측·KDC가 엇갈리는 책으로 프로필 오류를 찾고, 군집으로 분류 사전에 없는 주제를 찾습니다.</li>
+      <li><b>운영 지표</b>: 책 창에서 도서관을 누른 기록에 "책첵 추천"을 구분해 넣고, 브라우저마다 A/B를 나눠 오프라인 점수가 실제 대출 의사로 이어지는지 확인합니다.</li>
+    </ol>
+  </section>
+
+  <footer>책첵 사이클 23 · 2026-10-25 · 측정 스크립트는 오프라인 이웃 표와 같은 자료로 언제든 다시 돌릴 수 있습니다.</footer>
+</main>

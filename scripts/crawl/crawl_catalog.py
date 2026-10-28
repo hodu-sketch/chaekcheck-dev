@@ -8,7 +8,7 @@ Usage:
   python crawl_catalog.py refill-pubdt --only ID   # read a library's list again in publish-date order (adds only)
 
 Rules (docs/research/ebook-catalog/crawl-method.md in chaekcheck-plan):
-- one request at a time per host, at least 1 s apart; identifying User-Agent
+- one request at a time per host, at least 1 s apart; ordinary browser User-Agent
 - facts only: no blurbs, no loan/hold counts; cover image URL only
 - every row keeps first_seen_at / last_seen_at / removed_at; every run is recorded in crawl_run
 - rows are marked removed only after a successful full run
@@ -92,10 +92,38 @@ VENDORS = ("KYOBO", "YES24", "BOOKCUBE", "ALADIN", "PORTAL", "IN_HOUSE")
 
 # The KYOBO subscription sites serve a mobile page without the total unless the agent looks like a desktop browser.
 # Identifies the project only; a contact address is added when the service has a public one.
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) chaekcheck-crawler/0.1 (catalog survey)"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"  # an ordinary desktop Chrome (user 2026-10-29)
 TIMEOUT = 90
 RETRIES = 3
 RETRY_WAIT = 30
+
+# Proxy support (--proxy-file, --proxy-user, --proxy-pass; user 2026-10-29: Webshare proxies for Kyobo).
+# Round-robin across the list so every proxy is used evenly. Each proxy is "host:port".
+PROXIES = []          # list of "host:port" strings, filled from --proxy-file
+PROXY_USER = ""       # HTTP proxy basic auth username
+PROXY_PASS = ""       # HTTP proxy basic auth password
+_proxy_idx = 0        # round-robin counter (accessed under _host_locks[key], so no extra lock)
+_proxy_idx_lock = threading.Lock()
+
+
+def _next_proxy():
+    """Return the next proxy address (round-robin), or None if no proxies configured."""
+    global _proxy_idx
+    if not PROXIES:
+        return None
+    with _proxy_idx_lock:
+        p = PROXIES[_proxy_idx % len(PROXIES)]
+        _proxy_idx += 1
+    return p
+
+
+def _build_opener(proxy_addr):
+    """Build a urllib opener that routes through the given proxy (or direct if None)."""
+    if proxy_addr is None:
+        return urllib.request.build_opener()
+    proxy_url = f"http://{PROXY_USER}:{PROXY_PASS}@{proxy_addr}" if PROXY_USER else f"http://{proxy_addr}"
+    handler = urllib.request.ProxyHandler({"http": proxy_url, "https": proxy_url})
+    return urllib.request.build_opener(handler)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS library (
@@ -450,6 +478,15 @@ def slots_for(key):
     return 1 if key in _slots_off else HOST_SLOTS.get(key, PER_HOST)
 
 
+def _do_request(url):
+    """Issue one HTTP GET, optionally through the next round-robin proxy."""
+    proxy = _next_proxy()
+    opener = _build_opener(proxy)
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with opener.open(req, timeout=TIMEOUT) as resp:
+        return resp.read()
+
+
 def _fetch(url, host):
     n = slots_for(host)
     if n > 1:
@@ -462,18 +499,14 @@ def _fetch(url, host):
                 if wait > 0:
                     time.sleep(wait)
                 _host_last[host] = time.monotonic()
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=TIMEOUT, context=SSL) as resp:
-                return resp.read()
+            return _do_request(url)
     # default: one at a time; the gap counts from the end of the previous request
     with _host_locks[host]:
         wait = _host_last[host] + gap_for(host) - time.monotonic()
         if wait > 0:
             time.sleep(wait)
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=TIMEOUT, context=SSL) as resp:
-                return resp.read()
+            return _do_request(url)
         finally:
             _host_last[host] = time.monotonic()
 
@@ -1533,6 +1566,9 @@ def main():
     ap.add_argument("--limit-pages", type=int, default=None)
     ap.add_argument("--platforms", default="", help="comma-separated platform_type values")
     ap.add_argument("--retry-failed", action="store_true", help="only libraries whose latest run did not succeed")
+    ap.add_argument("--proxy-file", default="", help="file with proxy addresses, one host:port per line (e.g. Webshare list)")
+    ap.add_argument("--proxy-user", default="", help="HTTP proxy basic-auth username")
+    ap.add_argument("--proxy-pass", default="", help="HTTP proxy basic-auth password")
     ap.add_argument("--allow-kyobo-institution-server", action="store_true",
                     help="ask *.dkyobobook.co.kr in this run (user decision 2026-10-27); one request at a time, --gap apart")
     ap.add_argument("--include-big-subscription", action="store_true",
@@ -1554,6 +1590,14 @@ def main():
     QUEUE_BY_IP = a.queue_by_ip
     global ALLOW_BLOCKED_HOST
     ALLOW_BLOCKED_HOST = a.allow_kyobo_institution_server
+    global PROXIES, PROXY_USER, PROXY_PASS
+    if a.proxy_file:
+        with open(a.proxy_file, encoding="utf-8") as f:
+            PROXIES = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+        PROXY_USER = a.proxy_user
+        PROXY_PASS = a.proxy_pass
+        log(f"proxies: {len(PROXIES)} addresses from {a.proxy_file}, round-robin"
+            f"{', authenticated' if PROXY_USER else ''}")
     if ALLOW_BLOCKED_HOST:
         if PER_HOST != 1 or HOST_SLOTS or a.host_slots:
             ap.error("--allow-kyobo-institution-server needs --per-host 1 and no --host-slots (one request at a time)")

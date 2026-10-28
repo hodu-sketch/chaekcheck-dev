@@ -21,6 +21,10 @@ Run from the repository root (any python with psycopg for prepare/kdc; the data 
   <venv>/python -X utf8 scripts/aisearch/build_100k.py collect   # waits, checks, writes the files
   <venv>/python -X utf8 scripts/aisearch/build_100k.py retry     # asks again for the dropped books (then collect)
   python -X utf8 scripts/aisearch/build_100k.py profiles-tsv   # book-profiles.tsv for the first-call model folder
+  python -X utf8 scripts/aisearch/build_100k.py book-texts     # the AI search import file (lines, exclude, blurbs)
+
+profiles-tsv and book-texts each write two files: the plain one for today's readers and <name>-export.tsv whose first
+line is `# export_id=<uuid of the PC DB's last catalog import>` for cycle 26's catalog import modes (write_both).
 
 Files (data folder, outside git): aisearch/100k/ targets.tsv, left-out-no-intro.tsv, bands.json, nlk-kdc.tsv,
 requests-<kind>.jsonl, batches.json, search-lines.tsv, profiles-detailed.jsonl, book-profiles.tsv, report.json;
@@ -530,24 +534,50 @@ def collect() -> int:
     return 0
 
 
+EXPORT_ID_PREFIX = '# export_id='
+
+
+def export_id() -> str:
+    """The export_id of the PC service DB's last SUCCEEDED catalog import: the book numbers these files use (cycle 26
+    handoff R5: the importer refuses a file of another export)."""
+    with db() as conn:
+        row = conn.execute("SELECT export_id FROM collection.catalog_import WHERE status = 'SUCCEEDED' "
+                           "AND export_id IS NOT NULL ORDER BY id DESC LIMIT 1").fetchone()
+    if not row:
+        raise SystemExit('no SUCCEEDED catalog import with an export_id in the PC service DB')
+    return str(row[0])
+
+
+def write_both(path: Path, body: str, first: str) -> Path:
+    """Writes the file as today's readers take it (no first line), and beside it <name>-export.tsv that starts with
+    `# export_id=` for cycle 26's catalog import modes (book-texts, book-profiles). Today's book-texts import refuses a
+    first row that is not its header, and the model folder's book-profiles.tsv is read line by line by the backend, so
+    the plain file stays the one to use until cycle 26's deploy 1."""
+    path.write_text(body, encoding='utf-8', newline='\n')
+    export = path.with_name(path.stem + '-export' + path.suffix)
+    export.write_text(EXPORT_ID_PREFIX + first + '\n' + body, encoding='utf-8', newline='\n')
+    return export
+
+
 def profiles_tsv() -> int:
-    """book-profiles.tsv (export_first_call.py format) for the 27,227 old and the new profiles together."""
+    """book-profiles.tsv (export_first_call.py format) for the 27,227 old and the new profiles together, and
+    book-profiles-export.tsv with the `# export_id=` first line (write_both)."""
     rows = []
     for path in (DATA / 'aisearch' / 'book-profiles-detailed-2026-10-25.jsonl', OUT / 'profiles-detailed.jsonl'):
         for line in path.read_text(encoding='utf-8').splitlines():
             if line.strip():
                 rows.append(json.loads(line))
-    seen = set()
-    with (OUT / 'book-profiles.tsv').open('w', encoding='utf-8', newline='\n') as f:
-        for o in rows:
-            if o['id'] in seen:
-                continue
-            seen.add(o['id'])
-            fic = '' if o.get('fiction') is None else ('1' if o['fiction'] else '0')
-            f.write('\t'.join([str(o['id']), o.get('field') or '', o.get('subfield') or '', fic,
-                               '|'.join(o.get('genre') or []), o.get('country') or '', o.get('audience') or '',
-                               o.get('level') or '', '|'.join(o.get('form') or [])]) + '\n')
-    print(f'{len(seen)} profiles -> {OUT / "book-profiles.tsv"}')
+    seen, out = set(), []
+    for o in rows:
+        if o['id'] in seen:
+            continue
+        seen.add(o['id'])
+        fic = '' if o.get('fiction') is None else ('1' if o['fiction'] else '0')
+        out.append('\t'.join([str(o['id']), o.get('field') or '', o.get('subfield') or '', fic,
+                              '|'.join(o.get('genre') or []), o.get('country') or '', o.get('audience') or '',
+                              o.get('level') or '', '|'.join(o.get('form') or [])]) + '\n')
+    export = write_both(OUT / 'book-profiles.tsv', ''.join(out), export_id())
+    print(f'{len(seen)} profiles -> {OUT / "book-profiles.tsv"} and {export}')
     return 0
 
 
@@ -580,13 +610,21 @@ def book_texts() -> int:
         rows.append(['search_exclude', book_id, '', '', reason])
         seen.add(('search_exclude', book_id))
         excl_added += 1
+    # the AI summaries of this round too (cycle 26 handoff R5: book-texts holds for_you_blurb, search_line and
+    # search_exclude)
+    blurbs = 0
+    for line in (ML / 'foryou' / 'book-texts-for_you_blurb-100k.tsv').read_text(encoding='utf-8').split('\n')[1:]:
+        cells = line.split('\t')
+        if len(cells) == 5 and cells[0] == 'for_you_blurb' and ('for_you_blurb', cells[1]) not in seen:
+            rows.append(cells)
+            seen.add(('for_you_blurb', cells[1]))
+            blurbs += 1
     path = OUT / f'book-texts-100k-exclude-{dt.date.today().isoformat()}.tsv'
-    with path.open('w', encoding='utf-8', newline='\n') as f:
-        f.write('kind\tbook_id\tsource\tmade_on\ttext\n')
-        for cells in rows:
-            f.write('\t'.join(cells) + '\n')
-    print(json.dumps({'file': str(path), 'rows': len(rows), 'from_30k_file': old, 'new_search_lines': lines_added,
-                      'new_search_exclude': excl_added}, ensure_ascii=False))
+    export = write_both(path, 'kind\tbook_id\tsource\tmade_on\ttext\n' + ''.join('\t'.join(c) + '\n' for c in rows),
+                        export_id())
+    print(json.dumps({'file': str(path), 'export_file': str(export), 'rows': len(rows), 'from_30k_file': old,
+                      'new_search_lines': lines_added, 'new_search_exclude': excl_added, 'for_you_blurb': blurbs},
+                     ensure_ascii=False))
     return 0
 
 
