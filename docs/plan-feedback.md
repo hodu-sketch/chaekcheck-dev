@@ -7034,3 +7034,30 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
   - 크기 감: v1.19.0부터 낱말 검색은 질문 벡터·ML 1차(운영 약 0.2초)와 같이 돌아서, 그 안에 끝나는 몇십 ms는 첫 글 시간에 거의 안 보임. cold의 0.2~1초는 그대로 첫 글을 늦춤(운영 첫 글 약 2.1~2.9초).
 - 원본: dev `docs/reports/ai-search-eval/candidate-join-2026-10-28.json`(질문마다 warm·cold 값, 두 질의의 EXPLAIN 글), 도구 `scripts/aisearch/eval/candidate_join_timing.py`.
 
+# 사이클 26
+
+책 설명 한 곳에 모으기(plan `docs/cycles/26-book-descriptions/handoff.md`, plan main 5c161b5에서 인계, 2026-10-28).
+
+## 시작 상태 (2026-10-28)
+
+- 작업 폴더 `../chaekcheck-dev-c26`, 브랜치 `cycle-26-book-descriptions`, 시작 커밋 dev main `313acfcb`(plan이 읽은 `905eab7`보다 뒤: v1.19.0 `b356c995`, 질의 속도 기록 `8077a4a8`, 수집 기록 `313acfcb`). **v1.19.0은 main에 들어가 있음.**
+- docker 프로젝트 `chaekcheck-c26`(`db` 5502, `db-test` 5503, `db-ops` 5504), 지금은 `db-test`만 켬. 다른 프로젝트(`chaekcheck`)는 건드리지 않음. 서버·웹 포트는 화면 단계에서 정함.
+- 시험 실행: `TEST_DB_PORT=5503`, `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,compose,-p,chaekcheck-c26,exec,-T,db-test`.
+
+## 0단계 결과
+
+1. **23·24 진행과 Liquibase 번호**: main보다 앞선 브랜치 중 changelog 파일을 더하는 브랜치는 없음. `claude/cycle-23-for-you-picks-kzjabw`·`c24-try`·`claude/aisearch-ask-v2` 등은 main보다 앞선 커밋 0개. 앞선 브랜치는 `claude/aisearch-agent`(11커밋, changelog 없음)와 `claude/ai-search-30k-be7780`(1커밋, changelog 없음)뿐. main의 마지막 번호는 `catalog/001`, `collection/006`, `foryou/001`, `picks/006`, `aisearch/004`이라 인계서 번호(`catalog/002`, `collection/007`, `foryou/002`, `picks/007`, `aisearch/005`)가 그대로 맞음.
+   - 참고: `db/changelog/PRE_DEPLOYMENT` 표시 파일이 아직 main에 있음(운영 배포는 이미 여러 번). 이번 사이클은 인계서대로 새 파일로만 더하고 기존 changeset은 고치지 않음.
+운영 DB는 읽기만 함(사용자 "읽기 허용", 2026-10-28).
+
+2. **운영 `picks.fetch_run`**: 1줄뿐(2026-10-14 10:08 `STARTUP`, SUCCEEDED, 109목록줄·163·108그림). 첫 배포 뒤 사서추천 받기는 한 번도 안 돌았음 → 사서추천 목록은 첫 배포 때 그대로. `picks.cover` 108줄.
+3. **고아 id 수**: 넷 모두 **0**(`foryou.book_blurb` 68,414줄, `foryou.book_cover` 80,091줄(서로 다른 `file_key` 80,078), `picks.book_tag` 0줄, `aisearch.search_book` 76,759줄). `picks.tag_dictionary`도 0줄(운영에 꼬리표를 아직 안 넣음). 복사 수 기준값은 이 다섯.
+4. **요약이 사라지는 추천목록 줄**: 운영 `GET /api/v1/picks/{list}` 다섯 목록(사용자에게 보이는 줄 2,793개, 모두 `aiSummary` 있음, 지금은 `ai-summaries.tsv`에서 옴)을 운영 `foryou.book_blurb`와 맞춤.
+   - 책 번호 없는 줄 **838**(kaist 761, librarian 36, nobel 21, snu100 13, leedongjin 7): 인계서대로 요약 없어짐 [확정].
+   - 책 번호는 있으나 책첵 요약이 없는 책 **783권 = 795줄**(kaist 684, nobel 40, snu100 36, librarian 28, leedongjin 7).
+   - 합계 **1,633줄 / 2,793줄(58%)**에서 배포 1 뒤 요약이 사라짐. 요약이 남는 책은 1,128권. 783권은 배포 1 전에 PC 배치(`for_you_blurb`)로 채우면 줄일 수 있음 → plan이 사용자에게 물을 것(배포 1 전 채울지, 그대로 갈지). 책 번호 목록은 이 세션 scratchpad에 있음, 필요하면 다시 뽑음.
+   - 참고: `picks.list_book`은 2,832줄(책 번호 없는 줄 916, 서로 다른 책 1,859)로 API 줄 수와 다름. API는 캐시가 ISBN으로 더 이어 주고 같은 책 줄을 합친 결과라 화면 기준인 API 수를 씀.
+- 1단계용 참고: 운영 `/srv/chaekcheck/covers` 81,451장, 1.1GB. 루트 디스크 29G 중 9.2G 남음.
+5. **AI 검색 전후 비교**: dev 24 몫. v1.19.0 값이 "전" 기준이라 배포 1 직전 알림은 하고, 측정은 배포 1 직후에 dev 24가 함.
+6. **기준 빌드**: 웹 `npm run build` 통과, vitest 79파일 706개 통과. 백엔드 `./gradlew build` 통과(6분 53초, `ModularityTests`·`DocumentationTests` 포함).
+
