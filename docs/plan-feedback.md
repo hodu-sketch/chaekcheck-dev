@@ -5879,7 +5879,9 @@ python -X utf8 scripts\crawl\crawl_catalog.py fetch-covers --status
 etry-nlk-errors-2026-10-28.txt`).
   - 주소가 없어진 서버 3곳(`ebook.jclib.or.kr`, `ebook.smuc.ac.kr`, `bu.mekia.net`, 통신사 DNS가 안내 페이지 IP만 줌, 우리 도서관 목록에서는 쓰지 않음)과 TLS가 끊기는 `ebook2.chugye.ac.kr`에 걸린 9,245권은 다음 후보로 넘김(국립중앙도서관 8,316권 등, 목록 `covers\skip-dead-hosts-2026-10-28.tsv`).
   - 두 번째 실행은 20:14에 끝남(578장, 없음 371권): 시작 때 서버 대기열에 있던 책만 받아서, 넘긴 책은 20:18 세 번째 실행에서 받음
-  - 남는 것: 응답이 12초 넘게 느려 매번 멈추는 `ebook.wsu.ac.kr`(9,179권)·`ebook.cku.ac.kr`(5,205권), 503을 주는 `ebook.jbe.go.kr`(3,301권), HTML을 주는 `ebook.daewon.ac.kr`. 결과는 끝난 뒤 덧붙임.
+- **세 번째 실행(2026-10-28 20:18 ~ 10-29 01:32, 5.2시간, 요청 9,870건)**: 표지 1,228장, 없음 8,190권(넘긴 책 대부분이 국립중앙도서관에도 그림 없음).
+- **최종(2026-10-29 01:36, `fetch-covers --status`)**: 표지 있음 1,145,754권(85.4%), 없음 176,834권, 남음 18,287권. 서로 다른 파일 1,128,687개, 약 11.4GB.
+  - 남은 18,287권은 받을 수 없는 서버의 책: 응답이 16~21초로 매번 멈추는 `ebook.wsu.ac.kr`(9,136)·`ebook.cku.ac.kr`(5,156), 503을 주는 `ebook.jbe.go.kr`(3,232), 그림 대신 HTML을 주는 `ebook*.daewon.ac.kr`(763). 다음 가져오기 뒤 실행에서 다시 시도됨(그대로 PENDING)
 
 ## plan에 묻는 것
 
