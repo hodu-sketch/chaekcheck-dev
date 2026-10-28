@@ -7179,3 +7179,13 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 책 상세(flow S2, 범위 결정 #5 그림대로): 머리 왼쪽 표지(`CoverImage`, PC 7.5rem·폰 5rem), 오른쪽 지금 글 그대로, 아래 가는 줄 다음 「AI 요약 ⓘ」 + 요약 전체. 요약 없으면 칸 없음, 표지 없으면 글이 왼쪽부터, 그림 오류·우리 주소가 아니면 제목 글자 표지. **「AI 요약 ⓘ」 조각은 책 창과 함께 씀**(`features/picks/AiSummary.tsx`로 꺼냄, [안] dev가 정함).
 - 시험: vitest 79파일 709개(책 상세 네 상태, `safeCoverUrl` CloudFront 받음·http·다른 호스트·점 대신 다른 글자·확장자·키 꼴·뒤에 붙은 것 거절, 옛 경로 받음, 카드 요약), `npm run build` 통과.
 - 화면: c26 웹 개발 서버(5201)에서 책 정보 응답만 바꿔 넣어 1440·768·375 확인(표지는 실제 CloudFront 그림, 글은 예시). 사용자 확인과 실제 폰(Samsung Internet) 확인은 아직.
+
+## 9단계 연습 (2026-10-29, PC DB 복사본)
+
+- 복사본: PC `db`(5432, 마지막 가져오기 14번 = 운영과 같은 `export_id d09d649f`, 8.7GB)를 `pg_dump | pg_restore`로 c26 `db`(5502)에 복사(4분). 운영과 다른 점: `foryou.book_cover` 29,588줄(운영 80,091), 요약은 0단계 후속 774권 전(68,414).
+- **1차 Liquibase: 복사 changeset 295초**(서버가 그동안 안 뜸). 나눠 재 보니 INSERT 다섯은 합 9초, **`ANALYZE catalog.book_summary` 388초**(한글 요약 68,414줄을 DB 기본 정렬 규칙으로 통계), `book_search`는 bigm 색인이 있는 채로 넣어 8.3초.
+- **고침(PRE_DEPLOYMENT 규칙대로 아직 어디에도 배포 안 된 `catalog/002`를 고치고, 내 DB 둘(c26 `db`·`db-test`)의 새 표·Liquibase 줄을 지워 다시 적용)**: `book_summary.summary`를 `COLLATE "C"`(사람에게 정렬해 보이지 않음, aisearch-004와 같은 이유; ANALYZE 0.06초), `book_search`의 bigm 색인은 복사 changeset 안 INSERT 뒤로(0.35초 + 색인 3.3초). 시험 `BookDescriptionSchemaTests`의 복사 SQL 읽기는 `CREATE INDEX`도 건너뜀.
+- **2차 Liquibase: 복사 4.2초**, 전체 서버 시작 15.6초. 운영(t4g.small)은 더 느릴 것 [추론: 2~3배].
+- **AC-4(복사본)**: `book_blurb`↔`book_summary` 68,414 = 68,414(글자까지 같음 68,414), `foryou.book_cover`↔`book_cover` 29,588 = 29,588, `picks.book_tag` 0 = 0, `tag_dictionary` 0 = 0, `search_book`↔`book_search` 76,759 = 76,759(찾기 글·도서관·한 줄 같음 76,759).
+- **디스크**: 새 표 여섯 합 136MB(`book_search` 109MB, `book_summary` 23MB, `book_cover` 3.2MB). 운영은 표지 줄이 많아 약 +5MB [추론] → 약 140MB(설계 어림 110~150MB 안).
+- 켠 서버(8096)로 확인: 책 상세에 `coverUrl`(CloudFront)·`summary`, KAIST 목록 2,442줄 중 표지 2,274줄 모두 CloudFront 주소(옛 주소 0), 요약 997줄(PC는 774권 채우기 전), 검색 결과 항목에 두 칸 없음.

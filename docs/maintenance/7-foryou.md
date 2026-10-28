@@ -38,7 +38,11 @@ ORDER BY platform_type, name;
 
 ## 2. 넣기 (수동, 수집 PC 결과)
 
-- `collection` 넣기 명령(프로필 `collection-import`)의 모드로 넣습니다(사이클 23 인계 3-3): 새 모드 `neighbours`·`tag-dictionary`, `book-texts`에 kind `for_you_blurb`·`tags`·`cover_file`. 코드: `collection/internal/foryou/`, `collection/internal/booktexts/`. 서버를 켤 필요 없이 명령이 끝나면 나갑니다. 화면에는 메모리 사본을 다시 읽은 뒤(`refresh-interval` 10분) 나옵니다.
+- `collection` 넣기 명령(프로필 `collection-import`)의 모드로 넣습니다(사이클 23 인계 3-3, 사이클 26): 모드 `neighbours`·`tag-dictionary`·`book-profiles`(사이클 26), `book-texts`의 kind `for_you_blurb`·`tags`·`cover_file`. 코드: `collection/internal/foryou/`, `collection/internal/booktexts/`. 서버를 켤 필요 없이 명령이 끝나면 나갑니다.
+- **사이클 26부터 이웃 말고는 모두 `catalog`에 씁니다**(ADR-0161): 요약(`for_you_blurb`) → `catalog.book_summary`, 표지(`cover_file`) → `catalog.book_cover`, 꼬리표·사전 → `catalog.book_tag`·`tag_dictionary`, 프로필(`book-profiles`) → `catalog.book_profile`. 이웃만 `foryou.book_neighbour`.
+- **언제 보이나**: 요약·표지는 넣으면 바로(책첵 추천·AI 검색·책 상세는 요청마다 읽음, 추천목록 줄은 목록 캐시를 다시 읽을 때 10분 안), 꼬리표는 `picks` 캐시를 다시 읽을 때 10분 안, 프로필은 **서버를 다시 켜야** AI 검색 1차 호출이 읽음(시작 로그 `ai search first call: ml, N book profiles from catalog.book_profile`).
+- **`book-texts`·`book-profiles`·`neighbours` 파일은 첫 줄이 `# export_id=<uuid>`**(그 파일의 책 번호를 만든 가져오기). 그 DB의 마지막 SUCCEEDED 가져오기와 다르면 아무것도 넣지 않고 거절합니다. 번호가 같다고 확실할 때만 `--chaekcheck.collection.import.force=true`. `book-texts`는 둘째 줄이 헤더입니다.
+- 표지 그림은 넣기 전에 PC가 S3에 올려 둡니다: [8-covers.md](8-covers.md)
 - 차례: **꼬리표 사전 → book-texts(꼬리표·글·표지) → 이웃**. 사전에 없는 꼬리표 코드는 건너뛰므로 사전을 먼저 넣습니다.
 - 모든 모드: 파일 전체를 먼저 검사하고, 문제가 하나라도 있으면 줄 번호와 함께(처음 20개) 거부하고 아무것도 넣지 않습니다. UTF-8, BOM과 Windows 줄 끝(`\r\n`)은 받습니다.
 

@@ -1,12 +1,15 @@
 # Cycle 26 deploy 1 (ADR-0161, ADR-0165, ADR-0166): the book descriptions in one place, the catalog module.
-# - book_summary: the 책첵 summary (polite style, 1-300 characters, one kind; nobody cuts it).
+# - book_summary: the 책첵 summary (polite style, 1-300 characters, one kind; nobody cuts it). In the "C" collation:
+#   nothing sorts it for people, and ANALYZE of 68,414 Korean summaries took 388 s under the database's collation and
+#   0.06 s in "C" (cycle 26 step 9, the same as aisearch-004).
 # - book_cover: the cover file of an edition; the image is <covers base url>/covers/<file_key>.jpg on CloudFront
 #   (ADR-0163).
 # - book_profile: the book profile the AI search's first call reads once at start; no vocabulary CHECK (the PC's
 #   dictionary changes without a schema change).
 # - book_search: the AI search's line and keyword text. library_ids is the one copy of catalog.book data kept here
 #   (ADR-0160: the candidate query reads only this table, cold 106 vs 230 ms joined, plan-feedback "# 사이클 26 질의
-#   속도"). Indexes as aisearch.search_book had them, so the queries change only the table name.
+#   속도"). Indexes as aisearch.search_book had them, so the queries change only the table name; the pg_bigm index is
+#   made after the copy (8.3 s copying into it, 0.35 s + 3.3 s copying first, step 9).
 # - tag_dictionary, book_tag: the tag rules of picks/006 as they were.
 # The description tables have no foreign key to catalog.book (ADR-0162): the catalog swap deletes the rows of book ids
 # the new catalog no longer has, inside its own transaction.
@@ -24,7 +27,7 @@ databaseChangeLog:
               CREATE TABLE catalog.book_summary (
                 book_id bigint CONSTRAINT book_summary_pkey PRIMARY KEY
                   CONSTRAINT book_summary_book_id_check CHECK (book_id >= 1),
-                summary text NOT NULL
+                summary text COLLATE "C" NOT NULL
                   CONSTRAINT book_summary_summary_check CHECK (char_length(summary) BETWEEN 1 AND 300),
                 made_on date NOT NULL
               )
@@ -79,8 +82,6 @@ databaseChangeLog:
                 CONSTRAINT book_search_line_parts_check
                   CHECK ((line IS NULL) = (line_source IS NULL) AND (line IS NULL) = (line_made_on IS NULL))
               )
-        - sql:
-            sql: CREATE INDEX book_search_search_text_bigm ON catalog.book_search USING gin (search_text gin_bigm_ops)
 
   - changeSet:
       id: catalog-002-tag-dictionary
@@ -138,5 +139,7 @@ databaseChangeLog:
                   (book_id, line, line_source, line_made_on, search_text, library_ids, imported_at)
                 SELECT book_id, line, line_source, line_made_on, search_text, library_ids, imported_at
                 FROM aisearch.search_book
+        - sql:
+            sql: CREATE INDEX book_search_search_text_bigm ON catalog.book_search USING gin (search_text gin_bigm_ops)
         - sql:
             sql: ANALYZE catalog.book_summary, catalog.book_cover, catalog.book_tag, catalog.book_search

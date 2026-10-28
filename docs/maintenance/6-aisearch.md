@@ -1,6 +1,7 @@
 # AI 책 찾기: 찾기용 한 줄 넣기 (`book-texts`)
 
 - 사이클 24(plan ADR-0151). AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `aisearch.search_book`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, v1.17.0~, 9절)입니다. 이 표는 이 명령으로만 바뀝니다.
+- **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). `aisearch.search_book`은 배포 2에서 지웁니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
 ## 0. 지금 운영 (2026-10-28, v1.19.0)
@@ -20,7 +21,7 @@
 
 ## 2. 파일
 
-- UTF-8 TSV, 머리줄 `kind	book_id	source	made_on	text` [안]. BOM과 Windows 줄 끝(`\r\n`)은 받습니다
+- **사이클 26부터 첫 줄은 `# export_id=<uuid>`**(파일의 책 번호를 뽑은 DB의 마지막 가져오기 `export_id`), 둘째 줄이 머리줄 `kind	book_id	source	made_on	text`. 넣는 DB의 마지막 SUCCEEDED 가져오기와 다르면 아무것도 넣지 않고 거절합니다(번호가 같다고 확실할 때만 `--chaekcheck.collection.import.force=true`). 사이클 26 전 판 서버(지금 운영 v1.19.0까지)는 이 첫 줄을 모르므로 그 서버에 넣는 파일에는 붙이지 않습니다. BOM과 Windows 줄 끝(`\r\n`)은 받습니다
 - `kind`: 이 문서는 `search_line`입니다. 사이클 23의 `for_you_blurb`·`tags`·`cover_file`은 [7-foryou.md](7-foryou.md) 2-2절(그 kind만 있는 파일은 `search_book`을 건드리지 않음). 다른 값은 건너뛰고 종류별 수를 로그에 남깁니다
 - `book_id`: 우리 책 번호(`catalog.book.id`). **수집을 반영한 뒤의 DB 번호**로 뽑습니다(사용자 결정 2026-10-24, `plan-feedback.md` `# 사이클 24` "1단계")
 - `source`: `intro`(소개 원문으로 만듦) | `bibliographic`(서지만으로 만듦). `made_on`: `YYYY-MM-DD`

@@ -135,7 +135,7 @@ class BookDescriptionSchemaTests {
 				+ " WHERE book_id = 900001").query(String.class).single()).isEqualTo("한 줄|옛 제목 한 줄|{3,5}");
 	}
 
-	/** The sql changes of the copy changeset, read from the changelog itself (ANALYZE left out: not in a transaction). */
+	/** The copy changeset's INSERTs, read from the changelog itself (its index and ANALYZE are there already). */
 	@SuppressWarnings("unchecked")
 	private static List<String> copyStatements() throws IOException {
 		try (InputStream in = BookDescriptionSchemaTests.class.getClassLoader()
@@ -146,7 +146,7 @@ class BookDescriptionSchemaTests {
 				if ("catalog-002-copy-old-tables".equals(changeSet.get("id"))) {
 					return ((List<Map<String, Map<String, String>>>) changeSet.get("changes")).stream()
 						.map(change -> change.get("sql").get("sql"))
-						.filter(sql -> !sql.startsWith("ANALYZE"))
+						.filter(sql -> !sql.startsWith("ANALYZE") && !sql.startsWith("CREATE INDEX"))
 						.toList();
 				}
 			}

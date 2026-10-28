@@ -115,12 +115,13 @@
 | 2 | 책·사람·소장을 임시 표(`load_*`)에 COPY (소장은 수집 DB 두 번째 읽기와 함께) | `books_copy`, `holdings_read`, `holdings_copy` |
 | 3 | 좁은 맞대기 표 `load_match` 한 번으로 책 번호(7절)와 소장 번호를 정함. 같은 (도서관, `item_key`)는 옛 소장 번호, 새 소장은 지금까지 준 가장 큰 번호 다음부터 | `match` |
 | 4 | `catalog_next`에 네 표를 색인·제약 없이 만들고(`LIKE … INCLUDING DEFAULTS IDENTITY …`) 책 번호 순으로 씀. 소장은 `book_id` 순으로 정렬해 씀(R8: 한 책의 줄이 같은 쪽에 모임) | `write` |
-| 5 | 운영 표의 제약·색인을 정의 그대로(`pg_get_constraintdef`·`pg_get_indexdef`, 같은 이름) 만듦. 로그에 문장별 시간 | `index` |
+| 5 | 운영 책 목록 표 넷의 제약·색인을 정의 그대로(`pg_get_constraintdef`·`pg_get_indexdef`, 같은 이름) 만듦. 로그에 문장별 시간. 사이클 26부터 `catalog`의 책 설명 표는 건너뜀(`t.relname = ANY(TABLES)`) | `index` |
 | 6 | `VACUUM (ANALYZE)` `catalog_next` 네 표 | `analyze` |
-| 7 | 바깥 외래 키 확인 → 한 트랜잭션: `SET LOCAL lock_timeout` → 옛 네 표 `DROP` → `catalog_next` 네 표 `SET SCHEMA catalog` → `DROP SCHEMA catalog_next` → 커밋 | `swap` |
+| 7 | 바깥 외래 키 확인 → 한 트랜잭션: `SET LOCAL lock_timeout` → **책 설명 정리**(아래) → 옛 네 표 `DROP` → `catalog_next` 네 표 `SET SCHEMA catalog` → `DROP SCHEMA catalog_next` → 커밋 | `swap` |
 
 - 잠금: `DROP`은 표를 읽는 검색이 끝나기를 기다립니다. 그동안 **뒤에 온 검색도 그 뒤에 줄을 섭니다**(2026-10-11 `db-test` 시험: 긴 검색이 잠금을 잡은 동안 바꿔 끼우기가 기다리면, 뒤의 짧은 검색은 바꿔 끼우기가 `lock_timeout` 2초에 포기할 때까지 기다림). 그래서 한 번에 2초까지만 기다리고, 못 얻으면 10초 쉬었다가 다시(최대 5번) 합니다. 검색이 한 번에 기다리는 시간은 최대 2초입니다.
 - 디스크: 바꿔 끼우기 직전에는 옛 표 + 임시 표 + 새 표가 함께 있어 DB가 크게 늘어납니다(10절 표의 최대값). 끝나면 임시 표와 옛 표가 지워집니다.
+- **책 설명 정리 (사이클 26, plan ADR-0162)**: `catalog`의 책 설명 표 다섯(`book_summary`, `book_cover`, `book_profile`, `book_search`, `book_tag`)은 책 번호로만 잇고 외래 키가 없습니다. 바꿔 끼우는 트랜잭션 안, `DROP` 앞에서 `DELETE … WHERE NOT EXISTS (SELECT 1 FROM catalog_next.book b WHERE b.id = <표>.book_id)`로 새 목록에 없는 번호(합쳐져 버려진 번호, 사라진 책)의 설명을 지웁니다. 잠금을 못 얻어 되돌리면 지운 것도 되돌아갑니다. 표별 수는 로그 `catalog swap: book descriptions of dropped book ids deleted {…}`, 합은 `collection.catalog_import.description_deleted_count`(성공한 줄만, 실패·내보내기 줄은 NULL). 실행 계획은 `Hash Anti Join`, 표지 134만 줄에서 0.6초(시험 DB, 2026-10-28). 이 DELETE는 줄 잠금만 잡아 검색을 막지 않습니다. 그래도 남은 설명(합쳐진 책의 새 번호에 붙일 것)은 PC가 새 번호로 다시 만들어 `book-texts`·`book-profiles`로 넣습니다(`# export_id=` 첫 줄, [7-foryou.md](7-foryou.md) 2절)
 - 번호: 책 번호(7절)와 **소장 번호**가 다시 가져와도 이어집니다(ADR-0070). 그래서 바꿔 끼우기 전에 연 책 화면에서 다음 묶음을 불러도 같은 소장을 가리킵니다. 목록에서 빠진 소장은 `holding_not_found`("이 도서관 목록에서 빠졌어요"), 빠진 책은 `book_not_found`("도서관 목록을 새로 받으면서 빠진 책일 수 있어요").
 
 ## 9. 실패하면
