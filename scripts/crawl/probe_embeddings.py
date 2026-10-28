@@ -13,7 +13,7 @@ Writes <data dir of the repo>/data/cycle23-pretest/neighbours.tsv and summary.js
 
 --intro (cycle 23 intro test, plan request to-dev-intro-test-2026-10-24.md): the text gets the book's list intro, first
 INTRO_CHARS characters, from <data>/ml/intro-books.tsv (probe_intro.py count); the seeds are the pre-test's 30
-(docs/reports/cycle23-pretest/summary.json); results go to data/cycle23-intro/ (neighbours-intro.tsv, summary-intro.json).
+(docs/cycle23-foryou/experiments/2026-10-24-pretest/summary.json); results go to data/cycle23-intro/ (neighbours-intro.tsv, summary-intro.json).
 """
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ def main() -> int:
     rng = random.Random(23)
     seeds = []
     if with_intro:  # the pre-test's 30 seeds, in its order
-        before = json.loads((REPO / 'docs' / 'reports' / 'cycle23-pretest' / 'summary.json').read_text(encoding='utf-8'))
+        before = json.loads((REPO / 'docs' / 'cycle23-foryou' / 'experiments' / '2026-10-24-pretest' / 'summary.json').read_text(encoding='utf-8'))
         for p in before['per_seed']:
             cur.execute('SELECT id, title, author_display, publisher, published_on, main_title_norm, %s '
                         'FROM catalog.book WHERE id = %s', (p['list'], p['seed_id']))

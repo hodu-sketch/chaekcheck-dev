@@ -1,6 +1,6 @@
 # 책첵 추천 오프라인 평가 도구
 
-[`docs/reports/foryou-portfolio.md`](../../../docs/reports/foryou-portfolio.md)의 숫자를 만든 스크립트입니다. 서비스 DB는 읽기만 하고, 도서관 사이트에는 요청하지 않습니다.
+[`docs/cycle23-foryou/3-evaluation.md`](../../../docs/cycle23-foryou/3-evaluation.md)의 숫자를 만든 스크립트입니다. 서비스 DB는 읽기만 하고, 도서관 사이트에는 요청하지 않습니다.
 
 | 파일 | 하는 일 |
 |---|---|
@@ -9,6 +9,6 @@
 | `order_judge.py`, `judge_input.py` | 방식을 가린 판정 쌍을 250줄씩 나눔(Haiku 하위 에이전트가 1~5점·같은 작품 0/1을 씀) |
 | `judge_score.py` | 판정 결과를 방식별 평균·4~5점·1~2점 비율로 |
 | `profile_audit.py` | Haiku 프로필 분포·KDC 일치·같은 작품 정답 불일치·이웃 다수결 기준선(머신러닝 보강 문서 0절) |
-| `make_charts.py` | 보고서 그림 `docs/reports/foryou-eval/*.svg` |
+| `make_charts.py` | 보고서 그림 `docs/cycle23-foryou/figures/*.svg` |
 
 TSV 내보내기 질의와 실행 결과는 데이터 폴더 `ml/foryou/eval-2026-10-25/`, `eval-2026-10-26-100k/`에 있습니다(git 밖).
