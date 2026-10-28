@@ -95,14 +95,14 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule)
 <main>
   <header>
     <div class="callno">CHAEKCHECK · CYCLE 23 · 설계 노트</div>
-    <h1>책첵 추천: 로그인 없이 만드는 개인 도서 추천</h1>
-    <p class="lede">전자도서관 책을 한 번에 찾아 주는 서비스 「책첵」에 개인 추천 탭을 붙인 기록입니다. 회원 가입도, 서버에 남는 열람 기록도 없이 브라우저가 기억한 몇 권만으로 추천을 만들고, 그 품질을 숫자로 잰 과정까지 정리했습니다.</p>
+    <h1>책첵 추천: 로그인 없이도 되는 개인 도서 추천</h1>
+    <p class="lede">전자도서관 책을 한 번에 찾아 주는 서비스 「책첵」에 개인 추천 탭을 붙인 기록입니다. 로그인하지 않아도, 서버의 열람 기록을 읽지 않고 브라우저가 기억한 몇 권만으로 추천을 만들고, 그 품질을 숫자로 잰 과정까지 정리했습니다.</p>
     <p class="meta">Java 25 · Spring Boot 4 (Spring Modulith) · PostgreSQL 18 · React 19 · KURE-v1 임베딩 · Claude Haiku</p>
     <div class="facts" role="list">
       <div class="fact" role="listitem"><b>81,080</b><span>추천 대상 책 (이웃 표)</span></div>
       <div class="fact" role="listitem"><b>1,024</b><span>벡터 차원 (KURE-v1)</span></div>
       <div class="fact" role="listitem"><b>68,414</b><span>AI로 쓴 해요체 요약</span></div>
-      <div class="fact" role="listitem"><b>0</b><span>서버에 남는 열람 기록</span></div>
+      <div class="fact" role="listitem"><b>6</b><span>서버로 보내는 기준 책 수(최대)</span></div>
     </div>
   </header>
 
@@ -114,7 +114,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule)
       <table>
         <thead><tr><th>제약</th><th>결과로 정한 설계</th></tr></thead>
         <tbody>
-          <tr><td>로그인이 없고, 사람별 기록을 서버에 두지 않기로 함</td><td>열람 기록은 브라우저 <code>localStorage</code>에만. 서버에는 기준 책 번호 6개와 다시 보여 줄 책 번호 6개만 보냄</td></tr>
+          <tr><td>로그인 없이도 써야 함. 로그인한 회원의 이용 기록은 서버에 남지만(회원 번호, 1년) 추천에는 아직 쓰지 않음</td><td>열람 기록은 브라우저 <code>localStorage</code>에만. 서버에는 기준 책 번호 6개와 다시 보여 줄 책 번호 6개만 보냄</td></tr>
           <tr><td>공개 초기라 사용자 행동 데이터가 적음</td><td>행동 대신 <b>책 내용</b>으로 비슷함을 계산(내용 기반 추천)</td></tr>
           <tr><td>운영 서버가 작음(백엔드 힙 384MB)</td><td>임베딩과 이웃 계산은 PC에서 미리 하고, 서버는 결과 표만 읽음</td></tr>
         </tbody>
