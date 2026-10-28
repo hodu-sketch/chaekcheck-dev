@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,11 +17,11 @@ import org.springframework.stereotype.Component;
 
 import com.chaekcheck.catalog.BookAuthors;
 import com.chaekcheck.catalog.BookLookup;
+import com.chaekcheck.catalog.BookTexts;
+import com.chaekcheck.catalog.BookTexts.Tag;
 import com.chaekcheck.library.LibraryCatalog;
-import com.chaekcheck.picks.BookTagTransfer.Tag;
 import com.chaekcheck.picks.FieldGroups;
 import com.chaekcheck.picks.ListedBooks;
-import com.chaekcheck.picks.internal.tags.CardTags;
 import com.chaekcheck.picks.internal.store.PicksStore;
 
 /**
@@ -29,7 +30,7 @@ import com.chaekcheck.picks.internal.store.PicksStore;
  * cache of its own, so both give the same books and the same shown names.
  * <p>
  * The set is built again only when one of the copies was swapped (every cache refresh swaps them), with one catalog
- * query for the authors and one picks query for the card tags (cycle 23). If either fails, the new books are used
+ * query for the authors and one for the card tags (cycle 23; from {@code catalog.BookTexts} since cycle 26). If either fails, the new books are used
  * with the authors and tags known before (none for a book not seen before), a warning is logged once, and the queries
  * are tried again at most once a minute ({@link #AUTHOR_RETRY}), so a database outage does not add a query to every
  * request.
@@ -54,7 +55,7 @@ class CacheListedBooks implements ListedBooks {
 
 	private final BookAuthors authors;
 
-	private final CardTags cardTags;
+	private final BookTexts bookTexts;
 
 	private final Clock clock;
 
@@ -62,18 +63,18 @@ class CacheListedBooks implements ListedBooks {
 
 	@Autowired
 	CacheListedBooks(PicksCache cache, PicksStore store, BookLookup bookLookup, LibraryCatalog libraries,
-			BookAuthors authors, CardTags cardTags) {
-		this(cache, store, bookLookup, libraries, authors, cardTags, Clock.systemUTC());
+			BookAuthors authors, BookTexts bookTexts) {
+		this(cache, store, bookLookup, libraries, authors, bookTexts, Clock.systemUTC());
 	}
 
 	CacheListedBooks(PicksCache cache, PicksStore store, BookLookup bookLookup, LibraryCatalog libraries,
-			BookAuthors authors, CardTags cardTags, Clock clock) {
+			BookAuthors authors, BookTexts bookTexts, Clock clock) {
 		this.cache = cache;
 		this.store = store;
 		this.bookLookup = bookLookup;
 		this.libraries = libraries;
 		this.authors = authors;
-		this.cardTags = cardTags;
+		this.bookTexts = bookTexts;
 		this.clock = clock;
 	}
 
@@ -102,7 +103,7 @@ class CacheListedBooks implements ListedBooks {
 
 	@Override
 	public Snapshot loadFromDb() {
-		PicksCache own = new PicksCache(store, bookLookup, libraries);
+		PicksCache own = cache.fresh();
 		own.refresh();
 		List<String> unread = new ArrayList<>();
 		for (String list : PicksCache.LISTS) {
@@ -119,7 +120,14 @@ class CacheListedBooks implements ListedBooks {
 
 	private Extras extras(List<Merged> merged) {
 		List<Long> ids = merged.stream().map(Merged::bookId).toList();
-		return new Extras(authors.byIds(ids), cardTags.byIds(ids));
+		Map<Long, List<Tag>> cards = new HashMap<>();
+		bookTexts.tags(ids).forEach((id, tags) -> {
+			List<Tag> card = BookTexts.forCard(tags);
+			if (!card.isEmpty()) {
+				cards.put(id, card);
+			}
+		});
+		return new Extras(authors.byIds(ids), cards);
 	}
 
 	private static List<PicksCache.Snapshot> copies(PicksCache cache) {

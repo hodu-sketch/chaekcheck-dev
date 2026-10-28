@@ -13,12 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-import com.chaekcheck.foryou.ForYouTransfer.Blurb;
-import com.chaekcheck.foryou.ForYouTransfer.Cover;
 import com.chaekcheck.foryou.ForYouTransfer.Neighbours;
 
 /**
- * Neighbours full swap and add, blurbs and covers (cycle 23 step 7). Not transactional: the full load uses its own
+ * Neighbours full swap and add (cycle 23 step 7; blurbs and covers are written to catalog since cycle 26). Not transactional: the full load uses its own
  * connection and DDL, so the tables are emptied after each test.
  */
 @SpringBootTest
@@ -101,18 +99,6 @@ class ForYouTransferTests {
 		assertThatThrownBy(() -> new Neighbours(1, new int[0])).hasMessageContaining("0 neighbours");
 		assertThatThrownBy(() -> new Neighbours(1, new int[21])).hasMessageContaining("21 neighbours");
 		assertThatThrownBy(() -> new Neighbours(2_147_483_648L, new int[] { 1 })).hasMessageContaining("out of range");
-	}
-
-	@Test
-	void blurbsAndCoversUpsert() {
-		transfer.upsertBlurbs(List.of(new Blurb(1, "처음 글이에요.", DAY)));
-		transfer.upsertBlurbs(List.of(new Blurb(1, "고친 글이에요.", DAY.plusDays(1))));
-		transfer.upsertCovers(List.of(new Cover(1, "0123456789abcdef0123456789abcdef01234567")));
-
-		assertThat(jdbc.sql("SELECT blurb || ':' || made_on FROM foryou.book_blurb").query(String.class).list())
-			.containsExactly("고친 글이에요.:2026-10-25");
-		assertThat(jdbc.sql("SELECT file_key FROM foryou.book_cover").query(String.class).single())
-			.isEqualTo("0123456789abcdef0123456789abcdef01234567");
 	}
 
 	private List<String> rows() {

@@ -19,6 +19,7 @@ import org.springframework.transaction.CannotCreateTransactionException;
 
 import com.chaekcheck.availability.LookupHealth;
 import com.chaekcheck.catalog.internal.search.BookSearch;
+import com.chaekcheck.catalog.BookTexts;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.usagelog.UsageLog;
 
@@ -56,6 +57,9 @@ class DatabaseFailureHandlingTests {
 
 	@MockitoBean
 	LookupHealth lookupHealth;
+
+	@MockitoBean
+	BookTexts bookTexts;
 
 	@Test
 	void connectionFailureIsInternalErrorAndRecorded() {

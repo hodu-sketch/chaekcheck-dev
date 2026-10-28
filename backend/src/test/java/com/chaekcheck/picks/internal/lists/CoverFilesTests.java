@@ -11,7 +11,8 @@ class CoverFilesTests {
 		// sha1("https://image.yes24.com/goods/1/M"), the name the collector writes in covers/
 		String name = CuratedLists.sha1("https://image.yes24.com/goods/1/M") + ".jpg";
 		assertThat(CoverFiles.fileName("https://image.yes24.com/goods/1/M")).isEqualTo(name).hasSize(44);
-		assertThat(CoverFiles.path("https://image.yes24.com/goods/1/M")).isEqualTo("/covers/" + name);
+		// the same name on CloudFront (cycle 26)
+		assertThat(CoverFiles.key("https://image.yes24.com/goods/1/M") + ".jpg").isEqualTo(name);
 	}
 
 }

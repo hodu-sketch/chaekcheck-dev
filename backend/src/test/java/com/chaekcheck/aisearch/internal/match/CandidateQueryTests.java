@@ -14,10 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chaekcheck.aisearch.AiSearchBookTexts;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Book;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Line;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Source;
+import com.chaekcheck.aisearch.TestSearchBooks;
+import com.chaekcheck.aisearch.TestSearchBooks.Book;
+import com.chaekcheck.catalog.BookTextsTransfer.Line;
+import com.chaekcheck.catalog.BookTextsTransfer.Source;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
 
 /**
@@ -39,7 +39,7 @@ class CandidateQueryTests {
 	CandidateQuery query;
 
 	@Autowired
-	AiSearchBookTexts texts;
+	TestSearchBooks texts;
 
 	@Test
 	void pointsThenPlanLibrariesThenBookId() {

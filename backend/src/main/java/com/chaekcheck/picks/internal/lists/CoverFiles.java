@@ -16,12 +16,15 @@ public final class CoverFiles {
 
 	/** {@code <sha1(url)>.jpg}, the collector's file name for a cover address. */
 	public static String fileName(String sourceUrl) {
-		return CuratedLists.sha1(sourceUrl) + ".jpg";
+		return key(sourceUrl) + ".jpg";
 	}
 
-	/** The address the screen loads the cover from. */
-	public static String path(String sourceUrl) {
-		return URL_PATH + fileName(sourceUrl);
+	/**
+	 * {@code sha1(url)}: the picture's name on CloudFront too ({@code catalog.CoverUrls}, cycle 26 ADR-0163), where every
+	 * list picture is, the librarian list's included.
+	 */
+	public static String key(String sourceUrl) {
+		return CuratedLists.sha1(sourceUrl);
 	}
 
 }

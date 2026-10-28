@@ -1,52 +1,28 @@
 package com.chaekcheck.aisearch.internal.match;
 
-import java.text.Normalizer;
-import java.util.Locale;
-import java.util.regex.Pattern;
-
 /**
- * The one way the AI search tidies text for the keyword match (handoff step 4-2 [안]): NFKC, lower case, every space
- * and every invisible format character (zero-width space, byte order mark, …) removed. {@code search_book.search_text} and the keywords (step 5) are both made with it, so they meet.
+ * The AI search's text tidying, kept in one place: {@code catalog.SearchText} since cycle 26, which also makes
+ * {@code catalog.book_search.search_text}. The keywords are tidied with the same rule, so they meet. The names here
+ * stay for the AI search's own callers.
  */
 public final class SearchText {
-
-	private static final Pattern SPACES = Pattern.compile("[\\s\\p{Cf}]+", Pattern.UNICODE_CHARACTER_CLASS);
-
-	private static final Pattern NOT_LETTER = Pattern.compile("[^\\p{L}\\p{N}]+");
 
 	private SearchText() {
 	}
 
-	/** The tidied text; null and blank give an empty string. */
+	/** {@link com.chaekcheck.catalog.SearchText#tidy}. */
 	public static String tidy(String text) {
-		if (text == null) {
-			return "";
-		}
-		String folded = Normalizer.normalize(text, Normalizer.Form.NFKC).toLowerCase(Locale.ROOT);
-		return SPACES.matcher(folded).replaceAll("");
+		return com.chaekcheck.catalog.SearchText.tidy(text);
 	}
 
-	/** {@link #tidy} with every sign left out too: letters and digits only (the title line check, issue 2-1). */
+	/** {@link com.chaekcheck.catalog.SearchText#letters}. */
 	public static String letters(String text) {
-		return NOT_LETTER.matcher(tidy(text)).replaceAll("");
+		return com.chaekcheck.catalog.SearchText.letters(text);
 	}
 
-	/**
-	 * {@code search_text} of a book: title, author and line, each tidied, joined by one space. A keyword never holds a
-	 * space after {@link #tidy}, so no keyword can match across two parts (for example the end of a title and the
-	 * start of the author).
-	 */
+	/** {@link com.chaekcheck.catalog.SearchText#ofBook}. */
 	public static String ofBook(String title, String author, String line) {
-		StringBuilder text = new StringBuilder(tidy(title));
-		String tidiedAuthor = tidy(author);
-		if (!tidiedAuthor.isEmpty()) {
-			text.append(' ').append(tidiedAuthor);
-		}
-		String tidiedLine = tidy(line);
-		if (!tidiedLine.isEmpty()) {
-			text.append(' ').append(tidiedLine);
-		}
-		return text.toString();
+		return com.chaekcheck.catalog.SearchText.ofBook(title, author, line);
 	}
 
 }

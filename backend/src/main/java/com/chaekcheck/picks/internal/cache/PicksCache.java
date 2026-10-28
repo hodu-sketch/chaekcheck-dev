@@ -23,6 +23,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.chaekcheck.catalog.BookLookup;
+import com.chaekcheck.catalog.BookTexts;
+import com.chaekcheck.catalog.CoverUrls;
 import com.chaekcheck.catalog.IdBook;
 import com.chaekcheck.catalog.IsbnBook;
 import com.chaekcheck.catalog.TitleAuthor;
@@ -46,6 +48,12 @@ import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
  * carry the book the import matched ({@code list_book.book_id}, read with {@code byIds}). The shown name is our book's
  * title without its edition marks ({@link ShownTitle}, ADR-0129), else the list's title; {@code listTitle} is the
  * list's title when it differs.
+ * <p>
+ * Summary and cover (cycle 26, ADR-0161, ADR-0164): a book's AI summary is our book's 책첵 summary
+ * ({@code catalog.BookTexts}; a row without our book has none). Its cover is the edition's cover, else another
+ * edition of the same work ({@code BookTexts.listCoverUrls}), else the list's own picture; every one is a CloudFront
+ * address ({@code catalog.CoverUrls}, the list's picture named {@code sha1(cover source)}). Both are read with the
+ * list, so a refresh sees summaries and covers put in since.
  * <p>
  * Order: librarian books by recommendation month, registration date (unknown last), then {@code recomNo} as text,
  * each latest first (cycle 14 R2, R4-2); Lee Dong-jin by month (latest first), then the order inside the month; SNU
@@ -74,7 +82,10 @@ public class PicksCache implements PicksChanged {
 	 */
 	public static final List<String> LISTS = List.of(LIBRARIAN, LEEDONGJIN, SNU100, KAIST, NOBEL);
 
-	/** The stored covers' address (the librarian list's), served by PicksController. */
+	/**
+	 * The stored covers' address (the librarian list's), served by PicksController. Since cycle 26 no book names it
+	 * (the pictures are on CloudFront); the address stays until deploy 2 for pages still open.
+	 */
 	public static final String COVER_API = "/api/v1/picks/covers/";
 
 	static final String ALL_CODE = "ALL";
@@ -100,12 +111,24 @@ public class PicksCache implements PicksChanged {
 
 	private final LibraryCatalog libraries;
 
+	private final BookTexts bookTexts;
+
+	private final CoverUrls coverUrls;
+
 	private final Map<String, Snapshot> current = new ConcurrentHashMap<>();
 
-	PicksCache(PicksStore store, BookLookup bookLookup, LibraryCatalog libraries) {
+	PicksCache(PicksStore store, BookLookup bookLookup, LibraryCatalog libraries, BookTexts bookTexts,
+			CoverUrls coverUrls) {
 		this.store = store;
 		this.bookLookup = bookLookup;
 		this.libraries = libraries;
+		this.bookTexts = bookTexts;
+		this.coverUrls = coverUrls;
+	}
+
+	/** A cache of its own with the same reads, for {@link CacheListedBooks#loadFromDb()}. */
+	PicksCache fresh() {
+		return new PicksCache(store, bookLookup, libraries, bookTexts, coverUrls);
 	}
 
 	/** The copy of one list now; {@link Snapshot#EMPTY} until it is stored, and for a name that is not a list. */
@@ -194,11 +217,13 @@ public class PicksCache implements PicksChanged {
 				ours = byIds(stored);
 			}
 		}
+		List<Long> ids = ours.values().stream().map(Ours::bookId).distinct().toList();
+		Texts texts = new Texts(bookTexts.summaries(ids), bookTexts.listCoverUrls(ids));
 		// the same book only once in a list, where it comes first in the list's order (user 2026-10-22: "각 추천도서 별로
 		// 중복인 거 다 없애주고"; KAIST's own lists repeat some books, 23 in 2026)
 		Set<String> seen = new HashSet<>();
 		List<Book> books = stored.stream()
-			.map(row -> book(list, row, ours.get(row)))
+			.map(row -> book(list, row, ours.get(row), texts))
 			.filter(book -> seen.add(sameBookKey(book)))
 			.toList();
 
@@ -245,22 +270,31 @@ public class PicksCache implements PicksChanged {
 		return "title:" + title.replaceAll("[^\\p{L}\\p{N}]", "").toLowerCase(Locale.ROOT);
 	}
 
-	private static Book book(String list, StoredBook row, Ours our) {
+	private Book book(String list, StoredBook row, Ours our, Texts texts) {
 		String shown = our == null ? row.title() : Objects.requireNonNullElse(ShownTitle.of(our.title()), row.title());
 		String listTitle = shown.equals(row.title()) ? null : row.title();
 		String id = list.equals(LIBRARIAN) ? row.sourceNo() : Long.toString(row.id());
 		YearMonth month = row.recommendedMonth() == null ? null : YearMonth.from(row.recommendedMonth());
-		return new Book(id, row.fieldCode(), month, shown, listTitle, coverPath(list, row),
-				our == null ? null : our.bookId(), our == null ? new long[0] : our.libraryIds(), row.yearBook(),
-				row.videoId(), row.tocNo(), AiSummaries.DEFAULT.of(list, row.isbn13(), row.title()));
+		Long bookId = our == null ? null : our.bookId();
+		return new Book(id, row.fieldCode(), month, shown, listTitle, coverPath(row, bookId, texts), bookId,
+				our == null ? new long[0] : our.libraryIds(), row.yearBook(), row.videoId(), row.tocNo(),
+				bookId == null ? null : texts.summaries().get(bookId));
 	}
 
-	/** The librarian list's covers are stored rows; the other lists' are files the web server serves (user 2026-10-20). */
-	private static String coverPath(String list, StoredBook row) {
-		if (list.equals(LIBRARIAN)) {
-			return row.coverId() == null ? null : COVER_API + row.coverId();
+	/**
+	 * ADR-0164: the cover of our book's edition or of another edition of its work, else the list's own picture (a row
+	 * without our book always takes the list's); null without either.
+	 */
+	private String coverPath(StoredBook row, Long bookId, Texts texts) {
+		String edition = bookId == null ? null : texts.covers().get(bookId);
+		if (edition != null) {
+			return edition;
 		}
-		return row.coverSource() == null ? null : CoverFiles.path(row.coverSource());
+		return row.coverSource() == null ? null : coverUrls.of(CoverFiles.key(row.coverSource()));
+	}
+
+	/** The summaries and the edition covers of one list's books. */
+	private record Texts(Map<Long, String> summaries, Map<Long, String> covers) {
 	}
 
 	/** The books the import matched, read by id; a book gone from the catalog since then is no match. */
@@ -349,11 +383,11 @@ public class PicksCache implements PicksChanged {
 	 * @param recommendedMonth librarian and Lee Dong-jin; null for SNU
 	 * @param title the shown name (ADR-0129)
 	 * @param listTitle the list's own title when it differs from {@code title}, else null
-	 * @param coverPath where the screen loads the cover: the stored cover (librarian) or the cover file (the other
-	 *     lists, {@link CoverFiles}); null without one
+	 * @param coverPath the cover's CloudFront address (ADR-0164: the edition's, the work's, else the list's picture);
+	 *     null without one. The name stays from when it was a path on this site
 	 * @param bookId our book, or null
 	 * @param libraryIds {@code catalog.book.library_ids} of that book; empty without one
-	 * @param aiSummary the short AI-written summary ({@link AiSummaries}), or null
+	 * @param aiSummary our book's 책첵 summary ({@code catalog.book_summary}, cycle 26), or null
 	 */
 	public record Book(String id, String category, YearMonth recommendedMonth, String title, String listTitle,
 			String coverPath, Long bookId, long[] libraryIds, Integer yearBook, String videoId, Integer tocNo,

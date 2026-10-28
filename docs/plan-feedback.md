@@ -7143,3 +7143,29 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - **AC-11 첫 확인**: S3 `covers/` 객체 **81,559개**, 915MB(= 81,451 + 108). 운영 `foryou.book_cover`의 서로 다른 `file_key` 80,078개 모두 S3에 있음(빠진 것 0). 추천목록 줄 그림 `sha1(cover_source)` 2,580개도 모두 있음(빠진 것 0).
 - CloudFront로 표지 하나 열기: 200, `image/jpeg`, `public, max-age=604800`.
 - PUT 약 81,560건 → 약 $0.45(시드니 $0.0055/1,000건), 저장 0.9GB → 월 약 $0.02 [추론].
+
+## 6단계 (2026-10-29)
+
+- 요약: `PicksCache`가 목록을 읽을 때 우리 책 번호들의 `catalog.BookTexts.summaries`를 한 번 읽어 `Book.aiSummary`(API 칸 `aiSummary` 이름 그대로)에. 책 번호 없는 줄은 요약 없음. `AiSummaries.java`와 `picks/ai-summaries.tsv`(2,805줄) 지움.
+- 꼬리표: `CacheListedBooks`가 `BookTexts.tags` → `BookTexts.forCard`. `picks.BookTagTransfer`(`Tag`·`forCard`는 `catalog.BookTexts`로 옮김), `JdbcBookTagTransfer`, `CardTags` 지움. `foryou`·`aisearch`의 `Tag` import만 바꿈.
+- 줄 표지(ADR-0164): 목록을 읽을 때 `BookTexts.listCoverUrls(우리 책 번호들)` 한 번 → 값이 있으면 그것, 없거나 책 번호 없는 줄이면 `CoverUrls.of(CoverFiles.key(cover_source))`. **사서추천 줄도 같은 규칙**(`/api/v1/picks/covers/{id}`를 더 만들지 않음, `picks.cover` 줄의 `source_url` = `cover_source`라 1단계에서 올린 그림과 이름이 같음). 엔드포인트·`picks.cover`·`CoverFiles.URL_PATH`는 배포 2까지 남김. `ListedBook.coverPath`·`PicksCache.Book.coverPath` 칸 이름은 그대로 두고 값이 CloudFront 완성 주소가 됨(javadoc에 적음).
+- 요약·표지 읽기가 실패하면 그 목록은 앞 사본을 유지(C9 규칙 그대로, 목록 읽기와 같은 단계에서 읽음).
+- 시험: `PicksCacheTests`에 **AC-1**(요약 = `catalog` 글자 그대로)·**AC-9**(그 판/작품 표지, 없으면 목록 그림, 책 번호 없는 줄은 목록 그림, 그림 없으면 null)와 사서추천 줄 CloudFront 주소, `CacheListedBooksTests`(꼬리표 `catalog`에서, 대상 꼬리표 안 보임), `PicksApiTests`(요약 = `catalog.book_summary`, 사서추천 `coverUrl` = CloudFront 주소, 옛 주소는 아직 응답), `CoverFilesTests`. 꼬리표 사전 시험은 `BookTextsTests`로 옮김(`BookTagTransferTests`·`AiSummariesTests` 지움).
+
+## 7단계 (2026-10-29)
+
+- `GET /api/v1/books/{bookId}`의 `BookDetail`에 `coverUrl`(그 판 표지 완성 주소 또는 null)·`summary`(또는 null)를 `holdingLibraryCount` 뒤, `libraries` 앞에(설계 예시 순서). 컨트롤러가 `BookTexts.coverUrls`·`summaries`를 책 하나로 읽음. 경로·버전·404 그대로. 검색 결과 `BookItem`에는 없음.
+- 책 상세 표지는 **그 판의 표지만**(`coverUrls`) [안]: 인계서 7단계가 "완성 주소"만 정해서, 같은 작품 다른 판 표지(ADR-0164 ②)는 추천목록 줄에만 씀. 다른 판 표지를 상세에도 쓰려면 plan이 정함.
+- 시험: `BookSearchTests`에 **AC-2·AC-3(서버)** 요약·표지 있는 책, 둘 다 없는 책(null), 검색 결과 항목에 두 칸 없음. `DatabaseFailureHandlingTests`(웹 슬라이스)에 `BookTexts` mock.
+
+## 배포 1의 `foryou`·`aisearch` 읽는 곳 바꾸기 (2026-10-29, 인계서 "dev 23·24가 맞출 것"을 dev 26이 main 코드에서)
+
+- `foryou`: 카드의 요약·표지를 `catalog.BookTexts.summaries`·`coverUrls`로(`coverUrl`은 CloudFront 완성 주소). **카드 응답의 `aiSummary` 칸을 없애고 `blurb` 하나**(인계서 [안, dev 23]대로; 웹 `forYouBook.ts`는 8단계에서 맞춤). `ListedRef.aiSummary`도 없앰. `foryou.BookBlurbs`·`BookCovers`와 구현, `ForYouTransfer.upsertBlurbs`·`upsertCovers`·`Blurb`·`Cover`, 가게 `BookTexts.blurbs`·`coverKeys` 지움(이웃만 남음).
+- `aisearch`
+  - `CandidateQuery`: SQL은 `catalog.AiSearchIndex`로, 낱말 규칙(정리·8개·핵심 낱말 먼저)은 그대로 여기.
+  - `SearchBooks`: `AiSearchIndex.books()`·`version()`(1분 확인 그대로). 제목·저자 = `catalog.book.title`·`author_display`([확인 필요] #3, dev 24 전후 비교 대상).
+  - 카드 표지·요약: `catalog.BookTexts.coverUrls`·`summaries`를 **지금처럼 `beside`(가상 스레드)로 겹쳐 읽고 첫 카드 때 `join`, 실패면 빈 Map**(R6, F1). 표지 차례는 목록 표지(ADR-0164로 이미 고른 것) → 그 판 표지. 요약은 책첵 요약 하나(목록 요약 → 탭 요약 차례 없어짐).
+  - `MlFirstCall`: 시작 때 `catalog.BookProfiles.all()` 한 번. **[인계서와 다름, 보고] `catalog.book_profile`이 비어 있으면 모델 폴더의 `book-profiles.tsv`를 지금처럼 읽음**: 배포 1과 12단계(프로필 처음 넣기) 사이에 ML 1차 호출이 꺼져 Haiku로 돌아가면 첫 글 시간이 늘고 dev 24의 배포 1 직후 비교(AC-7)가 흐려지기 때문. 시작 로그에 어디서 읽었는지(`from catalog.book_profile` / `from book-profiles.tsv (catalog.book_profile is empty)`). 파일 읽기는 배포 2 때 지울 수 있음. "27,227" javadoc 지움.
+  - `aisearch.internal.match.SearchText`는 `catalog.SearchText`에 넘기는 얇은 이름만 남김(규칙은 한 곳).
+  - `AiSearchBookTexts`·`JdbcAiSearchBookTexts` 지움. `aisearch`는 이제 공개 Java 타입 없음. **`aisearch/package-info.java`의 `"foryou"`는 뺄 수 없음**: `BookNeighbours`(이어 묻는 질문의 이웃 후보)를 아직 씀(인계서 "dev 24: foryou 뺌"은 표지·요약만 보면 맞지만 이웃이 남음).
+- 시험: `TestSearchBooks`(시험용: `catalog.book` 줄을 쓰고 `BookTextsTransfer.replaceSearchBooks`, 흐름 시험용 가짜 `BookTexts`), aisearch 시험 다섯 개를 거기로. `AiSearchBookTextsTests`·`RollbackTests`는 `AiSearchIndexTests`·`BookTextsImportDbTests`가 대신해 지움. `AiSearchFlowTests` 두 개는 새 규칙(카드 요약 = 책첵 요약 하나)으로 기대값을 바꿈. `ForYouControllerTests`(요약·표지 `catalog`에서, CloudFront 주소, `aiSummary` 칸 없음), `ForYouTransferTests`(이웃만).

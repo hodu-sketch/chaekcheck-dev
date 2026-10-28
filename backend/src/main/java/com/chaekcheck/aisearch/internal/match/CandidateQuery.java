@@ -1,15 +1,14 @@
 package com.chaekcheck.aisearch.internal.match;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+
+import com.chaekcheck.catalog.AiSearchIndex;
 
 /**
  * The keyword match (cycle 24 handoff step 5, design-delta "낱말 맞추기", ADR-0151): which of the search books held by
@@ -19,6 +18,10 @@ import org.springframework.stereotype.Component;
  * cut after the order (design review #5: cutting first would drop tied books by id). Since 2026-10-25 the plan library
  * count is made in SQL from the {@code library_ids} the import copied (user choice "넣기 때 search_book 사본에"), for the
  * listed books and the books held by the most libraries alike (user choice "한 풀, 구분 없음").
+ * <p>
+ * Since cycle 26 (ADR-0165) the table is {@code catalog.book_search} and the queries run in {@code catalog}'s
+ * {@link AiSearchIndex} (F6: only the table name changed); the keyword rules (tidying, at most eight, core words first)
+ * stay here.
  */
 @Component
 public class CandidateQuery {
@@ -32,13 +35,10 @@ public class CandidateQuery {
 	/** Shortest keyword after tidying, in characters (design-delta [안]); pg_bigm needs two for its index. */
 	public static final int MIN_KEYWORD_CHARS = 2;
 
-	private static final String PLAN_COUNT = """
-			(SELECT count(*) FROM unnest(s.library_ids) AS l(id) WHERE l.id = ANY(CAST(:plan AS integer[])))::int""";
+	private final AiSearchIndex index;
 
-	private final JdbcClient jdbc;
-
-	CandidateQuery(JdbcClient jdbc) {
-		this.jdbc = jdbc;
+	public CandidateQuery(AiSearchIndex index) {
+		this.index = index;
 	}
 
 	/**
@@ -74,36 +74,10 @@ public class CandidateQuery {
 		if (words.isEmpty() || planLibraries.isEmpty() || limit < 1) {
 			return List.of();
 		}
-		List<String> score = new ArrayList<>();
-		List<String> any = new ArrayList<>();
-		List<String> coreScore = new ArrayList<>();
-		for (int i = 0; i < words.size(); i++) {
-			// only generated parameter names go into the text; the keywords are bound
-			String like = "s.search_text LIKE :k" + i + " ESCAPE '\\'";
-			score.add("(" + like + ")::int");
-			any.add(like);
-			if (coreWords.contains(words.get(i))) {
-				coreScore.add("(" + like + ")::int");
-			}
-		}
-		String coreSum = coreScore.isEmpty() ? "0" : String.join(" + ", coreScore);
-		JdbcClient.StatementSpec statement = jdbc.sql("""
-				SELECT book_id, score, plan_count FROM (
-				  SELECT s.book_id, %s AS score, %s AS plan_count, %s AS core_score
-				  FROM aisearch.search_book s
-				  WHERE (%s)
-				    AND s.library_ids && CAST(:plan AS integer[])
-				    AND NOT (s.book_id = ANY(CAST(:excluded AS bigint[])))
-				) m
-				ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
-				LIMIT :limit""".formatted(String.join(" + ", score), PLAN_COUNT, coreSum, String.join(" OR ", any)))
-			.param("plan", planLibraries.toArray(Long[]::new))
-			.param("excluded", excluded.toArray(Long[]::new))
-			.param("limit", limit);
-		for (int i = 0; i < words.size(); i++) {
-			statement = statement.param("k" + i, "%" + escapeLike(words.get(i)) + "%");
-		}
-		return statement.query((rs, n) -> new Candidate(rs.getLong(1), rs.getInt(2), rs.getInt(3))).list();
+		return index.find(words, Set.copyOf(coreWords), planLibraries, excluded, limit)
+			.stream()
+			.map(found -> new Candidate(found.bookId(), found.score(), found.planCount()))
+			.toList();
 	}
 
 	/**
@@ -111,36 +85,12 @@ public class CandidateQuery {
 	 * One query.
 	 */
 	public Map<Long, Integer> planCounts(Collection<Long> bookIds, Set<Long> planLibraries) {
-		if (bookIds.isEmpty() || planLibraries.isEmpty()) {
-			return Map.of();
-		}
-		Map<Long, Integer> counts = new HashMap<>();
-		jdbc.sql("""
-				SELECT s.book_id, %s AS plan_count FROM aisearch.search_book s
-				WHERE s.book_id = ANY(CAST(:ids AS bigint[])) AND s.library_ids && CAST(:plan AS integer[])"""
-			.formatted(PLAN_COUNT))
-			.param("ids", bookIds.toArray(Long[]::new))
-			.param("plan", planLibraries.toArray(Long[]::new))
-			.query(rs -> {
-				counts.put(rs.getLong(1), rs.getInt(2));
-			});
-		return counts;
+		return index.planCounts(bookIds, planLibraries);
 	}
 
 	/** The search lines of the given books (books without one are left out); one query. */
 	public Map<Long, String> lines(Collection<Long> bookIds) {
-		if (bookIds.isEmpty()) {
-			return Map.of();
-		}
-		Map<Long, String> lines = new HashMap<>();
-		jdbc.sql("""
-				SELECT book_id, line FROM aisearch.search_book
-				WHERE book_id = ANY(CAST(:ids AS bigint[])) AND line IS NOT NULL""")
-			.param("ids", bookIds.toArray(Long[]::new))
-			.query(rs -> {
-				lines.put(rs.getLong(1), rs.getString(2));
-			});
-		return lines;
+		return index.lines(bookIds);
 	}
 
 	/**
@@ -159,11 +109,6 @@ public class CandidateQuery {
 			}
 		}
 		return List.copyOf(words);
-	}
-
-	/** {@code \}, {@code %} and {@code _} are matched as themselves ({@code ESCAPE '\'}). */
-	static String escapeLike(String word) {
-		return word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 
 }

@@ -112,7 +112,7 @@ public class PgBigmBookSearch implements BookSearch {
 			.param("id", bookId)
 			.query((rs, rowNum) -> new BookDetail(rs.getLong("id"), rs.getString("title"),
 					rs.getString("author_display"), rs.getString("publisher"), localDate(rs, "published_on"),
-					rs.getString("isbn13"), 0, List.of()))
+					rs.getString("isbn13"), 0, null, null, List.of()))
 			.optional();
 		if (book.isEmpty()) {
 			return book;
@@ -141,7 +141,7 @@ public class PgBigmBookSearch implements BookSearch {
 		collected.forEach((id, at) -> libraries.add(new LibraryCollected(id, at)));
 		BookDetail b = book.get();
 		return Optional.of(new BookDetail(b.id(), b.title(), b.authorDisplay(), b.publisher(), b.publishedOn(),
-				b.isbn13(), libraries.size(), List.copyOf(libraries)));
+				b.isbn13(), libraries.size(), null, null, List.copyOf(libraries)));
 	}
 
 	private long count(String where, Map<String, Object> params) {

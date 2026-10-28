@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The detailed-dictionary profile of each book (27,227 books, Haiku 2026-10-25, chaekcheck-data
- * aisearch/book-profiles-detailed-2026-10-25.jsonl): the file {@code book-profiles.tsv} that
- * {@code scripts/aisearch/eval/export_first_call.py} writes next to the book vectors, one book a line: id, field,
- * subfield, fiction (1, 0 or empty), genres joined by {@code |}, country, audience, level, forms joined by {@code |}.
- * The ids are the catalog ids of the export the book vectors were made from.
+ * The detailed-dictionary profile of each book, kept in memory for the first call. Since cycle 26 (ADR-0165) read once
+ * at start from {@code catalog.book_profile} ({@link #of}, put in by the {@code book-profiles} import); while that
+ * table is empty, from the file {@code book-profiles.tsv} next to the book vectors as before ({@link #read}): one book
+ * a line, id, field, subfield, fiction (1, 0 or empty), genres joined by {@code |}, country, audience, level, forms
+ * joined by {@code |}. The ids are the catalog ids of the export the book vectors were made from.
  */
 final class BookProfiles {
 
@@ -29,6 +29,14 @@ final class BookProfiles {
 
 	BookProfiles(Map<Long, Profile> byId) {
 		this.byId = Map.copyOf(byId);
+	}
+
+	/** From the catalog's profiles. */
+	static BookProfiles of(Map<Long, com.chaekcheck.catalog.BookProfiles.Profile> profiles) {
+		Map<Long, Profile> byId = new HashMap<>(profiles.size() * 2);
+		profiles.forEach((id, p) -> byId.put(id, new Profile(p.field(), p.subfield(), p.fiction(), p.genres(),
+				p.country(), p.audience(), p.level(), p.forms())));
+		return new BookProfiles(byId);
 	}
 
 	static BookProfiles read(Path file) throws IOException {

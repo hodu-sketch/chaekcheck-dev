@@ -5,7 +5,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.Iterator;
 
 import javax.sql.DataSource;
@@ -16,13 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.chaekcheck.foryou.ForYouTransfer;
 
 /**
- * Neighbours by COPY into {@code foryou.book_neighbour_next} and a swap (design-delta "넣는 명령"); blurbs and covers by
- * upsert. The next table is made and dropped here, never by Liquibase.
+ * Neighbours by COPY into {@code foryou.book_neighbour_next} and a swap (design-delta "넣는 명령"). The next table is
+ * made and dropped here, never by Liquibase.
  */
 @Component
 class JdbcForYouTransfer implements ForYouTransfer {
@@ -115,32 +113,6 @@ class JdbcForYouTransfer implements ForYouTransfer {
 		catch (SQLException ex) {
 			throw new IllegalStateException("neighbours add failed: " + ex.getMessage(), ex);
 		}
-	}
-
-	@Override
-	@Transactional
-	public int upsertBlurbs(Collection<Blurb> blurbs) {
-		for (Blurb blurb : blurbs) {
-			jdbc.sql("""
-					INSERT INTO foryou.book_blurb (book_id, blurb, made_on) VALUES (?, ?, ?)
-					ON CONFLICT (book_id) DO UPDATE SET blurb = EXCLUDED.blurb, made_on = EXCLUDED.made_on""")
-				.params(blurb.bookId(), blurb.blurb(), blurb.madeOn())
-				.update();
-		}
-		return blurbs.size();
-	}
-
-	@Override
-	@Transactional
-	public int upsertCovers(Collection<Cover> covers) {
-		for (Cover cover : covers) {
-			jdbc.sql("""
-					INSERT INTO foryou.book_cover (book_id, file_key) VALUES (?, ?)
-					ON CONFLICT (book_id) DO UPDATE SET file_key = EXCLUDED.file_key""")
-				.params(cover.bookId(), cover.fileKey())
-				.update();
-		}
-		return covers.size();
 	}
 
 	/** COPY text format: {@code book_id \t {1,2,3} \t computed_on}. */

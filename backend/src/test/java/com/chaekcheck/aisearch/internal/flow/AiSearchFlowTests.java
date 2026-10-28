@@ -18,10 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.json.JsonMapper;
 
-import com.chaekcheck.aisearch.AiSearchBookTexts;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Book;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Line;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Source;
+import com.chaekcheck.aisearch.TestSearchBooks;
+import com.chaekcheck.aisearch.TestSearchBooks.Book;
+import com.chaekcheck.catalog.BookTextsTransfer.Line;
+import com.chaekcheck.catalog.BookTextsTransfer.Source;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 import com.chaekcheck.aisearch.internal.firstcall.MlFirstCall;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Card;
@@ -62,10 +62,13 @@ class AiSearchFlowTests {
 	CandidateQuery candidates;
 
 	@Autowired
+	com.chaekcheck.catalog.AiSearchIndex searchIndex;
+
+	@Autowired
 	DailyBudget budget;
 
 	@Autowired
-	AiSearchBookTexts texts;
+	TestSearchBooks texts;
 
 	@Autowired
 	AiSearchProperties properties;
@@ -108,13 +111,13 @@ class AiSearchFlowTests {
 	/** The tab blurbs the fake {@code foryou} knows, by book. */
 	final java.util.Map<Long, String> tabBlurbs = new java.util.HashMap<>();
 
-	final com.chaekcheck.foryou.BookBlurbs blurbs = ids -> {
+	final java.util.function.Function<java.util.Collection<Long>, java.util.Map<Long, String>> blurbs = ids -> {
 		java.util.Map<Long, String> found = new java.util.HashMap<>();
 		ids.stream().filter(tabBlurbs::containsKey).forEach(id -> found.put(id, tabBlurbs.get(id)));
 		return found;
 	};
 
-	final com.chaekcheck.foryou.BookCovers covers = ids -> {
+	final java.util.function.Function<java.util.Collection<Long>, java.util.Map<Long, String>> covers = ids -> {
 		java.util.Map<Long, String> found = new java.util.HashMap<>();
 		ids.stream().filter(tabCovers::containsKey).forEach(id -> found.put(id, tabCovers.get(id)));
 		return found;
@@ -392,13 +395,13 @@ class AiSearchFlowTests {
 
 	@Test
 	void aFailedTabCoverReadLeavesTheCardsWithoutTabCovers() { // covers are read while the call runs (2026-10-27)
-		com.chaekcheck.foryou.BookCovers failing = ids -> {
+		java.util.function.Function<java.util.Collection<Long>, java.util.Map<Long, String>> failing = ids -> {
 			throw new IllegalStateException("down");
 		};
 		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
 				1, 1));
 
-		new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, failing, blurbs,
+		new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(searchIndex), neighbours, com.chaekcheck.aisearch.TestSearchBooks.texts(failing, blurbs),
 				questionVectors, mlFirstCall, years(publishYears), pick, usageLog, properties, json)
 			.run(input(QUESTION, List.of()), sink);
 
@@ -407,12 +410,12 @@ class AiSearchFlowTests {
 	}
 
 	@Test
-	void aCardWithoutAListSummaryTakesTheTabBlurb() { // user 2026-10-25, tab blurbs from foryou
+	void everyCardTakesTheCatalogSummary() { // cycle 26: one summary kind, the list shows the same one
 		stored.add(new Book(500, "우주 과학 교양", "칼 세이건", new long[] { 101, 102 }));
 		texts.replace(stored, lines);
 		tabBlurbs.put(500L, "별과 은하를 쉽게 풀어 쓴 교양서예요.");
 		tabBlurbs.put(20L, "한 집안의 이야기를 그린 대하소설이에요.");
-		tabBlurbs.put(1L, "쓰이지 않을 탭 요약");
+		tabBlurbs.put(1L, "과학 이야기 1의 책첵 요약");
 		llm.then(keywords("과학", "토지", "우주"))
 			.then(Answer.pieces(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"},"
 					+ "{\"no\":2,\"fit\":3,\"text\":\"나\"},{\"no\":3,\"fit\":3,\"text\":\"다\"}]}"), 1, 1));
@@ -423,7 +426,7 @@ class AiSearchFlowTests {
 		sink.of(Card.class).forEach(card -> shown.put(card.bookId(), card.aiSummary()));
 		assertThat(shown).containsEntry(500L, "별과 은하를 쉽게 풀어 쓴 교양서예요.")
 			.containsEntry(20L, "한 집안의 이야기를 그린 대하소설이에요.")
-			.containsEntry(1L, "과학 이야기 1의 AI 요약"); // the list's summary stays
+			.containsEntry(1L, "과학 이야기 1의 책첵 요약"); // a listed book too: no list summary of its own
 	}
 
 	/** The single call that may ask back (user 2026-10-26). */
@@ -433,6 +436,9 @@ class AiSearchFlowTests {
 
 	@Test
 	void theAnswerStreamsHeadThenEachCheckedCardAndItsText() {
+		for (long id = 1; id <= 40; id++) {
+			tabBlurbs.put(id, "과학 이야기 " + id + "의 책첵 요약");
+		}
 		llm.then(keywords("과학"))
 			.then(Answer.pieces(List.of("{\"head\":\"잠들기 전", "에 좋아요\",\"picks\":[{\"no\":2,\"fit\":3,\"text\":\"짧", "아요\"},",
 					"{\"no\":1,\"fit\":3,\"text\":\"쉬워요\"}]}"), 1800, 400));
@@ -447,8 +453,8 @@ class AiSearchFlowTests {
 		assertThat(sink.of(CardDelta.class)).extracting(CardDelta::bookId).containsExactly(second, second, cards.get(1).bookId());
 		assertThat(cards.getFirst().myLibraryCount()).isEqualTo(1);
 		assertThat(cards.getFirst().coverUrl()).startsWith("/covers/");
-		// the lists' AI summary rides on the card for the book window (user 2026-10-24)
-		assertThat(cards.getFirst().aiSummary()).isEqualTo(cards.getFirst().title() + "의 AI 요약");
+		// the 책첵 summary rides on the card for the book window (user 2026-10-24; catalog's since cycle 26)
+		assertThat(cards.getFirst().aiSummary()).isEqualTo(cards.getFirst().title() + "의 책첵 요약");
 		Done done = sink.last(Done.class);
 		assertThat(done.result()).isEqualTo("ok");
 		assertThat(done.bookIds()).containsExactly(cards.get(0).bookId(), cards.get(1).bookId());
@@ -822,7 +828,7 @@ class AiSearchFlowTests {
 			}
 
 		};
-		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, MlFirstCall.off(), years(publishYears), pick, failing, properties,
+		AiSearchFlow broken = new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(searchIndex), neighbours, com.chaekcheck.aisearch.TestSearchBooks.texts(covers, blurbs), questionVectors, MlFirstCall.off(), years(publishYears), pick, failing, properties,
 				json);
 
 		broken.run(input(QUESTION, List.of()), sink);
@@ -886,7 +892,7 @@ class AiSearchFlowTests {
 	}
 
 	private AiSearchFlow flow() {
-		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(jdbc), neighbours, covers, blurbs, questionVectors, mlFirstCall, years(publishYears), pick, usageLog,
+		return new AiSearchFlow(llm, candidates, budget, listedBooks(), new SearchBooks(searchIndex), neighbours, com.chaekcheck.aisearch.TestSearchBooks.texts(covers, blurbs), questionVectors, mlFirstCall, years(publishYears), pick, usageLog,
 				flowProperties == null ? properties : flowProperties, json);
 	}
 

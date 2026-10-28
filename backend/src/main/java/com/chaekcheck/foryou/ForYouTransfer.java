@@ -2,16 +2,14 @@ package com.chaekcheck.foryou;
 
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
 /**
  * What the crawl PC computes for the 「나에게 맞는 책」 tab, carried by the {@code collection} import (cycle 23, ADR-0149):
- * book neighbours (mode {@code neighbours}: {@code full} swaps the whole table in, {@code add} upserts), tab blurbs and
- * cover file keys (mode {@code book-texts}, kinds {@code for_you_blurb} and {@code cover_file}). Only {@code collection}
- * calls it.
+ * book neighbours (mode {@code neighbours}: {@code full} swaps the whole table in, {@code add} upserts). Only
+ * {@code collection} calls it. The tab blurbs and cover file keys go to {@code catalog} since cycle 26 (ADR-0161).
  */
 public interface ForYouTransfer {
 
@@ -27,12 +25,6 @@ public interface ForYouTransfer {
 	 * @return rows written
 	 */
 	long upsertNeighbours(Iterator<Neighbours> rows, LocalDate computedOn);
-
-	/** @return rows written */
-	int upsertBlurbs(Collection<Blurb> blurbs);
-
-	/** @return rows written */
-	int upsertCovers(Collection<Cover> covers);
 
 	/**
 	 * The neighbours of one book, nearest first: 1 to 20 ids, not the book itself, each once; the book id fits the
@@ -81,14 +73,6 @@ public interface ForYouTransfer {
 			return Long.hashCode(bookId) * 31 + Arrays.hashCode(neighbourIds);
 		}
 
-	}
-
-	/** @param blurb 1 to 300 characters (the PC keeps 80-150, R8-4) */
-	record Blurb(long bookId, String blurb, LocalDate madeOn) {
-	}
-
-	/** @param fileKey the cover file's sha1, 40 lower-case hex digits ({@code /covers/<fileKey>.jpg}) */
-	record Cover(long bookId, String fileKey) {
 	}
 
 }

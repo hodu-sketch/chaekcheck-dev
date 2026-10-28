@@ -25,16 +25,17 @@ import org.springframework.dao.QueryTimeoutException;
 
 import com.chaekcheck.catalog.BookAuthors;
 import com.chaekcheck.catalog.BookLookup;
+import com.chaekcheck.catalog.BookTexts;
+import com.chaekcheck.catalog.CoverUrls;
 import com.chaekcheck.catalog.IdBook;
 import com.chaekcheck.library.LibraryCatalog;
-import com.chaekcheck.picks.BookTagTransfer.Tag;
+import com.chaekcheck.catalog.BookTexts.Tag;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
 import com.chaekcheck.picks.internal.lists.CoverFiles;
 import com.chaekcheck.picks.internal.store.PicksStore;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredField;
-import com.chaekcheck.picks.internal.tags.CardTags;
 
 /**
  * The listed books of the AI book search (cycle 24 handoff step 3): rows without our book left out, one row per book
@@ -51,13 +52,15 @@ class CacheListedBooksTests {
 
 	final BookAuthors authors = mock(BookAuthors.class);
 
-	final CardTags cardTags = mock(CardTags.class);
+	final BookTexts bookTexts = mock(BookTexts.class);
 
-	final PicksCache cache = new PicksCache(store, lookup, libraries);
+	final CoverUrls coverUrls = key -> "https://cf.test/covers/" + key + ".jpg";
+
+	final PicksCache cache = new PicksCache(store, lookup, libraries, bookTexts, coverUrls);
 
 	final MovableClock clock = new MovableClock();
 
-	final CacheListedBooks listed = new CacheListedBooks(cache, store, lookup, libraries, authors, cardTags, clock);
+	final CacheListedBooks listed = new CacheListedBooks(cache, store, lookup, libraries, authors, bookTexts, clock);
 
 	@BeforeEach
 	void stored() {
@@ -73,7 +76,8 @@ class CacheListedBooksTests {
 		given(lookup.byIds(any())).willReturn(List.of(new IdBook(100, "코스모스 (개정판)", "", new long[] { 1, 2 }),
 				new IdBook(200, "토지", "", new long[] { 3 })));
 		given(authors.byIds(any())).willReturn(Map.of(100L, "칼 세이건", 200L, "박경리"));
-		given(cardTags.byIds(any())).willReturn(Map.of(100L, List.of(new Tag("m03", "mood", "잔잔한"))));
+		given(bookTexts.tags(any())).willReturn(Map.of(100L, List.of(new Tag("m03", "mood", "잔잔한"),
+				new Tag("a01", "audience", "청소년"))));
 	}
 
 	/** The first list's field group (user 2026-10-25): 이동진 science, 서울대 한국문학. */
@@ -84,7 +88,7 @@ class CacheListedBooksTests {
 		assertThat(listed.current().books()).extracting(ListedBook::fieldGroup).containsExactly("science", "literature");
 	}
 
-	/** Cycle 23 (R9-5): the card tags come with the book, none for a book without tags. */
+	/** Cycle 23 (R9-5): the card tags come with the book, none for a book without tags; audience tags are not shown. */
 	@Test
 	void theCardTagsComeWithTheBook() {
 		cache.refresh();
@@ -102,8 +106,8 @@ class CacheListedBooksTests {
 		assertThat(books)
 			.extracting(ListedBook::bookId, ListedBook::title, ListedBook::author, ListedBook::coverPath,
 					ListedBook::listKeys)
-			.containsExactly(tuple(100L, "코스모스", "칼 세이건", CoverFiles.path("c1.jpg"), List.of("leedongjin", "kaist")),
-					tuple(200L, "토지", "박경리", CoverFiles.path("c3.jpg"), List.of("snu100", "kaist")));
+			.containsExactly(tuple(100L, "코스모스", "칼 세이건", listPicture("c1.jpg"), List.of("leedongjin", "kaist")),
+					tuple(200L, "토지", "박경리", listPicture("c3.jpg"), List.of("snu100", "kaist")));
 		assertThat(books.getFirst().libraryIds()).containsExactly(1, 2);
 		assertThat(books.getFirst().countHeldBy(Set.of(2L, 9L))).isEqualTo(1);
 	}
@@ -182,6 +186,10 @@ class CacheListedBooksTests {
 			.hasMessageContaining("snu100")
 			.hasMessageContaining("kaist")
 			.hasMessageNotContaining("nobel");
+	}
+
+	private String listPicture(String source) {
+		return coverUrls.of(CoverFiles.key(source));
 	}
 
 	private static StoredBook row(long id, String field, int position, String title, Long bookId, String cover) {

@@ -2,17 +2,15 @@
  * The 「나에게 맞는 책」 tab (cycle 23, ADR-0147~0149): a base list of 40 books built every night from the popular
  * orders of six e-library sites (through {@code availability}'s {@link com.chaekcheck.availability.RankedListings}),
  * the sales rankings and KLWAVE when their sources are on, and the recommended lists; the books similar to what the
- * browser saw, from neighbours the crawl PC computed (KURE-v1). Tab blurbs and cover file keys come from the PC
- * through the {@code collection} import.
+ * browser saw, from neighbours the crawl PC computed (KURE-v1). Since cycle 26 (ADR-0161) the cards' summaries and
+ * covers are {@code catalog}'s ({@code BookTexts}); only the neighbours stay here.
  * <p>
  * Public Java types: {@link com.chaekcheck.foryou.ForYouTransfer}, through which the {@code collection} import loads
- * neighbours, tab blurbs and cover file keys, and {@link com.chaekcheck.foryou.BookNeighbours},
- * {@link com.chaekcheck.foryou.BookCovers} and {@link com.chaekcheck.foryou.BookBlurbs}, through which the
- * {@code aisearch} module reads neighbours, tab covers and tab blurbs
+ * neighbours, and {@link com.chaekcheck.foryou.BookNeighbours}, through which the {@code aisearch} module reads them
  * (user 2026-10-25).
  * <p>
  * Owns the {@code foryou} schema. Depends on {@code catalog} ({@code BookCards}: card fields, holding keys, editions of
- * a work; {@code BookLookup}: ISBN and title matching), {@code library} (the user's plan), {@code picks} (the listed
+ * a work; {@code BookLookup}: ISBN and title matching; {@code BookTexts}: summaries and covers), {@code library} (the user's plan), {@code picks} (the listed
  * books and their tags) and {@code availability} (popular-order pages). No events; other modules are joined by
  * {@code bookId} and {@code libraryId} values only.
  */

@@ -28,8 +28,19 @@ public interface BookSearch {
 			int holdingLibraryCount, JoinTier joinTier, boolean exactTitle) {
 	}
 
+	/**
+	 * @param coverUrl the edition's cover on CloudFront ({@code catalog.BookTexts.coverUrls}, cycle 26), or null
+	 * @param summary the 책첵 summary ({@code catalog.book_summary}, cycle 26), or null; never cut
+	 */
 	record BookDetail(long id, String title, String authorDisplay, String publisher, LocalDate publishedOn,
-			String isbn13, int holdingLibraryCount, List<LibraryCollected> libraries) {
+			String isbn13, int holdingLibraryCount, String coverUrl, String summary, List<LibraryCollected> libraries) {
+
+		/** This book with its cover and summary. */
+		public BookDetail withTexts(String coverUrl, String summary) {
+			return new BookDetail(id, title, authorDisplay, publisher, publishedOn, isbn13, holdingLibraryCount, coverUrl,
+					summary, libraries);
+		}
+
 	}
 
 	/** A plan library that holds the book and when its list was collected ("○월 ○일 기준"). */

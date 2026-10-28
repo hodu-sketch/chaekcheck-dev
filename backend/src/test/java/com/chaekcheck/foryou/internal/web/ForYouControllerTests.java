@@ -23,7 +23,7 @@ import com.chaekcheck.foryou.internal.listed.ListedSource.ListedRef;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
-import com.chaekcheck.picks.BookTagTransfer.Tag;
+import com.chaekcheck.catalog.BookTexts.Tag;
 
 /**
  * {@code GET /api/v1/for-you/books} and {@code /similar-books} (cycle 23 step 6; AC-3, AC-5, AC-6 server part). Build
@@ -78,26 +78,28 @@ class ForYouControllerTests {
 		book(940003, "셋째 책", "{" + joinable + "}", "다");
 		book(940004, "넷째 책", "{" + joinable + "," + notJoinable + "}", "가");
 		book(940005, "어디에도 없는 책", "{}", "라");
-		jdbc.sql("INSERT INTO foryou.book_blurb VALUES (940001, '잔잔한 이야기예요.', DATE '2026-10-24')").update();
-		jdbc.sql("INSERT INTO foryou.book_cover VALUES (940001, '0123456789abcdef0123456789abcdef01234567')").update();
+		// cycle 26: the summaries and covers are catalog's
+		jdbc.sql("INSERT INTO catalog.book_summary VALUES (940001, '잔잔한 이야기예요.', DATE '2026-10-24')").update();
+		jdbc.sql("INSERT INTO catalog.book_cover VALUES (940001, '0123456789abcdef0123456789abcdef01234567')").update();
 	}
 
 	@Test
 	void beforeAnyBuildTheListedBooksComeByHeldLibraries() {
 		listed.add(new ListedRef(940003, List.of("kaist"), new long[] { joinable }, List.of()));
 		listed.add(new ListedRef(940001, List.of("snu100", "kaist"), new long[] { joinable, notJoinable },
-				List.of(new Tag("m01", "mood", "잔잔한")), "목록의 AI 요약", null, 2025, "literature"));
+				List.of(new Tag("m01", "mood", "잔잔한")), null, 2025, "literature"));
 		snapshot.refresh();
 
 		assertThat(mvc.get().uri(BOOKS)).hasStatusOk().bodyJson().isLenientlyEqualTo("""
 				{"builtOn": null, "books": [
 				  {"bookId": 940001, "title": "첫 책", "author": "가 지음", "publisher": "출판사",
-				   "coverUrl": "/covers/0123456789abcdef0123456789abcdef01234567.jpg", "blurb": "잔잔한 이야기예요.",
+				   "coverUrl": "https://d1bdzw8sfjph5d.cloudfront.net/covers/0123456789abcdef0123456789abcdef01234567.jpg",
+				   "blurb": "잔잔한 이야기예요.",
 				   "tags": [{"code": "m01", "axis": "mood", "name": "잔잔한"}], "planLibraryCount": 2,
-				   "lists": ["snu100", "kaist"], "aiSummary": "목록의 AI 요약", "recommendedMonth": null, "yearBook": 2025,
+				   "lists": ["snu100", "kaist"], "recommendedMonth": null, "yearBook": 2025,
 				   "fieldGroup": "literature"},
 				  {"bookId": 940003, "coverUrl": null, "blurb": null, "tags": [], "planLibraryCount": 1, "lists": ["kaist"],
-				   "aiSummary": null, "yearBook": null, "fieldGroup": null}
+				   "yearBook": null, "fieldGroup": null}
 				]}""");
 	}
 
@@ -124,8 +126,8 @@ class ForYouControllerTests {
 	/** A book off the lists takes the field group most of its listed neighbours have (user 2026-10-25, chips). */
 	@Test
 	void aBookOffTheListsGetsItsListedNeighboursFieldGroup() {
-		listed.add(new ListedRef(940001, List.of("kaist"), new long[] { joinable }, List.of(), null, null, null, "science"));
-		listed.add(new ListedRef(940003, List.of("kaist"), new long[] { joinable }, List.of(), null, null, null, "science"));
+		listed.add(new ListedRef(940001, List.of("kaist"), new long[] { joinable }, List.of(), null, null, "science"));
+		listed.add(new ListedRef(940003, List.of("kaist"), new long[] { joinable }, List.of(), null, null, "science"));
 		jdbc.sql("INSERT INTO foryou.book_neighbour VALUES (940001, ARRAY[940004], DATE '2026-10-25'),"
 				+ " (940004, ARRAY[940001, 940003, 940005], DATE '2026-10-25')").update();
 

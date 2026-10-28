@@ -27,7 +27,7 @@ import com.chaekcheck.foryou.internal.store.ForYouStore.LastBuild;
 import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
-import com.chaekcheck.picks.BookTagTransfer.Tag;
+import com.chaekcheck.catalog.BookTexts.Tag;
 
 /**
  * The 「나에게 맞는 책」 tab (cycle 23 design-delta "API"). No login, GET only; no library site is asked. Only books
@@ -49,17 +49,21 @@ class ForYouController {
 
 	private final BookTexts bookTexts;
 
+	/** The cards' summaries and covers (cycle 26, ADR-0161). */
+	private final com.chaekcheck.catalog.BookTexts descriptions;
+
 	private final ListedSource listedSource;
 
 	private final LibraryCatalog libraryCatalog;
 
 	ForYouController(ForYouSnapshot snapshot, BookCards bookCards, BookTexts bookTexts, ListedSource listedSource,
-			LibraryCatalog libraryCatalog) {
+			LibraryCatalog libraryCatalog, com.chaekcheck.catalog.BookTexts descriptions) {
 		this.snapshot = snapshot;
 		this.bookCards = bookCards;
 		this.bookTexts = bookTexts;
 		this.listedSource = listedSource;
 		this.libraryCatalog = libraryCatalog;
+		this.descriptions = descriptions;
 	}
 
 	/**
@@ -140,8 +144,8 @@ class ForYouController {
 	private List<Card> cards(List<Long> ids, Set<Long> planIds, Map<Long, ListedRef> listed) {
 		Map<Long, BookCard> found = new HashMap<>();
 		bookCards.cards(ids).forEach(card -> found.put(card.bookId(), card));
-		Map<Long, String> blurbs = bookTexts.blurbs(found.keySet());
-		Map<Long, String> covers = bookTexts.coverKeys(found.keySet());
+		Map<Long, String> blurbs = descriptions.summaries(found.keySet());
+		Map<Long, String> covers = descriptions.coverUrls(found.keySet());
 		Map<Long, String> guessed = guessFieldGroups(found.keySet(), listed);
 		List<Card> cards = new ArrayList<>(ids.size());
 		Set<Long> added = new HashSet<>();
@@ -162,10 +166,9 @@ class ForYouController {
 			ListedRef ref = listed.get(id);
 			String cover = covers.get(id);
 			String month = ref == null || ref.recommendedMonth() == null ? null : ref.recommendedMonth().toString();
-			cards.add(new Card(id, card.title(), card.author(), card.publisher(),
-					cover == null ? null : "/covers/" + cover + ".jpg", blurbs.get(id),
+			cards.add(new Card(id, card.title(), card.author(), card.publisher(), cover, blurbs.get(id),
 					ref == null ? List.of() : ref.tags(), planCount, ref == null ? List.of() : ref.listKeys(),
-					card.authorKey(), ref == null ? null : ref.aiSummary(), month, ref == null ? null : ref.yearBook(),
+					card.authorKey(), month, ref == null ? null : ref.yearBook(),
 					ref != null && ref.fieldGroup() != null ? ref.fieldGroup() : guessed.get(id)));
 		}
 		return cards;
@@ -226,20 +229,20 @@ class ForYouController {
 
 	/**
 	 * One card (design-delta "카드 칸").
-	 * @param coverUrl {@code /covers/<file_key>.jpg}, or null for the title-letter cover
-	 * @param blurb the tab blurb (R8), or null
+	 * @param coverUrl the edition's cover on CloudFront ({@code catalog.CoverUrls}, cycle 26), or null for the
+	 *     title-letter cover
+	 * @param blurb the 책첵 summary ({@code catalog.book_summary}, cycle 26; the list's book window shows the same one),
+	 *     or null
 	 * @param tags 2-3 tags of a listed book, empty otherwise
 	 * @param planLibraryCount how many of the plan's libraries hold the book (≥ 1)
 	 * @param lists the recommended lists the book is on (keys only; the web writes the tab names)
 	 * @param authorKey the first author's {@code name_exact}, for "no three of one author in a row" (AC-8), or null
-	 * @param aiSummary the lists' AI summary S14 shows for a listed book (user 2026-10-24: "24 뒤에 붙임"), or null
 	 * @param recommendedMonth {@code YYYY-MM}, the librarian list's month for S14's year line, or null
 	 * @param yearBook the KAIST list's year for S14's year line, or null
 	 * @param fieldGroup the field group of a listed book ({@code picks.FieldGroups}), else null (the screen: other)
 	 */
 	record Card(long bookId, String title, String author, String publisher, String coverUrl, String blurb,
-			List<Tag> tags, int planLibraryCount, List<String> lists, String authorKey, String aiSummary,
-			String recommendedMonth, Integer yearBook, String fieldGroup) {
+			List<Tag> tags, int planLibraryCount, List<String> lists, String authorKey, String recommendedMonth, Integer yearBook, String fieldGroup) {
 	}
 
 }

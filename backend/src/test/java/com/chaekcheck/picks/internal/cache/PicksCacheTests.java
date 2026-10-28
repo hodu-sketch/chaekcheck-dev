@@ -19,18 +19,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.QueryTimeoutException;
 
 import com.chaekcheck.catalog.BookLookup;
+import com.chaekcheck.catalog.BookTexts;
+import com.chaekcheck.catalog.CoverUrls;
 import com.chaekcheck.catalog.IdBook;
 import com.chaekcheck.catalog.IsbnBook;
 import com.chaekcheck.catalog.TitleAuthor;
 import com.chaekcheck.catalog.TitleAuthorBook;
 import com.chaekcheck.library.LibraryCatalog;
+import com.chaekcheck.picks.internal.lists.CoverFiles;
 import com.chaekcheck.picks.internal.store.PicksStore;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
 import com.chaekcheck.picks.internal.store.PicksStore.StoredField;
 
 /**
  * The shared copies per list (cycle 14 design-delta "캐시", cycle 21 handoff step 4-5): order, fields, our book, the
- * shown name, and the copy before after a failure (C9).
+ * shown name, and the copy before after a failure (C9). Cycle 26: the summary is our book's 책첵 summary and the cover
+ * follows ADR-0164 (AC-1, AC-9).
  */
 class PicksCacheTests {
 
@@ -40,7 +44,11 @@ class PicksCacheTests {
 
 	final LibraryCatalog libraries = mock(LibraryCatalog.class);
 
-	final PicksCache cache = new PicksCache(store, lookup, libraries);
+	final BookTexts bookTexts = mock(BookTexts.class);
+
+	final CoverUrls coverUrls = key -> "https://cf.test/covers/" + key + ".jpg";
+
+	final PicksCache cache = new PicksCache(store, lookup, libraries, bookTexts, coverUrls);
 
 	final List<StoredField> fields = new ArrayList<>(List.of(field("librarian", "11", "문학"),
 			field("librarian", "6", "인문"), field("librarian", "5", "사회"), field("librarian", "4", "자연"),
@@ -166,6 +174,42 @@ class PicksCacheTests {
 	}
 
 	@Test
+	void theSummaryIsOurBooksAndTheCoverTheEditionsTheWorksOrTheListsPicture() { // cycle 26 AC-1, AC-9
+		fields.add(field("snu100", "korean_lit", "한국문학"));
+		given(store.books("snu100")).willReturn(List.of(snu(1, "korean_lit", 1, "구운몽", 701L, "https://img.test/1"),
+				snu(2, "korean_lit", 2, "토지", 702L, "https://img.test/2"),
+				snu(3, "korean_lit", 3, "청구야담", null, "https://img.test/3"),
+				snu(4, "korean_lit", 4, "홍길동전", 704L, null)));
+		given(lookup.byIds(any())).willReturn(List.of(new IdBook(701, "구운몽", "x", new long[] { 1 }),
+				new IdBook(702, "토지", "x", new long[] { 1 }), new IdBook(704, "홍길동전", "x", new long[] { 1 })));
+		given(bookTexts.summaries(any())).willReturn(Map.of(701L, "꿈속에서 부귀영화를 누리는 이야기예요."));
+		// 701: its edition's cover or its work's (catalog decides), 702 and 704: none in the catalog
+		given(bookTexts.listCoverUrls(any())).willReturn(Map.of(701L, "https://cf.test/covers/" + "a".repeat(40) + ".jpg"));
+
+		cache.refresh();
+
+		assertThat(cache.snapshot("snu100").categories().getFirst().books())
+			.extracting(PicksCache.Book::title, PicksCache.Book::coverPath, PicksCache.Book::aiSummary)
+			.containsExactly(
+					tuple("구운몽", "https://cf.test/covers/" + "a".repeat(40) + ".jpg", "꿈속에서 부귀영화를 누리는 이야기예요."),
+					tuple("토지", coverUrls.of(CoverFiles.key("https://img.test/2")), null),
+					// a row without our book: the list's picture and no summary
+					tuple("청구야담", coverUrls.of(CoverFiles.key("https://img.test/3")), null),
+					tuple("홍길동전", null, null));
+	}
+
+	@Test
+	void theLibrarianListsCoverIsOnCloudFrontToo() { // cycle 26 ADR-0163: no /api/v1/picks/covers/ address any more
+		given(store.books("librarian")).willReturn(List.of(new StoredBook(1, "11", 1, "가", null, null,
+				LocalDate.of(2026, 10, 1), null, null, null, "1", null, null, "https://www.nl.go.kr/afile/1.jpg", 55L)));
+
+		cache.refresh();
+
+		assertThat(cache.snapshot("librarian").categories().getFirst().books().getFirst().coverPath())
+			.isEqualTo(coverUrls.of(CoverFiles.key("https://www.nl.go.kr/afile/1.jpg")));
+	}
+
+	@Test
 	void nothingStoredOrNoSuchListIsEmpty() {
 		cache.refresh();
 
@@ -195,7 +239,12 @@ class PicksCacheTests {
 	}
 
 	private static StoredBook snu(long id, String field, int tocNo, String title, Long bookId) {
-		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, null, null);
+		return snu(id, field, tocNo, title, bookId, null);
+	}
+
+	private static StoredBook snu(long id, String field, int tocNo, String title, Long bookId, String cover) {
+		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, cover,
+				null);
 	}
 
 }

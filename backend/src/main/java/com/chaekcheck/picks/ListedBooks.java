@@ -5,6 +5,8 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
 
+import com.chaekcheck.catalog.BookTexts;
+
 /**
  * Public API of the picks module for the AI book search (cycle 24, ADR-0150): every book on the recommended lists that
  * is matched to one of our books, once. Rows without our book are left out; a book on several lists is one row with
@@ -47,11 +49,11 @@ public interface ListedBooks {
 	 * @param bookId our book ({@code catalog.book.id})
 	 * @param title the shown name (ADR-0129)
 	 * @param author our book's author text, or null
-	 * @param coverPath where the screen loads the cover (a path on this site), or null
+	 * @param coverPath the cover's CloudFront address (cycle 26, ADR-0164), or null
 	 * @param libraryIds {@code catalog.book.library_ids} of the book
 	 * @param listKeys the lists the book is on ({@code librarian}, {@code leedongjin}, …)
-	 * @param aiSummary the lists' short AI-written summary of the book (the one S14 shows), or null
-	 * @param tags the tags a card shows ({@link BookTagTransfer#forCard}, active codes only, cycle 23 R9-5), or null
+	 * @param aiSummary our book's 책첵 summary ({@code catalog.book_summary}, cycle 26; the one S14 shows), or null
+	 * @param tags the tags a card shows ({@code catalog.BookTexts.forCard}, active codes only, cycle 23 R9-5), or null
 	 *     when the book has none or they could not be read
 	 * @param recommendedMonth the month of the librarian list's pick, for the book window's year line (cycle 23), or
 	 *     null when the book is not on that list
@@ -60,7 +62,7 @@ public interface ListedBooks {
 	 *     mixing the fields while a browser has seen few books (user 2026-10-25); null when no list gives one
 	 */
 	record ListedBook(long bookId, String title, String author, String coverPath, long[] libraryIds,
-			List<String> listKeys, String aiSummary, List<BookTagTransfer.Tag> tags, YearMonth recommendedMonth,
+			List<String> listKeys, String aiSummary, List<BookTexts.Tag> tags, YearMonth recommendedMonth,
 			Integer yearBook, String fieldGroup) {
 
 		public ListedBook {

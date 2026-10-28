@@ -80,8 +80,14 @@ public class MlFirstCall {
 
 	static final String FOLLOW_UP_NAME = "follow-up-model.bin";
 
+	/**
+	 * The profiles come from {@code catalog.book_profile} once at start (cycle 26, ADR-0165, the same time as the book
+	 * vectors); while that table is empty (before the first {@code book-profiles} import), from the model folder's
+	 * {@code book-profiles.tsv} as before, so the first call stays on between deploy 1 and that import.
+	 */
 	@Autowired
-	public MlFirstCall(AiSearchProperties properties, JsonMapper json) {
+	public MlFirstCall(AiSearchProperties properties, JsonMapper json,
+			com.chaekcheck.catalog.BookProfiles catalogProfiles) {
 		FirstCallModel model = null;
 		BookProfiles profiles = null;
 		FirstCallModel followUpModel = null;
@@ -91,10 +97,8 @@ public class MlFirstCall {
 					throw new IllegalStateException("the question vectors are off");
 				}
 				Path dir = Path.of(properties.vector().modelDir());
-				for (String name : List.of(FirstCallModel.NAME, BookProfiles.NAME)) {
-					if (!Files.isRegularFile(dir.resolve(name))) {
-						throw new IllegalStateException("missing " + name + " in " + dir);
-					}
+				if (!Files.isRegularFile(dir.resolve(FirstCallModel.NAME))) {
+					throw new IllegalStateException("missing " + FirstCallModel.NAME + " in " + dir);
 				}
 				model = FirstCallModel.read(dir.resolve(FirstCallModel.NAME), json);
 				List<String> ways = java.util.Arrays.stream(Route.values())
@@ -107,7 +111,19 @@ public class MlFirstCall {
 						"fiction", "country", "audience", "level")) {
 					model.head(name);
 				}
-				profiles = BookProfiles.read(dir.resolve(BookProfiles.NAME));
+				Map<Long, com.chaekcheck.catalog.BookProfiles.Profile> stored = catalogProfiles.all();
+				String profileSource = "catalog.book_profile";
+				if (!stored.isEmpty()) {
+					profiles = BookProfiles.of(stored);
+				}
+				else if (Files.isRegularFile(dir.resolve(BookProfiles.NAME))) {
+					profiles = BookProfiles.read(dir.resolve(BookProfiles.NAME));
+					profileSource = BookProfiles.NAME + " (catalog.book_profile is empty)";
+				}
+				else {
+					throw new IllegalStateException("no book profiles: catalog.book_profile is empty and there is no "
+							+ BookProfiles.NAME + " in " + dir);
+				}
 				if (properties.firstCall().followUp() == AiSearchProperties.FollowUp.RELATION) {
 					Path file = dir.resolve(FOLLOW_UP_NAME);
 					if (Files.isRegularFile(file)) {
@@ -121,7 +137,7 @@ public class MlFirstCall {
 						log.warn("ai search first call: no {}, follow-ups by the rule", FOLLOW_UP_NAME);
 					}
 				}
-				log.info("ai search first call: ml, {} book profiles, follow-ups by {}", profiles.count(),
+				log.info("ai search first call: ml, {} book profiles from {}, follow-ups by {}", profiles.count(), profileSource,
 						followUpModel != null ? "relation" : properties.firstCall().followUp() == AiSearchProperties.FollowUp.STRICT ? "strict rule" : "rule");
 			}
 			catch (Exception e) {

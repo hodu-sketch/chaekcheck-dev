@@ -2,7 +2,6 @@ package com.chaekcheck.aisearch.internal.match;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,8 +11,9 @@ import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+
+import com.chaekcheck.catalog.AiSearchIndex;
 
 /**
  * The titles and authors of every book the AI search answers with ({@code aisearch.search_book}: the listed books and,
@@ -21,6 +21,9 @@ import org.springframework.stereotype.Component;
  * and the cards. About 31,000 short rows; the library ids stay in the table ({@link CandidateQuery} counts them). The
  * {@code book-texts} import replaces the table in another process, so the set is read again when the table's row count
  * or newest {@code imported_at} changed, checked at most once a {@link #CHECK_EVERY}.
+ * <p>
+ * Since cycle 26 (ADR-0165) the table is {@code catalog.book_search}, read through {@link AiSearchIndex}, and the title
+ * and author are {@code catalog.book}'s ({@code title}, {@code author_display}), not the list's shown name.
  */
 @Component
 public class SearchBooks {
@@ -30,7 +33,7 @@ public class SearchBooks {
 
 	private static final Logger log = LoggerFactory.getLogger(SearchBooks.class);
 
-	private final JdbcClient jdbc;
+	private final AiSearchIndex index;
 
 	private final Clock clock;
 
@@ -38,13 +41,13 @@ public class SearchBooks {
 
 	private volatile Instant checkedAt = Instant.EPOCH;
 
-	public SearchBooks(JdbcClient jdbc) {
-		this.jdbc = jdbc;
+	public SearchBooks(AiSearchIndex index) {
+		this.index = index;
 		this.clock = Clock.systemUTC();
 	}
 
 	/**
-	 * @param title the stored title (the listed books' shown name, else {@code catalog.book.title})
+	 * @param title {@code catalog.book.title}
 	 * @param author the stored author text, or null
 	 * @param titleKey {@link SearchText#letters} of the title, made once when read
 	 * @param authorKey {@link SearchText#letters} of the author
@@ -81,9 +84,7 @@ public class SearchBooks {
 				return loaded;
 			}
 			try {
-				String version = jdbc.sql("SELECT count(*) AS n, max(imported_at) AS at FROM aisearch.search_book")
-					.query((rs, n) -> rs.getLong("n") + "@" + rs.getObject("at", OffsetDateTime.class))
-					.single();
+				String version = index.version();
 				if (!Objects.equals(version, loaded.version())) {
 					loaded = read(version);
 					log.info("ai search books read: {}", loaded.books().size());
@@ -100,9 +101,9 @@ public class SearchBooks {
 
 	private Loaded read(String version) {
 		List<SearchBook> books = new ArrayList<>();
-		jdbc.sql("SELECT book_id, title, author FROM aisearch.search_book ORDER BY book_id").query(rs -> {
-			books.add(new SearchBook(rs.getLong(1), rs.getString(2), rs.getString(3)));
-		});
+		for (AiSearchIndex.SearchBook book : index.books()) {
+			books.add(new SearchBook(book.bookId(), book.title(), book.author()));
+		}
 		Map<Long, SearchBook> byId = new HashMap<>(books.size() * 2);
 		for (SearchBook book : books) {
 			byId.put(book.bookId(), book);

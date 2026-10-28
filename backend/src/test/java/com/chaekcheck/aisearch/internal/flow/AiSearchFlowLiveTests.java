@@ -20,8 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.json.JsonMapper;
 
-import com.chaekcheck.aisearch.AiSearchBookTexts;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Book;
+import com.chaekcheck.aisearch.TestSearchBooks;
+import com.chaekcheck.aisearch.TestSearchBooks.Book;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Card;
 import com.chaekcheck.aisearch.internal.flow.AiSearchEvents.Done;
@@ -57,10 +57,13 @@ class AiSearchFlowLiveTests {
 	CandidateQuery candidates;
 
 	@Autowired
+	com.chaekcheck.catalog.AiSearchIndex searchIndex;
+
+	@Autowired
 	DailyBudget budget;
 
 	@Autowired
-	AiSearchBookTexts texts;
+	TestSearchBooks texts;
 
 	@Autowired
 	AiSearchProperties properties;
@@ -99,8 +102,8 @@ class AiSearchFlowLiveTests {
 				new AnthropicProperties(System.getenv("CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY"), null, null, null, "low", null, false),
 				HttpClient.newHttpClient(), json);
 		RecordingLog log = new RecordingLog();
-		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, new SearchBooks(jdbc), ids -> java.util.Map.of(), ids -> java.util.Map.of(),
-				ids -> java.util.Map.of(),
+		AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, books, new SearchBooks(searchIndex), ids -> java.util.Map.of(),
+				com.chaekcheck.aisearch.TestSearchBooks.texts(ids -> java.util.Map.of(), ids -> java.util.Map.of()),
 				com.chaekcheck.aisearch.internal.vector.QuestionVectors.OFF,
 				com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), AiSearchFlowTests.years(java.util.Map.of()), new com.chaekcheck.aisearch.internal.config.PickProperties(false), log,
 				properties, json);

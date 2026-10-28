@@ -25,10 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.chaekcheck.aisearch.AiSearchBookTexts;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Book;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Line;
-import com.chaekcheck.aisearch.AiSearchBookTexts.Source;
+import com.chaekcheck.aisearch.TestSearchBooks;
+import com.chaekcheck.aisearch.TestSearchBooks.Book;
+import com.chaekcheck.catalog.BookTextsTransfer.Line;
+import com.chaekcheck.catalog.BookTextsTransfer.Source;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 import com.chaekcheck.aisearch.internal.flow.FakeLlm.Answer;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery;
@@ -55,10 +55,13 @@ class AiSearchEvalReplayTests {
 	CandidateQuery candidates;
 
 	@Autowired
+	com.chaekcheck.catalog.AiSearchIndex searchIndex;
+
+	@Autowired
 	DailyBudget budget;
 
 	@Autowired
-	AiSearchBookTexts texts;
+	TestSearchBooks texts;
 
 	@Autowired
 	AiSearchProperties properties;
@@ -136,7 +139,7 @@ class AiSearchEvalReplayTests {
 				AiSearchFlowTests.Sink sink = new AiSearchFlowTests.Sink();
 				FakeLlm llm = new FakeLlm().then(Answer.ok(json.writeValueAsString(keywordAnswers.get(id)), 1, 1))
 					.then(Answer.ok(allPicks, 1, 1));
-				AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, empty(), new SearchBooks(jdbc), ids -> {
+				AiSearchFlow flow = new AiSearchFlow(llm, candidates, budget, empty(), new SearchBooks(searchIndex), ids -> {
 					Map<Long, List<Long>> found = new HashMap<>();
 					ids.forEach(b -> {
 						if (neighbourMap.containsKey(b)) {
@@ -144,7 +147,7 @@ class AiSearchEvalReplayTests {
 						}
 					});
 					return found;
-				}, ids -> Map.of(), ids -> Map.of(), questionVectors, com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), AiSearchFlowTests.years(Map.of()), new com.chaekcheck.aisearch.internal.config.PickProperties(false), new AiSearchFlowTests.RecordingLog(), on, json);
+				}, com.chaekcheck.aisearch.TestSearchBooks.texts(ids -> Map.of(), ids -> Map.of()), questionVectors, com.chaekcheck.aisearch.internal.firstcall.MlFirstCall.off(), AiSearchFlowTests.years(Map.of()), new com.chaekcheck.aisearch.internal.config.PickProperties(false), new AiSearchFlowTests.RecordingLog(), on, json);
 				flow.run(new AiSearchFlow.Input(question.get("q").asString(), 1, List.of(), plan,
 						new UsageRequest(Instant.now(), null, "login_off", null, null, true), System.nanoTime()),
 						sink);

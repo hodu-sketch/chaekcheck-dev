@@ -49,8 +49,7 @@ import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.aisearch.internal.vector.QuestionVectors;
 import com.chaekcheck.catalog.BookCards;
-import com.chaekcheck.foryou.BookBlurbs;
-import com.chaekcheck.foryou.BookCovers;
+import com.chaekcheck.catalog.BookTexts;
 import com.chaekcheck.foryou.BookNeighbours;
 import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.picks.ListedBooks.ListedBook;
@@ -91,9 +90,8 @@ public class AiSearchFlow {
 
 	private final BookNeighbours neighbours;
 
-	private final BookCovers covers;
+	private final BookTexts bookTexts;
 
-	private final BookBlurbs blurbs;
 
 	private final QuestionVectors vectors;
 
@@ -110,7 +108,7 @@ public class AiSearchFlow {
 	private final JsonMapper json;
 
 	AiSearchFlow(LlmClient llm, CandidateQuery candidates, DailyBudget budget, ListedBooks listedBooks,
-			SearchBooks searchBooks, BookNeighbours neighbours, BookCovers covers, BookBlurbs blurbs,
+			SearchBooks searchBooks, BookNeighbours neighbours, BookTexts bookTexts,
 			QuestionVectors vectors, MlFirstCall mlFirstCall, BookCards bookCards, PickProperties pick,
 			UsageLog usageLog, AiSearchProperties properties, JsonMapper json) {
 		this.llm = llm;
@@ -119,8 +117,7 @@ public class AiSearchFlow {
 		this.listedBooks = listedBooks;
 		this.searchBooks = searchBooks;
 		this.neighbours = neighbours;
-		this.covers = covers;
-		this.blurbs = blurbs;
+		this.bookTexts = bookTexts;
 		this.vectors = vectors;
 		this.mlFirstCall = mlFirstCall;
 		this.bookCards = bookCards;
@@ -191,7 +188,7 @@ public class AiSearchFlow {
 	 */
 	static final int ASK_QUESTION_WORDS = 4;
 
-	/** Reads that run beside the search on a virtual thread each (the early keyword search, covers and blurbs). */
+	/** Reads that run beside the search on a virtual thread each (the early keyword search, covers and summaries). */
 	private static final Executor BESIDE = task -> Thread.ofVirtual().start(task);
 
 	/**
@@ -523,9 +520,10 @@ public class AiSearchFlow {
 			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id), years.get(id)))
 			.toList();
 		run.candidateCount = ids.size();
-		// covers and blurbs go on cards only, not to the call: they are read while it runs (user 2026-10-27, 응답 시간
+		// covers and summaries go on cards only, not to the call: they are read while it runs (user 2026-10-27, 응답 시간
 		// 2안), and the first card waits for them if need be
-		Cards cards = new Cards(known, listed, beside(() -> covers.of(ids)), beside(() -> blurbs.of(ids)), planCount);
+		Cards cards = new Cards(known, listed, beside(() -> bookTexts.coverUrls(ids)),
+				beside(() -> bookTexts.summaries(ids)), planCount);
 		run.mark("cards");
 		picks(input, history, ids, choices, cards, pointsBack, run);
 	}
@@ -921,21 +919,21 @@ public class AiSearchFlow {
 	}
 
 	/**
-	 * What a card is made from: title and author of the search book; the list cover, else the tab cover; the list's AI
-	 * summary, else the tab blurb (user 2026-10-25). The tab covers and blurbs are still being read while the call
-	 * runs; a failed read leaves the cards without them.
+	 * What a card is made from: title and author of the search book; the list cover (ADR-0164), else the edition's
+	 * cover; the 책첵 summary (cycle 26: one kind, the list shows the same one). The covers and summaries are read from
+	 * {@code catalog.BookTexts} while the call runs (R6, F1); a failed read leaves the cards without them.
 	 */
 	private record Cards(Map<Long, SearchBook> known, Map<Long, ListedBook> listed,
-			CompletableFuture<Map<Long, String>> tabCovers, CompletableFuture<Map<Long, String>> tabBlurbs,
+			CompletableFuture<Map<Long, String>> editionCovers, CompletableFuture<Map<Long, String>> summaries,
 			Map<Long, Integer> planCount) {
 
 		Cards {
-			tabCovers = tabCovers.exceptionally(e -> read("covers", e));
-			tabBlurbs = tabBlurbs.exceptionally(e -> read("blurbs", e));
+			editionCovers = editionCovers.exceptionally(e -> read("covers", e));
+			summaries = summaries.exceptionally(e -> read("summaries", e));
 		}
 
 		private static Map<Long, String> read(String what, Throwable e) {
-			log.warn("ai search: the tab {} were not read ({})", what,
+			log.warn("ai search: the book {} were not read ({})", what,
 					(e instanceof CompletionException && e.getCause() != null ? e.getCause() : e).getClass().getName());
 			return Map.of();
 		}
@@ -945,12 +943,9 @@ public class AiSearchFlow {
 			ListedBook onList = listed.get(bookId);
 			String cover = onList == null ? null : onList.coverPath();
 			if (cover == null) {
-				cover = tabCovers.join().get(bookId);
+				cover = editionCovers.join().get(bookId);
 			}
-			String summary = onList == null ? null : onList.aiSummary();
-			if (summary == null || summary.isBlank()) {
-				summary = tabBlurbs.join().get(bookId);
-			}
+			String summary = summaries.join().get(bookId);
 			return new Card(no, bookId, book.title(), book.author(), cover, planCount.getOrDefault(bookId, 0), summary);
 		}
 

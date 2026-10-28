@@ -248,6 +248,26 @@ class BookSearchTests {
 	}
 
 	@Test
+	void theBookPageCarriesItsCoverAndSummaryAndSearchResultsDoNot() throws Exception { // cycle 26 AC-2, AC-3
+		long with = book("행동", "새폴스키", "문학동네", "2023-04-18", open);
+		long without = book("행동 2", "새폴스키", "문학동네", "2023-04-18", open);
+		jdbc.sql("INSERT INTO catalog.book_summary VALUES (?, ?, DATE '2026-10-28')")
+			.params(with, "사람의 행동이 뇌와 호르몬, 문화에서 어떻게 생기는지 따라가는 책이에요.")
+			.update();
+		jdbc.sql("INSERT INTO catalog.book_cover VALUES (?, ?)").params(with, "a".repeat(40)).update();
+
+		assertThat(mvc.get().uri("/api/v1/books/" + with)).bodyJson()
+			.isLenientlyEqualTo("{\"coverUrl\":\"https://d1bdzw8sfjph5d.cloudfront.net/covers/" + "a".repeat(40)
+					+ ".jpg\",\"summary\":\"사람의 행동이 뇌와 호르몬, 문화에서 어떻게 생기는지 따라가는 책이에요.\"}");
+		assertThat(mvc.get().uri("/api/v1/books/" + without)).bodyJson()
+			.isLenientlyEqualTo("{\"coverUrl\":null,\"summary\":null}");
+		assertThat(mvc.get().uri("/api/v1/books?title=행동")).bodyJson()
+			.extractingPath("$.items[0]")
+			.asMap()
+			.doesNotContainKeys("coverUrl", "summary");
+	}
+
+	@Test
 	void validationErrors() throws Exception {
 		assertThat(mvc.get().uri("/api/v1/books")).hasStatus(400)
 			.bodyJson()

@@ -5,8 +5,10 @@
  * {@link com.chaekcheck.picks.CuratedListTransfer}: the {@code collection} import carries Lee Dong-jin's picks and the
  * SNU 100 through it (ADR-0123); the librarian picks are still fetched here.
  * <p>
- * Since cycle 23 (ADR-0149) also the tag dictionary and the listed books' tags ({@code picks.tag_dictionary},
- * {@code picks.book_tag}), carried by the import through {@link com.chaekcheck.picks.BookTagTransfer}.
+ * Since cycle 26 (ADR-0161, ADR-0164) the books' summaries, tags and covers come from {@code catalog}
+ * ({@code BookTexts}, {@code CoverUrls}): the AI summary is our book's 책첵 summary, and every cover is a CloudFront
+ * address, the edition's or its work's first, else the list's own picture. The cycle 23 tag tables
+ * ({@code picks.tag_dictionary}, {@code picks.book_tag}) and {@code picks.cover} are no longer read and go at deploy 2.
  * <p>
  * Responsibilities: fetching the list with one Open API request ({@code saseoApi.do}) on its own single-thread
  * executor, decided daily at 05:00 Asia/Seoul and at start-up: Mondays, every day after a failure until one succeeds,

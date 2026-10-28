@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.chaekcheck.catalog.BookTexts;
 import com.chaekcheck.catalog.internal.search.BookQuery;
 import com.chaekcheck.catalog.internal.search.BookSearch;
 import com.chaekcheck.catalog.internal.search.BookSearch.BookDetail;
@@ -32,6 +33,9 @@ import com.chaekcheck.usagelog.UsageRequest;
  * <p>
  * Cycle 15: a search that was answered is logged ({@code usagelog}): page 1 as a search with its total count, a later
  * page as "more". A book page that was found is logged as a view. Requests that end in 400, 404 or 422 are not.
+ * <p>
+ * Cycle 26 (spec R2, flow S2): the book page also carries the edition's cover and the 책첵 summary; search results
+ * do not.
  */
 @RestController
 class BookSearchController {
@@ -44,12 +48,15 @@ class BookSearchController {
 
 	private final BookSearchSettings settings;
 
+	private final BookTexts bookTexts;
+
 	BookSearchController(BookSearch bookSearch, LibraryCatalog libraryCatalog, UsageLog usageLog,
-			BookSearchSettings settings) {
+			BookSearchSettings settings, BookTexts bookTexts) {
 		this.bookSearch = bookSearch;
 		this.libraryCatalog = libraryCatalog;
 		this.usageLog = usageLog;
 		this.settings = settings;
+		this.bookTexts = bookTexts;
 	}
 
 	@GetMapping("/api/v1/books")
@@ -78,6 +85,7 @@ class BookSearchController {
 				settings.defaultPageSize());
 		List<SearchTarget> plan = plan(read);
 		BookDetail detail = bookSearch.find(id, plan).orElseThrow(() -> new BookNotFoundException(id));
+		detail = detail.withTexts(bookTexts.coverUrls(List.of(id)).get(id), bookTexts.summaries(List.of(id)).get(id));
 		usageLog.recordBookView(usage, id, List.copyOf(read.regionIds("residenceRegionIds")),
 				List.copyOf(read.regionIds("workRegionIds")), List.copyOf(read.planOptions().libraryIds()));
 		return detail;

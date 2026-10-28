@@ -70,7 +70,7 @@ class AiSearchControllerTests {
 	com.chaekcheck.library.LibraryCatalog libraryCatalog;
 
 	@Autowired
-	com.chaekcheck.aisearch.AiSearchBookTexts bookTexts;
+	com.chaekcheck.aisearch.TestSearchBooks bookTexts;
 
 	@Autowired
 	com.chaekcheck.aisearch.internal.quota.DailyBudget budget;
@@ -206,8 +206,8 @@ class AiSearchControllerTests {
 							com.chaekcheck.library.PlanOptions.Visit.ANY))
 			.getFirst()
 			.id();
-		bookTexts.replace(java.util.List.of(new com.chaekcheck.aisearch.AiSearchBookTexts.Book(1, "가", null,
-				new long[] { library, 999_999_999 }), new com.chaekcheck.aisearch.AiSearchBookTexts.Book(2, "나", null,
+		bookTexts.replace(java.util.List.of(new com.chaekcheck.aisearch.TestSearchBooks.Book(1, "가", null,
+				new long[] { library, 999_999_999 }), new com.chaekcheck.aisearch.TestSearchBooks.Book(2, "나", null,
 						new long[] { 999_999_999 })), java.util.List.of());
 
 		MvcTestResult counts = countsPost("{\"bookIds\":[1,2,3],\"scope\":\"joinable\"}");

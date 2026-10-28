@@ -10,7 +10,7 @@ import java.util.Set;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-/** Reads what the crawl PC computed: neighbours, tab blurbs and cover file keys (cycle 23). */
+/** Reads the book neighbours the crawl PC computed (cycle 23; blurbs and covers are {@code catalog}'s since cycle 26). */
 @Component
 public class BookTexts {
 
@@ -38,28 +38,6 @@ public class BookTexts {
 				}
 				found.put(rs.getLong("book_id"), neighbours);
 			});
-		return found;
-	}
-
-	public Map<Long, String> blurbs(Collection<Long> bookIds) {
-		return texts("SELECT book_id, blurb AS text FROM foryou.book_blurb WHERE book_id = ANY(CAST(:ids AS bigint[]))",
-				bookIds);
-	}
-
-	public Map<Long, String> coverKeys(Collection<Long> bookIds) {
-		return texts("SELECT book_id, file_key AS text FROM foryou.book_cover WHERE book_id = ANY(CAST(:ids AS bigint[]))",
-				bookIds);
-	}
-
-	private Map<Long, String> texts(String sql, Collection<Long> bookIds) {
-		Map<Long, String> found = new HashMap<>();
-		Long[] ids = distinct(bookIds);
-		if (ids.length == 0) {
-			return found;
-		}
-		jdbc.sql(sql).param("ids", ids).query(rs -> {
-			found.put(rs.getLong("book_id"), rs.getString("text"));
-		});
 		return found;
 	}
 

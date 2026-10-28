@@ -18,6 +18,7 @@ import com.chaekcheck.library.LibraryCatalog;
 import com.chaekcheck.library.PlanOptions;
 import com.chaekcheck.library.SearchTarget;
 import com.chaekcheck.picks.internal.cache.PicksCache;
+import com.chaekcheck.picks.internal.lists.CoverFiles;
 
 /**
  * {@code GET /api/v1/picks} and its covers (plan cycle 14 step 5; AC-4, AC-4b, AC-6, AC-7, AC-14b). The picks are
@@ -28,7 +29,7 @@ import com.chaekcheck.picks.internal.cache.PicksCache;
 @Transactional
 class PicksApiTests {
 
-	/** The shipped AI summary of 「히스토리아 비테이」 (picks/ai-summaries.tsv, found by its list and title). */
+	/** The 책첵 summary of 「히스토리아 비테이」 put in catalog.book_summary here (cycle 26: the list shows it as it is). */
 	private static final String HISTORIA_SUMMARY = "팬데믹, 기후 변화, AI 같은 위기 앞에서 지구 생명의 역사를 돌아보며 해법을 찾는 생태학자 최재천의 책이에요.";
 
 
@@ -151,9 +152,11 @@ class PicksApiTests {
 		long cover = data.cover("1", "https://www.nl.go.kr/afile/fileDownload/a");
 		cache.refresh();
 
+		// cycle 26 (ADR-0163): the list names the picture on CloudFront; the old address still answers until deploy 2
 		assertThat(mvc.get().uri(URL)).bodyJson()
 			.extractingPath("$.categories[0].books[0].coverUrl")
-			.isEqualTo("/api/v1/picks/covers/" + cover);
+			.isEqualTo("https://d1bdzw8sfjph5d.cloudfront.net/covers/"
+					+ CoverFiles.key("https://www.nl.go.kr/afile/fileDownload/a") + ".jpg");
 		assertThat(mvc.get().uri("/api/v1/picks/covers/" + cover)).hasStatusOk()
 			.hasContentType("image/jpeg")
 			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
@@ -188,6 +191,7 @@ class PicksApiTests {
 				VALUES ('leedongjin', 'science', '과학·의학', 1), ('snu100', 'korean_lit', '한국문학', 1),
 				  ('snu100', 'foreign_lit', '외국문학', 2)""").update();
 		data.ourBook(910011, null, "히스토리아 비테이", null, planLibrary);
+		jdbc.sql("INSERT INTO catalog.book_summary VALUES (910011, ?, DATE '2026-10-28')").param(HISTORIA_SUMMARY).update();
 		data.ourBook(910012, null, "햄릿(Hamlet)", null, notJoinable);
 		jdbc.sql("""
 				INSERT INTO picks.list_book (list_key, field_code, position, title, recommended_month, year_book,
