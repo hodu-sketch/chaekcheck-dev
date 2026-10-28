@@ -61,6 +61,11 @@
   min-width: 0;
 }
 
+/* a part breaks only before it, never inside (a date beside the cover, phone check 2026-10-29) */
+.metaPart {
+  white-space: nowrap;
+}
+
 .summary {
   margin-top: 1.1rem;
   padding-top: 1rem;

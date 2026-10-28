@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ApiError, fetchBook } from '../../api/client'
 import { AiSummary } from '../picks/AiSummary'
@@ -188,7 +188,14 @@ function BookView({
           <div className={styles.headText}>
             <h1 className={styles.title}>{book.title}</h1>
             <p className={styles.meta}>
-              {[book.authorDisplay, book.publisher, book.publishedOn].filter(Boolean).join(' · ') || '저자·출판사 정보 없음'}
+              {/* each part whole: beside the cover a date broke as "2021-" / "05-06" (phone check 2026-10-29) */}
+              {metaParts(book).map((part, index, parts) => (
+                <Fragment key={index}>
+                  {index > 0 && ' '}
+                  <span className={styles.metaPart}>{index < parts.length - 1 ? `${part} ·` : part}</span>
+                </Fragment>
+              ))}
+              {metaParts(book).length === 0 && '저자·출판사 정보 없음'}
             </p>
             {/* no collection dates (user 2026-10-17: "굳이 언제부터 언제까지 수집한거다 알려줄 필요 없다고 생각해") */}
             <p className={styles.collected}>보유 도서관 {book.holdingLibraryCount}곳</p>
@@ -225,4 +232,9 @@ function BookView({
       )}
     </div>
   )
+}
+
+/** The author, publisher and date shown, the empty ones left out. */
+function metaParts(book: BookDetail): string[] {
+  return [book.authorDisplay, book.publisher, book.publishedOn].filter((part): part is string => Boolean(part))
 }
