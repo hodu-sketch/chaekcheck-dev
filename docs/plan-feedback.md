@@ -7135,3 +7135,11 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - **운영에 넣음**: `/srv/chaekcheck/book-texts/book-texts-list-summaries-2026-10-28.tsv`(지금 형식, 첫 줄 없음)를 운영 백엔드 이미지의 `book-texts`로(6-aisearch.md 3절 명령). 로그 `blurbs 774`, `no search line: the AI search's books were left as they are`. `foryou.book_blurb` 68,414 → **69,188**, `aisearch.search_book` 76,759 그대로. 배포 1의 한 번 복사로 `catalog.book_summary`에 함께 옮겨짐.
 - 그래서 배포 1 뒤 요약이 사라지는 추천목록 줄은 1,633 → **책 번호 없는 838줄 + 9권의 줄**(줄 수는 배포 1 직전 API로 다시 셈).
 - 데이터: dev `data/c26/summaries/`(입력 조각, 답, `report.json`, 넣은 TSV). git 밖.
+
+## 1단계 올리기 결과 (2026-10-28)
+
+- Git Bash에서 돌린 첫 `aws s3 sync`는 네트워크 연결 없이 13분 넘게 0장이라 멈추고, PowerShell에서 다시 돌림(원인은 못 봄. 다음부터 PowerShell로, 표지 올리기 절차 문서에 적을 것).
+- 운영 표지 81,451장: **2,620초(약 44분)**, 오류 0. 사서추천 그림 108장: 6초.
+- **AC-11 첫 확인**: S3 `covers/` 객체 **81,559개**, 915MB(= 81,451 + 108). 운영 `foryou.book_cover`의 서로 다른 `file_key` 80,078개 모두 S3에 있음(빠진 것 0). 추천목록 줄 그림 `sha1(cover_source)` 2,580개도 모두 있음(빠진 것 0).
+- CloudFront로 표지 하나 열기: 200, `image/jpeg`, `public, max-age=604800`.
+- PUT 약 81,560건 → 약 $0.45(시드니 $0.0055/1,000건), 저장 0.9GB → 월 약 $0.02 [추론].
