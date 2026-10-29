@@ -46,6 +46,7 @@ import com.chaekcheck.aisearch.internal.match.CandidateQuery;
 import com.chaekcheck.aisearch.internal.match.CandidateQuery.Candidate;
 import com.chaekcheck.aisearch.internal.match.SearchBooks;
 import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
+import com.chaekcheck.aisearch.internal.match.SearchText;
 import com.chaekcheck.aisearch.internal.quota.DailyBudget;
 import com.chaekcheck.aisearch.internal.vector.QuestionVectors;
 import com.chaekcheck.catalog.BookCards;
@@ -185,6 +186,13 @@ public class AiSearchFlow {
 
 	/** Books of the title a question is that go first among the candidates, at most (user 2026-10-29 「해리포터」) [안]. */
 	static final int MAX_TITLE_BOOKS = 3;
+
+	/** A title shorter than this (letters only) is taken as a topic, not as the book (user 2026-10-29) [안]. */
+	static final int MIN_TITLE_LETTERS = 3;
+
+	/** 「더 쉬운 거」, 「더 짧은 걸로」: more of a quality, which a book shown last may have most (user 2026-10-29). */
+	static final java.util.regex.Pattern MORE_SO = java.util.regex.Pattern
+		.compile("더\\s*[가-힣]+(운|은|한|는|진|적인)\\s*(거|걸|것|책|게)");
 
 	/** A question of at most this many words gets the 「후보 분야」 line with ask-back on (user 2026-10-27) [안]. */
 	static final int SHORT_QUESTION_WORDS = 2;
@@ -472,10 +480,12 @@ public class AiSearchFlow {
 				}
 			}
 		}
-		// a question that is a book's title (「해리포터」): that book goes first, then books like it, never an ask-back
-		// (user 2026-10-29: it asked back with critiques, English readers and fantasy)
+		// a question that is a book's title (「해리포터」, 「채식주의자」): that book goes first, then books like it, never an
+		// ask-back (user 2026-10-29: it asked back with critiques, English readers and fantasy). Only a title of at least
+		// MIN_TITLE_LETTERS letters held by the plan libraries: a short word (「바다」, 「커피」, 「그림」) is a topic first, and
+		// a title-first answer there lost the ask-back the rule test wants (ask_yes 15/16 → 7/16)
 		String titleNote = null;
-		if (!refers && talk == null && titleGuess != null) {
+		if (!refers && talk == null && titleGuess != null && SearchText.letters(titleGuess).length() >= MIN_TITLE_LETTERS) {
 			List<Long> titled = NamedBook.titled(titleGuess, searchBooks.books(), MAX_TITLE_BOOKS);
 			Map<Long, Integer> counts = candidates.planCounts(titled, input.planLibraryIds());
 			List<Long> first = new ArrayList<>();
@@ -493,21 +503,15 @@ public class AiSearchFlow {
 				titleNote = "사용자가 쓴 「" + titleGuess + "」는 책 제목이다. 그 제목의 책을 먼저 고르고, 이어서 비슷한 책을 고른다. "
 						+ "되묻지 않는다. 머리말에서 그 책을 찾았다고 말한다.";
 			}
-			else {
-				// the title is not among the books the plan libraries hold: books like it, said plainly
-				titleNote = "사용자가 쓴 「" + titleGuess + "」는 책 제목으로 보이는데, 그 책은 지금 고를 수 있는 책에 없다. 되묻지 말고 "
-						+ "그 책과 비슷한 책을 고른다. 머리말에서 그 책은 내 도서관에서 찾지 못해 비슷한 책을 골랐다고 자연스럽게 말한다"
-						+ "(「목록」이라는 말은 쓰지 않는다).";
-			}
 		}
 		// a question combining earlier topics may get the books shown for them again (EarlierTopics), and so may one
 		// adding a condition (continue: 「수학적인 것도 좀」 narrows the list, and a shown book may meet it; user
 		// 2026-10-26); 「다른 거」 (feedback) and new topics still leave them out
 		run.mark("neighbours");
 		boolean narrows = mlStep != null && "continue".equals(mlStep.plan().relation());
-		if (narrows && talk == null && !refers) {
+		if (narrows && talk == null && !refers && MORE_SO.matcher(input.question()).find()) {
 			// 「더 쉬운 거」: the books shown last are candidates too, so the easiest of them can answer (user 2026-10-29,
-			// it found none before)
+			// it found none before); not 「더 보여줘」, which wants other books
 			Map<Long, Integer> counts = candidates.planCounts(lastShown, input.planLibraryIds());
 			for (long bookId : lastShown) {
 				if (chosen.size() < max && counts.containsKey(bookId) && titles.add(known.get(bookId).titleKey())) {

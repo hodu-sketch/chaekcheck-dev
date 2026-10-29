@@ -775,14 +775,37 @@ class AiSearchFlowTests {
 	@Test
 	void aQuestionThatIsATitleGetsThatBookFirstAndIsNotAskedBack() { // user 2026-10-29 「해리포터」
 		askBackOn();
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"과학 이야기\",\"refersToShown\":false,"
+				+ "\"keywords\":[\"소설\"]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));
+
+		run("과학 이야기", List.of());
+
+		LlmCall pickCall = llm.calls.get(1);
+		assertThat(pickCall.system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(pickCall.messages().getLast().text()).contains("대화 메모: 사용자가 쓴 「과학 이야기」는 책 제목이다",
+				"1. 제목: 과학 이야기 1 /");
+	}
+
+	@Test
+	void aShortWordThatIsAlsoATitleIsATopicAndMayBeAskedBack() { // user 2026-10-29, ask_yes 15/16 → 7/16 otherwise
+		askBackOn();
 		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"토지\",\"refersToShown\":false,"
 				+ "\"keywords\":[\"과학\"]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));
 
 		run("토지", List.of());
 
 		LlmCall pickCall = llm.calls.get(1);
-		assertThat(pickCall.system()).isEqualTo(Prompts.PICK_SYSTEM);
-		assertThat(pickCall.messages().getLast().text()).contains("대화 메모: 사용자가 쓴 「토지」는 책 제목이다", "1. 제목: 토지 /");
+		assertThat(pickCall.system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
+		assertThat(pickCall.messages().getLast().text()).doesNotContain("대화 메모");
+	}
+
+	@Test
+	void moreOfAQualityKeepsTheLastBooksButMoreBooksDoesNot() { // user 2026-10-29 「더 쉬운 거」 / 「더 보여줘」
+		assertThat(AiSearchFlow.MORE_SO.matcher("더 쉬운 거").find()).isTrue();
+		assertThat(AiSearchFlow.MORE_SO.matcher("더 짧은 걸로").find()).isTrue();
+		assertThat(AiSearchFlow.MORE_SO.matcher("좀 더 현실적인 걸로").find()).isTrue();
+		assertThat(AiSearchFlow.MORE_SO.matcher("더 보여줘").find()).isFalse();
+		assertThat(AiSearchFlow.MORE_SO.matcher("다른 거 더").find()).isFalse();
 	}
 
 	@Test

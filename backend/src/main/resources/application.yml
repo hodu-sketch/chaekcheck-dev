@@ -389,9 +389,10 @@ chaekcheck:
     pick-timeout: 15s
     # step 1 (2026-10-24): 1st output at most 285 tokens (Haiku first step only), 2nd at most 1,490 [안]. The 2nd rose
     # to 3072 (user 2026-10-25):
-    # with the 30,000 most held books the cards' texts grew and an answer of 2,143 tokens was cut at 2048
+    # with the 30,000 most held books the cards' texts grew and an answer of 2,143 tokens was cut at 2048; 4096 since the
+    # summary by situation after the cards (user 2026-10-29: an 8-card answer with it was cut at 3072)
     keyword-max-tokens: 512
-    pick-max-tokens: 3072
+    pick-max-tokens: 4096
     # AI searches running at once on this server, apart from the 60 search slots (user 2026-10-24); more: 503
     # server_busy before the stream opens
     max-concurrent: 20
