@@ -7538,3 +7538,27 @@ WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB �
 - `docs/maintenance/settings-index.md`: §5 배포 설정 7항목 추가
 - `docs/plan-feedback.md`: 이 절
 
+## 8단계: 운영 서버 마이그레이션 (2026-10-29)
+
+기존 단일 백엔드 → 블루/그린 무중단 구조 전환.
+
+| 단계 | 내용 | 결과 |
+|---|---|---|
+| 1 | release.sh 1.22.0 실행 | 커밋 0dc550e3, 태그 v1.22.0, jar·web 빌드, arm64 이미지 생성 |
+| 2 | nginx 버전 확인 | 1.30.5 = compose.yaml 일치 ✓ |
+| 3 | 서버 디렉토리 생성 | `nginx/{conf.d,chaekcheck,incoming}`, `web/releases` |
+| 4 | slots.env 작성 | ACTIVE_SLOT=blue, 모든 버전=1.22.0 |
+| 5 | nginx 설정 배치 | conf.d/ec2-tunnel.conf, chaekcheck/{active-backend,rate-limits,chaekcheck-locations,security-headers}.conf |
+| 6 | web releases | chaekcheck/web:1.22.0 이미지에서 추출 → `web/releases/1.22.0/`, `current` symlink |
+| 7 | backend-blue 시작 | `up.sh --no-deps backend-blue`. 23.7초 후 readiness UP |
+| 8 | web 재생성 | `up.sh --no-deps web`. nginx:1.30.5-alpine + folder bind mounts |
+| 9 | 버전 확인 | 내부 127.0.0.1:8088: v1.22.0 ✓, 외부 chaekcheck.com: v1.22.0 ✓, actuator: 404 ✓ |
+| 10 | 기존 backend 제거 | `docker stop -t 60 chaekcheck-backend-1 && docker rm` |
+| 11 | docker ps 확인 | backend-blue(1.22.0), web(nginx:1.30.5-alpine), cloudflared, db ✓ |
+| 12 | push·GitHub release | main push, v1.22.0 tag, [release](https://github.com/hodu-sketch/chaekcheck-dev/releases/tag/v1.22.0) |
+
+참고:
+- release.sh 4/5 단계에서 `nginx/incoming/` 미존재로 SCP 실패 → 수동으로 디렉토리 생성 후 나머지 완료
+- 기존 backend-1은 compose orphan으로 감지됨 (정상: 새 compose.yaml에 없는 서비스)
+- 서버 메모리: backend 790MB 이미지, web 112MB 이미지
+
