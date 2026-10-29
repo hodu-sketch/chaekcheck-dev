@@ -190,6 +190,16 @@ public class AiSearchFlow {
 	/** A summary longer than this is not read on (4 lines of about 80 characters are asked for) [안]. */
 	static final int TAIL_MAX_CHARS = 500;
 
+	/** The {@code tail} of the whole answer, or null when it cannot be read. */
+	private JsonNode tailOf(String answer) {
+		try {
+			return json.readTree(answer).path("tail");
+		}
+		catch (JacksonException e) {
+			return null;
+		}
+	}
+
 	/** Stops the stream once the summary runs on; the cards are out by then. */
 	private static final class TailTooLong extends RuntimeException {
 
@@ -1020,6 +1030,7 @@ public class AiSearchFlow {
 		// the summary by situation, kept whole and sent after the cards once checked (user 2026-10-29: 「1, 16, 18번」 went out)
 		StringBuilder tail = new StringBuilder();
 		boolean[] tailCut = { false };
+		String[] answer = { null };
 		List<String> askChoices = new ArrayList<>();
 		PickStreamParser parser = new PickStreamParser(new PickStreamParser.Listener() {
 
@@ -1121,6 +1132,7 @@ public class AiSearchFlow {
 			run.mark("llm-done");
 			count(run, result.usage(), call.maxTokens());
 			failed = !parser.complete();
+			answer[0] = result.text();
 		}
 		catch (LlmException e) {
 			if (e.failure() != Failure.NOT_CONFIGURED) {
@@ -1153,18 +1165,14 @@ public class AiSearchFlow {
 			finish(run, PickResult.NO_MATCH, "no_match");
 		}
 		else {
-			// nothing to sum up without two cards; the list's numbers become the cards' titles, and a summary naming a
-			// book not shown, or cut for its length, is left out (TailCheck)
-			String summary = tail.toString().strip();
-			String checked = tailCut[0] || summary.isEmpty() ? null : TailCheck.clean(summary, ids, run.shown, cards.known());
-			if (run.shown.size() >= 2 && checked != null) {
-				run.send(AiSearchEvents.TAIL_DELTA, new Text(checked));
-				if (!checked.equals(summary)) {
-					run.tail = "numbers named";
-				}
+			// nothing to sum up without two cards; the server writes the lines with the cards' titles (TailLines)
+			String summary = run.shown.size() < 2 || answer[0] == null ? null
+					: TailLines.render(tailOf(answer[0]), ids, run.shown, cards.known());
+			if (summary != null) {
+				run.send(AiSearchEvents.TAIL_DELTA, new Text(summary));
 			}
-			else if (!summary.isEmpty()) {
-				run.tail = tailCut[0] ? "too long" : "left out";
+			else if (tailCut[0]) {
+				run.tail = "too long";
 			}
 			finish(run, PickResult.OK, "ok");
 		}

@@ -5,10 +5,11 @@ import java.util.Deque;
 
 /**
  * Reads the second call's JSON while it streams (cycle 24 handoff step 8-1, ADR-0153): the answer follows the schema
- * {@code {"head": string, "picks": [{"no": integer, "fit": integer, "text": string}, …], "tail": string}} with every field required, so the fields come
+ * {@code {"head": string, "picks": [{"no": integer, "fit": integer, "text": string}, …], "tail": …}} with every field required, so the fields come
  * in that order (structured outputs). A small push-down reader, fed the text pieces in order: tells the head's text as
  * it comes, a pick's number once the number has ended (so it can be checked before any of its text is shown), the
- * pick's text as it comes, the end of each pick, and the closing summary's text as it comes. Escapes ({@code \"}, {@code \\uXXXX}, surrogate pairs) may be split
+ * pick's text as it comes, the end of each pick, and the text of the strings in the closing summary as it comes (for
+ * its length; the summary itself is read from the whole answer). Escapes ({@code \"}, {@code \\uXXXX}, surrogate pairs) may be split
  * over pieces; a surrogate without its pair becomes U+FFFD. Anything that is not JSON throws {@link IllegalStateException}. Not thread-safe; one per answer.
  */
 public final class PickStreamParser {
@@ -36,7 +37,7 @@ public final class PickStreamParser {
 		default void askChoice(String choice) {
 		}
 
-		/** The closing summary by situation, as it comes, after the picks (user 2026-10-29 「상황별 정리」). */
+		/** Text of the strings in the closing summary, as it comes, after the picks (user 2026-10-29 「상황별 정리」). */
 		default void tailText(String text) {
 		}
 
@@ -272,7 +273,7 @@ public final class PickStreamParser {
 		if (stack.size() == 1 && "head".equals(frame.key)) {
 			return Target.HEAD;
 		}
-		if (stack.size() == 1 && "tail".equals(frame.key)) {
+		if ("tail".equals(stack.peekLast().key)) {
 			return Target.TAIL;
 		}
 		if (inPick() && "text".equals(frame.key)) {

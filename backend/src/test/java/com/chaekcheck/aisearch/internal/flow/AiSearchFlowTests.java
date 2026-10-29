@@ -768,31 +768,44 @@ class AiSearchFlowTests {
 	}
 
 	@Test
-	void theSummaryBySituationStreamsAfterTheCards() { // user 2026-10-29 「상황별 정리」
+	void theServerWritesTheSummaryWithTheCardsTitles() { // user 2026-10-29 「상황별 정리」, then 「바꿔 봐」 (structured)
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
-				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"출퇴근길에: 『과학 이야기 1』\"}", 1, 1));
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"},{\"no\":3,\"fit\":1,\"text\":\"셋\"}],\"tail\":{\"lines\":["
+				+ "{\"situation\":\"출퇴근길에\",\"nos\":[1,3]},{\"situation\":\"주말에\",\"nos\":[2,1]},"
+				+ "{\"situation\":\"잠들기 전에\",\"nos\":[3]}],\"summary\":\"\"}}", 1, 1));
 
 		run("과학책 추천해줘", List.of());
 
 		assertThat(sink.names()).endsWith("card-delta", "tail-delta", "done");
-		assertThat(sink.of(Text.class).getLast().text()).isEqualTo("출퇴근길에: 『과학 이야기 1』");
+		// number 3 was not shown (fit 1), book 1 goes in one line only, a line left without a book is dropped
+		List<Long> shown = sink.last(Done.class).bookIds();
+		String first = sink.of(Card.class).get(0).title();
+		String second = sink.of(Card.class).get(1).title();
+		assertThat(shown).hasSize(2);
+		assertThat(sink.of(Text.class).getLast().text()).isEqualTo("출퇴근길에: 『" + first + "』\n주말에: 『" + second + "』");
 	}
 
 	@Test
-	void theListNumbersInASummaryBecomeTheCardsTitles() { // production v1.21.0 「1, 16, 18번을 먼저 보시고」
+	void withoutSituationsTheSummaryGoesOutWhenItNamesNoBook() { // user 2026-10-29
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
-				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"처음이라면 1, 2번을 먼저 보세요.\"}", 1, 1));
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":{\"lines\":[],\"summary\":\"둘 다 쉬운 입문서예요.\"}}", 1, 1));
 
 		run("과학책 추천해줘", List.of());
 
-		assertThat(sink.names()).endsWith("tail-delta", "done");
-		assertThat(sink.of(Text.class).getLast().text()).startsWith("처음이라면 『").doesNotContain("번");
+		assertThat(sink.of(Text.class).getLast().text()).isEqualTo("둘 다 쉬운 입문서예요.");
+
+		Sink other = new Sink();
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":{\"lines\":[],\"summary\":\"1번부터 보세요.\"}}", 1, 1));
+		flow().run(input("과학책 추천해줘", List.of()), other);
+		assertThat(other.names()).doesNotContain("tail-delta");
 	}
 
 	@Test
 	void aSummaryRunningOnIsCutAndTheAnswerStaysWhole() { // production v1.21.1: an 8-card answer stopped at its 15 s
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
-				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"" + "가".repeat(AiSearchFlow.TAIL_MAX_CHARS + 50) + "\"}", 1, 1));
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":{\"lines\":[],\"summary\":\""
+				+ "가".repeat(AiSearchFlow.TAIL_MAX_CHARS + 50) + "\"}}", 1, 1));
 
 		run("과학책 추천해줘", List.of());
 
@@ -803,7 +816,7 @@ class AiSearchFlowTests {
 	@Test
 	void noSummaryGoesOutForOneCard() { // user 2026-10-29
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"}],"
-				+ "\"tail\":\"한 권뿐이에요.\"}", 1, 1));
+				+ "\"tail\":{\"lines\":[],\"summary\":\"한 권뿐이에요.\"}}", 1, 1));
 
 		run("과학책 추천해줘", List.of());
 

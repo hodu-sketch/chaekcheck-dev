@@ -54,13 +54,13 @@ final class Prompts {
 			- head와 글은 사용자에게 그대로 보인다. "후보", "목록", "사용자", 책 번호(예: "3번")를 쓰지 않는다. 맞는 책이 없을 때도 "찾으시는 책"처럼 사용자 쪽에서 말한다.
 			- 앞에서 보여 준 책 자체를 묻는 말(예: "작가가 누구야?", "두 번째 책 어때?")이면 head에서 그 물음에 먼저 답한다. 앞 대화에 적힌 제목·저자·머리말로 답하고, 이때 head는 2~3문장이어도 된다. 작가를 물으면 "『숙명』은 히가시노 게이고, 『하우스메이드』는 프리다 맥파든이에요"처럼 head에 제목과 저자를 직접 쓴다("알려 드릴게요"로 끝내지 않는다). 그다음 그 책과 이어지는 책을 고른다.
 			- 앞 대화가 있으면 이어서 묻는 말로 읽는다. 앞 대화에서 보여 준 책을 가리키는 질문이면 그 책들 가운데서 고른다. "위에 말한 두 개", "앞에서 물어본 것"처럼 사용자가 앞 질문들에서 말한 주제를 가리키면 그 주제들(앞 질문의 글)에 맞는 책만 고른다. 앞에서 보여 준 책의 주제로 넓히지 않는다. 앞 주제 둘을 합치거나 섞어 달라면 두 주제를 함께 다룬 책을 먼저 고르고, 그런 책이 적으면 두 주제 각각에 맞는 책을 함께 고른다(맞는 책이 없다고 하지 않는다). 앞 대화에 「되물은 말」이 있으면 바로 다음 질문은 그 되물음에 대한 답이다(고를 답 가운데 하나이거나 직접 쓴 말). 앞 질문과 합쳐 읽고 고른다.
-			- 맨 끝 tail은 고른 책을 읽는 상황별로 정리한 글이다. 고른 책이 2권 이상이면, 사용자가 말한 것보다 한 걸음 더 구체적인 상황(예: 출퇴근 30분에 한 편씩, 주말에 오래 생각하며, 처음 입문할 때) 2~4개로 나눠 한 줄에 하나씩 「상황: 『제목』, 『제목』」 꼴로만 쓰고 줄 사이는 줄바꿈(\\n)으로 나눈다. 문장으로 풀어 쓰지 않는다(예: "출퇴근 30분에 한 편씩: 『찰나』, 『밤의 정류장』\\n주말에 오래 생각하며: 『…』"). 나눌 상황이 없으면 한두 문장으로 총정리만 쓴다. 모두 4줄, 400자 안으로 쓴다. 고른 책(fit 2 이상)만 『제목』으로 쓰고(번호로 쓰지 않는다, "1번"·"16번" 금지), 한 책을 두 상황에 넣지 않는다. 고른 책이 0~1권이면 빈 글로 둔다.
+			- 맨 끝 tail은 고른 책을 읽는 상황별 정리다. 고른 책이 2권 이상이면 lines에 상황 2~4개를 쓴다. 상황마다 situation에 사용자가 말한 것보다 한 걸음 더 구체적인 상황을 짧은 구로(예: "출퇴근 30분에 한 편씩", "주말에 오래 생각하며", "처음 입문할 때", 30자 안), nos에 그 상황에 맞는 책 번호를 1~3개 넣는다. 제목은 서버가 넣으므로 쓰지 않는다. 고른 책(fit 2 이상)의 번호만 쓰고, 한 책을 두 상황에 넣지 않는다. 나눌 상황이 없으면 lines를 빈 목록으로 두고 summary에 한두 문장 총정리를 쓴다(책 제목과 번호는 쓰지 않는다). 상황으로 나누면 summary는 빈 글. 고른 책이 0~1권이면 lines는 빈 목록, summary는 빈 글.
 - 정해진 JSON 형식으로만 답한다.""";
 
 	static final String PICK_SCHEMA = """
 			{"type":"object","properties":{"head":{"type":"string"},"picks":{"type":"array","items":{"type":"object",
 			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
-			"additionalProperties":false}},"tail":{"type":"string"}},"required":["head","picks","tail"],"additionalProperties":false}""";
+			"additionalProperties":false}},"tail":{"type":"object","properties":{"lines":{"type":"array","items":{"type":"object","properties":{"situation":{"type":"string"},"nos":{"type":"array","items":{"type":"integer"}}},"required":["situation","nos"],"additionalProperties":false}},"summary":{"type":"string"}},"required":["lines","summary"],"additionalProperties":false}},"required":["head","picks","tail"],"additionalProperties":false}""";
 
 	/**
 	 * The pick call that may ask back (user 2026-10-26 「되묻기만 기존 한 번의 호출에」, after the agent's test): the pick
@@ -68,7 +68,7 @@ final class Prompts {
 	 */
 	static final String PICK_ASK_SYSTEM = PICK_SYSTEM.replace("- 정해진 JSON 형식으로만 답한다.", """
 			- 맨 앞 ask는 되묻기다. 질문만으로는 고를 책의 갈래가 크게 달라질 때만 쓴다. (가) 낱말 하나뿐이고 뜻이 여럿인 질문(「그림」: 그리는 법·명화 감상·그림책, 「llm인가」), (나) 앞에서 보여 준 책과 다른 책을 원하는데 어느 쪽인지 모를 때(「아니 그런 거 말고」), (다) 「음...」처럼 무엇을 찾는지 알 수 없을 때. 질문 아래 「후보 분야」가 있으면 참고한다: 여러 분야로 고르게 갈리고 질문만으로 어느 쪽인지 알 수 없으면 되묻고, 한 분야에 몰려 있으면 되묻지 않고 그 분야로 고른다.
-			- 되물을 때: question에 어느 쪽을 찾는지 묻는 말을 한국어 해요체 한두 문장으로 쓴다. 화면에 「기타」 단추가 따로 있으니 직접 적어 달라는 말은 쓰지 않는다. choices에 고를 답 2~4개를 짧은 명사구로 쓴다(예: 「그림 그리는 법을 알려 주는 책」). 책으로 나올 법한 뜻만 넣는다. head와 tail은 빈 글, picks는 빈 목록으로 둔다.
+			- 되물을 때: question에 어느 쪽을 찾는지 묻는 말을 한국어 해요체 한두 문장으로 쓴다. 화면에 「기타」 단추가 따로 있으니 직접 적어 달라는 말은 쓰지 않는다. choices에 고를 답 2~4개를 짧은 명사구로 쓴다(예: 「그림 그리는 법을 알려 주는 책」). 책으로 나올 법한 뜻만 넣는다. head는 빈 글, picks와 tail의 lines는 빈 목록, tail의 summary는 빈 글로 둔다.
 			- 되묻지 않을 때는 question을 빈 글, choices를 빈 목록으로 두고 위 규칙대로 고른다. 다음에는 되묻지 않는다: 흔한 뜻이 하나로 모이는 말(「파이썬」은 파이썬 프로그래밍, 「고양이」는 고양이 책, 「양봉 입문서」는 꿀벌 기르기), 조건 몇 가지만 빠진 질문, 앞 질문들의 주제를 합치거나 섞어 달라는 말(「둘이 합쳐진 거」, 「둘 다」: 앞 질문 글의 두 주제를 함께 다룬 책을 고른다).
 			- 정해진 JSON 형식으로만 답한다.""");
 
@@ -80,7 +80,7 @@ final class Prompts {
 			"choices":{"type":"array","items":{"type":"string"}}},"required":["question","choices"],"additionalProperties":false},
 			"head":{"type":"string"},"picks":{"type":"array","items":{"type":"object",
 			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
-			"additionalProperties":false}},"tail":{"type":"string"}},"required":["ask","head","picks","tail"],"additionalProperties":false}""";
+			"additionalProperties":false}},"tail":{"type":"object","properties":{"lines":{"type":"array","items":{"type":"object","properties":{"situation":{"type":"string"},"nos":{"type":"array","items":{"type":"integer"}}},"required":["situation","nos"],"additionalProperties":false}},"summary":{"type":"string"}},"required":["lines","summary"],"additionalProperties":false}},"required":["ask","head","picks","tail"],"additionalProperties":false}""";
 
 	/**
 	 * A question that is not a book request (「안녕」, 「잠이 안 와」, 「고마워」): one short call answers it as a person
