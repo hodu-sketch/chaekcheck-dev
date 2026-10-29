@@ -391,13 +391,6 @@ type AnswerProps = {
 
 function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = true }: AnswerProps) {
   const notice = noticeOf(turn)
-  // the ask-back list's last row: one's own answer, sent as the choices are (user 2026-10-29 안 A)
-  const [otherText, setOtherText] = useState('')
-  const sendOther = () => {
-    if (otherText.trim() === '' || busy) return
-    onExample(otherText)
-    setOtherText('')
-  }
   return (
     <div className={styles.answer}>
       {turn.titleGuess && (
@@ -427,8 +420,8 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
         </>
       )}
       {turn.ask && (
-        // the agent asked back: its question in the head's place, the answers as a numbered list in one box, the last row
-        // a box for one's own answer, as Claude asks (user 2026-10-29 안 A); a click asks the answer as the next question
+        // the agent asked back: its question in the head's place, the answers as a numbered list in one box, as Claude
+        // asks (user 2026-10-29 안 A); a click asks the answer as the next question, one's own goes in the box below
         <>
           <p className={styles.head}>{turn.ask.question}</p>
           <ul className={styles.askChoices} aria-label="고를 답">
@@ -447,52 +440,12 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
                 </button>
               </li>
             ))}
-            {isLast && (
-              <li>
-                <form
-                  className={styles.askOther}
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    sendOther()
-                  }}
-                >
-                  <span className={styles.askNo} aria-hidden="true">
-                    {turn.ask.choices.length + 1}
-                  </span>
-                  <input
-                    className={styles.askOtherInput}
-                    value={otherText}
-                    maxLength={QUESTION_MAX}
-                    placeholder={AI_TEXT.askOtherPlaceholder}
-                    aria-label={AI_TEXT.askOtherLabel}
-                    autoComplete="off"
-                    onChange={(event) => setOtherText(event.target.value)}
-                  />
-                  {otherText.trim() !== '' && (
-                    <button
-                      type="submit"
-                      className={styles.askOtherSend}
-                      aria-label={AI_TEXT.send}
-                      title={AI_TEXT.send}
-                      disabled={busy}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
-                        <path
-                          d="M9 15V3M4 8l5-5 5 5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </form>
-              </li>
-            )}
           </ul>
-          {isLast && <p className={styles.askHint}>{AI_TEXT.askHint}</p>}
+          {isLast && (
+            <p className={styles.askHint}>
+              {AI_TEXT.askHint} <span className={styles.askHintOwn}>{AI_TEXT.askHintOwn}</span>
+            </p>
+          )}
         </>
       )}
       {turn.result === 'no_text' && <p className={styles.head}>{AI_TEXT.noText}</p>}

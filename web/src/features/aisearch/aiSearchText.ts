@@ -30,11 +30,10 @@ export const AI_TEXT = {
   send: '보내기',
   // a question about 책첵 answered from the intro tab and the first screen (user 2026-10-26, mockup approved)
   siteLink: '책첵이란? 자세히 보기 →',
-  // the agent asking back (user 2026-10-26 mock-up "시안대로"): under the list. The list's last row is a box for one's own
-  // answer, as Claude's (user 2026-10-29 안 A "클로드식으로 가자"; the 「기타」 button before)
+  // the agent asking back (user 2026-10-26 mock-up "시안대로"): under the list. One's own answer goes in the box below, as
+  // in ChatGPT (user 2026-10-29: "원하는게 없으면 아래 입력창에 적어주세요"; the 「기타」 button and the list's last row before)
   askHint: '고르시면 그 답으로 이어서 찾아요.',
-  askOtherLabel: '직접 적어서 묻기',
-  askOtherPlaceholder: '직접 입력…',
+  askHintOwn: '원하는 게 없으면 아래 입력창에 적어 주세요.',
   siteNote: '답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.',
 } as const
 
