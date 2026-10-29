@@ -442,6 +442,15 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void oneWordTopicsAreWordsOfTwoLettersOrMore() {
+		assertThat(AiSearchFlow.oneWordTopic("엄마")).isTrue();
+		assertThat(AiSearchFlow.oneWordTopic(" AI ")).isTrue();
+		assertThat(AiSearchFlow.oneWordTopic("??")).isFalse();
+		assertThat(AiSearchFlow.oneWordTopic("ㅋㅋㅋ")).isFalse();
+		assertThat(AiSearchFlow.oneWordTopic("음 뭐 읽지")).isFalse();
+	}
+
+	@Test
 	void aOneWordQuestionIsAnsweredAtOnceWithItsSensesMixed() { // user 2026-10-29 「한 단어도 그걸로 답변」
 		pick = new com.chaekcheck.aisearch.internal.config.PickProperties(true, false);
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));

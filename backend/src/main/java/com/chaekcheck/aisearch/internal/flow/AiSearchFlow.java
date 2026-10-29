@@ -949,6 +949,19 @@ public class AiSearchFlow {
 		return new KeywordPlan(false, false, "", false, List.of(question.split("\\s+")), List.of(), failed);
 	}
 
+	/**
+	 * One word of at least two letters, not counting Hangul jamo (「ㅋㅋ」) or marks (「??」): a topic like 「사진」 or
+	 * 「AI」, answered at once (user 2026-10-29).
+	 */
+	static boolean oneWordTopic(String question) {
+		String word = question.strip();
+		if (word.isEmpty() || word.chars().anyMatch(Character::isWhitespace)) {
+			return false;
+		}
+		long letters = word.codePoints().filter(Character::isLetter).filter(c -> c < 0x3131 || c > 0x318E).count();
+		return letters >= 2;
+	}
+
 	/** The words of a question, split at spaces. */
 	static int words(String question) {
 		String text = question.strip();
@@ -973,7 +986,7 @@ public class AiSearchFlow {
 		// not known
 		// a one-word question is answered at once, its common senses mixed (user 2026-10-29 「한 단어도 그걸로 답변」);
 		// pick.ask-one-word brings the ask-back of v1.17.0 to v1.20.5 back
-		boolean oneWord = talk == null && titleNote == null && words(input.question()) == 1 && !pick.askOneWord();
+		boolean oneWord = talk == null && titleNote == null && oneWordTopic(input.question()) && !pick.askOneWord();
 		boolean askBack = pick.askBack() && titleNote == null && !oneWord && (talk != null ? talk.mode() != AskMode.NEVER
 				: !pointsBack && (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS));
 		String oneWordNote = oneWord && pick.askBack() ? "질문이 낱말 하나(「" + input.question().strip() + "」)다. 되묻지 않는다. "
