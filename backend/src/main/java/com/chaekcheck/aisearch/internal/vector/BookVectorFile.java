@@ -16,13 +16,14 @@ import java.util.PriorityQueue;
  * The book vectors, read whole into memory (about 31 MB for 31,000 books): the file {@code book-vectors.bin} that
  * {@code scripts/aisearch/make_book_vectors.py} writes, little-endian: {@code "CCBV1\n"}, count and dimension
  * (int32), the book ids (int64), one scale per row (float32), then the rows (int8). A row times its scale is the
- * book's normalised KURE-v1 vector.
+ * book's normalised KURE-v1 vector. Every row is scored ({@code chaekcheck.aisearch.vector.search.mode: exact});
+ * {@link BookVectorFunnel} reads the same file keeping only the sign bits on the heap.
  */
-final class BookVectorFile {
+final class BookVectorFile implements BookVectors {
 
 	static final String NAME = "book-vectors.bin";
 
-	private static final byte[] MAGIC = "CCBV1\n".getBytes(StandardCharsets.US_ASCII);
+	static final byte[] MAGIC = "CCBV1\n".getBytes(StandardCharsets.US_ASCII);
 
 	private final long[] ids;
 
@@ -79,16 +80,18 @@ final class BookVectorFile {
 		buffer.flip();
 	}
 
-	int count() {
+	@Override
+	public int count() {
 		return ids.length;
 	}
 
-	int dim() {
+	@Override
+	public int dim() {
 		return dim;
 	}
 
-	/** The {@code limit} ids nearest {@code query} (a normalised vector of {@link #dim()}), nearest first. */
-	List<Long> nearest(float[] query, int limit) {
+	@Override
+	public List<Long> nearest(float[] query, int limit) {
 		if (query.length != dim) {
 			throw new IllegalArgumentException("query has " + query.length + " dimensions, the books " + dim);
 		}

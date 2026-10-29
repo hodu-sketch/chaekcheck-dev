@@ -1,6 +1,8 @@
 # 책이 20만·50만·100만 권이 될 때 가까운 책 찾기 (2026-10-30)
 
-AI 검색 책을 늘릴 계획(사용자: 다음은 20만 권, 그 뒤로도 점점 늘림)에 맞춰, 「가까운 책」 단계(`BookVectorFile.nearest`)를 어떻게 키울지 정리한 기록입니다. [HNSW 보고서](2026-10-29-hnsw.md)의 잰 값을 이어 쓰고, 이번에 **binary·int4로 먼저 거르는 방식의 재현율**을 새로 쟀습니다. 잰 값과 추정을 나눠 적고, 추정에는 [추정]을 붙였습니다. **운영은 바꾸지 않았습니다.**
+AI 검색 책을 늘릴 계획(사용자: 다음은 20만 권, 그 뒤로도 점점 늘림)에 맞춰, 「가까운 책」 단계(`BookVectorFile.nearest`)를 어떻게 키울지 정리한 기록입니다. [HNSW 보고서](2026-10-29-hnsw.md)의 잰 값을 이어 쓰고, 이번에 **binary·int4로 먼저 거르는 방식의 재현율**과 **A(Java 깔때기)의 속도**를 새로 쟀습니다. 잰 값과 추정을 나눠 적고, 추정에는 [추정]을 붙였습니다.
+
+사용자 결정(2026-10-30): "A. Java 깔때기 (전부 훑기 + 다시 매기기)로 개발해줘" → 서버 코드로 넣음(8절, 설정 `chaekcheck.aisearch.vector.search.mode: funnel`). 운영 배포는 아직입니다.
 
 ## 0. 결론 먼저
 
@@ -8,7 +10,8 @@ AI 검색 책을 늘릴 계획(사용자: 다음은 20만 권, 그 뒤로도 점
 - 그다음 길은 4가지(2절 A~D). **추천: A(Java 깔때기)로 시작하고, 그것도 넘치면 D(전용 벡터 DB)**.
   - A는 지금 파일(`book-vectors.bin`)과 코드 구조를 그대로 살리고 RAM이 가장 작습니다(100만 권 binary 128MB).
   - 81,078권에서 잰 재현율: 해밍 1만 → 비대칭 binary 2,000 → int8 다시 매기기로 상위 120권의 **99.2%**를 찾습니다(3절).
-  - 아직 안 잰 것: A의 Java 속도, 그리고 책이 늘 때 같은 재현율을 지키려면 1·2단계에서 몇 권을 남겨야 하는지(5절).
+  - **A의 Java 속도(잰 값, PC)**: 81,078권 79.8 → **6.9ms**, 20만 권 190.9 → **10.2ms**, 50만 권 484.8 → **21.9ms**, 100만 권 715.7(HNSW 보고서) → **32.0ms**. 힙은 binary 비트만이라 100만 권 약 135MB(지금 방식 약 1,036MB)(7절).
+  - 아직 안 잰 것: 책이 늘 때 같은 재현율을 지키려면 1·2단계에서 몇 권을 남겨야 하는지(5절).
 - B(halfvec HNSW)가 메모리를 많이 먹는 이유는 「HNSW라서」보다 **색인 안에 halfvec(2KB)를 넣어서**입니다(4절). binary를 넣은 HNSW(C)는 A와 비슷한 크기로 내려옵니다.
 - 벡터 찾기를 인터페이스 하나 뒤에 두면(지금 `KureQuestionVectors.nearest`) A→D로 바꿀 때 나머지 흐름은 그대로입니다. 나중에 MSA로 가면 벡터 검색을 따로 떼기에도 맞습니다.
 
@@ -172,7 +175,7 @@ RAM에 있어야 하는 것, 100만 권:
 
 ## 5. 아직 안 잰 것 (결정 전에 잴 것)
 
-1. **A의 Java 속도.** binary 해밍 전부 훑기 + 비대칭 + int8 파일 읽기를 81k / 50만 / 100만 권(HNSW 보고서처럼 줄 반복)으로. 운영 t4g.small(ARM 2코어) 환산 포함.
+1. ~~A의 Java 속도~~ → 7절에서 잼(PC). 운영 t4g.small(ARM 2코어)에서의 시간은 배포 뒤 로그로 봄.
 2. **책이 늘 때 남길 수.** 위 재현율은 81k 기준이라, N1 1만은 전체의 12%입니다. 100만 권에서 같은 1만이면 1%라 재현율이 떨어질 수 있습니다 [추정]. 반복 데이터로는 이 효과를 잴 수 없으니(같은 책이 여러 번 나옴), 실제 20만 권 벡터가 생기면 다시 잽니다.
 3. C의 재현율(대칭 해밍 + HNSW 근사)과 색인 크기.
 4. 최종 추천 8권이 바뀌는 비율(재현율 0.99가 사용자에게 보이는 차이).
@@ -198,7 +201,51 @@ for (int i = 0; i < 16; i++) dist += Long.bitCount(q[i] ^ book[i]);
 
 - 비대칭 binary(2단계)는 XOR을 쓰지 않습니다. 질문 숫자에 책 비트에 맞춰 +1 또는 −1을 곱해 더합니다(`Σ q[i] × (bit ? +1 : −1)`). 해밍보다 조금 느리고 더 정확합니다.
 
-## 7. 다시 재는 법
+## 7. A(Java 깔때기)의 속도 (잰 값)
+
+### 7-1. 방법
+
+- `scripts/aisearch/hnsw/CascadeBench.java` + `run_cascade_bench.sh`. 실제 `BookVectorFile.java`를 고치지 않고 복사해 같이 컴파일(백엔드 빌드에는 넣지 않음), JDK 25.0.4, `-Xmx1700m`.
+- 크기: 실제 81,078권, 그리고 HNSW 보고서처럼 실제 줄을 반복해 붙인 200,019 / 500,008 / 1,000,016권(id만 바꿈, 임시 파일로 쓰고 끝나면 지움). 줄마다 계산량이 같아 **시간**은 실제 책 수와 같다고 봅니다. 같은 책이 여러 번 나오므로 반복 데이터의 재현율은 의미가 없어 81k에서만 쟀습니다.
+- 지금 방식: 실제 `BookVectorFile.read` + `nearest(q, 120)`. 깔때기: 힙에는 id·scale·부호 비트(책당 `long` 16개)만, int8 줄은 파일을 메모리 매핑(`FileChannel.map`)해서 3단계에서만 읽음. 1단계 해밍 → 1만, 2단계 비대칭 binary → 2,000, 3단계 int8 → 120. 2단계는 질문마다 「바이트 128칸 × 256무늬」의 합 표를 만들어 비트 8개를 한 번에 더함.
+- 데우기 뒤 질문 222개 × 3바퀴 = 666번, `System.nanoTime`. 둘이 동시에 묻는 경우 222번.
+- PC: i7-1260P, Windows 11. 잴 때 다른 세션의 bootRun 5개·Gradle 데몬이 떠 있었음(전체 CPU 약 45%). 원본 `chaekcheck-dev\dataisearch-hnsw\cascade-java.txt`.
+- 100만 권의 지금 방식은 이번에 돌리지 않았습니다(`BookVectorFile.read`가 읽는 동안 1GB 배열 두 개를 잡아 1.7GB 힙을 넘음). HNSW 보고서의 잰 값 715.7ms를 씁니다.
+
+### 7-2. 결과 (중간값 / p90 / p99, ms)
+
+| 책 수 | 지금 방식 | 깔때기 전체 | 1단계 해밍 | 2단계 비대칭 | 3단계 int8 | 둘 동시 (깔때기) | 힙 (깔때기) |
+|---|---|---|---|---|---|---|---|
+| 81,078 (실제) | 79.8 / 87.1 / 92.0 | **6.9** / 7.7 / 9.3 | 2.0 | 2.4 | 2.5 | 6.7 / 7.3 / 8.3 | 비트 9.9MB |
+| 200,019 | 190.9 / 209.2 / 217.4 | **10.2** / 11.3 / 12.7 | 4.7 | 2.8 | 2.7 | 9.6 / 10.7 / 11.8 | 비트 24.4MB |
+| 500,008 | 484.8 / 558.6 / 747.6 | **21.9** / 27.0 / 37.6 | 14.7 | 3.8 | 3.2 | 24.5 / 29.8 / 39.3 | 비트 61.0MB |
+| 1,000,016 | 715.7 (HNSW 보고서) | **32.0** / 38.3 / 48.0 | 25.9 | 3.4 | 2.8 | 33.6 / 37.7 / 43.1 | +135.1MB (비트 122.1MB) |
+
+- 81k 재현율(같은 실행): 정확한 상위 120의 **0.9919**(파이썬 3-3절과 같음). 서버 클래스(`BookVectorFunnel`, 8절)로 다시 돌린 것도 0.9919, 1위 책이 같은 질문 222개 중 221개.
+- 81k에서 지금 방식이 HNSW 보고서(66.4ms)보다 느린 79.8ms인 것은 그때보다 PC가 바빴기 때문으로 봅니다. 같은 실행 안의 비교(79.8 대 6.9)로 읽어 주세요.
+- 책 수에 비례해 늘어나는 것은 1단계(해밍)뿐입니다: 2.0 → 4.7 → 14.7 → 25.9ms. 2·3단계는 남기는 수(1만 / 2,000)에만 달려 3~4ms로 거의 같습니다.
+- 운영 환산 [추정]: HNSW 보고서의 운영/PC 배수 1.46을 쓰면 81k 약 10ms, 100만 권 약 47ms. 다만 운영은 ARM(Graviton2)이라 `Long.bitCount`의 속도 비가 내적과 다를 수 있어, 배포 뒤 로그로 확인합니다.
+- 깔때기 불러오기(부호 비트 만들기): 81k 0.5초, 100만 권 6.5초(서버 시작 때 한 번).
+
+## 8. 서버 코드 (2026-10-30, 배포 전)
+
+브랜치 `claude/aisearch-vector-funnel`(main 38a34933에서).
+
+| 파일 | 하는 일 |
+|---|---|
+| `aisearch/internal/vector/BookVectors.java` | 책 벡터 찾기의 인터페이스(`count`, `dim`, `nearest`, `close`). `open(file, search)`가 설정에 따라 둘 중 하나를 엶 |
+| `BookVectorFile.java` | 지금 방식(`exact`): 파일 전체를 힙에, 전부 계산. 그대로 두고 인터페이스만 붙임 |
+| `BookVectorFunnel.java` | 깔때기(`funnel`): 힙에는 id·scale·부호 비트, int8 줄은 메모리 매핑. 1단계 해밍(거리가 0~1,024라 개수 세기로 자르는 점을 찾음, 정렬 없음) → 2단계 비대칭 binary(바이트 표) → 3단계 정확한 점수, 가까운 순 |
+| `KureQuestionVectors.java` | `BookVectorFile.read` 대신 `BookVectors.open(…, settings.search())`. 끌 때 매핑을 닫음. 시작 로그에 방식이 나옴: `ai search vectors on (REMOTE, FUNNEL): 81078 books x 1024, loaded in … ms` |
+| `config/AiSearchProperties.java` | `Vector.search` = `Search(mode, hammingKeep, binaryKeep)`, `SearchMode { EXACT, FUNNEL }` |
+| `application.yml` | `chaekcheck.aisearch.vector.search.mode: ${CHAEKCHECK_AISEARCH_VECTOR_SEARCH:funnel}`, `hamming-keep: 10000`, `binary-keep: 2000` |
+
+- 되돌리기: `CHAEKCHECK_AISEARCH_VECTOR_SEARCH=exact`(prod.env) 후 재시작.
+- 남기는 수가 책 수 이상이면 그 단계를 건너뜁니다(책이 적은 개발 DB에서는 정확한 답과 같음). 요청한 `limit`보다 적게 남기지 않습니다.
+- 매핑하는 동안 `book-vectors.bin`을 **그 자리에서 덮어쓰면 안 됩니다**(리눅스에서 읽던 줄이 바뀌거나 SIGBUS). 새 파일로 쓰고 이름을 바꾼 뒤(`mv`) 백엔드를 다시 시작합니다. 지금 운영 절차도 파일을 바꾼 뒤 재시작합니다.
+- 테스트: `BookVectorFunnelTests`(남기는 수 ≥ 책 수면 정확한 답과 같음, 무작위 3,000권 128차원에서 상위 20의 90% 이상·찾은 것끼리는 정확한 순서, 설정으로 고르기, 잘못된 파일 거절, `highest` 순서), `BookVectorFunnelModelTests`(`AISEARCH_MODEL_DIR` + `AISEARCH_QUERIES`가 있을 때만: 실제 파일에서 상위 120 재현율 > 0.98, 잰 값 0.9919).
+
+## 9. 다시 재는 법
 
 ```bash
 # queries.f32는 HNSW 보고서 7절 1)~2)로 만든 것
@@ -208,3 +255,16 @@ for (int i = 0; i < 16; i++) dist += Long.bitCount(q[i] ^ book[i]);
 ```
 
 PC 메모리 약 3GB, 몇 분 걸립니다(질문 222 × 책 81,078 행렬 여러 개).
+
+Java 깔때기 속도(7절, 약 25분; `SCALES="1 2.467"`처럼 크기를 고를 수 있음):
+
+```bash
+bash scripts/aisearch/hnsw/run_cascade_bench.sh <scratch> <model-dir> <chaekcheck-dev>/data/aisearch-hnsw/queries.f32   <chaekcheck-dev>/data/aisearch-hnsw/cascade-java.txt [10000 2000]
+```
+
+서버 클래스로 실제 파일 재현율(8절):
+
+```bash
+cd backend
+AISEARCH_MODEL_DIR=<model-dir> AISEARCH_QUERIES=<chaekcheck-dev>/data/aisearch-hnsw/queries.f32   ./gradlew test --tests 'com.chaekcheck.aisearch.internal.vector.BookVectorFunnelModelTests' -i
+```

@@ -255,11 +255,15 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - pg_search 0.26.3은 운영 이미지 `chaekcheck/postgres-bigm:18` 위에 `postgresql-18-pgvector` + 데비안 trixie용 .deb로 올라가고, `shared_preload_libraries=pg_bigm,pg_search`로 함께 켜짐(시험용 컨테이너에서 확인). 넣으려면 DB 재시작, `CREATE EXTENSION pg_search CASCADE`(슈퍼유저, pgvector가 같이 켜짐), AGPL-3.0 확인, plan ADR이 필요.
 - 아직 넣지 않음. 순서 제안: 7만 7천 권으로 다시 재기 → 로컬 서버에서 `LIKE`/`BM25` 스위치 비교 → 배포(보고서 6절).
 
-## 14. 책이 늘 때 가까운 책 찾기 (2026-10-30, 운영 변경 없음)
+## 14. 책이 늘 때 가까운 책 찾기: Java 깔때기 (2026-10-30, 브랜치 `claude/aisearch-vector-funnel`, 배포 전)
 
 사용자 계획: AI 검색 책을 20만 권, 그 뒤로도 점점 늘림. 자세한 숫자: [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md)(앞 단계 [HNSW 보고서](../aisearch/reports/2026-10-29-hnsw.md)). 운영에서 알아 둘 것만:
 
 - 지금 `BookVectorFile.nearest`는 int8 전수 비교, 파일 전체를 힙에 올림(책당 1,036바이트). 운영 97ms·힙 81MB(81,078권). 20만 권 약 240ms·207MB, 50만 권부터 -Xmx640m을 넘음 [추정].
-- 바꿀 때 첫 후보는 Java 깔때기: RAM에는 binary(책당 128바이트)만 → 해밍으로 1만 → 비대칭 binary로 2,000 → `book-vectors.bin`에서 그 줄만 읽어 지금 점수로 120. 81k 재현율 0.992(상위 120). Java 속도는 아직 안 잼.
-- pgvector halfvec HNSW는 색인(100만 권 약 2.7GB)이 캐시에 다 있어야 빠름. 2GB 서버에서는 안 맞음.
+- 사용자 결정 "A. Java 깔때기로 개발해줘": 힙에는 부호 비트(책당 128바이트)만 → 해밍으로 1만 → 질문 대 비트(비대칭 binary)로 2,000 → `book-vectors.bin`(메모리 매핑)에서 그 줄만 읽어 지금과 같은 점수로 120. 클래스 `BookVectorFunnel`, 고르는 곳 `BookVectors.open`.
+- 잰 값(PC, 질문 222개): 81,078권 79.8 → 6.9ms, 20만 190.9 → 10.2ms, 50만 484.8 → 21.9ms, 100만 715.7 → 32.0ms. 81k 정확한 상위 120의 99.19%, 1위 같은 질문 221/222.
+- 설정: `chaekcheck.aisearch.vector.search.mode`(기본 `funnel`, `CHAEKCHECK_AISEARCH_VECTOR_SEARCH`), `hamming-keep: 10000`, `binary-keep: 2000`. 되돌리기: prod.env에 `CHAEKCHECK_AISEARCH_VECTOR_SEARCH=exact` 후 재시작.
+- 운영에서 볼 것: 시작 로그 `ai search vectors on (REMOTE, FUNNEL): … books x 1024, loaded in … ms`, 검색 로그 `steps`의 `neighbours`(97ms → 약 10ms 기대 [추정]).
+- **`book-vectors.bin`을 그 자리에서 덮어쓰지 말 것**(매핑 중이라 리눅스에서 읽던 줄이 바뀜): 새 이름으로 올린 뒤 `mv`로 바꾸고 백엔드 재시작.
+- 다른 길(쓰지 않음): pgvector halfvec HNSW는 색인(100만 권 약 2.7GB)이 캐시에 다 있어야 빠름. 2GB 서버에서는 안 맞음.
 - 전용 벡터 DB(Qdrant 등)는 새 인프라라 plan 결정이 먼저.

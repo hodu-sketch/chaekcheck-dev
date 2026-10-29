@@ -116,7 +116,8 @@ class AiSearchEvalReplayTests {
 		}
 		AiSearchProperties.Vector settings = new AiSearchProperties.Vector(vectorsOn, System.getenv("AISEARCH_MODEL_DIR"),
 				2, 50, 60, 60, java.time.Duration.ofSeconds(30), AiSearchProperties.Encoder.LOCAL,
-				new AiSearchProperties.Remote("", "", java.time.Duration.ofSeconds(2)), 3, java.time.Duration.ofSeconds(30));
+				new AiSearchProperties.Remote("", "", java.time.Duration.ofSeconds(2)), 3, java.time.Duration.ofSeconds(30),
+				new AiSearchProperties.Search(AiSearchProperties.SearchMode.EXACT, 10000, 2000));
 		AiSearchProperties on = new AiSearchProperties(true, properties.zone(), properties.keywordTimeout(),
 				properties.pickTimeout(), properties.keywordMaxTokens(), properties.pickMaxTokens(),
 				properties.maxConcurrent(), properties.rate(), properties.budget(), properties.price(),

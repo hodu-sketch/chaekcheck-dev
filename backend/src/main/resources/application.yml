@@ -453,6 +453,15 @@ chaekcheck:
       # keywords alone at once, then one lookup tries again (user 2026-10-25 "임베딩 서버 장애 차단") [안]
       failures-to-open: 3
       open-for: 30s
+      # how the nearest books are found (user 2026-10-30 "A. Java 깔때기로 개발해줘",
+      # docs/aisearch/reports/2026-10-30-vector-scaling.md): exact = every book's int8 vector on the heap, all scored
+      # (v1.15.0~v1.22.1); funnel = only the sign bits on the heap (128 bytes a book, about 1/8), hamming keeps
+      # hamming-keep, the question against the bits keeps binary-keep, those rows are scored exactly from the mapped
+      # book-vectors.bin. 81,078 books with 10000 / 2000: 99.2% of the exact top 120 [잰 값, 질문 222개]
+      search:
+        mode: ${CHAEKCHECK_AISEARCH_VECTOR_SEARCH:funnel}
+        hamming-keep: 10000
+        binary-keep: 2000
     first-call:
       # who makes the first step (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
       # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
