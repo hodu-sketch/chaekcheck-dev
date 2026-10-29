@@ -7,7 +7,7 @@
   - 버전마다 무엇이 바뀌었나 → [2-versions.md](2-versions.md)
   - 1차 신경망·관계 분류기를 어떻게 학습했나 → [3-ml-models.md](3-ml-models.md)
   - 넣기·배포·켜고 끄기 같은 운영 명령 → [../maintenance/6-aisearch.md](../maintenance/6-aisearch.md)
-- **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`, 표가 비면 모델 폴더의 `book-profiles.tsv`). 아래 글은 이 기준입니다. 옛 `catalog.book_search`·`foryou.book_blurb`·`book_cover`는 배포 2까지 남지만 읽지 않습니다.
+- **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`, 표가 비면 모델 폴더의 `book-profiles.tsv`). 아래 글은 이 기준입니다. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 배포 2(v1.20.6)에서 지웠습니다.
 - 코드 경로 줄임: `aisearch/…`는 `backend/src/main/java/com/chaekcheck/aisearch/…`입니다. 웹은 `web/src/…`입니다.
 
 ### 이 문서에서 쓰는 말

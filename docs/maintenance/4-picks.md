@@ -1,7 +1,7 @@
 # 추천도서: 사서추천도서 받기와 이동진 추천도서·서울대 100선 목록 (사이클 14, 21)
 
 - 사이클 14(사이클 10 인기 도서를 대체). 결정과 근거는 plan ADR-0089~0092와 `docs/cycles/14-librarian-picks/`에 있고, 여기에는 운영 절차만 둡니다.
-- 하는 일: 국립중앙도서관 사서추천도서 Open API(`saseoApi.do`)에서 최근 3년 등록분을 요청 1건으로 받아, 추천 연월 최근 12개 달(12번 추천)의 책만 `picks` 스키마에 저장합니다. 새 표지만 받아 폭 200px JPEG로 줄여 저장합니다. 화면은 `/picks/librarian`, API는 `GET /api/v1/picks/librarian`(사이클 21부터 목록마다 주소가 따로입니다: `librarian`·`leedongjin`·`snu100`, ADR-0126). 사이클 21부터 저장 표는 `picks.list_book`(사서 줄은 `list_key = 'librarian'`)과 `picks.list_field`입니다(ADR-0122). 이동진 추천도서·서울대 100선은 6절.
+- 하는 일: 국립중앙도서관 사서추천도서 Open API(`saseoApi.do`)에서 최근 3년 등록분을 요청 1건으로 받아, 추천 연월 최근 12개 달(12번 추천)의 책만 `picks` 스키마에 저장합니다. 화면은 `/picks/librarian`, API는 `GET /api/v1/picks/librarian`(사이클 21부터 목록마다 주소가 따로입니다: `librarian`·`leedongjin`·`snu100`, ADR-0126). 사이클 21부터 저장 표는 `picks.list_book`(사서 줄은 `list_key = 'librarian'`)과 `picks.list_field`입니다(ADR-0122). 이동진 추천도서·서울대 100선은 6절.
 
 ## 1. 켜고 끄기, 인증키
 
@@ -10,7 +10,7 @@
 - 인증키: 환경 변수 `CHAEKCHECK_PICKS_NLK_API_KEY`(설정 `chaekcheck.picks.fetch.api-key`). **비밀값**입니다. 로컬은 `.env`(git 밖)에 사람이 직접 넣고, 운영은 배포 비밀값으로 넣습니다. 코드·설정 파일·`.env.example`·문서·커밋·로그에 값을 적지 않습니다
   - 키가 비어 있으면 요청을 보내지 않고 `fetch_run`에 `FAILED`/`key_missing` 한 줄과 WARN 로그 한 줄을 남깁니다
   - 키는 요청 주소(`key=`)에 들어가므로 로그에는 `key=***`로만 찍힙니다
-- 로컬에서 받기를 시험할 때만 켭니다(사용자 승인, 하루 최대 1번). 한 번 받으면 목록 요청 1건 + 새 표지(처음엔 약 108장, 그 뒤엔 새 추천분만), 표지는 1초 이상 간격
+- 로컬에서 받기를 시험할 때만 켭니다(사용자 승인, 하루 최대 1번). 한 번 받으면 목록 요청 1건(표지는 받지 않음, 사이클 26 배포 2(v1.20.6)부터)
 - 꺼도 공용 캐시 10분 새로 고침은 돕니다(저장된 목록을 화면에 보여 줌)
 
 ## 2. 언제 받나 (ADR-0092)
@@ -48,22 +48,14 @@ FROM picks.fetch_run ORDER BY started_at DESC LIMIT 10;
 | `no_books` | 최근 12개 달에 책이 0권 | 사이트 쪽 문제일 수 있음. 다음 날 다시 받음 |
 
 - `FAILED`면 목록은 바뀌지 않고 앞 목록이 그대로 보입니다. `failure_detail`에는 HTTP 상태나 오류 코드만 있고 키·주소·본문은 없습니다
-- `SUCCEEDED`이고 `changed=false`면 받은 목록이 저장된 것과 같아서 아무것도 바꾸지 않았다는 뜻입니다(표지도 받지 않음)
+- `SUCCEEDED`이고 `changed=false`면 받은 목록이 저장된 것과 같아서 아무것도 바꾸지 않았다는 뜻입니다
 - `new_category_codes`에 값이 있으면 모르는 분야 코드가 왔다는 뜻입니다. 화면에는 "전체"와 맨 뒤 새 분류(이름은 API의 `drCodeName`, 없으면 "기타")로 나옵니다
 - 요청마다 INFO 로그 `NLK GET <경로, key=***> -> <상태> in <ms>ms, <바이트> bytes, <간격>ms after the request before`. 실패는 `log.error`
 
 ## 4. 표지
 
-- **사이클 26부터(ADR-0163, ADR-0164) 모든 줄 표지는 CloudFront 주소입니다**: 우리 책이 맞춰진 줄은 그 판의 표지(`catalog.book_cover`) → 같은 작품 다른 판의 표지(최신 판, 같으면 소장 많은 판) → 목록 그림 `https://d1bdzw8sfjph5d.cloudfront.net/covers/<sha1(cover_source)>.jpg` 차례, 우리 책이 없는 줄은 목록 그림. 사서추천 줄도 같은 규칙이라 `/api/v1/picks/covers/{id}`를 더 만들지 않습니다(그 주소·`picks.cover`·nginx `/covers/`는 배포 2에서 지움). 그림을 S3에 올리는 법은 [8-covers.md](8-covers.md).
-- 아래 두 항목은 사이클 26 전 방식의 기록입니다.
-- **2026-10-20부터 추천 목록(이동진·서울대·KAIST·노벨) 표지는 파일입니다** (사용자 "이미지 말이야 자바가 아니라 앞에 있어야 하는 거 아니야?", 안 A). 수집기가 만든 `scripts/crawl/lists/covers/<sha1(url)>.jpg`를 웹 서버가 `/covers/…`로 바로 보냅니다(운영 nginx: `/srv/chaekcheck/covers`, 개발: `web/vite.config.ts`의 미들웨어가 목록 폴더에서). API의 `coverUrl`은 `/covers/<파일>`(`picks.internal.lists.CoverFiles`)이고, 반영 파일·`lists` 모드는 표지 그림을 싣거나 DB에 넣지 않습니다(전에는 base64로 실어 반영 명령이 힙 512MB에서 멈춤, 2026-10-20). DB `picks.cover`에는 서버가 직접 받는 국립중앙도서관 사서추천 표지만 남고, 나머지 줄은 다음 정리(`deleteUnusedCovers`) 때 지워집니다.
-- 아래는 사서추천 표지(서버가 받음)와 옛 방식의 기록입니다.
-
-
-- `recomfilepath`를 https로 바꾼 뒤 호스트가 `www.nl.go.kr`이고 경로가 `/afile/`로 시작하는 것만 받습니다. redirect는 따르지 않습니다
-- 받는 크기 상한 5MB, 픽셀 수 상한 1,600만, `Content-Type`이 `image/`여야 함(아니면 실패로 셈). 받자마자 폭 200px JPEG(품질 0.8)로 줄여 `picks.cover`에 저장
-- 목록이 바뀐 받기(`changed=true`)에서만 받고, 저장 안 된 표지만 받습니다. 끝나면 지금 목록이 쓰지 않는 표지를 지웁니다
-- 실패한 표지는 다음에 목록이 바뀔 때 다시 받습니다(목록이 같은 주에는 다시 받지 않음)
+- **사이클 26부터(ADR-0163, ADR-0164) 모든 줄 표지는 CloudFront 주소입니다**: 우리 책이 맞춰진 줄은 그 판의 표지(`catalog.book_cover`) → 같은 작품 다른 판의 표지(최신 판, 같으면 소장 많은 판) → 목록 그림 `https://d1bdzw8sfjph5d.cloudfront.net/covers/<sha1(cover_source)>.jpg` 차례, 우리 책이 없는 줄은 목록 그림. 사서추천 줄도 같은 규칙입니다. 사서추천 표지도 PC가 S3에 올립니다(서버는 그림을 받지 않음). 그림을 S3에 올리는 법은 [8-covers.md](8-covers.md).
+- 사이클 26 배포 2(v1.20.6, `picks/007-drop-moved-tables.yaml`)부터 없음: 서버가 사서추천 표지를 받아 줄이던 단계(`FetchJob` 표지 단계, `CoverResizer`, 표 `picks.cover`), `GET /api/v1/picks/covers/{coverId}`, nginx `location /covers/`와 compose 볼륨 `/srv/chaekcheck/covers:/srv/covers`.
 - TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인(공식 문서 / 문의 정보기술기반과 02-590-0727)
 
 ### 권리자가 표지를 내려 달라고 할 때
@@ -73,12 +65,11 @@ FROM picks.fetch_run ORDER BY started_at DESC LIMIT 10;
 ```sql
 -- 1) 그 책의 표지 주소 찾기 (ISBN 또는 제목)
 SELECT list_key, source_no, isbn13, title, cover_source FROM picks.list_book WHERE isbn13 = '<ISBN>';
--- 2) 목록에서 주소를 비우고 표지를 지움 (한 트랜잭션)
-BEGIN;
+-- 2) 목록에서 주소를 비움
 UPDATE picks.list_book SET cover_source = NULL WHERE cover_source = '<cover_source>';
-DELETE FROM picks.cover WHERE source_url = '<cover_source>';
-COMMIT;
 ```
+
+- `picks.cover`는 사이클 26 배포 2(v1.20.6)부터 없어 `DELETE` 줄이 없습니다. S3의 `covers/<sha1(cover_source)>.jpg`는 남습니다(PC 업로드 키에는 지우기 권한이 없음, [8-covers.md](8-covers.md) 1절). 우리 책이 맞춰진 줄은 4절 차례대로 판 표지(`catalog.book_cover`)가 보입니다
 
 - 공용 캐시가 10분 안에 새로 고쳐져 화면에서 사라집니다. 브라우저는 표지를 30일 저장(`immutable`)하므로 이미 본 사람에게는 남아 있을 수 있습니다
 - 이동진·서울대 목록의 표지는 다음 가져오기 반영 때 다시 들어옵니다. 그 책의 `scripts/crawl/lists/*.tsv` 줄에서 `cover_url`을 비우고 `covers/`의 파일을 지운 뒤 커밋해야 다시 들어오지 않습니다(6절)
@@ -244,7 +235,7 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 ## 10. AI 책 찾기와 맞추기 (사이클 24, 후속 작업 24-F1)
 
 - AI 책 찾기(`aisearch`)는 추천도서 목록 책을 `picks`의 공개 API `ListedBooks`로 읽습니다. 저자는 캐시에 없어서 이미 맞춘 `bookId`로 우리 책의 `catalog.book.author_display`를 따로 읽습니다(사용자 2026-10-24 "우리 쪽 db랑 싱크가 맞춰야 하니까").
-- 낱말 맞추기는 `aisearch.search_book` **사본**(목록 책 전부와 보유 도서관 많은 10만 권 판의 제목·저자 + 찾기용 한 줄, [6-aisearch.md](6-aisearch.md) 9절)에서 합니다. 사본은 `book-texts` 넣기 명령을 돌릴 때만 바뀝니다. 그래서 **아래 일 뒤에는 `book-texts`를 다시 돌려야** 새 책이 AI 찾기에 나오고 제목·저자가 맞습니다(운영 넣기는 `book-texts-top-books=100000`, 6-aisearch.md 3절).
+- 낱말 맞추기는 `catalog.book_search` **사본**(목록 책 전부와 보유 도서관 많은 10만 권 판의 찾기 글(제목·저자는 넣을 때 `catalog.book`에서) + 찾기용 한 줄, [6-aisearch.md](6-aisearch.md) 9절)에서 합니다. 사본은 `book-texts` 넣기 명령을 돌릴 때만 바뀝니다. 그래서 **아래 일 뒤에는 `book-texts`를 다시 돌려야** 새 책이 AI 찾기에 나오고 제목·저자가 맞습니다(운영 넣기는 `book-texts-top-books=100000`, 6-aisearch.md 3절).
   - 가져오기 바꿔 끼우기([3-import.md](3-import.md) 8·13절), 목록만 넣기(`lists` 모드, 3-import.md 14절), 사서추천도서 월 받기(2절), 책 맞춤 규칙 변경(5절)
   - 돌리는 법: [6-aisearch.md](6-aisearch.md)
 - **후속 작업 24-F1**(`docs/plan-feedback.md` `# 사이클 24` "후속 작업 24-F1"): 사이클 23을 합치거나 맞춤을 고칠 때, 캐시가 우리 책 저자를 직접 들게 하고 따로 읽기를 없앰. 사본을 맞추는 방법(자동 / 경고 / 손으로)은 사용자 결정. 코드에서는 `TODO(24-F1)`을 찾으면 됩니다.

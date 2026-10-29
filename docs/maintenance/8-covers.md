@@ -47,6 +47,7 @@
 |---|---|---|
 | 2026-10-28 | 버킷·CloudFront·IAM 만들기(사이클 26 1단계, `scripts/covers/setup-aws.ps1`, 관리자 단기 자격 `aws login --profile chaekcheck-admin`) | 위 1절 값. CloudFront 주소 200, S3 직접 403, 업로드 키로 읽기 403 |
 | 2026-10-28 | 운영 `/srv/chaekcheck/covers` 81,451장(tar로 PC에 받음, 976MB) + `picks.cover` 108장(`scripts/covers/extract_picks_covers.py`, `sha1(source_url).jpg`) | S3 81,559개, 915MB, 오류 0, 44분. 운영 `foryou.book_cover` 이름 80,078개·목록 그림 2,580개 모두 있음 |
+| 2026-10-29 | 사이클 26 배포 2(v1.20.6, 커밋 48ede47a): nginx `location /covers/`, compose 볼륨 `/srv/chaekcheck/covers:/srv/covers`, `GET /api/v1/picks/covers/{coverId}`, 서버의 목록 표지 받기(`CoverResizer`, `picks.cover`)를 지움 | 운영 `/srv/chaekcheck/covers`(81,451장, 모두 S3에 있음을 확인)는 쓰지 않음. 지우기는 사용자가 정함(아직 안 지움). `catalog.book_cover` 1,145,754행(11단계, 2026-10-29) |
 
 ## 5. 처음부터 다시 만들 때 (버킷이 없어진 경우만)
 

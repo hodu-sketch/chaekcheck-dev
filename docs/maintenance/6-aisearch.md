@@ -8,8 +8,8 @@
 > - ML 모델을 어떻게 학습했나 → [../aisearch/3-ml-models.md](../aisearch/3-ml-models.md)
 > - 실험 숫자의 자세한 방법 → [../aisearch/4-portfolio.md](../aisearch/4-portfolio.md)와 [../aisearch/reports/](../aisearch/reports/)
 
-- AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `aisearch.search_book`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, 2026-10-26 21:59~, CHANGELOG는 v1.17.0 줄, 9절)입니다. 이 표는 `book-texts` 명령으로만 바뀝니다.
-- **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). `aisearch.search_book`은 배포 2에서 지웁니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
+- AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `catalog.book_search`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, 2026-10-26 21:59~, CHANGELOG는 v1.17.0 줄, 9절)입니다. 이 표는 `book-texts` 명령으로만 바뀝니다.
+- **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). 옛 `aisearch.search_book`은 사이클 26 배포 2(v1.20.6, `aisearch/005-drop-search-book.yaml`)에서 지웠습니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
 ## 0. 지금 운영 (2026-10-28, v1.19.0)
@@ -68,7 +68,7 @@ SELECT count(*) AS books, count(line) AS with_line,
        count(*) FILTER (WHERE line_source = 'intro') AS intro,
        count(*) FILTER (WHERE line_source = 'bibliographic') AS bibliographic,
        max(imported_at) AS imported_at
-FROM aisearch.search_book;
+FROM catalog.book_search;
 ```
 
 - `books`가 로그의 `stored`와 같은지(운영 2026-10-27 76,759), `with_line`이 기대한 수인지 봅니다
@@ -77,13 +77,13 @@ FROM aisearch.search_book;
 ## 5. 되돌리기
 
 - 앞 TSV로 다시 돌리면 그때 상태로 돌아갑니다(표 전체를 바꿔 끼우므로)
-- 모듈 전체를 거둘 때: `DROP SCHEMA aisearch CASCADE`와 Liquibase 기록(`aisearch-001-*` ~ `aisearch-004-*`) 정리. 다른 표·모드에는 영향 없음
+- 모듈 전체를 거둘 때: `DROP SCHEMA aisearch CASCADE`와 Liquibase 기록(`aisearch-001-*` ~ `aisearch-005-*`) 정리. 찾기 표 `catalog.book_search`는 사이클 26부터 `catalog`에 있어 이것으로 지워지지 않음
 
 ## 6. 보유 도서관 많은 3만 권 (2026-10-25)
 
 - 사용자 요청 "ai검색 되는 도서를 보유량 많은 3만 권 기준으로도 같은 흐름으로 되게끔". 정한 것(사용자 선택, `plan-feedback.md` `# AI 검색 3만 권`): 목록 책과 **한 풀, 구분 없음**(점수 → 계획 도서관 수 → 번호), 3만 권 찾기용 한 줄은 **PC에서 하위 에이전트(Haiku)로**, 표지는 **사이클 23 표지를 합친 뒤**(그 전까지 3만 권 카드는 표지·AI 요약 없음), 보유 도서관은 **넣기 때 사본에**
 - 고르는 기준: `catalog.book ORDER BY cardinality(library_ids) DESC, id LIMIT 30000` — 사이클 23 3만 권 풀(`scripts/crawl/probe_embeddings.py`)과 같은 식
-- 서버: `aisearch.search_book.library_ids`(changeset `aisearch-003`)로 계획 도서관 수를 SQL에서 셈(`CandidateQuery`). 제목·저자는 서버 메모리 사본(`SearchBooks`, 표가 바뀌면 1분 안에 다시 읽음)
+- 서버: `catalog.book_search.library_ids`(처음 changeset `aisearch-003`, 사이클 26부터 `catalog`)로 계획 도서관 수를 SQL에서 셈(`CandidateQuery`). 제목·저자는 서버 메모리 사본(`SearchBooks`, 표가 바뀌면 1분 안에 다시 읽음)
 - **changeset을 올린 직후 `book-texts`를 다시 돌려야** 합니다. 그 전 줄은 `library_ids`가 빈 배열이라 아무 책도 맞지 않습니다(AI 검색 답이 늘 "못 찾았어요"). v1.12.0 배포 때 실제로 약 1분 30초 그랬습니다: 넣기 파일을 배포 전에 서버에 올려 두고, 버전 주소가 새 버전을 보이자마자 넣기를 돌립니다
 - 한 줄 파일 만들기(PC, 원문은 PC 밖으로 안 나감): 대상 `chaekcheck-data\aisearch\pool-targets-2026-10-25.tsv`(번호·제목·저자·출판사), 소개 `chaekcheck-data\ml\intro-books.tsv`(사이클 23 시험이 수집 DB에서 뽑은 것). `scripts/aisearch/agent_search_lines.py split`으로 150권씩 묶고, Claude Code 세션에서 Haiku 하위 에이전트가 묶음마다 `RULES.md`대로 `out-NNN.tsv`를 쓰고, `join`으로 검사해 합침(규칙 파일 `chaekcheck-data\aisearch\agent-chunks\RULES.md`: 25줄씩 읽기, 소개가 비면 `-`). 처음 506권은 API 바로 호출(`make_search_lines.py`)로 만들었고 같은 지시문. 2026-10-25 결과 25,187권에 한 줄, 넣기 파일 `chaekcheck-data\aisearch\book-texts-30k-2026-10-25.tsv`(27,098줄). 합친 뒤 묶음마다 줄 수와 첫 칸이 책 번호인지 꼭 확인(한 묶음이 줄 번호를 쓴 적 있음)
 - 운영 넣기 파일 = 목록 책 임시 한 줄(`data/aisearch/search-lines-temp-2026-10-25.tsv`) + 3만 권 한 줄. 내 PC DB와 운영 DB의 책 번호가 같음(가져오기 14번, 2026-10-25 확인: 목록 책 1,911권 전부, 3만 권 무작위 40권 제목 일치). 수집을 반영해 번호가 바뀌면 다시 만듦
@@ -184,7 +184,7 @@ FROM aisearch.search_book;
 | 파일 | 내용 |
 |---|---|
 | `aisearch\100k\book-texts-100k-exclude-2026-10-26.tsv` | AI 검색 넣기 파일 100,531줄 = 30k 파일 30,939줄 그대로 + 새 `search_line` 49,532 + 새 `search_exclude` 20,060. 넣을 때 `--chaekcheck.collection.import.book-texts-top-books=100000` |
-| `ml\foryou\book-texts-for_you_blurb-100k.tsv` | 새 AI 요약 43,227권(`foryou.book_blurb`에 없던 책만). [7-foryou.md](7-foryou.md) 2-2절로 넣음 |
+| `ml\foryou\book-texts-for_you_blurb-100k.tsv` | 새 AI 요약 43,227권(그때 `foryou.book_blurb`에 없던 책만, 사이클 26부터 요약은 `catalog.book_summary`). [7-foryou.md](7-foryou.md) 2-2절로 넣음 |
 | `aisearch\100k\book-profiles.tsv` | 1차 ML용 프로필 77,551권(기존 27,227 + 새 50,324, `export_first_call.py` 형식) |
 | `aisearch\100k\book-vectors.bin` | 10만 권 책 벡터(7절 형식). 운영 백엔드가 힙에 통째로 읽음. 운영 반영(v1.17.0, 2026-10-26 21:59) |
 | `aisearch\100k\targets.tsv`, `left-out-no-intro.tsv`, `bands.json`, `report.json`, `dropped-*.tsv` | 대상, 뺀 책, 구간별 소개·표지 수, 배치 결과 |

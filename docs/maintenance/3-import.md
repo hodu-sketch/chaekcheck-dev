@@ -279,14 +279,12 @@ COMMIT;
 
 떠 있는 백엔드와 **같은 판의 이미지**를 한 번만 도는 컨테이너로 돌립니다(그 판의 Liquibase가 먼저 돌지만 이미 적용돼 할 일 없음). 이미지의 jar에는 SQLite 드라이버가 없지만 이 모드는 수집 사본을 열지 않습니다(14-3에서 jar로 확인).
 
-1. 내 PC(Git Bash, 저장소 맨 위): 목록 폴더(표지 `covers/` 포함)를 서버로 옮김
+1. 내 PC(Git Bash, 저장소 맨 위): 목록 폴더를 서버로 옮김
 
         ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'rm -rf /srv/chaekcheck/lists'
         scp -i .secrets/chaekcheck-key.pem -r scripts/crawl/lists ubuntu@52.64.117.112:/srv/chaekcheck/lists
 
-   그리고 표지를 nginx가 보내는 고정 폴더로 복사합니다(2026-10-20부터, 사용자 "이미지 말이야 자바가 아니라 앞에 있어야 하는 거 아니야?", 안 A). 표지는 DB(`picks.cover`)·반영 파일에 싣지 않고, nginx가 `/srv/chaekcheck/covers`(compose `web`의 볼륨 `/srv/covers`)를 `/covers/<sha1(url)>.jpg`로 보냅니다. 지운 줄의 옛 표지 파일은 남아도 됩니다(화면이 부르지 않음). `lists` 폴더는 위에서 지웠다 다시 만들기 때문에 볼륨으로 쓰지 않습니다(지우면 컨테이너가 지워진 폴더를 계속 봄).
-
-        ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'mkdir -p /srv/chaekcheck/covers && cp -a /srv/chaekcheck/lists/covers/. /srv/chaekcheck/covers/'
+   목록 그림(`scripts/crawl/lists/covers/`)은 서버로 복사하지 않습니다. 새 그림은 PC가 S3에 `covers/<sha1(cover_source)>.jpg`로 올립니다([8-covers.md](8-covers.md) 2절). 서버의 `/srv/chaekcheck/covers` 복사와 nginx `/covers/`는 사이클 26 배포 2(v1.20.6)부터 없음.
 
 2. 서버(`/srv/chaekcheck`): `secrets.env`의 `DB_PASSWORD`를 괄호 안 셸에서만 읽어 넘김. `secrets.env`는 값이 작은따옴표로 싸여 있어(`up.sh`) `docker run --env-file`로 주면 따옴표까지 값이 되므로 쓰지 않습니다. `prod.env`(로그인·이용 기록 켜기)는 이 모드에 필요 없습니다(`collection-import`가 로그인을 끔). DB 주소·이름·사용자는 `compose.yaml`의 `backend`와 같습니다. `<판>` = `compose.yaml`의 `backend` `image:` 판
 

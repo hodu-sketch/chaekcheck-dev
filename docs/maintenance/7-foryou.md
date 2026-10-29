@@ -1,7 +1,7 @@
 # 「나에게 맞는 책」 새벽 만들기와 넣기 (사이클 23)
 
 - 기준: plan `docs/cycles/23-for-you-picks/handoff.md`, `design-delta.md`(ADR-0147·0148·0149). 설정 값은 [settings-index.md](settings-index.md) "사이클 23" 줄.
-- 모듈 `foryou`(`backend/src/main/java/com/chaekcheck/foryou/`), 스키마 `foryou`, 꼬리표·사전은 `picks.tag_dictionary`·`picks.book_tag`.
+- 모듈 `foryou`(`backend/src/main/java/com/chaekcheck/foryou/`), 스키마 `foryou`, 꼬리표·사전은 `catalog.tag_dictionary`·`catalog.book_tag`(사이클 26부터).
 
 ## 0. 지금 운영 (2026-10-28)
 
@@ -9,7 +9,7 @@
 - **새벽 만들기는 운영에서 꺼져 있음**(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`): 기본 목록은 추천목록 책을 보유 도서관 많은 순으로(아래 1절은 켤 때의 설명)
 - 개인 추천 순서: 이웃 순위대로 기준 책을 돌아가며(`SimilarOrder.byCloseness`, v1.15.1). 새벽 점수로 다시 줄 세우지 않음
 - 자료(2026-10-26 10만 권 판, 가져오기 14번 export d09d649f): `book_neighbour` 81,080행 · `book_cover` 80,091 · `book_blurb` 68,414. 계산·넣기는 2절, PC 파일은 데이터 폴더 `ml/foryou-100k/`
-- AI 검색도 같은 이웃 표를 씀(`BookNeighbours`, 「○○ 같은 책」·이어 묻기). 이웃 표 범위를 바꾸면 AI 검색 범위(`aisearch.search_book`)와 맞출 것 — 안 맞추면 AI 검색이 쓸 수 있는 이웃이 줄어듦(2026-10-26: 19.85 → 9.47권)
+- AI 검색도 같은 이웃 표를 씀(`BookNeighbours`, 「○○ 같은 책」·이어 묻기). 이웃 표 범위를 바꾸면 AI 검색 범위(`catalog.book_search`)와 맞출 것 — 안 맞추면 AI 검색이 쓸 수 있는 이웃이 줄어듦(2026-10-26: 19.85 → 9.47권)
 - 사이클 26에서 요약·표지·꼬리표가 `catalog`로 옮겨 감(plan `docs/cycles/26-book-descriptions/`)
 
 ## 1. 새벽 만들기 (자동)
@@ -67,7 +67,7 @@ ORDER BY platform_type, name;
 
 - 파일 [안]: 머리줄 `code<TAB>axis<TAB>name<TAB>thema_code`, 한 줄에 꼬리표 하나. `code`는 영문·숫자·`_` 1~20자, `axis`는 `mood`·`subject`·`audience`, `name`은 비울 수 없음, `thema_code`는 비우면 없음(NULL). 같은 코드 두 줄은 거부
 - 파일이 사전 전체입니다: 파일에 없는 코드는 `active=false`(지우지 않음, 이미 붙은 꼬리표는 남고 카드에는 안 나옴). **줄이 없는 파일은 거부**(모든 코드를 끄지 않게)
-- 로그: `tag-dictionary: codes N, made inactive M`. M > 0이면 WARN 한 줄. 꺼진 코드 보기: `SELECT code, name FROM picks.tag_dictionary WHERE NOT active ORDER BY code;`
+- 로그: `tag-dictionary: codes N, made inactive M`. M > 0이면 WARN 한 줄. 꺼진 코드 보기: `SELECT code, name FROM catalog.tag_dictionary WHERE NOT active ORDER BY code;`
 
 ### 2-2. 탭 글·꼬리표·표지 (`book-texts`의 kind)
 
@@ -80,9 +80,9 @@ ORDER BY platform_type, name;
 - 파일은 [6-aisearch.md](6-aisearch.md) 2절과 같은 `kind<TAB>book_id<TAB>source<TAB>made_on<TAB>text`. 사이클 23 kind:
   - `for_you_blurb`: `text` 1~300자(PC는 80~150자, R8-4), `made_on` 날짜. 그 책의 글을 덮어씀(upsert)
   - `tags`: `text` = 코드 쉼표 목록(앞뒤 빈칸은 떼고 중복은 하나로, 비우면 그 책의 꼬리표를 모두 뗌), `made_on` 날짜. 그 책의 꼬리표를 통째로 바꿈. 사전에 없는 코드는 건너뛰고 수를 셈(WARN)
-  - `cover_file`: `text` = 표지 파일 sha1(소문자 16진 40자), `made_on`은 읽지 않음(비워도 됨). 파일은 운영 `/srv/chaekcheck/covers/<sha1>.jpg`에 먼저 둠(nginx `^/covers/[0-9a-f]{40}\.jpg$`가 이미 보냄)
+  - `cover_file`: `text` = 표지 파일 sha1(소문자 16진 40자), `made_on`은 읽지 않음(비워도 됨). 그림은 PC가 S3 `covers/<sha1>.jpg`에 먼저 올림(CloudFront `https://d1bdzw8sfjph5d.cloudfront.net/covers/<sha1>.jpg`, [8-covers.md](8-covers.md)). 운영 `/srv/chaekcheck/covers`는 쓰지 않음
   - 세 kind는 `source`를 읽지 않습니다(비워도 됨). 한 책에 kind마다 한 줄
-- `search_line`은 사이클 24 그대로입니다. 단, **`search_line` 없이 사이클 23 kind만 있는 파일은 AI 찾기 표(`aisearch.search_book`)를 건드리지 않고 목록 책도 읽지 않습니다**(사이클 24 규칙대로라면 한 줄이 든 표에서 거부되거나, 비어 있으면 목록 책만 다시 넣음). `search_line`이 한 줄이라도 있으면 사이클 24와 같이 목록 책 전부를 바꿔 넣습니다
+- `search_line`은 사이클 24 그대로입니다. 단, **`search_line` 없이 사이클 23 kind만 있는 파일은 AI 찾기 표(`catalog.book_search`)를 건드리지 않고 목록 책도 읽지 않습니다**(사이클 24 규칙대로라면 한 줄이 든 표에서 거부되거나, 비어 있으면 목록 책만 다시 넣음). `search_line`이 한 줄이라도 있으면 사이클 24와 같이 목록 책 전부를 바꿔 넣습니다
 - 한 파일의 모든 kind를 한 트랜잭션에서 넣습니다(하나가 실패하면 모두 그대로)
 - 로그: 사이클 24 줄(또는 `no search line: the AI search's books were left as they are`) 다음에 `book-texts for you: blurbs N, books with tags replaced N, tag codes not in the dictionary N, covers N`
 
