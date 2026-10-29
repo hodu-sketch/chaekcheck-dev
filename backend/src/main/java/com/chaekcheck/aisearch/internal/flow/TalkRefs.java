@@ -5,7 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 /**
  * Words that point at the dialogue rather than name a book topic (plan decision 2026-10-29, A–E, user 「dev 24에 바로」):
@@ -39,7 +41,21 @@ final class TalkRefs {
 	}
 
 	private static final Pattern BACK = Pattern.compile(
-			"(아까|처음|앞에서|앞서|전에|먼저)\\S*\\s*.*(말한|말했|이야기|얘기|물어본|물어봤|물었|그거|그 거|다시|거잖|건데)");
+			"(아까|처음|앞에서|앞서|전에|먼저)\\S*\\s*.*(말한|말했|이야기|얘기|물어본|물어봤|물었|그거|그 거|다시|거잖|건데)"
+					// 「뇌과학 말한거」, 「역사랑 과학 했던거」 without 아까 (user 2026-10-29, the rude test sentences)
+					+ "|(말한|말했던|얘기한|얘기했던|이야기한|이야기했던|물어본|물어봤던|했던)\\s*(거|것|걸|책|주제)");
+
+	/** 「앞에 둘」, 「처음 두 개」: the first two topics. */
+	private static final Pattern FIRST_TWO = Pattern.compile("(앞에?|처음)\\s*(둘|두\\s*개)");
+
+	/** 「전부」, 「다 같이」, 「셋 다」: all the topics. */
+	private static final Pattern ALL = Pattern.compile("전부|모두|다\\s*같이|다\\s*합|셋\\s*다|싹\\s*다");
+
+	/** Order words and the topic each picks (-1 the last). */
+	private static final List<Map.Entry<Pattern, Integer>> ORDER = List.of(
+			Map.entry(Pattern.compile("(맨\\s*)?(처음|첫\\s*번째|첫번째|첫\\s*거|1번)"), 0),
+			Map.entry(Pattern.compile("두\\s*번째|둘째|2번"), 1), Map.entry(Pattern.compile("세\\s*번째|셋째|3번"), 2),
+			Map.entry(Pattern.compile("(맨\\s*)?(끝|마지막)"), -1));
 
 	private static final Pattern NOT_THAT = Pattern.compile("(그거|이거|저거|그것|이것|그런\\s*거|그런\\s*것|그게|그건|둘\\s*다)\\s*"
 			+ "(말고|아니|아냐|아님)|말고\\s*다른|^\\s*(아니|아뇨|아니요)(\\s|$|아니)|다른\\s*거|딴\\s*거");
@@ -155,13 +171,53 @@ final class TalkRefs {
 	 * for 「처음」, else the only one before the current topic; null when that is not known.
 	 * @param topics the dialogue's topics so far, oldest first, the current one last
 	 */
-	static String back(Ref ref, List<String> topics) {
-		for (String word : ref.rest()) {
-			for (String topic : topics) {
-				if (topic.toLowerCase(Locale.ROOT).contains(word)) {
-					return topic;
+	/**
+	 * The topics order words pick (「처음 거랑 끝에거」 → the first and the last, 「앞에 둘」, 「전부」), in order; empty when
+	 * the question has none. The topics it names besides are the question vector's (AiSearchFlow).
+	 */
+	static List<Integer> ordered(String question, int topics) {
+		if (topics == 0) {
+			return List.of();
+		}
+		if (ALL.matcher(question).find()) {
+			return IntStream.range(0, topics).boxed().toList();
+		}
+		if (FIRST_TWO.matcher(question).find()) {
+			return topics >= 2 ? List.of(0, 1) : List.of(0);
+		}
+		TreeSet<Integer> picked = new TreeSet<>();
+		for (Map.Entry<Pattern, Integer> order : ORDER) {
+			if (order.getKey().matcher(question).find()) {
+				int i = order.getValue() < 0 ? topics - 1 : order.getValue();
+				if (i < topics) {
+					picked.add(i);
 				}
 			}
+		}
+		return List.copyOf(picked);
+	}
+
+	/** The question without its order words, for the topics it names besides. */
+	static String withoutOrder(String question) {
+		String rest = question;
+		for (Map.Entry<Pattern, Integer> order : ORDER) {
+			rest = order.getKey().matcher(rest).replaceAll(" ");
+		}
+		return rest.strip();
+	}
+
+	static String back(Ref ref, List<String> topics) {
+		// every topic a word names, joined oldest first: 「최신책 아까 세계역사나 뭐 이런 것들」 names two, and the first
+		// alone (「최신책」) lost the history (user 2026-10-29, production 20:55)
+		List<String> named = new ArrayList<>();
+		for (String topic : topics) {
+			String lower = topic.toLowerCase(Locale.ROOT);
+			if (ref.rest().stream().anyMatch(lower::contains)) {
+				named.add(topic);
+			}
+		}
+		if (!named.isEmpty()) {
+			return String.join(" ", named);
 		}
 		if (ref.first() && !topics.isEmpty()) {
 			return topics.getFirst();

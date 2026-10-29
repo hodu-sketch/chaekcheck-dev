@@ -51,11 +51,16 @@ public class SearchBooks {
 	 * @param author the stored author text, or null
 	 * @param titleKey {@link SearchText#letters} of the title, made once when read
 	 * @param authorKey {@link SearchText#letters} of the author
+	 * @param year the publish year, or null (user 2026-10-29: 「최신」 puts recent vector candidates first)
 	 */
-	public record SearchBook(long bookId, String title, String author, String titleKey, String authorKey) {
+	public record SearchBook(long bookId, String title, String author, String titleKey, String authorKey, Integer year) {
 
 		public SearchBook(long bookId, String title, String author) {
-			this(bookId, title, author, SearchText.letters(title), SearchText.letters(author));
+			this(bookId, title, author, null);
+		}
+
+		public SearchBook(long bookId, String title, String author, Integer year) {
+			this(bookId, title, author, SearchText.letters(title), SearchText.letters(author), year);
 		}
 
 	}
@@ -102,7 +107,7 @@ public class SearchBooks {
 	private Loaded read(String version) {
 		List<SearchBook> books = new ArrayList<>();
 		for (AiSearchIndex.SearchBook book : index.books()) {
-			books.add(new SearchBook(book.bookId(), book.title(), book.author()));
+			books.add(new SearchBook(book.bookId(), book.title(), book.author(), book.publishedYear()));
 		}
 		Map<Long, SearchBook> byId = new HashMap<>(books.size() * 2);
 		for (SearchBook book : books) {

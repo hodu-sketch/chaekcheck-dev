@@ -89,6 +89,10 @@
 | 되묻기 고를 답 | 4개 / 40자 | 코드 상수 (`AiSearchFlow.MAX_ASK_CHOICES` / `MAX_ASK_CHOICE_CHARS`) | — | `AiSearchController.MAX_ASK_CHOICES`(앞 대화로 받는 고를 답 4개), 웹 되묻기 버튼 | 2~4개 버튼(목업) [안] | 사용자 2026-10-26 목업 | 서비스 |
 | 「후보 분야」 줄을 붙이는 짧은 질문 | 2낱말 이하 | 코드 상수 (`AiSearchFlow.SHORT_QUESTION_WORDS`) | — | `MlFirstCall.shelfCounts`(많은 순 6개, `Prompts.MAX_SHELVES`) | 되묻기가 켜 있을 때 짧은 질문의 2차에 후보 30권의 큰 분야 수를 줌(v1.18.0) [안] | 사용자 2026-10-27, `6-aisearch.md` 10-1절 | 서비스 |
 | 되묻기 형식을 쓰는 첫 질문 | 4낱말 이하(이어지는 질문은 늘) | 코드 상수 (`AiSearchFlow.ASK_QUESTION_WORDS`) | — | — | 5낱말 이상 첫 질문은 되묻기 칸 없는 형식으로 바로 답(첫 글 시간, v1.19.0) [안] | 사용자 2026-10-27, `6-aisearch.md` 12절 | 서비스 |
+| 「최신」이 닿는 해 | 올해와 그 앞 3년(2026년이면 2023~) | 코드 상수 (`Recency.YEARS`) | — | `Prompts`의 대화 메모 문구(`AiSearchFlow.withRecency`) | 「최신·요즘·신간」이 새로 나온 책을 뜻하면 이 해부터 먼저 [안] | 사용자 2026-10-29 「최근 3년 책만 남기거나, 최근 책을 먼저」 | 서비스 |
+| 가까운 책을 읽는 폭 / 최신을 앞당기는 폭 | 벡터 깊이 × 10(600권) / × 4(240권) | 코드 상수 (`AiSearchFlow.NEAREST_POOL` / `RECENT_WINDOW`) | — | `vector-depth` | 최신이면 가까운 240권 안에서 최근 책을 앞으로(더 멀면 주제에서 벗어남, 로컬 재연 「요새꺼」). 「A나 B」는 600 ÷ 주제 수권씩 [안] | 사용자 2026-10-29, [follow-ups 보고서](../aisearch/reports/2026-10-29-follow-ups.md) 6·7절 | 서비스 |
+| 조건 말 이어 묻기 | 2낱말 이하 | 코드 상수 (`AiSearchFlow.CONDITION_WORDS`, 말 목록 `CONDITION`) | — | — | 대화 중 「최신책」·「짧은 거」는 앞 주제를 이어 감 [안] | 사용자 2026-10-29 | 서비스 |
+| 이어 묻기 벡터 판단 | 가까운 예시 5개 / 앞 주제 0.3 이상 / 기다림 1.5초 | 코드 상수 (`IntentVectors.K` / `AiSearchFlow.BACK_TOPIC_FLOOR` / `INTENT_WAIT`), 예시 `resources/aisearch/intent-examples.tsv` | — | `scripts/aisearch/eval/intent_compare.py`·`intent_mixed.py`(같은 값으로 잼) | 「최신」·「다 같이」의 뜻, 「아까」가 가리킨 주제. 벡터가 없거나 늦으면 규칙만 [안] | 같음 | 서비스 |
 | 「책 찾기 아님」 예시 질문 | 10개 중 3개 | 코드 상수 (`Prompts.NOT_BOOK_ASK` / `NOT_BOOK_CHOICES`) | — | 되묻기 켜기(`pick.ask-back`) | AI 호출 없이 고정 되묻기와 예시 버튼 3개(문구·예시 [안]) | 사용자 2026-10-26 | 서비스 |
 
 ## 1-2. 임베딩 서버 (`embed-service/src/main/resources/application.yml`)

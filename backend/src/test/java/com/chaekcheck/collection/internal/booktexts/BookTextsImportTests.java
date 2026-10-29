@@ -305,7 +305,7 @@ class BookTextsImportTests {
 
 		@Override
 		public List<Candidate> find(List<String> words, Set<String> coreWords, Set<Long> planLibraries,
-				Set<Long> excluded, int limit) {
+				Set<Long> excluded, int limit, Integer fromYear) {
 			throw new AssertionError();
 		}
 

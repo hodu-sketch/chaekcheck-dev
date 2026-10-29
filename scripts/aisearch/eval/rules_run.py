@@ -58,7 +58,8 @@ def ask(port, log, q, history):
         c['text'] = texts.get(c['bookId'], '')
     return {'q': q, 'firstText': seen, 'wall': round(time.time() - t0, 2), 'result': result, 'head': head, 'cards': cards,
             'ask': asked, 'ms': int(g[1]) if g else None, 'in': int(g[2]) if g else None, 'out': int(g[3]) if g else None,
-            'steps': steps_of(g[4]) if g else {}, 'early': bool(g and 'early keyword' in g[5])}
+            'steps': steps_of(g[4]) if g else {}, 'early': bool(g and 'early keyword' in g[5]),
+            'line': g[-1].split('ai search: ', 1)[-1] if g else None}
 
 
 def steps_of(rest):

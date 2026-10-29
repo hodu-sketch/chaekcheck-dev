@@ -1,0 +1,413 @@
+{
+ "prod-20-54": [
+  {
+   "q": "재밌고 의외인 것이 많은 교양서 알려줘",
+   "result": "ok",
+   "head": "재밌고 의외의 발견이 많은 교양서를 골라 봤어요.",
+   "ask": null,
+   "ms": 5554,
+   "steps": {
+    "encode": 257,
+    "ml": 272,
+    "nearest": 576,
+    "neighbours": 1428,
+    "keyword": 1428,
+    "vector": 1435,
+    "mix": 1438,
+    "cards": 1449,
+    "llm-first": 3609,
+    "llm-done": 5543
+   },
+   "line": "first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, early keyword), cards 4, 5554 ms, tokens 8418/486, steps encode=257 ml=272 nearest=576 neighbours=1428 keyword=1428 vector=1435 mix=1438 cards=1449 llm-first=3609 llm-done=5543",
+   "cards": [
+    "교양의 발견",
+    "편안함의 습격",
+    "고품격 학습교양 100",
+    "교양의 즐거움"
+   ]
+  },
+  {
+   "q": "이거말고 세계역사나 과학사나 좀 더 다양한 분야에서",
+   "result": "ok",
+   "head": "세계사와 과학사 쪽에서 다양한 분야의 교양서를 골라 봤어요.",
+   "ask": null,
+   "ms": 6102,
+   "steps": {
+    "encode": 171,
+    "ml": 194,
+    "nearest": 476,
+    "neighbours": 480,
+    "keyword": 532,
+    "vector": 1125,
+    "mix": 1125,
+    "cards": 1129,
+    "llm-first": 2565,
+    "llm-done": 6096
+   },
+   "line": "first ml BOOK shift, keyword OK, pick OK, candidates 30 (vector 60), cards 8, 6102 ms, tokens 9680/1030, parts 2, steps encode=171 ml=194 nearest=476 neighbours=480 keyword=532 vector=1125 mix=1125 cards=1129 llm-first=2565 llm-done=6096",
+   "cards": [
+    "최소한의 세계사",
+    "궁금해서 밤새 읽는 세계사",
+    "통세계사. 1: 인류탄생에서 중세시대까지",
+    "통세계사. 2: 중세 이후부터 현대까지",
+    "비교 세계사",
+    "인문학으로 읽는 과학사 이야기",
+    "인물 과학사. 1: 한국의 과학자들",
+    "인물 과학사. 2: 세계의 과학자들"
+   ]
+  },
+  {
+   "q": "최신책",
+   "result": "ok",
+   "head": "최근에 나온 세계사 책을 골라 봤어요.",
+   "ask": null,
+   "ms": 3205,
+   "steps": {
+    "encode": 133,
+    "ml": 148,
+    "nearest": 419,
+    "neighbours": 420,
+    "keyword": 660,
+    "vector": 665,
+    "mix": 667,
+    "cards": 680,
+    "llm-first": 1380,
+    "llm-done": 3199
+   },
+   "line": "first ml BOOK new joined, keyword OK, pick OK, candidates 30 (vector 60), cards 6, 3205 ms, tokens 10000/551, from 2023, steps encode=133 ml=148 nearest=419 neighbours=420 keyword=660 vector=665 mix=667 cards=680 llm-first=1380 llm-done=3199",
+   "cards": [
+    "이 정도만 알면 되는 세계사",
+    "한번 시작하면 잠들 수 없는 세계사",
+    "로빈의 다시 쓰는 세계사",
+    "500명의 인물로 읽는 세계사",
+    "말도 안 돼 세계사",
+    "한국인을 위한 하룻밤에 읽는 세계사"
+   ]
+  },
+  {
+   "q": "아니 최신책 아까 세계역사나 뭐 이런 것들 이야기했자나",
+   "result": "ok",
+   "head": "세계사와 과학사 쪽으로 돌아와서, 2023년 이후에 나온 최신 책 위주로 골라 봤어요.",
+   "ask": null,
+   "ms": 6380,
+   "steps": {
+    "encode": 210,
+    "ml": 216,
+    "nearest": 504,
+    "neighbours": 509,
+    "keyword": 906,
+    "vector": 1515,
+    "mix": 1515,
+    "cards": 1519,
+    "llm-first": 3583,
+    "llm-done": 6375
+   },
+   "line": "first ml REFERS_SHOWN first, keyword OK, pick OK, candidates 30 (vector 60, talk BACK_TO NEVER), cards 8, 6380 ms, tokens 9746/809, from 2023, parts 2, steps encode=210 ml=216 nearest=504 neighbours=509 keyword=906 vector=1515 mix=1515 cards=1519 llm-first=3583 llm-done=6375",
+   "cards": [
+    "최소한의 세계사",
+    "한국인을 위한 하룻밤에 읽는 세계사",
+    "한번 시작하면 잠들 수 없는 세계사",
+    "말도 안 돼 세계사",
+    "과학을 보다 2",
+    "세상의 모든 과학",
+    "인물 과학사. 1: 한국의 과학자들",
+    "100가지 동물로 읽는 세계사"
+   ]
+  },
+  {
+   "q": "아니 왜 못 골라",
+   "result": "asked",
+   "head": "",
+   "ask": {
+    "question": "앞서 드린 목록에서 바로 고르기 어려우셨군요, 죄송해요. 최신 세계사나 과학사 책으로 좁혀서 다시 찾아볼까요?",
+    "choices": [
+     "최근 출간된 세계사 교양서",
+     "최근 출간된 과학사 교양서",
+     "재미있게 읽는 한국 과학자 이야기"
+    ]
+   },
+   "ms": 2853,
+   "steps": {
+    "encode": 140,
+    "ml": 156,
+    "nearest": 438
+   },
+   "line": "first ml NOT_BOOK none, keyword OK, pick SKIPPED, candidates 0 (vector 0), cards 0, 2853 ms, tokens 2026/131, ask chat, steps encode=140 ml=156 nearest=438",
+   "cards": []
+  },
+  {
+   "q": "다 같이 하면 되자나",
+   "result": "ok",
+   "head": "앞서 말한 세계사와 과학사를 함께 다루는 최근 교양서를 찾으시는 것 같아요. 2023년 이후 출간작 가운데 두 주제를 함께 다룬 책이 적어 과학사 쪽 최신작 위주로 골랐어요.",
+   "ask": null,
+   "ms": 5190,
+   "steps": {
+    "encode": 149,
+    "ml": 164,
+    "nearest": 432,
+    "neighbours": 434,
+    "keyword": 695,
+    "vector": 1582,
+    "mix": 1582,
+    "cards": 1590,
+    "llm-first": 2739,
+    "llm-done": 5186
+   },
+   "line": "first ml BOOK new joined, keyword OK, pick OK, candidates 30 (vector 60), cards 5, 5190 ms, tokens 9967/637, from 2023, parts 3, steps encode=149 ml=164 nearest=432 neighbours=434 keyword=695 vector=1582 mix=1582 cards=1590 llm-first=2739 llm-done=5186",
+   "cards": [
+    "과학의 역사",
+    "교양으로 읽는 세계 과학사 지도",
+    "한 권으로 읽는 과학 노벨상",
+    "책을 쓰는 과학자들",
+    "과학 잔혹사"
+   ]
+  },
+  {
+   "q": "아니 시발 다 같이하라고 세계사나 과학사나 왜 이게 안 돼",
+   "result": "ok",
+   "head": "최근에 나온 세계사와 과학사 교양서를 골라 봤어요.",
+   "ask": null,
+   "ms": 4836,
+   "steps": {
+    "encode": 103,
+    "ml": 118,
+    "nearest": 400,
+    "neighbours": 494,
+    "keyword": 897,
+    "vector": 1478,
+    "mix": 1479,
+    "cards": 1485,
+    "llm-first": 2642,
+    "llm-done": 4832
+   },
+   "line": "first ml BOOK shift, keyword OK, pick OK, candidates 30 (vector 60), cards 5, 4836 ms, tokens 11171/597, from 2023, parts 2, steps encode=103 ml=118 nearest=400 neighbours=494 keyword=897 vector=1478 mix=1479 cards=1485 llm-first=2642 llm-done=4832",
+   "cards": [
+    "과학은 반역이다",
+    "세계사를 바꾼 열두 번의 대전환",
+    "세계사 익스프레스",
+    "인생 처음 세계사 수업",
+    "최소한의 과학 공부"
+   ]
+  }
+ ],
+ "typo": [
+  {
+   "q": "세게사 책",
+   "result": "asked",
+   "head": "",
+   "ask": {
+    "question": "세계사 책 중에 어떤 쪽을 찾으시나요?",
+    "choices": [
+     "세계사 상식을 쉽게 풀어 준 입문서",
+     "세계사 속 인물이나 사건을 깊게 다룬 책",
+     "세계사 흐름을 한눈에 정리한 교양서"
+    ]
+   },
+   "ms": 1781,
+   "steps": {
+    "encode": 46,
+    "ml": 52,
+    "nearest": 315,
+    "neighbours": 316,
+    "keyword": 316,
+    "vector": 319,
+    "mix": 320,
+    "cards": 324,
+    "llm-first": 1257,
+    "llm-done": 1776
+   },
+   "line": "first ml BOOK first, keyword OK, pick SKIPPED, candidates 30 (vector 60, early keyword), cards 0, 1781 ms, tokens 9404/141, ask single-ask, steps encode=46 ml=52 nearest=315 neighbours=316 keyword=316 vector=319 mix=320 cards=324 llm-first=1257 llm-done=1776",
+   "cards": []
+  },
+  {
+   "q": "과학싸나 철학",
+   "result": "ok",
+   "head": "과학서와 철학서를 함께 찾으시는 것 같아 두 분야에서 골고루 골랐어요.",
+   "ask": null,
+   "ms": 5064,
+   "steps": {
+    "encode": 92,
+    "ml": 114,
+    "nearest": 406,
+    "neighbours": 407,
+    "keyword": 481,
+    "vector": 1179,
+    "mix": 1180,
+    "cards": 1187,
+    "llm-first": 3161,
+    "llm-done": 5058
+   },
+   "line": "first ml BOOK new joined, keyword OK, pick OK, candidates 30 (vector 60), cards 5, 5064 ms, tokens 8681/460, parts 2, steps encode=92 ml=114 nearest=406 neighbours=407 keyword=481 vector=1179 mix=1180 cards=1187 llm-first=3161 llm-done=5058",
+   "cards": [
+    "철학개론",
+    "5분 뚝딱 철학",
+    "지금 시작하는 철학",
+    "시간은 흐르지 않는다",
+    "과학적 사고로 여는 새로운 세계"
+   ]
+  },
+  {
+   "q": "요새꺼",
+   "result": "ok",
+   "head": "최근에 나온 철학 책 중에서 골라 봤어요.",
+   "ask": null,
+   "ms": 6380,
+   "steps": {
+    "encode": 69,
+    "ml": 84,
+    "nearest": 361,
+    "neighbours": 362,
+    "keyword": 415,
+    "vector": 417,
+    "mix": 418,
+    "cards": 425,
+    "llm-first": 2034,
+    "llm-done": 6376
+   },
+   "line": "first ml BOOK continue joined, keyword OK, pick OK, candidates 30 (vector 60), cards 6, 6380 ms, tokens 9886/745, from 2023, steps encode=69 ml=84 nearest=361 neighbours=362 keyword=415 vector=417 mix=418 cards=425 llm-first=2034 llm-done=6376",
+   "cards": [
+    "마흔에 읽는 비트겐슈타인",
+    "위버멘쉬",
+    "소크라테스는 왜 질문만 했을까",
+    "왜 당신은 다른 사람을 위해 살고 있는가",
+    "마흔에 읽는 쇼펜하우어",
+    "나의 작은 철학"
+   ]
+  },
+  {
+   "q": "아까 세계사 말한거 최신으로",
+   "result": "no_match",
+   "head": "아까 이야기하신 세계사 책으로 돌아가 보니, 고를 만한 최근 책이 없어서 이번에는 과학과 철학 쪽 최근 책을 골라 봤어요.",
+   "ask": null,
+   "ms": 3743,
+   "steps": {
+    "encode": 90,
+    "ml": 96,
+    "nearest": 370,
+    "neighbours": 391,
+    "keyword": 485,
+    "vector": 1061,
+    "mix": 1061,
+    "cards": 1064,
+    "llm-first": 2769,
+    "llm-done": 3739
+   },
+   "line": "first ml BOOK first, keyword OK, pick NO_MATCH, candidates 30 (vector 60, talk BACK_TO NEVER), cards 0, 3743 ms, tokens 9107/180, from 2023, parts 2, steps encode=90 ml=96 nearest=370 neighbours=391 keyword=485 vector=1061 mix=1061 cards=1064 llm-first=2769 llm-done=3739",
+   "cards": []
+  }
+ ],
+ "list": [
+  {
+   "q": "요리 여행 캠핑 다 보여줘",
+   "result": "ok",
+   "head": "요리, 여행, 캠핑 주제에 맞는 책을 골랐어요.",
+   "ask": null,
+   "ms": 6122,
+   "steps": {
+    "encode": 55,
+    "ml": 66,
+    "nearest": 362,
+    "neighbours": 364,
+    "keyword": 530,
+    "vector": 1435,
+    "mix": 1436,
+    "cards": 1439,
+    "llm-first": 2770,
+    "llm-done": 6118
+   },
+   "line": "first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60), cards 8, 6122 ms, tokens 8801/969, parts 3, steps encode=55 ml=66 nearest=362 neighbours=364 keyword=530 vector=1435 mix=1436 cards=1439 llm-first=2770 llm-done=6118",
+   "cards": [
+    "캠핑 가서 잘 먹게 해주세요",
+    "진짜 캠핑 요리",
+    "더 맛있는 캠핑 요리",
+    "1박2일 베이스캠프",
+    "오토캠핑 바이블",
+    "마이 캠핑 레시피 (전면개정판)",
+    "마이 캠핑 레시피",
+    "삼시세끼 캠핑요리"
+   ]
+  },
+  {
+   "q": "최근꺼만",
+   "result": "ok",
+   "head": "최근에 나온 요리·여행·캠핑 책 가운데 질문에 맞는 책을 골랐어요.",
+   "ask": null,
+   "ms": 5477,
+   "steps": {
+    "encode": 89,
+    "ml": 104,
+    "nearest": 376,
+    "neighbours": 421,
+    "keyword": 448,
+    "vector": 451,
+    "mix": 451,
+    "cards": 458,
+    "llm-first": 1664,
+    "llm-done": 5471
+   },
+   "line": "first ml BOOK feedback joined, keyword OK, pick OK, candidates 30 (vector 60), cards 1, 5477 ms, tokens 10270/485, from 2023, steps encode=89 ml=104 nearest=376 neighbours=421 keyword=448 vector=451 mix=451 cards=458 llm-first=1664 llm-done=5471",
+   "cards": [
+    "여행의 기록"
+   ]
+  }
+ ],
+ "mood": [
+  {
+   "q": "요즘 너무 지쳤는데 위로되는 책",
+   "result": "ok",
+   "head": "지치고 힘든 마음에 위로가 되어 줄 책들을 골랐어요.",
+   "ask": null,
+   "ms": 5118,
+   "steps": {
+    "encode": 45,
+    "ml": 55,
+    "nearest": 325,
+    "neighbours": 326,
+    "keyword": 326,
+    "vector": 329,
+    "mix": 329,
+    "cards": 333,
+    "llm-first": 1322,
+    "llm-done": 5112
+   },
+   "line": "first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, early keyword), cards 8, 5118 ms, tokens 8712/842, steps encode=45 ml=55 nearest=325 neighbours=326 keyword=326 vector=329 mix=329 cards=333 llm-first=1322 llm-done=5112",
+   "cards": [
+    "완벽하지 않아도 괜찮아",
+    "걱정하지마 잘될 거야",
+    "생각이 쉬는 사이",
+    "유머와 웃음",
+    "오늘 하루 꽤 나쁘지 않았어",
+    "느긋하게 살았더니 내가 더 좋아졌어요",
+    "새벽 1시 45분, 나의 그림 산책",
+    "지친 그대를 위로합니다"
+   ]
+  },
+  {
+   "q": "짧은 거",
+   "result": "ok",
+   "head": "지친 마음에 짧게 읽을 만한 위로 책을 골랐어요.",
+   "ask": null,
+   "ms": 3871,
+   "steps": {
+    "encode": 75,
+    "ml": 89,
+    "nearest": 320,
+    "neighbours": 344,
+    "keyword": 350,
+    "vector": 353,
+    "mix": 353,
+    "cards": 356,
+    "llm-first": 1716,
+    "llm-done": 3867
+   },
+   "line": "first ml BOOK continue joined, keyword OK, pick OK, candidates 30 (vector 60), cards 5, 3871 ms, tokens 9881/513, steps encode=75 ml=89 nearest=320 neighbours=344 keyword=350 vector=353 mix=353 cards=356 llm-first=1716 llm-done=3867",
+   "cards": [
+    "따뜻한 곡선",
+    "너무 잘하려고 애쓰지 마라",
+    "살아있으니까 귀여워",
+    "조금 지친 하루, 나에게 주는 힐링 손글씨",
+    "하루 한 뼘 위로가 필요한 순간"
+   ]
+  }
+ ]
+}

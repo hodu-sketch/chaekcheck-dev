@@ -23,8 +23,15 @@ public interface AiSearchIndex {
 	/**
 	 * @param title {@code catalog.book.title}
 	 * @param author {@code catalog.book.author_display}, or null
+	 * @param publishedYear the year of {@code catalog.book.published_on}, or null (user 2026-10-29: 「최신」 filters the
+	 * vector candidates by it)
 	 */
-	record SearchBook(long bookId, String title, String author) {
+	record SearchBook(long bookId, String title, String author, Integer publishedYear) {
+
+		public SearchBook(long bookId, String title, String author) {
+			this(bookId, title, author, null);
+		}
+
 	}
 
 	/**
@@ -34,8 +41,17 @@ public interface AiSearchIndex {
 	 * @param words the words to match, already tidied ({@link SearchText#tidy}), each once
 	 * @param coreWords those of {@code words} that count first
 	 */
+	default List<Candidate> find(List<String> words, Set<String> coreWords, Set<Long> planLibraries, Set<Long> excluded,
+			int limit) {
+		return find(words, coreWords, planLibraries, excluded, limit, null);
+	}
+
+	/**
+	 * As {@link #find(List, Set, Set, Set, int)}, among books holding as many words those published in or after
+	 * {@code fromYear} first when it is given (「최신」, user 2026-10-29).
+	 */
 	List<Candidate> find(List<String> words, Set<String> coreWords, Set<Long> planLibraries, Set<Long> excluded,
-			int limit);
+			int limit, Integer fromYear);
 
 	/** How many plan libraries hold each given search book; books held by none (or not stored) are left out. */
 	Map<Long, Integer> planCounts(Collection<Long> bookIds, Set<Long> planLibraries);

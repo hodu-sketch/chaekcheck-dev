@@ -61,7 +61,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 
 	@Override
 	public List<Candidate> find(List<String> words, Set<String> coreWords, Set<Long> planLibraries, Set<Long> excluded,
-			int limit) {
+			int limit, Integer fromYear) {
 		if (words.isEmpty() || planLibraries.isEmpty() || limit < 1) {
 			return List.of();
 		}
@@ -81,19 +81,26 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 		}
 		String coreSum = coreScore.isEmpty() ? "0" : String.join(" + ", coreScore);
 		String planCount = planCountFor(words.size(), planLibraries.size());
+		// recent books first among those holding as many words when asked for (the book's date is joined only then);
+		// before the words, a recent book holding one common word came before the ones holding the topic (2026-10-29)
+		String recent = fromYear == null ? "0"
+				: "(SELECT (b.published_on >= make_date(:from, 1, 1))::int FROM catalog.book b WHERE b.id = s.book_id)";
 		JdbcClient.StatementSpec statement = jdbc.sql("""
 				SELECT book_id, score, plan_count FROM (
-				  SELECT s.book_id, %s AS score, %s AS plan_count, %s AS core_score
+				  SELECT s.book_id, %s AS score, %s AS plan_count, %s AS core_score, coalesce(%s, 0) AS recent
 				  FROM catalog.book_search s
 				  WHERE (%s)
 				    AND s.library_ids && CAST(:plan AS integer[])
 				    AND NOT (s.book_id = ANY(CAST(:excluded AS bigint[])))
 				) m
-				ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
-				LIMIT :limit""".formatted(String.join(" + ", score), planCount, coreSum, String.join(" OR ", any)))
+				ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id
+				LIMIT :limit""".formatted(String.join(" + ", score), planCount, coreSum, recent, String.join(" OR ", any)))
 			.param("plan", planLibraries.toArray(Long[]::new))
 			.param("excluded", excluded.toArray(Long[]::new))
 			.param("limit", limit);
+		if (fromYear != null) {
+			statement = statement.param("from", fromYear);
+		}
 		for (int i = 0; i < words.size(); i++) {
 			statement = statement.param("k" + i, "%" + escapeLike(words.get(i)) + "%").param("w" + i, words.get(i));
 		}
@@ -144,10 +151,12 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 	@Override
 	public List<SearchBook> books() {
 		return jdbc.sql("""
-				SELECT s.book_id, b.title, b.author_display FROM catalog.book_search s
+				SELECT s.book_id, b.title, b.author_display, extract(year FROM b.published_on)::int AS year
+				FROM catalog.book_search s
 				JOIN catalog.book b ON b.id = s.book_id
 				ORDER BY s.book_id""")
-			.query((rs, n) -> new SearchBook(rs.getLong(1), rs.getString(2), rs.getString(3)))
+			.query((rs, n) -> new SearchBook(rs.getLong(1), rs.getString(2), rs.getString(3),
+					rs.getObject(4, Integer.class)))
 			.list();
 	}
 

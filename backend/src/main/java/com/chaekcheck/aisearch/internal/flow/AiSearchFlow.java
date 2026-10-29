@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -96,6 +97,9 @@ public class AiSearchFlow {
 
 	private final QuestionVectors vectors;
 
+	/** What a follow-up means by its vector (「최신」, 「다 같이」, the topics 「아까」 names), next to the rules. */
+	private final IntentVectors intents;
+
 	private final MlFirstCall mlFirstCall;
 
 	private final BookCards bookCards;
@@ -120,6 +124,7 @@ public class AiSearchFlow {
 		this.neighbours = neighbours;
 		this.bookTexts = bookTexts;
 		this.vectors = vectors;
+		this.intents = new IntentVectors(vectors);
 		this.mlFirstCall = mlFirstCall;
 		this.bookCards = bookCards;
 		this.pick = pick;
@@ -209,12 +214,37 @@ public class AiSearchFlow {
 
 	}
 
+	private static final java.time.ZoneId SEOUL = java.time.ZoneId.of("Asia/Seoul");
+
 	/** A title shorter than this (letters only) is taken as a topic, not as the book (user 2026-10-29) [안]. */
 	static final int MIN_TITLE_LETTERS = 3;
 
 	/** 「더 쉬운 거」, 「더 짧은 걸로」: more of a quality, which a book shown last may have most (user 2026-10-29). */
 	static final java.util.regex.Pattern MORE_SO = java.util.regex.Pattern
 		.compile("더\\s*[가-힣]+(운|은|한|는|진|적인)\\s*(거|걸|것|책|게)");
+
+	/**
+	 * A short follow-up that only adds a condition to the topic (「최신책」, 「짧은 거」, 「쉬운 걸로」): the topic goes on
+	 * whatever the relation network says (user 2026-10-29: 「최신책」 after 세계사·과학사 was taken as a new topic).
+	 */
+	static final java.util.regex.Pattern CONDITION = java.util.regex.Pattern
+		.compile("최신|신간|신작|요즘|요새|최근|새로\\s*나온|짧|얇|쉬운|쉽게|어려운|가벼운|두꺼운|만화|그림|번역|국내|외국|해외|\\d{4}\\s*년");
+
+	/** A follow-up of at most this many words may be a condition (CONDITION). */
+	static final int CONDITION_WORDS = 2;
+
+	/** 「다 같이」, 「전부」 after an ask-back: every choice it gave (user 2026-10-29). */
+	static final java.util.regex.Pattern ALL_CHOICES = java.util.regex.Pattern
+		.compile("다\\s*같이|전부|모두|다\\s*(해|줘|보여|찾아|골라|요)|(셋|둘|세\\s*개|두\\s*개)\\s*다|^다$");
+
+	/** 「전부 별로」, 「다 싫어」: every choice turned down, not taken. */
+	static final java.util.regex.Pattern NOT_ALL = java.util.regex.Pattern.compile("별로|싫|말고|아니|빼고|없");
+
+	/** How many times the vector candidates' depth the recent books of 「최신」 are taken from, nearest first. */
+	static final int RECENT_WINDOW = 4;
+
+	/** How many times the vector candidates' depth the nearest books are read, so 「최신」 has recent ones among them. */
+	static final int NEAREST_POOL = 10;
 
 	/** A question of at most this many words gets the 「후보 분야」 line with ask-back on (user 2026-10-27) [안]. */
 	static final int SHORT_QUESTION_WORDS = 2;
@@ -296,6 +326,12 @@ public class AiSearchFlow {
 		/** How the ask-back went (single-ask, not-book-ask, one-word), or null (user 2026-10-26). */
 		String ask;
 
+		/** The first year of 「최신」, or null (user 2026-10-29). */
+		Integer fromYear;
+
+		/** How many topics the keywords were searched for one by one (「A나 B」, 「다 같이」), 0 for one search. */
+		int parts;
+
 		final List<Long> shown = new ArrayList<>();
 
 		/** When each step ended, ms from the request's start, for the log line (user 2026-10-26 「각 로직들 하나하나」). */
@@ -349,6 +385,8 @@ public class AiSearchFlow {
 						(run.named ? ", named book" : "") + (run.earlyKeywords ? ", early keyword" : "")
 								+ (run.talk == null ? "" : ", talk " + run.talk), run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
 						(run.ask == null ? "" : ", ask " + run.ask) + (run.tail == null ? "" : ", tail " + run.tail)
+								+ (run.fromYear == null ? "" : ", from " + run.fromYear)
+								+ (run.parts == 0 ? "" : ", parts " + run.parts)
 								+ (run.gone ? ", client gone" : "")
 								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
@@ -365,11 +403,11 @@ public class AiSearchFlow {
 		AiSearchProperties.Vector vectorSettings = properties.vector();
 		// words that point at the dialogue (「모르겠어」, 「그거 말고」, 「아까 이야기한 거」): the search goes on from the topic
 		// they point at, not from their own words (plan 2026-10-29, A–E)
-		Talk talk = talk(input);
+		Talk talk = talk(input, this::backTopics);
 		if (talk != null) {
 			run.talk = talk.kind() + " " + talk.mode();
 		}
-		String searchQuestion = talk != null ? talk.topic() : input.question();
+		String question = talk != null ? talk.topic() : input.question();
 		String earlierQuestion = talk != null || input.history().isEmpty() ? null
 				: EarlierTopics.of(input.question(), input.history().stream().map(Turn::question).toList());
 		// a question after an ask-back is its answer, typed or a choice: it always joins the asked question (user
@@ -377,6 +415,17 @@ public class AiSearchFlow {
 		boolean answersAsk = !input.history().isEmpty() && input.history().getLast().askedBack() != null;
 		boolean pointsBack = earlierQuestion != null
 				&& (answersAsk || !earlierQuestion.equals(input.history().getLast().question()));
+		// 「다 같이」 after an ask-back: the choices it gave are what is searched, each on its own (user 2026-10-29: 「아니 왜
+		// 못 골라 다 같이 하면 되자나」 was searched as it is and found one book)
+		List<String> askChoices = answersAsk && input.history().getLast().askChoices() != null
+				? input.history().getLast().askChoices() : List.of();
+		// not after the fixed ask of a question that is no book question: its choices are examples, not topics
+		boolean allChoices = talk == null && !askChoices.isEmpty()
+				&& !Prompts.NOT_BOOK_ASK.equals(input.history().getLast().askedBack()) && allChoices(input.question());
+		String searchQuestion = allChoices ? String.join(" ", askChoices) : question;
+		// a short follow-up adding a condition goes on with the topic (CONDITION)
+		boolean condition = talk == null && !input.history().isEmpty() && !answersAsk
+				&& words(input.question()) <= CONDITION_WORDS && CONDITION.matcher(input.question()).find();
 		// a first question's keyword search needs only its words: it runs while the vectors and the ML step do, and is
 		// taken when the plan searches with the same words and leaves nothing out (user 2026-10-27, 응답 시간 1안)
 		List<String> earlyWords = input.history().isEmpty() ? MlFirstCall.firstKeywords(input.question()) : List.of();
@@ -384,11 +433,12 @@ public class AiSearchFlow {
 		CompletableFuture<List<Candidate>> earlyKeywords = earlyWords.isEmpty() ? null
 				: beside(() -> candidates.find(earlyWords, List.of(), input.planLibraryIds(), Set.of(), keywordLimit));
 		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
-				&& vectors.on() ? mlStep(searchQuestion, earlierQuestion, pointsBack, vectorSettings, run) : null;
+				&& vectors.on() ? mlStep(searchQuestion, earlierQuestion, pointsBack || condition,
+						condition && onlyRecency(input.question()), vectorSettings, run) : null;
 		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
 		// first step above sends the earlier question too)
 		CompletableFuture<List<Long>> nearest = mlStep != null ? CompletableFuture.completedFuture(mlStep.nearest())
-				: vectors.on() ? vectors.nearest(searchQuestion, vectorSettings.vectorDepth() * 2) : null;
+				: vectors.on() ? vectors.nearest(searchQuestion, vectorSettings.vectorDepth() * NEAREST_POOL) : null;
 		Map<Long, SearchBook> known = searchBooks.byId();
 		Map<Long, ListedBook> listed = new HashMap<>();
 		for (ListedBook book : listedBooks.current().books()) {
@@ -435,6 +485,16 @@ public class AiSearchFlow {
 			}
 		}
 		run.keywordResult = plan.result();
+		// 「최신」 in the question or carried from the topic it goes on with: recent books are searched first (user
+		// 2026-10-29), and the recency word itself is no search word
+		boolean carries = !input.history().isEmpty() && (talk != null || mlStep == null || !mlStep.plan().newTopic());
+		List<String> recencyTexts = new ArrayList<>(List.of(searchQuestion));
+		if (carries) {
+			input.history().reversed().forEach(turn -> recencyTexts.add(turn.question()));
+		}
+		Integer fromYear = fromYear(recencyTexts, searchQuestion, mlStep == null ? null : mlStep.vector());
+		run.fromYear = fromYear;
+		List<String> parts = allChoices ? askChoices : TopicParts.of(searchQuestion);
 		run.titleLike = plan.titleLike();
 		String titleGuess = null;
 		if (plan.titleLike() && !plan.title().isBlank()) {
@@ -551,11 +611,12 @@ public class AiSearchFlow {
 		excluded.addAll(chosen);
 		boolean mix = nearest != null && !refers;
 		List<Candidate> found = earlyKeywords != null && mix && excluded.isEmpty() && plan.core().isEmpty()
-				&& plan.keywords().equals(earlyWords) ? joined(earlyKeywords) : null;
+				&& fromYear == null && parts.size() < 2 && plan.keywords().equals(earlyWords) ? joined(earlyKeywords)
+						: null;
 		run.earlyKeywords = found != null;
 		if (found == null) {
-			found = candidates.find(plan.keywords(), plan.core(), input.planLibraryIds(), excluded,
-					mix ? keywordLimit : max - chosen.size());
+			found = keywordCandidates(plan, parts, fromYear, input.planLibraryIds(), excluded,
+					mix ? keywordLimit : max - chosen.size(), run);
 		}
 		run.mark("keyword");
 		if (!mix) {
@@ -575,8 +636,9 @@ public class AiSearchFlow {
 					planCount.put(candidate.bookId(), candidate.planCount());
 				}
 			}
-			List<Long> vectorIds = vectorCandidates(nearest, known, excluded, input.planLibraryIds(), planCount,
-					vectorSettings);
+			List<Long> vectorIds = vectorCandidates(parts.size() >= 2 ? partNearest(parts, vectorSettings, nearest) : nearest,
+					known, excluded, input.planLibraryIds(), planCount,
+					vectorSettings, fromYear);
 			run.vectorCount = vectorIds.size();
 			run.mark("vector");
 			// one edition of a title: the mix brings the same book from both lists under different ids
@@ -647,6 +709,21 @@ public class AiSearchFlow {
 
 	/** The talk words' plan (TalkRefs), or null for a question that names its own topic. */
 	static Talk talk(Input input) {
+		return talk(input, null);
+	}
+
+	/**
+	 * The topics 「아까」 goes back to by order words and the question vector, or null to leave it to the words
+	 * (TalkRefs#back).
+	 */
+	interface BackTopics {
+
+		List<Integer> of(String question, List<String> topics);
+
+	}
+
+	/** @param backTopics picks the topics 「아까」 points at, or null for the words alone */
+	static Talk talk(Input input, BackTopics backTopics) {
 		if (input.history().isEmpty()) {
 			return null;
 		}
@@ -700,7 +777,9 @@ public class AiSearchFlow {
 								+ "알 수 없으면 이 주제 안의 갈래로 되물어도 된다.");
 			}
 			case BACK_TO -> {
-				String chosen = TalkRefs.back(ref, topics);
+				List<Integer> picked = backTopics == null ? null : backTopics.of(q, topics);
+				String chosen = picked == null || picked.isEmpty() ? TalkRefs.back(ref, topics)
+						: String.join(" ", picked.stream().map(topics::get).toList());
 				yield chosen == null ? unknown
 						: new Talk(ref.kind(), chosen, AskMode.NEVER, false, "사용자가 앞 대화의 「" + chosen + "」 이야기로 돌아가려 "
 								+ "한다(「" + q + "」). 그 주제에 맞는 책을 고른다(앞에서 보인 책도 다시 골라도 된다). 머리말에서 "
@@ -764,7 +843,7 @@ public class AiSearchFlow {
 	 */
 	private List<Long> vectorCandidates(CompletableFuture<List<Long>> nearest, Map<Long, SearchBook> known,
 			Set<Long> excluded, Set<Long> planLibraryIds, Map<Long, Integer> planCount,
-			AiSearchProperties.Vector settings) {
+			AiSearchProperties.Vector settings, Integer fromYear) {
 		List<Long> near;
 		try {
 			near = nearest.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
@@ -781,7 +860,22 @@ public class AiSearchFlow {
 			Thread.currentThread().interrupt();
 			return List.of();
 		}
-		List<Long> keep = near.stream().filter(known::containsKey).filter(id -> !excluded.contains(id)).toList();
+		List<Long> nearer = near.stream().filter(known::containsKey).filter(id -> !excluded.contains(id)).toList();
+		// the nearest NEAREST_POOL times the depth are read; recent books first for 「최신」, then as many as before
+		if (fromYear != null) {
+			// within the nearest RECENT_WINDOW times the depth only: further down a recent book is off the topic (「요새꺼」
+			// after 과학·철학 brought novels, the local replay of 2026-10-29)
+			List<Long> recent = new ArrayList<>();
+			List<Long> older = new ArrayList<>();
+			List<Long> window = nearer.subList(0, Math.min(nearer.size(), settings.vectorDepth() * RECENT_WINDOW));
+			for (long id : window) {
+				Integer year = known.get(id).year();
+				(year != null && year >= fromYear ? recent : older).add(id);
+			}
+			recent.addAll(older);
+			nearer = recent;
+		}
+		List<Long> keep = nearer.subList(0, Math.min(nearer.size(), settings.vectorDepth() * 2));
 		Map<Long, Integer> counts = candidates.planCounts(keep, planLibraryIds);
 		List<Long> held = keep.stream().filter(counts::containsKey).limit(settings.vectorDepth()).toList();
 		held.forEach(id -> planCount.put(id, counts.get(id)));
@@ -804,6 +898,189 @@ public class AiSearchFlow {
 		return years;
 	}
 
+	/**
+	 * The keyword candidates, best first, at most {@code limit}: one search, or for topics listed side by side (「A나 B」,
+	 * 「다 같이」) one search a topic, its own words counting first, taken in turn (user 2026-10-29: one search for
+	 * 「세계역사나 과학사나」 filled the list from one side). Recency words are no search words; 「최신」 puts recent books first.
+	 */
+	private List<Candidate> keywordCandidates(KeywordPlan plan, List<String> parts, Integer fromYear,
+			Set<Long> planLibraryIds, Set<Long> excluded, int limit, Run run) {
+		List<String> keywords = fromYear == null ? plan.keywords()
+				: plan.keywords().stream().filter(word -> !Recency.isWord(word)).toList();
+		if (parts.size() < 2) {
+			return candidates.find(keywords, plan.core(), planLibraryIds, excluded, limit, fromYear);
+		}
+		run.parts = parts.size();
+		int each = (limit + parts.size() - 1) / parts.size();
+		List<List<Candidate>> lists = new ArrayList<>();
+		for (String part : parts) {
+			List<String> own = MlFirstCall.firstKeywords(part).stream().filter(word -> !Recency.isWord(word)).toList();
+			LinkedHashSet<String> words = new LinkedHashSet<>(own);
+			words.addAll(keywords);
+			lists.add(candidates.find(List.copyOf(words), own, planLibraryIds, excluded, each, fromYear));
+		}
+		List<Candidate> taken = new ArrayList<>();
+		Set<Long> seen = new HashSet<>();
+		for (int rank = 0; taken.size() < limit; rank++) {
+			boolean any = false;
+			for (List<Candidate> list : lists) {
+				if (rank < list.size()) {
+					any = true;
+					if (seen.add(list.get(rank).bookId()) && taken.size() < limit) {
+						taken.add(list.get(rank));
+					}
+				}
+			}
+			if (!any) {
+				break;
+			}
+		}
+		return taken;
+	}
+
+	/** The call's note with the line for 「최신」 added when recent books were asked for (user 2026-10-29). */
+	static String withRecency(String note, Run run) {
+		if (run.fromYear == null) {
+			return note;
+		}
+		String recent = "사용자는 최근에 나온 책을 원한다. " + run.fromYear + "년 이후에 나온 책을 먼저 고르고, 오래된 책은 맞는 "
+				+ "최근 책이 모자랄 때만 고른다. 머리말에서 최근 책으로 골랐다고 말해도 된다.";
+		return note == null ? recent : note + " " + recent;
+	}
+
+	/** Whether every word of the question only says 「recent」 (「요새꺼」, 「최신책」, 「최근꺼만」). */
+	static boolean onlyRecency(String question) {
+		List<String> words = MlFirstCall.firstKeywords(question);
+		return !words.isEmpty() && words.stream().allMatch(Recency::isWord);
+	}
+
+	/** How long a follow-up waits for the vectors of its own words (the reply, the parts, the topics). */
+	private static final Duration INTENT_WAIT = Duration.ofMillis(1500);
+
+	/**
+	 * Whether a reply to an ask-back takes every choice: the vector of the reply against example replies, the words
+	 * besides; a turning-down word (「다 별로」) never (user 2026-10-29: on the rude test sentences 55 of 60 against 51 by
+	 * the words alone). With the vectors off, the words alone.
+	 */
+	private boolean allChoices(String reply) {
+		if (NOT_ALL.matcher(reply).find()) {
+			return false;
+		}
+		boolean words = ALL_CHOICES.matcher(reply.strip()).find();
+		List<float[]> found = intents.encode(List.of(reply), INTENT_WAIT);
+		String label = found == null ? null : intents.label(IntentVectors.ALL_CHOICES, found.getFirst());
+		if (label == null) {
+			return words;
+		}
+		return (label.equals("all") || words) && !label.equals("reject") && !label.equals("other");
+	}
+
+	/**
+	 * The first year of 「최신」: a year the text names, else a recency word whose text means newly published books by
+	 * its vector (「요즘 지쳤는데」 does not; user 2026-10-29: 63 of 70 rude test sentences against 55 by the words alone).
+	 * The texts are the question, then what it carries on, newest first. With the vectors off, the words alone.
+	 */
+	private Integer fromYear(List<String> texts, String question, float[] questionVector) {
+		int thisYear = java.time.Year.now(SEOUL).getValue();
+		for (String text : texts) {
+			if (text == null) {
+				continue;
+			}
+			Integer since = Recency.since(text, thisYear);
+			if (since != null) {
+				return since;
+			}
+			if (!Recency.mentions(text)) {
+				continue;
+			}
+			float[] vector = text.equals(question) ? questionVector : null;
+			if (vector == null) {
+				List<float[]> found = intents.encode(List.of(text), INTENT_WAIT);
+				vector = found == null ? null : found.getFirst();
+			}
+			String label = intents.label(IntentVectors.RECENCY, vector);
+			if (label == null || label.equals("recent")) {
+				return thisYear - Recency.YEARS;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The topics 「아까」 points at: order words by rule (「처음 거랑 끝에거」, 「앞에 둘」, 「전부」), every other topic word
+	 * to the earlier topic its vector is nearest (「세게사랑 과학싸」); null when nothing is picked (user 2026-10-29: 35 of
+	 * 40 rude test sentences against 4 by the words alone).
+	 */
+	private List<Integer> backTopics(String question, List<String> topics) {
+		TreeSet<Integer> picked = new TreeSet<>(TalkRefs.ordered(question, topics.size()));
+		// a topic a word of the question is in counts as well (「최신책 아까 세계역사나」: the vector of the whole reply alone
+		// took 「최신책」 and lost 세계역사, the local replay of 2026-10-29)
+		List<String> rest = TalkRefs.rest(question);
+		for (int t = 0; t < topics.size(); t++) {
+			String topic = topics.get(t).toLowerCase(java.util.Locale.ROOT);
+			if (rest.stream().anyMatch(topic::contains)) {
+				picked.add(t);
+			}
+		}
+		// the topic words only: talk words and 「최신으로」 pulled the reply towards a topic 「요새꺼」 (local replay)
+		String named = String.join(" ", TalkRefs.rest(TalkRefs.withoutOrder(question)).stream()
+			.filter(word -> !Recency.isWord(word))
+			.toList());
+		List<String> parts = (named.isBlank() ? List.<String>of() : TopicParts.of(named))
+			.stream()
+			.filter(part -> !TalkRefs.rest(part).isEmpty())
+			.toList();
+		if (!parts.isEmpty()) {
+			List<String> texts = new ArrayList<>(parts);
+			texts.addAll(topics);
+			List<float[]> found = intents.encode(texts, INTENT_WAIT);
+			if (found != null) {
+				for (int i = 0; i < parts.size(); i++) {
+					int best = -1;
+					float bestScore = BACK_TOPIC_FLOOR;
+					for (int t = 0; t < topics.size(); t++) {
+						float score = IntentVectors.dot(found.get(i), found.get(parts.size() + t));
+						if (score >= bestScore) {
+							best = t;
+							bestScore = score;
+						}
+					}
+					if (best >= 0) {
+						picked.add(best);
+					}
+				}
+			}
+		}
+		return picked.isEmpty() ? null : List.copyOf(picked);
+	}
+
+	/** The least closeness of a word of 「아까」 to the topic it is taken for (scripts/aisearch/eval/intent_mixed.py). */
+	static final float BACK_TOPIC_FLOOR = 0.3f;
+
+	/**
+	 * The nearest books of each listed topic (「A나 B」), taken in turn: one vector for 「세계사나 과학사」 brought one side
+	 * (user 2026-10-29). The question's own nearest when the topics' vectors do not come.
+	 */
+	private CompletableFuture<List<Long>> partNearest(List<String> parts, AiSearchProperties.Vector settings,
+			CompletableFuture<List<Long>> whole) {
+		List<float[]> found = intents.encode(parts, INTENT_WAIT);
+		if (found == null) {
+			return whole;
+		}
+		int each = settings.vectorDepth() * NEAREST_POOL / parts.size();
+		List<List<Long>> lists = found.stream().map(v -> vectors.nearest(v, each)).toList();
+		List<Long> taken = new ArrayList<>();
+		Set<Long> seen = new HashSet<>();
+		for (int rank = 0; rank < each; rank++) {
+			for (List<Long> list : lists) {
+				if (rank < list.size() && seen.add(list.get(rank))) {
+					taken.add(list.get(rank));
+				}
+			}
+		}
+		return CompletableFuture.completedFuture(taken);
+	}
+
 	/** Starts a read beside the search. */
 	private static <T> CompletableFuture<T> beside(Supplier<T> read) {
 		return CompletableFuture.supplyAsync(read, BESIDE);
@@ -821,7 +1098,8 @@ public class AiSearchFlow {
 	}
 
 	/** The ML first call's plan and the vector candidates of its search vector. */
-	private record MlStep(MlFirstCall.Plan plan, List<Long> nearest) {
+	/** @param vector the question's own vector (IntentVectors) */
+	private record MlStep(MlFirstCall.Plan plan, List<Long> nearest, float[] vector) {
 	}
 
 	/**
@@ -829,7 +1107,11 @@ public class AiSearchFlow {
 	 * same time), the plan from them, the nearest books of the search vector. Null when a vector fails or comes later
 	 * than {@code maxWait}: the search then asks Haiku.
 	 */
-	private MlStep mlStep(String question, String earlierQuestion, boolean pointsBack,
+	/**
+	 * @param earlierVectorOnly the question only says 「recent」 (「요새꺼」): the books are searched by the earlier
+	 *     question's vector and the year does the rest (the joined vector brought novels, the local replay of 2026-10-29)
+	 */
+	private MlStep mlStep(String question, String earlierQuestion, boolean pointsBack, boolean earlierVectorOnly,
 			AiSearchProperties.Vector settings, Run run) {
 		// the earlier question goes to the encoder too (this process or the embedding server, never logged)
 		List<String> texts = earlierQuestion == null ? List.of(question)
@@ -843,10 +1125,11 @@ public class AiSearchFlow {
 					earlierQuestion == null ? null : found.get(1), earlierQuestion == null ? null : found.get(2),
 					pointsBack);
 			run.mark("ml");
-			float[] search = plan.joinedVector() ? found.get(2) : vector;
-			List<Long> nearestBooks = vectors.nearest(search, settings.vectorDepth() * 2);
+			float[] search = earlierVectorOnly && earlierQuestion != null ? found.get(1)
+					: plan.joinedVector() ? found.get(2) : vector;
+			List<Long> nearestBooks = vectors.nearest(search, settings.vectorDepth() * NEAREST_POOL);
 			run.mark("nearest");
-			return new MlStep(plan, nearestBooks);
+			return new MlStep(plan, nearestBooks, vector);
 		}
 		catch (TimeoutException e) {
 			lookup.cancel(true);
@@ -1017,7 +1300,9 @@ public class AiSearchFlow {
 		// not known
 		// a one-word question is answered at once, its common senses mixed (user 2026-10-29 「한 단어도 그걸로 답변」);
 		// pick.ask-one-word brings the ask-back of v1.17.0 to v1.20.5 back
-		boolean oneWord = talk == null && titleNote == null && oneWordTopic(input.question()) && !pick.askOneWord();
+		// first questions only: in a dialogue one word goes on with the topic (user 2026-10-29: 「최신책」 mixed fields)
+		boolean oneWord = talk == null && titleNote == null && input.history().isEmpty() && oneWordTopic(input.question())
+				&& !pick.askOneWord();
 		boolean askBack = pick.askBack() && titleNote == null && !oneWord && (talk != null ? talk.mode() != AskMode.NEVER
 				: !pointsBack && (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS));
 		String oneWordNote = oneWord && pick.askBack() ? "질문이 낱말 하나(「" + input.question().strip() + "」)다. 되묻지 않는다. "
@@ -1111,8 +1396,8 @@ public class AiSearchFlow {
 		});
 		LlmCall call = new LlmCall(askBack ? Prompts.PICK_ASK_SYSTEM : Prompts.PICK_SYSTEM,
 				Prompts.pickMessages(history, input.question(), choices,
-						java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue(), shelves,
-						talk != null ? talk.note() : titleNote != null ? titleNote : oneWordNote),
+						java.time.Year.now(SEOUL).getValue(), shelves,
+						withRecency(talk != null ? talk.note() : titleNote != null ? titleNote : oneWordNote, run)),
 				askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
 				properties.pickMaxTokens());
 		boolean failed = false;

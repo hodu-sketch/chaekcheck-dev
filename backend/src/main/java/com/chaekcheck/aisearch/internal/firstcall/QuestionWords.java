@@ -3,6 +3,7 @@ package com.chaekcheck.aisearch.internal.firstcall;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -19,6 +20,9 @@ final class QuestionWords {
 	private static final Pattern ENDING = Pattern
 		.compile("(으로|에서|에게|한테|이랑|하고|까지|부터|처럼|같은|이나|에|의|을|를|이|가|은|는|와|과|로|도|만|요)$");
 
+	/** A word ending in 나 or 랑 with at least two letters before it. */
+	private static final Pattern JOINED = Pattern.compile("^(.{2,}?)(?:나|랑)$");
+
 	private static final Set<String> STOP = Set.of("책", "도서", "관련", "사람", "처음", "위한", "대한", "읽는", "추천", "추천해줘",
 			"추천해", "알려줘", "찾아줘", "읽을", "읽기", "좋은", "있어", "있나요", "있을까요", "싶어", "싶은", "거", "것", "걸", "같은",
 			"비슷한", "처럼", "주세요", "해줘", "좀", "그냥", "말고", "빼고", "없는",
@@ -32,6 +36,12 @@ final class QuestionWords {
 		List<String> out = new ArrayList<>();
 		for (String piece : SPLIT.split(question)) {
 			String word = ENDING.matcher(piece).replaceFirst("");
+			// 「세계역사나」, 「소설이랑」 after a vowel: 나·랑 come off when two letters stay (user 2026-10-29: 「세계역사나」 was
+			// searched as it is and found nothing); 「하나」, 「사랑」 keep theirs
+			Matcher joined = JOINED.matcher(word);
+			if (joined.matches()) {
+				word = joined.group(1);
+			}
 			if (word.codePointCount(0, word.length()) >= 2 && !STOP.contains(word) && !out.contains(word)) {
 				out.add(word);
 			}

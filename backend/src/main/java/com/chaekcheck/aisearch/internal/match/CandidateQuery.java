@@ -67,6 +67,12 @@ public class CandidateQuery {
 	 */
 	public List<Candidate> find(List<String> keywords, List<String> core, Set<Long> planLibraries, Set<Long> excluded,
 			int limit) {
+		return find(keywords, core, planLibraries, excluded, limit, null);
+	}
+
+	/** As {@link #find(List, List, Set, Set, int)}, books published in or after {@code fromYear} first when given. */
+	public List<Candidate> find(List<String> keywords, List<String> core, Set<Long> planLibraries, Set<Long> excluded,
+			int limit, Integer fromYear) {
 		// the core words come on top of the eight keywords, so they never push a keyword out
 		List<String> coreWords = usableKeywords(core).stream().limit(MAX_CORE_WORDS).toList();
 		LinkedHashSet<String> joined = new LinkedHashSet<>(coreWords);
@@ -75,7 +81,7 @@ public class CandidateQuery {
 		if (words.isEmpty() || planLibraries.isEmpty() || limit < 1) {
 			return List.of();
 		}
-		return index.find(words, Set.copyOf(coreWords), planLibraries, excluded, limit)
+		return index.find(words, Set.copyOf(coreWords), planLibraries, excluded, limit, fromYear)
 			.stream()
 			.map(found -> new Candidate(found.bookId(), found.score(), found.planCount()))
 			.toList();

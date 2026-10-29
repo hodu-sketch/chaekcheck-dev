@@ -1,0 +1,2796 @@
+{
+ "all_choices": [
+  {
+   "answer": "다 같이 하면 되자나",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "그냥 세개 다",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "셋 다 보여줘 빨리",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "모두 다 부탁드려요",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "전부 다 해주세요",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다 보여달라고",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "아 걍 전부",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "세개다 ㄱㄱ",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다해줘 제발",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "전체 다",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다 같이 보면 되잖아 왜 안돼",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "하나씩 말고 다 한번에",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "모조리",
+   "gold": "all",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "싹다",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다 합쳐서 보여줘",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "ㅇㅇ 전부",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "세 개 전부 다 볼게요",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다 가치 보여줘",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "아놔 다 달라고",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "전부 다 해 주세요 한꺼번에",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "셋 다 좋아요 다 주세요",
+   "gold": "all",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다 ㄱㄱ",
+   "gold": "all",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "세게사로",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "주말에 읽을 소설이요",
+   "gold": "one",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "로맨스",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "뇌과학 쪽으로 할래",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "조선시대꺼",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "캠핑으로 ㄱㄱ",
+   "gold": "one",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": true,
+   "vector_all": true
+  },
+  {
+   "answer": "주식",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "그림책",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "둘다 말고 3번",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "가운데꺼",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "추리 쪽 ㅇㅇ",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "1번 하자",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "세번째",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "요리",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "두번째꺼 해줘 시발",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "3번 청소년껄로",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "역사 이야기책으로 부탁드려요",
+   "gold": "one",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "두번쨰",
+   "gold": "one",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": true,
+   "vector_all": false
+  },
+  {
+   "answer": "전부 다 읽은 거잖아",
+   "gold": "reject",
+   "rule": true,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "다른거",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "다 시시해",
+   "gold": "reject",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "싫어 다",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "별로 다 별로",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "아니 다 싫다고",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "이거 말고 다른거 없어",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "ㄴㄴ 다 별로",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "마음에 드는게 없네요",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "시발 다 별로네",
+   "gold": "reject",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "아 몰라 귀찮아",
+   "gold": "other",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "혹시 영화 원작 소설은?",
+   "gold": "other",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "왜 자꾸 물어봐",
+   "gold": "other",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "뭐가 다른건데",
+   "gold": "other",
+   "rule": false,
+   "vector": "reject",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "만화책 찾아줘",
+   "gold": "other",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "아니 그냥 골라달라고",
+   "gold": "other",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  },
+  {
+   "answer": "ㅡㅡ",
+   "gold": "other",
+   "rule": false,
+   "vector": "one",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "어렵네요",
+   "gold": "other",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "신간 알려줘",
+   "gold": "other",
+   "rule": false,
+   "vector": "other",
+   "mixed": false,
+   "one_index_ok": false,
+   "vector_all": false
+  },
+  {
+   "answer": "검색 말고 그냥 얘기하자",
+   "gold": "other",
+   "rule": false,
+   "vector": "all",
+   "mixed": true,
+   "one_index_ok": false,
+   "vector_all": true
+  }
+ ],
+ "recency": [
+  {
+   "q": "최신 책 부탁드립니다",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "요즘 새로 나온 소설 있나요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "신간 ㄱㄱ",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "아 최근에 나온걸로 보여줘",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "2021년 이후 출간작만",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "올해 신간 알려줘",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "옛날 말고 요즘 책",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "갓 나온 신작 위주로",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최신순",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "따끈따끈한 신간 추천해주세요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "요즘꺼 암거나",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최근 몇 년 안에 나온 책으로 해주세요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최근꺼 보여달라고 시발",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "2019년 이후 책",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "신작 나온거 있어?",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "새로 나온 책만 골라줘",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "옛날책 말구 최신으로",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "젤 새로 나온거",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최근 출간된 에세이 추천해 주세요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "요새 나온 과학책",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "아니 왜 최신책이 안나와 요즘꺼 달라고",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "2024년 이후로 나온 책이요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "올해 나온 소설",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "요즘 핫한 신간",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "막 나온 책 없어?",
+   "gold": "recent",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "신간 코너 보여줘",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최근 출판된 역사책 부탁해요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "ㅅㄱ 최신 ㄱㄱ",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "2018년 이후에 낸 책만 줘",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "구간 말고 신간",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "가장 최근에 나온 책부터 보여주세요",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "이번에 새로 나온거",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "작년 말부터 올해 나온 책",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "아 걍 요즘 나온거 아무거나",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최근 신작 소설 위주로 정렬해줘",
+   "gold": "recent",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "요즘 사람들 많이 읽는 사회학 말고 생각해볼 책",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "최근세 유럽사",
+   "gold": "not",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "새로운 관점으로 쓴 철학책",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "현대 소설 추천",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "한국 현대문학",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "오래도록 남는 고전",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "요즘 너무 지쳤는데 마음 달래주는 책",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "최근에 퇴사했는데 읽을 책",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "요즘 애들 심리 이해하는 책",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "요즘 말로 쓴 번역 고전",
+   "gold": "not",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "신간은 아니고 오래된 명작",
+   "gold": "not",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최신 이론 배경이 되는 고전 물리학",
+   "gold": "not",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최근 일어난 일이 아닌 중세 역사",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "신화 책",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "아니 시발 그냥 재밌는 거 추천해달라고",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "과학이랑 역사 같이",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "ㅇㅇ 소설",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "다가치 해줘",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "요리책",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "새벽에 읽기 좋은 에세이",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "최근에 감정 기복 심한데 도움되는 책",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "현대 사회 비판하는 책",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "최신 AI 트렌드 입문서",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": "borderline"
+  },
+  {
+   "q": "요즘 뜨는 투자 트렌드 책",
+   "gold": "not",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": "borderline"
+  },
+  {
+   "q": "새로운 시작을 응원하는 책",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "근현대 일본사",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "요즘 청소년 심리",
+   "gold": "not",
+   "rule": true,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "고전 읽기 입문",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "과학싸 입문서",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "엄마랑 같이 읽을 책",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "젤 유명한거",
+   "gold": "not",
+   "rule": false,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  },
+  {
+   "q": "신 이야기 그리스 신화",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "뭐 읽지",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "재테크 입문서 추천해 주세요",
+   "gold": "not",
+   "rule": false,
+   "vector": false,
+   "mixed": false,
+   "note": null
+  },
+  {
+   "q": "최신판 말고 개정 전 옛날 번역본",
+   "gold": "not",
+   "rule": true,
+   "vector": true,
+   "mixed": true,
+   "note": null
+  }
+ ],
+ "back_to": {
+  "margin": 0.04,
+  "floor": 0.2,
+  "rows": [
+   {
+    "q": "처음에 말한 세계사",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": [
+     0
+    ],
+    "vector": [
+     0
+    ],
+    "rule_ok": true,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "아 과학사 쪽 말이야",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "소설 그거 있잖아 마지막에 말한",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "세게사랑 과학싸",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     0,
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "앞에 둘",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     0,
+     1
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "소설이랑 맨 처음거",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     0,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "세계사 아까 말한거 신간으로",
+    "topics": [
+     "세계역사 책 추천해줘",
+     "과학사 교양서",
+     "재미있는 소설"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "심리학 얘기한거 다시",
+    "topics": [
+     "심리학 입문서",
+     "재테크 책",
+     "여행 에세이"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "마음공부 쪽 그거 최신으로",
+    "topics": [
+     "심리학 입문서",
+     "재테크 책",
+     "여행 에세이"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "돈 버는 책 아까 말한거",
+    "topics": [
+     "심리학 입문서",
+     "재테크 책",
+     "여행 에세이"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "여행책 말했잖아 아 진짜",
+    "topics": [
+     "심리학 입문서",
+     "재테크 책",
+     "여행 에세이"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "재테크랑 여행 둘다",
+    "topics": [
+     "심리학 입문서",
+     "재테크 책",
+     "여행 에세이"
+    ],
+    "gold": [
+     1,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "전부 다 합쳐서",
+    "topics": [
+     "심리학 입문서",
+     "재테크 책",
+     "여행 에세이"
+    ],
+    "gold": [
+     0,
+     1,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "한국사 아까 그거",
+    "topics": [
+     "한국사 책",
+     "추리소설 추천",
+     "요리책"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": [
+     0
+    ],
+    "vector": [
+     0
+    ],
+    "rule_ok": true,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "범인 찾는 소설 말한거",
+    "topics": [
+     "한국사 책",
+     "추리소설 추천",
+     "요리책"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "요리 쪽 다시 보여주세요",
+    "topics": [
+     "한국사 책",
+     "추리소설 추천",
+     "요리책"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "역사랑 추리 둘다 했던거",
+    "topics": [
+     "한국사 책",
+     "추리소설 추천",
+     "요리책"
+    ],
+    "gold": [
+     0,
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "처음 거랑 끝에거",
+    "topics": [
+     "한국사 책",
+     "추리소설 추천",
+     "요리책"
+    ],
+    "gold": [
+     0,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "머라고 했더라 두번째꺼",
+    "topics": [
+     "한국사 책",
+     "추리소설 추천",
+     "요리책"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "철학 말한거 있잖아",
+    "topics": [
+     "철학 입문서 알려줘",
+     "SF 소설",
+     "부동산 투자 책"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "에스에프 소설 쪽",
+    "topics": [
+     "철학 입문서 알려줘",
+     "SF 소설",
+     "부동산 투자 책"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "부동산 얘기 다시",
+    "topics": [
+     "철학 입문서 알려줘",
+     "SF 소설",
+     "부동산 투자 책"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "첫번째 철학 하고 마지막 거",
+    "topics": [
+     "철학 입문서 알려줘",
+     "SF 소설",
+     "부동산 투자 책"
+    ],
+    "gold": [
+     0,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "에스에프랑 집 투자 둘다",
+    "topics": [
+     "철학 입문서 알려줘",
+     "SF 소설",
+     "부동산 투자 책"
+    ],
+    "gold": [
+     1,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "그림책 얘기",
+    "topics": [
+     "아이랑 읽을 그림책",
+     "경제 교양서",
+     "우주 관련 책"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "경제 말한거 다시 해줘 시발",
+    "topics": [
+     "아이랑 읽을 그림책",
+     "경제 교양서",
+     "우주 관련 책"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "우주쪽꺼 최신으로",
+    "topics": [
+     "아이랑 읽을 그림책",
+     "경제 교양서",
+     "우주 관련 책"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "애들 책이랑 경제",
+    "topics": [
+     "아이랑 읽을 그림책",
+     "경제 교양서",
+     "우주 관련 책"
+    ],
+    "gold": [
+     0,
+     1
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "처음 둘",
+    "topics": [
+     "아이랑 읽을 그림책",
+     "경제 교양서",
+     "우주 관련 책"
+    ],
+    "gold": [
+     0,
+     1
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "조선시대 아까 그거",
+    "topics": [
+     "조선시대 이야기",
+     "뇌과학 책",
+     "시집 추천"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": [
+     0
+    ],
+    "vector": [
+     0
+    ],
+    "rule_ok": true,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "뇌과학 말한거",
+    "topics": [
+     "조선시대 이야기",
+     "뇌과학 책",
+     "시집 추천"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "시 얘기 했던거",
+    "topics": [
+     "조선시대 이야기",
+     "뇌과학 책",
+     "시집 추천"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "뇌랑 시집 둘다",
+    "topics": [
+     "조선시대 이야기",
+     "뇌과학 책",
+     "시집 추천"
+    ],
+    "gold": [
+     1,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "역사 뇌 시 다 같이 해줘",
+    "topics": [
+     "조선시대 이야기",
+     "뇌과학 책",
+     "시집 추천"
+    ],
+    "gold": [
+     0,
+     1,
+     2
+    ],
+    "rule": null,
+    "vector": [
+     1,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "영어 공부 그거",
+    "topics": [
+     "영어 공부 책",
+     "동양 고전",
+     "운동 에세이"
+    ],
+    "gold": [
+     0
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "동양 고전쪽 말한거",
+    "topics": [
+     "영어 공부 책",
+     "동양 고전",
+     "운동 에세이"
+    ],
+    "gold": [
+     1
+    ],
+    "rule": null,
+    "vector": [
+     1
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "운동 에세이 아까꺼",
+    "topics": [
+     "영어 공부 책",
+     "동양 고전",
+     "운동 에세이"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "영어랑 고전 같이",
+    "topics": [
+     "영어 공부 책",
+     "동양 고전",
+     "운동 에세이"
+    ],
+    "gold": [
+     0,
+     1
+    ],
+    "rule": null,
+    "vector": [
+     0
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   },
+   {
+    "q": "운동이랑 영어 아까 말한거 ㅇㅇ",
+    "topics": [
+     "영어 공부 책",
+     "동양 고전",
+     "운동 에세이"
+    ],
+    "gold": [
+     0,
+     2
+    ],
+    "rule": [
+     0,
+     2
+    ],
+    "vector": [
+     0,
+     2
+    ],
+    "rule_ok": true,
+    "vector_ok": true,
+    "mixed_ok": true
+   },
+   {
+    "q": "맨 끝거 ㅇㅇ",
+    "topics": [
+     "영어 공부 책",
+     "동양 고전",
+     "운동 에세이"
+    ],
+    "gold": [
+     2
+    ],
+    "rule": null,
+    "vector": [
+     0,
+     2
+    ],
+    "rule_ok": false,
+    "vector_ok": false,
+    "mixed_ok": false
+   }
+  ]
+ },
+ "ab_split": {
+  "thr2": 1.01,
+  "thr4": 0.3,
+  "rows": [
+   {
+    "q": "역사랑 과학 둘다 ㄱㄱ",
+    "gold": [
+     "역사",
+     "과학"
+    ],
+    "opt1": [
+     "역사",
+     "과학"
+    ],
+    "opt2": [
+     "역사",
+     "과학"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "에세이 또는 시집",
+    "gold": [
+     "에세이",
+     "시"
+    ],
+    "opt1": [
+     "에세이",
+     "시집"
+    ],
+    "opt2": [
+     "에세이",
+     "시집"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "추리나 스릴러 암거나",
+    "gold": [
+     "추리",
+     "스릴러"
+    ],
+    "opt1": [
+     "추리",
+     "스릴러"
+    ],
+    "opt2": [
+     "추리",
+     "스릴러"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "미술하고 음악 책",
+    "gold": [
+     "미술",
+     "음악"
+    ],
+    "opt1": [
+     "미술",
+     "음악"
+    ],
+    "opt2": [
+     "미술",
+     "음악"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "철학이랑 종교 같이 보여줘",
+    "gold": [
+     "철학",
+     "종교"
+    ],
+    "opt1": [
+     "철학",
+     "종교"
+    ],
+    "opt2": [
+     "철학",
+     "종교"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "경제랑 정치 둘다",
+    "gold": [
+     "경제",
+     "정치"
+    ],
+    "opt1": [
+     "경제",
+     "정치"
+    ],
+    "opt2": [
+     "경제",
+     "정치"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "아니 시발 소설이랑 에세이 다 같이 해달라고",
+    "gold": [
+     "소설",
+     "에세이"
+    ],
+    "opt1": [
+     "소설",
+     "에세이"
+    ],
+    "opt2": [
+     "소설",
+     "에세이"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "고전 아니면 현대문학",
+    "gold": [
+     "고전",
+     "현대문학"
+    ],
+    "opt1": [
+     "고전",
+     "현대문학"
+    ],
+    "opt2": [
+     "고전",
+     "현대문학"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "요리 여행 캠핑 다 보여줘",
+    "gold": [
+     "요리",
+     "여행",
+     "캠핑"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "사회학 심리학 중에 아무거나",
+    "gold": [
+     "사회학",
+     "심리학"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "건축이나 디자인",
+    "gold": [
+     "건축",
+     "디자인"
+    ],
+    "opt1": [
+     "건축",
+     "디자인"
+    ],
+    "opt2": [
+     "건축",
+     "디자인"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "주식하고 코인 책",
+    "gold": [
+     "주식",
+     "코인"
+    ],
+    "opt1": [
+     "주식",
+     "코인"
+    ],
+    "opt2": [
+     "주식",
+     "코인"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "과학싸나 세게사",
+    "gold": [
+     "과학사",
+     "세계사"
+    ],
+    "opt1": [
+     "과학싸",
+     "세게사"
+    ],
+    "opt2": [
+     "과학싸",
+     "세게사"
+    ],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "육아랑 교육 쪽 둘다 부탁드려요",
+    "gold": [
+     "육아",
+     "교육"
+    ],
+    "opt1": [
+     "육아",
+     "교육"
+    ],
+    "opt2": [
+     "육아",
+     "교육"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "만화책 웹툰 둘다",
+    "gold": [
+     "만화",
+     "웹툰"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "동양철학이든 서양철학이든",
+    "gold": [
+     "동양철학",
+     "서양철학"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "sf 판타지 무협 섞어서",
+    "gold": [
+     "SF",
+     "판타지",
+     "무협"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "영화랑 드라마 관련 책",
+    "gold": [
+     "영화",
+     "드라마"
+    ],
+    "opt1": [
+     "영화",
+     "드라마"
+    ],
+    "opt2": [
+     "영화",
+     "드라마"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "자기계발이나 심리 ㄱㄱ",
+    "gold": [
+     "자기계발",
+     "심리"
+    ],
+    "opt1": [
+     "자기계발",
+     "심리"
+    ],
+    "opt2": [
+     "자기계발",
+     "심리"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "수학하고 물리학 책 부탁해요",
+    "gold": [
+     "수학",
+     "물리학"
+    ],
+    "opt1": [
+     "수학",
+     "물리학"
+    ],
+    "opt2": [
+     "수학",
+     "물리학"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "조선사 고려사 둘다 걍",
+    "gold": [
+     "조선사",
+     "고려사"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "글쓰기랑 독서법",
+    "gold": [
+     "글쓰기",
+     "독서법"
+    ],
+    "opt1": [
+     "글쓰기",
+     "독서법"
+    ],
+    "opt2": [
+     "글쓰기",
+     "독서법"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "환경 기후 쪽 아무거나",
+    "gold": [
+     "환경",
+     "기후"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "동화랑 그림책 둘 다요",
+    "gold": [
+     "동화",
+     "그림책"
+    ],
+    "opt1": [
+     "동화",
+     "그림책"
+    ],
+    "opt2": [
+     "동화",
+     "그림책"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "우주 아님 지구과학",
+    "gold": [
+     "우주",
+     "지구과학"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "신화랑 전설",
+    "gold": [
+     "신화",
+     "전설"
+    ],
+    "opt1": [
+     "신화",
+     "전설"
+    ],
+    "opt2": [
+     "신화",
+     "전설"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "의학이랑 건강 같이",
+    "gold": [
+     "의학",
+     "건강"
+    ],
+    "opt1": [
+     "의학",
+     "건강"
+    ],
+    "opt2": [
+     "의학",
+     "건강"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "로맨스 코미디 ㅇㅇ 둘다",
+    "gold": [
+     "로맨스",
+     "코미디"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "정치 경제 사회 다",
+    "gold": [
+     "정치",
+     "경제",
+     "사회"
+    ],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": false
+   },
+   {
+    "q": "산문집이나 시집 중에서",
+    "gold": [
+     "산문집",
+     "시집"
+    ],
+    "opt1": [
+     "산문집",
+     "시집"
+    ],
+    "opt2": [
+     "산문집",
+     "시집"
+    ],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": false
+   },
+   {
+    "q": "과학과 철학이 만나는 책",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "역사 속 과학자 이야기",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "한국 고대사",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "서양 미술사",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "세계사",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "소설가가 쓴 여행 에세이",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "아빠와 아들의 여행",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "아무거나 하나만 추천해줘",
+    "gold": [],
+    "opt1": [
+     "아무거",
+     "하나만"
+    ],
+    "opt2": [
+     "아무거",
+     "하나만"
+    ],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": true
+   },
+   {
+    "q": "딱 한권만",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "경제와 심리가 합쳐진 행동경제학",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "시발 걍 재밌는 소설",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "과학싸 입문",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "수학으로 보는 세계",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "철학자의 사랑 이야기",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "스티븐 호킹 평전",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "한국 현대 소설",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "고양이와 할머니 이야기",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "심리학",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "다큐 같은 소설",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "환경과 경제의 관계",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "조선시대 여성의 삶",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "재테크 입문서 알려주세요",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "ㅇㅇ 판타지",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "뇌과학과 명상",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "동물 에세이",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "법의학자가 쓴 책",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "전쟁과 평화",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "요리하는 철학자 이야기",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   },
+   {
+    "q": "아 몰라 암거나 하나",
+    "gold": [],
+    "opt1": [
+     "암거",
+     "하나"
+    ],
+    "opt2": [
+     "암거",
+     "하나"
+    ],
+    "opt4": [],
+    "ok1": false,
+    "ok2": false,
+    "ok4": true
+   },
+   {
+    "q": "건강하게 늙는 법",
+    "gold": [],
+    "opt1": [],
+    "opt2": [],
+    "opt4": [],
+    "ok1": true,
+    "ok2": true,
+    "ok4": true
+   }
+  ]
+ },
+ "coverage": {
+  "one search": [
+   0,
+   6,
+   8,
+   5,
+   5,
+   5,
+   5,
+   6,
+   0,
+   11,
+   12,
+   7,
+   0,
+   1,
+   2,
+   27,
+   3,
+   2,
+   3,
+   7,
+   8,
+   4,
+   12,
+   7,
+   10,
+   9,
+   8,
+   2,
+   3,
+   7
+  ],
+  "1 per part": [
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   10,
+   17,
+   15,
+   15,
+   15,
+   15,
+   15,
+   22,
+   10,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   15,
+   16,
+   10,
+   15
+  ],
+  "3 MMR": [
+   0,
+   6,
+   11,
+   3,
+   5,
+   7,
+   4,
+   2,
+   1,
+   13,
+   10,
+   2,
+   0,
+   4,
+   5,
+   18,
+   1,
+   1,
+   5,
+   5,
+   6,
+   5,
+   12,
+   5,
+   8,
+   4,
+   6,
+   3,
+   1,
+   8
+  ]
+ }
+}
