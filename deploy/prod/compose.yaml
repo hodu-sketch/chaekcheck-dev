@@ -1,12 +1,83 @@
-# Cycle 17 first deployment on the EC2 server (plan 17, 2026-10-18). Same shape as deploy/test/compose.yaml:
-# db + backend + web (nginx), images built on the PC for arm64 and loaded with docker load. Not yet in it (later
-# steps of ADR-0103): backups, login, picks fetch, usage log (on at the public opening). cloudflared makes it public
-# at chaekcheck.com (user request 2026-10-18, a public trial).
-# Lives in /srv/chaekcheck with bin/up.sh, which writes secrets.env from Parameter Store /chaekcheck/prod/ and starts
-# it:  bin/up.sh [service ...]
+# Zero-downtime deployment (cycle 27, ADR-0167/0168/0169).
+# Two backend slots (blue/green): bin/switch.sh brings up the new slot, points nginx at it, and stops the old one.
+# Web files: folder bind mount from /srv/chaekcheck/web/current (a symlink to releases/X.Y.Z).
+# Lives in /srv/chaekcheck with slots.env (ACTIVE_SLOT, versions), secrets.env (from Parameter Store), prod.env.
+#   bin/up.sh [service ...]          — start services (reads secrets, active slot)
+#   bin/switch.sh backend X.Y.Z     — zero-downtime backend deploy
+#   bin/switch.sh web X.Y.Z         — zero-downtime web deploy
 # Ports are bound to 127.0.0.1 only; the public way in is the tunnel.
 
 name: chaekcheck
+
+x-backend: &backend
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+  stop_grace_period: 60s
+  environment:
+    SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chaekcheck
+    DB_NAME: chaekcheck
+    DB_USERNAME: chaekcheck
+    DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD missing (Parameter Store through up.sh)}
+    TZ: Asia/Seoul
+    # Small heap for the 2GB server (plan 17: about -Xmx640m)
+    JAVA_TOOL_OPTIONS: -Xmx640m -XX:+ExitOnOutOfMemoryError
+    # Switches from prod.env (git, not secret): off by default; the go-live turns login and the usage log on (plan 17,
+    # user decision 2026-10-18). Picks fetch stays off: the picks list is in the database already.
+    # FETCH_MODE direct = no fetch-service.
+    CHAEKCHECK_AUTH_ENABLED: ${CHAEKCHECK_AUTH_ENABLED:-false}
+    CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
+    CHAEKCHECK_USAGELOG_ENABLED: ${CHAEKCHECK_USAGELOG_ENABLED:-false}
+    # AI book search (cycle 24, ADR-0150): off until the privacy policy version naming Anthropic is in force and the
+    # key is in Parameter Store (/chaekcheck/prod/CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY, read by up.sh). An empty key
+    # with the search on gives the fallback answers (books without text).
+    CHAEKCHECK_AISEARCH_ENABLED: ${CHAEKCHECK_AISEARCH_ENABLED:-false}
+    CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}
+    # AI search question vectors (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md): the int8 KURE-v1 model
+    # and the book vectors from the PC in /srv/chaekcheck/aisearch-model (docs/maintenance/6-aisearch.md 7절), about
+    # 450 MB outside the heap, most of it the model file read by mmap. Off until turned on in prod.env; a missing
+    # folder leaves it off with one warning. DJL puts its tokenizer library under DJL_CACHE_DIR (the user has no home)
+    CHAEKCHECK_AISEARCH_VECTOR_ENABLED: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:-false}
+    CHAEKCHECK_AISEARCH_MODEL_DIR: /models/aisearch
+    # local = the model in this container; remote = the embedding server (embed-service/ on the micro EC2, its private
+    # address in prod.env, the token from Parameter Store); with remote the folder needs book-vectors.bin only
+    CHAEKCHECK_AISEARCH_VECTOR_ENCODER: ${CHAEKCHECK_AISEARCH_VECTOR_ENCODER:-local}
+    CHAEKCHECK_AISEARCH_EMBED_URL: ${CHAEKCHECK_AISEARCH_EMBED_URL:-}
+    CHAEKCHECK_AISEARCH_EMBED_TOKEN: ${CHAEKCHECK_AISEARCH_EMBED_TOKEN:-}
+    # the first step (user 2026-10-26): haiku = the first Haiku call; ml = small networks over the question vector
+    # (needs first-call-model.bin and book-profiles.tsv in the model folder; without them Haiku as before)
+    CHAEKCHECK_AISEARCH_FIRST_CALL: ${CHAEKCHECK_AISEARCH_FIRST_CALL:-haiku}
+    # how an ml follow-up is tied to the earlier question: relation (follow-up-model.bin; rule without it), rule, strict
+    CHAEKCHECK_AISEARCH_FOLLOW_UP: ${CHAEKCHECK_AISEARCH_FOLLOW_UP:-relation}
+    # the pick call's ask-back, and Haiku's thinking and prompt caching (user 2026-10-26; docs/maintenance/6-aisearch.md 10절)
+    CHAEKCHECK_AISEARCH_PICK_ASK_BACK: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:-false}
+    CHAEKCHECK_AISEARCH_LLM_THINKING: ${CHAEKCHECK_AISEARCH_LLM_THINKING:-}
+    CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM: ${CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM:-false}
+    DJL_CACHE_DIR: /tmp/djl
+    # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
+    # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only
+    CHAEKCHECK_FORYOU_BUILD_ENABLED: ${CHAEKCHECK_FORYOU_BUILD_ENABLED:-false}
+    FETCH_MODE: direct
+    # Login (Kakao only, cycle 05/16). Keys from Parameter Store; needed only when login is on.
+    AUTH_PROVIDERS: kakao
+    AUTH_PUBLIC_BASE_URL: ${AUTH_PUBLIC_BASE_URL:-}
+    AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+    KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:-}
+    KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
+    KAKAO_ADMIN_KEY: ${KAKAO_ADMIN_KEY:-}
+    KAKAO_APP_ID: ${KAKAO_APP_ID:-}
+    # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
+    # proxy-only). Webshare user and password (user decision 2026-10-18, the main way, sent preemptively on the first
+    # CONNECT); empty values fall back to Webshare's IP Authorization of this server (52.64.117.112). The names are
+    # the Parameter Store ones (/chaekcheck/prod/..., up.sh).
+    CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
+    CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${WEBSHARE_PROXIES:?WEBSHARE_PROXIES missing (Parameter Store through up.sh)}
+    CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: webshare
+    CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME: ${WEBSHARE_PROXY_USERNAME:-}
+    CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD: ${WEBSHARE_PROXY_PASSWORD:-}
+  volumes:
+    - /srv/chaekcheck/aisearch-model:/models/aisearch:ro
 
 services:
   db:
@@ -46,88 +117,25 @@ services:
       timeout: 3s
       retries: 10
 
-  backend:
-    image: chaekcheck/backend:1.21.4
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chaekcheck
-      DB_NAME: chaekcheck
-      DB_USERNAME: chaekcheck
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD missing (Parameter Store through up.sh)}
-      TZ: Asia/Seoul
-      # Small heap for the 2GB server (plan 17: about -Xmx640m)
-      JAVA_TOOL_OPTIONS: -Xmx640m -XX:+ExitOnOutOfMemoryError
-      # Switches from prod.env (git, not secret): off by default; the go-live turns login and the usage log on (plan 17,
-      # user decision 2026-10-18). Picks fetch stays off: the picks list is in the database already.
-      # FETCH_MODE direct = no fetch-service.
-      CHAEKCHECK_AUTH_ENABLED: ${CHAEKCHECK_AUTH_ENABLED:-false}
-      CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
-      CHAEKCHECK_USAGELOG_ENABLED: ${CHAEKCHECK_USAGELOG_ENABLED:-false}
-      # AI book search (cycle 24, ADR-0150): off until the privacy policy version naming Anthropic is in force and the
-      # key is in Parameter Store (/chaekcheck/prod/CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY, read by up.sh). An empty key
-      # with the search on gives the fallback answers (books without text).
-      CHAEKCHECK_AISEARCH_ENABLED: ${CHAEKCHECK_AISEARCH_ENABLED:-false}
-      CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY: ${CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY:-}
-      # AI search question vectors (user 2026-10-25, docs/reports/ai-search-eval-2026-10-25.md): the int8 KURE-v1 model
-      # and the book vectors from the PC in /srv/chaekcheck/aisearch-model (docs/maintenance/6-aisearch.md 7절), about
-      # 450 MB outside the heap, most of it the model file read by mmap. Off until turned on in prod.env; a missing
-      # folder leaves it off with one warning. DJL puts its tokenizer library under DJL_CACHE_DIR (the user has no home)
-      CHAEKCHECK_AISEARCH_VECTOR_ENABLED: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:-false}
-      CHAEKCHECK_AISEARCH_MODEL_DIR: /models/aisearch
-      # local = the model in this container; remote = the embedding server (embed-service/ on the micro EC2, its private
-      # address in prod.env, the token from Parameter Store); with remote the folder needs book-vectors.bin only
-      CHAEKCHECK_AISEARCH_VECTOR_ENCODER: ${CHAEKCHECK_AISEARCH_VECTOR_ENCODER:-local}
-      CHAEKCHECK_AISEARCH_EMBED_URL: ${CHAEKCHECK_AISEARCH_EMBED_URL:-}
-      CHAEKCHECK_AISEARCH_EMBED_TOKEN: ${CHAEKCHECK_AISEARCH_EMBED_TOKEN:-}
-      # the first step (user 2026-10-26): haiku = the first Haiku call; ml = small networks over the question vector
-      # (needs first-call-model.bin and book-profiles.tsv in the model folder; without them Haiku as before)
-      CHAEKCHECK_AISEARCH_FIRST_CALL: ${CHAEKCHECK_AISEARCH_FIRST_CALL:-haiku}
-      # how an ml follow-up is tied to the earlier question: relation (follow-up-model.bin; rule without it), rule, strict
-      CHAEKCHECK_AISEARCH_FOLLOW_UP: ${CHAEKCHECK_AISEARCH_FOLLOW_UP:-relation}
-      # the pick call's ask-back, and Haiku's thinking and prompt caching (user 2026-10-26; docs/maintenance/6-aisearch.md 10절)
-      CHAEKCHECK_AISEARCH_PICK_ASK_BACK: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:-false}
-      CHAEKCHECK_AISEARCH_LLM_THINKING: ${CHAEKCHECK_AISEARCH_LLM_THINKING:-}
-      CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM: ${CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM:-false}
-      DJL_CACHE_DIR: /tmp/djl
-      # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
-      # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only
-      CHAEKCHECK_FORYOU_BUILD_ENABLED: ${CHAEKCHECK_FORYOU_BUILD_ENABLED:-false}
-      FETCH_MODE: direct
-      # Login (Kakao only, cycle 05/16). Keys from Parameter Store; needed only when login is on.
-      AUTH_PROVIDERS: kakao
-      AUTH_PUBLIC_BASE_URL: ${AUTH_PUBLIC_BASE_URL:-}
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
-      KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:-}
-      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
-      KAKAO_ADMIN_KEY: ${KAKAO_ADMIN_KEY:-}
-      KAKAO_APP_ID: ${KAKAO_APP_ID:-}
-      # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
-      # proxy-only). Webshare user and password (user decision 2026-10-18, the main way, sent preemptively on the first
-      # CONNECT); empty values fall back to Webshare's IP Authorization of this server (52.64.117.112). The names are
-      # the Parameter Store ones (/chaekcheck/prod/..., up.sh).
-      CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${WEBSHARE_PROXIES:?WEBSHARE_PROXIES missing (Parameter Store through up.sh)}
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYVENDOR: webshare
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYUSERNAME: ${WEBSHARE_PROXY_USERNAME:-}
-      CHAEKCHECK_AVAILABILITY_EGRESS_PROXYPASSWORD: ${WEBSHARE_PROXY_PASSWORD:-}
-    volumes:
-      - /srv/chaekcheck/aisearch-model:/models/aisearch:ro
+  backend-blue:
+    <<: *backend
+    image: chaekcheck/backend:${BACKEND_BLUE_VERSION:?BACKEND_BLUE_VERSION missing (slots.env through up.sh)}
     networks:
       default:
-        # deploy/nginx/ec2-tunnel.conf sends /api to backend-host:8080
         aliases:
-          - backend-host
-    ports:
-      - "127.0.0.1:8080:8080"
+          - backend-blue
+
+  backend-green:
+    <<: *backend
+    image: chaekcheck/backend:${BACKEND_GREEN_VERSION:?BACKEND_GREEN_VERSION missing (slots.env through up.sh)}
+    networks:
+      default:
+        aliases:
+          - backend-green
 
   web:
-    image: chaekcheck/web:1.21.4
+    image: nginx:1.30.5-alpine
     restart: unless-stopped
-    depends_on:
-      - backend
     networks:
       default:
         # the tunnel route in the Cloudflare dashboard sends chaekcheck.com to http://nginx:80
@@ -140,6 +148,11 @@ services:
       TZ: Asia/Seoul
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      # Folder bind mounts (ADR-0168): switch.sh writes active-backend.conf and the current symlink in place;
+      # nginx sees the changes without a container restart.
+      - /srv/chaekcheck/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /srv/chaekcheck/nginx/chaekcheck:/etc/nginx/chaekcheck:ro
+      - /srv/chaekcheck/web:/srv/chaekcheck/web:ro
 
   # Cloudflare Tunnel (ADR-0103): chaekcheck.com reaches nginx through an outbound connection, so the server opens no
   # port. Starting this service makes the site public. The token is TUNNEL_TOKEN in Parameter Store (raw eyJ... value).

@@ -50,8 +50,8 @@
   --chaekcheck.collection.import.book-texts-file=<TSV 경로>'
 ```
 
-- 운영(EC2)에서는 서버의 백엔드 이미지로 돌립니다(비밀값을 PC로 가져오지 않음). TSV를 `/srv/chaekcheck/book-texts/`에 올리고(644) `/srv/chaekcheck`에서:
-  `docker compose --env-file secrets.env --env-file prod.env run --rm --no-deps -v /srv/chaekcheck/book-texts:/book-texts:ro -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false backend --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일> --chaekcheck.collection.import.book-texts-top-books=100000`.
+- 운영(EC2)에서는 서버의 백엔드 이미지로 돌립니다(비밀값을 PC로 가져오지 않음). TSV를 `/srv/chaekcheck/book-texts/`에 올리고(644) `/srv/chaekcheck`에서(`<판>` = `slots.env`의 일하는 자리 판):
+  `( set -a; . ./secrets.env; set +a; docker run --rm --network chaekcheck_default -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/chaekcheck -e DB_NAME=chaekcheck -e DB_USERNAME=chaekcheck -e DB_PASSWORD -e TZ=Asia/Seoul -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false -v /srv/chaekcheck/book-texts:/book-texts:ro chaekcheck/backend:<판> --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일> --chaekcheck.collection.import.book-texts-top-books=100000 )`.
   **`book-texts-top-books=100000`을 빼면 파일 기본 30000으로 넣어 운영 AI 검색 책이 10만 권 판(76,759권, 2026-10-26~)에서 약 3만 권으로 줄어듭니다**(9절).
   로그인을 끄지 않으면 뜨지 않습니다(`HttpSecurity` 없음, 2026-10-25)
 - 차례: 파일 검사 → 목록 책을 DB에서 바로 읽음(`ListedBooks.loadFromDb()`, 서버 캐시 없이) → 보유 도서관 많은 책 `book-texts-top-books`권(파일 기본 30000, **운영은 100000**, `catalog.MostHeldBooks`)을 읽음 → 한 트랜잭션에서 `search_book`을 지우고 목록 책 전부와 목록에 없는 그 책들을 넣음(한 줄이 있으면 함께, 보유 도서관 `library_ids`도 복사). 목록에도 있는 책은 목록 쪽(보이는 이름) 한 줄로
@@ -202,7 +202,7 @@ FROM catalog.book_search;
 - **생각 끄기** `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`: 모든 JSON 호출(2차, 책첵 질문 답, Haiku 1차)에 `thinking: {type: disabled}`. 비우면 모델 기본(Haiku 5.5는 생각 켬). Haiku 5.5는 effort `high` 이하에서만 끌 수 있음(지금 `low`)
 - **프롬프트 캐싱** `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`: system을 `cache_control: ephemeral` 블록으로. 사용량의 캐시 읽기·쓰기 토큰도 입력으로 세어 하루 예산은 보수적으로 셈
 - **단계별 시간 로그**: 검색 한 줄 끝 `, steps encode=… ml=… nearest=… neighbours=… keyword=… vector=… mix=… cards=… llm-first=… llm-done=…`(요청 시작부터 ms). `llm-first`가 Haiku 첫 글자
-- **되돌리기**: prod.env에서 셋을 지우거나 `false`/빈 값으로 두고 `bin/up.sh` — 코드는 그대로 둬도 v1.16.3과 같은 동작
+- **되돌리기**: prod.env에서 셋을 지우거나 `false`/빈 값으로 두고 `bin/switch.sh backend <지금 판>` — 코드는 그대로 둬도 v1.16.3과 같은 동작
 
 ### 10-1. 되묻기 v2 (v1.18.0, 2026-10-27)
 

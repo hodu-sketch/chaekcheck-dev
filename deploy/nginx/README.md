@@ -5,7 +5,8 @@
 | 파일 | 하는 일 |
 |---|---|
 | `chaekcheck.conf` | 운영 예시. 80 → 443 이동, TLS, `root`(빌드 결과), 백엔드 주소. `TODO(확인 필요)`는 배포 때 채움 |
-| `chaekcheck-locations.conf` | 운영과 로컬 확인이 같이 쓰는 경로 규칙 |
+| `ec2-tunnel.conf` | 운영 서버(EC2 + Cloudflare Tunnel). `active-backend.conf`를 include하고(사이클 27, ADR-0167), `root`는 `/srv/chaekcheck/web/current`(ADR-0168) |
+| `chaekcheck-locations.conf` | 운영과 로컬 확인이 같이 쓰는 경로 규칙. `/actuator/` 404(ADR-0169) |
 | `security-headers.conf` | 화면 파일 응답의 보안 헤더(CSP 포함). 고른 까닭은 파일 주석에 |
 | `rate-limits.conf` | 도서관을 부르는 API의 IP별 한도 영역(`limit_req_zone`, `limit_conn_zone`), 사용 알림 한도 영역(사이클 15, 분당 60), 로봇 이름 `map`(사이클 15). 모두 http 단계에 둠 |
 | `local-test.conf` | 로컬 확인용. HTTP 8088 |
