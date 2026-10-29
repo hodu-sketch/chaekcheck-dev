@@ -465,15 +465,11 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
       {/* the summary by situation, as plain text under the cards, no box (user 2026-10-29 mock-up) */}
       {turn.tail && turn.cards.length > 0 && <Tail text={turn.tail} />}
       {turn.result === 'partial' && <p className={styles.soft}>{AI_TEXT.noText}</p>}
-      {turn.result === 'no_match' && !turn.ask && (
-        // the examples as the ask-back's numbered box (user 2026-10-30 「위 방식으로 통일」), when no choices came
+      {/* no drawn examples when no choices came: three fixed ones had nothing to do with the question (user 2026-10-30
+          「쿠버네티스 오퍼레이터 원서」 got a psychology essay) */}
+      {turn.result === 'no_match' && !turn.ask && !turn.head && (
         <div className={styles.noMatch}>
-          {!turn.head && <p>{AI_TEXT.noMatch}</p>}
-          <NumberedChoices
-            choices={shownExamples().slice(0, EXAMPLES_SHOWN)}
-            disabled={busy || !isLast}
-            onChoose={onExample}
-          />
+          <p>{AI_TEXT.noMatch}</p>
         </div>
       )}
       {notice && (
