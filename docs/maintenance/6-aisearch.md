@@ -21,7 +21,7 @@
   - 후보: 낱말 후보(`search_book`에 `LIKE`, ≤50권)와 벡터 후보(책 벡터 내적, ≤60권)를 RRF(Σ 1/(60+순위)) + 칸 보너스(0.004 × 맞은 칸 수)로 한 줄 세워 30권. 첫 질문은 낱말 후보 SQL을 질문 벡터와 동시에 시작
   - 2차: Haiku 한 번(스트림)이 30권 중 fit 2 이상 최대 8권과 카드 글. 되묻기 형식(`ask` 칸)은 4낱말 이하 첫 질문과 이어 묻기에만. 표지·요약은 Haiku를 부른 뒤 읽음
   - 길이 책첵 사용법 질문이면 Haiku 1번으로 답(`done "site"`), 책 찾는 말이 아니고 낱말 하나도 아니면 모델 호출 없이 고정 되묻기(예시 10개 중 3개)
-- 모델 폴더: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기만). PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`(폴더 README): `book-vectors.bin`(81,078권), `book-profiles.tsv`(77,551권, v1.21.4 다음 판부터 서버가 읽지 않음: 프로필은 `catalog.book_profile`), `first-call-model.bin`(라우터 B, v1.16.1~), `follow-up-model.bin`, `kure-query-int8-ext.onnx`·`kure-query-int8-ext.data`, `tokenizer-cut.json`. 백엔드는 `encoder=remote`라 인코더 파일 셋을 열지 않음(임베딩 서버의 `/srv/embed/model/`이 씀). 운영 서버 폴더에 인코더 파일이 실제로 있는지는 이 문서에서 확인 못 함
+- 모델 폴더: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기만). PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`(폴더 README): `book-vectors.bin`(81,078권), `book-profiles.tsv`(77,551권, v1.22.1부터 서버가 읽지 않음: 프로필은 `catalog.book_profile`. 운영 폴더에서는 2026-10-30 지움, PC 원본 `chaekcheck-data/aisearch/100k/book-profiles-export.tsv`), `first-call-model.bin`(라우터 B, v1.16.1~), `follow-up-model.bin`, `kure-query-int8-ext.onnx`·`kure-query-int8-ext.data`, `tokenizer-cut.json`. 백엔드는 `encoder=remote`라 인코더 파일 셋을 열지 않음(임베딩 서버의 `/srv/embed/model/`이 씀). 운영 서버 폴더에 인코더 파일이 실제로 있는지는 이 문서에서 확인 못 함
 - 책 수: AI 검색 책(`search_book`) 76,759권, 책 벡터 81,078권, 프로필 77,551권(10만 권 판, 9절)
 - 어디에 무엇: 넣기 1~5절, 3만 권 6절, 질문 벡터·임베딩 서버 7절, ML 1차·이어 묻기 8절, 10만 권 9절, 되묻기·생각 끄기·캐시 10절, 표 줄이기 11절, 첫 글 시간 12절. 로그 한 줄의 칸 뜻은 [1-how-it-works 7절](../aisearch/1-how-it-works.md#7-로그-한-줄)
 

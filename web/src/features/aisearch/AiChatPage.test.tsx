@@ -191,6 +191,22 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     setup()
     expect(await screen.findByText('더 쉬운 책은 찾기 어려웠어요.')).toBeTruthy()
     expect(screen.queryByText(/맞는 책을 찾지 못했어요/)).toBeNull()
+    // no drawn examples under it (user 2026-10-30)
+    expect(screen.queryByRole('list', { name: '고를 답' })).toBeNull()
+  })
+
+  it('shows the choices written after an answer with no book as the numbered box under the head (user 2026-10-30)', async () => {
+    startWithQuestion('안녕')
+    answers(
+      { name: 'head-delta', data: { text: '안녕하세요! 찾으시는 책 주제가 있으면 말씀해 주세요.' } },
+      { name: 'ask', data: { question: '', choices: ['경제 교양서', '잔잔한 에세이'] } },
+      { name: 'done', data: { result: 'no_match', bookIds: [] } },
+    )
+    setup()
+    const box = await screen.findByRole('list', { name: '고를 답' })
+    expect(box.textContent).toContain('1경제 교양서')
+    expect(box.textContent).toContain('2잔잔한 에세이')
+    expect(screen.getAllByText('안녕하세요! 찾으시는 책 주제가 있으면 말씀해 주세요.')).toHaveLength(1)
   })
 
   it('keeps the conversation across a reload and a new chat clears it', async () => {

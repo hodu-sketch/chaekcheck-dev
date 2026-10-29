@@ -349,6 +349,13 @@
   font-size: var(--text-md);
 }
 
+/* the hint under an answer with no book looks as the one under the choices (user 2026-10-30) */
+.noMatch p.askHint {
+  margin-top: 0.6rem;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
 .alert {
   display: flex;
   flex-wrap: wrap;
