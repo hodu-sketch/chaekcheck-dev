@@ -76,6 +76,6 @@
 | 기본 목록 | `/books`가 주는 추천목록 책 목록 |
 | 분야 묶음 | `literature, humanities, society, science, arts, other` 6개(`picks.FieldGroups`) |
 | 바로 대출 | 그 책을 가진 계획 도서관 중 `lending_model IN ('SUBSCRIPTION','RENTAL')`인 곳이 있음 |
-| 문턱 3 | 계획 도서관 3곳 이상이 갖거나 바로 대출이면 통과(결정, 미적용) |
+| 문턱 3 | 계획 도서관 3곳 이상이 갖거나 바로 대출이면 통과(v1.20.2부터 운영) |
 | 판정 | 방식을 가린 Haiku 하위 에이전트의 1~5점(3-evaluation.md 1-4) |
 | 판(O2, N4 …) | 4-history.md에서 부분마다 붙인 이름 |

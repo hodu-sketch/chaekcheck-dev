@@ -2,7 +2,7 @@
 
 - **이 문서가 답하는 것**: 사용자가 「책첵 추천」 탭(`/picks/for-you`)을 열었을 때 브라우저·서버가 **어떤 자료를 어디서 읽어, 어떤 계산으로, 어떤 형식의 결과를** 만드는지. 코드 위치와 표·칸 이름까지.
 - **답하지 않는 것**: 이웃 표·요약·표지를 PC에서 어떻게 만드나 → [2-data.md](2-data.md). 왜 이렇게 정했고 숫자가 얼마였나 → [3-evaluation.md](3-evaluation.md). 언제 무엇이 바뀌었나 → [4-history.md](4-history.md). 앞으로 바꿀 것 → [5-improvements.md](5-improvements.md).
-- 사이클 26 배포 1(v1.20.0, 2026-10-29)로 요약·표지·꼬리표를 `catalog` 표에서 읽습니다. 문턱 3(4절 5번)은 코드만 있고 **운영 배포 전**입니다.
+- 사이클 26 배포 1(v1.20.0, 2026-10-29)로 요약·표지·꼬리표를 `catalog` 표에서 읽습니다. 문턱 3(4절 5번)은 v1.20.2(2026-10-29)로 운영에 들었습니다.
 
 ## 0. 한눈에
 
@@ -69,7 +69,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 2. **순서 만들기**(`SimilarOrder.byCloseness`, v1.15.1부터): 순위 0부터 19까지, 순위마다 기준 책을 요청 차례대로 돌며 그 순위의 이웃을 넣음(이미 있으면 건너뜀). 즉 [기준1의 1위, 기준2의 1위, …, 기준1의 2위, 기준2의 2위, …]
 3. 같은 작품 정리: `BookCards.workKeys`(`catalog/internal/JdbcBookCards`) — `catalog.book.main_title_norm`이 같고 `catalog.book_contributor.name_exact`(역할 `AUTHOR`·`UNKNOWN`)를 하나라도 나누는 판끼리 한 작품(이름 사슬로 이어지면 모두 한 작품), 대표 판 = `cardinality(library_ids)`가 가장 큰 판(같으면 작은 번호). 후보를 대표 판 번호로 바꾸고, 기준 책과 같은 작품은 뺌. (새벽 점수가 있으면 점수 있는 판을 대표로 씀 — 운영에는 점수가 없음)
 4. 카드 만들기(6절): 계획 도서관 0곳·모르는 번호는 조용히 뺌
-5. **문턱**(`SimilarOrder.availableFirst`, 사용자 2026-10-29 「문턱 3으로」, **운영 배포 전**): 계획 도서관 목록(`LibraryCatalog.planSearch`의 `SearchTarget`) 중 `lendingModel`이 `SUBSCRIPTION`·`RENTAL`인 곳을 「바로 대출 도서관」으로 둠. 책마다 `catalog.book.library_ids ∩ 계획 도서관` 수를 세어 **3 이상(`MIN_PLAN_LIBRARIES`)이거나 그중 바로 대출 도서관이 있으면 통과**. 통과한 책을 차례 그대로 앞에, 못 넘은 책을 차례 그대로 뒤에(통과한 책이 60권에 못 미칠 때만 보임)
+5. **문턱**(`SimilarOrder.availableFirst`, 사용자 2026-10-29 「문턱 3으로」, v1.20.2부터 운영): 계획 도서관 목록(`LibraryCatalog.planSearch`의 `SearchTarget`) 중 `lendingModel`이 `SUBSCRIPTION`·`RENTAL`인 곳을 「바로 대출 도서관」으로 둠. 책마다 `catalog.book.library_ids ∩ 계획 도서관` 수를 세어 **3 이상(`MIN_PLAN_LIBRARIES`)이거나 그중 바로 대출 도서관이 있으면 통과**. 통과한 책을 차례 그대로 앞에, 못 넘은 책을 차례 그대로 뒤에(통과한 책이 60권에 못 미칠 때만 보임)
 6. 앞에서 최대 60권(`MAX_SIMILAR`)
 7. `reshowBookIds` 중 기준 책이 아닌 것도 카드로(`reshowBooks`)
 
@@ -141,4 +141,4 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 | 새벽 만들기(`foryou.build_run`, `popular_row`, `book_score`, `base_entry`) | 운영에서 꺼짐 → 기본 목록은 3절 3번, 새벽 점수 없음. 켤 때의 동작은 [`docs/maintenance/7-foryou.md`](../maintenance/7-foryou.md) 1절 |
 | 꼬리표(`catalog.tag_dictionary`, `catalog.book_tag`) | 0행 |
 | 사이클 26 배포 2 | 옛 표(`foryou.book_blurb`·`book_cover`, `picks.book_tag`·`tag_dictionary`)를 지움. plan `docs/cycles/26-book-descriptions/to-dev23-24.md` 3절 |
-| 문턱 3 | 코드·시험 끝(4절 5번), 운영 배포 전 → [5-improvements.md](5-improvements.md) I-01 |
+| 문턱 3 | v1.20.2 운영(4절 5번) → [5-improvements.md](5-improvements.md) I-01 |

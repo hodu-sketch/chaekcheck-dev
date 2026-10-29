@@ -20,7 +20,7 @@
 
 | 번호 | 안 | 상태 | 먼저 끝나야 할 것 |
 |---|---|---|---|
-| I-01 | 문턱 3 | 코드 완료·배포 대기 | 사용자의 운영 배포 승인 |
+| I-01 | 문턱 3 | 운영 v1.20.2 (10-29) | — |
 | I-02 | 카드에 「바로 대출」 표시 | 제안 | I-03, 사이클 26 배포 1 |
 | I-03 | 교보 「대여」(`RENTAL`)가 동시 대출 무제한인지 | 확인 필요 | — |
 | I-04 | 요약 없는 12,666권 채우기 | 제안 | 사이클 26 배포 1(넣는 표가 바뀜) |
@@ -41,12 +41,13 @@
 
 ## 2. 안별 내용
 
-### I-01 문턱 3 — 코드 완료·배포 대기 (2026-10-29)
+### I-01 문턱 3 — 운영 v1.20.2 (2026-10-29)
 - 문제: O2(유사도 순)로 바꾼 뒤 내 도서관 1곳만 가진 책이 추천 20권의 10.7%(가입 가능 범위) → 빌리러 가면 대출 중일 수 있음
 - 바꿀 곳: `ForYouController.similarBooks`의 `cards()` 뒤. 책마다 `planLibraryCount = |catalog.book.library_ids ∩ planIds|`, `instant = (catalog.book.library_ids ∩ planIds)` 안에 `library.library.lending_model IN ('SUBSCRIPTION','RENTAL')`인 도서관이 있음. **통과 = instant 또는 planLibraryCount ≥ 3**. 통과한 책을 지금 차례대로 앞에, 못 넘은 책은 통과한 책이 60권에 못 미칠 때만 그 뒤에
 - 근거: E7 — 바로 대출 48 → 61%, 1곳뿐 11% → 0%, 판정 3.78 → 3.86(손해 없음). 기본 범위(377곳)는 거의 그대로
 - 구현: `SimilarOrder.availableFirst`(상수 `MIN_PLAN_LIBRARIES = 3`), `ForYouController.availableFirst`(계획 `SearchTarget.lendingModel`로 바로 대출 도서관을 고르고 `BookCards.cards`의 `libraryIds`로 셈). 시험 `SimilarOrderTests.picksHeldByThreePlanLibrariesOrAnInstantOneComeFirstInTheirOrder`. 백엔드 `./gradlew build`, 웹 빌드·vitest 709 통과
-- 잴 것: 넣은 뒤 `threshold_eval2.py` 다시 + 운영 API로 표본 확인
+- 배포: 사용자 "운영에 배포해"(다른 세션 24·26·27에 차례를 물어 모두 「먼저 올려도 됨」 뒤), v1.20.2 백엔드만, 커밋 180897a1
+- 운영 측정(v1.20.2, 2026-10-29): 책 1172·10을 기준으로 16개 시·도(각 첫 시·군·구, `scope=joinable`)에 물었더니, 모두 앞 27~34권이 통과한 책이고 그 뒤 1~2곳 책(4~8권)이 붙음. 기본 범위(377곳)에서는 20·40권 모두 통과해 순서가 O2와 같음
 - 결정: 사용자 2026-10-29 "문턱 3으로". 설계 AC-5(「계획 도서관 1곳 이상」)보다 좁힘 → plan에 알림
 
 ### I-02 카드에 「바로 대출」 표시 — 제안

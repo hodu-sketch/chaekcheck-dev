@@ -340,7 +340,7 @@ ok = [r for r in rows if r[2] or r[1] >= T]                   # 문턱 T
 top = (ok + [r for r in rows if not (r[2] or r[1] >= T)])[:20]
 ```
 
-**서버 코드(I-01, 2026-10-29 구현, 운영 배포 전)** — `backend/.../foryou/internal/web/SimilarOrder.java`:
+**서버 코드(I-01, 2026-10-29 구현, v1.20.2 운영)** — `backend/.../foryou/internal/web/SimilarOrder.java`:
 ```java
 static final int MIN_PLAN_LIBRARIES = 3;
 
