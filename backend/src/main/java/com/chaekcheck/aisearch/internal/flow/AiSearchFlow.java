@@ -187,6 +187,12 @@ public class AiSearchFlow {
 	/** Books of the title a question is that go first among the candidates, at most (user 2026-10-29 「해리포터」) [안]. */
 	static final int MAX_TITLE_BOOKS = 3;
 
+	/**
+	 * A summary that names the books by the list's numbers (「1, 16, 18번」, 「3번」) and not by their titles, which the
+	 * user cannot match to the cards (user 2026-10-29, production v1.21.0); 「두 번째」 and 「1분」 are not numbers of the list.
+	 */
+	static final java.util.regex.Pattern TAIL_NUMBERS = java.util.regex.Pattern.compile("\\d+\\s*번(?!째)");
+
 	/** A title shorter than this (letters only) is taken as a topic, not as the book (user 2026-10-29) [안]. */
 	static final int MIN_TITLE_LETTERS = 3;
 
@@ -268,6 +274,9 @@ public class AiSearchFlow {
 		/** The ML first call's relation of a follow-up to the earlier question ("first" on the first turn). */
 		String relation;
 
+		/** Whether the summary was left out (its book numbers), or null (user 2026-10-29). */
+		String tail;
+
 		/** How the ask-back went (single-ask, not-book-ask, one-word), or null (user 2026-10-26). */
 		String ask;
 
@@ -323,7 +332,8 @@ public class AiSearchFlow {
 						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
 						(run.named ? ", named book" : "") + (run.earlyKeywords ? ", early keyword" : "")
 								+ (run.talk == null ? "" : ", talk " + run.talk), run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
-						(run.ask == null ? "" : ", ask " + run.ask) + (run.gone ? ", client gone" : "")
+						(run.ask == null ? "" : ", ask " + run.ask) + (run.tail == null ? "" : ", tail " + run.tail)
+								+ (run.gone ? ", client gone" : "")
 								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
 			catch (RuntimeException e) {
@@ -1001,6 +1011,8 @@ public class AiSearchFlow {
 				|| talk != null && talk.mode() == AskMode.FORCE) ? mlFirstCall.shelfCounts(ids) : Map.of();
 		// the ask-back question and choices when the call asks instead of picking (pick.ask-back, user 2026-10-26)
 		StringBuilder askQuestion = new StringBuilder();
+		// the summary by situation, kept whole and sent after the cards once checked (user 2026-10-29: 「1, 16, 18번」 went out)
+		StringBuilder tail = new StringBuilder();
 		List<String> askChoices = new ArrayList<>();
 		PickStreamParser parser = new PickStreamParser(new PickStreamParser.Listener() {
 
@@ -1069,10 +1081,7 @@ public class AiSearchFlow {
 
 			@Override
 			public void tailText(String text) {
-				// the summary by situation after the cards (user 2026-10-29); nothing to sum up without two cards
-				if (askQuestion.isEmpty() && run.shown.size() >= 2) {
-					run.send(AiSearchEvents.TAIL_DELTA, new Text(text));
-				}
+				tail.append(text);
 			}
 
 		});
@@ -1131,6 +1140,14 @@ public class AiSearchFlow {
 			finish(run, PickResult.NO_MATCH, "no_match");
 		}
 		else {
+			// nothing to sum up without two cards; a summary naming the list's numbers instead of titles is left out
+			String summary = tail.toString().strip();
+			if (run.shown.size() >= 2 && !summary.isEmpty() && !TAIL_NUMBERS.matcher(summary).find()) {
+				run.send(AiSearchEvents.TAIL_DELTA, new Text(summary));
+			}
+			else if (!summary.isEmpty()) {
+				run.tail = "left out";
+			}
 			finish(run, PickResult.OK, "ok");
 		}
 	}

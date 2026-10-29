@@ -779,6 +779,17 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aSummaryNamingTheListNumbersIsLeftOut() { // user 2026-10-29, production v1.21.0 「1, 16, 18번을 먼저 보시고」
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"처음이라면 1, 2번을 먼저 보세요.\"}", 1, 1));
+
+		run("과학책 추천해줘", List.of());
+
+		assertThat(sink.names()).doesNotContain("tail-delta").endsWith("done");
+		assertThat(AiSearchFlow.TAIL_NUMBERS.matcher("두 번째 책은 1분이면 읽어요").find()).isFalse();
+	}
+
+	@Test
 	void noSummaryGoesOutForOneCard() { // user 2026-10-29
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"}],"
 				+ "\"tail\":\"한 권뿐이에요.\"}", 1, 1));
