@@ -120,7 +120,8 @@ describe('AiChatPage (cycle 24 step 10)', () => {
 
     expect(await screen.findByText('어느 쪽을 찾으세요?')).toBeTruthy()
     const choices = within(screen.getByRole('list', { name: '고를 답' })).getAllByRole('button')
-    expect(choices.map((button) => button.textContent)).toEqual(['LLM의 원리를 다룬 책', 'LLM 활용법'])
+    // the last button is 「기타」 (user 2026-10-29)
+    expect(choices.map((button) => button.textContent)).toEqual(['LLM의 원리를 다룬 책', 'LLM 활용법', '기타'])
     expect(screen.queryByText(/맞는 책을 찾지 못했어요/)).toBeNull()
 
     answers(...okAnswer)
@@ -141,6 +142,49 @@ describe('AiChatPage (cycle 24 step 10)', () => {
         .getAllByRole('button')
         .every((button) => (button as HTMLButtonElement).disabled),
     ).toBe(true)
+  })
+
+  it('「기타」 opens a box under the choices and sends what is written as the next question (user 2026-10-29)', async () => {
+    startWithQuestion('사진')
+    answers(
+      { name: 'ask', data: { question: '어떤 쪽을 찾으세요?', choices: ['촬영 기법', '사진집'] } },
+      { name: 'done', data: { result: 'asked', bookIds: [] } },
+    )
+    const user = setup()
+    await screen.findByText('어떤 쪽을 찾으세요?')
+    expect(screen.queryByRole('textbox', { name: '직접 적어서 묻기' })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: '직접 적어서 묻기' }))
+    const box = screen.getByRole('textbox', { name: '직접 적어서 묻기' })
+    expect(document.activeElement).toBe(box)
+    answers(...okAnswer)
+    await user.type(box, '필름 카메라 이야기{Enter}')
+
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(2))
+    expect(stream.mock.calls[1][0]).toMatchObject({ question: '필름 카메라 이야기', turnNo: 2 })
+  })
+
+  it('shows the summary by situation under the cards and sends the head back with its turn (user 2026-10-29)', async () => {
+    startWithQuestion('우주 책')
+    answers(...okAnswer.slice(0, -1), { name: 'tail-delta', data: { text: '밤하늘을 볼 때: 『우주』' } }, okAnswer.at(-1)!)
+    const user = setup()
+    expect(await screen.findByText('밤하늘을 볼 때: 『우주』')).toBeTruthy()
+
+    answers(...okAnswer)
+    await user.type(screen.getByLabelText('이어서 묻기'), '더 쉬운 거{Enter}')
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(2))
+    expect(stream.mock.calls[1][0].history).toEqual([{ question: '우주 책', bookIds: [7], head: '우주 이야기 책이에요' }])
+  })
+
+  it('keeps the model head of an answer with no book; the fixed line only when it is empty (user 2026-10-29)', async () => {
+    startWithQuestion('더 쉬운 거')
+    answers(
+      { name: 'head-delta', data: { text: '더 쉬운 책은 찾기 어려웠어요.' } },
+      { name: 'done', data: { result: 'no_match', bookIds: [] } },
+    )
+    setup()
+    expect(await screen.findByText('더 쉬운 책은 찾기 어려웠어요.')).toBeTruthy()
+    expect(screen.queryByText(/맞는 책을 찾지 못했어요/)).toBeNull()
   })
 
   it('keeps the conversation across a reload and a new chat clears it', async () => {

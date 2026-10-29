@@ -10,8 +10,11 @@ import type { LibraryScope, VisitFilter } from './types'
  * /api/v1/ai-searches/library-counts` counts the plan's libraries again for the books already shown.
  */
 
-/** An earlier turn; an ask-back turn sends its question and choices so the next question is read as its answer (2026-10-27). */
-export type AiTurn = { question: string; bookIds: number[]; askQuestion?: string; askChoices?: string[] }
+/**
+ * An earlier turn; an ask-back turn sends its question and choices so the next question is read as its answer
+ * (2026-10-27). The head the answer wrote goes back too, so the model reads what it said (user 2026-10-29 「대화 기억」).
+ */
+export type AiTurn = { question: string; bookIds: number[]; askQuestion?: string; askChoices?: string[]; head?: string }
 
 export interface AiSearchBody {
   question: string
@@ -49,10 +52,12 @@ export type AiStreamEvent =
   | { name: 'card'; data: AiCard }
   | { name: 'card-delta'; data: { bookId: number; text: string } }
   | { name: 'ask'; data: AiAsk }
+  // the closing summary by situation, after the cards (user 2026-10-29)
+  | { name: 'tail-delta'; data: { text: string } }
   | { name: 'done'; data: { result: AiDoneResult; bookIds: number[] } }
   | { name: 'error'; data: { code: string } }
 
-const EVENT_NAMES = new Set(['title-guess', 'head-delta', 'card', 'card-delta', 'ask', 'done', 'error'])
+const EVENT_NAMES = new Set(['title-guess', 'head-delta', 'card', 'card-delta', 'ask', 'tail-delta', 'done', 'error'])
 
 const STREAM_URL = '/api/v1/ai-searches/stream'
 const COUNTS_URL = '/api/v1/ai-searches/library-counts'

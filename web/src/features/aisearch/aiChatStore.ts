@@ -26,6 +26,8 @@ export type AiTurnState = {
   result: AiDoneResult | null
   /** The agent asked back instead of answering (user 2026-10-26); absent in turns kept before it. */
   ask?: AiAsk | null
+  /** The summary by situation after the cards (user 2026-10-29); absent in turns kept before it. */
+  tail?: string
 }
 
 export type AiChat = { turns: AiTurnState[] }
@@ -74,6 +76,7 @@ export function addQuestion(chat: AiChat, question: string): AiChat {
     cards: [],
     result: null,
     ask: null,
+    tail: '',
   }
   return { turns: [...chat.turns, turn] }
 }

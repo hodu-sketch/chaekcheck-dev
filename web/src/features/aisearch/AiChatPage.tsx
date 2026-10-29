@@ -26,9 +26,10 @@ import styles from './AiChatPage.module.css'
 
 /**
  * S30 `/ai-search` (cycle 24 step 10, flow S30): the conversation, questions on the right, answers on the left as a
- * head line and book cards that fill in as the answer streams. The conversation lives in this tab only (R11-6); every
- * question sends itself, the last 5 turns (question and shown books) and the plan values, in the body (ADR-0152). All
- * the model's text is shown as plain text, never as markup (step 8 security review #7).
+ * head line, book cards that fill in as the answer streams and the summary by situation under them (user 2026-10-29).
+ * The conversation lives in this tab only (R11-6); every question sends itself, all earlier turns of its 10 (question,
+ * the head written and shown books; user 2026-10-29 「대화 기억」) and the plan values, in the body (ADR-0152). All the
+ * model's text is shown as plain text, never as markup (step 8 security review #7).
  */
 export function AiChatPage() {
   const navigate = useNavigate()
@@ -93,7 +94,7 @@ export function AiChatPage() {
       .map((turn) =>
         turn.ask
           ? { question: turn.question, bookIds: [], askQuestion: turn.ask.question, askChoices: turn.ask.choices }
-          : { question: turn.question, bookIds: turn.cards.map((card) => card.bookId) },
+          : { question: turn.question, bookIds: turn.cards.map((card) => card.bookId), ...(turn.head ? { head: turn.head } : {}) },
       )
     const body: AiSearchBody = {
       question: turn.question,
@@ -260,6 +261,7 @@ export function AiChatPage() {
                   cards: [],
                   result: null,
                   ask: null,
+                  tail: '',
                 }))
               }
               onExample={ask}
@@ -389,6 +391,19 @@ type AnswerProps = {
 
 function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = true }: AnswerProps) {
   const notice = noticeOf(turn)
+  // 「기타」 under an ask-back opens a box to write one's own answer (user 2026-10-29 mock-up "시안대로")
+  const [other, setOther] = useState(false)
+  const [otherText, setOtherText] = useState('')
+  const otherRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (other) otherRef.current?.focus()
+  }, [other])
+  const sendOther = () => {
+    if (otherText.trim() === '') return
+    onExample(otherText)
+    setOtherText('')
+    setOther(false)
+  }
   return (
     <div className={styles.answer}>
       {turn.titleGuess && (
@@ -404,7 +419,8 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
           {AI_TEXT.loading}
         </p>
       )}
-      {turn.head && turn.result !== 'no_match' && <p className={styles.head}>{turn.head}</p>}
+      {/* the model's head stays as written, a no-match one too (user 2026-10-29: the fixed line only when it is empty) */}
+      {turn.head && <p className={styles.head}>{turn.head}</p>}
       {turn.result === 'site' && turn.head && (
         <>
           <p className={styles.siteLinkLine}>
@@ -433,13 +449,72 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
                 </button>
               </li>
             ))}
+            {isLast && (
+              <li>
+                <button
+                  type="button"
+                  className={styles.askOther}
+                  aria-expanded={other}
+                  aria-label={AI_TEXT.askOtherLabel}
+                  disabled={busy}
+                  onClick={() => setOther((open) => !open)}
+                >
+                  <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
+                      d="M10.5 2.5l3 3L6 13H3v-3zM9 4l3 3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  {AI_TEXT.askOther}
+                </button>
+              </li>
+            )}
           </ul>
-          {isLast && (
-            <p className={styles.askHint}>
-              {AI_TEXT.askHint}
-              <span className={styles.askHintMore}>{AI_TEXT.askHintMore}</span>
-            </p>
+          {isLast && other && (
+            <form
+              className={styles.askOtherForm}
+              onSubmit={(event) => {
+                event.preventDefault()
+                sendOther()
+              }}
+            >
+              <input
+                ref={otherRef}
+                className={styles.askOtherInput}
+                value={otherText}
+                maxLength={QUESTION_MAX}
+                placeholder={AI_TEXT.askOtherPlaceholder}
+                aria-label={AI_TEXT.askOtherLabel}
+                autoComplete="off"
+                onChange={(event) => setOtherText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setOther(false)
+                }}
+              />
+              <button
+                type="submit"
+                className={styles.send}
+                aria-label={AI_TEXT.send}
+                title={AI_TEXT.send}
+                disabled={busy || otherText.trim() === ''}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <path
+                    d="M9 15V3M4 8l5-5 5 5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </form>
           )}
+          {isLast && <p className={styles.askHint}>{AI_TEXT.askHint}</p>}
         </>
       )}
       {turn.result === 'no_text' && <p className={styles.head}>{AI_TEXT.noText}</p>}
@@ -471,10 +546,12 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
           ))}
         </ul>
       )}
+      {/* the summary by situation, as plain text under the cards, no box (user 2026-10-29 mock-up) */}
+      {turn.tail && turn.cards.length > 0 && <p className={styles.tail}>{turn.tail}</p>}
       {turn.result === 'partial' && <p className={styles.soft}>{AI_TEXT.noText}</p>}
       {turn.result === 'no_match' && (
         <div className={styles.noMatch}>
-          <p>{AI_TEXT.noMatch}</p>
+          {!turn.head && <p>{AI_TEXT.noMatch}</p>}
           <ul className={styles.examples} aria-label="예시 질문">
             {shownExamples().slice(0, EXAMPLES_SHOWN).map((question) => (
               <li key={question}>
@@ -563,6 +640,8 @@ export function apply(turn: AiTurnState, event: AiStreamEvent): AiTurnState {
       }
     case 'ask':
       return { ...turn, ask: event.data }
+    case 'tail-delta':
+      return { ...turn, tail: (turn.tail ?? '') + event.data.text }
     case 'done':
       return { ...turn, state: 'done', result: event.data.result }
     case 'error':

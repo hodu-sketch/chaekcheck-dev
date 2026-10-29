@@ -28,9 +28,12 @@ export const AI_TEXT = {
   send: '보내기',
   // a question about 책첵 answered from the intro tab and the first screen (user 2026-10-26, mockup approved)
   siteLink: '책첵이란? 자세히 보기 →',
-  // the agent asking back (user 2026-10-26 mock-up "시안대로"): under the buttons; the second sentence hides on phones
+  // the agent asking back (user 2026-10-26 mock-up "시안대로"): under the buttons. 「직접 써서 물어도 돼요」 went with the
+  // 「기타」 button (user 2026-10-29 mock-up "시안대로")
   askHint: '고르시면 그 답으로 이어서 찾아요.',
-  askHintMore: ' 직접 써서 물어도 돼요.',
+  askOther: '기타',
+  askOtherLabel: '직접 적어서 묻기',
+  askOtherPlaceholder: '원하는 쪽을 적어 주세요',
   siteNote: '답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.',
 } as const
 
@@ -101,6 +104,9 @@ export function shownAllExamples(): string[] {
 /** Question length (design decision #8 [확정]), the same as the server. */
 export const QUESTION_MIN = 2
 export const QUESTION_MAX = 200
-/** Questions in one conversation (R11-3 [확정]) and earlier turns sent (R11-3). */
-export const TURNS_MAX = 20
-export const HISTORY_SENT = 5
+/**
+ * Questions in one conversation and earlier turns sent: all of them are remembered (user 2026-10-29 「세션당 질문 수
+ * 10」; was 20 questions and 5 turns sent, R11-3).
+ */
+export const TURNS_MAX = 10
+export const HISTORY_SENT = TURNS_MAX - 1

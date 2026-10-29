@@ -556,6 +556,67 @@
   font-size: var(--text-sm);
 }
 
+/* 「기타」 after the choices: a dashed pill, quieter than the answers; open, it looks pressed (user 2026-10-29 mock-up) */
+.askOther {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.95rem;
+  border: 1.5px dashed var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.askOther:hover:not(:disabled),
+.askOther:focus-visible {
+  background: var(--brand-faint);
+}
+
+.askOther[aria-expanded='true'] {
+  border-style: solid;
+  border-color: var(--brand);
+  background: var(--brand-faint);
+  color: var(--brand-strong);
+}
+
+.askOther:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.askOtherForm {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  max-width: 30rem;
+  margin: 0.5rem 0 0;
+}
+
+.askOtherInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.95rem;
+  border: 1.5px solid var(--brand);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+/* the summary by situation under the cards: plain text, one situation a line (user 2026-10-29 mock-up, no box) */
+.tail {
+  margin: 0.25rem 0 0;
+  color: var(--ink);
+  font-size: var(--text-md);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 @media (width <= 640px) {
   .askChoices {
     flex-direction: column;
@@ -566,7 +627,12 @@
     border-radius: var(--radius-inner);
   }
 
-  .askHintMore {
-    display: none;
+  .askOther {
+    width: 100%;
+    border-radius: var(--radius-inner);
+  }
+
+  .askOtherForm {
+    max-width: none;
   }
 }
