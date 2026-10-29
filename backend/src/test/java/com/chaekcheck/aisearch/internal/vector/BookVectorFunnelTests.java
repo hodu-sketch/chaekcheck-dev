@@ -107,6 +107,27 @@ class BookVectorFunnelTests {
 	}
 
 	@Test
+	void aBookWithSeveralRowsCountsItsBestRowOnce() throws IOException {
+		// book 10 has two rows (one along x, one along y), book 20 one along y (0.9 long), book 30 one between them
+		Path file = write(new long[] { 10, 10, 20, 30 },
+				new float[] { 1 / 127f, 1 / 127f, 0.9f / 127, 0.7071f / 127 },
+				new byte[] { 127, 0, 0, 127, 0, 127, 127, 127 }, 2);
+		BookVectorFile exact = BookVectorFile.read(file);
+		assertThat(exact.rowsPerBook()).isEqualTo(2);
+		assertThat(exact.nearest(new float[] { 0, 1 }, 2)).containsExactly(10L, 20L);
+		assertThat(exact.nearest(new float[] { 0, 1 }, 3)).containsExactly(10L, 20L, 30L);
+		assertThat(exact.nearest(new float[] { 1, 0 }, 3)).containsExactly(10L, 30L, 20L);
+		for (int keep : new int[] { 1, 2, 100 }) {
+			try (BookVectorFunnel funnel = BookVectorFunnel.open(file, 100, keep)) {
+				assertThat(funnel.rowsPerBook()).isEqualTo(2);
+				assertThat(funnel.nearest(new float[] { 0, 1 }, 3)).containsExactly(10L, 20L, 30L);
+				assertThat(funnel.nearest(new float[] { 1, 0 }, 3)).containsExactly(10L, 30L, 20L);
+				assertThat(funnel.nearest(new float[] { 1, 0 }, 1)).containsExactly(10L);
+			}
+		}
+	}
+
+	@Test
 	void anotherFileOrAShortOneIsRefused() throws IOException {
 		Path other = dir.resolve("other.bin");
 		Files.writeString(other, "not vectors at all");

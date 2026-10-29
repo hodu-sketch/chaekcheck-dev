@@ -241,9 +241,10 @@ for (int i = 0; i < 16; i++) dist += Long.bitCount(q[i] ^ book[i]);
 | `application.yml` | `chaekcheck.aisearch.vector.search.mode: ${CHAEKCHECK_AISEARCH_VECTOR_SEARCH:funnel}`, `hamming-keep: 10000`, `binary-keep: 2000` |
 
 - 되돌리기: `CHAEKCHECK_AISEARCH_VECTOR_SEARCH=exact`(prod.env) 후 재시작.
+- **책 하나에 여러 줄(두 층 준비, 2026-10-30)**: 사용자 결정 "두 층 (조각 512) + BM25"에 맞춰, 파일에 같은 책 번호가 여러 줄(요약 1 + 소개 조각들) 있어도 되게 함. 책 점수 = 그 책 줄들 중 최고 점수(실험의 two-max), 결과에는 책마다 한 번. `exact`는 상위 `limit × 책당 최대 줄 수` 줄을 남긴 뒤 책으로 묶음(그 안에 상위 `limit`권이 반드시 있음), `funnel`은 남기는 수가 줄 단위이고 마지막 단계에서 책으로 묶음. 시작 로그: `… 81078 rows x 1024 (up to 1 a book) …`. 지금 파일(책당 한 줄)에서는 결과가 그대로(재현율 0.9919 다시 확인). 줄이 약 3배가 되면 남기는 수(1만 / 2,000)를 다시 잼.
 - 남기는 수가 책 수 이상이면 그 단계를 건너뜁니다(책이 적은 개발 DB에서는 정확한 답과 같음). 요청한 `limit`보다 적게 남기지 않습니다.
 - 매핑하는 동안 `book-vectors.bin`을 **그 자리에서 덮어쓰면 안 됩니다**(리눅스에서 읽던 줄이 바뀌거나 SIGBUS). 새 파일로 쓰고 이름을 바꾼 뒤(`mv`) 백엔드를 다시 시작합니다. 지금 운영 절차도 파일을 바꾼 뒤 재시작합니다.
-- 테스트: `BookVectorFunnelTests`(남기는 수 ≥ 책 수면 정확한 답과 같음, 무작위 3,000권 128차원에서 상위 20의 90% 이상·찾은 것끼리는 정확한 순서, 설정으로 고르기, 잘못된 파일 거절, `highest` 순서), `BookVectorFunnelModelTests`(`AISEARCH_MODEL_DIR` + `AISEARCH_QUERIES`가 있을 때만: 실제 파일에서 상위 120 재현율 > 0.98, 잰 값 0.9919).
+- 테스트: `BookVectorFunnelTests`(남기는 수 ≥ 책 수면 정확한 답과 같음, 책 하나에 두 줄이면 최고 줄로 한 번만, 무작위 3,000권 128차원에서 상위 20의 90% 이상·찾은 것끼리는 정확한 순서, 설정으로 고르기, 잘못된 파일 거절, `highest` 순서), `BookVectorFunnelModelTests`(`AISEARCH_MODEL_DIR` + `AISEARCH_QUERIES`가 있을 때만: 실제 파일에서 상위 120 재현율 > 0.98, 잰 값 0.9919).
 
 ## 9. 다시 재는 법
 

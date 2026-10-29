@@ -61,8 +61,9 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 					encoder = new RemoteQuestionEncoder(settings.remote(), json);
 					pool = Executors.newVirtualThreadPerTaskExecutor();
 				}
-				log.info("ai search vectors on ({}, {}): {} books x {}, loaded in {} ms", settings.encoder(),
-						settings.search().mode(), books.count(), books.dim(), (System.nanoTime() - started) / 1_000_000);
+				log.info("ai search vectors on ({}, {}): {} rows x {} (up to {} a book), loaded in {} ms",
+						settings.encoder(), settings.search().mode(), books.count(), books.dim(), books.rowsPerBook(),
+						(System.nanoTime() - started) / 1_000_000);
 			}
 			catch (Exception | UnsatisfiedLinkError e) {
 				log.warn("ai search vectors off: {}", e.getMessage() == null ? e.getClass().getName() : e.getMessage());

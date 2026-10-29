@@ -8,7 +8,6 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,7 +21,8 @@ import java.util.List;
  * <li>those: the question (floats) against the bits read as +1 / -1, the {@code binaryKeep} highest kept;</li>
  * <li>those: the exact score {@code (int8 row . question) * scale} from the mapped file, as {@link BookVectorFile}.</li>
  * </ol>
- * The last step scores like {@link BookVectorFile}, so a book that reaches it gets the same score; on 81,078 books
+ * A book with several rows (ids repeat) counts its best row and comes once; the keep counts are rows. The last step
+ * scores like {@link BookVectorFile}, so a book that reaches it gets the same score; on 81,078 books
  * with 10,000 / 2,000 the result holds 99.2% of the exact top 120 (222 questions, measured). The file must not be
  * rewritten in place while mapped; a new model folder is a new file.
  */
@@ -50,6 +50,8 @@ final class BookVectorFunnel implements BookVectors {
 
 	private final int binaryKeep;
 
+	private final int rowsPerBook;
+
 	private final Arena arena;
 
 	private final MemorySegment rows;
@@ -63,6 +65,7 @@ final class BookVectorFunnel implements BookVectors {
 		this.words = (dim + 63) / 64;
 		this.hammingKeep = hammingKeep;
 		this.binaryKeep = binaryKeep;
+		this.rowsPerBook = BookVectors.rowsPerBook(ids);
 		this.arena = arena;
 		this.rows = rows;
 	}
@@ -127,6 +130,11 @@ final class BookVectorFunnel implements BookVectors {
 	}
 
 	@Override
+	public int rowsPerBook() {
+		return rowsPerBook;
+	}
+
+	@Override
 	public List<Long> nearest(float[] query, int limit) {
 		if (query.length != dim) {
 			throw new IllegalArgumentException("query has " + query.length + " dimensions, the books " + dim);
@@ -134,8 +142,9 @@ final class BookVectorFunnel implements BookVectors {
 		if (limit < 1 || ids.length == 0) {
 			return List.of();
 		}
-		int[] kept = byHamming(query, Math.max(hammingKeep, limit));
-		kept = byBits(query, kept, Math.max(binaryKeep, limit));
+		int least = (int) Math.min((long) limit * rowsPerBook, Integer.MAX_VALUE);
+		int[] kept = byHamming(query, Math.max(hammingKeep, least));
+		kept = byBits(query, kept, Math.max(binaryKeep, least));
 		float[] scores = new float[kept.length];
 		byte[] row = new byte[dim];
 		for (int c = 0; c < kept.length; c++) {
@@ -147,12 +156,12 @@ final class BookVectorFunnel implements BookVectors {
 			}
 			scores[c] = dot * scales[r];
 		}
-		int[] best = highest(scores, Math.min(limit, kept.length));
-		List<Long> out = new ArrayList<>(best.length);
-		for (int c : best) {
-			out.add(ids[kept[c]]);
+		int[] best = highest(scores, Math.min(least, kept.length));
+		int[] rowsBestFirst = new int[best.length];
+		for (int i = 0; i < best.length; i++) {
+			rowsBestFirst[i] = kept[best[i]];
 		}
-		return out;
+		return BookVectors.books(ids, rowsBestFirst, limit);
 	}
 
 	/** Step 1: the rows of the {@code keep} smallest hamming distances (all rows when there are no more). */

@@ -7,7 +7,6 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -16,7 +15,7 @@ import java.util.PriorityQueue;
  * The book vectors, read whole into memory (about 31 MB for 31,000 books): the file {@code book-vectors.bin} that
  * {@code scripts/aisearch/make_book_vectors.py} writes, little-endian: {@code "CCBV1\n"}, count and dimension
  * (int32), the book ids (int64), one scale per row (float32), then the rows (int8). A row times its scale is the
- * book's normalised KURE-v1 vector. Every row is scored ({@code chaekcheck.aisearch.vector.search.mode: exact});
+ * book's normalised KURE-v1 vector; a book may have several rows (ids repeat). Every row is scored ({@code chaekcheck.aisearch.vector.search.mode: exact});
  * {@link BookVectorFunnel} reads the same file keeping only the sign bits on the heap.
  */
 final class BookVectorFile implements BookVectors {
@@ -33,6 +32,8 @@ final class BookVectorFile implements BookVectors {
 
 	private final int dim;
 
+	private final int rowsPerBook;
+
 	BookVectorFile(long[] ids, float[] scales, byte[] rows, int dim) {
 		if (scales.length != ids.length || rows.length != (long) ids.length * dim) {
 			throw new IllegalArgumentException("ids, scales and rows do not agree");
@@ -41,6 +42,7 @@ final class BookVectorFile implements BookVectors {
 		this.scales = scales;
 		this.rows = rows;
 		this.dim = dim;
+		this.rowsPerBook = BookVectors.rowsPerBook(ids);
 	}
 
 	static BookVectorFile read(Path file) throws IOException {
@@ -91,6 +93,11 @@ final class BookVectorFile implements BookVectors {
 	}
 
 	@Override
+	public int rowsPerBook() {
+		return rowsPerBook;
+	}
+
+	@Override
 	public List<Long> nearest(float[] query, int limit) {
 		if (query.length != dim) {
 			throw new IllegalArgumentException("query has " + query.length + " dimensions, the books " + dim);
@@ -98,8 +105,10 @@ final class BookVectorFile implements BookVectors {
 		if (limit < 1 || ids.length == 0) {
 			return List.of();
 		}
+		// the first `limit` books are among the first `limit * rowsPerBook` rows
+		int keep = (int) Math.min((long) limit * rowsPerBook, ids.length);
 		// a min-heap of the best rows so far: [score, row] packed as the row's index into a parallel array
-		PriorityQueue<int[]> best = new PriorityQueue<>(limit + 1,
+		PriorityQueue<int[]> best = new PriorityQueue<>(keep + 1,
 				(a, b) -> Float.compare(Float.intBitsToFloat(a[0]), Float.intBitsToFloat(b[0])));
 		for (int row = 0; row < ids.length; row++) {
 			int base = row * dim;
@@ -108,7 +117,7 @@ final class BookVectorFile implements BookVectors {
 				dot += rows[base + i] * query[i];
 			}
 			float score = dot * scales[row];
-			if (best.size() < limit) {
+			if (best.size() < keep) {
 				best.add(new int[] { Float.floatToIntBits(score), row });
 			}
 			else if (score > Float.intBitsToFloat(best.peek()[0])) {
@@ -116,12 +125,11 @@ final class BookVectorFile implements BookVectors {
 				best.add(new int[] { Float.floatToIntBits(score), row });
 			}
 		}
-		List<Long> out = new ArrayList<>(best.size());
-		while (!best.isEmpty()) {
-			out.add(ids[best.poll()[1]]);
+		int[] order = new int[best.size()];
+		for (int i = order.length - 1; i >= 0; i--) {
+			order[i] = best.poll()[1];
 		}
-		java.util.Collections.reverse(out);
-		return out;
+		return BookVectors.books(ids, order, limit);
 	}
 
 }
