@@ -172,7 +172,7 @@ class AiSearchFlowTests {
 	MlFirstCall mlFirstCall = MlFirstCall.off();
 
 	/** The second step: the single call unless a test sets the agent. */
-	com.chaekcheck.aisearch.internal.config.PickProperties pick = new com.chaekcheck.aisearch.internal.config.PickProperties(false);
+	com.chaekcheck.aisearch.internal.config.PickProperties pick = new com.chaekcheck.aisearch.internal.config.PickProperties(false, false);
 
 	/** The settings the flow gets: the application's, or with the ML first call on. */
 	AiSearchProperties flowProperties;
@@ -438,7 +438,26 @@ class AiSearchFlowTests {
 
 	/** The single call that may ask back (user 2026-10-26). */
 	private void askBackOn() {
-		pick = new com.chaekcheck.aisearch.internal.config.PickProperties(true);
+		pick = new com.chaekcheck.aisearch.internal.config.PickProperties(true, true);
+	}
+
+	@Test
+	void aOneWordQuestionIsAnsweredAtOnceWithItsSensesMixed() { // user 2026-10-29 「한 단어도 그걸로 답변」
+		pick = new com.chaekcheck.aisearch.internal.config.PickProperties(true, false);
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));
+
+		run("과학", List.of());
+
+		LlmCall pickCall = llm.calls.get(1);
+		assertThat(pickCall.system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(pickCall.messages().getLast().text()).contains("대화 메모: 질문이 낱말 하나(「과학」)다. 되묻지 않는다.")
+			.doesNotContain("후보 분야");
+
+		// two words may still be asked back
+		llm.then(keywords("과학")).then(Answer.ok("{\"ask\":{\"question\":\"\",\"choices\":[]},\"head\":\"\",\"picks\":[],"
+				+ "\"tail\":\"\"}", 1, 1));
+		flow().run(input("과학 책", List.of()), new Sink());
+		assertThat(llm.calls.get(3).system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
 	}
 
 	@Test

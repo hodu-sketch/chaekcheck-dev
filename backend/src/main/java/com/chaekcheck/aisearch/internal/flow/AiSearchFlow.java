@@ -971,8 +971,13 @@ public class AiSearchFlow {
 		// a long first question is clear enough to pick from at once (ASK_QUESTION_WORDS)
 		// talk words decide it themselves (plan 2026-10-29): never after 「모르겠어」, always when what they point at is
 		// not known
-		boolean askBack = pick.askBack() && titleNote == null && (talk != null ? talk.mode() != AskMode.NEVER
+		// a one-word question is answered at once, its common senses mixed (user 2026-10-29 「한 단어도 그걸로 답변」);
+		// pick.ask-one-word brings the ask-back of v1.17.0 to v1.20.5 back
+		boolean oneWord = talk == null && titleNote == null && words(input.question()) == 1 && !pick.askOneWord();
+		boolean askBack = pick.askBack() && titleNote == null && !oneWord && (talk != null ? talk.mode() != AskMode.NEVER
 				: !pointsBack && (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS));
+		String oneWordNote = oneWord && pick.askBack() ? "질문이 낱말 하나(「" + input.question().strip() + "」)다. 되묻지 않는다. "
+				+ "뜻이 여럿이면 흔한 갈래 2~3개의 책을 고루 섞어 고르고, 머리말에 어떤 갈래로 골랐는지 한 문장으로 쓴다." : null;
 		// a short question gets the candidates' big shelves, so the call sees whether they split (「사진」, user 2026-10-27)
 		Map<String, Integer> shelves = askBack && (words(input.question()) <= SHORT_QUESTION_WORDS
 				|| talk != null && talk.mode() == AskMode.FORCE) ? mlFirstCall.shelfCounts(ids) : Map.of();
@@ -1056,7 +1061,7 @@ public class AiSearchFlow {
 		LlmCall call = new LlmCall(askBack ? Prompts.PICK_ASK_SYSTEM : Prompts.PICK_SYSTEM,
 				Prompts.pickMessages(history, input.question(), choices,
 						java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue(), shelves,
-						talk != null ? talk.note() : titleNote),
+						talk != null ? talk.note() : titleNote != null ? titleNote : oneWordNote),
 				askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
 				properties.pickMaxTokens());
 		boolean failed = false;

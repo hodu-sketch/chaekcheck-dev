@@ -459,6 +459,9 @@ chaekcheck:
       # 기존 한 번의 호출에」, docs/aisearch/reports/2026-10-26-agent.md 10절). Off by default; production turns it on
       # since v1.17.0 (CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true) [안]
       ask-back: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:false}
+      # a one-word question (「사진」) asked back too, as from v1.17.0 to v1.20.5; off: it is answered at once with the
+      # common senses mixed (user 2026-10-29 「한 단어도 가능하고 그걸로 답변」, the old way kept as this switch)
+      ask-one-word: ${CHAEKCHECK_AISEARCH_PICK_ASK_ONE_WORD:false}
     llm:
       anthropic:
         # AI book search (cycle 24, ADR-0150). The key is a secret: ../.env or the deployment's secrets only
