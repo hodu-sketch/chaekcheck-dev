@@ -1,5 +1,11 @@
 package com.chaekcheck.aisearch.internal.firstcall;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +33,43 @@ public final class TinyFirstCall {
 	static BookProfiles.Profile profile(String field) {
 		return new BookProfiles.Profile(field, "", null, List.of(), "", "", "", List.of());
 	}
+
+	/** Writes {@link #model()} as a {@code first-call-model.bin} the way the export does. */
+	static void write(Path file) throws IOException {
+		FirstCallModel model = model();
+		StringBuilder header = new StringBuilder("{\"dim\":3,\"hidden\":3,\"heads\":[");
+		List<FirstCallModel.Head> heads = new ArrayList<>();
+		for (String name : NAMES) {
+			FirstCallModel.Head head = model.head(name);
+			heads.add(head);
+			header.append(heads.size() > 1 ? "," : "")
+				.append("{\"name\":\"").append(name)
+				.append("\",\"kind\":\"").append(head.kind().name().toLowerCase(java.util.Locale.ROOT))
+				.append("\",\"labels\":[")
+				.append(String.join(",", head.labels().stream().map(l -> "\"" + l + "\"").toList()))
+				.append("],\"tau\":").append(head.tau())
+				.append(",\"threshold\":").append(head.threshold())
+				.append(",\"max\":").append(head.max()).append('}');
+		}
+		byte[] json = header.append("]}").toString().getBytes(StandardCharsets.UTF_8);
+		int floats = 0;
+		for (FirstCallModel.Head head : heads) {
+			floats += head.w1().length + head.b1().length + head.w2().length + head.b2().length;
+		}
+		ByteBuffer out = ByteBuffer.allocate(6 + 4 + json.length + floats * 4).order(ByteOrder.LITTLE_ENDIAN);
+		out.put("CCFC1\n".getBytes(StandardCharsets.US_ASCII)).putInt(json.length).put(json);
+		for (FirstCallModel.Head head : heads) {
+			for (float[] blob : List.of(head.w1(), head.b1(), head.w2(), head.b2())) {
+				for (float f : blob) {
+					out.putFloat(f);
+				}
+			}
+		}
+		Files.write(file, out.array());
+	}
+
+	private static final List<String> NAMES = List.of("route", "field", "subfield", "genre", "form", "ex_field",
+			"ex_subfield", "ex_genre", "fiction", "country", "audience", "level");
 
 	static FirstCallModel model() {
 		List<FirstCallModel.Head> heads = new ArrayList<>();

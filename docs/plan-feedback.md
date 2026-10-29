@@ -7329,6 +7329,10 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 
 - dev 24가 찾은 것(AC-7): 카드 제목 출처가 `catalog.book.title`로 바뀌어 76,759권 중 87권(0.11%)에 판 표시가 붙음(「토지」 → 「토지. 1(1부 1권)」). 사용자 "「토지. 1(1부 1권)」. 그대로 두자" → **바꾸지 않음**. plan에 넘길 결정.
 
+## 회고 결정: 1차 호출 프로필 파일 대체 읽기 지움 (2026-10-29, plan-26 전달, 사용자 "지우기해줘")
+
+- `MlFirstCall`이 `catalog.book_profile`이 비면 모델 폴더 `book-profiles.tsv`를 읽던 길과 `BookProfiles.read`를 지움. 표가 비면 시작 경고 한 줄(`… the ml one is off: catalog.book_profile is empty …`) 뒤 ML 1차가 꺼지고 Haiku로 감, 서버는 뜸. 시험 `FirstCallTests.theFirstCallIsOffWhileTheProfileTableIsEmpty`(빈 표 → 꺼짐, 폴더에 파일이 있어도 / 줄 있음 → 켜짐·칸 셈 그대로). `application.yml`·`AiSearchProperties`·`BookProfiles` 설명과 aisearch·maintenance 문서를 표 기준으로 고침. 운영은 이미 표 77,551줄이라 동작 변화 없음. v1.21.4 다음 판에 함께 나감. 운영 모델 폴더 `book-profiles.tsv`는 그 판이 나간 뒤 사용자에게 묻고 지움(원본 PC `chaekcheck-data/aisearch/100k/book-profiles-export.tsv`).
+
 ## 13단계: 배포 2 (2026-10-29, v1.20.6 `48ede47a`, 사용자 "배포 2 진행")
 
 - 옛 표 여섯 지움(합 약 154MB: search_book 115MB, book_blurb 24MB, book_cover 12MB, picks.cover 2.2MB, 꼬리표 둘 32kB), 운영 드롭 약 0.2초, 서버 시작 22.6초, DB 8,431 → 8,277MB. 옛 표지 API·서버 그림 받기·nginx `/covers/`·compose 볼륨·웹 옛 주소 모양 지움, `collection` → `aisearch` 의존 뺌. 연습 복사본에서 먼저 돌림(드롭 각 15ms). 시험 백엔드 1,429·웹 709.
@@ -7394,4 +7398,143 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 숫자(로컬, Sonnet 채점): 대화 점검 57턴 0권 5 → 1, 고정 되묻기 6 → 0, 「직접 적어」 6 → 0, 금지어 1 → 0. 규칙 80문항 중 한 낱말 결정이 닿지 않는 53문항 카드 맞음 86.7 → 87.8%(한 낱말 되묻기를 기대한 21문항은 결정대로 바뀜). 기록 `docs/aisearch/reports/2026-10-29-talk-review-fix.md`.
 - **plan이 볼 것**: 로그인·비밀번호·탈퇴 질문을 「책첵 질문(site)」 길로 옮겼고(학습 질문 13개 라벨 바꿈), 사이트 안내 글에 로그인 창 문구를 넣음. 시험 기대(`ask_yes`·`typed`, 한 낱말 되묻기 턴)는 새 결정에 맞게 아직 안 바꿈.
 - HNSW: 지금(81,078권)은 전수 유지, 15만~20만 권에서 다시 봄(추정). 얻는 시간 약 85ms(첫 글의 약 4%) vs 상위 120권 재현율 0.87. 운영 서버 메모리: 쓸 수 있는 약 500MB, 스왑 462MB(지금 드나듦 0, 과거 기록), 인코더는 임베딩 서버(약 400MB). `docs/aisearch/reports/2026-10-29-hnsw.md`.
+
+# 사이클 27
+
+## 시작 상태 (2026-10-29)
+
+- 워크트리: `.claude/worktrees/cycle-27`, 브랜치 `claude/cycle-27-zero-downtime`
+- 시작 커밋: `2e385f48` (main, Release v1.21.4)
+- 현재 판: backend `1.21.4`, web `1.21.4`
+- 운영 판: v1.21.3 (server-measure.md 기준, 이후 v1.21.4 배포됨)
+- 23/24 브랜치의 `deploy/prod/` 변경: **없음** (23은 `deploy/prod/` diff 0, 24 원격 브랜치 없음). 충돌 없을 것으로 봄
+- docker 프로젝트: TODO (0단계에서 정함)
+
+## 0단계 1번: Boot 4.1.1 probes outside Kubernetes (2026-10-29)
+
+### 변경
+
+- `backend/build.gradle`: `spring-boot-starter-actuator` 추가 (ADR-0169)
+- `backend/src/main/resources/application.yml`: management 설정 (health만 노출, probes 활성화), graceful shutdown 40s
+- `backend/src/main/java/com/chaekcheck/auth/internal/AuthToggleEnvironmentPostProcessor.java`: `ManagementWebSecurityAutoConfiguration` 제외 목록 추가
+
+### 발견: auth 꺼짐 + actuator 충돌
+
+`ManagementWebSecurityAutoConfiguration`이 `HttpSecurity` 빈을 요구하지만, `AuthToggleEnvironmentPostProcessor`가 모든 보안 auto-config을 제외해서 `HttpSecurity`가 없음 → 시작 실패.
+**수정**: 제외 목록에 `org.springframework.boot.security.autoconfigure.actuate.web.servlet.ManagementWebSecurityAutoConfiguration` 추가.
+
+### 결과
+
+**auth 꺼짐** (`CHAEKCHECK_AUTH_ENABLED=false`):
+- `/actuator/health/readiness`: 러너 실행 중 `OUT_OF_SERVICE` → 완료 후 `UP` (약 2초 후)
+- `/actuator/health/liveness`: `UP`
+- `/actuator/health`: `{"groups":["liveness","readiness"],"status":"OUT_OF_SERVICE"}` → 러너 완료 후 `UP`
+- `/actuator/env`, `/actuator/beans`, `/actuator/info`, `/actuator/metrics`: 전부 **404**
+- `/actuator`: health와 health-path 링크만 노출
+
+**auth 켜짐** (`CHAEKCHECK_AUTH_ENABLED=true`, 가짜 키):
+- `/actuator/health/readiness`: 러너 실행 중 `OUT_OF_SERVICE` → 완료 후 `UP`
+- `/actuator/health/liveness`: `UP`
+- `/actuator/health`: 러너 완료 후 `UP`
+- `/actuator/env`: **404**
+- 보안 필터 있어도 actuator health는 인증 없이 접근 가능 (Boot 4.1 기본값)
+
+### 핵심
+
+1. readiness가 `ApplicationRunner` 완료 전에는 `OUT_OF_SERVICE` → nginx health check에 바로 쓸 수 있음
+2. health만 노출, 민감 엔드포인트 404 → 프로덕션 안전
+3. auth on/off 둘 다 정상 동작
+
+## 0단계 2번: 정상 종료 + REFUSING_TRAFFIC (2026-10-29)
+
+Docker 컨테이너(`chaekcheck-test:latest`, `eclipse-temurin:25-jre`, `--stop-timeout 60`, `chaekcheck_default` 네트워크로 DB 연결)에서 테스트.
+
+- **(a) SSE 스트림**: 대출 검색 스트림이 없는 idle 상태 테스트. 실제 SSE 스트림 테스트는 운영 리허설에서
+- **(b) readiness 1s 후**: curl exit 56 (connection reset, 서버가 연결을 끊는 중), 3s 후: exit 7 (connection refused, Tomcat 이미 내려감). 즉 `OUT_OF_SERVICE` JSON을 돌려주지 않고 연결 자체가 끊김 → `switch.sh`에서 wget도 실패할 것 (exit ≠ 0이면 비정상으로 판단 가능)
+- **(c) 로그 문구**: `"Commencing graceful shutdown. Waiting for active requests to complete"` → `"Graceful shutdown complete"` (AC-6에 이 문구 사용)
+- **(d) 종료 코드**: **143** (128+15=SIGTERM) ✅, OOMKilled=false
+- **(e) UsageLogFlusher**: 기능 꺼져 있어 로그 없음 (정상)
+- **(f) AbandonedSignupListener**: 가입 중이 아니어서 로그 없음 (정상)
+- 종료 소요: 약 3초 (idle 상태). 순서: Tomcat graceful → EventPublicationRegistry → EntityManagerFactory → HikariPool
+
+## 0단계 3번: nginx alpine busybox wget (2026-10-29)
+
+nginx:1.30.5-alpine (운영 판 1.30.5 확인, `docker exec chaekcheck-web-1 nginx -v`), BusyBox v1.37.0.
+
+- `wget -q -T 2 -O-` + HTTP 200: exit 0, body 출력 ✅
+- `wget -q -T 2 -O-` + HTTP 503: exit 1, `"server returned error: HTTP/1.0 503 Service Unavailable"` ✅
+- `wget -q -T 2 -O-` + connection refused: exit 1, `"can't connect to remote host"` ✅
+- **고정 태그**: `nginx:1.30.5-alpine` [안]
+
+## 0단계 4번: nginx reload upstream (2026-10-29)
+
+테스트 환경: nginx:1.30.5-alpine 프록시, backend-blue/green 두 upstream 컨테이너.
+
+- **(a)** upstream 파일 교체 + `nginx -t && nginx -s reload` → 새 upstream으로 전환됨 ✅
+- **(b)** green 컨테이너 재생성(IP 변경) + reload → 새 IP로 해석됨 ✅
+- **(c)** 멈춘 컨테이너 → `nginx -t` 실패: `"host not found in upstream \"test-green:80\""`, exit 1 ✅ → `switch.sh` 안전장치로 사용 가능
+- **(d)** reload 중 20회 빠른 요청: 실패 **0회** ✅
+- **(e)** 파일 bind mount에서 `mv`: 컨테이너가 **원래 내용** 봄. 폴더 bind mount에서 `mv`: **바뀐 내용** 봄 ✅ → ADR-0168 근거 확인 (폴더째 mount 필수)
+
+## 0단계 5번: Git Bash 시각 (2026-10-29)
+
+- `TZ=Asia/Seoul date +%H%M`: Git Bash에서 작동 안 함 (UTC 출력)
+- `TZ=KST-9 date +%H%M`: 서울 시각 정상 출력 ✅
+- POSIX 표기 `TZ=KST-9` 사용 (한국은 서머타임 없음)
+
+## 0단계 6번: compose 버릇 (2026-10-29)
+
+Docker Compose v5.1.4.
+
+- **(a)** `up -d --no-deps svc-a` → 다른 서비스(B, C) 건드리지 않음 ✅
+- **(b)** `up -d --no-deps --force-recreate svc-b` → B만 재생성, A·C 그대로 ✅
+- **(c)** `--env-file env1 --env-file env2` → 나중 파일이 같은 키를 이김 (`MY_VAR=second`). 앞 파일의 고유 키도 유지 ✅
+- **(d)** Docker Compose v5.1.4
+
+## 0단계 7번: 기준 빌드 (2026-10-29)
+
+- `npm run build`: 성공 (8.54s)
+- `./gradlew bootJar`: 성공 (52s)
+- `./gradlew build`: 워크트리에서 db-test 미접근. compile·bootJar 성공으로 코드 정합성 확인
+
+## 0단계 결론
+
+막는 결과 없음. 1·2·4번 모두 기대대로. 구현 단계 진행 가능
+
+## 6단계: WSL 리허설 (2026-10-29)
+
+WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB 포트 5534, 웹 포트 8088, 이미지 `chaekcheck/backend:1.21.4`·`chaekcheck/web:1.21.4`(워크트리 코드 amd64 빌드).
+
+### AC 결과 — 9/9 PASS
+
+| AC | 내용 | 결과 | 비고 |
+|---|---|---|---|
+| AC-1 | blue→green→blue 왕복, 매번 /api/v1/version 올바름 | PASS | ready=15s/14s |
+| AC-2 | 없는 이미지로 전환 시 옛 자리 유지 | PASS | `no-image` 거절, blue 계속 서빙 |
+| AC-3 | 전환 중 502/503 0건 (0.5초 간격) | PASS | 59건 전부 200 |
+| AC-4 | nginx -t 실패 시 옛 upstream 복원 | PASS | incoming에 깨진 rate-limits.conf → backup 복원, 옛 자리 유지 |
+| AC-5 | 화면 전환(symlink + reload) | PASS | symlink=releases/1.21.5, HTTP 200, 앞 판 유지 |
+| AC-6 | 새벽 03:25~05:10 거절 | PASS | `CHAEKCHECK_CLOCK_HHMM=400` → `reason=dawn` |
+| AC-7 | flock 중복 방지 | PASS | 잠금 잡은 뒤 시도 → `reason=already-running` |
+| AC-8 | slots.env 상태 올바름 | PASS | ACTIVE/BLUE/GREEN/WEB 전부 정확 |
+| AC-9 | actuator 경로 nginx에서 404 | PASS | health·readiness·env·root 전부 404, 내부(Docker 네트워크)는 UP |
+
+### 측정
+
+- **readiness 시간**: 14~17초 (DB Liquibase가 이미 돈 뒤 두 번째 자리 기준). 첫 시작(Liquibase 131 changeset): 32초
+- **메모리**: backend 464~536MB, DB 58~63MB, web(nginx) 13~14MB. 두 자리 동시 운행 중 합계 약 1.1GB
+
+### 발견
+
+1. **nginx 시작 순서**: `docker compose up -d db backend-blue web`으로 함께 띄우면 nginx가 backend-blue보다 먼저 시작해 `host not found in upstream "backend-blue:8080"` 으로 죽음. DB → backend → web 순서로 시작해야 함. 운영에서는 `up.sh`(첫 시작 이후)에서 같은 순서 문제가 가능 — 처음 옮기기(8단계) 순서가 backend → web이라 괜찮지만, 이후 서버 재부팅 시 `up.sh` 주의. **[안] up.sh에 backend 먼저, web은 backend 컨테이너 존재 확인 후**
+2. **AC-4 주의**: nginx가 `include`하지 않는 파일은 `nginx -t`에서 검사하지 않음. 깨진 설정이 include 대상(rate-limits.conf, chaekcheck-locations.conf 등)일 때만 잡힘 → incoming 파일 이름이 include 대상이 아니면 통과함. 이건 정상 동작(쓸데없는 파일은 무시)
+
+## 7단계: 문서 갱신 (2026-10-29)
+
+5개 파일:
+- `deploy/prod/README.md`: 무중단 구조 전체 재작성
+- `docs/maintenance/3-import.md`: slots.env 자리 참조 2줄
+- `docs/maintenance/6-aisearch.md`: backend → slot 컨테이너(docker run), 되돌리기 → switch.sh 2곳
+- `docs/maintenance/settings-index.md`: §5 배포 설정 7항목 추가
+- `docs/plan-feedback.md`: 이 절
 

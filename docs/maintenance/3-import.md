@@ -286,7 +286,7 @@ COMMIT;
 
    목록 그림(`scripts/crawl/lists/covers/`)은 서버로 복사하지 않습니다. 새 그림은 PC가 S3에 `covers/<sha1(cover_source)>.jpg`로 올립니다([8-covers.md](8-covers.md) 2절). 서버의 `/srv/chaekcheck/covers` 복사와 nginx `/covers/`는 사이클 26 배포 2(v1.20.6)부터 없음.
 
-2. 서버(`/srv/chaekcheck`): `secrets.env`의 `DB_PASSWORD`를 괄호 안 셸에서만 읽어 넘김. `secrets.env`는 값이 작은따옴표로 싸여 있어(`up.sh`) `docker run --env-file`로 주면 따옴표까지 값이 되므로 쓰지 않습니다. `prod.env`(로그인·이용 기록 켜기)는 이 모드에 필요 없습니다(`collection-import`가 로그인을 끔). DB 주소·이름·사용자는 `compose.yaml`의 `backend`와 같습니다. `<판>` = `compose.yaml`의 `backend` `image:` 판
+2. 서버(`/srv/chaekcheck`): `secrets.env`의 `DB_PASSWORD`를 괄호 안 셸에서만 읽어 넘김. `secrets.env`는 값이 작은따옴표로 싸여 있어(`up.sh`) `docker run --env-file`로 주면 따옴표까지 값이 되므로 쓰지 않습니다. `prod.env`(로그인·이용 기록 켜기)는 이 모드에 필요 없습니다(`collection-import`가 로그인을 끔). DB 주소·이름·사용자는 `compose.yaml`의 `backend`와 같습니다. `<판>` = `slots.env`의 일하는 자리 판(예: `ACTIVE_SLOT=blue`면 `BACKEND_BLUE_VERSION`)
 
         cd /srv/chaekcheck
         ( set -a; . ./secrets.env; set +a
@@ -303,7 +303,7 @@ COMMIT;
 - [안] 네트워크 이름 `chaekcheck_default`: compose 프로젝트 이름 `chaekcheck`(`name:`)의 기본 네트워크. 서버에서 `docker network ls`로 확인
 - [안] 힙 `-Xmx384m`: 2GB 서버에서 백엔드(`-Xmx640m`)와 함께 돌 때의 값. 목록 80~수백 줄과 표지 몇십 장이라 충분할 것으로 봄, 서버에서 처음 돌릴 때 확인
 - [안] 컨테이너 사용자(uid 10001)가 `/srv/chaekcheck/lists`를 읽을 수 있어야 함(scp 기본 권한 644/755면 됨)
-- `docker compose run backend …`는 쓰지 않습니다: 서비스의 네트워크 별칭 `backend-host`가 붙으면 nginx의 `/api`가 이 컨테이너로 갈 수 있음 [안]
+- `docker compose run backend-<자리> …`는 쓰지 않습니다: 서비스의 네트워크 별칭이 붙으면 nginx의 upstream이 이 컨테이너로 갈 수 있음 [안]
 
 ### 14-3. 확인한 것 (2026-10-19, 내 PC `db`)
 

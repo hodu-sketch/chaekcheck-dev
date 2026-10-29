@@ -7,7 +7,7 @@
   - 버전마다 무엇이 바뀌었나 → [2-versions.md](2-versions.md)
   - 1차 신경망·관계 분류기를 어떻게 학습했나 → [3-ml-models.md](3-ml-models.md)
   - 넣기·배포·켜고 끄기 같은 운영 명령 → [../maintenance/6-aisearch.md](../maintenance/6-aisearch.md)
-- **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`, 표가 비면 모델 폴더의 `book-profiles.tsv`). 아래 글은 이 기준입니다. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 배포 2(v1.20.6)에서 지웠습니다.
+- **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`; 표가 비면 ML 1차 호출이 꺼지고 Haiku로 감, 모델 폴더의 `book-profiles.tsv`는 v1.21.4 다음 판부터 읽지 않음). 아래 글은 이 기준입니다. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 배포 2(v1.20.6)에서 지웠습니다.
 - 코드 경로 줄임: `aisearch/…`는 `backend/src/main/java/com/chaekcheck/aisearch/…`입니다. 웹은 `web/src/…`입니다.
 
 ### 이 문서에서 쓰는 말
@@ -195,9 +195,8 @@
 - 「int8 줄 × 그 줄의 scale」이 그 책의 길이 1짜리 KURE-v1 벡터입니다. 만들 때: 벡터를 길이 1로 나누고 → `scale = max(|v|) / 127` → `round(v / scale)`을 −127~127로 자름(`scripts/aisearch/make_book_vectors.py`).
 - 책 쪽 글(제목 · 저자 · 출판사 · 연도 + 소개 앞 300자)은 PC가 계산했고 이 저장소 코드가 아닙니다([6-aisearch.md](../maintenance/6-aisearch.md) 9절 기록).
 
-**프로필** (77,551권): 사이클 26부터 `catalog.book_profile`에서 서버 시작 때 한 번 읽음. 그 표가 비어 있을 때만 아래 파일 `book-profiles.tsv`를 읽음(시작 로그 `… book profiles from …`)
-- UTF-8, 한 줄에 책 하나, 탭으로 나눈 9칸: `책 id`, `field`, `subfield`, `fiction`(1·0·빈칸), `genre`(`|`로 이음), `country`, `audience`, `level`, `form`(`|`로 이음). 예: `7	자기계발	공부법	0			교양	교양	`.
-- 칸이 9개가 아니면 시작 때 읽기 실패 → ML 1차가 꺼짐.
+**프로필** (77,551권): 사이클 26부터 `catalog.book_profile`에서 서버 시작 때 한 번 읽음(시작 로그 `ai search first call: ml, N book profiles from catalog.book_profile`). 표가 비어 있으면 경고 한 줄(`… the ml one is off: catalog.book_profile is empty …`)을 남기고 ML 1차 호출이 꺼져 Haiku로 감. 서버는 그대로 뜸. 모델 폴더의 파일 `book-profiles.tsv`를 대신 읽는 길은 v1.21.4 다음 판에서 지움(plan 사이클 26 회고, 사용자 2026-10-29 「지우기해줘」)
+- 표에 넣는 PC 파일(`book-profiles` 넣기, [7-foryou.md](../maintenance/7-foryou.md) 2절): UTF-8, 첫 줄 `# export_id=…`, 그다음 한 줄에 책 하나, 탭으로 나눈 9칸: `책 id`, `field`, `subfield`, `fiction`(1·0·빈칸), `genre`(`|`로 이음), `country`, `audience`, `level`, `form`(`|`로 이음). 예: `7	자기계발	공부법	0			교양	교양	`.
 
 **`first-call-model.bin`** (25,824,240바이트)
 - 리틀엔디언. `"CCFC1\n"` → 머리 JSON 길이 int32(5,918) → UTF-8 머리 JSON(`dim` 1024, `hidden` 512, `heads` 목록) → 머리(head)마다 float32로 `W1[512×1024]`, `b1[512]`, `W2[출력×512]`, `b2[출력]`.
@@ -291,9 +290,9 @@
 
 근거: `TalkRefs`, `AiSearchFlow.talk`, `Prompts.pickMessages`. 잰 결과: [reports/2026-10-29-talk-refs](reports/2026-10-29-talk-refs.md).
 
-- **v1.21.5부터 `BACK_TO`의 주제 고르기**: 「아까」 없이 「뇌과학 말한거」, 「했던거」도 `BACK_TO`입니다. 고르는 차례는 4-0-2의 「아까」 줄입니다(위 표의 `TalkRefs.back()`은 벡터가 없을 때만 씀).
+- **v1.22.0부터 `BACK_TO`의 주제 고르기**: 「아까」 없이 「뇌과학 말한거」, 「했던거」도 `BACK_TO`입니다. 고르는 차례는 4-0-2의 「아까」 줄입니다(위 표의 `TalkRefs.back()`은 벡터가 없을 때만 씀).
 
-#### 4-0-2. 이어지는 질문의 조건과 주제 (v1.21.5부터)
+#### 4-0-2. 이어지는 질문의 조건과 주제 (v1.22.0부터)
 
 앞 대화가 있을 때 아래를 정한 뒤 4-1절로 갑니다. 「벡터」는 질문(또는 그 조각)을 4-2절과 같은 인코더로 만든 벡터이고, 예시 문장(`resources/aisearch/intent-examples.tsv`, 80줄)의 벡터와 견줘 가장 가까운 5개가 가까운 만큼 표를 던집니다(`IntentVectors`). 예시는 처음 쓸 때 한 번 만들어 메모리에 두고, 그 전이나 벡터가 꺼졌으면 규칙만 씁니다. 조각 벡터는 최대 1.5초 기다립니다.
 
@@ -448,8 +447,8 @@ ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
 LIMIT :limit
 ```
 
-- **최신일 때(v1.21.5~)**: 4-0-2절의 첫 해가 있으면 바깥 줄에 `coalesce((SELECT (b.published_on >= make_date(:from,1,1))::int FROM catalog.book b WHERE b.id = s.book_id), 0) AS recent`를 더하고 `ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id`. 같은 수의 낱말을 가진 책 가운데 최근 책이 먼저입니다. 이른 검색(4-1)은 쓰지 않습니다.
-- **주제가 여럿일 때(v1.21.5~)**: 주제마다 `QuestionWords.of(주제)`를 중심 낱말로, 1차 낱말을 그 뒤에 붙여 `LIMIT` = ⌈50 ÷ 주제 수⌉로 따로 찾고, 1위·1위·2위·2위… 순으로 겹치지 않게 50개까지 담습니다.
+- **최신일 때(v1.22.0~)**: 4-0-2절의 첫 해가 있으면 바깥 줄에 `coalesce((SELECT (b.published_on >= make_date(:from,1,1))::int FROM catalog.book b WHERE b.id = s.book_id), 0) AS recent`를 더하고 `ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id`. 같은 수의 낱말을 가진 책 가운데 최근 책이 먼저입니다. 이른 검색(4-1)은 쓰지 않습니다.
+- **주제가 여럿일 때(v1.22.0~)**: 주제마다 `QuestionWords.of(주제)`를 중심 낱말로, 1차 낱말을 그 뒤에 붙여 `LIMIT` = ⌈50 ÷ 주제 수⌉로 따로 찾고, 1위·1위·2위·2위… 순으로 겹치지 않게 50개까지 담습니다.
 
 - `score` = 들어 있는 낱말 수(낱말 하나에 1점). `plan_count` = 그 책을 가진 계획 도서관 수. 자른 뒤가 아니라 줄 세운 뒤에 `LIMIT`으로 자릅니다. `LIKE '%…%'`는 pg_bigm GIN 인덱스(`book_search_search_text_bigm`)를 탑니다.
 - `LIMIT`: 벡터와 합칠 때(`mix`) **50**(= max(`keyword-depth` 50, `candidates` 30)). 합치지 않을 때 30 − (이미 고른 수).
@@ -466,7 +465,7 @@ LIMIT :limit
 - 입력: 4-4절의 120개(ML 1차). Haiku 1차로 온 검색은 질문만으로 따로 만든 벡터의 120개(6절).
 - 기다림: 그 결과를 최대 2초 기다림. 늦거나 실패하면 빈 목록(로그 `the question vector was late` / `failed`)이고 낱말 후보만으로 이어감.
 - 거르기: `book_search`에 있고 → 뺄 책이 아니고 → 한 SQL(`planCounts`)로 계획 도서관 수를 세어 1곳 이상 가진 것 → 앞에서 **60개**(`vector-depth`).
-- **v1.21.5부터**: 가까운 책을 깊이 × 10(600권, `NEAREST_POOL`) 읽습니다. 최신이면 가까운 240권(`RECENT_WINDOW` 4) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮긴 뒤 120권에서 자릅니다. 주제가 여럿이면 주제마다 벡터를 만들어 600 ÷ 주제 수권씩 읽고 번갈아 담은 목록을 씁니다.
+- **v1.22.0부터**: 가까운 책을 깊이 × 10(600권, `NEAREST_POOL`) 읽습니다. 최신이면 가까운 240권(`RECENT_WINDOW` 4) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮긴 뒤 120권에서 자릅니다. 주제가 여럿이면 주제마다 벡터를 만들어 600 ÷ 주제 수권씩 읽고 번갈아 담은 목록을 씁니다.
 - 출력: `List<Long>` ≤60, 가까운 순. 계획 도서관 수는 카드용으로 기억.
 
 근거: `AiSearchFlow.vectorCandidates`, `CandidateQuery.planCounts`.
@@ -689,8 +688,8 @@ ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <
 | `tokens` | 이 검색의 모든 호출 합. 입력은 캐시 토큰 포함, 출력은 모르면 `max_tokens` |
 | `ask` | `single-ask`(2차가 되물음), `not-book-ask`(고정 되묻기), `one-word`(낱말 하나라 책 찾기로 바꿈) |
 | `tail` | 상황별 정리 글이 길어서 끊김(`too long`, v1.21.x) |
-| `from` | 최신 조건의 첫 해(4-0-2, v1.21.5~) |
-| `parts` | 주제를 나눠 찾은 수(4-0-2, v1.21.5~) |
+| `from` | 최신 조건의 첫 해(4-0-2, v1.22.0~) |
+| `parts` | 주제를 나눠 찾은 수(4-0-2, v1.22.0~) |
 | `client gone` | 사용자가 떠남 |
 | `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 120) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-first`(2차 첫 글 조각) `llm-done`(2차 끝) |
 

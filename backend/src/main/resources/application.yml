@@ -1,3 +1,14 @@
+# Zero-downtime deploy probes (cycle 27, ADR-0169). See docs/maintenance/settings-index.md §1-0.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health  # health only — env/beans/info/metrics stay 404
+  endpoint:
+    health:
+      probes:
+        enabled: true  # readiness + liveness outside Kubernetes
+
 spring:
   application:
     name: chaekcheck
@@ -35,7 +46,11 @@ spring:
       # Schema changes go through Liquibase only
       ddl-auto: validate
 
+  lifecycle:
+    timeout-per-shutdown-phase: 40s  # §1-0
+
 server:
+  shutdown: graceful  # §1-0
   servlet:
     session:
       # Only the login feature uses the session: values kept during a login (pending sign-up, re-authentication),
@@ -441,8 +456,9 @@ chaekcheck:
     first-call:
       # who makes the first step (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
       # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
-      # the question's own words), no model call. ml needs the vectors on and first-call-model.bin and
-      # book-profiles.tsv in model-dir; without them, or with the question vector late or failed, Haiku is asked
+      # the question's own words), no model call. ml needs the vectors on, first-call-model.bin in model-dir and the
+      # book profiles in catalog.book_profile (book-profiles import); without them, or with the question vector late or
+      # failed, Haiku is asked
       mode: ${CHAEKCHECK_AISEARCH_FIRST_CALL:haiku}
       # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]
       shelf-bonus: 0.004

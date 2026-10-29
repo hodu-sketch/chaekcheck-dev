@@ -41,7 +41,6 @@ class FirstCallModelFileTests {
 			assertThat(model.labels("field", vector)).isEqualTo(strings(row.path("field")));
 			assertThat(model.labels("subfield", vector)).isEqualTo(strings(row.path("subfield")));
 		}
-		assertThat(BookProfiles.read(dir.resolve(BookProfiles.NAME)).count()).isEqualTo(27_227);
 	}
 
 	private static List<String> strings(JsonNode node) {

@@ -51,6 +51,15 @@
 | 출판유통·「화제의 책 200선」·KLWAVE (사이클 23) | 모두 `false` (읽는 코드 없음) | `chaekcheck.foryou.sources.kpipa-rank.enabled`, `kpipa-200.enabled`, `klwave.enabled` | — | — | 받을 범위·형식은 사용자 PC 원문 확인 뒤 (인계 0단계 #7) | ADR-0147 | 서비스 |
 | 점수 값 (사이클 23) | 예약 2, 연도 구간 3·6·10년 / 가산 1.5·1.0·0.6·0.3, 연도 모름 1.0, 출판유통 1.5, 200선 1.0, KLWAVE 0.3 | `chaekcheck.foryou.score.*` | `CHAEKCHECK_FORYOU_SCORE_RESERVATIONWEIGHT` 등 | 체크포인트 C에서 사용자가 조정(R2-3a) | R2-3 | spec R2-3 (앞 넷 [확정], 나머지 [안]) | 서비스 |
 
+### 1-0. 무중단 배포 (사이클 27, ADR-0169)
+
+| 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
+|---|---|---|---|---|---|---|---|
+| Actuator 노출 | `health`만 | `management.endpoints.web.exposure.include` | `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | nginx `/actuator/` 404(2단계)와 함께 | readiness·liveness 프로브만 열고 env·beans·info·metrics는 404. 운영 서버 밖에서 내부 정보가 나오지 않게 | ADR-0169 | 서비스 |
+| Health 프로브 켜기 | `true` | `management.endpoint.health.probes.enabled` | `MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED` | — | Kubernetes 밖에서도 `/actuator/health/readiness`·`/liveness`를 노출. `false`면 두 경로 없음 | ADR-0169 | 서비스 |
+| 정상 종료 | `graceful` | `server.shutdown` | `SERVER_SHUTDOWN` | `lifecycle.timeout-per-shutdown-phase` 40s, compose `stop_grace_period` 60s | Boot 4.1 기본값과 같아도 명시. SIGTERM 뒤 진행 중 요청을 마치고 종료 | ADR-0169 | 서비스 |
+| 종료 단계 시간 | 40s | `spring.lifecycle.timeout-per-shutdown-phase` | `SPRING_LIFECYCLE_TIMEOUTPERSHUTDOWNPHASE` | compose `stop_grace_period` 60s(여유 20s) | 40초 안에 진행 중 요청을 마침. 넘으면 강제 종료 | ADR-0169 | 서비스 |
+
 ### 1-1. AI 책 찾기 (사이클 24, `chaekcheck.aisearch`)
 
 | 값 | 지금 값 | 어디 (속성) | 환경 변수 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR | 바꾸면 다시 켤 것 |
@@ -74,13 +83,13 @@
 | 크기 | 30권 / 8권 / 앞 대화 5 / 질문 200자 / 카드 글 300자 | `…limits.candidates` / `picks` / `history-turns` / `question-max-length` / `card-text-max-chars` | `…_LIMITS_CANDIDATES` 등 | 웹 20번 상한·200자 `maxLength`(9·10단계), 찾기용 한 줄 300자는 DB CHECK·`AiSearchBookTexts.LINE_MAX_CHARS` | [확정] | 설계 결정 #8, spec | 서비스 |
 | 연결 시간 | 3초 | 코드 상수 (`LlmConfiguration`) | — | 1차 5초 | 3초 안에 연결이 안 되면 5초 안의 1차도 끝나지 않음 [안] | — | 서비스 |
 | 질문 벡터 켜기 | `false`; **운영 `true`(v1.15.0~)** | `chaekcheck.aisearch.vector.enabled` | **`CHAEKCHECK_AISEARCH_VECTOR_ENABLED`** | 운영 compose → `prod.env` | 켜면 1차와 동시에 질문 벡터(int8 KURE-v1)를 만들어 낱말 후보와 섞음. 모델 폴더가 없거나 읽기에 실패하면 경고 한 줄 뒤 꺼진 채로 감 | 사용자 2026-10-25, `docs/aisearch/reports/2026-10-25-eval.md` | 서비스 |
-| 모델 폴더 | 빈 값 | `…vector.model-dir` | **`CHAEKCHECK_AISEARCH_MODEL_DIR`** | 운영 `/models/aisearch`(= 서버 `/srv/chaekcheck/aisearch-model`, 읽기만) | `book-vectors.bin`, 1차 ML의 `first-call-model.bin`·`follow-up-model.bin`·`book-profiles.tsv`, 서버 안(`local`)이면 `kure-query-int8-ext.onnx`·`.data`, `tokenizer-cut.json`도(`remote`면 백엔드에 필요 없음). 만드는 법 `6-aisearch.md` 7·8·9절 | 같음 | 서비스 |
+| 모델 폴더 | 빈 값 | `…vector.model-dir` | **`CHAEKCHECK_AISEARCH_MODEL_DIR`** | 운영 `/models/aisearch`(= 서버 `/srv/chaekcheck/aisearch-model`, 읽기만) | `book-vectors.bin`, 1차 ML의 `first-call-model.bin`·`follow-up-model.bin`(책 프로필은 `catalog.book_profile`, v1.21.4 다음 판부터 `book-profiles.tsv`는 읽지 않음), 서버 안(`local`)이면 `kure-query-int8-ext.onnx`·`.data`, `tokenizer-cut.json`도(`remote`면 백엔드에 필요 없음). 만드는 법 `6-aisearch.md` 7·8·9절 | 같음 | 서비스 |
 | 벡터 섞기 | 2스레드 / 낱말 50 / 벡터 60 / RRF k 60 / 기다림 2초 | `…vector.threads` / `keyword-depth` / `vector-depth` / `rrf-k` / `max-wait` | `…_VECTOR_THREADS` 등 | `AiSearchFlow`, `Fusion` | [안] 보고서 H와 같은 값. 2초 안에 벡터가 없으면: Haiku 1차면 그 검색은 낱말만, ML 1차면 그 검색은 Haiku 1차로 감(`AiSearchFlow.mlStep`) | 같음 | 서비스 |
 | 질문 벡터 만드는 곳 | `local`; **운영 `remote`(v1.15.0~)** | `…vector.encoder` | **`CHAEKCHECK_AISEARCH_VECTOR_ENCODER`** | 운영 compose → `prod.env` | `local` = 백엔드 안 모델(약 +450MB), `remote` = 임베딩 서버(`embed-service/`, micro EC2). 책 벡터는 어느 쪽이든 백엔드에 | 사용자 2026-10-25 "선택으로서 가능하게", `6-aisearch.md` 7-1 | 서비스 |
 | 임베딩 서버 주소·토큰·시간 | 빈 값 / 빈 값 / 1.5초 | `…vector.remote.url` / `token` / `timeout` | **`CHAEKCHECK_AISEARCH_EMBED_URL`** / **`CHAEKCHECK_AISEARCH_EMBED_TOKEN`**(비밀, Parameter Store) / — | `embed-service`의 `EMBED_TOKEN`(같은 값) | `remote`일 때만. 1.5초 안에 답이 없거나 오류면 그 검색은 낱말만 [안] | 같음 | 서비스 |
 | 임베딩 장애 차단 | 연속 실패 3번 / 30초 | `…vector.failures-to-open` / `open-for` | — | `CircuitBreaker`, `KureQuestionVectors` | 질문 벡터가 3번 연달아 실패(시간 넘김·오류·401)하면 30초 동안 묻지 않고 그 검색들은 바로 낱말만으로. 30초 뒤 한 번 시험해 되면 다시 씀. 열릴 때·닫힐 때 로그 한 줄 [안] | 사용자 2026-10-25 "임베딩 서버 장애 차단" | 서비스 |
 | 기준 책 이웃 | 20권 | 코드 상수 (`AiSearchFlow.MAX_NAMED_NEIGHBOURS`) | — | `NamedBook`, `foryou.book_neighbour` | 「○○ 같은/비슷/처럼/류의/풍의」 바로 앞의 책 제목을 찾으면 그 책의 이웃을 먼저(벡터를 꺼도 돎) [안] 보고서 S | 같음 | 서비스 |
-| 1차 호출 방식 | `haiku`; **운영 `ml`(v1.16.0~)** | `chaekcheck.aisearch.first-call.mode` | **`CHAEKCHECK_AISEARCH_FIRST_CALL`** | 운영 compose → `prod.env`, 모델 폴더의 `first-call-model.bin`·`book-profiles.tsv` | `ml` = 질문 벡터 위 작은 신경망(5갈래 + 칸)과 질문 낱말, 1차 모델 호출 없음. 질문 벡터가 꺼졌거나 파일이 없으면 `haiku`로 감 | 사용자 2026-10-26, `docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md`, `6-aisearch.md` 8절 | 서비스 |
+| 1차 호출 방식 | `haiku`; **운영 `ml`(v1.16.0~)** | `chaekcheck.aisearch.first-call.mode` | **`CHAEKCHECK_AISEARCH_FIRST_CALL`** | 운영 compose → `prod.env`, 모델 폴더의 `first-call-model.bin`, 표 `catalog.book_profile` | `ml` = 질문 벡터 위 작은 신경망(5갈래 + 칸)과 질문 낱말, 1차 모델 호출 없음. 질문 벡터가 꺼졌거나 파일이 없거나 프로필 표가 비면 `haiku`로 감 | 사용자 2026-10-26, `docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md`, `6-aisearch.md` 8절 | 서비스 |
 | 이어 묻는 질문 방식 | `relation` | `…first-call.follow-up` | **`CHAEKCHECK_AISEARCH_FOLLOW_UP`** | 운영 compose → `prod.env`, 모델 폴더의 `follow-up-model.bin` | ML 1차에서 이어 묻는 질문을 앞 질문과 묶는 방법. `relation` = 관계 분류기 7가지(파일이 없으면 `rule`), `rule` = v1.16.0의 새 주제 규칙, `strict` = 규칙 + 「앞 + 지금」 확인 | 사용자 2026-10-26 "A·B를 다 잰 다음에 한 번에 바꾸자", 결정 기록 3-4 | 서비스 |
 | 칸 보너스 | 0.004 | `…first-call.shelf-bonus` | — | `Fusion`, `MlFirstCall` | ML 1차에서 질문과 같은 칸 하나마다 RRF 합에 더함(PFx로 잰 값) [안] | `docs/aisearch/reports/2026-10-25-improvement.md` 6-4 | 서비스 |
 | 책첵 질문 답 상한 | 512 | `…first-call.site-max-tokens` | — | `Prompts.SITE_SYSTEM` | 책첵 질문에 답하는 Haiku 한 번의 출력 상한 [안] | 사용자 2026-10-26 | 서비스 |
@@ -129,3 +138,15 @@
 | 줄 선 도서관 보드의 길 열쇠 | `any` ("아무 길이나 기다림") | `availability/internal/fetch/HostQueueBoard.DEFAULT_LANE` | 기다리는 동안은 길이 아직 정해지지 않음(사이클 webshare `EgressLanes`가 자리를 얻는 순간 길을 고름); 모든 길이 막힌 사이트는 기다리지 않고 바로 실패라 줄에 안 섬 (인계 1-15 #3) |
 | 교보 느려짐 기준 | 연속 실패 3번 / 응답 10초 | `availability/internal/egress/HostRules.KYOBO_SLOW_AFTER_FAILURES` / `KYOBO_SLOW_RESPONSE` | 그 길의 교보 묶음을 동시 1건으로 내리는 기준 [안: dev]. 설정으로 뺄 만큼 확인된 값이 아님(ADR-0094 "기준 숫자는 dev") |
 | 요약 로그 `pausedLaneList` 최대 | 20쌍 | `availability/internal/ops/LookupOpsSummaryLog.PAUSED_LIST_MAX` | 로그 한 줄 길이 제한; 쌍마다의 변화는 `lane_paused`·`lane_resumed` 줄이 모두 남김 |
+
+## 5. 배포 (`deploy/prod/`) (사이클 27, ADR-0167/0168/0169/0171)
+
+| 값 | 지금 값 | 어디 | 함께 바꿀 곳 | 왜 | 정한 plan 문서 · ADR |
+|---|---|---|---|---|---|
+| Docker 기다림 | 60s | `deploy/prod/compose.yaml` `x-backend.stop_grace_period` | `spring.lifecycle.timeout-per-shutdown-phase` 40s(여유 20s) | Spring 정상 종료 40초 + 여유. Docker가 먼저 SIGKILL하지 않게 | 명세 결정 #2, ADR-0167 |
+| 준비 기다림 · 간격 | 60s / 1s | `deploy/prod/bin/switch.sh` | 실측 시작 시간(리허설에서 확인) | 새 자리의 readiness UP까지 최대 60초, 1초마다 확인. 넘으면 FAIL | 명세 결정 #3 |
+| reload 뒤 기다림 | 2s | `deploy/prod/bin/switch.sh` | — | nginx reload 뒤 옛 worker가 끝날 시간. AC-1 결과로 확인 | 설계 결정 #5 |
+| 새벽 거절 | 03:25~05:10 Asia/Seoul | `deploy/prod/bin/release.sh`, `deploy/prod/bin/switch.sh` | `auth.cleanup` 04:00, `usagelog.cleanup` 04:30, `foryou.build` 03:30, `picks.fetch` 05:00. 시험용 `CHAEKCHECK_CLOCK_HHMM` | 예약 작업이 도는 시간대에 배포를 거절 | ADR-0171 |
+| 화면 판 폴더 | 두 판 유지 | 서버 `web/releases/`, `switch.sh web` | 이미지 정리(이번 판 + 앞 판) | 되돌리기용 앞 판, 그 전은 지움 | ADR-0168 |
+| nginx 기본 이미지 | `nginx:1.30.5-alpine` 고정 | `deploy/prod/compose.yaml` `web`, `deploy/prod/web.Dockerfile` | 판 올리기는 점검 배포(README) | 버전을 고정해 예기치 않은 변경 방지 | ADR-0168 |
+| upstream keepalive | 16 | 서버 `nginx/chaekcheck/active-backend.conf`(`switch.sh`가 씀) | — | 옛 `ec2-tunnel.conf`와 같은 값 | — |

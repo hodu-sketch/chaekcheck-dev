@@ -36,6 +36,7 @@ public class AuthToggleEnvironmentPostProcessor implements EnvironmentPostProces
 			"org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration",
 			"org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterAutoConfiguration",
 			"org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration",
+			"org.springframework.boot.security.autoconfigure.actuate.web.servlet.ManagementWebSecurityAutoConfiguration",
 			"org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration",
 			"org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration",
 			"org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration",
