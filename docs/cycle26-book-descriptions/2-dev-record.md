@@ -17,7 +17,7 @@
 | v1.20.3 | 낱말 찾기 intarray 함수 + strpos(V7) | 배포 끝(11:00, `b32c757c`). 운영에서 큰 계획·여러 낱말 6경우가 느려져 v1.20.4로 고침 |
 | v1.20.4 | 한 낱말이거나 계획 500곳 이하만 함수(V8) | 배포 끝(`99b1a638`). 운영 24경우 합 2,773 → 2,006ms, 느려진 경우 0 ([4-keyword-query-speed.md](4-keyword-query-speed.md) 7절) |
 | 12 | `book-profiles` 운영 넣기 + 재시작 | 끝: 09:06 넣음 → NPE로 되돌림(5절) → v1.20.1에서 09:26 다시 넣음, `from catalog.book_profile`, AI 검색 카드 5장 정상 |
-| 13 | 배포 2: 옛 표·옛 표지 경로 지우기 | 끝: v1.20.6(12:00, `48ede47a`, 사용자 "배포 2 진행"). 서버 옛 표지 폴더 지우기만 사용자 몫(6절) |
+| 13 | 배포 2: 옛 표·옛 표지 경로 지우기 | 끝: v1.20.6(12:00, `48ede47a`, 사용자 "배포 2 진행"), 서버 옛 표지 폴더도 지움(6절) |
 
 ## 2. 어디에 무엇이 있나
 
@@ -70,5 +70,4 @@
 - 연습(PC 운영 꼴 복사본 5502): 드롭 셋 각 약 15ms, 서버 시작 10초, API(진열·KAIST·책첵 추천·책 상세) 200, 옛 표지 API 404, KAIST 표지 4,548개 모두 CloudFront.
 - 시험: 백엔드 1,429개(0 실패), 웹 vitest 709개. `BookDescriptionSchemaTests.theOldTablesAreDropped`(여섯 표 `to_regclass` NULL).
 - 운영 확인: 여섯 표 `to_regclass` 모두 NULL, 진열·KAIST·책첵 추천·책 상세 200, `/api/v1/picks/covers/1`·`/covers/<sha1>.jpg` 404, KAIST 표지 4,548개 모두 CloudFront, 브라우저 KAIST 화면 그림 20장 모두 열림(오류는 전부터 있던 cloudflareinsights CSP와 비로그인 401뿐), AI 검색 카드 4장 정상.
-- **남은 것(사용자)**: 운영 `/srv/chaekcheck/covers`(1.1GB, 81,451장) 지우기. 지우기 전에 81,451장 모두 S3에 있음을 대조함(없는 것 0). 자동 실행이 권한 확인에서 막혀 사용자가 직접:
-  `ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'sudo rm -rf /srv/chaekcheck/covers'`
+- 운영 `/srv/chaekcheck/covers`(1.1GB, 81,451장): 지우기 전에 81,451장 모두 S3에 있음을 대조(없는 것 0). 처음 시도는 권한 확인에서 막혔고, 사용자 "너가 지워" 뒤 지움. 디스크 남은 공간 9.1 → 11GB.

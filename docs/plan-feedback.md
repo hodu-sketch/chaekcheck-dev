@@ -7329,7 +7329,7 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 
 - 옛 표 여섯 지움(합 약 154MB: search_book 115MB, book_blurb 24MB, book_cover 12MB, picks.cover 2.2MB, 꼬리표 둘 32kB), 운영 드롭 약 0.2초, 서버 시작 22.6초, DB 8,431 → 8,277MB. 옛 표지 API·서버 그림 받기·nginx `/covers/`·compose 볼륨·웹 옛 주소 모양 지움, `collection` → `aisearch` 의존 뺌. 연습 복사본에서 먼저 돌림(드롭 각 15ms). 시험 백엔드 1,429·웹 709.
 - 운영 확인: 여섯 표 없음, 화면 API 200, 옛 주소 404, KAIST 표지 4,548개 모두 CloudFront, 브라우저 그림 20장 열림, AI 검색 정상. dev 24에 직전 알림.
-- **남은 것**: 운영 `/srv/chaekcheck/covers`(1.1GB, 81,451장, 모두 S3에 있음 대조) 지우기는 자동 실행이 권한 확인에서 막혀 사용자가 직접(`docs/cycle26-book-descriptions/2-dev-record.md` 6절).
+- 운영 `/srv/chaekcheck/covers`(1.1GB, 81,451장, 모두 S3에 있음 대조): 사용자 "너가 지워" 뒤 지움, 디스크 남은 공간 9.1 → 11GB.
 
 ## 11단계 끝: 표지 113만 장 S3 + 연결 (2026-10-29, 사용자 "둘 다 승인")
 
