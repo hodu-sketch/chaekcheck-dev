@@ -416,111 +416,262 @@ static List<Long> availableFirst(List<Long> picks, Map<Long, long[]> libraryIds,
 
 # D. 지도학습 (I-11: 책 프로필 분류기)
 
-## D1. 지도학습이란
-입력 x와 정답 y의 쌍 (x, y)을 많이 보여 주고, x에서 y를 맞히는 함수 f를 찾는 것. 우리 경우: **x = 책의 KURE 벡터(1,024개 숫자), y = Haiku가 붙인 분야(22개 중 하나)**. 학습한 f로 Haiku 프로필이 없는 책의 분야를 맞힘.
+이 절의 숫자는 모두 **실제로 돌린 예제** `scripts/foryou/eval/ml_basics_demo.py`(2026-10-29)의 결과입니다. 자료와 조건:
+- 입력 `x`: `chaekcheck-data/aisearch/100k/book-vectors.bin`의 책 벡터(KURE-v1 1,024차원, int8 × 줄마다 scale로 되살림, 길이 1)
+- 정답 `y`: 같은 폴더 `profiles-detailed.jsonl`의 Haiku 분야(`field`, 22종)
+- 둘 다 있는 책 **50,324권**. 같은 작품(B3의 `work_key` + `first_author`)은 한 묶음으로 보고 묶음째 나눔(D5) → 학습 26,838 / 보정 13,424 / 시험 10,062권
+- 나눔 한 번, 설정 고르기 없음. **I-11의 결과가 아니라 원리를 보이는 예제**. 돌리는 데 numpy, scikit-learn 1.9.1(저장소에 고정한 환경 없음)
 
-절차: ① 자료를 학습/검증/시험으로 나눔 ② 학습 자료로 f를 맞춤 ③ 검증 자료로 설정(규제 세기 등)을 고름 ④ 끝까지 안 본 시험 자료로 한 번 잼.
+## D1. 지도학습이란
+「문제(x)와 정답(y)이 짝지어진 예」를 많이 보여 주고, x만 보고 y를 맞히는 함수 f를 찾는 것. 사람이 정답을 「지도」해 준다고 해서 지도학습.
+
+| 우리 경우 | 무엇 |
+|---|---|
+| x | 책 벡터 1,024개 숫자 |
+| y | Haiku가 붙인 분야 22개 중 하나 |
+| f를 찾는 데 쓰는 책 | 학습 자료(26,838권) |
+| f가 잘하는지 재는 책 | 시험 자료(10,062권). 학습 때 **한 번도 안 본** 책이어야 함 |
+| f를 쓰는 곳(I-11) | Haiku 프로필이 없는 책의 분야 맞히기 |
+
+자료를 나누는 코드(D5에서 자세히):
+```python
+from sklearn.model_selection import StratifiedGroupKFold
+train, test = next(StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=0).split(X, y, groups))
+```
 
 ## D2. 로지스틱 회귀(다항, softmax)
-**모델.** 분야마다 가중치 벡터 w_c(1,024개)와 절편 b_c:
-```
-z_c = w_c · x + b_c                       (분야 c의 점수, 로짓)
-P(y = c | x) = exp(z_c) / Σ_k exp(z_k)    (softmax: 점수를 확률로)
-```
-**학습.** 교차 엔트로피(로그 손실)를 최소화:
-```
-L = − (1/N) Σ_i ln P(y = y_i | x_i)  +  (1/(2C)) Σ_c ‖w_c‖²     (뒤 항: L2 규제, C가 클수록 약함)
-```
-정답 분야의 확률이 1에 가까울수록 손실이 0. 볼록(convex) 문제라 최적점이 하나 → lbfgs 같은 준뉴턴법으로 빠르게 풂.
 
-**왜 이것부터.** 임베딩 공간에서 분야는 대체로 직선(초평면)으로 갈림(B6의 이웃 다수결만으로 70%). 선형 모델은 빠르고, 확률이 비교적 잘 보정되고, 가중치를 볼 수 있어 설명이 쉬움.
+**모델.** 분야마다 가중치 벡터 w_c(1,024개)와 절편 b_c가 있음. 책 벡터 x와 내적해 분야마다 점수를 냄:
+```
+z_c = w_c · x + b_c                       (분야 c의 점수 = 로짓, 22개)
+P(y = c | x) = exp(z_c) / Σ_k exp(z_k)    (softmax: 22개 점수를 합이 1인 확률로)
+```
+- 예: 점수가 [소설 3.0, 에세이 2.0, 역사 0.5]면 exp → [20.1, 7.4, 1.6], 합 29.1로 나눠 [0.69, 0.25, 0.06]
+- 「직선(초평면)으로 공간을 나누는」 모델: 점수가 x에 대한 1차식
 
-**예시 코드(저장소에 없음):**
+**학습 = 손실을 줄이는 w 찾기.** 교차 엔트로피(로그 손실):
+```
+L = − (1/N) Σ_i ln P(y = y_i | x_i)  +  (1/(2C)) Σ_c ‖w_c‖²
+```
+- 앞 항: 정답 분야에 준 확률이 1이면 ln 1 = 0(손실 없음), 0.1이면 −ln 0.1 = 2.3(큰 손실)
+- 뒤 항: L2 규제. 가중치가 너무 커지지 않게 벌점(C가 작을수록 셈). 외우기(과적합) 방지
+- 이 L은 볼록(그릇 모양) → 바닥이 하나라 lbfgs(기울기와 곡률 근사로 내려가는 방법)로 확실히 찾음
+
+**코드와 결과** (`ml_basics_demo.py` 4번):
 ```python
-import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score, classification_report
-
-X = np.load('vectors.npy')            # (N, 1024), L2 정규화된 KURE 벡터
-y = np.array(fields)                  # 길이 N, '소설'·'심리' … 22종
-clf = LogisticRegression(max_iter=2000, C=1.0, class_weight='balanced')   # D4
-clf.fit(X[train], y[train])
-proba = clf.predict_proba(X[test])    # (n, 22) 분야별 확률
-pred = clf.classes_[proba.argmax(1)]
-print(accuracy_score(y[test], pred), f1_score(y[test], pred, average='macro'))
-print(classification_report(y[test], pred))     # 분야별 정밀도·재현율
+lr = LogisticRegression(max_iter=1000, C=1.0, class_weight='balanced')   # class_weight는 D4
+lr.fit(X[fit], y[fit])                 # 학습: w, b를 찾음
+p_lr = lr.predict_proba(X[test])       # (10062, 22) 책마다 분야별 확률
+pred = lr.classes_[p_lr.argmax(1)]     # 가장 큰 확률의 분야를 답으로
 ```
+결과: **정확도 0.688, macro-F1 0.613**, 학습 72초.
 
 ## D3. MLP(다층 퍼셉트론)
-선형 모델이 모자라면 은닉층 하나를 넣음:
+
+**모델.** 로지스틱 회귀 앞에 「중간 층(은닉층)」을 하나 더 둠:
 ```
-h = ReLU(W₁ x + b₁)          (예: 1,024 → 256, ReLU(t) = max(0, t))
-P(y | x) = softmax(W₂ h + b₂) (256 → 22)
+h = ReLU(W₁ x + b₁)          1,024 → 256      ReLU(t) = max(0, t)
+z = W₂ h + b₂                256 → 22
+P(y | x) = softmax(z)
 ```
-비선형 경계를 배움. 역전파(backpropagation)로 손실의 기울기를 구해 확률적 경사 하강(SGD/Adam)으로 학습. 과적합을 막으려 드롭아웃·조기 종료. AI 검색 1차 모델(사이클 24)이 이 꼴(PyTorch). scikit-learn은 `MLPClassifier(hidden_layer_sizes=(256,), early_stopping=True)`.
+- W₁(256 × 1,024)은 책 벡터에서 「분야를 가르기 좋은 특징」 256개를 새로 만듦. ReLU가 음수를 0으로 잘라 **꺾인 선**을 만들 수 있게 함 → 직선 하나로 못 가르는 경계도 배움(비선형)
+- ReLU가 없으면 W₂(W₁x) = (W₂W₁)x로 다시 1차식 → 로지스틱 회귀와 같아짐
+
+**학습.**
+- **역전파(backpropagation)**: 손실 L을 각 가중치로 미분한 값(기울기)을 출력 쪽에서 입력 쪽으로 연쇄 법칙(∂L/∂W₁ = ∂L/∂z · ∂z/∂h · ∂h/∂W₁)으로 차례로 구함
+- **Adam**: 기울기 반대 방향으로 조금씩 옮김(w ← w − 학습률 × 보정된 기울기). 한 번에 자료 전부가 아니라 작은 묶음(미니배치)씩 → 「확률적」 경사 하강
+- **볼록이 아님**: 바닥이 여럿이라 시작값(random_state)에 따라 결과가 조금 다름
+- **과적합 막기**: 조기 종료(학습 자료 일부를 떼어 두고, 거기서 점수가 더 안 좋아지면 멈춤), 드롭아웃(학습 중 은닉 칸 일부를 무작위로 0으로)
+
+**scikit-learn 코드와 결과** (`ml_basics_demo.py` 8번):
+```python
+from sklearn.neural_network import MLPClassifier
+mlp = MLPClassifier(hidden_layer_sizes=(256,),   # 은닉층 1개, 256칸, ReLU(기본), Adam(기본)
+                    early_stopping=True,         # 학습 자료의 10%를 떼어 두고 나빠지면 멈춤
+                    max_iter=200, random_state=0)
+mlp.fit(X[fit], y[fit])
+p_mlp = mlp.predict_proba(X[test])
+```
+결과: **정확도 0.719, macro-F1 0.603**, 학습 24초(18바퀴에서 멈춤). 로지스틱 회귀보다 정확도 +3.1%p, macro-F1 −1.0%p(이 MLP는 D4의 클래스 가중치를 안 줌).
+
+**PyTorch로 쓴 실제 코드** — AI 검색 1차 모델 시험(사이클 24, `scripts/aisearch/eval/mlp.py`의 `net`). 같은 구조를 손으로 쓴 것:
+```python
+m = nn.Sequential(nn.Linear(1024, 512), nn.ReLU(), nn.Dropout(0.3), nn.Linear(512, n_labels))
+opt = torch.optim.AdamW(m.parameters(), lr=1e-3, weight_decay=1e-4)   # Adam + L2 비슷한 규제
+lossf = nn.BCEWithLogitsLoss()            # 칸마다 「있다/없다」(여러 개 정답 가능)라 softmax 대신 sigmoid
+for _ in range(epochs):                   # 바퀴(epoch)
+    perm = torch.randperm(len(X))         # 매 바퀴 순서를 섞음
+    for i in range(0, len(X), 64):        # 64권씩 미니배치
+        b = perm[i:i + 64]
+        opt.zero_grad()                   # 지난 기울기 지움
+        lossf(m(X[b]), Yt[b]).backward()  # 손실 계산 → 역전파로 기울기
+        opt.step()                        # 가중치 한 걸음 옮김
+```
 
 ## D4. 불균형과 macro-F1
-**문제.** 분야 분포가 심하게 치우침(소설 21% … 청소년 0.17%, 6-ml-method.md 0절). 모델이 큰 분야만 맞혀도 정확도가 높게 나옴.
 
-**대응 1: 클래스 가중치.** 드문 분야의 틀림에 더 큰 벌점:
+**문제.** 분야 분포가 심하게 치우침(소설 21% … 청소년 0.17%, 6-ml-method.md 0절). 큰 분야만 맞혀도 정확도가 높게 나옴.
+
+**대응 1: 클래스 가중치.** 드문 분야를 틀리면 손실을 더 크게:
 ```
-w_c = N / (C × N_c)        (scikit-learn class_weight='balanced')
+w_c = N / (C × N_c)        (scikit-learn class_weight='balanced', C = 분야 수)
 ```
 청소년(87권)은 소설(10,546권)보다 약 120배 무거움.
 
-**대응 2: 지표.** 분야마다 F1을 따로 구해 단순 평균(macro):
+**대응 2: 지표.** 분야마다 F1을 구해 단순 평균(macro):
 ```
-정밀도 P_c = 맞게 c라 한 수 / c라 한 수
-재현율 R_c = 맞게 c라 한 수 / 실제 c인 수
+정밀도 P_c = 맞게 c라 한 수 / c라 한 수        (c라고 한 것 중 맞은 비율)
+재현율 R_c = 맞게 c라 한 수 / 실제 c인 수       (실제 c 중 찾아낸 비율)
 F1_c = 2 P_c R_c / (P_c + R_c)
-macro-F1 = (1/C) Σ_c F1_c        (작은 분야도 똑같이 1표)
+macro-F1 = (1/C) Σ_c F1_c                      (작은 분야도 똑같이 1표)
 ```
-정확도(micro)와 macro-F1을 함께 봐야 「작은 분야를 버리는」 모델을 걸러냄. 24 세션의 교훈: 학습 자료에 드문 유형이 1% 미만이면 그 유형 정확도가 무너짐(58.5% → 고르게 넣자 94.5%).
+```python
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+accuracy_score(y[test], pred)                 # 정확도
+f1_score(y[test], pred, average='macro')      # macro-F1
+print(classification_report(y[test], pred))   # 분야별 정밀도·재현율·F1
+```
+예제 결과로 보는 차이: kNN·MLP(가중치 없음)는 정확도가 높고(0.712·0.719) macro-F1이 낮음(0.589·0.603). 가중치를 준 로지스틱 회귀는 정확도가 낮고(0.688) macro-F1이 가장 높음(0.613) → 큰 분야 몇 개를 덜 맞히는 대신 작은 분야를 더 맞힘. 24 세션의 교훈: 학습 자료에 드문 유형이 1% 미만이면 그 유형 정확도가 무너짐(58.5% → 고르게 넣자 94.5%).
 
 ## D5. 데이터 누수와 그룹 분할
-**문제.** 같은 작품의 다른 판(6,924권, 6-ml-method.md 0절)은 벡터가 거의 같음. 한 판은 학습에, 다른 판은 시험에 들어가면 모델이 「외운」 답으로 맞혀 점수가 부풀려짐 = **누수(leakage)**.
 
-**대응.** 같은 작품 묶음을 통째로 한쪽에만 두는 **그룹 분할**. 층화(분야 비율 유지)까지 하려면 `StratifiedGroupKFold`.
+**문제.** 같은 작품의 다른 판은 벡터가 거의 같고 분야도 같음. 한 판은 학습에, 다른 판은 시험에 들어가면 모델이 「본 적 있는 답」으로 맞혀 점수가 부풀려짐 = **누수(leakage)**. 시험이 「처음 보는 책」을 흉내 내지 못함.
+
+**대응.** 같은 작품 묶음을 통째로 한쪽에만 두는 **그룹 분할**. 분야 비율도 학습·시험에서 비슷하게(층화) 하려면 `StratifiedGroupKFold`.
 ```python
-from sklearn.model_selection import StratifiedGroupKFold
-groups = work_group_ids            # 같은 작품이면 같은 번호(B3 규칙 + G 절)
-cv = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=0)
-for train, test in cv.split(X, y, groups):
-    ...
+from foryou_neighbours import work_key, first_author
+gid = {}
+groups = np.array([gid.setdefault((work_key(title[b]), first_author(author[b])), len(gid)) for b in books])
+cv = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=0)   # 5등분, 1등분이 시험
+train, test = next(cv.split(X, y, groups))
 ```
+예제: 50,324권이 45,919묶음 → 2권 이상인 묶음의 책들이 한쪽에만 들어감.
 
 ## D6. 확률 보정과 ECE
-**문제.** 모델이 「0.9」라고 한 책들 중 실제로 90%가 맞아야 그 숫자로 문턱을 정할 수 있음. 실제로는 과신·과소신이 흔함.
 
-**ECE(기대 보정 오차).** 예측 확률을 구간 B개(예: 10)로 나눠
-```
-ECE = Σ_b (|B_b| / N) · | acc(B_b) − conf(B_b) |
-acc = 그 구간의 실제 정답률, conf = 그 구간의 평균 예측 확률
-```
-**보정 방법.**
-- **온도 조정(temperature scaling)**: `softmax(z / T)`에서 T 하나를 검증 자료로 맞춤(T > 1이면 확률이 덜 뾰족)
-- **isotonic 회귀**: 예측 확률 → 실제 정답률의 단조 증가 함수를 자료로 맞춤(자료가 많을 때)
-- **Platt(sigmoid)**: 로지스틱 함수로 맞춤
+### 무엇이 문제인가: 과신과 과소신
+모델은 답과 함께 「얼마나 확신하는지」를 확률로 냄. 예: 「이 책은 소설, 0.9」.
+- 이 숫자가 **믿을 만하다(보정됐다)** = 모델이 0.9라고 한 책을 1,000권 모으면 그중 약 900권이 실제로 맞음
+- **과신(overconfidence)**: 0.9라고 했는데 실제로는 70%만 맞음 → 숫자가 실력보다 큼
+- **과소신(underconfidence)**: 0.6이라고 했는데 실제로는 80% 맞음 → 숫자가 실력보다 작음
 
+왜 중요한가: D7에서 「확신 0.9 이상인 책만 기계로, 나머지는 Haiku로」처럼 **숫자로 문턱을 정함**. 숫자가 틀리면 문턱도 틀림 — 과신이면 틀린 답을 많이 받아들이고, 과소신이면 맞힐 책까지 Haiku로 보내 돈을 씀.
+
+### 어떻게 재나: 신뢰도 표(reliability table)와 ECE
+1. 시험 책마다 「가장 큰 확률」(확신)과 「맞았나」를 적음
+2. 확신으로 책을 10칸(0~0.1, …, 0.9~1.0)에 나눔
+3. 칸마다 **평균 확신**과 **실제 정답률**을 비교. 보정됐으면 둘이 같음
+4. 그 차이를 칸의 책 비율로 가중 평균한 것이 **ECE(기대 보정 오차)**. 0이면 완벽
+```
+ECE = Σ_b (칸 b의 책 수 / 전체 책 수) · | 칸 b 정답률 − 칸 b 평균 확신 |
+```
+```python
+conf = proba.max(1)                                   # 책마다 확신
+right = classes[proba.argmax(1)] == y_test            # 맞았나
+ece = 0
+for lo, hi in zip(np.linspace(0, 1, 11)[:-1], np.linspace(0, 1, 11)[1:]):
+    inside = (conf > lo) & (conf <= hi)
+    if inside.any():
+        ece += inside.mean() * abs(right[inside].mean() - conf[inside].mean())
+```
+
+**실제 표** — 로지스틱 회귀(D2) 시험 10,062권:
+
+| 확신 칸 | 책 수 | 평균 확신 | 실제 정답률 | 판정 |
+|---|---|---|---|---|
+| 0.3~0.4 | 1,343 | 0.352 | 0.441 | 과소신(+9%p) |
+| 0.5~0.6 | 1,322 | 0.548 | 0.654 | 과소신(+11%p) |
+| 0.6~0.7 | 1,154 | 0.650 | 0.781 | 과소신(+13%p) |
+| 0.8~0.9 | 1,312 | 0.852 | 0.916 | 과소신(+6%p) |
+| 0.9~1.0 | 1,188 | 0.942 | 0.960 | 거의 맞음 |
+| 전체 ECE | | | | **0.087** |
+
+모든 칸에서 실제가 숫자보다 높음 = **과소신**. 이유: `class_weight='balanced'`(D4)가 드문 분야를 무겁게 쳐서, 모델이 드문 분야에도 확률을 나눠 주느라 1등 확률이 낮아짐. 답(1등)은 맞는데 숫자만 작음.
+
+### 어떻게 고치나: 보정(calibration)
+「모델이 낸 숫자 → 실제 정답률」로 바꿔 주는 함수를 **따로 떼어 둔 보정 자료**(학습에도 시험에도 안 쓴 13,424권)로 배움. 답(1등 분야)은 그대로 두고 숫자만 고침.
+
+**① 온도 조정(temperature scaling)** — 숫자 하나 T로 확률의 뾰족함을 조절:
+```
+P = softmax(z / T)       T > 1: 덜 뾰족(확신을 낮춤, 과신 고침)   T < 1: 더 뾰족(확신을 높임, 과소신 고침)
+```
+- 예: 점수 [3.0, 2.0, 0.5] → T = 1에서 1등 0.69, T = 0.8이면 z/T = [3.75, 2.5, 0.63] → 1등 0.75
+- 모든 점수를 같은 수로 나누므로 순서(1등)는 안 바뀜
+- T 고르기: 보정 자료에서 로그 손실(D2의 L 앞 항)이 가장 작은 T
+```python
+z_cal = lr.decision_function(X[cal])          # 보정 자료의 점수(로짓) z
+def log_loss_at(T):
+    z = z_cal / T
+    z = z - z.max(1, keepdims=True)           # exp가 넘치지 않게(값은 그대로)
+    logp = z - np.log(np.exp(z).sum(1, keepdims=True))   # log softmax
+    return -logp[np.arange(len(y_cal)), y_cal].mean()
+T = min(np.arange(0.3, 3.01, 0.05), key=log_loss_at)
+```
+결과: **T = 0.80**(1보다 작음 = 과소신을 고치는 쪽) → **ECE 0.087 → 0.016**. 0.6~0.7 칸이 0.650 / 0.640, 0.9~1.0 칸이 0.956 / 0.939로 숫자와 실제가 붙음.
+
+**② isotonic 회귀** — 「확신 → 정답률」을 계단 모양 함수로 직접 맞춤. 유일한 조건은 **단조 증가**(확신이 클수록 정답률이 작아지지 않음). 모양을 정해 두지 않아 자료가 많을 때 유연.
+```python
+from sklearn.isotonic import IsotonicRegression
+iso = IsotonicRegression(out_of_bounds='clip').fit(conf_cal, right_cal)   # x = 확신, y = 맞음(1)/틀림(0)
+new_conf = iso.predict(conf_test)
+```
+결과: **ECE 0.087 → 0.018**.
+
+**③ Platt(sigmoid)** — 「확신 → 정답률」을 S자 로지스틱 곡선 하나(변수 2개)로 맞춤. 자료가 적을 때.
+
+**scikit-learn이 한 번에 해 주는 것** — 모델 학습과 보정을 묶음. 학습 자료를 5등분해 4등분으로 학습, 1등분으로 보정을 5번 하고 평균:
 ```python
 from sklearn.calibration import CalibratedClassifierCV
 cal = CalibratedClassifierCV(estimator=LogisticRegression(max_iter=2000, class_weight='balanced'),
-                             method='isotonic', cv=5)
+                             method='isotonic', cv=5)    # 또는 method='sigmoid'(Platt), 'temperature'
 cal.fit(X[train], y[train])
 proba = cal.predict_proba(X[test])
 ```
 
+**참고: MLP(D3)는 처음부터 ECE 0.012**(0.9~1.0 칸 0.959 / 0.953). 클래스 가중치가 없고 조기 종료를 해서 이 예제에서는 거의 보정돼 있었음. 「신경망은 늘 과신」이 아니라 **재 봐야 앎**.
+
 ## D7. 선택적 예측(selective prediction): 확신 높은 것만 기계로
-확신(가장 큰 확률) p_max가 문턱 τ 이상인 책만 분류기 답을 쓰고, 나머지는 Haiku로.
+확신(보정한 1등 확률)이 문턱 τ 이상인 책만 분류기 답을 쓰고, 나머지는 Haiku로.
 ```
-coverage(τ) = P(p_max ≥ τ)                       받아들인 비율
-risk(τ)     = P(틀림 | p_max ≥ τ)                  받아들인 것 중 틀린 비율
-목표: risk(τ) ≤ 5% 를 만족하는 가장 작은 τ → 그때 coverage, Haiku로 보낼 책 수 = (1 − coverage) × N
+coverage(τ) = 확신 ≥ τ 인 책의 비율                (기계가 맡는 비율)
+risk(τ)     = 그 책들 중 틀린 비율
+목표: risk(τ) ≤ 5% 인 가장 작은 τ → Haiku로 보낼 책 수 = (1 − coverage) × N
 ```
-근거: 학습 없는 이웃 다수결도 확신 높은 절반에서 분야 88.9%(전체 70.3%) → 확신과 정답률이 함께 움직임. 비용이 「애매한 책 수」에만 비례하게 됨.
+```python
+conf = p_t.max(1)                                  # 온도 보정 뒤 확신
+right = lr.classes_[p_t.argmax(1)] == y[test]
+for tau in (0.5, 0.6, 0.7, 0.8, 0.9, 0.95):
+    acc = conf >= tau
+    print(tau, acc.mean(), right[acc].mean())      # coverage, 받아들인 것의 정확도
+```
+예제 결과(로지스틱 회귀 + 온도 보정):
+
+| τ | 기계가 맡는 비율 | 그중 정확도 |
+|---|---|---|
+| 0.50 | 74.6% | 78.7% |
+| 0.70 | 51.7% | 86.9% |
+| 0.80 | 40.2% | 90.1% |
+| 0.90 | 24.9% | 93.9% |
+| 0.95 | 15.0% | 95.6% |
+
+τ를 올리면 맡는 책은 줄고 정확도는 오름. 보정했기 때문에 τ = 0.9 칸의 정확도(93.9%)가 숫자와 가까움 → 「몇 % 틀려도 되나」로 τ를 정할 수 있음. 이 예제에서 「95% 맞히기」는 15%만 기계가 맡음 — 분류기를 더 좋게 만들거나(I-11) 목표를 정해야 함.
 
 ## D8. kNN 다수결 기준선
-새 모델은 반드시 **이길 대상(기준선)**과 비교. 우리 기준선은 B6과 같은 이웃 다수결을 Haiku 프로필로 잰 값(학습 없음): 분야 70.3%(다수 칸만 찍으면 21%), 대상 80.6%(63%), 수준 82.4%(63%), 소설 여부 93.2%(73%) — 6-ml-method.md 0절. 분류기가 이것을 못 넘으면 쓸 이유가 없음.
+
+**kNN(k-최근접 이웃, k-nearest neighbours).** 학습이 없는 가장 단순한 분류: 새 책과 **가장 가까운 학습 책 k권**(여기서 k = 20, 코사인 = 벡터 내적)을 찾아, 그 책들의 분야 중 **가장 많은 것**을 답으로. 「비슷한 책은 같은 분야일 것」이라는 가정 하나뿐. B6의 분야 짐작과 같은 방법.
+```python
+votes = np.zeros((len(test), len(classes)))
+for s in range(0, len(test), 2000):                       # 2,000권씩
+    sim = X[test[s:s + 2000]] @ X[train].T                 # 시험 책 × 학습 책 코사인
+    near = np.argpartition(-sim, 20, axis=1)[:, :20]       # 책마다 가까운 20권(A3)
+    for k, row in enumerate(near):
+        np.add.at(votes[s + k], ytr[row], 1)               # 그 20권의 분야에 1표씩
+pred = classes[votes.argmax(1)]
+```
+결과: **정확도 0.712, macro-F1 0.589**, 9초(학습 없음).
+
+**기준선(baseline)이란.** 새 모델이 **반드시 이겨야 하는 비교 대상**. 이 예제에서 로지스틱 회귀(0.688)는 정확도로는 kNN에 짐, MLP(0.719)는 겨우 이김. macro-F1로는 둘 다 이김(0.613·0.603 > 0.589). 그러니 「분류기를 쓰면 좋아진다」는 말은 **지표와 함께** 해야 함. 6-ml-method.md 0절의 전체 자료 기준선(학습 없이 Haiku 프로필로 잰 값): 분야 70.3%(다수 칸만 찍으면 21%), 대상 80.6%(63%), 수준 82.4%(63%), 소설 여부 93.2%(73%).
 
 ---
 
@@ -651,17 +802,57 @@ scores, ids = index.search(X[:10000], 21)               # 자기 자신 포함 2
 # I. 생성·판단 모델 (I-04, I-08, I-09)
 
 ## I1. LLM으로 글 만들기와 규칙 검사 (I-04)
-**원리.** 생성 모델은 그럴듯한 글을 쓰지만 규칙을 어길 수 있음 → **만든 뒤 기계로 검사하고, 어긴 것만 다시**(생성-검증 고리). 우리 검사(`foryou_blurbs.py` `check`): 길이 80~150, 금지어 정규식, 해요체 끝 정규식, 원문과 8자 연속 일치 금지.
+
+### 무슨 글인가: 책 「AI 요약」
+- **글**: 책 한 권을 해요체 한두 문장, 80~150자로 소개하는 글. 무엇에 관한 책이고 어떤 독자에게 맞는지
+- **실제 예**(운영 `/api/v1/for-you/books`의 `blurb`, 2026-10-29): 「달러구트 꿈 백화점」 → "잠든 손님만 들어갈 수 있는 꿈 백화점을 배경으로, 꿈을 만들고 팔고 사는 사람들의 이야기를 담은 판타지 소설이에요. 꿈을 사고팔 수 있을지 묻는 엉뚱한 상상에서 출발해, 낯선 세계의 규칙을 따라가며 읽기를 좋아하는 독자에게 어울려요."
+- **저장**: `catalog.book_summary`(v1.20.0부터 책마다 요약 한 종류). 운영에 68,414권(이웃 표 81,080권 중)
+- **화면에서 보이는 곳**(v1.20.0부터 모두 같은 글): 책첵 추천 책 창, 추천목록 책 창, 책 상세의 「AI 요약 ⓘ」, AI 검색 답의 책 카드
+- **요약이 없는 책**: 그 칸이 안 보임. 이웃 표 81,080권 중 12,666권 → 이것을 채우는 것이 **I-04**
+
+### 어떻게 만드나
+| 단계 | 무엇을 | 어디서 |
+|---|---|---|
+| 1 입력 모으기 | 책마다 서지 한 줄(제목 · 저자 · 출판사 · 연도) + 도서관 목록의 책 소개 원문(수집 DB `holding.intro_raw` 중 가장 긴 것) 앞 1,500자 | PC (`foryou_blurbs.py` `prepare`, 10만 권은 수집 PC `build_100k.py`) |
+| 2 글 쓰기 | `claude-haiku-5-5`에 지시문 `SYSTEM` + 입력을 보내 글을 받음. 10만 권은 Message Batches(한꺼번에 보내고 나중에 받음, 값 절반) | Anthropic API |
+| 3 기계 검사 | `check(text, intro)`로 규칙 위반을 찾음. 걸린 글은 버리고, 다음 번에 더 센 지시(`BLURB_RETRY_RULE`)를 붙여 다시 | PC |
+| 4 넣기 | 통과한 글을 `book-texts` 파일(`kind = for_you_blurb`)로 → 가져오기 `book-texts`가 DB에 넣음 | 운영 서버 |
+
+소개 원문은 PC에만 남고 운영에는 만든 글만 감(R8-2).
+
+### 원리: 만든 뒤 기계로 검사(생성-검증 고리)
+생성 모델은 지시를 대체로 따르지만 **가끔 어김**(길이 넘침, 칭찬 말, 원문 베끼기). 사람이 6만 권을 다 읽을 수 없으니 **기계가 확인할 수 있는 규칙**은 코드로 검사하고, 걸린 것만 다시 시킴.
+
+지시문(`scripts/crawl/foryou_blurbs.py` `SYSTEM`, 요지): 해요체 한두 문장 80~150자 / 무엇에 관한 책·어떤 독자에게 / 칭찬 말 금지 / 결말·반전 금지 / 「AI·인공지능·요약·소개 원문」 같은 말 금지 / 원문과 8자 이상 연달아 같은 글자 금지 / 알 수 없으면 `NONE`.
+
+검사 코드(같은 파일):
 ```python
+MIN_CHARS, MAX_CHARS = 80, 150
+BANNED = re.compile(r'AI|인공지능|최고의|감동적|꼭 읽어야|베스트셀러|필독')
+
+def check(text, intro):
+    if text.strip().upper() == 'NONE':            return 'none'         # 모델이 「모른다」고 함
+    if not MIN_CHARS <= len(text) <= MAX_CHARS:   return 'length'
+    if '
+' in text or text.startswith(('"', '“', "'")): return 'shape'
+    if BANNED.search(text):                       return 'banned_word'  # 칭찬 말, AI 언급
+    if not re.search(r'(요|죠)[.!?]?$', text):     return 'not_haeyo'    # 해요체로 끝나나
+    if copied_run(text, intro):                   return 'copied'       # 원문 베낌
+    return None                                                          # 통과
+
 def copied_run(text, source, run=8):
-    a = re.sub(r'\s+', '', text); b = re.sub(r'\s+', '', source or '')
-    grams = {b[i:i + run] for i in range(len(b) - run + 1)}     # 원문의 8-gram 집합
+    a = re.sub(r'\s+', '', text); b = re.sub(r'\s+', '', source or '')   # 빈칸은 빼고 비교
+    grams = {b[i:i + run] for i in range(len(b) - run + 1)}             # 원문의 8글자 조각 전부(집합)
     for i in range(len(a) - run + 1):
-        if a[i:i + run] in grams:                               # 요약의 8-gram이 원문에 있으면 베낌
-            return a[i:i + run]
+        if a[i:i + run] in grams:                                       # 요약의 8글자 조각이 원문에 있으면
+            return a[i:i + run]                                         # 베낀 것
     return None
 ```
-집합 조회가 O(1)이라 글 길이에 비례하는 시간. 10만 권에서 탈락 8,571권 중 베낌이 5,557권 → 지시문에 「8자 넘게 같은 글자가 이어지지 않게」를 더 세게 넣어 다시 보냄.
+- 8글자 조각(8-gram)을 집합에 넣어 두면 「있나?」를 한 번에 확인(해시, O(1)) → 원문 길이 + 요약 길이에 비례하는 시간
+- 왜 베낌을 막나: 소개 원문은 출판사·도서관의 글이라 그대로 옮기면 안 됨. 「자기 말로 다시 쓴 글」만 내보냄
+- 기계로 못 잡는 규칙(결말을 말했나, 내용이 맞나)은 이 검사에 없음 → 지시문에만 의존
+
+**10만 권 결과**(2026-10-26, 2-data.md 4절): 통과 43,227권, 탈락 8,571권. 탈락 이유는 원문 8자 연속 베낌 5,557 · `NONE` 2,153 · 길이 596 · 금지어 244 · 모양·해요체 아님 20(목록 `<data>/aisearch/100k/dropped-for_you_blurb.tsv`). 베낌이 가장 많아서, I-04에서는 「8자 넘게 같은 글자가 이어지지 않게」를 지시문에 더 세게 넣어 다시 보냄.
 
 ## I2. LLM 재정렬(오프라인) (I-08)
 책마다 이웃 20권을 LLM에게 보여 주고 「이 책 독자에게 맞는 차례」를 받음 = 목록 단위(listwise) 순위 매기기. 임베딩은 「글이 비슷한가」를, LLM은 「독자가 다음에 읽고 싶을까」를 판단할 수 있음. 운영 비용 0(미리 해서 `neighbour_ids` 차례만 바꿈). 잴 것: E2와 같은 방식 가린 판정으로 전후.
