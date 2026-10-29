@@ -187,11 +187,17 @@ public class AiSearchFlow {
 	/** Books of the title a question is that go first among the candidates, at most (user 2026-10-29 「해리포터」) [안]. */
 	static final int MAX_TITLE_BOOKS = 3;
 
-	/**
-	 * A summary that names the books by the list's numbers (「1, 16, 18번」, 「3번」) and not by their titles, which the
-	 * user cannot match to the cards (user 2026-10-29, production v1.21.0); 「두 번째」 and 「1분」 are not numbers of the list.
-	 */
-	static final java.util.regex.Pattern TAIL_NUMBERS = java.util.regex.Pattern.compile("\\d+\\s*번(?!째)");
+	/** A summary longer than this is not read on (4 lines of about 80 characters are asked for) [안]. */
+	static final int TAIL_MAX_CHARS = 500;
+
+	/** Stops the stream once the summary runs on; the cards are out by then. */
+	private static final class TailTooLong extends RuntimeException {
+
+		TailTooLong() {
+			super("the summary runs on", null, false, false);
+		}
+
+	}
 
 	/** A title shorter than this (letters only) is taken as a topic, not as the book (user 2026-10-29) [안]. */
 	static final int MIN_TITLE_LETTERS = 3;
@@ -1013,6 +1019,7 @@ public class AiSearchFlow {
 		StringBuilder askQuestion = new StringBuilder();
 		// the summary by situation, kept whole and sent after the cards once checked (user 2026-10-29: 「1, 16, 18번」 went out)
 		StringBuilder tail = new StringBuilder();
+		boolean[] tailCut = { false };
 		List<String> askChoices = new ArrayList<>();
 		PickStreamParser parser = new PickStreamParser(new PickStreamParser.Listener() {
 
@@ -1082,6 +1089,12 @@ public class AiSearchFlow {
 			@Override
 			public void tailText(String text) {
 				tail.append(text);
+				// a summary running on (an 8-card answer stopped at its 15 s, production v1.21.1): the cards are out, the
+				// rest is not read
+				if (tail.length() > TAIL_MAX_CHARS) {
+					tailCut[0] = true;
+					throw new TailTooLong();
+				}
 			}
 
 		});
@@ -1113,7 +1126,7 @@ public class AiSearchFlow {
 			if (e.failure() != Failure.NOT_CONFIGURED) {
 				count(run, e.usage(), call.maxTokens());
 			}
-			failed = true;
+			failed = !tailCut[0];
 		}
 		if (run.gone) {
 			run.pickResult = run.shown.isEmpty() ? PickResult.SKIPPED : PickResult.PARTIAL;
@@ -1140,13 +1153,18 @@ public class AiSearchFlow {
 			finish(run, PickResult.NO_MATCH, "no_match");
 		}
 		else {
-			// nothing to sum up without two cards; a summary naming the list's numbers instead of titles is left out
+			// nothing to sum up without two cards; the list's numbers become the cards' titles, and a summary naming a
+			// book not shown, or cut for its length, is left out (TailCheck)
 			String summary = tail.toString().strip();
-			if (run.shown.size() >= 2 && !summary.isEmpty() && !TAIL_NUMBERS.matcher(summary).find()) {
-				run.send(AiSearchEvents.TAIL_DELTA, new Text(summary));
+			String checked = tailCut[0] || summary.isEmpty() ? null : TailCheck.clean(summary, ids, run.shown, cards.known());
+			if (run.shown.size() >= 2 && checked != null) {
+				run.send(AiSearchEvents.TAIL_DELTA, new Text(checked));
+				if (!checked.equals(summary)) {
+					run.tail = "numbers named";
+				}
 			}
 			else if (!summary.isEmpty()) {
-				run.tail = "left out";
+				run.tail = tailCut[0] ? "too long" : "left out";
 			}
 			finish(run, PickResult.OK, "ok");
 		}

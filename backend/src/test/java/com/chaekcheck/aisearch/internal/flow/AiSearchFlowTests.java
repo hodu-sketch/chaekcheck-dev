@@ -779,14 +779,25 @@ class AiSearchFlowTests {
 	}
 
 	@Test
-	void aSummaryNamingTheListNumbersIsLeftOut() { // user 2026-10-29, production v1.21.0 「1, 16, 18번을 먼저 보시고」
+	void theListNumbersInASummaryBecomeTheCardsTitles() { // production v1.21.0 「1, 16, 18번을 먼저 보시고」
 		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
 				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"처음이라면 1, 2번을 먼저 보세요.\"}", 1, 1));
 
 		run("과학책 추천해줘", List.of());
 
-		assertThat(sink.names()).doesNotContain("tail-delta").endsWith("done");
-		assertThat(AiSearchFlow.TAIL_NUMBERS.matcher("두 번째 책은 1분이면 읽어요").find()).isFalse();
+		assertThat(sink.names()).endsWith("tail-delta", "done");
+		assertThat(sink.of(Text.class).getLast().text()).startsWith("처음이라면 『").doesNotContain("번");
+	}
+
+	@Test
+	void aSummaryRunningOnIsCutAndTheAnswerStaysWhole() { // production v1.21.1: an 8-card answer stopped at its 15 s
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"" + "가".repeat(AiSearchFlow.TAIL_MAX_CHARS + 50) + "\"}", 1, 1));
+
+		run("과학책 추천해줘", List.of());
+
+		assertThat(sink.names()).doesNotContain("tail-delta", "error");
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
 	}
 
 	@Test
