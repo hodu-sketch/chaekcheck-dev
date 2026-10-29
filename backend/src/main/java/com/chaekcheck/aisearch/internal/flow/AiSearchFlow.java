@@ -645,10 +645,15 @@ public class AiSearchFlow {
 				+ "분명하지 않다. 반드시 되묻는다. 고를 답은 이 대화에 나온 주제(「" + String.join("」, 「", topics)
 				+ "」)에서 짓고, 새로 찾고 싶은 게 있으면 적어 달라는 뜻도 덧붙인다.");
 		return switch (ref.kind()) {
-			case DONT_KNOW -> !lastAsked ? null
-					: new Talk(ref.kind(), current, AskMode.NEVER, false, "사용자가 되물은 말에 「" + q + "」라고 답해 어느 쪽인지 "
+			// after cards too (a one-word question is answered at once since 2026-10-29, so 「모르겠어」 often follows cards)
+			case DONT_KNOW -> lastAsked
+					? new Talk(ref.kind(), current, AskMode.NEVER, false, "사용자가 되물은 말에 「" + q + "」라고 답해 어느 쪽인지 "
 							+ "정하지 못했다. 다시 묻지 말고, 앞에서 낸 고를 답(「" + offered + "」)의 갈래마다 2~3권씩 고루 섞어 "
-							+ "고른다. 머리말에는 여러 갈래로 골라 봤다고 쓴다.");
+							+ "고른다. 머리말에는 여러 갈래로 골라 봤다고 쓴다.")
+					: last.bookIds().isEmpty() ? null
+							: new Talk(ref.kind(), current, AskMode.NEVER, false, "사용자가 앞에서 보인 책을 보고 「" + q + "」라고 했다. "
+									+ "다시 묻지 말고, 「" + current + "」 주제에서 여러 갈래의 책을 고루 섞어 고른다(앞에서 보인 책도 "
+									+ "다시 골라도 된다). 머리말에는 여러 갈래로 골라 봤다고 쓴다.");
 			case NOT_THAT -> {
 				if (ref.that()) {
 					yield unknown;

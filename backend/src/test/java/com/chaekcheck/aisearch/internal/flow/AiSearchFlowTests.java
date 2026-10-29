@@ -1040,6 +1040,17 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void notKnowingAfterCardsIsNotAskedBackEither() { // user 2026-10-29: a one-word question shows cards at once
+		AiSearchFlow.Talk talk = AiSearchFlow.talk(input("나도 잘 모르겠어",
+				List.of(new AiSearchFlow.Turn("사진", List.of(1L, 2L)))));
+
+		assertThat(talk.mode()).isEqualTo(AiSearchFlow.AskMode.NEVER);
+		assertThat(talk.topic()).isEqualTo("사진");
+		assertThat(talk.excludeShown()).isFalse();
+		assertThat(AiSearchFlow.talk(input("모르겠어", List.of(new AiSearchFlow.Turn("사진", List.of()))))).isNull();
+	}
+
+	@Test
 	void notKnowingAfterAnAskBackIsNeverAskedAgain() { // plan 2026-10-29, A
 		askBackOn();
 		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"좋아요\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
