@@ -8,11 +8,13 @@ Forms (all with the custom plan the server forces since v1.20.1):
   V4  plan_count by intarray inside a scalar subquery (SELECT intarray.icount(...)): a SubPlan again, so the planner
       still counts only the rows the LIMIT needs after sorting by score (V1/V2 count every matched row)
   V5  V4 + score by strpos
-  V6  plan_count by catalog.plan_library_count(library_ids, plan): a SQL function around the intarray call with
-      COST 1000 and a SET clause (so it is not inlined): the planner sees an expensive call, keeps the parallel plan and
-      counts only the rows the LIMIT needs (lazy, as V0), each count cheap (as V1); score by strpos
-  V7  as V6 with a PL/pgSQL function catalog.plan_library_count_pl
-Cases: words (one common, one rare, two, three, five, a core word), plan libraries (all, 200, 30). Each form runs RUNS
+  V6  plan_count by catalog.plan_library_count_sql(library_ids, plan): a SQL function around the intarray call with
+      COST 1000 and a SET clause (so it is not inlined); score by strpos. Measuring only: create the function by hand
+  V7  plan_count by catalog.plan_library_count (catalog/004, in production since v1.20.3): the same call in PL/pgSQL
+      with COST 1000: the planner sees an expensive call, keeps the parallel plan and counts only the rows the LIMIT
+      needs (lazy, as V0), each count cheap (as V1); score by strpos
+  V8  the server since v1.20.4: V7 for one word or at most 500 plan libraries, else V3
+Cases: words (one common, one rare, two, three, five, a core word), plan libraries (all, 1000, 200, 30). Each form runs RUNS
 times per case after one warm-up; the median wall time (psql \\timing) and an md5 of the ordered result
 (book_id:score:plan_count) are printed, so a form that changes the answer shows a different md5.
 
@@ -41,6 +43,7 @@ CASES = [
 
 PLANS = {
     "all": "SELECT array_agg(DISTINCT l ORDER BY l)::integer[] AS plan FROM catalog.book_search, unnest(library_ids) l",
+    "1000": "SELECT (array_agg(DISTINCT l ORDER BY l))[1:1000]::integer[] AS plan FROM catalog.book_search, unnest(library_ids) l",
     "200": "SELECT (array_agg(DISTINCT l ORDER BY l))[1:200]::integer[] AS plan FROM catalog.book_search, unnest(library_ids) l",
     "30": "SELECT (array_agg(DISTINCT l ORDER BY l))[1:30]::integer[] AS plan FROM catalog.book_search, unnest(library_ids) l",
 }
@@ -50,7 +53,12 @@ def lit(word):
     return "'" + word.replace("'", "''") + "'"
 
 
-def query(form, words, core):
+PLAN_SIZES = {"all": 10 ** 9, "1000": 1000, "200": 200, "30": 30}
+
+
+def query(form, words, core, plan_name="all"):
+    if form == "V8":
+        form = "V7" if len(words) == 1 or PLAN_SIZES[plan_name] <= 500 else "V3"
     def has(w):
         if form in ("V2", "V3", "V5", "V6", "V7"):
             return f"(strpos(s.search_text, {lit(w)}) > 0)"
@@ -62,9 +70,9 @@ def query(form, words, core):
     if form in ("V1", "V2"):
         plan_count = "intarray.icount(intarray._int_inter(s.library_ids, :'plan'::integer[]))"
     elif form == "V6":
-        plan_count = "catalog.plan_library_count(s.library_ids, :'plan'::integer[])"
+        plan_count = "catalog.plan_library_count_sql(s.library_ids, :'plan'::integer[])"
     elif form == "V7":
-        plan_count = "catalog.plan_library_count_pl(s.library_ids, :'plan'::integer[])"
+        plan_count = "catalog.plan_library_count(s.library_ids, :'plan'::integer[])"
     elif form in ("V4", "V5"):
         plan_count = "(SELECT intarray.icount(intarray._int_inter(s.library_ids, :'plan'::integer[])))"
     else:
@@ -84,7 +92,7 @@ def main(psql, forms):
         lines.append(f"{plan_sql} \\gset")
         for name, words, core in CASES:
             for form in forms:
-                sql = query(form, words, core)
+                sql = query(form, words, core, plan_name)
                 lines.append(sql)  # warm-up
                 lines.append("\\timing on")
                 for _ in range(RUNS):

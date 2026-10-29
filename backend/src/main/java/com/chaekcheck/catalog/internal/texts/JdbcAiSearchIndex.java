@@ -29,11 +29,25 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 	private static final Logger log = LoggerFactory.getLogger(JdbcAiSearchIndex.class);
 
 	/**
-	 * The book's plan libraries, counted by intarray in {@code catalog.plan_library_count} (catalog/004, 2026-10-29):
-	 * a sorted-array intersection instead of {@code unnest} + {@code = ANY} per element, declared expensive so the
-	 * planner still counts only the rows the {@code LIMIT} needs.
+	 * The book's plan libraries counted by intarray in {@code catalog.plan_library_count} (catalog/004, 2026-10-29): a
+	 * sorted-array intersection, about 10 µs a book whatever the order. Best when every matched book must be counted
+	 * (one word: all points equal) or the plan is small.
 	 */
 	private static final String PLAN_COUNT = "catalog.plan_library_count(s.library_ids, CAST(:plan AS integer[]))";
+
+	/**
+	 * The same count as a SubPlan over {@code unnest}: the planner sorts by points first and counts only the books the
+	 * {@code LIMIT} reaches (about 600 of 16,000), which wins for several words over a large plan.
+	 */
+	private static final String PLAN_COUNT_LAZY = """
+			(SELECT count(*) FROM unnest(s.library_ids) AS l(id) WHERE l.id = ANY(CAST(:plan AS integer[])))::int""";
+
+	/**
+	 * Above this many plan libraries a question of several words takes {@link #PLAN_COUNT_LAZY}: measured in production
+	 * at 30, 200, 1,000 and 2,455 libraries (docs/cycle26-book-descriptions/4-keyword-query-speed.md), the function
+	 * won at 200 and lost at 1,000; 500 between them is not measured [안].
+	 */
+	static final int FUNCTION_PLAN_MAX = 500;
 
 	private final JdbcClient jdbc;
 
@@ -66,6 +80,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 			}
 		}
 		String coreSum = coreScore.isEmpty() ? "0" : String.join(" + ", coreScore);
+		String planCount = planCountFor(words.size(), planLibraries.size());
 		JdbcClient.StatementSpec statement = jdbc.sql("""
 				SELECT book_id, score, plan_count FROM (
 				  SELECT s.book_id, %s AS score, %s AS plan_count, %s AS core_score
@@ -75,7 +90,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 				    AND NOT (s.book_id = ANY(CAST(:excluded AS bigint[])))
 				) m
 				ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
-				LIMIT :limit""".formatted(String.join(" + ", score), PLAN_COUNT, coreSum, String.join(" OR ", any)))
+				LIMIT :limit""".formatted(String.join(" + ", score), planCount, coreSum, String.join(" OR ", any)))
 			.param("plan", planLibraries.toArray(Long[]::new))
 			.param("excluded", excluded.toArray(Long[]::new))
 			.param("limit", limit);
@@ -162,6 +177,11 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 	}
 
 	/** {@code \}, {@code %} and {@code _} are matched as themselves ({@code ESCAPE '\'}). */
+	/** The plan library count for a question of this many words over this many plan libraries. */
+	static String planCountFor(int words, int planLibraries) {
+		return words == 1 || planLibraries <= FUNCTION_PLAN_MAX ? PLAN_COUNT : PLAN_COUNT_LAZY;
+	}
+
 	static String escapeLike(String word) {
 		return word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}

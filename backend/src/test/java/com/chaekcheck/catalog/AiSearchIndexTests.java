@@ -106,6 +106,25 @@ class AiSearchIndexTests {
 			.single()).isZero();
 	}
 
+	/**
+	 * Several words over more than {@code FUNCTION_PLAN_MAX} plan libraries count with the SubPlan, otherwise with the
+	 * function; both give the same order (the books hold only libraries 101-110, so 600 plan libraries count alike).
+	 */
+	@Test
+	void bothPlanCountsGiveTheSameOrder() {
+		books(book(1, "잠들기 전 과학 이야기", 1), book(2, "과학의 눈", 5), book(3, "과학 산책", 2), book(4, "과학 잠들기", 9));
+		store(List.of());
+		Set<Long> large = Set.copyOf(LongStream.rangeClosed(101, 700).boxed().toList());
+		List<String> words = List.of("과학", "잠들기");
+
+		List<Candidate> function = index.find(words, Set.of(), PLAN, Set.of(), 30);
+		assertThat(function).extracting(Candidate::bookId).containsExactly(930004L, 930001L, 930002L, 930003L);
+		assertThat(index.find(words, Set.of(), large, Set.of(), 30)).isEqualTo(function);
+		// one word over the large plan: the function again
+		assertThat(index.find(List.of("과학"), Set.of(), large, Set.of(), 30))
+			.isEqualTo(index.find(List.of("과학"), Set.of(), PLAN, Set.of(), 30));
+	}
+
 	@Test
 	void tiesAreCutAfterTheOrderNotByBookIdFirst() {
 		List<String> rows = new ArrayList<>();
