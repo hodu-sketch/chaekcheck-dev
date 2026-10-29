@@ -1,3 +1,14 @@
+# Zero-downtime deploy probes (cycle 27, ADR-0169). See docs/maintenance/settings-index.md §1-0.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health  # health only — env/beans/info/metrics stay 404
+  endpoint:
+    health:
+      probes:
+        enabled: true  # readiness + liveness outside Kubernetes
+
 spring:
   application:
     name: chaekcheck
@@ -35,7 +46,11 @@ spring:
       # Schema changes go through Liquibase only
       ddl-auto: validate
 
+  lifecycle:
+    timeout-per-shutdown-phase: 40s  # §1-0
+
 server:
+  shutdown: graceful  # §1-0
   servlet:
     session:
       # Only the login feature uses the session: values kept during a login (pending sign-up, re-authentication),
