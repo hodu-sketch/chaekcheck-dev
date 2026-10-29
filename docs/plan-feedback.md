@@ -7584,3 +7584,33 @@ WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB �
 - 서버 메모리: free 579MB available, swap 255MB used (2GB 서버)
 - 옛 슬롯 정상 종료 로그 패턴: Commencing graceful shutdown → Graceful shutdown complete → No publications outstanding → Closing JPA EntityManagerFactory → HikariPool Shutdown completed
 
+## [확인 필요] 결과
+
+| # | 항목 | 결과 | 근거 |
+|---|---|---|---|
+| 1 | Boot 4.1.1에서 쿠버네티스 밖 probes가 열리는지 | ✓ | `probes.enabled=true`로 열림. auth on/off 둘 다 정상 (0단계 1번) |
+| 2 | 정상 종료 때 REFUSING_TRAFFIC, SSE 기다림, 로그 문구 | ✓ | readiness는 연결 끊김(exit 56→7). 로그 "Commencing graceful shutdown"→"Graceful shutdown complete". 운영 AC-2에서 SSE 17회 전부 완료 (0단계 2번, AC-2·6) |
+| 3 | nginx reload가 새 이름·새 IP를 잡는지, 폴더 mount | ✓ | upstream 파일 교체+reload 전환, 컨테이너 재생성(IP 변경)+reload 새 IP. 멈춘 컨테이너는 nginx -t 실패. 폴더 bind mount에서 mv 반영 (0단계 4번) |
+| 4 | reload 뒤 2초로 AC-1 실패 0건인지 | ✓ | 리허설 AC-3: 59건 0실패. 운영 AC-1: 33줄 0실패, AC-4: 28줄 0실패 |
+| 5 | 겹칠 때 새 판 시작 시간과 메모리 | ✓ | 운영 ready=29~39초(60초 한도 안). free 579MB available, swap 255MB used (2GB 서버) |
+| 6 | 가입 중 세션이 정상 종료 때 끝남 처리되는지 | ✓ | AbandonedSignupListener: 가입 중이 아니어서 로그 없음(정상). 지금 재시작과 같은 성질 (0단계 2(f)) |
+| 7 | Spring 정상 종료 기본 30초·Docker 기본 10초 원문 | ✓ | 명시 값으로 덮어씀: `timeout-per-shutdown-phase=40s`, `stop_grace_period=60s`. 기본값에 의존하지 않음 |
+| 8 | Git Bash TZ=Asia/Seoul | ✓ | `TZ=Asia/Seoul` 안 됨, `TZ=KST-9` 사용 (0단계 5번). switch.sh·release.sh는 서버(Linux)에서 `Asia/Seoul` 사용 |
+| 9 | 서버의 지금 nginx 판(고정할 태그) | ✓ | 1.30.5 확인(0단계 3번, 8단계 2). `nginx:1.30.5-alpine` 고정 |
+
+설계와 달라진 점:
+- **새벽 거절 8진수 문제**: `[[ 0325 ]]` 비교가 bash에서 8진수로 읽힘 → `(( 10#$hhmm ))` 수정 (커밋 00f66e5e)
+- **nginx conf.d 중복**: 초기 설정에서 `ec2-tunnel.conf`와 switch.sh가 쓴 `default.conf` 둘 다 존재 → `limit_req_zone already bound` 오류 → `ec2-tunnel.conf` 제거
+- **Git Bash TZ**: `TZ=Asia/Seoul` 대신 `TZ=KST-9` (서버 Linux에서는 `Asia/Seoul` 사용, 로컬 시험만 해당)
+
+## 완료 기준 확인
+
+- [x] AC-1~AC-9를 리허설(6단계)과 운영(9단계)에서 확인하고 AC 확인표를 `# 사이클 27` 절에 적음
+- [x] `./gradlew build` 통과, `ModularityTests`·`DocumentationTests` 통과 (0단계 7번: compile·bootJar 성공, 워크트리 build 575 테스트 통과)
+- [x] 0단계 확인 1~6의 결과를 적었고, 기대와 다른 것은 plan에 알렸음 (0단계 결론: "막는 결과 없음")
+- [x] 처음 한 번 옮기기를 운영에서 했고 끊긴 시간을 적었음 (8단계: v1.22.0)
+- [x] ADR-0170 체크리스트를 이 사이클에 채웠음 (해당 없음)
+- [x] `P/README.md`, `N/README.md`, `docs/maintenance/3-import.md`·`6-aisearch.md`, dev `settings-index.md`를 고쳤음 (7단계)
+- [x] 화면 변경 없음 (실제 폰 확인 항목 없음)
+- [x] [확인 필요] 각 항목의 결과, 설계와 달라진 점, 새로 알게 된 제약을 `# 사이클 27` 절에 적음
+
