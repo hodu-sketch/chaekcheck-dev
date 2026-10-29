@@ -332,6 +332,15 @@ public class AiSearchFlow {
 		/** How many topics the keywords were searched for one by one (「A나 B」, 「다 같이」), 0 for one search. */
 		int parts;
 
+		/**
+		 * The letters the pick call wrote in the cards' texts, the ones past the card limit too, and the cards whose text
+		 * ran past it (production v1.22.1: one turn of 14.3 s wrote 3,186 tokens, three times the usual, and nothing said
+		 * where they went).
+		 */
+		int textChars;
+
+		int longCards;
+
 		final List<Long> shown = new ArrayList<>();
 
 		/** When each step ended, ms from the request's start, for the log line (user 2026-10-26 「각 로직들 하나하나」). */
@@ -387,6 +396,8 @@ public class AiSearchFlow {
 						(run.ask == null ? "" : ", ask " + run.ask) + (run.tail == null ? "" : ", tail " + run.tail)
 								+ (run.fromYear == null ? "" : ", from " + run.fromYear)
 								+ (run.parts == 0 ? "" : ", parts " + run.parts)
+								+ (run.textChars == 0 ? "" : ", text " + run.textChars
+										+ (run.longCards == 0 ? "" : " (long " + run.longCards + ")"))
 								+ (run.gone ? ", client gone" : "")
 								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
@@ -713,12 +724,13 @@ public class AiSearchFlow {
 	}
 
 	/**
-	 * The topics 「아까」 goes back to by order words and the question vector, or null to leave it to the words
+	 * What 「아까」 goes back to by order words and the question vector, or null to leave it to the words
 	 * (TalkRefs#back).
 	 */
 	interface BackTopics {
 
-		List<Integer> of(String question, List<String> topics);
+		/** @param questions the earlier questions one by one (a topic joins a question and the answer to its ask-back) */
+		String of(String question, List<String> topics, List<String> questions);
 
 	}
 
@@ -777,9 +789,8 @@ public class AiSearchFlow {
 								+ "알 수 없으면 이 주제 안의 갈래로 되물어도 된다.");
 			}
 			case BACK_TO -> {
-				List<Integer> picked = backTopics == null ? null : backTopics.of(q, topics);
-				String chosen = picked == null || picked.isEmpty() ? TalkRefs.back(ref, topics)
-						: String.join(" ", picked.stream().map(topics::get).toList());
+				String picked = backTopics == null ? null : backTopics.of(q, topics, questions);
+				String chosen = picked == null ? TalkRefs.back(ref, topics) : picked;
 				yield chosen == null ? unknown
 						: new Talk(ref.kind(), chosen, AskMode.NEVER, false, "사용자가 앞 대화의 「" + chosen + "」 이야기로 돌아가려 "
 								+ "한다(「" + q + "」). 그 주제에 맞는 책을 고른다(앞에서 보인 책도 다시 골라도 된다). 머리말에서 "
@@ -1007,11 +1018,14 @@ public class AiSearchFlow {
 	}
 
 	/**
-	 * The topics 「아까」 points at: order words by rule (「처음 거랑 끝에거」, 「앞에 둘」, 「전부」), every other topic word
-	 * to the earlier topic its vector is nearest (「세게사랑 과학싸」); null when nothing is picked (user 2026-10-29: 35 of
-	 * 40 rude test sentences against 4 by the words alone).
+	 * What 「아까」 points at: the topics named by order words (「처음 거랑 끝에거」, 「앞에 둘」, 「전부」) or holding a word
+	 * of the question, then for every other topic word the earlier question its vector is nearest, with the word itself
+	 * when that question does not hold it; null when nothing is picked (user 2026-10-29: 35 of 40 rude test sentences
+	 * against 4 by the words alone). The vector goes to the questions one by one, not to the topics: a topic joins a
+	 * question and the answer to its ask-back, and 「세게사 책」 + 「과학싸나 철학」 sent 「아까 세계사 말한거 최신으로」 to
+	 * science and philosophy with the typo 세게사 and without 세계사 (production v1.22.1, 2026-10-30: 0 books).
 	 */
-	private List<Integer> backTopics(String question, List<String> topics) {
+	private String backTopics(String question, List<String> topics, List<String> questions) {
 		TreeSet<Integer> picked = new TreeSet<>(TalkRefs.ordered(question, topics.size()));
 		// a topic a word of the question is in counts as well (「최신책 아까 세계역사나」: the vector of the whole reply alone
 		// took 「최신책」 and lost 세계역사, the local replay of 2026-10-29)
@@ -1022,6 +1036,7 @@ public class AiSearchFlow {
 				picked.add(t);
 			}
 		}
+		List<String> chosen = new ArrayList<>(picked.stream().map(topics::get).toList());
 		// the topic words only: talk words and 「최신으로」 pulled the reply towards a topic 「요새꺼」 (local replay)
 		String named = String.join(" ", TalkRefs.rest(TalkRefs.withoutOrder(question)).stream()
 			.filter(word -> !Recency.isWord(word))
@@ -1030,28 +1045,42 @@ public class AiSearchFlow {
 			.stream()
 			.filter(part -> !TalkRefs.rest(part).isEmpty())
 			.toList();
-		if (!parts.isEmpty()) {
+		List<String> earlier = questions.stream().filter(q -> TalkRefs.of(q) == null).map(String::strip).distinct().toList();
+		if (!parts.isEmpty() && !earlier.isEmpty()) {
 			List<String> texts = new ArrayList<>(parts);
-			texts.addAll(topics);
+			texts.addAll(earlier);
 			List<float[]> found = intents.encode(texts, INTENT_WAIT);
 			if (found != null) {
 				for (int i = 0; i < parts.size(); i++) {
+					String part = parts.get(i);
+					String joined = String.join(" ", chosen).toLowerCase(java.util.Locale.ROOT);
+					if (TalkRefs.rest(part).stream().allMatch(joined::contains)) {
+						continue;
+					}
 					int best = -1;
 					float bestScore = BACK_TOPIC_FLOOR;
-					for (int t = 0; t < topics.size(); t++) {
-						float score = IntentVectors.dot(found.get(i), found.get(parts.size() + t));
+					for (int q = 0; q < earlier.size(); q++) {
+						float score = IntentVectors.dot(found.get(i), found.get(parts.size() + q));
 						if (score >= bestScore) {
-							best = t;
+							best = q;
 							bestScore = score;
 						}
 					}
-					if (best >= 0) {
-						picked.add(best);
+					if (best < 0) {
+						continue;
+					}
+					String nearest = earlier.get(best);
+					if (!joined.contains(nearest.toLowerCase(java.util.Locale.ROOT))) {
+						chosen.add(nearest);
+					}
+					// the user's own spelling as well (「세계사」 for the earlier 「세게사」)
+					if (!TalkRefs.rest(part).stream().allMatch(nearest.toLowerCase(java.util.Locale.ROOT)::contains)) {
+						chosen.add(part);
 					}
 				}
 			}
 		}
-		return picked.isEmpty() ? null : List.copyOf(picked);
+		return chosen.isEmpty() ? null : String.join(" ", chosen);
 	}
 
 	/** The least closeness of a word of 「아까」 to the topic it is taken for (scripts/aisearch/eval/intent_mixed.py). */
@@ -1293,6 +1322,7 @@ public class AiSearchFlow {
 		long[] current = { -1 };
 		long[] pending = { -1 };
 		int[] currentChars = { 0 };
+		int[] currentRaw = { 0 };
 		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) or answering an ask-back is never asked
 		// back: the earlier questions say what it means (user 2026-10-26, 2 wrong asks in the test; 2026-10-27)
 		// a long first question is clear enough to pick from at once (ASK_QUESTION_WORDS)
@@ -1362,15 +1392,24 @@ public class AiSearchFlow {
 				run.send(AiSearchEvents.CARD, cards.card(run.shown.size(), bookId));
 				current[0] = bookId;
 				currentChars[0] = 0;
+				currentRaw[0] = 0;
 			}
 
 			@Override
 			public void pickText(String text) {
-				if (current[0] < 0 || currentChars[0] >= maxChars) {
+				if (current[0] < 0) {
+					return;
+				}
+				int length = text.codePointCount(0, text.length());
+				run.textChars += length;
+				if (currentRaw[0] <= maxChars && currentRaw[0] + length > maxChars) {
+					run.longCards++;
+				}
+				currentRaw[0] += length;
+				if (currentChars[0] >= maxChars) {
 					return;
 				}
 				int room = maxChars - currentChars[0];
-				int length = text.codePointCount(0, text.length());
 				String piece = length <= room ? text : text.substring(0, text.offsetByCodePoints(0, room));
 				currentChars[0] += Math.min(length, room);
 				run.send(AiSearchEvents.CARD_DELTA, new CardDelta(current[0], piece));
@@ -1451,13 +1490,16 @@ public class AiSearchFlow {
 		}
 		else {
 			// nothing to sum up without two cards; the server writes the lines with the cards' titles (TailLines)
-			String summary = run.shown.size() < 2 || answer[0] == null ? null
-					: TailLines.render(tailOf(answer[0]), ids, run.shown, cards.known());
+			JsonNode tailNode = answer[0] == null ? null : tailOf(answer[0]);
+			String summary = run.shown.size() < 2 ? null : TailLines.render(tailNode, ids, run.shown, cards.known());
 			if (summary != null) {
 				run.send(AiSearchEvents.TAIL_DELTA, new Text(summary));
 			}
 			else if (tailCut[0]) {
 				run.tail = "too long";
+			}
+			else if (run.shown.size() >= 2) {
+				run.tail = TailLines.whyNone(tailNode);
 			}
 			finish(run, PickResult.OK, "ok");
 		}
