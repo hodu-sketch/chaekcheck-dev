@@ -37,9 +37,10 @@ final class QuestionWords {
 		for (String piece : SPLIT.split(question)) {
 			String word = ENDING.matcher(piece).replaceFirst("");
 			// 「세계역사나」, 「소설이랑」 after a vowel: 나·랑 come off when two letters stay (user 2026-10-29: 「세계역사나」 was
-			// searched as it is and found nothing); 「하나」, 「사랑」 keep theirs
+			// searched as it is and found nothing); 「하나」, 「사랑」 keep theirs, and so does a word a book title holds
+			// (「코로나」, 「바르셀로나」, TitleWords)
 			Matcher joined = JOINED.matcher(word);
-			if (joined.matches()) {
+			if (joined.matches() && !TitleWords.known(word.toLowerCase(java.util.Locale.ROOT))) {
 				word = joined.group(1);
 			}
 			if (word.codePointCount(0, word.length()) >= 2 && !STOP.contains(word) && !out.contains(word)) {

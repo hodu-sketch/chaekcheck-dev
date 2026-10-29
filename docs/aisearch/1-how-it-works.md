@@ -305,7 +305,7 @@
 | 「A나 B」 | 찾는 질문 글(위 주제 포함) | 나·이나·랑·이랑·하고·쉼표·또는·아니면으로 이은 주제, 또는 목록 말(둘다·셋다·섞어·아무거나·중에·아님·든, 끝의 「다」) 앞의 주제 낱말들. 2개 이상일 때만 | — | 4-7절 낱말 검색과 4-8절 벡터 검색을 주제마다 따로 하고 번갈아 담음(로그 `parts N`) |
 
 - 한 낱말 질문의 「흔한 갈래를 섞는다」 메모(4-11절)는 첫 질문에만 붙습니다.
-- `QuestionWords`는 끝의 「나·랑」을 앞에 두 글자 이상 남을 때 뗍니다(「세계역사나」 → 「세계역사」).
+- `QuestionWords`는 끝의 「나·랑」을 앞에 두 글자 이상 남을 때 뗍니다(「세계역사나」 → 「세계역사」). 책 제목에 그 낱말이 통째로 있으면(「코로나」, 「바르셀로나」) 떼지 않고 주제로도 나누지 않습니다(`TitleWords`, 제목 목록은 `SearchBooks`가 읽을 때 넘김).
 
 근거: `AiSearchFlow.answer`·`allChoices`·`fromYear`·`backTopics`·`keywordCandidates`·`partNearest`·`onlyRecency`, `Recency`, `TopicParts`, `TalkRefs.ordered`, `IntentVectors`. 잰 결과: [reports/2026-10-29-follow-ups](reports/2026-10-29-follow-ups.md).
 

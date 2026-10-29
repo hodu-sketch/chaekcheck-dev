@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.chaekcheck.aisearch.internal.firstcall.TitleWords;
 import com.chaekcheck.catalog.AiSearchIndex;
 
 /**
@@ -109,6 +110,8 @@ public class SearchBooks {
 		for (AiSearchIndex.SearchBook book : index.books()) {
 			books.add(new SearchBook(book.bookId(), book.title(), book.author(), book.publishedYear()));
 		}
+		// the titles also tell 「코로나」 from 「세계역사나」 (TitleWords)
+		TitleWords.use(books.stream().map(book -> book.title().toLowerCase(java.util.Locale.ROOT)).toList());
 		Map<Long, SearchBook> byId = new HashMap<>(books.size() * 2);
 		for (SearchBook book : books) {
 			byId.put(book.bookId(), book);

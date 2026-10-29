@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.chaekcheck.aisearch.internal.firstcall.MlFirstCall;
+import com.chaekcheck.aisearch.internal.firstcall.TitleWords;
 
 /**
  * 「최신」 as a search condition, topics listed side by side searched one by one, 「아까」 joining every topic it names and
@@ -66,6 +67,22 @@ class RecencyAndTopicPartsTests {
 	void theJoiningEndingComesOffTheSearchWords() {
 		assertThat(MlFirstCall.firstKeywords("세계역사나 과학사나")).containsExactly("세계역사", "과학사");
 		assertThat(MlFirstCall.firstKeywords("사랑 하나")).containsExactly("사랑", "하나");
+	}
+
+	@Test
+	void aWordATitleHoldsKeepsItsEnding() {
+		// the evaluation session's 857 queries: 코로나 → 코로, 바르셀로나 → 바르셀로 before
+		TitleWords.use(List.of("코로나 시대의 경제", "바르셀로나 여행 가이드", "누구나 쉽게 배우는 파이썬"));
+		try {
+			assertThat(MlFirstCall.firstKeywords("코로나 백신")).containsExactly("코로나", "백신");
+			assertThat(MlFirstCall.firstKeywords("바르셀로나 여행")).containsExactly("바르셀로나", "여행");
+			assertThat(MlFirstCall.firstKeywords("세계역사나 과학사나")).containsExactly("세계역사", "과학사");
+			assertThat(TopicParts.of("코로나 백신 책")).containsExactly("코로나 백신 책");
+			assertThat(TopicParts.of("세계사나 과학사 입문서")).containsExactly("세계사 입문서", "과학사 입문서");
+		}
+		finally {
+			TitleWords.use(List.of());
+		}
 	}
 
 	@Test

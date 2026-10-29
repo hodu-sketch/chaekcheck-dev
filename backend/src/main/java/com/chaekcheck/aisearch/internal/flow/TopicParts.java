@@ -2,11 +2,13 @@ package com.chaekcheck.aisearch.internal.flow;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.chaekcheck.aisearch.internal.firstcall.MlFirstCall;
+import com.chaekcheck.aisearch.internal.firstcall.TitleWords;
 
 /**
  * The topics a question lists side by side (「세계사나 과학사」, 「소설이랑 에세이」, 「요리, 여행」), each searched on its
@@ -51,7 +53,8 @@ final class TopicParts {
 			if (OR.matcher(word).matches()) {
 				continue;
 			}
-			Matcher joined = JOINED.matcher(word);
+			// 「코로나」, 「바르셀로나」: a word a title holds is no topic with 나 after it (TitleWords)
+			Matcher joined = JOINED.matcher(TitleWords.known(word.toLowerCase(Locale.ROOT)) ? "" : word);
 			boolean nextJoins = i + 1 < words.length && OR.matcher(words[i + 1]).matches();
 			if (joined.matches() && !MlFirstCall.firstKeywords(joined.group(1)).isEmpty()) {
 				topics.add(joined.group(1));
@@ -85,7 +88,8 @@ final class TopicParts {
 		}
 		List<String> topics = new ArrayList<>();
 		for (String word : SPLIT.split(question.strip())) {
-			String w = word.replaceAll("(이든|든|이나|나|이랑|랑|하고|아님|,)$", "");
+			String w = TitleWords.known(word.toLowerCase(Locale.ROOT)) ? word
+					: word.replaceAll("(이든|든|이나|나|이랑|랑|하고|아님|,)$", "");
 			if (!w.isEmpty() && !NOT_TOPIC.contains(w) && !LIST.matcher(w).matches() && !w.matches("[ㄱ-ㅎ]+")
 					&& !MlFirstCall.firstKeywords(w).isEmpty()) {
 				topics.add(w);
