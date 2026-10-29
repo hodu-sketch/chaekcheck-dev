@@ -19,7 +19,7 @@
 set -euo pipefail
 
 # ── dawn check (ADR-0171): before anything else ──
-hhmm="${CHAEKCHECK_CLOCK_HHMM:-$(TZ=Asia/Seoul date +%H%M)}"
+hhmm="${CHAEKCHECK_CLOCK_HHMM:-$(TZ=KST-9 date +%H%M)}"
 # 10# forces decimal: bash [[ -ge ]] treats leading-zero strings as octal (0400 = 256, not 400).
 if (( 10#$hhmm >= 325 && 10#$hhmm <= 510 )); then
     echo "release.sh: REFUSED reason=dawn (03:25-05:10 Asia/Seoul, scheduled jobs); nothing changed"

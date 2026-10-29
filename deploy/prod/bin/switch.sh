@@ -23,7 +23,7 @@ exec 9>"$DIR/.switch.lock"
 flock -n 9 || { echo "switch: REFUSED $KIND $VERSION reason=already-running; nothing changed"; exit 1; }
 
 # ── common 2: dawn check (ADR-0171) ──
-hhmm="${CHAEKCHECK_CLOCK_HHMM:-$(TZ=Asia/Seoul date +%H%M)}"
+hhmm="${CHAEKCHECK_CLOCK_HHMM:-$(TZ=KST-9 date +%H%M)}"
 # 10# forces decimal: bash [[ -ge ]] treats leading-zero strings as octal (0400 = 256, not 400).
 if (( 10#$hhmm >= 325 && 10#$hhmm <= 510 )); then
     echo "switch: REFUSED $KIND $VERSION reason=dawn (03:25-05:10 Asia/Seoul, scheduled jobs); nothing changed"
