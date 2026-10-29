@@ -7302,6 +7302,19 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 추천목록 요약: 2,793줄 중 1,946줄(빠진 847 = 책 번호 없는 838 + 못 만든 9권, 0단계 4번 예측과 같음).
 - 남은 AC: AC-1(같은 책 네 곳 글자 비교, AI 검색 카드 포함)·AC-7·12(dev 24 전후 비교)·AC-11(11단계 뒤).
 
+## AC-1 (2026-10-29, 운영)
+
+- 「달러구트 꿈 백화점」(1172): 추천목록 진열(`/api/v1/picks/shelf`의 `aiSummary`), 책첵 추천(`/api/v1/for-you/books`의 `blurb`), AI 검색 카드(`/api/v1/ai-searches/stream`의 `aiSummary`, 질문 「꿈을 파는 백화점이 나오는 따뜻한 판타지 소설」 1번), 책 상세(`/api/v1/books/1172`의 `summary`)가 **글자까지 같음**. 진열 6권 모두 책첵 추천·책 상세와 같고, AI 검색 카드 5권 모두 책 상세와 요약·표지 주소가 같음.
+
+## 배포 1 뒤 낱말 검색 느려짐: 원인과 고침 (2026-10-29, dev 24 알림 R8)
+
+- dev 24 측정: v1.20.0 r3·r4에서 여러 낱말 첫 질문의 낱말 검색 대기가 3~5.4초(위 「배포 1 전후 AI 검색 시간」).
+- 운영 DB 읽기(사용자 "읽기 허용"): `catalog.book_search` 마지막 analyze는 배포 때(08:29:30)뿐이라 ANALYZE 때문은 아님.
+- **원인**: pgjdbc는 같은 SQL 글이 한 연결에서 5번(`prepareThreshold`)을 넘으면 서버 준비문을 쓰고, 그때부터 PostgreSQL은 일반 계획(`plan_cache_mode=auto`)을 고를 수 있음. 낱말 검색 SQL은 낱말 수·핵심어 수마다 글이 같아서, 서버를 켠 뒤 같은 모양의 질문이 쌓이면 일반 계획으로 넘어감. 일반 계획은 Bitmap Heap Scan으로 맞는 줄 **모두**에 `plan_count` 하위 질의를 돌리고, `:plan` 배열이 상수가 아니라 `= ANY` 해시도 안 씀.
+- 운영에서 같은 질의(「소설 말고 위로가 되는 책」의 다섯 낱말, 계획 도서관 = 표의 모든 도서관): **맞춤 계획 0.64초**(Parallel Seq Scan + Incremental Sort, `plan_count`는 212줄만), **일반 계획 11.2초**(35,731줄 모두). 옛 표 `aisearch.search_book`도 0.44초 / 11.1초로 같음 → **배포 1 회귀가 아니라 숨어 있던 문제**. v1.19.0 측정은 서버를 켠 뒤 2번만 돌려 문턱을 넘지 않았던 것으로 봄 [추론]. r1·r2 괜찮고 r3부터 나빠진 것과 맞음.
+- **12단계 시도와 되돌림 (2026-10-29, 사용자 "둘 다 승인")**: 운영에 `book-profiles` 넣기(`c26-book-profiles-export.tsv`, md5 af7d5289…, export d09d649f) → `stored 77551`, 2.4초. 서버 재시작 뒤 `77551 book profiles from catalog.book_profile`. 그런데 **AI 검색이 모두 `internal_error`(NullPointerException)**, 09:06~09:12 약 6분. 원인: 표는 빈 칸을 NULL로 두는데 파일은 `""`이고, 서가 맞추기(`Shelves`)가 그 글을 비교함. 시험은 표 읽기(`JdbcBookProfiles`)와 서가 맞추기를 따로만 보아 잡지 못함. 사용자 "표 비우기 먼저" → `DELETE FROM catalog.book_profile`(77,551) + 재시작 → 파일로 읽고 AI 검색 정상(카드 7장). 고침은 aisearch `BookProfiles.of`에서 NULL → `""`(시험 `FirstCallTests.profilesFromTheTableMatchShelvesLikeTheFile`), v1.20.1 뒤 12단계를 다시 함.
+- **고침(v1.20.1)**: `JdbcAiSearchIndex.find`를 읽기 전용 트랜잭션 안에서 `SET LOCAL plan_cache_mode = force_custom_plan` 뒤에 돌림(이 질의만, 트랜잭션이 끝나면 원래대로). 시험 `AiSearchIndexTests.repeatedSearchesKeepCustomPlans`: 같은 검색 12번 뒤 `pg_prepared_statements.generic_plans` = 0(고침을 빼면 실패함을 확인).
+
 # 사이클 26 배포 1 전후 AI 검색 시간 (2026-10-29, dev 24)
 
 - 같은 첫 질문 24개(5낱말 이상 12, 4낱말 이하 12)를 운영에 7초 간격으로 보내고 서버 로그 `steps`와 짝지어 잼(`scripts/aisearch/eval/prod_timing.py`, 이번부터 카드 책 번호·제목·저자도 기록). 원본: git 밖 `data/aisearch-eval-2026-10-25/latency-prod/prod-v1.19.0*.json`, `prod-v1.20.0*.json`.
