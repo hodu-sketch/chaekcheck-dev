@@ -184,7 +184,7 @@ public class AiSearchFlow {
 	static final int MAX_ASK_CHOICE_CHARS = 40;
 
 	/** Books of the title a question is that go first among the candidates, at most (user 2026-10-29 「해리포터」) [안]. */
-	static final int MAX_TITLE_BOOKS = 4;
+	static final int MAX_TITLE_BOOKS = 3;
 
 	/** A question of at most this many words gets the 「후보 분야」 line with ask-back on (user 2026-10-27) [안]. */
 	static final int SHORT_QUESTION_WORDS = 2;
@@ -370,7 +370,8 @@ public class AiSearchFlow {
 				.distinct()
 				.limit(properties.limits().picks())
 				.toList();
-			history.add(new ShownTurn(turn.question(), shown.stream().map(id -> known.get(id).title()).toList(),
+			// with the author, so 「작가가 누구야?」 and 「두 번째 책」 have it (user 2026-10-29: a wrong author)
+			history.add(new ShownTurn(turn.question(), shown.stream().map(id -> shownLine(known.get(id))).toList(),
 					turn.askedBack(), turn.askChoices(), turn.head()));
 			shownBefore.addAll(shown);
 			lastShown = shown;
@@ -492,6 +493,12 @@ public class AiSearchFlow {
 				titleNote = "사용자가 쓴 「" + titleGuess + "」는 책 제목이다. 그 제목의 책을 먼저 고르고, 이어서 비슷한 책을 고른다. "
 						+ "되묻지 않는다. 머리말에서 그 책을 찾았다고 말한다.";
 			}
+			else {
+				// the title is not among the books the plan libraries hold: books like it, said plainly
+				titleNote = "사용자가 쓴 「" + titleGuess + "」는 책 제목으로 보이는데, 그 책은 지금 고를 수 있는 책에 없다. 되묻지 말고 "
+						+ "그 책과 비슷한 책을 고른다. 머리말에서 그 책은 내 도서관에서 찾지 못해 비슷한 책을 골랐다고 자연스럽게 말한다"
+						+ "(「목록」이라는 말은 쓰지 않는다).";
+			}
 		}
 		// a question combining earlier topics may get the books shown for them again (EarlierTopics), and so may one
 		// adding a condition (continue: 「수학적인 것도 좀」 narrows the list, and a shown book may meet it; user
@@ -577,6 +584,12 @@ public class AiSearchFlow {
 				beside(() -> bookTexts.summaries(ids)), planCount);
 		run.mark("cards");
 		picks(input, history, ids, choices, cards, pointsBack, talk, titleNote, run);
+	}
+
+	/** An earlier card as the calls see it: the title, and the author when known. */
+	static String shownLine(SearchBook book) {
+		return book.author() == null || book.author().isBlank() ? book.title()
+				: book.title() + " / 저자: " + book.author();
 	}
 
 	/** How the pick call may ask back for a question of talk words. */

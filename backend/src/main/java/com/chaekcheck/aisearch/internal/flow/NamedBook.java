@@ -1,6 +1,7 @@
 package com.chaekcheck.aisearch.internal.flow;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,17 +71,20 @@ record NamedBook(String key, List<Long> editions) {
 	}
 
 	/**
-	 * The editions of the titles a question that is a title names (「해리포터」, user 2026-10-29): the titles whose letters
-	 * start with the question's letters, the shortest title first (the title itself before its other volumes); at most
-	 * {@code max}.
+	 * The editions of the titles a question that is a title names (「해리포터」, user 2026-10-29): the title itself and its
+	 * volumes (a number after it), not a title that only starts with it (「해리포터 영단어」); the shortest title first; at
+	 * most {@code max}.
 	 */
 	static List<Long> titled(String question, List<SearchBook> books, int max) {
 		String text = SearchText.letters(question);
 		if (text.length() < MIN_TITLE) {
 			return List.of();
 		}
-		List<String> keys = byKey(books).keySet().stream().filter(k -> k.startsWith(text)).sorted(
-				java.util.Comparator.comparingInt(String::length).thenComparing(java.util.Comparator.naturalOrder())).toList();
+		List<String> keys = byKey(books).keySet()
+			.stream()
+			.filter(k -> k.startsWith(text) && sameWork(k.substring(text.length())))
+			.sorted(Comparator.comparingInt(String::length).thenComparing(Comparator.naturalOrder()))
+			.toList();
 		List<Long> ids = new ArrayList<>();
 		for (String key : keys) {
 			for (long id : byKey(books).get(key)) {
@@ -90,6 +94,14 @@ record NamedBook(String key, List<Long> editions) {
 			}
 		}
 		return ids;
+	}
+
+	/**
+	 * Whether what follows a title still names that work: nothing or a volume number (「토지 1」). Not 와·과: 「해리 포터와
+	 * 환상세계의 힘」 is a book about the work, not the work.
+	 */
+	private static boolean sameWork(String rest) {
+		return rest.isEmpty() || Character.isDigit(rest.charAt(0));
 	}
 
 	private static Map<String, List<Long>> byKey(List<SearchBook> books) {

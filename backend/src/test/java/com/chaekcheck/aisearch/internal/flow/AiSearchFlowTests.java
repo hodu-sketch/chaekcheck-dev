@@ -730,7 +730,7 @@ class AiSearchFlowTests {
 		String sent = pickCall.messages().getLast().text();
 		assertThat(sent).contains("1. 제목: 토지 / 저자: 박경리 / 한 줄: 한 집안의 이야기를 그린 대하소설", "2. 제목: 과학 이야기 1");
 		// the earlier turn goes in with the shown titles only; 777 is not a listed book and is dropped
-		assertThat(pickCall.messages().get(1).text()).isEqualTo("보여 준 책:\n- 1번째 책: 토지\n- 2번째 책: 과학 이야기 1");
+		assertThat(pickCall.messages().get(1).text()).isEqualTo("보여 준 책:\n- 1번째 책: 토지 / 저자: 박경리\n- 2번째 책: 과학 이야기 1 / 저자: 저자 1");
 
 		// not pointing at them: the books shown before are left out
 		Sink other = new Sink();
@@ -769,7 +769,7 @@ class AiSearchFlowTests {
 		run("두 번째 책 어때?", List.of(earlier));
 
 		assertThat(llm.calls.get(1).messages().get(1).text())
-			.isEqualTo("머리말: 쉬운 과학책을 골랐어요.\n보여 준 책:\n- 1번째 책: 토지\n- 2번째 책: 과학 이야기 1");
+			.isEqualTo("머리말: 쉬운 과학책을 골랐어요.\n보여 준 책:\n- 1번째 책: 토지 / 저자: 박경리\n- 2번째 책: 과학 이야기 1 / 저자: 저자 1");
 	}
 
 	@Test
