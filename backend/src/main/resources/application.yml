@@ -441,8 +441,9 @@ chaekcheck:
     first-call:
       # who makes the first step (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
       # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
-      # the question's own words), no model call. ml needs the vectors on and first-call-model.bin and
-      # book-profiles.tsv in model-dir; without them, or with the question vector late or failed, Haiku is asked
+      # the question's own words), no model call. ml needs the vectors on, first-call-model.bin in model-dir and the
+      # book profiles in catalog.book_profile (book-profiles import); without them, or with the question vector late or
+      # failed, Haiku is asked
       mode: ${CHAEKCHECK_AISEARCH_FIRST_CALL:haiku}
       # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]
       shelf-bonus: 0.004

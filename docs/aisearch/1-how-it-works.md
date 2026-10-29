@@ -7,7 +7,7 @@
   - 버전마다 무엇이 바뀌었나 → [2-versions.md](2-versions.md)
   - 1차 신경망·관계 분류기를 어떻게 학습했나 → [3-ml-models.md](3-ml-models.md)
   - 넣기·배포·켜고 끄기 같은 운영 명령 → [../maintenance/6-aisearch.md](../maintenance/6-aisearch.md)
-- **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`, 표가 비면 모델 폴더의 `book-profiles.tsv`). 아래 글은 이 기준입니다. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 배포 2(v1.20.6)에서 지웠습니다.
+- **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`; 표가 비면 ML 1차 호출이 꺼지고 Haiku로 감, 모델 폴더의 `book-profiles.tsv`는 v1.21.4 다음 판부터 읽지 않음). 아래 글은 이 기준입니다. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 배포 2(v1.20.6)에서 지웠습니다.
 - 코드 경로 줄임: `aisearch/…`는 `backend/src/main/java/com/chaekcheck/aisearch/…`입니다. 웹은 `web/src/…`입니다.
 
 ### 이 문서에서 쓰는 말
@@ -195,9 +195,8 @@
 - 「int8 줄 × 그 줄의 scale」이 그 책의 길이 1짜리 KURE-v1 벡터입니다. 만들 때: 벡터를 길이 1로 나누고 → `scale = max(|v|) / 127` → `round(v / scale)`을 −127~127로 자름(`scripts/aisearch/make_book_vectors.py`).
 - 책 쪽 글(제목 · 저자 · 출판사 · 연도 + 소개 앞 300자)은 PC가 계산했고 이 저장소 코드가 아닙니다([6-aisearch.md](../maintenance/6-aisearch.md) 9절 기록).
 
-**프로필** (77,551권): 사이클 26부터 `catalog.book_profile`에서 서버 시작 때 한 번 읽음. 그 표가 비어 있을 때만 아래 파일 `book-profiles.tsv`를 읽음(시작 로그 `… book profiles from …`)
-- UTF-8, 한 줄에 책 하나, 탭으로 나눈 9칸: `책 id`, `field`, `subfield`, `fiction`(1·0·빈칸), `genre`(`|`로 이음), `country`, `audience`, `level`, `form`(`|`로 이음). 예: `7	자기계발	공부법	0			교양	교양	`.
-- 칸이 9개가 아니면 시작 때 읽기 실패 → ML 1차가 꺼짐.
+**프로필** (77,551권): 사이클 26부터 `catalog.book_profile`에서 서버 시작 때 한 번 읽음(시작 로그 `ai search first call: ml, N book profiles from catalog.book_profile`). 표가 비어 있으면 경고 한 줄(`… the ml one is off: catalog.book_profile is empty …`)을 남기고 ML 1차 호출이 꺼져 Haiku로 감. 서버는 그대로 뜸. 모델 폴더의 파일 `book-profiles.tsv`를 대신 읽는 길은 v1.21.4 다음 판에서 지움(plan 사이클 26 회고, 사용자 2026-10-29 「지우기해줘」)
+- 표에 넣는 PC 파일(`book-profiles` 넣기, [7-foryou.md](../maintenance/7-foryou.md) 2절): UTF-8, 첫 줄 `# export_id=…`, 그다음 한 줄에 책 하나, 탭으로 나눈 9칸: `책 id`, `field`, `subfield`, `fiction`(1·0·빈칸), `genre`(`|`로 이음), `country`, `audience`, `level`, `form`(`|`로 이음). 예: `7	자기계발	공부법	0			교양	교양	`.
 
 **`first-call-model.bin`** (25,824,240바이트)
 - 리틀엔디언. `"CCFC1\n"` → 머리 JSON 길이 int32(5,918) → UTF-8 머리 JSON(`dim` 1024, `hidden` 512, `heads` 목록) → 머리(head)마다 float32로 `W1[512×1024]`, `b1[512]`, `W2[출력×512]`, `b2[출력]`.

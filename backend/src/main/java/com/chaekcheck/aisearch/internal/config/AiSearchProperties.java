@@ -120,9 +120,10 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md): {@link FirstCallMode#HAIKU} asks Haiku for the way
 	 * and the keywords as before; {@link FirstCallMode#ML} takes the way (not a book question, a title, the books shown
 	 * before, a question about 책첵, a book question) and the asked shelves from small networks over the question vector,
-	 * the keywords from the question's own words, and asks no model. ML needs the vectors on and
-	 * {@code first-call-model.bin} and {@code book-profiles.tsv} in {@code vector.model-dir}; without them, or when the
-	 * question vector fails or is late, the search uses Haiku.
+	 * the keywords from the question's own words, and asks no model. ML needs the vectors on,
+	 * {@code first-call-model.bin} in {@code vector.model-dir} and the book profiles in {@code catalog.book_profile}
+	 * (the {@code book-profiles} import); without them, or when the question vector fails or is late, the search uses
+	 * Haiku.
 	 * @param mode haiku by default
 	 * @param shelfBonus added to a candidate's fusion sum for each shelf it shares with the question (0.004 [안], PFx)
 	 * @param siteMaxTokens the cap of the call answering a question about 책첵 (512 [안])

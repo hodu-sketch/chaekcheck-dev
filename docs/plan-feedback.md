@@ -7329,6 +7329,10 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 
 - dev 24가 찾은 것(AC-7): 카드 제목 출처가 `catalog.book.title`로 바뀌어 76,759권 중 87권(0.11%)에 판 표시가 붙음(「토지」 → 「토지. 1(1부 1권)」). 사용자 "「토지. 1(1부 1권)」. 그대로 두자" → **바꾸지 않음**. plan에 넘길 결정.
 
+## 회고 결정: 1차 호출 프로필 파일 대체 읽기 지움 (2026-10-29, plan-26 전달, 사용자 "지우기해줘")
+
+- `MlFirstCall`이 `catalog.book_profile`이 비면 모델 폴더 `book-profiles.tsv`를 읽던 길과 `BookProfiles.read`를 지움. 표가 비면 시작 경고 한 줄(`… the ml one is off: catalog.book_profile is empty …`) 뒤 ML 1차가 꺼지고 Haiku로 감, 서버는 뜸. 시험 `FirstCallTests.theFirstCallIsOffWhileTheProfileTableIsEmpty`(빈 표 → 꺼짐, 폴더에 파일이 있어도 / 줄 있음 → 켜짐·칸 셈 그대로). `application.yml`·`AiSearchProperties`·`BookProfiles` 설명과 aisearch·maintenance 문서를 표 기준으로 고침. 운영은 이미 표 77,551줄이라 동작 변화 없음. v1.21.4 다음 판에 함께 나감. 운영 모델 폴더 `book-profiles.tsv`는 그 판이 나간 뒤 사용자에게 묻고 지움(원본 PC `chaekcheck-data/aisearch/100k/book-profiles-export.tsv`).
+
 ## 13단계: 배포 2 (2026-10-29, v1.20.6 `48ede47a`, 사용자 "배포 2 진행")
 
 - 옛 표 여섯 지움(합 약 154MB: search_book 115MB, book_blurb 24MB, book_cover 12MB, picks.cover 2.2MB, 꼬리표 둘 32kB), 운영 드롭 약 0.2초, 서버 시작 22.6초, DB 8,431 → 8,277MB. 옛 표지 API·서버 그림 받기·nginx `/covers/`·compose 볼륨·웹 옛 주소 모양 지움, `collection` → `aisearch` 의존 뺌. 연습 복사본에서 먼저 돌림(드롭 각 15ms). 시험 백엔드 1,429·웹 709.

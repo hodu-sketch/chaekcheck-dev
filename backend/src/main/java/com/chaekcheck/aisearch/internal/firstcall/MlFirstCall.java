@@ -25,8 +25,8 @@ import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
  * the 600 test questions) and the asked shelves (MLP heads, F1 close to Haiku's but for the genre); the keywords are the
  * question's own words. A follow-up question takes the earlier question's words, joined vector and shelves, its own
  * shelves put over them (M4), unless it names a big shelf the earlier one does not (a new topic: the earlier question
- * is dropped). Loaded only with {@code first-call.mode: ml} and the vectors on; any file missing or failing leaves it
- * off with one warning and the searches ask Haiku.
+ * is dropped). Loaded only with {@code first-call.mode: ml} and the vectors on; a model file missing or failing, or
+ * {@code catalog.book_profile} empty, leaves it off with one warning and the searches ask Haiku.
  */
 @Component
 public class MlFirstCall {
@@ -82,8 +82,9 @@ public class MlFirstCall {
 
 	/**
 	 * The profiles come from {@code catalog.book_profile} once at start (cycle 26, ADR-0165, the same time as the book
-	 * vectors); while that table is empty (before the first {@code book-profiles} import), from the model folder's
-	 * {@code book-profiles.tsv} as before, so the first call stays on between deploy 1 and that import.
+	 * vectors); while that table is empty (before the first {@code book-profiles} import) the ML first call is off and
+	 * the searches ask Haiku (the model folder's {@code book-profiles.tsv} is no longer read, plan cycle 26 retro,
+	 * user 2026-10-29 "지우기해줘").
 	 */
 	@Autowired
 	public MlFirstCall(AiSearchProperties properties, JsonMapper json,
@@ -112,18 +113,10 @@ public class MlFirstCall {
 					model.head(name);
 				}
 				Map<Long, com.chaekcheck.catalog.BookProfiles.Profile> stored = catalogProfiles.all();
-				String profileSource = "catalog.book_profile";
-				if (!stored.isEmpty()) {
-					profiles = BookProfiles.of(stored);
+				if (stored.isEmpty()) {
+					throw new IllegalStateException("catalog.book_profile is empty (run the book-profiles import)");
 				}
-				else if (Files.isRegularFile(dir.resolve(BookProfiles.NAME))) {
-					profiles = BookProfiles.read(dir.resolve(BookProfiles.NAME));
-					profileSource = BookProfiles.NAME + " (catalog.book_profile is empty)";
-				}
-				else {
-					throw new IllegalStateException("no book profiles: catalog.book_profile is empty and there is no "
-							+ BookProfiles.NAME + " in " + dir);
-				}
+				profiles = BookProfiles.of(stored);
 				if (properties.firstCall().followUp() == AiSearchProperties.FollowUp.RELATION) {
 					Path file = dir.resolve(FOLLOW_UP_NAME);
 					if (Files.isRegularFile(file)) {
@@ -137,7 +130,7 @@ public class MlFirstCall {
 						log.warn("ai search first call: no {}, follow-ups by the rule", FOLLOW_UP_NAME);
 					}
 				}
-				log.info("ai search first call: ml, {} book profiles from {}, follow-ups by {}", profiles.count(), profileSource,
+				log.info("ai search first call: ml, {} book profiles from catalog.book_profile, follow-ups by {}", profiles.count(),
 						followUpModel != null ? "relation" : properties.firstCall().followUp() == AiSearchProperties.FollowUp.STRICT ? "strict rule" : "rule");
 			}
 			catch (Exception e) {

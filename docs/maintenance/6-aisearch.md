@@ -21,7 +21,7 @@
   - 후보: 낱말 후보(`search_book`에 `LIKE`, ≤50권)와 벡터 후보(책 벡터 내적, ≤60권)를 RRF(Σ 1/(60+순위)) + 칸 보너스(0.004 × 맞은 칸 수)로 한 줄 세워 30권. 첫 질문은 낱말 후보 SQL을 질문 벡터와 동시에 시작
   - 2차: Haiku 한 번(스트림)이 30권 중 fit 2 이상 최대 8권과 카드 글. 되묻기 형식(`ask` 칸)은 4낱말 이하 첫 질문과 이어 묻기에만. 표지·요약은 Haiku를 부른 뒤 읽음
   - 길이 책첵 사용법 질문이면 Haiku 1번으로 답(`done "site"`), 책 찾는 말이 아니고 낱말 하나도 아니면 모델 호출 없이 고정 되묻기(예시 10개 중 3개)
-- 모델 폴더: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기만). PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`(폴더 README): `book-vectors.bin`(81,078권), `book-profiles.tsv`(77,551권), `first-call-model.bin`(라우터 B, v1.16.1~), `follow-up-model.bin`, `kure-query-int8-ext.onnx`·`kure-query-int8-ext.data`, `tokenizer-cut.json`. 백엔드는 `encoder=remote`라 인코더 파일 셋을 열지 않음(임베딩 서버의 `/srv/embed/model/`이 씀). 운영 서버 폴더에 인코더 파일이 실제로 있는지는 이 문서에서 확인 못 함
+- 모델 폴더: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기만). PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`(폴더 README): `book-vectors.bin`(81,078권), `book-profiles.tsv`(77,551권, v1.21.4 다음 판부터 서버가 읽지 않음: 프로필은 `catalog.book_profile`), `first-call-model.bin`(라우터 B, v1.16.1~), `follow-up-model.bin`, `kure-query-int8-ext.onnx`·`kure-query-int8-ext.data`, `tokenizer-cut.json`. 백엔드는 `encoder=remote`라 인코더 파일 셋을 열지 않음(임베딩 서버의 `/srv/embed/model/`이 씀). 운영 서버 폴더에 인코더 파일이 실제로 있는지는 이 문서에서 확인 못 함
 - 책 수: AI 검색 책(`search_book`) 76,759권, 책 벡터 81,078권, 프로필 77,551권(10만 권 판, 9절)
 - 어디에 무엇: 넣기 1~5절, 3만 권 6절, 질문 벡터·임베딩 서버 7절, ML 1차·이어 묻기 8절, 10만 권 9절, 되묻기·생각 끄기·캐시 10절, 표 줄이기 11절, 첫 글 시간 12절. 로그 한 줄의 칸 뜻은 [1-how-it-works 7절](../aisearch/1-how-it-works.md#7-로그-한-줄)
 
@@ -211,7 +211,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 바꾼 것 넷(코드 위치와 계산은 [1-how-it-works 4-0·4-11절](../aisearch/1-how-it-works.md#4-11-2차-호출-llm-first-llm-done), 버전 기록은 [2-versions v1.18.0](../aisearch/2-versions.md#v1180)):
 
 - **8권까지 채우기**(P9): 지시문에 「맞는 책이 여럿이면 8권까지(조건과 반대인 책으로는 안 채움)」. 생각 끄기 뒤 줄어든 카드 수 보충
-- **「후보 분야」 줄**(C4): 되묻기가 켜 있고 질문이 2낱말 이하(`AiSearchFlow.SHORT_QUESTION_WORDS` [안])면 후보 30권을 `book-profiles.tsv`의 field(+소설/비소설)로 센 수(`MlFirstCall.shelfCounts`, 많은 순 6개)를 책 목록 아래 「후보 분야: 예술·취미(비소설) 9권, …」로 붙임
+- **「후보 분야」 줄**(C4): 되묻기가 켜 있고 질문이 2낱말 이하(`AiSearchFlow.SHORT_QUESTION_WORDS` [안])면 후보 30권을 책 프로필(`catalog.book_profile`)의 field(+소설/비소설)로 센 수(`MlFirstCall.shelfCounts`, 많은 순 6개)를 책 목록 아래 「후보 분야: 예술·취미(비소설) 9권, …」로 붙임
 - **되묻는 말**(A2): 고를 답 말고 원하는 게 있으면 직접 적어 달라는 뜻을 질문에 맞게 덧붙임
 - **되묻기에 직접 답하기**(P16·C3): 웹이 앞 대화의 되묻기 턴에 `askQuestion`·`askChoices`를 실어 보냄(`AiSearchRequest.HistoryTurn`, 고를 답 4개까지). 백엔드는 그 다음 질문을 앞 질문과 이어 붙여 찾고, 되묻지 않고, Haiku에게 앞 대화를 「되물은 말: … / 고를 답: …」으로 보여 줌. 그 뜻은 `PICK_SYSTEM`(P16)에 적힘
 - 규칙 시험(80문항 두 번): 카드 맞음 76 → 92%, 틀린 카드 1.29 → 0.39장, 애매한 한 낱말 되묻기 3/32 → 30/32, 직접 답한 뒤 맞음 48 → 96%. 대가: 흔한 취미·기술 낱말(강아지, 요가, 캠핑…)에도 되물음 20번 중 9번

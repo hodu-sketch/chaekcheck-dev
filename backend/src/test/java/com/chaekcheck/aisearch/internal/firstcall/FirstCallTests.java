@@ -9,12 +9,15 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import tools.jackson.databind.json.JsonMapper;
+
+import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 
 /** The ML first call's parts (user 2026-10-26): the model file, the shelves, the question's words, the plan. */
 class FirstCallTests {
@@ -66,19 +69,54 @@ class FirstCallTests {
 		assertThatThrownBy(() -> FirstCallModel.read(file, JsonMapper.builder().build())).isInstanceOf(IOException.class);
 	}
 
+	/**
+	 * The profiles come only from {@code catalog.book_profile} (plan cycle 26 retro, user 2026-10-29 "지우기해줘"): with
+	 * the table empty the ML first call is off and the searches ask Haiku, though the model and a {@code book-profiles.tsv}
+	 * are in the folder; with rows it is on and reads them.
+	 */
 	@Test
-	void theProfilesFileIsReadLineByLine() throws IOException {
-		Path file = dir.resolve(BookProfiles.NAME);
-		Files.writeString(file, "7\t자기계발\t공부법\t0\t\t\t교양\t교양\t\n14\t소설\t\t1\t추리·스릴러|SF\t영미\t\t\t시리즈\n");
+	void theFirstCallIsOffWhileTheProfileTableIsEmpty() throws IOException {
+		TinyFirstCall.write(dir.resolve(FirstCallModel.NAME));
+		Files.writeString(dir.resolve("book-profiles.tsv"), "2\t과학\t\t\t\t\t\t\t\n");
+		JsonMapper json = JsonMapper.builder().build();
 
-		BookProfiles profiles = BookProfiles.read(file);
+		MlFirstCall empty = new MlFirstCall(properties(), json, profiles(java.util.Map.of()));
+		MlFirstCall stored = new MlFirstCall(properties(), json, profiles(java.util.Map.of(2L,
+				new com.chaekcheck.catalog.BookProfiles.Profile("과학", null, null, List.of(), null, null, null, List.of()))));
 
-		assertThat(profiles.count()).isEqualTo(2);
-		assertThat(profiles.of(7)).isEqualTo(new BookProfiles.Profile("자기계발", "공부법", false, List.of(), "", "교양",
-				"교양", List.of()));
-		assertThat(profiles.of(14).genre()).containsExactly("추리·스릴러", "SF");
-		assertThat(profiles.of(14).fiction()).isTrue();
-		assertThat(profiles.of(99)).isNull();
+		assertThat(empty.on()).isFalse();
+		assertThat(stored.on()).isTrue();
+		assertThat(stored.plan("과학 책", TinyFirstCall.BOOK, null, null, null).route()).isEqualTo(MlFirstCall.Route.BOOK);
+		assertThat(stored.shelfCounts(List.of(2L, 5L))).containsExactly(java.util.Map.entry("과학", 1));
+	}
+
+	private AiSearchProperties properties() {
+		return new AiSearchProperties(true, java.time.ZoneId.of("Asia/Seoul"), Duration.ofSeconds(5),
+				Duration.ofSeconds(15), 512, 3072, 20, new AiSearchProperties.Rate(10, 100),
+				new AiSearchProperties.Budget(java.math.BigDecimal.TWO),
+				new AiSearchProperties.Price(java.math.BigDecimal.ONE, java.math.BigDecimal.ONE),
+				new AiSearchProperties.Limits(30, 8, 5, 200, 300),
+				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
+						AiSearchProperties.Encoder.REMOTE, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2)), 3,
+						Duration.ofSeconds(30)),
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null));
+	}
+
+	private static com.chaekcheck.catalog.BookProfiles profiles(
+			java.util.Map<Long, com.chaekcheck.catalog.BookProfiles.Profile> rows) {
+		return new com.chaekcheck.catalog.BookProfiles() {
+
+			@Override
+			public java.util.Map<Long, Profile> all() {
+				return rows;
+			}
+
+			@Override
+			public String version() {
+				return String.valueOf(rows.size());
+			}
+
+		};
 	}
 
 	@Test
