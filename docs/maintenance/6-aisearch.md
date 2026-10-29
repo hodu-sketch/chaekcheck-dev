@@ -245,3 +245,21 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 다시 재기: 위 규칙 시험을 두 판으로 돌린 뒤 `python scripts/aisearch/eval/timing_compare.py <기준> <비교>`(로그의 `steps`를 단계별로 비교). Haiku만 따로: `ttft_probe.py`, `ttft_probe2.py`
 - 운영에서 볼 것: 로그 `steps`의 `keyword`가 `neighbours`와 거의 같고(이미 끝남), `cards → llm-first`가 줄었는지
 - 운영(배포 전후 같은 첫 질문 24개): 5낱말 이상 첫 질문 첫 글 2.63 → 2.06~2.25초, `early keyword` 24/24. 다시 재기: `python scripts/aisearch/eval/prod_timing.py <이름>`(한 IP 분당 10번 제한이라 7초 간격)
+
+## 13. 소개글 넣는 법 실험 (2026-10-29, 운영 변경 없음)
+
+사용자 요청(2026-10-29): 임베딩 소개 글 압축 방법 비교, 전문적·지엽적인 질문을 못 찾는 문제. 자세한 숫자와 다시 돌리는 법: [소개글 보고서](../aisearch/reports/2026-10-29-intro-text.md). 운영에서 알아 둘 것만:
+
+- 지금 세 군데가 소개의 일부만 봄: 책 벡터 = 소개 앞 300자, 낱말 검색 `search_text`와 Haiku가 읽는 글 = 같은 「한 줄」(약 100자). 둘은 같은 `catalog.book_search.line`.
+- 실험 추천(1,000권, 검색어 800개): 낱말 검색을 pg_search 한국어 BM25(제목 + 저자 + 한 줄 + 소개 전문)로, 책 벡터 글을 Haiku 요약으로, Haiku가 읽는 글을 요약 + 질문 낱말이 나온 소개 토막으로. 정답이 30위 안에 드는 비율 80~98% → 95~100%(검색어 8종).
+- pg_search 0.26.3은 운영 이미지 `chaekcheck/postgres-bigm:18` 위에 `postgresql-18-pgvector` + 데비안 trixie용 .deb로 올라가고, `shared_preload_libraries=pg_bigm,pg_search`로 함께 켜짐(시험용 컨테이너에서 확인). 넣으려면 DB 재시작, `CREATE EXTENSION pg_search CASCADE`(슈퍼유저, pgvector가 같이 켜짐), AGPL-3.0 확인, plan ADR이 필요.
+- 아직 넣지 않음. 순서 제안: 7만 7천 권으로 다시 재기 → 로컬 서버에서 `LIKE`/`BM25` 스위치 비교 → 배포(보고서 6절).
+
+## 14. 책이 늘 때 가까운 책 찾기 (2026-10-30, 운영 변경 없음)
+
+사용자 계획: AI 검색 책을 20만 권, 그 뒤로도 점점 늘림. 자세한 숫자: [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md)(앞 단계 [HNSW 보고서](../aisearch/reports/2026-10-29-hnsw.md)). 운영에서 알아 둘 것만:
+
+- 지금 `BookVectorFile.nearest`는 int8 전수 비교, 파일 전체를 힙에 올림(책당 1,036바이트). 운영 97ms·힙 81MB(81,078권). 20만 권 약 240ms·207MB, 50만 권부터 -Xmx640m을 넘음 [추정].
+- 바꿀 때 첫 후보는 Java 깔때기: RAM에는 binary(책당 128바이트)만 → 해밍으로 1만 → 비대칭 binary로 2,000 → `book-vectors.bin`에서 그 줄만 읽어 지금 점수로 120. 81k 재현율 0.992(상위 120). Java 속도는 아직 안 잼.
+- pgvector halfvec HNSW는 색인(100만 권 약 2.7GB)이 캐시에 다 있어야 빠름. 2GB 서버에서는 안 맞음.
+- 전용 벡터 DB(Qdrant 등)는 새 인프라라 plan 결정이 먼저.
