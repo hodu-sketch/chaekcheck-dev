@@ -79,7 +79,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 		JdbcClient.StatementSpec query = statement;
 		// a custom plan every time (2026-10-29, dev 24's timing after deploy 1): after five runs of the same text on
 		// one connection the driver's prepared statement gets PostgreSQL's generic plan, which counts the plan
-		// libraries of every matched row (35,731 rows, 11 s for "소설 말고 위로가 되는 책") instead of the top ones (0.6 s)
+		// libraries of every matched row (16,418 rows, 5.2 s for the words 소설, 위로) instead of the top ones (0.24 s)
 		return readOnly.execute(status -> {
 			jdbc.sql("SET LOCAL plan_cache_mode = force_custom_plan").update();
 			return query.query((rs, n) -> new Candidate(rs.getLong(1), rs.getInt(2), rs.getInt(3))).list();
