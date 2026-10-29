@@ -28,8 +28,12 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 
 	private static final Logger log = LoggerFactory.getLogger(JdbcAiSearchIndex.class);
 
-	private static final String PLAN_COUNT = """
-			(SELECT count(*) FROM unnest(s.library_ids) AS l(id) WHERE l.id = ANY(CAST(:plan AS integer[])))::int""";
+	/**
+	 * The book's plan libraries, counted by intarray in {@code catalog.plan_library_count} (catalog/004, 2026-10-29):
+	 * a sorted-array intersection instead of {@code unnest} + {@code = ANY} per element, declared expensive so the
+	 * planner still counts only the rows the {@code LIMIT} needs.
+	 */
+	private static final String PLAN_COUNT = "catalog.plan_library_count(s.library_ids, CAST(:plan AS integer[]))";
 
 	private final JdbcClient jdbc;
 
@@ -51,12 +55,14 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 		List<String> any = new ArrayList<>();
 		List<String> coreScore = new ArrayList<>();
 		for (int i = 0; i < words.size(); i++) {
-			// only generated parameter names go into the text; the words are bound
+			// only generated parameter names go into the text; the words are bound. LIKE finds the books (pg_bigm index);
+			// the points use strpos on the plain word, which matches the same books without matching the pattern again
 			String like = "s.search_text LIKE :k" + i + " ESCAPE '\\'";
-			score.add("(" + like + ")::int");
+			String has = "(strpos(s.search_text, :w" + i + ") > 0)::int";
+			score.add(has);
 			any.add(like);
 			if (coreWords.contains(words.get(i))) {
-				coreScore.add("(" + like + ")::int");
+				coreScore.add(has);
 			}
 		}
 		String coreSum = coreScore.isEmpty() ? "0" : String.join(" + ", coreScore);
@@ -74,7 +80,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 			.param("excluded", excluded.toArray(Long[]::new))
 			.param("limit", limit);
 		for (int i = 0; i < words.size(); i++) {
-			statement = statement.param("k" + i, "%" + escapeLike(words.get(i)) + "%");
+			statement = statement.param("k" + i, "%" + escapeLike(words.get(i)) + "%").param("w" + i, words.get(i));
 		}
 		JdbcClient.StatementSpec query = statement;
 		// a custom plan every time (2026-10-29, dev 24's timing after deploy 1): after five runs of the same text on

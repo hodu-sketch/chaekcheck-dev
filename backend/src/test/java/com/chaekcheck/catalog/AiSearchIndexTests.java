@@ -90,6 +90,22 @@ class AiSearchIndexTests {
 		assertThat(((Number) plans.get("custom")).longValue()).isPositive();
 	}
 
+	/** catalog/004 with intarray in its own schema (catalog/003): arrays in any order, counted once each. */
+	@Test
+	void planLibraryCountIsTheIntersectionOfTheTwoArrays() {
+		assertThat(jdbc.sql("SELECT catalog.plan_library_count('{9,1,5,3}'::integer[], '{3,9,10}'::integer[])")
+			.query(Integer.class)
+			.single()).isEqualTo(2);
+		assertThat(jdbc.sql("SELECT catalog.plan_library_count('{}'::integer[], '{3}'::integer[])")
+			.query(Integer.class)
+			.single()).isZero();
+		// the built-in array operators stay as they were: intarray is not on the search path
+		assertThat(jdbc.sql("SELECT count(*) FROM pg_operator o JOIN pg_namespace n ON n.oid = o.oprnamespace "
+				+ "WHERE n.nspname = 'public' AND o.oprname = '&&' AND o.oprleft = 'integer[]'::regtype")
+			.query(Long.class)
+			.single()).isZero();
+	}
+
 	@Test
 	void tiesAreCutAfterTheOrderNotByBookIdFirst() {
 		List<String> rows = new ArrayList<>();

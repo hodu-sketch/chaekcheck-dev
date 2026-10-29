@@ -221,3 +221,10 @@ databaseChangeLog:
   - include:
       file: collection/007-description-deleted-count.yaml
       relativeToChangelogFile: true
+  # 2026-10-29: the AI search keyword query counts plan libraries with intarray (cycle 26, after v1.20.1)
+  - include:
+      file: catalog/003-intarray.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: catalog/004-plan-library-count.sql
+      relativeToChangelogFile: true
