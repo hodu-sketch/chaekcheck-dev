@@ -7561,4 +7561,26 @@ WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB �
 - release.sh 4/5 단계에서 `nginx/incoming/` 미존재로 SCP 실패 → 수동으로 디렉토리 생성 후 나머지 완료
 - 기존 backend-1은 compose orphan으로 감지됨 (정상: 새 compose.yaml에 없는 서비스)
 - 서버 메모리: backend 790MB 이미지, web 112MB 이미지
+- release.sh 새벽 거부: `[[ ]]`의 8진수 문제 발견 → `(( 10# ))` 수정 (00f66e5e)
+- nginx conf.d/ 중복: 초기 설정에서 ec2-tunnel.conf와 default.conf 둘 다 존재 → ec2-tunnel.conf 제거
+
+## 9단계: 운영 AC 검증 (2026-10-29)
+
+| AC | 결과 | 세부 |
+|---|---|---|
+| AC-1 | ✓ 통과 | 전환 blue→green, watch 33줄 실패 0건, ready=29s, old-exit=143, free 579MB available |
+| AC-2 | ✓ 통과 | 전환 중 ebook search stream 17회 연속 OK, 실패 0건. 옛 슬롯 Graceful shutdown complete 로그 확인 |
+| AC-3 | ✓ 통과 | ① 0.0.901(바로 꺼짐): reason=restarted, exit=1 ② 0.0.902(안 뜸): reason=timeout, exit=1 ③ 0.0.903(버전 다름): reason=version-mismatch, exit=1. 모두 ACTIVE_SLOT·실행 중 슬롯 유지 |
+| AC-4 | ✓ 통과 | 롤백 green→blue, watch 28줄 실패 0건, ready=32s, old-exit=143 |
+| AC-5 | ✓ 통과 | web-only switch: 실패 0건, nginx StartedAt 변경 없음(13:38:41), API 200 |
+| AC-6 | ✓ 통과 | docker ps 백엔드 1개, 옛 슬롯 Exited (143) (SIGTERM 정상 종료, 137 아님). 정상 종료 로그: Graceful shutdown complete → EntityManagerFactory closing → HikariPool Shutdown completed |
+| AC-7 | ✓ 통과 | 전환 중 검색 요청 90건 전부 200, DB usagelog.search_event 90건 일치. 테스트 데이터(zdd27-*) 삭제 완료 |
+| AC-8 | ✓ 통과 | switch.sh: 0324→통과(switch 시도), 0325→REFUSED(dawn), 0400→REFUSED(dawn), 0510→REFUSED(dawn), 0511→통과(no-image). release.sh: 같은 경계값 로컬 로직 검증 완료 |
+| AC-9 | ✓ 통과 | 외부 /actuator/health/readiness, /actuator/health, /actuator, /actuator/env 모두 404. 내부 readiness: {"status":"UP"} |
+
+참고:
+- 같은 버전(1.22.0)으로 blue↔green 전환 5회 실행 — 모두 무중단 성공
+- 시작 시간: ready=29~39초 (Liquibase 131 changeset 확인, Hibernate, ML 모델, book profiles, vector 로드 포함)
+- 서버 메모리: free 579MB available, swap 255MB used (2GB 서버)
+- 옛 슬롯 정상 종료 로그 패턴: Commencing graceful shutdown → Graceful shutdown complete → No publications outstanding → Closing JPA EntityManagerFactory → HikariPool Shutdown completed
 
