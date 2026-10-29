@@ -26,9 +26,16 @@ XSRF = str(uuid.uuid4()); N = [0]; IP0 = 100 + int(time.time()) % 100
 def ask(port, log, q, history):
     N[0] += 1
     body = json.dumps({'question': q, 'turnNo': len(history) + 1, 'history': history, 'residenceRegionIds': [1114]}).encode()
-    req = urllib.request.Request(f'http://localhost:{port}/api/v1/ai-searches/stream', body,
-                                 {'Content-Type': 'application/json', 'X-XSRF-TOKEN': XSRF, 'Cookie': 'XSRF-TOKEN=' + XSRF,
-                                  'X-Real-IP': '10.%d.%d.%d' % (IP0, N[0] // 200, N[0] % 200 + 1)})
+    prod = port == 'prod'
+    headers = {'Content-Type': 'application/json', 'X-XSRF-TOKEN': XSRF, 'Cookie': 'XSRF-TOKEN=' + XSRF}
+    if prod:
+        # production counts 10 a minute and 100 a day per IP (application.yml aisearch.rate): one question every 7 s
+        headers['User-Agent'] = 'chaekcheck-talk-check'
+        time.sleep(7)
+    else:
+        headers['X-Real-IP'] = '10.%d.%d.%d' % (IP0, N[0] // 200, N[0] % 200 + 1)
+    url = 'https://chaekcheck.com' if prod else f'http://localhost:{port}'
+    req = urllib.request.Request(url + '/api/v1/ai-searches/stream', body, headers)
     name, t0, seen, head, cards, texts, asked, result = None, time.time(), None, '', [], {}, None, None
     with urllib.request.urlopen(req, timeout=120) as r:
         for raw in r:
@@ -45,7 +52,7 @@ def ask(port, log, q, history):
                 elif name == 'ask': asked = d
                 elif name == 'done': result = d['result']
     time.sleep(0.4)
-    logged = log.lines()
+    logged = log.lines() if log else []
     g = logged[-1] if logged else None
     for c in cards:
         c['text'] = texts.get(c['bookId'], '')

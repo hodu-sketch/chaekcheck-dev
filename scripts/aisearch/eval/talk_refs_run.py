@@ -2,6 +2,7 @@
 backend turn by turn (the scripted questions, also after an ask-back: history turns carry askQuestion/askChoices as the
 web does), checks what can be checked by code, and prepares one judge item per turn for Sonnet (talk-refs-JUDGE_RULES.md).
   python talk_refs_run.py run <label> <backend log> [port]   -> <out>/run-<label>.json
+  python talk_refs_run.py prod <label> <case id,...>          -> the same on production, those cases only (100 a day per IP)
   python talk_refs_run.py prep                                -> <out>/jd/in-NN.json (turns not judged yet)
   python talk_refs_run.py score                               -> table per group and per way"""
 import glob, json, os, sys
@@ -14,11 +15,13 @@ SUITE = json.load(open(os.path.join(HERE, 'talk_refs_suite.json'), encoding='utf
 FIXED_ASK = '어떤 책을 찾으세요? 이렇게 물어보셔도 돼요.'
 
 
-def run(label, logpath, port):
-    log = r.Log(logpath)
+def run(label, logpath, port, only=None):
+    log = r.Log(logpath) if logpath else None
     os.makedirs(OUT, exist_ok=True)
     out = {}
     for case in SUITE['cases']:
+        if only and case['id'] not in only:
+            continue
         history, steps = [], []
         for t in case['turns']:
             s = r.ask(port, log, t['q'], history)
@@ -124,6 +127,8 @@ if __name__ == '__main__':
     sys.path.insert(0, HERE)
     if sys.argv[1] == 'run':
         run(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 8097)
+    elif sys.argv[1] == 'prod':
+        run(sys.argv[2], None, 'prod', set(sys.argv[3].split(',')))
     elif sys.argv[1] == 'prep':
         prep()
     else:
