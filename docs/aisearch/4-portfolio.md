@@ -19,7 +19,7 @@
 |---|---|
 | 1차 | 질문을 받아 갈 길과 찾을 낱말을 정하는 첫 단계. v1.15까지는 Claude Haiku 호출 1번(질문 → JSON 검색어·핵심어). v1.16.0부터는 질문 벡터 위 작은 신경망(MLP, 모델 호출 없음) ([1-how-it-works 4-3절](1-how-it-works.md#4-3-ml-1차-ml)) |
 | 2차 | 후보 책 30권 이하의 제목·저자·출간 연도·한 줄을 Claude Haiku에 보내, 책마다 적합도 `fit` 0~3을 받아 2 이상만 최대 8권 카드로 보이는 호출 ([4-11절](1-how-it-works.md#4-11-2차-호출-llm-first-llm-done)) |
-| 낱말 후보 | `aisearch.search_book.search_text`(제목·저자·한 줄을 소문자·빈칸 없애 이은 글)에 낱말마다 `LIKE '%낱말%'`(pg_bigm 인덱스), 맞은 낱말 수 → 계획 도서관 수 순으로 줄 세운 책 ([4-7절](1-how-it-works.md#4-7-낱말-후보-keyword)) |
+| 낱말 후보 | `catalog.book_search.search_text`(v1.20.0부터, 그 전은 `aisearch.search_book`. 제목·저자·한 줄을 소문자·빈칸 없애 이은 글)에 낱말마다 `LIKE '%낱말%'`(pg_bigm 인덱스), 맞은 낱말 수 → 계획 도서관 수 순으로 줄 세운 책 ([4-7절](1-how-it-works.md#4-7-낱말-후보-keyword)) |
 | 질문 벡터 / 벡터 후보 | 질문을 KURE-v1(한국어 문장 임베딩, int8로 줄임)로 길이 1인 1,024개 숫자로 바꿈. 책 벡터(int8 × 줄마다 scale)와 내적해 가까운 순으로 줄 세운 책이 벡터 후보 ([4-2·4-4·4-8절](1-how-it-works.md#4-4-가까운-책-nearest)) |
 | RRF로 한 줄 세우기 (전에는 「섞기」) | 낱말 후보 목록(지금 ≤50권)과 벡터 후보 목록(지금 ≤60권)에서 책마다 `1/(60 + 순위)`를 더한 점수로 다시 줄 세워 앞 30권 ([4-9절](1-how-it-works.md#4-9-합치기-mix)) |
 | 이웃 책 | `foryou.book_neighbour.neighbour_ids`: 책 벡터가 가까운 책 20권(가까운 순). 「○○ 같은 책」이면 질문에 든 제목의 이웃을, 「이 중에」면 앞 턴 책의 이웃을 후보 앞자리에 ([4-6절](1-how-it-works.md#4-6-앞-책이름-댄-책-neighbours)) |
