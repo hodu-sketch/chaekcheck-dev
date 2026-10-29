@@ -391,18 +391,12 @@ type AnswerProps = {
 
 function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = true }: AnswerProps) {
   const notice = noticeOf(turn)
-  // 「기타」 under an ask-back opens a box to write one's own answer (user 2026-10-29 mock-up "시안대로")
-  const [other, setOther] = useState(false)
+  // the ask-back list's last row: one's own answer, sent as the choices are (user 2026-10-29 안 A)
   const [otherText, setOtherText] = useState('')
-  const otherRef = useRef<HTMLInputElement>(null)
-  useEffect(() => {
-    if (other) otherRef.current?.focus()
-  }, [other])
   const sendOther = () => {
-    if (otherText.trim() === '') return
+    if (otherText.trim() === '' || busy) return
     onExample(otherText)
     setOtherText('')
-    setOther(false)
   }
   return (
     <div className={styles.answer}>
@@ -433,12 +427,12 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
         </>
       )}
       {turn.ask && (
-        // the agent asked back (user 2026-10-26 mock-up): its question in the head's place, the answers as buttons; a
-        // click asks the answer as the next question
+        // the agent asked back: its question in the head's place, the answers as a numbered list in one box, the last row
+        // a box for one's own answer, as Claude asks (user 2026-10-29 안 A); a click asks the answer as the next question
         <>
           <p className={styles.head}>{turn.ask.question}</p>
           <ul className={styles.askChoices} aria-label="고를 답">
-            {turn.ask.choices.map((choice) => (
+            {turn.ask.choices.map((choice, i) => (
               <li key={choice}>
                 <button
                   type="button"
@@ -446,75 +440,58 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
                   disabled={busy || !isLast}
                   onClick={() => onExample(choice)}
                 >
-                  {choice}
+                  <span className={styles.askNo} aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <span className={styles.askLabel}>{choice}</span>
                 </button>
               </li>
             ))}
             {isLast && (
               <li>
-                <button
-                  type="button"
+                <form
                   className={styles.askOther}
-                  aria-expanded={other}
-                  aria-label={AI_TEXT.askOtherLabel}
-                  disabled={busy}
-                  onClick={() => setOther((open) => !open)}
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    sendOther()
+                  }}
                 >
-                  <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
-                    <path
-                      d="M10.5 2.5l3 3L6 13H3v-3zM9 4l3 3"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  {AI_TEXT.askOther}
-                </button>
+                  <span className={styles.askNo} aria-hidden="true">
+                    {turn.ask.choices.length + 1}
+                  </span>
+                  <input
+                    className={styles.askOtherInput}
+                    value={otherText}
+                    maxLength={QUESTION_MAX}
+                    placeholder={AI_TEXT.askOtherPlaceholder}
+                    aria-label={AI_TEXT.askOtherLabel}
+                    autoComplete="off"
+                    onChange={(event) => setOtherText(event.target.value)}
+                  />
+                  {otherText.trim() !== '' && (
+                    <button
+                      type="submit"
+                      className={styles.askOtherSend}
+                      aria-label={AI_TEXT.send}
+                      title={AI_TEXT.send}
+                      disabled={busy}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
+                        <path
+                          d="M9 15V3M4 8l5-5 5 5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </form>
               </li>
             )}
           </ul>
-          {isLast && other && (
-            <form
-              className={styles.askOtherForm}
-              onSubmit={(event) => {
-                event.preventDefault()
-                sendOther()
-              }}
-            >
-              <input
-                ref={otherRef}
-                className={styles.askOtherInput}
-                value={otherText}
-                maxLength={QUESTION_MAX}
-                placeholder={AI_TEXT.askOtherPlaceholder}
-                aria-label={AI_TEXT.askOtherLabel}
-                autoComplete="off"
-                onChange={(event) => setOtherText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') setOther(false)
-                }}
-              />
-              <button
-                type="submit"
-                className={styles.send}
-                aria-label={AI_TEXT.send}
-                title={AI_TEXT.send}
-                disabled={busy || otherText.trim() === ''}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                  <path
-                    d="M9 15V3M4 8l5-5 5 5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </form>
-          )}
           {isLast && <p className={styles.askHint}>{AI_TEXT.askHint}</p>}
         </>
       )}

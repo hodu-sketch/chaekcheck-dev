@@ -120,8 +120,12 @@ describe('AiChatPage (cycle 24 step 10)', () => {
 
     expect(await screen.findByText('어느 쪽을 찾으세요?')).toBeTruthy()
     const choices = within(screen.getByRole('list', { name: '고를 답' })).getAllByRole('button')
-    // the last button is 「기타」 (user 2026-10-29)
-    expect(choices.map((button) => button.textContent)).toEqual(['LLM의 원리를 다룬 책', 'LLM 활용법', '기타'])
+    // numbered rows, then a box for one's own answer, no 「기타」 button (user 2026-10-29 안 A)
+    expect(choices.map((button) => button.querySelector('span:last-child')?.textContent)).toEqual([
+      'LLM의 원리를 다룬 책',
+      'LLM 활용법',
+    ])
+    expect(screen.getByRole('textbox', { name: '직접 적어서 묻기' })).toBeTruthy()
     expect(screen.queryByText(/맞는 책을 찾지 못했어요/)).toBeNull()
 
     answers(...okAnswer)
@@ -144,7 +148,7 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     ).toBe(true)
   })
 
-  it('「기타」 opens a box under the choices and sends what is written as the next question (user 2026-10-29)', async () => {
+  it('the list\'s last row sends what is written as the next question (user 2026-10-29 안 A)', async () => {
     startWithQuestion('사진')
     answers(
       { name: 'ask', data: { question: '어떤 쪽을 찾으세요?', choices: ['촬영 기법', '사진집'] } },
@@ -152,11 +156,10 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     )
     const user = setup()
     await screen.findByText('어떤 쪽을 찾으세요?')
-    expect(screen.queryByRole('textbox', { name: '직접 적어서 묻기' })).toBeNull()
-
-    await user.click(screen.getByRole('button', { name: '직접 적어서 묻기' }))
     const box = screen.getByRole('textbox', { name: '직접 적어서 묻기' })
-    expect(document.activeElement).toBe(box)
+    // the send button comes with the first letter
+    const list = screen.getByRole('list', { name: '고를 답' })
+    expect(within(list).queryByRole('button', { name: '보내기' })).toBeNull()
     answers(...okAnswer)
     await user.type(box, '필름 카메라 이야기{Enter}')
 
