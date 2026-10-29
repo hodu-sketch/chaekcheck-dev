@@ -26,13 +26,13 @@ import com.chaekcheck.picks.internal.fetch.PickRow;
 
 /**
  * The {@code picks} schema (plan cycle 14 design-delta "데이터"), with {@code JdbcClient}. A successful fetch writes its
- * SUCCEEDED run and, when the list changed, the new list in one transaction; only the request and cover counts are
- * updated later. A failed fetch writes one FAILED run and leaves the list as it is (spec R1-3).
+ * SUCCEEDED run and, when the list changed, the new list in one transaction. A failed fetch writes one FAILED run and
+ * leaves the list as it is (spec R1-3). The server stores no cover pictures since cycle 26 deploy 2 (ADR-0166): list
+ * pictures are files on S3 named after {@code cover_source} (ADR-0163).
  * <p>
  * Since cycle 21 (ADR-0122) the librarian picks are the {@code librarian} rows of {@code list_book}, their fields the
  * {@code librarian} rows of {@code list_field}. The fetch reads and writes those rows only; the other lists come with
- * the import. Both writers take the list's advisory lock ({@link #lockList}). The cover clean-up keeps every cover any
- * list uses.
+ * the import. Both writers take the list's advisory lock ({@link #lockList}).
  */
 @Component
 public class PicksStore {
@@ -110,7 +110,7 @@ public class PicksStore {
 	 * with {@code changed=true}. Fields new to {@code list_field} go after the others in {@link KeptPicks#CODE_ORDER},
 	 * named by the API or "기타" (C14 R2-5); a field already there keeps its name and place. The field name is left
 	 * out of the comparison: a known field is stored with our short name, not the API's.
-	 * @param requestCount requests so far (the list); the covers are added later
+	 * @param requestCount requests of the fetch (the list)
 	 */
 	@Transactional
 	public Saved saveSucceeded(KeptPicks kept, String trigger, Instant startedAt, Instant finishedAt, int requestCount) {
@@ -206,60 +206,6 @@ public class PicksStore {
 			.update();
 	}
 
-	/**
-	 * Cover addresses of the stored librarian list with no stored cover yet, in display order of their books. The
-	 * other lists' covers come with the import (ADR-0123), never from here.
-	 */
-	public List<String> missingCoverSources() {
-		return jdbc.sql("""
-				SELECT b.cover_source FROM picks.list_book b
-				WHERE b.list_key = 'librarian' AND b.cover_source IS NOT NULL
-				  AND NOT EXISTS (SELECT 1 FROM picks.cover c WHERE c.source_url = b.cover_source)
-				GROUP BY b.cover_source
-				ORDER BY max(b.recommended_month) DESC, max(b.registered_on) DESC NULLS LAST,
-				  max(b.source_no COLLATE "C") DESC""")
-			.query(String.class)
-			.list();
-	}
-
-	/** Stores one cover; an address stored meanwhile is left as it is. */
-	public void saveCover(String sourceUrl, String contentType, byte[] image, Instant fetchedAt) {
-		jdbc.sql("""
-				INSERT INTO picks.cover (source_url, content_type, image, byte_size, fetched_at)
-				VALUES (:url, :type, :image, :size, :at) ON CONFLICT (source_url) DO NOTHING""")
-			.param("url", sourceUrl)
-			.param("type", contentType)
-			.param("image", image)
-			.param("size", image.length)
-			.param("at", Timestamp.from(fetchedAt))
-			.update();
-	}
-
-	/**
-	 * Deletes the covers the librarian list does not use (ADR-0091). The other lists' covers are files served by the
-	 * web server since 2026-10-20 (CoverFiles), so their rows go too.
-	 * @return covers deleted
-	 */
-	public int deleteUnusedCovers() {
-		return jdbc.sql("""
-				DELETE FROM picks.cover c
-				WHERE NOT EXISTS (SELECT 1 FROM picks.list_book b
-				  WHERE b.list_key = 'librarian' AND b.cover_source = c.source_url)""").update();
-	}
-
-	/** The only change to a run after it is written: the covers' counts and the requests they took. */
-	public void updateCoverCounts(long runId, int fetched, int failed, int requestCount) {
-		jdbc.sql("""
-				UPDATE picks.fetch_run SET cover_fetched_count = :fetched, cover_failed_count = :failed,
-				  request_count = :requests
-				WHERE id = :id""")
-			.param("fetched", fetched)
-			.param("failed", failed)
-			.param("requests", requestCount)
-			.param("id", runId)
-			.update();
-	}
-
 	/** Every list's fields, by list and then display order. */
 	public List<StoredField> fields() {
 		return jdbc.sql("SELECT list_key, code, name FROM picks.list_field ORDER BY list_key, position")
@@ -267,29 +213,20 @@ public class PicksStore {
 			.list();
 	}
 
-	/** One list's stored rows with each book's cover address and stored cover id, in no particular order. */
+	/** One list's stored rows with each book's cover address, in no particular order. */
 	public List<StoredBook> books(String listKey) {
 		return jdbc.sql("""
 				SELECT b.id, b.field_code, b.position, b.title, b.author, b.isbn13, b.recommended_month, b.year_book,
-				  b.video_id, b.toc_no, b.source_no, b.registered_on, b.book_id, b.cover_source,
-				  c.id AS cover_id
-				FROM picks.list_book b LEFT JOIN picks.cover c ON c.source_url = b.cover_source
+				  b.video_id, b.toc_no, b.source_no, b.registered_on, b.book_id, b.cover_source
+				FROM picks.list_book b
 				WHERE b.list_key = :list""")
 			.param("list", listKey)
 			.query((rs, rowNum) -> new StoredBook(rs.getLong("id"), rs.getString("field_code"), rs.getInt("position"),
 					rs.getString("title"), rs.getString("author"), rs.getString("isbn13"),
 					date(rs, "recommended_month"), rs.getObject("year_book", Integer.class), rs.getString("video_id"),
 					rs.getObject("toc_no", Integer.class), rs.getString("source_no"), date(rs, "registered_on"),
-					rs.getObject("book_id", Long.class), rs.getString("cover_source"), rs.getObject("cover_id", Long.class)))
+					rs.getObject("book_id", Long.class), rs.getString("cover_source")))
 			.list();
-	}
-
-	/** One stored cover. */
-	public Optional<StoredCover> cover(long id) {
-		return jdbc.sql("SELECT content_type, image FROM picks.cover WHERE id = :id")
-			.param("id", id)
-			.query((rs, rowNum) -> new StoredCover(rs.getString(1), rs.getBytes(2)))
-			.optional();
 	}
 
 	private static PickRow pick(ResultSet rs) throws SQLException {
@@ -307,9 +244,6 @@ public class PicksStore {
 	public record Saved(long runId, boolean changed) {
 	}
 
-	public record StoredCover(String contentType, byte[] image) {
-	}
-
 	public record StoredField(String listKey, String code, String name) {
 	}
 
@@ -317,11 +251,10 @@ public class PicksStore {
 	 * One {@code list_book} row (design-delta "데이터").
 	 * @param bookId the matched book of a Lee Dong-jin or SNU row; null for the librarian rows (matched by the cache)
 	 * @param coverSource the cover's source address, or null
-	 * @param coverId the stored cover (the librarian list's), or null
 	 */
 	public record StoredBook(long id, String fieldCode, int position, String title, String author, String isbn13,
 			LocalDate recommendedMonth, Integer yearBook, String videoId, Integer tocNo, String sourceNo,
-			LocalDate registeredOn, Long bookId, String coverSource, Long coverId) {
+			LocalDate registeredOn, Long bookId, String coverSource) {
 	}
 
 }

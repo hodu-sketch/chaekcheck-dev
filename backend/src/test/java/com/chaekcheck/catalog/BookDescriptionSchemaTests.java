@@ -3,18 +3,12 @@ package com.chaekcheck.catalog;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
-import org.yaml.snakeyaml.Yaml;
 
 /** The catalog book description tables (cycle 26 step 2, catalog/002, ADR-0161, ADR-0166). */
 @SpringBootTest
@@ -98,66 +92,14 @@ class BookDescriptionSchemaTests {
 	}
 
 	@Test
-	void theOneCopyGaveTheSameCounts() {
-		// The copy changeset ran once on this database; nothing else writes the new tables yet (ADR-0166)
-		count("catalog.book_summary", "foryou.book_blurb");
-		count("catalog.book_cover", "foryou.book_cover");
-		count("catalog.tag_dictionary", "picks.tag_dictionary");
-		count("catalog.book_tag", "picks.book_tag");
-		count("catalog.book_search", "aisearch.search_book");
-	}
-
-	@Test
-	void theCopyChangesetCopiesEveryRow() throws Exception {
-		jdbc.sql("INSERT INTO foryou.book_blurb VALUES (900001, '요약이에요.', DATE '2026-10-24')").update();
-		jdbc.sql("INSERT INTO foryou.book_cover VALUES (900001, '0123456789abcdef0123456789abcdef01234567'),"
-				+ " (900002, '0123456789abcdef0123456789abcdef01234567')").update();
-		jdbc.sql("INSERT INTO picks.tag_dictionary (code, axis, name, active) VALUES ('t900', 'mood', '잔잔한', false)")
-			.update();
-		jdbc.sql("INSERT INTO picks.book_tag VALUES (900001, 't900', DATE '2026-10-24')").update();
-		jdbc.sql("INSERT INTO aisearch.search_book (book_id, title, author, line, line_source, line_made_on, search_text,"
-				+ " library_ids) VALUES (900001, '옛 제목', '저자', '한 줄', 'intro', DATE '2026-10-24', '옛 제목 한 줄',"
-				+ " ARRAY[3, 5]), (900002, '책', NULL, NULL, NULL, NULL, '책', '{}')").update();
-		for (String table : new String[] { "book_tag", "tag_dictionary", "book_summary", "book_cover", "book_search" }) {
-			jdbc.sql("DELETE FROM catalog." + table).update();
+	void theOldTablesAreDropped() {
+		// cycle 26 deploy 2 (foryou/002, picks/007, aisearch/005): the copied tables and the stored covers are gone
+		for (String table : new String[] { "foryou.book_blurb", "foryou.book_cover", "picks.book_tag",
+				"picks.tag_dictionary", "picks.cover", "aisearch.search_book" }) {
+			assertThat(jdbc.sql("SELECT to_regclass(:table) IS NULL").param("table", table).query(Boolean.class).single())
+				.as(table)
+				.isTrue();
 		}
-
-		for (String statement : copyStatements()) {
-			jdbc.sql(statement).update();
-		}
-
-		theOneCopyGaveTheSameCounts();
-		assertThat(jdbc.sql("SELECT summary FROM catalog.book_summary WHERE book_id = 900001").query(String.class).single())
-			.isEqualTo("요약이에요.");
-		assertThat(jdbc.sql("SELECT active FROM catalog.tag_dictionary WHERE code = 't900'").query(Boolean.class).single())
-			.isFalse();
-		assertThat(jdbc.sql("SELECT line || '|' || search_text || '|' || library_ids::text FROM catalog.book_search"
-				+ " WHERE book_id = 900001").query(String.class).single()).isEqualTo("한 줄|옛 제목 한 줄|{3,5}");
-	}
-
-	/** The copy changeset's INSERTs, read from the changelog itself (its index and ANALYZE are there already). */
-	@SuppressWarnings("unchecked")
-	private static List<String> copyStatements() throws IOException {
-		try (InputStream in = BookDescriptionSchemaTests.class.getClassLoader()
-			.getResourceAsStream("db/changelog/catalog/002-book-descriptions.yaml")) {
-			Map<String, Object> log = new Yaml().load(in);
-			for (Object entry : (List<Object>) log.get("databaseChangeLog")) {
-				Map<String, Object> changeSet = (Map<String, Object>) ((Map<String, Object>) entry).get("changeSet");
-				if ("catalog-002-copy-old-tables".equals(changeSet.get("id"))) {
-					return ((List<Map<String, Map<String, String>>>) changeSet.get("changes")).stream()
-						.map(change -> change.get("sql").get("sql"))
-						.filter(sql -> !sql.startsWith("ANALYZE") && !sql.startsWith("CREATE INDEX"))
-						.toList();
-				}
-			}
-		}
-		throw new IllegalStateException("no copy changeset");
-	}
-
-	private void count(String copy, String old) {
-		long copied = jdbc.sql("SELECT count(*) FROM " + copy).query(Long.class).single();
-		long was = jdbc.sql("SELECT count(*) FROM " + old).query(Long.class).single();
-		assertThat(copied).as(copy).isEqualTo(was);
 	}
 
 	private void search(String line, String source, String madeOn) {

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import com.chaekcheck.catalog.AiSearchIndex;
 
 /**
- * The titles and authors of every book the AI search answers with ({@code aisearch.search_book}: the listed books and,
+ * The titles and authors of every book the AI search answers with ({@code catalog.book_search}: the listed books and,
  * since 2026-10-25, the books held by the most libraries), kept in memory for the title line check, the earlier turns
  * and the cards. About 31,000 short rows; the library ids stay in the table ({@link CandidateQuery} counts them). The
  * {@code book-texts} import replaces the table in another process, so the set is read again when the table's row count

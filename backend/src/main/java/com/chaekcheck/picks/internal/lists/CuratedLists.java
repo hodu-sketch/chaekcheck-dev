@@ -9,21 +9,16 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -317,17 +312,15 @@ class CuratedLists implements CuratedListTransfer {
 				.param("cover", book.coverUrl())
 				.update();
 		}
-		// a part from before the covers became files may still carry images: they are not stored any more
-		int added = 0;
-		int deleted = store.deleteUnusedCovers();
-		log.info("recommended lists replaced: {} fields, {} books, {} covers added, {} unused covers deleted",
-				part.fields().size(), part.books().size(), added, deleted);
-		return new Replaced(part.fields().size(), part.books().size(), added, deleted);
+		// a part from before the covers became files may still carry images: they are ignored (no stored covers since
+		// cycle 26 deploy 2, ADR-0166)
+		log.info("recommended lists replaced: {} fields, {} books", part.fields().size(), part.books().size());
+		return new Replaced(part.fields().size(), part.books().size());
 	}
 
 	/** {@code counts} is for the import's log only. */
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	record Part(List<PartField> fields, List<PartBook> books, List<PartCover> covers) {
+	record Part(List<PartField> fields, List<PartBook> books) {
 	}
 
 	record PartField(String list, String code, String name, int position) {
@@ -336,9 +329,6 @@ class CuratedLists implements CuratedListTransfer {
 	record PartBook(String list, String field, int position, String title, String author, String publisher,
 			String isbn13, String month, Integer yearBook, String videoId, Integer tocNo, String pinnedTitle,
 			String pinnedAuthor, String pinnedPublisher, String pinnedIsbn13, Long bookId, String coverUrl) {
-	}
-
-	record PartCover(String sourceUrl, String fetchedAt, String jpegBase64) {
 	}
 
 }

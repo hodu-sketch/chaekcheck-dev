@@ -77,13 +77,9 @@ const CLOUDFRONT_COVER = new RegExp(`^${COVERS_BASE_URL.replace(/[.*+?^${}()|[\]
 
 /**
  * Only our own cover addresses are used as an image source (C7): a cover on our CloudFront host
- * (`<base>/covers/<sha1>.jpg`, cycle 26), or until deploy 2 the old ones a page may still hold, a stored cover (the
- * librarian list) or a cover file the web server serves (`/covers/<sha1>.jpg`, user 2026-10-20); anything else shows
- * the title.
+ * (`<base>/covers/<sha1>.jpg`, cycle 26; the old relative shapes went at deploy 2, ADR-0166); anything else shows the
+ * title.
  */
 export function safeCoverUrl(url: string | null): string | null {
-  return url &&
-    (CLOUDFRONT_COVER.test(url) || /^\/api\/v1\/picks\/covers\/\d+$/.test(url) || /^\/covers\/[0-9a-f]{40}\.jpg$/.test(url))
-    ? url
-    : null
+  return url && CLOUDFRONT_COVER.test(url) ? url : null
 }

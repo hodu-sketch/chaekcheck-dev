@@ -228,3 +228,13 @@ databaseChangeLog:
   - include:
       file: catalog/004-plan-library-count.sql
       relativeToChangelogFile: true
+  # 2026-10-29: cycle 26 deploy 2, the old book description tables dropped (ADR-0166)
+  - include:
+      file: foryou/002-drop-book-blurb-cover.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: picks/007-drop-moved-tables.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: aisearch/005-drop-search-book.yaml
+      relativeToChangelogFile: true

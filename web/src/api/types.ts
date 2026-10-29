@@ -405,8 +405,8 @@ export interface PickBook {
   /** The list's own title when it differs from `title` (S14 shows it on one line), else null. */
   listTitle: string | null
   /**
-   * `/api/v1/picks/covers/{coverId}` (librarian) or `/covers/<sha1>.jpg` (the other lists' files, 2026-10-20), or null:
-   * the card shows the title instead (AC-14b).
+   * The cover's CloudFront address `<base>/covers/<sha1>.jpg` (cycle 26, ADR-0163), or null: the card shows the title
+   * instead (AC-14b).
    */
   coverUrl: string | null
   /** Our book, also when no plan library holds it; null when none. */
@@ -545,7 +545,7 @@ export interface ForYouCard {
   title: string
   author: string | null
   publisher: string | null
-  /** `/covers/<sha1>.jpg`, or null for the title-letter cover */
+  /** The cover's CloudFront address `<base>/covers/<sha1>.jpg`, or null for the title-letter cover */
   coverUrl: string | null
   /** the 책첵 summary (cycle 26; the lists' book window shows the same one), or null */
   blurb: string | null

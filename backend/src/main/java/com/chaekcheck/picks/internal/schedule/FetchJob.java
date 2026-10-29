@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import com.chaekcheck.picks.internal.PicksChanged;
 import com.chaekcheck.picks.internal.PicksProperties;
-import com.chaekcheck.picks.internal.cover.CoverResizer;
 import com.chaekcheck.picks.internal.fetch.FailureReason;
 import com.chaekcheck.picks.internal.fetch.FetchFailure;
 import com.chaekcheck.picks.internal.fetch.KeptPicks;
@@ -25,11 +24,8 @@ import com.chaekcheck.picks.internal.store.PicksStore;
 /**
  * One fetch (plan cycle 14 design-delta "주요 흐름: 받기"): the list with one request, the latest twelve months kept
  * ({@link KeptPicks}) and stored with a SUCCEEDED run in one transaction, or one FAILED run and {@code log.error}
- * (AC-11). When the list changed: the cache told, then the covers not stored yet, at least 1 second apart and made 200px
- * JPEG ({@link CoverResizer}; an image it cannot read counts as failed), the covers the list no longer uses deleted,
- * the run's counts updated and the cache told again. Failed covers do not fail the fetch (ADR-0091); a week with the
- * same list does not fetch covers again. If the server stops while covers are fetched, the next changed list gets the
- * missing ones.
+ * (AC-11). When the list changed the cache is told. No covers are fetched since cycle 26 deploy 2 (ADR-0166): the
+ * PC uploads new list pictures to S3 as sha1(cover_source).jpg (ADR-0163).
  * <p>
  * Fetches never overlap ({@link AtomicBoolean}, plan cycle 14 C8); they run on the module's own single thread
  * ({@link FetchScheduler}), never on the shared scheduling thread.
@@ -52,8 +48,6 @@ public class FetchJob {
 
 	private final List<PicksChanged> listeners;
 
-	private final CoverResizer resizer;
-
 	private final AtomicBoolean running = new AtomicBoolean();
 
 	public FetchJob(FetchDecision decision, PicksStore store, NlkTransport transport, PicksProperties.Fetch settings,
@@ -65,8 +59,6 @@ public class FetchJob {
 		this.ticker = ticker;
 		this.clock = clock;
 		this.listeners = List.copyOf(listeners);
-		this.resizer = new CoverResizer(settings.cover().width(), settings.cover().jpegQuality(),
-				settings.cover().maxPixels());
 	}
 
 	/**
@@ -128,35 +120,12 @@ public class FetchJob {
 					kept.newCategoryCodes() == null ? "none" : kept.newCategoryCodes(), saved.changed());
 			if (saved.changed()) {
 				tellListeners();
-				fetchCovers(client, saved.runId());
 			}
 		}
 		catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
 			log.warn("picks fetch ({}) interrupted", trigger);
 		}
-	}
-
-	// TODO(확인 필요): 배포 전 국립중앙도서관 표지 이용 조건 확인 (plan cycle 14; if not allowed, covers are turned off)
-	private void fetchCovers(NlkClient client, long runId) throws InterruptedException {
-		List<String> sources = store.missingCoverSources();
-		int fetched = 0;
-		int failed = 0;
-		for (String source : sources) {
-			Optional<byte[]> jpeg = client.fetchCover(source).flatMap(resizer::toJpeg);
-			if (jpeg.isPresent()) {
-				store.saveCover(source, CoverResizer.CONTENT_TYPE, jpeg.get(), clock.instant());
-				fetched++;
-			}
-			else {
-				failed++;
-			}
-		}
-		int deleted = store.deleteUnusedCovers();
-		store.updateCoverCounts(runId, fetched, failed, client.requestCount());
-		log.info("picks covers: {} new, {} failed, {} unused deleted, {} requests in all", fetched, failed, deleted,
-				client.requestCount());
-		tellListeners();
 	}
 
 	/** The exception's class and message with the key replaced. */

@@ -31,7 +31,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
 /**
- * The list request and covers against a local JDK {@link HttpServer} with the real {@link HttpNlkTransport} (plan
+ * The list request against a local JDK {@link HttpServer} with the real {@link HttpNlkTransport} (plan
  * cycle 14 step 3; C4, C5). Never the real API (C3). The key is a test value.
  */
 class NlkClientTests {
@@ -140,17 +140,6 @@ class NlkClientTests {
 		assertThat(settings(KEY, DataSize.ofMegabytes(10)).toString()).doesNotContain(KEY).contains("apiKey=***");
 	}
 
-	@Test
-	void coversNeedAnImageAndAnAllowedAddress() throws Exception {
-		NlkClient client = client(KEY);
-		answer = new Answer(200, "image/jpeg", new byte[] { 1, 2, 3 }, 0, null);
-
-		// the local server is not www.nl.go.kr: refused before any request
-		assertThat(client.fetchCover("https://localhost/afile/a")).isEmpty();
-		assertThat(client.fetchCover("http://www.nl.go.kr/afile/a")).isEmpty();
-		assertThat(requests).isEmpty();
-	}
-
 	private NlkClient client(String key) {
 		return client(key, DataSize.ofMegabytes(10));
 	}
@@ -163,8 +152,8 @@ class NlkClientTests {
 	private PicksProperties.Fetch settings(String key, DataSize maxBody) {
 		return new PicksProperties.Fetch(true, key, "0 0 5 * * *", ZoneId.of("Asia/Seoul"),
 				URI.create("http://localhost:" + server.getAddress().getPort()), Period.ofYears(3), 1000,
-				Duration.ofSeconds(5), Duration.ofMillis(800), maxBody, DataSize.ofMegabytes(5), Duration.ofSeconds(1),
-				"book search service", new PicksProperties.Cover(200, 0.8f, 16_000_000));
+				Duration.ofSeconds(5), Duration.ofMillis(800), maxBody, Duration.ofSeconds(1),
+				"book search service");
 	}
 
 	private void assertFailure(String key, FailureReason reason, String detail) {

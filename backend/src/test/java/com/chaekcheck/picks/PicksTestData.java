@@ -55,19 +55,12 @@ public final class PicksTestData {
 			.update();
 	}
 
-	/** Stores a cover for a pick; returns its id. */
-	public long cover(String recomNo, String sourceUrl) {
+	/** Sets a pick's cover address (its picture is on CloudFront, named after it; ADR-0163). */
+	public void coverSource(String recomNo, String sourceUrl) {
 		jdbc.sql("UPDATE picks.list_book SET cover_source = :url WHERE list_key = 'librarian' AND source_no = :no")
 			.param("url", sourceUrl)
 			.param("no", recomNo)
 			.update();
-		return jdbc.sql("""
-				INSERT INTO picks.cover (source_url, content_type, image, byte_size, fetched_at)
-				VALUES (:url, 'image/jpeg', :image, 4, now()) RETURNING id""")
-			.param("url", sourceUrl)
-			.param("image", new byte[] { 1, 2, 3, 4 })
-			.query(Long.class)
-			.single();
 	}
 
 	/** One of our books (catalog), held by {@code libraryIds}; {@code isbn13} may be null. */

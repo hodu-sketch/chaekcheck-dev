@@ -1,0 +1,16 @@
+# 2026-10-29 (cycle 26 deploy 2, ADR-0166): the book tags and the tag dictionary now live in the catalog module
+# (catalog/002 copied them once), and librarian list pictures are files on S3 named sha1(cover_source).jpg uploaded by
+# the PC (ADR-0163), so the old picks tables go. book_tag first: it references tag_dictionary. No other picks table
+# references picks.cover (pick.cover_source is matched by value). Plain DROP TABLE, no IF EXISTS: a database in an
+# unexpected state stops the migration instead of passing silently.
+databaseChangeLog:
+  - changeSet:
+      id: picks-007-drop-moved-tables
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: DROP TABLE picks.book_tag
+        - sql:
+            sql: DROP TABLE picks.tag_dictionary
+        - sql:
+            sql: DROP TABLE picks.cover

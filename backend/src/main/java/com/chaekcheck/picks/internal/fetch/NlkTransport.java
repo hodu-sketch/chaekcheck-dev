@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 
 /**
- * Sends GET requests to the National Library of Korea (the list API and the covers). Redirects are never followed.
+ * Sends GET requests to the National Library of Korea (the list API). Redirects are never followed.
  * Tests replace this with a fake (plan cycle 14 C3).
  */
 public interface NlkTransport {

@@ -7,15 +7,15 @@
  * <p>
  * Since cycle 26 (ADR-0161, ADR-0164) the books' summaries, tags and covers come from {@code catalog}
  * ({@code BookTexts}, {@code CoverUrls}): the AI summary is our book's 책첵 summary, and every cover is a CloudFront
- * address, the edition's or its work's first, else the list's own picture. The cycle 23 tag tables
- * ({@code picks.tag_dictionary}, {@code picks.book_tag}) and {@code picks.cover} are no longer read and go at deploy 2.
+ * address, the edition's or its work's first, else the list's own picture. The cycle 23 tag tables and the stored
+ * covers were dropped at cycle 26 deploy 2 (ADR-0166).
  * <p>
  * Responsibilities: fetching the list with one Open API request ({@code saseoApi.do}) on its own single-thread
  * executor, decided daily at 05:00 Asia/Seoul and at start-up: Mondays, every day after a failure until one succeeds,
- * and catching up a missed week (ADR-0092); storing it in the {@code picks} schema with {@code JdbcClient}; fetching
- * the new covers from {@code www.nl.go.kr/afile/}, made 200px JPEG and served by us (ADR-0091); one shared cache with
+ * and catching up a missed week (ADR-0092); storing it in the {@code picks} schema with {@code JdbcClient} (no
+ * covers: the PC uploads the list's pictures to S3 as {@code sha1(cover_source).jpg}, ADR-0163); one shared cache with
  * our books matched by ISBN, then by title and first author (ADR-0090; the other lists store the book the import
- * matched, ADR-0124); {@code GET /api/v1/picks/{listKey}} and {@code GET /api/v1/picks/covers/{coverId}}.
+ * matched, ADR-0124); {@code GET /api/v1/picks/{listKey}} and {@code GET /api/v1/picks/shelf}.
  * <p>
  * The API key is a secret (spec R1-7): it comes from the environment only and is never logged, stored or shown; the
  * request is logged without it.

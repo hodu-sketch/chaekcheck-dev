@@ -73,13 +73,12 @@ class AuthEnabledSecurityTests {
 		assertThat(context.getBeanNamesForType(UserDetailsService.class)).isEmpty();
 	}
 
-	/** Cycle 14 R7-3 (AC-16): librarian picks and covers need no login, and their Cache-Control stays. */
+	/** Cycle 14 R7-3 (AC-16): the recommended lists need no login. */
 	@Test
 	void picksNeedNoLogin() {
 		PicksTestData data = new PicksTestData(jdbc);
 		data.run();
 		data.pick("20260922163135829100", "11", "어문학", "2026-10", "2026-09-22", "가", null, null);
-		long cover = data.cover("20260922163135829100", "https://www.nl.go.kr/afile/fileDownload/t1");
 		picksCache.refresh();
 
 		assertThat(mvc.get().uri("/api/v1/picks/librarian")).hasStatusOk()
@@ -88,8 +87,6 @@ class AuthEnabledSecurityTests {
 			.isEqualTo("2026-10-12T05:00:41+09:00");
 		// cycle 21 (ADR-0126): the other lists too
 		assertThat(mvc.get().uri("/api/v1/picks/snu100")).hasStatusOk();
-		assertThat(mvc.get().uri("/api/v1/picks/covers/" + cover)).hasStatusOk()
-			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
 	}
 
 	/** Cycle 13 (ADR-0093): the join survey date of /about needs no login. */

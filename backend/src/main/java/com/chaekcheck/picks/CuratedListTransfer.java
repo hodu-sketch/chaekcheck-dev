@@ -42,8 +42,8 @@ public interface CuratedListTransfer {
 	/**
 	 * Puts a {@link ListPart#json()} in place of the stored Lee Dong-jin, SNU, KAIST and nobel rows and their fields,
 	 * in one
-	 * transaction under the lists' locks; adds the covers not stored yet and deletes the covers no list uses. The
-	 * librarian rows are not touched.
+	 * transaction under the lists' locks. The librarian rows are not touched; no covers are stored (their pictures are
+	 * on CloudFront, ADR-0163).
 	 * @throws IllegalArgumentException when the text is not a list part
 	 */
 	Replaced replace(String listPartJson);
@@ -61,7 +61,7 @@ public interface CuratedListTransfer {
 	}
 
 	/** What {@link #replace} wrote. */
-	record Replaced(int fields, int books, int coversAdded, int coversDeleted) {
+	record Replaced(int fields, int books) {
 	}
 
 	/** A list file that cannot be used, with where. */

@@ -166,13 +166,10 @@ class CuratedListTransferTests {
 	}
 
 	@Test
-	void replaceWritesTheListsOnlyAndKeepsOnlyTheLibrarianCovers() throws IOException { // AC-10
+	void replaceWritesTheListsOnly() throws IOException { // AC-10
 		data.run();
 		data.pick("1", "11", null, "2026-10", null, "가", null, null);
-		long librarianCover = data.cover("1", "https://www.nl.go.kr/afile/fileDownload/a");
-		jdbc.sql("""
-				INSERT INTO picks.cover (source_url, content_type, image, byte_size, fetched_at)
-				VALUES ('https://image.yes24.com/goods/old/M', 'image/jpeg', '\\x01', 1, now())""").update();
+		data.coverSource("1", "https://www.nl.go.kr/afile/fileDownload/a");
 		String used = "https://image.yes24.com/goods/1/M";
 		write(FIELDS,
 				LEEDONGJIN_HEADER + "2026-06\t1\t\tlMx0zEd1qtY\tscience\t히스토리아 비테이\t\t\t9799990000110\t" + used
@@ -184,9 +181,9 @@ class CuratedListTransferTests {
 		CuratedListTransfer.Replaced first = transfer.replace(json);
 		CuratedListTransfer.Replaced again = transfer.replace(json);
 
-		// no cover rows for the lists any more (their covers are files): the old list cover row goes, the librarian's stays
-		assertThat(first).isEqualTo(new CuratedListTransfer.Replaced(7, 2, 0, 1));
-		assertThat(again).isEqualTo(new CuratedListTransfer.Replaced(7, 2, 0, 0));
+		// no stored covers (cycle 26 deploy 2): the pictures are on CloudFront
+		assertThat(first).isEqualTo(new CuratedListTransfer.Replaced(7, 2));
+		assertThat(again).isEqualTo(new CuratedListTransfer.Replaced(7, 2));
 		assertThat(jdbc.sql("""
 				SELECT list_key || ':' || field_code || ':' || position || ':' || title || ':' || coalesce(book_id, 0)
 				  || ':' || coalesce(to_char(recommended_month, 'YYYY-MM'), '-') || ':' || coalesce(video_id, '-')
@@ -194,10 +191,9 @@ class CuratedListTransferTests {
 				FROM picks.list_book ORDER BY list_key, position""").query(String.class).list())
 			.containsExactly("leedongjin:science:1:히스토리아 비테이:920001:2026-06:lMx0zEd1qtY:0:-",
 					"librarian:11:1:가:0:2026-10:-:0:-", "snu100:korean_lit:3:구운몽:920004:-:-:3:명현 global soft");
-		assertThat(jdbc.sql("SELECT source_url FROM picks.cover ORDER BY source_url").query(String.class).list())
-			.containsExactly("https://www.nl.go.kr/afile/fileDownload/a");
-		assertThat(jdbc.sql("SELECT id FROM picks.cover WHERE source_url LIKE '%afile%'").query(Long.class).single())
-			.isEqualTo(librarianCover);
+		assertThat(jdbc.sql("SELECT cover_source FROM picks.list_book WHERE list_key = 'librarian'")
+			.query(String.class)
+			.single()).isEqualTo("https://www.nl.go.kr/afile/fileDownload/a");
 		assertThat(jdbc.sql("SELECT cover_source FROM picks.list_book WHERE list_key = 'leedongjin'")
 			.query(String.class)
 			.single()).isEqualTo(used);

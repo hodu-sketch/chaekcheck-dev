@@ -12,11 +12,12 @@ import com.chaekcheck.catalog.AiSearchIndex;
 
 /**
  * The keyword match (cycle 24 handoff step 5, design-delta "낱말 맞추기", ADR-0151): which of the search books held by
- * at least one of the user's plan libraries (spec R3-3) hold the keywords in {@code aisearch.search_book.search_text}.
+ * at least one of the user's plan libraries (spec R3-3) hold the keywords in {@code catalog.book_search.search_text}.
  * One point per keyword found; ordered by core words found (since v1.10.2), points, then by how many plan libraries hold
  * the book, then by book id, and
  * cut after the order (design review #5: cutting first would drop tied books by id). Since 2026-10-25 the plan library
- * count is made in SQL from the {@code library_ids} the import copied (user choice "넣기 때 search_book 사본에"), for the
+ * count is made in SQL from the {@code library_ids} the import copied (user choice "넣기 때 search_book 사본에"; the copy is in
+ * {@code catalog.book_search} since cycle 26), for the
  * listed books and the books held by the most libraries alike (user choice "한 풀, 구분 없음").
  * <p>
  * Since cycle 26 (ADR-0165) the table is {@code catalog.book_search} and the queries run in {@code catalog}'s

@@ -36,7 +36,7 @@ class PicksStartupFetchTests {
 
 	@Test
 	void startUpWithNothingStoredFetches() throws InterruptedException {
-		Map<String, Object> run = waitForCovers(Duration.ofSeconds(60)).orElseThrow();
+		Map<String, Object> run = waitForTheRun(Duration.ofSeconds(60)).orElseThrow();
 
 		assertThat(run).containsEntry("trigger", "STARTUP")
 			.containsEntry("status", "SUCCEEDED")
@@ -48,13 +48,12 @@ class PicksStartupFetchTests {
 
 	@AfterEach
 	void deleteWhatTheStartUpFetchWrote() {
-		jdbc.sql("DELETE FROM picks.cover").update();
 		jdbc.sql("DELETE FROM picks.list_book WHERE list_key = 'librarian'").update();
 		jdbc.sql("DELETE FROM picks.list_field WHERE list_key = 'librarian' AND position > 5").update();
 		jdbc.sql("DELETE FROM picks.fetch_run").update();
 	}
 
-	private Optional<Map<String, Object>> waitForCovers(Duration timeout) throws InterruptedException {
+	private Optional<Map<String, Object>> waitForTheRun(Duration timeout) throws InterruptedException {
 		Instant end = Instant.now().plus(timeout);
 		while (Instant.now().isBefore(end)) {
 			Optional<Map<String, Object>> run = jdbc.sql("SELECT * FROM picks.fetch_run WHERE trigger = 'STARTUP'")
@@ -62,7 +61,7 @@ class PicksStartupFetchTests {
 				.listOfRows()
 				.stream()
 				.findFirst();
-			if (run.isPresent() && ((Integer) run.get().get("cover_fetched_count")) > 0) {
+			if (run.isPresent()) {
 				return run;
 			}
 			Thread.sleep(200);
