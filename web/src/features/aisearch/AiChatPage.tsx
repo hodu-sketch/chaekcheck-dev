@@ -467,9 +467,15 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
       {turn.result === 'partial' && <p className={styles.soft}>{AI_TEXT.noText}</p>}
       {/* no drawn examples when no choices came: three fixed ones had nothing to do with the question (user 2026-10-30
           「쿠버네티스 오퍼레이터 원서」 got a psychology essay) */}
-      {turn.result === 'no_match' && !turn.ask && !turn.head && (
+      {turn.result === 'no_match' && !turn.ask && (
         <div className={styles.noMatch}>
-          <p>{AI_TEXT.noMatch}</p>
+          {!turn.head && <p>{AI_TEXT.noMatch}</p>}
+          {/* what to do next, as the hint under the choices (user 2026-10-30) */}
+          {isLast && (
+            <p className={styles.askHint}>
+              {AI_TEXT.noMatchHint} <span className={styles.askHintOwn}>{AI_TEXT.noMatchHintOwn}</span>
+            </p>
+          )}
         </div>
       )}
       {notice && (

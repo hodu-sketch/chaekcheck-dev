@@ -34,6 +34,9 @@ export const AI_TEXT = {
   // in ChatGPT (user 2026-10-29: "원하는게 없으면 아래 입력창에 적어주세요"; the 「기타」 button and the list's last row before)
   askHint: '고르시면 그 답으로 이어서 찾아요.',
   askHintOwn: '원하는 게 없으면 아래 입력창에 적어 주세요.',
+  // under an answer with no book and no choices (user 2026-10-30 「어떻게 하라는 것도 친절하게」) [안]
+  noMatchHint: '조금 넓은 주제나 다른 말로 바꿔 보세요.',
+  noMatchHintOwn: '찾는 책의 주제나 읽고 싶은 상황을 아래 입력창에 적어 주세요.',
   siteNote: '답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.',
 } as const
 
