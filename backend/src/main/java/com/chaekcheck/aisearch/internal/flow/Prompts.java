@@ -166,10 +166,22 @@ final class Prompts {
 	 */
 	static List<Message> pickMessages(List<ShownTurn> history, String question, List<Choice> choices, int thisYear,
 			Map<String, Integer> shelves) {
+		return pickMessages(history, question, choices, thisYear, shelves, null);
+	}
+
+	/**
+	 * @param note what talk words in the question meant (「그거 말고」, 「아까 이야기한 거」; plan 2026-10-29), or null; it goes
+	 *     under the question as 「대화 메모」
+	 */
+	static List<Message> pickMessages(List<ShownTurn> history, String question, List<Choice> choices, int thisYear,
+			Map<String, Integer> shelves, String note) {
 		StringBuilder user = new StringBuilder("올해: ").append(thisYear)
 			.append("년\n질문: ")
-			.append(question)
-			.append("\n고를 수 있는 책:");
+			.append(question);
+		if (note != null && !note.isBlank()) {
+			user.append("\n대화 메모: ").append(note);
+		}
+		user.append("\n고를 수 있는 책:");
 		appendChoices(user, choices);
 		if (!shelves.isEmpty()) {
 			StringJoiner line = new StringJoiner(", ", "\n후보 분야: ", "");

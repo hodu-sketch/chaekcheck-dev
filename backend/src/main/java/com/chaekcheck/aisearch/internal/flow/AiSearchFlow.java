@@ -237,6 +237,9 @@ public class AiSearchFlow {
 		/** Whether the question named a book whose neighbours went first. */
 		boolean named;
 
+		/** What the question's talk words pointed at (TalkRefs), or null (plan 2026-10-29, A–E). */
+		String talk;
+
 		/** Whether the keyword search run beside the ML step was taken (user 2026-10-27, 응답 시간 1안). */
 		boolean earlyKeywords;
 
@@ -302,7 +305,8 @@ public class AiSearchFlow {
 				log.info("ai search: first {}, keyword {}, pick {}, candidates {} (vector {}{}), cards {}, {} ms, tokens {}/{}{}",
 							run.mlRoute == null ? "haiku" : "ml " + run.mlRoute + " " + run.relation,
 						run.keywordResult, run.pickResult, run.candidateCount, run.vectorCount,
-						(run.named ? ", named book" : "") + (run.earlyKeywords ? ", early keyword" : ""), run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
+						(run.named ? ", named book" : "") + (run.earlyKeywords ? ", early keyword" : "")
+								+ (run.talk == null ? "" : ", talk " + run.talk), run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
 						(run.ask == null ? "" : ", ask " + run.ask) + (run.gone ? ", client gone" : "")
 								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
@@ -317,7 +321,14 @@ public class AiSearchFlow {
 
 	private void answer(Input input, Run run) {
 		AiSearchProperties.Vector vectorSettings = properties.vector();
-		String earlierQuestion = input.history().isEmpty() ? null
+		// words that point at the dialogue (「모르겠어」, 「그거 말고」, 「아까 이야기한 거」): the search goes on from the topic
+		// they point at, not from their own words (plan 2026-10-29, A–E)
+		Talk talk = talk(input);
+		if (talk != null) {
+			run.talk = talk.kind() + " " + talk.mode();
+		}
+		String searchQuestion = talk != null ? talk.topic() : input.question();
+		String earlierQuestion = talk != null || input.history().isEmpty() ? null
 				: EarlierTopics.of(input.question(), input.history().stream().map(Turn::question).toList());
 		// a question after an ask-back is its answer, typed or a choice: it always joins the asked question (user
 		// 2026-10-27), as a question pointing back at earlier topics does
@@ -331,11 +342,11 @@ public class AiSearchFlow {
 		CompletableFuture<List<Candidate>> earlyKeywords = earlyWords.isEmpty() ? null
 				: beside(() -> candidates.find(earlyWords, List.of(), input.planLibraryIds(), Set.of(), keywordLimit));
 		MlStep mlStep = properties.firstCall().mode() == AiSearchProperties.FirstCallMode.ML && mlFirstCall.on()
-				&& vectors.on() ? mlStep(input.question(), earlierQuestion, pointsBack, vectorSettings, run) : null;
+				&& vectors.on() ? mlStep(searchQuestion, earlierQuestion, pointsBack, vectorSettings, run) : null;
 		// the question vector is made while the first call runs; only the question goes in, never the history (the ML
 		// first step above sends the earlier question too)
 		CompletableFuture<List<Long>> nearest = mlStep != null ? CompletableFuture.completedFuture(mlStep.nearest())
-				: vectors.on() ? vectors.nearest(input.question(), vectorSettings.vectorDepth() * 2) : null;
+				: vectors.on() ? vectors.nearest(searchQuestion, vectorSettings.vectorDepth() * 2) : null;
 		Map<Long, SearchBook> known = searchBooks.byId();
 		Map<Long, ListedBook> listed = new HashMap<>();
 		for (ListedBook book : listedBooks.current().books()) {
@@ -363,7 +374,7 @@ public class AiSearchFlow {
 			run.mlRoute = ml.route();
 			run.newTopic = ml.newTopic();
 			run.relation = ml.relation();
-			if (ml.route() == MlFirstCall.Route.SITE) {
+			if (ml.route() == MlFirstCall.Route.SITE && talk == null) {
 				site(input, history, run);
 				return;
 			}
@@ -374,14 +385,17 @@ public class AiSearchFlow {
 			if (oneWordTopic) {
 				run.ask = "one-word";
 			}
-			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK && !oneWordTopic,
+			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK && !oneWordTopic && talk == null,
 					ml.route() == MlFirstCall.Route.TITLE_LIKE,
 					ml.route() == MlFirstCall.Route.TITLE_LIKE ? input.question() : "",
 					ml.route() == MlFirstCall.Route.REFERS_SHOWN,
 					oneWordTopic ? List.of(input.question().strip()) : ml.keywords(), List.of(), KeywordResult.OK);
 		}
 		else {
-			plan = keywords(input.question(), history, run);
+			plan = keywords(searchQuestion, history, run);
+			if (talk != null) {
+				plan = new KeywordPlan(false, false, "", false, plan.keywords(), plan.core(), plan.result());
+			}
 		}
 		run.keywordResult = plan.result();
 		run.titleLike = plan.titleLike();
@@ -407,7 +421,7 @@ public class AiSearchFlow {
 			return;
 		}
 
-		boolean refers = plan.refersToShown() && !lastShown.isEmpty();
+		boolean refers = talk == null && plan.refersToShown() && !lastShown.isEmpty();
 		Map<Long, Integer> planCount = new HashMap<>();
 		int max = properties.limits().candidates();
 		LinkedHashSet<Long> chosen = new LinkedHashSet<>();
@@ -440,6 +454,10 @@ public class AiSearchFlow {
 			}
 		}
 		Set<String> titles = new HashSet<>();
+		if (talk != null && talk.excludeShown()) {
+			// 「그거 말고」 after cards: another edition of a shown title is the same book to the user (plan 2026-10-29)
+			shownBefore.stream().map(known::get).filter(java.util.Objects::nonNull).forEach(b -> titles.add(b.titleKey()));
+		}
 		if (!refers) {
 			NamedBook named = NamedBook.find(input.question(), searchBooks.books());
 			if (named != null) {
@@ -459,7 +477,8 @@ public class AiSearchFlow {
 		// 2026-10-26); 「다른 거」 (feedback) and new topics still leave them out
 		run.mark("neighbours");
 		boolean narrows = mlStep != null && "continue".equals(mlStep.plan().relation());
-		Set<Long> excluded = new HashSet<>(refers || pointsBack || narrows ? Set.of() : shownBefore);
+		Set<Long> excluded = new HashSet<>(talk != null ? talk.excludeShown() ? shownBefore : Set.of()
+				: refers || pointsBack || narrows ? Set.of() : shownBefore);
 		excluded.addAll(chosen);
 		boolean mix = nearest != null && !refers;
 		List<Candidate> found = earlyKeywords != null && mix && excluded.isEmpty() && plan.core().isEmpty()
@@ -525,7 +544,89 @@ public class AiSearchFlow {
 		Cards cards = new Cards(known, listed, beside(() -> bookTexts.coverUrls(ids)),
 				beside(() -> bookTexts.summaries(ids)), planCount);
 		run.mark("cards");
-		picks(input, history, ids, choices, cards, pointsBack, run);
+		picks(input, history, ids, choices, cards, pointsBack, talk, run);
+	}
+
+	/** How the pick call may ask back for a question of talk words. */
+	enum AskMode {
+
+		/** As for any follow-up. */
+		NORMAL,
+
+		/** Never: the user already said they cannot choose, or where to go back to is known. */
+		NEVER,
+
+		/** Always, with choices from the dialogue's topics: what the words point at is not known. */
+		FORCE
+
+	}
+
+	/**
+	 * What a question of talk words makes the search do.
+	 * @param topic the question the search goes on from (the topic the words point at)
+	 * @param excludeShown whether the books shown before stay out (「그거 말고」 after cards)
+	 * @param note the line the pick call gets about what the user meant
+	 */
+	record Talk(TalkRefs.Kind kind, String topic, AskMode mode, boolean excludeShown, String note) {
+	}
+
+	/** The talk words' plan (TalkRefs), or null for a question that names its own topic. */
+	static Talk talk(Input input) {
+		if (input.history().isEmpty()) {
+			return null;
+		}
+		TalkRefs.Ref ref = TalkRefs.of(input.question());
+		if (ref == null) {
+			return null;
+		}
+		List<String> questions = input.history().stream().map(Turn::question).toList();
+		List<Boolean> asked = input.history().stream().map(t -> t.askedBack() != null).toList();
+		List<String> topics = TalkRefs.topics(questions, asked);
+		if (topics.isEmpty()) {
+			return null;
+		}
+		Turn last = input.history().getLast();
+		boolean lastAsked = last.askedBack() != null;
+		boolean askedTwice = lastAsked && input.history().size() > 1
+				&& input.history().get(input.history().size() - 2).askedBack() != null;
+		String current = topics.getLast();
+		String offered = String.join("」·「", last.askChoices());
+		String q = input.question().strip();
+		Talk unknown = new Talk(ref.kind(), current, AskMode.FORCE, false, "사용자의 「" + q + "」가 앞 대화의 무엇을 가리키는지 "
+				+ "분명하지 않다. 반드시 되묻는다. 고를 답은 이 대화에 나온 주제(「" + String.join("」, 「", topics)
+				+ "」)에서 짓고, 새로 찾고 싶은 게 있으면 적어 달라는 뜻도 덧붙인다.");
+		return switch (ref.kind()) {
+			case DONT_KNOW -> !lastAsked ? null
+					: new Talk(ref.kind(), current, AskMode.NEVER, false, "사용자가 되물은 말에 「" + q + "」라고 답해 어느 쪽인지 "
+							+ "정하지 못했다. 다시 묻지 말고, 앞에서 낸 고를 답(「" + offered + "」)의 갈래마다 2~3권씩 고루 섞어 "
+							+ "고른다. 머리말에는 여러 갈래로 골라 봤다고 쓴다.");
+			case NOT_THAT -> {
+				if (ref.that()) {
+					yield unknown;
+				}
+				if (lastAsked) {
+					yield askedTwice
+							? new Talk(ref.kind(), current, AskMode.NEVER, false, "사용자가 다시 되물은 고를 답(「" + offered
+									+ "」)에도 원하는 것이 없다고 했다. 더 묻지 말고, 「" + current + "」에서 그 고를 답과 다른 갈래의 "
+									+ "책을 고루 섞어 고른다.")
+							: new Talk(ref.kind(), current, AskMode.FORCE, false, "사용자가 앞에서 낸 고를 답(「" + offered
+									+ "」) 가운데 원하는 것이 없다고 했다. 그 고를 답과 다른 「" + current + "」의 갈래로 다시 "
+									+ "되묻는다. 앞의 고를 답과 같은 뜻의 고를 답은 다시 쓰지 않고, 아래 책들과 이 대화에 나온 "
+									+ "주제에서 새 갈래를 짓는다.");
+				}
+				yield last.bookIds().isEmpty() ? unknown
+						: new Talk(ref.kind(), current, AskMode.NORMAL, true, "사용자가 방금 보인 책이 아닌 다른 책을 원한다(「" + q
+								+ "」). 「" + current + "」 주제에서 방금 보인 책과 다른 책을 고른다. 무엇이 마음에 들지 않았는지 "
+								+ "알 수 없으면 이 주제 안의 갈래로 되물어도 된다.");
+			}
+			case BACK_TO -> {
+				String chosen = TalkRefs.back(ref, topics);
+				yield chosen == null ? unknown
+						: new Talk(ref.kind(), chosen, AskMode.NEVER, false, "사용자가 앞 대화의 「" + chosen + "」 이야기로 돌아가려 "
+								+ "한다(「" + q + "」). 그 주제에 맞는 책을 고른다(앞에서 보인 책도 다시 골라도 된다). 머리말에서 "
+								+ "그 주제로 돌아왔다고 자연스럽게 말한다.");
+			}
+		};
 	}
 
 	/**
@@ -776,7 +877,7 @@ public class AiSearchFlow {
 	}
 
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
-			boolean pointsBack, Run run) {
+			boolean pointsBack, Talk talk, Run run) {
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
@@ -786,11 +887,13 @@ public class AiSearchFlow {
 		// a question joining earlier topics (EarlierTopics: 「둘이 합쳐진 거」) or answering an ask-back is never asked
 		// back: the earlier questions say what it means (user 2026-10-26, 2 wrong asks in the test; 2026-10-27)
 		// a long first question is clear enough to pick from at once (ASK_QUESTION_WORDS)
-		boolean askBack = pick.askBack() && !pointsBack
-				&& (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS);
+		// talk words decide it themselves (plan 2026-10-29): never after 「모르겠어」, always when what they point at is
+		// not known
+		boolean askBack = pick.askBack() && (talk != null ? talk.mode() != AskMode.NEVER
+				: !pointsBack && (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS));
 		// a short question gets the candidates' big shelves, so the call sees whether they split (「사진」, user 2026-10-27)
-		Map<String, Integer> shelves = askBack && words(input.question()) <= SHORT_QUESTION_WORDS
-				? mlFirstCall.shelfCounts(ids) : Map.of();
+		Map<String, Integer> shelves = askBack && (words(input.question()) <= SHORT_QUESTION_WORDS
+				|| talk != null && talk.mode() == AskMode.FORCE) ? mlFirstCall.shelfCounts(ids) : Map.of();
 		// the ask-back question and choices when the call asks instead of picking (pick.ask-back, user 2026-10-26)
 		StringBuilder askQuestion = new StringBuilder();
 		List<String> askChoices = new ArrayList<>();
@@ -862,7 +965,8 @@ public class AiSearchFlow {
 		});
 		LlmCall call = new LlmCall(askBack ? Prompts.PICK_ASK_SYSTEM : Prompts.PICK_SYSTEM,
 				Prompts.pickMessages(history, input.question(), choices,
-						java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue(), shelves),
+						java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue(), shelves,
+						talk == null ? null : talk.note()),
 				askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
 				properties.pickMaxTokens());
 		boolean failed = false;

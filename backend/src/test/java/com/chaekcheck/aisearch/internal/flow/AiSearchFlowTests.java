@@ -886,6 +886,64 @@ class AiSearchFlowTests {
 		flow().run(input(question, history), sink);
 	}
 
+	@Test
+	void talkWordsGoOnFromTheTopicTheyPointAt() { // plan 2026-10-29, A–E
+		AiSearchFlow.Turn ai = new AiSearchFlow.Turn("AI 관련 기초 도서", List.of(1L, 2L));
+		AiSearchFlow.Turn photo = new AiSearchFlow.Turn("사진", List.of(), "어떤 사진 책을 찾으세요?", List.of("찍는 법", "사진집"));
+		AiSearchFlow.Turn cooking = new AiSearchFlow.Turn("요리", List.of(3L));
+
+		AiSearchFlow.Talk dontKnow = AiSearchFlow.talk(input("나도 잘 모르겠어", List.of(ai, photo)));
+		assertThat(dontKnow.topic()).isEqualTo("사진");
+		assertThat(dontKnow.mode()).isEqualTo(AiSearchFlow.AskMode.NEVER);
+		assertThat(dontKnow.note()).contains("「찍는 법」·「사진집」");
+
+		AiSearchFlow.Talk notThatAfterAsk = AiSearchFlow.talk(input("그거 말고", List.of(ai, photo)));
+		assertThat(notThatAfterAsk.mode()).isEqualTo(AiSearchFlow.AskMode.FORCE);
+		assertThat(notThatAfterAsk.topic()).isEqualTo("사진");
+
+		AiSearchFlow.Talk notThatAfterCards = AiSearchFlow.talk(input("그거 말고", List.of(ai, cooking)));
+		assertThat(notThatAfterCards.topic()).isEqualTo("요리");
+		assertThat(notThatAfterCards.excludeShown()).isTrue();
+
+		AiSearchFlow.Talk back = AiSearchFlow.talk(input("아까 이야기한 거", List.of(ai, cooking)));
+		assertThat(back.topic()).isEqualTo("AI 관련 기초 도서");
+		assertThat(back.mode()).isEqualTo(AiSearchFlow.AskMode.NEVER);
+		assertThat(back.excludeShown()).isFalse();
+
+		AiSearchFlow.Talk unknown = AiSearchFlow.talk(input("그거 말고 저거", List.of(ai, cooking)));
+		assertThat(unknown.mode()).isEqualTo(AiSearchFlow.AskMode.FORCE);
+		assertThat(unknown.note()).contains("「AI 관련 기초 도서」, 「요리」");
+
+		assertThat(AiSearchFlow.talk(input("추리 소설", List.of(ai)))).isNull();
+		assertThat(AiSearchFlow.talk(input("그거 말고", List.of()))).isNull();
+	}
+
+	@Test
+	void notThatAfterAnAskBackAsksAgainWithTheNoteUnderTheQuestion() { // plan 2026-10-29, B
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"ask\":{\"question\":\"다른 쪽인가요?\",\"choices\":[\"가\",\"나\"]},",
+				"\"head\":\"\",\"picks\":[]}"), 1000, 60));
+
+		run("그거 말고", List.of(new AiSearchFlow.Turn("과학책 추천해줘", List.of(), "어떤 과학책이요?", List.of("우주", "생물"))));
+
+		LlmCall call = llm.calls.getLast();
+		assertThat(call.system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
+		assertThat(call.messages().getLast().text()).contains("\n대화 메모: ").contains("「우주」·「생물」");
+		assertThat(sink.last(Done.class).result()).isEqualTo("asked");
+	}
+
+	@Test
+	void notKnowingAfterAnAskBackIsNeverAskedAgain() { // plan 2026-10-29, A
+		askBackOn();
+		llm.then(keywords("과학")).then(Answer.pieces(List.of("{\"head\":\"좋아요\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"가\"}]}"),
+				1000, 60));
+
+		run("잘 모르겠어요", List.of(new AiSearchFlow.Turn("과학책 추천해줘", List.of(), "어떤 과학책이요?", List.of("우주", "생물"))));
+
+		assertThat(llm.calls.getLast().system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(sink.last(Done.class).result()).isEqualTo("ok");
+	}
+
 	private AiSearchFlow.Input input(String question, List<AiSearchFlow.Turn> history) {
 		return new AiSearchFlow.Input(question, history.size() + 1, history, Set.of(101L, 102L), REQUEST,
 				System.nanoTime());
