@@ -402,6 +402,7 @@ LIMIT :limit
 - `score` = 들어 있는 낱말 수(낱말 하나에 1점). `plan_count` = 그 책을 가진 계획 도서관 수. 자른 뒤가 아니라 줄 세운 뒤에 `LIMIT`으로 자릅니다. `LIKE '%…%'`는 pg_bigm GIN 인덱스(`book_search_search_text_bigm`)를 탑니다.
 - `LIMIT`: 벡터와 합칠 때(`mix`) **50**(= max(`keyword-depth` 50, `candidates` 30)). 합치지 않을 때 30 − (이미 고른 수).
 - 4-1절 이른 검색의 조건이 맞으면 이 SQL을 다시 돌리지 않고 그 결과를 씀(로그 `early keyword`).
+- **실행 계획 고정(v1.20.1~)**: 이 SQL은 읽기 전용 트랜잭션 안에서 `SET LOCAL plan_cache_mode = force_custom_plan` 뒤에 돌립니다(`JdbcAiSearchIndex.find`). 이 설정이 없을 때 JDBC 드라이버(pgjdbc, `prepareThreshold=5`)는 한 연결에서 같은 꼴의 SQL이 5번을 넘으면 서버 준비문으로 바꾸고, PostgreSQL이 낱말 값과 상관없는 일반 계획을 골라 맞는 줄 전부에 `plan_count`를 셌습니다(「소설」·「위로」 16,418줄, 5.17초 vs 맞춤 계획 0.24초). v1.19.0 이전에도 같았고, 운영에서 v1.20.0 r3·r4 측정에 드러남. 자세한 원리: [사이클 26 일반 계획 설명](../cycle26-book-descriptions/3-postgres-generic-plan.md), 전후 숫자: [첫 글 시간 7절](reports/2026-10-27-latency.md#7-사이클-26-배포-1과-실행-계획-고정-v1200v1201-2026-10-29).
 - 출력: `List<Candidate(bookId, score, planCount)>`. 그다음 서버 메모리의 `book_search` 사본에 없는 책(요청 사이에 표가 바뀐 경우)은 버림.
 
 **합치지 않을 때**(`mix`가 거짓: 앞 책을 가리킴, 또는 벡터가 꺼짐): 이 순서 그대로 `chosen` 뒤에 붙이고 4-10절로. 같은 제목 거르기는 하지 않습니다.

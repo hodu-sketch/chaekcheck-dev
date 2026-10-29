@@ -34,9 +34,15 @@ final class BookProfiles {
 	/** From the catalog's profiles. */
 	static BookProfiles of(Map<Long, com.chaekcheck.catalog.BookProfiles.Profile> profiles) {
 		Map<Long, Profile> byId = new HashMap<>(profiles.size() * 2);
-		profiles.forEach((id, p) -> byId.put(id, new Profile(p.field(), p.subfield(), p.fiction(), p.genres(),
-				p.country(), p.audience(), p.level(), p.forms())));
+		// the table keeps an empty cell as NULL where the file has "" (the shelves compare these words; NPE in
+		// production after the step 12 import, 2026-10-29)
+		profiles.forEach((id, p) -> byId.put(id, new Profile(text(p.field()), text(p.subfield()), p.fiction(),
+				p.genres(), text(p.country()), text(p.audience()), text(p.level()), p.forms())));
 		return new BookProfiles(byId);
+	}
+
+	private static String text(String cell) {
+		return cell == null ? "" : cell;
 	}
 
 	static BookProfiles read(Path file) throws IOException {

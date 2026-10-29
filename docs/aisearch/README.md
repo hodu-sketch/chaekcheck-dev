@@ -76,4 +76,4 @@ AI 책 찾기(주소 `/ai`, API `POST /api/v1/ai-searches/stream`)는 사이클 
 - 스크립트: [`scripts/aisearch/`](../../scripts/aisearch/)(책 데이터·벡터 만들기), [`scripts/aisearch/eval/`](../../scripts/aisearch/eval/)(실험·평가, README 있음)
 - git 밖 데이터: `chaekcheck-data/ml/`(모델 폴더, `README.md` 색인: 운영은 `aisearch-model-100k`), `chaekcheck-dev/data/aisearch-eval-2026-10-25/`(실험 데이터, README 있음)
 - 바뀐 점 목록: [`CHANGELOG.md`](../../CHANGELOG.md), plan에 넘긴 기록: [`plan-feedback.md`](../plan-feedback.md)의 사이클 24·AI 검색 절
-- **옛 경로**: `docs/reports/ai-search-*.md`, `docs/cycle24-session-handoff.md`에는 「옮긴 문서」 한 줄만 남겨 둠. 코드 주석(`AiSearchFlow`, `Fusion` 등)과 plan의 ADR-0160이 옛 경로를 가리켜서이고, 사이클 26 dev가 그 코드를 고치는 중이라 지금 주석은 건드리지 않음. 주석이 새 경로로 바뀌면 지움.
+- 2026-10-29에 옮기면서 옛 경로(`docs/reports/ai-search-*.md`, `docs/cycle24-session-handoff.md`)에 남겼던 안내 파일은 사이클 26 배포 1(v1.20.0)로 코드 주석이 새 경로로 바뀐 뒤 지웠습니다.

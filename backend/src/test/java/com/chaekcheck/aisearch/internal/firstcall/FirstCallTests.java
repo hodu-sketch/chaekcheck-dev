@@ -82,6 +82,20 @@ class FirstCallTests {
 	}
 
 	@Test
+	void profilesFromTheTableMatchShelvesLikeTheFile() { // NULL cells of catalog.book_profile, 2026-10-29
+		BookProfiles profiles = BookProfiles.of(java.util.Map.of(7L, new com.chaekcheck.catalog.BookProfiles.Profile(
+				"자기계발", "공부법", false, List.of(), null, "교양", null, List.of())));
+		Shelves asked = new Shelves(List.of("과학"), List.of("물리"), false, List.of(), "영미", "아이", "입문",
+				List.of(), List.of(), List.of(), List.of());
+
+		assertThat(profiles.of(7)).isEqualTo(new BookProfiles.Profile("자기계발", "공부법", false, List.of(), "", "교양",
+				"", List.of()));
+		// only "not a novel" is shared
+		assertThat(asked.matches(profiles.of(7))).isEqualTo(1);
+		assertThat(asked.excludes(profiles.of(7))).isFalse();
+	}
+
+	@Test
 	void theQuestionWordsDropEndingsAndRequestWords() { // as cands_e2e.words
 		assertThat(QuestionWords.of("다이어트 식단을 자세히 다룬 책 추천해줘")).containsExactly("다이어트", "식단", "자세히", "다룬");
 		// 되는 -> 되: one letter, dropped; 에세이 -> 에세 as measured (the keyword match takes it as part of a word)

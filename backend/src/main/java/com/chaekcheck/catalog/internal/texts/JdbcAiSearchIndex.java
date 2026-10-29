@@ -13,7 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.catalog.AiSearchIndex;
 
@@ -31,8 +33,12 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 
 	private final JdbcClient jdbc;
 
-	JdbcAiSearchIndex(JdbcClient jdbc) {
+	private final TransactionTemplate readOnly;
+
+	JdbcAiSearchIndex(JdbcClient jdbc, PlatformTransactionManager transactionManager) {
 		this.jdbc = jdbc;
+		this.readOnly = new TransactionTemplate(transactionManager);
+		this.readOnly.setReadOnly(true);
 	}
 
 	@Override
@@ -70,7 +76,14 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 		for (int i = 0; i < words.size(); i++) {
 			statement = statement.param("k" + i, "%" + escapeLike(words.get(i)) + "%");
 		}
-		return statement.query((rs, n) -> new Candidate(rs.getLong(1), rs.getInt(2), rs.getInt(3))).list();
+		JdbcClient.StatementSpec query = statement;
+		// a custom plan every time (2026-10-29, dev 24's timing after deploy 1): after five runs of the same text on
+		// one connection the driver's prepared statement gets PostgreSQL's generic plan, which counts the plan
+		// libraries of every matched row (16,418 rows, 5.2 s for the words 소설, 위로) instead of the top ones (0.24 s)
+		return readOnly.execute(status -> {
+			jdbc.sql("SET LOCAL plan_cache_mode = force_custom_plan").update();
+			return query.query((rs, n) -> new Candidate(rs.getLong(1), rs.getInt(2), rs.getInt(3))).list();
+		});
 	}
 
 	@Override

@@ -67,6 +67,29 @@ class AiSearchIndexTests {
 			.containsExactly(930001L, 930003L);
 	}
 
+	/**
+	 * After five runs of one text the driver prepares it on the server, where PostgreSQL would take a generic plan that
+	 * counts the plan libraries of every matched row (11 s in production, 2026-10-29); the query asks for a custom plan
+	 * each time.
+	 */
+	@Test
+	void repeatedSearchesKeepCustomPlans() {
+		books(book(1, "과학 산책", 1), book(2, "과학의 눈", 5));
+		store(List.of());
+
+		for (int run = 0; run < 12; run++) {
+			assertThat(index.find(List.of("과학", "산책"), Set.of(), PLAN, Set.of(), 30)).hasSize(2);
+		}
+
+		Map<String, Object> plans = jdbc.sql("""
+				SELECT coalesce(sum(generic_plans), 0) AS generic, coalesce(sum(custom_plans), 0) AS custom
+				FROM pg_prepared_statements WHERE statement LIKE '%FROM catalog.book_search s%core_score%'""")
+			.query()
+			.singleRow();
+		assertThat(((Number) plans.get("generic")).longValue()).isZero();
+		assertThat(((Number) plans.get("custom")).longValue()).isPositive();
+	}
+
 	@Test
 	void tiesAreCutAfterTheOrderNotByBookIdFirst() {
 		List<String> rows = new ArrayList<>();
