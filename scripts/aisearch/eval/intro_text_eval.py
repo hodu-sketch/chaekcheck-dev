@@ -530,6 +530,7 @@ def book_scores(name: str, qv):
 # ---------------------------------------------------------------- keyword search (as production, 1-how-it-works 4-7)
 
 KW_ENDING = re.compile(r'(으로|에서|에게|한테|이랑|하고|까지|부터|처럼|같은|이나|에|의|을|를|이|가|은|는|와|과|로|도|만|요)$')
+KW_TAIL = re.compile(r'^(.{2,}?)(?:나|랑)$')
 KW_SPLIT = re.compile(r'[\s,.?!·~"\'()]+')
 KW_STOP = {'책', '도서', '관련', '사람', '처음', '위한', '대한', '읽는', '추천', '추천해줘', '추천해', '알려줘', '찾아줘', '읽을', '읽기',
            '좋은', '있어', '있나요', '있을까요', '싶어', '싶은', '거', '것', '걸', '같은', '비슷한', '처럼', '주세요', '해줘', '좀', '그냥',
@@ -545,6 +546,7 @@ def question_words(q: str) -> list[str]:
     out = []
     for piece in KW_SPLIT.split(q):
         w = KW_ENDING.sub('', piece, count=1)
+        w = KW_TAIL.sub(r'\1', w)  # main 35d1d3b9: 「세계역사나」 → 「세계역사」, 「하나」·「사랑」 stay
         if len(w) >= 2 and w not in KW_STOP and w not in out:
             out.append(w)
     return out[:8]
