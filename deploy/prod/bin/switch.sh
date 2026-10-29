@@ -24,7 +24,8 @@ flock -n 9 || { echo "switch: REFUSED $KIND $VERSION reason=already-running; not
 
 # ── common 2: dawn check (ADR-0171) ──
 hhmm="${CHAEKCHECK_CLOCK_HHMM:-$(TZ=Asia/Seoul date +%H%M)}"
-if [[ "$hhmm" -ge 325 && "$hhmm" -le 510 ]]; then
+# 10# forces decimal: bash [[ -ge ]] treats leading-zero strings as octal (0400 = 256, not 400).
+if (( 10#$hhmm >= 325 && 10#$hhmm <= 510 )); then
     echo "switch: REFUSED $KIND $VERSION reason=dawn (03:25-05:10 Asia/Seoul, scheduled jobs); nothing changed"
     exit 1
 fi
