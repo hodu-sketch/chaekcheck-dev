@@ -7358,3 +7358,11 @@ plan 26 세션 요청(사용자 "속도가 우선이긴 한데 그렇게 차이�
 - 옛 경로 안내 파일(`docs/reports/ai-search-*.md`, `docs/cycle24-session-handoff.md`)은 배포 1이 main에 들어와 지움.
 - **v1.20.1 뒤**(2026-10-29, 4번 연달아): 1초 넘은 낱말 검색 0번(v1.20.0 r3·r4는 24번 중 6번), 첫 글 중간 2.10~2.30초, 느린 10% 2.76~3.05초(v1.20.0 r3·r4 5.2~5.8초), 5낱말 이상 첫 글 중간 1.9~2.1초. 원인은 dev 26이 찾은 JDBC 일반 계획(v1.19.0에도 있던 것). 표: `docs/aisearch/reports/2026-10-27-latency.md` 7절.
 
+# AI 검색 대화를 가리키는 말 (2026-10-29, dev 24, plan-26 결정 A~E)
+
+- 사용자: 「dev 24에 바로」(A~E), 「아까 이야기한 거」 머리말은 **「지금처럼 자유롭게」**(고정 문구 없이 Haiku가 씀).
+- 고친 곳(브랜치 `claude/aisearch-talk-refs-2`, 배포 전): 새 `aisearch/internal/flow/TalkRefs`(종류 BACK_TO / NOT_THAT / DONT_KNOW, 앞 주제 목록), `AiSearchFlow.talk()`(가리킨 주제로 ML 1차·벡터·낱말 검색, 되묻기 NEVER / FORCE / NORMAL, 카드 뒤 「그거 말고」는 앞 책과 같은 제목의 다른 판도 뺌), `Prompts.pickMessages`의 「대화 메모」 한 줄, `QuestionWords` 빼는 낱말 14개. Liquibase 없음, 웹 없음.
+- 숫자(대화 27개, 대화 말 40턴, Sonnet 채점): 통과 **23 → 40 / 40**, 되묻기 기대대로 43 → 49 / 49, 고정 되묻기 1 → 0, 「목록」 3 → 0, 맞는 / 틀린 카드 171 / 52 → 208 / 2. 규칙 시험 80문항: 카드 맞음 92% → 90%(떨어진 합치기 6문항은 바꾼 길을 지나지 않음 — 흔들림).
+- 기록: `docs/aisearch/reports/2026-10-29-talk-refs.md`, 시험 `scripts/aisearch/eval/talk_refs_suite.json`·`talk_refs_run.py`·`talk-refs-JUDGE_RULES.md`.
+- 배포 차례: 사이클 23 v1.20.2(올라감) → dev 26 v1.20.3 → 이것(번호는 그 다음). 사용자 승인 뒤.
+- **plan이 정할 것은 그대로**: 대화 점검의 N, 정리 칸, 책 밖 말 첫 글 1.5~2초, 1차 「대화」 갈래(위 「AI 검색 대화 점검」). E1~E4·E8도 아직.
