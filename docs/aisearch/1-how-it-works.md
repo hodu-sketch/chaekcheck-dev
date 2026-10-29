@@ -290,9 +290,9 @@
 
 근거: `TalkRefs`, `AiSearchFlow.talk`, `Prompts.pickMessages`. 잰 결과: [reports/2026-10-29-talk-refs](reports/2026-10-29-talk-refs.md).
 
-- **v1.22.0부터 `BACK_TO`의 주제 고르기**: 「아까」 없이 「뇌과학 말한거」, 「했던거」도 `BACK_TO`입니다. 고르는 차례는 4-0-2의 「아까」 줄입니다(위 표의 `TalkRefs.back()`은 벡터가 없을 때만 씀).
+- **v1.22.1부터 `BACK_TO`의 주제 고르기**: 「아까」 없이 「뇌과학 말한거」, 「했던거」도 `BACK_TO`입니다. 고르는 차례는 4-0-2의 「아까」 줄입니다(위 표의 `TalkRefs.back()`은 벡터가 없을 때만 씀).
 
-#### 4-0-2. 이어지는 질문의 조건과 주제 (v1.22.0부터)
+#### 4-0-2. 이어지는 질문의 조건과 주제 (v1.22.1부터)
 
 앞 대화가 있을 때 아래를 정한 뒤 4-1절로 갑니다. 「벡터」는 질문(또는 그 조각)을 4-2절과 같은 인코더로 만든 벡터이고, 예시 문장(`resources/aisearch/intent-examples.tsv`, 80줄)의 벡터와 견줘 가장 가까운 5개가 가까운 만큼 표를 던집니다(`IntentVectors`). 예시는 처음 쓸 때 한 번 만들어 메모리에 두고, 그 전이나 벡터가 꺼졌으면 규칙만 씁니다. 조각 벡터는 최대 1.5초 기다립니다.
 
@@ -447,8 +447,8 @@ ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
 LIMIT :limit
 ```
 
-- **최신일 때(v1.22.0~)**: 4-0-2절의 첫 해가 있으면 바깥 줄에 `coalesce((SELECT (b.published_on >= make_date(:from,1,1))::int FROM catalog.book b WHERE b.id = s.book_id), 0) AS recent`를 더하고 `ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id`. 같은 수의 낱말을 가진 책 가운데 최근 책이 먼저입니다. 이른 검색(4-1)은 쓰지 않습니다.
-- **주제가 여럿일 때(v1.22.0~)**: 주제마다 `QuestionWords.of(주제)`를 중심 낱말로, 1차 낱말을 그 뒤에 붙여 `LIMIT` = ⌈50 ÷ 주제 수⌉로 따로 찾고, 1위·1위·2위·2위… 순으로 겹치지 않게 50개까지 담습니다.
+- **최신일 때(v1.22.1~)**: 4-0-2절의 첫 해가 있으면 바깥 줄에 `coalesce((SELECT (b.published_on >= make_date(:from,1,1))::int FROM catalog.book b WHERE b.id = s.book_id), 0) AS recent`를 더하고 `ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id`. 같은 수의 낱말을 가진 책 가운데 최근 책이 먼저입니다. 이른 검색(4-1)은 쓰지 않습니다.
+- **주제가 여럿일 때(v1.22.1~)**: 주제마다 `QuestionWords.of(주제)`를 중심 낱말로, 1차 낱말을 그 뒤에 붙여 `LIMIT` = ⌈50 ÷ 주제 수⌉로 따로 찾고, 1위·1위·2위·2위… 순으로 겹치지 않게 50개까지 담습니다.
 
 - `score` = 들어 있는 낱말 수(낱말 하나에 1점). `plan_count` = 그 책을 가진 계획 도서관 수. 자른 뒤가 아니라 줄 세운 뒤에 `LIMIT`으로 자릅니다. `LIKE '%…%'`는 pg_bigm GIN 인덱스(`book_search_search_text_bigm`)를 탑니다.
 - `LIMIT`: 벡터와 합칠 때(`mix`) **50**(= max(`keyword-depth` 50, `candidates` 30)). 합치지 않을 때 30 − (이미 고른 수).
@@ -465,7 +465,7 @@ LIMIT :limit
 - 입력: 4-4절의 120개(ML 1차). Haiku 1차로 온 검색은 질문만으로 따로 만든 벡터의 120개(6절).
 - 기다림: 그 결과를 최대 2초 기다림. 늦거나 실패하면 빈 목록(로그 `the question vector was late` / `failed`)이고 낱말 후보만으로 이어감.
 - 거르기: `book_search`에 있고 → 뺄 책이 아니고 → 한 SQL(`planCounts`)로 계획 도서관 수를 세어 1곳 이상 가진 것 → 앞에서 **60개**(`vector-depth`).
-- **v1.22.0부터**: 가까운 책을 깊이 × 10(600권, `NEAREST_POOL`) 읽습니다. 최신이면 가까운 240권(`RECENT_WINDOW` 4) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮긴 뒤 120권에서 자릅니다. 주제가 여럿이면 주제마다 벡터를 만들어 600 ÷ 주제 수권씩 읽고 번갈아 담은 목록을 씁니다.
+- **v1.22.1부터**: 가까운 책을 깊이 × 10(600권, `NEAREST_POOL`) 읽습니다. 최신이면 가까운 240권(`RECENT_WINDOW` 4) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮긴 뒤 120권에서 자릅니다. 주제가 여럿이면 주제마다 벡터를 만들어 600 ÷ 주제 수권씩 읽고 번갈아 담은 목록을 씁니다.
 - 출력: `List<Long>` ≤60, 가까운 순. 계획 도서관 수는 카드용으로 기억.
 
 근거: `AiSearchFlow.vectorCandidates`, `CandidateQuery.planCounts`.
@@ -688,8 +688,8 @@ ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <
 | `tokens` | 이 검색의 모든 호출 합. 입력은 캐시 토큰 포함, 출력은 모르면 `max_tokens` |
 | `ask` | `single-ask`(2차가 되물음), `not-book-ask`(고정 되묻기), `one-word`(낱말 하나라 책 찾기로 바꿈) |
 | `tail` | 상황별 정리 글이 길어서 끊김(`too long`, v1.21.x) |
-| `from` | 최신 조건의 첫 해(4-0-2, v1.22.0~) |
-| `parts` | 주제를 나눠 찾은 수(4-0-2, v1.22.0~) |
+| `from` | 최신 조건의 첫 해(4-0-2, v1.22.1~) |
+| `parts` | 주제를 나눠 찾은 수(4-0-2, v1.22.1~) |
 | `client gone` | 사용자가 떠남 |
 | `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 120) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-first`(2차 첫 글 조각) `llm-done`(2차 끝) |
 
