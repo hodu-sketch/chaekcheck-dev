@@ -149,7 +149,7 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 
 	@Override
 	@Transactional
-	public SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines) {
+	public SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines, List<Written> written) {
 		if (bookIds.isEmpty()) {
 			throw new IllegalArgumentException("no books: the search books are kept as they are");
 		}
@@ -163,6 +163,19 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 		for (Line line : lines) {
 			if (lineByBook.put(line.bookId(), line) != null) {
 				throw new IllegalArgumentException("two lines for book " + line.bookId());
+			}
+		}
+		Map<Long, Written> writtenByBook = new HashMap<>();
+		for (Written row : written) {
+			if (writtenByBook.put(row.bookId(), row) != null) {
+				throw new IllegalArgumentException("two written rows for book " + row.bookId());
+			}
+		}
+		if (written.isEmpty()) {
+			Integer stored = jdbc.sql("SELECT count(written_on) FROM catalog.book_search").query(Integer.class).single();
+			if (stored != null && stored > 0) {
+				throw new IllegalStateException("The new file has no summary or search terms but " + stored
+						+ " books have them now; refused so that none is lost, the search books were kept");
 			}
 		}
 		if (lines.isEmpty()) {
@@ -183,11 +196,14 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 		int linesNotListed = (int) lineByBook.keySet().stream().filter(id -> !stored.contains(id)).count();
 		int deleted = jdbc.sql("DELETE FROM catalog.book_search").update();
 		int[] withLine = { 0 };
+		int[] withWritten = { 0 };
 		template.batchUpdate("""
 				INSERT INTO catalog.book_search
-				  (book_id, line, line_source, line_made_on, search_text, library_ids)
-				VALUES (?, ?, ?, ?, ?, ?)""", books, BATCH, (statement, book) -> {
+				  (book_id, line, line_source, line_made_on, search_text, library_ids, summary, terms, written_on,
+				   keyword_text)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", books, BATCH, (statement, book) -> {
 			Line line = lineByBook.get(book.id());
+			Written words = writtenByBook.get(book.id());
 			statement.setLong(1, book.id());
 			if (line == null) {
 				statement.setNull(2, Types.VARCHAR);
@@ -203,16 +219,47 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 			statement.setString(5, SearchText.ofBook(book.title(), book.author(), line == null ? null : line.text()));
 			// catalog.book keeps bigint ids; book_search keeps 4-byte ones (aisearch-004, ADR-0160)
 			statement.setArray(6, statement.getConnection().createArrayOf("integer", book.libraryIds()));
+			if (words == null) {
+				statement.setNull(7, Types.VARCHAR);
+				statement.setNull(8, Types.VARCHAR);
+				statement.setNull(9, Types.DATE);
+			}
+			else {
+				withWritten[0]++;
+				statement.setString(7, words.summary());
+				statement.setString(8, words.terms());
+				statement.setDate(9, Date.valueOf(words.madeOn()));
+			}
+			statement.setString(10, keywordText(book, line, words));
 		});
 		SearchResult result = new SearchResult(books.size(), withLine[0], bookIds.size() - books.size(),
 				linesNotListed);
-		log.info("search books replaced: deleted {}, stored {}, with line {}, not in catalog {}, lines not listed {}",
-				deleted, result.stored(), result.withLine(), result.notInCatalog(), result.linesNotListed());
+		log.info("search books replaced: deleted {}, stored {}, with line {}, with summary or terms {}, not in catalog {}, "
+				+ "lines not listed {}", deleted, result.stored(), result.withLine(), withWritten[0], result.notInCatalog(),
+				result.linesNotListed());
 		if (linesNotListed > 0) {
 			log.warn("{} search lines are for books not searched now: was the file made from another database?",
 					linesNotListed);
 		}
 		return result;
+	}
+
+	/**
+	 * The BM25 text (catalog/006 {@code keyword_text}): title, author, line and search terms with their spaces, which
+	 * the Korean analyser needs ({@code search_text} has none), each part's runs of white space made one space.
+	 */
+	private static String keywordText(Book book, Line line, Written words) {
+		StringBuilder text = new StringBuilder();
+		for (String part : new String[] { book.title(), book.author(), line == null ? null : line.text(),
+				words == null ? null : words.terms() }) {
+			if (part != null && !part.isBlank()) {
+				if (!text.isEmpty()) {
+					text.append(' ');
+				}
+				text.append(String.join(" ", part.strip().split("\\s+")));
+			}
+		}
+		return text.toString();
 	}
 
 	private record Book(long id, String title, String author, Integer[] libraryIds) {

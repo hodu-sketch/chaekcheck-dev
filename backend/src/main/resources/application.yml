@@ -131,6 +131,12 @@ chaekcheck:
     # runs on several instances. docs/maintenance/settings-index.md
     state-store: memory
   catalog:
+    ai-search:
+      # how the AI search's keyword candidates are matched (user 2026-10-30 "두 층 (조각 512) + BM25 이걸로 개발해",
+      # docs/aisearch/reports/2026-10-29-intro-text.md 10-11): like = search_text LIKE each word (pg_bigm, v1.15.0~);
+      # bm25 = pg_search BM25 over title, author, line and the Haiku search terms, the plan-library filter inside the
+      # index. bm25 needs the database image with pg_search (docker/postgres-bigm) and falls back to like without it
+      keyword-match: ${CHAEKCHECK_AISEARCH_KEYWORD_MATCH:like}
     books:
       # GET /api/v1/books page size when pageSize is not sent; the maximum stays 20 (BookParams.MAX_PAGE_SIZE).
       # 20 -> 10 [확정] (cycle 20 ADR-0132, spec R15). docs/maintenance/settings-index.md

@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import com.chaekcheck.catalog.BookTextsTransfer.Cover;
 import com.chaekcheck.catalog.BookTextsTransfer.Line;
 import com.chaekcheck.catalog.BookTextsTransfer.Source;
 import com.chaekcheck.catalog.BookTextsTransfer.Summary;
+import com.chaekcheck.catalog.BookTextsTransfer.Written;
 
 /**
  * The {@code book-texts} file (cycle 24, ADR-0151, design-delta "넣는 파일" [안]): UTF-8 TSV, header
@@ -31,7 +33,10 @@ import com.chaekcheck.catalog.BookTextsTransfer.Summary;
  * {@code cover_file} (the cover's sha1, 40 lower-case hex digits). Those three do not read {@code source}, and
  * {@code cover_file} does not read {@code made_on}. Since 2026-10-25 also {@code search_exclude} (user "소개 없는 책
  * 빼기"): a most held book left out of the AI search, the text its reason (1 or more characters; {@code source} and
- * {@code made_on} not read). Other kinds are skipped and counted. A row with a tab or a line
+ * {@code made_on} not read). Since 2026-10-30 (user "두 층 (조각 512) + BM25") also {@code search_summary} (1 to
+ * {@value BookTextsTransfer#SEARCH_SUMMARY_MAX_CHARS} characters) and {@code search_terms} (comma separated, 1 to
+ * {@value BookTextsTransfer#SEARCH_TERMS_MAX_CHARS} characters), what one Haiku call wrote for the AI search's two
+ * layers ({@code source} not read). Other kinds are skipped and counted. A row with a tab or a line
  * break in its text has the wrong number of columns, and a text over {@value BookTextsTransfer#TEXT_MAX_CHARS}
  * characters is refused: then the whole file is refused, with every problem's row number, and nothing is put in. One
  * row per book and kind. A byte order mark and Windows line ends are accepted.
@@ -53,7 +58,12 @@ public final class BookTextsFile {
 
 	static final String SEARCH_EXCLUDE = "search_exclude";
 
-	private static final List<String> KINDS = List.of(SEARCH_LINE, FOR_YOU_BLURB, TAGS, COVER_FILE, SEARCH_EXCLUDE);
+	static final String SEARCH_SUMMARY = "search_summary";
+
+	static final String SEARCH_TERMS = "search_terms";
+
+	private static final List<String> KINDS = List.of(SEARCH_LINE, FOR_YOU_BLURB, TAGS, COVER_FILE, SEARCH_EXCLUDE,
+			SEARCH_SUMMARY, SEARCH_TERMS);
 
 	/** {@code catalog.book_summary}'s CHECK (cycle 23; the PC keeps 80-150, R8-4). */
 	static final int BLURB_MAX_CHARS = 300;
@@ -79,13 +89,15 @@ public final class BookTextsFile {
 	 * @param tags the {@code tags} rows (cycle 23)
 	 * @param covers the {@code cover_file} rows (cycle 23)
 	 * @param excluded the {@code search_exclude} book ids (2026-10-25)
+	 * @param written the {@code search_summary} and {@code search_terms} rows, one per book (2026-10-30)
 	 * @param skippedKinds the rows of other kinds, by kind
 	 * @param rows the data rows read
 	 */
 	public record Contents(UUID exportId, List<Line> lines, List<Summary> blurbs, List<BookTags> tags, List<Cover> covers,
-			Set<Long> excluded, Map<String, Integer> skippedKinds, int rows) {
+			Set<Long> excluded, List<Written> written, Map<String, Integer> skippedKinds, int rows) {
 
 		public Contents {
+			written = List.copyOf(written);
 			lines = List.copyOf(lines);
 			blurbs = List.copyOf(blurbs);
 			tags = List.copyOf(tags);
@@ -142,6 +154,7 @@ public final class BookTextsFile {
 		List<BookTags> tags = new ArrayList<>();
 		List<Cover> covers = new ArrayList<>();
 		Set<Long> excluded = new LinkedHashSet<>();
+		Map<Long, String[]> written = new LinkedHashMap<>(); // book -> {made_on, summary, terms}
 		Map<String, Integer> skipped = new TreeMap<>();
 		Map<String, Set<Long>> seen = new TreeMap<>();
 		for (int i = 2; i < rows.size(); i++) {
@@ -217,6 +230,25 @@ public final class BookTextsFile {
 							excluded.add(bookId);
 						}
 					}
+					case SEARCH_SUMMARY, SEARCH_TERMS -> {
+						checkBookId(bookId);
+						LocalDate madeOn = LocalDate.parse(cells[3]);
+						boolean summary = kind.equals(SEARCH_SUMMARY);
+						int max = summary ? BookTextsTransfer.SEARCH_SUMMARY_MAX_CHARS
+								: BookTextsTransfer.SEARCH_TERMS_MAX_CHARS;
+						int length = text.codePointCount(0, text.length());
+						if (text.isBlank() || length > max) {
+							problems.add("row " + rowNo + ": a " + kind + " must have 1 to " + max + " characters, book "
+									+ bookId + " has " + length);
+						}
+						else if (once(seen, kind, bookId, rowNo, problems)) {
+							String[] book = written.computeIfAbsent(bookId, id -> new String[3]);
+							if (book[0] == null || madeOn.toString().compareTo(book[0]) > 0) {
+								book[0] = madeOn.toString(); // the later day of the two rows
+							}
+							book[summary ? 1 : 2] = text;
+						}
+					}
 					default -> { // COVER_FILE
 						checkBookId(bookId);
 						if (!COVER_KEY.matcher(text).matches()) {
@@ -242,7 +274,9 @@ public final class BookTextsFile {
 			throw new RefusedException("The book-texts file was refused, " + problems.size() + " problem(s), nothing put in:\n"
 					+ String.join("\n", problems.subList(0, Math.min(PROBLEMS_SHOWN, problems.size()))));
 		}
-		return new Contents(exportId, lines, blurbs, tags, covers, excluded, skipped, rows.size() - 2);
+		List<Written> writtenRows = new ArrayList<>(written.size());
+		written.forEach((bookId, book) -> writtenRows.add(new Written(bookId, LocalDate.parse(book[0]), book[1], book[2])));
+		return new Contents(exportId, lines, blurbs, tags, covers, excluded, writtenRows, skipped, rows.size() - 2);
 	}
 
 	/** Whether this is the book's first row of the kind; a second one is a problem. */
