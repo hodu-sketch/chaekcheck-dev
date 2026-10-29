@@ -95,6 +95,14 @@ public class CandidateQuery {
 		return index.planCounts(bookIds, planLibraries);
 	}
 
+	/**
+	 * What the second call reads for the given books: the search line, or the summary and the search terms sharing a
+	 * question word when set (catalog {@code reading-text}); one query.
+	 */
+	public Map<Long, String> readingTexts(Collection<Long> bookIds, List<String> words) {
+		return index.readingTexts(bookIds, words);
+	}
+
 	/** The search lines of the given books (books without one are left out); one query. */
 	public Map<Long, String> lines(Collection<Long> bookIds) {
 		return index.lines(bookIds);

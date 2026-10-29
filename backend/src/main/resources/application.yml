@@ -137,6 +137,10 @@ chaekcheck:
       # bm25 = pg_search BM25 over title, author, line and the Haiku search terms, the plan-library filter inside the
       # index. bm25 needs the database image with pg_search (docker/postgres-bigm) and falls back to like without it
       keyword-match: ${CHAEKCHECK_AISEARCH_KEYWORD_MATCH:like}
+      # what the second call reads after a candidate's title and author (same day): line = the search line (v1.15.0~);
+      # summary = the Haiku summary + the search terms sharing a question word, the line for a book without a summary
+      # (picked 68.0 -> 93.5%, first 60.3 -> 76.5% on 400 known-book queries)
+      reading-text: ${CHAEKCHECK_AISEARCH_READING_TEXT:line}
     books:
       # GET /api/v1/books page size when pageSize is not sent; the maximum stays 20 (BookParams.MAX_PAGE_SIZE).
       # 20 -> 10 [확정] (cycle 20 ADR-0132, spec R15). docs/maintenance/settings-index.md

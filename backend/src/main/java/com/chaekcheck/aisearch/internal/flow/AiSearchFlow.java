@@ -675,7 +675,7 @@ public class AiSearchFlow {
 			return;
 		}
 		List<Long> ids = List.copyOf(chosen);
-		Map<Long, String> lines = candidates.lines(ids);
+		Map<Long, String> lines = candidates.readingTexts(ids, readingWords(plan));
 		Map<Long, Integer> years = publishYears(ids);
 		List<Choice> choices = ids.stream()
 			.map(id -> new Choice(known.get(id).title(), known.get(id).author(), lines.get(id), years.get(id)))
@@ -687,6 +687,13 @@ public class AiSearchFlow {
 				beside(() -> bookTexts.summaries(ids)), planCount);
 		run.mark("cards");
 		picks(input, history, ids, choices, cards, pointsBack, talk, titleNote, run);
+	}
+
+	/** The words a candidate's search terms are matched with for the second call: the core words, then the keywords. */
+	static List<String> readingWords(KeywordPlan plan) {
+		LinkedHashSet<String> words = new LinkedHashSet<>(plan.core());
+		words.addAll(plan.keywords());
+		return List.copyOf(words);
 	}
 
 	/** An earlier card as the calls see it: the title, and the author when known. */

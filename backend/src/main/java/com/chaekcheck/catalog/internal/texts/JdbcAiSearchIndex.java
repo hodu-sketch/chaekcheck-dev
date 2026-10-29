@@ -19,14 +19,16 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.catalog.AiSearchIndex;
-import com.chaekcheck.catalog.internal.texts.KeywordMatchSettings.KeywordMatch;
+import com.chaekcheck.catalog.SearchText;
+import com.chaekcheck.catalog.internal.texts.AiSearchTextSettings.KeywordMatch;
+import com.chaekcheck.catalog.internal.texts.AiSearchTextSettings.ReadingText;
 
 /**
  * {@link AiSearchIndex} with {@code JdbcClient}: the AI search's queries on
  * {@code catalog.book_search} (F6). Only {@link #books()} reads {@code catalog.book}, for the titles and authors.
  */
 @Component
-@EnableConfigurationProperties(KeywordMatchSettings.class)
+@EnableConfigurationProperties(AiSearchTextSettings.class)
 class JdbcAiSearchIndex implements AiSearchIndex {
 
 	private static final Logger log = LoggerFactory.getLogger(JdbcAiSearchIndex.class);
@@ -64,14 +66,17 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 
 	private final KeywordMatch keywordMatch;
 
+	private final ReadingText readingText;
+
 	/** Whether the BM25 index is there; null until the first BM25 search asks (Liquibase runs before that). */
 	private volatile Boolean bm25Index;
 
-	JdbcAiSearchIndex(JdbcClient jdbc, PlatformTransactionManager transactionManager, KeywordMatchSettings settings) {
+	JdbcAiSearchIndex(JdbcClient jdbc, PlatformTransactionManager transactionManager, AiSearchTextSettings settings) {
 		this.jdbc = jdbc;
 		this.readOnly = new TransactionTemplate(transactionManager);
 		this.readOnly.setReadOnly(true);
 		this.keywordMatch = settings.keywordMatch();
+		this.readingText = settings.readingText();
 	}
 
 	@Override
@@ -226,6 +231,64 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 				lines.put(rs.getLong(1), rs.getString(2));
 			});
 		return lines;
+	}
+
+	@Override
+	public Map<Long, String> readingTexts(Collection<Long> bookIds, List<String> words) {
+		if (readingText == ReadingText.LINE || bookIds.isEmpty()) {
+			return lines(bookIds);
+		}
+		Map<Long, String> texts = new HashMap<>();
+		jdbc.sql("""
+				SELECT book_id, line, summary, terms FROM catalog.book_search
+				WHERE book_id = ANY(CAST(:ids AS bigint[])) AND (line IS NOT NULL OR summary IS NOT NULL)""")
+			.param("ids", JdbcBookTexts.distinct(bookIds))
+			.query(rs -> {
+				String summary = rs.getString(3);
+				if (summary == null) {
+					texts.put(rs.getLong(1), rs.getString(2));
+					return;
+				}
+				List<String> shared = sharedTerms(rs.getString(4), words);
+				texts.put(rs.getLong(1),
+						shared.isEmpty() ? summary : summary + " / 검색 낱말: " + String.join(", ", shared));
+			});
+		return texts;
+	}
+
+	/**
+	 * The search terms that share a question word: one holds the other after {@link SearchText#tidy}, or they share two
+	 * letters in a row (the measured rule, scripts/aisearch/eval/terms_onecall_eval.py {@code matched}).
+	 */
+	static List<String> sharedTerms(String terms, List<String> words) {
+		if (terms == null || words.isEmpty()) {
+			return List.of();
+		}
+		List<String> tidied = words.stream().map(SearchText::tidy).filter(w -> !w.isEmpty()).toList();
+		List<String> out = new ArrayList<>();
+		for (String raw : terms.split(",")) {
+			String term = raw.strip();
+			String tidy = SearchText.tidy(term);
+			if (tidy.isEmpty() || out.contains(term)) {
+				continue;
+			}
+			for (String word : tidied) {
+				if (word.contains(tidy) || tidy.contains(word) || sharesTwoLetters(word, tidy)) {
+					out.add(term);
+					break;
+				}
+			}
+		}
+		return out;
+	}
+
+	private static boolean sharesTwoLetters(String word, String term) {
+		for (int i = 0; i + 2 <= word.length(); i++) {
+			if (term.contains(word.substring(i, i + 2))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override

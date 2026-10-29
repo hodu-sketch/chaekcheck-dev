@@ -59,6 +59,15 @@ public interface AiSearchIndex {
 	/** The search lines of the given books; books without one are left out. */
 	Map<Long, String> lines(Collection<Long> bookIds);
 
+	/**
+	 * What the second call reads for the given books after title and author: the search line, or with
+	 * {@code chaekcheck.catalog.ai-search.reading-text: summary} the Haiku summary and the search terms sharing one of
+	 * {@code words} (user 2026-10-30). Books with neither are left out.
+	 */
+	default Map<Long, String> readingTexts(Collection<Long> bookIds, List<String> words) {
+		return lines(bookIds);
+	}
+
 	/** Every search book with its title and author, in book id order. */
 	List<SearchBook> books();
 

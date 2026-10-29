@@ -28,7 +28,8 @@ import com.chaekcheck.catalog.BookTextsTransfer.Written;
  * A rare search term outranks common words, the plan-library filter and the books shown before are applied, and the
  * summary and terms are stored with the BM25 text.
  */
-@SpringBootTest(properties = "chaekcheck.catalog.ai-search.keyword-match=bm25")
+@SpringBootTest(properties = { "chaekcheck.catalog.ai-search.keyword-match=bm25",
+		"chaekcheck.catalog.ai-search.reading-text=summary" })
 @Transactional
 class AiSearchIndexBm25Tests {
 
@@ -93,6 +94,20 @@ class AiSearchIndexBm25Tests {
 		assertThatThrownBy(() -> new Written(930001, DAY, null, null)).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> new Written(930001, DAY, "가".repeat(501), null))
 			.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void theSecondCallReadsTheSummaryWithTheTermsThatShareAQuestionWord() {
+		books(book(1, "코딩 테스트 대비", 3), book(2, "고양이 소설", 1));
+		store(List.of(new Line(930001, Source.INTRO, DAY, "취업 코딩 테스트 문제집"),
+				new Line(930002, Source.INTRO, DAY, "고양이가 나오는 소설")),
+				List.of(new Written(930001, DAY, "코딩 테스트 문제와 풀이를 담은 책.",
+						"코딩 테스트, 그리디, 최단 경로, 다익스트라, 플로이드 워셜, 플로이드-워셜 알고리즘")));
+
+		assertThat(index.readingTexts(List.of(930001L, 930002L), List.of("플로이드워셜", "최단경로")))
+			.containsEntry(930001L, "코딩 테스트 문제와 풀이를 담은 책. / 검색 낱말: 최단 경로, 플로이드 워셜, 플로이드-워셜 알고리즘")
+			.containsEntry(930002L, "고양이가 나오는 소설");
+		assertThat(index.readingTexts(List.of(930001L), List.of("요리"))).containsEntry(930001L, "코딩 테스트 문제와 풀이를 담은 책.");
 	}
 
 	private void store(List<Line> lines, List<Written> written) {
