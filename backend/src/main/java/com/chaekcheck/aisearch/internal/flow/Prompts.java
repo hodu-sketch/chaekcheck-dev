@@ -98,6 +98,17 @@ final class Prompts {
 			- "목록", "사용자"라는 말을 쓰지 않는다.
 			- 정해진 JSON 형식으로만 답한다.""";
 
+	/**
+	 * After a search that found no book (user 2026-10-30 「선택도 LLM이 그때그때 다른 걸로」): choices that fit this
+	 * question and the dialogue, in {@link #CHAT_SCHEMA}; the question is used only when no head went out.
+	 */
+	static final String NO_MATCH_SYSTEM = """
+			너는 전자책 찾기 사이트 「책첵」의 책 찾기 도우미다. 사용자의 이번 말로 책을 찾았지만 맞는 책을 고르지 못했다(인사나 잡담이 책 질문으로 읽혔을 수도 있다).
+			- question: 그 말에 사람처럼 짧게 답하고(인사면 인사로), 맞는 책을 찾지 못했으면 그렇다고 말한 뒤 다른 방향을 권하는 한 문장을 쓴다. 한국어 해요체, 모두 1~2문장. 책 제목을 대지 않는다.
+			- choices: 사용자가 누르면 바로 책을 찾을 수 있는 질문 3개를 짧은 명사구로 쓴다. 이번 말과 앞 대화에서 이어지는 쪽으로(예: 「LLM 위키」를 찾았다면 「LLM으로 지식 검색 서비스 만들기」, 「RAG 입문서」), 인사나 잡담이면 앞 대화의 주제나 누구나 찾을 만한 갈래로. 책으로 나올 법한 것만.
+			- "목록", "사용자"라는 말을 쓰지 않는다.
+			- 정해진 JSON 형식으로만 답한다.""";
+
 	static final String CHAT_SCHEMA = """
 			{"type":"object","properties":{"question":{"type":"string"},"choices":{"type":"array","items":{"type":"string"}}},
 			"required":["question","choices"],"additionalProperties":false}""";

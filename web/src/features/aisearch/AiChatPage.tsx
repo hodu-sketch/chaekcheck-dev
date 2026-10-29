@@ -93,7 +93,7 @@ export function AiChatPage() {
       .slice(-HISTORY_SENT)
       .map((turn) =>
         turn.ask
-          ? { question: turn.question, bookIds: [], askQuestion: turn.ask.question, askChoices: turn.ask.choices }
+          ? { question: turn.question, bookIds: [], askQuestion: turn.ask.question || turn.head, askChoices: turn.ask.choices }
           : { question: turn.question, bookIds: turn.cards.map((card) => card.bookId), ...(turn.head ? { head: turn.head } : {}) },
       )
     const body: AiSearchBody = {
@@ -423,24 +423,9 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
         // the agent asked back: its question in the head's place, the answers as a numbered list in one box, as Claude
         // asks (user 2026-10-29 안 A); a click asks the answer as the next question, one's own goes in the box below
         <>
-          <p className={styles.head}>{turn.ask.question}</p>
-          <ul className={styles.askChoices} aria-label="고를 답">
-            {turn.ask.choices.map((choice, i) => (
-              <li key={choice}>
-                <button
-                  type="button"
-                  className={styles.askChoice}
-                  disabled={busy || !isLast}
-                  onClick={() => onExample(choice)}
-                >
-                  <span className={styles.askNo} aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  <span className={styles.askLabel}>{choice}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {/* no question when the head already said it (choices after a search with no book, user 2026-10-30) */}
+          {turn.ask.question && <p className={styles.head}>{turn.ask.question}</p>}
+          <NumberedChoices choices={turn.ask.choices} disabled={busy || !isLast} onChoose={onExample} />
           {isLast && (
             <p className={styles.askHint}>
               {AI_TEXT.askHint} <span className={styles.askHintOwn}>{AI_TEXT.askHintOwn}</span>
@@ -480,18 +465,15 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
       {/* the summary by situation, as plain text under the cards, no box (user 2026-10-29 mock-up) */}
       {turn.tail && turn.cards.length > 0 && <Tail text={turn.tail} />}
       {turn.result === 'partial' && <p className={styles.soft}>{AI_TEXT.noText}</p>}
-      {turn.result === 'no_match' && (
+      {turn.result === 'no_match' && !turn.ask && (
+        // the examples as the ask-back's numbered box (user 2026-10-30 「위 방식으로 통일」), when no choices came
         <div className={styles.noMatch}>
           {!turn.head && <p>{AI_TEXT.noMatch}</p>}
-          <ul className={styles.examples} aria-label="예시 질문">
-            {shownExamples().slice(0, EXAMPLES_SHOWN).map((question) => (
-              <li key={question}>
-                <button type="button" className={styles.example} onClick={() => onExample(question)}>
-                  {question}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <NumberedChoices
+            choices={shownExamples().slice(0, EXAMPLES_SHOWN)}
+            disabled={busy || !isLast}
+            onChoose={onExample}
+          />
         </div>
       )}
       {notice && (
@@ -588,6 +570,32 @@ function refusal(error: unknown): AiTurnState['state'] {
     return 'failed'
   }
   return 'connection'
+}
+
+/** Answers to choose as a numbered list in one box, as Claude asks (user 2026-10-29 안 A); a click asks the answer. */
+function NumberedChoices({
+  choices,
+  disabled,
+  onChoose,
+}: {
+  choices: string[]
+  disabled: boolean
+  onChoose: (choice: string) => void
+}) {
+  return (
+    <ul className={styles.askChoices} aria-label="고를 답">
+      {choices.map((choice, i) => (
+        <li key={choice}>
+          <button type="button" className={styles.askChoice} disabled={disabled} onClick={() => onChoose(choice)}>
+            <span className={styles.askNo} aria-hidden="true">
+              {i + 1}
+            </span>
+            <span className={styles.askLabel}>{choice}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 /**

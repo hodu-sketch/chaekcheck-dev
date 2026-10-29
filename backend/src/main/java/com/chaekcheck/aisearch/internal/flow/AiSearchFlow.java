@@ -668,6 +668,7 @@ public class AiSearchFlow {
 		}
 		run.mark("mix");
 		if (chosen.isEmpty()) {
+			noMatchChoices(input, history, run, "");
 			finish(run, PickResult.NO_MATCH, "no_match");
 			return;
 		}
@@ -1224,6 +1225,46 @@ public class AiSearchFlow {
 	}
 
 	/**
+	 * The questions to go on with after a search that found no book (user 2026-10-30 「선택도 LLM이 그때그때 다른 걸로」:
+	 * the web drew three fixed examples, 「안녕」 taken as a book question got 「반전과 추리가 돋보이는 최신 미스터리 소설」):
+	 * one call ({@link Prompts#NO_MATCH_SYSTEM}) writes choices for this question and the dialogue, sent as an ask-back;
+	 * its question only when no head went out. Failing, nothing more goes out and the web shows its examples.
+	 */
+	private void noMatchChoices(Input input, List<ShownTurn> history, Run run, String head) {
+		if (!pick.askBack()) {
+			return;
+		}
+		LlmCall call = new LlmCall(Prompts.NO_MATCH_SYSTEM, Prompts.chatMessages(history, input.question()),
+				Prompts.CHAT_SCHEMA, properties.firstCall().siteMaxTokens());
+		try {
+			Result result = llm.complete(call, properties.pickTimeout());
+			count(run, result.usage(), call.maxTokens());
+			JsonNode answer = json.readTree(result.text());
+			List<String> choices = new ArrayList<>();
+			for (JsonNode choice : answer.path("choices")) {
+				String text = choice.asString("").strip();
+				if (!text.isEmpty() && choices.size() < MAX_ASK_CHOICES) {
+					choices.add(text.codePointCount(0, text.length()) <= MAX_ASK_CHOICE_CHARS ? text
+							: text.substring(0, text.offsetByCodePoints(0, MAX_ASK_CHOICE_CHARS)));
+				}
+			}
+			String question = head.isBlank() ? answer.path("question").asString("").strip() : "";
+			if (!choices.isEmpty()) {
+				run.ask = "no-match choices";
+				run.send(AiSearchEvents.ASK, new AiSearchEvents.Ask(question, List.copyOf(choices)));
+			}
+		}
+		catch (LlmException e) {
+			if (e.failure() != Failure.NOT_CONFIGURED) {
+				count(run, e.usage(), call.maxTokens());
+			}
+		}
+		catch (JacksonException e) {
+			log.warn("ai search: the no-match choices were not the schema's");
+		}
+	}
+
+	/**
 	 * A question about 책첵 or about using the e-libraries (ML way {@code site}, user 2026-10-26): one call answers
 	 * from the site's own text ({@link Prompts#SITE_SYSTEM}); the answer goes out as the head and the search ends as
 	 * {@code site}. Failing, it ends as {@code no_match} like a question that is not about books.
@@ -1344,6 +1385,7 @@ public class AiSearchFlow {
 		StringBuilder askQuestion = new StringBuilder();
 		// the summary by situation, kept whole and sent after the cards once checked (user 2026-10-29: 「1, 16, 18번」 went out)
 		StringBuilder tail = new StringBuilder();
+		StringBuilder head = new StringBuilder();
 		boolean[] tailCut = { false };
 		String[] answer = { null };
 		List<String> askChoices = new ArrayList<>();
@@ -1366,6 +1408,7 @@ public class AiSearchFlow {
 			@Override
 			public void headText(String text) {
 				if (askQuestion.isEmpty()) {
+					head.append(text);
 					run.send(AiSearchEvents.HEAD_DELTA, new Text(text));
 				}
 			}
@@ -1486,6 +1529,7 @@ public class AiSearchFlow {
 			finish(run, PickResult.PARTIAL, "partial");
 		}
 		else if (run.shown.isEmpty()) {
+			noMatchChoices(input, history, run, head.toString());
 			finish(run, PickResult.NO_MATCH, "no_match");
 		}
 		else {

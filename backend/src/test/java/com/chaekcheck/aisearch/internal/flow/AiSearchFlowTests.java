@@ -453,7 +453,8 @@ class AiSearchFlowTests {
 	@Test
 	void aOneWordQuestionIsAnsweredAtOnceWithItsSensesMixed() { // user 2026-10-29 「한 단어도 그걸로 답변」
 		pick = new com.chaekcheck.aisearch.internal.config.PickProperties(true, false);
-		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1))
+			.then(Answer.ok("{\"question\":\"과학의 어느 쪽이 궁금하세요?\",\"choices\":[\"쉬운 우주 과학책\",\"과학사 입문서\"]}", 1, 1));
 
 		run("과학", List.of());
 
@@ -465,8 +466,11 @@ class AiSearchFlowTests {
 		// two words may still be asked back
 		llm.then(keywords("과학")).then(Answer.ok("{\"ask\":{\"question\":\"\",\"choices\":[]},\"head\":\"\",\"picks\":[],"
 				+ "\"tail\":\"\"}", 1, 1));
+		// no book: choices for this question go out as an ask-back (user 2026-10-30)
+		assertThat(llm.calls.get(2).system()).isEqualTo(Prompts.NO_MATCH_SYSTEM);
+		assertThat(sink.names()).contains("ask");
 		flow().run(input("과학 책", List.of()), new Sink());
-		assertThat(llm.calls.get(3).system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
+		assertThat(llm.calls.get(4).system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
 	}
 
 	@Test
