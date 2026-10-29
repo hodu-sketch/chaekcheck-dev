@@ -40,6 +40,7 @@
 ## 4. 낱말 검색 느려짐 (v1.20.1에서 고침)
 
 - 알림: dev 24의 배포 전후 시간 재기(r3·r4에서 여러 낱말 질문 낱말 대기 3~5.4초).
+- PostgreSQL 해설(용어·계산·재는 SQL): [3-postgres-generic-plan.md](3-postgres-generic-plan.md)
 - 원인·숫자·고침: [1-portfolio.md 1절](1-portfolio.md#1-ai-검색-같은-질의가-쌓이면-11초가-되던-실행-계획-v1201). 코드 `JdbcAiSearchIndex.find`(읽기 전용 `TransactionTemplate` + `SET LOCAL plan_cache_mode = force_custom_plan`), 시험 `AiSearchIndexTests.repeatedSearchesKeepCustomPlans`.
 - 운영 재현 SQL: `PREPARE q(text,…) AS <find의 SQL>` 뒤 `SET plan_cache_mode = force_custom_plan` / `force_generic_plan`으로 `EXPLAIN (ANALYZE) EXECUTE q(…)`. 운영 DB는 `ssh … 'docker exec -i chaekcheck-db-1 psql -U chaekcheck -d chaekcheck' < 파일.sql`(SQL은 파일로 넘김, 따옴표 문제).
 - 배포 뒤: dev 24가 같은 질문 24개를 4회 → 결과를 여기와 plan-feedback에 더함.

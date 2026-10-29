@@ -37,6 +37,8 @@
 - 낱말 검색 SQL은 낱말 수·핵심어 수가 같으면 글이 같아, 서버가 오래 켜져 있으면 연결마다 문턱을 넘는다. 측정 순서(직후 2회 정상, 3회째부터 느림)와 맞았다.
 - 옛 표에도 다섯 낱말 꼴을 돌려 0.44초 / 11.1초 → **배포가 만든 문제가 아니라 전부터 숨어 있던 문제**였음을 확인.
 
+**자세한 해설.** 용어, 추정 계산, 실행 노드, 재는 SQL 전부: [3-postgres-generic-plan.md](3-postgres-generic-plan.md).
+
 **고친 것.** 이 질의 하나만 읽기 전용 트랜잭션 안에서 `SET LOCAL plan_cache_mode = force_custom_plan`을 먼저 실행한다. `SET LOCAL`이라 트랜잭션이 끝나면 원래대로, 다른 질의에는 영향 없음. 전역 설정이나 드라이버 설정(`prepareThreshold=0`)을 바꾸지 않은 이유: 다른 질의는 generic plan이 이득이고, 문제는 이 질의에만 있었다.
 
 **확인.** 시험 `AiSearchIndexTests.repeatedSearchesKeepCustomPlans`: 같은 검색 12번 뒤 `pg_prepared_statements.generic_plans` = 0. 고침을 빼고 돌리면 이 시험이 실패하는 것을 먼저 확인했다. 운영 효과는 배포 뒤 dev 24가 같은 질문 24개를 4회 돌려 잰다(결과는 [2-dev-record.md](2-dev-record.md) 4절에 더함).

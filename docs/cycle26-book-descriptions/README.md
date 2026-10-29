@@ -10,6 +10,7 @@
 | 문서 | 누가 읽나 | 답하는 것 |
 |---|---|---|
 | [1-portfolio.md](1-portfolio.md) | 포트폴리오 | 이 사이클에서 내세울 만한 일만: 「문제 → 원인 → 고친 것 → 전후 숫자」 |
+| [3-postgres-generic-plan.md](3-postgres-generic-plan.md) | 포트폴리오·학습 | v1.20.1 낱말 찾기 5초 문제를 PostgreSQL 용어와 계산으로 처음부터: 준비문, custom/generic plan, 선택도 추정식(히스토그램, 기본값 0.005·0.01), 비용 비교, 실행 노드, 재는 SQL, 고친 방법과 버린 방법 |
 | [2-dev-record.md](2-dev-record.md) | dev | 단계마다 한 것과 상태, 코드·표·파일 위치, 운영에서 생긴 일과 되돌린 방법 |
 | [../plan-feedback.md](../plan-feedback.md) 「# 사이클 26」 | dev·plan | 날짜순 원본 기록(모든 숫자와 명령의 출처) |
 
