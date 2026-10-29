@@ -168,7 +168,10 @@ describe('AiChatPage (cycle 24 step 10)', () => {
     startWithQuestion('우주 책')
     answers(...okAnswer.slice(0, -1), { name: 'tail-delta', data: { text: '밤하늘을 볼 때: 『우주』' } }, okAnswer.at(-1)!)
     const user = setup()
-    expect(await screen.findByText('밤하늘을 볼 때: 『우주』')).toBeTruthy()
+    // a heading, then the situation in bold over its books (user 2026-10-29 mock-up)
+    expect(await screen.findByText('상황별로 고르면')).toBeTruthy()
+    expect(screen.getByText('밤하늘을 볼 때')).toBeTruthy()
+    expect(screen.getByText('『우주』')).toBeTruthy()
 
     answers(...okAnswer)
     await user.type(screen.getByLabelText('이어서 묻기'), '더 쉬운 거{Enter}')

@@ -114,7 +114,7 @@
 .turns {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 2.5rem;
   margin: 1.2rem 0 0;
   padding: 0;
   list-style: none;
@@ -123,20 +123,21 @@
 .turn {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
-/* my question on the right, a soft bubble as in ChatGPT (user 2026-10-24) */
+/* my question on the right, a soft grey bubble as large as the answer's text, as in ChatGPT and Claude (user 2026-10-24;
+   sizes 2026-10-29 mock-up) */
 .question {
   align-self: flex-end;
-  max-width: 70%;
+  max-width: 75%;
   margin: 0;
-  padding: 0.7rem 1.1rem;
-  border-radius: 1.5rem;
-  background: var(--brand-soft);
+  padding: 0.625rem 1.125rem;
+  border-radius: 1.375rem;
+  background: var(--tray);
   color: var(--ink);
-  font-size: var(--text-md);
-  line-height: 1.5;
+  font-size: 1rem;
+  line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -145,7 +146,7 @@
 .answer {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
   max-width: 100%;
 }
 
@@ -158,17 +159,75 @@
   font-size: var(--text-md);
 }
 
+/* 「책을 찾고 있어요」 moves while it waits: a pulsing dot and a light passing over the words, as ChatGPT's (user
+   2026-10-29 mock-up); still when the reader asks for less motion */
 .loading {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
   margin: 0;
   color: var(--ink-faint);
-  font-size: var(--text-md);
+  font-size: 1rem;
+}
+
+.loadingDot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--brand);
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+
+.loadingText {
+  background: linear-gradient(90deg, var(--ink-faint) 0%, var(--ink-faint) 35%, var(--ink) 50%, var(--ink-faint) 65%,
+      var(--ink-faint) 100%);
+  background-size: 250% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: loading-shimmer 1.8s linear infinite;
+}
+
+@keyframes loading-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -150% 0;
+  }
+}
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingDot,
+  .loadingText {
+    animation: none;
+  }
+
+  .loadingText {
+    background: none;
+    color: var(--ink-faint);
+  }
 }
 
 .head {
   margin: 0;
   color: var(--ink);
-  font-size: var(--text-lg);
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.75;
   white-space: pre-wrap;
 }
 
@@ -213,9 +272,10 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  gap: 0.9rem;
+  column-gap: 1.125rem;
+  row-gap: 0;
   height: 100%;
-  padding: 0.85rem;
+  padding: 1rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -237,8 +297,8 @@
 
 .cover {
   grid-row: 1 / span 2;
-  width: 7.5rem;
-  height: 10.9rem;
+  width: 5.5rem;
+  height: 8rem;
   border-radius: var(--radius-tag);
   background: var(--paper-deep);
   object-fit: cover;
@@ -253,14 +313,14 @@
 
 .cardTitle {
   color: var(--ink);
-  font-weight: 800;
-  font-size: var(--text-xl);
-  line-height: 1.35;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.4;
 }
 
 .cardAuthor {
   color: var(--ink-soft);
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
 }
 
 .cardCount {
@@ -275,10 +335,10 @@
 
 .cardText {
   grid-column: 2;
-  margin-top: 0.3rem;
+  margin-top: 0.625rem;
   color: var(--ink);
-  font-size: var(--text-md);
-  line-height: 1.6;
+  font-size: 0.9375rem;
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 
@@ -496,8 +556,8 @@
 @media (width <= 640px) {
   .cover {
     grid-row: 1;
-    width: 6rem;
-    height: 8.75rem;
+    width: 5rem;
+    height: 7.25rem;
   }
 
   /* the AI text on its own row under the cover, in the same box (user 2026-10-25) */
@@ -528,21 +588,24 @@
 }
 
 .askChoice {
-  min-height: 2.5rem;
-  padding: 0.45rem 0.95rem;
-  border: 1.5px solid var(--brand);
+  min-height: 2.375rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--rule-strong);
   border-radius: 999px;
-  background: var(--brand-faint);
-  color: var(--brand-strong);
-  font-weight: 700;
-  font-size: var(--text-sm);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 0.9375rem;
   text-align: left;
   cursor: pointer;
 }
 
 .askChoice:hover:not(:disabled),
 .askChoice:focus-visible {
-  background: var(--brand-soft);
+  border-color: var(--brand);
+  background: var(--brand-faint);
+  color: var(--brand-strong);
 }
 
 .askChoice:disabled {
@@ -551,9 +614,9 @@
 }
 
 .askHint {
-  margin: 0.6rem 0 0;
+  margin: 0;
   color: var(--ink-faint);
-  font-size: var(--text-sm);
+  font-size: 0.8125rem;
 }
 
 /* 「기타」 after the choices: a dashed pill, quieter than the answers; open, it looks pressed (user 2026-10-29 mock-up) */
@@ -608,12 +671,51 @@
   font-size: 16px;
 }
 
-/* the summary by situation under the cards: plain text, one situation a line (user 2026-10-29 mock-up, no box) */
+/* the summary by situation under the cards, no box (user 2026-10-29 mock-ups): a heading, then each situation in bold
+   over its books, a violet rule at the left; as large as the answer's text so it is read, not passed over */
 .tail {
-  margin: 0.25rem 0 0;
+  margin: 0.5rem 0 0;
+}
+
+.tailTitle {
+  margin: 0 0 0.625rem;
   color: var(--ink);
-  font-size: var(--text-md);
-  line-height: 1.7;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tailList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tailItem {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.875rem;
+  border-left: 3px solid var(--brand-soft);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.tailSituation {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.tailBooks {
+  color: var(--ink-soft);
+}
+
+.tailText {
+  margin: 0.5rem 0 0;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.75;
   white-space: pre-wrap;
 }
 

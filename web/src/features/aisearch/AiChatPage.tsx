@@ -416,7 +416,8 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
       )}
       {(turn.state === 'waiting' || (turn.state === 'streaming' && !turn.head && turn.cards.length === 0)) && (
         <p className={styles.loading} role="status">
-          {AI_TEXT.loading}
+          <span className={styles.loadingDot} aria-hidden="true" />
+          <span className={styles.loadingText}>{AI_TEXT.loading}</span>
         </p>
       )}
       {/* the model's head stays as written, a no-match one too (user 2026-10-29: the fixed line only when it is empty) */}
@@ -529,7 +530,7 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
                 onClick={() => onOpen(card)}
               >
                 {card.coverUrl ? (
-                  <img className={styles.cover} src={card.coverUrl} alt="" loading="lazy" width="120" height="174" />
+                  <img className={styles.cover} src={card.coverUrl} alt="" loading="lazy" width="88" height="128" />
                 ) : (
                   <span className={styles.cover} aria-hidden="true" />
                 )}
@@ -547,7 +548,7 @@ function Answer({ turn, busy, onRetry, onExample, onDirect, onOpen, isLast = tru
         </ul>
       )}
       {/* the summary by situation, as plain text under the cards, no box (user 2026-10-29 mock-up) */}
-      {turn.tail && turn.cards.length > 0 && <p className={styles.tail}>{turn.tail}</p>}
+      {turn.tail && turn.cards.length > 0 && <Tail text={turn.tail} />}
       {turn.result === 'partial' && <p className={styles.soft}>{AI_TEXT.noText}</p>}
       {turn.result === 'no_match' && (
         <div className={styles.noMatch}>
@@ -657,4 +658,35 @@ function refusal(error: unknown): AiTurnState['state'] {
     return 'failed'
   }
   return 'connection'
+}
+
+/**
+ * The summary by situation under the cards: the server's 「상황: 『제목』, 『제목』」 lines as a heading and a list, each
+ * situation in bold over its books (user 2026-10-29 mock-up); a summary without situations stays one paragraph.
+ */
+function Tail({ text }: { text: string }) {
+  const items = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const at = line.indexOf(': 『')
+      return at > 0 ? { situation: line.slice(0, at), books: line.slice(at + 2) } : null
+    })
+  if (items.some((item) => item === null)) {
+    return <p className={styles.tailText}>{text.trim()}</p>
+  }
+  return (
+    <section className={styles.tail}>
+      <h3 className={styles.tailTitle}>{AI_TEXT.tailTitle}</h3>
+      <ul className={styles.tailList}>
+        {items.map((item, i) => (
+          <li key={i} className={styles.tailItem}>
+            <span className={styles.tailSituation}>{item?.situation}</span>
+            <span className={styles.tailBooks}>{item?.books}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }

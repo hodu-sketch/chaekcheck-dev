@@ -12,6 +12,8 @@ export const AI_TEXT = {
   tooShort: '두 글자 이상 써 주세요', // AC-16
   notice: '책 설명은 AI가 질문에 맞춰 썼어요. 실제 내용과 다를 수 있어요', // [확정] R9-2
   loading: '책을 찾고 있어요',
+  // the heading over the summary by situation under the cards (user 2026-10-29 mock-up)
+  tailTitle: '상황별로 고르면',
   myLibraries: (count: number) => `내 도서관 ${count}곳`,
   noText: '지금은 설명을 쓰지 못했어요', // [확정] R6-2, R12-4
   noMatch: '맞는 책을 찾지 못했어요. 다른 말로 써 보시겠어요?', // [확정] R5-1
