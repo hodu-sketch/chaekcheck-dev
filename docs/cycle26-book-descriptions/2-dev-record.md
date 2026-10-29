@@ -43,7 +43,7 @@
 - PostgreSQL 해설(용어·계산·재는 SQL): [3-postgres-generic-plan.md](3-postgres-generic-plan.md)
 - 원인·숫자·고침: [1-portfolio.md 1절](1-portfolio.md#1-ai-검색-같은-질의가-쌓이면-11초가-되던-실행-계획-v1201). 코드 `JdbcAiSearchIndex.find`(읽기 전용 `TransactionTemplate` + `SET LOCAL plan_cache_mode = force_custom_plan`), 시험 `AiSearchIndexTests.repeatedSearchesKeepCustomPlans`.
 - 운영 재현 SQL: `PREPARE q(text,…) AS <find의 SQL>` 뒤 `SET plan_cache_mode = force_custom_plan` / `force_generic_plan`으로 `EXPLAIN (ANALYZE) EXECUTE q(…)`. 운영 DB는 `ssh … 'docker exec -i chaekcheck-db-1 psql -U chaekcheck -d chaekcheck' < 파일.sql`(SQL은 파일로 넘김, 따옴표 문제).
-- 배포 뒤: dev 24가 같은 질문 24개를 4회 → 결과를 여기와 plan-feedback에 더함.
+- 배포 뒤(dev 24, 24개 × 4회): 1초 넘은 낱말 검색 0번, 첫 글 느린 10% 2.76~3.05초(v1.20.0 r3·r4 5.2~5.8초). 내 확인: v1.20.1 뒤 운영 로그 검색 106번, 낱말 대기 최대 241ms, 오류 0. 고침 확인.
 
 ## 5. 12단계 사고: 프로필을 표에서 읽자 AI 검색이 멈춤 (2026-10-29 09:06~09:12)
 
