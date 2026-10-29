@@ -261,26 +261,33 @@ class AiSearchFlowTests {
 	}
 
 	@Test
-	void withAskBackOneWordTheMlCallsNotABookGoesToTheSecondCall() { // user 2026-10-26 「엄마」, 「AI」
-		mlOn(java.util.Map.of("엄마", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.NOT_BOOK), List.of(2L, 7L));
+	void withAskBackNotABookQuestionIsAnsweredByTheChatCall() { // user 2026-10-29 「책 밖 대화는 부드럽게」
+		mlOn(java.util.Map.of("잠이 안 와", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.NOT_BOOK), List.of(2L, 7L));
 		askBackOn();
-		llm.then(Answer.ok("{\"ask\":{\"question\":\"어떤 엄마 책이에요?\",\"choices\":[\"육아\",\"모녀 관계\"]},"
-				+ "\"head\":\"\",\"picks\":[]}", 1, 1));
+		llm.then(Answer.ok("{\"question\":\"잠이 안 오는 밤이시군요. 천천히 읽을 책은 어떠세요?\","
+				+ "\"choices\":[\"잔잔한 에세이\",\"잠과 뇌를 다룬 과학책\"]}", 1, 1));
 
-		run("엄마", List.of());
+		run("잠이 안 와", List.of());
 
 		assertThat(llm.calls).hasSize(1);
-		assertThat(llm.calls.getFirst().system()).isEqualTo(Prompts.PICK_ASK_SYSTEM);
-		assertThat(sink.of(AiSearchEvents.Ask.class).getFirst().question()).isEqualTo("어떤 엄마 책이에요?");
+		assertThat(llm.calls.getFirst().system()).isEqualTo(Prompts.CHAT_SYSTEM);
+		AiSearchEvents.Ask ask = sink.of(AiSearchEvents.Ask.class).getFirst();
+		assertThat(ask.question()).isEqualTo("잠이 안 오는 밤이시군요. 천천히 읽을 책은 어떠세요?");
+		assertThat(ask.choices()).containsExactly("잔잔한 에세이", "잠과 뇌를 다룬 과학책");
+		assertThat(sink.last(Done.class).result()).isEqualTo("asked");
 	}
 
 	@Test
-	void oneWordTopicsAreWordsOfTwoLettersOrMore() {
-		assertThat(AiSearchFlow.oneWordTopic("엄마")).isTrue();
-		assertThat(AiSearchFlow.oneWordTopic(" AI ")).isTrue();
-		assertThat(AiSearchFlow.oneWordTopic("음...")).isFalse();
-		assertThat(AiSearchFlow.oneWordTopic("ㅋㅋㅋ")).isFalse();
-		assertThat(AiSearchFlow.oneWordTopic("음 뭐 읽지")).isFalse();
+	void aFailedChatCallFallsBackToTheFixedAskBack() { // user 2026-10-29
+		mlOn(java.util.Map.of("엄마", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.NOT_BOOK), List.of(2L, 7L));
+		askBackOn();
+		llm.then(Answer.ok("not json", 1, 1));
+
+		run("엄마", List.of());
+
+		AiSearchEvents.Ask ask = sink.of(AiSearchEvents.Ask.class).getFirst();
+		assertThat(ask.question()).isEqualTo(Prompts.NOT_BOOK_ASK);
+		assertThat(ask.choices()).hasSize(3).allMatch(Prompts.NOT_BOOK_CHOICES::contains);
 	}
 
 	@Test
@@ -639,18 +646,21 @@ class AiSearchFlowTests {
 	}
 
 	@Test
-	void withAskBackANotBookQuestionGetsTheFixedAskWithThreeExamples() {
+	void withAskBackANotBookQuestionGetsTheChatCallsAnswer() { // user 2026-10-29
 		askBackOn();
 		llm.then(Answer.ok("{\"notBook\":true,\"titleLike\":false,\"title\":\"\",\"refersToShown\":false,\"keywords\":[]}",
 				900, 40));
+		llm.then(Answer.ok("{\"question\":\"고민되시죠. 요즘 기분에 맞는 책부터 볼까요?\",\"choices\":[\"가벼운 소설\",\"짧은 에세이\",\"쉬운 과학책\"]}",
+				300, 60));
 
 		run("음 뭐 읽지", List.of());
 
 		assertThat(sink.names()).containsExactly("ask", "done");
 		AiSearchEvents.Ask ask = sink.of(AiSearchEvents.Ask.class).getFirst();
-		assertThat(ask.question()).isEqualTo(Prompts.NOT_BOOK_ASK);
-		assertThat(ask.choices()).hasSize(3).doesNotHaveDuplicates().allMatch(Prompts.NOT_BOOK_CHOICES::contains);
-		assertThat(llm.calls).hasSize(1);
+		assertThat(ask.question()).isEqualTo("고민되시죠. 요즘 기분에 맞는 책부터 볼까요?");
+		assertThat(ask.choices()).containsExactly("가벼운 소설", "짧은 에세이", "쉬운 과학책");
+		assertThat(llm.calls).hasSize(2);
+		assertThat(llm.calls.get(1).system()).isEqualTo(Prompts.CHAT_SYSTEM);
 	}
 
 	@Test
@@ -720,13 +730,59 @@ class AiSearchFlowTests {
 		String sent = pickCall.messages().getLast().text();
 		assertThat(sent).contains("1. 제목: 토지 / 저자: 박경리 / 한 줄: 한 집안의 이야기를 그린 대하소설", "2. 제목: 과학 이야기 1");
 		// the earlier turn goes in with the shown titles only; 777 is not a listed book and is dropped
-		assertThat(pickCall.messages().get(1).text()).isEqualTo("보여 준 책:\n- 토지\n- 과학 이야기 1");
+		assertThat(pickCall.messages().get(1).text()).isEqualTo("보여 준 책:\n- 1번째 책: 토지\n- 2번째 책: 과학 이야기 1");
 
 		// not pointing at them: the books shown before are left out
 		Sink other = new Sink();
 		llm.then(keywords("과학", "토지")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
 		flow().run(input("다른 과학책", List.of(earlier)), other);
 		assertThat(llm.calls.get(3).messages().getLast().text()).doesNotContain("토지", "과학 이야기 1 /");
+	}
+
+	@Test
+	void theSummaryBySituationStreamsAfterTheCards() { // user 2026-10-29 「상황별 정리」
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"},"
+				+ "{\"no\":2,\"fit\":3,\"text\":\"둘\"}],\"tail\":\"출퇴근길에: 『과학 이야기 1』\"}", 1, 1));
+
+		run("과학책 추천해줘", List.of());
+
+		assertThat(sink.names()).endsWith("card-delta", "tail-delta", "done");
+		assertThat(sink.of(Text.class).getLast().text()).isEqualTo("출퇴근길에: 『과학 이야기 1』");
+	}
+
+	@Test
+	void noSummaryGoesOutForOneCard() { // user 2026-10-29
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"골랐어요.\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"하나\"}],"
+				+ "\"tail\":\"한 권뿐이에요.\"}", 1, 1));
+
+		run("과학책 추천해줘", List.of());
+
+		assertThat(sink.names()).doesNotContain("tail-delta");
+	}
+
+	@Test
+	void anEarlierHeadGoesBackWithItsTurn() { // user 2026-10-29 「대화 기억」
+		AiSearchFlow.Turn earlier = new AiSearchFlow.Turn("과학책 추천해줘", List.of(20L, 1L), null, List.of(),
+				"쉬운 과학책을 골랐어요.");
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));
+
+		run("두 번째 책 어때?", List.of(earlier));
+
+		assertThat(llm.calls.get(1).messages().get(1).text())
+			.isEqualTo("머리말: 쉬운 과학책을 골랐어요.\n보여 준 책:\n- 1번째 책: 토지\n- 2번째 책: 과학 이야기 1");
+	}
+
+	@Test
+	void aQuestionThatIsATitleGetsThatBookFirstAndIsNotAskedBack() { // user 2026-10-29 「해리포터」
+		askBackOn();
+		llm.then(Answer.ok("{\"notBook\":false,\"titleLike\":true,\"title\":\"토지\",\"refersToShown\":false,"
+				+ "\"keywords\":[\"과학\"]}", 1, 1)).then(Answer.ok("{\"head\":\"\",\"picks\":[],\"tail\":\"\"}", 1, 1));
+
+		run("토지", List.of());
+
+		LlmCall pickCall = llm.calls.get(1);
+		assertThat(pickCall.system()).isEqualTo(Prompts.PICK_SYSTEM);
+		assertThat(pickCall.messages().getLast().text()).contains("대화 메모: 사용자가 쓴 「토지」는 책 제목이다", "1. 제목: 토지 /");
 	}
 
 	@Test

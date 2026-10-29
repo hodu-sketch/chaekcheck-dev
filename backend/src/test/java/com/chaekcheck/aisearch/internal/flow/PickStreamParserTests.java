@@ -21,10 +21,11 @@ class PickStreamParserTests {
 			    {"no": 3, "text": "짧은 장으로 나뉘어 \\u3010부담\\u3011 없어요 \\ud83d\\ude00"},
 			    {"no":12,"text":"두 번째\\\\책"} ,
 			    { "no" : 1 , "text" : "" }
-			  ] }""";
+			  ],
+			  "tail" : "출퇴근길에: 『책』\\n주말에: 『책 2』" }""";
 
 	static final List<String> EVENTS = List.of("head:잠들기 전에 \"조금씩\" 읽기 좋은 책이에요 😀\n", "no:3",
-			"text:짧은 장으로 나뉘어 【부담】 없어요 😀", "end", "no:12", "text:두 번째\\책", "end", "no:1", "end");
+			"text:짧은 장으로 나뉘어 【부담】 없어요 😀", "end", "no:12", "text:두 번째\\책", "end", "no:1", "end", "tail:출퇴근길에: 『책』\n주말에: 『책 2』");
 
 	@Test
 	void readsTheAnswerInOrderInOnePiece() {
@@ -179,11 +180,16 @@ class PickStreamParserTests {
 			raw.add("choice:" + choice);
 		}
 
+		@Override
+		public void tailText(String text) {
+			raw.add("tail:" + text);
+		}
+
 		List<String> joined() {
 			List<String> joined = new ArrayList<>();
 			for (String event : raw) {
 				String kind = event.substring(0, event.indexOf(':') + 1);
-				if (!joined.isEmpty() && !kind.isEmpty() && (kind.equals("head:") || kind.equals("text:"))
+				if (!joined.isEmpty() && !kind.isEmpty() && (kind.equals("head:") || kind.equals("text:") || kind.equals("tail:"))
 						&& joined.getLast().startsWith(kind)) {
 					joined.set(joined.size() - 1, joined.getLast() + event.substring(kind.length()));
 				}

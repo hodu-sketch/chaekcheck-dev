@@ -22,9 +22,12 @@ public final class AiSearchEvents {
 
 	/**
 	 * The search asks the user back instead of answering (user 2026-10-26, {@code pick.ask-back}): the pick call's ask, or
-	 * the fixed ask for a question that is not a book request.
+	 * for a question that is not a book request the chat call's answer (the fixed ask when that call fails).
 	 */
 	public static final String ASK = "ask";
+
+	/** The closing summary by situation after the cards, as it streams ({@link Text}, user 2026-10-29). */
+	public static final String TAIL_DELTA = "tail-delta";
 
 	private AiSearchEvents() {
 	}

@@ -59,11 +59,17 @@ import com.chaekcheck.usagelog.UsageRequest;
 @RestController
 class AiSearchController {
 
-	/** A body larger than this is not a question (design-delta sizes: 200 + 5 × 200 characters and ids) [안]. */
-	static final int MAX_BODY_CHARS = 16 * 1024;
+	/**
+	 * A body larger than this is not a question (design-delta sizes: 200 + 9 earlier turns of question, head, ask-back
+	 * and choices, about 1,600 characters each at most, and ids; user 2026-10-29 「대화 기억」 10 questions) [안].
+	 */
+	static final int MAX_BODY_CHARS = 32 * 1024;
 
 	/** An earlier ask-back's choices at most (the pick call sends 2 to 4). */
 	private static final int MAX_ASK_CHOICES = 4;
+
+	/** An earlier answer's head kept at most, in characters (the pick call writes one or two sentences) [안]. */
+	static final int HEAD_MAX_CHARS = 400;
 
 	/** Books one count request may ask about: every card of a full conversation (20 turns of at most 8). */
 	static final int MAX_COUNT_BOOKS = 160;
@@ -275,8 +281,14 @@ class AiSearchController {
 				throw new InvalidRequestException("history.askQuestion", "invalid_format",
 						"an earlier ask-back is one question and at most " + MAX_ASK_CHOICES + " choices");
 			}
+			// an earlier head longer than this is cut, not refused: it was the model's own text (user 2026-10-29)
+			String head = turn.head() == null ? null : turn.head().strip();
+			if (head != null && head.codePointCount(0, head.length()) > HEAD_MAX_CHARS) {
+				head = head.substring(0, head.offsetByCodePoints(0, HEAD_MAX_CHARS));
+			}
 			turns.add(new AiSearchFlow.Turn(question, bookIds, asked == null || asked.isEmpty() ? null : asked,
-					asked == null || asked.isEmpty() ? List.of() : choices.stream().map(String::strip).toList()));
+					asked == null || asked.isEmpty() ? List.of() : choices.stream().map(String::strip).toList(),
+					head == null || head.isEmpty() ? null : head));
 		}
 		return turns;
 	}

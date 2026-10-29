@@ -408,9 +408,10 @@ chaekcheck:
       output-per-mtok: 0.50
     limits:
       # books given to the 2nd call / books in one answer / earlier turns sent / question / card text [확정]
+      # earlier turns: a conversation is 10 questions and remembers all of them (user 2026-10-29, was 5 of 20)
       candidates: 30
       picks: 8
-      history-turns: 5
+      history-turns: 9
       question-max-length: 200
       card-text-max-chars: 300
     vector:

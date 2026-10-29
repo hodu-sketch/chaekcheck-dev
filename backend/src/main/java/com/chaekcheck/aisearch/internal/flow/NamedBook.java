@@ -69,6 +69,29 @@ record NamedBook(String key, List<Long> editions) {
 		return best;
 	}
 
+	/**
+	 * The editions of the titles a question that is a title names (「해리포터」, user 2026-10-29): the titles whose letters
+	 * start with the question's letters, the shortest title first (the title itself before its other volumes); at most
+	 * {@code max}.
+	 */
+	static List<Long> titled(String question, List<SearchBook> books, int max) {
+		String text = SearchText.letters(question);
+		if (text.length() < MIN_TITLE) {
+			return List.of();
+		}
+		List<String> keys = byKey(books).keySet().stream().filter(k -> k.startsWith(text)).sorted(
+				java.util.Comparator.comparingInt(String::length).thenComparing(java.util.Comparator.naturalOrder())).toList();
+		List<Long> ids = new ArrayList<>();
+		for (String key : keys) {
+			for (long id : byKey(books).get(key)) {
+				if (ids.size() < max) {
+					ids.add(id);
+				}
+			}
+		}
+		return ids;
+	}
+
 	private static Map<String, List<Long>> byKey(List<SearchBook> books) {
 		Index current = index;
 		if (current.books() != books) {

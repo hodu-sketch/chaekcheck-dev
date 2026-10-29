@@ -130,7 +130,7 @@ public class AiSearchFlow {
 	/**
 	 * @param question trimmed, 2 to 200 characters
 	 * @param turnNo the question's number in its conversation (1 to 20, from the web)
-	 * @param history at most 5 earlier turns, oldest first
+	 * @param history at most 9 earlier turns, oldest first (a conversation is 10 questions, user 2026-10-29)
 	 * @param planLibraryIds the plan's library ids ({@code LibraryCatalog.planSearch})
 	 * @param usage what the usage log took from the request
 	 * @param startedNanos {@link System#nanoTime()} when the request came in
@@ -147,9 +147,10 @@ public class AiSearchFlow {
 
 	/**
 	 * An earlier question and the books its answer showed (at most 8), or the ask-back it showed instead (user
-	 * 2026-10-27: a typed answer to it joins that question).
+	 * 2026-10-27: a typed answer to it joins that question), and the head the answer wrote (user 2026-10-29 「대화
+	 * 기억」), or null.
 	 */
-	public record Turn(String question, List<Long> bookIds, String askedBack, List<String> askChoices) {
+	public record Turn(String question, List<Long> bookIds, String askedBack, List<String> askChoices, String head) {
 
 		public Turn {
 			bookIds = List.copyOf(bookIds);
@@ -157,7 +158,11 @@ public class AiSearchFlow {
 		}
 
 		public Turn(String question, List<Long> bookIds) {
-			this(question, bookIds, null, List.of());
+			this(question, bookIds, null, List.of(), null);
+		}
+
+		public Turn(String question, List<Long> bookIds, String askedBack, List<String> askChoices) {
+			this(question, bookIds, askedBack, askChoices, null);
 		}
 
 	}
@@ -177,6 +182,9 @@ public class AiSearchFlow {
 	static final int MAX_ASK_CHOICES = 4;
 
 	static final int MAX_ASK_CHOICE_CHARS = 40;
+
+	/** Books of the title a question is that go first among the candidates, at most (user 2026-10-29 「해리포터」) [안]. */
+	static final int MAX_TITLE_BOOKS = 4;
 
 	/** A question of at most this many words gets the 「후보 분야」 line with ask-back on (user 2026-10-27) [안]. */
 	static final int SHORT_QUESTION_WORDS = 2;
@@ -363,7 +371,7 @@ public class AiSearchFlow {
 				.limit(properties.limits().picks())
 				.toList();
 			history.add(new ShownTurn(turn.question(), shown.stream().map(id -> known.get(id).title()).toList(),
-					turn.askedBack(), turn.askChoices()));
+					turn.askedBack(), turn.askChoices(), turn.head()));
 			shownBefore.addAll(shown);
 			lastShown = shown;
 		}
@@ -378,18 +386,12 @@ public class AiSearchFlow {
 				site(input, history, run);
 				return;
 			}
-			// one word the first step calls not a book request (「엄마」, 「AI」): with ask-back the second call reads it and asks
-			// back if need be, rather than the fixed ask-back (user 2026-10-26)
-			boolean oneWordTopic = ml.route() == MlFirstCall.Route.NOT_BOOK && pick.askBack()
-					&& oneWordTopic(input.question());
-			if (oneWordTopic) {
-				run.ask = "one-word";
-			}
-			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK && !oneWordTopic && talk == null,
+			// not a book request, one word too (「안녕」, 「고마워」, 「엄마」): the chat call answers it and leads back to books
+			// (user 2026-10-29; a one-word topic was searched as a book topic before, 「「고마워」와 관련해서…」)
+			plan = new KeywordPlan(ml.route() == MlFirstCall.Route.NOT_BOOK && talk == null,
 					ml.route() == MlFirstCall.Route.TITLE_LIKE,
 					ml.route() == MlFirstCall.Route.TITLE_LIKE ? input.question() : "",
-					ml.route() == MlFirstCall.Route.REFERS_SHOWN,
-					oneWordTopic ? List.of(input.question().strip()) : ml.keywords(), List.of(), KeywordResult.OK);
+					ml.route() == MlFirstCall.Route.REFERS_SHOWN, ml.keywords(), List.of(), KeywordResult.OK);
 		}
 		else {
 			plan = keywords(searchQuestion, history, run);
@@ -399,22 +401,19 @@ public class AiSearchFlow {
 		}
 		run.keywordResult = plan.result();
 		run.titleLike = plan.titleLike();
+		String titleGuess = null;
 		if (plan.titleLike() && !plan.title().isBlank()) {
 			String title = plan.title().strip();
 			// only words of the question go into the button, else the whole question (ADR-0153)
 			String guess = input.question().contains(title) ? title : input.question();
 			if (TitleMatch.close(guess, searchBooks.books())) {
 				run.send(AiSearchEvents.TITLE_GUESS, new TitleGuess(WholeText.of(guess)));
+				titleGuess = guess;
 			}
 		}
 		if (plan.notBook()) {
 			if (pick.askBack()) {
-				// not a book request (「음 뭐 읽지」): a fixed ask-back with three drawn examples, no AI call (user 2026-10-26)
-				List<String> examples = new ArrayList<>(Prompts.NOT_BOOK_CHOICES);
-				Collections.shuffle(examples);
-				run.ask = "not-book-ask";
-				run.send(AiSearchEvents.ASK, new AiSearchEvents.Ask(Prompts.NOT_BOOK_ASK, List.copyOf(examples.subList(0, 3))));
-				finish(run, PickResult.SKIPPED, "asked");
+				chat(input, history, run);
 				return;
 			}
 			finish(run, PickResult.NO_MATCH, "no_match");
@@ -472,11 +471,44 @@ public class AiSearchFlow {
 				}
 			}
 		}
+		// a question that is a book's title (「해리포터」): that book goes first, then books like it, never an ask-back
+		// (user 2026-10-29: it asked back with critiques, English readers and fantasy)
+		String titleNote = null;
+		if (!refers && talk == null && titleGuess != null) {
+			List<Long> titled = NamedBook.titled(titleGuess, searchBooks.books(), MAX_TITLE_BOOKS);
+			Map<Long, Integer> counts = candidates.planCounts(titled, input.planLibraryIds());
+			List<Long> first = new ArrayList<>();
+			for (long bookId : titled) {
+				if (counts.containsKey(bookId) && known.containsKey(bookId) && titles.add(known.get(bookId).titleKey())) {
+					first.add(bookId);
+					planCount.put(bookId, counts.get(bookId));
+				}
+			}
+			if (!first.isEmpty()) {
+				LinkedHashSet<Long> reordered = new LinkedHashSet<>(first);
+				reordered.addAll(chosen);
+				chosen.clear();
+				chosen.addAll(reordered);
+				titleNote = "사용자가 쓴 「" + titleGuess + "」는 책 제목이다. 그 제목의 책을 먼저 고르고, 이어서 비슷한 책을 고른다. "
+						+ "되묻지 않는다. 머리말에서 그 책을 찾았다고 말한다.";
+			}
+		}
 		// a question combining earlier topics may get the books shown for them again (EarlierTopics), and so may one
 		// adding a condition (continue: 「수학적인 것도 좀」 narrows the list, and a shown book may meet it; user
 		// 2026-10-26); 「다른 거」 (feedback) and new topics still leave them out
 		run.mark("neighbours");
 		boolean narrows = mlStep != null && "continue".equals(mlStep.plan().relation());
+		if (narrows && talk == null && !refers) {
+			// 「더 쉬운 거」: the books shown last are candidates too, so the easiest of them can answer (user 2026-10-29,
+			// it found none before)
+			Map<Long, Integer> counts = candidates.planCounts(lastShown, input.planLibraryIds());
+			for (long bookId : lastShown) {
+				if (chosen.size() < max && counts.containsKey(bookId) && titles.add(known.get(bookId).titleKey())) {
+					chosen.add(bookId);
+					planCount.put(bookId, counts.get(bookId));
+				}
+			}
+		}
 		Set<Long> excluded = new HashSet<>(talk != null ? talk.excludeShown() ? shownBefore : Set.of()
 				: refers || pointsBack || narrows ? Set.of() : shownBefore);
 		excluded.addAll(chosen);
@@ -544,7 +576,7 @@ public class AiSearchFlow {
 		Cards cards = new Cards(known, listed, beside(() -> bookTexts.coverUrls(ids)),
 				beside(() -> bookTexts.summaries(ids)), planCount);
 		run.mark("cards");
-		picks(input, history, ids, choices, cards, pointsBack, talk, run);
+		picks(input, history, ids, choices, cards, pointsBack, talk, titleNote, run);
 	}
 
 	/** How the pick call may ask back for a question of talk words. */
@@ -789,6 +821,49 @@ public class AiSearchFlow {
 	}
 
 	/**
+	 * A question that is not a book request (user 2026-10-29 「책 밖 대화는 부드럽게」): one call ({@link Prompts#CHAT_SYSTEM})
+	 * answers it and leads back to books with choices that fit the dialogue; it goes out as an ask-back. Failing, the
+	 * fixed ask-back with three drawn examples goes out instead (user 2026-10-26).
+	 */
+	private void chat(Input input, List<ShownTurn> history, Run run) {
+		LlmCall call = new LlmCall(Prompts.CHAT_SYSTEM, Prompts.chatMessages(history, input.question()),
+				Prompts.CHAT_SCHEMA, properties.firstCall().siteMaxTokens());
+		try {
+			Result result = llm.complete(call, properties.pickTimeout());
+			count(run, result.usage(), call.maxTokens());
+			JsonNode answer = json.readTree(result.text());
+			String question = answer.path("question").asString("").strip();
+			List<String> choices = new ArrayList<>();
+			for (JsonNode choice : answer.path("choices")) {
+				String text = choice.asString("").strip();
+				if (!text.isEmpty() && choices.size() < MAX_ASK_CHOICES) {
+					choices.add(text.codePointCount(0, text.length()) <= MAX_ASK_CHOICE_CHARS ? text
+							: text.substring(0, text.offsetByCodePoints(0, MAX_ASK_CHOICE_CHARS)));
+				}
+			}
+			if (!question.isEmpty() && !choices.isEmpty()) {
+				run.ask = "chat";
+				run.send(AiSearchEvents.ASK, new AiSearchEvents.Ask(question, List.copyOf(choices)));
+				finish(run, PickResult.SKIPPED, "asked");
+				return;
+			}
+		}
+		catch (LlmException e) {
+			if (e.failure() != Failure.NOT_CONFIGURED) {
+				count(run, e.usage(), call.maxTokens());
+			}
+		}
+		catch (JacksonException e) {
+			log.warn("ai search: the chat answer was not the schema's");
+		}
+		List<String> examples = new ArrayList<>(Prompts.NOT_BOOK_CHOICES);
+		Collections.shuffle(examples);
+		run.ask = "not-book-ask";
+		run.send(AiSearchEvents.ASK, new AiSearchEvents.Ask(Prompts.NOT_BOOK_ASK, List.copyOf(examples.subList(0, 3))));
+		finish(run, PickResult.SKIPPED, "asked");
+	}
+
+	/**
 	 * A question about 책첵 or about using the e-libraries (ML way {@code site}, user 2026-10-26): one call answers
 	 * from the site's own text ({@link Prompts#SITE_SYSTEM}); the answer goes out as the head and the search ends as
 	 * {@code site}. Failing, it ends as {@code no_match} like a question that is not about books.
@@ -857,27 +932,17 @@ public class AiSearchFlow {
 		return new KeywordPlan(false, false, "", false, List.of(question.split("\\s+")), List.of(), failed);
 	}
 
-	/**
-	 * One word of at least two letters, not counting Hangul jamo (「ㅋㅋ」) or marks: a topic like 「엄마」 or 「AI」 the
-	 * first step may call not a book request (user 2026-10-26).
-	 */
 	/** The words of a question, split at spaces. */
 	static int words(String question) {
 		String text = question.strip();
 		return text.isEmpty() ? 0 : text.split("\\s+").length;
 	}
 
-	static boolean oneWordTopic(String question) {
-		String word = question.strip();
-		if (word.isEmpty() || word.chars().anyMatch(Character::isWhitespace)) {
-			return false;
-		}
-		long letters = word.codePoints().filter(Character::isLetter).filter(c -> c < 0x3131 || c > 0x318E).count();
-		return letters >= 2;
-	}
-
+	/**
+	 * @param titleNote the line for a question that is a book's title (its books go first), or null
+	 */
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
-			boolean pointsBack, Talk talk, Run run) {
+			boolean pointsBack, Talk talk, String titleNote, Run run) {
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();
@@ -889,7 +954,7 @@ public class AiSearchFlow {
 		// a long first question is clear enough to pick from at once (ASK_QUESTION_WORDS)
 		// talk words decide it themselves (plan 2026-10-29): never after 「모르겠어」, always when what they point at is
 		// not known
-		boolean askBack = pick.askBack() && (talk != null ? talk.mode() != AskMode.NEVER
+		boolean askBack = pick.askBack() && titleNote == null && (talk != null ? talk.mode() != AskMode.NEVER
 				: !pointsBack && (!input.history().isEmpty() || words(input.question()) <= ASK_QUESTION_WORDS));
 		// a short question gets the candidates' big shelves, so the call sees whether they split (「사진」, user 2026-10-27)
 		Map<String, Integer> shelves = askBack && (words(input.question()) <= SHORT_QUESTION_WORDS
@@ -962,11 +1027,19 @@ public class AiSearchFlow {
 				pending[0] = -1;
 			}
 
+			@Override
+			public void tailText(String text) {
+				// the summary by situation after the cards (user 2026-10-29); nothing to sum up without two cards
+				if (askQuestion.isEmpty() && run.shown.size() >= 2) {
+					run.send(AiSearchEvents.TAIL_DELTA, new Text(text));
+				}
+			}
+
 		});
 		LlmCall call = new LlmCall(askBack ? Prompts.PICK_ASK_SYSTEM : Prompts.PICK_SYSTEM,
 				Prompts.pickMessages(history, input.question(), choices,
 						java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue(), shelves,
-						talk == null ? null : talk.note()),
+						talk != null ? talk.note() : titleNote),
 				askBack ? Prompts.PICK_ASK_SCHEMA : Prompts.PICK_SCHEMA,
 				properties.pickMaxTokens());
 		boolean failed = false;

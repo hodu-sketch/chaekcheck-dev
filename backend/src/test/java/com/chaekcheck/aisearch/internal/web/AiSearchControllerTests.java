@@ -116,8 +116,9 @@ class AiSearchControllerTests {
 			.doesNotContain(QUESTION);
 		assertProblem(post(body(QUESTION, 0, "[]"), nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
 		assertProblem(post(body(QUESTION, 21, "[]"), nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
-		assertProblem(post(body(QUESTION, 2, "[" + "{\"question\":\"앞 질문\",\"bookIds\":[1]},".repeat(5)
-				+ "{\"question\":\"여섯째\",\"bookIds\":[]}]"), nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
+		// 9 earlier turns at most: a conversation is 10 questions (user 2026-10-29)
+		assertProblem(post(body(QUESTION, 2, "[" + "{\"question\":\"앞 질문\",\"bookIds\":[1]},".repeat(9)
+				+ "{\"question\":\"열째\",\"bookIds\":[]}]"), nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
 		assertProblem(post(body(QUESTION, 2, "[{\"question\":\"앞\",\"bookIds\":[1,2,3,4,5,6,7,8,9]}]"), nextIp()),
 				HttpStatus.BAD_REQUEST, "validation_error");
 		assertProblem(post("{\"question\":\"" + QUESTION + "\",\"turnNo\":1,\"scope\":\"some\"}", nextIp()),
@@ -130,8 +131,8 @@ class AiSearchControllerTests {
 	}
 
 	@Test
-	void aBodyOverSixteenKilobytesIsRefusedEvenWithoutItsLength() {
-		String big = body(QUESTION, 1, "[]").replace("}", ",\"pad\":\"" + "가".repeat(6_000) + "\"}");
+	void aBodyOverThirtyTwoKilobytesIsRefusedEvenWithoutItsLength() {
+		String big = body(QUESTION, 1, "[]").replace("}", ",\"pad\":\"" + "가".repeat(12_000) + "\"}");
 		assertProblem(post(big, nextIp()), HttpStatus.BAD_REQUEST, "validation_error");
 	}
 

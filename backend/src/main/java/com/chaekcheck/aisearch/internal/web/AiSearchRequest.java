@@ -12,8 +12,9 @@ record AiSearchRequest(String question, Integer turnNo, List<HistoryTurn> histor
 	/**
 	 * @param askQuestion the ask-back that turn showed instead of books, or null (user 2026-10-27)
 	 * @param askChoices its choices
+	 * @param head the head that turn's answer wrote, or null (user 2026-10-29 「대화 기억」)
 	 */
-	record HistoryTurn(String question, List<Long> bookIds, String askQuestion, List<String> askChoices) {
+	record HistoryTurn(String question, List<Long> bookIds, String askQuestion, List<String> askChoices, String head) {
 	}
 
 }
