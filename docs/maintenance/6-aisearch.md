@@ -267,3 +267,26 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - **`book-vectors.bin`을 그 자리에서 덮어쓰지 말 것**(매핑 중이라 리눅스에서 읽던 줄이 바뀜): 새 이름으로 올린 뒤 `mv`로 바꾸고 백엔드 재시작.
 - 다른 길(쓰지 않음): pgvector halfvec HNSW는 색인(100만 권 약 2.7GB)이 캐시에 다 있어야 빠름. 2GB 서버에서는 안 맞음.
 - 전용 벡터 DB(Qdrant 등)는 새 인프라라 plan 결정이 먼저.
+
+## 15. 두 층 + BM25 + 요약 읽기 (2026-10-30, 브랜치 `claude/aisearch-vector-funnel`, 배포 전)
+
+사용자 결정(2026-10-30): "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자". 원문 소개는 PC에만 두고(사이클 23 [확정]), 운영에는 Haiku가 쓴 요약·검색 낱말과 벡터만 갑니다. 측정은 [소개글 보고서](../aisearch/reports/2026-10-29-intro-text.md) 10·11절, 규모는 [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md) 10절.
+
+| 단계 | 무엇 | 파일·명령 | 상태 |
+|---|---|---|---|
+| 1 | Haiku 한 번 호출로 요약(평균 270자) + 검색 낱말(평균 41개), 배치 API | `scripts/aisearch/build_summary_terms.py prepare/submit/collect/retry` → `chaekcheck-dataisearch	wo-layer\summary-terms.tsv` | 76,974권 끝(실패 16 → 다시 받아 0). 입력 1억 4,815만·출력 4,597만 토큰, 약 $19 [추정, 배치 반값] |
+| 2a | 소개 512토큰 조각 벡터(KURE-v1, 6,000자까지) | `scripts/aisearch/build_chunk_vectors.py` (이어 하기 됨) → `join` | PC에서 도는 중(약 45시간 [추정]) |
+| 2b | 요약 벡터(「제목 · 저자 · 출판사 · 연도」 + 요약) → 책마다 요약 줄 + 조각 줄들의 `book-vectors.bin` | `scripts/aisearch/build_two_layer_vectors.py summary` / `file OUT.bin` | 요약 벡터 도는 중 |
+| 3 | 벡터 검색이 책 하나의 여러 줄을 최고 점수로 묶음 | `BookVectors`, `BookVectorFunnel`, `BookVectorFile` | 코드 끝 |
+| 4 | BM25: `book_search`에 `summary`·`terms`·`written_on`·`keyword_text`·`library_words`(생성 칼럼), 색인 `book_search_bm25` | Liquibase `catalog/005-library-words.sql`, `catalog/006-book-search-bm25.yaml`; 넣기 파일 `search_summary`·`search_terms` 줄 | 코드 끝, 스위치 기본 `like` |
+| 5 | 2차가 읽는 글 = 요약 + 맞은 검색 낱말 | `JdbcAiSearchIndex.readingTexts`, `AiSearchFlow` 한 줄 | 코드 끝, 스위치 기본 `line` |
+| 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 주제 질문 더) | | 2a·2b 뒤 |
+| 7 | plan ADR(pg_search AGPL), 배포(이미지 바꾸고 DB 재시작) | | 사용자 OK 뒤, 24 세션 순서 |
+
+운영에서 알아 둘 것:
+- **DB 이미지**: `docker/postgres-bigm`에 pg_search 0.26.3(.deb, PC amd64·서버 arm64) + pgvector. `shared_preload_libraries=pg_bigm,pg_search`. compose(로컬·운영)의 `command`는 아직 `pg_bigm`만: **이미지를 새로 지은 뒤에만** `pg_search`를 더할 것(옛 이미지에 미리 불러오기를 넣으면 DB가 안 뜸). 그 전까지는 Liquibase가 BM25 색인 단계를 건너뛰고(`onFail: CONTINUE`, 다음 시작에 다시 시도) 서버는 `like`로 돔.
+- **색인을 만들 때**: 이미지와 preload가 바뀐 뒤 첫 시작에서 `CREATE EXTENSION pg_search CASCADE` + 색인 만들기(PC 10만 줄 15초, 운영 ARM은 더 김 [추정]).
+- **도서관 거르기는 색인 안**: 도서관 번호를 `library_words`(예: `l3 l17`) 칸으로 넣고 `||| '…'::pdb.boost(0)`. 색인 밖 `&&`로 거르면 10만 줄 125ms(안에서는 7ms).
+- **넣기 파일**: `search_summary`(1~500자)·`search_terms`(1~2,000자) 줄을 담은 book-texts 파일. 새 칸이 비어 있는 파일은 이미 있는 요약을 지우지 않게 거절.
+- 로컬 시험 DB: 다른 세션과 겹치지 않게 `chaekcheck-bm25-db-test`(이미지 `chaekcheck/postgres-bigm:18-search`, 포트 5513), 테스트는 `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,exec,-i,chaekcheck-bm25-db-test`.
+
