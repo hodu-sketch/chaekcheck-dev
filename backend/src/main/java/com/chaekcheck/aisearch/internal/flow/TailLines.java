@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 
 import tools.jackson.databind.JsonNode;
@@ -45,26 +46,11 @@ final class TailLines {
 		if (tail == null || !tail.isObject()) {
 			return null;
 		}
-		List<String> lines = new ArrayList<>();
-		Set<Long> used = new HashSet<>();
-		for (JsonNode line : tail.path("lines")) {
-			if (lines.size() >= MAX_LINES) {
-				break;
-			}
-			String situation = cut(line.path("situation").asString("").strip(), MAX_SITUATION_CHARS);
-			List<String> titles = new ArrayList<>();
-			for (JsonNode no : line.path("nos")) {
-				int n = no.asInt(0);
-				if (n >= 1 && n <= ids.size()) {
-					long bookId = ids.get(n - 1);
-					if (shown.contains(bookId) && known.containsKey(bookId) && used.add(bookId)) {
-						titles.add("『" + known.get(bookId).title() + "』");
-					}
-				}
-			}
-			if (!situation.isEmpty() && !titles.isEmpty()) {
-				lines.add(situation + ": " + String.join(", ", titles));
-			}
+		List<String> lines = lines(tail, n -> n <= ids.size() ? ids.get(n - 1) : null, shown, known);
+		// the numbers in the cards' order (1 for the first card) when none is a shown book's list number (local, 2026-10-30:
+		// 「위로되는 에세이」 with 8 cards and no summary, every number a book not shown)
+		if (lines.isEmpty()) {
+			lines = lines(tail, n -> n <= shown.size() ? shown.get(n - 1) : null, shown, known);
 		}
 		if (!lines.isEmpty()) {
 			return String.join("\n", lines);
@@ -75,6 +61,49 @@ final class TailLines {
 			return null;
 		}
 		return summary;
+	}
+
+	private static List<String> lines(JsonNode tail, IntFunction<Long> book, List<Long> shown,
+			Map<Long, SearchBook> known) {
+		List<String> lines = new ArrayList<>();
+		Set<Long> used = new HashSet<>();
+		for (JsonNode line : tail.path("lines")) {
+			if (lines.size() >= MAX_LINES) {
+				break;
+			}
+			String situation = cut(line.path("situation").asString("").strip(), MAX_SITUATION_CHARS);
+			List<String> titles = new ArrayList<>();
+			for (JsonNode no : line.path("nos")) {
+				int n = no.asInt(0);
+				Long bookId = n >= 1 ? book.apply(n) : null;
+				if (bookId != null && shown.contains(bookId) && known.containsKey(bookId) && used.add(bookId)) {
+					titles.add("『" + known.get(bookId).title() + "』");
+				}
+			}
+			if (!situation.isEmpty() && !titles.isEmpty()) {
+				lines.add(situation + ": " + String.join(", ", titles));
+			}
+		}
+		return lines;
+	}
+
+	/**
+	 * Why {@link #render} gave nothing, for the log (production v1.22.1, 2026-10-30: 8 cards and no summary, and the log
+	 * did not say why): {@code none} (no tail or no lines and no summary), {@code unshown} (lines whose numbers are no
+	 * card shown), {@code bad summary} (a summary with titles, numbers or too long).
+	 */
+	static String whyNone(JsonNode tail) {
+		if (tail == null || !tail.isObject()) {
+			return "none";
+		}
+		if (!tail.path("lines").isEmpty()) {
+			List<String> nos = new ArrayList<>();
+			for (JsonNode line : tail.path("lines")) {
+				line.path("nos").forEach(no -> nos.add(no.asString("")));
+			}
+			return "unshown " + String.join("/", nos);
+		}
+		return tail.path("summary").asString("").isBlank() ? "none" : "bad summary";
 	}
 
 	private static String cut(String text, int max) {

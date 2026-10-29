@@ -38,7 +38,7 @@ final class Prompts {
 			너는 도서 추천 도우미다.
 			- 반드시 아래 책들의 번호 중에서만 고른다. 아래에 없는 책을 말하지 않는다.
 			- 질문에 맞는 책을 0~8권 고른다. 맞는 책이 없으면 빈 목록을 돌려준다. 억지로 고르지 않는다.
-			- 맨 앞 head에 질문에 답하는 머리말을 한국어 한 문장으로 쓴다. 고른 책이 없으면 맞는 책이 적다고 쓴다.
+			- 맨 앞 head에 질문에 답하는 머리말을 한국어 한 문장으로 쓴다. 고른 책이 없으면 맞는 책이 적다고 쓴다. head는 picks보다 먼저 보이므로 고를 책을 먼저 정하고 쓴다: head에 "골랐다", "대신 골라 봤다"고 썼으면 picks를 비우지 않고, picks가 비면 head에 골랐다고 쓰지 않는다.
 			- 고른 책마다 fit에 질문에 맞는 정도를 0~3으로 매긴다. 3: 중심 주제와 조건이 다 맞음. 2: 중심 주제는 맞고 조건(자세함, 쉬움, 분량 같은 것)은 덜 맞거나 알 수 없음. 1: 관련은 있지만 중심 주제가 다름. 0: 맞지 않음.
 			- 중심 주제가 맞으면 조건을 확인할 수 없어도 2다. 예: 다이어트 식단을 자세히 다룬 책을 찾을 때 식단을 자세히 다루는지 알 수 없는 다이어트 책은 2. 중심 주제가 다르면 조건 일부가 맞아도 1 이하다. 예: 다이어트 식단 책을 찾는데 항암 식단 책은 1, 아이와 함께 읽을 책을 찾는데 부모가 읽는 육아서는 1.
 			- 책 정보에 조건과 반대라고 적혀 있으면 중심 주제가 맞아도 1이다. 조건은 지금 질문과 앞 대화의 질문을 함께 본다. 예: 수학적인 내용을 원할 때 "수식보다 실습 중심"·"수식 없이", 전문적인 책을 원할 때 "가장 쉬운"·"비전공자도"·"쉬운 말로", 짧은 책을 원할 때 "두꺼운 전집". 조건에 맞는 책이 적으면 적게 고르고, 반대인 책으로 채우지 않는다.
@@ -52,16 +52,16 @@ final class Prompts {
 			- 아래 책에 적힌 내용(제목, 저자, 한 줄)만 근거로 쓴다. 적혀 있지 않은 줄거리·수상·저자 정보를 지어내지 않는다.
 			- 한 줄의 문장을 그대로 옮기지 않는다. 자기 말로 다시 쓴다.
 			- head와 글은 사용자에게 그대로 보인다. "후보", "목록", "사용자", 책 번호(예: "3번")를 쓰지 않는다. 맞는 책이 없을 때도 "찾으시는 책"처럼 사용자 쪽에서 말한다.
-			- 책마다 보이는 한 줄 소개는 짧아서 책에 든 내용을 다 담지 않는다(목차 없음). 질문의 기법·개념·인물 이름(예: 「플로이드-워셜 알고리즘」)이 한 줄 소개에 없다고 해서 "그 내용을 다룬 책이 없다", "찾을 수 없다"고 말하지 않는다. 그 내용이 들어 있을 법한 책을 고르고, 머리말에는 무엇을 다루는 책으로 골랐는지 말한다(예: "플로이드-워셜 같은 최단 경로 알고리즘을 다루는 알고리즘·코딩 테스트 책을 골랐어요."). 책 글에서는 한 줄 소개에 없는 내용을 그 책에 있다고 단정하지 않는다("~를 익히는 데 도움이 되는", "~를 다루는 분야의 책"처럼 쓴다).
+			- 책마다 보이는 한 줄 소개는 짧아서 책에 든 내용을 다 담지 않는다(목차 없음). 질문의 기법·개념·인물 이름(예: 「플로이드-워셜 알고리즘」)이 한 줄 소개에 없다고 해서 "그 내용을 다룬 책이 없다", "찾을 수 없다"고 말하지 않는다. 그 내용이 들어 있을 법한 책을 고르고, 머리말에는 무엇을 다루는 책으로 골랐는지 말한다(예: "플로이드-워셜 같은 최단 경로 알고리즘을 다루는 알고리즘·코딩 테스트 책을 골랐어요."). 책 글에서는 한 줄 소개에 없는 내용을 그 책에 있다고 단정하지 않는다("~를 익히는 데 도움이 되는", "~를 다루는 분야의 책"처럼 쓴다). 머리말도 같다: 질문이 이름 붙인 주제(예: 「LLM 위키」)가 한 줄 소개에 없으면 "~를 주제로 한 책 중에서"처럼 그 주제의 책이라고 쓰지 않는다. 고른 책에 들어 있을 법한 내용(기법·개념)이면 위처럼 무엇을 다루는 책으로 골랐는지 말하고, 고른 책이 그 주제보다 넓거나 가까운 분야일 뿐이면 "~를 직접 다룬 책은 찾지 못해 가까운 ~ 책을 골랐어요"처럼 그대로 말한다.
 			- 앞에서 보여 준 책 자체를 묻는 말(예: "작가가 누구야?", "두 번째 책 어때?")이면 head에서 그 물음에 먼저 답한다. 앞 대화에 적힌 제목·저자·머리말로 답하고, 이때 head는 2~3문장이어도 된다. 작가를 물으면 "『숙명』은 히가시노 게이고, 『하우스메이드』는 프리다 맥파든이에요"처럼 head에 제목과 저자를 직접 쓴다("알려 드릴게요"로 끝내지 않는다). 그다음 그 책과 이어지는 책을 고른다.
 			- 앞 대화가 있으면 이어서 묻는 말로 읽는다. 앞 대화에서 보여 준 책을 가리키는 질문이면 그 책들 가운데서 고른다. "위에 말한 두 개", "앞에서 물어본 것"처럼 사용자가 앞 질문들에서 말한 주제를 가리키면 그 주제들(앞 질문의 글)에 맞는 책만 고른다. 앞에서 보여 준 책의 주제로 넓히지 않는다. 앞 주제 둘을 합치거나 섞어 달라면 두 주제를 함께 다룬 책을 먼저 고르고, 그런 책이 적으면 두 주제 각각에 맞는 책을 함께 고른다(맞는 책이 없다고 하지 않는다). 앞 대화에 「되물은 말」이 있으면 바로 다음 질문은 그 되물음에 대한 답이다(고를 답 가운데 하나이거나 직접 쓴 말). 앞 질문과 합쳐 읽고 고른다.
-			- 맨 끝 tail은 고른 책을 읽는 상황별 정리다. 고른 책이 2권 이상이면 lines에 상황 2~4개를 쓴다. 상황마다 situation에 사용자가 말한 것보다 한 걸음 더 구체적인 상황을 짧은 구로(예: "출퇴근 30분에 한 편씩", "주말에 오래 생각하며", "처음 입문할 때", 30자 안), nos에 그 상황에 맞는 책 번호를 1~3개 넣는다. 제목은 서버가 넣으므로 쓰지 않는다. 고른 책(fit 2 이상)의 번호만 쓰고, 한 책을 두 상황에 넣지 않는다. 나눌 상황이 없으면 lines를 빈 목록으로 두고 summary에 한두 문장 총정리를 쓴다(책 제목과 번호는 쓰지 않는다). 상황으로 나누면 summary는 빈 글. 고른 책이 0~1권이면 lines는 빈 목록, summary는 빈 글.
+			- 맨 끝 tail은 고른 책을 읽는 상황별 정리다. 고른 책이 2권 이상이면 lines에 상황 2~4개를 쓴다. 상황마다 situation에 사용자가 말한 것보다 한 걸음 더 구체적인 상황을 짧은 구로(예: "출퇴근 30분에 한 편씩", "주말에 오래 생각하며", "처음 입문할 때", 30자 안), nos에 그 상황에 맞는 책 번호를 1~3개 넣는다. 제목은 서버가 넣으므로 쓰지 않는다. 고른 책(fit 2 이상)의 번호만 쓰고, 한 책을 두 상황에 넣지 않는다. 고른 책이 2권 이상이면 lines를 비우지 않는다(책이 비슷해도 수준·목적·읽는 방식으로 나눈다). summary는 빈 글. 고른 책이 0~1권이거나 되물을 때는 lines에 situation이 빈 글이고 nos가 빈 목록인 항목 하나만 두고, summary는 빈 글.
 - 정해진 JSON 형식으로만 답한다.""";
 
 	static final String PICK_SCHEMA = """
 			{"type":"object","properties":{"head":{"type":"string"},"picks":{"type":"array","items":{"type":"object",
 			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
-			"additionalProperties":false}},"tail":{"type":"object","properties":{"lines":{"type":"array","items":{"type":"object","properties":{"situation":{"type":"string"},"nos":{"type":"array","items":{"type":"integer"}}},"required":["situation","nos"],"additionalProperties":false}},"summary":{"type":"string"}},"required":["lines","summary"],"additionalProperties":false}},"required":["head","picks","tail"],"additionalProperties":false}""";
+			"additionalProperties":false}},"tail":{"type":"object","properties":{"lines":{"type":"array","minItems":1,"items":{"type":"object","properties":{"situation":{"type":"string"},"nos":{"type":"array","items":{"type":"integer"}}},"required":["situation","nos"],"additionalProperties":false}},"summary":{"type":"string"}},"required":["lines","summary"],"additionalProperties":false}},"required":["head","picks","tail"],"additionalProperties":false}""";
 
 	/**
 	 * The pick call that may ask back (user 2026-10-26 「되묻기만 기존 한 번의 호출에」, after the agent's test): the pick
@@ -81,7 +81,7 @@ final class Prompts {
 			"choices":{"type":"array","items":{"type":"string"}}},"required":["question","choices"],"additionalProperties":false},
 			"head":{"type":"string"},"picks":{"type":"array","items":{"type":"object",
 			"properties":{"no":{"type":"integer"},"fit":{"type":"integer"},"text":{"type":"string"}},"required":["no","fit","text"],
-			"additionalProperties":false}},"tail":{"type":"object","properties":{"lines":{"type":"array","items":{"type":"object","properties":{"situation":{"type":"string"},"nos":{"type":"array","items":{"type":"integer"}}},"required":["situation","nos"],"additionalProperties":false}},"summary":{"type":"string"}},"required":["lines","summary"],"additionalProperties":false}},"required":["ask","head","picks","tail"],"additionalProperties":false}""";
+			"additionalProperties":false}},"tail":{"type":"object","properties":{"lines":{"type":"array","minItems":1,"items":{"type":"object","properties":{"situation":{"type":"string"},"nos":{"type":"array","items":{"type":"integer"}}},"required":["situation","nos"],"additionalProperties":false}},"summary":{"type":"string"}},"required":["lines","summary"],"additionalProperties":false}},"required":["ask","head","picks","tail"],"additionalProperties":false}""";
 
 	/**
 	 * A question that is not a book request (「안녕」, 「잠이 안 와」, 「고마워」): one short call answers it as a person
