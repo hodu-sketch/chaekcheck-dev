@@ -25,14 +25,11 @@ describe('picks texts', () => {
   })
 
   it('uses only our own cover addresses (C7)', () => {
-    expect(safeCoverUrl('/api/v1/picks/covers/812')).toBe('/api/v1/picks/covers/812')
-    // the other lists' cover files (user 2026-10-20)
-    expect(safeCoverUrl('/covers/7f2abb2f74006f006d47b182ecb398a9febfd23d.jpg')).toBe(
-      '/covers/7f2abb2f74006f006d47b182ecb398a9febfd23d.jpg',
-    )
-    expect(safeCoverUrl('/covers/../secrets.jpg')).toBeNull()
     // cycle 26: covers on our CloudFront host, nothing else there
     const key = '7f2abb2f74006f006d47b182ecb398a9febfd23d'
+    // the old relative shapes (stored covers, server cover files) are refused since deploy 2
+    expect(safeCoverUrl('/api/v1/picks/covers/812')).toBeNull()
+    expect(safeCoverUrl(`/covers/${key}.jpg`)).toBeNull()
     expect(safeCoverUrl(`https://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.jpg`)).toBe(
       `https://d1bdzw8sfjph5d.cloudfront.net/covers/${key}.jpg`,
     )

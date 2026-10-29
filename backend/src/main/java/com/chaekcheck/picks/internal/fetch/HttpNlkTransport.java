@@ -14,8 +14,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * {@link java.net.http.HttpClient} with the connect time-out, a read time-out per request (until the headers),
- * redirects not followed ({@code followRedirects(NEVER)}: a 3xx is {@code request_rejected} for the list and a failed
- * cover, ADR-0091) and the User-Agent on every request. The whole request, body included, may take connect + read
+ * redirects not followed ({@code followRedirects(NEVER)}: a 3xx is {@code request_rejected} for the list, ADR-0091) and the User-Agent on every request. The whole request, body included, may take connect + read
  * time-out. Exceptions thrown from here never carry the request URI: it holds the API key (spec R1-7).
  */
 public final class HttpNlkTransport implements NlkTransport, AutoCloseable {

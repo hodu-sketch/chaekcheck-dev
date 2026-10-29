@@ -37,8 +37,8 @@ import com.chaekcheck.picks.internal.store.PicksStore.StoredBook;
 
 /**
  * One shared copy per recommended list (ADR-0090, ADR-0122): its fields in display order with each book's field,
- * shown name, stored cover and our book ({@code bookId}, {@code libraryIds}). Read again every 10 minutes [확정], right
- * after a fetch changed the librarian list or its covers, and once at start-up; each list is swapped whole. If
+ * shown name, cover address and our book ({@code bookId}, {@code libraryIds}). Read again every 10 minutes [확정], right
+ * after a fetch changed the librarian list, and once at start-up; each list is swapped whole. If
  * reading a list fails (also while the catalog is swapped, plan cycle 14 C10), that list's copy before stays and a
  * warning is logged (C9). Nothing per user is kept here: whether a book is in the user's plan is worked out per
  * request.
@@ -81,12 +81,6 @@ public class PicksCache implements PicksChanged {
 	 * {@code nobel} user 2026-10-20).
 	 */
 	public static final List<String> LISTS = List.of(LIBRARIAN, LEEDONGJIN, SNU100, KAIST, NOBEL);
-
-	/**
-	 * The stored covers' address (the librarian list's), served by PicksController. Since cycle 26 no book names it
-	 * (the pictures are on CloudFront); the address stays until deploy 2 for pages still open.
-	 */
-	public static final String COVER_API = "/api/v1/picks/covers/";
 
 	static final String ALL_CODE = "ALL";
 

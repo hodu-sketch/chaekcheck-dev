@@ -8,8 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +15,8 @@ import org.slf4j.LoggerFactory;
 import com.chaekcheck.picks.internal.PicksProperties;
 
 /**
- * The requests of one fetch (plan cycle 14 C4): the list with one request, then the new covers, every request paced
- * by {@link RequestPacer} and logged (method, the path with the key replaced by {@code ***}, status, time, gap since
+ * The requests of one fetch (plan cycle 14 C4): the list with one request (no covers since cycle 26 deploy 2,
+ * ADR-0166), paced by {@link RequestPacer} and logged (method, the path with the key replaced by {@code ***}, status, time, gap since
  * the request before). The key goes in the query ({@code key=}), so it is never logged, never put in an exception
  * message or a {@code failure_detail} (spec R1-7).
  */
@@ -76,35 +74,7 @@ public final class NlkClient {
 		return response.body();
 	}
 
-	/**
-	 * One cover (ADR-0091): only an address {@link CoverUrls} allows, redirects not followed, 200 with an
-	 * {@code image/} type, at most the cover body limit.
-	 * @return the original image bytes, or empty when the cover failed
-	 */
-	public Optional<byte[]> fetchCover(String coverSource) throws InterruptedException {
-		Optional<String> allowed = CoverUrls.normalize(coverSource);
-		if (allowed.isEmpty() || !allowed.get().equals(coverSource)) {
-			log.warn("NLK cover not requested: address not allowed");
-			return Optional.empty();
-		}
-		URI uri = URI.create(coverSource);
-		NlkResponse response;
-		try {
-			response = send(uri, uri.getRawPath(), settings.coverMaxBodySize().toBytes());
-		}
-		catch (IOException ex) {
-			log.warn("NLK cover {} failed: {}", uri.getRawPath(), ex.getClass().getSimpleName());
-			return Optional.empty();
-		}
-		String type = response.contentType() == null ? "" : response.contentType().toLowerCase(Locale.ROOT).strip();
-		if (response.status() != 200 || !type.startsWith("image/")) {
-			log.warn("NLK cover {} not used: HTTP {}, {}", uri.getRawPath(), response.status(), type);
-			return Optional.empty();
-		}
-		return Optional.of(response.body());
-	}
-
-	/** Requests sent so far (the list and the covers). */
+	/** Requests sent so far. */
 	public int requestCount() {
 		return requestCount;
 	}

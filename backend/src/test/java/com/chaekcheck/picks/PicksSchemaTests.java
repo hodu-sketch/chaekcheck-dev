@@ -170,12 +170,6 @@ class PicksSchemaTests {
 		assertThat(count("SELECT count(*) FROM picks.list_book WHERE list_key = 'snu100'")).isZero();
 	}
 
-	@Test
-	void oneCoverPerAddress() {
-		cover();
-		violates(this::cover);
-	}
-
 	/**
 	 * The changeset's own SQL run again on a {@code picks.pick} of the cycle 14 shape: the librarian rows come out in
 	 * the order the cache showed them, with the fields as the fetch named them (AC-10, design-delta Liquibase 2·3).
@@ -288,12 +282,6 @@ class PicksSchemaTests {
 	private void book(String values) {
 		jdbc.sql("INSERT INTO picks.list_book (list_key, field_code, position, title, recommended_month, video_id,"
 				+ " toc_no, source_no, book_id, registered_on) VALUES (" + values + ")").update();
-	}
-
-	private void cover() {
-		jdbc.sql("""
-				INSERT INTO picks.cover (source_url, content_type, image, byte_size, fetched_at)
-				VALUES ('https://www.nl.go.kr/afile/fileDownload/a', 'image/jpeg', '\\x01', 1, now())""").update();
 	}
 
 	private void violates(Runnable insert) {

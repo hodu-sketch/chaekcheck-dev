@@ -194,7 +194,7 @@ class CacheListedBooksTests {
 
 	private static StoredBook row(long id, String field, int position, String title, Long bookId, String cover) {
 		return new StoredBook(id, field, position, title, null, null, LocalDate.of(2026, 10, 1), null, null, position,
-				null, null, bookId, cover, null);
+				null, null, bookId, cover);
 	}
 
 	/** A clock the test moves forward. */

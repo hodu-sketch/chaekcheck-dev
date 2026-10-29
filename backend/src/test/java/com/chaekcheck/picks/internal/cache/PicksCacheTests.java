@@ -199,9 +199,9 @@ class PicksCacheTests {
 	}
 
 	@Test
-	void theLibrarianListsCoverIsOnCloudFrontToo() { // cycle 26 ADR-0163: no /api/v1/picks/covers/ address any more
+	void theLibrarianListsCoverIsOnCloudFrontToo() { // cycle 26 ADR-0163: no stored-cover address any more
 		given(store.books("librarian")).willReturn(List.of(new StoredBook(1, "11", 1, "가", null, null,
-				LocalDate.of(2026, 10, 1), null, null, null, "1", null, null, "https://www.nl.go.kr/afile/1.jpg", 55L)));
+				LocalDate.of(2026, 10, 1), null, null, null, "1", null, null, "https://www.nl.go.kr/afile/1.jpg")));
 
 		cache.refresh();
 
@@ -229,13 +229,13 @@ class PicksCacheTests {
 				: recomNo.startsWith("202601") ? LocalDate.of(2026, 2, 1) : LocalDate.of(2026, 10, 1);
 		return new StoredBook(Long.parseLong(recomNo.substring(Math.max(0, recomNo.length() - 6))), code, 1, title,
 				author, isbn, month, null, null, null, recomNo, registered == null ? null : LocalDate.parse(registered),
-				null, null, null);
+				null, null);
 	}
 
 	private static StoredBook book(long id, String field, int position, String month, String title, Long bookId,
 			Integer yearBook) {
 		return new StoredBook(id, field, position, title, null, null, LocalDate.parse(month + "-01"), yearBook,
-				"vid" + id, null, null, null, bookId, null, null);
+				"vid" + id, null, null, null, bookId, null);
 	}
 
 	private static StoredBook snu(long id, String field, int tocNo, String title, Long bookId) {
@@ -243,8 +243,7 @@ class PicksCacheTests {
 	}
 
 	private static StoredBook snu(long id, String field, int tocNo, String title, Long bookId, String cover) {
-		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, cover,
-				null);
+		return new StoredBook(id, field, tocNo, title, null, null, null, null, null, tocNo, null, null, bookId, cover);
 	}
 
 }

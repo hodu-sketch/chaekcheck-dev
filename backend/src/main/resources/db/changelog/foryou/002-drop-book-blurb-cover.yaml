@@ -1,0 +1,12 @@
+# 2026-10-29 (cycle 26 deploy 2, ADR-0166): the tab blurbs and cover file keys now live in the catalog module
+# (catalog/002 copied them once, deploy 1 reads only catalog), so the old foryou tables go. Plain DROP TABLE, no
+# IF EXISTS: a database in an unexpected state stops the migration instead of passing silently.
+databaseChangeLog:
+  - changeSet:
+      id: foryou-002-drop-book-blurb-cover
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: DROP TABLE foryou.book_blurb
+        - sql:
+            sql: DROP TABLE foryou.book_cover

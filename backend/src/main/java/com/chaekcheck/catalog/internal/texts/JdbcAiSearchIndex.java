@@ -20,8 +20,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.chaekcheck.catalog.AiSearchIndex;
 
 /**
- * {@link AiSearchIndex} with {@code JdbcClient}: the queries the aisearch module ran on {@code aisearch.search_book},
- * on {@code catalog.book_search} (F6). Only {@link #books()} reads {@code catalog.book}, for the titles and authors.
+ * {@link AiSearchIndex} with {@code JdbcClient}: the AI search's queries on
+ * {@code catalog.book_search} (F6). Only {@link #books()} reads {@code catalog.book}, for the titles and authors.
  */
 @Component
 class JdbcAiSearchIndex implements AiSearchIndex {

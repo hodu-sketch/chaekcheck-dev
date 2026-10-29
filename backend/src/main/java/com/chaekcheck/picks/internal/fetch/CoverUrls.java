@@ -6,7 +6,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Which cover addresses are fetched (ADR-0091) [확정]: the API's {@code recomfilepath} with http made https, then only
+ * Which cover addresses are kept (ADR-0091) [확정]; since cycle 26 deploy 2 the server fetches none, the PC names the
+ * S3 picture after the kept address (ADR-0163). The API's {@code recomfilepath} with http made https, then only
  * host exactly {@code www.nl.go.kr} with a path under {@code /afile/}. Addresses with user info, a port, a fragment, a
  * {@code ..} segment or another scheme are refused [안]. A refused address is stored as no cover (NULL).
  */

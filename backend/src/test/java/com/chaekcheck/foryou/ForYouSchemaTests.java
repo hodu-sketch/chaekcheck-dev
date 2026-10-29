@@ -27,8 +27,6 @@ class ForYouSchemaTests {
 		jdbc.sql("INSERT INTO foryou.base_entry VALUES (?, 1, 11, true), (?, 40, 12, false)").params(run, run).update();
 		neighbours("11", "ARRAY[1]");
 		neighbours("12", "ARRAY[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]");
-		jdbc.sql("INSERT INTO foryou.book_blurb VALUES (11, '해요체 한 문장이에요.', DATE '2026-10-24')").update();
-		jdbc.sql("INSERT INTO foryou.book_cover VALUES (11, '0123456789abcdef0123456789abcdef01234567')").update();
 		assertThat(jdbc.sql("SELECT count(*) FROM foryou.base_entry").query(Long.class).single()).isEqualTo(2);
 	}
 
@@ -50,17 +48,11 @@ class ForYouSchemaTests {
 	}
 
 	@Test
-	void neighbourBlurbAndCoverRulesHold() {
+	void neighbourRulesHold() {
 		violates(() -> neighbours("11", "ARRAY[]::integer[]"));
 		violates(() -> neighbours("11",
 				"ARRAY[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]"));
 		violates(() -> neighbours("11", "ARRAY[[1,2],[3,4]]"));
-		violates(() -> jdbc.sql("INSERT INTO foryou.book_blurb VALUES (11, '', DATE '2026-10-24')").update());
-		violates(() -> jdbc.sql("INSERT INTO foryou.book_blurb VALUES (11, repeat('가', 301), DATE '2026-10-24')")
-			.update());
-		violates(() -> jdbc.sql("INSERT INTO foryou.book_cover VALUES (11, 'abc')").update());
-		violates(() -> jdbc.sql("INSERT INTO foryou.book_cover VALUES (11, '0123456789ABCDEF0123456789abcdef01234567')")
-			.update());
 	}
 
 	@Test

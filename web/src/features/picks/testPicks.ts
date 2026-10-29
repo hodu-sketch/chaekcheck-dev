@@ -21,7 +21,7 @@ export function testBooks(prefix: string, category: string, count = 10): PickBoo
       category,
       title: `${prefix} ${n}`,
       listTitle: null,
-      coverUrl: n === 3 ? null : `/api/v1/picks/covers/${1000 + n}`,
+      coverUrl: n === 3 ? null : `https://d1bdzw8sfjph5d.cloudfront.net/covers/${String(1000 + n).padStart(40, '0')}.jpg`,
       bookId: available ? 5000 + n : null,
       available,
       recommendedMonth: n <= 5 ? '2026-10' : '2026-08',

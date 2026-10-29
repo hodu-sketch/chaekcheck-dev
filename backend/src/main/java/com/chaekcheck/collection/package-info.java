@@ -21,11 +21,10 @@
  * {@code BookTextsTransfer}: {@code book-texts} (summaries, covers, tags, search lines), {@code tag-dictionary} and the
  * new mode {@code book-profiles}. The {@code book-texts} and {@code book-profiles} files start with the catalog
  * {@code export_id} their book ids are from and are refused for another one unless {@code force}, as
- * {@code neighbours}. Only {@code neighbours} still goes to {@code foryou}; {@code aisearch} is no longer used and
- * leaves the allowed dependencies at deploy 2 (cycle 26 C1).
+ * {@code neighbours}. Only {@code neighbours} still goes to {@code foryou}; {@code aisearch} left the allowed
+ * dependencies at deploy 2 (cycle 26 C1, ADR-0166).
  */
-@ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks", "aisearch",
-		"foryou" })
+@ApplicationModule(allowedDependencies = { "catalog", "catalog :: normalize", "library", "picks", "foryou" })
 package com.chaekcheck.collection;
 
 import org.springframework.modulith.ApplicationModule;

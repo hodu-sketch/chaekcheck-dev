@@ -61,7 +61,7 @@ services:
       # Small heap for the 2GB server (plan 17: about -Xmx640m)
       JAVA_TOOL_OPTIONS: -Xmx640m -XX:+ExitOnOutOfMemoryError
       # Switches from prod.env (git, not secret): off by default; the go-live turns login and the usage log on (plan 17,
-      # user decision 2026-10-18). Picks fetch stays off: the picks list and covers are in the database already.
+      # user decision 2026-10-18). Picks fetch stays off: the picks list is in the database already.
       # FETCH_MODE direct = no fetch-service.
       CHAEKCHECK_AUTH_ENABLED: ${CHAEKCHECK_AUTH_ENABLED:-false}
       CHAEKCHECK_PICKS_FETCH_ENABLED: "false"
@@ -140,9 +140,6 @@ services:
       TZ: Asia/Seoul
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      # the recommended lists' covers (user 2026-10-20, 안 A): copied here from the lists folder at each lists run
-      # (docs/maintenance/3-import.md 14-2), served by nginx at /covers/
-      - /srv/chaekcheck/covers:/srv/covers:ro
 
   # Cloudflare Tunnel (ADR-0103): chaekcheck.com reaches nginx through an outbound connection, so the server opens no
   # port. Starting this service makes the site public. The token is TUNNEL_TOKEN in Parameter Store (raw eyJ... value).

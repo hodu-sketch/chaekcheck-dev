@@ -1,0 +1,10 @@
+# 2026-10-29 (cycle 26 deploy 2, ADR-0166): the AI search reads catalog.book_search since deploy 1, so the old search
+# books table goes with its indexes. It has no trigger (aisearch/002 is daily_usage's only). Plain DROP TABLE, no
+# IF EXISTS: a database in an unexpected state stops the migration instead of passing silently.
+databaseChangeLog:
+  - changeSet:
+      id: aisearch-005-drop-search-book
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: DROP TABLE aisearch.search_book

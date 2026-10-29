@@ -173,8 +173,8 @@ const noteOf = async () =>
 const SHELF = {
   list: 'kaist',
   books: [
-    { id: 'k1', category: 'literature', title: '달러구트 꿈 백화점', listTitle: null, coverUrl: '/covers/a.jpg', bookId: 11, available: true, recommendedMonth: null, yearBook: 2026, videoId: null, tocNo: null, aiSummary: null },
-    { id: 'k2', category: 'science', title: '다가올 초대륙', listTitle: null, coverUrl: '/covers/b.jpg', bookId: 12, available: false, recommendedMonth: null, yearBook: 2026, videoId: null, tocNo: null, aiSummary: null },
+    { id: 'k1', category: 'literature', title: '달러구트 꿈 백화점', listTitle: null, coverUrl: null, bookId: 11, available: true, recommendedMonth: null, yearBook: 2026, videoId: null, tocNo: null, aiSummary: null },
+    { id: 'k2', category: 'science', title: '다가올 초대륙', listTitle: null, coverUrl: null, bookId: 12, available: false, recommendedMonth: null, yearBook: 2026, videoId: null, tocNo: null, aiSummary: null },
   ],
 }
 const NOTE_NONE = '누구나 빌릴 수 있는 도서관에서만 찾고 있어요. 더 많은 도서관에서 찾으려면 마이페이지에서 지역과 도서관을 골라 주세요'

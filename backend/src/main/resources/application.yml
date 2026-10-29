@@ -367,19 +367,11 @@ chaekcheck:
       connect-timeout: 5s
       read-timeout: 10s
       max-body-size: 10MB
-      # Largest cover image read before it is made smaller (user decision 2026-10-12: "5MB (추천)")
-      cover-max-body-size: 5MB
-      # At least 1s between cover requests, counted from the end of the previous request [확정]
+      # At least 1s between requests, counted from the end of the previous request [확정]
       request-interval: 1s
       # User decision 2026-10-12 (cycle 10): Java's HTTP client refuses a Korean header value.
       # TODO(확인 필요): the service address is appended at deployment: "book search service (+<service URL>)"
       user-agent: "book search service"
-      cover:
-        # every cover stored and served as one JPEG width; narrower images keep theirs [확정]
-        width: 200
-        jpeg-quality: 0.8
-        # largest width x height decoded (16M pixels = 64MB as ARGB), so one image cannot fill the 512MB heap
-        max-pixels: 16000000
     cache:
       # The shared cache of the picks is read again this often [확정 10m]
       refresh-interval: 10m

@@ -146,27 +146,18 @@ class PicksApiTests {
 	}
 
 	@Test
-	void coversAreServedAndMissingOnesAre404() { // AC-14b
+	void theListNamesThePictureOnCloudFront() { // AC-14b
 		data.run();
 		data.pick("1", "11", null, "2026-10", null, "가", null, null);
-		long cover = data.cover("1", "https://www.nl.go.kr/afile/fileDownload/a");
+		data.coverSource("1", "https://www.nl.go.kr/afile/fileDownload/a");
 		cache.refresh();
 
-		// cycle 26 (ADR-0163): the list names the picture on CloudFront; the old address still answers until deploy 2
+		// cycle 26 (ADR-0163): the list names the picture on CloudFront; the stored covers' address went at deploy 2
 		assertThat(mvc.get().uri(URL)).bodyJson()
 			.extractingPath("$.categories[0].books[0].coverUrl")
 			.isEqualTo("https://d1bdzw8sfjph5d.cloudfront.net/covers/"
 					+ CoverFiles.key("https://www.nl.go.kr/afile/fileDownload/a") + ".jpg");
-		assertThat(mvc.get().uri("/api/v1/picks/covers/" + cover)).hasStatusOk()
-			.hasContentType("image/jpeg")
-			.hasHeader("Cache-Control", "public, max-age=2592000, immutable");
-		assertThat(mvc.get().uri("/api/v1/picks/covers/" + (cover + 1000))).hasStatus(404)
-			.bodyJson()
-			.extractingPath("$.code")
-			.isEqualTo("cover_not_found");
-		assertThat(mvc.get().uri("/api/v1/picks/covers/abc")).hasStatus(404);
-		jdbc.sql("DELETE FROM picks.cover").update();
-		assertThat(mvc.get().uri("/api/v1/picks/covers/" + cover)).hasStatus(404);
+		assertThat(mvc.get().uri("/api/v1/picks/covers/1")).hasStatus(404);
 	}
 
 	@Test

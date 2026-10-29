@@ -32,7 +32,7 @@ class ForYouTransferTests {
 
 	@AfterEach
 	void empty() {
-		jdbc.sql("TRUNCATE foryou.book_neighbour, foryou.book_blurb, foryou.book_cover").update();
+		jdbc.sql("TRUNCATE foryou.book_neighbour").update();
 	}
 
 	@Test

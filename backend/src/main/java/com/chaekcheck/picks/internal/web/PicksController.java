@@ -9,8 +9,6 @@ import java.util.Set;
 import java.util.random.RandomGenerator;
 
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +24,6 @@ import com.chaekcheck.picks.FieldGroups;
 import com.chaekcheck.picks.internal.PicksProperties;
 import com.chaekcheck.picks.internal.cache.MainShelf;
 import com.chaekcheck.picks.internal.cache.PicksCache;
-import com.chaekcheck.picks.internal.store.PicksStore;
 
 /**
  * The recommended lists' screens (plan cycle 14 design-delta "API"; cycle 21 ADR-0126: one address per list,
@@ -37,16 +34,9 @@ import com.chaekcheck.picks.internal.store.PicksStore;
 @RestController
 class PicksController {
 
-	/** Covers never change under an id: browsers keep them 30 days [확정]. */
-	static final String COVER_CACHE_CONTROL = "public, max-age=2592000, immutable";
-
-	static final String COVER_PATH = PicksCache.COVER_API;
-
 	private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("yyyy-MM");
 
 	private final PicksCache cache;
-
-	private final PicksStore store;
 
 	private final LibraryCatalog libraryCatalog;
 
@@ -54,9 +44,8 @@ class PicksController {
 
 	private final RandomGenerator random = RandomGenerator.getDefault();
 
-	PicksController(PicksCache cache, PicksStore store, LibraryCatalog libraryCatalog, PicksProperties properties) {
+	PicksController(PicksCache cache, LibraryCatalog libraryCatalog, PicksProperties properties) {
 		this.cache = cache;
-		this.store = store;
 		this.libraryCatalog = libraryCatalog;
 		this.zone = properties.fetch().zone();
 	}
@@ -106,15 +95,6 @@ class PicksController {
 		return new Picks(listKey, fetchedAt, categories);
 	}
 
-	@GetMapping(COVER_PATH + "{coverId}")
-	ResponseEntity<byte[]> cover(@PathVariable String coverId) {
-		PicksStore.StoredCover cover = store.cover(parseId(coverId)).orElseThrow(CoverNotFoundException::new);
-		return ResponseEntity.ok()
-			.contentType(mediaType(cover.contentType()))
-			.header(HttpHeaders.CACHE_CONTROL, COVER_CACHE_CONTROL)
-			.body(cover.image());
-	}
-
 	/** The ids of the libraries the plan in the parameters searches (the same as a search's, ADR-0090). */
 	private Set<Long> planIds(MultiValueMap<String, String> params) {
 		PicksPlanParams read = new PicksPlanParams(params);
@@ -143,24 +123,6 @@ class PicksController {
 				book.videoId(), book.tocNo(), book.aiSummary(), FieldGroups.of(listKey, book.category()));
 	}
 
-	/** An id that is not a positive number names no cover: 404 like a missing one. */
-	private static long parseId(String raw) {
-		if (raw.matches("[1-9][0-9]{0,17}")) {
-			return Long.parseLong(raw);
-		}
-		throw new CoverNotFoundException();
-	}
-
-	/** The stored type; a value that is not a media type is sent as bytes. */
-	private static MediaType mediaType(String contentType) {
-		try {
-			return MediaType.parseMediaType(contentType);
-		}
-		catch (IllegalArgumentException ex) {
-			return MediaType.APPLICATION_OCTET_STREAM;
-		}
-	}
-
 	/**
 	 * The response (cycle 21 design-delta "API"): one list's fields in display order with their short names; no
 	 * fields when nothing is stored.
@@ -187,7 +149,7 @@ class PicksController {
 		 * @param category the book's field code
 		 * @param title the shown name: our book's title without edition marks, else the list's title (ADR-0129)
 		 * @param listTitle the list's title when it differs from {@code title}, else null
-		 * @param coverUrl our address of the stored cover, or null (the web shows the title)
+		 * @param coverUrl the cover's CloudFront address, or null (the web shows the title)
 		 * @param bookId our book, also when no plan library holds it; null without one
 		 * @param available a plan library holds our book
 		 * @param recommendedMonth {@code YYYY-MM} (librarian, Lee Dong-jin), else null

@@ -1,15 +1,12 @@
 package com.chaekcheck.picks.internal.lists;
 
 /**
- * The curated lists' covers are files, not database rows (user 2026-10-20: "이미지 말이야 자바가 아니라 앞에 있어야 하는
- * 거 아니야?"): the collector writes {@code covers/<sha1(url)>.jpg} in the lists folder, the web server serves that
- * folder at {@link #URL_PATH} (deploy/nginx, docs/maintenance/3-import.md 14절), and the API names the file. The
- * librarian list's covers, fetched by the server itself, stay in {@code picks.cover}.
+ * The lists' covers are files, not database rows (user 2026-10-20: "이미지 말이야 자바가 아니라 앞에 있어야 하는
+ * 거 아니야?"): the collector writes {@code covers/<sha1(url)>.jpg} in the lists folder, and since cycle 26 every list
+ * picture, the librarian list's included, is on CloudFront under the same name (ADR-0163); the server stores none
+ * (deploy 2, ADR-0166).
  */
 public final class CoverFiles {
-
-	/** Where the web server serves the covers folder [확정] (user 2026-10-20, 안 A). */
-	public static final String URL_PATH = "/covers/";
 
 	private CoverFiles() {
 	}
