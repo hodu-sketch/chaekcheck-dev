@@ -20,7 +20,8 @@ set -euo pipefail
 
 # ── dawn check (ADR-0171): before anything else ──
 hhmm="${CHAEKCHECK_CLOCK_HHMM:-$(TZ=Asia/Seoul date +%H%M)}"
-if [[ "$hhmm" -ge 325 && "$hhmm" -le 510 ]]; then
+# 10# forces decimal: bash [[ -ge ]] treats leading-zero strings as octal (0400 = 256, not 400).
+if (( 10#$hhmm >= 325 && 10#$hhmm <= 510 )); then
     echo "release.sh: REFUSED reason=dawn (03:25-05:10 Asia/Seoul, scheduled jobs); nothing changed"
     exit 1
 fi
@@ -137,6 +138,7 @@ scp -q -i "$KEY" deploy/prod/compose.yaml "$SERVER:$REMOTE_DIR/compose.yaml"
 scp -q -i "$KEY" deploy/prod/bin/up.sh "$SERVER:$REMOTE_DIR/bin/up.sh"
 scp -q -i "$KEY" deploy/prod/bin/switch.sh "$SERVER:$REMOTE_DIR/bin/switch.sh"
 # nginx config goes to incoming/ for switch.sh to apply
+ssh -i "$KEY" "$SERVER" "mkdir -p $REMOTE_DIR/nginx/incoming"
 scp -q -i "$KEY" deploy/nginx/ec2-tunnel.conf deploy/nginx/chaekcheck-locations.conf \
     deploy/nginx/rate-limits.conf deploy/nginx/security-headers.conf \
     "$SERVER:$REMOTE_DIR/nginx/incoming/"
