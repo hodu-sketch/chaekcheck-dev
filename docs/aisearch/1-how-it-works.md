@@ -1,8 +1,8 @@
-# AI 책 찾기: 질문 하나가 지나가는 길 (운영 v1.19.0 + 사이클 26 배포 1)
+# AI 책 찾기: 질문 하나가 지나가는 길 (운영 v1.22.3)
 
 ## 0. 이 문서가 답하는 것 / 답하지 않는 것
 
-- 답하는 것: 지금 운영(v1.19.0, `deploy/prod/prod.env`)에서 질문 하나가 브라우저를 떠나 마지막 SSE 이벤트가 올 때까지 **어느 데이터를 읽고, 어떤 계산을 하고, 무엇을 내보내는지**. 모든 내용은 이 저장소의 코드·설정과 모델 폴더(`chaekcheck-data\ml\aisearch-model-100k\`, 운영 `/srv/chaekcheck/aisearch-model`과 같은 파일)에서 확인한 것입니다. 확인하지 못한 것은 「(코드에서 확인 못 함)」으로 적었습니다.
+- 답하는 것: 지금 운영(v1.22.3, `deploy/prod/prod.env`)에서 질문 하나가 브라우저를 떠나 마지막 SSE 이벤트가 올 때까지 **어느 데이터를 읽고, 어떤 계산을 하고, 무엇을 내보내는지**. 모든 내용은 이 저장소의 코드·설정과 모델 폴더(`chaekcheck-data\ml\aisearch-model-100k\`, 운영 `/srv/chaekcheck/aisearch-model`과 같은 파일)에서 확인한 것입니다. 확인하지 못한 것은 「(코드에서 확인 못 함)」으로 적었습니다.
 - 답하지 않는 것:
   - 버전마다 무엇이 바뀌었나 → [2-versions.md](2-versions.md)
   - 1차 신경망·관계 분류기를 어떻게 학습했나 → [3-ml-models.md](3-ml-models.md)
@@ -26,58 +26,75 @@
 
 ## 1. 한눈에
 
+세 가지로 나눠 봅니다. 1-1은 시간 순서와 동시에 도는 것, 1-2는 어디서 갈라져 끝나는지, 1-3은 LLM·임베딩 호출이 길마다 몇 번인지입니다. 각 단계의 자세한 내용은 4절입니다.
+
+### 1-1. 시간 순서와 동시에 도는 것 (v1.22.3)
+
+`┌ ├ └`로 묶은 줄은 **동시에** 돕니다. `[옆]`은 다른 가상 스레드(`beside`)에서 도는 일, 나머지는 요청 스레드에서 차례로 도는 일입니다.
+
 ```
-[브라우저] AiChatPage.send
-  입력: 질문 + 앞 턴 ≤5 + 지역·도서관 id
-  출력: POST /api/v1/ai-searches/stream (JSON 본문, CSRF 헤더)
-        │
-        ▼
-[검사] AiSearchController.stream  (스트림을 열기 전, 실패하면 JSON 오류)
-  켜짐? → IP 한도(분 10·하루 100) → 본문 검사 → 계획 도서관 계산
-  → 오늘 비용 < US$2 ? → 동시 실행 자리(20) 있나?
-  출력: Set<Long> 계획 도서관 id, 다듬은 질문, history  → 가상 스레드에서 AiSearchFlow.run
-        │
-        ▼
-[0. 이른 낱말 검색]  첫 질문일 때만, 아래와 동시에 시작
-  입력: 질문 낱말(QuestionWords) → SQL(catalog.book_search) → List<Candidate> ≤50
-        │
-[1. 질문 벡터 encode]  임베딩 서버 POST /api/v1/embed (질문, 이어 묻기면 3개 글)
-  입력: 글 1~3개 → 출력: float[1024] 1~3개 (길이 1로 맞춘 벡터)
-        │
-[2. ML 1차 ml]  first-call-model.bin (+ follow-up-model.bin)
-  입력: 벡터 → 출력: 길 1개, 칸, 낱말 ≤8(+앞 질문 낱말), 관계 1개
-        │── SITE  → Haiku가 책첵 안내문으로 답 → head-delta 1번 → done "site"
-        │── NOT_BOOK(낱말 하나가 아니면) → ask 이벤트(고정 문구) → done "asked"
-        │── TITLE_LIKE이고 제목과 비슷하면 → title-guess 이벤트 (그리고 계속)
-        ▼
-[3. 가까운 책 nearest]  book-vectors.bin 81,078권 × 1024 int8
-  입력: 검색 벡터 → 출력: List<Long> 책 id 120개 (가까운 순)
-        │
-[4. 앞 책·이름 댄 책 neighbours]  foryou.book_neighbour
-  입력: 앞에서 보여 준 책 / 질문이 이름 댄 책 → 출력: 먼저 넣을 후보 id (≤30)
-        │
-[5. 낱말 후보 keyword]  catalog.book_search LIKE (pg_bigm)
-  출력: List<Candidate(bookId, score, planCount)> ≤50
-        │
-[6. 벡터 후보 vector]  120개 → book_search에 있고, 뺄 책이 아니고, 계획 도서관이 가진 것 → ≤60
-        │
-[7. 합치기 mix]  RRF: Σ 1/(60+순위) + 칸 보너스 0.004×맞은 칸 수, 뺄 칸 책은 맨 뒤
-  출력: 후보 id ≤30 (같은 제목은 하나만)
-        │
-[8. 카드 재료 cards]  book_search.line, catalog.book.published_on (+ 표지·요약은 옆에서 읽기 시작)
-        │
-[9. 2차 llm-first … llm-done]  Anthropic Messages API, claude-haiku-5-5, 스트림
-  입력: 지시문 + 앞 턴 + 「올해/질문/고를 수 있는 책 1..30/후보 분야」
-  출력(JSON 조각): {ask?, head, picks:[{no, fit, text}]}
-        │  PickStreamParser가 조각을 읽는 대로
-        ▼
-[SSE 이벤트]  head-delta … → card → card-delta … (책마다, 최대 8권) → done
-              또는 ask → done "asked" / 실패 시 card(글 없음) → done "no_text"
-        │
-[끝]  usagelog.ai_search_event 1행, aisearch.daily_usage 비용 더하기, 로그 한 줄
+브라우저 AiChatPage.send ── POST /api/v1/ai-searches/stream (질문 + 앞 턴 ≤5 + 지역·도서관 id)
+   │
+[검사] AiSearchController.stream   (스트림을 열기 전. 걸리면 JSON 오류로 끝)
+   켜짐 → IP 한도(분 10·하루 100) → 본문 → 계획 도서관 계산 → 오늘 비용 < US$2 → 동시 실행 자리(20)
+   │  통과하면 가상 스레드에서 AiSearchFlow.answer
+   ▼
+① 대화 말 보기  TalkRefs: 「아까 ~」 「그거 말고」 「모르겠어」 → 찾을 주제를 정함                       (4-0-1)
+     └ 「아까」가 가리킬 앞 질문 고르기만 조각 벡터를 씀 (encode, 최대 1.5초 기다림)
+   ▼
+② 동시에 시작                                                                                        (4-1~4-4)
+   ┌ [옆] 이른 낱말 검색   첫 질문만. book_search LIKE ≤50권
+   └      질문 벡터 encode(이어 묻기면 글 3개) → ML 1차(길·칸·낱말·관계) → 가까운 책 120권
+   ▼
+③ 길 나누기 (1-2 표)  SITE·NOT_BOOK은 여기서 끝, TITLE_LIKE는 제목 단추를 보내고 계속
+   ▼
+④ 찾는 조건  최신(fromYear) · 주제 나누기(A나 B) · 「다 같이」(되물은 선택지 전부)                    (4-0-2)
+   ▼
+⑤ 후보 모으기 ≤30권                                                                                  (4-6~4-9)
+   먼저 넣기: 앞 카드와 그 이웃 / 질문이 이름 댄 책의 이웃 / 제목 책 / 「더 쉬운 거」면 앞 카드
+   낱말 후보: ②의 이른 결과(조건이 없을 때) 또는 다시 찾기. 주제가 여럿이면 주제마다 따로 찾아 번갈아
+   벡터 후보: 120권 → 계획 도서관 책 ≤60권. 주제가 여럿이면 주제마다
+   합치기:   RRF + 칸 보너스, 같은 제목은 하나만
+   ▼
+⑥ 2차 준비와 호출                                                                                    (4-10~4-11)
+   한 줄 소개·출판 연도 읽기 → 이어서 셋이 동시에
+   ┌ [옆] 표지 주소 읽기
+   ├ [옆] 책첵 요약 읽기        (첫 카드를 보낼 때만 기다림)
+   └      Haiku 2차 스트림 (머리말 → 책 번호·맞음·글 → 상황별 정리)
+   ▼
+⑦ 스트림을 읽는 대로 SSE로 보냄                                                                     (4-12)
+   head-delta … → card → card-delta … (책마다, 최대 8권) → 다 받으면 tail-delta(서버가 제목 넣은 상황별 정리) → done
+   ▼
+⑧ 끝  usagelog.ai_search_event 1행, aisearch.daily_usage 비용 더하기, 로그 한 줄                     (4-13)
 ```
 
-근거: `AiSearchController.stream`, `AiSearchFlow.run`·`answer`·`picks`, `web/src/features/aisearch/AiChatPage.tsx`의 `send`.
+### 1-2. 어디서 갈라지나 (끝나는 곳과 화면)
+
+| 어디서 | 조건 | 무엇을 함 | 화면 | done |
+|---|---|---|---|---|
+| 검사 | 꺼짐·한도·비용·자리 | 스트림을 열지 않음 | 거절 문구 | (JSON 오류) |
+| ③ 길 | `SITE` (책첵 사용법) | Haiku가 책첵 안내문으로 답 | 머리말 + 「소개」 링크 | `site` |
+| ③ 길 | `NOT_BOOK` (인사·잡담, 「안녕」) | Haiku가 답 + 선택지 3개. 실패하면 고정 문구 + 예시 3개 | 질문 + 번호 상자 | `asked` |
+| ③ 길 | `TITLE_LIKE` (제목처럼 보임) | 제목 단추를 보내고 ④로 계속 | 「이 제목 찾기」 단추 | — |
+| ③ 길 | `REFERS_SHOWN` (앞 책을 가리킴) | ⑤에서 앞 카드와 이웃을 먼저 넣고 계속 | — | — |
+| ⑤ 후보 | 0권 | Haiku가 선택지 3개 | 「맞는 책을 찾지 못했어요」 + 번호 상자 | `no_match` |
+| ⑦ 2차 | 되묻기 | 책 대신 질문과 선택지 | 질문 + 번호 상자 | `asked` |
+| ⑦ 2차 | 고른 책 0권 | Haiku가 선택지 3개 (머리말 아래에 질문 없이) | 머리말 + 번호 상자. 선택지가 없으면 안내 문구 | `no_match` |
+| ⑦ 2차 | 실패·시간 초과 | 글 없는 카드 | 카드만 | `no_text` |
+| ⑦ 2차 | 정상 | — | 머리말 + 카드 + 「상황별로 고르면」 | `ok` |
+
+### 1-3. 길마다 바깥 호출 수
+
+| 길 | Haiku 호출 | 질문 벡터 encode |
+|---|---|---|
+| 책 찾기 (보통) | 1 (2차) | 1 (이어 묻기면 글 3개를 한 번에) |
+| ML 1차가 늦거나 실패 | 2 (Haiku 1차 + 2차) | 1 |
+| `SITE`, `NOT_BOOK` | 1 | 1 |
+| 후보 0권 | 1 (선택지) | 1 |
+| 2차가 0권 | 2 (2차 + 선택지) | 1 |
+| 「아까」, 「A나 B」, 「최신」 판단 | 위와 같음 | +1 (조각·예시 비교용, 최대 1.5초) |
+
+근거: `AiSearchController.stream`, `AiSearchFlow.answer`(① ~ ⑥, `beside`가 옆 스레드), `mlStep`(encode → ml → nearest 차례), `picks`·`noMatchChoices`·`chat`·`site`, `web/src/features/aisearch/AiChatPage.tsx`의 `send`.
 
 ## 2. 요청
 
