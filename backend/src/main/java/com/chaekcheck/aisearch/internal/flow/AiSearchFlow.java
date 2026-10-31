@@ -329,6 +329,12 @@ public class AiSearchFlow {
 		/** The first year of 「최신」, or null (user 2026-10-29). */
 		Integer fromYear;
 
+		/**
+		 * Whether {@link #fromYear} is a bound the question names (「2020년 이후」, 「최소한 작년에 나온」): older books are
+		 * left out, not put after (user 2026-10-31: 「최소한 작년에 나온 JAVA 도서」 said 2025 and up and showed a 2024 book).
+		 */
+		boolean yearBound;
+
 		/** How many topics the keywords were searched for one by one (「A나 B」, 「다 같이」), 0 for one search. */
 		int parts;
 
@@ -394,7 +400,7 @@ public class AiSearchFlow {
 						(run.named ? ", named book" : "") + (run.earlyKeywords ? ", early keyword" : "")
 								+ (run.talk == null ? "" : ", talk " + run.talk), run.shown.size(), elapsedMs, run.inputTokens, run.outputTokens,
 						(run.ask == null ? "" : ", ask " + run.ask) + (run.tail == null ? "" : ", tail " + run.tail)
-								+ (run.fromYear == null ? "" : ", from " + run.fromYear)
+								+ (run.fromYear == null ? "" : ", from " + run.fromYear + (run.yearBound ? " only" : ""))
 								+ (run.parts == 0 ? "" : ", parts " + run.parts)
 								+ (run.textChars == 0 ? "" : ", text " + run.textChars
 										+ (run.longCards == 0 ? "" : " (long " + run.longCards + ")"))
@@ -503,8 +509,10 @@ public class AiSearchFlow {
 		if (carries) {
 			input.history().reversed().forEach(turn -> recencyTexts.add(turn.question()));
 		}
-		Integer fromYear = fromYear(recencyTexts, searchQuestion, mlStep == null ? null : mlStep.vector());
+		YearFloor floor = fromYear(recencyTexts, searchQuestion, mlStep == null ? null : mlStep.vector());
+		Integer fromYear = floor == null ? null : floor.year();
 		run.fromYear = fromYear;
+		run.yearBound = floor != null && floor.bound();
 		List<String> parts = allChoices ? askChoices : TopicParts.of(searchQuestion);
 		run.titleLike = plan.titleLike();
 		String titleGuess = null;
@@ -631,6 +639,10 @@ public class AiSearchFlow {
 			found = keywordCandidates(plan, parts, fromYear, input.planLibraryIds(), excluded,
 					mix ? keywordLimit : max - chosen.size(), run);
 		}
+		if (run.yearBound) {
+			// the older ones come after the recent ones, and would take the places in the mix
+			found = found.stream().filter(candidate -> !tooOld(known.get(candidate.bookId()), fromYear)).toList();
+		}
 		run.mark("keyword");
 		if (!mix) {
 			for (Candidate candidate : found) {
@@ -651,7 +663,7 @@ public class AiSearchFlow {
 			}
 			List<Long> vectorIds = vectorCandidates(parts.size() >= 2 ? partNearest(parts, vectorSettings, nearest) : nearest,
 					known, excluded, input.planLibraryIds(), planCount,
-					vectorSettings, fromYear);
+					vectorSettings, fromYear, run.yearBound);
 			run.vectorCount = vectorIds.size();
 			run.mark("vector");
 			// one edition of a title: the mix brings the same book from both lists under different ids
@@ -669,6 +681,9 @@ public class AiSearchFlow {
 			}
 		}
 		run.mark("mix");
+		if (run.yearBound) {
+			chosen.removeIf(id -> tooOld(known.get(id), fromYear));
+		}
 		if (chosen.isEmpty()) {
 			noMatchChoices(input, history, run, "");
 			finish(run, PickResult.NO_MATCH, "no_match");
@@ -864,7 +879,7 @@ public class AiSearchFlow {
 	 */
 	private List<Long> vectorCandidates(CompletableFuture<List<Long>> nearest, Map<Long, SearchBook> known,
 			Set<Long> excluded, Set<Long> planLibraryIds, Map<Long, Integer> planCount,
-			AiSearchProperties.Vector settings, Integer fromYear) {
+			AiSearchProperties.Vector settings, Integer fromYear, boolean yearBound) {
 		List<Long> near;
 		try {
 			near = nearest.get(settings.maxWait().toMillis(), TimeUnit.MILLISECONDS);
@@ -893,7 +908,9 @@ public class AiSearchFlow {
 				Integer year = known.get(id).year();
 				(year != null && year >= fromYear ? recent : older).add(id);
 			}
-			recent.addAll(older);
+			if (!yearBound) {
+				recent.addAll(older);
+			}
 			nearer = recent;
 		}
 		List<Long> keep = nearer.subList(0, Math.min(nearer.size(), settings.vectorDepth() * 2));
@@ -959,10 +976,21 @@ public class AiSearchFlow {
 		return taken;
 	}
 
+	/** Whether a book is older than a year bound, or has no year (it cannot be shown to meet it). */
+	static boolean tooOld(SearchBook book, int fromYear) {
+		return book == null || book.year() == null || book.year() < fromYear;
+	}
+
 	/** The call's note with the line for 「최신」 added when recent books were asked for (user 2026-10-29). */
 	static String withRecency(String note, Run run) {
 		if (run.fromYear == null) {
 			return note;
+		}
+		if (run.yearBound) {
+			String bound = "사용자는 " + run.fromYear + "년 이후에 나온 책만 원한다. 아래 후보는 모두 " + run.fromYear
+					+ "년 이후 책이다. 머리말에서 " + run.fromYear + "년 이후 책 중에서 골랐다고 말해도 되고, 맞는 책이 적으면 "
+					+ "적다고 말한다.";
+			return note == null ? bound : note + " " + bound;
 		}
 		String recent = "사용자는 최근에 나온 책을 원한다. " + run.fromYear + "년 이후에 나온 책을 먼저 고르고, 오래된 책은 맞는 "
 				+ "최근 책이 모자랄 때만 고른다. 머리말에서 최근 책으로 골랐다고 말해도 된다.";
@@ -1001,7 +1029,7 @@ public class AiSearchFlow {
 	 * its vector (「요즘 지쳤는데」 does not; user 2026-10-29: 63 of 70 rude test sentences against 55 by the words alone).
 	 * The texts are the question, then what it carries on, newest first. With the vectors off, the words alone.
 	 */
-	private Integer fromYear(List<String> texts, String question, float[] questionVector) {
+	private YearFloor fromYear(List<String> texts, String question, float[] questionVector) {
 		int thisYear = java.time.Year.now(SEOUL).getValue();
 		for (String text : texts) {
 			if (text == null) {
@@ -1009,7 +1037,7 @@ public class AiSearchFlow {
 			}
 			Integer since = Recency.since(text, thisYear);
 			if (since != null) {
-				return since;
+				return new YearFloor(since, true);
 			}
 			if (!Recency.mentions(text)) {
 				continue;
@@ -1021,10 +1049,14 @@ public class AiSearchFlow {
 			}
 			String label = intents.label(IntentVectors.RECENCY, vector);
 			if (label == null || label.equals("recent")) {
-				return thisYear - Recency.YEARS;
+				return new YearFloor(thisYear - Recency.YEARS, false);
 			}
 		}
 		return null;
+	}
+
+	/** The first year asked for, and whether it is a bound the question names (not 「최신」's recent-first). */
+	record YearFloor(int year, boolean bound) {
 	}
 
 	/**

@@ -26,6 +26,22 @@ class RecencyAndTopicPartsTests {
 	}
 
 	@Test
+	void aNamedFirstYearIsABoundAndLastYearIsCountedFromThisOne() { // user 2026-10-31 「최소한 작년에 나온 JAVA 도서」
+		assertThat(Recency.since("최소한 작년에 나온 JAVA 도서", 2026)).isEqualTo(2025);
+		assertThat(Recency.since("작년 이후 나온 소설", 2026)).isEqualTo(2025);
+		assertThat(Recency.since("재작년부터 나온 과학책", 2026)).isEqualTo(2024);
+		assertThat(Recency.since("올해 나온 에세이", 2026)).isEqualTo(2026);
+		assertThat(Recency.since("최소 2023년에 나온 파이썬 책", 2026)).isEqualTo(2023);
+		assertThat(Recency.since("2020년 이후 나온 소설", 2026)).isEqualTo(2020);
+		// not a publishing year
+		assertThat(Recency.since("작년에 읽은 책이랑 비슷한 거", 2026)).isNull();
+		assertThat(Recency.since("최신 자바 책", 2026)).isNull();
+		assertThat(Recency.from(List.of("최소한 작년에 나온 JAVA 도서"), 2026)).isEqualTo(2025);
+		assertThat(Recency.isWord("작년에")).isTrue();
+		assertThat(Recency.isWord("최소한")).isTrue();
+	}
+
+	@Test
 	void recencyWordsAreNoSearchWords() {
 		assertThat(Recency.isWord("최신책")).isTrue();
 		assertThat(Recency.isWord("요즘")).isTrue();
