@@ -152,6 +152,10 @@ class AiSearchTwoLayerEvalTests {
 				firstCall);
 		MlFirstCall mlFirstCall = new MlFirstCall(on, json, profiles(dir, profilesOn));
 		assertThat(mlFirstCall.on()).isTrue();
+		if ("shelves".equals(System.getenv("AISEARCH_EVAL2_STEP"))) {
+			shelves(dir, on, mlFirstCall);
+			return;
+		}
 		Set<Long> plan = new HashSet<>();
 		for (JsonNode library : json.readTree(Files.readString(dir.resolve("libs-1114.json"))).get("libraries")) {
 			String eligibility = library.get("eligibility").asString();
@@ -202,6 +206,46 @@ class AiSearchTwoLayerEvalTests {
 		}
 		Files.writeString(dir.resolve("out-" + name + ".json"), json.writeValueAsString(ordered));
 		System.out.println("eval2 run " + name + ": " + out.size() + " questions");
+	}
+
+	/**
+	 * Why the profiles help or not (user 2026-10-31 "프로필은 왜 이득이 없게 나왔을까?"): per question the shelves the ML
+	 * first call reads, and for the asked book and every book of the {@code AISEARCH_EVAL2_LISTS} runs' lists the shared
+	 * shelves (bonus / shelf bonus) and whether the question rules it out. Writes {@code shelves.json}.
+	 */
+	private void shelves(Path dir, AiSearchProperties on, MlFirstCall ml) throws Exception {
+		List<JsonNode> lists = new ArrayList<>();
+		for (String run : System.getenv("AISEARCH_EVAL2_LISTS").split(",")) {
+			lists.add(json.readTree(Files.readString(dir.resolve("out-" + run + ".json"))));
+		}
+		double unit = on.firstCall().shelfBonus();
+		Map<String, Object> out = new LinkedHashMap<>();
+		try (var vectors = new KureQuestionVectorsAccess(on).open()) {
+			for (JsonNode question : json.readTree(Files.readString(dir.resolve("questions.json")))) {
+				String id = question.get("id").asString();
+				String q = question.get("q").asString();
+				float[] v = vectors.get().vectors(List.of(q)).get().get(0);
+				MlFirstCall.Plan plan = ml.plan(q, v, null, null, null);
+				Set<Long> books = new HashSet<>();
+				if (question.has("book_id")) {
+					books.add(question.get("book_id").asLong());
+				}
+				for (JsonNode list : lists) {
+					list.get(id).get("books").forEach(b -> books.add(b.asLong()));
+				}
+				Map<String, Object> per = new LinkedHashMap<>();
+				for (long book : books) {
+					per.put(Long.toString(book), List.of(Math.round(ml.bonus(book, plan.shelves()) / unit),
+							ml.rulesOut(book, plan.shelves())));
+				}
+				Map<String, Object> got = new LinkedHashMap<>();
+				got.put("shelves", plan.shelves());
+				got.put("books", per);
+				out.put(id, got);
+			}
+		}
+		Files.writeString(dir.resolve("shelves.json"), json.writeValueAsString(out));
+		System.out.println("eval2 shelves: " + out.size() + " questions");
 	}
 
 	/** The profiles of {@code book-profiles.tsv}, or (off) one profile of no book, so none matches or rules out. */
