@@ -6,4 +6,5 @@
  * and, since cycle 23 (ADR-0148), {@link com.chaekcheck.availability.RankedListings}, one page of a library site's
  * popular order for the foryou module's daily build.
  */
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "catalog", "library", "usagelog" })
 package com.chaekcheck.availability;

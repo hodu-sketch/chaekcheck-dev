@@ -22,4 +22,5 @@
  * Separate import (cycle 11, ADR-0078): {@link com.chaekcheck.catalog.CatalogLoad} also exports the new tables as one
  * file on the PC and applies that file on the production database.
  */
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "library", "usagelog" })
 package com.chaekcheck.catalog;

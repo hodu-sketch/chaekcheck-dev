@@ -38,16 +38,23 @@ shift || true
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: release.sh [--switch-only] X.Y.Z [backend] [web]" >&2; exit 1; }
 TAG="v$VERSION"
 
-# services to deploy (default: backend then web)
-SERVICES=("${@}")
-if [[ ${#SERVICES[@]} -eq 0 ]]; then
-    SERVICES=(backend web)
+# services to deploy (default: backend then web); always backend before web (new API before new UI)
+ARGS=("${@}")
+if [[ ${#ARGS[@]} -eq 0 ]]; then
+    ARGS=(backend web)
 fi
-for s in "${SERVICES[@]}"; do
-    if [[ "$s" == "db" || "$s" == "cloudflared" ]]; then
-        echo "release.sh: $s requires a maintenance deploy: see deploy/prod/README.md" >&2; exit 1
-    fi
+SERVICES=()
+has_backend=false has_web=false
+for s in "${ARGS[@]}"; do
+    case "$s" in
+        backend) has_backend=true ;;
+        web)     has_web=true ;;
+        db|cloudflared) echo "release.sh: $s requires a maintenance deploy: see deploy/prod/README.md" >&2; exit 1 ;;
+        *) echo "release.sh: unknown service $s" >&2; exit 1 ;;
+    esac
 done
+$has_backend && SERVICES+=(backend)
+$has_web && SERVICES+=(web)
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
@@ -131,6 +138,12 @@ wsl -d Ubuntu -- bash -ec "
   docker save chaekcheck/backend:$VERSION chaekcheck/backend:sha-$COMMIT chaekcheck/web:$VERSION chaekcheck/web:sha-$COMMIT \
     --platform linux/arm64 | gzip -1 > ~/chaekcheck-release/images-$VERSION.tar.gz"
 ARCHIVE="//wsl.localhost/Ubuntu$(wsl -d Ubuntu -- bash -c 'echo ~' | tr -d '')/chaekcheck-release/images-$VERSION.tar.gz"
+
+# ── dawn re-check before server transfer ──
+hhmm="$(TZ=KST-9 date +%H%M)"
+if (( 10#$hhmm >= 325 && 10#$hhmm <= 510 )); then
+    stop "dawn (03:25-05:10 Asia/Seoul) reached during build; tag $TAG and commit are on this PC — push them and switch on the server when dawn passes"
+fi
 
 echo "== 4/5 server: load and switch (${SERVICES[*]})"
 scp -q -i "$KEY" "$ARCHIVE" "$SERVER:$REMOTE_DIR/images-$VERSION.tar.gz"
