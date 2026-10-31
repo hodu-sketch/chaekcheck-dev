@@ -110,7 +110,7 @@ class AnthropicLlmClientTests {
 		Result result = client(KEY).complete(CALL, Duration.ofSeconds(5));
 
 		assertThat(result.text()).isEqualTo("{\"head\":\"좋아요\"}");
-		assertThat(result.usage()).isEqualTo(new Usage(910, 65, true));
+		assertThat(result.usage()).isEqualTo(new Usage(910, 0, 0, 65, true));
 		Exchange request = seen.get();
 		assertThat(request.method()).isEqualTo("POST");
 		assertThat(request.path()).isEqualTo("/v1/messages");
@@ -141,7 +141,7 @@ class AnthropicLlmClientTests {
 		assertThatThrownBy(() -> client(KEY).complete(CALL, Duration.ofSeconds(5)))
 			.isInstanceOfSatisfying(LlmException.class, e -> {
 				assertThat(e.failure()).isEqualTo(Failure.BAD_OUTPUT);
-				assertThat(e.usage()).isEqualTo(new Usage(900, 512, true));
+				assertThat(e.usage()).isEqualTo(new Usage(900, 0, 0, 512, true));
 			});
 	}
 
@@ -168,7 +168,7 @@ class AnthropicLlmClientTests {
 
 		assertThat(pieces).containsExactly("{\"head\":\"잠", "들기\"}");
 		assertThat(result.text()).isEqualTo("{\"head\":\"잠들기\"}");
-		assertThat(result.usage()).isEqualTo(new Usage(1800, 420, true));
+		assertThat(result.usage()).isEqualTo(new Usage(1800, 0, 0, 420, true));
 		assertThat(result.stopReason()).isEqualTo("end_turn");
 		assertThat(seen.get().body().path("stream").asBoolean()).isTrue();
 	}
@@ -195,7 +195,7 @@ class AnthropicLlmClientTests {
 		assertThatThrownBy(() -> client(KEY).stream(CALL, Duration.ofSeconds(5), piece -> {
 		})).isInstanceOfSatisfying(LlmException.class, e -> {
 			assertThat(e.failure()).isEqualTo(Failure.OVERLOADED);
-			assertThat(e.usage()).isEqualTo(new Usage(7, 0, false));
+			assertThat(e.usage()).isEqualTo(new Usage(7, 0, 0, 0, false));
 		});
 	}
 
@@ -220,7 +220,7 @@ class AnthropicLlmClientTests {
 		assertThatThrownBy(() -> client(KEY).stream(CALL, Duration.ofMillis(500), pieces::add))
 			.isInstanceOfSatisfying(LlmException.class, e -> {
 				assertThat(e.failure()).isEqualTo(Failure.TIMEOUT);
-				assertThat(e.usage()).isEqualTo(new Usage(5, 0, false));
+				assertThat(e.usage()).isEqualTo(new Usage(5, 0, 0, 0, false));
 			});
 		assertThat(pieces).containsExactly("{");
 		assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofMillis(2_500));
@@ -238,7 +238,7 @@ class AnthropicLlmClientTests {
 		assertThatThrownBy(() -> client(KEY).stream(CALL, Duration.ofSeconds(5), piece -> {
 		})).isInstanceOfSatisfying(LlmException.class, e -> {
 			assertThat(e.failure()).isEqualTo(Failure.HTTP_ERROR);
-			assertThat(e.usage()).isEqualTo(new Usage(9, 0, false));
+			assertThat(e.usage()).isEqualTo(new Usage(9, 0, 0, 0, false));
 		});
 	}
 
@@ -260,7 +260,7 @@ class AnthropicLlmClientTests {
 		});
 
 		assertThat(result.text()).isEqualTo("{}");
-		assertThat(result.usage()).isEqualTo(new Usage(11, 2, true));
+		assertThat(result.usage()).isEqualTo(new Usage(11, 0, 0, 2, true));
 	}
 
 	@Test
@@ -293,7 +293,7 @@ class AnthropicLlmClientTests {
 			throw new IllegalStateException("the user left");
 		})).isInstanceOfSatisfying(LlmException.class, e -> {
 			assertThat(e.failure()).isEqualTo(Failure.CANCELLED);
-			assertThat(e.usage()).isEqualTo(new Usage(21, 0, false));
+			assertThat(e.usage()).isEqualTo(new Usage(21, 0, 0, 0, false));
 		});
 	}
 
@@ -329,7 +329,8 @@ class AnthropicLlmClientTests {
 		Result result = new AnthropicLlmClient(properties, HttpClient.newHttpClient(), json).complete(CALL,
 				Duration.ofSeconds(5));
 
-		assertThat(result.usage()).isEqualTo(new Usage(910, 65, true));
+		assertThat(result.usage()).isEqualTo(new Usage(100, 800, 10, 65, true));
+		assertThat(result.usage().totalInputTokens()).isEqualTo(910);
 		JsonNode body = seen.get().body();
 		assertThat(body.path("thinking").path("type").asString()).isEqualTo("disabled");
 		assertThat(body.path("system").get(0).path("text").asString()).isEqualTo("지시문");

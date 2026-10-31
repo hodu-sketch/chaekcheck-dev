@@ -68,14 +68,21 @@ public interface LlmClient {
 	}
 
 	/**
-	 * @param inputTokens tokens sent, 0 when not known
+	 * @param inputTokens plain (uncached) input tokens, 0 when not known
+	 * @param cacheReadTokens tokens read from the prompt cache (billed at 0.1× the input price)
+	 * @param cacheCreationTokens tokens written into the prompt cache (billed at 1.25× the input price)
 	 * @param outputTokens tokens written, 0 when not known
 	 * @param outputKnown false when the call broke before the model reported its output (the cost cap then counts the
 	 *     call's {@code maxTokens}, handoff step 7)
 	 */
-	record Usage(int inputTokens, int outputTokens, boolean outputKnown) {
+	record Usage(int inputTokens, int cacheReadTokens, int cacheCreationTokens, int outputTokens, boolean outputKnown) {
 
-		public static final Usage NONE = new Usage(0, 0, false);
+		public static final Usage NONE = new Usage(0, 0, 0, 0, false);
+
+		/** All input tokens (plain + cached), for logging and the day's token total. */
+		public int totalInputTokens() {
+			return inputTokens + cacheReadTokens + cacheCreationTokens;
+		}
 
 	}
 

@@ -550,7 +550,7 @@ class AiSearchFlowTests {
 
 	@Test
 	void aFailedFirstCallUsesTheQuestionsWords() { // AC-6 first half
-		llm.then(Answer.failAfter(List.of(), Failure.TIMEOUT, new Usage(900, 0, false)))
+		llm.then(Answer.failAfter(List.of(), Failure.TIMEOUT, new Usage(900, 0, 0, 0, false)))
 			.then(Answer.ok("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"좋아요\"}]}", 1, 1));
 
 		run("과학 이야기를 찾아요", List.of());
@@ -564,7 +564,7 @@ class AiSearchFlowTests {
 	@Test
 	void aFailedSecondCallBeforeAnyCardShowsTheFirstEightWithoutText() { // AC-6 second half
 		llm.then(keywords("과학"))
-			.then(Answer.failAfter(List.of("{\"head\":\"잠"), Failure.OVERLOADED, new Usage(1800, 3, true)));
+			.then(Answer.failAfter(List.of("{\"head\":\"잠"), Failure.OVERLOADED, new Usage(1800, 0, 0, 3, true)));
 
 		run(QUESTION, List.of());
 
@@ -578,7 +578,7 @@ class AiSearchFlowTests {
 	void aStreamThatBreaksAfterACardEndsPartial() { // AC-18
 		llm.then(keywords("과학"))
 			.then(Answer.failAfter(List.of("{\"head\":\"\",\"picks\":[{\"no\":1,\"fit\":3,\"text\":\"앞 글\"},{\"no\":2,\"fit\":3,\"te"),
-					Failure.HTTP_ERROR, new Usage(1800, 0, false)));
+					Failure.HTTP_ERROR, new Usage(1800, 0, 0, 0, false)));
 
 		run(QUESTION, List.of());
 
