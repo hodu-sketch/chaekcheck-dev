@@ -606,19 +606,21 @@ public class AiSearchFlow {
 		// 2026-10-26); 「다른 거」 (feedback) and new topics still leave them out
 		run.mark("neighbours");
 		boolean narrows = mlStep != null && "continue".equals(mlStep.plan().relation());
-		if (narrows && talk == null && !refers && MORE_SO.matcher(input.question()).find()) {
-			// 「더 쉬운 거」: the books shown last are candidates too, so the easiest of them can answer (user 2026-10-29,
-			// it found none before); not 「더 보여줘」, which wants other books
-			Map<Long, Integer> counts = candidates.planCounts(lastShown, input.planLibraryIds());
-			for (long bookId : lastShown) {
-				if (chosen.size() < max && counts.containsKey(bookId) && titles.add(known.get(bookId).titleKey())) {
-					chosen.add(bookId);
-					planCount.put(bookId, counts.get(bookId));
-				}
-			}
+		// 「더 쉬운 거」: new books of the topic that are more so than the ones shown, never those again (user 2026-10-31: the
+		// shown books were put first as candidates since 2026-10-29, and 「AGI 관련 도서」 → 「더 쉬운 거」 gave the same five
+		// books with easier words); the call sees the shown books in the dialogue to compare with
+		boolean moreSo = narrows && talk == null && !refers && MORE_SO.matcher(input.question()).find();
+		if (moreSo && titleNote == null) {
+			titleNote = "사용자는 앞에서 보여 준 책보다 「" + input.question().strip() + "」을 원한다. 앞에서 보여 준 책은 다시 "
+					+ "고르지 않는다(아래 목록에 없다). 같은 주제에서 앞 책들보다 그 점이 더한 책을 고르고, 머리말에서 무엇이 더 "
+					+ "그런지 말한다. 그런 책이 없으면 억지로 고르지 않는다.";
 		}
 		Set<Long> excluded = new HashSet<>(talk != null ? talk.excludeShown() ? shownBefore : Set.of()
-				: refers || pointsBack || narrows ? Set.of() : shownBefore);
+				: moreSo ? shownBefore : refers || pointsBack || narrows ? Set.of() : shownBefore);
+		if (moreSo) {
+			// another edition of a shown title is the same book to the user
+			shownBefore.stream().map(known::get).filter(java.util.Objects::nonNull).forEach(b -> titles.add(b.titleKey()));
+		}
 		excluded.addAll(chosen);
 		boolean mix = nearest != null && !refers;
 		List<Candidate> found = earlyKeywords != null && mix && excluded.isEmpty() && plan.core().isEmpty()
@@ -1360,7 +1362,7 @@ public class AiSearchFlow {
 	}
 
 	/**
-	 * @param titleNote the line for a question that is a book's title (its books go first), or null
+	 * @param titleNote the line for a question that is a book's title (its books go first) or for 「더 ○○ 거」, or null
 	 */
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
 			boolean pointsBack, Talk talk, String titleNote, Run run) {

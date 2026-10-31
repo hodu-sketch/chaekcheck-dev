@@ -12,17 +12,22 @@
 - **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). 옛 `aisearch.search_book`은 사이클 26 배포 2(v1.20.6, `aisearch/005-drop-search-book.yaml`)에서 지웠습니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
-## 0. 지금 운영 (2026-10-28, v1.19.0)
+## 0. 지금 운영 (2026-10-31, v1.22.3)
 
-- 켠 것(`deploy/prod/prod.env`): `CHAEKCHECK_AISEARCH_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`(임베딩 서버, 7-1절), `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(8절), `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`, `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`, `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`, `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`(10절). 모델 폴더 `CHAEKCHECK_AISEARCH_MODEL_DIR=/models/aisearch`는 `deploy/prod/compose.yaml`. effort는 `application.yml`의 `low`. 비밀값 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`·`CHAEKCHECK_AISEARCH_EMBED_TOKEN`은 Parameter Store
-- 코드 기본값은 다릅니다(`application.yml`: AI 검색 꺼짐, 1차 `haiku`, 되묻기 `false`, 벡터 꺼짐, encoder `local`, 생각 칸 안 보냄 = 모델 기본, 캐싱 끔). 운영이 prod.env로 켭니다. 값 목록은 [settings-index.md](settings-index.md) 1-1절, 뜻은 [1-how-it-works 8절](../aisearch/1-how-it-works.md#8-설정-값)
+- 켠 것(`deploy/prod/prod.env`): `CHAEKCHECK_AISEARCH_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`(임베딩 서버, 7-1절), `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(8절), `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`, `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`, `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`, `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`(10절). 모델 폴더 `CHAEKCHECK_AISEARCH_MODEL_DIR=/models/aisearch`는 `deploy/prod/compose.yaml`. effort는 `application.yml`의 `low`. 비밀값 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`·`CHAEKCHECK_AISEARCH_EMBED_TOKEN`은 Parameter Store(`up.sh`가 `secrets.env`로)
+- 켜지 않은 것: `CHAEKCHECK_AISEARCH_PICK_ASK_ONE_WORD`(기본 `false`, 한 낱말 질문은 되묻지 않고 바로 답). 이 값은 `deploy/prod/compose.yaml`이 컨테이너에 넘기지 않으므로 켜려면 compose에 줄을 더해야 함
+- 코드 기본값은 다릅니다(`application.yml`: AI 검색 꺼짐, 1차 `haiku`, 되묻기 `false`, 벡터 꺼짐, encoder `local`, 생각 칸 안 보냄 = 모델 기본, 캐싱 끔). 운영이 prod.env로 켭니다. 값 목록은 [settings-index.md](settings-index.md) 1-1절, 뜻은 [1-how-it-works 8절](../aisearch/1-how-it-works.md#8-설정-값). 크기: 2차 `max_tokens` 4096, 앞 대화 9(웹 대화 10번)
+- 설정을 바꿔 적용하기(blue/green, 사이클 27): prod.env를 `/srv/chaekcheck/prod.env`에 올리고 `bin/switch.sh backend <slots.env의 지금 판>`. 새 자리(`backend-blue`/`backend-green`)가 뜨고 nginx가 옮겨 간 뒤 옛 자리가 멈춤(03:25~05:10은 거절). 배포는 `deploy/prod/bin/release.sh`
 - 한 검색(자세히는 [1-how-it-works 1절](../aisearch/1-how-it-works.md#1-한눈에)):
   - 1차: 질문 벡터(임베딩 서버, 이어 묻기면 3개) 위의 MLP가 길 5갈래 + 칸 11개를, 이어 묻기면 관계 분류기가 관계 7가지를 정함. 모델 호출 없음. 낱말은 질문 낱말 그대로(최대 8). 벡터가 2초 안에 안 오거나 실패하면 그 검색만 Haiku 1차
-  - 후보: 낱말 후보(`search_book`에 `LIKE`, ≤50권)와 벡터 후보(책 벡터 내적, ≤60권)를 RRF(Σ 1/(60+순위)) + 칸 보너스(0.004 × 맞은 칸 수)로 한 줄 세워 30권. 첫 질문은 낱말 후보 SQL을 질문 벡터와 동시에 시작
+  - 후보: 낱말 후보(`catalog.book_search`에 `LIKE`, ≤50권)와 벡터 후보(책 벡터 내적, ≤60권)를 RRF(Σ 1/(60+순위)) + 칸 보너스(0.004 × 맞은 칸 수)로 한 줄 세워 30권. 첫 질문은 낱말 후보 SQL을 질문 벡터와 동시에 시작
   - 2차: Haiku 한 번(스트림)이 30권 중 fit 2 이상 최대 8권과 카드 글. 되묻기 형식(`ask` 칸)은 4낱말 이하 첫 질문과 이어 묻기에만. 표지·요약은 Haiku를 부른 뒤 읽음
-  - 길이 책첵 사용법 질문이면 Haiku 1번으로 답(`done "site"`), 책 찾는 말이 아니고 낱말 하나도 아니면 모델 호출 없이 고정 되묻기(예시 10개 중 3개)
-- 모델 폴더: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기만). PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`(폴더 README): `book-vectors.bin`(81,078권), `book-profiles.tsv`(77,551권, v1.22.1부터 서버가 읽지 않음: 프로필은 `catalog.book_profile`. 운영 폴더에서는 2026-10-30 지움, PC 원본 `chaekcheck-data/aisearch/100k/book-profiles-export.tsv`), `first-call-model.bin`(라우터 B, v1.16.1~), `follow-up-model.bin`, `kure-query-int8-ext.onnx`·`kure-query-int8-ext.data`, `tokenizer-cut.json`. 백엔드는 `encoder=remote`라 인코더 파일 셋을 열지 않음(임베딩 서버의 `/srv/embed/model/`이 씀). 운영 서버 폴더에 인코더 파일이 실제로 있는지는 이 문서에서 확인 못 함
-- 책 수: AI 검색 책(`search_book`) 76,759권, 책 벡터 81,078권, 프로필 77,551권(10만 권 판, 9절)
+  - 길이 책첵 사용법 질문이면 Haiku 1번으로 답(`done "site"`). 책 찾기 아님(한 낱말 포함)이면 Haiku 대화 호출(`Prompts.CHAT_SYSTEM`) 한 번이 답과 고를 답을 냄(로그 `, ask chat`), 실패하면 고정 되묻기(예시 10개 중 3개, `, ask not-book-ask`)
+  - 못 찾으면: 되묻기가 켜 있을 때 Haiku 한 번(`Prompts.NO_MATCH_SYSTEM`)이 이어 물을 고를 답을 냄(로그 `, ask no-match choices`, 2026-10-30). 실패하면 웹의 예시
+- 서버가 모델 폴더(서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`, 읽기만)에서 읽는 파일: `book-vectors.bin`(81,078권), `first-call-model.bin`(라우터 B, v1.16.1~), `follow-up-model.bin`. `encoder=local`일 때만 `kure-query-int8-ext.onnx`·`kure-query-int8-ext.data`, `tokenizer-cut.json`도 읽음(운영은 `remote`라 열지 않음, 임베딩 서버의 `/srv/embed/model/`이 씀). 운영 서버 폴더에 인코더 파일이 실제로 있는지는 이 문서에서 확인 못 함. PC 쪽 같은 파일 `chaekcheck-data\ml\aisearch-model-100k\`(폴더 README)
+- 책 프로필: v1.22.1부터 `book-profiles.tsv`는 읽지 않고 `catalog.book_profile`을 시작할 때 읽음(넣기 모드 `book-profiles`, [7-foryou.md](7-foryou.md) 2-2절). 넣은 뒤 `bin/switch.sh backend <지금 판>`으로 다시 띄워야 읽음. 운영 폴더의 `book-profiles.tsv`는 2026-10-30 지움, PC 원본 `chaekcheck-data/aisearch/100k/book-profiles-export.tsv`
+- 표: 찾기 표 `catalog.book_search`, 프로필 `catalog.book_profile`, 하루 사용량 `aisearch.daily_usage`, 사용 기록 `usagelog.ai_search_event`. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 v1.20.6에서 지움
+- 책 수: AI 검색 책(`catalog.book_search`) 76,759권(2026-10-27 넣기), 책 벡터 81,078권, 프로필 77,551권(PC 파일 기준, 10만 권 판, 9절)
 - 어디에 무엇: 넣기 1~5절, 3만 권 6절, 질문 벡터·임베딩 서버 7절, ML 1차·이어 묻기 8절, 10만 권 9절, 되묻기·생각 끄기·캐시 10절, 표 줄이기 11절, 첫 글 시간 12절. 로그 한 줄의 칸 뜻은 [1-how-it-works 7절](../aisearch/1-how-it-works.md#7-로그-한-줄)
 
 ## 1. 언제 돌리나
@@ -33,8 +38,8 @@
 
 ## 2. 파일
 
-- **사이클 26부터 첫 줄은 `# export_id=<uuid>`**(파일의 책 번호를 뽑은 DB의 마지막 가져오기 `export_id`), 둘째 줄이 머리줄 `kind	book_id	source	made_on	text`. 넣는 DB의 마지막 SUCCEEDED 가져오기와 다르면 아무것도 넣지 않고 거절합니다(번호가 같다고 확실할 때만 `--chaekcheck.collection.import.force=true`). 사이클 26 전 판 서버(지금 운영 v1.19.0까지)는 이 첫 줄을 모르므로 그 서버에 넣는 파일에는 붙이지 않습니다. BOM과 Windows 줄 끝(`\r\n`)은 받습니다
-- `kind`: 이 문서는 `search_line`입니다. 사이클 23의 `for_you_blurb`·`tags`·`cover_file`은 [7-foryou.md](7-foryou.md) 2-2절(그 kind만 있는 파일은 `search_book`을 건드리지 않음). 다른 값은 건너뛰고 종류별 수를 로그에 남깁니다
+- **사이클 26부터 첫 줄은 `# export_id=<uuid>`**(파일의 책 번호를 뽑은 DB의 마지막 가져오기 `export_id`), 둘째 줄이 머리줄 `kind	book_id	source	made_on	text`. 넣는 DB의 마지막 SUCCEEDED 가져오기와 다르면 아무것도 넣지 않고 거절합니다(번호가 같다고 확실할 때만 `--chaekcheck.collection.import.force=true`). 운영(v1.20.0~)은 이 첫 줄이 없으면 파일 전체를 거절합니다(`ExportIds.parse`). BOM과 Windows 줄 끝(`\r\n`)은 받습니다
+- `kind`: 이 문서는 `search_line`입니다. 사이클 23의 `for_you_blurb`·`tags`·`cover_file`은 [7-foryou.md](7-foryou.md) 2-2절(그 kind만 있는 파일은 `catalog.book_search`를 건드리지 않음). 다른 값은 건너뛰고 종류별 수를 로그에 남깁니다
 - `book_id`: 우리 책 번호(`catalog.book.id`). **수집을 반영한 뒤의 DB 번호**로 뽑습니다(사용자 결정 2026-10-24, `plan-feedback.md` `# 사이클 24` "1단계")
 - `source`: `intro`(소개 원문으로 만듦) | `bibliographic`(서지만으로 만듦). `made_on`: `YYYY-MM-DD`
 - `text`: 1~300자. 탭·줄바꿈 없음
@@ -54,12 +59,12 @@
   `( set -a; . ./secrets.env; set +a; docker run --rm --network chaekcheck_default -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/chaekcheck -e DB_NAME=chaekcheck -e DB_USERNAME=chaekcheck -e DB_PASSWORD -e TZ=Asia/Seoul -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false -v /srv/chaekcheck/book-texts:/book-texts:ro chaekcheck/backend:<판> --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일> --chaekcheck.collection.import.book-texts-top-books=100000 )`.
   **`book-texts-top-books=100000`을 빼면 파일 기본 30000으로 넣어 운영 AI 검색 책이 10만 권 판(76,759권, 2026-10-26~)에서 약 3만 권으로 줄어듭니다**(9절).
   로그인을 끄지 않으면 뜨지 않습니다(`HttpSecurity` 없음, 2026-10-25)
-- 차례: 파일 검사 → 목록 책을 DB에서 바로 읽음(`ListedBooks.loadFromDb()`, 서버 캐시 없이) → 보유 도서관 많은 책 `book-texts-top-books`권(파일 기본 30000, **운영은 100000**, `catalog.MostHeldBooks`)을 읽음 → 한 트랜잭션에서 `search_book`을 지우고 목록 책 전부와 목록에 없는 그 책들을 넣음(한 줄이 있으면 함께, 보유 도서관 `library_ids`도 복사). 목록에도 있는 책은 목록 쪽(보이는 이름) 한 줄로
+- 차례: 파일 검사 → 목록 책을 DB에서 바로 읽음(`ListedBooks.loadFromDb()`, 서버 캐시 없이) → 보유 도서관 많은 책 `book-texts-top-books`권(파일 기본 30000, **운영은 100000**, `catalog.MostHeldBooks`)을 읽음 → 한 트랜잭션에서 `catalog.book_search`를 지우고 목록 책 전부와 목록에 없는 그 책들을 넣음(한 줄이 있으면 함께, 보유 도서관 `library_ids`도 복사). 목록에도 있는 책은 목록 쪽(보이는 이름) 한 줄로
 - `--chaekcheck.collection.import.book-texts-top-books=0`이면 예전처럼 목록 책만
 - **목록 책이 0권이면 거부하고 표를 그대로 둡니다.** 읽지 못한 목록이 있어도(`ListsNotReadException`) 거부합니다
 - 목록에 없는 책 번호의 줄은 건너뛰고 수를 셉니다. 1줄이라도 있으면 WARN 한 줄(다른 DB에서 뽑은 파일인지 확인)
 - 로그 한 줄 예: `book-texts: file rows 30939, search lines 30939, other kinds skipped {}, listed books 1911, most held 30000 (29028 not listed), stored 30939, with line …, lines for books not stored 0`
-- **카탈로그를 다시 가져온 뒤에는 반드시 다시 돌립니다**: 10만 권(9절)의 차례와 보유 도서관이 바뀌고, 사본의 `library_ids`로 계획 도서관 수를 세기 때문입니다. 가져오기는 책 번호를 새로 매기므로 넣기 파일과 함께 `book-vectors.bin`(7절), `book-profiles.tsv`(8절), 이웃(`foryou.book_neighbour`)도 새 번호로 다시 만듭니다
+- **카탈로그를 다시 가져온 뒤에는 반드시 다시 돌립니다**: 10만 권(9절)의 차례와 보유 도서관이 바뀌고, 사본의 `library_ids`로 계획 도서관 수를 세기 때문입니다. 가져오기는 책 번호를 새로 매기므로 넣기 파일과 함께 `book-vectors.bin`(7절), 이웃(`foryou.book_neighbour`)도 새 번호로 다시 만들고, 프로필 TSV를 새 번호로 만들어 `mode=book-profiles`로 `catalog.book_profile`에 넣은 뒤(7-foryou.md 2-2절) `bin/switch.sh backend <지금 판>`으로 다시 띄웁니다
 
 ## 4. 확인
 
@@ -145,11 +150,11 @@ FROM catalog.book_search;
 ## 8. ML 1차 호출 (2026-10-26)
 
 - 사용자 결정(2026-10-26): "1차를 5갈래 MLP로 바꿔요(M4 방식)", "이어 묻는 질문도 ML로 하기 → 넣음", "책첵 질문에 사이트 정보로 답하게 해요", "설정으로 켜고 끌 수 있게". 잰 숫자와 넣고 뺀 것: [`aisearch/reports/2026-10-26-ml-first-call-decisions.md`](../aisearch/reports/2026-10-26-ml-first-call-decisions.md). 모델 설명: [3-ml-models.md](../aisearch/3-ml-models.md)
-- **켜기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(prod.env). 기본 `haiku`(지금까지와 같음). 질문 벡터가 켜져 있어야 하고(7절) 모델 폴더에 아래 두 파일이 더 있어야 함. 없으면 시작 로그 `ai search first call: haiku, the ml one is off: <이유>`이고 지금처럼 Haiku. 켜지면 `ai search first call: ml, 77551 book profiles, follow-ups by relation`(10만 권 판, v1.17.0~)
-- **되돌리기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=haiku`로 바꾸고 다시 켬. 파일은 그대로 둬도 됨
+- **켜기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(prod.env). 기본 `haiku`(지금까지와 같음). 질문 벡터가 켜져 있어야 하고(7절) 모델 폴더에 `first-call-model.bin`·`follow-up-model.bin`, 그리고 `catalog.book_profile`이 비어 있지 않아야 함(`book-profiles` 넣기, v1.22.1~). 없으면 시작 로그 `ai search first call: haiku, the ml one is off: <이유>`이고 지금처럼 Haiku. 켜지면 `ai search first call: ml, N book profiles from catalog.book_profile, follow-ups by relation`
+- **되돌리기**: `CHAEKCHECK_AISEARCH_FIRST_CALL=haiku`로 바꾸고 prod.env를 `/srv/chaekcheck/prod.env`에 올린 뒤 `bin/switch.sh backend <slots.env의 지금 판>`. 파일은 그대로 둬도 됨
 - 모델 폴더에 더할 파일(PC `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`, 약 35MB. v1.16.0은 `first-call-2026-10-26\`. 지금 운영과 같은 폴더는 `chaekcheck-data\ml\aisearch-model-100k\`)
   - `first-call-model.bin`(25MB, v2 = 짧은 장르 질문 300개를 더한 라우터 B): 길 5갈래(책 찾기 아님 · 제목만 · 앞 책 가리킴 · 책첵 질문 · 보통 질문) + 칸 머리 11개(큰 칸·작은 칸·장르·형식·빼 달라는 큰 칸·작은 칸·장르·소설인지·나라·대상·수준). 각 머리는 KURE 벡터 1024 → 512(ReLU) → 칸
-  - `book-profiles.tsv`(1.6MB): 책 27,227권의 상세 사전 칸(지금 운영은 10만 권 판 77,551권, 9절)(번호 = 책 벡터와 같은 가져오기 번호. 수집으로 `catalog` 번호가 바뀌면 책 벡터와 함께 다시 만듦)
+  - `book-profiles.tsv`(1.6MB, v1.22.1부터 서버는 이 파일을 읽지 않음: `book-profiles` 넣기의 원본으로만 씀): 책 27,227권의 상세 사전 칸(지금 운영은 10만 권 판 77,551권, 9절)(번호 = 책 벡터와 같은 가져오기 번호. 수집으로 `catalog` 번호가 바뀌면 책 벡터와 함께 다시 만듦)
   - 만들기: `scripts/aisearch/eval/export_first_call.py OUT_DIR`(평가 데이터 `data/aisearch-eval-2026-10-25/`의 `qgen/`·`route/`와 `clf/`의 벡터가 있는 폴더 배치에서 돌림; 칸 머리를 학습하고, 운영과 같은 int8 질문 모델로 다시 재서 `first-call-check.json`에 남김). 2026-10-26 값(v1.16.0 판): 길 나누기 fp32 94.3% → int8 94.2%, 큰 칸 F1 0.899 → 0.903
   - 지금 운영 판(라우터 B, v1.16.1~)은 `ROUTE_PT=route5b-mlp.pt`로 `scripts/aisearch/eval/export_first_call2.py OUT_DIR`(라우터 파일만 다르고 나머지 차례는 같음, 스크립트 머리 주석). 그 `first-call-check.json`(`first-call-v2-2026-10-26\`): 길 나누기 fp32 93.7% → int8 93.5%, 큰 칸 F1 0.899 → 0.903. 머리마다 값은 [3-ml-models 8절](../aisearch/3-ml-models.md)
   - `follow-up-model.bin`(8MB): 이어 묻는 질문의 관계 7가지(refers · ask_one · continue · shift · feedback · new · none). 입력 4,096 = 지금 질문 · 앞 질문 · 「앞 + 지금」 벡터와 앞·지금 벡터의 곱 → 512(ReLU) → 7. 만들기 `scripts/aisearch/eval/rel_train.py`(학습 쌍 `data/aisearch-eval-2026-10-25/rel/`) 뒤 `export_follow_up.py OUT_DIR`. 시험 700쌍 96.4%
@@ -197,8 +202,9 @@ FROM catalog.book_search;
 사용자 결정(2026-10-26): "AGENT도 쓰긴 할건데 되묻기만 하는 걸로", "되묻기 + 생각 끄기 + 캐시로 배포해줘". 도구 루프 에이전트(`search_again` 등)는 브랜치 `claude/aisearch-agent`에만 있음. 잰 값: [에이전트 보고서](../aisearch/reports/2026-10-26-agent.md) 10·11절.
 
 - **되묻기** `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`(prod.env): 2차가 `PICK_ASK_SYSTEM`·`PICK_ASK_SCHEMA`(JSON 맨 앞 `ask` {question, choices})를 쓰고, question이 차 있으면 머리말·카드 없이 `ask` 이벤트와 done `asked`(usagelog `SKIPPED`), 고를 답 4개·40자까지. 어떤 질문에 이 형식을 쓰는지(지금은 4낱말 이하 첫 질문·이어 묻기, 앞 질문 이어 붙이기·되묻기의 답은 빼고)와 이벤트·화면은 [1-how-it-works 4-11·4-12·5절](../aisearch/1-how-it-works.md#4-11-2차-호출-llm-first-llm-done)
-  - 1차 ML이 「책 찾기 아님」: 한 낱말(빈칸 없고, 한글 자모를 뺀 글자 2개 이상 — 「엄마」, 「AI」)이면 보통 질문처럼 2차로, 아니면 AI 호출 없이 `Prompts.NOT_BOOK_ASK` + `NOT_BOOK_CHOICES` 10개 중 3개 [안]. 계산은 [1-how-it-works 4-5절](../aisearch/1-how-it-works.md#4-5-길에-따라-여기서-끝나는-경우). 되묻기를 끄면 이 경우는 done `no_match`
-  - 로그 끝 `, ask single-ask` / `not-book-ask` / `one-word`
+  - 1차 ML이 「책 찾기 아님」(v1.17.0 때는 한 낱말이면 2차로, 아니면 AI 호출 없이 고정 되묻기): 2026-10-29부터 한 낱말을 포함해 모두 Haiku 대화 호출(`Prompts.CHAT_SYSTEM`) 한 번이 답과 고를 답을 내고, 그 호출이 실패할 때만 `Prompts.NOT_BOOK_ASK` + `NOT_BOOK_CHOICES` 10개 중 3개 [안].
+  - 못 찾음 뒤 고를 답(2026-10-30): `PICK_ASK_BACK=true`일 때 Haiku 한 번(`Prompts.NO_MATCH_SYSTEM`, `AiSearchFlow.noMatchChoices`)이 이어 물을 고를 답을 냄. 실패하면 웹의 예시. 계산은 [1-how-it-works 4-5절](../aisearch/1-how-it-works.md#4-5-길에-따라-여기서-끝나는-경우). 되묻기를 끄면 이 경우는 done `no_match`
+  - 로그 끝 `, ask single-ask` / `chat` / `not-book-ask` / `no-match choices`
 - **생각 끄기** `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`: 모든 JSON 호출(2차, 책첵 질문 답, Haiku 1차)에 `thinking: {type: disabled}`. 비우면 모델 기본(Haiku 5.5는 생각 켬). Haiku 5.5는 effort `high` 이하에서만 끌 수 있음(지금 `low`)
 - **프롬프트 캐싱** `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`: system을 `cache_control: ephemeral` 블록으로. 사용량의 캐시 읽기·쓰기 토큰도 입력으로 세어 하루 예산은 보수적으로 셈
 - **단계별 시간 로그**: 검색 한 줄 끝 `, steps encode=… ml=… nearest=… neighbours=… keyword=… vector=… mix=… cards=… llm-first=… llm-done=…`(요청 시작부터 ms). `llm-first`가 Haiku 첫 글자
@@ -217,7 +223,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 규칙 시험(80문항 두 번): 카드 맞음 76 → 92%, 틀린 카드 1.29 → 0.39장, 애매한 한 낱말 되묻기 3/32 → 30/32, 직접 답한 뒤 맞음 48 → 96%. 대가: 흔한 취미·기술 낱말(강아지, 요가, 캠핑…)에도 되물음 20번 중 9번
 - 다시 재기: `scripts/aisearch/eval/rules_run.py <이름> <로그>`(로컬 백엔드), `prep` → Sonnet 하위 에이전트가 `rules-JUDGE_RULES.md`대로 채점 → `score`
 
-## 11. search_book 줄이기 (aisearch-004, v1.18.0, 2026-10-27)
+## 11. search_book 줄이기 (aisearch-004, v1.18.0, 2026-10-27; 옛 `aisearch.search_book`, 지금 `catalog.book_search`)
 
 사용자 요청(2026-10-27): 넣기 뒤 빈 공간(비효율 1), `library_ids`가 가장 큰 칸(비효율 2). 재 보니 더 큰 문제가 따로 있었음: **글 칸의 ANALYZE가 칸마다 약 200초**.
 
@@ -230,7 +236,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 | 낱말 검색 「소설」 / 「기후 위기」 / 「다이어트 식단 레시피 건강」 / 30권 도서관 수 | 140 / 40 / 12 / 0.4ms | 바꾼 직후 138 / 39 / 12 / 0.3ms, 넣기 + 정리 뒤 141 / 34 / **41** / 0.3ms — 빨라지지 않음(표가 메모리에 있고 LIKE 계산이 시간을 정함). 네 낱말은 정리 뒤 실행 계획이 바뀌어 느려짐(정리만 한 bigint 표에서도 41ms) → 운영 로그 `keyword` 단계로 지켜볼 것 |
 
 - changeset `aisearch-004-search-book-slim`: `library_ids` integer[](가장 큰 번호 2,681), `line`·`search_text` `COLLATE "C"`. 둘 다 사람에게 정렬해 보이지 않고 LIKE + pg_bigm으로만 찾으므로 결과는 같음. 표를 다시 쓰므로 운영 시작 때 몇 초(로컬 4.6초 + ANALYZE 6초) 걸림
-- `JdbcAiSearchBookTexts.compact()`: book-texts 넣기가 끝난 뒤(트랜잭션 밖) `VACUUM (FULL, ANALYZE)`. 트랜잭션 안이면 건너뛰고, 실패하면 경고만(책은 이미 들어가 있음). 로그 `search books compacted in N ms`
+- `catalog.AiSearchIndex.compact()`(`JdbcAiSearchIndex`): book-texts 넣기가 끝난 뒤(트랜잭션 밖) `VACUUM (FULL, ANALYZE)`. 트랜잭션 안이면 건너뛰고, 실패하면 경고만(책은 이미 들어가 있음). 로그 `search books compacted in N ms`
 - 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-first-test-2026-10-27.json`](../reports/ai-search-eval/search-book-first-test-2026-10-27.json)(칸 크기 42 → 25MB 포함), [`search-book-slim-2026-10-27.json`](../reports/ai-search-eval/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../reports/ai-search-eval/search-book-analyze-2026-10-27.json)
 - **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
 
@@ -239,7 +245,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 사용자 요청(2026-10-27): Haiku가 첫 응답을 하기까지의 시간 줄이기. SSE라 첫 글 시간이 중요. 자세한 숫자: [첫 글 시간](../aisearch/reports/2026-10-27-latency.md). 바꾼 셋의 계산은 [1-how-it-works 4-1·4-10·4-11절](../aisearch/1-how-it-works.md#4-1-이른-낱말-검색-첫-질문만), 운영에서 알아 둘 것만:
 
 - **1안 낱말 검색을 질문 벡터와 같이**: 첫 질문이면 `MlFirstCall.firstKeywords(질문)`으로 낱말 후보 SQL을 바로 시작하고, 조건이 맞을 때만 그 결과를 씀(아니면 다시 찾음 — 후보는 같음). 로그 한 줄에 `, early keyword`(괄호 안), 실패하면 경고 `the early keyword search failed (…)` 뒤 다시 찾음
-- **2안 표지·요약은 Haiku를 부른 뒤에**: 표지·AI 요약을 2차 호출과 동시에 읽고 첫 카드 때 받음. 읽기가 실패하면 경고 `the tab covers were not read (…)` / `the tab blurbs were not read (…)`와 함께 표지·요약 없이 카드만
+- **2안 표지·요약은 Haiku를 부른 뒤에**: 표지·AI 요약을 2차 호출과 동시에 읽고 첫 카드 때 받음. 읽기가 실패하면 경고 `ai search: the book covers were not read (…)` / `ai search: the book summaries were not read (…)`와 함께 표지·요약 없이 카드만
 - **4안 되묻기 형식은 짧은 질문·이어지는 질문에만**: `AiSearchFlow.ASK_QUESTION_WORDS`(4 [안]) 낱말 이하 첫 질문이나 앞 대화가 있는 질문만 `PICK_ASK_SYSTEM`·`PICK_ASK_SCHEMA`, 5낱말 이상 첫 질문은 `PICK_SYSTEM`·`PICK_SCHEMA`
 - 규칙 시험(80문항, v1.18.0과 번갈아 두 번씩, 로컬): 5낱말 이상 첫 질문 첫 글 1.68 → 1.43초(느린 10% 2.15 → 1.75초), 전체 1.84 → 1.69초, 카드 맞음 91 → 92%, 되묻기 기대대로 146 → 148/156
 - 다시 재기: 위 규칙 시험을 두 판으로 돌린 뒤 `python scripts/aisearch/eval/timing_compare.py <기준> <비교>`(로그의 `steps`를 단계별로 비교). Haiku만 따로: `ttft_probe.py`, `ttft_probe2.py`

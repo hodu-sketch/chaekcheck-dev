@@ -1,8 +1,8 @@
-# AI 책 찾기: 질문 하나가 지나가는 길 (운영 v1.19.0 + 사이클 26 배포 1)
+# AI 책 찾기: 질문 하나가 지나가는 길 (운영 v1.22.3)
 
 ## 0. 이 문서가 답하는 것 / 답하지 않는 것
 
-- 답하는 것: 지금 운영(v1.19.0, `deploy/prod/prod.env`)에서 질문 하나가 브라우저를 떠나 마지막 SSE 이벤트가 올 때까지 **어느 데이터를 읽고, 어떤 계산을 하고, 무엇을 내보내는지**. 모든 내용은 이 저장소의 코드·설정과 모델 폴더(`chaekcheck-data\ml\aisearch-model-100k\`, 운영 `/srv/chaekcheck/aisearch-model`과 같은 파일)에서 확인한 것입니다. 확인하지 못한 것은 「(코드에서 확인 못 함)」으로 적었습니다.
+- 답하는 것: 지금 운영(v1.22.3, `deploy/prod/prod.env`)에서 질문 하나가 브라우저를 떠나 마지막 SSE 이벤트가 올 때까지 **어느 데이터를 읽고, 어떤 계산을 하고, 무엇을 내보내는지**. 모든 내용은 이 저장소의 코드·설정과 모델 폴더(`chaekcheck-data\ml\aisearch-model-100k\`, 운영 `/srv/chaekcheck/aisearch-model`과 같은 파일)에서 확인한 것입니다. 확인하지 못한 것은 「(코드에서 확인 못 함)」으로 적었습니다.
 - 답하지 않는 것:
   - 버전마다 무엇이 바뀌었나 → [2-versions.md](2-versions.md)
   - 1차 신경망·관계 분류기를 어떻게 학습했나 → [3-ml-models.md](3-ml-models.md)
@@ -26,58 +26,75 @@
 
 ## 1. 한눈에
 
+세 가지로 나눠 봅니다. 1-1은 시간 순서와 동시에 도는 것, 1-2는 어디서 갈라져 끝나는지, 1-3은 LLM·임베딩 호출이 길마다 몇 번인지입니다. 각 단계의 자세한 내용은 4절입니다.
+
+### 1-1. 시간 순서와 동시에 도는 것 (v1.22.3)
+
+`┌ ├ └`로 묶은 줄은 **동시에** 돕니다. `[옆]`은 다른 가상 스레드(`beside`)에서 도는 일, 나머지는 요청 스레드에서 차례로 도는 일입니다.
+
 ```
-[브라우저] AiChatPage.send
-  입력: 질문 + 앞 턴 ≤5 + 지역·도서관 id
-  출력: POST /api/v1/ai-searches/stream (JSON 본문, CSRF 헤더)
-        │
-        ▼
-[검사] AiSearchController.stream  (스트림을 열기 전, 실패하면 JSON 오류)
-  켜짐? → IP 한도(분 10·하루 100) → 본문 검사 → 계획 도서관 계산
-  → 오늘 비용 < US$2 ? → 동시 실행 자리(20) 있나?
-  출력: Set<Long> 계획 도서관 id, 다듬은 질문, history  → 가상 스레드에서 AiSearchFlow.run
-        │
-        ▼
-[0. 이른 낱말 검색]  첫 질문일 때만, 아래와 동시에 시작
-  입력: 질문 낱말(QuestionWords) → SQL(catalog.book_search) → List<Candidate> ≤50
-        │
-[1. 질문 벡터 encode]  임베딩 서버 POST /api/v1/embed (질문, 이어 묻기면 3개 글)
-  입력: 글 1~3개 → 출력: float[1024] 1~3개 (길이 1로 맞춘 벡터)
-        │
-[2. ML 1차 ml]  first-call-model.bin (+ follow-up-model.bin)
-  입력: 벡터 → 출력: 길 1개, 칸, 낱말 ≤8(+앞 질문 낱말), 관계 1개
-        │── SITE  → Haiku가 책첵 안내문으로 답 → head-delta 1번 → done "site"
-        │── NOT_BOOK(낱말 하나가 아니면) → ask 이벤트(고정 문구) → done "asked"
-        │── TITLE_LIKE이고 제목과 비슷하면 → title-guess 이벤트 (그리고 계속)
-        ▼
-[3. 가까운 책 nearest]  book-vectors.bin 81,078권 × 1024 int8
-  입력: 검색 벡터 → 출력: List<Long> 책 id 120개 (가까운 순)
-        │
-[4. 앞 책·이름 댄 책 neighbours]  foryou.book_neighbour
-  입력: 앞에서 보여 준 책 / 질문이 이름 댄 책 → 출력: 먼저 넣을 후보 id (≤30)
-        │
-[5. 낱말 후보 keyword]  catalog.book_search LIKE (pg_bigm)
-  출력: List<Candidate(bookId, score, planCount)> ≤50
-        │
-[6. 벡터 후보 vector]  120개 → book_search에 있고, 뺄 책이 아니고, 계획 도서관이 가진 것 → ≤60
-        │
-[7. 합치기 mix]  RRF: Σ 1/(60+순위) + 칸 보너스 0.004×맞은 칸 수, 뺄 칸 책은 맨 뒤
-  출력: 후보 id ≤30 (같은 제목은 하나만)
-        │
-[8. 카드 재료 cards]  book_search.line, catalog.book.published_on (+ 표지·요약은 옆에서 읽기 시작)
-        │
-[9. 2차 llm-first … llm-done]  Anthropic Messages API, claude-haiku-5-5, 스트림
-  입력: 지시문 + 앞 턴 + 「올해/질문/고를 수 있는 책 1..30/후보 분야」
-  출력(JSON 조각): {ask?, head, picks:[{no, fit, text}]}
-        │  PickStreamParser가 조각을 읽는 대로
-        ▼
-[SSE 이벤트]  head-delta … → card → card-delta … (책마다, 최대 8권) → done
-              또는 ask → done "asked" / 실패 시 card(글 없음) → done "no_text"
-        │
-[끝]  usagelog.ai_search_event 1행, aisearch.daily_usage 비용 더하기, 로그 한 줄
+브라우저 AiChatPage.send ── POST /api/v1/ai-searches/stream (질문 + 앞 턴 ≤9 + 지역·도서관 id)
+   │
+[검사] AiSearchController.stream   (스트림을 열기 전. 걸리면 JSON 오류로 끝)
+   켜짐 → IP 한도(분 10·하루 100) → 본문 → 계획 도서관 계산 → 오늘 비용 < US$2 → 동시 실행 자리(20)
+   │  통과하면 가상 스레드에서 AiSearchFlow.answer
+   ▼
+① 대화 말 보기  TalkRefs: 「아까 ~」 「그거 말고」 「모르겠어」 → 찾을 주제를 정함                       (4-0-1)
+     └ 「아까」가 가리킬 앞 질문 고르기만 조각 벡터를 씀 (encode, 최대 1.5초 기다림)
+   ▼
+② 동시에 시작                                                                                        (4-1~4-4)
+   ┌ [옆] 이른 낱말 검색   첫 질문만. book_search LIKE ≤50권
+   └      질문 벡터 encode(이어 묻기면 글 3개) → ML 1차(길·칸·낱말·관계) → 가까운 책 600개(4-8에서 120 → ≤60)
+   ▼
+③ 길 나누기 (1-2 표)  SITE·NOT_BOOK은 여기서 끝, TITLE_LIKE는 제목 단추를 보내고 계속
+   ▼
+④ 찾는 조건  최신(fromYear) · 주제 나누기(A나 B) · 「다 같이」(되물은 선택지 전부)                    (4-0-2)
+   ▼
+⑤ 후보 모으기 ≤30권                                                                                  (4-6~4-9)
+   먼저 넣기: 앞 카드와 그 이웃 / 질문이 이름 댄 책의 이웃 / 제목 책. 「더 쉬운 거」면 앞에서 보여 준 책은 빼고 새 책만(v1.22.4)
+   낱말 후보: ②의 이른 결과(조건이 없을 때) 또는 다시 찾기. 주제가 여럿이면 주제마다 따로 찾아 번갈아
+   벡터 후보: 600개 → 앞 120개 → 계획 도서관 책 ≤60권. 주제가 여럿이면 주제마다
+   합치기:   RRF + 칸 보너스, 같은 제목은 하나만
+   ▼
+⑥ 2차 준비와 호출                                                                                    (4-10~4-11)
+   한 줄 소개·출판 연도 읽기 → 이어서 셋이 동시에
+   ┌ [옆] 표지 주소 읽기
+   ├ [옆] 책첵 요약 읽기        (첫 카드를 보낼 때만 기다림)
+   └      Haiku 2차 스트림 (머리말 → 책 번호·맞음·글 → 상황별 정리)
+   ▼
+⑦ 스트림을 읽는 대로 SSE로 보냄                                                                     (4-12)
+   head-delta … → card → card-delta … (책마다, 최대 8권) → 다 받으면 tail-delta(서버가 제목 넣은 상황별 정리) → done
+   ▼
+⑧ 끝  usagelog.ai_search_event 1행, aisearch.daily_usage 비용 더하기, 로그 한 줄                     (4-13)
 ```
 
-근거: `AiSearchController.stream`, `AiSearchFlow.run`·`answer`·`picks`, `web/src/features/aisearch/AiChatPage.tsx`의 `send`.
+### 1-2. 어디서 갈라지나 (끝나는 곳과 화면)
+
+| 어디서 | 조건 | 무엇을 함 | 화면 | done |
+|---|---|---|---|---|
+| 검사 | 꺼짐·한도·비용·자리 | 스트림을 열지 않음 | 거절 문구 | (JSON 오류) |
+| ③ 길 | `SITE` (책첵 사용법) | Haiku가 책첵 안내문으로 답 | 머리말 + 「소개」 링크 | `site` |
+| ③ 길 | `NOT_BOOK` (인사·잡담, 「안녕」. 낱말 하나여도 같음) | Haiku 대화 호출이 답 + 선택지(≤4). 실패하면 고정 문구 + 예시 3개 | 질문 + 번호 상자 | `asked` |
+| ③ 길 | `TITLE_LIKE` (제목처럼 보임) | 제목 단추를 보내고 ④로 계속 | 「이 제목 찾기」 단추 | — |
+| ③ 길 | `REFERS_SHOWN` (앞 책을 가리킴) | ⑤에서 앞 카드와 이웃을 먼저 넣고 계속 | — | — |
+| ⑤ 후보 | 0권 | Haiku가 질문 + 선택지 3개 | Haiku의 질문 + 번호 상자. 선택지가 없으면 「맞는 책을 찾지 못했어요…」 + 안내 문구 | `no_match` |
+| ⑦ 2차 | 되묻기 | 책 대신 질문과 선택지 | 질문 + 번호 상자 | `asked` |
+| ⑦ 2차 | 고른 책 0권 | Haiku가 선택지 3개 (머리말 아래에 질문 없이) | 머리말 + 번호 상자. 선택지가 없으면 안내 문구 | `no_match` |
+| ⑦ 2차 | 실패·시간 초과 | 글 없는 카드 | 카드만 | `no_text` |
+| ⑦ 2차 | 정상 | — | 머리말 + 카드 + 「상황별로 고르면」 | `ok` |
+
+### 1-3. 길마다 바깥 호출 수
+
+| 길 | Haiku 호출 | 질문 벡터 encode |
+|---|---|---|
+| 책 찾기 (보통) | 1 (2차) | 1 (이어 묻기면 글 3개를 한 번에) |
+| ML 1차가 늦거나 실패 | 2 (Haiku 1차 + 2차) | 1 |
+| `SITE`, `NOT_BOOK` | 1 | 1 |
+| 후보 0권 | 1 (선택지) | 1 |
+| 2차가 0권 | 2 (2차 + 선택지) | 1 |
+| 「아까」, 「A나 B」, 「최신」 판단 | 위와 같음 | +1 (조각·예시 비교용, 최대 1.5초) |
+
+근거: `AiSearchController.stream`, `AiSearchFlow.answer`(① ~ ⑥, `beside`가 옆 스레드), `mlStep`(encode → ml → nearest 차례), `picks`·`noMatchChoices`·`chat`·`site`, `web/src/features/aisearch/AiChatPage.tsx`의 `send`.
 
 ## 2. 요청
 
@@ -91,13 +108,13 @@
 |---|---|---|
 | `question` | 문자열 | 필수(400 `validation_error`, field `question`). 앞뒤 빈칸을 자르고, 짝 없는 서로게이트 글자는 U+FFFD로 바꾼 뒤(`WholeText.of`) 글자 수(코드포인트) 2~200. 어기면 400 `invalid_query` |
 | `turnNo` | 정수 | 1~20. 어기면 400 `validation_error`(`out_of_range`) |
-| `history` | 배열, 없으면 빈 배열 | 최대 5개(`limits.history-turns`). 각 턴: `question` 1~200자, `bookIds` 최대 8개(null 없음), `askQuestion` 200자 이하, `askChoices` 최대 4개·각 200자 이하 |
+| `history` | 배열, 없으면 빈 배열 | 최대 9개(`limits.history-turns`, 대화 10질문). 각 턴: `question` 1~200자, `bookIds` 최대 8개(null 없음), `askQuestion` 200자 이하, `askChoices` 최대 4개·각 200자 이하(`askQuestion`이 비면 `askChoices`는 버림), `head`(그 턴의 머리말) 400자 넘으면 거절하지 않고 400자에서 자름(`HEAD_MAX_CHARS`) |
 | `residenceRegionIds`, `workRegionIds` | 정수 배열 | 1 이상(아니면 400 `validation_error`). 지금 있는 시군구 id여야 함: 시도 id·없는 id·없어진 지역이면 422 `invalid_region`(`NOT_SIGUNGU`·`NOT_FOUND`·`ABOLISHED`) |
 | `libraryIds` | 정수 배열 | 1 이상. 사용자가 직접 고른 도서관 |
 | `scope` | `all` \| `joinable` | 없으면 `all`. 웹은 늘 `joinable`을 보냄 |
 | `visit` | `any` \| `none` | 없으면 `any`. 웹은 사용자의 찾기 설정 값(`loadPrefs().visit`) |
 
-- 본문 전체는 16KB(16,384바이트) 이하. 넘거나 비거나 JSON이 아니면 400 `validation_error`(field `body`).
+- 본문 전체는 32KB(32,768바이트, `MAX_BODY_CHARS`) 이하. 넘거나 비거나 JSON이 아니면 400 `validation_error`(field `body`). 오류 메시지 글은 아직 「16KB」라고 적혀 있습니다(`AiSearchController.read`).
 
 근거: `AiSearchController.read`·`question`·`turnNo`·`history`·`ids`·`scope`·`visit`, `AiSearchRequest`, `AiSearchErrors`.
 
@@ -180,11 +197,12 @@
 
 | 무엇 | 언제 읽나 | 크기 |
 |---|---|---|
-| `SearchBooks`: `AiSearchIndex.books()`(`book_search`의 `book_id`와 `catalog.book`의 제목·저자) 전부 + 제목·저자의 「글자만」 열쇠(`SearchText.letters`: tidy 뒤 글자·숫자 말고 모두 삭제) | 요청 때 1분에 한 번까지 `SELECT count(*), max(imported_at)`로 바뀌었나 보고, 바뀌었으면 다시 읽음 | 76,759행 |
+| `SearchBooks`: `AiSearchIndex.books()`(`book_search`의 `book_id`와 `catalog.book`의 제목·저자·출간 연도) 전부 + 제목·저자의 「글자만」 열쇠(`SearchText.letters`: tidy 뒤 글자·숫자 말고 모두 삭제). 읽을 때 제목 목록을 `TitleWords`에도 넘김(4-0-2) | 요청 때 1분에 한 번까지 `SELECT count(*), max(imported_at)`로 바뀌었나 보고, 바뀌었으면 다시 읽음 | 76,759행 |
 | `BookVectorFile`: `book-vectors.bin` 통째로 | 서버 시작 때 | 81,078 × 1024바이트 + id·scale |
 | `FirstCallModel` 2개, `BookProfiles` | 서버 시작 때 | 아래 3-4절 |
+| `IntentVectors`: `resources/aisearch/intent-examples.tsv` 80줄(recency 40, all_choices 40)의 벡터 | 처음 쓸 때 옆에서 만듦(실패하면 1분 뒤 다시) | 80 × 1024 |
 
-근거: `SearchBooks.fresh`·`read`, `KureQuestionVectors` 생성자, `MlFirstCall` 생성자.
+근거: `SearchBooks.fresh`·`read`, `KureQuestionVectors` 생성자, `MlFirstCall` 생성자, `IntentVectors.ready`·`encodeAll`.
 
 ### 3-4. 모델 폴더 파일
 
@@ -255,7 +273,7 @@
   - 그 밖은 마지막 1개.
 - **answersAsk**: 바로 앞 턴이 되묻기였으면(`askQuestion`이 있으면) 참. 이번 질문은 그 되묻기의 답으로 읽습니다.
 - **pointsBack**: 앞 질문이 있고, (answersAsk이거나 앞 질문이 마지막 질문 하나가 아니라 여러 개를 이은 것)이면 참.
-- **앞에서 보여 준 책**: `history`의 턴마다 `bookIds` 가운데 `book_search`에 있는 것만, 중복 없이, 최대 8개. 2차 지시문에 넣을 제목은 `catalog.book.title`(`AiSearchIndex.books()`). `shownBefore` = 모든 턴의 책, `lastShown` = 마지막 턴의 책(되묻기 턴은 책이 0권).
+- **앞에서 보여 준 책**: `history`의 턴마다 `bookIds` 가운데 `book_search`에 있는 것만, 중복 없이, 최대 8개. 2차 지시문에는 책마다 `<제목> / 저자: <저자>`(저자를 모르면 제목만, `shownLine`; 제목·저자는 `AiSearchIndex.books()`)로, 그 턴의 머리말(`head`)과 함께 넣음(4-11). `shownBefore` = 모든 턴의 책, `lastShown` = 마지막 턴의 책(되묻기 턴은 책이 0권).
 - 목록 책 지도: `ListedBooks.current()`를 `Map<책 id, ListedBook>`으로(카드 표지·요약용).
 
 근거: `AiSearchFlow.answer` 앞부분, `EarlierTopics.of`.
@@ -275,16 +293,19 @@
 | 종류 | 앞 턴 | 찾는 주제 | 되묻기 | 앞에서 보인 책 |
 |---|---|---|---|---|
 | DONT_KNOW | 되묻기 | 그 되묻기의 주제 | 하지 않음(NEVER) | 다시 나와도 됨 |
+| DONT_KNOW | 카드 | 지금 주제(여러 갈래를 섞으라는 메모) | NEVER | 다시 나와도 됨 |
 | NOT_THAT | 되묻기(그 앞도 되묻기) | 지금 주제 | NEVER | 다시 나와도 됨 |
 | NOT_THAT | 되묻기 | 지금 주제 | 꼭 함(FORCE) | 다시 나와도 됨 |
 | NOT_THAT | 카드 | 지금 주제 | 보통(NORMAL) | 뺌(같은 `titleKey`의 다른 판도) |
 | BACK_TO | — | `TalkRefs.back()`이 고른 앞 주제(남은 낱말을 품은 것 → 「처음」이면 첫 주제 → 주제가 둘이면 앞 것) | NEVER | 다시 나와도 됨 |
 | 모름(「저거」, 주제를 못 고름, 카드 없는 NOT_THAT) | — | 지금 주제 | FORCE | 다시 나와도 됨 |
 
+- 앞 턴에 카드도 되묻기도 없는데 DONT_KNOW이면 대화 말로 보지 않고(`talk`가 `null`) 보통 질문으로 찾습니다.
+
 - **아래 단계에 미치는 것**:
   - ML 1차(4-3)와 질문 벡터(4-2, 4-4)는 질문 글 대신 이 주제로 돌립니다.
   - 사이트 안내 길과 「책 찾기 아님」은 건너뛰고, 앞 책 가리킴(4-6)은 끕니다.
-  - 2차 호출(4-11)의 사용자 메시지에는 「질문:」 줄 바로 아래에 `대화 메모: …` 한 줄이 붙습니다(무엇을 가리켰는지, 다시 묻지 말 것 / 다른 갈래로 물을 것 / 돌아왔다고 자연스럽게 말할 것). NEVER면 Haiku가 되물어도 카드로 받고, FORCE면 「후보 분야」 줄을 넣습니다.
+  - 2차 호출(4-11)의 사용자 메시지에는 「질문:」 줄 바로 아래에 `대화 메모: …` 한 줄이 붙습니다(무엇을 가리켰는지, 다시 묻지 말 것 / 다른 갈래로 물을 것 / 돌아왔다고 자연스럽게 말할 것). NEVER면 되묻기 칸이 없는 `PICK_SYSTEM`·`PICK_SCHEMA`로 부르고, FORCE면 되묻기 형식에 「후보 분야」 줄을 넣습니다.
 - `QuestionWords`의 빼는 낱말에 「그거·이거·저거·그런·그게·아니·아니아니·다른·아까·다시·그거말고·이거말고·얘기·이야기」가 있어, 대화 말이 아닌 질문에서도 낱말 검색에 들어가지 않습니다.
 - 로그 한 줄에 `talk <종류> <되묻기>`가 붙습니다(7절).
 
@@ -298,11 +319,11 @@
 
 | 무엇 | 언제 | 규칙 | 벡터 | 결과 |
 |---|---|---|---|---|
-| 「다 같이」 | 바로 앞 턴이 2차·대화 되묻기였을 때(고정 되묻기 제외) | 「다 같이·전부·모두·다 줘/보여/찾아/골라·둘 다·셋 다·다」, 거절 말(별로·싫·말고·아니·빼고·없)이 있으면 아님 | 예시 `all_choices`: all / one / reject / other | 전부면 그 되묻기의 선택지 전부가 검색 주제(아래 「A나 B」처럼 주제마다 찾음) |
-| 조건 말 | 2낱말 이하 이어 묻기, 「다 같이」 아님 | `CONDITION`: 최신·신간·요즘·최근·새로 나온·짧·얇·쉬운·쉽게·어려운·가벼운·두꺼운·만화·그림·번역·국내·외국·해외·○○○○년 | — | 4-3절 ML 1차를 pointsBack으로 돌려 앞 주제와 이어 찾음(관계가 new여도 `joined`). 질문이 최신 말뿐(「요새꺼」)이면 가까운 책은 앞 질문의 벡터로 찾음 |
-| 최신 | 질문 글, 그리고 관계가 new가 아니면 앞 질문들(새것부터) | 「2020년 이후·부터·넘어」면 그 해. 아니면 최신 말(최신·신간·신작·요즘·요새·최근·새로/갓 나온·올해)이 있는지 | 예시 `recency`가 recent일 때만 최신(「요즘 지쳤는데」는 아님) | 첫 해 = 올해 − 3(2026년이면 2023). 4-7·4-8절에서 최근 책이 먼저, 최신 말 낱말(「최신책」)은 검색어에서 뺌, 2차 메모에 「사용자는 최근에 나온 책을 원한다. 2023년 이후…」 |
+| 「다 같이」 | 바로 앞 턴이 고를 답이 있는 되묻기였을 때: 2차 되묻기, 대화 호출의 되묻기, 책 없음 뒤 선택지(고정 되묻기 `NOT_BOOK_ASK`만 제외). 책 없음 뒤 선택지는 질문 글이 비어 오지만, 웹이 `askQuestion`에 그 턴의 머리말을 넣어 보내므로(`ask.question \|\| head`) 서버가 선택지를 버리지 않음 | 「다 같이·전부·모두·다 줘/보여/찾아/골라·둘 다·셋 다·다」, 거절 말(별로·싫·말고·아니·빼고·없)이 있으면 아님 | 예시 `all_choices`: all / one / reject / other | 전부면 그 되묻기의 선택지 전부가 검색 주제(아래 「A나 B」처럼 주제마다 찾음) |
+| 조건 말 | 2낱말 이하 이어 묻기, 대화 말 아님, 바로 앞 턴이 되묻기가 아님 | `CONDITION`: 최신·신간·신작·요즘·요새·최근·새로 나온·짧·얇·쉬운·쉽게·어려운·가벼운·두꺼운·만화·그림·번역·국내·외국·해외·○○○○년 | — | 4-3절 ML 1차를 pointsBack으로 돌려 앞 주제와 이어 찾음(관계가 new여도 `joined`). 질문이 최신 말뿐(「요새꺼」)이면 가까운 책은 앞 질문의 벡터로 찾음 |
+| 최신 | 질문 글, 그리고 관계가 new가 아니면 앞 질문들(새것부터) | 「2020년 이후·부터·넘어·뒤·이상·후」면 그 해(올해보다 크면 무시). 아니면 최신 말(최신·신간·신작·요즘·요새·최근·새로/갓 나온·올해)이 있는지 | 예시 `recency`가 recent일 때만 최신(「요즘 지쳤는데」는 아님) | 첫 해 = 올해 − 3(2026년이면 2023). 4-7·4-8절에서 최근 책이 먼저, 최신 말 낱말(「최신책」)은 검색어에서 뺌, 2차 메모에 「사용자는 최근에 나온 책을 원한다. 2023년 이후…」 |
 | 「아까」 (`BACK_TO`) | 4-0-1절 | 순서 말(처음·첫번째·두번째·세번째·끝·마지막·앞에 둘·전부)이 고르는 주제 + 질문 낱말(대화 말 뺌)이 든 주제 | 대화 말·최신 말을 뺀 질문 조각마다 가장 가까운 앞 질문 하나(0.3 이상, v1.22.2부터 합쳐진 주제가 아니라 질문 하나하나와 견줌) | 고른 주제·질문을 이어 붙인 글이 찾는 주제. 앞 질문에 그 조각의 낱말이 없으면 조각도 붙임(「세게사 책」 + 「세계사」) |
-| 「A나 B」 | 찾는 질문 글(위 주제 포함) | 나·이나·랑·이랑·하고·쉼표·또는·아니면으로 이은 주제, 또는 목록 말(둘다·셋다·섞어·아무거나·중에·아님·든, 끝의 「다」) 앞의 주제 낱말들. 2개 이상일 때만 | — | 4-7절 낱말 검색과 4-8절 벡터 검색을 주제마다 따로 하고 번갈아 담음(로그 `parts N`) |
+| 「A나 B」 | 찾는 질문 글(위 주제 포함) | 나·이나·랑·이랑·하고·쉼표·또는·아니면·혹은으로 이은 주제, 또는 목록 말(둘다·셋다·섞어·아무거나·중에·아님·든, 끝의 「다」) 앞의 주제 낱말들. 2개 이상일 때만 | — | 4-7절 낱말 검색과 4-8절 벡터 검색을 주제마다 따로 하고 번갈아 담음(로그 `parts N`) |
 
 - 한 낱말 질문의 「흔한 갈래를 섞는다」 메모(4-11절)는 첫 질문에만 붙습니다.
 - `QuestionWords`는 끝의 「나·랑」을 앞에 두 글자 이상 남을 때 뗍니다(「세계역사나」 → 「세계역사」). 책 제목에 그 낱말이 통째로 있으면(「코로나」, 「바르셀로나」) 떼지 않고 주제로도 나누지 않습니다(`TitleWords`, 제목 목록은 `SearchBooks`가 읽을 때 넘김).
@@ -313,7 +334,7 @@
 
 - 조건: `history`가 비었을 때만.
 - 낱말: `QuestionWords.of(질문)`(4-3절 규칙). 이 낱말로 4-7절과 같은 SQL을 **가상 스레드에서 바로** 시작합니다. `LIMIT` = max(50, 30) = 50, 뺄 책 없음, 중심 낱말 없음.
-- 결과를 쓰는 조건(4-7절에서 판단): 벡터 합치기를 하고(`mix`), 뺄 책이 하나도 없고, 중심 낱말이 없고, 1차가 정한 낱말 목록이 이 낱말 목록과 **똑같을 때**. 이름 댄 책이 있어 먼저 넣은 책이 있으면(뺄 책이 생김) 쓰지 않고 다시 찾습니다. 실패하면 경고를 남기고 다시 찾습니다.
+- 결과를 쓰는 조건(4-7절에서 판단): 벡터 합치기를 하고(`mix`), 뺄 책이 하나도 없고, 중심 낱말이 없고, 최신 조건이 없고(`fromYear` 없음), 주제가 하나이고(4-0-2 「A나 B」 아님), 1차가 정한 낱말 목록이 이 낱말 목록과 **똑같을 때**. 이름 댄 책이 있어 먼저 넣은 책이 있으면(뺄 책이 생김) 쓰지 않고 다시 찾습니다. 실패하면 경고를 남기고 다시 찾습니다.
 - 출력: `CompletableFuture<List<Candidate>>`.
 
 근거: `AiSearchFlow.answer`의 `earlyWords`·`earlyKeywords`·`joined`, `MlFirstCall.firstKeywords`.
@@ -321,7 +342,7 @@
 ### 4-2. 질문 벡터 (encode)
 
 - 조건: `first-call.mode=ml`(운영)이고, ML 파일을 읽었고(`MlFirstCall.on`), 벡터가 켜져 있을 때(`QuestionVectors.on`).
-- 만드는 글: 첫 질문이면 `[질문]` 1개. 이어 묻기면 `[질문, 앞 질문, 앞 질문 + " " + 질문]` 3개. 앞 질문도 임베딩 서버로 갑니다(로그에는 남지 않음).
+- 만드는 글: 첫 질문이면 `[질문]` 1개. 이어 묻기면 `[질문, 앞 질문, 앞 질문 + " " + 질문]` 3개. 대화 말(4-0-1)이면 앞 질문 없이 그 주제 1개만 만들고, 관계는 `first`가 됩니다. 「다 같이」면 「질문」 자리에 선택지를 이은 글이 들어갑니다. 앞 질문도 임베딩 서버로 갑니다(로그에는 남지 않음).
 - 계산: 글마다 임베딩 서버에 따로 POST(가상 스레드, 동시에). 각각 3-5절 → `float[1024]`, 길이 1.
 - 기다림: 모두 끝날 때까지 최대 **2초**(`vector.max-wait`). HTTP 한 번은 최대 1.5초.
 - 안 될 때(어느 경우든 이 검색은 **Haiku 1차**로 감, 6절):
@@ -382,9 +403,9 @@
 ### 4-4. 가까운 책 (nearest)
 
 - 검색 벡터: 이은 벡터를 쓰기로 했으면 `j`, 아니면 `v`.
-- 계산(`BookVectorFile.nearest`, 검색 스레드에서 바로): 81,078줄마다 `점수 = (Σ_{i=0..1023} int8[i] × q[i]) × scale[줄]`. 책 벡터와 질문 벡터가 모두 길이 1이라 이 값은 코사인 유사도에 가깝습니다(int8로 줄인 오차, 만들 때 잰 최악 코사인 0.99975). 크기 120의 최소 힙으로 상위 120개를 남김.
-- 개수: `vector-depth × 2` = 60 × 2 = **120**.
-- 출력: `List<Long>` 책 id 120개, 가까운 순.
+- 계산(`BookVectorFile.nearest`, 검색 스레드에서 바로): 81,078줄마다 `점수 = (Σ_{i=0..1023} int8[i] × q[i]) × scale[줄]`. 책 벡터와 질문 벡터가 모두 길이 1이라 이 값은 코사인 유사도에 가깝습니다(int8로 줄인 오차, 만들 때 잰 최악 코사인 0.99975). 크기 600의 최소 힙으로 상위 600개를 남김.
+- 개수: `vector-depth × NEAREST_POOL` = 60 × 10 = **600**(v1.22.1~). 최신 책을 앞으로 옮길 여유를 두려는 것이고, 120개로 자르는 일은 4-8절에서 합니다. 질문이 최신 말뿐이면(「요새꺼」) 앞 질문 벡터 `e`로 찾습니다.
+- 출력: `List<Long>` 책 id 600개, 가까운 순.
 - 이 단계가 예외로 끝나면 이 검색은 Haiku 1차로 감(로그 `the ml first call failed`).
 
 근거: `AiSearchFlow.mlStep`, `KureQuestionVectors.nearest(float[], int)`, `BookVectorFile.nearest`.
@@ -394,12 +415,12 @@
 1차 결과를 받은 직후입니다.
 
 - `SITE`: 책을 찾지 않고 4-12절 (가)로 감.
-- `NOT_BOOK`: 운영은 되묻기가 켜져 있어(`pick.ask-back=true`) 먼저 「낱말 하나짜리 주제인가」를 봅니다. 질문에 빈칸이 없고, 한글 자모(ㄱ~ㅣ, U+3131~U+318E)를 뺀 글자가 2개 이상이면 「낱말 하나」(예: 「엄마」, 「AI」). 그러면 책 찾기로 바꾸고 낱말 = `[질문 그대로]`, 로그 `ask one-word`. 아니면 4-12절 (나)로 감.
-- `TITLE_LIKE`: 제목 비교를 하고(아래) 보통 검색을 이어감.
+- `NOT_BOOK`(대화 말이 아닐 때): 운영은 되묻기가 켜져 있어(`pick.ask-back=true`) 책을 찾지 않고 4-12절 (나) 대화 호출로 감. 낱말 하나(「엄마」, 「AI」)여도 같습니다(v1.22.x. 그 전에는 낱말 하나면 책 찾기로 바꿨음). 되묻기가 꺼져 있으면 `done "no_match"`.
+- `TITLE_LIKE`: 제목 비교를 하고(아래) 보통 검색을 이어감. 비교가 맞으면 4-6절 (다)로 그 제목의 책을 맨 앞에 둠.
   - 비교 글 = 질문 전체. 「글자만」 열쇠로 바꿔 2글자 이상이고, `book_search` 책 가운데 하나라도 (제목 열쇠와 같음) 또는 (제목 열쇠가 그것으로 시작하고 그 길이가 제목의 절반 이상) 또는 (그것이 제목 열쇠로 시작하고 나머지가 저자 열쇠 안에 있음) 또는 (저자 열쇠 안에 있음)이면 `title-guess` 이벤트 `{"title": "<질문>"}`을 보냄.
 - `REFERS_SHOWN`: 마지막 턴에 보여 준 책이 있으면 4-6절 (가). 없으면(첫 질문, 되묻기 다음) 보통 검색.
 
-근거: `AiSearchFlow.answer`, `AiSearchFlow.oneWordTopic`, `TitleMatch.close`.
+근거: `AiSearchFlow.answer`·`chat`, `TitleMatch.close`.
 
 ### 4-6. 앞 책·이름 댄 책 (neighbours)
 
@@ -414,14 +435,23 @@
 - 질문을 「글자만」으로 바꾼 뒤 `같은|비슷|처럼|류의|풍의`가 나오는 곳마다, 그 바로 앞 글(끝의 `이랑|하고|와|과|랑`을 뗀 것도)의 끝 40~2글자를 긴 것부터 `book_search` 제목 열쇠(제목에서 첫 `( [ . :` 앞까지의 글자만)와 맞춰 봄. 가장 긴 제목이 이름 댄 책이고, 같은 제목의 모든 판이 그 책입니다.
 - 그 판들의 이웃을 읽어, 판 자신·앞에서 보여 준 책·제목에 그 이름이 든 책(다른 권)을 빼고 최대 **20개**. 계획 도서관 수를 세어 가진 것만, 같은 제목은 하나만 `chosen`에 넣음. 로그 `named book`.
 
+**(다) 질문이 책 제목일 때** (`TITLE_LIKE`이고 4-5절 비교가 맞음, (가)도 대화 말도 아님)
+- 질문을 「글자만」으로 바꿔 **3글자 이상**(`MIN_TITLE_LETTERS`)일 때만. 「바다」, 「커피」처럼 짧은 말은 주제로 봅니다.
+- `NamedBook.titled`: 제목 열쇠가 그 글로 시작하고 나머지가 없거나 숫자로 시작하는(권 번호, 「토지 1」) 책을 짧은 제목부터 최대 **3권**(`MAX_TITLE_BOOKS`). 계획 도서관이 가진 것만, 같은 제목은 하나만.
+- 이 책들을 `chosen` **맨 앞**으로 옮기고(이름 댄 책의 이웃보다 앞), 2차에 메모 「사용자가 쓴 「…」는 책 제목이다. 그 제목의 책을 먼저 고르고, 이어서 비슷한 책을 고른다. 되묻지 않는다. 머리말에서 그 책을 찾았다고 말한다.」를 보냄. 이때 되묻기 형식을 쓰지 않음(4-11).
+
+**(라) 「더 쉬운 거」** (관계 `continue`, (가)도 대화 말도 아니고 질문이 `MORE_SO` 「더 ○○운/은/한/는/진/적인 거·걸·것·책·게」에 맞음)
+- v1.22.4부터: 앞에서 보여 준 책 전부(`shownBefore`)를 뺄 책에 넣고 그 제목들도 같은 제목으로 막아, 같은 주제의 새 책만 후보로 찾습니다. 2차에는 메모 「사용자는 앞에서 보여 준 책보다 「…」을 원한다. 앞에서 보여 준 책은 다시 고르지 않는다… 그런 책이 없으면 억지로 고르지 않는다」를 보내고(제목 메모 자리, 되묻지 않음), 비교는 대화에 든 앞 책 목록으로 합니다. 「더 보여줘」는 해당하지 않습니다.
+- v1.20.5~v1.22.3에서는 마지막에 보여 준 책을 후보 맨 앞에 넣었고, 운영 「Agi 관련도서 → 더 쉬운 거」가 같은 책 5권을 다시 냈습니다(사용자 2026-10-31).
+
 - 출력: `chosen`(≤30)과 그 책들의 계획 도서관 수.
 
-근거: `AiSearchFlow.answer`의 `refers` 부분·`nearby`·`namedNeighbours`, `NamedBook.find`·`key`, `CandidateQuery.planCounts`.
+근거: `AiSearchFlow.answer`의 `refers` 부분·`nearby`·`namedNeighbours`·`titleNote`·`MORE_SO`, `NamedBook.find`·`key`·`titled`, `CandidateQuery.planCounts`.
 
 ### 4-7. 낱말 후보 (keyword)
 
 **뺄 책(excluded)**
-- 앞 책을 가리킴(`refers`), pointsBack, 관계 `continue` 가운데 하나면 앞에서 보여 준 책을 빼지 않음. 아니면 앞에서 보여 준 책을 모두 뺌.
+- 앞 책을 가리킴(`refers`), pointsBack, 관계 `continue` 가운데 하나면 앞에서 보여 준 책을 빼지 않음. 아니면 앞에서 보여 준 책을 모두 뺌. 대화 말(4-0-1)이면 그 표의 「앞에서 보인 책」 칸대로(카드 뒤 NOT_THAT만 뺌).
 - 4-6절에서 이미 고른 책은 늘 뺌.
 
 **낱말 다듬기** (`CandidateQuery.usableKeywords`)
@@ -462,13 +492,12 @@ LIMIT :limit
 
 ### 4-8. 벡터 후보 (vector)
 
-- 입력: 4-4절의 120개(ML 1차). Haiku 1차로 온 검색은 질문만으로 따로 만든 벡터의 120개(6절).
+- 입력: 가까운 책 600개(`vector-depth` × `NEAREST_POOL` 10, v1.22.1~). ML 1차면 4-4절의 것, Haiku 1차로 온 검색은 질문만으로 따로 만든 벡터의 600개(6절). 주제가 여럿이면(4-0-2 「A나 B」) 주제마다 벡터를 만들어(최대 1.5초) 600 ÷ 주제 수개씩 읽고 번갈아 담은 목록을 씁니다(주제 벡터가 안 오면 질문 하나의 것).
 - 기다림: 그 결과를 최대 2초 기다림. 늦거나 실패하면 빈 목록(로그 `the question vector was late` / `failed`)이고 낱말 후보만으로 이어감.
-- 거르기: `book_search`에 있고 → 뺄 책이 아니고 → 한 SQL(`planCounts`)로 계획 도서관 수를 세어 1곳 이상 가진 것 → 앞에서 **60개**(`vector-depth`).
-- **v1.22.1부터**: 가까운 책을 깊이 × 10(600권, `NEAREST_POOL`) 읽습니다. 최신이면 가까운 240권(`RECENT_WINDOW` 4) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮긴 뒤 120권에서 자릅니다. 주제가 여럿이면 주제마다 벡터를 만들어 600 ÷ 주제 수권씩 읽고 번갈아 담은 목록을 씁니다.
+- 거르기 차례: `book_search`에 있고 뺄 책이 아닌 것 → 최신이면 앞 240개(`RECENT_WINDOW` 4 × 60) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮김 → 앞 **120개**(`vector-depth` × 2) → 한 SQL(`planCounts`)로 계획 도서관 수를 세어 1곳 이상 가진 것 → 앞에서 **60개**(`vector-depth`).
 - 출력: `List<Long>` ≤60, 가까운 순. 계획 도서관 수는 카드용으로 기억.
 
-근거: `AiSearchFlow.vectorCandidates`, `CandidateQuery.planCounts`.
+근거: `AiSearchFlow.vectorCandidates`·`partNearest`, `CandidateQuery.planCounts`.
 
 ### 4-9. 합치기 (mix)
 
@@ -482,7 +511,7 @@ LIMIT :limit
 4. 뺄 칸 책을 맨 뒤로(ML 1차일 때만): 질문이 「소설 아님」인데 책이 소설이거나, 책의 field·subfield가 빼 달라는 칸에 있거나, genre가 빼 달라는 장르와 겹치면 그 책들을 같은 순서로 맨 뒤에.
 5. 자르기: 이 순서로 `chosen` 뒤에 붙이되, 「글자만」 제목 열쇠가 이미 있는 책(같은 책 다른 판)은 건너뛰고 전체 **30권**에서 멈춤.
 
-- 출력: 후보 `List<Long>` ≤30. 0권이면 `done {"result":"no_match","bookIds":[]}`로 끝.
+- 출력: 후보 `List<Long>` ≤30. 0권이면 4-12절 (라)(책 없음 뒤 선택지 호출 → `ask`) 다음 `done {"result":"no_match","bookIds":[]}`로 끝.
 
 근거: `Fusion.rrf`, `MlFirstCall.bonus`·`rulesOut`, `Shelves.matches`·`excludes`, `AiSearchFlow.answer`.
 
@@ -502,16 +531,19 @@ LIMIT :limit
 ### 4-11. 2차 호출 (llm-first, llm-done)
 
 **되묻기 형식을 쓸지** (`askBack`)
-- 참 조건: 운영 `pick.ask-back=true` **그리고** pointsBack이 아님(앞 주제를 합치는 말이나 되묻기의 답은 되묻지 않음) **그리고** (이어 묻기 **또는** 첫 질문의 낱말 수 ≤ **4**). 낱말 수 = 빈칸으로 나눈 조각 수.
+- 참 조건: 운영 `pick.ask-back=true` **그리고** 제목 메모가 없음(4-6 (다)) **그리고** 「낱말 하나」가 아님 **그리고**
+  - 대화 말(4-0-1)이면: 되묻기가 NEVER가 아님(NORMAL·FORCE).
+  - 아니면: pointsBack이 아님(앞 주제를 합치는 말이나 되묻기의 답은 되묻지 않음) **그리고** (이어 묻기 **또는** 첫 질문의 낱말 수 ≤ **4**). 낱말 수 = 빈칸으로 나눈 조각 수.
+- 「낱말 하나」(`oneWordTopic`): 첫 질문, 대화 말·제목 메모 없음, 빈칸이 없고 한글 자모(ㄱ~ㅣ, U+3131~U+318E)를 뺀 글자가 2개 이상(「사진」, 「AI」), `pick.ask-one-word=false`(운영). 되묻지 않고 메모 「질문이 낱말 하나(「…」)다. 되묻지 않는다. 뜻이 여럿이면 흔한 갈래 2~3개의 책을 고루 섞어 고르고…」를 보냄. ML 길이 `NOT_BOOK`인 낱말 하나는 여기까지 오지 않고 4-12절 (나)로 갑니다.
 - 참이면 지시문 `PICK_ASK_SYSTEM` + 형식 `PICK_ASK_SCHEMA`, 거짓이면 `PICK_SYSTEM` + `PICK_SCHEMA`.
-- 「후보 분야」 줄: askBack이 참이고 낱말 수 ≤ **2**일 때만. 후보 책들의 프로필 field로 셈: `field + "(소설)"`(fiction 1) / `"(비소설)"`(0) / 붙이지 않음(빈칸). 많은 순, 같으면 이름 순, 앞 **6개**. 프로필 없는 책은 셈에서 빠짐.
+- 「후보 분야」 줄: askBack이 참이고 (낱말 수 ≤ **2** 또는 대화 말이 FORCE)일 때만. 후보 책들의 프로필 field로 셈: `field + "(소설)"`(fiction 1) / `"(비소설)"`(0) / 붙이지 않음(빈칸). 많은 순, 같으면 이름 순, 앞 **6개**. 프로필 없는 책은 셈에서 빠짐.
 
 **요청 본문** (`AnthropicLlmClient.request`, `POST https://api.anthropic.com/v1/messages`)
 
 ```json
 {
   "model": "claude-haiku-5-5",
-  "max_tokens": 3072,
+  "max_tokens": 4096,
   "system": [{"type": "text", "text": "<지시문>", "cache_control": {"type": "ephemeral"}}],
   "thinking": {"type": "disabled"},
   "messages": [ …앞 턴…, {"role": "user", "content": "<아래 사용자 글>"} ],
@@ -525,12 +557,13 @@ LIMIT :limit
 
 **앞 턴 메시지** (`Prompts.history`, 앞 턴마다 2개)
 - user: 그 턴의 질문.
-- assistant: 책을 보여 준 턴이면 `보여 준 책:` 다음 줄마다 `- <제목>`(없으면 `(없음)`). 되묻기 턴이면 `되물은 말: <되물은 글>` 다음 줄 `고를 답: <답1> / <답2> …`.
+- assistant: 책을 보여 준 턴이면, 머리말이 있으면 `머리말: <head>` 줄, 이어서 `보여 준 책:` 다음 줄마다 `- <n>번째 책: <제목> / 저자: <저자>`(보인 차례, 저자를 모르면 제목만, 책이 없으면 `(없음)`). 되묻기 턴이면 `되물은 말: <되물은 글>` 다음 줄 `고를 답: <답1> / <답2> …`.
 
 **마지막 user 글** (`Prompts.pickMessages`)
 ```
 올해: 2026년
 질문: <이번 질문>
+대화 메모: <메모>
 고를 수 있는 책:
 1. 제목: <제목> / 저자: <저자 또는 (모름)> / 출간: <연도>년 / 한 줄: <한 줄>
 2. …
@@ -538,21 +571,24 @@ LIMIT :limit
 30. …
 후보 분야: <분야> <n>권, <분야> <n>권, …
 ```
+- 「대화 메모」 줄은 메모가 있을 때만: 대화 말 메모(4-0-1) / 제목 메모(4-6 (다)) / 낱말 하나 메모 가운데 하나(이 차례로 먼저 있는 것). 최신이면(4-0-2) 그 뒤에 「사용자는 최근에 나온 책을 원한다. <첫 해>년 이후에 나온 책을 먼저 고르고, 오래된 책은 맞는 최근 책이 모자랄 때만 고른다…」를 붙임(`withRecency`).
 - 「올해」는 서울 기준 연도. 「출간」은 연도를 알 때만, 「한 줄」은 있을 때만, 「후보 분야」 줄은 위 조건일 때만.
 - 보내지 않는 것: 회원 번호, IP, 도서관 이름, 표지, 요약.
 
 **지시문 요점** (전문은 `Prompts.PICK_SYSTEM`)
 - 아래 번호 안에서만 0~8권. 억지로 고르지 않음.
-- 맨 앞 `head`: 한국어 한 문장 머리말.
+- 맨 앞 `head`: 한국어 한 문장 머리말. 고를 책을 먼저 정하고 씀: 「골랐다」고 썼으면 `picks`를 비우지 않고, `picks`가 비면 「골랐다」고 쓰지 않음. 고른 책이 없으면 무엇을 찾지 못했는지만 한 문장으로(「쿠버네티스 오퍼레이터만 다룬 책은 찾지 못했어요.」), 「책이 적어요」처럼 뭉뚱그리지 않고, 다시 묻는 방법은 화면 안내가 따로 나오니 쓰지 않음.
+- 앞에서 보여 준 책 자체를 물으면(「작가가 누구야?」, 「두 번째 책 어때?」) `head`에서 먼저 답함(앞 대화의 제목·저자·머리말로, 이때 2~3문장 가능). 그다음 이어지는 책을 고름.
 - `fit` 0~3: 3 중심 주제와 조건 다 맞음, 2 중심 주제는 맞고 조건은 덜 맞거나 모름, 1 관련은 있으나 중심 주제가 다름(책 정보가 조건과 반대여도 1), 0 안 맞음. **fit 2 이상만** 고르고, 중심 주제가 맞는 책이 여럿이면 8권까지 채움.
 - 책마다 `text`: 한국어 2~3문장, 왜 맞는지. 책 정보(제목·저자·한 줄)로 확인되는 것만. 「후보」, 「목록」, 책 번호를 쓰지 않음. 출간 연도·올해는 질문이 시기를 물을 때만.
 - 앞 대화에 「되물은 말」이 있으면 이번 질문은 그 답으로 읽음. 앞 주제 둘을 합치라면 둘을 함께 다룬 책을 먼저.
-- `PICK_ASK_SYSTEM`은 위에 더해: 맨 앞 `ask`는 질문만으로 고를 책의 갈래가 크게 달라질 때만(낱말 하나에 뜻이 여럿, 「아니 그런 거 말고」, 「음...」). 되물을 때는 `question`(해요체 한두 문장, 직접 적어도 된다는 뜻 포함) + `choices` 2~4개, `head`는 빈 글, `picks`는 빈 목록. 「후보 분야」가 한 분야에 몰리면 되묻지 않음.
+- 맨 끝 `tail`(상황별 정리): 고른 책이 2권 이상이면 `lines`에 상황 2~4개. 상황마다 `situation`(사용자가 말한 것보다 한 걸음 구체적인 짧은 구, 30자 안)과 `nos`(그 상황에 맞는 고른 책 번호 1~3개, 한 책은 한 상황에만). 제목은 서버가 넣으므로 쓰지 않음. `summary`는 빈 글. 고른 책이 0~1권이거나 되물을 때는 `situation` 빈 글·`nos` 빈 목록인 항목 하나만.
+- `PICK_ASK_SYSTEM`은 위에 더해: 맨 앞 `ask`는 질문만으로 고를 책의 갈래가 크게 달라질 때만(낱말 하나에 뜻이 여럿, 「아니 그런 거 말고」, 「음...」). 되물을 때는 `question`(해요체 한두 문장. 화면에 입력창 안내가 따로 나오니 직접 적어 달라는 말은 쓰지 않음) + `choices` 2~4개(짧은 명사구), `head`는 빈 글, `picks`와 `tail.lines`는 빈 목록. 「후보 분야」가 한 분야에 몰리면 되묻지 않음.
 
 **JSON 형식**
-- `PICK_SCHEMA`: `{"head": string, "picks": [{"no": integer, "fit": integer, "text": string}]}`, 모든 칸 필수, 다른 칸 없음.
+- `PICK_SCHEMA`: `{"head": string, "picks": [{"no": integer, "fit": integer, "text": string}], "tail": {"lines": [{"situation": string, "nos": [integer]}], "summary": string}}`. `tail.lines`는 `minItems` 1, 모든 칸 필수, 다른 칸 없음.
 - `PICK_ASK_SCHEMA`: 맨 앞에 `"ask": {"question": string, "choices": [string]}`이 더 있음.
-- 형식을 강제하므로 칸이 이 순서로 옵니다. 그래서 서버는 `no`와 `fit`을 다 읽은 뒤 그 책의 `text`가 오기 전에 카드를 보낼지 정할 수 있습니다.
+- 형식을 강제하므로 칸이 이 순서(ask → head → picks → tail)로 옵니다. 그래서 서버는 `no`와 `fit`을 다 읽은 뒤 그 책의 `text`가 오기 전에 카드를 보낼지 정할 수 있습니다.
 
 **받는 스트림**: Anthropic SSE의 `message_start`(입력 토큰 = `input_tokens + cache_read_input_tokens + cache_creation_input_tokens`), `content_block_delta`/`text_delta`(글 조각 → 바로 파서로), `message_delta`(누적 출력 토큰, 멈춘 까닭), `message_stop`(끝), `error`(`overloaded_error`면 OVERLOADED). 첫 글 조각이 온 때 `llm-first`, 끝난 때 `llm-done`을 기록.
 
@@ -571,6 +607,7 @@ LIMIT :limit
 | `picks[].fit` 끝 | 대기 책이 있고 fit ≥ **2**면 카드 보냄. 아니면 그 책은 카드도 글도 안 보냄 | `card` `{"no": <1부터 순번>, "bookId", "title", "author", "coverUrl", "myLibraryCount", "aiSummary"}` |
 | `picks[].text` 조각 | 지금 카드가 있을 때만. 카드 하나에 합쳐 **300글자**(코드포인트)까지, 넘는 부분은 잘라 버림 | `card-delta` `{"bookId": <id>, "text": "<조각>"}` |
 | 한 pick 끝 | 대기·지금 카드를 비움 | — |
+| `tail` 안 문자열 조각 | 길이만 셈(정리 글은 끝난 뒤 전체 답에서 읽음). 합쳐 **500자**(`TAIL_MAX_CHARS`)를 넘으면 스트림을 끊음. 카드는 이미 나갔으므로 실패로 치지 않고 로그 `tail too long` | — |
 
 스트림이 끝난 뒤:
 
@@ -579,27 +616,33 @@ LIMIT :limit
 | 정상 끝이고 되묻기 글이 있음 | `ask` `{"question": "...", "choices": [...]}` | `asked` |
 | 실패이고 보낸 카드 0장 | 후보 앞에서부터 최대 8권을 글 없이 `card`로 | `no_text` |
 | 실패이고 카드 1장 이상 | — | `partial` |
-| 정상 끝이고 카드 0장 | — | `no_match` |
-| 정상 끝이고 카드 1장 이상 | — | `ok` |
+| 정상 끝이고 카드 0장 | 아래 (바) 책 없음 뒤 선택지 호출 → 선택지가 있으면 `ask` | `no_match` |
+| 정상 끝이고 카드 1장 | — | `ok` |
+| 정상 끝이고 카드 2장 이상 | 상황별 정리를 만들면 `tail-delta` `{"text": "<줄들>"}` 1번 | `ok` |
 
+- 상황별 정리(`TailLines.render`): `tail.lines`의 번호를 후보 순서로 읽어, 보낸 카드인 책만 「`<상황>: 『제목』, 『제목』`」 한 줄로(줄 최대 4개, 상황 40자에서 자름, 한 책은 한 줄에만, 책이 안 남은 줄은 버림). 한 줄도 안 남으면 번호를 카드 순서(1 = 첫 카드)로 다시 읽음. 그래도 없으면 `summary`가 『』·「n번」이 없고 300자 이하일 때 그 글. 못 만들면 보내지 않고 로그 `tail <까닭>`(`none` / `unshown <번호들>` / `bad summary` / `too long`, `TailLines.whyNone`).
 - 마지막은 늘 `done` `{"result": "<위 값>", "bookIds": [보낸 카드 책 id, 순서대로]}`.
-- 「실패」 = Anthropic 호출이 예외로 끝남(시간 초과, HTTP 오류, 과부하, 연결 끊김) 또는 파서가 JSON 끝(`}`)까지 못 읽음(`max_tokens` 3072에서 잘림 포함) 또는 파서가 JSON이 아닌 글을 만남.
+- 「실패」 = Anthropic 호출이 예외로 끝남(시간 초과, HTTP 오류, 과부하, 연결 끊김) 또는 파서가 JSON 끝(`}`)까지 못 읽음(`max_tokens` 4096에서 잘림 포함) 또는 파서가 JSON이 아닌 글을 만남. `tail`이 500자를 넘어 끊은 것은 실패가 아님.
 - 사용자가 떠나면(SSE 쓰기 실패·스트림 시간 초과) 다음 글 조각에서 호출을 끊고 `done`을 보내지 않음. 로그 `client gone`.
 - 검색 중 예상 못 한 예외: `error` `{"code": "internal_error"}`.
 
-**모델 없이 나가는 고정 답**
+**2차 스트림 밖에서 나가는 답**
+
+(가)·(나)·(라)·(바)의 호출은 모두 Haiku 1번, 스트림 아님, `max_tokens` 512(`first-call.site-max-tokens`), 15초(`pick-timeout`), 앞 턴 메시지(위 「앞 턴 메시지」와 같은 꼴) + 이번 질문입니다. (나)·(라)·(바)는 형식 `CHAT_SCHEMA` `{"question": string, "choices": [string]}`이고, 선택지는 최대 4개·각 40글자에서 자릅니다.
 
 | 경우 | 언제 | 이벤트 | 모델 호출 |
 |---|---|---|---|
-| (가) 책첵 질문 | 길 `SITE` | Haiku 1번(스트림 아님, `SITE_SYSTEM` = 책첵 소개·첫 화면 안내 글, 형식 `{"answer": string}`, `max_tokens` 512, 15초). 답이 비어 있지 않으면 `head-delta` 1번(답 전체) → `done "site"`. 실패하면 `done "no_match"` | 있음(1번) |
-| (나) 책 찾는 말 아님 | 길 `NOT_BOOK`, 낱말 하나 아님, 되묻기 켜짐 | `ask` `{"question": "어떤 책을 찾으세요? 이렇게 물어보셔도 돼요.", "choices": [10개 예시 중 섞어서 3개]}` → `done "asked"`. 되묻기가 꺼져 있으면 `done "no_match"` | 없음 |
-| (다) 제목 같음 | 길 `TITLE_LIKE`이고 4-5절 비교가 맞음 | 맨 앞에 `title-guess` `{"title": "..."}`, 그다음 보통 검색 | 2차는 있음 |
-| (라) 후보 0권 | 4-9절 결과가 비었음 | `done "no_match"` | 없음 |
-| (마) 2차 실패 | 4-12절 | `card`(글 없음) ×≤8 → `done "no_text"`, 또는 `done "partial"` | 있음 |
+| (가) 책첵 질문 | 길 `SITE`, 대화 말 아님 | `SITE_SYSTEM`(책첵 소개·첫 화면 안내 글, 형식 `{"answer": string}`). 답이 비어 있지 않으면 `head-delta` 1번(답 전체) → `done "site"`. 실패하면 `done "no_match"` | 1번 |
+| (나) 책 찾는 말 아님 | 길 `NOT_BOOK`(낱말 하나 포함), 대화 말 아님, 되묻기 켜짐 | 대화 호출 `CHAT_SYSTEM`: 그 말에 사람처럼 답하고 책 이야기로 이끄는 `question` + 바로 찾을 수 있는 질문 `choices` 3개. 둘 다 있으면 `ask` → `done "asked"`(로그 `ask chat`). 실패하거나 비면 고정 되묻기 `ask` `{"question": "어떤 책을 찾으세요? 이렇게 물어보셔도 돼요.", "choices": [10개 예시 중 섞어서 3개]}` → `done "asked"`(로그 `ask not-book-ask`). 되묻기가 꺼져 있으면 호출 없이 `done "no_match"` | 1번(꺼짐이면 없음) |
+| (다) 제목 같음 | 길 `TITLE_LIKE`이고 4-5절 비교가 맞음 | 맨 앞에 `title-guess` `{"title": "..."}`, 그다음 보통 검색(4-6 (다)) | 2차는 있음 |
+| (라) 후보 0권 | 4-9절 결과가 비었음 | 책 없음 뒤 선택지 호출 `NO_MATCH_SYSTEM`: 그 말에 짧게 답하고 못 찾았다고 말한 뒤 다른 방향을 권하는 `question` + `choices` 3개. 선택지가 있으면 `ask`(머리말이 없으므로 `question`도 담음, 로그 `ask no-match choices`) → `done "no_match"`. 실패하거나 선택지가 없으면 `ask` 없이 `done "no_match"` | 1번(되묻기 꺼짐이면 없음) |
+| (마) 2차 실패 | 4-12절 | `card`(글 없음) ×≤8 → `done "no_text"`, 또는 `done "partial"` | 2차 |
+| (바) 2차가 0권 | 정상 끝, 되묻기 아님, 카드 0장 | (라)와 같은 호출. 2차가 머리말을 썼으면 `ask`의 `question`은 빈 글(선택지만) → `done "no_match"` | 2차 + 1번 |
 
-- (나)의 예시 10개: 요즘 많이 읽는 소설 / 마음이 편해지는 에세이 / 출근길에 가볍게 읽을 책 / 잠들기 전에 읽기 좋은 책 / 처음 읽는 경제 교양서 / 웃기고 가벼운 소설 / 반전이 있는 추리 소설 / 아이와 함께 읽을 그림책 / 생각이 깊어지는 인문학 책 / 쉽게 읽는 과학책.
+- (나)의 고정 예시 10개: 요즘 많이 읽는 소설 / 마음이 편해지는 에세이 / 출근길에 가볍게 읽을 책 / 잠들기 전에 읽기 좋은 책 / 처음 읽는 경제 교양서 / 웃기고 가벼운 소설 / 반전이 있는 추리 소설 / 아이와 함께 읽을 그림책 / 생각이 깊어지는 인문학 책 / 쉽게 읽는 과학책.
+- 호출이 실패해도 `NOT_CONFIGURED`(API 키 없음)가 아니면 토큰·비용은 셉니다(4-13).
 
-근거: `PickStreamParser`, `AiSearchFlow.picks`·`site`·`answer`·`finish`·`run`, `AiSearchEvents`, `Prompts.SITE_SYSTEM`·`SITE_SCHEMA`·`NOT_BOOK_ASK`·`NOT_BOOK_CHOICES`, `AiSearchController.EmitterSink`.
+근거: `PickStreamParser`, `TailLines.render`·`whyNone`, `AiSearchFlow.picks`·`chat`·`noMatchChoices`·`site`·`answer`·`finish`·`run`, `AiSearchEvents`, `Prompts.SITE_SYSTEM`·`SITE_SCHEMA`·`CHAT_SYSTEM`·`NO_MATCH_SYSTEM`·`CHAT_SCHEMA`·`NOT_BOOK_ASK`·`NOT_BOOK_CHOICES`, `AiSearchController.EmitterSink`.
 
 ### 4-13. 끝: 기록과 비용
 
@@ -613,8 +656,8 @@ LIMIT :limit
 
 - 시작: 첫 화면 AI 탭(`AiSearchTab`)에서 2글자 이상 쓰면 **새 대화**로 시작(앞 대화는 버림) → `/ai-search`로 이동. 대화 화면 아래 칸에서 이어 묻기(Enter 보내기, Shift+Enter 줄바꿈, 200자 넘게는 못 씀, 180자부터 `n/200` 표시).
 - 보낼 때(`AiChatPage.send`):
-  - `history` = 이번 턴 앞의 턴 가운데 상태가 `done`인 것만, 마지막 **5개**. 책을 보여 준 턴은 `{question, bookIds}`, 되묻기 턴은 `{question, bookIds: [], askQuestion, askChoices}`.
-  - `turnNo` = min(대화 안 순번, 20). 지역 = 지역 설정(`useRegions`)의 사는 곳·일하는 곳·고른 도서관. `scope` = `joinable` 고정, `visit` = 찾기 설정.
+  - `history` = 이번 턴 앞의 턴 가운데 상태가 `done`인 것만, 마지막 **9개**(`HISTORY_SENT` = `TURNS_MAX` − 1). 책을 보여 준 턴은 `{question, bookIds, head}`(`head`는 머리말이 있을 때만), 되묻기 턴은 `{question, bookIds: [], askQuestion, askChoices}`이고 `askQuestion` = 되묻기 글, 그것이 비면(책 없음 뒤 선택지) 그 턴의 머리말(`ask.question || head`).
+  - `turnNo` = min(대화 안 순번, `TURNS_MAX` 10). 서버는 1~20을 받음. 지역 = 지역 설정(`useRegions`)의 사는 곳·일하는 곳·고른 도서관. `scope` = `joinable` 고정, `visit` = 찾기 설정.
   - 지역을 아직 읽는 중이면 기다렸다가 보냄. 한 번에 한 질문만(답을 받는 동안 보내기 단추가 꺼짐).
 - 이벤트를 그리는 법(`apply`, `Answer`):
 
@@ -625,9 +668,10 @@ LIMIT :limit
 | `head-delta` | 머리말에 이어 붙임(글자 그대로, 마크업 아님) |
 | `card` | 카드 추가: 표지(없으면 빈 칸), 제목, 저자, 「내 도서관 n곳」. 같은 책 id가 이미 있으면 무시. 누르면 추천도서와 같은 책 창(`PicksBookDialog`, `aiSummary` 보임) |
 | `card-delta` | 그 카드 글에 이어 붙임 |
-| `ask` | 되묻기 글을 머리말 자리에, 고를 답을 단추로. 누르면 그 답이 다음 질문이 됨(마지막 턴만 누를 수 있음). 마지막 턴이면 「고르시면 그 답으로 이어서 찾아요. 직접 써서 물어도 돼요.」(폰에서는 둘째 문장 숨김) |
+| `ask` | 되묻기 글을 머리말 자리에(글이 빈 글이면 안 그림. 책 없음 뒤 선택지는 머리말 아래라 비어 옴), 고를 답을 번호 붙은 상자 하나로(`NumberedChoices`). 누르면 그 답이 다음 질문이 됨(마지막 턴만 누를 수 있음). 마지막 턴이면 「고르시면 그 답으로 이어서 찾아요. 원하는 게 없으면 아래 입력창에 적어 주세요.」(폰에서도 같음) |
+| `tail-delta` | 정리 글에 이어 붙임. 카드가 1장 이상일 때만 카드 아래에 그림(`Tail`): 줄이 모두 「`상황: 『제목』…`」 꼴이면 제목 「상황별로 고르면」 + 상황(굵게)과 책 목록, 아니면 한 문단 |
 | `done "ok"` | 그대로 |
-| `done "no_match"` | 머리말을 숨기고 「맞는 책을 찾지 못했어요. 다른 말로 써 보시겠어요?」 + 예시 질문 단추 3개 |
+| `done "no_match"` | 머리말은 그대로 둠. `ask` 이벤트가 왔으면 위 번호 상자가 대신 나옴. 안 왔으면: 머리말이 없을 때만 「맞는 책을 찾지 못했어요. 다른 말로 써 보시겠어요?」, 마지막 턴이면 「조금 넓은 주제나 다른 말로 바꿔 보세요. 찾는 책의 주제나 읽고 싶은 상황을 아래 입력창에 적어 주세요.」(`noMatchHint` + `noMatchHintOwn`). 예시 단추는 없음 |
 | `done "no_text"` | 머리말 자리에 「지금은 설명을 쓰지 못했어요」 + 글 없는 카드 |
 | `done "partial"` | 카드 아래 작은 글로 「지금은 설명을 쓰지 못했어요」 |
 | `done "site"` | 머리말 + 「책첵이란? 자세히 보기 →」(`/about`) + 「답은 책첵 소개와 첫 화면 안내를 바탕으로 AI가 썼어요.」 |
@@ -636,8 +680,8 @@ LIMIT :limit
 | 스트림이 `done` 없이 끝남·연결 끊김 | 「연결이 원활하지 않아요」 + [다시 시도] |
 
 - 웹이 덧붙이는 것: 입력 칸 아래 늘 「책 설명은 AI가 질문에 맞춰 썼어요. 실제 내용과 다를 수 있어요」. 지역도 도서관도 고르지 않았으면 마지막 답 아래 「누구나 빌릴 수 있는 도서관에서만 찾고 있어요. 더 많은 도서관에서 찾으려면 마이페이지에서 지역과 도서관을 골라 주세요」.
-- 「내 도서관 n곳」 다시 세기: 답이 끝났을 때와 지역 설정이 바뀔 때마다, 대화에 나온 모든 카드 책 id(중복 없이. 서버는 160개까지 받고 넘으면 400, 20턴 × 8권 = 160)로 `POST /api/v1/ai-searches/library-counts`를 보내 숫자만 바꿈. 이 주소는 모델을 부르지 않아 IP 한도·비용에 들지 않음(같은 `planSearch` + `planCounts` SQL).
-- 20턴 제한: 대화가 20턴이 되면 입력 칸 대신 「새 대화를 시작해 주세요」 + [새 대화].
+- 「내 도서관 n곳」 다시 세기: 답이 끝났을 때와 지역 설정이 바뀔 때마다, 대화에 나온 모든 카드 책 id(중복 없이. 웹은 많아야 10턴 × 8권 = 80개. 서버는 160개까지 받고 넘으면 400)로 `POST /api/v1/ai-searches/library-counts`를 보내 숫자만 바꿈. 이 주소는 모델을 부르지 않아 IP 한도·비용에 들지 않음(같은 `planSearch` + `planCounts` SQL).
+- 10턴 제한(`TURNS_MAX`): 대화가 10턴이 되면 입력 칸 대신 「새 대화를 시작해 주세요」 + [새 대화].
 - 저장: 브라우저 `sessionStorage` 열쇠 `chaekcheck.aiChat`(탭을 닫으면 사라짐, 새로 고침에는 남음). 새로 고침 때 받는 중이던 턴은 다시 받지 않음: 카드가 있으면 `partial`, 없으면 「연결이 원활하지 않아요」. 서버에는 대화를 저장하지 않음.
 
 근거: `web/src/features/aisearch/AiChatPage.tsx`(`send`, `apply`, `Answer`, `noticeOf`, `refusal`, library-counts 효과), `aiChatStore.ts`, `aiSearchText.ts`, `AiSearchTab.tsx`, `web/src/api/aiSearch.ts`, `AiSearchController.libraryCounts`.
@@ -649,21 +693,23 @@ LIMIT :limit
 | 차례 | 무엇이 안 됨 | 서버가 하는 일 | 사용자에게 보이는 것 |
 |---|---|---|---|
 | 1 | 시작 때 모델 폴더 파일이 없거나 못 읽음 | 벡터 끔(`ai search vectors off: …`) 또는 ML 1차 끔(`ai search first call: haiku, the ml one is off: …`). 모든 검색이 Haiku 1차, 벡터 없으면 낱말 후보만 | 답은 그대로 나옴(느리거나 덜 맞을 수 있음) |
-| 2 | 질문 벡터가 2초 넘게 걸림·실패·차단기 열림 | 이 검색만 **Haiku 1차**: `KEYWORD_SYSTEM` 지시문, 앞 턴 + 질문, 형식 `{notBook, titleLike, title, refersToShown, keywords[], core[]}`, `max_tokens` 512, 5초, 스트림 아님(`stop_reason`이 `end_turn`이 아니면 실패). 동시에 질문 하나로 벡터를 다시 요청(`vectors.nearest(질문, 120)`, 차단기가 열려 있으면 바로 빈 목록). 이 길에서는 칸이 없어 칸 보너스·뒤로 보내기가 없고, `core`가 있으면 4-7절 SQL의 `core_score`가 쓰이며, `notBook`이면 「낱말 하나」 규칙 없이 4-12절 (나)로, `titleLike`면 Haiku가 적은 `title`이 질문 안에 있을 때 그 글, 아니면 질문 전체로 제목 비교 | 같은 모양의 답 |
+| 2 | 질문 벡터가 2초 넘게 걸림·실패·차단기 열림 | 이 검색만 **Haiku 1차**: `KEYWORD_SYSTEM` 지시문, 앞 턴 + 질문, 형식 `{notBook, titleLike, title, refersToShown, keywords[], core[]}`, `max_tokens` 512, 5초, 스트림 아님(`stop_reason`이 `end_turn`이 아니면 실패). 동시에 질문 하나로 벡터를 다시 요청(`vectors.nearest(질문, 600)`, 차단기가 열려 있으면 바로 빈 목록). 이 길에서는 칸이 없어 칸 보너스·뒤로 보내기가 없고, `core`가 있으면 4-7절 SQL의 `core_score`가 쓰이며, `notBook`이면 4-12절 (나) 대화 호출로, `titleLike`면 Haiku가 적은 `title`이 질문 안에 있을 때 그 글, 아니면 질문 전체로 제목 비교 | 같은 모양의 답 |
 | 3 | Haiku 1차도 실패(시간 초과·HTTP·형식) | 낱말 = 질문을 빈칸으로 자른 조각들, 길은 「책 찾기」, 1차 결과 `FAILED`/`TIMEOUT` | 같은 모양의 답 |
 | 4 | 4-8절에서 벡터가 2초 안에 안 옴 | 벡터 후보 0개, 낱말 후보만 RRF | 같은 모양의 답 |
 | 5 | 표지·요약 읽기 실패 | 카드에 표지·요약 없이 | 빈 표지 |
 | 6 | 출간 연도 읽기 실패 | 2차 목록에 「출간」 없이 | 같음 |
 | 7 | 2차 실패, 카드 0장 | 후보 앞 8권을 글 없이 → `no_text` | 「지금은 설명을 쓰지 못했어요」 + 카드 |
 | 8 | 2차 실패, 카드 1장 이상 | `partial` | 카드 + 작은 글 「지금은 설명을 쓰지 못했어요」 |
-| 9 | 책첵 질문 호출 실패 | `no_match` | 「맞는 책을 찾지 못했어요…」 |
-| 10 | API 키가 없음 | 모든 호출이 보내지 않고 실패(`NOT_CONFIGURED`), 비용 안 셈 → 위 3·7·9 | 위와 같음 |
+| 9 | 책첵 질문 호출 실패(4-12 (가)) | `no_match` | 「맞는 책을 찾지 못했어요…」 + 마지막 턴이면 안내 문구. 예시 단추 없음 |
+| 9-1 | 책 찾는 말 아님의 대화 호출 실패·형식 틀림·빈 답(4-12 (나)) | 고정 되묻기(「어떤 책을 찾으세요? …」 + 예시 10개 중 3개) → `asked`, 로그 `ask not-book-ask` | 질문 + 번호 상자 |
+| 9-2 | 책 없음 뒤 선택지 호출 실패·선택지 없음(4-12 (라)·(바), `NO_MATCH_SYSTEM`) | 더 보내지 않고 `no_match` | 머리말(있으면) 또는 「맞는 책을 찾지 못했어요…」 + 마지막 턴이면 안내 문구 |
+| 10 | API 키가 없음 | 모든 호출이 보내지 않고 실패(`NOT_CONFIGURED`), 비용 안 셈 → 위 3·7·9·9-1·9-2 | 위와 같음 |
 | 11 | IP 한도(429) / 동시 실행 자리 없음(503 `server_busy`) | 스트림을 열지 않음 | 「잠시 뒤에 다시 써 주세요」 |
 | 12 | 오늘 비용 US$2 다 씀(503 `ai_search_paused`) | 스트림을 열지 않음. 이미 도는 검색은 끝까지 감 | 「오늘은 AI 책 찾기를 쉬어요. 직접 찾기를 써 주세요」 + [직접 찾기로] |
 | 13 | AI 검색 꺼짐(404) | | 쉬는 안내 + 첫 화면에서 AI 탭 숨김 |
 | 14 | 본문·지역 오류(400·422) | | 「답을 쓰다가 문제가 생겼어요」 + [다시 시도] |
 
-근거: `KureQuestionVectors` 생성자, `MlFirstCall` 생성자, `AiSearchFlow.mlStep`·`keywords`·`vectorCandidates`·`publishYears`·`Cards`·`picks`·`site`, `AnthropicLlmClient.complete`·`request`, `Prompts.KEYWORD_SYSTEM`·`KEYWORD_SCHEMA`, `AiChatPage.refusal`·`noticeOf`.
+근거: `KureQuestionVectors` 생성자, `MlFirstCall` 생성자, `AiSearchFlow.mlStep`·`keywords`·`vectorCandidates`·`publishYears`·`Cards`·`picks`·`site`·`chat`·`noMatchChoices`, `AnthropicLlmClient.complete`·`request`, `Prompts.KEYWORD_SYSTEM`·`KEYWORD_SCHEMA`, `AiChatPage.refusal`·`noticeOf`.
 
 ## 7. 로그 한 줄
 
@@ -671,28 +717,29 @@ LIMIT :limit
 
 형식:
 ```
-ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <후보 수> (vector <벡터 후보 수>[, named book][, early keyword]), cards <카드 수>, <걸린 ms> ms, tokens <입력>/<출력>[, ask <되묻기>][, tail <정리 글>][, from <첫 해>][, parts <주제 수>][, text <카드 글 글자 수>[ (long <넘친 카드 수>)]][, client gone][, steps <단계=ms …>]
+ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <후보 수> (vector <벡터 후보 수>[, named book][, early keyword][, talk <종류> <되묻기>]), cards <카드 수>, <걸린 ms> ms, tokens <입력>/<출력>[, ask <되묻기>][, tail <정리 글>][, from <첫 해>][, parts <주제 수>][, text <카드 글 글자 수>[ (long <넘친 카드 수>)]][, client gone][, steps <단계=ms …>]
 ```
 
 | 칸 | 값 |
 |---|---|
 | `first` | ML 1차면 `ml <길> <관계>`(길: `NOT_BOOK`·`TITLE_LIKE`·`REFERS_SHOWN`·`SITE`·`BOOK`, 관계: 첫 질문 `first`, 이어 묻기 `refers`·`ask_one`·`continue`·`shift`·`feedback`·`new`·`none`, pointsBack이면 뒤에 ` joined`, 규칙이면 `rule new`/`rule continue`). Haiku 1차면 `haiku` |
 | `keyword` | `OK`, `FAILED`, `TIMEOUT`(Haiku 1차 결과. ML은 `OK`) |
-| `pick` | `OK`, `NO_MATCH`, `NO_TEXT`, `PARTIAL`, `SKIPPED`(2차를 안 했거나 책 없이 끝남: 되묻기(2차의 되묻기 포함), 책첵 답, 카드 0장에서 사용자가 떠남). 카드 1장 이상 보낸 뒤 사용자가 떠나면 `PARTIAL`. 책 찾는 말이 아니고 되묻기가 꺼져 있거나 후보가 0권이면 `NO_MATCH` |
+| `pick` | `OK`, `NO_MATCH`, `NO_TEXT`, `PARTIAL`, `SKIPPED`(2차를 안 했거나 책 없이 끝남: 되묻기(2차의 되묻기, 책 찾는 말이 아니고 되묻기가 켜졌을 때의 대화·고정 되묻기 포함), 책첵 답, 카드 0장에서 사용자가 떠남). 카드 1장 이상 보낸 뒤 사용자가 떠나면 `PARTIAL`. `NO_MATCH` = 후보가 0권, 2차가 카드 0장(이 둘은 뒤에 `ask no-match choices`가 붙을 수 있음), 책첵 답 실패, 책 찾는 말이 아니고 되묻기가 꺼짐 |
 | `candidates` | 2차에 보낸 책 수(0~30) |
 | `vector` | RRF에 넣은 벡터 후보 수(0~60) |
 | `named book` | 질문이 책 이름을 대서 그 이웃을 먼저 넣음 |
 | `early keyword` | 4-1절 이른 낱말 검색 결과를 씀 |
+| `talk` | 대화 말(4-0-1). 종류 `DONT_KNOW`·`NOT_THAT`·`BACK_TO`, 되묻기 `NORMAL`·`NEVER`·`FORCE` |
 | `cards` | 보낸 카드 수(0~8) |
 | `ms` | 요청이 들어온 때부터 끝까지 |
 | `tokens` | 이 검색의 모든 호출 합. 입력은 캐시 토큰 포함, 출력은 모르면 `max_tokens` |
-| `ask` | `single-ask`(2차가 되물음), `not-book-ask`(고정 되묻기), `one-word`(낱말 하나라 책 찾기로 바꿈) |
+| `ask` | `single-ask`(2차가 되물음), `chat`(책 찾는 말이 아니어서 대화 호출이 되물음), `not-book-ask`(대화 호출이 실패해 고정 되묻기), `no-match choices`(책 없음 뒤 선택지를 보냄) |
 | `tail` | 상황별 정리 글이 길어서 끊김(`too long`, v1.21.x). v1.22.2부터 카드 2장 이상인데 정리 글이 없으면 그 까닭: `none`(lines·summary가 빔), `unshown <번호들>`(번호가 보인 카드가 아님), `bad summary` |
 | `text` | 2차가 카드 글에 쓴 글자 수(카드 상한 300자를 넘겨 버린 글자 포함). `long N`은 상한을 넘긴 카드 수(v1.22.2) |
 | `from` | 최신 조건의 첫 해(4-0-2, v1.22.1~) |
 | `parts` | 주제를 나눠 찾은 수(4-0-2, v1.22.1~) |
 | `client gone` | 사용자가 떠남 |
-| `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 120) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-first`(2차 첫 글 조각) `llm-done`(2차 끝) |
+| `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 600) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-first`(2차 첫 글 조각) `llm-done`(2차 끝) |
 
 예(형식을 보이려고 만든 줄이며 실제 로그가 아닙니다):
 ```
@@ -729,7 +776,7 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | `vector.model-dir` | 빈 값 (`CHAEKCHECK_AISEARCH_MODEL_DIR`) | **`/models/aisearch`**(compose.yaml) | 모델 폴더 |
 | `vector.threads` | 2 | 같음 | 백엔드 안에서 돌릴 때의 스레드(운영은 안 씀) |
 | `vector.keyword-depth` | 50 | 같음 | RRF에 넣는 낱말 후보 |
-| `vector.vector-depth` | 60 | 같음 | RRF에 넣는 벡터 후보(가까운 책은 그 2배 120) |
+| `vector.vector-depth` | 60 | 같음 | RRF에 넣는 벡터 후보(가까운 책은 그 10배 600을 읽어 2배 120에서 자름) |
 | `vector.rrf-k` | 60 | 같음 | RRF의 k |
 | `vector.max-wait` | 2s | 같음 | 질문 벡터를 기다리는 시간 |
 | `vector.encoder` | local (`CHAEKCHECK_AISEARCH_VECTOR_ENCODER`) | **remote** | 질문 벡터를 만드는 곳 |
@@ -742,6 +789,7 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | `first-call.site-max-tokens` | 512 | 같음 | 책첵 답 출력 상한 |
 | `first-call.follow-up` | relation (`CHAEKCHECK_AISEARCH_FOLLOW_UP`; 값이 비면 코드가 rule) | relation | 이어 묻기를 관계 신경망으로 |
 | `pick.ask-back` | false (`CHAEKCHECK_AISEARCH_PICK_ASK_BACK`) | **true** | 되묻기 |
+| `pick.ask-one-word` | false (`CHAEKCHECK_AISEARCH_PICK_ASK_ONE_WORD`) | 같음(`deploy/prod/compose.yaml`이 넘기지 않음) | 첫 질문이 낱말 하나여도 되묻기 형식을 씀(v1.17.0~v1.20.5 방식) |
 | `llm.anthropic.api-key` | 빈 값 (`CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`) | Parameter Store 비밀값 | 비면 모든 호출이 실패 → 대체 길 |
 | `llm.anthropic.model` | claude-haiku-5-5 | 같음 | 1차(Haiku)·2차·책첵 답 모델 |
 | `llm.anthropic.base-url` / `version` | https://api.anthropic.com / 2026-10-21 | 같음 | API 주소, `anthropic-version` |
@@ -753,7 +801,8 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 
 | 상수 | 값 | 자리 |
 |---|---|---|
-| 본문 최대 | 16KB | `AiSearchController.MAX_BODY_CHARS` |
+| 본문 최대 | 32KB | `AiSearchController.MAX_BODY_CHARS` |
+| 앞 턴 머리말 최대(넘으면 자름) | 400자 | `AiSearchController.HEAD_MAX_CHARS` |
 | 내 도서관 다시 세기 책 최대 | 160 | `AiSearchController.MAX_COUNT_BOOKS` |
 | 스트림 여유 | 10초 | `AiSearchController.EMITTER_GRACE` |
 | `server_busy`의 `Retry-After` | 5초 | `AiSearchErrors.BUSY_RETRY_AFTER_SECONDS` |

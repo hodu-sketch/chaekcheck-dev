@@ -96,6 +96,6 @@
 - [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 수정(6절, 새 도서관은 넣기 명령), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 수집 목록에서 도서관 찾기 → 수집 → 넣기 명령(`library-insert` 미리 보기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → 넣기) → 구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] ②: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 가져오기: 사본 만들기 → dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
-- [ ] AI 책 찾기 사본: 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음(`book-texts-top-books=100000`, [4-picks.md](4-picks.md) 10절, 후속 작업 24-F1). 가져오기 뒤에는 책 번호가 바뀌므로 책 벡터·프로필·이웃도 다시 만듦([6-aisearch.md](6-aisearch.md) 7·8·9절)
+- [ ] AI 책 찾기 사본: 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음(`book-texts-top-books=100000`, [4-picks.md](4-picks.md) 10절, 후속 작업 24-F1). 가져오기 뒤에는 책 번호가 바뀌므로 책 벡터·프로필(`mode=book-profiles` → `catalog.book_profile`, 넣은 뒤 `bin/switch.sh backend <지금 판>`)·이웃도 다시 만듦([6-aisearch.md](6-aisearch.md) 7·8·9절)
 - [ ] 4단계: 서비스 로그에서 상세 페이지 읽기 실패가 늘었는지
 - [ ] 5단계: `picks.fetch_run`에 최근 7일 안의 `SUCCEEDED`가 있는지, `FAILED`면 `failure_reason`([4-picks.md](4-picks.md) 3절)
