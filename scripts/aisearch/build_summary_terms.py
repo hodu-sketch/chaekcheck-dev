@@ -8,6 +8,7 @@ intros stay on this PC; only the two written texts go to the server (cycle 23 [í
   py scripts/aisearch/build_summary_terms.py submit    # Message Batches of CHUNK requests (half price)
   py scripts/aisearch/build_summary_terms.py collect   # wait, check, write summary-terms.tsv; failures listed
   py scripts/aisearch/build_summary_terms.py retry     # ask again for the failed books, then collect again
+  py scripts/aisearch/build_summary_terms.py book-texts BASE OUT   # the import file: BASE + the written rows
 
 py = <data>/ml/venv/Scripts/python.exe -X utf8. The key is CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY (environment or the
 dev .env), never printed. Output in <data>/aisearch/two-layer/.
@@ -174,9 +175,39 @@ def retry() -> int:
     return 0
 
 
+TERMS_MAX = 2000           # catalog.book_search.terms CHECK (BookTextsTransfer.SEARCH_TERMS_MAX_CHARS)
+
+
+def book_texts(base: str, out: str) -> int:
+    """The import file: every row of BASE (a book-texts file: export id row, header, search_line, search_exclude, ...)
+    except its old search_summary/search_terms rows, then one search_summary and one search_terms row per book of
+    summary-terms.tsv. The import replaces catalog.book_search whole, so the base must be the file the server holds."""
+    rows = Path(base).read_text(encoding='utf-8').split('\n')
+    if not rows[0].startswith('# export_id=') or rows[1] != 'kind\tbook_id\tsource\tmade_on\ttext':
+        raise SystemExit(f'{base}: not a book-texts file with an export id row')
+    kept = [r for r in rows[2:] if r and not r.startswith(('search_summary\t', 'search_terms\t'))]
+    shown = {int(r.split('\t')[1]) for r in kept if r.startswith('search_line\t')}
+    written = chunks.read_tsv(OUT / 'summary-terms.tsv')
+    problems = [r['book_id'] for r in written if not 0 < len(r['summary']) <= SUMMARY_MAX
+                or not 0 < len(r['terms']) <= TERMS_MAX or '\t' in r['summary'] + r['terms']]
+    if problems:
+        raise SystemExit(f'{len(problems)} books with a bad summary or terms, e.g. {problems[:5]}')
+    with open(out, 'w', encoding='utf-8', newline='\n') as f:
+        f.write('\n'.join(rows[:2] + kept) + '\n')
+        for r in written:
+            f.write(f"search_summary\t{r['book_id']}\thaiku\t{r['made_on']}\t{r['summary']}\n")
+            f.write(f"search_terms\t{r['book_id']}\thaiku\t{r['made_on']}\t{r['terms']}\n")
+    ids = {int(r['book_id']) for r in written}
+    print(json.dumps({'base_rows': len(kept), 'written_books': len(ids), 'written_with_line': len(ids & shown),
+                      'written_without_line': len(ids - shown), 'out': out}))
+    return 0
+
+
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
+    if sys.argv[1:2] == ['book-texts'] and len(sys.argv) == 4:
+        sys.exit(book_texts(sys.argv[2], sys.argv[3]))
     steps = {'prepare': prepare, 'submit': submit, 'collect': collect, 'retry': retry}
     if sys.argv[1:2] not in ([k] for k in steps):
-        raise SystemExit('usage: build_summary_terms.py ' + '|'.join(steps))
+        raise SystemExit('usage: build_summary_terms.py ' + '|'.join(steps) + ' | book-texts BASE OUT')
     sys.exit(steps[sys.argv[1]]())
