@@ -165,10 +165,15 @@ class AiSearchTwoLayerEvalTests {
 		}
 		String allPicks = all.append("]}").toString();
 		LlmClient haiku = picks ? haiku() : null;
-		Map<String, Object> out = new LinkedHashMap<>();
+		Map<String, Object> out = java.util.Collections.synchronizedMap(new LinkedHashMap<>());
 		JsonNode questions = json.readTree(Files.readString(dir.resolve("questions.json")));
-		try (var vectors = new KureQuestionVectorsAccess(on).open()) {
+		// picks: the Haiku call is most of the time, so several questions at once (the ms then include the waiting)
+		int threads = picks ? Integer.parseInt(System.getenv().getOrDefault("AISEARCH_EVAL2_THREADS", "6")) : 1;
+		try (var vectors = new KureQuestionVectorsAccess(on).open();
+				var pool = java.util.concurrent.Executors.newFixedThreadPool(threads)) {
+			List<java.util.concurrent.Future<?>> futures = new java.util.ArrayList<>();
 			for (JsonNode question : questions) {
+				futures.add(pool.submit(() -> {
 				String id = question.get("id").asString();
 				AiSearchFlowTests.Sink sink = new AiSearchFlowTests.Sink();
 				LlmClient llm = picks ? haiku
@@ -184,9 +189,18 @@ class AiSearchTwoLayerEvalTests {
 				got.put("ms", (System.nanoTime() - started) / 1_000_000);
 				got.put("books", sink.of(AiSearchEvents.Card.class).stream().map(AiSearchEvents.Card::bookId).toList());
 				out.put(id, got);
+				return null;
+				}));
+			}
+			for (var future : futures) {
+				future.get();
 			}
 		}
-		Files.writeString(dir.resolve("out-" + name + ".json"), json.writeValueAsString(out));
+		Map<String, Object> ordered = new LinkedHashMap<>();
+		for (JsonNode question : questions) {
+			ordered.put(question.get("id").asString(), out.get(question.get("id").asString()));
+		}
+		Files.writeString(dir.resolve("out-" + name + ".json"), json.writeValueAsString(ordered));
 		System.out.println("eval2 run " + name + ": " + out.size() + " questions");
 	}
 

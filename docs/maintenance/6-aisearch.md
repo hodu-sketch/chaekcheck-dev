@@ -274,13 +274,13 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 
 | 단계 | 무엇 | 파일·명령 | 상태 |
 |---|---|---|---|
-| 1 | Haiku 한 번 호출로 요약(평균 270자) + 검색 낱말(평균 41개), 배치 API | `scripts/aisearch/build_summary_terms.py prepare/submit/collect/retry` → `chaekcheck-dataisearch	wo-layer\summary-terms.tsv` | 76,974권 끝(실패 16 → 다시 받아 0). 입력 1억 4,815만·출력 4,597만 토큰, 약 $19 [추정, 배치 반값] |
-| 2a | 소개 512토큰 조각 벡터(KURE-v1, 6,000자까지) | `scripts/aisearch/build_chunk_vectors.py` (이어 하기 됨) → `join` | PC에서 도는 중(약 45시간 [추정]) |
-| 2b | 요약 벡터(「제목 · 저자 · 출판사 · 연도」 + 요약) → 책마다 요약 줄 + 조각 줄들의 `book-vectors.bin` | `scripts/aisearch/build_two_layer_vectors.py summary` / `file OUT.bin` | 요약 벡터 도는 중 |
+| 1 | Haiku 한 번 호출로 요약(평균 270자) + 검색 낱말(평균 41개), 배치 API | `scripts/aisearch/build_summary_terms.py prepare/submit/collect/retry` → `chaekcheck-data\aisearch\two-layer\summary-terms.tsv` | 76,974권 끝(실패 16 → 다시 받아 0). 입력 1억 4,815만·출력 4,597만 토큰, 약 $19 [추정, 배치 반값] |
+| 2a | 소개 512토큰 조각 벡터(KURE-v1, 6,000자까지) | `scripts/aisearch/build_chunk_vectors.py` (이어 하기 됨) → `join`; 남은 파트는 `scripts/aisearch/gpu_chunk_vectors.py pack/encode/take`(빌린 GPU) | 끝(2026-10-31): 157,314조각, 76,974권. 남은 32파트는 vast.ai RTX 4090에서 약 15분, $0.21 |
+| 2b | 요약 벡터(「제목 · 저자 · 출판사 · 연도」 + 요약) → 책마다 요약 줄 + 조각 줄들의 `book-vectors.bin` | `scripts/aisearch/build_two_layer_vectors.py summary` / `file OUT.bin` | 끝: `chaekcheck-data\ml\two-layer\book-vectors-two-layer.bin` 238,392줄, 81,078권, 235.5 MB. 넣기 파일 `chaekcheck-data\aisearch\two-layer\book-texts-two-layer-2026-10-31-export.tsv`(`build_summary_terms.py book-texts`) |
 | 3 | 벡터 검색이 책 하나의 여러 줄을 최고 점수로 묶음 | `BookVectors`, `BookVectorFunnel`, `BookVectorFile` | 코드 끝 |
 | 4 | BM25: `book_search`에 `summary`·`terms`·`written_on`·`keyword_text`·`library_words`(생성 칼럼), 색인 `book_search_bm25` | Liquibase `catalog/005-library-words.sql`, `catalog/006-book-search-bm25.yaml`; 넣기 파일 `search_summary`·`search_terms` 줄 | 코드 끝, 스위치 기본 `like` |
 | 5 | 2차가 읽는 글 = 요약 + 맞은 검색 낱말 | `JdbcAiSearchIndex.readingTexts`, `AiSearchFlow` 한 줄 | 코드 끝, 스위치 기본 `line` |
-| 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 주제 질문 더) | | 2a·2b 뒤 |
+| 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 진짜 Haiku, 프로필 켬·끔) | `AiSearchTwoLayerEvalTests`, `scripts/aisearch/eval/two_layer_step6.py` | 끝(2026-10-31, [6단계 보고서](../aisearch/reports/2026-10-31-two-layer-step6.md)): 카드에 찾는 책 40.3 → 56.1%, 1번 카드 29.5 → 39.7%, 주제 77.7 → 79.1%. 프로필을 끄면 61.6% / 82.1% |
 | 7 | plan ADR(pg_search AGPL), 배포(이미지 바꾸고 DB 재시작) | | 사용자 OK 뒤, 24 세션 순서 |
 
 운영에서 알아 둘 것:
