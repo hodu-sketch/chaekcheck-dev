@@ -53,6 +53,15 @@ class AiSearchIndexBm25Tests {
 	}
 
 	@Test
+	void theKoreanTextColumnsKeepNoStatistics() { // catalog-006-book-search(-bm25)-statistics, ANALYZE 40 min (2026-10-31)
+		assertThat(jdbc.sql("""
+				SELECT string_agg(attname || '=' || attstattarget, ',' ORDER BY attrelid, attnum) FROM pg_attribute
+				WHERE attrelid IN ('catalog.book_search'::regclass, 'catalog.book_search_bm25'::regclass)
+				  AND attstattarget IS NOT NULL""").query(String.class).single())
+			.isEqualTo("summary=0,terms=0,keyword_text=0,keyword_text=0,library_words=0");
+	}
+
+	@Test
 	void aRareSearchTermFindsItsBookFirst() {
 		books(book(1, "코딩 테스트 대비", 3), book(2, "알고리즘 산책", 9), book(3, "요리 이야기", 9));
 		store(List.of(new Line(930001, Source.INTRO, DAY, "취업 코딩 테스트를 준비하는 알고리즘 문제집")),

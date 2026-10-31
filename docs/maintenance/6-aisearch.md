@@ -12,7 +12,9 @@
 - **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). 옛 `aisearch.search_book`은 사이클 26 배포 2(v1.20.6, `aisearch/005-drop-search-book.yaml`)에서 지웠습니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
-## 0. 지금 운영 (2026-10-31, v1.22.3)
+## 0. 지금 운영 (2026-10-31, v1.23.0)
+
+- **v1.23.0(2026-10-31, 15절)**: 두 층 책 벡터(요약 한 줄 + 소개 512토큰 조각, `book-vectors.bin` 238,392줄·81,078권, 책마다 10줄까지), 낱말 후보는 pg_search BM25(`KEYWORD_MATCH=bm25`), 2차가 읽는 글은 요약 + 맞은 검색 낱말(`READING_TEXT=summary`), ML 1차 빼기 끔(`RULES_OUT=false`). DB 이미지 `chaekcheck/postgres-bigm:18`(pg_search 0.26.3, vector 0.8.7, preload `pg_bigm,pg_search`). 옛 것: `aisearch-model/book-vectors-100k.bin`, `prod.env.before-v1.23.0`, `compose.yaml.before-v1.23.0`, 이미지 `chaekcheck/postgres-bigm:18-before-search`. 아래 줄 중 「LIKE」·「한 줄」 설명은 v1.22까지의 길이며 스위치를 `like`/`line`으로 돌리면 그대로 돕니다.
 
 - 켠 것(`deploy/prod/prod.env`): `CHAEKCHECK_AISEARCH_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`(임베딩 서버, 7-1절), `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(8절), `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`, `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`, `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`, `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`(10절). 모델 폴더 `CHAEKCHECK_AISEARCH_MODEL_DIR=/models/aisearch`는 `deploy/prod/compose.yaml`. effort는 `application.yml`의 `low`. 비밀값 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`·`CHAEKCHECK_AISEARCH_EMBED_TOKEN`은 Parameter Store(`up.sh`가 `secrets.env`로)
 - 켜지 않은 것: `CHAEKCHECK_AISEARCH_PICK_ASK_ONE_WORD`(기본 `false`, 한 낱말 질문은 되묻지 않고 바로 답). 이 값은 `deploy/prod/compose.yaml`이 컨테이너에 넘기지 않으므로 켜려면 compose에 줄을 더해야 함
@@ -261,7 +263,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - pg_search 0.26.3은 운영 이미지 `chaekcheck/postgres-bigm:18` 위에 `postgresql-18-pgvector` + 데비안 trixie용 .deb로 올라가고, `shared_preload_libraries=pg_bigm,pg_search`로 함께 켜짐(시험용 컨테이너에서 확인). 넣으려면 DB 재시작, `CREATE EXTENSION pg_search CASCADE`(슈퍼유저, pgvector가 같이 켜짐), AGPL-3.0 확인, plan ADR이 필요.
 - 아직 넣지 않음. 순서 제안: 7만 7천 권으로 다시 재기 → 로컬 서버에서 `LIKE`/`BM25` 스위치 비교 → 배포(보고서 6절).
 
-## 14. 책이 늘 때 가까운 책 찾기: Java 깔때기 (2026-10-30, 브랜치 `claude/aisearch-vector-funnel`, 배포 전)
+## 14. 책이 늘 때 가까운 책 찾기: Java 깔때기 (2026-10-30, 운영 v1.23.0~)
 
 사용자 계획: AI 검색 책을 20만 권, 그 뒤로도 점점 늘림. 자세한 숫자: [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md)(앞 단계 [HNSW 보고서](../aisearch/reports/2026-10-29-hnsw.md)). 운영에서 알아 둘 것만:
 
@@ -274,7 +276,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 다른 길(쓰지 않음): pgvector halfvec HNSW는 색인(100만 권 약 2.7GB)이 캐시에 다 있어야 빠름. 2GB 서버에서는 안 맞음.
 - 전용 벡터 DB(Qdrant 등)는 새 인프라라 plan 결정이 먼저.
 
-## 15. 두 층 + BM25 + 요약 읽기 (2026-10-30, 브랜치 `claude/aisearch-vector-funnel`, 배포 전)
+## 15. 두 층 + BM25 + 요약 읽기 (2026-10-30, 운영 v1.23.0~ 2026-10-31)
 
 사용자 결정(2026-10-30): "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자". 원문 소개는 PC에만 두고(사이클 23 [확정]), 운영에는 Haiku가 쓴 요약·검색 낱말과 벡터만 갑니다. 측정은 [소개글 보고서](../aisearch/reports/2026-10-29-intro-text.md) 10·11절, 규모는 [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md) 10절.
 
@@ -287,7 +289,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 | 4 | BM25: `book_search`에 `summary`·`terms`·`written_on`·`keyword_text`·`library_words`(생성 칼럼), 색인 `book_search_bm25` | Liquibase `catalog/005-library-words.sql`, `catalog/006-book-search-bm25.yaml`; 넣기 파일 `search_summary`·`search_terms` 줄 | 코드 끝, 스위치 기본 `like` |
 | 5 | 2차가 읽는 글 = 요약 + 맞은 검색 낱말 | `JdbcAiSearchIndex.readingTexts`, `AiSearchFlow` 한 줄 | 코드 끝, 스위치 기본 `line` |
 | 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 진짜 Haiku, 프로필 켬·끔) | `AiSearchTwoLayerEvalTests`, `scripts/aisearch/eval/two_layer_step6.py` | 끝(2026-10-31, [6단계 보고서](../aisearch/reports/2026-10-31-two-layer-step6.md)): 카드에 찾는 책 40.3 → 56.1%, 1번 카드 29.5 → 39.7%, 주제 77.7 → 79.1%. 빼기(rulesOut)만 끄면 60.1% / 42.3% / 84.0%(운영 값) |
-| 7 | plan 기록(pg_search AGPL, 원문 규칙, rulesOut 끔), 배포(이미지 바꾸고 DB 재시작) | 아래 「7단계 배포 순서」, `docs/plan-feedback.md` 「AI 검색 두 층 + BM25」 | 사용자 OK 2026-10-31 "재 보고 배포", 24 세션이 배포 |
+| 7 | plan 기록(pg_search AGPL, 원문 규칙, rulesOut 끔), 배포(이미지 바꾸고 DB 재시작) | 아래 「7단계 배포 순서」, `docs/plan-feedback.md` 「AI 검색 두 층 + BM25」 | 끝: v1.23.0(6fc12672) 2026-10-31, dev 24. 넣기 76,759 / summary 76,182 / keyword_text 76,759, 시작 로그 `238392 rows x 1024 (up to 10 a book)`. 운영 질문 「불확정성 원리」 4장 4.7초(keyword 0.4초), 재시작 뒤 첫 검색만 13.4초 |
 
 ### 7단계 배포 순서 (2026-10-31)
 
@@ -303,6 +305,8 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 7. **되돌리기**: 스위치만 `like`/`line` + 옛 벡터 파일로 `mv` 후 재시작. `RULES_OUT=true`로 빼기를 다시 켤 수 있음. DB 이미지·색인은 그대로 두어도 `like`에서는 쓰이지 않습니다.
 
 PC 로컬: `compose.yaml`도 preload `pg_bigm,pg_search`. 이 변경 뒤 `docker compose up`은 pg_search가 든 이미지가 있어야 뜹니다(`wsl -d Ubuntu -- docker compose build`, 또는 이미 지은 `chaekcheck/postgres-bigm:18-search`를 `:18`로 태그).
+
+- **ANALYZE가 40분 넘게 걸림(v1.23.0 배포 때)**: `book_search`의 `summary`·`terms`·`keyword_text`(한글 약 300·300·420자) 통계가 표본을 DB 정렬 규칙(en_US.utf8)으로 정렬하느라 칸마다 1분을 넘김(한 줄 100자는 0.1초). SQL에서 거르거나 정렬하지 않는 칸이라 통계를 끔(Liquibase `catalog-006-book-search-statistics`, `…-bm25-statistics`, BM25 색인의 식 열 둘도). 측정 복사본에서 ANALYZE 10분 넘음 → 0.4초. 넣기 뒤 `VACUUM (FULL, ANALYZE)`도 이 시간만큼 줄어듦. 확인: `SELECT attname, attstattarget FROM pg_attribute WHERE attrelid IN ('catalog.book_search'::regclass, 'catalog.book_search_bm25'::regclass) AND attstattarget IS NOT NULL` → 다섯 줄 모두 0.
 
 운영에서 알아 둘 것:
 - **DB 이미지**: `docker/postgres-bigm`에 pg_search 0.26.3(.deb, PC amd64·서버 arm64) + pgvector. `shared_preload_libraries=pg_bigm,pg_search`. compose(로컬·운영)의 `command`는 아직 `pg_bigm`만: **이미지를 새로 지은 뒤에만** `pg_search`를 더할 것(옛 이미지에 미리 불러오기를 넣으면 DB가 안 뜸). 그 전까지는 Liquibase가 BM25 색인 단계를 건너뛰고(`onFail: CONTINUE`, 다음 시작에 다시 시도) 서버는 `like`로 돔.

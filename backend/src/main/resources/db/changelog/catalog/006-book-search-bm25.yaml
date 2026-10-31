@@ -46,3 +46,35 @@ databaseChangeLog:
             sql: >-
               CREATE INDEX book_search_bm25 ON catalog.book_search USING paradedb
                 (book_id, (keyword_text::pdb.lindera(korean)), (library_words::pdb.whitespace))
+
+  # 2026-10-31 (dev 24, v1.23.0 in production): ANALYZE of book_search took over 40 minutes of one core. Measured on
+  # the eval copy (76,759 rows): the column statistics of summary, terms and keyword_text (Korean text of about 300,
+  # 300 and 420 characters) take over a minute each, sorting the sample with the database collation (en_US.utf8);
+  # line (about 100 characters) takes 0.1 s. Nothing filters or sorts these columns in SQL (BM25 reads its own
+  # index), so they keep no statistics: ANALYZE over 10 minutes -> 0.4 s. Setting 0 again is harmless.
+  - changeSet:
+      id: catalog-006-book-search-statistics
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE catalog.book_search
+                ALTER COLUMN summary SET STATISTICS 0,
+                ALTER COLUMN terms SET STATISTICS 0,
+                ALTER COLUMN keyword_text SET STATISTICS 0
+
+  # the BM25 index's two expression columns as well (same text through the Korean analyser); waits for the index
+  # like catalog-006-book-search-bm25
+  - changeSet:
+      id: catalog-006-book-search-bm25-statistics
+      author: chaekcheck
+      preConditions:
+        - onFail: CONTINUE
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT count(*) FROM pg_class WHERE oid = to_regclass('catalog.book_search_bm25')
+      changes:
+        - sql:
+            sql: >-
+              ALTER INDEX catalog.book_search_bm25 ALTER COLUMN 2 SET STATISTICS 0;
+              ALTER INDEX catalog.book_search_bm25 ALTER COLUMN 3 SET STATISTICS 0
