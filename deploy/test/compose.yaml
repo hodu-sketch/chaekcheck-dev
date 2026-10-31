@@ -18,7 +18,7 @@ services:
     command:
       - postgres
       - -c
-      - shared_preload_libraries=pg_bigm
+      - shared_preload_libraries=pg_bigm,pg_search
       - -c
       - shared_buffers=64MB
       - -c

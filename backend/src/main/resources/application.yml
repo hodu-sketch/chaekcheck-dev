@@ -479,8 +479,12 @@ chaekcheck:
       # book profiles in catalog.book_profile (book-profiles import); without them, or with the question vector late or
       # failed, Haiku is asked
       mode: ${CHAEKCHECK_AISEARCH_FIRST_CALL:haiku}
-      # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]
-      shelf-bonus: 0.004
+      # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]; 0 = no bonus
+      shelf-bonus: ${CHAEKCHECK_AISEARCH_SHELF_BONUS:0.004}
+      # a book whose profile the question leaves out (「소설 말고」, a fiction book for a 「소설 아님」 question) goes after
+      # the others; off = never (user 2026-10-31: the fiction reading misjudged 60 of 750 asked books,
+      # docs/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
+      rules-out: ${CHAEKCHECK_AISEARCH_RULES_OUT:true}
       # the cap of the call that answers a question about 책첵 from the intro and first-screen text [안]
       site-max-tokens: 512
       # how a follow-up is tied to the earlier question (user 2026-10-26 "A·B를 다 잰 다음에 한 번에 바꾸자", decisions

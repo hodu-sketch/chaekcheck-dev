@@ -161,7 +161,7 @@ class RemoteQuestionVectorsTests {
 				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
 						AiSearchProperties.Encoder.REMOTE, remote, 2, Duration.ofMillis(300),
 						new AiSearchProperties.Search(AiSearchProperties.SearchMode.EXACT, 10000, 2000)),
-				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.HAIKU, 0.004, 512, null));
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.HAIKU, 0.004, 512, null, null));
 	}
 
 	/** Three books in 2 dimensions: 10 along x, 20 along y, 30 between them (the model files are not needed). */

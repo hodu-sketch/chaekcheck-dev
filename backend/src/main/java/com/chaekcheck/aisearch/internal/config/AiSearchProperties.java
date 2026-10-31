@@ -158,12 +158,16 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * @param siteMaxTokens the cap of the call answering a question about 책첵 (512 [안])
 	 * @param followUp how a follow-up question is tied to the earlier one (user 2026-10-26 "A·B를 다 잰 다음에 한 번에
 	 * 바꾸자")
+	 * @param rulesOut whether a book whose profile the question leaves out goes after the others (on when unset; user
+	 * 2026-10-31: off measured better, docs/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
 	 */
-	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens, FollowUp followUp) {
+	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens, FollowUp followUp,
+			Boolean rulesOut) {
 
 		public FirstCall {
 			Objects.requireNonNull(mode, "chaekcheck.aisearch.first-call.mode");
 			followUp = followUp == null ? FollowUp.RULE : followUp;
+			rulesOut = rulesOut == null || rulesOut;
 		}
 
 	}

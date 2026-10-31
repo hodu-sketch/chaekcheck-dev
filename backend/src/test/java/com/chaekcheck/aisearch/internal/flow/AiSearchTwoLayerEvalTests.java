@@ -140,7 +140,8 @@ class AiSearchTwoLayerEvalTests {
 				AiSearchProperties.Encoder.LOCAL, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2)), 3,
 				Duration.ofSeconds(30), new AiSearchProperties.Search(mode, 10000, 2000));
 		AiSearchProperties.FirstCall firstCall = new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML,
-				properties.firstCall().shelfBonus(), properties.firstCall().siteMaxTokens(), AiSearchProperties.FollowUp.RELATION);
+				properties.firstCall().shelfBonus(), properties.firstCall().siteMaxTokens(), AiSearchProperties.FollowUp.RELATION,
+				properties.firstCall().rulesOut());
 		// candidates: every candidate becomes a card, in the order the pick call gets them
 		AiSearchProperties.Limits l = properties.limits();
 		AiSearchProperties.Limits limits = picks ? l

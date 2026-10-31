@@ -286,8 +286,23 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 | 3 | 벡터 검색이 책 하나의 여러 줄을 최고 점수로 묶음 | `BookVectors`, `BookVectorFunnel`, `BookVectorFile` | 코드 끝 |
 | 4 | BM25: `book_search`에 `summary`·`terms`·`written_on`·`keyword_text`·`library_words`(생성 칼럼), 색인 `book_search_bm25` | Liquibase `catalog/005-library-words.sql`, `catalog/006-book-search-bm25.yaml`; 넣기 파일 `search_summary`·`search_terms` 줄 | 코드 끝, 스위치 기본 `like` |
 | 5 | 2차가 읽는 글 = 요약 + 맞은 검색 낱말 | `JdbcAiSearchIndex.readingTexts`, `AiSearchFlow` 한 줄 | 코드 끝, 스위치 기본 `line` |
-| 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 진짜 Haiku, 프로필 켬·끔) | `AiSearchTwoLayerEvalTests`, `scripts/aisearch/eval/two_layer_step6.py` | 끝(2026-10-31, [6단계 보고서](../aisearch/reports/2026-10-31-two-layer-step6.md)): 카드에 찾는 책 40.3 → 56.1%, 1번 카드 29.5 → 39.7%, 주제 77.7 → 79.1%. 프로필을 끄면 61.6% / 82.1% |
-| 7 | plan ADR(pg_search AGPL), 배포(이미지 바꾸고 DB 재시작) | | 사용자 OK 뒤, 24 세션 순서 |
+| 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 진짜 Haiku, 프로필 켬·끔) | `AiSearchTwoLayerEvalTests`, `scripts/aisearch/eval/two_layer_step6.py` | 끝(2026-10-31, [6단계 보고서](../aisearch/reports/2026-10-31-two-layer-step6.md)): 카드에 찾는 책 40.3 → 56.1%, 1번 카드 29.5 → 39.7%, 주제 77.7 → 79.1%. 빼기(rulesOut)만 끄면 60.1% / 42.3% / 84.0%(운영 값) |
+| 7 | plan 기록(pg_search AGPL, 원문 규칙, rulesOut 끔), 배포(이미지 바꾸고 DB 재시작) | 아래 「7단계 배포 순서」, `docs/plan-feedback.md` 「AI 검색 두 층 + BM25」 | 사용자 OK 2026-10-31 "재 보고 배포", 24 세션이 배포 |
+
+### 7단계 배포 순서 (2026-10-31)
+
+바뀌는 것: DB 이미지(pg_search 0.26.3 + pgvector, preload `pg_bigm,pg_search`), Liquibase `catalog-006`(칸 다섯 + BM25 색인), 넣기 파일(요약·검색 낱말), `book-vectors.bin`(두 층), prod.env(`RULES_OUT=false`, 뒤에 `KEYWORD_MATCH=bm25`·`READING_TEXT=summary`).
+
+1. **넣기 파일과 벡터 파일을 미리 올림**: PC `chaekcheck-dataisearch	wo-layerook-texts-two-layer-2026-10-31-export.tsv` → 서버 `/srv/chaekcheck/book-texts/`(644). PC `chaekcheck-data\ml	wo-layerook-vectors-two-layer.bin`(235.5 MB) → 서버 `/srv/chaekcheck/aisearch-model/book-vectors-two-layer.bin`(아직 이름 바꾸지 않음).
+   - 넣기 파일의 바탕은 2026-10-28 운영 내보내기(`book-texts-100k-exclude-2026-10-28-export.tsv`, search_line 76,759 · for_you_blurb 43,227 · search_exclude 23,772)에 요약·검색 낱말 76,974권(76,182권 한 줄 있음)을 더한 것입니다. 넣기는 `book_search`를 통째로 바꾸므로, 그 뒤 운영 한 줄·소개가 바뀌었으면 먼저 다시 내보내 `build_summary_terms.py book-texts <새 내보내기> <출력>`으로 다시 만듭니다. 확인: `SELECT count(*), count(line) FROM catalog.book_search` = 76,759 / 76,759.
+2. **DB 이미지를 서버에서 다시 빌드**(arm64, `deploy/test/README.md` 5번과 같은 방식): `docker build -t chaekcheck/postgres-bigm:18 postgres-bigm`(새 `docker/postgres-bigm/Dockerfile`). 확인: `docker run --rm chaekcheck/postgres-bigm:18 ls /usr/share/postgresql/18/extension | grep pg_search`.
+3. **DB 재시작**: 새 `deploy/prod/compose.yaml`(preload `pg_bigm,pg_search`)로 `db`만 다시 만듦. 끊김은 DB가 다시 뜰 때까지(로컬 몇 초 [추정]). 옛 이미지에 새 preload를 쓰면 DB가 안 뜨므로 2번이 먼저입니다. 확인: `SHOW shared_preload_libraries` = `pg_bigm,pg_search`.
+4. **새 판 배포**(release.sh, prod.env는 `RULES_OUT=false`, `KEYWORD_MATCH=like`, `READING_TEXT=line`): 시작할 때 Liquibase가 `catalog-006-book-search-texts`(칸 다섯)와 `catalog-006-book-search-bm25`(`CREATE EXTENSION pg_search CASCADE` + 색인)를 돌립니다. 이때 `keyword_text`가 비어 있어도 `like`라서 검색은 전과 같습니다. 확인: `SELECT to_regclass('catalog.book_search_bm25')`가 null이 아님, 시작 로그에 BM25 경고 없음.
+5. **넣기**: 6-aisearch 「한 줄 넣기」의 운영 명령에 1번 파일, `--chaekcheck.collection.import.book-texts-top-books=100000`. 확인: `SELECT count(*), count(summary), count(*) FILTER (WHERE keyword_text <> '') FROM catalog.book_search` = 76,759 / 76,182 / 76,759.
+6. **벡터 파일 바꾸기와 스위치**: `mv book-vectors-two-layer.bin book-vectors.bin`(덮어쓰지 말고 `mv`, 옛 파일은 `book-vectors-100k.bin`으로 남김), prod.env를 `CHAEKCHECK_AISEARCH_KEYWORD_MATCH=bm25`, `CHAEKCHECK_AISEARCH_READING_TEXT=summary`로 바꾸고 `bin/switch.sh backend <지금 판>`으로 다시 띄움(BM25 색인이 있는지는 시작 뒤 첫 검색에서 한 번 묻고 기억하므로, 색인이 생긴 뒤 재시작해야 `bm25`가 됨). 확인: 시작 로그 `ai search vectors on (REMOTE, FUNNEL): 238392 … books`(줄 수), 검색 로그 `steps`의 `keyword`가 평소 범위, 질문 몇 개로 카드 확인(예: 「불확정성 원리」, 「백화점 무너진 뒤 살아남은 여자와 임신한 이웃의 이야기가 담긴 단편집」).
+7. **되돌리기**: 스위치만 `like`/`line` + 옛 벡터 파일로 `mv` 후 재시작. `RULES_OUT=true`로 빼기를 다시 켤 수 있음. DB 이미지·색인은 그대로 두어도 `like`에서는 쓰이지 않습니다.
+
+PC 로컬: `compose.yaml`도 preload `pg_bigm,pg_search`. 이 변경 뒤 `docker compose up`은 pg_search가 든 이미지가 있어야 뜹니다(`wsl -d Ubuntu -- docker compose build`, 또는 이미 지은 `chaekcheck/postgres-bigm:18-search`를 `:18`로 태그).
 
 운영에서 알아 둘 것:
 - **DB 이미지**: `docker/postgres-bigm`에 pg_search 0.26.3(.deb, PC amd64·서버 arm64) + pgvector. `shared_preload_libraries=pg_bigm,pg_search`. compose(로컬·운영)의 `command`는 아직 `pg_bigm`만: **이미지를 새로 지은 뒤에만** `pg_search`를 더할 것(옛 이미지에 미리 불러오기를 넣으면 DB가 안 뜸). 그 전까지는 Liquibase가 BM25 색인 단계를 건너뛰고(`onFail: CONTINUE`, 다음 시작에 다시 시도) 서버는 `like`로 돔.

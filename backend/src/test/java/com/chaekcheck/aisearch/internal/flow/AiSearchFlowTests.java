@@ -190,7 +190,7 @@ class AiSearchFlowTests {
 				properties.pickTimeout(), properties.keywordMaxTokens(), properties.pickMaxTokens(),
 				properties.maxConcurrent(), properties.rate(), properties.budget(), properties.price(),
 				properties.limits(), properties.vector(),
-				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null));
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null, null));
 		questionVectors = new com.chaekcheck.aisearch.internal.vector.QuestionVectors() {
 
 			@Override
