@@ -54,6 +54,11 @@ x-backend: &backend
     CHAEKCHECK_AISEARCH_PICK_ASK_BACK: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:-false}
     CHAEKCHECK_AISEARCH_LLM_THINKING: ${CHAEKCHECK_AISEARCH_LLM_THINKING:-}
     CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM: ${CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM:-false}
+    # two layers + BM25 (2026-10-31, docs/maintenance/6-aisearch.md 15): the ML first call's rulesOut, the keyword match
+    # (like | bm25) and what the second call reads (line | summary); the defaults are the code's
+    CHAEKCHECK_AISEARCH_RULES_OUT: ${CHAEKCHECK_AISEARCH_RULES_OUT:-true}
+    CHAEKCHECK_AISEARCH_KEYWORD_MATCH: ${CHAEKCHECK_AISEARCH_KEYWORD_MATCH:-like}
+    CHAEKCHECK_AISEARCH_READING_TEXT: ${CHAEKCHECK_AISEARCH_READING_TEXT:-line}
     DJL_CACHE_DIR: /tmp/djl
     # 나에게 맞는 책 (cycle 23): the start-up and 03:30 build of popular orders; off until turned on in prod.env
     # (user 2026-10-25 "수집 끄고 배포"), the tab then shows the listed books only
