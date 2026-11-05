@@ -90,7 +90,27 @@ class FirstCallTests {
 		assertThat(stored.shelfCounts(List.of(2L, 5L))).containsExactly(java.util.Map.entry("과학", 1));
 	}
 
+	@Test
+	void withRulesOutOffNoBookIsRuledOut() throws IOException { // user 2026-10-31, step 6 report 3-4
+		TinyFirstCall.write(dir.resolve(FirstCallModel.NAME));
+		var novel = new com.chaekcheck.catalog.BookProfiles.Profile("소설", "", true, List.of(), null, null, null,
+				List.of());
+		Shelves notANovel = new Shelves(List.of(), List.of(), false, List.of(), "", "", "", List.of(), List.of(),
+				List.of(), List.of());
+		JsonMapper json = JsonMapper.builder().build();
+
+		MlFirstCall on = new MlFirstCall(properties(true), json, profiles(java.util.Map.of(2L, novel)));
+		MlFirstCall off = new MlFirstCall(properties(false), json, profiles(java.util.Map.of(2L, novel)));
+
+		assertThat(on.rulesOut(2L, notANovel)).isTrue();
+		assertThat(off.rulesOut(2L, notANovel)).isFalse();
+	}
+
 	private AiSearchProperties properties() {
+		return properties(true);
+	}
+
+	private AiSearchProperties properties(boolean rulesOut) {
 		return new AiSearchProperties(true, java.time.ZoneId.of("Asia/Seoul"), Duration.ofSeconds(5),
 				Duration.ofSeconds(15), 512, 3072, 20, new AiSearchProperties.Rate(10, 100),
 				new AiSearchProperties.Budget(java.math.BigDecimal.TWO),
@@ -98,8 +118,8 @@ class FirstCallTests {
 				new AiSearchProperties.Limits(30, 8, 5, 200, 300),
 				new AiSearchProperties.Vector(true, dir.toString(), 2, 50, 60, 60, Duration.ofSeconds(2),
 						AiSearchProperties.Encoder.REMOTE, new AiSearchProperties.Remote("", "", Duration.ofSeconds(2)), 3,
-						Duration.ofSeconds(30)),
-				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null));
+						Duration.ofSeconds(30), new AiSearchProperties.Search(AiSearchProperties.SearchMode.EXACT, 10000, 2000)),
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null, rulesOut));
 	}
 
 	private static com.chaekcheck.catalog.BookProfiles profiles(

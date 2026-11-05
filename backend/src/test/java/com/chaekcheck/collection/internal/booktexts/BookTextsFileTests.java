@@ -18,6 +18,7 @@ import com.chaekcheck.catalog.BookTextsTransfer.Cover;
 import com.chaekcheck.catalog.BookTextsTransfer.Line;
 import com.chaekcheck.catalog.BookTextsTransfer.Source;
 import com.chaekcheck.catalog.BookTextsTransfer.Summary;
+import com.chaekcheck.catalog.BookTextsTransfer.Written;
 
 /**
  * {@link BookTextsFile} (cycle 24 handoff step 4-3): the header, kinds, tabs and line breaks, 300 characters. Cycle 23
@@ -65,6 +66,23 @@ class BookTextsFileTests {
 		assertThat(contents.lines()).hasSize(1);
 		assertThat(contents.skippedKinds()).isEmpty();
 		assertThat(contents.hasForYouKinds()).isTrue();
+	}
+
+	@Test
+	void readsTheSummaryAndTermsOfTheTwoLayers() {
+		BookTextsFile.Contents contents = BookTextsFile.parse(rows("search_summary\t11\t\t2026-10-30\t" + "가".repeat(500),
+				"search_terms\t11\t\t2026-10-29\t코딩 테스트, 다익스트라", "search_terms\t12\t\t2026-10-30\t고양이"));
+
+		assertThat(contents.written()).containsExactly(
+				new Written(11, LocalDate.of(2026, 10, 30), "가".repeat(500), "코딩 테스트, 다익스트라"),
+				new Written(12, LocalDate.of(2026, 10, 30), null, "고양이"));
+		assertThatThrownBy(() -> BookTextsFile.parse(rows("search_summary\t1\t\t2026-10-30\t" + "가".repeat(501),
+				"search_terms\t2\t\t2026-10-30\t ", "search_terms\t3\t\t2026-10-30\ta", "search_terms\t3\t\t2026-10-30\tb")))
+			.isInstanceOf(BookTextsFile.RefusedException.class)
+			.hasMessageContaining("3 problem(s)")
+			.hasMessageContaining("row 3: a search_summary must have 1 to 500 characters, book 1 has 501")
+			.hasMessageContaining("row 4: a search_terms")
+			.hasMessageContaining("row 6: a second search_terms row for book 3");
 	}
 
 	@Test

@@ -168,6 +168,43 @@ class AiSearchFlowTests {
 		assertThat(Prompts.PICK_SYSTEM).contains("확인하기 어려워요").contains("최근에 나온 책을 먼저");
 	}
 
+	@Test
+	void aNamedFirstYearLeavesTheOlderBooksOut() { // user 2026-10-31 「최소한 작년에 나온 JAVA 도서」 showed a 2024 book
+		int lastYear = java.time.Year.now(java.time.ZoneId.of("Asia/Seoul")).getValue() - 1;
+		jdbc.sql("UPDATE catalog.book SET published_on = make_date(:year, 3, 1) WHERE id IN (1, 2)")
+			.param("year", lastYear)
+			.update();
+		jdbc.sql("UPDATE catalog.book SET published_on = make_date(:year, 3, 1) WHERE id IN (4, 5, 7, 8, 10, 11)")
+			.param("year", lastYear - 1)
+			.update();
+		llm.then(keywords("과학")).then(Answer.ok("{\"head\":\"\",\"picks\":[]}", 1, 1));
+
+		try {
+			run("최소한 작년에 나온 과학 책", List.of());
+		}
+		finally {
+			jdbc.sql("UPDATE catalog.book SET published_on = NULL WHERE id <= 12").update();
+		}
+
+		String message = llm.calls.get(1).messages().getLast().text();
+		assertThat(message).contains("제목: 과학 이야기 1 /").contains("제목: 과학 이야기 2 /")
+			.doesNotContain("제목: 과학 이야기 4 /")
+			.doesNotContain("제목: 과학 이야기 5 /");
+		String call = llm.calls.get(1).system() + llm.calls.get(1).messages();
+		assertThat(call).contains(lastYear + "년 이후에 나온 책만 원한다");
+	}
+
+	@Test
+	void aNamedFirstYearWithNoBookThatNewFindsNothing() { // user 2026-10-31
+		// the test books have no publish date: none can be shown to meet the year
+		llm.then(keywords("과학"));
+
+		run("최소한 작년에 나온 과학 책", List.of());
+
+		assertThat(llm.calls).hasSize(1);
+		assertThat(sink.last(Done.class).result()).isEqualTo("no_match");
+	}
+
 	/** The ML first call the flow gets; off unless a test sets it. */
 	MlFirstCall mlFirstCall = MlFirstCall.off();
 
@@ -190,7 +227,7 @@ class AiSearchFlowTests {
 				properties.pickTimeout(), properties.keywordMaxTokens(), properties.pickMaxTokens(),
 				properties.maxConcurrent(), properties.rate(), properties.budget(), properties.price(),
 				properties.limits(), properties.vector(),
-				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null));
+				new AiSearchProperties.FirstCall(AiSearchProperties.FirstCallMode.ML, 0.004, 512, null, null));
 		questionVectors = new com.chaekcheck.aisearch.internal.vector.QuestionVectors() {
 
 			@Override

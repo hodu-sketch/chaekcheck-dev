@@ -16,9 +16,9 @@ import tools.jackson.databind.json.JsonMapper;
 import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 
 /**
- * {@link QuestionVectors} over KURE-v1 (user 2026-10-25): the book vectors ({@link BookVectorFile}) live in this
- * process; the question becomes a vector where {@code chaekcheck.aisearch.vector.encoder} says, in this process
- * ({@link OnnxQuestionEncoder}) or on the embedding server ({@link RemoteQuestionEncoder}). The work runs off the
+ * {@link QuestionVectors} over KURE-v1 (user 2026-10-25): the book vectors ({@link BookVectors}, all on the heap or
+ * only their sign bits, {@code chaekcheck.aisearch.vector.search}) live in this process; the question becomes a
+ * vector where {@code chaekcheck.aisearch.vector.encoder} says, in this process ({@link OnnxQuestionEncoder}) or on the embedding server ({@link RemoteQuestionEncoder}). The work runs off the
  * searches' own threads: a small pool for the model (a run holds its thread in native code), virtual threads for the
  * remote requests. Any file missing or failing to load leaves the vectors off with one warning; the search goes on
  * with keywords. A {@link CircuitBreaker} stops asking a failing encoder for a while (one log line when it opens and
@@ -31,7 +31,7 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 
 	private final QuestionEncoder encoder;
 
-	private final BookVectorFile books;
+	private final BookVectors books;
 
 	private final ExecutorService pool;
 
@@ -42,7 +42,7 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 	KureQuestionVectors(AiSearchProperties properties, JsonMapper json) {
 		AiSearchProperties.Vector settings = properties.vector();
 		QuestionEncoder encoder = null;
-		BookVectorFile books = null;
+		BookVectors books = null;
 		ExecutorService pool = null;
 		if (settings.enabled()) {
 			try {
@@ -51,7 +51,7 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 					throw new IllegalStateException("missing " + BookVectorFile.NAME + " in " + dir);
 				}
 				long started = System.nanoTime();
-				books = BookVectorFile.read(dir.resolve(BookVectorFile.NAME));
+				books = BookVectors.open(dir.resolve(BookVectorFile.NAME), settings.search());
 				if (settings.encoder() == AiSearchProperties.Encoder.LOCAL) {
 					encoder = new OnnxQuestionEncoder(dir, settings.threads());
 					pool = Executors.newFixedThreadPool(2,
@@ -61,8 +61,9 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 					encoder = new RemoteQuestionEncoder(settings.remote(), json);
 					pool = Executors.newVirtualThreadPerTaskExecutor();
 				}
-				log.info("ai search vectors on ({}): {} books x {}, loaded in {} ms", settings.encoder(), books.count(),
-						books.dim(), (System.nanoTime() - started) / 1_000_000);
+				log.info("ai search vectors on ({}, {}): {} rows x {} (up to {} a book), loaded in {} ms",
+						settings.encoder(), settings.search().mode(), books.count(), books.dim(), books.rowsPerBook(),
+						(System.nanoTime() - started) / 1_000_000);
 			}
 			catch (Exception | UnsatisfiedLinkError e) {
 				log.warn("ai search vectors off: {}", e.getMessage() == null ? e.getClass().getName() : e.getMessage());
@@ -70,6 +71,9 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 					encoder.close();
 				}
 				encoder = null;
+				if (books != null) {
+					books.close();
+				}
 				books = null;
 				if (pool != null) {
 					pool.shutdownNow();
@@ -163,6 +167,9 @@ class KureQuestionVectors implements QuestionVectors, AutoCloseable {
 		}
 		if (encoder != null) {
 			encoder.close();
+		}
+		if (books != null) {
+			books.close();
 		}
 	}
 

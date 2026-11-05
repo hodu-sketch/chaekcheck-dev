@@ -77,11 +77,13 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * @param failuresToOpen failed lookups in a row after which the encoder is not asked for {@code openFor} (user
 	 * 2026-10-25 "임베딩 서버 장애 차단"); the searches meanwhile use keywords alone at once
 	 * @param openFor how long the encoder is not asked; then one lookup tries it again
+	 * @param search how the nearest book vectors are found (user 2026-10-30)
 	 */
 	public record Vector(boolean enabled, String modelDir, int threads, int keywordDepth, int vectorDepth, int rrfK,
-			Duration maxWait, Encoder encoder, Remote remote, int failuresToOpen, Duration openFor) {
+			Duration maxWait, Encoder encoder, Remote remote, int failuresToOpen, Duration openFor, Search search) {
 
 		public Vector {
+			Objects.requireNonNull(search, "chaekcheck.aisearch.vector.search");
 			Objects.requireNonNull(maxWait, "chaekcheck.aisearch.vector.max-wait");
 			Objects.requireNonNull(openFor, "chaekcheck.aisearch.vector.open-for");
 			Objects.requireNonNull(encoder, "chaekcheck.aisearch.vector.encoder");
@@ -89,6 +91,33 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 			modelDir = modelDir == null ? "" : modelDir;
 		}
 
+	}
+
+	/**
+	 * How the nearest book vectors are found (user 2026-10-30 "A. Java 깔때기로 개발해줘", measured in
+	 * docs/aisearch/reports/2026-10-30-vector-scaling.md).
+	 * @param mode {@link SearchMode#EXACT} or {@link SearchMode#FUNNEL}
+	 * @param hammingKeep for the funnel: books kept by the hamming distance of the sign bits (step 1)
+	 * @param binaryKeep for the funnel: books kept by the question against the sign bits (step 2); these are scored
+	 * exactly (step 3)
+	 */
+	public record Search(SearchMode mode, int hammingKeep, int binaryKeep) {
+
+		public Search {
+			Objects.requireNonNull(mode, "chaekcheck.aisearch.vector.search.mode");
+		}
+
+	}
+
+	/** How the nearest book vectors are found. */
+	public enum SearchMode {
+		/** Every book's int8 vector on the heap, every one scored (v1.15.0 to v1.22.1). */
+		EXACT,
+		/**
+		 * Only the sign bits on the heap (128 bytes a book); hamming over all of them, the question against the bits
+		 * on those kept, then the kept rows scored exactly from the memory-mapped file.
+		 */
+		FUNNEL
 	}
 
 	/** Where the question becomes a vector. */
@@ -129,12 +158,16 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * @param siteMaxTokens the cap of the call answering a question about 책첵 (512 [안])
 	 * @param followUp how a follow-up question is tied to the earlier one (user 2026-10-26 "A·B를 다 잰 다음에 한 번에
 	 * 바꾸자")
+	 * @param rulesOut whether a book whose profile the question leaves out goes after the others (on when unset; user
+	 * 2026-10-31: off measured better, docs/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
 	 */
-	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens, FollowUp followUp) {
+	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens, FollowUp followUp,
+			Boolean rulesOut) {
 
 		public FirstCall {
 			Objects.requireNonNull(mode, "chaekcheck.aisearch.first-call.mode");
 			followUp = followUp == null ? FollowUp.RULE : followUp;
+			rulesOut = rulesOut == null || rulesOut;
 		}
 
 	}

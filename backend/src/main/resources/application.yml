@@ -131,6 +131,16 @@ chaekcheck:
     # runs on several instances. docs/maintenance/settings-index.md
     state-store: memory
   catalog:
+    ai-search:
+      # how the AI search's keyword candidates are matched (user 2026-10-30 "두 층 (조각 512) + BM25 이걸로 개발해",
+      # docs/aisearch/reports/2026-10-29-intro-text.md 10-11): like = search_text LIKE each word (pg_bigm, v1.15.0~);
+      # bm25 = pg_search BM25 over title, author, line and the Haiku search terms, the plan-library filter inside the
+      # index. bm25 needs the database image with pg_search (docker/postgres-bigm) and falls back to like without it
+      keyword-match: ${CHAEKCHECK_AISEARCH_KEYWORD_MATCH:like}
+      # what the second call reads after a candidate's title and author (same day): line = the search line (v1.15.0~);
+      # summary = the Haiku summary + the search terms sharing a question word, the line for a book without a summary
+      # (picked 68.0 -> 93.5%, first 60.3 -> 76.5% on 400 known-book queries)
+      reading-text: ${CHAEKCHECK_AISEARCH_READING_TEXT:line}
     books:
       # GET /api/v1/books page size when pageSize is not sent; the maximum stays 20 (BookParams.MAX_PAGE_SIZE).
       # 20 -> 10 [확정] (cycle 20 ADR-0132, spec R15). docs/maintenance/settings-index.md
@@ -453,6 +463,15 @@ chaekcheck:
       # keywords alone at once, then one lookup tries again (user 2026-10-25 "임베딩 서버 장애 차단") [안]
       failures-to-open: 3
       open-for: 30s
+      # how the nearest books are found (user 2026-10-30 "A. Java 깔때기로 개발해줘",
+      # docs/aisearch/reports/2026-10-30-vector-scaling.md): exact = every book's int8 vector on the heap, all scored
+      # (v1.15.0~v1.22.1); funnel = only the sign bits on the heap (128 bytes a book, about 1/8), hamming keeps
+      # hamming-keep, the question against the bits keeps binary-keep, those rows are scored exactly from the mapped
+      # book-vectors.bin. 81,078 books with 10000 / 2000: 99.2% of the exact top 120 [잰 값, 질문 222개]
+      search:
+        mode: ${CHAEKCHECK_AISEARCH_VECTOR_SEARCH:funnel}
+        hamming-keep: 10000
+        binary-keep: 2000
     first-call:
       # who makes the first step (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
       # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
@@ -460,8 +479,12 @@ chaekcheck:
       # book profiles in catalog.book_profile (book-profiles import); without them, or with the question vector late or
       # failed, Haiku is asked
       mode: ${CHAEKCHECK_AISEARCH_FIRST_CALL:haiku}
-      # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]
-      shelf-bonus: 0.004
+      # added to a candidate's fusion sum per shelf it shares with the question (PFx 0.004) [안]; 0 = no bonus
+      shelf-bonus: ${CHAEKCHECK_AISEARCH_SHELF_BONUS:0.004}
+      # a book whose profile the question leaves out (「소설 말고」, a fiction book for a 「소설 아님」 question) goes after
+      # the others; off = never (user 2026-10-31: the fiction reading misjudged 60 of 750 asked books,
+      # docs/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
+      rules-out: ${CHAEKCHECK_AISEARCH_RULES_OUT:true}
       # the cap of the call that answers a question about 책첵 from the intro and first-screen text [안]
       site-max-tokens: 512
       # how a follow-up is tied to the earlier question (user 2026-10-26 "A·B를 다 잰 다음에 한 번에 바꾸자", decisions

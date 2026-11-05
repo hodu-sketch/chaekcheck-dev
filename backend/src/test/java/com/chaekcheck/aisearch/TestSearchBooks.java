@@ -45,6 +45,11 @@ public class TestSearchBooks {
 
 	/** Writes the books' catalog rows (replacing rows of the same id) and replaces the search books with them. */
 	public SearchResult replace(List<Book> books, List<Line> lines) {
+		return replace(books, lines, List.of());
+	}
+
+	/** As {@link #replace(List, List)}, with the summaries and search terms of the two layers (2026-10-30). */
+	public SearchResult replace(List<Book> books, List<Line> lines, List<BookTextsTransfer.Written> written) {
 		for (Book book : books) {
 			jdbc.sql("""
 					INSERT INTO catalog.book (id, title, author_display, title_norm, main_title_norm, content_type,
@@ -58,7 +63,7 @@ public class TestSearchBooks {
 				.param("libraries", java.util.Arrays.stream(book.libraryIds()).boxed().toArray(Long[]::new))
 				.update();
 		}
-		return transfer.replaceSearchBooks(books.stream().map(Book::bookId).toList(), lines);
+		return transfer.replaceSearchBooks(books.stream().map(Book::bookId).toList(), lines, written);
 	}
 
 	/** {@link BookTexts} for a flow test: covers and summaries from the given reads, no tags or list covers. */

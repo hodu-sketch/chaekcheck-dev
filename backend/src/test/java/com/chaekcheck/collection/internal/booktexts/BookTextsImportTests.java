@@ -290,7 +290,7 @@ class BookTextsImportTests {
 		}
 
 		@Override
-		public SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines) {
+		public SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines, List<Written> written) {
 			searchCalls++;
 			searchBooks.addAll(bookIds);
 			this.lines.addAll(lines);

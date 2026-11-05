@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -18,12 +19,16 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.catalog.AiSearchIndex;
+import com.chaekcheck.catalog.SearchText;
+import com.chaekcheck.catalog.internal.texts.AiSearchTextSettings.KeywordMatch;
+import com.chaekcheck.catalog.internal.texts.AiSearchTextSettings.ReadingText;
 
 /**
  * {@link AiSearchIndex} with {@code JdbcClient}: the AI search's queries on
  * {@code catalog.book_search} (F6). Only {@link #books()} reads {@code catalog.book}, for the titles and authors.
  */
 @Component
+@EnableConfigurationProperties(AiSearchTextSettings.class)
 class JdbcAiSearchIndex implements AiSearchIndex {
 
 	private static final Logger log = LoggerFactory.getLogger(JdbcAiSearchIndex.class);
@@ -49,14 +54,29 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 	 */
 	static final int FUNCTION_PLAN_MAX = 500;
 
+	/**
+	 * With 「최신」 the BM25 match reads this many times the candidates and puts the recent ones first, as the vector
+	 * side does within its nearest books (AiSearchFlow.RECENT_WINDOW) [안].
+	 */
+	static final int RECENT_POOL = 2;
+
 	private final JdbcClient jdbc;
 
 	private final TransactionTemplate readOnly;
 
-	JdbcAiSearchIndex(JdbcClient jdbc, PlatformTransactionManager transactionManager) {
+	private final KeywordMatch keywordMatch;
+
+	private final ReadingText readingText;
+
+	/** Whether the BM25 index is there; null until the first BM25 search asks (Liquibase runs before that). */
+	private volatile Boolean bm25Index;
+
+	JdbcAiSearchIndex(JdbcClient jdbc, PlatformTransactionManager transactionManager, AiSearchTextSettings settings) {
 		this.jdbc = jdbc;
 		this.readOnly = new TransactionTemplate(transactionManager);
 		this.readOnly.setReadOnly(true);
+		this.keywordMatch = settings.keywordMatch();
+		this.readingText = settings.readingText();
 	}
 
 	@Override
@@ -64,6 +84,9 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 			int limit, Integer fromYear) {
 		if (words.isEmpty() || planLibraries.isEmpty() || limit < 1) {
 			return List.of();
+		}
+		if (keywordMatch == KeywordMatch.BM25 && bm25Ready()) {
+			return findBm25(words, planLibraries, excluded, limit, fromYear);
 		}
 		List<String> score = new ArrayList<>();
 		List<String> any = new ArrayList<>();
@@ -114,6 +137,68 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 		});
 	}
 
+	/**
+	 * BM25 (pg_search, catalog/006) over {@code keyword_text}: title, author, line and the Haiku search terms, read by
+	 * the Korean analyser (user 2026-10-30). The plan-library filter is a zero-weight clause on {@code library_words}
+	 * inside the index, so pg_search keeps only the top books (7 against 125 ms at 100,000 rows with {@code &&} outside
+	 * it, docs/aisearch/reports/2026-10-30-vector-scaling.md 10). The books shown before are left out here, not in SQL,
+	 * for the same reason. The core words are not weighted more: the measured BM25 had none [안]. The points are the
+	 * BM25 score times 1,000.
+	 */
+	private List<Candidate> findBm25(List<String> words, Set<Long> planLibraries, Set<Long> excluded, int limit,
+			Integer fromYear) {
+		int read = (fromYear == null ? limit : limit * RECENT_POOL) + excluded.size();
+		StringBuilder libraries = new StringBuilder();
+		for (long id : planLibraries) {
+			libraries.append(libraries.isEmpty() ? "l" : " l").append(id);
+		}
+		String recent = fromYear == null ? "false" : """
+				coalesce((SELECT b.published_on >= make_date(:from, 1, 1) FROM catalog.book b WHERE b.id = s.book_id),
+				  false)""";
+		JdbcClient.StatementSpec statement = jdbc.sql("""
+				SELECT s.book_id, pdb.score(s.book_id) AS score, %s AS plan_count, %s AS recent
+				FROM catalog.book_search s
+				WHERE s.keyword_text ||| :words AND s.library_words ||| CAST(:libraries AS text)::pdb.boost(0)
+				ORDER BY pdb.score(s.book_id) DESC
+				LIMIT :limit""".formatted(PLAN_COUNT, recent))
+			.param("words", String.join(" ", words))
+			.param("libraries", libraries.toString())
+			.param("plan", planLibraries.toArray(Long[]::new))
+			.param("limit", read);
+		if (fromYear != null) {
+			statement = statement.param("from", fromYear);
+		}
+		JdbcClient.StatementSpec query = statement;
+		List<Candidate> recentFirst = new ArrayList<>();
+		List<Candidate> older = new ArrayList<>();
+		readOnly.execute(status -> {
+			query.query(rs -> {
+				long bookId = rs.getLong(1);
+				if (!excluded.contains(bookId)) {
+					Candidate candidate = new Candidate(bookId, Math.round(rs.getFloat(2) * 1000), rs.getInt(3));
+					(rs.getBoolean(4) ? recentFirst : older).add(candidate);
+				}
+			});
+			return null;
+		});
+		recentFirst.addAll(older);
+		return recentFirst.subList(0, Math.min(limit, recentFirst.size()));
+	}
+
+	/** Whether {@code catalog.book_search_bm25} exists; asked once, a missing index logged once. */
+	private boolean bm25Ready() {
+		Boolean ready = bm25Index;
+		if (ready == null) {
+			ready = jdbc.sql("SELECT to_regclass('catalog.book_search_bm25') IS NOT NULL").query(Boolean.class).single();
+			if (!ready) {
+				log.warn("ai search keywords: BM25 is set but catalog.book_search_bm25 is missing (no pg_search in the "
+						+ "database image?); LIKE is used");
+			}
+			bm25Index = ready;
+		}
+		return ready;
+	}
+
 	@Override
 	public Map<Long, Integer> planCounts(Collection<Long> bookIds, Set<Long> planLibraries) {
 		if (bookIds.isEmpty() || planLibraries.isEmpty()) {
@@ -146,6 +231,64 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 				lines.put(rs.getLong(1), rs.getString(2));
 			});
 		return lines;
+	}
+
+	@Override
+	public Map<Long, String> readingTexts(Collection<Long> bookIds, List<String> words) {
+		if (readingText == ReadingText.LINE || bookIds.isEmpty()) {
+			return lines(bookIds);
+		}
+		Map<Long, String> texts = new HashMap<>();
+		jdbc.sql("""
+				SELECT book_id, line, summary, terms FROM catalog.book_search
+				WHERE book_id = ANY(CAST(:ids AS bigint[])) AND (line IS NOT NULL OR summary IS NOT NULL)""")
+			.param("ids", JdbcBookTexts.distinct(bookIds))
+			.query(rs -> {
+				String summary = rs.getString(3);
+				if (summary == null) {
+					texts.put(rs.getLong(1), rs.getString(2));
+					return;
+				}
+				List<String> shared = sharedTerms(rs.getString(4), words);
+				texts.put(rs.getLong(1),
+						shared.isEmpty() ? summary : summary + " / 검색 낱말: " + String.join(", ", shared));
+			});
+		return texts;
+	}
+
+	/**
+	 * The search terms that share a question word: one holds the other after {@link SearchText#tidy}, or they share two
+	 * letters in a row (the measured rule, scripts/aisearch/eval/terms_onecall_eval.py {@code matched}).
+	 */
+	static List<String> sharedTerms(String terms, List<String> words) {
+		if (terms == null || words.isEmpty()) {
+			return List.of();
+		}
+		List<String> tidied = words.stream().map(SearchText::tidy).filter(w -> !w.isEmpty()).toList();
+		List<String> out = new ArrayList<>();
+		for (String raw : terms.split(",")) {
+			String term = raw.strip();
+			String tidy = SearchText.tidy(term);
+			if (tidy.isEmpty() || out.contains(term)) {
+				continue;
+			}
+			for (String word : tidied) {
+				if (word.contains(tidy) || tidy.contains(word) || sharesTwoLetters(word, tidy)) {
+					out.add(term);
+					break;
+				}
+			}
+		}
+		return out;
+	}
+
+	private static boolean sharesTwoLetters(String word, String term) {
+		for (int i = 0; i + 2 <= word.length(); i++) {
+			if (term.contains(word.substring(i, i + 2))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override

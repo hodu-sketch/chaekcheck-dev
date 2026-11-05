@@ -110,7 +110,8 @@ public final class BookTextsImport {
 		boolean replaceSearch = !contents.lines().isEmpty() || !contents.hasForYouKinds();
 		SearchBooks search = replaceSearch ? searchBooks(contents.excluded()) : new SearchBooks(List.of(), 0, 0, 0);
 		Report report = transaction.execute(status -> {
-			SearchResult result = replaceSearch ? transfer.replaceSearchBooks(search.bookIds(), contents.lines()) : null;
+			SearchResult result = replaceSearch
+					? transfer.replaceSearchBooks(search.bookIds(), contents.lines(), contents.written()) : null;
 			int blurbs = contents.blurbs().isEmpty() ? 0 : transfer.upsertSummaries(contents.blurbs());
 			int skippedCodes = 0;
 			for (BookTextsFile.BookTags tags : contents.tags()) {

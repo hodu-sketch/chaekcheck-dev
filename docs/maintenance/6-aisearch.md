@@ -12,9 +12,11 @@
 - **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). 옛 `aisearch.search_book`은 사이클 26 배포 2(v1.20.6, `aisearch/005-drop-search-book.yaml`)에서 지웠습니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.
 - 한 줄은 내 PC에서 Haiku 배치로 만듭니다(plan 인계서 2단계, 소개 원문은 PC 밖으로 나가지 않음). 서버에는 한 줄만 들어갑니다.
 
-## 0. 지금 운영 (2026-10-31, v1.22.3)
+## 0. 지금 운영 (2026-10-31, v1.23.0)
 
-- 켠 것(`deploy/prod/prod.env`): `CHAEKCHECK_AISEARCH_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`(임베딩 서버, 7-1절), `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(8절), `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`, `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`, `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`, `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`(10절). 모델 폴더 `CHAEKCHECK_AISEARCH_MODEL_DIR=/models/aisearch`는 `deploy/prod/compose.yaml`. effort는 `application.yml`의 `low`. 비밀값 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`·`CHAEKCHECK_AISEARCH_EMBED_TOKEN`은 Parameter Store(`up.sh`가 `secrets.env`로)
+- **v1.23.0(2026-10-31, 15절)**: 두 층 책 벡터(요약 한 줄 + 소개 512토큰 조각, `book-vectors.bin` 238,392줄·81,078권, 책마다 10줄까지), 낱말 후보는 pg_search BM25(`KEYWORD_MATCH=bm25`), 2차가 읽는 글은 요약 + 맞은 검색 낱말(`READING_TEXT=summary`), ML 1차 빼기 끔(`RULES_OUT=false`). DB 이미지 `chaekcheck/postgres-bigm:18`(pg_search 0.26.3, vector 0.8.7, preload `pg_bigm,pg_search`). 옛 것: `aisearch-model/book-vectors-100k.bin`, `prod.env.before-v1.23.0`, `compose.yaml.before-v1.23.0`, 이미지 `chaekcheck/postgres-bigm:18-before-search`. 아래 줄 중 「LIKE」·「한 줄」 설명은 v1.22까지의 길이며 스위치를 `like`/`line`으로 돌리면 그대로 돕니다.
+
+- 켠 것(`deploy/prod/prod.env` + `secrets.env`): `CHAEKCHECK_AISEARCH_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://<임베딩 서버 사설 IP>:8090`(임베딩 서버, 7-1절), `CHAEKCHECK_AISEARCH_FIRST_CALL=ml`(8절), `CHAEKCHECK_AISEARCH_FOLLOW_UP=relation`, `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`, `CHAEKCHECK_AISEARCH_LLM_THINKING=disabled`, `CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM=true`(10절). 모델 폴더 `CHAEKCHECK_AISEARCH_MODEL_DIR=/models/aisearch`는 `deploy/prod/compose.yaml`. effort는 `application.yml`의 `low`. 비밀값 `CHAEKCHECK_AISEARCH_ANTHROPIC_API_KEY`·`CHAEKCHECK_AISEARCH_EMBED_TOKEN`은 Parameter Store(`up.sh`가 `secrets.env`로)
 - 켜지 않은 것: `CHAEKCHECK_AISEARCH_PICK_ASK_ONE_WORD`(기본 `false`, 한 낱말 질문은 되묻지 않고 바로 답). 이 값은 `deploy/prod/compose.yaml`이 컨테이너에 넘기지 않으므로 켜려면 compose에 줄을 더해야 함
 - 코드 기본값은 다릅니다(`application.yml`: AI 검색 꺼짐, 1차 `haiku`, 되묻기 `false`, 벡터 꺼짐, encoder `local`, 생각 칸 안 보냄 = 모델 기본, 캐싱 끔). 운영이 prod.env로 켭니다. 값 목록은 [settings-index.md](settings-index.md) 1-1절, 뜻은 [1-how-it-works 8절](../aisearch/1-how-it-works.md#8-설정-값). 크기: 2차 `max_tokens` 4096, 앞 대화 9(웹 대화 10번)
 - 설정을 바꿔 적용하기(blue/green, 사이클 27): prod.env를 `/srv/chaekcheck/prod.env`에 올리고 `bin/switch.sh backend <slots.env의 지금 판>`. 새 자리(`backend-blue`/`backend-green`)가 뜨고 nginx가 옮겨 간 뒤 옛 자리가 멈춤(03:25~05:10은 거절). 배포는 `deploy/prod/bin/release.sh`
@@ -133,18 +135,18 @@ FROM catalog.book_search;
 | 항목 | 값 |
 |---|---|
 | 인스턴스 | `chaekcheck-embed` `i-098cd64ff48a14550`, t4g.micro(ARM, 메모리 904MB + 스왑 1GB), Ubuntu 24.04, 16GB gp3, ap-southeast-2b(운영과 같은 서브넷 `subnet-0e10283f90a669274`) |
-| 주소 | 사설 `172.31.45.141`(백엔드가 쓰는 주소, 멈췄다 켜도 그대로), 공인 `13.211.237.221`(SSH용, 멈췄다 켜면 바뀜) |
+| 주소 | 사설 `$CHAEKCHECK_EMBED_IP`(백엔드가 쓰는 주소, 멈췄다 켜도 그대로), 공인 `$CHAEKCHECK_EMBED_PUBLIC_IP`(SSH용, 멈췄다 켜면 바뀜). `.secrets/`나 `.env`에 실제 IP를 넣으세요 |
 | 보안 그룹 | `chaekcheck-embed` `sg-01e9e764c2cf06b25`: 8090은 운영 서버 보안 그룹 `sg-0f424434c56c5d021`에서만, 22는 관리 PC IP에서만(IP가 바뀌면 이 규칙을 고침) |
-| SSH | 운영과 같은 키: `ssh -i .secrets/chaekcheck-key.pem ubuntu@13.211.237.221` |
+| SSH | 운영과 같은 키: `ssh -i .secrets/chaekcheck-key.pem ubuntu@$CHAEKCHECK_EMBED_PUBLIC_IP` |
 | 복구 | 하드웨어 문제는 AWS 자동 복구(`MaintenanceOptions.AutoRecovery = default`, 켜짐). 서버 안이 멈춰 상태 검사(`StatusCheckFailed_Instance`)가 3분 연속 실패하면 CloudWatch 알람 `chaekcheck-embed-reboot-on-instance-check`가 재부팅(2026-10-25). 컨테이너는 `--restart unless-stopped`라 재부팅 뒤 저절로 뜸. 알림 메일은 아직 없음 |
 | 비용 | 무료 플랜 크레딧에서 나감(계정은 무료 플랜, 2026-10-25 남은 크레딧 $197.96) |
 | 파일 | `/srv/embed/model/`(모델 폴더, `parity.json` 포함), `/srv/embed/embed.env`(chmod 600, `EMBED_TOKEN=`) |
 | 컨테이너 | `docker run -d --name embed --restart unless-stopped -p 8090:8090 --env-file /srv/embed/embed.env -e EMBED_MODEL_DIR=/model -e JAVA_TOOL_OPTIONS="-Xmx128m -XX:+ExitOnOutOfMemoryError" -e TZ=Asia/Seoul -v /srv/embed/model:/model:ro --memory=750m chaekcheck/embed:0.1.0` |
 | 이미지 | PC에서 `embed-service/`의 `./gradlew bootJar` 뒤 WSL `docker buildx build --platform linux/arm64 -t chaekcheck/embed:X.Y.Z --load .` → `docker save | gzip` → scp → `docker load` |
 
-- 잰 값(2026-10-25): 모델 올리기 4.3초, 컨테이너 435~456MB, 질문 하나 60~68ms(첫 번째 1.9초), 운영 서버→임베딩 서버 3~5ms. 운영 서버에서 `curl http://172.31.45.141:8090/api/v1/health` → `{"ready":true}`, 토큰 없이 `/api/v1/embed` → 401, 인터넷에서는 막힘
+- 잰 값(2026-10-25): 모델 올리기 4.3초, 컨테이너 435~456MB, 질문 하나 60~68ms(첫 번째 1.9초), 운영 서버→임베딩 서버 3~5ms. 운영 서버에서 `curl http://$CHAEKCHECK_EMBED_IP:8090/api/v1/health` → `{"ready":true}`, 토큰 없이 `/api/v1/embed` → 401, 인터넷에서는 막힘
 - **토큰**: Parameter Store `/chaekcheck/prod/CHAEKCHECK_AISEARCH_EMBED_TOKEN`(SecureString, 무작위 값)을 사람이 넣음. 운영은 `up.sh`가 secrets.env로 읽고, 임베딩 서버는 같은 값을 `/srv/embed/embed.env`의 `EMBED_TOKEN=`에 넣고 `docker rm -f embed` 뒤 위 명령으로 다시 띄움. 토큰이 비어 있으면 모든 요청이 401이고, 백엔드는 벡터 없이 검색함(v1.16.0부터는 Haiku 1차 + 낱말 후보, 위 7-1 표 아래 줄)
-- 운영에서 켜기(prod.env): `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://172.31.45.141:8090`, 운영 모델 폴더에는 `book-vectors.bin`만. 서버 안으로 바꾸려면 `ENCODER=local`과 모델 파일 셋을 더 둠
+- 운영에서 켜기(secrets.env, Parameter Store): `CHAEKCHECK_AISEARCH_VECTOR_ENABLED=true`, `CHAEKCHECK_AISEARCH_VECTOR_ENCODER=remote`, `CHAEKCHECK_AISEARCH_EMBED_URL=http://<임베딩 서버 사설 IP>:8090`, 운영 모델 폴더에는 `book-vectors.bin`만. 서버 안으로 바꾸려면 `ENCODER=local`과 모델 파일 셋을 더 둠
 
 
 ## 8. ML 1차 호출 (2026-10-26)
@@ -251,3 +253,65 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 - 다시 재기: 위 규칙 시험을 두 판으로 돌린 뒤 `python scripts/aisearch/eval/timing_compare.py <기준> <비교>`(로그의 `steps`를 단계별로 비교). Haiku만 따로: `ttft_probe.py`, `ttft_probe2.py`
 - 운영에서 볼 것: 로그 `steps`의 `keyword`가 `neighbours`와 거의 같고(이미 끝남), `cards → llm-first`가 줄었는지
 - 운영(배포 전후 같은 첫 질문 24개): 5낱말 이상 첫 질문 첫 글 2.63 → 2.06~2.25초, `early keyword` 24/24. 다시 재기: `python scripts/aisearch/eval/prod_timing.py <이름>`(한 IP 분당 10번 제한이라 7초 간격)
+
+## 13. 소개글 넣는 법 실험 (2026-10-29, 운영 변경 없음)
+
+사용자 요청(2026-10-29): 임베딩 소개 글 압축 방법 비교, 전문적·지엽적인 질문을 못 찾는 문제. 자세한 숫자와 다시 돌리는 법: [소개글 보고서](../aisearch/reports/2026-10-29-intro-text.md). 운영에서 알아 둘 것만:
+
+- 지금 세 군데가 소개의 일부만 봄: 책 벡터 = 소개 앞 300자, 낱말 검색 `search_text`와 Haiku가 읽는 글 = 같은 「한 줄」(약 100자). 둘은 같은 `catalog.book_search.line`.
+- 실험 추천(1,000권, 검색어 800개): 낱말 검색을 pg_search 한국어 BM25(제목 + 저자 + 한 줄 + 소개 전문)로, 책 벡터 글을 Haiku 요약으로, Haiku가 읽는 글을 요약 + 질문 낱말이 나온 소개 토막으로. 정답이 30위 안에 드는 비율 80~98% → 95~100%(검색어 8종).
+- pg_search 0.26.3은 운영 이미지 `chaekcheck/postgres-bigm:18` 위에 `postgresql-18-pgvector` + 데비안 trixie용 .deb로 올라가고, `shared_preload_libraries=pg_bigm,pg_search`로 함께 켜짐(시험용 컨테이너에서 확인). 넣으려면 DB 재시작, `CREATE EXTENSION pg_search CASCADE`(슈퍼유저, pgvector가 같이 켜짐), AGPL-3.0 확인, plan ADR이 필요.
+- 아직 넣지 않음. 순서 제안: 7만 7천 권으로 다시 재기 → 로컬 서버에서 `LIKE`/`BM25` 스위치 비교 → 배포(보고서 6절).
+
+## 14. 책이 늘 때 가까운 책 찾기: Java 깔때기 (2026-10-30, 운영 v1.23.0~)
+
+사용자 계획: AI 검색 책을 20만 권, 그 뒤로도 점점 늘림. 자세한 숫자: [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md)(앞 단계 [HNSW 보고서](../aisearch/reports/2026-10-29-hnsw.md)). 운영에서 알아 둘 것만:
+
+- 지금 `BookVectorFile.nearest`는 int8 전수 비교, 파일 전체를 힙에 올림(책당 1,036바이트). 운영 97ms·힙 81MB(81,078권). 20만 권 약 240ms·207MB, 50만 권부터 -Xmx640m을 넘음 [추정].
+- 사용자 결정 "A. Java 깔때기로 개발해줘": 힙에는 부호 비트(책당 128바이트)만 → 해밍으로 1만 → 질문 대 비트(비대칭 binary)로 2,000 → `book-vectors.bin`(메모리 매핑)에서 그 줄만 읽어 지금과 같은 점수로 120. 클래스 `BookVectorFunnel`, 고르는 곳 `BookVectors.open`.
+- 잰 값(PC, 질문 222개): 81,078권 79.8 → 6.9ms, 20만 190.9 → 10.2ms, 50만 484.8 → 21.9ms, 100만 715.7 → 32.0ms. 81k 정확한 상위 120의 99.19%, 1위 같은 질문 221/222.
+- 설정: `chaekcheck.aisearch.vector.search.mode`(기본 `funnel`, `CHAEKCHECK_AISEARCH_VECTOR_SEARCH`), `hamming-keep: 10000`, `binary-keep: 2000`. 되돌리기: prod.env에 `CHAEKCHECK_AISEARCH_VECTOR_SEARCH=exact` 후 재시작.
+- 운영에서 볼 것: 시작 로그 `ai search vectors on (REMOTE, FUNNEL): … books x 1024, loaded in … ms`, 검색 로그 `steps`의 `neighbours`(97ms → 약 10ms 기대 [추정]).
+- **`book-vectors.bin`을 그 자리에서 덮어쓰지 말 것**(매핑 중이라 리눅스에서 읽던 줄이 바뀜): 새 이름으로 올린 뒤 `mv`로 바꾸고 백엔드 재시작.
+- 다른 길(쓰지 않음): pgvector halfvec HNSW는 색인(100만 권 약 2.7GB)이 캐시에 다 있어야 빠름. 2GB 서버에서는 안 맞음.
+- 전용 벡터 DB(Qdrant 등)는 새 인프라라 plan 결정이 먼저.
+
+## 15. 두 층 + BM25 + 요약 읽기 (2026-10-30, 운영 v1.23.0~ 2026-10-31)
+
+사용자 결정(2026-10-30): "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자". 원문 소개는 PC에만 두고(사이클 23 [확정]), 운영에는 Haiku가 쓴 요약·검색 낱말과 벡터만 갑니다. 측정은 [소개글 보고서](../aisearch/reports/2026-10-29-intro-text.md) 10·11절, 규모는 [책 수 늘리기 보고서](../aisearch/reports/2026-10-30-vector-scaling.md) 10절.
+
+| 단계 | 무엇 | 파일·명령 | 상태 |
+|---|---|---|---|
+| 1 | Haiku 한 번 호출로 요약(평균 270자) + 검색 낱말(평균 41개), 배치 API | `scripts/aisearch/build_summary_terms.py prepare/submit/collect/retry` → `chaekcheck-data\aisearch\two-layer\summary-terms.tsv` | 76,974권 끝(실패 16 → 다시 받아 0). 입력 1억 4,815만·출력 4,597만 토큰, 약 $19 [추정, 배치 반값] |
+| 2a | 소개 512토큰 조각 벡터(KURE-v1, 6,000자까지) | `scripts/aisearch/build_chunk_vectors.py` (이어 하기 됨) → `join`; 남은 파트는 `scripts/aisearch/gpu_chunk_vectors.py pack/encode/take`(빌린 GPU) | 끝(2026-10-31): 157,314조각, 76,974권. 남은 32파트는 vast.ai RTX 4090에서 약 15분, $0.21 |
+| 2b | 요약 벡터(「제목 · 저자 · 출판사 · 연도」 + 요약) → 책마다 요약 줄 + 조각 줄들의 `book-vectors.bin` | `scripts/aisearch/build_two_layer_vectors.py summary` / `file OUT.bin` | 끝: `chaekcheck-data\ml\two-layer\book-vectors-two-layer.bin` 238,392줄, 81,078권, 235.5 MB. 넣기 파일 `chaekcheck-data\aisearch\two-layer\book-texts-two-layer-2026-10-31-export.tsv`(`build_summary_terms.py book-texts`) |
+| 3 | 벡터 검색이 책 하나의 여러 줄을 최고 점수로 묶음 | `BookVectors`, `BookVectorFunnel`, `BookVectorFile` | 코드 끝 |
+| 4 | BM25: `book_search`에 `summary`·`terms`·`written_on`·`keyword_text`·`library_words`(생성 칼럼), 색인 `book_search_bm25` | Liquibase `catalog/005-library-words.sql`, `catalog/006-book-search-bm25.yaml`; 넣기 파일 `search_summary`·`search_terms` 줄 | 코드 끝, 스위치 기본 `like` |
+| 5 | 2차가 읽는 글 = 요약 + 맞은 검색 낱말 | `JdbcAiSearchIndex.readingTexts`, `AiSearchFlow` 한 줄 | 코드 끝, 스위치 기본 `line` |
+| 6 | 8만 권 전체 다시 재기(계획 도서관 거르기 넣고, 진짜 Haiku, 프로필 켬·끔) | `AiSearchTwoLayerEvalTests`, `scripts/aisearch/eval/two_layer_step6.py` | 끝(2026-10-31, [6단계 보고서](../aisearch/reports/2026-10-31-two-layer-step6.md)): 카드에 찾는 책 40.3 → 56.1%, 1번 카드 29.5 → 39.7%, 주제 77.7 → 79.1%. 빼기(rulesOut)만 끄면 60.1% / 42.3% / 84.0%(운영 값) |
+| 7 | plan 기록(pg_search AGPL, 원문 규칙, rulesOut 끔), 배포(이미지 바꾸고 DB 재시작) | 아래 「7단계 배포 순서」, `docs/plan-feedback.md` 「AI 검색 두 층 + BM25」 | 끝: v1.23.0(6fc12672) 2026-10-31, dev 24. 넣기 76,759 / summary 76,182 / keyword_text 76,759, 시작 로그 `238392 rows x 1024 (up to 10 a book)`. 운영 질문 「불확정성 원리」 4장 4.7초(keyword 0.4초), 재시작 뒤 첫 검색만 13.4초 |
+
+### 7단계 배포 순서 (2026-10-31)
+
+바뀌는 것: DB 이미지(pg_search 0.26.3 + pgvector, preload `pg_bigm,pg_search`), Liquibase `catalog-006`(칸 다섯 + BM25 색인), 넣기 파일(요약·검색 낱말), `book-vectors.bin`(두 층), prod.env(`RULES_OUT=false`, 뒤에 `KEYWORD_MATCH=bm25`·`READING_TEXT=summary`).
+
+1. **넣기 파일과 벡터 파일을 미리 올림**: PC `chaekcheck-dataisearch	wo-layerook-texts-two-layer-2026-10-31-export.tsv` → 서버 `/srv/chaekcheck/book-texts/`(644). PC `chaekcheck-data\ml	wo-layerook-vectors-two-layer.bin`(235.5 MB) → 서버 `/srv/chaekcheck/aisearch-model/book-vectors-two-layer.bin`(아직 이름 바꾸지 않음).
+   - 넣기 파일의 바탕은 2026-10-28 운영 내보내기(`book-texts-100k-exclude-2026-10-28-export.tsv`, search_line 76,759 · for_you_blurb 43,227 · search_exclude 23,772)에 요약·검색 낱말 76,974권(76,182권 한 줄 있음)을 더한 것입니다. 넣기는 `book_search`를 통째로 바꾸므로, 그 뒤 운영 한 줄·소개가 바뀌었으면 먼저 다시 내보내 `build_summary_terms.py book-texts <새 내보내기> <출력>`으로 다시 만듭니다. 확인: `SELECT count(*), count(line) FROM catalog.book_search` = 76,759 / 76,759.
+2. **DB 이미지를 서버에서 다시 빌드**(arm64, `deploy/test/README.md` 5번과 같은 방식): `docker build -t chaekcheck/postgres-bigm:18 postgres-bigm`(새 `docker/postgres-bigm/Dockerfile`). 확인: `docker run --rm chaekcheck/postgres-bigm:18 ls /usr/share/postgresql/18/extension | grep pg_search`.
+3. **DB 재시작**: 새 `deploy/prod/compose.yaml`(preload `pg_bigm,pg_search`)로 `db`만 다시 만듦. 끊김은 DB가 다시 뜰 때까지(로컬 몇 초 [추정]). 옛 이미지에 새 preload를 쓰면 DB가 안 뜨므로 2번이 먼저입니다. 확인: `SHOW shared_preload_libraries` = `pg_bigm,pg_search`.
+4. **새 판 배포**(release.sh, prod.env는 `RULES_OUT=false`, `KEYWORD_MATCH=like`, `READING_TEXT=line`): 시작할 때 Liquibase가 `catalog-006-book-search-texts`(칸 다섯)와 `catalog-006-book-search-bm25`(`CREATE EXTENSION pg_search CASCADE` + 색인)를 돌립니다. 이때 `keyword_text`가 비어 있어도 `like`라서 검색은 전과 같습니다. 확인: `SELECT to_regclass('catalog.book_search_bm25')`가 null이 아님, 시작 로그에 BM25 경고 없음.
+5. **넣기**: 6-aisearch 「한 줄 넣기」의 운영 명령에 1번 파일, `--chaekcheck.collection.import.book-texts-top-books=100000`. 확인: `SELECT count(*), count(summary), count(*) FILTER (WHERE keyword_text <> '') FROM catalog.book_search` = 76,759 / 76,182 / 76,759.
+6. **벡터 파일 바꾸기와 스위치**: `mv book-vectors-two-layer.bin book-vectors.bin`(덮어쓰지 말고 `mv`, 옛 파일은 `book-vectors-100k.bin`으로 남김), prod.env를 `CHAEKCHECK_AISEARCH_KEYWORD_MATCH=bm25`, `CHAEKCHECK_AISEARCH_READING_TEXT=summary`로 바꾸고 `bin/switch.sh backend <지금 판>`으로 다시 띄움(BM25 색인이 있는지는 시작 뒤 첫 검색에서 한 번 묻고 기억하므로, 색인이 생긴 뒤 재시작해야 `bm25`가 됨). 확인: 시작 로그 `ai search vectors on (REMOTE, FUNNEL): 238392 … books`(줄 수), 검색 로그 `steps`의 `keyword`가 평소 범위, 질문 몇 개로 카드 확인(예: 「불확정성 원리」, 「백화점 무너진 뒤 살아남은 여자와 임신한 이웃의 이야기가 담긴 단편집」).
+7. **되돌리기**: 스위치만 `like`/`line` + 옛 벡터 파일로 `mv` 후 재시작. `RULES_OUT=true`로 빼기를 다시 켤 수 있음. DB 이미지·색인은 그대로 두어도 `like`에서는 쓰이지 않습니다.
+
+PC 로컬: `compose.yaml`도 preload `pg_bigm,pg_search`. 이 변경 뒤 `docker compose up`은 pg_search가 든 이미지가 있어야 뜹니다(`wsl -d Ubuntu -- docker compose build`, 또는 이미 지은 `chaekcheck/postgres-bigm:18-search`를 `:18`로 태그).
+
+- **ANALYZE가 40분 넘게 걸림(v1.23.0 배포 때)**: `book_search`의 `summary`·`terms`·`keyword_text`(한글 약 300·300·420자) 통계가 표본을 DB 정렬 규칙(en_US.utf8)으로 정렬하느라 칸마다 1분을 넘김(한 줄 100자는 0.1초). SQL에서 거르거나 정렬하지 않는 칸이라 통계를 끔(Liquibase `catalog-006-book-search-statistics`, `…-bm25-statistics`, BM25 색인의 식 열 둘도). 측정 복사본에서 ANALYZE 10분 넘음 → 0.4초. 넣기 뒤 `VACUUM (FULL, ANALYZE)`도 이 시간만큼 줄어듦. 확인: `SELECT attname, attstattarget FROM pg_attribute WHERE attrelid IN ('catalog.book_search'::regclass, 'catalog.book_search_bm25'::regclass) AND attstattarget IS NOT NULL` → 다섯 줄 모두 0.
+
+운영에서 알아 둘 것:
+- **DB 이미지**: `docker/postgres-bigm`에 pg_search 0.26.3(.deb, PC amd64·서버 arm64) + pgvector. `shared_preload_libraries=pg_bigm,pg_search`. compose(로컬·운영)의 `command`는 아직 `pg_bigm`만: **이미지를 새로 지은 뒤에만** `pg_search`를 더할 것(옛 이미지에 미리 불러오기를 넣으면 DB가 안 뜸). 그 전까지는 Liquibase가 BM25 색인 단계를 건너뛰고(`onFail: CONTINUE`, 다음 시작에 다시 시도) 서버는 `like`로 돔.
+- **색인을 만들 때**: 이미지와 preload가 바뀐 뒤 첫 시작에서 `CREATE EXTENSION pg_search CASCADE` + 색인 만들기(PC 10만 줄 15초, 운영 ARM은 더 김 [추정]).
+- **도서관 거르기는 색인 안**: 도서관 번호를 `library_words`(예: `l3 l17`) 칸으로 넣고 `||| '…'::pdb.boost(0)`. 색인 밖 `&&`로 거르면 10만 줄 125ms(안에서는 7ms).
+- **넣기 파일**: `search_summary`(1~500자)·`search_terms`(1~2,000자) 줄을 담은 book-texts 파일. 새 칸이 비어 있는 파일은 이미 있는 요약을 지우지 않게 거절.
+- 로컬 시험 DB: 다른 세션과 겹치지 않게 `chaekcheck-bm25-db-test`(이미지 `chaekcheck/postgres-bigm:18-search`, 포트 5513), 테스트는 `TEST_PG_COMMAND=wsl,-d,Ubuntu,--exec,docker,exec,-i,chaekcheck-bm25-db-test`.
+

@@ -1,0 +1,80 @@
+# 2026-10-30 (user "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자"): what the AI
+# search's two layers keep per book, written by one Haiku call on the PC (scripts/aisearch/build_summary_terms.py;
+# the intros stay on the PC, cycle 23 [확정]):
+# - summary: 200-250 characters asked, 139-408 measured (docs/aisearch/reports/2026-10-29-intro-text.md 11); the
+#   summary vector and what the second call reads. Not catalog.book_summary (the 책첵 summary, another prompt).
+# - terms: 30-50 search terms, comma separated; with title, author and line the BM25 text.
+# - keyword_text: title, author, line and terms with their spaces (the Korean analyser needs them; search_text has
+#   none), made by the book-texts import.
+# - library_words: library_ids as words (catalog/005) for the plan-library filter inside the BM25 index.
+# The BM25 index needs pg_search (docker/postgres-bigm, preloaded): its changeset is skipped, and tried again at the
+# next start, on a database without it, where the keyword match stays LIKE.
+databaseChangeLog:
+  - changeSet:
+      id: catalog-006-book-search-texts
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE catalog.book_search
+                ADD COLUMN summary text CONSTRAINT book_search_summary_check CHECK (char_length(summary) BETWEEN 1 AND 500),
+                ADD COLUMN terms text CONSTRAINT book_search_terms_check CHECK (char_length(terms) BETWEEN 1 AND 2000),
+                ADD COLUMN written_on date,
+                ADD COLUMN keyword_text text NOT NULL DEFAULT '',
+                ADD COLUMN library_words text GENERATED ALWAYS AS (catalog.library_words(library_ids)) STORED,
+                ADD CONSTRAINT book_search_written_check
+                  CHECK ((summary IS NULL AND terms IS NULL) = (written_on IS NULL))
+
+  - changeSet:
+      id: catalog-006-book-search-bm25
+      author: chaekcheck
+      preConditions:
+        # skipped now and tried again at the next update when the image has no pg_search or does not preload it
+        - onFail: CONTINUE
+        - sqlCheck:
+            expectedResult: 1
+            sql: >-
+              SELECT count(*) FROM pg_available_extensions
+              WHERE name = 'pg_search' AND current_setting('shared_preload_libraries') LIKE '%pg_search%'
+      changes:
+        # CASCADE: pg_search needs pgvector since 0.25.0; pg_search makes its own schemas (pdb, paradedb)
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS pg_search CASCADE
+        # the key field first; the Korean analyser on keyword_text (user 2026-10-29 "한국어 분석기로 하자"); the
+        # library words split at spaces
+        - sql:
+            sql: >-
+              CREATE INDEX book_search_bm25 ON catalog.book_search USING paradedb
+                (book_id, (keyword_text::pdb.lindera(korean)), (library_words::pdb.whitespace))
+
+  # 2026-10-31 (dev 24, v1.23.0 in production): ANALYZE of book_search took over 40 minutes of one core. Measured on
+  # the eval copy (76,759 rows): the column statistics of summary, terms and keyword_text (Korean text of about 300,
+  # 300 and 420 characters) take over a minute each, sorting the sample with the database collation (en_US.utf8);
+  # line (about 100 characters) takes 0.1 s. Nothing filters or sorts these columns in SQL (BM25 reads its own
+  # index), so they keep no statistics: ANALYZE over 10 minutes -> 0.4 s. Setting 0 again is harmless.
+  - changeSet:
+      id: catalog-006-book-search-statistics
+      author: chaekcheck
+      changes:
+        - sql:
+            sql: >-
+              ALTER TABLE catalog.book_search
+                ALTER COLUMN summary SET STATISTICS 0,
+                ALTER COLUMN terms SET STATISTICS 0,
+                ALTER COLUMN keyword_text SET STATISTICS 0
+
+  # the BM25 index's two expression columns as well (same text through the Korean analyser); waits for the index
+  # like catalog-006-book-search-bm25
+  - changeSet:
+      id: catalog-006-book-search-bm25-statistics
+      author: chaekcheck
+      preConditions:
+        - onFail: CONTINUE
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT count(*) FROM pg_class WHERE oid = to_regclass('catalog.book_search_bm25')
+      changes:
+        - sql:
+            sql: >-
+              ALTER INDEX catalog.book_search_bm25 ALTER COLUMN 2 SET STATISTICS 0;
+              ALTER INDEX catalog.book_search_bm25 ALTER COLUMN 3 SET STATISTICS 0

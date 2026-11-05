@@ -70,6 +70,9 @@ public class MlFirstCall {
 
 	private final double shelfBonus;
 
+	/** Whether {@link #rulesOut} pushes left-out books back (off: never). */
+	private final boolean rulesOutOn;
+
 	/** The relation network of follow-ups, or null (then the rule). */
 	private final FirstCallModel followUpModel;
 
@@ -144,6 +147,7 @@ public class MlFirstCall {
 		this.model = model;
 		this.profiles = profiles;
 		this.shelfBonus = properties.firstCall().shelfBonus();
+		this.rulesOutOn = properties.firstCall().rulesOut();
 		this.followUpModel = followUpModel;
 		this.followUp = properties.firstCall().followUp();
 	}
@@ -157,6 +161,7 @@ public class MlFirstCall {
 		this.model = model;
 		this.profiles = profiles;
 		this.shelfBonus = shelfBonus;
+		this.rulesOutOn = true;
 		this.followUpModel = followUpModel;
 		this.followUp = followUp;
 	}
@@ -274,9 +279,9 @@ public class MlFirstCall {
 		return sorted;
 	}
 
-	/** Whether the question rules the book out (it goes after the others). */
+	/** Whether the question rules the book out (it goes after the others); never when the setting is off. */
 	public boolean rulesOut(long bookId, Shelves shelves) {
-		return shelves.excludes(profiles.of(bookId));
+		return rulesOutOn && shelves.excludes(profiles.of(bookId));
 	}
 
 	Shelves shelves(float[] v) {

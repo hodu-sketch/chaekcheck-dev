@@ -16,11 +16,20 @@ final class Recency {
 
 	private static final Pattern RECENT = Pattern.compile("최신|신간|신작|요즘|요새|최근|새로\\s*나온|갓\\s*나온|올해");
 
-	/** 「2020년 이후」, 「2023년부터」, 「2022년 넘어서」. */
-	private static final Pattern SINCE = Pattern.compile("((?:19|20)\\d{2})\\s*년\\s*(?:이후|부터|넘어|뒤|이상|후)");
+	/** 「2020년 이후」, 「2023년부터」, 「2022년 넘어서」, 「최소한 2023년에 나온」. */
+	private static final Pattern SINCE = Pattern
+		.compile("((?:19|20)\\d{2})\\s*년\\s*(?:이후|부터|넘어|뒤|이상|후)|최소\\S*\\s*((?:19|20)\\d{2})\\s*년");
+
+	/**
+	 * 「최소한 작년에 나온」, 「작년 이후」, 「재작년부터」, 「올해 나온」: a year counted from this one (user 2026-10-31: 「최소한
+	 * 작년에 나온 JAVA 도서」 was not read as a year).
+	 */
+	private static final Pattern SINCE_RELATIVE = Pattern
+		.compile("(올해|금년|재작년|작년|지난\\s*해)\\s*(?:에|에서)?\\s*(?:나온|출간|출판|발행|이후|부터|넘어|뒤|이상|후|신간|책|꺼|거)");
 
 	/** A recency word as a keyword (「최신책」, 「요즘」): no book holds it as a topic, so it leaves the search words. */
-	private static final Pattern WORD = Pattern.compile("^(?:최신|신간|신작|요즘|요새|최근|올해)\\S*$|^\\d{4}년\\S*$");
+	private static final Pattern WORD = Pattern
+		.compile("^(?:최신|신간|신작|요즘|요새|최근|올해|금년|작년|재작년|최소)\\S*$|^\\d{4}년\\S*$");
 
 	private Recency() {
 	}
@@ -34,10 +43,9 @@ final class Recency {
 			if (text == null) {
 				continue;
 			}
-			Matcher since = SINCE.matcher(text);
-			if (since.find()) {
-				int year = Integer.parseInt(since.group(1));
-				return year <= thisYear ? year : null;
+			Integer since = since(text, thisYear);
+			if (since != null) {
+				return since;
 			}
 			if (RECENT.matcher(text).find()) {
 				return thisYear - YEARS;
@@ -46,14 +54,26 @@ final class Recency {
 		return null;
 	}
 
-	/** The year a text names (「2020년 이후」), or null. */
+	/**
+	 * The year a text names as the earliest (「2020년 이후」, 「최소한 작년에 나온」), or null. Unlike 「최신」 it is a
+	 * bound: older books are left out, not put after (user 2026-10-31).
+	 */
 	static Integer since(String text, int thisYear) {
 		Matcher since = SINCE.matcher(text);
-		if (!since.find()) {
+		if (since.find()) {
+			int year = Integer.parseInt(since.group(1) != null ? since.group(1) : since.group(2));
+			return year <= thisYear ? year : null;
+		}
+		Matcher relative = SINCE_RELATIVE.matcher(text);
+		if (!relative.find()) {
 			return null;
 		}
-		int year = Integer.parseInt(since.group(1));
-		return year <= thisYear ? year : null;
+		String word = relative.group(1).replaceAll("\s", "");
+		return switch (word) {
+			case "재작년" -> thisYear - 2;
+			case "작년", "지난해" -> thisYear - 1;
+			default -> thisYear;
+		};
 	}
 
 	/**

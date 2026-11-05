@@ -13,6 +13,12 @@ public interface BookTextsTransfer {
 	/** The longest summary and search line, in characters; the database checks it too. */
 	int TEXT_MAX_CHARS = 300;
 
+	/** The longest AI search summary (two layers, 2026-10-30), in characters; the database checks it too. */
+	int SEARCH_SUMMARY_MAX_CHARS = 500;
+
+	/** The longest search terms text, in characters; the database checks it too. */
+	int SEARCH_TERMS_MAX_CHARS = 2000;
+
 	/** Adds or changes the given summaries in one transaction. @return rows written */
 	int upsertSummaries(Collection<Summary> summaries);
 
@@ -49,7 +55,38 @@ public interface BookTextsTransfer {
 	 * @throws IllegalStateException when {@code lines} is empty but the stored rows have lines (a header-only or wrong
 	 *     file would remove every line); nothing is changed
 	 */
-	SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines);
+	default SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines) {
+		return replaceSearchBooks(bookIds, lines, List.of());
+	}
+
+	/**
+	 * As {@link #replaceSearchBooks(List, List)}, with the summary and search terms Haiku wrote for the AI search's
+	 * two layers (user 2026-10-30). The BM25 text is the title, author, line and terms.
+	 * @throws IllegalArgumentException also when a book has two written rows
+	 * @throws IllegalStateException also when {@code written} is empty but stored rows have a summary or terms (an
+	 *     older file would remove them all); nothing is changed
+	 */
+	SearchResult replaceSearchBooks(List<Long> bookIds, List<Line> lines, List<Written> written);
+
+	/**
+	 * What one Haiku call on the PC wrote for a book's AI search (scripts/aisearch/build_summary_terms.py); the intro it
+	 * read stays on the PC (cycle 23 [확정]).
+	 * @param summary 1 to {@value BookTextsTransfer#SEARCH_SUMMARY_MAX_CHARS} characters, or null
+	 * @param terms comma separated search terms, 1 to {@value BookTextsTransfer#SEARCH_TERMS_MAX_CHARS} characters, or
+	 *     null
+	 */
+	record Written(long bookId, LocalDate madeOn, String summary, String terms) {
+
+		public Written {
+			requireBook(bookId);
+			if (madeOn == null || (summary == null && terms == null)) {
+				throw new IllegalArgumentException("a written row needs a date and a summary or terms: " + bookId);
+			}
+			requireLength(bookId, "summary", summary, SEARCH_SUMMARY_MAX_CHARS);
+			requireLength(bookId, "terms", terms, SEARCH_TERMS_MAX_CHARS);
+		}
+
+	}
 
 	/** @param text 1 to {@value BookTextsTransfer#TEXT_MAX_CHARS} characters */
 	record Summary(long bookId, String text, LocalDate madeOn) {
@@ -151,6 +188,17 @@ public interface BookTextsTransfer {
 	private static void requireBook(long bookId) {
 		if (bookId < 1) {
 			throw new IllegalArgumentException("a book id must be 1 or more: " + bookId);
+		}
+	}
+
+	private static void requireLength(long bookId, String what, String text, int max) {
+		if (text == null) {
+			return;
+		}
+		int length = text.codePointCount(0, text.length());
+		if (text.isBlank() || length > max) {
+			throw new IllegalArgumentException(
+					"a " + what + " must have 1 to " + max + " characters, book " + bookId + " has " + length);
 		}
 	}
 

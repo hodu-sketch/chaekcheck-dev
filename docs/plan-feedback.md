@@ -5494,7 +5494,7 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 
 ## 나가는 길과 `up.sh` (같은 날 이어서)
 
-- 시험 배포를 처음 띄울 때 나가는 길 설정을 넣지 않아 `mode=ALL proxies=0`, 곧 **서버 자기 IP로 조회**했음(사용자가 발견). Webshare는 IP 인증(EC2 52.64.117.112)이라 아이디·비밀번호 없이 주소 목록만 넣으면 됨. 목록 20개를 서버 `egress.env`로 옮기고 `proxy-only`로 다시 띄움 → `mode=PROXY_ONLY lanes=20 direct=0 proxies=20`. 소년이 온다 스트림: 자기 IP 12곳 중 7곳 → 프록시 12곳 중 10곳 성공. 남은 2곳(62·73 시간 초과)은 PC에서도 실패
+- 시험 배포를 처음 띄울 때 나가는 길 설정을 넣지 않아 `mode=ALL proxies=0`, 곧 **서버 자기 IP로 조회**했음(사용자가 발견). Webshare는 IP 인증(EC2 서버 IP)이라 아이디·비밀번호 없이 주소 목록만 넣으면 됨. 목록 20개를 서버 `egress.env`로 옮기고 `proxy-only`로 다시 띄움 → `mode=PROXY_ONLY lanes=20 direct=0 proxies=20`. 소년이 온다 스트림: 자기 IP 12곳 중 7곳 → 프록시 12곳 중 10곳 성공. 남은 2곳(62·73 시간 초과)은 PC에서도 실패
 - compose는 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`를 `${WEBSHARE_PROXIES}`에서 받음(plan 17 이름: Parameter Store `/chaekcheck/prod/WEBSHARE_PROXIES`)
 - 새 `deploy/prod/bin/up.sh`(ADR-0103·0104, design-delta "띄우기"): `secrets.env`가 손으로 둔 파일(첫 줄 표지 없음)이면 그대로 쓰고, 아니면 `/chaekcheck/prod/`를 EC2 역할로 읽어 이름 끝 = 변수 이름으로 `secrets.env`(600, 임시 파일 뒤 이동)에 씀. 필수 이름이 빠지거나 읽기가 실패하면 아무것도 쓰지 않고 멈춤. 값에 작은따옴표·줄바꿈이 있으면 멈춤(compose의 작은따옴표 값은 그대로 읽힘). `prod.env`가 있으면 함께 넘김. 필수 이름 [안]: `DB_PASSWORD WEBSHARE_PROXIES`(로그인·터널·사서추천을 켜는 compose가 생기면 더함, TODO). 가짜 `aws`·`docker`로 6가지(성공, 필수 빠짐, 읽기 실패, 따옴표, 손으로 둔 파일, `prod.env`) 확인. **실제 EC2에서는 아직 돌리지 않음**: 서버에 AWS CLI가 있는지, 역할에 `kms:Decrypt`가 필요한지 확인 못 함(이 세션에서 서버의 `aws` 호출이 권한에서 막힘)
 
@@ -6521,7 +6521,7 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 사용자: "micro 한 대를 임베딩 전용으로 두자, 서로 다른 곳에서 소통하나 서버에 직접 임베딩하나 이걸 선택으로서 가능하게 구현해줘" → "v1.15.0 배포하고 임베딩 서버 방식으로 벡터 켜고, 소개 없는 3,712권 빼는 넣기도 돌려줘". **설계(ADR-0150·0151: 후보는 낱말 맞추기) 변경**이라 plan 회고에서 기록 필요.
 
 - 코드: 평가 세션의 c0fc25e(백엔드 안 int8 KURE + RRF + 기준 책 이웃) 위에 `chaekcheck.aisearch.vector.encoder: local|remote`(`KureQuestionVectors` = 책 벡터 + `OnnxQuestionEncoder`/`RemoteQuestionEncoder`), 새 앱 `embed-service/`(Spring Boot, `POST /api/v1/embed`, `X-Embed-Token`), `book-texts`의 `search_exclude` 줄
-- 임베딩 서버: micro EC2 `chaekcheck-embed`(t4g.micro, 무료 플랜 크레딧), 사설 172.31.45.141:8090, 보안 그룹은 운영 서버에서만. 토큰은 사용자가 CloudShell에서 Parameter Store에 넣음(무작위, 아무도 보지 않음), 임베딩 서버에는 운영 서버 권한으로 읽어 옮김. 자세히 `docs/maintenance/6-aisearch.md` 7-1
+- 임베딩 서버: micro EC2 `chaekcheck-embed`(t4g.micro, 무료 플랜 크레딧), 사설 IP:8090, 보안 그룹은 운영 서버에서만. 토큰은 사용자가 CloudShell에서 Parameter Store에 넣음(무작위, 아무도 보지 않음), 임베딩 서버에는 운영 서버 권한으로 읽어 옮김. 자세히 `docs/maintenance/6-aisearch.md` 7-1
 - 배포 전 확인: 백엔드 전체 시험(접속 수 부족 4개는 따로 다시 돌려 통과), `AiSearchEvalReplayTests` 후보가 c0fc25e 때와 바이트까지 같음(벡터 켬·끔), 운영 서버→임베딩 서버 46~59ms
 - 배포: v1.15.0(1d98107) backend·web. 시작 로그 `ai search vectors on (REMOTE): 30937 books x 1024`. 넣기 `book-texts-30k-exclude-2026-10-25.tsv` → `listed books 1911, most held 30000 (25316 not listed, 3712 excluded), stored 27227, with line 27227`
 - 운영 확인: 「번아웃이 왔을 때 읽을 책」 소진·무기력 책 8장, 「아몬드 같은 성장 소설」 청소년 성장 소설 8장(`named book`), 로그 `candidates 30 (vector 60)`. 운영 백엔드 374MB(모델 없음), 임베딩 컨테이너 484MB
@@ -7615,6 +7615,19 @@ WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB �
 - [x] 화면 변경 없음 (실제 폰 확인 항목 없음)
 - [x] [확인 필요] 각 항목의 결과, 설계와 달라진 점, 새로 알게 된 제약을 `# 사이클 27` 절에 적음
 
+
+# AI 검색 두 층 + BM25 (2026-10-31, dev aisearch-funnel, plan이 ADR로 남길 것)
+
+- **무엇**: AI 검색 책 벡터를 「요약 한 줄 + 소개 512토큰 조각 여러 줄」(책 점수 = 가장 가까운 줄)로, 낱말 찾기를 pg_search BM25(제목·저자·한 줄·Haiku 검색 낱말, 한국어 분석기 `pdb.lindera(korean)`, 계획 도서관 거르기는 색인 안)로, 2차가 읽는 글을 「Haiku 요약 + 질문과 맞은 검색 낱말」로 바꿈. ML 1차의 rulesOut(빼 달라는 칸의 책을 맨 뒤로)은 끔, 칸 가산점은 그대로. 사용자 결정 2026-10-30 "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자", 2026-10-31 "끄고 배포" → "재 보고 배포".
+- **숫자**(76,759권 전부, 계획 도서관 65곳, 질문 857개, 진짜 Haiku): 카드에 찾는 책 40.3 → 60.1%, 1번 카드 29.5 → 42.3%, 주제 질문 카드 맞음 77.7 → 84.0%, 응답 시간 거의 같음. 기록 `docs/aisearch/reports/2026-10-31-two-layer-step6.md`(앞선 실험 `2026-10-29-intro-text.md` 10·11절).
+- **ADR로 남길 것**:
+  1. **pg_search(ParadeDB, AGPL-3.0)를 DB 확장으로 씀**: 고치지 않은 릴리스 .deb를 DB 이미지에 넣고 preload. 서버 코드는 SQL로만 부름. AGPL 의무 판단은 plan이 정함.
+  2. **소개 원문 규칙의 뜻**: 사이클 23 [확정] 「원문은 PC에만」을 사용자가 2026-10-31 "PC에만 저장한다는 걸로 이해했는데"로 밝힘 → 원문은 PC에만 **저장**, 빌린 GPU에서 처리하는 동안만 두고 끝나면 지움(이번 vast.ai RTX 4090 약 15분, $0.21, 데이터 지우고 기계 없앰). 운영에는 Haiku 요약·검색 낱말과 벡터만 감.
+  3. **ML 1차 rulesOut 끔**: 「소설 아님」 오판으로 찾는 책 750권 중 60권을 맨 뒤로 보냄(3-4절). 새 설정 `chaekcheck.aisearch.first-call.rules-out`(기본 켬, 운영 끔), `shelf-bonus`도 환경 변수로 바꿀 수 있게 함.
+  4. **DB 재시작이 드는 배포**: 이미지 다시 빌드 + preload 변경(순서는 `docs/maintenance/6-aisearch.md` 15절 「7단계 배포 순서」).
+- **설계와 다른 점**: 처음 계획(2026-10-30)은 조각 벡터를 PC CPU로 약 45시간이었으나 GPU로 바꿈. 프로필은 「켜 둔다」로 답했었는데(2026-10-30 "검색에 프로필이 필요 없나?"), 재 보니 빼기는 손해라 끔.
+- **plan이 정할 것**: 빼기를 질문에 빼는 말이 분명할 때만 켜는 방법을 둘지. 20만 권으로 늘릴 때 벡터 찾기 방식(`docs/aisearch/reports/2026-10-30-vector-scaling.md`).
+
 # 설명서 노트
 
 plan `to-dev-guide-notes.md`(2026-10-31)의 항목별 결과.
@@ -7652,4 +7665,3 @@ plan `to-dev-guide-notes.md`(2026-10-31)의 항목별 결과.
 | 3-3 | 확인만 | nginx `chaekcheck-locations.conf` 정규식과 React `main.tsx` 경로를 대조: 현재 일치. 자동 검증 스크립트는 미래 작업 |
 | 3-4 | 해당 없음 | plan 쪽 일(ADR-0103·0104) |
 | 3-5 | 고침 | `plan-feedback.md`: "switch.sh·release.sh는 서버(Linux)에서 `Asia/Seoul` 사용" → "서버 Linux에서도 같은 `TZ=KST-9` 사용" |
-
