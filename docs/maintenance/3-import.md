@@ -75,7 +75,7 @@
 - 2026-10-11 힙: `-Xmx4g`는 첫 읽기에서 멈춤(살아 있는 데이터 4,066MB, 전체 GC만 반복). 6GB(#3c)는 끝까지 됨(전체 GC 2번, 살아 있는 데이터 최대 약 4.8GB).
 - 2026-10-05 힙: JVM 기본 최대 8,096MB(PC 메모리 32GB의 1/4)로 끝남. 로그의 "heap used up to 11,200MB"는 힙 구역별 최고치의 합이라 실제보다 큼(실제 최고치는 8GB 이하). 더 작은 최대 힙으로 되는지는 재지 않음.
 - 2026-10-05 DB 크기(가져온 뒤, `VACUUM (ANALYZE)` 뒤): DB 전체 9,812MB. `holding` 8,353MB(표 6,035MB + 인덱스 `holding_library_item_key` 1,075MB, `holding_book_id_library_id` 803MB, `holding_pkey` 439MB), `book` 1,123MB(표 550MB, `book_library_ids_gin` 48MB, `book_title_norm_bigm` 110MB 등), `book_contributor` 324MB.
-- 2026-10-05 첫 검색 응답(`scripts/catalog/measure_books.py`, 9개 검색어 × 지역 없음·지역 1개·가입 가능): 첫 쪽 82~393ms. 상세와 실행 계획은 `docs/cycles/plan-feedback.md` `# 사이클 07` 15단계.
+- 2026-10-05 첫 검색 응답(`scripts/catalog/measure_books.py`, 9개 검색어 × 지역 없음·지역 1개·가입 가능): 첫 쪽 82\~393ms. 상세와 실행 계획은 `docs/cycles/plan-feedback.md` `# 사이클 07` 15단계.
 - 같은 날 첫 검색 응답(웜업 전 1회): "행동"+"새폴스키" 22ms, "작별하지 않는다" 40ms, "사랑" 224ms(8,433권).
 
 ## 6. 빠지는 줄의 기준 (`collection/internal/importer/CollectedCatalog.java`)
@@ -135,7 +135,7 @@
 `SELECT id, imported_at, status, step_seconds FROM collection.catalog_import ORDER BY id DESC LIMIT 3;` 값은 초입니다.
 
 - `read`: 수집 DB 첫 읽기(거르기 + 묶을 값 세기). `group`: 교보 코드·ISBN으로 묶기. `nb`: 국가서지 원문 읽기(지문이 같으면 표에서, 다르면 TTL을 풀며 표를 다시 씀). `normalize`: 원문에서 키 만들기. `same_text`: 같은 글 묶기.
-- `books_copy` … `swap`: 8절 표. `load`: 2~7 전체(첫 책부터 바꿔 끼우기 끝까지).
+- `books_copy` … `swap`: 8절 표. `load`: 2\~7 전체(첫 책부터 바꿔 끼우기 끝까지).
 - 검색이 기다린 시간은 `swap`입니다(사이클 07 방식의 기록에는 `move`).
 - 사이클 11(13절): 운영 `apply` 줄은 내 PC 키(`read`…`write`, `load`) 뒤에 이 DB 키 `compare`(파일과 비교), `restore`(`pg_restore`), `index`, `analyze`, `swap`, `apply`(반영 전체). 내 PC `finish` 줄은 내 PC 키 뒤에 `index`, `analyze`, `swap`, `finish`. 내보내기는 줄을 남기지 않고 로그에 `dump`(덤프와 되읽기)·`export`(전체)를 냅니다. 두 줄은 `export_id`로 이어집니다. dry run에 `dry-run-output`을 주면 `dump`(결과 파일 쓰기)가 더해집니다.
 - 국가서지를 표에서 읽었는지는 로그 `national bibliography: rows … (from the stored table | from the TTL files)`로 봅니다.
@@ -301,7 +301,7 @@ COMMIT;
             --chaekcheck.collection.import.lists-dir=/lists )
 
 - [안] 네트워크 이름 `chaekcheck_default`: compose 프로젝트 이름 `chaekcheck`(`name:`)의 기본 네트워크. 서버에서 `docker network ls`로 확인
-- [안] 힙 `-Xmx384m`: 2GB 서버에서 백엔드(`-Xmx640m`)와 함께 돌 때의 값. 목록 80~수백 줄과 표지 몇십 장이라 충분할 것으로 봄, 서버에서 처음 돌릴 때 확인
+- [안] 힙 `-Xmx384m`: 2GB 서버에서 백엔드(`-Xmx640m`)와 함께 돌 때의 값. 목록 80\~수백 줄과 표지 몇십 장이라 충분할 것으로 봄, 서버에서 처음 돌릴 때 확인
 - [안] 컨테이너 사용자(uid 10001)가 `/srv/chaekcheck/lists`를 읽을 수 있어야 함(scp 기본 권한 644/755면 됨)
 - `docker compose run backend-<자리> …`는 쓰지 않습니다: 서비스의 네트워크 별칭이 붙으면 nginx의 upstream이 이 컨테이너로 갈 수 있음 [안]
 

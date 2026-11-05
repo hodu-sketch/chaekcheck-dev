@@ -60,7 +60,7 @@ Python 3.11 이상, `pip install -r scripts/crawl/requirements.txt`(`beautifulso
 
 ## DB 구조
 
-- `library`: 수집 대상 도서관. `source` = `dev-seed`(id 1~280) 또는 `okbari-2026-09-30`(id 100001부터, 웹러브 북스 목록에서 확인해 넣은 북큐브 134곳, `platform_type=BOOKCUBE_FX`). dev seed CSV(`backend/src/main/resources/db/changelog/library/*.csv`)의 id·이름·화면 종류·주소를 그대로 씀. `host`는 호출 간격을 지키는 단위(`*.dkyobobook.co.kr`은 하나로 묶음). `last_full_success_at` = 이 도서관 목록의 기준 시각. `crawl_skip` = 받지 않는 이유(NULL이면 받음). `vendor` = 사이트 시스템 업체(`KYOBO`·`YES24`·`BOOKCUBE`·`ALADIN`·`PORTAL`·`IN_HOUSE`, CHECK). 화면 종류 대응표와 다를 때만 수집 세션이 적고 넣기 명령 `library-insert`가 읽음(2026-10-12, plan 사이클 13 spec R1-2)
+- `library`: 수집 대상 도서관. `source` = `dev-seed`(id 1\~280) 또는 `okbari-2026-09-30`(id 100001부터, 웹러브 북스 목록에서 확인해 넣은 북큐브 134곳, `platform_type=BOOKCUBE_FX`). dev seed CSV(`backend/src/main/resources/db/changelog/library/*.csv`)의 id·이름·화면 종류·주소를 그대로 씀. `host`는 호출 간격을 지키는 단위(`*.dkyobobook.co.kr`은 하나로 묶음). `last_full_success_at` = 이 도서관 목록의 기준 시각. `crawl_skip` = 받지 않는 이유(NULL이면 받음). `vendor` = 사이트 시스템 업체(`KYOBO`·`YES24`·`BOOKCUBE`·`ALADIN`·`PORTAL`·`IN_HOUSE`, CHECK). 화면 종류 대응표와 다를 때만 수집 세션이 적고 넣기 명령 `library-insert`가 읽음(2026-10-12, plan 사이클 13 spec R1-2)
 - `crawl_run`: 도서관 한 곳 × 한 번 실행. `started_at`, `finished_at`, `status`(RUNNING·SUCCEEDED·FAILED·MISMATCH), `site_total`(사이트가 말한 건수), `distinct_items`(받은 수), `sections`, `error`(실패 이유 또는 건너뛴 줄 수)
 - `holding`: 도서관 × 책 한 줄
   - 키: `(library_id, item_key)`. `item_key` = 교보 `brcd`, YES24 `goods_id`(오디오북은 `AUDIO:` 붙임), 포털 `EBK:`/`ADO:` + `book_idx`, 강남구 `book_num`

@@ -1,6 +1,6 @@
 # 두 층 + BM25 + 요약 읽기: 8만 권 전체 다시 재기 (6단계, 2026-10-31)
 
-브랜치 `claude/aisearch-vector-funnel`(워크트리 `chaekcheck-dev-funnel`), 운영 v1.23.0(2026-10-31, 빼기 끔 값). 계획 0~7단계는 [운영 문서 6-aisearch 15절](../../../maintenance/6-aisearch.md), 앞선 실험은 [소개글 보고서](2026-10-29-intro-text.md) 10·11절.
+브랜치 `claude/aisearch-vector-funnel`(워크트리 `chaekcheck-dev-funnel`), 운영 v1.23.0(2026-10-31, 빼기 끔 값). 계획 0\~7단계는 [운영 문서 6-aisearch 15절](../../../maintenance/6-aisearch.md), 앞선 실험은 [소개글 보고서](2026-10-29-intro-text.md) 10·11절.
 
 ## 1. 한 줄 결론
 
@@ -22,14 +22,14 @@
 | niche | 전문 개념 하나 | 하이젠베르크 불확정성 원리 쉽게 설명해주는 책 추천해줘 |
 | typo | niche를 흔한 오타로 | 하이젠베르그 불확정성 원리… |
 | alias | niche를 원어·다른 표기로 | Heisenberg 불확정성 원리… |
-| short | 낱말 1~3개 | 불확정성 원리 |
+| short | 낱말 1\~3개 | 불확정성 원리 |
 | para | 용어 없이 풀어서 | 입자의 위치와 운동량을 동시에 정확히 알 수 없다는 양자역학 원리… |
 | level | 독자 조건을 더함 | 과학 입문자도 이해할 수 있게… |
 | topic | 정답 없는 추천 | 출근길 지하철에서 가볍게 읽을 과학책 |
 
 - **진짜 흐름**: `AiSearchFlow` 그대로, ML 1차(`first-call.mode=ml`, 서가 가산점 0.004), 후보 30, 카드 8, vector keyword-depth 50 / vector-depth 60 / rrf-k 60(운영 값). 되묻기는 끔(`PickProperties(false,false)`).
 - **두 모드**: `candidates`(가짜 2차가 30권을 그대로 카드로 → 검색 순서만 봄), `picks`(진짜 Haiku `claude-haiku-5-5`, effort low, thinking 끔, system 캐시 켬. 질문 6개씩 동시).
-- **주제 질문 채점**: Haiku가 질문-책 짝을 0~3점(`intro_text_eval.JUDGE_PROMPT`, 소개 1,500자까지), 2점 이상을 "맞음". candidates는 앞 10권, picks는 카드 전부. 2026-10-29 실험의 채점은 그대로 다시 씀.
+- **주제 질문 채점**: Haiku가 질문-책 짝을 0\~3점(`intro_text_eval.JUDGE_PROMPT`, 소개 1,500자까지), 2점 이상을 "맞음". candidates는 앞 10권, picks는 카드 전부. 2026-10-29 실험의 채점은 그대로 다시 씀.
 
 | 경우 | 벡터 파일 | 벡터 찾기 | 낱말 검색 | 2차가 읽는 글 | 프로필 |
 |---|---|---|---|---|---|
@@ -63,7 +63,7 @@
 | new, 끔 | 88.7 | 61.1 | 73.1 | 71.0 | 55.9 | 62.4 | 55.9 | 72.0 |
 
 - 벡터(조각)와 BM25가 각자 오르고, 함께 쓸 때 가장 높습니다. tail은 벡터 조각 덕(15.8 → 43.2), short·alias는 BM25 덕이 큽니다.
-- 검색 순서만 보면 프로필은 정해진 책 찾기에서 5%p쯤 손해, 주제 질문에서 5~6%p쯤 이득입니다.
+- 검색 순서만 보면 프로필은 정해진 책 찾기에서 5%p쯤 손해, 주제 질문에서 5\~6%p쯤 이득입니다.
 
 ### 3-2. 진짜 Haiku가 고른 카드 (picks)
 

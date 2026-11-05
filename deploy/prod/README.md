@@ -92,7 +92,7 @@
 3. `switch.sh`의 결과 줄을 확인한다: `switch: OK backend X.Y.Z slot=green ready=23s (was …)`
 4. 확인: `curl -s https://chaekcheck.com/api/v1/version`
 
-새벽 03:25~05:10(Asia/Seoul)에는 거절된다(예약 작업, ADR-0171).
+새벽 03:25\~05:10(Asia/Seoul)에는 거절된다(예약 작업, ADR-0171).
 
 `release.sh`는 버전을 빌드 파일에 쓰고 「Release vX.Y.Z」 커밋과 태그를 만든 뒤 빌드 → 서버 전송·불러오기 → `switch.sh backend` → `switch.sh web` → 이미지 정리 → `git push`(main과 태그) → `gh release create` 순서로 한다.
 

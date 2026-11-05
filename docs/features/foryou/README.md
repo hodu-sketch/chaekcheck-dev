@@ -23,7 +23,7 @@
 └─ 보여 주기
     ├─ 7-summary.md              한 장 요약(숫자는 3에서)
     ├─ 8-methods-explained.md      원리·수학·코드·라이브러리 해설(학습용, 남에게 설명하기)
-    ├─ summary-page.html         공개용 페이지 원본(https://claude.ai/artifact/HEoeTqicrZSPMh3qyVYmfp)
+    ├─ summary-page.html         같은 내용을 그림과 함께 본 HTML 페이지
     └─ figures/                    그림 6장(scripts/foryou/eval/make_charts.py)
 ```
 
@@ -32,7 +32,7 @@
 | 문서 | 역할 | 이 폴더와의 관계 |
 |---|---|---|
 | [`docs/maintenance/7-foryou.md`](../../maintenance/7-foryou.md) | 운영 절차: 새벽 만들기(켤 때), 넣기 명령의 모든 선택지, 볼 곳 | 2-data.md 6절이 요약해 가리킴 |
-| [`docs/cycles/plan-feedback.md`](../../cycles/plan-feedback.md) 「# 사이클 23」 「# 사이클 23 (이어서, 2026-10-26~27)」 「# 머신러닝 보강 (사이클 23 이어서)」 | plan에 넘기는 **날짜 순 기록**: 사용자 발언, 결정, 그날의 숫자 | 정리된 내용은 이 폴더. 날짜 순 원기록은 거기 |
+| [`docs/cycles/plan-feedback.md`](../../cycles/plan-feedback.md) 「# 사이클 23」 「# 사이클 23 (이어서, 2026-10-26\~27)」 「# 머신러닝 보강 (사이클 23 이어서)」 | plan에 넘기는 **날짜 순 기록**: 사용자 발언, 결정, 그날의 숫자 | 정리된 내용은 이 폴더. 날짜 순 원기록은 거기 |
 | [`scripts/foryou/eval/README.md`](../../../scripts/foryou/eval/README.md) | 측정 도구 목록 | 3-evaluation.md의 숫자를 만든 스크립트 |
 | `scripts/crawl/foryou_neighbours.py`, `cover_scope.py`, `foryou_blurbs.py` 머리말 | 자료 만드는 도구의 사용법 | 2-data.md가 그 계산을 풀어 씀 |
 | [`CHANGELOG.md`](../../../CHANGELOG.md) | 버전별 사용자에게 보이는 변화 | 4-history.md가 부분별로 다시 묶음 |
@@ -45,7 +45,7 @@
 
 | 이런 게 궁금하면 | 여기 |
 |---|---|
-| 탭을 열면 서버에 무엇이 가나, 서버는 무엇을 돌려주나 | 1-how-it-works.md 2~6절 |
+| 탭을 열면 서버에 무엇이 가나, 서버는 무엇을 돌려주나 | 1-how-it-works.md 2\~6절 |
 | 기준 책은 어떻게 고르나, 점수는 | 1-how-it-works.md 1절 |
 | 개인 추천 순서는 정확히 어떻게 정해지나 | 1-how-it-works.md 4절, 8절 |
 | 분야 칩은 왜 사람마다 다르고 「마음·자기계발」은 왜 안 보이나 | 1-how-it-works.md 7·9절 |
@@ -77,5 +77,5 @@
 | 분야 묶음 | `literature, humanities, society, science, arts, other` 6개(`picks.FieldGroups`) |
 | 바로 대출 | 그 책을 가진 계획 도서관 중 `lending_model IN ('SUBSCRIPTION','RENTAL')`인 곳이 있음 |
 | 문턱 3 | 계획 도서관 3곳 이상이 갖거나 바로 대출이면 통과(v1.20.2부터 운영) |
-| 판정 | 방식을 가린 Haiku 하위 에이전트의 1~5점(3-evaluation.md 1-4) |
+| 판정 | 방식을 가린 Haiku 하위 에이전트의 1\~5점(3-evaluation.md 1-4) |
 | 판(O2, N4 …) | 4-history.md에서 부분마다 붙인 이름 |

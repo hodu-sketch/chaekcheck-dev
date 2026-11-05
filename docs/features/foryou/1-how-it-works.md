@@ -29,7 +29,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
   | 책 상세 화면이나 추천 탭의 책 창을 엶 | `opened = true` (책 창이면 그 책의 `fieldGroup`도) | `recordOpened`, `useBookVisit.ts` |
   | 그 화면이 보이는 채로 누적 10초(`DWELL_MS = 10_000`) | `dwelled = true` | `recordDwelled` |
   | 그 화면에서 도서관 줄을 누름 | `libraryClicked = true` | `recordLibraryClicked`(`web/src/lib/libraryClick.ts`) |
-- 점수 = `opened`면 1 + `dwelled`면 2 + `libraryClicked`면 3 (0~6)
+- 점수 = `opened`면 1 + `dwelled`면 2 + `libraryClicked`면 3 (0\~6)
 - 보관: `lastAt`이 30일(`KEEP_DAYS`) 지난 줄은 읽을 때 버리고, 200줄(`MAX_BOOKS`)을 넘으면 `lastAt`이 오래된 줄부터 버림
 - 마이페이지 「책첵 추천 기준 책」(`BaseBooksDialog`)에서 점수 순 10권을 보이고, [빼기]는 `removedUntil = 지금 + 30일`, 「모두 지우기」는 키를 지움
 

@@ -25,7 +25,7 @@
 | `library_response_daily` | (서울 날짜, 도서관, 출처)마다 하루 한 줄 | 결과별 수, `ok_ms_total`, `ok_ms_max` |
 | `rejected_event` | 받아들이지 않은 사용 알림 | `reason`, `raw_values`(2KB까지) |
 | `dropped_batch` | 버린 묶음 | `row_count`, `reason` |
-| `ai_search_event` | AI 책 찾기 하나(사이클 24, ADR-0152). **질문 글·IP·`visit_key`·`account_id` 없음** | `received_at`, `elapsed_ms`, `turn_no`(1~20, 웹이 셈), `keyword_result`(ok·failed·timeout), `title_like`, `pick_result`(ok·no_match·no_text·partial·skipped), `candidate_count`, `picked_book_ids`(최대 8), `input_tokens`·`output_tokens`(1·2차 합) |
+| `ai_search_event` | AI 책 찾기 하나(사이클 24, ADR-0152). **질문 글·IP·`visit_key`·`account_id` 없음** | `received_at`, `elapsed_ms`, `turn_no`(1\~20, 웹이 셈), `keyword_result`(ok·failed·timeout), `title_like`, `pick_result`(ok·no_match·no_text·partial·skipped), `candidate_count`, `picked_book_ids`(최대 8), `input_tokens`·`output_tokens`(1·2차 합) |
 
 ### `search_event`
 
@@ -59,7 +59,7 @@
   - 배포에서 사용자 IP를 되살리는 설정(`real_ip_header`)은 사이클 17이 정합니다.
 - `account_id`·`visit_key` (ADR-0134, `usagelog/005`; `book_view`·`library_click`·`screen_event`에만, 검색 표 둘에는 없음)
   - `account_id`: 로그인한 회원의 번호입니다(로그인 쿠키의 서명이 맞으면 만료됐어도). 비로그인·로그인 꺼짐이면 NULL, FK 없음, 색인 없음.
-  - `visit_key`: 브라우저 탭이 열릴 때 만든 32자 난수(`sessionStorage`, 쿠키 아님, 탭마다 다름)입니다. 책 상세 GET의 헤더 `X-Visit-Key`, 사용 알림 본문의 `visitKey`로 옵니다. 형식(영숫자 16~64자)이 틀리면 NULL로 두고 거절하지 않습니다.
+  - `visit_key`: 브라우저 탭이 열릴 때 만든 32자 난수(`sessionStorage`, 쿠키 아님, 탭마다 다름)입니다. 책 상세 GET의 헤더 `X-Visit-Key`, 사용 알림 본문의 `visitKey`로 옵니다. 형식(영숫자 16\~64자)이 틀리면 NULL로 두고 거절하지 않습니다.
   - 탈퇴(`AccountDeleted`)하면 `usagelog`가 세 표의 그 회원 `account_id`를 NULL로 비웁니다(줄은 남김, `UsageLogAccountDeletedCleanup`, 로그인 켜짐일 때만 있는 listener). "맞춤 추천 끄기" 설정은 AI 추천 3단계에서 만듭니다.
   - 운영 통계 SQL은 `account_id`를 읽지 않습니다. 같이 본 책 계산은 `visit_key`만 쓰고 `client_ip`를 읽지 않습니다.
 

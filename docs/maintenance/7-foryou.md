@@ -42,7 +42,7 @@ ORDER BY platform_type, name;
 1. 로컬 `db`가 운영 꼴 사본(책 표 반영 뒤)인지 확인합니다.
 2. `../.env`에 나가는 길(`CHAEKCHECK_AVAILABILITY_EGRESS_*`, PC는 Webshare 아이디·비밀번호 쌍)을 둡니다. 돌고 있는 책 수집이 쓰는 서버에는 보내지 않습니다: 수집 중이면 그 사이트를 잠시 뺍니다.
 3. `backend/`에서 `./gradlew bootRun` → 켤 때 한 번 만듭니다(오늘 succeeded가 있으면 `DELETE FROM foryou.build_run WHERE built_on = current_date`로 지우고 다시 켬).
-4. B: `build_run.note`의 사이트마다 `rows`·`matched`, 로그의 `ranked_list_failed`, 걸린 시간(`started_at`~`finished_at`)을 plan-feedback `# 사이클 23`에 적습니다.
+4. B: `build_run.note`의 사이트마다 `rows`·`matched`, 로그의 `ranked_list_failed`, 걸린 시간(`started_at`\~`finished_at`)을 plan-feedback `# 사이클 23`에 적습니다.
 5. C: 로그의 `foryou base position=…` 40줄로 표(책, 출판 연도, 점수, 재료별 점수, ①인지 = `popular=true`이면서 추천목록)를 만들어 사용자에게 보입니다. 추천목록 책은 사이클 24가 main에 들어간 뒤에야 들어옵니다(그 전에는 인기 출처만).
 
 ## 2. 넣기 (수동, 수집 PC 결과)
@@ -65,7 +65,7 @@ ORDER BY platform_type, name;
   --chaekcheck.collection.import.tag-dictionary-file=<TSV 경로>'
 ```
 
-- 파일 [안]: 머리줄 `code<TAB>axis<TAB>name<TAB>thema_code`, 한 줄에 꼬리표 하나. `code`는 영문·숫자·`_` 1~20자, `axis`는 `mood`·`subject`·`audience`, `name`은 비울 수 없음, `thema_code`는 비우면 없음(NULL). 같은 코드 두 줄은 거부
+- 파일 [안]: 머리줄 `code<TAB>axis<TAB>name<TAB>thema_code`, 한 줄에 꼬리표 하나. `code`는 영문·숫자·`_` 1\~20자, `axis`는 `mood`·`subject`·`audience`, `name`은 비울 수 없음, `thema_code`는 비우면 없음(NULL). 같은 코드 두 줄은 거부
 - 파일이 사전 전체입니다: 파일에 없는 코드는 `active=false`(지우지 않음, 이미 붙은 꼬리표는 남고 카드에는 안 나옴). **줄이 없는 파일은 거부**(모든 코드를 끄지 않게)
 - 로그: `tag-dictionary: codes N, made inactive M`. M > 0이면 WARN 한 줄. 꺼진 코드 보기: `SELECT code, name FROM catalog.tag_dictionary WHERE NOT active ORDER BY code;`
 
@@ -78,7 +78,7 @@ ORDER BY platform_type, name;
 ```
 
 - 파일은 [6-aisearch.md](6-aisearch.md) 2절과 같은 `kind<TAB>book_id<TAB>source<TAB>made_on<TAB>text`. 사이클 23 kind:
-  - `for_you_blurb`: `text` 1~300자(PC는 80~150자, R8-4), `made_on` 날짜. 그 책의 글을 덮어씀(upsert)
+  - `for_you_blurb`: `text` 1\~300자(PC는 80\~150자, R8-4), `made_on` 날짜. 그 책의 글을 덮어씀(upsert)
   - `tags`: `text` = 코드 쉼표 목록(앞뒤 빈칸은 떼고 중복은 하나로, 비우면 그 책의 꼬리표를 모두 뗌), `made_on` 날짜. 그 책의 꼬리표를 통째로 바꿈. 사전에 없는 코드는 건너뛰고 수를 셈(WARN)
   - `cover_file`: `text` = 표지 파일 sha1(소문자 16진 40자), `made_on`은 읽지 않음(비워도 됨). 그림은 PC가 S3 `covers/<sha1>.jpg`에 먼저 올림(CloudFront `https://d1bdzw8sfjph5d.cloudfront.net/covers/<sha1>.jpg`, [8-covers.md](8-covers.md)). 운영 `/srv/chaekcheck/covers`는 쓰지 않음
   - 세 kind는 `source`를 읽지 않습니다(비워도 됨). 한 책에 kind마다 한 줄
@@ -98,7 +98,7 @@ ORDER BY platform_type, name;
 ```
 
 - `neighbours-load`: `full`(새 표 `foryou.book_neighbour_next`에 COPY → 짧은 트랜잭션에서 바꿔 끼우기, 실패하면 앞 표 그대로) | `add`(파일의 책만 upsert, 한 트랜잭션). **기본값 없음**(빠뜨려서 표 전체를 바꾸는 일이 없게)
-- 파일 [안]: 첫 줄 `# export_id=<UUID>`, 줄마다 `book_id<TAB>이웃1,이웃2,…`(가까운 차례, 1~20개, 자기 자신·중복 없음, 번호 ≤ 2,147,483,647, 한 책 한 줄). 책 줄이 없으면 거부
+- 파일 [안]: 첫 줄 `# export_id=<UUID>`, 줄마다 `book_id<TAB>이웃1,이웃2,…`(가까운 차례, 1\~20개, 자기 자신·중복 없음, 번호 ≤ 2,147,483,647, 한 책 한 줄). 책 줄이 없으면 거부
 - `export_id`는 PC가 이웃을 계산한 카탈로그의 내보내기 번호(UUID)입니다: 이 DB의 **마지막 SUCCEEDED** `collection.catalog_import.export_id`(`apply`·`finish`가 남김, `in-place`는 NULL)와 다르면 파일을 읽기 전에 거부합니다(책 번호가 다를 수 있음). 번호가 같다는 것을 알 때만 `--chaekcheck.collection.import.force=true`를 붙입니다(WARN 한 줄). `force`는 이 모드에서만 받습니다
   ```sql
   SELECT export_id, imported_at FROM collection.catalog_import

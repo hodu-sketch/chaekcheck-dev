@@ -20,7 +20,7 @@
 |---|---|
 | 플래너(planner) / 옵티마이저 | SQL을 실제로 어떻게 실행할지(어느 색인, 어느 순서, 어느 정렬) 고르는 PostgreSQL 부분. 후보 계획마다 **예상 비용**을 계산해 가장 싼 것을 고름 |
 | 예상 비용(estimated cost) | 플래너가 쓰는 단위 없는 숫자(디스크 쪽 읽기 1 = `seq_page_cost` 1.0 기준). `EXPLAIN`의 `cost=시작..전체`. 계획 비교에는 **전체(total) 비용**을 씀 |
-| 선택도(selectivity) | 조건을 통과할 줄의 비율(0~1). 추정 줄 수 = 표 줄 수 × 선택도. 비용은 거의 이 추정 줄 수로 정해짐 |
+| 선택도(selectivity) | 조건을 통과할 줄의 비율(0\~1). 추정 줄 수 = 표 줄 수 × 선택도. 비용은 거의 이 추정 줄 수로 정해짐 |
 | `pg_stats` | `ANALYZE`가 칸마다 저장하는 통계. 빈 값 비율(`null_frac`), 서로 다른 값 수(`n_distinct`), 자주 나오는 값과 빈도(MCV: `most_common_vals`/`freqs`), 값 분포 표본(`histogram_bounds`) |
 | 히스토그램(`histogram_bounds`) | MCV에 들지 않는 값을 크기 순으로 줄 세워 같은 간격으로 뽑은 표본. 개수는 `default_statistics_target`(운영 100) + 1 = 101개 |
 | 준비문(prepared statement) | SQL을 한 번 파싱해 두고 값만 바꿔 여러 번 실행하는 것. SQL로는 `PREPARE`/`EXECUTE`, 드라이버는 확장 쿼리 프로토콜(Parse/Bind/Execute)의 **이름 있는 문장(named statement)** |
@@ -67,7 +67,7 @@ LIMIT :limit
 
 ### 3-3. 같은 SQL이 generic plan으로 가는 길
 
-1. 한 DB 연결에서 같은 SQL 글의 1~4번째: pgjdbc가 이름 없는 문장으로 보냄 → 매번 실제 값으로 계획.
+1. 한 DB 연결에서 같은 SQL 글의 1\~4번째: pgjdbc가 이름 없는 문장으로 보냄 → 매번 실제 값으로 계획.
 2. 5번째부터(`prepareThreshold=5`): 이름 있는 서버 쪽 준비문 → 계획 캐시를 씀.
 3. 계획 캐시(`plan_cache_mode = auto`, `choose_custom_plan`): 준비문의 처음 5번은 custom plan으로 실행하며 그 **전체 예상 비용의 평균**(계획 세우는 비용 추정 포함)을 기록. 그 뒤 generic plan을 만들어, **generic plan 예상 비용 < custom plan 평균**이면 generic plan을 쓴다. 이 비교는 실행마다 다시 하지만, 비용 추정이 그대로면 결과도 그대로.
 4. 연결은 Hikari 풀에 여러 개라 횟수는 연결마다 따로 쌓이고, 서버를 다시 켜면 0부터. 그래서 「배포 직후 2회 정상, 3회째부터 느림」이 됐다.
@@ -156,7 +156,7 @@ EXPLAIN (ANALYZE) EXECUTE q('%소설%', '%위로%', :'plan', '{}', 30);
 
 | 방법 | 결과 | 고름? |
 |---|---|---|
-| **이 질의만 `SET LOCAL plan_cache_mode = force_custom_plan`** (읽기 전용 트랜잭션 안) | 늘 실제 값으로 계획. `SET LOCAL`은 트랜잭션이 끝나면 사라져 다른 질의에 영향 없음. 비용은 실행마다 계획을 세우는 시간(이 질의 약 2~5ms) | **고름**(v1.20.1) |
+| **이 질의만 `SET LOCAL plan_cache_mode = force_custom_plan`** (읽기 전용 트랜잭션 안) | 늘 실제 값으로 계획. `SET LOCAL`은 트랜잭션이 끝나면 사라져 다른 질의에 영향 없음. 비용은 실행마다 계획을 세우는 시간(이 질의 약 2\~5ms) | **고름**(v1.20.1) |
 | DB·역할 전체 `plan_cache_mode = force_custom_plan` | 모든 준비문이 매번 계획 → 다른 질의의 generic plan 이득을 잃음 | 안 고름 |
 | JDBC `prepareThreshold=0` | 서버 쪽 준비문을 안 씀 → 모든 질의에 영향 | 안 고름 |
 | 질의를 고쳐 generic plan도 빠르게(예: `plan_count`를 미리 계산한 칸, intarray 확장) | 표·확장 변경이 필요하고 추정이 틀리는 근본은 남음 | 이번엔 안 함 |

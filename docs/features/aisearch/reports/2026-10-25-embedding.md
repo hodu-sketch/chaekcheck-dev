@@ -4,7 +4,7 @@
 > - 답하는 것: 질문을 책 벡터와 같은 KURE-v1 벡터로 바꾸려면 모델을 어떻게 줄여야 운영 서버에 올라가나. 줄인 방법별 크기·메모리·시간·품질(원래 모델과 얼마나 같은 벡터·같은 책이 나오나), 운영 서버 임시 컨테이너에서 잰 값.
 > - 답하지 않는 것: 벡터 후보를 낱말 후보와 RRF로 합쳤을 때 카드가 얼마나 나아지나 → [첫 보고서](2026-10-25-eval.md) 3·4-1절. 지금 질문 벡터가 만들어지는 길(임베딩 서버, 시간 한도, 차단기) → [1-how-it-works 3-4·3-5·4-2절](../1-how-it-works.md). 서버 설정·명령 → [6-aisearch 7절](../../../maintenance/6-aisearch.md).
 > - 그때 운영 버전: v1.14.x. AI 검색은 낱말 검색(pg_bigm) + 이어서 묻기의 이웃 책(`foryou.book_neighbour`)만 썼고, 벡터는 쓰지 않았습니다.
-> - 지금과 다른 점: 여기서 만든 **ONNX int8(per channel) + 낱말표·토크나이저 자름** 판(`kure-query-int8-ext.onnx` + `.data`, `tokenizer-cut.json`)이 [v1.15.0](../2-versions.md#v1150)부터 운영에 쓰입니다. 질문 벡터는 백엔드가 아니라 임베딩 전용 서버(t4g.micro, `ENCODER=remote`, Java ONNX Runtime)가 만들고, 책 벡터는 `book-vectors.bin`(지금 81,078권, int8)으로 백엔드 메모리에 둡니다. 이 문서의 시간·메모리는 Python ONNX Runtime으로 잰 값이라 지금 Java 임베딩 서버의 값과 다릅니다(운영 임베딩 서버 60~68ms는 [2-versions v1.15.0](../2-versions.md#v1150)).
+> - 지금과 다른 점: 여기서 만든 **ONNX int8(per channel) + 낱말표·토크나이저 자름** 판(`kure-query-int8-ext.onnx` + `.data`, `tokenizer-cut.json`)이 [v1.15.0](../2-versions.md#v1150)부터 운영에 쓰입니다. 질문 벡터는 백엔드가 아니라 임베딩 전용 서버(t4g.micro, `ENCODER=remote`, Java ONNX Runtime)가 만들고, 책 벡터는 `book-vectors.bin`(지금 81,078권, int8)으로 백엔드 메모리에 둡니다. 이 문서의 시간·메모리는 Python ONNX Runtime으로 잰 값이라 지금 Java 임베딩 서버의 값과 다릅니다(운영 임베딩 서버 60\~68ms는 [2-versions v1.15.0](../2-versions.md#v1150)).
 
 사이클 24 곁 조사. 사용자 요청: "임베딩 벡터 먼저 봐줘", "압축판으로 해보자", "onnxruntime이랑 optimum 설치해서 ONNX int8 + 낱말표 자르기로 품질·크기 다시 재줘", "int8 모델을 서버 /srv/chaekcheck에 올리고 임시 컨테이너로 메모리·시간 재줘 (운영 서비스는 건드리지 말고)", "이거 성능결과 기록하고".
 
@@ -45,7 +45,7 @@
 | ONNX int8 MatMul만(낱말표 float32) | 669MB | 692MB | 59ms | 0.989 | 7.00 | 25/28 |
 
 - 낱말표 자르기는 손실 없음(float32에서 완전히 같음). int8의 손실은 MatMul 쪽에서 나옴(낱말표까지 int8로 해도 같음).
-- int8의 차이는 거의 같은 점수인 책끼리 순서가 바뀌는 정도(「세네카와 쇼펜하우어」 1·2위, 「우울할 때 시집」 1~3위, 「반전 미스터리」 2~5위 일부).
+- int8의 차이는 거의 같은 점수인 책끼리 순서가 바뀌는 정도(「세네카와 쇼펜하우어」 1·2위, 「우울할 때 시집」 1\~3위, 「반전 미스터리」 2\~5위 일부).
 - optimum은 ml venv의 transformers를 5.20→4.57로 내려 사이클 23 도구를 깰 수 있어 넣지 않음. onnx 1.23.2·onnxruntime 1.31.0만 넣고 `torch.onnx.export`(opset 17) + `onnxruntime.quantization.quantize_dynamic(per_channel=True, MatMul·Gather)`.
 - 크기 칸은 파일 크기(MiB)입니다. ONNX 세 판은 지금 PC 파일로 다시 확인함(2026-10-29): `kure-query-fp32.onnx` 1,605,573,225바이트(1,531MB), `kure-query-int8.onnx` 404,191,899바이트(385MB), `kure-query-int8-matmul.onnx` 701,071,651바이트(669MB). `build.json`에도 `vocab_kept` 88446, `fp32_mb` 1531, `int8_mb` 385로 남아 있습니다.
 - 그래프 끝이 「첫 토큰(CLS) 위치 벡터 → 길이 1로 나눔」이라 출력이 바로 길이 1 벡터입니다([1-how-it-works 3-4절](../1-how-it-works.md)).
@@ -65,7 +65,7 @@
 | 4개 동시 | 481ms | 489ms |
 | 원래 모델과 벡터 닮음 | 0.988 | 0.988 |
 
-- 잴 때 서버: 사용 가능 메모리 740~940MB, 스왑 568MB 쓰는 중 → 백엔드에 넣으면 남는 여유 300~400MB [추론].
+- 잴 때 서버: 사용 가능 메모리 740\~940MB, 스왑 568MB 쓰는 중 → 백엔드에 넣으면 남는 여유 300\~400MB [추론].
 - 이 시간은 Python(onnxruntime) 임시 컨테이너 값입니다. 백엔드나 지금 임베딩 서버(Java)에서 잰 값이 아닙니다.
 
 ## 6. 파일

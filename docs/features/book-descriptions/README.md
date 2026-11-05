@@ -3,7 +3,7 @@
 ## 이 문서가 답하는 것 / 답하지 않는 것
 
 - 답하는 것: 사이클 26(책 설명을 `catalog` 한 곳에 모으고, 표지를 S3 + CloudFront로 옮김)에서 dev가 남긴 문서가 어디 있고 각각 무엇을 답하는지.
-- 답하지 않는 것: 사이클의 요구·결정(왜 하나, 무엇을 받아들이나) → plan 프로젝트 `chaekcheck-plan/docs/cycles/26-book-descriptions/`(handoff.md, spec.md, ADR-0161~0163).
+- 답하지 않는 것: 사이클의 요구·결정(왜 하나, 무엇을 받아들이나) → plan 프로젝트 `chaekcheck-plan/docs/cycles/26-book-descriptions/`(handoff.md, spec.md, ADR-0161\~0163).
 
 ## 문서
 

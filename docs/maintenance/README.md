@@ -1,9 +1,9 @@
 # 정기 유지보수: ① 도서관 수집 → ② 책 수집 → 가져오기
 
 - 주기적으로 하는 유지보수 작업의 **절차 원본**입니다(plan ADR-0047, 2026-10-04). 원칙: 절차의 원본은 dev, 조사 기록·근거·결정은 plan [확정] (사용자, 2026-10-01).
-- 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기, 지금 이름으로는 수집 목록에서 찾은 도서관을 서비스에 넣기)과 6절(확인 필요)은 plan에 남습니다.
+- 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0\~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기, 지금 이름으로는 수집 목록에서 찾은 도서관을 서비스에 넣기)과 6절(확인 필요)은 plan에 남습니다.
 - 수집은 두 갈래입니다 [확정] (사용자 승인, 2026-10-05, plan 사이클 07): **① 도서관 수집**(어느 전자도서관이 있나 → 서비스 DB에 넣기) / **② 책 수집**(도서관마다 어떤 책이 있나). 그 뒤 **가져오기**가 ②의 결과를 서비스 DB 책 표로 옮깁니다. 원칙과 결정은 plan `docs/research/collection/1-libraries.md`, `2-books.md`에 있고, 여기에는 절차만 둡니다(ADR-0047).
-- 도서관 목록은 둘입니다 [확정] (사용자, 2026-10-04): **등록 도서관**(dev seed `library/001`~`006`, 280줄) / **수집 목록에서 찾은 도서관**(수집 DB `library` 번호 100001~, 웹러브 북스 등에서 찾음). 사이클 07부터 전체 수집이 끝난 곳은 서비스 DB에도 새 번호로 들어갑니다(2026-10-05 2,394곳 `library/008` seed, 사이클 13부터는 넣기 명령 `library-insert`). 자세히는 [1-libraries.md](1-libraries.md) "도서관 목록 두 가지".
+- 도서관 목록은 둘입니다 [확정] (사용자, 2026-10-04): **등록 도서관**(dev seed `library/001`\~`006`, 280줄) / **수집 목록에서 찾은 도서관**(수집 DB `library` 번호 100001\~, 웹러브 북스 등에서 찾음). 사이클 07부터 전체 수집이 끝난 곳은 서비스 DB에도 새 번호로 들어갑니다(2026-10-05 2,394곳 `library/008` seed, 사이클 13부터는 넣기 명령 `library-insert`). 자세히는 [1-libraries.md](1-libraries.md) "도서관 목록 두 가지".
 - plan 저장소 위치: `..\chaekcheck-plan\` (아래 "plan `…`"은 이 폴더 기준 경로). 문서 색인은 plan `docs/reference-index.md`.
 - 주기와 순서는 모두 [안]입니다. 정하는 곳은 주기 갱신 사이클입니다(별도 사이클 [확정], plan `docs/research/ebook-catalog/catalog-refresh.md` 머리말).
 
@@ -24,7 +24,7 @@
 
 절차: [1-libraries.md](1-libraries.md) → [`docs/libraries/library-maintenance.md`](../libraries/library-maintenance.md). 볼 곳과 순서 [안]:
 
-1. 목록 출처 다시 보기: 교보 공식 목록, 공공데이터포털 전국도서관표준데이터, 통합 포털 목록, 웹러브 북스 (4-0~4-5). 교보 공식 목록 재확인은 요청 약 400건·20분, plan `docs/cycles/02-library-expansion/data/kyobo-institutions.tsv`와 비교 (4-1, 4-9)
+1. 목록 출처 다시 보기: 교보 공식 목록, 공공데이터포털 전국도서관표준데이터, 통합 포털 목록, 웹러브 북스 (4-0\~4-5). 교보 공식 목록 재확인은 요청 약 400건·20분, plan `docs/cycles/02-library-expansion/data/kyobo-institutions.tsv`와 비교 (4-1, 4-9)
 2. 주소 모양으로 화면 종류 나누기, 최종 주소 확정 (4-6, 4-7, 3절 도구)
 3. 가입 자격·방문 가입 판정 (1-1, 1-2, 4-8, 4-10). 사람이 정한 값은 `scripts/library/join_overrides.tsv`가 마지막에 이김
 4. 책 번호 체계 점검: `check_code_spaces.py` → 기준값과 비교. 크게 바뀌거나 새 화면 종류가 생기면 사용자에게 알림 [확정] (사용자, 2026-09-30) (4-11)
@@ -40,7 +40,7 @@
 
 절차: [2-crawl.md](2-crawl.md).
 
-0. **지금 도는 일과 남은 일**(전체 수집·표지 받기, 2026-10-24~): [2-crawl.md](2-crawl.md) 0-0절을 먼저 봅니다
+0. **지금 도는 일과 남은 일**(전체 수집·표지 받기, 2026-10-24\~): [2-crawl.md](2-crawl.md) 0-0절을 먼저 봅니다
 1. `scripts\crawl\resume.cmd` 실행(2026-10-12부터 이것만, 2-crawl 0-1절). 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
 2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 교보 구독형 서버(`*.dkyobobook.co.kr`)에는 요청을 보내지 않고, 그 서버용이던 `host-slots.txt`는 사이클 13부터 읽지 않음 (2-crawl 0-1·2-1절)
 3. 상태 보기: `python -X utf8 scripts\crawl\crawl_catalog.py status`, 로그 데이터 폴더 `logs\crawl-*.log` (2-crawl 3·5절)

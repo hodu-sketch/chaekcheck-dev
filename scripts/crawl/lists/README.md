@@ -13,7 +13,7 @@
 | 칸 | 뜻 |
 |---|---|
 | `list` | `leedongjin`, `snu100`, `kaist` 또는 `nobel` (사서 추천도서 분야는 서버가 받으므로 여기 없음) |
-| `code` | 분야 코드, 1~20자, 목록 안에서 하나. 줄의 `field`가 이 값을 씀 |
+| `code` | 분야 코드, 1\~20자, 목록 안에서 하나. 줄의 `field`가 이 값을 씀 |
 | `name` | 화면 분야 이름 |
 | `position` | 화면 순서(1부터, 목록 안에서 하나). 「전체」는 늘 맨 앞이라 여기 없음 |
 
@@ -37,7 +37,7 @@
 
 | 칸 | 뜻 |
 |---|---|
-| `toc_no` | 『권장도서 해제집』 목차 번호 1~100(하나씩). 화면 순서(표지에 번호를 붙이지 않음, 사용자 2026-10-16) |
+| `toc_no` | 『권장도서 해제집』 목차 번호 1\~100(하나씩). 화면 순서(표지에 번호를 붙이지 않음, 사용자 2026-10-16) |
 | `field` | 분야 코드(`fields.tsv`의 `snu100` 줄) |
 | `title` | 목차 제목. 우리 책을 못 맞추면 화면은 이 제목을 씀. 맞추면 책 창에 "목록 이름 「…」"(화면 이름과 다를 때) |
 | `author` | 첫 저자(같은 책 찾기와 표지 검색의 실마리). 목차에 저자가 없던 12권은 일반 지식으로 채우고 `note`에 "저자: 일반 지식(2026-10-16) [안]" |
@@ -90,7 +90,7 @@ Bokklubben World Library(2002, 노르웨이 북클럽·노르웨이 노벨연구
 
 | 파일 | 칸 | 뜻 |
 |---|---|---|
-| `subject_fields.tsv` | `subject`, `field_suggestion`, `note` | ISBN 서지 `SUBJECT`(0~9) → 이동진 분야 제안 |
+| `subject_fields.tsv` | `subject`, `field_suggestion`, `note` | ISBN 서지 `SUBJECT`(0\~9) → 이동진 분야 제안 |
 | `collector_words.tsv` | `kind`, `word`, `note` | `year_book_title`(12월 업로드 제목 → 올해의 책 후보), `not_a_book`(책 이름이 아닌 채널 표지), `excluded_title`·`excluded_publisher`·`excluded_name`(고르지 않는 판). 모르는 `kind`면 수집기가 멈춤 |
 | `cover_sources.tsv` | `order`, `source`, `note` | 표지를 찾는 곳과 차례: `nlk_isbn`, `collected_preferred`, `collected_other`, `nlk_holdings`, `nlk_title`(뜻은 `note`와 4-picks.md 6-3). 수집기는 `kakao_book`도 알지만 차례에 넣지 않음(카카오 썸네일은 오래 저장하면 안 됨, 2026-10-17). 모르는 이름이면 수집기가 멈춤 |
 | `cover_hosts.tsv` | `order`, `host`, `note` | 수집 사본 표지 주소 가운데 먼저 시도할 호스트와 차례 |

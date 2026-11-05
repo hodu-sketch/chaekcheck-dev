@@ -1,7 +1,7 @@
 # 전자도서관 플랫폼별 검색·목록 방법
 
 - 정기 유지보수 2단계([2-crawl.md](2-crawl.md))에서 쓰는 플랫폼별 방법의 **원본**입니다(plan ADR-0047, 2026-10-04). 옮겨 온 곳: plan `docs/research/ebook-catalog/platforms.md` 전체(내용은 그대로, 이 머리말만 고침).
-- 처음 작성: 2026-09-30. 값은 그날(일부는 2026-10-01~03) 표본 사이트에 직접 호출해 확인한 것입니다. 표본에서 본 것이므로 같은 플랫폼이라도 사이트마다 다를 수 있습니다.
+- 처음 작성: 2026-09-30. 값은 그날(일부는 2026-10-01\~03) 표본 사이트에 직접 호출해 확인한 것입니다. 표본에서 본 것이므로 같은 플랫폼이라도 사이트마다 다를 수 있습니다.
 - 목적: 전자도서관 사이트에서 **검색**(제목·저자·출판사)과 **전체 목록**(소장 전자책 전부)을 가져올 때 참고합니다.
 - 지금 서비스에 있는 adapter의 정확한 선택자는 `backend/src/main/java/com/chaekcheck/availability/internal/adapter/*.java` 주석이 원본입니다. adapter 설계는 사이클에서 합니다.
 - 화면 종류 값과 판별: [`docs/libraries/library-maintenance.md`](../libraries/library-maintenance.md) 1-3·4-6절, plan ADR-0016·ADR-0023. 수집 원칙(호출 간격·저장 범위·날짜 기록)은 plan `docs/research/ebook-catalog/crawl-method.md`, 조사 배경은 같은 폴더 `research.md`.
@@ -57,15 +57,15 @@
 - 검색: `{base}/search/searchList.ink?…` (일반과 같은 값, 경로 앞 `elibrary-front` 없음). 빈 검색은 0건
 - 전체 목록: `{base}/content/contentList.ink?cttsDvsnCode=001&contentAll=Y&ctgrId=&orderByKey={정렬}&pageIndex={쪽}&recordCount={N}`
   - `ctgrId=`와 `contentAll=Y`가 없으면 500 오류
-  - `recordCount` 최대 99("조회 건수 최대값[99]" 안내). 80을 씀. 큰 목록은 한 쪽 5~7초
+  - `recordCount` 최대 99("조회 건수 최대값[99]" 안내). 80을 씀. 큰 목록은 한 쪽 5\~7초
   - `orderByKey`: `publDate`(최신순), `loanNmvl`(인기순), `cttsHnglName`(제목순), `sntnAuthName`(저자순). **최신순이 있어 매일 신간 수집에 쓸 수 있음**
   - `cttsDvsnCode`: 001 전자책. 002는 오디오북으로 보임 [확인 필요]
 - 목록 줄 모양은 교보 일반과 같음(`contentList.fnContentClick`). 줄에 "대출 : X/Y"도 있음
 - 목록 크기가 사이트마다 다름 (2026-09-30):
-  - 큰 목록 16곳: 180,392~244,765권(세종 208,968, 동해 244,765 등). 같은 서버라 한 곳씩 받으면 각 4시간 안팎
-  - 작은 목록 5곳: 9~804권(거제시청, 노형꿈틀, 대구교육청, 박정희대통령기념, 울릉)
+  - 큰 목록 16곳: 180,392\~244,765권(세종 208,968, 동해 244,765 등). 같은 서버라 한 곳씩 받으면 각 4시간 안팎
+  - 작은 목록 5곳: 9\~804권(거제시청, 노형꿈틀, 대구교육청, 박정희대통령기념, 울릉)
 - 모바일 화면: User-Agent에 데스크톱 브라우저 표시가 없으면 전체 건수가 없는 모바일 화면이 옴
-- 교보 기관 사이트(`*.dkyobobook.co.kr`)는 첫 화면 스크립트에 `library_model: '대여'|'소장'|'혼합'`이 있음 [확정] (2026-10-03). 대여·혼합은 교보 구독 목록이 붙어 20만 권 안팎(신용보증기금 238,118), 소장은 대개 수백~수천 권. 경로가 `/elibrary-front` 없이 `/main.ink`, `/content/contentList.ink`이면 구독형과 같은 방법으로 받음
+- 교보 기관 사이트(`*.dkyobobook.co.kr`)는 첫 화면 스크립트에 `library_model: '대여'|'소장'|'혼합'`이 있음 [확정] (2026-10-03). 대여·혼합은 교보 구독 목록이 붙어 20만 권 안팎(신용보증기금 238,118), 소장은 대개 수백\~수천 권. 경로가 `/elibrary-front` 없이 `/main.ink`, `/content/contentList.ink`이면 구독형과 같은 방법으로 받음
 - `contentList.ink`의 `recordCount`는 20·40·60·80만 받음(1이나 99면 HTTP 500) [확정] (2026-10-03). "총" 다음에 `&nbsp;`가 있어 HTML 엔티티를 풀고 읽어야 함
 
 ## 4. YES24 [확정] (표본: 화성 `hsg.yes24library.com`(V2), 성동 `ebook.sdlib.or.kr:8092`(V1), 춘천 `elib.chuncheon.go.kr:447`(V2))
@@ -172,9 +172,9 @@
 - 조사 방법·원문·가입 자격·판정: [`library-maintenance.md`](../libraries/library-maintenance.md) 4-14. 다시 확인: `python scripts/library/probe_seoul_elib.py` (저장소 루트, 요청 약 7건). adapter·수집기를 붙인 순서는 [2-crawl.md](2-crawl.md) 7절 그대로.
 - 알아보는 법: 호스트 `elib.seoul.go.kr`, `/` → 302 `/main`. 화면 HTML에는 결과가 없고 `/resources/js/05_search/r_search2.js`(검색), `06_contents/r_list2.js`(분류 목록), `r_detail.js`(상세)가 JSON API를 부름. 응답 UTF-8 `application/json`. 로그인 없이 검색·목록·상세 JSON이 열림. 사람이 볼 검색 화면은 검색어를 주소에 남기지 않음(스크립트·`history.state`) → "도서관에서 보기"는 첫 화면 `/main`.
 - 검색: `GET /api/contents/search?libCode=&contentType={EB|TY03}&searchKeyword={검색어}&searchOption={1 서명|2 저자|3 출판사|4 전체}&sortOption={1 제목|2 저자|3 발행일|4 추천|5 대출}&innerSearchYN=N&innerKeyword=&currentCount={쪽, 1부터}&pageCount={줄 수}&loanable=&isTotal=false&showType=L&searchCombine=N` → `{totalCount, totalPage, ContentDataList[]}`(건수는 문자열). 결과 없음은 `totalCount` "0"과 빈 목록. 빈 검색어는 404(HTML). `contentType=EB` 결과에도 국외 OverDrive 줄(`ownerCode` OV)이 섞이고 `totalCount`에 들어감.
-- 전체 목록: 대분류 `GET /api/category/main?contentType={EB|TY03}` → `categoryNo`, `categoryName`, `contentCount`(소분류 `GET /api/category/sub?majorCategory=…&contentType=…`). 전자책과 오디오북의 분류 번호는 겹치지 않음(EB 001~019·021·099·100, TY03 131~162). 분류별 목록 `GET /api/contents/catesearch?libCode=&majorCategory={번호}&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount={쪽}&pageCount=100`(분류 번호 하나로 전자책·오디오북 모두, `majorCategory` 빈 값은 404). 전자책 대분류 22개 합 28,232(그중 100 국외전자책 3,900은 모두 OV, 021 VOD·099 Project Gutenberg 0), 오디오북 20개 합 1,453(2026-10-20). 분류가 겹치는지: 아래 시험 수집 결과.
+- 전체 목록: 대분류 `GET /api/category/main?contentType={EB|TY03}` → `categoryNo`, `categoryName`, `contentCount`(소분류 `GET /api/category/sub?majorCategory=…&contentType=…`). 전자책과 오디오북의 분류 번호는 겹치지 않음(EB 001\~019·021·099·100, TY03 131\~162). 분류별 목록 `GET /api/contents/catesearch?libCode=&majorCategory={번호}&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount={쪽}&pageCount=100`(분류 번호 하나로 전자책·오디오북 모두, `majorCategory` 빈 값은 404). 전자책 대분류 22개 합 28,232(그중 100 국외전자책 3,900은 모두 OV, 021 VOD·099 Project Gutenberg 0), 오디오북 20개 합 1,453(2026-10-20). 분류가 겹치는지: 아래 시험 수집 결과.
 - 줄 칸: `contentsKey`(책 번호, `PRD…`·`CPP…`·숫자 등 이 사이트만의 번호, 상세 주소 `no=`에 그대로), `title`, `author`, `publisher`, `publishDate`, `isbn`, `contentsType`(TY01 소장, TY02 구독, TY03 오디오북), `contentsTypeDesc`("전자책(소장형)" 등), `ownerCode`(유통사: OD ECO, BQ 북큐브, BX OPMS, YE 예스24, YB Y2BOOKS, CP 컨텐츠포탈, AL 알라딘, AD 오디언, OV 오버드라이브 = 국외, 대출은 OverDrive 사이트), `contentsFileType`(1 EPUB, 2 PDF, 3 AUDIO), `b2bCopys`(보유, 검색 결과에만; 분류 목록 줄은 `copys`), `currentLoanCount`(지금 대출), `currentResvCount`(지금 예약), `loanCnt`·`reserveCnt`(누적으로 보임), 표지 주소, 책 소개 `contentsInfo`(읽지도 저장하지도 않음, library-maintenance 2절).
-- 상세: 화면 `/contents/detail.do?no={contentsKey}`, JSON `GET /api/contents/{contentsKey}` → `Contents[0].contentsCopys`·`currentLoanCount`·`currentResvCount`(`b2bCopys`는 null). 상세 스크립트는 소장형(TY01)에만 수를 그림. 구독형(TY02)은 `b2bCopys` 1이어도 `currentLoanCount` 2~5인 줄이 있어 수량 제한 없음(이용안내 "대출 수 제한 없음").
+- 상세: 화면 `/contents/detail.do?no={contentsKey}`, JSON `GET /api/contents/{contentsKey}` → `Contents[0].contentsCopys`·`currentLoanCount`·`currentResvCount`(`b2bCopys`는 null). 상세 스크립트는 소장형(TY01)에만 수를 그림. 구독형(TY02)은 `b2bCopys` 1이어도 `currentLoanCount` 2\~5인 줄이 있어 수량 제한 없음(이용안내 "대출 수 제한 없음").
 - robots.txt(2026-10-20): `/EPUBViewer3/`, `/PDFViewer/`, `/epubs/`, `/pdf/`, `/wv3a/`만 막음.
 
 **서비스 adapter** (`backend/.../availability/internal/adapter/SeoulElibV1Adapter.java`, 시험 `SeoulElibV1AdapterTests` + 저장 JSON `src/test/resources/fixtures/seoul-elib/`)

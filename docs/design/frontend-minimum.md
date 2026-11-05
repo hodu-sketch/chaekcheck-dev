@@ -226,7 +226,7 @@ React는 React Native와 Expo로 **Android·iOS 앱**을 만들 수 있고, UI�
 - [ ] **1단계 — React 기초**: 2.1의 9가지 + 2.2 `useEffect`의 의미 (react.dev Quick Start [2])
 - [ ] **2단계 — TypeScript 최소**: 3장의 3가지 + API 응답 타입 정의
 - [ ] **3단계 — Vite 프로젝트**: 생성, `index.html`, 환경변수 규칙, `/api` 프록시 연결 (4.1)
-- [ ] **4단계 — 라우팅**: React Router로 페이지 2~3개 연결 (4.2)
+- [ ] **4단계 — 라우팅**: React Router로 페이지 2\~3개 연결 (4.2)
 - [ ] **5단계 — 데이터**: TanStack Query로 Spring API 조회·등록 (2.3)
 - [ ] **6단계 — 반응형**: viewport 메타, Flex/Grid, 미디어쿼리 (5장)
 - [ ] **7단계 — 배포 준비**: CORS (4.3)

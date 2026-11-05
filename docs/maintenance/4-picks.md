@@ -1,6 +1,6 @@
 # 추천도서: 사서추천도서 받기와 이동진 추천도서·서울대 100선 목록 (사이클 14, 21)
 
-- 사이클 14(사이클 10 인기 도서를 대체). 결정과 근거는 plan ADR-0089~0092와 `docs/cycles/14-librarian-picks/`에 있고, 여기에는 운영 절차만 둡니다.
+- 사이클 14(사이클 10 인기 도서를 대체). 결정과 근거는 plan ADR-0089\~0092와 `docs/cycles/14-librarian-picks/`에 있고, 여기에는 운영 절차만 둡니다.
 - 하는 일: 국립중앙도서관 사서추천도서 Open API(`saseoApi.do`)에서 최근 3년 등록분을 요청 1건으로 받아, 추천 연월 최근 12개 달(12번 추천)의 책만 `picks` 스키마에 저장합니다. 화면은 `/picks/librarian`, API는 `GET /api/v1/picks/librarian`(사이클 21부터 목록마다 주소가 따로입니다: `librarian`·`leedongjin`·`snu100`, ADR-0126). 사이클 21부터 저장 표는 `picks.list_book`(사서 줄은 `list_key = 'librarian'`)과 `picks.list_field`입니다(ADR-0122). 이동진 추천도서·서울대 100선은 6절.
 
 ## 1. 켜고 끄기, 인증키
@@ -84,7 +84,7 @@ UPDATE picks.list_book SET cover_source = NULL WHERE cover_source = '<cover_sour
 
 ## 6. 이동진 추천도서·서울대 100선 (사이클 21)
 
-결정과 근거는 plan `docs/cycles/21-recommended-books/`(ADR-0122~0129)에 있습니다. 여기에는 다른 세션이 이 문서만 읽고 돌리고 고칠 수 있게 절차만 둡니다.
+결정과 근거는 plan `docs/cycles/21-recommended-books/`(ADR-0122\~0129)에 있습니다. 여기에는 다른 세션이 이 문서만 읽고 돌리고 고칠 수 있게 절차만 둡니다.
 
 ### 6-1. 흐름 한눈에
 
@@ -94,7 +94,7 @@ UPDATE picks.list_book SET cover_source = NULL WHERE cover_source = '<cover_sour
 4. **apply / finish / in-place**: 책 표를 바꿔 끼운 **뒤** 작은 트랜잭션 하나로 이동진·서울대 줄을 바꿉니다. 목록 넣기만 실패하면 책 표는 바뀌고 옛 목록이 남으며, 가져오기 줄의 `step_seconds`에 `lists failed`가 남습니다(로그 ERROR)
 5. **화면**: 서버를 다시 켜지 않아도 공용 캐시 새로 고침(10분 안)에 나옵니다
 
-사서추천도서는 이 길을 타지 않고 지금처럼 서버가 받습니다(1~5절).
+사서추천도서는 이 길을 타지 않고 지금처럼 서버가 받습니다(1\~5절).
 
 ### 6-2. 수집기 돌리기
 
@@ -167,7 +167,7 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 
 - 요청: "이동진 추천 빼고 여기 넣어줘" — 화면의 「이동진 추천」 탭 자리에 KAIST 도서관 목록을 넣음. 이동진 목록 자료(seed·파일)는 지우지 않고 화면에서만 뺄 예정.
 - 출처: https://library.kaist.ac.kr/search/ctlgSearch/collections/specialCollection.do (KAIST 도서관 > 소장자료검색 > Collections > 추천도서). 페이지 글: "사서추천도서, 스페셜도서, 독서문화위원회 추천도서를 확인할 수 있습니다."
-- 페이지 구성(2026-10-19 확인): 탭 「사서추천도서」 「스페셜도서」 「독서문화위원회」, 해마다 목록(2026 · 2025 · 2023 · 2022 · ~2021). 주소가 가리키는 「스페셜도서」 2026은 주제 4개 × 20권: 자연이 우리에게 주는 메시지(20) · AI가 우리에게 주는 메시지(20) · 문화가 우리에게 주는 메시지(20) · AI대학(20). 각 주제에 "검색결과 더보기"(전체 목록)와 "Holdings" 링크가 있음.
+- 페이지 구성(2026-10-19 확인): 탭 「사서추천도서」 「스페셜도서」 「독서문화위원회」, 해마다 목록(2026 · 2025 · 2023 · 2022 · \~2021). 주소가 가리키는 「스페셜도서」 2026은 주제 4개 × 20권: 자연이 우리에게 주는 메시지(20) · AI가 우리에게 주는 메시지(20) · 문화가 우리에게 주는 메시지(20) · AI대학(20). 각 주제에 "검색결과 더보기"(전체 목록)와 "Holdings" 링크가 있음.
 - 사용자 결정(2026-10-19): 「스페셜도서」 2026 네 주제("스페셜도서 책"), 그 뒤 「AI대학」은 뺌("kaist 추천에서 AI대학 이건 빼자", 영문 원서가 많아 우리 책과 0/20) → 세 주제 60권, 화면 탭 이름 "KAIST 추천", 탭 순서 사서 추천 → KAIST 추천 → 서울대 100선("사서 추천을 맨 앞에 그 다음에 카이스추천 서울대 추천").
 - 이용 조건 확인(2026-10-19): `https://library.kaist.ac.kr/robots.txt`는 없음(404, 사이트 오류 페이지). 페이지 아래에 이용 약관 링크는 없고 "Copyright (C) 2019 KAIST Library All Rights Reserved"와 개인정보처리방침만 있음. 목록의 서명·저자·출판사·ISBN은 사실 정보로 보고 쓰고, 책 소개 글(교보문고 제공)과 표지 그림은 가져오지 않음.
 - 읽는 길(2026-10-19 확인, 모두 GET, 로그인 없음)
@@ -200,10 +200,10 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 내 PC `db`에 `lists` 모드(2026-10-20): kaist 2,481줄 중 1,707권 맞춤, 표지 2,249장 넣음(20 fields, 2,624 books). 운영 반영은 ux4와 함께 다음 배포(v1.7.0) 때 3-import.md 14절로.
 - 남긴 파일(git 밖, `data/recommended-lists/kaist/`): `kaist-librarian.tsv`(수집 원본), `subjects.tsv`(ISBN별 주제·부가기호), 스크립트 `collect.py`·`classify.py`·`build_list.py`, `fallback.json`.
 
-## 8. AI 요약 (2026-10-19~20 사용자 요청, 사이클 26부터 책첵 요약 하나)
+## 8. AI 요약 (2026-10-19\~20 사용자 요청, 사이클 26부터 책첵 요약 하나)
 
 - 화면: 책 창(S14)과 책 상세의 「AI 요약 ⓘ」 꼬리표와 요약 전체(자르지 않음, 회색보다 진한 글자). ⓘ = "AI가 책 정보를 바탕으로 쓴 짧은 요약이에요. 실제 내용과 다를 수 있어요."(모델 이름 없음).
-- **사이클 26부터(ADR-0161)**: 추천목록 책 창의 요약은 그 책의 **책첵 요약**(`catalog.book_summary`, 해요체 1~300자)이고, 책첵 추천·AI 검색·책 상세와 글자까지 같습니다. 목록 전용 파일 `picks/ai-summaries.tsv`와 `AiSummaries`는 없어졌습니다. **우리 책 번호가 없는 줄은 요약이 없습니다.** 요약은 넣으면 서버를 다시 켜지 않아도 목록 캐시를 다시 읽을 때(`refresh-interval`, 10분 안) 보입니다. 빌드·배포는 필요 없습니다.
+- **사이클 26부터(ADR-0161)**: 추천목록 책 창의 요약은 그 책의 **책첵 요약**(`catalog.book_summary`, 해요체 1\~300자)이고, 책첵 추천·AI 검색·책 상세와 글자까지 같습니다. 목록 전용 파일 `picks/ai-summaries.tsv`와 `AiSummaries`는 없어졌습니다. **우리 책 번호가 없는 줄은 요약이 없습니다.** 요약은 넣으면 서버를 다시 켜지 않아도 목록 캐시를 다시 읽을 때(`refresh-interval`, 10분 안) 보입니다. 빌드·배포는 필요 없습니다.
 - **달마다 새 사서추천 책(또는 새 목록 책)의 요약 넣기**
   1. 운영 DB에서 요약 없는 목록 책을 뽑습니다(읽기 전용):
      ```sql
@@ -214,17 +214,17 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
      ```
      사서추천 줄은 서버가 ISBN·제목으로 맞추므로 `list_book.book_id`가 비어 있을 수 있습니다. 그 줄까지 보려면 운영 `GET /api/v1/picks/librarian`의 `bookId`가 있고 `aiSummary`가 `null`인 줄을 씁니다(0단계 4번 방법, plan-feedback `# 사이클 26`).
   2. PC에서 `scripts/crawl/list_summaries_c26.py prepare <책 번호 파일> <폴더>`로 입력을 만듭니다(PC DB의 마지막 가져오기 `export_id`가 운영과 같아야 책 번호가 맞음: `SELECT export_id FROM collection.catalog_import WHERE status='SUCCEEDED' ORDER BY imported_at DESC LIMIT 1`을 두 DB에서 비교). 입력은 `foryou_blurbs.py`와 같습니다(서지 한 줄 + 소개 원문 앞 1,500자).
-  3. Haiku 하위 에이전트에 100권씩 나눠 맡깁니다(규칙: 해요체 한두 문장 80~150자, 칭찬·결말·AI 언급 없음, 원문 8자 연속 금지, 모르면 NONE). 답은 `answer-NN.jsonl`. 그다음 `collect <폴더>`가 `foryou_blurbs.check`로 다시 검사합니다. 소개 원문이 그 책이 아닌 경우(같은 홍보문이 여러 책에 붙음, "도서 소개가 없습니다")는 원문을 비우고 "작품을 확실히 알 때만" 다시 쓰게 합니다(2026-10-28 783권 때 16권).
+  3. Haiku 하위 에이전트에 100권씩 나눠 맡깁니다(규칙: 해요체 한두 문장 80\~150자, 칭찬·결말·AI 언급 없음, 원문 8자 연속 금지, 모르면 NONE). 답은 `answer-NN.jsonl`. 그다음 `collect <폴더>`가 `foryou_blurbs.check`로 다시 검사합니다. 소개 원문이 그 책이 아닌 경우(같은 홍보문이 여러 책에 붙음, "도서 소개가 없습니다")는 원문을 비우고 "작품을 확실히 알 때만" 다시 쓰게 합니다(2026-10-28 783권 때 16권).
   4. `book-texts-list-summaries.tsv` 맨 위에 `# export_id=<운영 마지막 가져오기의 export_id>` 한 줄을 더해 운영 `book-texts`로 넣습니다([6-aisearch.md](6-aisearch.md) 3절 명령. 요약 종류만 있는 파일은 AI 검색 표를 건드리지 않음). 넣는 일은 운영에 쓰는 일이라 사용자 승인 뒤에 합니다.
   5. 새 사서추천 줄의 목록 그림은 PC가 `sha1(cover_source).jpg`로 S3 `covers/`에 올립니다([8-covers.md](8-covers.md)).
-- 지난 기록: 2026-10-19~20에는 목록 전용 요약(29~79자, 카카오 책 소개를 Haiku가 다시 씀, 사람이 모든 줄을 읽어 고침) 2,805줄을 빌드에 실어 썼습니다. 2026-10-28 사이클 26 배포 1 전에 그 요약이 보이던 줄 중 책첵 요약이 없던 783권을 위 절차로 채웠습니다(774권 만듦, 9권 내용 모름). 방법·결과는 plan-feedback `# 사이클 26`.
+- 지난 기록: 2026-10-19\~20에는 목록 전용 요약(29\~79자, 카카오 책 소개를 Haiku가 다시 씀, 사람이 모든 줄을 읽어 고침) 2,805줄을 빌드에 실어 썼습니다. 2026-10-28 사이클 26 배포 1 전에 그 요약이 보이던 줄 중 책첵 요약이 없던 783권을 위 절차로 채웠습니다(774권 만듦, 9권 내용 모름). 방법·결과는 plan-feedback `# 사이클 26`.
 ## 9. 노벨연구소 선정 최고의 책 (2026-10-20 사용자 요청)
 
 - 요청: "노벨연구소 선정 최고의 책 이것도 추천도서에 추가해주라 목록에는 노벨연구소만 보이게 해줘" — 다섯째 목록, 목록 키 `nobel`, 화면 이름 「노벨연구소 선정 최고의 책」, 탭 이름은 「노벨연구소」만. 탭 순서 국립중앙도서관 → KAIST → 서울대 → 노벨연구소(맨 뒤).
 - 목록: Bokklubben World Library(노르웨이어 Verdensbiblioteket). 2002년 노르웨이 북클럽(De norske Bokklubbene)이 노르웨이 노벨연구소와 함께 54개 나라 작가 100명에게 10권씩 물어 고른 100권(작가 100명). 순위·분류 없이 모두 같은 자리이고, 「돈키호테」만 "가장 뛰어난 문학 작품"으로 따로 꼽힘.
 - 출처: 영어 위키백과 「Bokklubben World Library」 https://en.wikipedia.org/wiki/Bokklubben_World_Library 의 표 「List of books」(칸 Title, Author, Year, Country, Language). 2026-10-20(KST) 한 번 읽음: `https://en.wikipedia.org/w/index.php?title=Bokklubben_World_Library&action=raw`(위키 원문, 요청 1번, User-Agent에 chaekcheck). 표 순서(저자 성의 알파벳 순)를 목록 순서로 씀. 위키 원문은 내 PC 임시 폴더에만 두고 저장소에 넣지 않음.
 - 파일 `scripts/crawl/lists/nobel.tsv`(100줄): 칸 `field, position, title, author, publisher, isbn13, cover_url, pinned_*, pinned_by, note`(KAIST에서 `year`를 뺀 것). `title`·`author`는 한국어판에서 흔히 쓰는 제목·이름(「돈키호테」/미겔 데 세르반테스, 「백년 동안의 고독」/가브리엘 가르시아 마르케스, 「일리아스」/호메로스 …), 지은이를 모르는 작품(「길가메시 서사시」·「욥기」·「천일야화」·「날의 사가」)은 「작자 미상」. 여러 작품을 묶은 항목은 목록 말 그대로 우리말로(「몰로이·말론 죽다·이름 붙일 수 없는 자」, 첼란 「시집」, 레오파르디 「시 전집」, 「체호프 단편선」·「카프카 단편선」·「에드거 앨런 포 단편선」). `publisher`·`isbn13`은 비워 두고 수집기가 제목+첫 저자로 판을 고름. `note`는 "Bokklubben World Library: 영어 제목 / 지은이 / 해 / 나라"(위키 표 그대로).
-- 분야(`fields.tsv`의 `nobel` 줄, 시대로 셋): `ancient` 고대·중세(1500년 무렵까지, 19권) · `early_modern` 근대(1500~1899년, 35권) · `modern` 20세기(46권). `position`은 분야 안 목록 순서. 화면은 분야 순서, 그 안에서 목록 순서(「전체」도 같은 차례).
+- 분야(`fields.tsv`의 `nobel` 줄, 시대로 셋): `ancient` 고대·중세(1500년 무렵까지, 19권) · `early_modern` 근대(1500\~1899년, 35권) · `modern` 20세기(46권). `position`은 분야 안 목록 순서. 화면은 분야 순서, 그 안에서 목록 순서(「전체」도 같은 차례).
 - 서버: 목록 키 `nobel`을 `ListFiles`·`CuratedLists`·`PicksCache`(분야 순서 → 분야 안 순서)·`UsageEventReader`에 더함. Liquibase `picks/005-nobel-list.yaml`(`picks-005-nobel-list-key`: `list_field_list_key_check`에 `nobel`; `picks-005-nobel-rows`: `list_book_nobel_check`(달·영상·올해의 책·목차·해·`source_no` 없음, 표지 https) + 분야 안 자리 하나 `list_book_nobel_position_key`), `usagelog/007-screen-event-picks-list-nobel.yaml`(`screen_event_picks_list_check`에 `nobel`). export·`lists` 모드가 읽는 파일에 `nobel.tsv`가 더해짐(없으면 멈춤).
 - 수집기(`recommended_lists.py`): `nobel.tsv`도 KAIST처럼 고정 판·표지를 고름(파일이 없으면 건너뜀). 새 옵션 `--lists nobel`(쉼표로 여러 개)은 그 목록만 판·표지를 고르고 그 파일만 다시 씀(다른 목록 파일은 그대로, 표지 정리는 모든 목록의 표지를 남김). 목록 제목 그대로인 책이 없으면 권 표시·판 표시를 뗀 제목(`title_base`)이 같은 책도 찾음(「한밤의 아이들」 → 「한밤의 아이들. 1」). 원어판을 고르지 않도록 `collector_words.tsv` `excluded_title`에 「프랑스어판」·「독일어판」을 더함(「운명론자 자크와 그의 주인」이 고품격 프랑스어판으로 잡혔음).
 - 수집 결과(2026-10-20, `--skip-youtube --lists nobel`, 사본 `ebook-catalog-2026-10-12-0135.sqlite`, 내 PC `db`): 고정 판 76/100, 표지 86줄(새 파일 82장). 판이 없는 24권: 우리 전자책 표에 없거나(「모든 것이 산산이 무너지다」·「픽션들」·「밤 끝으로의 여행」·「콜레라 시대의 사랑」·「하드리아누스 황제의 회상록」 등) 지은이가 다르게 적힘(「욥기」·「라마야나」·「마하바라타」), 묶음 항목(베케트 3부작·첼란·레오파르디), 원어판만 있음(「운명론자 자크와 그의 주인」). 이들은 제목 표지 또는 국립중앙도서관 표지로 보임. 판이 없어도 가져오기가 제목으로 우리 책에 이은 줄은 그 책과 같은 판의 표지를 씀(사용자 2026-10-20: "다른 출판사의 표지자나 하지 마 / 같은 출판사의 표지로 하고"): 「운명론자 자크와 그의 주인」은 이어진 유페이퍼 판의 교보 표지를 `cover_url`에 직접 넣음. 다른 판(민음사)으로 고정하는 것은 하지 않음. 이동진·서울대·KAIST 파일은 바뀌지 않음.
