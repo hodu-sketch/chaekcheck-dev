@@ -58,7 +58,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 2. 추천목록 책 `listed`: `ListedSource.listed()` → `picks`의 추천목록 캐시(`CacheListedBooks.merge`). 목록 차례 `librarian, leedongjin, snu100, kaist, nobel`로 각 목록의 책을 돌며 우리 책 번호(`picks.list_book.book_id`)가 있는 책만 한 줄로 합침. 책마다 `listKeys`(실린 목록들), `libraryIds`(`catalog.book.library_ids`), `recommendedMonth`(사서추천 달), `yearBook`(KAIST 연도), `fieldGroup`(처음 실린 목록의 분야 → 7절 표)
 3. 차례
    - 새벽 만들기가 성공한 날이 있으면 `foryou.base_entry`의 `position` 순
-   - **운영은 새벽 만들기가 꺼져 있어(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`) 이쪽**: `listed`를 `libraryIds` 개수(전체 도서관 기준 보유 수) 내림차순, 같으면 `book_id` 오름차순
+   - 새벽 만들기가 꺼져 있으면(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`, 2026-11-05 전까지 운영) 이쪽: `listed`를 `libraryIds` 개수(전체 도서관 기준 보유 수) 내림차순, 같으면 `book_id` 오름차순
 4. 카드 만들기(`cards`, 6절): 계획 도서관 수 `planLibraryCount = |catalog.book.library_ids ∩ planIds|`가 0인 책은 뺌
 
 응답: `{builtOn: 날짜|null, books: [카드…]}`
@@ -138,7 +138,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 
 | 것 | 상태 |
 |---|---|
-| 새벽 만들기(`foryou.build_run`, `popular_row`, `book_score`, `base_entry`) | 운영에서 꺼짐 → 기본 목록은 3절 3번, 새벽 점수 없음. 켤 때의 동작은 [`docs/maintenance/7-foryou.md`](../../maintenance/7-foryou.md) 1절 |
+| 새벽 만들기(`foryou.build_run`, `popular_row`, `book_score`, `base_entry`) | 운영에서 2026-11-05부터 켜짐(그 전에는 꺼져 있어 기본 목록은 3절 3번, 새벽 점수 없음). 켤 때의 동작은 [`docs/maintenance/7-foryou.md`](../../maintenance/7-foryou.md) 1절 |
 | 꼬리표(`catalog.tag_dictionary`, `catalog.book_tag`) | 0행 |
 | 사이클 26 배포 2 | 옛 표(`foryou.book_blurb`·`book_cover`, `picks.book_tag`·`tag_dictionary`)를 지움. plan `docs/cycles/26-book-descriptions/to-dev23-24.md` 3절 |
 | 문턱 3 | v1.20.2 운영(4절 5번) → [5-improvements.md](5-improvements.md) I-01 |
