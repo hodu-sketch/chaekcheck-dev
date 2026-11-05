@@ -38,7 +38,7 @@ dev 저장소의 문서를 **종류별로** 나눴습니다(2026-11-05). 무엇�
 
 - 버전별 바뀐 것: 저장소 맨 위 [`CHANGELOG.md`](../CHANGELOG.md).
 - 설계 원본(ADR, 사이클 인계서): 계획 저장소 [hodu-sketch/chaekcheck-plan](https://github.com/hodu-sketch/chaekcheck-plan)의 `docs/`. 문서에 「plan `docs/...`」라고 적힌 경로는 그 저장소 안의 파일입니다(여기서 고치지 않습니다).
-- 스크립트 사용법: 각 `scripts/<폴더>/README.md`와 파일 머리말.
+- 스크립트: [`scripts/README.md`](../scripts/README.md)(폴더별 목차, 폴더마다 스크립트 전체 목록과 설명 문서)와 파일 머리말.
 
 ## 옮긴 경로 (2026-11-05)
 

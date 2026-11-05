@@ -1,3 +1,9 @@
+"""Prints what the ML first call reads from questions given on the command line (cycle 24 record 3-4, 2026-10-26):
+the route (book search or not, with the head's probabilities) and the shelves (field, genre, form, fiction, level, audience).
+Reads first-call-model.bin, the KURE query encoder and tokenizer from chaekcheck-data/ml/aisearch-model next to this repo.
+How the model works: docs/features/aisearch/3-ml-models.md.
+  python scripts/aisearch/eval/probe_plan.py "번아웃이 왔을 때 읽을 책" "파이썬"
+"""
 import json, os, struct, sys
 import numpy as np, onnxruntime as ort
 from tokenizers import Tokenizer
