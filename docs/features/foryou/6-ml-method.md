@@ -195,4 +195,4 @@
 
 ## 7. 보고
 
-결과는 dev `docs/cycles/plan-feedback.md` 새 절 「# 머신러닝 보강 (사이클 23 이어서)」(plan 요청)과 [`7-portfolio.md`](7-portfolio.md)·[`3-evaluation.md`](3-evaluation.md)에 칸별 정확도·macro-F1·coverage·Haiku로 보낸 책 수와 비용·의심 책 수와 정밀도·군집 후보·설계와 달라진 점을 숫자로 남김.
+결과는 dev `docs/cycles/plan-feedback.md` 새 절 「# 머신러닝 보강 (사이클 23 이어서)」(plan 요청)과 [`7-summary.md`](7-summary.md)·[`3-evaluation.md`](3-evaluation.md)에 칸별 정확도·macro-F1·coverage·Haiku로 보낸 책 수와 비용·의심 책 수와 정밀도·군집 후보·설계와 달라진 점을 숫자로 남김.

@@ -1,5 +1,4 @@
-"""Charts of the 책첵 추천 measurements for docs/features/foryou/7-portfolio.md (user 2026-10-28: "수치 꼭 기록하고
-포트폴리오용으로 할 수 있는 거 다 하고"). The numbers are the measured ones recorded in docs/cycles/plan-feedback.md
+"""Charts of the 책첵 추천 measurements for docs/features/foryou/7-summary.md (user 2026-10-28). The numbers are the measured ones recorded in docs/cycles/plan-feedback.md
 (「# 사이클 23」, 「# 사이클 23 (이어서)」); this script only draws them, in the style of docs/features/aisearch/eval-data/.
 
   python -X utf8 scripts/foryou/eval/make_charts.py      # writes docs/features/foryou/figures/*.svg

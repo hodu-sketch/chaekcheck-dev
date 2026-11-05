@@ -1,7 +1,7 @@
-# 7. 책첵 추천 — 포트폴리오 요약
+# 7. 책첵 추천 — 한 장 요약
 
 - **이 문서가 답하는 것**: 남에게 보여 줄 때 「무엇을 만들었고, 무엇이 어려웠고, 어떻게 재서 무엇을 고쳤나」를 한 장으로. 숫자는 모두 [3-evaluation.md](3-evaluation.md)의 측정에서 가져옴(근거·조건은 거기).
-- 공개용 페이지: https://claude.ai/artifact/HEoeTqicrZSPMh3qyVYmfp (원본 [`portfolio-page.html`](portfolio-page.html), 비공개 — 공유는 페이지의 Share에서). 그림: [`figures/`](figures/)(`python -X utf8 scripts/foryou/eval/make_charts.py`로 다시 그림).
+- 공개용 페이지: https://claude.ai/artifact/HEoeTqicrZSPMh3qyVYmfp (원본 [`summary-page.html`](summary-page.html), 비공개 — 공유는 페이지의 Share에서). 그림: [`figures/`](figures/)(`python -X utf8 scripts/foryou/eval/make_charts.py`로 다시 그림).
 
 ## 한 줄
 로그인 없이도 쓰는 전자도서관 검색 서비스에, **브라우저에 남은 본 책 몇 권과 책 내용 임베딩(KURE-v1)만으로** 개인 도서 추천을 붙이고, 사용자 기록이 없는 상태에서 **오프라인 시험과 방식을 가린 LLM 판정**으로 고칠 점을 숫자로 찾아 고친 기록.

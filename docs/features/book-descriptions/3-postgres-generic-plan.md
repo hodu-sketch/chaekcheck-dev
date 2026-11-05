@@ -3,7 +3,7 @@
 ## 이 문서가 답하는 것 / 답하지 않는 것
 
 - 답하는 것: v1.20.1에서 고친 「같은 질의가 쌓이면 낱말 찾기가 20배 느려짐」을 PostgreSQL과 JDBC 드라이버 동작으로 처음부터 끝까지. 용어 정의, 플래너가 줄 수를 어떻게 추정하는지(계산식과 실제 값), 왜 틀렸는지, 왜 느렸는지, 무엇을 어떻게 재었는지, 고친 방법과 고르지 않은 방법.
-- 답하지 않는 것: 포트폴리오용 요약 → [1-portfolio.md 1절](1-portfolio.md). 날짜·배포·dev 24 측정 → [2-dev-record.md 4절](2-dev-record.md), [plan-feedback](../../cycles/plan-feedback.md) 「# 사이클 26」. AI 검색 전체 흐름 → [../aisearch/1-how-it-works.md](../aisearch/1-how-it-works.md) 4-7절.
+- 답하지 않는 것: 요약 → [1-summary.md 1절](1-summary.md). 날짜·배포·dev 24 측정 → [2-dev-record.md 4절](2-dev-record.md), [plan-feedback](../../cycles/plan-feedback.md) 「# 사이클 26」. AI 검색 전체 흐름 → [../aisearch/1-how-it-works.md](../aisearch/1-how-it-works.md) 4-7절.
 - 숫자는 모두 2026-10-29 운영 DB(PostgreSQL 18, `catalog.book_search` 76,759줄)에서 잰 값. PostgreSQL 내부 상수·함수 이름은 PostgreSQL 소스(`selfuncs.h`, `array_selfuncs.c`, `plancache.c`)의 이름이고, 운영 `EXPLAIN`의 추정 줄 수가 그 상수로 계산한 값과 정확히 같아 맞음을 확인했다.
 
 ## 1. 무엇이 일어났나 (요약)

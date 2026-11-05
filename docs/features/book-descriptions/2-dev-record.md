@@ -3,7 +3,7 @@
 ## 이 문서가 답하는 것 / 답하지 않는 것
 
 - 답하는 것: dev가 사이클 26을 이어 받을 때 알아야 할 것. 단계마다 상태, 코드·표·파일이 어디 있는지, 운영에서 생긴 일과 되돌린 방법·명령.
-- 답하지 않는 것: 포트폴리오용 이야기 → [1-portfolio.md](1-portfolio.md). 날짜순 원본 숫자 → [plan-feedback](../../cycles/plan-feedback.md) 「# 사이클 26」. 운영 절차 일반 → [../maintenance/8-covers.md](../../maintenance/8-covers.md), [../maintenance/7-foryou.md](../../maintenance/7-foryou.md).
+- 답하지 않는 것: 요약 → [1-summary.md](1-summary.md). 날짜순 원본 숫자 → [plan-feedback](../../cycles/plan-feedback.md) 「# 사이클 26」. 운영 절차 일반 → [../maintenance/8-covers.md](../../maintenance/8-covers.md), [../maintenance/7-foryou.md](../../maintenance/7-foryou.md).
 
 ## 1. 단계 상태 (2026-10-29 09:20)
 
@@ -45,7 +45,7 @@
 
 - 알림: dev 24의 배포 전후 시간 재기(r3·r4에서 여러 낱말 질문 낱말 대기 3~5.4초).
 - PostgreSQL 해설(용어·계산·재는 SQL): [3-postgres-generic-plan.md](3-postgres-generic-plan.md)
-- 원인·숫자·고침: [1-portfolio.md 1절](1-portfolio.md#1-ai-검색-같은-질의가-쌓이면-11초가-되던-실행-계획-v1201). 코드 `JdbcAiSearchIndex.find`(읽기 전용 `TransactionTemplate` + `SET LOCAL plan_cache_mode = force_custom_plan`), 시험 `AiSearchIndexTests.repeatedSearchesKeepCustomPlans`.
+- 원인·숫자·고침: [1-summary.md 1절](1-summary.md#1-ai-검색-같은-질의가-쌓이면-11초가-되던-실행-계획-v1201). 코드 `JdbcAiSearchIndex.find`(읽기 전용 `TransactionTemplate` + `SET LOCAL plan_cache_mode = force_custom_plan`), 시험 `AiSearchIndexTests.repeatedSearchesKeepCustomPlans`.
 - 운영 재현 SQL: `PREPARE q(text,…) AS <find의 SQL>` 뒤 `SET plan_cache_mode = force_custom_plan` / `force_generic_plan`으로 `EXPLAIN (ANALYZE) EXECUTE q(…)`. 운영 DB는 `ssh … 'docker exec -i chaekcheck-db-1 psql -U chaekcheck -d chaekcheck' < 파일.sql`(SQL은 파일로 넘김, 따옴표 문제).
 - 배포 뒤(dev 24, 24개 × 4회): 1초 넘은 낱말 검색 0번, 첫 글 느린 10% 2.76~3.05초(v1.20.0 r3·r4 5.2~5.8초). 내 확인: v1.20.1 뒤 운영 로그 검색 106번, 낱말 대기 최대 241ms, 오류 0. 고침 확인.
 

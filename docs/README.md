@@ -16,7 +16,7 @@ dev 저장소의 문서를 **종류별로** 나눴습니다(2026-11-05). 무엇�
 |---|---|---|---|
 | AI 책 찾기 (`/ai-search`) | [`features/aisearch/`](features/aisearch/README.md) — 지금 동작, 버전, ML 모델, 보고서(`reports/`), 원본 숫자 파일(`eval-data/`) | 24 | [`maintenance/6-aisearch.md`](maintenance/6-aisearch.md) |
 | 책첵 추천 (`/picks/for-you`) | [`features/foryou/`](features/foryou/README.md) — 지금 동작, 데이터, 평가, 이력, 개선안, 시험(`experiments/`), 그림 | 23 | [`maintenance/7-foryou.md`](maintenance/7-foryou.md) |
-| 책 설명 모으기·표지 S3 | [`features/book-descriptions/`](features/book-descriptions/README.md) — 포트폴리오, 개발 기록, 질의 속도 | 26 | [`maintenance/8-covers.md`](maintenance/8-covers.md) |
+| 책 설명 모으기·표지 S3 | [`features/book-descriptions/`](features/book-descriptions/README.md) — 요약, 개발 기록, 질의 속도 | 26 | [`maintenance/8-covers.md`](maintenance/8-covers.md) |
 
 `features/aisearch/eval-data/`는 스크립트가 읽고 쓰는 경로입니다(예: `scripts/aisearch/build_100k.py`가 `taxonomy2.json`을 읽음). 옮길 때는 스크립트도 함께 고칩니다.
 

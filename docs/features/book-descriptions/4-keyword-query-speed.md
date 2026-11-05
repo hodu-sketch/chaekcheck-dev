@@ -3,7 +3,7 @@
 ## 이 문서가 답하는 것 / 답하지 않는 것
 
 - 답하는 것: v1.20.1 뒤에도 남은 「흔한 낱말 질문의 낱말 찾기 0.25~0.35초(운영)」를 줄이려고 질의를 9판(V0~V8)으로 만들어 여러 경우에서 잰 숫자, 답이 바뀌지 않는지 확인한 방법, 판마다 빠르고 느린 까닭(실행 계획), 운영에 처음 올린 판(V7, v1.20.3)이 일부 경우 느려져 고친 판(V8, v1.20.4), 운영 결과.
-- 답하지 않는 것: v1.20.1의 generic plan 문제 → [3-postgres-generic-plan.md](3-postgres-generic-plan.md). 포트폴리오용 요약 → [1-portfolio.md](1-portfolio.md) 5절. AI 검색 전체 흐름 → [../aisearch/1-how-it-works.md](../aisearch/1-how-it-works.md) 4-7절.
+- 답하지 않는 것: v1.20.1의 generic plan 문제 → [3-postgres-generic-plan.md](3-postgres-generic-plan.md). 요약 → [1-summary.md](1-summary.md) 5절. AI 검색 전체 흐름 → [../aisearch/1-how-it-works.md](../aisearch/1-how-it-works.md) 4-7절.
 
 ## 1. 무엇을 줄이려 했나
 

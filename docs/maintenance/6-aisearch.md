@@ -6,7 +6,7 @@
 > - 질문 하나가 어느 표·파일을 어떤 계산으로 다뤄 무엇을 내나(정본) → [../aisearch/1-how-it-works.md](../features/aisearch/1-how-it-works.md). 이 문서의 「하는 일」 줄은 그 문서 절로 가는 한 줄 요약입니다.
 > - 버전마다 무엇을 왜 바꿨나 → [../aisearch/2-versions.md](../features/aisearch/2-versions.md)
 > - ML 모델을 어떻게 학습했나 → [../aisearch/3-ml-models.md](../features/aisearch/3-ml-models.md)
-> - 실험 숫자의 자세한 방법 → [../aisearch/4-portfolio.md](../features/aisearch/4-portfolio.md)와 [../aisearch/reports/](../features/aisearch/reports/)
+> - 실험 숫자의 자세한 방법 → [../aisearch/4-results.md](../features/aisearch/4-results.md)와 [../aisearch/reports/](../features/aisearch/reports/)
 
 - AI 책 찾기는 추천도서 목록 책과 **보유 도서관이 많은 책**의 제목·저자·보유 도서관 **사본**과 찾기용 한 줄을 `catalog.book_search`에 두고 낱말을 맞춥니다. 처음은 3만 권(2026-10-25, 6절), 지금은 **10만 권 판**(소개 있는 76,759권, 2026-10-26 21:59~, CHANGELOG는 v1.17.0 줄, 9절)입니다. 이 표는 `book-texts` 명령으로만 바뀝니다.
 - **사이클 26 배포 1부터(plan ADR-0165)**: 이 표는 `catalog.book_search`입니다(제목·저자 칸 없음, 찾기 글의 제목·저자와 도서관은 넣을 때 `catalog.book`에서). AI 검색은 `catalog.AiSearchIndex`로 읽고, 카드 제목·저자도 `catalog.book.title`·`author_display`입니다(목록의 보이는 이름이 아님). 옛 `aisearch.search_book`은 사이클 26 배포 2(v1.20.6, `aisearch/005-drop-search-book.yaml`)에서 지웠습니다. 아래 절의 `search_book`은 그 전 기록이고, 확인 SQL은 `catalog.book_search`로 읽습니다.

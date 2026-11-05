@@ -8,7 +8,7 @@
   - 모델 파일의 바이트 형식·머리마다 기준값 → [1-how-it-works.md 3-4절](1-how-it-works.md#3-4-모델-폴더-파일)
   - 버전마다 바꾼 것 → [2-versions.md](2-versions.md) v1.15.0·v1.16.0·v1.16.1
   - 파일을 만들고 서버에 올리는 명령 → [../maintenance/6-aisearch.md](../../maintenance/6-aisearch.md) 7·8절
-  - 포트폴리오용 전후 숫자 모음 → [4-portfolio.md](4-portfolio.md) 5절
+  - 전후 숫자 모음 → [4-results.md](4-results.md) 5절
   - 원리·수식·실제 코드를 처음부터 공부하기 → [5-ml-study.md](5-ml-study.md)
 - 모델 파일: v1.21.0부터 운영은 git 밖 `chaekcheck-data\ml\aisearch-model-100k-v2\`(길 나누기 머리와 관계 분류기를 다시 학습한 판, 폴더 README). 그 전(v1.16.1~v1.20.6) 판은 `chaekcheck-data\ml\aisearch-model-100k\`이고, 그 두 모델 파일은 `chaekcheck-data\ml\aisearch-model\first-call-v2-2026-10-26\`과 바이트까지 같음(2026-10-29 `cmp`로 확인). 색인은 `chaekcheck-data\ml\README.md`. 서버 `/srv/chaekcheck/aisearch-model`에 v2 파일이 올라가 있는지는 이 문서에서 직접 확인하지 않음.
 

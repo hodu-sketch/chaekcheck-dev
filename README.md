@@ -38,9 +38,9 @@ docs/           기능·운영·도서관 조사·사이클 기록 (목차: docs
 
 처음 보신다면 이 세 편부터 읽어 주세요. 무엇을 만들었고, 어떻게 재서, 무엇을 고쳤는지를 숫자와 함께 정리했습니다.
 
-- [AI 책 찾기 개선 기록](docs/features/aisearch/4-portfolio.md) — 질문 해석 ML, 벡터 후보 찾기, Haiku 고르기를 단계마다 재 보고 넣거나 버린 기록
-- [책첵 추천](docs/features/foryou/7-portfolio.md) — 이웃 책 계산, 소개 글 임베딩, 시험 설계와 결과
-- [책 설명 모으기·표지 S3](docs/features/book-descriptions/1-portfolio.md) — 데이터 이전과 질의 속도
+- [AI 책 찾기 개선 기록](docs/features/aisearch/4-results.md) — 질문 해석 ML, 벡터 후보 찾기, Haiku 고르기를 단계마다 재 보고 넣거나 버린 기록
+- [책첵 추천](docs/features/foryou/7-summary.md) — 이웃 책 계산, 소개 글 임베딩, 시험 설계와 결과
+- [책 설명 모으기·표지 S3](docs/features/book-descriptions/1-summary.md) — 데이터 이전과 질의 속도
 
 전체 목차는 [docs/README.md](docs/README.md)에 있습니다. 운영 절차는 `docs/maintenance/`, 기능별 동작·측정은 `docs/features/`에 있습니다.
 
@@ -82,4 +82,4 @@ Spring Modulith 기반의 모듈러 모놀리스 구조입니다. 도메인별 �
 
 ## 라이선스
 
-이 프로젝트는 개인 포트폴리오 프로젝트입니다. 코드는 공개되어 있으나, 별도의 라이선스가 명시되기 전까지 All Rights Reserved입니다.
+이 프로젝트는 개인 프로젝트입니다. 코드는 공개되어 있으나, 별도의 라이선스가 명시되기 전까지 All Rights Reserved입니다.

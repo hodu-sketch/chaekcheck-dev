@@ -21,9 +21,9 @@
 │   ├─ 5-improvements.md           개선안 I-01~I-18: 상태·근거·바꿀 곳·잴 것·먼저 할 것
 │   └─ 6-ml-method.md              I-05·I-06·I-10~I-14의 자료·모델·시험 설계와 데이터 점검 숫자
 └─ 보여 주기
-    ├─ 7-portfolio.md              한 장 요약(숫자는 3에서)
+    ├─ 7-summary.md              한 장 요약(숫자는 3에서)
     ├─ 8-methods-explained.md      원리·수학·코드·라이브러리 해설(학습용, 남에게 설명하기)
-    ├─ portfolio-page.html         공개용 페이지 원본(https://claude.ai/artifact/HEoeTqicrZSPMh3qyVYmfp)
+    ├─ summary-page.html         공개용 페이지 원본(https://claude.ai/artifact/HEoeTqicrZSPMh3qyVYmfp)
     └─ figures/                    그림 6장(scripts/foryou/eval/make_charts.py)
 ```
 
@@ -61,7 +61,7 @@
 | AI 검색 쪽의 지금 상태 | [`docs/features/aisearch/1-how-it-works.md`](../aisearch/1-how-it-works.md), 색인 [`docs/features/aisearch/README.md`](../aisearch/README.md) (이 폴더 밖, 사이클 24) |
 
 ## 4. 처음 읽는 차례
-처음이면 7-portfolio.md(한 장) → 1-how-it-works.md 0절(그림) → 4-history.md 1절(지금 판) → 5-improvements.md 1절(할 일).
+처음이면 7-summary.md(한 장) → 1-how-it-works.md 0절(그림) → 4-history.md 1절(지금 판) → 5-improvements.md 1절(할 일).
 
 ## 5. 말 뜻 (이 폴더에서 같은 뜻으로 씀)
 

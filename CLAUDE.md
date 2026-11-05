@@ -1,6 +1,6 @@
 # chaekcheck
 
-웹(데스크톱 우선 + 반응형) + 폰 앱(Expo)을 갖춘 개인 포트폴리오 프로젝트. 백엔드는 Java/Spring.
+웹(데스크톱 우선 + 반응형) + 폰 앱(Expo)을 갖춘 개인 프로젝트. 백엔드는 Java/Spring.
 
 ## Stack (versions verified 2026-09-24)
 

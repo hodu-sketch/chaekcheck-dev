@@ -6,7 +6,7 @@ AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사
 
 1. [1-how-it-works.md](1-how-it-works.md): 지금 질문 하나가 어떤 표·칸·파일을 어떤 계산으로 다뤄 어떤 결과(SSE 이벤트)를 내는지
 2. [2-versions.md](2-versions.md): 버전마다 무엇을 왜 바꿨고 숫자가 어떻게 바뀌었는지, 헷갈리기 쉬운 것
-3. [4-portfolio.md](4-portfolio.md): 잰 결과를 문제 → 원인 → 고친 방법 → 결과로 모은 것
+3. [4-results.md](4-results.md): 잰 결과를 문제 → 원인 → 고친 방법 → 결과로 모은 것
 4. 궁금한 실험이 있으면 아래 4절의 날짜별 보고서
 
 ## 2. 층으로 나눈 문서
@@ -17,7 +17,7 @@ AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사
 | 지금 · 운영 | [../maintenance/6-aisearch.md](../../maintenance/6-aisearch.md) | 서버에서 하는 일: `book-texts` 넣기 명령, 모델 폴더 올리기, 임베딩 서버, 확인할 로그, 되돌리기 | 동작 설명(→ 1-how-it-works) |
 | 지금 · 설정 | [../maintenance/settings-index.md](../../maintenance/settings-index.md) 1-1절 | AI 검색 설정·코드 상수의 이름, 기본값, 운영 값, 근거 | — |
 | **변화** | [2-versions.md](2-versions.md) | v1.10.0~v1.22.3과 데이터 넣기(3만 권, 10만 권)마다 바꾼 것·이유·전후 숫자·그 뒤, 재 보고 내지 않은 것 | 실험 방법의 자세한 내용(→ 보고서) |
-| **결과·설명** | [4-portfolio.md](4-portfolio.md) | 모든 전후 비교 숫자를 한곳에(포트폴리오용) | 동작 설명(→ 1-how-it-works) |
+| **결과·설명** | [4-results.md](4-results.md) | 모든 전후 비교 숫자를 한곳에 | 동작 설명(→ 1-how-it-works) |
 | 결과·설명 | [5-ml-study.md](5-ml-study.md) | ML을 남에게 설명할 수 있게 처음부터: 벡터·코사인, Transformer 임베딩, int8 양자화, 로지스틱 회귀, MLP, softmax·sigmoid, 교차 엔트로피, 역전파·AdamW, 드롭아웃, F1·문턱, TF-IDF, RRF를 수식과 **실제 코드**로, 라이브러리 표, 설명용 답 | 점수 표 전부(→ 3-ml-models) |
 | 결과·설명 | [3-ml-models.md](3-ml-models.md) | 1차 단계의 ML: KURE-v1 임베딩과 MLP 머리 13개(1차 모델 파일의 머리 12개 + 관계 분류기 1개), 학습 데이터, 문턱, 기준선, 클래스 불균형 | 운영에서 그 출력을 쓰는 곳(→ 1-how-it-works 4-3·4-9) |
 | **근거 (날짜별 실험)** | [reports/](reports/) | 그날 무엇을 왜 어떻게 쟀고 결과가 무엇이었는지. 그때 기록이라 지금과 다른 곳은 각 문서 맨 위 상자에 적음 | 지금 동작(→ 1-how-it-works) |
