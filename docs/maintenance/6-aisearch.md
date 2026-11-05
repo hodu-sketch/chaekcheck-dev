@@ -201,7 +201,7 @@ FROM catalog.book_search;
 
 ## 10. 되묻기, Haiku 생각 끄기, 프롬프트 캐싱 (v1.17.0, 2026-10-27)
 
-사용자 결정(2026-10-26): "AGENT도 쓰긴 할건데 되묻기만 하는 걸로", "되묻기 + 생각 끄기 + 캐시로 배포해줘". 도구 루프 에이전트(`search_again` 등)는 브랜치 `claude/aisearch-agent`에만 있음. 잰 값: [에이전트 보고서](../aisearch/reports/2026-10-26-agent.md) 10·11절.
+사용자 결정(2026-10-26): "AGENT도 쓰긴 할건데 되묻기만 하는 걸로", "되묻기 + 생각 끄기 + 캐시로 배포해줘". 도구 루프 에이전트(`search_again` 등)는 운영 코드에 넣지 않았고 지금은 없음(구조와 잰 값은 보고서 1·3절). 잰 값: [에이전트 보고서](../aisearch/reports/2026-10-26-agent.md) 10·11절.
 
 - **되묻기** `CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true`(prod.env): 2차가 `PICK_ASK_SYSTEM`·`PICK_ASK_SCHEMA`(JSON 맨 앞 `ask` {question, choices})를 쓰고, question이 차 있으면 머리말·카드 없이 `ask` 이벤트와 done `asked`(usagelog `SKIPPED`), 고를 답 4개·40자까지. 어떤 질문에 이 형식을 쓰는지(지금은 4낱말 이하 첫 질문·이어 묻기, 앞 질문 이어 붙이기·되묻기의 답은 빼고)와 이벤트·화면은 [1-how-it-works 4-11·4-12·5절](../aisearch/1-how-it-works.md#4-11-2차-호출-llm-first-llm-done)
   - 1차 ML이 「책 찾기 아님」(v1.17.0 때는 한 낱말이면 2차로, 아니면 AI 호출 없이 고정 되묻기): 2026-10-29부터 한 낱말을 포함해 모두 Haiku 대화 호출(`Prompts.CHAT_SYSTEM`) 한 번이 답과 고를 답을 내고, 그 호출이 실패할 때만 `Prompts.NOT_BOOK_ASK` + `NOT_BOOK_CHOICES` 10개 중 3개 [안].
