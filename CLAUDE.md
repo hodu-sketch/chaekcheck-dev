@@ -73,6 +73,9 @@ Docs are read by people and by AI agents that act on them, so a stale doc does h
 
 - Use the Context7 MCP server to check current docs before writing code for Spring Boot 4, Jackson 3, React 19, Vite 8, or Liquibase; do not rely on older examples.
 - Use the Playwright MCP server to check web layouts at desktop, tablet, and mobile widths.
+- Dev servers for the app's browser preview live in `.claude/launch.json` (name, command, port; the preview starts them by name). The committed entries are the plain ones (`web`, `web-lan`, `backend`, …) with no PC paths.
+  - A worktree or other folder gets its own entry only while that work lasts. Name it `<folder short name>-<web|backend>[-lan]-<port>` (e.g. `c27-web-5210` for `../chaekcheck-dev-c27`), point the command at that folder (`npm --prefix ../chaekcheck-dev-c27/web …`), and pick a port no other entry uses.
+  - Such entries are not committed. Remove them when the work ends (merged, abandoned, or the folder removed), together with the worktree and its docker project.
 
 ## Working Rules
 
