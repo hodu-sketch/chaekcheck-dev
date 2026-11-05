@@ -5405,7 +5405,7 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 
 # 기록 변경 (ADR-0134, 사이클 20 1단계와 함께)
 
-인계서: plan `docs/current/handoff.md` **「함께 할 작은 일: AI 추천용 기록 변경 — 회원 번호·방문 번호 칸」**(2026-10-18), 근거 [ADR-0134](../../../chaekcheck-plan/docs/adr/0134-usage-log-member-id-and-visit-key.md)(ADR-0096의 "회원 번호 안 남김·기록끼리 잇는 칸 없음"을 바꿈), 처리방침 문구 plan `drafts/privacy-policy.md` 7차. 추천 기능은 만들지 않고 기록만 바꿨습니다. 별도 worktree `../chaekcheck-dev-c20log`(branch `adr-0134-usage-log-columns`, docker `chaekcheck-c20log` 5522/5523)에서 만들었고 main 합치기는 조정자가 합니다.
+인계서: plan `docs/current/handoff.md` **「함께 할 작은 일: AI 추천용 기록 변경 — 회원 번호·방문 번호 칸」**(2026-10-18), 근거 [ADR-0134](https://github.com/hodu-sketch/chaekcheck-plan/blob/main/docs/adr/0134-usage-log-member-id-and-visit-key.md)(ADR-0096의 "회원 번호 안 남김·기록끼리 잇는 칸 없음"을 바꿈), 처리방침 문구 plan `drafts/privacy-policy.md` 7차. 추천 기능은 만들지 않고 기록만 바꿨습니다. 별도 worktree `../chaekcheck-dev-c20log`(branch `adr-0134-usage-log-columns`, docker `chaekcheck-c20log` 5522/5523)에서 만들었고 main 합치기는 조정자가 합니다.
 
 ## 바꾼 것 (인계서 #6 표 → 실제)
 

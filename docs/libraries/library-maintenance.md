@@ -670,8 +670,8 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 
 ## 9. 사람에게 물을 것 (AI가 정하지 않음)
 
-- 인증서 체인이 불완전한 사이트(PKIX 오류): 중간 인증서를 체인 재료로 더해 넣음(2026-09-29, 사용자 결정, plan [ADR-0022](../../../chaekcheck-plan/docs/adr/0022-library-site-tls-compatibility.md)). 검증 끄기는 금지.
-- 암호화 방식이 옛날 것만 되는 사이트(대구처럼 `TLS_RSA_*`만)는 2026-09-29에 허용했습니다(`TlsCompatibility`, plan [ADR-0022](../../../chaekcheck-plan/docs/adr/0022-library-site-tls-compatibility.md)). 그보다 더 낡은 방식(TLS 1.0/1.1, 3DES 등)이 필요하면 묻습니다.
+- 인증서 체인이 불완전한 사이트(PKIX 오류): 중간 인증서를 체인 재료로 더해 넣음(2026-09-29, 사용자 결정, plan [ADR-0022](https://github.com/hodu-sketch/chaekcheck-plan/blob/main/docs/adr/0022-library-site-tls-compatibility.md)). 검증 끄기는 금지.
+- 암호화 방식이 옛날 것만 되는 사이트(대구처럼 `TLS_RSA_*`만)는 2026-09-29에 허용했습니다(`TlsCompatibility`, plan [ADR-0022](https://github.com/hodu-sketch/chaekcheck-plan/blob/main/docs/adr/0022-library-site-tls-compatibility.md)). 그보다 더 낡은 방식(TLS 1.0/1.1, 3DES 등)이 필요하면 묻습니다.
 - `TlsCompatibility`는 JVM 전체에 적용됨. 운영에서 DB 등을 TLS로 붙이면 거기에도 RSA 키 교환이 허용됨 — 처리 방법은 사용자 결정 대기
 - 판정이 일부만 빈 포털(인천 등)을 후순위(`deferred`)로 둘지.
 - "도서관"이 아닌 이름(시청·구청·재단·학교 등)을 공공도서관으로 넣을지.

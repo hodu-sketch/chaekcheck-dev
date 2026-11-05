@@ -4,7 +4,7 @@
 - 옮겨 온 곳: plan `docs/research/maintenance/periodic-tasks.md` 0\~4절 (2026-10-04). 그 문서의 5절(웹러브 북스 기관을 서비스 도서관으로 옮기기, 지금 이름으로는 수집 목록에서 찾은 도서관을 서비스에 넣기)과 6절(확인 필요)은 plan에 남습니다.
 - 수집은 두 갈래입니다 [확정] (사용자 승인, 2026-10-05, plan 사이클 07): **① 도서관 수집**(어느 전자도서관이 있나 → 서비스 DB에 넣기) / **② 책 수집**(도서관마다 어떤 책이 있나). 그 뒤 **가져오기**가 ②의 결과를 서비스 DB 책 표로 옮깁니다. 원칙과 결정은 plan `docs/research/collection/1-libraries.md`, `2-books.md`에 있고, 여기에는 절차만 둡니다(ADR-0047).
 - 도서관 목록은 둘입니다 [확정] (사용자, 2026-10-04): **등록 도서관**(dev seed `library/001`\~`006`, 280줄) / **수집 목록에서 찾은 도서관**(수집 DB `library` 번호 100001\~, 웹러브 북스 등에서 찾음). 사이클 07부터 전체 수집이 끝난 곳은 서비스 DB에도 새 번호로 들어갑니다(2026-10-05 2,394곳 `library/008` seed, 사이클 13부터는 넣기 명령 `library-insert`). 자세히는 [1-libraries.md](1-libraries.md) "도서관 목록 두 가지".
-- plan 저장소 위치: `..\chaekcheck-plan\` (아래 "plan `…`"은 이 폴더 기준 경로). 문서 색인은 plan `docs/reference-index.md`.
+- plan 저장소: [hodu-sketch/chaekcheck-plan](https://github.com/hodu-sketch/chaekcheck-plan), 내 PC에서는 이 저장소 옆 폴더 `..\chaekcheck-plan\` (아래 "plan `…`"은 그 저장소 기준 경로). 문서 색인은 plan `docs/reference-index.md`.
 - 주기와 순서는 모두 [안]입니다. 정하는 곳은 주기 갱신 사이클입니다(별도 사이클 [확정], plan `docs/research/ebook-catalog/catalog-refresh.md` 머리말).
 
 ## 0. 한눈에

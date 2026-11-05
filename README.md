@@ -46,7 +46,7 @@ docs/           기능·운영·도서관 조사·사이클 기록 (목차: docs
 
 ### 개발 방식
 
-설계(범위, ADR, 인계서)는 비공개 계획 저장소에서 하고, 이 저장소는 그 설계를 구현합니다. 그래서 문서에 「plan `docs/...`」로 계획 저장소 파일을 가리키는 곳이 있습니다. 개발은 Claude Code와 함께 했고, 사이클마다 구현 결과·결정·측정값을 계획 쪽에 넘긴 날짜 순 원기록이 [`docs/cycles/plan-feedback.md`](docs/cycles/plan-feedback.md)(2026-11-05까지)와 사이클 폴더의 `docs/cycles/NN/plan-feedback.md`입니다(정리된 문서가 아니라 작업 일지입니다).
+설계(범위, ADR, 인계서)는 계획 저장소 [hodu-sketch/chaekcheck-plan](https://github.com/hodu-sketch/chaekcheck-plan)에서 하고, 이 저장소는 그 설계를 구현합니다. 문서에 「plan `docs/...`」라고 적힌 경로는 그 저장소 안의 파일입니다. 개발은 Claude Code와 함께 했고, 사이클마다 구현 결과·결정·측정값을 계획 쪽에 넘긴 날짜 순 원기록이 [`docs/cycles/plan-feedback.md`](docs/cycles/plan-feedback.md)(2026-11-05까지)와 사이클 폴더의 `docs/cycles/NN/plan-feedback.md`입니다(정리된 문서가 아니라 작업 일지입니다).
 
 ## 로컬 개발 환경
 
