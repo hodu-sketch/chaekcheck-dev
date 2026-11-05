@@ -281,8 +281,8 @@ COMMIT;
 
 1. 내 PC(Git Bash, 저장소 맨 위): 목록 폴더를 서버로 옮김
 
-        ssh -i .secrets/chaekcheck-key.pem ubuntu@52.64.117.112 'rm -rf /srv/chaekcheck/lists'
-        scp -i .secrets/chaekcheck-key.pem -r scripts/crawl/lists ubuntu@52.64.117.112:/srv/chaekcheck/lists
+        ssh -i .secrets/chaekcheck-key.pem $CHAEKCHECK_SERVER 'rm -rf /srv/chaekcheck/lists'
+        scp -i .secrets/chaekcheck-key.pem -r scripts/crawl/lists $CHAEKCHECK_SERVER:/srv/chaekcheck/lists
 
    목록 그림(`scripts/crawl/lists/covers/`)은 서버로 복사하지 않습니다. 새 그림은 PC가 S3에 `covers/<sha1(cover_source)>.jpg`로 올립니다([8-covers.md](8-covers.md) 2절). 서버의 `/srv/chaekcheck/covers` 복사와 nginx `/covers/`는 사이클 26 배포 2(v1.20.6)부터 없음.
 

@@ -250,7 +250,7 @@
 
 ### 3-5. 임베딩 서버 (`embed-service/`)
 
-- 운영: 같은 VPC 안의 micro EC2, `http://172.31.45.141:8090`(prod.env `CHAEKCHECK_AISEARCH_EMBED_URL`).
+- 운영: 같은 VPC 안의 micro EC2, `http://<임베딩 서버 사설 IP>:8090`(secrets.env `CHAEKCHECK_AISEARCH_EMBED_URL`).
 - 요청: `POST <url>/api/v1/embed`, 헤더 `Content-Type: application/json`, `X-Embed-Token: <비밀값>`, 본문 `{"text": "<글>"}`. 백엔드 쪽 연결·전체 시간 한도 1.5초(`remote.timeout`).
 - 응답: 200 `{"vector": [1024개 수]}`. 토큰이 틀리면 401, 글이 없거나 1,000자 넘으면 400, 모델을 못 올렸으면 503.
 - 서버 안: `QueryEncoder.encode` = 토크나이저(특수 토큰 넣음, 256조각에서 자름, 채우기 없음) → ONNX 실행(스레드 2, 동시 실행 2) → `float[1024]`. 백엔드의 `OnnxQuestionEncoder`와 같은 코드입니다.
@@ -780,7 +780,7 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | `vector.rrf-k` | 60 | 같음 | RRF의 k |
 | `vector.max-wait` | 2s | 같음 | 질문 벡터를 기다리는 시간 |
 | `vector.encoder` | local (`CHAEKCHECK_AISEARCH_VECTOR_ENCODER`) | **remote** | 질문 벡터를 만드는 곳 |
-| `vector.remote.url` | 빈 값 (`CHAEKCHECK_AISEARCH_EMBED_URL`) | **`http://172.31.45.141:8090`** | 임베딩 서버 |
+| `vector.remote.url` | 빈 값 (`CHAEKCHECK_AISEARCH_EMBED_URL`) | **secrets.env** (Parameter Store) | 임베딩 서버 |
 | `vector.remote.token` | 빈 값 (`CHAEKCHECK_AISEARCH_EMBED_TOKEN`) | Parameter Store 비밀값 | `X-Embed-Token` |
 | `vector.remote.timeout` | 1500ms | 같음 | 임베딩 요청 하나 |
 | `vector.failures-to-open` / `open-for` | 3 / 30s | 같음 | 차단기 |

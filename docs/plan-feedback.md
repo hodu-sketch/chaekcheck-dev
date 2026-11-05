@@ -5494,7 +5494,7 @@ plan `docs/cycles/21-recommended-books/to-dev-retro-fixes.md`(회고 결정 #2, 
 
 ## 나가는 길과 `up.sh` (같은 날 이어서)
 
-- 시험 배포를 처음 띄울 때 나가는 길 설정을 넣지 않아 `mode=ALL proxies=0`, 곧 **서버 자기 IP로 조회**했음(사용자가 발견). Webshare는 IP 인증(EC2 52.64.117.112)이라 아이디·비밀번호 없이 주소 목록만 넣으면 됨. 목록 20개를 서버 `egress.env`로 옮기고 `proxy-only`로 다시 띄움 → `mode=PROXY_ONLY lanes=20 direct=0 proxies=20`. 소년이 온다 스트림: 자기 IP 12곳 중 7곳 → 프록시 12곳 중 10곳 성공. 남은 2곳(62·73 시간 초과)은 PC에서도 실패
+- 시험 배포를 처음 띄울 때 나가는 길 설정을 넣지 않아 `mode=ALL proxies=0`, 곧 **서버 자기 IP로 조회**했음(사용자가 발견). Webshare는 IP 인증(EC2 서버 IP)이라 아이디·비밀번호 없이 주소 목록만 넣으면 됨. 목록 20개를 서버 `egress.env`로 옮기고 `proxy-only`로 다시 띄움 → `mode=PROXY_ONLY lanes=20 direct=0 proxies=20`. 소년이 온다 스트림: 자기 IP 12곳 중 7곳 → 프록시 12곳 중 10곳 성공. 남은 2곳(62·73 시간 초과)은 PC에서도 실패
 - compose는 `CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES`를 `${WEBSHARE_PROXIES}`에서 받음(plan 17 이름: Parameter Store `/chaekcheck/prod/WEBSHARE_PROXIES`)
 - 새 `deploy/prod/bin/up.sh`(ADR-0103·0104, design-delta "띄우기"): `secrets.env`가 손으로 둔 파일(첫 줄 표지 없음)이면 그대로 쓰고, 아니면 `/chaekcheck/prod/`를 EC2 역할로 읽어 이름 끝 = 변수 이름으로 `secrets.env`(600, 임시 파일 뒤 이동)에 씀. 필수 이름이 빠지거나 읽기가 실패하면 아무것도 쓰지 않고 멈춤. 값에 작은따옴표·줄바꿈이 있으면 멈춤(compose의 작은따옴표 값은 그대로 읽힘). `prod.env`가 있으면 함께 넘김. 필수 이름 [안]: `DB_PASSWORD WEBSHARE_PROXIES`(로그인·터널·사서추천을 켜는 compose가 생기면 더함, TODO). 가짜 `aws`·`docker`로 6가지(성공, 필수 빠짐, 읽기 실패, 따옴표, 손으로 둔 파일, `prod.env`) 확인. **실제 EC2에서는 아직 돌리지 않음**: 서버에 AWS CLI가 있는지, 역할에 `kms:Decrypt`가 필요한지 확인 못 함(이 세션에서 서버의 `aws` 호출이 권한에서 막힘)
 
@@ -6521,7 +6521,7 @@ plan 사이클 23 세션의 두 부탁(요청서 `to-dev-intro-test-2026-10-24.m
 사용자: "micro 한 대를 임베딩 전용으로 두자, 서로 다른 곳에서 소통하나 서버에 직접 임베딩하나 이걸 선택으로서 가능하게 구현해줘" → "v1.15.0 배포하고 임베딩 서버 방식으로 벡터 켜고, 소개 없는 3,712권 빼는 넣기도 돌려줘". **설계(ADR-0150·0151: 후보는 낱말 맞추기) 변경**이라 plan 회고에서 기록 필요.
 
 - 코드: 평가 세션의 c0fc25e(백엔드 안 int8 KURE + RRF + 기준 책 이웃) 위에 `chaekcheck.aisearch.vector.encoder: local|remote`(`KureQuestionVectors` = 책 벡터 + `OnnxQuestionEncoder`/`RemoteQuestionEncoder`), 새 앱 `embed-service/`(Spring Boot, `POST /api/v1/embed`, `X-Embed-Token`), `book-texts`의 `search_exclude` 줄
-- 임베딩 서버: micro EC2 `chaekcheck-embed`(t4g.micro, 무료 플랜 크레딧), 사설 172.31.45.141:8090, 보안 그룹은 운영 서버에서만. 토큰은 사용자가 CloudShell에서 Parameter Store에 넣음(무작위, 아무도 보지 않음), 임베딩 서버에는 운영 서버 권한으로 읽어 옮김. 자세히 `docs/maintenance/6-aisearch.md` 7-1
+- 임베딩 서버: micro EC2 `chaekcheck-embed`(t4g.micro, 무료 플랜 크레딧), 사설 IP:8090, 보안 그룹은 운영 서버에서만. 토큰은 사용자가 CloudShell에서 Parameter Store에 넣음(무작위, 아무도 보지 않음), 임베딩 서버에는 운영 서버 권한으로 읽어 옮김. 자세히 `docs/maintenance/6-aisearch.md` 7-1
 - 배포 전 확인: 백엔드 전체 시험(접속 수 부족 4개는 따로 다시 돌려 통과), `AiSearchEvalReplayTests` 후보가 c0fc25e 때와 바이트까지 같음(벡터 켬·끔), 운영 서버→임베딩 서버 46~59ms
 - 배포: v1.15.0(1d98107) backend·web. 시작 로그 `ai search vectors on (REMOTE): 30937 books x 1024`. 넣기 `book-texts-30k-exclude-2026-10-25.tsv` → `listed books 1911, most held 30000 (25316 not listed, 3712 excluded), stored 27227, with line 27227`
 - 운영 확인: 「번아웃이 왔을 때 읽을 책」 소진·무기력 책 8장, 「아몬드 같은 성장 소설」 청소년 성장 소설 8장(`named book`), 로그 `candidates 30 (vector 60)`. 운영 백엔드 374MB(모델 없음), 임베딩 컨테이너 484MB

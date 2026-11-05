@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 OUT = os.environ.get('LATENCY_OUT', r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\latency-prod')
 KEY = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\.secrets\chaekcheck-key.pem'
-SERVER = 'ubuntu@52.64.117.112'
+SERVER = os.environ.get('CHAEKCHECK_SERVER') or sys.exit('Set CHAEKCHECK_SERVER (e.g. ubuntu@<server IP>)')
 LONG = ['소설 말고 위로가 되는 책', '자기계발서 말고 마음이 편해지는 에세이', '수식 없이 읽는 물리학 책', '번역서 말고 한국 작가가 쓴 경제 책',
         '공포 말고 따뜻한 판타지 소설', '어린이책 말고 어른이 보는 그림책', '출근길 지하철에서 가볍게 읽을 과학책', '기분 전환이 되는 웃긴 소설',
         '경제를 처음 공부하는 사람을 위한 책', '회사에서 글쓰기 실력을 늘리는 책', '여행 가서 읽을, 너무 무겁지 않은 인문학 책', '미래 소비 트렌드와 경제적 자산 관리']

@@ -74,7 +74,7 @@ x-backend: &backend
     KAKAO_APP_ID: ${KAKAO_APP_ID:-}
     # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
     # proxy-only). Webshare user and password (user decision 2026-10-18, the main way, sent preemptively on the first
-    # CONNECT); empty values fall back to Webshare's IP Authorization of this server (52.64.117.112). The names are
+    # CONNECT); empty values fall back to Webshare's IP Authorization of this server. The names are
     # the Parameter Store ones (/chaekcheck/prod/..., up.sh).
     CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
     CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${WEBSHARE_PROXIES:?WEBSHARE_PROXIES missing (Parameter Store through up.sh)}

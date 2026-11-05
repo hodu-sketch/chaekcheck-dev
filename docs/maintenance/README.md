@@ -76,7 +76,7 @@
 ## 5-2. (자동) AI 책 찾기 (사이클 24)
 
 - 사용자가 문장으로 물으면 질문 벡터(임베딩 서버) + 1차 ML + 2차 Haiku로 책을 고름. 지금 운영 설정과 모델 폴더: [6-aisearch.md](6-aisearch.md) 0절
-- 유지보수에서 볼 것: 임베딩 서버 `GET http://172.31.45.141:8090/api/v1/health`가 `{"ready":true}`(운영 서버에서, 7-1절), 백엔드 시작 로그 `ai search vectors on (REMOTE): … books`·`ai search first call: ml, … book profiles`(7·8절), 검색 로그 `ai search: …`의 `vector N`(0이면 벡터 꺼짐·늦음·실패)과 `encoder failed`·`haiku makes the first step` 줄
+- 유지보수에서 볼 것: 임베딩 서버 `GET http://<임베딩 서버 사설 IP>:8090/api/v1/health`가 `{"ready":true}`(운영 서버에서, 7-1절), 백엔드 시작 로그 `ai search vectors on (REMOTE): … books`·`ai search first call: ml, … book profiles`(7·8절), 검색 로그 `ai search: …`의 `vector N`(0이면 벡터 꺼짐·늦음·실패)과 `encoder failed`·`haiku makes the first step` 줄
 
 ## 6. (필요할 때) 공지·서비스 안내·약관 글
 

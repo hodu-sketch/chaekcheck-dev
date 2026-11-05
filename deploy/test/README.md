@@ -10,10 +10,10 @@ plan 17 요청(2026-10-18, 방식 A): 이미지는 PC에서 만들고 EC2는 실
 
 ## 서버 (2026-10-18)
 
-- EC2 `52.64.117.112`, arm64(Graviton), 메모리 2GB + 스왑 2GB, Docker 29.9.1 · compose v5.6.0, 폴더 `/srv/chaekcheck`
+- EC2 `$CHAEKCHECK_SERVER`(arm64, Graviton), 메모리 2GB + 스왑 2GB, Docker 29.9.1 · compose v5.6.0, 폴더 `/srv/chaekcheck`
 - `secrets.env`: `DB_PASSWORD` 한 줄, 서버에서 `openssl rand -hex 24`로 만듦, `chmod 600`. Parameter Store는 쓰지 않음
 - 끈 것: 로그인(`CHAEKCHECK_AUTH_ENABLED=false`), 사서추천 받기, 사용 기록. `FETCH_MODE=direct`. 힙 `-Xmx640m`
-- 대출 조회는 **프록시만**(`proxy-only`, 운영 값). Webshare는 IP 인증(EC2 52.64.117.112)이라 아이디·비밀번호 없이 주소 목록만 씀. 목록(주소:포트 20개)은 `egress.env`(`chmod 600`)에 PC `.env`의 같은 줄을 옮김. 처음 띄울 때 이 설정을 빠뜨려 서버 자기 IP로 조회했던 것을 같은 날 고침. 진짜 배포는 `up.sh`가 Parameter Store에서 읽음(ADR-0103)
+- 대출 조회는 **프록시만**(`proxy-only`, 운영 값). Webshare는 IP 인증(EC2 서버 IP)이라 아이디·비밀번호 없이 주소 목록만 씀. 목록(주소:포트 20개)은 `egress.env`(`chmod 600`)에 PC `.env`의 같은 줄을 옮김. 처음 띄울 때 이 설정을 빠뜨려 서버 자기 IP로 조회했던 것을 같은 날 고침. 진짜 배포는 `up.sh`가 Parameter Store에서 읽음(ADR-0103)
 
 ## 순서
 
@@ -33,7 +33,7 @@ plan 17 요청(2026-10-18, 방식 A): 이미지는 PC에서 만들고 EC2는 실
         docker compose --env-file secrets.env exec -T -e PGOPTIONS="-c maintenance_work_mem=256MB" db pg_restore -U chaekcheck -d chaekcheck -j 2 --exit-on-error /restore/chaekcheck-test.dump
 
 7. 서버: `docker compose --env-file secrets.env --env-file egress.env up -d` → 백엔드 시작 때 Liquibase는 덤프의 기록과 같아 할 일이 없음
-8. PC에서 보기: `ssh -i <키> -L 8088:127.0.0.1:8088 ubuntu@52.64.117.112` 뒤 `http://localhost:8088/search`
+8. PC에서 보기: `ssh -i <키> -L 8088:127.0.0.1:8088 $CHAEKCHECK_SERVER` 뒤 `http://localhost:8088/search`
 
 ## 알아 둘 것
 

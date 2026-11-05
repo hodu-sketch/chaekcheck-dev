@@ -51,7 +51,7 @@ done
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
-SERVER="${CHAEKCHECK_SERVER:-ubuntu@52.64.117.112}"
+SERVER="${CHAEKCHECK_SERVER:?Set CHAEKCHECK_SERVER (e.g. ubuntu@<server IP>) in .env or .secrets/}"
 KEY="${CHAEKCHECK_SSH_KEY:-$ROOT/.secrets/chaekcheck-key.pem}"
 REMOTE_DIR=/srv/chaekcheck
 # the repository as WSL sees it (Git Bash /c/... -> /mnt/c/...)

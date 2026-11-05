@@ -58,7 +58,7 @@ services:
       FETCH_MODE: direct
       # Library lookups go out through the Webshare proxies only, never the server's own address (cycle 20 #24,
       # proxy-only). Webshare user and password (user decision 2026-10-18, the main way, sent preemptively on the first
-      # CONNECT); empty values fall back to Webshare's IP Authorization of this server (52.64.117.112). The names are
+      # CONNECT); empty values fall back to Webshare's IP Authorization of this server. The names are
       # the Parameter Store ones (/chaekcheck/prod/..., up.sh) or egress.env on the test server.
       CHAEKCHECK_AVAILABILITY_EGRESS_MODE: proxy-only
       CHAEKCHECK_AVAILABILITY_EGRESS_PROXIES: ${WEBSHARE_PROXIES:?set WEBSHARE_PROXIES (Parameter Store through up.sh, or egress.env)}

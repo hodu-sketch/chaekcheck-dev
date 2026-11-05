@@ -9,7 +9,7 @@
 | `bin/release.sh` | PC에서 한 버전을 빌드·전송·전환(아래) |
 | `web.Dockerfile` | 화면 파일 운반용 이미지(nginx 설정은 서버 폴더, ADR-0168) |
 
-서버: `ubuntu@52.64.117.112`(arm64), 폴더 `/srv/chaekcheck`, 키 `.secrets/chaekcheck-key.pem`(git에 없음).
+서버: `$CHAEKCHECK_SERVER`(arm64), 폴더 `/srv/chaekcheck`, 키 `.secrets/chaekcheck-key.pem`(git에 없음). `.env`나 `.secrets/`에 `CHAEKCHECK_SERVER=ubuntu@<서버 IP>`를 넣으세요.
 
 ### 서버 폴더 구조
 
