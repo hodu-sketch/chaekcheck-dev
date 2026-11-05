@@ -243,7 +243,7 @@
 - **새 판 앱을 배포하기 전에**: 내 PC에 옛 판 내보내기가 기다리고 있으면(`catalog_next.load_manifest`) 옛 판 앱으로 먼저 `finish`하거나 `discard`합니다. 새 판 앱은 옛 판 파일을 `finish`할 수 없습니다.
 - **로컬 DB를 새로 만들면**(Liquibase seed부터) seed 뒤에 `library-insert`를 다시 돌려야 넣었던 도서관이 돌아옵니다(seed에는 넣지 않음, ADR-0084). 운영 쪽은 반영 파일이 옮기므로 따로 돌리지 않습니다.
 
-#### 로컬 DB 이름 맞추기 (사이클 13, `PRE_DEPLOYMENT` 동안 한 번)
+#### 로컬 DB 이름 맞추기 (사이클 13, 배포 전 표지 `PRE_DEPLOYMENT`가 있던 동안 한 번. 지난 기록)
 
 사이클 13에서 `collection/001`의 `catalog_import.candidate_library_count`를 `other_library_count`로 그 자리에서 고쳤습니다(AC-11). 체크섬이 바뀌어 이미 만든 DB는 그대로 켜지지 않습니다. 데이터(가져온 책, 국가서지, 측정 결과)를 지키려고 `db`·`db-ops`에는 아래를 한 번 돌립니다(`db-test`는 컨테이너를 다시 띄움, tmpfs).
 

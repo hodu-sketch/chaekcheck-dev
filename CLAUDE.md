@@ -47,8 +47,22 @@
   - Functions and triggers: add `splitStatements:false` so the body is not split at inner semicolons.
   - Write them as `CREATE OR REPLACE ...` with `runOnChange:true`, so the same file can be edited and re-applied.
 - Never edit a changeset that may already have been applied (Liquibase stops with a checksum error). Add a new changeset instead. The only exception is a `runOnChange:true` formatted SQL file.
-- Exception before the first deployment: while `backend/src/main/resources/db/changelog/PRE_DEPLOYMENT` exists, existing changesets may be edited to keep a clean structure. Then reset the local databases (drop the module schemas and the Liquibase tables in `db` and `db-test`) so they are applied again. Delete the marker at the first deployment.
+- Production has been running since 2026-10-18. The pre-deployment exception (marker file `PRE_DEPLOYMENT`, which allowed editing existing changesets) ended; the marker was removed on 2026-11-05 and the guard hook (`.claude/hooks/guard.mjs`) now blocks edits to existing changelog files. Every schema or seed change is a new changeset file.
 - Do not let Hibernate create or update the schema; every schema change goes through Liquibase.
+
+## Docs Change With the Code (required)
+
+Docs are read by people and by AI agents that act on them, so a stale doc does harm. A change is not done until the docs that describe it say the same thing, in the same commit or PR.
+
+- Feature behavior (what a request does, ordering, limits, prompts, models, data it reads): the feature folder `docs/features/<feature>/` — its how-it-works doc and its version history (`aisearch/2-versions.md`, `foryou/4-history.md`; a feature without one gets a line in CHANGELOG only). Summaries (`0-summary.md`, `7-summary.md`, `1-summary.md`) when a headline number or statement changes.
+- A setting added, renamed or with a new default: `docs/maintenance/settings-index.md`. If production must get it, also `deploy/prod/compose.yaml` (`x-backend.environment`, or the container never sees it) and `deploy/prod/prod.env` with the production value.
+- How something is run or operated (deploy, import, crawl, covers, server): the matching `docs/maintenance/` file and, for deploy, `deploy/prod/README.md`.
+- A production switch flipped on the server: the same value in the repository's `deploy/prod/prod.env` and the doc that says what production runs.
+- A script added, renamed or removed: its own header (what it does, how to run it, which doc explains it), then `python scripts/index_scripts.py`.
+- Library research: the record rules below.
+- Every change that will ship: a line under `## 다음 판 (아직 배포 안 됨)` at the top of `CHANGELOG.md`; the release turns that part into `## vX.Y.Z`.
+- Write the present state in the present tense and mark old numbers with their date or version ("2026-10-28 잰 값", "v1.22까지"). Dated reports and `docs/cycles/` records are history: do not rewrite them, but make their top say which version they describe and where the current state is.
+- In markdown write `\~` for a range outside code (GitHub draws `~a~` as strikethrough). Never write a server IP or a secret in a doc.
 
 ## Web Rules
 

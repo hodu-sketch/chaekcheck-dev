@@ -12,10 +12,8 @@
 
 ## 0. 작업 전에 확인할 것
 
-1. `CLAUDE.md`를 읽습니다. 특히 "Database Migrations (Liquibase)"와 `PRE_DEPLOYMENT` 예외.
-2. `backend/src/main/resources/db/changelog/PRE_DEPLOYMENT` 파일이 있는지 봅니다.
-   - **있음**: 이 표지는 2026-10-18 첫 배포 뒤에도 남아 있습니다(지울지는 plan이 정함). 그러니 표지가 있어도 **운영 DB에 이미 적용된 changeset·CSV는 고치지 않고** 새 changeset을 더합니다. 아직 어디에도 배포되지 않은 changeset만 고칠 수 있고, 고친 뒤 로컬 DB를 초기화합니다(7절).
-   - **없음(배포 후)**: 기존 changeset·CSV는 절대 고치지 않습니다. 새 changeset 파일을 추가합니다.
+1. `CLAUDE.md`를 읽습니다. 특히 "Database Migrations (Liquibase)".
+2. 운영은 2026-10-18부터 배포되어 있습니다(배포 전 표지 `PRE_DEPLOYMENT`는 2026-11-05에 지움). 기존 changeset·CSV는 절대 고치지 않고 **새 changeset 파일**을 더합니다(저장소의 guard 훅이 기존 changelog 파일 고치기를 막음).
 3. DB가 떠 있는지 확인합니다: `wsl -d Ubuntu --exec docker compose ps` (저장소 루트). 꺼져 있으면 `wsl -d Ubuntu --exec docker compose up -d --wait`.
 4. 이번 작업 범위를 사용자에게 받은 문장 그대로 기록해 둡니다(예: "교보 목록 216곳 다시 확인").
 
@@ -588,8 +586,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 
 ### 6-1. 수정 (주소가 바뀜, 자격이 바뀜, 순위 값 다시 잼)
 
-- 배포 전(`PRE_DEPLOYMENT` 있음): 해당 CSV 줄을 고치고 로컬 DB를 초기화합니다(7절).
-- 배포 후: **새 changeset**을 만듭니다.
+- **새 changeset**을 만듭니다(운영 배포 뒤라 기존 CSV 줄은 고치지 않음. 배포 전에는 CSV를 고치고 로컬 DB를 초기화했음).
   - 칼럼 몇 개만 바꿀 때: `update` 변경(where `id = …`) 또는 `loadUpdateData`(primaryKey `id`)로 CSV를 넣습니다.
   - 자격 규칙을 바꿀 때: 그 도서관의 규칙을 `delete`(where `library_id = …`) 한 뒤 새로 `insert`/`loadData`.
 - `base_url`을 바꾸면 UNIQUE를 다시 확인합니다.

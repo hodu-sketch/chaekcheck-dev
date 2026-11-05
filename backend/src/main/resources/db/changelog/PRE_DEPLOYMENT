@@ -1,6 +1,0 @@
-This marker means chaekcheck has not been deployed yet.
-
-While it exists, existing Liquibase changelogs may be edited to keep a clean structure (user decision 2026-09-28).
-After editing, reset the local databases (see CLAUDE.md "Database Migrations").
-
-Delete this file at the first deployment. From then on, applied changesets are never edited.
