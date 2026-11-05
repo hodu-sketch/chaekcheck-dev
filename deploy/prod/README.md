@@ -40,6 +40,35 @@
 └── restore/              (DB 복원 파일, 읽기만)
 ```
 
+### 서버 폴더 구조
+
+```
+/srv/chaekcheck/
+├── compose.yaml
+├── prod.env
+├── secrets.env          (up.sh가 만듦, 600)
+├── slots.env            (ACTIVE_SLOT, BACKEND_BLUE_VERSION, BACKEND_GREEN_VERSION, WEB_VERSION)
+├── bin/
+│   ├── up.sh
+│   └── switch.sh
+├── nginx/
+│   ├── conf.d/
+│   │   └── default.conf     (= ec2-tunnel.conf)
+│   ├── chaekcheck/
+│   │   ├── active-backend.conf   (switch.sh가 씀: upstream → backend-blue 또는 backend-green)
+│   │   ├── rate-limits.conf
+│   │   ├── security-headers.conf
+│   │   └── chaekcheck-locations.conf
+│   └── incoming/             (release.sh가 보낸 새 nginx 설정; switch.sh가 자리에 놓음)
+├── web/
+│   ├── current -> releases/X.Y.Z   (symlink)
+│   └── releases/
+│       ├── X.Y.Z/           (지금 판)
+│       └── X.Y-1.Z/         (앞 판, 되돌리기용)
+├── aisearch-model/       (AI 검색 모델, 읽기만)
+└── restore/              (DB 복원 파일, 읽기만)
+```
+
 ## 주소와 www (Cloudflare 대시보드, git 밖)
 
 대표 주소는 `chaekcheck.com`(www 없음). `www.chaekcheck.com`은 Cloudflare에서 바로 넘기고 서버까지 오지 않는다(사용자 요청 2026-10-20).
