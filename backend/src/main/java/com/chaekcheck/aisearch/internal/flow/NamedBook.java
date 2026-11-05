@@ -12,7 +12,7 @@ import com.chaekcheck.aisearch.internal.match.SearchBooks.SearchBook;
 import com.chaekcheck.aisearch.internal.match.SearchText;
 
 /**
- * The book a "○○ 같은 책" question names (user 2026-10-25, docs/aisearch/reports/2026-10-25-eval.md 3-3: the named
+ * The book a "○○ 같은 책" question names (user 2026-10-25, docs/features/aisearch/reports/2026-10-25-eval.md 3-3: the named
  * book's neighbours first raised 「아주 맞음」 from 22% to 42%). A search book is named when its title, letters only
  * and up to the first bracket, colon or full stop, comes right before 같은, 비슷, 처럼, 류의 or 풍의 in the question
  * (a 와·과·랑·이랑·하고 between them is allowed), so a title met elsewhere in a sentence is not taken. The longest such

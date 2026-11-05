@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Missing intermediates help build a chain but are never trusted on their own; roots the JDK lacks are trusted only
- * when the user approved them (docs/library-site-issues.md 3절).
+ * when the user approved them (docs/libraries/library-site-issues.md 3절).
  */
 class LibrarySiteTlsTests {
 

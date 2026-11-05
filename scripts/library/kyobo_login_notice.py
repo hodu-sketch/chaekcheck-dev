@@ -1,7 +1,7 @@
 """Collects the "로그인 상세 이용안내" panel (div.toogle_con) and footer of every Kyobo site in the seed CSVs.
 
 Usage (from the repository root): python scripts/library/kyobo_login_notice.py <out.tsv>
-One request per site, 1.1 s apart, our User-Agent only (docs/library-maintenance.md 2장, 4-10절).
+One request per site, 1.1 s apart, our User-Agent only (docs/libraries/library-maintenance.md 2장, 4-10절).
 The pilot library (고흥, 002 seed YAML) is not in the CSVs and is added by hand.
 """
 import csv

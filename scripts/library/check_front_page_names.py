@@ -1,6 +1,6 @@
 """Does each library's front page name that library? (user request 2026-10-05: a library's site showed another
 institution's name). One GET per library (homepage_url, else base_url), redirects followed, Windows curl (see
-docs/library-maintenance.md 4-7 4: it handles more TLS setups than Python). Libraries on the same host are asked one
+docs/libraries/library-maintenance.md 4-7 4: it handles more TLS setups than Python). Libraries on the same host are asked one
 at a time 1.1s apart; at most 12 hosts at once. Judging is left to a person: the output only says whether a key part
 of the name is on the page and which other institution names appear in the page title.
 

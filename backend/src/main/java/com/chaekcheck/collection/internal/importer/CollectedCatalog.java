@@ -306,7 +306,7 @@ final class CollectedCatalog implements AutoCloseable {
 
 	/**
 	 * Whether the collected base URL is the service library's site: same host and path, any scheme and port. The
-	 * service keeps the address a site redirects to (docs/library-maintenance.md 4-7: often http to https on another
+	 * service keeps the address a site redirects to (docs/libraries/library-maintenance.md 4-7: often http to https on another
 	 * port), while the collection DB keeps the listed one (found 2026-10-05: 강동대학교 북큐브 http → https).
 	 */
 	static boolean sameSite(String serviceBaseUrl, String collectedBaseUrl) {

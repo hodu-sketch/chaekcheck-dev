@@ -1,4 +1,4 @@
-"""Builds library seed CSVs from site checks and eligibility rules (docs/library-maintenance.md, "추가").
+"""Builds library seed CSVs from site checks and eligibility rules (docs/libraries/library-maintenance.md, "추가").
 
 Usage (from the repository root):
   python scripts/library/build_seed.py <search.tsv> <holdings.tsv> <eligibility.json> <first id> <out prefix> <counted on>

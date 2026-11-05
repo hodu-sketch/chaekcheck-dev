@@ -20,7 +20,7 @@ import com.chaekcheck.library.PlatformType;
 
 /**
  * 서울도서관's own integrated e-book site ({@code https://elib.seoul.go.kr}), read through the JSON its own pages
- * call (docs/library-maintenance.md 4-14, docs/maintenance/platforms.md 11, 호출 시험 2026-10-20):
+ * call (docs/libraries/library-maintenance.md 4-14, docs/maintenance/platforms.md 11, 호출 시험 2026-10-20):
  * <pre>
  * /api/contents/search?contentType=EB&amp;searchKeyword=..&amp;searchOption=1|2|3&amp;currentCount=N&amp;pageCount=10..
  *     search (title, author, publisher), {totalCount, ContentDataList[]}; counts are strings

@@ -1,4 +1,4 @@
-"""Applies a join classification to the seed CSVs (docs/library-maintenance.md 4-8, 4-10).
+"""Applies a join classification to the seed CSVs (docs/libraries/library-maintenance.md 4-8, 4-10).
 
 Usage (from the repository root):
   python scripts/library/apply_join_classification.py <classification.tsv> [<more.tsv> ...]

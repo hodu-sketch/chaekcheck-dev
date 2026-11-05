@@ -1,7 +1,7 @@
 # 가져오기: 받은 목록을 서비스 DB로
 
 - 정기 유지보수의 **가져오기 절차 원본**입니다(plan ADR-0047, 2026-10-04). 순서 전체는 [README.md](README.md). plan 짝 문서: `../chaekcheck-plan/docs/research/collection/2-books.md` 6절.
-- 옮겨 온 곳: `docs/plan-feedback.md` `# 사이클 04` "가져오기 실행 방법"·"실제 가져오기 결과 (2026-10-03 18:05)", plan `docs/research/maintenance/periodic-tasks.md` 3절. 빠지는 줄의 기준과 실행 조건은 코드(`backend/src/main/java/com/chaekcheck/collection/internal/importer/`)를 보고 적었습니다.
+- 옮겨 온 곳: `docs/cycles/plan-feedback.md` `# 사이클 04` "가져오기 실행 방법"·"실제 가져오기 결과 (2026-10-03 18:05)", plan `docs/research/maintenance/periodic-tasks.md` 3절. 빠지는 줄의 기준과 실행 조건은 코드(`backend/src/main/java/com/chaekcheck/collection/internal/importer/`)를 보고 적었습니다.
 - 가져오기는 수집 SQLite의 원문을 정리하고 같은 책을 묶어 서비스 DB의 `catalog` 표(책, 사람, 소장)를 **지우고 새로 씁니다**(plan ADR-0031). 사이클 07부터 `collection` 모듈이 맡고(ADR-0060), 짝 표(`collection.collection_link`)에 있는 **모든 서비스 도서관**(등록 + 수집 목록에서 찾아 넣은 곳)의 책을 가져옵니다(ADR-0054). 책마다 가진 도서관 번호(`book.library_ids`)도 이때 계산합니다(ADR-0055). 정리·묶기 규칙의 근거는 plan `docs/research/ebook-catalog/search-and-normalization.md` 4절, `same-book-isbn.md` 5절, 주기 갱신 순서는 `catalog-refresh.md` 2절.
 
 ## 1. 언제 돌리나 (실행 조건)
@@ -50,7 +50,7 @@
 
 1. 3절 명령을 `--chaekcheck.collection.import.dry-run=true` 없이 실행합니다.
 2. 확인: 서버를 띄우고 `/api/v1/books` 검색 몇 가지("행동"+"새폴스키", "작별하지 않는다", "사랑")가 나오는지 봅니다.
-3. 결과 숫자를 5절 표에 한 줄 더하고, `docs/plan-feedback.md`에도 남깁니다. 가져오기마다 `collection.catalog_import`에 한 줄이 쌓입니다(책·소장·건너뜀 수, 등록 도서관 수 `registered_library_count`와 그 밖의 도서관 수 `other_library_count`, 이유별 건너뜀 `skipped_by_reason`).
+3. 결과 숫자를 5절 표에 한 줄 더하고, `docs/cycles/plan-feedback.md`에도 남깁니다. 가져오기마다 `collection.catalog_import`에 한 줄이 쌓입니다(책·소장·건너뜀 수, 등록 도서관 수 `registered_library_count`와 그 밖의 도서관 수 `other_library_count`, 이유별 건너뜀 `skipped_by_reason`).
 
 ## 5. 확인할 숫자 (지난 값)
 
@@ -66,7 +66,7 @@
 | 2026-10-11 22:11 (사이클 08 #2, **새 표에 쓰고 바꿔 끼우기**, 서비스 켠 채, 같은 사본) | 같음 | 같음 | 같음 | 같음. **kept 1,615,125 / new 0 / dropped 0**, `holding.book_id` 상관도 1.0 | 약 41분: 읽기 13분 46초, 국가서지 7분 55초(TTL 풀며 원문 표를 처음 씀) + 키 46초, 같은 글 2분 6초, `load` 16분 50초(임시 표 COPY 9분 40초, 번호 잇기 2분 19초, `write` 2분 27초, `index` 1분 39초, `analyze` 43초, **`swap` 0.33초**). 가져오는 동안 "사랑" 첫 쪽 p95 560ms, 5xx 0. 디스크 최대 19.1GiB(시작 8.5GiB). 세션 `maintenance_work_mem` 1GB, 병렬 4 |
 | 2026-10-11 23:49 (사이클 08 #3c, 바꿔 끼우기, `-Xmx6g`, DB 64MB / 768MB / 4MB) | 같음 | 같음 | 같음 | 같음. kept 1,615,125 / 0 / 0 | **약 33분**: 읽기 9분 44초, **국가서지 2분 46초(원문 표에서)** + 키 24초, 같은 글 1분 26초, `load` 18분 35초(`swap` 0.13초). 힙 6GB에서 전체 GC 2번, 살아 있는 데이터 최대 약 4.8GB |
 | 2026-10-12 05:13 (사이클 11 7단계, **새 사본** `ebook-catalog-2026-10-12-0135.sqlite`, 내 PC `export`, `current`, `-Xmx6g`) | 26,144,897 / 8,366,096 (서비스에 없음 8,265,035, 오디오북 93,537, 동영상북 5,368, 소리·영상 1,747, http 아님 283, 빠진 책 119, 제목 없음 7) | 등록 275 + 후보 2,381 (주소 다름 0: 도서관 411 새 주소 들어옴) | 7,666,094 → 7,345,534 → 6,665,999 → 1,619,668 | 책 1,619,668, 사람 1,815,697, 소장 17,778,801. kept 1,615,124 / new 4,544 / dropped 1. 파일 606MB | 약 27분(읽기 8분 32초, 국가서지 2분 14초, 같은 글 1분 15초, `load` 12분 51초, 덤프 약 1분 22초). 운영 역할 `db-ops`(상한 1GB, 256MB) 반영 4분 35초(`restore` 65초, `index` 2분 30초, `analyze` 52초, `swap` 0.08초), 내 PC `finish` 1분 28초 |
-| 2026-10-12 (사이클 11 11단계, 새 사본, 내보내기, 방식별) | 같음 | 같음 | 같음(세 방식 모두 책·번호까지 같음) | 같음 | `current`(지금 이름 `objects`) 약 26분·힙 6GB에서만 끝까지, `current`+`-XX:+UseCompactObjectHeaders -XX:+UseStringDeduplication` 약 25분·4GB, `compact` 약 21분·2GB, `sql` 약 34분·1GB(임시 쓰기 약 61GB, DB 최대 약 27GB). 표는 `docs/plan-feedback.md` `# 사이클 11` "11단계 최종" |
+| 2026-10-12 (사이클 11 11단계, 새 사본, 내보내기, 방식별) | 같음 | 같음 | 같음(세 방식 모두 책·번호까지 같음) | 같음 | `current`(지금 이름 `objects`) 약 26분·힙 6GB에서만 끝까지, `current`+`-XX:+UseCompactObjectHeaders -XX:+UseStringDeduplication` 약 25분·4GB, `compact` 약 21분·2GB, `sql` 약 34분·1GB(임시 쓰기 약 61GB, DB 최대 약 27GB). 표는 `docs/cycles/plan-feedback.md` `# 사이클 11` "11단계 최종" |
 
 - 같은 날 국가서지: ISBN 붙음 60,901, 모호한 키 5,484. 교보 코드: ISBN 1,952,464줄, 한국 ISBN 아님 46,705, 확인 숫자 안 맞음 10,126.
 - 2026-10-05 국가서지: 찾은 키 1,355,337, ISBN 붙음 707,518, 모호한 키 11,662. 교보 코드: ISBN 5,886,961줄, 한국 ISBN 아님 415,603, 확인 숫자 안 맞음 28,306. 명지대(100555) 1950년 이전 날짜 지움 17,311건.
@@ -75,7 +75,7 @@
 - 2026-10-11 힙: `-Xmx4g`는 첫 읽기에서 멈춤(살아 있는 데이터 4,066MB, 전체 GC만 반복). 6GB(#3c)는 끝까지 됨(전체 GC 2번, 살아 있는 데이터 최대 약 4.8GB).
 - 2026-10-05 힙: JVM 기본 최대 8,096MB(PC 메모리 32GB의 1/4)로 끝남. 로그의 "heap used up to 11,200MB"는 힙 구역별 최고치의 합이라 실제보다 큼(실제 최고치는 8GB 이하). 더 작은 최대 힙으로 되는지는 재지 않음.
 - 2026-10-05 DB 크기(가져온 뒤, `VACUUM (ANALYZE)` 뒤): DB 전체 9,812MB. `holding` 8,353MB(표 6,035MB + 인덱스 `holding_library_item_key` 1,075MB, `holding_book_id_library_id` 803MB, `holding_pkey` 439MB), `book` 1,123MB(표 550MB, `book_library_ids_gin` 48MB, `book_title_norm_bigm` 110MB 등), `book_contributor` 324MB.
-- 2026-10-05 첫 검색 응답(`scripts/catalog/measure_books.py`, 9개 검색어 × 지역 없음·지역 1개·가입 가능): 첫 쪽 82~393ms. 상세와 실행 계획은 `docs/plan-feedback.md` `# 사이클 07` 15단계.
+- 2026-10-05 첫 검색 응답(`scripts/catalog/measure_books.py`, 9개 검색어 × 지역 없음·지역 1개·가입 가능): 첫 쪽 82~393ms. 상세와 실행 계획은 `docs/cycles/plan-feedback.md` `# 사이클 07` 15단계.
 - 같은 날 첫 검색 응답(웜업 전 1회): "행동"+"새폴스키" 22ms, "작별하지 않는다" 40ms, "사랑" 224ms(8,433권).
 
 ## 6. 빠지는 줄의 기준 (`collection/internal/importer/CollectedCatalog.java`)

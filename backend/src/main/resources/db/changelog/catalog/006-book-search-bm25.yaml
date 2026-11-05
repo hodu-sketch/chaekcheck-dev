@@ -1,7 +1,7 @@
 # 2026-10-30 (user "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자"): what the AI
 # search's two layers keep per book, written by one Haiku call on the PC (scripts/aisearch/build_summary_terms.py;
 # the intros stay on the PC, cycle 23 [확정]):
-# - summary: 200-250 characters asked, 139-408 measured (docs/aisearch/reports/2026-10-29-intro-text.md 11); the
+# - summary: 200-250 characters asked, 139-408 measured (docs/features/aisearch/reports/2026-10-29-intro-text.md 11); the
 #   summary vector and what the second call reads. Not catalog.book_summary (the 책첵 summary, another prompt).
 # - terms: 30-50 search terms, comma separated; with title, author and line the BM25 text.
 # - keyword_text: title, author, line and terms with their spaces (the Korean analyser needs them; search_text has

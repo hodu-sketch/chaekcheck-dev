@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * {@code chaekcheck.catalog.ai-search.*}: which of {@code catalog.book_search}'s texts the AI search uses (user
  * 2026-10-30 "두 층 (조각 512) + BM25 이걸로 개발해", "한 줄 + Haiku 검색 낱말 (원문 불필요)로 가자"; measured in
- * docs/aisearch/reports/2026-10-29-intro-text.md 10-11).
+ * docs/features/aisearch/reports/2026-10-29-intro-text.md 10-11).
  * @param keywordMatch {@link KeywordMatch#LIKE} (v1.15.0 on) or {@link KeywordMatch#BM25}; BM25 falls back to LIKE with
  *     one warning while the database has no {@code catalog.book_search_bm25} index (no pg_search)
  * @param readingText what the second call reads for a candidate: {@link ReadingText#LINE} (v1.15.0 on) or

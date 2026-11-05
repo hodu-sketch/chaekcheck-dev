@@ -35,7 +35,7 @@ import com.chaekcheck.picks.internal.store.PicksStore;
  * are tried again at most once a minute ({@link #AUTHOR_RETRY}), so a database outage does not add a query to every
  * request.
  * <p>
- * TODO(24-F1): read the author from the cache once it carries one (dev docs/plan-feedback.md "후속 작업 24-F1").
+ * TODO(24-F1): read the author from the cache once it carries one (dev docs/cycles/plan-feedback.md "후속 작업 24-F1").
  */
 @Component
 class CacheListedBooks implements ListedBooks {

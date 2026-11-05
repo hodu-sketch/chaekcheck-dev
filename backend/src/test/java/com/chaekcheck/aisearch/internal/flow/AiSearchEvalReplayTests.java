@@ -39,7 +39,7 @@ import com.chaekcheck.picks.ListedBooks;
 import com.chaekcheck.usagelog.UsageRequest;
 
 /**
- * The evaluation questions of docs/aisearch/reports/2026-10-25-eval.md through the real {@link AiSearchFlow}: the
+ * The evaluation questions of docs/features/aisearch/reports/2026-10-25-eval.md through the real {@link AiSearchFlow}: the
  * 30,939 search books of {@code sb.csv} put into db-test (rolled back), the neighbours of {@code nb.csv}, the fixed
  * first-call answers of the evaluation, the real question vectors, the plan of {@code libs-1114.json}. Writes the
  * book ids each question sends to the second call, in order, ({@code replay-<mode>.json} in the evaluation folder) so the script

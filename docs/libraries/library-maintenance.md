@@ -1,0 +1,788 @@
+# 도서관 목록 관리 작업 안내 (AI 배치 작업용)
+
+전자도서관을 찾고, 추가하고, 고치고, 끄는 일을 나중에 AI에게 배치 작업으로 맡기기 위한 안내서입니다. 2026-09-29 기준 DB 구조와 절차를 적었습니다. 구조가 바뀌면 이 문서부터 고칩니다.
+
+- 이 문서를 받은 AI는 **먼저 끝까지 읽고**, 아래 "0. 작업 전에 확인할 것"을 확인한 다음 시작합니다.
+- 결정이 필요한 일(아래 "사람에게 물을 것")은 스스로 정하지 말고 사용자에게 묻습니다.
+- 작업 결과는 `docs/cycles/plan-feedback.md`에 적습니다(10절).
+- 검색 대상에서 빠진 사이트(주소 없어짐·다른 화면, 연결 안 됨, 인증서 불완전, 이름에 "도서관" 없음, 이름 겹침)와 다시 볼 때 할 일은 [`library-site-issues.md`](library-site-issues.md)에 모읍니다.
+- 이 작업은 정기 유지보수의 1단계입니다. 다음 단계(책 목록 수집, 서비스 DB로 가져오기)와 순서는 [`maintenance/README.md`](../maintenance/README.md)에 있습니다(plan ADR-0047, 2026-10-04).
+
+---
+
+## 0. 작업 전에 확인할 것
+
+1. `CLAUDE.md`를 읽습니다. 특히 "Database Migrations (Liquibase)"와 `PRE_DEPLOYMENT` 예외.
+2. `backend/src/main/resources/db/changelog/PRE_DEPLOYMENT` 파일이 있는지 봅니다.
+   - **있음(배포 전)**: 기존 seed 파일을 고쳐서 정리해도 됩니다. 고친 뒤 로컬 DB를 초기화합니다(7절).
+   - **없음(배포 후)**: 기존 changeset·CSV는 절대 고치지 않습니다. 새 changeset 파일을 추가합니다.
+3. DB가 떠 있는지 확인합니다: `wsl -d Ubuntu --exec docker compose ps` (저장소 루트). 꺼져 있으면 `wsl -d Ubuntu --exec docker compose up -d --wait`.
+4. 이번 작업 범위를 사용자에게 받은 문장 그대로 기록해 둡니다(예: "교보 목록 216곳 다시 확인").
+
+---
+
+## 1. 데이터 구조
+
+### 1-1. 테이블 `library.library` (도서관 한 줄 = 전자도서관 사이트 하나, ADR-0017)
+
+| 칼럼 | 타입·제약 | 뜻 | 누가 채우나 |
+|---|---|---|---|
+| `id` | bigint, PK, IDENTITY | seed는 **직접 번호를 넣습니다**. 마지막에 IDENTITY를 최댓값+1로 다시 시작 | seed |
+| `name` | text, NOT NULL (UNIQUE 아님) | 기관 정식 이름만. 업체·대출 방식 괄호를 붙이지 않음(사이클 09, ADR-0071). 기관 이름 속 괄호((주), (부산), 캠퍼스 등)는 그대로. 같은 기관의 사이트 여러 개는 `vendor`·`lending_model`·`order_no`로 구분 | 조사 |
+| `vendor` | text, CHECK IN (`KYOBO`, `YES24`, `BOOKCUBE`, `ALADIN`, `PORTAL`, `IN_HOUSE`), EBOOK이면 NOT NULL | 사이트 시스템 업체. 도서관 수집이 정하고 넣기 명령 `library-insert`(사이클 13부터, 그 전에는 seed 생성 스크립트)가 씀(수집 DB `library.vendor` 값이 있으면 그 값, 없으면 `platform_type` 대응표 `build_library_seed.py`(옛 이름 `build_candidate_seed.py`) `VENDORS`. 2026-10-05 사본처럼 칸이 없으면 모두 대응표. 2026-10-12부터). 화면에는 이름 다음에 "교보 · 소장"처럼 | seed 스크립트 |
+| `lending_model` | text, CHECK IN (`OWNED`, `SUBSCRIPTION`, `MIXED`, `RENTAL`), 통합 포털만 NULL | 대출 방식. 교보 구독형은 교보 probe 값(없으면 `SUBSCRIPTION`), 북큐브는 전체 권수 0 + 책 있음이면 `SUBSCRIPTION`, 나머지 `OWNED`(spec R3). 소장 판정에 쓰는 곳은 교보 구독형 화면 하나(`HoldingTask`) | seed 스크립트 |
+| `order_no` | integer, NOT NULL, 기본 1, CHECK ≥ 1 | 같은 (이름, 업체, 대출 방식) 안의 순번. 지금은 모두 1. 2가 붙으면 사이트 이름을 확인해 고치고 1로 되돌림(4-13) | seed 스크립트 |
+| `library_type` | text, NOT NULL, 기본 `EBOOK`, CHECK IN (`EBOOK`) | 전자/실물. 지금은 `EBOOK`만 | 기본값 |
+| `platform_type` | text, CHECK IN (아래 1-3) | 검색 화면 종류. adapter를 고릅니다 | 조사 |
+| `base_url` | text, **UNIQUE** | 사이트 뿌리 주소. adapter가 그 뒤에 경로를 붙입니다. **리다이렉트를 따라간 최종 주소**(보통 https, 포트 포함) | 확인 도구 |
+| `eligibility_summary` | text, NULL | 화면에 보이는 가입 조건 한 줄(예: "서울 거주·재직·재학"). 누구나 가입이면 NULL(화면이 "누구나 가입"으로 표시) | 조사 |
+| `extra_condition_text` | text, NULL | 지역으로 판정할 수 없는 조건(예: "책이음 회원 가입 가능"). 화면에는 참고 글로만 보임. 내 지역이 지역 규칙과 맞으면 가입 가능, 안 맞거나 지역이 없으면 "가입 자격 확인 필요"(spec AC-12, 사용자 결정 2026-09-29) | 조사 |
+| `visit_required` | boolean, 기본 false | 전자책을 쓰려면 방문 가입이 필요함. 화면 "방문 가입" 태그, "방문 없이 가입" 필터에서 빠짐, 같은 무리 안에서 맨 뒤로 조회. 판단 규칙은 4-10 5번 | 조사 |
+| `visit_outside_region` | boolean, NOT NULL, 기본 false | 「지역 외는 방문 가입」(사용자 2026-10-20): 누구나 규칙(NATIONWIDE)과 지역 규칙이 함께 있고, 지역 규칙에 맞는 사람은 온라인으로, 그 밖의 사람은 방문해야 가입. 서버가 사용자마다 방문 여부를 정함(지역 맞음 → 내 지역·방문 없음, 아니면 어디 살든 가입·방문 가입, 「온라인 가입만 보기」에서 빠짐). 이 줄들은 `visit_required`=false. 예: 서울온(서울 거주자만)이 있는 서울 구립도서관 | 조사 |
+| `join_method` | text, NOT NULL | 가입 방법 글. 모르면 "도서관 홈페이지의 회원가입 안내 확인" | 조사 |
+| `join_url` | text, NULL | 가입·자격 안내 페이지. 있으면 `join_method` 글자가 링크가 됩니다. **원문을 읽은 페이지만** | 조사 |
+| `join_caution` | text, NULL | 가입 판정은 바꾸지 않고 화면에 "주의"로만 보이는 원문 요약. 예: 누구나 홈페이지 가입이 되지만 회원증 발급은 그 지역 주민만인 곳(4-8 규칙 3). "가입 가능한 곳" 필터에서 빠지지 않습니다. 같은 무리 안에서 주의 없는 곳 뒤에 옵니다 | 조사 |
+| `join_notice` | text, NULL | "안내": 도서관이 누구를 위한 곳인지 같은 중립 정보(예: 점자도서관, 육아종합지원센터 이용자용). 가입 판정·필터·정렬에 영향 없음(사용자 결정 2026-09-29: "주의보다는 '안내'로") | 조사 |
+| `homepage_url` | text, NULL | 그 줄이 가리키는 도서관의 첫 화면. 화면 결과 요약 줄에서 도서관 이름을 누르면 이 주소가 새 창으로 열립니다. **전자도서관 줄이면 전자도서관 첫 화면**, 나중에 실물 도서관 줄이면 그 도서관 홈페이지(사용자 결정 2026-09-29). 화면 종류별 경로: 교보 `/elibrary-front/main.ink`, 교보 구독형 `/main.ink`, YES24·강남·포털 `base_url` + `/`. 열리는지 확인한 주소만 | `find_front_pages.py` |
+| `holdings_count` | integer, NULL, CHECK ≥ 0 | 순위 값(보유 전자책 수). 같은 우선순위 그룹 안에서 많은 곳이 먼저 조회됩니다. NULL은 그룹 맨 뒤 | 확인 도구 |
+| `holdings_counted_on` | date, NULL | `holdings_count`를 잰 날. **둘 다 있거나 둘 다 NULL**(CHECK) | 확인 도구 |
+| `deferred` | boolean, 기본 false | 후순위. 검색 목록에 대출 판정이 없어 상세 페이지를 더 불러야 하는 포털(경북·전북) | 사람이 정함 |
+| `enabled` | boolean, 기본 true | 끄면 검색 대상에서 빠집니다. 요청마다 읽으므로 바로 반영 | 운영(SQL) |
+| `created_at`, `updated_at` | timestamptz | | 기본값 |
+
+제약 이름(오류 메시지에서 찾을 때): `library_classification_key`(`UNIQUE NULLS NOT DISTINCT (name, vendor, lending_model, order_no)`, 꺼진 도서관도 셈, 사이클 09에서 `library_name_key`를 대신함), `library_vendor_check`, `library_vendor_required_check`, `library_lending_model_required_check`(`(vendor = 'PORTAL') = (lending_model IS NULL)`), `library_order_no_check`, `library_base_url_key`, `library_platform_type_check`, `library_ebook_site_check`(EBOOK이면 `platform_type`·`base_url` 필수), `library_holdings_count_check`, `library_holdings_counted_check`.
+
+### 1-2. 테이블 `library.eligibility_rule` (가입 자격 규칙, ADR-0004·0013)
+
+| 칼럼 | 뜻 |
+|---|---|
+| `library_id` | FK → `library.id` (도서관 지우면 같이 지워짐) |
+| `basis` | `RESIDENCE`(거주), `WORK`(재직), `SCHOOL`(재학), `AFFILIATION` |
+| `scope_type` | `REGION`(지역), `INSTITUTION`, `NATIONWIDE`(누구나) |
+| `scope_region_id` | `REGION`일 때 지역 ID(`region` 모듈 ID, FK 없음). `NATIONWIDE`면 NULL |
+| `scope_institution_id` | `INSTITUTION`일 때만 |
+
+- UNIQUE NULLS NOT DISTINCT (library_id, basis, scope_type, scope_region_id, scope_institution_id)
+- **규칙이 하나도 없으면 "자격 미확인"**(`UNVERIFIED`)입니다. 검색 대상에는 남고 "가입 자격 확인 필요" 배지가 붙습니다.
+- 누구나 가입 = `RESIDENCE × NATIONWIDE` 한 줄.
+- 지역 규칙은 **시군구 ID 또는 시도 ID**. 사용자가 고른 시군구와 같으면 "내 시군구", 그 시도면 "내 시도" 그룹.
+- 인접 지역까지 받는 도서관(예: 천안 = 천안 + 세종·아산·공주·평택·안성·청주·진천 거주)은 **지역마다 한 줄**씩 넣습니다.
+- 지금 서버가 비교하는 것은 `RESIDENCE`, `WORK`의 `REGION` 규칙뿐입니다. `SCHOOL`도 원문에 있으면 넣어 둡니다(나중에 씀).
+
+### 1-3. 화면 종류 `platform_type` (ADR-0016, 세대 번호 규칙)
+
+| 값 | 화면 | 주소 모양(`base_url` 뒤) | 수량 | 문자셋 |
+|---|---|---|---|---|
+| `KYOBO_V1` | 교보 일반 | `/elibrary-front/search/searchList.ink` | 보유·대출·예약 | UTF-8 |
+| `KYOBO_SUBSCRIPTION_V1` | 교보 구독형(`*.dkyobobook.co.kr`) | `/search/searchList.ink` | 없음(바로 대출) | UTF-8 |
+| `YES24_V1` | YES24 한 세대 전 | `/search/?src_key=..&view=10` | 보유·대출·예약 | **EUC-KR** |
+| `YES24_V2` | YES24 지금 화면 | `/search/?src_key=..` | 보유·대출·예약 | UTF-8 |
+| `YES24_V3` | YES24 지금 화면 모양인데 EUC-KR로 응답 | `/search/?src_key=..`(검색어 EUC-KR) | 보유·대출·예약 | **EUC-KR**. UTF-8 검색어는 늘 0건(2026-09-29 발견: 마포나루·김천·경주·구미) |
+| `ELIB_PORTAL_V1` | 지역·교육청 통합 포털 | `base_url`이 `…/elib`, 뒤에 `/module/elib/search/index.do` | 대출·예약, 판정 글(보유 없음) | UTF-8 |
+| `GANGNAM_V1` | 강남구 자체 시스템 | `/elibbook/book_info.asp` | 보유·대출·예약 | **EUC-KR** |
+| `SEOUL_ELIB_V1` | 서울도서관 자체 통합전자책(`elib.seoul.go.kr`, 2026-10-20) | `/api/contents/search?..` (JSON) | 소장형 보유·대출·예약, 구독형 없음(바로 대출) | UTF-8 JSON. 4-14, [`maintenance/platforms.md`](../maintenance/platforms.md) 11절 |
+
+- 포털의 검색 메뉴 번호(`menu_idx`)는 보통 10입니다. 다른 번호를 쓰는 포털은 `base_url` 끝에 `?menu_idx=N`을 붙입니다(예: 강원교육청 `https://ebook.gwe.go.kr/elib?menu_idx=2`, 2026-09-29). adapter가 검색과 책 상세 페이지 모두 그 번호를 씁니다. 번호가 틀리면 사이트가 오류 화면(500이나 아주 짧은 화면)을 줍니다.
+
+- **이 표에 없는 화면**(다산, 로그인이 필요한 사이트 등)은 adapter가 없어 넣을 수 없습니다. 목록에만 적어 두고 사용자에게 알립니다(개발 작업 필요). 넣을 수 있는지 조사하는 방법은 4-14. 첫 사례 서울도서관은 조사 뒤 새 화면 종류 `SEOUL_ELIB_V1`을 만듦(2026-10-20, 4-14 "판정").
+- 같은 업체의 새 화면이 나오면 다음 번호(`YES24_V3`)로 새 adapter를 만듭니다. 기존 이름은 바꾸지 않습니다(사용자 결정 2026-09-28).
+- 화면 종류를 가려내는 단서: `docs`가 아니라 plan 저장소의 `collection-method.md` 1·4-4절(주소 모양, 화면 세대).
+
+### 1-4. 지역 ID (`region.region`)
+
+- 시도 2자리(법정동 코드 앞 두 자리, 서울 11, 경기 41), 시군구 4자리(시도 ID + 법정동 코드 순서 01, 02, …). 일반구는 없습니다.
+- 목록: `backend/src/main/resources/db/changelog/region/002-region-seed.csv`. 이름으로 찾되 **같은 이름이 여러 시도에 있으면**(중구, 동구 등) 시도까지 보고 고릅니다.
+- 세종은 시도 36, 시군구 3601(하나뿐).
+
+### 1-5. seed 파일 (`backend/src/main/resources/db/changelog/library/`)
+
+| 파일 | 내용 |
+|---|---|
+| `001-library-schema.yaml` | 두 테이블 (CHECK·UNIQUE는 `sql` 변경) |
+| `002-library-seed.yaml` | 시범 도서관 id 1(강서), 2(고흥). SQL INSERT |
+| `003-library-seed-cycle02.yaml` + `003-library-cycle02.csv`, `003-eligibility-rule-cycle02.csv` | 사이클 02 1차: 화면 종류별로 확인한 곳(id 3~15) |
+| `004-…` 이후 | 이 문서의 절차로 추가하는 묶음 |
+| `008-library-candidates.csv`, `008-eligibility-rule-candidates.csv` | 수집 목록에서 찾은 도서관(사이클 07, 파일 이름은 적용된 그대로). `build_candidate_seed.py`(지금 `build_library_seed.py`)가 만들었음. 손으로 고치지 않음. 사이클 13부터 이 스크립트는 seed를 쓰지 않고, 새 도서관은 seed가 아니라 넣기 명령 `library-insert`로 넣음(ADR-0084, [`maintenance/1-libraries.md`](../maintenance/1-libraries.md)) |
+| `../collection/002-collection-link.csv` | 수집 번호 ↔ 서비스 번호 짝(등록 도서관은 같은 번호). `build_candidate_seed.py`(지금 `build_library_seed.py`)가 만들었음 |
+
+- master(`db.changelog-master.yaml`)는 include만 합니다. 새 파일은 master 맨 아래에 include를 더합니다.
+- CSV는 Liquibase `loadData`로 넣습니다. 빈 값은 `NULL` 글자로 씁니다.
+
+---
+
+## 2. 지켜야 할 규칙 (도서관 호출 예절, 사용자 확정)
+
+- **우리를 밝히는 User-Agent**만 씁니다: `chaekcheck/0.0.1`(서비스 설정 `chaekcheck.availability.user-agent`와 같은 값). 다른 봇·브라우저로 위장하지 않습니다.
+- **같은 호스트 이름에는 한 번에 1건, 끝나고 1초 뒤 다음 요청.** 포트가 달라도 호스트 이름이 같으면 같은 곳입니다(예: `ebook.jne.go.kr:8300`~`:8311`). 확인 도구는 모든 요청 사이에 1.1초를 둡니다.
+- 필요한 만큼만 부릅니다. 도서관 하나당 검색 1회 + 순위 값 1회가 기본입니다.
+- robots.txt가 막아도 조회 대상에 넣습니다(사용자 확정). 실제로 막히면(계속 403·시간 초과) 그 도서관만 끕니다(6절).
+- **하지 않는 것**: IP를 바꿔 가며 피하기(프록시 풀), 인증서 검증 끄기, 실패를 다른 곳으로 다시 보내기.
+- 서지 설명문과 표지는 읽지도 저장하지도 않습니다. fixture를 저장할 때도 지웁니다.
+- 제3자 목록(웹러브 북스 등)은 출발점일 뿐이고, 모든 주소는 실제 사이트에서 다시 확인합니다.
+
+---
+
+## 3. 도구 (`scripts/library/`)
+
+| 도구 | 하는 일 | 실행 |
+|---|---|---|
+| `CheckKyoboSites.java` | 교보·교보 구독형 사이트를 서비스와 같은 JDK·설정으로 1회씩 검색. 살아 있는지, 최종 주소, 전체 건수 | `java scripts/library/CheckKyoboSites.java <in.tsv> search` / `… holdings` |
+| `CheckYes24Sites.java` | YES24 사이트를 서비스와 같은 JDK로 1회씩 검색. 응답 문자 방식으로 `YES24_V1`/`V2`/`V3`를 가름. 출력 형식은 `CheckKyoboSites.java`와 같음 | `java scripts/library/CheckYes24Sites.java <in.tsv> search` / `… holdings` |
+| `eligibility_rules.py` | 자격 조사표(원문 확인된 줄)를 지역 ID 규칙으로 바꿈. 못 바꾸는 줄은 이유를 출력 | `python scripts/library/eligibility_rules.py <eligibility-by-library.md> <out.json> [플랫폼…]` |
+| `build_seed.py` | 확인 결과 + 순위 값 + 규칙 → seed CSV 2개. 이미 있는 주소·이름, "도서관"이 없는 이름은 건너뛰고 이유 출력 | `python scripts/library/build_seed.py <search.tsv> <holdings.tsv> <rules.json> <첫 id> <출력 접두어> <잰 날>` |
+| `kyobo_login_notice.py` | seed의 교보 사이트마다 로그인 화면의 "로그인 상세 이용안내" 글과 화면 아래 도서관명·대표전화를 모음(4-10) | `python scripts/library/kyobo_login_notice.py <out.tsv>` |
+| `collect_join_evidence.py` | 도서관 본 홈페이지의 회원가입·이용안내·전자책 메뉴를 따라가며 가입 자격 문장만 모음. 판단은 하지 않음(4-8) | `python scripts/library/collect_join_evidence.py <targets.tsv> <out.jsonl>` (targets: `id, name, start_urls`) |
+| `apply_join_classification.py` | 가입 자격 분류표를 seed CSV(도서관·규칙)에 넣음. 여러 파일을 받으면 뒤 파일이 이김. 시범 도서관(YAML)은 손으로 고칠 줄을 출력 | `python scripts/library/apply_join_classification.py <classification.tsv> scripts/library/join_overrides.tsv` |
+| `join_overrides.tsv` | 사용자가 정한 가입 자격 결과(원문·주소·결정 날짜). 다시 조사하지 않는 근거 | (데이터 파일) |
+| `find_front_pages.py` | 전자도서관 줄마다 첫 화면 주소를 화면 종류별로 만들어 열리는지 확인(`homepage_url`) | `python scripts/library/find_front_pages.py <out.tsv> [--write]` |
+| `build_library_seed.py` (옛 이름 `build_candidate_seed.py`, 2026-10-12 바꿈) | 수집 DB 사본(읽기 전용)과 규칙 폴더 `rules/`로 서비스 도서관을 계산해 **비교용으로 출력만** 함(사이클 13 R4-3, seed 파일을 쓰지 않음). 새 도서관 넣기는 넣기 명령 `library-insert`(ADR-0084)가 하고, 이 스크립트는 같은 사본으로 결과가 같은지 대조하는 데 씀(AC-6). 출력: 셈, 새로 넣을 도서관(번호·이름·업체·대출 방식·순번·가입 조사 상태·주소·요약·규칙), 같은 호스트 쌍. 이미 받은 번호·이름은 적용된 seed 파일에서 읽고, 새 번호는 max(가장 큰 번호 + 1, 마지막 `RESTART WITH`)부터. 새 곳에 `final_origins.tsv` 줄이 없으면 종료 1. 같은 호스트는 등록 도서관과, 그리고 새 도서관은 서비스 전체·새 도서관끼리도 봄(plan spec R2-7). 읽지 않은 쌍이면 종료 코드 2, `order_no_allowed.tsv`에 없는 순번 2 이상이면 3. `--out <폴더>`는 seed와 같은 꼴 CSV 3개(`libraries.csv`, `eligibility_rules.csv`, `links.csv`)를 그 폴더에 씀(`backend/` 아래는 거절). `--changes-only`는 changeset에 넣을 목록(이름 UPDATE VALUES, 대출 방식 채우기, 수집 세션용 이름 목록). 테스트: `python -m unittest scripts/library/test_build_library_seed.py` | `python scripts/library/build_library_seed.py [--rules <폴더>] [--out <폴더>] [--changes-only <db-state.tsv>] <사본.sqlite>` |
+| `rules/` (2026-10-12) | 사람이 정한 도서관 규칙과 조사 결과(ADR-0085): 이름 바꾸기, 최종 주소, 체험용·운영 중단, 같은 사이트, 같은 호스트지만 남김, 순번 2 허용, 가입 범위 덮어쓰기, 공공도서관 가입 조사(지역 번호·요약 포함), 종류, 교보 구독형 운영 방식, 북큐브 권수, 가입 조건 조사 기준일. 파일·칸·출처는 `scripts/library/rules/README.md`. 넣기 명령과 `build_library_seed.py`가 같은 폴더를 읽음 | (데이터 파일) |
+| `resolve_regions.py` (2026-10-12) | `rules/public_join.tsv`의 지역 이름을 지역 번호 규칙(`rules`)과 화면 요약 문구(`eligibility_summary`)로 미리 풀어 적음(`collection`이 `region`을 모르므로, ADR-0085). `rules/scope_overrides.tsv`를 함께 읽음. 못 푸는 이름이면 멈춤 | `python scripts/library/resolve_regions.py [--check] [<새 조사 파일.tsv>]` |
+| `list_left_out.py` (2026-10-12) | 서비스에 넣지 않은 도서관 목록 `docs/libraries/library-left-out.md`를 만듦(조사 없음, 파일만 읽음). A: 넣기 보고서 `leftOut`을 이유별 표로(교보 probe 운영 방식, `crawl_skip` 글, `demo_or_closed`·`same_site`·`library_kinds` 줄), B: 서비스의 꺼 둔 곳(이유는 `disabled_reasons.tsv`), `gone_known.tsv`, 그 밖에 켜져 있지만 수집 DB에 없거나 받지 않는 곳. 서비스 내보내기 psql 명령은 스크립트 머리말. 테스트: `python -m unittest scripts/library/test_list_left_out.py` | `python scripts/library/list_left_out.py --report <library-insert-<id>.json> --snapshot <사본.sqlite> --service <service-library.tsv> [--rules <폴더>] [--disabled <tsv>] [--date YYYY-MM-DD] [--out docs/libraries/library-left-out.md]` |
+| `disabled_reasons.tsv` (2026-10-12) | 꺼 둔 서비스 도서관의 끈 날·이유·출처(`library_id, name, disabled_on, reason, source`). 6-2 표와 `library/004`·`010` changelog 주석, `library-site-issues.md` 9절에서 옮김. 끄거나 켤 때 같이 고침 | (데이터 파일) |
+| `CheckFinalOrigins.java` | 도서관마다 adapter와 같은 검색 주소(제목 "사랑")를 서비스와 같은 JDK·TLS로 부르고 리다이렉트를 하나씩 따라가 **최종 `base_url`**을 냄(4-7 1번). 같은 호스트는 1.1초 간격 하나씩, 호스트 12곳 동시 | `java scripts/library/CheckFinalOrigins.java <in.tsv>` (in: `id<TAB>platform_type<TAB>base_url`) → `SAME` / `MOVED_TO` / `MOVED_ELSEWHERE` / `HTTP_<code>` / `ERROR` |
+| `rules/final_origins.tsv` (옛 자리 `scripts/library/final-origins.tsv`, 2026-10-12 옮김) | 수집 도서관의 목록 주소 → 최종 주소(`MOVED_TO`만). `build_library_seed.py`와 넣기 명령이 `base_url`·`homepage_url`에 씀 | (데이터 파일) |
+| `check_front_page_names.py` | 켜진 도서관마다 첫 화면(`homepage_url`, 없으면 `base_url`)을 한 번 열어 그 도서관 이름이 글에 있는지, 페이지 제목이 무엇인지 적음. `--mobile`이면 폰 브라우저 User-Agent로 엶(YES24 모바일판 `/m/` 확인용). Windows curl, 같은 호스트는 1.1초 간격 하나씩, 호스트 12곳 동시. 판단은 사람이 함 | `python scripts/library/check_front_page_names.py <in.tsv> <out.tsv> [--mobile]` (in: `id<TAB>name<TAB>url`) |
+| `fetch.py` (2026-10-12 데이터 폴더에서 옮김) | 가입 조건 조사용으로 도서관 페이지 하나를 예의 있게 받아 최종 주소·HTTP 상태·본문 글(`--links` 링크, `--full` 전체)을 출력. 같은 호스트 1.1초 간격은 데이터 폴더 `library-join\.hostlocks` 잠금 파일로 지킴(옛 복사본과 같은 잠금) | `python scripts/library/fetch.py [--data-dir DIR] <url> [--links] [--full]` |
+| `probe_logos.py`, `probe_home_logos.py` (2026-10-12 데이터 폴더에서 옮김) | 전자도서관 사이트의 로고(없으면 도서관 본 홈페이지의 로고)를 받아 데이터 폴더 `logos\`에 저장하고 `logos.tsv`·`logos-home.tsv`에 적음. IP마다 한 줄, 1건씩 | `python scripts/library/probe_logos.py [--data-dir DIR] [--only ID,ID] [--limit N]`, `python scripts/library/probe_home_logos.py [--data-dir DIR] <ids> [--home ID=URL,…]` |
+| `discover/probe_*.py` (옛 자리 `candidates/`, 2026-10-12 바꿈) | 수집 목록(웹러브 북스 기관 등)의 사이트를 한 번씩 확인해 수집 DB에 넣을 곳을 고름. 절차는 [`maintenance/1-libraries.md`](../maintenance/1-libraries.md) "수집 목록에서 도서관 찾기" | 같은 문서 |
+| `check_code_spaces.py` | 수집 SQLite(읽기 전용)에서 화면 종류끼리 책 번호가 같은 체계인지 대조: 같은 번호의 제목이 같은 비율(4-11). 판단은 하지 않음 | `python scripts/library/check_code_spaces.py ../chaekcheck-data/ebook-catalog.sqlite` |
+| `check_author_publisher_swap.py` (2026-10-16, 사이클 19, plan ADR-0115) | 수집 SQLite(읽기 전용)에서 전자도서관 포털(`ELIB_PORTAL_V1`) 도서관마다 저자·출판사가 뒤바뀌었는지 판정: 줄마다 저자 칸 첫 이름이 다른 도서관(포털 빼고)에서 저자로 쓰인 수와 출판사로 쓰인 수를 견줌. 도서관마다 "바름 / 뒤바뀜 / 판단 못 함"과 줄 수. 문턱값(근거 3회, 줄 80%, 도서관 100줄·90%)과 판정 뜻은 `--help`. 2026-10-12 사본: 11·12·15 뒤바뀜(99.88~99.96%), 10·13·14·280 바름(0~0.33%), 191초. 가져오기가 `swap_before`로 멈출 때 쓰는 절차는 `maintenance/3-import.md` 12-1. 테스트: `python -m unittest scripts/library/test_check_author_publisher_swap.py` | `python scripts/library/check_author_publisher_swap.py <사본.sqlite> > data/<폴더>/swap-check.tsv` |
+| `probe_seoul_elib.py` (2026-10-20) | 서울도서관 자체 전자책 사이트(`elib.seoul.go.kr`, `SEOUL_ELIB_V1`)를 다시 한 번 확인: robots.txt, 제목 검색 1건(JSON 칸·보유·대출·예약 수), 소장형 상세 1건, 분류별 권수(전자책·오디오북), 분류 목록 한 쪽(`pageCount`). 우리 User-Agent, 1.1초 간격, 요청 약 7건. 판단은 하지 않음. 견줄 값은 4-14 | `python scripts/library/probe_seoul_elib.py [--keyword 사랑] [--page-count 100]` |
+
+- 모두 **저장소 루트에서** 실행합니다. Java는 서비스와 같은 JDK 25(`C:\Users\yujun\.jdks\jdk-25.0.4.1+1\bin\java.exe`)를 씁니다. 다른 JDK나 curl은 TLS 결과가 다를 수 있습니다(예: 대구는 JDK에서만 설정이 필요, curl은 됨).
+- 입력 TSV: `이름<TAB>주소` 한 줄에 하나. 중간 결과(TSV·JSON)는 **저장소에 넣지 않고** 작업 폴더(임시 폴더)에 둡니다.
+- 포털·강남구용 확인 도구는 아직 없습니다. 만들면 같은 출력 형식으로 만들고 이 표에 더합니다.
+- 빈 검색(보유 수)은 큰 사이트에서 5초를 넘길 수 있습니다(2026-09-29: 춘천·경산·국립세종). 그때는 한 번만 60초까지 기다려 잽니다.
+
+---
+
+## 4. 작업 A: 전국 전자도서관 목록 찾기
+
+전국 전자도서관의 **공식 전체 목록은 없습니다**(2026-09-28 조사). 그래서 여러 출처를 합치고, 모은 주소를 하나씩 실제로 불러 확정합니다 [확정] (사용자, 2026-09-28). 원래 조사 기록: plan 저장소 `docs/cycles/02-library-expansion/collection-method.md`, 결과 `research.md`.
+
+### 4-0. 전체 흐름
+
+1. 출처별로 주소를 모읍니다(4-1 ~ 4-4). 결과는 `이름<TAB>주소<TAB>출처` 목록 하나로 합칩니다.
+2. 같은 주소(호스트+포트+경로 앞부분)는 하나로 합칩니다. 이미 seed에 있는 주소는 "재확인" 대상으로 따로 둡니다.
+3. 주소 모양으로 플랫폼과 화면 종류를 먼저 나눕니다(4-6).
+4. 주소마다 검색 1회로 살아 있는지, 최종 주소, 화면 종류를 확정합니다(4-7). 교보는 `CheckKyoboSites.java`로 자동입니다.
+5. 가입 자격을 찾습니다(4-8).
+6. 넣을 수 있는 곳은 5절(추가)로, 못 넣는 곳은 이유와 함께 목록으로 남깁니다(11절 상태 표).
+7. 책 번호 규칙을 점검합니다(4-11). 목록을 확인할 때마다 합니다.
+
+모든 요청에 2절 규칙(우리 User-Agent, 호스트당 1초, 필요한 만큼만)을 지킵니다. 응답 원문과 중간 목록은 저장소에 넣지 않습니다.
+
+### 4-1. 교보: 공식 구축 기관 페이지 (가장 믿을 만함)
+
+1. https://ebook.kyobobook.co.kr/dig/cff/e-library 를 한 번 받습니다.
+2. HTML 안에서 분류 제목 `<strong class="hidden">공공도서관</strong>`부터 다음 분류(`기업`) 제목 전까지가 공공도서관 구간입니다.
+3. 그 구간의 `<a href="주소" target="_blank">이름</a>`을 모두 뽑습니다. 2026-09-28에 216개(일반·구독형 포함)였습니다. 다른 분류(초중고 943, 대학 317, 기업 273, 공공기관 152 …)는 이번 서비스 대상이 아닙니다.
+4. 주의
+   - `http://https://…`처럼 잘못 적힌 주소가 있습니다(경남 서버 8곳). 앞의 `http://`를 떼고 씁니다(`CheckKyoboSites.java`가 자동으로 고침).
+   - 이름이 도서관이 아닌 항목(교육청, 시청, 구청, 문화회관, 재단)이 섞여 있습니다. 공공 이용이 되는지 따로 확인합니다(9절).
+   - 구독형은 주소가 `*.dkyobobook.co.kr`입니다.
+   - 페이지 구조가 바뀌면 2번이 깨집니다. 개수가 크게 줄면 구조 변경부터 의심합니다.
+5. 결과를 plan의 `data/kyobo-institutions.tsv`(분류, 이름, 주소)와 비교해 새로 생긴 곳·없어진 곳을 적습니다.
+
+### 4-2. YES24와 그 밖의 플랫폼: 공공도서관 홈페이지에서 출발 [확정] (사용자, 2026-09-28)
+
+YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLibrary_status.aspx) 뽑을 수 없습니다. 그래서 공공도서관 홈페이지에서 출발합니다.
+
+1. **공공데이터포털 전국도서관표준데이터**를 받습니다(https://www.data.go.kr/data/15013109/standard.do).
+   - 페이지의 CSV 다운로드 버튼이 부르는 주소를 씁니다: `/download/standard.json?publicDataPk=15013109&colNmList=…&perPage=10000&page=1`. 필요한 칸만 넣습니다: `LBRRY_NM`(이름), `CTPRVN_NM`(시도), `SIGNGU_NM`(시군구), `LBRRY_SE`(구분), `OPER_INSTITUTION_NM`(운영 기관), `HOMEPAGE_URL`(홈페이지).
+   - 2026-09-28: 3,601곳(공공 1,439, 작은도서관 2,096 등). 공공도서관 홈페이지 호스트 311개, 홈페이지 없음 121곳.
+   - 도서관 정보나루(https://www.data4library.kr/libDataL)는 홈페이지·전자도서관 정보가 없어 쓰지 않습니다.
+2. `LBRRY_SE`가 공공도서관인 곳만 남기고, **같은 홈페이지를 쓰는 도서관(시·군·구 통합 홈페이지)은 하나로 묶습니다.**
+3. 홈페이지마다 "전자도서관", "전자책" 링크를 찾아 전자도서관 주소를 모읍니다.
+   - 사람(또는 브라우저 도구)이 열어 보는 것이 가장 정확합니다. 자동 탐색은 **잘 안 됩니다**: 최대 3단계·호스트당 4건까지 링크와 안내 페이지 이동(meta refresh)을 따라가 봤지만, 포털이 안내 페이지를 거치거나 스크립트로 링크를 만들어 전남교육청 4곳에서 모두 실패했습니다. 자동 탐색은 빠진 지역을 채우는 보조 수단으로만 씁니다.
+4. 모은 주소를 4-6 표로 분류합니다.
+
+### 4-3. 광역·교육청 통합 전자도서관 포털
+
+- 광역시·도, 교육청이 여러 업체 전자책을 한 화면에 모은 포털을 운영합니다(`{포털}/elib`, 화면 종류 `ELIB_PORTAL_V1`). 옛 YES24·B2B 주소가 404나 오류 화면이면 **그 지역의 통합 포털로 옮겼는지 먼저** 봅니다.
+- 2026-09-28 확인: 부산 `library.busan.go.kr/elib`, 대구 `library.daegu.go.kr/elib`, 인천교육청 `lib.ice.go.kr/elib`, 경북교육청 `www.gbelib.kr/elib`, 전북교육청 `lib.jbe.go.kr/elib`, 경기교육청 `lib.goe.go.kr/elib`.
+- 포털의 "지역 전자도서관" 메뉴에 그 지역 전자도서관 목록이 있기도 합니다(예: 부산 https://library.busan.go.kr/elib/html.do?menu_idx=85, 11곳). 다른 시·도는 아직 찾지 않았습니다.
+- 비슷해 보이지만 다른 시스템인 곳(adapter 없음): 울산(로그인 필요), 경남교육청, 충남교육청 `ebook.cne.go.kr`, 광주교육청 `lib.jge.go.kr`, 서울도서관 `elib.seoul.go.kr/main`(자체 통합 화면·JSON API, 4-14. 2026-10-20부터 `SEOUL_ELIB_V1`), 제주 `www.jeju.go.kr/lib/elib.htm`, 강원교육청 `ebook.gwe.go.kr`.
+
+### 4-4. 제3자 목록 (참고용)
+
+- 웹러브 북스 https://ebook.okbari.net/library : 브라우저로 열고 플랫폼 탭(`button.nav-link`: 교보·북큐브·예스24·알라딘)을 누른 뒤 페이지를 넘기며 기관 카드의 링크를 모읍니다. 이름 검색칸에 "도서관"을 넣으면 도서관만 남습니다. 스크립트로 그리는 화면이라 일반 요청으로는 목록이 안 나오고, 탭을 스크립트로 누르면 전환이 안 될 때가 있습니다.
+- 2026-09-28: 예스24 903곳(이름에 "도서관" 165), 기준일 2026-02-06으로 보임. **주소가 낡은 곳이 많습니다**(`/B2B_…` 전부 404, `/YES24` 대부분 오류 화면). 공식 자료가 아니므로 모든 주소를 4-7로 다시 확인합니다.
+- 더 나은 방법: YES24 B2B 문의(공식 페이지 연락처)로 공공도서관 목록 요청 [확인 필요, 사람이 할 일].
+- 도서관 정보나루, 국가도서관통계시스템(https://www.libsta.go.kr/), 리브로피아 앱: 전자도서관 주소·플랫폼 정보가 없거나 앱 안에서만 보여 쓰지 않습니다.
+
+### 4-5. 한 도서관이 사이트 여러 개를 운영함
+
+- 같은 서버에 포트만 달리해 교보·YES24·북큐브를 함께 두는 곳이 많습니다(전북교육청 `ebook.jbe.go.kr` 교보 `:10112`~`:10129`·YES24 `:10061`·북큐브 `:10031`~, 전남교육청 `ebook.jne.go.kr`, 경남 `elib.gyeongnam.go.kr`, 경북도서관 `www.gb.go.kr`).
+- **사이트 하나 = `library` 한 줄**로 넣습니다(ADR-0017). 같은 기관의 일반·구독형도 두 줄입니다. 이름은 기관 이름만 쓰고, 업체·대출 방식·순번으로 구분합니다(ADR-0071, 사이클 09).
+- 이런 곳은 호스트 이름이 같아 간격 제어로 한 줄로 묶입니다(ADR-0010). 확인 도구도 모든 요청 사이를 1.1초씩 띄웁니다.
+
+### 4-6. 주소 모양으로 나누기
+
+| 플랫폼 | 주소 모양 (2026-09-28 조사) | 화면 종류 |
+|---|---|---|
+| 교보 | `/elibrary-front/`, `*.mhebook.co.kr` | `KYOBO_V1` |
+| 교보 구독형 | `*.dkyobobook.co.kr`, 경로 `/search/searchList.ink` | `KYOBO_SUBSCRIPTION_V1` |
+| 교보 옛 경로 | `/Kyobo_T3_Mobile` | 404 — 새 주소를 찾음 |
+| YES24 | 루트의 `/search/?src_key=`, `*.yes24library.com` | 응답이 UTF-8이면 `YES24_V2`, **EUC-KR이면 `YES24_V1`**(meta `charset=euc-kr`; 검색어도 EUC-KR로 보내야 결과가 나옴) |
+| YES24 옛 경로 | `…/YES24`, `…/B2B_…` | 대부분 오류·404 — 통합 포털로 옮겼는지 봄 |
+| 통합 포털 | `…/elib/module/elib/search/index.do` | `ELIB_PORTAL_V1` |
+| 강남구 | `ebook.gangnam.go.kr/elibbook/` (EUC-KR ASP) | `GANGNAM_V1` |
+| 북큐브 | `…/FxLibrary`, `*.bookcube.biz` | adapter 없음 |
+| 알라딘 | `*.aladinebook.co.kr`, `libasp.aladin.co.kr` | adapter 없음 |
+| 다산 | `*.dasangng.co.kr` | adapter 없음 |
+| 서울도서관 자체 | `elib.seoul.go.kr`, 검색 `/api/contents/search` (JSON) | `SEOUL_ELIB_V1` (2026-10-20, 4-14) |
+
+- 모양으로 나뉘지 않으면 사람이 열어 봅니다.
+- 결과를 못 읽으면 **먼저 응답 인코딩**을 봅니다. 2026-09-28에는 이걸 몰라 YES24 12곳을 "결과 못 읽음"으로 잘못 분류했다가 바로잡았습니다.
+
+### 4-7. 모은 주소 하나씩 확정하기
+
+도서관 하나에 요청은 검색 1건(교보는 순위 값 1건 더)입니다.
+
+1. 검색 1건을 보냅니다. **리다이렉트를 하나씩 따라가며** 최종 주소를 기록합니다. 목록의 `http://호스트:포트`가 `https://호스트:다른포트`로 302되는 곳이 대부분입니다(교보 155곳 중 135곳). 서비스는 리다이렉트를 따라가지 않으므로(3xx는 실패) **`base_url`에는 최종 origin**을 넣습니다.
+   - **수집 목록에서 찾은 도서관도 이 단계를 거칩니다.** 수집 DB에는 목록 주소(대개 http)가 남아 있으므로 `CheckFinalOrigins.java`로 최종 주소를 받아 `scripts/library/rules/final_origins.tsv`에 두고(바뀌지 않은 곳도 같은 주소로 한 줄) 넣기 명령을 돌립니다. 줄이 없는 새 도서관이 있으면 넣기 명령이 규칙 오류(종료 1)로 멈춥니다(사용자 선택, 2026-10-12, [`maintenance/1-libraries.md`](../maintenance/1-libraries.md)). 사이클 07에는 seed를 다시 만들었습니다. 2026-10-05에 이 단계를 빠뜨려 248곳이 http 주소로 들어갔고, 사용자가 "강동대학교 (북큐브)는 검색해도 안나오고"로 알아챘습니다(13절).
+   - 가져오기는 수집 주소와 서비스 주소를 **호스트·경로·쿼리**로만 맞춥니다(http/https, 포트 차이는 같은 사이트로 봄, `CollectedCatalog.sameSite`).
+   - 교보: `CheckKyoboSites.java … search`. 검색 URL `{origin}/elibrary-front/search/searchList.ink?schClst=ctts&schDvsn=000&schTxt=%EC%82%AC%EB%9E%91&recordCount=10&pageIndex=1`(구독형은 앞 경로 없음).
+   - YES24 V2: `{origin}/search/?src_key=%EC%82%AC%EB%9E%91&srch_order=title&sort=title&page_num=1` → `div.total em`, `div.ebook-list div.bx`가 있으면 OK.
+   - YES24 V1(EUC-KR): `{origin}/search/?src_key=%BB%E7%B6%FB&srch_order=title&sort=title&view=10&page_num=1` → "전체 N 건", `div#booklist li.line`.
+   - 포털: `{포털}/module/elib/search/index.do?menu_idx=10&search_text=%EC%82%AC%EB%9E%91` → `div.row a.name.goDetail`, "총 N 건".
+2. robots.txt는 조사 기록용으로만 읽습니다. 막혀 있어도 조회 대상에 넣습니다 [확정] (사용자, 2026-09-28).
+3. 결과 상태를 11절 표대로 나눕니다.
+4. **도구마다 결과가 다를 수 있습니다.** Python 기본 TLS, Git for Windows curl은 중간 인증서를 보내지 않는 사이트·옛 암호화 사이트에서 실패하고, Windows 내장 curl(`C:\Windows\System32\curl.exe`)은 되는 경우가 많습니다. **최종 판정은 서비스와 같은 JDK**(3절 도구)로 합니다. 인증서 검증은 어떤 도구에서도 끄지 않습니다.
+5. Git Bash의 `while read` 반복문 안에서 Windows curl을 부르면 실패하거나 제한 시간을 무시하는 일이 있었습니다. 반복은 Java 도구나 Python `subprocess`로 합니다.
+
+### 4-8. 가입 자격 찾기 (추가 전에)
+
+- 공공데이터에는 자격 항목이 없고, 교보 전자도서관 이용 안내(`/elibrary-front/helpDesk/libraryGuide.ink`)는 모든 곳이 같은 공통 문구라 쓸모없습니다.
+- 자격은 **도서관 본 홈페이지의 회원가입 안내**에 있습니다.
+  1. 운영 기관으로 묶습니다(교육청, 시·군·구 통합도서관은 규칙이 같은 경우가 많음).
+  2. "<도서관 또는 운영 기관> 회원가입 자격 / 대출회원 가입 대상"으로 찾아 **공식 페이지를 직접 엽니다.** 검색 결과 요약은 틀린 경우가 있습니다(강북문화정보도서관: 요약 "웹회원이면 누구나" → 원문 "서울 시민·학생·직장인").
+  3. 전자책 안내 페이지에는 "OO도서관 정회원"만 있고 자격은 회원가입 안내 페이지에 따로 있는 경우가 많습니다(천안, 양산, 김해, 영주). 회원가입 안내 페이지를 찾아 엽니다.
+  4. 근거(거주·재직·재학·누구나)와 범위(시군구·시도·인접 지역)를 원문 그대로 인용해 plan의 `eligibility-by-library.md` 모양으로 적습니다: 이름, 플랫폼, 사이트 상태, 자격, 범위, 알아낸 방법, 원문 확인(`확인됨`/`다름`/`문구 없음`/`열리지 않음`/`아직`), 출처 URL.
+  5. 전자도서관만 쓰는 회원과 대출회원의 자격이 다른 곳은 전자도서관 기준으로 적습니다(인천교육청 등).
+  6. 페이지가 열리지 않는 흔한 이유: 인증서 오류, 도메인 없음, 404, 기관 통합으로 주소 이동(인천 동구 → 제물포구 `lib.jemulpo.go.kr`, 광주교육청 `lib.gen.go.kr` → `lib.jge.go.kr`, 세종교육청 → `life.sje.go.kr`).
+- 조사 결과는 도서관마다 seed에 들어갑니다(자격 규칙, `eligibility_summary`, `join_method`, `join_url`, `join_caution`). 원문 인용과 판단 근거는 분류표(`join_overrides.tsv`와 같은 칸 구성)로 `docs/libraries/research/`에 남기고, 결과 수와 바뀐 도서관은 `docs/cycles/plan-feedback.md`에 적습니다. **다시 조사하기 전에 이 폴더부터 봅니다.**
+  - `docs/libraries/research/join-classification-2026-09-29.tsv`: seed id 1–162의 판정(OPEN 13, OPEN_CAUTION 1, REGION 122, UNVERIFIED 26), 원문 인용, 출처 주소, 메모. 같은 이름의 `-notes.md`는 열지 못한 곳과 이유, 사람에게 물은 것.
+  - `docs/libraries/research/kyobo-login-notice-2026-09-29.tsv`: 교보 사이트별 "로그인 상세 이용안내" 글.
+  - 2026-09-29 판정에서 정한 것: "전남광주통합특별시" 원문은 지역 데이터의 시·도 id 12(통합 시·도)로 넣음.
+- **전자책 이용 대상에 따라 어느 원문을 자격으로 쓸지** (사용자 결정, 2026-09-29. 고흥에서 시작)
+  1. 먼저 전자책 안내 페이지와 교보 로그인 안내 글(4-10)에서 전자책 이용 대상을 찾습니다.
+  2. "정회원", "대출회원", "회원증 소지자"만 이용 → **회원증(대출회원) 발급 대상**이 자격입니다. 예: "주민등록상 경기도 거주자" → 거주 × 경기도.
+  3. 그냥 "OO도서관 회원"이고, 홈페이지 가입(웹회원·준회원)은 누구나 되는데 회원증 발급만 지역 제한 → **누구나 가입(`RESIDENCE × NATIONWIDE`) + `join_caution`**. 사용자: "누구나 홈페이지 가입할 수 있으니 누구나 가능한 거 아니야? 일단 되게 하고 혹시 모르니 주의표시라도 해줘". 예(고흥): 전자책 "대상 고흥군립도서관 회원", 이용방법 "고흥군립도서관 홈페이지 로그인 → 전자책 → 전자책 홈페이지 로그인", 홈페이지 가입 지역 제한 없음. "회원가입 대상 주민등록상 고흥군 거주자 및 고흥군소재 직장인"은 "도서대출안내 및 회원증 발급"(종이책 대출 회원증) 항목 → 처음엔 누구나 + 주의로 했다가, 사용자가 "전자도서관용은 관외대출이 별개니"라고 짚어 **주의 없이 누구나**로 바꿈(2026-09-29). 회원증 조건이 **종이책 대출용 항목에만** 있고 전자책 안내가 홈페이지 로그인만 말하면 주의를 달지 않습니다.
+  4. 회원증 발급도 누구나("제한 없음", "대한민국 내에 주민등록이 되어 있는 자") → 누구나 가입, 주의 없음.
+  5. 행사 안내("참가대상 누구나"), 책 소개, 책이음 약관, 개인정보 안내 글의 "누구나"·"자격"은 근거가 아닙니다.
+  - 예(용인시립도서관, 2026-09-29, 사용자와 함께 확인): 전자도서관 로그인 화면(`https://ebook.yongin.go.kr/elibrary-front/member/memberLogin.ink`) → 용인시도서관 회원가입 안내(`https://lib.yongin.go.kr/intro/memberJoinIntro.do`): "회원가입 후 온라인정회원신청 또는 도서관에 방문하셔서 정회원으로 등록(회원카드 발급)하시면 … 전자책, 오디오북 … 디지털서비스". 이것만 보면 누구나로 보이지만, **정회원이 될 수 있는 사람은 다른 페이지**에 있습니다: 회원구분 "준회원, 정회원 안내"(`https://lib.yongin.go.kr/intro/menu/10029/contents/40004/contents.do`) "정회원 회원정의 : 경기도민 또는 용인시 소재 직장인, 학생으로 회원증을 발급 받은 회원", "온라인정회원신청은 경기도민만 가능합니다." → 2번 규칙: 경기 거주 / 용인시 재직·재학, 가입 방법 "홈페이지 가입(준회원) → 온라인정회원신청(경기도민) 또는 도서관 방문 회원증 발급(용인 소재 직장인·학생)". 사용자 결정: "원문대로 지역 제한".
+  - 그래서 회원가입 안내 한 페이지로 끝내지 말고, **"회원구분", "준회원·정회원 안내", "회원증 발급 대상"** 페이지까지 찾아 정회원이 될 수 있는 사람을 확인합니다.
+- **사용자가 나중에 판단할 것: 경산시립도서관(YES24, seed id 265)** (사용자: "지역 제한하고 내가 나중에 판단하게 문서에 적어주고 알려줘", 2026-09-29)
+  - 지금 값: 경산시·대구 동구·수성구 거주 / 경산시 재직·재학(지역 제한).
+  - 판단할 원문(https://www.gbgs.go.kr/lib/page/1173/694.tc): 회원 자격 "경산시 또는 대구광역시 동구 및 수성구에 주민등록이 되어 있는 사람", "경산시 관내 재직자"와 함께 규정 "③ 전자도서관 등 온라인상에서 열람·대출 가능한 자료에 대한 이용은 온라인 회원 가입으로 도서대출회원증을 발급 받은 것으로 본다."
+  - 쟁점: ③이 "온라인 가입만 하면 누구나 전자책"이라는 뜻인지, "자격 있는 사람은 회원증을 따로 안 받아도 된다"는 뜻인지 원문만으로는 모릅니다. 온라인 가입에도 같은 지역 자격이 드는지 적혀 있지 않습니다.
+  - 바꾸려면: 누구나로 보면 `join_overrides.tsv`의 265줄을 OPEN(또는 OPEN_CAUTION + 지역 문구)으로 고치고 `apply_join_classification.py`를 다시 돌립니다.
+- 사용자가 정한 결과는 `scripts/library/join_overrides.tsv`에 한 줄씩 적어 둡니다(원문, 주소, 결정 날짜). 분류표를 seed에 넣을 때 이 파일을 **마지막에** 넘겨 사람 결정이 이기게 합니다: `python scripts/library/apply_join_classification.py <분류표.tsv> scripts/library/join_overrides.tsv`.
+- 162곳을 한 번에 할 때는 `scripts/library/collect_join_evidence.py`로 홈페이지의 회원·이용안내·전자책 메뉴를 따라가며 자격 문장만 모으고(판단은 하지 않음), 사람이 읽어 분류표를 만든 뒤 `scripts/library/apply_join_classification.py`로 seed CSV에 넣습니다.
+- 찾지 못하면 "못 찾음"으로 두고 **다른 도서관 규칙으로 추정하지 않습니다**(사용자, 2026-09-28). 그 도서관은 규칙 없이 넣습니다(자격 미확인).
+- 2026-09-28 원문 확인 결과: 출처 151개 중 확인됨 33, 원문이 달라 고침 22, 문구 없음 67, 열리지 않음 28.
+
+### 4-9. 운영 중 바뀐 것을 알아차리는 신호 (서비스 로그)
+
+| 신호 | 의심할 것 | 할 일 |
+|---|---|---|
+| 한 도서관이 계속 `upstream_error` (3xx) | 주소 이전, http→https 전환 | 4-7로 최종 주소 다시 확인 → 6-1 수정 |
+| 계속 `upstream_error` (파싱 실패) 또는 결과가 늘 0건 | 화면 구조 변경, 플랫폼 교체 | 사람이 열어 봄. 화면 세대가 바뀌었으면 새 adapter(개발) |
+| 계속 `upstream_timeout` | 서버 장애, 우리 요청 차단 | 다른 날 재확인. 차단이면 6-2로 끄고 사용자에게 알림(도서관 문의는 사람이) |
+
+- 교보 216곳 전체 재확인은 요청 약 400건(검색 + 순위 값), 20분 남짓 걸립니다(1.1초 간격).
+- 정기 재확인 주기는 정하지 않았습니다 [확인 필요] (backlog "도서관 정보 주기적 재조사"). 추후 과제 전체는 `docs/cycles/plan-feedback.md` "추후 과제 전체 목록".
+- 서버는 실패하거나 느린 도서관을 기억하지 않습니다. 실패는 캐시되지 않아 새 검색마다 다시 불립니다. 그래서 위 신호가 보이면 사람이(또는 이 문서를 받은 AI가) 끄는 수밖에 없습니다. 서버가 스스로 건너뛰거나 뒤로 보내는 기능은 나중 과제입니다(`docs/cycles/plan-feedback.md` C2-U-8).
+
+### 4-10. 가입 방법·가입 페이지 찾기 (`join_method`, `join_url`) (사용자 요청, 2026-09-29)
+
+자격(4-8, 누가 가입할 수 있나)과 가입 방법(어디서 어떤 순서로 가입하나)은 따로 찾습니다. 화면은 도서관마다 "가입:" 줄에 `join_method`를 보여 주고, `join_url`이 있으면 그 글자를 링크로 만듭니다. `join_url`이 없으면 전자도서관 첫 화면 링크("전자도서관에서 가입 안내 보기")만 보입니다. 지금 seed 162곳 대부분이 이 상태입니다.
+
+**어디서 시작하나: 전자도서관 로그인 화면**
+
+사용자가 가입하려고 처음 누르는 곳이 전자도서관 로그인 화면이라서 여기서 시작합니다.
+
+| 플랫폼 | 로그인 화면 | 볼 곳 |
+|---|---|---|
+| 교보 (`KYOBO_V1`, `KYOBO_SUBSCRIPTION_V1`) | `<base_url>/elibrary-front/member/memberLogin.ink` | "로그인 상세 이용안내 더보기"를 누르면 펼쳐지는 글, 화면 아래 도서관명·주소·대표전화 |
+| YES24 (`YES24_V1`, `YES24_V2`, `YES24_V3`) | 사이트 로그인 버튼 | 로그인 칸 옆 안내 글, 회원가입 버튼이 가는 주소 |
+| 포털 (`ELIB_PORTAL_V1`), 강남 (`GANGNAM_V1`) | 사이트 로그인 버튼 | 회원가입 버튼이 가는 주소, 이용 안내 메뉴 |
+
+- 교보 로그인 화면의 펼침 글(HTML `div.toogle_con`, 화면을 열 때 이미 들어 있어 한 번 가져오면 읽힘)은 **도서관이 직접 고쳐 쓸 수 있습니다.** 그대로 둔 곳과 고친 곳이 섞여 있습니다(사용자 알려 줌, 2026-09-29).
+  - 기본 문구 그대로(예: 아산): "아이디/비밀번호는 이용하시는 도서관 홈페이지에서 확인하시거나 도서관 담당자에게 문의…", "전자도서관을 처음 이용하시는 경우 … [전자도서관] 또는 [E-Book] 바로가기를 클릭하여 최초 1회 방문". 계정이 본 홈페이지 계정이라는 것만 알 수 있습니다. 이 문구는 `join_method`로 쓰지 않고 본 홈페이지로 갑니다.
+  - 고친 문구(예: 고양 `https://ebook.goyanglib.or.kr/elibrary-front/member/memberLogin.ink`): "아이디/비밀번호는 고양시 도서관 홈페이지 아이디/비밀번호로 입력", "전자도서관은 도서관 정회원 경우만 이용가능". **어느 계정인지, 어느 회원 등급이어야 하는지**가 원문으로 나옵니다. 이것은 근거로 씁니다: 계정 → `join_method`, "정회원만" → 정회원 되는 방법(보통 방문해 회원증 발급)을 본 홈페이지에서 찾아 `visit_required` 판단.
+  - 그래서 교보는 **모든 사이트의 펼침 글을 먼저 한 번에 모읍니다**(아래 "여러 도서관을 한 번에 할 때"). 기본 문구와 다른 곳부터 원문을 읽습니다.
+- 화면 아래 **도서관명**(본 홈페이지를 찾을 이름)과 **대표전화**도 같이 모읍니다. FAMILY SITE 링크는 비어 있는 경우가 있습니다(아산 `#`). 교보 `helpDesk/libraryGuide.ink`는 공통 문구뿐입니다.
+- 다른 플랫폼은 로그인 화면에 본 홈페이지 회원가입 주소가 바로 걸려 있는 경우가 있습니다. 있으면 그 주소에서 4번으로 갑니다.
+
+**순서**
+
+1. 로그인 화면에서 도서관명과 본 홈페이지 주소를 얻습니다. 본 홈페이지 주소가 화면에 없으면 도서관명으로 찾습니다(4-2와 같은 방법).
+2. 본 홈페이지 메뉴에서 **가입 절차를 글로 적은 페이지**를 찾습니다. 메뉴 이름이 제각각입니다: "회원가입 안내", "이용안내 > 회원가입", "로그인 및 탈퇴", "대출회원 등록", "정회원 전환". 머리의 "회원가입" 버튼은 자바스크립트나 통합 로그인(SSO)으로 가는 경우가 많아 안내 글이 없습니다(아산: `href="#join"`, 시청 통합회원 SSO).
+3. "전자도서관 이용안내" 페이지는 안내가 이미지뿐인 경우가 많습니다(아산 `page_id=90`: 이미지 2장). 이미지 안 글은 읽을 수 없으니 이 페이지를 근거로 쓰지 않고, 글로 된 회원가입 안내 페이지를 계속 찾습니다.
+4. 찾은 페이지의 원문에서 아래를 뽑습니다.
+   - 가입 경로: 어디에 가입하나(도서관 홈페이지, 시청 통합회원, 교육청 통합회원, 책이음)
+   - 단계: 온라인만으로 끝나나, 도서관 방문(신분증)이 필요하나
+   - 전자책 대출에 필요한 회원 등급: 준회원(웹회원)으로 되나, 정회원(회원증 발급)이어야 하나. 원문에 전자책 이야기가 없으면 "원문에 없음"으로 둡니다
+5. 채웁니다.
+   - `join_url`: 4번 원문을 읽은 페이지 주소. **원문을 직접 연 페이지만** 넣습니다. 검색 결과 요약이나 이미지 페이지는 넣지 않습니다.
+   - `join_method`: 원문을 짧게 줄인 한 줄. 원문에 없는 단계를 추정해 넣지 않습니다. 예(아산): "아산시청 통합회원 가입 → 도서관 홈페이지에서 준회원 가입 → 신분증 들고 방문해 회원증 발급(정회원)". **전자책 기준으로 씁니다** (사용자 결정, 2026-09-29): 원문상 전자책은 방문 없이 되는데 종이책 회원증에 방문이 필요하면, 전자책 경로를 먼저 쓰고 방문은 "종이책 회원증은 …"으로 따로 씁니다. 예(목포): "홈페이지 가입(본인인증)만으로 전자책 이용(전자도서관 대상: 정회원=홈페이지 가입자). 종이책 회원증은 도서관 방문(신분증, 즉석 사진)해 발급".
+   - `visit_required` (화면 "방문 가입" 태그, "방문 없이 가입" 필터, 같은 무리 안에서 뒤로): 다음 순서로 정합니다 (사용자 결정, 2026-09-29).
+     1. 원문이 전자책은 방문 없이 된다고 말함(준회원·웹회원·홈페이지 가입자로 대출, "온라인 회원 가입으로 회원증을 받은 것으로 본다" 등) → false, `join_method`는 위 "전자책 기준"으로.
+     2. 가입 방법에 방문 없이 되는 길이 있음(비대면·온라인 인증, 서울온 같은 앱, 전화 전환 등. 일부 사람만 방문이어도) → false.
+        - 그 길이 **어느 지역 사람만** 쓸 수 있고(서울온 = 주민등록상 서울 거주, 광주시민 비대면 인증 등) 그 밖의 사람은 방문해야 하면, false로 두고 `visit_outside_region`=true + 그 지역 규칙을 더함(사용자 2026-10-20 "지역 외는 방문 가입 이 조건 추가"). 전에는 false만 두어 지역 밖 사람에게 방문이 보이지 않았음(동대문 사례).
+     3. 전자책에 방문이 필요하다고 원문이 말함 → true.
+     4. **원문이 전자책에 대해 말하지 않고, 가입 방법에 방문 단계만 있음 → true** (전에는 false였음). 기록에 "전자책 회원 등급 원문 없음, 방문 단계만 → 방문 가입"으로 남깁니다.
+   - 자격 문구를 같이 찾았으면 4-8대로 `eligibility_rule`, `eligibility_summary`도 채웁니다.
+6. 한 페이지를 원문으로 확인할 때마다 4-8의 기록 모양에 가입 방법 칸을 더해 적습니다: 이름, 가입 경로, 방문 필요, 전자책 회원 등급, 원문 확인, 출처 URL.
+
+**여러 도서관을 한 번에 할 때**
+
+- 교보는 `<base_url>/elibrary-front/member/memberLogin.ink`를 사이트마다 한 번 가져와 `div.toogle_con`의 글과 화면 아래 도서관명·대표전화를 표로 모읍니다(`python scripts/library/kyobo_login_notice.py <결과.tsv>`, 저장소 루트에서 실행). 같은 글끼리 묶어 세면 기본 문구와 고친 문구가 바로 갈립니다.
+- 운영 기관으로 묶습니다. 시·군 통합 홈페이지(아산 `ascl.asan.go.kr`처럼 분관 여러 곳이 한 홈페이지)와 교육청은 가입 페이지가 하나라서 한 번 찾으면 묶음 전체에 씁니다. 단, **다른 기관의 가입 방법으로 추정하지 않습니다**(4-8과 같은 규칙).
+- 가져오기는 2장의 예절(우리 User-Agent, 호스트당 1건, 1초 간격)을 지킵니다. 페이지 인코딩이 UTF-8인지 EUC-KR인지 `<meta charset>`을 보고 읽습니다.
+- 못 찾으면 `join_url`을 NULL로 두고 `join_method`는 기본 문구 "도서관 홈페이지의 회원가입 안내 확인"을 그대로 둡니다. 화면은 전자도서관 첫 화면 링크를 대신 보여 줍니다.
+
+**교보 펼침 글 모은 결과 (2026-09-29, seed의 교보 153곳)**
+
+- 펼침 글 있음 122곳, 없음 31곳(구독형 대부분과 일부 사이트. 로그인 화면 모양이 다름. 따로 열어 봐야 함).
+- 기본 문구 두 가지 100곳: "아이디/비밀번호는 이용하시는 도서관 담당자에게 문의…"(96), "…도서관 홈페이지에서 확인하시거나…"(4, 아산 등). 여기서 알 수 있는 것은 없습니다.
+- 도서관이 고친 문구 22곳. 원문에서 읽히는 것:
+
+| 알 수 있는 것 | 도서관 (seed id) | 원문 예 |
+|---|---|---|
+| 전자책은 **정회원만** | 광주시립(경기)(5), 고양(34), 부평(74), 서초 반포(79), 선경=수원(81), 성동(83), 성북(84), 여수(95), 용산(108), 용인(109), 원주(114) | 부평 "전자책 이용은 도서관 정회원(대출증발급)만 이용가능", 용산 "웹회원(준회원) 및 타관 책이음 회원인 경우 서비스가 제한" |
+| 이용 자격 | 중랑(143), 서울시교육청(3) | 중랑 "이용자격 : 중랑구 통합 도서관 대출 회원", 서울시교육청 "서울 시민 인증을 해주셔야 전자책 이용이가능" |
+| 아이디가 회원번호·대출번호 | 광명(39), 김포(50), 남양주(53), 인천시 통합(127) | 남양주 "회원증에 있는 대출번호 14자리", 인천 "대출자번호를 입력" |
+| 어느 홈페이지 계정인지 | 광진(42), 서산(77), 제천기적(141), 한밭(157), 부산시민(71) | 광진 "서울시민카드로 이용하시거나 책이음 서비스로 이용하시는 이용자" |
+
+- 할 일: "정회원만" 11곳은 본 홈페이지에서 정회원 되는 방법(방문해 회원증 발급인지)을 원문으로 확인하고 `join_method`·`visit_required`를 채웁니다. 아이디가 회원번호인 4곳은 `join_method`에 그 원문을 줄여 넣습니다. seed에는 아직 반영하지 않았습니다.
+- 펼침 글이 없는 31곳: 7(세종 구독), 16, 19, 23, 37, 43, 48, 56, 58, 59, 61, 63, 67, 69, 70, 89, 101, 110, 111, 112, 121, 122, 126, 129, 130, 131, 134, 138, 139, 140, 158.
+
+**예: 아산시립도서관 (2026-09-29 확인)**
+
+| 단계 | 본 것 |
+|---|---|
+| 전자도서관 로그인 화면 `https://elib.asan.go.kr/elibrary-front/member/memberLogin.ink` | 교보 공통 문구, 도서관명 "아산시립도서관", 대표전화 041-530-6600 |
+| 본 홈페이지 `https://ascl.asan.go.kr` 머리 "회원가입" | `#join` + 시청 SSO. 안내 글 없음 |
+| 전자도서관 이용안내 `page_id=90` | 이미지 2장. 근거로 못 씀 |
+| 도서관 이용안내 > **로그인 및 탈퇴** `https://ascl.asan.go.kr/content/index.php?page_id=118` | "아산시청홈페이지 통합회원가입 → 시립도서관홈페이지 로그인 → 도서회원(준회원)가입 → 도서관 방문(신분증 제시) → 도서대출 회원증 발급(정회원)". 준회원은 "홈페이지 도서대출 서비스를 제외한 서비스 이용 가능". 전자책이 어느 등급인지는 원문에 없음 |
+
+→ `join_url` = `page_id=118`, `join_method` = 위 한 줄, `visit_required` = false(전자책 등급 원문 없음, 기록에 남김). 가입 자격(누가)은 이 페이지에 없어 4-8의 "못 찾음" 그대로입니다.
+
+### 4-11. 책 번호 규칙 점검 (사용자 요청, 2026-09-30)
+
+사용자: "코드 규칙은 언제든지 달라질 수 있으니 도서관 목록 확인할 때 같이 점검하는 걸로 하면 좋을거 같아 그리고 나중에 반영하고".
+
+**무엇을 보는가.** 전자도서관 사이트는 책마다 번호를 붙이고, 그 번호가 상세 페이지 주소에 들어 있습니다: 교보 `brcd`, YES24 `goods_id`, 통합 포털 `book_idx`, 강남구 `book_num`. 수집 목록을 서비스 DB로 가져올 때(`catalog-import`) **번호가 같으면 같은 책으로 묶습니다**. 어느 화면 종류끼리 번호를 같이 보는지는 `backend/…/catalog/internal/importer/BookGrouping.java`의 `SHARED_CODE_KINDS`에 있습니다(2026-09-30: 교보·교보 구독형·YES24 V1/V2/V3은 모든 도서관을 한 체계로, 포털·강남구는 한 도서관 안에서만). 사이트가 번호 매기는 방식을 바꾸면 다른 책이 한 권으로 묶이거나 같은 책이 나뉩니다.
+
+**언제.** 도서관 목록을 확인할 때마다 함께 합니다(4-0 흐름의 끝, 5절 추가 뒤, 새 화면 종류를 넣을 때, 수집 목록을 새로 받았을 때).
+
+**어떻게.**
+1. 수집 세션이 쉴 때 `check_code_spaces.py`를 돌립니다(수집 SQLite를 읽기만 함).
+2. 아래 기준값과 비교합니다. 비율이 크게 달라졌거나 새 화면 종류가 생겼으면 **바꾸지 말고 사용자에게 묻습니다**. 몇 %면 바꾼다는 기준은 정하지 않았습니다.
+3. 결과(날짜, 표)를 13절 기록과 `docs/cycles/plan-feedback.md`에 남깁니다. `SHARED_CODE_KINDS`를 바꾸기로 하면 plan 쪽에도 알리고, 가져오기를 다시 돌려야 반영됩니다.
+
+**기준값 (2026-09-30, 읽은 줄 2,547,275)**
+
+| 화면 종류 A | 화면 종류 B | 같은 번호·같은 제목 | 같은 번호·다른 제목 | 다른 비율 |
+|---|---|---|---|---|
+| 교보 | 교보 구독형 | 42,714 | 197 | 0.5% |
+| 교보 | YES24 V1 | 67,038 | 468 | 0.7% |
+| 교보 | YES24 V2 | 49,328 | 881 | 1.8% |
+| 교보 | YES24 V3 | 9,139 | 113 | 1.2% |
+| 교보 구독형 | YES24 V1 / V2 / V3 | 6,518 / 2,053 / 130 | 81 / 75 / 3 | 1.2 / 3.5 / 2.3% |
+| YES24 V1 | YES24 V2 / V3 | 30,093 / 6,102 | 492 / 602 | 1.6 / 9.0% |
+| YES24 V2 | YES24 V3 | 8,598 | 229 | 2.6% |
+| 강남구 | 교보 / YES24 V1 | 27 / 4 | 0 / 0 | 0% |
+
+| 화면 종류 안 (여러 도서관에 있는 번호) | 번호 수 | 도서관마다 제목이 다른 번호 | 다른 비율 |
+|---|---|---|---|
+| 통합 포털 | 32,449 | 32,449 | 100% (사이트마다 따로 매긴 번호) |
+| 교보 구독형 | 241,657 | 0 | 0% |
+| 교보 | 137,844 | 4,214 | 3.1% |
+| YES24 V1 | 9,619 | 824 | 8.6% |
+| YES24 V2 | 32,475 | 2,802 | 8.6% |
+| YES24 V3 | 637 | 3 | 0.5% |
+
+- 제목 비교는 NFKC·소문자·공백 제거 뒤 앞 8글자입니다. 부제나 시리즈 표기만 달라도 "다름"으로 셉니다. "다름"이 정말 다른 책인지는 표본을 보지 않았습니다 [확인 필요].
+- YES24는 같은 화면 종류 안에서도 8.6%가 다릅니다(V1·V2). 지금은 묶습니다. 다음 점검 때 표본을 보고 사용자에게 물을 항목입니다.
+
+### 4-12. 기관 이름 바뀜·흡수된 학교 확인 (2026-10-11, 사이클 08 11단계)
+
+- 계기: plan 인계서 사이클 08 11단계(R4 도서관 이름 고치기). 대상 목록은 plan `docs/research/library-join/name-changes-2026-10-10.md` 2절. 그 문서에 이미 있는 출처는 다시 찾지 않고, 비어 있던 것(사이트 지금 제목, 정확한 새 이름·날짜, 이름 겹침, 흡수된 학교 사이트 상태)만 확인함. seed·코드는 고치지 않음(조사만)
+- 확인일: 모두 2026-10-11
+- 방법
+  - 사이트: `scripts/library/check_front_page_names.py`(우리 User-Agent `chaekcheck/0.0.1`, Windows curl, 같은 호스트 1건씩 1.1초)로 seed `base_url` 첫 화면 18곳(아래 대상 + 682) 1회씩. 교보 사이트의 246바이트짜리 첫 화면(`<title>전자도서관</title>` + `window.location.href="/elibrary-front/"`)은 `/elibrary-front/`를 1회 더 받아 `main.ink`의 제목·화면 아래 "도서관명·주소"를 읽음. 북큐브·YES24는 화면 아래 주소 줄과 "다독자" 목록도 봄
+  - 공식 이름·날짜: 교육부·대학알리미·법무부·서울시교육청·국가법령정보센터·기관 홈페이지를 WebFetch로 열어 원문을 짧게 옮김. 검색 요약만 본 것은 따로 표시
+  - 이름 겹침: `library/*library*.csv`와 seed YAML의 이름 2,669개와 정확히 같은지 + 핵심 낱말이 들어간 이름을 모두 봄(`library.name` UNIQUE)
+- **교보 구독형 서버가 오늘 응답 없음**: `nile`·`at`·`kicj`·`poscoenc`·`andonguniv.dkyobobook.co.kr`(모두 103.182.126.192)이 https·http 모두 20초 연결 시간 초과(21:2x, 21:39 두 번). 같은 교보지만 `kpu.dkyobobook.co.kr`(112.216.251.54)은 응답. 그래서 1016·1079·2161·1203의 사이트 제목은 2026-10-05 `data/cycle07/front-out.tsv` 값을 씀. 다른 날 한 번 더 열어 볼 것 [확인 필요]
+- 이름 짓는 규칙(사이클 08 당시): 기관 이름만 씀("전자도서관"은 붙이지 않음). 같은 기관 사이트가 여럿이면 플랫폼 라벨을 붙임(예: `원광대학교 (북큐브)`·`원광대학교 (교보)`).
+  - **사이클 09부터 바뀜 (ADR-0071)**: 이름에 업체·대출 방식 괄호를 붙이지 않음. 같은 기관 사이트는 `vendor`·`lending_model`로 구분하고, 그래도 같으면 `order_no` 2가 붙음 → 사이트 이름을 확인해 고치고 순번을 1로. 이미 받은 이름은 그대로 둠(이름 유지 규칙). 예외는 `name_overrides.tsv`의 이름 고침뿐이고, 괄호 떼기는 `changed_on` `label-removed`. 배포 전에는 번호로 고치는 changeset(013, 014)으로 바꿈. 확인 기록은 4-13
+
+#### 4-12-1. 이름 고칠 곳 (작업 A)
+
+| 번호 | 지금 이름 | 플랫폼·주소 | 사이트 제목 (2026-10-11) | 공식 새 이름·바뀐 날 | 원문 (출처) | 제안 새 이름 | 이름 겹침 |
+|---|---|---|---|---|---|---|---|
+| 434 | 경상대학교 | 북큐브 `https://gnu.bookcube.biz/FxLibrary` | "경상국립대학교 전자도서관" (200) | 경상국립대학교, 2021-03-01 | "경상대학교와 경남과학기술대학교가 통합되어 2021년 3월 1일 '경상국립대학교'로 출범" (교육부 보도자료 2021-02-23 「국립학교 설치령 개정안 국무회의 통과」 https://www.moe.go.kr/boardCnts/view.do?boardID=294&lev=0&statusYN=W&s=moe&m=0204&opType=N&boardSeq=83640). 대학알리미 "경상대학교(일반) / 통합시기 : '21~ / 현 학교명 : 경상국립대학교" (https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do) | **경상국립대학교 (북큐브)** | "경상국립대학교"는 이미 있음: 745 (교보 `https://ebook.gnu.ac.kr:444`). 라벨 없이는 겹침. 745도 "경상국립대학교 (교보)"로 맞출지는 사용자 결정 |
+| 456 | 국립안동대학교 | 북큐브 `http://andong.bookcube.biz/FxLibrary` | "국립경국대학교 전자책도서관" (200) | 국립경국대학교, 2025-03-01 | 대학알리미 "국립안동대학교(일반) / 통합시기 : '25~ / 현 학교명 : 국립경국대학교" (위 대학알리미 URL). 날짜는 검색 요약만: 2025-02-18 국무회의 국립학교 설치령 개정, "통·폐합 시기는 2025년 3월 1일"(언론 https://www.fnnews.com/news/202502181718109025, 교육부 원문은 못 찾음 [확인 필요]) | **국립경국대학교 (북큐브)** | "국립경국대학교"는 이미 있음: 2239 (YES24 `http://ebook.gknu.ac.kr`). 977 "경국대학교"(교보 구독형 `andonguniv`, 2026-10-05 제목 "경국대학교")도 같은 학교로 보임 [확인 필요]. 2239·977 이름 맞춤은 사용자 결정 |
+| 2264 | 서라벌대학교 | YES24 `http://ebook.sorabol.ac.kr` | "신경주대학교 전자책도서관" (200). 화면 아래 "신경주대학교 학술정보원" | 신경주대학교, 2024학년도부터 (정확한 날 못 찾음) | 대학알리미 "서라벌대학교(전문) / 통합시기 : '24~ / 현 학교명 : 신경주대학교". 대학 연혁(`sorabol.ac.kr/sub1_1_b.php`)은 인증서 만료로, `gju.ac.kr`은 인증서 이름 불일치, `gu.ac.kr`은 503으로 못 엶 [확인 필요] | **신경주대학교** | 없음 (신경주·경주대 들어간 이름 없음) |
+| 2563 | 대검 도서관 | YES24 `http://spo.yes24library.com` | "공소청 " (200). 화면 아래 "서울특별시 서초구 반포대로 157 공소청" | 공소청, 2026-10-02 | 법무부 「공소청법」 제정 법률(안) 입법예고(2026-01-12): 정부조직법 "법률 제21065호, 2025. 10. 1. 공포, 2026. 10. 2. 시행", 검찰청 폐지 (https://www.moj.go.kr/bbs/moj/157/602431/artclView.do). 대검찰청 → 공소청 본청은 언론만(YTN https://www.ytn.co.kr/_ln/0103_202610011551072708) | **공소청 도서관** (옛 이름 "대검 도서관"과 같은 모양). 사이트 제목대로 "공소청"만 쓸지는 사용자 결정. 이름에 "도서관"이 없으면 `library-site-issues.md` 4절 규칙에 걸림 | 없음 (공소·검찰 들어간 이름 없음) |
+| 2611 | 강서공업고등학교 | YES24 `http://gangseo-th.yes24library.com` | "서울디지털콘텐츠고등학교 전자책도서관" (200). 화면 아래 "서울 강서구 방화대로 47길 9 1층 도서실 서울디지털콘텐츠고등학교" | 서울디지털콘텐츠고등학교, 2025-03-01 | "강서공업고등학교→ 서울디지털콘텐츠고등학교(2025. 3. 1.)" (서울시교육청 학교안내 https://www.sen.go.kr/user/bbs/BD_selectBbs.do?q_bbsSn=1157&q_bbsDocNo=20080617111902389) | **서울디지털콘텐츠고등학교** | 없음 |
+| 2161 | 한국형사정책연구원 | 교보 구독형 `https://kicj.dkyobobook.co.kr` | 오늘 연결 시간 초과. 2026-10-05 제목 "한국형사법무정책연구원" (가운뎃점 없음) | 한국형사·법무정책연구원, 2021-05-18 | 기관 연혁 "2021.05.18 정부출연연구기관 등의 설립 · 운영 및 육성에 관한 법률 개정으로 기관명칭 변경 (한국형사정책연구원에서 한국형사·법무정책연구원으로 변경)" (https://www.kicj.re.kr/menu.es?mid=a10502020000). 첫 화면 팝업 "한국형사정책연구원이 한국형사·법무정책연구원 으로 기관 명칭이 변경되었습니다." (https://www.kicj.re.kr/) | **한국형사·법무정책연구원** (가운뎃점 U+00B7, 기관 연혁 표기). 이름 찾기에서 "형사법무"로 쳤을 때 찾히는지는 [확인 필요] | 없음 |
+| 1079 | 농수산물유통공사 | 교보 구독형 `https://at.dkyobobook.co.kr` | 오늘 연결 시간 초과. 2026-10-05 제목 "한국농수산식품유통공사" | 한국농수산식품유통공사, 2012-01-26 | 공사 연혁 "2012. 01 한국농수산식품유통공사로 명칭 변경" (https://www.at.or.kr/contents/apko311200/view.action). 국가법령정보센터 「한국농수산식품유통공사법」 "시행 2012. 1. 26." "법률 제10932호, 2011. 7. 25., 일부개정" (https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=115254). 부칙 원문은 못 봄 | **한국농수산식품유통공사** | 없음 (비슷한 이름 919 한국농수산대학교, 1084 서울시농수산식품공사는 다른 기관) |
+| 1016 | 국가평가교육진흥원 (오타) | 교보 구독형 `https://nile.dkyobobook.co.kr` | 오늘 연결 시간 초과. 2026-10-05 제목 "국가평생교육진흥원 전자도서관" | 국가평생교육진흥원 (개명 아님, 우리 오타) | 기관 홈페이지 제목·로고 "국가평생교육진흥원 National Institute for Lifelong Education" (https://www.nile.or.kr/) | **국가평생교육진흥원** | 없음 |
+
+- 사용자 결정: 434 → "경상국립대학교 (북큐브)" (2026-10-11, 사용자: "모두 바꿔줘")
+- 사용자 결정: 456 → "국립경국대학교 (북큐브)" (2026-10-11, 사용자: "모두 바꿔줘")
+- 사용자 결정: 2264 → "신경주대학교" (2026-10-11, 사용자: "모두 바꿔줘")
+- 사용자 결정: 2563 → "공소청 도서관" (2026-10-11, 사용자: "모두 바꿔줘"; 꼴은 "공소청 도서관"을 고름)
+- 사용자 결정: 2611 → "서울디지털콘텐츠고등학교" (2026-10-11, 사용자: "모두 바꿔줘")
+- 사용자 결정: 2161 → "한국형사·법무정책연구원" (2026-10-11, 사용자: "모두 바꿔줘")
+- 사용자 결정: 1079 → "한국농수산식품유통공사" (2026-10-11, 사용자: "모두 바꿔줘")
+- 사용자 결정: 1016 → "국가평생교육진흥원" (2026-10-11, 사용자: "모두 바꿔줘")
+- 바꿀 것 없음
+  - 1203 포스코이앤씨 (교보 구독형): 우리 이름이 이미 새 이름(포스코 뉴스룸 2023-03-20, plan 문서 1-4). 사이트는 오늘 시간 초과, 2026-10-05 제목은 옛 이름 "포스코건설"(사이트 쪽이 안 고침). 바꿀 것 없음 (2026-10-11 확인)
+  - 408 (주)포스코이앤씨 전자책 도서관 (북큐브 `https://ebook.thesharp.co.kr/FxLibrary`): 오늘 제목 "(주)포스코이앤씨 ebook 도서관" (200). 이름 그대로
+
+#### 4-12-2. 흡수된 학교 사이트 (작업 B, 보고만)
+
+| 번호 | 우리 이름 | 플랫폼·주소 | 오늘 상태 (HTTP, 최종 주소, 제목) | 따로 돌아가는 전자도서관인가 | 지금 기관 (출처) | 제안 |
+|---|---|---|---|---|---|---|
+| 428 | 경남도립거창대학교 | 북큐브 `http://ebook.gc.ac.kr/FxLibrary` | 200, `http://ebook.gc.ac.kr/FxLibrary/`, "경남도립 거창대학교" | 예. 검색·로그인 화면 정상, "다독자" 5명 목록 있음. 화면 문구 "경남도립 거창대학교 도서관에 로그인 후 이용해주세요" | 국립창원대학교 2026~ (대학알리미 "경남도립거창대학(전문) / 통합시기 : '26~ / 현 학교명 : 국립창원대학교"). 같은 호스트의 교보 사이트는 이미 765 "국립창원대학교 거창캠퍼스"(`https://ebook.gc.ac.kr:444`)로 들어 있음 | **그대로** (사이트가 옛 주소에서 돌아감, 옮긴 새 주소 없음). 이름은 765와 맞춰 "국립창원대학교 거창캠퍼스 (북큐브)" 후보, 765는 "(교보)" 붙이기 후보 [안] |
+| 429 | 경남도립남해대학교 전자도서관 | 북큐브 `http://namhae.bookcube.biz/FxLibrary` | 200, `http://namhae.bookcube.biz/FxLibrary/`, "남해대학교 전자도서관" | 예. "다독자 (최근 3개월)" 2명, 신착 목록 있음 | 국립창원대학교 2026~ (대학알리미 "경남도립남해대학(전문) / 통합시기 : '26~") | **그대로**. 이름 후보 "국립창원대학교 남해캠퍼스" [안]. 국립창원대 쪽에 남해캠퍼스 전자책 안내가 있는지는 못 찾음 [확인 필요] |
+| 769 | 강릉원주대학교 (교보) | 교보 `http://ebook.gwnu.ac.kr:8085` | 200, 첫 화면 "Insert title here"(스크립트로 `/elibrary-front/`) → `http://ebook.gwnu.ac.kr:8085/elibrary-front/main.ink` 200, 제목 "강릉원주대학교" | 예. 화면 아래 "도서관명 : 강릉원주대학교 \| 주소 : 우편번호 210-702 강원도 강릉시 지변동강릉대학로 120" (옛 주소 그대로) | 강원대학교 2026~ (대학알리미 "국립강릉원주대학교(일반) / 통합시기 : '26~ / 현 학교명 : 강원대학교") | **그대로**. "강원대학교 (교보)"는 732가 이미 씀 → 이름 후보 "강원대학교 강릉캠퍼스 (교보)" [안] [확인 필요: 원주캠퍼스도 같이 쓰는지] |
+| 2257 | 강릉원주대학교 (YES24) | YES24 `https://ebook2.gwnu.ac.kr` | 200, `https://ebook2.gwnu.ac.kr/`, "강릉원주대학교 전자책도서관" | 예. 화면 아래 "(25457) 강원특별자치도 강릉시 죽헌길 7 강원대학교 강릉캠퍼스 도서관 TEL. 033-640-2581" — 운영 주체가 이미 강원대 강릉캠퍼스 | 강원대학교 2026~ (같은 대학알리미) | **그대로**. 이름 후보 "강원대학교 강릉캠퍼스 (YES24)" [안] ("강원대학교 (YES24)"는 2251이 씀) |
+| 607 | 원광보건대학 | 북큐브 `http://library.wu.ac.kr:8084/FxLibrary` | 200, `http://library.wu.ac.kr:8084/FxLibrary/`, "원광보건대학교 전자책도서관" | 예. 검색·로그인 화면 정상(공지는 오래된 것만, 다독자 목록 비어 보임) | 원광대학교 2026~ (대학알리미 "원광보건대학교(전문) / 통합시기 : '26~ / 현 학교명 : 원광대학교") | **그대로**. 원광대 쪽(606 북큐브 `libedu.wku.ac.kr:9080`, 859 교보)과 합쳐졌다는 안내는 첫 화면에 없음. 우리 이름 "원광보건대학"은 사이트 표기 "원광보건대학교"와 다름 [확인 필요] |
+| 895 | 한경대학교 | 교보 `https://ebook.hknu.ac.kr` | 200, 첫 화면 "전자도서관"(스크립트로 `/elibrary-front/`) → `https://ebook.hknu.ac.kr/elibrary-front/main.ink` 200, 제목 "한경국립대학교", 화면 아래 "도서관명 : 한경국립대학교" | 예. **682와 다른 사이트**: 같은 호스트 `ebook.hknu.ac.kr`이지만 682는 포트 447의 북큐브(`/FxLibrary`, 제목 "한경국립대학교 전자도서관"), 895는 기본 포트의 교보(`/elibrary-front`) — 화면 종류·책 목록이 다름 | 한경국립대학교 2023~ (대학알리미 "한경대학교(일반) / 통합시기 : '23~ / 현 학교명 : 한경국립대학교") | **그대로** (주소 그대로, 따로 돌아감). 이름은 개명 대상: "한경국립대학교 (교보)" 제안, 그러면 682는 "한경국립대학교 (북큐브)"로 맞출 후보 [안]. 지금 "한경국립대학교 (교보)"와 겹치는 이름 없음 |
+| 1002 | 한국산업기술대학교 | 교보 `https://kpu.dkyobobook.co.kr` | 200, 첫 화면 "전자도서관" → `https://kpu.dkyobobook.co.kr/elibrary-front/main.ink` 200, 제목 "한국공학대학교 도서관", 화면 아래 "도서관명 : 한국공학대학교 도서관 \| 주소 : 경기도 시흥시 산기대학로 237(정왕동)" | 예. 테마도서 목록 등 정상 | 한국공학대학교, 2022년 3월 (대학 연혁 "2022년 03월 한국산업기술대학교 → 한국공학대학교 교명변경", https://www.tukorea.ac.kr/tukorea/7609/subview.do). 흡수가 아니라 단독 개명 | **그대로** (주소). 이름은 개명 대상: "한국공학대학교 (교보)" 제안 [안] (683 "한국공학대학교 전자책 도서관"은 북큐브 `ebook.tukorea.ac.kr`, 이름 안 겹침) |
+
+- 사용자 결정: 428 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 사용자 결정: 429 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 사용자 결정: 769 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 사용자 결정: 2257 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 사용자 결정: 607 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 사용자 결정: 895 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 사용자 결정: 1002 그대로 (2026-10-11, 사용자: "모두 그대로"). 이름 후보는 다음 사이클에 봄
+- 7곳 모두 "끄기"나 "주소 바꿈"을 뒷받침할 근거(닫힘, 새 주소로 넘김, 통합 사이트 안내)는 오늘 첫 화면에서 찾지 못함. 흡수한 대학 도서관 홈페이지의 전자책 메뉴(국립창원대·강원대·원광대)는 열어 보지 않음 [확인 필요]
+- 이번에 새로 알게 된 것(다음 조사 때 쓸 것)
+  - 교보 사이트 첫 화면 제목 "전자도서관"·"Insert title here"는 스크립트로 넘기는 빈 화면일 뿐이라 이름 판단에 못 씀. `/elibrary-front/main.ink`의 `<title>`과 화면 아래 "도서관명 :"을 봐야 함(895·1002·769가 이렇게 해서 나옴). 2026-10-05 이름 검사(`library-site-issues.md` 10-2)의 "이름 못 찾음" 중 교보 사이트는 이 방법으로 다시 볼 수 있음
+  - 흡수된 학교 사이트는 제목이 옛 이름이어도 화면 아래 주소 줄에 새 기관 이름이 먼저 나오기도 함(2257 "강원대학교 강릉캠퍼스 도서관")
+
+### 4-13. 이름은 기관 이름만: 괄호 떼기와 공식 이름 다시 확인 (2026-10-11, 사이클 09 1단계)
+
+- 계기: plan 인계서 사이클 09 1단계(spec R1, ADR-0071). 4-12에 이미 적힌 출처는 다시 찾지 않고, 캠퍼스 이름과 경남교육청 도서관 이름만 새로 확인함. 교보 구독형 서버(103.182.126.192)와 `ebook.gne.go.kr`에는 요청하지 않음
+- 확인일: 모두 2026-10-11. 같은 호스트 1~2건씩 차례로
+
+#### 4-13-1. 괄호 뗄 줄 고르기 (한 번만 쓴 방법)
+
+- 입력: 로컬 `db`(013까지 적용)의 `id, name` 내보내기(`data/cycle09/library-db-013.tsv`, git 밖). 434·456은 013이 붙인 " (북큐브)"를 빼고 seed 이름으로 셈
+- 이름 **끝**의 괄호만 고름: 정규식 `\s*\((YES24|교보|북큐브|알라딘|구독|구독형|소장|소장형|대여|교보, [a-z0-9.-]+)\)$` (괄호 앞 공백 없는 꼴 포함). seed 생성 스크립트에는 넣지 않음(이름 유지 규칙, spec R1-5)
+- 셈 (plan `research.md` 3절과 같음): 뗄 줄 277 = YES24 95, 교보 81, 북큐브 72, 구독 15, 알라딘 8, (교보, 호스트) 2(1575·1576), 구독형 1, 소장 1, 소장형 1, 대여 1. 남길 줄 45(기관 이름 속 괄호: (주)·(부산)·(임직원)·캠퍼스·부서 등, 눈으로 확인). 애매 2(76 "(sam)", 64 "(교육청산하)") → 아래 이름 고침으로 처리
+- 괄호 없이 대출 방식 낱말이 붙은 386 "진천군립도서관 대여형"은 따로 `label-removed`(사용자 승인 2026-10-11)
+
+#### 4-13-2. 공식 이름 다시 확인
+
+| 번호 | 지금 이름 | 새 이름 | 원문 (출처) | 새로 봄? |
+|---|---|---|---|---|
+| 977 | 경국대학교 | 국립경국대학교 | 대학알리미 "국립안동대학교(일반) / 통합시기 : '25~ / 현 학교명 : 국립경국대학교" (https://m.academyinfo.go.kr/empty/intro/intro0351/combineInfo.do) | 아니오 (4-12-1의 456 줄) |
+| 895 | 한경대학교 | 한경국립대학교 | 대학알리미 "한경대학교(일반) / 통합시기 : '23~ / 현 학교명 : 한경국립대학교" (위 URL) | 아니오 (4-12-2) |
+| 1002 | 한국산업기술대학교 | 한국공학대학교 | 대학 연혁 "2022년 03월 한국산업기술대학교 → 한국공학대학교 교명변경" (https://www.tukorea.ac.kr/tukorea/7609/subview.do) | 아니오 (4-12-2) |
+| 769 · 2257 | 강릉원주대학교 (교보) / (YES24) | 강원대학교 강릉캠퍼스 | 통합은 4-12-2 대학알리미. 캠퍼스 이름: 강원대 첫 화면 아래 "강원특별자치도 강릉시 죽헌길 7 강원대학교 강릉캠퍼스" (https://www.kangwon.ac.kr/). 도서관 메뉴도 강릉캠퍼스(`https://iskul.gwnu.ac.kr/`)·원주캠퍼스(`/wonju/`)를 따로 둠 | 캠퍼스 이름만 새로 |
+| 428 | 경남도립거창대학교 | 국립창원대학교 거창캠퍼스 | 통합은 4-12-2 대학알리미. 국립창원대 첫 화면 아래 "경남 거창군·읍 거창대학로 72 국립창원대학교 거창캠퍼스" (https://www.changwon.ac.kr/kor/main.do) | 캠퍼스 이름만 새로 |
+| 429 | 경남도립남해대학교 전자도서관 | 국립창원대학교 남해캠퍼스 | 같은 화면 "남해군 남해읍 화전로 78번길 30(남변리 195) 국립창원대학교 남해캠퍼스" (위 URL) | 캠퍼스 이름만 새로 |
+| 943 (수집 100747) | 양산도서관 (교보) | 경상남도교육청 양산도서관 | 경상남도교육청 기관 안내 "경상남도교육청 양산도서관 / https://yslib.gne.go.kr" (https://www.gne.go.kr/www/office/insguide.jsp). 도서관 사이트 머리 로고·`<title>`도 같은 이름 (https://yslib.gne.go.kr) | 새로 (plan scope 6의 "확인 못 함"이 풀림) |
+| 64 | 마산도서관(교육청산하) | 경상남도교육청 마산도서관 | 같은 기관 안내 "경상남도교육청 마산도서관 / http://mslib.gne.go.kr/". 도서관 사이트 제목·로고도 같음 (http://mslib.gne.go.kr/) | 새로 |
+| 93 | 양산도서관 | 양산시립도서관 | plan 확인(https://lib.yangsan.go.kr/ 머리 로고·저작권 줄, 2026-10-11) | 아니오 |
+
+- 결과: 10곳 모두 spec 이름과 같음 → 사용자에게 물을 것 없음
+- 알아 둘 것
+  - 943·64와 교보 사이트(`ebook.gne.go.kr:9044`·`:9043`)의 연결은 기존 seed·plan 값을 따름. 도서관 사이트의 "전자도서관" 메뉴는 `javascript:ebook_frame();` 또는 `http://ebook.gne.go.kr/`로만 가고 포트는 보이지 않음
+  - "경상남도교육청 마산지혜의바다 도서관"(`jhlib.gne.go.kr`)은 별도 기관. 64는 마산도서관(`mslib`)
+  - 769·2257을 원주캠퍼스도 쓰는지는 여전히 모름(4-12-2 [확인 필요]). 전자책 사이트 화면 아래 주소는 모두 강릉
+- 이름이 같아지는 곳은 모두 업체가 달라 겹침 없음: 895(교보)·682(북큐브), 428(북큐브)·765(교보), 769(교보)·2257(YES24), 977(교보)·456(북큐브)·2239(YES24)
+
+#### 4-13-3. `name_overrides.tsv`와 014
+
+- `scripts/library/name_overrides.tsv` 295줄 = 사이클 08 8줄(434·456은 `new_name`에서 " (북큐브)"를 뗌) + 이번 287줄(괄호 277 + 따로 정한 14 − 겹침 4: 769·943·1575·2257)
+- `changed_on`: 괄호 떼기·76·386 `label-removed`, 1149 `typo`, 공식 개명은 바뀐 때(977 2025-03-01, 895 2023, 1002 2022-03, 769·2257·428·429 2026), 64·93·943·1575는 확인한 날. `source_url`: 괄호 떼기 `ADR-0071`, 1575 사이트 주소(사용자가 폰으로 확인), 1149 사이트 주소
+- 014 VALUES는 `build_candidate_seed.py --changes-only`로 만듦(이름 289줄 = 287 + 434·456)
+- 2026-10-12(사이클 13): 목록 파일은 `scripts/library/rules/name_overrides.tsv`로 옮김(내용 그대로), 스크립트 이름은 `build_library_seed.py`
+
+### 4-14. adapter가 없는 자체 화면 조사하기 (2026-10-20, 첫 사례 서울도서관)
+
+1-3 표에 없는 화면(도서관이 자체로 만든 전자책 사이트 등)을 넣을 수 있는지 알아보는 방법입니다. 결과가 "adapter 없음"이면 넣지 않고 [`library-site-issues.md`](library-site-issues.md) 7절과 13절에 적고, 화면 정보는 [`maintenance/platforms.md`](../maintenance/platforms.md)에 새 절로 남깁니다. adapter·수집기를 실제로 붙이는 순서는 [`maintenance/2-crawl.md`](../maintenance/2-crawl.md) 7절, 넣기는 5절과 [`maintenance/1-libraries.md`](../maintenance/1-libraries.md) "새 도서관 넣기"입니다.
+
+**방법 (요청은 모두 GET, 우리 User-Agent `chaekcheck/0.0.1`, 호스트당 1.1초 이상, 로그인·양식 제출 없음)**
+
+1. 이 문서·`library-site-issues.md`·`library-research/`에서 그 도서관 이름과 호스트를 먼저 찾습니다(`grep -rn "<이름>\|<호스트>" docs scripts/library`). 기록이 있으면 그 결과를 다시 확인하는 데서 시작합니다.
+2. 도서관 본 홈페이지의 "전자도서관·전자책" 메뉴와 이용안내 페이지에서 **지금 주소**와 서비스 종류(소장·구독·오디오북·국외)를 원문으로 읽습니다(4-2). 같은 기관의 다른 전자책 주소(국외 OverDrive, 발간물 원문 등)도 같이 적고 대출 서비스인지 가립니다.
+3. 호스트마다 `robots.txt`를 한 번 읽어 기록합니다(2절: 기록용).
+4. 리다이렉트를 하나씩 따라가 최종 주소를 적습니다(4-7 1번). 서비스는 3xx를 따라가지 않습니다.
+5. 첫 화면에서 업체 단서(주소 모양 4-6, 꼬리말, 스크립트·이미지 경로)를 봅니다. 검색 칸이 스크립트로 움직이면 그 스크립트(`<script src>`)를 받아 **검색 결과를 부르는 주소**(대개 JSON API)와 칸 이름을 찾습니다. 화면 HTML에 결과가 없고 스크립트가 채우는 사이트가 많습니다.
+6. 그 주소로 검색 1건("사랑")을 보내 전체 건수, 줄마다 책 번호·제목·저자·출판사·ISBN·**보유·대출·예약 수**가 있는지, 대출 방식(소장·구독)을 어떻게 가르는지 봅니다. 수의 뜻은 상세 화면 스크립트가 어느 칸을 "현재 대출중"으로 그리는지로 확인합니다(누적 대출 수와 섞이기 쉬움).
+7. 전체 권수: 첫 화면·분류 메뉴의 권수나 빈 검색. 전체 목록을 받을 길(분류별 목록 API 등)과 한 쪽 최대 줄 수도 1건으로 봅니다(수집 2단계에서 필요).
+8. 4-6·1-3 표와 `backend/src/main/java/com/chaekcheck/library/PlatformType.java`, `availability/internal/adapter/`와 견줘 **기존 adapter가 그 주소 모양을 읽는지** 정합니다. 주소 모양이나 응답 형식이 다르면 "새 adapter 필요"(9절, 사람에게 물음).
+9. 가입 자격(4-8)과 가입 방법(4-10)을 같은 작업에서 원문으로 조사합니다. 넣지 않더라도 기록합니다(나중에 넣을 때 다시 조사하지 않게).
+10. 서비스 DB에 이미 있는지 읽기 전용으로 봅니다: `wsl -d Ubuntu -- docker exec chaekcheck-db-1 psql -U chaekcheck -d chaekcheck -tAc "select id,name,platform_type,base_url,enabled from library.library where base_url ilike '%<호스트>%' or homepage_url ilike '%<호스트>%' or name ilike '%<이름>%'"`.
+11. 결과를 이 절(도서관별 결과), `maintenance/platforms.md`(화면 방법), `library-site-issues.md` 7절(빠진 이유), 13절(작업 기록)에 적습니다. 다시 확인할 도구가 있으면 `scripts/library/`에 두고 3절 표에 더합니다.
+
+**결과: 서울도서관 (2026-10-20, 사용자 요청 "서울도서관 … 이번 릴리스에 넣을 수 있는지", 같은 날 "이번 릴리스 뒤에 배포, 지금은 조사·기록만")**
+
+- 다시 확인하는 도구: `python scripts/library/probe_seoul_elib.py [--keyword 사랑] [--page-count 100]` (저장소 루트, 요청 약 7건, 판단은 하지 않음). 이 아래 값과 견줍니다.
+- 이전 기록: 2026-09-29 YES24 확인에서 옛 주소 `http://elib.seoul.go.kr:8084/`가 `ConnectException`([`library-research/yes24-report-2026-09-29.md`](research/yes24-report-2026-09-29.md) 176줄), 새 주소 `https://elib.seoul.go.kr`는 "서울도서관 자체 통합전자책, adapter 없음"([`library-research/moved-report-2026-09-29.md`](research/moved-report-2026-09-29.md) 52줄, 4-3, `library-site-issues.md` 7절). 서비스 DB(2,669줄)에는 `seoul.go.kr` 주소도 "서울도서관" 이름도 없음(10번 SQL, 2026-10-20).
+- **주소** (본 홈페이지 `https://lib.seoul.go.kr/rwww/html/ko/eLibHome.jsp` "전자책·오디오북" 메뉴): "운영하는 서비스로는 통합전자책, 구독형 전자책, 국외전자책이 있습니다."
+  - 국내 전자책·오디오북: "누리집 주소 https://elib.seoul.go.kr". `https://elib.seoul.go.kr/` → 302 `/main`(같은 호스트). 최종 origin `https://elib.seoul.go.kr`.
+  - 국외 전자책: "http://seoullib.overdrive.com"(OverDrive, "영문 전자책 3,900여 종"). 다른 업체 화면이고 adapter 없음. 조사하지 않음.
+  - 꼬리말 "서울시 e-BOOK" `http://ebook.seoul.go.kr` → `https://lib.seoul.go.kr/searchS/eaz`(제목 "서울시 발간 원문 | 서울도서관"): 서울시 발간물 원문이라 전자책 대출 사이트가 아님.
+- **robots.txt**: `lib.seoul.go.kr` "Disallow: /main/searchBrief, /search/, /searchS/, /apload/, /dnload/, /dl_image/". `elib.seoul.go.kr` "Disallow: /EPUBViewer3/, /PDFViewer/, /epubs/, /pdf/, /wv3a/"(검색 API `/api/`는 막지 않음).
+- **화면·업체**: 업체 화면이 아닌 서울도서관 자체 통합 화면(1-1 `vendor`로는 `IN_HOUSE`). 4-6 주소 모양 어디에도 맞지 않음. 화면 HTML에는 결과가 없고 `/resources/js/05_search/r_search2.js`가 JSON API를 부름. 책마다 유통사가 다름: 상세 스크립트 `r_detail.js`의 `ownerCode` 표 "OD"=ECO, "BQ"=북큐브, "BX"=OPMS, "YE"=예스24, "YB"=Y2BOOKS, "CP"=컨텐츠포탈, "AL"=알라딘, "AD"=오디언, "OV"=오버드라이브. 꼬리말 "전자책뷰어 고객센터 : 02)2024-9999(내선2번)".
+- **검색 (로그인 없이 됨)**: `GET https://elib.seoul.go.kr/api/contents/search?libCode=&contentType=EB&searchKeyword=%EC%82%AC%EB%9E%91&searchOption=1&sortOption=1&innerSearchYN=N&innerKeyword=&currentCount=1&pageCount=10&loanable=&isTotal=false&showType=L&searchCombine=N` → 200 JSON, 0.1~0.5초. 제목(`searchOption=1`) "사랑" `totalCount` 354(전체 `searchOption=4` 376). `searchOption` 1 서명, 2 저자, 3 출판사, 4 전체. `contentType` EB 전자책, TY03 오디오북. 빈 검색어는 404.
+  - 줄 칸: `contentsKey`(책 번호, 예 `PRD000138304`, `CPP0000022207`: 이 사이트만의 번호), `title`, `author`, `publisher`, `publishDate`, `isbn`(있음), `contentsType`(TY01 소장, TY02 구독, TY03 오디오북), `ownerCode`, **`b2bCopys`(보유), `currentLoanCount`(지금 대출), `currentResvCount`(지금 예약)**, `loanCnt`·`reserveCnt`(누적 대출·예약으로 보임: 한 책 `loanCnt` 169인데 `currentLoanCount` 0).
+  - 수의 뜻 확인: 상세 `GET /api/contents/CPP0000022207`(소장형) `contentsCopys` 5, `currentLoanCount` 0, `currentResvCount` 0. `r_detail.js`: "cont-copys … 카피수", "cur-loan-cnt … 현재 대출중인 건수", "cur-reserve-cnt … 현재 예약중인 건수"(소장형 TY01일 때만 그림).
+  - 구독형(TY02)은 `b2bCopys` 1인데 `currentLoanCount` 2인 줄이 있음 → 구독형은 수량 제한 없음(이용안내 원문 "구독형 : 15,000여 종(대출 수 제한 없음)"). 상세 주소는 `/contents/detail.do?no={contentsKey}`.
+- **권수** (`GET /api/category/main?contentType=EB|TY03`, 분류별 `contentCount` 합): 전자책 28,232(국외전자책 분류 3,900 포함 → 국내 24,332), 오디오북 1,453. 이용안내 원문 "소장형 : 9,320여 종 … 구독형 : 15,000여 종 … 오디오북 · 소장형 : 1,450여 종"과 맞음.
+- **전체 목록**: 분류별 `GET /api/contents/catesearch?libCode=&majorCategory=001&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount=1&pageCount=100` → `totalCount` 1187, `totalPage` 12, 100줄(`pageCount` 100 동작). 대분류 22개(전자책)·20개(오디오북)를 돌면 전체를 받을 수 있어 보임 [안].
+- **기존 adapter**: 읽지 못함. 1-3의 9종(`PlatformType.java`: 교보 2, YES24 3, 포털, 강남, 북큐브 `BOOKCUBE_FX`, 알라딘 `ALADIN_V1`) 모두 주소 모양(`/elibrary-front/…`, `/search/?src_key=`, `/elib/module/…`, `/FxLibrary`, `?nav_code=`)이 다르고, 이 사이트는 JSON API라 HTML 선택자로 읽는 adapter가 맞지 않음. 기존 주소 모양으로 보낼 검색이 없어 시험하지 않음.
+- **판정: 데이터만으로는 넣을 수 없음. 새 화면 종류(adapter)와 수집기 형식이 필요**(9절, 개발) → 같은 날 만듦(아래 "만든 것"). 필요한 것: ① `PlatformType` 새 값(예 `SEOUL_LIB_V1`, 이름은 사이클에서 정함)과 `001` CHECK 변경(Liquibase 새 changeset), ② 검색 adapter: 위 JSON 검색(제목·저자·출판사), TY01은 `b2bCopys`−`currentLoanCount`로 판정·예약 `currentResvCount`, TY02는 구독형(바로 대출), TY03 오디오북 구분, `ownerCode` "OV"(국외, 대출은 OverDrive)는 빼거나 따로 표시, ③ 수집기 `crawl_catalog.py`에 분류별 `catesearch` 목록(2-crawl 7절), ④ 도서관 한 줄은 `lending_model` `MIXED`(소장+구독)로 보임 [안], 책 번호 `contentsKey`는 이 도서관 안에서만(4-11), ⑤ 넣기 명령(5절)·가입 자격(아래). 사용자 결정: 이번 릴리스 뒤에 배포(2026-10-20).
+- **만든 것 (2026-10-20, 같은 날 dev 세션, 브랜치 `claude/funny-hodgkin-043487`, 배포는 v1.7.0 뒤 사용자 결정):** 화면 종류 이름은 `SEOUL_ELIB_V1`(GANGNAM_V1처럼 자체 사이트 이름 + 세대). ① `PlatformType.SEOUL_ELIB_V1`, CHECK는 새 changeset `library/020-library-platform-seoul-elib.yaml`(001은 운영에 적용됨), ② adapter `SeoulElibV1Adapter`(TY01 수로 판정, TY02 구독형 바로 대출, TY03·OV 뺌, 상세는 `/api/contents/{no}`), ③ 수집기 `crawl_catalog.py` 분류별 목록(`seoul_segments`·`parse_seoul`, 1.1초 간격 `MIN_GAP_BY_HOST`)과 손으로 찾은 곳을 정한 번호로 넣는 `add-library`, ④ 넣기 명령이 업체 `IN_HOUSE`·대출 방식 `MIXED`로 정함, 규칙 파일에 수집 번호 102739 한 줄씩(`public_join.tsv` 가입 조사·`library_kinds.tsv` PUBLIC·`final_origins.tsv` 리다이렉트 없음: `/`만 `/main`으로 302, 검색 API는 그대로). 화면 방법은 [`maintenance/platforms.md`](../maintenance/platforms.md) 11절.
+- **남은 일 (배포 때)**: 실제 수집 DB에 `add-library`(번호 102739) → `full --only 102739` → 사본 → `library-insert` 미리 보기·넣기 → 책 가져오기([`maintenance/1-libraries.md`](../maintenance/1-libraries.md) "새 도서관 넣기", [`maintenance/3-import.md`](../maintenance/3-import.md)). 순서와 명령은 [`maintenance/2-crawl.md`](../maintenance/2-crawl.md) 7절과 platforms.md 11절 "수집기".
+- **가입 자격·방법** (4-8, 4-10). 출처: 회원증 발급 `https://lib.seoul.go.kr/rwww/html/ko/membership.jsp`, 비대면 자격확인 `https://lib.seoul.go.kr/memberJoin/onlineMembership`, 이용안내 `https://lib.seoul.go.kr/rwww/html/ko/eLibHome.jsp`. 원문 확인 `확인됨`.
+  - 전자책 이용 대상: "서울도서관 정회원이면 누구나, 언제든지 온라인으로 책을 읽고 들을 수 있도록"(eLibHome). 회원별 이용 가능 서비스 표: 전자책(오디오북) 정회원 "이용가능", 준회원 "이용불가"(membership) → 4-8 규칙 2(정회원 발급 대상이 자격).
+  - 정회원 발급 대상: "서울특별시에 주민등록이 되어 있는 사람", "서울특별시 소재 직장에 재직 중이거나 학교에 재학 중인 사람", "서울특별시에 거주 중인 국내거소신고자 및 외국인등록자". 준회원은 "대한민국 국민"(전자책 안 됨).
+  - 방법: "온라인 발급(비대면 자격확인) … 발급 방법 : 서울도서관 누리집 회원 가입 후 비대면 자격확인 절차 진행", 방문 발급은 "서울도서관 누리집 회원가입 후 구비서류를 지참하여 도서관 2층(디지털 자료실) 방문". 비대면 자격확인 페이지: "서울특별시 거주자 자격을 행정안전부 행정정보공동이용 시스템을 통해 직접 인증하는 서비스입니다.", "서울특별시 소재 직장 또는 학교에 재직하거나 재학 중인 거주자의 신청 자격을 확인하는 서비스입니다. 서울 거주 국내거소신고자의 경우도 신청하실 수 있습니다." 온라인(인증) 구비 서류 표에 직장인(재직증명서 등)·재학생(재학증명서)·외국인등록자가 모두 있음. 이용방법 "* 전자책 누리집 이용 시 회원정보 연동을 위하여, PC, 모바일 웹, 서울도서관 공식앱 중 한곳에 로그인 필요(최초 1회)".
+  - 넣을 때 값(제안): 규칙 `RESIDENCE`·`WORK`·`SCHOOL` × 서울(11), `eligibility_summary` "서울 거주·재직·재학", `visit_required` false(자격 있는 사람은 모두 온라인 길이 있음, 4-10 5번 2), `visit_outside_region` false(서울 밖 사람은 방문해도 정회원이 안 됨), `join_method` "서울도서관 누리집 회원가입 → 비대면 자격확인(서울시민 인증, 서울 소재 직장·학교는 재직·재학 증명서)으로 정회원. 또는 구비서류 들고 도서관 2층 방문. 전자책은 정회원만(준회원 이용불가)", `join_url` `https://lib.seoul.go.kr/rwww/html/ko/membership.jsp`, `homepage_url` `https://elib.seoul.go.kr/main`.
+
+---
+
+## 5. 작업 B: 도서관 추가
+
+> **사이클 13부터(2026-10-12, plan ADR-0084) 새 도서관은 seed로 넣지 않습니다.** 찾고 확인하는 일(아래 1~4번, 4절, 가입 자격 4-8·4-10)은 그대로 하고, 서비스 DB에 넣는 일은 넣기 명령 `library-insert`(미리 보기 → 보고서 → 넣기)가 합니다: 수집 DB에 도서관을 넣고 다 받은 뒤 사본으로 넣기 명령을 돌립니다. 절차는 [`maintenance/1-libraries.md`](../maintenance/1-libraries.md) "새 도서관 넣기". 아래 5~6번(seed CSV와 changeset 만들기)은 사이클 06까지 쓰던 방법으로, 기록으로만 남깁니다.
+
+순서대로 합니다. 교보는 도구로 거의 자동입니다.
+
+- **가입 자격과 가입 방법은 도서관을 찾는 같은 작업에서 조사합니다** (사용자 결정 2026-09-29: "가입 자격 말이야 도서관 조사하면서 같이 하라고"). 도서관만 넣고 자격을 "나중에"로 남기지 않습니다. 4번(자격), 4-10(가입 방법), `homepage_url`(첫 화면, `find_front_pages.py`)까지 끝나야 추가가 끝난 것입니다. 2026-09-29에 41곳(id 165–205)을 먼저 넣고 자격을 따로 조사한 것이 이 규칙을 만든 계기입니다.
+
+1. **입력 목록 만들기**: `이름<TAB>주소` TSV. 교보 목록의 `http://https://…`처럼 깨진 주소는 도구가 고쳐 읽습니다.
+2. **살아 있는지 확인**: `java scripts/library/CheckKyoboSites.java in.tsv search > search.tsv`
+   - `OK`만 넣습니다. 나머지는 11절 "결과 상태별 처리"를 봅니다.
+3. **순위 값 재기**: `OK`인 곳만 모아(이름, 최종 주소) `… holdings > holdings.tsv`. 빈 검색 전체 건수입니다. 잰 날을 적어 둡니다.
+4. **자격 규칙**: `python scripts/library/eligibility_rules.py <자격 조사표> rules.json`
+   - **원문을 확인한 값만** 규칙이 됩니다("확인됨", "다름"). "검색 요약"·"문구 없음"·"못 찾음"은 규칙 0줄(자격 미확인)입니다. 다른 도서관 규칙으로 추정하지 않습니다(사용자 확정).
+   - 출력에 "unresolved scope"가 나온 줄은 원문을 읽고 스크립트의 `OVERRIDES`에 인용문과 함께 더하거나, 규칙 없이 둡니다.
+   - 판정할 수 없는 조건(책이음 회원 등)은 `extra_condition_text`, 방문 가입만이면 `visit_required`.
+   - 같은 기관의 일반·구독형은 두 줄이고, 자격이 같아도 규칙을 두 번 적습니다.
+5. **seed CSV 만들기**: 첫 id = 모든 seed의 최대 id + 1.
+   `python scripts/library/build_seed.py search.tsv holdings.tsv rules.json <첫 id> backend/src/main/resources/db/changelog/library/<NNN> <잰 날>`
+   - "도서관"이 없는 이름(시청·구청·재단 등)은 건너뜁니다. 공공 이용이 되는지 사이트에서 확인한 뒤 손으로 넣습니다 [사람에게 물을 것].
+   - 이미 있는 주소·이름도 건너뜁니다. 같은 이름의 다른 사이트면 이름을 구분해 손으로 넣습니다.
+6. **changeset 파일**: `<NNN>-library-seed-<설명>.yaml`을 만들고 CSV 2개를 `loadData`로 넣습니다. 마지막에 `ALTER TABLE library.library ALTER COLUMN id RESTART WITH <최대 id + 1>`. 형식은 `003-library-seed-cycle02.yaml`을 그대로 따릅니다. master에 include를 더합니다.
+7. **확인**: 8절.
+
+---
+
+## 6. 작업 C: 수정, 끄기, 삭제
+
+### 6-1. 수정 (주소가 바뀜, 자격이 바뀜, 순위 값 다시 잼)
+
+- 배포 전(`PRE_DEPLOYMENT` 있음): 해당 CSV 줄을 고치고 로컬 DB를 초기화합니다(7절).
+- 배포 후: **새 changeset**을 만듭니다.
+  - 칼럼 몇 개만 바꿀 때: `update` 변경(where `id = …`) 또는 `loadUpdateData`(primaryKey `id`)로 CSV를 넣습니다.
+  - 자격 규칙을 바꿀 때: 그 도서관의 규칙을 `delete`(where `library_id = …`) 한 뒤 새로 `insert`/`loadData`.
+- `base_url`을 바꾸면 UNIQUE를 다시 확인합니다.
+
+### 6-2. 끄기 (임시로 검색에서 뺌)
+
+- 사이트가 계속 403·시간 초과, 로그인 필요, 화면 구조가 바뀌어 읽을 수 없음 등.
+- **운영 중에는 SQL로 바로 끕니다**(사이클 01부터의 운영 방식): `UPDATE library.library SET enabled = false, updated_at = now() WHERE id = …;`
+- 끈 이유와 날짜를 `docs/cycles/plan-feedback.md`와 아래 "꺼 둔 도서관" 표에 적습니다. 오래 꺼 둘 곳이면 seed에도 반영합니다(배포 전: seed changeset 끝의 `UPDATE … SET enabled = false`(`004-library-seed-kyobo.yaml` 참고), 배포 후: 새 changeset `update`).
+- **다시 켜기**: 다시 확인할 날에 사이트를 4-7대로 확인하고(`CheckKyoboSites.java`), 서비스가 돌아왔으면 운영 중에는 `UPDATE library.library SET enabled = true, updated_at = now() WHERE id = …;`, seed에서는 끄던 줄에서 그 id를 뺍니다(배포 후에는 새 changeset). 도서관 데이터(자격 규칙, 순위 값)는 지우지 않았으므로 켜기만 하면 됩니다. 켠 뒤 아래 표에서 그 줄을 지우고 `plan-feedback.md`에 적습니다.
+
+#### 꺼 둔 도서관 (다시 확인할 곳)
+
+| id | 도서관 | 끈 날 | 이유(원문) | 다시 확인할 때 |
+|---|---|---|---|---|
+| 59 | 대구학생전자도서관(대여) | 2026-09-29 | "대구학생전자도서관 서비스가 중지됨을 알립니다", "홈페이지 접속은 가능하나 로그인 불가"(2025-07-22 공지) | 대구교육청 공지에서 재개 소식이 보일 때. 사용자 결정 "둘 다 빼고 나중에 복귀 가능하도록" |
+| 131 | 전남광주통합특별시 서구 통합도서관(구독) | 2026-09-29 | 구독형 전자책 2026년 예산 소진으로 9월 중 중단, 2027년 1월 재개 예정(서구 공지 2026-09-14) | **2027-01** |
+| 135 | 전라북도교육청통합도서관 | 2026-10-05 | 서비스 검색이 서버 오류, 사이트가 브라우저에도 'L7 Secure connect fail'(2026-10-01 수집 기록). 같은 교육청 책은 포털 도서관 15에 있음 (`library-site-issues.md` 9절, `library/010` 주석) | 사이트가 브라우저에서 다시 열릴 때. 사이클 07 사용자 결정 2026-10-05 |
+| 2194 | 장안대학교 (YES24) | 2026-10-05 | 연결 뒤 응답 없음(`header parser received no bytes`) 두 번 (`library-site-issues.md` 9절, `library/010` 주석) | 다른 날 같은 확인(`CheckFinalOrigins.java`)에서 답할 때. 사이클 07 사용자 결정 2026-10-05 |
+| 2198 | 성균관대학교 (YES24) | 2026-10-05 | 시간 초과(5초) 세 번. 같은 학교 북큐브(558)는 응답 (`library-site-issues.md` 9절, `library/010` 주석) | 다른 날 같은 확인에서 답할 때. 사이클 07 사용자 결정 2026-10-05 |
+| 44 | 국회도서관 | 2026-10-14 | 수집 안 함: 수집 DB `crawl_skip` "site answers non-browser clients with an empty page" | 사이트가 스크립트 요청에 다시 답할 때(`library-site-issues.md` 11절). 사이클 18 사용자 결정 2026-10-14 |
+| 112 | 울주도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 수집 DB 167줄 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 168 | 군산교육문화회관 대야분관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 수집 DB 179줄. 305와 같은 기관 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 261 | 군포시도서관 | 2026-10-14 | 다른 사이트로 옮김: `crawl_skip` "now redirects to the KYOBO site https://ebook.gunpolib.go.kr:444 = library 46" | 다시 켜지 않음(46번이 같은 사이트). 사이클 18 사용자 결정 2026-10-14 |
+| 305 | 군산교육문화회관대야분관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐. 168과 같은 기관 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 318 | 남평공공도서관 전자도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 323 | 느티나무도서관 전자도서관 | 2026-10-14 | 사이트에 책이 없음: 첫 화면 "전체 (0종)" | 첫 화면 권수가 0이 아닐 때. 사이클 18 사용자 결정 2026-10-14 |
+| 378 | 정관도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). "전체 (2,982종) / 오디오북 (2,982종)" | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 425 | 강원대학교 전자책 도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 455 | 국립아시아문화전당 북라이브 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 오디오북 전용 BookLive "10월의 오디오북" | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 514 | 명현중학교 전자책 도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 537 | 상관중학교 전자 도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). "전체 (463종) / 오디오북 (463종)" | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 622 | 인천연송고등학교 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 623 | 인천예술고등학교 전자책도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 625 | 인천청량중학교 전자책 도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 626 | 인천효성고등학교 전자도서관 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 첫 화면 "분야별 eBook" 메뉴가 "오디오북" 하나뿐 | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 721 | 휴맥 오디오북 라이브 | 2026-10-14 | 오디오북만 있음: 모은 줄이 모두 `AUDIOBOOK`(가져오기에서 0권). 오디오북 전용 BookLive "10월의 오디오북" | 사이트 분류 메뉴에 오디오북 말고 다른 분류가 생겼을 때. 사이클 18 사용자 결정 2026-10-14(ADR-0109) |
+| 1045 | 성남문화재단 전자도서관 | 2026-10-14 | 교보 구독형 서버, 2026-10-04 수집 성공·사이트 권수 0 (사이트는 열지 않음) | 다른 IP에서 교보 구독형 서버를 다시 받을 때(backlog) 책이 있으면 다시 켬. 사이클 18 사용자 결정 2026-10-14 |
+| 1131 | SSAFY(자율PJT) | 2026-10-14 | 교보 구독형 서버, 2026-10-04 수집 성공·사이트 권수 0 (사이트는 열지 않음) | 다른 IP에서 교보 구독형 서버를 다시 받을 때(backlog) 책이 있으면 다시 켬. 사이클 18 사용자 결정 2026-10-14 |
+| 1620 | 서울고은초등학교 | 2026-10-14 | 교보 구독형 서버, 2026-10-04 수집 성공·사이트 권수 0 (사이트는 열지 않음) | 다른 IP에서 교보 구독형 서버를 다시 받을 때(backlog) 책이 있으면 다시 켬. 사이클 18 사용자 결정 2026-10-14 |
+| 2023 | 청원대길초등학교 | 2026-10-14 | 교보 구독형 서버, 2026-10-04 수집 성공·사이트 권수 0 (사이트는 열지 않음) | 다른 IP에서 교보 구독형 서버를 다시 받을 때(backlog) 책이 있으면 다시 켬. 사이클 18 사용자 결정 2026-10-14 |
+
+### 6-3. 삭제
+
+- 서비스가 없어진 곳만 지웁니다. 다시 생길 수 있으면 끄기로 충분합니다.
+- 배포 전: CSV 줄을 지웁니다(규칙 CSV의 그 `library_id` 줄도). 배포 후: 새 changeset `delete`(규칙은 FK CASCADE로 같이 지워짐).
+- **id는 다시 쓰지 않습니다**(웹 브라우저가 이어 보기 후보로 id를 보내므로).
+
+---
+
+## 7. Liquibase와 로컬 DB
+
+- 배포 전 초기화(기존 파일을 고쳤을 때): 저장소 루트에서
+  ```
+  printf 'DROP SCHEMA IF EXISTS library CASCADE;\nDROP SCHEMA IF EXISTS region CASCADE;\nDROP TABLE IF EXISTS public.databasechangelog, public.databasechangeloglock;\n' > reset.sql
+  wsl -d Ubuntu --exec docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < reset.sql
+  wsl -d Ubuntu --exec docker compose exec -T db-test sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < reset.sql
+  rm reset.sql
+  ```
+  (`wsl … --exec`로 실행해야 `$POSTGRES_USER`가 컨테이너 안에서 풀립니다.) 백엔드가 떠 있으면 먼저 멈춥니다.
+- 다음 `./gradlew test`(db-test)와 `./gradlew bootRun`(db)이 Liquibase를 처음부터 적용합니다.
+- **초기화한 뒤 넣기 명령을 다시 돌립니다**(사이클 13부터): seed에는 넣기 명령으로 넣은 도서관이 없으므로, `db`를 새로 만들면 `library-insert`를 `preview` → `insert`로 다시 돌려야 그 도서관이 돌아옵니다(plan spec R2-10, [`maintenance/1-libraries.md`](../maintenance/1-libraries.md)).
+- 배포 후에는 초기화하지 않습니다. 새 changeset만 추가합니다.
+
+---
+
+## 8. 확인
+
+1. `backend/`에서 `./gradlew build` — Liquibase 적용(CHECK·UNIQUE 위반이면 여기서 실패), 모듈 검증, 테스트.
+   - `LibraryCatalogTests`는 seed가 늘어도 통과해야 합니다(시범 도서관 id 1·2만 가정하고, 계획 순서 테스트는 seed를 끄고 자기 줄을 넣음).
+2. `./gradlew bootRun` 뒤 개수 확인: `SELECT platform_type, count(*) FROM library.library WHERE enabled GROUP BY 1;`
+3. 실제 검색 1회: `curl -s -N "http://localhost:8080/api/v1/ebook-searches/stream?title=%EC%82%AC%EB%9E%91" | grep -E '^event:' | sort | uniq -c`
+   - `targets`의 도서관 수 = 켜진 도서관 수. 첫 묶음은 20줄을 넘으면 새 요청을 멈추므로 **모든 도서관에 요청이 가지 않아야** 정상입니다.
+   - 서버 로그 `batch=1 planSize=… requested=…`로 계획 크기와 요청 수를 봅니다.
+4. 새로 넣은 화면 종류가 있으면 그 도서관만 `/api/v1/availability/libraries/{id}/ebooks?title=사랑`으로 한 번 불러 봅니다.
+
+---
+
+## 9. 사람에게 물을 것 (AI가 정하지 않음)
+
+- 인증서 체인이 불완전한 사이트(PKIX 오류): 중간 인증서를 체인 재료로 더해 넣음(2026-09-29, 사용자 결정, plan [ADR-0022](../../../chaekcheck-plan/docs/adr/0022-library-site-tls-compatibility.md)). 검증 끄기는 금지.
+- 암호화 방식이 옛날 것만 되는 사이트(대구처럼 `TLS_RSA_*`만)는 2026-09-29에 허용했습니다(`TlsCompatibility`, plan [ADR-0022](../../../chaekcheck-plan/docs/adr/0022-library-site-tls-compatibility.md)). 그보다 더 낡은 방식(TLS 1.0/1.1, 3DES 등)이 필요하면 묻습니다.
+- `TlsCompatibility`는 JVM 전체에 적용됨. 운영에서 DB 등을 TLS로 붙이면 거기에도 RSA 키 교환이 허용됨 — 처리 방법은 사용자 결정 대기
+- 판정이 일부만 빈 포털(인천 등)을 후순위(`deferred`)로 둘지.
+- "도서관"이 아닌 이름(시청·구청·재단·학교 등)을 공공도서관으로 넣을지.
+- 로그인이 필요한 사이트, adapter가 없는 화면 종류(개발이 필요함).
+- 자격 원문이 애매한 곳(인접 지역, 학생만, 방문 회원만 누구나 등).
+
+---
+
+## 10. 결과 기록 (`docs/cycles/plan-feedback.md`)
+
+작업마다 아래를 적습니다. 다음 `/cycle-start`(plan 저장소)의 입력입니다.
+
+- 날짜, 작업 범위(사용자 요청 문장), 출처
+- 넣은 수(화면 종류별), 건너뛴 곳과 이유(11절 상태별), 끈 곳과 이유
+- 순위 값을 잰 날, 잰 방법(빈 검색 전체 건수)
+- 자격: 규칙을 넣은 수, 원문을 못 찾아 미확인으로 둔 수, `OVERRIDES`에 더한 곳과 인용문
+- 새로 알게 된 사이트 특이점(12절 표에도 더함)
+
+---
+
+## 11. 결과 상태별 처리 (`CheckKyoboSites` 출력)
+
+| 상태 | 뜻 | 처리 |
+|---|---|---|
+| `OK` | 검색 결과 화면을 읽음 | 넣음 |
+| `ERROR … PKIX path building failed` | 사이트 인증서 체인에 중간 인증서가 없음(JDK가 확인 못 함) | 인증서의 AIA 주소에서 중간 인증서를 받아 `tls/library-intermediates/`(두 앱)에 더하고 다시 확인(`library-site-issues.md` 3절). 발급 기관이 JDK 최상위 기관이 아니면 사용자에게 물음 |
+| `ERROR … handshake_failure` | 암호화 방식이 맞지 않음 | 사용자에게 물음(9절) |
+| `ERROR … ConnectException` / `HttpConnectTimeoutException` | 주소가 없거나 닫힘, 또는 느림 | 하루 뒤 한 번 더. 계속이면 새 주소를 도서관 홈페이지에서 찾음 |
+| `HTTP_404`, `HTTP_400` | 경로가 없음(사이트 이전) | 도서관 홈페이지의 "전자도서관" 링크로 새 주소를 찾음 |
+| `MOVED` | 리다이렉트 뒤 검색 화면이 아님 | 새 주소·다른 화면 종류인지 봄 |
+| `OTHER` | 200이지만 결과 목록이 없음(다른 화면, 오류 안내 화면) | 화면 종류를 다시 가려냄(4-2) |
+
+---
+
+## 12. 알려진 사이트 특이점 (2026-09-29)
+
+| 사이트 | 특이점 | 처리 |
+|---|---|---|
+| 대구전자도서관 (포털) | `TLS_RSA_WITH_AES_256_GCM_SHA384`만 받음 | `TlsCompatibility`로 허용(사용자 결정) |
+| 대구전자도서관 (포털) | 제목(기본) 검색 2쪽부터(`table.do`) 검색어와 상관없는 책을 돌려줌. 2026-09-29 다시 확인: 기본 검색 `김달` 1쪽 14건인데 2쪽은 전체 28,550건에 "이순신 어릴때 이야기"(방정환) 등. **저자·출판사 거르기가 붙은 `table.do`는 맞음**(저자 `김달` 3건, 모두 저자 김달) | 제목 2쪽 이후 결과를 믿기 어려움 [확인 필요]. 저자·출판사 검색은 문제 없음 |
+| 모든 포털 | 저자·출판사 검색은 `table.do`의 `author_name`·`book_pubname` 거르기 + 같은 `search_text` (ADR-0026). 거르기는 **정확히 일치**: 부산 기본 검색 `김달` 11건 중 저자 "김달" 3건만 남고 "김달 저"·"김달 지음" 3건은 빠짐(대구 "김달 저" 2건, 경기교육청 "김달 저" 1건 빠짐, 2026-09-29). `search_type`에 `AUTHOR`·`PUBLER`를 넣으면 안 됨(자료 종류 값) | adapter가 처리. 빠지는 책은 사용자 결정(정확히 일치) |
+| 모든 포털 | `table.do`는 CSS 없는 화면 조각이라 새 창으로 열면 모양이 깨짐(2026-09-29 브라우저 확인) | "도서관에서 보기"는 `index.do?menu_idx=M&search_text=…`(기본 검색)로 엶 |
+| 전북교육청 (포털) | `table.do`의 전체 건수가 `#book_totalDataCount`가 아니라 `div.search-info`를 채우는 스크립트("총 <b>58</b>건")에만 있음. 수량(대출·예약) 칸도 없음 | adapter가 두 형식 모두 읽음(2026-09-29 고침. 그 전에는 전북 제목 2쪽도 `upstream_error`였음). 수량이 없어 저자·출판사 한 쪽마다 상세 10건(약 20초) |
+| 경기도교육청 (포털) | `table.do`에서도 목록 판정("대출 가능 여부")을 채움(저자 `김달` 7건 모두, 2026-09-29) | 상세 요청 없음 |
+| 경기도교육청 전자도서관 (포털) | 연결에 1~3초 | 연결 제한 5초(사용자 결정) |
+| 인천교육청 통합전자도서관 (포털) | 검색 목록 판정이 빈칸, 상세 페이지는 로그인 필요 | 대출 중인 줄은 "대출 가능 여부 확인 필요". 후순위 여부는 사용자에게 물음 |
+| 경북·전북교육청 (포털) | 검색 목록 판정이 모두 빈칸 | `deferred=true`, 대출 중인 줄만 상세 페이지 확인(30초) |
+| 모든 포털 | 제목 검색은 2쪽부터 `table.do`, 판정 빈칸(경기교육청은 채움, 아래 줄) | adapter가 처리 |
+| 강남구 | 한 쪽 20줄 고정, 예약 정원이 차면 수량 대신 "예약정원이 마감되었습니다." | adapter가 처리(`UNKNOWN`) |
+| 교보 구독형 | 월 예산 소진을 검색 화면에서 알 수 없음 | 화면에 안내만 |
+| 교보 목록의 경남 서버 | 주소가 `http://https://elib.gyeongnam.go.kr:81xx`로 깨져 있음 | 도구가 `https://…`로 고쳐 읽음 |
+| 전남교육청 서버 `ebook.jne.go.kr` 등 24곳 + 강원교육청 | 인증서 체인 불완전(PKIX) | 중간 인증서 6개를 더해 해결, 24곳 넣음(2026-09-29, `library-site-issues.md` 3절) |
+| http로 적힌 교보 사이트 대부분 | 다른 포트의 https로 302 | 최종 주소를 `base_url`로 |
+| 교보 구독형 | 빈 검색 전체 건수가 0 | `holdings_count` NULL |
+| 경남교육청 서버 `ebook.gne.go.kr` (여러 도서관) | 같은 호스트라 한 묶음에서 1초씩 줄을 서서 일부가 8초를 넘김 | 알고 있는 제약. 도서관이 늘수록 같은 호스트 묶음을 살필 것 |
+| 교보 (`KYOBO_V1`) 상세 페이지 `…/elibrary-front/content/contentView.ink?…brcd=…` | 책 하나에 `span.use` 하나: "[ 대출 : 0/1 예약 : 0 ]" = 대출 0, 보유 1, 예약 0 (2026-09-30 고흥 호출 시험, fixture `kyobo-v1/detail-1.html`) | `parseDetail`이 읽음 (사이클 04) |
+| YES24 V1 상세 `…/ebook/detail/?goods_id=…` | EUC-KR. `div.rentinfo` "보유 1, 대출 0, 예약 0, 누적대출 31, 누적예약 23" (2026-09-30 성남, fixture `yes24-v1/detail-1.html`) | 앞의 세 값만 읽음 |
+| YES24 V2·V3 상세 `…/ebook/detail/?goods_id=…` | `div.stat li` "보유 N / 대출 N / 예약 N", 누적대출은 주석 안 (V2 화성 UTF-8, V3 경주 EUC-KR, 2026-09-30, fixture `yes24-v2`·`yes24-v3/detail-1.html`) | 같은 코드로 읽음 |
+| 강남구 상세 `…/elibbook/book_detail.asp?book_num=…` | 같은 화면에 `div.current`가 3개: 본 책은 `div.book_warp` 안 첫 `div.current`("대출예정일 … 보유 5 대출 3 예약 10"), 아래 연관 도서들은 `div.book_list` 안에 각자 `div.current` (2026-09-30 「다른 사랑」, fixture `gangnam-v1/detail-1.html`) | `div.book_list` 밖의 첫 `div.current`만 읽음. `current close`(예약정원 마감)는 수량 없이 `UNKNOWN` |
+| 교보 구독형 (`KYOBO_SUBSCRIPTION_V1`) 상세 | 수량 없음 | 요청하지 않고 구독형으로 판정 [확정] |
+| 알라딘 (`ALADIN_V1`) 일부 (2026-10-05, 켜진 25곳 중 3곳) | 서정대학교 `http://lib.seojeong.ac.kr:8888`·대구공업대학교 `http://inf.ttc.ac.kr:8888`: 목록에 보유·대출·예약 수가 없고 줄마다 "대출하기" 단추만. 서정대 상세 페이지에도 수 없음("예약하기" 단추). 김해대학교 `http://gimhae.aladinebook.co.kr`: "보유 <em>1</em>, 대출 <em></em>, 예약 <em></em>"처럼 대출·예약 수가 빔. 저장: `backend/src/test/resources/fixtures/aladin-v1/search-no-counts.html`, `search-empty-counts.html` | 없는 수는 비우고 그 줄은 `UNKNOWN`("확인 필요"). 단추만으로 판정하지 않음: 대출 중인 책의 단추를 아직 못 봄 [확인 필요]. 나머지 22곳은 수가 있음 |
+| 수집 목록의 상세 주소 | `detail_url` 호스트 = 그 도서관 `base_url` 호스트: 서비스 도서관 소장 2,523,114줄 중 다른 호스트 0줄 (2026-09-30 수집 SQLite 대조) | 가져올 때와 요청 전에 계속 검사 [안] |
+
+## 13. 지금까지의 작업 기록
+
+| 날짜 | 작업 | 결과 파일 |
+|---|---|---|
+| 2026-09-28 | 시범·화면 종류별 확인 15곳 | `002`, `003` |
+| 2026-09-29 | 교보 공식 목록 216곳 확인 → 147곳 추가 | `004` (뺀 곳과 이유: `docs/cycles/plan-feedback.md` "11단계 seed 결과") |
+| 2026-09-30 | 방문 가입 다시 보기(4-10 5번 새 규칙). `join_method`에 "방문"이 있는데 `visit_required=false`인 127곳을 나눔: 방문 없는 길이 있음 약 100곳(그대로), 방문 단계만 있고 전자책 원문 없음 18곳 → true(아산 90·253, 울릉 110, 울주 112·249, 익산 구독 121, 인천송림 126, 양평 194, 청도 201, 칠곡 203, 횡성 206, 광주시립 YES24 234, 대전학생 259, 대전 서구 260, 강릉 266, 김천 269, 구미 271, 기장 구독 278), 전자책은 방문 없이 됨 3곳 → 글 고침(아래). 서산 77(전화로 정회원 전환)·양주 94(온라인정회원신청 메뉴)는 방문 없는 길이 있어 false | `003`~`006` csv. 방문 가입은 68 → 86곳 |
+| 2026-10-05 | **첫 화면 이름 검사 (PC·폰).** 계기: 사용자 폰에서 동대문구립도서관(YES24)의 "도서관 첫 화면"이 "경동대학교"로 보임("수집기가 잘못한거야?", "이런 경우 다른 것도 없나 싹 다 검증해줘", "모바일로 이상한 것도 싹 검사하고"). 켜진 2,669곳 × PC·폰 각 1회. 결과·목록: `library-site-issues.md` 10절. 수집이나 seed 주소 잘못이 아니라 **사이트 쪽 설정**(YES24 모바일판, 기관 이름 변경)임 | `check_front_page_names.py` |
+| 2026-09-30 | 책 번호 규칙 점검 절차 추가(4-11, 사용자 요청). `check_code_spaces.py` 첫 실행 결과를 기준값으로 적음 | `scripts/library/check_code_spaces.py` |
+| 2026-09-30 | 사이클 04 상세 페이지 호출 시험: 화면 종류마다 1건(교보 고흥, YES24 V1 성남, V2 화성, V3 경주, 강남구 「다른 사랑」)을 우리 User-Agent(`chaekcheck/0.0.1`)로 2초 간격으로 받아 설명문·표지·스크립트를 지우고 fixture로 저장. 포털은 사이클 02 fixture. 결과는 12절 표 | `backend/src/test/resources/fixtures/*/detail-1.html` |
+| 2026-09-30 | 전자책 기준으로 `join_method` 고침. 목포 65: 원문 "대상 : 목포시통합도서관 정회원(홈페이지 가입자)" (https://www.mokpolib.or.kr/cms/bbs/dk_content.php?ht_id=search_05, 같은 곳의 "이용자가 직접 도서관에 방문하셔야 합니다"는 회원증 발급으로 봄, 사용자 결정 "방문 없이 됨"). 익산 120(소장형): "도서관준회원(웹회원) : 5권 이내, 5일간 대출가능" (https://lib.iksan.go.kr/main/contents.do?idx=4961). 경산 265: 규정 "③ 전자도서관 등 온라인상에서 열람·대출 가능한 자료에 대한 이용은 온라인 회원 가입으로 도서대출회원증을 발급 받은 것으로 본다." (https://www.gbgs.go.kr/lib/page/1173/694.tc) | `004`, `005` csv |
+| 2026-10-05 | **후보 도서관 최종 주소 (4-7 1번을 빠뜨린 것 바로잡기).** 증상: 강동대학교 (북큐브) 검색이 늘 실패(사용자). 원인: 후보 seed가 수집 DB 주소를 그대로 써서, https로 302하는 사이트를 서비스가 따라가지 않음. 켜진 http 도서관 1,075곳(등록 77 포함)을 `CheckFinalOrigins.java`로 확인: 그대로 816, **https로 옮김 248**(모두 후보, 등록 0), 실패 → 아래. 인증서 실패 15곳: 중간 인증서 3개(Sectigo RSA OV Secure Server CA, GeoTrust TLS RSA CA G1, Sectigo R46 ← USERTrust 교차 인증서)로 12곳 해결, 남은 3곳(세계사이버대·서울신학대·충북 전자도서관)은 JDK에 없는 최상위 기관 OISTE WISeKey Global Root GB CA → 사용자 결정 "이거 신뢰해줘"로 `tls/library-roots/`에 더함(`library-site-issues.md` 3절). 시간 초과는 다시 해 보니 대부분 응답, 끝까지 실패 2곳은 `library-site-issues.md` 9절. 결과: `scripts/library/final-origins.tsv` 248줄 → `008-library-candidates.csv` 248곳 `base_url`·`homepage_url` 바뀜. 확인: 강동대 북큐브 "사랑" 467건(사이트와 같음) | `CheckFinalOrigins.java`, `final-origins.tsv`, `build_candidate_seed.py` |
+| 2026-10-05 | **후보 도서관 넣기 (사이클 07, plan 인계서 1단계).** 출처: 사본 `chaekcheck-data/snapshots/ebook-catalog-2026-10-05-0745.sqlite`(`quick_check` ok, 도서관 3,016 = 등록 278 + 후보 2,738), `library-join/public-join-2026-10-05.tsv`(후보 공공도서관 120곳 가입 조사, `decision` 칸 우선), `library-join/candidate-kinds-2026-10-05.tsv`(후보 종류), `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`(`model` → `lending_model`: 소장 OWNED, 혼합 MIXED, 대여 RENTAL). 결과: 후보 **2,394곳**(서비스 번호 281~2674), 가입 규칙 250줄, 짝 2,674줄. 넣을 후보 2,412곳에서 뺀 곳: 같은 사이트 다른 포트 8, 체험용·운영 중단 4, 시험용 6(`library-site-issues.md` 8절). `join_survey`: MEMBERS_ONLY 2,252, SURVEYED 90, NOT_SURVEYED 35, NOT_FOUND 17. 이름에 라벨이 붙은 곳 225, 라벨+호스트 2(부여대왕초등학교 교보 두 곳). **이 규칙의 예외(plan 인계서 C1, ADR-0053)**: 학교·대학·회사·기관·단체(`MEMBERS_ONLY`)와 종류 모름(`NOT_SURVEYED`)은 가입 조사 없이 조사 상태 표시로 넣음(직접 추가했을 때만 검색에 나옴). 사용자 결정: 소속 전용으로 조사된 대구학생전자도서관(100049)·세종시교육청(100722, 같은 사이트라 빠짐)은 `MEMBERS_ONLY`("구성원용으로", 2026-10-05). 지역 표에 **증평군이 없어** 증평군립도서관(100111)은 규칙 없이 요약 글 "증평군 거주·재직·재학"만 둠(자격 미확인으로 보임). 면·혁신도시처럼 시·군·구보다 작은 범위는 규칙에서 뺌(증평 인접 면, 진천 충북 혁신도시) | `008-*.csv`, `collection/002-collection-link.csv`, `scripts/library/build_candidate_seed.py` |
+| 2026-10-11 | **기관 이름 바뀜·흡수된 학교 확인 (사이클 08 11단계, 조사만).** 이름 고칠 후보 8곳(434·456·2264·2563·2611·2161·1079·1016)의 사이트 제목·공식 새 이름·날짜·이름 겹침, 흡수된 학교 7곳(428·429·769·2257·607·895·1002) 사이트 상태. 434·456은 새 이름이 다른 사이트(745·2239)와 겹쳐 라벨이 필요. 흡수된 학교 7곳은 모두 아직 따로 돌아감(제안 "그대로"). 교보 구독형 서버(103.182.126.192)는 이날 응답 없음. 사용자 결정(같은 날): 8곳 모두 제안대로 바꿈(`scripts/library/name_overrides.tsv`, `library/013-library-name-overrides.yaml`), 흡수된 학교 7곳 그대로 | 4-12 |
+| 2026-10-11 | **이름은 기관 이름만 (사이클 09 1~3단계).** 이름 끝 업체·대출 방식 괄호 277줄 셈(남길 45, 애매 2는 따로 이름 고침), 공식 이름 10곳 다시 확인(모두 spec과 같음, 943·64 경남교육청 기관 안내로 새로 확인), `name_overrides.tsv` 295줄, `build_candidate_seed.py --changes-only`로 `library/014` 목록(이름 289줄, 대출 방식 채우기 1,458줄), 북큐브 구독 339·380·386·705, 순번 2 이상 0. 사용자 승인: 289줄 목록 "승인, 커밋" | 4-13 |
+| 2026-10-12 | **규칙 폴더로 옮김 (사이클 13 4단계, 조사 없음).** 옛 seed 스크립트 상수(`DEMO_OR_CLOSED` 4, `SAME_SITE` 8, `SAME_HOST_KEPT` 22, `SCOPE_OVERRIDES` 8)와 `name_overrides.tsv`·`final-origins.tsv`·북큐브 권수(10-11 + 데이터 폴더 10-12 다시 받기 5줄)·데이터 폴더 가입 조사(`public-join-2026-10-05.tsv`)·종류(`candidate-kinds-2026-10-05.tsv`)·교보 probe(`kyobo-institutions-probe-2026-10-03.tsv`, 구독형 1,430줄)를 `scripts/library/rules/`로 옮김. 같은 호스트지만 남김에 여주대 100584·102084를 더함(plan spec R2-7-1). 가입 조사 지역은 `resolve_regions.py`로 번호·요약 문구를 미리 적음(100줄). 스크립트 이름 `build_library_seed.py`, 찾기 도구 폴더 `discover/`. 대조: 2026-10-12 사본에서 상수판과 규칙 폴더판의 도서관·규칙·짝 CSV가 같음(2,389곳, 규칙 253, 짝 2,669, 새 6곳). 같은 날 고침: 새 번호는 LibraryRegistry.nextId()처럼 max(가장 큰 번호 + 1, 적용된 library changelog의 마지막 RESTART WITH)부터라 2675~2680(일부러 비운 2664~2674는 그대로 비움, ADR-0067). 새 곳은 final_origins.tsv 줄이 꼭 있어야 하고 없으면 규칙 오류(종료 1). 여주대 100584는 최종 주소 https://ebook.yit.ac.kr:446. 다른 점은 새 도서관끼리·서비스 전체와 보는 같은 호스트 줄 하나(여주대 한 쌍, 남김 목록에 있어 멈추지 않음) | 3절 |
+| 2026-10-12 | **서비스에 넣지 않은 도서관 목록 (조사 없음, 사용자 요청 "빠진 도서관 따로 목록", 두 절 모두).** 출처: 넣기 명령 미리보기 보고서 `1af0721e4a3e`, 사본 `ebook-catalog-2026-10-12-0135.sqlite`(읽기 전용, 도서관 3,016 = 짝 있음 2,661 + 넣지 않음 349 + 새로 넣음 6), 규칙 폴더, 이 작업 트리의 서비스 DB(seed만, 도서관 2,663·짝 2,663). A(넣지 않음) 349곳: 교보 대여·혼합 232(혼합 194, 대여 38), `crawl_skip` 105(`same_site.tsv` 8곳은 모두 여기에 들어 같은 사이트 줄은 0), 전체 수집 안 끝남 2(100252, 102020), 체험용·운영 중단 4, 시험용 6. 넣지 않는 곳 중 서비스와 짝이 있는 곳은 없음. B(서비스에 있지만 문제, 알림용) 8곳: 꺼 둔 곳 5(59·131은 사본에 없음, 135는 `crawl_skip`, 2194·2198은 사본에서 끈 날 전까지 전체 수집 끝남), `gone_known.tsv` 3(44·261·269), 그 밖에 0. 사용자 결정: 서비스 DB에 이미 있는 곳은 기본으로 그대로 둠. 135·2194·2198의 끈 이유는 6-2 표에 없고 `library-site-issues.md` 9절에만 있었음 → `disabled_reasons.tsv`에 다섯 곳 모두 적음 | `docs/libraries/library-left-out.md`, `list_left_out.py`, `disabled_reasons.tsv` |
+| 2026-10-12 | **새 도서관 6곳 넣기 준비 (사이클 13, 넣기 명령 `library-insert`).** 출처: 사본 `chaekcheck-data/snapshots/ebook-catalog-2026-10-12-0135.sqlite`, 규칙 폴더 `scripts/library/rules/`, 보고서 `1af0721e4a3e`(13 작업 폴더 DB에서 미리 실행; 실제 `db` 넣기는 사이클 11·12 합친 뒤 9단계). 새로 넣는 곳(서비스 번호 ← 수집 번호): 2675 여주대학교 ← 100584 (KYOBO_V1, 교보·소장, 최종 주소 `https://ebook.yit.ac.kr:446`), 2676 한국선원복지고용센터 ← 102029 (YES24_V1, `http://ebook.koswec.or.kr`), 2677 여주대학교 ← 102084 (YES24_V2, `http://ebook.yit.ac.kr`), 2678 김천대학교 ← 102092 (YES24_V3, `http://yes24.gimcheon.ac.kr`), 2679 경운대학교 ← 102101 (YES24_V2, `http://library.ikw.ac.kr:8085`), 2680 천상중학교 ← 102171 (YES24_V2, `http://cheonsangms.yes24library.com`). 모두 YES24·교보 소장, 순번 1. **가입 자격**: 6곳 모두 공공도서관이 아니라(`library_kinds.tsv`: 대학 4·중학교 1·기관 1) 4-8·4-10의 예외(plan ADR-0053)대로 가입 조사 없이 `MEMBERS_ONLY`(소속 구성원용, 직접 추가했을 때만 검색), 규칙 줄 없음. 한국선원복지고용센터의 종류 `GOV`는 이름으로 정한 것이고 `sure`=N("고용센터, 공공기관으로 보임")이라, 9단계 실제 넣기 전에 사용자에게 확인함(plan R2-8). 여주대 두 곳은 같은 호스트(`ebook.yit.ac.kr`)이고 교보 쪽 책 2,199권 중 2,198권이 YES24 쪽에도 있으나 사이트·대출이 따로라 둘 다 넣음(plan spec R2-7-1, `same_host_kept.tsv`). 최종 주소는 2026-10-12에 `CheckFinalOrigins.java`로 확인(102084·102101은 서비스 읽기 제한 5초를 넘는 약 5.2초 응답, `curl -m 90`으로 리다이렉트 없음 확인). 가입 조건 조사 기준일 `2026-10-05`(`join_surveyed_on.txt`). 사라진 곳 44·261·269는 확인하고 `gone_known.tsv`(서비스에 그대로), 서비스에 넣지 않은 349곳은 [`library-left-out.md`](library-left-out.md) | `scripts/library/rules/final_origins.tsv`, `gone_known.tsv`, 보고서 `1af0721e4a3e` |
+| 2026-10-16 | **통합 포털 저자·출판사 칸 순서 (사이클 19, plan ADR-0115).** 수집기 시험 자료로 포털 넷의 새 책 목록 한 쪽씩을 받음(4건, 5초 간격, 수집기 User-Agent, 교보 구독형 서버는 부르지 않음): `https://library.busan.go.kr/elib/module/elib/book/index.do?menu_idx=14&menu=NEW&type=EBK&rowCount=10&viewPage=1`, `https://library.daegu.go.kr/elib/…?menu_idx=14…`, `https://lib.goe.go.kr/elib/…?menu_idx=11…`, `https://lib.jbe.go.kr/elib/…?menu_idx=12…`(`menu_idx`는 수집 DB `detail_path`에서 읽음). 경기·대구·전북은 `div.info`가 출판사 → 저자 순(예: 경기 "미래의창 \| 이준용"), 부산은 저자 → 출판사 순("신지선 지음 \| 수오서재"). 줄 3개씩 `scripts/crawl/testdata/portal-*.html`로 남김. 새 도구 `check_author_publisher_swap.py`(위 표)로 2026-10-12 사본을 보면 11·12·15만 뒤바뀜 | `scripts/crawl/crawl_catalog.py` `PUBLISHER_FIRST_PORTAL_HOSTS`, `scripts/library/rules/author_publisher_swapped.tsv`, `scripts/library/check_author_publisher_swap.py`, `maintenance/platforms.md` 5절 |
+| 2026-10-14 | **전자책 0권 22곳 끄기 (사이클 18 A1, plan ADR-0109, 사용자 결정 2026-10-14).** 출처: plan 사이클 18 `research.md` 2절(원인·원문), 내 PC 서비스 DB 사본(켜진 0권: 21곳 + 현대제철 2624), 수집 DB `ebook-catalog.sqlite`(읽기 전용, `holding.content_type`·`crawl_skip`·사이트 권수). research.md에 원문이 없던 오디오북 곳 10곳은 첫 화면을 한 번씩 받음(우리 User-Agent, 5초 간격): 북큐브 8곳(305·318·425·514·622·623·625·626)은 "분야별 eBook" 메뉴가 "오디오북" 하나뿐, 교보 112·168은 첫 화면이 `/elibrary-front/`로 보내는 빈 쪽이고 그 주소는 302라 수집 DB 근거(모은 줄 모두 `AUDIOBOOK`)로 적음. 교보 구독형 4곳(1045·1131·1620·2023)은 열지 않음. 원인: 오디오북만 14, 책 0종 1(323), 교보 구독형 수집 때 0권 4, 수집 안 함 2(44·269), 다른 사이트로 옮김 1(261 = 46). 2624는 끄지 않음(가져오기 코드 문제, 사이클 18 B). 44·261·269는 `gone_known.tsv`에서 지움. `library-left-out.md` 다시 만듦: B절 27곳(꺼 둔 곳 27, `gone_known` 0) | `library/016-library-disabled-cycle18.yaml`, `disabled_reasons.tsv`, `library-site-issues.md` 11절, 6-2 표, `library-left-out.md` |
+| 2026-10-17 | **교보 대여·혼합형 공공도서관 11곳은 그대로 둠 (조사 없음, 사용자 결정).** 계기: 검색에 「국립세종도서관 교보 · 대여」 같은 줄이 보여 사용자가 "이 도서관들과 그 자료 제외하기로 한 거 아니야?"라고 물음. 확인: ADR-0067로 뺀 것은 2026-10-03에 새로 찾은 교보 구독형 대여·혼합 후보 230곳(+같은 사이트 2곳 = [library-left-out.md](library-left-out.md) A-1 232곳)과 그때 넣었던 회사·기관 11곳(2664~2674)이고, 232곳 주소는 서비스에 켜진 곳이 없음(겹치는 2곳 59 대구학생전자도서관·131 서구 통합도서관은 꺼짐·소장 0). 검색에 보이는 것은 처음부터 등록된 `KYOBO_SUBSCRIPTION_V1` 대여·혼합 공공도서관 11곳(7, 16, 37, 43, 63, 89, 121, 122, 129, 134, 158; 각 약 18만~24만 권, 모두 약 225만 줄)으로 ADR-0067 범위 밖. 사용자: "공공도서관 11곳은 그대로 둠" (2026-10-17) | 없음 (결정만, 확인 SQL은 서비스 DB `library.library`·`catalog.holding`) |
+| 2026-10-20 | **누구나 가입 39줄 재검증 (사용자 요청 2026-10-19 "누구나 가입 도서관들 싹 다 재검증해줘", 2026-10-20 "최대한 안 물어보고 니가 검증 꼼꼼히해서").** 계기: 동대문구립도서관은 홈페이지 가입이면 방문해야 하고 서울온은 서울시민만이라 「누구나」가 아님(사용자). 운영 DB의 RESIDENCE × NATIONWIDE 줄 39곳(기관 약 27)을 공식 페이지 원문으로 다시 봄(우리 User-Agent, 호스트당 1.1초 이상). 새 조건 **「지역 외는 방문 가입」**(`library.visit_outside_region`, 사용자 "\"지역 외는 방문 가입\" 이 조건 추가"): 지역 규칙에 맞는 사람은 온라인, 그 밖은 방문 — 동대문 61·230, 도봉 60, 은평 223(서울온), 광주통합 133·277(광주 5개 구 비대면 인증). 그 밖 고침: 울산동부 361 누구나 → 울산 거주·재직·재학+방문, 양주 94·창원 의창 148·387 방문 가입, 제주 한라 1109·2267 방문 끔(Lib-Homepass), 도봉 가입 글, 은평 가입 주소. 사용자가 판단을 맡겨 4-8·4-10 규칙대로 정했고, 원문끼리 어긋나거나 로그인 뒤라 못 본 곳은 14절에 더함 | `docs/libraries/research/open-recheck-2026-10-20.md`, `library/019-library-open-recheck.yaml`, visit_outside_region 변경 파일 |
+| 2026-10-20 | **서울도서관 조사 (사용자 요청 "서울도서관 … 이번 릴리스에 넣을 수 있는지", 같은 날 "이번 릴리스 뒤 배포, 조사·기록만").** 본 홈페이지 전자책 메뉴 → `https://elib.seoul.go.kr`(자체 통합 화면, 유통사 ECO·OPMS 등 섞임), robots.txt 두 호스트, 검색 JSON API·상세·분류 권수·분류 목록을 우리 User-Agent로 GET 약 20건(호스트당 1.2초 이상). 로그인 없이 검색됨, 소장형 보유·대출·예약 수 있음, 전자책 28,232(국외 3,900 포함)·오디오북 1,453. 기존 adapter로는 못 읽음 → 새 화면 종류 필요(개발, 이번 릴리스 뒤). 가입 자격: 정회원(서울 거주·재직·재학)만 전자책, 비대면 자격확인으로 온라인 가입 가능. 서비스 DB에 없음. 조사 방법을 4-14로 일반화 | 4-14, `scripts/library/probe_seoul_elib.py`, `maintenance/platforms.md` 11절, `library-site-issues.md` 7절 |
+| 2026-10-20 | **서울도서관 새 화면 종류 `SEOUL_ELIB_V1` (요청 세션: v1.7.0 준비 세션, 사용자 "이번 릴리스 뒤 배포", 지금은 별도 브랜치 `claude/funny-hodgkin-043487`, 배포·main 반영 안 함).** adapter(검색 JSON, TY01 수·TY02 구독형, TY03·OverDrive 뺌), CHECK changeset `library/020`, 넣기 명령 업체 `IN_HOUSE`·대출 방식 `MIXED`, 수집기 분류별 목록 + `add-library`, 규칙 파일에 수집 번호 102739(가입: 서울 거주·재직·재학, 방문 없이, `join_url` 회원증 발급 페이지). 시험용 응답 저장(검색·상세·분류 목록 GET 약 15건)과 시험 수집 2번(첫 번째는 국외전자책 분류에서 멈춤 → 고침, 두 번째 OK 25,785/25,785), 상세 화면 1건. 모두 우리 User-Agent, 1.1초 이상. **남은 일**: 배포 때 실제 수집 DB에 넣고 받기 → 넣기 명령 → 가져오기(4-14 "남은 일") | 4-14, `maintenance/platforms.md` 11절, `maintenance/2-crawl.md` 7절, `library/020-library-platform-seoul-elib.yaml`, `SeoulElibV1Adapter.java`, `scripts/crawl/test_parse_seoul.py` |
+| 2026-10-21 | **누구나 가입 38줄 두 번째 재검증 (사용자 요청 "이거 목포 누구나 가입 도서관 맞아? 정회원이라고 하는데 정회원은 가야하는거아니야? 이것말고도 누구나 가입 도서관들 하나하나 검증해줘").** 운영 DB의 RESIDENCE × NATIONWIDE 줄 38곳(기관 25)을 공식 페이지 원문으로 다시 봄(우리 User-Agent, 호스트당 1.2초 이상, 로그인·파일 받기 없음). 목포 65는 "정회원(홈페이지 가입자)"라 누구나 온라인 그대로. 고침: **김천 269·313 누구나 → 김천 거주·재직·재학 + 방문**(FAQ "전자책은 도서관 회원증을 만드신 … 회원에 한하여", "회원증 … 자격은 주민등록상 김천시 거주자 또는 김천시에서 재학·재직"), 광산 40·264 방문 끔 + 주의(온라인 회원증 신청, 로그인 뒤), 금산 267 주의 문구(약관 "주소지 제한 자격 조건은 없으나")·가입 주소, 강북 17 가입 주소·앱 주의, 목포 65 가입 주소, 광주 남구 233 주의. 14절: 김천·금산 줄 지움, 광산·동작 줄 고침 | `docs/libraries/research/open-recheck-2026-10-21.md`, `library/021-library-open-recheck-2.yaml` |
+| 2026-10-27 | **VPN을 켠 채 서버마다 첫 화면 한 번 확인 (사용자 요청: 서비스사·소장/대여/구독별로 얼마나 받았고 어디가 막혔는지(지금 VPN 기준), 어디를 받을 수 있는지).** 이 PC는 08:04부터 Proton VPN(JP-FREE#33, 해외 IP)으로 나감. 받는 도서관의 서버(IP:포트) 692개 중 644개에 첫 화면(`base_url`)을 한 번씩 GET(한 번에 1건, 시작 사이 1.5초 이상, 수집기 User-Agent, 리다이렉트 따라가지 않음, 10:05~10:58). 뺀 것: 교보 기관 서버(`*.dkyobobook.co.kr`, R1-6), 받지 않는 곳(`crawl_skip`), 목록 수집 중인 서버 3개, 표지 받기가 쓰는 서버 45개(같은 IP:포트에 겹치지 않게). 결과(도서관 수, VPN 기준): YES24 열림 368·막힘 136, 교보 도서관 서버 열림 314·막힘 55, 북큐브 열림 394·막힘 37, 알라딘 열림 11·막힘 13, 포털 열림 8·막힘 1. 막힘은 거의 모두 연결 끊김(ConnectionReset, 224곳)이고, 10월 23~26일 집 IP로는 모두 받았던 곳이라 해외 IP를 받지 않는 것으로 봄(집 IP로 다시 확인하지 않음). 그 밖에 전남과학대(59.0.170.179:88) 400 「Request Blocked」, 국립목포대 시간 초과, 광주대 503, 연결 오류 7, VPN DNS가 잠깐 답하지 않은 7. 도구·결과: 데이터 폴더 `library-join/front-check-vpn-2026-10-27/`(`collect.py`→`targets.py`→`probe.py`→`report.py`, 결과 `probe.jsonl`, 도서관별 표 `library-status-2026-10-27.csv`) | `chaekcheck-data/library-join/front-check-vpn-2026-10-27/` |
+| 2026-10-29 | **교보 기관 서버(`*.dkyobobook.co.kr`) 도서관 1,480곳 종류 다시 나누기 (사용자 요청 "교보 구독의 공공기관은? 소장/대여/혼합도 포함해서 실제 이름과 분류도 다시 해줘", 조사 요청 없음·사이트 요청 없음).** 출처: 수집 DB `library`, 규칙 `library_kinds.tsv`(2026-10-05 이름 기준)·`kyobo_probe.tsv`·데이터 폴더 `other-platforms/kyobo-institutions-probe-2026-10-03.tsv`(교보 분류·운영 방식·권수), 내 PC 서비스 DB `collection_link`. 방법: 우리 종류(GOV)를 교보 분류로 공공기관·공기업·공단·공공 연구기관으로 나누고, 엇갈리거나 확실하지 않은 299곳은 이름을 읽고 정함(웹 확인 없음, 확실하지 않은 89곳은 「추정」). 결과: 교보 구독(등록) 21곳은 모두 공공도서관(시·군·구립, 국립세종, 교육청). 나머지는 공공도서관 4, 공공기관 99, 공기업·공단 40, 공공 연구기관 42, 대학 66, 초중고 911, 기업 234, 단체·병원 36, 아파트 5, 알 수 없음 22. 교보 분류와 다른 예: 경찰청(교보 「대학」), 서울보증보험·한국거래소(공공기관 지정 해제, 기업), 한국장학재단·세종학당재단·한국국제교류재단(우리 표 ORG → 공공기관). 영문·약칭 이름의 실제 이름은 사이트가 막혀 확인 못 함. 규칙 `library_kinds.tsv`는 고치지 않음(넣기에 쓰이는 표, plan 결정 필요). 공공 쪽(등록 21 + 공공 185곳) 목록은 약 21만 5천 쪽, 한 번에 1건·쪽 9초면 약 22일. 그날 집 IP는 여전히 막힘(`docs/maintenance/2-crawl.md` 11절 2026-10-29) | 데이터 폴더 `library-join/kyobo-kinds-2026-10-29/`(`kyobo-institution-libraries-2026-10-29.csv`, `overrides.tsv`) |
+
+## 14. 사용자가 직접 확인할 목록 (원문이 애매해 판단을 미룬 것)
+
+사용자: "다른 것들도 이런 것들 있는데 몰아서 물어봐줘 나중에 직접 체크하게"(2026-09-29). 원문만으로 정할 수 없어 **지금 값으로 넣어 두고** 사용자가 직접 확인할 곳입니다. 확인하면 결과를 `scripts/library/join_overrides.tsv`에 적고 `apply_join_classification.py`를 다시 돌린 뒤 이 표에서 지웁니다. AI는 이 목록의 항목을 스스로 정하지 않고, 모아서 사용자에게 묻습니다.
+
+| id | 도서관 | 지금 값 | 확인할 것 | 원문·주소 |
+|---|---|---|---|---|
+| 265 | 경산시립도서관 | 경산시·대구 동구·수성구 거주 / 경산시 재직·재학 | 규정 ③ "전자도서관 … 이용은 온라인 회원 가입으로 도서대출회원증을 발급 받은 것으로 본다"가 누구나라는 뜻인지 | 4-8 "사용자가 나중에 판단할 것", https://www.gbgs.go.kr/lib/page/1173/694.tc |
+| 11 | 대구전자도서관 | 대구 + 경산·칠곡·의성 거주 | "경산시, 칠곡군, 의성군 주민 및 재학생"의 "재학생"이 어디 학교인지 | `library-research/join-classification-2026-09-29.tsv` |
+| 116 | 음성군립도서관 | 충북 + 추가 조건 "인접 시·군" | 인접 시·군이 어디인지(원문에 이름 없음) | 같은 표 |
+| 28 | 경북도서관 | 경북 거주 | 방문 회원증 안내에 지역이 없음 — 방문하면 누구나인지 | 같은 표 |
+| 83 | 성동구립도서관 | (분류표 참고) | 대출증 발급 페이지에 "무주군" 글이 섞여 있음(사이트 오기로 보임) | 같은 표 |
+| 140 | 제주한라도서관 구독형 | 누구나. 주소를 `hallalib.dkyobobook.co.kr`로 바꿈(사용자 결정) | 바꾼 주소가 계속 맞는지 (확인 방법: `library-site-issues.md` 7절) | `library-site-issues.md` 7절 |
+| 35 | 고창공공도서관 | 고창군(도서관 자체 페이지) | 교육청 안내는 전북 전체 — 어느 쪽인지 | 같은 표 |
+| 169 외 | 김제교육문화회관, 군산, 정읍, 여주 | 지역 + 추가 조건(책이음) | "책이음 통합 시스템 가입이 가능한 국민"을 누구나로 볼지(사용자 결정: 지금은 추가 조건) | `library-research/join-classification-new42-2026-09-29.tsv` |
+| 200 | 진천군립도서관 | 충북 + 천안·안성 거주 / 진천 재직·재학, 추가 조건 "충북 혁신도시" | 혁신도시(진천·음성에 걸침) 직장·학교를 어떻게 넣을지 | 같은 표 |
+| 177 | 양천중앙도서관 | 서울 거주·재직 + 추가 조건 | "관장이 특별히 필요하다고 인정하는 사람"을 추가 조건으로 둘지 | 같은 표 |
+| 182–205 중 12곳 | 전남교육청 소속 교보 사이트 | 시·도 id 12(전남광주통합특별시) | 원문 "전라남도"를 통합 시·도로 넣어 옛 광주 거주자도 가입 가능으로 나옴 | 같은 표 |
+| 176, 183, 192, 194 | 세종북자람, 공주, 안동, 양평 | 확인 필요 | 전자책이 어느 회원 등급인지 / 운영 기관(세종북자람) — 도서관에 문의 | `join_overrides.tsv` |
+| 361 | 울산동부도서관 | 울산 거주·재직·재학, 방문 가입 (2026-10-20) | 전자도서관 페이지 "자료대출회원 가입 후 이용"과 FAQ "대출자격: 도서관 홈페이지 회원"이 어긋남 — 홈페이지 회원만으로 되면 누구나 온라인 | `library-research/open-recheck-2026-10-20.md` 3절 |
+| 148, 387 | 창원시립 의창도서관 | 누구나, 방문 가입 (2026-10-20) | 온라인 「도서대출회원가입 신청」만으로 전자책이 되는지 | 같은 문서 3절 |
+| 94 | 양주시도서관 | 누구나, 방문 가입 (2026-10-20) | 로그인 뒤 「온라인정회원신청」 대상(경기도민만인지) | 같은 문서 4절 |
+| 40, 264 | 광산구통합도서관 | 누구나, 방문 없음 + 주의 (2026-10-21) | 「회원증 온라인 발급 신청」(로그인 뒤)에 지역 조건이 있는지 — 있으면 방문 가입 또는 지역 외 방문으로 | `library-research/open-recheck-2026-10-21.md` |
+| 62 | 동작구통합도서관 | 누구나, 방문 가입 | 원문에 지역도 "누구나"도 없음, 전자책 메뉴는 로그인 뒤, 필요서류 표에 "주소지 확인"(2026-10-21 다시 봄) — 자격 미확인으로 내릴지 | `library-research/open-recheck-2026-10-21.md` |

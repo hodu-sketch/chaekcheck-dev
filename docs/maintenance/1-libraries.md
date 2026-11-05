@@ -3,10 +3,10 @@
 - plan 짝 문서: `../chaekcheck-plan/docs/research/collection/1-libraries.md` (받는 것·내놓는 것·원칙·결정). 여기에는 절차만 둡니다(ADR-0047).
 - 순서: [수집 목록에서 도서관 찾기](#수집-목록에서-도서관-찾기)(찾기·확인) → 책 수집([2-crawl.md](2-crawl.md)) → [새 도서관 넣기](#새-도서관-넣기-넣기-명령-library-insert)(미리 보기 → 보고서 → 넣기, [같은 사이트·같은 호스트 거르기](#같은-사이트같은-호스트-거르기) 포함) → [구독 규칙·마감 확인](#구독-규칙마감-확인). 등록 도서관 확인은 [아래 자리표](#등록-도서관-확인-어디를-보나).
 
-정기 유지보수 ① 갈래([README.md](README.md))의 입구입니다. **등록 도서관 확인 절차 원본은 [`docs/library-maintenance.md`](../library-maintenance.md)** 이고, 이 파일은 그 문서를 가리킵니다. 그 문서에 없는 "수집 목록에서 도서관 찾기", "새 도서관 넣기", "구독 규칙·마감 확인"은 이 파일 아래 절이 절차 원본입니다(plan ADR-0047 요청서 D, 2026-10-04, 넣기는 사이클 13 ADR-0084).
+정기 유지보수 ① 갈래([README.md](README.md))의 입구입니다. **등록 도서관 확인 절차 원본은 [`docs/libraries/library-maintenance.md`](../libraries/library-maintenance.md)** 이고, 이 파일은 그 문서를 가리킵니다. 그 문서에 없는 "수집 목록에서 도서관 찾기", "새 도서관 넣기", "구독 규칙·마감 확인"은 이 파일 아래 절이 절차 원본입니다(plan ADR-0047 요청서 D, 2026-10-04, 넣기는 사이클 13 ADR-0084).
 
-- 옮기지 않고 링크로 둔 이유(dev 판단, 2026-10-04): `CLAUDE.md` "Library Research Record" 규칙과 `docs/library-site-issues.md`, 지난 조사 보고서, plan 문서들이 그 경로와 절 번호를 가리킵니다. 파일을 옮기면 이 참조가 모두 끊깁니다.
-- 도서관 조사 결과와 사용자 결정은 계속 `library-maintenance.md`에 적고, 뺀 사이트와 이유는 [`docs/library-site-issues.md`](../library-site-issues.md)에 적습니다(`CLAUDE.md` 규칙). 넣기 명령이 뺀 곳 전체 목록은 [`docs/library-left-out.md`](../library-left-out.md)입니다.
+- 옮기지 않고 링크로 둔 이유(dev 판단, 2026-10-04): `CLAUDE.md` "Library Research Record" 규칙과 `docs/libraries/library-site-issues.md`, 지난 조사 보고서, plan 문서들이 그 경로와 절 번호를 가리킵니다. 파일을 옮기면 이 참조가 모두 끊깁니다.
+- 도서관 조사 결과와 사용자 결정은 계속 `library-maintenance.md`에 적고, 뺀 사이트와 이유는 [`docs/libraries/library-site-issues.md`](../libraries/library-site-issues.md)에 적습니다(`CLAUDE.md` 규칙). 넣기 명령이 뺀 곳 전체 목록은 [`docs/libraries/library-left-out.md`](../libraries/library-left-out.md)입니다.
 - 수집 일 나눔 [확정] (사용자, 2026-10-04, plan `docs/research/maintenance/collection-areas.md`): ① 도서관 정보(어느 도서관이 있나, 화면 종류, 가입 자격, 구독 규칙, 마감 확인) = 이 1단계 / ② 도서관-책 = [2-crawl.md](2-crawl.md) / ③ 가져오기 = [3-import.md](3-import.md).
 
 ## 도서관 목록 두 가지 [확정] (사용자, 2026-10-04)
@@ -108,7 +108,7 @@
 | `gone` | 짝이 있는데 사본에서 없어졌거나 받지 않음이 된 곳 | **사용자에게 물음**. 확인하고 서비스에 그대로 둘 곳은 `rules/gone_known.tsv`에 적음 |
 | `goneKnown` | `gone` 중 `gone_known.tsv`에 있어 다시 묻지 않는 수집 번호(2026-10-12에 44·261·269를 적었으나 사이클 18에서 셋을 끄고 지움(2026-10-14, `library/016`). 지금 0줄) | 없음 |
 | `suspects` | 사람이 먼저 읽을 새 곳: `SAME_HOST`(아래 "같은 사이트·같은 호스트 거르기"), `ORDER_NO`(같은 이름·업체·대출 방식에 순번 2 이상) | **사용자에게 물음**. 다른 도서관이면 `same_host_kept.tsv`, 같은 사이트면 `same_site.tsv`, 순번 2를 그대로 두면 `order_no_allowed.tsv`에 적고 다시 미리 보기 |
-| `leftOut` | 이유별로 뺀 수집 번호(교보 대여·혼합, `crawl_skip`, 전체 수집 성공 없음, 체험용·운영 중단, 같은 사이트, 종류 TEST, spec R2-5. 사이클 18부터 맨 끝에 `no_ebooks` "전자책 0권": 가져오기와 같은 거르기 규칙으로 들어갈 책 줄이 0인 곳, 묻지 않음, ADR-0110) | [`docs/library-left-out.md`](../library-left-out.md)를 `python scripts/library/list_left_out.py --report …`로 다시 만듦 |
+| `leftOut` | 이유별로 뺀 수집 번호(교보 대여·혼합, `crawl_skip`, 전체 수집 성공 없음, 체험용·운영 중단, 같은 사이트, 종류 TEST, spec R2-5. 사이클 18부터 맨 끝에 `no_ebooks` "전자책 0권": 가져오기와 같은 거르기 규칙으로 들어갈 책 줄이 0인 곳, 묻지 않음, ADR-0110) | [`docs/libraries/library-left-out.md`](../libraries/library-left-out.md)를 `python scripts/library/list_left_out.py --report …`로 다시 만듦 |
 
 - **전자책 0권** (사이클 18, plan 설계 결정 #6): 보고서의 `no_ebooks` 목록에서 넣을 주소(`final_origins.tsv`)가 수집 주소와 다른 곳은 사이트를 열어 확인합니다. 책 주소의 호스트가 넣을 주소와 달라 0권이 된 것일 수 있습니다.
 - **묻는 범위** [확정] (사용자 선택 "Claude가 보고, 의심·바뀐 곳만 내게", 2026-10-12, spec R2-8): 보고서는 Claude(수집 세션)가 먼저 읽습니다. `suspects`, `changed`, `gone`이 있을 때만 사용자에게 묻고, 없으면 넣기까지 하고 결과를 알립니다.
@@ -141,7 +141,7 @@
 
 ### 6. 넣은 뒤
 
-- 결과 셈(넣은 곳, 번호, 조사 상태)을 `library-maintenance.md` 13절과 `docs/plan-feedback.md`에 적습니다.
+- 결과 셈(넣은 곳, 번호, 조사 상태)을 `library-maintenance.md` 13절과 `docs/cycles/plan-feedback.md`에 적습니다.
 - [3-import.md](3-import.md)로 그 도서관 책을 가져옵니다.
 - **운영 DB에는 넣기 명령을 따로 돌리지 않습니다**: 반영 파일 판 2가 내 PC의 성공한 넣기 실행 기록을 옮깁니다([3-import.md](3-import.md) 13-5절).
 - **로컬 DB를 새로 만들면**(Liquibase seed부터) seed에는 넣기 명령으로 넣은 도서관이 없으므로, 미리 보기 → 넣기를 다시 돌립니다(spec R2-10, `library-maintenance.md` 7절).
@@ -153,7 +153,7 @@
 1. 수집 세션이 이미 표시한 곳: 수집 DB `library.crawl_skip`(예 "same site as registered library 41 …"). `leftOut`으로 빠집니다.
 2. 사람이 정한 같은 사이트: `rules/same_site.tsv`(서비스 도서관과 포트만 다른 같은 교보 사이트 8곳, 2026-10-05). `leftOut`으로 빠집니다.
 3. **같은 호스트 의심** (spec R2-7): http/https와 포트를 무시한 호스트가 같고 책 번호(`item_key`)가 겹치면 `SAME_HOST` 의심입니다. 새 곳끼리, 그리고 **서비스 전체**와 봅니다(사이클 07 스크립트는 처음 278곳과만 봄). 사람이 "다른 도서관"으로 정한 곳(`rules/same_host_kept.tsv`: 2026-10-05 22곳 + 여주대 100584·102084, 2026-10-12 "둘 다 넣음")은 빼고 봅니다.
-4. 사람이 읽고 정함. 2026-10-05 결정: 양쪽 책 번호 목록이 같고 상세 주소가 포트만 다른 8곳은 뺌, 같은 기관의 다른 사이트(북큐브 등)와 한 서버의 여러 도서관은 넣음. 기록: [`docs/library-site-issues.md`](../library-site-issues.md) 8절.
+4. 사람이 읽고 정함. 2026-10-05 결정: 양쪽 책 번호 목록이 같고 상세 주소가 포트만 다른 8곳은 뺌, 같은 기관의 다른 사이트(북큐브 등)와 한 서버의 여러 도서관은 넣음. 기록: [`docs/libraries/library-site-issues.md`](../libraries/library-site-issues.md) 8절.
 - 겹침 기준 값(몇 %부터 같은 사이트인가)은 정하지 않았습니다. 쌍마다 사람이 읽습니다 [확인 필요].
 - 수집기 `scripts/crawl/crawl_catalog.py import-probe`에는 이 비교를 넣지 않았습니다(dev 판단, 2026-10-05): 넣기 단계에서 반드시 거르고, 수집기는 받기만 합니다.
 

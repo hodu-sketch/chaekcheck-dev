@@ -1,5 +1,5 @@
 """book-vectors.bin -> a PostgreSQL binary COPY file for `book_vec(id bigint, embedding vector(1024))`
-(docs/aisearch/reports/2026-10-29-hnsw.md 3절).
+(docs/features/aisearch/reports/2026-10-29-hnsw.md 3절).
 
 Each row is the server's int8 row times its scale (float32), i.e. exactly the vector BookVectorFile.nearest scores
 against, so `embedding <#> q` ranks as the server does (up to float rounding).

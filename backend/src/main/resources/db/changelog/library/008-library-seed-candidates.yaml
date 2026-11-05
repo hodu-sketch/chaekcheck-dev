@@ -1,6 +1,6 @@
 # Candidate libraries from the collection DB copy of 2026-10-05 07:45 (ADR-0052, ADR-0053).
 # Both CSVs are made by scripts/library/build_candidate_seed.py; do not edit them by hand. Rules, counts and the
-# libraries left out are in docs/library-maintenance.md 13절 (2026-10-05) and docs/library-site-issues.md 8절.
+# libraries left out are in docs/libraries/library-maintenance.md 13절 (2026-10-05) and docs/libraries/library-site-issues.md 8절.
 # Service ids continue after the registered libraries (281..2674); the collection ids they come from are in
 # collection/002-collection-link.csv.
 databaseChangeLog:

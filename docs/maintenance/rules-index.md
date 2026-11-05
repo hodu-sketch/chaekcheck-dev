@@ -25,7 +25,7 @@
 | 이름 | 뜻 | 확인하는 법 | 바꾸는 법과 그 뒤 할 일 |
 |---|---|---|---|
 | `PUBLISHER_FIRST_PORTAL_HOSTS` | 통합 포털(`ELIB_PORTAL_V1`) 가운데 목록 줄 `div.info` 칸이 **출판사 → 저자 → 날짜** 순서인 호스트. 지금은 `lib.goe.go.kr`(경기도교육청), `library.daegu.go.kr`(대구), `lib.jbe.go.kr`(전북교육청)입니다(사이클 19, ADR-0115). 나머지 포털은 저자가 먼저입니다 | 수집 전에 포털마다 새 책 목록 한 쪽을 한 번 열어 칸 순서를 봅니다(`.../elib/module/elib/book/index.do?menu_idx=<번호>&menu=NEW&type=EBK&rowCount=10&viewPage=1`, 사람 손 속도). 이미 받은 사본은 `python scripts/library/check_author_publisher_swap.py <사본.sqlite>`가 "뒤바뀜"인 포털을 알려 줍니다. 시험: `python -m unittest scripts/crawl/test_parse_portal.py` | 상수에 호스트를 더하거나 빼고 저장 HTML 시험(`scripts/crawl/testdata/`)을 더합니다. **다음 수집부터.** 이미 받은 사본의 뒤바뀐 칸은 가져오기의 `author_publisher_swapped.tsv`가 바로잡습니다 |
-| `DISABLED_IDS` | dev seed 도서관 가운데 `init`이 넣지 않는 번호(59, 131) | [library-maintenance.md](../library-maintenance.md) 6-2 "꺼 둔 도서관" 표 | 상수를 고칩니다. 다음 `init`부터 |
+| `DISABLED_IDS` | dev seed 도서관 가운데 `init`이 넣지 않는 번호(59, 131) | [library-maintenance.md](../libraries/library-maintenance.md) 6-2 "꺼 둔 도서관" 표 | 상수를 고칩니다. 다음 `init`부터 |
 | `PAGE_SIZE` | 플랫폼마다 목록 한 쪽에 받는 줄 수 | [platforms.md](platforms.md) 플랫폼별 "한 쪽 크기" | 상수를 고칩니다. 다음 수집부터 |
 | `PAGE_SIZE_BY_HOST` | 기본 한 쪽 크기에서 끊기거나 시간이 넘는 호스트의 한 쪽 크기(2026-09-30) | [2-crawl.md](2-crawl.md) 문제별 대처 | 상수를 고칩니다. 다음 수집부터 |
 | `BIG_SUBSCRIPTION_MIN` | 교보 구독형 공용 묶음(약 20만 권)으로 보고 건너뛰는 사이트 권수 기준(`--include-big-subscription`이면 받음) | [2-crawl.md](2-crawl.md) | 상수를 고칩니다. 다음 수집부터 |
@@ -34,7 +34,7 @@
 | 표지 서버 끄기 (`fetch_covers.py` `OFF_AFTER`, `SLOW`·`SLOW_AFTER`, `NLK_HOLDINGS_LIMIT`, `BUSY_RECHECK`) | 한 서버가 50번 연달아 실패(404·빈 그림 제외)하거나 평균 응답이 12초를 넘으면(30건 뒤, 수집기 `SPLIT_SLOW`와 같은 값) 그 실행에서 더 묻지 않음(책은 PENDING); 국립중앙도서관 소장자료 검색의 표지는 책마다 3개까지; 목록 수집이 돌면 그 수집이 아직 쓰는 서버(IP)는 건너뛰고 600초마다 다시 확인(사용자 2026-10-24) | 로그 `host …: 50 failures in a row`, `… on average; not asked again`, `busy servers: …`. 시험 `test_a_slow_server_is_left_for_this_run`, `test_servers_the_list_crawl_uses_are_not_asked` | 상수를 고칩니다. 다음 실행부터 |
 | `SHARED_HOSTS` | 여러 도서관을 한 서버로 서비스하는 호스팅(한 줄 세우기) | [2-crawl.md](2-crawl.md) 2-1절 | 상수를 고칩니다. 다음 수집부터 |
 | `MIN_GAP`, `PER_HOST` | 한 서버에 요청 사이 최소 1초, 동시 1개(호출 예의, 사이클 01 spec 5.6) | plan `crawl-method.md` | 바꾸려면 사용자 결정이 필요합니다 |
-| `MIN_GAP_BY_HOST` | `MIN_GAP`보다 길게 쉬는 호스트. 지금은 `elib.seoul.go.kr`(서울도서관) 1.1초: 조사 때 정한 간격([library-maintenance.md](../library-maintenance.md) 4-14, 2026-10-20). `--gap`이 더 길면 그 값 | 없음(약속한 값) | 상수를 고칩니다. 다음 수집부터 |
+| `MIN_GAP_BY_HOST` | `MIN_GAP`보다 길게 쉬는 호스트. 지금은 `elib.seoul.go.kr`(서울도서관) 1.1초: 조사 때 정한 간격([library-maintenance.md](../libraries/library-maintenance.md) 4-14, 2026-10-20). `--gap`이 더 길면 그 값 | 없음(약속한 값) | 상수를 고칩니다. 다음 수집부터 |
 | `MATCH_TOLERANCE` | 사이트 권수와 받은 줄 수의 허용 차(1%) | `python scripts/crawl/crawl_catalog.py status` | 상수를 고칩니다. 다음 수집부터 |
 
 ## 2. 규칙 파일 (`scripts/library/rules/`)
@@ -57,7 +57,7 @@
 | `TAILS` | `SameTextKey` | 제목 끝에서 떼는 이용 안내·시리즈 이름(사이클 12 R3-3) | `SameTextKeyTests` | 다시 가져오기 |
 | `PLACEHOLDER_AUTHORS`, `PLACEHOLDER_PUBLISHERS` | `SameTextKey` | 비교에 쓰지 않는 자리 채움 저자·출판사(기타, 미상, unknown) | `SameTextKeyTests`. 로그 `no key for a placeholder` | 다시 가져오기 |
 | 공급사 코드 칸 | `CollectedCatalog.SUPPLIER_CODE_COLUMN`, `supplierCodeKey` | ② 공급사 코드 키에 쓰는 칸. `BOOKCUBE_FX`는 `alt_code`, 교보·교보 구독형·YES24는 `item_key`, 그 밖은 없음(ADR-0114). 키 = (공급사 묶음, 코드, **줄의 ④ 비교 제목**, **다듬은 출판사**): 제목과 출판사가 같은 줄끼리만 이음. 사이클 19 dry run에서 703번 도서관 「우리전자책」 줄이 같은 번호를 다른 책에 붙여, 그리고 같은 제목의 다른 출판사 책이 같은 번호로 이어져 더함(사용자 결정 2026-10-16 두 번) | `BookGrouperContractTests`(세 묶는 방식 같은 결과). 로그 `(2) supplier code joins` | 상수와 계약 시험을 고칩니다. 다시 가져오기 |
-| `SHARED_CODE_KINDS` | `BookGrouper` | ①에서 상품 번호가 한 번호 공간인 화면 종류 | `scripts/library/check_code_spaces.py` ([library-maintenance.md](../library-maintenance.md) 4-11) | 다시 가져오기 |
+| `SHARED_CODE_KINDS` | `BookGrouper` | ①에서 상품 번호가 한 번호 공간인 화면 종류 | `scripts/library/check_code_spaces.py` ([library-maintenance.md](../libraries/library-maintenance.md) 4-11) | 다시 가져오기 |
 | `EXCLUDED_KINDS`, `SOUND_VIDEO_KINDS` | `HoldingRowFilter` | 가져오지 않는 종류(오디오북·동영상북, 소리·영상 파일). 넣기 명령과 같이 씁니다 | 가져오기 기록 `skipped_by_reason` | 다시 가져오기(넣기 명령도 같이 바뀜) |
 | `placeholder-date-libraries` | `application-collection-import.yml` | 1950년 앞 날짜를 자리 채움으로 보는 수집 도서관(명지대 100555, ADR-0054) | 로그 `placeholder dates cleared` | 설정을 고칩니다. 다시 가져오기 |
 

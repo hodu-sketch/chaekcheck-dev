@@ -74,7 +74,7 @@ UPDATE picks.list_book SET cover_source = NULL WHERE cover_source = '<cover_sour
 - 공용 캐시가 10분 안에 새로 고쳐져 화면에서 사라집니다. 브라우저는 표지를 30일 저장(`immutable`)하므로 이미 본 사람에게는 남아 있을 수 있습니다
 - 이동진·서울대 목록의 표지는 다음 가져오기 반영 때 다시 들어옵니다. 그 책의 `scripts/crawl/lists/*.tsv` 줄에서 `cover_url`을 비우고 `covers/`의 파일을 지운 뒤 커밋해야 다시 들어오지 않습니다(6절)
 - 다음에 목록이 바뀌면 같은 책 표지를 다시 받을 수 있으므로, 요청받은 표지는 따로 적어 두고 받기 뒤에 다시 지웁니다 [안: 막는 목록은 아직 없음]
-- 요청과 처리 날짜는 `docs/plan-feedback.md`에 남깁니다
+- 요청과 처리 날짜는 `docs/cycles/plan-feedback.md`에 남깁니다
 
 ## 5. 맞추기 (우리 책과 잇기)
 
@@ -238,4 +238,4 @@ python scripts/crawl/recommended_lists.py --sqlite ../chaekcheck-data/snapshots/
 - 낱말 맞추기는 `catalog.book_search` **사본**(목록 책 전부와 보유 도서관 많은 10만 권 판의 찾기 글(제목·저자는 넣을 때 `catalog.book`에서) + 찾기용 한 줄, [6-aisearch.md](6-aisearch.md) 9절)에서 합니다. 사본은 `book-texts` 넣기 명령을 돌릴 때만 바뀝니다. 그래서 **아래 일 뒤에는 `book-texts`를 다시 돌려야** 새 책이 AI 찾기에 나오고 제목·저자가 맞습니다(운영 넣기는 `book-texts-top-books=100000`, 6-aisearch.md 3절).
   - 가져오기 바꿔 끼우기([3-import.md](3-import.md) 8·13절), 목록만 넣기(`lists` 모드, 3-import.md 14절), 사서추천도서 월 받기(2절), 책 맞춤 규칙 변경(5절)
   - 돌리는 법: [6-aisearch.md](6-aisearch.md)
-- **후속 작업 24-F1**(`docs/plan-feedback.md` `# 사이클 24` "후속 작업 24-F1"): 사이클 23을 합치거나 맞춤을 고칠 때, 캐시가 우리 책 저자를 직접 들게 하고 따로 읽기를 없앰. 사본을 맞추는 방법(자동 / 경고 / 손으로)은 사용자 결정. 코드에서는 `TODO(24-F1)`을 찾으면 됩니다.
+- **후속 작업 24-F1**(`docs/cycles/plan-feedback.md` `# 사이클 24` "후속 작업 24-F1"): 사이클 23을 합치거나 맞춤을 고칠 때, 캐시가 우리 책 저자를 직접 들게 하고 따로 읽기를 없앰. 사본을 맞추는 방법(자동 / 경고 / 손으로)은 사용자 결정. 코드에서는 `TODO(24-F1)`을 찾으면 됩니다.

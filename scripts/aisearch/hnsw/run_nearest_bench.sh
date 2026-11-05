@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Brute-force nearest benchmark (docs/aisearch/reports/2026-10-29-hnsw.md 2절).
+# Brute-force nearest benchmark (docs/features/aisearch/reports/2026-10-29-hnsw.md 2절).
 # Compiles NearestBench.java with the real BookVectorFile / QuestionEncoder / OnnxQuestionEncoder sources (copied,
 # unchanged) in a scratch folder; nothing is added to the backend build.
 # usage: run_nearest_bench.sh WORK_DIR MODEL_DIR OUT_DIR

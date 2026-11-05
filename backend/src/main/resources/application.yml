@@ -133,7 +133,7 @@ chaekcheck:
   catalog:
     ai-search:
       # how the AI search's keyword candidates are matched (user 2026-10-30 "두 층 (조각 512) + BM25 이걸로 개발해",
-      # docs/aisearch/reports/2026-10-29-intro-text.md 10-11): like = search_text LIKE each word (pg_bigm, v1.15.0~);
+      # docs/features/aisearch/reports/2026-10-29-intro-text.md 10-11): like = search_text LIKE each word (pg_bigm, v1.15.0~);
       # bm25 = pg_search BM25 over title, author, line and the Haiku search terms, the plan-library filter inside the
       # index. bm25 needs the database image with pg_search (docker/postgres-bigm) and falls back to like without it
       keyword-match: ${CHAEKCHECK_AISEARCH_KEYWORD_MATCH:like}
@@ -163,7 +163,7 @@ chaekcheck:
     host-min-interval: 1s
     # Egress lanes (webshare cycle (in cycle 20), handoff 1-15, ADR-0130): the server's own IP ("direct") plus one lane per proxy in
     # egress.proxies. Production: EC2 IP + 20 Webshare KR static proxies; local default: direct only.
-    # docs/maintenance/settings-index.md, names and log shapes in docs/plan-feedback.md (# 사이클 22)
+    # docs/maintenance/settings-index.md, names and log shapes in docs/cycles/plan-feedback.md (# 사이클 22)
     egress:
       # all = every lane / proxy-only = never the direct lane (retests included, no fallback when every proxy lane
       # is paused) / direct-only = the direct lane only. proxy-only with an empty proxy list stops the start.
@@ -235,7 +235,7 @@ chaekcheck:
       # longest queuedLibraryIds list in the answer [안]
       max-queued-libraries: 200
     # One INFO line a minute with the lookup counters (cycle 20, overall review #5, AC-40):
-    # docs/maintenance/settings-index.md, field shape in docs/plan-feedback.md (# 사이클 20)
+    # docs/maintenance/settings-index.md, field shape in docs/cycles/plan-feedback.md (# 사이클 20)
     ops-summary:
       interval: 1m
     # The same numbers recorded in the DB, one row per 10 seconds, in availability.lookup_sample (user decision
@@ -441,7 +441,7 @@ chaekcheck:
       question-max-length: 200
       card-text-max-chars: 300
     vector:
-      # question vectors mixed with the keyword candidates (user 2026-10-25, docs/aisearch/reports/2026-10-25-eval.md:
+      # question vectors mixed with the keyword candidates (user 2026-10-25, docs/features/aisearch/reports/2026-10-25-eval.md:
       # "아주 맞는 카드" 62% -> 76% at the same 30 candidates). Off by default; on in production when the model folder
       # is mounted (CHAEKCHECK_AISEARCH_VECTOR_ENABLED, CHAEKCHECK_AISEARCH_MODEL_DIR). Values [안] from the report's H
       enabled: ${CHAEKCHECK_AISEARCH_VECTOR_ENABLED:false}
@@ -464,7 +464,7 @@ chaekcheck:
       failures-to-open: 3
       open-for: 30s
       # how the nearest books are found (user 2026-10-30 "A. Java 깔때기로 개발해줘",
-      # docs/aisearch/reports/2026-10-30-vector-scaling.md): exact = every book's int8 vector on the heap, all scored
+      # docs/features/aisearch/reports/2026-10-30-vector-scaling.md): exact = every book's int8 vector on the heap, all scored
       # (v1.15.0~v1.22.1); funnel = only the sign bits on the heap (128 bytes a book, about 1/8), hamming keeps
       # hamming-keep, the question against the bits keeps binary-keep, those rows are scored exactly from the mapped
       # book-vectors.bin. 81,078 books with 10000 / 2000: 99.2% of the exact top 120 [잰 값, 질문 222개]
@@ -473,7 +473,7 @@ chaekcheck:
         hamming-keep: 10000
         binary-keep: 2000
     first-call:
-      # who makes the first step (user 2026-10-26, docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
+      # who makes the first step (user 2026-10-26, docs/features/aisearch/reports/2026-10-26-ml-first-call-decisions.md):
       # haiku = the first Haiku call as before; ml = small networks over the question vector (5 ways, the asked shelves,
       # the question's own words), no model call. ml needs the vectors on, first-call-model.bin in model-dir and the
       # book profiles in catalog.book_profile (book-profiles import); without them, or with the question vector late or
@@ -483,7 +483,7 @@ chaekcheck:
       shelf-bonus: ${CHAEKCHECK_AISEARCH_SHELF_BONUS:0.004}
       # a book whose profile the question leaves out (「소설 말고」, a fiction book for a 「소설 아님」 question) goes after
       # the others; off = never (user 2026-10-31: the fiction reading misjudged 60 of 750 asked books,
-      # docs/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
+      # docs/features/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
       rules-out: ${CHAEKCHECK_AISEARCH_RULES_OUT:true}
       # the cap of the call that answers a question about 책첵 from the intro and first-screen text [안]
       site-max-tokens: 512
@@ -495,7 +495,7 @@ chaekcheck:
     pick:
       # the pick call may ask back with choices instead of picking, a question the first step calls not a book request
       # gets a fixed ask-back with examples, and one word it calls so goes to the pick call (user 2026-10-26 「되묻기만
-      # 기존 한 번의 호출에」, docs/aisearch/reports/2026-10-26-agent.md 10절). Off by default; production turns it on
+      # 기존 한 번의 호출에」, docs/features/aisearch/reports/2026-10-26-agent.md 10절). Off by default; production turns it on
       # since v1.17.0 (CHAEKCHECK_AISEARCH_PICK_ASK_BACK=true) [안]
       ask-back: ${CHAEKCHECK_AISEARCH_PICK_ASK_BACK:false}
       # a one-word question (「사진」) asked back too, as from v1.17.0 to v1.20.5; off: it is answered at once with the

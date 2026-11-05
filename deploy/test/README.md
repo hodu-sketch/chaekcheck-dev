@@ -37,5 +37,5 @@ plan 17 요청(2026-10-18, 방식 A): 이미지는 PC에서 만들고 EC2는 실
 
 ## 알아 둘 것
 
-- 덤프는 PC DB의 Liquibase 기록을 그대로 가져갑니다. 이 jar와 다른 changelog로 고친 뒤(예: sitecontent seed 교체) 다시 올리면 checksum 오류가 날 수 있습니다. 그때는 DB를 새로 뜨거나 `docs/plan-feedback.md` `# 17 dev에게`의 지우고 다시 적용하는 방법을 씁니다
+- 덤프는 PC DB의 Liquibase 기록을 그대로 가져갑니다. 이 jar와 다른 changelog로 고친 뒤(예: sitecontent seed 교체) 다시 올리면 checksum 오류가 날 수 있습니다. 그때는 DB를 새로 뜨거나 `docs/cycles/plan-feedback.md` `# 17 dev에게`의 지우고 다시 적용하는 방법을 씁니다
 - 시험용이라 `restart: unless-stopped`, 메모리 한도(`mem_limit`)는 두지 않았습니다. 서버에서 재고 정합니다

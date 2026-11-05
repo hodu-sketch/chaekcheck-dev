@@ -5,7 +5,7 @@ Moved from the data folder (library-join\fetch.py) into the dev repository in cy
 files stay in the data folder's library-join\.hostlocks (--data-dir > CHAEKCHECK_DATA > chaekcheck-data next to
 the repository), so this copy and the old one still keep the gap between them.
 Prints the final URL, HTTP status and the page text (scripts/styles removed). --links also prints the page's links; --full prints the whole page text (default: first 20,000 characters).
-Same rules as dev docs/library-maintenance.md 2장: our User-Agent only, certificates verified, and a per-host
+Same rules as dev docs/libraries/library-maintenance.md 2장: our User-Agent only, certificates verified, and a per-host
 lock file so two runs never hit the same host less than 1.1 s apart.
 """
 import html

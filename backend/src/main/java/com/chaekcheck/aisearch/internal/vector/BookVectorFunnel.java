@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * The book vectors of {@code book-vectors.bin} ({@link BookVectorFile} has the layout) searched as a funnel (user
- * 2026-10-30 "A. Java 깔때기로 개발해줘", docs/aisearch/reports/2026-10-30-vector-scaling.md). The heap holds the ids,
+ * 2026-10-30 "A. Java 깔때기로 개발해줘", docs/features/aisearch/reports/2026-10-30-vector-scaling.md). The heap holds the ids,
  * the scales and each row's sign bits (a bit is set where the int8 value is above 0: 128 bytes a book for 1,024
  * dimensions, about 1/8 of the rows); the int8 rows stay in the file, mapped read-only.
  * <ol>

@@ -15,7 +15,7 @@ import com.chaekcheck.catalog.BookTexts;
  * same as on the book page.
  * <p>
  * TODO(24-F1): the cache keeps no author, so the author is read from catalog once per cache refresh. When the picks
- * cache or the book matching changes (cycle 23 merge included), let the cache carry it (dev docs/plan-feedback.md
+ * cache or the book matching changes (cycle 23 merge included), let the cache carry it (dev docs/cycles/plan-feedback.md
  * "후속 작업 24-F1").
  */
 public interface ListedBooks {

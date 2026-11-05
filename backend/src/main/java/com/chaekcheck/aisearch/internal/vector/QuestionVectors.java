@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The books whose vectors are nearest the question's (user 2026-10-25, docs/aisearch/reports/2026-10-25-eval.md):
+ * The books whose vectors are nearest the question's (user 2026-10-25, docs/features/aisearch/reports/2026-10-25-eval.md):
  * the question is turned into a KURE-v1 vector and compared with every book vector, off the search's own thread so it
  * runs while the first call does.
  */

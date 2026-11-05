@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  *          | ERROR (exception text in the count column)
  *   Run with -Dstdout.encoding=UTF-8 when redirecting to a file on Windows.
  * Selectors follow Yes24V1Adapter / Yes24V2Adapter: V2 "div.total em" + "div.ebook-list div.bx",
- * V1 "#content" text "전체 N 건" + "div#booklist li.line". See docs/library-maintenance.md.
+ * V1 "#content" text "전체 N 건" + "div#booklist li.line". See docs/libraries/library-maintenance.md.
  */
 public class CheckYes24Sites {
 

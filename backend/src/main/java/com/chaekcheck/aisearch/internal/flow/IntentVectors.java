@@ -21,7 +21,7 @@ import com.chaekcheck.aisearch.internal.vector.QuestionVectors;
 
 /**
  * What a follow-up means, told by the question vector (user 2026-10-29 「각각 테스트해보고」: on 230 held-out rude
- * sentences the vector beat the rules alone, and the two mixed beat both, docs/aisearch/reports/2026-10-29-follow-ups.md):
+ * sentences the vector beat the rules alone, and the two mixed beat both, docs/features/aisearch/reports/2026-10-29-follow-ups.md):
  * the reply is compared with example replies ({@code aisearch/intent-examples.tsv}) and takes the label of its
  * {@value #K} nearest, weighted by closeness. The examples are encoded once, on first use, by the same encoder as the
  * questions; until then, or with the vectors off, every answer is null and the rules decide alone.

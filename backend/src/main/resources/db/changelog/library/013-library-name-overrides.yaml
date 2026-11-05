@@ -1,5 +1,5 @@
 # cycle 08 (R4, handoff step 11): names of bodies that were renamed, checked against official sources on 2026-10-11
-# (docs/library-maintenance.md 4-12) and approved by the user ("모두 바꿔줘", 2026-10-11). The list is
+# (docs/libraries/library-maintenance.md 4-12) and approved by the user ("모두 바꿔줘", 2026-10-11). The list is
 # scripts/library/name_overrides.tsv; build_candidate_seed.py applies it too, so a regenerated seed keeps these names.
 # The applied seed is not edited: the names change here by id, only where the old name is still there.
 # 434, 456 get the platform label because another site of the same school already has the plain name (745, 2239).

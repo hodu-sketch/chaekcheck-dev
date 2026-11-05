@@ -5,7 +5,7 @@
 #        the same office's books are in portal library 15
 #   2198 성균관대학교 (YES24): timed out (5s) three times; the school's Bookcube site (558) answers
 #   2194 장안대학교 (YES24): connects but sends no response, twice
-# docs/library-site-issues.md 9절.
+# docs/libraries/library-site-issues.md 9절.
 databaseChangeLog:
   - changeSet:
       id: library-010-disabled-2026-10-05

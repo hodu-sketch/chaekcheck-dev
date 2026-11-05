@@ -2,7 +2,7 @@
 
 - 사이클 16. 결정과 근거는 plan ADR-0098~0101과 `docs/cycles/16-notices-and-policies/`에 있고, 여기에는 운영 절차만 둡니다.
 - 운영자 화면이 없습니다. 공지와 네 문서(서비스 안내 `ABOUT`, 이용약관 `TERMS_OF_SERVICE`, 개인정보 처리방침 `PRIVACY_POLICY`, 가입 동의문 `PRIVACY_COLLECTION`)는 Claude가 아래 SQL로 `sitecontent` schema에 넣습니다. 넣은 글은 새로고침하면 바로 보입니다(서버가 글을 메모리에 두지 않음).
-- 아래 SQL은 plan `drafts/ops-sql.md` 초안을 2026-10-14 사이클 16 개발 DB(`chaekcheck-c16` `db`)에서 절마다 실제로 돌려 확인한 것입니다. 결과는 `docs/plan-feedback.md` `# 사이클 16`.
+- 아래 SQL은 plan `drafts/ops-sql.md` 초안을 2026-10-14 사이클 16 개발 DB(`chaekcheck-c16` `db`)에서 절마다 실제로 돌려 확인한 것입니다. 결과는 `docs/cycles/plan-feedback.md` `# 사이클 16`.
 
 ## 0. 지키는 것
 

@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class LibrarySchemaCycle09Tests {
 
-	/** A pattern of the vendor and lending labels removed from the end of names (docs/library-maintenance.md 4-13-1). */
+	/** A pattern of the vendor and lending labels removed from the end of names (docs/libraries/library-maintenance.md 4-13-1). */
 	static final String LABEL_AT_END = "name ~ '\\((YES24|교보|북큐브|알라딘|구독|구독형|소장|소장형|대여|교보, [a-z0-9.-]+)\\)\\s*$'"
 			+ " OR name ~ '대여형$'";
 

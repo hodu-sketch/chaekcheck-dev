@@ -1,5 +1,5 @@
 """KURE-v1 vectors of the intro pieces for the AI search's two layers (user 2026-10-30 "두 층 (조각 512) + BM25 이걸로
-개발해", docs/aisearch/reports/2026-10-29-intro-text.md): every book of the backend's book-vectors.bin that has a list
+개발해", docs/features/aisearch/reports/2026-10-29-intro-text.md): every book of the backend's book-vectors.bin that has a list
 intro gets its intro cut into pieces of at most 512 tokens at sentence ends, each piece read as
 "제목 · 저자 · 출판사 · 연도" + newline + piece, exactly as the experiment's chunk512 (its pack() and head() are used).
 The intros stay on this PC; only the vectors go to the server (cycle 23 [확정]).

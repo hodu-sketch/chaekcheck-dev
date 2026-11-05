@@ -1,5 +1,5 @@
 {
-  "_": "AI search 2nd-step rule test (docs/aisearch/reports/2026-10-27-rules.md). Each case: turns asked in order (the last is judged); want = what the user really wants (hidden from the app); expect_ask = whether the LAST turn should ask back (null = either); typed = when the app asks back, the user types this instead of picking a choice. Words in ask_yes / ask_no are not examples in the prompt.",
+  "_": "AI search 2nd-step rule test (docs/features/aisearch/reports/2026-10-27-rules.md). Each case: turns asked in order (the last is judged); want = what the user really wants (hidden from the app); expect_ask = whether the LAST turn should ask back (null = either); typed = when the app asks back, the user types this instead of picking a choice. Words in ask_yes / ask_no are not examples in the prompt.",
   "cases": [
     {"id": "y01", "rule": "ask_yes", "turns": ["사진"], "want": "사진 잘 찍는 법을 알려 주는 입문서", "expect_ask": true},
     {"id": "y02", "rule": "ask_yes", "turns": ["음악"], "want": "클래식 음악을 쉽게 소개하는 교양서", "expect_ask": true},

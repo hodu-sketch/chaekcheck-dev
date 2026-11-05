@@ -17,7 +17,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 /**
  * {@link BookVectorFunnel} against {@link BookVectorFile} on the real {@code book-vectors.bin} (only when
  * {@code AISEARCH_MODEL_DIR} names the folder and {@code AISEARCH_QUERIES} the question vectors of
- * docs/aisearch/reports/2026-10-29-hnsw.md, {@code queries.f32}: int32 count, int32 dim, float32 rows). The
+ * docs/features/aisearch/reports/2026-10-29-hnsw.md, {@code queries.f32}: int32 count, int32 dim, float32 rows). The
  * production setting 10,000 / 2,000 found 99.2% of the exact top 120 on 81,078 books (2026-10-30).
  */
 @EnabledIfEnvironmentVariable(named = "AISEARCH_QUERIES", matches = ".+")

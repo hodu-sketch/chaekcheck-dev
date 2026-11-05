@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The cycle 07 Liquibase files on db-test (plan handoff step 2): the seed of the libraries found in the collected list
  * (ids above 280), the links, the new columns and their CHECK constraints. Counts come from
- * scripts/library/build_library_seed.py (docs/library-maintenance.md 13절). Cycle 13: renamed from CandidateSeedTests
+ * scripts/library/build_library_seed.py (docs/libraries/library-maintenance.md 13절). Cycle 13: renamed from CandidateSeedTests
  * (AC-11), and library 1215's name (library/015, AC-9).
  * Each violation runs in its own test so the failed statement does not abort the others.
  */

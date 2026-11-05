@@ -10,7 +10,7 @@ import com.chaekcheck.aisearch.internal.llm.LlmClient.Role;
 
 /**
  * The two calls' instructions and JSON schemas (cycle 24 step 1, measured with {@code scripts/aisearch/prototype_haiku.py}
- * on 2026-10-24; dev docs/plan-feedback.md {@code # 사이클 24} "1단계"). The second call's wording keeps the word 후보 out
+ * on 2026-10-24; dev docs/cycles/plan-feedback.md {@code # 사이클 24} "1단계"). The second call's wording keeps the word 후보 out
  * of the answers (user 2026-10-24 "그래"). No {@code maxItems}: structured outputs refuse it (400), the server keeps at
  * most 8 picks itself. What is sent: the question, the earlier questions with the titles shown then, and the books'
  * number, title, author and search line; never a member number, an IP or a library name (spec R4-4).

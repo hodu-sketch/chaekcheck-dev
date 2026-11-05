@@ -50,7 +50,7 @@ import com.chaekcheck.usagelog.UsageRequest;
 
 /**
  * Step 6 of the two layers (user 2026-10-30 "6단계 그거 기억하고 계획대로 가자", docs/maintenance/6-aisearch.md 15):
- * the questions of docs/aisearch/reports/2026-10-29-intro-text.md through the real {@link AiSearchFlow} over every AI
+ * the questions of docs/features/aisearch/reports/2026-10-29-intro-text.md through the real {@link AiSearchFlow} over every AI
  * search book, with the plan libraries' filter, the ML first call with or without the book profiles, and either every
  * candidate as a card in the order the pick call gets them ({@code candidates}) or Haiku's real picks ({@code picks}).
  * <p>

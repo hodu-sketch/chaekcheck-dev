@@ -5,7 +5,7 @@
 -- (catalog/003) instead of unnest(library_ids) + = ANY(plan) per element. PL/pgSQL with COST 1000: with intarray's
 -- own cost (1) the planner counted every matched row in one serial scan; with COST 1000 it counts them in the parallel
 -- workers (1,000, 3,000 and 10,000 measured, 1000 best). The query takes this function for one word or at most 500
--- plan libraries and the unnest SubPlan otherwise (docs/cycle26-book-descriptions/4-keyword-query-speed.md, form V8).
+-- plan libraries and the unnest SubPlan otherwise (docs/features/book-descriptions/4-keyword-query-speed.md, form V8).
 
 --changeset chaekcheck:catalog-004-plan-library-count splitStatements:false runOnChange:true
 CREATE OR REPLACE FUNCTION catalog.plan_library_count(library_ids integer[], plan integer[]) RETURNS integer

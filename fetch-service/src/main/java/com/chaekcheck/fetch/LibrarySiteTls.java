@@ -27,7 +27,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 /**
  * TLS for calls to library sites (same as the main service's {@code LibrarySiteTls}; keep the two in step). Some sites send their certificate without the intermediate certificate, so the
- * JDK cannot build a chain to a root (PKIX error; docs/library-site-issues.md 3절). This context trusts exactly the
+ * JDK cannot build a chain to a root (PKIX error; docs/libraries/library-site-issues.md 3절). This context trusts exactly the
  * JDK's own root certificates, and only adds the missing intermediates ({@code tls/library-intermediates/*.pem},
  * downloaded from the addresses in the sites' certificates) as material for building the chain. An intermediate is
  * never a trust anchor: a chain must still end at a JDK root, and the host name is still checked by the HTTP client
@@ -35,7 +35,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
  * <p>
  * A few sites chain to a root the JDK does not ship. Such roots, each approved by the user, are added as trust
  * anchors from {@code tls/library-roots/*.pem} (2026-10-05: OISTE WISeKey Global Root GB CA, for 3 sites;
- * docs/library-site-issues.md 3절).
+ * docs/libraries/library-site-issues.md 3절).
  */
 final class LibrarySiteTls {
 

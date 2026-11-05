@@ -1,4 +1,4 @@
-"""Lists the libraries left out of the service, as a markdown document (docs/library-left-out.md).
+"""Lists the libraries left out of the service, as a markdown document (docs/libraries/library-left-out.md).
 
 User request 2026-10-12: a separate list of the libraries left out of the service. Libraries already in the service
 DB stay in by default (user decision 2026-10-12); section B is information only.

@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Throwaway benchmark for docs/aisearch/reports/2026-10-30-vector-scaling.md (way A, the Java funnel). Not part of
+ * Throwaway benchmark for docs/features/aisearch/reports/2026-10-30-vector-scaling.md (way A, the Java funnel). Not part of
  * the build: run_cascade_bench.sh copies it next to the real BookVectorFile source (same package, unchanged) and
  * compiles them together with javac.
  *

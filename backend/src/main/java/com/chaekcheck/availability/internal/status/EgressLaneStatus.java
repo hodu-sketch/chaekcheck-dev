@@ -5,7 +5,7 @@ package com.chaekcheck.availability.internal.status;
  * whether every vendor (Webshare) lane is paused, and which lanes the service may use (ADR-0130). Cycle 17/22
  * bring the lane code and will implement this port; until then {@link #NONE} says "nothing paused, every lane",
  * so the answer's {@code reason} is {@code NONE} and only the base rule applies. Defined here first by cycle 20
- * (reported in docs/plan-feedback.md).
+ * (reported in docs/cycles/plan-feedback.md).
  */
 public interface EgressLaneStatus {
 

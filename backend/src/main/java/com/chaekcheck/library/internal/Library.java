@@ -126,7 +126,7 @@ class Library {
 	@Column(name = "logo_visible")
 	private boolean logoVisible;
 
-	/** The site's phone version shows another page than the PC version (docs/library-site-issues.md 10-1). */
+	/** The site's phone version shows another page than the PC version (docs/libraries/library-site-issues.md 10-1). */
 	@Column(name = "mobile_site_differs")
 	private boolean mobileSiteDiffers;
 

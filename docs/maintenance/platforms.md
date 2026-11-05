@@ -4,7 +4,7 @@
 - 처음 작성: 2026-09-30. 값은 그날(일부는 2026-10-01~03) 표본 사이트에 직접 호출해 확인한 것입니다. 표본에서 본 것이므로 같은 플랫폼이라도 사이트마다 다를 수 있습니다.
 - 목적: 전자도서관 사이트에서 **검색**(제목·저자·출판사)과 **전체 목록**(소장 전자책 전부)을 가져올 때 참고합니다.
 - 지금 서비스에 있는 adapter의 정확한 선택자는 `backend/src/main/java/com/chaekcheck/availability/internal/adapter/*.java` 주석이 원본입니다. adapter 설계는 사이클에서 합니다.
-- 화면 종류 값과 판별: [`docs/library-maintenance.md`](../library-maintenance.md) 1-3·4-6절, plan ADR-0016·ADR-0023. 수집 원칙(호출 간격·저장 범위·날짜 기록)은 plan `docs/research/ebook-catalog/crawl-method.md`, 조사 배경은 같은 폴더 `research.md`.
+- 화면 종류 값과 판별: [`docs/libraries/library-maintenance.md`](../libraries/library-maintenance.md) 1-3·4-6절, plan ADR-0016·ADR-0023. 수집 원칙(호출 간격·저장 범위·날짜 기록)은 plan `docs/research/ebook-catalog/crawl-method.md`, 조사 배경은 같은 폴더 `research.md`.
 - 실행 도구: `scripts/crawl/crawl_catalog.py`(전체 목록 수집), `scripts/library/discover/probe_other_platforms.py`(북큐브·알라딘 기관 사이트 1회 확인) (2026-10-05 옮김, ADR-0047 B·C). 수집 목록에서 도서관 찾기 도구(`probe_*.py`)와 절차는 [1-libraries.md](1-libraries.md) "수집 목록에서 도서관 찾기".
 - 새 플랫폼이나 사이트 예외를 알게 되면 이 문서에 더합니다(2-crawl 7절).
 
@@ -169,7 +169,7 @@
 
 ## 11. 서울도서관 자체 통합전자책 `SEOUL_ELIB_V1` [확정] (2026-10-20 조사, 같은 날 adapter·수집기) (`https://elib.seoul.go.kr`)
 
-- 조사 방법·원문·가입 자격·판정: [`library-maintenance.md`](../library-maintenance.md) 4-14. 다시 확인: `python scripts/library/probe_seoul_elib.py` (저장소 루트, 요청 약 7건). adapter·수집기를 붙인 순서는 [2-crawl.md](2-crawl.md) 7절 그대로.
+- 조사 방법·원문·가입 자격·판정: [`library-maintenance.md`](../libraries/library-maintenance.md) 4-14. 다시 확인: `python scripts/library/probe_seoul_elib.py` (저장소 루트, 요청 약 7건). adapter·수집기를 붙인 순서는 [2-crawl.md](2-crawl.md) 7절 그대로.
 - 알아보는 법: 호스트 `elib.seoul.go.kr`, `/` → 302 `/main`. 화면 HTML에는 결과가 없고 `/resources/js/05_search/r_search2.js`(검색), `06_contents/r_list2.js`(분류 목록), `r_detail.js`(상세)가 JSON API를 부름. 응답 UTF-8 `application/json`. 로그인 없이 검색·목록·상세 JSON이 열림. 사람이 볼 검색 화면은 검색어를 주소에 남기지 않음(스크립트·`history.state`) → "도서관에서 보기"는 첫 화면 `/main`.
 - 검색: `GET /api/contents/search?libCode=&contentType={EB|TY03}&searchKeyword={검색어}&searchOption={1 서명|2 저자|3 출판사|4 전체}&sortOption={1 제목|2 저자|3 발행일|4 추천|5 대출}&innerSearchYN=N&innerKeyword=&currentCount={쪽, 1부터}&pageCount={줄 수}&loanable=&isTotal=false&showType=L&searchCombine=N` → `{totalCount, totalPage, ContentDataList[]}`(건수는 문자열). 결과 없음은 `totalCount` "0"과 빈 목록. 빈 검색어는 404(HTML). `contentType=EB` 결과에도 국외 OverDrive 줄(`ownerCode` OV)이 섞이고 `totalCount`에 들어감.
 - 전체 목록: 대분류 `GET /api/category/main?contentType={EB|TY03}` → `categoryNo`, `categoryName`, `contentCount`(소분류 `GET /api/category/sub?majorCategory=…&contentType=…`). 전자책과 오디오북의 분류 번호는 겹치지 않음(EB 001~019·021·099·100, TY03 131~162). 분류별 목록 `GET /api/contents/catesearch?libCode=&majorCategory={번호}&subCategory=&innerKeyword=&orderOption=1&loanable=&currentCount={쪽}&pageCount=100`(분류 번호 하나로 전자책·오디오북 모두, `majorCategory` 빈 값은 404). 전자책 대분류 22개 합 28,232(그중 100 국외전자책 3,900은 모두 OV, 021 VOD·099 Project Gutenberg 0), 오디오북 20개 합 1,453(2026-10-20). 분류가 겹치는지: 아래 시험 수집 결과.

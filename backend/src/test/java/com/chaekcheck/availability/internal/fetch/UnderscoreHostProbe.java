@@ -18,7 +18,7 @@ import com.chaekcheck.availability.internal.adapter.Yes24V2Adapter;
 /**
  * One-off probe of the real 2624 site (cycle 18 A2-1, user approved 2026-10-14). Never runs in the build: only with
  * {@code CHAEKCHECK_UNDERSCORE_PROBE=1}. Sends at most three requests, several seconds apart (host-min-interval and
- * human pace; docs/library-maintenance.md 2절). Run with {@code -Djavax.net.debug=ssl:handshake} to see that the
+ * human pace; docs/libraries/library-maintenance.md 2절). Run with {@code -Djavax.net.debug=ssl:handshake} to see that the
  * ClientHello carries no server_name.
  */
 @EnabledIfEnvironmentVariable(named = "CHAEKCHECK_UNDERSCORE_PROBE", matches = "1")

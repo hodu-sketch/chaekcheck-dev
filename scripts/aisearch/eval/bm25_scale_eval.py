@@ -1,4 +1,4 @@
-"""pg_search BM25 with the plan-library filter at 100k / 1M rows (docs/aisearch/reports/2026-10-30-vector-scaling.md 10절).
+"""pg_search BM25 with the plan-library filter at 100k / 1M rows (docs/features/aisearch/reports/2026-10-30-vector-scaling.md 10절).
 
 The 1,000 experiment books' "title author line terms" repeated to N rows, each with 1-60 random library ids (like
 catalog.book_search.library_ids), in the test container chaekcheck-pgsearch-test (intro_text_eval.PGSEARCH_DSN). Times

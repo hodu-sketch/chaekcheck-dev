@@ -1,7 +1,7 @@
 """1단계 첫 실행용: 저장소 목록 파일에서 Haiku에 줄 책(제목·저자) TSV를 만듭니다.
 
 책 번호는 임시(줄 차례)입니다. 실제 번호는 수집을 반영한 뒤 2단계 TSV의 book_id를 씁니다
-(사용자 결정 2026-10-24, docs/plan-feedback.md `# 사이클 24` "1단계").
+(사용자 결정 2026-10-24, docs/cycles/plan-feedback.md `# 사이클 24` "1단계").
 같은 ISBN(없으면 같은 제목)은 한 줄로 합칩니다. 사서 목록은 저자 칸이 없어 비워 둡니다.
 
   python scripts/aisearch/repo_list_books.py OUT.tsv

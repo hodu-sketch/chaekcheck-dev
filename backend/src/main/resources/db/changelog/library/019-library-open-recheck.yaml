@@ -1,5 +1,5 @@
 # Re-check of the libraries marked 누구나 가입 (user 2026-10-19: "누구나 가입 도서관들 싹 다 재검증해줘"; 2026-10-20:
-# "최대한 안 물어보고 니가 검증 꼼꼼히해서"). Original texts and addresses: docs/library-research/open-recheck-2026-10-20.md.
+# "최대한 안 물어보고 니가 검증 꼼꼼히해서"). Original texts and addresses: docs/libraries/research/open-recheck-2026-10-20.md.
 # The libraries where residents of a region join online and everyone else must visit are in the visit_outside_region
 # changeset; this one has the other corrections. Each row is guarded by its id so a database without it is not touched.
 databaseChangeLog:

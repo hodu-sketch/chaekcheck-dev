@@ -2,7 +2,7 @@
 # pg_bigm: https://github.com/pgbigm/pg_bigm (The PostgreSQL License). Install steps follow docs/pg_bigm_en.md:
 # build with USE_PGXS=1, then preload the library (shared_preload_libraries) and CREATE EXTENSION per database.
 # pg_search (ParadeDB, AGPL-3.0, used unmodified) for the AI search's BM25 keyword match (user 2026-10-30, measured in
-# docs/aisearch/reports/2026-10-29-intro-text.md 10-11): the release .deb for this machine (amd64 on the PC, arm64 on
+# docs/features/aisearch/reports/2026-10-29-intro-text.md 10-11): the release .deb for this machine (amd64 on the PC, arm64 on
 # the server) and pgvector, which pg_search needs since 0.25.0. Both libraries are preloaded:
 # shared_preload_libraries=pg_bigm,pg_search.
 FROM postgres:18

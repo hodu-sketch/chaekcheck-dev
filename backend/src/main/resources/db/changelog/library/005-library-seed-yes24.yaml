@@ -1,12 +1,12 @@
-# YES24 public e-libraries (docs/library-maintenance.md 4-2, 5절), checked 2026-09-29 with
+# YES24 public e-libraries (docs/libraries/library-maintenance.md 4-2, 5절), checked 2026-09-29 with
 # scripts/library/CheckYes24Sites.java (service JDK, our User-Agent, one search each, 1.1s apart); only readable sites.
 # - YES24_V1: previous screen (EUC-KR), YES24_V2: current screen (UTF-8), YES24_V3: current layout in EUC-KR.
 # - A library that already has another site in the seed (KYOBO, portal, subscription) gets "(YES24)" in its name
 #   (user decision 2026-09-29); vendors differ, so the books differ.
 # - holdings_count: blank search total on 2026-09-29 (춘천, 경산, 국립세종 measured with a 60 s wait: 5 s was too short).
-# - Eligibility researched in the same pass (docs/library-research/yes24-classification-2026-09-29.tsv,
+# - Eligibility researched in the same pass (docs/libraries/research/yes24-classification-2026-09-29.tsv,
 #   scripts/library/join_overrides.tsv); rules are written by scripts/library/apply_join_classification.py.
-# - Left out and why: docs/library-site-issues.md.
+# - Left out and why: docs/libraries/library-site-issues.md.
 databaseChangeLog:
   - changeSet:
       id: library-005-seed-yes24

@@ -1,4 +1,4 @@
-"""AI search first-text timing (docs/aisearch/reports/2026-10-27-latency.md): reads the rule test runs (rules_run.py, which
+"""AI search first-text timing (docs/features/aisearch/reports/2026-10-27-latency.md): reads the rule test runs (rules_run.py, which
 keeps the log line's step times) and compares the ways step by step.
   python timing_compare.py t-base t-fast      -> the table, and <out>/timing-<ways>.json"""
 import glob, json, os, statistics, sys

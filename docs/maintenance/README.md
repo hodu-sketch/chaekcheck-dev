@@ -22,13 +22,13 @@
 
 ## 1. ① 도서관 수집 (등록 도서관 확인·수집 목록에서 찾은 도서관)
 
-절차: [1-libraries.md](1-libraries.md) → [`docs/library-maintenance.md`](../library-maintenance.md). 볼 곳과 순서 [안]:
+절차: [1-libraries.md](1-libraries.md) → [`docs/libraries/library-maintenance.md`](../libraries/library-maintenance.md). 볼 곳과 순서 [안]:
 
 1. 목록 출처 다시 보기: 교보 공식 목록, 공공데이터포털 전국도서관표준데이터, 통합 포털 목록, 웹러브 북스 (4-0~4-5). 교보 공식 목록 재확인은 요청 약 400건·20분, plan `docs/cycles/02-library-expansion/data/kyobo-institutions.tsv`와 비교 (4-1, 4-9)
 2. 주소 모양으로 화면 종류 나누기, 최종 주소 확정 (4-6, 4-7, 3절 도구)
 3. 가입 자격·방문 가입 판정 (1-1, 1-2, 4-8, 4-10). 사람이 정한 값은 `scripts/library/join_overrides.tsv`가 마지막에 이김
 4. 책 번호 체계 점검: `check_code_spaces.py` → 기준값과 비교. 크게 바뀌거나 새 화면 종류가 생기면 사용자에게 알림 [확정] (사용자, 2026-09-30) (4-11)
-5. 날짜가 정해진 것 확인: 꺼 둔 도서관 id 59·131 재개 확인 2027-01 (6-2), 중간 인증서 만료 2027-05-21·2027-11-02 ([`docs/library-site-issues.md`](../library-site-issues.md) 3절)
+5. 날짜가 정해진 것 확인: 꺼 둔 도서관 id 59·131 재개 확인 2027-01 (6-2), 중간 인증서 만료 2027-05-21·2027-11-02 ([`docs/libraries/library-site-issues.md`](../libraries/library-site-issues.md) 3절)
 6. 남은 확인 목록: `library-maintenance.md` 14절, plan `docs/reference-index.md` 6절 "도서관 목록·분류"
 7. 수집 목록에서 도서관 찾기: 웹러브 북스 기관을 한 번씩 확인하고 수집 DB에 넣음 ([1-libraries.md](1-libraries.md) "수집 목록에서 도서관 찾기")
 8. 서비스 DB에 넣기(넣기 명령 `library-insert`, seed로 넣지 않음, ADR-0084): [1-libraries.md](1-libraries.md) "새 도서관 넣기". 같은 사이트·같은 호스트 거르기도 그 안에서
@@ -93,7 +93,7 @@
 
 ## 체크리스트 (한 바퀴)
 
-- [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 수정(6절, 새 도서관은 넣기 명령), 결과를 13절 작업 기록과 `docs/plan-feedback.md`에 남김. 수집 목록에서 도서관 찾기 → 수집 → 넣기 명령(`library-insert` 미리 보기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → 넣기) → 구독 규칙·마감 확인은 `1-libraries.md`
+- [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 수정(6절, 새 도서관은 넣기 명령), 결과를 13절 작업 기록과 `docs/cycles/plan-feedback.md`에 남김. 수집 목록에서 도서관 찾기 → 수집 → 넣기 명령(`library-insert` 미리 보기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → 넣기) → 구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] ②: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 가져오기: 사본 만들기 → dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
 - [ ] AI 책 찾기 사본: 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음(`book-texts-top-books=100000`, [4-picks.md](4-picks.md) 10절, 후속 작업 24-F1). 가져오기 뒤에는 책 번호가 바뀌므로 책 벡터·프로필(`mode=book-profiles` → `catalog.book_profile`, 넣은 뒤 `bin/switch.sh backend <지금 판>`)·이웃도 다시 만듦([6-aisearch.md](6-aisearch.md) 7·8·9절)

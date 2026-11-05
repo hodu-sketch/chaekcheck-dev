@@ -267,7 +267,7 @@ public class AiSearchFlow {
 
 	/**
 	 * Neighbours of the book a "○○ 같은 책" question names that go first among the candidates, at most (user 2026-10-25,
-	 * docs/aisearch/reports/2026-10-25-eval.md 3-3, [안] 20 as measured).
+	 * docs/features/aisearch/reports/2026-10-25-eval.md 3-3, [안] 20 as measured).
 	 */
 	static final int MAX_NAMED_NEIGHBOURS = 20;
 

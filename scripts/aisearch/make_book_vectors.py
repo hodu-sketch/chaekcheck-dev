@@ -1,4 +1,4 @@
-"""Book vectors for the AI search's vector candidates (user 2026-10-25, report docs/aisearch/reports/2026-10-25-eval.md):
+"""Book vectors for the AI search's vector candidates (user 2026-10-25, report docs/features/aisearch/reports/2026-10-25-eval.md):
 the KURE-v1 vectors the crawl PC made for the neighbours (title, author, publisher, year + 300 intro characters, 1024
 dimensions, normalised), each row cut to int8 with its own scale, in one little-endian file the backend reads into
 memory (AiSearchVectors):

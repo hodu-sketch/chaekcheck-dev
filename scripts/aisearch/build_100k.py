@@ -6,7 +6,7 @@ texts the 30,000-book round made, with the same instructions:
   search_line    AI search line (scripts/aisearch/make_search_lines.py SYSTEM; agent RULES.md "-" for no content)
   for_you_blurb  AI summary shown on the tab and the book window (scripts/crawl/foryou_blurbs.py SYSTEM and checks)
   profile        detailed profile for the ML first call (scripts/aisearch/eval/profile-RULES-detailed.md,
-                 docs/reports/ai-search-eval/taxonomy2.json), as JSON
+                 docs/features/aisearch/eval-data/taxonomy2.json), as JSON
 
 No request to any library site: intros come from the collected DB (read-only), KDC from the national bibliography TTL
 on this PC, books from the PC's service DB (SELECT only). The intro text stays on the PC; only the made texts go to the
@@ -101,7 +101,7 @@ BANNED = re.compile(r'AI|인공지능|최고의|감동적|꼭 읽어야|베스�
 
 # ---- profile: profile-RULES-detailed.md as a system prompt, taxonomy2.json as enums
 PROFILE_INTRO_CHARS = 600
-TAXONOMY = json.loads((REPO / 'docs' / 'reports' / 'ai-search-eval' / 'taxonomy2.json').read_text(encoding='utf-8'))
+TAXONOMY = json.loads((REPO / 'docs' / 'features' / 'aisearch' / 'eval-data' / 'taxonomy2.json').read_text(encoding='utf-8'))
 PROFILE_SYSTEM = """책 프로필 만들기 — 상세 사전 (AI 책 찾기용)
 
 책 한 권의 제목·저자·KDC·대상(국가서지)·소개(앞 600자)를 받아 아래 JSON 하나를 만든다. KDC·대상은 국립중앙도서관 \

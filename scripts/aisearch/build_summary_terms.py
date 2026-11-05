@@ -1,7 +1,7 @@
 """The AI search's two-layer texts (user 2026-10-30 "두 층 (조각 512) + BM25" and "한 줄 + Haiku 검색 낱말 (원문 불필요)로
 가자"): one Haiku call per book writes its summary (200-250 characters, the summary vector and what Haiku reads) and its
 search terms (30-50, the BM25 text with title, author and line). The prompt is the one measured in
-docs/aisearch/reports/2026-10-29-intro-text.md 11 (terms_onecall_eval.ONECALL_PROMPT, MRR 0.875 on 800 queries). The
+docs/features/aisearch/reports/2026-10-29-intro-text.md 11 (terms_onecall_eval.ONECALL_PROMPT, MRR 0.875 on 800 queries). The
 intros stay on this PC; only the two written texts go to the server (cycle 23 [확정]).
 
   py scripts/aisearch/build_summary_terms.py prepare   # the books (the same as the piece vectors)

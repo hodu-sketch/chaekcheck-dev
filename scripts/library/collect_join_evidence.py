@@ -1,4 +1,4 @@
-"""Collects join-eligibility sentences from each library's homepage (docs/library-maintenance.md 4-8, 4-10).
+"""Collects join-eligibility sentences from each library's homepage (docs/libraries/library-maintenance.md 4-8, 4-10).
 
 Usage (from the repository root):
   python scripts/library/collect_join_evidence.py <targets.tsv> <out.jsonl>

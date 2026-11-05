@@ -10,7 +10,7 @@ import java.util.Map;
  * 하니까").
  * <p>
  * TODO(24-F1): when the picks cache or the book matching is changed (cycle 23 merge included), let the cache carry this
- * author itself and drop this extra read (dev docs/plan-feedback.md "후속 작업 24-F1", docs/maintenance/4-picks.md 10절).
+ * author itself and drop this extra read (dev docs/cycles/plan-feedback.md "후속 작업 24-F1", docs/maintenance/4-picks.md 10절).
  */
 public interface BookAuthors {
 

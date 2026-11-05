@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  * The setting is JVM-wide: every TLS client of this process may then agree to RSA key exchange if the other side
  * picks it, not only the library calls. Today that is only the library calls (the database connection has no TLS in
  * development). If production connects to the database or other services over TLS, those connections are covered
- * too — see docs/plan-feedback.md "추후 과제 전체 목록" for the options (e.g. library calls only through fetch-service).
+ * too — see docs/cycles/plan-feedback.md "추후 과제 전체 목록" for the options (e.g. library calls only through fetch-service).
  * <p>
  * Must run before the first TLS connection, so it is called at the start of {@code main}.
  */

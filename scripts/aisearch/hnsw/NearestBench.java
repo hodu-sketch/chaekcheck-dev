@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Throwaway benchmark for docs/aisearch/reports/2026-10-29-hnsw.md. Not part of the build: run_nearest_bench.sh copies
+ * Throwaway benchmark for docs/features/aisearch/reports/2026-10-29-hnsw.md. Not part of the build: run_nearest_bench.sh copies
  * it next to the real BookVectorFile / OnnxQuestionEncoder / QuestionEncoder sources (same package, unchanged) and
  * compiles them together with javac.
  *

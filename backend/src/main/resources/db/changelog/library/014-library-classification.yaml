@@ -2,7 +2,7 @@
 # sites of the same body apart. One changeSet on purpose: PostgreSQL rolls DDL back too, so if the UNIQUE at the end
 # fails, nothing of this stays and the start stops (plan cycle 09 design-delta, user decision 2026-10-11).
 # Names: scripts/library/name_overrides.tsv (vendor and lending labels removed: label-removed; renames checked against
-# official sources, docs/library-maintenance.md 4-13), turned into VALUES by
+# official sources, docs/libraries/library-maintenance.md 4-13), turned into VALUES by
 # `build_candidate_seed.py --changes-only` from the local db after 013. So old_name is the name after 013 (434, 456
 # carry the " (북큐브)" 013 gave them), and a row whose name is no longer the old one is left alone.
 # lending_model now covers every library but the portal (ELIB_PORTAL_V1, NULL); 001 says "KYOBO subscription-screen

@@ -12,7 +12,7 @@ import com.chaekcheck.aisearch.internal.config.AiSearchProperties;
 
 /**
  * The book vectors of {@code book-vectors.bin}, searched for the nearest books. A book may have several rows (the two
- * layers of user 2026-10-30: its summary and the pieces of its intro, docs/aisearch/reports/2026-10-29-intro-text.md);
+ * layers of user 2026-10-30: its summary and the pieces of its intro, docs/features/aisearch/reports/2026-10-29-intro-text.md);
  * a book's score is then its best row's, and each book comes once.
  */
 interface BookVectors extends AutoCloseable {

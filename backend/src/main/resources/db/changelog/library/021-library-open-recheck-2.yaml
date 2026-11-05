@@ -1,6 +1,6 @@
 # Second re-check of the libraries marked 누구나 가입 (user 2026-10-21: "정회원이라고 하는데 정회원은 가야하는거아니야?
 # 이것말고도 누구나 가입 도서관들 하나하나 검증해줘"). Original texts and addresses:
-# docs/library-research/open-recheck-2026-10-21.md. Each row is guarded by its id so a database without it is not touched.
+# docs/libraries/research/open-recheck-2026-10-21.md. Each row is guarded by its id so a database without it is not touched.
 databaseChangeLog:
   - changeSet:
       id: library-021-open-recheck-2

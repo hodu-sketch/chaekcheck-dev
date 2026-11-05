@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The keywords of the ML first call: the question's own words (M, docs/aisearch/reports/2026-10-25-first-call-models.md
+ * The keywords of the ML first call: the question's own words (M, docs/features/aisearch/reports/2026-10-25-first-call-models.md
  * 5-4), split on spaces and punctuation, a common ending cut off, words of one letter and request words dropped, at
  * most 8; as {@code cands_e2e.words}.
  */

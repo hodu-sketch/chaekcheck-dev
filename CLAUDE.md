@@ -64,11 +64,11 @@
 
 ## Library Research Record (required)
 
-Any work that researches libraries must go through `docs/library-maintenance.md`, so the same research is never done twice. This covers finding libraries or e-library sites, checking sites, eligibility (who may join), join methods and join pages, front pages, site quirks, and certificates.
+Any work that researches libraries must go through `docs/libraries/library-maintenance.md`, so the same research is never done twice. This covers finding libraries or e-library sites, checking sites, eligibility (who may join), join methods and join pages, front pages, site quirks, and certificates.
 
-- Before researching, read `docs/library-maintenance.md` and reuse what it already records (methods, sources, results, decisions). Do not research again what is recorded there unless the task is to re-check it.
-- In the same task, record in `docs/library-maintenance.md` every new method, source, tool (`scripts/library/`), per-library finding with the original text and URL, and user decision. Sites left out and the reason go in `docs/library-site-issues.md`, which is linked from it.
-- Eligibility is researched together with the library: whenever a library or e-library site is found, added, or moved, research its eligibility and join method in the same task, by the rules in `docs/library-maintenance.md` 4-8 and 4-10. Do not add a library now and leave its eligibility for later.
+- Before researching, read `docs/libraries/library-maintenance.md` and reuse what it already records (methods, sources, results, decisions). Do not research again what is recorded there unless the task is to re-check it.
+- In the same task, record in `docs/libraries/library-maintenance.md` every new method, source, tool (`scripts/library/`), per-library finding with the original text and URL, and user decision. Sites left out and the reason go in `docs/libraries/library-site-issues.md`, which is linked from it.
+- Eligibility is researched together with the library: whenever a library or e-library site is found, added, or moved, research its eligibility and join method in the same task, by the rules in `docs/libraries/library-maintenance.md` 4-8 and 4-10. Do not add a library now and leave its eligibility for later.
 - A library research task is not done until these records are written.
 
 ## Current Handoff

@@ -1,4 +1,4 @@
-"""Collect realistic AI-search questions for the HNSW benchmark (docs/aisearch/reports/2026-10-29-hnsw.md).
+"""Collect realistic AI-search questions for the HNSW benchmark (docs/features/aisearch/reports/2026-10-29-hnsw.md).
 
 Walks the eval JSON files and keeps every string under a key that holds a user turn (q, question, turns, text, typed,
 want is skipped: it is hidden from the app). Writes one question per line, unique, in file order.

@@ -57,7 +57,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	}
 
 	/**
-	 * Question vectors (user 2026-10-25 "운영 코드로 해줘", measured in docs/aisearch/reports/2026-10-25-eval.md):
+	 * Question vectors (user 2026-10-25 "운영 코드로 해줘", measured in docs/features/aisearch/reports/2026-10-25-eval.md):
 	 * the int8 KURE-v1 query model turns the question into a vector while the first call runs, the nearest book
 	 * vectors the plan libraries hold are mixed with the keyword candidates by reciprocal rank fusion, and the first
 	 * {@code Limits.candidates} of the mix go to the second call. Off, or with a model file missing, the keyword
@@ -95,7 +95,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 
 	/**
 	 * How the nearest book vectors are found (user 2026-10-30 "A. Java 깔때기로 개발해줘", measured in
-	 * docs/aisearch/reports/2026-10-30-vector-scaling.md).
+	 * docs/features/aisearch/reports/2026-10-30-vector-scaling.md).
 	 * @param mode {@link SearchMode#EXACT} or {@link SearchMode#FUNNEL}
 	 * @param hammingKeep for the funnel: books kept by the hamming distance of the sign bits (step 1)
 	 * @param binaryKeep for the funnel: books kept by the question against the sign bits (step 2); these are scored
@@ -146,7 +146,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 
 	/**
 	 * The first step of a search (user 2026-10-26 "1차를 5갈래 MLP로 바꿔요(M4 방식)", measured in
-	 * docs/aisearch/reports/2026-10-26-ml-first-call-decisions.md): {@link FirstCallMode#HAIKU} asks Haiku for the way
+	 * docs/features/aisearch/reports/2026-10-26-ml-first-call-decisions.md): {@link FirstCallMode#HAIKU} asks Haiku for the way
 	 * and the keywords as before; {@link FirstCallMode#ML} takes the way (not a book question, a title, the books shown
 	 * before, a question about 책첵, a book question) and the asked shelves from small networks over the question vector,
 	 * the keywords from the question's own words, and asks no model. ML needs the vectors on,
@@ -159,7 +159,7 @@ public record AiSearchProperties(boolean enabled, ZoneId zone, Duration keywordT
 	 * @param followUp how a follow-up question is tied to the earlier one (user 2026-10-26 "A·B를 다 잰 다음에 한 번에
 	 * 바꾸자")
 	 * @param rulesOut whether a book whose profile the question leaves out goes after the others (on when unset; user
-	 * 2026-10-31: off measured better, docs/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
+	 * 2026-10-31: off measured better, docs/features/aisearch/reports/2026-10-31-two-layer-step6.md 3-4)
 	 */
 	public record FirstCall(FirstCallMode mode, double shelfBonus, int siteMaxTokens, FollowUp followUp,
 			Boolean rulesOut) {

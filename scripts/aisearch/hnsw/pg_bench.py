@@ -1,4 +1,4 @@
-"""pgvector benchmark for docs/aisearch/reports/2026-10-29-hnsw.md 3절, against a THROWAWAY container (never the
+"""pgvector benchmark for docs/features/aisearch/reports/2026-10-29-hnsw.md 3절, against a THROWAWAY container (never the
 project's db / db-test): see run_pg_bench.sh.
 
 Loads book_vec(id bigint, embedding vector(1024)) from the binary COPY file (make_copy_file.py), makes book_half

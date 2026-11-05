@@ -1,4 +1,4 @@
-"""Learning examples for docs/cycle23-foryou/8-methods-explained.md section D (2026-10-29): the KURE book vectors
+"""Learning examples for docs/features/foryou/8-methods-explained.md section D (2026-10-29): the KURE book vectors
 (book-vectors.bin, int8 x scale) and the Haiku profile field (profiles-detailed.jsonl, 22 fields) with one
 StratifiedGroupKFold split (same work = same group). Logistic regression, MLP, kNN majority baseline, ECE with the
 reliability table, temperature scaling, isotonic calibration, selective prediction. Not the I-11 result: one split,

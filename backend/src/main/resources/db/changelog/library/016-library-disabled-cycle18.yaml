@@ -8,7 +8,7 @@
 #        (turned on again if a crawl from another IP finds books, spec R1-4)
 #   not crawled, already known (2): 44 (empty page to scripts), 269 (resets scripted connections)
 #   moved to another site (1): 261 (= library 46, the same Gunpo site)
-# docs/library-site-issues.md 11절, scripts/library/disabled_reasons.tsv.
+# docs/libraries/library-site-issues.md 11절, scripts/library/disabled_reasons.tsv.
 databaseChangeLog:
   - changeSet:
       id: library-016-disabled-cycle18

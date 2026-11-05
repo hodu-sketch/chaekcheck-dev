@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * Output (stdout, TSV): name, listed url, KYOBO|SUB, state, count, final origin, redirect hops
  *   state: OK | HTTP_<code> | MOVED (final path is not the search page) | OTHER (page without the result list)
  *          | ERROR (exception text in the count column)
- * See docs/library-maintenance.md.
+ * See docs/libraries/library-maintenance.md.
  */
 public class CheckKyoboSites {
 

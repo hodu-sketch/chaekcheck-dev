@@ -8,7 +8,7 @@ count: every service book (PC PostgreSQL, SELECT only) and its holdings' `holdin
 (read-only). A book is A when its first holding (smallest holding id) has an intro, B when only another library's
 holding has one (order ①), C when none has. For C, the platforms its holdings come from, and whether every one of its
 libraries is still waiting for the running crawl (their intro may still come). The 30,000-book pool of the pre-test
-(<data>/ml/pool-30000.ids.json), the 30 seeds (docs/cycle23-foryou/experiments/2026-10-24-pretest/summary.json) and the 1,000-book timing
+(<data>/ml/pool-30000.ids.json), the 30 seeds (docs/features/foryou/experiments/2026-10-24-pretest/summary.json) and the 1,000-book timing
 sample get their longest intro written to <data>/ml/intro-books.tsv (outside git: the text is the sites').
 50 C books (seed 23) go to data/cycle23-intro/no-intro-sample.tsv.
 
@@ -53,7 +53,7 @@ def service_db():
 def target_ids(cur, data: Path) -> dict[int, str]:
     """Books whose intro text is kept for the embedding: pool, seeds, timing sample (same rule as probe_embeddings)."""
     ids = {int(i): 'pool' for i in json.loads((data / 'ml' / 'pool-30000.ids.json').read_text())}
-    summary = json.loads((REPO / 'docs' / 'reports' / 'cycle23-pretest' / 'summary.json').read_text(encoding='utf-8'))
+    summary = json.loads((REPO / 'docs' / 'features' / 'foryou' / 'experiments' / '2026-10-24-pretest' / 'summary.json').read_text(encoding='utf-8'))
     for seed in summary['per_seed']:
         ids[int(seed['seed_id'])] = 'seed'
     cur.execute('SELECT count(*), min(id) FROM catalog.book')

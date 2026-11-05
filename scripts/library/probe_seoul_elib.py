@@ -1,6 +1,6 @@
 """Re-check the Seoul Metropolitan Library's own e-book site (elib.seoul.go.kr) once, politely.
 
-No adapter reads this site yet (docs/library-maintenance.md 4-14, docs/maintenance/platforms.md 11).
+No adapter reads this site yet (docs/libraries/library-maintenance.md 4-14, docs/maintenance/platforms.md 11).
 This script only repeats the 2026-10-20 research so a later maintenance run can see whether the
 JSON API, its count fields and the holdings totals are still the same. It decides nothing.
 

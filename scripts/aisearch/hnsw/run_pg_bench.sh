@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pgvector HNSW benchmark in a THROWAWAY container (docs/aisearch/reports/2026-10-29-hnsw.md 3절).
+# pgvector HNSW benchmark in a THROWAWAY container (docs/features/aisearch/reports/2026-10-29-hnsw.md 3절).
 # Never touches the project's compose db / db-test: own name (chaekcheck-hnsw-bench), own port 55432, no volume
 # (data dies with the container). Postgres settings as deploy/prod/compose.yaml (shared_buffers 64MB, work_mem 4MB,
 # effective_cache_size 768MB); 2 CPUs like the t4g.small server. Removed at the end.

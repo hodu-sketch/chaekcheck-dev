@@ -19,7 +19,7 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
- * Learns the final address of each library's search page the way the service calls it (docs/library-maintenance.md
+ * Learns the final address of each library's search page the way the service calls it (docs/libraries/library-maintenance.md
  * 4-7 step 1): same JDK and TLS as CheckKyoboSites, connect 5s / read 5s, same User-Agent, redirects followed by hand
  * (at most 3). One title search "사랑" per library, built like the adapter's searchUri. Libraries on the same host are
  * asked one at a time, 1.1s apart; at most 12 hosts at once.

@@ -1,11 +1,11 @@
 # KYOBO public e-libraries from the official list (https://ebook.kyobobook.co.kr/dig/cff/e-library, 216 entries,
-# plan data/kyobo-institutions.tsv), built with scripts/library/ as in docs/library-maintenance.md 5절.
+# plan data/kyobo-institutions.tsv), built with scripts/library/ as in docs/libraries/library-maintenance.md 5절.
 # - Checked 2026-09-29 with the service JDK: one title search each (our User-Agent, 1.1s apart); only OK sites.
 #   base_url is the final origin after redirects.
 # - holdings_count: blank search total on 2026-09-29 (NULL for subscription sites, which answer 0).
 # - Rules only where the original eligibility text was read (eligibility-by-library.md 확인됨/다름); others have no
 #   rules (eligibility not verified, ADR-0013). join_url only for those.
-# - Left out (reasons in docs/plan-feedback.md): certificate chain errors, 404/moved, names without "도서관",
+# - Left out (reasons in docs/cycles/plan-feedback.md): certificate chain errors, 404/moved, names without "도서관",
 #   sites already in 002/003.
 databaseChangeLog:
   - changeSet:
@@ -49,7 +49,7 @@ databaseChangeLog:
               - column: { name: basis, type: STRING }
               - column: { name: scope_type, type: STRING }
               - column: { name: scope_region_id, type: NUMERIC }
-        # Turned off, not deleted (docs/library-maintenance.md 6-2, user decision 2026-09-29):
+        # Turned off, not deleted (docs/libraries/library-maintenance.md 6-2, user decision 2026-09-29):
         # 59 대구학생전자도서관(대여): service suspended since 2025-07-22, login impossible
         # 131 서구 통합도서관(구독): budget used up, stopped 2026-09, to restart 2027-01 (check again then)
         - sql:

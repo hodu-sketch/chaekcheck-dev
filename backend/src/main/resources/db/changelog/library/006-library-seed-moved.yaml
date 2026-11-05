@@ -1,6 +1,6 @@
-# Libraries found again at a new address after their old one stopped working (docs/library-site-issues.md 6-7절),
+# Libraries found again at a new address after their old one stopped working (docs/libraries/library-site-issues.md 6-7절),
 # checked 2026-09-29 with scripts/library/CheckKyoboSites.java / CheckYes24Sites.java; eligibility researched in the
-# same pass (docs/library-research/moved-classification-2026-09-29.tsv, scripts/library/join_overrides.tsv).
+# same pass (docs/libraries/research/moved-classification-2026-09-29.tsv, scripts/library/join_overrides.tsv).
 # - 강원특별자치도교육청: portal screen whose menu id is 2; the id is part of base_url ("?menu_idx=2"), read by
 #   ElibPortalV1Adapter for search and detail pages (user decision 2026-09-29).
 # - 전북특별자치도 인재개발원 and 연제만화도서관(YES24): added by user decision 2026-09-29.

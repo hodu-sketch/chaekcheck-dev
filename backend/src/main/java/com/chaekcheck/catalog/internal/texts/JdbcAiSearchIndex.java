@@ -49,7 +49,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 
 	/**
 	 * Above this many plan libraries a question of several words takes {@link #PLAN_COUNT_LAZY}: measured in production
-	 * at 30, 200, 1,000 and 2,455 libraries (docs/cycle26-book-descriptions/4-keyword-query-speed.md), the function
+	 * at 30, 200, 1,000 and 2,455 libraries (docs/features/book-descriptions/4-keyword-query-speed.md), the function
 	 * won at 200 and lost at 1,000; 500 between them is not measured [안].
 	 */
 	static final int FUNCTION_PLAN_MAX = 500;
@@ -141,7 +141,7 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 	 * BM25 (pg_search, catalog/006) over {@code keyword_text}: title, author, line and the Haiku search terms, read by
 	 * the Korean analyser (user 2026-10-30). The plan-library filter is a zero-weight clause on {@code library_words}
 	 * inside the index, so pg_search keeps only the top books (7 against 125 ms at 100,000 rows with {@code &&} outside
-	 * it, docs/aisearch/reports/2026-10-30-vector-scaling.md 10). The books shown before are left out here, not in SQL,
+	 * it, docs/features/aisearch/reports/2026-10-30-vector-scaling.md 10). The books shown before are left out here, not in SQL,
 	 * for the same reason. The core words are not weighted more: the measured BM25 had none [안]. The points are the
 	 * BM25 score times 1,000.
 	 */

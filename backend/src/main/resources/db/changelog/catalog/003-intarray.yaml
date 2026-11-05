@@ -1,7 +1,7 @@
 # 2026-10-29 (cycle 26, after v1.20.1): the intarray extension for counting a book's plan libraries in the AI search
 # keyword query (catalog.plan_library_count, catalog/004). It lives in its own schema, not public, so its operators
 # (&&, @>, <@ … on integer[]) do not take the place of the built-in array operators in other queries; it is only
-# called by schema-qualified name. Measured in docs/cycle26-book-descriptions/4-keyword-query-speed.md.
+# called by schema-qualified name. Measured in docs/features/book-descriptions/4-keyword-query-speed.md.
 databaseChangeLog:
   - changeSet:
       id: catalog-003-intarray

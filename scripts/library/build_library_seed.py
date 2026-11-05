@@ -33,7 +33,7 @@ Rules (plan handoff cycle 07, C5; cycle 09; cycle 13):
   collection id order from max(last service id + 1, the last "RESTART WITH n" in the applied library changelogs), as
   LibraryRegistry.nextId() does, so ids left empty on purpose (2664-2674, ADR-0067) stay empty.
 - Name changes (cycle 08, R4): rules/name_overrides.tsv gives the new name of a service library, checked against an
-  official source (docs/library-maintenance.md 4-12). It is applied after the kept names; the list's old name must be
+  official source (docs/libraries/library-maintenance.md 4-12). It is applied after the kept names; the list's old name must be
   the kept name (or the new one already), else the script stops. Registered libraries change in memory only.
 - Names are the body's name only (ADR-0071): a new library takes the collection DB name as it is.
 - Vendor: a value the collection wrote for the library if any, else VENDORS by platform_type (ADR-0071).

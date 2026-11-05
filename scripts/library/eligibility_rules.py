@@ -1,4 +1,4 @@
-"""Turns eligibility-by-library.md rows into eligibility rules for the library seed (docs/library-maintenance.md).
+"""Turns eligibility-by-library.md rows into eligibility rules for the library seed (docs/libraries/library-maintenance.md).
 
 Usage (from the repository root):
   python scripts/library/eligibility_rules.py <eligibility-by-library.md> <out.json> [platform ...]
