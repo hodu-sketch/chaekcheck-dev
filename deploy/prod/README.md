@@ -9,36 +9,7 @@
 | `bin/release.sh` | PC에서 한 버전을 빌드·전송·전환(아래) |
 | `web.Dockerfile` | 화면 파일 운반용 이미지(nginx 설정은 서버 폴더, ADR-0168) |
 
-서버: `$CHAEKCHECK_SERVER`(arm64), 폴더 `/srv/chaekcheck`, 키 `.secrets/chaekcheck-key.pem`(git에 없음). `.env`나 `.secrets/`에 `CHAEKCHECK_SERVER=ubuntu@<서버 IP>`를 넣으세요.
-
-### 서버 폴더 구조
-
-```
-/srv/chaekcheck/
-├── compose.yaml
-├── prod.env
-├── secrets.env          (up.sh가 만듦, 600)
-├── slots.env            (ACTIVE_SLOT, BACKEND_BLUE_VERSION, BACKEND_GREEN_VERSION, WEB_VERSION)
-├── bin/
-│   ├── up.sh
-│   └── switch.sh
-├── nginx/
-│   ├── conf.d/
-│   │   └── default.conf     (= ec2-tunnel.conf)
-│   ├── chaekcheck/
-│   │   ├── active-backend.conf   (switch.sh가 씀: upstream → backend-blue 또는 backend-green)
-│   │   ├── rate-limits.conf
-│   │   ├── security-headers.conf
-│   │   └── chaekcheck-locations.conf
-│   └── incoming/             (release.sh가 보낸 새 nginx 설정; switch.sh가 자리에 놓음)
-├── web/
-│   ├── current -> releases/X.Y.Z   (symlink)
-│   └── releases/
-│       ├── X.Y.Z/           (지금 판)
-│       └── X.Y-1.Z/         (앞 판, 되돌리기용)
-├── aisearch-model/       (AI 검색 모델, 읽기만)
-└── restore/              (DB 복원 파일, 읽기만)
-```
+서버: `$CHAEKCHECK_SERVER`(arm64), 폴더 `/srv/chaekcheck`, 키 `.secrets/chaekcheck-key.pem`(git에 없음). 서버 주소는 `.env`의 `CHAEKCHECK_SERVER=ubuntu@<서버 IP>`에 둡니다(Elastic IP가 바뀌면 여기만 고침). `release.sh`는 셸 환경 변수만 읽으므로 Git Bash에서 먼저 `set -a; . ./.env; set +a`로 불러옵니다.
 
 ### 서버 폴더 구조
 
@@ -133,7 +104,7 @@ deploy/prod/bin/release.sh --switch-only <앞 판> [backend] [web]
 
 ## 처음 한 번 옮기기
 
-기존 구조(backend 하나)에서 두 자리(blue/green)로 옮기는 과정. 한 번만 하면 된다. 자세한 순서는 사이클 27 핸드오프 8단계 참고.
+기존 구조(backend 하나)에서 두 자리(blue/green)로 옮기는 과정. 한 번만 하면 된다. 자세한 순서는 plan [`docs/cycles/27-zero-downtime-deploy/`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/cycles/27-zero-downtime-deploy) 인계서 8단계.
 
 1. `release.sh V` — `switch.sh`가 `reason=no-slots-env`로 멈춤(이미지 전송까지만)
 2. 서버에서 폴더를 만듦: `nginx/{conf.d,chaekcheck,incoming}`, `web/releases`

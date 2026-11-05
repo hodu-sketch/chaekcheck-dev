@@ -1,32 +1,15 @@
-# React + TypeScript + Vite
+# web — 책첵 화면
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite 8 + TypeScript. 데스크톱 먼저, 태블릿·폰 폭은 그다음에 맞춥니다(CLAUDE.md 「Web Rules」).
 
-Currently, two official plugins are available:
+## 실행과 확인 (이 폴더에서)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `npm install`
+- `npm run dev`: 개발 서버 5173. `/api`는 `API_PROXY_TARGET`(기본 `http://localhost:8080`, `vite.config.ts`)으로 넘깁니다. 백엔드를 먼저 띄웁니다(저장소 맨 위 README 「로컬 개발 환경」).
+- `npm test`(Vitest), `npm run lint`(oxlint), `npm run build`(타입 검사 + 빌드, 결과 `dist/`)
 
-## React Compiler
+## 구조
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+- `src/features/<기능>/`: 화면마다 폴더(검색, 책, 추천도서, AI 책 찾기 등)
+- `src/api/`: 백엔드 API 호출
+- 운영에서는 `dist/`를 nginx가 내보냅니다([`deploy/nginx/README.md`](../deploy/nginx/README.md)).

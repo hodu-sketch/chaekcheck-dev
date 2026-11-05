@@ -7,6 +7,7 @@
 - **답하지 않는 것**: 모델 출력이 질문 하나의 흐름 어디에 쓰이나 → [1-how-it-works.md](1-how-it-works.md) 4-3·4-4·4-9절. 버전마다 바뀐 것 → [2-versions.md](2-versions.md).
 - **읽는 법**: 1절(큰 그림)을 먼저, 2절은 개념 사전(필요한 것만), 3절은 우리가 한 일을 순서대로(코드 포함), 4절은 라이브러리 표, 5절은 남에게 설명할 때 쓸 말.
 - 코드는 저장소의 실제 코드에서 그대로 옮겼다(줄을 줄인 곳은 `…`). 학습 스크립트는 `scripts/aisearch/eval/`, 운영 계산은 `backend/src/main/java/com/chaekcheck/aisearch/internal/`.
+- 코드·수치는 2026-10-29(v1.22.x) 기준이다. v1.23.0의 두 층 벡터·깔때기·BM25는 [1-how-it-works](1-how-it-works.md) 4-4·4-7절과 아래 2-14절의 덧붙임에 있다.
 
 ## 1. 큰 그림 (한 화면)
 
@@ -16,14 +17,14 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
                        └──────────────────────────────────────────┘
                        ┌─────────── 운영 (서버, Java) ───────────┐
 사용자 질문 ─▶ KURE-v1 int8 ONNX(임베딩 서버) ─▶ 1,024 벡터 ─┬▶ MLP 12머리(행렬곱·ReLU·softmax/sigmoid) ─▶ 길·칸
-                                                         ├▶ 책 벡터 81,078개와 내적, 상위 k ─▶ 가까운 책
+                                                         ├▶ 책 줄 238,392개와 깔때기, 상위 k ─▶ 가까운 책
                                                          └▶ (이어 묻기) 관계 MLP ─▶ 관계 7가지
                        └──────────────────────────────────────────┘
 ```
 
 1. **문장 → 숫자**: 「출근길에 가볍게 읽을 과학책」 같은 글을 KURE-v1이 **1,024개 실수**(길이 1인 벡터)로 바꾼다. 뜻이 비슷한 문장은 가까운 벡터가 된다. 이 모델은 남이 학습한 것을 **그대로** 쓴다.
 2. **숫자 → 판단**: 그 벡터를 입력으로 받는 **작은 신경망(MLP)** 을 우리가 학습했다. 「이 질문이 책 찾기인가(길 5갈래)」, 「어느 분야·장르·독자인가(칸 11개)」, 「앞 질문과 어떤 관계인가(7가지)」.
-3. **숫자 → 가까운 책**: 같은 KURE-v1로 미리 만든 책 81,078권의 벡터와 질문 벡터의 **내적(=코사인 유사도)** 을 계산해 가까운 책을 뽑는다.
+3. **숫자 → 가까운 책**: 같은 KURE-v1로 미리 만든 책 81,078권의 벡터(v1.23.0\~ 책마다 요약 줄 + 소개 조각 줄, 238,392줄)와 질문 벡터의 **내적(=코사인 유사도)** 을 깔때기로 계산해 가까운 책을 뽑는다.
 4. 학습은 Python(PyTorch·scikit-learn), 운영 계산은 Java(행렬곱을 직접)와 ONNX Runtime.
 
 ## 2. 기초 원리 (개념 사전)
@@ -66,7 +67,7 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
   `L = −log( exp(cos(q, d⁺)/τ) / Σⱼ exp(cos(q, dⱼ)/τ) )`
 
   맞는 쌍의 유사도가 오답들보다 크도록 미는 손실이다(τ: 온도. 일반 꼴이며, KURE가 쓴 CachedGISTEmbedLoss는 이 꼴에 「안내 모델로 가짜 오답 거르기」와 「큰 배치를 나눠 계산하는 캐시」를 더한 것. 정확한 식은 sentence-transformers 문서). 이렇게 배운 덕분에 우리는 벡터 사이 거리만으로 「뜻이 가깝다」를 쓸 수 있다.
-- **바이인코더 vs 크로스인코더**: 우리는 질문과 책을 **따로** 벡터로 만든다(바이인코더) → 책 벡터를 미리 만들어 두고 질문 하나에 내적 81,078번이면 된다. 둘을 한 입력으로 넣어 점수를 내는 크로스인코더는 더 정확할 수 있지만 쌍마다 모델을 돌려야 해 느리다(재 보니 질문 하나 9.2초, [3-ml-models 2절](3-ml-models.md)).
+- **바이인코더 vs 크로스인코더**: 우리는 질문과 책을 **따로** 벡터로 만든다(바이인코더) → 책 벡터를 미리 만들어 두고 질문 하나에 내적 81,078번(v1.22까지. 지금은 깔때기로 남긴 줄만)이면 된다. 둘을 한 입력으로 넣어 점수를 내는 크로스인코더는 더 정확할 수 있지만 쌍마다 모델을 돌려야 해 느리다(재 보니 질문 하나 9.2초, [3-ml-models 2절](3-ml-models.md)).
 
 ### 2-3. 양자화 (int8)
 
@@ -308,11 +309,15 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
 
 ### 2-14. 가까운 것 찾기: 전수 내적 + 힙
 
+- 이 절은 v1.22까지의 운영 방식이고, 지금도 `vector.search.mode=exact`로 쓸 수 있다. v1.23.0부터 운영은 깔때기 `BookVectorFunnel`이다: 모든 줄의 부호 비트로 해밍 거리 → 질문(소수)과 ±1 비트의 내적 → 남은 줄만 int8로 다시 매김. 책 줄은 238,392개(81,078권)다([1-how-it-works 4-4절](1-how-it-works.md#4-4-가까운-책-nearest)).
+
 - 질문 벡터 q와 책 81,078권의 내적을 **모두** 계산하고, 점수 상위 k개만 남긴다(정확한 최근접 이웃, 근사 색인 없음).
 - 상위 k개는 크기 k의 **최소 힙**으로: 힙의 가장 작은 값보다 큰 점수가 오면 바꿔 넣는다. 계산량 = 내적 N×d(81,078 × 1,024 ≈ 8,300만 번 곱셈) + N·log k.
-- 운영 Java(`BookVectorFile.nearest`, 그대로):
+- `exact` 모드 Java(`BookVectorFile.nearest`, 줄임. 한 책이 여러 줄이면 `limit × 책당 최대 줄 수`줄을 남긴 뒤 같은 책을 한 번만 센다):
 
   ```java
+  int keep = (int) Math.min((long) limit * rowsPerBook, ids.length);
+  …
   for (int row = 0; row < ids.length; row++) {
       int base = row * dim;
       float dot = 0;
@@ -320,7 +325,7 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
           dot += rows[base + i] * query[i];      // int8 줄 · 질문 벡터
       }
       float score = dot * scales[row];           // 줄의 scale을 마지막에 한 번
-      if (best.size() < limit) {
+      if (best.size() < keep) {
           best.add(new int[] { Float.floatToIntBits(score), row });
       }
       else if (score > Float.intBitsToFloat(best.peek()[0])) {
@@ -328,6 +333,8 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
           best.add(new int[] { Float.floatToIntBits(score), row });
       }
   }
+  …
+  return BookVectors.books(ids, order, limit);   // 책마다 가장 높은 줄, 같은 책은 한 번
   ```
 
   점수는 「int8로 줄인 책 벡터와 질문 벡터의 내적」이라 정확한 코사인에 매우 가깝지만 같지는 않다(2-3절의 반올림 오차).
@@ -340,7 +347,7 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
   `RRF(b) = Σ_L 1 / (60 + rank_L(b))`
 
   두 목록 모두 위에 있는 책이 가장 높다. k가 크면 1등과 10등의 차이가 완만해진다.
-- 우리는 여기에 **칸 보너스**를 더한다: 질문의 칸(MLP 출력)과 책의 칸(`catalog.book_profile`, 사이클 26 전에는 `book-profiles.tsv`)이 맞은 칸 종류 수(분야·작은 분야·소설 여부·장르·나라·독자 등, 0\~8, `Shelves.matches`) × **0.004**(`shelf-bonus`). 그리고 질문이 빼 달라는 칸의 책과, 질문이 「소설 아님」인데 소설인 책은 맨 뒤로(`Shelves.excludes`). 운영 Java(`Fusion.rrf`, 줄임):
+- 우리는 여기에 **칸 보너스**를 더한다: 질문의 칸(MLP 출력)과 책의 칸(`catalog.book_profile`, 사이클 26 전에는 `book-profiles.tsv`)이 맞은 칸 종류 수(분야·작은 분야·소설 여부·장르·나라·독자 등, 0\~8, `Shelves.matches`) × **0.004**(`shelf-bonus`). 그리고 질문이 빼 달라는 칸의 책과, 질문이 「소설 아님」인데 소설인 책은 맨 뒤로(`Shelves.excludes`, 운영은 v1.23.0부터 끔: `rules-out=false`). 운영 Java(`Fusion.rrf`, 줄임):
 
   ```java
   for (int i = 0; i < keyword.size(); i++) {
@@ -430,7 +437,7 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
 
   PyTorch `nn.Linear`의 `weight`는 [출력 × 입력] 모양이고 계산은 `y = x·Wᵀ + b`. Java는 같은 배열을 행 단위로 읽어 `W1[i*dim + j]`로 같은 계산을 한다(2-6절 코드).
 - 왜 Java로 직접: 운영 서버(ARM 2코어, 메모리 2GB)에 PyTorch를 올리지 않고, 행렬곱 두 번이면 되는 작은 모델이라 순수 Java로 충분. 운영 로그의 `ml` 단계 중간값 12ms(벡터 만들기 `encode` 146ms가 훨씬 김).
-- 출력이 쓰이는 곳: 길 → 검색을 할지·어떤 길로 갈지, 칸 → RRF 칸 보너스와 맨 뒤 보내기, 관계 → 앞 질문을 이을지([1-how-it-works 4-3·4-9절](1-how-it-works.md#4-3-ml-1차-ml)).
+- 출력이 쓰이는 곳: 길 → 검색을 할지·어떤 길로 갈지, 칸 → RRF 칸 보너스와 맨 뒤 보내기(운영은 v1.23.0부터 끔), 관계 → 앞 질문을 이을지([1-how-it-works 4-3·4-9절](1-how-it-works.md#4-3-ml-1차-ml)).
 
 ## 4. 라이브러리를 어떻게 썼나
 
@@ -442,7 +449,7 @@ Sonnet이 만든 질문 + 정답 ─▶ KURE-v1로 벡터(1,024) ─▶ PyTorch 
 | **NumPy** (Python) | PC | 벡터 캐시, 정규화, int8 양자화, 문턱 탐색, 파일 쓰기 | `np.linalg.norm`, `np.round(...).clip(-127,127).astype(np.int8)`, `np.arange`, `tobytes()` |
 | **ONNX / ONNX Runtime** | 모델 변환(PC), 운영(Java `ai.onnxruntime`) | KURE-v1을 int8 ONNX로, 운영에서 질문 벡터 계산 | PC: `torch.onnx.export`(opset 17), `onnxruntime.quantization.quantize_dynamic(per_channel=True)`. 운영: `OrtEnvironment`, `OrtSession`(스레드 수 지정), `OnnxTensor` |
 | **DJL HuggingFace tokenizers** (Java) | 운영 | 질문을 조각 id로 | `HuggingFaceTokenizer.newInstance(tokenizer-cut.json, maxLength 256)` |
-| 순수 Java | 운영 | MLP 계산, 내적·상위 k, RRF | `FirstCallModel`, `BookVectorFile`, `Fusion` (외부 라이브러리 없음) |
+| 순수 Java | 운영 | MLP 계산, 내적·상위 k, RRF | `FirstCallModel`, `BookVectorFunnel`·`BookVectorFile`, `Fusion` (외부 라이브러리 없음) |
 
 ## 5. 남에게 설명하기
 

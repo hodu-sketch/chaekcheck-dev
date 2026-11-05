@@ -13,9 +13,12 @@
 ## Directory Layout
 
 - `backend/` — the main service: one Spring Boot application (Spring Modulith modular monolith, Gradle)
-- `fetch-service/` — small Spring Boot app that only GETs library pages for the main service. Separate deployment unit, not a Modulith module, no cache or host throttling (ADR-0011, ADR-0015). Own Gradle Wrapper build; commands (run in `fetch-service/`): `./gradlew build`, `./gradlew test`, `./gradlew bootRun`.
-- `docker/` — local Docker images used by `compose.yaml` (`postgres-bigm/`: PostgreSQL 18 + pg_bigm for `db` and `db-test`, ADR-0032). Build with `wsl -d Ubuntu -- docker compose build`.
-- `deploy/` — example production deployment config (`nginx/`: serves the web build, forwards `/api` to Spring, security headers and CSP). Product and location are decided at deployment.
+- `fetch-service/` — small Spring Boot app that only GETs library pages for the main service. Separate deployment unit, not a Modulith module, no cache or host throttling (ADR-0011, ADR-0015). Production runs `FETCH_MODE=direct`, so it is not deployed. Own Gradle Wrapper build; commands (run in `fetch-service/`): `./gradlew build`, `./gradlew test`, `./gradlew bootRun`.
+- `embed-service/` — small Spring Boot app (no DB) that turns AI-search questions into vectors (ONNX Runtime) on its own micro EC2; `docs/maintenance/6-aisearch.md` 7-1.
+- `docker/` — local Docker images used by `compose.yaml` (`postgres-bigm/`: PostgreSQL 18 + pg_bigm + pg_search + pgvector for `db` and `db-test`, ADR-0032). Build with `wsl -d Ubuntu -- docker compose build`.
+- `deploy/` — `prod/`: the production deployment (AWS EC2 + Cloudflare Tunnel, blue/green backend slots, `bin/release.sh`, `bin/switch.sh`; see `deploy/prod/README.md`); `nginx/`: web server config (production uses `ec2-tunnel.conf`); `test/`: the cycle 17 trial deployment record.
+- `docs/` — documentation, index `docs/README.md`.
+- `scripts/` — hand-run tools (crawl, library research, AI search data), index `scripts/README.md`.
 - `data/` — local data files (collected SQLite copies, national bibliography TTL). Git-ignored; never commit.
 - `web/` — React + Vite (desktop-first, then responsive for tablet/mobile)
 - `app/` — Expo app (not created yet; add later)
@@ -74,5 +77,7 @@ Any work that researches libraries must go through `docs/libraries/library-maint
 ## Current Handoff
 
 Planning and design happen in the separate chaekcheck-plan project; this project implements them. The current handoff (what to build now) is imported below. Do not edit it from here. When the implementation has to differ from the handoff, tell the user; the next cycle in chaekcheck-plan records it.
+
+The plan repository is public (github.com/hodu-sketch/chaekcheck-plan); clone it next to this repository as `chaekcheck-plan/` for the import below to work.
 
 @../chaekcheck-plan/docs/current/handoff.md

@@ -11,9 +11,9 @@
 - 도서관 목록 이름 [확정] (사용자, 2026-10-04): **등록 도서관**(서비스 DB, dev seed, 278곳) / **수집 목록에서 찾은 도서관**(수집 DB `library` 번호 100001\~, 웹러브 북스에서 찾음, 2,738곳). 수집기는 둘 다 받습니다. 자세히는 [1-libraries.md](1-libraries.md).
 - 옮긴 뒤 plan 수집 세션에서 바뀐 것(2-1절 서버별 동시 요청 수, 4절 이어 받기·다른 정렬로 채우기·알려진 빈틈, 6절 알라딘·YES24 오디오북·0권)은 plan `crawl-runbook.md` 4절 "dev에 반영할 것"에서 더했습니다(2026-10-04, ADR-0047 요청서 D).
 
-## 0-0. 지금 도는 일과 남은 일 (2026-10-28 08:40 기준, 다른 세션이 먼저 읽을 것)
+## 0-0. 마지막 큰 실행 (2026-10-23\~10-29, 모두 끝남)
 
-이 PC에서 두 프로그램이 따로 돌고 있습니다. **새로 띄우거나 멈추기 전에** 아래를 확인합니다. 돌고 있는지는 PowerShell `Get-CimInstance Win32_Process -Filter "Name='python.exe'"`에서 `crawl_catalog.py`가 든 줄로 봅니다.
+지금 이 PC에서 도는 수집은 없습니다(2026-10-29 기준). **새로 띄우기 전에** 도는 수집이 있는지 확인합니다. 돌고 있는지는 PowerShell `Get-CimInstance Win32_Process -Filter "Name='python.exe'"`에서 `crawl_catalog.py`가 든 줄로 봅니다.
 
 | 일 | 시작 | 명령 | 로그·상태 | 끝나는 때 [추정] |
 |---|---|---|---|---|
@@ -30,10 +30,10 @@
   2. **끝남(2026-10-29 01:32, 두 번째 20:02, 세 번째 20:18 실행)** 실행 중에 `next_host`를 바꾼 책은 그 실행이 시작 때 만든 서버 대기열에 없으면 받지 않으므로, 바꾼 뒤에는 새로 띄웁니다. 표지 받기가 끝났으면 `fetch-covers --fetch-only`를 한 번 더 돌립니다. 수집 때문에 건너뛴 책과, 그 실행에서 멈춘 서버(연달아 50번 실패, 평균 12초 넘음)의 책을 받습니다. 국립중앙도서관 조회가 응답 없음·서버 오류로 끝나 `NONE`이 된 약 125권도 다시 시도합니다
   3. 보고: 소개 쪽은 **끝남(2026-10-28, 「소개 수집 결과」)**. 표지 쪽도 **끝남(2026-10-29)**. `docs/cycles/plan-feedback.md` "# 책 소개 저장 (2026-10-23 요청)"에 업체별 소개 줄 수·비율·평균 길이·수집 DB 크기 변화(시작 전 17,360,576,512바이트), "# 표지 받기 (2026-10-23 요청)"에 출처별 장 수·못 받은 책·걸린 시간·디스크(`fetch-covers --status`)
   4. 가져오기를 한 뒤에는 `fetch-covers --plan-only` → `--fetch-only`를 다시 돌려 새 책의 표지를 받습니다(받은 표지는 건너뜀) [확정] (plan 전달 2026-10-24)
-- **사이클 26이 오면 표지 올리는 곳이 바뀜** (plan 사이클 26 세션 전달 2026-10-28, plan commit 5c161b5, `docs/cycles/26-book-descriptions/handoff.md` 1·11·14단계, ADR-0163): 모든 표지(fetch-covers의 약 134만 장)와 추천목록 그림을 S3(시드니, 비공개) + CloudFront에 둠. 올리기는 PC만, AWS CLI 프로필로 `aws s3 sync`, `Cache-Control: public, max-age=604800`. 순서는 그림 먼저 올리고 그다음 book-texts `cover_file`로 연결. `cover_scope.py export` → `covers-export\` 방식은 S3 올리기로 바뀌고, 바뀐 절차는 dev 26이 `docs/maintenance/`에 적음. 사서추천 그림도 PC가 `sha1(cover_source).jpg`로 올림. book-texts·book-profiles 넣기 파일 첫 줄에 `# export_id=<가져오기 uuid>`가 있어야 하고 번호가 다르면 거절되므로, 다시 가져오기 뒤에는 그 기준으로 파일을 다시 만듦. **버킷·CloudFront·키는 dev 26 1단계에서 만들어지므로 그 전에는 지금 방식 그대로**
+- **표지는 사이클 26부터 S3 + CloudFront**(plan ADR-0163): 모든 표지와 추천목록 그림을 PC가 S3에 올리고(그림 먼저) `book-texts`의 `cover_file`로 연결합니다. 올리기·연결 절차는 [8-covers.md](8-covers.md). `cover_scope.py export` → `covers-export\` 방식은 더 쓰지 않습니다
 - 결정이 이미 난 것 (다시 묻지 않음): 책 소개는 목록에 실린 만큼만, 잘림(교보 500자, YES24 "...")은 그대로이고 상세 쪽은 열지 않음 (사용자 2026-10-24). 교보 구독형 `*.dkyobobook.co.kr`에는 계속 보내지 않음(사이클 13 R1-6).
 - 사이클 23 사전 시험(인기순·KURE-v1 임베딩, 2026-10-24)은 끝났습니다: [`docs/features/foryou/experiments/2026-10-24-pretest.md`](../features/foryou/experiments/2026-10-24-pretest.md). 임베딩 도구는 데이터 폴더 `ml\`(venv 1.2GB, 모델 2.2GB, 3만 권 벡터 118MB)에 있습니다.
-- 사이클 23 소개 시험과 탭 표지(2026-10-24\~25)도 끝났습니다: [`docs/features/foryou/experiments/2026-10-25-intro-test.md`](../features/foryou/experiments/2026-10-25-intro-test.md). 표지 받기에는 **우선순위**(`book_cover.priority`, `cover_scope.py prioritize`)가 있어 탭 범위 책을 서버마다 먼저 받습니다. 운영용 탭 표지 폴더는 데이터 폴더 `covers-export\`(가져오기를 다시 하면 `fetch-covers --plan-only` 뒤 `cover_scope.py export`로 다시 만듦)
+- 사이클 23 소개 시험과 탭 표지(2026-10-24\~25)도 끝났습니다: [`docs/features/foryou/experiments/2026-10-25-intro-test.md`](../features/foryou/experiments/2026-10-25-intro-test.md). 표지 받기에는 **우선순위**(`book_cover.priority`, `cover_scope.py prioritize`)가 있어 탭 범위 책을 서버마다 먼저 받습니다. 운영용 탭 표지 폴더는 데이터 폴더 `covers-export\`였음(옛 방식, 사이클 26 전. 지금은 [8-covers.md](8-covers.md))
 
 ## 0. 읽는 순서
 
@@ -222,7 +222,7 @@ SELECT id, name, platform_type, crawl_skip FROM library WHERE last_full_success_
 | `… full --sections AUDIO` | YES24 오디오북 목록만(그 구역 안에서만 빠짐 표시) |
 | `… full --limit-pages 2` | 시험 삼아 앞 두 쪽만(결과는 불일치로 남음) |
 | `… invalidate --platforms X,Y --reason "이유"` | 그 화면 종류 도서관을 모두 처음부터 다시 받게 표시(파서를 고친 뒤) |
-| `… status --skip {id} "{이유}"` | 그 도서관을 받지 않게 표시. 이유를 `""`로 주면 다시 받음 |
+| `… status --skip {id} "{이유}"` | 그 도서관을 받지 않게 표시. 이유를 `""`로 주면 다시 받음(**Git Bash에서**. PowerShell 5.1은 빈 인자를 버려 표시가 지워지지 않음, 11절 2026-10-26 07:42) |
 | `… backfill-types` | 오디오북 표시·상세 URL을 모든 줄에 다시 계산(수집이 돌 때는 오래 막히므로 멈춘 뒤에) |
 | `… status` | 상태 요약. 수집 DB를 읽기 전용으로 엶(수집 중에도 됨) |
 | `… fetch-covers [--plan-only / --fetch-only / --status / --export]` | 표지 받기(2026-10-23, 12절). 목록 수집이 끝난 뒤 따로 |

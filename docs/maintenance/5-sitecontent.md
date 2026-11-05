@@ -43,7 +43,7 @@ SELECT count(*) = 1 AS ok FROM ins \gset
 \endif
 ```
 
-실행: `wsl -d Ubuntu -- docker compose -p <프로젝트> exec -T db psql -U <DB 사용자> -d <DB 이름> < 파일.sql`. 오류 문장을 영어로 보려면 맨 앞에 `SET lc_messages = 'C';`(이 PC의 WSL에서는 한국어 오류가 깨져 보였음).
+실행(운영): PC에서 `scp -i .secrets/chaekcheck-key.pem 파일.sql $CHAEKCHECK_SERVER:/tmp/` 뒤 서버에서 `docker exec -i chaekcheck-db-1 psql -U chaekcheck -d chaekcheck < /tmp/파일.sql` [안: 컨테이너 이름은 `docker ps`로 확인. 서버의 `docker compose exec`는 env 파일 없이는 `compose.yaml`의 필수 치환(`WEBSHARE_PROXIES` 등)에서 멈춤]. 실행(로컬 시험): `wsl -d Ubuntu -- docker compose -p <프로젝트> exec -T db psql -U <DB 사용자> -d <DB 이름> < 파일.sql`. 오류 문장을 영어로 보려면 맨 앞에 `SET lc_messages = 'C';`(이 PC의 WSL에서는 한국어 오류가 깨져 보였음).
 
 ## 1. 새 공지 올리기
 

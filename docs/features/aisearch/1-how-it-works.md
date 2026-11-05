@@ -1,12 +1,12 @@
-# AI 책 찾기: 질문 하나가 지나가는 길 (운영 v1.22.3)
+# AI 책 찾기: 질문 하나가 지나가는 길 (운영 v1.23.1)
 
 ## 0. 이 문서가 답하는 것 / 답하지 않는 것
 
-- 답하는 것: 지금 운영(v1.22.3, `deploy/prod/prod.env`)에서 질문 하나가 브라우저를 떠나 마지막 SSE 이벤트가 올 때까지 **어느 데이터를 읽고, 어떤 계산을 하고, 무엇을 내보내는지**. 모든 내용은 이 저장소의 코드·설정과 모델 폴더(`chaekcheck-data\ml\aisearch-model-100k\`, 운영 `/srv/chaekcheck/aisearch-model`과 같은 파일)에서 확인한 것입니다. 확인하지 못한 것은 「(코드에서 확인 못 함)」으로 적었습니다.
+- 답하는 것: 지금 운영(v1.23.1, 2026-10-31. 설정은 `deploy/prod/prod.env`: `KEYWORD_MATCH=bm25`·`READING_TEXT=summary`·`RULES_OUT=false`)에서 질문 하나가 브라우저를 떠나 마지막 SSE 이벤트가 올 때까지 **어느 데이터를 읽고, 어떤 계산을 하고, 무엇을 내보내는지**. 모든 내용은 이 저장소의 코드·설정과 모델 폴더(PC `chaekcheck-data\ml\aisearch-model-100k-v2\`의 1차·관계 파일과 `chaekcheck-data\ml\aisearch-model-two-layer\book-vectors.bin`, 운영 `/srv/chaekcheck/aisearch-model`과 같은 파일)에서 확인한 것입니다. 확인하지 못한 것은 「(코드에서 확인 못 함)」으로 적었습니다.
 - 답하지 않는 것:
   - 버전마다 무엇이 바뀌었나 → [2-versions.md](2-versions.md)
   - 1차 신경망·관계 분류기를 어떻게 학습했나 → [3-ml-models.md](3-ml-models.md)
-  - 넣기·배포·켜고 끄기 같은 운영 명령 → [../maintenance/6-aisearch.md](../../maintenance/6-aisearch.md)
+  - 넣기·배포·켜고 끄기 같은 운영 명령 → [../../maintenance/6-aisearch.md](../../maintenance/6-aisearch.md)
 - **사이클 26 배포 1부터(plan ADR-0161·0165)**: 책 설명이 `catalog` 한 곳으로 모였습니다. 찾기 표는 `catalog.book_search`(`catalog.AiSearchIndex`로 읽음, 제목·저자는 `catalog.book`), 카드 표지·요약은 `catalog.BookTexts`(표지는 CloudFront 주소, 요약은 책첵 요약 하나), 1차 호출 프로필은 `catalog.book_profile`(`catalog.BookProfiles`; 표가 비면 ML 1차 호출이 꺼지고 Haiku로 감, 모델 폴더의 `book-profiles.tsv`는 v1.22.1부터 읽지 않음). 아래 글은 이 기준입니다. 옛 `aisearch.search_book`·`foryou.book_blurb`·`foryou.book_cover`는 배포 2(v1.20.6)에서 지웠습니다.
 - 코드 경로 줄임: `aisearch/…`는 `backend/src/main/java/com/chaekcheck/aisearch/…`입니다. 웹은 `web/src/…`입니다.
 
@@ -28,7 +28,7 @@
 
 세 가지로 나눠 봅니다. 1-1은 시간 순서와 동시에 도는 것, 1-2는 어디서 갈라져 끝나는지, 1-3은 LLM·임베딩 호출이 길마다 몇 번인지입니다. 각 단계의 자세한 내용은 4절입니다.
 
-### 1-1. 시간 순서와 동시에 도는 것 (v1.22.3)
+### 1-1. 시간 순서와 동시에 도는 것 (v1.23.1)
 
 `┌ ├ └`로 묶은 줄은 **동시에** 돕니다. `[옆]`은 다른 가상 스레드(`beside`)에서 도는 일, 나머지는 요청 스레드에서 차례로 도는 일입니다.
 
@@ -43,8 +43,8 @@
      └ 「아까」가 가리킬 앞 질문 고르기만 조각 벡터를 씀 (encode, 최대 1.5초 기다림)
    ▼
 ② 동시에 시작                                                                                        (4-1~4-4)
-   ┌ [옆] 이른 낱말 검색   첫 질문만. book_search LIKE ≤50권
-   └      질문 벡터 encode(이어 묻기면 글 3개) → ML 1차(길·칸·낱말·관계) → 가까운 책 600개(4-8에서 120 → ≤60)
+   ┌ [옆] 이른 낱말 검색   첫 질문만. book_search BM25(운영) ≤50권
+   └      질문 벡터 encode(이어 묻기면 글 3개) → ML 1차(길·칸·낱말·관계) → 가까운 책 600권(깔때기, 238,392줄에서 책마다 가장 가까운 줄. 4-8에서 120 → ≤60)
    ▼
 ③ 길 나누기 (1-2 표)  SITE·NOT_BOOK은 여기서 끝, TITLE_LIKE는 제목 단추를 보내고 계속
    ▼
@@ -57,7 +57,7 @@
    합치기:   RRF + 칸 보너스, 같은 제목은 하나만
    ▼
 ⑥ 2차 준비와 호출                                                                                    (4-10~4-11)
-   한 줄 소개·출판 연도 읽기 → 이어서 셋이 동시에
+   읽을 글(요약 / 검색 낱말)·출판 연도 읽기 → 이어서 셋이 동시에
    ┌ [옆] 표지 주소 읽기
    ├ [옆] 책첵 요약 읽기        (첫 카드를 보낼 때만 기다림)
    └      Haiku 2차 스트림 (머리말 → 책 번호·맞음·글 → 상황별 정리)
@@ -161,9 +161,14 @@
 | (제목·저자) | — | 칸 없음. `catalog.book.title`·`author_display`를 `book_id`로 이어 읽음(`AiSearchIndex.books()`). 사이클 26 전에는 목록 책이면 목록에 보이는 이름이었음 | 2차 책 목록, 카드 제목·저자, 제목 비교 |
 | `catalog.book_search.line` | text COLLATE "C", 1\~300자, null 가능 | 「찾기용 한 줄」: PC에서 Haiku 배치가 만든 문장(넣기 파일의 `search_line` 행). 도서관 책 소개로 만들었으면 `line_source = intro`, 서지 정보만으로 만들었으면 `bibliographic`(`catalog.BookTextsTransfer.Source`) | 2차 책 목록의 「한 줄」 |
 | `catalog.book_search.line_source` / `line_made_on` | text(`intro`\|`bibliographic`) / date | 한 줄을 만든 방법과 날짜. `line`과 함께 있거나 함께 없음 | 이 요청에서는 안 읽음 |
-| `catalog.book_search.search_text` | text COLLATE "C", GIN 인덱스 `gin_bigm_ops`(pg_bigm) | `tidy(제목) + " " + tidy(저자) + " " + tidy(한 줄)`. `tidy` = NFKC 정규화 → 소문자 → 모든 빈칸과 보이지 않는 서식 문자 삭제 | 낱말 검색 `LIKE` |
+| `catalog.book_search.search_text` | text COLLATE "C", GIN 인덱스 `gin_bigm_ops`(pg_bigm) | `tidy(제목) + " " + tidy(저자) + " " + tidy(한 줄)`. `tidy` = NFKC 정규화 → 소문자 → 모든 빈칸과 보이지 않는 서식 문자 삭제 | 낱말 검색 `LIKE`(`keyword-match=like`일 때만) |
 | `catalog.book_search.library_ids` | integer[] | 넣을 때 `catalog.book.library_ids`를 복사한 「이 책을 가진 도서관 id」 | 계획 도서관과 겹치나(`&&`), 몇 곳 겹치나(`plan_count`) |
 | `catalog.book_search.imported_at` | timestamptz | 넣은 때 | 서버가 표가 바뀌었나 볼 때 |
+| `catalog.book_search.summary` | text, 1\~500자, null 가능 | PC에서 Haiku 한 번 호출로 쓴 요약(넣기 파일의 `search_summary` 줄, v1.23.0\~). 책첵 요약 `catalog.book_summary`와 다른 글 | 2차가 읽는 글(4-10) |
+| `catalog.book_search.terms` / `written_on` | text, 1\~2000자(검색 낱말 30\~50개, 쉼표로 나눔) / date | 같은 호출이 뽑은 검색 낱말(`search_terms` 줄)과 쓴 날. `summary`·`terms`가 모두 없으면 `written_on`도 없음 | BM25 글, 2차가 읽는 맞은 낱말 |
+| `catalog.book_search.keyword_text` | text, 기본 빈 글 | 넣을 때 만드는 제목·저자·한 줄·검색 낱말(띄어쓰기 그대로) | BM25 낱말 후보(4-7) |
+| `catalog.book_search.library_words` | text, 생성 칼럼 | `library_ids`를 「l3 l17 …」 낱말로(`catalog.library_words`, `catalog/005`) | BM25 안의 계획 도서관 거르기 |
+| 색인 `catalog.book_search_bm25` | pg_search(paradedb) | `book_id`, `keyword_text`(한국어 분석기 `pdb.lindera(korean)`), `library_words`(빈칸으로 나눔). DB 이미지에 pg_search가 없으면 만들지 않음 | `keyword-match=bm25`일 때 |
 | `aisearch.daily_usage` | 서울 날짜 1행 | `request_count`, `llm_call_count`, `input_tokens`, `output_tokens`, `cost_micro_usd`, `rate_limited_count`, `paused_count` | 시작 때 비용 검사, 끝에 더하기 |
 | `foryou.book_neighbour.neighbour_ids` | integer[], 1\~20개 | 크롤 PC가 KURE-v1 책 벡터로 계산한 가까운 책 20권, 가까운 순 | 앞 책·이름 댄 책의 이웃 |
 | `catalog.book_cover.file_key` | text, sha1 40자 | PC가 받아 S3에 올린 표지 이름 → `https://d1bdzw8sfjph5d.cloudfront.net/covers/<file_key>.jpg`(`catalog.CoverUrls`) | 목록 표지가 없는 카드의 표지 |
@@ -176,7 +181,7 @@
 - `book_search`는 `collection` 가져오기의 `book-texts` 모드만 바꿉니다(`BookTextsImport.run` → `catalog.BookTextsTransfer.replaceSearchBooks`; 파일 첫 줄 `# export_id=`가 그 DB의 마지막 가져오기와 같아야 함). 찾기 글의 제목·저자와 `library_ids`는 넣을 때 `catalog.book`에서 읽습니다. 다시 가져오기의 바꿔 끼우기는 새 목록에 없는 번호의 줄을 지웁니다(plan ADR-0162). 한 트랜잭션에서 모든 행을 지우고, 「추천 목록 책 전부(`ListedBooks.loadFromDb`)」 + 「보유 도서관이 많은 순 상위 N권(`catalog.book`을 `cardinality(library_ids) DESC, id` 순, `MostHeldBooks.top`)에서 목록 책과 넣기 파일의 `search_exclude` 책을 뺀 것」을 500행씩 넣습니다. N은 파일 기본 30000(`application-collection-import.yml`), 운영 명령은 `book-texts-top-books=100000`([6-aisearch.md](../../maintenance/6-aisearch.md) 3절). 넣은 뒤 `VACUUM (FULL, ANALYZE)`로 표를 다시 씁니다.
 - 행 수: 운영 76,759권. 이 수는 코드가 정하지 않고 [6-aisearch.md](../../maintenance/6-aisearch.md) 0절·4절(운영 넣기 로그 `stored`, 2026-10-27)에 적힌 값입니다.
 
-근거: `db/changelog/catalog/002-book-descriptions.yaml`(사이클 26, 옛 `aisearch/001`·`003`·`004`의 규칙 그대로), `catalog.SearchText.tidy`·`ofBook`, `BookTextsImport.searchBooks`, `catalog/internal/texts/JdbcBookTextsTransfer.replaceSearchBooks`, `JdbcAiSearchIndex.compact`, `JdbcMostHeldBooks.top`, `foryou/internal/store/BookTexts`, `JdbcBookCards.cards`, `db/changelog/foryou/` 첫 파일, `db/changelog/usagelog/008-ai-search-event.yaml`.
+근거: `db/changelog/catalog/006-book-search-bm25.yaml`·`005-library-words.sql`(v1.23.0), `db/changelog/catalog/002-book-descriptions.yaml`(사이클 26, 옛 `aisearch/001`·`003`·`004`의 규칙 그대로), `catalog.SearchText.tidy`·`ofBook`, `BookTextsImport.searchBooks`, `catalog/internal/texts/JdbcBookTextsTransfer.replaceSearchBooks`, `JdbcAiSearchIndex.compact`, `JdbcMostHeldBooks.top`, `foryou/internal/store/BookTexts`, `JdbcBookCards.cards`, `db/changelog/foryou/` 첫 파일, `db/changelog/usagelog/008-ai-search-event.yaml`.
 
 ### 3-2. 다른 모듈에서 공개 API로 읽는 것
 
@@ -198,7 +203,7 @@
 | 무엇 | 언제 읽나 | 크기 |
 |---|---|---|
 | `SearchBooks`: `AiSearchIndex.books()`(`book_search`의 `book_id`와 `catalog.book`의 제목·저자·출간 연도) 전부 + 제목·저자의 「글자만」 열쇠(`SearchText.letters`: tidy 뒤 글자·숫자 말고 모두 삭제). 읽을 때 제목 목록을 `TitleWords`에도 넘김(4-0-2) | 요청 때 1분에 한 번까지 `SELECT count(*), max(imported_at)`로 바뀌었나 보고, 바뀌었으면 다시 읽음 | 76,759행 |
-| `BookVectorFile`: `book-vectors.bin` 통째로 | 서버 시작 때 | 81,078 × 1024바이트 + id·scale |
+| `BookVectorFunnel`(운영 `vector.search.mode=funnel`): id·scale과 줄마다 부호 비트 128바이트만 힙에, int8 줄은 `book-vectors.bin`을 읽기 전용 mmap. `exact`면 `BookVectorFile`이 파일 통째로 | 서버 시작 때 | 238,392줄(81,078권) × 128바이트 + id·scale |
 | `FirstCallModel` 2개, `BookProfiles` | 서버 시작 때 | 아래 3-4절 |
 | `IntentVectors`: `resources/aisearch/intent-examples.tsv` 80줄(recency 40, all_choices 40)의 벡터 | 처음 쓸 때 옆에서 만듦(실패하면 1분 뒤 다시) | 80 × 1024 |
 
@@ -206,23 +211,23 @@
 
 ### 3-4. 모델 폴더 파일
 
-운영 경로: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기 전용, `deploy/prod/compose.yaml`의 `CHAEKCHECK_AISEARCH_MODEL_DIR`). 아래 숫자는 PC의 같은 파일 헤더를 Python으로 읽어 확인했습니다(2026-10-29).
+운영 경로: 서버 `/srv/chaekcheck/aisearch-model` → 컨테이너 `/models/aisearch`(읽기 전용, `deploy/prod/compose.yaml`의 `CHAEKCHECK_AISEARCH_MODEL_DIR`). 아래 숫자는 PC의 같은 파일 헤더를 Python으로 읽어 확인했습니다(1차·관계 파일은 `aisearch-model-100k-v2`, 책 벡터는 `aisearch-model-two-layer`, 2026-11-05).
 
-**`book-vectors.bin`** (83,996,822바이트)
-- 리틀엔디언. `"CCBV1\n"`(6바이트) → `count` int32 = **81,078** → `dim` int32 = **1024** → 책 id int64 × 81,078 → 줄마다 scale float32 × 81,078 → 벡터 int8 × 81,078 × 1024.
-- 「int8 줄 × 그 줄의 scale」이 그 책의 길이 1짜리 KURE-v1 벡터입니다. 만들 때: 벡터를 길이 1로 나누고 → `scale = max(|v|) / 127` → `round(v / scale)`을 −127\~127로 자름(`scripts/aisearch/make_book_vectors.py`).
-- 책 쪽 글(제목 · 저자 · 출판사 · 연도 + 소개 앞 300자)은 PC가 계산했고 이 저장소 코드가 아닙니다([6-aisearch.md](../../maintenance/6-aisearch.md) 9절 기록).
+**`book-vectors.bin`** (246,974,126바이트, v1.23.0\~)
+- 리틀엔디언. `"CCBV1\n"`(6바이트) → `count` int32 = **238,392**(줄 수) → `dim` int32 = **1024** → 책 id int64 × 238,392 → 줄마다 scale float32 × 238,392 → 벡터 int8 × 238,392 × 1024. 한 책이 여러 줄(요약 줄 1 + 소개 조각 줄, 최대 10줄)이라 id가 되풀이됩니다(81,078권).
+- 「int8 줄 × 그 줄의 scale」이 그 줄의 길이 1짜리 KURE-v1 벡터입니다. 만들 때: 벡터를 길이 1로 나누고 → `scale = max(|v|) / 127` → `round(v / scale)`을 −127\~127로 자름(`scripts/aisearch/make_book_vectors.py`, 두 층 파일은 `scripts/aisearch/build_two_layer_vectors.py`).
+- 책 쪽 글(v1.23.0\~): 요약 줄 「제목 · 저자 · 출판사 · 연도」 + Haiku 요약 1개와, 소개를 512토큰씩 나눈 조각 줄들. PC가 계산했고(`scripts/aisearch/build_two_layer_vectors.py`) 서버 코드는 파일만 읽습니다([6-aisearch.md](../../maintenance/6-aisearch.md) 15절). v1.22까지는 「제목 · 저자 · 출판사 · 연도 + 소개 앞 300자」 한 줄(같은 문서 9절).
 
 **프로필** (77,551권): 사이클 26부터 `catalog.book_profile`에서 서버 시작 때 한 번 읽음(시작 로그 `ai search first call: ml, N book profiles from catalog.book_profile`). 표가 비어 있으면 경고 한 줄(`… the ml one is off: catalog.book_profile is empty …`)을 남기고 ML 1차 호출이 꺼져 Haiku로 감. 서버는 그대로 뜸. 모델 폴더의 파일 `book-profiles.tsv`를 대신 읽는 길은 v1.22.1에서 지움(plan 사이클 26 회고, 사용자 2026-10-29 「지우기해줘」)
 - 표에 넣는 PC 파일(`book-profiles` 넣기, [7-foryou.md](../../maintenance/7-foryou.md) 2절): UTF-8, 첫 줄 `# export_id=…`, 그다음 한 줄에 책 하나, 탭으로 나눈 9칸: `책 id`, `field`, `subfield`, `fiction`(1·0·빈칸), `genre`(`|`로 이음), `country`, `audience`, `level`, `form`(`|`로 이음). 예: `7	자기계발	공부법	0			교양	교양	`.
 
-**`first-call-model.bin`** (25,824,240바이트)
-- 리틀엔디언. `"CCFC1\n"` → 머리 JSON 길이 int32(5,918) → UTF-8 머리 JSON(`dim` 1024, `hidden` 512, `heads` 목록) → 머리(head)마다 float32로 `W1[512×1024]`, `b1[512]`, `W2[출력×512]`, `b2[출력]`.
+**`first-call-model.bin`** (25,824,225바이트, v2 파일, v1.21.0\~)
+- 리틀엔디언. `"CCFC1\n"` → 머리 JSON 길이 int32(5,903) → UTF-8 머리 JSON(`dim` 1024, `hidden` 512, `heads` 목록) → 머리(head)마다 float32로 `W1[512×1024]`, `b1[512]`, `W2[출력×512]`, `b2[출력]`.
 - 머리 12개(한 머리 = 은닉층 하나짜리 작은 신경망):
 
 | 머리 | 종류 | 출력 수 | 고르는 규칙 |
 |---|---|---|---|
-| `route` | route(softmax) | 5: `not_book, title_like, refers_shown, site, book` | tau 0.55(파일 값 0.5499999999999999) |
+| `route` | route(softmax) | 5: `not_book, title_like, refers_shown, site, book` | tau 0.30(v1.21.0\~ v2 파일. v1.16.1\~v1.20.6 라우터 B는 0.55) |
 | `field` | multi(시그모이드) | 22 | 0.1 이상, 최대 2개 |
 | `subfield` | multi | 99 | 0.3 이상, 최대 2개 |
 | `genre` | multi | 14 | 0.25 이상, 최대 2개 |
@@ -321,7 +326,7 @@
 |---|---|---|---|---|
 | 「다 같이」 | 바로 앞 턴이 고를 답이 있는 되묻기였을 때: 2차 되묻기, 대화 호출의 되묻기, 책 없음 뒤 선택지(고정 되묻기 `NOT_BOOK_ASK`만 제외). 책 없음 뒤 선택지는 질문 글이 비어 오지만, 웹이 `askQuestion`에 그 턴의 머리말을 넣어 보내므로(`ask.question \|\| head`) 서버가 선택지를 버리지 않음 | 「다 같이·전부·모두·다 줘/보여/찾아/골라·둘 다·셋 다·다」, 거절 말(별로·싫·말고·아니·빼고·없)이 있으면 아님 | 예시 `all_choices`: all / one / reject / other | 전부면 그 되묻기의 선택지 전부가 검색 주제(아래 「A나 B」처럼 주제마다 찾음) |
 | 조건 말 | 2낱말 이하 이어 묻기, 대화 말 아님, 바로 앞 턴이 되묻기가 아님 | `CONDITION`: 최신·신간·신작·요즘·요새·최근·새로 나온·짧·얇·쉬운·쉽게·어려운·가벼운·두꺼운·만화·그림·번역·국내·외국·해외·○○○○년 | — | 4-3절 ML 1차를 pointsBack으로 돌려 앞 주제와 이어 찾음(관계가 new여도 `joined`). 질문이 최신 말뿐(「요새꺼」)이면 가까운 책은 앞 질문의 벡터로 찾음 |
-| 최신 | 질문 글, 그리고 관계가 new가 아니면 앞 질문들(새것부터) | 「2020년 이후·부터·넘어·뒤·이상·후」면 그 해(올해보다 크면 무시). 아니면 최신 말(최신·신간·신작·요즘·요새·최근·새로/갓 나온·올해)이 있는지 | 예시 `recency`가 recent일 때만 최신(「요즘 지쳤는데」는 아님) | 첫 해 = 올해 − 3(2026년이면 2023). 4-7·4-8절에서 최근 책이 먼저, 최신 말 낱말(「최신책」)은 검색어에서 뺌, 2차 메모에 「사용자는 최근에 나온 책을 원한다. 2023년 이후…」 |
+| 최신 | 질문 글, 그리고 관계가 new가 아니면 앞 질문들(새것부터) | 「2020년 이후·부터·넘어·뒤·이상·후」, 「최소 2023년」, 「작년·재작년·올해 나온」(v1.23.1)이면 그 해(올해보다 크면 무시). 아니면 최신 말(최신·신간·신작·요즘·요새·최근·새로/갓 나온·올해)이 있는지 | 예시 `recency`가 recent일 때만 최신(「요즘 지쳤는데」는 아님) | 「최신·요즘」이면 첫 해 = 올해 − 3(2026년이면 2023)이고 4-7·4-8절에서 최근 책이 먼저. 해를 대면 **하한**(v1.23.1\~): 그보다 오래되었거나 연도 없는 책은 낱말·벡터 후보와 카드에서 뺌(`YearFloor.bound`, `tooOld`). 최신 말 낱말(「최신책」)은 검색어에서 뺌, 2차 메모에 「사용자는 최근에 나온 책을 원한다. 2023년 이후…」 |
 | 「아까」 (`BACK_TO`) | 4-0-1절 | 순서 말(처음·첫번째·두번째·세번째·끝·마지막·앞에 둘·전부)이 고르는 주제 + 질문 낱말(대화 말 뺌)이 든 주제 | 대화 말·최신 말을 뺀 질문 조각마다 가장 가까운 앞 질문 하나(0.3 이상, v1.22.2부터 합쳐진 주제가 아니라 질문 하나하나와 견줌) | 고른 주제·질문을 이어 붙인 글이 찾는 주제. 앞 질문에 그 조각의 낱말이 없으면 조각도 붙임(「세게사 책」 + 「세계사」) |
 | 「A나 B」 | 찾는 질문 글(위 주제 포함) | 나·이나·랑·이랑·하고·쉼표·또는·아니면·혹은으로 이은 주제, 또는 목록 말(둘다·셋다·섞어·아무거나·중에·아님·든, 끝의 「다」) 앞의 주제 낱말들. 2개 이상일 때만 | — | 4-7절 낱말 검색과 4-8절 벡터 검색을 주제마다 따로 하고 번갈아 담음(로그 `parts N`) |
 
@@ -363,7 +368,7 @@
 - route·single 머리: `softmax(z)`(가장 큰 값을 빼고 exp, 합으로 나눔). multi 머리: 칸마다 `1 / (1 + e^(−z))`.
 
 **(나) 길 고르기** (`FirstCallModel.route`)
-- 5개 확률 중 가장 큰 것 k. k가 `book`이거나 확률이 0.55 이상이면 k, 아니면 `book`. 즉 `book`이 아닌 길은 0.55 이상일 때만 고릅니다.
+- 5개 확률 중 가장 큰 것 k. k가 `book`이거나 확률이 0.30 이상이면 k, 아니면 `book`. 즉 `book`이 아닌 길은 0.30 이상일 때만 고릅니다(v1.21.0\~ v2 파일. 그 전 라우터 B는 0.55).
 
 **(다) 칸 고르기** (`MlFirstCall.shelves`)
 - multi 머리: 기준값 이상인 칸을 **칸 순서대로(확률 순이 아님)** 앞에서 최대 2개.
@@ -403,12 +408,12 @@
 ### 4-4. 가까운 책 (nearest)
 
 - 검색 벡터: 이은 벡터를 쓰기로 했으면 `j`, 아니면 `v`.
-- 계산(`BookVectorFile.nearest`, 검색 스레드에서 바로): 81,078줄마다 `점수 = (Σ_{i=0..1023} int8[i] × q[i]) × scale[줄]`. 책 벡터와 질문 벡터가 모두 길이 1이라 이 값은 코사인 유사도에 가깝습니다(int8로 줄인 오차, 만들 때 잰 최악 코사인 0.99975). 크기 600의 최소 힙으로 상위 600개를 남김.
+- 계산(운영 `BookVectorFunnel.nearest`, 검색 스레드에서 바로, v1.23.0\~): ① 238,392줄 모두 부호 비트(값이 0보다 크면 1)와 질문 부호 비트의 해밍 거리를 세어 작은 순 10,000줄(`hamming-keep`) → ② 그 줄의 비트를 +1 / −1로 읽어 질문(소수)과 내적, 큰 순 max(2,000(`binary-keep`), 600 × 책당 최대 줄 수)줄 → ③ 그 줄만 mmap한 파일에서 `점수 = (Σ_{i=0..1023} int8[i] × q[i]) × scale[줄]`로 다시 매김. 책마다 가장 높은 줄의 점수를 쓰고 같은 책은 한 번만(`BookVectors.books`). 책 벡터와 질문 벡터가 모두 길이 1이라 이 값은 코사인 유사도에 가깝습니다. `vector.search.mode=exact`면 `BookVectorFile.nearest`가 모든 줄을 이 식으로 매기고 최소 힙으로 600 × 책당 최대 줄 수만큼 남깁니다(v1.22까지 운영).
 - 개수: `vector-depth × NEAREST_POOL` = 60 × 10 = **600**(v1.22.1\~). 최신 책을 앞으로 옮길 여유를 두려는 것이고, 120개로 자르는 일은 4-8절에서 합니다. 질문이 최신 말뿐이면(「요새꺼」) 앞 질문 벡터 `e`로 찾습니다.
 - 출력: `List<Long>` 책 id 600개, 가까운 순.
 - 이 단계가 예외로 끝나면 이 검색은 Haiku 1차로 감(로그 `the ml first call failed`).
 
-근거: `AiSearchFlow.mlStep`, `KureQuestionVectors.nearest(float[], int)`, `BookVectorFile.nearest`.
+근거: `AiSearchFlow.mlStep`, `KureQuestionVectors.nearest(float[], int)`, `BookVectorFunnel.nearest`, `BookVectors.books`, `BookVectorFile.nearest`, `application.yml`의 `vector.search`.
 
 ### 4-5. 길에 따라 여기서 끝나는 경우
 
@@ -459,42 +464,61 @@
 - 중심 낱말(core)은 앞 4개를 먼저 두고 낱말을 뒤에 붙임. ML 1차는 중심 낱말이 늘 비어 있고, Haiku 1차만 채웁니다.
 - 낱말이 0개거나 계획 도서관이 0곳이면 SQL 없이 빈 목록.
 
-**SQL** (낱말이 `w0, w1, …`이고 각 `:kN` = `'%' + 낱말 + '%'`, `\ % _`는 글자 그대로 맞춤)
+**운영(v1.23.0\~, `chaekcheck.catalog.ai-search.keyword-match=bm25`): BM25** (`JdbcAiSearchIndex.findBm25`)
+
+```sql
+SELECT s.book_id, pdb.score(s.book_id) AS score,
+       catalog.plan_library_count(s.library_ids, CAST(:plan AS integer[])) AS plan_count,
+       <최신이면 coalesce((SELECT b.published_on >= make_date(:from, 1, 1) FROM catalog.book b WHERE b.id = s.book_id), false), 아니면 false> AS recent
+FROM catalog.book_search s
+WHERE s.keyword_text ||| :words AND s.library_words ||| CAST(:libraries AS text)::pdb.boost(0)
+ORDER BY pdb.score(s.book_id) DESC
+LIMIT :limit
+```
+
+- `:words` = 낱말을 빈칸으로 이은 글. `:libraries` = 계획 도서관 id를 「l3 l17 …」로 이은 글. `keyword_text`(제목·저자·한 줄·Haiku 검색 낱말)는 한국어 분석기로, `library_words`는 빈칸으로 나눠 색인 `catalog.book_search_bm25`에 들어 있어, 계획 도서관 거르기가 색인 안에서 돕니다(점수 0).
+- 점수 = BM25 × 1,000(반올림한 정수). 중심 낱말 가중치는 없습니다.
+- 뺄 책은 SQL이 아니라 Java에서 거릅니다. 그래서 읽는 수 = `LIMIT` + 뺄 책 수(최신이면 `LIMIT` × 2 + 뺄 책 수). 최신이면 `recent`가 참인 책을 앞으로 모은 뒤 `LIMIT`개로 자릅니다.
+- 색인이 없으면(DB 이미지에 pg_search 없음) 첫 검색에서 경고 한 줄(`BM25 is set but catalog.book_search_bm25 is missing`)을 남기고 아래 LIKE로 찾습니다.
+
+**`like`일 때: LIKE SQL** (낱말이 `w0, w1, …`이고 각 `:kN` = `'%' + 낱말 + '%'`, `\ % _`는 글자 그대로 맞춤, `:wN` = 낱말 그대로)
 
 ```sql
 SELECT book_id, score, plan_count FROM (
   SELECT s.book_id,
-         (s.search_text LIKE :k0 ESCAPE '\')::int + (s.search_text LIKE :k1 ESCAPE '\')::int + … AS score,
-         (SELECT count(*) FROM unnest(s.library_ids) AS l(id)
-           WHERE l.id = ANY(CAST(:plan AS integer[])))::int AS plan_count,
-         <중심 낱말만의 같은 합, 없으면 0> AS core_score
+         (strpos(s.search_text, :w0) > 0)::int + (strpos(s.search_text, :w1) > 0)::int + … AS score,
+         <plan_count 식> AS plan_count,
+         <중심 낱말만의 같은 합, 없으면 0> AS core_score,
+         coalesce(<recent 식, 최신이 아니면 0>, 0) AS recent
   FROM catalog.book_search s
   WHERE (s.search_text LIKE :k0 ESCAPE '\' OR s.search_text LIKE :k1 ESCAPE '\' OR …)
     AND s.library_ids && CAST(:plan AS integer[])
     AND NOT (s.book_id = ANY(CAST(:excluded AS bigint[])))
 ) m
-ORDER BY core_score DESC, score DESC, plan_count DESC, book_id
+ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id
 LIMIT :limit
 ```
 
-- **최신일 때(v1.22.1\~)**: 4-0-2절의 첫 해가 있으면 바깥 줄에 `coalesce((SELECT (b.published_on >= make_date(:from,1,1))::int FROM catalog.book b WHERE b.id = s.book_id), 0) AS recent`를 더하고 `ORDER BY core_score DESC, score DESC, recent DESC, plan_count DESC, book_id`. 같은 수의 낱말을 가진 책 가운데 최근 책이 먼저입니다. 이른 검색(4-1)은 쓰지 않습니다.
+- `plan_count 식`(`planCountFor`): 낱말이 1개이거나 계획 도서관이 500곳 이하면 `catalog.plan_library_count(s.library_ids, CAST(:plan AS integer[]))`(`catalog/004`, intarray 교집합), 그 밖에는 `(SELECT count(*) FROM unnest(s.library_ids) AS l(id) WHERE l.id = ANY(CAST(:plan AS integer[])))::int`.
+
+- **최신일 때(v1.22.1\~)**: 4-0-2절의 첫 해가 있으면 `recent` = `(SELECT (b.published_on >= make_date(:from,1,1))::int FROM catalog.book b WHERE b.id = s.book_id)`(없으면 0). 같은 수의 낱말을 가진 책 가운데 최근 책이 먼저입니다. 해를 댄 하한(v1.23.1\~)이면 SQL 뒤에 첫 해보다 오래되었거나 연도 없는 책을 목록에서 뺍니다(`AiSearchFlow`의 `tooOld`, BM25도 같음). 이른 검색(4-1)은 쓰지 않습니다.
 - **주제가 여럿일 때(v1.22.1\~)**: 주제마다 `QuestionWords.of(주제)`를 중심 낱말로, 1차 낱말을 그 뒤에 붙여 `LIMIT` = ⌈50 ÷ 주제 수⌉로 따로 찾고, 1위·1위·2위·2위… 순으로 겹치지 않게 50개까지 담습니다.
 
-- `score` = 들어 있는 낱말 수(낱말 하나에 1점). `plan_count` = 그 책을 가진 계획 도서관 수. 자른 뒤가 아니라 줄 세운 뒤에 `LIMIT`으로 자릅니다. `LIKE '%…%'`는 pg_bigm GIN 인덱스(`book_search_search_text_bigm`)를 탑니다.
+- (`like`) `score` = 들어 있는 낱말 수(낱말 하나에 1점, `strpos`로 셈). `plan_count` = 그 책을 가진 계획 도서관 수. 자른 뒤가 아니라 줄 세운 뒤에 `LIMIT`으로 자릅니다. `LIKE '%…%'`는 pg_bigm GIN 인덱스(`book_search_search_text_bigm`)를 탑니다.
 - `LIMIT`: 벡터와 합칠 때(`mix`) **50**(= max(`keyword-depth` 50, `candidates` 30)). 합치지 않을 때 30 − (이미 고른 수).
 - 4-1절 이른 검색의 조건이 맞으면 이 SQL을 다시 돌리지 않고 그 결과를 씀(로그 `early keyword`).
-- **실행 계획 고정(v1.20.1\~)**: 이 SQL은 읽기 전용 트랜잭션 안에서 `SET LOCAL plan_cache_mode = force_custom_plan` 뒤에 돌립니다(`JdbcAiSearchIndex.find`). 이 설정이 없을 때 JDBC 드라이버(pgjdbc, `prepareThreshold=5`)는 한 연결에서 같은 꼴의 SQL이 5번을 넘으면 서버 준비문으로 바꾸고, PostgreSQL이 낱말 값과 상관없는 일반 계획을 골라 맞는 줄 전부에 `plan_count`를 셌습니다(「소설」·「위로」 16,418줄, 5.17초 vs 맞춤 계획 0.24초). v1.19.0 이전에도 같았고, 운영에서 v1.20.0 r3·r4 측정에 드러남. 자세한 원리: [사이클 26 일반 계획 설명](../book-descriptions/3-postgres-generic-plan.md), 전후 숫자: [첫 글 시간 7절](reports/2026-10-27-latency.md#7-사이클-26-배포-1과-실행-계획-고정-v1200v1201-2026-10-29).
+- **실행 계획 고정(v1.20.1\~)**: 이 LIKE SQL은 읽기 전용 트랜잭션 안에서 `SET LOCAL plan_cache_mode = force_custom_plan` 뒤에 돌립니다(`JdbcAiSearchIndex.find`). 이 설정이 없을 때 JDBC 드라이버(pgjdbc, `prepareThreshold=5`)는 한 연결에서 같은 꼴의 SQL이 5번을 넘으면 서버 준비문으로 바꾸고, PostgreSQL이 낱말 값과 상관없는 일반 계획을 골라 맞는 줄 전부에 `plan_count`를 셌습니다(「소설」·「위로」 16,418줄, 5.17초 vs 맞춤 계획 0.24초). v1.19.0 이전에도 같았고, 운영에서 v1.20.0 r3·r4 측정에 드러남. 자세한 원리: [사이클 26 일반 계획 설명](../book-descriptions/3-postgres-generic-plan.md), 전후 숫자: [첫 글 시간 7절](reports/2026-10-27-latency.md#7-사이클-26-배포-1과-실행-계획-고정-v1200v1201-2026-10-29).
 - 출력: `List<Candidate(bookId, score, planCount)>`. 그다음 서버 메모리의 `book_search` 사본에 없는 책(요청 사이에 표가 바뀐 경우)은 버림.
 
 **합치지 않을 때**(`mix`가 거짓: 앞 책을 가리킴, 또는 벡터가 꺼짐): 이 순서 그대로 `chosen` 뒤에 붙이고 4-10절로. 같은 제목 거르기는 하지 않습니다.
 
-근거: `AiSearchFlow.answer`, `CandidateQuery.find`·`usableKeywords`·`escapeLike`·`PLAN_COUNT`, `aisearch/001-aisearch-schema.yaml`(인덱스).
+근거: `AiSearchFlow.answer`, `CandidateQuery.find`·`usableKeywords`·`escapeLike`·`PLAN_COUNT`, `JdbcAiSearchIndex.find`·`findBm25`·`planCountFor`, `db/changelog/catalog/002-book-descriptions.yaml`(pg_bigm 인덱스), `catalog/006-book-search-bm25.yaml`(BM25 색인), `catalog/004-plan-library-count.sql`.
 
 ### 4-8. 벡터 후보 (vector)
 
 - 입력: 가까운 책 600개(`vector-depth` × `NEAREST_POOL` 10, v1.22.1\~). ML 1차면 4-4절의 것, Haiku 1차로 온 검색은 질문만으로 따로 만든 벡터의 600개(6절). 주제가 여럿이면(4-0-2 「A나 B」) 주제마다 벡터를 만들어(최대 1.5초) 600 ÷ 주제 수개씩 읽고 번갈아 담은 목록을 씁니다(주제 벡터가 안 오면 질문 하나의 것).
 - 기다림: 그 결과를 최대 2초 기다림. 늦거나 실패하면 빈 목록(로그 `the question vector was late` / `failed`)이고 낱말 후보만으로 이어감.
-- 거르기 차례: `book_search`에 있고 뺄 책이 아닌 것 → 최신이면 앞 240개(`RECENT_WINDOW` 4 × 60) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮김 → 앞 **120개**(`vector-depth` × 2) → 한 SQL(`planCounts`)로 계획 도서관 수를 세어 1곳 이상 가진 것 → 앞에서 **60개**(`vector-depth`).
+- 거르기 차례: `book_search`에 있고 뺄 책이 아닌 것 → 최신이면 앞 240개(`RECENT_WINDOW` 4 × 60) 안에서 출간 연도(`SearchBooks`가 `catalog.book.published_on`에서 읽은 해)가 첫 해 이상인 책을 앞으로 옮김(해를 댄 하한이면 그 책만 남김, v1.23.1\~) → 앞 **120개**(`vector-depth` × 2) → 한 SQL(`planCounts`)로 계획 도서관 수를 세어 1곳 이상 가진 것 → 앞에서 **60개**(`vector-depth`).
 - 출력: `List<Long>` ≤60, 가까운 순. 계획 도서관 수는 카드용으로 기억.
 
 근거: `AiSearchFlow.vectorCandidates`·`partNearest`, `CandidateQuery.planCounts`.
@@ -508,7 +532,7 @@ LIMIT :limit
 2. 칸 보너스(ML 1차일 때만): `0.004 × 맞은 칸 수`. 맞은 칸 수(0\~8) = 책 프로필(`catalog.book_profile`)과 질문 칸을 비교해 field 같음, subfield 같음, fiction 같음, genre 하나라도 겹침, country 같음, audience 같음, level 같음, form 하나라도 겹침을 각 1. 질문이 말하지 않은 칸과 프로필이 없는 책은 0.
    - 크기 비교(계산): 1위와 2위의 차이가 0.00026이므로 칸 하나(0.004)는 위쪽 순위 여러 계단을 올립니다.
 3. 합으로 큰 순 정렬. 같으면 낱말 순위 → 벡터 순위 → 책 id 작은 순.
-4. 뺄 칸 책을 맨 뒤로(ML 1차일 때만): 질문이 「소설 아님」인데 책이 소설이거나, 책의 field·subfield가 빼 달라는 칸에 있거나, genre가 빼 달라는 장르와 겹치면 그 책들을 같은 순서로 맨 뒤에.
+4. 뺄 칸 책을 맨 뒤로(ML 1차이고 `first-call.rules-out`이 켜졌을 때만. **운영은 v1.23.0부터 끔**, 「소설 아님」 오판 때문): 질문이 「소설 아님」인데 책이 소설이거나, 책의 field·subfield가 빼 달라는 칸에 있거나, genre가 빼 달라는 장르와 겹치면 그 책들을 같은 순서로 맨 뒤에.
 5. 자르기: 이 순서로 `chosen` 뒤에 붙이되, 「글자만」 제목 열쇠가 이미 있는 책(같은 책 다른 판)은 건너뛰고 전체 **30권**에서 멈춤.
 
 - 출력: 후보 `List<Long>` ≤30. 0권이면 4-12절 (라)(책 없음 뒤 선택지 호출 → `ask`) 다음 `done {"result":"no_match","bookIds":[]}`로 끝.
@@ -518,7 +542,7 @@ LIMIT :limit
 ### 4-10. 카드 재료 (cards)
 
 - 2차에 보낼 것(검색 스레드에서 차례로):
-  - 한 줄: `SELECT book_id, line FROM catalog.book_search WHERE book_id = ANY(:ids) AND line IS NOT NULL`.
+  - 읽을 글: `AiSearchIndex.readingTexts(ids, 질문 낱말)`. 운영(`chaekcheck.catalog.ai-search.reading-text=summary`, v1.23.0\~)은 `SELECT book_id, line, summary, terms FROM catalog.book_search WHERE book_id = ANY(:ids) AND (line IS NOT NULL OR summary IS NOT NULL)`로 읽어 「<요약> / 검색 낱말: a, b」(질문 낱말과 맞은 `terms`만, 맞은 것이 없으면 요약만)를 만듦. 요약이 없는 책은 한 줄. `line`이면 `SELECT book_id, line … AND line IS NOT NULL`로 한 줄만.
   - 출간 연도: `BookCards.cards(ids)` → `catalog.book.published_on`의 연도. 실패하면 연도 없이 이어감.
   - 제목·저자: 서버 메모리의 `book_search` 사본.
 - 카드에만 쓸 것(2차에 보내지 않음, **가상 스레드에서 2차와 동시에 읽음**):
@@ -526,7 +550,7 @@ LIMIT :limit
   - 요약: `catalog.BookTexts.summaries(ids)`.
 - 카드 한 장 = 제목·저자(`catalog.book`), 표지(목록 책의 `coverPath`가 있으면 그것, 없으면 그 판의 CloudFront 표지, 둘 다 없으면 null), `myLibraryCount`(그 책의 계획 도서관 수, 모르면 0), `aiSummary`(책첵 요약; 목록 요약과 같은 글이라 차례가 없음). 첫 카드를 보낼 때 표지·요약 읽기가 아직이면 그때 기다립니다. 읽기가 실패하면 표지·요약 없이 카드만.
 
-근거: `AiSearchFlow.answer` 끝부분, `CandidateQuery.lines`, `AiSearchFlow.publishYears`, `AiSearchFlow.Cards.card`.
+근거: `AiSearchFlow.answer` 끝부분, `CandidateQuery.readingTexts`, `JdbcAiSearchIndex.readingTexts`, `AiSearchFlow.publishYears`, `AiSearchFlow.Cards.card`.
 
 ### 4-11. 2차 호출 (llm-first, llm-done)
 
@@ -571,9 +595,9 @@ LIMIT :limit
 30. …
 후보 분야: <분야> <n>권, <분야> <n>권, …
 ```
-- 「대화 메모」 줄은 메모가 있을 때만: 대화 말 메모(4-0-1) / 제목 메모(4-6 (다)) / 낱말 하나 메모 가운데 하나(이 차례로 먼저 있는 것). 최신이면(4-0-2) 그 뒤에 「사용자는 최근에 나온 책을 원한다. <첫 해>년 이후에 나온 책을 먼저 고르고, 오래된 책은 맞는 최근 책이 모자랄 때만 고른다…」를 붙임(`withRecency`).
-- 「올해」는 서울 기준 연도. 「출간」은 연도를 알 때만, 「한 줄」은 있을 때만, 「후보 분야」 줄은 위 조건일 때만.
-- 보내지 않는 것: 회원 번호, IP, 도서관 이름, 표지, 요약.
+- 「대화 메모」 줄은 메모가 있을 때만: 대화 말 메모(4-0-1) / 제목 메모(4-6 (다)) / 낱말 하나 메모 가운데 하나(이 차례로 먼저 있는 것). 최신이면(4-0-2) 그 뒤에 「사용자는 최근에 나온 책을 원한다. <첫 해>년 이후에 나온 책을 먼저 고르고, 오래된 책은 맞는 최근 책이 모자랄 때만 고른다…」를 붙임(`withRecency`). 해를 댄 하한이면(v1.23.1\~) 대신 「사용자는 <첫 해>년 이후에 나온 책만 원한다. 아래 후보는 모두 <첫 해>년 이후 책이다…」를 붙임.
+- 「올해」는 서울 기준 연도. 「출간」은 연도를 알 때만, 「한 줄」은 읽을 글이 있을 때만(운영은 이 자리에 4-10절의 「요약 / 검색 낱말」이 들어가고 이름표는 그대로 「한 줄:」), 「후보 분야」 줄은 위 조건일 때만.
+- 보내지 않는 것: 회원 번호, IP, 도서관 이름, 표지, 카드의 책첵 요약(`catalog.book_summary`). Haiku 요약(`catalog.book_search.summary`)은 읽을 글로 보냄(운영).
 
 **지시문 요점** (전문은 `Prompts.PICK_SYSTEM`)
 - 아래 번호 안에서만 0\~8권. 억지로 고르지 않음.
@@ -647,6 +671,7 @@ LIMIT :limit
 ### 4-13. 끝: 기록과 비용
 
 - 모델 호출이 끝날 때마다 `aisearch.daily_usage`에 `llm_call_count + 1`, 입력·출력 토큰, 비용을 더함. 비용(백만분의 1달러, 올림) = 입력 토큰 × 0.10 + 출력 토큰 × 0.50(가격은 100만 토큰당 US$). 출력 토큰을 모른 채 끊긴 호출은 `max_tokens`만큼 출력한 것으로 셈. 캐시에서 읽은 입력 토큰도 같은 값으로 셈. API 키가 없어 보내지도 않은 호출은 세지 않음.
+- (main, 아직 배포 안 됨) 커밋 `c7387466`부터는 캐시 읽기 토큰을 입력 가격 × 0.1, 캐시 쓰기 토큰을 × 1.25로 셈하고, `daily_usage.cache_read_tokens`·`cache_creation_tokens`(Liquibase `aisearch/006-daily-usage-cache-tokens.yaml`)에 따로 더합니다. 운영 v1.23.1은 위 줄대로입니다.
 - 검색 하나가 끝나면 `usagelog.ai_search_event` 1행(`UsageLog.recordAiSearch`): 걸린 ms, `turnNo`, 1차 결과(`OK`/`FAILED`/`TIMEOUT`, ML 1차는 늘 `OK`), 제목 같음, 2차 결과(`OK`/`NO_MATCH`/`NO_TEXT`/`PARTIAL`/`SKIPPED`), 후보 수, 보여 준 책 id, 토큰 합. 질문과 history는 남기지 않음.
 - 로그 한 줄(7절), 그리고 스트림을 닫음.
 
@@ -717,7 +742,7 @@ LIMIT :limit
 
 형식:
 ```
-ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <후보 수> (vector <벡터 후보 수>[, named book][, early keyword][, talk <종류> <되묻기>]), cards <카드 수>, <걸린 ms> ms, tokens <입력>/<출력>[, ask <되묻기>][, tail <정리 글>][, from <첫 해>][, parts <주제 수>][, text <카드 글 글자 수>[ (long <넘친 카드 수>)]][, client gone][, steps <단계=ms …>]
+ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <후보 수> (vector <벡터 후보 수>[, named book][, early keyword][, talk <종류> <되묻기>]), cards <카드 수>, <걸린 ms> ms, tokens <입력>/<출력>[, ask <되묻기>][, tail <정리 글>][, from <첫 해>[ only]][, parts <주제 수>][, text <카드 글 글자 수>[ (long <넘친 카드 수>)]][, client gone][, steps <단계=ms …>]
 ```
 
 | 칸 | 값 |
@@ -736,7 +761,7 @@ ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <
 | `ask` | `single-ask`(2차가 되물음), `chat`(책 찾는 말이 아니어서 대화 호출이 되물음), `not-book-ask`(대화 호출이 실패해 고정 되묻기), `no-match choices`(책 없음 뒤 선택지를 보냄) |
 | `tail` | 상황별 정리 글이 길어서 끊김(`too long`, v1.21.x). v1.22.2부터 카드 2장 이상인데 정리 글이 없으면 그 까닭: `none`(lines·summary가 빔), `unshown <번호들>`(번호가 보인 카드가 아님), `bad summary` |
 | `text` | 2차가 카드 글에 쓴 글자 수(카드 상한 300자를 넘겨 버린 글자 포함). `long N`은 상한을 넘긴 카드 수(v1.22.2) |
-| `from` | 최신 조건의 첫 해(4-0-2, v1.22.1\~) |
+| `from` | 최신 조건의 첫 해(4-0-2, v1.22.1\~). 뒤에 `only`가 붙으면 해를 댄 하한(v1.23.1\~) |
 | `parts` | 주제를 나눠 찾은 수(4-0-2, v1.22.1\~) |
 | `client gone` | 사용자가 떠남 |
 | `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 600) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-first`(2차 첫 글 조각) `llm-done`(2차 끝) |
@@ -784,8 +809,11 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | `vector.remote.token` | 빈 값 (`CHAEKCHECK_AISEARCH_EMBED_TOKEN`) | Parameter Store 비밀값 | `X-Embed-Token` |
 | `vector.remote.timeout` | 1500ms | 같음 | 임베딩 요청 하나 |
 | `vector.failures-to-open` / `open-for` | 3 / 30s | 같음 | 차단기 |
+| `vector.search.mode` | funnel (`CHAEKCHECK_AISEARCH_VECTOR_SEARCH`) | 같음 | 가까운 책 찾기. `funnel` = 깔때기(4-4), `exact` = 모든 줄 전수 내적 |
+| `vector.search.hamming-keep` / `binary-keep` | 10000 / 2000 | 같음 | 깔때기 1·2단계에서 남기는 줄 |
 | `first-call.mode` | haiku (`CHAEKCHECK_AISEARCH_FIRST_CALL`) | **ml** | 1차를 누가 |
-| `first-call.shelf-bonus` | 0.004 | 같음 | 맞은 칸 하나당 RRF 보너스 |
+| `first-call.shelf-bonus` | 0.004 (`CHAEKCHECK_AISEARCH_SHELF_BONUS`) | 같음 | 맞은 칸 하나당 RRF 보너스 |
+| `first-call.rules-out` | true (`CHAEKCHECK_AISEARCH_RULES_OUT`) | **false**(v1.23.0\~) | 빼 달라는 칸의 책을 맨 뒤로(4-9 4번) |
 | `first-call.site-max-tokens` | 512 | 같음 | 책첵 답 출력 상한 |
 | `first-call.follow-up` | relation (`CHAEKCHECK_AISEARCH_FOLLOW_UP`; 값이 비면 코드가 rule) | relation | 이어 묻기를 관계 신경망으로 |
 | `pick.ask-back` | false (`CHAEKCHECK_AISEARCH_PICK_ASK_BACK`) | **true** | 되묻기 |
@@ -796,6 +824,8 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | `llm.anthropic.effort` | low | 같음 | `output_config.effort` |
 | `llm.anthropic.thinking` | 빈 값 = 칸을 안 보냄 (`CHAEKCHECK_AISEARCH_LLM_THINKING`) | **disabled** | 생각 단계 |
 | `llm.anthropic.cache-system` | false (`CHAEKCHECK_AISEARCH_LLM_CACHE_SYSTEM`) | **true** | 지시문 프롬프트 캐싱 |
+| `chaekcheck.catalog.ai-search.keyword-match`(앞을 줄이지 않음) | like (`CHAEKCHECK_AISEARCH_KEYWORD_MATCH`) | **bm25**(v1.23.0\~) | 낱말 후보(4-7). 색인이 없으면 `like` |
+| `chaekcheck.catalog.ai-search.reading-text`(앞을 줄이지 않음) | line (`CHAEKCHECK_AISEARCH_READING_TEXT`) | **summary**(v1.23.0\~) | 2차가 읽는 글(4-10) |
 
 코드 상수(설정으로 못 바꿈):
 
@@ -819,11 +849,11 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | 토크나이저 최대 조각 | 256 | `OnnxQuestionEncoder.MAX_PIECES`, `QueryEncoder.MAX_PIECES` |
 | 1차 길 기준값, 칸 기준값·최대 2개 | 3-4절 표 | `first-call-model.bin` 머리 JSON(파일을 바꾸면 바뀜) |
 
-근거: `AiSearchProperties`, `PickProperties`, `AnthropicProperties`, `application.yml`의 `chaekcheck.aisearch`, `deploy/prod/prod.env`, `deploy/prod/compose.yaml`, 위 표의 각 상수.
+근거: `AiSearchProperties`, `PickProperties`, `AnthropicProperties`, `AiSearchTextSettings`, `application.yml`의 `chaekcheck.aisearch`·`chaekcheck.catalog.ai-search`, `deploy/prod/prod.env`, `deploy/prod/compose.yaml`, 위 표의 각 상수.
 
 ## 9. 코드에서 확인 못 한 것
 
-- 책 벡터를 만든 글(제목 · 저자 · 출판사 · 연도 + 소개 앞 300자)과 KURE-v1 설정: PC 작업이라 이 저장소 코드에 없음. [6-aisearch.md](../../maintenance/6-aisearch.md) 9절과 [임베딩 보고서](reports/2026-10-25-embedding.md)의 기록을 옮겼습니다.
+- 책 벡터를 만든 글(v1.23.0\~ 요약 줄 + 소개 512토큰 조각 줄, v1.22까지 제목 · 저자 · 출판사 · 연도 + 소개 앞 300자)과 KURE-v1 설정: PC 작업이라 서버 코드에 없음(만든 스크립트는 `scripts/aisearch/`). [6-aisearch.md](../../maintenance/6-aisearch.md) 9·15절과 [임베딩 보고서](reports/2026-10-25-embedding.md)의 기록을 옮겼습니다.
 - `book_search` 76,759권: 운영 넣기 로그를 적은 문서 값입니다. 지금 운영 표의 행 수를 직접 세지 않았습니다.
 - 찾기용 한 줄을 만든 지시문: PC 쪽 규칙 파일(`chaekcheck-data\aisearch\agent-chunks\RULES.md` 등)이라 이 문서에서 다루지 않았습니다.
 - picks 캐시가 `picks.*` 표에서 목록 책을 고르는 자세한 규칙(어느 목록을 어떤 순서로 합치나)은 `CacheListedBooks`·`PicksCache`에 있고, 이 요청은 결과의 `coverPath`와 `aiSummary`만 씁니다.

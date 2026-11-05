@@ -3,7 +3,7 @@
 - 기준: plan `docs/cycles/23-for-you-picks/handoff.md`, `design-delta.md`(ADR-0147·0148·0149). 설정 값은 [settings-index.md](settings-index.md) "사이클 23" 줄.
 - 모듈 `foryou`(`backend/src/main/java/com/chaekcheck/foryou/`), 스키마 `foryou`, 꼬리표·사전은 `catalog.tag_dictionary`·`catalog.book_tag`(사이클 26부터).
 
-## 0. 지금 운영 (2026-10-28)
+## 0. 지금 운영 (2026-11-05, v1.23.1)
 
 - 탭 이름은 **「책첵 추천」**(`/picks/for-you`). 구조·숫자·결정의 모음은 [`docs/features/foryou/README.md`](../features/foryou/README.md)(사이클 23 문서 색인)
 - **새벽 만들기는 운영에서 켜져 있음**(`CHAEKCHECK_FORYOU_BUILD_ENABLED=true`, 2026-11-05 사용자 「새벽 인기도서 켜줘 운영에서」, 서버 `prod.env`를 바꾸고 `bin/switch.sh backend 1.23.1`). 첫 실행 2026-11-05 23:27\~23:28(build 1 succeeded): 교보 79·99·60, YES24 229는 100줄씩 모두 맞춤, 교보 73(부천)·YES24 263(국립세종)은 upstream_timeout으로 그날 뺌. 기본 목록 40권(인기 29권), 1위 「아주 희미한 빛으로도」. 끄면 기본 목록은 추천목록 책을 보유 도서관 많은 순으로 돌아감
@@ -21,7 +21,7 @@
   - `foryou.build_run`: `status`, `note`(줄마다 `kyobo_elib:31 rows=100 matched=99 kept` 또는 `… left_out (이유)`, 끝에 `base= popular= listed= scored=`)
   - 로그: `foryou build N succeeded: …`, 그 뒤 `foryou base position=1 book=… total=… demand=… recent=… boost=… sales=… top200=… klwave=… title="…"` 40줄(가중치 조정용, R2-3a)
   - 실패: `foryou build N failed, the list before stays` — 화면은 전날 목록 그대로
-- 이틀 연속 한 출처가 0줄이면 그 출처를 끄고(`chaekcheck.foryou.sources.<출처>.enabled=false` 또는 사이트 번호 빼기) plan에 알립니다(`to-dev-popular-list-check.md` 1절 5번).
+- 이틀 연속 한 출처가 0줄이면 그 출처를 끄고(`chaekcheck.foryou.sources.<출처>.enabled=false` 또는 사이트 번호 빼기) plan에 알립니다(`to-dev-popular-list-check.md` 1절 5번). 운영에서 바꾸려면 `deploy/prod/compose.yaml` `x-backend.environment`에 그 변수 줄(예: `CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_ENABLED`)을 더한 뒤 prod.env에 값을 적고 `bin/switch.sh backend <지금 판>`(지금 compose는 `CHAEKCHECK_FORYOU_BUILD_ENABLED`만 넘김).
 
 ### 인기 사이트 번호
 
@@ -35,15 +35,17 @@ WHERE platform_type IN ('KYOBO_V1', 'YES24_V1')
 ORDER BY platform_type, name;
 ```
 
-- 바꿀 때는 `CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_LIBRARYIDS`, `CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_LIBRARYIDS`(쉼표)로 덮습니다.
+- 바꿀 때는 `CHAEKCHECK_FORYOU_SOURCES_KYOBOELIB_LIBRARYIDS`, `CHAEKCHECK_FORYOU_SOURCES_YES24ELIB_LIBRARYIDS`(쉼표)로 덮습니다. 운영은 이 두 변수도 `deploy/prod/compose.yaml` `x-backend.environment`에 줄을 더해야 컨테이너에 들어갑니다(위 1절 끝과 같음).
 
-### 체크포인트 B·C를 내 PC에서 돌리기
+### 내 PC에서 새벽 만들기를 시험하기 (체크포인트 B·C)
+
+- 사이클 23 인계서의 체크포인트 B = 사이트별 줄 수·맞춤 확인, C = 40권 점수표 확인. 사이클 23 때 끝났고, 출처·가중치를 바꿀 때 다시 씁니다.
 
 1. 로컬 `db`가 운영 꼴 사본(책 표 반영 뒤)인지 확인합니다.
 2. `../.env`에 나가는 길(`CHAEKCHECK_AVAILABILITY_EGRESS_*`, PC는 Webshare 아이디·비밀번호 쌍)을 둡니다. 돌고 있는 책 수집이 쓰는 서버에는 보내지 않습니다: 수집 중이면 그 사이트를 잠시 뺍니다.
 3. `backend/`에서 `./gradlew bootRun` → 켤 때 한 번 만듭니다(오늘 succeeded가 있으면 `DELETE FROM foryou.build_run WHERE built_on = current_date`로 지우고 다시 켬).
 4. B: `build_run.note`의 사이트마다 `rows`·`matched`, 로그의 `ranked_list_failed`, 걸린 시간(`started_at`\~`finished_at`)을 plan-feedback `# 사이클 23`에 적습니다.
-5. C: 로그의 `foryou base position=…` 40줄로 표(책, 출판 연도, 점수, 재료별 점수, ①인지 = `popular=true`이면서 추천목록)를 만들어 사용자에게 보입니다. 추천목록 책은 사이클 24가 main에 들어간 뒤에야 들어옵니다(그 전에는 인기 출처만).
+5. C: 로그의 `foryou base position=…` 40줄로 표(책, 출판 연도, 점수, 재료별 점수, ①인지 = `popular=true`이면서 추천목록)를 만들어 사용자에게 보입니다.
 
 ## 2. 넣기 (수동, 수집 PC 결과)
 
@@ -108,3 +110,19 @@ ORDER BY platform_type, name;
 - 약 134만 줄: 파일을 한 번 읽어 검사(줄을 메모리에 두지 않음)한 뒤 다시 읽으며 넣습니다
 - 로그: `neighbours full: rows N, export <UUID>, computed_on YYYY-MM-DD`
 - 크기·시간(2026-10-24, 클라우드 시험 DB, 가짜 이웃 1,340,875줄 × 20): COPY 약 4.6초, 표 219MB. 운영에서는 바꿔 끼우는 동안 잠깐 두 벌(약 0.44GB)
+
+### 2-4. 책 프로필 (`book-profiles`, 사이클 26)
+
+아래 모드 이름과 설정 이름은 코드에서 옮긴 것입니다(`collection/internal/importer/CatalogImportRunner.java`의 `MODES`·`Settings`(`@ConfigurationProperties("chaekcheck.collection.import")`의 `bookProfilesFile`), `collection/internal/booktexts/BookProfilesImport.java`). `application.yml`·`application-collection-import.yml`에는 이 파일의 기본값이 없어 늘 명령에 줍니다.
+
+```
+./gradlew bootRun --args='--spring.profiles.active=collection-import
+  --chaekcheck.collection.import.mode=book-profiles
+  --chaekcheck.collection.import.book-profiles-file=<TSV 경로>'
+```
+
+- 파일: UTF-8, 첫 줄 `# export_id=<uuid>`(다르면 거절, 번호가 같다고 확실할 때만 `--chaekcheck.collection.import.force=true`), 머리줄 없이 한 줄에 책 하나, 탭으로 나눈 아홉 칸: 책 번호, 분야, 세부 분야, 소설 여부(`1`·`0`·빈칸), 장르(`|`로 이음), 나라, 독자, 수준, 형식(`|`로 이음). 빈칸은 값 없음
+- `catalog.book_profile` 전체를 한 트랜잭션에서 바꿉니다. 문제가 하나라도 있으면 줄 번호와 함께 거절하고 아무것도 쓰지 않습니다
+- 로그: `book-profiles: N profiles from export <UUID>; restart the server for the AI search to read them`
+- AI 검색은 시작할 때만 읽으므로 넣은 뒤 `bin/switch.sh backend <slots.env의 지금 판>`. 시작 로그 `ai search first call: ml, N book profiles from catalog.book_profile, …`
+- 운영(EC2)은 [6-aisearch.md](6-aisearch.md) 3절의 `docker run` 명령에서 모드와 파일 설정만 바꿉니다

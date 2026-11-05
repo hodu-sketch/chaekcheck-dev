@@ -1,6 +1,6 @@
 # 2. 책첵 추천 자료는 어떻게 만들고 넣나
 
-- **이 문서가 답하는 것**: 서버가 읽는 표 4가지(`foryou.book_neighbour`, `foryou.book_blurb`, `foryou.book_cover`, 분야)의 **원재료가 어느 파일·표의 어느 칸이고, 어떤 계산을 거쳐, 어떤 형식으로 나와, 어떤 명령으로 운영에 들어가나**. 지금 운영에 든 판(2026-10-26 「10만 권 판」)의 수.
+- **이 문서가 답하는 것**: 서버가 읽는 표 4가지(`foryou.book_neighbour`, `catalog.book_summary`, `catalog.book_cover`, 분야. 요약·표지는 v1.20.0 전에는 `foryou.book_blurb`·`foryou.book_cover`)의 **원재료가 어느 파일·표의 어느 칸이고, 어떤 계산을 거쳐, 어떤 형식으로 나와, 어떤 명령으로 운영에 들어가나**. 지금 운영에 든 판(2026-10-26 「10만 권 판」)의 수.
 - **답하지 않는 것**: 서버가 이 표를 요청마다 어떻게 쓰나 → [1-how-it-works.md](1-how-it-works.md). 넣기 명령의 모든 선택지 → [`docs/maintenance/7-foryou.md`](../../maintenance/7-foryou.md) 2절.
 - 경로 표기: `<data>` = 데이터 폴더 `..\chaekcheck-data` (git 밖). 운영 = `$CHAEKCHECK_SERVER`의 `/srv/chaekcheck`.
 
@@ -10,10 +10,10 @@
 |---|---|---|---|
 | `foryou.book_neighbour` (`book_id`, `neighbour_ids integer[]` ≤ 20, `computed_on`) | 81,080 | 이 PC, `scripts/crawl/foryou_neighbours.py` | 2·3 |
 | 요약: `foryou.book_blurb` → v1.20.0부터 `catalog.book_summary`(`book_id`, `summary`, `made_on`, 사이클 26이 복사) | 68,414(10-26 넣음) | Haiku(2묶음) | 4 |
-| 표지 연결: `foryou.book_cover` → v1.20.0부터 `catalog.book_cover`(`book_id`, `file_key` = sha1 40자) | 80,091(10-26 넣음) | 수집 PC 표지 받기 결과 재사용 | 5 |
-| 표지 그림 | 10-26 운영 `/srv/chaekcheck/covers/` 81,451개 → v1.20.0부터 CloudFront(`chaekcheck.covers.base-url`, 위치는 plan `docs/cycles/26-book-descriptions/`) | 같음 | 5 |
+| 표지 연결: `foryou.book_cover` → v1.20.0부터 `catalog.book_cover`(`book_id`, `file_key` = sha1 40자) | 80,091(10-26 넣음) → 2026-10-29 사이클 26 단계 11로 1,145,754(책첵 추천 밖 책 포함) | 수집 PC 표지 받기 결과 재사용 | 5 |
+| 표지 그림 | 10-26 운영 `/srv/chaekcheck/covers/` 81,451개 → v1.20.0부터 S3 + CloudFront(`chaekcheck.covers.base-url`, 주소와 올리는 법 [`8-covers.md`](../../maintenance/8-covers.md)) | 같음 | 5 |
 | 분야 묶음 | 표 없음, 요청마다 계산 | [1-how-it-works.md](1-how-it-works.md) 7절 | — |
-| `picks.tag_dictionary`, `picks.book_tag` | 0 | 만들지 않음 | — |
+| `catalog.tag_dictionary`, `catalog.book_tag`(v1.20.0부터, 옛 `picks.*`는 v1.20.6에서 지움) | 0 | 만들지 않음 | — |
 
 ## 1. 대상 책
 
@@ -32,7 +32,7 @@
 | 파일 | 목록 밖 책: `<data>/ml/pool-100000-intro.npy` + `.ids.json`(80,549권 = 앞서 만든 3만 권 판 30,000 + 새 50,549권; 수집 PC가 만듦, 2026-10-26 19:31). 추천목록 책: `<data>/ml/foryou-100k/vectors.npy` + `vectors.ids.json`(`{ids, texts: 글 sha1}`, 2,010권, 이 PC가 2026-10-26에 다시 만듦) |
 | 같은 책이 두 파일에 있으면 | 추천목록 쪽 벡터를 씀 |
 
-AI 검색은 같은 규칙의 벡터를 따로 int8로 바꾼 `book-vectors.bin`(81,078권, 운영 모델 폴더)을 씀. 추천목록 책은 그 파일이 10-25 벡터라 두 벌이 약 2천 권에서 조금 다름([5-improvements.md](5-improvements.md) I-10).
+AI 검색은 같은 규칙의 벡터를 따로 int8로 바꾼 `book-vectors.bin`(81,078권, 운영 모델 폴더. v1.22까지. v1.23.0부터 두 층 238,392줄)을 씀. 추천목록 책은 그 파일이 10-25 벡터라 두 벌이 약 2천 권에서 조금 다름([5-improvements.md](5-improvements.md) I-10).
 
 ## 3. 이웃 표 계산 (`scripts/crawl/foryou_neighbours.py --with-pool --pool pool-100000-intro --out <data>/ml/foryou-100k`)
 
@@ -78,7 +78,7 @@ AI 검색은 같은 규칙의 벡터를 따로 int8로 바꾼 `book-vectors.bin`
 | 받기 | 수집 PC `fetch-covers`(표지 받기). 도서관 목록 줄의 표지 주소 → 실패하면 다른 후보·국립중앙도서관 | `<data>/covers/covers.sqlite` 표 `book_cover`(책 하나 한 줄: `book_key`(ISBN 또는 첫 소장 줄), `book_id`(가져오기 14번), `candidates` JSON, `status` PENDING/DONE/NONE, `source`, `cover_url`, `file`). 파일 `<data>/covers/<sha1 앞 2자>/<sha1(표지 주소)>.jpg` |
 | 범위 정하기 | `scripts/crawl/cover_scope.py --pool pool-100000-intro` | 추천목록 책 ∪ `<data>/ml/pool-100000-intro.ids.json` ∪ 사전 시험 인기 목록 상위 100 |
 | 내보내기 | `cover_scope.py export` | `<data>/covers-export/<sha1>.jpg`(같은 주소 = 같은 파일) + `book-texts-cover_file.tsv`(줄마다 `cover_file<TAB>book_id<TAB>fetch-covers:<source><TAB>날짜<TAB>sha1`) |
-| 운영에 올림 | 이 PC → 운영 | 운영에 없는 파일만 tar로 묶어 `/srv/chaekcheck/`에 올린 뒤 `/srv/chaekcheck/covers/`에 풂(운영 `/tmp`는 메모리라 쓰지 않음). 2026-10-26 새 50,490개 |
+| 운영에 올림 | 이 PC → S3 | v1.20.0부터 PC가 S3 `covers/<sha1>.jpg`에 올리고 CloudFront로 보냄([`8-covers.md`](../../maintenance/8-covers.md)). 2026-10-26에는 운영 `/srv/chaekcheck/covers/`에 50,490개를 풀었으나(운영에 없는 파일만 tar로) 이 폴더는 2026-10-29에 지움 |
 
 10만 권 범위 82,914권 중 DONE 80,078, PENDING 435, 표지 없음 681(2026-10-26 20시대).
 
@@ -94,4 +94,4 @@ AI 검색은 같은 규칙의 벡터를 따로 int8로 바꾼 `book-vectors.bin`
 1. **책 번호가 바뀌면 전부 다시**: 책 목록을 다시 가져오면(`catalog_import` 새 번호) `book_id`가 다시 매겨짐 → 이웃·요약·표지 연결을 새 번호로 다시 만들어야 함. 이웃 넣기는 `export_id`가 다르면 거부함
 2. **AI 검색 범위와 맞추기**: AI 검색은 같은 이웃 표를 쓰되 `aisearch.search_book`에 있는 책만 씀. 이웃 표의 범위만 넓히면 AI 검색이 쓸 수 있는 이웃이 줄어듦(2026-10-26: 책마다 19.85 → 9.47, AI 검색도 10만 권으로 맞춘 뒤 19.82)
 3. 이웃 계산 전에 같은 작품 시험(`test_foryou_neighbours.py`)을 돌림
-4. 사이클 26 뒤에는 요약·표지 넣기가 `catalog` 표로 바뀜(plan `docs/cycles/26-book-descriptions/`)
+4. 요약·표지 넣기는 v1.20.0(사이클 26)부터 `catalog.book_summary`·`catalog.book_cover`로 들어감. 첫 줄 `# export_id=` 필수(6절)

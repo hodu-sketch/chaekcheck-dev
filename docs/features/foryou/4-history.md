@@ -4,7 +4,7 @@
 - **답하지 않는 것**: 각 판의 동작 세부 → [1-how-it-works.md](1-how-it-works.md)(지금 판), 자료 만들기 → [2-data.md](2-data.md), 숫자 → [3-evaluation.md](3-evaluation.md).
 - 날짜는 모두 2026년. 「운영」 = chaekcheck.com. 버전은 [`CHANGELOG.md`](../../../CHANGELOG.md).
 
-## 1. 지금 운영에 든 판 (2026-10-29)
+## 1. 지금 운영에 든 판 (2026-11-05)
 
 | 부분 | 지금 판 | 바뀐 날 |
 |---|---|---|
@@ -16,6 +16,7 @@
 | 분야 | **F2 추천목록 + 이웃 짐작** | v1.14.0 |
 | 화면 | **S4 KAIST 꼴 + AI 줄 없음 + 책 창 요약** | v1.14.0\~v1.14.2 |
 | 기준 책 | **K2 6권, 분야당 2** | v1.13.0 |
+| 기본 목록 | **새벽 만들기 40권**(`foryou.base_entry`, 인기 + 추천목록) | 2026-11-05 (설정만, `CHAEKCHECK_FORYOU_BUILD_ENABLED=true`) |
 
 ## 2. 개인 추천 순서
 
@@ -63,7 +64,7 @@
 |---|---|---|
 | C1 | 10-25 11:31 | 탭 범위 29,588권, 운영 파일 30,961개 |
 | C2 | 10-26 20:52 | 10만 권 범위 80,091권, 새 파일 50,490개 → 81,451개 |
-| **C3** | v1.20.0, 10-29 (사이클 26) | 연결은 `catalog.book_cover`, 그림 주소는 CloudFront |
+| **C3** | v1.20.0, 10-29 (사이클 26) | 연결은 `catalog.book_cover`, 그림은 S3 + CloudFront. 같은 날 단계 11로 1,145,754권(그림 1,128,687장)에 이음, 운영 옛 폴더 지움 |
 
 ## 7. 분야
 
@@ -102,5 +103,6 @@
 
 ## 11. 문서 위치 이력
 
-- 10-29: 사이클 23 문서를 `docs/features/foryou/`로 모음. 옛 자리(`docs/reports/cycle23-*.md`, `docs/reports/foryou-*.md`, `docs/cycle23-session-handoff.md`)에는 옮긴 곳을 알리는 한 줄만 남김
+- 10-29: 사이클 23 문서를 `docs/cycle23-foryou/`로 모음(옛 자리 `docs/reports/cycle23-*.md`, `docs/reports/foryou-*.md`, `docs/cycle23-session-handoff.md`에는 옮긴 곳 한 줄을 남겼으나 지금은 지워짐)
+- 11-05: 문서 종류별 정리로 `docs/features/foryou/`로 옮김(커밋 241bbefd)
 - 개발 중 기록(사용자 발언, 결정 근거, 그날그날 숫자)은 그대로 [`docs/cycles/plan-feedback.md`](../../cycles/plan-feedback.md)의 「# 사이클 23」, 「# 사이클 23 (이어서, 2026-10-26\~27)」, 「# 머신러닝 보강 (사이클 23 이어서)」 절(plan에 넘기는 기록, 날짜 순)

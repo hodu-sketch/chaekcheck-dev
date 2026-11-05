@@ -3,8 +3,8 @@
 사이클마다 dev가 남긴 기록이 어디 있는지 모은 색인입니다. 설계 원본(범위, 인계서, ADR)은 계획 저장소 [hodu-sketch/chaekcheck-plan](https://github.com/hodu-sketch/chaekcheck-plan)의 `docs/cycles/<번호-이름>/`에 있고(아래 표의 폴더 이름을 누르면 열림), dev는 여기서 그 결과를 plan에 넘깁니다.
 
 - **[`plan-feedback.md`](plan-feedback.md)**: 사이클 01부터 2026-11-05까지 plan에 넘긴 날짜 순 원기록입니다(사용자 발언, 결정, 그날의 숫자). 사이클마다 `# 사이클 NN` 절이 있고, 사이클 밖 요청은 `# <주제> (날짜, …)` 절입니다. plan 문서가 이 파일을 행 번호로 가리키므로 **더 쓰지 않고 그대로 둡니다**(동결, plan 결정 2026-11-05).
-- **`NN/plan-feedback.md`**: 2026-11-05부터 plan에 넘기는 기록은 사이클 번호 폴더에 씁니다(예: `24/plan-feedback.md`, `28/plan-feedback.md`). 열린 사이클(20·24·28)도 이어지는 기록은 여기에 씁니다. 지금 열린 사이클 목록과 규칙은 plan `docs/current/handoff.md`.
-- **번호 폴더(`08/`, `09/`, `11/`)**: 그 사이클에만 쓰인 따로 된 문서.
+- **`NN/plan-feedback.md`**: 2026-11-05부터 plan에 넘기는 기록은 사이클 번호 폴더에 씁니다(예: `24/plan-feedback.md`, `28/plan-feedback.md`). 열린 사이클(20·24·28)도 이어지는 기록은 여기에 씁니다. 지금 열린 사이클 목록과 규칙은 plan [`docs/current/handoff.md`](https://github.com/hodu-sketch/chaekcheck-plan/blob/main/docs/current/handoff.md).
+- **번호 폴더(`08/`, `09/`, `11/`, `12/`)**: 그 사이클에만 쓰인 따로 된 문서.
 - **기능 폴더(`../features/`)**: 사이클이 만든 기능의 정리된 문서(지금 동작, 측정, 이력). 날짜 순 원기록은 plan-feedback, 정리본은 기능 폴더입니다.
 
 | 사이클 | 이름 (plan 폴더) | plan-feedback 절 | 따로 된 문서 |

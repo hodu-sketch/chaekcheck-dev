@@ -5,7 +5,7 @@
 
 ## 1. 켜고 끄기, 인증키
 
-- 설정 `chaekcheck.picks.fetch.enabled`, 환경 변수 `CHAEKCHECK_PICKS_FETCH_ENABLED`. 기본값 true(운영)
+- 설정 `chaekcheck.picks.fetch.enabled`, 환경 변수 `CHAEKCHECK_PICKS_FETCH_ENABLED`. 코드 기본값 true, **운영 compose는 `"false"` 고정**(`deploy/prod/compose.yaml`, 목록은 DB에 있음)
 - 꺼 두는 곳: 로컬 `.env`(`false`), 테스트(`application-test.yml`), `collection-import` 프로필
 - 인증키: 환경 변수 `CHAEKCHECK_PICKS_NLK_API_KEY`(설정 `chaekcheck.picks.fetch.api-key`). **비밀값**입니다. 로컬은 `.env`(git 밖)에 사람이 직접 넣고, 운영은 배포 비밀값으로 넣습니다. 코드·설정 파일·`.env.example`·문서·커밋·로그에 값을 적지 않습니다
   - 키가 비어 있으면 요청을 보내지 않고 `fetch_run`에 `FAILED`/`key_missing` 한 줄과 WARN 로그 한 줄을 남깁니다

@@ -8,7 +8,7 @@
 
 - **통합 소장 검색** — 도서관 여러 곳의 소장·대출 가능 여부를 한 화면에서 확인
 - **AI 책 검색** — 자연어로 책을 찾고, 대화하듯 추천을 받을 수 있는 검색
-- **나에게 맞는 책** — 이용 도서관의 인기 도서를 기반으로 한 개인 맞춤 추천
+- **책첵 추천(나에게 맞는 책)** — 최근 본 책과 내용이 비슷한 책을 골라 주는 추천. 로그인 없이, 본 책 기록은 브라우저에만 남음
 - **카카오 로그인** — 관심 도서관을 저장하고 어디서든 이어서 사용
 
 ## 기술 스택
@@ -42,7 +42,9 @@ docs/           기능·운영·도서관 조사·사이클 기록 (목차: docs
 - [책첵 추천](docs/features/foryou/7-summary.md) — 이웃 책 계산, 소개 글 임베딩, 시험 설계와 결과
 - [책 설명 모으기·표지 S3](docs/features/book-descriptions/1-summary.md) — 데이터 이전과 질의 속도
 
-전체 목차는 [docs/README.md](docs/README.md)에 있습니다. 운영 절차는 `docs/maintenance/`, 기능별 동작·측정은 `docs/features/`에 있습니다.
+전체 목차는 [docs/README.md](docs/README.md)에 있습니다. 운영 절차는 [docs/maintenance/README.md](docs/maintenance/README.md), 기능별 동작·측정은 [docs/features/](docs/features/), 손으로 돌리는 도구는 [scripts/README.md](scripts/README.md)에 있습니다.
+
+운영은 AWS EC2(시드니) 한 대에서 백엔드를 blue/green 두 자리로 번갈아 띄워 무중단으로 배포합니다. 배포·되돌리기: [deploy/prod/README.md](deploy/prod/README.md). 지금 운영 버전은 `https://chaekcheck.com/api/v1/version`, 버전마다 바뀐 점은 [CHANGELOG.md](CHANGELOG.md).
 
 ### 개발 방식
 
@@ -53,13 +55,15 @@ docs/           기능·운영·도서관 조사·사이클 기록 (목차: docs
 ### 필요 사항
 
 - Java 25+, Node.js 24+
-- Docker (PostgreSQL 18 + pg_bigm)
-- WSL 또는 Linux (Docker 빌드 시)
+- Docker. DB 이미지 `docker/postgres-bigm`은 PostgreSQL 18 + pg_bigm + pg_search(BM25) + pgvector입니다(2026-10-30 전에 만든 이미지는 `docker compose build`로 다시 빌드).
+- Windows에서는 WSL(Ubuntu) 안의 Docker를 `wsl -d Ubuntu -- docker compose …`로 부릅니다. Linux·macOS에서는 앞의 `wsl -d Ubuntu --`를 빼고 실행합니다.
 
 ### 실행
 
+먼저 저장소 맨 위에서 `.env.example`을 `.env`로 복사하고 `DB_PASSWORD`, `TEST_DB_PASSWORD`를 채웁니다. DB와 백엔드가 모두 이 파일을 읽습니다.
+
 ```bash
-# 데이터베이스 시작
+# 데이터베이스 시작 (db: 개발용 5432, db-test: 테스트용 5433)
 wsl -d Ubuntu -- docker compose up -d db db-test
 
 # 백엔드
@@ -72,13 +76,21 @@ npm install
 npm run dev
 ```
 
-`.env.example`을 `.env`로 복사한 뒤 필요한 값을 채워 넣으세요.
+- 처음 띄운 DB에는 도서관·지역 seed만 있고 **책은 없습니다.** 책 목록은 수집 DB 사본(git 밖 `chaekcheck-data`)을 가져오기 모드로 넣습니다: [docs/maintenance/3-import.md](docs/maintenance/3-import.md).
+- `fetch-service/`(8091)와 `embed-service/`(8090)는 로컬 개발에 필요 없습니다. fetch-service는 `FETCH_MODE=fetch-service`일 때만 쓰고 운영에서도 쓰지 않습니다. embed-service는 운영 AI 책 찾기가 질문을 벡터로 바꾸는 별도 서버입니다([docs/maintenance/6-aisearch.md](docs/maintenance/6-aisearch.md) 7-1절).
+
+### 테스트
+
+- 백엔드: `db-test`를 띄운 뒤 `backend/`에서 `./gradlew test`
+- 웹: `web/`에서 `npm test`(Vitest), `npm run lint`, `npm run build`
 
 ## 아키텍처
 
 Spring Modulith 기반의 모듈러 모놀리스 구조입니다. 도메인별 모듈(catalog, availability, auth, foryou, aisearch 등)이 공개 API와 이벤트로만 소통하며, 향후 MSA 전환을 염두에 둔 모듈 경계를 유지합니다.
 
-도서관 소장 조회는 Webshare 프록시를 경유하며, fetch-service가 실제 페이지 요청을 분리 처리합니다.
+도서관 소장 조회는 백엔드가 직접 하며, 서버 자체 IP와 Webshare 고정 프록시를 나눠 씁니다. `fetch-service/`는 조회만 따로 떼는 선택 구성이고(`FETCH_MODE=fetch-service`) 지금 운영에서는 쓰지 않습니다.
+
+API 문서(OpenAPI)는 따로 없습니다. 주소는 `/api/v1/...`이고 각 모듈의 `*Controller.java`가 원본입니다. 경로별 nginx 한도는 [deploy/nginx/README.md](deploy/nginx/README.md).
 
 ## 라이선스
 

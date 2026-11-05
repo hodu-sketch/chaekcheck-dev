@@ -40,7 +40,7 @@
 
 절차: [2-crawl.md](2-crawl.md).
 
-0. **지금 도는 일과 남은 일**(전체 수집·표지 받기, 2026-10-24\~): [2-crawl.md](2-crawl.md) 0-0절을 먼저 봅니다
+0. 지난 전체 수집·표지 받기 기록(2026-10-23\~29, 끝남): [2-crawl.md](2-crawl.md) 0-0절. 새로 띄우기 전에 도는 수집이 있는지 거기 적힌 방법으로 확인합니다
 1. `scripts\crawl\resume.cmd` 실행(2026-10-12부터 이것만, 2-crawl 0-1절). 끝난 도서관은 넘어가고, 받던 도서관은 마지막으로 저장한 쪽 다음부터 받음 (2-crawl 3절)
 2. 줄 세우기: IP 하나에 한 줄, 한 줄에 동시 1건·1초 간격. 데이터 폴더(`chaekcheck-data`)의 `queue-by-ip.txt`가 있으면 IP 기준, 없으면 도메인 이름 기준 [확정] (사용자, 2026-10-04) (2-crawl 2절). 교보 구독형 서버(`*.dkyobobook.co.kr`)에는 요청을 보내지 않고, 그 서버용이던 `host-slots.txt`는 사이클 13부터 읽지 않음 (2-crawl 0-1·2-1절)
 3. 상태 보기: `python -X utf8 scripts\crawl\crawl_catalog.py status`, 로그 데이터 폴더 `logs\crawl-*.log` (2-crawl 3·5절)
@@ -65,8 +65,8 @@
 
 ## 5. (자동) 사서추천도서 받기
 
-- 매주 월요일 국립중앙도서관 사서추천도서(최근 6번 추천)와 새 표지를 Open API로 받음(사이클 14, 사이클 10 인기 도서를 대체). 서버가 켜질 때와 매일 05:00에 받을지 따짐(실패하면 성공할 때까지 매일, 놓친 주는 따라잡기). 절차와 실패 읽는 법: [4-picks.md](4-picks.md)
-- 유지보수에서 볼 것: 최근 7일 안에 `picks.fetch_run`에 `SUCCEEDED`가 있는지, `new_category_codes`, 표지 실패 수, 권리자의 표지 내림 요청
+- 국립중앙도서관 사서추천도서를 Open API로 받음(사이클 14, 사이클 10 인기 도서를 대체). 코드 기본은 켜짐이지만 **운영은 꺼져 있음**(`deploy/prod/compose.yaml` `CHAEKCHECK_PICKS_FETCH_ENABLED: "false"`, 목록은 DB에 있음). 켜면 서버가 켜질 때와 매일 05:00에 받을지 따져 매주 월요일 최근 12번 추천을 받음(표지는 받지 않음, v1.20.6\~)(실패하면 성공할 때까지 매일, 놓친 주는 따라잡기). 절차와 실패 읽는 법: [4-picks.md](4-picks.md)
+- 유지보수에서 볼 것(운영에서 켠 경우만): 최근 7일 안에 `picks.fetch_run`에 `SUCCEEDED`가 있는지, `new_category_codes`. 권리자의 표지 내림 요청은 늘([4-picks.md](4-picks.md) 4절)
 
 ## 5-1. (자동) 「나에게 맞는 책」 새벽 만들기 (사이클 23)
 
@@ -76,7 +76,7 @@
 ## 5-2. (자동) AI 책 찾기 (사이클 24)
 
 - 사용자가 문장으로 물으면 질문 벡터(임베딩 서버) + 1차 ML + 2차 Haiku로 책을 고름. 지금 운영 설정과 모델 폴더: [6-aisearch.md](6-aisearch.md) 0절
-- 유지보수에서 볼 것: 임베딩 서버 `GET http://<임베딩 서버 사설 IP>:8090/api/v1/health`가 `{"ready":true}`(운영 서버에서, 7-1절), 백엔드 시작 로그 `ai search vectors on (REMOTE): … books`·`ai search first call: ml, … book profiles`(7·8절), 검색 로그 `ai search: …`의 `vector N`(0이면 벡터 꺼짐·늦음·실패)과 `encoder failed`·`haiku makes the first step` 줄
+- 유지보수에서 볼 것: 임베딩 서버 `GET http://<임베딩 서버 사설 IP>:8090/api/v1/health`가 `{"ready":true}`(운영 서버에서, 7-1절), 백엔드 시작 로그 `ai search vectors on (REMOTE, FUNNEL): … rows x 1024 (up to … a book)`·`ai search first call: ml, … book profiles`(7·8절), 검색 로그 `ai search: …`의 `vector N`(0이면 벡터 꺼짐·늦음·실패)과 `encoder failed`·`haiku makes the first step` 줄
 
 ## 6. (필요할 때) 공지·서비스 안내·약관 글
 
@@ -96,6 +96,6 @@
 - [ ] ①: `library-maintenance.md` 4절 순서대로 등록 도서관 확인, 바뀐 도서관은 수정(6절, 새 도서관은 넣기 명령), 결과를 13절 작업 기록과 `docs/cycles/plan-feedback.md`에 남김. 수집 목록에서 도서관 찾기 → 수집 → 넣기 명령(`library-insert` 미리 보기 → 의심·바뀐 곳·사라진 곳만 사용자에게 → 넣기) → 구독 규칙·마감 확인은 `1-libraries.md`
 - [ ] ②: `resume.cmd` → `status`로 모든 도서관이 끝났는지(실패·받지 않음은 이유 확인) → `verify_detail_urls.py`
 - [ ] 가져오기: 사본 만들기 → dry run → 숫자 비교 → 실제 가져오기 → 검색 확인 → 결과 숫자를 `3-import.md` 5절 표에 더함
-- [ ] AI 책 찾기 사본: 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음(`book-texts-top-books=100000`, [4-picks.md](4-picks.md) 10절, 후속 작업 24-F1). 가져오기 뒤에는 책 번호가 바뀌므로 책 벡터·프로필(`mode=book-profiles` → `catalog.book_profile`, 넣은 뒤 `bin/switch.sh backend <지금 판>`)·이웃도 다시 만듦([6-aisearch.md](6-aisearch.md) 7·8·9절)
+- [ ] AI 책 찾기 사본: 가져오기·`lists` 모드·사서추천도서 월 받기 뒤에 `book-texts`를 다시 넣음(파일에 `search_summary`·`search_terms` 줄 포함, [6-aisearch.md](6-aisearch.md) 2·15절, `book-texts-top-books=100000`, [4-picks.md](4-picks.md) 10절, 후속 작업 24-F1). 가져오기 뒤에는 책 번호가 바뀌므로 책 벡터·프로필(`mode=book-profiles` → `catalog.book_profile`, 넣은 뒤 `bin/switch.sh backend <지금 판>`)·이웃도 다시 만듦([6-aisearch.md](6-aisearch.md) 7·8·9절)
 - [ ] 4단계: 서비스 로그에서 상세 페이지 읽기 실패가 늘었는지
-- [ ] 5단계: `picks.fetch_run`에 최근 7일 안의 `SUCCEEDED`가 있는지, `FAILED`면 `failure_reason`([4-picks.md](4-picks.md) 3절)
+- [ ] 5단계(운영에서 사서추천 받기를 켠 경우만): `picks.fetch_run`에 최근 7일 안의 `SUCCEEDED`가 있는지, `FAILED`면 `failure_reason`([4-picks.md](4-picks.md) 3절)

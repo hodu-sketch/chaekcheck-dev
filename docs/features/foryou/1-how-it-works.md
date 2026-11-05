@@ -1,4 +1,4 @@
-# 1. 책첵 추천은 지금 어떻게 동작하나 (운영 v1.20.0, 2026-10-29 기준)
+# 1. 책첵 추천은 지금 어떻게 동작하나 (운영 v1.23.1, 2026-11-05 기준)
 
 - **이 문서가 답하는 것**: 사용자가 「책첵 추천」 탭(`/picks/for-you`)을 열었을 때 브라우저·서버가 **어떤 자료를 어디서 읽어, 어떤 계산으로, 어떤 형식의 결과를** 만드는지. 코드 위치와 표·칸 이름까지.
 - **답하지 않는 것**: 이웃 표·요약·표지를 PC에서 어떻게 만드나 → [2-data.md](2-data.md). 왜 이렇게 정했고 숫자가 얼마였나 → [3-evaluation.md](3-evaluation.md). 언제 무엇이 바뀌었나 → [4-history.md](4-history.md). 앞으로 바꿀 것 → [5-improvements.md](5-improvements.md).
@@ -13,7 +13,7 @@
 GET /api/v1/for-you/books?{계획}                         → 기본 목록 카드 배열
 GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
    │ 서버: foryou.book_neighbour에서 기준 책마다 이웃 20권 → 순위대로 번갈아 모음
-   │       → 같은 작품·기준 책 빼기 → 계획 도서관 0곳인 책 빼기 → 최대 60권
+   │       → 같은 작품·기준 책 빼기 → 계획 도서관 0곳인 책 빼기 → 문턱 3을 넘은 책 앞으로 → 최대 60권
    ▼                                                      → 개인 추천 카드 배열 + 다시 보여 줄 카드
 [브라우저]  개인 추천(+8·16번째에 다시 보여 줄 책) 뒤에 기본 목록 → 분야 돌려 놓기(본 책 < 3)
             / 안 본 분야 한 권 당기기(본 책 ≥ 3) → 칩으로 거르기 → 20권씩 화면에
@@ -57,7 +57,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 1. 계획 도서관 집합 `planIds`를 구함(2절)
 2. 추천목록 책 `listed`: `ListedSource.listed()` → `picks`의 추천목록 캐시(`CacheListedBooks.merge`). 목록 차례 `librarian, leedongjin, snu100, kaist, nobel`로 각 목록의 책을 돌며 우리 책 번호(`picks.list_book.book_id`)가 있는 책만 한 줄로 합침. 책마다 `listKeys`(실린 목록들), `libraryIds`(`catalog.book.library_ids`), `recommendedMonth`(사서추천 달), `yearBook`(KAIST 연도), `fieldGroup`(처음 실린 목록의 분야 → 7절 표)
 3. 차례
-   - 새벽 만들기가 성공한 날이 있으면 `foryou.base_entry`의 `position` 순
+   - 새벽 만들기가 성공한 날이 있으면(운영 2026-11-05부터) `foryou.base_entry`의 `position` 순, 최대 40권(`chaekcheck.foryou.build.base-size`). 인기 점수 > 0이면서 추천목록에 있는 책을 점수 순으로 먼저, 그다음 인기만 있는 책(점수 순)과 추천목록에만 있는 책(보유 도서관 수 순)을 번갈아(`BaseOrder.order`). 인기만 있는 책은 추천목록 밖 책일 수 있음
    - 새벽 만들기가 꺼져 있으면(`CHAEKCHECK_FORYOU_BUILD_ENABLED=false`, 2026-11-05 전까지 운영) 이쪽: `listed`를 `libraryIds` 개수(전체 도서관 기준 보유 수) 내림차순, 같으면 `book_id` 오름차순
 4. 카드 만들기(`cards`, 6절): 계획 도서관 수 `planLibraryCount = |catalog.book.library_ids ∩ planIds|`가 0인 책은 뺌
 
@@ -67,7 +67,7 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 
 1. 이웃 읽기: `SELECT book_id, neighbour_ids FROM foryou.book_neighbour WHERE book_id = ANY(:기준 책)` (`foryou/internal/store/BookTexts.neighbours`). `neighbour_ids`는 `integer[]`, 가까운 순 20개
 2. **순서 만들기**(`SimilarOrder.byCloseness`, v1.15.1부터): 순위 0부터 19까지, 순위마다 기준 책을 요청 차례대로 돌며 그 순위의 이웃을 넣음(이미 있으면 건너뜀). 즉 [기준1의 1위, 기준2의 1위, …, 기준1의 2위, 기준2의 2위, …]
-3. 같은 작품 정리: `BookCards.workKeys`(`catalog/internal/JdbcBookCards`) — `catalog.book.main_title_norm`이 같고 `catalog.book_contributor.name_exact`(역할 `AUTHOR`·`UNKNOWN`)를 하나라도 나누는 판끼리 한 작품(이름 사슬로 이어지면 모두 한 작품), 대표 판 = `cardinality(library_ids)`가 가장 큰 판(같으면 작은 번호). 후보를 대표 판 번호로 바꾸고, 기준 책과 같은 작품은 뺌. (새벽 점수가 있으면 점수 있는 판을 대표로 씀 — 운영에는 점수가 없음)
+3. 같은 작품 정리: `BookCards.workKeys`(`catalog/internal/JdbcBookCards`) — `catalog.book.main_title_norm`이 같고 `catalog.book_contributor.name_exact`(역할 `AUTHOR`·`UNKNOWN`)를 하나라도 나누는 판끼리 한 작품(이름 사슬로 이어지면 모두 한 작품), 대표 판 = `cardinality(library_ids)`가 가장 큰 판(같으면 작은 번호). 후보를 대표 판 번호로 바꾸고, 기준 책과 같은 작품은 뺌. (새벽 점수가 있으면 그 작품에서 점수가 가장 높은 판을 대표로 씀 — 운영은 2026-11-05부터 점수가 있음)
 4. 카드 만들기(6절): 계획 도서관 0곳·모르는 번호는 조용히 뺌
 5. **문턱**(`SimilarOrder.availableFirst`, 사용자 2026-10-29 「문턱 3으로」, v1.20.2부터 운영): 계획 도서관 목록(`LibraryCatalog.planSearch`의 `SearchTarget`) 중 `lendingModel`이 `SUBSCRIPTION`·`RENTAL`인 곳을 「바로 대출 도서관」으로 둠. 책마다 `catalog.book.library_ids ∩ 계획 도서관` 수를 세어 **3 이상(`MIN_PLAN_LIBRARIES`)이거나 그중 바로 대출 도서관이 있으면 통과**. 통과한 책을 차례 그대로 앞에, 못 넘은 책을 차례 그대로 뒤에(통과한 책이 60권에 못 미칠 때만 보임)
 6. 앞에서 최대 60권(`MAX_SIMILAR`)
@@ -140,5 +140,5 @@ GET /api/v1/for-you/similar-books?baseBookIds=…&reshowBookIds=…&{계획}
 |---|---|
 | 새벽 만들기(`foryou.build_run`, `popular_row`, `book_score`, `base_entry`) | 운영에서 2026-11-05부터 켜짐(그 전에는 꺼져 있어 기본 목록은 3절 3번, 새벽 점수 없음). 켤 때의 동작은 [`docs/maintenance/7-foryou.md`](../../maintenance/7-foryou.md) 1절 |
 | 꼬리표(`catalog.tag_dictionary`, `catalog.book_tag`) | 0행 |
-| 사이클 26 배포 2 | 옛 표(`foryou.book_blurb`·`book_cover`, `picks.book_tag`·`tag_dictionary`)를 지움. plan `docs/cycles/26-book-descriptions/to-dev23-24.md` 3절 |
+| 사이클 26 배포 2 | 끝(v1.20.6, 2026-10-29). 옛 표(`foryou.book_blurb`·`book_cover`, `picks.book_tag`·`tag_dictionary`)를 지움. plan `docs/cycles/26-book-descriptions/to-dev23-24.md` 3절 |
 | 문턱 3 | v1.20.2 운영(4절 5번) → [5-improvements.md](5-improvements.md) I-01 |

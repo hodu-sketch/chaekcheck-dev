@@ -3,9 +3,9 @@
 ## 이 문서가 답하는 것 / 답하지 않는 것
 
 - 답하는 것: dev가 사이클 26을 이어 받을 때 알아야 할 것. 단계마다 상태, 코드·표·파일이 어디 있는지, 운영에서 생긴 일과 되돌린 방법·명령.
-- 답하지 않는 것: 요약 → [1-summary.md](1-summary.md). 날짜순 원본 숫자 → [plan-feedback](../../cycles/plan-feedback.md) 「# 사이클 26」. 운영 절차 일반 → [../maintenance/8-covers.md](../../maintenance/8-covers.md), [../maintenance/7-foryou.md](../../maintenance/7-foryou.md).
+- 답하지 않는 것: 요약 → [1-summary.md](1-summary.md). 날짜순 원본 숫자 → [plan-feedback](../../cycles/plan-feedback.md) 「# 사이클 26」. 운영 절차 일반 → [`docs/maintenance/8-covers.md`](../../maintenance/8-covers.md), [`docs/maintenance/7-foryou.md`](../../maintenance/7-foryou.md).
 
-## 1. 단계 상태 (2026-10-29 09:20)
+## 1. 단계 상태 (2026-10-29 12:00, 모든 단계 끝)
 
 | 단계 | 내용 | 상태 |
 |---|---|---|

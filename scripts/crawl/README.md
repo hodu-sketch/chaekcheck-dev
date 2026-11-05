@@ -4,7 +4,7 @@ chaekcheck 서비스의 여러 조건 검색(제목 + 저자 + 출판사)을 위
 
 - 데이터 폴더: `--data-dir` 인자 > 환경 변수 `CHAEKCHECK_DATA` > 저장소 옆 `chaekcheck-data` 폴더(기본값)
 - 절차(이어 받기, 받는 순서, 병렬·IP 줄, 문제별 대처): [`docs/maintenance/2-crawl.md`](../../docs/maintenance/2-crawl.md), 플랫폼별 방법: [`docs/maintenance/platforms.md`](../../docs/maintenance/platforms.md)
-- 근거 문서(plan, 읽기만): `chaekcheck-plan/docs/research/ebook-catalog/`의 `research.md`(왜·법적 쟁점), `crawl-method.md`(수집 원칙·항목), `catalog-refresh.md`(주기 갱신), `same-book-isbn.md`(같은 책 묶기), `search-and-normalization.md`(정리 규칙. 수집 DB는 **원문 그대로** 둠)
+- 근거 문서(plan, 읽기만): plan [`docs/research/ebook-catalog/`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/research/ebook-catalog)의 `research.md`(왜·법적 쟁점), `crawl-method.md`(수집 원칙·항목), `catalog-refresh.md`(주기 갱신), `same-book-isbn.md`(같은 책 묶기), `search-and-normalization.md`(정리 규칙. 수집 DB는 **원문 그대로** 둠)
 
 ## 실행 환경
 
@@ -111,7 +111,7 @@ python -X utf8 scripts/crawl/crawl_catalog.py fetch-covers --status             
 - 이어 받기: 목록이 하나인 도서관은 멈춘 쪽 다음부터 이어 받음. 오디오북이 있는 YES24는 읽던 목록과 쪽부터, 포털은 처음부터([`2-crawl.md`](../../docs/maintenance/2-crawl.md) 4절)
 - 성공 조건: 받은 서로 다른 책 수가 사이트 총 건수와 1% 안(건너뛴 줄 제외). 포털은 총 건수가 없어 빈 쪽까지 읽으면 성공
 
-## 표지 받기 `fetch-covers` (2026-10-23, 사이클 밖, plan 요청서 `../chaekcheck-plan/docs/research/ebook-catalog/to-dev-fetch-covers-2026-10-23.md`)
+## 표지 받기 `fetch-covers` (2026-10-23, 사이클 밖, plan 요청서 [`to-dev-fetch-covers-2026-10-23.md`](https://github.com/hodu-sketch/chaekcheck-plan/blob/main/docs/research/ebook-catalog/to-dev-fetch-covers-2026-10-23.md))
 
 목록 수집은 표지 **주소**만 저장합니다. `fetch-covers`는 그 뒤 따로 돌아 **서비스 책 한 권에 표지 한 장**을 받아 폭 200px JPEG 품질 0.8(ADR-0091)로 데이터 폴더 `covers\`에 모읍니다. 서비스 표·가져오기·반영 파일·화면은 바꾸지 않습니다(화면에 보이기는 출판사 권리 확인 뒤 따로 사이클). 절차와 실제 수치는 [`docs/maintenance/2-crawl.md`](../../docs/maintenance/2-crawl.md) 12절.
 

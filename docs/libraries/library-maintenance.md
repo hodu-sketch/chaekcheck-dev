@@ -1,10 +1,10 @@
 # 도서관 목록 관리 작업 안내 (AI 배치 작업용)
 
-전자도서관을 찾고, 추가하고, 고치고, 끄는 일을 나중에 AI에게 배치 작업으로 맡기기 위한 안내서입니다. 2026-09-29 기준 DB 구조와 절차를 적었습니다. 구조가 바뀌면 이 문서부터 고칩니다.
+전자도서관을 찾고, 추가하고, 고치고, 끄는 일을 나중에 AI에게 배치 작업으로 맡기기 위한 안내서입니다. DB 구조와 절차는 2026-09-29에 처음 적고 그 뒤 계속 고쳐 왔습니다(칸마다 더한 날짜는 그 칸 설명에). 구조가 바뀌면 이 문서부터 고칩니다.
 
 - 이 문서를 받은 AI는 **먼저 끝까지 읽고**, 아래 "0. 작업 전에 확인할 것"을 확인한 다음 시작합니다.
 - 결정이 필요한 일(아래 "사람에게 물을 것")은 스스로 정하지 말고 사용자에게 묻습니다.
-- 작업 결과는 `docs/cycles/plan-feedback.md`에 적습니다(10절).
+- 작업 결과는 `docs/cycles/<사이클 번호>/plan-feedback.md`에 적습니다(10절). `docs/cycles/plan-feedback.md`는 2026-11-05까지의 기록이라 더 쓰지 않습니다. 사이클 밖 작업이면 어느 폴더에 쓸지 plan에 묻습니다.
 - 검색 대상에서 빠진 사이트(주소 없어짐·다른 화면, 연결 안 됨, 인증서 불완전, 이름에 "도서관" 없음, 이름 겹침)와 다시 볼 때 할 일은 [`library-site-issues.md`](library-site-issues.md)에 모읍니다.
 - 이 작업은 정기 유지보수의 1단계입니다. 다음 단계(책 목록 수집, 서비스 DB로 가져오기)와 순서는 [`maintenance/README.md`](../maintenance/README.md)에 있습니다(plan ADR-0047, 2026-10-04).
 
@@ -14,7 +14,7 @@
 
 1. `CLAUDE.md`를 읽습니다. 특히 "Database Migrations (Liquibase)"와 `PRE_DEPLOYMENT` 예외.
 2. `backend/src/main/resources/db/changelog/PRE_DEPLOYMENT` 파일이 있는지 봅니다.
-   - **있음(배포 전)**: 기존 seed 파일을 고쳐서 정리해도 됩니다. 고친 뒤 로컬 DB를 초기화합니다(7절).
+   - **있음**: 이 표지는 2026-10-18 첫 배포 뒤에도 남아 있습니다(지울지는 plan이 정함). 그러니 표지가 있어도 **운영 DB에 이미 적용된 changeset·CSV는 고치지 않고** 새 changeset을 더합니다. 아직 어디에도 배포되지 않은 changeset만 고칠 수 있고, 고친 뒤 로컬 DB를 초기화합니다(7절).
    - **없음(배포 후)**: 기존 changeset·CSV는 절대 고치지 않습니다. 새 changeset 파일을 추가합니다.
 3. DB가 떠 있는지 확인합니다: `wsl -d Ubuntu --exec docker compose ps` (저장소 루트). 꺼져 있으면 `wsl -d Ubuntu --exec docker compose up -d --wait`.
 4. 이번 작업 범위를 사용자에게 받은 문장 그대로 기록해 둡니다(예: "교보 목록 216곳 다시 확인").
@@ -263,7 +263,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
   4. 근거(거주·재직·재학·누구나)와 범위(시군구·시도·인접 지역)를 원문 그대로 인용해 plan의 `eligibility-by-library.md` 모양으로 적습니다: 이름, 플랫폼, 사이트 상태, 자격, 범위, 알아낸 방법, 원문 확인(`확인됨`/`다름`/`문구 없음`/`열리지 않음`/`아직`), 출처 URL.
   5. 전자도서관만 쓰는 회원과 대출회원의 자격이 다른 곳은 전자도서관 기준으로 적습니다(인천교육청 등).
   6. 페이지가 열리지 않는 흔한 이유: 인증서 오류, 도메인 없음, 404, 기관 통합으로 주소 이동(인천 동구 → 제물포구 `lib.jemulpo.go.kr`, 광주교육청 `lib.gen.go.kr` → `lib.jge.go.kr`, 세종교육청 → `life.sje.go.kr`).
-- 조사 결과는 도서관마다 seed에 들어갑니다(자격 규칙, `eligibility_summary`, `join_method`, `join_url`, `join_caution`). 원문 인용과 판단 근거는 분류표(`join_overrides.tsv`와 같은 칸 구성)로 `docs/libraries/research/`에 남기고, 결과 수와 바뀐 도서관은 `docs/cycles/plan-feedback.md`에 적습니다. **다시 조사하기 전에 이 폴더부터 봅니다.**
+- 조사 결과는 도서관마다 seed에 들어갑니다(자격 규칙, `eligibility_summary`, `join_method`, `join_url`, `join_caution`). 원문 인용과 판단 근거는 분류표(`join_overrides.tsv`와 같은 칸 구성)로 `docs/libraries/research/`에 남기고, 결과 수와 바뀐 도서관은 `docs/cycles/<사이클 번호>/plan-feedback.md`에 적습니다. **다시 조사하기 전에 이 폴더부터 봅니다.**
   - `docs/libraries/research/join-classification-2026-09-29.tsv`: seed id 1–162의 판정(OPEN 13, OPEN_CAUTION 1, REGION 122, UNVERIFIED 26), 원문 인용, 출처 주소, 메모. 같은 이름의 `-notes.md`는 열지 못한 곳과 이유, 사람에게 물은 것.
   - `docs/libraries/research/kyobo-login-notice-2026-09-29.tsv`: 교보 사이트별 "로그인 상세 이용안내" 글.
   - 2026-09-29 판정에서 정한 것: "전남광주통합특별시" 원문은 지역 데이터의 시·도 id 12(통합 시·도)로 넣음.
@@ -384,7 +384,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 **어떻게.**
 1. 수집 세션이 쉴 때 `check_code_spaces.py`를 돌립니다(수집 SQLite를 읽기만 함).
 2. 아래 기준값과 비교합니다. 비율이 크게 달라졌거나 새 화면 종류가 생겼으면 **바꾸지 말고 사용자에게 묻습니다**. 몇 %면 바꾼다는 기준은 정하지 않았습니다.
-3. 결과(날짜, 표)를 13절 기록과 `docs/cycles/plan-feedback.md`에 남깁니다. `SHARED_CODE_KINDS`를 바꾸기로 하면 plan 쪽에도 알리고, 가져오기를 다시 돌려야 반영됩니다.
+3. 결과(날짜, 표)를 13절 기록과 `docs/cycles/<사이클 번호>/plan-feedback.md`에 남깁니다. `SHARED_CODE_KINDS`를 바꾸기로 하면 plan 쪽에도 알리고, 가져오기를 다시 돌려야 반영됩니다.
 
 **기준값 (2026-09-30, 읽은 줄 2,547,275)**
 
@@ -598,7 +598,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 
 - 사이트가 계속 403·시간 초과, 로그인 필요, 화면 구조가 바뀌어 읽을 수 없음 등.
 - **운영 중에는 SQL로 바로 끕니다**(사이클 01부터의 운영 방식): `UPDATE library.library SET enabled = false, updated_at = now() WHERE id = …;`
-- 끈 이유와 날짜를 `docs/cycles/plan-feedback.md`와 아래 "꺼 둔 도서관" 표에 적습니다. 오래 꺼 둘 곳이면 seed에도 반영합니다(배포 전: seed changeset 끝의 `UPDATE … SET enabled = false`(`004-library-seed-kyobo.yaml` 참고), 배포 후: 새 changeset `update`).
+- 끈 이유와 날짜를 `docs/cycles/<사이클 번호>/plan-feedback.md`와 아래 "꺼 둔 도서관" 표에 적습니다. 오래 꺼 둘 곳이면 seed에도 반영합니다(배포 전: seed changeset 끝의 `UPDATE … SET enabled = false`(`004-library-seed-kyobo.yaml` 참고), 배포 후: 새 changeset `update`).
 - **다시 켜기**: 다시 확인할 날에 사이트를 4-7대로 확인하고(`CheckKyoboSites.java`), 서비스가 돌아왔으면 운영 중에는 `UPDATE library.library SET enabled = true, updated_at = now() WHERE id = …;`, seed에서는 끄던 줄에서 그 id를 뺍니다(배포 후에는 새 changeset). 도서관 데이터(자격 규칙, 순위 값)는 지우지 않았으므로 켜기만 하면 됩니다. 켠 뒤 아래 표에서 그 줄을 지우고 `plan-feedback.md`에 적습니다.
 
 #### 꺼 둔 도서관 (다시 확인할 곳)
@@ -680,7 +680,7 @@ YES24는 공식 목록이 이미지라(https://www.yes24.com/notice/eLibrary/eLi
 
 ---
 
-## 10. 결과 기록 (`docs/cycles/plan-feedback.md`)
+## 10. 결과 기록 (`docs/cycles/<사이클 번호>/plan-feedback.md`)
 
 작업마다 아래를 적습니다. 다음 `/cycle-start`(plan 저장소)의 입력입니다.
 

@@ -1,6 +1,6 @@
 # 두 층 + BM25 + 요약 읽기: 8만 권 전체 다시 재기 (6단계, 2026-10-31)
 
-브랜치 `claude/aisearch-vector-funnel`(워크트리 `chaekcheck-dev-funnel`), 운영 v1.23.0(2026-10-31, 빼기 끔 값). 계획 0\~7단계는 [운영 문서 6-aisearch 15절](../../../maintenance/6-aisearch.md), 앞선 실험은 [소개글 보고서](2026-10-29-intro-text.md) 10·11절.
+브랜치 `claude/aisearch-vector-funnel`(워크트리 `chaekcheck-dev-funnel`), 운영 v1.23.0(2026-10-31, 빼기 끔 값). 계획 0\~7단계는 [운영 문서 6-aisearch 15절](../../../maintenance/6-aisearch.md), 앞선 실험은 [소개글 보고서](2026-10-29-intro-text.md) 10·11절. 지금 동작(v1.23.1, 해를 대면 하한으로 거름 포함)은 [1-how-it-works](../1-how-it-works.md).
 
 ## 1. 한 줄 결론
 

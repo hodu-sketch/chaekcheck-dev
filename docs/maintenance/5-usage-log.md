@@ -5,8 +5,8 @@
 ## 1. 켜고 끄기
 
 - 설정: `chaekcheck.usagelog.enabled`(환경 변수 `CHAEKCHECK_USAGELOG_ENABLED`). 기본값은 꺼짐(false)입니다.
-- 첫 배포 때는 꺼 둡니다. 처리방침에 수집 항목이 실린 공개일에 켭니다(spec R3-6).
-- 켜고 끄려면 `.env`(또는 배포 비밀값)의 값을 바꾸고 서비스를 다시 시작합니다.
+- 운영은 공개일(2026-10-18)부터 켜져 있습니다(`prod.env` `CHAEKCHECK_USAGELOG_ENABLED=true`, 처리방침에 수집 항목이 실린 날, spec R3-6).
+- 운영에서 바꾸려면 서버 `/srv/chaekcheck/prod.env`를 고치고 `bin/switch.sh backend <slots.env의 지금 판>`. 로컬은 `.env`를 고치고 서비스를 다시 켭니다.
 - 꺼져 있을 때
   - 아무것도 기록하지 않고, 로그인 상태 판별도 하지 않습니다.
   - `POST /api/v1/usage-events`는 그대로 204입니다.
@@ -133,7 +133,7 @@
 - 한 번에 1만 줄씩 처리합니다(`chaekcheck.usagelog.cleanup.batch-size`).
 - 기록이 꺼져 있어도 정리는 돕니다.
 - 끝나면 INFO `usage log clean-up: ip cleared N, rejected deleted N, rows deleted N`이 남습니다.
-- 다른 정해진 작업과 시각이 겹치지 않습니다. 04:00 회원 정리, 05:00 사서 추천 받기, 03:00 DB 백업(사이클 17)입니다.
+- 다른 정해진 작업과 시각이 겹치지 않습니다. 03:30 「나에게 맞는 책」 새벽 만들기(운영 2026-11-05\~), 04:00 회원 정리, 05:00 사서 추천 받기(운영 꺼짐)입니다.
 
 ## 4. 요청마다 서버 로그 한 줄
 
@@ -167,17 +167,20 @@ SELECT * FROM usagelog.dropped_batch ORDER BY dropped_at DESC LIMIT 20;
 
 시험 기간을 정하고 한 트랜잭션에서 지웁니다. 지우기 전에 사용자 확인을 받습니다.
 
+- **공개일(2026-10-18) 뒤 날짜를 넣으면 실제 사용자 기록이 지워집니다.** `<시험 끝 날짜>`는 지인 시험이 끝난 날이며 공개일보다 늦을 수 없습니다.
+- 이 지우기를 실제로 했는지는 기록에 없음.
+
 ```sql
 BEGIN;
-DELETE FROM usagelog.search_event   WHERE received_at <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.book_view      WHERE received_at <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.search_more    WHERE received_at <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.library_click  WHERE received_at <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.screen_event   WHERE received_at <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.rejected_event WHERE received_at <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.dropped_batch  WHERE dropped_at  <  TIMESTAMPTZ '2026-11-01 00:00+09';
-DELETE FROM usagelog.library_response_daily WHERE day < DATE '2026-11-01';
+DELETE FROM usagelog.search_event   WHERE received_at <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.book_view      WHERE received_at <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.search_more    WHERE received_at <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.library_click  WHERE received_at <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.screen_event   WHERE received_at <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.rejected_event WHERE received_at <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.dropped_batch  WHERE dropped_at  <  TIMESTAMPTZ '<시험 끝 날짜> 00:00+09';
+DELETE FROM usagelog.library_response_daily WHERE day < DATE '<시험 끝 날짜>';
 COMMIT;
 ```
 
-위 날짜는 예시입니다. 실제 공개일로 바꿔서 씁니다.
+`<시험 끝 날짜>`(`YYYY-MM-DD`)를 바꿔서 씁니다.

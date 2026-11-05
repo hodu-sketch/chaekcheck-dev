@@ -1,17 +1,18 @@
-# 운영 웹 서버 설정 예시 (nginx)
+# 웹 서버 설정 (nginx)
 
-사이클 05 16단계. 화면 파일과 `/api`를 한 출처에서 내려 주는 설정 예시입니다. 웹 서버 제품과 위치는 배포 때 정합니다. 여기서는 읽기 쉬운 nginx로 썼습니다.
+화면 파일과 `/api`를 한 출처에서 내려 주는 nginx 설정입니다(처음 쓴 것은 사이클 05 16단계). 운영(EC2 + Cloudflare Tunnel)은 `ec2-tunnel.conf`를 씁니다([deploy/prod/README.md](../prod/README.md)).
 
 | 파일 | 하는 일 |
 |---|---|
-| `chaekcheck.conf` | 운영 예시. 80 → 443 이동, TLS, `root`(빌드 결과), 백엔드 주소. `TODO(확인 필요)`는 배포 때 채움 |
+| `chaekcheck.conf` | nginx가 TLS를 직접 하는 배치의 예시(80 → 443 이동, TLS, `root`, 백엔드 주소). 운영에서는 쓰지 않음 |
 | `ec2-tunnel.conf` | 운영 서버(EC2 + Cloudflare Tunnel). `active-backend.conf`를 include하고(사이클 27, ADR-0167), `root`는 `/srv/chaekcheck/web/current`(ADR-0168) |
 | `chaekcheck-locations.conf` | 운영과 로컬 확인이 같이 쓰는 경로 규칙. `/actuator/` 404(ADR-0169) |
 | `security-headers.conf` | 화면 파일 응답의 보안 헤더(CSP 포함). 고른 까닭은 파일 주석에 |
 | `rate-limits.conf` | 도서관을 부르는 API의 IP별 한도 영역(`limit_req_zone`, `limit_conn_zone`), 사용 알림 한도 영역(사이클 15, 분당 60), 로봇 이름 `map`(사이클 15). 모두 http 단계에 둠 |
 | `local-test.conf` | 로컬 확인용. HTTP 8088 |
+| `tunnel-test.conf` | 로컬 nginx를 Cloudflare 임시 터널로 잠깐 공개해 볼 때(2026-10-05). `local-test.conf` + 방문자 주소. 운영 설정 아님 |
 
-운영에서는 `chaekcheck.conf`를 nginx `conf.d`에, 나머지 세 파일을 `/etc/nginx/chaekcheck/`에 둡니다.
+운영에서는 `ec2-tunnel.conf`가 `conf.d/default.conf`, 나머지 세 파일과 `active-backend.conf`가 `/etc/nginx/chaekcheck/`에 놓입니다(서버 폴더 `/srv/chaekcheck/nginx/`).
 
 `rate-limits.conf`의 `limit_req_zone`·`limit_conn_zone`은 http 단계에서만 쓸 수 있습니다. 그래서 `server` 블록 안이 아니라 `chaekcheck.conf`(로컬은 `local-test.conf`) 맨 위, `upstream`보다 앞에서 `include /etc/nginx/chaekcheck/rate-limits.conf;`로 읽습니다. 기본 `nginx.conf`는 `conf.d/*.conf`를 http 블록 안에서 읽으므로 이 자리가 http 단계입니다. `conf.d`를 쓰지 않는 배치라면 `nginx.conf`의 `http { }` 안에 같은 include를 둡니다. 백엔드의 `AUTH_PUBLIC_BASE_URL`은 `https://<server_name>`이어야 합니다.
 
@@ -24,11 +25,11 @@
   - 요청 수 [안]: IP마다 평균 2초에 1번(30r/m), 한 번에 20번까지(`burst=20 nodelay`). 다섯 경로가 한 통을 같이 씁니다.
   - 동시 연결 [안]: IP마다 6개. 스트림은 30초 넘게 열려 있고 검색 화면은 스트림을 한두 개 엽니다.
   - 백엔드도 모든 사용자를 합쳐 동시에 도는 검색 수를 막습니다(`chaekcheck.availability.max-concurrent-searches`, 503 `server_busy`).
-  - TODO(확인 필요): 배포 때 nginx 앞에 부하 분산기나 CDN이 있으면 `real_ip_header`·`set_real_ip_from`을 먼저 맞춰야 합니다. 안 그러면 모든 사용자가 한 주소로 보여 한도를 같이 씁니다.
+  - 운영은 Cloudflare Tunnel 뒤라 `ec2-tunnel.conf`가 `CF-Connecting-IP`를 방문자 주소로 씁니다(`set_real_ip_from`으로 사설 주소에서 온 값만 믿음). 이것이 없으면 모든 사용자가 한 주소로 보여 한도를 같이 씁니다.
 - 사용 알림 `POST /api/v1/usage-events`(사이클 15) [확정 한도]: IP마다 분당 60번, 한 번에 20번까지(`burst=20 nodelay` [안]). 넘으면 백엔드에 넘기지 않고 늘 같은 204(기록 안 됨)
 - 로봇 이름(사이클 15): User-Agent에 `bot`·`crawler`·`spider`(대소문자 무시)가 들면 도서관을 부르는 API에서 백엔드에 넘기기 전에 403. 화면 경로·책 목록 API는 막지 않음
 - `/robots.txt`(사이클 15, `web/public/robots.txt`): `Disallow: /api/`. `location /`이 `dist`의 파일로 내보냄
-- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`, `/about`, `/my-libraries`, `/account`, `/picks`, `/picks/{목록}`, `/notices`, `/notices/{번호}` → `index.html`
+- `/`, `/search`, `/books/{id}`, `/signup`, `/auth/complete`, `/terms`, `/privacy`, `/about`, `/my-libraries`, `/account`, `/picks`, `/picks/{목록}`, `/notices`, `/notices/{번호}`, `/mypage`, `/ai-search` → `index.html`
 - `/assets/` → 이름에 해시가 든 빌드 파일. 1년 캐시
 - 그 밖 → `dist`에 있는 파일만, 없으면 404
 

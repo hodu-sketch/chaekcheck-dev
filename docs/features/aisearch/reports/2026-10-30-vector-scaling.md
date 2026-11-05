@@ -2,7 +2,7 @@
 
 AI 검색 책을 늘릴 계획(사용자: 다음은 20만 권, 그 뒤로도 점점 늘림)에 맞춰, 「가까운 책」 단계(`BookVectorFile.nearest`)를 어떻게 키울지 정리한 기록입니다. [HNSW 보고서](2026-10-29-hnsw.md)의 잰 값을 이어 쓰고, 이번에 **binary·int4로 먼저 거르는 방식의 재현율**과 **A(Java 깔때기)의 속도**를 새로 쟀습니다. 잰 값과 추정을 나눠 적고, 추정에는 [추정]을 붙였습니다.
 
-사용자 결정(2026-10-30): "A. Java 깔때기 (전부 훑기 + 다시 매기기)로 개발해줘" → 서버 코드로 넣음(8절, 설정 `chaekcheck.aisearch.vector.search.mode: funnel`). 운영 배포는 아직입니다.
+사용자 결정(2026-10-30): "A. Java 깔때기 (전부 훑기 + 다시 매기기)로 개발해줘" → 서버 코드로 넣음(8절, 설정 `chaekcheck.aisearch.vector.search.mode: funnel`). 운영 배포: v1.23.0(2026-10-31, `funnel` 기본, 책 줄 238,392개). 지금 동작은 [1-how-it-works 4-4절](../1-how-it-works.md#4-4-가까운-책-nearest).
 
 ## 0. 결론 먼저
 

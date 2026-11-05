@@ -6,6 +6,7 @@ dev 저장소의 문서를 **종류별로** 나눴습니다(2026-11-05). 무엇�
 |---|---|---|
 | 기능이 지금 어떻게 도나, 왜 그렇게 만들었나, 잰 숫자 | [`features/`](features/) | 기능마다 아래 |
 | 운영 서버·정기 작업을 어떻게 하나(절차, 설정, 규칙) | [`maintenance/`](maintenance/) | [`maintenance/README.md`](maintenance/README.md) |
+| 운영 배포·되돌리기(blue/green) | [`../deploy/prod/`](../deploy/prod/) | [`deploy/prod/README.md`](../deploy/prod/README.md) |
 | 도서관을 찾고·넣고·빼는 조사 기록 | [`libraries/`](libraries/) | [`libraries/library-maintenance.md`](libraries/library-maintenance.md) |
 | 사이클마다 무엇을 했나, plan에 무엇을 넘겼나 | [`cycles/`](cycles/) | [`cycles/README.md`](cycles/README.md) |
 | 화면 설계·화면 바뀐 기록·쉬운 설명 페이지 | [`design/`](design/) | 아래 |
@@ -29,7 +30,7 @@ dev 저장소의 문서를 **종류별로** 나눴습니다(2026-11-05). 무엇�
 
 ## design/ — 화면
 
-- [`frontend-minimum.md`](design/frontend-minimum.md): 프론트엔드 최소 지식(백엔드 개발자용, 2026-09-24).
+- [`frontend-minimum.md`](design/frontend-minimum.md): 착수 전(2026-09-24)에 쓴 백엔드 개발자용 프론트엔드 학습 메모. 그때의 [안]이 남아 있습니다(예: CORS 절은 쓰지 않음, 운영은 nginx로 같은 출처).
 - [`screen-changes-2026-10-05.md`](design/screen-changes-2026-10-05.md)와 [`screens/2026-10-05/`](design/screens/2026-10-05/): 사이클 06 뒤 화면 변경과 캡처.
 - [`seo-picks-options-2026-10-26.html`](design/seo-picks-options-2026-10-26.html): 추천도서 검색 노출 안.
 - [`easy/`](design/easy/): 쉬운 말 설명 페이지(로그인 보안, 2026-10-04).

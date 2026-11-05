@@ -1,6 +1,6 @@
 # AI 책 찾기 문서 색인 (사이클 24)
 
-AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사이클 24에서 만들고 v1.10.0(2026-10-25)부터 v1.22.3(2026-10-30)까지 고쳐 온 기능입니다. 이 폴더는 그 문서를 한곳에 모은 것이고, 이 파일은 **어느 문서가 무엇을 맡는지**를 층으로 나눈 색인입니다. 2026-10-29에 `docs/reports/ai-search-*.md`와 `docs/cycle24-session-handoff.md`를 여기로 옮겼습니다.
+AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사이클 24에서 만들고 v1.10.0(2026-10-25)부터 v1.23.1(2026-10-31)까지 고쳐 온 기능입니다. 이 폴더는 그 문서를 한곳에 모은 것이고, 이 파일은 **어느 문서가 무엇을 맡는지**를 층으로 나눈 색인입니다. 2026-10-29에 `docs/reports/ai-search-*.md`와 `docs/cycle24-session-handoff.md`를 여기로 옮겼습니다.
 
 ## 1. 처음 읽는 순서
 
@@ -14,15 +14,15 @@ AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사
 
 | 층 | 문서 | 맡는 것 | 맡지 않는 것 |
 |---|---|---|---|
-| **지금 (정본)** | [1-how-it-works.md](1-how-it-works.md) | 운영 v1.22.3의 동작 전부: 요청 검사, 계획 도서관, 데이터 위치(표·칸·파일 형식), 단계마다의 계산(SQL, 벡터 내적, MLP, RRF), 2차 Haiku 요청 모양, SSE 이벤트, 웹 표시, 실패 길, 로그, 설정 값 | 왜 그렇게 됐는지(→ 2-versions), 서버에서 돌리는 명령(→ 운영) |
-| 지금 · 운영 | [../maintenance/6-aisearch.md](../../maintenance/6-aisearch.md) | 서버에서 하는 일: `book-texts` 넣기 명령, 모델 폴더 올리기, 임베딩 서버, 확인할 로그, 되돌리기 | 동작 설명(→ 1-how-it-works) |
+| **지금 (정본)** | [1-how-it-works.md](1-how-it-works.md) | 운영 v1.23.1의 동작 전부: 요청 검사, 계획 도서관, 데이터 위치(표·칸·파일 형식), 단계마다의 계산(SQL, 벡터 내적, MLP, RRF), 2차 Haiku 요청 모양, SSE 이벤트, 웹 표시, 실패 길, 로그, 설정 값 | 왜 그렇게 됐는지(→ 2-versions), 서버에서 돌리는 명령(→ 운영) |
+| 지금 · 운영 | [../../maintenance/6-aisearch.md](../../maintenance/6-aisearch.md) | 서버에서 하는 일: `book-texts` 넣기 명령, 모델 폴더 올리기, 임베딩 서버, 확인할 로그, 되돌리기 | 동작 설명(→ 1-how-it-works) |
 | 지금 · 설정 | [../maintenance/settings-index.md](../../maintenance/settings-index.md) 1-1절 | AI 검색 설정·코드 상수의 이름, 기본값, 운영 값, 근거 | — |
-| **변화** | [2-versions.md](2-versions.md) | v1.10.0\~v1.22.3과 데이터 넣기(3만 권, 10만 권)마다 바꾼 것·이유·전후 숫자·그 뒤, 재 보고 내지 않은 것 | 실험 방법의 자세한 내용(→ 보고서) |
+| **변화** | [2-versions.md](2-versions.md) | v1.10.0\~v1.23.1과 데이터 넣기(3만 권, 10만 권)마다 바꾼 것·이유·전후 숫자·그 뒤, 재 보고 내지 않은 것 | 실험 방법의 자세한 내용(→ 보고서) |
 | **결과·설명** | [4-results.md](4-results.md) | 모든 전후 비교 숫자를 한곳에 | 동작 설명(→ 1-how-it-works) |
 | 결과·설명 | [5-ml-study.md](5-ml-study.md) | ML을 남에게 설명할 수 있게 처음부터: 벡터·코사인, Transformer 임베딩, int8 양자화, 로지스틱 회귀, MLP, softmax·sigmoid, 교차 엔트로피, 역전파·AdamW, 드롭아웃, F1·문턱, TF-IDF, RRF를 수식과 **실제 코드**로, 라이브러리 표, 설명용 답 | 점수 표 전부(→ 3-ml-models) |
 | 결과·설명 | [3-ml-models.md](3-ml-models.md) | 1차 단계의 ML: KURE-v1 임베딩과 MLP 머리 13개(1차 모델 파일의 머리 12개 + 관계 분류기 1개), 학습 데이터, 문턱, 기준선, 클래스 불균형 | 운영에서 그 출력을 쓰는 곳(→ 1-how-it-works 4-3·4-9) |
 | **근거 (날짜별 실험)** | [reports/](reports/) | 그날 무엇을 왜 어떻게 쟀고 결과가 무엇이었는지. 그때 기록이라 지금과 다른 곳은 각 문서 맨 위 상자에 적음 | 지금 동작(→ 1-how-it-works) |
-| **원본 숫자** | [../reports/ai-search-eval/](eval-data/) | 보고서 표의 원본 파일(JSON·표·그림). 스크립트가 이 경로를 읽어 옮기지 않음 | — |
+| **원본 숫자** | [eval-data/](eval-data/) | 보고서 표의 원본 파일(JSON·표·그림). 스크립트가 이 경로를 읽어 옮기지 않음 | — |
 
 ## 3. 이런 질문은 이 문서
 
@@ -41,7 +41,7 @@ AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사
 | 해 봤지만 넣지 않은 것(에이전트 등) | [2-versions 「재 보고 내지 않은 것」](2-versions.md#재-보고-내지-않은-것) |
 | 운영에서 무엇을 지켜보나(로그) | [1-how-it-works 7](1-how-it-works.md#7-로그-한-줄), [6-aisearch 4절](../../maintenance/6-aisearch.md) |
 | 이어 묻기의 「최신」·「아까」·「다 같이」·「A나 B」는 어떻게 알아보나, 왜 정규식만·LLM이 아닌가 | [1-how-it-works 4-0-2](1-how-it-works.md#4-0-2-이어지는-질문의-조건과-주제-v1221부터), [reports/2026-10-29-follow-ups](reports/2026-10-29-follow-ups.md) |
-| 다음에 고칠 것 | [reports/2026-10-28-talk-review](reports/2026-10-28-talk-review.md) |
+| 대화 점검의 고칠 계획과 그 결과 | [reports/2026-10-28-talk-review](reports/2026-10-28-talk-review.md)(계획), [reports/2026-10-29-talk-review-fix](reports/2026-10-29-talk-review-fix.md)(v1.21.0\~v1.22.3에서 넣음) |
 
 ## 4. 날짜별 보고서 (`reports/`)
 
@@ -60,9 +60,9 @@ AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사
 | 2026-10-29 | [대화를 가리키는 말 고치기](reports/2026-10-29-talk-refs.md) | 「모르겠어」·「그거 말고」·「아까 이야기한 거」를 알아보는 규칙과 대화 27개 전후(통과 23 → 40 / 40) | v1.20.5 |
 | 2026-10-29 | [대화 점검 고치기](reports/2026-10-29-talk-review-fix.md) | 상황별 정리, 대화 기억 10, 책 밖 말에 모델 답, 한 낱말은 바로 답, 「기타」, 제목 질문, 1차 신경망 다시 학습(v2). 대화 점검 57턴: 0권 5 → 1, 고정 되묻기 6 → 0 | v1.21.0\~v1.21.4 |
 | 2026-10-29 | [이어지는 질문](reports/2026-10-29-follow-ups.md) | 운영 대화(「최신책」 → 「아까 세계역사나」 → 「다 같이」)의 원인 5가지, 정규식·벡터·섞기를 불친절한 시험 문장 230개로 비교(다 같이 51/54/**55**·최신 55/57/**63**·아까 4/26/**35**·A나 B 47/30/**57**), 섞기를 넣은 것, 같은 대화 로컬 재연, 플로이드-워셜 「목록에 없어서」 | v1.22.1 |
-| 2026-10-29 | [HNSW와 전수 계산](reports/2026-10-29-hnsw.md) | 질문 벡터의 가까운 책 찾기: 지금 Java 전수 계산(81,078권, 운영 97ms)과 pgvector HNSW의 시간·재현율·크기·메모리를 로컬에서 잼. 결론: 지금은 전수 유지, 15만\~20만 권부터 다시 봄(추정) | 조사만 |
-| 2026-10-29 | [소개글을 검색에 넣는 법](reports/2026-10-29-intro-text.md) | 1,000권, 검색어 800개(전문 용어·오타·다른 이름·풀어 말하기 등 8종) + 질문 57개: 벡터 글(300자·요약·토큰 길이·조각·맥락 조각·두 층), 낱말 검색(개수 세기·BM25·pg_search 한국어), Haiku가 읽는 글(한 줄·요약·소개 토막). 추천: 요약 벡터 + pg_search BM25(한 줄 + 소개 전문) + 요약·토막 읽기 | 실험만 |
-| 2026-10-30 | [책이 20만\~100만 권일 때](reports/2026-10-30-vector-scaling.md) | 가까운 책 찾기를 키우는 네 길(A Java 깔때기: 해밍 → 비대칭 binary → int8 다시 매기기, B halfvec HNSW, C binary HNSW, D 전용 벡터 DB), 책 수별 메모리, A와 HNSW의 메모리 차이가 나는 까닭, binary·int4 거르기 재현율(81k: 해밍 1만 → 비대칭 2,000이면 상위 120의 0.992). 추천: A로 시작, 넘치면 D. A를 Java로 잼: 81k 79.8 → 6.9ms, 100만 권 715.7 → 32.0ms. 서버 코드 `BookVectorFunnel`(`vector.search.mode: funnel`) | 배포 전 |
+| 2026-10-29 | [HNSW와 전수 계산](reports/2026-10-29-hnsw.md) | 질문 벡터의 가까운 책 찾기: 그때(2026-10-29) Java 전수 계산(81,078권, 운영 97ms)과 pgvector HNSW의 시간·재현율·크기·메모리를 로컬에서 잼. 결론: 그때는 전수 유지, 15만\~20만 권부터 다시 봄(추정) | 조사만(v1.23.0부터는 깔때기) |
+| 2026-10-29 | [소개글을 검색에 넣는 법](reports/2026-10-29-intro-text.md) | 1,000권, 검색어 800개(전문 용어·오타·다른 이름·풀어 말하기 등 8종) + 질문 57개: 벡터 글(300자·요약·토큰 길이·조각·맥락 조각·두 층), 낱말 검색(개수 세기·BM25·pg_search 한국어), Haiku가 읽는 글(한 줄·요약·소개 토막). 추천: 요약 벡터 + pg_search BM25(한 줄 + 소개 전문) + 요약·토막 읽기 | 운영 v1.23.0(한 줄 + Haiku 검색 낱말 BM25로 바꿔 넣음) |
+| 2026-10-30 | [책이 20만\~100만 권일 때](reports/2026-10-30-vector-scaling.md) | 가까운 책 찾기를 키우는 네 길(A Java 깔때기: 해밍 → 비대칭 binary → int8 다시 매기기, B halfvec HNSW, C binary HNSW, D 전용 벡터 DB), 책 수별 메모리, A와 HNSW의 메모리 차이가 나는 까닭, binary·int4 거르기 재현율(81k: 해밍 1만 → 비대칭 2,000이면 상위 120의 0.992). 추천: A로 시작, 넘치면 D. A를 Java로 잼: 81k 79.8 → 6.9ms, 100만 권 715.7 → 32.0ms. 서버 코드 `BookVectorFunnel`(`vector.search.mode: funnel`) | 운영 v1.23.0(`funnel` 기본) |
 | 2026-10-31 | [두 층 + BM25: 8만 권 다시 재기](reports/2026-10-31-two-layer-step6.md) | 76,759권 전부, 계획 도서관 65곳 거르기, 질문 857개(8가지 꼴 750 + 주제 57), 진짜 Haiku. 카드에 찾는 책 40.3 → 56.1%, 1번 카드 29.5 → 39.7%, 주제 77.7 → 79.1%, 응답 시간 거의 같음. 벡터만·BM25만 따로도 잼. ML 1차 빼기(rulesOut)는 오판이 많아 끔(3-4·3-5절) → 운영 값으로 카드 60.1%, 1번 42.3%, 주제 84.0% | 운영 v1.23.0 |
 
 ## 5. 원본 숫자 파일 (`docs/features/aisearch/eval-data/`)
@@ -84,6 +84,6 @@ AI 책 찾기(주소 `/ai-search`, API `POST /api/v1/ai-searches/stream`)는 사
 ## 6. 이 폴더 밖
 
 - 스크립트: [`scripts/aisearch/`](../../../scripts/aisearch/)(책 데이터·벡터 만들기), [`scripts/aisearch/eval/`](../../../scripts/aisearch/eval/)(실험·평가, README 있음)
-- git 밖 데이터: `chaekcheck-data/ml/`(모델 폴더, `README.md` 색인: 운영은 `aisearch-model-100k`), `chaekcheck-dev/data/aisearch-eval-2026-10-25/`(실험 데이터, README 있음)
+- git 밖 데이터: `chaekcheck-data/ml/`(모델 폴더, `README.md` 색인. 운영은 1차·관계 파일 `aisearch-model-100k-v2`(v1.21.0\~) + 책 벡터 `aisearch-model-two-layer`(v1.23.0\~)), `chaekcheck-dev/data/aisearch-eval-2026-10-25/`(실험 데이터, README 있음)
 - 바뀐 점 목록: [`CHANGELOG.md`](../../../CHANGELOG.md), plan에 넘긴 기록: [`plan-feedback.md`](../../cycles/plan-feedback.md)의 사이클 24·AI 검색 절
 - 2026-10-29에 옮기면서 옛 경로(`docs/reports/ai-search-*.md`, `docs/cycle24-session-handoff.md`)에 남겼던 안내 파일은 사이클 26 배포 1(v1.20.0)로 코드 주석이 새 경로로 바뀐 뒤 지웠습니다.
