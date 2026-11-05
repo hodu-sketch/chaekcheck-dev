@@ -13,7 +13,9 @@ import numpy as np
 import torch, torch.nn as nn
 HERE = os.path.dirname(os.path.abspath(__file__)); SP = os.path.join(HERE, '..')
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True)
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 src = open(os.path.join(HERE, 'predict_eval.py'), encoding='utf-8').read().split("\nout = {}\n")[0]
 src = src.replace('Vev = SentenceTransformer("nlpai-lab/KURE-v1", device="cpu").encode([q[\'q\'] for q in evq], normalize_embeddings=True).astype(np.float32)', 'km = SentenceTransformer("nlpai-lab/KURE-v1", device="cpu")')
 exec(src)
@@ -113,7 +115,7 @@ print('model', os.path.getsize(os.path.join(OUT, 'first-call-model.bin')) // 102
 # profiles
 n = 0
 with open(os.path.join(OUT, 'book-profiles.tsv'), 'w', encoding='utf-8', newline='\n') as f:
-    for l in open(os.path.join(r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\aisearch", 'book-profiles-detailed-2026-10-25.jsonl'), encoding='utf-8'):
+    for l in open(os.path.join(os.path.join(_PROJECTS, r"chaekcheck-data\aisearch"), 'book-profiles-detailed-2026-10-25.jsonl'), encoding='utf-8'):
         if not l.strip(): continue
         o = json.loads(l)
         fic = '' if o.get('fiction') is None else ('1' if o['fiction'] else '0')

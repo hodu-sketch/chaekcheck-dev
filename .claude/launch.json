@@ -2,15 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "c23-web-lan-5174",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": [
-        "/c",
-        "set API_PROXY_TARGET=http://localhost:8091&& set COVERS_DIR=C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-data\\covers-export&& npm --prefix web run dev -- --port 5174 --strictPort --host"
-      ],
-      "port": 5174
-    },
-    {
       "name": "web",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
@@ -68,44 +59,21 @@
     },
     {
       "name": "backend",
-      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend\\gradlew.bat",
+      "runtimeExecutable": "cmd",
       "runtimeArgs": [
-        "-p",
-        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend",
-        "bootRun"
+        "/c",
+        "backend\\gradlew.bat -p backend bootRun"
       ],
       "port": 8080
     },
     {
       "name": "backend-no-login",
-      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend\\gradlew.bat",
-      "runtimeArgs": [
-        "-p",
-        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev\\backend",
-        "bootRun",
-        "--args=--chaekcheck.auth.enabled=false"
-      ],
-      "port": 8080
-    },
-    {
-      "name": "c14-backend-8083",
-      "runtimeExecutable": "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c14\\backend\\gradlew.bat",
-      "runtimeArgs": [
-        "-p",
-        "C:\\Users\\yujun\\Documents\\Claude\\Projects\\chaekcheck-dev-c14\\backend",
-        "bootRun",
-        "--args=--server.port=8083"
-      ],
-      "port": 8083
-    },
-    {
-      "name": "c14-web-lan-5177",
       "runtimeExecutable": "cmd",
       "runtimeArgs": [
         "/c",
-        "set API_PROXY_TARGET=http://localhost:8083&& npm --prefix web run dev -- --port 5177 --strictPort --host"
+        "backend\\gradlew.bat -p backend bootRun --args=--chaekcheck.auth.enabled=false"
       ],
-      "port": 5177
+      "port": 8080
     }
   ]
 }

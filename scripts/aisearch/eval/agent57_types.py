@@ -3,7 +3,9 @@ the runs f-on, f-on-r2, f-off, f-off-r2 in agent57/, judged by agent57-JUDGE_RUL
 right and wrong cards a question, no-card questions, first text and output tokens (both runs together)."""
 import json, os, statistics
 
-OUT = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\agent57'
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\agent57')
 Q = {'k%02d' % x['id']: x for x in json.load(open(os.path.join(os.path.dirname(OUT), 'eval_questions.json'), encoding='utf-8'))}
 J = json.load(open(os.path.join(OUT, 'judged.json'), encoding='utf-8'))
 WAYS = {'생각 켬': ['f-on', 'f-on-r2'], '생각 끔+캐시': ['f-off', 'f-off-r2']}

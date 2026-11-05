@@ -2,7 +2,10 @@
 on copies only: size, the four query times, an import's delete-and-insert, then VACUUM (FULL, ANALYZE) and ANALYZE."""
 import json, statistics, subprocess, time
 
-OUT = r'C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\bb57962d-27d3-4cad-8a07-72516d613e8e\scratchpad\ev3\dbtest2.json'
+import os
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.path.join(_REPO, 'data', 'scratch', r'ev3\dbtest2.json')
 
 
 def psql(sql):

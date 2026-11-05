@@ -14,7 +14,9 @@ import unicodedata
 import numpy as np
 
 HERE = os.environ.get("AISEARCH_EVAL_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "data", "aisearch-eval")
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 csv.field_size_limit(10**8)
 
 SPACES = re.compile(r"[\s\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u2064\ufeff]+")

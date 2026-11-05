@@ -10,7 +10,9 @@ import glob, json, os, sys
 import rules_run as r
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.environ.get('TALK_OUT', r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\talk-refs')
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.environ.get('TALK_OUT', os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\talk-refs'))
 SUITE = json.load(open(os.path.join(HERE, 'talk_refs_suite.json'), encoding='utf-8'))
 FIXED_ASK = '어떤 책을 찾으세요? 이렇게 물어보셔도 돼요.'
 

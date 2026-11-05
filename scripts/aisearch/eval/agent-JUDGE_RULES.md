@@ -1,6 +1,6 @@
 # AI 검색 카드 채점 (2단계 에이전트 전후 비교)
 
-1. `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\agent\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "talk", "want", "book": {"title", "author", "line"}}`. 사람이 talk의 질문들을 차례로 쳤고(마지막이 지금 질문), 앱이 그 마지막 질문의 답으로 `book`을 카드로 보여 줬다. `want`는 그 사람이 실제로 원한 책이다(앱은 몰랐다).
+1. `data\aisearch-eval-2026-10-25\agent\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "talk", "want", "book": {"title", "author", "line"}}`. 사람이 talk의 질문들을 차례로 쳤고(마지막이 지금 질문), 앱이 그 마지막 질문의 답으로 `book`을 카드로 보여 줬다. `want`는 그 사람이 실제로 원한 책이다(앱은 몰랐다).
 2. 항목마다 이 책이 **want에** 얼마나 맞는지 0~3으로 매긴다:
    - 3: want에 딱 맞음
    - 2: 대체로 맞음(주제는 맞고 조건 하나쯤 어긋남)

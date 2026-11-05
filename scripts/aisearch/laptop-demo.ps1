@@ -9,8 +9,8 @@
 
 & {
   $ErrorActionPreference = 'Stop'
-  $dev = 'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev'
-  $wt = 'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev-c24'
+  $dev = (git rev-parse --show-toplevel) -replace '/', '\'  # run from the dev folder
+  $wt = Join-Path (Split-Path $dev) 'chaekcheck-dev-c24'
   $branch = 'claude/awesome-carson-8416jq'
 
   # 1. the branch in its own folder

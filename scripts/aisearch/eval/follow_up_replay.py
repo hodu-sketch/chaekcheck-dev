@@ -6,7 +6,9 @@ import json, os, sys, time
 
 import rules_run as r
 
-OUT = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\intent'
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\intent')
 DIALOGUES = {
     'prod-20-54': ['재밌고 의외인 것이 많은 교양서 알려줘', '이거말고 세계역사나 과학사나 좀 더 다양한 분야에서', '최신책',
                    '아니 최신책 아까 세계역사나 뭐 이런 것들 이야기했자나', '아니 왜 못 골라', '다 같이 하면 되자나',

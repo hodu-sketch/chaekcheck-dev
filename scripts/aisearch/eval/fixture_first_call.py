@@ -17,7 +17,9 @@ def out(name, v):
     h, w1, b1, w2, b2 = W[name]; z = w2 @ np.maximum(0, w1 @ v + b1) + b2
     if h['kind'] == 'multi': return 1 / (1 + np.exp(-z))
     e = np.exp(z - z.max()); return e / e.sum()
-KD = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml\kure-onnx"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+KD = os.path.join(_PROJECTS, r"chaekcheck-data\ml\kure-onnx")
 tok = Tokenizer.from_file(os.path.join(KD, 'tokenizer-cut.json')); tok.enable_truncation(256)
 sess = ort.InferenceSession(os.path.join(KD, 'kure-query-int8-ext.onnx'), providers=['CPUExecutionProvider'])
 qs = ["다이어트 식단을 자세히 다룬 책", "책첵은 무료야?", "오늘 점심 뭐 먹지", "채식주의자", "이 중에 소설만", "다른 지역 도서관도 가입돼?",

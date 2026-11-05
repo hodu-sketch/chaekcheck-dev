@@ -13,7 +13,10 @@ from sklearn.isotonic import IsotonicRegression
 from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.metrics import accuracy_score, f1_score
 
-DATA = Path('C:/Users/yujun/Documents/Claude/Projects/chaekcheck-data/aisearch/100k')
+import os
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+DATA = Path(os.path.join(_PROJECTS, r'chaekcheck-data/aisearch/100k'))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'crawl'))
 from foryou_neighbours import work_key, first_author
 

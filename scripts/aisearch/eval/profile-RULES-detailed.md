@@ -1,6 +1,6 @@
 # 책 프로필 만들기 — 상세 사전 (AI 책 찾기용)
 
-1. 먼저 사전 `C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\taxonomy2.json`을 Read로 읽는다. 모든 값은 이 사전의 글자를 그대로 쓴다(사전에 없는 값은 쓰지 않는다).
+1. 먼저 사전 `data\scratch\taxonomy2.json`을 Read로 읽는다. 모든 값은 이 사전의 글자를 그대로 쓴다(사전에 없는 값은 쓰지 않는다).
 2. 맡은 입력 파일 `in-NNN.tsv`(이 폴더)를 Read 도구로 25줄씩 나눠 읽는다(offset 1, 26, 51, 76, 101, 126, limit 25). 한 줄 = book_id<TAB>제목<TAB>저자<TAB>KDC<TAB>대상(국가서지)<TAB>소개(앞 600자).
    - KDC·대상은 국립중앙도서관 국가서지 값이고 비어 있을 수 있다. 참고만 하고, 소개와 다르면 소개를 따른다.
    - **입력은 150줄이다. 여섯 번(offset 1, 26, 51, 76, 101, 126)을 모두 읽고, 출력도 150줄이어야 한다. 마지막 126~150줄을 빠뜨리지 않는다.**

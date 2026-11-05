@@ -7,7 +7,9 @@ import numpy as np
 import torch, torch.nn as nn
 from sklearn.linear_model import LogisticRegression
 torch.set_num_threads(12)
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 os.environ["HF_HOME"] = os.path.join(ML, "hf"); os.environ["HF_HUB_OFFLINE"] = "1"
 HERE = os.path.dirname(os.path.abspath(__file__)); SP = os.path.join(HERE, '..')
 def load(p): return [json.loads(l) for l in open(p, encoding='utf-8') if l.strip()]

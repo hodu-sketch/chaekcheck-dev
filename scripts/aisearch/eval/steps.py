@@ -5,7 +5,9 @@ import json, os
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 os.environ["HF_HOME"] = os.path.join(ML, "hf"); os.environ["HF_HUB_OFFLINE"] = "1"
 HERE = os.path.dirname(os.path.abspath(__file__)); SP = os.path.join(HERE, '..')
 T = json.load(open(os.path.join(SP, 'taxonomy2.json'), encoding='utf-8'))

@@ -1,6 +1,6 @@
 # 세 번째 질문의 카드 채점
 
-1. `C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\c3\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "q1", "shown1", "q2", "shown2", "q3", "want", "book": {"title", "author", "line"}}`. 사람이 첫 질문 q1을 치고 책 목록 shown1을, 두 번째 질문 q2를 치고 책 목록 shown2(차례대로 1~8번)를 본 뒤, 세 번째 질문 q3을 쳤다. `want`는 질문을 쓴 사람이 적은 원하는 것. 앱이 이때 `book`을 카드로 보여 줬다.
+1. `data\scratch\c3\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "q1", "shown1", "q2", "shown2", "q3", "want", "book": {"title", "author", "line"}}`. 사람이 첫 질문 q1을 치고 책 목록 shown1을, 두 번째 질문 q2를 치고 책 목록 shown2(차례대로 1~8번)를 본 뒤, 세 번째 질문 q3을 쳤다. `want`는 질문을 쓴 사람이 적은 원하는 것. 앱이 이때 `book`을 카드로 보여 줬다.
 2. 항목마다 이 책이 **세 번째 질문에 대한 답으로** 얼마나 맞는지 0~3으로 매긴다:
    - 3: 앞 대화를 합친 지금 원하는 것(want)에 딱 맞음
    - 2: 대체로 맞음(주제는 맞고 조건 하나쯤 어긋남). 「두 주제를 함께」 원할 때 한쪽 주제만 맞는 책은 2
@@ -8,5 +8,5 @@
    - 0: 맞지 않음(예: 「앞 두 주제를 합쳐」인데 마지막 주제와도 앞 주제와도 다른 책)
    - 「이 중에」「두 번째 거」처럼 바로 앞에 보인 책(shown2) 안에서 고르라는 질문이면, shown2에 없는 책은 그 조건을 따랐을 때만 2 이상.
    - 책 정보는 제목·저자·한 줄 소개만 보고 판단한다. 모르면 한 줄 소개를 믿는다.
-3. Write 한 번으로 같은 폴더(`C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\c3\jd`)의 `out-NN.json`에 `{"<key>": 점수, …}`로 쓴다. 다른 글 없이.
+3. Write 한 번으로 같은 폴더(`data\scratch\c3\jd`)의 `out-NN.json`에 `{"<key>": 점수, …}`로 쓴다. 다른 글 없이.
 4. 다른 파일은 읽거나 쓰지 않고 명령도 돌리지 않는다. 답은 `done <항목 수>`만.

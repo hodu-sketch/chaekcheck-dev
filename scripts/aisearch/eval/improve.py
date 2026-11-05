@@ -9,7 +9,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 HERE = os.path.dirname(os.path.abspath(__file__)); SP = os.path.join(HERE, '..')
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 T = json.load(open(os.path.join(SP, 'taxonomy2.json'), encoding='utf-8'))
 parent = {s: f for f, v in T['field'].items() for s in v}
 def load(p): return [json.loads(l) for l in open(p, encoding='utf-8') if l.strip()]

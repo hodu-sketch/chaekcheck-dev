@@ -3,7 +3,9 @@ the free-text way (v1.21.2) on one local backend against the structured way on a
   python tail_compare.py <port A> <label A> <port B> <label B>   -> <out>/tail-compare.json"""
 import json, os, re, sys, time, urllib.request, uuid
 
-OUT = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\rules'
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\rules')
 QUESTIONS = ['사진', '여행 에세이', '우주 과학 입문서', '요리', '커피', '출퇴근길에 읽을 짧은 소설', '심리학 입문서', '주식 투자 입문',
              '추리 소설', '판타지 소설', '철학 입문', '자존감 에세이', '육아', '글쓰기 잘하는 법', '경제 교양서', '역사 소설', '그림책',
              '영어 회화', '다이어트', '고양이']

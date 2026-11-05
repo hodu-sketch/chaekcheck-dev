@@ -150,7 +150,7 @@
 | `check_author_publisher_swap.py` (2026-10-16, 사이클 19, plan ADR-0115) | 수집 SQLite(읽기 전용)에서 전자도서관 포털(`ELIB_PORTAL_V1`) 도서관마다 저자·출판사가 뒤바뀌었는지 판정: 줄마다 저자 칸 첫 이름이 다른 도서관(포털 빼고)에서 저자로 쓰인 수와 출판사로 쓰인 수를 견줌. 도서관마다 "바름 / 뒤바뀜 / 판단 못 함"과 줄 수. 문턱값(근거 3회, 줄 80%, 도서관 100줄·90%)과 판정 뜻은 `--help`. 2026-10-12 사본: 11·12·15 뒤바뀜(99.88~99.96%), 10·13·14·280 바름(0~0.33%), 191초. 가져오기가 `swap_before`로 멈출 때 쓰는 절차는 `maintenance/3-import.md` 12-1. 테스트: `python -m unittest scripts/library/test_check_author_publisher_swap.py` | `python scripts/library/check_author_publisher_swap.py <사본.sqlite> > data/<폴더>/swap-check.tsv` |
 | `probe_seoul_elib.py` (2026-10-20) | 서울도서관 자체 전자책 사이트(`elib.seoul.go.kr`, `SEOUL_ELIB_V1`)를 다시 한 번 확인: robots.txt, 제목 검색 1건(JSON 칸·보유·대출·예약 수), 소장형 상세 1건, 분류별 권수(전자책·오디오북), 분류 목록 한 쪽(`pageCount`). 우리 User-Agent, 1.1초 간격, 요청 약 7건. 판단은 하지 않음. 견줄 값은 4-14 | `python scripts/library/probe_seoul_elib.py [--keyword 사랑] [--page-count 100]` |
 
-- 모두 **저장소 루트에서** 실행합니다. Java는 서비스와 같은 JDK 25(`C:\Users\yujun\.jdks\jdk-25.0.4.1+1\bin\java.exe`)를 씁니다. 다른 JDK나 curl은 TLS 결과가 다를 수 있습니다(예: 대구는 JDK에서만 설정이 필요, curl은 됨).
+- 모두 **저장소 루트에서** 실행합니다. Java는 서비스와 같은 JDK 25(`%USERPROFILE%\.jdks\jdk-25.0.4.1+1\bin\java.exe`)를 씁니다. 다른 JDK나 curl은 TLS 결과가 다를 수 있습니다(예: 대구는 JDK에서만 설정이 필요, curl은 됨).
 - 입력 TSV: `이름<TAB>주소` 한 줄에 하나. 중간 결과(TSV·JSON)는 **저장소에 넣지 않고** 작업 폴더(임시 폴더)에 둡니다.
 - 포털·강남구용 확인 도구는 아직 없습니다. 만들면 같은 출력 형식으로 만들고 이 표에 더합니다.
 - 빈 검색(보유 수)은 큰 사이트에서 5초를 넘길 수 있습니다(2026-09-29: 춘천·경산·국립세종). 그때는 한 번만 60초까지 기다려 잽니다.

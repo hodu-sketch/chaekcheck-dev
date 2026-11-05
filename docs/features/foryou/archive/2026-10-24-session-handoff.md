@@ -8,7 +8,7 @@
 ## 1. 어디서 이어 가나
 
 - dev 브랜치 **`claude/cycle-23-for-you-picks-kzjabw`**(main `adba2d3`에서 시작, 끝 커밋은 이 문서를 더한 커밋). 로컬에서 `git fetch origin claude/cycle-23-for-you-picks-kzjabw` 뒤 그 브랜치로 작업합니다
-- plan 문서(읽기 전용): plan main `18133c3` 이후 `docs/cycles/23-for-you-picks/`의 `handoff.md`(인계서), `design-delta.md`(기준 설계), `to-dev-popular-list-check.md`, `to-dev-intro-test-2026-10-24.md`. 로컬 경로 `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-plan\`
+- plan 문서(읽기 전용): plan main `18133c3` 이후 `docs/cycles/23-for-you-picks/`의 `handoff.md`(인계서), `design-delta.md`(기준 설계), `to-dev-popular-list-check.md`, `to-dev-intro-test-2026-10-24.md`. 로컬 경로 `..\chaekcheck-plan\`
 - `docs/current/handoff.md`는 사이클 20 그대로이고 끝에 23 안내 한 줄만 있습니다(dev `CLAUDE.md`가 불러오는 것은 사이클 20). 23은 위 사이클 폴더의 인계서를 따릅니다
 
 ## 2. 지금까지 한 것

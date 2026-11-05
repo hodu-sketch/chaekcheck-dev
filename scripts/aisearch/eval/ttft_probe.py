@@ -9,7 +9,9 @@ import json, os, re, statistics, subprocess, sys, time, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 PROMPTS = os.path.join(ROOT, 'backend', 'src', 'main', 'java', 'com', 'chaekcheck', 'aisearch', 'internal', 'flow', 'Prompts.java')
-OUT = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\ttft-probe.json'
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\ttft-probe.json')
 
 
 def key():

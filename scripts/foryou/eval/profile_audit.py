@@ -3,8 +3,11 @@ same-work leakage, and a no-training baseline (majority of the 20 neighbours) pe
 import json, sys
 from collections import Counter, defaultdict
 from pathlib import Path
-DATA = Path('C:/Users/yujun/Documents/Claude/Projects/chaekcheck-data')
-sys.path.insert(0, 'C:/Users/yujun/Documents/Claude/Projects/chaekcheck-dev/scripts/crawl')
+import os
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+DATA = Path(os.path.join(_PROJECTS, r'chaekcheck-data'))
+sys.path.insert(0, os.path.join(_REPO, r'scripts/crawl'))
 from foryou_neighbours import work_key, first_author
 out = {}
 prof = {}
@@ -47,7 +50,7 @@ out['kdc_main_class_to_field_top'] = {k: v.most_common(4) for k, v in sorted(cro
 out['kdc_main_class_purity'] = round(sum(v.most_common(1)[0][1] for v in cross.values()) / sum(sum(v.values()) for v in cross.values()), 3)
 # same-work leakage
 books = {}
-for l in open('C:/Users/yujun/AppData/Local/Temp/claude/C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev/a63c8478-d6a1-496c-bb42-282e3e8072fd/scratchpad/eval100k/books.tsv', encoding='utf-8'):
+for l in open(os.path.join(_REPO, 'data', 'scratch', r'eval100k/books.tsv'), encoding='utf-8'):
     p = l.rstrip('\n').split('\t'); books[int(p[0])] = (p[1], p[2], int(p[3]))
 groups = defaultdict(list)
 for b in prof:

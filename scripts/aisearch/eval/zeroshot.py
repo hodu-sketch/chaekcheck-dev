@@ -4,7 +4,9 @@ slot is chosen on 100 dev questions (q-24, part of the training files); scored o
 and the 57 eval questions. Same micro F1 as clf/train.py."""
 import json, os, time
 import numpy as np
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 os.environ["HF_HOME"] = os.path.join(ML, "hf"); os.environ["HF_HUB_OFFLINE"] = "1"
 import torch
 torch.set_num_threads(16)

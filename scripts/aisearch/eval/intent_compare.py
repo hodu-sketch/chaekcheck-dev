@@ -7,9 +7,11 @@ import json, os, re, struct, sys
 import numpy as np, onnxruntime as ort
 from tokenizers import Tokenizer
 
-DATA = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\intent'
-SRC = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev-talk2\backend\src\main\java\com\chaekcheck\aisearch\internal'
-ENC = r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml\aisearch-model-100k-v2'
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+DATA = os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\intent')
+SRC = os.path.join(_REPO, r'backend\src\main\java\com\chaekcheck\aisearch\internal')
+ENC = os.path.join(_PROJECTS, r'chaekcheck-data\ml\aisearch-model-100k-v2')
 YEAR = 2026
 
 

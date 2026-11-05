@@ -31,8 +31,22 @@ embed-service/  텍스트 임베딩 서버 (ONNX Runtime)
 deploy/         배포 설정 (Nginx, Docker Compose)
 docker/         로컬 개발용 Docker 이미지
 scripts/        데이터 수집·분석 스크립트
-docs/           설계 문서, 운영 기록
+docs/           기능·운영·도서관 조사·사이클 기록 (목차: docs/README.md)
 ```
+
+## 문서
+
+처음 보신다면 이 세 편부터 읽어 주세요. 무엇을 만들었고, 어떻게 재서, 무엇을 고쳤는지를 숫자와 함께 정리했습니다.
+
+- [AI 책 찾기 개선 기록](docs/features/aisearch/4-portfolio.md) — 질문 해석 ML, 벡터 후보 찾기, Haiku 고르기를 단계마다 재 보고 넣거나 버린 기록
+- [책첵 추천](docs/features/foryou/7-portfolio.md) — 이웃 책 계산, 소개 글 임베딩, 시험 설계와 결과
+- [책 설명 모으기·표지 S3](docs/features/book-descriptions/1-portfolio.md) — 데이터 이전과 질의 속도
+
+전체 목차는 [docs/README.md](docs/README.md)에 있습니다. 운영 절차는 `docs/maintenance/`, 기능별 동작·측정은 `docs/features/`에 있습니다.
+
+### 개발 방식
+
+설계(범위, ADR, 인계서)는 비공개 계획 저장소에서 하고, 이 저장소는 그 설계를 구현합니다. 그래서 문서에 「plan `docs/...`」로 계획 저장소 파일을 가리키는 곳이 있습니다. 개발은 Claude Code와 함께 했고, 사이클마다 구현 결과·결정·측정값을 계획 쪽에 넘긴 날짜 순 원기록이 [`docs/cycles/plan-feedback.md`](docs/cycles/plan-feedback.md)입니다(정리된 문서가 아니라 작업 일지입니다).
 
 ## 로컬 개발 환경
 

@@ -5,12 +5,14 @@ topic-vectors.npz."""
 import json, os, re, time
 from collections import Counter
 import numpy as np
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 os.environ["HF_HOME"] = os.path.join(ML, "hf"); os.environ["HF_HUB_OFFLINE"] = "1"
 from sentence_transformers import SentenceTransformer
 HERE = os.path.dirname(os.path.abspath(__file__))
 c = Counter()
-for l in open(r"C:/Users/yujun/Documents/Claude/Projects/chaekcheck-data/aisearch/book-profiles-detailed-2026-10-25.jsonl", encoding="utf-8"):
+for l in open(os.path.join(_PROJECTS, r"chaekcheck-data/aisearch/book-profiles-detailed-2026-10-25.jsonl"), encoding="utf-8"):
     for t in json.loads(l).get("topics") or []:
         c[t.strip()] += 1
 GENERIC = re.compile("책|도서|독서|추천|리뷰|서평")

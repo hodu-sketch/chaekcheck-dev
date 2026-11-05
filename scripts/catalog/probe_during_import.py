@@ -20,9 +20,11 @@ import urllib.request
 # cycle 11: another service and compose database (the db-ops apply test), e.g.
 #   CHAEKCHECK_BASE=http://localhost:8081 CHAEKCHECK_DB_SERVICE=db-ops python scripts/catalog/probe_during_import.py ...
 BASE = os.environ.get('CHAEKCHECK_BASE', 'http://localhost:8080')
-PSQL = ('wsl', '-d', 'Ubuntu', '--', 'bash', '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev/data/cycle08/psql.sh',
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+_WSL_ROOT = '/mnt/' + _ROOT[0].lower() + _ROOT[2:].replace('\\', '/')  # the repo as WSL sees it
+PSQL = ('wsl', '-d', 'Ubuntu', '--', 'bash', _WSL_ROOT + '/data/cycle08/psql.sh',
         os.environ.get('CHAEKCHECK_DB_SERVICE', 'db'),
-        '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev/data/cycle08/q-dbsize.sql')
+        _WSL_ROOT + '/data/cycle08/q-dbsize.sql')
 
 
 def call(url):

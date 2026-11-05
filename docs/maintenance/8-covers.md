@@ -12,7 +12,7 @@
 | 서버 설정 | `chaekcheck.covers.base-url` = `https://d1bdzw8sfjph5d.cloudfront.net` (`application.yml`, 운영은 `CHAEKCHECK_COVERS_BASEURL`로 바꿀 수 있음) |
 | 웹 | `picksText.ts` `COVERS_BASE_URL`(빌드 때 `VITE_COVERS_BASE_URL`), CSP `img-src`에 같은 호스트 (`deploy/nginx/security-headers.conf`) |
 | PC 업로드 프로필 | AWS CLI 프로필 `chaekcheck-covers` = IAM 사용자 `chaekcheck-covers-uploader`(그 버킷 `s3:PutObject`·`s3:ListBucket`만). 키는 PC의 `%USERPROFILE%\.aws\credentials`에만. 저장소·문서·로그에 적지 않음 |
-| AWS CLI | `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\tools\awscli\Amazon\AWSCLIV2\aws.exe` (v2.39.0, 관리자 권한 없이 MSI를 풀어 둠, git 밖) |
+| AWS CLI | `data\tools\awscli\Amazon\AWSCLIV2\aws.exe` (v2.39.0, 관리자 권한 없이 MSI를 풀어 둠, git 밖) |
 | 비밀 아닌 값 | dev `data/covers-aws.json` |
 
 그림 이름:
@@ -25,7 +25,7 @@
 - 옵션은 늘 같게: `--profile chaekcheck-covers --cache-control "public, max-age=604800" --content-type image/jpeg`
 - 예(평평한 폴더 하나):
   ```
-  & 'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\tools\awscli\Amazon\AWSCLIV2\aws.exe' s3 sync <폴더> s3://chaekcheck-covers-135274608857/covers/ --profile chaekcheck-covers --cache-control "public, max-age=604800" --content-type image/jpeg --no-progress *> upload.log
+  & 'data\tools\awscli\Amazon\AWSCLIV2\aws.exe' s3 sync <폴더> s3://chaekcheck-covers-135274608857/covers/ --profile chaekcheck-covers --cache-control "public, max-age=604800" --content-type image/jpeg --no-progress *> upload.log
   ```
   `sync`는 이미 있는 같은 크기 파일을 건너뛰므로 다시 돌려도 됩니다. 끝나면 `upload.log`의 `upload:` 줄 수와 오류 줄(`error`, `failed`)을 셉니다.
 - 수집 폴더가 `covers\<xx>\<sha1>.jpg`처럼 나뉘어 있으면 `sync`로 그대로 올리면 `covers/<xx>/…`가 되어 주소가 맞지 않습니다. 평평한 폴더로 모으거나(하드 링크·복사) 파일마다 `covers/<sha1>.jpg`로 올립니다.

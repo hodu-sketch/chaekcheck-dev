@@ -1,6 +1,6 @@
 # 운영 2차 호출 흉내 (이어 묻는 질문)
 
-1. 시스템 지시문 `C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\PICK_SYSTEM.txt`를 Read로 읽고, 그것을 네 시스템 지시문으로 삼아 그대로 따른다.
+1. 시스템 지시문 `data\scratch\PICK_SYSTEM.txt`를 Read로 읽고, 그것을 네 시스템 지시문으로 삼아 그대로 따른다.
 2. 맡은 파일(이 폴더의 `pick-in-<V>-<N>.json`)을 Read로 읽는다. 배열의 한 항목 = `{id, variant, ids, messages}`. `messages`는 운영이 보내는 대화 그대로다(첫 질문, 보여 준 책, 지금 질문과 고를 수 있는 책). 항목마다 서로 다른 대화이니 하나씩 따로, 앞 대화를 참고해 마지막 메시지에 답한다.
 3. 항목마다 지시문이 시키는 고르기(0~8권, 마지막 메시지 안의 번호, fit 0~3, fit 규칙 모두 따름)를 한다. head와 text는 쓰지 않는다.
 4. Write 한 번으로 이 폴더의 `pick-out-<V>-<N>.json`에 쓴다: `[{"id": <id>, "picks": [{"no": n, "fit": f}, …]}, …]`, 입력 차례대로, 보여 줄 차례대로.

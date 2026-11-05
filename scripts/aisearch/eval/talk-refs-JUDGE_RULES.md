@@ -1,6 +1,6 @@
 # AI 검색 대화 채점 (대화를 가리키는 말)
 
-1. `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\talk-refs\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "talk", "question", "answer", "want", "check"}`.
+1. `data\aisearch-eval-2026-10-25\talk-refs\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "talk", "question", "answer", "want", "check"}`.
    - `talk`: 앞 대화(사용자 말과 앱의 답). `question`: 지금 사용자 말. `answer`: 앱의 지금 답(되물음과 고를 답, 또는 머리말과 카드 목록).
    - `want`: 사용자가 실제로 원한 것(앱은 몰랐다). `check`: 이 턴에서 특히 볼 것.
 2. 항목마다 두 가지를 정한다.

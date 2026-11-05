@@ -1,7 +1,9 @@
 """bge-reranker-v2-m3 (float32, torch) speed on this PC with 2 threads, like the embedding server's 2 cores:
 time per question for 22 / 50 / 170 (question, shelf description) pairs, and KURE-v1 for one question."""
 import json, os, time, sys
-ML = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+ML = os.path.join(_PROJECTS, r"chaekcheck-data\ml")
 os.environ["HF_HOME"] = os.path.join(ML, "hf"); os.environ["HF_HUB_OFFLINE"] = "1"
 import torch
 torch.set_num_threads(2)

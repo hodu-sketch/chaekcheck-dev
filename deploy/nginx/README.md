@@ -36,10 +36,10 @@
 
 1. 웹 빌드: `web/`에서 `npm run build`
 2. 백엔드를 Windows에서 띄웁니다(8080). 로그인을 켜서 볼 때는 `AUTH_PUBLIC_BASE_URL=http://localhost:8088`.
-3. WSL에서 nginx를 띄웁니다. `backend-host`는 WSL에서 본 Windows 주소입니다(`ip route`의 default via 값).
+3. 저장소 폴더에서 WSL로 nginx를 띄웁니다(`R=$PWD`가 저장소 폴더). `backend-host`는 WSL에서 본 Windows 주소입니다(`ip route`의 default via 값).
 
 ```bash
-wsl -d Ubuntu -- bash -c 'R=/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev; docker run -d --name chaekcheck-nginx-check -p 8088:8088 --add-host backend-host:$(ip route | awk "/default/{print \$3}") -v $R/web/dist:/usr/share/nginx/html:ro -v $R/deploy/nginx:/etc/nginx/chaekcheck:ro -v $R/deploy/nginx/local-test.conf:/etc/nginx/conf.d/default.conf:ro nginx:stable-alpine'
+wsl -d Ubuntu -- bash -c 'R=$PWD; docker run -d --name chaekcheck-nginx-check -p 8088:8088 --add-host backend-host:$(ip route | awk "/default/{print \$3}") -v $R/web/dist:/usr/share/nginx/html:ro -v $R/deploy/nginx:/etc/nginx/chaekcheck:ro -v $R/deploy/nginx/local-test.conf:/etc/nginx/conf.d/default.conf:ro nginx:stable-alpine'
 ```
 
 4. 브라우저로 `http://localhost:8088/search`를 엽니다. 다 보면 지웁니다.

@@ -1,7 +1,9 @@
 import json, os, struct, sys
 import numpy as np, onnxruntime as ort
 from tokenizers import Tokenizer
-D = r"C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data\ml\aisearch-model"
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+D = os.path.join(_PROJECTS, r"chaekcheck-data\ml\aisearch-model")
 b = open(os.path.join(D, 'first-call-model.bin'), 'rb').read()
 n = struct.unpack('<i', b[6:10])[0]; H = json.loads(b[10:10 + n].decode('utf-8')); off = 10 + n; W = {}
 dim, hid = H['dim'], H['hidden']

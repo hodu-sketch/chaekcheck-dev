@@ -4,7 +4,9 @@ vague follow-up, the joining question (third turn), or the one rare / clear ques
 answer after the simulated user's reply is judged and the ask round counts in time and tokens."""
 import glob, json, os, sys
 
-OUT = os.environ.get('AGENT_EVAL_OUT', r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\agent')
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.environ.get('AGENT_EVAL_OUT', os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\agent'))
 HERE = os.path.dirname(os.path.abspath(__file__))
 QS = json.load(open(os.environ.get('AGENT_QS', os.path.join(HERE, 'agent_questions.json')), encoding='utf-8'))
 CLEAR = {'k%02d' % x['id']: x['q'] for x in json.load(open(os.path.join(os.path.dirname(OUT), 'eval_questions.json'), encoding='utf-8'))}

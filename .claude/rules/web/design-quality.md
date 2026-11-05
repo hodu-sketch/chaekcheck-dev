@@ -6,7 +6,7 @@ paths:
   - "web/**/*.tsx"
   - "web/**/*.jsx"
 ---
-> This file extends [common/patterns.md](../common/patterns.md) with web-specific design-quality guidance.
+> This file extends `common/patterns.md` with web-specific design-quality guidance.
 
 # Web Design Quality Standards
 

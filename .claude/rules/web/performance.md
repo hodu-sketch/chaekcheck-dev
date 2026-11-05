@@ -6,7 +6,7 @@ paths:
   - "web/**/*.tsx"
   - "web/**/*.jsx"
 ---
-> This file extends [common/performance.md](../common/performance.md) with web-specific performance content.
+> This file extends `common/performance.md` with web-specific performance content.
 
 # Web Performance Rules
 

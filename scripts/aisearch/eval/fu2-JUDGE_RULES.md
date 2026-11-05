@@ -1,6 +1,6 @@
 # 이어 묻는 질문의 카드 채점
 
-1. `C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\fu2\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "q1", "shown", "q2", "want", "book": {"title", "author", "line"}}`. 사람이 첫 질문 q1을 치고 책 목록 shown(차례대로 1~8번)을 본 뒤, 두 번째 질문 q2를 쳤다. `want`가 비어 있으면 앞 대화를 보고 이제 원하는 책을 스스로 판단한다. 앱이 이때 `book`을 카드로 보여 줬다.
+1. `data\scratch\fu2\jd\in-NN.json`(맡긴 사람이 NN을 알려 줌)을 Read로 읽는다. 배열 한 항목 = `{"key", "q1", "shown", "q2", "want", "book": {"title", "author", "line"}}`. 사람이 첫 질문 q1을 치고 책 목록 shown(차례대로 1~8번)을 본 뒤, 두 번째 질문 q2를 쳤다. `want`가 비어 있으면 앞 대화를 보고 이제 원하는 책을 스스로 판단한다. 앱이 이때 `book`을 카드로 보여 줬다.
 2. 항목마다 이 책이 **두 번째 질문에 대한 답으로** 얼마나 맞는지 0~3으로 매긴다:
    - 3: 앞 대화를 합친 지금 원하는 것에 딱 맞음
    - 2: 대체로 맞음(주제는 맞고 조건 하나쯤 어긋남)
@@ -9,5 +9,5 @@
    - 「이 중에」「두 번째 거」처럼 보인 책 안에서 고르라는 질문이면, shown에 없는 책은 그 조건을 따랐을 때만 2 이상(예: 「두 번째랑 비슷한 거」는 비슷한 새 책도 맞음). 「이 중에 소설만」에 shown 밖의 책이면 1 이하.
    - 이미 shown에 있던 책을 「다른 것도 더」 같은 질문에 다시 보이면 1 이하.
    - 책 정보는 제목·저자·한 줄 소개만 보고 판단한다. 모르면 한 줄 소개를 믿는다.
-3. Write 한 번으로 같은 폴더(`C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\fu2\jd`)의 `out-NN.json`에 `{"<key>": 점수, …}`로 쓴다. 다른 글 없이.
+3. Write 한 번으로 같은 폴더(`data\scratch\fu2\jd`)의 `out-NN.json`에 `{"<key>": 점수, …}`로 쓴다. 다른 글 없이.
 4. 다른 파일은 읽거나 쓰지 않고 명령도 돌리지 않는다. 답은 `done <항목 수>`만.

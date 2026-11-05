@@ -8,7 +8,9 @@ import json, os, re, sys, time, urllib.error, urllib.request, uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-OUT = os.environ.get('AGENT_EVAL_OUT', r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\agent')
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.environ.get('AGENT_EVAL_OUT', os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\agent'))
 QS = json.load(open(os.environ.get('AGENT_QS', os.path.join(HERE, 'agent_questions.json')), encoding='utf-8'))
 CLEAR = json.load(open(os.path.join(os.path.dirname(OUT), 'eval_questions.json'), encoding='utf-8'))
 LINE = re.compile(r'ai search: first (.*?), keyword (\S+), pick (\S+), candidates (\d+) .*?cards (\d+), (\d+) ms, tokens (\d+)/(\d+)(.*)$')

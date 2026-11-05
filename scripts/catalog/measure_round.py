@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-WSL_ROOT = '/mnt/c/Users/yujun/Documents/Claude/Projects/chaekcheck-dev'
+WSL_ROOT = '/mnt/' + ROOT[0].lower() + ROOT[2:].replace('\\', '/')  # ROOT as WSL sees it
 ENV = dict(os.environ, MSYS_NO_PATHCONV='1', PYTHONIOENCODING='utf-8')
 # cycle 11: the compose database to read (db, or db-ops for the production-role database)
 SERVICE = os.environ.get('CHAEKCHECK_DB_SERVICE', 'db')

@@ -3,7 +3,9 @@ keeps the log line's step times) and compares the ways step by step.
   python timing_compare.py t-base t-fast      -> the table, and <out>/timing-<ways>.json"""
 import glob, json, os, statistics, sys
 
-OUT = os.environ.get('RULES_OUT', r'C:\Users\yujun\Documents\Claude\Projects\chaekcheck-dev\data\aisearch-eval-2026-10-25\rules')
+_REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_PROJECTS = os.path.dirname(_REPO)  # the folder that holds this repo and chaekcheck-data
+OUT = os.environ.get('RULES_OUT', os.path.join(_REPO, r'data\aisearch-eval-2026-10-25\rules'))
 ASK_WORDS = 4
 
 

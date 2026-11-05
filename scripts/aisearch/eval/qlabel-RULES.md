@@ -1,6 +1,6 @@
 # 책 찾기 질문에 칸 달기 (비교 시험용)
 
-1. 먼저 사전 `C:\Users\yujun\AppData\Local\Temp\claude\C--Users-yujun-Documents-Claude-Projects-chaekcheck-dev\3ff794b0-2434-4d6f-8ddc-596ca170869f\scratchpad\taxonomy2.json`을 Read로 읽는다. 칸 값은 이 사전의 글자를 그대로 쓴다(사전에 없는 값은 쓰지 않는다).
+1. 먼저 사전 `data\scratch\taxonomy2.json`을 Read로 읽는다. 칸 값은 이 사전의 글자를 그대로 쓴다(사전에 없는 값은 쓰지 않는다).
 2. 맡은 파일 `in-NN.jsonl`(이 폴더, 100줄)을 Read로 읽는다. 한 줄 = `{"id": …, "q": "질문"}`. 도서관 AI 책 찾기에 사람이 친 질문이다.
 3. 질문마다 **질문에 실제로 적힌 뜻대로** 칸을 단다. 알 수 없는 칸은 비운다.
    - `notBook`: 책 찾기가 아닌 말이면 true / `titleLike`: 책 제목이나 저자 이름만 친 것이면 true / `refersToShown`: 앞에서 보여 준 책을 가리키는 말이면 true
