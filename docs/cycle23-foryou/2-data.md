@@ -2,7 +2,7 @@
 
 - **이 문서가 답하는 것**: 서버가 읽는 표 4가지(`foryou.book_neighbour`, `foryou.book_blurb`, `foryou.book_cover`, 분야)의 **원재료가 어느 파일·표의 어느 칸이고, 어떤 계산을 거쳐, 어떤 형식으로 나와, 어떤 명령으로 운영에 들어가나**. 지금 운영에 든 판(2026-10-26 「10만 권 판」)의 수.
 - **답하지 않는 것**: 서버가 이 표를 요청마다 어떻게 쓰나 → [1-how-it-works.md](1-how-it-works.md). 넣기 명령의 모든 선택지 → [`docs/maintenance/7-foryou.md`](../maintenance/7-foryou.md) 2절.
-- 경로 표기: `<data>` = 데이터 폴더 `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data` (git 밖). 운영 = `ubuntu@52.64.117.112`의 `/srv/chaekcheck`.
+- 경로 표기: `<data>` = 데이터 폴더 `C:\Users\yujun\Documents\Claude\Projects\chaekcheck-data` (git 밖). 운영 = `$CHAEKCHECK_SERVER`의 `/srv/chaekcheck`.
 
 ## 0. 지금 운영에 든 것 (2026-10-26 넣음, 가져오기 14번 `export_id = d09d649f-feb6-44ad-8f92-687dcee85243`)
 
