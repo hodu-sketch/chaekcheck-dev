@@ -7596,13 +7596,13 @@ WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB �
 | 5 | 겹칠 때 새 판 시작 시간과 메모리 | ✓ | 운영 ready=29~39초(60초 한도 안). free 579MB available, swap 255MB used (2GB 서버) |
 | 6 | 가입 중 세션이 정상 종료 때 끝남 처리되는지 | ✓ | AbandonedSignupListener: 가입 중이 아니어서 로그 없음(정상). 지금 재시작과 같은 성질 (0단계 2(f)) |
 | 7 | Spring 정상 종료 기본 30초·Docker 기본 10초 원문 | ✓ | 명시 값으로 덮어씀: `timeout-per-shutdown-phase=40s`, `stop_grace_period=60s`. 기본값에 의존하지 않음 |
-| 8 | Git Bash TZ=Asia/Seoul | ✓ | `TZ=Asia/Seoul` 안 됨, `TZ=KST-9` 사용 (0단계 5번). switch.sh·release.sh는 서버(Linux)에서 `Asia/Seoul` 사용 |
+| 8 | Git Bash TZ=Asia/Seoul | ✓ | `TZ=Asia/Seoul` 안 됨, `TZ=KST-9` 사용 (0단계 5번). switch.sh·release.sh도 `TZ=KST-9` 사용 (서버 Linux에서도 같음, POSIX 표기라 tzdata 없이 작동) |
 | 9 | 서버의 지금 nginx 판(고정할 태그) | ✓ | 1.30.5 확인(0단계 3번, 8단계 2). `nginx:1.30.5-alpine` 고정 |
 
 설계와 달라진 점:
 - **새벽 거절 8진수 문제**: `[[ 0325 ]]` 비교가 bash에서 8진수로 읽힘 → `(( 10#$hhmm ))` 수정 (커밋 00f66e5e)
 - **nginx conf.d 중복**: 초기 설정에서 `ec2-tunnel.conf`와 switch.sh가 쓴 `default.conf` 둘 다 존재 → `limit_req_zone already bound` 오류 → `ec2-tunnel.conf` 제거
-- **Git Bash TZ**: `TZ=Asia/Seoul` 대신 `TZ=KST-9` (서버 Linux에서는 `Asia/Seoul` 사용, 로컬 시험만 해당)
+- **Git Bash TZ**: `TZ=Asia/Seoul` 대신 `TZ=KST-9` (서버 Linux에서도 같은 `TZ=KST-9` 사용, POSIX 표기라 tzdata 없이 작동)
 
 ## 완료 기준 확인
 
@@ -7627,3 +7627,41 @@ WSL Ubuntu + Docker Desktop에서 리허설. 프로젝트 `chaekcheck-zdd`, DB �
   4. **DB 재시작이 드는 배포**: 이미지 다시 빌드 + preload 변경(순서는 `docs/maintenance/6-aisearch.md` 15절 「7단계 배포 순서」).
 - **설계와 다른 점**: 처음 계획(2026-10-30)은 조각 벡터를 PC CPU로 약 45시간이었으나 GPU로 바꿈. 프로필은 「켜 둔다」로 답했었는데(2026-10-30 "검색에 프로필이 필요 없나?"), 재 보니 빼기는 손해라 끔.
 - **plan이 정할 것**: 빼기를 질문에 빼는 말이 분명할 때만 켜는 방법을 둘지. 20만 권으로 늘릴 때 벡터 찾기 방식(`docs/aisearch/reports/2026-10-30-vector-scaling.md`).
+
+# 설명서 노트
+
+plan `to-dev-guide-notes.md`(2026-10-31)의 항목별 결과.
+
+## 1. 운영
+
+| # | 결과 | 비고 |
+|---|---|---|
+| 1-1 | [사용자 확인] | 운영 DB에 테스트특별시 줄이 실제로 있는지 먼저 확인 필요. `prod.env`에 `SPRING_LIQUIBASE_CONTEXTS` 추가 여부와 이미 들어간 줄 처리는 사용자 결정 |
+| 1-2 | 고침 | `switch.sh`: `ready=false` 플래그를 두어 UP을 받으면 `ready=true; break`, 루프 끝에서 `! $ready`면 timeout |
+| 1-3 | 고침 | `switch.sh`: `nginx -s reload` 실패 시 `active-backend.conf`를 옛 슬롯으로 되돌리고 `backend_fail "nginx-reload"` |
+| 1-4 | 고침 | `switch.sh` web: `apply_incoming_nginx \|\| incoming_ok=false`, 결과 줄에 `WARN=incoming-nginx-rejected` |
+| 1-5 | 고침 | `switch.sh` web: `.assets-manifest`에 이 판의 원래 에셋만 기록, 이전 판에서는 매니페스트에 있는 파일만 복사(없으면 `cp -an` 대체) |
+| 1-6 | [사용자 확인] | compose `logging:` 설정(driver json-file, max-size, max-file)의 값은 사용자 결정 |
+| 1-7 | [사용자 확인] | CloudWatch Logs 에이전트 + 지표 필터 + 경보. 비용과 설정은 사용자 결정 |
+| 1-8 | 고침 | `release.sh`: 빌드(3/5) 뒤 서버 전송(4/5) 직전에 `TZ=KST-9` 새벽 재검사 추가 |
+| 1-9 | 고침 | `release.sh`: 인자에서 `has_backend`/`has_web` 플래그를 뽑아 항상 backend→web 순으로 정렬, 알 수 없는 서비스 이름 거부 |
+
+## 2. 가져오기
+
+| # | 결과 | 비고 |
+|---|---|---|
+| 2-1 | 메모 | 다음 가져오기 때 잠금 대기 시간(`lock_timeout`) 측정 후 보고. 필요하면 `LOCK TABLE` 네 표를 한 문장으로 먼저 |
+| 2-2 | 메모 | 책 설명 넣기와 바꿔 끼우기에 같은 advisory lock. 미래 작업(ML 보강 사이클과 함께) |
+| 2-3 | 고침 | `CollectedCatalog.java`: 수집 시각 없는 도서관 이유를 `library_not_collected`로 분리, `report.librariesNotCollected++` 추가 |
+| 2-4 | 고침 | `3-import.md`: (a) 4절 `chaekcheck.catalog.import.dry-run` → `chaekcheck.collection.import.dry-run`, (b) 13-5절 기준값 형식 번호 판 2 → 판 3(사이클 21 ADR-0123, 추천 목록 `listPart` 추가), (c) 7절 5단계를 8절 바꿔 끼우기 참조로 수정, (d) 판 2 앱 → 새 판 앱으로 일반화 |
+| 2-5 | 메모 | `VACUUM FULL`의 `lock_timeout` 없음과 잠금 정책 통일은 AI 검색 보강 사이클과 함께 |
+
+## 3. 코드·문서 정리
+
+| # | 결과 | 비고 |
+|---|---|---|
+| 3-1 | 고침 | `PgBigmBookSearch.java`: 정확히 일치 SQL 4곳에 `COLLATE "C"` 추가. 칼럼은 DB 기본 collation(`en_US.utf8`), 색인은 `COLLATE "C"`라 안 붙이면 색인을 안 탐 |
+| 3-2 | 고침 | 5개 모듈에 `@ApplicationModule(allowedDependencies)` 추가: auth(`sitecontent`), catalog(`library`, `usagelog`), availability(`catalog`, `library`, `usagelog`), library(`region`), region(`{}`) |
+| 3-3 | 확인만 | nginx `chaekcheck-locations.conf` 정규식과 React `main.tsx` 경로를 대조: 현재 일치. 자동 검증 스크립트는 미래 작업 |
+| 3-4 | 해당 없음 | plan 쪽 일(ADR-0103·0104) |
+| 3-5 | 고침 | `plan-feedback.md`: "switch.sh·release.sh는 서버(Linux)에서 `Asia/Seoul` 사용" → "서버 Linux에서도 같은 `TZ=KST-9` 사용" |

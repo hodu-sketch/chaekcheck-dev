@@ -48,7 +48,7 @@
 
 ## 4. 실제 가져오기
 
-1. 3절 명령을 `--chaekcheck.catalog.import.dry-run=true` 없이 실행합니다.
+1. 3절 명령을 `--chaekcheck.collection.import.dry-run=true` 없이 실행합니다.
 2. 확인: 서버를 띄우고 `/api/v1/books` 검색 몇 가지("행동"+"새폴스키", "작별하지 않는다", "사랑")가 나오는지 봅니다.
 3. 결과 숫자를 5절 표에 한 줄 더하고, `docs/plan-feedback.md`에도 남깁니다. 가져오기마다 `collection.catalog_import`에 한 줄이 쌓입니다(책·소장·건너뜀 수, 등록 도서관 수 `registered_library_count`와 그 밖의 도서관 수 `other_library_count`, 이유별 건너뜀 `skipped_by_reason`).
 
@@ -99,7 +99,7 @@
   2. 새 소장과 옛 소장을 **(도서관 번호, 도서관의 책 코드 `item_key`)**로 맞대어, 새 책과 옛 책이 소장 몇 줄을 함께 갖는지 셉니다.
   3. 옛 책마다 가장 많이 겹치는 새 책을 고릅니다(나뉜 경우: 가장 많이 겹치는 쪽이 옛 번호를 가짐, 같으면 앞 책). 새 책 하나를 옛 책 여럿이 고르면(합쳐진 경우) **가장 작은 옛 번호**를 남깁니다.
   4. 고른 옛 번호가 없는 새 책은 지금까지 준 가장 큰 번호 다음부터 새 번호를 받습니다. 번호는 다시 쓰지 않습니다(합쳐져 없어진 번호도).
-  5. 그다음 `catalog` 표를 비우고 임시 표에서 정한 번호로 옮깁니다. 모두 한 트랜잭션이라 실패하면 이전 내용이 남습니다.
+  5. 그다음 `catalog_next` 표에 정한 번호로 쓰고, 8절의 바꿔 끼우기로 옛 표와 교체합니다. 모두 한 트랜잭션이라 실패하면 이전 내용이 남습니다.
 - 안내표는 두지 않습니다. 합쳐져 없어진 번호로 들어오면 "책을 찾을 수 없어요"(5.2절).
 - 기록: 로그 `book ids: kept N, new N, dropped N`, `collection.catalog_import`의 `kept_book_id_count`, `new_book_id_count`, `dropped_book_id_count`.
 - 비용: 소장을 임시 표에 한 번 더 씁니다(디스크 임시 공간이 소장 표만큼 필요). 시간은 5절 표에 적습니다.
@@ -231,16 +231,16 @@
 - `db-ops`에 서비스를 띄우려면 `DB_PORT=5434 ./gradlew bootRun --args='--server.port=8081'`. `.env`의 `CHAEKCHECK_PICKS_FETCH_ENABLED=false`를 그대로 둡니다(켜지면 시작 받기가 진짜 국립중앙도서관 API를 부름).
 - 측정 스크립트: `CHAEKCHECK_BASE=http://localhost:8081 CHAEKCHECK_DB_SERVICE=db-ops python scripts/catalog/probe_during_import.py <폴더>`.
 
-### 13-5. 반영 파일 판 2: 도서관 부분 (사이클 13, plan ADR-0086·0093)
+### 13-5. 반영 파일: 도서관 부분 (사이클 13, plan ADR-0086·0093; 현재 판 3)
 
 새 도서관은 Liquibase seed가 아니라 넣기 명령 `library-insert`로 내 PC `db`에 들어갑니다([1-libraries.md](1-libraries.md)). 운영 DB에는 반영 파일이 함께 옮깁니다.
 
-- **판 2**: `load_manifest.format_version`이 2입니다. 판 1 파일은 판 2 앱이 읽지 않고(`manifest format 1 … reads 2`), 판 1 앱도 판 2 파일을 읽지 않습니다.
+- **판 3**: `load_manifest.format_version`이 3입니다(판 2: 사이클 13에서 도서관 부분 추가, 판 3: 사이클 21에서 추천 목록 `listPart` 추가, ADR-0123). 다른 판의 파일은 읽지 않습니다(`manifest format N … reads 3`).
 - **export**: `notes.libraryPart`에 내 PC의 **성공한 넣기 실행 기록 전부**(`collection.library_insert_run`의 `SUCCEEDED` 줄: 보고서 번호, 실행 시각, 사본, 넣은 수, 가입 조사 기준일, 넣은 도서관·가입 규칙·짝 줄 `payload`)를 싣습니다. 수백 곳이어도 수십 KB라 목차(COMMENT)로 1초 안에 읽힙니다.
 - **apply 순서**: 한 트랜잭션에서 ① 넣기 명령과 같은 잠금(`pg_advisory_xact_lock`) ② 실행 기록마다(시각 순) 같은 보고서 번호의 성공 줄이 이미 있으면 건너뜀 ③ 없으면 없는 번호의 도서관·가입 규칙(`LibraryRegistry.add`), 없는 짝 줄, 실행 기록 줄(원래 시각) ④ 13-2의 비교. 비교가 다르면 도서관 부분도 롤백하고 `mismatch`. 같으면 커밋하고 책 쪽(복원·색인·바꿔 끼우기)을 시작합니다. `step_seconds`에 `library part`가 더해집니다.
 - **도서관 부분이 실패하면**(제약 위반 등) 롤백하고 책 쪽을 시작하지 않습니다. 기록 줄은 `FAILED error`, `failure_detail`이 `library part: …`로 시작합니다.
 - **도서관 부분 커밋 뒤 책 쪽이 실패하면**(`lock_not_acquired` 등) 도서관은 남습니다. 같은 파일을 다시 `apply`하면 도서관 부분은 건너뛰고 책 쪽을 다시 합니다.
-- **판 2 앱을 배포하기 전에**: 내 PC에 판 1 내보내기가 기다리고 있으면(`catalog_next.load_manifest`) 판 1 앱으로 먼저 `finish`하거나 `discard`합니다. 판 2 앱은 판 1 파일을 `finish`할 수 없습니다.
+- **새 판 앱을 배포하기 전에**: 내 PC에 옛 판 내보내기가 기다리고 있으면(`catalog_next.load_manifest`) 옛 판 앱으로 먼저 `finish`하거나 `discard`합니다. 새 판 앱은 옛 판 파일을 `finish`할 수 없습니다.
 - **로컬 DB를 새로 만들면**(Liquibase seed부터) seed 뒤에 `library-insert`를 다시 돌려야 넣었던 도서관이 돌아옵니다(seed에는 넣지 않음, ADR-0084). 운영 쪽은 반영 파일이 옮기므로 따로 돌리지 않습니다.
 
 #### 로컬 DB 이름 맞추기 (사이클 13, `PRE_DEPLOYMENT` 동안 한 번)

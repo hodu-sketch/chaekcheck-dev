@@ -132,7 +132,7 @@ switch_backend() {
     "$DIR/bin/up.sh" --no-deps --force-recreate "backend-$new_slot"
 
     # 5. readiness polling (1s interval, max 60s)
-    local start_time elapsed=0
+    local start_time elapsed=0 ready=false
     start_time=$(date +%s)
     while [[ $elapsed -lt 60 ]]; do
         sleep 1
@@ -158,10 +158,11 @@ switch_backend() {
         local body
         body="$(dc exec -T web wget -q -T 2 -O- "http://backend-$new_slot:8080/actuator/health/readiness" 2>/dev/null || true)"
         if echo "$body" | grep -q '"status":"UP"'; then
+            ready=true
             break
         fi
     done
-    if [[ $elapsed -ge 60 ]]; then
+    if ! $ready; then
         backend_fail "timeout"
     fi
     local ready_seconds=$elapsed
@@ -200,7 +201,18 @@ NGINX
         backend_fail "nginx-test"
     fi
 
-    dc exec -T web nginx -s reload
+    if ! dc exec -T web nginx -s reload; then
+        # reload failed: restore active-backend.conf to old slot
+        conf_tmp="$(mktemp "$DIR/nginx/chaekcheck/.active-backend.conf.XXXXXX")"
+        cat > "$conf_tmp" <<NGINX
+upstream chaekcheck_backend {
+    server backend-$old_slot:8080;
+    keepalive 16;
+}
+NGINX
+        mv -f "$conf_tmp" "$conf"
+        backend_fail "nginx-reload"
+    fi
 
     # 8. wait for nginx
     sleep 2
@@ -247,9 +259,22 @@ switch_web() {
         docker cp "$cid:/usr/share/nginx/html/." "$releases/$VERSION.tmp/"
         docker rm "$cid" >/dev/null
 
-        # carry forward the previous version's hashed assets so old pages can still load them
+        # save a manifest of this version's own assets (before carry-forward adds others)
+        if [[ -d "$releases/$VERSION.tmp/assets" ]]; then
+            ( cd "$releases/$VERSION.tmp/assets" && find . -type f | sort ) > "$releases/$VERSION.tmp/.assets-manifest"
+        fi
+
+        # carry forward the previous version's OWN hashed assets (from its manifest, not accumulated ones)
         if [[ -n "$prev_version" && -d "$releases/$prev_version/assets" ]]; then
-            cp -an "$releases/$prev_version/assets/." "$releases/$VERSION.tmp/assets/" 2>/dev/null || true
+            if [[ -f "$releases/$prev_version/.assets-manifest" ]]; then
+                while IFS= read -r f; do
+                    local src="$releases/$prev_version/assets/$f"
+                    local dst="$releases/$VERSION.tmp/assets/$f"
+                    [[ -f "$src" && ! -f "$dst" ]] && cp -a "$src" "$dst" 2>/dev/null || true
+                done < "$releases/$prev_version/.assets-manifest"
+            else
+                cp -an "$releases/$prev_version/assets/." "$releases/$VERSION.tmp/assets/" 2>/dev/null || true
+            fi
         fi
 
         [[ -f "$releases/$VERSION.tmp/index.html" ]] \
@@ -262,7 +287,8 @@ switch_web() {
     ( cd "$DIR/web" && ln -sfn "releases/$VERSION" current.tmp && mv -T current.tmp current )
 
     # 4. incoming config + nginx test
-    apply_incoming_nginx || true
+    local incoming_ok=true
+    apply_incoming_nginx || incoming_ok=false
 
     if ! dc exec -T web nginx -t >/dev/null 2>&1; then
         # restore symlink
@@ -287,7 +313,9 @@ switch_web() {
         rm -rf "$d"
     done
 
-    echo "switch: OK web $VERSION (was $prev_version)"
+    local warn=""
+    $incoming_ok || warn=" WARN=incoming-nginx-rejected"
+    echo "switch: OK web $VERSION (was $prev_version)$warn"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════

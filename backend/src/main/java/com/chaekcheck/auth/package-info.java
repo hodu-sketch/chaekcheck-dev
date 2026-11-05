@@ -18,4 +18,5 @@
  * path is {@code /api/v1} so that the cookie reaches the search APIs; it is still read as a login only on
  * {@code /api/v1/me/**}.
  */
+@org.springframework.modulith.ApplicationModule(allowedDependencies = { "sitecontent" })
 package com.chaekcheck.auth;

@@ -79,7 +79,7 @@ public class PgBigmBookSearch implements BookSearch {
 				  GROUP BY m.id
 				)
 				SELECT b.id, b.title, b.author_display, b.publisher, b.published_on, s.library_count, s.tier,
-				  (b.main_title_norm = :exactTitleNorm) AS exact_title,
+				  (b.main_title_norm COLLATE "C" = :exactTitleNorm) AS exact_title,
 				  count(*) OVER () AS total_count,
 				  min(s.collected_from) OVER () AS collected_from, max(s.collected_to) OVER () AS collected_to
 				FROM scored s JOIN catalog.book b ON b.id = s.book_id
@@ -178,7 +178,7 @@ public class PgBigmBookSearch implements BookSearch {
 		if (query.title() != null) {
 			if (query.exactTitle()) {
 				params.put("titleExact", CatalogText.norm(query.title()));
-				conditions.add("(b.main_title_norm = :titleExact OR b.title_norm = :titleExact)");
+				conditions.add("(b.main_title_norm COLLATE \"C\" = :titleExact OR b.title_norm COLLATE \"C\" = :titleExact)");
 			}
 			else {
 				words(query.titleWords(), "t", "b.title_norm", conditions, params);
@@ -187,7 +187,7 @@ public class PgBigmBookSearch implements BookSearch {
 		if (query.publisher() != null) {
 			if (query.exactPublisher()) {
 				params.put("publisherExact", CatalogText.publisherNorm(query.publisher()));
-				conditions.add("b.publisher_norm = :publisherExact");
+				conditions.add("b.publisher_norm COLLATE \"C\" = :publisherExact");
 			}
 			else {
 				words(query.publisherWords(), "p", "b.publisher_norm", conditions, params);
@@ -197,7 +197,7 @@ public class PgBigmBookSearch implements BookSearch {
 			List<String> person = new ArrayList<>();
 			if (query.exactAuthor()) {
 				params.put("authorExact", query.authorExact());
-				person.add("c.name_exact = :authorExact");
+				person.add("c.name_exact COLLATE \"C\" = :authorExact");
 			}
 			else {
 				words(query.authorWords(), "a", "c.name_norm", person, params);

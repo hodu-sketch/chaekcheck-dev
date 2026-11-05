@@ -245,3 +245,7 @@ databaseChangeLog:
   - include:
       file: catalog/006-book-search-bm25.yaml
       relativeToChangelogFile: true
+  # 2026-10-31: cycle 27, cache token columns for correct prompt-caching cost
+  - include:
+      file: aisearch/006-daily-usage-cache-tokens.yaml
+      relativeToChangelogFile: true

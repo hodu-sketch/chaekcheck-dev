@@ -1,0 +1,27 @@
+# cycle 27: cache token columns for correct Anthropic prompt-caching cost (cache reads at 0.1x, writes at 1.25x).
+databaseChangeLog:
+  - changeSet:
+      id: aisearch-006-daily-usage-cache-tokens
+      author: chaekcheck
+      changes:
+        - addColumn:
+            schemaName: aisearch
+            tableName: daily_usage
+            columns:
+              - column:
+                  name: cache_read_tokens
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cache_creation_tokens
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >-
+              ALTER TABLE aisearch.daily_usage
+                ADD CONSTRAINT daily_usage_cache_read_tokens_check CHECK (cache_read_tokens >= 0),
+                ADD CONSTRAINT daily_usage_cache_creation_tokens_check CHECK (cache_creation_tokens >= 0)

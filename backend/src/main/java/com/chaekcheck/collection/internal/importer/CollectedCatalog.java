@@ -201,7 +201,8 @@ final class CollectedCatalog implements AutoCloseable {
 				String fullSuccess = rs.getString(3);
 				String collected = fullSuccess != null ? fullSuccess : rs.getString(4);
 				if (collected == null) {
-					skipped.put(collectionId, "library_not_in_service");
+					skipped.put(collectionId, "library_not_collected");
+					report.librariesNotCollected++;
 					continue;
 				}
 				Library library = new Library(ref.id(), collectionId, ref.platformType().name(), hostOf(ref.baseUrl()),

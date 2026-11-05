@@ -39,6 +39,9 @@ final class ImportReport {
 	/** Linked libraries whose base URL differs from the service library's (a safety check). */
 	int librariesBaseUrlMismatch;
 
+	/** Linked libraries without any collected rows (no full success and no last_seen). */
+	int librariesNotCollected;
+
 	/** Dates before 1950 of the placeholder-date libraries, set to null. */
 	long placeholderDatesCleared;
 

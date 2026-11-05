@@ -22,10 +22,15 @@ import com.chaekcheck.aisearch.internal.llm.LlmClient.Usage;
  * The day's model cost and counts in {@code aisearch.daily_usage}, one row per day of {@code chaekcheck.aisearch.zone}
  * (cycle 24, ADR-0152): kept in the database so a restart does not reset the cost. The cap is checked only when a
  * search starts, so searches already running may pass it (design review, accepted). Cost in millionths of a US
- * dollar, rounded up: input tokens × input price + output tokens × output price, prices per million tokens.
+ * dollar, rounded up: plain input × input price, cache reads × input price × 0.1, cache writes × input price × 1.25,
+ * output × output price, prices per million tokens.
  */
 @Component
 public class DailyBudget {
+
+	private static final BigDecimal CACHE_READ_FACTOR = new BigDecimal("0.1");
+
+	private static final BigDecimal CACHE_CREATION_FACTOR = new BigDecimal("1.25");
 
 	/** The counted columns; only these names go into the statement. */
 	enum Count {
@@ -125,26 +130,34 @@ public class DailyBudget {
 	public long addCall(Usage usage, int maxTokens) {
 		long output = usage.outputKnown() ? usage.outputTokens() : Math.max(usage.outputTokens(), maxTokens);
 		jdbc.sql("""
-				INSERT INTO aisearch.daily_usage AS d (day, llm_call_count, input_tokens, output_tokens, cost_micro_usd)
-				VALUES (:day, 1, :input, :output, :cost)
+				INSERT INTO aisearch.daily_usage AS d (day, llm_call_count, input_tokens, output_tokens,
+				  cache_read_tokens, cache_creation_tokens, cost_micro_usd)
+				VALUES (:day, 1, :input, :output, :cacheRead, :cacheCreation, :cost)
 				ON CONFLICT (day) DO UPDATE SET llm_call_count = d.llm_call_count + 1,
 				  input_tokens = d.input_tokens + EXCLUDED.input_tokens,
 				  output_tokens = d.output_tokens + EXCLUDED.output_tokens,
+				  cache_read_tokens = d.cache_read_tokens + EXCLUDED.cache_read_tokens,
+				  cache_creation_tokens = d.cache_creation_tokens + EXCLUDED.cache_creation_tokens,
 				  cost_micro_usd = d.cost_micro_usd + EXCLUDED.cost_micro_usd""")
 			.param("day", today())
-			.param("input", (long) usage.inputTokens())
+			.param("input", (long) usage.totalInputTokens())
 			.param("output", output)
-			.param("cost", costMicroUsd(usage.inputTokens(), output))
+			.param("cacheRead", (long) usage.cacheReadTokens())
+			.param("cacheCreation", (long) usage.cacheCreationTokens())
+			.param("cost", costMicroUsd(usage, output))
 			.update();
 		return output;
 	}
 
-	/** Millionths of a US dollar for the tokens, rounded up. */
-	long costMicroUsd(long inputTokens, long outputTokens) {
-		return inputPrice.multiply(BigDecimal.valueOf(inputTokens))
-			.add(outputPrice.multiply(BigDecimal.valueOf(outputTokens)))
-			.setScale(0, RoundingMode.CEILING)
-			.longValueExact();
+	/** Millionths of a US dollar: cache reads at 0.1×, cache writes at 1.25×, plain input at 1×, output at its price. */
+	long costMicroUsd(Usage usage, long outputTokens) {
+		BigDecimal input = inputPrice.multiply(BigDecimal.valueOf(usage.inputTokens()));
+		BigDecimal cacheRead = inputPrice.multiply(BigDecimal.valueOf(usage.cacheReadTokens()))
+			.multiply(CACHE_READ_FACTOR);
+		BigDecimal cacheCreation = inputPrice.multiply(BigDecimal.valueOf(usage.cacheCreationTokens()))
+			.multiply(CACHE_CREATION_FACTOR);
+		BigDecimal output = outputPrice.multiply(BigDecimal.valueOf(outputTokens));
+		return input.add(cacheRead).add(cacheCreation).add(output).setScale(0, RoundingMode.CEILING).longValueExact();
 	}
 
 	private void add(Count count) {

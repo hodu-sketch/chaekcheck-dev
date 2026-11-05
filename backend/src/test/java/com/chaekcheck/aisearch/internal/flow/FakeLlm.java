@@ -19,11 +19,11 @@ public final class FakeLlm implements LlmClient {
 	public record Answer(List<String> pieces, Usage usage, Failure failure) {
 
 		public static Answer ok(String text, int input, int output) {
-			return new Answer(List.of(text), new Usage(input, output, true), null);
+			return new Answer(List.of(text), new Usage(input, 0, 0, output, true), null);
 		}
 
 		public static Answer pieces(List<String> pieces, int input, int output) {
-			return new Answer(pieces, new Usage(input, output, true), null);
+			return new Answer(pieces, new Usage(input, 0, 0, output, true), null);
 		}
 
 		public static Answer failAfter(List<String> pieces, Failure failure, Usage usage) {
@@ -62,7 +62,7 @@ public final class FakeLlm implements LlmClient {
 				onText.accept(piece);
 			}
 			catch (RuntimeException e) {
-				throw new LlmException(Failure.CANCELLED, new Usage(answer.usage().inputTokens(), 0, false), "fake");
+				throw new LlmException(Failure.CANCELLED, new Usage(answer.usage().inputTokens(), 0, 0, 0, false), "fake");
 			}
 		}
 		if (answer.failure() != null) {

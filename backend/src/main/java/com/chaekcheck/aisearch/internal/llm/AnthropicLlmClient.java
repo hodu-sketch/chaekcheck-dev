@@ -81,11 +81,12 @@ public final class AnthropicLlmClient implements LlmClient {
 				text.append(block.path("text").asString(""));
 			}
 		}
-		JsonNode usage = body.path("usage");
-		Usage counted = new Usage(inputTokens(usage), usage.path("output_tokens").asInt(0), true);
+		JsonNode usageNode = body.path("usage");
+		Usage counted = usage(usageNode, usageNode.path("output_tokens").asInt(0), true);
 		String stopReason = body.path("stop_reason").asString("");
-		log.debug("anthropic call: status 200, stop {}, tokens {}/{}, {} ms, request {}", stopReason,
-				counted.inputTokens(), counted.outputTokens(), elapsedMs(started), requestId(response));
+		log.debug("anthropic call: status 200, stop {}, tokens {}/{} (cache r{}/w{}), {} ms, request {}",
+				stopReason, counted.totalInputTokens(), counted.outputTokens(), counted.cacheReadTokens(),
+				counted.cacheCreationTokens(), elapsedMs(started), requestId(response));
 		if (!"end_turn".equals(stopReason)) {
 			throw failure(Failure.BAD_OUTPUT, counted, "stop reason " + stopReason, requestId(response));
 		}
@@ -168,8 +169,9 @@ public final class AnthropicLlmClient implements LlmClient {
 			throw failure(timedOut.get() ? Failure.TIMEOUT : Failure.HTTP_ERROR, state.usage(),
 					"stream ended before message_stop", requestId);
 		}
-		log.debug("anthropic stream: stop {}, tokens {}/{}, request {}", state.stopReason, state.inputTokens,
-				state.outputTokens, requestId);
+		log.debug("anthropic stream: stop {}, tokens {}/{} (cache r{}/w{}), request {}", state.stopReason,
+				state.usage().totalInputTokens(), state.outputTokens, state.cacheReadTokens, state.cacheCreationTokens,
+				requestId);
 		return new Result(state.text.toString(), state.usage(), state.stopReason);
 	}
 
@@ -189,7 +191,12 @@ public final class AnthropicLlmClient implements LlmClient {
 			return;
 		}
 		switch (event.path("type").asString("")) {
-			case "message_start" -> state.inputTokens = inputTokens(event.path("message").path("usage"));
+			case "message_start" -> {
+				JsonNode u = event.path("message").path("usage");
+				state.inputTokens = u.path("input_tokens").asInt(0);
+				state.cacheReadTokens = u.path("cache_read_input_tokens").asInt(0);
+				state.cacheCreationTokens = u.path("cache_creation_input_tokens").asInt(0);
+			}
 			case "content_block_delta" -> {
 				JsonNode delta = event.path("delta");
 				if ("text_delta".equals(delta.path("type").asString(""))) {
@@ -234,6 +241,10 @@ public final class AnthropicLlmClient implements LlmClient {
 
 		int inputTokens;
 
+		int cacheReadTokens;
+
+		int cacheCreationTokens;
+
 		int outputTokens;
 
 		boolean outputKnown;
@@ -243,15 +254,14 @@ public final class AnthropicLlmClient implements LlmClient {
 		boolean stopped;
 
 		Usage usage() {
-			return new Usage(inputTokens, outputTokens, outputKnown);
+			return new Usage(inputTokens, cacheReadTokens, cacheCreationTokens, outputTokens, outputKnown);
 		}
 
 	}
 
-	/** The input tokens with the cached ones (read or written), so the day's budget counts them all. */
-	private static int inputTokens(JsonNode usage) {
-		return usage.path("input_tokens").asInt(0) + usage.path("cache_read_input_tokens").asInt(0)
-				+ usage.path("cache_creation_input_tokens").asInt(0);
+	private static Usage usage(JsonNode usage, int outputTokens, boolean outputKnown) {
+		return new Usage(usage.path("input_tokens").asInt(0), usage.path("cache_read_input_tokens").asInt(0),
+				usage.path("cache_creation_input_tokens").asInt(0), outputTokens, outputKnown);
 	}
 
 	private HttpRequest request(LlmCall call, boolean stream, Duration timeout) {

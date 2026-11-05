@@ -1624,7 +1624,7 @@ public class AiSearchFlow {
 	}
 
 	private void count(Run run, Usage usage, int maxTokens) {
-		run.inputTokens += usage.inputTokens();
+		run.inputTokens += usage.totalInputTokens();
 		run.outputTokens += budget.addCall(usage, maxTokens);
 	}
 
