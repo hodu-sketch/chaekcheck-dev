@@ -35,6 +35,6 @@
 | 24 | AI 책 찾기 ([`24-ai-book-search`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/cycles/24-ai-book-search)) | `# 사이클 24`, `# AI 검색 …` 절들 | [기능 문서](../features/aisearch/README.md) |
 | 26 | 책 설명 모으기 ([`26-book-descriptions`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/cycles/26-book-descriptions)) | `# 사이클 26`, `# 사이클 26 질의 속도`, `# 사이클 26 배포 1 전후…` | [기능 문서](../features/book-descriptions/README.md) |
 | 27 | 무중단 배포 ([`27-zero-downtime-deploy`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/cycles/27-zero-downtime-deploy)) | `# 사이클 27` | [운영 문서](../maintenance/README.md) |
-| 28 | 바쁠 때 책 목록 유지 ([`28-busy-keeps-book-list`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/cycles/28-busy-keeps-book-list)) | 아직 없음 | |
+| 28 | 바쁠 때 책 목록 유지 ([`28-busy-keeps-book-list`](https://github.com/hodu-sketch/chaekcheck-plan/tree/main/docs/cycles/28-busy-keeps-book-list)) | [`28/plan-feedback.md`](28/plan-feedback.md) | |
 
 사이클 25는 없습니다(plan 번호를 건너뜀). 이름은 plan 폴더 이름을 우리말로 옮긴 것이고, 정확한 범위는 plan 폴더의 `scope.md`에 있습니다.

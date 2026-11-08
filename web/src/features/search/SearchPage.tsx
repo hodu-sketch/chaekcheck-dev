@@ -649,6 +649,7 @@ export function SearchPage() {
               key={`${JSON.stringify(bookQuery)}:${filter}`}
               query={bookQuery}
               filter={filter}
+              bookLinkSearch={bookLinkSearch.toString()}
               onFilterChange={changeFilter}
               onSortChange={changeSort}
               onDirect={goDirect}

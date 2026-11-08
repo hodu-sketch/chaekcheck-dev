@@ -8,6 +8,7 @@ import { ApiError, fetchBook } from '../../api/client'
 import { holdingStream } from '../../api/searchStream'
 import type { HoldingStreamEvent, TargetLibrary } from '../../api/types'
 import { BookPage } from './BookPage'
+import { BUSY_BOOK_TEXT, BUSY_RETRY_LABEL } from '../search/BusyRetryNotice'
 
 /** The place names of the regions are read through React Query. */
 function withQuery(children: ReactNode) {
@@ -175,6 +176,47 @@ describe('holdings list', () => {
     const guide = screen.getByRole('dialog', { name: '가 도서관 가입 안내' })
     expect(guide.textContent).toContain('가입 대상어디 살든 가입방문 가입')
     expect(guide.textContent).toContain('온라인 가입 후 도서관 방문')
+  })
+})
+
+/** Cycle 28 (ADR-0173, AC-4): the first holding stream refused with 503 shows the notice and the button, nothing false. */
+describe('busy first stream (cycle 28)', () => {
+  it('shows the book head, the notice and 「대출 정보 다시 확인」, not "모두 조회했습니다"', async () => {
+    vi.mocked(fetchBook).mockReset()
+    vi.mocked(fetchBook).mockResolvedValue({
+      id: 5002,
+      title: '바쁜 책',
+      authorDisplay: null,
+      publisher: null,
+      publishedOn: null,
+      isbn13: null,
+      holdingLibraryCount: 2,
+      coverUrl: null,
+      summary: null,
+      libraries: [],
+    })
+    vi.mocked(holdingStream).mockReset()
+    vi.mocked(holdingStream).mockRejectedValue(
+      new ApiError(503, { title: 'Service Unavailable', status: 503, code: 'server_busy' }),
+    )
+    render(withQuery(
+      <MemoryRouter initialEntries={['/books/5002']}>
+        <Routes>
+          <Route path="/books/:bookId" element={<BookPage />} />
+        </Routes>
+      </MemoryRouter>),
+    )
+    expect(await screen.findByRole('heading', { name: '바쁜 책' })).toBeTruthy()
+    expect(await screen.findByText(BUSY_BOOK_TEXT)).toBeTruthy()
+    const button = screen.getByRole('button', { name: BUSY_RETRY_LABEL })
+    expect(screen.queryByText('이 책을 가진 도서관을 모두 조회했습니다')).toBeNull()
+    expect(screen.queryByText(/책 목록만 먼저 보여 드려요/)).toBeNull()
+    expect(screen.queryByText(/지금 찾는 사람이 많아요/)).toBeNull()
+    expect(holdingStream).toHaveBeenCalledTimes(1)
+
+    await userEvent.setup().click(button)
+    expect(holdingStream).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(holdingStream).mock.calls[1][0].bookIds).toEqual([5002])
   })
 })
 

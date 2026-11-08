@@ -228,6 +228,40 @@
   font-weight: 700;
 }
 
+/* cycle 28 (ADR-0173): the same line with 「대출 정보 다시 확인」 at its end; the words may wrap, the button does not */
+.busyRetry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+/* a small pill like the decision page's drawing: brand border, white inside */
+.retryButton {
+  flex: none;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid var(--brand);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.retryButton:hover:not(:disabled) {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.retryButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .moreFailed {
   color: var(--fail);
   font-size: var(--text-md);
@@ -290,6 +324,12 @@
 }
 
 @media (width <= 640px) {
+  /* cycle 28: the retry button under the words (decision page 2026-11-07) */
+  .busyRetry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   /*
    * phones: no outer white panel, white cards on the grey canvas (user choice 2026-10-05: back to this after trying
    * the panel of wider screens)

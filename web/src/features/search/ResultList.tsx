@@ -4,6 +4,7 @@ import type { LibraryScope, ResultFilter, TargetLibrary, VisitFilter } from '../
 import type { ClickScreen } from '../../api/usageEvents'
 import { BatchSection } from './BatchSection'
 import { BLOCKED_TEXT, type Blocked } from './blocked'
+import { BusyRetryNotice } from './BusyRetryNotice'
 import { GroupSection } from './GroupSection'
 import { emptyResultText } from './resultFilter'
 import { groupBatches } from './resultGroups'
@@ -94,6 +95,13 @@ interface Props {
   batchFailed: boolean
   /** The last stream or page was refused with 429 or 503: one line above the results, which stay (cycle 08 R2). */
   blocked?: Blocked | null
+  /**
+   * Cycle 28 (ADR-0173): 바로 보기 after 「다음 책 N권 보기」 whose first stream was refused with 503: the busy line gets
+   * 「대출 정보 다시 확인」, which opens that page's stream again. Left out for a refused "더 보기" batch (no button).
+   */
+  onRetryBlocked?: () => void
+  /** That stream is being opened again: the line says "확인 중" and the button is locked. */
+  retrying?: boolean
   onMore: () => void
   /** Text after "더 보기"; default "(남은 도서관 N곳)". */
   moreText?: string
@@ -142,6 +150,8 @@ export function ResultList({
   loadingLibraries,
   batchFailed,
   blocked,
+  onRetryBlocked,
+  retrying = false,
   onMore,
   moreText,
   moreLabel,
@@ -181,10 +191,15 @@ export function ResultList({
 
   return (
     <section className={styles.list}>
-      {blocked && (
-        <p className={styles.blocked} role="alert">
-          {BLOCKED_TEXT[blocked]}
-        </p>
+      {onRetryBlocked && (blocked === 'busy' || retrying) ? (
+        // the line stays while the stream is opened again (the batch start clears `blocked`), saying "확인 중"
+        <BusyRetryNotice text={BLOCKED_TEXT.busy} checking={retrying} onRetry={onRetryBlocked} />
+      ) : (
+        blocked && (
+          <p className={styles.blocked} role="alert">
+            {BLOCKED_TEXT[blocked]}
+          </p>
+        )
       )}
       <div className={styles.toolbar}>
       {!hideFilter && (

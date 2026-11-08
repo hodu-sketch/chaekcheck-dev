@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight } from '../../components/icons'
-import { Link } from 'react-router'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort } from '../../api/types'
 import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
+import { BookRow } from './BookRow'
 import listStyles from './ResultList.module.css'
 import { SortSelect } from './SortSelect'
 import styles from './BookList.module.css'
@@ -105,17 +104,8 @@ export function BookList({ query, bookLinkSearch, onSortChange, onDirect, onInva
       <ol className={styles.list} aria-label="찾은 책">
         {books.items.map((book) => (
           <li key={book.id}>
-            <Link className={styles.book} to={`/books/${book.id}${bookLinkSearch ? `?${bookLinkSearch}` : ''}`}>
-              <span className={styles.title}>{book.title}</span>
-              <span className={styles.meta}>
-                {[book.authorDisplay, book.publisher, book.publishedOn?.slice(0, 4)].filter(Boolean).join(' · ') ||
-                  '저자·출판사 정보 없음'}
-              </span>
-              <span className={styles.count}>보유 도서관 {book.holdingLibraryCount}곳</span>
-              <span className={styles.chevron} aria-hidden="true">
-                <ChevronRight size={8} />
-              </span>
-            </Link>
+            {/* the line is shared with 바로 보기's book-list-only state (cycle 28) */}
+            <BookRow book={book} bookLinkSearch={bookLinkSearch} />
           </li>
         ))}
       </ol>

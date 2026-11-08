@@ -2,16 +2,22 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, fetchBooks, type BookQuery } from '../../api/client'
 import type { BookItem, BookPage, BookSort, ResultFilter } from '../../api/types'
 import { BLOCKED_TEXT, blockedBy, type Blocked } from './blocked'
+import { BookRow } from './BookRow'
+import { BUSY_KEEP_LIST_TEXT, BusyRetryNotice } from './BusyRetryNotice'
 import { holdingBatchViews } from './holdingView'
 import { ResultList, type ResultSearchContext } from './ResultList'
 import { SortSelect } from './SortSelect'
 import { useHoldings } from './useHoldings'
+import bookStyles from './BookList.module.css'
+import listStyles from './ResultList.module.css'
 import styles from './SearchPage.module.css'
 
 type Props = {
   /** Page 1 of the catalog search. The parent remounts this with a new key for a new search [확정]. */
   query: BookQuery
   filter: ResultFilter
+  /** Address part the book page keeps (filter, scope, visit), for the book lines of cycle 28's list-only state. */
+  bookLinkSearch: string
   onFilterChange: (filter: ResultFilter) => void
   onSortChange: (sort: BookSort) => void
   /** "도서관에서 직접 찾기" of the empty result (spec 3.7). */
@@ -30,6 +36,7 @@ type Props = {
 export function InstantResults({
   query,
   filter,
+  bookLinkSearch,
   onFilterChange,
   onSortChange,
   onDirect,
@@ -130,9 +137,34 @@ export function InstantResults({
   const loadingBatch = holdings.state.batches.at(-1)
   const noHoldings = !streaming && holdings.state.order.length === 0
   const blocked = pageBlocked ?? holdings.state.blocked
+  // cycle 28 (ADR-0173): the refused first stream is being opened again after 「대출 정보 다시 확인」
+  const rechecking = holdings.openRefused && holdings.state.phase === 'streaming'
+  // "책 목록만": the first stream was refused with 503 and nothing has come back, also while it is opened again
+  const listOnly =
+    holdings.openRefused &&
+    holdings.state.order.length === 0 &&
+    (rechecking || (noHoldings && holdings.state.blocked === 'busy'))
+
+  if (listOnly) {
+    // the books already received, as lines in the `/books` order, under the notice and its button; no sort or filter
+    // toolbar and no "다음 책 N권 보기" until the holdings can be asked [안]
+    return (
+      <section className={listStyles.list}>
+        <BusyRetryNotice text={BUSY_KEEP_LIST_TEXT} checking={rechecking} onRetry={holdings.reopen} />
+        <ol className={bookStyles.list} aria-label="찾은 책">
+          {books.items.map((book) => (
+            <li key={book.id}>
+              <BookRow book={book} bookLinkSearch={bookLinkSearch} />
+            </li>
+          ))}
+        </ol>
+      </section>
+    )
+  }
 
   if (noHoldings && blocked) {
-    // the first holding stream was refused: nothing came back, so the notice takes the results' place
+    // the first holding stream was refused with 429 (503 is the list-only state above): nothing came back, so the
+    // notice takes the results' place (cycle 08 R2, unchanged by cycle 28 [확정])
     return (
       <p className={styles.notice} data-kind="blocked" role="alert">
         {BLOCKED_TEXT[blocked]}
@@ -163,6 +195,10 @@ export function InstantResults({
           loadingText={pageLoading ? '다음 책을 찾는 중' : undefined}
           batchFailed={holdings.state.batchFailed || pageFailed}
           blocked={blocked}
+          // cycle 28: the first stream of 「다음 책 N권 보기」 refused with 503 gets the retry button (that page's books
+          // only); a refused "결과 더 보기" batch does not (AC-5)
+          onRetryBlocked={holdings.openRefused ? holdings.reopen : undefined}
+          retrying={rechecking}
           onMore={() => void loadMore()}
           // the button says what a tap does (user request 2026-10-18): the next holdings of these books, or the next
           // page of books once they are done

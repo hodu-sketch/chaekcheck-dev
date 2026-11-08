@@ -2,8 +2,9 @@ import { ApiError } from '../../api/client'
 
 /**
  * Why a search was refused (cycle 08 R2, flow C): `too_many` = 429 from nginx (too many searches from one address),
- * `busy` = 503 `server_busy` (every search slot is taken). The results already received stay; the user searches
- * again by hand, so there is no retry button [확정].
+ * `busy` = 503 `server_busy` (every search slot is taken). The results already received stay. Since cycle 28
+ * (ADR-0173) the first holding stream of 바로 보기 and of the book screen refused with 503 keeps the book list and has
+ * the 「대출 정보 다시 확인」 button (`BusyRetryNotice`); every other refusal has no retry button, as in cycle 08 [확정].
  */
 export type Blocked = 'too_many' | 'busy'
 

@@ -10,6 +10,7 @@ import { useRegions } from '../region/RegionContext'
 import { readScope } from '../search/readScope'
 import { loadPrefs, savePrefs, writeVisit } from '../search/searchSettings'
 import { holdingBatchViews } from '../search/holdingView'
+import { BUSY_BOOK_TEXT, BusyRetryNotice } from '../search/BusyRetryNotice'
 import { ResultList, type ResultSearchContext } from '../search/ResultList'
 import { useMineLabel, useTagPlace } from '../search/regionPlace'
 import { useHoldings } from '../search/useHoldings'
@@ -149,6 +150,14 @@ function BookView({
   }
 
   const loadingBatch = holdings.state.batches.at(-1)
+  // cycle 28 (ADR-0173): the first stream was refused with 503 and nothing came back (also while it is opened again
+  // after 「대출 정보 다시 확인」): the notice with the button in the list's place, so "이 책을 가진 도서관을 모두
+  // 조회했습니다" is not shown [확정]
+  const rechecking = holdings.openRefused && holdings.state.phase === 'streaming'
+  const busyOnly =
+    holdings.openRefused &&
+    holdings.state.order.length === 0 &&
+    (rechecking || (holdings.state.phase !== 'streaming' && holdings.state.blocked === 'busy'))
   // the same groups' small texts and buttons as on 바로 보기 (user 2026-10-19), for this book's own address
   const searchAgain = (change: (address: URLSearchParams) => void) => {
     const address = new URLSearchParams(params)
@@ -207,6 +216,8 @@ function BookView({
       <div className={styles.condition}>{condition}</div>
       {book.holdingLibraryCount === 0 ? (
         <p className={styles.loading}>조건에 맞는 도서관이 없어요</p>
+      ) : busyOnly ? (
+        <BusyRetryNotice text={BUSY_BOOK_TEXT} checking={rechecking} onRetry={holdings.reopen} />
       ) : (
         <ResultList
           screen="book_page"

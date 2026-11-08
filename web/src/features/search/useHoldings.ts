@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { holdingBatchStream, holdingStream } from '../../api/searchStream'
 import type { BookItem, LibraryScope, ResultFilter, VisitFilter } from '../../api/types'
 import { blockedBy } from './blocked'
@@ -34,12 +34,21 @@ export function useHoldings() {
   const books = useRef(new Map<number, BookItem>())
   const batchCounter = useRef(0)
   const filterRef = useRef<ResultFilter>('all')
+  /**
+   * Cycle 28 (ADR-0173): the last `open` was refused with 503 `server_busy`, so the screen keeps its book list and
+   * offers 「대출 정보 다시 확인」. Stays on while that stream is opened again (the screen shows "확인 중"); off once
+   * `targets` arrive, the stream fails for another reason, "더 보기" starts, or the state is reset.
+   */
+  const [openRefused, setOpenRefused] = useState(false)
+  const lastOpen = useRef<{ items: BookItem[]; options: HoldingPlanOptions } | null>(null)
   useEffect(() => () => controller.current?.abort(), [])
 
   const reset = useCallback(() => {
     controller.current?.abort()
     books.current = new Map()
     batchCounter.current = 0
+    lastOpen.current = null
+    setOpenRefused(false)
     dispatch({ type: 'reset' })
   }, [])
 
@@ -52,6 +61,7 @@ export function useHoldings() {
     const next = new AbortController()
     controller.current = next
     for (const book of items) books.current.set(book.id, book)
+    lastOpen.current = { items, options }
     const batchNo = ++batchCounter.current
     dispatch({ type: 'batch-start', batchNo })
     const { filter, scope, visit, residenceRegionIds, workRegionIds, libraryIds, holdingLimit } = options
@@ -67,18 +77,31 @@ export function useHoldings() {
         libraryIds,
         ...(holdingLimit !== undefined && { holdingLimit }),
       },
-      (event) => dispatch({ type: 'event', batchNo, event, books: books.current }),
+      (event) => {
+        // the stream was opened: a refusal before this (cycle 28) is over
+        if (event.name === 'targets') setOpenRefused(false)
+        dispatch({ type: 'event', batchNo, event, books: books.current })
+      },
       next.signal,
     ).catch((error: unknown) => {
-      if (!next.signal.aborted) dispatch({ type: 'batch-failed', batchNo, blocked: blockedBy(error) })
+      if (next.signal.aborted) return
+      const blocked = blockedBy(error)
+      setOpenRefused(blocked === 'busy')
+      dispatch({ type: 'batch-failed', batchNo, blocked })
     })
   }, [])
+
+  /** Cycle 28: the same first stream again (same books, same options), only when the user taps 「대출 정보 다시 확인」. */
+  const reopen = useCallback(() => {
+    if (lastOpen.current) open(lastOpen.current.items, lastOpen.current.options)
+  }, [open])
 
   const startBatch = useCallback((candidates: number[]) => {
     controller.current?.abort()
     const next = new AbortController()
     controller.current = next
     const batchNo = ++batchCounter.current
+    setOpenRefused(false)
     dispatch({ type: 'batch-start', batchNo })
     holdingBatchStream(
       { filter: filterRef.current, batchNo, candidates },
@@ -98,5 +121,5 @@ export function useHoldings() {
     return true
   }, [state, startBatch])
 
-  return { state, remaining: remainingHoldings(state), open, loadNext, reset }
+  return { state, remaining: remainingHoldings(state), open, loadNext, reset, reopen, openRefused }
 }
