@@ -36,7 +36,7 @@ plan에 넘기는 dev 기록입니다. 기준 문서는 plan `docs/cycles/29-ai-
 
 - 새 시험: `SearchBooksReadTests`(한 번 읽기, 다시 읽기, 실패하면 옛 목록), `SearchBooksReloadTests`(루프백·사설 주소만), `AiSearchIndexTests.theNewTableIsSwappedInWithTheIndexesOfTheOld`(두 번 바꿔 끼운 뒤 색인 이름·통계 설정 그대로, `_next` 표 없음)
 - 시험 도우미 `TestSearchBooks`는 바꿔 끼우기 대신 줄을 직접 넣음: 바꿔 끼우기의 잠금은 커밋까지 가는데 `@Transactional` 시험은 커밋하지 않아, 흐름의 낱말 검색(다른 연결)이 끝없이 기다림(2026-11-09 전체 빌드가 35분 멈춰 원인 확인). 운영 넣기는 바로 커밋하므로 해당 없음
-- `./gradlew build`(2026-11-09): 1,482개 중 실패 1(`AiSearchOffTests`). 원인은 worktree에 복사한 `.env`의 `CHAEKCHECK_AISEARCH_ENABLED=true`(시험은 꺼진 기본값을 기대). `CHAEKCHECK_AISEARCH_ENABLED=false`로 돌리면 통과. 코드 변경과 무관
+- `./gradlew build`(2026-11-09): 1,482개 중 실패 1(`AiSearchOffTests`). 원인은 worktree에 복사한 `.env`의 `CHAEKCHECK_AISEARCH_ENABLED=true`(시험은 꺼진 기본값을 기대). 시험이 `chaekcheck.aisearch.enabled=false`를 직접 정하게 고쳐 `.env`와 상관없이 통과
 
 ## 아직 안 한 것
 

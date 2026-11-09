@@ -10,8 +10,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-/** The feature off (the default): both addresses answer 404 {@code not_found} (cycle 24 step 0 #9). */
-@SpringBootTest
+/**
+ * The feature off (the default): both addresses answer 404 {@code not_found} (cycle 24 step 0 #9). Off is set here, not
+ * left to the default: a developer's {@code .env} may turn it on (CHAEKCHECK_AISEARCH_ENABLED=true, 2026-11-09).
+ */
+@SpringBootTest(properties = "chaekcheck.aisearch.enabled=false")
 @AutoConfigureMockMvc
 class AiSearchOffTests {
 
