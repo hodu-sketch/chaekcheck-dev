@@ -45,7 +45,46 @@ plan에 넘기는 dev 기록입니다. 기준 문서는 plan `docs/cycles/29-ai-
 - 다시 읽기 요청: `chaekcheck-web-1` 컨테이너에서 `POST http://backend-green:8080/internal/aisearch/books/reload` → `202`, `ai search books read: 76759 in 2884 ms`(다른 컨테이너의 사설 주소·CSRF 예외가 운영에서 동작)
 - 밖에서: `POST https://chaekcheck.com/internal/aisearch/books/reload` → `404`
 
+## 다시 잰 뒤 서버 steps (2026-11-09 15:43\~15:52 KST, plan 바깥 측정 9건 + 앞 1건)
+
+- `neighbours − nearest`: 10건 모두 0\~22ms(배포 전 2026-11-08에는 1.3\~2.6초 틈이 여러 번). 1분 count(*) 틈은 서버 쪽에서도 없어짐
+- 서버 쪽(cards까지) 133\~650ms, `nearest` 최대 422ms(배포 전 최대 2,122ms)
+- 바깥 시간이 배포 전보다 높게 나온 몫은 Haiku(`llm-first − cards`) 1.2\~3.3초의 흔들림. 서버 코드 몫이 아님
+
+## 4. 미리 데우기 시험 (2026-11-09 16:36\~, 운영, 읽기만)
+
+**인계서와 다른 점**: 인계서는 「벡터 후보」를 `pg_prewarm` 대상으로 적었으나, `nearest`는 DB가 아니라 백엔드가 읽기 전용으로 매핑한 파일 `/models/aisearch/book-vectors.bin`(235MB, `BookVectorFunnel`)을 읽음. `pg_prewarm`은 `nearest`에 닿지 않음. DB에서 AI 검색이 읽는 것은 `catalog.book_search`(낱말 검색 BM25, 표 줄)뿐
+
+페이지 캐시에 올라와 있던 양(`fincore`, 16:36, 마지막 질문 뒤 45분):
+
+| 파일 | 메모리에 있음 / 크기 |
+|---|---|
+| `book-vectors.bin` | 211 / 235 MB |
+| `catalog.book_search` 표 | 0 / 242 MB |
+| 그 TOAST | 0 / 122 MB |
+| `book_search_bm25` | 0 / 56 MB |
+| `book_search_search_text_bigm` | 0 / 38 MB |
+
+`free -m`: 남은 113MB, 쓸 수 있음 639MB, 스왑 553MB. `shared_buffers` 64MB. `pg_prewarm` 확장은 있으나 설치 안 됨(`CREATE EXTENSION`은 스키마 변경이라 Liquibase로만 함)
+
+BM25 낱말 질의를 운영 DB에서 직접 잼(앱의 `findBm25`와 같은 `keyword_text ||| … ORDER BY pdb.score LIMIT 60`, 도서관 조건 뺌, 읽기 전용):
+
+| 질의 | 시간 |
+|---|---|
+| 「위로 소설 따뜻한」 찬 상태 | 241ms |
+| 같은 질의 다시 | 4ms |
+| 「우주 과학 입문」 처음 | 72ms |
+| 「조선 역사 왕」 처음 | 60ms |
+| 같은 질의 다시 | 3ms |
+
+(앞서 `library_words` 한 줄을 읽은 질의가 표 101MB를 캐시에 올려, 첫 BM25 수치는 표가 반쯤 데워진 상태입니다.)
+
+읽은 것과 [안]:
+- 데우기로 줄일 수 있는 최대치는 낱말 검색의 약 60\~240ms. 그런데 낱말 검색은 encode·nearest와 같이 도는 「early keyword」라, 다시 잰 10건 모두 `keyword`가 `neighbours`와 같은 시각(기다림 0)
+- 데울 대상 합은 약 460MB인데 쓸 수 있는 메모리는 약 640MB. 올리면 대출 조회의 `holding` 캐시와 `book-vectors.bin`을 밀어낼 수 있음
+- 그래서 **적용하지 않고 기록만** 하기를 제안 [안]. plan이 정함
+- 배포 전 `nearest`가 2초까지 걸린 것은 벡터 파일·자바 힙이 스왑으로 밀린 때로 보임(그날 스왑 633MB). 지금은 벡터 211MB가 올라와 있음. 다시 생기면 DB가 아니라 벡터 파일 쪽(`vmtouch`류, 또는 메모리)을 봐야 함
+
 ## 아직 안 한 것
 
-- 3. 배포 뒤 다시 재기: plan이 함
-- 4. `pg_prewarm` 시험: 1\~3 배포와 다시 재기 뒤. 결과는 이 파일에 숫자로 더함
+- 4의 적용 여부: plan 결정
