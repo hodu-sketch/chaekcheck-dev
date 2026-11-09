@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.transaction.support.TransactionOperations;
 
-import com.chaekcheck.catalog.AiSearchIndex;
 import com.chaekcheck.catalog.BookTextsTransfer;
 import com.chaekcheck.catalog.MostHeldBooks;
 import com.chaekcheck.catalog.MostHeldBooks.HeldBook;
@@ -48,7 +47,7 @@ class BookTextsImportTests {
 
 	private final FakeTransfer transfer = new FakeTransfer();
 
-	private final FakeIndex index = new FakeIndex();
+	private final Reloads index = new Reloads();
 
 	private final FakeHeld held = new FakeHeld(List.of());
 
@@ -69,7 +68,7 @@ class BookTextsImportTests {
 		assertThat(report.forced()).isFalse();
 		assertThat(transfer.summaries).isEmpty();
 		assertThat(transfer.tags).isEmpty();
-		assertThat(index.compacted).isOne();
+		assertThat(index.asked).isOne();
 	}
 
 	@Test
@@ -105,7 +104,7 @@ class BookTextsImportTests {
 		assertThat(report.result()).isNull();
 		assertThat(listed.reads).isZero();
 		assertThat(transfer.searchCalls).isZero();
-		assertThat(index.compacted).isZero();
+		assertThat(index.asked).isZero();
 		assertThat(transfer.summaries).hasSize(1);
 	}
 
@@ -299,39 +298,14 @@ class BookTextsImportTests {
 
 	}
 
-	private static final class FakeIndex implements AiSearchIndex {
+	/** The reload request the import sends at its end (cycle 29). */
+	private static final class Reloads implements Runnable {
 
-		int compacted;
-
-		@Override
-		public List<Candidate> find(List<String> words, Set<String> coreWords, Set<Long> planLibraries,
-				Set<Long> excluded, int limit, Integer fromYear) {
-			throw new AssertionError();
-		}
+		int asked;
 
 		@Override
-		public Map<Long, Integer> planCounts(Collection<Long> bookIds, Set<Long> planLibraries) {
-			throw new AssertionError();
-		}
-
-		@Override
-		public Map<Long, String> lines(Collection<Long> bookIds) {
-			throw new AssertionError();
-		}
-
-		@Override
-		public List<SearchBook> books() {
-			throw new AssertionError();
-		}
-
-		@Override
-		public String version() {
-			throw new AssertionError();
-		}
-
-		@Override
-		public void compact() {
-			compacted++;
+		public void run() {
+			asked++;
 		}
 
 	}

@@ -71,13 +71,4 @@ public interface AiSearchIndex {
 	/** Every search book with its title and author, in book id order. */
 	List<SearchBook> books();
 
-	/** What the table holds now (row count and newest import time), to read {@link #books()} again only on change. */
-	String version();
-
-	/**
-	 * Rewrites the table without the space replaced rows left ({@code VACUUM FULL}). Outside any transaction; it locks
-	 * the table while it runs, so the AI search waits that long.
-	 */
-	void compact();
-
 }

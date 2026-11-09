@@ -26,9 +26,13 @@ public class TestSearchBooks {
 
 	private final BookTextsTransfer transfer;
 
-	TestSearchBooks(JdbcClient jdbc, BookTextsTransfer transfer) {
+	private final com.chaekcheck.aisearch.internal.match.SearchBooks searchBooks;
+
+	TestSearchBooks(JdbcClient jdbc, BookTextsTransfer transfer,
+			com.chaekcheck.aisearch.internal.match.SearchBooks searchBooks) {
 		this.jdbc = jdbc;
 		this.transfer = transfer;
+		this.searchBooks = searchBooks;
 	}
 
 	/**
@@ -63,7 +67,55 @@ public class TestSearchBooks {
 				.param("libraries", java.util.Arrays.stream(book.libraryIds()).boxed().toArray(Long[]::new))
 				.update();
 		}
-		return transfer.replaceSearchBooks(books.stream().map(Book::bookId).toList(), lines, written);
+		SearchResult result = writeRows(books, lines, written);
+		// as the import's reload request does (cycle 29): the application's books are read again only when asked
+		searchBooks.reload();
+		return result;
+	}
+
+	/**
+	 * The rows {@link BookTextsTransfer#replaceSearchBooks} writes, written in place with DELETE + INSERT. Since cycle 29
+	 * the transfer swaps in a new table, whose lock lasts until the commit; a test's transaction never commits, so the
+	 * flow's keyword search on its own connection would wait for it for ever. The swap itself is tested in
+	 * {@code catalog.AiSearchIndexTests}.
+	 */
+	private SearchResult writeRows(List<Book> books, List<Line> lines, List<BookTextsTransfer.Written> written) {
+		java.util.Map<Long, Line> lineByBook = new HashMap<>();
+		lines.forEach(line -> lineByBook.put(line.bookId(), line));
+		java.util.Map<Long, BookTextsTransfer.Written> writtenByBook = new HashMap<>();
+		written.forEach(row -> writtenByBook.put(row.bookId(), row));
+		jdbc.sql("DELETE FROM catalog.book_search").update();
+		int withLine = 0;
+		for (Book book : books) {
+			Line line = lineByBook.get(book.bookId());
+			BookTextsTransfer.Written words = writtenByBook.get(book.bookId());
+			withLine += line == null ? 0 : 1;
+			java.util.List<String> parts = new java.util.ArrayList<>();
+			for (String part : new String[] { book.title(), book.author(), line == null ? null : line.text(),
+					words == null ? null : words.terms() }) {
+				if (part != null && !part.isBlank()) {
+					parts.add(String.join(" ", part.strip().split("\s+")));
+				}
+			}
+			jdbc.sql("""
+					INSERT INTO catalog.book_search (book_id, line, line_source, line_made_on, search_text, library_ids,
+					  summary, terms, written_on, keyword_text)
+					VALUES (:id, :line, :source, :lineOn, :text, CAST(:libraries AS integer[]), :summary, :terms,
+					  :writtenOn, :keyword)""")
+				.param("id", book.bookId())
+				.param("line", line == null ? null : line.text())
+				.param("source", line == null ? null : line.source().code())
+				.param("lineOn", line == null ? null : line.madeOn())
+				.param("text", com.chaekcheck.catalog.SearchText.ofBook(book.title(), book.author(),
+						line == null ? null : line.text()))
+				.param("libraries", java.util.Arrays.stream(book.libraryIds()).boxed().toArray(Long[]::new))
+				.param("summary", words == null ? null : words.summary())
+				.param("terms", words == null ? null : words.terms())
+				.param("writtenOn", words == null ? null : words.madeOn())
+				.param("keyword", String.join(" ", parts))
+				.update();
+		}
+		return new SearchResult(books.size(), withLine, 0, 0);
 	}
 
 	/** {@link BookTexts} for a flow test: covers and summaries from the given reads, no tags or list covers. */

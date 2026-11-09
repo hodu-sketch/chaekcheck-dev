@@ -193,7 +193,32 @@ class AiSearchIndexTests {
 			.query(String.class)
 			.single()).isEqualTo("코스모스 칼세이건 우주이야기예요.|{101,2000}");
 		assertThat(index.books()).containsExactly(new SearchBook(930001, "코스모스", "칼 세이건"));
-		assertThat(index.version()).startsWith("1@");
+	}
+
+	@Test
+	void theNewTableIsSwappedInWithTheIndexesOfTheOld() { // cycle 29, ADR-0174: no DELETE + VACUUM FULL
+		List<String> before = indexes();
+		jdbc.sql("""
+				INSERT INTO catalog.book (id, title, title_norm, main_title_norm, content_type, library_ids, author_display)
+				VALUES (930002, '코스모스', 'x', 'x', 'EBOOK', '{101}', '칼 세이건')""").update();
+
+		transfer.replaceSearchBooks(List.of(930002L), List.of(new Line(930002, Source.INTRO, DAY, "우주")));
+		transfer.replaceSearchBooks(List.of(930002L), List.of(new Line(930002, Source.INTRO, DAY, "우주 이야기")));
+
+		assertThat(indexes()).isEqualTo(before).contains("book_search_pkey", "book_search_search_text_bigm");
+		assertThat(jdbc.sql("SELECT to_regclass('catalog.book_search_next') IS NULL").query(Boolean.class).single())
+			.isTrue();
+		assertThat(jdbc.sql("SELECT line FROM catalog.book_search").query(String.class).single()).isEqualTo("우주 이야기");
+		assertThat(jdbc.sql("""
+				SELECT attstattarget FROM pg_attribute
+				WHERE attrelid = 'catalog.book_search'::regclass AND attname = 'keyword_text'""")
+			.query(Integer.class)
+			.single()).isZero();
+	}
+
+	private List<String> indexes() {
+		return jdbc.sql("SELECT indexname FROM pg_indexes WHERE schemaname = 'catalog' AND tablename = 'book_search' "
+				+ "ORDER BY indexname").query(String.class).list();
 	}
 
 	@Test

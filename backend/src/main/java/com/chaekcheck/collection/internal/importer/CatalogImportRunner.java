@@ -24,7 +24,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.chaekcheck.catalog.AiSearchIndex;
 import com.chaekcheck.catalog.BookLookup;
 import com.chaekcheck.catalog.BookTextsTransfer;
 import com.chaekcheck.catalog.CatalogLoad;
@@ -116,6 +115,8 @@ class CatalogImportRunner {
 	 * in although its {@code export_id} is not the one of this database's latest succeeded catalog import
 	 * @param bookTextsTopBooks how many of the books held by the most libraries mode {@code book-texts} adds to the
 	 * listed books (user 2026-10-25: 30,000; 0 = listed books only)
+	 * @param reloadUrls where to send {@code POST /internal/aisearch/books/reload} after an import that changed the AI
+	 *     search's books or the catalog (cycle 29, ADR-0174); empty: none is sent
 	 * @param bookProfilesFile the file of mode {@code book-profiles} (cycle 26, ADR-0165): {@code # export_id=…}, then
 	 * the PC's nine-cell profile rows
 	 */
@@ -123,14 +124,27 @@ class CatalogImportRunner {
 	record Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
 			Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir,
 			boolean storedBibliography, Path listsDir, Path bookTextsFile, Path neighboursFile, String neighboursLoad,
-			Path tagDictionaryFile, boolean force, Integer bookTextsTopBooks, Path bookProfilesFile) {
+			Path tagDictionaryFile, boolean force, Integer bookTextsTopBooks, Path bookProfilesFile,
+			java.util.List<java.net.URI> reloadUrls) {
 
+		@org.springframework.boot.context.properties.bind.ConstructorBinding
 		Settings {
+			reloadUrls = reloadUrls == null ? java.util.List.of() : java.util.List.copyOf(reloadUrls);
 			placeholderDateLibraries = placeholderDateLibraries == null ? Set.of() : Set.copyOf(placeholderDateLibraries);
 			mode = mode == null ? "in-place" : mode;
 			grouping = grouping == null ? "compact" : grouping;
 			rulesDir = rulesDir == null ? Path.of("../scripts/library/rules") : rulesDir;
 			listsDir = listsDir == null ? Path.of("../scripts/crawl/lists") : listsDir;
+		}
+
+		/** As the canonical one with no reload URL (the tests' settings). */
+		Settings(Path sqlitePath, Path ttlPath, boolean dryRun, Set<Long> placeholderDateLibraries, String mode,
+				Path file, String grouping, Path dryRunOutput, boolean excludeAddedLaterLibraries, Path rulesDir,
+				boolean storedBibliography, Path listsDir, Path bookTextsFile, Path neighboursFile, String neighboursLoad,
+				Path tagDictionaryFile, boolean force, Integer bookTextsTopBooks, Path bookProfilesFile) {
+			this(sqlitePath, ttlPath, dryRun, placeholderDateLibraries, mode, file, grouping, dryRunOutput,
+					excludeAddedLaterLibraries, rulesDir, storedBibliography, listsDir, bookTextsFile, neighboursFile,
+					neighboursLoad, tagDictionaryFile, force, bookTextsTopBooks, bookProfilesFile, null);
 		}
 
 		/** Whether the mode reads a collection DB, and so the rules files. */
@@ -200,7 +214,7 @@ class CatalogImportRunner {
 			CatalogLoad catalogLoad, JdbcClient jdbc, DataSource dataSource,
 			PlatformTransactionManager transactionManager, Settings settings, ConfigurableApplicationContext context,
 			CuratedListTransfer curatedLists, BookLookup bookLookup, ListedBooks listedBooks,
-			BookTextsTransfer bookTexts, AiSearchIndex searchIndex, ForYouTransfer forYou, MostHeldBooks mostHeldBooks) {
+			BookTextsTransfer bookTexts, ForYouTransfer forYou, MostHeldBooks mostHeldBooks) {
 		return (ApplicationArguments args) -> {
 			settings.check();
 			log.info("collection import: mode {}, grouping {}", settings.mode(), settings.grouping());
@@ -217,15 +231,22 @@ class CatalogImportRunner {
 				.storedBibliography(settings.storedBibliography());
 			ImportTransfer transfer = new ImportTransfer(importer, catalogLoad, libraryCatalog, libraryRegistry, jdbc,
 					transactionManager, records, Clock.systemUTC(), curatedLists, settings.listsDir());
+			SearchBooksReloadRequest reload = new SearchBooksReloadRequest(settings.reloadUrls());
 			switch (settings.mode()) {
 				case "export" -> transfer.export(settings.sqlitePath(), settings.ttlPath(), settings.file(),
 						settings.grouping());
-				case "apply" -> transfer.apply(settings.file());
-				case "finish" -> transfer.finish(settings.file());
+				case "apply" -> {
+					transfer.apply(settings.file());
+					reload.run();
+				}
+				case "finish" -> {
+					transfer.finish(settings.file());
+					reload.run();
+				}
 				case "discard" -> log.info("discarded: {}", transfer.discard());
 				case "lists" -> transfer.listsOnly(bookLookup);
 				case "book-texts" -> new BookTextsImport(listedBooks, mostHeldBooks, settings.bookTextsTopBooks(), bookTexts,
-						searchIndex, () -> ExportIds.latest(jdbc), new TransactionTemplate(transactionManager))
+						reload, () -> ExportIds.latest(jdbc), new TransactionTemplate(transactionManager))
 					.run(settings.bookTextsFile(), settings.force());
 				case "book-profiles" -> new BookProfilesImport(bookTexts, () -> ExportIds.latest(jdbc)).run(settings.bookProfilesFile(),
 						settings.force());
@@ -240,6 +261,7 @@ class CatalogImportRunner {
 					importer.run(settings.sqlitePath(), settings.ttlPath(), settings.dryRun());
 					if (!settings.dryRun()) {
 						transfer.replaceListsInPlace(bookLookup);
+						reload.run();
 					}
 				}
 			}

@@ -59,10 +59,12 @@
 ```
 
 - 운영(EC2)에서는 서버의 백엔드 이미지로 돌립니다(비밀값을 PC로 가져오지 않음). TSV를 `/srv/chaekcheck/book-texts/`에 올리고(644) `/srv/chaekcheck`에서(`<판>` = `slots.env`의 일하는 자리 판):
-  `( set -a; . ./secrets.env; set +a; docker run --rm --network chaekcheck_default -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/chaekcheck -e DB_NAME=chaekcheck -e DB_USERNAME=chaekcheck -e DB_PASSWORD -e TZ=Asia/Seoul -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false -v /srv/chaekcheck/book-texts:/book-texts:ro chaekcheck/backend:<판> --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일> --chaekcheck.collection.import.book-texts-top-books=100000 )`.
+  `( set -a; . ./secrets.env; set +a; docker run --rm --network chaekcheck_default -e SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/chaekcheck -e DB_NAME=chaekcheck -e DB_USERNAME=chaekcheck -e DB_PASSWORD -e TZ=Asia/Seoul -e JAVA_TOOL_OPTIONS=-Xmx384m -e CHAEKCHECK_AUTH_ENABLED=false -e CHAEKCHECK_USAGELOG_ENABLED=false -e CHAEKCHECK_AISEARCH_ENABLED=false -v /srv/chaekcheck/book-texts:/book-texts:ro chaekcheck/backend:<판> --spring.profiles.active=collection-import --chaekcheck.collection.import.mode=book-texts --chaekcheck.collection.import.book-texts-file=/book-texts/<파일> --chaekcheck.collection.import.book-texts-top-books=100000 --chaekcheck.collection.import.reload-urls=http://backend-blue:8080/internal/aisearch/books/reload,http://backend-green:8080/internal/aisearch/books/reload )`.
+  `reload-urls`(사이클 29, ADR-0174): 넣기가 끝나면 두 자리에 「책 목록 다시 읽기」 요청을 보냅니다. 떠 있지 않은 자리는 경고 한 줄(`ai search books reload: … not reached`)만 남기고 넘어갑니다. 빼면 요청을 보내지 않으므로 백엔드는 다음에 켜질 때까지 옛 책 목록(제목·저자)을 씁니다. 손으로 다시 읽히려면 서버에서 `docker exec chaekcheck-backend-<자리>-1 curl -s -X POST -o /dev/null -w "%{http_code}
+" http://localhost:8080/internal/aisearch/books/reload` → `202`, 로그 `ai search books read: N in M ms`.
   **`book-texts-top-books=100000`을 빼면 파일 기본 30000으로 넣어 운영 AI 검색 책이 10만 권 판(76,759권, 2026-10-26\~)에서 약 3만 권으로 줄어듭니다**(9절).
   로그인을 끄지 않으면 뜨지 않습니다(`HttpSecurity` 없음, 2026-10-25)
-- 차례: 파일 검사 → 목록 책을 DB에서 바로 읽음(`ListedBooks.loadFromDb()`, 서버 캐시 없이) → 보유 도서관 많은 책 `book-texts-top-books`권(파일 기본 30000, **운영은 100000**, `catalog.MostHeldBooks`)을 읽음 → 한 트랜잭션에서 `catalog.book_search`를 지우고 목록 책 전부와 목록에 없는 그 책들을 넣음(한 줄이 있으면 함께, 보유 도서관 `library_ids`도 복사). 목록에도 있는 책은 목록 쪽(보이는 이름) 한 줄로
+- 차례: 파일 검사 → 목록 책을 DB에서 바로 읽음(`ListedBooks.loadFromDb()`, 서버 캐시 없이) → 보유 도서관 많은 책 `book-texts-top-books`권(파일 기본 30000, **운영은 100000**, `catalog.MostHeldBooks`)을 읽음 → 한 트랜잭션에서 새 표 `catalog.book_search_next`에 목록 책 전부와 목록에 없는 그 책들을 넣고, 지금 표의 색인(BM25 포함)·통계 설정을 똑같이 만든 뒤 `ANALYZE`, 지금 표를 잠가(기다림 최대 10초) 지우고 새 표의 이름을 바꿔 끼움(사이클 29, ADR-0174; v1.23.2까지는 지우고 다시 넣은 뒤 `VACUUM (FULL, ANALYZE)` 약 10초 동안 AI 검색이 기다렸음). 끝나면 `reload-urls`로 다시 읽기 요청(한 줄이 있으면 함께, 보유 도서관 `library_ids`도 복사). 목록에도 있는 책은 목록 쪽(보이는 이름) 한 줄로
 - `--chaekcheck.collection.import.book-texts-top-books=0`이면 예전처럼 목록 책만
 - **목록 책이 0권이면 거부하고 표를 그대로 둡니다.** 읽지 못한 목록이 있어도(`ListsNotReadException`) 거부합니다
 - 목록에 없는 책 번호의 줄은 건너뛰고 수를 셉니다. 1줄이라도 있으면 WARN 한 줄(다른 DB에서 뽑은 파일인지 확인)
@@ -235,11 +237,11 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 | 표 + 인덱스(76,759권, 로컬) | 188MB(표 136 + 인덱스 51) | **115MB**(표 75 + 인덱스 38) |
 | `library_ids` | bigint[] 42MB | **integer[] 25MB** |
 | ANALYZE(`line`·`search_text` 칸) | 각 약 200초(DB 정렬 규칙 `en_US.utf8`로 긴 한국어를 정렬) | **`C` 정렬 규칙 1초** |
-| 넣기 뒤 | 지운 줄 자리가 남음(넣은 직후 216MB), 자동 ANALYZE가 몇 분\~15분 CPU(운영 2026-10-26: 21:58 넣기, 22:13 끝) | 넣기 끝에 `VACUUM (FULL, ANALYZE)` **10초**(그동안 AI 검색이 기다림) |
+| 넣기 뒤 | 지운 줄 자리가 남음(넣은 직후 216MB), 자동 ANALYZE가 몇 분\~15분 CPU(운영 2026-10-26: 21:58 넣기, 22:13 끝) | v1.18.0\~v1.23.2: 넣기 끝에 `VACUUM (FULL, ANALYZE)` **10초**(그동안 AI 검색이 기다림). 사이클 29부터: 새 표 바꿔 끼우기, VACUUM 없음 |
 | 낱말 검색 「소설」 / 「기후 위기」 / 「다이어트 식단 레시피 건강」 / 30권 도서관 수 | 140 / 40 / 12 / 0.4ms | 바꾼 직후 138 / 39 / 12 / 0.3ms, 넣기 + 정리 뒤 141 / 34 / **41** / 0.3ms — 빨라지지 않음(표가 메모리에 있고 LIKE 계산이 시간을 정함). 네 낱말은 정리 뒤 실행 계획이 바뀌어 느려짐(정리만 한 bigint 표에서도 41ms) → 운영 로그 `keyword` 단계로 지켜볼 것 |
 
 - changeset `aisearch-004-search-book-slim`: `library_ids` integer[](가장 큰 번호 2,681), `line`·`search_text` `COLLATE "C"`. 둘 다 사람에게 정렬해 보이지 않고 LIKE + pg_bigm으로만 찾으므로 결과는 같음. 표를 다시 쓰므로 운영 시작 때 몇 초(로컬 4.6초 + ANALYZE 6초) 걸림
-- `catalog.AiSearchIndex.compact()`(`JdbcAiSearchIndex`): book-texts 넣기가 끝난 뒤(트랜잭션 밖) `VACUUM (FULL, ANALYZE)`. 트랜잭션 안이면 건너뛰고, 실패하면 경고만(책은 이미 들어가 있음). 로그 `search books compacted in N ms`
+- v1.23.2까지: `catalog.AiSearchIndex.compact()`가 book-texts 넣기 끝에 `VACUUM (FULL, ANALYZE)`(로그 `search books compacted in N ms`). 사이클 29(ADR-0174)에서 `compact()`를 지우고 넣기를 새 표 바꿔 끼우기로 바꿈(3절)
 - 잰 방법: 실제 표의 복사본에 같은 변경을 하고 크기·쿼리 시간(EXPLAIN ANALYZE 9번 중 첫 번 뺀 중간값, 도서관 25곳)·넣기·VACUUM을 잼(`scripts/aisearch/eval/search_book_slim_test.py`). 원본: [`search-book-first-test-2026-10-27.json`](../features/aisearch/eval-data/search-book-first-test-2026-10-27.json)(칸 크기 42 → 25MB 포함), [`search-book-slim-2026-10-27.json`](../features/aisearch/eval-data/search-book-slim-2026-10-27.json), 칸별 ANALYZE [`search-book-analyze-2026-10-27.json`](../features/aisearch/eval-data/search-book-analyze-2026-10-27.json)
 - **개선안(아직 안 함)**: 찾기에 쓰는 칸(`book_id`, `search_text`, `library_ids`)만 좁은 표로 빼면 낱말 검색이 읽는 양이 더 줄지만, 지금 검색 시간은 읽는 양이 아니라 LIKE 계산이 정하므로 효과가 작을 것으로 봄 [추론]. 넣기를 「새 표에 쓰고 이름 바꾸기」로 바꾸면 VACUUM의 10초 기다림도 없앨 수 있음
 
@@ -307,7 +309,7 @@ v1.17.0 뒤 사용자가 「사진」이 되묻지 않는 것, 되묻기에 버�
 
 PC 로컬: `compose.yaml`도 preload `pg_bigm,pg_search`. 이 변경 뒤 `docker compose up`은 pg_search가 든 이미지가 있어야 뜹니다(`wsl -d Ubuntu -- docker compose build`, 또는 이미 지은 `chaekcheck/postgres-bigm:18-search`를 `:18`로 태그).
 
-- **ANALYZE가 40분 넘게 걸림(v1.23.0 배포 때)**: `book_search`의 `summary`·`terms`·`keyword_text`(한글 약 300·300·420자) 통계가 표본을 DB 정렬 규칙(en_US.utf8)으로 정렬하느라 칸마다 1분을 넘김(한 줄 100자는 0.1초). SQL에서 거르거나 정렬하지 않는 칸이라 통계를 끔(Liquibase `catalog-006-book-search-statistics`, `…-bm25-statistics`, BM25 색인의 식 열 둘도). 측정 복사본에서 ANALYZE 10분 넘음 → 0.4초. 넣기 뒤 `VACUUM (FULL, ANALYZE)`도 이 시간만큼 줄어듦. 확인: `SELECT attname, attstattarget FROM pg_attribute WHERE attrelid IN ('catalog.book_search'::regclass, 'catalog.book_search_bm25'::regclass) AND attstattarget IS NOT NULL` → 다섯 줄 모두 0.
+- **ANALYZE가 40분 넘게 걸림(v1.23.0 배포 때)**: `book_search`의 `summary`·`terms`·`keyword_text`(한글 약 300·300·420자) 통계가 표본을 DB 정렬 규칙(en_US.utf8)으로 정렬하느라 칸마다 1분을 넘김(한 줄 100자는 0.1초). SQL에서 거르거나 정렬하지 않는 칸이라 통계를 끔(Liquibase `catalog-006-book-search-statistics`, `…-bm25-statistics`, BM25 색인의 식 열 둘도). 측정 복사본에서 ANALYZE 10분 넘음 → 0.4초. 넣기 뒤 `VACUUM (FULL, ANALYZE)`(v1.23.2까지)도 이 시간만큼 줄어듦. 사이클 29부터 새 표도 지금 표의 이 설정을 그대로 받음. 확인: `SELECT attname, attstattarget FROM pg_attribute WHERE attrelid IN ('catalog.book_search'::regclass, 'catalog.book_search_bm25'::regclass) AND attstattarget IS NOT NULL` → 다섯 줄 모두 0.
 
 운영에서 알아 둘 것:
 - **DB 이미지**: `docker/postgres-bigm`에 pg_search 0.26.3(.deb, PC amd64·서버 arm64) + pgvector. `shared_preload_libraries=pg_bigm,pg_search`. compose(로컬·운영)의 `command`는 `pg_bigm,pg_search`(v1.23.0\~, `deploy/prod/compose.yaml`, `compose.yaml`). DB 이미지를 옛것(pg_search 없음)으로 돌리면 이 줄도 `pg_bigm`만으로 돌려야 DB가 뜸. pg_search가 없는 DB에서는 Liquibase가 BM25 색인 단계를 건너뛰고(`onFail: CONTINUE`, 다음 시작에 다시 시도) 서버는 `like`로 돔.

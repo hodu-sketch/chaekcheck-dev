@@ -1,6 +1,5 @@
 package com.chaekcheck.catalog.internal.texts;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,11 +10,9 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.chaekcheck.catalog.AiSearchIndex;
@@ -301,31 +298,6 @@ class JdbcAiSearchIndex implements AiSearchIndex {
 			.query((rs, n) -> new SearchBook(rs.getLong(1), rs.getString(2), rs.getString(3),
 					rs.getObject(4, Integer.class)))
 			.list();
-	}
-
-	@Override
-	public String version() {
-		return jdbc.sql("SELECT count(*) AS n, max(imported_at) AS at FROM catalog.book_search")
-			.query((rs, n) -> rs.getLong("n") + "@" + rs.getObject("at", OffsetDateTime.class))
-			.single();
-	}
-
-	@Override
-	public void compact() {
-		if (TransactionSynchronizationManager.isActualTransactionActive()) {
-			// VACUUM cannot run in a transaction (the import calls this after its own); the space stays until next time
-			log.info("search books not compacted: called inside a transaction");
-			return;
-		}
-		long started = System.nanoTime();
-		try {
-			jdbc.sql("VACUUM (FULL, ANALYZE) catalog.book_search").update();
-			log.info("search books compacted in {} ms", (System.nanoTime() - started) / 1_000_000);
-		}
-		catch (DataAccessException e) {
-			// the books are in already; only the space of the replaced rows stays
-			log.warn("search books not compacted: {}", e.getClass().getName());
-		}
 	}
 
 	/** {@code \}, {@code %} and {@code _} are matched as themselves ({@code ESCAPE '\'}). */

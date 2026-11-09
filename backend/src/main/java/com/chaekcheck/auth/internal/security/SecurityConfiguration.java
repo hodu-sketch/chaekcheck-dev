@@ -50,6 +50,12 @@ class SecurityConfiguration {
 	/** Provider callbacks that cannot send our CSRF header; they prove themselves by key or signature (C4). */
 	static final String[] WEBHOOKS = { "/api/v1/auth/webhooks/kakao-unlink", "/api/v1/auth/webhooks/naver-unlink" };
 
+	/**
+	 * Requests one backend process sends another inside the server (cycle 29, ADR-0174: the AI search's book reload).
+	 * nginx never passes them on and they carry no cookie, so they have no CSRF header to send.
+	 */
+	static final String[] INTERNAL = { "/internal/**" };
+
 	private static final int MIN_KEY_BYTES = 32;
 
 	/**
@@ -72,7 +78,7 @@ class SecurityConfiguration {
 		tokenFilter.setSecurityContextRepository(new RequestAttributeSecurityContextRepository());
 
 		http.authorizeHttpRequests(requests -> requests.requestMatchers(PROTECTED).authenticated().anyRequest().permitAll())
-			.csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository).ignoringRequestMatchers(WEBHOOKS))
+			.csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository).ignoringRequestMatchers(WEBHOOKS).ignoringRequestMatchers(INTERNAL))
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
 			.logout(AbstractHttpConfigurer::disable)

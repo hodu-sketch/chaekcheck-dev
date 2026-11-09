@@ -167,7 +167,7 @@ class BookTextsImportDbTests {
 	}
 
 	private BookTextsImport command() {
-		return new BookTextsImport(listedBooks, mostHeldBooks, 0, transfer, searchIndex, () -> ExportIds.latest(jdbc),
+		return new BookTextsImport(listedBooks, mostHeldBooks, 0, transfer, () -> {}, () -> ExportIds.latest(jdbc),
 				new TransactionTemplate(transactionManager));
 	}
 

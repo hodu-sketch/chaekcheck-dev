@@ -10,6 +10,9 @@
 
 ## 다음 판 (아직 배포 안 됨)
 
+- AI 책 찾기 첫 글 지연 고치기(사이클 29, ADR-0174): 질문 길에서 1분마다 묻던 `catalog.book_search` `count(*)`(오래 쉰 뒤 1.3초)를 없앰. 책 목록은 켜질 때 한 번 읽고, 그다음은 내부 요청 `POST /internal/aisearch/books/reload`(nginx가 넘기지 않음, 사설·루프백 주소만, 응답 202)가 올 때만 뒤에서 읽어 한 번에 바꿔 끼움. 로그 `ai search books read: N in M ms`
+- `book-texts` 넣기: `DELETE` + 다시 넣기 + `VACUUM (FULL, ANALYZE)`(약 10초 AI 검색 대기) 대신 새 표 `catalog.book_search_next`에 넣고 색인·통계 설정을 옮겨 이름을 바꿔 끼움. `AiSearchIndex.version()`·`compact()` 지움. 넣기·카탈로그 가져오기(`in-place`·`apply`·`finish`)가 끝나면 새 설정 `chaekcheck.collection.import.reload-urls`의 주소마다 다시 읽기 요청. Liquibase 변경 없음
+
 ## v1.23.2 (2026-11-08)
 
 - 「바로 보기」: 동시 검색 자리가 다 차서 첫 대출 조회가 거절돼도(503 `server_busy`) 받은 책 목록을 책 줄(제목·저자·출판사·연도·보유 도서관 N곳)로 보이고, 위에 "지금 찾는 사람이 많아 대출 정보는 알 수 없어요. 책 목록만 먼저 보여 드려요."와 「대출 정보 다시 확인」 단추를 둠(전에는 안내문 한 줄만). 책 화면도 같은 안내 줄·단추를 보이고 잘못된 "이 책을 가진 도서관을 모두 조회했습니다"를 숨김. 화면만 바뀜, 서버·API 그대로(사이클 28, ADR-0173)

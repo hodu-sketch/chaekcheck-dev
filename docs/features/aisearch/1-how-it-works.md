@@ -178,7 +178,7 @@
 | `library.library`, `library.eligibility_rule` | | 도서관과 가입 규칙 | 계획 도서관(2-3절) |
 | `usagelog.ai_search_event` | 1검색 1행 | 걸린 시간, 턴 번호, 1차 결과, 제목 같음 여부, 2차 결과, 후보 수, 보여 준 책 id, 토큰 수. 질문 글은 없음 | 끝에 1행 |
 
-- `book_search`는 `collection` 가져오기의 `book-texts` 모드만 바꿉니다(`BookTextsImport.run` → `catalog.BookTextsTransfer.replaceSearchBooks`; 파일 첫 줄 `# export_id=`가 그 DB의 마지막 가져오기와 같아야 함). 찾기 글의 제목·저자와 `library_ids`는 넣을 때 `catalog.book`에서 읽습니다. 다시 가져오기의 바꿔 끼우기는 새 목록에 없는 번호의 줄을 지웁니다(plan ADR-0162). 한 트랜잭션에서 모든 행을 지우고, 「추천 목록 책 전부(`ListedBooks.loadFromDb`)」 + 「보유 도서관이 많은 순 상위 N권(`catalog.book`을 `cardinality(library_ids) DESC, id` 순, `MostHeldBooks.top`)에서 목록 책과 넣기 파일의 `search_exclude` 책을 뺀 것」을 500행씩 넣습니다. N은 파일 기본 30000(`application-collection-import.yml`), 운영 명령은 `book-texts-top-books=100000`([6-aisearch.md](../../maintenance/6-aisearch.md) 3절). 넣은 뒤 `VACUUM (FULL, ANALYZE)`로 표를 다시 씁니다.
+- `book_search`는 `collection` 가져오기의 `book-texts` 모드만 바꿉니다(`BookTextsImport.run` → `catalog.BookTextsTransfer.replaceSearchBooks`; 파일 첫 줄 `# export_id=`가 그 DB의 마지막 가져오기와 같아야 함). 찾기 글의 제목·저자와 `library_ids`는 넣을 때 `catalog.book`에서 읽습니다. 다시 가져오기의 바꿔 끼우기는 새 목록에 없는 번호의 줄을 지웁니다(plan ADR-0162). 한 트랜잭션에서 새 표(`catalog.book_search_next`)에 「추천 목록 책 전부(`ListedBooks.loadFromDb`)」 + 「보유 도서관이 많은 순 상위 N권(`catalog.book`을 `cardinality(library_ids) DESC, id` 순, `MostHeldBooks.top`)에서 목록 책과 넣기 파일의 `search_exclude` 책을 뺀 것」을 500행씩 넣고, 지금 표의 색인·통계 설정을 똑같이 만들어 `ANALYZE`한 뒤 지금 표와 바꿔 끼웁니다(사이클 29, ADR-0174). N은 파일 기본 30000(`application-collection-import.yml`), 운영 명령은 `book-texts-top-books=100000`([6-aisearch.md](../../maintenance/6-aisearch.md) 3절). v1.23.2까지는 지우고 다시 넣은 뒤 `VACUUM (FULL, ANALYZE)`(약 10초, 그동안 AI 검색이 기다림)를 했습니다. 넣기가 끝나면 백엔드 자리마다 `POST /internal/aisearch/books/reload`를 보내 `SearchBooks`가 책 목록을 뒤에서 다시 읽고 한 번에 바꿔 끼웁니다(그동안 옛 목록, 실패하면 옛 목록을 두고 경고). 백엔드는 켜질 때 한 번 읽고, 질문 길에서는 표가 바뀌었는지 묻지 않습니다(v1.23.2까지는 1분마다 `count(*)`를 물어 오래 쉰 뒤 첫 질문에 1.3초가 더 걸렸음, plan 사이클 29 측정).
 - 행 수: 운영 76,759권. 이 수는 코드가 정하지 않고 [6-aisearch.md](../../maintenance/6-aisearch.md) 0절·4절(운영 넣기 로그 `stored`, 2026-10-27)에 적힌 값입니다.
 
 근거: `db/changelog/catalog/006-book-search-bm25.yaml`·`005-library-words.sql`(v1.23.0), `db/changelog/catalog/002-book-descriptions.yaml`(사이클 26, 옛 `aisearch/001`·`003`·`004`의 규칙 그대로), `catalog.SearchText.tidy`·`ofBook`, `BookTextsImport.searchBooks`, `catalog/internal/texts/JdbcBookTextsTransfer.replaceSearchBooks`, `JdbcAiSearchIndex.compact`, `JdbcMostHeldBooks.top`, `foryou/internal/store/BookTexts`, `JdbcBookCards.cards`, `db/changelog/foryou/` 첫 파일, `db/changelog/usagelog/008-ai-search-event.yaml`.
@@ -844,7 +844,7 @@ ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, e
 | 낱말 / 중심 낱말 / 낱말 최소 글자 | 8 / 4 / 2 | `CandidateQuery.MAX_KEYWORDS`, `MAX_CORE_WORDS`, `MIN_KEYWORD_CHARS` |
 | 질문 낱말 최대 | 8 | `QuestionWords.MAX` |
 | 이름 댄 제목 길이 | 2\~40글자 | `NamedBook.MIN_TITLE`, `MAX_TITLE` |
-| `book_search` 바뀜 확인 간격 | 1분 | `SearchBooks.CHECK_EVERY` |
+| `book_search` 다시 읽기 | 켜질 때 + 다시 읽기 요청 때만(사이클 29; v1.23.2까지 1분마다 확인) | `SearchBooks.reload`, `SearchBooksReload` |
 | Anthropic 연결 한도 | 3초 | `LlmConfiguration.llmClient` |
 | 토크나이저 최대 조각 | 256 | `OnnxQuestionEncoder.MAX_PIECES`, `QueryEncoder.MAX_PIECES` |
 | 1차 길 기준값, 칸 기준값·최대 2개 | 3-4절 표 | `first-call-model.bin` 머리 JSON(파일을 바꾸면 바뀜) |

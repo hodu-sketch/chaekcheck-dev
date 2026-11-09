@@ -194,11 +194,14 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 		Set<Long> stored = new HashSet<>();
 		books.forEach(book -> stored.add(book.id()));
 		int linesNotListed = (int) lineByBook.keySet().stream().filter(id -> !stored.contains(id)).count();
-		int deleted = jdbc.sql("DELETE FROM catalog.book_search").update();
+		// cycle 29 (ADR-0174): a new table swapped in at the end, not DELETE + INSERT on the table in use, so no VACUUM FULL
+		// is needed afterwards and the AI search reads the old rows until the swap
+		jdbc.sql("DROP TABLE IF EXISTS " + NEXT).update();
+		jdbc.sql("CREATE TABLE " + NEXT + " (LIKE " + LIVE + " INCLUDING ALL EXCLUDING INDEXES)").update();
 		int[] withLine = { 0 };
 		int[] withWritten = { 0 };
 		template.batchUpdate("""
-				INSERT INTO catalog.book_search
+				INSERT INTO catalog.book_search_next
 				  (book_id, line, line_source, line_made_on, search_text, library_ids, summary, terms, written_on,
 				   keyword_text)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", books, BATCH, (statement, book) -> {
@@ -234,6 +237,7 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 		});
 		SearchResult result = new SearchResult(books.size(), withLine[0], bookIds.size() - books.size(),
 				linesNotListed);
+		int deleted = swapIn();
 		log.info("search books replaced: deleted {}, stored {}, with line {}, with summary or terms {}, not in catalog {}, "
 				+ "lines not listed {}", deleted, result.stored(), result.withLine(), withWritten[0], result.notInCatalog(),
 				result.linesNotListed());
@@ -242,6 +246,74 @@ class JdbcBookTextsTransfer implements BookTextsTransfer {
 					linesNotListed);
 		}
 		return result;
+	}
+
+	private static final String LIVE = "catalog.book_search";
+
+	private static final String NEXT = "catalog.book_search_next";
+
+	/**
+	 * Gives {@link #NEXT} the indexes, keys and statistics settings {@link #LIVE} has now (read from the catalog, so an
+	 * index a later changeset adds comes along; the BM25 index too), analyses it and swaps it in: the old table dropped
+	 * under a lock that waits for readers at most 10 s [안], the new one and its indexes renamed. Runs in the caller's
+	 * transaction, whose commit ends the lock.
+	 * @return the rows the old table had
+	 */
+	private int swapIn() {
+		record Index(String name, String definition, String constraint) {
+		}
+		List<Index> indexes = jdbc.sql("""
+				SELECT c.relname, pg_get_indexdef(i.indexrelid),
+				  (SELECT pg_get_constraintdef(con.oid) FROM pg_constraint con
+				   WHERE con.conindid = i.indexrelid AND con.conrelid = i.indrelid AND con.contype IN ('p', 'u'))
+				FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+				WHERE i.indrelid = CAST(:live AS regclass) ORDER BY c.relname""")
+			.param("live", LIVE)
+			.query((rs, n) -> new Index(rs.getString(1), rs.getString(2), rs.getString(3)))
+			.list();
+		for (Index index : indexes) {
+			if (index.constraint() != null) {
+				jdbc.sql("ALTER TABLE " + NEXT + " ADD CONSTRAINT " + index.name() + "_next " + index.constraint())
+					.update();
+				continue;
+			}
+			String from = " INDEX " + index.name() + " ON " + LIVE + " ";
+			if (!index.definition().contains(from)) {
+				throw new IllegalStateException("unexpected index definition, the search books were kept: "
+						+ index.definition());
+			}
+			jdbc.sql(index.definition().replace(from, " INDEX " + index.name() + "_next ON " + NEXT + " ")).update();
+		}
+		// the per-column statistics targets (catalog/006 sets 0 on the long text columns and the BM25 index's)
+		jdbc.sql("""
+				SELECT a.attname, a.attstattarget FROM pg_attribute a
+				WHERE a.attrelid = CAST(:live AS regclass) AND a.attnum > 0 AND NOT a.attisdropped
+				  AND a.attstattarget IS NOT NULL AND a.attstattarget >= 0""")
+			.param("live", LIVE)
+			.query((rs, n) -> "ALTER TABLE " + NEXT + " ALTER COLUMN " + rs.getString(1) + " SET STATISTICS "
+					+ rs.getInt(2))
+			.list()
+			.forEach(sql -> jdbc.sql(sql).update());
+		for (Index index : indexes) {
+			jdbc.sql("""
+					SELECT a.attnum, a.attstattarget FROM pg_attribute a
+					WHERE a.attrelid = CAST(:index AS regclass) AND a.attstattarget IS NOT NULL AND a.attstattarget >= 0""")
+				.param("index", "catalog." + index.name())
+				.query((rs, n) -> "ALTER INDEX catalog." + index.name() + "_next ALTER COLUMN " + rs.getInt(1)
+						+ " SET STATISTICS " + rs.getInt(2))
+				.list()
+				.forEach(sql -> jdbc.sql(sql).update());
+		}
+		jdbc.sql("ANALYZE " + NEXT).update();
+		Integer old = jdbc.sql("SELECT count(*) FROM " + LIVE).query(Integer.class).single();
+		jdbc.sql("SET LOCAL lock_timeout = '10s'").update();
+		jdbc.sql("LOCK TABLE " + LIVE + " IN ACCESS EXCLUSIVE MODE").update();
+		jdbc.sql("DROP TABLE " + LIVE).update();
+		jdbc.sql("ALTER TABLE " + NEXT + " RENAME TO book_search").update();
+		for (Index index : indexes) {
+			jdbc.sql("ALTER INDEX catalog." + index.name() + "_next RENAME TO " + index.name()).update();
+		}
+		return old == null ? 0 : old;
 	}
 
 	/**

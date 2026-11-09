@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 
-import com.chaekcheck.catalog.AiSearchIndex;
 import com.chaekcheck.catalog.BookTextsTransfer;
 import com.chaekcheck.catalog.BookTextsTransfer.SearchResult;
 import com.chaekcheck.catalog.MostHeldBooks;
@@ -53,7 +52,8 @@ public final class BookTextsImport {
 
 	private final BookTextsTransfer transfer;
 
-	private final AiSearchIndex searchIndex;
+	/** Asks the running backends to read the AI search's books again (cycle 29, ADR-0174). */
+	private final Runnable searchReplaced;
 
 	private final Supplier<Optional<UUID>> latestExportId;
 
@@ -64,7 +64,7 @@ public final class BookTextsImport {
 	 * @param latestExportId this database's latest succeeded catalog import's export id ({@link ExportIds#latest})
 	 */
 	public BookTextsImport(ListedBooks listedBooks, MostHeldBooks mostHeldBooks, int topBooks,
-			BookTextsTransfer transfer, AiSearchIndex searchIndex, Supplier<Optional<UUID>> latestExportId,
+			BookTextsTransfer transfer, Runnable searchReplaced, Supplier<Optional<UUID>> latestExportId,
 			TransactionOperations transaction) {
 		if (topBooks < 0) {
 			throw new IllegalArgumentException("top books must be 0 or more: " + topBooks);
@@ -73,7 +73,7 @@ public final class BookTextsImport {
 		this.mostHeldBooks = mostHeldBooks;
 		this.topBooks = topBooks;
 		this.transfer = transfer;
-		this.searchIndex = searchIndex;
+		this.searchReplaced = searchReplaced;
 		this.latestExportId = latestExportId;
 		this.transaction = transaction;
 	}
@@ -110,22 +110,23 @@ public final class BookTextsImport {
 		boolean replaceSearch = !contents.lines().isEmpty() || !contents.hasForYouKinds();
 		SearchBooks search = replaceSearch ? searchBooks(contents.excluded()) : new SearchBooks(List.of(), 0, 0, 0);
 		Report report = transaction.execute(status -> {
-			SearchResult result = replaceSearch
-					? transfer.replaceSearchBooks(search.bookIds(), contents.lines(), contents.written()) : null;
 			int blurbs = contents.blurbs().isEmpty() ? 0 : transfer.upsertSummaries(contents.blurbs());
 			int skippedCodes = 0;
 			for (BookTextsFile.BookTags tags : contents.tags()) {
 				skippedCodes += transfer.replaceTags(tags.bookId(), tags.codes(), tags.madeOn());
 			}
 			int covers = contents.covers().isEmpty() ? 0 : transfer.upsertCovers(contents.covers());
+			// last (cycle 29): the swap locks catalog.book_search until the commit, so nothing else runs after it
+			SearchResult result = replaceSearch
+					? transfer.replaceSearchBooks(search.bookIds(), contents.lines(), contents.written()) : null;
 			return new Report(contents.rows(), contents.lines().size(), contents.skippedKinds(), result, blurbs,
 					contents.tags().size(), skippedCodes, covers, search.listed(), search.topOnly(), search.excluded(),
 					forced);
 		});
 		SearchResult result = report.result();
 		if (result != null) {
-			// the replaced rows' space goes (user 2026-10-27), after the transaction: VACUUM cannot run in one
-			searchIndex.compact();
+			// the new table was swapped in (no VACUUM FULL since cycle 29); the backends read it again
+			searchReplaced.run();
 			log.info("book-texts: file rows {}, search lines {}, other kinds skipped {}, listed books {}, most held {} "
 					+ "({} not listed, {} excluded), stored {}, with line {}, not in the catalog {}, lines for books not "
 					+ "stored {}", report.fileRows(), report.linesRead(), report.skippedKinds(), report.listed(), topBooks,
