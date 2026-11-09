@@ -38,6 +38,13 @@ plan에 넘기는 dev 기록입니다. 기준 문서는 plan `docs/cycles/29-ai-
 - 시험 도우미 `TestSearchBooks`는 바꿔 끼우기 대신 줄을 직접 넣음: 바꿔 끼우기의 잠금은 커밋까지 가는데 `@Transactional` 시험은 커밋하지 않아, 흐름의 낱말 검색(다른 연결)이 끝없이 기다림(2026-11-09 전체 빌드가 35분 멈춰 원인 확인). 운영 넣기는 바로 커밋하므로 해당 없음
 - `./gradlew build`(2026-11-09): 1,482개 중 실패 1(`AiSearchOffTests`). 원인은 worktree에 복사한 `.env`의 `CHAEKCHECK_AISEARCH_ENABLED=true`(시험은 꺼진 기본값을 기대). 시험이 `chaekcheck.aisearch.enabled=false`를 직접 정하게 고쳐 `.env`와 상관없이 통과
 
+## 배포 (2026-11-09)
+
+- v1.24.0(`21039861`), 백엔드만. 15:34 green 자리로 바꿈(준비 39초, 전 판 1.23.1 blue)
+- 켜질 때 읽기: `ai search books read: 76759 in 8527 ms`(15:34:07, 켜진 뒤 뒤에서 읽음)
+- 다시 읽기 요청: `chaekcheck-web-1` 컨테이너에서 `POST http://backend-green:8080/internal/aisearch/books/reload` → `202`, `ai search books read: 76759 in 2884 ms`(다른 컨테이너의 사설 주소·CSRF 예외가 운영에서 동작)
+- 밖에서: `POST https://chaekcheck.com/internal/aisearch/books/reload` → `404`
+
 ## 아직 안 한 것
 
 - 3. 배포 뒤 다시 재기: plan이 함
