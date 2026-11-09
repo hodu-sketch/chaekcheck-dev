@@ -10,6 +10,8 @@
 
 ## 다음 판 (아직 배포 안 됨)
 
+## v1.24.0 (2026-11-09)
+
 - AI 책 찾기 첫 글 지연 고치기(사이클 29, ADR-0174): 질문 길에서 1분마다 묻던 `catalog.book_search` `count(*)`(오래 쉰 뒤 1.3초)를 없앰. 책 목록은 켜질 때 한 번 읽고, 그다음은 내부 요청 `POST /internal/aisearch/books/reload`(nginx가 넘기지 않음, 사설·루프백 주소만, 응답 202)가 올 때만 뒤에서 읽어 한 번에 바꿔 끼움. 로그 `ai search books read: N in M ms`
 - `book-texts` 넣기: `DELETE` + 다시 넣기 + `VACUUM (FULL, ANALYZE)`(약 10초 AI 검색 대기) 대신 새 표 `catalog.book_search_next`에 넣고 색인·통계 설정을 옮겨 이름을 바꿔 끼움. `AiSearchIndex.version()`·`compact()` 지움. 넣기·카탈로그 가져오기(`in-place`·`apply`·`finish`)가 끝나면 새 설정 `chaekcheck.collection.import.reload-urls`의 주소마다 다시 읽기 요청. Liquibase 변경 없음
 
