@@ -171,6 +171,12 @@ AI 검색 실험·평가 스크립트입니다. 결과와 방법은 [`docs/featu
 | [`fixture_first_call.py`](fixture_first_call.py) | Reference outputs of first-call-model.bin for the backend's FirstCallModelFileTests: 12 questions as int8 KURE-v1 vectors, each with the route and the field/subfield labels numpy computes from the file. | [6-aisearch.md](../../../docs/maintenance/6-aisearch.md) |
 | [`search_book_slim_test.py`](search_book_slim_test.py) | search_book before / after changeset aisearch-004 (integer library ids, "C" collation for line and search_text), on copies only: size, the four query times, an import's delete-and-insert, then VACUUM (FULL, ANALYZE) a… | [6-aisearch.md](../../../docs/maintenance/6-aisearch.md) |
 
+### [CHANGELOG.md](../../../CHANGELOG.md)
+
+| 파일 | 하는 일 | 설명 문서 |
+|---|---|---|
+| [`first_search_timing.py`](first_search_timing.py) | One AI search timed the way the browser sends it (user 2026-11-26, docs/maintenance/cloudfront-trial.md): a fresh connection, the status GET (it sets the CSRF cookie), then the stream POST on the same connection; prin… | [CHANGELOG.md](../../../CHANGELOG.md), [maintenance/README.md](../../../docs/maintenance/README.md) |
+
 ### [plan-feedback.md](../../../docs/cycles/plan-feedback.md)
 
 | 파일 | 하는 일 | 설명 문서 |
