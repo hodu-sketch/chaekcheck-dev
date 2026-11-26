@@ -148,6 +148,10 @@ services:
           - nginx
     ports:
       - "127.0.0.1:8088:80"
+      # CloudFront trial (docs/maintenance/cloudfront-trial.md): the VPC origin's way in. Open on the host, so the
+      # security group is the guard: only CloudFront's VPC-origin group may reach 8089. Takes effect when the web
+      # container is created again (bin/up.sh web).
+      - "8089:8089"
     # Korean time in the nginx logs: the alpine image has no zone files, so it reads the server's (Asia/Seoul)
     environment:
       TZ: Asia/Seoul

@@ -11,6 +11,7 @@
 ## 다음 판 (아직 배포 안 됨)
 
 - AI 검색 로그: 오래 쉰 뒤 첫 검색이 느린 까닭을 나눠 보려고(사용자 2026-11-26) `ai search:` 줄에 `cache r…/w…`(프롬프트 캐시 읽기·쓰기 토큰), `idle`(앞 검색 뒤 지난 초), 단계 `start`·`llm-call`·`text-first`(사용자에게 첫 글을 보낸 때)를 더함. Anthropic 호출마다 `anthropic stream: head … ms, first text … ms, done … ms, … (cache r…/w…), request …` 한 줄(전에는 debug). 동작 변화 없음
+- CloudFront 시험 준비(사용자 2026-11-26): nginx에 CloudFront VPC 오리진이 붙는 둘째 server 블록 `listen 8089`(방문자 IP는 `X-Forwarded-For`의 마지막), `compose.yaml`의 `web`에 `8089:8089`(보안 그룹이 CloudFront 그룹만 들임, `bin/up.sh web` 뒤 열림), AWS 설정 스크립트 `deploy/prod/cloudfront/setup-trial.sh`(시험 이름 `cf-test.chaekcheck.com`), 재기 `scripts/aisearch/eval/first_search_timing.py`. 운영 주소 `chaekcheck.com`과 터널은 그대로. 절차 `docs/maintenance/cloudfront-trial.md`
 
 ## v1.24.0 (2026-11-09)
 

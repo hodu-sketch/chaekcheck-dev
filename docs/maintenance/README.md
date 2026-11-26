@@ -16,6 +16,7 @@
 | 가져오기 | ②의 결과(수집 DB 사본)를 서비스 DB 책 표로 (정리·같은 책 묶기·`book.library_ids`) | [안] ② 전체 수집이 끝날 때마다 | [3-import.md](3-import.md) | `docs/research/collection/2-books.md` 6절 | `backend/`에서 `./gradlew bootRun` 프로필 `collection-import` |
 | 책 표지 올리기 | 판 표지·목록 그림을 PC가 S3 `covers/<sha1>.jpg`에 올리고(CloudFront로 보임), 다 올린 뒤 `book-texts`의 `cover_file`로 책과 이음 (사이클 26) | 새 표지를 받았을 때, 새 목록 줄 그림이 생겼을 때 | [8-covers.md](8-covers.md) | plan `docs/cycles/26-book-descriptions/` | PowerShell에서 `aws.exe s3 sync` (프로필 `chaekcheck-covers`) |
 | AI 찾기 한 줄 넣기 | 추천도서 목록 책과 보유 도서관 많은 10만 권 판(운영 76,759권) 사본, PC에서 만든 찾기용 한 줄을 `catalog.book_search`에 (사이클 24, 사이클 26부터 이 표). 운영 넣기는 `--chaekcheck.collection.import.book-texts-top-books=100000`을 꼭 붙임 | 새 한 줄 파일이 나올 때, 목록 책이 바뀐 뒤 | [6-aisearch.md](6-aisearch.md) | plan `docs/cycles/24-ai-book-search/` | `backend/`에서 `./gradlew bootRun` 프로필 `collection-import`, `mode=book-texts` |
+| CloudFront 시험 | 운영 주소는 Cloudflare 그대로, 시험 이름 `cf-test.chaekcheck.com`만 CloudFront 서울 거점 → VPC 오리진 → 운영 서버 8089로 받아 첫 글 시간을 비교 (2026-11-26) | 한 번(시험), 결과 보고 바꿔 끼울지 정함 | [cloudfront-trial.md](cloudfront-trial.md) | — | AWS CloudShell에서 `deploy/prod/cloudfront/setup-trial.sh`, 재기 `scripts/aisearch/eval/first_search_timing.py` |
 | (자동) 서비스 | 사용자가 책을 찾으면 서비스 DB에서 찾고, 도서관 상세 페이지로 대출 상태를 실시간 조회 | 늘 | 아래 4절 | — | 서비스(`catalog`, `availability` 모듈) |
 
 ① → ② → 가져오기 순서로 이어집니다. ①에서 도서관이 바뀌면 ②에서 그 도서관을 받고, 가져오기를 다시 해야 서비스 검색에 반영됩니다. 자동 단계는 사람이 돌리지 않지만, 거기서 나는 오류(상세 페이지를 못 읽음)가 ①을 할 신호가 됩니다.
