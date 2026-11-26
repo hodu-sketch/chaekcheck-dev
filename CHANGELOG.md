@@ -10,6 +10,8 @@
 
 ## 다음 판 (아직 배포 안 됨)
 
+- AI 검색 로그: 오래 쉰 뒤 첫 검색이 느린 까닭을 나눠 보려고(사용자 2026-11-26) `ai search:` 줄에 `cache r…/w…`(프롬프트 캐시 읽기·쓰기 토큰), `idle`(앞 검색 뒤 지난 초), 단계 `start`·`llm-call`·`text-first`(사용자에게 첫 글을 보낸 때)를 더함. Anthropic 호출마다 `anthropic stream: head … ms, first text … ms, done … ms, … (cache r…/w…), request …` 한 줄(전에는 debug). 동작 변화 없음
+
 ## v1.24.0 (2026-11-09)
 
 - AI 책 찾기 첫 글 지연 고치기(사이클 29, ADR-0174): 질문 길에서 1분마다 묻던 `catalog.book_search` `count(*)`(오래 쉰 뒤 1.3초)를 없앰. 책 목록은 켜질 때 한 번 읽고, 그다음은 내부 요청 `POST /internal/aisearch/books/reload`(nginx가 넘기지 않음, 사설·루프백 주소만, 응답 202)가 올 때만 뒤에서 읽어 한 번에 바꿔 끼움. 로그 `ai search books read: N in M ms`

@@ -84,7 +84,7 @@ public final class AnthropicLlmClient implements LlmClient {
 		JsonNode usageNode = body.path("usage");
 		Usage counted = usage(usageNode, usageNode.path("output_tokens").asInt(0), true);
 		String stopReason = body.path("stop_reason").asString("");
-		log.debug("anthropic call: status 200, stop {}, tokens {}/{} (cache r{}/w{}), {} ms, request {}",
+		log.info("anthropic call: status 200, stop {}, tokens {}/{} (cache r{}/w{}), {} ms, request {}",
 				stopReason, counted.totalInputTokens(), counted.outputTokens(), counted.cacheReadTokens(),
 				counted.cacheCreationTokens(), elapsedMs(started), requestId(response));
 		if (!"end_turn".equals(stopReason)) {
@@ -95,10 +95,12 @@ public final class AnthropicLlmClient implements LlmClient {
 
 	@Override
 	public Result stream(LlmCall call, Duration timeout, Consumer<String> onText) {
-		long deadline = System.nanoTime() + timeout.toNanos();
+		long started = System.nanoTime();
+		long deadline = started + timeout.toNanos();
 		HttpRequest request = request(call, true, timeout);
 		HttpResponse<InputStream> response = await(http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()),
 				Duration.ofNanos(Math.max(1, deadline - System.nanoTime())));
+		long headMs = elapsedMs(started);
 		String requestId = requestId(response);
 		InputStream in = response.body();
 		AtomicBoolean finished = new AtomicBoolean();
@@ -128,7 +130,14 @@ public final class AnthropicLlmClient implements LlmClient {
 				}
 				throw refused(response.statusCode(), errorBody, requestId);
 			}
-			return readEvents(in, onText, timedOut, requestId);
+			StreamState state = new StreamState(started);
+			Result result = readEvents(in, onText, timedOut, requestId, state);
+			// the first AI search after a long idle (user 2026-11-26): the answer's head, its first text and the
+			// prompt cache, per call
+			log.info("anthropic stream: head {} ms, first text {} ms, done {} ms, tokens {}/{} (cache r{}/w{}), request {}",
+					headMs, state.firstTextMs, elapsedMs(started), state.usage().totalInputTokens(), state.outputTokens,
+					state.cacheReadTokens, state.cacheCreationTokens, requestId);
+			return result;
 		}
 		finally {
 			finished.set(true);
@@ -138,8 +147,8 @@ public final class AnthropicLlmClient implements LlmClient {
 	}
 
 	/** The event loop of {@link #stream}: server-sent events, {@code data:} lines joined until a blank line. */
-	private Result readEvents(InputStream in, Consumer<String> onText, AtomicBoolean timedOut, String requestId) {
-		StreamState state = new StreamState();
+	private Result readEvents(InputStream in, Consumer<String> onText, AtomicBoolean timedOut, String requestId,
+			StreamState state) {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
 			StringBuilder data = new StringBuilder();
 			String line;
@@ -169,9 +178,6 @@ public final class AnthropicLlmClient implements LlmClient {
 			throw failure(timedOut.get() ? Failure.TIMEOUT : Failure.HTTP_ERROR, state.usage(),
 					"stream ended before message_stop", requestId);
 		}
-		log.debug("anthropic stream: stop {}, tokens {}/{} (cache r{}/w{}), request {}", state.stopReason,
-				state.usage().totalInputTokens(), state.outputTokens, state.cacheReadTokens, state.cacheCreationTokens,
-				requestId);
 		return new Result(state.text.toString(), state.usage(), state.stopReason);
 	}
 
@@ -201,6 +207,9 @@ public final class AnthropicLlmClient implements LlmClient {
 				JsonNode delta = event.path("delta");
 				if ("text_delta".equals(delta.path("type").asString(""))) {
 					String piece = delta.path("text").asString("");
+					if (state.firstTextMs < 0) {
+						state.firstTextMs = elapsedMs(state.callStarted);
+					}
 					state.text.append(piece);
 					try {
 						onText.accept(piece);
@@ -237,7 +246,17 @@ public final class AnthropicLlmClient implements LlmClient {
 	/** What the stream told so far. */
 	private static final class StreamState {
 
+		/** When the call was sent ({@link System#nanoTime()}). */
+		final long callStarted;
+
+		/** When the first text came, ms after the call was sent; -1 before. */
+		long firstTextMs = -1;
+
 		final StringBuilder text = new StringBuilder();
+
+		StreamState(long callStarted) {
+			this.callStarted = callStarted;
+		}
 
 		int inputTokens;
 

@@ -764,12 +764,20 @@ ai search: first <1차>, keyword <1차 결과>, pick <2차 결과>, candidates <
 | `from` | 최신 조건의 첫 해(4-0-2, v1.22.1\~). 뒤에 `only`가 붙으면 해를 댄 하한(v1.23.1\~) |
 | `parts` | 주제를 나눠 찾은 수(4-0-2, v1.22.1\~) |
 | `client gone` | 사용자가 떠남 |
-| `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 600) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-first`(2차 첫 글 조각) `llm-done`(2차 끝) |
+| `cache r/w` | 이 검색의 호출들이 프롬프트 캐시에서 읽은 토큰 / 캐시에 쓴 토큰(v1.24.1\~). 쓴 토큰이 크면 캐시가 식어 있던 것(5분 넘게 같은 지시문 호출이 없음) |
+| `idle` | 이 백엔드에서 앞 검색이 들어온 뒤 지난 초, 켜진 뒤 첫 검색이면 `first`(v1.24.1\~) |
+| `steps` | 단계가 끝난 때(요청 시작부터 ms). 차례: `start`(흐름 시작: 도서관 계획·빈 자리·실행기 대기, v1.24.1\~) `encode`(질문 벡터) `ml`(1차 신경망) `nearest`(가까운 책 600) — 이 셋은 ML 1차일 때만 — `neighbours`(앞 책·이름 댄 책) `keyword`(낱말 후보) `vector`(벡터 후보, 합칠 때만) `mix`(RRF) `cards`(한 줄·연도) `llm-call`(2차 요청을 보냄, v1.24.1\~) `llm-first`(2차 첫 글 조각) `text-first`(사용자에게 첫 글을 보냄: `head-delta`·`card-delta` 중 먼저, v1.24.1\~. 그 전에는 SSE 응답 머리도 나가지 않음) `llm-done`(2차 끝) |
 
 예(형식을 보이려고 만든 줄이며 실제 로그가 아닙니다):
 ```
-ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, early keyword), cards 8, 6400 ms, tokens 8500/1400, steps encode=150 ml=162 nearest=260 neighbours=261 keyword=262 vector=270 mix=271 cards=375 llm-first=1700 llm-done=6390
+ai search: first ml BOOK first, keyword OK, pick OK, candidates 30 (vector 60, early keyword), cards 8, 6400 ms, tokens 8500/1400, cache r8000/w0, idle 42 s, steps start=3 encode=150 ml=162 nearest=260 neighbours=261 keyword=262 vector=270 mix=271 cards=375 llm-call=376 llm-first=1700 text-first=1702 llm-done=6390
 ```
+
+Anthropic 호출마다 한 줄도 남습니다(v1.24.1\~, 전에는 debug). 시각은 그 호출을 보낸 때부터 ms입니다.
+```
+anthropic stream: head 900 ms, first text 1300 ms, done 6000 ms, tokens 8500/1400 (cache r8000/w0), request req_…
+```
+`head`는 응답 머리가 온 때(연결·Anthropic 대기), `first text`는 첫 글 조각입니다. 스트림이 아닌 호출은 `anthropic call: status 200, …` 줄입니다.
 
 - 질문, 앞 질문, 모델 글, API 키는 어느 로그에도 남지 않습니다.
 - 운영에서 잰 단계별 시간(중간값 encode 146ms, ml 12ms, nearest 97ms, keyword 176ms 등)은 [응답 시간 보고서 1절](reports/2026-10-27-latency.md#1-지금-시간이-어디에-쓰이나-운영-v1180)에 있습니다(v1.18.0 기준. v1.19.0에서 5낱말 이상 첫 질문의 낱말 검색 대기가 176 → 0ms가 된 것은 같은 보고서 6절).

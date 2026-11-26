@@ -106,6 +106,9 @@ public class AiSearchFlow {
 
 	private final PickProperties pick;
 
+	/** When the search before started ({@link System#nanoTime()}), 0 before the first: the log line's idle time. */
+	private final java.util.concurrent.atomic.AtomicLong lastSearchNanos = new java.util.concurrent.atomic.AtomicLong();
+
 	private final UsageLog usageLog;
 
 	private final AiSearchProperties properties;
@@ -359,6 +362,17 @@ public class AiSearchFlow {
 			this.startedNanos = startedNanos;
 		}
 
+		/** Prompt cache tokens of the calls (user 2026-11-26: the first search after a long idle). */
+		long cacheReadTokens;
+
+		long cacheWriteTokens;
+
+		/** Seconds since the search before on this backend, -1 for the first since it started. */
+		long idleSeconds = -1;
+
+		/** Whether a text event (head or card) was sent, for the {@code text-first} step. */
+		boolean textSent;
+
 		void mark(String step) {
 			steps.append(steps.isEmpty() ? "" : " ").append(step).append('=')
 				.append((System.nanoTime() - startedNanos) / 1_000_000);
@@ -368,6 +382,10 @@ public class AiSearchFlow {
 			if (gone || sink.gone()) {
 				gone = true;
 				return false;
+			}
+			if (!textSent && (AiSearchEvents.HEAD_DELTA.equals(event) || AiSearchEvents.CARD_DELTA.equals(event))) {
+				textSent = true;
+				mark("text-first");
 			}
 			if (!sink.send(event, data)) {
 				gone = true;
@@ -379,6 +397,10 @@ public class AiSearchFlow {
 
 	public void run(Input input, AiSearchSink sink) {
 		Run run = new Run(sink, input.startedNanos());
+		long before = lastSearchNanos.getAndSet(input.startedNanos());
+		run.idleSeconds = before == 0 ? -1 : Math.max(0, (input.startedNanos() - before) / 1_000_000_000L);
+		// the request's own work before the flow (the plan's libraries, a free slot, the executor)
+		run.mark("start");
 		try {
 			answer(input, run);
 		}
@@ -405,6 +427,8 @@ public class AiSearchFlow {
 								+ (run.textChars == 0 ? "" : ", text " + run.textChars
 										+ (run.longCards == 0 ? "" : " (long " + run.longCards + ")"))
 								+ (run.gone ? ", client gone" : "")
+								+ ", cache r" + run.cacheReadTokens + "/w" + run.cacheWriteTokens
+								+ ", idle " + (run.idleSeconds < 0 ? "first" : run.idleSeconds + " s")
 								+ (run.steps.isEmpty() ? "" : ", steps " + run.steps));
 			}
 			catch (RuntimeException e) {
@@ -1526,6 +1550,7 @@ public class AiSearchFlow {
 		boolean failed = false;
 		try {
 			boolean[] first = { true };
+			run.mark("llm-call");
 			Result result = llm.stream(call, properties.pickTimeout(), piece -> {
 				if (run.gone || run.sink.gone()) {
 					run.gone = true;
@@ -1625,6 +1650,8 @@ public class AiSearchFlow {
 
 	private void count(Run run, Usage usage, int maxTokens) {
 		run.inputTokens += usage.totalInputTokens();
+		run.cacheReadTokens += usage.cacheReadTokens();
+		run.cacheWriteTokens += usage.cacheCreationTokens();
 		run.outputTokens += budget.addCall(usage, maxTokens);
 	}
 
