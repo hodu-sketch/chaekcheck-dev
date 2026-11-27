@@ -79,3 +79,45 @@ AI 검색(`first_search_timing.py`, 질문 5개를 두 이름에 번갈아, 7초
 - 서버 안 시간(오래 쉰 뒤 지연)은 이 비교와 따로임: 길을 바꿔도 그 몫은 남음
 
 운영 주소를 바꿔 끼울지는 사용자가 정함(4절 마지막 줄의 순서).
+
+## 6. 운영 주소 바꿔 끼우기 (준비, 2026-11-27)
+
+사용자 2026-11-27 「바꿔 끼우기 준비」. 아직 바꾸지 않음. 아래는 바꿀 때의 차례입니다.
+
+### 6-1. 바꾸기 전에 끝낼 것
+
+| 할 것 | 상태 |
+|---|---|
+| nginx 8089: 방문자 IP를 `X-Forwarded-For`의 마지막 값으로(CloudFront는 공인 주소 54.x에서 붙음). 전에는 방문자 IP가 CloudFront 주소로 잡혀 IP별 제한이 모두를 한 사람으로 셀 뻔함 | v1.24.2 |
+| CloudFront `/assets/*` 자동 압축(`Compress`). 전에는 JS가 압축 없이 875KB(Cloudflare는 brotli 248KB) | 2026-11-27 켬, `setup-trial.sh`에도 반영 |
+| cf-test로 도서관 대출 조회 스트림, AI 검색 스트림 | 2026-11-27 둘 다 정상 |
+| 바꾼 뒤 cf-test 로그에 방문자 PC IP가 찍히는지 | v1.24.2 배포 뒤 확인 |
+
+### 6-2. 바꾸는 차례 (몇 분, 끊김 없음)
+
+1. **CloudFront에 운영 이름 더하기** (CloudShell): 배포 `EOK9HHF65GSW3`의 `Aliases`에 `chaekcheck.com`을 더함(`cf-test.chaekcheck.com`은 남김). 인증서가 이미 `chaekcheck.com`을 담고 있음
+   ```bash
+   D=EOK9HHF65GSW3; aws cloudfront get-distribution-config --id $D > dc.json
+   E=$(jq -r .ETag dc.json)
+   jq '.DistributionConfig | .Aliases.Items += ["chaekcheck.com"] | .Aliases.Quantity = (.Aliases.Items|length)' dc.json > dc-new.json
+   aws cloudfront update-distribution --id $D --if-match $E --distribution-config file://dc-new.json --query Distribution.Status --output text
+   ```
+2. **되돌릴 값 적어 두기**: Cloudflare DNS의 `chaekcheck.com` 기록(지금 종류 `Tunnel`, 이름 `chaekcheck`)을 열어 터널 ID를 적음. 되돌릴 때 `CNAME chaekcheck.com → <터널 ID>.cfargotunnel.com`, Proxied
+3. **DNS 바꾸기** (Cloudflare 대시보드 > chaekcheck.com > DNS): `chaekcheck.com` 기록을 `CNAME chaekcheck.com → d1def6gjpe87eo.cloudfront.net`, **DNS only**로 바꿈(루트 이름의 CNAME은 Cloudflare가 펼쳐 줌). `www.chaekcheck.com`(Cloudflare 넘겨주기)과 TXT는 그대로
+4. 바뀌는 동안 두 길이 같은 서버로 가므로 끊김이 없음. 캐시된 DNS가 바뀌는 데 몇 분
+
+### 6-3. 바꾼 뒤 확인
+
+- `curl -sI https://chaekcheck.com/api/v1/version` → 200, `x-amz-cf-pop: ICN…`
+- 화면: 첫 화면, 직접 검색(대출 조회), AI 검색, **카카오 로그인**(돌아오는 주소 `AUTH_PUBLIC_BASE_URL`은 같은 `https://chaekcheck.com`이라 바뀌지 않음, cf-test에서는 시험할 수 없었음)
+- 서버 `docker logs chaekcheck-web-1`: 방문자 주소가 사용자 공인 IP(CloudFront 54.x가 아님)
+- 사용 기록의 지역 추정(`GET /api/v1/regions/guess`)이 맞는 시·도를 냄
+
+### 6-4. 되돌리기
+
+Cloudflare DNS의 `chaekcheck.com` 기록을 6-2의 2번에서 적은 터널 기록으로 되돌림. 터널(`cloudflared`)은 바꾼 뒤 한동안(1\~2주 [안]) 켜 둠. 내리는 것과 문서 정리(`deploy/prod/README.md`, `compose.yaml` 주석, `README.md`·`CLAUDE.md`의 「Cloudflare Tunnel」)는 그 뒤 따로.
+
+### 6-5. 바뀌면 없어지는 것
+
+- Cloudflare의 봇 막기·DDoS 보호·통계는 chaekcheck.com에서 빠짐. CloudFront 기본 보호(AWS Shield Standard)와 nginx의 IP별 제한(`rate-limits.conf`)은 남음
+- 비용: CloudFront 상시 무료 한도(월 1TB, 요청 1,000만) 안으로 봄 [추론]

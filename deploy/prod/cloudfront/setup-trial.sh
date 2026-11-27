@@ -116,7 +116,7 @@ if [ "$DIST" = "None" ] || [ -z "$DIST" ]; then
 			CustomHeaders:{Quantity:0},
 			VpcOriginConfig:{VpcOriginId:$origin, OriginReadTimeout:60, OriginKeepaliveTimeout:60}}]},
 		DefaultCacheBehavior:$def,
-		CacheBehaviors:{Quantity:1, Items:[($assets + {PathPattern:"/assets/*"})]}}')
+		CacheBehaviors:{Quantity:1, Items:[($assets + {PathPattern:"/assets/*", Compress:true})]}}')
 	DIST=$(aws cloudfront create-distribution --distribution-config "$CONFIG" --query Distribution.Id --output text)
 	echo "created $DIST"
 fi
