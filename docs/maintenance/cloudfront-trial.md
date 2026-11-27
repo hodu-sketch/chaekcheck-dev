@@ -53,11 +53,29 @@
 - 카카오 로그인은 돌아오는 주소가 `chaekcheck.com`이라 시험 이름에서는 로그인 뒤 운영 주소로 넘어감(시험 대상 아님)
 - 운영 주소를 바꿔 끼우려면: 배포에 `chaekcheck.com` 이름 더하기, Cloudflare의 `chaekcheck.com` 기록을 CloudFront로(DNS only, 루트 이름은 Cloudflare의 CNAME 평탄화), 카카오·`AUTH_PUBLIC_BASE_URL`은 같은 주소라 그대로, 터널은 한동안 남겼다가 내림. 이건 시험 결과를 본 뒤 따로 정함
 
-## 5. 결과
+## 5. 결과 (2026-11-27 23:3x, 집 인터넷)
 
-(시험 뒤 적음)
+설정: 2026-11-27 22:5x\~23:1x에 이 문서 2절대로 함. 인증서 `chaekcheck.com` + `*.chaekcheck.com`(us-east-1), VPC 오리진 `vo_0QLVgseWF0XE63WpW7Db4l`, CloudFront 그룹 `sg-06f87142c084f4f3e` → 운영 보안 그룹 8089, 배포 `EOK9HHF65GSW3`(`d1def6gjpe87eo.cloudfront.net`), Cloudflare DNS `cf-test` CNAME(DNS only).
 
-| 길 | 거점 | connect+tls | status GET | 첫 글(바로 다음) | 첫 글(30분 쉰 뒤) |
-|---|---|---|---|---|---|
-| chaekcheck.com (Cloudflare) | LAX | | | | |
-| cf-test (CloudFront) | | | | | |
+연결만(`/api/v1/version`, 새 연결 3번씩): chaekcheck.com 첫 바이트 659\~863ms(TCP 214\~227ms, 거점 HKG), cf-test 186\~246ms(TCP 14\~58ms, 거점 ICN80).
+
+AI 검색(`first_search_timing.py`, 질문 5개를 두 이름에 번갈아, 7초 간격, 데워진 상태, 지역 1114):
+
+| 질문 | chaekcheck.com 거점 | 연결 | status GET | 첫 글 | cf-test 거점 | 연결 | status GET | 첫 글 |
+|---|---|---|---|---|---|---|---|---|
+| 우주 배경 따뜻한 소설 | LAX | 411 | 673 | 2,692 | ICN80 | 96 | 383 | 1,736 |
+| 조선 시대 역사 | NRT | 136 | 406 | 2,259 | ICN80 | 69 | 159 | 1,751 |
+| 비 오는 날 에세이 | NRT | 163 | 375 | 1,978 | ICN80 | 59 | 154 | 1,805 |
+| 경제 첫 공부 | NRT | 150 | 404 | 1,982 | ICN80 | 140 | 408 | 1,720 |
+| 고양이 그림책 | HKG | 167 | 519 | 3,184 | ICN80 | 84 | 157 | 2,084 |
+| **가운데값** | | **163** | **406** | **2,259** | | **84** | **159** | **1,751** |
+
+(ms. 「첫 글」은 POST를 보낸 때부터 첫 `head-delta`까지. 「연결」은 TCP+TLS, 「status GET」은 페이지를 열 때 하는 첫 요청 하나.)
+
+읽은 것:
+- 첫 글 가운데값 2.26 → 1.75초(약 0.5초 빠름), 5번 모두 cf-test가 빠르거나 같음
+- 페이지를 열 때의 요청 하나(status GET)도 406 → 159ms. 화면을 처음 열 때 요청 여러 개가 같은 차이를 받음
+- chaekcheck.com의 Cloudflare 거점은 같은 시간대에도 LAX·NRT·HKG로 바뀜. cf-test는 5번 모두 ICN80
+- 서버 안 시간(오래 쉰 뒤 지연)은 이 비교와 따로임: 길을 바꿔도 그 몫은 남음
+
+운영 주소를 바꿔 끼울지는 사용자가 정함(4절 마지막 줄의 순서).
