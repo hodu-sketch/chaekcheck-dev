@@ -272,6 +272,28 @@ class AiSearchFlowTests {
 	}
 
 	@Test
+	void aWarmRunGoesUpToTheCardsWithoutHaikuOrAUsageRow() { // user 2026-11-28 「데우기」
+		mlOn(java.util.Map.of("과학 책 추천해줘", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.BOOK),
+				List.of(2L, 5L, 7L));
+
+		String steps = flow().warm("과학 책 추천해줘", Set.of(101L, 102L));
+
+		assertThat(steps).startsWith("start=").contains(" encode=", " ml=", " nearest=", " cards=");
+		assertThat(llm.calls).isEmpty();
+		assertThat(usageLog.records).isEmpty();
+		assertThat(sink.events).isEmpty();
+	}
+
+	@Test
+	void aWarmRunWithoutTheMlFirstCallMakesNoKeywordCallEither() { // user 2026-11-28 「데우기」
+		String steps = flow().warm("과학 책 추천해줘", Set.of(101L, 102L));
+
+		assertThat(steps).startsWith("start=");
+		assertThat(llm.calls).isEmpty();
+		assertThat(usageLog.records).isEmpty();
+	}
+
+	@Test
 	void withTheMlFirstCallAQuestionAbout책첵IsAnsweredFromTheSiteText() { // user 2026-10-26
 		mlOn(java.util.Map.of("책첵은 무료야?", com.chaekcheck.aisearch.internal.firstcall.TinyFirstCall.SITE), List.of());
 		llm.then(Answer.ok("{\"answer\":\"네, 책첵은 무료예요.\"}", 300, 20));

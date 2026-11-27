@@ -405,6 +405,11 @@ chaekcheck:
     # secrets and the privacy policy version is in force (CHAEKCHECK_AISEARCH_ENABLED). Off: the address answers 404
     # and the web hides the AI tab. Values: plan docs/settings-index.md 10절, docs/maintenance/settings-index.md 1-1절
     enabled: ${CHAEKCHECK_AISEARCH_ENABLED:false}
+    # Before the backend says ready, three first questions run up to the cards, without Haiku (user 2026-11-28
+    # 「데우기」: right after a restart the first search took 1,461 ms to its cards, the second 560 ms). Values:
+    # docs/maintenance/settings-index.md 1-1절
+    warm:
+      enabled: ${CHAEKCHECK_AISEARCH_WARM_ENABLED:true}
     # the day of the daily limits and of daily_usage
     zone: Asia/Seoul
     # 1st call (keywords) and the whole 2nd call (choice and text) [확정 처음 값]; step 1 maxima 2.4 s and 8.2 s.

@@ -784,6 +784,22 @@ anthropic stream: head 900 ms, first text 1300 ms, done 6000 ms, tokens 8500/140
 
 근거: `AiSearchFlow.run`의 `log.info`, `AiSearchFlow.Run.mark`.
 
+### 7-1. 켜질 때 데우기 (다음 판)
+
+백엔드가 켜지면 준비 완료(readiness)를 알리기 전에 `AiSearchWarmUp`이 첫 질문 3개(「요즘 읽기 좋은 소설 추천해줘」, 「파이썬 처음 배우는 사람을 위한 책」, 「마음이 힘들 때 위로가 되는 에세이」)를 하나씩 검색 흐름에 넣습니다(사용자 2026-11-28 「데우기」).
+
+- **어디까지 도나:** 위 `steps`의 `start`\~`cards`까지 전부 돕니다. 질문 벡터(임베딩 서버를 부름), ML 1차, 가까운 책, 이름 댄 책·제목 찾기, 낱말 후보(DB), 합치기, 카드 재료가 다 돕니다. 그 뒤 Haiku는 부르지 않습니다. ML 1차가 늦어 Haiku 1차로 넘어갈 자리에서는 질문의 낱말로 대신합니다.
+- **남지 않는 것:** 검색 로그 줄 `ai search:`, 사용 기록, 하루 비용·한도, `idle`(앞 검색 시각)이 바뀌지 않습니다. 사용자에게 가는 것도 없습니다.
+- **계획 도서관:** 지역을 고르지 않은 계획의 도서관 전부입니다(`LibraryCatalog.planSearch`에 빈 지역).
+- **배포와의 관계:** Spring Boot는 `ApplicationRunner`가 다 끝난 뒤에 준비 완료를 알립니다. `bin/switch.sh`는 준비 완료를 기다린 뒤 nginx를 새 칸으로 돌리므로, 방문자는 데워진 백엔드만 만납니다. 데우기 시간만큼 `ready=…s`가 늘어납니다.
+- **실패해도 켜집니다:** 예외가 나면 경고 한 줄을 남기고 남은 질문을 건너뜁니다.
+- **로그:** 질문마다 `ai search warm-up 1/3: <ms> ms, steps start=… cards=…`, 끝에 `ai search warm-up: 3 of 3 in <ms> ms`.
+- **설정:** `warm.enabled`(`CHAEKCHECK_AISEARCH_WARM_ENABLED`, 기본 켬, 테스트는 끔). AI 검색이 꺼져 있으면 돌지 않습니다.
+
+왜 넣었나(2026-11-28 운영 측정, v1.24.2): 백엔드를 다시 켠 직후 첫 검색은 카드 재료까지 1,461ms, 사용자 첫 글까지 3,451ms였습니다. 두 번째 검색은 560ms·2,110ms, 세 번째부터는 376\~480ms였습니다. 늘어난 시간이 `start`·`encode`·`ml`·`nearest`·`neighbours`·`cards`에 고루 퍼져 있어 처음 도는 코드와 질의의 준비 비용으로 봤습니다. 쉬는 동안 주기적으로 데우는 안은 넣지 않았습니다. 00:28에 오래 쉰 뒤 재 보니 느려지지 않았습니다.
+
+근거: `AiSearchWarmUp`, `AiSearchFlow.warm`.
+
 ## 8. 설정 값
 
 「코드 기본」은 `backend/src/main/resources/application.yml`(괄호 안은 그 값을 바꾸는 환경 변수), 「운영」은 `deploy/prod/prod.env`(없으면 코드 기본이 그대로) 또는 `deploy/prod/compose.yaml`입니다. 앞에 `chaekcheck.aisearch.`를 줄였습니다.

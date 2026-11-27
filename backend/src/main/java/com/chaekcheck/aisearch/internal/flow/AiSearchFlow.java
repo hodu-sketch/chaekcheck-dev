@@ -357,9 +357,20 @@ public class AiSearchFlow {
 
 		final long startedNanos;
 
+		/**
+		 * A warm-up run ({@link AiSearchFlow#warm}): every step up to the cards, then no Haiku call, no usage row, no
+		 * idle clock.
+		 */
+		final boolean warm;
+
 		Run(AiSearchSink sink, long startedNanos) {
+			this(sink, startedNanos, false);
+		}
+
+		Run(AiSearchSink sink, long startedNanos, boolean warm) {
 			this.sink = sink;
 			this.startedNanos = startedNanos;
+			this.warm = warm;
 		}
 
 		/** Prompt cache tokens of the calls (user 2026-11-26: the first search after a long idle). */
@@ -393,6 +404,35 @@ public class AiSearchFlow {
 			return !gone;
 		}
 
+	}
+
+	/** Takes every event and keeps none: a warm-up run has no client. */
+	private static final AiSearchSink NO_CLIENT = new AiSearchSink() {
+
+		@Override
+		public boolean send(String event, Object data) {
+			return true;
+		}
+
+		@Override
+		public void complete() {
+		}
+
+	};
+
+	/**
+	 * Runs a first question through every step up to the cards (question vector, ML first call, nearest books, keyword
+	 * search, mix, reading texts) and stops before Haiku: the warm-up before the backend takes requests (user
+	 * 2026-11-28 「데우기」, docs/features/aisearch/1-how-it-works.md 7). Production 2026-11-28 after a restart: the
+	 * first search took 1,461 ms to its cards, the second 560 ms, the code running for the first time. Nothing is
+	 * logged as a search, counted in the usage log or the daily budget, or taken as the search before.
+	 * @return the steps, as the search log line writes them
+	 */
+	String warm(String question, Set<Long> planLibraryIds) {
+		Run run = new Run(NO_CLIENT, System.nanoTime(), true);
+		run.mark("start");
+		answer(new Input(question, 1, List.of(), planLibraryIds, null, run.startedNanos), run);
+		return run.steps.toString();
 	}
 
 	public void run(Input input, AiSearchSink sink) {
@@ -1252,6 +1292,9 @@ public class AiSearchFlow {
 	 * fixed ask-back with three drawn examples goes out instead (user 2026-10-26).
 	 */
 	private void chat(Input input, List<ShownTurn> history, Run run) {
+		if (run.warm) {
+			return;
+		}
 		LlmCall call = new LlmCall(Prompts.CHAT_SYSTEM, Prompts.chatMessages(history, input.question()),
 				Prompts.CHAT_SCHEMA, properties.firstCall().siteMaxTokens());
 		try {
@@ -1296,7 +1339,7 @@ public class AiSearchFlow {
 	 * its question only when no head went out. Failing, nothing more goes out and the web shows its examples.
 	 */
 	private void noMatchChoices(Input input, List<ShownTurn> history, Run run, String head) {
-		if (!pick.askBack()) {
+		if (!pick.askBack() || run.warm) {
 			return;
 		}
 		LlmCall call = new LlmCall(Prompts.NO_MATCH_SYSTEM, Prompts.chatMessages(history, input.question()),
@@ -1335,6 +1378,9 @@ public class AiSearchFlow {
 	 * {@code site}. Failing, it ends as {@code no_match} like a question that is not about books.
 	 */
 	private void site(Input input, List<ShownTurn> history, Run run) {
+		if (run.warm) {
+			return;
+		}
 		LlmCall call = new LlmCall(Prompts.SITE_SYSTEM, Prompts.siteMessages(history, input.question()),
 				Prompts.SITE_SCHEMA, properties.firstCall().siteMaxTokens());
 		try {
@@ -1359,6 +1405,11 @@ public class AiSearchFlow {
 	}
 
 	private KeywordPlan keywords(String question, List<ShownTurn> history, Run run) {
+		if (run.warm) {
+			// the ML first call was late or off: the question's own words, never a Haiku call
+			return new KeywordPlan(false, false, "", false, MlFirstCall.firstKeywords(question), List.of(),
+					KeywordResult.OK);
+		}
 		LlmCall call = new LlmCall(Prompts.KEYWORD_SYSTEM, Prompts.keywordMessages(history, question),
 				Prompts.KEYWORD_SCHEMA, properties.keywordMaxTokens());
 		KeywordResult failed;
@@ -1422,6 +1473,9 @@ public class AiSearchFlow {
 	 */
 	private void picks(Input input, List<ShownTurn> history, List<Long> ids, List<Choice> choices, Cards cards,
 			boolean pointsBack, Talk talk, String titleNote, Run run) {
+		if (run.warm) {
+			return;
+		}
 		int maxPicks = properties.limits().picks();
 		int maxChars = properties.limits().cardTextMaxChars();
 		Set<Long> seen = new HashSet<>();

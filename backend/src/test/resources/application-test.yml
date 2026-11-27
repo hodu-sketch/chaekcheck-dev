@@ -10,6 +10,9 @@ spring:
 
 chaekcheck:
   aisearch:
+    # No warm-up questions at a test context's start; AiSearchWarmUpTests and AiSearchFlowTests call it themselves
+    warm:
+      enabled: false
     llm:
       anthropic:
         # Tests never call the real API, even when the session has a key in the environment
