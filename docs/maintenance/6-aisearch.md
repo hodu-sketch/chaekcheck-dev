@@ -143,7 +143,7 @@ FROM catalog.book_search;
 | 복구 | 하드웨어 문제는 AWS 자동 복구(`MaintenanceOptions.AutoRecovery = default`, 켜짐). 서버 안이 멈춰 상태 검사(`StatusCheckFailed_Instance`)가 3분 연속 실패하면 CloudWatch 알람 `chaekcheck-embed-reboot-on-instance-check`가 재부팅(2026-10-25). 컨테이너는 `--restart unless-stopped`라 재부팅 뒤 저절로 뜸. 알림 메일은 아직 없음 |
 | 비용 | 무료 플랜 크레딧에서 나감(계정은 무료 플랜, 2026-10-25 남은 크레딧 $197.96) |
 | 파일 | `/srv/embed/model/`(모델 폴더, `parity.json` 포함), `/srv/embed/embed.env`(chmod 600, `EMBED_TOKEN=`) |
-| 컨테이너 | `docker run -d --name embed --restart unless-stopped -p 8090:8090 --env-file /srv/embed/embed.env -e EMBED_MODEL_DIR=/model -e JAVA_TOOL_OPTIONS="-Xmx128m -XX:+ExitOnOutOfMemoryError" -e TZ=Asia/Seoul -v /srv/embed/model:/model:ro --memory=750m chaekcheck/embed:0.1.0` |
+| 컨테이너 | `docker run -d --name embed --restart unless-stopped -p 8090:8090 --env-file /srv/embed/embed.env -e EMBED_MODEL_DIR=/model -e JAVA_TOOL_OPTIONS="-Xmx128m -XX:+ExitOnOutOfMemoryError" -e TZ=Asia/Seoul -v /srv/embed/model:/model:ro --memory=1200m --memory-swap=2400m chaekcheck/embed:0.1.0` (2026-11-27까지 `--memory=750m`: 모델 402MB가 이름 없는 메모리에 올라가 컨테이너가 상한에 붙어 있었고(켜진 뒤 4분에 상한 도달 740번), 쉬는 동안 스왑으로 밀림. 서버를 2GB로 올린 뒤 `docker update --memory 1200m --memory-swap 2400m embed`로 바꿈. 확인: `cat /sys/fs/cgroup/system.slice/docker-<id>.scope/memory.events`의 `max`가 늘지 않음) |
 | 이미지 | PC에서 `embed-service/`의 `./gradlew bootJar` 뒤 WSL `docker buildx build --platform linux/arm64 -t chaekcheck/embed:X.Y.Z --load .` → `docker save | gzip` → scp → `docker load` |
 
 - 잰 값(2026-10-25): 모델 올리기 4.3초, 컨테이너 435\~456MB, 질문 하나 60\~68ms(첫 번째 1.9초), 운영 서버→임베딩 서버 3\~5ms. 운영 서버에서 `curl http://$CHAEKCHECK_EMBED_IP:8090/api/v1/health` → `{"ready":true}`, 토큰 없이 `/api/v1/embed` → 401, 인터넷에서는 막힘
