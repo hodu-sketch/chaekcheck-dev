@@ -10,6 +10,8 @@
 
 ## 다음 판 (아직 배포 안 됨)
 
+- 운영 인프라(코드 변경 없음, 2026-11-27): chaekcheck.com이 Cloudflare 터널 대신 Amazon CloudFront(서울 거점) → VPC 오리진 → 운영 서버 8089로 들어옴. AI 검색 첫 글 가운데값 2.26 → 1.75초(cf-test 비교). Cloudflare는 DNS만, `www` 넘겨주기는 그대로. 터널은 되돌리기용으로 한동안 켜 둠. 절차 `docs/maintenance/cloudfront-trial.md` 6절
+
 ## v1.24.2 (2026-11-27)
 
 - CloudFront 길(nginx 8089): 방문자 IP를 `X-Forwarded-For`의 마지막 값(CloudFront가 붙인 것)으로 읽음. CloudFront는 사설이 아닌 공인 주소(54.x)에서 붙어, 전에는 방문자 IP가 CloudFront 주소로 잡혀 IP별 제한이 모두를 한 사람으로 셀 뻔함(2026-11-27 cf-test에서 발견)

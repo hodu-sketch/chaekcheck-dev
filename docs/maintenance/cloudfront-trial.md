@@ -82,7 +82,7 @@ AI 검색(`first_search_timing.py`, 질문 5개를 두 이름에 번갈아, 7초
 
 ## 6. 운영 주소 바꿔 끼우기 (준비, 2026-11-27)
 
-사용자 2026-11-27 「바꿔 끼우기 준비」. 아직 바꾸지 않음. 아래는 바꿀 때의 차례입니다.
+사용자 2026-11-27 「바꿔 끼우기 준비」, 「지금 바꿔」. **2026-11-27 23:5x에 바꿈**: chaekcheck.com은 CloudFront(`EOK9HHF65GSW3`)로 들어옴. 아래는 그때 한 차례이며, 다시 할 때도 같습니다.
 
 ### 6-1. 바꾸기 전에 끝낼 것
 
@@ -102,7 +102,7 @@ AI 검색(`first_search_timing.py`, 질문 5개를 두 이름에 번갈아, 7초
    jq '.DistributionConfig | .Aliases.Items += ["chaekcheck.com"] | .Aliases.Quantity = (.Aliases.Items|length)' dc.json > dc-new.json
    aws cloudfront update-distribution --id $D --if-match $E --distribution-config file://dc-new.json --query Distribution.Status --output text
    ```
-2. **되돌릴 값 적어 두기**: Cloudflare DNS의 `chaekcheck.com` 기록(지금 종류 `Tunnel`, 이름 `chaekcheck`)을 열어 터널 ID를 적음. 되돌릴 때 `CNAME chaekcheck.com → <터널 ID>.cfargotunnel.com`, Proxied
+2. **되돌릴 값 적어 두기**: Cloudflare DNS의 `chaekcheck.com` 기록(지금 종류 `Tunnel`, 이름 `chaekcheck`)을 열어 터널 ID를 적음. 되돌릴 때 `CNAME chaekcheck.com → <터널 ID>.cfargotunnel.com`, Proxied. 2026-11-27에 바꾸기 전 값: `6ab7232f-8d79-42aa-8a14-74ac3408ba87.cfargotunnel.com`(Proxied)
 3. **DNS 바꾸기** (Cloudflare 대시보드 > chaekcheck.com > DNS): `chaekcheck.com` 기록을 `CNAME chaekcheck.com → d1def6gjpe87eo.cloudfront.net`, **DNS only**로 바꿈(루트 이름의 CNAME은 Cloudflare가 펼쳐 줌). `www.chaekcheck.com`(Cloudflare 넘겨주기)과 TXT는 그대로
 4. 바뀌는 동안 두 길이 같은 서버로 가므로 끊김이 없음. 캐시된 DNS가 바뀌는 데 몇 분
 
@@ -121,3 +121,12 @@ Cloudflare DNS의 `chaekcheck.com` 기록을 6-2의 2번에서 적은 터널 기
 
 - Cloudflare의 봇 막기·DDoS 보호·통계는 chaekcheck.com에서 빠짐. CloudFront 기본 보호(AWS Shield Standard)와 nginx의 IP별 제한(`rate-limits.conf`)은 남음
 - 비용: CloudFront 상시 무료 한도(월 1TB, 요청 1,000만) 안으로 봄 [추론]
+
+### 6-6. 바꾼 뒤 확인 결과 (2026-11-27)
+
+- `https://chaekcheck.com/api/v1/version` → 200, `x-amz-cf-pop: ICN80-P2`, 판 1.24.2
+- `www.chaekcheck.com` → 301 `https://chaekcheck.com/`(Cloudflare 넘겨주기 그대로)
+- AI 검색: 거점 ICN80, 연결 84ms, 페이지 첫 요청 171ms, 첫 글 3.68초(10분쯤 쉰 뒤)
+- `GET /api/v1/regions/guess` → 집 PC에서 `서울`
+- nginx 로그: 2분 동안 PC IP 10건, CloudFront 주소로 잡힌 방문자 0건
+- 카카오 로그인: 사용자 확인 기다림

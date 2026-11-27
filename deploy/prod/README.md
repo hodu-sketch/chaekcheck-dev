@@ -2,7 +2,7 @@
 
 | 파일 | 하는 일 |
 |---|---|
-| `compose.yaml` | db + backend-blue/green(두 자리) + web(nginx, 폴더 mount) + cloudflared. 포트는 서버 안(127.0.0.1)에만, 바깥은 Cloudflare Tunnel로만. 예외: CloudFront 시험의 `8089`(보안 그룹이 CloudFront VPC 오리진 그룹만 들임, [cloudfront-trial.md](../../docs/maintenance/cloudfront-trial.md)) |
+| `compose.yaml` | db + backend-blue/green(두 자리) + web(nginx, 폴더 mount) + cloudflared. **2026-11-27부터 chaekcheck.com은 CloudFront → 8089로 들어옴**(터널은 되돌리기용으로 켜 둠, [cloudfront-trial.md](../../docs/maintenance/cloudfront-trial.md) 6절). 포트는 서버 안(127.0.0.1)에만, 바깥은 Cloudflare Tunnel로만. 예외: CloudFront 시험의 `8089`(보안 그룹이 CloudFront VPC 오리진 그룹만 들임, [cloudfront-trial.md](../../docs/maintenance/cloudfront-trial.md)) |
 | `cloudfront/setup-trial.sh` | CloudFront 시험용 AWS 설정(AWS CloudShell에서 돌림): 인증서, VPC 오리진, 보안 그룹 규칙, 배포 `cf-test.chaekcheck.com` |
 | `prod.env` | 비밀이 아닌 설정(공개 주소, 로그인·이용 기록 켜기, AI 검색 스위치: 켜기·질문 벡터·1차 ML·이어 묻기·되묻기·생각 끄기·캐시, 「나에게 맞는 책」 만들기 `CHAEKCHECK_FORYOU_BUILD_ENABLED`). AI 검색 값은 `docs/maintenance/6-aisearch.md` 0절 |
 | `bin/up.sh` | 서버에서 띄우기. Parameter Store `/chaekcheck/prod/`를 EC2 역할로 읽어 `secrets.env`(600)를 쓰고, `slots.env`의 일하는 자리(ACTIVE_SLOT)만 compose up. 손으로 둔 `secrets.env`가 있으면 그것을 씀 |
