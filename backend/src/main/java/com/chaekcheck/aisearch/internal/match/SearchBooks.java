@@ -63,6 +63,11 @@ public class SearchBooks {
 	private record Loaded(Map<Long, SearchBook> byId, List<SearchBook> books) {
 	}
 
+	/** Whether the books were read already (the warm-up before ready reads them, user 2026-11-28). */
+	public boolean isRead() {
+		return loaded != null;
+	}
+
 	/** Every search book by id. Empty before the first import. */
 	public Map<Long, SearchBook> byId() {
 		return current().byId();

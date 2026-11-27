@@ -8,6 +8,13 @@ import org.junit.jupiter.api.Test;
 class SearchBooksReloadTests {
 
 	@Test
+	void theBooksTheWarmUpReadAreNotReadAgainWhenReady() { // user 2026-11-28 「데우기」
+		assertThat(SearchBooksReload.readAtStart(true, false)).isTrue();
+		assertThat(SearchBooksReload.readAtStart(true, true)).isFalse();
+		assertThat(SearchBooksReload.readAtStart(false, false)).isFalse();
+	}
+
+	@Test
 	void onlyLoopbackAndPrivateAddressesMayAsk() {
 		assertThat(SearchBooksReload.inside("127.0.0.1")).isTrue();
 		assertThat(SearchBooksReload.inside("::1")).isTrue();

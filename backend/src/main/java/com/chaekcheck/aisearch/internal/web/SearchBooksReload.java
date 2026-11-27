@@ -46,9 +46,18 @@ class SearchBooksReload {
 
 	@EventListener(ApplicationReadyEvent.class)
 	void readAtStart() {
-		if (properties.enabled()) {
+		if (readAtStart(properties.enabled(), books.isRead())) {
 			start();
 		}
+	}
+
+	/**
+	 * Whether the books are read when the application is ready: not when the warm-up before ready read them already
+	 * (production v1.25.0, 2026-11-28: the second read put in a new set 4 s after ready, and the first search after it
+	 * took 293 ms in {@code neighbours} instead of 3).
+	 */
+	static boolean readAtStart(boolean on, boolean alreadyRead) {
+		return on && !alreadyRead;
 	}
 
 	@PostMapping("/internal/aisearch/books/reload")
