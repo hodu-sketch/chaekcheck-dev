@@ -913,7 +913,7 @@ public class AiSearchFlow {
 			return List.of();
 		}
 		catch (ExecutionException e) {
-			log.warn("ai search: the question vector failed: {}", e.getCause().getClass().getName());
+			log.warn("ai search: the question vector failed: {}", vectorFailure(e.getCause()));
 			return List.of();
 		}
 		catch (InterruptedException e) {
@@ -1233,7 +1233,7 @@ public class AiSearchFlow {
 		catch (ExecutionException e) {
 			if (!(e.getCause() instanceof QuestionVectors.Unavailable)) {
 				log.warn("ai search: the question vector failed ({}), haiku makes the first step",
-						e.getCause().getClass().getName());
+						vectorFailure(e.getCause()));
 			}
 		}
 		catch (InterruptedException e) {
@@ -1653,6 +1653,19 @@ public class AiSearchFlow {
 		run.cacheReadTokens += usage.cacheReadTokens();
 		run.cacheWriteTokens += usage.cacheCreationTokens();
 		run.outputTokens += budget.addCall(usage, maxTokens);
+	}
+
+	/**
+	 * A question-vector failure for the log: its class and its own message (the encoders' messages say what went
+	 * wrong, e.g. "the embedding server did not answer: HttpTimeoutException", never the question), and the cause's class
+	 * when there is one. Before 2026-11-27 only the class was logged, so a timeout and an error answer looked the same.
+	 */
+	static String vectorFailure(Throwable failure) {
+		String message = failure.getMessage();
+		String text = failure.getClass().getName() + (message == null ? "" : ": "
+				+ (message.length() > 200 ? message.substring(0, 200) : message));
+		Throwable cause = failure.getCause();
+		return cause == null || cause == failure ? text : text + " (cause " + cause.getClass().getName() + ")";
 	}
 
 	private static void finish(Run run, PickResult result, String doneResult) {

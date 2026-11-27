@@ -10,6 +10,9 @@
 
 ## 다음 판 (아직 배포 안 됨)
 
+- AI 검색 로그: 질문 벡터가 실패하면 예외 종류만이 아니라 그 메시지와 원인 종류도 남김(`the question vector failed (… : the embedding server did not answer: HttpTimeoutException …)`). 전에는 시간 초과와 오류 응답이 같은 줄로 보였음(2026-11-27)
+- 운영 인프라(코드 변경 없음, 2026-11-27): 임베딩 서버 `chaekcheck-embed`를 t4g.micro(904MB) → t4g.small(2GB). 쉬는 동안 임베딩 자바 메모리 216MB가 스왑으로 밀려, 오래 쉰 뒤 첫 AI 검색이 질문 벡터 1.5초 제한을 넘기고 Haiku 1차(약 2.5초)로 넘어가던 것. 절차와 숫자 `docs/maintenance/6-aisearch.md` 7-1
+
 ## v1.24.1 (2026-11-27)
 
 - AI 검색 로그: 오래 쉰 뒤 첫 검색이 느린 까닭을 나눠 보려고(사용자 2026-11-26) `ai search:` 줄에 `cache r…/w…`(프롬프트 캐시 읽기·쓰기 토큰), `idle`(앞 검색 뒤 지난 초), 단계 `start`·`llm-call`·`text-first`(사용자에게 첫 글을 보낸 때)를 더함. Anthropic 호출마다 `anthropic stream: head … ms, first text … ms, done … ms, … (cache r…/w…), request …` 한 줄(전에는 debug). 동작 변화 없음

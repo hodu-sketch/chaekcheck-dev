@@ -136,7 +136,7 @@ FROM catalog.book_search;
 
 | 항목 | 값 |
 |---|---|
-| 인스턴스 | `chaekcheck-embed` `i-098cd64ff48a14550`, t4g.micro(ARM, 메모리 904MB + 스왑 1GB), Ubuntu 24.04, 16GB gp3, ap-southeast-2b(운영과 같은 서브넷 `subnet-0e10283f90a669274`) |
+| 인스턴스 | `chaekcheck-embed` `i-098cd64ff48a14550`, t4g.small(ARM, 메모리 2GB + 스왑 1GB; 2026-11-27 t4g.micro 904MB에서 올림: 쉬는 동안 임베딩 자바 약 580MB 중 216MB가 스왑으로 밀려, 오래 쉰 뒤 첫 질문이 1.5초 제한을 넘겨 Haiku 1차로 넘어감. 올린 뒤 스왑 4MB, 요청 0.04\~0.05초), Ubuntu 24.04, 16GB gp3, ap-southeast-2b(운영과 같은 서브넷 `subnet-0e10283f90a669274`) |
 | 주소 | 사설 `$CHAEKCHECK_EMBED_IP`(백엔드가 쓰는 주소, 멈췄다 켜도 그대로), 공인 `$CHAEKCHECK_EMBED_PUBLIC_IP`(SSH용, 멈췄다 켜면 바뀜). `.secrets/`나 `.env`에 실제 IP를 넣으세요 |
 | 보안 그룹 | `chaekcheck-embed` `sg-01e9e764c2cf06b25`: 8090은 운영 서버 보안 그룹 `sg-0f424434c56c5d021`에서만, 22는 관리 PC IP에서만(IP가 바뀌면 이 규칙을 고침) |
 | SSH | 운영과 같은 키: `ssh -i .secrets/chaekcheck-key.pem ubuntu@$CHAEKCHECK_EMBED_PUBLIC_IP` |
