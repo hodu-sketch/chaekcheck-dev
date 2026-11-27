@@ -129,4 +129,4 @@ Cloudflare DNS의 `chaekcheck.com` 기록을 6-2의 2번에서 적은 터널 기
 - AI 검색: 거점 ICN80, 연결 84ms, 페이지 첫 요청 171ms, 첫 글 3.68초(10분쯤 쉰 뒤)
 - `GET /api/v1/regions/guess` → 집 PC에서 `서울`
 - nginx 로그: 2분 동안 PC IP 10건, CloudFront 주소로 잡힌 방문자 0건
-- 카카오 로그인: 사용자 확인 기다림
+- 카카오 로그인: 사용자가 chaekcheck.com에서 로그인 확인(2026-11-27)
