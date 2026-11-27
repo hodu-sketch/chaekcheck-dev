@@ -88,10 +88,10 @@ AI 검색(`first_search_timing.py`, 질문 5개를 두 이름에 번갈아, 7초
 
 | 할 것 | 상태 |
 |---|---|
-| nginx 8089: 방문자 IP를 `X-Forwarded-For`의 마지막 값으로(CloudFront는 공인 주소 54.x에서 붙음). 전에는 방문자 IP가 CloudFront 주소로 잡혀 IP별 제한이 모두를 한 사람으로 셀 뻔함 | v1.24.2 |
-| CloudFront `/assets/*` 자동 압축(`Compress`). 전에는 JS가 압축 없이 875KB(Cloudflare는 brotli 248KB) | 2026-11-27 켬, `setup-trial.sh`에도 반영 |
+| nginx 8089: 방문자 IP를 `X-Forwarded-For`의 마지막 값으로(CloudFront는 공인 주소 54.x에서 붙음). 전에는 방문자 IP가 CloudFront 주소로 잡혀 IP별 제한이 모두를 한 사람으로 셀 뻔함 | v1.24.2(2026-11-27 배포) |
+| CloudFront `/assets/*` 자동 압축(`Compress`). 전에는 JS가 압축 없이 875KB(Cloudflare는 brotli 248KB) | 2026-11-27 켬, 캐시 비움(`/assets/*` 무효화), `setup-trial.sh`에도 반영. 확인: JS brotli 221KB |
 | cf-test로 도서관 대출 조회 스트림, AI 검색 스트림 | 2026-11-27 둘 다 정상 |
-| 바꾼 뒤 cf-test 로그에 방문자 PC IP가 찍히는지 | v1.24.2 배포 뒤 확인 |
+| cf-test 로그에 방문자 PC IP가 찍히는지 | 2026-11-27 v1.24.2 뒤 확인(PC IP) |
 
 ### 6-2. 바꾸는 차례 (몇 분, 끊김 없음)
 
